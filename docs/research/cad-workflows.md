@@ -4,12 +4,12 @@ Research date: **2026-10-11**. Result: an initial dependency-ordered 130-issue
 [backlog](../backlog/README.md), expanded to 135 issues after the required
 macOS/Windows/Linux milestone-release work was added. See the
 [cross-platform research](cross-platform-releases.md).
-and twelve cumulative useful-product gates. This is researched specification
+The expanded graph has thirteen cumulative validation gates. This is researched specification
 and implementation planning, not a claim of implemented reference CAD application compatibility.
 The working application at the start of this research was a Qt shell with local
 control and a QPainter reference grid, without a CAD document. Hardware-backed
-OCCT/OpenGL viewport work is now explicitly required and being handled as a
-bounded follow-up; consult [context](../context.md) for current implementation.
+OCCT/OpenGL viewport work was implemented as a bounded follow-up; consult
+[context](../context.md) for current implementation and verified limits.
 
 ## Reference method and accepted constraints
 

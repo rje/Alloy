@@ -15,7 +15,8 @@ downloads Qt 6.11.2 using a reviewed pinned aqt revision and builds exact OCCT
 pinned. Other downloader dependencies, hosted image revisions and system headers
 still need the reproducibility audit in FND-009.
 
-The first matrix run is pending verification. Its artifacts deliberately carry
+The first [matrix run](https://github.com/rje/Alloy/actions/runs/38184291114) is
+underway and pending verification. Its artifacts deliberately carry
 `unbundled` names and include compilation logs/receipts. They require development
 libraries and are **not supported runnable release packages**. No tagged binary
 release has been published. Only the local macOS hardware viewport is verified.

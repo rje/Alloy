@@ -82,7 +82,8 @@ and [deep dive](research/cad-workflows.md) before pulling work. Run
 The later cross-platform requirement added five issues: FND-012, CI-001,
 CI-002, GATE-005 and CI-003. Read [releases.md](releases.md) and the
 [release research](research/cross-platform-releases.md). Native CI is seeded
-for macOS arm64/Intel, Windows x64 and Ubuntu24.04 x64; its first run is pending.
+for macOS arm64/Intel, Windows x64 and Ubuntu24.04 x64; its first
+[run](https://github.com/rje/Alloy/actions/runs/38184291114) is underway and pending verification.
 It retains unbundled compile artifacts, not yet independently runnable packages.
 Windows named-pipe control, Linux X11/GLX runtime qualification, relocation,
 dependency notices and tagged milestone publishing remain open.

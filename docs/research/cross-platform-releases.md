@@ -9,7 +9,7 @@ open-source foundations are in scope; no reference CAD application runtime was a
 
 ## Minimal recommendation
 
-Use native GitHub Actions jobs for **macOS arm64**, **Windows x64/MSVC 2022**, and
+Use native GitHub Actions jobs for **macOS arm64/Intel x64**, **Windows x64/MSVC 2022**, and
 **Linux x64/Ubuntu 24.04**. Obtain exact Qt 6.11.2 public binaries, build OCCT
 `V7_9_3` as shared libraries with the same native toolchain, build Alloy in Release,
 and stage its complete runtime. Package a zipped `.app`, a Windows ZIP and a
@@ -18,7 +18,8 @@ Flatpak and package-manager submissions until these relocatable packages work.
 These are implementation choices, not claims that other architectures are out
 of the product scope.
 
-Every milestone candidate should produce all three **Actions artifacts** plus
+Every milestone candidate should produce archives for every declared architecture
+across all three OSes as **Actions artifacts**, plus
 logs, dependency manifests, hashes and evidence. An explicitly selected tag then
 promotes the same tested packages to a **GitHub prerelease** after applicable
 license, package and cumulative workflow gates pass. A stable release additionally
@@ -28,15 +29,15 @@ GPU/CAD workflows. A foundation milestone may truthfully ship a prerelease shell
 
 | Proposed native job | Initial package target | Main checks still required |
 | --- | --- | --- |
-| `macos-15` arm64, Apple Clang | Apple silicon, initially the tested macOS baseline | Bundle relocation, native Retina/GPU, signing/notarization policy |
+| `macos-15` arm64 and `macos-15-intel` x64, Apple Clang | Apple silicon and Intel candidates, initially the tested macOS baseline | Bundle relocation, native Retina/GPU, signing/notarization policy |
 | `windows-2022` x64, MSVC 2022 | Windows 11 x64 first | WNT/WGL integration, named-pipe API/client, DPI, runtime deployment |
 | `ubuntu-24.04` x64, GCC 13 | Ubuntu 24.04 x64 desktop/X11 or XWayland | Xw/GLX integration, xcb dependencies, GPU driver, relocatable runtime |
 
 GitHub currently documents these runner labels. Explicit OS labels avoid the
 moving `-latest` alias, but runner image revisions still change: record the image
 version and compiler versions in each receipt. Standard hosted machines are VMs;
-their listing is not a guarantee of qualifying desktop graphics. A later Intel
-macOS job can use `macos-15-intel`. These observations come from the [runner
+their listing is not a guarantee of qualifying desktop graphics. The initial CI
+seed includes Intel macOS using `macos-15-intel`. These observations come from the [runner
 reference](https://docs.github.com/en/actions/reference/runners/github-hosted-runners),
 retrieved 2026-10-11.
 

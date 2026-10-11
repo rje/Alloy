@@ -1,17 +1,17 @@
 {
-  "verified_at": "2026-10-11T23:11:50.469720+00:00",
+  "verified_at": "2026-10-11T23:27:57.528493+00:00",
   "repository": "https://github.com/rje/Alloy",
   "visibility": "public",
   "license": "MIT",
-  "total": 130,
+  "total": 135,
   "kinds": {
     "research": 13,
-    "implementation": 83,
-    "validation": 12,
+    "implementation": 87,
+    "validation": 13,
     "epic": 22
   },
   "states": {
-    "open": 129,
+    "open": 134,
     "closed": 1
   },
   "ready": [
@@ -33,5 +33,5 @@
     "public MIT repository"
   ],
   "project_url": "https://github.com/users/rje/projects/1",
-  "project_verification": "Public board and repository auto-add were configured during creation; current CLI token lacks project scope, so board item count was not independently verified through API."
+  "project_verification": "Public board and repository auto-add configured at creation. Current CLI token lacks project scope; board item count was not independently verified through API."
 }
