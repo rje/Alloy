@@ -1,5 +1,7 @@
 #include "AlloyWindow.h"
+#include "ReferenceView.h"
 #include <QApplication>
+#include <QCryptographicHash>
 #include <QDialog>
 #include <QDir>
 #include <QFileInfo>
@@ -39,98 +41,6 @@ QWidget* divider() {
     return line;
 }
 }
-
-class ReferenceView final : public QWidget {
-public:
-    QString orientation = "isometric";
-    bool grid = true;
-    bool origin = true;
-    double zoom = 1.0;
-    QPointF pan;
-    std::function<void(const QString&, const QJsonObject&)> dispatch;
-    explicit ReferenceView(QWidget* parent = nullptr) : QWidget(parent) {
-        setMinimumSize(400, 300);
-        setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-        setFocusPolicy(Qt::StrongFocus);
-    }
-protected:
-    void paintEvent(QPaintEvent*) override {
-        QPainter p(this);
-        p.setRenderHint(QPainter::Antialiasing);
-        QLinearGradient background(0, 0, 0, height());
-        background.setColorAt(0, QColor("#ffffff"));
-        background.setColorAt(1, QColor("#f0f2f3"));
-        p.fillRect(rect(), background);
-        QPointF x, y, z;
-        if (orientation == "top") { x = {1, 0}; y = {0, -1}; z = {0, 0}; }
-        else if (orientation == "front") { x = {1, 0}; y = {0, 0}; z = {0, -1}; }
-        else if (orientation == "right") { x = {0, 0}; y = {1, 0}; z = {0, -1}; }
-        else { x = {0.866, 0.5}; y = {-0.866, 0.5}; z = {0, -1}; }
-        const QPointF center(width() * 0.50, height() * 0.57);
-        const QPointF base = center + pan;
-        const double unit = 24 * zoom;
-        const QPointF a = orientation == "right" ? y : x;
-        const QPointF b = (orientation == "front" || orientation == "right") ? z : y;
-        if (grid) {
-            for (int i = -16; i <= 16; ++i) {
-                p.setPen(QPen(i % 5 == 0 ? QColor("#d4dbe0") : QColor("#e4e8eb"), 1));
-                p.drawLine(base + a * (i * unit) - b * (16 * unit), base + a * (i * unit) + b * (16 * unit));
-                p.drawLine(base + b * (i * unit) - a * (16 * unit), base + b * (i * unit) + a * (16 * unit));
-            }
-        }
-        if (origin) {
-            auto axis = [&](QPointF direction, const QColor& color, const QString& label) {
-                if (direction.isNull()) return;
-                p.setPen(QPen(color, 1.5));
-                p.drawLine(base - direction * (13 * unit), base + direction * (13 * unit));
-                p.drawText(base + direction * (13 * unit) + QPointF(5, -5), label);
-            };
-            axis(x, QColor("#b75b58"), "X");
-            axis(y, QColor("#538c67"), "Y");
-            axis(z, QColor("#668cbc"), "Z");
-            p.setPen(QPen(QColor("#63717a"), 1));
-            p.setBrush(Qt::white);
-            p.drawEllipse(base, 3, 3);
-        }
-        // Independently drawn orientation marker. This is a reference view, not a CAD renderer.
-        const QRect marker(width() - 112, 24, 84, 64);
-        p.setPen(QPen(QColor("#b6bfc6"), 1));
-        p.setBrush(QColor("#f8f9fa"));
-        p.drawRoundedRect(marker, 3, 3);
-        p.setPen(QColor("#56636d"));
-        auto f = font(); f.setPointSize(9); f.setBold(true); p.setFont(f);
-        p.drawText(marker, Qt::AlignCenter, orientation == "isometric" ? "ISO" : orientation.toUpper());
-        f.setBold(false); f.setPointSize(9); p.setFont(f);
-        p.setPen(QColor("#78828a"));
-        p.drawText(QRect(20, height() - 40, width() - 40, 24), Qt::AlignLeft | Qt::AlignVCenter,
-            "REFERENCE GRID   ·   No model geometry");
-    }
-    void mousePressEvent(QMouseEvent* event) override {
-        if (event->button() == Qt::MiddleButton) {
-            last_ = event->position();
-            setCursor(Qt::ClosedHandCursor);
-            event->accept();
-        } else QWidget::mousePressEvent(event);
-    }
-    void mouseMoveEvent(QMouseEvent* event) override {
-        if (event->buttons() & Qt::MiddleButton) {
-            const QPointF delta = event->position() - last_;
-            last_ = event->position();
-            dispatch("view.pan", {{"x", delta.x()}, {"y", delta.y()}});
-            event->accept();
-        } else QWidget::mouseMoveEvent(event);
-    }
-    void mouseReleaseEvent(QMouseEvent* event) override {
-        unsetCursor();
-        QWidget::mouseReleaseEvent(event);
-    }
-    void wheelEvent(QWheelEvent* event) override {
-        dispatch("view.zoom", {{"factor", std::clamp(std::pow(1.0015, event->angleDelta().y()), 0.1, 10.0)}});
-        event->accept();
-    }
-private:
-    QPointF last_;
-};
 
 AlloyWindow::AlloyWindow() {
     setWindowTitle("Untitled — Alloy");
@@ -325,14 +235,23 @@ void AlloyWindow::registerCommands() {
     add("view.zoom", "Zoom reference view", "Scale the reference grid; mouse wheel uses this command.", {{"factor", factor}}, [this](const auto& a) { view_->zoom = std::clamp(view_->zoom * a.value("factor").toDouble(), 0.1, 10.0); return QJsonObject{}; });
     auto offset = parameter("number", "Relative pan in logical pixels; each delta limited to +/-10000."); offset.insert("minimum", -10000); offset.insert("maximum", 10000);
     add("view.pan", "Pan reference view", "Translate the grid; middle-mouse drag uses this command.", {{"x", offset}, {"y", offset}}, [this](const auto& a) { view_->pan += QPointF(a.value("x").toDouble(), a.value("y").toDouble()); return QJsonObject{}; });
+    auto dimension = parameter("number", "Logical window size; width 1040..4096, height 640..4096.");
+    dimension.insert("minimum", 640); dimension.insert("maximum", 4096);
+    add("window.resize", "Resize window", "Resize the real native window for layout and framebuffer inspection.", {{"width", dimension}, {"height", dimension}}, [this](const auto& a) {
+        if (a.value("width").toInt() < 1040) return failure("invalid_arguments", "Minimum width is 1040");
+        resize(a.value("width").toInt(), a.value("height").toInt()); return QJsonObject{};
+    });
     add("view.home", "Home view", "Restore isometric orientation, zoom 1, and zero pan.", {}, [this](const auto&) { view_->orientation = "isometric"; view_->zoom = 1; view_->pan = {}; return QJsonObject{}; });
     add("capture.screenshot", "Capture screenshot", "Save a PNG of the actual main window, excluding OS decorations and separate dialogs.", {{"path", parameter("string", "Absolute destination PNG path; parent directory must exist.")}}, [this](const auto& a) {
         const QString path = a.value("path").toString();
         if (!QDir::isAbsolutePath(path) || !path.endsWith(".png", Qt::CaseInsensitive)) return failure("invalid_arguments", "Screenshot requires an absolute .png path");
-        const auto pixels = grab();
+        auto pixels = grab();
+        const auto framebuffer = view_->framebuffer();
+        if (framebuffer.isNull()) return failure("capture_failed", "OCCT framebuffer capture failed");
+        { QPainter composition(&pixels); composition.drawImage(view_->mapTo(this, QPoint(0, 0)), framebuffer); }
         QSaveFile file(path);
         if (!file.open(QIODevice::WriteOnly) || !pixels.save(&file, "PNG") || !file.commit()) return failure("capture_failed", "Could not write screenshot");
-        return QJsonObject{{"path", path}, {"pixelWidth", pixels.width()}, {"pixelHeight", pixels.height()}, {"devicePixelRatio", pixels.devicePixelRatio()}, {"source", "QWidget::grab main window"}};
+        return QJsonObject{{"path", path}, {"pixelWidth", pixels.width()}, {"pixelHeight", pixels.height()}, {"devicePixelRatio", pixels.devicePixelRatio()}, {"source", "QWidget chrome + OCCT OpenGL framebuffer"}, {"viewportPixelWidth", framebuffer.width()}, {"viewportPixelHeight", framebuffer.height()}, {"viewportSha256", QString::fromLatin1(QCryptographicHash::hash(QByteArrayView(reinterpret_cast<const char*>(framebuffer.constBits()), framebuffer.sizeInBytes()), QCryptographicHash::Sha256).toHex())}};
     });
     add("app.quit", "Quit Alloy", "Complete the request, then exit on the next event-loop turn.", {}, [](const auto&) { QTimer::singleShot(0, qApp, &QApplication::quit); return QJsonObject{{"quitting", true}}; });
     for (const auto& pair : QList<QPair<QString, QString>>{{"sketch.create", "Create Sketch"}, {"solid.extrude", "Extrude"}, {"solid.revolve", "Revolve"}, {"solid.fillet", "Fillet"}, {"solid.shell", "Shell"}, {"solid.move", "Move"}, {"construction.plane", "Plane"}, {"inspect.measure", "Measure"}, {"document.save", "Save"}, {"history.undo", "Undo"}, {"history.redo", "Redo"}}) {
@@ -362,26 +281,29 @@ QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
     }
     auto result = command->run(args);
     if (result.value("ok").isBool() && !result.value("ok").toBool()) return result;
-    const bool changesState = id.startsWith("layout.") || id.startsWith("view.") || (id == "commands.search" || id == "commands.close");
+    const bool changesState = id == "window.resize" || id.startsWith("layout.") || id.startsWith("view.") || (id == "commands.search" || id == "commands.close");
     if (changesState) ++revision_;
     refresh();
     return {{"ok", true}, {"completion", "completed"}, {"command", id}, {"revision", static_cast<qint64>(revision_)}, {"result", result}};
 }
 
 QJsonObject AlloyWindow::state() const {
+    // Report the current native drawable, not a previous offscreen capture FBO.
+    view_->sync();
     return {{"application", "Alloy"}, {"version", "0.1.0"}, {"stage", "ui-shell"}, {"revision", static_cast<qint64>(revision_)},
         {"document", QJsonObject{{"loaded", false}, {"label", "Untitled"}, {"sketches", 0}, {"bodies", 0}, {"features", 0}, {"editableHistory", false}}},
-        {"kernel", QJsonObject{{"candidate", "Open CASCADE"}, {"discoveredVersion", ALLOY_OCCT_VERSION}, {"integrated", false}}},
+        {"kernel", QJsonObject{{"candidate", "Open CASCADE"}, {"discoveredVersion", ALLOY_OCCT_VERSION}, {"integrated", false}, {"visualizationIntegrated", true}}},
         {"ui", QJsonObject{{"workspace", "design"}, {"tab", "solid"}, {"browserVisible", browserVisible_}, {"timelineVisible", timelineVisible_}, {"navigationVisible", navigationVisible_}, {"commandSearchVisible", search_ && search_->isVisible()}, {"windowWidth", width()}, {"windowHeight", height()}, {"devicePixelRatio", devicePixelRatioF()}}},
-        {"viewport", QJsonObject{{"renderer", "QPainter reference grid"}, {"orientation", view_->orientation}, {"gridVisible", view_->grid}, {"originVisible", view_->origin}, {"zoom", view_->zoom}, {"pan", QJsonObject{{"x", view_->pan.x()}, {"y", view_->pan.y()}}}, {"width", view_->width()}, {"height", view_->height()}}}};
+        {"viewport", QJsonObject{{"renderer", "OCCT OpenGL"}, {"gpu", view_->diagnostics()}, {"orientation", view_->orientation}, {"gridVisible", view_->grid}, {"originVisible", view_->origin}, {"zoom", view_->zoom}, {"pan", QJsonObject{{"x", view_->pan.x()}, {"y", view_->pan.y()}}}, {"width", view_->width()}, {"height", view_->height()}}}};
 }
 
 void AlloyWindow::refresh() {
     if (!browser_) return;
     browser_->setVisible(browserVisible_); timeline_->setVisible(timelineVisible_); navigation_->setVisible(navigationVisible_);
-    view_->update();
-    status_->setText(QString("  Reference view · %1 · Zoom %2%    |    Middle mouse: pan · Wheel: zoom · S: commands")
-        .arg(view_->orientation).arg(qRound(view_->zoom * 100)));
+    view_->sync();
+    const auto gpu = view_->diagnostics();
+    status_->setText(QString("  %3 · No model geometry · %1 · Zoom %2%    |    Middle mouse: pan · Wheel: zoom · S: commands")
+        .arg(view_->orientation).arg(qRound(view_->zoom * 100)).arg(gpu.value("hardwareAccelerated").toBool() ? "OCCT OpenGL" : "GPU UNQUALIFIED: " + gpu.value("qualification").toString()));
 }
 
 void AlloyWindow::showSearch() {

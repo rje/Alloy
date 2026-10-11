@@ -28,8 +28,11 @@ Updated 2026-10-11. This is the project handoff for a fresh session. Read the ro
 - The user selected MIT for Alloy's original source and documentation.
   Third-party libraries retain their own licenses.
 - The user requires a GPU-accelerated 3D viewport from the foundation, with
-  actual renderer evidence. The QPainter reference grid is being replaced by
-  OCCT/OpenGL; software rendering does not satisfy viewport acceptance.
+  actual renderer evidence. OCCT/OpenGL replaced the QPainter reference grid;
+  software rendering does not satisfy viewport acceptance.
+- macOS, Windows, and Linux are required product targets. Milestone releases
+  must offer downloadable native builds with platform-specific runtime and
+  cumulative workflow evidence. Currently only macOS runtime is verified.
 - The project lives at `~/src/cpp/Alloy`. Alloy is the working name. Astra was
   requested for the initial public-interface research and project foundation,
   and completed that assignment.
@@ -41,7 +44,10 @@ Browser/Timeline/navigation layout controls, and an independently drawn referenc
 grid with named orientations, pan, and zoom. A private local control socket and
 `tools/alloyctl.py` expose command discovery, execution, state, and capture.
 
-OCCT 7.9.3 was discovered on the development host but is not linked/integrated.
+OCCT 7.9.3 is linked for native AIS/V3d/OpenGL visualization; the live Apple M4
+hardware driver and Retina framebuffer/startup/resize were verified. See the
+[GPU foundation receipt](validation/gpu-foundation.md). `kernel.visualizationIntegrated`
+is true; `kernel.integrated` remains false for authored CAD geometry.
 There is no CAD geometry, sketch solver, editable document/history, persistence,
 import, or export yet. Modeling controls are explicitly unavailable. Visual and
 physical-input parity have not been established.
@@ -93,8 +99,8 @@ export. Test persistent face/edge references early. The proposed coverage is in
 [architecture.md](architecture.md) and evidence rules in
 [compatibility.md](compatibility.md).
 
-The exact reference CAD application reference release/platform/theme/navigation baseline, first
-release OS coverage, sketch solver, and native document format
+The exact reference CAD application reference release/platform/theme/navigation baseline,
+minimum OS versions/architectures, sketch solver, and native document format
 remain unresolved. They are recorded gaps, not forgotten decisions. Current
 public-interface research now covers the major feature families with 84 dated
 primary-source URLs, contradictions, and open questions. It does not yet specify

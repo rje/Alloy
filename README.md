@@ -51,9 +51,11 @@ Rust is outside the planned stack.
 Alloy's original source and documentation use the [MIT license](LICENSE).
 Third-party libraries and public reference material retain their own terms.
 
-The 3D viewport must be GPU accelerated, with live renderer diagnostics and
-native framebuffer capture verified. The original QPainter grid is a temporary
-shell baseline.
+The 3D viewport uses GPU-accelerated OCCT OpenGL. Live Apple M4 diagnostics,
+Retina resize, native window display, and framebuffer capture were verified in
+the [GPU foundation receipt](docs/validation/gpu-foundation.md). The scene remains
+a grid and axes with no CAD document. macOS, Windows, and Linux are required
+targets; only the macOS runtime is verified today.
 
 To list tasks whose dependencies are complete:
 

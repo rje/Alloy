@@ -75,6 +75,9 @@ These rules supersede any earlier suggestion to verify behavior in reference CAD
 ## Implementation and scope
 
 - C++20 is the selected application language. Rust is outside the planned stack.
+- macOS, Windows, and Linux are required product targets. Maintain native build,
+  packaging, and runtime evidence for each. Plan downloadable GitHub releases at
+  validated milestones; CI compilation alone cannot establish runtime or GPU support.
 - Alloy's original source and documentation use the MIT license selected by the
   user. Third-party components retain their own licenses; evaluate solver and
   distribution choices against the project's licensing goals.

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Real-entrypoint desktop smoke test, not a geometry or CAD-workflow test."""
+"""Real native app, hardware OpenGL, and framebuffer smoke; no authored CAD geometry."""
 import argparse
 import hashlib
 import json
@@ -52,6 +52,33 @@ def main():
                 initial = call("app.state")
                 assert initial["stage"] == "ui-shell" and not initial["document"]["loaded"]
                 assert initial["document"]["bodies"] == 0 and not initial["kernel"]["integrated"]
+                gpu = initial["viewport"]["gpu"]
+                assert gpu["initialized"] and gpu["hardwareAccelerated"], gpu
+                assert gpu["vendor"] and gpu["renderer"] and gpu["version"], gpu
+                assert gpu["qualification"] == "hardware-driver-identified", gpu
+                assert initial["viewport"]["renderer"] == "OCCT OpenGL"
+                assert initial["kernel"]["visualizationIntegrated"]
+                assert gpu["details"]["Viewport"] == f'{gpu["framebufferWidth"]}x{gpu["framebufferHeight"]}', gpu
+                startup_gpu = gpu  # Captured before any ToPixMap can mask native drawable sizing.
+                baseline = call("capture.screenshot", {"path": str(output / "alloy-gpu-isometric.png")})
+                call("view.orientation", {"name": "top"})
+                top = call("capture.screenshot", {"path": str(output / "alloy-gpu-top.png")})
+                assert baseline["viewportSha256"] != top["viewportSha256"], "Camera must change GPU framebuffer itself"
+                call("window.resize", {"width": 1200, "height": 800})
+                resized_state = call("app.state")  # Before any resized offscreen dump.
+                native_gpu = resized_state["viewport"]["gpu"]
+                assert native_gpu["details"]["Viewport"] == f'{native_gpu["framebufferWidth"]}x{native_gpu["framebufferHeight"]}', native_gpu
+                resized = call("capture.screenshot", {"path": str(output / "alloy-gpu-resized.png")})
+                ratio = resized_state["ui"]["devicePixelRatio"]
+                assert resized["pixelWidth"] == round(1200 * ratio)
+                assert resized["pixelHeight"] == round(800 * ratio)
+                assert resized["viewportPixelWidth"] == round(resized_state["viewport"]["width"] * ratio)
+                assert resized["viewportPixelHeight"] == round(resized_state["viewport"]["height"] * ratio)
+                native_viewport = resized_state["viewport"]["gpu"]["details"]["Viewport"]
+                assert native_viewport == f'{resized["viewportPixelWidth"]}x{resized["viewportPixelHeight"]}', native_viewport
+                call("window.resize", {"width": 1440, "height": 900})
+                call("view.home")
+                initial = call("app.state")
                 commands = {entry["id"]: entry for entry in call("commands.list")["commands"]}
                 assert commands["view.orientation"]["available"]
                 assert not commands["solid.extrude"]["available"]
@@ -112,9 +139,9 @@ def main():
                 assert png != altered_path.read_bytes(), "State changes must affect the actual captured UI"
                 call("app.quit")
                 assert process.wait(timeout=5) == 0
-                evidence = {"result": "passed", "scope": "Native shell and local API only; no geometry or CAD workflow", "initialState": initial, "finalState": final, "capture": info, "sha256": hashlib.sha256(png).hexdigest(), "transcript": transcript}
+                evidence = {"result": "passed", "scope": "Native shell, hardware OCCT OpenGL, Retina resize and framebuffer capture; no authored geometry or CAD workflow", "initialState": initial, "finalState": final, "capture": info, "gpuChecks": {"startupBeforeCapture": startup_gpu, "isometric": baseline, "top": top, "resized": resized, "resizedState": resized_state}, "sha256": hashlib.sha256(png).hexdigest(), "transcript": transcript}
                 (output / "shell-api.json").write_text(json.dumps(evidence, indent=2) + "\n")
-                print(f"PASS: native shell, shared commands, state, errors, and real PNG capture ({width}x{height})")
+                print(f"PASS: hardware OCCT OpenGL, native resize, framebuffer changes, shared commands, errors, and PNG capture ({width}x{height})")
                 print(f"Evidence: {output}")
             finally:
                 if process.poll() is None:

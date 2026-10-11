@@ -1,0 +1,257 @@
+{
+  "observed_at": "2026-10-11T23:19:35.225148+00:00",
+  "scope": "Native shell with hardware OCCT OpenGL presentation; no authored CAD geometry",
+  "source_base_commit": "c5ee2467f92d0031432ab3c09d01fee96a1252e2",
+  "source_files_sha256": {
+    "CMakeLists.txt": "0ff3f011ef1921b38989784b90d48a9f7d358cdaa92d34d1e26444f96ac9b2c1",
+    "src/AlloyWindow.cpp": "0525c1ac7fdf8b9d4efe53998aa1b3fc7aa500d79a255c13ace76a9dd343b5a4",
+    "src/AlloyWindow.h": "67132194f4864d5eae33e523b141f3cfa3d9500cfdb4a45ea06799f8a9a6f7ca",
+    "src/ControlServer.cpp": "cb8ad74e6bed508791cc0f12e0d09b7cad46d7ccf20e0f5ceeb53178e83fddea",
+    "src/ControlServer.h": "9c692cacf1f764435284b1cec2e3d50a38ebda8ab7aeccd76704adbf67aee651",
+    "src/ReferenceView.cpp": "603ad335b468d3d8c2873e2748d9d8986528bc199dfdd69b82d90315eeec2f28",
+    "src/ReferenceView.h": "d8f709c0e2f441887b7de54da1a3b29c3f0429a79902278c76c9cdfd20084cd4",
+    "src/main.cpp": "bae5474a429149f2bd49a4f6e9916a5c38ed7aa85a05bd6a3e670f6f48c278ce",
+    "tests/shell_api.py": "f302c1d33c5e4fd46037b9788ef148b8f2350a03e23c3f821f4b9fc0ef2824e4"
+  },
+  "binary_sha256": "e8660284ef5cd4cc6d9ce04989990e3471a83747b044bd46dfc3bf5abec1bb2d",
+  "build": "Debug, C++20, Apple Clang17, Qt6.11.2, OCCT7.9.3",
+  "api_smoke": {
+    "result": "passed",
+    "test": "shell_api",
+    "count": "1/1",
+    "gpuChecks": {
+      "startupBeforeCapture": {
+        "backend": "OCCT OpenGL",
+        "details": {
+          "FBO buffer": "GL_SRGB8_ALPHA8 GL_DEPTH24_STENCIL8",
+          "GLSLversion": "4.10",
+          "GLdevice": "Apple M4",
+          "GLvendor": "Apple",
+          "GLversion": "4.1 Metal - 90.5",
+          "GPU Texture memory": "12124 MiB",
+          "GPU memory": "12124 MiB",
+          "Max FBO dump size": "16384x16384",
+          "Max MSAA samples": "4",
+          "Max combined texture units": "80",
+          "Max texture size": "16384",
+          "ResolutionRatio": "2",
+          "Viewport": "2376x1270",
+          "Window buffer": "RGB0 ALPHA0 DEPTH0 STENCIL0"
+        },
+        "error": "",
+        "framebufferHeight": 1270,
+        "framebufferWidth": 2376,
+        "hardwareAccelerated": true,
+        "initialized": true,
+        "nativeHeight": 635,
+        "nativeWidth": 1188,
+        "qualification": "hardware-driver-identified",
+        "renderer": "Apple M4",
+        "vendor": "Apple",
+        "version": "4.1 Metal - 90.5"
+      },
+      "isometric": {
+        "devicePixelRatio": 2,
+        "path": "alloy-gpu-isometric.png",
+        "pixelHeight": 1800,
+        "pixelWidth": 2880,
+        "source": "QWidget chrome + OCCT OpenGL framebuffer",
+        "viewportPixelHeight": 1270,
+        "viewportPixelWidth": 2376,
+        "viewportSha256": "009a961208401ed7d1806073762c55663986f4d2b42b4032cc39271a3d8b2f50"
+      },
+      "top": {
+        "devicePixelRatio": 2,
+        "path": "alloy-gpu-top.png",
+        "pixelHeight": 1800,
+        "pixelWidth": 2880,
+        "source": "QWidget chrome + OCCT OpenGL framebuffer",
+        "viewportPixelHeight": 1270,
+        "viewportPixelWidth": 2376,
+        "viewportSha256": "e89aefaf7bed52e3c0c030aa483a274d960734f3b12bb78bec0eedc4578e3a56"
+      },
+      "resized": {
+        "devicePixelRatio": 2,
+        "path": "alloy-gpu-resized.png",
+        "pixelHeight": 1600,
+        "pixelWidth": 2400,
+        "source": "QWidget chrome + OCCT OpenGL framebuffer",
+        "viewportPixelHeight": 1070,
+        "viewportPixelWidth": 1896,
+        "viewportSha256": "aa8c1c4a8110cf3ed4cc27f5b71a0af51bee872c5246964f831c957667d882b3"
+      },
+      "resizedState": {
+        "application": "Alloy",
+        "document": {
+          "bodies": 0,
+          "editableHistory": false,
+          "features": 0,
+          "label": "Untitled",
+          "loaded": false,
+          "sketches": 0
+        },
+        "kernel": {
+          "candidate": "Open CASCADE",
+          "discoveredVersion": "7.9.3",
+          "integrated": false,
+          "visualizationIntegrated": true
+        },
+        "revision": 2,
+        "stage": "ui-shell",
+        "ui": {
+          "browserVisible": true,
+          "commandSearchVisible": false,
+          "devicePixelRatio": 2,
+          "navigationVisible": true,
+          "tab": "solid",
+          "timelineVisible": true,
+          "windowHeight": 800,
+          "windowWidth": 1200,
+          "workspace": "design"
+        },
+        "version": "0.1.0",
+        "viewport": {
+          "gpu": {
+            "backend": "OCCT OpenGL",
+            "details": {
+              "FBO buffer": "GL_SRGB8_ALPHA8 GL_DEPTH24_STENCIL8",
+              "GLSLversion": "4.10",
+              "GLdevice": "Apple M4",
+              "GLvendor": "Apple",
+              "GLversion": "4.1 Metal - 90.5",
+              "GPU Texture memory": "12124 MiB",
+              "GPU memory": "12124 MiB",
+              "Max FBO dump size": "16384x16384",
+              "Max MSAA samples": "4",
+              "Max combined texture units": "80",
+              "Max texture size": "16384",
+              "ResolutionRatio": "2",
+              "Viewport": "1896x1070",
+              "Window buffer": "RGB0 ALPHA0 DEPTH0 STENCIL0"
+            },
+            "error": "",
+            "framebufferHeight": 1070,
+            "framebufferWidth": 1896,
+            "hardwareAccelerated": true,
+            "initialized": true,
+            "nativeHeight": 535,
+            "nativeWidth": 948,
+            "qualification": "hardware-driver-identified",
+            "renderer": "Apple M4",
+            "vendor": "Apple",
+            "version": "4.1 Metal - 90.5"
+          },
+          "gridVisible": true,
+          "height": 535,
+          "orientation": "top",
+          "originVisible": true,
+          "pan": {
+            "x": 0,
+            "y": 0
+          },
+          "renderer": "OCCT OpenGL",
+          "width": 948,
+          "zoom": 1
+        }
+      }
+    }
+  },
+  "visible_app_state": {
+    "application": "Alloy",
+    "document": {
+      "bodies": 0,
+      "editableHistory": false,
+      "features": 0,
+      "label": "Untitled",
+      "loaded": false,
+      "sketches": 0
+    },
+    "kernel": {
+      "candidate": "Open CASCADE",
+      "discoveredVersion": "7.9.3",
+      "integrated": false,
+      "visualizationIntegrated": true
+    },
+    "revision": 4,
+    "stage": "ui-shell",
+    "ui": {
+      "browserVisible": true,
+      "commandSearchVisible": false,
+      "devicePixelRatio": 2,
+      "navigationVisible": true,
+      "tab": "solid",
+      "timelineVisible": true,
+      "windowHeight": 900,
+      "windowWidth": 1440,
+      "workspace": "design"
+    },
+    "version": "0.1.0",
+    "viewport": {
+      "gpu": {
+        "backend": "OCCT OpenGL",
+        "details": {
+          "FBO buffer": "GL_SRGB8_ALPHA8 GL_DEPTH24_STENCIL8",
+          "GLSLversion": "4.10",
+          "GLdevice": "Apple M4",
+          "GLvendor": "Apple",
+          "GLversion": "4.1 Metal - 90.5",
+          "GPU Texture memory": "12124 MiB",
+          "GPU memory": "12124 MiB",
+          "Max FBO dump size": "16384x16384",
+          "Max MSAA samples": "4",
+          "Max combined texture units": "80",
+          "Max texture size": "16384",
+          "ResolutionRatio": "2",
+          "Viewport": "2376x1270",
+          "Window buffer": "RGB0 ALPHA0 DEPTH0 STENCIL0"
+        },
+        "error": "",
+        "framebufferHeight": 1270,
+        "framebufferWidth": 2376,
+        "hardwareAccelerated": true,
+        "initialized": true,
+        "nativeHeight": 635,
+        "nativeWidth": 1188,
+        "qualification": "hardware-driver-identified",
+        "renderer": "Apple M4",
+        "vendor": "Apple",
+        "version": "4.1 Metal - 90.5"
+      },
+      "gridVisible": true,
+      "height": 635,
+      "orientation": "isometric",
+      "originVisible": true,
+      "pan": {
+        "x": 0,
+        "y": 0
+      },
+      "renderer": "OCCT OpenGL",
+      "width": 1188,
+      "zoom": 1
+    }
+  },
+  "capture": {
+    "devicePixelRatio": 2,
+    "path": "2026-10-11-gpu.png",
+    "pixelHeight": 1800,
+    "pixelWidth": 2880,
+    "source": "QWidget chrome + OCCT OpenGL framebuffer",
+    "viewportPixelHeight": 1270,
+    "viewportPixelWidth": 2376,
+    "viewportSha256": "009a961208401ed7d1806073762c55663986f4d2b42b4032cc39271a3d8b2f50"
+  },
+  "capture_sha256": "8f26a46bd9888b9de280a8d3e323ed70bf390eaf8345522c1a2abd999f87b18f",
+  "physical_observation": [
+    "Native compositor displayed isometric and top grid/axes across the viewport",
+    "Physical Top button updated accessibility text and authoritative API orientation",
+    "Physical S opened command search; Home plus Return restored isometric and dismissed search",
+    "Final rebuilt app remains open for user inspection"
+  ],
+  "limits": [
+    "No modeled bodies, picking, solver, history, persistence, import or export",
+    "Capture combines Qt chrome with offscreen GPU re-render of same scene; native compositor observation is separate",
+    "Hardware identification and resize qualified on one macOS Retina display only; no cross-display scale transition or performance benchmark",
+    "Windows/Linux builds and physical hardware workflows remain pending",
+    "DOC-005 and GATE-010 remain open; initial GATE-000 receipt is historical"
+  ]
+}

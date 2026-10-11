@@ -80,7 +80,7 @@ and `capture_failed`.
 | Command | Arguments / result |
 | --- | --- |
 | `commands.list` | Registry with both implemented and unavailable entries |
-| `app.state` | Real shell/window/view state, stage, kernel discovery, zero geometry counts |
+| `app.state` | Real shell/window/view state, live GPU diagnostics, zero authored geometry counts |
 | `commands.search`, `commands.close` | Show/dismiss the native search dialog |
 | `layout.browser`, `layout.timeline`, `layout.navigation` | `visible`: boolean |
 | `layout.reset` | Restore those three regions |
@@ -89,21 +89,37 @@ and `capture_failed`.
 | `view.zoom` | `factor`: 0.1–10; resulting scale clamps to 0.1–10 |
 | `view.pan` | `x`, `y`: relative logical-pixel deltas, each within ±10000 |
 | `view.home` | Reset orientation, scale, and pan |
+| `window.resize` | Logical width 1040–4096 and height 640–4096 |
 | `capture.screenshot` | Absolute `.png` path; returns dimensions, device scale, source |
 | `app.quit` | Exit the app after replying |
 
 State includes Browser/Timeline/navigation/search visibility, logical window and
 viewport sizes, device scale, reference-grid orientation, zoom, pan, grid/axis
 visibility, and an applied-command revision. Revision advances for successful
-view/layout/search commands, including a repeated no-op command; it is not a
+view/layout/search/window-resize commands, including a repeated no-op command; it is not a
 persistent document revision or a tracker for every OS resize/interaction.
 
-The screenshot is `QWidget::grab()` of the actual main window, including the
-reference view and app UI. It excludes native OS decorations, menus, and separate
-dialogs; close search before a clean capture. It is real widget rendering,
-not a desktop screen capture or geometry/GPU validation. The shell uses QPainter;
-replace or adapt this capture path when integrating an OCCT viewport that needs
-its own framebuffer capture.
+`viewport.renderer` is `OCCT OpenGL`; `viewport.gpu` contains live OCCT driver
+information and qualification. `vendor`, `renderer`, and `version` come from the
+actual context. Known software fallback is labeled `software-rejected`;
+unrecognized hardware is `unverified`. `hardwareAccelerated` requires an
+identified hardware vendor/device and a GL version, and the smoke test asserts it.
+`details` preserves raw OCCT diagnostics, including physical GL viewport size.
+State inspection synchronizes and redraws the native drawable before reading
+diagnostics, and capture restores native rendering after its offscreen dump.
+`nativeWidth/Height` use OCCT native-window units (logical points on macOS);
+`framebufferWidth/Height` use physical pixels. `kernel.visualizationIntegrated`
+is true while `kernel.integrated` remains false for authored CAD geometry.
+
+The screenshot combines `QWidget::grab()` of main-window chrome with the actual
+OCCT scene rendered by `V3d_View::ToPixMap` into a GPU framebuffer at the current
+viewport size/scale. It excludes OS decorations, menus, and separate dialogs;
+close search before a clean capture. It is not an OS-compositor screenshot.
+Failure to capture the GPU view returns `capture_failed`; a blank raster substitute
+is never reported as success. Capture results add `viewportPixelWidth`,
+`viewportPixelHeight`, and `viewportSha256` (raw RGB32 framebuffer bytes) so camera
+changes can be checked independently of status labels and shell layout changes.
+No screenshot establishes authored geometry or CAD workflow acceptance.
 
 ## Verification and extension contract
 
@@ -113,8 +129,11 @@ ctest --test-dir build --output-on-failure
 
 The test launches the built app, discovers commands, changes view and layout,
 opens/closes search, checks structured errors and malformed JSON, verifies state,
-captures two distinct real-window PNGs, restores the initial presentation, and
-quits. Evidence is written to `build/evidence/`.
+asserts a live hardware OpenGL context, changes the real camera and compares
+framebuffer hashes, resizes the native window at its device scale, checks GPU
+viewport dimensions before any startup/resized offscreen capture (to avoid
+masking a native sizing bug), checks capture dimensions, restores presentation,
+and quits. Evidence is written to `build/evidence/`.
 
 Future modeling work must use the same command/document path and extend state
 with document identity, persistent entity references, units/parameters, geometry

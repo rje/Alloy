@@ -5,25 +5,19 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_AUTOMOC ON)
-find_package(Qt6 6.5 REQUIRED COMPONENTS Widgets Network)
+find_package(Qt6 6.11.2 EXACT REQUIRED COMPONENTS Widgets Network)
 
-# Discovery is intentionally separate from integration: this shell has no geometry.
-option(ALLOY_DISCOVER_OCCT "Discover the proposed Open CASCADE kernel" ON)
-if(ALLOY_DISCOVER_OCCT)
-    find_package(OpenCASCADE QUIET)
-endif()
-if(OpenCASCADE_FOUND)
-    message(STATUS "OCCT ${OpenCASCADE_MAJOR_VERSION}.${OpenCASCADE_MINOR_VERSION}.${OpenCASCADE_MAINTENANCE_VERSION} discovered; geometry integration pending")
-    set(ALLOY_OCCT_VERSION "${OpenCASCADE_MAJOR_VERSION}.${OpenCASCADE_MINOR_VERSION}.${OpenCASCADE_MAINTENANCE_VERSION}")
-else()
-    message(STATUS "OCCT not discovered; building the independent UI shell")
-    set(ALLOY_OCCT_VERSION "not discovered")
-endif()
+# OCCT is required: the viewport must use its native OpenGL renderer.
+find_package(OpenCASCADE 7.9.3 EXACT REQUIRED COMPONENTS FoundationClasses ModelingData ModelingAlgorithms Visualization)
+set(ALLOY_OCCT_VERSION "${OpenCASCADE_MAJOR_VERSION}.${OpenCASCADE_MINOR_VERSION}.${OpenCASCADE_MAINTENANCE_VERSION}")
+message(STATUS "OCCT ${ALLOY_OCCT_VERSION}: native OpenGL visualization")
 
 qt_add_executable(alloy MACOSX_BUNDLE
     src/main.cpp src/AlloyWindow.cpp src/AlloyWindow.h
+    src/ReferenceView.cpp src/ReferenceView.h
     src/ControlServer.cpp src/ControlServer.h)
-target_link_libraries(alloy PRIVATE Qt6::Widgets Qt6::Network)
+target_include_directories(alloy SYSTEM PRIVATE ${OpenCASCADE_INCLUDE_DIR})
+target_link_libraries(alloy PRIVATE Qt6::Widgets Qt6::Network TKernel TKMath TKG3d TKService TKV3d TKOpenGl)
 target_compile_definitions(alloy PRIVATE ALLOY_OCCT_VERSION="${ALLOY_OCCT_VERSION}")
 set_target_properties(alloy PROPERTIES
     MACOSX_BUNDLE_BUNDLE_NAME Alloy
