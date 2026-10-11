@@ -1,6 +1,9 @@
 # reference CAD application replacement: public-reference deep dive
 
-Research date: **2026-10-11**. Result: a dependency-ordered [130-issue backlog](../backlog/README.md)
+Research date: **2026-10-11**. Result: an initial dependency-ordered 130-issue
+[backlog](../backlog/README.md), expanded to 135 issues after the required
+macOS/Windows/Linux milestone-release work was added. See the
+[cross-platform research](cross-platform-releases.md).
 and twelve cumulative useful-product gates. This is researched specification
 and implementation planning, not a claim of implemented reference CAD application compatibility.
 The working application at the start of this research was a Qt shell with local
@@ -14,7 +17,8 @@ Only public Autodesk documentation, screenshots, tutorials and published API
 descriptions were used for target-product evidence. No reference CAD application application,
 installation, trial, web client, account data, private API, traffic or extracted
 asset was accessed. Open-source library documentation/source was studied for
-implementation feasibility. All 84 issue-cited primary URLs and retrieval dates
+implementation feasibility. The original 84 primary URLs and additional public
+build/deployment sources, with retrieval dates,
 are in [sources.json](../backlog/sources.json); broader foundation links and
 specific licenses are preserved in [foundation notes](foundation-notes.md).
 

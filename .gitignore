@@ -4,5 +4,6 @@
 /.cache/
 __pycache__/
 *.pyc
+aqtinstall.log
 # Local public-document visual references; provenance remains versioned.
 /docs/research/reference-images/*.png

@@ -742,6 +742,202 @@
       "note": "Documented public behavior; not an Alloy implementation claim.",
       "reference_id": "threads",
       "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "platform_085": {
+      "title": "FreeType CMake source",
+      "url": "https://github.com/freetype/freetype/blob/VER-2-13-3/CMakeLists.txt",
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Public build/deployment foundation; selected implementation and acceptance are Alloy decisions."
+    },
+    "platform_086": {
+      "title": "runner\nreference",
+      "url": "https://docs.github.com/en/actions/reference/runners/github-hosted-runners",
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Public build/deployment foundation; selected implementation and acceptance are Alloy decisions."
+    },
+    "platform_087": {
+      "title": "mac Updates.xml",
+      "url": "https://download.qt.io/online/qtsdkrepository/mac_x64/desktop/qt6_6112/qt6_6112/Updates.xml",
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Public build/deployment foundation; selected implementation and acceptance are Alloy decisions."
+    },
+    "platform_088": {
+      "title": "Linux Updates.xml",
+      "url": "https://download.qt.io/online/qtsdkrepository/linux_x64/desktop/qt6_6112/qt6_6112/Updates.xml",
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Public build/deployment foundation; selected implementation and acceptance are Alloy decisions."
+    },
+    "platform_089": {
+      "title": "Windows Updates.xml",
+      "url": "https://download.qt.io/online/qtsdkrepository/windows_x86/desktop/qt6_6112/qt6_6112_msvc2022_64/Updates.xml",
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Public build/deployment foundation; selected implementation and acceptance are Alloy decisions."
+    },
+    "platform_090": {
+      "title": "`076e1659807d0b362a3ed684d54c2e9c775eb9c7`",
+      "url": "https://github.com/miurahr/aqtinstall/tree/076e1659807d0b362a3ed684d54c2e9c775eb9c7",
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Public build/deployment foundation; selected implementation and acceptance are Alloy decisions."
+    },
+    "platform_091": {
+      "title": "aqt maintainer's documentation",
+      "url": "https://aqtinstall.readthedocs.io/en/latest/getting_started.html",
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Public build/deployment foundation; selected implementation and acceptance are Alloy decisions."
+    },
+    "platform_092": {
+      "title": "supported-platform page",
+      "url": "https://doc.qt.io/qt-6.11/supported-platforms.html",
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Public build/deployment foundation; selected implementation and acceptance are Alloy decisions."
+    },
+    "platform_093": {
+      "title": "build guide",
+      "url": "https://github.com/Open-Cascade-SAS/OCCT/blob/V7_9_3/dox/build/build_occt/building_occt.md",
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Public build/deployment foundation; selected implementation and acceptance are Alloy decisions."
+    },
+    "platform_094": {
+      "title": "CMake source",
+      "url": "https://github.com/Open-Cascade-SAS/OCCT/blob/V7_9_3/CMakeLists.txt",
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Public build/deployment foundation; selected implementation and acceptance are Alloy decisions."
+    },
+    "platform_095": {
+      "title": "QLocalServer",
+      "url": "https://doc.qt.io/qt-6.11/qlocalserver.html",
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Public build/deployment foundation; selected implementation and acceptance are Alloy decisions."
+    },
+    "platform_096": {
+      "title": "Linux requirements",
+      "url": "https://doc.qt.io/qt-6.11/linux-requirements.html",
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Public build/deployment foundation; selected implementation and acceptance are Alloy decisions."
+    },
+    "platform_097": {
+      "title": "Qt CMake deployment",
+      "url": "https://doc.qt.io/qt-6.11/cmake-deployment.html",
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Public build/deployment foundation; selected implementation and acceptance are Alloy decisions."
+    },
+    "platform_098": {
+      "title": "deployment command",
+      "url": "https://doc.qt.io/qt-6.11/qt-generate-deploy-app-script.html",
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Public build/deployment foundation; selected implementation and acceptance are Alloy decisions."
+    },
+    "platform_099": {
+      "title": "runtime dependency installation",
+      "url": "https://cmake.org/cmake/help/latest/command/install.html#runtime-dependency-set",
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Public build/deployment foundation; selected implementation and acceptance are Alloy decisions."
+    },
+    "platform_100": {
+      "title": "CPack archive formats",
+      "url": "https://cmake.org/cmake/help/latest/cpack_gen/archive.html",
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Public build/deployment foundation; selected implementation and acceptance are Alloy decisions."
+    },
+    "platform_101": {
+      "title": "Qt macOS deployment",
+      "url": "https://doc.qt.io/qt-6.11/macos-deployment.html",
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Public build/deployment foundation; selected implementation and acceptance are Alloy decisions."
+    },
+    "platform_102": {
+      "title": "Apple notarization",
+      "url": "https://developer.apple.com/documentation/security/notarizing-macos-software-before-distribution",
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Public build/deployment foundation; selected implementation and acceptance are Alloy decisions."
+    },
+    "platform_103": {
+      "title": "Qt Windows deployment",
+      "url": "https://doc.qt.io/qt-6.11/windows-deployment.html",
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Public build/deployment foundation; selected implementation and acceptance are Alloy decisions."
+    },
+    "platform_104": {
+      "title": "Microsoft runtime distribution",
+      "url": "https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170",
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Public build/deployment foundation; selected implementation and acceptance are Alloy decisions."
+    },
+    "platform_105": {
+      "title": "Qt Linux deployment",
+      "url": "https://doc.qt.io/qt-6.11/linux-deployment.html",
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Public build/deployment foundation; selected implementation and acceptance are Alloy decisions."
+    },
+    "platform_106": {
+      "title": "GitHub artifacts",
+      "url": "https://docs.github.com/en/actions/tutorials/store-and-share-data",
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Public build/deployment foundation; selected implementation and acceptance are Alloy decisions."
+    },
+    "platform_107": {
+      "title": "upload-artifact implementation",
+      "url": "https://github.com/actions/upload-artifact",
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Public build/deployment foundation; selected implementation and acceptance are Alloy decisions."
+    },
+    "platform_108": {
+      "title": "GitHub CLI release creation",
+      "url": "https://cli.github.com/manual/gh_release_create",
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Public build/deployment foundation; selected implementation and acceptance are Alloy decisions."
+    },
+    "platform_109": {
+      "title": "Qt licensing",
+      "url": "https://doc.qt.io/qt-6.11/licensing.html",
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Public build/deployment foundation; selected implementation and acceptance are Alloy decisions."
+    },
+    "platform_110": {
+      "title": "Qt's published LGPL obligations",
+      "url": "https://www.qt.io/development/open-source-lgpl-obligations",
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Public build/deployment foundation; selected implementation and acceptance are Alloy decisions."
+    },
+    "platform_111": {
+      "title": "LGPL 2.1",
+      "url": "https://github.com/Open-Cascade-SAS/OCCT/blob/V7_9_3/LICENSE_LGPL_21.txt",
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Public build/deployment foundation; selected implementation and acceptance are Alloy decisions."
+    },
+    "platform_112": {
+      "title": "additional exception",
+      "url": "https://github.com/Open-Cascade-SAS/OCCT/blob/V7_9_3/OCCT_LGPL_EXCEPTION.txt",
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Public build/deployment foundation; selected implementation and acceptance are Alloy decisions."
     }
   }
 }

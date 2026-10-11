@@ -2,19 +2,19 @@
 
 Prepared 2026-10-11 from public references and the accepted Alloy requirements.
 [issues.json](issues.json) is the machine-readable source for GitHub publication;
-[sources.json](sources.json) records the 84 dated primary-source URLs cited by its
+[sources.json](sources.json) records the 112 dated primary-source URLs cited by its
 issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-There are **130 issues**: **83 implementation, 13 research, 22 epics, and 12
+There are **135 issues**: **87 implementation, 13 research, 22 epics, and 13
 validation gates**. This is a substantial starting decomposition, not a claim
-that 130 tickets exhaust reference CAD application parity. Later epics require linked bounded child
+that 135 tickets exhaust reference CAD application parity. Later epics require linked bounded child
 issues before implementation and remain open until that declared coverage passes.
 
 | Phase | Count | Result |
 | --- | ---: | --- |
-| P0 Foundation | 13 | Public baseline, MIT dependency audit, document/naming/solver decisions, shared controls and cumulative evidence |
+| P0 Foundation | 18 | Public baseline, MIT dependency audit, document/naming/solver decisions, portable controls, native CI/packages/releases and hardware evidence |
 | P1 Geometry/document | 15 | Real hardware-backed OCCT viewport, authored primitive document, selection, undo/save and STEP |
 | P2 Parametric modeling | 28 | Constrained sketches, parameters, editable extrusion/fillet chain and broader basic solid tools |
 | P3 Shape/import/print breadth | 24 | Solids/surfaces, common interchange and qualified printing export |
@@ -29,7 +29,7 @@ issues before implementation and remain open until that declared coverage passes
 
 The initial graph had seven tasks without prerequisites. The shell baseline,
 [`GATE-000` #12](https://github.com/rje/Alloy/issues/12), is now closed with
-real-app evidence. The verified publication has **129 open issues and six ready
+real-app evidence. The verified publication has **134 open issues and six ready
 tasks**:
 
 - `FND-001`: choose a dated public compatibility baseline.
@@ -62,6 +62,7 @@ Rust is outside this plan.
 | Gate | Useful result | Additional evidence |
 | --- | --- | --- |
 | `GATE-000` | Existing native shell and shared commands | Physical S/search/Home/browser path, API inspection, actual window capture; zero CAD claims |
+| `GATE-005` | Installed packages on macOS, Windows and Linux | Native runtime relocation, portable control API, actual hardware renderer, pre-capture drawable/scale/resize and physical inputs |
 | `GATE-010` | Gauge block and cylinder | Actual hardware GL diagnostics, rendered/picked BRep, analytic measurements, undo/save and independent STEP readback |
 | `GATE-020` | Editable mounting bracket | Constrained sketch → extrusion/join/cut → fillet → upstream edit → reopen/export |
 | `GATE-030` | Surface-authored duct plus enclosure/knob/slot fixtures | Surface continuity, gaps/stitch, thickening, new solid/sketch operations and editable history |
@@ -116,7 +117,7 @@ Each issue includes problem/result, bounded scope, acceptance, exact proposed
 verification, evidence dimensions, public source/date and limitations. Most
 source pages are living documentation, not release-pinned specifications; see
 [the deep dive](../research/cad-workflows.md) for contradictions and missing
-defaults. All 130 issues were published and checked through `gh`/GitHub APIs:
+defaults. All 135 issues were published and checked through `gh`/GitHub APIs:
 unique keys, complete bodies, linked dependencies, kind/phase/priority labels,
 ten milestones, and readiness labels. See [publication.json](publication.json)
 for the dated receipt. The repository is public and MIT-licensed.
@@ -136,3 +137,10 @@ python3 tools/backlog.py ready --apply-labels
 issues, labels, and milestones. It is resumable using stable issue-body markers.
 Review changes to `issues.json` before republishing; remote states are preserved.
 All ongoing GitHub operations use `gh` and documented APIs.
+
+The cross-platform requirement added five bounded tasks to the original 130:
+`FND-012` Windows local control, `CI-001` native build matrix, `CI-002` runtime
+bundles, `GATE-005` hardware package qualification and `CI-003` milestone release
+promotion. Existing dependency/packaging/product gates now require all three
+OSes. The [release plan](../releases.md) distinguishes the current compile-only
+CI seed from the future qualified runtime packages.

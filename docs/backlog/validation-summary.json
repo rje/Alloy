@@ -1,13 +1,13 @@
 {
-  "issues": 130,
+  "issues": 135,
   "kinds": {
     "research": 13,
-    "implementation": 83,
-    "validation": 12,
+    "implementation": 87,
+    "validation": 13,
     "epic": 22
   },
   "phases": {
-    "P0 Foundation": 13,
+    "P0 Foundation": 18,
     "P1 Geometry/document": 15,
     "P2 Parametric modeling": 28,
     "P3 Shape/import/print breadth": 24,
@@ -20,6 +20,7 @@
   },
   "validation_gates": [
     "GATE-000",
+    "GATE-005",
     "GATE-010",
     "GATE-020",
     "GATE-030",
@@ -41,8 +42,8 @@
     "FND-010",
     "GATE-000"
   ],
-  "source_entries": 84,
-  "unique_source_urls": 84,
+  "source_entries": 112,
+  "unique_source_urls": 112,
   "checks": [
     "schema",
     "unique keys",

@@ -20,6 +20,11 @@ self-test, and capture Alloy through the real application.
 The 3D viewport must be GPU accelerated, with the actual renderer verified.
 This is an explicit user requirement, including the initial viewport foundation.
 
+macOS, Windows and Linux are required product targets. Validated milestones
+should publish downloadable native builds with runtime dependencies, provenance,
+and per-platform workflow evidence. Architecture and minimum OS versions must
+be qualified rather than inferred from a successful build.
+
 ## Initial product focus
 
 The first useful release should create and modify shapes, import common formats,

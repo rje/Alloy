@@ -68,17 +68,24 @@ The user authorized a public GitHub repository/project and an issue backlog with
 cumulative validation gates. The repository is [rje/Alloy](https://github.com/rje/Alloy)
 and the public board is [Alloy](https://github.com/users/rje/projects/1).
 The MIT-licensed foundation is published on `main` (initial commit `9b6213d`).
-Astra's deep dive and backlog are published: **130 issues** across ten phases,
-comprising **83 implementation tasks, 13 research tasks, 22 epics, and 12
+Astra's deep dive and backlog are published: **135 issues** across ten phases,
+comprising **87 implementation tasks, 13 research tasks, 22 epics, and 13
 cumulative validation gates**. All remote issue bodies, dependency links,
 labels, milestones, and live readiness were verified through the API. The shell
 baseline [`GATE-000` #12](https://github.com/rje/Alloy/issues/12) is closed;
-129 issues remain open and six have satisfied prerequisites. Later epics need
+134 issues remain open and six have satisfied prerequisites. Later epics need
 bounded child issues before implementation; this count does not exhaust parity.
 Read [the backlog](backlog/README.md), [publication receipt](backlog/publication.json),
 and [deep dive](research/cad-workflows.md) before pulling work. Run
 `python3 tools/backlog.py ready` for the current queue and
 `python3 tools/backlog.py ready --apply-labels` after changing issue states.
+The later cross-platform requirement added five issues: FND-012, CI-001,
+CI-002, GATE-005 and CI-003. Read [releases.md](releases.md) and the
+[release research](research/cross-platform-releases.md). Native CI is seeded
+for macOS arm64/Intel, Windows x64 and Ubuntu24.04 x64; its first run is pending.
+It retains unbundled compile artifacts, not yet independently runnable packages.
+Windows named-pipe control, Linux X11/GLX runtime qualification, relocation,
+dependency notices and tagged milestone publishing remain open.
 GitHub operations must use `gh` and APIs; the user explicitly rejected browser
 computer control for GitHub. The current CLI token supports repositories/issues
 but lacks the GitHub Projects scope. The board was created before that preference
@@ -102,6 +109,6 @@ export. Test persistent face/edge references early. The proposed coverage is in
 The exact reference CAD application reference release/platform/theme/navigation baseline,
 minimum OS versions/architectures, sketch solver, and native document format
 remain unresolved. They are recorded gaps, not forgotten decisions. Current
-public-interface research now covers the major feature families with 84 dated
+public-interface/build research now covers the major feature families with 112 dated
 primary-source URLs, contradictions, and open questions. It does not yet specify
 every command, default, error, or visual state.

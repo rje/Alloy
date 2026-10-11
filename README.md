@@ -39,6 +39,8 @@ The public repository is [rje/Alloy](https://github.com/rje/Alloy), with the
   source-linked interface and interaction findings.
 - [Development](docs/development.md): build, run, and verification instructions.
 - [Agent control](docs/agent-control.md): local command protocol and client.
+- [Native builds and releases](docs/releases.md): required OS targets, CI,
+  runtime packaging, and milestone promotion gates.
 
 ## Starting decisions
 

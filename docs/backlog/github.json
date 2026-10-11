@@ -1,8 +1,33 @@
 {
   "repository": "rje/Alloy",
   "project_url": "https://github.com/users/rje/projects/1",
-  "updated": "2026-10-11T23:11:15.288267+00:00",
+  "updated": "2026-10-11T23:26:13.311562+00:00",
   "issues": {
+    "CI-003": {
+      "number": 135,
+      "url": "https://github.com/rje/Alloy/issues/135",
+      "state": "open"
+    },
+    "GATE-005": {
+      "number": 134,
+      "url": "https://github.com/rje/Alloy/issues/134",
+      "state": "open"
+    },
+    "CI-002": {
+      "number": 133,
+      "url": "https://github.com/rje/Alloy/issues/133",
+      "state": "open"
+    },
+    "CI-001": {
+      "number": 132,
+      "url": "https://github.com/rje/Alloy/issues/132",
+      "state": "open"
+    },
+    "FND-012": {
+      "number": 131,
+      "url": "https://github.com/rje/Alloy/issues/131",
+      "state": "open"
+    },
     "GATE-110": {
       "number": 130,
       "url": "https://github.com/rje/Alloy/issues/130",
