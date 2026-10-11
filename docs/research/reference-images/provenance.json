@@ -1,0 +1,40 @@
+{
+  "purpose": "Public-documentation research only; never application assets",
+  "rights": "Autodesk copyrighted public documentation; redistribution permission not established. Image files remain local and ignored by Git.",
+  "items": [
+    {
+      "file": "interface-public-doc.png",
+      "sourcePage": null,
+      "imageUrl": null,
+      "retrieved": "2026-10-11",
+      "sha256": "d077c53ef917b14c3a4d1e1dab2ba9c856cd8564428a754e5b3035e278a7c0dd",
+      "width": 3458,
+      "height": 1984,
+      "sourcePageReference": "ui",
+      "imageUrlReference": "extra-084"
+    },
+    {
+      "file": "api-ui-structure.png",
+      "sourcePage": null,
+      "imageUrl": null,
+      "retrieved": "2026-10-11",
+      "sha256": "f20baa8e519e02e8484970481a61ec95fe852f1a86a7bcf8b7ca96f97a436f12",
+      "width": 640,
+      "height": 386,
+      "sourcePageReference": "extra-083",
+      "imageUrlReference": "extra-085"
+    },
+    {
+      "file": "sketch-toolbar.png",
+      "sourcePage": null,
+      "imageUrl": null,
+      "retrieved": "2026-10-11",
+      "sha256": "32a737a823ba669bfd9b4fb88b19b6765693bdc97714c2d090f8d06113fe2d31",
+      "width": 1732,
+      "height": 100,
+      "sourcePageReference": "sketch",
+      "imageUrlReference": "extra-086"
+    }
+  ],
+  "location": "Separate local reference records; no reference images ship in Alloy."
+}

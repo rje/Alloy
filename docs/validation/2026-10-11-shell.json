@@ -1,0 +1,35 @@
+{
+  "date": "2026-10-11",
+  "scope": "Current native Alloy UI shell only",
+  "build": "cmake --build build: passed (no code changes)",
+  "real_app_api": "ctest --test-dir build --output-on-failure: 1/1 passed",
+  "physical_input": [
+    {
+      "action": "S",
+      "observed": "Native command search appeared; API commandSearchVisible true"
+    },
+    {
+      "action": "API selects top, physical search Home then Return",
+      "observed": "API orientation isometric and commandSearchVisible false"
+    },
+    {
+      "action": "Cmd+Option+B",
+      "observed": "Browser disappeared from native accessibility tree; API browserVisible false"
+    }
+  ],
+  "restored": "layout.reset through Alloy API; user app left open",
+  "capture": "docs/validation/2026-10-11-shell.png",
+  "sha256": "c59fc863110499b7c53c9ac0a7d916d7569ac1a120a1d9ac330e336662d5aa08",
+  "limits": [
+    "No CAD document or modeled object exists",
+    "OCCT discovered, not integrated",
+    "No exact visual-parity acceptance",
+    "Physical mouse, other shortcuts, and full focus behavior not exhaustively verified"
+  ],
+  "api_transcript": "Ignored local build/evidence/shell-api.json",
+  "physical_state_artifacts": [
+    "build/evidence/physical-search-state.json",
+    "build/evidence/physical-home-state.json",
+    "build/evidence/physical-browser-state.json"
+  ]
+}
