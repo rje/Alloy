@@ -82,6 +82,9 @@ These rules supersede any earlier suggestion to verify behavior in reference CAD
   recommended foundation; dependency choices must be recorded and verified.
 - Use mature libraries for geometry, constraints, and interchange where they
   fit. Keep custom infrastructure small and tied to a real workflow.
+- The 3D viewport must use GPU acceleration. Verify the actual graphics vendor,
+  renderer, version, native framebuffer capture, and resize/display-scale behavior.
+  A CPU reference grid or software rasterizer does not satisfy viewport acceptance.
 - Preserve authored sketches/features separately from evaluated geometry and
   tessellated display data. Plan for persistent geometric references early.
 - Prefer coherent, runnable increments with proportional verification.

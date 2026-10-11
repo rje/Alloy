@@ -119,7 +119,7 @@ class GitHub:
 
 
 def labels_for(issue):
-    return sorted(set(issue["labels"] + [f"kind:{issue['kind']}", f"phase:{issue['phase']}",
+    return sorted(set(issue["labels"] + [f"kind:{issue['kind']}", f"phase:{issue['phase'].split()[0]}",
                                        f"priority:{issue['priority']}"]))
 
 
@@ -175,7 +175,7 @@ def publish(issues, github):
     milestones = {row["title"]: row for row in github.api(f"repos/{github.repo}/milestones?state=all&per_page=100", paginate=True)}
     phase_milestones = {}
     for phase in sorted({issue["phase"] for issue in issues}):
-        title = f"{phase} — {PHASE_NAMES.get(phase, 'Full replacement')}"
+        title = phase if " " in phase else f"{phase} — {PHASE_NAMES.get(phase, 'Full replacement')}"
         if title not in milestones:
             milestones[title] = github.api(f"repos/{github.repo}/milestones", "POST", {
                 "title": title, "description": "Workflow phase; cumulative validation gates require real-application evidence. No deadline is committed."})

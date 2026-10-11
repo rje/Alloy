@@ -1,7 +1,7 @@
 # Current-shell validation baseline
 
 Observed 2026-10-11 on Apple silicon macOS. This validates the existing native
-shell and its real control path. No CAD object can yet be created: the document,
+shell source published in commit `9b6213d` and its real control path. No CAD object can yet be created: the document,
 kernel integration, modeling, persistence, and interchange layers are pending.
 
 ## Actions and results

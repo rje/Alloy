@@ -27,6 +27,9 @@ Updated 2026-10-11. This is the project handoff for a fresh session. Read the ro
   proposed CAD kernel and Python for the initial agent client.
 - The user selected MIT for Alloy's original source and documentation.
   Third-party libraries retain their own licenses.
+- The user requires a GPU-accelerated 3D viewport from the foundation, with
+  actual renderer evidence. The QPainter reference grid is being replaced by
+  OCCT/OpenGL; software rendering does not satisfy viewport acceptance.
 - The project lives at `~/src/cpp/Alloy`. Alloy is the working name. Astra was
   requested for the initial public-interface research and project foundation,
   and completed that assignment.
@@ -58,7 +61,18 @@ Alloy evidence and re-fetch permitted references from the recorded URLs.
 The user authorized a public GitHub repository/project and an issue backlog with
 cumulative validation gates. The repository is [rje/Alloy](https://github.com/rje/Alloy)
 and the public board is [Alloy](https://github.com/users/rje/projects/1).
-Publication of the foundation and researched backlog is being prepared.
+The MIT-licensed foundation is published on `main` (initial commit `9b6213d`).
+Astra's deep dive and backlog are published: **130 issues** across ten phases,
+comprising **83 implementation tasks, 13 research tasks, 22 epics, and 12
+cumulative validation gates**. All remote issue bodies, dependency links,
+labels, milestones, and live readiness were verified through the API. The shell
+baseline [`GATE-000` #12](https://github.com/rje/Alloy/issues/12) is closed;
+129 issues remain open and six have satisfied prerequisites. Later epics need
+bounded child issues before implementation; this count does not exhaust parity.
+Read [the backlog](backlog/README.md), [publication receipt](backlog/publication.json),
+and [deep dive](research/cad-workflows.md) before pulling work. Run
+`python3 tools/backlog.py ready` for the current queue and
+`python3 tools/backlog.py ready --apply-labels` after changing issue states.
 GitHub operations must use `gh` and APIs; the user explicitly rejected browser
 computer control for GitHub. The current CLI token supports repositories/issues
 but lacks the GitHub Projects scope. The board was created before that preference
@@ -82,5 +96,6 @@ export. Test persistent face/edge references early. The proposed coverage is in
 The exact reference CAD application reference release/platform/theme/navigation baseline, first
 release OS coverage, sketch solver, and native document format
 remain unresolved. They are recorded gaps, not forgotten decisions. Current
-public-interface research is initial and does not yet specify every command,
-default, error, visual state, or offline feature family.
+public-interface research now covers the major feature families with 84 dated
+primary-source URLs, contradictions, and open questions. It does not yet specify
+every command, default, error, or visual state.

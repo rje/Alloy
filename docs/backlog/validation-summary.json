@@ -1,0 +1,56 @@
+{
+  "issues": 130,
+  "kinds": {
+    "research": 13,
+    "implementation": 83,
+    "validation": 12,
+    "epic": 22
+  },
+  "phases": {
+    "P0 Foundation": 13,
+    "P1 Geometry/document": 15,
+    "P2 Parametric modeling": 28,
+    "P3 Shape/import/print breadth": 24,
+    "P4 Initial release": 7,
+    "P5 Assemblies/drawings": 9,
+    "P6 Advanced design": 11,
+    "P7 Manufacturing": 9,
+    "P8 Analysis/electronics": 10,
+    "P9 Full replacement": 4
+  },
+  "validation_gates": [
+    "GATE-000",
+    "GATE-010",
+    "GATE-020",
+    "GATE-030",
+    "GATE-040",
+    "GATE-050",
+    "GATE-060",
+    "GATE-070",
+    "GATE-080",
+    "GATE-090",
+    "GATE-100",
+    "GATE-110"
+  ],
+  "structurally_ready": [
+    "FND-001",
+    "FND-002",
+    "FND-003",
+    "FND-004",
+    "FND-006",
+    "FND-010",
+    "GATE-000"
+  ],
+  "source_entries": 84,
+  "unique_source_urls": 84,
+  "checks": [
+    "schema",
+    "unique keys",
+    "existing dependencies",
+    "acyclic",
+    "topological publication order",
+    "dated registered primary-source links",
+    "cumulative gate chain",
+    "initial and full scope reachability"
+  ]
+}

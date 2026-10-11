@@ -1,0 +1,747 @@
+{
+  "retrieved": "2026-10-11",
+  "sources": {
+    "ui": {
+      "title": "reference CAD application desktop interface",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Documented public behavior; not an Alloy implementation claim.",
+      "reference_id": "ui",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "inputs": {
+      "title": "reference CAD application public command-input descriptions",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Documented public behavior; not an Alloy implementation claim.",
+      "reference_id": "inputs",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "keys": {
+      "title": "reference CAD application keyboard shortcuts",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Documented public behavior; not an Alloy implementation claim.",
+      "reference_id": "keys",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "qt": {
+      "title": "Qt Widgets",
+      "url": "https://doc.qt.io/qt-6/qtwidgets-index.html",
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Public library foundation; adoption and packaging are Alloy design decisions."
+    },
+    "sketch": {
+      "title": "Sketches in reference CAD application",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Documented public behavior; not an Alloy implementation claim.",
+      "reference_id": "sketch",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "sketchmode": {
+      "title": "Edit a sketch",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Documented public behavior; not an Alloy implementation claim.",
+      "reference_id": "sketchmode",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "palette": {
+      "title": "Sketch Palette",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Documented public behavior; not an Alloy implementation claim.",
+      "reference_id": "palette",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "constraints": {
+      "title": "Public geometric-constraint collection",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Documented public behavior; not an Alloy implementation claim.",
+      "reference_id": "constraints",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "dimensions": {
+      "title": "Driving and driven dimensions",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Documented public behavior; not an Alloy implementation claim.",
+      "reference_id": "dimensions",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "fully": {
+      "title": "Fully define sketches",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Documented public behavior; not an Alloy implementation claim.",
+      "reference_id": "fully",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "project": {
+      "title": "Project geometry and repair lost links",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Documented public behavior; not an Alloy implementation claim.",
+      "reference_id": "project",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "sketchmodify": {
+      "title": "Sketch modification tools",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Documented public behavior; not an Alloy implementation claim.",
+      "reference_id": "sketchmodify",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "splines": {
+      "title": "Sketch spline creation and editing",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Documented public behavior; not an Alloy implementation claim.",
+      "reference_id": "splines",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "extrude": {
+      "title": "Extrude reference",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Documented public behavior; not an Alloy implementation claim.",
+      "reference_id": "extrude",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "fillet": {
+      "title": "Fillet reference",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Documented public behavior; not an Alloy implementation claim.",
+      "reference_id": "fillet",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "timeline": {
+      "title": "Timeline editing and suppression",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Documented public behavior; not an Alloy implementation claim.",
+      "reference_id": "timeline",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "modes": {
+      "title": "Parametric, direct, and base-feature modes",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Documented public behavior; not an Alloy implementation claim.",
+      "reference_id": "modes",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "parameters": {
+      "title": "Parameters and equations",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Documented public behavior; not an Alloy implementation claim.",
+      "reference_id": "parameters",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "paramedit": {
+      "title": "Create and edit parameters",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Documented public behavior; not an Alloy implementation claim.",
+      "reference_id": "paramedit",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "revolve": {
+      "title": "Revolve a solid",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Documented public behavior; not an Alloy implementation claim.",
+      "reference_id": "revolve",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "sweep": {
+      "title": "Sweep reference",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Documented public behavior; not an Alloy implementation claim.",
+      "reference_id": "sweep",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "loft": {
+      "title": "Solid loft reference",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Documented public behavior; not an Alloy implementation claim.",
+      "reference_id": "loft",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "shell": {
+      "title": "Shell a solid body",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Documented public behavior; not an Alloy implementation claim.",
+      "reference_id": "shell",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "hole": {
+      "title": "Hole creation",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Documented public behavior; not an Alloy implementation claim.",
+      "reference_id": "hole",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "modify": {
+      "title": "Solid modification tools",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Documented public behavior; not an Alloy implementation claim.",
+      "reference_id": "modify",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "surface": {
+      "title": "Surface creation tools",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Documented public behavior; not an Alloy implementation claim.",
+      "reference_id": "surface",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "srfloft": {
+      "title": "Surface loft continuity and rails",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Documented public behavior; not an Alloy implementation claim.",
+      "reference_id": "srfloft",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "srfmodify": {
+      "title": "Surface modification tools",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Documented public behavior; not an Alloy implementation claim.",
+      "reference_id": "srfmodify",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "stitch": {
+      "title": "Stitch surfaces into a quilt or solid",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Documented public behavior; not an Alloy implementation claim.",
+      "reference_id": "stitch",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "thicken": {
+      "title": "Surface-to-solid tutorial",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Document contains conflicting mass figures; do not use its mass as a numeric oracle. It does document stitch/thicken steps.",
+      "reference_id": "thicken",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "formats": {
+      "title": "Supported file formats",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Documented public behavior; not an Alloy implementation claim.",
+      "reference_id": "formats",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "open": {
+      "title": "Public import/open workflow",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Source says some translation is online. It does not prove every listed format is offline.",
+      "reference_id": "open",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "dxf": {
+      "title": "Insert DXF",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Documented public behavior; not an Alloy implementation claim.",
+      "reference_id": "dxf",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "print": {
+      "title": "Save As Mesh format, units, and structure",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Documented public behavior; not an Alloy implementation claim.",
+      "reference_id": "print",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "meshexport": {
+      "title": "Mesh export tools",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Documented public behavior; not an Alloy implementation claim.",
+      "reference_id": "meshexport",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "meshmodify": {
+      "title": "Mesh modifications",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Documented public behavior; not an Alloy implementation claim.",
+      "reference_id": "meshmodify",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "meshquality": {
+      "title": "Public mesh validity guidance",
+      "url": "https://help.autodesk.com/cloudhelp/2026/ENU/NETF/files/GUID-CCEA9C88-4647-4598-9F4D-07454389F34F.htm",
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Autodesk Netfabb mesh guidance, used as export-quality evidence, not reference CAD application UI behavior."
+    },
+    "occtview": {
+      "title": "OCCT visualization",
+      "url": "https://www.occt3d.com/dev/doc/overview/html/occt_user_guides__visualization.html",
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Library capability reference; live docs can differ from installed OCCT 7.9.3."
+    },
+    "ocaf": {
+      "title": "OCCT OCAF",
+      "url": "https://www.occt3d.com/dev/doc/overview/html/occt_user_guides__ocaf.html",
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Library capability reference; naming is not automatic feature-reference robustness."
+    },
+    "planegcs": {
+      "title": "FreeCAD PlaneGCS public source",
+      "url": "https://raw.githubusercontent.com/FreeCAD/FreeCAD/main/src/Mod/Sketcher/App/planegcs/GCS.h",
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Pin a commit and review all linked dependencies before reuse."
+    },
+    "slvs": {
+      "title": "SolveSpace library",
+      "url": "https://solvespace.com/library.pl",
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Solver alternative, not selected; licensing affects adoption."
+    },
+    "lib3mf": {
+      "title": "lib3mf",
+      "url": "https://github.com/3MFConsortium/lib3mf",
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Open-source foundation candidate; pin/version/license must be recorded."
+    },
+    "B01": {
+      "title": "Components",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Primary public source reviewed in breadth-notes.md; cloud/local claims remain operation-specific.",
+      "reference_id": "B01",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "B02": {
+      "title": "Assembly relationships",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Primary public source reviewed in breadth-notes.md; cloud/local claims remain operation-specific.",
+      "reference_id": "B02",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "B03": {
+      "title": "Joint types",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Primary public source reviewed in breadth-notes.md; cloud/local claims remain operation-specific.",
+      "reference_id": "B03",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "B04": {
+      "title": "Work offline in reference CAD application",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Primary public source reviewed in breadth-notes.md; cloud/local claims remain operation-specific.",
+      "reference_id": "B04",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "B05": {
+      "title": "Drawing tutorial: multiple views, dimensions, parts list and balloons",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Primary public source reviewed in breadth-notes.md; cloud/local claims remain operation-specific.",
+      "reference_id": "B05",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "B06": {
+      "title": "Base views",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Primary public source reviewed in breadth-notes.md; cloud/local claims remain operation-specific.",
+      "reference_id": "B06",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "B07": {
+      "title": "Section views",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Primary public source reviewed in breadth-notes.md; cloud/local claims remain operation-specific.",
+      "reference_id": "B07",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "B08": {
+      "title": "Sheet metal rule reference",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Primary public source reviewed in breadth-notes.md; cloud/local claims remain operation-specific.",
+      "reference_id": "B08",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "B09": {
+      "title": "Create base/edge/contour flange",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Primary public source reviewed in breadth-notes.md; cloud/local claims remain operation-specific.",
+      "reference_id": "B09",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "B10": {
+      "title": "Unfold, including distinction from Flat Pattern",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Primary public source reviewed in breadth-notes.md; cloud/local claims remain operation-specific.",
+      "reference_id": "B10",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "B11": {
+      "title": "Modeling modes in reference CAD application",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Primary public source reviewed in breadth-notes.md; cloud/local claims remain operation-specific.",
+      "reference_id": "B11",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "B12": {
+      "title": "Modify T-Spline bodies with Edit Form",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Primary public source reviewed in breadth-notes.md; cloud/local claims remain operation-specific.",
+      "reference_id": "B12",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "B13": {
+      "title": "T-Spline symmetry",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Primary public source reviewed in breadth-notes.md; cloud/local claims remain operation-specific.",
+      "reference_id": "B13",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "B14": {
+      "title": "Configurations overview",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Primary public source reviewed in breadth-notes.md; cloud/local claims remain operation-specific.",
+      "reference_id": "B14",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "B15": {
+      "title": "Configurable aspects",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Primary public source reviewed in breadth-notes.md; cloud/local claims remain operation-specific.",
+      "reference_id": "B15",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "B16": {
+      "title": "Configuration Table",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Primary public source reviewed in breadth-notes.md; cloud/local claims remain operation-specific.",
+      "reference_id": "B16",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "B17": {
+      "title": "Mesh overview",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Primary public source reviewed in breadth-notes.md; cloud/local claims remain operation-specific.",
+      "reference_id": "B17",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "B18": {
+      "title": "Repair a mesh body",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Primary public source reviewed in breadth-notes.md; cloud/local claims remain operation-specific.",
+      "reference_id": "B18",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "B19": {
+      "title": "Convert a mesh body to a solid body",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Primary public source reviewed in breadth-notes.md; cloud/local claims remain operation-specific.",
+      "reference_id": "B19",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "B20": {
+      "title": "Manufacture overview",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Primary public source reviewed in breadth-notes.md; cloud/local claims remain operation-specific.",
+      "reference_id": "B20",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "B21": {
+      "title": "Setups for manufacturing",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Primary public source reviewed in breadth-notes.md; cloud/local claims remain operation-specific.",
+      "reference_id": "B21",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "B22": {
+      "title": "Simulation for manufacturing",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Primary public source reviewed in breadth-notes.md; cloud/local claims remain operation-specific.",
+      "reference_id": "B22",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "B23": {
+      "title": "Workflow: preparing parts for additive manufacturing",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Primary public source reviewed in breadth-notes.md; cloud/local claims remain operation-specific.",
+      "reference_id": "B23",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "B24": {
+      "title": "Component sources for nesting",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Primary public source reviewed in breadth-notes.md; cloud/local claims remain operation-specific.",
+      "reference_id": "B24",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "B25": {
+      "title": "Manufacturing Extension",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Primary public source reviewed in breadth-notes.md; cloud/local claims remain operation-specific.",
+      "reference_id": "B25",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "B26": {
+      "title": "Render the design",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Primary public source reviewed in breadth-notes.md; cloud/local claims remain operation-specific.",
+      "reference_id": "B26",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "B26b": {
+      "title": "Create a rendered image, explicit in-canvas offline statement",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Primary public source reviewed in breadth-notes.md; cloud/local claims remain operation-specific.",
+      "reference_id": "B26b",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "B27": {
+      "title": "reference CAD application study types",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Primary public source reviewed in breadth-notes.md; cloud/local claims remain operation-specific.",
+      "reference_id": "B27",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "B28": {
+      "title": "Older Analyze Simulation Results lesson PDF",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Primary public source reviewed in breadth-notes.md; cloud/local claims remain operation-specific.",
+      "reference_id": "B28",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "B29": {
+      "title": "Electronics Design document",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Primary public source reviewed in breadth-notes.md; cloud/local claims remain operation-specific.",
+      "reference_id": "B29",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "B30": {
+      "title": "Prepare manufacturing data",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Primary public source reviewed in breadth-notes.md; cloud/local claims remain operation-specific.",
+      "reference_id": "B30",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "B31": {
+      "title": "Available tab does not list libraries; Autodesk Support, 2023-10-08",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Primary public source reviewed in breadth-notes.md; cloud/local claims remain operation-specific.",
+      "reference_id": "B31",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "B32": {
+      "title": "Animation overview",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Primary public source reviewed in breadth-notes.md; cloud/local claims remain operation-specific.",
+      "reference_id": "B32",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "B33": {
+      "title": "Publish and share animations",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Primary public source reviewed in breadth-notes.md; cloud/local claims remain operation-specific.",
+      "reference_id": "B33",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "B34": {
+      "title": "Generative design workflow overview",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Primary public source reviewed in breadth-notes.md; cloud/local claims remain operation-specific.",
+      "reference_id": "B34",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "B35": {
+      "title": "Outcome generation",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Primary public source reviewed in breadth-notes.md; cloud/local claims remain operation-specific.",
+      "reference_id": "B35",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "B36": {
+      "title": "Preserve geometry",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Primary public source reviewed in breadth-notes.md; cloud/local claims remain operation-specific.",
+      "reference_id": "B36",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "B36b": {
+      "title": "Create other obstacle geometry",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Primary public source reviewed in breadth-notes.md; cloud/local claims remain operation-specific.",
+      "reference_id": "B36b",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "B37": {
+      "title": "Create a boss",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Primary public source reviewed in breadth-notes.md; cloud/local claims remain operation-specific.",
+      "reference_id": "B37",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "asmconstraints": {
+      "title": "Assembly constraints and constraint sets",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Documented public behavior; not an Alloy implementation claim.",
+      "reference_id": "asmconstraints",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "lip": {
+      "title": "Plastic lip and groove",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Documented public behavior; not an Alloy implementation claim.",
+      "reference_id": "lip",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    },
+    "threads": {
+      "title": "Holes, modeled/cosmetic threads and libraries",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Documented public behavior; not an Alloy implementation claim.",
+      "reference_id": "threads",
+      "provenance": "Public reference URL retained in the separate local reference records."
+    }
+  }
+}

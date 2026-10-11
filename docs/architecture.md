@@ -14,7 +14,7 @@ outside the planned stack.
 | --- | --- | --- |
 | Desktop application | C++20 and Qt 6 Widgets | Mature menus, docks, trees, dialogs, actions, input, and model/view support; a useful fit for a dense CAD desktop interface |
 | CAD geometry | OCCT | Established BRep solids/surfaces, modeling algorithms, CAD exchange, and visualization; robustness still needs workflow validation |
-| CAD viewport | Evaluate OCCT AIS/V3d first | CAD selection and presentation already exist; avoid writing a game renderer before proving modeling workflows |
+| CAD viewport | GPU-accelerated OCCT AIS/V3d/OpenGL | Hardware acceleration is required; verify live renderer diagnostics, native resize/DPR behavior, and actual framebuffer capture |
 | Sketch constraints | Evaluate FreeCAD PlaneGCS; compare SolveSpace libslvs | Existing solvers reduce reinvention; functionality, embedding boundaries, maintenance, and license must be checked |
 | Assembly constraints | Evaluate later, including FreeCAD's OndselSolver fork | A later family; do not put assembly infrastructure in the first sketch slice |
 | 3MF | Evaluate lib3mf | Existing read/write and validation support |

@@ -17,6 +17,9 @@ Agent control must exist from the first runnable app. Every implemented workflow
 must gain corresponding commands and observable state so agents can operate,
 self-test, and capture Alloy through the real application.
 
+The 3D viewport must be GPU accelerated, with the actual renderer verified.
+This is an explicit user requirement, including the initial viewport foundation.
+
 ## Initial product focus
 
 The first useful release should create and modify shapes, import common formats,

@@ -1,0 +1,37 @@
+{
+  "verified_at": "2026-10-11T23:11:50.469720+00:00",
+  "repository": "https://github.com/rje/Alloy",
+  "visibility": "public",
+  "license": "MIT",
+  "total": 130,
+  "kinds": {
+    "research": 13,
+    "implementation": 83,
+    "validation": 12,
+    "epic": 22
+  },
+  "states": {
+    "open": 129,
+    "closed": 1
+  },
+  "ready": [
+    "FND-001",
+    "FND-002",
+    "FND-003",
+    "FND-004",
+    "FND-006",
+    "FND-010"
+  ],
+  "milestones": 10,
+  "checks": [
+    "exact unique stable-key coverage",
+    "issue titles and bodies match authored graph",
+    "dependency links resolve to published issue numbers",
+    "kind/phase/priority labels",
+    "milestones",
+    "live readiness labels",
+    "public MIT repository"
+  ],
+  "project_url": "https://github.com/users/rje/projects/1",
+  "project_verification": "Public board and repository auto-add were configured during creation; current CLI token lacks project scope, so board item count was not independently verified through API."
+}
