@@ -1,6 +1,13 @@
 {
   "version": 1,
   "cases": {
+    "DOC-001": {
+      "script": "tests/kernel_api.py",
+      "fixture": "tests/workflows/fixtures/kernel.json",
+      "result": "kernel-api.json",
+      "covers": ["DOC-001"],
+      "capabilities": ["kernel.real_solid"]
+    },
     "FND-009": {
       "script": "tests/native_builds.py",
       "fixture": "tests/workflows/fixtures/native-builds.json",

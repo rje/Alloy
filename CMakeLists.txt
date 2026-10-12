@@ -25,13 +25,19 @@ set(ALLOY_OCCT_VERSION "${OpenCASCADE_MAJOR_VERSION}.${OpenCASCADE_MINOR_VERSION
 message(STATUS "OCCT ${ALLOY_OCCT_VERSION}: native OpenGL visualization")
 message(STATUS "Qt ${Qt6_VERSION}; spikes=${ALLOY_BUILD_SPIKES}; OCCT components=${ALLOY_OCCT_COMPONENTS}")
 
+add_library(alloy_kernel STATIC src/GeometryKernel.cpp src/GeometryKernel.h)
+target_include_directories(alloy_kernel PUBLIC src)
+target_include_directories(alloy_kernel SYSTEM PUBLIC ${OpenCASCADE_INCLUDE_DIR})
+target_link_libraries(alloy_kernel PUBLIC Qt6::Core TKernel TKMath TKG3d TKBRep TKPrim TKTopAlgo)
+target_compile_definitions(alloy_kernel PUBLIC ALLOY_OCCT_VERSION="${ALLOY_OCCT_VERSION}")
+
 qt_add_executable(alloy MACOSX_BUNDLE
     src/main.cpp src/AlloyWindow.cpp src/AlloyWindow.h
     src/CadDocument.cpp src/CadDocument.h
     src/ReferenceView.cpp src/ReferenceView.h
     src/ControlServer.cpp src/ControlServer.h)
 target_include_directories(alloy SYSTEM PRIVATE ${OpenCASCADE_INCLUDE_DIR})
-target_link_libraries(alloy PRIVATE Qt6::Widgets Qt6::Network TKernel TKMath TKG3d TKService TKV3d TKOpenGl)
+target_link_libraries(alloy PRIVATE alloy_kernel Qt6::Widgets Qt6::Network TKService TKV3d TKOpenGl)
 target_compile_definitions(alloy PRIVATE ALLOY_OCCT_VERSION="${ALLOY_OCCT_VERSION}")
 set_target_properties(alloy PROPERTIES
     MACOSX_BUNDLE_BUNDLE_NAME Alloy
@@ -53,9 +59,12 @@ if(ALLOY_BUILD_SPIKES)
         TKernel TKMath TKBRep TKPrim TKTopAlgo TKLCAF TKCAF TKBin TKBinL TKCDF)
 endif()
 if(BUILD_TESTING)
+    add_executable(geometry_kernel_test tests/geometry_kernel.cpp)
+    target_link_libraries(geometry_kernel_test PRIVATE alloy_kernel)
+    add_test(NAME geometry_kernel COMMAND geometry_kernel_test)
     add_executable(document_model_test tests/document_model.cpp src/CadDocument.cpp src/CadDocument.h)
     target_include_directories(document_model_test PRIVATE src)
-    target_link_libraries(document_model_test PRIVATE Qt6::Gui)
+    target_link_libraries(document_model_test PRIVATE Qt6::Gui alloy_kernel)
     add_test(NAME document_model COMMAND document_model_test)
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
     add_test(NAME client_selection COMMAND ${Python3_EXECUTABLE} -E ${CMAKE_CURRENT_SOURCE_DIR}/tests/client_selection.py)

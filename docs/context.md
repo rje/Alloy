@@ -54,7 +54,11 @@ grid with named orientations, pan, and zoom. A private local control socket and
 OCCT 7.9.3 is linked for native AIS/V3d/OpenGL visualization; the live Apple M4
 hardware driver and Retina framebuffer/startup/resize were verified. See the
 [GPU foundation receipt](validation/gpu-foundation.md). `kernel.visualizationIntegrated`
-is true; `kernel.integrated` remains false for authored CAD geometry.
+is true. DOC-001 now links the thin OCCT modeling boundary; `kernel.probe`
+evaluates a real diagnostic solid without adding authored geometry. Its real-app
+case and box/cylinder/open-face unit checks passed and Astra reviewed the slice.
+See [kernel receipt](validation/kernel-boundary.json). Document operations and
+rendered primitives follow separately.
 The cumulative runner in `tests/workflows/run.py` now wraps the real shell case,
 with fixture/candidate/artifact hashes, capability checks and live gate prerequisites.
 Its real-app success and focused refusal checks passed, and Astra reviewed the

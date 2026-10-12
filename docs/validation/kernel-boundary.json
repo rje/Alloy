@@ -1,0 +1,73 @@
+{
+  "observed_at": "2026-10-12T02:16:49.882923+00:00",
+  "result": "passed",
+  "candidate": {
+    "app": "/Users/rje/src/cpp/Alloy/build/alloy.app/Contents/MacOS/alloy",
+    "source_commit": "25312723c450c16818e8c99d802b827f0728e3e4",
+    "dirty": true,
+    "sha256": "4879f610bc9a0c352f2ce72a2cd2beb16af6de1b836d751ad5fe2859b82b15ba"
+  },
+  "inputs_sha256": {
+    "tests/workflows/ledger.json": "6abc8a4b48d87ff372d00be908b6d4bfd16a247b8937aa8d6daed7606e462e24",
+    "docs/backlog/issues.json": "e7dd634d06a26ea5f58b7ae3c4d95c215119b75b245ff858a0e5d02baa28e1b7",
+    "tests/workflows/run.py": "25ed122e7d795e916de19e11acfae597fc0f1fd2bb4983a6765c946f8b759ead",
+    "CMakeLists.txt": "22ded29f7669d1250c7e2fd733a5257760961f573233e63424ac66cd44990418",
+    "tools/alloyctl.py": "7429d3a49baccef9bbf63b90924dccf2ac13c083feb4b55a8bbd499e442aa2ca",
+    "tools/backlog.py": "2db58486ac1cfa3366dc9d942b3e6177531bb800e8a7e0a87390a30ddba13417",
+    "src/AlloyWindow.cpp": "b7765b2bbb6cbccfcc98fdaa2f1e3766c5d8df5286ea9d5310efd28eb12e36bf",
+    "src/AlloyWindow.h": "19570d28dd40f798370d64bf03b4476d6ef092fd8f10e4029efdd6bd52c2339e",
+    "src/CadDocument.cpp": "6d98efd4b6addef41649ae1ab173f9daafd772829e24c4518fee1faf776caf1a",
+    "src/CadDocument.h": "233dbb988436b5552fb778402feec981a68622ff9b36b71996cead6f7ca43f1b",
+    "src/ControlServer.cpp": "cb8ad74e6bed508791cc0f12e0d09b7cad46d7ccf20e0f5ceeb53178e83fddea",
+    "src/ControlServer.h": "9c692cacf1f764435284b1cec2e3d50a38ebda8ab7aeccd76704adbf67aee651",
+    "src/GeometryKernel.cpp": "cd1aab04808f48e5850e6578dbc42039cd1f0701a4d13a1cb6142a0c02e29669",
+    "src/GeometryKernel.h": "622038cb13f47fcaca35224bcdea13cd1521ff9329ef02cd4aafd457b3c923f7",
+    "src/ReferenceView.cpp": "603ad335b468d3d8c2873e2748d9d8986528bc199dfdd69b82d90315eeec2f28",
+    "src/ReferenceView.h": "d8f709c0e2f441887b7de54da1a3b29c3f0429a79902278c76c9cdfd20084cd4",
+    "src/main.cpp": "16853ebf0f003c63d1455a7e36819dd1cc952c43ab4758dc16deb8cda949a9f8",
+    "tests/kernel_api.py": "25c85c5f1cd3a4fc5eb025d7262b67b4243291fba27a6e0fad46f5cecfa07b58",
+    "tests/workflows/fixtures/kernel.json": "309c463e1e07154449ad70dcb1a370325ccfafee9b18f9ec82637d561283330f"
+  },
+  "shape": {
+    "areaMm2": 2199.9999999999995,
+    "areaUnit": "mm2",
+    "boundsMm": {
+      "max": [
+        20,
+        30,
+        10
+      ],
+      "min": [
+        0,
+        0,
+        0
+      ],
+      "size": [
+        20,
+        30,
+        10
+      ]
+    },
+    "closed": true,
+    "kernel": "OCCT",
+    "lengthUnit": "mm",
+    "topology": {
+      "edges": 12,
+      "faces": 6,
+      "shells": 1,
+      "solids": 1,
+      "vertices": 8
+    },
+    "type": "solid",
+    "valid": true,
+    "version": "7.9.3",
+    "volumeMm3": 6000,
+    "volumeUnit": "mm3"
+  },
+  "report_sha256": "c24397718b393025daa3023007f9c409e7130063032f9ba122b2ce244ff76345",
+  "limits": [
+    "Real diagnostic kernel shape; document operations and rendering covered separately.",
+    "Native geometry_kernel unit passed box/cylinder/open-face contracts.",
+    "Astra independently reviewed the bounded kernel slice."
+  ]
+}

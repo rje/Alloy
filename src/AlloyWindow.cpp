@@ -1,5 +1,6 @@
 #include "AlloyWindow.h"
 #include "ReferenceView.h"
+#include "GeometryKernel.h"
 #include <QApplication>
 #include <QCryptographicHash>
 #include <QDialog>
@@ -26,6 +27,7 @@
 #include <QTreeWidget>
 #include <QVBoxLayout>
 #include <QWheelEvent>
+#include <Standard_Failure.hxx>
 #include <algorithm>
 #include <cmath>
 
@@ -228,6 +230,14 @@ void AlloyWindow::registerCommands() {
     };
     add("app.state", "Inspect state", "Read authoritative real-window shell state.", {}, [this](const auto&) { return state(); });
     add("app.identity", "Instance identity", "Protocol, process, window and unique instance identity.", {}, [this](const auto&) { return identity(); });
+    auto kernelLength=parameter("number","Primitive length in millimeters.");
+    kernelLength["minimum"]=0.001; kernelLength["maximum"]=100000;
+    add("kernel.probe", "Kernel box check", "Evaluate a real diagnostic box without adding document geometry.",
+        {{"width",kernelLength},{"depth",kernelLength},{"height",kernelLength}}, [](const auto& a) {
+            const auto shape=GeometryKernel::primitive("box",{{"widthMm",a["width"]},{"depthMm",a["depth"]},
+                {"heightMm",a["height"]},{"xMm",0},{"yMm",0},{"zMm",0}});
+            return GeometryKernel::summarize(shape);
+        });
     add("commands.list", "List commands", "Discover supported and unavailable commands with argument schemas.", {}, [this](const auto&) { return QJsonObject{{"commands", commands()}}; });
     add("commands.search", "Command search", "Open a discoverable native search session (S).", {}, [this](const auto&) {
         if (session_.value("command").toString() == "commands.search") { showSearch(); return session_; }
@@ -351,7 +361,10 @@ QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
     QString field;
     const auto argumentError = validateArguments(*command, args, &field);
     if (!argumentError.isEmpty()) return failure("invalid_arguments", argumentError, field);
-    auto result = command->run(args);
+    QJsonObject result;
+    try { result=command->run(args); }
+    catch(const Standard_Failure& error) { return failure("kernel_failure",QString::fromUtf8(error.GetMessageString())); }
+    catch(const std::exception& error) { return failure("command_failed",QString::fromUtf8(error.what())); }
     if (result.value("ok").isBool() && !result.value("ok").toBool()) return result;
     const bool changesState = id == "window.resize" || id.startsWith("layout.") || id.startsWith("view.") || (id == "commands.search" || id == "commands.close");
     if (changesState) ++revision_;
@@ -384,7 +397,7 @@ QJsonObject AlloyWindow::state() const {
         {"revision", static_cast<qint64>(revision_)},
         {"identity", identity()}, {"activeSession", session_},
         {"document", document_.state()},
-        {"kernel", QJsonObject{{"candidate", "Open CASCADE"}, {"discoveredVersion", ALLOY_OCCT_VERSION}, {"integrated", false}, {"visualizationIntegrated", true}}},
+        {"kernel", QJsonObject{{"candidate", "Open CASCADE"}, {"discoveredVersion", ALLOY_OCCT_VERSION}, {"integrated", true}, {"visualizationIntegrated", true}, {"policy",GeometryKernel::policy()}}},
         {"ui", QJsonObject{{"workspace", "design"}, {"tab", "solid"}, {"browserVisible", browserVisible_}, {"timelineVisible", timelineVisible_}, {"navigationVisible", navigationVisible_}, {"commandSearchVisible", search_ && search_->isVisible()}, {"windowWidth", width()}, {"windowHeight", height()}, {"devicePixelRatio", devicePixelRatioF()},
             {"activeDialog", QJsonObject{{"command", session_.value("command")},
                 {"visible", session_.value("command").toString() == "commands.search" ? bool(search_ && search_->isVisible()) : bool(unitsDialog_ && unitsDialog_->isVisible())},
