@@ -170,6 +170,48 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try {
     linkedReopen.history().undo();check(linkedReopen.authored()==beforeSnapSourceEdit,"Snap source undo lost authored relationships");linkedReopen.history().redo();check(linkedReopen.authored()==afterSnapSourceEdit,"Snap source redo changed point IDs");
     check(linkedReopen.save(linkedPath).isEmpty(),"Save projected snaps");CadDocument snapReopened;check(snapReopened.open(linkedPath).isEmpty() && snapReopened.authored()==afterSnapSourceEdit,"Reopen lost projected snap coincidences");
 
+    // Two real rounded-end centers anchor the tutorial guide; Parallel determines its shared bend.
+    const auto centerCap=GeometryKernel::resolveSketchSupport(snapReopened.evaluation(),support);
+    auto guide=SketchGeometry::newSupportedFeature(owner,support,"Center anchored guide",GeometryKernel::supportEdgeDescriptors(centerCap));
+    auto centerContext=GeometryKernel::projectionContext(snapReopened.evaluation(),guide);
+    QSet<QString> endCircleIds;for(const auto& value:resized["parameters"].toObject()["entities"].toArray())if(value.toObject()["type"]=="circle")endCircleIds.insert(value.toObject()["id"].toString());
+    QJsonObject leftCenter,upperCenter;
+    for(const auto& value:centerContext["points"].toArray()){const auto candidate=value.toObject();if(!endCircleIds.contains(candidate["source"].toObject()["sourceEntityId"].toString()))continue;
+        if(leftCenter.isEmpty() || candidate["uMm"].toDouble()<leftCenter["uMm"].toDouble()) {upperCenter=leftCenter;leftCenter=candidate;}else upperCenter=candidate;}
+    check(!leftCenter.isEmpty() && !upperCenter.isEmpty(),"Actual circular cap descendants lost rounded-end centers");
+    check(!guide["parameters"].toObject().contains("pointReferences"),"Available center candidates authored references before acceptance");
+    const auto initialExpanded=SketchGeometry::expandedProjectionFeature(guide,centerContext);
+    check(initialExpanded["parameters"].toObject()["points"].toArray().size()==8,"Unretained circular centers entered solver geometry");
+    const auto badCenter=SketchGeometry::addPointerEntity(guide,"line",{{"u1Mm",0},{"v1Mm",0},{"u2Mm",500},{"v2Mm",80},{"startSnapTarget",QJsonObject{{"kind","point"},{"pointId",leftCenter["id"]}}},{"endSnapTarget",QJsonObject{{"kind","point"},{"pointId",CadDocument::newId()}}}},centerContext);
+    check(!badCenter.ok && badCenter.feature==guide,"Rejected center snap leaked point reference/history intent");
+    guide=accepted(SketchGeometry::addPointerEntity(guide,"line",{{"u1Mm",0},{"v1Mm",0},{"u2Mm",500},{"v2Mm",80},{"startSnapTarget",QJsonObject{{"kind","point"},{"pointId",leftCenter["id"]}}}},centerContext));
+    const auto guideFirst=entity(guide,0);
+    guide=accepted(SketchGeometry::addPointerEntity(guide,"line",{{"u1Mm",500},{"v1Mm",80},{"u2Mm",0},{"v2Mm",0},{"startSnapTarget",QJsonObject{{"kind","point"},{"pointId",guideFirst["endPointId"]}}},{"endSnapTarget",QJsonObject{{"kind","point"},{"pointId",upperCenter["id"]}}}},centerContext));
+    const auto guideSecond=entity(guide,1);
+    guide=accepted(SketchGeometry::setConstruction(guide,{{"entityIds",QJsonArray{guideFirst["id"],guideSecond["id"]}},{"construction",true}},centerContext));
+    QMap<QString,QString> guideReferences;
+    for(const auto& value:guide["parameters"].toObject()["projections"].toArray()){const auto record=value.toObject();for(const auto& edge:centerCap.boundaryEdges)if(edge.edgeId==record["source"].toObject()["edgeId"])guideReferences[edge.provenance["sourceEntityId"].toString()]=record["id"].toString();}
+    guide=accepted(SketchGeometry::addConstraint(guide,{{"type","parallel"},{"entityIds",QJsonArray{guideFirst["id"],guideReferences[entity(resized,0)["id"].toString()]}}},centerContext));
+    const auto guideSolve=SketchGeometry::addConstraint(guide,{{"type","parallel"},{"entityIds",QJsonArray{guideSecond["id"],guideReferences[entity(resized,1)["id"].toString()]}}},centerContext);
+    guide=accepted(guideSolve);check(guideSolve.diagnostics["dof"].toInt()==0,"Center anchors plus two Parallel constraints did not determine the guide bend");
+    const auto centerRefs=guide["parameters"].toObject()["pointReferences"].toArray();check(centerRefs.size()==2,"Guide should retain exactly the two used cap centers");
+    guide=accepted(SketchGeometry::addPointerCircle(guide,{{"centerUMm",0},{"centerVMm",0},{"diameterMm",50},{"centerSnapTarget",QJsonObject{{"kind","point"},{"pointId",upperCenter["id"]}}}},centerContext));
+    const auto centerCircle=guide["parameters"].toObject()["entities"].toArray().last().toObject();
+    guide=accepted(SketchGeometry::addDimension(guide,{{"kind","diameter"},{"entityId",centerCircle["id"]},{"valueMm",50}},centerContext));
+    check(guide["parameters"].toObject()["pointReferences"].toArray()==centerRefs && guide["parameters"].toObject()["points"].toArray().size()==5,"Center snap duplicated refs or leaked fixed reference coordinates");
+    check(snapReopened.commit(SketchGeometry::replaceFeature(snapReopened.authored(),guide),"Center anchored guide and circle").isEmpty(),"Commit center guide");
+    const auto beforeCenterEdit=snapReopened.authored();
+    resized=accepted(SketchGeometry::updateDimension(resized,{{"dimensionId",capDimension},{"valueMm",180}}));
+    resized=accepted(SketchGeometry::updateDimension(resized,{{"dimensionId",radiusId},{"valueMm",60}}));
+    check(snapReopened.commit(SketchGeometry::replaceFeature(snapReopened.authored(),resized),"Resize center referenced source").isEmpty(),"Parent edit lost retained circular center lineage");
+    const auto afterCenterEdit=snapReopened.authored();guide=SketchGeometry::findFeature(afterCenterEdit,guide["id"].toString());
+    const auto updatedCenters=GeometryKernel::projectionContext(snapReopened.evaluation(),guide);check(updatedCenters["points"]!=centerContext["points"],"Circular centers did not follow parent edits");
+    const auto stableCenterSolve=SketchGeometry::solveDraft(guide,updatedCenters);check(guide["parameters"].toObject()["pointReferences"].toArray()==centerRefs && stableCenterSolve.ok && stableCenterSolve.diagnostics["dof"].toInt()==0,"Center IDs or fully constrained guide changed after source edit");
+    auto missingCenter=guide;auto missingCenterParameters=missingCenter["parameters"].toObject();auto missingRefs=missingCenterParameters["pointReferences"].toArray();auto missingRef=missingRefs[0].toObject();auto missingCenterSource=missingRef["source"].toObject();missingCenterSource["sourceEntityId"]=CadDocument::newId();missingRef["source"]=missingCenterSource;missingRefs[0]=missingRef;missingCenterParameters["pointReferences"]=missingRefs;missingCenter["parameters"]=missingCenterParameters;
+    const auto centerHistory=snapReopened.history().count();check(!snapReopened.commit(SketchGeometry::replaceFeature(afterCenterEdit,missingCenter),"Lost center").isEmpty() && snapReopened.lastEvaluationError()["code"]=="projection_unavailable","Lost center was frozen or substituted");
+    check(snapReopened.authored()==afterCenterEdit && snapReopened.history().count()==centerHistory,"Lost center changed accepted intent");
+    snapReopened.history().undo();check(snapReopened.authored()==beforeCenterEdit,"Center source undo lost references");snapReopened.history().redo();check(snapReopened.authored()==afterCenterEdit,"Center source redo changed IDs");
+    check(snapReopened.save(linkedPath).isEmpty(),"Save center referenced guide");CadDocument centersReopened;check(centersReopened.open(linkedPath).isEmpty() && centersReopened.authored()==afterCenterEdit,"Center references lost on reopen");
     std::cout<<"PASS: actual bracket planar end-cap reference, immutable local sketch, width/radius/depth transport, nested extrusion and atomic storage\n";
     return 0;
 }catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}}

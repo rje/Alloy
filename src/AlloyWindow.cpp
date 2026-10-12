@@ -256,7 +256,7 @@ AlloyWindow::AlloyWindow() {
     sketchesNode_=new QTreeWidgetItem(document,{"Sketches"});sketchesNode_->setExpanded(true);
     document->setExpanded(true); views->setExpanded(true);
     connect(tree_, &QTreeWidget::itemClicked, this, [this](QTreeWidgetItem* item, int) {
-        if(!item)return;
+        if(!item || item->isHidden() || !(item->flags()&Qt::ItemIsEnabled))return;
         if(!pendingBrowserVisibility_.isEmpty() && item->data(0,Qt::UserRole+2).toString()==pendingBrowserVisibility_)return;
         const auto name=item->data(0,Qt::UserRole).toString();
         const auto body=item->data(0,Qt::UserRole+1).toString();
@@ -266,7 +266,7 @@ AlloyWindow::AlloyWindow() {
         else if(!sketch.isEmpty())execute("selection.sketchSet",{{"sketchId",sketch}});
     });
     connect(tree_,&QTreeWidget::itemChanged,this,[this](QTreeWidgetItem* item,int column){
-        if(!item || column!=0 || (item->parent()!=sketchesNode_ && item->parent()!=bodiesNode_))return;
+        if(!item || item->isHidden() || !(item->flags()&Qt::ItemIsEnabled) || column!=0 || (item->parent()!=sketchesNode_ && item->parent()!=bodiesNode_))return;
         const auto id=item->data(0,Qt::UserRole+2).toString();const bool visible=item->checkState(0)==Qt::Checked;
         pendingBrowserVisibility_=id;
         const auto tabId=activeTabId_,sessionId=session_.value("id").toString();
@@ -288,7 +288,7 @@ AlloyWindow::AlloyWindow() {
         });
     });
     connect(tree_,&QTreeWidget::itemDoubleClicked,this,[this](QTreeWidgetItem* item,int) {
-        if(!item)return;const auto feature=item->data(0,Qt::UserRole+2).toString();
+        if(!item || item->isHidden() || !(item->flags()&Qt::ItemIsEnabled))return;const auto feature=item->data(0,Qt::UserRole+2).toString();
         const auto tabId=activeTabId_;
         if(!feature.isEmpty())QTimer::singleShot(0,this,[this,feature,tabId]{if(tabId==activeTabId_)execute("feature.editDialog",{{"featureId",feature}});});
     });
@@ -1074,6 +1074,9 @@ void AlloyWindow::registerCommands() {
                 if(a["pointId"]==line["startPointId"] || a["pointId"]==line["endPointId"])
                     return failure("read_only_projection","Projected support endpoints follow their source edge and cannot be moved","pointId");
             }
+            for(const auto& value:session_.value("projectionContext").toObject()["points"].toArray())
+                if(a["pointId"]==value.toObject()["id"])
+                    return failure("read_only_projection","Projected support centers follow their source curve and cannot be moved","pointId");
             const auto units=a.value("units").toString(session_.value("inputs").toObject()["units"].toString());
             return publishSketchSolve(SketchGeometry::movePoint(session_.value("draftSketch").toObject(),{{"pointId",a["pointId"]},{"uMm",CadDocument::millimeters(a["x"].toDouble(),units)},{"vMm",CadDocument::millimeters(a["y"].toDouble(),units)}},session_.value("projectionContext").toObject()));
         });
@@ -1484,18 +1487,49 @@ void AlloyWindow::refresh() {
     if(session_.value("command")!="solid.combine")view_->clearBodyStage();
     if(displayedDocumentRevision_!=document_->revision()) {
         const QSignalBlocker block(tree_);
-        qDeleteAll(bodiesNode_->takeChildren());
-        qDeleteAll(sketchesNode_->takeChildren());
+        // Keep Browser rows keyed by their stable IDs. Removing all children on
+        // every document revision invalidates native accessibility table cells;
+        // an Undo that removes a selected sketch can crash inside Qt's row
+        // removal notification. Hidden rows retain their identity for Redo.
+        auto browserRow=[](QTreeWidgetItem* parent,const QString& id,int role) {
+            for(int i=0;i<parent->childCount();++i) {
+                auto* item=parent->child(i);
+                if(item->data(0,role).toString()==id)return item;
+            }
+            return new QTreeWidgetItem(parent);
+        };
         while(auto* item=timelineLayout_->takeAt(0)){delete item->widget();delete item;}
         timelineLayout_->addWidget(new QLabel("TIMELINE"));
-        bool selectedExists=false;
+        bool selectedExists=false;QSet<QString> liveBodies,liveSketches;
         for(const auto& body:document_->bodies()) {
-            auto* item=new QTreeWidgetItem(bodiesNode_,{body.name});item->setData(0,Qt::UserRole+1,body.bodyId);item->setData(0,Qt::UserRole+2,body.featureId);item->setFlags(item->flags()|Qt::ItemIsUserCheckable);item->setCheckState(0,body.visible ? Qt::Checked : Qt::Unchecked);
+            liveBodies.insert(body.bodyId);
+            auto* item=browserRow(bodiesNode_,body.bodyId,Qt::UserRole+1);
+            item->setText(0,body.name);item->setData(0,Qt::UserRole+1,body.bodyId);item->setData(0,Qt::UserRole+2,body.featureId);
+            item->setFlags(item->flags()|Qt::ItemIsEnabled|Qt::ItemIsSelectable|Qt::ItemIsUserCheckable);
+            item->setCheckState(0,body.visible ? Qt::Checked : Qt::Unchecked);item->setHidden(false);
             selectedExists=selectedExists || (body.bodyId==selectedBody_ && body.visible);
         }
         if(!selectedExists)selectedBody_.clear();
         for(const auto& sketch:document_->sketches()) {
-            auto* item=new QTreeWidgetItem(sketchesNode_,{sketch.name});item->setData(0,Qt::UserRole+2,sketch.featureId);item->setFlags(item->flags()|Qt::ItemIsUserCheckable);item->setCheckState(0,sketch.visible ? Qt::Checked : Qt::Unchecked);
+            liveSketches.insert(sketch.featureId);
+            auto* item=browserRow(sketchesNode_,sketch.featureId,Qt::UserRole+2);
+            item->setText(0,sketch.name);item->setData(0,Qt::UserRole+2,sketch.featureId);
+            item->setFlags(item->flags()|Qt::ItemIsEnabled|Qt::ItemIsSelectable|Qt::ItemIsUserCheckable);
+            item->setCheckState(0,sketch.visible ? Qt::Checked : Qt::Unchecked);item->setHidden(false);
+        }
+        for(int i=0;i<bodiesNode_->childCount();++i) {
+            auto* item=bodiesNode_->child(i);
+            if(!liveBodies.contains(item->data(0,Qt::UserRole+1).toString())){
+                item->setSelected(false);if(tree_->currentItem()==item)tree_->setCurrentItem(nullptr);
+                item->setFlags(item->flags() & ~(Qt::ItemIsEnabled|Qt::ItemIsSelectable|Qt::ItemIsUserCheckable));item->setHidden(true);
+            }
+        }
+        for(int i=0;i<sketchesNode_->childCount();++i) {
+            auto* item=sketchesNode_->child(i);
+            if(!liveSketches.contains(item->data(0,Qt::UserRole+2).toString())){
+                item->setSelected(false);if(tree_->currentItem()==item)tree_->setCurrentItem(nullptr);
+                item->setFlags(item->flags() & ~(Qt::ItemIsEnabled|Qt::ItemIsSelectable|Qt::ItemIsUserCheckable));item->setHidden(true);
+            }
         }
         // Timeline order follows retained authored feature order, independent
         // of whether evaluation produced a solid body or a sketch wire.
@@ -2156,6 +2190,15 @@ QJsonObject AlloyWindow::resolveSketchSnap(double x,double y,const QString& plan
                 {"source",line["source"]},{"endpoint",end ? "end" : "start"}});
         }
     }
+    for(const auto& value:session_.value("projectionContext").toObject()["points"].toArray()) {
+        const auto center=value.toObject();const auto id=center["id"].toString();
+        const double u=center["uMm"].toDouble(),v=center["vMm"].toDouble();
+        const auto screen=view_->projectSketchPoint(u,v,plane);
+        const double distance=std::hypot(screen["x"].toDouble()-x,screen["y"].toDouble()-y);
+        if(distance<=radiusPx)candidates.push_back(QJsonObject{{"target",QJsonObject{{"kind","point"},{"pointId",id}}},
+            {"uMm",u},{"vMm",v},{"distancePx",distance},{"projected",true},{"supportPoint",true},
+            {"source",center["source"]},{"retained",center["retained"]}});
+    }
     if(candidates.empty())return result;
     std::sort(candidates.begin(),candidates.end(),[](const QJsonObject& a,const QJsonObject& b){
         const double distanceA=a["distancePx"].toDouble(),distanceB=b["distancePx"].toDouble();
@@ -2181,7 +2224,8 @@ QJsonObject AlloyWindow::resolveSketchSnap(double x,double y,const QString& plan
     }
     if(tied.size()>1){result["status"]="ambiguous";result["candidates"]=tied;return result;}
     result["status"]="acquired";result["target"]=best["target"];result["uMm"]=best["uMm"];result["vMm"]=best["vMm"];result["distancePx"]=best["distancePx"];
-    if(best.value("projected").toBool())for(const auto& field:{"projected","projectionId","source","endpoint"})result[field]=best[field];
+    if(best.value("projected").toBool())for(const auto& field:{"projected","projectionId","source","endpoint","supportPoint","retained"})
+        if(best.contains(field))result[field]=best[field];
     return result;
 }
 
@@ -2428,9 +2472,16 @@ QJsonObject AlloyWindow::publishSketchSolve(const SketchGeometry::SolveResult& s
     }
     const auto candidate=SketchGeometry::replaceFeature(document_->authored(),solved.feature);const auto error=CadDocument::validate(candidate);
     if(!error.isEmpty())return failure("invalid_sketch",error);
-    const auto evaluated=SketchGeometry::evaluateFeature(solved.feature,session_.value("resolvedFrame").toObject(),session_.value("projectionContext").toObject());
+    auto context=session_.value("projectionContext").toObject();
+    if(solved.feature["parameters"].toObject()["plane"]=="face")try {
+        context=GeometryKernel::projectionContext(document_->evaluation(),solved.feature);
+    } catch(const GeometryKernel::EvaluationError& error) {
+        auto response=failure("projection_unavailable",QString::fromUtf8(error.what()));
+        auto details=response["error"].toObject();details["diagnostics"]=error.diagnostics();response["error"]=details;return response;
+    }
+    const auto evaluated=SketchGeometry::evaluateFeature(solved.feature,session_.value("resolvedFrame").toObject(),context);
     recordSketchHistory(solved.feature,solved.diagnostics,journalGroup);
-    session_["draftSketch"]=solved.feature;session_["solverDiagnostics"]=solved.diagnostics;session_["previewed"]=false;
+    session_["draftSketch"]=solved.feature;session_["solverDiagnostics"]=solved.diagnostics;session_["projectionContext"]=context;session_["previewed"]=false;
     session_.remove("lastSolveFailure");session_.remove("firstPoint");session_.remove("secondPoint");session_.remove("pointerPoint");session_.remove("gestureSweepDeg");session_.remove("snap");
     view_->clearSketchCursor();view_->showSketchDraft(evaluated);displayedSketchDraft_=solved.feature;
     return {{"sessionId",session_.value("id")},{"draftSketch",solved.feature},{"sketchGeometry",evaluated.summary},{"diagnostics",solved.diagnostics},{"authoredCommitted",false}};
@@ -2473,10 +2524,17 @@ QJsonObject AlloyWindow::traverseSketchHistory(int direction) {
     const int next=sketchHistoryIndex_+direction;
     if(next<0 || next>=static_cast<int>(sketchHistory_.size()))return {{"action","none"},{"changed",false},{"draftHistory",session_["draftHistory"]}};
     const auto entry=sketchHistory_[next];
-    const auto evaluated=SketchGeometry::evaluateFeature(entry.draft,session_.value("resolvedFrame").toObject(),session_.value("projectionContext").toObject());
+    auto context=session_.value("projectionContext").toObject();
+    if(entry.draft["parameters"].toObject()["plane"]=="face")try {
+        context=GeometryKernel::projectionContext(document_->evaluation(),entry.draft);
+    } catch(const GeometryKernel::EvaluationError& error) {
+        auto response=failure("projection_unavailable",QString::fromUtf8(error.what()));
+        auto details=response["error"].toObject();details["diagnostics"]=error.diagnostics();response["error"]=details;return response;
+    }
+    const auto evaluated=SketchGeometry::evaluateFeature(entry.draft,session_.value("resolvedFrame").toObject(),context);
     sketchHistoryIndex_=next;sketchHistoryGroup_.clear();
     cancelDimension();view_->clearSketchCursor();
-    session_["draftSketch"]=entry.draft;session_["solverDiagnostics"]=entry.diagnostics;
+    session_["draftSketch"]=entry.draft;session_["solverDiagnostics"]=entry.diagnostics;session_["projectionContext"]=context;
     auto inputs=session_["inputs"].toObject();inputs["name"]=entry.draft["name"];session_["inputs"]=inputs;
     session_["selection"]=QJsonObject{{"pointIds",QJsonArray{}},{"entityIds",QJsonArray{}},{"profileIds",QJsonArray{}}};
     session_.remove("firstPoint");session_.remove("secondPoint");session_.remove("pointerPoint");session_.remove("gestureSweepDeg");session_.remove("snap");session_.remove("lastSolveFailure");
@@ -2513,7 +2571,11 @@ QJsonObject AlloyWindow::setSketchSelection(const QJsonObject& selection) {
     for(const auto& field:QStringList{"pointIds","entityIds","profileIds"}) {
         QSet<QString> available;
         if(field=="profileIds")for(const auto& profile:SketchGeometry::evaluateFeature(session_.value("draftSketch").toObject(),session_.value("resolvedFrame").toObject(),session_.value("projectionContext").toObject()).profiles)available.insert(profile.profileId);
-        else for(const auto& entry:parameters[field=="pointIds" ? "points" : "entities"].toArray())available.insert(entry.toObject()["id"].toString());
+        else {
+            for(const auto& entry:parameters[field=="pointIds" ? "points" : "entities"].toArray())available.insert(entry.toObject()["id"].toString());
+            if(field=="pointIds")for(const auto& value:session_.value("projectionContext").toObject()["points"].toArray())
+                available.insert(value.toObject()["id"].toString());
+        }
         QJsonArray ids;for(const auto& value:selection[field].toArray()) {
             if(!value.isString() || !available.contains(value.toString()))return failure("stale_entity","Selected sketch geometry does not exist",field);
             if(!ids.contains(value))ids.append(value);
@@ -2552,6 +2614,11 @@ QJsonObject AlloyWindow::sketchDimensionTargets(const QJsonObject& args) const {
     const auto selection=session_.value("selection").toObject();
     const auto parameters=SketchGeometry::expandedProjectionFeature(session_.value("draftSketch").toObject(),session_.value("projectionContext").toObject())["parameters"].toObject();
     auto points=args.contains("pointIds") ? args["pointIds"].toArray() : selection["pointIds"].toArray();
+    for(const auto& chosen:points)for(const auto& available:session_.value("projectionContext").toObject()["points"].toArray()) {
+        const auto point=available.toObject();
+        if(point["id"]==chosen && !point.value("retained").toBool())
+            throw std::invalid_argument("Snap a sketch line or circle to this support center before dimensioning it");
+    }
     const auto entities=selection["entityIds"].toArray();
     if(args.value("kind")=="angle" || (args.value("kind").toString().isEmpty() && (args.contains("entityIds") || entities.size()==2))) {
         const auto chosen=args.contains("entityIds") ? args.value("entityIds").toArray() : entities;

@@ -20,6 +20,7 @@
 #include <TopTools_IndexedMapOfShape.hxx>
 #include <TopoDS.hxx>
 #include <gp_Vec.hxx>
+#include <gp_Circ.hxx>
 #include <QJsonArray>
 #include <QMap>
 #include <QSet>
@@ -80,12 +81,38 @@ QJsonArray GeometryKernel::supportEdgeDescriptors(const EvaluatedSupportFace& su
     return result;
 }
 QJsonObject GeometryKernel::projectionContext(const EvaluatedDocument& evaluation,const QJsonObject& feature) {
-    const auto parameters=feature["parameters"].toObject();QJsonArray lines,unsupported;
-    if(parameters["plane"]!="face")return {{"lines",lines},{"unsupportedEdges",unsupported}};
+    const auto parameters=feature["parameters"].toObject();QJsonArray lines,unsupported,points;
+    if(parameters["plane"]!="face")return {{"lines",lines},{"unsupportedEdges",unsupported},{"points",points}};
     const auto cap=resolveSketchSupport(evaluation,parameters["support"].toObject());
     for(const auto& edge:cap.boundaryEdges)if(edge.type!="line")unsupported.append(edge.edgeId);
     const auto origin=cap.frame["origin"].toArray(),u=cap.frame["uAxis"].toArray(),v=cap.frame["vAxis"].toArray();
     auto local=[&](const QJsonArray& point,const QJsonArray& axis){double result=0;for(int i=0;i<3;++i)result+=(point[i].toDouble()-origin[i].toDouble())*axis[i].toDouble();return result;};
+    QMap<QString,QJsonObject> centers;
+    for(const auto& edge:cap.boundaryEdges) {
+        if(edge.type=="line")continue;
+        BRepAdaptor_Curve curve(edge.edge);if(curve.GetType()!=GeomAbs_Circle)continue;
+        const auto circle=curve.Circle();const auto center=circle.Location();
+        const auto lineage=edge.provenance;const auto key=lineage["sourceSketchId"].toString()+":"+lineage["sourceEntityId"].toString();
+        auto source=parameters["support"].toObject();source["sourceSketchId"]=lineage["sourceSketchId"];source["sourceEntityId"]=lineage["sourceEntityId"];source["role"]="curveCenter";
+        const QJsonArray world{center.X(),center.Y(),center.Z()};
+        const double cu=local(world,u),cv=local(world,v);
+        double normalDistance=0;const auto normal=cap.frame["normal"].toArray();for(int i=0;i<3;++i)normalDistance+=(world[i].toDouble()-origin[i].toDouble())*normal[i].toDouble();
+        if(std::abs(normalDistance)>1e-6)reject("ambiguous_projection","Circular cap center is outside the resolved support plane");
+        if(centers.contains(key)) {
+            const auto prior=centers[key];
+            if(std::hypot(prior["uMm"].toDouble()-cu,prior["vMm"].toDouble()-cv)>1e-6 || std::abs(prior["radiusMm"].toDouble()-circle.Radius())>1e-6)
+                reject("ambiguous_projection","Circular descendants disagree on their retained source center");
+            continue;
+        }
+        const auto id=SketchGeometry::curveCenterPointId(feature["id"].toString(),source);
+        centers[key]={{"id",id},{"source",source},{"uMm",cu},{"vMm",cv},{"radiusMm",circle.Radius()},{"retained",false}};
+    }
+    for(const auto& value:parameters["pointReferences"].toArray()) {
+        const auto reference=value.toObject();bool found=false;
+        for(auto it=centers.begin();it!=centers.end();++it)if(it.value()["id"]==reference["id"] && it.value()["source"]==reference["source"]){auto point=it.value();point["retained"]=true;it.value()=point;found=true;break;}
+        if(!found)throw EvaluationError({{"code","projection_unavailable"},{"pointReferenceId",reference["id"]},{"source",reference["source"]},{"message","Retained circular support center is no longer uniquely available"}});
+    }
+    for(auto point:centers){point.remove("radiusMm");points.append(point);}
     for(const auto& item:parameters["projections"].toArray()) {
         const auto projection=item.toObject(),source=projection["source"].toObject();
         for(const auto& key:{"producerFeatureId","bodyId","faceId"})if(source[key]!=parameters["support"].toObject()[key])
@@ -97,7 +124,7 @@ QJsonObject GeometryKernel::projectionContext(const EvaluatedDocument& evaluatio
         lines.append(QJsonObject{{"id",id},{"startPointId",SketchGeometry::projectionPointId(id,false)},{"endPointId",SketchGeometry::projectionPointId(id,true)},
             {"u1Mm",local(a,u)},{"v1Mm",local(a,v)},{"u2Mm",local(b,u)},{"v2Mm",local(b,v)},{"source",source}});
     }
-    return {{"lines",lines},{"unsupportedEdges",unsupported}};
+    return {{"lines",lines},{"unsupportedEdges",unsupported},{"points",points}};
 }
 
 EvaluatedProfile GeometryKernel::unionProfiles(const std::vector<EvaluatedProfile>& profiles) {
