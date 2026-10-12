@@ -34,7 +34,7 @@ public:
     void selectProfile(const QString& sketchId, const QString& profileId);
     QJsonObject pickFinishedProfile(double x, double y) const;
     void setEditDisplay(const QString& sourceSketchId, const QJsonArray& hiddenBodyIds);
-    QJsonObject pickSketch(const QJsonObject& feature, double x, double y) const;
+    QJsonObject pickSketch(const QJsonObject& feature, double x, double y, const QString& filter = {}) const;
     void decorateSketch(const QJsonObject& feature, const QJsonObject& selection,
         const QJsonObject& diagnostics, const QString& units, const QJsonObject& pending = {});
     QJsonObject dimensionLayout(const QJsonObject& feature, const QJsonObject& dimension,
@@ -96,6 +96,7 @@ private:
     Handle(AIS_Shape) sketchDraft_, sketchCursor_;
     std::vector<Handle(AIS_InteractiveObject)> sketchDecorations_;
     QJsonArray annotationLayouts_;
+    QJsonArray constraintGlyphs_;
     std::vector<EvaluatedProfile> draftProfiles_;
     QMap<QString,Handle(AIS_Shape)> profileModels_;
     QJsonObject decorationFeature_, decorationSelection_, decorationDiagnostics_, decorationPending_;

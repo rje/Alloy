@@ -84,6 +84,7 @@ private:
     void sketchResponse(const QJsonObject& response);
     QJsonObject publishSketchSolve(const SketchGeometry::SolveResult& solved);
     QJsonObject setSketchSelection(const QJsonObject& selection);
+    QJsonObject applySketchConstraint(const QString& type, const QJsonObject& targets);
     QJsonObject sketchDimensionTargets(const QJsonObject& args) const;
     void refreshSketchControls();
     void dimensionSelectionChanged();

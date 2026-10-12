@@ -28,6 +28,10 @@ The public repository is [rje/Alloy](https://github.com/rje/Alloy), with the
 [issue backlog](https://github.com/rje/Alloy/issues) and
 [Alloy project board](https://github.com/users/rje/projects/1).
 
+The active delivery order is [tutorial-first checkpoints](docs/backlog/tutorial-sequence.json).
+The first new [constraint-tool checkpoint](docs/validation/constraint-tools.md)
+has real-app API/history/storage evidence; full tutorial and native visual gates remain open.
+
 ## Project documents
 
 - [Continuation context](docs/context.md): decisions from this conversation,

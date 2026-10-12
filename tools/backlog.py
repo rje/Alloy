@@ -234,7 +234,10 @@ def ready(issues, github, apply=False):
             records[issue["key"]] = github.api(f"repos/{github.repo}/issues/{record['number']}", "PATCH", {"labels": sorted(new)})
     if apply:
         save_manifest(github.repo, records)
-    for issue in sorted(pullable, key=lambda row: (number_rank(row["priority"]), number_rank(row["phase"]), row["key"])):
+    sequence = json.loads((ROOT / "docs/backlog/tutorial-sequence.json").read_text())
+    ranked = [key for checkpoint in sequence["checkpoints"] for key in checkpoint["issues"]]
+    ranks = {key: index for index, key in enumerate(ranked)}
+    for issue in sorted(pullable, key=lambda row: (ranks.get(row["key"], len(ranks)), number_rank(row["priority"]), number_rank(row["phase"]), row["key"])):
         record = records[issue["key"]]
         print(f"#{record['number']} {issue['key']} [{issue['priority']} / {issue['phase']} / {issue['kind']}] {issue['title']}\n  {record['html_url']}")
     print(f"Ready: {len(pullable)}; closed: {sum(records[issue['key']]['state'] == 'closed' for issue in issues)}; total: {len(issues)}")

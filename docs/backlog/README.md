@@ -7,16 +7,46 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-There are **150 issues**: **95 implementation, 15 research, 22 epics, and 18
-validation gates**. This is a substantial starting decomposition, not a claim
-that 150 tickets exhaust reference CAD application parity. Later epics require linked bounded child
-issues before implementation and remain open until that declared coverage passes.
+There are **155 issues**: **99 implementation, 15 research, 22 epics, and 19
+validation gates**. Issue count is a decomposition, not a product coverage claim.
+
+## Active delivery order
+
+The [tutorial sequence](tutorial-sequence.json) takes precedence over broad roadmap
+phase order. `tools/backlog.py ready` ranks available tutorial owners first while
+still checking live dependencies. The project board exposes the same **Delivery
+order** number. A blocked broad issue may receive a bounded implementation slice;
+that does not close the issue or waive its remaining acceptance criteria.
+
+1. Constraint-first editing, Equal, native picking, dimensions and retained badges.
+2. Exact first illustrated activity, including origin attachment, the two-line
+   angle and new-document interaction.
+3. Construction, inferred circles, sketch fillets and multi-region Press Pull.
+4. Face-supported sketch and references to existing model edges.
+5. Five-circle Cut and the complete illustrated gate, followed by the wider
+   printing/export checkpoint.
+
+After every slice, run the smallest complete author/edit/finish/undo/reopen
+workflow it enables in a private real application instance. Record source steps
+as passed, mismatch, blocked or unknown. For documented input gestures, use native
+input and inspect shared API state; direct coordinate/API construction alone does
+not pass snapping or command interaction. Capture constraint-stage and endpoint
+views; check badge identity, actual target, visibility, contrast, placement and
+state colors. Full exact acceptance is [TUT-003](../research/illustrated-bracket-gate.md).
+
+The external `knowledge/tutorials/short-candidates.json` records a supplementary
+illustrated wall-outlet sketch lesson and two prerequisite-bound bracket activity
+checkpoints. The wall-outlet exercise adds mirror/concentric requirements, so it
+is not a shortcut around the bracket prerequisites. Activity excerpts are not
+standalone tutorial passes. Packaging, RHI, import and broader features remain in
+the backlog; urgent regressions interrupt this sequence. Milestone releases still
+require macOS/Windows/Linux qualification; CI remains tag/manual only.
 
 | Phase | Count | Result |
 | --- | ---: | --- |
 | P0 Foundation | 20 | Public baseline, MIT dependency audit, document/naming/solver decisions, portable controls, native CI/packages/releases and hardware evidence |
 | P1 Geometry/document | 17 | Real hardware-backed OCCT viewport, authored primitive document, selection, undo/save and STEP |
-| P2 Parametric modeling | 35 | Constrained sketches, parameters, editable extrusion/fillet chain and broader basic solid tools |
+| P2 Parametric modeling | 40 | Constrained sketches, parameters, editable extrusion/fillet chain and broader basic solid tools |
 | P3 Shape/import/print breadth | 26 | Solids/surfaces, common interchange and qualified printing export |
 | P4 Initial release | 8 | Robustness, recovery, packaging, performance, physical/visual workflow evidence |
 | P5 Assemblies/drawings | 10 | Components/joints, configurations and associative drawings |
@@ -36,7 +66,7 @@ save/reopen. See [development](../development.md) and the
 [primitive receipt](../validation/primitives.md).
 
 Run `python3 tools/backlog.py ready` before pulling work; live issue states and
-dependencies determine readiness. The next main modeling work is the sketch-first sequence recorded in [roadmap](../roadmap.md), with a local useful-part checkpoint in SKT-015. Its dependencies no longer wait for the broad GATE-010/platform gates. Remaining geometry/document work includes
+dependencies determine readiness. The active modeling order is the tutorial sequence above. Its dependencies no longer wait for the broad GATE-010/platform gates. Remaining geometry/document work includes
 face/edge selection, Browser breadth, STEP interchange, persistent-reference
 integration and observable document decisions. Foundation work still includes
 a dated compatibility baseline, portable Windows controls and
@@ -46,9 +76,7 @@ not product coverage or a replacement claim.
 HIS-001/SOL-001 and the local SKT-015 checkpoint are now closed with independently
 reviewed [sketch/extrusion evidence](../validation/sketch-extrusion.md). The first
 sketch-led part supports upstream edits, history and storage through the actual
-UI/API. Current board items are Done; the live snapshot has 25 closed, 125 open
-and 13 ready tasks. SOL-002 boolean operations and SKT-006 circles/arcs are ready
-next modeling slices. Full tutorial and cumulative product gates remain open.
+UI/API. Current board items are Done; the 2026-10-12 snapshot has 25 closed and 130 open. Live readiness is obtained with the command above. Full tutorial and cumulative product gates remain open.
 
 MIT is accepted for Alloy's original source and documentation. Each dependency
 keeps its own terms. A GPL-only solver or format library must not slip into the

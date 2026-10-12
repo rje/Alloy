@@ -325,6 +325,13 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
                 if (constraint.size() != (fixed ? 5 : 3) || constraint.contains("entityIds")
                     || !checkReferences(constraint, "pointIds", fixed ? 1 : 2, pointIds)) return "Invalid point constraint references";
                 if (fixed) { coordinate(constraint, "uMm"); coordinate(constraint, "vMm"); }
+            } else if (type == "equal") {
+                if (constraint.size() != 3 || !checkReferences(constraint,"entityIds",2,entityIds))
+                    return "Equal requires two distinct sketch entities";
+                const auto refs = constraint["entityIds"].toArray();
+                const bool lines = lineIds.contains(refs[0].toString()) && lineIds.contains(refs[1].toString());
+                const bool curves = curveIds.contains(refs[0].toString()) && curveIds.contains(refs[1].toString());
+                if (!lines && !curves) return "Equal requires two lines or two circles/arcs";
             } else if (type == "horizontal" || type == "vertical" || type == "parallel" || type == "perpendicular") {
                 if (constraint.size() != 3 || constraint.contains("pointIds")
                     || !checkReferences(constraint, "entityIds", (type == "parallel" || type == "perpendicular") ? 2 : 1, lineIds))

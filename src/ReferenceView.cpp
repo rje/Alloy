@@ -308,7 +308,7 @@ void ReferenceView::clearSketchDraft() {
     profileModels_.clear();draftProfiles_.clear();
     sketchDraft_.Nullify();draftSketchId_.clear();clearSketchCursor();applyEditDisplay();
 }
-QJsonObject ReferenceView::pickSketch(const QJsonObject& feature,double x,double y) const {
+QJsonObject ReferenceView::pickSketch(const QJsonObject& feature,double x,double y,const QString& filter) const {
     if(view_.IsNull() || x<0 || y<0 || x>=width() || y>=height())return {};
     const auto parameters=feature["parameters"].toObject();const auto plane=parameters["plane"].toString();
     QMap<QString,QPointF> points;
@@ -317,9 +317,10 @@ QJsonObject ReferenceView::pickSketch(const QJsonObject& feature,double x,double
         const auto point=entry.toObject();const auto projection=projectSketchPoint(point["uMm"].toDouble(),point["vMm"].toDouble(),plane);
         const QPointF p(projection["x"].toDouble(),projection["y"].toDouble());points[point["id"].toString()]=p;
         const double distance=std::hypot(p.x()-x,p.y()-y);
-        if(distance<=best){best=distance;picked=point["id"].toString();}
+        if(filter!="entity" && distance<=best){best=distance;picked=point["id"].toString();}
     }
     if(!picked.isEmpty())return {{"kind","point"},{"pointId",picked},{"distancePixels",best}};
+    if(filter=="point")return {};
     best=6;
     const auto planePoint=sketchPoint(x,y,plane);const auto hitWorld=sketchWorld(plane,planePoint["uMm"].toDouble(),planePoint["vMm"].toDouble());
     for(const auto& entry:parameters["entities"].toArray()) {
@@ -337,6 +338,7 @@ QJsonObject ReferenceView::pickSketch(const QJsonObject& feature,double x,double
         if(distance<=best){best=distance;picked=entity["id"].toString();}
     }
     if(!picked.isEmpty())return {{"kind","entity"},{"entityId",picked},{"distancePixels",best}};
+    if(!filter.isEmpty())return {};
     const auto hit=sketchPoint(x,y,parameters.value("plane").toString());
     const auto world=sketchWorld(parameters.value("plane").toString(),hit.value("uMm").toDouble(),hit.value("vMm").toDouble());
     for(const auto& profile:draftProfiles_) {
@@ -349,6 +351,7 @@ void ReferenceView::clearSketchDecorations() {
     if(!context_.IsNull())for(const auto& decoration:sketchDecorations_)context_->Remove(decoration,false);
     sketchDecorations_.clear();
     annotationLayouts_={};
+    constraintGlyphs_={};
 }
 QJsonObject ReferenceView::dimensionLayout(const QJsonObject& feature,const QJsonObject& dimension,double valueMm,const QString& units) const {
     if(view_.IsNull())return {};
@@ -480,6 +483,45 @@ void ReferenceView::decorateSketch(const QJsonObject& feature,const QJsonObject&
         const auto edge=SketchGeometry::analyticEdge(parameters,entity);
         const auto highlight=sketchPresentation(edge);highlight->SetColor(Quantity_Color(0.98,0.43,0.08,Quantity_TOC_RGB));highlight->SetWidth(4);highlight->SetZLayer(Graphic3d_ZLayerId_Topmost);
         context_->Display(highlight,AIS_WireFrame,-1,false);context_->Deactivate(highlight);sketchDecorations_.push_back(highlight);
+    }
+    // Independently authored retained-relation badges, anchored to their real
+    // targets. The public tutorial scenes show bars, double bars and corner
+    // marks; exact hover/selection and collision behavior remain unqualified.
+    QMap<QString,QJsonObject> entities;for(const auto& entry:parameters["entities"].toArray())entities[entry.toObject()["id"].toString()]=entry.toObject();
+    QMap<QString,int> badgeSlots;
+    for(const auto& entry:parameters["constraints"].toArray()) {
+        const auto relation=entry.toObject();const auto kind=relation["type"].toString();
+        if(kind!="equal" && kind!="horizontal" && kind!="vertical" && kind!="perpendicular" && kind!="parallel")continue;
+        for(const auto& target:relation["entityIds"].toArray()) {
+            const auto entity=entities.value(target.toString());if(entity.isEmpty())continue;
+            double u,v;
+            if(entity["type"]=="line") {
+                const auto a=points.value(entity["startPointId"].toString()),b=points.value(entity["endPointId"].toString());
+                u=(a["uMm"].toDouble()+b["uMm"].toDouble())/2;v=(a["vMm"].toDouble()+b["vMm"].toDouble())/2;
+            } else {
+                const auto center=points.value(entity["centerPointId"].toString());
+                const double angle=(entity["type"]=="arc" ? entity["startAngleDeg"].toDouble()+entity["sweepAngleDeg"].toDouble()/2 : 45)*std::numbers::pi/180;
+                u=center["uMm"].toDouble()+entity["radiusMm"].toDouble()*std::cos(angle);v=center["vMm"].toDouble()+entity["radiusMm"].toDouble()*std::sin(angle);
+            }
+            const auto p=projectSketchPoint(u,v,plane),q=projectSketchPoint(u+1,v,plane);
+            const double pixels=std::hypot(q["x"].toDouble()-p["x"].toDouble(),q["y"].toDouble()-p["y"].toDouble());if(pixels<1e-6)continue;
+            const double size=1/pixels;v+=(10+15*badgeSlots[target.toString()]++)*size;
+            TopoDS_Compound strokes;BRep_Builder builder;builder.MakeCompound(strokes);
+            auto stroke=[&](double x1,double y1,double x2,double y2){builder.Add(strokes,BRepBuilderAPI_MakeEdge(sketchWorld(plane,u+x1*size,v+y1*size),sketchWorld(plane,u+x2*size,v+y2*size)).Edge());};
+            if(kind=="equal"){stroke(-5,-2,5,-2);stroke(-5,2,5,2);}
+            else if(kind=="horizontal")stroke(-5,0,5,0);
+            else if(kind=="vertical")stroke(0,-5,0,5);
+            else if(kind=="perpendicular"){stroke(-4,4,-4,-4);stroke(-4,-4,4,-4);}
+            else {stroke(-4,-4,0,4);stroke(0,-4,4,4);}
+            const bool selected=selection["entityIds"].toArray().contains(target);
+            auto badge=sketchPresentation(strokes);badge->SetColor(selected ? Quantity_Color(0.98,0.43,0.08,Quantity_TOC_RGB) : Quantity_Color(0.36,0.39,0.42,Quantity_TOC_sRGB));badge->SetWidth(2*devicePixelRatioF());badge->SetZLayer(Graphic3d_ZLayerId_Topmost);
+            context_->Display(badge,AIS_WireFrame,-1,false);context_->Deactivate(badge);sketchDecorations_.push_back(badge);
+            double left=1e100,top=1e100,right=-1e100,bottom=-1e100;
+            for(const double x:{-6.0,6.0})for(const double y:{-6.0,6.0}) {
+                const auto corner=projectSketchPoint(u+x*size,v+y*size,plane);left=std::min(left,corner["x"].toDouble());right=std::max(right,corner["x"].toDouble());top=std::min(top,corner["y"].toDouble());bottom=std::max(bottom,corner["y"].toDouble());
+            }
+            constraintGlyphs_.append(QJsonObject{{"constraintId",relation["id"]},{"entityIds",relation["entityIds"]},{"anchorEntityId",target},{"kind",kind},{"selected",selected},{"anchorMm",QJsonObject{{"uMm",u},{"vMm",v}}},{"bounds",QJsonObject{{"x",left},{"y",top},{"width",right-left},{"height",bottom-top}}},{"viewportLocal",true},{"units","logicalPixels"}});
+        }
     }
     QMap<QString,QJsonObject> measurements;
     for(const auto& entry:diagnostics["dimensionValues"].toArray()){const auto value=entry.toObject();measurements[value["id"].toString()]=value;}
@@ -724,6 +766,8 @@ QJsonObject ReferenceView::diagnostics() const {
     result.insert("cursorPreviewVisible",!sketchCursor_.IsNull());
     result.insert("sketchDecorations",static_cast<int>(sketchDecorations_.size()));
     result.insert("sketchAnnotations",annotationLayouts_);
+    result.insert("sketchConstraintGlyphs",constraintGlyphs_);
+    result.insert("sketchConstraintVisibility",QJsonObject{{"visible",!decorationFeature_.isEmpty()},{"editable",false}});
     QJsonArray profiles;for(const auto& profile:draftProfiles_) {
         auto summary=profile.summary;TopLoc_Location location;const auto triangles=BRep_Tool::Triangulation(profile.face,location);
         summary["displayTriangleCount"]=triangles.IsNull() ? 0 : triangles->NbTriangles();profiles.append(summary);

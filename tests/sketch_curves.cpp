@@ -20,6 +20,52 @@ void near(double value,double expected,const char* message){check(std::abs(value
 QJsonObject accepted(const SketchGeometry::SolveResult& result){check(result.ok,qPrintable(result.error));return result.feature;}
 QJsonObject entity(const QJsonObject& f,int index=0){return f["parameters"].toObject()["entities"].toArray()[index].toObject();}
 QJsonObject lastDimension(const QJsonObject& f){return f["parameters"].toObject()["dimensions"].toArray().last().toObject();}
+double lineLength(const QJsonObject& f,int index){const auto e=entity(f,index);QJsonObject a,b;
+    for(const auto& p:f["parameters"].toObject()["points"].toArray()){
+        if(p.toObject()["id"]==e["startPointId"])a=p.toObject();if(p.toObject()["id"]==e["endPointId"])b=p.toObject();}
+    return std::hypot(a["uMm"].toDouble()-b["uMm"].toDouble(),a["vMm"].toDouble()-b["vMm"].toDouble());}
+void equalConstraints(const QString& owner){
+    auto lines=SketchGeometry::newFeature(owner,"XY","Equal line lengths");
+    lines=SketchGeometry::addLine(lines,{{"u1Mm",0},{"v1Mm",0},{"u2Mm",10},{"v2Mm",0}});
+    lines=SketchGeometry::addLine(lines,{{"u1Mm",0},{"v1Mm",20},{"u2Mm",6},{"v2Mm",28}});
+    lines=accepted(SketchGeometry::addConstraint(lines,{{"type","equal"},{"entityIds",QJsonArray{entity(lines)["id"],entity(lines,1)["id"]}}}));
+    check(SketchGeometry::solveDraft(lines).diagnostics["dof"].toInt()==7,"Equal line relation must remove one DOF");
+    const auto first=entity(lines);
+    lines=accepted(SketchGeometry::addDimension(lines,{{"kind","linear"},{"pointIds",QJsonArray{first["startPointId"],first["endPointId"]}},{"valueMm",15}}));
+    near(lineLength(lines,0),15,"Driving first equal line");near(lineLength(lines,1),15,"Equal second line did not follow");
+    const auto second=entity(lines,1);
+    const auto badLine=SketchGeometry::addDimension(lines,{{"kind","linear"},{"pointIds",QJsonArray{second["startPointId"],second["endPointId"]}},{"valueMm",12}});
+    check(!badLine.ok && badLine.feature==lines,"Equal line contradiction lost previous draft");
+    check(badLine.diagnostics.contains("solverStatus") && !badLine.error.isEmpty(),"Equal line contradiction omitted solver diagnostics");
+
+    auto circles=SketchGeometry::newFeature(owner,"XY","Equal circle chain");
+    for(int i=0;i<5;++i)circles=SketchGeometry::addCircle(circles,{{"centerUMm",i*20},{"centerVMm",0},{"diameterMm",8+i}});
+    const auto originalEntities=circles["parameters"].toObject()["entities"].toArray();
+    for(int i=1;i<5;++i)circles=accepted(SketchGeometry::addConstraint(circles,{{"type","equal"},{"entityIds",QJsonArray{entity(circles,i-1)["id"],entity(circles,i)["id"]}}}));
+    check(SketchGeometry::solveDraft(circles).diagnostics["dof"].toInt()==11,"Equal circle chain must retain center freedom and one radius DOF");
+    circles=accepted(SketchGeometry::addDimension(circles,{{"kind","diameter"},{"entityId",entity(circles)["id"]},{"valueMm",10}}));
+    check(SketchGeometry::solveDraft(circles).diagnostics["dof"].toInt()==10,"One diameter must control all five equal radii");
+    const auto relations=circles["parameters"].toObject()["constraints"];
+    const auto changed=accepted(SketchGeometry::updateDimension(circles,{{"dimensionId",lastDimension(circles)["id"]},{"valueMm",12}}));
+    for(int i=0;i<5;++i){near(entity(changed,i)["radiusMm"].toDouble(),6,"Equal circle chain did not follow diameter edit");
+        check(entity(changed,i)["id"]==originalEntities[i].toObject()["id"],"Equal solve replaced circle identity");}
+    check(changed["parameters"].toObject()["constraints"]==relations,"Equal solve changed retained relation IDs");
+    const auto conflict=SketchGeometry::addDimension(changed,{{"kind","diameter"},{"entityId",entity(changed,4)["id"]},{"valueMm",10}});
+    check(!conflict.ok && conflict.feature==changed && !conflict.diagnostics["conflictingConstraintIds"].toArray().isEmpty(),"Equal circle conflict failed preservation");
+    auto malformed=SketchGeometry::addConstraint(changed,{{"type","equal"},{"entityIds",QJsonArray{entity(changed)["id"],entity(changed)["id"]}}});
+    check(!malformed.ok && malformed.feature==changed,"Equal accepted repeated entity");
+    malformed=SketchGeometry::addConstraint(changed,{{"type","equal"},{"entityIds",QJsonArray{entity(changed)["id"],QUuid::createUuid().toString(QUuid::WithoutBraces)}}});
+    check(!malformed.ok && malformed.feature==changed,"Equal accepted stale entity");
+    auto mixed=SketchGeometry::addCircle(lines,{{"centerUMm",30},{"centerVMm",30},{"diameterMm",10}});
+    malformed=SketchGeometry::addConstraint(mixed,{{"type","equal"},{"entityIds",QJsonArray{entity(mixed)["id"],entity(mixed,2)["id"]}}});
+    check(!malformed.ok && malformed.feature==mixed,"Equal accepted line/curve pair");
+    auto arc=SketchGeometry::newFeature(owner,"XY","Equal analytic radii");
+    arc=SketchGeometry::addCircle(arc,{{"centerUMm",0},{"centerVMm",0},{"diameterMm",10}});
+    arc=SketchGeometry::addArc(arc,{{"centerUMm",20},{"centerVMm",0},{"radiusMm",3},{"startAngleDeg",0},{"sweepAngleDeg",90}});
+    arc=accepted(SketchGeometry::addConstraint(arc,{{"type","equal"},{"entityIds",QJsonArray{entity(arc)["id"],entity(arc,1)["id"]}}}));
+    arc=accepted(SketchGeometry::addDimension(arc,{{"kind","diameter"},{"entityId",entity(arc)["id"]},{"valueMm",12}}));
+    near(entity(arc,1)["radiusMm"].toDouble(),6,"Arc Equal must compare radius rather than length or sweep");
+}
 void rejectedCreation(const QJsonObject& f,const QJsonObject& args,bool circle=false){bool refused=false;
     try{if(circle)SketchGeometry::addCircle(f,args);else SketchGeometry::addArc(f,args);}catch(const std::invalid_argument&){refused=true;}
     check(refused,"Degenerate curve input was accepted");}
@@ -30,6 +76,7 @@ void analytic(const QJsonObject& f,double length){const auto edge=SketchGeometry
 
 int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
     const auto owner=QUuid::createUuid().toString(QUuid::WithoutBraces);
+    equalConstraints(owner);
     const auto blank=SketchGeometry::newFeature(owner,"XY");
     auto circle=SketchGeometry::addCircle(blank,{{"centerUMm",0},{"centerVMm",0},{"diameterMm",10}});
     circle=accepted(SketchGeometry::solveDraft(circle));analytic(circle,10*std::numbers::pi);

@@ -120,6 +120,11 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters) {
             const auto found = lineMap.find(id);
             require(found != lineMap.end(), "Unknown sketch line reference"); return found->second;
         };
+        auto radius = [&](const QString& id) -> double* {
+            if (const auto found = circleMap.find(id); found != circleMap.end()) return found->second.rad;
+            if (const auto found = arcMap.find(id); found != arcMap.end()) return found->second.rad;
+            require(false,"Unknown sketch circle/arc reference");return nullptr;
+        };
         auto constant = [&](double value) { constants.push_back(value); return &constants.back(); };
         auto tag = [&](const QJsonObject& item) {
             const auto id = item.value("id").toString();
@@ -146,6 +151,11 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters) {
                 solver.addConstraintParallel(line(reference(constraint,"entityIds",0)),line(reference(constraint,"entityIds",1)),t);
             } else if (type == "perpendicular") {
                 solver.addConstraintPerpendicular(line(reference(constraint,"entityIds",0)),line(reference(constraint,"entityIds",1)),t);
+            } else if (type == "equal") {
+                const auto a = reference(constraint,"entityIds",0), b = reference(constraint,"entityIds",1);
+                require(a != b,"Equal requires distinct sketch entities");
+                if (lineMap.contains(a) && lineMap.contains(b)) solver.addConstraintEqualLength(line(a),line(b),t);
+                else solver.addConstraintEqual(radius(a),radius(b),t);
             } else require(false,"Unsupported sketch constraint");
         }
         for (const auto& entry : dimensions) {
@@ -221,6 +231,12 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters) {
             const auto c=entry.toObject(); const auto type=c.value("type").toString();
             if(type=="coincident") check(separation("linear",point(reference(c,"pointIds",0)),point(reference(c,"pointIds",1))),lengthTolerance);
             else if(type=="fixed") {const auto& p=point(reference(c,"pointIds",0));check(*p.x-number(c,"uMm"),lengthTolerance);check(*p.y-number(c,"vMm"),lengthTolerance);}
+            else if(type=="equal") {
+                const auto a = reference(c,"entityIds",0), b = reference(c,"entityIds",1);
+                if (lineMap.contains(a) && lineMap.contains(b))
+                    check(separation("linear",line(a).p1,line(a).p2)-separation("linear",line(b).p1,line(b).p2),lengthTolerance);
+                else check(*radius(a)-*radius(b),lengthTolerance);
+            }
             else {
                 const auto& a=line(reference(c,"entityIds",0)); const double ax=*a.p2.x-*a.p1.x,ay=*a.p2.y-*a.p1.y;
                 if(type=="horizontal")check(ay,lengthTolerance);

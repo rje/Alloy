@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "policy": "Tutorial-first delivery; ranks order work, not permission to bypass dependencies or close partially implemented issues. Earlier checkpoints may implement bounded slices of later-ranked owners. Unrelated roadmap work follows this path; urgent regressions interrupt it.",
+  "checkpoints": [
+    {
+      "id": "CP-01",
+      "title": "Constraint authoring and retained visual feedback",
+      "issues": [
+        "SKT-005",
+        "SKT-006",
+        "SKT-007",
+        "SKT-018",
+        "SKT-008"
+      ],
+      "acceptance": "Repeated constraint-first picks; Equal lines and five circles; driving edit; actual badges; Escape; finish, undo, reopen.",
+      "status": "pending"
+    },
+    {
+      "id": "CP-02",
+      "title": "Exact first illustrated activity",
+      "issues": [
+        "DOC-013",
+        "DOC-015"
+      ],
+      "acceptance": "New document tab, origin outline, 500/100 lengths and two-line 45-degree angle; compare all constraint-stage captures.",
+      "status": "pending"
+    },
+    {
+      "id": "CP-03",
+      "title": "Rounded profile and first solid",
+      "issues": [
+        "SKT-011",
+        "SKT-016",
+        "SKT-009",
+        "SKT-019",
+        "SOL-015",
+        "SOL-016"
+      ],
+      "acceptance": "Construction conversion, inferred end circles, two radius-100 sketch fillets, three selected regions and 50-mm Press Pull.",
+      "status": "pending"
+    },
+    {
+      "id": "CP-04",
+      "title": "Face-supported sketch and referenced geometry",
+      "issues": [
+        "DOC-006",
+        "DOC-012",
+        "SKT-013",
+        "SKT-010",
+        "SKT-017"
+      ],
+      "acceptance": "Choose the top face, draw referenced construction, parallel constraints and stable upstream recompute.",
+      "status": "pending"
+    },
+    {
+      "id": "CP-05",
+      "title": "Complete exact illustrated workflow",
+      "issues": [
+        "TUT-003",
+        "GATE-020"
+      ],
+      "acceptance": "Five inferred circles with inline diameter and Equal, five-profile arrow Cut, all source-step and visual checks; broader export gate stays separate.",
+      "status": "pending"
+    }
+  ]
+}

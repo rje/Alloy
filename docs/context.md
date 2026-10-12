@@ -533,3 +533,28 @@ Five new backlog tasks #151–155 cover document tabs, constraint-first sessions
 sketch fillets, multi-profile Press Pull and TUT-003. Existing owners were tightened for
 inference, two-line angles, Equal, construction, region extraction and model-edge
 references. TUT-003 feeds GATE-020; geometry alone cannot close its visual gates.
+
+## Tutorial-first continuation (2026-10-12)
+
+User requested reprioritization around exact tutorial completion and automated
+end-to-end validation of each increment. `docs/backlog/tutorial-sequence.json`
+is the active ranked sequence; `tools/backlog.py ready` prioritizes its available
+owners without waiving dependency closure. GitHub issues have P0 tutorial work
+and the project has Delivery order ranks. Start with constraint/input/angle/badge
+slices, then exact first activity, rounded profile/Press Pull, face references,
+and complete five-hole Cut. Full TUT-003 remains blocked. Short-candidate research
+is external `knowledge/tutorials/short-candidates.json`; the supplementary wall
+outlet lesson adds mirror/concentric and is not an easier replacement gate.
+
+Sol implemented Equal and persistent constraint-first tools; Astra reviewed the
+core and caught a failed-attempt presentation refresh bug that root corrected.
+Root built an isolated `build-tutorial` candidate. Solver and existing synthetic
+widget regressions pass; `tests/constraint_tools_api.py` passed the real-entrypoint
+five-circle diameter/Equal chain and line-relation workflow with glyph identities,
+undo/redo, save/reopen/edit. See `docs/validation/constraint-tools.md` for exact
+coverage and evidence paths. Native repeated picking and source-matched visual
+acceptance remain pending; SKT-007/008/018 stay open. Next resolve these bounded
+interaction/visual checks, then origin/inference and two-line angular dimension
+for the first illustrated activity. Do not treat API-created coordinates as an
+inference or native-input pass. The human `build-input` app was preserved; do not
+replace its binary or discard its document. No CI or release was triggered.
