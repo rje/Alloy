@@ -8,6 +8,7 @@
 #include <cmath>
 #include <deque>
 #include <map>
+#include <numbers>
 #include <stdexcept>
 #include <vector>
 
@@ -16,6 +17,7 @@ constexpr double lengthTolerance = 1e-6;
 constexpr double angularTolerance = 1e-8;
 constexpr double minimumLength = 0.001;
 constexpr double maximumCoordinate = 100000;
+constexpr double degrees = std::numbers::pi/180.0;
 void require(bool condition, const char* message) {
     if (!condition) throw std::invalid_argument(message);
 }
@@ -42,19 +44,43 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters) {
     result.parameters = parameters;
     result.diagnostics = {{"solver", "PlaneGCS"}, {"status", "invalid"}, {"dof", -1},
         {"conflictingConstraintIds", QJsonArray{}}, {"redundantConstraintIds", QJsonArray{}},
+        {"conflictingEntityIds",QJsonArray{}},{"redundantEntityIds",QJsonArray{}},
         {"dimensionValues", QJsonArray{}}, {"maxResidual", QJsonValue::Null},
         {"lengthToleranceMm", lengthTolerance}, {"angularTolerance", angularTolerance}};
     try {
         require(parameters.value("points").isArray() && parameters.value("entities").isArray(), "Missing sketch points/entities");
-        const auto points = parameters.value("points").toArray();
-        const auto entities = parameters.value("entities").toArray();
+        auto points = parameters.value("points").toArray();
+        auto entities = parameters.value("entities").toArray();
         const auto constraints = parameters.value("constraints").toArray();
         const auto dimensions = parameters.value("dimensions").toArray();
+        // Radius/sweep edits seed the requested analytic geometry without fixing
+        // any free center or rotation. Shared endpoint line intent follows the seed;
+        // all authored constraints still participate in the authoritative solve.
+        for(const auto& value : dimensions) {
+            const auto d=value.toObject(); const auto kind=d["kind"].toString();
+            if(!d["driving"].toBool() || (kind!="radius" && kind!="diameter" && kind!="arcSweep")) continue;
+            for(qsizetype i=0;i<entities.size();++i) {auto e=entities[i].toObject(); if(e["id"]!=d["entityId"])continue;
+                const double requested=number(d,kind=="arcSweep" ? "valueDeg" : "valueMm")/(kind=="diameter" ? 2 : 1);
+                const double existing=kind=="arcSweep" ? std::abs(number(e,"sweepAngleDeg")) : number(e,"radiusMm");
+                if(std::abs(requested-existing)<1e-10)continue;
+                if(kind=="arcSweep") e["sweepAngleDeg"]=(e["sweepAngleDeg"].toDouble()<0 ? -1 : 1)*number(d,"valueDeg");
+                else e["radiusMm"]=number(d,"valueMm")/(kind=="diameter" ? 2 : 1);
+                entities[i]=e;
+                if(e["type"]!="arc")continue;
+                double u=0,v=0; for(const auto& pv:points) {const auto p=pv.toObject();if(p["id"]==e["centerPointId"]){u=number(p,"uMm");v=number(p,"vMm");}}
+                for(qsizetype j=0;j<points.size();++j){auto p=points[j].toObject();if(p["id"]!=e["startPointId"] && p["id"]!=e["endPointId"])continue;
+                    const double angle=(e["startAngleDeg"].toDouble()+(p["id"]==e["endPointId"] ? e["sweepAngleDeg"].toDouble() : 0))*degrees;
+                    p["uMm"]=u+e["radiusMm"].toDouble()*std::cos(angle);p["vMm"]=v+e["radiusMm"].toDouble()*std::sin(angle);points[j]=p;}
+            }
+        }
         // All storage is allocated before pointers enter the solver. std::map
         // nodes and deque elements retain addresses as their containers grow.
         std::vector<double> coordinates(static_cast<size_t>(points.size()) * 2);
         std::map<QString, GCS::Point> pointMap;
         std::map<QString, GCS::Line> lineMap;
+        std::map<QString,GCS::Circle> circleMap;
+        std::map<QString,GCS::Arc> arcMap;
+        std::deque<double> curveParameters;
         std::deque<double> constants;
         GCS::VEC_pD unknowns;
         QMap<int, QString> tagIds;
@@ -76,10 +102,19 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters) {
         for (const auto& entry : entities) {
             const auto entity = entry.toObject();
             const auto id = entity.value("id").toString();
-            require(entity.value("type") == "line" && !id.isEmpty() && !ids.contains(id), "Unsupported or duplicate sketch entity");
+            const auto type=entity["type"].toString();
+            require((type=="line" || type=="circle" || type=="arc") && !id.isEmpty() && !ids.contains(id), "Unsupported or duplicate sketch entity");
             ids.insert(id);
-            GCS::Line line; line.p1 = point(entity.value("startPointId").toString()); line.p2 = point(entity.value("endPointId").toString());
-            lineMap.emplace(id, line);
+            if(type=="line") {GCS::Line line;line.p1=point(entity["startPointId"].toString());line.p2=point(entity["endPointId"].toString());lineMap.emplace(id,line);}
+            else {
+                curveParameters.push_back(number(entity,"radiusMm"));auto* radius=&curveParameters.back();unknowns.push_back(radius);
+                if(type=="circle") {GCS::Circle circle;circle.center=point(entity["centerPointId"].toString());circle.rad=radius;circleMap.emplace(id,circle);}
+                else {GCS::Arc arc;arc.center=point(entity["centerPointId"].toString());arc.rad=radius;
+                    arc.start=point(entity["startPointId"].toString());arc.end=point(entity["endPointId"].toString());
+                    curveParameters.push_back(number(entity,"startAngleDeg")*degrees);arc.startAngle=&curveParameters.back();unknowns.push_back(arc.startAngle);
+                    curveParameters.push_back((number(entity,"startAngleDeg")+number(entity,"sweepAngleDeg"))*degrees);arc.endAngle=&curveParameters.back();unknowns.push_back(arc.endAngle);
+                    arcMap.emplace(id,arc);}
+            }
         }
         auto line = [&](const QString& id) -> GCS::Line& {
             const auto found = lineMap.find(id);
@@ -92,6 +127,8 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters) {
             ids.insert(id); const int value = tagIds.size()+1; tagIds[value] = id; return value;
         };
         GCS::System solver;
+        QSet<int> internalTags;
+        for(auto& [id,arc]:arcMap) {const int t=tagIds.size()+1;tagIds[t]=id;internalTags.insert(t);solver.addConstraintArcRules(arc,t);}
         for (const auto& entry : constraints) {
             const auto constraint = entry.toObject();
             const auto type = constraint.value("type").toString(); const int t = tag(constraint);
@@ -115,33 +152,40 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters) {
             const auto dimension = entry.toObject();
             const auto id = dimension.value("id").toString();
             require(!id.isEmpty() && !ids.contains(id), "Duplicate or empty dimension ID");
-            auto& a = point(reference(dimension,"pointIds",0)); auto& b = point(reference(dimension,"pointIds",1));
-            const auto kind = dimension.value("kind").toString();
-            require(kind == "linear" || kind == "horizontal" || kind == "vertical", "Unsupported dimension kind");
-            require(dimension.value("driving").isBool(), "Dimension requires driving flag");
-            if (!dimension.value("driving").toBool()) {ids.insert(id); continue;}
-            const double value = number(dimension,"valueMm");
-            require(value >= minimumLength && value <= maximumCoordinate, "Driving dimension outside supported range");
-            const int t = tag(dimension);
-            if (kind == "linear") solver.addConstraintP2PDistance(a,b,constant(value),t);
-            else {
-                double* first = kind == "horizontal" ? a.x : a.y;
-                double* second = kind == "horizontal" ? b.x : b.y;
-                // Positive lengths keep the currently seeded orientation. A zero
-                // projection chooses positive; arbitrary branch control is deferred.
-                solver.addConstraintDifference(first,second,constant(*second < *first ? -value : value),t);
+            const auto kind=dimension["kind"].toString();
+            const bool curve=kind=="radius" || kind=="diameter" || kind=="arcSweep";
+            require(curve || kind=="linear" || kind=="horizontal" || kind=="vertical", "Unsupported dimension kind");
+            require(dimension["driving"].isBool(), "Dimension requires driving flag");
+            if(!dimension["driving"].toBool()) {ids.insert(id);continue;}
+            const double value=number(dimension,kind=="arcSweep" ? "valueDeg" : "valueMm");
+            require(kind=="arcSweep" ? value>=1e-6 && value<360 : value>=minimumLength && value<=maximumCoordinate, "Driving dimension outside supported range");
+            const int t=tag(dimension);
+            if(curve) {
+                const auto entityId=dimension["entityId"].toString();
+                if(arcMap.contains(entityId)) {auto& arc=arcMap.at(entityId);
+                    if(kind=="radius")solver.addConstraintArcRadius(arc,constant(value),t);
+                    else if(kind=="diameter")solver.addConstraintArcDiameter(arc,constant(value),t);
+                    else solver.addConstraintDifference(arc.startAngle,arc.endAngle,constant((*arc.endAngle<*arc.startAngle ? -1 : 1)*value*degrees),t);
+                } else {require(kind!="arcSweep" && circleMap.contains(entityId), "Unknown curve dimension reference");auto& circle=circleMap.at(entityId);
+                    if(kind=="radius")solver.addConstraintCircleRadius(circle,constant(value),t);else solver.addConstraintCircleDiameter(circle,constant(value),t);}
+            } else {
+                auto& a=point(reference(dimension,"pointIds",0));auto& b=point(reference(dimension,"pointIds",1));
+                if(kind=="linear")solver.addConstraintP2PDistance(a,b,constant(value),t);
+                else {double* first=kind=="horizontal" ? a.x : a.y;double* second=kind=="horizontal" ? b.x : b.y;
+                    solver.addConstraintDifference(first,second,constant(*second<*first ? -value : value),t);}
             }
         }
-        result.diagnostics["constraintCount"] = tagIds.size();
+        result.diagnostics["constraintCount"] = tagIds.size()-internalTags.size();
+        result.diagnostics["internalCurveRuleCount"] = internalTags.size()*4;
         int dof = static_cast<int>(unknowns.size());
         if (!tagIds.isEmpty()) {
             solver.declareUnknowns(unknowns); solver.initSolution(GCS::DogLeg);
             const auto status = solver.solve(GCS::DogLeg);
             GCS::VEC_I conflicts,redundant,partial;
             solver.getConflicting(conflicts); solver.getRedundant(redundant); solver.getPartiallyRedundant(partial);
-            auto mapped = [&](const GCS::VEC_I& values) {
+            auto mapped = [&](const GCS::VEC_I& values,bool internal=false) {
                 QJsonArray array; QSet<QString> emitted;
-                for (int value : values) if (tagIds.contains(value) && !emitted.contains(tagIds[value])) {
+                for (int value : values) if (tagIds.contains(value) && internalTags.contains(value)==internal && !emitted.contains(tagIds[value])) {
                     array.append(tagIds[value]); emitted.insert(tagIds[value]);
                 }
                 return array;
@@ -149,6 +193,8 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters) {
             redundant.insert(redundant.end(),partial.begin(),partial.end());
             result.diagnostics["conflictingConstraintIds"] = mapped(conflicts);
             result.diagnostics["redundantConstraintIds"] = mapped(redundant);
+            result.diagnostics["conflictingEntityIds"] = mapped(conflicts,true);
+            result.diagnostics["redundantEntityIds"] = mapped(redundant,true);
             result.diagnostics["solverStatus"] = static_cast<int>(status);
             dof = solver.dofsNumber(); result.diagnostics["dof"] = dof;
             if (!conflicts.empty() || !redundant.empty() || status != GCS::SolveStatus::Success) {
@@ -183,13 +229,36 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters) {
                     check((type=="parallel" ? ax*by-ay*bx : ax*bx+ay*by)/(std::hypot(ax,ay)*std::hypot(bx,by)),angularTolerance);}
             }
         }
-        QJsonArray measurements;
-        for (const auto& entry : dimensions) {
-            const auto d=entry.toObject();const auto kind=d.value("kind").toString();
-            const double value=separation(kind,point(reference(d,"pointIds",0)),point(reference(d,"pointIds",1)));
-            if(d.value("driving").toBool())check(value-number(d,"valueMm"),lengthTolerance);
-            measurements.append(QJsonObject{{"id",d.value("id")},{"kind",kind},{"driving",d.value("driving")},{"valueMm",value}});
+        QJsonArray solvedEntities;
+        for(const auto& value:entities) {auto e=value.toObject();const auto id=e["id"].toString();
+            if(e["type"]!="line") {
+                const auto& curve=e["type"]=="arc" ? static_cast<const GCS::Circle&>(arcMap.at(id)) : circleMap.at(id);
+                require(std::isfinite(*curve.rad) && *curve.rad>=minimumLength && *curve.rad<=maximumCoordinate,"Solved curve radius outside supported range");
+                e["radiusMm"]=*curve.rad;
+                if(e["type"]=="arc") {const auto& arc=arcMap.at(id);const double sweep=(*arc.endAngle-*arc.startAngle)/degrees;
+                    require(std::isfinite(sweep) && std::abs(sweep)>1e-6 && std::abs(sweep)<360 && *arc.rad*std::abs(sweep)*degrees>=minimumLength,"Solved arc has invalid sweep");
+                    require((sweep<0)==(e["sweepAngleDeg"].toDouble()<0),"Solve reversed the arc sweep direction");
+                    check(*arc.start.x-*arc.center.x-*arc.rad*std::cos(*arc.startAngle),lengthTolerance);
+                    check(*arc.start.y-*arc.center.y-*arc.rad*std::sin(*arc.startAngle),lengthTolerance);
+                    check(*arc.end.x-*arc.center.x-*arc.rad*std::cos(*arc.endAngle),lengthTolerance);
+                    check(*arc.end.y-*arc.center.y-*arc.rad*std::sin(*arc.endAngle),lengthTolerance);
+                    e["startAngleDeg"]=std::remainder(*arc.startAngle/degrees,360.0);e["sweepAngleDeg"]=sweep;
+                }
+            } solvedEntities.append(e);
         }
+        QJsonArray measurements;
+        for(const auto& entry:dimensions) {
+            const auto d=entry.toObject();const auto kind=d["kind"].toString();const bool angular=kind=="arcSweep";
+            double value;
+            if(kind=="radius" || kind=="diameter" || angular) {const auto id=d["entityId"].toString();
+                const auto& curve=arcMap.contains(id) ? static_cast<const GCS::Circle&>(arcMap.at(id)) : circleMap.at(id);
+                value=angular ? std::abs(*arcMap.at(id).endAngle-*arcMap.at(id).startAngle)/degrees : *curve.rad*(kind=="diameter" ? 2 : 1);
+            } else value=separation(kind,point(reference(d,"pointIds",0)),point(reference(d,"pointIds",1)));
+            if(d["driving"].toBool())check(value-number(d,angular ? "valueDeg" : "valueMm"),angular ? 1e-6 : lengthTolerance);
+            QJsonObject measurement{{"id",d["id"]},{"kind",kind},{"driving",d["driving"]},{angular ? "valueDeg" : "valueMm",value}};
+            measurements.append(measurement);
+        }
+        result.parameters["entities"]=solvedEntities;
         QJsonArray solvedPoints;
         for (qsizetype i=0;i<points.size();++i) {auto p=points[i].toObject();p["uMm"]=coordinates[2*i];p["vMm"]=coordinates[2*i+1];solvedPoints.append(p);}
         result.parameters["points"] = solvedPoints;
@@ -197,7 +266,7 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters) {
         result.diagnostics["status"] = dof == 0 ? "fully_constrained" : "underconstrained";
         result.diagnostics["dimensionValues"] = measurements;
         result.diagnostics["maxResidual"] = maxResidual;
-        result.diagnostics["residualUnits"] = "mm for lengths; normalized sine/cosine for line angles";
+        result.diagnostics["residualUnits"] = "mm for lengths; degrees for arc sweep; normalized sine/cosine for line angles";
         result.accepted = true;
     } catch (const std::exception& error) {
         result.parameters = parameters;

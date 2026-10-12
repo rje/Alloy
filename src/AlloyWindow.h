@@ -23,6 +23,7 @@ class QShortcut;
 class QCheckBox;
 class QPushButton;
 class QScrollArea;
+class QListWidget;
 
 // UI and automation dispatch against the same authored document.
 class AlloyWindow final : public QMainWindow {
@@ -59,12 +60,25 @@ private:
     void showExtrude();
     void refreshExtrudeControls();
     void updateExtrude(const QJsonObject& inputs);
+    QJsonObject beginCombine(const QJsonObject& inputs);
+    QJsonObject combineCandidate(const QJsonObject& inputs) const;
+    QString validateCombineInputs(const QJsonObject& inputs) const;
+    std::vector<EvaluatedBody> combineInputBodies() const;
+    QJsonObject previewCombine();
+    void showCombine();
+    void refreshCombineControls();
+    void updateCombine(const QJsonObject& inputs);
+    void selectCombineBody(const QString& bodyId);
     QJsonObject selectFinishedProfile(const QString& sketchId, const QString& profileId);
     QJsonArray dependentBodies(const QString& sketchId) const;
     QJsonObject primitiveCandidate(const QString&, const QJsonObject&) const;
     QJsonObject beginSketch(const QString& plane, const QString& name, const QString& sketchId = {});
     QJsonObject appendSketchEntity(const QString& tool, const QJsonObject& inputs);
+    QJsonObject appendSketchCurve(const QString& tool, const QJsonObject& inputs);
+    QJsonObject sketchCurveGesture(const QJsonObject& point, bool commit);
+    double sketchDimensionMeasure(const QJsonObject& targets, const QString& kind) const;
     void showSketch();
+    void showCurveEntry();
     void sketchResponse(const QJsonObject& response);
     QJsonObject publishSketchSolve(const SketchGeometry::SolveResult& solved);
     QJsonObject setSketchSelection(const QJsonObject& selection);
@@ -104,6 +118,17 @@ private:
     QLabel* extrudeError_ = nullptr;
     QPushButton* extrudeOk_ = nullptr;
     QShortcut* extrudeEscape_ = nullptr;
+    QWidget* combinePanel_ = nullptr;
+    QDockWidget* combineDock_ = nullptr;
+    QComboBox* combineTarget_ = nullptr;
+    QListWidget* combineTools_ = nullptr;
+    QComboBox* combineOperation_ = nullptr;
+    QCheckBox* combineKeepTools_ = nullptr;
+    QLabel* combineError_ = nullptr;
+    QPushButton* combineOk_ = nullptr;
+    QPushButton* combinePickTarget_ = nullptr;
+    QPushButton* combinePickTools_ = nullptr;
+    QShortcut* combineEscape_ = nullptr;
     QTreeWidgetItem* bodiesNode_ = nullptr;
     QTreeWidgetItem* sketchesNode_ = nullptr;
     QWidget* sketchPanel_ = nullptr;
@@ -118,6 +143,7 @@ private:
     QJsonObject sketchWidgetDraft_, sketchWidgetSelection_;
     QString sketchWidgetUnits_;
     QTreeWidget* sketchSelectionTree_ = nullptr;
+    QPushButton* sketchCurveEntry_ = nullptr;
     QComboBox* sketchDimensionKind_ = nullptr;
     QDoubleSpinBox* sketchDimensionValue_ = nullptr;
     QCheckBox* sketchDimensionDriving_ = nullptr;

@@ -7,15 +7,21 @@
 #include <Bnd_Box.hxx>
 #include <TopoDS_Compound.hxx>
 #include <TopoDS_Edge.hxx>
+#include <gp_Circ.hxx>
+#include <gp_Ax2.hxx>
+#include <numbers>
 #include <QJsonArray>
 #include <QMap>
 #include <QUuid>
 #include <cmath>
+#include <algorithm>
 #include <stdexcept>
 
 namespace {
 constexpr double minimumLength = 0.001;
 constexpr double maximumLength = 100000;
+constexpr double degrees = std::numbers::pi / 180.0;
+constexpr double endpointTolerance = 1e-6;
 QString newId() { return QUuid::createUuid().toString(QUuid::WithoutBraces); }
 bool validId(const QString& id) {
     return !QUuid(id).isNull() && QUuid(id).toString(QUuid::WithoutBraces) == id;
@@ -51,7 +57,7 @@ QString addPoint(QJsonArray& points, double u, double v, const QString& requeste
     for (const auto& entry : points) {
         const auto point = entry.toObject();
         if (!requestedId.isEmpty() && point["id"].toString() != requestedId) continue;
-        if (point["uMm"].toDouble() == u && point["vMm"].toDouble() == v) return point["id"].toString();
+        if (std::hypot(point["uMm"].toDouble()-u, point["vMm"].toDouble()-v) < 1e-9) return point["id"].toString();
         if (!requestedId.isEmpty()) reject("Point ID coordinates do not match the authored endpoint");
     }
     if (!requestedId.isEmpty()) reject("Sketch point does not exist");
@@ -64,6 +70,11 @@ gp_Pnt worldPoint(const QString& plane, double u, double v) {
     if (plane == "XZ") return {u, 0, v};
     if (plane == "YZ") return {0, u, v};
     reject("Unsupported sketch origin plane");
+}
+void checkPointIds(const QJsonObject& arguments) {
+    for(const auto& key : {"centerPointId","startPointId","endPointId"})
+        if(arguments.contains(key) && (!arguments[key].isString() || !validId(arguments[key].toString())))
+            reject("Expected a stable sketch point UUID");
 }
 void checkFields(const QJsonObject& arguments, const QSet<QString>& allowed) {
     for (auto it = arguments.begin(); it != arguments.end(); ++it)
@@ -132,6 +143,77 @@ QJsonObject SketchGeometry::addLine(const QJsonObject& draft, const QJsonObject&
     return changed;
 }
 
+QJsonObject SketchGeometry::addCircle(const QJsonObject& draft, const QJsonObject& arguments) {
+    validateDraft(draft);
+    checkFields(arguments, {"centerUMm", "centerVMm", "diameterMm", "centerPointId"});
+    checkPointIds(arguments);
+    const double u = coordinate(arguments, "centerUMm"), v = coordinate(arguments, "centerVMm");
+    const double radius = coordinate(arguments, "diameterMm") / 2;
+    if (radius < minimumLength || radius > maximumLength) reject("Circle radius out of supported range (0.001..100000 mm)");
+    auto changed = draft; auto parameters = changed["parameters"].toObject();
+    auto points = parameters["points"].toArray(), entities = parameters["entities"].toArray();
+    const auto center = addPoint(points, u, v, arguments["centerPointId"].toString());
+    entities.append(QJsonObject{{"id",newId()},{"type","circle"},{"centerPointId",center},{"radiusMm",radius}});
+    parameters["points"] = points; parameters["entities"] = entities; changed["parameters"] = parameters;
+    validateDraft(changed); return changed;
+}
+
+QJsonObject SketchGeometry::addArc(const QJsonObject& draft, const QJsonObject& arguments) {
+    validateDraft(draft);
+    checkPointIds(arguments);
+    const bool threePoint = arguments.contains("throughUMm") || arguments.contains("throughVMm");
+    double u, v, radius, start, sweep;
+    if (threePoint) {
+        checkFields(arguments, {"startUMm","startVMm","endUMm","endVMm","throughUMm","throughVMm","startPointId","endPointId","centerPointId"});
+        const double ax = coordinate(arguments,"startUMm"), ay = coordinate(arguments,"startVMm");
+        const double bx = coordinate(arguments,"endUMm"), by = coordinate(arguments,"endVMm");
+        const double cx = coordinate(arguments,"throughUMm"), cy = coordinate(arguments,"throughVMm");
+        const double x = bx-ax, y = by-ay, q = cx-ax, t = cy-ay;
+        const double determinant = 2*(x*t-y*q);
+        const double scale = std::max({std::hypot(x,y),std::hypot(q,t),std::hypot(cx-bx,cy-by)});
+        if (scale < minimumLength || std::abs(determinant) <= 1e-9*scale*scale) reject("Three-point arc requires distinct noncollinear points");
+        u = ax + ((x*x+y*y)*t-(q*q+t*t)*y)/determinant;
+        v = ay + (x*(q*q+t*t)-q*(x*x+y*y))/determinant;
+        radius = std::hypot(ax-u,ay-v); start = std::atan2(ay-v,ax-u)/degrees;
+        auto positive = [](double angle) { angle = std::fmod(angle,360.0); return angle < 0 ? angle+360.0 : angle; };
+        const double end = positive(std::atan2(by-v,bx-u)/degrees-start);
+        const double through = positive(std::atan2(cy-v,cx-u)/degrees-start);
+        sweep = through < end ? end : end-360;
+    } else {
+        checkFields(arguments, {"centerUMm","centerVMm","radiusMm","startAngleDeg","sweepAngleDeg","centerPointId","startPointId","endPointId"});
+        u = coordinate(arguments,"centerUMm"); v = coordinate(arguments,"centerVMm");
+        radius = coordinate(arguments,"radiusMm"); start = coordinate(arguments,"startAngleDeg"); sweep = coordinate(arguments,"sweepAngleDeg");
+    }
+    if (!std::isfinite(radius) || radius < minimumLength || radius > maximumLength || !std::isfinite(sweep)
+        || std::abs(sweep) < 1e-6 || std::abs(sweep) >= 360 || radius*std::abs(sweep)*degrees < minimumLength)
+        reject("Arc requires a usable radius and nonzero sweep smaller than 360 degrees");
+    start = std::remainder(start,360.0);
+    auto changed = draft; auto parameters = changed["parameters"].toObject();
+    auto points = parameters["points"].toArray(), entities = parameters["entities"].toArray();
+    const auto center = addPoint(points,u,v,arguments["centerPointId"].toString());
+    const auto first = addPoint(points,u+radius*std::cos(start*degrees),v+radius*std::sin(start*degrees),arguments["startPointId"].toString());
+    const auto last = addPoint(points,u+radius*std::cos((start+sweep)*degrees),v+radius*std::sin((start+sweep)*degrees),arguments["endPointId"].toString());
+    entities.append(QJsonObject{{"id",newId()},{"type","arc"},{"centerPointId",center},{"startPointId",first},{"endPointId",last},
+        {"radiusMm",radius},{"startAngleDeg",start},{"sweepAngleDeg",sweep}});
+    parameters["points"] = points; parameters["entities"] = entities; changed["parameters"] = parameters;
+    validateDraft(changed); return changed;
+}
+
+TopoDS_Edge SketchGeometry::analyticEdge(const QJsonObject& parameters, const QJsonObject& entity) {
+    QMap<QString,gp_Pnt> points;
+    const auto plane = parameters["plane"].toString();
+    for (const auto& value : parameters["points"].toArray()) { const auto p=value.toObject();
+        points[p["id"].toString()] = worldPoint(plane,p["uMm"].toDouble(),p["vMm"].toDouble()); }
+    if (entity["type"] == "line") return BRepBuilderAPI_MakeEdge(points[entity["startPointId"].toString()],points[entity["endPointId"].toString()]).Edge();
+    const auto f=frame(plane); const auto n=f["normal"].toArray(), u=f["uAxis"].toArray();
+    const gp_Ax2 axes(points[entity["centerPointId"].toString()],gp_Dir(n[0].toDouble(),n[1].toDouble(),n[2].toDouble()),gp_Dir(u[0].toDouble(),u[1].toDouble(),u[2].toDouble()));
+    const gp_Circ circle(axes,entity["radiusMm"].toDouble());
+    if (entity["type"] == "circle") return BRepBuilderAPI_MakeEdge(circle).Edge();
+    const double start=entity["startAngleDeg"].toDouble()*degrees, sweep=entity["sweepAngleDeg"].toDouble()*degrees;
+    auto edge=BRepBuilderAPI_MakeEdge(circle,std::min(start,start+sweep),std::max(start,start+sweep)).Edge();
+    if (sweep < 0) edge.Reverse(); return edge;
+}
+
 QJsonObject SketchGeometry::addRectangle(const QJsonObject& draft, const QJsonObject& arguments) {
     validateArguments(arguments, false);
     const double u1 = coordinate(arguments, "u1Mm"), v1 = coordinate(arguments, "v1Mm");
@@ -182,15 +264,40 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
         for (const auto& entry : parameters["entities"].toArray()) {
             if (!entry.isObject()) return "Sketch entity must be an object";
             const auto entity = entry.toObject();
-            if (entity.size() != 4 || entity["type"].toString() != "line" || !claimId(entity["id"].toString()))
-                return "Invalid line type or duplicate sketch entity UUID";
-            const auto startId = entity["startPointId"].toString(), endId = entity["endPointId"].toString();
-            if (!points.contains(startId) || !points.contains(endId)) return "Sketch line endpoint does not exist";
-            const auto start = points[startId], end = points[endId];
-            const auto length = std::hypot(end["uMm"].toDouble() - start["uMm"].toDouble(), end["vMm"].toDouble() - start["vMm"].toDouble());
-            if (length < minimumLength || length > maximumLength) return "Sketch line length out of supported range (0.001..100000 mm)";
-            usedPoints.insert(startId);
-            usedPoints.insert(endId);
+            const auto type = entity["type"].toString();
+            if (!claimId(entity["id"].toString())) return "Invalid or duplicate sketch entity UUID";
+            if (type != "line" && type != "circle" && type != "arc") return "Unsupported sketch entity type";
+            if (entity.size() != (type == "line" ? 4 : type == "circle" ? 4 : 8)) return "Unexpected sketch entity fields";
+            if (type != "line") {
+                const auto centerId = entity["centerPointId"].toString();
+                if (!points.contains(centerId)) return "Curve center does not exist";
+                usedPoints.insert(centerId);
+                const double radius=coordinate(entity,"radiusMm");
+                if (radius < minimumLength) return "Curve radius out of supported range";
+                if (type == "arc") {
+                    const double start=coordinate(entity,"startAngleDeg"), sweep=coordinate(entity,"sweepAngleDeg");
+                    if (std::abs(start) > 180 || std::abs(sweep) < 1e-6 || std::abs(sweep) >= 360 || radius*std::abs(sweep)*degrees < minimumLength)
+                        return "Invalid normalized arc angles";
+                    const auto center=points[centerId];
+                    for (const auto& key : {"startPointId","endPointId"}) {
+                        const auto endpoint=entity[key].toString(); if (!points.contains(endpoint)) return "Arc endpoint does not exist";
+                        const double angle=(start+(QString(key)=="endPointId" ? sweep : 0))*degrees;
+                        const auto p=points[endpoint];
+                        if (std::hypot(p["uMm"].toDouble()-center["uMm"].toDouble()-radius*std::cos(angle),
+                            p["vMm"].toDouble()-center["vMm"].toDouble()-radius*std::sin(angle)) > endpointTolerance)
+                            return "Arc endpoints do not match its analytic radius and sweep";
+                        usedPoints.insert(endpoint);
+                    }
+                    if (entity["startPointId"] == entity["endPointId"]) return "Arc endpoints must be distinct";
+                }
+            } else {
+                const auto startId=entity["startPointId"].toString(), endId=entity["endPointId"].toString();
+                if (!points.contains(startId) || !points.contains(endId)) return "Sketch line endpoint does not exist";
+                const auto start=points[startId], end=points[endId];
+                const double length=std::hypot(end["uMm"].toDouble()-start["uMm"].toDouble(),end["vMm"].toDouble()-start["vMm"].toDouble());
+                if (length < minimumLength || length > maximumLength) return "Sketch line length out of supported range (0.001..100000 mm)";
+                usedPoints.insert(startId); usedPoints.insert(endId);
+            }
             entityIds.insert(entity["id"].toString());
         }
         if (usedPoints.size() != points.size()) return "Sketch contains unreferenced points";
@@ -204,6 +311,10 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
             return true;
         };
         const QSet<QString> pointIds(points.keyBegin(), points.keyEnd());
+        QSet<QString> lineIds, curveIds, arcIds;
+        for (const auto& entry : parameters["entities"].toArray()) {const auto e=entry.toObject();
+            if(e["type"]=="line") lineIds.insert(e["id"].toString());
+            else {curveIds.insert(e["id"].toString()); if(e["type"]=="arc") arcIds.insert(e["id"].toString());}}
         for (const auto& entry : parameters["constraints"].toArray()) {
             if (!entry.isObject()) return "Sketch constraint must be an object";
             const auto constraint = entry.toObject();
@@ -216,7 +327,7 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
                 if (fixed) { coordinate(constraint, "uMm"); coordinate(constraint, "vMm"); }
             } else if (type == "horizontal" || type == "vertical" || type == "parallel" || type == "perpendicular") {
                 if (constraint.size() != 3 || constraint.contains("pointIds")
-                    || !checkReferences(constraint, "entityIds", (type == "parallel" || type == "perpendicular") ? 2 : 1, entityIds))
+                    || !checkReferences(constraint, "entityIds", (type == "parallel" || type == "perpendicular") ? 2 : 1, lineIds))
                     return "Invalid line constraint references";
             } else return "Unsupported sketch constraint type";
         }
@@ -225,11 +336,15 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
             const auto dimension = entry.toObject();
             if (!claimId(dimension["id"].toString())) return "Invalid or duplicate dimension UUID";
             const auto kind = dimension["kind"].toString();
-            if ((kind != "linear" && kind != "horizontal" && kind != "vertical") || !dimension["driving"].isBool()
-                || !checkReferences(dimension, "pointIds", 2, pointIds)) return "Invalid dimension kind or references";
-            const bool driving = dimension["driving"].toBool();
-            const bool placed = dimension.contains("annotation");
-            if (dimension.size() != (driving ? 5 : 4) + int(placed) || (!driving && dimension.contains("valueMm"))) return "Unexpected dimension fields";
+            const bool curve = kind == "radius" || kind == "diameter" || kind == "arcSweep";
+            if (!dimension["driving"].isBool()) return "Dimension requires driving flag";
+            if (curve) {
+                if (!(kind=="arcSweep" ? arcIds : curveIds).contains(dimension["entityId"].toString())) return "Invalid curve dimension reference";
+            } else if ((kind != "linear" && kind != "horizontal" && kind != "vertical")
+                || !checkReferences(dimension,"pointIds",2,pointIds)) return "Invalid dimension kind or references";
+            const bool driving=dimension["driving"].toBool(), placed=dimension.contains("annotation");
+            const auto valueKey=kind=="arcSweep" ? "valueDeg" : "valueMm";
+            if (dimension.size() != (driving ? 5 : 4)+int(placed) || (!driving && dimension.contains(valueKey))) return "Unexpected dimension fields";
             if (placed) {
                 if (!dimension["annotation"].isObject()) return "Dimension annotation must be an object";
                 const auto annotation = dimension["annotation"].toObject();
@@ -237,8 +352,9 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
                 coordinate(annotation, "uMm"); coordinate(annotation, "vMm");
             }
             if (driving) {
-                const double value = coordinate(dimension, "valueMm");
-                if (value < minimumLength) return "Driving dimension must be positive (0.001..100000 mm)";
+                const double value = coordinate(dimension, valueKey);
+                if (kind=="arcSweep" && (value < 1e-6 || value >= 360)) return "Angular dimension must be between zero and 360 degrees";
+                if (kind!="arcSweep" && value < minimumLength) return "Driving dimension must be positive (0.001..100000 mm)";
             }
         }
     } catch (const std::invalid_argument& error) { return QString::fromUtf8(error.what()); }
@@ -286,11 +402,13 @@ SketchGeometry::SolveResult SketchGeometry::addConstraint(const QJsonObject& dra
 SketchGeometry::SolveResult SketchGeometry::addDimension(const QJsonObject& draft, const QJsonObject& arguments) {
     try {
         validateDraft(draft);
-        checkFields(arguments, {"kind", "pointIds", "entityId", "driving", "valueMm", "annotation"});
+        checkFields(arguments, {"kind", "pointIds", "entityId", "driving", "valueMm", "valueDeg", "annotation"});
         if (arguments.contains("driving") && !arguments["driving"].isBool()) reject("Dimension driving must be Boolean");
         auto parameters = draft["parameters"].toObject();
         QJsonArray pointIds = arguments["pointIds"].toArray();
-        if (arguments.contains("entityId")) {
+        const auto kind=arguments["kind"].toString();
+        const bool curve=kind=="radius" || kind=="diameter" || kind=="arcSweep";
+        if (arguments.contains("entityId") && !curve) {
             if (arguments.contains("pointIds")) reject("Choose dimension points or one line, not both");
             bool found = false;
             for (const auto& entry : parameters["entities"].toArray()) {
@@ -302,9 +420,13 @@ SketchGeometry::SolveResult SketchGeometry::addDimension(const QJsonObject& draf
         }
         const bool driving = arguments.value("driving").toBool(true);
         QJsonObject dimension{{"id", newId()}, {"kind", arguments["kind"]}, {"pointIds", pointIds}, {"driving", driving}};
+        if(curve && arguments.contains("pointIds"))reject("Curve dimensions require one entity reference");
+        if(curve) {dimension.remove("pointIds"); dimension["entityId"]=arguments["entityId"];}
+        const auto valueKey=kind=="arcSweep" ? "valueDeg" : "valueMm";
         if (arguments.contains("annotation")) dimension["annotation"] = arguments["annotation"];
-        if (driving) dimension["valueMm"] = arguments["valueMm"];
-        else if (arguments.contains("valueMm")) reject("Driven dimensions measure geometry; omit valueMm");
+        if (driving) dimension[valueKey] = arguments[valueKey];
+        else if (arguments.contains("valueMm") || arguments.contains("valueDeg")) reject("Driven dimensions measure geometry; omit its value");
+        if (arguments.contains(kind=="arcSweep" ? "valueMm" : "valueDeg")) reject("Dimension value has incorrect units");
         auto dimensions = parameters["dimensions"].toArray(); dimensions.append(dimension);
         parameters["dimensions"] = dimensions;
         auto candidate = draft; candidate["parameters"] = parameters;
@@ -316,8 +438,7 @@ SketchGeometry::SolveResult SketchGeometry::addDimension(const QJsonObject& draf
 SketchGeometry::SolveResult SketchGeometry::updateDimension(const QJsonObject& draft, const QJsonObject& arguments) {
     try {
         validateDraft(draft);
-        checkFields(arguments, {"dimensionId", "valueMm"});
-        coordinate(arguments, "valueMm");
+        checkFields(arguments, {"dimensionId", "valueMm", "valueDeg"});
         auto parameters = draft["parameters"].toObject();
         auto dimensions = parameters["dimensions"].toArray();
         bool found = false;
@@ -325,7 +446,10 @@ SketchGeometry::SolveResult SketchGeometry::updateDimension(const QJsonObject& d
             auto dimension = dimensions[i].toObject();
             if (dimension["id"] != arguments["dimensionId"]) continue;
             if (!dimension["driving"].toBool()) reject("A driven dimension cannot set geometry");
-            dimension["valueMm"] = arguments["valueMm"]; dimensions[i] = dimension; found = true; break;
+            const auto key=dimension["kind"]=="arcSweep" ? "valueDeg" : "valueMm";
+            coordinate(arguments,key);
+            if(arguments.contains(dimension["kind"]=="arcSweep" ? "valueMm" : "valueDeg")) reject("Dimension value has incorrect units");
+            dimension[key] = arguments[key]; dimensions[i] = dimension; found = true; break;
         }
         if (!found) reject("Driving dimension does not exist");
         parameters["dimensions"] = dimensions;
@@ -376,8 +500,12 @@ SketchGeometry::SolveResult SketchGeometry::movePoint(const QJsonObject& draft, 
         if (!found) reject("Sketch point does not exist");
         parameters["points"] = points;
         auto candidate = draft; candidate["parameters"] = parameters;
-        const auto result = solveDraft(candidate);
-        return result.ok ? result : SolveResult{false, draft, result.diagnostics, result.error};
+        // Point manipulation supplies a solver seed. ArcRules restore normalized
+        // analytic intent before final validation; no inconsistent state is accepted.
+        const auto result=SketchSolver::solve(parameters);
+        if(!result.accepted)return {false,draft,result.diagnostics,result.error};
+        candidate["parameters"]=result.parameters;validateDraft(candidate);
+        return {true,candidate,result.diagnostics,{}};
     } catch (const std::exception& error) { return invalidDraft(draft, QString::fromUtf8(error.what())); }
 }
 
@@ -412,7 +540,7 @@ EvaluatedSketch SketchGeometry::evaluateFeature(const QJsonObject& feature) {
         builder.MakeCompound(compound);
         for (const auto& entry : entities) {
             const auto entity = entry.toObject();
-            const auto edge = BRepBuilderAPI_MakeEdge(points[entity["startPointId"].toString()], points[entity["endPointId"].toString()]).Edge();
+            const auto edge = analyticEdge(parameters,entity);
             builder.Add(compound, edge);
         }
         if (!BRepCheck_Analyzer(compound).IsValid()) throw std::runtime_error("Kernel did not produce valid sketch edges");
@@ -424,9 +552,18 @@ EvaluatedSketch SketchGeometry::evaluateFeature(const QJsonObject& feature) {
         bounds = QJsonObject{{"min", QJsonArray{x0, y0, z0}}, {"max", QJsonArray{x1, y1, z1}},
             {"size", QJsonArray{x1-x0, y1-y0, z1-z0}}};
     }
+    QJsonArray geometry;
+    for(const auto& value : entities) {const auto e=value.toObject(); auto detail=e;
+        if(e["type"]=="line") detail["lengthMm"]=points[e["startPointId"].toString()].Distance(points[e["endPointId"].toString()]);
+        else {const auto center=points[e["centerPointId"].toString()]; detail["centerMm"]=QJsonArray{center.X(),center.Y(),center.Z()};
+            detail["lengthMm"]=e["radiusMm"].toDouble()*(e["type"]=="circle" ? 2*std::numbers::pi : std::abs(e["sweepAngleDeg"].toDouble())*degrees);
+            if(e["type"]=="arc") {const auto first=points[e["startPointId"].toString()],last=points[e["endPointId"].toString()];
+                detail["startMm"]=QJsonArray{first.X(),first.Y(),first.Z()};detail["endMm"]=QJsonArray{last.X(),last.Y(),last.Z()};}}
+        geometry.append(detail);
+    }
     QJsonObject summary{{"kernel", "OCCT"}, {"version", ALLOY_OCCT_VERSION}, {"type", "sketch"}, {"valid", true},
         {"lengthUnit", "mm"}, {"plane", plane}, {"frame", frame(plane)}, {"solverIntegrated", true}, {"solver", solution.diagnostics},
-        {"pointCount", points.size()}, {"entityCount", entities.size()}, {"worldPoints", worldPoints}, {"boundsMm", bounds}};
+        {"entities",geometry}, {"pointCount", points.size()}, {"entityCount", entities.size()}, {"worldPoints", worldPoints}, {"boundsMm", bounds}};
     const auto profile = SketchProfiles::derive(solution.feature);
     QJsonArray profileSummaries;
     std::vector<EvaluatedProfile> profiles;

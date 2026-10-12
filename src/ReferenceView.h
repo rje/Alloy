@@ -26,6 +26,8 @@ public:
     QJsonObject diagnostics() const;
     QImage framebuffer();
     void setBodies(const std::vector<EvaluatedBody>& bodies, quint64 revision);
+    void setBodyStage(const std::vector<EvaluatedBody>& bodies, const QString& stageKey);
+    void clearBodyStage();
     void setSketches(const std::vector<EvaluatedSketch>& sketches, quint64 revision);
     void showSketchDraft(const EvaluatedSketch& sketch);
     void clearSketchDraft();
@@ -44,9 +46,11 @@ public:
     QJsonObject sketchPoint(double x, double y, const QString& plane) const;
     QJsonObject projectSketchPoint(double uMm, double vMm, const QString& plane) const;
     void showSketchCursor(const QString& plane, const QPointF& first, const QPointF& second, bool rectangle);
+    void showSketchCurveCursor(const QJsonObject& feature);
     void clearSketchCursor();
     void fit(const std::vector<EvaluatedBody>& bodies, const std::vector<EvaluatedSketch>& sketches = {});
     void selectBody(const QString& id);
+    void highlightCombineInputs(const QString& targetBodyId, const QJsonArray& toolBodyIds);
     QString pickBody(double x,double y);
     QJsonObject projectBody(const EvaluatedBody& body) const;
     void showPreview(const TopoDS_Shape& shape,const QString& replacedBody = {}, bool neutral = false);
@@ -64,6 +68,9 @@ protected:
     void wheelEvent(QWheelEvent*) override;
 private:
     void initialize();
+    void displayBodies(const std::vector<EvaluatedBody>& bodies);
+    QJsonObject curveDimensionLayout(const QJsonObject& feature, const QJsonObject& dimension,
+        double value, const QString& units) const;
     void clearSketchDecorations();
     void applyEditDisplay();
     QPointF windowScale() const;
@@ -76,6 +83,9 @@ private:
     QPointF last_;
     Qt::MouseButton panButton_ = Qt::NoButton;
     QMap<QString,Handle(AIS_Shape)> models_;
+    QMap<QString,bool> bodyVisibility_;
+    QString combineTargetId_;
+    QJsonArray combineToolIds_;
     QMap<QString,Handle(AIS_Shape)> sketchModels_;
     QMap<QString,Handle(AIS_Shape)> finishedProfileModels_;
     std::vector<EvaluatedSketch> finishedSketches_;
@@ -97,6 +107,8 @@ private:
     QJsonObject extrusionCueState_;
     QString previewReplacedBody_;
     quint64 modelRevision_ = 0;
+    std::vector<EvaluatedBody> documentBodies_;
+    QString bodyStageKey_;
     double sceneScale_ = 400;
     int msaaRequested_ = 4, msaaEnabled_ = 0, msaaMaximum_ = 0;
     bool msaaTextures_ = false;

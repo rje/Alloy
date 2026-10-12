@@ -36,11 +36,11 @@ add_library(alloy_kernel STATIC
     src/SketchProfiles.cpp src/SketchProfiles.h)
 target_include_directories(alloy_kernel PUBLIC src)
 target_include_directories(alloy_kernel SYSTEM PUBLIC ${OpenCASCADE_INCLUDE_DIR})
-target_link_libraries(alloy_kernel PUBLIC alloy_sketch_solver Qt6::Core TKernel TKMath TKG3d TKBRep TKPrim TKTopAlgo)
+target_link_libraries(alloy_kernel PUBLIC alloy_sketch_solver Qt6::Core TKernel TKMath TKG3d TKBRep TKPrim TKTopAlgo TKBO TKBool TKGeomAlgo)
 target_compile_definitions(alloy_kernel PUBLIC ALLOY_OCCT_VERSION="${ALLOY_OCCT_VERSION}")
 
 qt_add_executable(alloy MACOSX_BUNDLE
-    src/main.cpp src/AlloyWindow.cpp src/AlloyWindow.h
+    src/main.cpp src/AlloyWindow.cpp src/AlloyWindow.h src/CombineControls.cpp
     src/CadDocument.cpp src/CadDocument.h
     src/ReferenceView.cpp src/ReferenceView.h
     src/ControlServer.cpp src/ControlServer.h)
@@ -88,6 +88,13 @@ if(BUILD_TESTING)
     target_include_directories(extrusion_document_test PRIVATE src)
     target_link_libraries(extrusion_document_test PRIVATE Qt6::Gui alloy_kernel)
     add_test(NAME extrusion_document COMMAND extrusion_document_test)
+    add_executable(boolean_document_test tests/boolean_document.cpp src/CadDocument.cpp src/CadDocument.h)
+    target_include_directories(boolean_document_test PRIVATE src)
+    target_link_libraries(boolean_document_test PRIVATE Qt6::Gui alloy_kernel)
+    add_test(NAME boolean_document COMMAND boolean_document_test)
+    add_executable(sketch_curves_test tests/sketch_curves.cpp)
+    target_link_libraries(sketch_curves_test PRIVATE Qt6::Core alloy_kernel)
+    add_test(NAME sketch_curves COMMAND sketch_curves_test)
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
     add_test(NAME client_selection COMMAND ${Python3_EXECUTABLE} -E ${CMAKE_CURRENT_SOURCE_DIR}/tests/client_selection.py)
     add_test(NAME shell_api COMMAND ${Python3_EXECUTABLE}

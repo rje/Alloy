@@ -76,12 +76,35 @@ automation share its retained point, line, constraint and dimension IDs.
    profile. Open or self-crossed line loops report diagnostics instead of a region.
    The accepted region remains filled and selectable after Finish.
 
-The app currently supports these line/point relations and dimensions. Inline
+The app supports these line/point relations and the curve dimensions below. Inline
 rectangle entry, native point dragging, snapping and per-entity constraint badges remain
 [tracked interaction gaps](../docs/research/commands/sketch-controls.md).
-Face-supported sketches, solid face/edge selection, Boolean operations,
+Face-supported sketches, solid face/edge selection,
 import and printing export also remain ahead. Disabled controls identify work
 still to come.
+
+## Circles and arcs
+
+In an active origin-plane sketch, **Circle** (C) uses center → circumference
+clicks. The **Arc** menu offers **Center Point Arc** (center → start → end) and
+**3-Point Arc** (start → end → through point). Pointer motion previews the exact
+curve; Escape clears pending drawing, and Return ends the drawing tool. The
+active tool's **Enter curve values…** dialog supplies a numeric fallback in the
+shown mm/in units. Angles remain degrees.
+
+Select a circle and press D for Diameter; an arc defaults to Radius. The palette
+also offers Radius, Diameter and explicit **Arc Sweep**. Driving dimensions edit
+geometry; driven measurements are read-only. Arc Sweep uses a positive magnitude
+and preserves the arc's clockwise/counterclockwise branch; its editor accepts
+deg/° rather than length suffixes. Finish commits the sketch once. A circle disk
+or a single simple closed line/arc loop produces a selectable profile for Extrude;
+holes and multiple regions remain unsupported. Two-line angular dimensions,
+creation-time numeric locks and broader drawing inference remain ahead.
+
+The [control API](../docs/agent-control.md) exposes `sketch.addCircle`,
+`sketch.addArc` and the same dimension tools. The
+[candidate receipt](../docs/validation/curves-combine.md) separates accepted
+API/geometry/capture evidence from still-unverified physical curve interaction.
 
 ## Sketch to editable solid
 
@@ -113,8 +136,29 @@ editable sketch/feature intent, rather than a copied prism or display mesh.
 
 Distance magnitude is 0.001–100000 mm. The extrusion field uses current display
 units, while the API supports explicit mm/in conversion. Typed unit suffixes in
-this field, a Flip button, an interactive direction handle, expressions, curved/
-holed/multiple profiles, Boolean operations and other extent modes remain ahead.
+this field, a Flip button, an interactive direction handle, expressions,
+holed/multiple profiles and other extent/operation modes remain ahead. Supported
+circle and simple line/arc profiles can use this same New Body extrusion workflow;
+Combine operates separately on existing solids.
 See the [extrusion evidence](../docs/validation/sketch-extrusion.md) for the tested
 geometry, native input and visual boundaries. Full workflow/visual parity and
 Windows/Linux runtime remain unqualified.
+
+## Combine existing bodies
+
+Choose **Combine** from Modify after creating overlapping solids. The dock selects
+one **Target Body**, one or more **Tool Bodies**, **Join**, **Cut** or **Intersect**,
+and **Keep Tools** (off by default). Body lists and the Select Target/Tool buttons
+share canvas selection; tool clicks toggle membership. A valid result previews
+without a history entry. Tools hide during preview; Keep Tools retains them after
+OK. Cancel/Escape or panel close restores the document.
+
+OK records one editable Combine feature and retains the target body ID. Click
+its Timeline feature to edit; input selection shows the preceding history stage,
+including tools previously consumed with Keep Tools off. Preview shows the stage
+through that operation. Upstream edits, undo/redo and save/reopen rebuild the
+chain. The current slice requires one valid closed solid result; empty or
+disconnected/split results are refused while preserving the accepted document.
+Direct Cut/Join/Intersect options inside Extrude remain ahead. Physical Combine
+interaction remains unverified for this candidate; see the
+[candidate receipt](../docs/validation/curves-combine.md).

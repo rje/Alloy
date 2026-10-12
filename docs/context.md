@@ -307,11 +307,11 @@ ready files may be stale. Preserve live authored work and any unfinished draft
 before restarting. Recovery documents remain under the local Alloy Application
 Support directory. The new sample `examples/dimensioned-rectangle.alloy` has a
 50 × 25 mm anchored rectangle, driving width/height and a driven diagonal.
-The application is currently open on `examples/sketch-extrusion.alloy`, an
+The last human test used `examples/sketch-extrusion.alloy`, an
 independently authored 50 × 25 × 5 mm part with driving width/height and editable
 Sketch → Extrude history. Click either Timeline item to edit, try undo/redo and
-save/reopen. The current launch record is `build/evidence/human-ready-extrusion.json`
-(private instance registry; select this ready file explicitly). The prior annotation
+save/reopen. That historical launch record is `build/evidence/human-ready-extrusion.json`
+(private instance registry; verify liveness before selecting it). The prior annotation
 ready file is stale. Preserve any later human changes before replacement. The
 native test part was saved separately in `build/evidence/extrusion-native-part.alloy`.
 Detailed transcripts/build/test/native artifacts are retained under
@@ -429,3 +429,24 @@ feature has real-app/native acceptance yet. Focused cases are prepared in
 `tests/boolean_api.py` and `tests/sketch_curves_api.py`, registered in the workflow
 ledger. Relink and test this candidate only after source ownership is released.
 Do not overwrite or operate the existing human extrusion window in `build/`.
+
+
+## Latest candidate: curves and Combine
+
+The new implementation in `build-next` compiles, passes focused core/API cases
+and has independent Astra source/visual acceptance for its bounded behavior.
+Read [curves/Combine evidence](validation/curves-combine.md) for exact candidate
+boundaries. Final renderer candidate SHA256 is
+`8f5a9f2e74f8c8c5b334410992036c6a2d33b2be03b037262d43082aee732a9b`.
+Circle/arc controls and dimensions, circle-profile extrusion and Combine history
+are implemented. The final visual fixes make diameter labels readable and curved
+solids smooth; Combine edits display the correct history prefix and consumed tools.
+Native verification remains incomplete because the desktop controller could not
+bind the separate candidate window (`cgWindowNotFound`). Temporary test instances
+were closed; instance discovery showed no remaining original human process at
+that point. Old ready files are historical, not proof of a live app. No human
+model was changed. SOL-002 and SKT-006 remain In Progress; full angular dimensions
+and further sketch input compatibility are not complete. Next: bounded native
+C/D/arc and Combine selection/Keep Tools checks, then face-selection/naming/sketch
+support work already prioritized in the queue. Research library expansion is
+accepted at eight records/twelve images, fully external.

@@ -1,0 +1,18 @@
+{
+  "plate": {
+    "width": 30,
+    "depth": 20,
+    "height": 5,
+    "units": "mm",
+    "name": "Plate"
+  },
+  "tool": {
+    "radius": 3,
+    "height": 10,
+    "x": 15,
+    "y": 10,
+    "z": -2,
+    "units": "mm",
+    "name": "Hole tool"
+  }
+}

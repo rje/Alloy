@@ -33,6 +33,10 @@ public:
     // Canonical args: sketchId, profileId, distanceMm, optional name; either an
     // existing featureId edit or a reserved newFeatureId/newBodyId create pair.
     static QJsonObject extrusionCandidate(const QJsonObject& authored, const QJsonObject& arguments);
+    // Canonical args: operation, targetBodyId, toolBodyIds, keepTools, optional
+    // name; featureId edits an existing Boolean, newFeatureId reserves a create.
+    // The target retains its producer body ID; this feature owns no new body.
+    static QJsonObject booleanCandidate(const QJsonObject& authored, const QJsonObject& arguments);
     static QString validate(const QJsonObject& candidate);
     static double millimeters(double value, const QString& units);
     static QString newId();

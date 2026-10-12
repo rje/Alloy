@@ -3,7 +3,8 @@
 Alloy's running native application provides a small local control API from its
 first shell build. It is an Alloy protocol. Authored document inspection, units,
 real box/cylinder and constrained origin-plane sketch creation and editing,
-driving/driven dimensions, finished-profile extrusion, ordered recompute,
+driving/driven dimensions, analytic circles/arcs, finished-profile extrusion,
+Combine Join/Cut/Intersect, ordered recompute,
 geometry inspection, undo/redo and native save/open use the same authoritative
 path as the UI.
 
@@ -100,9 +101,9 @@ fail without applying the command. Error codes include `invalid_request`,
 | `commands.search`, `commands.close` | Show/dismiss the native search dialog |
 | `app.identity` | Stable protocol/process/window/instance identity and capabilities |
 | `document.settings` | Open the native shared display-units edit dialog |
-| `command.begin` | `command`: `document.units`, `commands.search`, `solid.box`, `solid.cylinder`, `solid.extrude` or `sketch.create`; `inputs`: object |
+| `command.begin` | `command`: `document.units`, `commands.search`, `solid.box`, `solid.cylinder`, `solid.extrude`, `solid.combine` or `sketch.create`; `inputs`: object |
 | `command.update` | `session`: UUID; `inputs`: partial object; validates without committing |
-| `command.preview` | `session`: UUID; primitives/sketches/extrusions evaluate disposable geometry and display it without committing |
+| `command.preview` | `session`: UUID; primitives/sketches/extrusions/Combine evaluate disposable geometry and display it without committing |
 | `command.panelDock` | `docked`: boolean; float or right-redock the active modeling panel |
 | `command.commit`, `command.cancel` | `session`: UUID; explicit completion or refusal |
 | `capture.dialog` | Absolute `.png` path; actual active QWidget dialog or modeling dock |
@@ -117,32 +118,37 @@ fail without applying the command. Error codes include `invalid_request`,
 | `primitive.box`, `primitive.cylinder` | Open their actual shared dimension dialogs |
 | `solid.extrude` | Required `sketchId`, `profileId`, signed `distance`; optional `units` (`mm`/`in`), `name`, existing `featureId`; direct create/edit commit |
 | `solid.extrudeDialog` | Optional `sketchId`, `profileId`; toolbar/E opener for the shared extrusion session |
+| `solid.combine` | Required `targetBodyId`, nonempty distinct `toolBodyIds`, `operation` (`join`/`cut`/`intersect`); optional `keepTools` (default false), `name`, existing `featureId`; direct create/edit commit |
+| `solid.combineDialog` | Same fields, all optional; open the shared Combine session, default Join with Keep Tools off |
+| `solid.combineSelectionMode` | `role`: `target` or `tools`; return to input-body display for shared canvas picking |
 | `sketch.create` | Open the docked origin-plane chooser |
 | `sketch.begin` | `plane`: `XY`, `XZ` or `YZ`; optional `name`, `units`; begin an authored draft |
 | `sketch.edit` | `sketchId`: UUID; re-enter a retained sketch |
 | `sketch.line`, `sketch.rectangle` | `x1`, `y1`, `x2`, `y2`; optional `units`, `session`; append stable point/line entities and solve the draft. Rectangles also author four H/V constraints |
-| `sketch.tool` | `tool`: `select`, `line`, `rectangle` or `dimension`; choose the active drawing/selection tool |
+| `sketch.addCircle` | `centerX`, `centerY`, positive `diameter`; optional `units`, `session`; append one analytic circle |
+| `sketch.addArc` | `mode`: `center` requires `centerX`, `centerY`, `radius`, `startAngleDeg`, signed `sweepAngleDeg`; `threePoint` requires `startX`, `startY`, `endX`, `endY`, `throughX`, `throughY`; optional `units`, `session` |
+| `sketch.tool` | `tool`: `select`, `line`, `rectangle`, `circle`, `centerArc`, `threePointArc` or `dimension`; choose the active drawing/selection tool |
 | `sketch.selectionSet` | Optional `pointIds`, `entityIds`, `profileIds`: arrays of authored/evaluated IDs in the active sketch; omitted arrays clear that selection kind |
-| `sketch.selectionPick` | `x`, `y`: logical pixels; optional `additive`: boolean. Pick an authored point, line or evaluated profile interior, sharing native selection state |
-| `sketch.placePoint` | `x`, `y`: logical pixels; native ray/plane two-click drawing path, or selection when the active tool is `select`/`dimension` |
-| `sketch.pointerMove` | `x`, `y`: logical pixels; disposable pending-line/rectangle cursor preview |
+| `sketch.selectionPick` | `x`, `y`: logical pixels; optional `additive`: boolean. Pick an authored point, line, circle, arc or evaluated profile interior, sharing native selection state |
+| `sketch.placePoint` | `x`, `y`: logical pixels; native ray/plane drawing path, or selection when the active tool is `select`/`dimension` |
+| `sketch.pointerMove` | `x`, `y`: logical pixels; disposable pending drawing preview |
 | `sketch.lookAt` | View normal to the active sketch plane |
 | `sketch.finish`, `sketch.cancel` | Commit or discard the active sketch session |
 | `view.projectSketchPoint` | `plane`, `uMm`, `vMm`; actual world-to-viewport projection |
 | `sketch.constraint` | `type`: `coincident`, `horizontal`, `vertical`, `parallel`, `perpendicular` or `fixed`; optional `pointIds`, `entityIds`, `session`. Omitted targets use active sketch selection |
-| `sketch.dimension` | `kind`: `linear`, `horizontal` or `vertical`; optional `pointIds` (two), `entityId` (one line), `value`, `units`, `driving`, `annotation`, `session`. Omitted targets use selection; `driving` defaults true |
-| `sketch.dimensionPreview` | `x`, `y`: logical pixels; optional `kind` (`auto`/`linear`/`horizontal`/`vertical`), `driving`, `session`; preview selected targets |
+| `sketch.dimension` | `kind`: `linear`, `horizontal`, `vertical`, `radius`, `diameter` or `arcSweep`; optional `pointIds` (two), `entityId` (one line/curve), `value` (length) or `valueDeg` (sweep), `units`, `driving`, `annotation`, `session`. Omitted targets use selection; `driving` defaults true |
+| `sketch.dimensionPreview` | `x`, `y`: logical pixels; optional `kind` (`auto` or a dimension kind above), `driving`, `session`; preview selected targets |
 | `sketch.dimensionPlace` | `x`, `y`, optional `session`; fix placement and show the actual inline numeric editor |
-| `sketch.dimensionAccept` | Optional `text` or `value`, `units`, `session`; accept a number with optional mm/in suffix; expressions are unsupported |
+| `sketch.dimensionAccept` | Optional `text` or numeric `value` (length)/`valueDeg` (sweep), `units`, `session`; text accepts mm/in for lengths or deg/° for sweep; expressions are unsupported |
 | `sketch.dimensionCancel` | Optional `session`; abandon pending dimension placement/editing |
 | `sketch.dimensionEdit` | `dimensionId`, optional `session`; open a driving editor or read-only driven measurement |
 | `sketch.annotationSelect` | `dimensionId`; select a retained label |
 | `sketch.annotationPick` | `x`, `y`: logical pixels; actual projected/rotated label hit test |
 | `sketch.annotationMove` | `dimensionId`, `uMm`, `vMm`, optional `session`; move placement only, retaining exact authored points/values |
-| `sketch.dimensionUpdate` | `dimensionId`, positive `value`; optional `units`, `session`; edit a driving dimension by stable UUID |
+| `sketch.dimensionUpdate` | `dimensionId`, positive `value` (length) or `valueDeg` (sweep); optional `units`, `session`; edit a driving dimension by stable UUID |
 | `sketch.movePoint` | `pointId`, `x`, `y`; optional `units`, `session`; seed a point's coordinates and solve the copied draft |
 | `feature.edit` | `featureId`: UUID; `parameters`: partial canonical-mm fields such as `widthMm` |
-| `feature.editDialog`, `feature.delete` | `featureId`: UUID; actual primitive/sketch/extrusion editor or one undoable deletion; orphaning a dependent extrusion is rejected |
+| `feature.editDialog`, `feature.delete` | `featureId`: UUID; actual primitive/sketch/extrusion/Combine editor or one undoable deletion; invalid downstream dependencies are rejected |
 | `feature.visibility` | `featureId`, `visible`: boolean; one authored undoable visibility edit, also used by Browser checkboxes |
 | `geometry.inspect` | Evaluated bodies and sketches: stable IDs, validity, geometry summaries and plane frames |
 | `history.undo`, `history.redo` | Sole document journal; restore authored values and evaluated shapes together |
@@ -174,7 +180,7 @@ independent of Browser text. Dirty reflects the sole document journal checkpoint
 In sketch editing, `activeSession.command` is `sketch.edit` and `draftSketch`
 contains the retained candidate feature (with no `bodyId`). Inputs identify its
 plane and display units; coordinates are stored in millimeters. `tool` and pending
-`firstPoint`/`pointerPoint` describe actual drawing state. `command.preview`
+`firstPoint`/`secondPoint`/`pointerPoint` describe actual drawing state. `command.preview`
 returns the feature as `authoredDraft`, the full root as `documentDraft`, and an
 evaluated `sketchGeometry` summary without editing the document. `ui.tab` becomes
 `sketch`; the palette is a real docked widget. Finish commits one transaction,
@@ -185,15 +191,28 @@ reports the accepted solution's diagnostics. GPU state
 reports `displayedSketches`, `draftSketchVisible` and `cursorPreviewVisible`.
 
 Sketch selection is independent of body selection. `activeSession.selection`
-contains `pointIds`/`entityIds`/`profileIds`; selected points and lines are orange, fixed points
+contains `pointIds`/`entityIds`/`profileIds`; selected points and curves are orange, fixed points
 green, and the sketch is black at zero DOF or blue while underconstrained.
 This is a whole-sketch classification. Point picking has priority within eight
-logical pixels; line picking uses six. UI clicks and API picking use the same
+logical pixels; curve picking uses six. UI clicks and API picking use the same
 projected authored geometry and stable identifiers. Region picking follows points
 and lines, classifies the actual accepted OCCT face, and exposes its stable profile ID.
 `geometry.inspect` and `sketchGeometry.profiles` include face area and edge provenance.
-Only one connected simple closed line loop is supported; open/unsupported input
+One circle disk or one connected simple closed line/arc loop is supported;
+holes and multiple regions are unsupported. Open/unsupported input
 retains the sketch with `profileDiagnostics`.
+
+Curve lengths and coordinates use explicit `units` or active sketch units and
+normalize to millimeters. Center arcs measure angles in degrees from the sketch
+plane's positive U axis; a positive sweep is counterclockwise, a negative sweep
+clockwise. Sweep must be nonzero and smaller than 360° in magnitude. Three-point
+arcs pass through the named through point; coincident or collinear inputs fail
+without replacing the accepted draft. Native tool click order is circle
+center → circumference, center arc center → start → end, and three-point arc
+start → end → through. C selects Circle; the Arc menu selects its construction.
+The active tool offers a separate numeric-entry dialog. Exact OCCT curves remain
+distinct from display tessellation; inspection exposes analytic lengths and arc
+endpoints alongside stable entity IDs.
 
 Finished visible sketches retain their real profile fill and pick region outside
 sketch-edit mode. `selection.pick` returns `kind: "profile"`, `sketchId`, `profileId`
@@ -243,6 +262,31 @@ Missing selection returns `profile_required`; invalid distance or evaluated
 references return `evaluation_failed`, preserving the document. Dependent-source
 deletion and missing profile references also fail transactionally.
 
+Combine accepts one target and one or more distinct tool bodies, including hidden
+bodies explicitly identified by UUID. Join unites them, Cut subtracts the tool
+group from the target, and Intersect retains their common volume. The result must
+be one valid closed positive-volume solid; empty, disconnected, split or mixed
+results fail with structured evaluation diagnostics and preserve the document.
+The target body ID survives; `keepTools: false` consumes the tools from evaluated
+body output while retaining their authored producer features. Keep Tools retains
+the original tool bodies. A successful create/edit is one undo entry and rebuilds
+through save/reopen and upstream edits.
+
+For a disposable workflow, begin `solid.combine`, update its `inputs`, explicitly
+preview, then commit/cancel using the returned session UUID. Begin reserves a
+stable new feature ID; edits use existing `featureId` (also via `feature.editDialog`).
+The dock's Target Body/Tool Bodies lists and `selection.pick` share that session.
+Choosing target sets the next canvas role to tools; tool clicks toggle membership.
+`solid.combineSelectionMode` restores input geometry before picking. Edit inputs
+display the history stage before the feature, including previously consumed tools;
+valid preview displays the stage through the feature while full downstream
+evaluation still validates the candidate. Tools hide temporarily during preview,
+even with Keep Tools enabled. `activeSession.presentationStage`, `geometry`,
+`finalBodyCount` and `documentDraft`, plus `viewport.gpu.bodyStageKey` and
+`displayedBodyIds`, distinguish presentation from authoritative document output.
+Cancel and stale sessions restore current document presentation. Direct Boolean
+extrusion operations and solid face/edge selection remain unimplemented.
+
 All commits, undo/redo and reopen use the same ordered full evaluation of authored
 sketches, fresh profiles and dependent solids. A downstream result resolves its
 stable source from the same candidate, rather than a copied old BRep or list
@@ -257,6 +301,13 @@ measurement. `driving: false` stores a derived measurement with no driving value
 Horizontal/vertical values are absolute distances; the solver retains the signed
 endpoint branch from the seed. `units` accepts `mm`/`in` and defaults to active
 sketch units; authored values and `dimensionValues[].valueMm` remain canonical mm.
+Circle/arc Radius and Diameter use one curve entity; D defaults to Diameter on a
+circle and Radius on an arc. Explicit `arcSweep` uses one arc and positive
+`valueDeg`, preserving the arc's signed sweep direction. Its measured value is
+also degrees, unaffected by mm/in display settings. Driven dimensions omit both
+value fields. Radius/diameter edits leave unconstrained centers free; sweep edits
+do not silently fix rotation or discard endpoint constraints. This Arc Sweep form
+does not implement two-line angular dimensions or creation-time numeric locks.
 
 Accepted mutations return `draftSketch`, `sketchGeometry`, `diagnostics` and
 `authoredCommitted: false`. `activeSession.solverDiagnostics` contains the last
@@ -274,7 +325,8 @@ The dimension tool previews selected targets, accepts canvas placement, then ope
 an adjacent QLineEdit. D, native placement, Enter, Escape, label double-click and
 label dragging dispatch the commands above. Authored dimensions optionally store
 `annotation: {uMm, vMm}` in canonical sketch-plane coordinates. The editor accepts
-finite numbers with optional mm/in suffixes; driven values are read-only.
+finite numbers with optional mm/in suffixes for lengths or deg/° for Arc Sweep;
+driven values are read-only. Diameter labels use the supported Ø glyph.
 `app.state.inlineEditor` exposes visibility, text, read-only state and bounds.
 `viewport.sketchAnnotations` exposes real line/witness/label layout, rotation and
 logical-pixel hit bounds; active sessions expose pending placement/editing.
@@ -307,8 +359,9 @@ Primitive lengths/positions are interpreted in `units` (or current display units
 and stored in millimeters. Canonical dimensions must be 0.001–100000 mm, with
 position magnitude at most 100000 mm. This second-stage geometry policy can
 reject an input that satisfies the outer command schema. The initial primitives
-use world XY placement and New Body; plane picking and Boolean operation modes
-remain future work. `feature.edit` uses canonical parameters, independent of
+use world XY placement and New Body; face-supported placement and direct extrusion
+operation modes remain future work. Combine operates on existing bodies.
+`feature.edit` uses canonical parameters, independent of
 display units. Save/open persists feature intent and stable IDs, rebuilds shapes,
 and starts a clean empty session undo journal after reopening.
 

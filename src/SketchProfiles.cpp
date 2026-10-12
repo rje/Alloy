@@ -7,7 +7,15 @@
 #include <BRepCheck_Analyzer.hxx>
 #include <BRepGProp.hxx>
 #include <BRep_Tool.hxx>
+#include <BRep_Builder.hxx>
 #include <GProp_GProps.hxx>
+#include <Geom_Curve.hxx>
+#include <Geom2d_Circle.hxx>
+#include <Geom2d_TrimmedCurve.hxx>
+#include <Geom2dAPI_InterCurveCurve.hxx>
+#include <GCE2d_MakeSegment.hxx>
+#include <gp_Ax2d.hxx>
+#include <numbers>
 #include <Standard_Failure.hxx>
 #include <TopoDS_Vertex.hxx>
 #include <TopoDS_Wire.hxx>
@@ -28,7 +36,7 @@ constexpr double endpointTolerance = 1e-6;
 // OCCT's default absolute geometry tolerance, in canonical mm.
 constexpr double geometryTolerance = 1e-7;
 struct Point { double u, v; };
-struct Edge { QString id, sourceStart, sourceEnd, start, end; };
+struct Edge { QString id, sourceStart, sourceEnd, start, end; QJsonObject entity; };
 struct DirectedEdge { int index; QString start, end; bool reversed; };
 QJsonArray ids(const QStringList& values) {
     QJsonArray result;
@@ -78,6 +86,31 @@ SketchProfiles::Result SketchProfiles::derive(const QJsonObject& feature) {
     sourcePointIds.sort(); sourceEntityIds.sort();
     if (sourceEntityIds.isEmpty()) return refuse("empty_sketch", "Draw a closed line boundary to create a profile.");
 
+    const auto entities = parameters["entities"].toArray();
+    const bool hasCurves=std::any_of(entities.begin(),entities.end(),[](const auto& value){return value.toObject()["type"]!="line";});
+    const auto profileId=QUuid::createUuidV5(QUuid(sketchId),QByteArray("alloy-profile/1\n")+sourceEntityIds.join('\n').toUtf8()).toString(QUuid::WithoutBraces);
+    const auto frame=SketchGeometry::frame(plane);const auto origin=frame["origin"].toArray();
+    const auto u=frame["uAxis"].toArray(),v=frame["vAxis"].toArray(),n=frame["normal"].toArray();
+    const gp_Ax3 axes(gp_Pnt(origin[0].toDouble(),origin[1].toDouble(),origin[2].toDouble()),
+        gp_Dir(n[0].toDouble(),n[1].toDouble(),n[2].toDouble()),gp_Dir(u[0].toDouble(),u[1].toDouble(),u[2].toDouble()));
+    int circles=0;for(const auto& value:entities)if(value.toObject()["type"]=="circle")++circles;
+    if(circles) {
+        if(entities.size()!=1)return refuse("multiple_loops","This slice supports a single circle or one connected line/arc boundary; separate additional regions into another sketch.");
+        try {
+            const auto entity=entities.first().toObject(); BRepBuilderAPI_MakeWire wire(SketchGeometry::analyticEdge(parameters,entity));
+            BRepBuilderAPI_MakeFace made(gp_Pln(axes),wire.Wire(),true);
+            if(!made.IsDone() || !BRepCheck_Analyzer(made.Face()).IsValid())return refuse("invalid_face","OCCT rejected the analytic circle profile.");
+            GProp_GProps properties;BRepGProp::SurfaceProperties(made.Face(),properties);
+            const double analyticArea=std::numbers::pi*std::pow(entity["radiusMm"].toDouble(),2),area=properties.Mass();
+            if(!std::isfinite(area) || std::abs(area-analyticArea)>std::max(1e-6,analyticArea*1e-9))return refuse("invalid_face","Circle face area does not match its analytic radius.");
+            QJsonObject summary{{"profileId",profileId},{"sketchId",sketchId},{"plane",plane},{"frame",frame},{"kernel","OCCT"},{"valid",true},
+                {"type","closed_circle_profile"},{"areaUnit","mm2"},{"areaMm2",area},{"analyticAreaMm2",analyticArea},
+                {"sourcePointIds",ids(sourcePointIds)},{"sourceEntityIds",ids(sourceEntityIds)},
+                {"edgeProvenance",QJsonArray{QJsonObject{{"entityId",entity["id"]},{"centerPointId",entity["centerPointId"]},{"type","circle"}}}},
+                {"vertices",QJsonArray{}},{"maxEndpointAdjustmentMm",0}};
+            return {true,{profileId,sketchId,plane,made.Face(),summary},{{"code","closed_profile"},{"profileCount",1},{"sketchId",sketchId}}, {}};
+        } catch(const Standard_Failure& error){return refuse("kernel_failure",QString::fromUtf8(error.GetMessageString()));}
+    }
     QMap<QString, Point> points;
     QMap<QString, QString> representative;
     for (const auto& value : parameters["points"].toArray()) {
@@ -114,7 +147,7 @@ SketchProfiles::Result SketchProfiles::derive(const QJsonObject& feature) {
     QMap<QString, std::vector<int>> adjacency;
     for (const auto& value : parameters["entities"].toArray()) {
         const auto entity = value.toObject(); const auto start = entity["startPointId"].toString(), end = entity["endPointId"].toString();
-        Edge edge{entity["id"].toString(),start,end,representative.value(start),representative.value(end)};
+        Edge edge{entity["id"].toString(),start,end,representative.value(start),representative.value(end),entity};
         const auto a = points.value(edge.start), b = points.value(edge.end);
         if (edge.start == edge.end || std::hypot(a.u-b.u,a.v-b.v) <= geometryTolerance)
             return refuse("collapsed_profile", "A boundary line collapses after declared endpoint closure; repair that line.", {{"entityIds", QJsonArray{edge.id}}});
@@ -142,7 +175,7 @@ SketchProfiles::Result SketchProfiles::derive(const QJsonObject& feature) {
     const bool closedDegrees = std::all_of(adjacency.cbegin(),adjacency.cend(),[](const auto& incident){return incident.size() == 2;});
     if (components > 1) return refuse(closedDegrees ? "multiple_loops" : "disconnected_profile",
         "This slice supports one connected closed loop; join the boundary or use a separate sketch.", {{"componentCount", components}});
-    if (!closedDegrees || edges.size() < 3) return refuse("open_profile",
+    if (!closedDegrees || edges.size() < (hasCurves ? 2u : 3u)) return refuse("open_profile",
         "Close the boundary by reusing an endpoint or applying a solved coincidence relation.");
 
     // Walk the one degree-two cycle. UUID ordering makes provenance deterministic.
@@ -160,6 +193,34 @@ SketchProfiles::Result SketchProfiles::derive(const QJsonObject& feature) {
     if (current != first) return refuse("open_profile", "The line boundary does not return to its first endpoint.");
 
     const double tolerance = geometryTolerance;
+    if(hasCurves) {
+        // Intersect exact trimmed 2D curves. Chords are never used to decide a
+        // curved boundary's crossing or overlap. Common endpoints alone are valid.
+        std::vector<Handle(Geom2d_Curve)> curves;
+        for(const auto& edge:edges) {
+            const auto a=points.value(edge.start),b=points.value(edge.end);
+            if(edge.entity["type"]=="line")curves.push_back(GCE2d_MakeSegment(gp_Pnt2d(a.u,a.v),gp_Pnt2d(b.u,b.v)).Value());
+            else {const auto center=points.value(edge.entity["centerPointId"].toString());
+                Handle(Geom2d_Circle) circle=new Geom2d_Circle(gp_Ax2d(gp_Pnt2d(center.u,center.v),gp_Dir2d(1,0)),edge.entity["radiusMm"].toDouble());
+                const double start=edge.entity["startAngleDeg"].toDouble()*std::numbers::pi/180,
+                    end=start+edge.entity["sweepAngleDeg"].toDouble()*std::numbers::pi/180;
+                curves.push_back(new Geom2d_TrimmedCurve(circle,std::min(start,end),std::max(start,end)));}
+        }
+        for(size_t i=0;i<edges.size();++i)for(size_t j=i+1;j<edges.size();++j) {
+            Geom2dAPI_InterCurveCurve intersection(curves[i],curves[j],geometryTolerance);
+            bool crossing=intersection.NbSegments()>0;
+            for(int k=1;k<=intersection.NbPoints();++k) {
+                const auto hit=intersection.Point(k);bool common=false;
+                for(const auto& endpoint : {edges[i].start,edges[i].end}) {
+                    if(endpoint!=edges[j].start && endpoint!=edges[j].end)continue;const auto p=points.value(endpoint);
+                    if(std::hypot(hit.X()-p.u,hit.Y()-p.v)<=endpointTolerance)common=true;
+                }
+                if(!common)crossing=true;
+            }
+            if(crossing)return refuse("self_intersecting_profile","Analytic boundary curves cross or overlap; repair these entities.",
+                {{"entityIds",QJsonArray{edges[i].id,edges[j].id}}});
+        }
+    } else {
     for (size_t i = 0; i < ordered.size(); ++i) for (size_t j = i+1; j < ordered.size(); ++j) {
         const auto& e = ordered[i]; const auto& f = ordered[j];
         const auto a = points.value(e.start), b = points.value(e.end), c = points.value(f.start), d = points.value(f.end);
@@ -174,10 +235,17 @@ SketchProfiles::Result SketchProfiles::derive(const QJsonObject& feature) {
         if (crossing) return refuse("self_intersecting_profile", "The boundary crosses, touches or overlaps itself; repair the identified lines.",
             {{"entityIds", QJsonArray{edges[e.index].id,edges[f.index].id}}});
     }
+    }
     long double twiceArea = 0;
     for (const auto& edge : ordered) {
         const auto a = points.value(edge.start), b = points.value(edge.end);
-        twiceArea += static_cast<long double>(a.u)*b.v-static_cast<long double>(b.u)*a.v;
+        const auto& entity=edges[edge.index].entity;
+        if(entity["type"]=="line") twiceArea += static_cast<long double>(a.u)*b.v-static_cast<long double>(b.u)*a.v;
+        else {const auto center=points.value(entity["centerPointId"].toString());
+            const double sweep=entity["sweepAngleDeg"].toDouble()*std::numbers::pi/180*(edge.reversed ? -1 : 1);
+            const double radius=entity["radiusMm"].toDouble();
+            twiceArea += center.u*(b.v-a.v)-center.v*(b.u-a.u)+radius*radius*sweep;
+        }
     }
     const double analyticArea = static_cast<double>(std::abs(twiceArea)/2);
     if (!std::isfinite(analyticArea) || analyticArea <= tolerance*tolerance)
@@ -187,8 +255,6 @@ SketchProfiles::Result SketchProfiles::derive(const QJsonObject& feature) {
         for (auto& edge : ordered) {std::swap(edge.start,edge.end);edge.reversed = !edge.reversed;}
     }
 
-    const auto frame = SketchGeometry::frame(plane); const auto origin = frame["origin"].toArray();
-    const auto u = frame["uAxis"].toArray(), v = frame["vAxis"].toArray(), n = frame["normal"].toArray();
     const auto world = [&](const Point& p) {return gp_Pnt(origin[0].toDouble()+p.u*u[0].toDouble()+p.v*v[0].toDouble(),
         origin[1].toDouble()+p.u*u[1].toDouble()+p.v*v[1].toDouble(),origin[2].toDouble()+p.u*u[2].toDouble()+p.v*v[2].toDouble());};
     try {
@@ -197,36 +263,45 @@ SketchProfiles::Result SketchProfiles::derive(const QJsonObject& feature) {
         for (auto it = adjacency.cbegin(); it != adjacency.cend(); ++it) {
             const auto position = world(points.value(it.key()));
             vertices[it.key()] = BRepBuilderAPI_MakeVertex(position).Vertex();
+            BRep_Builder vertexBuilder;vertexBuilder.UpdateVertex(vertices[it.key()],endpointTolerance);
             vertexProvenance.append(QJsonObject{{"sourcePointIds", ids(aliases.value(it.key()))},
                 {"positionMm", QJsonArray{position.X(),position.Y(),position.Z()}}});
         }
         BRepBuilderAPI_MakeWire wire;
         for (const auto& directed : ordered) {
-            BRepBuilderAPI_MakeEdge made(vertices.value(directed.start),vertices.value(directed.end));
-            if (!made.IsDone()) return refuse("invalid_boundary", "OCCT could not construct a boundary edge.");
-            wire.Add(made.Edge());
-            if (!wire.IsDone()) return refuse("invalid_boundary", "OCCT could not connect the declared boundary vertices.");
-            const auto& edge = edges[directed.index];
+            const auto& edge=edges[directed.index];
+            TopoDS_Edge boundary;
+            if(edge.entity["type"]=="line") {
+                BRepBuilderAPI_MakeEdge made(vertices.value(directed.start),vertices.value(directed.end));
+                if(!made.IsDone())return refuse("invalid_boundary","OCCT could not construct a boundary edge.");boundary=made.Edge();
+            } else {
+                const auto original=SketchGeometry::analyticEdge(parameters,edge.entity);double first,last;
+                const auto curve=BRep_Tool::Curve(original,first,last);const bool negative=edge.entity["sweepAngleDeg"].toDouble()<0;
+                const auto startVertex=vertices.value(edge.start),endVertex=vertices.value(edge.end);
+                BRepBuilderAPI_MakeEdge made(curve,negative ? endVertex : startVertex,negative ? startVertex : endVertex,first,last);
+                if(!made.IsDone())return refuse("invalid_boundary","OCCT could not connect the analytic arc endpoints.");
+                boundary=made.Edge();if(negative!=directed.reversed)boundary.Reverse();
+            }
+            wire.Add(boundary);
+            if(!wire.IsDone())return refuse("invalid_boundary","OCCT could not connect the declared boundary vertices.");
             edgeProvenance.append(QJsonObject{{"entityId", edge.id}, {"startPointId", edge.sourceStart},
                 {"endPointId", edge.sourceEnd}, {"reversed", directed.reversed}});
         }
         if (!BRep_Tool::IsClosed(wire.Wire())) return refuse("invalid_boundary", "OCCT could not close the declared line loop.");
-        const gp_Ax3 axes(gp_Pnt(origin[0].toDouble(),origin[1].toDouble(),origin[2].toDouble()),
-            gp_Dir(n[0].toDouble(),n[1].toDouble(),n[2].toDouble()),gp_Dir(u[0].toDouble(),u[1].toDouble(),u[2].toDouble()));
         BRepBuilderAPI_MakeFace made(gp_Pln(axes),wire.Wire(),true);
         if (!made.IsDone() || !BRepCheck_Analyzer(made.Face()).IsValid())
             return refuse("invalid_face", "OCCT rejected the planar region; repair its boundary.");
         GProp_GProps properties; BRepGProp::SurfaceProperties(made.Face(),properties);
         const double area = properties.Mass();
         if (!std::isfinite(area) || area <= 0 || std::abs(area-analyticArea) > std::max(1e-6,analyticArea*1e-9))
-            return refuse("invalid_face", "The evaluated face area does not match the authored line boundary.");
-        const auto profileId = QUuid::createUuidV5(QUuid(sketchId),QByteArray("alloy-profile/1\n")+sourceEntityIds.join('\n').toUtf8()).toString(QUuid::WithoutBraces);
+            return refuse("invalid_face", "The evaluated face area does not match the authored analytic boundary.");
+
         QJsonObject summary{{"profileId", profileId}, {"sketchId", sketchId}, {"plane", plane}, {"frame", frame},
-            {"kernel", "OCCT"}, {"valid", true}, {"type", "closed_line_profile"}, {"areaUnit", "mm2"},
+            {"kernel", "OCCT"}, {"valid", true}, {"type",hasCurves ? "closed_curve_profile" : "closed_line_profile"}, {"areaUnit", "mm2"},
             {"areaMm2", area}, {"analyticAreaMm2", analyticArea}, {"sourcePointIds", ids(sourcePointIds)},
             {"sourceEntityIds", ids(sourceEntityIds)}, {"edgeProvenance", edgeProvenance}, {"vertices", vertexProvenance},
             {"maxEndpointAdjustmentMm", maxEndpointAdjustment}};
-        QJsonObject diagnostics{{"code", "closed_profile"}, {"message", "One simple closed line profile."},
+        QJsonObject diagnostics{{"code", "closed_profile"}, {"message",hasCurves ? "One simple closed analytic curve profile." : "One simple closed line profile."},
             {"profileCount", 1}, {"sketchId", sketchId}, {"endpointToleranceMm", endpointTolerance}};
         return {true, {profileId,sketchId,plane,made.Face(),summary}, diagnostics, {}};
     } catch (const Standard_Failure& error) {

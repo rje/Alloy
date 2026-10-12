@@ -17,9 +17,40 @@ namespace {
 QJsonObject dependencyError(const QJsonObject& candidate) {
     const auto features = candidate["features"].toArray();
     QMap<QString,int> positions;
+    QMap<QString,int> bodyPositions;
     for (int i = 0; i < features.size(); ++i) positions[features[i].toObject()["id"].toString()] = i;
     for (int i = 0; i < features.size(); ++i) {
         const auto feature = features[i].toObject();
+        if (feature.contains("bodyId")) bodyPositions[feature["bodyId"].toString()] = i;
+    }
+    QSet<QString> activeBodies;
+    for (int i = 0; i < features.size(); ++i) {
+        const auto feature = features[i].toObject();
+        if (feature.contains("bodyId")) activeBodies.insert(feature["bodyId"].toString());
+        if (feature["type"] == "boolean") {
+            const auto parameters = feature["parameters"].toObject();
+            const auto target = parameters["targetBodyId"].toString();
+            const auto tools = parameters["toolBodyIds"].toArray();
+            auto inputs = tools;inputs.prepend(target);
+            for (const auto& input : inputs) {
+                const auto bodyId = input.toString();
+                QJsonObject diagnostic{{"featureId",feature["id"]},{"featureType","boolean"},
+                    {"targetBodyId",target},{"toolBodyIds",tools},{"bodyId",bodyId}};
+                if (bodyId == feature["id"].toString()) {
+                    diagnostic["code"] = "cyclic_dependency";diagnostic["message"] = "A Boolean cannot reference itself";
+                } else if (!bodyPositions.contains(bodyId)) {
+                    diagnostic["code"] = "missing_dependency";diagnostic["message"] = "Boolean input body does not exist";
+                } else if (bodyPositions.value(bodyId) >= i) {
+                    diagnostic["code"] = "forward_dependency";diagnostic["message"] = "Boolean input bodies must precede it in feature history";
+                } else if (!activeBodies.contains(bodyId)) {
+                    diagnostic["code"] = "consumed_dependency";diagnostic["message"] = "Boolean input body was consumed by an earlier feature; enable Keep Tools there or select an active body";
+                } else continue;
+                return diagnostic;
+            }
+            if (!parameters["keepTools"].toBool())
+                for (const auto& tool : tools) activeBodies.remove(tool.toString());
+            continue;
+        }
         if (feature["type"] != "extrude") continue;
         const auto parameters = feature["parameters"].toObject();
         const auto source = parameters["sketchId"].toString(), id = feature["id"].toString();
@@ -33,8 +64,8 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
         } else continue;
         return diagnostic;
     }
-    // Supported dependencies only point from an extrusion to an earlier sketch;
-    // sketches have no feature inputs, so accepted histories cannot form cycles.
+    // Every accepted feature input precedes its consumer; accepted histories
+    // cannot form cycles and consumed bodies cannot be used as stale inputs.
     return {};
 }
 QJsonObject solveSketches(QJsonObject candidate) {
@@ -168,6 +199,35 @@ QJsonObject CadDocument::extrusionCandidate(const QJsonObject& authored, const Q
     if (!error.isEmpty()) reject(error);
     return candidate;
 }
+QJsonObject CadDocument::booleanCandidate(const QJsonObject& authored, const QJsonObject& arguments) {
+    auto reject = [](const QString& message) {throw std::invalid_argument(message.toStdString());};
+    const auto initial = validate(authored);
+    if (!initial.isEmpty()) reject(initial);
+    const QSet<QString> allowed{"operation","targetBodyId","toolBodyIds","keepTools","name","featureId","newFeatureId"};
+    for (auto it = arguments.begin(); it != arguments.end(); ++it)
+        if (!allowed.contains(it.key())) reject("Unknown Boolean argument: "+it.key());
+    if (arguments.contains("featureId") && arguments.contains("newFeatureId"))
+        reject("Choose an existing Boolean featureId or a newFeatureId");
+    auto candidate = authored;auto features = authored["features"].toArray();
+    QJsonObject feature;int index = -1;
+    if (arguments.contains("featureId")) {
+        for (int i = 0; i < features.size(); ++i) if (features[i].toObject()["id"] == arguments["featureId"]) {
+            feature = features[i].toObject();index = i;break;
+        }
+        if (index < 0 || feature["type"] != "boolean") reject("Boolean feature identity/type is no longer available");
+    } else feature = {{"id",arguments.contains("newFeatureId") ? arguments["newFeatureId"] : QJsonValue(newId())},
+        {"ownerId",authored["documentId"]},{"type","boolean"},{"name","Combine"},{"visible",true}};
+    if (arguments.contains("name")) feature["name"] = arguments["name"];
+    feature["parameters"] = QJsonObject{{"operation",arguments["operation"]},{"targetBodyId",arguments["targetBodyId"]},
+        {"toolBodyIds",arguments["toolBodyIds"]},{"keepTools",arguments["keepTools"]}};
+    if (index >= 0) features[index] = feature;else features.append(feature);
+    candidate["features"] = features;
+    // Evaluation supplies dependency diagnostics; construction only validates
+    // the authored representation so failed previews never mutate live state.
+    const auto error = validateStructure(candidate);
+    if (!error.isEmpty()) reject(error);
+    return candidate;
+}
 double CadDocument::millimeters(double value, const QString& units) {
     if ((units != "mm" && units != "in") || !std::isfinite(value))
         throw std::invalid_argument("Expected finite length with mm or in units");
@@ -206,6 +266,23 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
             if (feature.contains("bodyId")) return "Sketches do not own solid body IDs";
             const auto error = SketchGeometry::validateParameters(p, ids);
             if (!error.isEmpty()) return error;
+            continue;
+        }
+        if (type == "boolean") {
+            if (feature.contains("bodyId")) return "Boolean features modify a target body and do not own a new body ID";
+            if (errorContext) {(*errorContext)["targetBodyId"] = p["targetBodyId"];(*errorContext)["toolBodyIds"] = p["toolBodyIds"];}
+            if (p.size() != 4 || !p["operation"].isString()
+                || (p["operation"] != "join" && p["operation"] != "cut" && p["operation"] != "intersect"))
+                return "Boolean operation must be join, cut or intersect";
+            if (!p["targetBodyId"].isString() || !validId(p["targetBodyId"].toString())
+                || !p["toolBodyIds"].isArray() || p["toolBodyIds"].toArray().isEmpty() || !p["keepTools"].isBool())
+                return "Boolean requires a stable targetBodyId, nonempty toolBodyIds and explicit keepTools";
+            QSet<QString> inputs{p["targetBodyId"].toString()};
+            for (const auto& input : p["toolBodyIds"].toArray()) {
+                if (!input.isString() || !validId(input.toString()) || inputs.contains(input.toString()))
+                    return "Boolean target and tools must be distinct stable body IDs";
+                inputs.insert(input.toString());
+            }
             continue;
         }
         if (type != "box" && type != "cylinder" && type != "extrude") return "Unsupported feature type";

@@ -1,6 +1,7 @@
 #include "GeometryKernel.h"
 #include "SketchGeometry.h"
 #include <BRepBndLib.hxx>
+#include <BRepAlgoAPI_BooleanOperation.hxx>
 #include <BRepCheck_Analyzer.hxx>
 #include <BRepGProp.hxx>
 #include <BRepPrimAPI_MakeBox.hxx>
@@ -10,6 +11,8 @@
 #include <Bnd_Box.hxx>
 #include <GProp_GProps.hxx>
 #include <TopExp.hxx>
+#include <TopExp_Explorer.hxx>
+#include <TopTools_ListOfShape.hxx>
 #include <TopTools_IndexedMapOfShape.hxx>
 #include <TopoDS.hxx>
 #include <gp_Vec.hxx>
@@ -64,6 +67,68 @@ TopoDS_Shape GeometryKernel::extrusion(const EvaluatedProfile& profile, double d
         throw std::runtime_error("Extrusion volume does not match profile area times distance");
     return shape;
 }
+TopoDS_Shape GeometryKernel::booleanOperation(const QString& operation, const TopoDS_Shape& target,
+    const std::vector<TopoDS_Shape>& tools) {
+    auto reject = [](const QString& code, const QString& message) {
+        throw EvaluationError({{"code",code},{"message",message}});
+    };
+    BOPAlgo_Operation kind;
+    if (operation == "join") kind = BOPAlgo_FUSE;
+    else if (operation == "cut") kind = BOPAlgo_CUT;
+    else if (operation == "intersect") kind = BOPAlgo_COMMON;
+    else throw std::invalid_argument("Unsupported Boolean operation");
+    if (target.IsNull() || tools.empty()) throw std::invalid_argument("Boolean operation needs a target and at least one tool");
+    auto validInput = [](const TopoDS_Shape& shape) {
+        if (shape.IsNull() || count(shape,TopAbs_SOLID) != 1) return false;
+        const auto summary = summarize(shape);
+        return summary["valid"].toBool() && summary["closed"].toBool() && summary["volumeMm3"].isDouble();
+    };
+    if (!validInput(target)) reject("boolean_input_invalid","Boolean target must be one valid closed solid");
+    TopTools_ListOfShape objects, operands;objects.Append(target);
+    for (const auto& tool : tools) {
+        if (!validInput(tool)) reject("boolean_input_invalid","Every Boolean tool must be one valid closed solid");
+        operands.Append(tool);
+    }
+    if (tools.size() > 1) {
+        // Common with several separate tool arguments can preserve their
+        // partition boundaries as adjacent solids. Unite the tool group first
+        // so Intersect means overlap with their union, with no split artifacts.
+        TopTools_ListOfShape groupObjects,groupTools;groupObjects.Append(tools.front());
+        for (size_t i = 1; i < tools.size(); ++i) groupTools.Append(tools[i]);
+        BRepAlgoAPI_BooleanOperation group;
+        group.SetArguments(groupObjects);group.SetTools(groupTools);group.SetOperation(BOPAlgo_FUSE);
+        group.SetNonDestructive(true);group.SetRunParallel(false);group.SetFuzzyValue(0.0);group.Build();
+        if (!group.IsDone() || group.HasErrors()) reject("boolean_kernel_failed","OCCT could not unite the Boolean tool group");
+        group.SimplifyResult(true,true,1e-12);
+        if (group.Shape().IsNull() || !BRepCheck_Analyzer(group.Shape()).IsValid())
+            reject("boolean_input_invalid","Boolean tool group did not produce valid topology");
+        operands.Clear();operands.Append(group.Shape());
+    }
+    BRepAlgoAPI_BooleanOperation builder;
+    builder.SetArguments(objects);builder.SetTools(operands);builder.SetOperation(kind);
+    // Candidate and undo snapshots share input shapes. Never let the algorithm
+    // modify their topology/tolerances while evaluating a disposable candidate.
+    builder.SetNonDestructive(true);builder.SetRunParallel(false);builder.SetFuzzyValue(0.0);
+    builder.Build();
+    if (!builder.IsDone() || builder.HasErrors()) reject("boolean_kernel_failed","OCCT could not complete the Boolean operation");
+    builder.SimplifyResult(true,true,1e-12);
+    const auto shape = builder.Shape();
+    if (shape.IsNull() || count(shape,TopAbs_SOLID) == 0)
+        reject("boolean_empty_result","Boolean result is empty or has no solid volume; the target was preserved");
+    if (count(shape,TopAbs_SOLID) != 1)
+        reject("boolean_multiple_solids","This Combine slice requires one connected solid; disconnected or split results are unsupported");
+    // Refuse stray faces/edges rather than silently dropping lower-dimensional
+    // pieces from an otherwise positive-volume result.
+    TopExp_Explorer solids(shape,TopAbs_SOLID);
+    const auto solid = solids.Current();
+    for (const auto kind : {TopAbs_FACE,TopAbs_EDGE,TopAbs_VERTEX})
+        if (count(shape,kind) != count(solid,kind))
+            reject("boolean_mixed_result","Boolean result contains geometry outside its single solid");
+    const auto summary = summarize(shape);
+    if (!summary["valid"].toBool() || !summary["closed"].toBool() || !summary["volumeMm3"].isDouble())
+        reject("boolean_result_invalid","Boolean operation did not produce a valid closed positive-volume solid");
+    return shape;
+}
 QJsonObject GeometryKernel::summarize(const TopoDS_Shape& shape) {
     if (shape.IsNull()) throw std::invalid_argument("Cannot summarize a null shape");
     const bool valid=BRepCheck_Analyzer(shape).IsValid();
@@ -102,6 +167,41 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored) 
             if (type == "sketch") {
                 priorSketches[id] = evaluated.sketches.size();
                 evaluated.sketches.push_back(SketchGeometry::evaluateFeature(feature));
+            } else if (type == "boolean") {
+                const auto targetId = parameters["targetBodyId"].toString();
+                const auto toolIds = parameters["toolBodyIds"].toArray();
+                context["targetBodyId"] = targetId;context["toolBodyIds"] = toolIds;context["operation"] = parameters["operation"];
+                auto findBody = [&](const QString& bodyId) {
+                    return std::find_if(evaluated.bodies.begin(),evaluated.bodies.end(),[&](const auto& body){return body.bodyId == bodyId;});
+                };
+                auto target = findBody(targetId);
+                if (target == evaluated.bodies.end()) {
+                    context["code"] = "body_unavailable";context["message"] = "Boolean target must be an active body earlier in feature history";
+                    throw EvaluationError(context);
+                }
+                std::vector<TopoDS_Shape> tools;
+                for (const auto& toolId : toolIds) {
+                    const auto tool = findBody(toolId.toString());
+                    if (tool == evaluated.bodies.end()) {
+                        context["code"] = "body_unavailable";context["bodyId"] = toolId;context["message"] = "Boolean tool must be an active body earlier in feature history";
+                        throw EvaluationError(context);
+                    }
+                    tools.push_back(tool->shape);
+                }
+                TopoDS_Shape shape;
+                try {shape = booleanOperation(parameters["operation"].toString(),target->shape,tools);}
+                catch (const EvaluationError& error) {
+                    const auto details = error.diagnostics();
+                    for (auto it = details.begin(); it != details.end(); ++it) context[it.key()] = it.value();
+                    throw EvaluationError(context);
+                }
+                auto summary = summarize(shape);
+                summary["operation"] = parameters["operation"];summary["lastModifierFeatureId"] = id;
+                summary["producerFeatureId"] = target->featureId;summary["targetBodyId"] = targetId;
+                summary["toolBodyIds"] = toolIds;summary["keepTools"] = parameters["keepTools"];
+                target->shape = shape;target->summary = summary;
+                if (!parameters["keepTools"].toBool())
+                    std::erase_if(evaluated.bodies,[&](const auto& body){return toolIds.contains(body.bodyId);});
             } else {
                 TopoDS_Shape shape;
                 QJsonObject summary;
@@ -144,5 +244,8 @@ QJsonObject GeometryKernel::policy() {
     return {{"kernel","OCCT"},{"version",ALLOY_OCCT_VERSION},{"canonicalLengthUnit","mm"},
         {"minimumDimensionMm",0.001},{"maximumDimensionMm",100000},
         {"referenceRoleToleranceMm",1e-6},{"analyticRelativeTolerance",1e-9},
-        {"analyticAbsoluteTolerance",1e-6},{"automaticHealing",false}};
+        {"analyticAbsoluteTolerance",1e-6},{"automaticHealing",false},
+        {"boolean",QJsonObject{{"targetIdentity","preserved"},{"inputs","explicit_earlier_active_body_ids"},
+            {"hiddenInputsAllowed",true},{"resultSolids",1},{"emptyOrDisconnectedResult","reject_candidate"},
+            {"toolGroup","union"},{"additionalToleranceMm",0.0},{"nonDestructive",true}}}};
 }

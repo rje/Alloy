@@ -392,6 +392,59 @@
         "solids.extrusion_storage",
         "sketch.finished_profile_selection"
       ]
+    },
+    "solid-combine": {
+      "script": "tests/boolean_api.py",
+      "fixture": "tests/workflows/fixtures/boolean.json",
+      "result": "boolean-api.json",
+      "covers": [
+        "SOL-002"
+      ],
+      "capabilities": [
+        "solids.combine",
+        "solids.combine_preview",
+        "solids.combine_storage"
+      ],
+      "inputs": [
+        "tests/app_harness.py",
+        "tests/boolean_document.cpp"
+      ]
+    },
+    "sketch-curves": {
+      "script": "tests/sketch_curves_api.py",
+      "fixture": "tests/workflows/fixtures/sketch-curves.json",
+      "result": "sketch-curves-api.json",
+      "covers": [],
+      "capabilities": [
+        "sketch.analytic_curves",
+        "sketch.curve_dimensions",
+        "sketch.curve_storage",
+        "sketch.circle_profile_extrusion",
+        "sketch.curve_upstream_edit"
+      ],
+      "inputs": [
+        "tests/app_harness.py",
+        "tests/sketch_curves.cpp"
+      ],
+      "limits": "Partial SKT-006 implementation; two-line angular dimensions and full drawing input parity remain open."
+    },
+    "curves-combine-checkpoint": {
+      "check": "case_alias",
+      "requires": [
+        "sketch-extrude",
+        "sketch-curves",
+        "solid-combine"
+      ],
+      "covers": [],
+      "capabilities": [
+        "sketch.analytic_curves",
+        "sketch.curve_dimensions",
+        "sketch.circle_profile_extrusion",
+        "solids.combine",
+        "solids.combine_preview",
+        "solids.combine_storage"
+      ],
+      "limits": "Local modeling regression only; no product or tutorial gate acceptance."
     }
   },
   "gates": {

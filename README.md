@@ -18,7 +18,10 @@ and draggable labels; solved closed line loops produce selectable real profiles.
 Finished profiles remain selectable and can create editable one-side New Body
 extrusions. Upstream sketch edits rebuild their solids through the same history.
 GPU rendering, shared undo/redo and native save/reopen cover this chain.
-Broader modeling, import and printing export remain ahead. Agent control and self-testing
+The next candidate adds analytic circles/arcs, curve dimensions and editable
+Combine Join/Cut/Intersect. Its [bounded evidence](docs/validation/curves-combine.md)
+records API/geometry/storage and visual acceptance; native input checks remain
+incomplete. Broader modeling, import and printing export remain ahead. Agent control and self-testing
 are part of the application from its first runnable version.
 
 The public repository is [rje/Alloy](https://github.com/rje/Alloy), with the
