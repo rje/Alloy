@@ -1,7 +1,7 @@
 # Illustrated first-activity modeling checkpoint
 
 2026-10-12: the bounded modeling sequence passes. This is not full TUT-003
-acceptance: new-document tabs and a complete native activity run remain pending.
+acceptance: later activities and full visual parity remain pending.
 The public source contract is `tutorial-illustrated-bracket`; detailed evidence
 and images remain in the external research library.
 
@@ -66,3 +66,22 @@ JSON/PNG, activity1-native-complete.alloy and activity1-native-finished.json. As
 reviewed12glyph records, visible icons and readable dimensions. These separate
 segments establish bounded native capabilities, not an uninterrupted tutorial run.
 FND-015#158 tracks remaining accessibility activation and broader regression.
+
+## Uninterrupted native first activity
+
+A fresh private candidate at370c735 completed native plus → CreateSketch → XY →
+L/six-edge outline → three Perpendicular pairs → two H/V → two Equal → D500 →
+D45 → Daligned100 → Finish, with accessibility reads throughout. View zoom/pan
+were API setup; modeling was native. No crash or recovered draft was involved.
+Native constraint controls used accessibility activation; the earlier physical
+click pass remains separate evidence. Final solver DOF0, dimensions500/45/100,
+maximum residual1.79e-11. Save and final inspection used the API.
+
+Evidence: build-tutorial/evidence/activity1-uninterrupted-{outline,perpendicular,
+horizontal,equal,length500,angle45,cap100}.json/.png, plus finished.json and the
+.alloy file. This completes the bounded native first-activity regression; later
+tutorial activities and exact visual matching remain open. Private candidate quit.
+
+Astra independently accepted the uninterrupted native state/capture and bounded
+FND-015 accessibility regression on macOS Qt6.11.2. This does not qualify every
+accessibility topology change or other platform.

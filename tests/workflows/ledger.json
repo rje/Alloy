@@ -556,6 +556,18 @@
       "inputs": [
         "tests/app_harness.py"
       ]
+    },
+    "sketch-tangent": {
+      "script": "tests/sketch_tangent_api.py",
+      "fixture": "tests/workflows/fixtures/sketch-tangent.json",
+      "result": "sketch-tangent-api.json",
+      "covers": [],
+      "capabilities": [
+        "sketch.persistent_circle_line_tangent"
+      ],
+      "inputs": [
+        "tests/app_harness.py"
+      ]
     }
   },
   "gates": {

@@ -744,7 +744,9 @@ void AlloyWindow::registerCommands() {
         }
         const auto plane=session_.value("inputs").toObject()["plane"].toString();
         const bool circleCenter=tool=="circle" && !session_.contains("firstPoint");
-        const auto snap=tool=="line" || tool=="rectangle" || circleCenter ? resolveSketchSnap(a["x"].toDouble(),a["y"].toDouble(),plane,circleCenter) : QJsonObject{};
+        const bool circleCircumference=tool=="circle" && session_.contains("firstPoint");
+        const auto snap=circleCircumference ? resolveCircleTangentSnap(a["x"].toDouble(),a["y"].toDouble(),plane)
+            : tool=="line" || tool=="rectangle" || circleCenter ? resolveSketchSnap(a["x"].toDouble(),a["y"].toDouble(),plane,circleCenter) : QJsonObject{};
         if(!snap.isEmpty()){session_["snap"]=snap;if(snap["status"]=="ambiguous")return failure("ambiguous_snap","Multiple sketch points are equally close; move toward the intended point");}
         const auto point=snap.isEmpty() ? view_->sketchPoint(a["x"].toDouble(),a["y"].toDouble(),plane) : snap;
         if(tool=="circle" || tool=="centerArc" || tool=="threePointArc")return sketchCurveGesture(point,true);
@@ -776,13 +778,19 @@ void AlloyWindow::registerCommands() {
         const auto plane=session_.value("inputs").toObject()["plane"].toString();
         const auto tool=session_.value("tool").toString();
         const bool circleCenter=tool=="circle" && !session_.contains("firstPoint");
-        const bool snapping=tool=="line" || tool=="rectangle" || circleCenter;
-        const auto snap=snapping ? resolveSketchSnap(a["x"].toDouble(),a["y"].toDouble(),plane,circleCenter) : QJsonObject{};
+        const bool circleCircumference=tool=="circle" && session_.contains("firstPoint");
+        const bool snapping=tool=="line" || tool=="rectangle" || circleCenter || circleCircumference;
+        const auto snap=circleCircumference ? resolveCircleTangentSnap(a["x"].toDouble(),a["y"].toDouble(),plane)
+            : snapping ? resolveSketchSnap(a["x"].toDouble(),a["y"].toDouble(),plane,circleCenter) : QJsonObject{};
         if(snapping){session_["snap"]=snap;if(!session_.contains("firstPoint")){view_->clearSketchCursor();view_->showSketchSnap(plane,snap);return QJsonObject{{"snap",snap},{"authoredChange",false}};}}
         if(!session_.contains("firstPoint"))return QJsonObject{};
         const auto point=snapping ? snap : view_->sketchPoint(a["x"].toDouble(),a["y"].toDouble(),plane),first=session_.value("firstPoint").toObject();
         session_["pointerPoint"]=point;
-        if(tool=="circle" || tool=="centerArc" || tool=="threePointArc")return sketchCurveGesture(point,false);
+        if(tool=="circle" || tool=="centerArc" || tool=="threePointArc") {
+            auto preview=sketchCurveGesture(point,false);
+            if(circleCircumference){view_->showSketchSnap(plane,snap);preview["snap"]=snap;}
+            return preview;
+        }
         view_->showSketchCursor(plane,{first["uMm"].toDouble(),first["vMm"].toDouble()},{point["uMm"].toDouble(),point["vMm"].toDouble()},tool=="rectangle");
         if(snapping)view_->showSketchSnap(plane,snap);
         return QJsonObject{{"point",point},{"snap",snap},{"authoredChange",false}};
@@ -1856,6 +1864,55 @@ QJsonObject AlloyWindow::resolveSketchSnap(double x,double y,const QString& plan
     return result;
 }
 
+QJsonObject AlloyWindow::resolveCircleTangentSnap(double x,double y,const QString& plane) const {
+    const auto cursor=view_->sketchPoint(x,y,plane);
+    constexpr double radiusPx=10.0,ambiguityPx=0.5;
+    QJsonObject result{{"status","none"},{"uMm",cursor["uMm"]},{"vMm",cursor["vMm"]},
+        {"radiusPx",radiusPx},{"authoredChange",false}};
+    const auto first=session_.value("firstPoint").toObject();
+    if(first.isEmpty())return result;
+    const QPointF center(first["uMm"].toDouble(),first["vMm"].toDouble());
+    const auto parameters=session_.value("draftSketch").toObject()["parameters"].toObject();
+    QMap<QString,QPointF> points;
+    for(const auto& entry:parameters["points"].toArray()) {
+        const auto point=entry.toObject();points[point["id"].toString()]={point["uMm"].toDouble(),point["vMm"].toDouble()};
+    }
+    std::vector<QJsonObject> candidates;
+    for(const auto& entry:parameters["entities"].toArray()) {
+        const auto line=entry.toObject();if(line["type"]!="line")continue;
+        const auto startId=line["startPointId"].toString(),endId=line["endPointId"].toString();
+        if(!points.contains(startId) || !points.contains(endId))continue;
+        const QPointF start=points.value(startId),delta=points.value(endId)-start;
+        const double squared=QPointF::dotProduct(delta,delta);if(squared<1e-18)continue;
+        const double length=std::sqrt(squared);
+        const double parameter=QPointF::dotProduct(center-start,delta)/squared;
+        constexpr double endpointToleranceMm=1e-6;
+        if(parameter< -endpointToleranceMm/length || parameter>1+endpointToleranceMm/length)continue;
+        const QPointF foot=start+delta*std::clamp(parameter,0.0,1.0);
+        const double tangentRadius=std::abs(delta.x()*(center.y()-start.y())-delta.y()*(center.x()-start.x()))/length;
+        if(tangentRadius<0.001)continue;
+        const auto screen=view_->projectSketchPoint(foot.x(),foot.y(),plane);
+        const double distance=std::hypot(screen["x"].toDouble()-x,screen["y"].toDouble()-y);
+        if(distance>radiusPx)continue;
+        candidates.push_back(QJsonObject{{"target",QJsonObject{{"kind","tangent"},{"entityId",line["id"]}}},
+            {"uMm",foot.x()},{"vMm",foot.y()},{"radiusMm",tangentRadius},{"distancePx",distance}});
+    }
+    if(candidates.empty())return result;
+    std::sort(candidates.begin(),candidates.end(),[](const QJsonObject& a,const QJsonObject& b){
+        if(a["distancePx"].toDouble()!=b["distancePx"].toDouble())return a["distancePx"].toDouble()<b["distancePx"].toDouble();
+        return a["target"].toObject()["entityId"].toString()<b["target"].toObject()["entityId"].toString();
+    });
+    const auto best=candidates.front();QJsonArray tied;
+    for(const auto& candidate:candidates) {
+        if(candidate["distancePx"].toDouble()-best["distancePx"].toDouble()>ambiguityPx)break;
+        tied.append(candidate);
+    }
+    if(tied.size()>1){result["status"]="ambiguous";result["candidates"]=tied;return result;}
+    result["status"]="acquired";result["target"]=best["target"];result["uMm"]=best["uMm"];
+    result["vMm"]=best["vMm"];result["radiusMm"]=best["radiusMm"];result["distancePx"]=best["distancePx"];
+    return result;
+}
+
 QJsonObject AlloyWindow::appendSketchCurve(const QString& tool,const QJsonObject& inputs) {
     if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
     if(inputs.contains("session") && inputs["session"]!=session_["id"])return failure("invalid_session","Session is no longer active");
@@ -1901,6 +1958,8 @@ QJsonObject AlloyWindow::sketchCurveGesture(const QJsonObject& point,bool commit
         if(tool=="circle") {
             QJsonObject canonical{{"centerUMm",ax},{"centerVMm",ay},{"diameterMm",inputs["diameter"]}};
             if(first["status"]=="acquired")canonical["centerSnapTarget"]=first["target"];
+            if(point["status"]=="acquired" && point["target"].toObject()["kind"]=="tangent")
+                canonical["tangentSnapTarget"]=point["target"];
             return publishSketchSolve(SketchGeometry::addPointerCircle(session_["draftSketch"].toObject(),canonical));
         }
         return appendSketchCurve(tool,inputs);

@@ -166,6 +166,9 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters) {
                 auto& p = point(reference(constraint,"pointIds",0));
                 solver.addConstraintEqual(p.x,constant(number(constraint,"uMm")),t);
                 solver.addConstraintEqual(p.y,constant(number(constraint,"vMm")),t);
+            } else if (type == "tangent") {
+                solver.addConstraintTangent(line(reference(constraint,"entityIds",1)),
+                    circleMap.at(reference(constraint,"entityIds",0)),number(constraint,"side")>0,t);
             } else if (type == "midpoint") {
                 auto& target = line(reference(constraint,"entityIds",0));
                 solver.addConstraintP2PSymmetric(target.p1,target.p2,point(reference(constraint,"pointIds",0)),t);
@@ -265,6 +268,14 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters) {
             const auto c=entry.toObject(); const auto type=c.value("type").toString();
             if(type=="coincident") check(separation("linear",point(reference(c,"pointIds",0)),point(reference(c,"pointIds",1))),lengthTolerance);
             else if(type=="fixed") {const auto& p=point(reference(c,"pointIds",0));check(*p.x-number(c,"uMm"),lengthTolerance);check(*p.y-number(c,"vMm"),lengthTolerance);}
+            else if(type=="tangent") {
+                const auto& circle=circleMap.at(reference(c,"entityIds",0)); const auto& target=line(reference(c,"entityIds",1));
+                const double dx=*target.p2.x-*target.p1.x,dy=*target.p2.y-*target.p1.y,length=std::hypot(dx,dy);
+                const double px=*circle.center.x-*target.p1.x,py=*circle.center.y-*target.p1.y;
+                check((dx*py-dy*px)/length-number(c,"side") * (*circle.rad),lengthTolerance);
+                const double foot=(px*dx+py*dy)/(length*length);
+                require(foot>=-lengthTolerance/length && foot<=1+lengthTolerance/length,"Tangent contact left the finite line");
+            }
             else if(type=="midpoint") {
                 const auto& p=point(reference(c,"pointIds",0)); const auto& target=line(reference(c,"entityIds",0));
                 check(*p.x-(*target.p1.x+*target.p2.x)/2,lengthTolerance);

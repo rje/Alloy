@@ -461,3 +461,14 @@ click atomically authors the circle and `midpoint` point-to-line constraint.
 `viewport.gpu.sketchSnapCue.marker` is `midpoint-triangle`; persistent midpoint
 glyphs include point IDs and target line ID. Hover and first click do not enter
 draft history. Circumference tangent inference remains unavailable.
+
+### Circle circumference tangent inference
+
+During a circle's second pointer stage, `sketch.pointerMove` returns `snap` with
+`target: {kind: "tangent", entityId: lineId}`, snapped contact coordinates and
+`radiusMm` when acquired. `sketch.placePoint` uses the same resolver and atomically
+retains `{type: "tangent", entityIds: [circleId, lineId], side: 1|-1}` alongside any
+center midpoint relation. No hover/first-center authored history entry is added.
+GPU diagnostics expose `sketchSnapCue.marker: "tangent-square"` and persistent
+constraint glyph identity, contact, bounds and selected state. See
+[bounded tangent validation](validation/sketch-tangent.md) for limits.

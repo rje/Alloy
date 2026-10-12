@@ -738,3 +738,24 @@ center(0,50), realrelation, DOF1. See docs/validation/sketch-midpoint.md. Astra 
 and capture review accepted the bounded circle-center slice. No appactive. Next tangentcircle
 inference and mixedregion profiles remain distinct CP03 blockers. ExternalLuna
 research is indexed in circles-arcs-dimensions; knowledgevalidate/build passed.
+
+## Uninterrupted native first-activity checkpoint (2026-10-12)
+
+At370c735, native plus/XY/six-edge outline/3Perp/2HV/2Equal/500/45/100/Finish passed
+in one app session with accessibility reads throughout. No recovery or crash.
+View navigation and final save/inspection were API; modeling native. DOF0 and
+exact dimensions, residual1.79e-11. Evidence activity1-uninterrupted-*; private
+app quit. Astra review requested for FND-015 closure. Tangentcircle source is
+staged and compiling, not yet accepted. See validation/bracket-activity1.md.
+
+## Tangent circle and native accessibility checkpoint (2026-10-12)
+
+Persistent circle/line tangent placement now passes build, targeted core test,
+real-app two-end workflow and one native end-circle placement. Parent cap100→120
+updates radii50→60 with exact retained IDs/history/storage. Square inference and
+persistent glyph captures were accepted by Astra; see validation/sketch-tangent.md.
+Private app quit. Mixed circle/line regions and sketch fillets still block CP03.
+Astra also accepted uninterrupted native A1 on370c735 for bounded FND-015 closure.
+Next: SKT-019 two corner fillets, shared radius100 and obsolete500 dimension removal,
+then mixed-region extraction. Public corner pair identification is inferred from
+source wording/topology; exact second small arc is not independently legible.

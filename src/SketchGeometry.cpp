@@ -387,6 +387,15 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
                 if (constraint.size() != (fixed ? 5 : 3) || constraint.contains("entityIds")
                     || !checkReferences(constraint, "pointIds", fixed ? 1 : 2, pointIds)) return "Invalid point constraint references";
                 if (fixed) { coordinate(constraint, "uMm"); coordinate(constraint, "vMm"); }
+            } else if (type == "tangent") {
+                if (constraint.size()!=4 || !checkReferences(constraint,"entityIds",2,entityIds)
+                    || !constraint["side"].isDouble() || (constraint["side"].toDouble()!=1 && constraint["side"].toDouble()!=-1))
+                    return "Tangent requires one circle, one line and signed side";
+                const auto refs=constraint["entityIds"].toArray();
+                bool circle=false;
+                for (const auto& entity:parameters["entities"].toArray())
+                    if (entity.toObject()["id"]==refs[0] && entity.toObject()["type"]=="circle") circle=true;
+                if (!circle || !lineIds.contains(refs[1].toString())) return "Tangent references must be ordered circle then line";
             } else if (type == "midpoint") {
                 if (constraint.size() != 4 || !checkReferences(constraint,"pointIds",1,pointIds)
                     || !checkReferences(constraint,"entityIds",1,lineIds)) return "Midpoint requires one point and one line";
@@ -470,7 +479,7 @@ SketchGeometry::SolveResult SketchGeometry::solveDraft(const QJsonObject& draft)
 SketchGeometry::SolveResult SketchGeometry::addConstraint(const QJsonObject& draft, const QJsonObject& arguments) {
     try {
         validateDraft(draft);
-        checkFields(arguments, {"type", "pointIds", "entityIds"});
+        checkFields(arguments, {"type", "pointIds", "entityIds", "side"});
         auto constraint = arguments;
         constraint["id"] = newId();
         auto parameters = draft["parameters"].toObject();
@@ -537,9 +546,9 @@ SketchGeometry::SolveResult SketchGeometry::addDimension(const QJsonObject& draf
 SketchGeometry::SolveResult SketchGeometry::addPointerCircle(const QJsonObject& draft, const QJsonObject& arguments) {
     try {
         validateDraft(draft);
-        checkFields(arguments, {"centerUMm", "centerVMm", "diameterMm", "centerSnapTarget"});
+        checkFields(arguments, {"centerUMm", "centerVMm", "diameterMm", "centerSnapTarget", "tangentSnapTarget"});
         double u = coordinate(arguments,"centerUMm"), v = coordinate(arguments,"centerVMm");
-        const double radius = coordinate(arguments,"diameterMm") / 2;
+        double radius = coordinate(arguments,"diameterMm") / 2;
         if (radius < minimumLength || radius > maximumLength) reject("Circle radius out of supported range");
         auto parameters = draft["parameters"].toObject();
         auto points = parameters["points"].toArray(), entities = parameters["entities"].toArray();
@@ -567,13 +576,43 @@ SketchGeometry::SolveResult SketchGeometry::addPointerCircle(const QJsonObject& 
             }
             if (midpointLine.isEmpty()) reject("Circle midpoint target no longer exists");
         }
+        QString tangentLine; int tangentSide = 0;
+        if (arguments.contains("tangentSnapTarget")) {
+            if (!arguments["tangentSnapTarget"].isObject()) reject("Tangent target must be an object");
+            const auto target = arguments["tangentSnapTarget"].toObject();
+            checkFields(target,{"kind","entityId"});
+            if (target["kind"] != "tangent" || !target["entityId"].isString() || !validId(target["entityId"].toString()))
+                reject("Circle tangent target requires a line UUID");
+            for (const auto& entry : entities) {
+                const auto line = entry.toObject(); if (line["id"] != target["entityId"]) continue;
+                if (line["type"] != "line") reject("Circle tangent target must be a line");
+                QJsonObject first,last;
+                for (const auto& value : points) {
+                    if (value.toObject()["id"] == line["startPointId"]) first = value.toObject();
+                    if (value.toObject()["id"] == line["endPointId"]) last = value.toObject();
+                }
+                const double dx=last["uMm"].toDouble()-first["uMm"].toDouble(), dy=last["vMm"].toDouble()-first["vMm"].toDouble();
+                const double px=u-first["uMm"].toDouble(), py=v-first["vMm"].toDouble(), length=std::hypot(dx,dy);
+                const double foot=(px*dx+py*dy)/(length*length);
+                if (foot < -endpointTolerance/length || foot > 1+endpointTolerance/length)
+                    reject("Tangent contact is outside the finite line");
+                const double distance=(dx*py-dy*px)/length;
+                radius=std::abs(distance);
+                if (radius < minimumLength || radius > maximumLength) reject("Tangent circle radius out of supported range");
+                tangentSide=distance>0 ? 1 : -1; tangentLine=line["id"].toString(); break;
+            }
+            if (tangentLine.isEmpty()) reject("Circle tangent target no longer exists");
+        }
         const auto centerId = newId();
         points.append(QJsonObject{{"id",centerId},{"uMm",u},{"vMm",v}});
-        entities.append(QJsonObject{{"id",newId()},{"type","circle"},{"centerPointId",centerId},{"radiusMm",radius}});
+        const auto circleId = newId();
+        entities.append(QJsonObject{{"id",circleId},{"type","circle"},{"centerPointId",centerId},{"radiusMm",radius}});
+        if (!tangentLine.isEmpty()) constraints.append(QJsonObject{{"id",newId()},{"type","tangent"},
+            {"entityIds",QJsonArray{circleId,tangentLine}},{"side",tangentSide}});
         if (!midpointLine.isEmpty()) constraints.append(QJsonObject{{"id",newId()},{"type","midpoint"},
             {"pointIds",QJsonArray{centerId}},{"entityIds",QJsonArray{midpointLine}}});
         parameters["points"] = points; parameters["entities"] = entities;
-        if (!midpointLine.isEmpty()) parameters["constraints"] = constraints;
+        if (!midpointLine.isEmpty() || !tangentLine.isEmpty()) parameters["constraints"] = constraints;
         auto candidate = draft; candidate["parameters"] = parameters;
         const auto result = solveDraft(candidate);
         return result.ok ? result : SolveResult{false,draft,result.diagnostics,result.error};

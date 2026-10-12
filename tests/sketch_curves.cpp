@@ -37,6 +37,39 @@ QJsonObject pointById(const QJsonObject& f,const QJsonValue& id){
     for(const auto& p:f["parameters"].toObject()["points"].toArray())if(p.toObject()["id"]==id)return p.toObject();
     throw std::runtime_error("Test point reference does not exist");
 }
+void tangentCircle(const QString& owner) {
+    auto rectangle=SketchGeometry::addRectangle(SketchGeometry::newFeature(owner,"XY"),{{"u1Mm",0},{"v1Mm",0},{"u2Mm",20},{"v2Mm",10}});
+    const QJsonValue origin=entity(rectangle)["startPointId"], bottom=entity(rectangle)["id"], end=entity(rectangle,3)["id"];
+    rectangle=accepted(SketchGeometry::addConstraint(rectangle,{{"type","fixed"},{"pointIds",QJsonArray{origin}}}));
+    rectangle=accepted(SketchGeometry::addDimension(rectangle,{{"kind","horizontal"},{"entityId",bottom},{"valueMm",20}}));
+    rectangle=accepted(SketchGeometry::addDimension(rectangle,{{"kind","vertical"},{"entityId",entity(rectangle,1)["id"]},{"valueMm",10}}));
+    const QJsonValue heightId=lastDimension(rectangle)["id"];
+    rectangle=accepted(SketchGeometry::setConstruction(rectangle,{{"entityIds",QJsonArray{end}},{"construction",true}}));
+    const auto circle=accepted(SketchGeometry::addPointerCircle(rectangle,{{"centerUMm",0},{"centerVMm",5},{"diameterMm",9.8},
+        {"centerSnapTarget",QJsonObject{{"kind","midpoint"},{"entityId",end}}},
+        {"tangentSnapTarget",QJsonObject{{"kind","tangent"},{"entityId",bottom}}}}));
+    near(entity(circle,4)["radiusMm"].toDouble(),5,"Tangent placement did not solve exact contact radius");
+    const QJsonValue circleId=entity(circle,4)["id"];
+    const auto constraints=circle["parameters"].toObject()["constraints"].toArray();
+    const auto tangent=constraints[constraints.size()-2].toObject();
+    check(tangent["type"]=="tangent" && tangent["entityIds"].toArray()==QJsonArray{circleId,bottom} && tangent["side"]==1,
+        "Tangent relation or oriented branch not retained");
+    check(SketchGeometry::solveDraft(circle).diagnostics["dof"].toInt()==0,"Midpoint and tangent left circle degrees of freedom");
+    const auto edited=accepted(SketchGeometry::updateDimension(circle,{{"dimensionId",heightId},{"valueMm",14}}));
+    near(entity(edited,4)["radiusMm"].toDouble(),7,"Tangent radius did not follow parent line geometry");
+    check(edited["parameters"].toObject()["constraints"]==circle["parameters"].toObject()["constraints"],"Parent edit changed relation identities");
+    const auto reopened=QJsonDocument::fromJson(QJsonDocument(edited).toJson()).object();
+    check(accepted(SketchGeometry::solveDraft(reopened))==edited,"Tangent branch lost on JSON roundtrip");
+    const auto conflict=SketchGeometry::addDimension(edited,{{"kind","diameter"},{"entityId",circleId},{"valueMm",12}});
+    check(!conflict.ok && conflict.feature==edited,"Conflicting tangent diameter changed usable draft");
+    const auto beyond=SketchGeometry::addPointerCircle(rectangle,{{"centerUMm",25},{"centerVMm",5},{"diameterMm",10},
+        {"tangentSnapTarget",QJsonObject{{"kind","tangent"},{"entityId",bottom}}}});
+    check(!beyond.ok && beyond.feature==rectangle,"Tangent silently targeted an infinite extension");
+    const auto zero=SketchGeometry::addPointerCircle(rectangle,{{"centerUMm",5},{"centerVMm",0},{"diameterMm",10},
+        {"tangentSnapTarget",QJsonObject{{"kind","tangent"},{"entityId",bottom}}}});
+    check(!zero.ok && zero.feature==rectangle,"Tangent accepted zero-radius contact");
+}
+
 void midpointCircle(const QString& owner) {
     auto line=SketchGeometry::addLine(SketchGeometry::newFeature(owner,"XY"),{{"u1Mm",0},{"v1Mm",0},{"u2Mm",20},{"v2Mm",0}});
     const QJsonValue lineId=entity(line)["id"], firstId=entity(line)["startPointId"];
@@ -276,6 +309,7 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
     pointerSnaps(owner);
     constructionConversion(owner);
     midpointCircle(owner);
+    tangentCircle(owner);
     underconstrainedOutlineAngle(owner);
     const auto blank=SketchGeometry::newFeature(owner,"XY");
     auto circle=SketchGeometry::addCircle(blank,{{"centerUMm",0},{"centerVMm",0},{"diameterMm",10}});
