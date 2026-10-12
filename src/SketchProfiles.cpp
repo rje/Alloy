@@ -7,6 +7,8 @@
 #include <BRepCheck_Analyzer.hxx>
 #include <BRepGProp.hxx>
 #include <BRep_Tool.hxx>
+#include <TopoDS.hxx>
+#include <TopExp_Explorer.hxx>
 #include <BRep_Builder.hxx>
 #include <GProp_GProps.hxx>
 #include <Geom_Curve.hxx>
@@ -112,7 +114,7 @@ SketchProfiles::Result SketchProfiles::derive(const QJsonObject& feature, const 
                 {"sourcePointIds",ids(sourcePointIds)},{"sourceEntityIds",ids(sourceEntityIds)},
                 {"edgeProvenance",QJsonArray{QJsonObject{{"entityId",entity["id"]},{"centerPointId",entity["centerPointId"]},{"type","circle"}}}},
                 {"vertices",QJsonArray{}},{"maxEndpointAdjustmentMm",0}};
-            return {true,{profileId,sketchId,plane,made.Face(),summary},{{"code","closed_profile"},{"profileCount",1},{"sketchId",sketchId}}, {}};
+            return {true,{profileId,sketchId,plane,made.Face(),summary,{{sketchId,entity["id"].toString(),{},{},"circle",TopoDS::Edge(TopExp_Explorer(made.Face(),TopAbs_EDGE).Current())}}},{{"code","closed_profile"},{"profileCount",1},{"sketchId",sketchId}}, {}};
         } catch(const Standard_Failure& error){return refuse("kernel_failure",QString::fromUtf8(error.GetMessageString()));}
     }
     QMap<QString, Point> points;
@@ -264,6 +266,7 @@ SketchProfiles::Result SketchProfiles::derive(const QJsonObject& feature, const 
     try {
         QMap<QString, TopoDS_Vertex> vertices;
         QJsonArray vertexProvenance, edgeProvenance;
+        std::vector<EvaluatedBoundaryEdge> boundaryEdges;
         for (auto it = adjacency.cbegin(); it != adjacency.cend(); ++it) {
             const auto position = world(points.value(it.key()));
             vertices[it.key()] = BRepBuilderAPI_MakeVertex(position).Vertex();
@@ -286,6 +289,7 @@ SketchProfiles::Result SketchProfiles::derive(const QJsonObject& feature, const 
                 if(!made.IsDone())return refuse("invalid_boundary","OCCT could not connect the analytic arc endpoints.");
                 boundary=made.Edge();if(negative!=directed.reversed)boundary.Reverse();
             }
+            boundaryEdges.push_back({sketchId,edge.id,"point:"+directed.start,"point:"+directed.end,edge.entity["type"].toString(),boundary});
             wire.Add(boundary);
             if(!wire.IsDone())return refuse("invalid_boundary","OCCT could not connect the declared boundary vertices.");
             edgeProvenance.append(QJsonObject{{"entityId", edge.id}, {"startPointId", edge.sourceStart},
@@ -307,7 +311,7 @@ SketchProfiles::Result SketchProfiles::derive(const QJsonObject& feature, const 
             {"maxEndpointAdjustmentMm", maxEndpointAdjustment}};
         QJsonObject diagnostics{{"code", "closed_profile"}, {"message",hasCurves ? "One simple closed analytic curve profile." : "One simple closed line profile."},
             {"profileCount", 1}, {"sketchId", sketchId}, {"endpointToleranceMm", endpointTolerance}};
-        return {true, {profileId,sketchId,plane,made.Face(),summary}, diagnostics, {}};
+        return {true, {profileId,sketchId,plane,made.Face(),summary,boundaryEdges}, diagnostics, {}};
     } catch (const Standard_Failure& error) {
         return refuse("kernel_failure", "OCCT profile construction failed: "+QString::fromUtf8(error.GetMessageString()));
     }

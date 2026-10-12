@@ -242,6 +242,8 @@ def main():
                 assert evaluated['frame']['vAxis'] == cap['frame']['vAxis']
                 coordinates = {p['id']: (p['uMm'], p['vMm']) for p in local['parameters']['points']}
                 for point in evaluated['worldPoints']:
+                    if point['id'] not in coordinates:
+                        continue  # Resolved reference points are separate from authored local geometry.
                     u, v = coordinates[point['id']]
                     assert all(math.isclose(a, b, abs_tol=1e-7) for a, b in zip(point['positionMm'], (u, v, z)))
                 assert len(evaluated['profiles']) == 1
@@ -275,6 +277,77 @@ def main():
             assert inspect_attached(reopened_face, depth) == face_profile
             inspect_solid(reopened_face)
             capabilities.append('sketch.semantic_cap_support')
+
+        if fixture.get('linkedProjection'):
+            cfg = fixture['linkedProjection']
+            linked_session = call('sketch.edit', {'sketchId': local['id']})
+            refs = linked_session['projectionContext']['lines']
+            cap_edges = call('document.inspect')['evaluation']['bodies'][0]['supportFaces'][0]['edges']
+            source_by_edge = {e['edgeId']: e['sourceEntityId'] for e in cap_edges}
+            guides = []
+            for source_entity in (ids[0], ids[1]):
+                ref = next(r for r in refs if source_by_edge[r['source']['edgeId']] == source_entity)
+                dx, dy = ref['u2Mm']-ref['u1Mm'], ref['v2Mm']-ref['v1Mm']
+                length = math.hypot(dx, dy)
+                x, y = ref['u1Mm']+20, ref['v1Mm']+20
+                call('sketch.line', {'x1': x, 'y1': y, 'x2': x+100*dx/length,
+                    'y2': y+100*dy/length, 'units': 'mm'})
+                current = call('command.preview', {'session': linked_session['id']})['authoredDraft']
+                line = current['parameters']['entities'][-1]
+                call('sketch.construction', {'entityIds': [line['id']], 'construction': True})
+                call('sketch.constraint', {'type': 'parallel', 'entityIds': [line['id'], ref['id']]})
+                for kind in ('horizontal', 'vertical'):
+                    call('sketch.dimension', {'kind': kind, 'pointIds': [ref['startPointId'], line['startPointId']],
+                        'value': 20, 'units': 'mm'})
+                call('sketch.dimension', {'kind': 'linear', 'entityId': line['id'], 'value': 100, 'units': 'mm'})
+                guides.append((line, ref['id']))
+            call('sketch.finish')
+            linked = call('document.inspect')
+            authored_linked = next(f for f in linked['authored']['features'] if f['id'] == local['id'])
+            assert authored_linked['parameters']['projections']
+            assert all(set(p) == {'id', 'source'} for p in authored_linked['parameters']['projections'])
+
+            def inspect_links(document):
+                sketch = next(s for s in document['evaluation']['sketches'] if s['sketchId'] == local['id'])
+                points = {p['id']: p['positionMm'] for p in sketch['worldPoints']}
+                references = {r['id']: r for r in sketch['projectedLines']}
+                for line, ref_id in guides:
+                    ref = references[ref_id]
+                    a, b = points[line['startPointId']], points[line['endPointId']]
+                    dx, dy = ref['u2Mm']-ref['u1Mm'], ref['v2Mm']-ref['v1Mm']
+                    assert abs((b[0]-a[0])*dy-(b[1]-a[1])*dx) < 1e-4
+                    assert math.isclose(abs(a[0]-ref['u1Mm']), 20, abs_tol=1e-6)
+                    assert math.isclose(abs(a[1]-ref['v1Mm']), 20, abs_tol=1e-6)
+                    assert math.isclose(math.hypot(b[0]-a[0],b[1]-a[1]),100,abs_tol=1e-6)
+                return points, references
+
+            original_points, original_refs = inspect_links(linked)
+            call('sketch.edit', {'sketchId': edited['id']})
+            call('sketch.dimensionUpdate', {'dimensionId': cap_dimension, 'value': cfg['capLengthMm'], 'units': 'mm'})
+            call('sketch.dimensionUpdate', {'dimensionId': radius['id'], 'value': cfg['radiusMm'], 'units': 'mm'})
+            call('sketch.finish')
+            relinked = call('document.inspect')
+            moved_points, moved_refs = inspect_links(relinked)
+            assert set(moved_refs) == set(original_refs)
+            assert any(not math.isclose(moved_points[line['startPointId']][i],original_points[line['startPointId']][i],abs_tol=1e-6)
+                for line, _ in guides for i in (0,1)), 'Upstream change did not exercise associative geometry movement'
+            updated_local = next(f for f in relinked['authored']['features'] if f['id']==local['id'])
+            for key in ('projections', 'constraints', 'dimensions', 'entities'):
+                assert updated_local['parameters'][key] == authored_linked['parameters'][key]
+            assert {p['id'] for p in updated_local['parameters']['points']} == {p['id'] for p in authored_linked['parameters']['points']}
+            call('history.undo'); assert call('document.inspect')['authored'] == linked['authored']
+            call('history.redo'); inspect_links(call('document.inspect'))
+            path = output / 'linked-bracket.alloy'
+            call('document.save', {'path': str(path)})
+            call('document.new', {'discard': False}); call('document.open', {'path': str(path)})
+            reopened = call('document.inspect')
+            assert reopened['authored'] == relinked['authored']; inspect_links(reopened)
+            call('sketch.edit', {'sketchId': local['id']})
+            call('view.zoom', {'factor': 0.2})
+            captures.append(call('capture.screenshot', {'path': str(output/'linked-reference-constraints.png')}))
+            call('sketch.cancel')
+            capabilities.append('sketch.linked_cap_edges')
+
         final = call('app.state')
     result = {
         'result': 'passed', 'testSha256': hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
@@ -285,7 +358,7 @@ def main():
             'save_reopen': {'status': 'passed'}, 'visual': {'status': 'captured'},
             'physical_input': {'status': 'not_run', 'reason': 'Shared pointer API dispatch is separate from native mouse evidence.'}},
         'limits': ['Positive extrusion end-cap support only; arbitrary planar/curved or modified faces remain unsupported.'] if face_support else ['Bounded authored-contact regions and connected same-sketch union only.'] if multiprofile else ['Bounded authored-contact regions; multi-profile union extrusion remains separate.']}
-    (output / ('sketch-face-support-api.json' if face_support else 'sketch-multiprofile-api.json' if multiprofile else 'sketch-regions-api.json')).write_text(json.dumps(result, indent=2) + '\n')
+    (output / ('sketch-linked-projection-api.json' if fixture.get('linkedProjection') else 'sketch-face-support-api.json' if face_support else 'sketch-multiprofile-api.json' if multiprofile else 'sketch-regions-api.json')).write_text(json.dumps(result, indent=2) + '\n')
     print('PASS: three selectable rounded-bracket regions, retained edit identities and storage')
 
 

@@ -96,9 +96,36 @@ QJsonObject SketchGeometry::newFeature(const QString& ownerId, const QString& pl
     return feature;
 }
 
-QJsonObject SketchGeometry::newSupportedFeature(const QString& ownerId, const QJsonObject& support, const QString& name) {
+QJsonObject SketchGeometry::newSupportedFeature(const QString& ownerId, const QJsonObject& support, const QString& name, const QJsonArray& supportEdges) {
     auto feature=newFeature(ownerId,"XY",name);auto parameters=feature["parameters"].toObject();
-    parameters["plane"]="face";parameters["support"]=support;feature["parameters"]=parameters;validateDraft(feature);return feature;
+    parameters["plane"]="face";parameters["support"]=support;
+    QJsonArray projections;
+    for(const auto& value:supportEdges){const auto edge=value.toObject();if(!edge["supported"].toBool())continue;
+        auto source=support;source["edgeId"]=edge["edgeId"];
+        const auto id=QUuid::createUuidV5(QUuid(feature["id"].toString()),QByteArray("alloy-projection/1\n")+edge["edgeId"].toString().toUtf8()).toString(QUuid::WithoutBraces);
+        projections.append(QJsonObject{{"id",id},{"source",source}});
+    }
+    if(!projections.isEmpty())parameters["projections"]=projections;
+    feature["parameters"]=parameters;validateDraft(feature);return feature;
+}
+
+QString SketchGeometry::projectionPointId(const QString& id,bool end) {
+    return QUuid::createUuidV5(QUuid(id),end ? QByteArray("end") : QByteArray("start")).toString(QUuid::WithoutBraces);
+}
+QJsonObject SketchGeometry::expandedProjectionFeature(const QJsonObject& feature,const QJsonObject& context) {
+    auto expanded=feature;auto parameters=feature["parameters"].toObject();
+    const auto projections=parameters["projections"].toArray();
+    auto points=parameters["points"].toArray(),entities=parameters["entities"].toArray();
+    for(const auto& value:projections) {
+        const auto projection=value.toObject();QJsonObject line;
+        for(const auto& resolved:context["lines"].toArray())if(resolved.toObject()["id"]==projection["id"]){if(!line.isEmpty())reject("Ambiguous resolved projection");line=resolved.toObject();}
+        if(line.isEmpty() || line["source"]!=projection["source"])reject("Retained projection requires current resolved support geometry");
+        const auto id=projection["id"].toString();const auto start=projectionPointId(id,false),end=projectionPointId(id,true);
+        points.append(QJsonObject{{"id",start},{"uMm",coordinate(line,"u1Mm")},{"vMm",coordinate(line,"v1Mm")}});
+        points.append(QJsonObject{{"id",end},{"uMm",coordinate(line,"u2Mm")},{"vMm",coordinate(line,"v2Mm")}});
+        entities.append(QJsonObject{{"id",id},{"type","line"},{"startPointId",start},{"endPointId",end},{"construction",true}});
+    }
+    parameters.remove("projections");parameters["points"]=points;parameters["entities"]=entities;expanded["parameters"]=parameters;return expanded;
 }
 
 QJsonObject SketchGeometry::findFeature(const QJsonObject& authored, const QString& sketchId) {
@@ -242,7 +269,7 @@ QJsonObject SketchGeometry::addRectangle(const QJsonObject& draft, const QJsonOb
     return changed;
 }
 
-SketchGeometry::SolveResult SketchGeometry::addPointerEntity(const QJsonObject& draft, const QString& tool, const QJsonObject& arguments) {
+SketchGeometry::SolveResult SketchGeometry::addPointerEntity(const QJsonObject& draft, const QString& tool, const QJsonObject& arguments, const QJsonObject& projectionContext) {
     try {
         validateDraft(draft);
         if (tool!="line" && tool!="rectangle") reject("Pointer authoring supports Line and Rectangle");
@@ -289,7 +316,7 @@ SketchGeometry::SolveResult SketchGeometry::addPointerEntity(const QJsonObject& 
         coincide(first,startTarget);coincide(last,endTarget);
         parameters["points"]=points;parameters["entities"]=entities;parameters["constraints"]=constraints;
         auto candidate=draft;candidate["parameters"]=parameters;
-        const auto result=solveDraft(candidate);
+        const auto result=solveDraft(candidate,projectionContext);
         return result.ok ? result : SolveResult{false,draft,result.diagnostics,result.error};
     } catch (const std::exception& error) {return invalidDraft(draft,QString::fromUtf8(error.what()));}
 }
@@ -303,6 +330,21 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
         if(support.size()!=3)return "Unexpected sketch support fields";
         for(const auto& key:{"producerFeatureId","bodyId","faceId"})if(!support[key].isString() || !validId(support[key].toString()))return "Sketch support requires stable producer, body and face UUIDs";
     } else if(parameters.contains("support"))return "Origin-plane sketch cannot carry face support";
+    if(parameters.contains("projections")) {
+        if(plane!="face" || !parameters["projections"].isArray())return "Projections require a supported face sketch and array";
+        QJsonArray lines;QSet<QString> sources;
+        for(const auto& value:parameters["projections"].toArray()) {
+            if(!value.isObject())return "Projection must be an object";const auto projection=value.toObject();
+            if(projection.size()!=2 || !validId(projection["id"].toString()) || !projection["source"].isObject())return "Invalid retained projection";
+            const auto source=projection["source"].toObject();if(source.size()!=4)return "Invalid projection source fields";
+            for(const auto& key:{"producerFeatureId","bodyId","faceId","edgeId"})if(!source[key].isString() || !validId(source[key].toString()))return "Projection source requires stable UUIDs";
+            for(const auto& key:{"producerFeatureId","bodyId","faceId"})if(source[key]!=parameters["support"].toObject()[key])return "Projection source must belong to sketch support";
+            if(sources.contains(source["edgeId"].toString()))return "Duplicate projected source edge";sources.insert(source["edgeId"].toString());
+            lines.append(QJsonObject{{"id",projection["id"]},{"source",source},{"u1Mm",0},{"v1Mm",0},{"u2Mm",1},{"v2Mm",0}});
+        }
+        try {return validateParameters(expandedProjectionFeature({{"parameters",parameters}},{{"lines",lines}})["parameters"].toObject(),authoredIds);}
+        catch(const std::exception& error){return QString::fromUtf8(error.what());}
+    }
     const QSet<QString> allowed{"plane", "points", "entities", "constraints", "dimensions", "originPointId", "support"};
     for (auto it = parameters.begin(); it != parameters.end(); ++it)
         if (!allowed.contains(it.key())) return "Unknown sketch parameter: " + it.key();
@@ -486,19 +528,27 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
     return {};
 }
 
-SketchGeometry::SolveResult SketchGeometry::solveDraft(const QJsonObject& draft) {
+SketchGeometry::SolveResult SketchGeometry::solveDraft(const QJsonObject& draft, const QJsonObject& projectionContext) {
     try {
         validateDraft(draft);
-        const auto result = SketchSolver::solve(draft["parameters"].toObject());
-        if (!result.accepted) return {false, draft, result.diagnostics, result.error};
-        auto solved = draft;
-        solved["parameters"] = result.parameters;
-        validateDraft(solved);
-        return {true, solved, result.diagnostics, {}};
-    } catch (const std::exception& error) { return invalidDraft(draft, QString::fromUtf8(error.what())); }
+        const auto expanded=expandedProjectionFeature(draft,projectionContext);validateDraft(expanded);
+        QSet<QString> lockedPoints,virtualEntities;
+        for(const auto& value:draft["parameters"].toObject()["projections"].toArray()){const auto id=value.toObject()["id"].toString();
+            virtualEntities.insert(id);lockedPoints.insert(projectionPointId(id,false));lockedPoints.insert(projectionPointId(id,true));}
+        const auto result=SketchSolver::solve(expanded["parameters"].toObject(),lockedPoints);
+        if(!result.accepted)return {false,draft,result.diagnostics,result.error};
+        auto solved=draft;auto parameters=result.parameters;
+        QJsonArray points,entities;
+        for(const auto& value:parameters["points"].toArray())if(!lockedPoints.contains(value.toObject()["id"].toString()))points.append(value);
+        for(const auto& value:parameters["entities"].toArray())if(!virtualEntities.contains(value.toObject()["id"].toString()))entities.append(value);
+        parameters["points"]=points;parameters["entities"]=entities;
+        if(draft["parameters"].toObject().contains("projections"))parameters["projections"]=draft["parameters"].toObject()["projections"];
+        solved["parameters"]=parameters;validateDraft(solved);
+        return {true,solved,result.diagnostics,{}};
+    } catch(const std::exception& error){return invalidDraft(draft,QString::fromUtf8(error.what()));}
 }
 
-SketchGeometry::SolveResult SketchGeometry::addConstraint(const QJsonObject& draft, const QJsonObject& arguments) {
+SketchGeometry::SolveResult SketchGeometry::addConstraint(const QJsonObject& draft, const QJsonObject& arguments, const QJsonObject& projectionContext) {
     try {
         validateDraft(draft);
         checkFields(arguments, {"type", "pointIds", "entityIds", "side"});
@@ -519,12 +569,12 @@ SketchGeometry::SolveResult SketchGeometry::addConstraint(const QJsonObject& dra
         auto constraints = parameters["constraints"].toArray(); constraints.append(constraint);
         parameters["constraints"] = constraints;
         auto candidate = draft; candidate["parameters"] = parameters;
-        const auto result = solveDraft(candidate);
+        const auto result = solveDraft(candidate,projectionContext);
         return result.ok ? result : SolveResult{false, draft, result.diagnostics, result.error};
     } catch (const std::exception& error) { return invalidDraft(draft, QString::fromUtf8(error.what())); }
 }
 
-SketchGeometry::SolveResult SketchGeometry::addDimension(const QJsonObject& draft, const QJsonObject& arguments) {
+SketchGeometry::SolveResult SketchGeometry::addDimension(const QJsonObject& draft, const QJsonObject& arguments, const QJsonObject& projectionContext) {
     try {
         validateDraft(draft);
         checkFields(arguments, {"kind", "pointIds", "entityId", "entityIds", "raySigns", "driving", "valueMm", "valueDeg", "annotation"});
@@ -539,7 +589,7 @@ SketchGeometry::SolveResult SketchGeometry::addDimension(const QJsonObject& draf
         if (arguments.contains("entityId") && !curve) {
             if (arguments.contains("pointIds")) reject("Choose dimension points or one line, not both");
             bool found = false;
-            for (const auto& entry : parameters["entities"].toArray()) {
+            for (const auto& entry : expandedProjectionFeature(draft,projectionContext)["parameters"].toObject()["entities"].toArray()) {
                 const auto entity = entry.toObject();
                 if (entity["id"] != arguments["entityId"]) continue;
                 pointIds = {entity["startPointId"], entity["endPointId"]}; found = true; break;
@@ -560,12 +610,12 @@ SketchGeometry::SolveResult SketchGeometry::addDimension(const QJsonObject& draf
         auto dimensions = parameters["dimensions"].toArray(); dimensions.append(dimension);
         parameters["dimensions"] = dimensions;
         auto candidate = draft; candidate["parameters"] = parameters;
-        const auto result = solveDraft(candidate);
+        const auto result = solveDraft(candidate,projectionContext);
         return result.ok ? result : SolveResult{false, draft, result.diagnostics, result.error};
     } catch (const std::exception& error) { return invalidDraft(draft, QString::fromUtf8(error.what())); }
 }
 
-SketchGeometry::SolveResult SketchGeometry::filletCorners(const QJsonObject& draft, const QJsonObject& arguments) {
+SketchGeometry::SolveResult SketchGeometry::filletCorners(const QJsonObject& draft, const QJsonObject& arguments, const QJsonObject& projectionContext) {
     try {
         validateDraft(draft); checkFields(arguments,{"corners","radiusMm"});
         const double radius=coordinate(arguments,"radiusMm");
@@ -644,14 +694,14 @@ SketchGeometry::SolveResult SketchGeometry::filletCorners(const QJsonObject& dra
         keptDimensions.append(QJsonObject{{"id",newId()},{"kind","radius"},{"entityId",firstArc},{"driving",true},{"valueMm",radius}});
         for(int i=1;i<arcs.size();++i)keptConstraints.append(QJsonObject{{"id",newId()},{"type","equal"},{"entityIds",QJsonArray{firstArc,arcs[i].toObject()["id"]}}});
         parameters["points"]=keptPoints;parameters["entities"]=entities;parameters["constraints"]=keptConstraints;parameters["dimensions"]=keptDimensions;
-        auto candidate=draft;candidate["parameters"]=parameters;auto result=solveDraft(candidate);
+        auto candidate=draft;candidate["parameters"]=parameters;auto result=solveDraft(candidate,projectionContext);
         if(!result.ok)return {false,draft,result.diagnostics,result.error};
         QJsonArray arcIds;for(const auto& value:arcs)arcIds.append(value.toObject()["id"]);
         result.diagnostics["createdArcIds"]=arcIds;result.diagnostics["removedDimensionIds"]=removedDimensions;return result;
     }catch(const std::exception& error){return invalidDraft(draft,QString::fromUtf8(error.what()));}
 }
 
-SketchGeometry::SolveResult SketchGeometry::addPointerCircle(const QJsonObject& draft, const QJsonObject& arguments) {
+SketchGeometry::SolveResult SketchGeometry::addPointerCircle(const QJsonObject& draft, const QJsonObject& arguments, const QJsonObject& projectionContext) {
     try {
         validateDraft(draft);
         checkFields(arguments, {"centerUMm", "centerVMm", "diameterMm", "centerSnapTarget", "tangentSnapTarget"});
@@ -722,12 +772,12 @@ SketchGeometry::SolveResult SketchGeometry::addPointerCircle(const QJsonObject& 
         parameters["points"] = points; parameters["entities"] = entities;
         if (!midpointLine.isEmpty() || !tangentLine.isEmpty()) parameters["constraints"] = constraints;
         auto candidate = draft; candidate["parameters"] = parameters;
-        const auto result = solveDraft(candidate);
+        const auto result = solveDraft(candidate,projectionContext);
         return result.ok ? result : SolveResult{false,draft,result.diagnostics,result.error};
     } catch (const std::exception& error) { return invalidDraft(draft,QString::fromUtf8(error.what())); }
 }
 
-SketchGeometry::SolveResult SketchGeometry::setConstruction(const QJsonObject& draft, const QJsonObject& arguments) {
+SketchGeometry::SolveResult SketchGeometry::setConstruction(const QJsonObject& draft, const QJsonObject& arguments, const QJsonObject& projectionContext) {
     try {
         validateDraft(draft);
         checkFields(arguments, {"entityIds", "construction"});
@@ -756,18 +806,18 @@ SketchGeometry::SolveResult SketchGeometry::setConstruction(const QJsonObject& d
         }
         if (!remaining.isEmpty()) reject("Construction selection contains a missing entity");
         if (!changed) {
-            auto result = solveDraft(draft);
+            auto result = solveDraft(draft,projectionContext);
             result.feature = draft;
             return result;
         }
         parameters["entities"] = entities;
         auto candidate = draft; candidate["parameters"] = parameters;
-        const auto result = solveDraft(candidate);
+        const auto result = solveDraft(candidate,projectionContext);
         return result.ok ? result : SolveResult{false, draft, result.diagnostics, result.error};
     } catch (const std::exception& error) { return invalidDraft(draft, QString::fromUtf8(error.what())); }
 }
 
-SketchGeometry::SolveResult SketchGeometry::updateDimension(const QJsonObject& draft, const QJsonObject& arguments) {
+SketchGeometry::SolveResult SketchGeometry::updateDimension(const QJsonObject& draft, const QJsonObject& arguments, const QJsonObject& projectionContext) {
     try {
         validateDraft(draft);
         checkFields(arguments, {"dimensionId", "valueMm", "valueDeg"});
@@ -787,12 +837,12 @@ SketchGeometry::SolveResult SketchGeometry::updateDimension(const QJsonObject& d
         if (!found) reject("Driving dimension does not exist");
         parameters["dimensions"] = dimensions;
         auto candidate = draft; candidate["parameters"] = parameters;
-        const auto result = solveDraft(candidate);
+        const auto result = solveDraft(candidate,projectionContext);
         return result.ok ? result : SolveResult{false, draft, result.diagnostics, result.error};
     } catch (const std::exception& error) { return invalidDraft(draft, QString::fromUtf8(error.what())); }
 }
 
-SketchGeometry::SolveResult SketchGeometry::updateAnnotation(const QJsonObject& draft, const QJsonObject& arguments) {
+SketchGeometry::SolveResult SketchGeometry::updateAnnotation(const QJsonObject& draft, const QJsonObject& arguments, const QJsonObject& projectionContext) {
     try {
         validateDraft(draft);
         checkFields(arguments, {"dimensionId", "annotation"});
@@ -809,7 +859,7 @@ SketchGeometry::SolveResult SketchGeometry::updateAnnotation(const QJsonObject& 
         if (!found) reject("Dimension does not exist");
         parameters["dimensions"] = dimensions;
         auto candidate = draft; candidate["parameters"] = parameters;
-        const auto result = solveDraft(candidate);
+        const auto result = solveDraft(candidate,projectionContext);
         // A presentation edit preserves accepted authored coordinates verbatim.
         // Obtain diagnostics without applying any solver normalization to intent.
         return result.ok ? SolveResult{true, candidate, result.diagnostics, {}}
@@ -817,7 +867,7 @@ SketchGeometry::SolveResult SketchGeometry::updateAnnotation(const QJsonObject& 
     } catch (const std::exception& error) { return invalidDraft(draft, QString::fromUtf8(error.what())); }
 }
 
-SketchGeometry::SolveResult SketchGeometry::movePoint(const QJsonObject& draft, const QJsonObject& arguments) {
+SketchGeometry::SolveResult SketchGeometry::movePoint(const QJsonObject& draft, const QJsonObject& arguments, const QJsonObject& projectionContext) {
     try {
         validateDraft(draft);
         checkFields(arguments, {"pointId", "uMm", "vMm"});
@@ -836,10 +886,12 @@ SketchGeometry::SolveResult SketchGeometry::movePoint(const QJsonObject& draft, 
         auto candidate = draft; candidate["parameters"] = parameters;
         // Point manipulation supplies a solver seed. ArcRules restore normalized
         // analytic intent before final validation; no inconsistent state is accepted.
-        const auto result=SketchSolver::solve(parameters);
-        if(!result.accepted)return {false,draft,result.diagnostics,result.error};
-        candidate["parameters"]=result.parameters;validateDraft(candidate);
-        return {true,candidate,result.diagnostics,{}};
+        if(parameters["projections"].toArray().isEmpty()) {
+            const auto result=SketchSolver::solve(parameters);
+            if(!result.accepted)return {false,draft,result.diagnostics,result.error};
+            candidate["parameters"]=result.parameters;validateDraft(candidate);return {true,candidate,result.diagnostics,{}};
+        }
+        return solveDraft(candidate,projectionContext);
     } catch (const std::exception& error) { return invalidDraft(draft, QString::fromUtf8(error.what())); }
 }
 
@@ -866,10 +918,10 @@ QJsonObject SketchGeometry::evaluationFrame(const QJsonObject& parameters,const 
     if(dot(cross,vectors[3])<1-1e-9)reject("Support frame must be right handed");return resolvedFrame;
 }
 
-EvaluatedSketch SketchGeometry::evaluateFeature(const QJsonObject& feature, const QJsonObject& resolvedFrame) {
-    const auto solution = solveDraft(feature);
+EvaluatedSketch SketchGeometry::evaluateFeature(const QJsonObject& feature, const QJsonObject& resolvedFrame, const QJsonObject& projectionContext) {
+    const auto solution = solveDraft(feature,projectionContext);
     if (!solution.ok) reject(solution.error);
-    const auto parameters = solution.feature["parameters"].toObject();
+    const auto parameters = expandedProjectionFeature(solution.feature,projectionContext)["parameters"].toObject();
     const auto plane = parameters["plane"].toString();
     const auto sketchFrame=evaluationFrame(parameters,resolvedFrame);
     QMap<QString, gp_Pnt> points;
@@ -920,6 +972,8 @@ EvaluatedSketch SketchGeometry::evaluateFeature(const QJsonObject& feature, cons
         profiles = profile.profiles;
         for (const auto& region : profiles) profileSummaries.append(region.summary);
     }
+    summary["projectedLines"]=projectionContext["lines"].toArray();
+    summary["unsupportedProjectedEdges"]=projectionContext["unsupportedEdges"].toArray();
     summary["profiles"] = profileSummaries;
     summary["profileDiagnostics"] = profile.diagnostics;
     return {feature["id"].toString(), feature["name"].toString(), plane, feature["visible"].toBool(), shape, summary, profiles, sketchFrame};
