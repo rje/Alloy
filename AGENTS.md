@@ -129,6 +129,13 @@ These rules supersede any earlier suggestion to verify behavior in proprietary s
 - Preserve authored sketches/features separately from evaluated geometry and
   tessellated display data. Plan for persistent geometric references early.
 - Prefer coherent, runnable increments with proportional verification.
+- Keep implementation issues small enough to finish and close. If an issue is
+  too broad for the intended increment, explicitly split its remaining scope into
+  linked Todo issues before closing the completed part. Preserve every deferred
+  requirement and update dependencies; do not silently shrink acceptance criteria.
+  In Progress means actively being worked on, not merely partially implemented.
+  Finish the active deliverable and its reasonable verification before pulling
+  another item; a blocked or deferred remainder must not accumulate as active work.
 - Use unit tests where they make sense and integration tests where pragmatic.
   Test the actual change's core contracts and material risks for reasonable
   assurance; do not pursue exhaustive hypothetical edge cases. Once appropriate

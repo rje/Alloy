@@ -3,6 +3,30 @@
 Updated 2026-10-12. This is the project handoff for a fresh session. Read the root
 [AGENTS.md](../AGENTS.md) first; its reference restrictions apply to all work.
 
+## Work tracking and scope checkpoint (2026-10-12)
+
+Implementation issues must be small enough to finish and close. When a family is
+larger than the current increment, publish linked Todo follow-ups for every
+remaining requirement before closing the verified subset. Preserve cumulative
+gate dependencies. In Progress means current work, not partially implemented work.
+Astra verified publication: 165 total issues, 36 closed and 129 open; seven
+follow-ups (#159–165) are Todo. Astra reviewed the splits; original descriptions are retained in
+[the split audit](backlog/scope-splits-2026-10-12.json). Exact tutorial and physical
+modifier gates remain open. Constraint interaction #152 is closed with its final
+hover capture accepted; arc input #33 is the active closure task.
+
+Unfinished exchange work is preserved locally on
+`wip/exchange-preserved-2026-10-12` at `88b50fd`, including its two STEP core commits.
+Main remains on the previously qualified application implementation. STL API
+checks passed on the private ExchangeCandidate, but native export and integrated
+STEP qualification are incomplete. Sol now owns #23 in the isolated
+`../Alloy-worktrees/exchange-finish` worktree, with Astra independently verifying;
+#23 is In Progress and #44 remains Todo. Do not claim these
+features ship on main. The private `build-exchange` binary is older than that
+branch's latest source; it can exercise unchanged sketch behavior, not prove STEP.
+Its API ready file is `build-exchange/evidence/closure/ready.json`. Preserve human
+candidate windows described below.
+
 ## Current checkpoint: complete bracket chain
 
 The registered `tutorial_bracket_api` case now passes from blank document through

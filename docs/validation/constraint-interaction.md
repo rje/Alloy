@@ -47,3 +47,13 @@ Every authored point projects within the viewport and Look At leaves the draft
 unchanged. `populated-sketch-framing.png` and
 `populated-sketch-framing-receipt.json` record the check. Astra accepted the
 conservative but usable framing; no exact reference camera-margin claim is made.
+
+## Final hover qualification
+
+On 2026-10-12, the private ExchangeCandidate rendered the existing unselected
+relation with API hover active. State reported hovered=true and selected=false,
+the actual glyph was amber, and the authored draft remained unchanged. Evidence:
+`build-exchange/evidence/closure/constraint-hover.json` and `.png`. This proves
+API-driven hover rendering, not physical pointer motion. Together with the
+previous widget and native selection/deletion checks, Astra accepted #152 closure.
+Broader per-entity styling and remaining relation glyphs stay tracked separately.
