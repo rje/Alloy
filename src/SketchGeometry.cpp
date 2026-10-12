@@ -326,7 +326,10 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
             const auto type = entity["type"].toString();
             if (!claimId(entity["id"].toString())) return "Invalid or duplicate sketch entity UUID";
             if (type != "line" && type != "circle" && type != "arc") return "Unsupported sketch entity type";
-            if (entity.size() != (type == "line" ? 4 : type == "circle" ? 4 : 8)) return "Unexpected sketch entity fields";
+            const bool hasConstruction = entity.contains("construction");
+            if (hasConstruction && (type != "line" || !entity["construction"].isBool()))
+                return "Construction must be a boolean on a line entity";
+            if (entity.size() != (type == "line" ? 4 : type == "circle" ? 4 : 8) + (hasConstruction ? 1 : 0)) return "Unexpected sketch entity fields";
             if (type != "line") {
                 const auto centerId = entity["centerPointId"].toString();
                 if (!points.contains(centerId)) return "Curve center does not exist";
@@ -515,6 +518,46 @@ SketchGeometry::SolveResult SketchGeometry::addDimension(const QJsonObject& draf
         if (arguments.contains(kind=="arcSweep" || angle ? "valueMm" : "valueDeg")) reject("Dimension value has incorrect units");
         auto dimensions = parameters["dimensions"].toArray(); dimensions.append(dimension);
         parameters["dimensions"] = dimensions;
+        auto candidate = draft; candidate["parameters"] = parameters;
+        const auto result = solveDraft(candidate);
+        return result.ok ? result : SolveResult{false, draft, result.diagnostics, result.error};
+    } catch (const std::exception& error) { return invalidDraft(draft, QString::fromUtf8(error.what())); }
+}
+
+SketchGeometry::SolveResult SketchGeometry::setConstruction(const QJsonObject& draft, const QJsonObject& arguments) {
+    try {
+        validateDraft(draft);
+        checkFields(arguments, {"entityIds", "construction"});
+        if (!arguments["construction"].isBool()) reject("Construction requires an explicit boolean");
+        if (!arguments["entityIds"].isArray() || arguments["entityIds"].toArray().isEmpty())
+            reject("Select at least one line for construction conversion");
+        QSet<QString> selected;
+        for (const auto& value : arguments["entityIds"].toArray()) {
+            if (!value.isString() || QUuid(value.toString()).isNull() || selected.contains(value.toString()))
+                reject("Construction selection requires distinct line UUIDs");
+            selected.insert(value.toString());
+        }
+        auto parameters = draft["parameters"].toObject();
+        auto entities = parameters["entities"].toArray();
+        auto remaining = selected;
+        bool changed = false;
+        for (int i = 0; i < entities.size(); ++i) {
+            auto entity = entities[i].toObject();
+            if (!selected.contains(entity["id"].toString())) continue;
+            if (entity["type"] != "line") reject("Construction conversion currently supports lines only");
+            remaining.remove(entity["id"].toString());
+            if (entity["construction"].toBool() == arguments["construction"].toBool()) continue;
+            if (arguments["construction"].toBool()) entity["construction"] = true;
+            else entity.remove("construction");
+            entities[i] = entity; changed = true;
+        }
+        if (!remaining.isEmpty()) reject("Construction selection contains a missing entity");
+        if (!changed) {
+            auto result = solveDraft(draft);
+            result.feature = draft;
+            return result;
+        }
+        parameters["entities"] = entities;
         auto candidate = draft; candidate["parameters"] = parameters;
         const auto result = solveDraft(candidate);
         return result.ok ? result : SolveResult{false, draft, result.diagnostics, result.error};

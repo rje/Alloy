@@ -139,6 +139,8 @@ fail without applying the command. Error codes include `invalid_request`,
 | `sketch.lookAt` | View normal to the active sketch plane |
 | `sketch.finish`, `sketch.cancel` | Commit or discard the active sketch session |
 | `view.projectSketchPoint` | `plane`, `uMm`, `vMm`; actual world-to-viewport projection |
+| `sketch.construction` | `construction`: boolean; optional `entityIds` defaults to selected lines; keeps IDs/constraints, changes profile participation |
+| `sketch.constructionToggle` | Toggle selected lines; mixed selection becomes construction, all-construction becomes normal; shared X/context/palette command |
 | `sketch.constraint` | `type`: `coincident`, `horizontal`, `vertical`, `parallel`, `perpendicular`, `equal` or `fixed`; optional `pointIds`, `entityIds`, `session`. Omitted targets use active sketch selection |
 | `sketch.constraintTool` | `type`: persistent constraint-first tool; repeated picks apply shared retained relations, Escape returns to Select |
 | `sketch.dimension` | `kind`: `linear`, `horizontal`, `vertical`, `radius`, `diameter`, `angle` or `arcSweep`; optional `pointIds` (two), `entityId` (one line/curve), `entityIds` (two lines for angle), `raySigns` (two values ±1 selecting the angular sector), `value` (length) or `valueDeg` (sweep), `units`, `driving`, `annotation`, `session`. Omitted targets use selection; `driving` defaults true |

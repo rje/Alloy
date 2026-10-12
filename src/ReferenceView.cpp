@@ -2,6 +2,9 @@
 #include "SketchGeometry.h"
 #include <QMouseEvent>
 #include <QWheelEvent>
+#include <QContextMenuEvent>
+#include <QMenu>
+#include <QApplication>
 #include <QTimer>
 #include <QJsonArray>
 #include <QFontMetricsF>
@@ -61,6 +64,7 @@
 #include <Geom_Curve.hxx>
 #include <BRep_Builder.hxx>
 #include <TopoDS_Compound.hxx>
+#include <TopoDS_Iterator.hxx>
 
 namespace {
 gp_Pnt sketchWorld(const QString& plane,double u,double v) {
@@ -72,6 +76,34 @@ Handle(AIS_Shape) sketchPresentation(const TopoDS_Shape& shape) {
     Handle(AIS_Shape) presentation=new AIS_Shape(shape);
     presentation->SetColor(Quantity_Color(0.10,0.34,0.84,Quantity_TOC_RGB));
     presentation->SetWidth(2);
+    return presentation;
+}
+struct SketchStrokes { TopoDS_Shape normal, construction; int constructionCount = 0; };
+SketchStrokes splitSketchStrokes(const EvaluatedSketch& sketch) {
+    if(sketch.shape.IsNull())return {};
+    const auto entities=sketch.summary.value("entities").toArray();
+    TopoDS_Iterator child(sketch.shape);
+    TopoDS_Compound normal,construction;BRep_Builder builder;builder.MakeCompound(normal);builder.MakeCompound(construction);
+    int ordinaryCount=0,constructionCount=0;
+    for(const auto& entry:entities) {
+        if(!child.More())return {sketch.shape,{}};
+        if(entry.toObject().value("construction").toBool()) {builder.Add(construction,child.Value());++constructionCount;}
+        else {builder.Add(normal,child.Value());++ordinaryCount;}
+        child.Next();
+    }
+    if(child.More())return {sketch.shape,{}};
+    return {ordinaryCount ? TopoDS_Shape(normal) : TopoDS_Shape{},
+        constructionCount ? TopoDS_Shape(construction) : TopoDS_Shape{},constructionCount};
+}
+Handle(AIS_Shape) constructionPresentation(const TopoDS_Shape& shape,bool selected=false) {
+    Handle(AIS_Shape) presentation=new AIS_Shape(shape);
+    const Quantity_Color color=selected ? Quantity_Color(0.98,0.43,0.08,Quantity_TOC_RGB)
+        : Quantity_Color(0.91,0.47,0.11,Quantity_TOC_RGB);
+    const Handle(Prs3d_LineAspect) dashed=new Prs3d_LineAspect(color,Aspect_TOL_DASH,selected ? 4 : 1.5);
+    presentation->SetColor(color);
+    presentation->Attributes()->SetWireAspect(dashed);presentation->Attributes()->SetLineAspect(dashed);
+    presentation->Attributes()->SetFreeBoundaryAspect(dashed);presentation->Attributes()->SetUnFreeBoundaryAspect(dashed);
+    presentation->SetDisplayMode(AIS_WireFrame);
     return presentation;
 }
 }
@@ -109,8 +141,9 @@ void ReferenceView::rebindDocument() {
     setEditDisplay({},{});selectProfile({},{});highlightCombineInputs({},{});
     for(const auto& model:models_)context_->Remove(model,false);
     for(const auto& model:sketchModels_)context_->Remove(model,false);
+    for(const auto& model:constructionSketchModels_)context_->Remove(model,false);
     for(const auto& model:finishedProfileModels_)context_->Remove(model,false);
-    models_.clear();bodyVisibility_.clear();sketchModels_.clear();finishedProfileModels_.clear();finishedSketches_.clear();
+    models_.clear();bodyVisibility_.clear();sketchModels_.clear();constructionSketchModels_.clear();finishedProfileModels_.clear();finishedSketches_.clear();
     modelRevision_=std::numeric_limits<quint64>::max();sketchRevision_=modelRevision_;
 }
 void ReferenceView::initialize() {
@@ -284,13 +317,19 @@ void ReferenceView::displayBodies(const std::vector<EvaluatedBody>& bodies) {
 void ReferenceView::setSketches(const std::vector<EvaluatedSketch>& sketches,quint64 revision) {
     if(context_.IsNull() || sketchRevision_==revision)return;
     for(const auto& model:sketchModels_)context_->Remove(model,false);
+    for(const auto& model:constructionSketchModels_)context_->Remove(model,false);
     for(const auto& model:finishedProfileModels_)context_->Remove(model,false);
-    sketchModels_.clear();finishedProfileModels_.clear();finishedSketches_=sketches;
+    sketchModels_.clear();constructionSketchModels_.clear();finishedProfileModels_.clear();finishedSketches_=sketches;
     for(const auto& sketch:sketches) {
-        if(!sketch.shape.IsNull()) {
-            const auto model=sketchPresentation(sketch.shape);model->SetDisplayMode(AIS_WireFrame);
+        const auto strokes=splitSketchStrokes(sketch);
+        if(!strokes.normal.IsNull()) {
+            const auto model=sketchPresentation(strokes.normal);model->SetDisplayMode(AIS_WireFrame);
             if(sketch.summary["solver"].toObject()["dof"].toInt(-1)==0)model->SetColor(Quantity_Color(0.12,0.14,0.16,Quantity_TOC_sRGB));
             context_->Display(model,AIS_WireFrame,-1,false);context_->Deactivate(model);sketchModels_[sketch.featureId]=model;
+        }
+        if(!strokes.construction.IsNull()) {
+            const auto model=constructionPresentation(strokes.construction);
+            context_->Display(model,AIS_WireFrame,-1,false);context_->Deactivate(model);constructionSketchModels_[sketch.featureId]=model;
         }
         for(const auto& profile:sketch.profiles) {
             BRepMesh_IncrementalMesh mesh(profile.face,0.1,false,0.5,false);
@@ -309,6 +348,10 @@ void ReferenceView::applyEditDisplay(bool redraw) {
         if(sketchModels_.contains(sketch.featureId)) {
             if(visible)context_->Display(sketchModels_.value(sketch.featureId),false);
             else context_->Erase(sketchModels_.value(sketch.featureId),false);
+        }
+        if(constructionSketchModels_.contains(sketch.featureId)) {
+            if(visible)context_->Display(constructionSketchModels_.value(sketch.featureId),false);
+            else context_->Erase(constructionSketchModels_.value(sketch.featureId),false);
         }
         for(const auto& profile:sketch.profiles)if(finishedProfileModels_.contains(profile.profileId)) {
             const auto fill=finishedProfileModels_.value(profile.profileId);
@@ -356,13 +399,26 @@ void ReferenceView::showSketchDraft(const EvaluatedSketch& sketch) {
         context_->Display(fill,AIS_Shaded,-1,false);context_->Deactivate(fill);profileModels_[profile.profileId]=fill;
     }
     if(!sketchDraft_.IsNull())context_->Remove(sketchDraft_,false);
+    if(!sketchConstructionDraft_.IsNull())context_->Remove(sketchConstructionDraft_,false);
     if(draftSketchId_!=sketch.featureId && sketchModels_.contains(draftSketchId_))context_->Display(sketchModels_.value(draftSketchId_),false);
-    draftSketchId_=sketch.featureId;sketchDraft_.Nullify();
+    if(draftSketchId_!=sketch.featureId && constructionSketchModels_.contains(draftSketchId_))context_->Display(constructionSketchModels_.value(draftSketchId_),false);
+    draftSketchId_=sketch.featureId;sketchDraft_.Nullify();sketchConstructionDraft_.Nullify();constructionDraftLineIds_={};
     if(sketchModels_.contains(draftSketchId_))context_->Erase(sketchModels_.value(draftSketchId_),false);
-    if(!sketch.shape.IsNull()) {
-        sketchDraft_=sketchPresentation(sketch.shape);
+    if(constructionSketchModels_.contains(draftSketchId_))context_->Erase(constructionSketchModels_.value(draftSketchId_),false);
+    const auto strokes=splitSketchStrokes(sketch);
+    if(!strokes.normal.IsNull()) {
+        sketchDraft_=sketchPresentation(strokes.normal);
         if(sketch.summary["solver"].toObject()["dof"].toInt(-1)==0)sketchDraft_->SetColor(Quantity_Color(0.12,0.14,0.16,Quantity_TOC_sRGB));
         context_->Display(sketchDraft_,AIS_WireFrame,-1,false);context_->Deactivate(sketchDraft_);
+    }
+    if(!strokes.construction.IsNull()) {
+        sketchConstructionDraft_=constructionPresentation(strokes.construction);
+        context_->Display(sketchConstructionDraft_,AIS_WireFrame,-1,false);context_->Deactivate(sketchConstructionDraft_);
+        for(const auto& entry:sketch.summary.value("entities").toArray()) {
+            const auto entity=entry.toObject();
+            if(entity.value("construction").toBool() && entity.value("type")=="line")
+                constructionDraftLineIds_.append(entity.value("id"));
+        }
     }
     applyEditDisplay();
 }
@@ -372,11 +428,13 @@ void ReferenceView::clearSketchDraft() {
     if(!context_.IsNull()) {
         for(const auto& model:profileModels_)context_->Remove(model,false);
         if(!sketchDraft_.IsNull())context_->Remove(sketchDraft_,false);
+        if(!sketchConstructionDraft_.IsNull())context_->Remove(sketchConstructionDraft_,false);
         if(sketchModels_.contains(draftSketchId_))context_->Display(sketchModels_.value(draftSketchId_),false);
+        if(constructionSketchModels_.contains(draftSketchId_))context_->Display(constructionSketchModels_.value(draftSketchId_),false);
         context_->UpdateCurrentViewer();
     }
     profileModels_.clear();draftProfiles_.clear();
-    sketchDraft_.Nullify();draftSketchId_.clear();clearSketchCursor();applyEditDisplay();
+    sketchDraft_.Nullify();sketchConstructionDraft_.Nullify();constructionDraftLineIds_={};draftSketchId_.clear();clearSketchCursor();applyEditDisplay();
 }
 QJsonObject ReferenceView::pickSketch(const QJsonObject& feature,double x,double y,const QString& filter) const {
     if(view_.IsNull() || x<0 || y<0 || x>=width() || y>=height())return {};
@@ -601,7 +659,9 @@ void ReferenceView::decorateSketch(const QJsonObject& feature,const QJsonObject&
     for(const auto& entry:parameters["entities"].toArray()) {
         const auto entity=entry.toObject();if(!selection["entityIds"].toArray().contains(entity["id"]))continue;
         const auto edge=SketchGeometry::analyticEdge(parameters,entity);
-        const auto highlight=sketchPresentation(edge);highlight->SetColor(Quantity_Color(0.98,0.43,0.08,Quantity_TOC_RGB));highlight->SetWidth(4);highlight->SetZLayer(Graphic3d_ZLayerId_Topmost);
+        const auto highlight=entity.value("construction").toBool() ? constructionPresentation(edge,true) : sketchPresentation(edge);
+        if(!entity.value("construction").toBool()){highlight->SetColor(Quantity_Color(0.98,0.43,0.08,Quantity_TOC_RGB));highlight->SetWidth(4);}
+        highlight->SetZLayer(Graphic3d_ZLayerId_Topmost);
         context_->Display(highlight,AIS_WireFrame,-1,false);context_->Deactivate(highlight);sketchDecorations_.push_back(highlight);
     }
     // Independently authored retained-relation badges, anchored to their real
@@ -909,8 +969,19 @@ QJsonObject ReferenceView::diagnostics() const {
     result.insert("details", raw);
     int displayedBodies=0;for(const auto& model:models_)if(context_->IsDisplayed(model))++displayedBodies;
     result.insert("displayedBodies",displayedBodies);
-    result.insert("displayedSketches",sketchModels_.size());
-    result.insert("draftSketchVisible",!sketchDraft_.IsNull());
+    int displayedSketches=sketchModels_.size();
+    for(auto it=constructionSketchModels_.cbegin();it!=constructionSketchModels_.cend();++it)
+        if(!sketchModels_.contains(it.key()))++displayedSketches;
+    result.insert("displayedSketches",displayedSketches);
+    result.insert("draftSketchVisible",!sketchDraft_.IsNull() || !sketchConstructionDraft_.IsNull());
+    result.insert("constructionDraftVisible",!sketchConstructionDraft_.IsNull());
+    result.insert("constructionDraftLineIds",constructionDraftLineIds_);
+    result.insert("constructionSketches",constructionSketchModels_.size());
+    result.insert("rightMousePressCount",rightMousePressCount_);
+    result.insert("contextMenuEventCount",contextMenuEventCount_);
+    result.insert("contextMenuShownCount",contextMenuShownCount_);
+    result.insert("lastContextMenu",lastContextMenu_);
+    result.insert("contextMenuVisible",qobject_cast<QMenu*>(QApplication::activePopupWidget())!=nullptr);
     result.insert("draftSketchId",draftSketchId_);
     result.insert("sketchPlane",sketchPlane_);
     result.insert("sketchGrid",QJsonObject{{"adaptive",adaptiveGrid_},{"centerUMm",gridCenterU_},
@@ -974,6 +1045,7 @@ QImage ReferenceView::framebuffer() {
     return image;
 }
 void ReferenceView::mousePressEvent(QMouseEvent* e) {
+    if(e->button()==Qt::RightButton)++rightMousePressCount_;
     if (e->button() == Qt::MiddleButton || (e->button()==Qt::LeftButton && e->modifiers().testFlag(Qt::AltModifier))) {
         panButton_=e->button();last_=e->position();setCursor(Qt::ClosedHandCursor);e->accept();
     }
@@ -1016,6 +1088,26 @@ void ReferenceView::mouseDoubleClickEvent(QMouseEvent* e) {
         if(!picked.isEmpty()){draggedAnnotation_.clear();dispatch("sketch.dimensionEdit",{{"dimensionId",picked.value("dimensionId")}});e->accept();return;}
     }
     QWidget::mouseDoubleClickEvent(e);
+}
+void ReferenceView::contextMenuEvent(QContextMenuEvent* e) {
+    ++contextMenuEventCount_;
+    const bool sketchActive=!sketchPlane_.isEmpty();
+    const bool selectTool=decorationSelection_.value("tool")=="select";
+    const int selectedEntities=decorationSelection_["entityIds"].toArray().size();
+    lastContextMenu_=QJsonObject{{"reason",static_cast<int>(e->reason())},{"sketchActive",sketchActive},
+        {"selectTool",selectTool},{"selectedEntities",selectedEntities},
+        {"x",e->pos().x()},{"y",e->pos().y()}};
+    if(sketchActive && selectTool && selectedEntities>0) {
+        ++contextMenuShownCount_;
+        QMenu menu(this);auto* toggle=menu.addAction("Normal/Construction  X");
+        lastContextMenu_["phase"]="open";
+        const auto selected=menu.exec(e->globalPos());
+        lastContextMenu_["phase"]="closed";
+        lastContextMenu_["result"]=selected==toggle ? "selected" : "cancelled";
+        if(selected==toggle)dispatch("sketch.constructionToggle",{});
+        e->accept();return;
+    }
+    QWidget::contextMenuEvent(e);
 }
 void ReferenceView::wheelEvent(QWheelEvent* e) {
     dispatch("view.zoom", {{"factor",std::clamp(std::pow(1.0015,e->angleDelta().y()),0.1,10.0)}}); e->accept();

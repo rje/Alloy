@@ -26,7 +26,7 @@
     "DOC-015": {
       "number": 151,
       "url": "https://github.com/rje/Alloy/issues/151",
-      "state": "open"
+      "state": "closed"
     },
     "SKT-017": {
       "number": 150,
@@ -786,6 +786,11 @@
     "FND-014": {
       "number": 157,
       "url": "https://github.com/rje/Alloy/issues/157",
+      "state": "open"
+    },
+    "FND-015": {
+      "number": 158,
+      "url": "https://github.com/rje/Alloy/issues/158",
       "state": "open"
     }
   }

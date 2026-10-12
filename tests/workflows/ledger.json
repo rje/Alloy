@@ -532,6 +532,18 @@
       "inputs": [
         "tests/app_harness.py"
       ]
+    },
+    "sketch-construction": {
+      "script": "tests/sketch_construction_api.py",
+      "fixture": "tests/workflows/fixtures/sketch-construction.json",
+      "result": "sketch-construction-api.json",
+      "covers": [],
+      "capabilities": [
+        "sketch.construction_conversion"
+      ],
+      "inputs": [
+        "tests/app_harness.py"
+      ]
     }
   },
   "gates": {

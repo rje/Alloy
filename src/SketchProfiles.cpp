@@ -82,11 +82,15 @@ SketchProfiles::Result SketchProfiles::derive(const QJsonObject& feature) {
     const auto validation = SketchGeometry::validateParameters(parameters, authoredIds);
     if (!validation.isEmpty()) return refuse("invalid_sketch", validation);
     for (const auto& value : parameters["points"].toArray()) sourcePointIds.append(value.toObject()["id"].toString());
-    for (const auto& value : parameters["entities"].toArray()) sourceEntityIds.append(value.toObject()["id"].toString());
+    QJsonArray entities;
+    for (const auto& value : parameters["entities"].toArray()) {
+        if (value.toObject()["construction"].toBool()) continue;
+        entities.append(value);
+        sourceEntityIds.append(value.toObject()["id"].toString());
+    }
     sourcePointIds.sort(); sourceEntityIds.sort();
     if (sourceEntityIds.isEmpty()) return refuse("empty_sketch", "Draw a closed line boundary to create a profile.");
 
-    const auto entities = parameters["entities"].toArray();
     const bool hasCurves=std::any_of(entities.begin(),entities.end(),[](const auto& value){return value.toObject()["type"]!="line";});
     const auto profileId=QUuid::createUuidV5(QUuid(sketchId),QByteArray("alloy-profile/1\n")+sourceEntityIds.join('\n').toUtf8()).toString(QUuid::WithoutBraces);
     const auto frame=SketchGeometry::frame(plane);const auto origin=frame["origin"].toArray();
@@ -145,7 +149,7 @@ SketchProfiles::Result SketchProfiles::derive(const QJsonObject& feature) {
 
     std::vector<Edge> edges;
     QMap<QString, std::vector<int>> adjacency;
-    for (const auto& value : parameters["entities"].toArray()) {
+    for (const auto& value : entities) {
         const auto entity = value.toObject(); const auto start = entity["startPointId"].toString(), end = entity["endPointId"].toString();
         Edge edge{entity["id"].toString(),start,end,representative.value(start),representative.value(end),entity};
         const auto a = points.value(edge.start), b = points.value(edge.end);

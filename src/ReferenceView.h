@@ -11,6 +11,7 @@
 #include <AIS_Shape.hxx>
 #include <QMap>
 #include "GeometryKernel.h"
+class QContextMenuEvent;
 
 // GPU presentation only. Reference axes/grid are not authored document objects.
 class ReferenceView final : public QWidget {
@@ -69,6 +70,7 @@ protected:
     void mouseMoveEvent(QMouseEvent*) override;
     void mouseReleaseEvent(QMouseEvent*) override;
     void mouseDoubleClickEvent(QMouseEvent*) override;
+    void contextMenuEvent(QContextMenuEvent*) override;
     void wheelEvent(QWheelEvent*) override;
 private:
     void initialize();
@@ -95,11 +97,17 @@ private:
     QString combineTargetId_;
     QJsonArray combineToolIds_;
     QMap<QString,Handle(AIS_Shape)> sketchModels_;
+    QMap<QString,Handle(AIS_Shape)> constructionSketchModels_;
     QMap<QString,Handle(AIS_Shape)> finishedProfileModels_;
     std::vector<EvaluatedSketch> finishedSketches_;
     QString selectedProfile_, selectedProfileSketch_, editSourceSketch_;
     QJsonArray hiddenBodyIds_;
-    Handle(AIS_Shape) sketchDraft_, sketchCursor_, sketchSnapCue_;
+    Handle(AIS_Shape) sketchDraft_, sketchConstructionDraft_, sketchCursor_, sketchSnapCue_;
+    QJsonArray constructionDraftLineIds_;
+    int rightMousePressCount_ = 0;
+    int contextMenuEventCount_ = 0;
+    int contextMenuShownCount_ = 0;
+    QJsonObject lastContextMenu_;
     QJsonObject sketchSnapState_;
     std::vector<Handle(AIS_InteractiveObject)> sketchDecorations_;
     QJsonArray annotationLayouts_;

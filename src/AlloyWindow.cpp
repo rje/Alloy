@@ -337,6 +337,11 @@ AlloyWindow::AlloyWindow() {
             if(session_.value("command").toString()=="sketch.edit" && !qobject_cast<QLineEdit*>(QApplication::focusWidget()))execute("sketch.tool",{{"tool",tool}});
         });
     }
+    auto* constructionShortcut=new QShortcut(QKeySequence("X"),this);
+    connect(constructionShortcut,&QShortcut::activated,this,[this]{
+        if(session_.value("command")=="sketch.edit" && !qobject_cast<QLineEdit*>(QApplication::focusWidget()))
+            sketchResponse(execute("sketch.constructionToggle"));
+    });
     for(const auto key:{Qt::Key_Return,Qt::Key_Enter}) {
         auto* finishTool=new QShortcut(QKeySequence(key),view_);finishTool->setContext(Qt::WidgetShortcut);
         connect(finishTool,&QShortcut::activated,this,[this]{if(session_.value("command")=="sketch.edit" && session_.value("tool")!="select" && session_.value("tool")!="dimension")execute("sketch.tool",{{"tool","select"}});});
@@ -810,6 +815,27 @@ void AlloyWindow::registerCommands() {
         const auto selection=session_["selection"].toObject();
         const auto result=setSketchSelection({{field,selection[field].toArray()}});view_->setFocus();return result;
     });
+    add("sketch.construction","Set construction geometry","Convert selected or explicit authored lines without changing their IDs or relations.",
+        {{"entityIds",ids},{"construction",parameter("boolean","True for construction; false for normal profile geometry.")},{"session",optionalSession}},[this](const auto& a){
+            if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
+            if(a.contains("session") && a["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
+            const auto chosen=a.contains("entityIds") ? a["entityIds"].toArray() : session_.value("selection").toObject()["entityIds"].toArray();
+            return publishSketchSolve(SketchGeometry::setConstruction(session_.value("draftSketch").toObject(),
+                {{"entityIds",chosen},{"construction",a["construction"]}}));
+        });
+    add("sketch.constructionToggle","Normal/Construction","Toggle selected lines between normal and construction geometry (X).",
+        {{"session",optionalSession}},[this](const auto& a){
+            if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
+            if(a.contains("session") && a["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
+            const auto chosen=session_.value("selection").toObject()["entityIds"].toArray();
+            if(chosen.isEmpty())return failure("invalid_constraint_target","Select one or more lines to convert");
+            bool allConstruction=true;
+            const auto entities=session_.value("draftSketch").toObject()["parameters"].toObject()["entities"].toArray();
+            for(const auto& id:chosen)for(const auto& entry:entities)if(entry.toObject()["id"]==id)
+                allConstruction &= entry.toObject()["construction"].toBool();
+            return publishSketchSolve(SketchGeometry::setConstruction(session_.value("draftSketch").toObject(),
+                {{"entityIds",chosen},{"construction",!allConstruction}}));
+        });
     add("sketch.constraint","Constrain sketch geometry","Solve a geometric relation before replacing the usable sketch draft.",
         {{"type",constraintType},{"pointIds",ids},{"entityIds",ids},{"session",optionalSession}},[this](const auto& a){
             if(session_.value("command").toString()!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
@@ -2259,21 +2285,40 @@ void AlloyWindow::refreshSketchControls() {
         for(const auto& id:constraint["pointIds"].toArray())relations[id.toString()].append(type.first(1).toUpper()+type.sliced(1));
     }
     if(changed || unitChanged) {
-        const QSignalBlocker block(sketchSelectionTree_);sketchSelectionTree_->clear();
-        auto* pointGroup=new QTreeWidgetItem(sketchSelectionTree_,{"Points"});pointGroup->setFlags(pointGroup->flags() & ~Qt::ItemIsSelectable);
-        auto* lineGroup=new QTreeWidgetItem(sketchSelectionTree_,{"Curves"});lineGroup->setFlags(lineGroup->flags() & ~Qt::ItemIsSelectable);
+        const QSignalBlocker block(sketchSelectionTree_);
+        const auto pointEntries=parameters["points"].toArray(),entityEntries=parameters["entities"].toArray();
+        auto* pointGroup=sketchSelectionTree_->topLevelItemCount()==2 ? sketchSelectionTree_->topLevelItem(0) : nullptr;
+        auto* lineGroup=sketchSelectionTree_->topLevelItemCount()==2 ? sketchSelectionTree_->topLevelItem(1) : nullptr;
+        auto sameIds=[](QTreeWidgetItem* group,const QJsonArray& entries) {
+            if(!group || group->childCount()!=entries.size())return false;
+            for(int i=0;i<entries.size();++i)if(group->child(i)->data(0,Qt::UserRole+1).toString()!=entries[i].toObject()["id"].toString())return false;
+            return true;
+        };
+        const bool stable=sameIds(pointGroup,pointEntries) && sameIds(lineGroup,entityEntries);
+        if(!stable) {
+            // A solved coordinate/dimension change preserves authored IDs. Keep
+            // those QTreeWidgetItems alive for native accessibility clients.
+            sketchSelectionTree_->clearSelection();sketchSelectionTree_->clear();
+            pointGroup=new QTreeWidgetItem(sketchSelectionTree_,{"Points"});pointGroup->setFlags(pointGroup->flags() & ~Qt::ItemIsSelectable);
+            lineGroup=new QTreeWidgetItem(sketchSelectionTree_,{"Curves"});lineGroup->setFlags(lineGroup->flags() & ~Qt::ItemIsSelectable);
+        }
         int index=0;
-        for(const auto& entry:parameters["points"].toArray()) {
+        for(const auto& entry:pointEntries) {
             const auto point=entry.toObject();const auto id=point["id"].toString();points[id]=point;pointNumbers[id]=++index;
-            auto* item=new QTreeWidgetItem(pointGroup,{QString("P%1  (%2, %3) %4").arg(index).arg(QString::number(point["uMm"].toDouble()/scale,'g',5)).arg(QString::number(point["vMm"].toDouble()/scale,'g',5)).arg(units)});
-            if(relations.contains(id))item->setText(0,item->text(0)+" · "+relations[id].join(", "));
+            auto* item=stable ? pointGroup->child(index-1) : new QTreeWidgetItem(pointGroup);
+            QString label=QString("P%1  (%2, %3) %4").arg(index).arg(QString::number(point["uMm"].toDouble()/scale,'g',5)).arg(QString::number(point["vMm"].toDouble()/scale,'g',5)).arg(units);
+            if(relations.contains(id))label+=" · "+relations[id].join(", ");
+            item->setText(0,label);
             item->setData(0,Qt::UserRole,"point");item->setData(0,Qt::UserRole+1,id);item->setSelected(selection["pointIds"].toArray().contains(id));
         }
         index=0;
-        for(const auto& entry:parameters["entities"].toArray()) {
+        for(const auto& entry:entityEntries) {
             const auto entity=entry.toObject();const auto id=entity["id"].toString();
-            auto* item=new QTreeWidgetItem(lineGroup,{entity["type"]=="circle" ? QString("Circle %1  ·  P%2 · R%3").arg(++index).arg(pointNumbers.value(entity["centerPointId"].toString())).arg(entity["radiusMm"].toDouble()/scale) : QString("%1 %2  ·  P%3 → P%4").arg(entity["type"]=="arc" ? "Arc" : "Line").arg(++index).arg(pointNumbers.value(entity["startPointId"].toString())).arg(pointNumbers.value(entity["endPointId"].toString()))});
-            if(relations.contains(id))item->setText(0,item->text(0)+" · "+relations[id].join(", "));
+            auto* item=stable ? lineGroup->child(index) : new QTreeWidgetItem(lineGroup);
+            QString label=entity["type"]=="circle" ? QString("Circle %1  ·  P%2 · R%3").arg(++index).arg(pointNumbers.value(entity["centerPointId"].toString())).arg(entity["radiusMm"].toDouble()/scale) : QString("%1 %2  ·  P%3 → P%4").arg(entity["type"]=="arc" ? "Arc" : "Line").arg(++index).arg(pointNumbers.value(entity["startPointId"].toString())).arg(pointNumbers.value(entity["endPointId"].toString()));
+            if(entity["construction"].toBool())label+=" · Construction";
+            if(relations.contains(id))label+=" · "+relations[id].join(", ");
+            item->setText(0,label);
             item->setData(0,Qt::UserRole,"entity");item->setData(0,Qt::UserRole+1,id);item->setSelected(selection["entityIds"].toArray().contains(id));
         }
         pointGroup->setExpanded(true);lineGroup->setExpanded(true);
@@ -2445,9 +2490,18 @@ void AlloyWindow::showSketch() {
             button->setStyleSheet("QPushButton:checked { background: #deedf5; border: 1px solid #2b83ae; }");
             button->setToolTip(type=="fixed" ? "Select one point; retain its position" : type=="coincident" ? "Select two points"
                 : type=="horizontal" || type=="vertical" || type=="horizontalVertical" ? "Pick a line; Horizontal/Vertical chooses the nearest orientation" : type=="equal" ? "Pick two lines or two circles/arcs; repeat pairs; Escape exits" : "Pick two lines; repeat pairs; Escape exits");
-            constraints->addWidget(button,i/2,i%2);connect(button,&QPushButton::clicked,this,[this,type]{sketchResponse(execute("sketch.constraintTool",{{"type",type}}));});
+            constraints->addWidget(button,i/2,i%2);
+            connect(button,&QPushButton::toggled,this,[this,type](bool checked){
+                if(checked)sketchResponse(execute("sketch.constraintTool",{{"type",type}}));
+                else if(session_.value("tool")=="constraint" && session_.value("constraintType")==type)
+                    sketchResponse(execute("sketch.tool",{{"tool","select"}}));
+            });
         }
-        layout->addLayout(constraints);layout->addWidget(new QLabel("NEW DIMENSION"));
+        layout->addLayout(constraints);
+        auto* construction=new QPushButton("Normal/Construction  X");construction->setObjectName("sketch.construction.toggle");
+        construction->setToolTip("Convert selected lines; construction lines remain usable for constraints but do not bound profiles.");
+        connect(construction,&QPushButton::clicked,this,[this]{sketchResponse(execute("sketch.constructionToggle"));});
+        layout->addWidget(construction);layout->addWidget(new QLabel("NEW DIMENSION"));
         auto* dimensionHelp=new QLabel("Creates a dimension for selected geometry.\nUse D to place a dimension in the canvas.");dimensionHelp->setWordWrap(true);layout->addWidget(dimensionHelp);
         auto* dimensions=new QFormLayout;
         sketchDimensionKind_=new QComboBox;sketchDimensionKind_->setObjectName("sketch.dimension.kind");

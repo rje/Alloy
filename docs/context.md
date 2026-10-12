@@ -686,3 +686,43 @@ See docs/validation/document-tabs.md for scope and remaining Save-close qualific
 No private test app remains running. Next: complete native illustrated Activity1,
 then construction and inferred circles for Activity2. Video capture remains #157,
 planned but unqualified; no recording was made. No release or CI run.
+
+## Native Activity1 interruption (2026-10-12)
+
+After 6fabc42, root native input created plus tab, XY, six edges, three Perpendicular,
+two H/V, two Equal, and500mm dimension. API navigation configured zoom/pan; all
+modeling was native. Constraint AX toggles change checked appearance without the
+clicked handler, so physical clicks were used. Repeated physical tools worked.
+Native angle45 entry plus AX observation crashed PID10635. Matching report is
+alloy-2026-10-12-125610.ips (older112454 is another PID); fault is Qt macOS
+accessibilitySelectedChildren. Fullnative gate remains FAILED/incomplete.
+FND-015 #158 tracks this; board In Progress. Sol staged stable sketch-tree items
+for ordinary dimension changes; Astra reviewed source, native retest pending.
+Construction core/UI work is also staged separately by Sol agents, unverified.
+Current private app exited in crash. Evidence activity1-native-* records stages.
+
+Native recovery retest passed: root reconstructed the previously observed native
+500-mm authored draft as activity1-native-length500-recovered.alloy, opened and
+edited through API, then used native D/picks/type45/Return/Escape and AX query,
+followed by native100 aligned and AX query, Finish. Final DOF0 and500/45/100 with
+12 visible glyph records; Astra inspected captures and accepted bounded recovery.
+This is not an uninterrupted native Activity1 pass. Specific accessibility crash
+path no longer reproduced; checkbox activation remains open under#158.
+Construction core sketch_curves test passed; full application constructionflow
+still pending. Private app quit. DOC-015#151 closed; snapshot27closed131open/158.
+
+Construction real-app ledger now passes. Native physical cap-edge selection+X
+converted exactly that line, retained its constraints, removed profile shading,
+and selected dashed capture is underconstruction-native-selected. Accessible
+constraint control activation now updates authoritative tool state; clicking off
+returns Select. Right-click context menu did not appear onmac at edge or blank
+viewport despite valid state; investigate native event routing before claiming
+exact source contextmenu step. Private candidate quit; SolUI adding narrow input
+diagnostics before next build. No full tutorial/recording pass claimed.
+
+Context-menu probe resolved: native rightclick reached the viewport and opened the
+menu; intervening CUA AX inspection dismissed it. Batched rightclick/Down/Return
+converted the selected API-seeded line (`context-menu-sequence.json`). No behavior
+fix needed. Lightweight viewport diagnostics now expose right/contextmenu counts,
+last guard state and popup lifetime for future native automation. Final diagnostic build passed; no app remains active. NativeX + menu conversion + accessibleconstraint
+activation accepted as bounded checks; exact two-edgeShift tutorial step remains.

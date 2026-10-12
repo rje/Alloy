@@ -50,3 +50,19 @@ and `grid-coverage/grid-coverage.json` record the final focused check. Captures 
 10% zoom and after pan/zoom/resize show the grid spanning the drawable; Astra
 independently confirmed both. No geometry rerun was needed for this final isolated
 presentation correction. Earlier failures and diagnostics remain outside git.
+
+## Native progress and accessibility interruption
+
+On2026-10-12, native plus/XY/L clicks authored the six-edge outline; physical
+constraint buttons and viewport picks applied3Perpendicular,2H/V,2Equal then500mm.
+View zoom/pan used the API; modeling input was native. A macOS accessibility query
+crashed the candidate during angle entry (matching PID10635 report125610).
+Preserving sketch tree items during ordinary solves mitigates the observed path.
+
+The actual observed500mm draft was recovered into a local fixture and reopened
+through API. Native45degrees and100mm aligned then Finish succeeded with AX reads
+and finalDOF0. Evidence: build-tutorial/evidence/activity1-native-{angle45,cap100}
+JSON/PNG, activity1-native-complete.alloy and activity1-native-finished.json. Astra
+reviewed12glyph records, visible icons and readable dimensions. These separate
+segments establish bounded native capabilities, not an uninterrupted tutorial run.
+FND-015#158 tracks remaining accessibility activation and broader regression.

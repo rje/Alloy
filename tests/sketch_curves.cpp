@@ -37,6 +37,40 @@ QJsonObject pointById(const QJsonObject& f,const QJsonValue& id){
     for(const auto& p:f["parameters"].toObject()["points"].toArray())if(p.toObject()["id"]==id)return p.toObject();
     throw std::runtime_error("Test point reference does not exist");
 }
+void constructionConversion(const QString& owner) {
+    auto rectangle=SketchGeometry::addRectangle(SketchGeometry::newFeature(owner,"XY"),
+        {{"u1Mm",0},{"v1Mm",0},{"u2Mm",10},{"v2Mm",6}});
+    const QJsonValue lineId=entity(rectangle)["id"];
+    rectangle=accepted(SketchGeometry::addDimension(rectangle,{{"kind","horizontal"},{"entityId",lineId},{"valueMm",10}}));
+    const QJsonValue dimensionId=lastDimension(rectangle)["id"];
+    const auto profile=SketchProfiles::derive(rectangle);check(profile.ok,qPrintable(profile.error));
+    const auto construction=accepted(SketchGeometry::setConstruction(rectangle,{{"entityIds",QJsonArray{lineId}},{"construction",true}}));
+    check(entity(construction)["id"]==lineId && entity(construction)["construction"].toBool(),"Construction replaced the authored line");
+    check(construction["parameters"].toObject()["constraints"]==rectangle["parameters"].toObject()["constraints"],"Construction removed constraints");
+    check(construction["parameters"].toObject()["dimensions"]==rectangle["parameters"].toObject()["dimensions"],"Construction removed dimensions");
+    check(!SketchProfiles::derive(construction).ok,"Construction edge contributed a closed boundary");
+    const auto edited=accepted(SketchGeometry::updateDimension(construction,{{"dimensionId",dimensionId},{"valueMm",14}}));
+    near(lineLength(edited,0),14,"Driving dimension no longer controls construction line");
+    const auto normal=accepted(SketchGeometry::setConstruction(edited,{{"entityIds",QJsonArray{lineId}},{"construction",false}}));
+    const auto restored=SketchProfiles::derive(normal);check(restored.ok,qPrintable(restored.error));
+    check(restored.profile.summary["profileId"]==profile.profile.summary["profileId"],"Conversion changed stable profile identity");
+    near(restored.profile.summary["areaMm2"].toDouble(),84,"Normal conversion did not restore edited profile");
+    check(entity(normal)["id"]==lineId && !entity(normal).contains("construction"),"Normal conversion changed line identity");
+    auto failed=SketchGeometry::setConstruction(normal,{{"entityIds",QJsonArray{lineId,QUuid::createUuid().toString(QUuid::WithoutBraces)}},{"construction",true}});
+    check(!failed.ok && failed.feature==normal,"Mixed stale construction selection partially mutated draft");
+    failed=SketchGeometry::setConstruction(normal,{{"entityIds",QJsonArray{lineId}},{"construction","true"}});
+    check(!failed.ok && failed.feature==normal,"Construction accepted untyped boolean");
+    const auto reopened=QJsonDocument::fromJson(QJsonDocument(construction).toJson()).object();
+    check(accepted(SketchGeometry::solveDraft(reopened))==construction,"Construction intent lost in JSON roundtrip");
+    // An interior reference edge must not enter boundary topology or provenance.
+    auto diagonal=SketchGeometry::addLine(rectangle,{{"u1Mm",0},{"v1Mm",0},{"u2Mm",10},{"v2Mm",6}});
+    const QJsonValue diagonalId=entity(diagonal,4)["id"];
+    diagonal=accepted(SketchGeometry::setConstruction(diagonal,{{"entityIds",QJsonArray{diagonalId}},{"construction",true}}));
+    const auto boundary=SketchProfiles::derive(diagonal);check(boundary.ok,qPrintable(boundary.error));
+    check(!boundary.profile.summary["sourceEntityIds"].toArray().contains(diagonalId),"Construction leaked into profile provenance");
+    near(boundary.profile.summary["areaMm2"].toDouble(),60,"Construction diagonal changed boundary area");
+}
+
 void pointerSnaps(const QString& owner){
     const auto blank=SketchGeometry::newFeature(owner,"XY","Pointer snap chain");
     auto f=accepted(SketchGeometry::addPointerEntity(blank,"line",{{"u1Mm",0.1},{"v1Mm",0.2},{"u2Mm",10},{"v2Mm",0},{"startSnapTarget",QJsonObject{{"kind","origin"}}}}));
@@ -203,6 +237,7 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
     equalConstraints(owner);
     lineAngularDimensions(owner);
     pointerSnaps(owner);
+    constructionConversion(owner);
     underconstrainedOutlineAngle(owner);
     const auto blank=SketchGeometry::newFeature(owner,"XY");
     auto circle=SketchGeometry::addCircle(blank,{{"centerUMm",0},{"centerVMm",0},{"diameterMm",10}});

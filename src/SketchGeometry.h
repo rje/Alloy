@@ -30,6 +30,8 @@ public:
     // creation above never acquires an implicit target.
     static SolveResult addPointerEntity(const QJsonObject& draft, const QString& tool,
         const QJsonObject& arguments);
+    // Explicit normal/construction conversion retains geometry and relation IDs.
+    static SolveResult setConstruction(const QJsonObject& draft, const QJsonObject& arguments);
     static SolveResult solveDraft(const QJsonObject& draft);
     static SolveResult addConstraint(const QJsonObject& draft, const QJsonObject& arguments);
     // Line angles use kind=angle, two entityIds, optional raySigns (+1/-1),

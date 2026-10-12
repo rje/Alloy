@@ -38,7 +38,8 @@ The [first illustrated activity modeling checkpoint](docs/validation/bracket-act
 now verifies the six-edge constrained outline and 500/45/100 dimensions, with
 native aligned entry and improved grid/badge rendering. Independent [document tabs](docs/validation/document-tabs.md)
 now retain each design and unfinished sketch history. A complete native tutorial
-run remains ahead.
+run remains ahead. [Construction line conversion](docs/validation/sketch-construction.md)
+now retains constraints and supports dashed geometry through history and storage.
 
 ## Project documents
 

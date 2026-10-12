@@ -1188,6 +1188,23 @@
       "body": "## Problem and result\nProvide shareable video evidence of automated tutorial workflows, showing actual cursor motion, clicks, key input and completed modeling steps. Requested while tutorial implementation continues.\n\n## Scope\nRecord the actual Alloy window during representative tests. Add opt-in application-scoped input/step overlays and a timed evidence log. Clearly distinguish native mouse/keyboard events, synthetic widget tests and API command actions. Keep movies outside git; retain small recipes and metadata. First qualify the available macOS recorder, then document Windows/Linux capture paths at their native milestones.\n\n## Acceptance criteria\n- Video shows real hardware-rendered application output, readable cursor/click/key overlays and concise tutorial-step captions.\n- Input labels correspond to actual observed events or explicitly labeled API actions; do not fabricate human interaction for API shortcuts.\n- Recording start/stop and output completion are observable; preserve test assertions and transcript separately from a polished demonstration.\n- Provide a normal-speed shareable clip and optionally an explicitly labeled edited/time-compressed version; no silent skipped failed tutorial steps.\n- Capture only the intended app/region. Opt-in keystroke observation is scoped to Alloy. Keep raw video and visual reference media out of the codebase.\n\n## Proposed verification and evidence\nRecord one short sketch-to-solid test, replay the clip and inspect motion, click/key timing, legibility and final geometry. Link movie to its source revision, test result and step transcript. Then include recordings at major tutorial testing milestones. Do not claim video proves every geometric or persistence assertion.\n\n## Public reference evidence\nUser-requested delivery requirement (2026-10-12). Workflow contract follows the public command-input descriptions (reference `inputs`) \u2014 retrieved 2026-10-11. Current host command help confirms macOS screencapture supports video, duration and click indicators; permissions, app-only framing and output quality are not yet qualified. Keyboard overlay requires implementation.\n\n## Limits and open questions\nNo recording capability is yet implemented or verified in Alloy. Choose the smallest mature recording foundation that captures the actual GPU viewport. Publishing videos to third parties is separate from creating local shareable artifacts.\n"
     },
     {
+      "key": "FND-015",
+      "title": "Preserve accessible sketch controls during native tutorial editing",
+      "kind": "implementation",
+      "phase": "P0 Foundation",
+      "priority": "P0",
+      "depends_on": [
+        "FND-006"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P0",
+        "priority:P0",
+        "area:fnd"
+      ],
+      "body": "Native tutorial Activity1 crashed after dimension editing while computer-use automation queried the accessibility tree. Matching process PID10635 report: alloy-2026-10-12-125610.ips, top frame QMacAccessibilityElement accessibilitySelectedChildren. Do not attribute this to the older report with a different PID.\n\n## Scope\n preserve sketch palette tree item identity during ordinary geometry/constraint updates; use correct model notifications for real additions/removals. Keep accessibility enabled. Independently fix checkable constraint control accessibility activation if needed; an AX toggle currently changes appearance without invoking its clicked command.\n\n## Acceptance criteria\n repeat native outline, constraints, 500 mm then 45-degree dimension with accessibility reads after each stage. No crash; authoritative dimensions/relations and visible tree match. Confirm ordinary physical constraint clicks and accessible activation both route through shared commands. Astra review required. Record native/API evidence separately; a build or API-only pass does not close the crash.\n\n## Proposed verification and evidence\n build-tutorial/evidence/activity1-native-*; raw reports remain local. Root stopped the native gate at failure; no full tutorial claim.\n\n## Public reference evidence\nNative observed defect, 2026-10-12; shared control contract follows reference `inputs`.\n\n## Limits and open questions\nQt accessibility fault site is confirmed; root cause attribution is unresolved. Preserve accessibility rather than disabling it. No full native tutorial pass yet.\n"
+    },
+    {
       "key": "GATE-020",
       "title": "Gate: editable bracket from constrained sketch through printable export",
       "kind": "validation",
@@ -1217,7 +1234,8 @@
         "SKT-017",
         "TUT-003",
         "SKT-020",
-        "FND-014"
+        "FND-014",
+        "FND-015"
       ],
       "labels": [
         "kind:validation",
