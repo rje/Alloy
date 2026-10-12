@@ -35,6 +35,9 @@ public:
     // Cut adds operation=cut and exactly one targetBodyIds entry; it owns no body.
     const EvaluatedDocument& evaluation() const { return *evaluation_; }
     EvaluatedDocument evaluationBefore(const QString& featureId) const;
+    // Reads and embeds one bounded local STEP source. The caller commits the
+    // returned candidate through the ordinary validated document transaction.
+    static QJsonObject stepImportCandidate(const QJsonObject& authored, const QJsonObject& arguments);
     static QJsonObject extrusionCandidate(const QJsonObject& authored, const QJsonObject& arguments);
     // Canonical args: operation, targetBodyId, toolBodyIds, keepTools, optional
     // name; featureId edits an existing Boolean, newFeatureId reserves a create.

@@ -1,5 +1,6 @@
 #include "GeometryKernel.h"
 #include "SketchGeometry.h"
+#include "StepExchange.h"
 #include <BRepBndLib.hxx>
 #include <BRepAdaptor_Surface.hxx>
 #include <BRepAdaptor_Curve.hxx>
@@ -22,6 +23,7 @@
 #include <gp_Vec.hxx>
 #include <gp_Circ.hxx>
 #include <QJsonArray>
+#include <QCryptographicHash>
 #include <QMap>
 #include <QSet>
 #include <QUuid>
@@ -351,6 +353,42 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored) 
                     catch(const EvaluationError& error){auto diagnostic=context;const auto details=error.diagnostics();for(auto it=details.begin();it!=details.end();++it)diagnostic[it.key()]=it.value();throw EvaluationError(diagnostic);}
                 }
                 evaluated.sketches.push_back(SketchGeometry::evaluateFeature(feature,resolvedFrame,projectionContext(evaluated,feature)));
+            } else if (type == "stepImport") {
+                const auto failStep=[&](const QString& code,const QString& message) {
+                    auto details=context;details["code"]=code;details["message"]=message;
+                    throw EvaluationError(details);
+                };
+                const auto source=parameters["source"].toObject();
+                const auto encoded=source["bytesBase64"].toString().toLatin1();
+                if (encoded.size()>44739244)
+                    failStep("step_source_size","Embedded STEP source exceeds 32 MiB");
+                const auto decoded=QByteArray::fromBase64Encoding(encoded,QByteArray::AbortOnBase64DecodingErrors);
+                if (!decoded || decoded.decoded.isEmpty() || decoded.decoded.size()>StepExchange::maximumSourceBytes
+                    || decoded.decoded.size()!=source["byteCount"].toInteger()
+                    || decoded.decoded.toBase64()!=encoded)
+                    failStep("step_source_corrupt","Embedded STEP source encoding or byte count is invalid");
+                const auto digest=QCryptographicHash::hash(decoded.decoded,QCryptographicHash::Sha256).toHex();
+                if (QString::fromLatin1(digest)!=source["sha256"].toString())
+                    failStep("step_source_hash","Embedded STEP source hash does not match its bytes");
+                StepExchange::ReadResult imported;
+                try {imported=StepExchange::read(decoded.decoded);}
+                catch(const StepExchange::Error& error){
+                    const auto details=error.diagnostics();
+                    for(auto it=details.begin();it!=details.end();++it)context[it.key()]=it.value();
+                    throw EvaluationError(context);
+                }
+                auto summary=summarize(imported.shape);
+                if (!summary["valid"].toBool() || !summary["closed"].toBool()
+                    || summary["topology"].toObject()["solids"].toInt()!=1
+                    || !summary["volumeMm3"].isDouble())
+                    failStep("step_invalid_solid","Imported STEP must evaluate to one valid closed solid with positive volume");
+                summary["sourceFormat"]="step";summary["sourcePolicy"]="embedded";
+                summary["sourceSha256"]=source["sha256"];
+                summary["sourceOriginalName"]=source["originalName"];
+                summary["sourceLengthUnits"]=imported.diagnostics["fileLengthUnits"];
+                summary["translator"]="OCCT STEPControl";
+                evaluated.bodies.push_back({id,feature["bodyId"].toString(),feature["name"].toString(),
+                    feature["visible"].toBool(),imported.shape,summary,{}});
             } else if (type == "boolean") {
                 const auto targetId = parameters["targetBodyId"].toString();
                 const auto toolIds = parameters["toolBodyIds"].toArray();
@@ -458,6 +496,9 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored) 
 }
 QJsonObject GeometryKernel::policy() {
     return {{"kernel","OCCT"},{"version",ALLOY_OCCT_VERSION},{"canonicalLengthUnit","mm"},
+        {"step",QJsonObject{{"importSource","embedded"},{"maximumSourceBytes",static_cast<qint64>(StepExchange::maximumSourceBytes)},
+            {"importSolids",1},{"exportSolids",1},{"exportLengthUnits",QJsonArray{"mm","in"}},
+            {"translator","OCCT STEPControl"}}},
         {"minimumDimensionMm",0.001},{"maximumDimensionMm",100000},
         {"referenceRoleToleranceMm",1e-6},{"analyticRelativeTolerance",1e-9},
         {"analyticAbsoluteTolerance",1e-6},{"automaticHealing",false},

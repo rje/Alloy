@@ -1,5 +1,6 @@
 #include "CadDocument.h"
 #include "SketchGeometry.h"
+#include "StepExchange.h"
 #include <QJsonArray>
 #include <QMap>
 #include <QSet>
@@ -9,6 +10,8 @@
 #include <QDir>
 #include <QJsonDocument>
 #include <QSaveFile>
+#include <QCryptographicHash>
+#include <QRegularExpression>
 #include <Standard_Failure.hxx>
 #include <cmath>
 #include <stdexcept>
@@ -202,6 +205,47 @@ EvaluatedDocument CadDocument::evaluationBefore(const QString& featureId) const 
     if(!found)throw std::invalid_argument("History input feature is unavailable");prefix["features"]=features;
     return GeometryKernel::evaluateDocument(prefix);
 }
+QJsonObject CadDocument::stepImportCandidate(const QJsonObject& authored, const QJsonObject& arguments) {
+    if (!validate(authored).isEmpty())
+        throw StepExchange::Error({{"code","invalid_document"},{"message","Cannot import into an invalid document"}});
+    const QSet<QString> allowed{"path", "name", "newFeatureId", "newBodyId"};
+    for (auto it=arguments.begin();it!=arguments.end();++it)
+        if (!allowed.contains(it.key()))
+            throw StepExchange::Error({{"code","invalid_arguments"},{"message","Unknown STEP import argument"},{"field",it.key()}});
+    for (const auto& field : {"path","name","newFeatureId","newBodyId"})
+        if (arguments.contains(field) && !arguments[field].isString())
+            throw StepExchange::Error({{"code","invalid_arguments"},{"message","STEP import argument must be a string"},{"field",field}});
+    const auto path=arguments.value("path").toString();
+    const QFileInfo info(path);
+    if (!QDir::isAbsolutePath(path) || !info.isFile() ||
+        !QStringList{"step","stp","ste"}.contains(info.suffix().toLower()))
+        throw StepExchange::Error({{"code","step_source_path"},{"message","Expected a readable absolute STEP file (.step, .stp or .ste)"}});
+    if (info.size()<1 || info.size()>StepExchange::maximumSourceBytes)
+        throw StepExchange::Error({{"code","step_source_size"},{"message","STEP source must contain 1 byte to 32 MiB of data"}});
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly))
+        throw StepExchange::Error({{"code","step_source_read"},{"message","Cannot read STEP source"}});
+    const auto bytes=file.read(StepExchange::maximumSourceBytes+1);
+    if (bytes.isEmpty() || bytes.size()>StepExchange::maximumSourceBytes || !file.atEnd())
+        throw StepExchange::Error({{"code","step_source_size"},{"message","STEP source must contain 1 byte to 32 MiB of data"}});
+
+    const auto featureId=arguments.value("newFeatureId").toString(newId());
+    const auto bodyId=arguments.value("newBodyId").toString(newId());
+    const auto name=arguments.value("name").toString(info.completeBaseName()).trimmed();
+    if (!validId(featureId) || !validId(bodyId) || featureId==bodyId || name.isEmpty())
+        throw StepExchange::Error({{"code","invalid_arguments"},{"message","STEP import needs distinct UUIDs and a nonempty name"}});
+    const QJsonObject source{{"policy","embedded"},{"format","step"},
+        {"bytesBase64",QString::fromLatin1(bytes.toBase64())},
+        {"sha256",QString::fromLatin1(QCryptographicHash::hash(bytes,QCryptographicHash::Sha256).toHex())},
+        {"byteCount",static_cast<qint64>(bytes.size())},{"originalName",info.fileName()}};
+    auto candidate=authored;
+    auto features=candidate.value("features").toArray();
+    features.append(QJsonObject{{"id",featureId},{"bodyId",bodyId},
+        {"ownerId",candidate.value("documentId")},{"type","stepImport"},
+        {"name",name},{"visible",true},{"parameters",QJsonObject{{"source",source}}}});
+    candidate["features"]=features;
+    return candidate;
+}
 QJsonObject CadDocument::extrusionCandidate(const QJsonObject& authored, const QJsonObject& arguments) {
     auto reject = [](const QString& message) {throw std::invalid_argument(message.toStdString());};
     const auto initial = validate(authored);
@@ -316,6 +360,22 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
         const auto type = feature["type"].toString();
         if (!feature["parameters"].isObject()) return "Feature parameters must be an object";
         const auto p = feature["parameters"].toObject();
+        if (type == "stepImport") {
+            const auto bodyId=feature["bodyId"].toString();
+            if (!validId(bodyId) || ids.contains(bodyId)) return "Invalid or duplicate imported body UUID";
+            ids.insert(bodyId);
+            if (p.size()!=1 || !p["source"].isObject()) return "STEP import requires one embedded source";
+            const auto source=p["source"].toObject();
+            static const QRegularExpression shaPattern("^[0-9a-f]{64}$");
+            if (source.size()!=6 || source["policy"]!="embedded" || source["format"]!="step"
+                || !source["bytesBase64"].isString() || source["bytesBase64"].toString().size()>44739244
+                || !source["sha256"].isString() || !shaPattern.match(source["sha256"].toString()).hasMatch()
+                || !source["byteCount"].isDouble() || source["byteCount"].toInteger()<1
+                || source["byteCount"].toInteger()>StepExchange::maximumSourceBytes
+                || !source["originalName"].isString() || source["originalName"].toString().isEmpty())
+                return "Invalid embedded STEP source metadata";
+            continue;
+        }
         if (type == "sketch") {
             if (feature.contains("bodyId")) return "Sketches do not own solid body IDs";
             const auto error = SketchGeometry::validateParameters(p, ids);
