@@ -906,7 +906,7 @@ void ReferenceView::mousePressEvent(QMouseEvent* e) {
         if(!sketchPlane_.isEmpty() && decorationSelection_.value("tool")!="line" && decorationSelection_.value("tool")!="rectangle" && decorationSelection_.value("tool")!="circle" && decorationSelection_.value("tool")!="centerArc" && decorationSelection_.value("tool")!="threePointArc" && decorationPending_.value("phase")!="placing") {
             const auto picked=pickAnnotation(e->position().x(),e->position().y());
             if(!picked.isEmpty()) {
-                draggedAnnotation_=picked.value("dimensionId").toString();annotationPress_=e->position();annotationDragged_=false;
+                draggedAnnotation_=picked.value("dimensionId").toString();annotationGestureId_=QString::number(++nextAnnotationGesture_);annotationPress_=e->position();annotationDragged_=false;
                 dispatch("sketch.annotationSelect",{{"dimensionId",draggedAnnotation_}});e->accept();return;
             }
         }
@@ -922,13 +922,16 @@ void ReferenceView::mouseMoveEvent(QMouseEvent* e) {
         dispatch("view.pan", {{"x",delta.x()},{"y",delta.y()}}); e->accept();
     } else if(!draggedAnnotation_.isEmpty() && e->buttons().testFlag(Qt::LeftButton)) {
         if(QLineF(annotationPress_,e->position()).length()>3)annotationDragged_=true;
-        if(annotationDragged_) {const auto p=sketchPoint(std::clamp(e->position().x(),0.0,double(width()-1)),std::clamp(e->position().y(),0.0,double(height()-1)),sketchPlane_);dispatch("sketch.annotationMove",{{"dimensionId",draggedAnnotation_},{"uMm",p.value("uMm")},{"vMm",p.value("vMm")}});}
+        if(annotationDragged_) {const auto p=sketchPoint(std::clamp(e->position().x(),0.0,double(width()-1)),std::clamp(e->position().y(),0.0,double(height()-1)),sketchPlane_);dispatch("sketch.annotationMove",{{"dimensionId",draggedAnnotation_},{"uMm",p.value("uMm")},{"vMm",p.value("vMm")},{"gestureId",annotationGestureId_}});}
         e->accept();
     } else if(!sketchPlane_.isEmpty()) {dispatch("sketch.pointerMove",{{"x",e->position().x()},{"y",e->position().y()}});e->accept();}
     else QWidget::mouseMoveEvent(e);
 }
 void ReferenceView::mouseReleaseEvent(QMouseEvent* e) {
-    if(e->button()==Qt::LeftButton && !draggedAnnotation_.isEmpty()){draggedAnnotation_.clear();annotationDragged_=false;e->accept();return;}
+    if(e->button()==Qt::LeftButton && !draggedAnnotation_.isEmpty()){
+        if(annotationDragged_)dispatch("sketch.annotationEndGesture",{{"dimensionId",draggedAnnotation_},{"gestureId",annotationGestureId_}});
+        draggedAnnotation_.clear();annotationGestureId_.clear();annotationDragged_=false;e->accept();return;
+    }
     if(e->button()==panButton_) {panButton_=Qt::NoButton;unsetCursor();e->accept();}
     else QWidget::mouseReleaseEvent(e);
 }

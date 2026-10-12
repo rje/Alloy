@@ -619,3 +619,25 @@ tutorial videos with cursor/click/key and step overlays. macOS capture capabilit
 was inspected, but recording permissions, framing and output have not been tested;
 no video exists yet. Videos and research remain outside git. Label API-driven
 actions distinctly from native inputs in eventual demonstrations.
+
+## Active sketch history milestone (2026-10-12)
+
+SKT-020 (#156) now has a small accepted-draft journal. Undo cancels an inline editor,
+then the active sketch tool, then traverses geometry. Redo requires Select. Public
+product-team evidence resolving this precedence is recorded externally in
+knowledge/specs/sketch-draft-history.md. Accepted geometry/constraint/dimension/name
+edits participate; hover, rejected/no-op edits do not. Annotation drag is one entry;
+Finish is still one document transaction and Cancel preserves committed work.
+
+Build and real-app ledger workflow pass. Actual native Cmd+Z/Cmd+Shift+Z removes
+and restores a snapped line with exact IDs; native label drag undoes in one step.
+See docs/validation/sketch-history.md. Do not overlap same-bundle API runners with
+native CUA checks: that confused process/window bindings during this checkpoint.
+Private test app closed. No release or CI run.
+
+Next bounded tutorial fix is automatic aligned dimension placement on the short
+sloped edge for Activity1's100-mm dimension. Astra found current cursor bounding-box
+logic chooses horizontal/vertical at the source placement. Core linear length and
+tangent rendering exist; adjust selection policy then qualify the actual six-edge
+outline with repeated Perpendicular/HV/Equal and constraint-stage captures. Document
++tab remains separate DOC-015; full tutorial remains blocked.

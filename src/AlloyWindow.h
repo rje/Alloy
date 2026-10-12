@@ -83,7 +83,10 @@ private:
     void showSketch();
     void showCurveEntry();
     void sketchResponse(const QJsonObject& response);
-    QJsonObject publishSketchSolve(const SketchGeometry::SolveResult& solved);
+    QJsonObject publishSketchSolve(const SketchGeometry::SolveResult& solved, const QString& journalGroup = {});
+    QJsonObject traverseSketchHistory(int direction);
+    void recordSketchHistory(const QJsonObject& draft, const QJsonObject& diagnostics, const QString& group = {});
+    void updateSketchHistoryState();
     QJsonObject setSketchSelection(const QJsonObject& selection);
     QJsonObject applySketchConstraint(const QString& type, const QJsonObject& targets);
     QJsonObject sketchDimensionTargets(const QJsonObject& args) const;
@@ -167,6 +170,10 @@ private:
     quint64 displayedDocumentRevision_ = 0;
     bool authorizedQuit_ = false;
     QJsonObject session_;
+    struct SketchHistoryEntry { QJsonObject draft, diagnostics; };
+    std::vector<SketchHistoryEntry> sketchHistory_;
+    int sketchHistoryIndex_ = -1;
+    QString sketchHistoryGroup_;
     QString instanceId_ = CadDocument::newId();
     bool browserVisible_ = true;
     bool timelineVisible_ = true;

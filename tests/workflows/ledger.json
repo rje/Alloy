@@ -493,6 +493,19 @@
         "tests/app_harness.py"
       ],
       "limits": "Bounded origin/endpoint pointer inference; not midpoint/general sketch snapping or full tutorial."
+    },
+    "sketch-history": {
+      "script": "tests/sketch_history_api.py",
+      "fixture": "tests/workflows/fixtures/sketch-history.json",
+      "result": "sketch-history-api.json",
+      "covers": [],
+      "capabilities": [
+        "sketch.draft_history",
+        "sketch.undo_tool_precedence"
+      ],
+      "inputs": [
+        "tests/app_harness.py"
+      ]
     }
   },
   "gates": {

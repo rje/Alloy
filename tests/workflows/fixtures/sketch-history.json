@@ -1,0 +1,14 @@
+{
+  "case": "sketch-history",
+  "scope": "accepted draft edits and active-tool Undo precedence",
+  "capabilities": [
+    "sketch.draft_history",
+    "sketch.undo_tool_precedence"
+  ],
+  "widthMm": 20,
+  "heightMm": 10,
+  "firstEditedWidthMm": 30,
+  "secondEditedWidthMm": 40,
+  "branchWidthMm": 35,
+  "cancelWidthMm": 42
+}

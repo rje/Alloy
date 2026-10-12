@@ -76,7 +76,7 @@ not product coverage or a replacement claim.
 HIS-001/SOL-001 and the local SKT-015 checkpoint are now closed with independently
 reviewed [sketch/extrusion evidence](../validation/sketch-extrusion.md). The first
 sketch-led part supports upstream edits, history and storage through the actual
-UI/API. Current board items are Done; the 2026-10-12 snapshot has 25 closed and 130 open. Live readiness is obtained with the command above. Full tutorial and cumulative product gates remain open.
+UI/API. Current board items are Done; the 2026-10-12 snapshot has 26 closed and 131 open. Live readiness is obtained with the command above. Full tutorial and cumulative product gates remain open.
 
 MIT is accepted for Alloy's original source and documentation. Each dependency
 keeps its own terms. A GPL-only solver or format library must not slip into the

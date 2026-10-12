@@ -131,12 +131,13 @@ fail without applying the command. Error codes include `invalid_request`,
 | `sketch.selectionSet` | Optional `pointIds`, `entityIds`, `profileIds`: arrays of authored/evaluated IDs in the active sketch; omitted arrays clear that selection kind |
 | `sketch.selectionPick` | `x`, `y`: logical pixels; optional `additive`: boolean. Pick an authored point, line, circle, arc or evaluated profile interior, sharing native selection state |
 | `sketch.placePoint` | `x`, `y`: logical pixels; native ray/plane drawing path, or selection when the active tool is `select`/`dimension` |
-| `sketch.pointerMove` | `x`, `y`: logical pixels; disposable pending drawing preview |
+| `sketch.pointerMove` | `x`, `y`: logical pixels; disposable drawing preview with origin/point acquisition in `snap`; no authored change |
 | `sketch.lookAt` | View normal to the active sketch plane |
 | `sketch.finish`, `sketch.cancel` | Commit or discard the active sketch session |
 | `view.projectSketchPoint` | `plane`, `uMm`, `vMm`; actual world-to-viewport projection |
-| `sketch.constraint` | `type`: `coincident`, `horizontal`, `vertical`, `parallel`, `perpendicular` or `fixed`; optional `pointIds`, `entityIds`, `session`. Omitted targets use active sketch selection |
-| `sketch.dimension` | `kind`: `linear`, `horizontal`, `vertical`, `radius`, `diameter` or `arcSweep`; optional `pointIds` (two), `entityId` (one line/curve), `value` (length) or `valueDeg` (sweep), `units`, `driving`, `annotation`, `session`. Omitted targets use selection; `driving` defaults true |
+| `sketch.constraint` | `type`: `coincident`, `horizontal`, `vertical`, `parallel`, `perpendicular`, `equal` or `fixed`; optional `pointIds`, `entityIds`, `session`. Omitted targets use active sketch selection |
+| `sketch.constraintTool` | `type`: persistent constraint-first tool; repeated picks apply shared retained relations, Escape returns to Select |
+| `sketch.dimension` | `kind`: `linear`, `horizontal`, `vertical`, `radius`, `diameter`, `angle` or `arcSweep`; optional `pointIds` (two), `entityId` (one line/curve), `entityIds` (two lines for angle), `raySigns` (two values ±1 selecting the angular sector), `value` (length) or `valueDeg` (sweep), `units`, `driving`, `annotation`, `session`. Omitted targets use selection; `driving` defaults true |
 | `sketch.dimensionPreview` | `x`, `y`: logical pixels; optional `kind` (`auto` or a dimension kind above), `driving`, `session`; preview selected targets |
 | `sketch.dimensionPlace` | `x`, `y`, optional `session`; fix placement and show the actual inline numeric editor |
 | `sketch.dimensionAccept` | Optional `text` or numeric `value` (length)/`valueDeg` (sweep), `units`, `session`; text accepts mm/in for lengths or deg/° for sweep; expressions are unsupported |
@@ -144,14 +145,15 @@ fail without applying the command. Error codes include `invalid_request`,
 | `sketch.dimensionEdit` | `dimensionId`, optional `session`; open a driving editor or read-only driven measurement |
 | `sketch.annotationSelect` | `dimensionId`; select a retained label |
 | `sketch.annotationPick` | `x`, `y`: logical pixels; actual projected/rotated label hit test |
-| `sketch.annotationMove` | `dimensionId`, `uMm`, `vMm`, optional `session`; move placement only, retaining exact authored points/values |
+| `sketch.annotationMove` | `dimensionId`, `uMm`, `vMm`, optional `gestureId`, `session`; repeated moves with one gesture identity coalesce into one draft undo entry; move placement only, retaining exact authored points/values |
+| `sketch.annotationEndGesture` | `dimensionId`, `gestureId`; end annotation drag coalescing without authoring geometry |
 | `sketch.dimensionUpdate` | `dimensionId`, positive `value` (length) or `valueDeg` (sweep); optional `units`, `session`; edit a driving dimension by stable UUID |
 | `sketch.movePoint` | `pointId`, `x`, `y`; optional `units`, `session`; seed a point's coordinates and solve the copied draft |
 | `feature.edit` | `featureId`: UUID; `parameters`: partial canonical-mm fields such as `widthMm` |
 | `feature.editDialog`, `feature.delete` | `featureId`: UUID; actual primitive/sketch/extrusion/Combine editor or one undoable deletion; invalid downstream dependencies are rejected |
 | `feature.visibility` | `featureId`, `visible`: boolean; one authored undoable visibility edit, also used by Browser checkboxes |
 | `geometry.inspect` | Evaluated bodies and sketches: stable IDs, validity, geometry summaries and plane frames |
-| `history.undo`, `history.redo` | Sole document journal; restore authored values and evaluated shapes together |
+| `history.undo`, `history.redo` | Active sketch: Undo cancels a pending editor/tool first, then traverses accepted draft edits; Redo requires Select. Otherwise traverse committed document history. `activeSession.draftHistory` exposes index/count/canUndo/canRedo |
 | `selection.set` | `bodyId`: visible UUID, or empty string to clear |
 | `selection.profileSet` | `sketchId`, `profileId`; select an accepted finished region by retained identity |
 | `selection.sketchSet` | `sketchId`; Browser sketch selection, with sole-region resolution when opening Extrude |

@@ -322,6 +322,7 @@ const AlloyWindow::Command* AlloyWindow::findCommand(const QString& id) const {
 QWidget* AlloyWindow::commandButton(const QString& id, const QString& glyph, bool large) {
     const auto* command = findCommand(id);
     auto* button = new QToolButton;
+    button->setObjectName("command."+id);
     button->setText(large ? glyph + "\n" + command->title : glyph);
     button->setEnabled(command->available);
     button->setToolTip(command->title + "\n" + command->description);
@@ -399,8 +400,14 @@ void AlloyWindow::registerCommands() {
         const auto response=execute("document.open",{{"path",path},{"discard",true}});
         return response["ok"].toBool() ? response["result"].toObject() : response;
     });
-    add("history.undo","Undo","Undo one committed authored edit.",{},[this](const auto&){document_.history().undo();return document_.state();});
-    add("history.redo","Redo","Redo one committed authored edit.",{},[this](const auto&){document_.history().redo();return document_.state();});
+    add("history.undo","Undo","Undo an accepted sketch edit in an active sketch, otherwise one committed document edit.",{},[this](const auto&){
+        if(session_.value("command")=="sketch.edit")return traverseSketchHistory(-1);
+        document_.history().undo();return document_.state();
+    });
+    add("history.redo","Redo","Redo an accepted sketch edit in an active sketch, otherwise one committed document edit.",{},[this](const auto&){
+        if(session_.value("command")=="sketch.edit")return traverseSketchHistory(1);
+        document_.history().redo();return document_.state();
+    });
     auto length=parameter("number","Length in the selected display units; converted to canonical millimeters.");
     length["minimum"]=0.000001; length["maximum"]=100000;
     auto position=optional(parameter("number","Placement in the selected display units; default zero."));
@@ -518,7 +525,7 @@ void AlloyWindow::registerCommands() {
         if(session_.value("command").toString()!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
         cancelDimension();
         if(session_.value("tool")=="constraint")session_["selection"]=QJsonObject{{"pointIds",QJsonArray{}},{"entityIds",QJsonArray{}},{"profileIds",QJsonArray{}}};
-        session_["tool"]=a["tool"];session_.remove("constraintType");session_.remove("constraintPrompt");session_.remove("firstPoint");session_.remove("secondPoint");session_.remove("pointerPoint");session_.remove("gestureSweepDeg");session_.remove("snap");view_->clearSketchCursor();
+        session_["tool"]=a["tool"];sketchHistoryGroup_.clear();session_.remove("constraintType");session_.remove("constraintPrompt");session_.remove("firstPoint");session_.remove("secondPoint");session_.remove("pointerPoint");session_.remove("gestureSweepDeg");session_.remove("snap");view_->clearSketchCursor();
         view_->setFocus();
         return session_;
     });
@@ -715,11 +722,18 @@ void AlloyWindow::registerCommands() {
     });
     auto annotationCoordinate=parameter("number","Canonical sketch-plane placement in millimeters.");annotationCoordinate["minimum"]=-100000;annotationCoordinate["maximum"]=100000;
     add("sketch.annotationMove","Move dimension annotation","Change canonical placement through the shared sketch draft, preserving geometry and dimension value.",
-        {{"dimensionId",dimensionId},{"uMm",annotationCoordinate},{"vMm",annotationCoordinate},{"session",optionalSession}},[this](const auto& a){
+        {{"dimensionId",dimensionId},{"uMm",annotationCoordinate},{"vMm",annotationCoordinate},{"gestureId",optional(parameter("string","Optional native drag gesture identity for one undo step."))},{"session",optionalSession}},[this](const auto& a){
             if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
             if(a.contains("session") && a["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
             return publishSketchSolve(SketchGeometry::updateAnnotation(session_.value("draftSketch").toObject(),
-                {{"dimensionId",a["dimensionId"]},{"annotation",QJsonObject{{"uMm",a["uMm"]},{"vMm",a["vMm"]}}}}));
+                {{"dimensionId",a["dimensionId"]},{"annotation",QJsonObject{{"uMm",a["uMm"]},{"vMm",a["vMm"]}}}}),
+                a.value("gestureId").toString().isEmpty() ? QString{} : "annotation:"+a["dimensionId"].toString()+":"+a["gestureId"].toString());
+        });
+    add("sketch.annotationEndGesture","End annotation drag","Close one native annotation drag history group without changing the sketch.",
+        {{"dimensionId",dimensionId},{"gestureId",parameter("string","Drag gesture identity.")}},[this](const auto& a){
+            if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
+            const auto key="annotation:"+a["dimensionId"].toString()+":"+a["gestureId"].toString();
+            const bool ended=sketchHistoryGroup_==key;if(ended)sketchHistoryGroup_.clear();return QJsonObject{{"ended",ended}};
         });
     add("sketch.movePoint","Move sketch point","Solve a seeded point movement without deforming the usable draft on failure.",
         {{"pointId",parameter("string","Stable authored point UUID.")},{"x",coordinate},{"y",coordinate},{"units",optional(units)},{"session",optionalSession}},[this](const auto& a){
@@ -844,7 +858,11 @@ void AlloyWindow::registerCommands() {
                 if(it.key()!="name" && it.key()!="units")return failure("invalid_arguments","Only sketch name and display units can change in this draft",it.key());
             if(!inputs["name"].isString() || inputs["name"].toString().trimmed().isEmpty())return failure("invalid_arguments","Sketch name must be nonempty","name");
             if(inputs["units"]!="mm" && inputs["units"]!="in")return failure("invalid_arguments","Unsupported display units","units");
-            if(target=="sketch.edit"){auto draft=session_.value("draftSketch").toObject();draft["name"]=inputs["name"];session_["draftSketch"]=draft;}
+            if(target=="sketch.edit"){
+                if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_.revision()))return failure("stale_session","The document changed; cancel and restart this sketch");
+                auto draft=session_.value("draftSketch").toObject();draft["name"]=inputs["name"];
+                recordSketchHistory(draft,session_.value("solverDiagnostics").toObject());session_["draftSketch"]=draft;
+            }
         } else {
             QString field;
             const auto error = validateArguments(*findCommand(target), inputs, &field);
@@ -1162,6 +1180,14 @@ void AlloyWindow::refresh() {
             .arg(prompt)
             .arg(diagnostics["dof"].toInt(-1)==0 ? "Fully constrained" : QString("%1 degrees of freedom").arg(diagnostics["dof"].toInt())));
         if(!current && sketchError_)sketchError_->setText("The document changed. Cancel and restart this sketch.");
+        const auto draftHistory=session_.value("draftHistory").toObject();
+        if(auto* undo=findChild<QToolButton*>("command.history.undo"))undo->setToolTip(session_.value("pendingDimension").toObject()["phase"]=="editing" ? "Undo cancels the current dimension value" :
+            tool!="select" ? "Undo exits the current sketch tool" : draftHistory.value("canUndo").toBool() ? "Undo accepted sketch edit" : "No accepted sketch edit to undo");
+        if(auto* redo=findChild<QToolButton*>("command.history.redo"))redo->setToolTip(tool!="select" ? "Finish the sketch tool before Redo" :
+            draftHistory.value("canRedo").toBool() ? "Redo accepted sketch edit" : "No accepted sketch edit to redo");
+    } else {
+        if(auto* undo=findChild<QToolButton*>("command.history.undo"))undo->setToolTip("Undo committed document edit");
+        if(auto* redo=findChild<QToolButton*>("command.history.redo"))redo->setToolTip("Redo committed document edit");
     }
     view_->sync();
     positionDimensionEditor();
@@ -1426,6 +1452,7 @@ QJsonObject AlloyWindow::finishSession(const QString& id, bool commit) {
         result["commandResult"] = response;
     }
     session_ = {};
+    if(target=="sketch.edit"){sketchHistory_.clear();sketchHistoryIndex_=-1;sketchHistoryGroup_.clear();}
     if(dimensionEditor_)dimensionEditor_->hide();
     if (target == "commands.search" && search_) search_->hide();
     if (target == "document.units" && unitsDialog_) unitsDialog_->hide();
@@ -1553,6 +1580,7 @@ QJsonObject AlloyWindow::beginSketch(const QString& plane,const QString& name,co
     session_={{"id",sessionId},{"command","sketch.edit"},{"status","active"},{"inputs",inputs},{"draftSketch",draft},
         {"tool","select"},{"selection",QJsonObject{{"pointIds",QJsonArray{}},{"entityIds",QJsonArray{}}}},{"solverDiagnostics",solved.diagnostics},
         {"previewed",false},{"baseDocumentRevision",static_cast<qint64>(document_.revision())}};
+    sketchHistory_={{draft,solved.diagnostics}};sketchHistoryIndex_=0;sketchHistoryGroup_.clear();updateSketchHistoryState();
     selectedBody_.clear();view_->clearPreview();view_->clearSketchDraft();displayedSketchDraft_={};
     selectedSketch_.clear();selectedProfile_.clear();view_->selectProfile({},{});view_->setEditDisplay(draft["id"].toString(),dependentBodies(draft["id"].toString()));
     view_->lookAtSketch(plane);showSketch();view_->setFocus(Qt::OtherFocusReason);
@@ -1706,7 +1734,7 @@ double AlloyWindow::sketchDimensionMeasure(const QJsonObject& targets,const QStr
     if(kind=="linear")return std::hypot(b.x()-a.x(),b.y()-a.y());throw std::invalid_argument("Select a curve for Radius, Diameter or Arc Sweep");
 }
 
-QJsonObject AlloyWindow::publishSketchSolve(const SketchGeometry::SolveResult& solved) {
+QJsonObject AlloyWindow::publishSketchSolve(const SketchGeometry::SolveResult& solved,const QString& journalGroup) {
     if(session_.value("command").toString()!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
     if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_.revision()))return failure("stale_session","The document changed; cancel and restart this sketch");
     if(!solved.ok) {
@@ -1716,10 +1744,61 @@ QJsonObject AlloyWindow::publishSketchSolve(const SketchGeometry::SolveResult& s
     const auto candidate=SketchGeometry::replaceFeature(document_.authored(),solved.feature);const auto error=CadDocument::validate(candidate);
     if(!error.isEmpty())return failure("invalid_sketch",error);
     const auto evaluated=SketchGeometry::evaluateFeature(solved.feature);
+    recordSketchHistory(solved.feature,solved.diagnostics,journalGroup);
     session_["draftSketch"]=solved.feature;session_["solverDiagnostics"]=solved.diagnostics;session_["previewed"]=false;
     session_.remove("lastSolveFailure");session_.remove("firstPoint");session_.remove("secondPoint");session_.remove("pointerPoint");session_.remove("gestureSweepDeg");session_.remove("snap");
     view_->clearSketchCursor();view_->showSketchDraft(evaluated);displayedSketchDraft_=solved.feature;
     return {{"sessionId",session_.value("id")},{"draftSketch",solved.feature},{"sketchGeometry",evaluated.summary},{"diagnostics",solved.diagnostics},{"authoredCommitted",false}};
+}
+
+void AlloyWindow::updateSketchHistoryState() {
+    if(session_.value("command")!="sketch.edit")return;
+    session_["draftHistory"]=QJsonObject{{"index",sketchHistoryIndex_},{"count",static_cast<int>(sketchHistory_.size())},
+        {"canUndo",sketchHistoryIndex_>0},{"canRedo",sketchHistoryIndex_+1<static_cast<int>(sketchHistory_.size())}};
+}
+
+void AlloyWindow::recordSketchHistory(const QJsonObject& draft,const QJsonObject& diagnostics,const QString& group) {
+    if(sketchHistoryIndex_>=0 && draft==sketchHistory_[sketchHistoryIndex_].draft)return;
+    if(!group.isEmpty() && group==sketchHistoryGroup_ && sketchHistoryIndex_>0
+        && sketchHistoryIndex_==static_cast<int>(sketchHistory_.size())-1) {
+        sketchHistory_[sketchHistoryIndex_]={draft,diagnostics};
+    } else {
+        sketchHistory_.resize(sketchHistoryIndex_+1);
+        sketchHistory_.push_back({draft,diagnostics});
+        sketchHistoryIndex_=static_cast<int>(sketchHistory_.size())-1;
+    }
+    sketchHistoryGroup_=group;updateSketchHistoryState();
+}
+
+QJsonObject AlloyWindow::traverseSketchHistory(int direction) {
+    if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_.revision()))
+        return failure("stale_session","The document changed; cancel and restart this sketch");
+    if(direction<0) {
+        if(session_.value("pendingDimension").toObject()["phase"]=="editing") {
+            cancelDimension();view_->setFocus();return {{"action","cancelled_input"},{"changed",false},{"draftHistory",session_["draftHistory"]}};
+        }
+        if(session_.value("tool")!="select") {
+            const auto previous=session_.value("tool");
+            const auto response=execute("sketch.tool",{{"tool","select"}});
+            if(!response["ok"].toBool())return response;
+            return {{"action","cancelled_tool"},{"tool",previous},{"changed",false},{"draftHistory",session_["draftHistory"]}};
+        }
+    } else if(session_.value("tool")!="select" || session_.contains("pendingDimension") || session_.contains("firstPoint"))
+        return failure("pending_input_active","Complete or cancel the current sketch tool before Redo");
+    const int next=sketchHistoryIndex_+direction;
+    if(next<0 || next>=static_cast<int>(sketchHistory_.size()))return {{"action","none"},{"changed",false},{"draftHistory",session_["draftHistory"]}};
+    const auto entry=sketchHistory_[next];
+    const auto evaluated=SketchGeometry::evaluateFeature(entry.draft);
+    sketchHistoryIndex_=next;sketchHistoryGroup_.clear();
+    cancelDimension();view_->clearSketchCursor();
+    session_["draftSketch"]=entry.draft;session_["solverDiagnostics"]=entry.diagnostics;
+    auto inputs=session_["inputs"].toObject();inputs["name"]=entry.draft["name"];session_["inputs"]=inputs;
+    session_["selection"]=QJsonObject{{"pointIds",QJsonArray{}},{"entityIds",QJsonArray{}},{"profileIds",QJsonArray{}}};
+    session_.remove("firstPoint");session_.remove("secondPoint");session_.remove("pointerPoint");session_.remove("gestureSweepDeg");session_.remove("snap");session_.remove("lastSolveFailure");
+    session_["previewed"]=false;updateSketchHistoryState();
+    view_->showSketchDraft(evaluated);displayedSketchDraft_=entry.draft;view_->setFocus();
+    return {{"action",direction<0 ? "undone" : "redone"},{"changed",true},{"draftHistory",session_["draftHistory"]},
+        {"draftSketch",entry.draft},{"diagnostics",entry.diagnostics},{"sketchGeometry",evaluated.summary}};
 }
 
 QJsonObject AlloyWindow::applySketchConstraint(const QString& type,const QJsonObject& targets) {

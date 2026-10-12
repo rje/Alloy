@@ -105,6 +105,8 @@ private:
     QMap<QString,Handle(AIS_Shape)> profileModels_;
     QJsonObject decorationFeature_, decorationSelection_, decorationDiagnostics_, decorationPending_;
     QString decorationUnits_, draggedAnnotation_;
+    QString annotationGestureId_;
+    quint64 nextAnnotationGesture_ = 0;
     QPointF annotationPress_;
     bool annotationDragged_ = false;
     QString sketchPlane_, draftSketchId_;
