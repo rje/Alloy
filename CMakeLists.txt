@@ -33,7 +33,7 @@ target_link_libraries(alloy_sketch_solver PUBLIC Qt6::Core PRIVATE alloy_planegc
 add_library(alloy_kernel STATIC
     src/GeometryKernel.cpp src/GeometryKernel.h
     src/SketchGeometry.cpp src/SketchGeometry.h
-    src/SketchProfiles.cpp src/SketchProfiles.h)
+    src/SketchProfiles.cpp src/SketchProfiles.h src/SketchRegions.cpp)
 target_include_directories(alloy_kernel PUBLIC src)
 target_include_directories(alloy_kernel SYSTEM PUBLIC ${OpenCASCADE_INCLUDE_DIR})
 target_link_libraries(alloy_kernel PUBLIC alloy_sketch_solver Qt6::Core TKernel TKMath TKG3d TKBRep TKPrim TKTopAlgo TKBO TKBool TKGeomAlgo)
@@ -105,6 +105,9 @@ if(BUILD_TESTING)
     add_executable(sketch_curves_test tests/sketch_curves.cpp)
     target_link_libraries(sketch_curves_test PRIVATE Qt6::Core alloy_kernel)
     add_test(NAME sketch_curves COMMAND sketch_curves_test)
+    add_executable(sketch_regions_test tests/sketch_regions.cpp)
+    target_link_libraries(sketch_regions_test PRIVATE Qt6::Core alloy_kernel)
+    add_test(NAME sketch_regions COMMAND sketch_regions_test)
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
     add_test(NAME client_selection COMMAND ${Python3_EXECUTABLE} -E ${CMAKE_CURRENT_SOURCE_DIR}/tests/client_selection.py)
     add_test(NAME shell_api COMMAND ${Python3_EXECUTABLE}

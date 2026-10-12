@@ -1,0 +1,151 @@
+// SPDX-License-Identifier: MIT
+#include "SketchProfiles.h"
+#include "SketchGeometry.h"
+#include <BOPAlgo_Builder.hxx>
+#include <BOPAlgo_BuilderFace.hxx>
+#include <BOPTools_AlgoTools2D.hxx>
+#include <BRepAdaptor_Curve.hxx>
+#include <BRepBuilderAPI_MakeFace.hxx>
+#include <BRepCheck_Analyzer.hxx>
+#include <BRepGProp.hxx>
+#include <BRepTools_WireExplorer.hxx>
+#include <BRepTopAdaptor_FClass2d.hxx>
+#include <BRep_Tool.hxx>
+#include <GProp_GProps.hxx>
+#include <gp_Ax3.hxx>
+#include <gp_Pln.hxx>
+#include <gp_Vec.hxx>
+#include <TopExp.hxx>
+#include <TopExp_Explorer.hxx>
+#include <TopoDS.hxx>
+#include <TopoDS_Vertex.hxx>
+#include <TopTools_IndexedMapOfShape.hxx>
+#include <QJsonArray>
+#include <QMap>
+#include <QSet>
+#include <QUuid>
+#include <algorithm>
+#include <cmath>
+#include <stdexcept>
+
+namespace {
+constexpr double contactTolerance=1e-6;
+struct Source {QString id;QJsonObject entity;TopoDS_Edge edge;};
+struct Segment {int source;QString start,end;int direction;QJsonObject detail;};
+QJsonArray array(const QStringList& values){QJsonArray result;for(const auto& value:values)result.append(value);return result;}
+QString rotation(QStringList values){QString best;for(int i=0;i<values.size();++i){QStringList rotated;for(int j=0;j<values.size();++j)rotated.append(values[(i+j)%values.size()]);const auto key=rotated.join('\n');if(best.isEmpty()||key<best)best=key;}return best;}
+}
+
+SketchProfiles::RegionsResult SketchProfiles::deriveRegions(const QJsonObject& feature) {
+    // Keep proven legacy identities and diagnostics for a simple boundary.
+    const auto legacy=derive(feature);
+    if(legacy.ok)return {true,{legacy.profile},legacy.diagnostics,{}};
+    RegionsResult result;result.diagnostics=legacy.diagnostics;result.error=legacy.error;
+    if(legacy.diagnostics["code"]=="invalid_sketch" || legacy.diagnostics["code"]=="empty_sketch")return result;
+    const auto sketchId=feature["id"].toString();
+    const auto parameters=feature["parameters"].toObject();
+    const auto planeName=parameters["plane"].toString();
+    auto refuse=[&](const QString& code,const QString& error){return RegionsResult{false,{},{{"code",code},{"message",error},{"sketchId",sketchId},{"profileCount",0}},error};};
+    try {
+        std::vector<Source> sources;TopTools_ListOfShape input;
+        QSet<QString> endpointIds;
+        for(const auto& value:parameters["entities"].toArray()) {
+            const auto entity=value.toObject();if(entity["construction"].toBool())continue;
+            const auto edge=SketchGeometry::analyticEdge(parameters,entity);
+            sources.push_back({entity["id"].toString(),entity,edge});input.Append(edge);
+            for(const auto& field:{"startPointId","endPointId"})if(entity[field].isString())endpointIds.insert(entity[field].toString());
+        }
+        if(sources.empty())return result;
+        const auto frame=SketchGeometry::frame(planeName);const auto o=frame["origin"].toArray(),u=frame["uAxis"].toArray(),v=frame["vAxis"].toArray(),n=frame["normal"].toArray();
+        const gp_Pnt origin(o[0].toDouble(),o[1].toDouble(),o[2].toDouble());
+        const gp_Vec uAxis(u[0].toDouble(),u[1].toDouble(),u[2].toDouble()),vAxis(v[0].toDouble(),v[1].toDouble(),v[2].toDouble());
+        QMap<QString,gp_Pnt> points;
+        for(const auto& value:parameters["points"].toArray()){const auto point=value.toObject();points[point["id"].toString()]=origin.Translated(uAxis*point["uMm"].toDouble()+vAxis*point["vMm"].toDouble());}
+        const gp_Pln plane(gp_Ax3(origin,gp_Dir(n[0].toDouble(),n[1].toDouble(),n[2].toDouble()),gp_Dir(uAxis)));
+        auto generating=BRepBuilderAPI_MakeFace(plane).Face();
+        BOPAlgo_Builder splitter;splitter.SetToFillHistory(true);splitter.SetArguments(input);splitter.Perform();
+        if(splitter.HasErrors())return refuse("region_split_failed","OCCT could not split the analytic sketch arrangement.");
+        TopTools_IndexedMapOfShape edges;TopExp::MapShapes(splitter.Shape(),TopAbs_EDGE,edges);
+        std::vector<int> sourceByEdge(edges.Extent()+1,-1);TopTools_ListOfShape halfedges;
+        for(int i=1;i<=edges.Extent();++i) {
+            for(int j=0;j<int(sources.size());++j){bool mapped=edges(i).IsSame(sources[j].edge);
+                for(const auto& modified:splitter.Modified(sources[j].edge))mapped|=edges(i).IsSame(modified);
+                if(!mapped)continue;if(sourceByEdge[i]!=-1)return refuse("ambiguous_region_provenance","A split edge maps to overlapping authored sources.");sourceByEdge[i]=j;}
+            if(sourceByEdge[i]<0)return refuse("unmapped_region_provenance","A split edge has no authored source.");
+            auto edge=TopoDS::Edge(edges(i));BOPTools_AlgoTools2D::BuildPCurveForEdgeOnFace(edge,generating);
+            halfedges.Append(edge.Oriented(TopAbs_FORWARD));halfedges.Append(edge.Oriented(TopAbs_REVERSED));
+        }
+        BOPAlgo_BuilderFace builder;builder.SetFace(generating);builder.SetShapes(halfedges);builder.Perform();
+        if(builder.HasErrors())return refuse("region_faces_failed","OCCT could not construct bounded planar regions.");
+        // Coordinates locate authored references; only their stable IDs enter signatures.
+        auto contact=[&](const gp_Pnt& location){QStringList ids;
+            for(const auto& id:endpointIds)if(points[id].Distance(location)<=contactTolerance)ids.append(id);
+            if(!ids.isEmpty()){ids.sort();return QString("point:")+ids.join(',');}
+            QStringList tangentIds;
+            for(const auto& value:parameters["constraints"].toArray()){const auto relation=value.toObject();if(relation["type"]!="tangent")continue;
+                const auto refs=relation["entityIds"].toArray();const Source* circle=nullptr;const Source* line=nullptr;
+                for(const auto& source:sources){if(source.id==refs[0].toString())circle=&source;if(source.id==refs[1].toString())line=&source;}
+                if(!circle||!line)continue;
+                const auto center=points[circle->entity["centerPointId"].toString()],a=points[line->entity["startPointId"].toString()],b=points[line->entity["endPointId"].toString()];
+                const gp_Vec delta(a,b),offset(a,center);const auto foot=a.Translated(delta*(offset.Dot(delta)/delta.SquareMagnitude()));
+                if(foot.Distance(location)<=contactTolerance)tangentIds.append(relation["id"].toString());
+            }
+            tangentIds.sort();return tangentIds.isEmpty()?QString{}:QString("tangent:")+tangentIds.join(',');
+        };
+        std::vector<EvaluatedProfile> profiles;QSet<QString> signatures;
+        for(const auto& shape:builder.Areas()) {
+            const auto face=TopoDS::Face(shape);
+            if(BRepTopAdaptor_FClass2d(face,1e-7).PerformInfinitePoint()!=TopAbs_OUT)continue;
+            if(!BRepCheck_Analyzer(face).IsValid())return refuse("invalid_region","OCCT constructed an invalid bounded face.");
+            GProp_GProps properties;BRepGProp::SurfaceProperties(face,properties);const double area=properties.Mass();
+            if(!std::isfinite(area)||area<=1e-8)return refuse("invalid_region","Bounded region has no usable positive area.");
+            QStringList wires,sourceIds,pointIds;QJsonArray provenance;
+            for(TopExp_Explorer wireIt(face,TopAbs_WIRE);wireIt.More();wireIt.Next()) {
+                std::vector<Segment> segments;
+                for(BRepTools_WireExplorer walk(TopoDS::Wire(wireIt.Current()),face);walk.More();walk.Next()) {
+                    const auto edge=walk.Current();const int index=edges.FindIndex(edge);
+                    if(index==0)return refuse("unmapped_region_provenance","Face boundary contains an unmapped split edge.");
+                    const int sourceIndex=sourceByEdge[index];const auto& source=sources[sourceIndex];
+                    TopoDS_Vertex first,last;TopExp::Vertices(edge,first,last,true);
+                    const auto a=contact(BRep_Tool::Pnt(first)),b=contact(BRep_Tool::Pnt(last));
+                    const int direction=edge.Orientation()==source.edge.Orientation()?1:-1;
+                    BRepAdaptor_Curve curve(edge);
+                    QJsonObject detail{{"entityId",source.id},{"type",source.entity["type"]},{"firstParameter",curve.FirstParameter()},
+                        {"lastParameter",curve.LastParameter()},{"direction",direction},{"startContact",a},{"endContact",b}};
+                    segments.push_back({sourceIndex,a,b,direction,detail});provenance.append(detail);sourceIds.append(source.id);
+                }
+                if(segments.empty())return refuse("invalid_region","A region wire is empty.");
+                const bool oneSource=std::all_of(segments.begin(),segments.end(),[&](const auto& segment){return segment.source==segments[0].source;});
+                if(oneSource){if(sources[segments[0].source].entity["type"]!="circle")return refuse("ambiguous_region_provenance","A closed single-source wire is not a circle.");
+                    wires.append("full-circle:"+sources[segments[0].source].id);continue;}
+                // Start at a source transition, so the circle seam never enters identity.
+                size_t start=0;while(segments[start].source==segments[(start+segments.size()-1)%segments.size()].source)++start;
+                QStringList forward,reverse;
+                for(size_t offset=0;offset<segments.size();) {
+                    const auto& first=segments[(start+offset)%segments.size()];auto last=first;++offset;
+                    while(offset<segments.size() && segments[(start+offset)%segments.size()].source==first.source){
+                        const auto& next=segments[(start+offset)%segments.size()];if(next.direction!=first.direction)return refuse("ambiguous_region_provenance","Same-source boundary reverses unexpectedly.");last=next;++offset;}
+                    if(first.start.isEmpty()||last.end.isEmpty())return refuse("ambiguous_region_provenance","A region contact lacks a retained authored reference.");
+                    const auto source=sources[first.source].id;
+                    forward.append(source+":"+first.start+":"+last.end+":"+QString::number(first.direction));
+                    reverse.prepend(source+":"+last.end+":"+first.start+":"+QString::number(-first.direction));
+                }
+                wires.append(std::min(rotation(forward),rotation(reverse)));
+            }
+            wires.sort();const auto signature=wires.join("\nwire\n");
+            if(signatures.contains(signature))return refuse("ambiguous_region_provenance","Two bounded regions have the same authored boundary signature.");signatures.insert(signature);
+            sourceIds.removeDuplicates();sourceIds.sort();
+            for(const auto& id:endpointIds)for(const auto& detail:provenance){const auto entry=detail.toObject();if(entry["startContact"].toString().contains(id)||entry["endContact"].toString().contains(id)){pointIds.append(id);break;}}
+            pointIds.removeDuplicates();pointIds.sort();
+            const auto profileId=QUuid::createUuidV5(QUuid(sketchId),QByteArray("alloy-regions/1\n")+signature.toUtf8()).toString(QUuid::WithoutBraces);
+            QJsonObject summary{{"profileId",profileId},{"sketchId",sketchId},{"plane",planeName},{"frame",frame},{"kernel","OCCT"},{"valid",true},
+                {"type","planar_region"},{"areaUnit","mm2"},{"areaMm2",area},{"sourceEntityIds",array(sourceIds)},
+                {"sourcePointIds",array(pointIds)},{"edgeProvenance",provenance},{"boundarySignature",signature}};
+            profiles.push_back({profileId,sketchId,planeName,face,summary});
+        }
+        if(profiles.empty())return result;
+        std::sort(profiles.begin(),profiles.end(),[](const auto& a,const auto& b){return a.profileId<b.profileId;});
+        return {true,profiles,{{"code","planar_regions"},{"profileCount",int(profiles.size())},{"sketchId",sketchId},{"provenance","authored_contacts"}}, {}};
+    }catch(const Standard_Failure& error){return refuse("kernel_failure",QString::fromUtf8(error.GetMessageString()));}
+    catch(const std::exception& error){return refuse("region_failure",QString::fromUtf8(error.what()));}
+}

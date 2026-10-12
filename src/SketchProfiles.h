@@ -2,6 +2,7 @@
 #include <QJsonObject>
 #include <QString>
 #include <TopoDS_Face.hxx>
+#include <vector>
 
 // Derived geometry, never a separately authored feature or persisted display cache.
 struct EvaluatedProfile {
@@ -18,6 +19,13 @@ public:
         QJsonObject diagnostics;
         QString error;
     };
+    struct RegionsResult {
+        bool ok = false;
+        std::vector<EvaluatedProfile> profiles;
+        QJsonObject diagnostics;
+        QString error;
+    };
+    static RegionsResult deriveRegions(const QJsonObject& solvedFeature);
     // Input is already validated/solved authored sketch intent. No mutation or
     // solver call occurs here. Open or unsupported regions return diagnostics,
     // leaving the source sketch valid and available for further drawing.

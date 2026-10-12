@@ -886,12 +886,12 @@ EvaluatedSketch SketchGeometry::evaluateFeature(const QJsonObject& feature) {
     QJsonObject summary{{"kernel", "OCCT"}, {"version", ALLOY_OCCT_VERSION}, {"type", "sketch"}, {"valid", true},
         {"lengthUnit", "mm"}, {"plane", plane}, {"frame", frame(plane)}, {"solverIntegrated", true}, {"solver", solution.diagnostics},
         {"entities",geometry}, {"pointCount", points.size()}, {"entityCount", entities.size()}, {"worldPoints", worldPoints}, {"boundsMm", bounds}};
-    const auto profile = SketchProfiles::derive(solution.feature);
+    const auto profile = SketchProfiles::deriveRegions(solution.feature);
     QJsonArray profileSummaries;
     std::vector<EvaluatedProfile> profiles;
     if (profile.ok) {
-        profileSummaries.append(profile.profile.summary);
-        profiles.push_back(profile.profile);
+        profiles = profile.profiles;
+        for (const auto& region : profiles) profileSummaries.append(region.summary);
     }
     summary["profiles"] = profileSummaries;
     summary["profileDiagnostics"] = profile.diagnostics;
