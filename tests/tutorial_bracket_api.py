@@ -313,6 +313,22 @@ def main():
             assert cut['parameters']['operation'] == 'cut' and 'bodyId' not in cut
             checkpoint('a3-03-finished-five-holes', independentRemovedVolumeMm3=removed,
                        independentVolumeMm3=stock_area*f['extrusionMm']-removed)
+            # Editing this pre-Cut sketch must display its real history-prefix
+            # stock, without mutating the retained final Cut or body visibility.
+            call('sketch.edit', {'sketchId': holes['id']})
+            checkpoint('historical-edit-stock')
+            edit_state = call('app.state')
+            edit_gpu = edit_state['viewport']['gpu']
+            assert edit_gpu['displayedBodyIds'] == [body['bodyId']], edit_gpu
+            assert edit_gpu['bodyStageKey'].startswith('sketch-prefix:')
+            assert not edit_gpu['editDisplay']['hiddenBodyIds']
+            assert edit_state['document']['authored'] == finished['authored']
+            call('sketch.cancel')
+            captures.append(call('capture.screenshot', {'path': str(output / 'historical-edit-cancel-restored.png')}))
+            restored_gpu = call('app.state')['viewport']['gpu']
+            assert restored_gpu['displayedBodyIds'] == [body['bodyId']]
+            assert not restored_gpu['bodyStageKey']
+            assert call('document.inspect')['authored'] == finished['authored']
             call('history.undo')
             assert call('document.inspect')['authored'] == before_cut
             call('history.redo')

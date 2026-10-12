@@ -1575,7 +1575,10 @@ void AlloyWindow::refresh() {
             view_->highlightCombineInputs({},{});view_->clearBodyStage();
         }
     }
-    if(session_.value("command")!="solid.combine")view_->clearBodyStage();
+    const auto historicalSketchId=session_.value("command")=="sketch.edit"
+        && session_.value("baseDocumentRevision").toInteger()==static_cast<qint64>(document_->revision())
+        ? session_.value("inputs").toObject().value("sketchId").toString() : QString{};
+    if(session_.value("command")!="solid.combine" && historicalSketchId.isEmpty())view_->clearBodyStage();
     if(displayedDocumentRevision_!=document_->revision()) {
         const QSignalBlocker block(tree_);
         // Keep Browser rows keyed by their stable IDs. Removing all children on
@@ -1645,6 +1648,17 @@ void AlloyWindow::refresh() {
         selectedProfileIds_=retainedProfiles;selectedProfile_=retainedProfiles.isEmpty() ? QString{} : retainedProfiles.first().toString();
         view_->selectProfiles(selectedSketch_,selectedProfileIds_);
         displayedDocumentRevision_=document_->revision();
+    }
+    if(!historicalSketchId.isEmpty()) {
+        // Support references resolve against this same history prefix. Display
+        // its actual bodies too: a downstream Cut reuses the support body ID,
+        // so hiding that ID in the final evaluation otherwise hides all stock.
+        const auto stageKey=QString("sketch-prefix:%1:%2:%3").arg(activeTabId_,historicalSketchId).arg(document_->revision());
+        if(view_->diagnostics().value("bodyStageKey").toString()!=stageKey)
+            view_->setBodyStage(document_->evaluationBefore(historicalSketchId).bodies,stageKey);
+        // Downstream bodies are absent from the prefix; its own body visibility
+        // still applies. Do not suppress a retained support ID reused by Cut.
+        view_->setEditDisplay(historicalSketchId,{});
     }
     for(int i=0;i<bodiesNode_->childCount();++i)bodiesNode_->child(i)->setSelected(bodiesNode_->child(i)->data(0,Qt::UserRole+1).toString()==selectedBody_);
     view_->selectBody(selectedBody_);
@@ -2168,7 +2182,7 @@ QJsonObject AlloyWindow::finishSession(const QString& id, bool commit) {
     }
     else if(target.startsWith("solid.")) {if(primitiveDock_)primitiveDock_->hide();view_->clearPreview();}
     if(target.startsWith("sketch.")) {
-        if(sketchDock_)sketchDock_->hide();view_->clearSketchDraft();displayedSketchDraft_={};view_->setSketchPlane({});view_->setEditDisplay({},{});
+        if(sketchDock_)sketchDock_->hide();view_->clearSketchDraft();displayedSketchDraft_={};view_->setSketchPlane({});view_->setEditDisplay({},{});view_->clearBodyStage();
     }
     return result;
 }
