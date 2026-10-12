@@ -8,8 +8,8 @@ intent and stable IDs, rather than a stored display mesh.
 2. Click **Gauge block** in the Timeline. Change Width, then Preview, Cancel or OK.
 3. Create another Box or Cylinder from the toolbar. X/Y/Z place its origin in
    world coordinates; this first slice creates a New Body.
-4. Use Cmd+Z / Cmd+Shift+Z on macOS to undo/redo. Use Ctrl+Z / Ctrl+Shift+Z on
-   Windows/Linux; those platforms still require runtime qualification.
+4. Use Cmd+Z / Cmd+Shift+Z on macOS to undo/redo. The Edit menu exposes the
+   platform shortcuts; Windows/Linux still require runtime qualification.
 5. Try Home, Top, Front and Right; middle-mouse pan and wheel zoom.
 6. Use File → Save As to preserve a copy, then reopen it and edit again.
 

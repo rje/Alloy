@@ -142,8 +142,9 @@ four targets successfully at source 12fe534. FND-009's independently reviewed
 toolchain/artifact audit passed; subsequent candidates remain separate.
 It retains unbundled compile artifacts, not yet independently runnable packages.
 A later uniform Python pin failed Mac/Windows setup while Linux compiled;
-platform-specific archive pins are corrected and the primitive candidate's
-matrix remains pending under CI-001. See dependencies/native-builds.md.
+platform-specific archive pins are corrected. The new matrix passed Python
+setup on all four targets and is compiling; CI-001 remains open. See
+dependencies/native-builds.md.
 Windows named-pipe control, Linux X11/GLX runtime qualification, relocation,
 dependency notices and tagged milestone publishing remain open.
 GitHub operations must use `gh` and APIs; the user explicitly rejected browser
