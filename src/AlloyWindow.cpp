@@ -23,6 +23,8 @@
 #include <QKeyEvent>
 #include <QLabel>
 #include <QLineEdit>
+#include <QTextEdit>
+#include <QPlainTextEdit>
 #include <QListWidget>
 #include <QMenu>
 #include <QMenuBar>
@@ -365,8 +367,14 @@ AlloyWindow::AlloyWindow() {
     auto* editMenu=menuBar()->addMenu("Edit");
     editMenu->addAction("Undo",QKeySequence::Undo,this,[this]{execute("history.undo");});
     editMenu->addAction("Redo",QKeySequence::Redo,this,[this]{execute("history.redo");});
-    editMenu->addAction("Delete Selected Body",QKeySequence::Delete,this,[this]{
-        for(const auto& body:document_->bodies()) if(body.bodyId==selectedBody_) { execute("feature.delete",{{"featureId",body.featureId}}); break; }
+    auto* deleteSelection=editMenu->addAction("Delete Selection");deleteSelection->setObjectName("command.deleteSelection");
+    deleteSelection->setShortcuts({QKeySequence::Delete,QKeySequence(Qt::Key_Backspace)});
+    connect(deleteSelection,&QAction::triggered,this,[this]{
+        auto* focus=QApplication::focusWidget();
+        if(qobject_cast<QLineEdit*>(focus) || qobject_cast<QTextEdit*>(focus) || qobject_cast<QPlainTextEdit*>(focus))return;
+        if(session_.value("command")=="sketch.edit") {sketchResponse(execute("sketch.deleteSelection"));return;}
+        if(!session_.isEmpty())return;
+        for(const auto& body:document_->bodies())if(body.bodyId==selectedBody_){execute("feature.delete",{{"featureId",body.featureId}});break;}
     });
     viewMenu->addAction("Show / Hide Browser", QKeySequence("Ctrl+Alt+B"), this, [this] { execute("layout.browser", {{"visible", !browserVisible_}}); });
     viewMenu->addAction("Show / Hide Navigation Bar", QKeySequence("Ctrl+Alt+N"), this, [this] { execute("layout.navigation", {{"visible", !navigationVisible_}}); });
@@ -835,6 +843,8 @@ void AlloyWindow::registerCommands() {
     auto sketchTool=parameter("string","Drawing tool in the active sketch context.");sketchTool["enum"]=QJsonArray{"select","line","rectangle","circle","centerArc","threePointArc","dimension","fillet"};
     add("sketch.tool","Sketch drawing tool","Choose a tool and clear its pending first point.",{{"tool",sketchTool}},[this](const auto& a){
         if(session_.value("command").toString()!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
+        auto badgeSelection=session_.value("selection").toObject();badgeSelection.remove("constraintIds");badgeSelection.remove("dimensionId");
+        session_["selection"]=badgeSelection;session_.remove("hoveredConstraintId");
         const bool leavingFillet=session_.value("tool")=="fillet";
         clearFilletPreview();session_.remove("pendingFillet");
         cancelDimension();
@@ -1166,10 +1176,90 @@ void AlloyWindow::registerCommands() {
     });
     add("sketch.annotationSelect","Select dimension annotation","Select an existing dimension by stable identity without changing geometry.",{{"dimensionId",dimensionId}},[this](const auto& a){
         if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
+        if(!session_.value("displayOptions").toObject().value("showDimensions").toBool(true))return failure("annotation_hidden","Show Dimensions before selecting an annotation");
         bool found=false;for(const auto& entry:session_.value("draftSketch").toObject()["parameters"].toObject()["dimensions"].toArray())found|=entry.toObject()["id"]==a["dimensionId"];
         if(!found)return failure("stale_entity","Dimension does not exist");
-        auto selection=session_.value("selection").toObject();selection["dimensionId"]=a["dimensionId"];session_["selection"]=selection;return selection;
+        auto selection=session_.value("selection").toObject();selection.remove("constraintIds");session_.remove("hoveredConstraintId");selection["dimensionId"]=a["dimensionId"];session_["selection"]=selection;return selection;
     });
+    auto badgeId=parameter("string","Stable authored sketch constraint UUID.");
+    auto badgePixel=parameter("number","Viewport-local logical pixel coordinate.");badgePixel["minimum"]=0;badgePixel["maximum"]=10000;
+    add("sketch.displayOptions","Sketch annotation visibility","Session-local Show Constraints and Show Dimensions; hides annotations without modeling history.",
+        {{"showConstraints",optional(parameter("boolean","Show retained relation badges."))},{"showDimensions",optional(parameter("boolean","Show dimension annotations."))}},[this](const auto& a){
+            if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
+            if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))return failure("stale_session","Restart this sketch");
+            auto options=session_.value("displayOptions").toObject();
+            for(const auto& field:QStringList{"showConstraints","showDimensions"})if(a.contains(field))options[field]=a[field];
+            auto selection=session_.value("selection").toObject();
+            if(!options.value("showConstraints").toBool(true)){selection.remove("constraintIds");session_.remove("hoveredConstraintId");}
+            if(!options.value("showDimensions").toBool(true)){selection.remove("dimensionId");cancelDimension();}
+            session_["displayOptions"]=options;session_["selection"]=selection;return options;
+        });
+    add("sketch.constraintSelect","Select constraint badge","Select a relation independently of its geometry; Shift adds badges.",
+        {{"constraintId",badgeId},{"additive",optional(parameter("boolean","Add this constraint to the current badge selection."))}},[this](const auto& a){
+            if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
+            if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))return failure("stale_session","Restart this sketch");
+            if(session_.value("tool")!="select" || session_.contains("pendingDimension"))return failure("pending_input_active","Return to Select before selecting a badge");
+            if(!session_.value("displayOptions").toObject().value("showConstraints").toBool(true))return failure("annotation_hidden","Show Constraints before selecting a badge");
+            bool found=false;for(const auto& entry:session_.value("draftSketch").toObject()["parameters"].toObject()["constraints"].toArray())found |= entry.toObject()["id"]==a["constraintId"];
+            if(!found)return failure("stale_constraint","Constraint does not exist","constraintId");
+            auto ids=a.value("additive").toBool() ? session_.value("selection").toObject().value("constraintIds").toArray() : QJsonArray{};
+            if(!ids.contains(a["constraintId"]))ids.append(a["constraintId"]);
+            session_["selection"]=QJsonObject{{"pointIds",QJsonArray{}},{"entityIds",QJsonArray{}},{"constraintIds",ids}};
+            return session_["selection"].toObject();
+        });
+    add("sketch.constraintHover","Hover constraint badge","Identify a current visible relation without authoring or selecting geometry.",{{"constraintId",optional(badgeId)}},[this](const auto& a){
+        if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
+        if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))return failure("stale_session","Restart this sketch");
+        const auto id=a.value("constraintId").toString();
+        if(!id.isEmpty()) {
+            if(session_.value("tool")!="select")return failure("pending_input_active","Return to Select before hovering a badge");
+            if(!session_.value("displayOptions").toObject().value("showConstraints").toBool(true))return failure("annotation_hidden","Show Constraints before hovering a badge");
+            bool found=false;for(const auto& entry:session_.value("draftSketch").toObject()["parameters"].toObject()["constraints"].toArray())found |= entry.toObject()["id"]==id;
+            if(!found)return failure("stale_constraint","Constraint does not exist","constraintId");
+        }
+        if(id.isEmpty())session_.remove("hoveredConstraintId");else session_["hoveredConstraintId"]=id;
+        return QJsonObject{{"constraintId",id}};
+    });
+    add("sketch.constraintPick","Pick constraint badge","Pick a visible authored relation at viewport-local coordinates.",
+        {{"x",badgePixel},{"y",badgePixel},{"additive",optional(parameter("boolean","Add the picked relation."))}},[this](const auto& a){
+            if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
+            const auto picked=view_->pickConstraint(a["x"].toDouble(),a["y"].toDouble());
+            if(picked.isEmpty())return failure("constraint_not_found","No visible constraint badge is at that point");
+            const auto response=execute("sketch.constraintSelect",{{"constraintId",picked["constraintId"]},{"additive",a.value("additive").toBool()}});
+            return response["ok"].toBool() ? picked : response;
+        });
+    add("sketch.deleteSelection","Delete sketch annotations","Remove selected relation badges or one dimension in one solved draft edit; geometry is retained.",
+        {{"constraintIds",optional(parameter("array","Distinct stable constraint UUIDs to remove."))},{"dimensionId",optional(dimensionId)}},[this](const auto& a){
+            if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
+            if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))return failure("stale_session","Restart this sketch");
+            if(session_.value("tool")!="select" || session_.contains("pendingDimension") || session_.contains("pendingCircleDiameter"))return failure("pending_input_active","Return to Select before deleting annotations");
+            const bool explicitTargets=a.contains("constraintIds") || a.contains("dimensionId");
+            const auto selected=session_.value("selection").toObject();
+            auto ids=explicitTargets ? a.value("constraintIds").toArray() : selected.value("constraintIds").toArray();
+            const auto dim=explicitTargets ? a.value("dimensionId").toString() : selected.value("dimensionId").toString();
+            if(!explicitTargets && ids.isEmpty() && dim.isEmpty() && !session_.value("hoveredConstraintId").toString().isEmpty())ids.append(session_["hoveredConstraintId"]);
+            if(ids.isEmpty() && dim.isEmpty())return failure("annotation_required","Select or hover a constraint, or select a dimension");
+            if(!ids.isEmpty() && !session_.value("displayOptions").toObject().value("showConstraints").toBool(true))return failure("annotation_hidden","Show Constraints before deleting badges");
+            if(!dim.isEmpty() && !session_.value("displayOptions").toObject().value("showDimensions").toBool(true))return failure("annotation_hidden","Show Dimensions before deleting an annotation");
+            auto candidate=session_.value("draftSketch").toObject();auto parameters=candidate["parameters"].toObject();
+            QSet<QString> wanted,available;
+            for(const auto& entry:parameters.value("constraints").toArray())available.insert(entry.toObject()["id"].toString());
+            for(const auto& id:ids) {
+                if(!id.isString() || id.toString().isEmpty() || wanted.contains(id.toString()))return failure("invalid_constraint_target","Constraint IDs must be distinct nonempty strings");
+                if(!available.contains(id.toString()))return failure("stale_constraint","Constraint does not exist","constraintIds");wanted.insert(id.toString());
+            }
+            QJsonArray constraints;for(const auto& entry:parameters.value("constraints").toArray())if(!wanted.contains(entry.toObject()["id"].toString()))constraints.append(entry);
+            QJsonArray dimensions;bool dimensionFound=dim.isEmpty();
+            for(const auto& entry:parameters.value("dimensions").toArray())if(entry.toObject()["id"]==dim)dimensionFound=true;else dimensions.append(entry);
+            if(!dimensionFound)return failure("stale_dimension","Dimension does not exist","dimensionId");
+            if(parameters.contains("constraints"))parameters["constraints"]=constraints;
+            if(parameters.contains("dimensions"))parameters["dimensions"]=dimensions;
+            candidate["parameters"]=parameters;
+            const auto result=publishSketchSolve(SketchGeometry::solveDraft(candidate,session_.value("projectionContext").toObject()));
+            if(result.value("ok").isBool() && !result.value("ok").toBool())return result;
+            session_["selection"]=QJsonObject{{"pointIds",QJsonArray{}},{"entityIds",QJsonArray{}}};session_.remove("hoveredConstraintId");
+            auto response=result;response["removedConstraintIds"]=ids;if(!dim.isEmpty())response["removedDimensionId"]=dim;return response;
+        });
     auto annotationCoordinate=parameter("number","Canonical sketch-plane placement in millimeters.");annotationCoordinate["minimum"]=-100000;annotationCoordinate["maximum"]=100000;
     add("sketch.annotationMove","Move dimension annotation","Change canonical placement through the shared sketch draft, preserving geometry and dimension value.",
         {{"dimensionId",dimensionId},{"uMm",annotationCoordinate},{"vMm",annotationCoordinate},{"gestureId",optional(parameter("string","Optional native drag gesture identity for one undo step."))},{"session",optionalSession}},[this](const auto& a){
@@ -1582,7 +1672,8 @@ QJsonObject AlloyWindow::state() const {
             {"targetBodyId",session_.value("inputs").toObject()["targetBodyId"]},{"toolBodyIds",session_.value("inputs").toObject()["toolBodyIds"]}}
             : target=="sketch.edit" ? QJsonObject{{"kind","sketch"},{"sketchId",session_.value("draftSketch").toObject()["id"]},
             {"pointIds",session_.value("selection").toObject()["pointIds"]},{"entityIds",session_.value("selection").toObject()["entityIds"]},
-            {"profileIds",session_.value("selection").toObject().value("profileIds").toArray()},{"dimensionId",session_.value("selection").toObject().value("dimensionId")}}
+            {"profileIds",session_.value("selection").toObject().value("profileIds").toArray()},{"dimensionId",session_.value("selection").toObject().value("dimensionId")},
+            {"constraintIds",session_.value("selection").toObject().value("constraintIds").toArray()}}
             : !selectedFace_.isEmpty() ? QJsonObject{{"kind","face"},{"support",selectedFace_}}
             : !selectedProfileIds_.isEmpty() ? QJsonObject{{"kind","profile"},{"sketchId",selectedSketch_},{"profileIds",selectedProfileIds_},{"profileId",selectedProfile_}}
             : !selectedSketch_.isEmpty() ? QJsonObject{{"kind","sketch"},{"sketchId",selectedSketch_}}
@@ -2220,7 +2311,7 @@ QJsonObject AlloyWindow::finishSession(const QString& id, bool commit) {
     }
     else if(target.startsWith("solid.")) {if(primitiveDock_)primitiveDock_->hide();view_->clearPreview();}
     if(target.startsWith("sketch.")) {
-        if(sketchDock_)sketchDock_->hide();view_->clearSketchDraft();displayedSketchDraft_={};view_->setSketchPlane({});view_->setEditDisplay({},{});view_->clearBodyStage();
+        if(sketchDock_)sketchDock_->hide();view_->clearSketchDraft();displayedSketchDraft_={};view_->setSketchPlane({});view_->setEditDisplay({},{});view_->clearBodyStage();view_->setSketchAnnotationVisibility(true,true);
     }
     return result;
 }
@@ -2376,7 +2467,8 @@ QJsonObject AlloyWindow::beginSketch(const QString& plane,const QString& name,co
     const auto sessionId=session_.value("id").toString(CadDocument::newId());
     session_={{"id",sessionId},{"command","sketch.edit"},{"status","active"},{"inputs",inputs},{"draftSketch",draft},
         {"tool","select"},{"selection",QJsonObject{{"pointIds",QJsonArray{}},{"entityIds",QJsonArray{}}}},{"solverDiagnostics",solved.diagnostics},
-        {"previewed",false},{"baseDocumentRevision",static_cast<qint64>(document_->revision())},{"resolvedFrame",resolvedFrame},{"projectionContext",projectionContext}};
+        {"previewed",false},{"baseDocumentRevision",static_cast<qint64>(document_->revision())},{"resolvedFrame",resolvedFrame},{"projectionContext",projectionContext},
+        {"displayOptions",QJsonObject{{"showConstraints",true},{"showDimensions",true}}}};
     sketchHistory_={{draft,solved.diagnostics}};sketchHistoryIndex_=0;sketchHistoryGroup_.clear();updateSketchHistoryState();
     selectedBody_.clear();view_->clearPreview();view_->clearSketchDraft();displayedSketchDraft_={};
     selectedSketch_.clear();selectedProfile_.clear();selectedProfileIds_={};view_->selectProfile({},{});view_->setEditDisplay(draft["id"].toString(),dependentBodies(draft["id"].toString()));
@@ -2758,6 +2850,7 @@ QJsonObject AlloyWindow::publishSketchSolve(const SketchGeometry::SolveResult& s
     cancelCircleDiameter();
     recordSketchHistory(solved.feature,solved.diagnostics,journalGroup);
     session_["draftSketch"]=solved.feature;session_["solverDiagnostics"]=solved.diagnostics;session_["projectionContext"]=context;session_["previewed"]=false;
+    auto selection=session_.value("selection").toObject();selection.remove("constraintIds");session_["selection"]=selection;session_.remove("hoveredConstraintId");
     session_.remove("lastSolveFailure");session_.remove("firstPoint");session_.remove("secondPoint");session_.remove("pointerPoint");session_.remove("gestureSweepDeg");session_.remove("snap");
     view_->clearSketchCursor();view_->showSketchDraft(evaluated);displayedSketchDraft_=solved.feature;
     return {{"sessionId",session_.value("id")},{"draftSketch",solved.feature},{"sketchGeometry",evaluated.summary},{"diagnostics",solved.diagnostics},{"authoredCommitted",false}};
@@ -2818,7 +2911,7 @@ QJsonObject AlloyWindow::traverseSketchHistory(int direction) {
     session_["draftSketch"]=entry.draft;session_["solverDiagnostics"]=entry.diagnostics;session_["projectionContext"]=context;
     auto inputs=session_["inputs"].toObject();inputs["name"]=entry.draft["name"];session_["inputs"]=inputs;
     session_["selection"]=QJsonObject{{"pointIds",QJsonArray{}},{"entityIds",QJsonArray{}},{"profileIds",QJsonArray{}}};
-    session_.remove("firstPoint");session_.remove("secondPoint");session_.remove("pointerPoint");session_.remove("gestureSweepDeg");session_.remove("snap");session_.remove("lastSolveFailure");
+    session_.remove("firstPoint");session_.remove("secondPoint");session_.remove("pointerPoint");session_.remove("gestureSweepDeg");session_.remove("snap");session_.remove("hoveredConstraintId");session_.remove("lastSolveFailure");
     session_["previewed"]=false;updateSketchHistoryState();
     view_->showSketchDraft(evaluated);displayedSketchDraft_=entry.draft;view_->setFocus();
     return {{"action",direction<0 ? "undone" : "redone"},{"changed",true},{"draftHistory",session_["draftHistory"]},
@@ -2863,7 +2956,7 @@ QJsonObject AlloyWindow::setSketchSelection(const QJsonObject& selection) {
         }
         normalized[field]=ids;
     }
-    session_["selection"]=normalized;
+    session_["selection"]=normalized;session_.remove("hoveredConstraintId");
     cancelDimension();
     if(session_.value("tool")=="constraint") {
         const auto type=session_.value("constraintType").toString();
@@ -3123,7 +3216,7 @@ QJsonObject AlloyWindow::editDimension(const QString& id) {
     const auto layout=view_->dimensionLayout(layoutFeature,dimension,value,session_.value("inputs").toObject().value("units").toString());
     if(layout.isEmpty())return failure("annotation_unavailable","Look At the sketch plane before editing this label");
     cancelDimension();dimension["dimensionId"]=id;dimension["phase"]="editing";dimension["annotation"]=layout.value("annotation");dimension[dimension["kind"]=="arcSweep" || dimension["kind"]=="angle" ? "measuredValueDeg" : "measuredValueMm"]=value;
-    session_["pendingDimension"]=dimension;auto selection=session_.value("selection").toObject();selection["dimensionId"]=id;session_["selection"]=selection;showDimensionEditor();return dimension;
+    session_["pendingDimension"]=dimension;auto selection=session_.value("selection").toObject();selection.remove("constraintIds");session_.remove("hoveredConstraintId");selection["dimensionId"]=id;session_["selection"]=selection;showDimensionEditor();return dimension;
 }
 void AlloyWindow::ensureSketchInlineEditor() {
     if(!dimensionEditor_) {
@@ -3209,7 +3302,11 @@ void AlloyWindow::refreshSketchControls() {
     }
     const auto draft=session_.value("draftSketch").toObject(),selection=session_.value("selection").toObject();
     const auto units=session_.value("inputs").toObject()["units"].toString();
-    auto presentationSelection=selection;presentationSelection["tool"]=session_.value("tool");
+    const auto displayOptions=session_.value("displayOptions").toObject();
+    view_->setSketchAnnotationVisibility(displayOptions.value("showConstraints").toBool(true),displayOptions.value("showDimensions").toBool(true));
+    if(sketchShowConstraints_){const QSignalBlocker block(sketchShowConstraints_);sketchShowConstraints_->setChecked(displayOptions.value("showConstraints").toBool(true));}
+    if(sketchShowDimensions_){const QSignalBlocker block(sketchShowDimensions_);sketchShowDimensions_->setChecked(displayOptions.value("showDimensions").toBool(true));}
+    auto presentationSelection=selection;presentationSelection["tool"]=session_.value("tool");presentationSelection["hoveredConstraintId"]=session_.value("hoveredConstraintId");
     view_->decorateSketch(draft,presentationSelection,session_.value("solverDiagnostics").toObject(),units,session_.value("pendingDimension").toObject());
     if(sketchCurveEntry_){const auto tool=session_["tool"].toString();sketchCurveEntry_->setVisible(tool=="circle" || tool=="centerArc" || tool=="threePointArc");}
     const bool changed=draft!=sketchWidgetDraft_,selected=selection!=sketchWidgetSelection_,unitChanged=units!=sketchWidgetUnits_;
@@ -3381,6 +3478,7 @@ void AlloyWindow::showSketch() {
     if(sketchDock_)delete sketchDock_;
     sketchInputs_.clear();sketchInfo_=nullptr;sketchName_=nullptr;sketchCurveEntry_=nullptr;
     sketchSelectionTree_=nullptr;sketchFilletControls_=nullptr;sketchFilletRadius_=nullptr;sketchDimensionKind_=nullptr;sketchDimensionValue_=nullptr;sketchDimensionDriving_=nullptr;
+    sketchShowConstraints_=nullptr;sketchShowDimensions_=nullptr;
     sketchDimensionList_=nullptr;sketchDimensionEdit_=nullptr;sketchDimensionMeasure_=nullptr;sketchWidgetDraft_={};sketchWidgetSelection_={};sketchWidgetUnits_.clear();
     sketchPanel_=new QWidget;sketchPanel_->setObjectName("sketchPanel");sketchPanel_->setFixedWidth(312);
     sketchPanel_->setStyleSheet("#sketchPanel { background: #f7f8f9; border-left: 1px solid #cdd3d8; }");
@@ -3465,6 +3563,11 @@ void AlloyWindow::showSketch() {
             });
         }
         layout->addLayout(constraints);
+        sketchShowConstraints_=new QCheckBox("Show Constraints");sketchShowConstraints_->setObjectName("sketch.showConstraints");
+        sketchShowDimensions_=new QCheckBox("Show Dimensions");sketchShowDimensions_->setObjectName("sketch.showDimensions");
+        for(auto* option:{sketchShowConstraints_,sketchShowDimensions_}){option->setChecked(true);layout->addWidget(option);}
+        connect(sketchShowConstraints_,&QCheckBox::toggled,this,[this](bool checked){execute("sketch.displayOptions",{{"showConstraints",checked}});});
+        connect(sketchShowDimensions_,&QCheckBox::toggled,this,[this](bool checked){execute("sketch.displayOptions",{{"showDimensions",checked}});});
         auto* construction=new QPushButton("Normal/Construction  X");construction->setObjectName("sketch.construction.toggle");
         construction->setToolTip("Convert selected lines; construction lines remain usable for constraints but do not bound profiles.");
         connect(construction,&QPushButton::clicked,this,[this]{sketchResponse(execute("sketch.constructionToggle"));});

@@ -184,6 +184,8 @@ private:
     QComboBox* sketchDimensionKind_ = nullptr;
     QDoubleSpinBox* sketchDimensionValue_ = nullptr;
     QCheckBox* sketchDimensionDriving_ = nullptr;
+    QCheckBox* sketchShowConstraints_ = nullptr;
+    QCheckBox* sketchShowDimensions_ = nullptr;
     QComboBox* sketchDimensionList_ = nullptr;
     QDoubleSpinBox* sketchDimensionEdit_ = nullptr;
     QLabel* sketchDimensionMeasure_ = nullptr;

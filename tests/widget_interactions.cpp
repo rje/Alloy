@@ -156,6 +156,58 @@ private slots:
         pressPull->trigger();QCOMPARE(session(window)["command"].toString(),QString("solid.extrude"));
         QVERIFY2(run(window,"command.cancel",{{"session",session(window).value("id").toString()}}),error_.constData());
     }
+    void sketchConstraintBadgeInteraction() {
+        AlloyWindow window;window.resize(1180,760);window.show();window.activateWindow();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        auto* view=viewport(window);QVERIFY(view);
+        QVERIFY2(run(window,"sketch.begin",{{"plane","XY"}}),error_.constData());
+        QVERIFY2(run(window,"sketch.line",{{"x1",-20},{"y1",0},{"x2",20},{"y2",2},{"units","mm"}}),error_.constData());
+        auto params=[&]{return session(window)["draftSketch"].toObject()["parameters"].toObject();};
+        const auto line=params()["entities"].toArray().first().toObject();
+        QVERIFY2(run(window,"sketch.constraint",{{"type","horizontal"},{"entityIds",QJsonArray{line["id"]}}}),error_.constData());
+        QVERIFY2(run(window,"sketch.dimension",{{"kind","linear"},{"pointIds",QJsonArray{line["startPointId"],line["endPointId"]}},{"value",40},{"driving",true}}),error_.constData());
+        const auto original=params(),relation=original["constraints"].toArray().last().toObject();
+        const auto dimension=original["dimensions"].toArray().last().toObject()["id"];
+        const auto dof=session(window)["solverDiagnostics"].toObject()["dof"].toInt();
+        const auto history=session(window)["draftHistory"].toObject()["index"].toInt();
+        auto glyphs=[&]{return window.state()["viewport"].toObject()["gpu"].toObject()["sketchConstraintGlyphs"].toArray();};
+        QTRY_VERIFY(!glyphs().isEmpty());
+        auto bounds=glyphs().first().toObject()["bounds"].toObject();
+        const QPoint badge(qRound(bounds["x"].toDouble()+bounds["width"].toDouble()/2),qRound(bounds["y"].toDouble()+bounds["height"].toDouble()/2));
+        QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,badge);
+        QCOMPARE(session(window)["selection"].toObject()["constraintIds"].toArray(),QJsonArray{relation["id"]});
+        // Text editing must consume Delete/Backspace without deleting CAD relations.
+        auto* name=window.findChild<QLineEdit*>("sketch.name");QVERIFY(name);
+        const auto originalName=name->text();name->setFocus();name->setText("abcd");name->setCursorPosition(2);
+        QTest::keyClick(name,Qt::Key_Backspace);QCOMPARE(name->text(),QString("acd"));
+        QTest::keyClick(name,Qt::Key_Delete);QCOMPARE(name->text(),QString("ad"));
+        QCOMPARE(params(),original);
+        name->setText(originalName);view->setFocus();QTest::keyClick(view,Qt::Key_Backspace);
+        QTRY_COMPARE(params()["constraints"].toArray().size(),original["constraints"].toArray().size()-1);
+        QCOMPARE(session(window)["solverDiagnostics"].toObject()["dof"].toInt(),dof+1);
+        QCOMPARE(session(window)["draftHistory"].toObject()["index"].toInt(),history+1);
+        QVERIFY2(run(window,"history.undo"),error_.constData());QCOMPARE(params(),original);
+        QVERIFY2(run(window,"history.redo"),error_.constData());
+        QVERIFY2(run(window,"history.undo"),error_.constData());QCOMPARE(params(),original);
+        QVERIFY2(run(window,"sketch.constraintSelect",{{"constraintId",relation["id"]}}),error_.constData());
+        QVERIFY2(run(window,"sketch.displayOptions",{{"showConstraints",false}}),error_.constData());
+        QVERIFY(glyphs().isEmpty());QVERIFY(view->pickConstraint(badge.x(),badge.y()).isEmpty());
+        QVERIFY(session(window)["selection"].toObject()["constraintIds"].toArray().isEmpty());
+        QVERIFY(!run(window,"sketch.deleteSelection"));QCOMPARE(params(),original);
+        QVERIFY2(run(window,"sketch.annotationSelect",{{"dimensionId",dimension}}),error_.constData());
+        QVERIFY2(run(window,"sketch.displayOptions",{{"showDimensions",false}}),error_.constData());
+        QVERIFY(session(window)["selection"].toObject().value("dimensionId").toString().isEmpty());
+        QCOMPARE(session(window)["draftHistory"].toObject()["index"].toInt(),history);
+        QVERIFY2(run(window,"sketch.displayOptions",{{"showConstraints",true},{"showDimensions",true}}),error_.constData());
+        QVERIFY2(run(window,"sketch.constraintHover",{{"constraintId",relation["id"]}}),error_.constData());
+        QEvent leave(QEvent::Leave);QApplication::sendEvent(view,&leave);
+        QVERIFY(session(window).value("hoveredConstraintId").toString().isEmpty());
+        QVERIFY(!run(window,"sketch.deleteSelection",{{"constraintIds",QJsonArray{relation["id"],"stale"}}}));QCOMPARE(params(),original);
+        QVERIFY2(run(window,"sketch.deleteSelection",{{"dimensionId",dimension}}),error_.constData());
+        QVERIFY(params()["dimensions"].toArray().isEmpty());
+        QVERIFY2(run(window,"history.undo"),error_.constData());QCOMPARE(params(),original);
+        QVERIFY2(run(window,"sketch.cancel"),error_.constData());
+    }
     void pressPullProfileModifierToggle() {
         AlloyWindow window;window.resize(1180,760);window.show();window.activateWindow();
         QVERIFY(QTest::qWaitForWindowExposed(&window));
