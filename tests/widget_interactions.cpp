@@ -110,6 +110,44 @@ private slots:
         QCOMPARE(window.state()["document"].toObject()["features"].toInt(),0);
     }
 
+    void pressPullProfileModifierToggle() {
+        AlloyWindow window;window.resize(1180,760);window.show();window.activateWindow();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        auto* view=viewport(window);QVERIFY(view);
+        QVERIFY2(run(window,"sketch.begin",{{"plane","XY"},{"name","Profile toggle"}}),error_.constData());
+        QVERIFY2(run(window,"sketch.addCircle",{{"centerX",0},{"centerY",0},{"diameter",16},{"units","mm"}}),error_.constData());
+        QVERIFY2(run(window,"sketch.finish"),error_.constData());
+        const auto before=window.state()["document"].toObject();
+        const auto sketch=before["evaluation"].toObject()["sketches"].toArray().first().toObject();
+        const auto profiles=sketch["profiles"].toArray();QCOMPARE(profiles.size(),1);
+        const auto profileId=profiles.first().toObject()["profileId"].toString();QVERIFY(!profileId.isEmpty());
+        const QJsonArray selected{profileId};
+        QVERIFY2(run(window,"solid.pressPullDialog",{{"sketchId",sketch["sketchId"]}}),error_.constData());
+        // Pick inside the real face, away from the centroid's extrusion arrow.
+        const auto pick=sketchPixel(view,4,0);QVERIFY(view->rect().contains(pick));
+        QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,pick);
+        QTRY_COMPARE(window.state()["selection"].toObject()["profileIds"].toArray(),selected);
+        const auto sessionId=session(window).value("id").toString();
+        QVERIFY2(run(window,"command.update",{{"session",sessionId},{"inputs",QJsonObject{{"distance",5},{"units","mm"}}}}),error_.constData());
+        QVERIFY2(run(window,"command.preview",{{"session",sessionId}}),error_.constData());
+        // Qt maps ControlModifier to physical Command on macOS by default;
+        // Alloy does not set AA_MacDontSwapCtrlAndMeta. Elsewhere it is Control.
+        const auto modifier=Qt::ControlModifier;
+        // Each synthesized modified click must toggle exactly once, even after
+        // distance entry has enabled the disposable solid preview.
+        QTest::mouseClick(view,Qt::LeftButton,modifier,sketchPixel(view,4,0));
+        QTRY_COMPARE(session(window)["inputs"].toObject()["profileIds"].toArray(),QJsonArray{});
+        QVERIFY(window.state()["selection"].toObject()["profileIds"].toArray().isEmpty());
+        QCOMPARE(session(window)["inputs"].toObject()["distance"].toDouble(),5.0);
+        QTest::mouseClick(view,Qt::LeftButton,modifier,sketchPixel(view,4,0));
+        QTRY_COMPARE(session(window)["inputs"].toObject()["profileIds"].toArray(),selected);
+        QCOMPARE(window.state()["selection"].toObject()["profileIds"].toArray(),selected);
+        QCOMPARE(session(window)["inputs"].toObject()["distance"].toDouble(),5.0);
+        QVERIFY2(run(window,"command.preview",{{"session",sessionId}}),error_.constData());
+        QCOMPARE(window.state()["document"].toObject()["authored"],before["authored"]);
+        QCOMPARE(window.state()["document"].toObject()["revision"],before["revision"]);
+        QVERIFY2(run(window,"command.cancel",{{"session",sessionId}}),error_.constData());
+    }
     void combineCheckboxAndCommit() {
         AlloyWindow window;window.resize(1180,640);window.show();window.activateWindow();
         QVERIFY(QTest::qWaitForWindowExposed(&window));
