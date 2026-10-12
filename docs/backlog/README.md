@@ -29,7 +29,7 @@ issues before implementation and remain open until that declared coverage passes
 
 The initial graph had seven tasks without prerequisites. The shell baseline,
 [`GATE-000` #12](https://github.com/rje/Alloy/issues/12), is now closed with
-real-app evidence. The verified publication has **134 open issues and six ready
+real-app evidence. The verified publication has **133 open issues and five ready
 tasks**:
 
 - `FND-001`: choose a dated public compatibility baseline.
@@ -37,9 +37,8 @@ tasks**:
 - `FND-003`: prototype authored persistence/transaction authority.
 - `FND-004`: prototype persistent face/edge references.
 - `FND-006`: extend instance discovery and real command lifecycle/automation.
-- `FND-010`: build the thin cumulative workflow/evidence runner.
 
-These six tasks are **ready**, not already complete. Recompute the live queue
+These five tasks are **ready**, not already complete. Recompute the live queue
 before pulling work; issue states can change after this publication snapshot.
 The existing shell, CLI, initial research, CMake build and API smoke are already
 present; the backlog does not pretend they need to be created again. The

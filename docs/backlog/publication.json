@@ -1,5 +1,5 @@
 {
-  "verified_at": "2026-10-12T00:45:36.897522+00:00",
+  "verified_at": "2026-10-12T01:15:17.187691+00:00",
   "repository": "https://github.com/rje/Alloy",
   "visibility": "public",
   "license": "MIT",
@@ -11,16 +11,15 @@
     "epic": 22
   },
   "states": {
-    "open": 134,
-    "closed": 1
+    "open": 133,
+    "closed": 2
   },
   "ready": [
     "FND-001",
     "FND-002",
     "FND-003",
     "FND-004",
-    "FND-006",
-    "FND-010"
+    "FND-006"
   ],
   "milestones": 10,
   "checks": [
@@ -36,5 +35,5 @@
     "135 project items verified through API"
   ],
   "project_url": "https://github.com/users/rje/projects/1",
-  "project_verification": "All 135 issue items independently verified through gh Projects API; no draft or unrelated items. GATE-000 Status Done."
+  "project_verification": "All135 items verified viaAPI; GATE-000 and FND-010 Status Done."
 }

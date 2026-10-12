@@ -89,7 +89,8 @@ comprising **87 implementation tasks, 13 research tasks, 22 epics, and 13
 cumulative validation gates**. All remote issue bodies, dependency links,
 labels, milestones, and live readiness were verified through the API. The shell
 baseline [`GATE-000` #12](https://github.com/rje/Alloy/issues/12) is closed;
-134 issues remain open and six have satisfied prerequisites. Later epics need
+FND-010 #10 is also closed with independently reviewed runner evidence;
+133 issues remain open and five have satisfied prerequisites. Later epics need
 bounded child issues before implementation; this count does not exhaust parity.
 Read [the backlog](backlog/README.md), [publication receipt](backlog/publication.json),
 and [deep dive](research/cad-workflows.md) before pulling work. Run

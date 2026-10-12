@@ -6,7 +6,7 @@ configured build and FND-010 case passed. Live Qt6.11.2, OCCT build7.9.3 and App
 M4 hardware renderer metadata were retained with source, binary and artifact hashes.
 
 Focused checks rejected an omitted required capability, excluded shell case,
-open/missing cumulative CAD prerequisites, and a custom stale candidate path
+open/missing cumulative CAD prerequisites, and an arbitrary candidate path
 presented as the configured build output. No new application/model state was
 mocked. The [result record](workflow-runner.json) distinguishes final success
 from earlier focused checks instead of relabeling their source/candidate hashes.
