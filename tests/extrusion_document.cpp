@@ -14,6 +14,45 @@ QJsonObject solved(const SketchGeometry::SolveResult& result) {
     check(result.ok,result.error.toUtf8().constData());return result.feature;
 }
 double volume(const EvaluatedDocument& document) {return document.bodies.at(0).summary["volumeMm3"].toDouble();}
+void pluralExtrusion() {
+    CadDocument document;const auto owner=document.authored()["documentId"].toString();
+    auto sketch=SketchGeometry::newFeature(owner,"XY","Connected three regions");
+    sketch=SketchGeometry::addLine(sketch,{{"u1Mm",0},{"v1Mm",0},{"u2Mm",500},{"v2Mm",0}});
+    sketch=SketchGeometry::addLine(sketch,{{"u1Mm",500},{"v1Mm",100},{"u2Mm",0},{"v2Mm",100}});
+    sketch=SketchGeometry::addCircle(sketch,{{"centerUMm",0},{"centerVMm",50},{"diameterMm",100}});
+    sketch=SketchGeometry::addCircle(sketch,{{"centerUMm",500},{"centerVMm",50},{"diameterMm",100}});
+    sketch=solved(SketchGeometry::solveDraft(sketch));
+    check(document.commit(SketchGeometry::replaceFeature(document.authored(),sketch),"Three regions").isEmpty(),"Commit plural region source");
+    const auto profiles=document.sketches()[0].profiles;check(profiles.size()==3,"Plural extrusion fixture needs three real regions");
+    QJsonArray ids,disks;double area=0;
+    for(const auto& profile:profiles){ids.append(profile.profileId);area+=profile.summary["areaMm2"].toDouble();
+        if(profile.summary["sourceEntityIds"].toArray().size()==1)disks.append(profile.profileId);}
+    check(disks.size()==2,"Disconnected fixture needs two end disks");
+    const auto before=document.authored();const auto sketchId=sketch["id"];
+    const auto candidate=CadDocument::extrusionCandidate(before,{{"sketchId",sketchId},{"profileIds",ids},{"distanceMm",50}});
+    const auto preview=CadDocument::evaluateCandidate(candidate);check(preview.ok,preview.error.toUtf8().constData());
+    check(preview.evaluation->bodies.size()==1,"Plural extrusion produced multiple bodies");
+    const auto summary=preview.evaluation->bodies[0].summary;
+    check(summary["topology"].toObject()["solids"]==1 && summary["closed"].toBool() && summary["valid"].toBool(),"Plural extrusion is not one valid closed solid");
+    near(summary["volumeMm3"].toDouble(),area*50,"Plural extrusion volume is not region area times distance");
+    near(summary["sourceAreaMm2"].toDouble(),area,"Plural extrusion lost source union area");
+    check(summary["sourceProfileIds"].toArray().size()==3,"Plural extrusion lost retained source profile IDs");
+    check(document.authored()==before && document.bodies().empty(),"Plural preview mutated document");
+    check(document.commit(candidate,"Extrude three regions").isEmpty(),"Commit plural extrusion");
+    const auto committed=document.authored();const auto revision=document.revision();const auto history=document.history().count();
+    const auto disjoint=CadDocument::extrusionCandidate(before,{{"sketchId",sketchId},{"profileIds",disks},{"distanceMm",50}});
+    check(!document.commit(disjoint,"Disconnected regions").isEmpty(),"Disjoint regions silently became one feature body");
+    check(document.authored()==committed && document.revision()==revision && document.history().count()==history,"Disconnected failure changed usable work");
+    bool duplicateRejected=false;try{CadDocument::extrusionCandidate(before,{{"sketchId",sketchId},{"profileIds",QJsonArray{ids[0],ids[0]}},{"distanceMm",50}});}catch(const std::exception&){duplicateRejected=true;}
+    check(duplicateRejected,"Plural selection accepted duplicate IDs");
+    const auto missing=CadDocument::evaluateCandidate(CadDocument::extrusionCandidate(before,{{"sketchId",sketchId},{"profileIds",QJsonArray{ids[0],CadDocument::newId()}},{"distanceMm",50}}));
+    check(!missing.ok && missing.diagnostics["code"]=="profile_unavailable","Missing plural reference had no useful error");
+    document.history().undo();check(document.authored()==before,"Plural undo lost source document");document.history().redo();check(document.authored()==committed,"Plural redo changed retained input IDs");
+    QTemporaryDir directory;check(directory.isValid(),"Plural storage fixture directory");
+    const auto path=directory.path()+"/three-region-extrusion.alloy";check(document.save(path).isEmpty(),"Save plural extrusion");
+    CadDocument reopened;check(reopened.open(path).isEmpty() && reopened.authored()==committed,"Plural storage lost schema/reference IDs");
+    near(volume(GeometryKernel::evaluateDocument(reopened.authored())),area*50,"Reopened plural extrusion volume");
+}
 QJsonObject replaceExtrusionParameters(const QJsonObject& document, const QJsonObject& edits) {
     auto candidate = document;auto features = candidate["features"].toArray();
     auto feature = features[1].toObject();auto parameters = feature["parameters"].toObject();
@@ -123,6 +162,7 @@ int main(int argc, char** argv) {
         check(reopened.commit(CadDocument::extrusionCandidate(reopened.authored(),
             {{"sketchId",sketchId},{"profileId",profileId},{"distanceMm",3},{"featureId",featureId}}),"Edit extrusion").isEmpty(),"retained extrusion remains editable");
         near(reopened.bodies()[0].summary["volumeMm3"].toDouble(),3750,"retained extrusion distance recomputes");
+        pluralExtrusion();
         std::cout << "PASS: ordered profile extrusion, signed distance, stable identity, atomic failure and undo/reopen\n";
         return 0;
     } catch (const std::exception& error) {std::cerr << error.what() << '\n';return 1;}

@@ -36,6 +36,7 @@ public:
     void showSketchDraft(const EvaluatedSketch& sketch);
     void clearSketchDraft();
     void selectProfile(const QString& sketchId, const QString& profileId);
+    void selectProfiles(const QString& sketchId, const QJsonArray& profileIds);
     QJsonObject pickFinishedProfile(double x, double y) const;
     void setEditDisplay(const QString& sourceSketchId, const QJsonArray& hiddenBodyIds);
     QJsonObject pickSketch(const QJsonObject& feature, double x, double y, const QString& filter = {}) const;
@@ -59,7 +60,7 @@ public:
     QString pickBody(double x,double y);
     QJsonObject projectBody(const EvaluatedBody& body) const;
     void showPreview(const TopoDS_Shape& shape,const QString& replacedBody = {}, bool neutral = false);
-    void showExtrudePreview(const EvaluatedBody& body, const EvaluatedProfile& profile, double distanceMm);
+    void showExtrudePreview(const EvaluatedBody& body, const EvaluatedProfile& profile, double distanceMm, const QJsonArray& sourceProfileIds = {}, const QString& units = "mm");
     void clearPreview();
     QPaintEngine* paintEngine() const override { return nullptr; }
 protected:
@@ -82,6 +83,7 @@ private:
     void clearSketchDecorations();
     void applyEditDisplay(bool redraw = true);
     void clearPreviewPresentation();
+    void refreshExtrusionCue();
     void replacePreview(const TopoDS_Shape& shape, const QString& replacedBody, bool neutral);
     QPointF windowScale() const;
     Handle(V3d_Viewer) viewer_;
@@ -101,6 +103,7 @@ private:
     QMap<QString,Handle(AIS_Shape)> finishedProfileModels_;
     std::vector<EvaluatedSketch> finishedSketches_;
     QString selectedProfile_, selectedProfileSketch_, editSourceSketch_;
+    QJsonArray selectedProfileIds_;
     QJsonArray hiddenBodyIds_;
     Handle(AIS_Shape) sketchDraft_, sketchConstructionDraft_, sketchCursor_, sketchSnapCue_;
     QJsonArray constructionDraftLineIds_;
@@ -123,9 +126,10 @@ private:
     QString sketchPlane_, draftSketchId_;
     quint64 sketchRevision_ = 0;
     Handle(AIS_Shape) preview_;
-    std::vector<Handle(AIS_Shape)> extrusionCue_;
+    std::vector<Handle(AIS_InteractiveObject)> extrusionCue_;
     QJsonObject extrusionCueState_;
     QString previewReplacedBody_, previewProfile_;
+    QJsonArray previewProfileIds_;
     quint64 modelRevision_ = 0;
     std::vector<EvaluatedBody> documentBodies_;
     QString bodyStageKey_;

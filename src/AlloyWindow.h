@@ -73,7 +73,7 @@ private:
     void refreshCombineControls();
     void updateCombine(const QJsonObject& inputs);
     void selectCombineBody(const QString& bodyId);
-    QJsonObject selectFinishedProfile(const QString& sketchId, const QString& profileId);
+    QJsonObject selectFinishedProfile(const QString& sketchId, const QString& profileId, bool additive = false, bool toggle = false);
     QJsonArray dependentBodies(const QString& sketchId) const;
     QJsonObject primitiveCandidate(const QString&, const QJsonObject&) const;
     QJsonObject beginSketch(const QString& plane, const QString& name, const QString& sketchId = {});
@@ -185,6 +185,7 @@ private:
     QLabel* browserNote_ = nullptr;
     QString selectedBody_;
     QString selectedSketch_, selectedProfile_;
+    QJsonArray selectedProfileIds_;
     quint64 displayedDocumentRevision_ = 0;
     bool authorizedQuit_ = false;
     QJsonObject session_;
@@ -205,6 +206,7 @@ private:
         int sketchHistoryIndex = -1;
         QString sketchHistoryGroup;
         QString selectedBody, selectedSketch, selectedProfile;
+        QJsonArray selectedProfileIds;
     };
     std::vector<std::unique_ptr<DesignTab>> designTabs_;
     QString activeTabId_;

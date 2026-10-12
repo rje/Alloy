@@ -285,6 +285,7 @@ void ReferenceView::sync() {
     if (origin) context_->Display(axes_, false); else context_->Erase(axes_, false);
     context_->Deactivate(axes_);
     if(!decorationFeature_.isEmpty())decorateSketch(decorationFeature_,decorationSelection_,decorationDiagnostics_,decorationUnits_,decorationPending_);
+    if(!extrusionCueState_.isEmpty())refreshExtrusionCue();
     view_->Redraw();
 }
 void ReferenceView::setBodies(const std::vector<EvaluatedBody>& bodies,quint64 revision) {
@@ -355,11 +356,11 @@ void ReferenceView::applyEditDisplay(bool redraw) {
         }
         for(const auto& profile:sketch.profiles)if(finishedProfileModels_.contains(profile.profileId)) {
             const auto fill=finishedProfileModels_.value(profile.profileId);
-            fill->SetColor(profile.profileId==selectedProfile_ && sketch.featureId==selectedProfileSketch_
+            fill->SetColor(selectedProfileIds_.contains(profile.profileId) && sketch.featureId==selectedProfileSketch_
                 ? Quantity_Color(0.17,0.48,0.90,Quantity_TOC_sRGB) : Quantity_Color(0.39,0.68,0.91,Quantity_TOC_sRGB));
             // The extrusion base cap occupies this same plane. Keep its sketch
             // outline, but suppress the coplanar transparent profile fill.
-            if(visible && profile.profileId!=previewProfile_)context_->Display(fill,false);else context_->Erase(fill,false);
+            if(visible && !previewProfileIds_.contains(profile.profileId))context_->Display(fill,false);else context_->Erase(fill,false);
         }
     }
     for(auto i=models_.begin();i!=models_.end();++i) {
@@ -373,7 +374,11 @@ void ReferenceView::setEditDisplay(const QString& sourceSketchId,const QJsonArra
     editSourceSketch_=sourceSketchId;hiddenBodyIds_=hiddenBodyIds;applyEditDisplay();
 }
 void ReferenceView::selectProfile(const QString& sketchId,const QString& profileId) {
-    selectedProfileSketch_=sketchId;selectedProfile_=profileId;applyEditDisplay();
+    selectProfiles(sketchId,profileId.isEmpty() ? QJsonArray{} : QJsonArray{profileId});
+}
+void ReferenceView::selectProfiles(const QString& sketchId,const QJsonArray& profileIds) {
+    selectedProfileSketch_=sketchId;selectedProfileIds_=profileIds;
+    selectedProfile_=profileIds.isEmpty() ? QString{} : profileIds.first().toString();applyEditDisplay();
 }
 QJsonObject ReferenceView::pickFinishedProfile(double x,double y) const {
     if(view_.IsNull() || x<0 || y<0 || x>=width() || y>=height())return {};
@@ -967,34 +972,70 @@ void ReferenceView::showPreview(const TopoDS_Shape& shape,const QString& replace
     replacePreview(shape,replacedBody,neutral);
     if(!context_.IsNull())context_->UpdateCurrentViewer();
 }
-void ReferenceView::showExtrudePreview(const EvaluatedBody& body,const EvaluatedProfile& profile,double distanceMm) {
-    replacePreview(body.shape,body.bodyId,true);
+void ReferenceView::showExtrudePreview(const EvaluatedBody& body,const EvaluatedProfile& profile,double distanceMm,const QJsonArray& sourceProfileIds,const QString& units) {
+    replacePreview(body.shape,body.bodyId,false);
     if(context_.IsNull())return;
-    previewProfile_=profile.profileId;
+    preview_->SetColor(Quantity_Color(0.16,0.47,0.86,Quantity_TOC_sRGB));
+    preview_->SetTransparency(0.20);
+    context_->Redisplay(preview_,false);
+    previewProfile_=profile.profileId;previewProfileIds_=sourceProfileIds.isEmpty() ? QJsonArray{profile.profileId} : sourceProfileIds;
     applyEditDisplay(false);
     GProp_GProps properties;BRepGProp::SurfaceProperties(profile.face,properties);const auto start=properties.CentreOfMass();
-    const auto frame=SketchGeometry::frame(profile.plane);const auto normal=frame.value("normal").toArray(),u=frame.value("uAxis").toArray();
+    const auto frame=SketchGeometry::frame(profile.plane);const auto normal=frame.value("normal").toArray();
     gp_Vec direction(normal[0].toDouble(),normal[1].toDouble(),normal[2].toDouble());direction*=distanceMm<0 ? -1 : 1;
     const auto end=start.Translated(direction*std::abs(distanceMm));
-    const double head=std::min(std::max(std::abs(distanceMm)*0.2,0.3),3.0);
-    const gp_Vec side(u[0].toDouble(),u[1].toDouble(),u[2].toDouble());
+    const double displayDistance=units=="in" ? distanceMm/25.4 : distanceMm;
+    const QString label=QString::number(displayDistance,'f',2)+" "+units;
+    extrusionCueState_={{"sketchId",profile.sketchId},{"profileId",profile.profileId},{"profileIds",previewProfileIds_},{"distanceMm",distanceMm},
+        {"units",units},{"label",label},{"plane",profile.plane},
+        {"startMm",QJsonArray{start.X(),start.Y(),start.Z()}},{"endMm",QJsonArray{end.X(),end.Y(),end.Z()}}};
+    refreshExtrusionCue();
+    context_->UpdateCurrentViewer();
+}
+void ReferenceView::refreshExtrusionCue() {
+    if(context_.IsNull() || view_.IsNull() || extrusionCueState_.isEmpty())return;
+    for(const auto& cue:extrusionCue_)context_->Remove(cue,false);
+    extrusionCue_.clear();
+    const auto startArray=extrusionCueState_.value("startMm").toArray(),endArray=extrusionCueState_.value("endMm").toArray();
+    if(startArray.size()!=3 || endArray.size()!=3)return;
+    const gp_Pnt start(startArray[0].toDouble(),startArray[1].toDouble(),startArray[2].toDouble());
+    const gp_Pnt end(endArray[0].toDouble(),endArray[1].toDouble(),endArray[2].toDouble());
+    gp_Vec direction(start,end);const double length=direction.Magnitude();if(length<1e-9)return;
+    direction.Normalize();
+    const auto frame=SketchGeometry::frame(extrusionCueState_.value("plane").toString());const auto u=frame.value("uAxis").toArray();
+    gp_Vec side(u[0].toDouble(),u[1].toDouble(),u[2].toDouble());
+    int startX,startY,endX,endY,sideX,sideY;
+    view_->Convert(start.X(),start.Y(),start.Z(),startX,startY);
+    view_->Convert(end.X(),end.Y(),end.Z(),endX,endY);
+    const auto sidePoint=end.Translated(side*100.0);view_->Convert(sidePoint.X(),sidePoint.Y(),sidePoint.Z(),sideX,sideY);
+    const auto scale=windowScale();
+    const double alongPixels=std::hypot((endX-startX)/scale.x(),(endY-startY)/scale.y())/length;
+    const double sidePixels=std::hypot((sideX-endX)/scale.x(),(sideY-endY)/scale.y())/100.0;
+    if(alongPixels<1e-5 || sidePixels<1e-5)return;
+    const double head=std::min(length*0.36,14.0/alongPixels),wing=6.0/sidePixels;
+    const Quantity_Color color(0.04,0.29,0.72,Quantity_TOC_sRGB);
     for(const auto& edge:std::vector<TopoDS_Edge>{BRepBuilderAPI_MakeEdge(start,end).Edge(),
-        BRepBuilderAPI_MakeEdge(end,end.Translated(direction*(-head)+side*(head*0.45))).Edge(),
-        BRepBuilderAPI_MakeEdge(end,end.Translated(direction*(-head)-side*(head*0.45))).Edge()}) {
-        const auto cue=sketchPresentation(edge);cue->SetColor(Quantity_Color(0.04,0.33,0.78,Quantity_TOC_sRGB));
-        cue->SetWidth(2*devicePixelRatioF());cue->SetZLayer(Graphic3d_ZLayerId_Topmost);
+        BRepBuilderAPI_MakeEdge(end,end.Translated(direction*(-head)+side*wing)).Edge(),
+        BRepBuilderAPI_MakeEdge(end,end.Translated(direction*(-head)-side*wing)).Edge()}) {
+        const auto cue=sketchPresentation(edge);cue->SetColor(color);cue->SetWidth(2.5*devicePixelRatioF());cue->SetZLayer(Graphic3d_ZLayerId_Topmost);
         context_->Display(cue,AIS_WireFrame,-1,false);context_->Deactivate(cue);extrusionCue_.push_back(cue);
     }
-    extrusionCueState_={{"sketchId",profile.sketchId},{"profileId",profile.profileId},{"distanceMm",distanceMm},
-        {"startMm",QJsonArray{start.X(),start.Y(),start.Z()}},{"endMm",QJsonArray{end.X(),end.Y(),end.Z()}}};
-    context_->UpdateCurrentViewer();
+    Handle(AIS_TextLabel) label=new AIS_TextLabel;
+    label->SetText(TCollection_ExtendedString(extrusionCueState_.value("label").toString().toUtf8().constData(),true));
+    label->SetPosition(end.Translated(side*(21.0/sidePixels)));
+    label->SetHeight(14);label->SetFont("Arial");label->SetHJustification(Graphic3d_HTA_LEFT);label->SetVJustification(Graphic3d_VTA_CENTER);
+    label->SetZoomable(false);label->SetDisplayType(Aspect_TODT_SUBTITLE);label->SetColor(color);
+    label->SetColorSubTitle(Quantity_Color(1.0,1.0,1.0,Quantity_TOC_sRGB));
+    label->SetZLayer(Graphic3d_ZLayerId_Topmost);context_->Display(label,0,-1,false);context_->Deactivate(label);extrusionCue_.push_back(label);
+    extrusionCueState_["arrowHeadPixels"]=head*alongPixels;extrusionCueState_["labelHeightPixels"]=14;
+    extrusionCueState_["labelScreen"]=QJsonObject{{"x",endX/scale.x()+0.21*(sideX-endX)/scale.x()/sidePixels},{"y",endY/scale.y()+0.21*(sideY-endY)/scale.y()/sidePixels}};
 }
 void ReferenceView::clearPreviewPresentation() {
     if(!context_.IsNull()) {
         for(const auto& cue:extrusionCue_)context_->Remove(cue,false);
         if(!preview_.IsNull())context_->Remove(preview_,false);
     }
-    preview_.Nullify();previewReplacedBody_.clear();previewProfile_.clear();extrusionCue_.clear();extrusionCueState_={};
+    preview_.Nullify();previewReplacedBody_.clear();previewProfile_.clear();previewProfileIds_={};extrusionCue_.clear();extrusionCueState_={};
 }
 void ReferenceView::clearPreview() {
     clearPreviewPresentation();
@@ -1067,7 +1108,7 @@ QJsonObject ReferenceView::diagnostics() const {
         auto summary=profile.summary;TopLoc_Location location;const auto triangles=BRep_Tool::Triangulation(profile.face,location);
         summary["displayTriangleCount"]=triangles.IsNull() ? 0 : triangles->NbTriangles();
         summary["visible"]=(sketch.visible || sketch.featureId==editSourceSketch_) && sketch.featureId!=draftSketchId_;
-        summary["selected"]=profile.profileId==selectedProfile_ && sketch.featureId==selectedProfileSketch_;finishedProfiles.append(summary);
+        summary["selected"]=selectedProfileIds_.contains(profile.profileId) && sketch.featureId==selectedProfileSketch_;finishedProfiles.append(summary);
     }
     result.insert("finishedProfiles",finishedProfiles);
     result.insert("editDisplay",QJsonObject{{"sourceSketchId",editSourceSketch_},{"hiddenBodyIds",hiddenBodyIds_}});
@@ -1077,6 +1118,7 @@ QJsonObject ReferenceView::diagnostics() const {
     result.insert("previewVisible",!preview_.IsNull());
     result.insert("previewReplacedBodyId",previewReplacedBody_);
     result.insert("previewProfileId",previewProfile_);
+    result.insert("previewProfileIds",previewProfileIds_);
     result.insert("bodyStageKey",bodyStageKey_);
     QJsonArray displayIds;for(auto it=models_.begin();it!=models_.end();++it)if(context_->IsDisplayed(it.value()))displayIds.append(it.key());result.insert("displayedBodyIds",displayIds);
     result.insert("documentRevision",static_cast<qint64>(modelRevision_));
@@ -1122,6 +1164,10 @@ void ReferenceView::mousePressEvent(QMouseEvent* e) {
         }
         QJsonObject args{{"x",e->position().x()},{"y",e->position().y()}};
         if(!sketchPlane_.isEmpty())args["additive"]=e->modifiers().testFlag(Qt::ShiftModifier);
+        else {
+            args["additive"]=e->modifiers().testFlag(Qt::ShiftModifier);
+            args["toggle"]=e->modifiers().testFlag(Qt::ControlModifier) || e->modifiers().testFlag(Qt::MetaModifier);
+        }
         dispatch(sketchPlane_.isEmpty() ? "selection.pick" : "sketch.placePoint",args);e->accept();
     }
     else QWidget::mousePressEvent(e);

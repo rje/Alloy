@@ -822,3 +822,22 @@ test; SolUI owns AlloyWindow/ReferenceView/ExtrudeControls. Exclusive legacyprof
 or pluralprofileIds, sameearliersketch, contiguousselectedfaceunion→one50mmprism,
 transactional rejectionofinvalid/missing/disjointinputs. UI Shiftselection and
 PressPullQ shareauthoritative extrusion. Rootowns builds/app; Astra verifies.
+
+
+## Multi-profile typed extrusion checkpoint (2026-10-12)
+
+The connected three-region core, actual 123-command sketch-multiprofile ledger,
+and native Q → three ordinary clicks → Distance 50 → OK pass. The actual solid
+is valid and closed: one body/feature, depth 50 mm, volume 5,185,592.30050822 mm³.
+Parent width edits, history and reopen retain IDs. Public staff research corrected
+initial selection to collect ordinary clicks before depth entry.
+
+See validation/multi-profile-extrusion.md. The saved rounded-bracket-50.alloy is
+under build-tutorial/evidence. The private app quit; human build-input is untouched.
+SOL-016 remains open for arrow dragging, five-profile Cut and native platform
+toggling. Astra verified the bounded typed route but flagged gray preview, a tiny
+arrow and missing canvas label. Those were corrected, rebuilt and independently
+accepted in presspull-preview-final.json/.png; preview Cancel preserves exact saved
+authored state. Arrow dragging remains unsupported. Sol core is
+planning the planar face reference/frame foundation for CP04, read-only; no face
+implementation is accepted. Root owns builds/app/GitHub. No release or CI ran.

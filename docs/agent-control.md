@@ -120,8 +120,9 @@ fail without applying the command. Error codes include `invalid_request`,
 | `solid.box` | Required `width`, `depth`, `height`; optional `x`, `y`, `z`, `units`, `name`, `featureId` |
 | `solid.cylinder` | Required `radius`, `height`; same optional placement/unit/name/edit fields |
 | `primitive.box`, `primitive.cylinder` | Open their actual shared dimension dialogs |
-| `solid.extrude` | Required `sketchId`, `profileId`, signed `distance`; optional `units` (`mm`/`in`), `name`, existing `featureId`; direct create/edit commit |
-| `solid.extrudeDialog` | Optional `sketchId`, `profileId`; toolbar/E opener for the shared extrusion session |
+| `solid.extrude` | Required `sketchId`, exclusive `profileId` or distinct `profileIds`, signed `distance`; optional `units` (`mm`/`in`), `name`, existing `featureId`; direct create/edit commit |
+| `solid.pressPullDialog` | Optional `sketchId`, `profileIds`; Modify/Q opens the shared extrusion session before profile selection |
+| `solid.extrudeDialog` | Optional `sketchId`, exclusive `profileId` or `profileIds`; toolbar/E opener for the shared extrusion session |
 | `solid.combine` | Required `targetBodyId`, nonempty distinct `toolBodyIds`, `operation` (`join`/`cut`/`intersect`); optional `keepTools` (default false), `name`, existing `featureId`; direct create/edit commit |
 | `solid.combineDialog` | Same fields, all optional; open the shared Combine session, default Join with Keep Tools off |
 | `solid.combineSelectionMode` | `role`: `target` or `tools`; return to input-body display for shared canvas picking |
@@ -161,9 +162,9 @@ fail without applying the command. Error codes include `invalid_request`,
 | `geometry.inspect` | Evaluated bodies and sketches: stable IDs, validity, geometry summaries and plane frames |
 | `history.undo`, `history.redo` | Active sketch: Undo cancels a pending editor/tool first, then traverses accepted draft edits; Redo requires Select. Otherwise traverse committed document history. `activeSession.draftHistory` exposes index/count/canUndo/canRedo |
 | `selection.set` | `bodyId`: visible UUID, or empty string to clear |
-| `selection.profileSet` | `sketchId`, `profileId`; select an accepted finished region by retained identity |
+| `selection.profileSet` | `sketchId`, `profileId`; optional `additive` or `toggle` modifies same-sketch region selection |
 | `selection.sketchSet` | `sketchId`; Browser sketch selection, with sole-region resolution when opening Extrude |
-| `selection.pick` | `x`, `y`: viewport-local logical pixels; actual body or finished-profile picking; returns `kind` and retained IDs |
+| `selection.pick` | `x`, `y`: viewport-local logical pixels; actual body or finished-profile picking; optional `additive`/`toggle`; returns `kind` and retained IDs |
 | `view.projectBody` | `bodyId`: UUID; actual projection of bounding-box center to logical pixels |
 | `layout.browser`, `layout.timeline`, `layout.navigation` | `visible`: boolean |
 | `layout.reset` | Restore those three regions |
@@ -232,7 +233,7 @@ selected sketch's sole accepted region, or auto-selects only the sole visible
 eligible profile. Ambiguous input stays unselected and requires actual selection.
 
 `command.begin` with `command: "solid.extrude"` accepts `inputs` containing
-`sketchId`, `profileId`, signed `distance`, `units` and optional `name`/existing
+`sketchId`, exclusive `profileId` or `profileIds`, signed `distance`, `units` and optional `name`/existing
 `featureId`. For creation, Begin reserves `newFeatureId`/`newBodyId` once in
 `activeSession`; preview and commit preserve that pair. `source` retains the
 sketch/profile IDs. Partial `command.update` changes inputs without an undo entry;
@@ -243,7 +244,17 @@ uses these same two commands. A successful preview returns `geometryEvaluated`,
 not commit or regenerate identities. `previewed: false` invalidates any prior
 preview; retained IDs alone do not establish valid current geometry.
 
-Canonical extrusion parameters are `{sketchId, profileId, distanceMm}`. The
+Canonical extrusion parameters preserve legacy `{sketchId, profileId, distanceMm}`
+or use `{sketchId, profileIds, distanceMm}` with distinct stable IDs. Plural regions
+must come from one earlier sketch and form one connected planar face; they are
+united before one prism. Missing/disjoint/overlapping references reject before
+commit. Body summaries expose `sourceProfileIds` and `sourceAreaMm2`.
+
+Before a distance is entered, ordinary native/API profile picks collect distinct
+regions in the active extrusion command. Shift/`additive` adds; platform modifier/
+`toggle` toggles. Outside the command an ordinary pick replaces selection.
+`activeSession.inputs`, selection and GPU inspection expose actual `profileIds`.
+ The
 supported extent is one side along the stored origin-plane normal, with signed
 magnitude 0.001–100000 mm and New Body only. Negative distance reverses direction;
 `units` performs the same mm/in conversion as other modeling inputs. Interactive

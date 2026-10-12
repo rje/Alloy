@@ -18,28 +18,31 @@ and draggable labels; solved closed line loops produce selectable real profiles.
 Finished profiles remain selectable and can create editable one-side New Body
 extrusions. Upstream sketch edits rebuild their solids through the same history.
 GPU rendering, shared undo/redo and native save/reopen cover this chain.
-The next candidate adds analytic circles/arcs, curve dimensions and editable
-Combine Join/Cut/Intersect. Its [bounded evidence](docs/validation/curves-combine.md)
-records API/geometry/storage and visual acceptance; native input checks remain
-incomplete. Broader modeling, import and printing export remain ahead. Agent control and self-testing
-are part of the application from its first runnable version.
+Analytic circles/arcs, curve dimensions, editable Combine Join/Cut/Intersect,
+independent design tabs, draft undo, construction lines, midpoint/tangent circle
+inference and paired sketch fillets are implemented. The illustrated first-activity
+outline has a complete native modeling receipt. Rounded sketches now produce
+three real selectable regions with stable IDs through dimension edits and storage.
+Connected multi-region Press Pull now produces one editable solid; face-supported
+sketches and broader imports/exports remain ahead. See the bounded receipts below; this is not complete CAD parity.
 
 The public repository is [rje/Alloy](https://github.com/rje/Alloy), with the
 [issue backlog](https://github.com/rje/Alloy/issues) and
 [Alloy project board](https://github.com/users/rje/projects/1).
 
 The active delivery order is [tutorial-first checkpoints](docs/backlog/tutorial-sequence.json).
-The first new [constraint-tool checkpoint](docs/validation/constraint-tools.md)
-has real-app API/history/storage evidence; full tutorial and native visual gates remain open.
-The next [angular sketch milestone](docs/validation/angular-sketch.md) verifies
-angle-driven extrusion updates and native angular entry; exact tutorial completion
-and general input qualification remain open.
-The [first illustrated activity modeling checkpoint](docs/validation/bracket-activity1.md)
-now verifies the six-edge constrained outline and 500/45/100 dimensions, with
-native aligned entry and improved grid/badge rendering. Independent [document tabs](docs/validation/document-tabs.md)
-now retain each design and unfinished sketch history. A complete native tutorial
-run remains ahead. [Construction line conversion](docs/validation/sketch-construction.md)
-now retains constraints and supports dashed geometry through history and storage.
+Current evidence includes [constraint tools](docs/validation/constraint-tools.md),
+[angular sketches](docs/validation/angular-sketch.md), the
+[first illustrated activity](docs/validation/bracket-activity1.md),
+[document tabs](docs/validation/document-tabs.md),
+[construction lines](docs/validation/sketch-construction.md),
+[tangent circles](docs/validation/sketch-tangent.md),
+[paired fillets](docs/validation/sketch-fillet.md) and
+[retained regions](docs/validation/sketch-regions.md) and
+[multi-profile extrusion](docs/validation/multi-profile-extrusion.md).
+Native fillet history qualification uses an isolated
+[Qt accessibility patch experiment](docs/dependencies/qt-cocoa-accessibility.md);
+default deployment qualification remains open. Full tutorial gates remain open.
 
 ## Project documents
 

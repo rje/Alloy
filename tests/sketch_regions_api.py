@@ -17,6 +17,8 @@ def main():
     fixture = json.loads(Path(args.fixture).read_text())
     output = Path(args.output).resolve()
     captures = []
+    capabilities = ['sketch.retained_planar_regions']
+    multiprofile = fixture.get('multiprofileExtrusion')
     with application(args.app, output) as (call, transcript):
         initial = call('app.state')
         session = call('sketch.begin', {'plane': 'XY', 'name': 'Three retained bracket regions'})
@@ -157,17 +159,64 @@ def main():
         restored = reopened['evaluation']['sketches'][0]['profiles']
         assert {r['profileId'] for r in restored} == stable_ids
         assert math.isclose(sum(r['areaMm2'] for r in restored), sum(r['areaMm2'] for r in final_regions), abs_tol=1e-5)
+        if multiprofile:
+            source = call('document.inspect')
+            depth = multiprofile['distanceMm']
+            call('solid.extrude', {'sketchId': edited['id'], 'profileIds': sorted(stable_ids), 'distance': depth, 'units': 'mm'})
+            extruded = call('document.inspect')
+            assert extruded['bodies'] == 1
+            body_feature = next(f for f in extruded['authored']['features'] if f['type'] == 'extrude')
+            retained_identity = (body_feature['id'], body_feature['bodyId'])
+            assert body_feature['parameters']['profileIds'] == sorted(stable_ids)
+
+            def inspect_solid(document):
+                body = document['evaluation']['bodies'][0]
+                profiles = document['evaluation']['sketches'][0]['profiles']
+                area = sum(r['areaMm2'] for r in profiles)
+                assert {r['profileId'] for r in profiles} == stable_ids
+                assert body['valid'] and body['closed'] and body['topology']['solids'] == 1
+                assert set(body['sourceProfileIds']) == stable_ids
+                assert math.isclose(body['sourceAreaMm2'], area, rel_tol=1e-9, abs_tol=1e-5)
+                assert math.isclose(body['volumeMm3'], area * depth, rel_tol=1e-9, abs_tol=1e-5)
+                feature = next(f for f in document['authored']['features'] if f['type'] == 'extrude')
+                assert (feature['id'], feature['bodyId']) == retained_identity
+                return body['volumeMm3']
+
+            old_volume = inspect_solid(extruded)
+            assert extruded['undo']['count'] == source['undo']['count'] + 1
+            captures.append(call('capture.screenshot', {'path': str(output / 'three-region-union-extrusion.png')}))
+            call('sketch.edit', {'sketchId': edited['id']})
+            call('sketch.dimensionUpdate', {'dimensionId': cap_dimension, 'value': multiprofile['upstreamCapLengthMm'], 'units': 'mm'})
+            call('sketch.finish')
+            changed = call('document.inspect')
+            assert not math.isclose(inspect_solid(changed), old_volume, rel_tol=1e-6)
+            call('history.undo')
+            assert call('document.inspect')['authored'] == extruded['authored']
+            assert math.isclose(inspect_solid(call('document.inspect')), old_volume, rel_tol=1e-9)
+            call('history.redo')
+            assert call('document.inspect')['authored'] == changed['authored']
+            inspect_solid(call('document.inspect'))
+            captures.append(call('capture.screenshot', {'path': str(output / 'union-upstream-edit.png')}))
+            path = output / 'three-region-extrusion.alloy'
+            call('document.save', {'path': str(path)})
+            saved_solid = call('document.inspect')['authored']
+            call('document.new', {'discard': False})
+            call('document.open', {'path': str(path)})
+            reopened_solid = call('document.inspect')
+            assert reopened_solid['authored'] == saved_solid
+            inspect_solid(reopened_solid)
+            capabilities.append('solid.multi_profile_union')
         final = call('app.state')
     result = {
         'result': 'passed', 'testSha256': hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         'fixtureSha256': hashlib.sha256(Path(args.fixture).read_bytes()).hexdigest(),
-        'verifiedCapabilities': ['sketch.retained_planar_regions'], 'covers': [],
+        'verifiedCapabilities': capabilities, 'covers': [],
         'initialState': initial, 'finalState': final, 'transcript': transcript, 'captures': captures,
         'evidenceDimensions': {'api': {'status': 'passed'}, 'geometry': {'status': 'passed'},
             'save_reopen': {'status': 'passed'}, 'visual': {'status': 'captured'},
             'physical_input': {'status': 'not_run', 'reason': 'Shared pointer API dispatch is separate from native mouse evidence.'}},
-        'limits': ['Bounded authored-contact regions; multi-profile union extrusion remains separate.']}
-    (output / 'sketch-regions-api.json').write_text(json.dumps(result, indent=2) + '\n')
+        'limits': ['Bounded authored-contact regions and connected same-sketch union only.'] if multiprofile else ['Bounded authored-contact regions; multi-profile union extrusion remains separate.']}
+    (output / ('sketch-multiprofile-api.json' if multiprofile else 'sketch-regions-api.json')).write_text(json.dumps(result, indent=2) + '\n')
     print('PASS: three selectable rounded-bracket regions, retained edit identities and storage')
 
 

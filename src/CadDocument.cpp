@@ -14,6 +14,7 @@
 #include <stdexcept>
 
 namespace {
+bool validId(const QString& id) { return !QUuid(id).isNull() && QUuid(id).toString(QUuid::WithoutBraces) == id; }
 QJsonObject dependencyError(const QJsonObject& candidate) {
     const auto features = candidate["features"].toArray();
     QMap<QString,int> positions;
@@ -54,7 +55,9 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
         if (feature["type"] != "extrude") continue;
         const auto parameters = feature["parameters"].toObject();
         const auto source = parameters["sketchId"].toString(), id = feature["id"].toString();
-        QJsonObject diagnostic{{"featureId",id},{"featureType","extrude"},{"sketchId",source},{"profileId",parameters["profileId"]}};
+        QJsonObject diagnostic{{"featureId",id},{"featureType","extrude"},{"sketchId",source}};
+        if(parameters.contains("profileIds"))diagnostic["profileIds"]=parameters["profileIds"];
+        else diagnostic["profileId"]=parameters["profileId"];
         if (source == id) {diagnostic["code"] = "cyclic_dependency";diagnostic["message"] = "An extrusion cannot reference itself";}
         else if (!positions.contains(source)) {diagnostic["code"] = "missing_dependency";diagnostic["message"] = "Extrusion input sketch does not exist";}
         else if (features[positions.value(source)].toObject()["type"] != "sketch") {
@@ -175,7 +178,7 @@ QJsonObject CadDocument::extrusionCandidate(const QJsonObject& authored, const Q
     auto reject = [](const QString& message) {throw std::invalid_argument(message.toStdString());};
     const auto initial = validate(authored);
     if (!initial.isEmpty()) reject(initial);
-    const QSet<QString> allowed{"sketchId","profileId","distanceMm","name","featureId","newFeatureId","newBodyId"};
+    const QSet<QString> allowed{"sketchId","profileId","profileIds","distanceMm","name","featureId","newFeatureId","newBodyId"};
     for (auto it = arguments.begin(); it != arguments.end(); ++it)
         if (!allowed.contains(it.key())) reject("Unknown extrusion argument: "+it.key());
     const bool edit = arguments.contains("featureId"), newFeature = arguments.contains("newFeatureId"), newBody = arguments.contains("newBodyId");
@@ -191,7 +194,15 @@ QJsonObject CadDocument::extrusionCandidate(const QJsonObject& authored, const Q
         {"bodyId",newBody ? arguments["newBodyId"] : QJsonValue(newId())},{"ownerId",authored["documentId"]},
         {"type","extrude"},{"name","Extrude"},{"visible",true}};
     if (arguments.contains("name")) feature["name"] = arguments["name"];
-    feature["parameters"] = QJsonObject{{"sketchId",arguments["sketchId"]},{"profileId",arguments["profileId"]},{"distanceMm",arguments["distanceMm"]}};
+    if(arguments.contains("profileId")==arguments.contains("profileIds"))reject("Choose profileId or profileIds exclusively");
+    auto profileParameters=QJsonObject{{"sketchId",arguments["sketchId"]},{"distanceMm",arguments["distanceMm"]}};
+    if(arguments.contains("profileIds")) {
+        if(!arguments["profileIds"].isArray() || arguments["profileIds"].toArray().isEmpty())reject("Choose a nonempty profileIds array");
+        QStringList ids;for(const auto& id:arguments["profileIds"].toArray()){
+            if(!id.isString() || !validId(id.toString()) || ids.contains(id.toString()))reject("Profile IDs must be distinct UUIDs");ids.append(id.toString());}
+        ids.sort();QJsonArray references;for(const auto& id:ids)references.append(id);profileParameters["profileIds"]=references;
+    } else profileParameters["profileId"]=arguments["profileId"];
+    feature["parameters"] = profileParameters;
     if (index >= 0) features[index] = feature; else features.append(feature);
     candidate["features"] = features;
     // Resolve references in evaluateCandidate so failures retain feature/input context.
@@ -243,7 +254,6 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
     if (errorContext) *errorContext = {};
     if (candidate["schema"].toString() != "alloy-document/1") return "Unsupported document schema";
     const auto root = candidate["documentId"].toString();
-    auto validId = [](const QString& id) { return !QUuid(id).isNull() && QUuid(id).toString(QUuid::WithoutBraces) == id; };
     if (!validId(root)) return "Invalid document UUID";
     const auto units = candidate["displayUnits"].toString();
     if (units != "mm" && units != "in") return "Unsupported display units";
@@ -291,8 +301,17 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
         ids.insert(bodyId);
         if (type == "extrude") {
             if (errorContext) {(*errorContext)["sketchId"] = p["sketchId"];(*errorContext)["profileId"] = p["profileId"];}
-            if (p.size() != 3 || !p["sketchId"].isString() || !validId(p["sketchId"].toString())
-                || !p["profileId"].isString() || !validId(p["profileId"].toString())) return "Extrusion requires stable sketchId and profileId inputs";
+            if (p.size()!=3 || !p["sketchId"].isString() || !validId(p["sketchId"].toString())
+                || p.contains("profileId")==p.contains("profileIds")) return "Extrusion requires sketchId and exclusive profileId or profileIds";
+            if(p.contains("profileIds")) {
+                if(!p["profileIds"].isArray() || p["profileIds"].toArray().isEmpty())return "Extrusion requires a nonempty profileIds array";
+                QSet<QString> chosen;
+                for(const auto& id:p["profileIds"].toArray()) {
+                    if(!id.isString() || !validId(id.toString()) || chosen.contains(id.toString()))return "Extrusion profileIds must be distinct UUIDs";
+                    chosen.insert(id.toString());
+                }
+                if(errorContext)(*errorContext)["profileIds"]=p["profileIds"];
+            } else if(!p["profileId"].isString() || !validId(p["profileId"].toString()))return "Extrusion requires a stable profileId";
             if (!p["distanceMm"].isDouble() || !std::isfinite(p["distanceMm"].toDouble())
                 || std::abs(p["distanceMm"].toDouble()) < 0.001 || std::abs(p["distanceMm"].toDouble()) > 100000)
                 return "Extrusion distance must be signed 0.001..100000 mm; zero is unsupported";

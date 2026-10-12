@@ -2,6 +2,7 @@
 #include "SketchGeometry.h"
 #include <BRepBndLib.hxx>
 #include <BRepAlgoAPI_BooleanOperation.hxx>
+#include <BRepAlgoAPI_Fuse.hxx>
 #include <BRepCheck_Analyzer.hxx>
 #include <BRepGProp.hxx>
 #include <BRepPrimAPI_MakeBox.hxx>
@@ -18,6 +19,8 @@
 #include <gp_Vec.hxx>
 #include <QJsonArray>
 #include <QMap>
+#include <QSet>
+#include <QUuid>
 #include <Standard_Failure.hxx>
 #include <algorithm>
 #include <cmath>
@@ -48,6 +51,38 @@ TopoDS_Shape GeometryKernel::primitive(const QString& type, const QJsonObject& p
         throw std::runtime_error("Kernel did not produce a valid solid");
     return shape;
 }
+EvaluatedProfile GeometryKernel::unionProfiles(const std::vector<EvaluatedProfile>& profiles) {
+    if(profiles.empty())throw std::invalid_argument("Select at least one current profile");
+    if(profiles.size()==1)return profiles.front();
+    const auto& first=profiles.front();TopoDS_Shape shape=first.face;
+    QStringList profileIds,entityIds;double expectedArea=0;
+    QSet<QString> distinct;
+    for(const auto& profile:profiles){
+        if(profile.sketchId!=first.sketchId || profile.plane!=first.plane || profile.face.IsNull()
+            || !BRepCheck_Analyzer(profile.face).IsValid() || distinct.contains(profile.profileId))
+            throw std::invalid_argument("Profile union requires distinct valid regions from one sketch");
+        distinct.insert(profile.profileId);profileIds.append(profile.profileId);expectedArea+=profile.summary["areaMm2"].toDouble();
+        for(const auto& id:profile.summary["sourceEntityIds"].toArray())entityIds.append(id.toString());
+    }
+    // All regions are already derived on the same plane. Fuse before making a
+    // prism so shared partitions cannot survive as separate feature bodies.
+    for(size_t i=1;i<profiles.size();++i){BRepAlgoAPI_Fuse fused(shape,profiles[i].face);
+        if(!fused.IsDone() || fused.HasErrors())throw std::runtime_error("OCCT could not unite the selected planar regions");
+        fused.SimplifyResult(true,true);shape=fused.Shape();}
+    if(shape.IsNull() || !BRepCheck_Analyzer(shape).IsValid() || count(shape,TopAbs_FACE)!=1)
+        throw std::invalid_argument("Selected regions must form one connected planar face");
+    TopExp_Explorer face(shape,TopAbs_FACE);const auto united=TopoDS::Face(face.Current());
+    GProp_GProps area;BRepGProp::SurfaceProperties(united,area);
+    if(!std::isfinite(area.Mass()) || std::abs(area.Mass()-expectedArea)>std::max(1e-6,expectedArea*1e-9))
+        throw std::runtime_error("Selected region union area does not match its disjoint planar regions");
+    profileIds.sort();entityIds.removeDuplicates();entityIds.sort();QJsonArray refs,sources;
+    for(const auto& id:profileIds)refs.append(id);for(const auto& id:entityIds)sources.append(id);
+    const auto id=QUuid::createUuidV5(QUuid(first.sketchId),QByteArray("alloy-profile-union/1\n")+profileIds.join('\n').toUtf8()).toString(QUuid::WithoutBraces);
+    QJsonObject summary{{"profileId",id},{"profileIds",refs},{"sketchId",first.sketchId},{"plane",first.plane},
+        {"valid",true},{"areaUnit","mm2"},{"areaMm2",area.Mass()},{"sourceEntityIds",sources},{"type","profile_union"}};
+    return {id,first.sketchId,first.plane,united,summary};
+}
+
 TopoDS_Shape GeometryKernel::extrusion(const EvaluatedProfile& profile, double distanceMm) {
     if (!std::isfinite(distanceMm) || std::abs(distanceMm) < 0.001 || std::abs(distanceMm) > 100000)
         throw std::invalid_argument("Extrusion distance must be signed 0.001..100000 mm; zero is unsupported");
@@ -206,25 +241,27 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored) 
                 TopoDS_Shape shape;
                 QJsonObject summary;
                 if (type == "extrude") {
-                    const auto sketchId = parameters["sketchId"].toString(), profileId = parameters["profileId"].toString();
-                    context["sketchId"] = sketchId; context["profileId"] = profileId;
+                    const auto sketchId = parameters["sketchId"].toString();
+                    const bool plural=parameters.contains("profileIds");
+                    const QJsonArray profileIds=plural ? parameters["profileIds"].toArray() : QJsonArray{parameters["profileId"]};
+                    context["sketchId"] = sketchId;
+                    context[plural ? "profileIds" : "profileId"] = plural ? QJsonValue(profileIds) : parameters["profileId"];
                     if (!priorSketches.contains(sketchId)) {
                         context["code"] = "source_unavailable"; context["message"] = "Extrusion source sketch must exist earlier in feature history";
                         throw EvaluationError(context);
                     }
                     const auto& source = evaluated.sketches[priorSketches.value(sketchId)];
-                    const auto found = std::find_if(source.profiles.begin(),source.profiles.end(),[&](const auto& profile){return profile.profileId == profileId;});
-                    if (found == source.profiles.end()) {
-                        context["code"] = "profile_unavailable"; context["message"] = "The referenced profile no longer exists; repair the sketch or select a current closed profile";
-                        context["profileDiagnostics"] = source.summary["profileDiagnostics"];
-                        throw EvaluationError(context);
-                    }
-                    const double distance = parameters["distanceMm"].toDouble();
-                    shape = extrusion(*found,distance); summary = summarize(shape);
-                    summary["operation"] = "extrude"; summary["distanceMm"] = distance;
-                    summary["sourceSketchId"] = sketchId; summary["sourceProfileId"] = profileId;
-                    summary["sourceEntityIds"] = found->summary["sourceEntityIds"];
-                    summary["analyticVolumeMm3"] = found->summary["areaMm2"].toDouble()*std::abs(distance);
+                    std::vector<EvaluatedProfile> selected;
+                    for(const auto& requested:profileIds){const auto found=std::find_if(source.profiles.begin(),source.profiles.end(),[&](const auto& profile){return profile.profileId==requested.toString();});
+                        if(found==source.profiles.end()) {context["code"]="profile_unavailable";context["message"]="The referenced profile no longer exists; repair the sketch or select a current closed profile";
+                            context["missingProfileId"]=requested;context["profileDiagnostics"]=source.summary["profileDiagnostics"];throw EvaluationError(context);}
+                        selected.push_back(*found);}
+                    const auto united=unionProfiles(selected);const double distance=parameters["distanceMm"].toDouble();
+                    shape=extrusion(united,distance);summary=summarize(shape);
+                    summary["operation"]="extrude";summary["distanceMm"]=distance;summary["sourceSketchId"]=sketchId;
+                    if(plural)summary["sourceProfileIds"]=profileIds;else summary["sourceProfileId"]=parameters["profileId"];
+                    summary["sourceEntityIds"]=united.summary["sourceEntityIds"];summary["sourceAreaMm2"]=united.summary["areaMm2"];
+                    summary["analyticVolumeMm3"]=united.summary["areaMm2"].toDouble()*std::abs(distance);
                 } else {shape = primitive(type,parameters);summary = summarize(shape);}
                 evaluated.bodies.push_back({id,feature["bodyId"].toString(),feature["name"].toString(),feature["visible"].toBool(),shape,summary});
             }

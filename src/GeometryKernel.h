@@ -37,6 +37,7 @@ public:
         QJsonObject diagnostics_;
     };
     static TopoDS_Shape primitive(const QString& type, const QJsonObject& parameters);
+    static EvaluatedProfile unionProfiles(const std::vector<EvaluatedProfile>& profiles);
     static TopoDS_Shape extrusion(const EvaluatedProfile& profile, double distanceMm);
     static TopoDS_Shape booleanOperation(const QString& operation, const TopoDS_Shape& target,
         const std::vector<TopoDS_Shape>& tools);

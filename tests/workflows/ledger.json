@@ -592,6 +592,19 @@
       "inputs": [
         "tests/app_harness.py"
       ]
+    },
+    "sketch-multiprofile": {
+      "script": "tests/sketch_regions_api.py",
+      "fixture": "tests/workflows/fixtures/sketch-multiprofile.json",
+      "result": "sketch-multiprofile-api.json",
+      "covers": [],
+      "capabilities": [
+        "sketch.retained_planar_regions",
+        "solid.multi_profile_union"
+      ],
+      "inputs": [
+        "tests/app_harness.py"
+      ]
     }
   },
   "gates": {
