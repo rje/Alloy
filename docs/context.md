@@ -892,3 +892,22 @@ focused tests; Sol UI owns direct support-edge selection and reference display.
 The bounded first slice supports locked straight-edge references and does not
 claim complete projected-region/curve behavior. Root owns builds and integration;
 Astra reviews independently. Board #46 is In Progress, full issue remains open.
+
+
+## Linked straight cap-edge checkpoint (2026-10-12)
+
+Implementation c8327ee is integrated. Build, focused core checks and 182-command
+sketch-linked-projection ledger pass. Native Parallel control + two consecutive
+construction-line/model-edge pairs + Escape/Finish pass (API-seeded guides).
+Astra accepted actual reference colors/glyph pairs and authoritative constraints.
+See validation/linked-cap-edges.md for evidence and strict retained-reference limits.
+Projected endpoint dimensions are API-qualified; native endpoint/center inference
+and full tutorial construction drawing remain next. Curved projection, repair and
+general profile participation remain unsupported. SKT-010 stays open/In Progress.
+
+Luna researched exact five-profile Cut into an indexed external record,
+bracket-five-profile-cut.json (knowledge now9 records). Public screenshot uses
+Distance -200mm, One Side, Cut and five red previews; that value is an observed
+example, not a default, and Through All is not required by these source steps.
+Further research is enumerating exact construction and hole-center inferences
+before implementing the next tutorial slice. No private app remains active.

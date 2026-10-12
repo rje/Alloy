@@ -32,3 +32,8 @@ readable rectangle/profile against its support, exact draft-to-finished geometry
 and all world points at z50. The ledger executed 147 commands. No full tutorial, arbitrary topology naming or exact visual
 parity is claimed. Projected model edges and their constraints are the next slice.
 The private candidate was closed; the human testing application was unchanged.
+
+A bounded follow-up also passed selected face → right-click → Create Sketch,
+recorded in `face-native-context.json`; Cancel preserved the saved document. A
+first right-click on the initially inactive window did not enter the command;
+the selected-face route is the qualified context-menu path.

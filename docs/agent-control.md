@@ -508,3 +508,15 @@ occluded faces. `view.projectSketchPoint` accepts exactly one origin `plane` or
 Resolved frames are evaluation/session state, never serialized sketch placement.
 This slice supports positive extrusion end caps only. Existing sketch mutation,
 history and Finish/Cancel commands remain authoritative.
+
+
+New supported-face sketches automatically retain available straight-edge
+projection references. `activeSession.projectionContext.lines` exposes their
+virtual entity/point IDs, current local coordinates and exact source reference.
+Body `supportFaces[].edges` exposes semantic edge IDs and source provenance.
+`sketch.selectionPick` can return a projected line with `projected`/`source` fields;
+constraint commands use those same entity IDs. `projectedLines` and
+`unsupportedProjectedEdges` in evaluated sketch summaries distinguish resolved
+references from unsupported curves. Saved `parameters.projections` contain IDs
+and sources only. References are read-only, fixed solver input, and do not create
+profile regions in this bounded implementation.

@@ -25,7 +25,8 @@ outline has a complete native modeling receipt. Rounded sketches now produce
 three real selectable regions with stable IDs through dimension edits and storage.
 Connected multi-region Press Pull now produces one editable solid; sketches can
 attach to positive extrusion end caps and follow parent edits. General face support,
-projected model edges and broader imports/exports remain ahead. See the bounded receipts below; this is not complete CAD parity.
+curved model-edge references and broader imports/exports remain ahead. Straight
+cap-edge references support retained Parallel and API endpoint dimensions. See the bounded receipts below; this is not complete CAD parity.
 
 The public repository is [rje/Alloy](https://github.com/rje/Alloy), with the
 [issue backlog](https://github.com/rje/Alloy/issues) and
