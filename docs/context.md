@@ -257,8 +257,8 @@ FND-005 and SKT-001/002 are closed with their bounded solver/sketch evidence;
 SKT-003/004 are closed with independently reviewed integrated constraints/dimension
 evidence; SKT-014 is closed with reviewed real-profile/annotation evidence.
 HIS-001/SOL-001 and SKT-015 are closed with reviewed extrusion and local checkpoint
-evidence; their board items are Done. There are 24 tasks closed, 126 open and
-14 dependency-ready at this handoff. Live counts
+evidence; their board items are Done. There are 25 tasks closed, 125 open and
+13 dependency-ready at this handoff. Live counts
 are obtained with tools/backlog.py rather than this earlier publication snapshot. Later epics need
 bounded child issues before implementation; this count does not exhaust parity.
 Read [the backlog](backlog/README.md), [publication receipt](backlog/publication.json),

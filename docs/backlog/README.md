@@ -46,8 +46,8 @@ not product coverage or a replacement claim.
 HIS-001/SOL-001 and the local SKT-015 checkpoint are now closed with independently
 reviewed [sketch/extrusion evidence](../validation/sketch-extrusion.md). The first
 sketch-led part supports upstream edits, history and storage through the actual
-UI/API. Current board items are Done; the live snapshot has 24 closed, 126 open
-and 14 ready tasks. SOL-002 boolean operations and SKT-006 circles/arcs are ready
+UI/API. Current board items are Done; the live snapshot has 25 closed, 125 open
+and 13 ready tasks. SOL-002 boolean operations and SKT-006 circles/arcs are ready
 next modeling slices. Full tutorial and cumulative product gates remain open.
 
 MIT is accepted for Alloy's original source and documentation. Each dependency
