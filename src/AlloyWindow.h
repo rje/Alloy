@@ -17,6 +17,7 @@ class QComboBox;
 class QLineEdit;
 class QDoubleSpinBox;
 class QCloseEvent;
+class QEvent;
 class QTreeWidgetItem;
 class QHBoxLayout;
 class QDockWidget;
@@ -37,6 +38,7 @@ public:
     QJsonObject identity() const;
 protected:
     void closeEvent(QCloseEvent*) override;
+    bool eventFilter(QObject*, QEvent*) override;
 private:
     struct Command {
         QString id, title, description;
@@ -80,7 +82,7 @@ private:
     QJsonObject beginSketch(const QString& plane, const QString& name, const QString& sketchId = {}, const QJsonObject& support = {});
     QJsonObject selectSupportFace(const QJsonObject& support);
     QJsonObject appendSketchEntity(const QString& tool, const QJsonObject& inputs);
-    QJsonObject resolveSketchSnap(double x, double y, const QString& plane, bool midpointOnly = false) const;
+    QJsonObject resolveSketchSnap(double x, double y, const QString& plane, bool includeMidpoints = false) const;
     QJsonObject resolveCircleTangentSnap(double x, double y, const QString& plane) const;
     QJsonObject resolveFilletCorner(double x, double y, const QString& plane) const;
     QJsonObject previewFillet(const QJsonObject& args);
@@ -103,6 +105,11 @@ private:
     void dimensionSelectionChanged();
     QJsonObject previewDimension(const QJsonObject& args);
     QJsonObject acceptDimension(const QJsonObject& args);
+    QJsonObject previewCircleDiameter(const QJsonObject& args);
+    QJsonObject acceptCircleDiameter(const QJsonObject& args);
+    void cancelCircleDiameter();
+    void ensureSketchInlineEditor();
+    void showCircleDiameterEditor(const QString& text);
     QJsonObject editDimension(const QString& id);
     void cancelDimension();
     void showDimensionEditor();

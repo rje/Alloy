@@ -212,6 +212,32 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try {
     check(snapReopened.authored()==afterCenterEdit && snapReopened.history().count()==centerHistory,"Lost center changed accepted intent");
     snapReopened.history().undo();check(snapReopened.authored()==beforeCenterEdit,"Center source undo lost references");snapReopened.history().redo();check(snapReopened.authored()==afterCenterEdit,"Center source redo changed IDs");
     check(snapReopened.save(linkedPath).isEmpty(),"Save center referenced guide");CadDocument centersReopened;check(centersReopened.open(linkedPath).isEmpty() && centersReopened.authored()==afterCenterEdit,"Center references lost on reopen");
+    const auto inlineBase=SketchGeometry::findFeature(centersReopened.authored(),guide["id"].toString());
+    const auto inlineContext=GeometryKernel::projectionContext(centersReopened.evaluation(),inlineBase);
+    const auto inlineTarget=entity(inlineBase,0)["startPointId"];
+    const auto inlineCircle=SketchGeometry::addPointerCircle(inlineBase,{{"centerUMm",-999},{"centerVMm",-999},{"diameterMm",20},{"drivingDiameterMm",50},{"centerSnapTarget",QJsonObject{{"kind","point"},{"pointId",inlineTarget}}}},inlineContext);
+    const auto inlineFeature=accepted(inlineCircle);const auto inlineParameters=inlineFeature["parameters"].toObject();
+    const auto inlineEntity=inlineParameters["entities"].toArray().last().toObject(),inlineDimension=inlineParameters["dimensions"].toArray().last().toObject();
+    check(inlineEntity["type"]=="circle" && std::abs(inlineEntity["radiusMm"].toDouble()-25)<1e-7,"Typed diameter did not drive pointer circle radius");
+    check(inlineDimension["kind"]=="diameter" && inlineDimension["driving"].toBool() && inlineDimension["entityId"]==inlineEntity["id"] && inlineDimension["valueMm"].toDouble()==50,"Typed circle lacked its retained driving diameter");
+    check(inlineCircle.diagnostics["createdCircleId"]==inlineEntity["id"] && inlineCircle.diagnostics["createdDimensionId"]==inlineDimension["id"],"Atomic circle result lost created IDs");
+    check(inlineParameters["points"].toArray().size()==inlineBase["parameters"].toObject()["points"].toArray().size()+1 && inlineEntity["centerPointId"]!=inlineTarget,"Typed center snap did not preserve fresh point ownership");
+    bool inlineCoincident=false;for(const auto& value:inlineParameters["constraints"].toArray()){const auto relation=value.toObject();if(relation["type"]=="coincident" && relation["pointIds"].toArray()==QJsonArray{inlineEntity["centerPointId"],inlineTarget})inlineCoincident=true;}
+    check(inlineCoincident,"Typed circle lost its retained center snap");
+    const auto rejectedInline=SketchGeometry::addPointerCircle(inlineBase,{{"centerUMm",0},{"centerVMm",0},{"diameterMm",20},{"drivingDiameterMm",-50},{"centerSnapTarget",QJsonObject{{"kind","point"},{"pointId",inlineTarget}}}},inlineContext);
+    check(!rejectedInline.ok && rejectedInline.feature==inlineBase,"Invalid typed circle leaked geometry or diameter intent");
+    const auto originSeed=SketchGeometry::newFeature(owner,"XY","Circle origin snap");
+    const auto originCircle=SketchGeometry::addPointerCircle(originSeed,{{"centerUMm",42},{"centerVMm",38},{"diameterMm",20},{"drivingDiameterMm",50},{"centerSnapTarget",QJsonObject{{"kind","origin"}}}});
+    const auto originFeature=accepted(originCircle),originParameters=originFeature["parameters"].toObject();
+    const auto originEntity=originParameters["entities"].toArray()[0].toObject();
+    check(originParameters["points"].toArray().size()==2 && originEntity["centerPointId"]!=originParameters["originPointId"] && originParameters["constraints"].toArray().size()==2 && originCircle.diagnostics["dof"].toInt()==0,"Circle origin snap lacked fresh center, fixed reference or coincidence");
+    for(const auto& value:originParameters["points"].toArray())check(value.toObject()["uMm"].toDouble()==0 && value.toObject()["vMm"].toDouble()==0,"Origin circle used preview seed instead of retained zero reference");
+    const auto badOrigin=SketchGeometry::addPointerCircle(originSeed,{{"centerUMm",0},{"centerVMm",0},{"diameterMm",20},{"centerSnapTarget",QJsonObject{{"kind","origin"},{"pointId",CadDocument::newId()}}}});
+    check(!badOrigin.ok && badOrigin.feature==originSeed,"Malformed origin circle snap leaked authored reference");
+    const auto unsnappedTyped=SketchGeometry::addPointerCircle(originSeed,{{"centerUMm",10},{"centerVMm",20},{"diameterMm",20},{"drivingDiameterMm",50}});
+    const auto unsnappedFeature=accepted(unsnappedTyped);check(unsnappedTyped.diagnostics["dof"].toInt()==2 && !unsnappedFeature["parameters"].toObject().contains("constraints"),"Unsnapped typed circle failed or inserted null constraints");
+    const auto unsnappedEntity=unsnappedFeature["parameters"].toObject()["entities"].toArray()[0].toObject();check(std::abs(unsnappedEntity["radiusMm"].toDouble()-25)<1e-7,"Unsnapped typed diameter did not drive radius");
+    const auto movedUnsnapped=SketchGeometry::movePoint(unsnappedFeature,{{"pointId",unsnappedEntity["centerPointId"]},{"uMm",12},{"vMm",24}});check(movedUnsnapped.ok,"Optional projection reads corrupted unsnapped center edit");
     std::cout<<"PASS: actual bracket planar end-cap reference, immutable local sketch, width/radius/depth transport, nested extrusion and atomic storage\n";
     return 0;
 }catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}}

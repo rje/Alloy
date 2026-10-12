@@ -739,18 +739,32 @@ SketchGeometry::SolveResult SketchGeometry::filletCorners(const QJsonObject& dra
 SketchGeometry::SolveResult SketchGeometry::addPointerCircle(const QJsonObject& draft, const QJsonObject& arguments, const QJsonObject& projectionContext) {
     try {
         validateDraft(draft);
-        checkFields(arguments, {"centerUMm", "centerVMm", "diameterMm", "centerSnapTarget", "tangentSnapTarget"});
+        checkFields(arguments, {"centerUMm", "centerVMm", "diameterMm", "centerSnapTarget", "tangentSnapTarget", "drivingDiameterMm"});
         double u = coordinate(arguments,"centerUMm"), v = coordinate(arguments,"centerVMm");
         double radius = coordinate(arguments,"diameterMm") / 2;
+        if(arguments.contains("drivingDiameterMm")) {
+            const double diameter=coordinate(arguments,"drivingDiameterMm");
+            if(diameter<2*minimumLength)reject("Driving circle diameter must be at least 0.002 mm");
+            radius=diameter/2;
+        }
         if (radius < minimumLength || radius > maximumLength) reject("Circle radius out of supported range");
         auto parameters = draft["parameters"].toObject();
         auto points = parameters["points"].toArray(), entities = parameters["entities"].toArray();
-        auto constraints = parameters["constraints"].toArray();
+        auto constraints = parameters.value("constraints").toArray();
         QString midpointLine,coincidentPoint;
         if (arguments.contains("centerSnapTarget")) {
             if (!arguments["centerSnapTarget"].isObject()) reject("Circle snap target must be an object");
             const auto target = arguments["centerSnapTarget"].toObject();
-            if(target["kind"]=="point") {
+            if(target["kind"]=="origin") {
+                if(target.size()!=1)reject("Origin snap target only accepts kind");
+                coincidentPoint=parameters["originPointId"].toString();
+                if(coincidentPoint.isEmpty()) {
+                    coincidentPoint=newId();parameters["originPointId"]=coincidentPoint;
+                    points.append(QJsonObject{{"id",coincidentPoint},{"uMm",0},{"vMm",0}});
+                    constraints.append(QJsonObject{{"id",newId()},{"type","fixed"},{"pointIds",QJsonArray{coincidentPoint}},{"uMm",0},{"vMm",0}});
+                }
+                u=0;v=0;
+            } else if(target["kind"]=="point") {
                 if(target.size()!=2 || !target["pointId"].isString() || !validId(target["pointId"].toString()))reject("Circle center point snap requires a stable pointId");
                 retainSupportPoint(parameters,projectionContext,target["pointId"].toString());
                 for(const auto& value:expandedProjectionFeature(QJsonObject{{"parameters",parameters}},projectionContext)["parameters"].toObject()["points"].toArray()) {
@@ -815,11 +829,20 @@ SketchGeometry::SolveResult SketchGeometry::addPointerCircle(const QJsonObject& 
         if(!coincidentPoint.isEmpty())constraints.append(QJsonObject{{"id",newId()},{"type","coincident"},{"pointIds",QJsonArray{centerId,coincidentPoint}}});
         if (!midpointLine.isEmpty()) constraints.append(QJsonObject{{"id",newId()},{"type","midpoint"},
             {"pointIds",QJsonArray{centerId}},{"entityIds",QJsonArray{midpointLine}}});
+        QString diameterDimensionId;
+        if(arguments.contains("drivingDiameterMm")) {
+            diameterDimensionId=newId();auto dimensions=parameters["dimensions"].toArray();
+            dimensions.append(QJsonObject{{"id",diameterDimensionId},{"kind","diameter"},{"entityId",circleId},{"driving",true},{"valueMm",arguments["drivingDiameterMm"]}});
+            parameters["dimensions"]=dimensions;
+        }
         parameters["points"] = points; parameters["entities"] = entities;
         if (!midpointLine.isEmpty() || !tangentLine.isEmpty() || !coincidentPoint.isEmpty()) parameters["constraints"] = constraints;
         auto candidate = draft; candidate["parameters"] = parameters;
-        const auto result = solveDraft(candidate,projectionContext);
-        return result.ok ? result : SolveResult{false,draft,result.diagnostics,result.error};
+        auto result = solveDraft(candidate,projectionContext);
+        if(!result.ok)return {false,draft,result.diagnostics,result.error};
+        result.diagnostics["createdCircleId"]=circleId;
+        if(!diameterDimensionId.isEmpty())result.diagnostics["createdDimensionId"]=diameterDimensionId;
+        return result;
     } catch (const std::exception& error) { return invalidDraft(draft,QString::fromUtf8(error.what())); }
 }
 
@@ -932,7 +955,7 @@ SketchGeometry::SolveResult SketchGeometry::movePoint(const QJsonObject& draft, 
         auto candidate = draft; candidate["parameters"] = parameters;
         // Point manipulation supplies a solver seed. ArcRules restore normalized
         // analytic intent before final validation; no inconsistent state is accepted.
-        if(parameters["projections"].toArray().isEmpty() && parameters["pointReferences"].toArray().isEmpty()) {
+        if(parameters.value("projections").toArray().isEmpty() && parameters.value("pointReferences").toArray().isEmpty()) {
             const auto result=SketchSolver::solve(parameters);
             if(!result.accepted)return {false,draft,result.diagnostics,result.error};
             candidate["parameters"]=result.parameters;validateDraft(candidate);return {true,candidate,result.diagnostics,{}};
