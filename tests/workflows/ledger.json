@@ -1,6 +1,13 @@
 {
   "version": 1,
   "cases": {
+    "DOC-002": {
+      "script": "tests/document_api.py",
+      "fixture": "tests/workflows/fixtures/document.json",
+      "result": "document-api.json",
+      "covers": ["DOC-002"],
+      "capabilities": ["document.identities", "document.units", "document.ownership_inspection"]
+    },
     "shell_api": {
       "script": "tests/shell_api.py",
       "fixture": "tests/workflows/fixtures/shell.json",

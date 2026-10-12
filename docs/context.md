@@ -59,8 +59,11 @@ The cumulative runner in `tests/workflows/run.py` now wraps the real shell case,
 with fixture/candidate/artifact hashes, capability checks and live gate prerequisites.
 Its real-app success and focused refusal checks passed, and Astra reviewed the
 bounded implementation. See [runner receipt](validation/workflow-runner.md). Physical
-and visual acceptance remain separate. Only shell_api and FND-010 cases exist.
-There is no CAD geometry, sketch solver, editable document/history, persistence,
+and visual acceptance remain separate. DOC-002 is also registered; later cases remain unavailable.
+The DOC-002 authored layer now has a root UUID, typed owned primitive intent,
+canonical millimeters and mm/in display units. A bounded unit fixture and the
+real-app DOC-002 case passed. Modeling operations are not exposed yet; see
+[authored receipt](validation/authored-document.md). There is no CAD geometry, sketch solver, native persistence,
 import, or export yet. Modeling controls are explicitly unavailable. Visual and
 physical-input parity have not been established.
 
@@ -91,7 +94,8 @@ cumulative validation gates**. All remote issue bodies, dependency links,
 labels, milestones, and live readiness were verified through the API. The shell
 baseline [`GATE-000` #12](https://github.com/rje/Alloy/issues/12) is closed;
 FND-010 #10 is also closed with independently reviewed runner evidence;
-133 issues remain open and five have satisfied prerequisites. Later epics need
+FND-003 is now closed after its independently reviewed comparison. Live counts
+are obtained with tools/backlog.py rather than this earlier publication snapshot. Later epics need
 bounded child issues before implementation; this count does not exhaust parity.
 Read [the backlog](backlog/README.md), [publication receipt](backlog/publication.json),
 and [deep dive](research/cad-workflows.md) before pulling work. Run
@@ -117,8 +121,8 @@ through the CLI/API as tasks start and finish.
 
 FND-003 is complete with a permitted Qt/OCCT comparison and independently reviewed
 [decision 001](decisions/001-authored-document.md). It selects authored JSON and one
-QUndoStack, with no persisted session journal. DOC-002 is the next integration
-step; FND-006/DOC-003/DOC-004 then supply shared sessions, undo and native storage.
+QUndoStack, with no persisted session journal. DOC-002 integration and its focused evidence are complete;
+FND-006/DOC-003/DOC-004 supply shared sessions, undo and native storage next.
 FND-004 resolves stable geometric references independently.
 
 The proposed next product increment is [roadmap milestone 1](roadmap.md): integrate OCCT
@@ -133,6 +137,11 @@ export. Test persistent face/edge references early. The proposed coverage is in
 [product-scope.md](product-scope.md), with boundaries in
 [architecture.md](architecture.md) and evidence rules in
 [compatibility.md](compatibility.md).
+
+FND-002 admission supports shared Qt/OCCT and FTL FreeType. The pinned component
+record, retained notices and local absolute-path link audit are in docs/dependencies.
+It explicitly leaves package closure, sources and replacement instructions to
+CI-002/CI-003. Solver candidates remain unadmitted.
 
 The exact dated reference release/platform/theme/navigation baseline,
 minimum OS versions/architectures and sketch solver

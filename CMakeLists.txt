@@ -19,6 +19,7 @@ message(STATUS "OCCT ${ALLOY_OCCT_VERSION}: native OpenGL visualization")
 
 qt_add_executable(alloy MACOSX_BUNDLE
     src/main.cpp src/AlloyWindow.cpp src/AlloyWindow.h
+    src/CadDocument.cpp src/CadDocument.h
     src/ReferenceView.cpp src/ReferenceView.h
     src/ControlServer.cpp src/ControlServer.h)
 target_include_directories(alloy SYSTEM PRIVATE ${OpenCASCADE_INCLUDE_DIR})
@@ -40,6 +41,10 @@ if(ALLOY_BUILD_SPIKES)
         TKernel TKMath TKBRep TKPrim TKTopAlgo TKLCAF TKCAF TKBin TKBinL TKCDF)
 endif()
 if(BUILD_TESTING)
+    add_executable(document_model_test tests/document_model.cpp src/CadDocument.cpp src/CadDocument.h)
+    target_include_directories(document_model_test PRIVATE src)
+    target_link_libraries(document_model_test PRIVATE Qt6::Gui)
+    add_test(NAME document_model COMMAND document_model_test)
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
     add_test(NAME shell_api COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/shell_api.py

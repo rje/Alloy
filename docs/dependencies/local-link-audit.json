@@ -1,0 +1,757 @@
+{
+  "schema": "alloy-local-link-audit/1",
+  "recorded_at": "2026-10-12T01:39:16.307654+00:00",
+  "platform": "macOS-26.5.1-arm64-arm-64bit-Mach-O",
+  "candidate_base_commit": "12fe5345d2a165eaea54fac95cd2079b37ac37f1",
+  "candidate_sha256": "294994d4e41a79cb65017d6714db015a2b3cd75b4a32cb3586429eee5d2e78ae",
+  "dynamic_dependencies": {
+    "/Users/rje/src/cpp/Alloy/build/alloy.app/Contents/MacOS/alloy": [
+      "/opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Versions/A/QtWidgets",
+      "/opt/homebrew/opt/qtbase/lib/QtNetwork.framework/Versions/A/QtNetwork",
+      "/opt/homebrew/opt/opencascade/lib/libTKV3d.7.9.dylib",
+      "/opt/homebrew/opt/opencascade/lib/libTKOpenGl.7.9.dylib",
+      "/opt/homebrew/opt/qtbase/lib/QtGui.framework/Versions/A/QtGui",
+      "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit",
+      "/System/Library/Frameworks/OpenGL.framework/Versions/A/OpenGL",
+      "/System/Library/Frameworks/ImageIO.framework/Versions/A/ImageIO",
+      "/System/Library/Frameworks/Metal.framework/Versions/A/Metal",
+      "/opt/homebrew/opt/qtbase/lib/QtCore.framework/Versions/A/QtCore",
+      "/System/Library/Frameworks/IOKit.framework/Versions/A/IOKit",
+      "/System/Library/Frameworks/DiskArbitration.framework/Versions/A/DiskArbitration",
+      "/System/Library/Frameworks/UniformTypeIdentifiers.framework/Versions/A/UniformTypeIdentifiers",
+      "/opt/homebrew/opt/opencascade/lib/libTKMesh.7.9.dylib",
+      "/opt/homebrew/opt/opencascade/lib/libTKShHealing.7.9.dylib",
+      "/opt/homebrew/opt/opencascade/lib/libTKHLR.7.9.dylib",
+      "/opt/homebrew/opt/opencascade/lib/libTKTopAlgo.7.9.dylib",
+      "/opt/homebrew/opt/opencascade/lib/libTKGeomAlgo.7.9.dylib",
+      "/opt/homebrew/opt/opencascade/lib/libTKBRep.7.9.dylib",
+      "/opt/homebrew/opt/opencascade/lib/libTKGeomBase.7.9.dylib",
+      "/opt/homebrew/opt/opencascade/lib/libTKG3d.7.9.dylib",
+      "/opt/homebrew/opt/opencascade/lib/libTKG2d.7.9.dylib",
+      "/opt/homebrew/opt/opencascade/lib/libTKService.7.9.dylib",
+      "/opt/homebrew/opt/opencascade/lib/libTKMath.7.9.dylib",
+      "/opt/homebrew/opt/opencascade/lib/libTKernel.7.9.dylib",
+      "/usr/lib/libc++.1.dylib",
+      "/usr/lib/libSystem.B.dylib"
+    ],
+    "/opt/homebrew/opt/opencascade/lib/libTKernel.7.9.dylib": [
+      "/opt/homebrew/opt/opencascade/lib/libTKernel.7.9.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/opt/homebrew/opt/tbb/lib/libtbb.12.dylib",
+      "/opt/homebrew/opt/tbb/lib/libtbbmalloc.2.dylib",
+      "/usr/lib/libc++.1.dylib"
+    ],
+    "/opt/homebrew/opt/tbb/lib/libtbbmalloc.2.dylib": [
+      "/opt/homebrew/opt/tbb/lib/libtbbmalloc.2.dylib",
+      "/usr/lib/libSystem.B.dylib"
+    ],
+    "/opt/homebrew/opt/tbb/lib/libtbb.12.dylib": [
+      "/opt/homebrew/opt/tbb/lib/libtbb.12.dylib",
+      "/usr/lib/libc++.1.dylib",
+      "/usr/lib/libSystem.B.dylib"
+    ],
+    "/opt/homebrew/opt/opencascade/lib/libTKMath.7.9.dylib": [
+      "/opt/homebrew/opt/opencascade/lib/libTKMath.7.9.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "@rpath/libTKernel.7.9.dylib",
+      "/opt/homebrew/opt/tbb/lib/libtbb.12.dylib",
+      "/opt/homebrew/opt/tbb/lib/libtbbmalloc.2.dylib",
+      "/usr/lib/libc++.1.dylib"
+    ],
+    "/opt/homebrew/opt/opencascade/lib/libTKService.7.9.dylib": [
+      "/opt/homebrew/opt/opencascade/lib/libTKService.7.9.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "@rpath/libTKMath.7.9.dylib",
+      "/usr/lib/libobjc.A.dylib",
+      "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit",
+      "/System/Library/Frameworks/IOKit.framework/Versions/A/IOKit",
+      "/opt/homebrew/opt/freetype/lib/libfreetype.6.dylib",
+      "@rpath/libTKernel.7.9.dylib",
+      "/usr/lib/libc++.1.dylib",
+      "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation",
+      "/System/Library/Frameworks/CoreGraphics.framework/Versions/A/CoreGraphics",
+      "/System/Library/Frameworks/Foundation.framework/Versions/C/Foundation"
+    ],
+    "/opt/homebrew/opt/freetype/lib/libfreetype.6.dylib": [
+      "/opt/homebrew/opt/freetype/lib/libfreetype.6.dylib",
+      "/usr/lib/libz.1.dylib",
+      "/usr/lib/libbz2.1.0.dylib",
+      "/opt/homebrew/opt/libpng/lib/libpng16.16.dylib",
+      "/usr/lib/libSystem.B.dylib"
+    ],
+    "/opt/homebrew/opt/libpng/lib/libpng16.16.dylib": [
+      "/opt/homebrew/opt/libpng/lib/libpng16.16.dylib",
+      "/usr/lib/libz.1.dylib",
+      "/usr/lib/libSystem.B.dylib"
+    ],
+    "/opt/homebrew/opt/opencascade/lib/libTKG2d.7.9.dylib": [
+      "/opt/homebrew/opt/opencascade/lib/libTKG2d.7.9.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "@rpath/libTKMath.7.9.dylib",
+      "@rpath/libTKernel.7.9.dylib",
+      "/usr/lib/libc++.1.dylib"
+    ],
+    "/opt/homebrew/opt/opencascade/lib/libTKG3d.7.9.dylib": [
+      "/opt/homebrew/opt/opencascade/lib/libTKG3d.7.9.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "@rpath/libTKG2d.7.9.dylib",
+      "@rpath/libTKMath.7.9.dylib",
+      "@rpath/libTKernel.7.9.dylib",
+      "/usr/lib/libc++.1.dylib"
+    ],
+    "/opt/homebrew/opt/opencascade/lib/libTKGeomBase.7.9.dylib": [
+      "/opt/homebrew/opt/opencascade/lib/libTKGeomBase.7.9.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "@rpath/libTKG3d.7.9.dylib",
+      "/opt/homebrew/opt/tbb/lib/libtbb.12.dylib",
+      "/opt/homebrew/opt/tbb/lib/libtbbmalloc.2.dylib",
+      "@rpath/libTKG2d.7.9.dylib",
+      "@rpath/libTKMath.7.9.dylib",
+      "@rpath/libTKernel.7.9.dylib",
+      "/usr/lib/libc++.1.dylib"
+    ],
+    "/opt/homebrew/opt/opencascade/lib/libTKBRep.7.9.dylib": [
+      "/opt/homebrew/opt/opencascade/lib/libTKBRep.7.9.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "@rpath/libTKGeomBase.7.9.dylib",
+      "@rpath/libTKG3d.7.9.dylib",
+      "@rpath/libTKG2d.7.9.dylib",
+      "@rpath/libTKMath.7.9.dylib",
+      "@rpath/libTKernel.7.9.dylib",
+      "/usr/lib/libc++.1.dylib"
+    ],
+    "/opt/homebrew/opt/opencascade/lib/libTKGeomAlgo.7.9.dylib": [
+      "/opt/homebrew/opt/opencascade/lib/libTKGeomAlgo.7.9.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "@rpath/libTKBRep.7.9.dylib",
+      "@rpath/libTKGeomBase.7.9.dylib",
+      "@rpath/libTKG3d.7.9.dylib",
+      "@rpath/libTKG2d.7.9.dylib",
+      "@rpath/libTKMath.7.9.dylib",
+      "@rpath/libTKernel.7.9.dylib",
+      "/usr/lib/libc++.1.dylib"
+    ],
+    "/opt/homebrew/opt/opencascade/lib/libTKTopAlgo.7.9.dylib": [
+      "/opt/homebrew/opt/opencascade/lib/libTKTopAlgo.7.9.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "@rpath/libTKGeomAlgo.7.9.dylib",
+      "/opt/homebrew/opt/tbb/lib/libtbb.12.dylib",
+      "/opt/homebrew/opt/tbb/lib/libtbbmalloc.2.dylib",
+      "@rpath/libTKBRep.7.9.dylib",
+      "@rpath/libTKGeomBase.7.9.dylib",
+      "@rpath/libTKG3d.7.9.dylib",
+      "@rpath/libTKG2d.7.9.dylib",
+      "@rpath/libTKMath.7.9.dylib",
+      "@rpath/libTKernel.7.9.dylib",
+      "/usr/lib/libc++.1.dylib"
+    ],
+    "/opt/homebrew/opt/opencascade/lib/libTKHLR.7.9.dylib": [
+      "/opt/homebrew/opt/opencascade/lib/libTKHLR.7.9.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "@rpath/libTKTopAlgo.7.9.dylib",
+      "@rpath/libTKGeomAlgo.7.9.dylib",
+      "@rpath/libTKBRep.7.9.dylib",
+      "@rpath/libTKGeomBase.7.9.dylib",
+      "@rpath/libTKG3d.7.9.dylib",
+      "@rpath/libTKG2d.7.9.dylib",
+      "@rpath/libTKMath.7.9.dylib",
+      "@rpath/libTKernel.7.9.dylib",
+      "/usr/lib/libc++.1.dylib"
+    ],
+    "/opt/homebrew/opt/opencascade/lib/libTKShHealing.7.9.dylib": [
+      "/opt/homebrew/opt/opencascade/lib/libTKShHealing.7.9.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "@rpath/libTKTopAlgo.7.9.dylib",
+      "@rpath/libTKGeomAlgo.7.9.dylib",
+      "@rpath/libTKBRep.7.9.dylib",
+      "@rpath/libTKGeomBase.7.9.dylib",
+      "@rpath/libTKG3d.7.9.dylib",
+      "@rpath/libTKG2d.7.9.dylib",
+      "@rpath/libTKMath.7.9.dylib",
+      "@rpath/libTKernel.7.9.dylib",
+      "/usr/lib/libc++.1.dylib"
+    ],
+    "/opt/homebrew/opt/opencascade/lib/libTKMesh.7.9.dylib": [
+      "/opt/homebrew/opt/opencascade/lib/libTKMesh.7.9.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "@rpath/libTKShHealing.7.9.dylib",
+      "@rpath/libTKTopAlgo.7.9.dylib",
+      "@rpath/libTKGeomAlgo.7.9.dylib",
+      "@rpath/libTKBRep.7.9.dylib",
+      "@rpath/libTKGeomBase.7.9.dylib",
+      "@rpath/libTKG3d.7.9.dylib",
+      "@rpath/libTKG2d.7.9.dylib",
+      "@rpath/libTKMath.7.9.dylib",
+      "@rpath/libTKernel.7.9.dylib",
+      "/usr/lib/libc++.1.dylib"
+    ],
+    "/opt/homebrew/opt/qtbase/lib/QtCore.framework/Versions/A/QtCore": [
+      "/opt/homebrew/opt/qtbase/lib/QtCore.framework/Versions/A/QtCore",
+      "/System/Library/Frameworks/IOKit.framework/Versions/A/IOKit",
+      "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation",
+      "/System/Library/Frameworks/Foundation.framework/Versions/C/Foundation",
+      "/System/Library/Frameworks/DiskArbitration.framework/Versions/A/DiskArbitration",
+      "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit",
+      "/System/Library/Frameworks/ApplicationServices.framework/Versions/A/ApplicationServices",
+      "/System/Library/Frameworks/CoreServices.framework/Versions/A/CoreServices",
+      "/System/Library/Frameworks/Security.framework/Versions/A/Security",
+      "/System/Library/Frameworks/UniformTypeIdentifiers.framework/Versions/A/UniformTypeIdentifiers",
+      "/opt/homebrew/opt/icu4c@78/lib/libicui18n.78.dylib",
+      "/opt/homebrew/opt/icu4c@78/lib/libicuuc.78.dylib",
+      "/opt/homebrew/opt/icu4c@78/lib/libicudata.78.dylib",
+      "/opt/homebrew/opt/glib/lib/libglib-2.0.0.dylib",
+      "/usr/lib/libz.1.dylib",
+      "/opt/homebrew/opt/double-conversion/lib/libdouble-conversion.3.dylib",
+      "/opt/homebrew/opt/libb2/lib/libb2.1.dylib",
+      "/opt/homebrew/opt/pcre2/lib/libpcre2-16.0.dylib",
+      "/opt/homebrew/opt/zstd/lib/libzstd.1.dylib",
+      "/opt/homebrew/opt/glib/lib/libgthread-2.0.0.dylib",
+      "/usr/lib/libc++.1.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/usr/lib/libobjc.A.dylib"
+    ],
+    "/opt/homebrew/opt/glib/lib/libgthread-2.0.0.dylib": [
+      "/opt/homebrew/opt/glib/lib/libgthread-2.0.0.dylib",
+      "/opt/homebrew/Cellar/glib/2.90.1/lib/libglib-2.0.0.dylib",
+      "/usr/lib/libSystem.B.dylib"
+    ],
+    "/opt/homebrew/Cellar/glib/2.90.1/lib/libglib-2.0.0.dylib": [
+      "/opt/homebrew/opt/glib/lib/libglib-2.0.0.dylib",
+      "/usr/lib/libiconv.2.dylib",
+      "/opt/homebrew/opt/gettext/lib/libintl.8.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/opt/homebrew/opt/pcre2/lib/libpcre2-8.0.dylib",
+      "/System/Library/Frameworks/Foundation.framework/Versions/C/Foundation",
+      "/System/Library/Frameworks/CoreServices.framework/Versions/A/CoreServices",
+      "/usr/lib/libobjc.A.dylib"
+    ],
+    "/opt/homebrew/opt/pcre2/lib/libpcre2-8.0.dylib": [
+      "/opt/homebrew/opt/pcre2/lib/libpcre2-8.0.dylib",
+      "/usr/lib/libSystem.B.dylib"
+    ],
+    "/opt/homebrew/opt/gettext/lib/libintl.8.dylib": [
+      "/opt/homebrew/opt/gettext/lib/libintl.8.dylib",
+      "/usr/lib/libiconv.2.dylib",
+      "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation",
+      "/System/Library/Frameworks/CoreServices.framework/Versions/A/CoreServices",
+      "/usr/lib/libSystem.B.dylib"
+    ],
+    "/opt/homebrew/opt/glib/lib/libglib-2.0.0.dylib": [
+      "/opt/homebrew/opt/glib/lib/libglib-2.0.0.dylib",
+      "/usr/lib/libiconv.2.dylib",
+      "/opt/homebrew/opt/gettext/lib/libintl.8.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/opt/homebrew/opt/pcre2/lib/libpcre2-8.0.dylib",
+      "/System/Library/Frameworks/Foundation.framework/Versions/C/Foundation",
+      "/System/Library/Frameworks/CoreServices.framework/Versions/A/CoreServices",
+      "/usr/lib/libobjc.A.dylib"
+    ],
+    "/opt/homebrew/opt/zstd/lib/libzstd.1.dylib": [
+      "/opt/homebrew/opt/zstd/lib/libzstd.1.dylib",
+      "/usr/lib/libSystem.B.dylib"
+    ],
+    "/opt/homebrew/opt/pcre2/lib/libpcre2-16.0.dylib": [
+      "/opt/homebrew/opt/pcre2/lib/libpcre2-16.0.dylib",
+      "/usr/lib/libSystem.B.dylib"
+    ],
+    "/opt/homebrew/opt/libb2/lib/libb2.1.dylib": [
+      "/opt/homebrew/opt/libb2/lib/libb2.1.dylib",
+      "/usr/lib/libSystem.B.dylib"
+    ],
+    "/opt/homebrew/opt/double-conversion/lib/libdouble-conversion.3.dylib": [
+      "/opt/homebrew/opt/double-conversion/lib/libdouble-conversion.3.dylib",
+      "/usr/lib/libc++.1.dylib",
+      "/usr/lib/libSystem.B.dylib"
+    ],
+    "/opt/homebrew/opt/icu4c@78/lib/libicudata.78.dylib": [
+      "/opt/homebrew/opt/icu4c@78/lib/libicudata.78.dylib",
+      "/usr/lib/libSystem.B.dylib"
+    ],
+    "/opt/homebrew/opt/icu4c@78/lib/libicuuc.78.dylib": [
+      "/opt/homebrew/opt/icu4c@78/lib/libicuuc.78.dylib",
+      "@loader_path/libicudata.78.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/usr/lib/libc++.1.dylib"
+    ],
+    "/opt/homebrew/opt/icu4c@78/lib/libicui18n.78.dylib": [
+      "/opt/homebrew/opt/icu4c@78/lib/libicui18n.78.dylib",
+      "@loader_path/libicuuc.78.dylib",
+      "@loader_path/libicudata.78.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/usr/lib/libc++.1.dylib"
+    ],
+    "/opt/homebrew/opt/qtbase/lib/QtGui.framework/Versions/A/QtGui": [
+      "/opt/homebrew/opt/qtbase/lib/QtGui.framework/Versions/A/QtGui",
+      "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit",
+      "/System/Library/Frameworks/Carbon.framework/Versions/A/Carbon",
+      "/System/Library/Frameworks/OpenGL.framework/Versions/A/OpenGL",
+      "/System/Library/Frameworks/ImageIO.framework/Versions/A/ImageIO",
+      "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation",
+      "/System/Library/Frameworks/CoreGraphics.framework/Versions/A/CoreGraphics",
+      "/System/Library/Frameworks/CoreText.framework/Versions/A/CoreText",
+      "/System/Library/Frameworks/Foundation.framework/Versions/C/Foundation",
+      "/opt/homebrew/opt/glib/lib/libglib-2.0.0.dylib",
+      "@rpath/QtDBus.framework/Versions/A/QtDBus",
+      "/System/Library/Frameworks/Metal.framework/Versions/A/Metal",
+      "/System/Library/Frameworks/QuartzCore.framework/Versions/A/QuartzCore",
+      "/opt/homebrew/opt/libpng/lib/libpng16.16.dylib",
+      "/usr/lib/libz.1.dylib",
+      "/opt/homebrew/opt/harfbuzz/lib/libharfbuzz.0.dylib",
+      "/opt/homebrew/opt/md4c/lib/libmd4c.0.dylib",
+      "/opt/homebrew/opt/freetype/lib/libfreetype.6.dylib",
+      "/opt/homebrew/opt/glib/lib/libgthread-2.0.0.dylib",
+      "@rpath/QtCore.framework/Versions/A/QtCore",
+      "/System/Library/Frameworks/IOKit.framework/Versions/A/IOKit",
+      "/System/Library/Frameworks/DiskArbitration.framework/Versions/A/DiskArbitration",
+      "/System/Library/Frameworks/UniformTypeIdentifiers.framework/Versions/A/UniformTypeIdentifiers",
+      "/usr/lib/libc++.1.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/System/Library/Frameworks/CoreServices.framework/Versions/A/CoreServices",
+      "/usr/lib/libobjc.A.dylib"
+    ],
+    "/opt/homebrew/opt/md4c/lib/libmd4c.0.dylib": [
+      "/opt/homebrew/opt/md4c/lib/libmd4c.0.dylib",
+      "/usr/lib/libSystem.B.dylib"
+    ],
+    "/opt/homebrew/opt/harfbuzz/lib/libharfbuzz.0.dylib": [
+      "/opt/homebrew/opt/harfbuzz/lib/libharfbuzz.0.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/opt/homebrew/opt/freetype/lib/libfreetype.6.dylib",
+      "/opt/homebrew/opt/glib/lib/libglib-2.0.0.dylib",
+      "/opt/homebrew/opt/graphite2/lib/libgraphite2.3.dylib",
+      "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation",
+      "/System/Library/Frameworks/CoreGraphics.framework/Versions/A/CoreGraphics",
+      "/System/Library/Frameworks/CoreText.framework/Versions/A/CoreText"
+    ],
+    "/opt/homebrew/opt/graphite2/lib/libgraphite2.3.dylib": [
+      "/opt/homebrew/opt/graphite2/lib/libgraphite2.3.dylib",
+      "/usr/lib/libSystem.B.dylib"
+    ],
+    "/opt/homebrew/opt/opencascade/lib/libTKOpenGl.7.9.dylib": [
+      "/opt/homebrew/opt/opencascade/lib/libTKOpenGl.7.9.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "@rpath/libTKService.7.9.dylib",
+      "@rpath/libTKMath.7.9.dylib",
+      "/opt/homebrew/opt/tbb/lib/libtbb.12.dylib",
+      "/opt/homebrew/opt/tbb/lib/libtbbmalloc.2.dylib",
+      "/System/Library/Frameworks/OpenGL.framework/Versions/A/OpenGL",
+      "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit",
+      "/System/Library/Frameworks/IOKit.framework/Versions/A/IOKit",
+      "/usr/lib/libobjc.A.dylib",
+      "@rpath/libTKernel.7.9.dylib",
+      "/usr/lib/libc++.1.dylib",
+      "/System/Library/Frameworks/CoreGraphics.framework/Versions/A/CoreGraphics"
+    ],
+    "/opt/homebrew/opt/opencascade/lib/libTKV3d.7.9.dylib": [
+      "/opt/homebrew/opt/opencascade/lib/libTKV3d.7.9.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "@rpath/libTKService.7.9.dylib",
+      "@rpath/libTKMesh.7.9.dylib",
+      "@rpath/libTKHLR.7.9.dylib",
+      "/opt/homebrew/opt/freetype/lib/libfreetype.6.dylib",
+      "/opt/homebrew/opt/tbb/lib/libtbb.12.dylib",
+      "/opt/homebrew/opt/tbb/lib/libtbbmalloc.2.dylib",
+      "@rpath/libTKShHealing.7.9.dylib",
+      "@rpath/libTKTopAlgo.7.9.dylib",
+      "@rpath/libTKGeomAlgo.7.9.dylib",
+      "@rpath/libTKBRep.7.9.dylib",
+      "@rpath/libTKGeomBase.7.9.dylib",
+      "@rpath/libTKG3d.7.9.dylib",
+      "@rpath/libTKG2d.7.9.dylib",
+      "@rpath/libTKMath.7.9.dylib",
+      "@rpath/libTKernel.7.9.dylib",
+      "/usr/lib/libc++.1.dylib"
+    ],
+    "/opt/homebrew/opt/qtbase/lib/QtNetwork.framework/Versions/A/QtNetwork": [
+      "/opt/homebrew/opt/qtbase/lib/QtNetwork.framework/Versions/A/QtNetwork",
+      "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation",
+      "/System/Library/Frameworks/Security.framework/Versions/A/Security",
+      "/System/Library/Frameworks/CoreServices.framework/Versions/A/CoreServices",
+      "/System/Library/Frameworks/SystemConfiguration.framework/Versions/A/SystemConfiguration",
+      "/System/Library/Frameworks/CFNetwork.framework/Versions/A/CFNetwork",
+      "/System/Library/Frameworks/Network.framework/Versions/A/Network",
+      "@rpath/QtCore.framework/Versions/A/QtCore",
+      "/System/Library/Frameworks/IOKit.framework/Versions/A/IOKit",
+      "/System/Library/Frameworks/DiskArbitration.framework/Versions/A/DiskArbitration",
+      "/System/Library/Frameworks/UniformTypeIdentifiers.framework/Versions/A/UniformTypeIdentifiers",
+      "/opt/homebrew/opt/brotli/lib/libbrotlidec.1.dylib",
+      "/opt/homebrew/opt/zstd/lib/libzstd.1.dylib",
+      "/usr/lib/libz.1.dylib",
+      "/usr/lib/libresolv.9.dylib",
+      "/System/Library/Frameworks/GSS.framework/Versions/A/GSS",
+      "/opt/homebrew/opt/openssl@4/lib/libssl.4.dylib",
+      "/opt/homebrew/opt/openssl@4/lib/libcrypto.4.dylib",
+      "/usr/lib/libc++.1.dylib",
+      "/usr/lib/libSystem.B.dylib"
+    ],
+    "/opt/homebrew/opt/openssl@4/lib/libcrypto.4.dylib": [
+      "/opt/homebrew/opt/openssl@4/lib/libcrypto.4.dylib",
+      "/usr/lib/libSystem.B.dylib"
+    ],
+    "/opt/homebrew/opt/openssl@4/lib/libssl.4.dylib": [
+      "/opt/homebrew/opt/openssl@4/lib/libssl.4.dylib",
+      "/opt/homebrew/Cellar/openssl@4/4.0.3/lib/libcrypto.4.dylib",
+      "/usr/lib/libSystem.B.dylib"
+    ],
+    "/opt/homebrew/Cellar/openssl@4/4.0.3/lib/libcrypto.4.dylib": [
+      "/opt/homebrew/opt/openssl@4/lib/libcrypto.4.dylib",
+      "/usr/lib/libSystem.B.dylib"
+    ],
+    "/opt/homebrew/opt/brotli/lib/libbrotlidec.1.dylib": [
+      "/opt/homebrew/opt/brotli/lib/libbrotlidec.1.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "@rpath/libbrotlicommon.1.dylib"
+    ],
+    "/opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Versions/A/QtWidgets": [
+      "/opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Versions/A/QtWidgets",
+      "/usr/lib/libz.1.dylib",
+      "@rpath/QtGui.framework/Versions/A/QtGui",
+      "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit",
+      "/System/Library/Frameworks/OpenGL.framework/Versions/A/OpenGL",
+      "/System/Library/Frameworks/ImageIO.framework/Versions/A/ImageIO",
+      "/System/Library/Frameworks/Metal.framework/Versions/A/Metal",
+      "@rpath/QtCore.framework/Versions/A/QtCore",
+      "/System/Library/Frameworks/IOKit.framework/Versions/A/IOKit",
+      "/System/Library/Frameworks/DiskArbitration.framework/Versions/A/DiskArbitration",
+      "/System/Library/Frameworks/UniformTypeIdentifiers.framework/Versions/A/UniformTypeIdentifiers",
+      "/usr/lib/libc++.1.dylib",
+      "/usr/lib/libSystem.B.dylib",
+      "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation",
+      "/System/Library/Frameworks/Foundation.framework/Versions/C/Foundation",
+      "/usr/lib/libobjc.A.dylib"
+    ]
+  },
+  "unresolved_relative_dependencies": [
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKMath.7.9.dylib",
+      "dependency": "@rpath/libTKernel.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKService.7.9.dylib",
+      "dependency": "@rpath/libTKMath.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKService.7.9.dylib",
+      "dependency": "@rpath/libTKernel.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKG2d.7.9.dylib",
+      "dependency": "@rpath/libTKMath.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKG2d.7.9.dylib",
+      "dependency": "@rpath/libTKernel.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKG3d.7.9.dylib",
+      "dependency": "@rpath/libTKG2d.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKG3d.7.9.dylib",
+      "dependency": "@rpath/libTKMath.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKG3d.7.9.dylib",
+      "dependency": "@rpath/libTKernel.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKGeomBase.7.9.dylib",
+      "dependency": "@rpath/libTKG3d.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKGeomBase.7.9.dylib",
+      "dependency": "@rpath/libTKG2d.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKGeomBase.7.9.dylib",
+      "dependency": "@rpath/libTKMath.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKGeomBase.7.9.dylib",
+      "dependency": "@rpath/libTKernel.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKBRep.7.9.dylib",
+      "dependency": "@rpath/libTKGeomBase.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKBRep.7.9.dylib",
+      "dependency": "@rpath/libTKG3d.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKBRep.7.9.dylib",
+      "dependency": "@rpath/libTKG2d.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKBRep.7.9.dylib",
+      "dependency": "@rpath/libTKMath.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKBRep.7.9.dylib",
+      "dependency": "@rpath/libTKernel.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKGeomAlgo.7.9.dylib",
+      "dependency": "@rpath/libTKBRep.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKGeomAlgo.7.9.dylib",
+      "dependency": "@rpath/libTKGeomBase.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKGeomAlgo.7.9.dylib",
+      "dependency": "@rpath/libTKG3d.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKGeomAlgo.7.9.dylib",
+      "dependency": "@rpath/libTKG2d.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKGeomAlgo.7.9.dylib",
+      "dependency": "@rpath/libTKMath.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKGeomAlgo.7.9.dylib",
+      "dependency": "@rpath/libTKernel.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKTopAlgo.7.9.dylib",
+      "dependency": "@rpath/libTKGeomAlgo.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKTopAlgo.7.9.dylib",
+      "dependency": "@rpath/libTKBRep.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKTopAlgo.7.9.dylib",
+      "dependency": "@rpath/libTKGeomBase.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKTopAlgo.7.9.dylib",
+      "dependency": "@rpath/libTKG3d.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKTopAlgo.7.9.dylib",
+      "dependency": "@rpath/libTKG2d.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKTopAlgo.7.9.dylib",
+      "dependency": "@rpath/libTKMath.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKTopAlgo.7.9.dylib",
+      "dependency": "@rpath/libTKernel.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKHLR.7.9.dylib",
+      "dependency": "@rpath/libTKTopAlgo.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKHLR.7.9.dylib",
+      "dependency": "@rpath/libTKGeomAlgo.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKHLR.7.9.dylib",
+      "dependency": "@rpath/libTKBRep.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKHLR.7.9.dylib",
+      "dependency": "@rpath/libTKGeomBase.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKHLR.7.9.dylib",
+      "dependency": "@rpath/libTKG3d.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKHLR.7.9.dylib",
+      "dependency": "@rpath/libTKG2d.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKHLR.7.9.dylib",
+      "dependency": "@rpath/libTKMath.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKHLR.7.9.dylib",
+      "dependency": "@rpath/libTKernel.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKShHealing.7.9.dylib",
+      "dependency": "@rpath/libTKTopAlgo.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKShHealing.7.9.dylib",
+      "dependency": "@rpath/libTKGeomAlgo.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKShHealing.7.9.dylib",
+      "dependency": "@rpath/libTKBRep.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKShHealing.7.9.dylib",
+      "dependency": "@rpath/libTKGeomBase.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKShHealing.7.9.dylib",
+      "dependency": "@rpath/libTKG3d.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKShHealing.7.9.dylib",
+      "dependency": "@rpath/libTKG2d.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKShHealing.7.9.dylib",
+      "dependency": "@rpath/libTKMath.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKShHealing.7.9.dylib",
+      "dependency": "@rpath/libTKernel.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKMesh.7.9.dylib",
+      "dependency": "@rpath/libTKShHealing.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKMesh.7.9.dylib",
+      "dependency": "@rpath/libTKTopAlgo.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKMesh.7.9.dylib",
+      "dependency": "@rpath/libTKGeomAlgo.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKMesh.7.9.dylib",
+      "dependency": "@rpath/libTKBRep.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKMesh.7.9.dylib",
+      "dependency": "@rpath/libTKGeomBase.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKMesh.7.9.dylib",
+      "dependency": "@rpath/libTKG3d.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKMesh.7.9.dylib",
+      "dependency": "@rpath/libTKG2d.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKMesh.7.9.dylib",
+      "dependency": "@rpath/libTKMath.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKMesh.7.9.dylib",
+      "dependency": "@rpath/libTKernel.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/icu4c@78/lib/libicuuc.78.dylib",
+      "dependency": "@loader_path/libicudata.78.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/icu4c@78/lib/libicui18n.78.dylib",
+      "dependency": "@loader_path/libicuuc.78.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/icu4c@78/lib/libicui18n.78.dylib",
+      "dependency": "@loader_path/libicudata.78.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/qtbase/lib/QtGui.framework/Versions/A/QtGui",
+      "dependency": "@rpath/QtDBus.framework/Versions/A/QtDBus"
+    },
+    {
+      "binary": "/opt/homebrew/opt/qtbase/lib/QtGui.framework/Versions/A/QtGui",
+      "dependency": "@rpath/QtCore.framework/Versions/A/QtCore"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKOpenGl.7.9.dylib",
+      "dependency": "@rpath/libTKService.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKOpenGl.7.9.dylib",
+      "dependency": "@rpath/libTKMath.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKOpenGl.7.9.dylib",
+      "dependency": "@rpath/libTKernel.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKV3d.7.9.dylib",
+      "dependency": "@rpath/libTKService.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKV3d.7.9.dylib",
+      "dependency": "@rpath/libTKMesh.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKV3d.7.9.dylib",
+      "dependency": "@rpath/libTKHLR.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKV3d.7.9.dylib",
+      "dependency": "@rpath/libTKShHealing.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKV3d.7.9.dylib",
+      "dependency": "@rpath/libTKTopAlgo.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKV3d.7.9.dylib",
+      "dependency": "@rpath/libTKGeomAlgo.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKV3d.7.9.dylib",
+      "dependency": "@rpath/libTKBRep.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKV3d.7.9.dylib",
+      "dependency": "@rpath/libTKGeomBase.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKV3d.7.9.dylib",
+      "dependency": "@rpath/libTKG3d.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKV3d.7.9.dylib",
+      "dependency": "@rpath/libTKG2d.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKV3d.7.9.dylib",
+      "dependency": "@rpath/libTKMath.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/opencascade/lib/libTKV3d.7.9.dylib",
+      "dependency": "@rpath/libTKernel.7.9.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/qtbase/lib/QtNetwork.framework/Versions/A/QtNetwork",
+      "dependency": "@rpath/QtCore.framework/Versions/A/QtCore"
+    },
+    {
+      "binary": "/opt/homebrew/opt/brotli/lib/libbrotlidec.1.dylib",
+      "dependency": "@rpath/libbrotlicommon.1.dylib"
+    },
+    {
+      "binary": "/opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Versions/A/QtWidgets",
+      "dependency": "@rpath/QtGui.framework/Versions/A/QtGui"
+    },
+    {
+      "binary": "/opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Versions/A/QtWidgets",
+      "dependency": "@rpath/QtCore.framework/Versions/A/QtCore"
+    }
+  ],
+  "qt_sbom_sha256": "0f2afceaece77d2c41a72e0dc1af59daa09574b8711b0fa95526efc6a151b61d",
+  "local_versions": [
+    "freetype 2.14.3",
+    "glib 2.88.1 2.90.1",
+    "icu4c@78 78.3",
+    "opencascade 7.9.3_1",
+    "openssl@4 4.0.3",
+    "qtbase 6.11.2_1",
+    "tbb 2023.1.0"
+  ],
+  "limits": [
+    "Local Homebrew link inventory, not the CI or deployed plugin closure.",
+    "System frameworks are external OS components.",
+    "Package-specific notices/source/installation obligations remain CI-002 and CI-003."
+  ]
+}

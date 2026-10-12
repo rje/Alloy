@@ -139,7 +139,7 @@ AlloyWindow::AlloyWindow() {
     tree_ = new QTreeWidget; tree_->setHeaderHidden(true); tree_->setIndentation(17);
     auto* document = new QTreeWidgetItem(tree_, {"◇  Untitled"});
     auto* settings = new QTreeWidgetItem(document, {"Document Settings"});
-    new QTreeWidgetItem(settings, {"Units: mm (planned)"});
+    new QTreeWidgetItem(settings, {"Units: mm"});
     auto* views = new QTreeWidgetItem(document, {"Named Views"});
     for (const QString& name : {"isometric", "top", "front", "right"}) {
         auto* item = new QTreeWidgetItem(views, {name.first(1).toUpper() + name.sliced(1)});
@@ -152,7 +152,7 @@ AlloyWindow::AlloyWindow() {
         if (!name.isEmpty()) execute("view.orientation", {{"name", name}});
     });
     browserLayout->addWidget(tree_, 1);
-    auto* browserNote = new QLabel("No CAD document yet\nSketches, bodies, and features will\nappear here when implemented.");
+    auto* browserNote = new QLabel("Empty authored document\nModeling features will appear here\nwhen implemented.");
     browserNote->setStyleSheet("color: #89939b; font-size: 11px; border: 0; padding: 8px 4px;");
     browserLayout->addWidget(browserNote);
     body->addWidget(browser_);
@@ -221,6 +221,18 @@ void AlloyWindow::registerCommands() {
     add("commands.list", "List commands", "Discover supported and unavailable commands with argument schemas.", {}, [this](const auto&) { return QJsonObject{{"commands", commands()}}; });
     add("commands.search", "Command search", "Open the native command search dialog (S).", {}, [this](const auto&) { showSearch(); return QJsonObject{}; });
     add("commands.close", "Close command search", "Dismiss the command search dialog.", {}, [this](const auto&) { if (search_) search_->hide(); return QJsonObject{}; });
+    auto units = parameter("string", "Display units; authored lengths remain canonical millimeters.");
+    units.insert("enum", QJsonArray{"mm", "in"});
+    add("document.units", "Display units", "Change display units without rescaling authored geometry.", {{"units", units}}, [this](const auto& a) {
+        auto candidate = document_.authored(); candidate["displayUnits"] = a.value("units");
+        const auto error = document_.commit(candidate, "Change display units");
+        return error.isEmpty() ? document_.state() : failure("invalid_document", error);
+    });
+    add("document.inspect", "Inspect document", "Read authoritative authored IDs, units and ownership.", {}, [this](const auto&) { return document_.state(); });
+    add("document.new", "New document", "Create a fresh authored document; dirty replacement requires explicit discard.", {{"discard", parameter("boolean", "Explicitly discard unsaved edits.")}}, [this](const auto& a) {
+        if (!document_.history().isClean() && !a.value("discard").toBool()) return failure("unsaved_changes", "Save or explicitly discard the current document");
+        document_.reset(); return document_.state();
+    });
     const QJsonObject visible{{"visible", parameter("boolean", "Whether this region is visible.")}};
     add("layout.browser", "Show / hide Browser", "Control the left Browser region.", visible, [this](const auto& a) { browserVisible_ = a.value("visible").toBool(); return QJsonObject{}; });
     add("layout.timeline", "Show / hide Timeline", "Control the empty feature history region.", visible, [this](const auto& a) { timelineVisible_ = a.value("visible").toBool(); return QJsonObject{}; });
@@ -290,10 +302,10 @@ QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
 QJsonObject AlloyWindow::state() const {
     // Report the current native drawable, not a previous offscreen capture FBO.
     view_->sync();
-    return {{"application", "Alloy"}, {"version", "0.1.0"}, {"stage", "ui-shell"},
+    return {{"application", "Alloy"}, {"version", "0.1.0"}, {"stage", "document-foundation"},
         {"runtime", QJsonObject{{"qtVersion", qVersion()}, {"occtBuildVersion", ALLOY_OCCT_VERSION}}},
         {"revision", static_cast<qint64>(revision_)},
-        {"document", QJsonObject{{"loaded", false}, {"label", "Untitled"}, {"sketches", 0}, {"bodies", 0}, {"features", 0}, {"editableHistory", false}}},
+        {"document", document_.state()},
         {"kernel", QJsonObject{{"candidate", "Open CASCADE"}, {"discoveredVersion", ALLOY_OCCT_VERSION}, {"integrated", false}, {"visualizationIntegrated", true}}},
         {"ui", QJsonObject{{"workspace", "design"}, {"tab", "solid"}, {"browserVisible", browserVisible_}, {"timelineVisible", timelineVisible_}, {"navigationVisible", navigationVisible_}, {"commandSearchVisible", search_ && search_->isVisible()}, {"windowWidth", width()}, {"windowHeight", height()}, {"devicePixelRatio", devicePixelRatioF()}}},
         {"viewport", QJsonObject{{"renderer", "OCCT OpenGL"}, {"gpu", view_->diagnostics()}, {"orientation", view_->orientation}, {"gridVisible", view_->grid}, {"originVisible", view_->origin}, {"zoom", view_->zoom}, {"pan", QJsonObject{{"x", view_->pan.x()}, {"y", view_->pan.y()}}}, {"width", view_->width()}, {"height", view_->height()}}}};
@@ -302,6 +314,8 @@ QJsonObject AlloyWindow::state() const {
 void AlloyWindow::refresh() {
     if (!browser_) return;
     browser_->setVisible(browserVisible_); timeline_->setVisible(timelineVisible_); navigation_->setVisible(navigationVisible_);
+    tree_->topLevelItem(0)->child(0)->child(0)->setText(0, "Units: " + document_.authored()["displayUnits"].toString());
+    setWindowTitle(QString("Untitled%1 — Alloy").arg(document_.history().isClean() ? "" : " *"));
     view_->sync();
     const auto gpu = view_->diagnostics();
     status_->setText(QString("  %3 · No model geometry · %1 · Zoom %2%    |    Middle mouse: pan · Wheel: zoom · S: commands")

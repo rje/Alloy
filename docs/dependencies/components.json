@@ -1,0 +1,98 @@
+{
+  "schema": "alloy-component-admission/1",
+  "retrieved": "2026-10-11",
+  "alloy_license": "MIT",
+  "components": [
+    {
+      "name": "Qt Base",
+      "version": "6.11.2",
+      "revision": "v6.11.2",
+      "selected_license": "LGPL-3.0-only",
+      "modules": [
+        "Core",
+        "Gui",
+        "Widgets",
+        "Network"
+      ],
+      "admission": "shared-library foundation",
+      "source": "https://github.com/qt/qtbase/tree/v6.11.2"
+    },
+    {
+      "name": "OCCT",
+      "version": "7.9.3",
+      "revision": "a016080bf6738d6aeae020badee4e888ad1540a5",
+      "selected_license": "LGPL-2.1-only WITH OCCT-exception-1.0",
+      "admission": "shared-library foundation",
+      "source": "https://github.com/Open-Cascade-SAS/OCCT/tree/a016080bf6738d6aeae020badee4e888ad1540a5"
+    },
+    {
+      "name": "FreeType (CI)",
+      "version": "2.13.3",
+      "revision": "42608f77f20749dd6ddc9e0536788eaad70ea4b5",
+      "selected_license": "FTL",
+      "admission": "shared-library foundation; include bundled notices in packages",
+      "source": "https://github.com/freetype/freetype/tree/42608f77f20749dd6ddc9e0536788eaad70ea4b5"
+    },
+    {
+      "name": "PlaneGCS",
+      "revision": "ec6852e6caadf55045881a6003cc7ad038c8d2a7",
+      "selected_license": "LGPL-2.1-or-later",
+      "admission": "candidate only; extracted file-set/dependency audit before integration",
+      "source": "https://github.com/FreeCAD/FreeCAD/tree/ec6852e6caadf55045881a6003cc7ad038c8d2a7/src/Mod/Sketcher/App/planegcs"
+    },
+    {
+      "name": "libslvs",
+      "revision": "ef966335e7fbc617ba8e759149a567158b37aa7b",
+      "selected_license": "GPL-3.0-or-later",
+      "admission": "not admitted under current MIT integration decision",
+      "source": "https://github.com/solvespace/solvespace/tree/ef966335e7fbc617ba8e759149a567158b37aa7b"
+    },
+    {
+      "name": "lib3mf",
+      "version": "2.5.0",
+      "revision": "64bb454d1fcb53effa57d3cef752a10d740d41a2",
+      "selected_license": "BSD-2-Clause",
+      "admission": "candidate only; bundled dependencies and stale zlib credits require audit",
+      "source": "https://github.com/3MFConsortium/lib3mf/tree/64bb454d1fcb53effa57d3cef752a10d740d41a2"
+    }
+  ],
+  "license_texts": [
+    {
+      "path": "LICENSES/LGPL-3.0-only.txt",
+      "url": "https://raw.githubusercontent.com/qt/qtbase/v6.11.2/LICENSES/LGPL-3.0-only.txt",
+      "retrieved": "2026-10-11",
+      "sha256": "da7eabb7bafdf7d3ae5e9f223aa5bdc1eece45ac569dc21b3b037520b4464768"
+    },
+    {
+      "path": "LICENSES/GPL-3.0-only.txt",
+      "url": "https://raw.githubusercontent.com/qt/qtbase/v6.11.2/LICENSES/GPL-3.0-only.txt",
+      "retrieved": "2026-10-11",
+      "sha256": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903"
+    },
+    {
+      "path": "LICENSES/LGPL-2.1-only.txt",
+      "url": "https://raw.githubusercontent.com/Open-Cascade-SAS/OCCT/a016080bf6738d6aeae020badee4e888ad1540a5/LICENSE_LGPL_21.txt",
+      "retrieved": "2026-10-11",
+      "sha256": "e237fa56668030e928551ddd60f05df5fe957f75eab874bbd017e085ed722e7c"
+    },
+    {
+      "path": "LICENSES/OCCT-exception-1.0.txt",
+      "url": "https://raw.githubusercontent.com/Open-Cascade-SAS/OCCT/a016080bf6738d6aeae020badee4e888ad1540a5/OCCT_LGPL_EXCEPTION.txt",
+      "retrieved": "2026-10-11",
+      "sha256": "04580a884ea6cea294402649ff7b5cbb167d47462d1340a4ed33e550db10a81b"
+    },
+    {
+      "path": "LICENSES/FTL.txt",
+      "url": "https://raw.githubusercontent.com/freetype/freetype/42608f77f20749dd6ddc9e0536788eaad70ea4b5/docs/FTL.TXT",
+      "retrieved": "2026-10-11",
+      "sha256": "08c135755dd589039470f1fdbb400daaabaaa50d0b366d19cebff4d22986baa1"
+    },
+    {
+      "path": "LICENSES/FreeType-LICENSE.txt",
+      "url": "https://raw.githubusercontent.com/freetype/freetype/42608f77f20749dd6ddc9e0536788eaad70ea4b5/LICENSE.TXT",
+      "retrieved": "2026-10-11",
+      "sha256": "2e3bbb7d7c5c396368dd0853a790ec29ce5b8647163dde42a0493fb0d6556b2b"
+    }
+  ],
+  "not_a_deployed_package_sbom": true
+}

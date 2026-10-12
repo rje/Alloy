@@ -54,7 +54,7 @@ def main():
                     return response.get("result", {})
 
                 initial = call("app.state")
-                assert initial["stage"] == "ui-shell" and not initial["document"]["loaded"]
+                assert initial["document"]["loaded"] and initial["document"]["features"] == 0
                 assert initial["document"]["bodies"] == 0 and not initial["kernel"]["integrated"]
                 gpu = initial["viewport"]["gpu"]
                 assert gpu["initialized"] and gpu["hardwareAccelerated"], gpu

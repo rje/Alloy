@@ -4,13 +4,14 @@
 #include <QJsonObject>
 #include <functional>
 #include <vector>
+#include "CadDocument.h"
 
 class QLabel;
 class QTreeWidget;
 class QDialog;
 class ReferenceView;
 
-// This is shell state only. Authored CAD documents belong in a future document layer.
+// UI and automation dispatch against the same authored document.
 class AlloyWindow final : public QMainWindow {
 public:
     AlloyWindow();
@@ -41,4 +42,5 @@ private:
     bool timelineVisible_ = true;
     bool navigationVisible_ = true;
     quint64 revision_ = 0;
+    CadDocument document_;
 };

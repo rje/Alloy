@@ -10,8 +10,9 @@ and screenshots. We do not run or inspect proprietary reference applications. Re
 before researching, designing, or implementing anything in this project.
 
 The first product focus is shape creation: sketches, solids, surfaces, editable
-history, common-format import, and export for 3D printing. The initial scaffold
-is an application shell, not a functioning CAD modeler. Agent control and
+history, common-format import, and export for 3D printing. The current application
+has a hardware viewport and an empty authored document, but is not yet a functioning
+CAD modeler. Agent control and
 self-testing are part of the application from its first runnable version.
 
 The public repository is [rje/Alloy](https://github.com/rje/Alloy), with the
@@ -46,8 +47,10 @@ The public repository is [rje/Alloy](https://github.com/rje/Alloy), with the
 
 C++20 is the selected application language. Qt 6 and Open CASCADE Technology
 (OCCT) are the recommended foundation.
-Python is suitable for the initial automation client. Solver selection, native
-document format, and dependency distribution choices still need decisions.
+Python is the initial automation client. Authored JSON and one Qt undo authority
+are selected in [decision 001](docs/decisions/001-authored-document.md).
+[Dependency admission](docs/dependencies/README.md) covers the shared Qt/OCCT
+foundation; solver selection and complete runtime distribution remain open.
 Rust is outside the planned stack.
 
 Alloy's original source and documentation use the [MIT license](LICENSE).
@@ -58,7 +61,7 @@ Retina resize, native window display, and framebuffer capture were verified in
 the [GPU foundation receipt](docs/validation/gpu-foundation.md). The current
 [post-cleanup shell receipt](docs/validation/neutral-shell.md) records the rebuilt
 style and real-app test. The scene remains
-a grid and axes with no CAD document. macOS, Windows, and Linux are required
+a grid and axes over an empty authored document. macOS, Windows, and Linux are required
 targets; only the macOS runtime is verified today.
 
 To list tasks whose dependencies are complete:

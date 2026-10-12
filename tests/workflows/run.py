@@ -63,7 +63,7 @@ def run_logged(command, path, timeout):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     select = parser.add_mutually_exclusive_group(required=True)
-    select.add_argument('--case', help='shell_api or FND-010; reviewed cases live in ledger.json')
+    select.add_argument('--case', help='Reviewed cases live in ledger.json; includes shell_api, FND-010 and DOC-002')
     select.add_argument('--gate', help='Backlog gate key; prerequisites checked live through gh')
     parser.add_argument('--cumulative', action='store_true', help='Required for gates after GATE-000')
     parser.add_argument('--evidence', required=True)
@@ -78,7 +78,7 @@ def main():
     run_dir = Path(tempfile.mkdtemp(prefix='run-', dir=output))
     app = Path(args.app).resolve()
     dimensions = {name: {'status': 'not_run', 'reason': 'No applicable case has produced this evidence.'} for name in ('build', 'api', 'hardware', 'geometry', 'save_reopen', 'export', 'physical_input', 'visual')}
-    report = {'schema': 'alloy-workflows/1', 'recorded_at': datetime.now(timezone.utc).isoformat(), 'selection': {'case': args.case, 'gate': args.gate, 'cumulative': args.cumulative}, 'candidate': {'app': str(app), 'source_commit': None, 'dirty': None}, 'host': {'system': platform.platform(), 'architecture': platform.machine(), 'python': platform.python_version()}, 'cases': {}, 'dimensions': dimensions, 'omissions': {'cases': args.exclude_case, 'capabilities': args.omit_capability}, 'blocking_reasons': [], 'limits': ['Only real shell and runner-integrity cases exist today.', 'A capture alone does not qualify physical input or visual compatibility.', 'Case success does not close GitHub issues or publish builds.']}
+    report = {'schema': 'alloy-workflows/1', 'recorded_at': datetime.now(timezone.utc).isoformat(), 'selection': {'case': args.case, 'gate': args.gate, 'cumulative': args.cumulative}, 'candidate': {'app': str(app), 'source_commit': None, 'dirty': None}, 'host': {'system': platform.platform(), 'architecture': platform.machine(), 'python': platform.python_version()}, 'cases': {}, 'dimensions': dimensions, 'omissions': {'cases': args.exclude_case, 'capabilities': args.omit_capability}, 'blocking_reasons': [], 'limits': ['Reviewed shell, runner-integrity and authored-document cases are registered; later cases remain unavailable.', 'A capture alone does not qualify physical input or visual compatibility.', 'Case success does not close GitHub issues or publish builds.']}
     completed, observed, covered = set(), set(), set()
     required_caps, required_dimensions, dependencies, required_tasks = set(), set(), {}, set()
     inputs, names = {}, []
@@ -184,11 +184,18 @@ def main():
                 state = result['initialState']
                 report['runtime_dependencies'] = state['runtime']
                 dimensions['api'] = {'status': 'passed', 'receipt': str(case_dir / spec['result']), 'commands': len(result['transcript'])}
-                dimensions['hardware'] = {'status': 'passed', 'diagnostics': result['gpuChecks']['startupBeforeCapture']}
-                for dimension in ('geometry', 'save_reopen', 'export'):
-                    dimensions[dimension] = {'status': 'not_applicable', 'reason': 'Shell case has no authored CAD document; a later CAD gate requires its own real cases.'}
-                dimensions['visual'] = {'status': 'captured', 'receipt': str(case_dir / 'alloy-shell.png'), 'reason': 'Capture produced; no current operator visual-compatibility review.'}
-                dimensions['physical_input'] = {'status': 'not_run', 'reason': 'API actions are not physical keyboard/mouse evidence.'}
+                if 'gpuChecks' in result:
+                    dimensions['hardware'] = {'status': 'passed', 'diagnostics': result['gpuChecks']['startupBeforeCapture']}
+                    for dimension in ('geometry', 'save_reopen', 'export'):
+                        if dimensions[dimension]['status'] == 'not_run':
+                            dimensions[dimension] = {'status': 'not_applicable', 'reason': 'Shell case has no authored CAD geometry; a later CAD gate requires its own real cases.'}
+                    dimensions['visual'] = {'status': 'captured', 'receipt': str(case_dir / 'alloy-shell.png'), 'reason': 'Capture produced; no current operator visual-compatibility review.'}
+                    dimensions['physical_input'] = {'status': 'not_run', 'reason': 'API actions are not physical keyboard/mouse evidence.'}
+                for dimension, evidence in result.get('evidenceDimensions', {}).items():
+                    if dimension not in dimensions or evidence.get('status') not in ('passed', 'failed', 'not_applicable', 'captured', 'not_run'):
+                        raise ValueError(f'{name}: invalid evidence dimension')
+                    if dimensions[dimension]['status'] != 'passed' or evidence['status'] == 'failed':
+                        dimensions[dimension] = {**evidence, 'receipt': str(case_dir / spec['result'])}
             completed.add(name)
             covered.update(spec.get('covers', []))
         observed.difference_update(args.omit_capability)

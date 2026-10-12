@@ -1,8 +1,8 @@
 # Local agent control
 
 Alloy's running native application provides a small local control API from its
-first shell build. It is an Alloy protocol, not the reference CAD application API. No geometry or
-CAD document commands are implemented yet.
+first shell build. It is an Alloy protocol, not the reference CAD application API. Authored document inspection, units and guarded New are implemented; no geometry
+command is available yet.
 
 ## Launch and discover
 
@@ -82,6 +82,9 @@ and `capture_failed`.
 | `commands.list` | Registry with both implemented and unavailable entries |
 | `app.state` | Real shell/window/view state, live GPU diagnostics, zero authored geometry counts |
 | `commands.search`, `commands.close` | Show/dismiss the native search dialog |
+| `document.inspect` | Authored root/feature IDs, ownership, canonical units and journal state |
+| `document.units` | `units`: `mm` or `in`; display conversion preserves canonical values |
+| `document.new` | `discard`: boolean; dirty replacement refuses unless explicitly acknowledged |
 | `layout.browser`, `layout.timeline`, `layout.navigation` | `visible`: boolean |
 | `layout.reset` | Restore those three regions |
 | `view.grid`, `view.origin` | `visible`: boolean |
@@ -98,6 +101,9 @@ viewport sizes, device scale, reference-grid orientation, zoom, pan, grid/axis
 visibility, and an applied-command revision. Revision advances for successful
 view/layout/search/window-resize commands, including a repeated no-op command; it is not a
 persistent document revision or a tracker for every OS resize/interaction.
+`document.revision` separately advances when authored state is replaced (including
+undo/redo). `document.authored` is authoritative; root ownership and UUIDs are
+independent of Browser text. Dirty reflects the sole document journal checkpoint.
 
 `viewport.renderer` is `OCCT OpenGL`; `viewport.gpu` contains live OCCT driver
 information and qualification. `vendor`, `renderer`, and `version` come from the

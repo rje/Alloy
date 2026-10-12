@@ -1,0 +1,23 @@
+{
+  "scope": "DOC-002 authored foundation, no rendered geometry",
+  "candidate_base_commit": "12fe5345d2a165eaea54fac95cd2079b37ac37f1",
+  "dirty_candidate": true,
+  "unit_result": "passed",
+  "real_app_result": "passed",
+  "shell_regression": "passed",
+  "sha256": {
+    "src/CadDocument.h": "53d6ec1ca4b3cdd3fc27fc948b3a2a8466069e3d3425280e336ccdf398897e6d",
+    "src/CadDocument.cpp": "554d6bc2c3d3821db7c55d19867cc0a3433a49ef431f36757f4b248e0b7c17d9",
+    "src/AlloyWindow.h": "79ed4867661b1ec7bfcb4b4e7f41fc3b0411cbaa37558cddbdd076936755ac07",
+    "src/AlloyWindow.cpp": "b17c8600319875cbc984f17c22320219fa9126e63383ba0021f075d81ccadc91",
+    "CMakeLists.txt": "6395c125450fce0566522c1fd0bc1abed405a1059d7680ce651c63272ff9e810",
+    "tests/document_model.cpp": "c78abb654b994e9d04f12650a899d395ff40d3962dbec10b9da2e868df7a92fb",
+    "tests/document_api.py": "30b047e82d38585c6bb31eef54d65a40066bd3dfad3056f7ecd3e19443478e18",
+    "tests/workflows/run.py": "be971c884694bb8b5c8cdc6d38b815cf4da0ca46193ab79318da5b023144d522",
+    "tests/workflows/ledger.json": "fbee7eefffcda4871016bdc010dc6665c65f52c58c460575ab96949f57142c5c",
+    "build/document_model_test": "d2e3b9846199c6f3ea9619d1873d0bcfab4cff3abd4709b6b868f64f5639734f",
+    "build/alloy.app/Contents/MacOS/alloy": "294994d4e41a79cb65017d6714db015a2b3cd75b4a32cb3586429eee5d2e78ae",
+    "build/evidence/DOC-002/report.json": "3a5b366f4cd8ad2c178147213fdb7e10ab64912f531df4c07320f0f655bfe866",
+    "build/evidence/shell-api.json": "ae691f2ba724ec125a9ad866396c600516f61fd077ea758adc6ba696bba7858c"
+  }
+}
