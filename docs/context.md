@@ -931,3 +931,25 @@ internals. Sol core/UI implement in the isolated face-support worktree; root own
 builds/apps and Astra verifies. Then implement the tutorial's inline 50mm circle
 entry, five attached centers and four Equal pairs, followed by five-profile Cut.
 SKT-010 remains open/In Progress. No release/tag/CI is triggered.
+
+
+## Anchored construction guide checkpoint (2026-10-12)
+
+Implementation 62e3efd is integrated and Astra accepted. Actual circular cap-edge
+centers support lazy retained snaps. Native two-line chain, X construction and
+two guide/model-edge Parallel pairs reach zero DOF. Source-edit/history/storage
+core regression passes. A Browser bulk-row-removal Qt accessibility crash on
+Undo was fixed with persistent ID-keyed rows and hidden/disabled retired rows.
+Post-fix native selected-row Undo/Redo plus AX inspection passes exact 3→2→3
+feature restoration; save/reopen passes. Qt cached AX names remain inconsistent
+after hide/reveal, tracked in #158; actual visible Browser rows are correct.
+See validation/linked-cap-edges.md. Private candidate closed; human app unchanged.
+
+Next active slice: inline circle diameter (C, center, type50, Enter), one accepted
+transaction retaining circle + driving diameter. Sol core/UI implement in the
+face-support worktree. Root then validates five centers endpoint/midpoint/bend/
+midpoint/endpoint plus four Equal pairs. Cut follows: disconnected ephemeral
+profile prisms, one explicit retained target body, signed Distance, native red
+preview/arrow drag. Astra identified a required prefix-history fix for editing
+the earlier supported sketch after Cut; recorded on #154. No new issue count,
+release/tag or CI run.

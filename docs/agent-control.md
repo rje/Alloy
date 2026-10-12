@@ -520,3 +520,13 @@ constraint commands use those same entity IDs. `projectedLines` and
 references from unsupported curves. Saved `parameters.projections` contain IDs
 and sources only. References are read-only, fixed solver input, and do not create
 profile regions in this bounded implementation.
+
+
+Supported-cap `projectionContext.points` exposes circular boundary center
+candidates with stable ID, source role `curveCenter`, local coordinates and
+`retained` state. Pointer acquisition is observable without authored mutation.
+Accepting a line endpoint/circle-center snap retains `pointReferences` with only
+ID and source, plus the local Coincident relation, in the same transaction.
+`availableSupportPoints` includes candidates; evaluated `projectedPoints` includes
+retained centers only. These derived points are read-only. Full curve projection
+and direct dimensioning of an unretained center are not implemented.

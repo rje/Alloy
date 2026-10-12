@@ -26,7 +26,8 @@ three real selectable regions with stable IDs through dimension edits and storag
 Connected multi-region Press Pull now produces one editable solid; sketches can
 attach to positive extrusion end caps and follow parent edits. General face support,
 curved model-edge references and broader imports/exports remain ahead. Straight
-cap-edge references support retained Parallel, native endpoint snaps and dimensions. See the bounded receipts below; this is not complete CAD parity.
+cap-edge references support retained Parallel, native endpoint snaps and dimensions.
+Rounded cap centers now anchor fully constrained native construction guides. See the bounded receipts below; this is not complete CAD parity.
 
 The public repository is [rje/Alloy](https://github.com/rje/Alloy), with the
 [issue backlog](https://github.com/rje/Alloy/issues) and

@@ -34,8 +34,9 @@ Reference IDs and authored relations, rather than those dependent values, persis
 
 ## Limits
 
-Only straight positive-cap edges are projected. Curved references are reported as
-unsupported. These references are excluded from profile boundaries; this is a
+Only straight positive-cap edges are projected as full reference entities.
+Circular boundary centers are available through the bounded follow-up below;
+full curved reference entities remain unsupported. These references are excluded from profile boundaries; this is a
 bounded reference-only slice, not general Project profile semantics. Every retained
 reference must still resolve, including unused ones: losing/splitting/merging an
 edge rejects the upstream transaction. Link repair and broader face naming remain
@@ -67,3 +68,40 @@ the isolated worktree's `build-face/evidence`. Astra independently accepted the
 reference identities, read-only behavior, retained relations and readable
 dimension/extension lines. Rounded-edge center snaps and the exact tutorial
 construction chain remain next.
+
+
+## Rounded-center construction guides
+
+Implementation `62e3efd`, verified 2026-10-12. The kernel groups actual circular
+cap descendants by source sketch/entity lineage and checks center/radius agreement.
+Available center candidates do not alter the sketch. An accepted line/circle snap
+atomically retains a stable `pointReferences` entry, a fresh owned point and
+Coincident relation; resolved centers are fixed solver inputs, never saved
+coordinates. The view shows purple center crosses. Direct dimensioning of a
+center before retaining it through a snap is explicitly deferred.
+
+The focused face-support regression passes anchored guides, Parallel-derived
+elbow, source edits, stale-target refusal, history and storage. Native L and three
+clicks drew left-center → near elbow → upper-center; each segment was converted
+with X, then constrained Parallel to its matching actual model edge. The result
+has two retained centers, three Coincident relations, two Parallel relations and
+zero DOF. The elbow pick was deliberately approximate; no fixed or typed elbow
+coordinates determine the accepted result. Astra accepted the authoritative IDs
+and readable guide/anchor/Parallel presentation.
+
+`center-native-chain.json` and `center-native-constrained.{json,png}` retain this
+native result. A test-driver preselection initially paired the two guides; native
+Undo and clearing the selection corrected the input sequence. The native Finish
+and save succeeded. A subsequent Undo exposed a separate Qt accessibility crash
+in Browser bulk row removal. Browser rows now retain stable identity, hide and
+disable removed items, and restore them on Redo. Post-fix native selected-row
+Undo/Redo with accessibility reads passes 3 → 2 → 3 authored features with exact
+restoration; native-file save/reopen also matches exactly. Receipts are
+`center-browser-{accepted,undo,redo}.json`, `center-browser-redo.png`, and
+`qualified-anchored-guides.alloy`, all in isolated `build-face/evidence`.
+
+Astra accepted this bounded crash mitigation. Qt cached accessibility row names
+can still become inconsistent after hide/reveal; issue #158 remains open. Visible
+Browser rows were verified from the framebuffer. This does not qualify general
+accessibility or a release. The private app was closed, and the human app unchanged.
+The exact five-circle and Cut stages remain outstanding.
