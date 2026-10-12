@@ -881,3 +881,14 @@ and distance constraints against model geometry. Core proposal requires real OCC
 edge lineage through region union and prism, not indices or nearest-edge guesses.
 Public evidence and design review precede implementation. No app remains running;
 human build-input stays unchanged. No release or CI run.
+
+
+SKT-010 implementation is now active in the same isolated worktree, after the
+accepted face checkpoint. Current public documentation resolves automatic planar
+face-edge availability; the tutorial must not gain an extra Project step. The
+external spec linked-support-edge-projection.md records evidence and uncertainty.
+Sol core owns retained OCCT boundary lineage, projection resolution/solver and
+focused tests; Sol UI owns direct support-edge selection and reference display.
+The bounded first slice supports locked straight-edge references and does not
+claim complete projected-region/curve behavior. Root owns builds and integration;
+Astra reviews independently. Board #46 is In Progress, full issue remains open.
