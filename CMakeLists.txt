@@ -8,7 +8,12 @@ set(CMAKE_AUTOMOC ON)
 find_package(Qt6 6.11.2 EXACT REQUIRED COMPONENTS Widgets Network)
 
 # OCCT is required: the viewport must use its native OpenGL renderer.
-find_package(OpenCASCADE 7.9.3 EXACT REQUIRED COMPONENTS FoundationClasses ModelingData ModelingAlgorithms Visualization)
+option(ALLOY_BUILD_SPIKES "Build disposable foundation research fixtures" OFF)
+set(ALLOY_OCCT_COMPONENTS FoundationClasses ModelingData ModelingAlgorithms Visualization)
+if(ALLOY_BUILD_SPIKES)
+    list(APPEND ALLOY_OCCT_COMPONENTS ApplicationFramework)
+endif()
+find_package(OpenCASCADE 7.9.3 EXACT REQUIRED COMPONENTS ${ALLOY_OCCT_COMPONENTS})
 set(ALLOY_OCCT_VERSION "${OpenCASCADE_MAJOR_VERSION}.${OpenCASCADE_MINOR_VERSION}.${OpenCASCADE_MAINTENANCE_VERSION}")
 message(STATUS "OCCT ${ALLOY_OCCT_VERSION}: native OpenGL visualization")
 
@@ -28,6 +33,12 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
     target_compile_options(alloy PRIVATE -Wall -Wextra -Wpedantic)
 endif()
 include(CTest)
+if(ALLOY_BUILD_SPIKES)
+    add_executable(document_history_spike research/prototypes/document_history.cpp)
+    target_include_directories(document_history_spike SYSTEM PRIVATE ${OpenCASCADE_INCLUDE_DIR})
+    target_link_libraries(document_history_spike PRIVATE Qt6::Widgets
+        TKernel TKMath TKBRep TKPrim TKTopAlgo TKLCAF TKCAF TKBin TKBinL TKCDF)
+endif()
 if(BUILD_TESTING)
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
     add_test(NAME shell_api COMMAND ${Python3_EXECUTABLE}

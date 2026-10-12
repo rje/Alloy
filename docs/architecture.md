@@ -1,7 +1,8 @@
 # Architecture and stack
 
-The application language is C++20, selected by the user. The remaining architecture
-is a proposal. Build and runtime instructions describe what
+The application language is C++20, selected by the user. Authored storage and
+transaction authority are selected in [decision 001](decisions/001-authored-document.md);
+other unimplemented layers below remain proposals. Build and runtime instructions describe what
 actually exists in [development.md](development.md); do not treat this document
 as proof that modeling features have been implemented.
 
@@ -50,15 +51,17 @@ consistent with the same document state rather than serializing UI widgets.
 
 OCAF is worth evaluating for document persistence, transactions, and naming.
 Its existence does not solve all persistent-reference problems automatically.
-Choose the native storage format after a small round-trip prototype, with a
-versioned, documented schema and a plan for migrations and recovery.
+The permitted round-trip prototype selected readable authored JSON and one Qt
+undo authority, rather than an OCAF file container. See decision 001 for schema,
+migration and failure boundaries. OCAF naming remains a separate evaluation.
 
 ## Operation history and undo/redo
 
 The user requires these architectural questions to be settled before modeling
 operations accumulate. FND-003 is the initial decision/prototype task; DOC-002
 depends on it. This section records requirements and proposed boundaries, not
-an implemented stack or a final choice of transaction library.
+an implemented application stack. Decision 001 selects QUndoStack as the sole
+editing journal; integration follows in DOC-002/DOC-003/DOC-004.
 
 The authored feature history describes how the model is constructed: stable
 operation IDs, typed parameters and units, input references, dependencies and

@@ -1,0 +1,48 @@
+{
+  "kind": "library-prototype-only",
+  "recorded_at": "2026-10-12T01:30:17.783204+00:00",
+  "candidate_base_commit": "c700fd5ff75cc577f647320b6412601cb6ed4ffd",
+  "dirty_candidate": true,
+  "platform": "macOS-26.5.1-arm64-arm-64bit-Mach-O",
+  "result": {
+    "kind": "library-prototype-only",
+    "ocaf": {
+      "applicationSchemaValidation": "requires application-owned validation",
+      "atomicCrashBeforeReplace": "not verified for OCAF SaveAs",
+      "bytes": 4116,
+      "result": "passed",
+      "undoPersisted": false,
+      "volumeMm3": 12000
+    },
+    "occt": "7.9.3",
+    "qt": "6.11.2",
+    "thin": {
+      "atomicCrashBeforeReplace": true,
+      "bytes": 500,
+      "result": "passed",
+      "schema": "alloy-document/1",
+      "undoPersisted": false,
+      "volumeMm3": 12000
+    }
+  },
+  "sha256": {
+    "CMakeLists.txt": "a19633ce2499a9d53c9b25d4c3038f5101e58f8bfe440161c7b395697e496e70",
+    "research/prototypes/document_history.cpp": "004804180d0c790d3c407186102c2f40e4993a09b78d9b918ab5bfff11fb5a9c",
+    "build/document_history_spike": "9cb8ae563bb618be38895aea6d1137a6313ae133409c3b24c7cf76c7d0c88a87",
+    "build/evidence/FND-003/prototype.json": "9d691a6394ab170a5744cfa4f672003898a3719c82880ccf81f5eef313a89bc5",
+    "build/evidence/FND-003/thin.alloy": "5cd47b1aaa2147e897ba9cf739f7812204c34191e779f6dfe50336dc8dcc15dc",
+    "build/evidence/FND-003/ocaf.cbf": "11da20fc1d91e93ee989faa971bb14a060c2b59eb45321ce9b3c3fb04a7100f3",
+    "build/evidence/FND-003/evaluated.brep": "d5a577da452dedf4ac72e1cfe806fc3f52660d2a1f4d627ca851e83be03ee4f7"
+  },
+  "commands": [
+    "cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH=/opt/homebrew -DALLOY_BUILD_SPIKES=ON",
+    "cmake --build build --target document_history_spike",
+    "build/document_history_spike build/evidence/FND-003"
+  ],
+  "exit_code": 0,
+  "limits": [
+    "Library comparison, not application CAD acceptance.",
+    "Interrupted pre-replace process exit is not power-loss durability.",
+    "OCAF application schema validation and atomic replacement not tested."
+  ]
+}

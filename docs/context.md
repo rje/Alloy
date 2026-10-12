@@ -32,7 +32,8 @@ Updated 2026-10-11. This is the project handoff for a fresh session. Read the ro
   Third-party libraries retain their own licenses.
 - Before modeling operations accumulate, settle authored operation history,
   transaction authority, undo/redo and recompute boundaries. FND-003/FND-004
-  lead this work; see architecture.md. These systems are not implemented yet.
+  lead this work; see architecture.md. The FND-003 library comparison and decision are complete; application
+  integration remains pending. See decisions/001-authored-document.md.
 - The user requires a GPU-accelerated 3D viewport from the foundation, with
   actual renderer evidence. OCCT/OpenGL replaced the QPainter reference grid;
   software rendering does not satisfy viewport acceptance.
@@ -114,9 +115,11 @@ through the CLI/API as tasks start and finish.
 
 ## Where to resume
 
-The next ready foundation task is FND-003: settle operation-history, transaction,
-undo/redo and native storage boundaries with a small permitted library prototype.
-FND-004 should resolve stable geometric references alongside it.
+FND-003 is complete with a permitted Qt/OCCT comparison and independently reviewed
+[decision 001](decisions/001-authored-document.md). It selects authored JSON and one
+QUndoStack, with no persisted session journal. DOC-002 is the next integration
+step; FND-006/DOC-003/DOC-004 then supply shared sessions, undo and native storage.
+FND-004 resolves stable geometric references independently.
 
 The proposed next product increment is [roadmap milestone 1](roadmap.md): integrate OCCT
 and a real CAD viewport/document; create/select/inspect a primitive; add undo,
@@ -132,7 +135,7 @@ export. Test persistent face/edge references early. The proposed coverage is in
 [compatibility.md](compatibility.md).
 
 The exact dated reference release/platform/theme/navigation baseline,
-minimum OS versions/architectures, sketch solver, and native document format
+minimum OS versions/architectures and sketch solver
 remain unresolved. They are recorded gaps, not forgotten decisions. Current
 public-interface/build research now covers the major feature families with 113 dated
 primary-source entries, contradictions, and open questions. It does not yet specify
