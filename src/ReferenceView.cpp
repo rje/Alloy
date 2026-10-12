@@ -1103,11 +1103,20 @@ void ReferenceView::setSketchPlane(const QString& plane,const QJsonObject& resol
     sketchPlane_=plane;
     if(!plane.isEmpty() || orientation!="face")sketchFrame_=resolvedFrame;
 }
-void ReferenceView::lookAtSketch(const QString& plane,const QJsonObject& resolvedFrame) {
+void ReferenceView::lookAtSketch(const QString& plane,const QJsonObject& resolvedFrame,const TopoDS_Shape& content) {
     setSketchPlane(plane,resolvedFrame);
     orientation=plane=="face" ? "face" : plane=="XY" ? "top" : plane=="XZ" ? "front" : "right";
     const auto o=frameFor(plane).value("origin").toArray();
-    sceneCenter_=gp_Pnt(o[0].toDouble(),o[1].toDouble(),o[2].toDouble());sceneScale_=100;pan={};zoom=1;sync();
+    sceneCenter_=gp_Pnt(o[0].toDouble(),o[1].toDouble(),o[2].toDouble());sceneScale_=100;
+    if(!content.IsNull()) {
+        Bnd_Box bounds;BRepBndLib::AddOptimal(content,bounds,false,false);
+        if(!bounds.IsVoid()) {
+            double x0,y0,z0,x1,y1,z1;bounds.Get(x0,y0,z0,x1,y1,z1);
+            sceneCenter_=gp_Pnt((x0+x1)/2,(y0+y1)/2,(z0+z1)/2);
+            sceneScale_=std::max({x1-x0,y1-y0,z1-z0,1.0})*1.7;
+        }
+    }
+    pan={};zoom=1;sync();
 }
 QJsonObject ReferenceView::sketchPoint(double x,double y,const QString& plane) const {
     if(view_.IsNull() || x<0 || y<0 || x>=width() || y>=height())throw std::invalid_argument("Point is outside the initialized viewport");

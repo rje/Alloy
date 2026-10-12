@@ -51,7 +51,7 @@ public:
     void setSketchAnnotationVisibility(bool showConstraints, bool showDimensions);
     QJsonArray annotations() const { return annotationLayouts_; }
     void setSketchPlane(const QString& plane, const QJsonObject& resolvedFrame = {});
-    void lookAtSketch(const QString& plane, const QJsonObject& resolvedFrame = {});
+    void lookAtSketch(const QString& plane, const QJsonObject& resolvedFrame = {}, const TopoDS_Shape& content = {});
     QJsonObject sketchPoint(double x, double y, const QString& plane) const;
     QJsonObject projectSketchPoint(double uMm, double vMm, const QString& plane, const QJsonObject& resolvedFrame = {}) const;
     void showSketchCursor(const QString& plane, const QPointF& first, const QPointF& second, bool rectangle);

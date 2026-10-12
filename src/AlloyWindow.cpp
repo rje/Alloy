@@ -63,6 +63,10 @@ QJsonObject failure(const QString& code, const QString& message, const QString& 
 QJsonObject parameter(const QString& type, const QString& description) {
     return {{"type", type}, {"description", description}, {"required", true}};
 }
+TopoDS_Shape sketchLookAtContent(const QJsonObject& draft,const QJsonObject& frame,const QJsonObject& projections) {
+    if(draft.value("parameters").toObject().value("entities").toArray().isEmpty())return {};
+    return SketchGeometry::evaluateFeature(draft,frame,projections).shape;
+}
 QWidget* divider() {
     auto* line = new QFrame;
     line->setFrameShape(QFrame::VLine);
@@ -1050,7 +1054,10 @@ void AlloyWindow::registerCommands() {
     });
     add("sketch.lookAt","Look At sketch","Orient the view normal to the active sketch plane.",{},[this](const auto&){
         if(session_.value("command").toString()!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
-        view_->lookAtSketch(session_.value("inputs").toObject()["plane"].toString(),session_.value("resolvedFrame").toObject());return QJsonObject{};
+        const auto draft=session_.value("draftSketch").toObject();
+        view_->lookAtSketch(session_.value("inputs").toObject()["plane"].toString(),session_.value("resolvedFrame").toObject(),
+            sketchLookAtContent(draft,session_.value("resolvedFrame").toObject(),session_.value("projectionContext").toObject()));
+        return QJsonObject{};
     });
     add("sketch.finish","Finish Sketch","Commit the active sketch draft through the shared undo authority.",{},[this](const auto&){
         if(!session_.value("command").toString().startsWith("sketch."))return failure("no_active_sketch","Enter a sketch first");
@@ -2473,7 +2480,7 @@ QJsonObject AlloyWindow::beginSketch(const QString& plane,const QString& name,co
     selectedBody_.clear();view_->clearPreview();view_->clearSketchDraft();displayedSketchDraft_={};
     selectedSketch_.clear();selectedProfile_.clear();selectedProfileIds_={};view_->selectProfile({},{});view_->setEditDisplay(draft["id"].toString(),dependentBodies(draft["id"].toString()));
     selectedFace_={};view_->selectSupportFace({},{});
-    view_->lookAtSketch(plane,resolvedFrame);showSketch();view_->setFocus(Qt::OtherFocusReason);
+    view_->lookAtSketch(plane,resolvedFrame,sketchLookAtContent(draft,resolvedFrame,projectionContext));showSketch();view_->setFocus(Qt::OtherFocusReason);
     const auto sketchSession=session_.value("id").toString(),tabId=activeTabId_;
     // Restore focus after the plane-picker replacement and toolbar layout.
     // The native viewport must also receive keyboard activation on macOS.
