@@ -1,0 +1,7 @@
+{
+  "restored_window": {"width": 1440, "height": 900},
+  "resized_window": {"width": 1200, "height": 800},
+  "view": {"orientation": "top", "zoom": 1.5, "pan": {"x": 32, "y": -18}},
+  "required_commands": ["app.state", "commands.list", "commands.search", "commands.close", "view.orientation", "view.grid", "view.origin", "view.zoom", "view.pan", "view.home", "layout.browser", "layout.timeline", "layout.navigation", "layout.reset", "window.resize", "capture.screenshot", "app.quit"],
+  "unavailable_command": "solid.extrude"
+}

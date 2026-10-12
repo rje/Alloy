@@ -95,6 +95,11 @@ These rules supersede any earlier suggestion to verify behavior in proprietary s
 - Preserve authored sketches/features separately from evaluated geometry and
   tessellated display data. Plan for persistent geometric references early.
 - Prefer coherent, runnable increments with proportional verification.
+- Use unit tests where they make sense and integration tests where pragmatic.
+  Test the actual change's core contracts and material risks for reasonable
+  assurance; do not pursue exhaustive hypothetical edge cases. Once appropriate
+  checks pass, move on unless a meaningful change, failure or unresolved concern
+  justifies further testing. Avoid repeated full-app runs for unchanged behavior.
 - Preserve user work. Do not publish, push, or create external services as part
   of local project setup unless requested.
 - GitHub work uses `gh` and documented APIs. Do not use browser/computer control

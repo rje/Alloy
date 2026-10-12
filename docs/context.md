@@ -22,11 +22,17 @@ Updated 2026-10-11. This is the project handoff for a fresh session. Read the ro
   non-public information. Public API descriptions are references only.
 - Agentic control must be built in from the start for operation, self-testing,
   state inspection, and captures. UI and agents use the same application commands.
+- Verification must be proportionate: useful unit tests and pragmatic integration
+  tests for core behavior and material risks. Stop after reasonable assurance;
+  do not repeatedly run unchanged workflows or chase hypothetical edge cases.
 - The user selected C++ and dropped Rust from the planned stack after reviewing
   the CAD ecosystem rationale. The scaffold uses C++20/Qt 6, with OCCT as the
   proposed CAD kernel and Python for the initial agent client.
 - The user selected MIT for Alloy's original source and documentation.
   Third-party libraries retain their own licenses.
+- Before modeling operations accumulate, settle authored operation history,
+  transaction authority, undo/redo and recompute boundaries. FND-003/FND-004
+  lead this work; see architecture.md. These systems are not implemented yet.
 - The user requires a GPU-accelerated 3D viewport from the foundation, with
   actual renderer evidence. OCCT/OpenGL replaced the QPainter reference grid;
   software rendering does not satisfy viewport acceptance.
@@ -48,6 +54,11 @@ OCCT 7.9.3 is linked for native AIS/V3d/OpenGL visualization; the live Apple M4
 hardware driver and Retina framebuffer/startup/resize were verified. See the
 [GPU foundation receipt](validation/gpu-foundation.md). `kernel.visualizationIntegrated`
 is true; `kernel.integrated` remains false for authored CAD geometry.
+The cumulative runner in `tests/workflows/run.py` now wraps the real shell case,
+with fixture/candidate/artifact hashes, capability checks and live gate prerequisites.
+Its real-app success and focused refusal checks passed, and Astra reviewed the
+bounded implementation. See [runner receipt](validation/workflow-runner.md). Physical
+and visual acceptance remain separate. Only shell_api and FND-010 cases exist.
 There is no CAD geometry, sketch solver, editable document/history, persistence,
 import, or export yet. Modeling controls are explicitly unavailable. Visual and
 physical-input parity have not been established.
@@ -89,7 +100,7 @@ CI-002, GATE-005 and CI-003. Read [releases.md](releases.md) and the
 [release research](research/cross-platform-releases.md). Native CI is seeded
 for macOS arm64/Intel, Windows x64 and Ubuntu24.04 x64; its initial run compiled Windows and both macOS architectures. Linux failed
 on a missing Fontconfig development header; that run and its artifacts were
-removed with the old-history cleanup. A corrected run is the next CI task.
+removed with the old-history cleanup. The missing-header fix is pushed and the corrected matrix run is underway.
 It retains unbundled compile artifacts, not yet independently runnable packages.
 Windows named-pipe control, Linux X11/GLX runtime qualification, relocation,
 dependency notices and tagged milestone publishing remain open.
@@ -100,7 +111,11 @@ through the CLI/API as tasks start and finish.
 
 ## Where to resume
 
-The proposed next increment is [roadmap milestone 1](roadmap.md): integrate OCCT
+The next ready foundation task is FND-003: settle operation-history, transaction,
+undo/redo and native storage boundaries with a small permitted library prototype.
+FND-004 should resolve stable geometric references alongside it.
+
+The proposed next product increment is [roadmap milestone 1](roadmap.md): integrate OCCT
 and a real CAD viewport/document; create/select/inspect a primitive; add undo,
 save/reopen, and small STEP import/export fixtures through the shared command path.
 Research the public interaction details needed for those commands as they enter
@@ -116,6 +131,6 @@ export. Test persistent face/edge references early. The proposed coverage is in
 The exact dated reference release/platform/theme/navigation baseline,
 minimum OS versions/architectures, sketch solver, and native document format
 remain unresolved. They are recorded gaps, not forgotten decisions. Current
-public-interface/build research now covers the major feature families with 112 dated
+public-interface/build research now covers the major feature families with 113 dated
 primary-source entries, contradictions, and open questions. It does not yet specify
 every command, default, error, or visual state.

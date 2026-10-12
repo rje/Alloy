@@ -19,7 +19,11 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--app", required=True)
     parser.add_argument("--output", required=True)
+    parser.add_argument("--fixture", default=str(Path(__file__).parent / "workflows/fixtures/shell.json"))
     args = parser.parse_args()
+    fixture = json.loads(Path(args.fixture).read_text())
+    restored_window, resized_window = fixture["restored_window"], fixture["resized_window"]
+    view = fixture["view"]
     output = Path(args.output).resolve()
     output.mkdir(parents=True, exist_ok=True)
     transcript = []
@@ -61,39 +65,39 @@ def main():
                 assert gpu["details"]["Viewport"] == f'{gpu["framebufferWidth"]}x{gpu["framebufferHeight"]}', gpu
                 startup_gpu = gpu  # Captured before any ToPixMap can mask native drawable sizing.
                 baseline = call("capture.screenshot", {"path": str(output / "alloy-gpu-isometric.png")})
-                call("view.orientation", {"name": "top"})
+                call("view.orientation", {"name": view["orientation"]})
                 top = call("capture.screenshot", {"path": str(output / "alloy-gpu-top.png")})
                 assert baseline["viewportSha256"] != top["viewportSha256"], "Camera must change GPU framebuffer itself"
-                call("window.resize", {"width": 1200, "height": 800})
+                call("window.resize", resized_window)
                 resized_state = call("app.state")  # Before any resized offscreen dump.
                 native_gpu = resized_state["viewport"]["gpu"]
                 assert native_gpu["details"]["Viewport"] == f'{native_gpu["framebufferWidth"]}x{native_gpu["framebufferHeight"]}', native_gpu
                 resized = call("capture.screenshot", {"path": str(output / "alloy-gpu-resized.png")})
                 ratio = resized_state["ui"]["devicePixelRatio"]
-                assert resized["pixelWidth"] == round(1200 * ratio)
-                assert resized["pixelHeight"] == round(800 * ratio)
+                assert resized["pixelWidth"] == round(resized_window["width"] * ratio)
+                assert resized["pixelHeight"] == round(resized_window["height"] * ratio)
                 assert resized["viewportPixelWidth"] == round(resized_state["viewport"]["width"] * ratio)
                 assert resized["viewportPixelHeight"] == round(resized_state["viewport"]["height"] * ratio)
                 native_viewport = resized_state["viewport"]["gpu"]["details"]["Viewport"]
                 assert native_viewport == f'{resized["viewportPixelWidth"]}x{resized["viewportPixelHeight"]}', native_viewport
-                call("window.resize", {"width": 1440, "height": 900})
+                call("window.resize", restored_window)
                 call("view.home")
                 initial = call("app.state")
                 commands = {entry["id"]: entry for entry in call("commands.list")["commands"]}
-                assert commands["view.orientation"]["available"]
-                assert not commands["solid.extrude"]["available"]
-                call("view.orientation", {"name": "top"})
+                assert all(commands[name]["available"] for name in fixture["required_commands"])
+                assert not commands[fixture["unavailable_command"]]["available"]
+                call("view.orientation", {"name": view["orientation"]})
                 call("view.grid", {"visible": False})
                 call("view.origin", {"visible": False})
-                call("view.zoom", {"factor": 1.5})
-                call("view.pan", {"x": 32, "y": -18})
+                call("view.zoom", {"factor": view["zoom"]})
+                call("view.pan", view["pan"])
                 call("layout.browser", {"visible": False})
                 call("layout.timeline", {"visible": False})
                 call("layout.navigation", {"visible": False})
                 changed = call("app.state")
-                assert changed["viewport"]["orientation"] == "top"
-                assert changed["viewport"]["zoom"] == 1.5
-                assert changed["viewport"]["pan"] == {"x": 32, "y": -18}
+                assert changed["viewport"]["orientation"] == view["orientation"]
+                assert changed["viewport"]["zoom"] == view["zoom"]
+                assert changed["viewport"]["pan"] == view["pan"]
                 assert not changed["viewport"]["gridVisible"] and not changed["viewport"]["originVisible"]
                 assert all(not changed["ui"][key] for key in ("browserVisible", "timelineVisible", "navigationVisible"))
                 assert changed["revision"] == initial["revision"] + 8
@@ -105,7 +109,7 @@ def main():
                 altered_path = output / "alloy-shell-altered.png"
                 call("capture.screenshot", {"path": str(altered_path)})
 
-                call("solid.extrude", expected_error="not_implemented")
+                call(fixture["unavailable_command"], expected_error="not_implemented")
                 call("missing.command", expected_error="unknown_command")
                 call("view.orientation", {"name": "invalid"}, "invalid_arguments")
                 call("view.grid", {"visible": "false"}, "invalid_arguments")
@@ -139,7 +143,7 @@ def main():
                 assert png != altered_path.read_bytes(), "State changes must affect the actual captured UI"
                 call("app.quit")
                 assert process.wait(timeout=5) == 0
-                evidence = {"result": "passed", "scope": "Native shell, hardware OCCT OpenGL, Retina resize and framebuffer capture; no authored geometry or CAD workflow", "initialState": initial, "finalState": final, "capture": info, "gpuChecks": {"startupBeforeCapture": startup_gpu, "isometric": baseline, "top": top, "resized": resized, "resizedState": resized_state}, "sha256": hashlib.sha256(png).hexdigest(), "transcript": transcript}
+                evidence = {"result": "passed", "verifiedCapabilities": ["shell.commands", "shell.layout", "shell.search", "shell.errors", "viewport.hardware", "viewport.resize", "viewport.capture"], "fixtureSha256": hashlib.sha256(Path(args.fixture).read_bytes()).hexdigest(), "scope": "Native shell, hardware OCCT OpenGL, Retina resize and framebuffer capture; no authored geometry or CAD workflow", "initialState": initial, "finalState": final, "capture": info, "gpuChecks": {"startupBeforeCapture": startup_gpu, "isometric": baseline, "top": top, "resized": resized, "resizedState": resized_state}, "sha256": hashlib.sha256(png).hexdigest(), "transcript": transcript}
                 (output / "shell-api.json").write_text(json.dumps(evidence, indent=2) + "\n")
                 print(f"PASS: hardware OCCT OpenGL, native resize, framebuffer changes, shared commands, errors, and PNG capture ({width}x{height})")
                 print(f"Evidence: {output}")

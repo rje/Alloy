@@ -1,0 +1,324 @@
+{
+  "schema": "alloy-workflows/1",
+  "recorded_at": "2026-10-12T01:07:04.853814+00:00",
+  "selection": {
+    "case": "FND-010",
+    "gate": null,
+    "cumulative": false
+  },
+  "candidate": {
+    "app": "/Users/rje/src/cpp/Alloy/build/alloy.app/Contents/MacOS/alloy",
+    "source_commit": "cc9b934cc58d5dc3a6fc9c229386da278d0b3a45",
+    "dirty": true,
+    "sha256": "b0511fd96cc1d68a444a7e108ba3365d704d82555d8be70dfe3d04f2881cd7bf"
+  },
+  "host": {
+    "system": "macOS-26.5.1-arm64-arm-64bit-Mach-O",
+    "architecture": "arm64",
+    "python": "3.14.5"
+  },
+  "cases": {
+    "shell_api": {
+      "status": "passed",
+      "verified_capabilities": [
+        "shell.commands",
+        "shell.errors",
+        "shell.layout",
+        "shell.search",
+        "viewport.capture",
+        "viewport.hardware",
+        "viewport.resize"
+      ],
+      "receipt": "/Users/rje/src/cpp/Alloy/build/evidence/FND-010/run-rbjdiq5i/shell_api/shell-api.json",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "-E",
+        "/Users/rje/src/cpp/Alloy/tests/shell_api.py",
+        "--app",
+        "/Users/rje/src/cpp/Alloy/build/alloy.app/Contents/MacOS/alloy",
+        "--output",
+        "/Users/rje/src/cpp/Alloy/build/evidence/FND-010/run-rbjdiq5i/shell_api",
+        "--fixture",
+        "/Users/rje/src/cpp/Alloy/tests/workflows/fixtures/shell.json"
+      ],
+      "returncode": 0,
+      "log": "/Users/rje/src/cpp/Alloy/build/evidence/FND-010/run-rbjdiq5i/shell_api/case.log"
+    },
+    "FND-010": {
+      "status": "passed",
+      "checks": {
+        "missing_case_refused": true,
+        "missing_capability_refused": true,
+        "unavailable_modeling_refused": true,
+        "open_prerequisite_refused": true
+      },
+      "note": "Validation-metadata fault injection only; no application/model state was mocked."
+    }
+  },
+  "dimensions": {
+    "build": {
+      "status": "passed",
+      "command": [
+        "cmake",
+        "--build",
+        "/Users/rje/src/cpp/Alloy/build",
+        "--target",
+        "alloy",
+        "--config",
+        "Release"
+      ],
+      "returncode": 0,
+      "log": "/Users/rje/src/cpp/Alloy/build/evidence/FND-010/run-rbjdiq5i/build.log",
+      "generator": "Ninja",
+      "configuration": "Debug",
+      "cache_sha256": "c98ff8544f9fc0d31a7343145e41c0cd5627011625efd440dbfc8e69e58a269b"
+    },
+    "api": {
+      "status": "passed",
+      "receipt": "/Users/rje/src/cpp/Alloy/build/evidence/FND-010/run-rbjdiq5i/shell_api/shell-api.json",
+      "commands": 40
+    },
+    "hardware": {
+      "status": "passed",
+      "diagnostics": {
+        "backend": "OCCT OpenGL",
+        "details": {
+          "FBO buffer": "GL_SRGB8_ALPHA8 GL_DEPTH24_STENCIL8",
+          "GLSLversion": "4.10",
+          "GLdevice": "Apple M4",
+          "GLvendor": "Apple",
+          "GLversion": "4.1 Metal - 90.5",
+          "GPU Texture memory": "12124 MiB",
+          "GPU memory": "12124 MiB",
+          "Max FBO dump size": "16384x16384",
+          "Max MSAA samples": "4",
+          "Max combined texture units": "80",
+          "Max texture size": "16384",
+          "ResolutionRatio": "2",
+          "Viewport": "2376x1274",
+          "Window buffer": "RGB0 ALPHA0 DEPTH0 STENCIL0"
+        },
+        "error": "",
+        "framebufferHeight": 1274,
+        "framebufferWidth": 2376,
+        "hardwareAccelerated": true,
+        "initialized": true,
+        "nativeHeight": 637,
+        "nativeWidth": 1188,
+        "qualification": "hardware-driver-identified",
+        "renderer": "Apple M4",
+        "vendor": "Apple",
+        "version": "4.1 Metal - 90.5"
+      }
+    },
+    "geometry": {
+      "status": "not_applicable",
+      "reason": "Shell case has no authored CAD document; a later CAD gate requires its own real cases."
+    },
+    "save_reopen": {
+      "status": "not_applicable",
+      "reason": "Shell case has no authored CAD document; a later CAD gate requires its own real cases."
+    },
+    "export": {
+      "status": "not_applicable",
+      "reason": "Shell case has no authored CAD document; a later CAD gate requires its own real cases."
+    },
+    "physical_input": {
+      "status": "not_run",
+      "reason": "API actions are not physical keyboard/mouse evidence."
+    },
+    "visual": {
+      "status": "captured",
+      "receipt": "/Users/rje/src/cpp/Alloy/build/evidence/FND-010/run-rbjdiq5i/shell_api/alloy-shell.png",
+      "reason": "Capture produced; no current operator visual-compatibility review."
+    }
+  },
+  "omissions": {
+    "cases": [],
+    "capabilities": []
+  },
+  "blocking_reasons": [],
+  "limits": [
+    "Only real shell and runner-integrity cases exist today.",
+    "A capture alone does not qualify physical input or visual compatibility.",
+    "Case success does not close GitHub issues or publish builds."
+  ],
+  "required_cases": [
+    "shell_api",
+    "FND-010"
+  ],
+  "runtime_dependencies": {
+    "occtBuildVersion": "7.9.3",
+    "qtVersion": "6.11.2"
+  },
+  "observed_capabilities": [
+    "runner.refuses_missing_evidence",
+    "shell.commands",
+    "shell.errors",
+    "shell.layout",
+    "shell.search",
+    "viewport.capture",
+    "viewport.hardware",
+    "viewport.resize"
+  ],
+  "covered_tasks": [
+    "FND-010"
+  ],
+  "inputs_sha256": {
+    "tests/workflows/ledger.json": "7368171642b7fbed536e1d5bc85e6719f68c4fd6501cfe293d3cc795ffecf2d1",
+    "docs/backlog/issues.json": "bc36db904fdf1d11be3b12a47bb1f4c0681f5791f0b6b2cf7928e991d9ce2d9b",
+    "tests/workflows/run.py": "1c62e2357aa48b42098a74bcae0cd59b9b389cc8e7033ef5c510ce95ab24174b",
+    "CMakeLists.txt": "0ff3f011ef1921b38989784b90d48a9f7d358cdaa92d34d1e26444f96ac9b2c1",
+    "tools/alloyctl.py": "e8b5df31f164d046e4ddf1094d84d67fa4939505c0b5d423247e843039088c06",
+    "tools/backlog.py": "2db58486ac1cfa3366dc9d942b3e6177531bb800e8a7e0a87390a30ddba13417",
+    "src/AlloyWindow.cpp": "79bca22db23a8e94899356c23b4fac5ea0525e35c48d5908f9f0060c87827cc4",
+    "src/AlloyWindow.h": "67132194f4864d5eae33e523b141f3cfa3d9500cfdb4a45ea06799f8a9a6f7ca",
+    "src/ControlServer.cpp": "cb8ad74e6bed508791cc0f12e0d09b7cad46d7ccf20e0f5ceeb53178e83fddea",
+    "src/ControlServer.h": "9c692cacf1f764435284b1cec2e3d50a38ebda8ab7aeccd76704adbf67aee651",
+    "src/ReferenceView.cpp": "603ad335b468d3d8c2873e2748d9d8986528bc199dfdd69b82d90315eeec2f28",
+    "src/ReferenceView.h": "d8f709c0e2f441887b7de54da1a3b29c3f0429a79902278c76c9cdfd20084cd4",
+    "src/main.cpp": "7cbe8b9251e9c8ca01b082f8e5388e4e27d56e131015439e40365177dce775cf",
+    "tests/shell_api.py": "ff3bfdd7225881407989a68b6881aa6553e45dd5eea66805f102978a423ca7f0",
+    "tests/workflows/fixtures/shell.json": "c5a970b012456aeb4ed5f1e864929ee0e26a32fdbaba77c4a27070a37ca6ad09"
+  },
+  "artifacts": {
+    "run-rbjdiq5i/build.log": {
+      "sha256": "c3760bde1ec21822bfc345918a67f8e6f3d21b3ecec6552acc920ae121ac1e7c",
+      "bytes": 166
+    },
+    "run-rbjdiq5i/shell_api/alloy-gpu-isometric.png": {
+      "sha256": "809a0888429980334e7c8a4686ce2d30545c33059d2835ccc23c23a99c7e0dc2",
+      "bytes": 227579
+    },
+    "run-rbjdiq5i/shell_api/alloy-gpu-resized.png": {
+      "sha256": "e1eb2117f1458dd8ed65fcb6051dd6c27181fca0ff5f2b4186351438260dd62d",
+      "bytes": 141935
+    },
+    "run-rbjdiq5i/shell_api/alloy-gpu-top.png": {
+      "sha256": "70aa5d6e773e5810e880210c2388da59c51f4c9c218dd7418d61d04126ffff46",
+      "bytes": 148305
+    },
+    "run-rbjdiq5i/shell_api/alloy-shell-altered.png": {
+      "sha256": "b5e42aa9cf2899bb89b6f0e8d004d82a9dd20df9bfd0c665347267621c2e935e",
+      "bytes": 88385
+    },
+    "run-rbjdiq5i/shell_api/alloy-shell.png": {
+      "sha256": "809a0888429980334e7c8a4686ce2d30545c33059d2835ccc23c23a99c7e0dc2",
+      "bytes": 227579
+    },
+    "run-rbjdiq5i/shell_api/app.log": {
+      "sha256": "5678619489d326100390a0e553ccc0833376c6306b2f86dcdb1b533a8ba2800b",
+      "bytes": 109
+    },
+    "run-rbjdiq5i/shell_api/case.log": {
+      "sha256": "9244c38aec1b71e589638f0f298ee800641ba12dd9349b350e89af5842683a11",
+      "bytes": 198
+    },
+    "run-rbjdiq5i/shell_api/shell-api.json": {
+      "sha256": "5920b7f391b365ccc12606b7f6727a82023f37ec32fa94a22fa6232173deb048",
+      "bytes": 57651
+    }
+  },
+  "result": "passed",
+  "independent_review": {
+    "reviewer": "Astra",
+    "result": "passed",
+    "scope": "Source review, candidate binding/version-label corrections and existing success/refusal evidence; no CAD/physical/visual acceptance claim."
+  },
+  "refusal_evidence": {
+    "missing_capability": {
+      "result": "blocked",
+      "blocking_reasons": [
+        "Missing capability: shell.commands"
+      ],
+      "note": "Focused observed check during development; earlier checks retain their own candidate/input hashes and are not relabeled as runs of later source."
+    },
+    "missing_case": {
+      "result": "blocked",
+      "blocking_reasons": [
+        "Missing case: FND-010",
+        "Missing case: shell_api",
+        "Missing capability: runner.refuses_missing_evidence",
+        "Missing capability: shell.commands",
+        "Missing capability: shell.errors",
+        "Missing capability: shell.layout",
+        "Missing capability: shell.search",
+        "Missing capability: viewport.capture",
+        "Missing capability: viewport.hardware",
+        "Missing capability: viewport.resize"
+      ],
+      "note": "Focused observed check during development; earlier checks retain their own candidate/input hashes and are not relabeled as runs of later source."
+    },
+    "live_cumulative_gate": {
+      "result": "blocked",
+      "blocking_reasons": [
+        "Missing capability: shell.physical_input",
+        "Unmet prerequisite: CI-001 (open)",
+        "Unmet prerequisite: CI-002 (open)",
+        "Unmet prerequisite: DOC-001 (open)",
+        "Unmet prerequisite: DOC-002 (open)",
+        "Unmet prerequisite: DOC-003 (open)",
+        "Unmet prerequisite: DOC-004 (open)",
+        "Unmet prerequisite: DOC-005 (open)",
+        "Unmet prerequisite: DOC-006 (open)",
+        "Unmet prerequisite: DOC-007 (open)",
+        "Unmet prerequisite: DOC-008 (open)",
+        "Unmet prerequisite: DOC-009 (open)",
+        "Unmet prerequisite: DOC-010 (open)",
+        "Unmet prerequisite: DOC-011 (open)",
+        "Unmet prerequisite: DOC-012 (open)",
+        "Unmet prerequisite: DOC-013 (open)",
+        "Unmet prerequisite: DOC-014 (open)",
+        "Unmet prerequisite: FND-001 (open)",
+        "Unmet prerequisite: FND-002 (open)",
+        "Unmet prerequisite: FND-003 (open)",
+        "Unmet prerequisite: FND-004 (open)",
+        "Unmet prerequisite: FND-006 (open)",
+        "Unmet prerequisite: FND-007 (open)",
+        "Unmet prerequisite: FND-008 (open)",
+        "Unmet prerequisite: FND-009 (open)",
+        "Unmet prerequisite: FND-010 (open)",
+        "Unmet prerequisite: FND-011 (open)",
+        "Unmet prerequisite: FND-012 (open)",
+        "Unmet prerequisite: GATE-005 (open)",
+        "Missing task case coverage: CI-001",
+        "Missing task case coverage: CI-002",
+        "Missing task case coverage: DOC-001",
+        "Missing task case coverage: DOC-002",
+        "Missing task case coverage: DOC-003",
+        "Missing task case coverage: DOC-004",
+        "Missing task case coverage: DOC-005",
+        "Missing task case coverage: DOC-006",
+        "Missing task case coverage: DOC-007",
+        "Missing task case coverage: DOC-008",
+        "Missing task case coverage: DOC-009",
+        "Missing task case coverage: DOC-010",
+        "Missing task case coverage: DOC-011",
+        "Missing task case coverage: DOC-012",
+        "Missing task case coverage: DOC-013",
+        "Missing task case coverage: DOC-014",
+        "Missing task case coverage: FND-001",
+        "Missing task case coverage: FND-002",
+        "Missing task case coverage: FND-003",
+        "Missing task case coverage: FND-004",
+        "Missing task case coverage: FND-006",
+        "Missing task case coverage: FND-007",
+        "Missing task case coverage: FND-008",
+        "Missing task case coverage: FND-009",
+        "Missing task case coverage: FND-011",
+        "Missing task case coverage: FND-012",
+        "Unaccepted evidence dimension: build (not_run)",
+        "Unaccepted evidence dimension: physical_input (not_run)",
+        "Unaccepted evidence dimension: visual (captured)"
+      ],
+      "note": "Focused observed check during development; earlier checks retain their own candidate/input hashes and are not relabeled as runs of later source."
+    },
+    "wrong_build_candidate": {
+      "result": "blocked",
+      "blocking_reasons": [
+        "--build requires the exact configured default app output; custom candidates must be tested as prebuilt"
+      ],
+      "note": "Focused observed check during development; earlier checks retain their own candidate/input hashes and are not relabeled as runs of later source."
+    }
+  }
+}

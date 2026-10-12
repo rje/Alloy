@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "cases": {
+    "shell_api": {
+      "script": "tests/shell_api.py",
+      "fixture": "tests/workflows/fixtures/shell.json",
+      "result": "shell-api.json",
+      "covers": [],
+      "capabilities": ["shell.commands", "shell.layout", "shell.search", "shell.errors", "viewport.hardware", "viewport.resize", "viewport.capture"]
+    },
+    "FND-010": {
+      "requires": ["shell_api"],
+      "check": "coverage_guards",
+      "covers": ["FND-010"],
+      "capabilities": ["runner.refuses_missing_evidence"]
+    }
+  },
+  "gates": {
+    "GATE-000": {
+      "cases": ["shell_api"],
+      "capabilities": ["shell.commands", "shell.layout", "shell.search", "shell.errors", "viewport.hardware", "viewport.resize", "viewport.capture", "shell.physical_input"],
+      "dimensions": ["build", "api", "hardware", "physical_input", "visual"]
+    }
+  },
+  "future_gate_policy": "Every later gate inherits earlier requirements and requires case coverage plus live closed-state prerequisites for every ancestor task. Unknown or missing cases block acceptance. Only the shell and runner-integrity cases exist today."
+}

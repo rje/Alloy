@@ -2,7 +2,7 @@
 
 Prepared 2026-10-11 from public references and the accepted Alloy requirements.
 [issues.json](issues.json) is the machine-readable source for GitHub publication;
-[sources.json](sources.json) records the 112 dated primary-source entries cited by its
+[sources.json](sources.json) records the 113 dated primary-source entries cited by its
 issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
@@ -81,9 +81,11 @@ showcase object need not exercise every option, so retain small focused fixtures
 alongside it. Run **all previously accepted representative workflows** on the
 same candidate build. A previous green issue is not a fresh regression result.
 
-The proposed runner is `python3 tests/workflows/run.py --gate GATE-020
---cumulative --evidence build/evidence/GATE-020`; **it does not exist yet** and is
-created by `FND-010`. Existing `ctest` remains the valid shell command today.
+The runner is implemented by `FND-010`; only `shell_api` and `FND-010` cases
+exist today. `python3 tests/workflows/run.py --gate GATE-020 --cumulative
+--evidence build/evidence/GATE-020` refuses acceptance until that gate's evidence
+specification, actual feature cases and live prerequisites are complete. Read
+[workflow validation](../workflow-validation.md). Existing `ctest` remains valid.
 Use Alloy automation for modeling/inspection/capture; direct computer input is
 reserved for uncovered physical interaction. Gate reports separate build, API,
 geometry, save/reopen, export, physical input and visual results. Unit tests,

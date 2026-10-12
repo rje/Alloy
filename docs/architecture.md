@@ -53,6 +53,50 @@ Its existence does not solve all persistent-reference problems automatically.
 Choose the native storage format after a small round-trip prototype, with a
 versioned, documented schema and a plan for migrations and recovery.
 
+## Operation history and undo/redo
+
+The user requires these architectural questions to be settled before modeling
+operations accumulate. FND-003 is the initial decision/prototype task; DOC-002
+depends on it. This section records requirements and proposed boundaries, not
+an implemented stack or a final choice of transaction library.
+
+The authored feature history describes how the model is constructed: stable
+operation IDs, typed parameters and units, input references, dependencies and
+evaluation order. The undo history records editing transactions applied to that
+document. Editing an earlier feature changes the authored graph; it does not
+mean replaying a list of mouse actions. Evaluated OCCT shapes and display meshes
+are revision-associated results, and cannot be the sole durable source of intent.
+
+One document transaction authority must serve both UI and automation. A committed
+create, edit, delete or reorder produces one intentional undo entry. Interactive
+previews remain disposable until commit; cancel and failed validation leave no
+partial document change or undo entry. Undo restores authored values, IDs and
+references; redo restores the corresponding committed edit. A new edit after
+undo discards the abandoned redo branch. Multi-step gestures need deliberate
+grouping rather than one entry per preview update.
+
+Recompute must validate dependencies and preserve explicit per-feature errors.
+Retained last-valid geometry must be marked stale when current intent fails,
+and downstream features cannot silently consume it as a successful new result.
+Long-running evaluation must reject results for an obsolete document revision.
+Saved-state tracking belongs to authored state: undoing to the saved checkpoint
+can clear the dirty flag. Whether session undo history survives reopening is a
+separate decision from persistence of the editable feature history.
+
+FND-003 must compare a thin authored schema with OCAF using the same small
+primitive/edit fixture. Investigate OCAF's transaction facilities and Qt's
+QUndoStack grouping/clean-state support, then select one authority without two
+independently advancing stacks. Verify create/edit/undo/redo, branching after
+undo, grouped edits, cancel/invalid edits, stable IDs, save/reopen, unknown schema
+versions and atomic-write failure before admitting the first modeling operation.
+FND-004 covers persistent geometric references alongside this decision. Larger
+recompute scheduling follows real feature dependencies in HIS-001.
+
+Public library references reviewed 2026-10-11:
+[OCAF](https://www.occt3d.com/dev/doc/overview/html/occt_user_guides__ocaf.html)
+and [Qt QUndoStack](https://doc.qt.io/qt-6/qundostack.html). These are living
+guides; prototype conclusions must identify the actual pinned library versions.
+
 ## Persistent references are an early risk
 
 Fillets, projections, and downstream sketches depend on faces and edges that can

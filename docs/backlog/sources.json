@@ -938,6 +938,13 @@
       "retrieved": "2026-10-11",
       "evidence": "documented",
       "note": "Public build/deployment foundation; selected implementation and acceptance are Alloy decisions."
+    },
+    "qtundo": {
+      "title": "Qt QUndoStack grouping and clean-state support",
+      "url": "https://doc.qt.io/qt-6/qundostack.html",
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Living public library guide. Transaction authority remains an Alloy decision requiring a version-pinned prototype."
     }
   },
   "reference_records": "../Alloy-reference-records/",

@@ -290,7 +290,9 @@ QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
 QJsonObject AlloyWindow::state() const {
     // Report the current native drawable, not a previous offscreen capture FBO.
     view_->sync();
-    return {{"application", "Alloy"}, {"version", "0.1.0"}, {"stage", "ui-shell"}, {"revision", static_cast<qint64>(revision_)},
+    return {{"application", "Alloy"}, {"version", "0.1.0"}, {"stage", "ui-shell"},
+        {"runtime", QJsonObject{{"qtVersion", qVersion()}, {"occtBuildVersion", ALLOY_OCCT_VERSION}}},
+        {"revision", static_cast<qint64>(revision_)},
         {"document", QJsonObject{{"loaded", false}, {"label", "Untitled"}, {"sketches", 0}, {"bodies", 0}, {"features", 0}, {"editableHistory", false}}},
         {"kernel", QJsonObject{{"candidate", "Open CASCADE"}, {"discoveredVersion", ALLOY_OCCT_VERSION}, {"integrated", false}, {"visualizationIntegrated", true}}},
         {"ui", QJsonObject{{"workspace", "design"}, {"tab", "solid"}, {"browserVisible", browserVisible_}, {"timelineVisible", timelineVisible_}, {"navigationVisible", navigationVisible_}, {"commandSearchVisible", search_ && search_->isVisible()}, {"windowWidth", width()}, {"windowHeight", height()}, {"devicePixelRatio", devicePixelRatioF()}}},
