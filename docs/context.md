@@ -24,18 +24,28 @@ records focused Qt action tests and
 native nested Circle/Fillet/Parallel/construction/Press Pull dispatch passed.
 Native C works after menu closure without an extra viewport click. Popup pixel
 fidelity remains unqualified because main-window captures exclude separate popups.
-Next: two Sol agents implement [constraint interaction](research/commands/constraint-interaction.md)
-in parallel (command/session/palette and renderer/hit-testing), using Luna's
-external visibility/deletion evidence. Astra verifies each coherent slice. Preserve
+Constraint interaction is integrated through `bf87e99` with a test-only correction
+in `ab4f7bb`; [functional verification](validation/constraint-interaction.md) passes
+focused Qt and native deletion/undo/visibility checks. Astra's visual review found
+an origin-Z-label collision; `0b74676` corrects it, and actual corrected/selected
+captures plus shifted native picking passed independent review. A core Sol
+capacity failure was recovered by root without losing the unfinished work.
+`7af56b9` fits populated sketch content on entry/Look At; source review passed,
+runtime framing now passes: the complete supported bracket sketch and stock fit
+without cropping, with an unchanged authored draft. Luna researches the remaining Fixed/Coincident
+glyph reference details outside the repository. Astra verifies each coherent slice. Preserve
 accepted evidence; do not repeat unchanged geometry suites for a color-only fix.
 No release/tag/CI was triggered. Status requests do not pause autonomous work.
 
-`build-human-tutorial/alloy.app` (Alloy Tutorial Preview) is a separately copied
-`5c58d36` candidate with its own `human/tutorial-bracket.alloy`; it is open but
-has not yet been handed off. Root's TutorialCandidate and TutorialPolishCandidate
-are stopped. A newly found usability gap is that editing an existing large
-sketch resets framing to a 100 mm origin-centered view. Coordinate the bounded
-fit correction with the renderer and command agents before the next handoff.
+Human testing handoff: `build-tutorial-polish/alloy.app` (Alloy Tutorial Polish,
+source `0b74676`) is now reserved for the user. Its separate file is
+`build-tutorial-polish/human/constraint-bracket-preview.alloy`. The user was given
+an edit-third-timeline-sketch, delete/undo Equal badge, visibility and Ø50→60
+checklist. Do not operate, quit or rebuild this app while it is a human window.
+Use a new private candidate for subsequent work. The older CutCandidate and
+build-input apps also remain untouched. `build-human-tutorial/alloy.app` is an
+older separately copied preview, not the latest handoff. TutorialCandidate is
+stopped. The 100 mm origin-centered edit framing reset is corrected and verified.
 
 ## Decisions from the conversation
 

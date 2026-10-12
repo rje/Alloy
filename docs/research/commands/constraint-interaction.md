@@ -1,6 +1,7 @@
 # Constraint interaction slice
 
-Implementation in progress, 2026-10-12; owners SKT-008 and SKT-018. Source evidence
+Functional slice verified, 2026-10-12; owners SKT-008 and SKT-018.
+See [verification and remaining limits](../../validation/constraint-interaction.md). Source evidence
 is external `knowledge/specs/constraint-badge-visibility-delete-undo.json`.
 Public instructions establish Show Constraints/Show Dimensions controls and
 constraint deletion by hover/Delete or glyph selection/Delete/context menu.
@@ -31,7 +32,7 @@ Exact target highlighting and active-editor display persistence remain uncertain
 
 ## Shared interface and verification
 
-Proposed commands: `sketch.displayOptions`, `sketch.constraintSelect`,
+Implemented commands: `sketch.displayOptions`, `sketch.constraintSelect`,
 `sketch.constraintHover`, `sketch.constraintPick`, `sketch.deleteSelection`.
 State exposes `activeSession.displayOptions`, selected constraint IDs and hovered
 constraint ID. Final schemas are discoverable from the running command registry.
@@ -45,3 +46,13 @@ Check a visible relation deletion, observed solver change and undo restoration,
 independent visibility controls, hidden targets, and unaffected dimension editing.
 Reuse accepted bracket geometry evidence rather than repeating the full tutorial
 for unchanged modeling behavior.
+
+## Remaining glyph evidence
+
+The external evidence now distinguishes point-to-point Coincident (documented
+without a persistent icon) from point-to-curve Coincident (documented icon).
+The origin-specific case remains uncertain. Fixed geometry locking and green
+feedback are documented, but its exact persistent glyph styling is unknown.
+Missing glyphs must therefore be assessed per relation/context, rather than
+assuming every coincident point requires a permanent icon. This slice does not
+implement a contextual relation-reveal interface or expand Fixed targeting.

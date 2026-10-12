@@ -140,7 +140,12 @@ fail without applying the command. Error codes include `invalid_request`,
 | `sketch.selectionPick` | `x`, `y`: logical pixels; optional `additive`: boolean. Pick an authored point, line, circle, arc or evaluated profile interior, sharing native selection state |
 | `sketch.placePoint` | `x`, `y`: logical pixels; native ray/plane drawing path, or selection when the active tool is `select`/`dimension` |
 | `sketch.pointerMove` | `x`, `y`: logical pixels; disposable drawing preview with origin/point acquisition in `snap`; no authored change |
-| `sketch.lookAt` | View normal to the active sketch plane |
+| `sketch.lookAt` | View normal to the active sketch plane and fit populated draft geometry; empty sketches use the default origin view |
+| `sketch.displayOptions` | Optional `showConstraints`, `showDimensions` booleans; independent session-only visibility, no modeling history entry |
+| `sketch.constraintSelect` | `constraintId`, optional `additive`; select retained relation in Select mode |
+| `sketch.constraintHover` | Optional `constraintId`; empty/omitted clears hover |
+| `sketch.constraintPick` | Viewport-local logical `x`, `y`, optional `additive`; select an actual visible glyph hit target |
+| `sketch.deleteSelection` | Optional explicit `constraintIds` and/or `dimensionId`; otherwise selected relations/dimension, then hovered relation; validates and solves one atomic draft edit |
 | `sketch.finish`, `sketch.cancel` | Commit or discard the active sketch session |
 | `view.projectSketchPoint` | `plane`, `uMm`, `vMm`; actual world-to-viewport projection |
 | `sketch.construction` | `construction`: boolean; optional `entityIds` defaults to selected lines; keeps IDs/constraints, changes profile participation |
@@ -562,3 +567,12 @@ coordinates too. Native input evidence is recorded separately.
 
 See [the five-circle Cut receipt](validation/five-circle-cut.md) for qualified
 behavior and remaining tutorial/runtime limits.
+
+Constraint interaction state is inspectable in `activeSession.displayOptions`,
+`selection.constraintIds` and `activeSession.hoveredConstraintId`. The viewport's
+`gpu.sketchConstraintGlyphs` exposes stable relation and target IDs, visible
+logical-pixel bounds, and selected/hovered flags. Hidden glyphs have no hit
+targets; hiding a class clears its selection/hover. Display preferences currently
+last for the active sketch session and are not serialized as authored CAD data.
+See [the constraint interaction receipt](validation/constraint-interaction.md)
+for native-input evidence and remaining glyph limitations.
