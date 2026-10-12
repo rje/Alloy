@@ -15,8 +15,12 @@ modifier gap and remaining visual mismatch. Exact TUT-003 stays open.
 Root owns `build-full-tutorial/alloy.app` (TutorialCandidate) and
 `build-tutorial-api/alloy.app` (API runner candidate). The human CutCandidate in
 `../Alloy-worktrees/profile-cut/build-cut/alloy.app` and older build-input app
-remain untouched. Next: correct fully-constrained sketch colors with Sol and
-Astra verification, then continue tutorial visual/interaction gaps. Preserve
+remain untouched. Constrained construction color is corrected in `324fb74` and
+Astra accepted actual captures. `e84703d` restores visible historical support
+stock when editing the hole sketch after Cut; the focused visible/hidden stock,
+Cancel/Finish restoration and exact authored-state probe passed Astra review.
+Next: Sol is implementing familiar grouped sketch command menus from Luna's
+external `knowledge/specs/tutorial-command-locations.json`. Preserve
 accepted evidence; do not repeat unchanged geometry suites for a color-only fix.
 No release/tag/CI was triggered. Status requests do not pause autonomous work.
 

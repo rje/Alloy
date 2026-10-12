@@ -46,10 +46,21 @@ undo/redo and save/reopen of the natively created model.
   toggling remain unverified. Synthetic Qt modifier coverage is separate evidence.
 - Native A1 included an extra checkpoint Finish/reopen. This run proves the
   modeling chain with that deviation, not uninterrupted exact source execution.
-- Fully constrained construction guides remain pale orange dashed while source
-  activity 2 describes black; rendering correction is in progress under existing
-  sketch/visual tasks. Menu hierarchy, toolbar layout and unmatched reference
-  camera/theme/DPR also prevent an exact visual claim.
+- Construction color was corrected in `324fb74`: DOF 0 guides are dark dashed,
+  selected guides remain orange, and projected references remain purple.
+  Astra accepted the actual `build-tutorial-polish/evidence/*guide-color.png`
+  captures, including the DOF 1 outline's orange construction strokes. This is
+  whole-sketch solver coloring, not a per-entity freedom classification.
+  Menu hierarchy, toolbar layout and unmatched reference camera/theme/DPR still
+  prevent an exact visual claim.
+- `e84703d` corrects the missing support stock when editing the earlier hole
+  sketch after Cut. The viewport displays the actual pre-sketch history prefix,
+  preserving body visibility, and restores the final result on Cancel or Finish.
+  `build-tutorial-polish/evidence/historical-support-probe.json` and the matching
+  edit capture passed Astra review: supporting stock visible, exact authored
+  restoration, and explicitly hidden stock remains hidden. This focused check
+  reused the native final model; the full geometry tutorial was not rerun for
+  these display-only changes.
 - Qt accessibility row labels can disappear or become stale after edits despite
   correct visible contents; FND-015 remains open. Native coordinate input was
   used where those labels were incomplete.
@@ -59,3 +70,7 @@ undo/redo and save/reopen of the natively created model.
 
 TUT-003 and broader owner issues remain open. No release, tag or CI run was
 triggered. Research URLs and source screenshots remain outside the repository.
+The external `knowledge/tutorials/illustrated-bracket/step-status-2026-10-12.json`
+maps all 49 source subinstructions and transition/selection notes to this run's
+API/native evidence and explicit gaps. Its color-pending entry is superseded by
+the accepted correction above; it remains a dated audit, not a live test result.
