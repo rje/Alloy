@@ -34,7 +34,10 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--app', required=True)
     parser.add_argument('--output', required=True)
+    parser.add_argument('--fixture', default=str(Path(__file__).parent / 'workflows/fixtures/constraint-tools.json'))
     args = parser.parse_args()
+    fixture = json.loads(Path(args.fixture).read_text())
+    assert fixture['case'] == 'constraint-tools'
     output = Path(args.output).resolve()
     captures, glyph_evidence = [], []
     with application(args.app, output) as (call, transcript):
@@ -164,6 +167,7 @@ def main():
         final = call('app.state')
     result = {
         'result': 'passed', 'scope': 'Bounded tutorial constraint checkpoint; not a complete source tutorial pass',
+        'fixtureSha256': hashlib.sha256(Path(args.fixture).read_bytes()).hexdigest(),
         'testSha256': hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         'verifiedCapabilities': ['sketch.constraint_tool_repeat', 'sketch.constraint_failure_recovery',
                                  'sketch.equal_circle_chain', 'sketch.constraint_glyph_targets',

@@ -1,0 +1,11 @@
+{
+  "case": "constraint-tools",
+  "scope": "Bounded tutorial prerequisite; full native/source tutorial acceptance is separate.",
+  "capabilities": [
+    "sketch.constraint_tool_repeat",
+    "sketch.constraint_failure_recovery",
+    "sketch.equal_circle_chain",
+    "sketch.constraint_glyph_targets",
+    "sketch.constraint_history_storage"
+  ]
+}

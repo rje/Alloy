@@ -1,0 +1,10 @@
+{
+  "case": "angular-sketch",
+  "scope": "Bounded tutorial prerequisite; full native/source tutorial acceptance is separate.",
+  "capabilities": [
+    "sketch.two_line_angles",
+    "sketch.angle_sector_selection",
+    "sketch.angle_upstream_solid",
+    "sketch.angle_history_storage"
+  ]
+}

@@ -46,6 +46,7 @@ public:
     QJsonObject sketchPoint(double x, double y, const QString& plane) const;
     QJsonObject projectSketchPoint(double uMm, double vMm, const QString& plane) const;
     void showSketchCursor(const QString& plane, const QPointF& first, const QPointF& second, bool rectangle);
+    void showSketchSnap(const QString& plane, const QJsonObject& snap);
     void showSketchCurveCursor(const QJsonObject& feature);
     void clearSketchCursor();
     void fit(const std::vector<EvaluatedBody>& bodies, const std::vector<EvaluatedSketch>& sketches = {});
@@ -95,7 +96,8 @@ private:
     std::vector<EvaluatedSketch> finishedSketches_;
     QString selectedProfile_, selectedProfileSketch_, editSourceSketch_;
     QJsonArray hiddenBodyIds_;
-    Handle(AIS_Shape) sketchDraft_, sketchCursor_;
+    Handle(AIS_Shape) sketchDraft_, sketchCursor_, sketchSnapCue_;
+    QJsonObject sketchSnapState_;
     std::vector<Handle(AIS_InteractiveObject)> sketchDecorations_;
     QJsonArray annotationLayouts_;
     QJsonArray constraintGlyphs_;

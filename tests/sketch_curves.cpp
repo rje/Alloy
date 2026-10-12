@@ -33,10 +33,59 @@ double lineAngle(const QJsonObject& f,int signA,int signB){
     const double bx=(d["uMm"].toDouble()-c["uMm"].toDouble())*signB,by=(d["vMm"].toDouble()-c["vMm"].toDouble())*signB;
     return std::abs(std::atan2(ax*by-ay*bx,ax*bx+ay*by))*180/std::numbers::pi;
 }
+QJsonObject pointById(const QJsonObject& f,const QJsonValue& id){
+    for(const auto& p:f["parameters"].toObject()["points"].toArray())if(p.toObject()["id"]==id)return p.toObject();
+    throw std::runtime_error("Test point reference does not exist");
+}
+void pointerSnaps(const QString& owner){
+    const auto blank=SketchGeometry::newFeature(owner,"XY","Pointer snap chain");
+    auto f=accepted(SketchGeometry::addPointerEntity(blank,"line",{{"u1Mm",0.1},{"v1Mm",0.2},{"u2Mm",10},{"v2Mm",0},{"startSnapTarget",QJsonObject{{"kind","origin"}}}}));
+    const QJsonValue origin=f["parameters"].toObject()["originPointId"];
+    const QJsonValue first=entity(f)["startPointId"],end=entity(f)["endPointId"];
+    check(origin.isString() && origin!=first,"Origin snap silently merged reference and endpoint identities");
+    auto constraints=f["parameters"].toObject()["constraints"].toArray();
+    check(constraints.size()==2 && constraints[0].toObject()["type"]=="fixed" && constraints[1].toObject()["type"]=="coincident","Origin snap did not retain fixed origin and coincidence");
+    near(pointById(f,first)["uMm"].toDouble(),0,"Origin snapped x");near(pointById(f,first)["vMm"].toDouble(),0,"Origin snapped y");
+    auto add=[&](double u1,double v1,double u2,double v2,const QJsonValue& target,const QJsonObject& endTarget=QJsonObject{}) {
+        QJsonObject args{{"u1Mm",u1},{"v1Mm",v1},{"u2Mm",u2},{"v2Mm",v2},{"startSnapTarget",QJsonObject{{"kind","point"},{"pointId",target}}}};
+        if(!endTarget.isEmpty())args["endSnapTarget"]=endTarget;
+        f=accepted(SketchGeometry::addPointerEntity(f,"line",args));
+    };
+    add(10.15,0.1,10,8,end);
+    check(entity(f,1)["startPointId"]!=end,"Endpoint snap silently merged point IDs");
+    add(10.1,8.1,0,8,entity(f,1)["endPointId"]);
+    add(0.1,8.1,-0.1,0.1,entity(f,2)["endPointId"],{{"kind","point"},{"pointId",first}});
+    for(int i=0;i<4;++i)f=accepted(SketchGeometry::addConstraint(f,{{"type",i%2==0 ? "horizontal" : "vertical"},{"entityIds",QJsonArray{entity(f,i)["id"]}}}));
+    f=accepted(SketchGeometry::addDimension(f,{{"kind","horizontal"},{"entityId",entity(f)["id"]},{"valueMm",10}}));
+    const QJsonValue width=lastDimension(f)["id"];
+    f=accepted(SketchGeometry::addDimension(f,{{"kind","vertical"},{"entityId",entity(f,1)["id"]},{"valueMm",8}}));
+    auto profile=SketchProfiles::derive(f);check(profile.ok,qPrintable(profile.error));near(profile.profile.summary["areaMm2"].toDouble(),80,"Snapped distinct-ID chain did not form real closed profile");
+    const QJsonValue originFixed=f["parameters"].toObject()["constraints"].toArray()[0];
+    auto changed=accepted(SketchGeometry::updateDimension(f,{{"dimensionId",width},{"valueMm",14}}));
+    near(pointById(changed,end)["uMm"].toDouble(),14,"Target endpoint did not move with driving width");
+    near(pointById(changed,entity(changed,1)["startPointId"])["uMm"].toDouble(),14,"Coincident snapped follower did not move with target");
+    near(pointById(changed,origin)["uMm"].toDouble(),0,"Origin drifted with target edit");near(pointById(changed,origin)["vMm"].toDouble(),0,"Origin y drifted");
+    check(changed["parameters"].toObject()["constraints"].toArray()[0]==originFixed,"Origin fixed relation identity changed");
+    profile=SketchProfiles::derive(changed);check(profile.ok,qPrintable(profile.error));near(profile.profile.summary["areaMm2"].toDouble(),112,"Snapped closure did not rebuild after target edit");
+    const auto moved=SketchGeometry::movePoint(changed,{{"pointId",origin},{"uMm",1},{"vMm",1}});check(!moved.ok && moved.feature==changed,"Origin reference was draggable");
+    const auto stale=SketchGeometry::addPointerEntity(changed,"line",{{"u1Mm",30},{"v1Mm",30},{"u2Mm",40},{"v2Mm",40},{"startSnapTarget",QJsonObject{{"kind","point"},{"pointId",QUuid::createUuid().toString(QUuid::WithoutBraces)}}}});
+    check(!stale.ok && stale.feature==changed,"Stale snap changed usable draft");
+    const auto collapsed=SketchGeometry::addPointerEntity(changed,"line",{{"u1Mm",30},{"v1Mm",30},{"u2Mm",40},{"v2Mm",40},{"startSnapTarget",QJsonObject{{"kind","origin"}}},{"endSnapTarget",QJsonObject{{"kind","origin"}}}});
+    check(!collapsed.ok && collapsed.feature==changed,"Collapsed snapped line retained partial origin/relations");
+    auto rectangle=accepted(SketchGeometry::addPointerEntity(blank,"rectangle",{{"u1Mm",0.1},{"v1Mm",0.1},{"u2Mm",20},{"v2Mm",12},{"startSnapTarget",QJsonObject{{"kind","origin"}}}}));
+    profile=SketchProfiles::derive(rectangle);check(profile.ok,qPrintable(profile.error));near(profile.profile.summary["areaMm2"].toDouble(),240,"Origin snapped rectangle profile");
+    const auto plain=SketchGeometry::addLine(blank,{{"u1Mm",0.1},{"v1Mm",0.2},{"u2Mm",10},{"v2Mm",0}});
+    near(pointById(plain,entity(plain)["startPointId"])["uMm"].toDouble(),0.1,"Explicit coordinate creation acquired implicit origin snap");
+    check(!plain["parameters"].toObject().contains("originPointId") && plain["parameters"].toObject()["constraints"].toArray().isEmpty(),"Explicit coordinate API authored inferred constraints");
+    const auto reopened=QJsonDocument::fromJson(QJsonDocument(changed).toJson()).object();
+    check(reopened==changed && SketchGeometry::solveDraft(reopened).ok,"Snapped origin/point relations failed retained JSON validation");
+    auto corrupt=changed;auto p=corrupt["parameters"].toObject();auto cs=p["constraints"].toArray();cs.removeAt(0);p["constraints"]=cs;corrupt["parameters"]=p;
+    check(!SketchGeometry::solveDraft(corrupt).ok,"Unfixed origin reference passed save validation");
+}
 void lineAngularDimensions(const QString& owner){
     auto f=SketchGeometry::newFeature(owner,"XY","Two-line angular dimensions");
     f=SketchGeometry::addLine(f,{{"u1Mm",0},{"v1Mm",0},{"u2Mm",-20},{"v2Mm",0}});
-    const auto vertex=entity(f)["startPointId"];
+    const QJsonValue vertex=entity(f)["startPointId"];
     f=SketchGeometry::addLine(f,{{"u1Mm",0},{"v1Mm",0},{"u2Mm",10},{"v2Mm",10},{"startPointId",vertex}});
     const QJsonArray refs{entity(f)["id"],entity(f,1)["id"]};
     f=accepted(SketchGeometry::addConstraint(f,{{"type","fixed"},{"pointIds",QJsonArray{vertex}}}));
@@ -46,7 +95,7 @@ void lineAngularDimensions(const QString& owner){
     near(lineAngle(f,1,1),135,"Segment-directed fixture must expose supplementary angle");
     // The tutorial's lower segment points left; dimension its rightward extension.
     f=accepted(SketchGeometry::addDimension(f,{{"kind","angle"},{"entityIds",refs},{"raySigns",QJsonArray{-1,1}},{"valueDeg",45},{"annotation",QJsonObject{{"uMm",12},{"vMm",4}}}}));
-    const auto angleId=lastDimension(f)["id"];
+    const QJsonValue angleId=lastDimension(f)["id"];
     check(SketchGeometry::solveDraft(f).diagnostics["dof"].toInt()==0,"Driving line angle must remove rotational freedom");
     near(lineAngle(f,-1,1),45,"Driving angle used wrong extension sector");
     // All four ray sectors remain measurements, not additional solver equations.
@@ -93,7 +142,7 @@ void equalConstraints(const QString& owner){
     check(SketchGeometry::solveDraft(circles).diagnostics["dof"].toInt()==11,"Equal circle chain must retain center freedom and one radius DOF");
     circles=accepted(SketchGeometry::addDimension(circles,{{"kind","diameter"},{"entityId",entity(circles)["id"]},{"valueMm",10}}));
     check(SketchGeometry::solveDraft(circles).diagnostics["dof"].toInt()==10,"One diameter must control all five equal radii");
-    const auto relations=circles["parameters"].toObject()["constraints"];
+    const QJsonValue relations=circles["parameters"].toObject()["constraints"];
     const auto changed=accepted(SketchGeometry::updateDimension(circles,{{"dimensionId",lastDimension(circles)["id"]},{"valueMm",12}}));
     for(int i=0;i<5;++i){near(entity(changed,i)["radiusMm"].toDouble(),6,"Equal circle chain did not follow diameter edit");
         check(entity(changed,i)["id"]==originalEntities[i].toObject()["id"],"Equal solve replaced circle identity");}
@@ -126,6 +175,7 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
     const auto owner=QUuid::createUuid().toString(QUuid::WithoutBraces);
     equalConstraints(owner);
     lineAngularDimensions(owner);
+    pointerSnaps(owner);
     const auto blank=SketchGeometry::newFeature(owner,"XY");
     auto circle=SketchGeometry::addCircle(blank,{{"centerUMm",0},{"centerVMm",0},{"diameterMm",10}});
     circle=accepted(SketchGeometry::solveDraft(circle));analytic(circle,10*std::numbers::pi);

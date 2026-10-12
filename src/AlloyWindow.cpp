@@ -518,7 +518,7 @@ void AlloyWindow::registerCommands() {
         if(session_.value("command").toString()!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
         cancelDimension();
         if(session_.value("tool")=="constraint")session_["selection"]=QJsonObject{{"pointIds",QJsonArray{}},{"entityIds",QJsonArray{}},{"profileIds",QJsonArray{}}};
-        session_["tool"]=a["tool"];session_.remove("constraintType");session_.remove("constraintPrompt");session_.remove("firstPoint");session_.remove("secondPoint");session_.remove("pointerPoint");session_.remove("gestureSweepDeg");view_->clearSketchCursor();
+        session_["tool"]=a["tool"];session_.remove("constraintType");session_.remove("constraintPrompt");session_.remove("firstPoint");session_.remove("secondPoint");session_.remove("pointerPoint");session_.remove("gestureSweepDeg");session_.remove("snap");view_->clearSketchCursor();
         view_->setFocus();
         return session_;
     });
@@ -569,13 +569,27 @@ void AlloyWindow::registerCommands() {
             auto args=a;if(tool=="dimension" && (!session_.value("selection").toObject()["pointIds"].toArray().isEmpty() || session_.value("selection").toObject()["entityIds"].toArray().size()==1))args["additive"]=true;
             const auto response=execute("sketch.selectionPick",args);return response["ok"].toBool() ? response["result"].toObject() : response;
         }
-        const auto point=view_->sketchPoint(a["x"].toDouble(),a["y"].toDouble(),session_.value("inputs").toObject()["plane"].toString());
+        const auto plane=session_.value("inputs").toObject()["plane"].toString();
+        const auto snap=tool=="line" || tool=="rectangle" ? resolveSketchSnap(a["x"].toDouble(),a["y"].toDouble(),plane) : QJsonObject{};
+        if(!snap.isEmpty()){session_["snap"]=snap;if(snap["status"]=="ambiguous")return failure("ambiguous_snap","Multiple sketch points are equally close; move toward the intended point");}
+        const auto point=snap.isEmpty() ? view_->sketchPoint(a["x"].toDouble(),a["y"].toDouble(),plane) : snap;
         if(tool=="circle" || tool=="centerArc" || tool=="threePointArc")return sketchCurveGesture(point,true);
         if(!session_.contains("firstPoint")){session_["firstPoint"]=point;return QJsonObject{{"placement",false},{"firstPoint",point}};}
         const auto first=session_.value("firstPoint").toObject();
-        const auto response=appendSketchEntity(tool,{{"x1",first["uMm"]},{"y1",first["vMm"]},{"x2",point["uMm"]},{"y2",point["vMm"]},{"units","mm"}});
+        QJsonObject inputs{{"x1",first["uMm"]},{"y1",first["vMm"]},{"x2",point["uMm"]},{"y2",point["vMm"]},{"units","mm"}};
+        if(first["status"]=="acquired")inputs["startSnapTarget"]=first["target"];
+        if(point["status"]=="acquired")inputs["endSnapTarget"]=point["target"];
+        const auto response=appendSketchEntity(tool,inputs);
         if(response["ok"].isBool() && !response["ok"].toBool())return response;
-        if(tool=="line")session_["firstPoint"]=point;
+        if(tool=="line"){
+            auto continuation=point;
+            const auto entities=session_.value("draftSketch").toObject()["parameters"].toObject()["entities"].toArray();
+            if(!entities.isEmpty()){
+                const auto endId=entities.last().toObject()["endPointId"].toString();
+                if(!endId.isEmpty()){continuation["status"]="acquired";continuation["target"]=QJsonObject{{"kind","point"},{"pointId",endId}};}
+            }
+            session_["firstPoint"]=continuation;
+        }
         return QJsonObject{{"placement",true},{"point",point},{"draftSketch",session_.value("draftSketch")}};
     });
     add("sketch.pointerMove","Sketch pointer preview","Preview a pending line or rectangle on the GPU without authored changes.",sketchPixels,[this](const auto& a){
@@ -583,14 +597,20 @@ void AlloyWindow::registerCommands() {
             if(session_.value("pendingDimension").toObject().value("phase")=="editing")return QJsonObject{};
             try{return previewDimension(a);}catch(const std::invalid_argument&){return QJsonObject{};}
         }
-        if(session_.value("command").toString()!="sketch.edit" || !session_.contains("firstPoint"))return QJsonObject{};
+        if(session_.value("command").toString()!="sketch.edit")return QJsonObject{};
         if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_.revision())){view_->clearSketchCursor();return QJsonObject{};}
         const auto plane=session_.value("inputs").toObject()["plane"].toString();
-        const auto point=view_->sketchPoint(a["x"].toDouble(),a["y"].toDouble(),plane),first=session_.value("firstPoint").toObject();
+        const auto tool=session_.value("tool").toString();
+        const bool snapping=tool=="line" || tool=="rectangle";
+        const auto snap=snapping ? resolveSketchSnap(a["x"].toDouble(),a["y"].toDouble(),plane) : QJsonObject{};
+        if(snapping){session_["snap"]=snap;if(!session_.contains("firstPoint")){view_->clearSketchCursor();view_->showSketchSnap(plane,snap);return QJsonObject{{"snap",snap},{"authoredChange",false}};}}
+        if(!session_.contains("firstPoint"))return QJsonObject{};
+        const auto point=snapping ? snap : view_->sketchPoint(a["x"].toDouble(),a["y"].toDouble(),plane),first=session_.value("firstPoint").toObject();
         session_["pointerPoint"]=point;
-        if(session_.value("tool")=="circle" || session_.value("tool")=="centerArc" || session_.value("tool")=="threePointArc")return sketchCurveGesture(point,false);
-        view_->showSketchCursor(plane,{first["uMm"].toDouble(),first["vMm"].toDouble()},{point["uMm"].toDouble(),point["vMm"].toDouble()},session_.value("tool").toString()=="rectangle");
-        return QJsonObject{{"point",point},{"authoredChange",false}};
+        if(tool=="circle" || tool=="centerArc" || tool=="threePointArc")return sketchCurveGesture(point,false);
+        view_->showSketchCursor(plane,{first["uMm"].toDouble(),first["vMm"].toDouble()},{point["uMm"].toDouble(),point["vMm"].toDouble()},tool=="rectangle");
+        if(snapping)view_->showSketchSnap(plane,snap);
+        return QJsonObject{{"point",point},{"snap",snap},{"authoredChange",false}};
     });
     add("sketch.lookAt","Look At sketch","Orient the view normal to the active sketch plane.",{},[this](const auto&){
         if(session_.value("command").toString()!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
@@ -615,7 +635,7 @@ void AlloyWindow::registerCommands() {
         if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
         if(a.contains("session") && a["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
         if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_.revision()))return failure("stale_session","The document changed; cancel and restart this sketch");
-        cancelDimension();view_->clearSketchCursor();
+        cancelDimension();view_->clearSketchCursor();session_.remove("snap");
         session_["tool"]="constraint";session_["constraintType"]=a["type"];
         session_.remove("firstPoint");session_.remove("secondPoint");session_.remove("pointerPoint");session_.remove("gestureSweepDeg");
         const auto type=a["type"].toString();const auto field=type=="fixed" || type=="coincident" ? QString("pointIds") : QString("entityIds");
@@ -1554,9 +1574,53 @@ QJsonObject AlloyWindow::appendSketchEntity(const QString& tool,const QJsonObjec
     const auto units=inputs.value("units").toString(session_.value("inputs").toObject()["units"].toString());
     QJsonObject canonical{{"u1Mm",CadDocument::millimeters(inputs["x1"].toDouble(),units)},{"v1Mm",CadDocument::millimeters(inputs["y1"].toDouble(),units)},
         {"u2Mm",CadDocument::millimeters(inputs["x2"].toDouble(),units)},{"v2Mm",CadDocument::millimeters(inputs["y2"].toDouble(),units)}};
+    if(inputs.contains("startSnapTarget"))canonical["startSnapTarget"]=inputs["startSnapTarget"];
+    if(inputs.contains("endSnapTarget"))canonical["endSnapTarget"]=inputs["endSnapTarget"];
     const auto draft=session_.value("draftSketch").toObject();
+    if(canonical.contains("startSnapTarget") || canonical.contains("endSnapTarget"))
+        return publishSketchSolve(SketchGeometry::addPointerEntity(draft,tool,canonical));
     const auto updated=tool=="line" ? SketchGeometry::addLine(draft,canonical) : SketchGeometry::addRectangle(draft,canonical);
     return publishSketchSolve(SketchGeometry::solveDraft(updated));
+}
+
+QJsonObject AlloyWindow::resolveSketchSnap(double x,double y,const QString& plane) const {
+    auto point=view_->sketchPoint(x,y,plane);
+    constexpr double radiusPx=10.0,ambiguityPx=0.5;
+    QJsonObject result{{"status","none"},{"uMm",point["uMm"]},{"vMm",point["vMm"]},{"radiusPx",radiusPx},{"authoredChange",false}};
+    const auto parameters=session_.value("draftSketch").toObject()["parameters"].toObject();
+    QMap<QString,QJsonObject> points;for(const auto& entry:parameters["points"].toArray()){const auto p=entry.toObject();points[p["id"].toString()]=p;}
+    std::vector<QJsonObject> candidates;
+    auto offer=[&](const QJsonObject& target,double u,double v){
+        const auto screen=view_->projectSketchPoint(u,v,plane);const double distance=std::hypot(screen["x"].toDouble()-x,screen["y"].toDouble()-y);
+        if(distance<=radiusPx)candidates.push_back(QJsonObject{{"target",target},{"uMm",u},{"vMm",v},{"distancePx",distance}});
+    };
+    offer({{"kind","origin"}},0,0);
+    QMap<QString,bool> endpointIds;
+    for(const auto& entry:parameters["entities"].toArray()){
+        const auto e=entry.toObject();if(e["type"]!="line" && e["type"]!="arc")continue;
+        endpointIds[e["startPointId"].toString()]=true;endpointIds[e["endPointId"].toString()]=true;
+    }
+    for(auto it=endpointIds.begin();it!=endpointIds.end();++it){
+        if(it.key().isEmpty() || it.key()==parameters["originPointId"].toString() || !points.contains(it.key()))continue;
+        const auto p=points.value(it.key());offer({{"kind","point"},{"pointId",it.key()}},p["uMm"].toDouble(),p["vMm"].toDouble());
+    }
+    if(candidates.empty())return result;
+    std::sort(candidates.begin(),candidates.end(),[](const QJsonObject& a,const QJsonObject& b){
+        const double distanceA=a["distancePx"].toDouble(),distanceB=b["distancePx"].toDouble();
+        if(distanceA!=distanceB)return distanceA<distanceB;
+        const auto targetA=a["target"].toObject(),targetB=b["target"].toObject();
+        const int rankA=targetA["kind"]=="origin" ? 0 : 1,rankB=targetB["kind"]=="origin" ? 0 : 1;
+        if(rankA!=rankB)return rankA<rankB;
+        return targetA["pointId"].toString()<targetB["pointId"].toString();
+    });
+    const auto best=candidates[0];
+    QJsonArray tied;for(const auto& candidate:candidates){if(candidate["distancePx"].toDouble()-best["distancePx"].toDouble()>ambiguityPx)break;
+        const bool sameLocation=std::hypot(candidate["uMm"].toDouble()-best["uMm"].toDouble(),candidate["vMm"].toDouble()-best["vMm"].toDouble())<1e-8;
+        if(!sameLocation || candidate["target"].toObject()["kind"]!="point" || best["target"].toObject()["kind"]!="origin")tied.append(candidate);
+    }
+    if(tied.size()>1){result["status"]="ambiguous";result["candidates"]=tied;return result;}
+    result["status"]="acquired";result["target"]=best["target"];result["uMm"]=best["uMm"];result["vMm"]=best["vMm"];result["distancePx"]=best["distancePx"];
+    return result;
 }
 
 QJsonObject AlloyWindow::appendSketchCurve(const QString& tool,const QJsonObject& inputs) {
@@ -1653,7 +1717,7 @@ QJsonObject AlloyWindow::publishSketchSolve(const SketchGeometry::SolveResult& s
     if(!error.isEmpty())return failure("invalid_sketch",error);
     const auto evaluated=SketchGeometry::evaluateFeature(solved.feature);
     session_["draftSketch"]=solved.feature;session_["solverDiagnostics"]=solved.diagnostics;session_["previewed"]=false;
-    session_.remove("lastSolveFailure");session_.remove("firstPoint");session_.remove("secondPoint");session_.remove("pointerPoint");session_.remove("gestureSweepDeg");
+    session_.remove("lastSolveFailure");session_.remove("firstPoint");session_.remove("secondPoint");session_.remove("pointerPoint");session_.remove("gestureSweepDeg");session_.remove("snap");
     view_->clearSketchCursor();view_->showSketchDraft(evaluated);displayedSketchDraft_=solved.feature;
     return {{"sessionId",session_.value("id")},{"draftSketch",solved.feature},{"sketchGeometry",evaluated.summary},{"diagnostics",solved.diagnostics},{"authoredCommitted",false}};
 }

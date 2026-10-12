@@ -445,6 +445,54 @@
         "solids.combine_storage"
       ],
       "limits": "Local modeling regression only; no product or tutorial gate acceptance."
+    },
+    "constraint-tools": {
+      "script": "tests/constraint_tools_api.py",
+      "fixture": "tests/workflows/fixtures/constraint-tools.json",
+      "result": "constraint-tools-api.json",
+      "covers": [],
+      "capabilities": [
+        "sketch.constraint_tool_repeat",
+        "sketch.constraint_failure_recovery",
+        "sketch.equal_circle_chain",
+        "sketch.constraint_glyph_targets",
+        "sketch.constraint_history_storage"
+      ],
+      "inputs": [
+        "tests/app_harness.py"
+      ],
+      "limits": "Bounded tutorial prerequisite, does not attest full source/native workflow or close a broad issue."
+    },
+    "angular-sketch": {
+      "script": "tests/angular_workflow_api.py",
+      "fixture": "tests/workflows/fixtures/angular-sketch.json",
+      "result": "angular-workflow-api.json",
+      "covers": [],
+      "capabilities": [
+        "sketch.two_line_angles",
+        "sketch.angle_sector_selection",
+        "sketch.angle_upstream_solid",
+        "sketch.angle_history_storage"
+      ],
+      "inputs": [
+        "tests/app_harness.py"
+      ],
+      "limits": "Bounded tutorial prerequisite, does not attest full source/native workflow or close a broad issue."
+    },
+    "sketch-snaps": {
+      "script": "tests/sketch_snap_api.py",
+      "fixture": "tests/workflows/fixtures/sketch-snaps.json",
+      "result": "sketch-snaps-api.json",
+      "covers": [],
+      "capabilities": [
+        "sketch.pointer_snap_preview",
+        "sketch.retained_origin_coincidence",
+        "sketch.snapped_profile_solid_history"
+      ],
+      "inputs": [
+        "tests/app_harness.py"
+      ],
+      "limits": "Bounded origin/endpoint pointer inference; not midpoint/general sketch snapping or full tutorial."
     }
   },
   "gates": {

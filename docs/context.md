@@ -593,3 +593,29 @@ claiming exact first activity. Luna prepared bounded public-source instructions
 in ../Alloy-reference-records/knowledge/specs/origin-endpoint-inference.md.
 Read it before implementing; documented snap symbols/retained relationships are
 separate from proposed pixel threshold and unresolved override behavior.
+
+## Autonomous continuation correction (2026-10-12)
+
+The user clarified that milestone notifications are progress updates, not stopping
+points. Continue pulling and implementing the tutorial-first queue with subagents
+and independent verification after reporting a milestone. Do not yield merely
+because one slice was committed. Stop only for a genuine blocker requiring user
+input, explicit user direction, or completion of the requested queue. Preserve
+proportional verification and update issues/board as work advances.
+
+## Origin snapping checkpoint and next work (2026-10-12)
+
+Origin/endpoint inference now creates durable coincidence constraints for native
+line/rectangle pointer creation. Focused core and real-app profile/extrusion/edit/
+history/storage checks pass. Native L and five clicks produced a closed four-edge
+outline with a fixed origin and retained chain joints; native Finish and subsequent
+API history/reopen passed. Astra reviewed source and captures without a material
+blocker. See docs/validation/sketch-snaps.md for exact limits and evidence. The
+private candidate was closed; human build-input remains untouched.
+
+The backlog is157 tasks. SKT-020 (#156) tracks accepted-edit undo inside unfinished
+sketches, the next implementation slice. FND-014 (#157) tracks shareable real-app
+tutorial videos with cursor/click/key and step overlays. macOS capture capability
+was inspected, but recording permissions, framing and output have not been tested;
+no video exists yet. Videos and research remain outside git. Label API-driven
+actions distinctly from native inputs in eventual demonstrations.

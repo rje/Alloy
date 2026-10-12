@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Real-app angular sketch -> solid -> upstream edit workflow; bounded tutorial slice."""
 import argparse
+import hashlib
 import json
 import math
 from pathlib import Path
@@ -15,11 +16,15 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--app', required=True)
     parser.add_argument('--output', required=True)
+    parser.add_argument('--fixture', default=str(Path(__file__).parent / 'workflows/fixtures/angular-sketch.json'))
     args = parser.parse_args()
+    fixture = json.loads(Path(args.fixture).read_text())
+    assert fixture['case'] == 'angular-sketch'
     output = Path(args.output).resolve()
     captures = []
     with application(args.app, output) as (call, transcript):
-        assert call('app.state')['viewport']['gpu']['hardwareAccelerated']
+        initial = call('app.state')
+        assert initial['viewport']['gpu']['hardwareAccelerated']
         session = call('sketch.begin', {'plane': 'XY', 'name': 'Angular triangular plate'})
         # Closed connected profile; angle uses the opposite ray of the closing edge.
         for coords in ((0, 0, 30, 0), (30, 0, 15, 20), (15, 20, 0, 0)):
@@ -85,7 +90,10 @@ def main():
         near(reopened['evaluation']['bodies'][0]['volumeMm3'], 2250 * math.sin(math.radians(60)))
     (output / 'angular-workflow-api.json').write_text(json.dumps({
         'result': 'passed', 'scope': 'Bounded angular sketch/extrusion/upstream edit; not full illustrated tutorial',
-        'transcript': transcript, 'captures': captures,
+        'transcript': transcript, 'captures': captures, 'initialState': initial,
+        'fixtureSha256': hashlib.sha256(Path(args.fixture).read_bytes()).hexdigest(),
+        'verifiedCapabilities': ['sketch.two_line_angles', 'sketch.angle_sector_selection', 'sketch.angle_upstream_solid', 'sketch.angle_history_storage'],
+        'evidenceDimensions': {key: {'status': 'passed'} for key in ('api', 'hardware', 'geometry', 'save_reopen')},
         'nativeInput': 'separate', 'visual': 'captured; independent review required'}, indent=2) + '\n')
     print('PASS: angular sketch, extrusion, upstream edit, history and reopen')
 

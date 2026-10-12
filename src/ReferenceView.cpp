@@ -663,6 +663,31 @@ void ReferenceView::showSketchCursor(const QString& plane,const QPointF& first,c
     sketchCursor_->SetColor(Quantity_Color(0.30,0.58,0.87,Quantity_TOC_RGB));
     context_->Display(sketchCursor_,AIS_WireFrame,-1,false);context_->Deactivate(sketchCursor_);context_->UpdateCurrentViewer();
 }
+void ReferenceView::showSketchSnap(const QString& plane,const QJsonObject& snap) {
+    if(!context_.IsNull() && !sketchSnapCue_.IsNull())context_->Remove(sketchSnapCue_,false);
+    sketchSnapCue_.Nullify();sketchSnapState_=snap;
+    const auto status=snap.value("status").toString();
+    if(context_.IsNull() || (status!="acquired" && status!="ambiguous"))return;
+    const double u=snap.value("uMm").toDouble(),v=snap.value("vMm").toDouble();
+    const auto center=projectSketchPoint(u,v,plane),offset=projectSketchPoint(u+100,v,plane);
+    const double pixels=std::hypot(offset["x"].toDouble()-center["x"].toDouble(),offset["y"].toDouble()-center["y"].toDouble());
+    if(pixels<1e-7)return;
+    const double size=600/pixels;
+    TopoDS_Compound compound;BRep_Builder builder;builder.MakeCompound(compound);
+    auto segment=[&](double x1,double y1,double x2,double y2){builder.Add(compound,BRepBuilderAPI_MakeEdge(sketchWorld(plane,u+x1*size,v+y1*size),sketchWorld(plane,u+x2*size,v+y2*size)).Edge());};
+    if(status=="ambiguous"){
+        segment(-1,-1,1,1);segment(-1,1,1,-1);
+    } else {
+        segment(0,-1,1,0);segment(1,0,0,1);segment(0,1,-1,0);segment(-1,0,0,-1);
+        if(snap.value("target").toObject().value("kind")=="origin"){
+            segment(-0.5,0,0.5,0);segment(0,-0.5,0,0.5);
+        }
+    }
+    sketchSnapCue_=sketchPresentation(compound);
+    sketchSnapCue_->SetColor(status=="ambiguous" ? Quantity_Color(0.95,0.53,0.10,Quantity_TOC_RGB) : Quantity_Color(0.08,0.55,0.84,Quantity_TOC_RGB));
+    sketchSnapCue_->SetWidth(2*devicePixelRatioF());sketchSnapCue_->SetZLayer(Graphic3d_ZLayerId_Topmost);
+    context_->Display(sketchSnapCue_,AIS_WireFrame,-1,false);context_->Deactivate(sketchSnapCue_);context_->UpdateCurrentViewer();
+}
 void ReferenceView::showSketchCurveCursor(const QJsonObject& feature) {
     clearSketchCursor();if(context_.IsNull())return;
     const auto parameters=feature["parameters"].toObject(),entity=parameters["entities"].toArray().first().toObject();
@@ -671,7 +696,9 @@ void ReferenceView::showSketchCurveCursor(const QJsonObject& feature) {
 }
 void ReferenceView::clearSketchCursor() {
     if(!context_.IsNull() && !sketchCursor_.IsNull())context_->Remove(sketchCursor_,false);
+    if(!context_.IsNull() && !sketchSnapCue_.IsNull())context_->Remove(sketchSnapCue_,false);
     sketchCursor_.Nullify();
+    sketchSnapCue_.Nullify();sketchSnapState_={};
 }
 void ReferenceView::fit(const std::vector<EvaluatedBody>& bodies,const std::vector<EvaluatedSketch>& sketches) {
     Bnd_Box bounds;
@@ -817,6 +844,9 @@ QJsonObject ReferenceView::diagnostics() const {
     result.insert("cursorPreviewVisible",!sketchCursor_.IsNull());
     result.insert("sketchDecorations",static_cast<int>(sketchDecorations_.size()));
     result.insert("sketchAnnotations",annotationLayouts_);
+    auto snapCue=sketchSnapState_;snapCue["visible"]=!sketchSnapCue_.IsNull();
+    snapCue["marker"]=snapCue.value("status")=="ambiguous" ? "cross" : snapCue.value("status")=="acquired" ? (snapCue.value("target").toObject().value("kind")=="origin" ? "origin-diamond" : "endpoint-diamond") : "none";
+    result.insert("sketchSnapCue",snapCue);
     result.insert("sketchConstraintGlyphs",constraintGlyphs_);
     result.insert("sketchConstraintVisibility",QJsonObject{{"visible",!decorationFeature_.isEmpty()},{"editable",false}});
     QJsonArray profiles;for(const auto& profile:draftProfiles_) {

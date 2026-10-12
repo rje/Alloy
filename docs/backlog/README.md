@@ -7,7 +7,7 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-There are **155 issues**: **99 implementation, 15 research, 22 epics, and 19
+There are **157 issues**: **101 implementation, 15 research, 22 epics, and 19
 validation gates**. Issue count is a decomposition, not a product coverage claim.
 
 ## Active delivery order
@@ -44,9 +44,9 @@ require macOS/Windows/Linux qualification; CI remains tag/manual only.
 
 | Phase | Count | Result |
 | --- | ---: | --- |
-| P0 Foundation | 20 | Public baseline, MIT dependency audit, document/naming/solver decisions, portable controls, native CI/packages/releases and hardware evidence |
+| P0 Foundation | 21 | Public baseline, MIT dependency audit, document/naming/solver decisions, portable controls, native CI/packages/releases and hardware evidence |
 | P1 Geometry/document | 17 | Real hardware-backed OCCT viewport, authored primitive document, selection, undo/save and STEP |
-| P2 Parametric modeling | 40 | Constrained sketches, parameters, editable extrusion/fillet chain and broader basic solid tools |
+| P2 Parametric modeling | 41 | Constrained sketches, parameters, editable extrusion/fillet chain and broader basic solid tools |
 | P3 Shape/import/print breadth | 26 | Solids/surfaces, common interchange and qualified printing export |
 | P4 Initial release | 8 | Robustness, recovery, packaging, performance, physical/visual workflow evidence |
 | P5 Assemblies/drawings | 10 | Components/joints, configurations and associative drawings |

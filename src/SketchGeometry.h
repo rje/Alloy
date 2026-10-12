@@ -24,6 +24,12 @@ public:
     // Exact OCCT edge from validated analytic intent, shared by display/profiles.
     static TopoDS_Edge analyticEdge(const QJsonObject& parameters, const QJsonObject& entity);
     static QJsonObject addRectangle(const QJsonObject& draft, const QJsonObject& arguments);
+    // Pointer creation is transactional. Optional startSnapTarget/endSnapTarget
+    // are {kind:origin} or {kind:point,pointId:UUID}; accepted snaps retain
+    // distinct endpoint IDs and real coincidence constraints. Explicit coordinate
+    // creation above never acquires an implicit target.
+    static SolveResult addPointerEntity(const QJsonObject& draft, const QString& tool,
+        const QJsonObject& arguments);
     static SolveResult solveDraft(const QJsonObject& draft);
     static SolveResult addConstraint(const QJsonObject& draft, const QJsonObject& arguments);
     // Line angles use kind=angle, two entityIds, optional raySigns (+1/-1),

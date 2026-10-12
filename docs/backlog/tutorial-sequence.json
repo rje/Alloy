@@ -10,7 +10,8 @@
         "SKT-006",
         "SKT-007",
         "SKT-018",
-        "SKT-008"
+        "SKT-008",
+        "SKT-020"
       ],
       "acceptance": "Repeated constraint-first picks; Equal lines and five circles; driving edit; actual badges; Escape; finish, undo, reopen.",
       "status": "pending"

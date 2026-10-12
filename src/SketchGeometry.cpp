@@ -235,10 +235,62 @@ QJsonObject SketchGeometry::addRectangle(const QJsonObject& draft, const QJsonOb
     return changed;
 }
 
+SketchGeometry::SolveResult SketchGeometry::addPointerEntity(const QJsonObject& draft, const QString& tool, const QJsonObject& arguments) {
+    try {
+        validateDraft(draft);
+        if (tool!="line" && tool!="rectangle") reject("Pointer authoring supports Line and Rectangle");
+        checkFields(arguments,{"u1Mm","v1Mm","u2Mm","v2Mm","startSnapTarget","endSnapTarget"});
+        double u1=coordinate(arguments,"u1Mm"),v1=coordinate(arguments,"v1Mm"),u2=coordinate(arguments,"u2Mm"),v2=coordinate(arguments,"v2Mm");
+        auto parameters=draft["parameters"].toObject();auto points=parameters["points"].toArray();
+        auto entities=parameters["entities"].toArray();auto constraints=parameters["constraints"].toArray();
+        auto freshPoint=[&](double u,double v) {const auto id=newId();points.append(QJsonObject{{"id",id},{"uMm",u},{"vMm",v}});return id;};
+        auto target=[&](const QString& key,double& u,double& v) -> QString {
+            if (!arguments.contains(key)) return {};
+            if (!arguments[key].isObject()) reject("Snap target must be an object");
+            const auto selected=arguments[key].toObject();const auto kind=selected["kind"].toString();QString id;
+            if (kind=="origin") {
+                if (selected.size()!=1) reject("Origin snap target only accepts kind");
+                id=parameters["originPointId"].toString();
+                if (id.isEmpty()) {
+                    id=freshPoint(0,0);parameters["originPointId"]=id;
+                    constraints.append(QJsonObject{{"id",newId()},{"type","fixed"},{"pointIds",QJsonArray{id}},{"uMm",0},{"vMm",0}});
+                }
+            } else if (kind=="point") {
+                if (selected.size()!=2 || !selected["pointId"].isString() || !validId(selected["pointId"].toString())) reject("Endpoint snap requires a stable pointId");
+                id=selected["pointId"].toString();
+            } else reject("Unsupported snap target kind");
+            for (const auto& entry:points) {const auto p=entry.toObject();if(p["id"]==id){u=p["uMm"].toDouble();v=p["vMm"].toDouble();return id;}}
+            reject("Snap target point does not exist");
+        };
+        const auto startTarget=target("startSnapTarget",u1,v1),endTarget=target("endSnapTarget",u2,v2);
+        if (tool=="line" && (std::hypot(u2-u1,v2-v1)<minimumLength || std::hypot(u2-u1,v2-v1)>maximumLength)) reject("Snapped line length out of supported range");
+        if (tool=="rectangle" && (std::abs(u2-u1)<minimumLength || std::abs(v2-v1)<minimumLength)) reject("Snapped rectangle sides must be at least 0.001 mm");
+        const auto first=freshPoint(u1,v1);QString last;
+        auto edge=[&](const QString& a,const QString& b) {const auto id=newId();entities.append(QJsonObject{{"id",id},{"type","line"},{"startPointId",a},{"endPointId",b}});return id;};
+        if (tool=="line") {last=freshPoint(u2,v2);edge(first,last);}
+        else {
+            const auto second=freshPoint(u2,v1);last=freshPoint(u2,v2);const auto fourth=freshPoint(u1,v2);
+            const QString corners[]{first,second,last,fourth};
+            for (int i=0;i<4;++i) {
+                const auto id=edge(corners[i],corners[(i+1)%4]);
+                constraints.append(QJsonObject{{"id",newId()},{"type",i%2==0 ? "horizontal" : "vertical"},{"entityIds",QJsonArray{id}}});
+            }
+        }
+        auto coincide=[&](const QString& endpoint,const QString& selected) {
+            if (!selected.isEmpty())constraints.append(QJsonObject{{"id",newId()},{"type","coincident"},{"pointIds",QJsonArray{endpoint,selected}}});
+        };
+        coincide(first,startTarget);coincide(last,endTarget);
+        parameters["points"]=points;parameters["entities"]=entities;parameters["constraints"]=constraints;
+        auto candidate=draft;candidate["parameters"]=parameters;
+        const auto result=solveDraft(candidate);
+        return result.ok ? result : SolveResult{false,draft,result.diagnostics,result.error};
+    } catch (const std::exception& error) {return invalidDraft(draft,QString::fromUtf8(error.what()));}
+}
+
 QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<QString>& authoredIds) {
     const auto plane = parameters["plane"].toString();
     if (plane != "XY" && plane != "XZ" && plane != "YZ") return "Unsupported sketch origin plane";
-    const QSet<QString> allowed{"plane", "points", "entities", "constraints", "dimensions"};
+    const QSet<QString> allowed{"plane", "points", "entities", "constraints", "dimensions", "originPointId"};
     for (auto it = parameters.begin(); it != parameters.end(); ++it)
         if (!allowed.contains(it.key())) return "Unknown sketch parameter: " + it.key();
     if (!parameters["points"].isArray() || !parameters["entities"].isArray()) return "Sketch requires points and entities";
@@ -261,6 +313,13 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
             points.insert(id, point);
         }
         QSet<QString> usedPoints, entityIds;
+        const auto originId=parameters["originPointId"].toString();
+        if (parameters.contains("originPointId")) {
+            if (!parameters["originPointId"].isString() || !points.contains(originId)) return "Sketch origin reference point does not exist";
+            const auto origin=points[originId];
+            if (std::abs(origin["uMm"].toDouble())>endpointTolerance || std::abs(origin["vMm"].toDouble())>endpointTolerance) return "Sketch origin reference must remain at zero";
+            usedPoints.insert(originId);
+        }
         for (const auto& entry : parameters["entities"].toArray()) {
             if (!entry.isObject()) return "Sketch entity must be an object";
             const auto entity = entry.toObject();
@@ -337,6 +396,12 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
                     || !checkReferences(constraint, "entityIds", (type == "parallel" || type == "perpendicular") ? 2 : 1, lineIds))
                     return "Invalid line constraint references";
             } else return "Unsupported sketch constraint type";
+        }
+        if (!originId.isEmpty()) {
+            bool fixed=false;
+            for (const auto& entry:parameters["constraints"].toArray()) {const auto c=entry.toObject();
+                if (c["type"]=="fixed" && c["pointIds"].toArray()==QJsonArray{originId} && c["uMm"].toDouble()==0 && c["vMm"].toDouble()==0) fixed=true;}
+            if (!fixed) return "Sketch origin reference requires a retained fixed relation at zero";
         }
         for (const auto& entry : parameters["dimensions"].toArray()) {
             if (!entry.isObject()) return "Sketch dimension must be an object";
@@ -512,6 +577,7 @@ SketchGeometry::SolveResult SketchGeometry::movePoint(const QJsonObject& draft, 
         checkFields(arguments, {"pointId", "uMm", "vMm"});
         coordinate(arguments, "uMm"); coordinate(arguments, "vMm");
         auto parameters = draft["parameters"].toObject();
+        if (arguments["pointId"]==parameters.value("originPointId") && parameters.contains("originPointId")) reject("Sketch origin reference cannot be moved");
         auto points = parameters["points"].toArray();
         bool found = false;
         for (int i = 0; i < points.size(); ++i) {

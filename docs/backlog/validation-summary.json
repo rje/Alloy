@@ -1,15 +1,15 @@
 {
-  "issues": 155,
+  "issues": 157,
   "kinds": {
     "research": 15,
-    "implementation": 99,
+    "implementation": 101,
     "validation": 19,
     "epic": 22
   },
   "phases": {
-    "P0 Foundation": 20,
+    "P0 Foundation": 21,
     "P1 Geometry/document": 17,
-    "P2 Parametric modeling": 40,
+    "P2 Parametric modeling": 41,
     "P3 Shape/import/print breadth": 26,
     "P4 Initial release": 8,
     "P5 Assemblies/drawings": 10,
