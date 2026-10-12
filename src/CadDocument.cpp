@@ -62,6 +62,13 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
             else continue;
             return diagnostic;
         }
+        if(feature["type"]=="extrude" && feature["parameters"].toObject()["operation"]=="cut") {
+            const auto target=feature["parameters"].toObject()["targetBodyIds"].toArray()[0].toString();
+            QJsonObject diagnostic{{"featureId",feature["id"]},{"featureType","extrude"},{"targetBodyId",target}};
+            if(!bodyPositions.contains(target)){diagnostic["code"]="missing_dependency";diagnostic["message"]="Cut target body does not exist";return diagnostic;}
+            if(bodyPositions.value(target)>=i){diagnostic["code"]="forward_dependency";diagnostic["message"]="Cut target must precede its modifier";return diagnostic;}
+            if(!activeBodies.contains(target)){diagnostic["code"]="consumed_dependency";diagnostic["message"]="Cut target was consumed by an earlier feature";return diagnostic;}
+        }
         if (feature["type"] != "extrude") continue;
         const auto parameters = feature["parameters"].toObject();
         const auto source = parameters["sketchId"].toString(), id = feature["id"].toString();
@@ -189,15 +196,21 @@ CadDocument::CandidateEvaluation CadDocument::evaluateCandidate(const QJsonObjec
     }
     return result;
 }
+EvaluatedDocument CadDocument::evaluationBefore(const QString& featureId) const {
+    auto prefix=authored_;QJsonArray features;bool found=false;
+    for(const auto& value:authored_["features"].toArray()){if(value.toObject()["id"]==featureId){found=true;break;}features.append(value);}
+    if(!found)throw std::invalid_argument("History input feature is unavailable");prefix["features"]=features;
+    return GeometryKernel::evaluateDocument(prefix);
+}
 QJsonObject CadDocument::extrusionCandidate(const QJsonObject& authored, const QJsonObject& arguments) {
     auto reject = [](const QString& message) {throw std::invalid_argument(message.toStdString());};
     const auto initial = validate(authored);
     if (!initial.isEmpty()) reject(initial);
-    const QSet<QString> allowed{"sketchId","profileId","profileIds","distanceMm","name","featureId","newFeatureId","newBodyId"};
+    const QSet<QString> allowed{"sketchId","profileId","profileIds","distanceMm","name","featureId","newFeatureId","newBodyId","operation","targetBodyIds"};
     for (auto it = arguments.begin(); it != arguments.end(); ++it)
         if (!allowed.contains(it.key())) reject("Unknown extrusion argument: "+it.key());
     const bool edit = arguments.contains("featureId"), newFeature = arguments.contains("newFeatureId"), newBody = arguments.contains("newBodyId");
-    if (newFeature != newBody || (edit && newFeature)) reject("Choose an existing extrusion featureId or a newFeatureId/newBodyId pair");
+    if(edit && (newFeature || newBody))reject("Existing extrusion edits cannot reserve new feature/body IDs");
     auto candidate = authored; auto features = authored["features"].toArray();
     QJsonObject feature; int index = -1;
     if (edit) {
@@ -205,12 +218,28 @@ QJsonObject CadDocument::extrusionCandidate(const QJsonObject& authored, const Q
             feature = features[i].toObject();index = i;break;
         }
         if (index < 0 || feature["type"] != "extrude") reject("Extrusion feature identity/type is no longer available");
-    } else feature = {{"id",newFeature ? arguments["newFeatureId"] : QJsonValue(newId())},
-        {"bodyId",newBody ? arguments["newBodyId"] : QJsonValue(newId())},{"ownerId",authored["documentId"]},
-        {"type","extrude"},{"name","Extrude"},{"visible",true}};
+    }
+    if(arguments.contains("operation") && !arguments["operation"].isString())reject("Extrusion operation must be a string");
+    const auto previousParameters=feature["parameters"].toObject();
+    const auto operation=arguments.value("operation").toString(previousParameters.value("operation").toString("newBody"));
+    if(operation!="newBody" && operation!="cut")reject("This extrusion slice supports New Body or Cut only");
+    const bool cut=operation=="cut";
+    if(edit && cut!=(previousParameters["operation"]=="cut"))reject("Changing an existing extrusion between New Body and Cut requires explicit body identity migration");
+    if(cut && newBody)reject("Cut modifies retained targets and cannot own a new body ID");
+    if(!cut && !edit && newFeature!=newBody)reject("New Body reserves newFeatureId/newBodyId together");
+    if(!cut && arguments.contains("targetBodyIds"))reject("New Body cannot carry Cut target references");
+    if(!edit) {
+        feature={{"id",newFeature ? arguments["newFeatureId"] : QJsonValue(newId())},{"ownerId",authored["documentId"]},{"type","extrude"},{"name",cut ? "Extrude Cut" : "Extrude"},{"visible",true}};
+        if(!cut)feature["bodyId"]=newBody ? arguments["newBodyId"] : QJsonValue(newId());
+    }
     if (arguments.contains("name")) feature["name"] = arguments["name"];
     if(arguments.contains("profileId")==arguments.contains("profileIds"))reject("Choose profileId or profileIds exclusively");
     auto profileParameters=QJsonObject{{"sketchId",arguments["sketchId"]},{"distanceMm",arguments["distanceMm"]}};
+    if(cut) {
+        const auto targets=arguments.contains("targetBodyIds") ? arguments["targetBodyIds"] : previousParameters["targetBodyIds"];
+        if(!targets.isArray() || targets.toArray().size()!=1 || !targets.toArray()[0].isString() || !validId(targets.toArray()[0].toString()))reject("Cut requires exactly one explicit stable targetBodyIds entry");
+        profileParameters["operation"]="cut";profileParameters["targetBodyIds"]=targets;
+    }
     if(arguments.contains("profileIds")) {
         if(!arguments["profileIds"].isArray() || arguments["profileIds"].toArray().isEmpty())reject("Choose a nonempty profileIds array");
         QStringList ids;for(const auto& id:arguments["profileIds"].toArray()){
@@ -311,12 +340,18 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
             continue;
         }
         if (type != "box" && type != "cylinder" && type != "extrude") return "Unsupported feature type";
-        const auto bodyId = feature["bodyId"].toString();
-        if (!validId(bodyId) || ids.contains(bodyId)) return "Invalid or duplicate authored UUID";
-        ids.insert(bodyId);
+        const bool cut=type=="extrude" && p["operation"]=="cut";
+        if(cut) {
+            if(feature.contains("bodyId"))return "Extrude Cut modifies a target and cannot own a new body ID";
+            if(!p["targetBodyIds"].isArray() || p["targetBodyIds"].toArray().size()!=1 || !p["targetBodyIds"].toArray()[0].isString() || !validId(p["targetBodyIds"].toArray()[0].toString()))return "Cut requires exactly one stable targetBodyIds entry";
+        } else {
+            const auto bodyId = feature["bodyId"].toString();
+            if (!validId(bodyId) || ids.contains(bodyId)) return "Invalid or duplicate authored UUID";
+            ids.insert(bodyId);
+        }
         if (type == "extrude") {
             if (errorContext) {(*errorContext)["sketchId"] = p["sketchId"];(*errorContext)["profileId"] = p["profileId"];}
-            if (p.size()!=3 || !p["sketchId"].isString() || !validId(p["sketchId"].toString())
+            if (p.size()!=(cut ? 5 : 3) || !p["sketchId"].isString() || !validId(p["sketchId"].toString())
                 || p.contains("profileId")==p.contains("profileIds")) return "Extrusion requires sketchId and exclusive profileId or profileIds";
             if(p.contains("profileIds")) {
                 if(!p["profileIds"].isArray() || p["profileIds"].toArray().isEmpty())return "Extrusion requires a nonempty profileIds array";

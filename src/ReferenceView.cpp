@@ -1,5 +1,6 @@
 #include "ReferenceView.h"
 #include "SketchGeometry.h"
+#include "GeometryKernel.h"
 #include <QMouseEvent>
 #include <QWheelEvent>
 #include <QContextMenuEvent>
@@ -1203,6 +1204,45 @@ void ReferenceView::showExtrudePreview(const EvaluatedBody& body,const Evaluated
     preview_->SetColor(Quantity_Color(0.16,0.47,0.86,Quantity_TOC_sRGB));
     preview_->SetTransparency(0.20);
     context_->Redisplay(preview_,false);
+    setExtrusionCue(profile,distanceMm,sourceProfileIds,units,"newBody");
+    context_->UpdateCurrentViewer();
+}
+void ReferenceView::showCutPreview(const EvaluatedBody& body,const std::vector<EvaluatedProfile>& profiles,double distanceMm,
+    const QJsonArray& sourceProfileIds,const QString& units) {
+    if(profiles.empty())return;
+    replacePreview(body.shape,body.bodyId,true);
+    if(context_.IsNull())return;
+    for(const auto& profile:profiles) {
+        Handle(AIS_Shape) tool=new AIS_Shape(GeometryKernel::extrusion(profile,distanceMm));
+        tool->SetColor(Quantity_Color(0.91,0.24,0.27,Quantity_TOC_sRGB));tool->SetTransparency(0.62);
+        tool->SetOwnDeviationCoefficient(0.0001);tool->SetOwnDeviationAngle(0.04);
+        tool->Attributes()->SetFaceBoundaryDraw(true);
+        tool->Attributes()->SetFaceBoundaryAspect(new Prs3d_LineAspect(
+            Quantity_Color(0.80,0.12,0.16,Quantity_TOC_sRGB),Aspect_TOL_SOLID,1.6*devicePixelRatioF()));
+        context_->Display(tool,AIS_Shaded,-1,false);context_->Deactivate(tool);cutTools_.push_back(tool);
+        // The selected source regions remain blue over the red disposable
+        // cutter volumes. A dedicated top layer keeps coplanar face fills
+        // stable while the normal finished-profile fills are suppressed.
+        Handle(AIS_Shape) selected=new AIS_Shape(profile.face);
+        selected->SetDisplayMode(AIS_Shaded);
+        selected->SetColor(Quantity_Color(0.05,0.36,0.80,Quantity_TOC_sRGB));selected->SetTransparency(0.08);
+        selected->Attributes()->SetFaceBoundaryDraw(true);
+        selected->Attributes()->SetFaceBoundaryAspect(new Prs3d_LineAspect(
+            Quantity_Color(0.88,0.20,0.24,Quantity_TOC_sRGB),Aspect_TOL_SOLID,2.0*devicePixelRatioF()));
+        selected->SetZLayer(Graphic3d_ZLayerId_Topmost);
+        context_->Display(selected,AIS_Shaded,-1,false);context_->Deactivate(selected);cutProfileOverlays_.push_back(selected);
+    }
+    setExtrusionCue(profiles.front(),distanceMm,sourceProfileIds,units,"cut");
+    context_->UpdateCurrentViewer();
+}
+void ReferenceView::showExtrudeHandle(const EvaluatedProfile& profile,const QJsonArray& sourceProfileIds,const QString& units,const QString& operation,double distanceMm) {
+    clearPreviewPresentation();
+    if(context_.IsNull())return;
+    setExtrusionCue(profile,distanceMm,sourceProfileIds,units,operation);
+    context_->UpdateCurrentViewer();
+}
+void ReferenceView::setExtrusionCue(const EvaluatedProfile& profile,double distanceMm,const QJsonArray& sourceProfileIds,
+    const QString& units,const QString& operation) {
     previewProfile_=profile.profileId;previewProfileIds_=sourceProfileIds.isEmpty() ? QJsonArray{profile.profileId} : sourceProfileIds;
     applyEditDisplay(false);
     GProp_GProps properties;BRepGProp::SurfaceProperties(profile.face,properties);const auto start=properties.CentreOfMass();
@@ -1213,10 +1253,10 @@ void ReferenceView::showExtrudePreview(const EvaluatedBody& body,const Evaluated
     const double displayDistance=units=="in" ? distanceMm/25.4 : distanceMm;
     const QString label=QString::number(displayDistance,'f',2)+" "+units;
     extrusionCueState_={{"sketchId",profile.sketchId},{"profileId",profile.profileId},{"profileIds",previewProfileIds_},{"distanceMm",distanceMm},
+        {"operation",operation},
         {"units",units},{"label",label},{"plane",profile.plane},{"frame",frame},
         {"startMm",QJsonArray{start.X(),start.Y(),start.Z()}},{"endMm",QJsonArray{end.X(),end.Y(),end.Z()}}};
     refreshExtrusionCue();
-    context_->UpdateCurrentViewer();
 }
 void ReferenceView::refreshExtrusionCue() {
     if(context_.IsNull() || view_.IsNull() || extrusionCueState_.isEmpty())return;
@@ -1225,16 +1265,22 @@ void ReferenceView::refreshExtrusionCue() {
     const auto startArray=extrusionCueState_.value("startMm").toArray(),endArray=extrusionCueState_.value("endMm").toArray();
     if(startArray.size()!=3 || endArray.size()!=3)return;
     const gp_Pnt start(startArray[0].toDouble(),startArray[1].toDouble(),startArray[2].toDouble());
-    const gp_Pnt end(endArray[0].toDouble(),endArray[1].toDouble(),endArray[2].toDouble());
-    gp_Vec direction(start,end);const double length=direction.Magnitude();if(length<1e-9)return;
-    direction.Normalize();
-    const auto frame=extrusionCueState_.value("frame").toObject();const auto u=frame.value("uAxis").toArray();
-    gp_Vec side(u[0].toDouble(),u[1].toDouble(),u[2].toDouble());
-    int startX,startY,endX,endY,sideX,sideY;
+    const auto frame=extrusionCueState_.value("frame").toObject();const auto u=frame.value("uAxis").toArray(),n=frame.value("normal").toArray();
+    gp_Vec normal(n[0].toDouble(),n[1].toDouble(),n[2].toDouble());if(normal.Magnitude()<1e-9)return;normal.Normalize();
+    const auto scale=windowScale();int startX,startY,axisX,axisY;
     view_->Convert(start.X(),start.Y(),start.Z(),startX,startY);
+    const auto axisPoint=start.Translated(normal*100.0);view_->Convert(axisPoint.X(),axisPoint.Y(),axisPoint.Z(),axisX,axisY);
+    const QPointF axisPixels((axisX-startX)/scale.x()/100.0,(axisY-startY)/scale.y()/100.0);
+    const double axisPixelsPerMm=std::hypot(axisPixels.x(),axisPixels.y());if(axisPixelsPerMm<1e-5)return;
+    const double actualDistance=extrusionCueState_.value("distanceMm").toDouble();
+    const double displayDistance=std::abs(actualDistance)*axisPixelsPerMm<30.0
+        ? (actualDistance<0 ? -30.0 : 30.0)/axisPixelsPerMm : actualDistance;
+    const gp_Pnt end=start.Translated(normal*displayDistance);
+    gp_Vec direction(start,end);const double length=direction.Magnitude();direction.Normalize();
+    gp_Vec side(u[0].toDouble(),u[1].toDouble(),u[2].toDouble());
+    int endX,endY,sideX,sideY;
     view_->Convert(end.X(),end.Y(),end.Z(),endX,endY);
     const auto sidePoint=end.Translated(side*100.0);view_->Convert(sidePoint.X(),sidePoint.Y(),sidePoint.Z(),sideX,sideY);
-    const auto scale=windowScale();
     const double alongPixels=std::hypot((endX-startX)/scale.x(),(endY-startY)/scale.y())/length;
     const double sidePixels=std::hypot((sideX-endX)/scale.x(),(sideY-endY)/scale.y())/100.0;
     if(alongPixels<1e-5 || sidePixels<1e-5)return;
@@ -1254,18 +1300,34 @@ void ReferenceView::refreshExtrusionCue() {
     label->SetColorSubTitle(Quantity_Color(1.0,1.0,1.0,Quantity_TOC_sRGB));
     label->SetZLayer(Graphic3d_ZLayerId_Topmost);context_->Display(label,0,-1,false);context_->Deactivate(label);extrusionCue_.push_back(label);
     extrusionCueState_["arrowHeadPixels"]=head*alongPixels;extrusionCueState_["labelHeightPixels"]=14;
-    extrusionCueState_["labelScreen"]=QJsonObject{{"x",endX/scale.x()+0.21*(sideX-endX)/scale.x()/sidePixels},{"y",endY/scale.y()+0.21*(sideY-endY)/scale.y()/sidePixels}};
+    extrusionCueState_["startScreen"]=QJsonObject{{"x",startX/scale.x()},{"y",startY/scale.y()}};
+    extrusionCueState_["endScreen"]=QJsonObject{{"x",endX/scale.x()},{"y",endY/scale.y()}};
+    extrusionCueState_["axisPixelsPerMm"]=QJsonObject{{"x",axisPixels.x()},{"y",axisPixels.y()}};
+    extrusionCueState_["labelScreen"]=QJsonObject{{"x",endX/scale.x()+21.0*(sideX-endX)/scale.x()/(100*sidePixels)},
+        {"y",endY/scale.y()+21.0*(sideY-endY)/scale.y()/(100*sidePixels)}};
 }
 void ReferenceView::clearPreviewPresentation() {
     if(!context_.IsNull()) {
         for(const auto& cue:extrusionCue_)context_->Remove(cue,false);
+        for(const auto& tool:cutTools_)context_->Remove(tool,false);
+        for(const auto& selected:cutProfileOverlays_)context_->Remove(selected,false);
         if(!preview_.IsNull())context_->Remove(preview_,false);
     }
-    preview_.Nullify();previewReplacedBody_.clear();previewProfile_.clear();previewProfileIds_={};extrusionCue_.clear();extrusionCueState_={};
+    preview_.Nullify();previewReplacedBody_.clear();previewProfile_.clear();previewProfileIds_={};cutTools_.clear();cutProfileOverlays_.clear();extrusionCue_.clear();extrusionCueState_={};
 }
 void ReferenceView::clearPreview() {
+    extrusionDragActive_=false;
     clearPreviewPresentation();
     applyEditDisplay();
+}
+void ReferenceView::updateExtrusionDrag(const QPointF& position,const QString& phase) {
+    const auto axis=extrusionCueState_.value("axisPixelsPerMm").toObject();
+    const QPointF pixelsPerMm(axis["x"].toDouble(),axis["y"].toDouble());
+    const double length2=QPointF::dotProduct(pixelsPerMm,pixelsPerMm);if(length2<1e-10)return;
+    const double deltaMm=QPointF::dotProduct(position-extrusionDragPress_,pixelsPerMm)/length2;
+    const double distance=std::clamp(extrusionDragInitialMm_+deltaMm,-100000.0,100000.0);
+    dispatch("solid.extrudeDrag",{{"distanceMm",distance},{"x",position.x()},{"y",position.y()},{"phase",phase}});
+    if(!extrusionCueState_.isEmpty())extrusionCueState_["dragActive"]=phase!="end";
 }
 QJsonObject ReferenceView::diagnostics() const {
     QJsonObject result{{"initialized", !view_.IsNull()}, {"error", error_}, {"hardwareAccelerated", false},
@@ -1364,6 +1426,8 @@ QJsonObject ReferenceView::diagnostics() const {
     result.insert("combineInputs",QJsonObject{{"targetBodyId",combineTargetId_},{"toolBodyIds",combineToolIds_},
         {"targetColor","blue"},{"toolColor","orange"},{"hiddenSelectedInputsTemporarilyRevealed",true}});
     result.insert("extrusionCue",extrusionCueState_);
+    result.insert("cutPreviewToolCount",static_cast<int>(cutTools_.size()));
+    result.insert("cutPreviewSelectedProfileCount",static_cast<int>(cutProfileOverlays_.size()));
     result.insert("selectedSupportFace",selectedSupportFace_);
     result.insert("supportFaceHighlightVisible",!selectedSupportFaceOverlay_.IsNull());
     result.insert("hoveredSupportFace",hoveredSupportFace_);
@@ -1407,6 +1471,19 @@ void ReferenceView::mousePressEvent(QMouseEvent* e) {
         panButton_=e->button();last_=e->position();setCursor(Qt::ClosedHandCursor);e->accept();
     }
     else if(e->button()==Qt::LeftButton){
+        if(sketchPlane_.isEmpty() && !extrusionCueState_.isEmpty()) {
+            const auto start=extrusionCueState_.value("startScreen").toObject(),end=extrusionCueState_.value("endScreen").toObject();
+            const QPointF a(start["x"].toDouble(),start["y"].toDouble()),b(end["x"].toDouble(),end["y"].toDouble());
+            const auto direction=b-a;const double length2=QPointF::dotProduct(direction,direction);
+            if(length2>1e-8) {
+                const double t=std::clamp(QPointF::dotProduct(e->position()-a,direction)/length2,0.0,1.0);
+                if(QLineF(e->position(),a+direction*t).length()<=10.0) {
+                    extrusionDragActive_=true;extrusionDragPress_=e->position();
+                    extrusionDragInitialMm_=extrusionCueState_.value("distanceMm").toDouble();
+                    extrusionCueState_["dragActive"]=true;e->accept();return;
+                }
+            }
+        }
         if(!sketchPlane_.isEmpty() && decorationSelection_.value("tool")!="line" && decorationSelection_.value("tool")!="rectangle" && decorationSelection_.value("tool")!="circle" && decorationSelection_.value("tool")!="centerArc" && decorationSelection_.value("tool")!="threePointArc" && decorationPending_.value("phase")!="placing") {
             const auto picked=pickAnnotation(e->position().x(),e->position().y());
             if(!picked.isEmpty()) {
@@ -1425,7 +1502,9 @@ void ReferenceView::mousePressEvent(QMouseEvent* e) {
     else QWidget::mousePressEvent(e);
 }
 void ReferenceView::mouseMoveEvent(QMouseEvent* e) {
-    if (panButton_!=Qt::NoButton && e->buttons().testFlag(panButton_)) {
+    if(extrusionDragActive_ && e->buttons().testFlag(Qt::LeftButton)) {
+        updateExtrusionDrag(e->position(),"move");e->accept();
+    } else if (panButton_!=Qt::NoButton && e->buttons().testFlag(panButton_)) {
         const auto delta = e->position() - last_; last_ = e->position();
         dispatch("view.pan", {{"x",delta.x()},{"y",delta.y()}}); e->accept();
     } else if(!draggedAnnotation_.isEmpty() && e->buttons().testFlag(Qt::LeftButton)) {
@@ -1439,6 +1518,9 @@ void ReferenceView::mouseMoveEvent(QMouseEvent* e) {
     }
 }
 void ReferenceView::mouseReleaseEvent(QMouseEvent* e) {
+    if(e->button()==Qt::LeftButton && extrusionDragActive_) {
+        updateExtrusionDrag(e->position(),"end");extrusionDragActive_=false;e->accept();return;
+    }
     if(e->button()==Qt::LeftButton && !draggedAnnotation_.isEmpty()){
         if(annotationDragged_)dispatch("sketch.annotationEndGesture",{{"dimensionId",draggedAnnotation_},{"gestureId",annotationGestureId_}});
         draggedAnnotation_.clear();annotationGestureId_.clear();annotationDragged_=false;e->accept();return;

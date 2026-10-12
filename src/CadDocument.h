@@ -31,8 +31,10 @@ public:
     QJsonObject lastEvaluationError() const { return lastEvaluationError_; }
     static CandidateEvaluation evaluateCandidate(const QJsonObject& candidate);
     // Canonical args: sketchId, profileId, distanceMm, optional name; either an
-    // existing featureId edit or a reserved newFeatureId/newBodyId create pair.
+    // existing featureId edit or a reserved newFeatureId/newBodyId New Body pair.
+    // Cut adds operation=cut and exactly one targetBodyIds entry; it owns no body.
     const EvaluatedDocument& evaluation() const { return *evaluation_; }
+    EvaluatedDocument evaluationBefore(const QString& featureId) const;
     static QJsonObject extrusionCandidate(const QJsonObject& authored, const QJsonObject& arguments);
     // Canonical args: operation, targetBodyId, toolBodyIds, keepTools, optional
     // name; featureId edits an existing Boolean, newFeatureId reserves a create.
