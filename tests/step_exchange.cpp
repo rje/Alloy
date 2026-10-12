@@ -4,6 +4,7 @@
 #include <QCoreApplication>
 #include <QFile>
 #include <QJsonArray>
+#include <QJsonDocument>
 #include <QTemporaryDir>
 #include <cmath>
 #include <iostream>
@@ -30,7 +31,10 @@ int main(int argc, char** argv) {
 
         CadDocument document;
         const auto candidate=CadDocument::stepImportCandidate(document.authored(),{{"path",sourcePath}});
-        check(document.commit(candidate,"Import STEP").isEmpty(),"Import candidate commit");
+        const auto importError=document.commit(candidate,"Import STEP");
+        if (!importError.isEmpty()) std::cerr << importError.toStdString() << ' '
+            << QJsonDocument(document.lastEvaluationError()).toJson(QJsonDocument::Compact).toStdString() << '\n';
+        check(importError.isEmpty(),"Import candidate commit");
         check(document.bodies().size()==1 && document.history().count()==1,"One imported body and undo entry");
         auto summary=document.bodies().front().summary;
         check(summary["valid"].toBool() && summary["closed"].toBool(),"Imported solid valid and closed");

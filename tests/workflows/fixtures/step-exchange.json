@@ -1,0 +1,6 @@
+{
+  "schema": "alloy-step-exchange-fixture/1",
+  "boxSizeMm": [25.4, 50.8, 12.7],
+  "sourceUnits": "in",
+  "exportUnits": ["mm", "in"]
+}

@@ -40,7 +40,7 @@ target_compile_definitions(alloy_kernel PUBLIC ALLOY_OCCT_VERSION="${ALLOY_OCCT_
 
 add_library(alloy_application STATIC
     src/AlloyTheme.cpp src/AlloyTheme.h
-    src/AlloyWindow.cpp src/AlloyWindow.h src/CombineControls.cpp src/ExportControls.cpp
+    src/AlloyWindow.cpp src/AlloyWindow.h src/CombineControls.cpp src/ExportControls.cpp src/StepExportControls.cpp
     src/TutorialRecorder.cpp src/TutorialRecorder.h
     src/CadDocument.cpp src/CadDocument.h
     src/ReferenceView.cpp src/ReferenceView.h
@@ -87,6 +87,9 @@ if(BUILD_TESTING)
     target_include_directories(step_exchange_test PRIVATE src)
     target_link_libraries(step_exchange_test PRIVATE Qt6::Gui alloy_kernel)
     add_test(NAME step_exchange COMMAND step_exchange_test)
+    add_executable(step_fixture tests/step_fixture.cpp)
+    target_include_directories(step_fixture SYSTEM PRIVATE ${OpenCASCADE_INCLUDE_DIR})
+    target_link_libraries(step_fixture PRIVATE Qt6::Core TKernel TKMath TKG3d TKBRep TKPrim TKTopAlgo TKDESTEP TKXSBase)
     add_executable(document_model_test tests/document_model.cpp src/CadDocument.cpp src/CadDocument.h)
     target_include_directories(document_model_test PRIVATE src)
     target_link_libraries(document_model_test PRIVATE Qt6::Gui alloy_kernel)

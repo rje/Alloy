@@ -635,6 +635,19 @@
         "tests/app_harness.py"
       ]
     },
+    "DOC-011": {
+      "script": "tests/step_exchange_api.py",
+      "fixture": "tests/workflows/fixtures/step-exchange.json",
+      "result": "step-exchange-api.json",
+      "covers": ["DOC-011"],
+      "capabilities": [
+        "exchange.step_import",
+        "exchange.step_export",
+        "exchange.step_embedded_source",
+        "exchange.step_independent_roundtrip"
+      ],
+      "inputs": ["tests/app_harness.py", "tests/step_fixture.cpp", "src/StepExchange.cpp"]
+    },
     "tutorial_bracket_api": {
       "script": "tests/tutorial_bracket_api.py",
       "fixture": "tests/workflows/fixtures/tutorial-bracket.json",

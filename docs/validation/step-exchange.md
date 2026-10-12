@@ -31,3 +31,4 @@ are `build-step/evidence/step-native-receipt.json` and
 File Open of a STEP source remain unqualified; both units and import are covered
 through the shared real-app API. This is not broader CAD interoperability or
 assembly/product-structure support.
+

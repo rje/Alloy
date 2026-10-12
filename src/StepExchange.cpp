@@ -13,6 +13,8 @@
 #include <UnitsMethods_LengthUnit.hxx>
 #include <UnitsMethods.hxx>
 #include <QJsonArray>
+#include <QHash>
+#include <QRegularExpression>
 #include <QSet>
 #include <cmath>
 #include <sstream>
@@ -70,11 +72,24 @@ StepExchange::ReadResult StepExchange::read(const QByteArray& source) {
     reader.FileUnits(lengthUnits, angleUnits, solidAngleUnits);
     QJsonArray observedUnits;
     QSet<int> distinctUnits;
+    static const QHash<QString, UnitsMethods_LengthUnit> stepLengthUnits{
+        {"MM",UnitsMethods_LengthUnit_Millimeter},{"MILLIMETRE",UnitsMethods_LengthUnit_Millimeter},
+        {"MILLIMETER",UnitsMethods_LengthUnit_Millimeter},
+        {"CM",UnitsMethods_LengthUnit_Centimeter},{"CENTIMETRE",UnitsMethods_LengthUnit_Centimeter},
+        {"CENTIMETER",UnitsMethods_LengthUnit_Centimeter},
+        {"M",UnitsMethods_LengthUnit_Meter},{"METRE",UnitsMethods_LengthUnit_Meter},
+        {"METER",UnitsMethods_LengthUnit_Meter},
+        {"IN",UnitsMethods_LengthUnit_Inch},{"INCH",UnitsMethods_LengthUnit_Inch},
+        {"FT",UnitsMethods_LengthUnit_Foot},{"FOOT",UnitsMethods_LengthUnit_Foot},
+        {"MICRON",UnitsMethods_LengthUnit_Micron},{"MICROMETRE",UnitsMethods_LengthUnit_Micron},
+        {"MICROMETER",UnitsMethods_LengthUnit_Micron}};
     for (Standard_Integer i = 1; i <= lengthUnits.Length(); ++i) {
         const auto unit = QString::fromUtf8(lengthUnits.Value(i).ToCString()).trimmed();
         observedUnits.append(unit);
         const auto utf8=unit.toUtf8();
-        const auto recognized=UnitsMethods::LengthUnitFromString(utf8.constData(),Standard_False);
+        auto normalized=unit.toUpper();normalized.remove(QRegularExpression("[^A-Z0-9]"));
+        const auto recognized=stepLengthUnits.value(normalized,
+            UnitsMethods::LengthUnitFromString(utf8.constData(),Standard_False));
         if (recognized==UnitsMethods_LengthUnit_Undefined)
             reject("step_units_ambiguous", "STEP length unit is absent or unrecognized",
                 {{"fileLengthUnits", observedUnits}});

@@ -148,6 +148,7 @@ AlloyWindow::AlloyWindow() {
     fileMenu->addAction("Open…",QKeySequence::Open,this,[this] { execute("document.openDialog"); });
     fileMenu->addAction("Save",QKeySequence::Save,this,[this] { execute("document.saveDialog"); });
     fileMenu->addAction("Save As…",QKeySequence::SaveAs,this,[this] { execute("document.saveAsDialog"); });
+    fileMenu->addAction("Export…",this,[this] { execute("document.exportStepDialog"); });
     fileMenu->addAction("Save As Mesh…",this,[this] { execute("document.exportMeshDialog"); });
     fileMenu->addAction("Document Settings…", this, [this] { execute("document.settings"); });
     fileMenu->addSeparator();
@@ -353,7 +354,10 @@ AlloyWindow::AlloyWindow() {
     connect(tree_,&QTreeWidget::itemDoubleClicked,this,[this](QTreeWidgetItem* item,int) {
         if(!item || item->isHidden() || !(item->flags()&Qt::ItemIsEnabled))return;const auto feature=item->data(0,Qt::UserRole+2).toString();
         const auto tabId=activeTabId_;
-        if(!feature.isEmpty())QTimer::singleShot(0,this,[this,feature,tabId]{if(tabId==activeTabId_)execute("feature.editDialog",{{"featureId",feature}});});
+        if(!feature.isEmpty())QTimer::singleShot(0,this,[this,feature,tabId]{if(tabId!=activeTabId_)return;
+            const auto result=execute("feature.editDialog",{{"featureId",feature}});
+            if(!result["ok"].toBool())statusBar()->showMessage(result["error"].toObject()["message"].toString(),6000);
+        });
     });
     browserLayout->addWidget(tree_, 1);
     auto* browserNote = new QLabel("Create a sketch, box or cylinder.\nDouble-click a Browser or Timeline\nfeature to edit it."); browserNote_=browserNote;
@@ -670,7 +674,8 @@ void AlloyWindow::registerCommands() {
                     auto result=failure("step_import_failed",error);auto details=result["error"].toObject();
                     details["diagnostics"]=target->lastEvaluationError();result["error"]=details;return result;
                 }
-            } catch(const StepExchange::Error& error){return QJsonObject{{"ok",false},{"error",error.diagnostics()}};}
+            } catch(const StepExchange::Error& error){auto result=failure(error.diagnostics()["code"].toString(),
+                error.diagnostics()["message"].toString());result["error"]=error.diagnostics();return result;}
             if(newTab) {
                 saveActiveTabState();newTab->id=CadDocument::newId();activeTabId_=newTab->id;
                 designTabs_.push_back(std::move(newTab));showActiveTab();
@@ -680,17 +685,26 @@ void AlloyWindow::registerCommands() {
     add("document.exportStep","Export STEP","Export one committed solid with explicit STEP length units.",
         {{"path",parameter("string","Absolute output STEP path.")},{"bodyId",parameter("string","Stable evaluated body UUID.")},{"units",units}},[this](const auto& a){
             if(!session_.isEmpty())return failure("active_command","Finish or Cancel the active command before exporting");
-            const auto path=a["path"].toString();if(!QFileInfo(path).isAbsolute())return failure("invalid_path","Choose an absolute output path","path");
+            const auto path=a["path"].toString();
+            if(!QFileInfo(path).isAbsolute() || !(path.endsWith(".step",Qt::CaseInsensitive) || path.endsWith(".stp",Qt::CaseInsensitive)))
+                return failure("invalid_path","Choose an absolute .step or .stp output path","path");
             for(const auto& body:document_->bodies())if(body.bodyId==a["bodyId"].toString()) {
                 try {
                     const auto output=StepExchange::write(body.shape,a["units"].toString());
                     QSaveFile file(path);file.setDirectWriteFallback(false);
                     if(!file.open(QIODevice::WriteOnly) || file.write(output.bytes)!=output.bytes.size() || !file.commit())return failure("export_failed",file.errorString(),"path");
                     return QJsonObject{{"path",path},{"bodyId",body.bodyId},{"units",a["units"]},{"bytes",output.bytes.size()},
+                        {"sha256",QString::fromLatin1(QCryptographicHash::hash(output.bytes,QCryptographicHash::Sha256).toHex())},
+                        {"boundsMm",body.summary["boundsMm"]},{"volumeMm3",body.summary["volumeMm3"]},
                         {"diagnostics",output.diagnostics},{"authoredChanged",false}};
-                } catch(const StepExchange::Error& error){return QJsonObject{{"ok",false},{"error",error.diagnostics()}};}
+                } catch(const StepExchange::Error& error){auto result=failure(error.diagnostics()["code"].toString(),
+                    error.diagnostics()["message"].toString());result["error"]=error.diagnostics();return result;}
             }
             return failure("stale_body","The selected solid no longer exists","bodyId");
+        });
+    add("document.exportStepDialog","Export…","Choose one committed solid and explicit STEP output units.",
+        {{"bodyId",optional(parameter("string","Optional initially selected body UUID."))}},[this](const auto& a){
+            return showStepExport(a.value("bodyId").toString(selectedBody_));
         });
     auto meshDeviation=parameter("number","Surface deviation in canonical millimeters, independent of output units.");
     meshDeviation["minimum"]=0.001;meshDeviation["maximum"]=10;
@@ -735,9 +749,9 @@ void AlloyWindow::registerCommands() {
         });
     }
     add("document.openDialog","Open…","Choose a local design and use the shared open command.",{},[this](const auto&){
-        const auto path=QFileDialog::getOpenFileName(this,"Open From Computer",{},"Supported designs (*.alloy *.step *.stp);;Alloy Design (*.alloy);;STEP solid (*.step *.stp)");
+        const auto path=QFileDialog::getOpenFileName(this,"Open From Computer",{},"Supported designs (*.alloy *.step *.stp *.ste);;Alloy Design (*.alloy);;STEP solid (*.step *.stp *.ste)");
         if(path.isEmpty())return QJsonObject{{"cancelled",true}};
-        if(path.endsWith(".step",Qt::CaseInsensitive) || path.endsWith(".stp",Qt::CaseInsensitive)) {
+        if(path.endsWith(".step",Qt::CaseInsensitive) || path.endsWith(".stp",Qt::CaseInsensitive) || path.endsWith(".ste",Qt::CaseInsensitive)) {
             const auto result=execute("document.importStep",{{"path",path},{"newDesign",true}});
             return result["ok"].toBool() ? result["result"].toObject() : result;
         }
@@ -1431,6 +1445,8 @@ void AlloyWindow::registerCommands() {
                 auto inputs=p;inputs["featureId"]=feature["id"];inputs["name"]=feature["name"];
                 return beginSession("solid.combine",inputs);
             }
+            if(feature["type"]=="stepImport")
+                return failure("import_source_readonly","The imported STEP source is embedded in this feature. Edit later features or import a replacement file.","featureId");
             const auto unit=document_->authored()["displayUnits"].toString();const double scale=unit=="in" ? 25.4 : 1;
             QJsonObject inputs{{"featureId",feature["id"]},{"name",feature["name"]},{"units",unit}};
             for(auto it=p.begin();it!=p.end();++it) inputs[it.key().chopped(2)]=it.value().toDouble()/scale;

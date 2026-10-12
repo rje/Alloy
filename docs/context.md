@@ -1177,3 +1177,17 @@ saved native bracket is build-cut/evidence/native-five-hole-bracket.alloy. The
 older build-input app remains untouched. Continue next with the exact illustrated
 tutorial from a clean document, per docs/research/illustrated-bracket-gate.md;
 use another private instance for automation. No release, tag or CI run.
+
+## Single-solid STEP candidate (2026-10-12)
+
+In isolated `../Alloy-worktrees/exchange-finish`, DOC-011 now has a compiled
+single-solid STEP import/export candidate. Imports author one undoable feature
+with verified embedded source bytes, requiring one valid closed solid and one
+unambiguous length unit. Export selects one evaluated body and explicit mm/in
+units, without editing the design. File Open and File Export have shared-command
+UI routes. An independent OCCT fixture program authors the input and reads both
+output units in separate processes; the private real-app DOC-011 ledger passes
+malformed/multiple-solid atomic refusal, history, and reopen after removal of
+the original source. See `docs/validation/step-exchange.md`. Native dialog and
+visual qualification are still outstanding; do not close #23 on API evidence
+alone. Unrelated STL work is preserved but not qualified by this checkpoint.
