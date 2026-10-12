@@ -60,6 +60,8 @@ private:
     void showExtrude();
     void refreshExtrudeControls();
     void updateExtrude(const QJsonObject& inputs);
+    bool updatingExtrudePreview_ = false;
+    QString pendingBrowserVisibility_;
     QJsonObject beginCombine(const QJsonObject& inputs);
     QJsonObject combineCandidate(const QJsonObject& inputs) const;
     QString validateCombineInputs(const QJsonObject& inputs) const;

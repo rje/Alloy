@@ -11,9 +11,11 @@
 #include <QLabel>
 #include <QListWidget>
 #include <QPushButton>
+#include <QScrollArea>
 #include <QSet>
 #include <QShortcut>
 #include <QSignalBlocker>
+#include <QTimer>
 #include <QUuid>
 #include <QVBoxLayout>
 #include <algorithm>
@@ -176,7 +178,11 @@ void AlloyWindow::showCombine() {
     combinePanel_ = new QWidget;combinePanel_->setObjectName("combinePanel");combinePanel_->setFixedWidth(312);
     combinePanel_->setStyleSheet("#combinePanel { background:#f7f8f9; color:#323c44; border-left:1px solid #cdd3d8; }");dock->setWidget(combinePanel_);
     dock->onClose = [this]{if (session_.value("command") == "solid.combine") execute("command.cancel",{{"session",session_["id"]}});};
-    auto* layout = new QVBoxLayout(combinePanel_);layout->setContentsMargins(14,14,14,12);layout->setSpacing(12);
+    auto* panelLayout = new QVBoxLayout(combinePanel_);panelLayout->setContentsMargins(0,0,0,12);panelLayout->setSpacing(12);
+    auto* scroll = new QScrollArea;scroll->setWidgetResizable(true);scroll->setFrameShape(QFrame::NoFrame);
+    scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    auto* contents = new QWidget;scroll->setWidget(contents);panelLayout->addWidget(scroll,1);
+    auto* layout = new QVBoxLayout(contents);layout->setContentsMargins(14,14,14,0);layout->setSpacing(12);
     auto* form = new QFormLayout;form->setVerticalSpacing(12);form->setRowWrapPolicy(QFormLayout::WrapAllRows);
     combineTarget_ = new QComboBox;combineTarget_->setObjectName("combine.targetBody");form->addRow("Target Body",combineTarget_);
     combinePickTarget_ = new QPushButton("Select Target Body");combinePickTarget_->setCheckable(true);combinePickTarget_->setObjectName("combine.pickTarget");
@@ -191,7 +197,9 @@ void AlloyWindow::showCombine() {
     combineError_ = new QLabel;combineError_->setObjectName("combine.error");combineError_->setWordWrap(true);combineError_->setStyleSheet("color:#a63832;");layout->addWidget(combineError_);
     auto* hint = new QLabel("Choose a target, then one or more tools.\nTools are hidden during preview. Keep Tools retains them after OK.");
     hint->setWordWrap(true);hint->setStyleSheet("color:#687780;");layout->addWidget(hint);layout->addStretch();
-    auto* buttons = new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel);combineOk_ = buttons->button(QDialogButtonBox::Ok);layout->addWidget(buttons);
+    auto* buttons = new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel);combineOk_ = buttons->button(QDialogButtonBox::Ok);
+    buttons->setContentsMargins(14,0,14,0);panelLayout->addWidget(buttons);
+    combineOk_->setObjectName("combine.ok");buttons->button(QDialogButtonBox::Cancel)->setObjectName("combine.cancel");
     connect(combineTarget_,qOverload<int>(&QComboBox::currentIndexChanged),this,[this](int index){
         const auto target = combineTarget_->itemData(index).toString();auto tools = session_["inputs"].toObject()["toolBodyIds"].toArray();
         for (int i = tools.size()-1; i >= 0; --i) if (tools[i] == target) tools.removeAt(i);
@@ -201,7 +209,13 @@ void AlloyWindow::showCombine() {
         QJsonArray tools;for (int i = 0; i < combineTools_->count(); ++i) {
             const auto* item = combineTools_->item(i);if (item->checkState() == Qt::Checked) tools.append(item->data(Qt::UserRole).toString());
         }
-        updateCombine({{"toolBodyIds",tools}});
+        // Refresh rebuilds this list. Let Qt finish the checkbox event before
+        // deleting its item, and discard work from a session already closed.
+        const auto sessionId = session_.value("id").toString();
+        QTimer::singleShot(0,this,[this,tools,sessionId]{
+            if (session_.value("command") == "solid.combine" && session_.value("id").toString() == sessionId)
+                updateCombine({{"toolBodyIds",tools}});
+        });
     });
     connect(combineOperation_,qOverload<int>(&QComboBox::currentIndexChanged),this,[this](int index){updateCombine({{"operation",combineOperation_->itemData(index).toString()}});});
     connect(combineKeepTools_,&QCheckBox::toggled,this,[this](bool keep){updateCombine({{"keepTools",keep}});});

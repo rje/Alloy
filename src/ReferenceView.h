@@ -72,7 +72,9 @@ private:
     QJsonObject curveDimensionLayout(const QJsonObject& feature, const QJsonObject& dimension,
         double value, const QString& units) const;
     void clearSketchDecorations();
-    void applyEditDisplay();
+    void applyEditDisplay(bool redraw = true);
+    void clearPreviewPresentation();
+    void replacePreview(const TopoDS_Shape& shape, const QString& replacedBody, bool neutral);
     QPointF windowScale() const;
     Handle(V3d_Viewer) viewer_;
     Handle(V3d_View) view_;
@@ -105,7 +107,7 @@ private:
     Handle(AIS_Shape) preview_;
     std::vector<Handle(AIS_Shape)> extrusionCue_;
     QJsonObject extrusionCueState_;
-    QString previewReplacedBody_;
+    QString previewReplacedBody_, previewProfile_;
     quint64 modelRevision_ = 0;
     std::vector<EvaluatedBody> documentBodies_;
     QString bodyStageKey_;

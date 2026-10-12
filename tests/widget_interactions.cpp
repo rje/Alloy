@@ -1,0 +1,167 @@
+#include "AlloyWindow.h"
+#include "AlloyTheme.h"
+#include "ReferenceView.h"
+#include <QApplication>
+#include <QCheckBox>
+#include <QComboBox>
+#include <QDoubleSpinBox>
+#include <QScrollArea>
+#include <QJsonDocument>
+#include <QLineEdit>
+#include <QListWidget>
+#include <QPushButton>
+#include <QStyle>
+#include <QStyleOptionViewItem>
+#include <QTest>
+#include <QTreeWidget>
+#include <QTreeWidgetItemIterator>
+#include <cmath>
+
+// Synthesized QWidget events against the same compiled application core.
+// Requires a native graphics session; this is not physical OS input evidence.
+class WidgetInteractions final : public QObject {
+    Q_OBJECT
+    QByteArray error_;
+    bool run(AlloyWindow& window, const QString& command, const QJsonObject& args = {}) {
+        const auto response = window.execute(command,args);
+        error_ = QJsonDocument(response).toJson(QJsonDocument::Compact);
+        return response.value("ok").toBool();
+    }
+    static QJsonObject session(AlloyWindow& window) {return window.state()["activeSession"].toObject();}
+    static ReferenceView* viewport(AlloyWindow& window) {
+        for (auto* child : window.findChildren<QWidget*>())
+            if (auto* view = dynamic_cast<ReferenceView*>(child)) return view;
+        return nullptr;
+    }
+    static QPoint sketchPixel(ReferenceView* view,double u,double v) {
+        const auto p = view->projectSketchPoint(u,v,"XY");
+        return {qRound(p["x"].toDouble()),qRound(p["y"].toDouble())};
+    }
+    static QPoint checkbox(QWidget* widget,const QRect& row,Qt::CheckState state) {
+        QStyleOptionViewItem option;option.initFrom(widget);option.rect = row;
+        option.features = QStyleOptionViewItem::HasCheckIndicator|QStyleOptionViewItem::HasDisplay;
+        option.checkState = state;
+        return widget->style()->subElementRect(QStyle::SE_ItemViewItemCheckIndicator,&option,widget).center();
+    }
+private slots:
+    void initTestCase() {
+        QPalette dark;dark.setColor(QPalette::Window,Qt::black);dark.setColor(QPalette::Base,Qt::black);
+        qApp->setPalette(dark);AlloyTheme::apply(*qApp);
+        QCOMPARE(qApp->palette().color(QPalette::Window),QColor("#f7f8f9"));
+    }
+    void planeCircleDimension() {
+        AlloyWindow window;window.resize(1180,760);window.show();window.activateWindow();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        auto* view = viewport(window);QVERIFY(view);
+        QVERIFY2(run(window,"sketch.create",{{"name","Widget circle"}}),error_.constData());
+        auto* plane = window.findChild<QPushButton*>("sketch.plane.XY");QVERIFY(plane);
+        QTest::mouseClick(plane,Qt::LeftButton);
+        QTRY_VERIFY(QApplication::focusWidget() == view);
+        // Send to the actual focus owner without manually focusing the canvas.
+        QTest::keyClick(QApplication::focusWidget(),Qt::Key_C);
+        QTRY_COMPARE(session(window)["tool"].toString(),QString("circle"));
+        QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,sketchPixel(view,0,0));
+        QTest::mouseMove(view,sketchPixel(view,5,0));
+        QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,sketchPixel(view,5,0));
+        QTRY_COMPARE(session(window)["draftSketch"].toObject()["parameters"].toObject()["entities"].toArray().size(),1);
+        auto parameters = session(window)["draftSketch"].toObject()["parameters"].toObject();
+        QCOMPARE(parameters["entities"].toArray()[0].toObject()["type"].toString(),QString("circle"));
+        QTest::keyClick(QApplication::focusWidget(),Qt::Key_Escape);
+        QTRY_COMPARE(session(window)["tool"].toString(),QString("select"));
+        // Use the authored radius after pixel rounding, away from its center point.
+        const auto entity = parameters["entities"].toArray()[0].toObject();
+        const auto points = parameters["points"].toArray();
+        QJsonObject center;
+        for (const auto& p : points) if (p.toObject()["id"] == entity["centerPointId"]) center = p.toObject();
+        QVERIFY(!center.isEmpty());
+        const auto edge = sketchPixel(view,center["uMm"].toDouble(),center["vMm"].toDouble()+entity["radiusMm"].toDouble());
+        QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,edge);
+        QTRY_COMPARE(session(window)["selection"].toObject()["entityIds"].toArray().size(),1);
+        QTest::keyClick(QApplication::focusWidget(),Qt::Key_D);
+        const auto placement = sketchPixel(view,9,8);QTest::mouseMove(view,placement);
+        QTRY_COMPARE(session(window)["pendingDimension"].toObject()["kind"].toString(),QString("diameter"));
+        QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,placement);
+        auto* value = window.findChild<QLineEdit*>("sketch.inlineValue");QVERIFY(value);
+        QTRY_VERIFY(value->isVisible());QTRY_VERIFY(QApplication::focusWidget() == value);
+        value->selectAll();QTest::keyClicks(value,"10");QTest::keyClick(value,Qt::Key_Return);
+        QTRY_COMPARE(session(window)["draftSketch"].toObject()["parameters"].toObject()["dimensions"].toArray().size(),1);
+        QVERIFY2(run(window,"sketch.selectionSet",{{"entityIds",QJsonArray{entity["id"]}}}),error_.constData());
+        auto* dimensions=window.findChild<QComboBox*>("sketch.dimension.list");
+        auto* edit=window.findChild<QDoubleSpinBox*>("sketch.dimension.edit");
+        auto* apply=window.findChild<QPushButton*>("sketch.dimension.apply");
+        QVERIFY(dimensions && edit && apply);QVERIFY(edit->isEnabled());QVERIFY(apply->isEnabled());
+        QCOMPARE(edit->value(),10.0);edit->setValue(12);
+        auto params=[&]{return session(window)["draftSketch"].toObject()["parameters"].toObject();};
+        QCOMPARE(params()["entities"].toArray()[0].toObject()["radiusMm"].toDouble(),5.0);
+        QTest::mouseClick(apply,Qt::LeftButton);
+        QCOMPARE(params()["dimensions"].toArray().size(),1);
+        QVERIFY(std::abs(params()["entities"].toArray()[0].toObject()["radiusMm"].toDouble()-6)<1e-6);
+        QVERIFY2(run(window,"sketch.dimension",{{"kind","radius"},{"entityId",entity["id"]},{"driving",false}}),error_.constData());
+        const auto drivenId=params()["dimensions"].toArray().last().toObject()["id"].toString();
+        dimensions->setCurrentIndex(dimensions->findData(drivenId));
+        QVERIFY(!edit->isEnabled());QVERIFY(!apply->isEnabled());
+        QVERIFY2(run(window,"sketch.line",{{"x1",20},{"y1",0},{"x2",30},{"y2",0},{"units","mm"}}),error_.constData());
+        const auto line=params()["entities"].toArray().last().toObject();
+        QVERIFY2(run(window,"sketch.dimension",{{"kind","linear"},{"pointIds",QJsonArray{line["endPointId"],line["startPointId"]}},{"value",10},{"driving",true}}),error_.constData());
+        const auto lineDimension=params()["dimensions"].toArray().last().toObject()["id"].toString();
+        QVERIFY2(run(window,"sketch.selectionSet",{{"entityIds",QJsonArray{line["id"]}}}),error_.constData());
+        QCOMPARE(dimensions->currentData().toString(),lineDimension);QVERIFY(apply->isEnabled());
+        QVERIFY2(run(window,"sketch.cancel"),error_.constData());
+        QCOMPARE(window.state()["document"].toObject()["features"].toInt(),0);
+    }
+
+    void combineCheckboxAndCommit() {
+        AlloyWindow window;window.resize(1180,640);window.show();window.activateWindow();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        QVERIFY2(run(window,"solid.box",{{"width",30},{"depth",20},{"height",5},{"units","mm"},{"name","Plate"}}),error_.constData());
+        QVERIFY2(run(window,"solid.cylinder",{{"radius",3},{"height",10},{"x",15},{"y",10},{"z",-2},{"units","mm"},{"name","Tool"}}),error_.constData());
+        const auto features = window.state()["document"].toObject()["authored"].toObject()["features"].toArray();
+        const auto target = features[0].toObject()["bodyId"].toString();
+        const auto tool = features[1].toObject()["bodyId"].toString();
+        const QJsonObject inputs{{"targetBodyId",target},{"toolBodyIds",QJsonArray{}},{"operation","cut"},{"keepTools",false}};
+        QVERIFY2(run(window,"command.begin",{{"command","solid.combine"},{"inputs",inputs}}),error_.constData());
+        auto* tree = window.findChild<QTreeWidget*>("browser.tree");QVERIFY(tree);
+        QTreeWidgetItem* toolItem = nullptr;
+        for (QTreeWidgetItemIterator it(tree); *it; ++it)
+            if ((*it)->data(0,Qt::UserRole+1).toString() == tool) {toolItem = *it;break;}
+        QVERIFY(toolItem);tree->scrollToItem(toolItem);
+        const auto row = tree->visualItemRect(toolItem);QVERIFY(!row.isEmpty());
+        // Checkbox change followed by itemClicked used to access a deleted row.
+        QTest::mouseClick(tree->viewport(),Qt::LeftButton,Qt::NoModifier,checkbox(tree,row,toolItem->checkState(0)));
+        QTRY_VERIFY(window.state()["document"].toObject()["revision"].toInteger() > 2);
+        QCOMPARE(session(window)["inputs"].toObject()["toolBodyIds"].toArray().size(),0);
+        QCOMPARE(session(window)["baseDocumentRevision"].toInteger(),window.state()["document"].toObject()["revision"].toInteger());
+        QVERIFY2(run(window,"feature.visibility",{{"featureId",features[1].toObject()["id"]},{"visible",true}}),error_.constData());
+        auto* tools = window.findChild<QListWidget*>("combine.toolBodies");QVERIFY(tools);
+        QListWidgetItem* item = nullptr;
+        for (int i = 0;i < tools->count();++i) if (tools->item(i)->data(Qt::UserRole).toString() == tool) item = tools->item(i);
+        QVERIFY(item);tools->scrollToItem(item);
+        QTest::mouseClick(tools->viewport(),Qt::LeftButton,Qt::NoModifier,checkbox(tools,tools->visualItemRect(item),item->checkState()));
+        QTRY_VERIFY(session(window)["previewed"].toBool());
+        for(auto* scroll:window.findChildren<QScrollArea*>())
+            QVERIFY(scroll->widget()->palette().color(QPalette::Window).lightness()>200);
+        auto* keep = window.findChild<QCheckBox*>("combine.keepTools");QVERIFY(keep);
+        // The form may scroll on this short window; selection remains through real events.
+        keep->setFocus();QTest::keyClick(keep,Qt::Key_Space);
+        QTRY_VERIFY(session(window)["inputs"].toObject()["keepTools"].toBool());
+        auto* ok = window.findChild<QPushButton*>("combine.ok");QVERIFY(ok);
+        auto* cancel = window.findChild<QPushButton*>("combine.cancel");QVERIFY(cancel);
+        QTRY_VERIFY(ok->isEnabled());QVERIFY(ok->isVisible());QVERIFY(cancel->isVisible());
+        QVERIFY(window.rect().contains(QRect(ok->mapTo(&window,QPoint()),ok->size())));
+        QVERIFY(window.rect().contains(QRect(cancel->mapTo(&window,QPoint()),cancel->size())));
+        QTest::mouseClick(ok,Qt::LeftButton);
+        QTRY_VERIFY(session(window).isEmpty());
+        const auto document = window.state()["document"].toObject();
+        QCOMPARE(document["features"].toInt(),3);QCOMPARE(document["bodies"].toInt(),2);
+        const auto bodies = document["evaluation"].toObject()["bodies"].toArray();
+        bool found = false;
+        for (const auto& body : bodies) if (body.toObject()["bodyId"] == target) {
+            found = true;QVERIFY(std::abs(body.toObject()["volumeMm3"].toDouble()-(3000-45*std::acos(-1.0))) < 1e-6);
+        }
+        QVERIFY(found);
+        QVERIFY2(run(window,"history.undo"),error_.constData());
+        QCOMPARE(window.state()["document"].toObject()["features"].toInt(),2);
+    }
+};
+QTEST_MAIN(WidgetInteractions)
+#include "widget_interactions.moc"

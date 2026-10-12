@@ -450,3 +450,72 @@ and further sketch input compatibility are not complete. Next: bounded native
 C/D/arc and Combine selection/Keep Tools checks, then face-selection/naming/sketch
 support work already prioritized in the queue. Research library expansion is
 accepted at eight records/twelve images, fully external.
+
+## Human feedback and active input correction
+
+The next human test found: C needed an extra viewport click after XY; circle
+selection/D was unclear; extrusion flickered; Combine OK was difficult to find;
+Browser cylinder selection during Combine crashed. The retained crash report is
+`~/Library/Logs/DiagnosticReports/alloy-2026-10-12-100835.ips`; its top frame is
+Browser itemClicked after a checkbox visibility rebuild invalidated the item.
+Working-tree fixes defer tree/list checkbox commands, focus the viewport after
+sketch entry, pin Combine OK/Cancel below scrollable fields, replace previews
+without intermediate removal frames, and hide coplanar source profile fill during
+extrusion preview. The user asked to relaunch before further verification.
+
+`build-next` was rebuilt and launched for that retest: PID 95777, instance
+`40ef488a-9608-45b1-94d8-f24b46d94a47`, ready file
+`build-next/evidence/human-ready-input-fixes.json`. Verify liveness; preserve any
+new user work. No tests or API mutations should use that human instance.
+
+Astra's source review then identified checkbox selection/session-staleness as a
+remaining issue. A further source-only fix suppresses checkbox-as-body-selection
+and lets a currently valid Combine session follow a visibility-only revision.
+That final change is NOT in the running human binary yet. New
+`tests/widget_interactions.cpp` exercises actual synthesized Qt events against the
+shared `alloy_application` core. It compiled before the final source correction,
+but has not run; coordinate its visible test windows with the human retest.
+Physical OS input and flicker acceptance remain pending. Do not describe these
+as verified fixes yet. The constrained-value field is awaiting identification
+from the user; public research is recorded externally in
+`knowledge/specs/circle-dimension-edit-semantics.md`. Existing driving dimensions
+are editable, driven measurements read-only; the exact control the user meant
+has not been confirmed. Keep source edits, tests and build ownership centralized.
+
+
+## Input/theme correction candidate (2026-10-12)
+
+The human retest exposed a black Combine scroll container and continuing sketch
+focus trouble. Application startup now applies a shared explicit light QPalette
+(active/inactive/disabled roles), including unstyled scroll descendants. Palette
+creation and existing-dimension editing are separately labeled; selecting a
+circle/arc or a dimensioned line chooses a matching existing dimension. Driving
+values require Apply; driven measurements and missing dimensions disable editing.
+Line dimensions match endpoint pairs in either order.
+
+The sketch-entry focus handoff now repeats after panel/toolbar layout and requests
+native viewport activation. Actual native coordinate mouse input on macOS passed
+XY -> C without a viewport click, circle creation, Escape, circle-edge selection
+-> D, placement, typing 20 and Return. Authored state confirms radius 10 mm and
+one driving diameter of 20 mm. An earlier apparent failure used an accessibility
+button action followed immediately by C: logging showed the key arrived while
+still in sketch.plane, before its animated button activation completed. Do not
+confuse that test-order artifact with the user's original report. Root-cause
+certainty for the user's original focus failure remains limited; retain human
+retest coverage.
+
+Final focused widget tests pass, including circle Apply/read-only measurement,
+line endpoint dimension selection, Browser visibility during Combine and pinned
+OK/Cancel. Real-app extrusion and Combine API/history/reopen regressions pass.
+Evidence is local under build-input/evidence: widget-input-final.txt,
+native-circle-d-complete.json, native-circle.png, combine-light.png,
+extrude-final/sketch-extrude-api.json and combine-final/boolean-api.json.
+Astra independently reviewed final source/captures and found no blocker within
+this scope. Temporal extrusion flicker still requires human acceptance; static
+captures cannot prove its absence.
+
+Use build-input/alloy.app for the updated retest candidate (separate local bundle
+identity Alloy Input Candidate). The earlier build-next human window may contain
+unsaved sketch work: preserve it and verify live discovery before any operation.
+The candidate includes Browser/Combine crash prevention and preview changes from
+the preceding section. No milestone release or CI build was triggered.

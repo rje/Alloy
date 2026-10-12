@@ -39,14 +39,18 @@ target_include_directories(alloy_kernel SYSTEM PUBLIC ${OpenCASCADE_INCLUDE_DIR}
 target_link_libraries(alloy_kernel PUBLIC alloy_sketch_solver Qt6::Core TKernel TKMath TKG3d TKBRep TKPrim TKTopAlgo TKBO TKBool TKGeomAlgo)
 target_compile_definitions(alloy_kernel PUBLIC ALLOY_OCCT_VERSION="${ALLOY_OCCT_VERSION}")
 
-qt_add_executable(alloy MACOSX_BUNDLE
-    src/main.cpp src/AlloyWindow.cpp src/AlloyWindow.h src/CombineControls.cpp
+add_library(alloy_application STATIC
+    src/AlloyTheme.cpp src/AlloyTheme.h
+    src/AlloyWindow.cpp src/AlloyWindow.h src/CombineControls.cpp
     src/CadDocument.cpp src/CadDocument.h
     src/ReferenceView.cpp src/ReferenceView.h
     src/ControlServer.cpp src/ControlServer.h)
-target_include_directories(alloy SYSTEM PRIVATE ${OpenCASCADE_INCLUDE_DIR})
-target_link_libraries(alloy PRIVATE alloy_kernel Qt6::Widgets Qt6::Network TKService TKV3d TKOpenGl TKMesh)
-target_compile_definitions(alloy PRIVATE ALLOY_OCCT_VERSION="${ALLOY_OCCT_VERSION}")
+target_include_directories(alloy_application PUBLIC src)
+target_include_directories(alloy_application SYSTEM PRIVATE ${OpenCASCADE_INCLUDE_DIR})
+target_link_libraries(alloy_application PUBLIC alloy_kernel Qt6::Widgets Qt6::Network TKService TKV3d TKOpenGl TKMesh)
+target_compile_definitions(alloy_application PUBLIC ALLOY_OCCT_VERSION="${ALLOY_OCCT_VERSION}")
+qt_add_executable(alloy MACOSX_BUNDLE src/main.cpp)
+target_link_libraries(alloy PRIVATE alloy_application)
 set_target_properties(alloy PROPERTIES
     MACOSX_BUNDLE_BUNDLE_NAME Alloy
     MACOSX_BUNDLE_GUI_IDENTIFIER org.alloycad.Alloy
@@ -54,6 +58,7 @@ set_target_properties(alloy PROPERTIES
     MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION})
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
     target_compile_options(alloy PRIVATE -Wall -Wextra -Wpedantic)
+    target_compile_options(alloy_application PRIVATE -Wall -Wextra -Wpedantic)
 endif()
 include(CTest)
 if(ALLOY_BUILD_SPIKES)
@@ -67,6 +72,11 @@ if(ALLOY_BUILD_SPIKES)
         TKernel TKMath TKBRep TKPrim TKTopAlgo TKLCAF TKCAF TKBin TKBinL TKCDF)
 endif()
 if(BUILD_TESTING)
+    find_package(Qt6 6.11.2 EXACT REQUIRED COMPONENTS Test)
+    add_executable(widget_interactions_test tests/widget_interactions.cpp)
+    target_link_libraries(widget_interactions_test PRIVATE alloy_application Qt6::Test)
+    add_test(NAME widget_interactions COMMAND widget_interactions_test)
+    set_tests_properties(widget_interactions PROPERTIES TIMEOUT 45 LABELS "widget;gpu" RUN_SERIAL TRUE)
     add_executable(sketch_solver_test tests/sketch_solver.cpp)
     target_link_libraries(sketch_solver_test PRIVATE alloy_sketch_solver)
     add_test(NAME sketch_solver COMMAND sketch_solver_test)

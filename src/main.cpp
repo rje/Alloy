@@ -1,4 +1,5 @@
 #include "AlloyWindow.h"
+#include "AlloyTheme.h"
 #include "ControlServer.h"
 #include <QApplication>
 #include <QCommandLineParser>
@@ -7,7 +8,6 @@
 #include <QFile>
 #include <QJsonDocument>
 #include <QSaveFile>
-#include <QStyleFactory>
 #include <QTemporaryDir>
 #include <QTimer>
 #include <cstdio>
@@ -17,7 +17,7 @@ int main(int argc, char** argv) {
     app.setApplicationName("Alloy");
     app.setApplicationVersion("0.1.0");
     app.setOrganizationName("Alloy");
-    app.setStyle(QStyleFactory::create("Windows")); // Public Qt widget style.
+    AlloyTheme::apply(app);
     QCommandLineParser parser;
     parser.setApplicationDescription("Alloy native CAD shell — modeling is not implemented yet.");
     parser.addHelpOption();

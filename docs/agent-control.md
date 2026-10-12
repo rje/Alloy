@@ -439,3 +439,9 @@ Option/Alt-left drag and middle drag use shared `view.pan`; plain left click use
 drawing/selection tool; Shift-click adds/toggles sketch selection. Selected bodies
 are visibly blue; clearing selection restores normal appearance without changing
 the authored document.
+
+
+For native-input diagnosis, `app.state.focus` reports the logical focus widget,
+its object name, active-window state and native focus-window relationship. These
+are observations, not proof that an OS key reached the application. In particular,
+Qt may report native child-widget focus through its top-level window.

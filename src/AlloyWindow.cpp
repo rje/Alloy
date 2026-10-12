@@ -3,6 +3,7 @@
 #include "GeometryKernel.h"
 #include "SketchGeometry.h"
 #include <QApplication>
+#include <QWindow>
 #include <QCryptographicHash>
 #include <QDialog>
 #include <QDialogButtonBox>
@@ -197,7 +198,7 @@ AlloyWindow::AlloyWindow() {
     auto* browserTitle = new QLabel("BROWSER"); browserTitle->setFixedHeight(33);
     browserTitle->setStyleSheet("font-size: 11px; letter-spacing: 1px; border-right: 0; border-bottom: 1px solid #d7dde1;");
     browserLayout->addWidget(browserTitle);
-    tree_ = new QTreeWidget; tree_->setHeaderHidden(true); tree_->setIndentation(17);
+    tree_ = new QTreeWidget; tree_->setObjectName("browser.tree"); tree_->setHeaderHidden(true); tree_->setIndentation(17);
     auto* document = new QTreeWidgetItem(tree_, {"◇  Untitled"});
     auto* settings = new QTreeWidgetItem(document, {"Document Settings"});
     new QTreeWidgetItem(settings, {"Units: mm"});
@@ -211,23 +212,38 @@ AlloyWindow::AlloyWindow() {
     sketchesNode_=new QTreeWidgetItem(document,{"Sketches"});sketchesNode_->setExpanded(true);
     document->setExpanded(true); views->setExpanded(true);
     connect(tree_, &QTreeWidget::itemClicked, this, [this](QTreeWidgetItem* item, int) {
-        const auto name = item->data(0, Qt::UserRole).toString();
-        if (!name.isEmpty()) execute("view.orientation", {{"name", name}});
+        if(!item)return;
+        if(!pendingBrowserVisibility_.isEmpty() && item->data(0,Qt::UserRole+2).toString()==pendingBrowserVisibility_)return;
+        const auto name=item->data(0,Qt::UserRole).toString();
         const auto body=item->data(0,Qt::UserRole+1).toString();
-        if(!body.isEmpty()) execute("selection.set",{{"bodyId",body}});
-        else if(item->parent()==sketchesNode_)execute("selection.sketchSet",{{"sketchId",item->data(0,Qt::UserRole+2).toString()}});
+        const auto sketch=item->parent()==sketchesNode_ ? item->data(0,Qt::UserRole+2).toString() : QString{};
+        if(!name.isEmpty())execute("view.orientation",{{"name",name}});
+        else if(!body.isEmpty())execute("selection.set",{{"bodyId",body}});
+        else if(!sketch.isEmpty())execute("selection.sketchSet",{{"sketchId",sketch}});
     });
     connect(tree_,&QTreeWidget::itemChanged,this,[this](QTreeWidgetItem* item,int column){
-        if(column==0 && (item->parent()==sketchesNode_ || item->parent()==bodiesNode_)) {
-            const auto id=item->data(0,Qt::UserRole+2).toString();const auto response=execute("feature.visibility",{{"featureId",id},{"visible",item->checkState(0)==Qt::Checked}});
-            if(!response["ok"].toBool()) {const QSignalBlocker block(tree_);for(const auto& entry:document_.authored()["features"].toArray()) {
-                const auto feature=entry.toObject();if(feature["id"]==id){item->setCheckState(0,feature["visible"].toBool() ? Qt::Checked : Qt::Unchecked);break;}
-            }}
-        }
+        if(!item || column!=0 || (item->parent()!=sketchesNode_ && item->parent()!=bodiesNode_))return;
+        const auto id=item->data(0,Qt::UserRole+2).toString();const bool visible=item->checkState(0)==Qt::Checked;
+        pendingBrowserVisibility_=id;
+        // A checkbox changes before Qt emits itemClicked for this same item.
+        // Rebuilding the Browser inside that event would invalidate Qt's pointer.
+        QTimer::singleShot(0,this,[this,id,visible]{
+            if(pendingBrowserVisibility_==id)pendingBrowserVisibility_.clear();
+            const auto response=execute("feature.visibility",{{"featureId",id},{"visible",visible}});
+            if(!response["ok"].toBool()) {
+                const QSignalBlocker block(tree_);
+                for(auto* parent:{bodiesNode_,sketchesNode_})for(int i=0;i<parent->childCount();++i) {
+                    auto* current=parent->child(i);if(current->data(0,Qt::UserRole+2).toString()!=id)continue;
+                    for(const auto& entry:document_.authored()["features"].toArray()) {
+                        const auto feature=entry.toObject();if(feature["id"]==id)current->setCheckState(0,feature["visible"].toBool() ? Qt::Checked : Qt::Unchecked);
+                    }
+                }
+            }
+        });
     });
     connect(tree_,&QTreeWidget::itemDoubleClicked,this,[this](QTreeWidgetItem* item,int) {
-        const auto feature=item->data(0,Qt::UserRole+2).toString();
-        if(!feature.isEmpty()) execute("feature.editDialog",{{"featureId",feature}});
+        if(!item)return;const auto feature=item->data(0,Qt::UserRole+2).toString();
+        if(!feature.isEmpty())QTimer::singleShot(0,this,[this,feature]{execute("feature.editDialog",{{"featureId",feature}});});
     });
     browserLayout->addWidget(tree_, 1);
     auto* browserNote = new QLabel("Create a sketch, box or cylinder.\nDouble-click a Browser or Timeline\nfeature to edit it."); browserNote_=browserNote;
@@ -448,7 +464,12 @@ void AlloyWindow::registerCommands() {
                 if(feature["type"]=="boolean")return failure("unsupported_visibility","Combine modifies the target body; change that body's producer visibility in Browser","featureId");
                 feature["visible"]=a["visible"];features[i]=feature;found=true;break;}
             if(!found)return failure("stale_entity","Feature does not exist","featureId");candidate["features"]=features;
-            const auto error=document_.commit(candidate,"Change visibility");return error.isEmpty() ? document_.state() : failure("evaluation_failed",error);
+            const bool liveCombine=session_.value("command")=="solid.combine" && session_.value("baseDocumentRevision").toInteger()==static_cast<qint64>(document_.revision());
+            const auto error=document_.commit(candidate,"Change visibility");
+            if(!error.isEmpty())return failure("evaluation_failed",error);
+            // Visibility alone does not change the chosen operation inputs.
+            if(liveCombine){session_["baseDocumentRevision"]=static_cast<qint64>(document_.revision());previewCombine();}
+            return document_.state();
         });
     auto sketchPlane=parameter("string","Origin plane of the authored two-dimensional sketch.");
     sketchPlane["enum"]=QJsonArray{"XY","XZ","YZ"};
@@ -780,7 +801,7 @@ void AlloyWindow::registerCommands() {
             if (!error.isEmpty()) return failure("invalid_arguments", error, field);
         }
         session_["inputs"] = inputs;if(target=="solid.extrude")session_["source"]=QJsonObject{{"sketchId",inputs.value("sketchId")},{"profileId",inputs.value("profileId")}};
-        session_["previewed"] = false;view_->clearPreview();
+        session_["previewed"] = false;if(target!="solid.extrude" || !updatingExtrudePreview_)view_->clearPreview();
         if(target=="solid.combine") {
             session_["geometryEvaluated"]=false;session_.remove("geometry");session_.remove("documentDraft");session_.remove("finalBodyCount");session_.remove("previewError");view_->setEditDisplay({},{});
         }
@@ -971,6 +992,12 @@ QJsonObject AlloyWindow::state() const {
         {"revision", static_cast<qint64>(revision_)},
         {"identity", identity()}, {"activeSession", session_},
         {"inlineEditor",inlineEditorState()},
+        {"focus",QJsonObject{{"widgetClass",QApplication::focusWidget() ? QApplication::focusWidget()->metaObject()->className() : ""},
+            {"widgetName",QApplication::focusWidget() ? QApplication::focusWidget()->objectName() : QString{}},
+            {"viewport",QApplication::focusWidget()==view_},
+            {"active",isActiveWindow()},
+            {"windowClass",QGuiApplication::focusWindow() ? QGuiApplication::focusWindow()->metaObject()->className() : ""},
+            {"viewportWindow",QGuiApplication::focusWindow()==view_->windowHandle()}}},
         {"document", document_.state()},
         {"selection",target=="solid.combine" ? QJsonObject{{"kind","combine"},{"role",session_.value("selectionRole")},
             {"targetBodyId",session_.value("inputs").toObject()["targetBodyId"]},{"toolBodyIds",session_.value("inputs").toObject()["toolBodyIds"]}}
@@ -1182,11 +1209,11 @@ QJsonObject AlloyWindow::beginExtrude(const QJsonObject& overrides) {
     refreshExtrudeControls();return session_;
 }
 QJsonObject AlloyWindow::previewExtrude() {
-    session_["previewed"]=false;session_["geometryEvaluated"]=false;session_.remove("geometry");session_.remove("documentDraft");view_->clearPreview();
+    session_["previewed"]=false;session_["geometryEvaluated"]=false;session_.remove("geometry");session_.remove("documentDraft");
     if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_.revision())) {
-        view_->setEditDisplay({},{});return failure("stale_session","The document changed; cancel and restart this extrusion");
+        view_->clearPreview();view_->setEditDisplay({},{});return failure("stale_session","The document changed; cancel and restart this extrusion");
     }
-    auto reject=[this](QJsonObject error){view_->setEditDisplay({},{});return error;};
+    auto reject=[this](QJsonObject error){view_->clearPreview();view_->setEditDisplay({},{});return error;};
     const auto inputs=session_.value("inputs").toObject();
     QJsonArray hidden;
     if(!inputs.value("featureId").toString().isEmpty())for(const auto& body:document_.bodies())if(body.featureId==inputs["featureId"].toString())hidden.append(body.bodyId);
@@ -1270,8 +1297,11 @@ void AlloyWindow::refreshExtrudeControls() {
     extrudeOk_->setEnabled(session_.value("previewed").toBool() && session_.value("baseDocumentRevision").toInteger()==static_cast<qint64>(document_.revision()));
 }
 void AlloyWindow::updateExtrude(const QJsonObject& inputs) {
+    updatingExtrudePreview_=true;
     auto response=execute("command.update",{{"session",session_.value("id")},{"inputs",inputs}});
     if(response["ok"].toBool())response=execute("command.preview",{{"session",session_.value("id")}});
+    updatingExtrudePreview_=false;
+    if(!response["ok"].toBool()){view_->clearPreview();session_["previewed"]=false;}
     if(extrudeError_)extrudeError_->setText(response["ok"].toBool() ? "" : response["error"].toObject()["message"].toString());
     refreshExtrudeControls();
 }
@@ -1468,7 +1498,16 @@ QJsonObject AlloyWindow::beginSketch(const QString& plane,const QString& name,co
         {"previewed",false},{"baseDocumentRevision",static_cast<qint64>(document_.revision())}};
     selectedBody_.clear();view_->clearPreview();view_->clearSketchDraft();displayedSketchDraft_={};
     selectedSketch_.clear();selectedProfile_.clear();view_->selectProfile({},{});view_->setEditDisplay(draft["id"].toString(),dependentBodies(draft["id"].toString()));
-    view_->lookAtSketch(plane);showSketch();return session_;
+    view_->lookAtSketch(plane);showSketch();view_->setFocus(Qt::OtherFocusReason);
+    const auto sketchSession=session_.value("id").toString();
+    // Restore focus after the plane-picker replacement and toolbar layout.
+    // The native viewport must also receive keyboard activation on macOS.
+    QTimer::singleShot(0,this,[this,sketchSession]{
+        if(session_.value("id").toString()!=sketchSession || session_.value("command").toString()!="sketch.edit")return;
+        view_->setFocus(Qt::OtherFocusReason);
+        if(view_->windowHandle())view_->windowHandle()->requestActivate();
+    });
+    return session_;
 }
 
 QJsonObject AlloyWindow::appendSketchEntity(const QString& tool,const QJsonObject& inputs) {
@@ -1730,12 +1769,16 @@ void AlloyWindow::dimensionSelectionChanged() {
     const auto id=sketchDimensionList_->currentData().toString();const auto units=session_.value("inputs").toObject()["units"].toString();
     const double scale=units=="in" ? 25.4 : 1;
     const QSignalBlocker block(sketchDimensionEdit_);sketchDimensionEdit_->setSuffix(" "+units);
+    auto* apply=sketchPanel_->findChild<QPushButton*>("sketch.dimension.apply");
+    if(apply)apply->setEnabled(false);
     for(const auto& entry:session_.value("solverDiagnostics").toObject()["dimensionValues"].toArray()) {
         const auto value=entry.toObject();if(value["id"]!=id)continue;
         const bool angular=value["kind"]=="arcSweep";sketchDimensionEdit_->setSuffix(angular ? " deg" : " "+units);
         sketchDimensionEdit_->setValue(value[angular ? "valueDeg" : "valueMm"].toDouble()/(angular ? 1 : scale));sketchDimensionEdit_->setEnabled(value["driving"].toBool());
+        if(apply)apply->setEnabled(value["driving"].toBool());
         sketchDimensionMeasure_->setText(QString("%1: %2 %3").arg(value["driving"].toBool() ? "Driving" : "Driven measurement")
-            .arg(QString::number(value[angular ? "valueDeg" : "valueMm"].toDouble()/(angular ? 1 : scale),'g',8)).arg(angular ? "deg" : units));return;
+            .arg(QString::number(value[angular ? "valueDeg" : "valueMm"].toDouble()/(angular ? 1 : scale),'g',8)).arg(angular ? "deg" : units)
+            +(value["driving"].toBool() ? "\nEnter a value, then Apply." : "\nRead-only: measures geometry."));return;
     }
     sketchDimensionEdit_->setEnabled(false);sketchDimensionMeasure_->setText("Select a dimension to inspect or edit it");
 }
@@ -1789,6 +1832,41 @@ void AlloyWindow::refreshSketchControls() {
         if(sketchDimensionList_->count()==0)sketchDimensionList_->addItem("No dimensions");
         const int previousIndex=sketchDimensionList_->findData(previous);if(previousIndex>=0)sketchDimensionList_->setCurrentIndex(previousIndex);
         dimensionSelectionChanged();
+    }
+    if(selected) {
+        const auto explicitId=selection["dimensionId"].toString();
+        const auto entityIds=selection["entityIds"].toArray();
+        const auto pointIds=selection["pointIds"].toArray();
+        QString selectedId;
+        if(!explicitId.isEmpty())selectedId=explicitId;
+        else if(entityIds.size()==1 && pointIds.isEmpty()) {
+            const auto previous=sketchDimensionList_->currentData().toString();
+            QJsonArray linePoints;
+            for(const auto& entry:parameters["entities"].toArray()) {
+                const auto entity=entry.toObject();
+                if(entity["id"]==entityIds[0] && entity["type"]=="line") {
+                    linePoints={entity["startPointId"],entity["endPointId"]};break;
+                }
+            }
+            bool driving=false;
+            for(const auto& entry:parameters["dimensions"].toArray()) {
+                const auto dimension=entry.toObject();const auto dimensionPoints=dimension["pointIds"].toArray();
+                const bool matchesLine=linePoints.size()==2 && dimensionPoints.size()==2
+                    && ((dimensionPoints[0]==linePoints[0] && dimensionPoints[1]==linePoints[1])
+                        || (dimensionPoints[0]==linePoints[1] && dimensionPoints[1]==linePoints[0]));
+                if(dimension["entityId"]!=entityIds[0] && !matchesLine)continue;
+                const auto id=dimension["id"].toString();
+                if(id==previous){selectedId=id;break;}
+                if(selectedId.isEmpty() || (!driving && dimension["driving"].toBool())) {
+                    selectedId=id;driving=dimension["driving"].toBool();
+                }
+            }
+        }
+        if(!explicitId.isEmpty() || (entityIds.size()==1 && pointIds.isEmpty())) {
+            const QSignalBlocker block(sketchDimensionList_);
+            sketchDimensionList_->setCurrentIndex(sketchDimensionList_->findData(selectedId));
+            dimensionSelectionChanged();
+        }
     }
     const QSignalBlocker block(sketchDimensionValue_);
     const bool targetsChanged=selection["pointIds"]!=sketchWidgetSelection_["pointIds"] || selection["entityIds"]!=sketchWidgetSelection_["entityIds"];
@@ -1892,13 +1970,15 @@ void AlloyWindow::showSketch() {
                 : type=="horizontal" || type=="vertical" ? "Select one line" : "Select two lines");
             constraints->addWidget(button,i/2,i%2);connect(button,&QPushButton::clicked,this,[this,type]{sketchResponse(execute("sketch.constraint",{{"type",type}}));});
         }
-        layout->addLayout(constraints);layout->addWidget(new QLabel("DIMENSION  D"));auto* dimensions=new QFormLayout;
+        layout->addLayout(constraints);layout->addWidget(new QLabel("NEW DIMENSION"));
+        auto* dimensionHelp=new QLabel("Creates a dimension for selected geometry.\nUse D to place a dimension in the canvas.");dimensionHelp->setWordWrap(true);layout->addWidget(dimensionHelp);
+        auto* dimensions=new QFormLayout;
         sketchDimensionKind_=new QComboBox;sketchDimensionKind_->setObjectName("sketch.dimension.kind");
         for(const auto& kind:QStringList{"linear","horizontal","vertical","radius","diameter","arcSweep"})sketchDimensionKind_->addItem(kind=="arcSweep" ? "Arc Sweep" : kind.first(1).toUpper()+kind.sliced(1),kind);
         dimensions->addRow("Measure",sketchDimensionKind_);
         sketchDimensionDriving_=new QCheckBox("Driving dimension");sketchDimensionDriving_->setChecked(true);sketchDimensionDriving_->setObjectName("sketch.dimension.driving");dimensions->addRow(sketchDimensionDriving_);
         sketchDimensionValue_=new QDoubleSpinBox;sketchDimensionValue_->setDecimals(6);sketchDimensionValue_->setRange(0.000001,100000);sketchDimensionValue_->setKeyboardTracking(false);
-        sketchDimensionValue_->setObjectName("sketch.dimension.value");dimensions->addRow("Value",sketchDimensionValue_);layout->addLayout(dimensions);
+        sketchDimensionValue_->setObjectName("sketch.dimension.value");dimensions->addRow("New value",sketchDimensionValue_);layout->addLayout(dimensions);
         connect(sketchDimensionKind_,qOverload<int>(&QComboBox::currentIndexChanged),this,[this]{sketchWidgetUnits_.clear();refreshSketchControls();});
         connect(sketchDimensionDriving_,&QCheckBox::toggled,sketchDimensionValue_,&QWidget::setEnabled);
         auto* addDimension=new QPushButton("Add Dimension");addDimension->setObjectName("sketch.dimension.add");layout->addWidget(addDimension);
@@ -1906,12 +1986,14 @@ void AlloyWindow::showSketch() {
             QJsonObject args{{"kind",sketchDimensionKind_->currentData().toString()},{"driving",sketchDimensionDriving_->isChecked()}};
             if(sketchDimensionDriving_->isChecked())args[args["kind"]=="arcSweep" ? "valueDeg" : "value"]=sketchDimensionValue_->value();sketchResponse(execute("sketch.dimension",args));
         });
-        sketchDimensionList_=new QComboBox;sketchDimensionList_->setObjectName("sketch.dimension.list");layout->addWidget(sketchDimensionList_);
+        layout->addWidget(new QLabel("EDIT EXISTING DIMENSION"));
+        auto* existingDimensions=new QFormLayout;
+        sketchDimensionList_=new QComboBox;sketchDimensionList_->setObjectName("sketch.dimension.list");existingDimensions->addRow("Dimension",sketchDimensionList_);layout->addLayout(existingDimensions);
         sketchDimensionMeasure_=new QLabel;sketchDimensionMeasure_->setObjectName("sketch.dimension.measure");layout->addWidget(sketchDimensionMeasure_);
         sketchDimensionEdit_=new QDoubleSpinBox;sketchDimensionEdit_->setDecimals(6);sketchDimensionEdit_->setRange(0.000001,100000);sketchDimensionEdit_->setKeyboardTracking(false);
-        sketchDimensionEdit_->setObjectName("sketch.dimension.edit");layout->addWidget(sketchDimensionEdit_);
+        sketchDimensionEdit_->setObjectName("sketch.dimension.edit");auto* dimensionValueForm=new QFormLayout;dimensionValueForm->addRow("Dimension value",sketchDimensionEdit_);layout->addLayout(dimensionValueForm);
         connect(sketchDimensionList_,qOverload<int>(&QComboBox::currentIndexChanged),this,[this]{dimensionSelectionChanged();});
-        auto* editDimension=new QPushButton("Apply Dimension Value");editDimension->setObjectName("sketch.dimension.apply");layout->addWidget(editDimension);
+        auto* editDimension=new QPushButton("Apply Dimension Value");editDimension->setObjectName("sketch.dimension.apply");editDimension->setEnabled(false);layout->addWidget(editDimension);
         connect(editDimension,&QPushButton::clicked,this,[this]{
             const auto id=sketchDimensionList_->currentData().toString();if(id.isEmpty())return;
             QString kind;for(const auto& e:session_["draftSketch"].toObject()["parameters"].toObject()["dimensions"].toArray())if(e.toObject()["id"]==id)kind=e.toObject()["kind"].toString();

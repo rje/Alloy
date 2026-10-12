@@ -232,7 +232,7 @@ void ReferenceView::setSketches(const std::vector<EvaluatedSketch>& sketches,qui
     }
     sketchRevision_=revision;applyEditDisplay();
 }
-void ReferenceView::applyEditDisplay() {
+void ReferenceView::applyEditDisplay(bool redraw) {
     if(context_.IsNull())return;
     for(const auto& sketch:finishedSketches_) {
         const bool visible=(sketch.visible || sketch.featureId==editSourceSketch_) && sketch.featureId!=draftSketchId_;
@@ -244,7 +244,9 @@ void ReferenceView::applyEditDisplay() {
             const auto fill=finishedProfileModels_.value(profile.profileId);
             fill->SetColor(profile.profileId==selectedProfile_ && sketch.featureId==selectedProfileSketch_
                 ? Quantity_Color(0.17,0.48,0.90,Quantity_TOC_sRGB) : Quantity_Color(0.39,0.68,0.91,Quantity_TOC_sRGB));
-            if(visible)context_->Display(fill,false);else context_->Erase(fill,false);
+            // The extrusion base cap occupies this same plane. Keep its sketch
+            // outline, but suppress the coplanar transparent profile fill.
+            if(visible && profile.profileId!=previewProfile_)context_->Display(fill,false);else context_->Erase(fill,false);
         }
     }
     for(auto i=models_.begin();i!=models_.end();++i) {
@@ -252,7 +254,7 @@ void ReferenceView::applyEditDisplay() {
         if(!visible || hiddenBodyIds_.contains(i.key()) || i.key()==previewReplacedBody_)context_->Erase(i.value(),false);
         else context_->Display(i.value(),false);
     }
-    context_->UpdateCurrentViewer();
+    if(redraw)context_->UpdateCurrentViewer();
 }
 void ReferenceView::setEditDisplay(const QString& sourceSketchId,const QJsonArray& hiddenBodyIds) {
     editSourceSketch_=sourceSketchId;hiddenBodyIds_=hiddenBodyIds;applyEditDisplay();
@@ -633,8 +635,10 @@ QJsonObject ReferenceView::projectBody(const EvaluatedBody& body) const {
     return {{"x",x/scale.x()},{"y",y/scale.y()},{"bodyId",body.bodyId},
         {"viewportLocal",true},{"units","logicalPixels"}};
 }
-void ReferenceView::showPreview(const TopoDS_Shape& shape,const QString& replacedBody,bool neutral) {
-    clearPreview();if(context_.IsNull())return;
+void ReferenceView::replacePreview(const TopoDS_Shape& shape,const QString& replacedBody,bool neutral) {
+    // Remove the previous presentation without exposing an intermediate empty
+    // scene or the original body while the replacement is being installed.
+    clearPreviewPresentation();if(context_.IsNull())return;
     if(models_.contains(replacedBody)) {
         previewReplacedBody_=replacedBody;context_->Erase(models_.value(replacedBody),false);
     }
@@ -646,11 +650,17 @@ void ReferenceView::showPreview(const TopoDS_Shape& shape,const QString& replace
     if(neutral)preview_->Attributes()->SetFaceBoundaryAspect(new Prs3d_LineAspect(
         Quantity_Color(0.18,0.22,0.25,Quantity_TOC_sRGB),Aspect_TOL_SOLID,devicePixelRatioF()));
     context_->Display(preview_,AIS_Shaded,-1,false);context_->Deactivate(preview_);
-    context_->UpdateCurrentViewer();
+    applyEditDisplay(false);
+}
+void ReferenceView::showPreview(const TopoDS_Shape& shape,const QString& replacedBody,bool neutral) {
+    replacePreview(shape,replacedBody,neutral);
+    if(!context_.IsNull())context_->UpdateCurrentViewer();
 }
 void ReferenceView::showExtrudePreview(const EvaluatedBody& body,const EvaluatedProfile& profile,double distanceMm) {
-    showPreview(body.shape,body.bodyId,true);
+    replacePreview(body.shape,body.bodyId,true);
     if(context_.IsNull())return;
+    previewProfile_=profile.profileId;
+    applyEditDisplay(false);
     GProp_GProps properties;BRepGProp::SurfaceProperties(profile.face,properties);const auto start=properties.CentreOfMass();
     const auto frame=SketchGeometry::frame(profile.plane);const auto normal=frame.value("normal").toArray(),u=frame.value("uAxis").toArray();
     gp_Vec direction(normal[0].toDouble(),normal[1].toDouble(),normal[2].toDouble());direction*=distanceMm<0 ? -1 : 1;
@@ -668,13 +678,16 @@ void ReferenceView::showExtrudePreview(const EvaluatedBody& body,const Evaluated
         {"startMm",QJsonArray{start.X(),start.Y(),start.Z()}},{"endMm",QJsonArray{end.X(),end.Y(),end.Z()}}};
     context_->UpdateCurrentViewer();
 }
-void ReferenceView::clearPreview() {
+void ReferenceView::clearPreviewPresentation() {
     if(!context_.IsNull()) {
         for(const auto& cue:extrusionCue_)context_->Remove(cue,false);
         if(!preview_.IsNull())context_->Remove(preview_,false);
-        if(!preview_.IsNull() || !previewReplacedBody_.isEmpty())context_->UpdateCurrentViewer();
     }
-    preview_.Nullify();previewReplacedBody_.clear();extrusionCue_.clear();extrusionCueState_={};applyEditDisplay();
+    preview_.Nullify();previewReplacedBody_.clear();previewProfile_.clear();extrusionCue_.clear();extrusionCueState_={};
+}
+void ReferenceView::clearPreview() {
+    clearPreviewPresentation();
+    applyEditDisplay();
 }
 QJsonObject ReferenceView::diagnostics() const {
     QJsonObject result{{"initialized", !view_.IsNull()}, {"error", error_}, {"hardwareAccelerated", false},
@@ -729,6 +742,7 @@ QJsonObject ReferenceView::diagnostics() const {
     result.insert("extrusionCue",extrusionCueState_);
     result.insert("previewVisible",!preview_.IsNull());
     result.insert("previewReplacedBodyId",previewReplacedBody_);
+    result.insert("previewProfileId",previewProfile_);
     result.insert("bodyStageKey",bodyStageKey_);
     QJsonArray displayIds;for(auto it=models_.begin();it!=models_.end();++it)if(context_->IsDisplayed(it.value()))displayIds.append(it.key());result.insert("displayedBodyIds",displayIds);
     result.insert("documentRevision",static_cast<qint64>(modelRevision_));
