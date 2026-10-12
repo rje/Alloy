@@ -254,6 +254,79 @@
         "sketch.gpu_wires",
         "sketch.drawing_commands"
       ]
+    },
+    "sketch-constraints": {
+      "script": "tests/sketch_constraints_api.py",
+      "fixture": "tests/workflows/fixtures/sketch-constraints.json",
+      "result": "sketch-constraints-api.json",
+      "covers": [
+        "SKT-003",
+        "SKT-004"
+      ],
+      "capabilities": [
+        "sketch.constraints",
+        "sketch.solver_diagnostics",
+        "sketch.driving_dimensions",
+        "sketch.driven_measurements",
+        "sketch.constraint_storage",
+        "sketch.entity_selection"
+      ],
+      "inputs": [
+        "tests/app_harness.py",
+        "src/SketchSolver.cpp",
+        "src/SketchSolver.h",
+        "cmake/PlaneGCS.cmake"
+      ]
+    },
+    "SKT-003": {
+      "check": "case_alias",
+      "requires": [
+        "sketch-constraints"
+      ],
+      "covers": [
+        "SKT-003"
+      ],
+      "capabilities": [
+        "sketch.constraints",
+        "sketch.solver_diagnostics",
+        "sketch.driving_dimensions",
+        "sketch.driven_measurements",
+        "sketch.constraint_storage",
+        "sketch.entity_selection"
+      ]
+    },
+    "SKT-004": {
+      "check": "case_alias",
+      "requires": [
+        "sketch-constraints"
+      ],
+      "covers": [
+        "SKT-004"
+      ],
+      "capabilities": [
+        "sketch.constraints",
+        "sketch.solver_diagnostics",
+        "sketch.driving_dimensions",
+        "sketch.driven_measurements",
+        "sketch.constraint_storage",
+        "sketch.entity_selection"
+      ]
+    },
+    "constraint-regression": {
+      "check": "case_alias",
+      "requires": [
+        "sketch-regression",
+        "sketch-constraints"
+      ],
+      "covers": [],
+      "capabilities": [
+        "sketch.constraints",
+        "sketch.solver_diagnostics",
+        "sketch.driving_dimensions",
+        "sketch.driven_measurements",
+        "sketch.constraint_storage",
+        "sketch.entity_selection"
+      ]
     }
   },
   "gates": {

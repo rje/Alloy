@@ -17,7 +17,9 @@ so this is not a complete deployed closure or a relocation test.
 | Qt 6.11.2 Core/Gui/Widgets/Network | LGPL-3.0-only | Admit shared modules; check each additional module separately |
 | OCCT 7.9.3, a016080… | LGPL-2.1-only WITH OCCT-exception-1.0 | Admit shared modeling/visualization libraries; attribution and LGPL obligations remain |
 | CI FreeType 2.13.3, 42608f7… | FTL | Admit with bundled-code notices |
-| PlaneGCS, ec6852e… | LGPL-2.1-or-later | Selected shared-library path; extraction/fixture reviewed in FND-005. Application/packaging integration remains pending |
+| PlaneGCS, ec6852e… | LGPL-2.1-or-later | Separate shared library from thirteen pinned source files; application adapter integration added after FND-005. Runtime packaging remains pending |
+| Eigen 5.0.1 | MPL-2.0 with EIGEN_MPL2_ONLY | Solver headers; exact archive fallback and covered-source notices |
+| Boost 1.90.0 | BSL-1.0 | Solver Graph/math headers; exact archive fallback and notices |
 | libslvs, ef96633… | GPL-3.0-or-later | Not admitted under current integration decisions |
 | lib3mf 2.5.0, 64bb454… | BSD-2-Clause | Candidate only; complete bundled-dependency audit before its format task |
 
@@ -53,9 +55,10 @@ this material travels with each published package. FND-009 records reproducible
 build inputs and support boundaries. Runtime/GPU/relocation acceptance remains
 GATE-005, separate from this admission record.
 
-Before integrating PlaneGCS, audit the exact extracted solver file set and its
-Eigen/Boost/support dependencies; its current header grant is a candidate finding,
-not permission to transplant unrelated FreeCAD application code. Before lib3mf,
+The [PlaneGCS extraction](../../third_party/planegcs/README.md) records the audited
+thirteen-file set, SHA-256 checked downloads, Eigen/Boost header pins, standalone
+export/logging shims and explicit dated C++20 patch. No unrelated FreeCAD
+application code is admitted by this choice. Before lib3mf,
 retain libzip (BSD-3-Clause), zlib/cpp-base64 (Zlib), and selected fast_float MIT
 notices. The pinned credits list zlib 1.3.0 but its header says 1.3.1; reconcile
 that discrepancy with the actual included code rather than repeat stale credits.
@@ -75,4 +78,8 @@ Retrieved 2026-10-11. Exact pins are in components.json.
   [credits](https://github.com/3MFConsortium/lib3mf/blob/64bb454d1fcb53effa57d3cef752a10d740d41a2/SDK/Credits.txt),
   [included zlib version](https://github.com/3MFConsortium/lib3mf/blob/64bb454d1fcb53effa57d3cef752a10d740d41a2/Libraries/zlib/Include/zlib.h).
 
-[Decision 004](../decisions/004-sketch-solver.md) selects PlaneGCS after the bounded native fixture. Eigen 5.0.1 MPL-only and Boost 1.90.0 headers are recorded in components.json. This is solver research/admission evidence; Alloy constraints and deployed runtime closure remain separate work.
+[Decision 004](../decisions/004-sketch-solver.md) records the original PlaneGCS
+selection fixture. The application adapter and focused solver test are now built
+by CMake; application workflow evidence must qualify each claimed constraint and
+dimension feature. The historical local link audit above predates this library.
+Deployed runtime closure remains separate work.

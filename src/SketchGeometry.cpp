@@ -1,4 +1,5 @@
 #include "SketchGeometry.h"
+#include "SketchSolver.h"
 #include <BRepBndLib.hxx>
 #include <BRepBuilderAPI_MakeEdge.hxx>
 #include <BRepCheck_Analyzer.hxx>
@@ -63,6 +64,13 @@ gp_Pnt worldPoint(const QString& plane, double u, double v) {
     if (plane == "XZ") return {u, 0, v};
     if (plane == "YZ") return {0, u, v};
     reject("Unsupported sketch origin plane");
+}
+void checkFields(const QJsonObject& arguments, const QSet<QString>& allowed) {
+    for (auto it = arguments.begin(); it != arguments.end(); ++it)
+        if (!allowed.contains(it.key())) reject("Unknown sketch argument: " + it.key());
+}
+SketchGeometry::SolveResult invalidDraft(const QJsonObject& draft, const QString& error) {
+    return {false, draft, {{"solver", "PlaneGCS"}, {"status", "invalid"}}, error};
 }
 }
 
@@ -133,14 +141,27 @@ QJsonObject SketchGeometry::addRectangle(const QJsonObject& draft, const QJsonOb
     auto changed = addLine(draft, {{"u1Mm", u1}, {"v1Mm", v1}, {"u2Mm", u2}, {"v2Mm", v1}});
     changed = addLine(changed, {{"u1Mm", u2}, {"v1Mm", v1}, {"u2Mm", u2}, {"v2Mm", v2}});
     changed = addLine(changed, {{"u1Mm", u2}, {"v1Mm", v2}, {"u2Mm", u1}, {"v2Mm", v2}});
-    return addLine(changed, {{"u1Mm", u1}, {"v1Mm", v2}, {"u2Mm", u1}, {"v2Mm", v1}});
+    changed = addLine(changed, {{"u1Mm", u1}, {"v1Mm", v2}, {"u2Mm", u1}, {"v2Mm", v1}});
+    auto parameters = changed["parameters"].toObject();
+    const auto entities = parameters["entities"].toArray();
+    auto constraints = parameters["constraints"].toArray();
+    for (int i = 0; i < 4; ++i)
+        constraints.append(QJsonObject{{"id", newId()}, {"type", i % 2 == 0 ? "horizontal" : "vertical"},
+            {"entityIds", QJsonArray{entities[entities.size() - 4 + i].toObject()["id"]}}});
+    parameters["constraints"] = constraints;
+    changed["parameters"] = parameters;
+    return changed;
 }
 
 QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<QString>& authoredIds) {
     const auto plane = parameters["plane"].toString();
     if (plane != "XY" && plane != "XZ" && plane != "YZ") return "Unsupported sketch origin plane";
-    if (parameters.size() != 3 || !parameters["points"].isArray() || !parameters["entities"].isArray())
-        return "Sketch parameters require only plane, points and entities";
+    const QSet<QString> allowed{"plane", "points", "entities", "constraints", "dimensions"};
+    for (auto it = parameters.begin(); it != parameters.end(); ++it)
+        if (!allowed.contains(it.key())) return "Unknown sketch parameter: " + it.key();
+    if (!parameters["points"].isArray() || !parameters["entities"].isArray()) return "Sketch requires points and entities";
+    for (const auto& field : {"constraints", "dimensions"})
+        if (parameters.contains(field) && !parameters[field].isArray()) return QString(field) + " must be an array";
     QMap<QString, QJsonObject> points;
     auto claimId = [&](const QString& id) {
         if (!validId(id) || authoredIds.contains(id)) return false;
@@ -157,7 +178,7 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
             coordinate(point, "vMm");
             points.insert(id, point);
         }
-        QSet<QString> usedPoints;
+        QSet<QString> usedPoints, entityIds;
         for (const auto& entry : parameters["entities"].toArray()) {
             if (!entry.isObject()) return "Sketch entity must be an object";
             const auto entity = entry.toObject();
@@ -170,10 +191,161 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
             if (length < minimumLength || length > maximumLength) return "Sketch line length out of supported range (0.001..100000 mm)";
             usedPoints.insert(startId);
             usedPoints.insert(endId);
+            entityIds.insert(entity["id"].toString());
         }
         if (usedPoints.size() != points.size()) return "Sketch contains unreferenced points";
+        auto checkReferences = [](const QJsonObject& object, const QString& field, int count, const QSet<QString>& valid) {
+            if (!object[field].isArray() || object[field].toArray().size() != count) return false;
+            QSet<QString> used;
+            for (const auto& id : object[field].toArray()) {
+                if (!id.isString() || !valid.contains(id.toString()) || used.contains(id.toString())) return false;
+                used.insert(id.toString());
+            }
+            return true;
+        };
+        const QSet<QString> pointIds(points.keyBegin(), points.keyEnd());
+        for (const auto& entry : parameters["constraints"].toArray()) {
+            if (!entry.isObject()) return "Sketch constraint must be an object";
+            const auto constraint = entry.toObject();
+            if (!claimId(constraint["id"].toString())) return "Invalid or duplicate constraint UUID";
+            const auto type = constraint["type"].toString();
+            if (type == "coincident" || type == "fixed") {
+                const bool fixed = type == "fixed";
+                if (constraint.size() != (fixed ? 5 : 3) || constraint.contains("entityIds")
+                    || !checkReferences(constraint, "pointIds", fixed ? 1 : 2, pointIds)) return "Invalid point constraint references";
+                if (fixed) { coordinate(constraint, "uMm"); coordinate(constraint, "vMm"); }
+            } else if (type == "horizontal" || type == "vertical" || type == "parallel" || type == "perpendicular") {
+                if (constraint.size() != 3 || constraint.contains("pointIds")
+                    || !checkReferences(constraint, "entityIds", (type == "parallel" || type == "perpendicular") ? 2 : 1, entityIds))
+                    return "Invalid line constraint references";
+            } else return "Unsupported sketch constraint type";
+        }
+        for (const auto& entry : parameters["dimensions"].toArray()) {
+            if (!entry.isObject()) return "Sketch dimension must be an object";
+            const auto dimension = entry.toObject();
+            if (!claimId(dimension["id"].toString())) return "Invalid or duplicate dimension UUID";
+            const auto kind = dimension["kind"].toString();
+            if ((kind != "linear" && kind != "horizontal" && kind != "vertical") || !dimension["driving"].isBool()
+                || !checkReferences(dimension, "pointIds", 2, pointIds)) return "Invalid dimension kind or references";
+            const bool driving = dimension["driving"].toBool();
+            if (dimension.size() != (driving ? 5 : 4) || (!driving && dimension.contains("valueMm"))) return "Unexpected dimension fields";
+            if (driving) {
+                const double value = coordinate(dimension, "valueMm");
+                if (value < minimumLength) return "Driving dimension must be positive (0.001..100000 mm)";
+            }
+        }
     } catch (const std::invalid_argument& error) { return QString::fromUtf8(error.what()); }
     return {};
+}
+
+SketchGeometry::SolveResult SketchGeometry::solveDraft(const QJsonObject& draft) {
+    try {
+        validateDraft(draft);
+        const auto result = SketchSolver::solve(draft["parameters"].toObject());
+        if (!result.accepted) return {false, draft, result.diagnostics, result.error};
+        auto solved = draft;
+        solved["parameters"] = result.parameters;
+        validateDraft(solved);
+        return {true, solved, result.diagnostics, {}};
+    } catch (const std::exception& error) { return invalidDraft(draft, QString::fromUtf8(error.what())); }
+}
+
+SketchGeometry::SolveResult SketchGeometry::addConstraint(const QJsonObject& draft, const QJsonObject& arguments) {
+    try {
+        validateDraft(draft);
+        checkFields(arguments, {"type", "pointIds", "entityIds"});
+        auto constraint = arguments;
+        constraint["id"] = newId();
+        auto parameters = draft["parameters"].toObject();
+        if (constraint["type"].toString() == "fixed") {
+            const auto pointIds = constraint["pointIds"].toArray();
+            if (pointIds.size() != 1) reject("Fixed constraint requires one point");
+            bool found = false;
+            for (const auto& entry : parameters["points"].toArray()) {
+                const auto point = entry.toObject();
+                if (point["id"] != pointIds[0]) continue;
+                constraint["uMm"] = point["uMm"]; constraint["vMm"] = point["vMm"]; found = true; break;
+            }
+            if (!found) reject("Fixed point does not exist");
+        }
+        auto constraints = parameters["constraints"].toArray(); constraints.append(constraint);
+        parameters["constraints"] = constraints;
+        auto candidate = draft; candidate["parameters"] = parameters;
+        const auto result = solveDraft(candidate);
+        return result.ok ? result : SolveResult{false, draft, result.diagnostics, result.error};
+    } catch (const std::exception& error) { return invalidDraft(draft, QString::fromUtf8(error.what())); }
+}
+
+SketchGeometry::SolveResult SketchGeometry::addDimension(const QJsonObject& draft, const QJsonObject& arguments) {
+    try {
+        validateDraft(draft);
+        checkFields(arguments, {"kind", "pointIds", "entityId", "driving", "valueMm"});
+        if (arguments.contains("driving") && !arguments["driving"].isBool()) reject("Dimension driving must be Boolean");
+        auto parameters = draft["parameters"].toObject();
+        QJsonArray pointIds = arguments["pointIds"].toArray();
+        if (arguments.contains("entityId")) {
+            if (arguments.contains("pointIds")) reject("Choose dimension points or one line, not both");
+            bool found = false;
+            for (const auto& entry : parameters["entities"].toArray()) {
+                const auto entity = entry.toObject();
+                if (entity["id"] != arguments["entityId"]) continue;
+                pointIds = {entity["startPointId"], entity["endPointId"]}; found = true; break;
+            }
+            if (!found) reject("Dimension line does not exist");
+        }
+        const bool driving = arguments.value("driving").toBool(true);
+        QJsonObject dimension{{"id", newId()}, {"kind", arguments["kind"]}, {"pointIds", pointIds}, {"driving", driving}};
+        if (driving) dimension["valueMm"] = arguments["valueMm"];
+        else if (arguments.contains("valueMm")) reject("Driven dimensions measure geometry; omit valueMm");
+        auto dimensions = parameters["dimensions"].toArray(); dimensions.append(dimension);
+        parameters["dimensions"] = dimensions;
+        auto candidate = draft; candidate["parameters"] = parameters;
+        const auto result = solveDraft(candidate);
+        return result.ok ? result : SolveResult{false, draft, result.diagnostics, result.error};
+    } catch (const std::exception& error) { return invalidDraft(draft, QString::fromUtf8(error.what())); }
+}
+
+SketchGeometry::SolveResult SketchGeometry::updateDimension(const QJsonObject& draft, const QJsonObject& arguments) {
+    try {
+        validateDraft(draft);
+        checkFields(arguments, {"dimensionId", "valueMm"});
+        coordinate(arguments, "valueMm");
+        auto parameters = draft["parameters"].toObject();
+        auto dimensions = parameters["dimensions"].toArray();
+        bool found = false;
+        for (int i = 0; i < dimensions.size(); ++i) {
+            auto dimension = dimensions[i].toObject();
+            if (dimension["id"] != arguments["dimensionId"]) continue;
+            if (!dimension["driving"].toBool()) reject("A driven dimension cannot set geometry");
+            dimension["valueMm"] = arguments["valueMm"]; dimensions[i] = dimension; found = true; break;
+        }
+        if (!found) reject("Driving dimension does not exist");
+        parameters["dimensions"] = dimensions;
+        auto candidate = draft; candidate["parameters"] = parameters;
+        const auto result = solveDraft(candidate);
+        return result.ok ? result : SolveResult{false, draft, result.diagnostics, result.error};
+    } catch (const std::exception& error) { return invalidDraft(draft, QString::fromUtf8(error.what())); }
+}
+
+SketchGeometry::SolveResult SketchGeometry::movePoint(const QJsonObject& draft, const QJsonObject& arguments) {
+    try {
+        validateDraft(draft);
+        checkFields(arguments, {"pointId", "uMm", "vMm"});
+        coordinate(arguments, "uMm"); coordinate(arguments, "vMm");
+        auto parameters = draft["parameters"].toObject();
+        auto points = parameters["points"].toArray();
+        bool found = false;
+        for (int i = 0; i < points.size(); ++i) {
+            auto point = points[i].toObject();
+            if (point["id"] != arguments["pointId"]) continue;
+            point["uMm"] = arguments["uMm"]; point["vMm"] = arguments["vMm"]; points[i] = point; found = true; break;
+        }
+        if (!found) reject("Sketch point does not exist");
+        parameters["points"] = points;
+        auto candidate = draft; candidate["parameters"] = parameters;
+        const auto result = solveDraft(candidate);
+        return result.ok ? result : SolveResult{false, draft, result.diagnostics, result.error};
+    } catch (const std::exception& error) { return invalidDraft(draft, QString::fromUtf8(error.what())); }
 }
 
 QJsonObject SketchGeometry::frame(const QString& plane) {
@@ -186,8 +358,9 @@ QJsonObject SketchGeometry::frame(const QString& plane) {
 }
 
 EvaluatedSketch SketchGeometry::evaluateFeature(const QJsonObject& feature) {
-    validateDraft(feature);
-    const auto parameters = feature["parameters"].toObject();
+    const auto solution = solveDraft(feature);
+    if (!solution.ok) reject(solution.error);
+    const auto parameters = solution.feature["parameters"].toObject();
     const auto plane = parameters["plane"].toString();
     QMap<QString, gp_Pnt> points;
     QJsonArray worldPoints;
@@ -219,7 +392,7 @@ EvaluatedSketch SketchGeometry::evaluateFeature(const QJsonObject& feature) {
             {"size", QJsonArray{x1-x0, y1-y0, z1-z0}}};
     }
     QJsonObject summary{{"kernel", "OCCT"}, {"version", ALLOY_OCCT_VERSION}, {"type", "sketch"}, {"valid", true},
-        {"lengthUnit", "mm"}, {"plane", plane}, {"frame", frame(plane)}, {"solverIntegrated", false},
+        {"lengthUnit", "mm"}, {"plane", plane}, {"frame", frame(plane)}, {"solverIntegrated", true}, {"solver", solution.diagnostics},
         {"pointCount", points.size()}, {"entityCount", entities.size()}, {"worldPoints", worldPoints}, {"boundsMm", bounds}};
     return {feature["id"].toString(), feature["name"].toString(), plane, feature["visible"].toBool(), shape, summary};
 }

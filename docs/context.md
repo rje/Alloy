@@ -51,6 +51,18 @@ Updated 2026-10-11. This is the project handoff for a fresh session. Read the ro
   work stays tracked without blocking that first sketch workflow.
 - The user authorized concurrent agents for independent feature work, with shared
   command/document contracts and one reviewed integrated app.
+- The first manual sketch coordinate controls are functional helpers. User review
+  accepts continuing modeling now and a later public-reference compatibility pass
+  on numeric entry, drawing inputs, dimensions, selection and palette behavior.
+- The user wants compatibility corrected through bounded independent milestone
+  reviews, preferably Astra on work it did not implement. Compare public
+  documentation, screenshots, original community articles and video tutorials
+  against actual Alloy visual/input behavior and outputs. Record source IDs/dates
+  and video timestamps, matched/mismatch/unknown findings and specific fix issues;
+  use the API for deterministic fixtures and native input for physical behavior.
+  Another reviewer checks Astra-authored code. Follow compatibility.md and the
+  compact sketch-controls record; do not sweep every command after every commit
+  or claim overall exact parity from one state.
 - The project lives at `~/src/cpp/Alloy`. Alloy is the working name. Astra was
   requested for the initial public-interface research and project foundation,
   and completed that assignment.
@@ -95,20 +107,20 @@ Separate native UI checks covered toolbar creation, dimension typing, keyboard
 undo/redo, native Save and Timeline edit/cancel. An editable sample lives in
 `examples/gauge-block.alloy`. Body picking and geometry inspection use the actual
 OCCT scene and evaluated document. Face/edge selection, persistent-reference
-integration, arbitrary orbit, application sketch constraints, import and export remain pending.
+integration, arbitrary orbit, import and export remain pending.
 Visual/interaction parity and the broader product gates are not accepted.
 
 SKT-001/002 now implement origin-plane sketches, connected lines and two-point
 rectangles through the shared application commands. XY/XZ/YZ planes have explicit
 frames; stable sketch, point and line IDs live in authored JSON. A rectangle is
-four authored edges with shared endpoints. Sketches have separate evaluated OCCT
+four authored edges with shared endpoints; new rectangles also author four automatic
+horizontal/vertical constraints. Previously saved sketches preserve their intent. Sketches have separate evaluated OCCT
 edge caches and never claim solid body IDs or volume. Create/edit sessions retain
 a disposable draft; Finish creates one QUndoStack entry, while Cancel and palette
 close preserve the prior document. The UI has an origin-plane chooser, contextual
 tools and a docked Sketch Palette. Canvas clicks and numeric coordinates use the
 same commands; L/R select drawing tools and canvas Escape stops a pending tool
-without cancelling the sketch. There are no application constraints, driving
-dimensions or extrusion yet.
+without cancelling the sketch. Extrusion remains pending.
 
 The [sketch receipt](validation/sketches.md) records the integrated build and
 three focused CTest checks, the previous shell/document/session/primitive cases,
@@ -120,11 +132,24 @@ world transforms, draft preservation, mixed primitive/sketch undo and native
 save/reopen are covered by actual core and application checks.
 
 FND-005 selects PlaneGCS at a pinned public revision through a replaceable shared
-library, with Eigen/Boost and a passing native-library fixture. See
-[decision 004](decisions/004-sketch-solver.md) and its source-linked research.
-Constraint/dimension records, application solving and diagnostics still await
-SKT-003/004; the fixture is not an integrated application solver or a qualified
-portable package.
+library. SKT-003/004 now integrate it in the actual application: coincident,
+horizontal, vertical, parallel, perpendicular and fixed constraints; linear,
+horizontal and vertical driving dimensions; driven measurements and solve/DOF
+inspection. Point/line selection is shared by UI and automation, with orange
+highlights, green fixed points and whole-sketch black/blue constraint status.
+Failed solves preserve the usable draft and report conflict identities. Width
+changes update real OCCT edges and driven measurements before one Finish undo
+entry. Authored constraints/dimensions survive save/reopen and backward-compatible
+unconstrained files remain valid. See [constraints receipt](validation/sketch-constraints.md).
+The native adapter/document fixtures passed. Existing application workflows and
+the new constraint workflow passed on the initial integrated binary; the focused
+new workflow was repeated after the explicit line-ID fix and native palette
+readability fix. Keep these candidate boundaries explicit in the receipt.
+Application and library operation are qualified only on macOS arm64; portable
+exports are implemented but Windows/Linux compilation and runtime/package closure
+remain unqualified. Canvas dimension placement, inline typing, double-click
+annotation editing, point dragging and per-entity constraint badges remain linked
+follow-ups, not accepted interaction parity.
 
 A reported viewport mouse regression is fixed and independently reviewed.
 Camera setters now defer redraw until a completed view is ready; Retina picking
@@ -181,8 +206,9 @@ FND-010 #10 is also closed with independently reviewed runner evidence;
 FND-003, FND-002, DOC-002, FND-006, FND-004, FND-009 and DOC-001 are closed after
 independently reviewed evidence. DOC-003/004/005/007/008 are closed with reviewed
 primitive evidence. UX-001 is closed with independently reviewed input/editor evidence;
-FND-005 and SKT-001/002 are closed with their bounded solver/sketch evidence:
-18 tasks closed, 125 open at this handoff. Live counts
+FND-005 and SKT-001/002 are closed with their bounded solver/sketch evidence;
+SKT-003/004 are closed with independently reviewed integrated constraints/dimension
+evidence: 20 tasks closed, 123 open at this handoff. Live counts
 are obtained with tools/backlog.py rather than this earlier publication snapshot. Later epics need
 bounded child issues before implementation; this count does not exhaust parity.
 Read [the backlog](backlog/README.md), [publication receipt](backlog/publication.json),
@@ -224,25 +250,28 @@ Its bounded OCCT fixture now passed generator role rebinding, fillet history,
 split/deletion/merge cases; [decision 002](decisions/002-geometric-references.md)
 defines conservative unresolved behavior. DOC-012 still implements the real resolver.
 
-The rebuilt sketch-capable application is open with the user's preserved three-body model.
-Use `python3 tools/alloyctl.py instances` to obtain the current identity. Native
-reopen resets the session journal while preserving authored feature history.
-The launch record is `build/evidence/human-ready-sketch.json`; instance discovery
-remains authoritative if that process is subsequently closed. Existing workflow
-cases passed in `build/evidence/sketch-first-final/report.json`; that combined
-report remains failed because its new sketch test had incorrect expectations.
-The corrected new sketch workflow passed in `build/evidence/sketch-final/report.json`
-on the same binary. Separate native interaction evidence is in
-`build/evidence/sketch-native`. Repeat checks only when a material change warrants
-them; do not rerun unchanged workflows to manufacture further assurance.
+The latest local application binary includes the constraints/dimensions slice.
+Use `python3 tools/alloyctl.py instances` for authoritative live identity; old
+ready files may be stale. Preserve live authored work and any unfinished draft
+before restarting. Recovery documents remain under the local Alloy Application
+Support directory. The new sample `examples/dimensioned-rectangle.alloy` has a
+50 × 25 mm anchored rectangle, driving width/height and a driven diagonal.
+The application is currently open editing that sample with the readable Sketch
+Palette; the launch record is `build/evidence/human-ready-constraints.json`.
+Detailed transcripts/build/test/native artifacts are retained under
+`build/evidence/constraints-*`; the [constraints receipt](validation/sketch-constraints.json)
+identifies which checks ran against each binary. Repeat checks only for material
+changes, new failures or unresolved risks.
 
-**Next execution priority:** SKT-003 integrates the selected PlaneGCS adapter and
-real constraints/diagnostics; SKT-004 adds linear dimensions. Then implement
-SKT-014 simple closed profiles, HIS-001 ordered sketch/profile
-recompute and SOL-001 extrusion. SKT-015 is the next human-test checkpoint:
-draw a 40 by 25 mm rectangle, extrude 5, edit width to 50, verify volume 6250 mm3,
-undo/redo, cancel and save/reopen. HIS-001 is accepted on an actual sketch/profile
-dependency first; SOL-001 then extends the same authority to solids.
+**Next execution priority:** SKT-014 simple closed profiles, HIS-001 ordered
+sketch/profile recompute and SOL-001 extrusion. SKT-015 is the next substantial
+human-test checkpoint: draw a 40 by 25 mm rectangle, extrude 5, edit width to 50,
+verify volume 6250 mm3, undo/redo, cancel and save/reopen. HIS-001 is accepted on
+an actual sketch/profile dependency first; SOL-001 then extends the same authority
+to solids. SKT-005 #32 owns inline width/height, canvas dimension placement/editing
+and drawing inference; SKT-008 #35 owns per-entity diagnostic colors/badges and
+visibility controls. Keep functional modeling and these concrete fidelity
+corrections moving in bounded increments.
 
 SKT-001 no longer waits for GATE-010 or face-reference resolution. SKT-013 retains
 face-attached sketches; SKT-009 retains circles/holes/complex regions; PAR-001 and
@@ -265,12 +294,12 @@ FND-002 admission supports shared Qt/OCCT and FTL FreeType. The pinned component
 record, retained notices and local absolute-path link audit are in docs/dependencies.
 It explicitly leaves package closure, sources and replacement instructions to
 CI-002/CI-003. Solver selection and its passing native fixture are recorded in
-decision 004; production extraction, platform exports and distributable runtime
-closure remain part of the application integration work.
+decision 004; the extracted shared adapter is now integrated and portable exports are implemented,
+while actual other-platform builds and distributable runtime closure remain open.
 
 The exact dated reference release/platform/theme/navigation baseline,
 minimum OS versions/architectures and portable solver runtime qualification
 remain unresolved. They are recorded gaps, not forgotten decisions. Current
-public-interface/build research now covers the major feature families with 119 dated
-primary-source entries, contradictions, and open questions. It does not yet specify
+public-interface/build research now covers the major feature families with 123 dated
+public-source entries, including original community tutorials, contradictions, and open questions. It does not yet specify
 every command, default, error, or visual state.

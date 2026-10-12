@@ -25,6 +25,22 @@ See [exact source](https://github.com/freetype/freetype/tree/42608f77f20749dd6dd
 Local Homebrew development currently uses FreeType 2.14.3; this is a different
 build, with its own source and bundled notices.
 
+The sketch solver uses FreeCAD PlaneGCS at revision
+`ec6852e6caadf55045881a6003cc7ad038c8d2a7` as a separate shared library under
+LGPL-2.1-or-later. Copyright belongs to Konstantinos Poulios and the respective
+FreeCAD contributors identified in each retained source header. The exact
+[source manifest](third_party/planegcs/sources.json) preserves their original
+notices in downloaded sources. See the [upstream license](LICENSES/PlaneGCS-LGPL-2.1-or-later.txt)
+and [extraction, modification and replacement instructions](third_party/planegcs/README.md).
+Alloy's dated C++20 portability patch replaces the C++23 impossible-case hint;
+its independent shims provide configuration, exports and logging.
+
+PlaneGCS uses Eigen 5.0.1 headers with `EIGEN_MPL2_ONLY`, under
+[MPL-2.0](LICENSES/MPL-2.0.txt), copyright the Eigen contributors as identified
+in their source headers. Boost 1.90.0 headers retain the respective contributors'
+notices under [BSL-1.0](LICENSES/BSL-1.0.txt). Exact archives, hashes and license
+sources are recorded in [components.json](docs/dependencies/components.json).
+
 The [dependency admission record](docs/dependencies/README.md) distinguishes these
 approved foundations from candidate libraries. A future downloadable package
 must add its complete deployed libraries/plugins, source availability, all

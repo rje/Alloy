@@ -1,0 +1,58 @@
+{
+  "revision": "ec6852e6caadf55045881a6003cc7ad038c8d2a7",
+  "retrieved": "2026-10-11",
+  "files": {
+    "src/Mod/Sketcher/App/planegcs/GCS.cpp": {
+      "url": "https://raw.githubusercontent.com/FreeCAD/FreeCAD/ec6852e6caadf55045881a6003cc7ad038c8d2a7/src/Mod/Sketcher/App/planegcs/GCS.cpp",
+      "sha256": "d58d40b4914cda3253bfa6ee745db055b87e6eb06cbeb93628708c875714a196"
+    },
+    "src/Mod/Sketcher/App/planegcs/GCS.h": {
+      "url": "https://raw.githubusercontent.com/FreeCAD/FreeCAD/ec6852e6caadf55045881a6003cc7ad038c8d2a7/src/Mod/Sketcher/App/planegcs/GCS.h",
+      "sha256": "94f7da92e7d89d926a3e4a32a8e0dc9b2cd08b552e1065433469623424be88b8"
+    },
+    "src/Mod/Sketcher/App/planegcs/Geo.cpp": {
+      "url": "https://raw.githubusercontent.com/FreeCAD/FreeCAD/ec6852e6caadf55045881a6003cc7ad038c8d2a7/src/Mod/Sketcher/App/planegcs/Geo.cpp",
+      "sha256": "169aad09829b81288d3a81d81cd00fdb5ce9723a4ee34450fb0ac8667b8e9e2b"
+    },
+    "src/Mod/Sketcher/App/planegcs/Geo.h": {
+      "url": "https://raw.githubusercontent.com/FreeCAD/FreeCAD/ec6852e6caadf55045881a6003cc7ad038c8d2a7/src/Mod/Sketcher/App/planegcs/Geo.h",
+      "sha256": "20c2de0ed0b5b6e2aa6e7f7f302ec11ce798bcb653b051d44cf5de7b60590af5"
+    },
+    "src/Mod/Sketcher/App/planegcs/Constraints.cpp": {
+      "url": "https://raw.githubusercontent.com/FreeCAD/FreeCAD/ec6852e6caadf55045881a6003cc7ad038c8d2a7/src/Mod/Sketcher/App/planegcs/Constraints.cpp",
+      "sha256": "023f2f7753aff95ded246f41521527a07a1b82ba8815da327ad692e864156d7f"
+    },
+    "src/Mod/Sketcher/App/planegcs/Constraints.h": {
+      "url": "https://raw.githubusercontent.com/FreeCAD/FreeCAD/ec6852e6caadf55045881a6003cc7ad038c8d2a7/src/Mod/Sketcher/App/planegcs/Constraints.h",
+      "sha256": "e088865959562632c27ce5c29d67933f4f543dc716679e696d8473eb60a198d6"
+    },
+    "src/Mod/Sketcher/App/planegcs/SubSystem.cpp": {
+      "url": "https://raw.githubusercontent.com/FreeCAD/FreeCAD/ec6852e6caadf55045881a6003cc7ad038c8d2a7/src/Mod/Sketcher/App/planegcs/SubSystem.cpp",
+      "sha256": "28c94e84ff50187ec9b6060ac72e05fb6671a51fae2be40f479d2b4dd151e393"
+    },
+    "src/Mod/Sketcher/App/planegcs/SubSystem.h": {
+      "url": "https://raw.githubusercontent.com/FreeCAD/FreeCAD/ec6852e6caadf55045881a6003cc7ad038c8d2a7/src/Mod/Sketcher/App/planegcs/SubSystem.h",
+      "sha256": "99e1380a0a08d9fd7ee0fd69e26d3d9dcb46fdf033f4c397c9a05e8df8c53dc4"
+    },
+    "src/Mod/Sketcher/App/planegcs/Util.h": {
+      "url": "https://raw.githubusercontent.com/FreeCAD/FreeCAD/ec6852e6caadf55045881a6003cc7ad038c8d2a7/src/Mod/Sketcher/App/planegcs/Util.h",
+      "sha256": "33aee54b020e565faf96629a6d4a57a75a3699acb2336aa96d3663cd70c7e53e"
+    },
+    "src/Mod/Sketcher/App/planegcs/qp_eq.cpp": {
+      "url": "https://raw.githubusercontent.com/FreeCAD/FreeCAD/ec6852e6caadf55045881a6003cc7ad038c8d2a7/src/Mod/Sketcher/App/planegcs/qp_eq.cpp",
+      "sha256": "dc71350766c1a4edf7024d593cb5d55b0736a4f43d319d25a9c961e8342ca11c"
+    },
+    "src/Mod/Sketcher/App/planegcs/qp_eq.h": {
+      "url": "https://raw.githubusercontent.com/FreeCAD/FreeCAD/ec6852e6caadf55045881a6003cc7ad038c8d2a7/src/Mod/Sketcher/App/planegcs/qp_eq.h",
+      "sha256": "34e373d9b3b0f5938c849ea7489a8405617692a5062198e8ae0f0c6ac5e4d468"
+    },
+    "src/Mod/Sketcher/SketcherGlobal.h": {
+      "url": "https://raw.githubusercontent.com/FreeCAD/FreeCAD/ec6852e6caadf55045881a6003cc7ad038c8d2a7/src/Mod/Sketcher/SketcherGlobal.h",
+      "sha256": "cafc58089fffb390a4e2a9a53be2ffd720702748de1f9d8432ae62988e1142b2"
+    },
+    "src/boost_graph_adjacency_list.hpp": {
+      "url": "https://raw.githubusercontent.com/FreeCAD/FreeCAD/ec6852e6caadf55045881a6003cc7ad038c8d2a7/src/boost_graph_adjacency_list.hpp",
+      "sha256": "2afeae50e787fcac5b8fb074076eeda585724a1d70ca0169e42737689ab86e20"
+    }
+  }
+}

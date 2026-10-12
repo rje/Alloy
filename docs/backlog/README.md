@@ -2,7 +2,7 @@
 
 Prepared 2026-10-11 from public references and the accepted Alloy requirements.
 [issues.json](issues.json) is the machine-readable source for GitHub publication;
-[sources.json](sources.json) records the 119 dated primary-source entries cited by its
+[sources.json](sources.json) records the 123 dated public-source entries cited by its
 issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
@@ -39,7 +39,7 @@ Run `python3 tools/backlog.py ready` before pulling work; live issue states and
 dependencies determine readiness. The next main modeling work is the sketch-first sequence recorded in [roadmap](../roadmap.md), with a local useful-part checkpoint in SKT-015. Its dependencies no longer wait for the broad GATE-010/platform gates. Remaining geometry/document work includes
 face/edge selection, Browser breadth, STEP interchange, persistent-reference
 integration and observable document decisions. Foundation work still includes
-a dated compatibility baseline, solver admission, portable Windows controls and
+a dated compatibility baseline, portable Windows controls and
 qualified runtime packages. The issue count measures the starting backlog,
 not product coverage or a replacement claim.
 

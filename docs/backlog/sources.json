@@ -989,6 +989,42 @@
       "url": "https://developer.apple.com/library/archive/documentation/GraphicsImaging/Conceptual/OpenGL-MacProgGuide/opengl_intro/opengl_intro.html",
       "retrieved": "2026-10-11",
       "evidence": "documented"
+    },
+    "community-sketch-001": {
+      "title": "Rectangle commands tutorial",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented in author transcript",
+      "note": "Historical UI; not evidence of exact current toolbar positions, pixel styling or preference defaults.",
+      "reference_id": "community-sketch-001",
+      "provenance": "Original public reference URL/date/locators retained separately in Alloy-reference-records/sketch-controls-sources.json."
+    },
+    "community-sketch-002": {
+      "title": "Sketch dimension tutorial",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented in article and author transcript",
+      "note": "Historical UI acknowledged by author; linked video unavailable through fetch. No frame/timestamp claim.",
+      "reference_id": "community-sketch-002",
+      "provenance": "Original public reference URL/date/locators retained separately in Alloy-reference-records/sketch-controls-sources.json."
+    },
+    "community-sketch-003": {
+      "title": "Sketch tools and options tutorial",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented in author transcript",
+      "note": "Publication date does not establish software version; explicit instructor choices are not product defaults.",
+      "reference_id": "community-sketch-003",
+      "provenance": "Original public reference URL/date/locators retained separately in Alloy-reference-records/sketch-controls-sources.json."
+    },
+    "official-sketch-rectangle": {
+      "title": "Create rectangles",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "note": "Public reference instruction; version/default gaps remain explicit.",
+      "reference_id": "official-sketch-rectangle",
+      "provenance": "Original public reference URL/date/locators retained separately in Alloy-reference-records/sketch-controls-sources.json."
     }
   },
   "reference_records": "../Alloy-reference-records/",

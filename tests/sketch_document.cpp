@@ -31,6 +31,7 @@ int main(int argc, char** argv) {
         const auto xyParameters = xy["parameters"].toObject();
         check(xyParameters["points"].toArray().size() == 4 && xyParameters["entities"].toArray().size() == 4,
             "rectangle retains four points and four authored lines");
+        check(xyParameters["constraints"].toArray().size() == 4, "rectangle authors four automatic horizontal/vertical constraints");
         check(document.authored() == baseline && document.revision() == baselineRevision && document.history().count() == 1,
             "creating or cancelling a disposable sketch draft does not edit the document");
         check(document.commit(SketchGeometry::replaceFeature(document.authored(), xy), "Finish sketch").isEmpty(), "finish sketch evaluates and commits");
@@ -53,7 +54,8 @@ int main(int argc, char** argv) {
             near(point[0].toDouble(), QString(plane) == "XZ" ? 12 : 0, "origin-plane world x");
             near(point[1].toDouble(), QString(plane) == "YZ" ? 12 : 0, "origin-plane world y");
             near(point[2].toDouble(), 8, "origin-plane world z");
-            check(!evaluated.shape.IsNull() && !evaluated.summary["solverIntegrated"].toBool(), "real evaluated edges do not claim constraints");
+            check(!evaluated.shape.IsNull() && evaluated.summary["solverIntegrated"].toBool()
+                && evaluated.summary["solver"].toObject()["dof"].toInt() > 0, "unconstrained edges report actual solver freedom");
         }
         check(document.state()["sketches"].toInt() == 3 && document.state()["bodies"].toInt() == 1,
             "inspection distinguishes sketch and body counts");
@@ -91,6 +93,32 @@ int main(int argc, char** argv) {
         check(reopened.sketches().size() == 3 && reopened.bodies().size() == 1 && reopened.history().count() == 0,
             "reopen rebuilds evaluated sketches with a fresh session journal");
         near(reopened.bodies()[0].summary["volumeMm3"].toDouble(), 6000, "primitive volume survives mixed document reopen");
+        auto constrained = SketchGeometry::findFeature(reopened.authored(), xy["id"].toString());
+        const auto points = constrained["parameters"].toObject()["points"].toArray();
+        const auto lines = constrained["parameters"].toObject()["entities"].toArray();
+        auto accept = [&](const SketchGeometry::SolveResult& result) {
+            check(result.ok, result.error.toUtf8().constData()); constrained = result.feature;
+        };
+        accept(SketchGeometry::addConstraint(constrained, {{"type", "fixed"}, {"pointIds", QJsonArray{points[0].toObject()["id"]}}}));
+        check(SketchGeometry::solveDraft(constrained).diagnostics["dof"].toInt() == 2,
+            "fixed rectangle retains only width and height freedom");
+        accept(SketchGeometry::addDimension(constrained, {{"kind", "horizontal"}, {"entityId", lines[0].toObject()["id"]}, {"valueMm", 40}}));
+        const auto widthId = constrained["parameters"].toObject()["dimensions"].toArray().last().toObject()["id"];
+        accept(SketchGeometry::addDimension(constrained, {{"kind", "vertical"}, {"entityId", lines[1].toObject()["id"]}, {"valueMm", 25}}));
+        const auto previous = reopened.authored();
+        check(reopened.commit(SketchGeometry::replaceFeature(previous, constrained), "Constrain rectangle").isEmpty(), "constrained finish is authoritative");
+        check(reopened.sketches()[0].summary["solver"].toObject()["dof"].toInt() == 0, "fixed dimensioned rectangle is fully constrained");
+        accept(SketchGeometry::updateDimension(constrained, {{"dimensionId", widthId}, {"valueMm", 50}}));
+        check(reopened.commit(SketchGeometry::replaceFeature(reopened.authored(), constrained), "Resize sketch").isEmpty(), "dimension changes solved authored geometry");
+        const auto savedSolved = reopened.authored();
+        near(reopened.sketches()[0].summary["boundsMm"].toObject()["size"].toArray()[0].toDouble(), 50, "solver width matches OCCT edges");
+        const auto conflict = SketchGeometry::addDimension(constrained, {{"kind", "horizontal"}, {"entityId", lines[0].toObject()["id"]}, {"valueMm", 41}});
+        check(!conflict.ok && conflict.feature == constrained && reopened.authored() == savedSolved,
+            "conflicting dimension preserves last usable draft and live document");
+        reopened.history().undo(); reopened.history().redo();
+        check(reopened.authored() == savedSolved, "constraint dimension IDs and solved coordinates survive undo/redo");
+        check(reopened.save(path).isEmpty() && document.open(path).isEmpty() && document.authored() == savedSolved,
+            "native reopen rebuilds constraints without changing solved authored identity");
         std::cout << "PASS: origin-plane sketches, authored line identity, atomic history and mixed native reopen\n";
         return 0;
     } catch (const std::exception& error) { std::cerr << error.what() << '\n'; return 1; }

@@ -16,6 +16,7 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QHBoxLayout>
+#include <QGridLayout>
 #include <QJsonDocument>
 #include <QLabel>
 #include <QLineEdit>
@@ -30,6 +31,8 @@
 #include <QShortcut>
 #include <QStatusBar>
 #include <QTimer>
+#include <QCheckBox>
+#include <QScrollArea>
 #include <QToolButton>
 #include <QTreeWidget>
 #include <QVBoxLayout>
@@ -168,8 +171,8 @@ AlloyWindow::AlloyWindow() {
     sketchToolbar_->setStyleSheet("#sketchToolbar { background: #e1f2f8; border-bottom: 1px solid #9fc7db; }");
     auto* sketchTools=new QHBoxLayout(sketchToolbar_);sketchTools->setContentsMargins(14,5,14,5);
     auto* sketchTitle=new QLabel("SKETCH");sketchTitle->setStyleSheet("font-weight: 700; color: #176588;");sketchTools->addWidget(sketchTitle);
-    for(const auto& tool:QStringList{"line","rectangle","select"}) {
-        auto* button=new QPushButton(tool=="line" ? "Line  L" : tool=="rectangle" ? "Rectangle  R" : "Select");
+    for(const auto& tool:QStringList{"line","rectangle","select","dimension"}) {
+        auto* button=new QPushButton(tool=="line" ? "Line  L" : tool=="rectangle" ? "Rectangle  R" : tool=="dimension" ? "Dimension  D" : "Select");
         button->setObjectName("sketch.tool."+tool);sketchTools->addWidget(button);
         connect(button,&QPushButton::clicked,this,[this,tool]{sketchResponse(execute("sketch.tool",{{"tool",tool}}));});
     }
@@ -255,8 +258,8 @@ AlloyWindow::AlloyWindow() {
     connect(searchShortcut, &QShortcut::activated, this, [this] {
         if (!qobject_cast<QLineEdit*>(QApplication::focusWidget())) execute("commands.search");
     });
-    for(const auto& tool:QStringList{"line","rectangle"}) {
-        auto* shortcut=new QShortcut(QKeySequence(tool=="line" ? "L" : "R"),this);
+    for(const auto& tool:QStringList{"line","rectangle","dimension"}) {
+        auto* shortcut=new QShortcut(QKeySequence(tool=="line" ? "L" : tool=="rectangle" ? "R" : "D"),this);
         connect(shortcut,&QShortcut::activated,this,[this,tool]{
             if(session_.value("command").toString()=="sketch.edit" && !qobject_cast<QLineEdit*>(QApplication::focusWidget()))execute("sketch.tool",{{"tool",tool}});
         });
@@ -406,18 +409,43 @@ void AlloyWindow::registerCommands() {
         {"units",optional(units)},{"session",optional(parameter("string","Optional active sketch session identity."))}};
     for(const auto& tool:QStringList{"line","rectangle"})add("sketch."+tool,tool=="line" ? "Line" : "Two-Point Rectangle",
         "Append stable authored points and edges to the active sketch draft.",drawSchema,[this,tool](const auto& a){return appendSketchEntity(tool,a);});
-    auto sketchTool=parameter("string","Drawing tool in the active sketch context.");sketchTool["enum"]=QJsonArray{"select","line","rectangle"};
+    auto sketchTool=parameter("string","Drawing tool in the active sketch context.");sketchTool["enum"]=QJsonArray{"select","line","rectangle","dimension"};
     add("sketch.tool","Sketch drawing tool","Choose a tool and clear its pending first point.",{{"tool",sketchTool}},[this](const auto& a){
         if(session_.value("command").toString()!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
-        session_["tool"]=a["tool"];session_.remove("firstPoint");session_.remove("pointerPoint");view_->clearSketchCursor();return session_;
+        session_["tool"]=a["tool"];session_.remove("firstPoint");session_.remove("pointerPoint");view_->clearSketchCursor();
+        if(a["tool"]=="dimension" && sketchDimensionValue_){
+            sketchScroll_->ensureWidgetVisible(sketchDimensionValue_);
+            try{sketchDimensionTargets({});sketchDimensionValue_->setFocus();sketchDimensionValue_->selectAll();}catch(const std::invalid_argument&){}
+        }
+        return session_;
     });
     auto sketchPixel=parameter("number","Viewport-local logical pixel coordinate.");sketchPixel["minimum"]=0;sketchPixel["maximum"]=10000;
     const QJsonObject sketchPixels{{"x",sketchPixel},{"y",sketchPixel}};
-    add("sketch.placePoint","Place sketch point","Resolve an actual viewport point on the active plane; two clicks author the chosen entity.",sketchPixels,[this](const auto& a){
+    auto sketchPickSchema=sketchPixels;sketchPickSchema["additive"]=optional(parameter("boolean","Add or toggle a target in the current sketch selection."));
+    auto ids=optional(parameter("array","Authored point or line IDs in this sketch; omitted arrays default empty."));
+    add("sketch.selectionSet","Select sketch geometry","Set shared authored-point and line selection without changing geometry.",{{"pointIds",ids},{"entityIds",ids}},[this](const auto& a){
+        return setSketchSelection({{"pointIds",a.value("pointIds").toArray()},{"entityIds",a.value("entityIds").toArray()}});
+    });
+    add("sketch.selectionPick","Pick sketch geometry","Pick a visible projected authored point or line in logical pixels.",sketchPickSchema,[this](const auto& a){
+        if(session_.value("command").toString()!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
+        const auto picked=view_->pickSketch(session_.value("draftSketch").toObject(),a["x"].toDouble(),a["y"].toDouble());
+        auto selection=a.value("additive").toBool() ? session_.value("selection").toObject() : QJsonObject{{"pointIds",QJsonArray{}},{"entityIds",QJsonArray{}}};
+        if(!picked.isEmpty()) {
+            const auto field=picked["kind"]=="point" ? QString("pointIds") : QString("entityIds");const auto id=picked[picked["kind"]=="point" ? "pointId" : "entityId"];
+            auto selected=selection.value(field).toArray();const int index=selected.contains(id) ? [&]{for(int i=0;i<selected.size();++i)if(selected[i]==id)return i;return -1;}() : -1;
+            if(index>=0 && a.value("additive").toBool())selected.removeAt(index);else if(index<0)selected.append(id);
+            selection[field]=selected;
+        }
+        auto result=setSketchSelection(selection);if(!result["ok"].isBool())result["picked"]=picked;return result;
+    });
+    add("sketch.placePoint","Place sketch point","Resolve an actual viewport point on the active plane; two clicks author the chosen entity.",sketchPickSchema,[this](const auto& a){
         if(session_.value("command").toString()!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
         if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_.revision()))return failure("stale_session","The document changed; cancel and restart this sketch");
         const auto tool=session_.value("tool").toString();
-        if(tool=="select")return QJsonObject{{"placement",false},{"reason","Choose Line or Rectangle"}};
+        if(tool=="select" || tool=="dimension") {
+            auto args=a;if(tool=="dimension" && !session_.value("selection").toObject()["pointIds"].toArray().isEmpty())args["additive"]=true;
+            const auto response=execute("sketch.selectionPick",args);return response["ok"].toBool() ? response["result"].toObject() : response;
+        }
         const auto point=view_->sketchPoint(a["x"].toDouble(),a["y"].toDouble(),session_.value("inputs").toObject()["plane"].toString());
         if(!session_.contains("firstPoint")){session_["firstPoint"]=point;return QJsonObject{{"placement",false},{"firstPoint",point}};}
         const auto first=session_.value("firstPoint").toObject();
@@ -450,6 +478,51 @@ void AlloyWindow::registerCommands() {
     add("view.projectSketchPoint","Project sketch coordinate","Project canonical sketch millimeters into viewport-local logical pixels.",{{"plane",sketchPlane},{"uMm",coordinate},{"vMm",coordinate}},[this](const auto& a){
         return view_->projectSketchPoint(a["uMm"].toDouble(),a["vMm"].toDouble(),a["plane"].toString());
     });
+    auto optionalSession=optional(parameter("string","Optional active sketch session identity."));
+    auto constraintType=parameter("string","Geometric relation to apply to the supplied or selected sketch geometry.");
+    constraintType["enum"]=QJsonArray{"coincident","horizontal","vertical","parallel","perpendicular","fixed"};
+    add("sketch.constraint","Constrain sketch geometry","Solve a geometric relation before replacing the usable sketch draft.",
+        {{"type",constraintType},{"pointIds",ids},{"entityIds",ids},{"session",optionalSession}},[this](const auto& a){
+            if(session_.value("command").toString()!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
+            if(a.contains("session") && a["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
+            QJsonObject args{{"type",a["type"]}};const auto field=a["type"]=="coincident" || a["type"]=="fixed" ? "pointIds" : "entityIds";
+            args[field]=a.contains(field) ? a[field] : session_.value("selection").toObject().value(field);
+            return publishSketchSolve(SketchGeometry::addConstraint(session_.value("draftSketch").toObject(),args));
+        });
+    auto kind=parameter("string","Dimension measurement kind.");kind["enum"]=QJsonArray{"linear","horizontal","vertical"};
+    auto dimValue=coordinate;dimValue["minimum"]=0.000001;
+    add("sketch.dimension","Add sketch dimension","Create a driving dimension or a driven measurement on two points or one line.",
+        {{"kind",kind},{"pointIds",ids},{"entityId",optional(parameter("string","Selected line shorthand for its two endpoints."))},
+            {"value",optional(dimValue)},{"units",optional(units)},{"driving",optional(parameter("boolean","True drives geometry; false measures it."))},{"session",optionalSession}},[this](const auto& a){
+            if(session_.value("command").toString()!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
+            if(a.contains("session") && a["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
+            auto args=sketchDimensionTargets(a);args["kind"]=a["kind"];args["driving"]=a.value("driving").toBool(true);
+            if(args["driving"].toBool()) {
+                const auto units=a.value("units").toString(session_.value("inputs").toObject()["units"].toString());
+                if(a.contains("value"))args["valueMm"]=CadDocument::millimeters(a["value"].toDouble(),units);
+                else {
+                    QMap<QString,QJsonObject> points;for(const auto& entry:session_.value("draftSketch").toObject()["parameters"].toObject()["points"].toArray()){const auto point=entry.toObject();points[point["id"].toString()]=point;}
+                    const auto selected=args["pointIds"].toArray();const auto p=points.value(selected[0].toString()),q=points.value(selected[1].toString());
+                    const double u=std::abs(q["uMm"].toDouble()-p["uMm"].toDouble()),v=std::abs(q["vMm"].toDouble()-p["vMm"].toDouble());
+                    args["valueMm"]=a["kind"]=="horizontal" ? u : a["kind"]=="vertical" ? v : std::hypot(u,v);
+                }
+            }
+            return publishSketchSolve(SketchGeometry::addDimension(session_.value("draftSketch").toObject(),args));
+        });
+    add("sketch.dimensionUpdate","Edit driving dimension","Solve the new dimension value before replacing the usable draft.",
+        {{"dimensionId",parameter("string","Stable authored dimension UUID.")},{"value",dimValue},{"units",optional(units)},{"session",optionalSession}},[this](const auto& a){
+            if(session_.value("command").toString()!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
+            if(a.contains("session") && a["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
+            const auto units=a.value("units").toString(session_.value("inputs").toObject()["units"].toString());
+            return publishSketchSolve(SketchGeometry::updateDimension(session_.value("draftSketch").toObject(),{{"dimensionId",a["dimensionId"]},{"valueMm",CadDocument::millimeters(a["value"].toDouble(),units)}}));
+        });
+    add("sketch.movePoint","Move sketch point","Solve a seeded point movement without deforming the usable draft on failure.",
+        {{"pointId",parameter("string","Stable authored point UUID.")},{"x",coordinate},{"y",coordinate},{"units",optional(units)},{"session",optionalSession}},[this](const auto& a){
+            if(session_.value("command").toString()!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
+            if(a.contains("session") && a["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
+            const auto units=a.value("units").toString(session_.value("inputs").toObject()["units"].toString());
+            return publishSketchSolve(SketchGeometry::movePoint(session_.value("draftSketch").toObject(),{{"pointId",a["pointId"]},{"uMm",CadDocument::millimeters(a["x"].toDouble(),units)},{"vMm",CadDocument::millimeters(a["y"].toDouble(),units)}}));
+        });
     add("feature.edit","Edit feature","Edit canonical millimeter parameters; validate/evaluate before commit.",
         {{"featureId",featureId},{"parameters",parameter("object","Partial authored millimeter parameters.")}},[this](const auto& a){
             auto candidate=document_.authored();auto features=candidate["features"].toArray();bool found=false;
@@ -661,7 +734,7 @@ QString AlloyWindow::validateArguments(const Command& command, const QJsonObject
         const auto value = args.value(it.key());
         const QString type = spec.value("type").toString();
         if(value.isUndefined() && !spec.value("required").toBool(true))continue;
-        if (value.isUndefined() || (type == "boolean" && !value.isBool()) || (type == "string" && !value.isString()) || (type == "number" && !value.isDouble()) || (type == "object" && !value.isObject())) return "Argument " + it.key() + " must be " + type;
+        if (value.isUndefined() || (type == "boolean" && !value.isBool()) || (type == "string" && !value.isString()) || (type == "number" && !value.isDouble()) || (type == "object" && !value.isObject()) || (type == "array" && !value.isArray())) return "Argument " + it.key() + " must be " + type;
         if (spec.contains("enum") && !spec.value("enum").toArray().contains(value)) return "Unsupported value for " + it.key();
         if (type == "number" && (!std::isfinite(value.toDouble()) || value.toDouble() < spec.value("minimum").toDouble() || value.toDouble() > spec.value("maximum").toDouble())) return "Argument out of range: " + it.key();
     }
@@ -687,7 +760,9 @@ QJsonObject AlloyWindow::state() const {
         {"revision", static_cast<qint64>(revision_)},
         {"identity", identity()}, {"activeSession", session_},
         {"document", document_.state()},
-        {"selection",QJsonObject{{"kind","body"},{"bodyId",selectedBody_}}},
+        {"selection",target=="sketch.edit" ? QJsonObject{{"kind","sketch"},{"sketchId",session_.value("draftSketch").toObject()["id"]},
+            {"pointIds",session_.value("selection").toObject()["pointIds"]},{"entityIds",session_.value("selection").toObject()["entityIds"]}}
+            : QJsonObject{{"kind","body"},{"bodyId",selectedBody_}}},
         {"kernel", QJsonObject{{"candidate", "Open CASCADE"}, {"discoveredVersion", ALLOY_OCCT_VERSION}, {"integrated", true}, {"visualizationIntegrated", true}, {"policy",GeometryKernel::policy()}}},
         {"ui", QJsonObject{{"workspace", "design"}, {"tab",target=="sketch.edit" ? "sketch" : "solid"}, {"browserVisible", browserVisible_}, {"timelineVisible", timelineVisible_}, {"navigationVisible", navigationVisible_}, {"commandSearchVisible", search_ && search_->isVisible()}, {"windowWidth", width()}, {"windowHeight", height()}, {"devicePixelRatio", devicePixelRatioF()},
             {"activeDialog", QJsonObject{{"command", session_.value("command")},
@@ -760,14 +835,17 @@ void AlloyWindow::refresh() {
         for(auto* input:sketchInputs_)input->setSuffix(" "+inputs["units"].toString());
         const bool current=session_.value("baseDocumentRevision").toInteger()==static_cast<qint64>(document_.revision());
         if(current && draft!=displayedSketchDraft_){view_->showSketchDraft(SketchGeometry::evaluateFeature(draft));displayedSketchDraft_=draft;}
-        if(sketchInfo_)sketchInfo_->setText(QString("%1 plane · %2 edges\n%3\nUnconstrained geometry")
+        if(current)refreshSketchControls();
+        const auto diagnostics=session_.value("solverDiagnostics").toObject();
+        if(sketchInfo_)sketchInfo_->setText(QString("%1 plane · %2 edges\n%3\n%4")
             .arg(inputs["plane"].toString()).arg(draft["parameters"].toObject()["entities"].toArray().size())
-            .arg(session_.value("tool").toString()=="select" ? "Choose Line or Rectangle to draw" : session_.contains("firstPoint") ? "Click the next point · Escape stops drawing" : "Click the first point"));
+            .arg(session_.value("tool").toString()=="select" || session_.value("tool").toString()=="dimension" ? "Click to select · Shift-click to add" : session_.contains("firstPoint") ? "Click the next point · Escape stops drawing" : "Click the first point")
+            .arg(diagnostics["dof"].toInt(-1)==0 ? "Fully constrained" : QString("%1 degrees of freedom").arg(diagnostics["dof"].toInt())));
         if(!current && sketchError_)sketchError_->setText("The document changed. Cancel and restart this sketch.");
     }
     view_->sync();
     const auto gpu = view_->diagnostics();
-    status_->setText(QString("  %3 · %4 bodies · %1 · Zoom %2%    |    "+QString(editingSketch ? "L: line · R: rectangle · Escape: stop drawing" : "Click: select")+" · Alt/Option + drag: pan · Wheel: zoom")
+    status_->setText(QString("  %3 · %4 bodies · %1 · Zoom %2%    |    "+QString(editingSketch ? "L: line · R: rectangle · D: dimension · Shift-click: add selection" : "Click: select")+" · Alt/Option + drag: pan · Wheel: zoom")
         .arg(view_->orientation).arg(qRound(view_->zoom * 100)).arg(gpu.value("hardwareAccelerated").toBool() ? "OCCT OpenGL" : "GPU UNQUALIFIED: " + gpu.value("qualification").toString()).arg(document_.bodies().size()));
 }
 
@@ -968,13 +1046,17 @@ void AlloyWindow::updatePrimitive(const QJsonObject& inputs) {
 
 QJsonObject AlloyWindow::beginSketch(const QString& plane,const QString& name,const QString& sketchId) {
     if(!session_.isEmpty() && session_.value("command").toString()!="sketch.plane")return failure("session_busy","Complete or cancel the active command first");
-    const auto draft=sketchId.isEmpty() ? SketchGeometry::newFeature(document_.authored()["documentId"].toString(),plane,name)
+    const auto seed=sketchId.isEmpty() ? SketchGeometry::newFeature(document_.authored()["documentId"].toString(),plane,name)
         : SketchGeometry::findFeature(document_.authored(),sketchId);
+    const auto solved=SketchGeometry::solveDraft(seed);
+    if(!solved.ok){auto response=failure("sketch_solve_failed",solved.error);auto error=response["error"].toObject();error["diagnostics"]=solved.diagnostics;response["error"]=error;return response;}
+    const auto draft=solved.feature;
     auto inputs=QJsonObject{{"plane",plane},{"name",draft["name"]},{"units",session_.value("inputs").toObject().value("units").toString(document_.authored()["displayUnits"].toString())}};
     if(!sketchId.isEmpty())inputs["sketchId"]=sketchId;
     const auto sessionId=session_.value("id").toString(CadDocument::newId());
     session_={{"id",sessionId},{"command","sketch.edit"},{"status","active"},{"inputs",inputs},{"draftSketch",draft},
-        {"tool","select"},{"previewed",false},{"baseDocumentRevision",static_cast<qint64>(document_.revision())}};
+        {"tool","select"},{"selection",QJsonObject{{"pointIds",QJsonArray{}},{"entityIds",QJsonArray{}}}},{"solverDiagnostics",solved.diagnostics},
+        {"previewed",false},{"baseDocumentRevision",static_cast<qint64>(document_.revision())}};
     selectedBody_.clear();view_->clearPreview();view_->clearSketchDraft();displayedSketchDraft_={};
     view_->lookAtSketch(plane);showSketch();return session_;
 }
@@ -988,29 +1070,157 @@ QJsonObject AlloyWindow::appendSketchEntity(const QString& tool,const QJsonObjec
         {"u2Mm",CadDocument::millimeters(inputs["x2"].toDouble(),units)},{"v2Mm",CadDocument::millimeters(inputs["y2"].toDouble(),units)}};
     const auto draft=session_.value("draftSketch").toObject();
     const auto updated=tool=="line" ? SketchGeometry::addLine(draft,canonical) : SketchGeometry::addRectangle(draft,canonical);
-    const auto candidate=SketchGeometry::replaceFeature(document_.authored(),updated);const auto error=CadDocument::validate(candidate);
+    return publishSketchSolve(SketchGeometry::solveDraft(updated));
+}
+
+QJsonObject AlloyWindow::publishSketchSolve(const SketchGeometry::SolveResult& solved) {
+    if(session_.value("command").toString()!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
+    if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_.revision()))return failure("stale_session","The document changed; cancel and restart this sketch");
+    if(!solved.ok) {
+        session_["lastSolveFailure"]=solved.diagnostics;
+        auto response=failure("sketch_solve_failed",solved.error);auto error=response["error"].toObject();error["diagnostics"]=solved.diagnostics;response["error"]=error;return response;
+    }
+    const auto candidate=SketchGeometry::replaceFeature(document_.authored(),solved.feature);const auto error=CadDocument::validate(candidate);
     if(!error.isEmpty())return failure("invalid_sketch",error);
-    // Evaluate before replacing the usable draft, just as a committed edit does.
-    const auto evaluated=SketchGeometry::evaluateFeature(updated);
-    session_["draftSketch"]=updated;session_["previewed"]=false;session_.remove("firstPoint");session_.remove("pointerPoint");
-    view_->clearSketchCursor();view_->showSketchDraft(evaluated);displayedSketchDraft_=updated;
-    return QJsonObject{{"sessionId",session_.value("id")},{"draftSketch",updated},{"sketchGeometry",evaluated.summary},{"authoredCommitted",false}};
+    const auto evaluated=SketchGeometry::evaluateFeature(solved.feature);
+    session_["draftSketch"]=solved.feature;session_["solverDiagnostics"]=solved.diagnostics;session_["previewed"]=false;
+    session_.remove("lastSolveFailure");session_.remove("firstPoint");session_.remove("pointerPoint");
+    view_->clearSketchCursor();view_->showSketchDraft(evaluated);displayedSketchDraft_=solved.feature;
+    return {{"sessionId",session_.value("id")},{"draftSketch",solved.feature},{"sketchGeometry",evaluated.summary},{"diagnostics",solved.diagnostics},{"authoredCommitted",false}};
+}
+
+QJsonObject AlloyWindow::setSketchSelection(const QJsonObject& selection) {
+    if(session_.value("command").toString()!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
+    if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_.revision()))return failure("stale_session","The document changed; cancel and restart this sketch");
+    const auto parameters=session_.value("draftSketch").toObject()["parameters"].toObject();
+    QJsonObject normalized;
+    for(const auto& field:QStringList{"pointIds","entityIds"}) {
+        QSet<QString> available;for(const auto& entry:parameters[field=="pointIds" ? "points" : "entities"].toArray())available.insert(entry.toObject()["id"].toString());
+        QJsonArray ids;for(const auto& value:selection[field].toArray()) {
+            if(!value.isString() || !available.contains(value.toString()))return failure("stale_entity","Selected sketch geometry does not exist",field);
+            if(!ids.contains(value))ids.append(value);
+        }
+        normalized[field]=ids;
+    }
+    session_["selection"]=normalized;
+    if(session_.value("tool")=="dimension" && sketchDimensionValue_) {
+        refreshSketchControls();
+        try{sketchDimensionTargets({});sketchScroll_->ensureWidgetVisible(sketchDimensionValue_);sketchDimensionValue_->setFocus();sketchDimensionValue_->selectAll();}catch(const std::invalid_argument&){}
+    }
+    return {{"selection",normalized}};
+}
+
+QJsonObject AlloyWindow::sketchDimensionTargets(const QJsonObject& args) const {
+    const auto selection=session_.value("selection").toObject();
+    auto points=args.contains("pointIds") ? args["pointIds"].toArray() : selection["pointIds"].toArray();
+    const auto entities=selection["entityIds"].toArray();
+    const auto entity=args.value("entityId").toString(points.isEmpty() && entities.size()==1 ? entities[0].toString() : QString{});
+    if(args.contains("entityId") && entity.isEmpty())throw std::invalid_argument("The requested sketch line does not exist");
+    if(!entity.isEmpty()) {
+        if(args.contains("pointIds"))throw std::invalid_argument("Choose two points or one line for a dimension");
+        bool found=false;points={};
+        for(const auto& entry:session_.value("draftSketch").toObject()["parameters"].toObject()["entities"].toArray()) {
+            const auto line=entry.toObject();if(line["id"]==entity){points=QJsonArray{line["startPointId"],line["endPointId"]};found=true;break;}
+        }
+        if(!found)throw std::invalid_argument("The requested sketch line does not exist");
+    }
+    if(points.size()!=2 || points[0]==points[1])throw std::invalid_argument("Select one line or two distinct points for a dimension");
+    return {{"pointIds",points}};
 }
 
 void AlloyWindow::sketchResponse(const QJsonObject& response) {
     if(sketchError_)sketchError_->setText(response["ok"].toBool() ? "" : response["error"].toObject()["message"].toString());
 }
 
+void AlloyWindow::dimensionSelectionChanged() {
+    if(!sketchDimensionList_ || !sketchDimensionEdit_)return;
+    const auto id=sketchDimensionList_->currentData().toString();const auto units=session_.value("inputs").toObject()["units"].toString();
+    const double scale=units=="in" ? 25.4 : 1;
+    const QSignalBlocker block(sketchDimensionEdit_);sketchDimensionEdit_->setSuffix(" "+units);
+    for(const auto& entry:session_.value("solverDiagnostics").toObject()["dimensionValues"].toArray()) {
+        const auto value=entry.toObject();if(value["id"]!=id)continue;
+        sketchDimensionEdit_->setValue(value["valueMm"].toDouble()/scale);sketchDimensionEdit_->setEnabled(value["driving"].toBool());
+        sketchDimensionMeasure_->setText(QString("%1: %2 %3").arg(value["driving"].toBool() ? "Driving" : "Driven measurement")
+            .arg(QString::number(value["valueMm"].toDouble()/scale,'g',8)).arg(units));return;
+    }
+    sketchDimensionEdit_->setEnabled(false);sketchDimensionMeasure_->setText("Select a dimension to inspect or edit it");
+}
+
+void AlloyWindow::refreshSketchControls() {
+    if(!sketchSelectionTree_ || session_.value("command")!="sketch.edit")return;
+    const auto draft=session_.value("draftSketch").toObject(),selection=session_.value("selection").toObject();
+    const auto units=session_.value("inputs").toObject()["units"].toString();
+    const bool changed=draft!=sketchWidgetDraft_,selected=selection!=sketchWidgetSelection_,unitChanged=units!=sketchWidgetUnits_;
+    if(!changed && !selected && !unitChanged)return;
+    const auto parameters=draft["parameters"].toObject();const double scale=units=="in" ? 25.4 : 1;
+    QMap<QString,QJsonObject> points;QMap<QString,int> pointNumbers;
+    QMap<QString,QStringList> relations;
+    for(const auto& entry:parameters["constraints"].toArray()) {
+        const auto constraint=entry.toObject();const auto type=constraint["type"].toString();
+        for(const auto& id:constraint["entityIds"].toArray())relations[id.toString()].append(type.first(1).toUpper()+type.sliced(1));
+        for(const auto& id:constraint["pointIds"].toArray())relations[id.toString()].append(type.first(1).toUpper()+type.sliced(1));
+    }
+    {
+        const QSignalBlocker block(sketchSelectionTree_);sketchSelectionTree_->clear();
+        auto* pointGroup=new QTreeWidgetItem(sketchSelectionTree_,{"Points"});pointGroup->setFlags(pointGroup->flags() & ~Qt::ItemIsSelectable);
+        auto* lineGroup=new QTreeWidgetItem(sketchSelectionTree_,{"Lines"});lineGroup->setFlags(lineGroup->flags() & ~Qt::ItemIsSelectable);
+        int index=0;
+        for(const auto& entry:parameters["points"].toArray()) {
+            const auto point=entry.toObject();const auto id=point["id"].toString();points[id]=point;pointNumbers[id]=++index;
+            auto* item=new QTreeWidgetItem(pointGroup,{QString("P%1  (%2, %3) %4").arg(index).arg(QString::number(point["uMm"].toDouble()/scale,'g',5)).arg(QString::number(point["vMm"].toDouble()/scale,'g',5)).arg(units)});
+            if(relations.contains(id))item->setText(0,item->text(0)+" · "+relations[id].join(", "));
+            item->setData(0,Qt::UserRole,"point");item->setData(0,Qt::UserRole+1,id);item->setSelected(selection["pointIds"].toArray().contains(id));
+        }
+        index=0;
+        for(const auto& entry:parameters["entities"].toArray()) {
+            const auto entity=entry.toObject();const auto id=entity["id"].toString();
+            auto* item=new QTreeWidgetItem(lineGroup,{QString("Line %1  ·  P%2 → P%3").arg(++index).arg(pointNumbers.value(entity["startPointId"].toString())).arg(pointNumbers.value(entity["endPointId"].toString()))});
+            if(relations.contains(id))item->setText(0,item->text(0)+" · "+relations[id].join(", "));
+            item->setData(0,Qt::UserRole,"entity");item->setData(0,Qt::UserRole+1,id);item->setSelected(selection["entityIds"].toArray().contains(id));
+        }
+        pointGroup->setExpanded(true);lineGroup->setExpanded(true);
+    }
+    QMap<QString,QJsonObject> values;const auto diagnostics=session_.value("solverDiagnostics").toObject();
+    for(const auto& entry:diagnostics["dimensionValues"].toArray()){const auto value=entry.toObject();values[value["id"].toString()]=value;}
+    if(changed || unitChanged) {
+        const auto previous=sketchDimensionList_->currentData();const QSignalBlocker block(sketchDimensionList_);sketchDimensionList_->clear();
+        for(const auto& entry:parameters["dimensions"].toArray()) {
+            const auto dimension=entry.toObject();const auto measured=values.value(dimension["id"].toString());const auto kind=dimension["kind"].toString();
+            sketchDimensionList_->addItem(QString("%1 %2 %3 · %4").arg(kind.first(1).toUpper()+kind.sliced(1))
+                .arg(QString::number(measured["valueMm"].toDouble()/scale,'g',6)).arg(units).arg(dimension["driving"].toBool() ? "Driving" : "Driven"),dimension["id"].toString());
+        }
+        if(sketchDimensionList_->count()==0)sketchDimensionList_->addItem("No dimensions");
+        const int previousIndex=sketchDimensionList_->findData(previous);if(previousIndex>=0)sketchDimensionList_->setCurrentIndex(previousIndex);
+        dimensionSelectionChanged();
+    }
+    const QSignalBlocker block(sketchDimensionValue_);sketchDimensionValue_->setSuffix(" "+units);
+    try {
+        const auto target=sketchDimensionTargets({})["pointIds"].toArray();const auto a=points.value(target[0].toString()),b=points.value(target[1].toString());
+        const double u=std::abs(a["uMm"].toDouble()-b["uMm"].toDouble()),v=std::abs(a["vMm"].toDouble()-b["vMm"].toDouble());
+        const auto kind=sketchDimensionKind_->currentData().toString();sketchDimensionValue_->setValue((kind=="horizontal" ? u : kind=="vertical" ? v : std::hypot(u,v))/scale);
+    }catch(const std::invalid_argument&){}
+    view_->decorateSketch(draft,selection,diagnostics,units);sketchWidgetDraft_=draft;sketchWidgetSelection_=selection;sketchWidgetUnits_=units;
+}
+
 void AlloyWindow::showSketch() {
     if(sketchDock_)delete sketchDock_;
     sketchInputs_.clear();sketchInfo_=nullptr;sketchName_=nullptr;
+    sketchSelectionTree_=nullptr;sketchDimensionKind_=nullptr;sketchDimensionValue_=nullptr;sketchDimensionDriving_=nullptr;
+    sketchDimensionList_=nullptr;sketchDimensionEdit_=nullptr;sketchDimensionMeasure_=nullptr;sketchWidgetDraft_={};sketchWidgetSelection_={};sketchWidgetUnits_.clear();
     sketchPanel_=new QWidget;sketchPanel_->setObjectName("sketchPanel");sketchPanel_->setFixedWidth(312);
     sketchPanel_->setStyleSheet("#sketchPanel { background: #f7f8f9; border-left: 1px solid #cdd3d8; }");
     const bool choosing=session_.value("command").toString()=="sketch.plane";
     auto* dock=new CommandDock(choosing ? "Create Sketch" : "Sketch Palette",canvasWindow_);sketchDock_=dock;
     dock->setObjectName("sketchDock");dock->setAllowedAreas(Qt::LeftDockWidgetArea|Qt::RightDockWidgetArea);dock->setWidget(sketchPanel_);
     dock->onClose=[this]{if(session_.value("command").toString().startsWith("sketch."))execute("sketch.cancel");};
-    auto* layout=new QVBoxLayout(sketchPanel_);
+    auto* panelLayout=new QVBoxLayout(sketchPanel_);panelLayout->setContentsMargins(5,5,5,5);
+    auto* content=new QWidget;content->setObjectName("sketchScrollContent");
+    content->setStyleSheet("#sketchScrollContent { background: #f7f8f9; color: #323c44; }");
+    auto* layout=new QVBoxLayout(content);layout->setContentsMargins(6,6,6,6);
+    auto* scroll=new QScrollArea;sketchScroll_=scroll;scroll->setWidgetResizable(true);scroll->setFrameShape(QFrame::NoFrame);
+    scroll->viewport()->setObjectName("sketchScrollViewport");
+    scroll->viewport()->setStyleSheet("#sketchScrollViewport { background: #f7f8f9; color: #323c44; }");
+    scroll->setWidget(content);panelLayout->addWidget(scroll,1);
     if(choosing) {
         auto* help=new QLabel("Choose an origin plane to begin a sketch.");help->setWordWrap(true);layout->addWidget(help);
         for(const auto& plane:QStringList{"XY","XZ","YZ"}) {
@@ -1026,7 +1236,51 @@ void AlloyWindow::showSketch() {
             if(session_.value("command").toString()=="sketch.edit")sketchResponse(execute("command.update",{{"session",session_.value("id")},{"inputs",QJsonObject{{"name",sketchName_->text()}}}}));
         });
         layout->addLayout(form);sketchInfo_=new QLabel;sketchInfo_->setObjectName("sketch.info");sketchInfo_->setWordWrap(true);layout->addWidget(sketchInfo_);
-        auto* guidance=new QLabel("Line: click consecutive points.\nRectangle: click two opposite corners.\nUse the fields below for exact coordinates.");guidance->setWordWrap(true);layout->addWidget(guidance);
+        auto* guidance=new QLabel("Select geometry in the canvas or below.\nShift-click adds to the selection.");guidance->setWordWrap(true);layout->addWidget(guidance);
+        sketchSelectionTree_=new QTreeWidget;sketchSelectionTree_->setObjectName("sketch.selection");sketchSelectionTree_->setHeaderHidden(true);
+        sketchSelectionTree_->setSelectionMode(QAbstractItemView::ExtendedSelection);sketchSelectionTree_->setMaximumHeight(145);layout->addWidget(sketchSelectionTree_);
+        connect(sketchSelectionTree_,&QTreeWidget::itemSelectionChanged,this,[this]{
+            QJsonArray points,entities;for(auto* item:sketchSelectionTree_->selectedItems()) {
+                const auto kind=item->data(0,Qt::UserRole).toString(),id=item->data(0,Qt::UserRole+1).toString();
+                if(kind=="point")points.append(id);else if(kind=="entity")entities.append(id);
+            }
+            sketchResponse(execute("sketch.selectionSet",{{"pointIds",points},{"entityIds",entities}}));
+        });
+        layout->addWidget(new QLabel("CONSTRAINTS"));auto* constraints=new QGridLayout;
+        const QStringList types{"coincident","horizontal","vertical","parallel","perpendicular","fixed"};
+        for(int i=0;i<types.size();++i) {
+            const auto type=types[i];auto* button=new QPushButton(type.first(1).toUpper()+type.sliced(1));button->setObjectName("sketch.constraint."+type);
+            button->setToolTip(type=="fixed" ? "Select one point; retain its position" : type=="coincident" ? "Select two points"
+                : type=="horizontal" || type=="vertical" ? "Select one line" : "Select two lines");
+            constraints->addWidget(button,i/2,i%2);connect(button,&QPushButton::clicked,this,[this,type]{sketchResponse(execute("sketch.constraint",{{"type",type}}));});
+        }
+        layout->addLayout(constraints);layout->addWidget(new QLabel("DIMENSION  D"));auto* dimensions=new QFormLayout;
+        sketchDimensionKind_=new QComboBox;sketchDimensionKind_->setObjectName("sketch.dimension.kind");
+        for(const auto& kind:QStringList{"linear","horizontal","vertical"})sketchDimensionKind_->addItem(kind.first(1).toUpper()+kind.sliced(1),kind);
+        dimensions->addRow("Measure",sketchDimensionKind_);
+        sketchDimensionDriving_=new QCheckBox("Driving dimension");sketchDimensionDriving_->setChecked(true);sketchDimensionDriving_->setObjectName("sketch.dimension.driving");dimensions->addRow(sketchDimensionDriving_);
+        sketchDimensionValue_=new QDoubleSpinBox;sketchDimensionValue_->setDecimals(6);sketchDimensionValue_->setRange(0.000001,100000);sketchDimensionValue_->setKeyboardTracking(false);
+        sketchDimensionValue_->setObjectName("sketch.dimension.value");dimensions->addRow("Value",sketchDimensionValue_);layout->addLayout(dimensions);
+        connect(sketchDimensionKind_,qOverload<int>(&QComboBox::currentIndexChanged),this,[this]{sketchWidgetSelection_={};refreshSketchControls();});
+        connect(sketchDimensionDriving_,&QCheckBox::toggled,sketchDimensionValue_,&QWidget::setEnabled);
+        auto* addDimension=new QPushButton("Add Dimension");addDimension->setObjectName("sketch.dimension.add");layout->addWidget(addDimension);
+        connect(addDimension,&QPushButton::clicked,this,[this]{
+            QJsonObject args{{"kind",sketchDimensionKind_->currentData().toString()},{"driving",sketchDimensionDriving_->isChecked()}};
+            if(sketchDimensionDriving_->isChecked())args["value"]=sketchDimensionValue_->value();sketchResponse(execute("sketch.dimension",args));
+        });
+        sketchDimensionList_=new QComboBox;sketchDimensionList_->setObjectName("sketch.dimension.list");layout->addWidget(sketchDimensionList_);
+        sketchDimensionMeasure_=new QLabel;sketchDimensionMeasure_->setObjectName("sketch.dimension.measure");layout->addWidget(sketchDimensionMeasure_);
+        sketchDimensionEdit_=new QDoubleSpinBox;sketchDimensionEdit_->setDecimals(6);sketchDimensionEdit_->setRange(0.000001,100000);sketchDimensionEdit_->setKeyboardTracking(false);
+        sketchDimensionEdit_->setObjectName("sketch.dimension.edit");layout->addWidget(sketchDimensionEdit_);
+        connect(sketchDimensionList_,qOverload<int>(&QComboBox::currentIndexChanged),this,[this]{dimensionSelectionChanged();});
+        auto* editDimension=new QPushButton("Apply Dimension Value");editDimension->setObjectName("sketch.dimension.apply");layout->addWidget(editDimension);
+        connect(editDimension,&QPushButton::clicked,this,[this]{
+            const auto id=sketchDimensionList_->currentData().toString();if(id.isEmpty())return;
+            sketchResponse(execute("sketch.dimensionUpdate",{{"dimensionId",id},{"value",sketchDimensionEdit_->value()}}));
+        });
+        auto* manualTitle=new QPushButton("Exact-coordinate creation ▾");manualTitle->setCheckable(true);layout->addWidget(manualTitle);
+        auto* manual=new QWidget;auto* manualLayout=new QVBoxLayout(manual);manualLayout->setContentsMargins(0,0,0,0);manual->hide();layout->addWidget(manual);
+        connect(manualTitle,&QPushButton::toggled,manual,&QWidget::setVisible);
         auto* coordinates=new QFormLayout;
         for(const auto& field:QStringList{"x1","y1","x2","y2"}) {
             auto* input=new QDoubleSpinBox;input->setKeyboardTracking(false);input->setDecimals(6);input->setRange(-100000,100000);
@@ -1034,7 +1288,7 @@ void AlloyWindow::showSketch() {
             input->setValue((field=="x2" ? 40 : field=="y2" ? 25 : 0)/scale);input->setSuffix(" "+inputs["units"].toString());input->setObjectName("sketch."+field);
             sketchInputs_[field]=input;coordinates->addRow(field=="x1" ? "Start X" : field=="y1" ? "Start Y" : field=="x2" ? "End X" : "End Y",input);
         }
-        layout->addLayout(coordinates);
+        manualLayout->addLayout(coordinates);
         auto* addRow=new QHBoxLayout;
         for(const auto& tool:QStringList{"line","rectangle"}) {
             auto* button=new QPushButton(tool=="line" ? "Add Line" : "Add Rectangle");button->setObjectName("sketch.add."+tool);addRow->addWidget(button);
@@ -1043,18 +1297,18 @@ void AlloyWindow::showSketch() {
                 sketchResponse(execute("sketch."+tool,args));
             });
         }
-        layout->addLayout(addRow);
+        manualLayout->addLayout(addRow);
         auto* grid=new QPushButton("Show / Hide Sketch Grid");layout->addWidget(grid);
         connect(grid,&QPushButton::clicked,this,[this]{execute("view.grid",{{"visible",!view_->grid}});});
     }
-    sketchError_=new QLabel;sketchError_->setObjectName("sketch.error");sketchError_->setWordWrap(true);sketchError_->setStyleSheet("color: #a63832;");layout->addWidget(sketchError_);
-    layout->addStretch();auto* actions=new QHBoxLayout;
+    layout->addStretch();sketchError_=new QLabel;sketchError_->setObjectName("sketch.error");sketchError_->setWordWrap(true);sketchError_->setStyleSheet("color: #a63832;");panelLayout->addWidget(sketchError_);
+    auto* actions=new QHBoxLayout;
     if(!choosing) {
         auto* finish=new QPushButton("Finish Sketch");finish->setObjectName("sketch.palette.finish");actions->addWidget(finish);
         connect(finish,&QPushButton::clicked,this,[this]{sketchResponse(execute("sketch.finish"));});
     }
     auto* cancel=new QPushButton("Cancel");cancel->setObjectName("sketch.cancel");actions->addWidget(cancel);
-    connect(cancel,&QPushButton::clicked,this,[this]{execute("sketch.cancel");});layout->addLayout(actions);
+    connect(cancel,&QPushButton::clicked,this,[this]{execute("sketch.cancel");});panelLayout->addLayout(actions);
     canvasWindow_->addDockWidget(Qt::RightDockWidgetArea,dock);dock->show();
 }
 

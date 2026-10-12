@@ -28,6 +28,9 @@ public:
     void setSketches(const std::vector<EvaluatedSketch>& sketches, quint64 revision);
     void showSketchDraft(const EvaluatedSketch& sketch);
     void clearSketchDraft();
+    QJsonObject pickSketch(const QJsonObject& feature, double x, double y) const;
+    void decorateSketch(const QJsonObject& feature, const QJsonObject& selection,
+        const QJsonObject& diagnostics, const QString& units);
     void setSketchPlane(const QString& plane);
     void lookAtSketch(const QString& plane);
     QJsonObject sketchPoint(double x, double y, const QString& plane) const;
@@ -51,6 +54,7 @@ protected:
     void wheelEvent(QWheelEvent*) override;
 private:
     void initialize();
+    void clearSketchDecorations();
     QPointF windowScale() const;
     Handle(V3d_Viewer) viewer_;
     Handle(V3d_View) view_;
@@ -63,6 +67,7 @@ private:
     QMap<QString,Handle(AIS_Shape)> models_;
     QMap<QString,Handle(AIS_Shape)> sketchModels_;
     Handle(AIS_Shape) sketchDraft_, sketchCursor_;
+    std::vector<Handle(AIS_InteractiveObject)> sketchDecorations_;
     QString sketchPlane_, draftSketchId_;
     quint64 sketchRevision_ = 0;
     Handle(AIS_Shape) preview_;

@@ -1,7 +1,7 @@
 # 004 — Select PlaneGCS for sketch constraints
 
-Date: 2026-10-11. Status: selected integration direction with a passing bounded
-native-library fixture; authored application constraint integration is pending.
+Date: 2026-10-11. Status: selected and integrated for the bounded line/point
+constraint and driving/driven dimension subset.
 
 Use FreeCAD PlaneGCS at `ec6852e6caadf55045881a6003cc7ad038c8d2a7` behind a
 separate replaceable shared library. Preserve its LGPL-2.1-or-later notices and
@@ -13,8 +13,9 @@ The [research and actual evidence](../research/sketch-solver.md) compared public
 interfaces/licenses and executed PlaneGCS on a dimensioned rectangle, tangent
 circle, inconsistent dimensions and temporary drag target at representative
 scales. It did not run a second candidate or benchmark complete CAD applications.
-This is sufficient to select the next integration, not to claim general solver
-robustness or completed application constraints.
+That selection fixture supports the library choice, not general solver robustness.
+The later [application constraints receipt](../validation/sketch-constraints.md)
+records the integrated authored-document/UI/API workflow separately.
 
 ## Ownership and call contract
 
@@ -35,10 +36,12 @@ robustness or completed application constraints.
    Alloy's existing one-QUndoStack boundary. Cancel, inconsistent dimensions and
    failed solves leave live authored state and the journal unchanged. Opening a
    saved sketch rebuilds solver state from authored IDs/constraints.
-5. Dragging uses seeded candidate geometry and temporary negative-tag constraints;
-   preview has no document transaction. Remove the temporary constraints on
-   completion. A committed gesture produces one intentional undo entry. Reject
-   stale session/revision results before publishing.
+5. The implemented `sketch.movePoint` seeds a copied point coordinate and solves
+   existing relations; it creates no journal entry until Finish. Native point
+   dragging remains future work. Its temporary-target policy should follow the
+   researched negative-tag fixture, discard preview constraints on completion
+   and commit a successful gesture once. Reject stale session/revision results
+   before publishing either kind of candidate.
 
 Do not invent a generic solver framework or duplicate constraint equations that
 PlaneGCS already provides. Keep a small Alloy adapter and add constraints as
@@ -52,21 +55,47 @@ headers. One recorded C++20 portability patch replaces the C++23 impossible-case
 hint with `std::abort`; explicit standalone shims provide logging/config/export
 services. No numerical algorithm was rewritten.
 
-Production integration must pin and verify the extraction, retain notices and
-the patch, supply real export definitions on Windows, and register the new
-components/source-access/replacement materials in the dependency inventory.
-The spike uses absolute local library paths; it is not a deployable package.
+`cmake/PlaneGCS.cmake` now builds that pinned extraction as `alloy_planegcs` SHARED,
+checks every original against `third_party/planegcs/sources.json`, retains the
+patch/notices and supplies standalone Windows import/export definitions. Matching
+Eigen/Boost headers are discovered locally or obtained from pinned hash-checked
+archives; Eigen compiles with `EIGEN_MPL2_ONLY`. Alloy's MIT `SketchSolver` adapter
+links to this replaceable library; solver pointers/types are not authored data.
+Components and terms are recorded in the dependency inventory. Portable export
+definitions are implemented, but actual Windows/Linux solver builds, runtime
+closure, source-access and replacement materials still require qualification.
+The original selection spike used absolute local library paths; neither that
+fixture nor current local build evidence is a deployable package.
 Platform compilation belongs at an explicit version cut or manual dispatch;
 runtime/package qualification remains separately required on each target.
 
-## Next implementation
+## Implemented subset and follow-ups
 
-SKT-001/002 may establish origin-plane authored geometry without a solver. SKT-003
-integrates this adapter for real constraints and diagnostics; SKT-004 adds driving
-and driven dimensions. Their real-app evidence must cover shared UI/API state,
-undo, cancellation, invalid input and save/reopen. The sketch-led checkpoint
-then verifies dimension edits recomputing a real extrusion. Tangent-circle
-library evidence does not by itself implement SKT-006.
+SKT-003/004 integrate coincidence, horizontal, vertical, parallel, perpendicular
+and fixed-point relations, plus linear/H/V driving dimensions and driven
+measurements. Rectangles author four H/V relations atomically. Optional authored
+constraint/dimension arrays preserve older unconstrained files; stable IDs and
+strict references survive undo and native save/reopen. Fixed relations store the
+captured target; driven dimensions store no driving value. Positive H/V readouts
+use the signed endpoint branch from seeded coordinates, including reversed
+endpoint selection.
+
+Accepted mutations normalize coordinates before OCCT evaluation; failed solves
+preserve the usable draft. Commit/open normalize the complete copied document
+before replacing live authored/evaluated state. Diagnostics expose whole-sketch
+DOF, conflict/redundancy UUIDs, measured dimensions and independent length/angle
+residuals (1e-6 mm for lengths, 1e-8 for normalized angular residuals). The
+palette/API share point/line selection;
+orange selection, green fixed points and whole-sketch black/blue status are
+implemented, not per-entity freedom analysis.
+
+[SKT-005 #32](https://github.com/rje/Alloy/issues/32) owns canvas dimension
+placement, inline entry and double-click editing;
+[SKT-008 #35](https://github.com/rje/Alloy/issues/35) owns per-entity badges/colors
+and visibility controls. Native dragging is unimplemented. The next modeling
+checkpoint adds closed profiles, dependent recompute and extrusion before
+claiming dimension edits update a solid. Tangent-circle library evidence does
+not by itself implement SKT-006.
 
 Unqualified: arbitrary drag branch behavior, complex/spline sketches, numerical
 conditioning over the entire document range, redundant-constraint UX,

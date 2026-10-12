@@ -2,7 +2,8 @@
 
 Alloy's running native application provides a small local control API from its
 first shell build. It is an Alloy protocol. Authored document inspection, units,
-real box/cylinder and origin-plane sketch creation and editing, geometry inspection, undo/redo and native
+real box/cylinder and constrained origin-plane sketch creation and editing,
+driving/driven dimensions, geometry inspection, undo/redo and native
 save/open use the same authoritative path as the UI.
 
 ## Launch and discover
@@ -86,7 +87,8 @@ required parameter type/enum/range schemas. Unknown/missing/incorrect arguments
 fail without applying the command. Error codes include `invalid_request`,
 `request_too_large`, `unknown_command`, `not_implemented`, `invalid_arguments`,
 `capture_failed`, `evaluation_failed`, `kernel_failure`, `stale_entity`,
-`stale_session`, `unsaved_changes`, `open_failed` and `save_failed`.
+`stale_session`, `no_active_sketch`, `invalid_session`, `invalid_sketch`,
+`sketch_solve_failed`, `unsaved_changes`, `open_failed` and `save_failed`.
 
 ## Implemented commands
 
@@ -115,13 +117,19 @@ fail without applying the command. Error codes include `invalid_request`,
 | `sketch.create` | Open the docked origin-plane chooser |
 | `sketch.begin` | `plane`: `XY`, `XZ` or `YZ`; optional `name`, `units`; begin an authored draft |
 | `sketch.edit` | `sketchId`: UUID; re-enter a retained sketch |
-| `sketch.line`, `sketch.rectangle` | `x1`, `y1`, `x2`, `y2`; optional `units`, `session`; append stable point/line entities to the active draft |
-| `sketch.tool` | `tool`: `select`, `line` or `rectangle`; choose the active drawing tool |
-| `sketch.placePoint` | `x`, `y`: viewport-local logical pixels; same ray/plane and two-click path as native input |
+| `sketch.line`, `sketch.rectangle` | `x1`, `y1`, `x2`, `y2`; optional `units`, `session`; append stable point/line entities and solve the draft. Rectangles also author four H/V constraints |
+| `sketch.tool` | `tool`: `select`, `line`, `rectangle` or `dimension`; choose the active drawing/selection tool |
+| `sketch.selectionSet` | Optional `pointIds`, `entityIds`: arrays of authored IDs in the active sketch; omitted arrays clear that selection kind |
+| `sketch.selectionPick` | `x`, `y`: logical pixels; optional `additive`: boolean. Pick an authored point or line, sharing native selection state |
+| `sketch.placePoint` | `x`, `y`: logical pixels; native ray/plane two-click drawing path, or selection when the active tool is `select`/`dimension` |
 | `sketch.pointerMove` | `x`, `y`: logical pixels; disposable pending-line/rectangle cursor preview |
 | `sketch.lookAt` | View normal to the active sketch plane |
 | `sketch.finish`, `sketch.cancel` | Commit or discard the active sketch session |
 | `view.projectSketchPoint` | `plane`, `uMm`, `vMm`; actual world-to-viewport projection |
+| `sketch.constraint` | `type`: `coincident`, `horizontal`, `vertical`, `parallel`, `perpendicular` or `fixed`; optional `pointIds`, `entityIds`, `session`. Omitted targets use active sketch selection |
+| `sketch.dimension` | `kind`: `linear`, `horizontal` or `vertical`; optional `pointIds` (two), `entityId` (one line), `value`, `units`, `driving`, `session`. Omitted targets use selection; `driving` defaults true |
+| `sketch.dimensionUpdate` | `dimensionId`, positive `value`; optional `units`, `session`; edit a driving dimension by stable UUID |
+| `sketch.movePoint` | `pointId`, `x`, `y`; optional `units`, `session`; seed a point's coordinates and solve the copied draft |
 | `feature.edit` | `featureId`: UUID; `parameters`: partial canonical-mm fields such as `widthMm` |
 | `feature.editDialog`, `feature.delete` | `featureId`: UUID; actual edit dialog or one undoable deletion |
 | `geometry.inspect` | Evaluated bodies and sketches: stable IDs, validity, geometry summaries and plane frames |
@@ -158,8 +166,43 @@ evaluated `sketchGeometry` summary without editing the document. `ui.tab` become
 `sketch`; the palette is a real docked widget. Finish commits one transaction,
 Cancel discards it, and stale revision checks reject outdated candidates. Plane
 choice is fixed once editing begins. Evaluated sketch inspection exposes frames,
-world-space endpoints and bounds; `solverIntegrated` remains false. GPU state
+world-space endpoints, bounds and `solverIntegrated: true`. The `solver` object
+reports the accepted solution's diagnostics. GPU state
 reports `displayedSketches`, `draftSketchVisible` and `cursorPreviewVisible`.
+
+Sketch selection is independent of body selection. `activeSession.selection`
+contains `pointIds`/`entityIds`; selected points and lines are orange, fixed points
+green, and the sketch is black at zero DOF or blue while underconstrained.
+This is a whole-sketch classification. Point picking has priority within eight
+logical pixels; line picking uses six. UI clicks and API picking use the same
+projected authored geometry and stable identifiers.
+
+Coincidence requires two points, fixed requires one point, H/V requires one line,
+and parallel/perpendicular requires two lines. Fixed captures the point's current
+canonical coordinates as its target. Dimensions use two distinct points or one
+line's endpoints. Driving values are positive; omitted `value` captures the current
+measurement. `driving: false` stores a derived measurement with no driving value.
+Horizontal/vertical values are absolute distances; the solver retains the signed
+endpoint branch from the seed. `units` accepts `mm`/`in` and defaults to active
+sketch units; authored values and `dimensionValues[].valueMm` remain canonical mm.
+
+Accepted mutations return `draftSketch`, `sketchGeometry`, `diagnostics` and
+`authoredCommitted: false`. `activeSession.solverDiagnostics` contains the last
+accepted result: `solver`, `status`, `dof`, `constraintCount`, `maxResidual`,
+`lengthToleranceMm`, `angularTolerance`, `conflictingConstraintIds`,
+`redundantConstraintIds` and `dimensionValues` (ID, kind, driving flag and value).
+Accepted statuses are `underconstrained` and `fully_constrained`. A rejected solve
+returns `sketch_solve_failed` with `error.diagnostics`, also observed as
+`activeSession.lastSolveFailure`; it preserves the usable draft, accepted geometry
+and journal. Finish commits the normalized points and authored relations once;
+save/reopen reconstructs the same solution from them. Older files without the
+optional arrays remain valid without inferred constraints.
+
+The dimension tool currently selects targets for palette numeric entry. GPU labels
+show measured values (driven values in parentheses), but canvas placement, inline
+typing, double-click label editing and native point dragging remain unimplemented.
+`sketch.movePoint` is a solved coordinate seed, not a physical drag gesture.
+See the [bounded interaction gaps](research/commands/sketch-controls.md).
 
 `viewport.renderer` is `OCCT OpenGL`; `viewport.gpu` contains live OCCT driver
 information and qualification. `vendor`, `renderer`, and `version` come from the
@@ -202,15 +245,16 @@ and displayed inputs. Draft updates and previews create no undo entries; commit
 calls the same registered document command as direct UI/API execution. Cancelled
 or superseded IDs cannot commit. `document.lastTransactionId` identifies the last
 committed/undone/redone journal entry. These are synchronous operations; no async
-job family is exposed until a real long operation needs it. Failed or stale
-previews clear their disposable presentation. A main-window capture
+job family is exposed until a real long operation needs it. Failed primitive
+previews and stale sessions clear their disposable presentation; rejected sketch
+solve mutations retain the last accepted draft. A main-window capture
 excludes separate dialogs; `capture.dialog` captures those real 2D widgets.
 
 ## Verification and extension contract
 
 ```sh
-ctest --test-dir build -R '^(document_model|geometry_kernel|client_selection)$' --output-on-failure
-python3 tests/workflows/run.py --case primitive-regression --evidence build/evidence/primitive-regression
+ctest --test-dir build -R '^(document_model|geometry_kernel|sketch_document|sketch_solver|client_selection)$' --output-on-failure
+python3 tests/workflows/run.py --case constraint-regression --evidence build/evidence/constraint-regression
 ```
 
 The test launches the built app, discovers commands, changes view and layout,
@@ -223,7 +267,11 @@ and quits. Evidence is written to `build/evidence/`.
 
 The [primitive receipt](validation/primitives.md) adds a coherent create/edit/
 pick/undo/reopen workflow and separate native keyboard/dialog observations.
-Body-only selection is implemented; full face/edge selection is still DOC-006.
+Body and active-sketch point/line selection are implemented; solid face/edge
+selection is still DOC-006. The [sketch receipt](validation/sketches.md) and
+[constraints receipt](validation/sketch-constraints.md) add drawing, solve,
+driving/driven values, failed-draft preservation, one-entry Finish, cancellation,
+undo and native reopen. Candidate-specific reruns remain identified separately.
 Native file dialogs and unsaved-work prompts exist, but observable pending
 document decisions and full physical coverage remain DOC-013.
 
@@ -243,5 +291,7 @@ Cancel route through the shared cancellation command.
 
 Viewport picking retains fractional logical coordinates until native rounding.
 Option/Alt-left drag and middle drag use shared `view.pan`; plain left click uses
-`selection.pick`. Selected bodies are visibly blue; clearing selection restores
-normal appearance without changing the authored document.
+`selection.pick` outside sketch editing. Active-sketch clicks use the current
+drawing/selection tool; Shift-click adds/toggles sketch selection. Selected bodies
+are visibly blue; clearing selection restores normal appearance without changing
+the authored document.

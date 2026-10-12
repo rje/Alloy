@@ -31,6 +31,13 @@
 #include <TopoDS_Wire.hxx>
 #include <gp_Ax3.hxx>
 #include <gp_Vec.hxx>
+#include <AIS_Point.hxx>
+#include <AIS_TextLabel.hxx>
+#include <Geom_CartesianPoint.hxx>
+#include <Prs3d_PointAspect.hxx>
+#include <Graphic3d_ZLayerId.hxx>
+#include <BRepBuilderAPI_MakeEdge.hxx>
+#include <TopoDS_Edge.hxx>
 
 namespace {
 gp_Pnt sketchWorld(const QString& plane,double u,double v) {
@@ -165,6 +172,7 @@ void ReferenceView::setSketches(const std::vector<EvaluatedSketch>& sketches,qui
     for(const auto& sketch:sketches) {
         if(!sketch.visible || sketch.shape.IsNull())continue;
         const auto model=sketchPresentation(sketch.shape);
+        if(sketch.summary["solver"].toObject()["dof"].toInt(-1)==0)model->SetColor(Quantity_Color(0.12,0.14,0.16,Quantity_TOC_RGB));
         context_->Display(model,AIS_WireFrame,-1,false);context_->Deactivate(model);
         if(sketch.featureId==draftSketchId_)context_->Erase(model,false);
         sketchModels_[sketch.featureId]=model;
@@ -179,17 +187,87 @@ void ReferenceView::showSketchDraft(const EvaluatedSketch& sketch) {
     if(sketchModels_.contains(draftSketchId_))context_->Erase(sketchModels_.value(draftSketchId_),false);
     if(!sketch.shape.IsNull()) {
         sketchDraft_=sketchPresentation(sketch.shape);
+        if(sketch.summary["solver"].toObject()["dof"].toInt(-1)==0)sketchDraft_->SetColor(Quantity_Color(0.12,0.14,0.16,Quantity_TOC_RGB));
         context_->Display(sketchDraft_,AIS_WireFrame,-1,false);context_->Deactivate(sketchDraft_);
     }
     context_->UpdateCurrentViewer();
 }
 void ReferenceView::clearSketchDraft() {
+    clearSketchDecorations();
     if(!context_.IsNull()) {
         if(!sketchDraft_.IsNull())context_->Remove(sketchDraft_,false);
         if(sketchModels_.contains(draftSketchId_))context_->Display(sketchModels_.value(draftSketchId_),false);
         context_->UpdateCurrentViewer();
     }
     sketchDraft_.Nullify();draftSketchId_.clear();clearSketchCursor();
+}
+QJsonObject ReferenceView::pickSketch(const QJsonObject& feature,double x,double y) const {
+    if(view_.IsNull() || x<0 || y<0 || x>=width() || y>=height())return {};
+    const auto parameters=feature["parameters"].toObject();const auto plane=parameters["plane"].toString();
+    QMap<QString,QPointF> points;
+    double best=8;QString picked;
+    for(const auto& entry:parameters["points"].toArray()) {
+        const auto point=entry.toObject();const auto projection=projectSketchPoint(point["uMm"].toDouble(),point["vMm"].toDouble(),plane);
+        const QPointF p(projection["x"].toDouble(),projection["y"].toDouble());points[point["id"].toString()]=p;
+        const double distance=std::hypot(p.x()-x,p.y()-y);
+        if(distance<=best){best=distance;picked=point["id"].toString();}
+    }
+    if(!picked.isEmpty())return {{"kind","point"},{"pointId",picked},{"distancePixels",best}};
+    best=6;
+    for(const auto& entry:parameters["entities"].toArray()) {
+        const auto entity=entry.toObject();const auto start=points.value(entity["startPointId"].toString()),end=points.value(entity["endPointId"].toString());
+        const auto delta=end-start;const double length2=delta.x()*delta.x()+delta.y()*delta.y();if(length2<1e-12)continue;
+        const double t=std::clamp(((x-start.x())*delta.x()+(y-start.y())*delta.y())/length2,0.0,1.0);
+        const auto nearest=start+delta*t;const double distance=std::hypot(nearest.x()-x,nearest.y()-y);
+        if(distance<=best){best=distance;picked=entity["id"].toString();}
+    }
+    return picked.isEmpty() ? QJsonObject{} : QJsonObject{{"kind","entity"},{"entityId",picked},{"distancePixels",best}};
+}
+void ReferenceView::clearSketchDecorations() {
+    if(!context_.IsNull())for(const auto& decoration:sketchDecorations_)context_->Remove(decoration,false);
+    sketchDecorations_.clear();
+}
+void ReferenceView::decorateSketch(const QJsonObject& feature,const QJsonObject& selection,const QJsonObject& diagnostics,const QString& units) {
+    clearSketchDecorations();if(context_.IsNull())return;
+    const auto parameters=feature["parameters"].toObject();const auto plane=parameters["plane"].toString();
+    const bool fullyConstrained=diagnostics["dof"].toInt(-1)==0;
+    if(!sketchDraft_.IsNull()){sketchDraft_->SetColor(fullyConstrained ? Quantity_Color(0.12,0.14,0.16,Quantity_TOC_RGB) : Quantity_Color(0.10,0.34,0.84,Quantity_TOC_RGB));context_->Redisplay(sketchDraft_,false);}
+    QMap<QString,QJsonObject> points;QSet<QString> fixed;
+    for(const auto& entry:parameters["constraints"].toArray()) {
+        const auto constraint=entry.toObject();if(constraint["type"]=="fixed")for(const auto& id:constraint["pointIds"].toArray())fixed.insert(id.toString());
+    }
+    for(const auto& entry:parameters["points"].toArray()) {
+        const auto point=entry.toObject();const auto id=point["id"].toString();points[id]=point;
+        const bool selected=selection["pointIds"].toArray().contains(id);
+        const Quantity_Color color=selected ? Quantity_Color(0.98,0.43,0.08,Quantity_TOC_RGB)
+            : fixed.contains(id) ? Quantity_Color(0.10,0.52,0.24,Quantity_TOC_RGB)
+            : fullyConstrained ? Quantity_Color(0.12,0.14,0.16,Quantity_TOC_RGB) : Quantity_Color(0.10,0.34,0.84,Quantity_TOC_RGB);
+        Handle(AIS_Point) marker=new AIS_Point(new Geom_CartesianPoint(sketchWorld(plane,point["uMm"].toDouble(),point["vMm"].toDouble())));
+        marker->Attributes()->SetPointAspect(new Prs3d_PointAspect(selected ? Aspect_TOM_O_POINT : Aspect_TOM_POINT,color,selected ? 3 : 2));
+        marker->SetZLayer(Graphic3d_ZLayerId_Topmost);context_->Display(marker,0,-1,false);context_->Deactivate(marker);sketchDecorations_.push_back(marker);
+    }
+    for(const auto& entry:parameters["entities"].toArray()) {
+        const auto entity=entry.toObject();if(!selection["entityIds"].toArray().contains(entity["id"]))continue;
+        const auto a=points.value(entity["startPointId"].toString()),b=points.value(entity["endPointId"].toString());
+        const auto edge=BRepBuilderAPI_MakeEdge(sketchWorld(plane,a["uMm"].toDouble(),a["vMm"].toDouble()),sketchWorld(plane,b["uMm"].toDouble(),b["vMm"].toDouble())).Edge();
+        const auto highlight=sketchPresentation(edge);highlight->SetColor(Quantity_Color(0.98,0.43,0.08,Quantity_TOC_RGB));highlight->SetWidth(4);highlight->SetZLayer(Graphic3d_ZLayerId_Topmost);
+        context_->Display(highlight,AIS_WireFrame,-1,false);context_->Deactivate(highlight);sketchDecorations_.push_back(highlight);
+    }
+    QMap<QString,QJsonObject> measurements;
+    for(const auto& entry:diagnostics["dimensionValues"].toArray()){const auto value=entry.toObject();measurements[value["id"].toString()]=value;}
+    const double scale=units=="in" ? 25.4 : 1;
+    for(const auto& entry:parameters["dimensions"].toArray()) {
+        const auto dimension=entry.toObject();const auto ids=dimension["pointIds"].toArray();if(ids.size()!=2)continue;
+        const auto a=points.value(ids[0].toString()),b=points.value(ids[1].toString());const auto measured=measurements.value(dimension["id"].toString());
+        const double value=measured.value("valueMm").toDouble(dimension["valueMm"].toDouble());
+        const QString text=(dimension["driving"].toBool() ? "" : "(")+QString::number(value/scale,'g',6)+" "+units+(dimension["driving"].toBool() ? "" : ")");
+        double u=(a["uMm"].toDouble()+b["uMm"].toDouble())/2,v=(a["vMm"].toDouble()+b["vMm"].toDouble())/2;
+        if(dimension["kind"]=="vertical")u+=3;else v+=3;
+        Handle(AIS_TextLabel) label=new AIS_TextLabel;label->SetText(TCollection_ExtendedString(text.toUtf8().constData(),true));
+        label->SetPosition(sketchWorld(plane,u,v));label->SetHeight(13);label->SetColor(Quantity_Color(0.15,0.24,0.32,Quantity_TOC_RGB));label->SetZLayer(Graphic3d_ZLayerId_Topmost);
+        context_->Display(label,0,-1,false);context_->Deactivate(label);sketchDecorations_.push_back(label);
+    }
+    context_->UpdateCurrentViewer();
 }
 void ReferenceView::setSketchPlane(const QString& plane) { sketchPlane_=plane; }
 void ReferenceView::lookAtSketch(const QString& plane) {
@@ -322,6 +400,7 @@ QJsonObject ReferenceView::diagnostics() const {
     result.insert("draftSketchId",draftSketchId_);
     result.insert("sketchPlane",sketchPlane_);
     result.insert("cursorPreviewVisible",!sketchCursor_.IsNull());
+    result.insert("sketchDecorations",static_cast<int>(sketchDecorations_.size()));
     result.insert("previewVisible",!preview_.IsNull());
     result.insert("previewReplacedBodyId",previewReplacedBody_);
     result.insert("documentRevision",static_cast<qint64>(modelRevision_));
@@ -356,7 +435,11 @@ void ReferenceView::mousePressEvent(QMouseEvent* e) {
     if (e->button() == Qt::MiddleButton || (e->button()==Qt::LeftButton && e->modifiers().testFlag(Qt::AltModifier))) {
         panButton_=e->button();last_=e->position();setCursor(Qt::ClosedHandCursor);e->accept();
     }
-    else if(e->button()==Qt::LeftButton){dispatch(sketchPlane_.isEmpty() ? "selection.pick" : "sketch.placePoint",{{"x",e->position().x()},{"y",e->position().y()}});e->accept();}
+    else if(e->button()==Qt::LeftButton){
+        QJsonObject args{{"x",e->position().x()},{"y",e->position().y()}};
+        if(!sketchPlane_.isEmpty())args["additive"]=e->modifiers().testFlag(Qt::ShiftModifier);
+        dispatch(sketchPlane_.isEmpty() ? "selection.pick" : "sketch.placePoint",args);e->accept();
+    }
     else QWidget::mousePressEvent(e);
 }
 void ReferenceView::mouseMoveEvent(QMouseEvent* e) {

@@ -1,17 +1,18 @@
 # Development and observed evidence
 
-Alloy now creates and edits real OCCT boxes, cylinders and origin-plane line sketches in a hardware-accelerated
-native viewport. Shared UI/API commands provide disposable previews, body picking,
-geometry inspection, undo/redo and atomic native save/open. C++20, Qt 6.11.2
+Alloy now creates and edits real OCCT boxes, cylinders and constrained origin-plane
+line sketches in a hardware-accelerated native viewport. Shared UI/API commands
+provide disposable previews, body and sketch point/line picking, driving/driven
+dimensions, geometry inspection, undo/redo and atomic native save/open. C++20, Qt 6.11.2
 Widgets/Network and OCCT 7.9.3 are required; CMake pins those package versions.
-Constraints, dimensions, dependent modeling, import and export remain ahead.
+Dependent modeling, broader sketch classes, import and export remain ahead.
 
 ## Build and run
 
 On Apple silicon macOS with Homebrew:
 
 ```sh
-brew install cmake ninja qtbase opencascade
+brew install cmake ninja qtbase opencascade eigen boost
 cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH=/opt/homebrew
 cmake --build build
 ./build/alloy.app/Contents/MacOS/alloy --ready-file /tmp/alloy-ready.json
@@ -20,6 +21,17 @@ cmake --build build
 Use File → Open for `examples/gauge-block.alloy`. Click a Timeline feature to
 edit its dimensions, or Box/Cylinder to create another body. See
 [sample instructions](../examples/README.md) and [agent control](agent-control.md).
+`examples/dimensioned-rectangle.alloy` exercises the integrated sketch solver:
+re-enter its Timeline feature and change a driving dimension in the palette.
+
+The solver build uses Eigen 5.0.1 and Boost 1.90.0 headers. CMake accepts matching
+installed versions or fetches the pinned, hash-checked archives by default;
+Homebrew versions may differ. Set `ALLOY_FETCH_SOLVER_HEADERS=OFF` and provide
+`ALLOY_EIGEN_INCLUDE_DIR`/`ALLOY_BOOST_INCLUDE_DIR` for matching offline headers.
+The first configure also downloads and verifies the pinned PlaneGCS extraction
+into `build/_deps/planegcs/`; cached originals are checked on later configures.
+See [decision 004](decisions/004-sketch-solver.md) and the
+[dependency inventory](dependencies/README.md) for licenses and packaging limits.
 
 On other platforms provide the Qt prefix through CMake as needed. Linux produces
 `build/alloy`. For nonstandard OCCT installs set `OpenCASCADE_DIR` to the folder
@@ -42,13 +54,22 @@ and [releases](releases.md) for pins, packaging and remaining qualification.
   QUndoStack, paired evaluated snapshots and atomic native storage.
 - `src/GeometryKernel.{h,cpp}`: thin OCCT primitive evaluation, validity,
   topology, bounds, area/volume and explicit unit/tolerance policy.
-- `src/SketchGeometry.{h,cpp}`: authored points/lines, origin-plane frames and real OCCT edge evaluation.
+- `src/SketchGeometry.{h,cpp}`: authored points/lines/relations/dimensions, strict
+  references, solved draft mutations, origin-plane frames and real OCCT edges.
+- `src/SketchSolver.{h,cpp}`: MIT adapter, transient PlaneGCS storage, normalized
+  coordinates, diagnostics and independent residual checks.
+- `cmake/PlaneGCS.cmake`, `third_party/planegcs/`: pinned shared-library build,
+  source manifest, portability shims and retained third-party notices.
 - `src/ReferenceView.{h,cpp}`: native AIS/V3d/OpenGL view, real document BReps,
   disposable preview, body picking, named cameras and driver diagnostics.
 - `src/ControlServer.{h,cpp}` and `tools/alloyctl.py`: local JSON transport and
   stdlib client; Windows transport adaptation remains open.
 - `tests/primitives_api.py`: real create/edit/pick/undo/save/reopen workflow.
-- `tests/sketch_api.py`, `tests/sketch_document.cpp`: sketch drawing, identity, history and storage contracts.
+- `tests/sketch_api.py`, `tests/sketch_document.cpp`: sketch drawing, identity,
+  solved mutations, failure preservation, history and storage contracts.
+- `tests/sketch_solver.cpp`: supported adapter relations, dimensions and failure diagnostics.
+- `tests/sketch_constraints_api.py`: actual constrained rectangle, dimension
+  editing, selection, solve failure, undo/cancel and save/reopen workflow.
 - `tests/shell_api.py`, `document_api.py`, `session_api.py`: earlier app workflows.
 - `tests/workflows/run.py`: candidate-bound cumulative runner and fixture ledger.
 
@@ -62,8 +83,8 @@ treated as the editable document.
 Use focused core tests and one growing real-entrypoint regression:
 
 ```sh
-ctest --test-dir build -R '^(document_model|geometry_kernel|sketch_document)$' --output-on-failure
-python3 tests/workflows/run.py --case sketch-regression --evidence build/evidence/sketch-regression
+ctest --test-dir build -R '^(document_model|geometry_kernel|sketch_document|sketch_solver)$' --output-on-failure
+python3 tests/workflows/run.py --case constraint-regression --evidence build/evidence/constraint-regression
 ```
 
 A desktop session is required. The runner launches fresh native apps and invokes
@@ -71,7 +92,8 @@ their shared commands; it never substitutes an independent automation model.
 `--build` also builds the known configured app target. Without it, compilation
 is marked unperformed and the tested prebuilt binary is identified separately.
 
-Observed 2026-10-11 on macOS 26.5.1 arm64, Apple Clang 17.0.0, Python 3.14.5,
+Earlier primitive candidate observations, recorded 2026-10-11 on macOS 26.5.1
+arm64, Apple Clang 17.0.0, Python 3.14.5,
 Qt 6.11.2 and OCCT 7.9.3:
 
 | Evidence | Result and boundary |
@@ -104,6 +126,14 @@ line/rectangle slice, three focused core tests, native drawing and retained stat
 Its earlier app cases passed on the same binary; only the new sketch case was
 rerun after correcting test expectations. For a sketch-only change use `--case sketches`
 when existing case evidence on the unchanged application candidate remains applicable.
+The [constraints receipt](validation/sketch-constraints.md) records the later
+integrated adapter/document tests and actual application workflow. It distinguishes
+the cumulative predecessor from focused reruns after material fixes. That slice
+adds automatic rectangle H/V, anchored width/height edits, a driven diagonal,
+normalized OCCT edges, failed-solve draft preservation and authored save/reopen.
+For a constraints-only change, use `--case sketch-constraints` when the earlier
+case evidence remains applicable; the `constraint-regression` aggregate includes
+the earlier sketch, primitive and shell workflows without duplicating aliases.
 
 ## GPU and compatibility boundaries
 
@@ -120,12 +150,19 @@ of the same scene/camera. It excludes OS decorations, menus and separate dialogs
 physical inputs are checked separately using computer-use tools. Never infer
 geometry, physical interaction or visual compatibility from a screenshot alone.
 
-Named orthographic cameras, pan/zoom and body picking exist. Arbitrary orbit,
-face/edge picking, snapping, an interactive view cube and broader Browser controls
+Named orthographic cameras, pan/zoom, body picking and active-sketch point/line
+picking exist. Orange marks selected sketch geometry, green marks fixed points,
+and black/blue reports whole-sketch zero/nonzero DOF. These are not per-entity
+constraint diagnoses. Arbitrary orbit, solid face/edge picking, snapping, an
+interactive view cube and broader Browser controls
 remain pending. Primitive world-XY placement/New Body/default values are bounded
 Alloy proposals. Public references are unmatched in size, scale, OS and design
 state; no exact visual/interaction match is claimed. GATE-010 requires additional
 STEP and cumulative evidence and remains open.
+Canvas dimension placement, inline numeric entry, double-click annotation editing
+and native point dragging are not implemented. Their specific interaction and
+per-entity badge/visibility follow-ups are recorded in
+[sketch controls](research/commands/sketch-controls.md).
 
 The public [Qt Widgets](https://doc.qt.io/qt-6/qtwidgets-index.html),
 [QLocalServer](https://doc.qt.io/qt-6/qlocalserver.html) and

@@ -1,0 +1,227 @@
+{
+  "schema": "alloy-command-reference-evidence/1",
+  "recorded": "2026-10-11",
+  "command_family": "Origin-plane sketch drawing, constraints and dimensions",
+  "scope": "Bounded public tutorial/article review; source inspection of an in-progress Alloy candidate. No reference application operation and no app test by this reviewer.",
+  "provenance": {
+    "external_file": "../Alloy-reference-records/sketch-controls-sources.json",
+    "existing_registry": "docs/backlog/sources.json",
+    "policy": "Original URLs and any reference images remain outside the repository. Stable IDs resolve there. Public article text and authored transcripts were read; linked videos were not played and no timestamps or visual observations are invented."
+  },
+  "sources": [
+    {
+      "id": "community-sketch-001",
+      "publisher": "Product Design Online",
+      "author": "Kevin Kennedy",
+      "neutral_title": "Rectangle commands tutorial",
+      "published": "2018-12-24",
+      "retrieved": "2026-10-11",
+      "evidence": "documented in author transcript",
+      "locator": "Transcript, two-point rectangle discussion",
+      "limits": "Historical UI; not evidence of exact current toolbar positions, pixel styling or preference defaults."
+    },
+    {
+      "id": "community-sketch-002",
+      "publisher": "Product Design Online",
+      "author": "Kevin Kennedy",
+      "neutral_title": "Sketch dimension tutorial",
+      "published": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented in article and author transcript",
+      "locator": "Tutorial Transcript; Driving vs Driven Dimensions",
+      "limits": "Historical UI acknowledged by author; linked video unavailable through fetch. No frame/timestamp claim."
+    },
+    {
+      "id": "community-sketch-003",
+      "publisher": "VDCI",
+      "author": "Reid Johnson",
+      "neutral_title": "Sketch tools and options tutorial",
+      "published": "2024-10-11",
+      "retrieved": "2026-10-11",
+      "evidence": "documented in author transcript",
+      "locator": "Narrative after Key Insights",
+      "limits": "Publication date does not establish software version; explicit instructor choices are not product defaults."
+    },
+    {
+      "id": "official-sketch-rectangle",
+      "publisher": "Autodesk",
+      "neutral_title": "Create rectangles",
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "locator": "Create a 2-Point Rectangle; Tips"
+    },
+    {
+      "id": "dimensions",
+      "publisher": "Autodesk",
+      "neutral_title": "Driving and driven dimensions",
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "locator": "Driving dimensions; Driven dimensions"
+    },
+    {
+      "id": "palette",
+      "publisher": "Autodesk",
+      "neutral_title": "Sketch Palette",
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "locator": "Contextual Options; Options"
+    },
+    {
+      "id": "keys",
+      "publisher": "Autodesk",
+      "neutral_title": "Keyboard shortcuts",
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "locator": "Tool key combinations"
+    }
+  ],
+  "reference_findings": [
+    {
+      "id": "rectangle-corners",
+      "sources": [
+        "official-sketch-rectangle",
+        "community-sketch-001"
+      ],
+      "classification": "documented",
+      "fact": "Two-point rectangle uses opposite corners; width and height may be entered during placement. The tutorial describes Tab switching numeric fields, repeated rectangles, and Escape ending the tool. Official instructions also specify Enter completing the tool."
+    },
+    {
+      "id": "rectangle-auto-orientation",
+      "sources": [
+        "community-sketch-001"
+      ],
+      "classification": "documented",
+      "fact": "Two-point rectangle adds horizontal or vertical constraints to its sides automatically; dragging an undimensioned corner retains orthogonal sides. The tutorial distinguishes fully constrained black geometry from underconstrained blue geometry."
+    },
+    {
+      "id": "dimension-placement",
+      "sources": [
+        "community-sketch-002",
+        "community-sketch-003",
+        "keys"
+      ],
+      "classification": "documented",
+      "fact": "D activates Sketch Dimension. Select a line or two points, position and click the canvas annotation, then enter a value and accept with Enter. The dimension tool remains active for another dimension until Escape."
+    },
+    {
+      "id": "dimension-edit",
+      "sources": [
+        "community-sketch-002"
+      ],
+      "classification": "documented",
+      "fact": "Double-click a placed dimension to edit its numeric value; Enter accepts. Dimension annotations can be repositioned in the canvas."
+    },
+    {
+      "id": "driven-readout",
+      "sources": [
+        "community-sketch-002",
+        "dimensions"
+      ],
+      "classification": "documented",
+      "fact": "Driving dimensions control geometry. Driven dimensions update from geometry and display in parentheses. The tutorial describes an overconstraint warning offering a driven dimension; official docs describe driving as the default unless overconstrained."
+    },
+    {
+      "id": "sketch-context",
+      "sources": [
+        "community-sketch-003",
+        "palette"
+      ],
+      "classification": "documented",
+      "fact": "Choosing a sketch plane exposes the Sketch Palette at the right in the tutorial. It discusses grid, snapping, points, constraints and profile visibility. Instructor-specific toggles are not established defaults."
+    },
+    {
+      "id": "shortcuts",
+      "sources": [
+        "keys"
+      ],
+      "classification": "documented",
+      "fact": "L is Line, R is two-point Rectangle and D is Sketch Dimension."
+    }
+  ],
+  "alloy_source_snapshot": {
+    "src/SketchGeometry.cpp": "08e99d84c6ab0e5de11654a4230aaf2200d3e7065917f0d5e8706d6f41288db0",
+    "src/AlloyWindow.cpp": "60c25e86e21f6230b2c9e2798cff298e9b5000f963b9e10b7b14e3f32451561b",
+    "src/ReferenceView.cpp": "381c5137d6d2d9499826fbfb55560929ee7bd03f897ddf7874056e91d800f92b"
+  },
+  "comparison": [
+    {
+      "reference_findings": [
+        "rectangle-auto-orientation"
+      ],
+      "classification": "verified bounded runtime",
+      "current": "New rectangles atomically add four orientation constraints with fresh stable IDs to their four new shared-endpoint lines. The real-app case inspected those constraints, fixed one corner, drove width/height, checked zero DOF, edited width and preserved authored state through undo and native save/reopen. Existing files retain their authored constraints.",
+      "recommendation": "Retain this verified automatic rectangle behavior; arbitrary line inference remains a separate compatibility task.",
+      "verification": "Create an unanchored rectangle, inspect four orientation constraints, edit width and verify orthogonal sides survive solve, undo and save/reopen.",
+      "evidence": "docs/validation/sketch-constraints.json"
+    },
+    {
+      "reference_findings": [
+        "dimension-placement",
+        "dimension-edit"
+      ],
+      "classification": "source-observed partial workflow",
+      "current": "D selects dimension mode; geometry selection and palette controls add dimensions. The source now renders numeric labels, including parenthesized driven values, but labels have fixed offsets and no canvas placement or double-click editor.",
+      "recommendation": "Keep this first equation slice explicitly partial. Add shared dimension placement/accept/cancel state, canvas annotation picking and inline numeric entry as a bounded familiarity follow-up.",
+      "verification": "Physical D, line selection, placement click, numeric Enter, second dimension, Escape; then double-click/edit the annotation. Inspect identical shared API/session state and one intended commit.",
+      "follow_up": {
+        "key": "SKT-005",
+        "issue": "https://github.com/rje/Alloy/issues/32"
+      }
+    },
+    {
+      "reference_findings": [
+        "driven-readout"
+      ],
+      "classification": "source-observed partial workflow",
+      "current": "Explicit driving checkbox and driven measurements exist; solver errors reject inconsistent input. No documented-equivalent overconstraint-to-driven prompt is implemented.",
+      "recommendation": "Offer explicit convert-to-driven on a rejected redundant driving dimension, preserving usable draft and dimensions; do not silently accept a failed solve.",
+      "verification": "Attempt a dependent dimension, choose driven, inspect unchanged geometry and parenthesized updated measurement.",
+      "follow_up": {
+        "key": "SKT-005",
+        "issue": "https://github.com/rje/Alloy/issues/32"
+      }
+    },
+    {
+      "reference_findings": [
+        "rectangle-corners"
+      ],
+      "classification": "source-observed partial workflow",
+      "current": "Click-click rectangle placement and Escape-to-select are implemented; exact coordinates are in the dock palette. Inline width/height with Tab and Enter tool completion remain absent.",
+      "recommendation": "Implement inline entry and tool completion through the same draft commands after dimension placement is usable.",
+      "verification": "Type width, Tab, height, place; Escape or Enter stops the drawing tool while retaining the sketch draft.",
+      "follow_up": {
+        "key": "SKT-005",
+        "issue": "https://github.com/rje/Alloy/issues/32"
+      }
+    },
+    {
+      "reference_findings": [
+        "rectangle-auto-orientation",
+        "sketch-context"
+      ],
+      "classification": "source-observed partial presentation",
+      "current": "Developing source colors the entire draft based on total DOF, displays points/selection and dimension text. Per-entity constraint badges and independent visibility switches remain incomplete.",
+      "recommendation": "Track badges, selective visibility and per-entity constraint state without claiming exact theme/color parity from older tutorials.",
+      "verification": "Capture comparable constrained/unconstrained and selected states, recording app size/scale/theme and the chosen public reference age.",
+      "follow_up": {
+        "key": "SKT-008",
+        "issue": "https://github.com/rje/Alloy/issues/35"
+      }
+    }
+  ],
+  "unknowns": [
+    "Exact current pixel layout, spacing, font metrics and all theme colors",
+    "Current default grid/snap/visibility preferences across installations",
+    "Timing and detailed current dialog wording for driven conversion",
+    "Full Escape stack behavior with pending inline input or multiple modal contexts",
+    "Undo grouping and save semantics of the reference runtime",
+    "Exact numeric thresholds for inferred constraints or snapping"
+  ],
+  "acceptance_boundary": "These facts guide compatibility tasks; they do not establish current app correctness, exact parity, complete constraints/dimensions, or release acceptance. Functional runtime and native input evidence are separate. Root and the document agent independently review the solver implementation authored by this reviewer.",
+  "runtime_evidence": {
+    "receipt": "docs/validation/sketch-constraints.json",
+    "candidate_sha256": "9d574f5f8059f0d52a9e5b22be689dda74876f7d6882588328322224b520b499",
+    "verified_subset": "Automatic rectangle H/V, selected-line palette dimensions, driving/driven equations, conflict preservation, shared undo and save/reopen. Native width entry/edit/Finish observed separately.",
+    "limits": "Current functional palette flow does not implement canvas placement, inline entry, annotation double-click edits or exact reference visuals. Earlier aggregate and final focused runs use separately recorded binary identities."
+  }
+}

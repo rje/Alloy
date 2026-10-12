@@ -6,6 +6,7 @@
 #include <functional>
 #include <vector>
 #include "CadDocument.h"
+#include "SketchGeometry.h"
 
 class QLabel;
 class QTreeWidget;
@@ -19,6 +20,8 @@ class QTreeWidgetItem;
 class QHBoxLayout;
 class QDockWidget;
 class QShortcut;
+class QCheckBox;
+class QScrollArea;
 
 // UI and automation dispatch against the same authored document.
 class AlloyWindow final : public QMainWindow {
@@ -53,6 +56,11 @@ private:
     QJsonObject appendSketchEntity(const QString& tool, const QJsonObject& inputs);
     void showSketch();
     void sketchResponse(const QJsonObject& response);
+    QJsonObject publishSketchSolve(const SketchGeometry::SolveResult& solved);
+    QJsonObject setSketchSelection(const QJsonObject& selection);
+    QJsonObject sketchDimensionTargets(const QJsonObject& args) const;
+    void refreshSketchControls();
+    void dimensionSelectionChanged();
     bool confirmDiscard();
     std::vector<Command> commands_;
     ReferenceView* view_ = nullptr;
@@ -83,6 +91,16 @@ private:
     QLineEdit* sketchName_ = nullptr;
     QMap<QString,QDoubleSpinBox*> sketchInputs_;
     QJsonObject displayedSketchDraft_;
+    QJsonObject sketchWidgetDraft_, sketchWidgetSelection_;
+    QString sketchWidgetUnits_;
+    QTreeWidget* sketchSelectionTree_ = nullptr;
+    QComboBox* sketchDimensionKind_ = nullptr;
+    QDoubleSpinBox* sketchDimensionValue_ = nullptr;
+    QCheckBox* sketchDimensionDriving_ = nullptr;
+    QComboBox* sketchDimensionList_ = nullptr;
+    QDoubleSpinBox* sketchDimensionEdit_ = nullptr;
+    QLabel* sketchDimensionMeasure_ = nullptr;
+    QScrollArea* sketchScroll_ = nullptr;
     QHBoxLayout* timelineLayout_ = nullptr;
     QLabel* documentTitle_ = nullptr;
     QLabel* browserNote_ = nullptr;

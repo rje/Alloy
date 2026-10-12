@@ -1,0 +1,161 @@
+{
+  "schema": "alloy-validation/1",
+  "recorded_at": "2026-10-12T05:17:24.873935+00:00",
+  "scope": [
+    "SKT-003 supported sketch constraints",
+    "SKT-004 linear driving and driven dimensions"
+  ],
+  "candidate": {
+    "app": "/Users/rje/src/cpp/Alloy/build/alloy.app/Contents/MacOS/alloy",
+    "source_commit": "f5bb63852e032461ebcd0a2104c56c33fc2ec659",
+    "dirty": true,
+    "sha256": "9d574f5f8059f0d52a9e5b22be689dda74876f7d6882588328322224b520b499"
+  },
+  "host": {
+    "system": "macOS-26.5.1-arm64-arm-64bit-Mach-O",
+    "architecture": "arm64",
+    "python": "3.14.5"
+  },
+  "implementation_inputs": {
+    "CMakeLists.txt": "bbca019f526d6d91947cc1b8c05ddb5e26d6914294480138373da1b89b168602",
+    "src/AlloyWindow.cpp": "60c25e86e21f6230b2c9e2798cff298e9b5000f963b9e10b7b14e3f32451561b",
+    "src/AlloyWindow.h": "4027b4d64aaa14ae47735cb3e91965d61605fa3ed2a43f0fb6a36df0e0df8368",
+    "src/CadDocument.cpp": "58eb34d81db56180db96e8fe715735e5401ce300b4250336d3c6794e4d298ade",
+    "src/CadDocument.h": "6ccd116b7aa10e07c0487a7b1dd53a4d64b0ce89897ae0cb32dc509540f35090",
+    "src/ControlServer.cpp": "cb8ad74e6bed508791cc0f12e0d09b7cad46d7ccf20e0f5ceeb53178e83fddea",
+    "src/ControlServer.h": "9c692cacf1f764435284b1cec2e3d50a38ebda8ab7aeccd76704adbf67aee651",
+    "src/GeometryKernel.cpp": "e6246e58812aae2db703c1a5ccfe02f7e4a44af4761173b0f26920635a38766b",
+    "src/GeometryKernel.h": "94bd802b483285e13fa414738b449ae571adba0964424ce3eacb8105a1b6d86a",
+    "src/ReferenceView.cpp": "381c5137d6d2d9499826fbfb55560929ee7bd03f897ddf7874056e91d800f92b",
+    "src/ReferenceView.h": "311101d6999d8a66a780d8a8896ea863eeaff7e94784ab43d3f9c6bbb134472f",
+    "src/SketchGeometry.cpp": "08e99d84c6ab0e5de11654a4230aaf2200d3e7065917f0d5e8706d6f41288db0",
+    "src/SketchGeometry.h": "783283b605d2e19b5a558093ea901efa0dc0cb2c5902640dccf95582af0fb773",
+    "src/SketchSolver.cpp": "696a15fcc167a67bf857572fee562b2c663a35eb5fd548b299091ba3218d051d",
+    "src/SketchSolver.h": "51726c477913701cf008515c7a0e3749e4abaef0a99040cc5c72a28f6a0cb8f5",
+    "src/main.cpp": "16853ebf0f003c63d1455a7e36819dd1cc952c43ab4758dc16deb8cda949a9f8",
+    "cmake/PlaneGCS.cmake": "8c3f4b3b73f4c56360d3f3cc9b3e47b5191af1379fd61d06268d4f71ce5db8d6",
+    "third_party/planegcs/sources.json": "610e84f68c7f93783cb566a88bb8a36cd193b92b5b708a79ab4828b2b06988a3",
+    "third_party/planegcs/README.md": "19bf7786801fe9e2b6059fabc2f62b7c06098ea5819a8afda4980a86e34383e5",
+    "tests/sketch_solver.cpp": "f7e64a3e3e4633ef0e0857b27a94a003da02f8007ce026ef38ca20055da892f0",
+    "tests/sketch_document.cpp": "2b4378a52b099bf0b6e278e7e517d1520cd3626e79fec163a3b8e1532a880452",
+    "tests/sketch_constraints_api.py": "6132ab01b150230f27d69383ac7c42ea42e97feb222e187c733963053c016f80",
+    "third_party/planegcs/shims/FCGlobal.h": "54fa3e3005839976a75128843fa61b56c5aa13ccf6d6c9f741fdf31aa4dbcdf2",
+    "third_party/planegcs/shims/FCConfig.h": "08d1da9563d8226e7ab7102847f3690859d66889e03ee1b2fd2c86466fd2ec1a",
+    "third_party/planegcs/shims/Base/Console.h": "a1d05fb57a58030e286bea182e2bad8ac73477cd29cc12a17ffc8800b69db2ce",
+    "third_party/planegcs/shims/Base/Tools.h": "f396e9294e6a11b7eb61a8938f5bb85f4a5ebb129b2016b1e6ea21ccc41f472a"
+  },
+  "build": {
+    "status": "passed",
+    "command": "cmake --build build --target alloy sketch_document_test -j6",
+    "note": "Native Debug build linked the actual shared PlaneGCS library. UI corrections rebuilt alloy alone; no compile warnings observed."
+  },
+  "core_tests": {
+    "status": "passed",
+    "tests": [
+      "sketch_solver",
+      "sketch_document"
+    ],
+    "artifacts": {
+      "build/evidence/constraints-solver-pass.log": "5bf972d288380f4df318e1518ea0d12056868c374e9fbf3b657c4ac90062da2e",
+      "build/evidence/constraints-document-pass.log": "8cad8e2f087f143b50255ba5d964fb0fc243fc74efbf8ac7e1d7eb1e78ac5de8"
+    },
+    "boundary": "Actual PlaneGCS adapter and authored/evaluated document fixtures; initial solver fixture failure was corrected to avoid a degenerate unconstrained line without relaxing production guards."
+  },
+  "app_evidence": [
+    {
+      "path": "build/evidence/constraints-final/report.json",
+      "sha256": "de410909c3e02cbdf9a04527e02c590c5042b103c4a985ba6a89675bad91ebda",
+      "result": "passed",
+      "candidate_sha256": "c9c0929f6030e30cb3daa46d18f8b8458a06bb7d90d037f33f234d6c20d46d3c",
+      "cases": {
+        "shell_api": "passed",
+        "DOC-002": "passed",
+        "FND-006": "passed",
+        "primitives": "passed",
+        "primitive-regression": "passed",
+        "sketches": "passed",
+        "sketch-regression": "passed",
+        "sketch-constraints": "passed",
+        "constraint-regression": "passed"
+      },
+      "boundary": "Full combined regression before explicit stale-line rejection and scoped palette readability corrections. Existing cases were not repeated after those local UI corrections."
+    },
+    {
+      "path": "build/evidence/constraints-corrected/report.json",
+      "sha256": "a74e17ce5b53d11e9c095e4c67f238570b28d0db7827ba3b8ff23d50aefba285",
+      "result": "passed",
+      "candidate_sha256": "04bbd0da60d98d70c85c8a65854b17d2fae53d19e32d312469ec209e31a39f94",
+      "cases": {
+        "sketch-constraints": "passed"
+      },
+      "boundary": "Focused sketch-constraints workflow adds stale explicit-line-ID refusal after its identity fix."
+    },
+    {
+      "path": "build/evidence/constraints-readable/report.json",
+      "sha256": "28fb52c5b224b4bbfcc8c823cace9f7eaaa35978fc7d7512019b8617917ca290",
+      "result": "passed",
+      "candidate_sha256": "9d574f5f8059f0d52a9e5b22be689dda74876f7d6882588328322224b520b499",
+      "cases": {
+        "sketch-constraints": "passed"
+      },
+      "boundary": "Same focused workflow passed on final readable-palette binary; no source changes since this run."
+    }
+  ],
+  "physical_input": {
+    "status": "passed_subset",
+    "candidate_sha256": "9d574f5f8059f0d52a9e5b22be689dda74876f7d6882588328322224b520b499",
+    "fixture_preparation": "API created a 40x25 rectangle and fixed its origin point. After native width creation, API added height 25 to prepare a fully constrained edit.",
+    "actions": [
+      "Native viewport click selected the bottom line with orange highlight",
+      "D focused its measured value; native typing 50, Return and Add Dimension solved the width",
+      "Native typing 55 in the existing driving value and Apply Dimension Value solved 55x25 with zero DOF",
+      "Native Finish committed one sketch with one undo entry",
+      "Direct window screenshot confirmed dark text on light Sketch Palette after the scoped background fix"
+    ],
+    "artifacts": {
+      "build/evidence/constraints-native-readable/human-ready.json": "adc53d3842398c973e83b9e6014d6af52ea360f3b1110c3ccd9189410dcce649",
+      "build/evidence/constraints-native-readable/native-added.png": "6115d1e62bafb4240e16d2f3a65734f146796cc381c17c0dde1888b10cdf2fdd",
+      "build/evidence/constraints-native-readable/native-dimension-added.json": "844361bcee71999e47915ce4ae3aa82884be69cb03de4e7f4945312a5e805606",
+      "build/evidence/constraints-native-readable/native-dimension-edited.json": "5266999c722411ea1e8efe5357a0d5f5c8c92babcd2c5ab1e69881aff3b9845e",
+      "build/evidence/constraints-native-readable/native-edited.png": "a0b959deb560eecc81a4c7522f0402cf44c7e7f9fe584a64f45cf155477ca22c",
+      "build/evidence/constraints-native-readable/native-finished.json": "c131986a6fefc90f068cfd10c6064d3dfebd4d099a2936bff376cf1e9756bc80",
+      "build/evidence/constraints-native-readable/native-height-prepared.json": "a67f3a2c478310034885f1edc206fb8556b47c7fd14553792308a3e038a49939",
+      "build/evidence/constraints-native-readable/native-rectangle.alloy": "ceed64b859d2c02a75bc39d93bef8b2083bb7214f4d9ea5ff57af0df338f7eef",
+      "build/evidence/constraints-native-readable/prepared.json": "9ae8f73ab7c9498b2a153b7dac9bc4a6160abde9788813ede3a932a7ff43f1fd",
+      "build/evidence/constraints-native-readable/ready.json": "8b78952752cafcee0cc0db65f441582475e1920f7eb9388e25f2cb42c90b51d4"
+    },
+    "limits": [
+      "Palette-based dimension entry is current Alloy behavior; no canvas placement or double-click annotation edit parity is claimed",
+      "Fixed-point and height constraints in this subset were prepared by API, not asserted as physical input"
+    ]
+  },
+  "independent_review": {
+    "status": "passed",
+    "note": "Astra independently reviewed UI/core and final corrected-binary evidence; explicit stale-line fallback was fixed, native palette readability verified, and app/source/shared-library/shim/capture identities matched. No material blocker to bounded SKT-003/004 acceptance. Root and the document agent independently reviewed Astra-authored solver/build integration. No extra app runs by reviewers."
+  },
+  "sample": {
+    "path": "examples/dimensioned-rectangle.alloy",
+    "sha256": "5d7add5c4311bf9cf48e48ecaef3c0fa323e6e1b2b087d9fdf5e7aa1d69fd4aa",
+    "intent": "Anchored 50x25 mm rectangle; four automatic H/V constraints, fixed origin, driving width/height, driven diagonal. Independently authored through Alloy commands."
+  },
+  "public_captures": {
+    "docs/validation/sketch-constraints.png": "ea31ae03c6f0f2d82662242a79be9240b8ce34516bcef65ac90013b173c452a6"
+  },
+  "limits": [
+    "Only macOS arm64 native runtime qualified; portable solver/build/package closure remains open",
+    "Supported authored geometry is points and straight lines, not arcs/splines or complete sketch constraints",
+    "Whole-sketch DOF color is not per-entity freedom diagnosis",
+    "Canvas dimension placement, inline input, double-click edits, native point dragging, inference and badges remain SKT-005/SKT-008 work",
+    "Closed profiles, dependent recompute and extrusion remain next work",
+    "No matched reference screenshot, exact visual/interaction parity, broader product gate or release acceptance claim"
+  ],
+  "solver_library": {
+    "path": "build/liballoy_planegcs.0.1.0.dylib",
+    "resolved_path": "/Users/rje/src/cpp/Alloy/build/liballoy_planegcs.0.1.0.dylib",
+    "sha256": "f35b5abedaae0c2c6a90ea25feaf55d44a530d32f89e3205f52667e3d44945d5",
+    "version": "0.1.0",
+    "upstream_revision": "ec6852e6caadf55045881a6003cc7ad038c8d2a7",
+    "replacement_boundary": "Shared C++ library; compatible compiler/runtime/headers required. Installed package replacement remains CI-002 work.",
+    "patched_source_sha256": "e71240cb6277f9626f507b24958eac1b172112e753b7e6c08461fc48a683ec87"
+  }
+}

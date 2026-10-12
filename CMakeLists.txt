@@ -25,10 +25,15 @@ set(ALLOY_OCCT_VERSION "${OpenCASCADE_MAJOR_VERSION}.${OpenCASCADE_MINOR_VERSION
 message(STATUS "OCCT ${ALLOY_OCCT_VERSION}: native OpenGL visualization")
 message(STATUS "Qt ${Qt6_VERSION}; spikes=${ALLOY_BUILD_SPIKES}; OCCT components=${ALLOY_OCCT_COMPONENTS}")
 
+include(cmake/PlaneGCS.cmake)
+add_library(alloy_sketch_solver STATIC src/SketchSolver.cpp src/SketchSolver.h)
+target_include_directories(alloy_sketch_solver PUBLIC src)
+target_link_libraries(alloy_sketch_solver PUBLIC Qt6::Core PRIVATE alloy_planegcs)
+
 add_library(alloy_kernel STATIC src/GeometryKernel.cpp src/GeometryKernel.h src/SketchGeometry.cpp src/SketchGeometry.h)
 target_include_directories(alloy_kernel PUBLIC src)
 target_include_directories(alloy_kernel SYSTEM PUBLIC ${OpenCASCADE_INCLUDE_DIR})
-target_link_libraries(alloy_kernel PUBLIC Qt6::Core TKernel TKMath TKG3d TKBRep TKPrim TKTopAlgo)
+target_link_libraries(alloy_kernel PUBLIC alloy_sketch_solver Qt6::Core TKernel TKMath TKG3d TKBRep TKPrim TKTopAlgo)
 target_compile_definitions(alloy_kernel PUBLIC ALLOY_OCCT_VERSION="${ALLOY_OCCT_VERSION}")
 
 qt_add_executable(alloy MACOSX_BUNDLE
@@ -59,6 +64,9 @@ if(ALLOY_BUILD_SPIKES)
         TKernel TKMath TKBRep TKPrim TKTopAlgo TKLCAF TKCAF TKBin TKBinL TKCDF)
 endif()
 if(BUILD_TESTING)
+    add_executable(sketch_solver_test tests/sketch_solver.cpp)
+    target_link_libraries(sketch_solver_test PRIVATE alloy_sketch_solver)
+    add_test(NAME sketch_solver COMMAND sketch_solver_test)
     add_executable(geometry_kernel_test tests/geometry_kernel.cpp)
     target_link_libraries(geometry_kernel_test PRIVATE alloy_kernel)
     add_test(NAME geometry_kernel COMMAND geometry_kernel_test)

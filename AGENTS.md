@@ -24,7 +24,9 @@ printing. A useful first slice does not reduce the eventual replacement goal.
 ## Clean-room reference boundary
 
 - Use publicly available documentation, screenshots, instructions, published
-  API descriptions, and public tutorial material as reference evidence.
+  API descriptions, community articles and original public tutorials/videos as
+  reference evidence. Record creator/source, URL, retrieval date and relevant
+  video timestamps; distinguish observed demonstration from inferred behavior.
 - Do not run, operate, inspect, or capture proprietary reference applications. This
   includes licensed installations, trials, remote sessions, and web clients.
 - Do not inspect their binaries, installed resources, private source, leaked
@@ -58,6 +60,18 @@ These rules supersede any earlier suggestion to verify behavior in proprietary s
   comparisons when evidence permits. State limitations of unmatched references.
 - The application remains Alloy-branded.
 - Do not claim a screenshot, mocked control, or empty shell implements CAD.
+- At coherent workflow milestones, perform a bounded independent compatibility
+  review using [docs/compatibility.md](docs/compatibility.md). Use Astra when
+  available, reviewing a candidate it did not implement; another reviewer checks
+  its own code. Reuse real-app fixtures and evidence rather than sweeping every
+  command after each commit.
+- Keep one compact command/workflow record covering public inputs/defaults,
+  selections, keys, previews, commit/cancel, history and edit behavior. Compare
+  visual state when a matched public reference is available, and inspect actual
+  geometry, authored save data and undo behavior separately.
+- Report matched, mismatch or unknown for the specific evidence. Link concrete
+  differences to bounded fix issues; do not turn incomplete references or one
+  matching capture into a broad exact-match claim.
 
 ## Agent control is a foundation
 

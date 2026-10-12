@@ -12,6 +12,23 @@
 #include <cmath>
 #include <stdexcept>
 
+namespace {
+QJsonObject solveSketches(QJsonObject candidate) {
+    auto features = candidate["features"].toArray();
+    for (int i = 0; i < features.size(); ++i) {
+        const auto feature = features[i].toObject();
+        if (feature["type"].toString() != "sketch") continue;
+        const auto solution = SketchGeometry::solveDraft(feature);
+        if (!solution.ok) throw std::invalid_argument(solution.error.toStdString());
+        features[i] = solution.feature;
+    }
+    candidate["features"] = features;
+    const auto error = CadDocument::validate(candidate);
+    if (!error.isEmpty()) throw std::invalid_argument(error.toStdString());
+    return candidate;
+}
+}
+
 class DocumentEdit final : public QUndoCommand {
 public:
     DocumentEdit(CadDocument& document, QJsonObject candidate,
@@ -45,8 +62,10 @@ QString CadDocument::commit(const QJsonObject& candidate, const QString& label) 
     if (candidate["documentId"] != authored_["documentId"]) return "An edit cannot change document identity";
     if (candidate != authored_) {
         try {
-            auto evaluated=std::make_shared<const EvaluatedDocument>(GeometryKernel::evaluateDocument(candidate));
-            history_.push(new DocumentEdit(*this,candidate,std::move(evaluated),label));
+            const auto solved = solveSketches(candidate);
+            if (solved == authored_) return {};
+            auto evaluated=std::make_shared<const EvaluatedDocument>(GeometryKernel::evaluateDocument(solved));
+            history_.push(new DocumentEdit(*this,solved,std::move(evaluated),label));
         } catch(const Standard_Failure& error) { return "Kernel evaluation failed: "+QString::fromUtf8(error.GetMessageString()); }
           catch(const std::exception& error) { return "Evaluation failed: "+QString::fromUtf8(error.what()); }
     }
@@ -68,8 +87,9 @@ QString CadDocument::open(const QString& path) {
     const auto candidate=data.object(); const auto error=validate(candidate);
     if (!error.isEmpty()) return error;
     try {
-        auto evaluated=std::make_shared<const EvaluatedDocument>(GeometryKernel::evaluateDocument(candidate));
-        history_.clear(); apply(candidate,std::move(evaluated)); path_=path; history_.setClean();
+        const auto solved = solveSketches(candidate);
+        auto evaluated=std::make_shared<const EvaluatedDocument>(GeometryKernel::evaluateDocument(solved));
+        history_.clear(); apply(solved,std::move(evaluated)); path_=path; history_.setClean();
     } catch(const Standard_Failure& error) { return "Kernel evaluation failed: "+QString::fromUtf8(error.GetMessageString()); }
       catch(const std::exception& error) { return "Evaluation failed: "+QString::fromUtf8(error.what()); }
     return {};

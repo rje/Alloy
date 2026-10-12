@@ -16,7 +16,7 @@ outside the planned stack.
 | Desktop application | C++20 and Qt 6 Widgets | Mature menus, docks, trees, dialogs, actions, input, and model/view support; a useful fit for a dense CAD desktop interface |
 | CAD geometry | OCCT | Established BRep solids/surfaces, modeling algorithms, CAD exchange, and visualization; robustness still needs workflow validation |
 | CAD viewport | Alloy CAD presentation on an established Metal/Vulkan RHI | Accepted destination in decision 003; QRhiWidget/bgfx shortlist is researched, native spike and migration remain open. Current prototype uses GPU OCCT AIS/V3d/OpenGL |
-| Sketch constraints | PlaneGCS via a replaceable shared-library boundary | Selected in decision 004 with native fixture; authored constraints/dimensions and portable packaging remain pending |
+| Sketch constraints | PlaneGCS via a replaceable shared-library boundary | Integrated for line/point relations and driving/driven dimensions in decision 004; portable packaging and broader constraint classes remain pending |
 | Assembly constraints | Evaluate later, including FreeCAD's OndselSolver fork | A later family; do not put assembly infrastructure in the first sketch slice |
 | 3MF | Evaluate lib3mf | Existing read/write and validation support |
 | Automation | Local structured protocol; Python standard-library client initially | Easy agent access without embedding a scripting runtime before it is needed |
@@ -55,15 +55,32 @@ points and line entities referencing stable endpoint IDs. Rectangles contain fou
 authored lines and four shared points. A sketch has no solid `bodyId` and does not
 contribute to body count or volume. `SketchGeometry` supplies one plane/frame and
 OCCT edge evaluation for both application previews and committed geometry.
-Constraint records, solved coordinates and derived profiles follow SKT-003/004/014;
-the current geometric rectangle does not imply horizontal/vertical constraints.
+New rectangles also author four horizontal/vertical constraints atomically.
+Optional constraint/dimension arrays preserve compatibility with earlier files;
+opening an unconstrained rectangle does not invent constraints for it. Supported
+relations are coincidence, horizontal, vertical, parallel, perpendicular and
+fixed points; linear/horizontal/vertical dimensions may drive geometry or measure
+it. All records and their point/line references use stable IDs. Fixed points retain
+their authored target coordinates; driven records persist no driving value.
+
+`SketchSolver` maps a copied candidate to transient PlaneGCS storage and returns
+normalized point coordinates plus status, whole-sketch DOF, conflict/redundancy
+IDs, residuals and measured dimensions. Horizontal/vertical readouts are positive;
+their equation branch follows the signed endpoint difference in the seed.
+`SketchGeometry` accepts the solve before replacing a draft or evaluating its
+OCCT edges. A rejected solve retains the last usable draft. `CadDocument` validates
+and normalizes every sketch before installing a commit or opened document, so a
+failed candidate cannot replace live authored state, geometry or journal entries.
+Derived closed profiles remain SKT-014.
 
 `CadDocument` keeps authored intent paired with an immutable `EvaluatedDocument`
 containing separate body and sketch caches. The active sketch session owns a
 disposable authored draft. Finish validates/evaluates the complete candidate and
 commits once through the existing journal; Cancel discards the draft. Existing
 sketches re-enter through the same commands. Native save persists authored points,
-entities and IDs; reopen regenerates the edges. See the [sketch receipt](validation/sketches.md).
+entities, constraints, dimensions, solved coordinates and IDs; reopen rebuilds
+solver state and edges. See the [sketch receipt](validation/sketches.md) and
+[constraints receipt](validation/sketch-constraints.md).
 
 OCAF is worth evaluating for document persistence, transactions, and naming.
 Its existence does not solve all persistent-reference problems automatically.
@@ -76,7 +93,7 @@ migration and failure boundaries. OCAF naming remains a separate evaluation.
 The user requires these architectural questions to be settled before modeling
 operations accumulate. FND-003 is the initial decision/prototype task; DOC-002
 depends on it. Decision 001 selects QUndoStack as the sole editing journal;
-DOC-002/003/004 and SKT-001/002 now integrate it for primitives and sketches. Requirements for
+DOC-002/003/004 and SKT-001/002/003/004 now integrate it for primitives and sketches. Requirements for
 dependent feature recomputation below remain future work.
 
 The authored feature history describes how the model is constructed: stable
@@ -173,9 +190,19 @@ evidence, not bundled product assets.
 
 [Decision 004](decisions/004-sketch-solver.md) selects PlaneGCS through a replaceable
 shared-library boundary, with pinned dependencies and passing native fixtures.
-Its LGPL-2.1-or-later source retains its terms; Alloy's original code remains MIT.
-The application's constraint adapter and portable runtime distribution remain
-implementation work, rather than an unresolved solver choice.
+Its LGPL-2.1-or-later source retains its terms; Alloy's original adapter remains MIT.
+The verified extraction builds as `alloy_planegcs`, separate from the application,
+with Eigen 5.0.1 (`EIGEN_MPL2_ONLY`) and Boost 1.90.0 headers. Source hashes, notices
+and standalone shims are recorded in the dependency inventory. Other-platform
+solver builds and complete runtime/source-access/replacement distribution remain
+unqualified.
+
+The active sketch palette and API share point/line selection. Selected geometry
+is orange, fixed points green, and the sketch is black at zero DOF or blue while
+underconstrained. The black/blue indication is whole-sketch state, not a
+per-entity freedom analysis. Dimension labels are derived display data; canvas
+placement, double-click editing, native point dragging and per-entity badges are
+still [specific compatibility follow-ups](research/commands/sketch-controls.md).
 
 ## Public technical references
 
