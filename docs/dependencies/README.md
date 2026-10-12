@@ -17,7 +17,7 @@ so this is not a complete deployed closure or a relocation test.
 | Qt 6.11.2 Core/Gui/Widgets/Network | LGPL-3.0-only | Admit shared modules; check each additional module separately |
 | OCCT 7.9.3, a016080… | LGPL-2.1-only WITH OCCT-exception-1.0 | Admit shared modeling/visualization libraries; attribution and LGPL obligations remain |
 | CI FreeType 2.13.3, 42608f7… | FTL | Admit with bundled-code notices |
-| PlaneGCS, ec6852e… | LGPL-2.1-or-later | Candidate only; verify extracted files, dependencies, patches and embedding in FND-005 |
+| PlaneGCS, ec6852e… | LGPL-2.1-or-later | Selected shared-library path; extraction/fixture reviewed in FND-005. Application/packaging integration remains pending |
 | libslvs, ef96633… | GPL-3.0-or-later | Not admitted under current integration decisions |
 | lib3mf 2.5.0, 64bb454… | BSD-2-Clause | Candidate only; complete bundled-dependency audit before its format task |
 
@@ -74,3 +74,5 @@ Retrieved 2026-10-11. Exact pins are in components.json.
 - [lib3mf license](https://github.com/3MFConsortium/lib3mf/blob/64bb454d1fcb53effa57d3cef752a10d740d41a2/LICENSE),
   [credits](https://github.com/3MFConsortium/lib3mf/blob/64bb454d1fcb53effa57d3cef752a10d740d41a2/SDK/Credits.txt),
   [included zlib version](https://github.com/3MFConsortium/lib3mf/blob/64bb454d1fcb53effa57d3cef752a10d740d41a2/Libraries/zlib/Include/zlib.h).
+
+[Decision 004](../decisions/004-sketch-solver.md) selects PlaneGCS after the bounded native fixture. Eigen 5.0.1 MPL-only and Boost 1.90.0 headers are recorded in components.json. This is solver research/admission evidence; Alloy constraints and deployed runtime closure remain separate work.

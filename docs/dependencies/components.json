@@ -37,8 +37,9 @@
       "name": "PlaneGCS",
       "revision": "ec6852e6caadf55045881a6003cc7ad038c8d2a7",
       "selected_license": "LGPL-2.1-or-later",
-      "admission": "candidate only; extracted file-set/dependency audit before integration",
-      "source": "https://github.com/FreeCAD/FreeCAD/tree/ec6852e6caadf55045881a6003cc7ad038c8d2a7/src/Mod/Sketcher/App/planegcs"
+      "admission": "selected shared-library integration; extracted set and native fixture reviewed in FND-005; application/distribution integration remains SKT-003/CI-002",
+      "source": "https://github.com/FreeCAD/FreeCAD/tree/ec6852e6caadf55045881a6003cc7ad038c8d2a7/src/Mod/Sketcher/App/planegcs",
+      "decision": "docs/decisions/004-sketch-solver.md"
     },
     {
       "name": "libslvs",
@@ -54,6 +55,20 @@
       "selected_license": "BSD-2-Clause",
       "admission": "candidate only; bundled dependencies and stale zlib credits require audit",
       "source": "https://github.com/3MFConsortium/lib3mf/tree/64bb454d1fcb53effa57d3cef752a10d740d41a2"
+    },
+    {
+      "name": "Eigen",
+      "version": "5.0.1",
+      "selected_license": "MPL-2.0 (EIGEN_MPL2_ONLY)",
+      "admission": "solver spike headers only; production source/notice inventory remains SKT-003/CI-002",
+      "evidence": "tools/spikes/sketch-solver/observed.json"
+    },
+    {
+      "name": "Boost",
+      "version": "1.90.0",
+      "selected_license": "BSL-1.0",
+      "admission": "solver spike headers only; production source/notice inventory remains SKT-003/CI-002",
+      "evidence": "tools/spikes/sketch-solver/observed.json"
     }
   ],
   "license_texts": [

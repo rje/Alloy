@@ -15,8 +15,8 @@ outside the planned stack.
 | --- | --- | --- |
 | Desktop application | C++20 and Qt 6 Widgets | Mature menus, docks, trees, dialogs, actions, input, and model/view support; a useful fit for a dense CAD desktop interface |
 | CAD geometry | OCCT | Established BRep solids/surfaces, modeling algorithms, CAD exchange, and visualization; robustness still needs workflow validation |
-| CAD viewport | Alloy CAD presentation on an established Metal/Vulkan RHI | Accepted destination in decision 003; RHI selection/migration remain open. Current prototype uses GPU OCCT AIS/V3d/OpenGL |
-| Sketch constraints | Evaluate FreeCAD PlaneGCS; compare SolveSpace libslvs | Existing solvers reduce reinvention; functionality, embedding boundaries, maintenance, and license must be checked |
+| CAD viewport | Alloy CAD presentation on an established Metal/Vulkan RHI | Accepted destination in decision 003; QRhiWidget/bgfx shortlist is researched, native spike and migration remain open. Current prototype uses GPU OCCT AIS/V3d/OpenGL |
+| Sketch constraints | PlaneGCS via a replaceable shared-library boundary | Selected in decision 004 with native fixture; authored constraints/dimensions and portable packaging remain pending |
 | Assembly constraints | Evaluate later, including FreeCAD's OndselSolver fork | A later family; do not put assembly infrastructure in the first sketch slice |
 | 3MF | Evaluate lib3mf | Existing read/write and validation support |
 | Automation | Local structured protocol; Python standard-library client initially | Easy agent access without embedding a scripting runtime before it is needed |
@@ -49,6 +49,22 @@ Begin with the feature dependencies needed by the first workflow. Introduce
 incremental recomputation when real edits justify it. Keep save/open and undo
 consistent with the same document state rather than serializing UI widgets.
 
+Origin-plane sketch intent is now implemented within `alloy-document/1`. A sketch
+is a typed feature with a stable UUID, root owner, XY/XZ/YZ plane, canonical-mm
+points and line entities referencing stable endpoint IDs. Rectangles contain four
+authored lines and four shared points. A sketch has no solid `bodyId` and does not
+contribute to body count or volume. `SketchGeometry` supplies one plane/frame and
+OCCT edge evaluation for both application previews and committed geometry.
+Constraint records, solved coordinates and derived profiles follow SKT-003/004/014;
+the current geometric rectangle does not imply horizontal/vertical constraints.
+
+`CadDocument` keeps authored intent paired with an immutable `EvaluatedDocument`
+containing separate body and sketch caches. The active sketch session owns a
+disposable authored draft. Finish validates/evaluates the complete candidate and
+commits once through the existing journal; Cancel discards the draft. Existing
+sketches re-enter through the same commands. Native save persists authored points,
+entities and IDs; reopen regenerates the edges. See the [sketch receipt](validation/sketches.md).
+
 OCAF is worth evaluating for document persistence, transactions, and naming.
 Its existence does not solve all persistent-reference problems automatically.
 The permitted round-trip prototype selected readable authored JSON and one Qt
@@ -60,7 +76,7 @@ migration and failure boundaries. OCAF naming remains a separate evaluation.
 The user requires these architectural questions to be settled before modeling
 operations accumulate. FND-003 is the initial decision/prototype task; DOC-002
 depends on it. Decision 001 selects QUndoStack as the sole editing journal;
-DOC-002/003/004 now integrate it for the primitive document. Requirements for
+DOC-002/003/004 and SKT-001/002 now integrate it for primitives and sketches. Requirements for
 dependent feature recomputation below remain future work.
 
 The authored feature history describes how the model is constructed: stable
@@ -86,14 +102,14 @@ Saved-state tracking belongs to authored state: undoing to the saved checkpoint
 can clear the dirty flag. Whether session undo history survives reopening is a
 separate decision from persistence of the editable feature history.
 
-The implemented primitive transaction holds paired authored JSON and immutable
-evaluated-body snapshots. It evaluates and validates a candidate before pushing
+The implemented document transaction holds paired authored JSON and immutable
+evaluated body/sketch snapshots. It evaluates and validates a candidate before pushing
 one QUndoStack command. A rejected candidate leaves live state untouched;
 undo/redo installs the corresponding authored/geometry pair and advances the
 document revision. This keeps the first synchronous workflow small. Native
 QSaveFile writes authored JSON atomically; open validates/evaluates before
 replacing state and starts a clean, empty session journal. AIS presentations
-are regenerated from the evaluated bodies and are never persisted as intent.
+are regenerated from evaluated bodies and sketches and are never persisted as intent.
 
 FND-003 compared a thin authored schema with OCAF using the same small
 primitive/edit fixture, investigated OCAF's transaction facilities and Qt's
@@ -155,6 +171,12 @@ third-party code and independently authored application code
 must retain appropriate notices. Reference screenshots belong in research
 evidence, not bundled product assets.
 
+[Decision 004](decisions/004-sketch-solver.md) selects PlaneGCS through a replaceable
+shared-library boundary, with pinned dependencies and passing native fixtures.
+Its LGPL-2.1-or-later source retains its terms; Alloy's original code remains MIT.
+The application's constraint adapter and portable runtime distribution remain
+implementation work, rather than an unresolved solver choice.
+
 ## Public technical references
 
 Reference review date: 2026-10-11. These support library evaluation; adoption is
@@ -172,4 +194,9 @@ not proof of functional coverage.
   and [FreeCAD OndselSolver](https://github.com/FreeCAD/OndselSolver).
 - [lib3mf](https://github.com/3MFConsortium/lib3mf).
 
-[Decision 003](decisions/003-renderer-direction.md) records the accepted native graphics destination and its implementation/evidence boundaries. Qt QDockWidget is used for modeless command panels; authored command sessions remain their authority.
+[Decision 003](decisions/003-renderer-direction.md) records the accepted native
+graphics destination and its implementation/evidence boundaries. The [RHI shortlist](research/rhi-candidates.md)
+recommends a bounded QRhiWidget spike before selecting a production backend;
+no native Metal/Vulkan migration is implemented. Qt QDockWidget is used for
+modeless command panels and the Sketch Palette; authored command sessions remain
+their authority.

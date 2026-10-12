@@ -11,10 +11,11 @@ before researching, designing, or implementing anything in this project.
 
 The first product focus is shape creation: sketches, solids, surfaces, editable
 history, common-format import, and export for 3D printing. The current application
-creates and edits real OCCT boxes and cylinders, with GPU rendering, undo/redo,
-and native save/reopen. Sketches, broader modeling, import, and printing export
-remain ahead. Agent control and
-self-testing are part of the application from its first runnable version.
+creates and edits real OCCT boxes and cylinders, and supports origin-plane
+sketches with connected lines and rectangles. GPU rendering, shared undo/redo
+and native save/reopen cover both. Constraints, dimensions, extrusion, broader
+modeling, import and printing export remain ahead. Agent control and self-testing
+are part of the application from its first runnable version.
 
 The public repository is [rje/Alloy](https://github.com/rje/Alloy), with the
 [issue backlog](https://github.com/rje/Alloy/issues) and
@@ -51,7 +52,9 @@ C++20 is the selected application language. Qt 6 and Open CASCADE Technology
 Python is the initial automation client. Authored JSON and one Qt undo authority
 are selected in [decision 001](docs/decisions/001-authored-document.md).
 [Dependency admission](docs/dependencies/README.md) covers the shared Qt/OCCT
-foundation; solver selection and complete runtime distribution remain open.
+foundation; [PlaneGCS solver selection](docs/decisions/004-sketch-solver.md) has a
+passing native fixture. Application constraint integration and complete runtime
+distribution remain open.
 Rust is outside the planned stack.
 
 Alloy's original source and documentation use the [MIT license](LICENSE).
@@ -65,13 +68,21 @@ style and real-app test. The [primitive workflow receipt](docs/validation/primit
 records the first editable solids and their real-app regression. macOS, Windows, and Linux are required
 targets; only the macOS runtime is verified today.
 The [viewport input receipt](docs/validation/viewport-input.md) records the later
-camera/redraw and native-coordinate fixes. The later [Mac editing receipt](docs/validation/mac-editing.md) records fractional Retina picking, blue selection and the Qt docked editor.
+camera/redraw and native-coordinate fixes. The later [Mac editing receipt](docs/validation/mac-editing.md)
+records fractional Retina picking, blue selection and the Qt docked editor.
+The [sketch receipt](docs/validation/sketches.md) records origin-plane drawing,
+one-transaction Finish/Cancel, mixed-document undo and native reopen, alongside
+the previous workflows on the same candidate.
 
 For a first hands-on test, build using [development.md](docs/development.md),
 open [examples/gauge-block.alloy](examples/gauge-block.alloy) through File → Open,
 and click a Timeline feature to edit its dimensions. Box and Cylinder open
 a dockable side panel with field-driven disposable Preview and Cancel. Try undo/redo and Save As;
 the [sample instructions](examples/README.md) describe the supported controls.
+Open [examples/rectangle-sketch.alloy](examples/rectangle-sketch.alloy) to inspect
+and re-enter an independently authored 40 × 25 mm sketch. Create Sketch opens an
+origin-plane chooser; Line and Rectangle accept canvas clicks or explicit numeric
+coordinates. Finish commits the sketch once; constraints and extrusion come next.
 
 To list tasks whose dependencies are complete:
 

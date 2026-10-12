@@ -95,8 +95,36 @@ Separate native UI checks covered toolbar creation, dimension typing, keyboard
 undo/redo, native Save and Timeline edit/cancel. An editable sample lives in
 `examples/gauge-block.alloy`. Body picking and geometry inspection use the actual
 OCCT scene and evaluated document. Face/edge selection, persistent-reference
-integration, arbitrary orbit, sketch solver, import and export remain pending.
+integration, arbitrary orbit, application sketch constraints, import and export remain pending.
 Visual/interaction parity and the broader product gates are not accepted.
+
+SKT-001/002 now implement origin-plane sketches, connected lines and two-point
+rectangles through the shared application commands. XY/XZ/YZ planes have explicit
+frames; stable sketch, point and line IDs live in authored JSON. A rectangle is
+four authored edges with shared endpoints. Sketches have separate evaluated OCCT
+edge caches and never claim solid body IDs or volume. Create/edit sessions retain
+a disposable draft; Finish creates one QUndoStack entry, while Cancel and palette
+close preserve the prior document. The UI has an origin-plane chooser, contextual
+tools and a docked Sketch Palette. Canvas clicks and numeric coordinates use the
+same commands; L/R select drawing tools and canvas Escape stops a pending tool
+without cancelling the sketch. There are no application constraints, driving
+dimensions or extrusion yet.
+
+The [sketch receipt](validation/sketches.md) records the integrated build and
+three focused CTest checks, the previous shell/document/session/primitive cases,
+and the new sketch workflow on the same candidate. Native checks separately
+covered choosing XY, two-click rectangle drawing, L/Escape, Finish, Timeline
+re-entry, adding a line and palette-close cancellation. The independently authored
+`examples/rectangle-sketch.alloy` was opened in the real application. Three-plane
+world transforms, draft preservation, mixed primitive/sketch undo and native
+save/reopen are covered by actual core and application checks.
+
+FND-005 selects PlaneGCS at a pinned public revision through a replaceable shared
+library, with Eigen/Boost and a passing native-library fixture. See
+[decision 004](decisions/004-sketch-solver.md) and its source-linked research.
+Constraint/dimension records, application solving and diagnostics still await
+SKT-003/004; the fixture is not an integrated application solver or a qualified
+portable package.
 
 A reported viewport mouse regression is fixed and independently reviewed.
 Camera setters now defer redraw until a completed view is ready; Retina picking
@@ -152,8 +180,9 @@ baseline [`GATE-000` #12](https://github.com/rje/Alloy/issues/12) is closed;
 FND-010 #10 is also closed with independently reviewed runner evidence;
 FND-003, FND-002, DOC-002, FND-006, FND-004, FND-009 and DOC-001 are closed after
 independently reviewed evidence. DOC-003/004/005/007/008 are closed with reviewed
-primitive evidence: UX-001 is closed with independently reviewed input/editor evidence: 15 tasks
-closed, 128 open at this handoff. Live counts
+primitive evidence. UX-001 is closed with independently reviewed input/editor evidence;
+FND-005 and SKT-001/002 are closed with their bounded solver/sketch evidence:
+18 tasks closed, 125 open at this handoff. Live counts
 are obtained with tools/backlog.py rather than this earlier publication snapshot. Later epics need
 bounded child issues before implementation; this count does not exhaust parity.
 Read [the backlog](backlog/README.md), [publication receipt](backlog/publication.json),
@@ -195,16 +224,21 @@ Its bounded OCCT fixture now passed generator role rebinding, fillet history,
 split/deletion/merge cases; [decision 002](decisions/002-geometric-references.md)
 defines conservative unresolved behavior. DOC-012 still implements the real resolver.
 
-The rebuilt hands-on slice is open with the user's preserved three-body model.
+The rebuilt sketch-capable application is open with the user's preserved three-body model.
 Use `python3 tools/alloyctl.py instances` to obtain the current identity. Native
 reopen resets the session journal while preserving authored feature history.
-The final input/editor/selection regression is
-`build/evidence/mac-editing-final/report.json`; reproduce using the documented
-primitive-regression case only when a material change warrants it.
+The launch record is `build/evidence/human-ready-sketch.json`; instance discovery
+remains authoritative if that process is subsequently closed. Existing workflow
+cases passed in `build/evidence/sketch-first-final/report.json`; that combined
+report remains failed because its new sketch test had incorrect expectations.
+The corrected new sketch workflow passed in `build/evidence/sketch-final/report.json`
+on the same binary. Separate native interaction evidence is in
+`build/evidence/sketch-native`. Repeat checks only when a material change warrants
+them; do not rerun unchanged workflows to manufacture further assurance.
 
-**Next execution priority:** FND-005 solver admission and SKT-001 origin-plane
-sketches, then SKT-002 lines/rectangles, SKT-003 constraints, SKT-004 linear
-dimensions, SKT-014 simple closed profiles, HIS-001 ordered sketch/profile
+**Next execution priority:** SKT-003 integrates the selected PlaneGCS adapter and
+real constraints/diagnostics; SKT-004 adds linear dimensions. Then implement
+SKT-014 simple closed profiles, HIS-001 ordered sketch/profile
 recompute and SOL-001 extrusion. SKT-015 is the next human-test checkpoint:
 draw a 40 by 25 mm rectangle, extrude 5, edit width to 50, verify volume 6250 mm3,
 undo/redo, cancel and save/reopen. HIS-001 is accepted on an actual sketch/profile
@@ -216,21 +250,26 @@ HIS-004 retain named expressions and broader recompute. Full bracket and product
 release gates remain unchanged in meaning. STEP, face/edge selection, full camera
 navigation and qualified platform packages remain separate required work.
 RHI-001/RHI-002 and GATE-045 record the accepted native graphics migration.
+The [RHI comparison](research/rhi-candidates.md) researches QRhiWidget and bgfx and
+recommends a bounded pinned-Qt spike first. No native RHI spike or migration has
+run yet, so the live application remains hardware-accelerated OCCT OpenGL.
 
-The user authorized simultaneous feature agents. At this handoff the assigned
-tracks are sketch_document (authored sketch/history), sketch_ui (UI and GPU
-viewport interactions) and Astra (solver selection/spike). Agents coordinate the
-shared command/state contract and own separate files; integration builds and
-cumulative evidence remain one candidate. Read their actual worktree changes and
-messages before resuming; do not assume unfinished sketches are available.
+The user authorized simultaneous feature agents. The completed tracks separated
+authored sketch/history, UI/GPU interactions and Astra's solver research/spike;
+they agreed the command/state contract before editing disjoint files. Root then
+built and validated one integrated candidate. Reuse that ownership pattern for
+independent next increments, with one integration authority and bounded verifier
+review; do not launch conflicting app/build runs from several agents.
 
 FND-002 admission supports shared Qt/OCCT and FTL FreeType. The pinned component
 record, retained notices and local absolute-path link audit are in docs/dependencies.
 It explicitly leaves package closure, sources and replacement instructions to
-CI-002/CI-003. Solver candidates remain unadmitted.
+CI-002/CI-003. Solver selection and its passing native fixture are recorded in
+decision 004; production extraction, platform exports and distributable runtime
+closure remain part of the application integration work.
 
 The exact dated reference release/platform/theme/navigation baseline,
-minimum OS versions/architectures and sketch solver
+minimum OS versions/architectures and portable solver runtime qualification
 remain unresolved. They are recorded gaps, not forgotten decisions. Current
 public-interface/build research now covers the major feature families with 119 dated
 primary-source entries, contradictions, and open questions. It does not yet specify

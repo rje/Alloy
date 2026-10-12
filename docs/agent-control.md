@@ -2,7 +2,7 @@
 
 Alloy's running native application provides a small local control API from its
 first shell build. It is an Alloy protocol. Authored document inspection, units,
-real box/cylinder creation and editing, geometry inspection, undo/redo and native
+real box/cylinder and origin-plane sketch creation and editing, geometry inspection, undo/redo and native
 save/open use the same authoritative path as the UI.
 
 ## Launch and discover
@@ -97,9 +97,9 @@ fail without applying the command. Error codes include `invalid_request`,
 | `commands.search`, `commands.close` | Show/dismiss the native search dialog |
 | `app.identity` | Stable protocol/process/window/instance identity and capabilities |
 | `document.settings` | Open the native shared display-units edit dialog |
-| `command.begin` | `command`: `document.units`, `commands.search`, `solid.box` or `solid.cylinder`; `inputs`: object |
+| `command.begin` | `command`: `document.units`, `commands.search`, `solid.box`, `solid.cylinder` or `sketch.create`; `inputs`: object |
 | `command.update` | `session`: UUID; `inputs`: partial object; validates without committing |
-| `command.preview` | `session`: UUID; primitives evaluate disposable geometry and display it without committing |
+| `command.preview` | `session`: UUID; primitives/sketches evaluate disposable geometry and display it without committing |
 | `command.panelDock` | `docked`: boolean; float or right-redock the active primitive panel |
 | `command.commit`, `command.cancel` | `session`: UUID; explicit completion or refusal |
 | `capture.dialog` | Absolute `.png` path; actual active QWidget dialog |
@@ -112,9 +112,19 @@ fail without applying the command. Error codes include `invalid_request`,
 | `solid.box` | Required `width`, `depth`, `height`; optional `x`, `y`, `z`, `units`, `name`, `featureId` |
 | `solid.cylinder` | Required `radius`, `height`; same optional placement/unit/name/edit fields |
 | `primitive.box`, `primitive.cylinder` | Open their actual shared dimension dialogs |
+| `sketch.create` | Open the docked origin-plane chooser |
+| `sketch.begin` | `plane`: `XY`, `XZ` or `YZ`; optional `name`, `units`; begin an authored draft |
+| `sketch.edit` | `sketchId`: UUID; re-enter a retained sketch |
+| `sketch.line`, `sketch.rectangle` | `x1`, `y1`, `x2`, `y2`; optional `units`, `session`; append stable point/line entities to the active draft |
+| `sketch.tool` | `tool`: `select`, `line` or `rectangle`; choose the active drawing tool |
+| `sketch.placePoint` | `x`, `y`: viewport-local logical pixels; same ray/plane and two-click path as native input |
+| `sketch.pointerMove` | `x`, `y`: logical pixels; disposable pending-line/rectangle cursor preview |
+| `sketch.lookAt` | View normal to the active sketch plane |
+| `sketch.finish`, `sketch.cancel` | Commit or discard the active sketch session |
+| `view.projectSketchPoint` | `plane`, `uMm`, `vMm`; actual world-to-viewport projection |
 | `feature.edit` | `featureId`: UUID; `parameters`: partial canonical-mm fields such as `widthMm` |
 | `feature.editDialog`, `feature.delete` | `featureId`: UUID; actual edit dialog or one undoable deletion |
-| `geometry.inspect` | Evaluated bodies: stable IDs, validity, topology, bounds, area and meaningful volume |
+| `geometry.inspect` | Evaluated bodies and sketches: stable IDs, validity, geometry summaries and plane frames |
 | `history.undo`, `history.redo` | Sole document journal; restore authored values and evaluated shapes together |
 | `selection.set` | `bodyId`: visible UUID, or empty string to clear |
 | `selection.pick` | `x`, `y`: viewport-local logical pixels; actual OCCT body picking |
@@ -125,7 +135,7 @@ fail without applying the command. Error codes include `invalid_request`,
 | `view.orientation` | `name`: `isometric`, `top`, `front`, or `right` |
 | `view.zoom` | `factor`: 0.1–10; resulting scale clamps to 0.1–10 |
 | `view.pan` | `x`, `y`: relative logical-pixel deltas, each within ±10000 |
-| `view.home` | Fit visible bodies in the isometric view; reset zoom/pan |
+| `view.home` | Fit visible bodies and sketches in the isometric view; reset zoom/pan |
 | `window.resize` | Logical width 1040–4096 and height 640–4096 |
 | `capture.screenshot` | Absolute `.png` path; returns dimensions, device scale, source |
 | `app.quit` | Optional `discard`: boolean, default false; dirty refusal unless acknowledged, then exit after reply |
@@ -138,6 +148,18 @@ persistent document revision or a tracker for every OS resize/interaction.
 `document.revision` separately advances when authored state is replaced (including
 undo/redo). `document.authored` is authoritative; root ownership and UUIDs are
 independent of Browser text. Dirty reflects the sole document journal checkpoint.
+
+In sketch editing, `activeSession.command` is `sketch.edit` and `draftSketch`
+contains the retained candidate feature (with no `bodyId`). Inputs identify its
+plane and display units; coordinates are stored in millimeters. `tool` and pending
+`firstPoint`/`pointerPoint` describe actual drawing state. `command.preview`
+returns the feature as `authoredDraft`, the full root as `documentDraft`, and an
+evaluated `sketchGeometry` summary without editing the document. `ui.tab` becomes
+`sketch`; the palette is a real docked widget. Finish commits one transaction,
+Cancel discards it, and stale revision checks reject outdated candidates. Plane
+choice is fixed once editing begins. Evaluated sketch inspection exposes frames,
+world-space endpoints and bounds; `solverIntegrated` remains false. GPU state
+reports `displayedSketches`, `draftSketchVisible` and `cursorPreviewVisible`.
 
 `viewport.renderer` is `OCCT OpenGL`; `viewport.gpu` contains live OCCT driver
 information and qualification. `vendor`, `renderer`, and `version` come from the

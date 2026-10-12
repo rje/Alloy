@@ -1,0 +1,65 @@
+{
+  "schema": "alloy-document/1",
+  "documentId": "67171a99-5820-4625-9d5a-16ce15f46db7",
+  "displayUnits": "mm",
+  "features": [
+    {
+      "id": "29eb7118-58e9-4a83-96ed-c2af4097fde1",
+      "ownerId": "67171a99-5820-4625-9d5a-16ce15f46db7",
+      "type": "sketch",
+      "name": "Rectangle sketch",
+      "visible": true,
+      "parameters": {
+        "plane": "XY",
+        "points": [
+          {
+            "id": "e9b46bb4-85dc-4ad0-9716-a43db8af73a3",
+            "uMm": 0,
+            "vMm": 0
+          },
+          {
+            "id": "f859000d-b5f4-46d2-98eb-78e589bed483",
+            "uMm": 40,
+            "vMm": 0
+          },
+          {
+            "id": "c17b262c-1905-4948-b86f-4edf59dba72d",
+            "uMm": 40,
+            "vMm": 25
+          },
+          {
+            "id": "84fc4048-abae-46a5-a00f-ee1db4df986a",
+            "uMm": 0,
+            "vMm": 25
+          }
+        ],
+        "entities": [
+          {
+            "id": "5d002529-006c-4f95-93e0-409ccc0a0136",
+            "type": "line",
+            "startPointId": "e9b46bb4-85dc-4ad0-9716-a43db8af73a3",
+            "endPointId": "f859000d-b5f4-46d2-98eb-78e589bed483"
+          },
+          {
+            "id": "42983a1e-b4d1-40b1-936c-dfd89d4fb667",
+            "type": "line",
+            "startPointId": "f859000d-b5f4-46d2-98eb-78e589bed483",
+            "endPointId": "c17b262c-1905-4948-b86f-4edf59dba72d"
+          },
+          {
+            "id": "c8371dbf-c0ca-4d83-a1c4-77cc00cd24d5",
+            "type": "line",
+            "startPointId": "c17b262c-1905-4948-b86f-4edf59dba72d",
+            "endPointId": "84fc4048-abae-46a5-a00f-ee1db4df986a"
+          },
+          {
+            "id": "7c9223c3-511b-4122-8fb2-c8deff79168e",
+            "type": "line",
+            "startPointId": "84fc4048-abae-46a5-a00f-ee1db4df986a",
+            "endPointId": "e9b46bb4-85dc-4ad0-9716-a43db8af73a3"
+          }
+        ]
+      }
+    }
+  ]
+}

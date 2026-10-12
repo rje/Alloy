@@ -1,4 +1,5 @@
 #include "ReferenceView.h"
+#include "SketchGeometry.h"
 #include <QMouseEvent>
 #include <QWheelEvent>
 #include <QTimer>
@@ -21,15 +22,35 @@
 #endif
 #include <algorithm>
 #include <cmath>
+#include <stdexcept>
 #include <BRepBndLib.hxx>
 #include <Bnd_Box.hxx>
 #include <Prs3d_Drawer.hxx>
 #include <Prs3d_LineAspect.hxx>
+#include <BRepBuilderAPI_MakePolygon.hxx>
+#include <TopoDS_Wire.hxx>
+#include <gp_Ax3.hxx>
+#include <gp_Vec.hxx>
+
+namespace {
+gp_Pnt sketchWorld(const QString& plane,double u,double v) {
+    const auto frame=SketchGeometry::frame(plane);
+    const auto ua=frame["uAxis"].toArray(),va=frame["vAxis"].toArray();
+    return gp_Pnt(u*ua[0].toDouble()+v*va[0].toDouble(),u*ua[1].toDouble()+v*va[1].toDouble(),u*ua[2].toDouble()+v*va[2].toDouble());
+}
+Handle(AIS_Shape) sketchPresentation(const TopoDS_Shape& shape) {
+    Handle(AIS_Shape) presentation=new AIS_Shape(shape);
+    presentation->SetColor(Quantity_Color(0.10,0.34,0.84,Quantity_TOC_RGB));
+    presentation->SetWidth(2);
+    return presentation;
+}
+}
 
 ReferenceView::ReferenceView(QWidget* parent) : QWidget(parent) {
     setMinimumSize(400, 300);
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     setFocusPolicy(Qt::StrongFocus);
+    setMouseTracking(true);
     setAttribute(Qt::WA_NativeWindow);
     setAttribute(Qt::WA_PaintOnScreen);
     setAttribute(Qt::WA_NoSystemBackground);
@@ -114,6 +135,9 @@ void ReferenceView::sync() {
     camera->SetScale(sceneScale_ / (zoom * std::min(camera->Aspect(), 1.0)));
     const auto scale=windowScale();
     view_->Pan(qRound(pan.x()*scale.x()),-qRound(pan.y()*scale.y()));
+    const auto frame=SketchGeometry::frame(sketchPlane_.isEmpty() ? "XY" : sketchPlane_);
+    const auto normal=frame["normal"].toArray(),u=frame["uAxis"].toArray();
+    viewer_->SetPrivilegedPlane(gp_Ax3(gp_Pnt(),gp_Dir(normal[0].toDouble(),normal[1].toDouble(),normal[2].toDouble()),gp_Dir(u[0].toDouble(),u[1].toDouble(),u[2].toDouble())));
     if (grid) viewer_->ActivateGrid(Aspect_GT_Rectangular, Aspect_GDM_Lines);
     else viewer_->DeactivateGrid();
     if (origin) context_->Display(axes_, false); else context_->Erase(axes_, false);
@@ -134,9 +158,83 @@ void ReferenceView::setBodies(const std::vector<EvaluatedBody>& bodies,quint64 r
     }
     modelRevision_=revision;context_->UpdateCurrentViewer();
 }
-void ReferenceView::fit(const std::vector<EvaluatedBody>& bodies) {
+void ReferenceView::setSketches(const std::vector<EvaluatedSketch>& sketches,quint64 revision) {
+    if(context_.IsNull() || sketchRevision_==revision)return;
+    for(const auto& model:sketchModels_)context_->Remove(model,false);
+    sketchModels_.clear();
+    for(const auto& sketch:sketches) {
+        if(!sketch.visible || sketch.shape.IsNull())continue;
+        const auto model=sketchPresentation(sketch.shape);
+        context_->Display(model,AIS_WireFrame,-1,false);context_->Deactivate(model);
+        if(sketch.featureId==draftSketchId_)context_->Erase(model,false);
+        sketchModels_[sketch.featureId]=model;
+    }
+    sketchRevision_=revision;context_->UpdateCurrentViewer();
+}
+void ReferenceView::showSketchDraft(const EvaluatedSketch& sketch) {
+    if(context_.IsNull())return;
+    if(!sketchDraft_.IsNull())context_->Remove(sketchDraft_,false);
+    if(draftSketchId_!=sketch.featureId && sketchModels_.contains(draftSketchId_))context_->Display(sketchModels_.value(draftSketchId_),false);
+    draftSketchId_=sketch.featureId;sketchDraft_.Nullify();
+    if(sketchModels_.contains(draftSketchId_))context_->Erase(sketchModels_.value(draftSketchId_),false);
+    if(!sketch.shape.IsNull()) {
+        sketchDraft_=sketchPresentation(sketch.shape);
+        context_->Display(sketchDraft_,AIS_WireFrame,-1,false);context_->Deactivate(sketchDraft_);
+    }
+    context_->UpdateCurrentViewer();
+}
+void ReferenceView::clearSketchDraft() {
+    if(!context_.IsNull()) {
+        if(!sketchDraft_.IsNull())context_->Remove(sketchDraft_,false);
+        if(sketchModels_.contains(draftSketchId_))context_->Display(sketchModels_.value(draftSketchId_),false);
+        context_->UpdateCurrentViewer();
+    }
+    sketchDraft_.Nullify();draftSketchId_.clear();clearSketchCursor();
+}
+void ReferenceView::setSketchPlane(const QString& plane) { sketchPlane_=plane; }
+void ReferenceView::lookAtSketch(const QString& plane) {
+    sketchPlane_=plane;orientation=plane=="XY" ? "top" : plane=="XZ" ? "front" : "right";
+    sceneCenter_=gp_Pnt();sceneScale_=100;pan={};zoom=1;sync();
+}
+QJsonObject ReferenceView::sketchPoint(double x,double y,const QString& plane) const {
+    if(view_.IsNull() || x<0 || y<0 || x>=width() || y>=height())throw std::invalid_argument("Point is outside the initialized viewport");
+    const auto scale=windowScale();double px,py,pz,dx,dy,dz;
+    view_->ConvertWithProj(qRound(x*scale.x()),qRound(y*scale.y()),px,py,pz,dx,dy,dz);
+    const auto frame=SketchGeometry::frame(plane);const auto normal=frame["normal"].toArray();
+    const gp_Vec n(normal[0].toDouble(),normal[1].toDouble(),normal[2].toDouble()),ray(dx,dy,dz);
+    const double denominator=n.Dot(ray);
+    if(std::abs(denominator)<1e-9)throw std::invalid_argument("Look At the sketch plane before drawing");
+    const auto world=gp_Vec(px,py,pz)-ray*(n.Dot(gp_Vec(px,py,pz))/denominator);
+    const auto u=frame["uAxis"].toArray(),v=frame["vAxis"].toArray();
+    return {{"uMm",world.Dot(gp_Vec(u[0].toDouble(),u[1].toDouble(),u[2].toDouble()))},
+        {"vMm",world.Dot(gp_Vec(v[0].toDouble(),v[1].toDouble(),v[2].toDouble()))}};
+}
+QJsonObject ReferenceView::projectSketchPoint(double uMm,double vMm,const QString& plane) const {
+    if(view_.IsNull())return {};
+    const auto world=sketchWorld(plane,uMm,vMm);int x,y;view_->Convert(world.X(),world.Y(),world.Z(),x,y);
+    const auto scale=windowScale();return {{"x",x/scale.x()},{"y",y/scale.y()},{"viewportLocal",true},{"units","logicalPixels"}};
+}
+void ReferenceView::showSketchCursor(const QString& plane,const QPointF& first,const QPointF& second,bool rectangle) {
+    clearSketchCursor();if(context_.IsNull() || first==second)return;
+    BRepBuilderAPI_MakePolygon polygon;polygon.Add(sketchWorld(plane,first.x(),first.y()));
+    if(rectangle) {
+        if(first.x()==second.x() || first.y()==second.y())return;
+        polygon.Add(sketchWorld(plane,second.x(),first.y()));polygon.Add(sketchWorld(plane,second.x(),second.y()));
+        polygon.Add(sketchWorld(plane,first.x(),second.y()));polygon.Close();
+    } else polygon.Add(sketchWorld(plane,second.x(),second.y()));
+    if(!polygon.IsDone())return;
+    sketchCursor_=sketchPresentation(polygon.Wire());
+    sketchCursor_->SetColor(Quantity_Color(0.30,0.58,0.87,Quantity_TOC_RGB));
+    context_->Display(sketchCursor_,AIS_WireFrame,-1,false);context_->Deactivate(sketchCursor_);context_->UpdateCurrentViewer();
+}
+void ReferenceView::clearSketchCursor() {
+    if(!context_.IsNull() && !sketchCursor_.IsNull())context_->Remove(sketchCursor_,false);
+    sketchCursor_.Nullify();
+}
+void ReferenceView::fit(const std::vector<EvaluatedBody>& bodies,const std::vector<EvaluatedSketch>& sketches) {
     Bnd_Box bounds;
     for(const auto& body:bodies)if(body.visible)BRepBndLib::AddOptimal(body.shape,bounds,false,false);
+    for(const auto& sketch:sketches)if(sketch.visible && !sketch.shape.IsNull())BRepBndLib::AddOptimal(sketch.shape,bounds,false,false);
     if(bounds.IsVoid()){sceneScale_=400;sceneCenter_=gp_Pnt();}
     else {
         double x0,y0,z0,x1,y1,z1;bounds.Get(x0,y0,z0,x1,y1,z1);
@@ -219,6 +317,11 @@ QJsonObject ReferenceView::diagnostics() const {
     result.insert("qualification", software ? "software-rejected" : knownGpu && !version.isEmpty() ? "hardware-driver-identified" : "unverified");
     result.insert("details", raw);
     result.insert("displayedBodies",models_.size());
+    result.insert("displayedSketches",sketchModels_.size());
+    result.insert("draftSketchVisible",!sketchDraft_.IsNull());
+    result.insert("draftSketchId",draftSketchId_);
+    result.insert("sketchPlane",sketchPlane_);
+    result.insert("cursorPreviewVisible",!sketchCursor_.IsNull());
     result.insert("previewVisible",!preview_.IsNull());
     result.insert("previewReplacedBodyId",previewReplacedBody_);
     result.insert("documentRevision",static_cast<qint64>(modelRevision_));
@@ -253,14 +356,15 @@ void ReferenceView::mousePressEvent(QMouseEvent* e) {
     if (e->button() == Qt::MiddleButton || (e->button()==Qt::LeftButton && e->modifiers().testFlag(Qt::AltModifier))) {
         panButton_=e->button();last_=e->position();setCursor(Qt::ClosedHandCursor);e->accept();
     }
-    else if(e->button()==Qt::LeftButton){dispatch("selection.pick",{{"x",e->position().x()},{"y",e->position().y()}});e->accept();}
+    else if(e->button()==Qt::LeftButton){dispatch(sketchPlane_.isEmpty() ? "selection.pick" : "sketch.placePoint",{{"x",e->position().x()},{"y",e->position().y()}});e->accept();}
     else QWidget::mousePressEvent(e);
 }
 void ReferenceView::mouseMoveEvent(QMouseEvent* e) {
     if (panButton_!=Qt::NoButton && e->buttons().testFlag(panButton_)) {
         const auto delta = e->position() - last_; last_ = e->position();
         dispatch("view.pan", {{"x",delta.x()},{"y",delta.y()}}); e->accept();
-    } else QWidget::mouseMoveEvent(e);
+    } else if(!sketchPlane_.isEmpty()) {dispatch("sketch.pointerMove",{{"x",e->position().x()},{"y",e->position().y()}});e->accept();}
+    else QWidget::mouseMoveEvent(e);
 }
 void ReferenceView::mouseReleaseEvent(QMouseEvent* e) {
     if(e->button()==panButton_) {panButton_=Qt::NoButton;unsetCursor();e->accept();}

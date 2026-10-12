@@ -1,4 +1,5 @@
 #include "CadDocument.h"
+#include "SketchGeometry.h"
 #include <QJsonArray>
 #include <QSet>
 #include <QUuid>
@@ -14,15 +15,15 @@
 class DocumentEdit final : public QUndoCommand {
 public:
     DocumentEdit(CadDocument& document, QJsonObject candidate,
-        std::shared_ptr<const std::vector<EvaluatedBody>> evaluated, const QString& label)
+        std::shared_ptr<const EvaluatedDocument> evaluated, const QString& label)
         : document_(document), before_(document.authored()), after_(std::move(candidate)),
-          beforeBodies_(document.bodies_), afterBodies_(std::move(evaluated)) { setText(label); }
-    void undo() override { document_.apply(before_, beforeBodies_, id_); }
-    void redo() override { document_.apply(after_, afterBodies_, id_); }
+          beforeEvaluation_(document.evaluation_), afterEvaluation_(std::move(evaluated)) { setText(label); }
+    void undo() override { document_.apply(before_, beforeEvaluation_, id_); }
+    void redo() override { document_.apply(after_, afterEvaluation_, id_); }
 private:
     CadDocument& document_;
     QJsonObject before_, after_;
-    std::shared_ptr<const std::vector<EvaluatedBody>> beforeBodies_, afterBodies_;
+    std::shared_ptr<const EvaluatedDocument> beforeEvaluation_, afterEvaluation_;
     QString id_ = CadDocument::newId();
 };
 
@@ -32,11 +33,11 @@ void CadDocument::reset() {
     history_.clear();
     path_.clear();
     apply({{"schema", "alloy-document/1"}, {"documentId", newId()},
-        {"displayUnits", "mm"}, {"features", QJsonArray{}}},std::make_shared<const std::vector<EvaluatedBody>>());
+        {"displayUnits", "mm"}, {"features", QJsonArray{}}},std::make_shared<const EvaluatedDocument>());
     history_.setClean();
 }
-void CadDocument::apply(const QJsonObject& value, std::shared_ptr<const std::vector<EvaluatedBody>> bodies, const QString& transaction) {
-    authored_ = value; bodies_=std::move(bodies); lastTransaction_ = transaction; ++revision_;
+void CadDocument::apply(const QJsonObject& value, std::shared_ptr<const EvaluatedDocument> evaluation, const QString& transaction) {
+    authored_ = value; evaluation_=std::move(evaluation); lastTransaction_ = transaction; ++revision_;
 }
 QString CadDocument::commit(const QJsonObject& candidate, const QString& label) {
     const auto error = validate(candidate);
@@ -44,7 +45,7 @@ QString CadDocument::commit(const QJsonObject& candidate, const QString& label) 
     if (candidate["documentId"] != authored_["documentId"]) return "An edit cannot change document identity";
     if (candidate != authored_) {
         try {
-            auto evaluated=std::make_shared<const std::vector<EvaluatedBody>>(GeometryKernel::evaluate(candidate));
+            auto evaluated=std::make_shared<const EvaluatedDocument>(GeometryKernel::evaluateDocument(candidate));
             history_.push(new DocumentEdit(*this,candidate,std::move(evaluated),label));
         } catch(const Standard_Failure& error) { return "Kernel evaluation failed: "+QString::fromUtf8(error.GetMessageString()); }
           catch(const std::exception& error) { return "Evaluation failed: "+QString::fromUtf8(error.what()); }
@@ -67,7 +68,7 @@ QString CadDocument::open(const QString& path) {
     const auto candidate=data.object(); const auto error=validate(candidate);
     if (!error.isEmpty()) return error;
     try {
-        auto evaluated=std::make_shared<const std::vector<EvaluatedBody>>(GeometryKernel::evaluate(candidate));
+        auto evaluated=std::make_shared<const EvaluatedDocument>(GeometryKernel::evaluateDocument(candidate));
         history_.clear(); apply(candidate,std::move(evaluated)); path_=path; history_.setClean();
     } catch(const Standard_Failure& error) { return "Kernel evaluation failed: "+QString::fromUtf8(error.GetMessageString()); }
       catch(const std::exception& error) { return "Evaluation failed: "+QString::fromUtf8(error.what()); }
@@ -92,18 +93,25 @@ QString CadDocument::validate(const QJsonObject& candidate) {
     for (const auto& item : candidate["features"].toArray()) {
         if (!item.isObject()) return "Feature must be an object";
         const auto feature = item.toObject();
-        for (const auto& field : {"id", "bodyId"}) {
-            const auto id = feature[field].toString();
-            if (!validId(id) || ids.contains(id)) return "Invalid or duplicate authored UUID";
-            ids.insert(id);
-        }
+        const auto id = feature["id"].toString();
+        if (!validId(id) || ids.contains(id)) return "Invalid or duplicate authored UUID";
+        ids.insert(id);
         if (feature["ownerId"].toString() != root) return "Feature must belong to the document root";
         if (!feature["name"].isString() || feature["name"].toString().trimmed().isEmpty()
             || !feature["visible"].isBool()) return "Feature name and visibility are required";
         const auto type = feature["type"].toString();
-        if (type != "box" && type != "cylinder") return "Unsupported feature type";
         if (!feature["parameters"].isObject()) return "Feature parameters must be an object";
         const auto p = feature["parameters"].toObject();
+        if (type == "sketch") {
+            if (feature.contains("bodyId")) return "Sketches do not own solid body IDs";
+            const auto error = SketchGeometry::validateParameters(p, ids);
+            if (!error.isEmpty()) return error;
+            continue;
+        }
+        if (type != "box" && type != "cylinder") return "Unsupported feature type";
+        const auto bodyId = feature["bodyId"].toString();
+        if (!validId(bodyId) || ids.contains(bodyId)) return "Invalid or duplicate authored UUID";
+        ids.insert(bodyId);
         const QStringList dimensions = type == "box" ? QStringList{"widthMm", "depthMm", "heightMm"}
                                                      : QStringList{"radiusMm", "heightMm"};
         for (const auto& field : dimensions) {
@@ -121,16 +129,23 @@ QString CadDocument::validate(const QJsonObject& candidate) {
 }
 QJsonObject CadDocument::state() const {
     QJsonArray evaluated;
-    for(const auto& body:*bodies_) {
+    for(const auto& body:evaluation_->bodies) {
         auto summary=body.summary; summary["featureId"]=body.featureId; summary["bodyId"]=body.bodyId;
         summary["name"]=body.name; summary["visible"]=body.visible; evaluated.append(summary);
+    }
+    QJsonArray evaluatedSketches;
+    for (const auto& sketch : evaluation_->sketches) {
+        auto summary = sketch.summary;
+        summary["featureId"] = sketch.featureId; summary["sketchId"] = sketch.featureId;
+        summary["name"] = sketch.name; summary["visible"] = sketch.visible;
+        evaluatedSketches.append(summary);
     }
     return {{"loaded", true}, {"id", authored_["documentId"]}, {"label", path_.isEmpty() ? "Untitled" : QFileInfo(path_).completeBaseName()}, {"path",path_},
         {"units", authored_["displayUnits"]}, {"canonicalLengthUnit", "mm"},
         {"revision", static_cast<qint64>(revision_)}, {"dirty", !history_.isClean()},
         {"lastTransactionId", lastTransaction_},
-        {"features", authored_["features"].toArray().size()}, {"bodies",static_cast<int>(bodies_->size())}, {"sketches", 0},
-        {"evaluation",QJsonObject{{"status","current"},{"documentRevision",static_cast<qint64>(revision_)},{"bodies",evaluated}}},
+        {"features", authored_["features"].toArray().size()}, {"bodies",static_cast<int>(evaluation_->bodies.size())}, {"sketches", static_cast<int>(evaluation_->sketches.size())},
+        {"evaluation",QJsonObject{{"status","current"},{"documentRevision",static_cast<qint64>(revision_)},{"bodies",evaluated},{"sketches",evaluatedSketches}}},
         {"editableHistory", true}, {"authored", authored_},
         {"undo", QJsonObject{{"canUndo", history_.canUndo()}, {"canRedo", history_.canRedo()},
             {"count", history_.count()}, {"index", history_.index()},

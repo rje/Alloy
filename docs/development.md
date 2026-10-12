@@ -1,10 +1,10 @@
 # Development and observed evidence
 
-Alloy now creates and edits real OCCT boxes and cylinders in a hardware-accelerated
+Alloy now creates and edits real OCCT boxes, cylinders and origin-plane line sketches in a hardware-accelerated
 native viewport. Shared UI/API commands provide disposable previews, body picking,
 geometry inspection, undo/redo and atomic native save/open. C++20, Qt 6.11.2
 Widgets/Network and OCCT 7.9.3 are required; CMake pins those package versions.
-Sketches, dependent modeling, import and export remain ahead.
+Constraints, dimensions, dependent modeling, import and export remain ahead.
 
 ## Build and run
 
@@ -42,11 +42,13 @@ and [releases](releases.md) for pins, packaging and remaining qualification.
   QUndoStack, paired evaluated snapshots and atomic native storage.
 - `src/GeometryKernel.{h,cpp}`: thin OCCT primitive evaluation, validity,
   topology, bounds, area/volume and explicit unit/tolerance policy.
+- `src/SketchGeometry.{h,cpp}`: authored points/lines, origin-plane frames and real OCCT edge evaluation.
 - `src/ReferenceView.{h,cpp}`: native AIS/V3d/OpenGL view, real document BReps,
   disposable preview, body picking, named cameras and driver diagnostics.
 - `src/ControlServer.{h,cpp}` and `tools/alloyctl.py`: local JSON transport and
   stdlib client; Windows transport adaptation remains open.
 - `tests/primitives_api.py`: real create/edit/pick/undo/save/reopen workflow.
+- `tests/sketch_api.py`, `tests/sketch_document.cpp`: sketch drawing, identity, history and storage contracts.
 - `tests/shell_api.py`, `document_api.py`, `session_api.py`: earlier app workflows.
 - `tests/workflows/run.py`: candidate-bound cumulative runner and fixture ledger.
 
@@ -60,8 +62,8 @@ treated as the editable document.
 Use focused core tests and one growing real-entrypoint regression:
 
 ```sh
-ctest --test-dir build -R '^(document_model|geometry_kernel|client_selection)$' --output-on-failure
-python3 tests/workflows/run.py --case primitive-regression --evidence build/evidence/primitive-regression
+ctest --test-dir build -R '^(document_model|geometry_kernel|sketch_document)$' --output-on-failure
+python3 tests/workflows/run.py --case sketch-regression --evidence build/evidence/sketch-regression
 ```
 
 A desktop session is required. The runner launches fresh native apps and invokes
@@ -96,6 +98,12 @@ report is `build/evidence/viewport-fix-final/report.json`.
 Stop after reasonable assurance. Add useful unit tests for core contracts and
 pragmatic integration coverage for each new workflow; do not duplicate the same
 application sequence under every issue alias.
+
+The later [sketch receipt](validation/sketches.md) records the integrated origin-plane
+line/rectangle slice, three focused core tests, native drawing and retained state.
+Its earlier app cases passed on the same binary; only the new sketch case was
+rerun after correcting test expectations. For a sketch-only change use `--case sketches`
+when existing case evidence on the unchanged application candidate remains applicable.
 
 ## GPU and compatibility boundaries
 

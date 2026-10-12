@@ -182,6 +182,78 @@
         "primitives.editable",
         "geometry.trustworthy_summaries"
       ]
+    },
+    "sketches": {
+      "script": "tests/sketch_api.py",
+      "fixture": "tests/workflows/fixtures/sketches.json",
+      "result": "sketch-api.json",
+      "covers": [
+        "SKT-001",
+        "SKT-002"
+      ],
+      "capabilities": [
+        "sketch.origin_planes",
+        "sketch.authored_entities",
+        "sketch.transaction_lifecycle",
+        "sketch.native_storage",
+        "sketch.gpu_wires",
+        "sketch.drawing_commands"
+      ],
+      "inputs": [
+        "tests/app_harness.py",
+        "src/SketchGeometry.h",
+        "src/SketchGeometry.cpp"
+      ]
+    },
+    "SKT-001": {
+      "requires": [
+        "sketches"
+      ],
+      "check": "case_alias",
+      "covers": [
+        "SKT-001"
+      ],
+      "capabilities": [
+        "sketch.origin_planes",
+        "sketch.authored_entities",
+        "sketch.transaction_lifecycle",
+        "sketch.native_storage",
+        "sketch.gpu_wires",
+        "sketch.drawing_commands"
+      ]
+    },
+    "SKT-002": {
+      "requires": [
+        "sketches"
+      ],
+      "check": "case_alias",
+      "covers": [
+        "SKT-002"
+      ],
+      "capabilities": [
+        "sketch.origin_planes",
+        "sketch.authored_entities",
+        "sketch.transaction_lifecycle",
+        "sketch.native_storage",
+        "sketch.gpu_wires",
+        "sketch.drawing_commands"
+      ]
+    },
+    "sketch-regression": {
+      "requires": [
+        "primitive-regression",
+        "sketches"
+      ],
+      "check": "case_alias",
+      "covers": [],
+      "capabilities": [
+        "sketch.origin_planes",
+        "sketch.authored_entities",
+        "sketch.transaction_lifecycle",
+        "sketch.native_storage",
+        "sketch.gpu_wires",
+        "sketch.drawing_commands"
+      ]
     }
   },
   "gates": {

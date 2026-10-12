@@ -1,4 +1,5 @@
 #include "GeometryKernel.h"
+#include "SketchGeometry.h"
 #include <BRepBndLib.hxx>
 #include <BRepCheck_Analyzer.hxx>
 #include <BRepGProp.hxx>
@@ -63,11 +64,21 @@ std::vector<EvaluatedBody> GeometryKernel::evaluate(const QJsonObject& authored)
     std::vector<EvaluatedBody> bodies;
     for(const auto& entry:authored.value("features").toArray()) {
         const auto feature=entry.toObject();
+        if (feature.value("type").toString() == "sketch") continue;
         auto shape=primitive(feature.value("type").toString(),feature.value("parameters").toObject());
         bodies.push_back({feature.value("id").toString(),feature.value("bodyId").toString(),
             feature.value("name").toString(),feature.value("visible").toBool(),shape,summarize(shape)});
     }
     return bodies;
+}
+EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored) {
+    EvaluatedDocument evaluated;
+    evaluated.bodies = evaluate(authored);
+    for (const auto& entry : authored["features"].toArray()) {
+        const auto feature = entry.toObject();
+        if (feature["type"].toString() == "sketch") evaluated.sketches.push_back(SketchGeometry::evaluateFeature(feature));
+    }
+    return evaluated;
 }
 QJsonObject GeometryKernel::policy() {
     return {{"kernel","OCCT"},{"version",ALLOY_OCCT_VERSION},{"canonicalLengthUnit","mm"},

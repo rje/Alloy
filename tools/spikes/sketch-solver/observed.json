@@ -1,0 +1,182 @@
+{
+  "schema": "alloy-solver-observation/1",
+  "recordedDate": "2026-10-11",
+  "scope": "standalone library fixture; not application constraints or package qualification",
+  "build": {
+    "schema": "alloy-solver-spike-build/1",
+    "revision": "ec6852e6caadf55045881a6003cc7ad038c8d2a7",
+    "host": "macOS-26.5.1-arm64-arm-64bit-Mach-O",
+    "compiler": "Apple clang version 17.0.0 (clang-1700.6.4.2)\nTarget: arm64-apple-darwin25.5.0\nThread model: posix\nInstalledDir: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin\n",
+    "commands": [
+      [
+        "c++",
+        "-std=c++20",
+        "-DEIGEN_MPL2_ONLY",
+        "-O1",
+        "-shared",
+        "-fPIC",
+        "-I/Users/rje/src/cpp/Alloy/build/evidence/FND-005/source/src/Mod/Sketcher/App/planegcs",
+        "-I/Users/rje/src/cpp/Alloy/build/evidence/FND-005/source/src",
+        "-I/Users/rje/src/cpp/Alloy/build/evidence/FND-005/shims",
+        "-I/opt/homebrew/include/eigen3",
+        "-I/opt/homebrew/include",
+        "/Users/rje/src/cpp/Alloy/build/evidence/FND-005/source/src/Mod/Sketcher/App/planegcs/Constraints.cpp",
+        "/Users/rje/src/cpp/Alloy/build/evidence/FND-005/source/src/Mod/Sketcher/App/planegcs/GCS.cpp",
+        "/Users/rje/src/cpp/Alloy/build/evidence/FND-005/source/src/Mod/Sketcher/App/planegcs/Geo.cpp",
+        "/Users/rje/src/cpp/Alloy/build/evidence/FND-005/source/src/Mod/Sketcher/App/planegcs/SubSystem.cpp",
+        "/Users/rje/src/cpp/Alloy/build/evidence/FND-005/source/src/Mod/Sketcher/App/planegcs/qp_eq.cpp",
+        "-o",
+        "/Users/rje/src/cpp/Alloy/build/evidence/FND-005/liballoy_planegcs_spike.dylib"
+      ],
+      [
+        "c++",
+        "-std=c++20",
+        "-DEIGEN_MPL2_ONLY",
+        "-O1",
+        "-I/Users/rje/src/cpp/Alloy/build/evidence/FND-005/source/src/Mod/Sketcher/App/planegcs",
+        "-I/Users/rje/src/cpp/Alloy/build/evidence/FND-005/source/src",
+        "-I/Users/rje/src/cpp/Alloy/build/evidence/FND-005/shims",
+        "-I/opt/homebrew/include/eigen3",
+        "-I/opt/homebrew/include",
+        "/Users/rje/src/cpp/Alloy/tools/spikes/sketch-solver/rectangle.cpp",
+        "/Users/rje/src/cpp/Alloy/build/evidence/FND-005/liballoy_planegcs_spike.dylib",
+        "-o",
+        "/Users/rje/src/cpp/Alloy/build/evidence/FND-005/rectangle"
+      ]
+    ],
+    "upstream": {
+      "src/Mod/Sketcher/App/planegcs/GCS.cpp": {
+        "url": "https://raw.githubusercontent.com/FreeCAD/FreeCAD/ec6852e6caadf55045881a6003cc7ad038c8d2a7/src/Mod/Sketcher/App/planegcs/GCS.cpp",
+        "sha256": "d58d40b4914cda3253bfa6ee745db055b87e6eb06cbeb93628708c875714a196"
+      },
+      "src/Mod/Sketcher/App/planegcs/GCS.h": {
+        "url": "https://raw.githubusercontent.com/FreeCAD/FreeCAD/ec6852e6caadf55045881a6003cc7ad038c8d2a7/src/Mod/Sketcher/App/planegcs/GCS.h",
+        "sha256": "94f7da92e7d89d926a3e4a32a8e0dc9b2cd08b552e1065433469623424be88b8"
+      },
+      "src/Mod/Sketcher/App/planegcs/Geo.cpp": {
+        "url": "https://raw.githubusercontent.com/FreeCAD/FreeCAD/ec6852e6caadf55045881a6003cc7ad038c8d2a7/src/Mod/Sketcher/App/planegcs/Geo.cpp",
+        "sha256": "169aad09829b81288d3a81d81cd00fdb5ce9723a4ee34450fb0ac8667b8e9e2b"
+      },
+      "src/Mod/Sketcher/App/planegcs/Geo.h": {
+        "url": "https://raw.githubusercontent.com/FreeCAD/FreeCAD/ec6852e6caadf55045881a6003cc7ad038c8d2a7/src/Mod/Sketcher/App/planegcs/Geo.h",
+        "sha256": "20c2de0ed0b5b6e2aa6e7f7f302ec11ce798bcb653b051d44cf5de7b60590af5"
+      },
+      "src/Mod/Sketcher/App/planegcs/Constraints.cpp": {
+        "url": "https://raw.githubusercontent.com/FreeCAD/FreeCAD/ec6852e6caadf55045881a6003cc7ad038c8d2a7/src/Mod/Sketcher/App/planegcs/Constraints.cpp",
+        "sha256": "023f2f7753aff95ded246f41521527a07a1b82ba8815da327ad692e864156d7f"
+      },
+      "src/Mod/Sketcher/App/planegcs/Constraints.h": {
+        "url": "https://raw.githubusercontent.com/FreeCAD/FreeCAD/ec6852e6caadf55045881a6003cc7ad038c8d2a7/src/Mod/Sketcher/App/planegcs/Constraints.h",
+        "sha256": "e088865959562632c27ce5c29d67933f4f543dc716679e696d8473eb60a198d6"
+      },
+      "src/Mod/Sketcher/App/planegcs/SubSystem.cpp": {
+        "url": "https://raw.githubusercontent.com/FreeCAD/FreeCAD/ec6852e6caadf55045881a6003cc7ad038c8d2a7/src/Mod/Sketcher/App/planegcs/SubSystem.cpp",
+        "sha256": "28c94e84ff50187ec9b6060ac72e05fb6671a51fae2be40f479d2b4dd151e393"
+      },
+      "src/Mod/Sketcher/App/planegcs/SubSystem.h": {
+        "url": "https://raw.githubusercontent.com/FreeCAD/FreeCAD/ec6852e6caadf55045881a6003cc7ad038c8d2a7/src/Mod/Sketcher/App/planegcs/SubSystem.h",
+        "sha256": "99e1380a0a08d9fd7ee0fd69e26d3d9dcb46fdf033f4c397c9a05e8df8c53dc4"
+      },
+      "src/Mod/Sketcher/App/planegcs/Util.h": {
+        "url": "https://raw.githubusercontent.com/FreeCAD/FreeCAD/ec6852e6caadf55045881a6003cc7ad038c8d2a7/src/Mod/Sketcher/App/planegcs/Util.h",
+        "sha256": "33aee54b020e565faf96629a6d4a57a75a3699acb2336aa96d3663cd70c7e53e"
+      },
+      "src/Mod/Sketcher/App/planegcs/qp_eq.cpp": {
+        "url": "https://raw.githubusercontent.com/FreeCAD/FreeCAD/ec6852e6caadf55045881a6003cc7ad038c8d2a7/src/Mod/Sketcher/App/planegcs/qp_eq.cpp",
+        "sha256": "dc71350766c1a4edf7024d593cb5d55b0736a4f43d319d25a9c961e8342ca11c"
+      },
+      "src/Mod/Sketcher/App/planegcs/qp_eq.h": {
+        "url": "https://raw.githubusercontent.com/FreeCAD/FreeCAD/ec6852e6caadf55045881a6003cc7ad038c8d2a7/src/Mod/Sketcher/App/planegcs/qp_eq.h",
+        "sha256": "34e373d9b3b0f5938c849ea7489a8405617692a5062198e8ae0f0c6ac5e4d468"
+      },
+      "src/Mod/Sketcher/SketcherGlobal.h": {
+        "url": "https://raw.githubusercontent.com/FreeCAD/FreeCAD/ec6852e6caadf55045881a6003cc7ad038c8d2a7/src/Mod/Sketcher/SketcherGlobal.h",
+        "sha256": "cafc58089fffb390a4e2a9a53be2ffd720702748de1f9d8432ae62988e1142b2"
+      },
+      "src/boost_graph_adjacency_list.hpp": {
+        "url": "https://raw.githubusercontent.com/FreeCAD/FreeCAD/ec6852e6caadf55045881a6003cc7ad038c8d2a7/src/boost_graph_adjacency_list.hpp",
+        "sha256": "2afeae50e787fcac5b8fb074076eeda585724a1d70ca0169e42737689ab86e20"
+      }
+    },
+    "patch": {
+      "file": "GCS.cpp",
+      "change": "C++23 std::unreachable to C++20 std::abort; added cstdlib",
+      "compiledSha256": "fdc71a5dc5fe3e82bda5e38ed0492f654cabde259b1de17cd50e462672575ecb"
+    },
+    "shims": {
+      "FCGlobal.h": "ff85044a21062559eac3b09650ed0837927ae0c34edc1b512f82c6ea24e21537",
+      "FCConfig.h": "b3adf106d95b8934f690943f2921308b90be5b766c4c8ba250c792de56400201",
+      "Base/Console.h": "7204603c707a3edd5ba0ba2ac2482f6731a20795144b3bb2070c88204c00302c",
+      "Base/Tools.h": "be1295d16fd8fc400ec5eda1b1fc32e6aa412fc9c6815937319528d216de6041"
+    },
+    "headerDependencies": {
+      "Eigen": {
+        "version": "5.0.1",
+        "versionHeaderSha256": "3bb04dc80ede841309fc975fd3ff522a58bbdf2d591e06e49d2456676a89e759",
+        "mode": "EIGEN_MPL2_ONLY"
+      },
+      "Boost": {
+        "version": "1.90.0",
+        "versionHeaderSha256": "1a3a432bf24fbd21b3c9c90b3f5dce9456f2334f1d2b79b1e3318c780d8b1935"
+      }
+    },
+    "fixtureSha256": "ae260a8551a2fb65d648fdda5a3eb9a7622e3c6d14cf6fb99d7124cde1f6b990",
+    "runnerSha256": "d2d3453465e0d1c6add4ea6ee1f8c916e007ac4a6278d5100899c6ab9d747029",
+    "binarySha256": "c319fc8ecf1f4050721ef0fa0a12329327750fc3d3abe664c952c5466d1b4f39",
+    "librarySha256": "0031aaa31c775375d2353d3de51ab08b0d40940f6cfb61df7bd3346397f249a9",
+    "resultSha256": "8f3583410ef9765ab802a89afaba25f714aefac68600dbced8c793c8b1494c07",
+    "returncode": 0
+  },
+  "result": {
+    "schema": "alloy-solver-spike/1",
+    "cases": [
+      {
+        "case": "rectangle_tangent_circle",
+        "numericScale": 1,
+        "status": 0,
+        "dof": 0,
+        "maxSolverConstraintError": 0,
+        "circleCenterYCanonicalMm": 5,
+        "solveMicroseconds": 204.125
+      },
+      {
+        "case": "dimension_edit",
+        "numericScale": 1,
+        "widthCanonicalMm": 50,
+        "heightCanonicalMm": 25,
+        "maxSolverConstraintError": 0
+      },
+      {
+        "case": "rectangle_tangent_circle",
+        "numericScale": 0.03937007874015748,
+        "status": 0,
+        "dof": 0,
+        "maxSolverConstraintError": 0,
+        "circleCenterYCanonicalMm": 5,
+        "solveMicroseconds": 56.667
+      },
+      {
+        "case": "dimension_edit",
+        "numericScale": 0.03937007874015748,
+        "widthCanonicalMm": 50,
+        "heightCanonicalMm": 25,
+        "maxSolverConstraintError": 0
+      },
+      {
+        "case": "contradictory_dimensions",
+        "status": 2,
+        "conflictingTags": [
+          7,
+          12
+        ]
+      },
+      {
+        "case": "temporary_drag_positive_branch",
+        "dofBefore": 1,
+        "dofAfter": 1,
+        "finalWidth": 60
+      }
+    ],
+    "result": "passed"
+  }
+}

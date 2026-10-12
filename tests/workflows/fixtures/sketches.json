@@ -1,0 +1,5 @@
+{
+  "plane": "XY",
+  "name": "Rectangle sketch",
+  "rectangle": {"x1": 0, "y1": 0, "x2": 40, "y2": 25, "units": "mm"}
+}

@@ -1,0 +1,99 @@
+{
+  "schema": "alloy-validation/1",
+  "recorded_at": "2026-10-12T04:42:52.930259+00:00",
+  "scope": [
+    "SKT-001 origin-plane lifecycle",
+    "SKT-002 authored lines and rectangles"
+  ],
+  "candidate": {
+    "app": "/Users/rje/src/cpp/Alloy/build/alloy.app/Contents/MacOS/alloy",
+    "source_commit": "b6b4f78b1b0875b9dfe73b5a6931d71bf73e45a0",
+    "dirty": true,
+    "sha256": "1195309e79dbf5f8312efa4965c563ae0fd70191c352899e70cb248626c64ce6"
+  },
+  "host": {
+    "system": "macOS-26.5.1-arm64-arm-64bit-Mach-O",
+    "architecture": "arm64",
+    "python": "3.14.5"
+  },
+  "implementation_inputs": {
+    "CMakeLists.txt": "58edda2692688f56be0d24799326806150ee7458aca7179a57eb984758f1f724",
+    "src/AlloyWindow.cpp": "b94ae4e0d7bc98d2921757ce3ab3f679912a2768b603d8c9ef177f0e472c3603",
+    "src/AlloyWindow.h": "9e8d2c596d717d57eb130df7ea2068d3d52c5ff50e70d703c6d1c44f5b3ef104",
+    "src/CadDocument.cpp": "7dc93cb4499c55a8aa3c4f23c55d78aab253b86bcf20318d193b0f02c0df22c6",
+    "src/CadDocument.h": "6ccd116b7aa10e07c0487a7b1dd53a4d64b0ce89897ae0cb32dc509540f35090",
+    "src/GeometryKernel.cpp": "e6246e58812aae2db703c1a5ccfe02f7e4a44af4761173b0f26920635a38766b",
+    "src/GeometryKernel.h": "94bd802b483285e13fa414738b449ae571adba0964424ce3eacb8105a1b6d86a",
+    "src/SketchGeometry.cpp": "2582186f7a109307f6bfd2a74b3a77cd45761bf4f821ad4109e8c47b68ed7253",
+    "src/SketchGeometry.h": "3d9e63bff300521368daa9400329bf33245b451cf04f971bbdfd5380d22045db",
+    "src/ReferenceView.cpp": "5870fb601659b58bbe997aaee08efe2ef70abbda8e8c98e29405d7b1f3452adb",
+    "src/ReferenceView.h": "df8541238957a2f2f88ab9425017c340e6642c53b621f03b34679ac667a3383d",
+    "tests/sketch_api.py": "16257c75c3bdbcc52c1925d59a4cc918ccbcd7a560477a04443c9c9a7be38499",
+    "tests/sketch_document.cpp": "c4f02ef9d1e1cd75b65eeff3632aa462e9979ab6cb015ee0b5af591d39446fe7",
+    "tests/workflows/fixtures/sketches.json": "c31ecfba745cf7a312f02009dba0d19b4f85f7bd0949a2564e1d1987b0fdfbd5",
+    "examples/rectangle-sketch.alloy": "d44c1b1955bc6579bb755ccaceecd608ea2a8a3202217e4442b73d1bfb0d8788"
+  },
+  "core_tests": {
+    "result": "passed",
+    "tests": [
+      "geometry_kernel",
+      "document_model",
+      "sketch_document"
+    ],
+    "path": "build/Testing/Temporary/LastTest.log",
+    "sha256": "5f86987d6466e06bf0e83455b9ecabc09c2124922fa0e4f04490f24f92ef1717"
+  },
+  "app_evidence": [
+    {
+      "path": "build/evidence/sketch-first-final/report.json",
+      "sha256": "9b540b4683fb0bcf976a74c30137e33fc5c563b0f9518eb0b962fc2401f83af7",
+      "report_result": "failed",
+      "accepted_cases": {
+        "shell_api": "passed",
+        "DOC-002": "passed",
+        "FND-006": "passed",
+        "primitives": "passed",
+        "primitive-regression": "passed"
+      },
+      "limit": "The original combined report remains failed: its new sketch test compared revision-bearing state across undo/redo. Existing cases passed; their code and binary remain unchanged."
+    },
+    {
+      "path": "build/evidence/sketch-final/report.json",
+      "sha256": "34e81a45665e8b6c4903f5bd599f3bf948fa45d42753438de1f8bcf9c815de71",
+      "report_result": "passed",
+      "accepted_cases": {
+        "sketches": "passed"
+      },
+      "note": "Corrected test expectations and completed cancellation/polyline coverage; new case rerun alone on the exact same binary."
+    }
+  ],
+  "physical_input": {
+    "status": "passed_subset",
+    "actions": [
+      "Choose Create Sketch and XY origin plane",
+      "Two native viewport clicks author a four-edge rectangle draft",
+      "L, first point, Escape stops drawing without discarding the draft",
+      "Finish creates one sketch and one undo entry",
+      "Timeline re-enter, append line, palette Close cancels without authored changes"
+    ],
+    "artifacts": {
+      "build/evidence/sketch-native/draft-state.json": "465c9a8ccf9491044ef219fa2eab340b786f74569e47fae832409fea96cfe97e",
+      "build/evidence/sketch-native/finished-state.json": "b51dfceefb3507c5c052dd6eee69149693a601ca83ba8e9ab4cc5a33f65ff5f9",
+      "build/evidence/sketch-native/cancelled-state.json": "1cfc6fd9f6abafb86f559d2050dd2d2afafac6e5516487dbcf9fd7507558bd58",
+      "build/evidence/sketch-native/example-open.json": "4a3320207f28e80219db22de42b20cb7f4e4963dfae9bc44c5b3e83b7442aac6",
+      "build/evidence/sketch-native/user-before-restart.json": "7b026b7da9d55c90851b09545ff7353f78ddbe06a5bd335c82c0231732367d6a",
+      "build/evidence/sketch-native/user-restored.json": "c87c890a44012fa704a0dbd95ae8c0effc0716343ea6c4bdd21065c90d763bbc",
+      "build/evidence/sketch-native/drawing.png": "30ef819cf87062450ecc4743d5e51892666ed1b4ae31811affa7349182e339b0"
+    }
+  },
+  "independent_review": "Astra re-read core validation, session lifecycle and projection, verified candidate/artifact matching and preserved authored data; no material blocker to the bounded slice. No extra app runs by the verifier.",
+  "public_captures": {
+    "docs/validation/sketches-drawing.png": "30ef819cf87062450ecc4743d5e51892666ed1b4ae31811affa7349182e339b0"
+  },
+  "limits": [
+    "Constraints, driving dimensions, solver integration, snapping and entity selection/dragging remain pending",
+    "Closed-profile classification, extrusion and dependent recompute remain pending",
+    "Only macOS arm64 runtime qualified; no exact visual or interaction parity claim",
+    "Solver shared-library fixture is separate FND-005 research, not application capability"
+  ]
+}

@@ -25,7 +25,16 @@ public:
     QJsonObject diagnostics() const;
     QImage framebuffer();
     void setBodies(const std::vector<EvaluatedBody>& bodies, quint64 revision);
-    void fit(const std::vector<EvaluatedBody>& bodies);
+    void setSketches(const std::vector<EvaluatedSketch>& sketches, quint64 revision);
+    void showSketchDraft(const EvaluatedSketch& sketch);
+    void clearSketchDraft();
+    void setSketchPlane(const QString& plane);
+    void lookAtSketch(const QString& plane);
+    QJsonObject sketchPoint(double x, double y, const QString& plane) const;
+    QJsonObject projectSketchPoint(double uMm, double vMm, const QString& plane) const;
+    void showSketchCursor(const QString& plane, const QPointF& first, const QPointF& second, bool rectangle);
+    void clearSketchCursor();
+    void fit(const std::vector<EvaluatedBody>& bodies, const std::vector<EvaluatedSketch>& sketches = {});
     void selectBody(const QString& id);
     QString pickBody(double x,double y);
     QJsonObject projectBody(const EvaluatedBody& body) const;
@@ -52,6 +61,10 @@ private:
     QPointF last_;
     Qt::MouseButton panButton_ = Qt::NoButton;
     QMap<QString,Handle(AIS_Shape)> models_;
+    QMap<QString,Handle(AIS_Shape)> sketchModels_;
+    Handle(AIS_Shape) sketchDraft_, sketchCursor_;
+    QString sketchPlane_, draftSketchId_;
+    quint64 sketchRevision_ = 0;
     Handle(AIS_Shape) preview_;
     QString previewReplacedBody_;
     quint64 modelRevision_ = 0;

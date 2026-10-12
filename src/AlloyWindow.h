@@ -18,6 +18,7 @@ class QCloseEvent;
 class QTreeWidgetItem;
 class QHBoxLayout;
 class QDockWidget;
+class QShortcut;
 
 // UI and automation dispatch against the same authored document.
 class AlloyWindow final : public QMainWindow {
@@ -48,6 +49,10 @@ private:
     void showPrimitive();
     void updatePrimitive(const QJsonObject& inputs);
     QJsonObject primitiveCandidate(const QString&, const QJsonObject&) const;
+    QJsonObject beginSketch(const QString& plane, const QString& name, const QString& sketchId = {});
+    QJsonObject appendSketchEntity(const QString& tool, const QJsonObject& inputs);
+    void showSketch();
+    void sketchResponse(const QJsonObject& response);
     bool confirmDiscard();
     std::vector<Command> commands_;
     ReferenceView* view_ = nullptr;
@@ -68,6 +73,16 @@ private:
     QLabel* primitiveError_ = nullptr;
     QLineEdit* primitiveName_ = nullptr;
     QTreeWidgetItem* bodiesNode_ = nullptr;
+    QTreeWidgetItem* sketchesNode_ = nullptr;
+    QWidget* sketchPanel_ = nullptr;
+    QDockWidget* sketchDock_ = nullptr;
+    QWidget* sketchToolbar_ = nullptr;
+    QShortcut* sketchEscape_ = nullptr;
+    QLabel* sketchInfo_ = nullptr;
+    QLabel* sketchError_ = nullptr;
+    QLineEdit* sketchName_ = nullptr;
+    QMap<QString,QDoubleSpinBox*> sketchInputs_;
+    QJsonObject displayedSketchDraft_;
     QHBoxLayout* timelineLayout_ = nullptr;
     QLabel* documentTitle_ = nullptr;
     QLabel* browserNote_ = nullptr;

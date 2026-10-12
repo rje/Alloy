@@ -18,18 +18,19 @@ public:
     QString save(const QString& path);
     QString open(const QString& path);
     QString path() const { return path_; }
-    const std::vector<EvaluatedBody>& bodies() const { return *bodies_; }
+    const std::vector<EvaluatedBody>& bodies() const { return evaluation_->bodies; }
+    const std::vector<EvaluatedSketch>& sketches() const { return evaluation_->sketches; }
     QString commit(const QJsonObject& candidate, const QString& label);
     static QString validate(const QJsonObject& candidate);
     static double millimeters(double value, const QString& units);
     static QString newId();
 private:
     friend class DocumentEdit;
-    void apply(const QJsonObject& value, std::shared_ptr<const std::vector<EvaluatedBody>> bodies, const QString& transaction = {});
+    void apply(const QJsonObject& value, std::shared_ptr<const EvaluatedDocument> evaluation, const QString& transaction = {});
     QJsonObject authored_;
     QUndoStack history_;
     quint64 revision_ = 0;
     QString lastTransaction_;
     QString path_;
-    std::shared_ptr<const std::vector<EvaluatedBody>> bodies_ = std::make_shared<const std::vector<EvaluatedBody>>();
+    std::shared_ptr<const EvaluatedDocument> evaluation_ = std::make_shared<const EvaluatedDocument>();
 };
