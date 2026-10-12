@@ -15,7 +15,9 @@
         "FND-015"
       ],
       "acceptance": "Repeated constraint-first picks; Equal lines and five circles; driving edit; actual badges; Escape; finish, undo, reopen.",
-      "status": "pending"
+      "status": "in_progress",
+      "evidence": "docs/validation/illustrated-bracket.md",
+      "remaining": "Exact physical modifier gestures and visual acceptance remain separate from passed API and bounded native modeling."
     },
     {
       "id": "CP-02",
@@ -25,7 +27,9 @@
         "DOC-015"
       ],
       "acceptance": "New document tab, origin outline, 500/100 lengths and two-line 45-degree angle; compare all constraint-stage captures.",
-      "status": "pending"
+      "status": "in_progress",
+      "evidence": "docs/validation/illustrated-bracket.md",
+      "remaining": "Exact physical modifier gestures and visual acceptance remain separate from passed API and bounded native modeling."
     },
     {
       "id": "CP-03",
@@ -39,7 +43,9 @@
         "SOL-016"
       ],
       "acceptance": "Construction conversion, inferred end circles, two radius-100 sketch fillets, three selected regions and 50-mm Press Pull.",
-      "status": "pending"
+      "status": "in_progress",
+      "evidence": "docs/validation/illustrated-bracket.md",
+      "remaining": "Exact physical modifier gestures and visual acceptance remain separate from passed API and bounded native modeling."
     },
     {
       "id": "CP-04",
@@ -52,7 +58,9 @@
         "SKT-017"
       ],
       "acceptance": "Choose the top face, draw referenced construction, parallel constraints and stable upstream recompute.",
-      "status": "pending"
+      "status": "in_progress",
+      "evidence": "docs/validation/illustrated-bracket.md",
+      "remaining": "Exact physical modifier gestures and visual acceptance remain separate from passed API and bounded native modeling."
     },
     {
       "id": "CP-05",
@@ -62,7 +70,9 @@
         "GATE-020"
       ],
       "acceptance": "Five inferred circles with inline diameter and Equal, five-profile arrow Cut, all source-step and visual checks; broader export gate stays separate.",
-      "status": "pending"
+      "status": "in_progress",
+      "evidence": "docs/validation/illustrated-bracket.md",
+      "remaining": "Exact physical modifier gestures and visual acceptance remain separate from passed API and bounded native modeling."
     }
   ]
 }

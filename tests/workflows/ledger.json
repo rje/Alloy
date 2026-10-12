@@ -634,6 +634,18 @@
       "inputs": [
         "tests/app_harness.py"
       ]
+    },
+    "tutorial_bracket_api": {
+      "script": "tests/tutorial_bracket_api.py",
+      "fixture": "tests/workflows/fixtures/tutorial-bracket.json",
+      "result": "tutorial-bracket-api.json",
+      "covers": [],
+      "capabilities": [
+        "tutorial.illustrated_bracket.api_chain"
+      ],
+      "inputs": [
+        "tests/app_harness.py"
+      ]
     }
   },
   "gates": {

@@ -3,6 +3,23 @@
 Updated 2026-10-12. This is the project handoff for a fresh session. Read the root
 [AGENTS.md](../AGENTS.md) first; its reference restrictions apply to all work.
 
+## Current checkpoint: complete bracket chain
+
+The registered `tutorial_bracket_api` case now passes from blank document through
+all three illustrated activities, exact history and save/reopen. Astra accepted
+source/geometry and representative visuals. A separate native walkthrough also
+reached the final five-hole solid; see [its receipt](validation/illustrated-bracket.md)
+for the extra A1 Finish/reopen, two API multi-selection substitutions, physical
+modifier gap and remaining visual mismatch. Exact TUT-003 stays open.
+
+Root owns `build-full-tutorial/alloy.app` (TutorialCandidate) and
+`build-tutorial-api/alloy.app` (API runner candidate). The human CutCandidate in
+`../Alloy-worktrees/profile-cut/build-cut/alloy.app` and older build-input app
+remain untouched. Next: correct fully-constrained sketch colors with Sol and
+Astra verification, then continue tutorial visual/interaction gaps. Preserve
+accepted evidence; do not repeat unchanged geometry suites for a color-only fix.
+No release/tag/CI was triggered. Status requests do not pause autonomous work.
+
 ## Decisions from the conversation
 
 - The initial candidates were standalone open-source Maya and Houdini equivalents.

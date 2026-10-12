@@ -1,8 +1,11 @@
 # Exact illustrated bracket gate
 
-[TUT-003 #155](https://github.com/rje/Alloy/issues/155) is blocked. The 2026-10-12 audit against source commit `1c5749e`
-reviewed all three public activities and their images. It did not execute the
-complete tutorial in Alloy. Existing geometry primitives are not step passes.
+[TUT-003 #155](https://github.com/rje/Alloy/issues/155) remains open for exact
+interaction and visual acceptance. On 2026-10-12 the complete blank-document API
+workflow passed, and a separate native walkthrough reached the five-hole solid.
+See [the full workflow receipt](../validation/illustrated-bracket.md) for source
+steps, native substitutions, visual mismatches and persistence evidence. The
+original audit at source commit `1c5749e` is historical, not current capability.
 
 The external reference ID is `tutorial-illustrated-bracket`. Detailed action
 locators, current capability classifications, verification instructions and source
@@ -75,5 +78,6 @@ Existing owners: SKT-005/006/007/008/009/010/013/016, DOC-006 and SOL-015.
 New bounded owners: DOC-015 (document tabs), SKT-018 (constraint-first sessions),
 SKT-019 (sketch fillets), SOL-016 (profile Press Pull/multi-selection/drag), and
 TUT-003 (this cumulative gate). TUT-003 is a prerequisite of GATE-020.
-The workflow runner must reject this unimplemented case until an executable
-recipe exists. No test or UI-fidelity pass is claimed by this planning audit.
+The registered `tutorial_bracket_api` case executes the complete modeling chain.
+It intentionally has no broad task-coverage claims and does not close this exact
+native/visual gate. API success must not substitute for missing physical input.

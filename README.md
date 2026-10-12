@@ -31,7 +31,10 @@ Rounded cap centers now anchor fully constrained native construction guides.
 Inline diameter entry and Equal create five attached circles; native arrow-driven
 Cut produces five holes in one retained solid. Earlier sketch edits, history and
 reopen preserve that chain. See [the five-circle Cut receipt](docs/validation/five-circle-cut.md)
-and the bounded receipts below; this is not complete CAD parity.
+and [the complete bracket workflow receipt](docs/validation/illustrated-bracket.md).
+The blank-document API chain passes; a separate native walkthrough reaches the
+same five-hole solid with explicitly recorded selection and visual limitations.
+This is not complete CAD parity.
 
 The public repository is [rje/Alloy](https://github.com/rje/Alloy), with the
 [issue backlog](https://github.com/rje/Alloy/issues) and
