@@ -328,8 +328,13 @@ def main():
             receipt['result'] = 'passed'
             receipt['finalState'] = call('app.state')
             receipt['verifiedCapabilities'] = ['tutorial.illustrated_bracket.api_chain']
-            receipt['evidenceDimensions'] = {'api': 'passed', 'geometry': 'passed', 'save_reopen': 'passed',
-                                              'visual': 'captured', 'physical_input': 'not_run'}
+            receipt['evidenceDimensions'] = {
+                'api': {'status': 'passed', 'reason': 'One real application completed the shared-command tutorial chain.'},
+                'geometry': {'status': 'passed', 'reason': 'Independent analytic area/volume checks and retained constraints/solid summaries passed.'},
+                'save_reopen': {'status': 'passed', 'reason': 'Exact authored undo/redo and reopened save data matched.'},
+                'visual': {'status': 'captured', 'reason': 'Source-step captures require independent visual compatibility review.'},
+                'physical_input': {'status': 'not_run', 'reason': 'API pointer commands do not establish physical keyboard/mouse or menu input.'}}
+
     finally:
         receipt['transcript'] = transcript
         (output / 'tutorial-bracket-api.json').write_text(json.dumps(receipt, indent=2)+'\n')
