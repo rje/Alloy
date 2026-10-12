@@ -928,7 +928,22 @@ void ReferenceView::decorateSketch(const QJsonObject& feature,const QJsonObject&
             context_->Display(marker,0,-1,false);context_->Deactivate(marker);sketchDecorations_.push_back(marker);
         }
     };
+    // The visible origin trihedron labels occupy a small screen-space area.
+    // Move only a badge that would overlap that fixed decoration; its later
+    // anchor and hit bounds use the shifted position.
+    auto avoidOriginLabel=[&](double u,double& v,double mmPerPixel) {
+        if(!origin)return false;
+        const auto center=projectSketchPoint(0,0,plane);
+        const double cx=center["x"].toDouble(),cy=center["y"].toDouble();
+        if(cx<0 || cy<0 || cx>=width() || cy>=height())return false;
+        const auto badge=projectSketchPoint(u,v,plane);
+        const double x=badge["x"].toDouble(),y=badge["y"].toDouble();
+        if(x+6<cx-19 || x-6>cx+19 || y+6<cy-22 || y-6>cy+11)return false;
+        v+=std::max(28.0,y-(cy-28))*mmPerPixel;
+        return true;
+    };
     QMap<QString,int> badgeSlots;
+    QMap<QString,double> originShiftPixels;
     if(showConstraints_)for(const auto& entry:parameters["constraints"].toArray()) {
         const auto relation=entry.toObject();const auto kind=relation["type"].toString();
         const bool selectedBadge=selection["constraintIds"].toArray().contains(relation["id"]);
@@ -961,8 +976,14 @@ void ReferenceView::decorateSketch(const QJsonObject& feature,const QJsonObject&
             if(pixels<1e-6)continue;
             const double size=100/pixels;
             const double u=contact.x(),v=contact.y()+(10+15*badgeSlots[ids[1].toString()]++)*size;
+            const auto anchorId=ids[1].toString();
+            double shiftedV=v;bool originAvoidanceApplied=originShiftPixels.contains(anchorId);
+            if(originAvoidanceApplied)shiftedV+=originShiftPixels.value(anchorId)*size;
+            else if(avoidOriginLabel(u,shiftedV,size)) {
+                originShiftPixels[anchorId]=(shiftedV-v)/size;originAvoidanceApplied=true;
+            }
             TopoDS_Compound strokes;BRep_Builder builder;builder.MakeCompound(strokes);
-            auto stroke=[&](double x1,double y1,double x2,double y2){builder.Add(strokes,BRepBuilderAPI_MakeEdge(sketchWorld(plane,u+x1*size,v+y1*size),sketchWorld(plane,u+x2*size,v+y2*size)).Edge());};
+            auto stroke=[&](double x1,double y1,double x2,double y2){builder.Add(strokes,BRepBuilderAPI_MakeEdge(sketchWorld(plane,u+x1*size,shiftedV+y1*size),sketchWorld(plane,u+x2*size,shiftedV+y2*size)).Edge());};
             stroke(-4,-4,4,-4);stroke(4,-4,4,4);stroke(4,4,-4,4);stroke(-4,4,-4,-4);
             const bool selectedGeometry=selection["entityIds"].toArray().contains(ids[0]) || selection["entityIds"].toArray().contains(ids[1]);
             highlightRelation(relation,selectedBadge,hoveredBadge);
@@ -973,13 +994,13 @@ void ReferenceView::decorateSketch(const QJsonObject& feature,const QJsonObject&
             context_->Display(badge,AIS_WireFrame,-1,false);context_->Deactivate(badge);sketchDecorations_.push_back(badge);
             double left=1e100,top=1e100,right=-1e100,bottom=-1e100;
             for(const double dx:{-6.0,6.0})for(const double dy:{-6.0,6.0}) {
-                const auto corner=projectSketchPoint(u+dx*size,v+dy*size,plane);
+                const auto corner=projectSketchPoint(u+dx*size,shiftedV+dy*size,plane);
                 left=std::min(left,corner["x"].toDouble());right=std::max(right,corner["x"].toDouble());
                 top=std::min(top,corner["y"].toDouble());bottom=std::max(bottom,corner["y"].toDouble());
             }
             constraintGlyphs_.append(QJsonObject{{"constraintId",relation["id"]},{"entityIds",ids},{"pointIds",relation["pointIds"]},{"anchorEntityId",ids[1]},
                 {"kind",kind},{"selected",selectedBadge},{"hovered",hoveredBadge},{"contactMm",QJsonObject{{"uMm",contact.x()},{"vMm",contact.y()}}},
-                {"anchorMm",QJsonObject{{"uMm",u},{"vMm",v}}},{"bounds",QJsonObject{{"x",left},{"y",top},
+                {"anchorMm",QJsonObject{{"uMm",u},{"vMm",shiftedV}}},{"originAvoidanceApplied",originAvoidanceApplied},{"bounds",QJsonObject{{"x",left},{"y",top},
                     {"width",right-left},{"height",bottom-top}}},
                 {"viewportLocal",true},{"units","logicalPixels"}});
             continue;
@@ -1004,7 +1025,16 @@ void ReferenceView::decorateSketch(const QJsonObject& feature,const QJsonObject&
             // framebuffer pixel when zoomed out and incorrectly hide the badge.
             const auto p=projectSketchPoint(u,v,plane),q=projectSketchPoint(u+100,v,plane);
             const double pixels=std::hypot(q["x"].toDouble()-p["x"].toDouble(),q["y"].toDouble()-p["y"].toDouble());if(pixels<1e-6)continue;
-            const double size=100/pixels;v+=(10+15*badgeSlots[target.toString()]++)*size;
+            const auto anchorId=target.toString();
+            const double size=100/pixels;v+=(10+15*badgeSlots[anchorId]++)*size;
+            bool originAvoidanceApplied=originShiftPixels.contains(anchorId);
+            if(originAvoidanceApplied)v+=originShiftPixels.value(anchorId)*size;
+            else {
+                const double originalV=v;
+                if(avoidOriginLabel(u,v,size)) {
+                    originShiftPixels[anchorId]=(v-originalV)/size;originAvoidanceApplied=true;
+                }
+            }
             TopoDS_Compound strokes;BRep_Builder builder;builder.MakeCompound(strokes);
             auto stroke=[&](double x1,double y1,double x2,double y2){builder.Add(strokes,BRepBuilderAPI_MakeEdge(sketchWorld(plane,u+x1*size,v+y1*size),sketchWorld(plane,u+x2*size,v+y2*size)).Edge());};
             if(kind=="midpoint"){stroke(-5,4,5,4);stroke(5,4,0,-5);stroke(0,-5,-5,4);}
@@ -1027,7 +1057,7 @@ void ReferenceView::decorateSketch(const QJsonObject& feature,const QJsonObject&
             for(const double x:{-6.0,6.0})for(const double y:{-6.0,6.0}) {
                 const auto corner=projectSketchPoint(u+x*size,v+y*size,plane);left=std::min(left,corner["x"].toDouble());right=std::max(right,corner["x"].toDouble());top=std::min(top,corner["y"].toDouble());bottom=std::max(bottom,corner["y"].toDouble());
             }
-            constraintGlyphs_.append(QJsonObject{{"constraintId",relation["id"]},{"pointIds",relation["pointIds"]},{"entityIds",relation["entityIds"]},{"anchorEntityId",target},{"kind",kind},{"selected",selectedBadge},{"hovered",hoveredBadge},{"anchorMm",QJsonObject{{"uMm",u},{"vMm",v}}},{"bounds",QJsonObject{{"x",left},{"y",top},{"width",right-left},{"height",bottom-top}}},{"viewportLocal",true},{"units","logicalPixels"}});
+            constraintGlyphs_.append(QJsonObject{{"constraintId",relation["id"]},{"pointIds",relation["pointIds"]},{"entityIds",relation["entityIds"]},{"anchorEntityId",target},{"kind",kind},{"selected",selectedBadge},{"hovered",hoveredBadge},{"originAvoidanceApplied",originAvoidanceApplied},{"anchorMm",QJsonObject{{"uMm",u},{"vMm",v}}},{"bounds",QJsonObject{{"x",left},{"y",top},{"width",right-left},{"height",bottom-top}}},{"viewportLocal",true},{"units","logicalPixels"}});
         }
     }
     QMap<QString,QJsonObject> measurements;
