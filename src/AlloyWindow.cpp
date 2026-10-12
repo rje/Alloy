@@ -689,7 +689,8 @@ void AlloyWindow::registerCommands() {
             updatingExtrudePreview_=false;
             session_["lastArrowDrag"]=QJsonObject{{"distanceMm",distanceMm},{"phase",a.value("phase").toString("move")},
                 {"x",a.value("x")},{"y",a.value("y")},{"source",a.contains("x") && a.contains("y") ? "canvas" : "api"}};
-            if(extrudeError_)extrudeError_->setText(preview.value("ok").toBool() ? "" : preview["error"].toObject()["message"].toString());
+            if(extrudeError_)extrudeError_->setText(!preview.value("ok").isBool() || preview.value("ok").toBool()
+                ? "" : preview["error"].toObject()["message"].toString());
             refreshExtrudeControls();
             return preview;
         });
@@ -1337,7 +1338,11 @@ void AlloyWindow::registerCommands() {
     });
     add("command.preview", "Inspect command preview", "Inspect disposable authored draft; no evaluated geometry is implied.", sessionId, [this](const auto& a) {
         if (session_.isEmpty() || session_.value("id") != a["session"]) return failure("invalid_session", "Session is no longer active");
-        if(session_.value("command")=="solid.extrude")return previewExtrude();
+        if(session_.value("command")=="solid.extrude") {
+            const auto preview=previewExtrude();
+            if(extrudeError_)extrudeError_->setText(preview.value("ok").toBool() ? "" : preview["error"].toObject()["message"].toString());
+            return preview;
+        }
         if(session_.value("command")=="solid.combine")return previewCombine();
         session_["previewed"]=false;view_->clearPreview();
         if (session_.value("command").toString() != "commands.search"
