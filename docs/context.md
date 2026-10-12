@@ -292,9 +292,12 @@ was repeated for this bounded correction.
 **Next modeling priority:** SKT-014 single-loop profiles is complete. HIS-001 ordered
 sketch/profile recompute and SOL-001 extrusion. SKT-015 is the next substantial
 human-test checkpoint: draw a 40 by 25 mm rectangle, extrude 5, edit width to 50,
-verify volume 6250 mm3, undo/redo, cancel and save/reopen. HIS-001 is accepted on
-an actual sketch/profile dependency first; SOL-001 then extends the same authority
-to solids. SKT-005 #32 owns inline width/height, canvas dimension placement/editing
+verify volume 6250 mm3, undo/redo, cancel and save/reopen. HIS-001 and SOL-001 are currently In Progress in coordinated document/kernel
+and UI tracks. [The extrusion specification](research/commands/extrude-first-slice.md)
+records public source findings, signed frame-normal distance, selected finished
+profiles, reversible sketch visibility and the actual preview quality bar.
+No implementation acceptance has been claimed yet. Root owns the integrated
+build and real-app/native evidence; Astra independently reviews that result. SKT-005 #32 owns inline width/height, canvas dimension placement/editing
 and drawing inference; SKT-008 #35 owns per-entity diagnostic colors/badges and
 visibility controls. Keep functional modeling and these concrete fidelity
 corrections moving in bounded increments.
@@ -326,7 +329,7 @@ while actual other-platform builds and distributable runtime closure remain open
 The exact dated reference release/platform/theme/navigation baseline,
 minimum OS versions/architectures and portable solver runtime qualification
 remain unresolved. They are recorded gaps, not forgotten decisions. Current
-public-interface/build research now covers the major feature families with 134 dated
+public-interface/build research now covers the major feature families with 137 dated
 reference entries, including original community tutorials, contradictions, and open questions. It does not yet specify
 every command, default, error, or visual state.
 

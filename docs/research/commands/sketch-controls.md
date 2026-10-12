@@ -36,16 +36,20 @@ dimension subset has its own [candidate-specific receipt](../../validation/sketc
 Automatic H/V, supported relations, driving/driven values, failed-draft preservation
 and storage/history passed bounded app verification. The corrected binary also
 passed the focused case and native selection/dimension-entry checks. That output
-evidence does not establish canvas placement or prompt parity.
+evidence alone did not establish canvas placement or prompt parity. The later
+[annotation/profile receipt](../../validation/sketch-annotations.md) adds placed
+graphics, numeric input, native double-click editing and placement-only label
+dragging. Its actual captures are readable; unmatched public scale/theme/build
+limits exact visual claims.
 
 | Concern | Review status and follow-up |
 | --- | --- |
 | Origin plane, retained entity IDs and one-entry Finish/Cancel | Alloy outputs verified for the declared subset. Face support stays SKT-013; exact reference cancellation semantics remain unknown. |
 | Start X/Y and End X/Y palette fields | Verified Alloy coordinate helpers. **Mismatch** with the documented inline rectangle width/height and Tab workflow; exact current focus/layout details remain unknown. [SKT-005 #32](https://github.com/rje/Alloy/issues/32) owns the inline entry correction. |
-| L/R/D and pending drawing Escape | Alloy controls verified in the declared native slices. Shortcuts agree with the public table, and stopping a drawing tool with Escape agrees with community instructions. D currently uses palette numeric entry; complete Escape/cancel transaction parity remains unknown. |
-| Constraint/dimension selection, placement and editing | Point/line picking, numeric palette entry, driving edits and driven readouts are implemented. **Mismatch** remains for D → canvas placement → value/Enter, double-click editing and the driven-conversion prompt. [SKT-005 #32](https://github.com/rje/Alloy/issues/32) owns these bounded corrections; functional equations do not establish interaction parity. |
+| L/R/D and pending drawing Escape | Alloy controls verified in the declared native slices. Shortcuts agree with the public table, and stopping a drawing tool with Escape agrees with community instructions. D now opens canvas placement and adjacent numeric entry; complete Escape/cancel transaction parity remains unknown. |
+| Constraint/dimension selection, placement and editing | Point/line/profile picking, D → canvas placement → value/Enter, native double-click driving edits and read-only driven values have bounded implementation/native evidence. The documented D sequence is **matched** for the tested line family. Physical orientation variants, broader inference and the driven-conversion prompt remain gaps. [SKT-005 #32](https://github.com/rje/Alloy/issues/32) owns these bounded corrections; functional equations do not establish interaction parity. |
 | Automatic rectangle H/V | **Matched** documented behavior for new rectangles: four H/V constraints are authored together. Document/API checks verify those records and the remaining DOF after anchoring. Existing saved rectangles are preserved as authored; the constraints receipt identifies the tested candidates. |
-| Palette layout, semantic colors and full edit workspace | Orange selection, green fixed points and whole-sketch black/blue status exist. Per-entity freedom badges/colors and visibility remain [SKT-008 #35](https://github.com/rje/Alloy/issues/35). Exact layout/style is **unknown** without a matched public state; a toolbar crop cannot certify it. |
+| Palette layout, semantic colors and full edit workspace | Orange selection, green fixed points, whole-sketch black/blue status, readable line dimensions and actual closed-face fill exist. Per-entity freedom badges/colors and visibility remain [SKT-008 #35](https://github.com/rje/Alloy/issues/35). Exact layout/style is **unknown** without a matched public state; a toolbar crop cannot certify it. |
 
 Keep concrete fix links in this table as differences become evidenced; SKT-003/004
 own their command behavior, and FND-001 owns the dated reference baseline. A known

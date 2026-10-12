@@ -2,7 +2,7 @@
 
 Prepared 2026-10-11 from public references and the accepted Alloy requirements.
 [issues.json](issues.json) is the machine-readable source for GitHub publication;
-[sources.json](sources.json) records the 134 dated reference entries cited by its
+[sources.json](sources.json) records the 137 dated reference entries cited by its
 issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.

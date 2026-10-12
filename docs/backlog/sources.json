@@ -1124,6 +1124,33 @@
       "reference_id": "tutorial-library-die",
       "provenance": "Original evidence retained in separate local reference records: tutorial-gate-sources.json.",
       "note": "Source instructions or observations; Alloy implementation and verification are separate."
+    },
+    "extrude-solid-howto": {
+      "title": "Extrude a solid from a profile",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented official instructions",
+      "reference_id": "extrude-solid-howto",
+      "provenance": "Original evidence retained in separate local reference records: extrude-first-slice-sources.json.",
+      "note": "Source instructions or observations; Alloy implementation and verification are separate."
+    },
+    "extrude-public-animation": {
+      "title": "Solid extrusion public animation",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "observed sampled public animation frames; no application operation",
+      "reference_id": "extrude-public-animation",
+      "provenance": "Original evidence retained in separate local reference records: extrude-first-slice-sources.json.",
+      "note": "Source instructions or observations; Alloy implementation and verification are separate."
+    },
+    "occt-prism-793": {
+      "title": "OCCT 7.9.3 finite prism public header",
+      "url": "https://raw.githubusercontent.com/Open-Cascade-SAS/OCCT/V7_9_3/src/BRepPrimAPI/BRepPrimAPI_MakePrism.hxx",
+      "retrieved": "2026-10-11",
+      "evidence": "documented pinned public library header",
+      "reference_id": "occt-prism-793",
+      "provenance": "Original evidence retained in separate local reference records: extrude-first-slice-sources.json.",
+      "note": "Source instructions or observations; Alloy implementation and verification are separate."
     }
   },
   "reference_records": "../Alloy-reference-records/",
