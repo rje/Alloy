@@ -29,8 +29,8 @@ ApplicationFramework, DataExchange, Draw and DETools modules and optional TBB,
 VTK, FreeImage, FFmpeg, RapidJSON and Draco are disabled. The research spikes
 require ApplicationFramework from a separate development installation.
 
-On the declared native development host, install Python 3.12.15 and the compiler
-above, clone Alloy, then run:
+On the declared native development host, install Python 3.12.10 on macOS/Windows
+or 3.12.15 on Linux and the compiler above, clone Alloy, then run:
 
 ```sh
 python -m pip install -c tools/ci/constraints.txt "aqtinstall @ git+https://github.com/miurahr/aqtinstall.git@076e1659807d0b362a3ed684d54c2e9c775eb9c7" "cmake==3.31.6" "ninja==1.11.1.4"
@@ -62,3 +62,13 @@ entire host reproducible or binaries bit-identical. Archive mirroring, full sour
 and package inventories, installed minimum-OS testing and relocatable runtime
 bundles remain CI-002/GATE-005. CI-001 verifies the strengthened workflow and a
 repeat clean matrix. No supported binary release follows from this receipt.
+
+The uniform Python 3.12.15 pin failed setup on macOS/Windows in
+[run 38195276854](https://github.com/rje/Alloy/actions/runs/38195276854);
+Linux compiled successfully. The public
+[Actions Python archive manifest](https://github.com/actions/python-versions/blob/main/versions-manifest.json),
+retrieved 2026-10-11, lists 3.12.15 Linux archives and 3.12.10 archives for all
+declared Mac/Windows architectures. The corrected matrix uses those explicit
+platform pins; its new run must pass before CI-001 closes. This setup failure
+does not invalidate the prior four-target compile receipt or qualify the new
+primitive candidate across platforms.

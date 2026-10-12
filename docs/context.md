@@ -123,8 +123,8 @@ labels, milestones, and live readiness were verified through the API. The shell
 baseline [`GATE-000` #12](https://github.com/rje/Alloy/issues/12) is closed;
 FND-010 #10 is also closed with independently reviewed runner evidence;
 FND-003, FND-002, DOC-002, FND-006, FND-004, FND-009 and DOC-001 are closed after
-independently reviewed evidence. DOC-003/004/005/007/008 have reviewed primitive
-evidence; their live issue states are the authority. Live counts
+independently reviewed evidence. DOC-003/004/005/007/008 are closed with reviewed
+primitive evidence: 14 tasks closed, 121 open at this handoff. Live counts
 are obtained with tools/backlog.py rather than this earlier publication snapshot. Later epics need
 bounded child issues before implementation; this count does not exhaust parity.
 Read [the backlog](backlog/README.md), [publication receipt](backlog/publication.json),
@@ -141,6 +141,9 @@ removed with the old-history cleanup. The corrected
 four targets successfully at source 12fe534. FND-009's independently reviewed
 toolchain/artifact audit passed; subsequent candidates remain separate.
 It retains unbundled compile artifacts, not yet independently runnable packages.
+A later uniform Python pin failed Mac/Windows setup while Linux compiled;
+platform-specific archive pins are corrected and the primitive candidate's
+matrix remains pending under CI-001. See dependencies/native-builds.md.
 Windows named-pipe control, Linux X11/GLX runtime qualification, relocation,
 dependency notices and tagged milestone publishing remain open.
 GitHub operations must use `gh` and APIs; the user explicitly rejected browser
@@ -168,8 +171,8 @@ local build is left running with that sample; discover live identity with
 Do not repeat unchanged checks after reasonable assurance.
 
 Pull the next dependency-ready work through `tools/backlog.py`: complete
-face/edge selection (DOC-006), Browser breadth (DOC-009), STEP read/write
-(DOC-010/011), the application geometric-reference resolver (DOC-012), and
+face/edge selection (DOC-006), Browser breadth (DOC-009), full CAD camera
+navigation (DOC-010), STEP read/write (DOC-011), the application geometric-reference resolver (DOC-012), and
 observable document decisions (DOC-013). Hardware package qualification and
 Windows control remain separate foundation work. Research permitted public
 interaction details as commands enter implementation; world-XY primitive
