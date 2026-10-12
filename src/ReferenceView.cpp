@@ -11,6 +11,9 @@
 #include <Aspect_Grid.hxx>
 #include <OpenGl_GraphicDriver.hxx>
 #include <OpenGl_Caps.hxx>
+#include <OpenGl_Context.hxx>
+#include <V3d_DirectionalLight.hxx>
+#include <V3d_AmbientLight.hxx>
 #include <Geom_Axis2Placement.hxx>
 #include <Graphic3d_DiagnosticInfo.hxx>
 #include <Image_PixMap.hxx>
@@ -49,6 +52,8 @@
 #include <BRepMesh_IncrementalMesh.hxx>
 #include <BRep_Tool.hxx>
 #include <Poly_Triangulation.hxx>
+#include <BRepGProp.hxx>
+#include <GProp_GProps.hxx>
 
 namespace {
 gp_Pnt sketchWorld(const QString& plane,double u,double v) {
@@ -85,7 +90,12 @@ void ReferenceView::initialize() {
         driver->ChangeOptions().ffpEnable = false;
         driver->InitContext();
         viewer_ = new V3d_Viewer(driver);
-        viewer_->SetDefaultLights(); viewer_->SetLightOn();
+        // World-space rays give an isometric solid distinct face tones.
+        Handle(V3d_DirectionalLight) key=new V3d_DirectionalLight(gp_Dir(-0.35,0.8,-1),Quantity_NOC_WHITE,false);
+        key->SetIntensity(0.9f);
+        Handle(V3d_AmbientLight) ambient=new V3d_AmbientLight(Quantity_NOC_WHITE);
+        ambient->SetIntensity(0.45f);
+        viewer_->AddLight(key);viewer_->AddLight(ambient);viewer_->SetLightOn();
         context_ = new AIS_InteractiveContext(viewer_);
         // Make body selection visible on shaded solids, independent of OCCT's
         // default (gray) selection color. Hover remains a lighter blue.
@@ -105,6 +115,12 @@ void ReferenceView::initialize() {
         Handle(Xw_Window) window = new Xw_Window(display, static_cast<Aspect_Drawable>(winId()));
 #endif
         view_->SetWindow(window);
+        const auto gl=driver->GetSharedContext();
+        if(!gl.IsNull()) {
+            msaaMaximum_=gl->MaxMsaaSamples();msaaTextures_=gl->HasTextureMultisampling();
+            msaaEnabled_=msaaTextures_ && msaaMaximum_>=4 ? 4 : msaaTextures_ && msaaMaximum_>=2 ? 2 : 0;
+            view_->ChangeRenderingParams().NbMsaaSamples=msaaEnabled_;
+        }
         view_->SetBgGradientColors(Quantity_Color(1,1,1,Quantity_TOC_RGB),
             Quantity_Color(0.91,0.93,0.95,Quantity_TOC_RGB), Aspect_GradientFillMethod_Vertical, false);
         viewer_->SetRectangularGridValues(0, 0, 10, 10, 0);
@@ -169,27 +185,74 @@ void ReferenceView::setBodies(const std::vector<EvaluatedBody>& bodies,quint64 r
     models_.clear();
     for(const auto& body:bodies) {
         if(!body.visible)continue;
-        Handle(AIS_Shape) model=new AIS_Shape(body.shape);
+        Handle(AIS_Shape) model=new AIS_Shape(body.shape);model->SetDisplayMode(AIS_Shaded);
         model->SetColor(Quantity_Color(0.67,0.72,0.76,Quantity_TOC_RGB));
         model->Attributes()->SetFaceBoundaryDraw(true);
         model->Attributes()->SetFaceBoundaryAspect(new Prs3d_LineAspect(Quantity_Color(0.20,0.25,0.29,Quantity_TOC_RGB),Aspect_TOL_SOLID,1));
         context_->Display(model,AIS_Shaded,0,false);models_[body.bodyId]=model;
     }
-    modelRevision_=revision;context_->UpdateCurrentViewer();
+    modelRevision_=revision;applyEditDisplay();
 }
 void ReferenceView::setSketches(const std::vector<EvaluatedSketch>& sketches,quint64 revision) {
     if(context_.IsNull() || sketchRevision_==revision)return;
     for(const auto& model:sketchModels_)context_->Remove(model,false);
-    sketchModels_.clear();
+    for(const auto& model:finishedProfileModels_)context_->Remove(model,false);
+    sketchModels_.clear();finishedProfileModels_.clear();finishedSketches_=sketches;
     for(const auto& sketch:sketches) {
-        if(!sketch.visible || sketch.shape.IsNull())continue;
-        const auto model=sketchPresentation(sketch.shape);
-        if(sketch.summary["solver"].toObject()["dof"].toInt(-1)==0)model->SetColor(Quantity_Color(0.12,0.14,0.16,Quantity_TOC_RGB));
-        context_->Display(model,AIS_WireFrame,-1,false);context_->Deactivate(model);
-        if(sketch.featureId==draftSketchId_)context_->Erase(model,false);
-        sketchModels_[sketch.featureId]=model;
+        if(!sketch.shape.IsNull()) {
+            const auto model=sketchPresentation(sketch.shape);model->SetDisplayMode(AIS_WireFrame);
+            if(sketch.summary["solver"].toObject()["dof"].toInt(-1)==0)model->SetColor(Quantity_Color(0.12,0.14,0.16,Quantity_TOC_sRGB));
+            context_->Display(model,AIS_WireFrame,-1,false);context_->Deactivate(model);sketchModels_[sketch.featureId]=model;
+        }
+        for(const auto& profile:sketch.profiles) {
+            BRepMesh_IncrementalMesh mesh(profile.face,0.1,false,0.5,false);
+            Handle(AIS_Shape) fill=new AIS_Shape(profile.face);fill->SetDisplayMode(AIS_Shaded);fill->Attributes()->SetAutoTriangulation(false);
+            fill->Attributes()->SetShadingModel(Graphic3d_TypeOfShadingModel_Unlit,true);
+            fill->SetTransparency(0.58);context_->Display(fill,AIS_Shaded,-1,false);context_->Deactivate(fill);
+            finishedProfileModels_[profile.profileId]=fill;
+        }
     }
-    sketchRevision_=revision;context_->UpdateCurrentViewer();
+    sketchRevision_=revision;applyEditDisplay();
+}
+void ReferenceView::applyEditDisplay() {
+    if(context_.IsNull())return;
+    for(const auto& sketch:finishedSketches_) {
+        const bool visible=(sketch.visible || sketch.featureId==editSourceSketch_) && sketch.featureId!=draftSketchId_;
+        if(sketchModels_.contains(sketch.featureId)) {
+            if(visible)context_->Display(sketchModels_.value(sketch.featureId),false);
+            else context_->Erase(sketchModels_.value(sketch.featureId),false);
+        }
+        for(const auto& profile:sketch.profiles)if(finishedProfileModels_.contains(profile.profileId)) {
+            const auto fill=finishedProfileModels_.value(profile.profileId);
+            fill->SetColor(profile.profileId==selectedProfile_ && sketch.featureId==selectedProfileSketch_
+                ? Quantity_Color(0.17,0.48,0.90,Quantity_TOC_sRGB) : Quantity_Color(0.39,0.68,0.91,Quantity_TOC_sRGB));
+            if(visible)context_->Display(fill,false);else context_->Erase(fill,false);
+        }
+    }
+    for(auto i=models_.begin();i!=models_.end();++i) {
+        if(hiddenBodyIds_.contains(i.key()) || i.key()==previewReplacedBody_)context_->Erase(i.value(),false);
+        else context_->Display(i.value(),false);
+    }
+    context_->UpdateCurrentViewer();
+}
+void ReferenceView::setEditDisplay(const QString& sourceSketchId,const QJsonArray& hiddenBodyIds) {
+    editSourceSketch_=sourceSketchId;hiddenBodyIds_=hiddenBodyIds;applyEditDisplay();
+}
+void ReferenceView::selectProfile(const QString& sketchId,const QString& profileId) {
+    selectedProfileSketch_=sketchId;selectedProfile_=profileId;applyEditDisplay();
+}
+QJsonObject ReferenceView::pickFinishedProfile(double x,double y) const {
+    if(view_.IsNull() || x<0 || y<0 || x>=width() || y>=height())return {};
+    for(const auto& sketch:finishedSketches_) {
+        if((!sketch.visible && sketch.featureId!=editSourceSketch_) || sketch.featureId==draftSketchId_)continue;
+        QJsonObject point;try {point=sketchPoint(x,y,sketch.plane);}catch(const std::exception&){continue;}
+        const auto world=sketchWorld(sketch.plane,point.value("uMm").toDouble(),point.value("vMm").toDouble());
+        for(const auto& profile:sketch.profiles) {
+            BRepClass_FaceClassifier classifier(profile.face,world,1e-7);
+            if(classifier.State()==TopAbs_IN)return {{"kind","profile"},{"sketchId",sketch.featureId},{"profileId",profile.profileId}};
+        }
+    }
+    return {};
 }
 void ReferenceView::showSketchDraft(const EvaluatedSketch& sketch) {
     if(context_.IsNull())return;
@@ -210,7 +273,7 @@ void ReferenceView::showSketchDraft(const EvaluatedSketch& sketch) {
         if(sketch.summary["solver"].toObject()["dof"].toInt(-1)==0)sketchDraft_->SetColor(Quantity_Color(0.12,0.14,0.16,Quantity_TOC_sRGB));
         context_->Display(sketchDraft_,AIS_WireFrame,-1,false);context_->Deactivate(sketchDraft_);
     }
-    context_->UpdateCurrentViewer();
+    applyEditDisplay();
 }
 void ReferenceView::clearSketchDraft() {
     clearSketchDecorations();
@@ -222,7 +285,7 @@ void ReferenceView::clearSketchDraft() {
         context_->UpdateCurrentViewer();
     }
     profileModels_.clear();draftProfiles_.clear();
-    sketchDraft_.Nullify();draftSketchId_.clear();clearSketchCursor();
+    sketchDraft_.Nullify();draftSketchId_.clear();clearSketchCursor();applyEditDisplay();
 }
 QJsonObject ReferenceView::pickSketch(const QJsonObject& feature,double x,double y) const {
     if(view_.IsNull() || x<0 || y<0 || x>=width() || y>=height())return {};
@@ -453,23 +516,47 @@ QJsonObject ReferenceView::projectBody(const EvaluatedBody& body) const {
     return {{"x",x/scale.x()},{"y",y/scale.y()},{"bodyId",body.bodyId},
         {"viewportLocal",true},{"units","logicalPixels"}};
 }
-void ReferenceView::showPreview(const TopoDS_Shape& shape,const QString& replacedBody) {
+void ReferenceView::showPreview(const TopoDS_Shape& shape,const QString& replacedBody,bool neutral) {
     clearPreview();if(context_.IsNull())return;
     if(models_.contains(replacedBody)) {
         previewReplacedBody_=replacedBody;context_->Erase(models_.value(replacedBody),false);
     }
-    preview_=new AIS_Shape(shape);preview_->SetColor(Quantity_Color(0.25,0.58,0.76,Quantity_TOC_RGB));
-    preview_->SetTransparency(0.55);context_->Display(preview_,AIS_Shaded,-1,false);context_->Deactivate(preview_);
+    preview_=new AIS_Shape(shape);preview_->SetColor(neutral ? Quantity_Color(0.67,0.72,0.76,Quantity_TOC_RGB) : Quantity_Color(0.25,0.58,0.76,Quantity_TOC_RGB));
+    preview_->SetTransparency(neutral ? 0.0 : 0.55);
+    preview_->Attributes()->SetFaceBoundaryDraw(true);
+    if(neutral)preview_->Attributes()->SetFaceBoundaryAspect(new Prs3d_LineAspect(
+        Quantity_Color(0.18,0.22,0.25,Quantity_TOC_sRGB),Aspect_TOL_SOLID,devicePixelRatioF()));
+    context_->Display(preview_,AIS_Shaded,-1,false);context_->Deactivate(preview_);
+    context_->UpdateCurrentViewer();
+}
+void ReferenceView::showExtrudePreview(const EvaluatedBody& body,const EvaluatedProfile& profile,double distanceMm) {
+    showPreview(body.shape,body.bodyId,true);
+    if(context_.IsNull())return;
+    GProp_GProps properties;BRepGProp::SurfaceProperties(profile.face,properties);const auto start=properties.CentreOfMass();
+    const auto frame=SketchGeometry::frame(profile.plane);const auto normal=frame.value("normal").toArray(),u=frame.value("uAxis").toArray();
+    gp_Vec direction(normal[0].toDouble(),normal[1].toDouble(),normal[2].toDouble());direction*=distanceMm<0 ? -1 : 1;
+    const auto end=start.Translated(direction*std::abs(distanceMm));
+    const double head=std::min(std::max(std::abs(distanceMm)*0.2,0.3),3.0);
+    const gp_Vec side(u[0].toDouble(),u[1].toDouble(),u[2].toDouble());
+    for(const auto& edge:std::vector<TopoDS_Edge>{BRepBuilderAPI_MakeEdge(start,end).Edge(),
+        BRepBuilderAPI_MakeEdge(end,end.Translated(direction*(-head)+side*(head*0.45))).Edge(),
+        BRepBuilderAPI_MakeEdge(end,end.Translated(direction*(-head)-side*(head*0.45))).Edge()}) {
+        const auto cue=sketchPresentation(edge);cue->SetColor(Quantity_Color(0.04,0.33,0.78,Quantity_TOC_sRGB));
+        cue->SetWidth(2*devicePixelRatioF());cue->SetZLayer(Graphic3d_ZLayerId_Topmost);
+        context_->Display(cue,AIS_WireFrame,-1,false);context_->Deactivate(cue);extrusionCue_.push_back(cue);
+    }
+    extrusionCueState_={{"sketchId",profile.sketchId},{"profileId",profile.profileId},{"distanceMm",distanceMm},
+        {"startMm",QJsonArray{start.X(),start.Y(),start.Z()}},{"endMm",QJsonArray{end.X(),end.Y(),end.Z()}}};
     context_->UpdateCurrentViewer();
 }
 void ReferenceView::clearPreview() {
     if(!context_.IsNull()) {
+        for(const auto& cue:extrusionCue_)context_->Remove(cue,false);
         if(!preview_.IsNull())context_->Remove(preview_,false);
-        if(models_.contains(previewReplacedBody_))context_->Display(models_.value(previewReplacedBody_),false);
+        if(models_.contains(previewReplacedBody_) && !hiddenBodyIds_.contains(previewReplacedBody_))context_->Display(models_.value(previewReplacedBody_),false);
         if(!preview_.IsNull() || !previewReplacedBody_.isEmpty())context_->UpdateCurrentViewer();
     }
-    preview_.Nullify();
-    previewReplacedBody_.clear();
+    preview_.Nullify();previewReplacedBody_.clear();extrusionCue_.clear();extrusionCueState_={};
 }
 QJsonObject ReferenceView::diagnostics() const {
     QJsonObject result{{"initialized", !view_.IsNull()}, {"error", error_}, {"hardwareAccelerated", false},
@@ -484,6 +571,8 @@ QJsonObject ReferenceView::diagnostics() const {
     const QString version = raw.value("GLversion").toString();
     int nativeWidth = 0, nativeHeight = 0;
     view_->Window()->Size(nativeWidth, nativeHeight);
+    result.insert("msaa",QJsonObject{{"requestedSamples",msaaRequested_},{"enabledSamples",msaaEnabled_},
+        {"maximumSamples",msaaMaximum_},{"textureMultisampling",msaaTextures_}});
     result.insert("nativeWidth", nativeWidth); result.insert("nativeHeight", nativeHeight);
     result.insert("framebufferWidth", qRound(width()*devicePixelRatioF()));
     result.insert("framebufferHeight", qRound(height()*devicePixelRatioF()));
@@ -508,6 +597,15 @@ QJsonObject ReferenceView::diagnostics() const {
         summary["displayTriangleCount"]=triangles.IsNull() ? 0 : triangles->NbTriangles();profiles.append(summary);
     }
     result.insert("sketchProfiles",profiles);
+    QJsonArray finishedProfiles;for(const auto& sketch:finishedSketches_)for(const auto& profile:sketch.profiles) {
+        auto summary=profile.summary;TopLoc_Location location;const auto triangles=BRep_Tool::Triangulation(profile.face,location);
+        summary["displayTriangleCount"]=triangles.IsNull() ? 0 : triangles->NbTriangles();
+        summary["visible"]=(sketch.visible || sketch.featureId==editSourceSketch_) && sketch.featureId!=draftSketchId_;
+        summary["selected"]=profile.profileId==selectedProfile_ && sketch.featureId==selectedProfileSketch_;finishedProfiles.append(summary);
+    }
+    result.insert("finishedProfiles",finishedProfiles);
+    result.insert("editDisplay",QJsonObject{{"sourceSketchId",editSourceSketch_},{"hiddenBodyIds",hiddenBodyIds_}});
+    result.insert("extrusionCue",extrusionCueState_);
     result.insert("previewVisible",!preview_.IsNull());
     result.insert("previewReplacedBodyId",previewReplacedBody_);
     result.insert("documentRevision",static_cast<qint64>(modelRevision_));

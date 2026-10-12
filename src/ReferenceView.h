@@ -29,6 +29,9 @@ public:
     void setSketches(const std::vector<EvaluatedSketch>& sketches, quint64 revision);
     void showSketchDraft(const EvaluatedSketch& sketch);
     void clearSketchDraft();
+    void selectProfile(const QString& sketchId, const QString& profileId);
+    QJsonObject pickFinishedProfile(double x, double y) const;
+    void setEditDisplay(const QString& sourceSketchId, const QJsonArray& hiddenBodyIds);
     QJsonObject pickSketch(const QJsonObject& feature, double x, double y) const;
     void decorateSketch(const QJsonObject& feature, const QJsonObject& selection,
         const QJsonObject& diagnostics, const QString& units, const QJsonObject& pending = {});
@@ -46,7 +49,8 @@ public:
     void selectBody(const QString& id);
     QString pickBody(double x,double y);
     QJsonObject projectBody(const EvaluatedBody& body) const;
-    void showPreview(const TopoDS_Shape& shape,const QString& replacedBody = {});
+    void showPreview(const TopoDS_Shape& shape,const QString& replacedBody = {}, bool neutral = false);
+    void showExtrudePreview(const EvaluatedBody& body, const EvaluatedProfile& profile, double distanceMm);
     void clearPreview();
     QPaintEngine* paintEngine() const override { return nullptr; }
 protected:
@@ -61,6 +65,7 @@ protected:
 private:
     void initialize();
     void clearSketchDecorations();
+    void applyEditDisplay();
     QPointF windowScale() const;
     Handle(V3d_Viewer) viewer_;
     Handle(V3d_View) view_;
@@ -72,6 +77,10 @@ private:
     Qt::MouseButton panButton_ = Qt::NoButton;
     QMap<QString,Handle(AIS_Shape)> models_;
     QMap<QString,Handle(AIS_Shape)> sketchModels_;
+    QMap<QString,Handle(AIS_Shape)> finishedProfileModels_;
+    std::vector<EvaluatedSketch> finishedSketches_;
+    QString selectedProfile_, selectedProfileSketch_, editSourceSketch_;
+    QJsonArray hiddenBodyIds_;
     Handle(AIS_Shape) sketchDraft_, sketchCursor_;
     std::vector<Handle(AIS_InteractiveObject)> sketchDecorations_;
     QJsonArray annotationLayouts_;
@@ -84,8 +93,12 @@ private:
     QString sketchPlane_, draftSketchId_;
     quint64 sketchRevision_ = 0;
     Handle(AIS_Shape) preview_;
+    std::vector<Handle(AIS_Shape)> extrusionCue_;
+    QJsonObject extrusionCueState_;
     QString previewReplacedBody_;
     quint64 modelRevision_ = 0;
     double sceneScale_ = 400;
+    int msaaRequested_ = 4, msaaEnabled_ = 0, msaaMaximum_ = 0;
+    bool msaaTextures_ = false;
     gp_Pnt sceneCenter_;
 };

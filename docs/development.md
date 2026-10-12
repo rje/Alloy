@@ -1,11 +1,13 @@
 # Development and observed evidence
 
 Alloy now creates and edits real OCCT boxes, cylinders and constrained origin-plane
-line sketches in a hardware-accelerated native viewport. Shared UI/API commands
+line sketches and profile-based extrusion in a hardware-accelerated native
+viewport. Shared UI/API commands
 provide disposable previews, body and sketch point/line/profile picking, driving/driven
 dimensions, geometry inspection, undo/redo and atomic native save/open. C++20, Qt 6.11.2
 Widgets/Network and OCCT 7.9.3 are required; CMake pins those package versions.
-Dependent modeling, broader sketch classes, import and export remain ahead.
+Ordered full recompute updates dependent extrusion bodies after sketch edits.
+Broader sketch classes, modeling modes, import and export remain ahead.
 
 ## Build and run
 
@@ -24,6 +26,12 @@ edit its dimensions, or Box/Cylinder to create another body. See
 `examples/dimensioned-rectangle.alloy` exercises the integrated sketch solver:
 re-enter its Timeline feature and double-click a driving label or edit it in the
 palette. D places line dimensions with an adjacent numeric editor.
+`examples/sketch-extrusion.alloy` adds an editable 5 mm dependent extrusion.
+Finish a closed sketch, select its region and press E; the right dock provides
+live signed-distance preview and OK/Cancel. Home fits the preview obliquely.
+The consumed sketch hides on commit, can be shown with its Browser checkbox,
+and remains editable through its Timeline feature. Source editing temporarily
+hides dependent solid presentations; Finish recomputes them, Cancel restores them.
 
 The solver build uses Eigen 5.0.1 and Boost 1.90.0 headers. CMake accepts matching
 installed versions or fetches the pinned, hash-checked archives by default;
@@ -53,7 +61,7 @@ and [releases](releases.md) for pins, packaging and remaining qualification.
   and actual scene/chrome capture.
 - `src/CadDocument.{h,cpp}`: authoritative authored JSON, validation, one
   QUndoStack, paired evaluated snapshots and atomic native storage.
-- `src/GeometryKernel.{h,cpp}`: thin OCCT primitive evaluation, validity,
+- `src/GeometryKernel.{h,cpp}`: ordered sketch/profile/primitive/extrusion evaluation, validity,
   topology, bounds, area/volume and explicit unit/tolerance policy.
 - `src/SketchGeometry.{h,cpp}`: authored points/lines/relations/dimensions, strict
   references, solved draft mutations, origin-plane frames and real OCCT edges.
@@ -75,6 +83,9 @@ and [releases](releases.md) for pins, packaging and remaining qualification.
   editing, selection, solve failure, undo/cancel and save/reopen workflow.
 - `tests/sketch_annotations_api.py`, `tests/sketch_profiles.cpp`: placed/edited
   dimensions, exact placement-only mutation, real face derivation and profile picking.
+- `tests/sketch_extrude_api.py`, `tests/extrusion_document.cpp`: finished region selection,
+  signed prism geometry, upstream edits, candidate failure preservation and paired
+  history/storage; the real app uses the same session and document authority.
 - `tests/shell_api.py`, `document_api.py`, `session_api.py`: earlier app workflows.
 - `tests/workflows/run.py`: candidate-bound cumulative runner and fixture ledger.
 
@@ -88,8 +99,8 @@ treated as the editable document.
 Use focused core tests and one growing real-entrypoint regression:
 
 ```sh
-ctest --test-dir build -R '^(document_model|geometry_kernel|sketch_document|sketch_solver)$' --output-on-failure
-python3 tests/workflows/run.py --case constraint-regression --evidence build/evidence/constraint-regression
+ctest --test-dir build -R '^(document_model|geometry_kernel|sketch_document|sketch_solver|sketch_profiles|extrusion_document)$' --output-on-failure
+python3 tests/workflows/run.py --case sketch-extrude --evidence build/evidence/sketch-extrude
 ```
 
 A desktop session is required. The runner launches fresh native apps and invokes
@@ -122,6 +133,15 @@ The later [viewport mouse regression](validation/viewport-input.md) records the
 current fix, fresh cumulative regression and native mouse checks. Its retained
 report is `build/evidence/viewport-fix-final/report.json`.
 
+The [extrusion receipt](validation/sketch-extrusion.md) records the later ordered
+sketch/profile/solid chain and its cumulative `sketch-extrusion-checkpoint` milestone.
+The real-app case verifies 40 × 25 × 5 mm = 5000 mm³, width 50 → 6250 mm³,
+stable profile/body/feature IDs, invalid input preservation, one-entry commits,
+undo/redo and reopen. Separate native input covers drawing/selection, E, distance
+entry, upstream label editing and solid restoration. Use `--case sketch-extrude`
+for focused changes; reserve `--case sketch-extrusion-checkpoint` for the coherent
+milestone, rather than rerunning unchanged workflows for every adjustment.
+
 Stop after reasonable assurance. Add useful unit tests for core contracts and
 pragmatic integration coverage for each new workflow; do not duplicate the same
 application sequence under every issue alias.
@@ -145,8 +165,13 @@ the earlier sketch, primitive and shell workflows without duplicating aliases.
 `app.state.viewport.gpu` reports actual OCCT context/vendor/device/version,
 initialization errors, native drawable size, device scale and framebuffer pixels.
 Known software renderers are rejected for qualification; unidentified drivers
-remain unverified. Hardware identity is evidence of acceleration, not a benchmark
-or proof of future model performance. The regression checks native startup/resize
+remain unverified. `gpu.msaa` reports requested, capability-approved enabled and
+maximum samples plus texture multisampling support. The extrusion candidate
+selects 4× on Apple M4 (maximum 4); this records the rendering configuration,
+not a separate driver framebuffer-sample measurement. Dark edges, an opaque neutral
+prism preview and a fixed world-space key plus ambient light make oblique faces
+readable; sketch/profile fill remains unlit. Hardware identity is evidence of acceleration,
+not a benchmark or proof of future model performance. The regression checks native startup/resize
 dimensions before offscreen captures, avoiding a capture that masks a drawable bug.
 
 `capture.screenshot` combines actual Qt chrome and OCCT `ToPixMap` GPU rendering
@@ -160,7 +185,9 @@ picking exist. Orange marks selected sketch geometry, green marks fixed points,
 and black/blue reports whole-sketch zero/nonzero DOF. These are not per-entity
 constraint diagnoses. Arbitrary orbit, solid face/edge picking, snapping, an
 interactive view cube and broader Browser controls
-remain pending. Primitive world-XY placement/New Body/default values are bounded
+remain pending. Finished sketch profiles are filled/selectable; body/sketch Browser
+checkboxes invoke actual undoable visibility commands. Primitive world-XY
+placement/New Body/default values are bounded
 Alloy proposals. Public references are unmatched in size, scale, OS and design
 state; no exact visual/interaction match is claimed. GATE-010 requires additional
 STEP and cumulative evidence and remains open.
@@ -168,7 +195,12 @@ The later [annotation/profile receipt](validation/sketch-annotations.md) records
 placed dimensions, numeric typing, double-click editing, annotation dragging and
 single-loop face/picking acceptance. For a change to that slice, use the focused
 `sketch_document`/`sketch_profiles` CTest checks and `--case sketch-annotations`.
-Native point dragging, inline rectangle entry and wider inference remain open.
+The first extrusion supports one accepted simple closed line loop on XY/XZ/YZ,
+signed magnitude 0.001–100000 mm, Profile Plane / One Side / Distance / New Body.
+Its distance field uses current display units; typed unit suffixes, Flip button,
+interactive handle, expressions, booleans and other extent/operation modes are
+not implemented. API `units` conversion exists. Native point dragging, inline
+rectangle entry and wider inference remain open.
 Their specific interaction and per-entity badge/visibility follow-ups are recorded in
 [sketch controls](research/commands/sketch-controls.md).
 

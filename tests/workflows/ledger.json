@@ -349,6 +349,49 @@
         "tests/sketch_document.cpp",
         "tests/sketch_profiles.cpp"
       ]
+    },
+    "sketch-extrude": {
+      "script": "tests/sketch_extrude_api.py",
+      "fixture": "tests/workflows/fixtures/sketch-extrude.json",
+      "result": "sketch-extrude-api.json",
+      "covers": [
+        "HIS-001",
+        "SOL-001"
+      ],
+      "capabilities": [
+        "history.ordered_recompute",
+        "history.profile_dependencies",
+        "solids.profile_extrusion",
+        "solids.extrusion_preview",
+        "solids.extrusion_storage",
+        "sketch.finished_profile_selection"
+      ],
+      "inputs": [
+        "tests/app_harness.py",
+        "src/SketchProfiles.h",
+        "src/SketchProfiles.cpp",
+        "tests/extrusion_document.cpp"
+      ]
+    },
+    "sketch-extrusion-checkpoint": {
+      "check": "case_alias",
+      "requires": [
+        "primitives",
+        "sketch-constraints",
+        "sketch-annotations",
+        "sketch-extrude"
+      ],
+      "covers": [
+        "SKT-015"
+      ],
+      "capabilities": [
+        "history.ordered_recompute",
+        "history.profile_dependencies",
+        "solids.profile_extrusion",
+        "solids.extrusion_preview",
+        "solids.extrusion_storage",
+        "sketch.finished_profile_selection"
+      ]
     }
   },
   "gates": {

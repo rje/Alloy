@@ -98,8 +98,8 @@ migration and failure boundaries. OCAF naming remains a separate evaluation.
 The user requires these architectural questions to be settled before modeling
 operations accumulate. FND-003 is the initial decision/prototype task; DOC-002
 depends on it. Decision 001 selects QUndoStack as the sole editing journal;
-DOC-002/003/004 and SKT-001/002/003/004 now integrate it for primitives and sketches. Requirements for
-dependent feature recomputation below remain future work.
+DOC-002/003/004 and SKT-001/002/003/004 now integrate it for primitives and sketches.
+HIS-001/SOL-001 extend this authority to ordered sketch/profile extrusion.
 
 The authored feature history describes how the model is constructed: stable
 operation IDs, typed parameters and units, input references, dependencies and
@@ -141,7 +141,20 @@ create/edit/undo/redo, branching after undo, cancel/invalid edits, stable IDs,
 save/reopen, unknown schema versions and atomic-write failure. Broader gesture
 grouping and dependent feature graphs follow the workflows that need them.
 FND-004 covers persistent geometric references alongside this decision. Larger
-recompute scheduling follows real feature dependencies in HIS-001.
+recompute scheduling follows broader feature dependencies in HIS-004.
+
+The first dependent chain now uses one synchronous full ordered evaluation pass.
+An authored extrusion stores sketch ID, derived profile ID and signed distance;
+its feature/body IDs are allocated once and retained across edits. Each extrusion
+resolves its exact profile from a freshly evaluated preceding sketch. Missing,
+forward, self and invalid-profile dependencies produce contextual feature errors;
+there is no arbitrary profile fallback or successful stale cache. Candidate
+normalization/evaluation is shared by preview, commit and open. Only a successful
+complete candidate can replace the live paired state. The profile-to-solid
+boundary uses a real OCCT prism along the sketch frame normal and validates the
+resulting closed solid and measurements. Incremental propagation, named
+expressions, general graph editing and face-reference resolution remain separate
+work. See [the extrusion receipt](validation/sketch-extrusion.md).
 
 Public library references reviewed 2026-10-11:
 [OCAF](https://www.occt3d.com/dev/doc/overview/html/occt_user_guides__ocaf.html)
@@ -157,8 +170,9 @@ The permitted primitive/fillet/split/deletion/merge fixture passed; see
 [decision 002](decisions/002-geometric-references.md). The application resolver
 remains DOC-012, with no raw-index or nearest-edge fallback.
 
-The first edit fixture should change a sketch dimension and demonstrate whether
-the extrude and fillet update correctly. Add split/merge cases as coverage grows.
+The first integrated edit fixture changes a sketch dimension and verifies the
+extrusion rebuilds with stable profile/feature/body IDs. Fillet references and
+split/merge integration remain later coverage.
 When a reference cannot be resolved, surface a meaningful failure; never silently
 attach a feature to an arbitrary different face. Record which edits are supported.
 

@@ -2,6 +2,7 @@
 #include "SketchProfiles.h"
 #include <QJsonObject>
 #include <TopoDS_Shape.hxx>
+#include <stdexcept>
 #include <vector>
 
 struct EvaluatedBody {
@@ -22,12 +23,21 @@ struct EvaluatedSketch {
 struct EvaluatedDocument {
     std::vector<EvaluatedBody> bodies;
     std::vector<EvaluatedSketch> sketches;
+    std::vector<QString> featureOrder;
 };
 
 // Small OCCT boundary. Authored values and presentation objects stay elsewhere.
 class GeometryKernel final {
 public:
+    class EvaluationError final : public std::runtime_error {
+    public:
+        explicit EvaluationError(const QJsonObject& diagnostics);
+        const QJsonObject& diagnostics() const { return diagnostics_; }
+    private:
+        QJsonObject diagnostics_;
+    };
     static TopoDS_Shape primitive(const QString& type, const QJsonObject& parameters);
+    static TopoDS_Shape extrusion(const EvaluatedProfile& profile, double distanceMm);
     static QJsonObject summarize(const TopoDS_Shape& shape);
     static std::vector<EvaluatedBody> evaluate(const QJsonObject& authored);
     static EvaluatedDocument evaluateDocument(const QJsonObject& authored);

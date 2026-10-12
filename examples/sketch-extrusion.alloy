@@ -1,0 +1,147 @@
+{
+    "displayUnits": "mm",
+    "documentId": "0f2f7f60-807c-4bb0-87bf-3c1b0c665777",
+    "features": [
+        {
+            "id": "618236d6-edaf-4551-b430-a9709fd3b2f9",
+            "name": "Extrusion source",
+            "ownerId": "0f2f7f60-807c-4bb0-87bf-3c1b0c665777",
+            "parameters": {
+                "constraints": [
+                    {
+                        "entityIds": [
+                            "f88e206c-a772-44d2-ba20-dd0132594dff"
+                        ],
+                        "id": "6286073f-1d90-4c20-9668-6b7a61dac71c",
+                        "type": "horizontal"
+                    },
+                    {
+                        "entityIds": [
+                            "8852820a-80c0-471c-8a8b-79a8a1638e8c"
+                        ],
+                        "id": "052e37f3-c5a6-44af-a144-907f2fbcceb6",
+                        "type": "vertical"
+                    },
+                    {
+                        "entityIds": [
+                            "047d7f49-d85d-4ee0-a6d9-b496c81e11e2"
+                        ],
+                        "id": "3c68bd00-530c-4286-8bf3-785bbb230cc8",
+                        "type": "horizontal"
+                    },
+                    {
+                        "entityIds": [
+                            "270b3fbb-766f-4a2f-ab79-f2f0a5b28f19"
+                        ],
+                        "id": "52c2823a-ebc2-40af-bdab-7fcde1f7df4d",
+                        "type": "vertical"
+                    },
+                    {
+                        "id": "87dd0b6d-0bfb-49a4-87a4-6fff92a1de45",
+                        "pointIds": [
+                            "f9641b62-de31-47c9-a44b-096f1e4baed3"
+                        ],
+                        "type": "fixed",
+                        "uMm": 0,
+                        "vMm": 0
+                    }
+                ],
+                "dimensions": [
+                    {
+                        "annotation": {
+                            "uMm": 20,
+                            "vMm": -10
+                        },
+                        "driving": true,
+                        "id": "04426f47-4df7-445e-a769-b335857ecc75",
+                        "kind": "horizontal",
+                        "pointIds": [
+                            "f9641b62-de31-47c9-a44b-096f1e4baed3",
+                            "f1f3eb89-88f3-4da5-ac9d-46a5e756ee06"
+                        ],
+                        "valueMm": 50
+                    },
+                    {
+                        "annotation": {
+                            "uMm": 48,
+                            "vMm": 12.5
+                        },
+                        "driving": true,
+                        "id": "a9da5dc1-2ae1-4991-aad1-7b60e6f27053",
+                        "kind": "vertical",
+                        "pointIds": [
+                            "f1f3eb89-88f3-4da5-ac9d-46a5e756ee06",
+                            "8bc09626-9729-4a41-814f-25f84dd8f525"
+                        ],
+                        "valueMm": 25
+                    }
+                ],
+                "entities": [
+                    {
+                        "endPointId": "f1f3eb89-88f3-4da5-ac9d-46a5e756ee06",
+                        "id": "f88e206c-a772-44d2-ba20-dd0132594dff",
+                        "startPointId": "f9641b62-de31-47c9-a44b-096f1e4baed3",
+                        "type": "line"
+                    },
+                    {
+                        "endPointId": "8bc09626-9729-4a41-814f-25f84dd8f525",
+                        "id": "8852820a-80c0-471c-8a8b-79a8a1638e8c",
+                        "startPointId": "f1f3eb89-88f3-4da5-ac9d-46a5e756ee06",
+                        "type": "line"
+                    },
+                    {
+                        "endPointId": "002c027f-fbbf-4345-b78d-dd01f83b80ca",
+                        "id": "047d7f49-d85d-4ee0-a6d9-b496c81e11e2",
+                        "startPointId": "8bc09626-9729-4a41-814f-25f84dd8f525",
+                        "type": "line"
+                    },
+                    {
+                        "endPointId": "f9641b62-de31-47c9-a44b-096f1e4baed3",
+                        "id": "270b3fbb-766f-4a2f-ab79-f2f0a5b28f19",
+                        "startPointId": "002c027f-fbbf-4345-b78d-dd01f83b80ca",
+                        "type": "line"
+                    }
+                ],
+                "plane": "XY",
+                "points": [
+                    {
+                        "id": "f9641b62-de31-47c9-a44b-096f1e4baed3",
+                        "uMm": 0,
+                        "vMm": 0
+                    },
+                    {
+                        "id": "f1f3eb89-88f3-4da5-ac9d-46a5e756ee06",
+                        "uMm": 50,
+                        "vMm": 0
+                    },
+                    {
+                        "id": "8bc09626-9729-4a41-814f-25f84dd8f525",
+                        "uMm": 50,
+                        "vMm": 25
+                    },
+                    {
+                        "id": "002c027f-fbbf-4345-b78d-dd01f83b80ca",
+                        "uMm": 0,
+                        "vMm": 25
+                    }
+                ]
+            },
+            "type": "sketch",
+            "visible": false
+        },
+        {
+            "bodyId": "4b2bdfaf-c599-43a7-8a6d-7cea117e9e98",
+            "id": "3441e738-87b2-4d71-8104-0b4acc9b24b6",
+            "name": "Extrude",
+            "ownerId": "0f2f7f60-807c-4bb0-87bf-3c1b0c665777",
+            "parameters": {
+                "distanceMm": 5,
+                "profileId": "31e41397-ebed-5013-bcb3-d840e86c4961",
+                "sketchId": "618236d6-edaf-4551-b430-a9709fd3b2f9"
+            },
+            "type": "extrude",
+            "visible": true
+        }
+    ],
+    "schema": "alloy-document/1"
+}

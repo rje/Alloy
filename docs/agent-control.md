@@ -3,8 +3,9 @@
 Alloy's running native application provides a small local control API from its
 first shell build. It is an Alloy protocol. Authored document inspection, units,
 real box/cylinder and constrained origin-plane sketch creation and editing,
-driving/driven dimensions, geometry inspection, undo/redo and native
-save/open use the same authoritative path as the UI.
+driving/driven dimensions, finished-profile extrusion, ordered recompute,
+geometry inspection, undo/redo and native save/open use the same authoritative
+path as the UI.
 
 ## Launch and discover
 
@@ -70,7 +71,7 @@ Successful response:
 Error response:
 
 ```json
-{"id":"request-2","ok":false,"completion":"failed","error":{"code":"not_implemented","message":"Extrude is not implemented in the UI shell"}}
+{"id":"request-2","ok":false,"completion":"failed","error":{"code":"not_implemented","message":"Fillet is not implemented in the UI shell"}}
 ```
 
 Commands run on the UI thread through `AlloyWindow::execute`, also called by UI
@@ -88,7 +89,7 @@ fail without applying the command. Error codes include `invalid_request`,
 `request_too_large`, `unknown_command`, `not_implemented`, `invalid_arguments`,
 `capture_failed`, `evaluation_failed`, `kernel_failure`, `stale_entity`,
 `stale_session`, `no_active_sketch`, `invalid_session`, `invalid_sketch`,
-`sketch_solve_failed`, `unsaved_changes`, `open_failed` and `save_failed`.
+`sketch_solve_failed`, `profile_required`, `unsaved_changes`, `open_failed` and `save_failed`.
 
 ## Implemented commands
 
@@ -99,12 +100,12 @@ fail without applying the command. Error codes include `invalid_request`,
 | `commands.search`, `commands.close` | Show/dismiss the native search dialog |
 | `app.identity` | Stable protocol/process/window/instance identity and capabilities |
 | `document.settings` | Open the native shared display-units edit dialog |
-| `command.begin` | `command`: `document.units`, `commands.search`, `solid.box`, `solid.cylinder` or `sketch.create`; `inputs`: object |
+| `command.begin` | `command`: `document.units`, `commands.search`, `solid.box`, `solid.cylinder`, `solid.extrude` or `sketch.create`; `inputs`: object |
 | `command.update` | `session`: UUID; `inputs`: partial object; validates without committing |
-| `command.preview` | `session`: UUID; primitives/sketches evaluate disposable geometry and display it without committing |
-| `command.panelDock` | `docked`: boolean; float or right-redock the active primitive panel |
+| `command.preview` | `session`: UUID; primitives/sketches/extrusions evaluate disposable geometry and display it without committing |
+| `command.panelDock` | `docked`: boolean; float or right-redock the active modeling panel |
 | `command.commit`, `command.cancel` | `session`: UUID; explicit completion or refusal |
-| `capture.dialog` | Absolute `.png` path; actual active QWidget dialog |
+| `capture.dialog` | Absolute `.png` path; actual active QWidget dialog or modeling dock |
 | `document.inspect` | Authored root/feature IDs, ownership, canonical units and journal state |
 | `document.units` | `units`: `mm` or `in`; display conversion preserves canonical values |
 | `document.new` | `discard`: boolean; dirty replacement refuses unless explicitly acknowledged |
@@ -114,6 +115,8 @@ fail without applying the command. Error codes include `invalid_request`,
 | `solid.box` | Required `width`, `depth`, `height`; optional `x`, `y`, `z`, `units`, `name`, `featureId` |
 | `solid.cylinder` | Required `radius`, `height`; same optional placement/unit/name/edit fields |
 | `primitive.box`, `primitive.cylinder` | Open their actual shared dimension dialogs |
+| `solid.extrude` | Required `sketchId`, `profileId`, signed `distance`; optional `units` (`mm`/`in`), `name`, existing `featureId`; direct create/edit commit |
+| `solid.extrudeDialog` | Optional `sketchId`, `profileId`; toolbar/E opener for the shared extrusion session |
 | `sketch.create` | Open the docked origin-plane chooser |
 | `sketch.begin` | `plane`: `XY`, `XZ` or `YZ`; optional `name`, `units`; begin an authored draft |
 | `sketch.edit` | `sketchId`: UUID; re-enter a retained sketch |
@@ -139,11 +142,14 @@ fail without applying the command. Error codes include `invalid_request`,
 | `sketch.dimensionUpdate` | `dimensionId`, positive `value`; optional `units`, `session`; edit a driving dimension by stable UUID |
 | `sketch.movePoint` | `pointId`, `x`, `y`; optional `units`, `session`; seed a point's coordinates and solve the copied draft |
 | `feature.edit` | `featureId`: UUID; `parameters`: partial canonical-mm fields such as `widthMm` |
-| `feature.editDialog`, `feature.delete` | `featureId`: UUID; actual edit dialog or one undoable deletion |
+| `feature.editDialog`, `feature.delete` | `featureId`: UUID; actual primitive/sketch/extrusion editor or one undoable deletion; orphaning a dependent extrusion is rejected |
+| `feature.visibility` | `featureId`, `visible`: boolean; one authored undoable visibility edit, also used by Browser checkboxes |
 | `geometry.inspect` | Evaluated bodies and sketches: stable IDs, validity, geometry summaries and plane frames |
 | `history.undo`, `history.redo` | Sole document journal; restore authored values and evaluated shapes together |
 | `selection.set` | `bodyId`: visible UUID, or empty string to clear |
-| `selection.pick` | `x`, `y`: viewport-local logical pixels; actual OCCT body picking |
+| `selection.profileSet` | `sketchId`, `profileId`; select an accepted finished region by retained identity |
+| `selection.sketchSet` | `sketchId`; Browser sketch selection, with sole-region resolution when opening Extrude |
+| `selection.pick` | `x`, `y`: viewport-local logical pixels; actual body or finished-profile picking; returns `kind` and retained IDs |
 | `view.projectBody` | `bodyId`: UUID; actual projection of bounding-box center to logical pixels |
 | `layout.browser`, `layout.timeline`, `layout.navigation` | `visible`: boolean |
 | `layout.reset` | Restore those three regions |
@@ -151,7 +157,7 @@ fail without applying the command. Error codes include `invalid_request`,
 | `view.orientation` | `name`: `isometric`, `top`, `front`, or `right` |
 | `view.zoom` | `factor`: 0.1–10; resulting scale clamps to 0.1–10 |
 | `view.pan` | `x`, `y`: relative logical-pixel deltas, each within ±10000 |
-| `view.home` | Fit visible bodies and sketches in the isometric view; reset zoom/pan |
+| `view.home` | Fit visible bodies/sketches and a valid extrusion preview in isometric view; reset zoom/pan |
 | `window.resize` | Logical width 1040–4096 and height 640–4096 |
 | `capture.screenshot` | Absolute `.png` path; returns dimensions, device scale, source |
 | `app.quit` | Optional `discard`: boolean, default false; dirty refusal unless acknowledged, then exit after reply |
@@ -189,6 +195,60 @@ and lines, classifies the actual accepted OCCT face, and exposes its stable prof
 Only one connected simple closed line loop is supported; open/unsupported input
 retains the sketch with `profileDiagnostics`.
 
+Finished visible sketches retain their real profile fill and pick region outside
+sketch-edit mode. `selection.pick` returns `kind: "profile"`, `sketchId`, `profileId`
+and `profileIds` when a region is selected. Normal body picking takes precedence;
+an active extrusion session prioritizes profiles. Hidden sketches have no
+pickable ghost fill. Explicit Browser/API sketch selection can still identify a
+hidden source for a new command. Extrude retains a selected profile, resolves a
+selected sketch's sole accepted region, or auto-selects only the sole visible
+eligible profile. Ambiguous input stays unselected and requires actual selection.
+
+`command.begin` with `command: "solid.extrude"` accepts `inputs` containing
+`sketchId`, `profileId`, signed `distance`, `units` and optional `name`/existing
+`featureId`. For creation, Begin reserves `newFeatureId`/`newBodyId` once in
+`activeSession`; preview and commit preserve that pair. `source` retains the
+sketch/profile IDs. Partial `command.update` changes inputs without an undo entry;
+API callers then explicitly invoke `command.preview`. Native field completion
+uses these same two commands. A successful preview returns `geometryEvaluated`,
+`previewed`, `geometry` (including `volumeMm3`, validity, bounds and source IDs),
+`featureId`, `bodyId` and the normalized full `documentDraft`. Camera changes do
+not commit or regenerate identities. `previewed: false` invalidates any prior
+preview; retained IDs alone do not establish valid current geometry.
+
+Canonical extrusion parameters are `{sketchId, profileId, distanceMm}`. The
+supported extent is one side along the stored origin-plane normal, with signed
+magnitude 0.001–100000 mm and New Body only. Negative distance reverses direction;
+`units` performs the same mm/in conversion as other modeling inputs. Interactive
+Begin starts at zero as an Alloy choice, with OK disabled until a valid preview.
+The right Qt dock shows Profile Plane / One Side / Distance / New Body and an
+opaque neutral solid with dark edges and a blue direction cue. Its distance
+field uses displayed units; typed unit suffixes, a Flip button, interactive
+handles, expressions and other extent/operation modes are not supported.
+
+New extrusion commit appends one feature/body and hides the consumed sketch in
+one authored candidate and one document undo entry. `feature.visibility` shows
+it again; re-editing an extrusion preserves that intentional visibility. Cancel
+preserves authored state and restores the original scene. Editing an extrusion
+temporarily shows its source and hides the replaced body during preview. Editing
+its source sketch temporarily shows the region and hides all direct dependent
+extrusion presentations, then recomputes their solids on Finish. This is the
+current graph's presentation policy, not general timeline rollback/suppression.
+`viewport.gpu.editDisplay` (also `viewport.editDisplay`) reports `sourceSketchId`
+and `hiddenBodyIds`. `gpu.finishedProfiles` reports actual profile summaries,
+triangle count, visibility and selection; `gpu.extrusionCue` exposes canonical
+normal-direction endpoints and distance. Temporary visibility is never saved.
+Failed extrusion previews and stale sessions restore the committed presentation.
+Missing selection returns `profile_required`; invalid distance or evaluated
+references return `evaluation_failed`, preserving the document. Dependent-source
+deletion and missing profile references also fail transactionally.
+
+All commits, undo/redo and reopen use the same ordered full evaluation of authored
+sketches, fresh profiles and dependent solids. A downstream result resolves its
+stable source from the same candidate, rather than a copied old BRep or list
+index. Upstream width changes preserve a surviving profile ID and rebuild the
+solid; failed dependency/evaluation candidates never publish a partial document.
+
 Coincidence requires two points, fixed requires one point, H/V requires one line,
 and parallel/perpendicular requires two lines. Fixed captures the point's current
 canonical coordinates as its target. Dimensions use two distinct points or one
@@ -223,7 +283,12 @@ Captures composite the actual inline widget after the GPU frame.
 See the [bounded interaction gaps](research/commands/sketch-controls.md).
 
 `viewport.renderer` is `OCCT OpenGL`; `viewport.gpu` contains live OCCT driver
-information and qualification. `vendor`, `renderer`, and `version` come from the
+information and qualification. `msaa` reports requested/capability-approved enabled/
+maximum sample counts and texture multisampling support. The current Apple M4
+candidate selects 4× with maximum 4; it is a rendering-parameter observation,
+not an independent driver framebuffer sample-count proof. A fixed world-space
+key and low ambient light distinguish shaded faces while profiles remain unlit.
+`vendor`, `renderer`, and `version` come from the
 actual context. Known software fallback is labeled `software-rejected`;
 unrecognized hardware is `unverified`. `hardwareAccelerated` requires an
 identified hardware vendor/device and a GL version, and the smoke test asserts it.
@@ -272,16 +337,15 @@ excludes separate dialogs; `capture.dialog` captures those real 2D widgets.
 
 ```sh
 ctest --test-dir build -R '^(document_model|geometry_kernel|sketch_document|sketch_solver|client_selection)$' --output-on-failure
-python3 tests/workflows/run.py --case constraint-regression --evidence build/evidence/constraint-regression
+python3 tests/workflows/run.py --case sketch-extrude --evidence build/evidence/sketch-extrude
 ```
 
-The test launches the built app, discovers commands, changes view and layout,
-opens/closes search, checks structured errors and malformed JSON, verifies state,
-asserts a live hardware OpenGL context, changes the real camera and compares
-framebuffer hashes, resizes the native window at its device scale, checks GPU
-viewport dimensions before any startup/resized offscreen capture (to avoid
-masking a native sizing bug), checks capture dimensions, restores presentation,
-and quits. Evidence is written to `build/evidence/`.
+The runner launches the built application and records its shared-command results
+under `build/evidence/`. The focused extrusion case creates a constrained sketch,
+selects its finished face, previews and commits a prism, changes the upstream width,
+checks failure preservation and undo/redo, then saves/reopens the chain. Earlier
+transport, camera/framebuffer, startup/resize and primitive cases retain separate
+evidence; use the cumulative checkpoint when a milestone requires them together.
 
 The [primitive receipt](validation/primitives.md) adds a coherent create/edit/
 pick/undo/reopen workflow and separate native keyboard/dialog observations.
@@ -291,8 +355,13 @@ selection is still DOC-006. The [sketch receipt](validation/sketches.md) and
 driving/driven values, failed-draft preservation, one-entry Finish, cancellation,
 undo and native reopen. Candidate-specific reruns remain identified separately.
 The [annotation/profile receipt](validation/sketch-annotations.md) adds the focused
-`sketch-annotations` case and separate native typing/drag/Finish checks. Full
-cumulative cases are reserved for material cross-cutting changes or milestones.
+`sketch-annotations` case and separate native typing/drag/Finish checks. The
+[extrusion receipt](validation/sketch-extrusion.md) adds `sketch-extrude`: real
+finished-region selection, volume 5000 → 6250 mm³ from width 40 → 50, stable IDs,
+failed-preview preservation, edit cancellation, paired undo and reopen. Native
+E, distance typing, upstream label editing and undo/redo are separate evidence.
+The `sketch-extrusion-checkpoint` case reuses accepted representative workflows once.
+Full cumulative cases are reserved for material cross-cutting changes or milestones.
 Native file dialogs and unsaved-work prompts exist, but observable pending
 document decisions and full physical coverage remain DOC-013.
 
@@ -304,7 +373,8 @@ with each implemented modeling slice; do not fake geometry in automation.
 
 Primitive UI fields invoke shared update/preview on field completion; explicit API
 updates retain explicit preview semantics. `ui.activeDialog.presentation` reports
-`docked-panel` or `floating-panel`; `bounds` are logical main-window-relative
+`docked-panel` or `floating-panel` for primitives, sketches and extrusion; `bounds` are logical
+main-window-relative
 coordinates. `viewport.x/y/width/height` describe the actual canvas in that same
 space. `viewport.gpu.previewReplacedBodyId` identifies the temporarily hidden
 original presentation, without changing authored state. Panel Close, Escape and

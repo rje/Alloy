@@ -1,6 +1,6 @@
 # Continuation context
 
-Updated 2026-10-11. This is the project handoff for a fresh session. Read the root
+Updated 2026-10-12. This is the project handoff for a fresh session. Read the root
 [AGENTS.md](../AGENTS.md) first; its reference restrictions apply to all work.
 
 ## Decisions from the conversation
@@ -130,7 +130,7 @@ a disposable draft; Finish creates one QUndoStack entry, while Cancel and palett
 close preserve the prior document. The UI has an origin-plane chooser, contextual
 tools and a docked Sketch Palette. Canvas clicks and numeric coordinates use the
 same commands; L/R select drawing tools and canvas Escape stops a pending tool
-without cancelling the sketch. Extrusion remains pending.
+without cancelling the sketch. The later extrusion slice is recorded below.
 
 The [sketch receipt](validation/sketches.md) records the integrated build and
 three focused CTest checks, the previous shell/document/session/primitive cases,
@@ -162,6 +162,25 @@ qualifies D/placement/inline numeric input, driving label double-click editing,
 placement-only label dragging and a selectable real single-loop profile. Native
 point dragging, inference and per-entity constraint badges remain linked follow-ups.
 This is bounded acceptance, not full interaction parity.
+
+HIS-001/SOL-001 now implement ordered sketch/profile recompute and editable
+signed-distance extrusion into a new body. Finished profiles are selectable;
+E opens the right dock with a disposable real OCCT solid preview. Commit uses one
+shared transaction and hides the source sketch; Browser visibility is reversible.
+Editing the source temporarily hides dependent bodies. Exact profile references
+resolve against newly evaluated preceding sketches. Invalid dependencies or
+failed geometry reject the complete candidate without replacing live paired
+authored/evaluated state. Width 40→50 at height 25 and depth 5 rebuilds volume
+5000→6250 mm3 with stable profile/feature/body IDs; undo/redo and reopen preserve
+the chain. The bounded local SKT-015 checkpoint passed the primitive, constraint,
+annotation and extrusion cases on one binary, five focused core tests, separate
+native drawing/dimension/extrusion/upstream edit/cancel, and Astra's independent
+source/capture/state review. See [the extrusion receipt](validation/sketch-extrusion.md).
+MSAA is capability-selected (four samples on Apple M4); world lighting gives
+distinct face tones and dark outlines. Preview is neutral/opaque with a blue
+normal cue. Broader profile/operation/extent modes and interactive manipulators
+remain absent; the opaque Home preview occludes its selected base. This accepts
+the declared local workflow, not exact parity, tutorial or product/release gates.
 
 A reported viewport mouse regression is fixed and independently reviewed.
 Camera setters now defer redraw until a completed view is ready; Retina picking
@@ -263,16 +282,20 @@ Its bounded OCCT fixture now passed generator role rebinding, fillet history,
 split/deletion/merge cases; [decision 002](decisions/002-geometric-references.md)
 defines conservative unresolved behavior. DOC-012 still implements the real resolver.
 
-The latest local application binary includes placed dimensions and real closed profiles.
+The latest local application binary includes placed dimensions, real closed
+profiles and editable dependent extrusions.
 Use `python3 tools/alloyctl.py instances` for authoritative live identity; old
 ready files may be stale. Preserve live authored work and any unfinished draft
 before restarting. Recovery documents remain under the local Alloy Application
 Support directory. The new sample `examples/dimensioned-rectangle.alloy` has a
 50 × 25 mm anchored rectangle, driving width/height and a driven diagonal.
-The application is currently open editing that sample with the readable Sketch
-Palette and placed dimension graphics; the current launch record is
-`build/evidence/human-ready-annotations.json` (private instance registry; select
-this ready file explicitly). Preserve any later human changes before replacement.
+The application is currently open on `examples/sketch-extrusion.alloy`, an
+independently authored 50 × 25 × 5 mm part with driving width/height and editable
+Sketch → Extrude history. Click either Timeline item to edit, try undo/redo and
+save/reopen. The current launch record is `build/evidence/human-ready-extrusion.json`
+(private instance registry; select this ready file explicitly). The prior annotation
+ready file is stale. Preserve any later human changes before replacement. The
+native test part was saved separately in `build/evidence/extrusion-native-part.alloy`.
 Detailed transcripts/build/test/native artifacts are retained under
 `build/evidence/constraints-*`; the [constraints receipt](validation/sketch-constraints.json)
 identifies which checks ran against each binary. Repeat checks only for material
@@ -289,15 +312,18 @@ and `annotations-native-final-*` retains physical checks. Earlier visually faile
 captures are not accepted. No unchanged full regression, tutorial gate or CI matrix
 was repeated for this bounded correction.
 
-**Next modeling priority:** SKT-014 single-loop profiles is complete. HIS-001 ordered
-sketch/profile recompute and SOL-001 extrusion. SKT-015 is the next substantial
-human-test checkpoint: draw a 40 by 25 mm rectangle, extrude 5, edit width to 50,
-verify volume 6250 mm3, undo/redo, cancel and save/reopen. HIS-001 and SOL-001 are currently In Progress in coordinated document/kernel
-and UI tracks. [The extrusion specification](research/commands/extrude-first-slice.md)
-records public source findings, signed frame-normal distance, selected finished
-profiles, reversible sketch visibility and the actual preview quality bar.
-No implementation acceptance has been claimed yet. Root owns the integrated
-build and real-app/native evidence; Astra independently reviews that result. SKT-005 #32 owns inline width/height, canvas dimension placement/editing
+**Latest human-test checkpoint:** HIS-001/SOL-001/SKT-015 have independently
+accepted implementation and API/native evidence. The final executable SHA256 is
+`5ddb024941d36c7497d8f89b3a40ef0f0004f4b0b4ed06f2a11a3c804d171594`;
+`build/evidence/extrusion-final/report.json` records the four same-candidate cases
+and checkpoint alias, with 37 matching source/fixture hashes. Native evidence is
+`build/evidence/extrusion-native-checks.json`; its origin has a 0.12605042 mm offset,
+so it establishes physical drawing/dimensioning without a snapping claim.
+[The extrusion specification](research/commands/extrude-first-slice.md) records
+public sources and boundaries. No unchanged full suite, tutorial, CI matrix or
+release was run. Pull the live ready queue before selecting the next bounded
+modeling increment: boolean extrusion and circles/arcs are important remaining
+parts of the sketch-led path. SKT-005 #32 owns inline width/height, canvas dimension placement/editing
 and drawing inference; SKT-008 #35 owns per-entity diagnostic colors/badges and
 visibility controls. Keep functional modeling and these concrete fidelity
 corrections moving in bounded increments.

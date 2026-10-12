@@ -15,8 +15,10 @@ creates and edits real OCCT boxes and cylinders, and supports origin-plane
 sketches with connected lines, rectangles, geometric constraints and driving/driven
 dimensions. Placed dimensions have witness lines/arrows, an adjacent numeric editor
 and draggable labels; solved closed line loops produce selectable real profiles.
-GPU rendering, shared undo/redo and native save/reopen cover both.
-Extrusion, broader modeling, import and printing export remain ahead. Agent control and self-testing
+Finished profiles remain selectable and can create editable one-side New Body
+extrusions. Upstream sketch edits rebuild their solids through the same history.
+GPU rendering, shared undo/redo and native save/reopen cover this chain.
+Broader modeling, import and printing export remain ahead. Agent control and self-testing
 are part of the application from its first runnable version.
 
 The public repository is [rje/Alloy](https://github.com/rje/Alloy), with the
@@ -81,7 +83,11 @@ measurement, failed-solve preservation and storage/history checks. This supports
 the declared subset, rather than full sketch interaction parity. The later
 [annotation/profile receipt](docs/validation/sketch-annotations.md) records complete
 line dimensions, native inline editing, exact placement-only dragging and actual
-closed-face derivation/picking.
+closed-face derivation/picking. The [extrusion receipt](docs/validation/sketch-extrusion.md)
+records the first finished-profile → solid → upstream width edit workflow, including
+native selection, E, distance typing, label editing and undo/redo. That candidate
+uses capability-selected 4× MSAA on Apple M4, dark edges and fixed world-space
+lighting for distinct shaded face tones; other-platform runtime remains unqualified.
 
 For a first hands-on test, build using [development.md](docs/development.md),
 open [examples/gauge-block.alloy](examples/gauge-block.alloy) through File → Open,
@@ -100,8 +106,16 @@ horizontal and vertical driving dimensions or driven measurements; Finish commit
 the entire sketch once. Select an edge, press D, click to place its dimension,
 then type a value and press Enter. Double-click driving labels to edit, drag
 labels to reposition, and press Escape to abandon pending edits. Closed-profile
-interiors are filled and selectable while sketch editing. Inline rectangle entry,
-snapping and per-entity constraint diagnostics remain
+interiors are filled and selectable both during editing and after Finish.
+Open [examples/sketch-extrusion.alloy](examples/sketch-extrusion.alloy) to edit a
+rectangle and its dependent 5 mm solid. After Finish, select a visible region and
+press E (or Extrude). The adjacent dock supports Profile Plane / One Side /
+Distance / New Body, with an opaque shaded preview; Home shows its depth.
+OK creates one feature and hides the consumed sketch. Browser checkboxes show it
+again; Cancel preserves the document. Signed distance reverses the plane normal.
+The API supports mm/in conversion; extrusion UI unit suffix entry, a Flip button,
+interactive handles and other extent/operation modes remain ahead.
+Inline rectangle entry, snapping and per-entity constraint diagnostics remain
 [tracked interaction gaps](docs/research/commands/sketch-controls.md).
 
 To list tasks whose dependencies are complete:

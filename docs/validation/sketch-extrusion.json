@@ -1,0 +1,228 @@
+{
+  "schema": "alloy-validation/1",
+  "recordedDate": "2026-10-12",
+  "scope": [
+    "HIS-001",
+    "SOL-001",
+    "SKT-015"
+  ],
+  "result": "passed_bounded",
+  "candidate": {
+    "app": "/Users/rje/src/cpp/Alloy/build/alloy.app/Contents/MacOS/alloy",
+    "source_commit": "806afd6e68ef8d38ab312a33529dc01f3d854a7f",
+    "dirty": true,
+    "sha256": "5ddb024941d36c7497d8f89b3a40ef0f0004f4b0b4ed06f2a11a3c804d171594"
+  },
+  "host": {
+    "system": "macOS-26.5.1-arm64-arm-64bit-Mach-O",
+    "architecture": "arm64",
+    "python": "3.14.5"
+  },
+  "inputs_sha256": {
+    "tests/workflows/ledger.json": "22efa8b62e39c66a9d9225638367f08c921b852aa517b23744ddc7563fd1244c",
+    "docs/backlog/issues.json": "758e059bbd5eb42aad16d03c1c27b470b700ad7b69dbc87cbd980f51d53bd2bc",
+    "tests/workflows/run.py": "de73c9bba394c61717a53845ac52fb6e6a60395a484ddf33b552c3b759c390d3",
+    "CMakeLists.txt": "1c82d8219f8a58e5fab5b046384e23c8195a86beb1175c2d027b80ef7af1e631",
+    "tools/alloyctl.py": "7429d3a49baccef9bbf63b90924dccf2ac13c083feb4b55a8bbd499e442aa2ca",
+    "tools/backlog.py": "2db58486ac1cfa3366dc9d942b3e6177531bb800e8a7e0a87390a30ddba13417",
+    "src/AlloyWindow.cpp": "51425dc21eb4ec9345a70daa550622a16fa74551db7ef1cd2448129bf0e3dd14",
+    "src/AlloyWindow.h": "d16e540b9f9f6d41a915f719720e2233991b999a06a9ee4c71d6780887a0911f",
+    "src/CadDocument.cpp": "5477e569e83d2060cc92c677584c27ae4a0ba84367398f011fafbbc430779602",
+    "src/CadDocument.h": "5733f3baea770310d90dcdd03a4f231ca0b98cde34c90d49b71ad85c7e955041",
+    "src/ControlServer.cpp": "cb8ad74e6bed508791cc0f12e0d09b7cad46d7ccf20e0f5ceeb53178e83fddea",
+    "src/ControlServer.h": "9c692cacf1f764435284b1cec2e3d50a38ebda8ab7aeccd76704adbf67aee651",
+    "src/GeometryKernel.cpp": "f42e36708ec94e2f5a4da0e1e458904bddd9c9447474fc8eee1c33081546e636",
+    "src/GeometryKernel.h": "eccde00f21fa624b9f71633f144dad44882fd7a3978398747ca2e89e6c55095f",
+    "src/ReferenceView.cpp": "f6c870cdbeb6efedfd76a052aa0f341c0662b2f0495c57487486ce73ccb43307",
+    "src/ReferenceView.h": "ad62ecacf3fca43a5a70fd3e95d395f2d941baabbd4439e985737e379b0af7f3",
+    "src/SketchGeometry.cpp": "59e30b5aeb2786d45be5de98ae42b02844ea0e57809a5a27a23ff2876e685a3d",
+    "src/SketchGeometry.h": "5d49a9ca532374fb71aa3b9527a07f712766dd0e82b432e1c783acdf8a83aa4a",
+    "src/SketchProfiles.cpp": "51c2c47a14174d2e0861aff424de67470b2712321a0258dec7730bbb5977138f",
+    "src/SketchProfiles.h": "bcca9e903c28947775a1999ec36bc7e562cbd4795c9183d8b5391822e4703b0d",
+    "src/SketchSolver.cpp": "696a15fcc167a67bf857572fee562b2c663a35eb5fd548b299091ba3218d051d",
+    "src/SketchSolver.h": "51726c477913701cf008515c7a0e3749e4abaef0a99040cc5c72a28f6a0cb8f5",
+    "src/main.cpp": "16853ebf0f003c63d1455a7e36819dd1cc952c43ab4758dc16deb8cda949a9f8",
+    "tests/primitives_api.py": "2c8dc2cf0a734c12e60e40931eaca232dad4e5534c5c37a006ccd10f25225fb4",
+    "tests/workflows/fixtures/primitives.json": "0f7fcc0c685523139ee2c941da57909632763f2c1b4368e33aecebec7ba3e390",
+    "tests/app_harness.py": "5664939829e851da533d80a942a1b03f869106724683025d367fef3dd9d22d08",
+    "tests/geometry_kernel.cpp": "de9aeb2f7b9cb2b35b2cf955b95fb735701a9685b34ff7752a931ec565bf95cd",
+    "tests/sketch_constraints_api.py": "6132ab01b150230f27d69383ac7c42ea42e97feb222e187c733963053c016f80",
+    "tests/workflows/fixtures/sketch-constraints.json": "4d754d51169a4768294e49d866e9d9ba271d19277e5f7576d5d119c235ce7402",
+    "cmake/PlaneGCS.cmake": "8c3f4b3b73f4c56360d3f3cc9b3e47b5191af1379fd61d06268d4f71ce5db8d6",
+    "tests/sketch_annotations_api.py": "5057afca7168866d7c32fda012f88906bfe55207f6b272b9dc281835d06e41d4",
+    "tests/workflows/fixtures/sketch-annotations.json": "4d754d51169a4768294e49d866e9d9ba271d19277e5f7576d5d119c235ce7402",
+    "tests/sketch_document.cpp": "b6d0406ae483ee7bc41c461dbe842e6f46e421a661cc313bbe6b12d4cbe13543",
+    "tests/sketch_profiles.cpp": "e4fb193e6b1cb7d3fb1a137e28869e9f20cdf3452a6e2f7d63268c1655c6941b",
+    "tests/sketch_extrude_api.py": "69c53920f6d41f7fc612b04092284d437035a1c0e93f9b7c20db349d904b41b7",
+    "tests/workflows/fixtures/sketch-extrude.json": "c876c44a2936357b924076818f95563ac9412e6e754f0bc62a021d04f6ef0f37",
+    "tests/extrusion_document.cpp": "2860e73a0aab6c6a53d6804c3683f28d009247b02e0f6232ecdfd534b9ceee8b"
+  },
+  "build": {
+    "status": "passed",
+    "kind": "native Debug CMake/Ninja",
+    "qt": "6.11.2",
+    "occt": "7.9.3",
+    "note": "Separately built; workflow runner accurately reports build not_run."
+  },
+  "core": {
+    "status": "passed",
+    "tests": [
+      "geometry_kernel",
+      "document_model",
+      "sketch_document",
+      "sketch_profiles",
+      "extrusion_document"
+    ],
+    "note": "All five passed against the unchanged core; later panel/render-only corrections did not repeat core tests."
+  },
+  "api": {
+    "status": "passed",
+    "commands": 64,
+    "cases": {
+      "primitives": "passed",
+      "sketch-constraints": "passed",
+      "sketch-annotations": "passed",
+      "sketch-extrude": "passed",
+      "sketch-extrusion-checkpoint": "passed"
+    },
+    "fixture": "tests/workflows/fixtures/sketch-extrude.json",
+    "results": {
+      "initialAreaMm2": 1000,
+      "initialVolumeMm3": 5000,
+      "editedAreaMm2": 1250,
+      "editedVolumeMm3": 6250,
+      "stableProfileFeatureBodyIds": true,
+      "saveReopen": true,
+      "atomicInvalidDependencyFailure": true
+    }
+  },
+  "hardware": {
+    "status": "passed",
+    "backend": "OCCT OpenGL",
+    "gpu": "Apple M4",
+    "msaa": {
+      "enabledSamples": 4,
+      "maximumSamples": 4,
+      "requestedSamples": 4,
+      "textureMultisampling": true
+    },
+    "note": "Capability-selected rendering configuration and actual driver maximum; no native Metal RHI or other-platform qualification."
+  },
+  "native": {
+    "result": "passed",
+    "candidateSha256": "5ddb024941d36c7497d8f89b3a40ef0f0004f4b0b4ed06f2a11a3c804d171594",
+    "instanceId": "4682faf5-7662-409d-b5ee-45baf094c576",
+    "nativeSteps": [
+      "Create Sketch -> XY",
+      "R -> two canvas clicks",
+      "Edge -> D -> placed label -> 40 -> Enter",
+      "Edge -> D -> placed label -> 25 -> Enter",
+      "Select point -> Fixed",
+      "Finish Sketch",
+      "Select profile -> E -> 5 -> Tab -> Home -> OK",
+      "Timeline Sketch -> label double-click -> 50 -> Enter -> Finish",
+      "Undo -> Redo",
+      "Timeline Extrude -> 8 -> Tab -> Cancel"
+    ],
+    "results": {
+      "profileAreaMm2": 999.9999999999998,
+      "initialVolumeMm3": 4999.999999999999,
+      "editedVolumeMm3": 6249.999999999998,
+      "cancelledPreviewVolumeMm3": 10000,
+      "cancelPreservedDocument": true,
+      "stableFeatureAndBodyIds": true,
+      "undoEntries": 3
+    },
+    "apiUse": [
+      "identity/state inspections",
+      "coordinate projection",
+      "framebuffer capture",
+      "save fixture"
+    ],
+    "notes": [
+      "Native origin has v=0.12605042 mm; dimensions and volume are exact within tolerance. No inference/snapping claim.",
+      "Two native click calls opened the dimension editor after clickCount:2 tool attempts only selected it. No app source change was needed.",
+      "Storage reopen is covered by the real-entrypoint API case, not repeated through native dialogs."
+    ]
+  },
+  "independentReview": {
+    "reviewer": "Astra",
+    "status": "accepted_bounded",
+    "checks": [
+      "current source and 37 input hashes",
+      "matching executable and final API captures",
+      "native states and final capture",
+      "exact cancellation preservation and stable IDs"
+    ],
+    "note": "No additional run requested; reviewer did not implement this candidate."
+  },
+  "localArtifacts": {
+    "build/evidence/extrusion-final/report.json": {
+      "sha256": "c372855d2fe042b3bd8fa5cdd14d17dfd753200f241217520672d8226fa0dfbc",
+      "bytes": 19621
+    },
+    "build/evidence/extrusion-final/run-5twgke0z/sketch-extrude/sketch-extrude-api.json": {
+      "sha256": "c6e5ce85eef6638f2e420e026facbbed55c08fb85487f04d0187eee9f789a207",
+      "bytes": 842572
+    },
+    "build/evidence/extrusion-final/run-5twgke0z/sketch-extrude/committed-extrusion.png": {
+      "sha256": "c0ff8317b605de35a74f8f5484cd0dd789c03a813485fc3cb991ae83bad49747",
+      "bytes": 273261
+    },
+    "build/evidence/extrusion-final/run-5twgke0z/sketch-extrude/upstream-width-edit.png": {
+      "sha256": "95a6f7d66a164fa0a89c64955d5b923271aa9600bc9a9a85e494a5c805b896a3",
+      "bytes": 285430
+    },
+    "build/evidence/extrusion-native-checks.json": {
+      "sha256": "d52378b35dc2fa67c16d90adf05343df6504478a9d56749136d1be50084616ab",
+      "bytes": 1377
+    },
+    "build/evidence/extrusion-native-final.png": {
+      "sha256": "c888ff7e09f1d7415883e864ef11ae6e9ab6e5e51c6cfd738437e6872959b9a0",
+      "bytes": 286243
+    },
+    "build/evidence/extrusion-native-part.alloy": {
+      "sha256": "6b8062d768c330bd00f6f6daa0721044048636dd6b535f153453b942994b9309",
+      "bytes": 5968
+    },
+    "build/evidence/extrusion-native-width-edit.json": {
+      "sha256": "e85269d349a5761d910e51679ddb1e9f90b52d2d9b51dade70be4ce04f9fa79c",
+      "bytes": 22185
+    },
+    "build/evidence/extrusion-native-undo.json": {
+      "sha256": "69f4ee5b8dee26573fcba287e4590937fbd938bed4d3de970b3519823ef696c7",
+      "bytes": 22485
+    },
+    "build/evidence/extrusion-native-redo.json": {
+      "sha256": "44de792de1239037b3ef53a2e01fca13301b49e6cfbe86d5cbf5e4f1e9d5a183",
+      "bytes": 22185
+    },
+    "build/evidence/extrusion-native-edit-preview.json": {
+      "sha256": "d2131f8795b0ba4ce18ca160adfe6c3f55a80d2141eb8178e0860f4afcbaae30",
+      "bytes": 31151
+    },
+    "build/evidence/extrusion-native-cancel.json": {
+      "sha256": "344227d40dbb87ee482eda9da802aada43126d1bf58bd6076639b26b377a1155",
+      "bytes": 22518
+    }
+  },
+  "publishedCapture": {
+    "path": "docs/validation/sketch-extrusion.png",
+    "sha256": "fe6de470f331589e4287c7edce2ee94c5f0d340f4eb907dd154c67501cef631c"
+  },
+  "sample": {
+    "path": "examples/sketch-extrusion.alloy",
+    "sha256": "1d871b544cce4df65929d58f8e08c0aeb8bdbc9abeee970bd8f6dc3bb5a5362a"
+  },
+  "limits": [
+    "One connected closed line loop on an origin plane; no holes or curved region coverage.",
+    "Distance, one-side, New Body only; no boolean, symmetric, two-side, taper or alternate extent modes.",
+    "Opaque preview occludes the selected base from Home; blue normal cue is small and noninteractive.",
+    "UI distance field uses fixed display units and signed values; no typed unit suffix or Flip button.",
+    "Native drawing has a 0.12605042 mm anchor offset, not evidence of snapping/inference.",
+    "Public animation/reference size, scale, theme and platform are unmatched; no exact visual parity claim.",
+    "Native save dialogs not repeated; save/reopen verified by same-candidate API workflow.",
+    "No full tutorial, cross-platform runtime/package, STEP/export, mounting bracket or release gate accepted.",
+    "No CI run, tag or release created."
+  ]
+}

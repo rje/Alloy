@@ -21,6 +21,7 @@ class QHBoxLayout;
 class QDockWidget;
 class QShortcut;
 class QCheckBox;
+class QPushButton;
 class QScrollArea;
 
 // UI and automation dispatch against the same authored document.
@@ -51,6 +52,15 @@ private:
     void showUnits();
     void showPrimitive();
     void updatePrimitive(const QJsonObject& inputs);
+    QJsonObject beginExtrude(const QJsonObject& inputs);
+    QString validateExtrudeInputs(const QJsonObject& inputs) const;
+    QJsonObject extrusionCandidate(const QJsonObject& inputs, bool hideSource) const;
+    QJsonObject previewExtrude();
+    void showExtrude();
+    void refreshExtrudeControls();
+    void updateExtrude(const QJsonObject& inputs);
+    QJsonObject selectFinishedProfile(const QString& sketchId, const QString& profileId);
+    QJsonArray dependentBodies(const QString& sketchId) const;
     QJsonObject primitiveCandidate(const QString&, const QJsonObject&) const;
     QJsonObject beginSketch(const QString& plane, const QString& name, const QString& sketchId = {});
     QJsonObject appendSketchEntity(const QString& tool, const QJsonObject& inputs);
@@ -87,6 +97,13 @@ private:
     QMap<QString,QDoubleSpinBox*> primitiveInputs_;
     QLabel* primitiveError_ = nullptr;
     QLineEdit* primitiveName_ = nullptr;
+    QWidget* extrudePanel_ = nullptr;
+    QDockWidget* extrudeDock_ = nullptr;
+    QComboBox* extrudeProfile_ = nullptr;
+    QDoubleSpinBox* extrudeDistance_ = nullptr;
+    QLabel* extrudeError_ = nullptr;
+    QPushButton* extrudeOk_ = nullptr;
+    QShortcut* extrudeEscape_ = nullptr;
     QTreeWidgetItem* bodiesNode_ = nullptr;
     QTreeWidgetItem* sketchesNode_ = nullptr;
     QWidget* sketchPanel_ = nullptr;
@@ -115,6 +132,7 @@ private:
     QLabel* documentTitle_ = nullptr;
     QLabel* browserNote_ = nullptr;
     QString selectedBody_;
+    QString selectedSketch_, selectedProfile_;
     quint64 displayedDocumentRevision_ = 0;
     bool authorizedQuit_ = false;
     QJsonObject session_;
