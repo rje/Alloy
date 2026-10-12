@@ -63,6 +63,12 @@ Updated 2026-10-11. This is the project handoff for a fresh session. Read the ro
   Another reviewer checks Astra-authored code. Follow compatibility.md and the
   compact sketch-controls record; do not sweep every command after every commit
   or claim overall exact parity from one state.
+- Public-reference research must lead each user-facing implementation, including
+  its controls and presentation. Gather public examples independently and produce
+  a bounded specification with verification steps; do not wait for the user to
+  supply screenshots or identify missing behavior. In particular, bare dimension
+  value labels do not satisfy sketch annotation presentation: research witness
+  lines, arrows, placement/editing, glyphs, colors and profiles proactively.
 - The project lives at `~/src/cpp/Alloy`. Alloy is the working name. Astra was
   requested for the initial public-interface research and project foundation,
   and completed that assignment.
@@ -263,7 +269,14 @@ Detailed transcripts/build/test/native artifacts are retained under
 identifies which checks ran against each binary. Repeat checks only for material
 changes, new failures or unresolved risks.
 
-**Next execution priority:** SKT-014 simple closed profiles, HIS-001 ordered
+**Active correction:** SKT-005 #32 is In Progress for proactive public-reference
+research and proper sketch dimension/annotation interaction. Astra researches
+the complete affected workflow; the UI agent independently checks mature OCCT
+annotation support and portable presentation data. The first accepted solver
+slice contains value labels, not complete dimension graphics. Public sources
+must lead the implementation specification without waiting for user examples.
+
+**Next modeling priority:** SKT-014 simple closed profiles, HIS-001 ordered
 sketch/profile recompute and SOL-001 extrusion. SKT-015 is the next substantial
 human-test checkpoint: draw a 40 by 25 mm rectangle, extrude 5, edit width to 50,
 verify volume 6250 mm3, undo/redo, cancel and save/reopen. HIS-001 is accepted on
@@ -300,6 +313,22 @@ while actual other-platform builds and distributable runtime closure remain open
 The exact dated reference release/platform/theme/navigation baseline,
 minimum OS versions/architectures and portable solver runtime qualification
 remain unresolved. They are recorded gaps, not forgotten decisions. Current
-public-interface/build research now covers the major feature families with 123 dated
-public-source entries, including original community tutorials, contradictions, and open questions. It does not yet specify
+public-interface/build research now covers the major feature families with 134 dated
+reference entries, including original community tutorials, contradictions, and open questions. It does not yet specify
 every command, default, error, or visual state.
+
+## Future tutorial exercises
+
+Public beginner-project research is recorded in
+[the tutorial recipes](research/tutorial-gates.md). TUT-001 #146 follows the full
+toy-block lesson; TUT-002 #147 follows the library die/component/STL lesson.
+Neither has been executed. Every source step must be available through shared
+real-app commands and the human UI; skipped modeling steps mean incomplete,
+and visual expectations need inspected public images before matched claims.
+The recipes separate source dimensions from Alloy-chosen deterministic fixtures.
+SKT-016 #144 and SOL-014 #145 explicitly cover missing construction/distance and
+spherical-cut capabilities. The full die waits on component organization; early
+adaptations must name that deviation. These additions bring the backlog to
+147 tasks: 94 implementation, 14 research, 22 epics and 17 validation tasks.
+The nearest sketch/extrude checkpoint SKT-015 and version/manual CI policy remain
+unchanged. Pull readiness and issue state remain authoritative through gh/API.

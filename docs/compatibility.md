@@ -40,7 +40,14 @@ something may be documented in reference CAD application and still absent from A
 
 ## Command records
 
-As a command enters implementation, record:
+Before a command's controls and presentation enter implementation, research its
+representative workflow independently. Use both public documentation and useful
+original community demonstrations; users should not need to supply reference
+examples or identify missing behavior. Turn the findings into a compact
+implementation specification and verification steps. Resolve material questions
+about the intended interaction before coding, and label remaining uncertainty.
+
+Record:
 
 - Public sources and their dates; product context, platform, and version if known.
 - Command name, location, keyboard trigger, allowed selections, prerequisites,
@@ -137,3 +144,12 @@ fixture/evidence link, a small results table and follow-up issue links. Keep
 functional output and visual/input findings separate. Unknown evidence is not a
 license to invent defaults or inspect the actual proprietary application, and a
 single matching state cannot certify all commands or overall product parity.
+
+### Beginner-project gates
+
+Use independently found original public beginner lessons as future end-to-end
+exercises; see [the recipe records](research/tutorial-gates.md). Record every
+source step, prerequisites and measurable/visible checkpoint expectations. Start
+from an empty document, use the real app, and flag any blocked or adapted step.
+Partial tutorial prefixes help early development but never establish full recipe
+completion. Run these at coherent modeling milestones, not after each commit.

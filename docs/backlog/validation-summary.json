@@ -1,18 +1,18 @@
 {
-  "issues": 143,
+  "issues": 147,
   "kinds": {
     "research": 14,
-    "implementation": 92,
-    "validation": 15,
+    "implementation": 94,
+    "validation": 17,
     "epic": 22
   },
   "phases": {
     "P0 Foundation": 19,
     "P1 Geometry/document": 17,
     "P2 Parametric modeling": 32,
-    "P3 Shape/import/print breadth": 24,
+    "P3 Shape/import/print breadth": 27,
     "P4 Initial release": 8,
-    "P5 Assemblies/drawings": 9,
+    "P5 Assemblies/drawings": 10,
     "P6 Advanced design": 11,
     "P7 Manufacturing": 9,
     "P8 Analysis/electronics": 10,
@@ -43,9 +43,9 @@
     "FND-010",
     "GATE-000"
   ],
-  "source_entries": 123,
+  "source_entries": 134,
   "public_source_urls": 38,
-  "archived_reference_ids": 85,
+  "archived_reference_ids": 96,
   "checks": [
     "schema",
     "unique keys",

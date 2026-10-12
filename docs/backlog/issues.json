@@ -665,7 +665,7 @@
         "priority:P0",
         "area:skt"
       ],
-      "body": "## Problem and result\nImplement physical sketch placement, snap and numeric input. Deliver the bounded result below within Alloy's standalone C++20 product; the current application is only a Qt shell.\n\n## Scope\nAdd mouse placement and inline typed coordinates/lengths, documented snapping cues and explicit automatic-constraint policy for current line/rectangle tools. Complete the sourced Sketch Dimension flow: D, geometry selection, canvas annotation placement, numeric entry/Enter, repeated dimensions/Escape, and double-click annotation editing. Keep current palette coordinate helpers available while matching these reference interactions. Public sources and known gaps are in docs/research/commands/sketch-controls.md and sketch-reference-evidence.json.\n\n## Acceptance criteria\n- Physical placement dispatches the same authored commands; Escape/Enter/Tab and text focus work; inferred constraints are visible and removable.\n- Dimension annotation placement and editing use shared observable command state; explicit conversion to driven is offered when a dependent driving dimension would overconstrain. Cancel and rejected solves preserve usable geometry and journal state.\n- UI and local API share authoritative document/commands; expose arguments, selection, errors and result inspection. Undo/save coverage follows the dependencies, never a separate automation model.\n\n## Proposed verification and evidence\nDraw and dimension a rectangle with physical input, inspect its actual IDs/constraints through API and replay equivalent commands; capture cursor/constraint states separately.\n\nAdd/execute `python3 tests/workflows/run.py --case SKT-005 --evidence build/evidence/SKT-005` (case not implemented yet; the runner refuses missing cases). Record actual commands, fixture hashes, dependency versions, assertions and artifacts. Keep build, API, geometry, save/reopen, export, physical input and visual evidence separate; mark non-applicable dimensions with a reason.\n\n## Public reference evidence\n- Original rectangle tutorial (reference `community-sketch-001`) — retrieved 2026-10-11.\n- Original sketch dimension tutorial (reference `community-sketch-002`) — retrieved 2026-10-11.\n- Original sketch tools tutorial (reference `community-sketch-003`) — retrieved 2026-10-11.\n- reference CAD application keyboard shortcuts (reference `keys`) — retrieved 2026-10-11.\n- Sketches in reference CAD application (reference `sketch`) — retrieved 2026-10-11.\n- Sketch Palette (reference `palette`) — retrieved 2026-10-11.\n\nReferences describe documented product/library behavior. Scope, implementation strategy, fixture values and acceptance thresholds are Alloy proposals unless explicitly stated otherwise. Never run or inspect reference CAD application; use public documentation/screenshots only.\n\n## Limits and open questions\nThe automatic H/V rectangle and initial equation/readout slice are covered by SKT-003/004; this issue remains open for physical interaction compatibility. Normal-plane sketch input does not wait for full arbitrary camera navigation (FND-007), which remains required separately by product gates. Exact latest theme/defaults and snapping tolerances remain unknown until permitted public evidence resolves them.\n"
+      "body": "## Problem and result\nImplement physical sketch placement, snap and numeric input. Deliver the bounded result below within Alloy's standalone C++20 product; the current application is only a Qt shell.\n\n## Scope\nAdd mouse placement and inline typed coordinates/lengths, documented snapping cues and explicit automatic-constraint policy for current line/rectangle tools. Complete the sourced Sketch Dimension flow: D, geometry selection, canvas annotation placement, numeric entry/Enter, repeated dimensions/Escape, and double-click annotation editing. Keep current palette coordinate helpers available while matching these reference interactions. Public sources and known gaps are in docs/research/commands/sketch-controls.md and sketch-reference-evidence.json.\n\nCenter-point rectangle placement and inline width/height Tab entry must have explicit coverage before TUT-002 can run.\n\n## Acceptance criteria\n- Physical placement dispatches the same authored commands; Escape/Enter/Tab and text focus work; inferred constraints are visible and removable.\n- Dimension annotation placement and editing use shared observable command state; explicit conversion to driven is offered when a dependent driving dimension would overconstrain. Cancel and rejected solves preserve usable geometry and journal state.\n- UI and local API share authoritative document/commands; expose arguments, selection, errors and result inspection. Undo/save coverage follows the dependencies, never a separate automation model.\n\n## Proposed verification and evidence\nDraw and dimension a rectangle with physical input, inspect its actual IDs/constraints through API and replay equivalent commands; capture cursor/constraint states separately.\n\nAdd/execute `python3 tests/workflows/run.py --case SKT-005 --evidence build/evidence/SKT-005` (case not implemented yet; the runner refuses missing cases). Record actual commands, fixture hashes, dependency versions, assertions and artifacts. Keep build, API, geometry, save/reopen, export, physical input and visual evidence separate; mark non-applicable dimensions with a reason.\n\n## Public reference evidence\n- Original rectangle tutorial (reference `community-sketch-001`) — retrieved 2026-10-11.\n- Original sketch dimension tutorial (reference `community-sketch-002`) — retrieved 2026-10-11.\n- Original sketch tools tutorial (reference `community-sketch-003`) — retrieved 2026-10-11.\n- reference CAD application keyboard shortcuts (reference `keys`) — retrieved 2026-10-11.\n- Sketches in reference CAD application (reference `sketch`) — retrieved 2026-10-11.\n- Sketch Palette (reference `palette`) — retrieved 2026-10-11.\n\nReferences describe documented product/library behavior. Scope, implementation strategy, fixture values and acceptance thresholds are Alloy proposals unless explicitly stated otherwise. Never run or inspect reference CAD application; use public documentation/screenshots only.\n\n## Limits and open questions\nThe automatic H/V rectangle and initial equation/readout slice are covered by SKT-003/004; this issue remains open for physical interaction compatibility. Normal-plane sketch input does not wait for full arbitrary camera navigation (FND-007), which remains required separately by product gates. Exact latest theme/defaults and snapping tolerances remain unknown until permitted public evidence resolves them.\n"
     },
     {
       "key": "SKT-006",
@@ -1347,6 +1347,113 @@
       "body": "## Problem and result\nAdd surface continuity, normals and zebra inspection. Deliver the bounded result below within Alloy's standalone C++20 product; the current application is only a Qt shell.\n\n## Scope\nProvide normal visualization, sampled continuity metrics and a declared zebra/curvature display for actual evaluated surfaces.\n\n## Acceptance criteria\n- Visualization is tied to kernel surface derivatives and identifies seam/boundary; appearance alone cannot certify G1/G2.\n- UI and local API share authoritative document/commands; expose arguments, selection, errors and result inspection. Undo/save coverage follows the dependencies, never a separate automation model.\n\n## Proposed verification and evidence\nCompare analytic tangent and deliberately kinked joins; save numeric sampling evidence and paired real-view captures.\n\nAdd/execute `python3 tests/workflows/run.py --case SRF-008 --evidence build/evidence/SRF-008` (case not implemented yet; the runner refuses missing cases). Record actual commands, fixture hashes, dependency versions, assertions and artifacts. Keep build, API, geometry, save/reopen, export, physical input and visual evidence separate; mark non-applicable dimensions with a reason.\n\n## Public reference evidence\n- Surface loft continuity and rails (reference `srfloft`) — retrieved 2026-10-11.\n- [OCCT visualization](https://www.occt3d.com/dev/doc/overview/html/occt_user_guides__visualization.html) — retrieved 2026-10-11.\n\nReferences describe documented product/library behavior. Scope, implementation strategy, fixture values and acceptance thresholds are Alloy proposals unless explicitly stated otherwise. Never run or inspect reference CAD application; use public documentation/screenshots only.\n\n## Limits and open questions\nOnly the stated subset is in scope; record unsupported options explicitly. This issue is planned, not implemented or verified.\n"
     },
     {
+      "key": "SKT-016",
+      "title": "Add construction lines, midpoint relations and point-to-edge distances",
+      "kind": "implementation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-005",
+        "SKT-006",
+        "SKT-007",
+        "SKT-010"
+      ],
+      "labels": [
+        "area:skt"
+      ],
+      "body": "## Problem and result\nAdd construction lines, midpoint relations and point-to-edge distances. Make public beginner-project exercises executable without hidden substitutes.\n\n## Scope\nSupport authored construction geometry excluded from profile boundaries, midpoint/point-on-line relations, and driving distance from a point to a supported straight edge. This is the bounded missing sketch coverage required by the toy-block tube and stud-placement steps.\n\n## Acceptance criteria\nUI and API share commands, stable target IDs and solver authority. A construction line never contributes a solid-profile boundary. Midpoint and perpendicular distance remain correct after upstream edits; conflicting values preserve the usable draft.\n\n## Proposed verification and evidence\nUse one two-circle construction centerline with midpoint-placed circle, plus one point-to-edge distance. Inspect solver residuals, actual region area, upstream edit, Finish/undo and native reopen. Add a focused runner case only when implemented; the tutorial remains blocked until it passes.\n\n## Public reference evidence\n- Original public lesson (reference `tutorial-toy-block-2026`) — retrieved 2026-10-11. Source instructions and Alloy-chosen fixture values are distinguished in docs/research/tutorial-gates.md. Original URLs stay in the external reference records.\n\n## Limits and open questions\nNo implementation or execution yet. General snapping, arbitrary spline distances and other construction tools remain separate scope.\n"
+    },
+    {
+      "key": "SOL-014",
+      "title": "Create face-positioned spheres with Cut and Repeat",
+      "kind": "implementation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P1",
+      "depends_on": [
+        "DOC-003",
+        "DOC-004",
+        "DOC-006",
+        "DOC-008",
+        "DOC-012",
+        "SOL-002"
+      ],
+      "labels": [
+        "area:sol"
+      ],
+      "body": "## Problem and result\nCreate face-positioned spheres with Cut and Repeat. Make public beginner-project exercises executable without hidden substitutes.\n\n## Scope\nAdd an editable Sphere primitive positioned on a selected planar face, with center, diameter, support reference, explicit target body and Cut. Repeat opens the same command with meaningful retained defaults. Keep new-body sphere creation available through the same authority.\n\n## Acceptance criteria\nA diameter-3 sphere centered on a planar cube face creates a genuine hemispherical recess. UI and API use the same authored operation, kernel geometry and undo. Supported upstream edits retain the face reference or report an unresolved support; no cylinder substitutes.\n\n## Proposed verification and evidence\nCheck one face-centered recess against the analytic volume removal, preview/Cancel, Repeat on a second face, edit diameter, undo and save/reopen. Expose actual geometry and support state. Register the case when implemented; this planning task passes no gate.\n\n## Public reference evidence\n- Original public lesson (reference `tutorial-library-die`) — retrieved 2026-10-11. Source instructions and Alloy-chosen fixture values are distinguished in docs/research/tutorial-gates.md. Original URLs stay in the external reference records.\n\n## Limits and open questions\nNo implementation or execution yet. Components and the complete die tutorial retain their separate prerequisites.\n"
+    },
+    {
+      "key": "SKT-013",
+      "title": "Attach sketches to planar faces with persistent references",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-001",
+        "DOC-006",
+        "DOC-012"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P2",
+        "priority:P1",
+        "area:skt"
+      ],
+      "body": "## Problem and result\nAttach sketches to planar faces with persistent references. Preserve the full roadmap while delivering a useful sketch-first increment.\n\n## Scope\nExtend origin-plane sketches to planar body faces; retain the authored support reference/frame through supported upstream edits.\n\n## Acceptance criteria\nChoose a box face through UI/API; solved sketch coordinates map to the correct world plane. Recompute/reopen preserves the intended face or reports an unresolved support without arbitrary rebinding.\n\n## Proposed verification and evidence\nCreate on a box face, edit the upstream box, undo/reopen, then deliberately remove its support and inspect the recoverable diagnostic. Use shared Alloy commands, inspect actual geometry/history, and retain real-entrypoint evidence. Keep API, geometry, storage, physical and visual results distinct.\n\n## Public reference evidence\n- Edit a sketch (reference `sketchmode`)\n- Persistent geometry projection (reference `project`) — retrieved 2026-10-11. Reference descriptions are public evidence; fixture values and implementation boundaries are Alloy proposals.\n\n## Limits and open questions\nThis preserves the face-attached portion split from SKT-001; it does not block the first origin-plane rectangle/extrusion. This issue is planned, not implemented or verified.\n"
+    },
+    {
+      "key": "HIS-004",
+      "title": "Extend recompute to named parameters and persistent face dependencies",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "HIS-001",
+        "PAR-001",
+        "DOC-012"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P2",
+        "priority:P1",
+        "area:his"
+      ],
+      "body": "## Problem and result\nExtend recompute to named parameters and persistent face dependencies. Preserve the full roadmap while delivering a useful sketch-first increment.\n\n## Scope\nIntegrate named expressions and resolved geometric support dependencies with the authored evaluation graph. Add dirty propagation only where real document edits justify it; keep explicit current/stale/failed status.\n\n## Acceptance criteria\nNamed parameter edits update all declared dependents. Persistent face bindings resolve conservatively; failure retains editable intent and explicit diagnostics. Any incremental path agrees with ordered full recompute.\n\n## Proposed verification and evidence\nEdit a named width controlling a sketch/solid, exercise a face-supported dependent, inspect invalid-expression/support repair, and compare supported incremental output with full recompute. Use shared Alloy commands, inspect actual geometry/history, and retain real-entrypoint evidence. Keep API, geometry, storage, physical and visual results distinct.\n\n## Public reference evidence\n- Parameters (reference `parameters`)\n- Timeline behavior (reference `timeline`) — retrieved 2026-10-11. Reference descriptions are public evidence; fixture values and implementation boundaries are Alloy proposals.\n\n## Limits and open questions\nAdvanced reference preservation during fillets and suppression remain HIS-002/HIS-003. This retains the broader recompute scope split from HIS-001. This issue is planned, not implemented or verified.\n"
+    },
+    {
+      "key": "TUT-001",
+      "title": "Gate: follow the complete public toy-block beginner lesson",
+      "kind": "validation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-015",
+        "SKT-005",
+        "SKT-006",
+        "SKT-008",
+        "SKT-009",
+        "SKT-010",
+        "SKT-011",
+        "SKT-013",
+        "SKT-016",
+        "SOL-002",
+        "SOL-003",
+        "SOL-006",
+        "SOL-009",
+        "DOC-006",
+        "DOC-009",
+        "DOC-010",
+        "DOC-012",
+        "HIS-002",
+        "HIS-004",
+        "FND-010"
+      ],
+      "labels": [
+        "area:tut"
+      ],
+      "body": "## Problem and result\nGate: follow the complete public toy-block beginner lesson. Make public beginner-project exercises executable without hidden substitutes.\n\n## Scope\nFrom an empty document, follow the original lesson: 15.8 by 31.8 rectangle, 9.6 extrusion, positioned joined studs, two-direction feature pattern, 1.49 inward shell, construction/midpoint tube placement, offset annulus, tube pattern and 0.2 fillets. Use the source recipe and checkpoints in docs/research/tutorial-gates.md; local Save replaces cloud organization explicitly.\n\n## Acceptance criteria\nEvery demonstrated modeling step is available to a human and succeeds through shared real-app commands. Check actual constrained sketch, one valid solid, eight studs, three underside tubes, thickness/sections, editable feature history, save/reopen and one upstream edit/undo/redo. Resolve exact source underside snap and final fillet edge set before freezing the recipe. A base-only prefix is never full tutorial completion.\n\n## Proposed verification and evidence\nWhen prerequisites are implemented, register a full ordered tutorial case. Retain per-step passed/adapted/blocked/failed results, source and fixture versions, actual commands and checkpoint geometry/captures. Use native controls for uncovered Tab, selection, Cancel and timeline behavior. Compare permitted public views when inspected; keep geometry, visual and physical evidence distinct. Run accepted cumulative cases once on the milestone candidate, not once per tutorial.\n\n## Public reference evidence\n- Original public lesson (reference `tutorial-toy-block-2026`) — retrieved 2026-10-11. Source instructions and Alloy-chosen fixture values are distinguished in docs/research/tutorial-gates.md. Original URLs stay in the external reference records.\n\n## Limits and open questions\nBlocked and unexecuted. Source transcript selections still need public demonstration clarification. This local workflow gate does not establish three-platform packages or pixel parity; SKT-015 and GATE-020 keep their existing meanings.\n"
+    },
+    {
       "key": "GATE-030",
       "title": "Gate: surface-authored duct becomes an editable closed printable solid",
       "kind": "validation",
@@ -1375,7 +1482,10 @@
         "SRF-005",
         "SRF-006",
         "SRF-007",
-        "SRF-008"
+        "SRF-008",
+        "SKT-016",
+        "SOL-014",
+        "TUT-001"
       ],
       "labels": [
         "kind:validation",
@@ -1708,44 +1818,6 @@
       "body": "## Problem and result\nPublish an honest initial capability matrix and workflow examples. Deliver the bounded result below within Alloy's standalone C++20 product; the current application is only a Qt shell.\n\n## Scope\nReconcile every initially targeted command/option/format subset with evidence; ship independently authored bracket, enclosure and duct examples plus reproducible instructions.\n\n## Acceptance criteria\n- Implemented/verified/unsupported/research statuses are distinct; missing accepted initial requirements remain blocking issues rather than hidden scope reduction.\n- UI and local API share authoritative document/commands; expose arguments, selection, errors and result inspection. Undo/save coverage follows the dependencies, never a separate automation model.\n\n## Proposed verification and evidence\nRun examples from fresh native files with installed package; check every capability row has real case/evidence links and all cloud deferrals are individually identified.\n\nAdd/execute `python3 tests/workflows/run.py --case REL-006 --evidence build/evidence/REL-006` (case not implemented yet; the runner refuses missing cases). Record actual commands, fixture hashes, dependency versions, assertions and artifacts. Keep build, API, geometry, save/reopen, export, physical input and visual evidence separate; mark non-applicable dimensions with a reason.\n\n## Public reference evidence\n- Supported file formats (reference `formats`) — retrieved 2026-10-11.\n- reference CAD application desktop interface (reference `ui`) — retrieved 2026-10-11.\n\nReferences describe documented product/library behavior. Scope, implementation strategy, fixture values and acceptance thresholds are Alloy proposals unless explicitly stated otherwise. Never run or inspect reference CAD application; use public documentation/screenshots only.\n\n## Limits and open questions\nOnly the stated subset is in scope; record unsupported options explicitly. This issue is planned, not implemented or verified.\n"
     },
     {
-      "key": "SKT-013",
-      "title": "Attach sketches to planar faces with persistent references",
-      "kind": "implementation",
-      "phase": "P2 Parametric modeling",
-      "priority": "P1",
-      "depends_on": [
-        "SKT-001",
-        "DOC-006",
-        "DOC-012"
-      ],
-      "labels": [
-        "kind:implementation",
-        "phase:P2",
-        "priority:P1",
-        "area:skt"
-      ],
-      "body": "## Problem and result\nAttach sketches to planar faces with persistent references. Preserve the full roadmap while delivering a useful sketch-first increment.\n\n## Scope\nExtend origin-plane sketches to planar body faces; retain the authored support reference/frame through supported upstream edits.\n\n## Acceptance criteria\nChoose a box face through UI/API; solved sketch coordinates map to the correct world plane. Recompute/reopen preserves the intended face or reports an unresolved support without arbitrary rebinding.\n\n## Proposed verification and evidence\nCreate on a box face, edit the upstream box, undo/reopen, then deliberately remove its support and inspect the recoverable diagnostic. Use shared Alloy commands, inspect actual geometry/history, and retain real-entrypoint evidence. Keep API, geometry, storage, physical and visual results distinct.\n\n## Public reference evidence\n- Edit a sketch (reference `sketchmode`)\n- Persistent geometry projection (reference `project`) — retrieved 2026-10-11. Reference descriptions are public evidence; fixture values and implementation boundaries are Alloy proposals.\n\n## Limits and open questions\nThis preserves the face-attached portion split from SKT-001; it does not block the first origin-plane rectangle/extrusion. This issue is planned, not implemented or verified.\n"
-    },
-    {
-      "key": "HIS-004",
-      "title": "Extend recompute to named parameters and persistent face dependencies",
-      "kind": "implementation",
-      "phase": "P2 Parametric modeling",
-      "priority": "P1",
-      "depends_on": [
-        "HIS-001",
-        "PAR-001",
-        "DOC-012"
-      ],
-      "labels": [
-        "kind:implementation",
-        "phase:P2",
-        "priority:P1",
-        "area:his"
-      ],
-      "body": "## Problem and result\nExtend recompute to named parameters and persistent face dependencies. Preserve the full roadmap while delivering a useful sketch-first increment.\n\n## Scope\nIntegrate named expressions and resolved geometric support dependencies with the authored evaluation graph. Add dirty propagation only where real document edits justify it; keep explicit current/stale/failed status.\n\n## Acceptance criteria\nNamed parameter edits update all declared dependents. Persistent face bindings resolve conservatively; failure retains editable intent and explicit diagnostics. Any incremental path agrees with ordered full recompute.\n\n## Proposed verification and evidence\nEdit a named width controlling a sketch/solid, exercise a face-supported dependent, inspect invalid-expression/support repair, and compare supported incremental output with full recompute. Use shared Alloy commands, inspect actual geometry/history, and retain real-entrypoint evidence. Keep API, geometry, storage, physical and visual results distinct.\n\n## Public reference evidence\n- Parameters (reference `parameters`)\n- Timeline behavior (reference `timeline`) — retrieved 2026-10-11. Reference descriptions are public evidence; fixture values and implementation boundaries are Alloy proposals.\n\n## Limits and open questions\nAdvanced reference preservation during fillets and suppression remain HIS-002/HIS-003. This retains the broader recompute scope split from HIS-001. This issue is planned, not implemented or verified.\n"
-    },
-    {
       "key": "UX-001",
       "title": "Fix Mac viewport input and docked primitive editing",
       "kind": "implementation",
@@ -1988,6 +2060,31 @@
       "body": "## Problem and result\nDecompose variant materials, rules and downstream document references. Deliver the bounded result below within Alloy's standalone C++20 product; the current application is only a Qt shell.\n\n## Scope\nExtend configurations to declared materials, appearances, sheet/plastic rules and assembly/drawing/manufacturing references; retain stable variant identity.\n\n## Acceptance criteria\n- Linked child tasks cover every sourced configurable aspect and downstream consumer; deleted/missing variant is an explicit repair state.\n- First create linked, bounded child implementation/research issues with dependencies and fixtures. The epic stays open until its declared child coverage and real-app workflow gate pass; a design document alone cannot close it.\n\n## Proposed verification and evidence\nReorder variants feeding two drawing sheets and assembly occurrences; verify references stay on intended configuration and export identity.\n\nRecord actual commands, fixture hashes, dependency versions, assertions and artifacts. Keep build, API, geometry, save/reopen, export, physical input and visual evidence separate; mark non-applicable dimensions with a reason.\n\n## Public reference evidence\n- Configurations overview (reference `B14`) — retrieved 2026-10-11.\n- Configurable aspects (reference `B15`) — retrieved 2026-10-11.\n- Configuration Table (reference `B16`) — retrieved 2026-10-11.\n\nReferences describe documented product/library behavior. Scope, implementation strategy, fixture values and acceptance thresholds are Alloy proposals unless explicitly stated otherwise. Never run or inspect reference CAD application; use public documentation/screenshots only.\n\n## Limits and open questions\nOnly the stated subset is in scope; record unsupported options explicitly. This issue is planned, not implemented or verified.\n"
     },
     {
+      "key": "TUT-002",
+      "title": "Gate: follow the complete public first-project die lesson and export STL",
+      "kind": "validation",
+      "phase": "P5 Assemblies/drawings",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-015",
+        "SKT-005",
+        "SOL-002",
+        "SOL-003",
+        "SOL-005",
+        "SOL-014",
+        "DOC-006",
+        "DOC-010",
+        "DOC-012",
+        "PRT-001",
+        "FND-010",
+        "ASM-001"
+      ],
+      "labels": [
+        "area:tut"
+      ],
+      "body": "## Problem and result\nGate: follow the complete public first-project die lesson and export STL. Make public beginner-project exercises executable without hidden substitutes.\n\n## Scope\nFollow the original library lesson from a blank file: named component, center-point square, cube extrusion, compare/cancel Chamfer and Fillet, accept rounding, face-positioned spherical cuts with Repeat on all six sides, and component STL export. The 20 mm cube, 1 mm rounding and diameter-3 pip layout are explicit Alloy fixture choices because the author lets learners choose dimensions.\n\n## Acceptance criteria\nAll source steps succeed with real UI/API operations, including component organization and actual spherical recesses. Inspect one valid solid, opposite face counts summing to seven, 21 pips, preview cancellation, retained feature identities, save/reopen and manifold millimeter-scale STL readback. Do not report body-only or cylinder-cut adaptations as a complete original tutorial pass.\n\n## Proposed verification and evidence\nRegister the full ordered recipe when dependencies exist. Freeze the face-axis/pip table, inspect analytic initial volume 8000 mm3 and hemispherical removal 47.25*pi mm3 from the measured rounded cube, and capture all six faces plus oblique view. Record native face selection, Repeat and rounding Cancel; use API for reproducible modeling/inspection. Source images are not yet inspected, so visible expected-shape checks cannot claim a matched-reference image.\n\n## Public reference evidence\n- Original public lesson (reference `tutorial-library-die`) — retrieved 2026-10-11. Source instructions and Alloy-chosen fixture values are distinguished in docs/research/tutorial-gates.md. Original URLs stay in the external reference records.\n\n## Limits and open questions\nBlocked and unexecuted. Full component step currently belongs to the later component milestone. A clearly labeled model-only adaptation may be explored earlier but cannot close this issue. No printing/upload service or automatic CI per commit.\n"
+    },
+    {
       "key": "GATE-060",
       "title": "Gate: adjustable clamp assembly, variants and associative drawings",
       "kind": "validation",
@@ -1999,7 +2096,8 @@
         "ASM-002",
         "DRW-001",
         "DRW-002",
-        "CFG-001"
+        "CFG-001",
+        "TUT-002"
       ],
       "labels": [
         "kind:validation",

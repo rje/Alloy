@@ -50,6 +50,12 @@ These rules supersede any earlier suggestion to verify behavior in proprietary s
 
 ## Familiarity and visual fidelity
 
+- Research the affected user workflow before implementing its controls and
+  presentation. Gather permitted public examples independently; do not rely on
+  the user to supply screenshots or discover missing reference behavior. Produce
+  a compact actionable specification and verification steps from the evidence.
+  Resolve material interaction questions before coding; record nonblocking
+  uncertainties explicitly and keep the researched scope bounded.
 - Treat command names, option defaults, keyboard controls, navigation, selection
   behavior, layouts, spacing, typography, colors, and styling as compatibility
   requirements to research and track.

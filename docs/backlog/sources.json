@@ -1025,6 +1025,105 @@
       "note": "Public reference instruction; version/default gaps remain explicit.",
       "reference_id": "official-sketch-rectangle",
       "provenance": "Original public reference URL/date/locators retained separately in Alloy-reference-records/sketch-controls-sources.json."
+    },
+    "annotation-create": {
+      "title": "Dimension sketch geometry",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "reference_id": "annotation-create",
+      "provenance": "Original evidence retained in separate local reference records: sketch-annotation-sources.json.",
+      "note": "Source instructions or observations; Alloy implementation and verification are separate."
+    },
+    "annotation-orientation": {
+      "title": "Dimension context controls",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "reference_id": "annotation-orientation",
+      "provenance": "Original evidence retained in separate local reference records: sketch-annotation-sources.json.",
+      "note": "Source instructions or observations; Alloy implementation and verification are separate."
+    },
+    "annotation-colors": {
+      "title": "Sketch types and palette",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "reference_id": "annotation-colors",
+      "provenance": "Original evidence retained in separate local reference records: sketch-annotation-sources.json.",
+      "note": "Source instructions or observations; Alloy implementation and verification are separate."
+    },
+    "annotation-constrained": {
+      "title": "Fully define and constrain sketches",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented and observed screenshot",
+      "reference_id": "annotation-constrained",
+      "provenance": "Original evidence retained in separate local reference records: sketch-annotation-sources.json.",
+      "note": "Source instructions or observations; Alloy implementation and verification are separate."
+    },
+    "annotation-animation": {
+      "title": "Dimension creation public animation",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "observed public animation frames, not application operation",
+      "reference_id": "annotation-animation",
+      "provenance": "Original evidence retained in separate local reference records: sketch-annotation-sources.json.",
+      "note": "Source instructions or observations; Alloy implementation and verification are separate."
+    },
+    "community-sketch-004": {
+      "title": "Manual sketch constraint tutorial",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented article and authored transcript; video not played",
+      "reference_id": "community-sketch-004",
+      "provenance": "Original evidence retained in separate local reference records: sketch-annotation-sources.json.",
+      "note": "Source instructions or observations; Alloy implementation and verification are separate."
+    },
+    "annotation-precision": {
+      "title": "Design dimension precision",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "reference_id": "annotation-precision",
+      "provenance": "Original evidence retained in separate local reference records: sketch-annotation-sources.json.",
+      "note": "Source instructions or observations; Alloy implementation and verification are separate."
+    },
+    "annotation-units": {
+      "title": "Units and user entry",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented public API explanation; not executed",
+      "reference_id": "annotation-units",
+      "provenance": "Original evidence retained in separate local reference records: sketch-annotation-sources.json.",
+      "note": "Source instructions or observations; Alloy implementation and verification are separate."
+    },
+    "annotation-user-001": {
+      "title": "User-provided sketch annotation crop",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "observed screenshot; origin and publication rights not independently established; local reference only",
+      "reference_id": "annotation-user-001",
+      "provenance": "Original evidence retained in separate local reference records: sketch-annotation-sources.json.",
+      "note": "Source instructions or observations; Alloy implementation and verification are separate."
+    },
+    "tutorial-toy-block-2026": {
+      "title": "Day 1, 2026 edition, toy block",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "Original public article and author transcript read in full. No video played or timestamps claimed.",
+      "reference_id": "tutorial-toy-block-2026",
+      "provenance": "Original evidence retained in separate local reference records: tutorial-gate-sources.json.",
+      "note": "Source instructions or observations; Alloy implementation and verification are separate."
+    },
+    "tutorial-library-die": {
+      "title": "Our first project: making a die",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "Original public lesson read as article and raw Markdown. No video or application operation.",
+      "reference_id": "tutorial-library-die",
+      "provenance": "Original evidence retained in separate local reference records: tutorial-gate-sources.json.",
+      "note": "Source instructions or observations; Alloy implementation and verification are separate."
     }
   },
   "reference_records": "../Alloy-reference-records/",

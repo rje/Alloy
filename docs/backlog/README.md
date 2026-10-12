@@ -2,12 +2,12 @@
 
 Prepared 2026-10-11 from public references and the accepted Alloy requirements.
 [issues.json](issues.json) is the machine-readable source for GitHub publication;
-[sources.json](sources.json) records the 123 dated public-source entries cited by its
+[sources.json](sources.json) records the 134 dated reference entries cited by its
 issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-There are **143 issues**: **92 implementation, 14 research, 22 epics, and 15
+There are **147 issues**: **94 implementation, 14 research, 22 epics, and 17
 validation gates**. This is a substantial starting decomposition, not a claim
 that 143 tickets exhaust reference CAD application parity. Later epics require linked bounded child
 issues before implementation and remain open until that declared coverage passes.
@@ -17,9 +17,9 @@ issues before implementation and remain open until that declared coverage passes
 | P0 Foundation | 19 | Public baseline, MIT dependency audit, document/naming/solver decisions, portable controls, native CI/packages/releases and hardware evidence |
 | P1 Geometry/document | 17 | Real hardware-backed OCCT viewport, authored primitive document, selection, undo/save and STEP |
 | P2 Parametric modeling | 32 | Constrained sketches, parameters, editable extrusion/fillet chain and broader basic solid tools |
-| P3 Shape/import/print breadth | 24 | Solids/surfaces, common interchange and qualified printing export |
+| P3 Shape/import/print breadth | 27 | Solids/surfaces, common interchange and qualified printing export |
 | P4 Initial release | 8 | Robustness, recovery, packaging, performance, physical/visual workflow evidence |
-| P5 Assemblies/drawings | 9 | Components/joints, configurations and associative drawings |
+| P5 Assemblies/drawings | 10 | Components/joints, configurations and associative drawings |
 | P6 Advanced design | 11 | Sheet metal, direct/mesh/Form, advanced modeling, plastic rules and local presentation |
 | P7 Manufacturing | 9 | Setups, toolpaths, verification/posts, additive, nesting and metrology |
 | P8 Analysis/electronics | 10 | Traceable study/result data, local ECAD/MCAD and fabrication |
@@ -146,5 +146,16 @@ GATE-045. The sketch reprioritization split SKT-013 face attachment, SKT-014 sim
 profiles and HIS-004 broader recompute from the first origin-plane path, and added
 SKT-015 as its focused human-test checkpoint. Original publication.json is the
 historical 135-issue receipt; github.json and validation-summary.json reflect the
-current 143-task backlog. SKT-015 is a bounded local workflow check, distinct from
+current 147-task backlog. SKT-015 is a bounded local workflow check, distinct from
 the cumulative all-platform product gate chain.
+
+The public beginner-project [tutorial recipes](../research/tutorial-gates.md) add
+TUT-001 #146 (complete toy block) and TUT-002 #147 (die/component/STL). They are
+blocked future workflow gates and have not been executed. SKT-016 #144 supplies
+construction/midpoint/point-to-edge coverage; SOL-014 #145 supplies genuine
+face-positioned Sphere/Cut/Repeat. TUT-001 feeds GATE-030; the full component die
+feeds GATE-060. SKT-015 remains the earlier rectangle/extrusion human checkpoint.
+
+The source registry now also includes the annotation workflow and tutorial
+evidence. One supplied crop has unknown public provenance, version and scale;
+its observation is qualified separately from retrieved public documentation.
