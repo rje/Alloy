@@ -31,6 +31,31 @@ branch's latest source; it can exercise unchanged sketch behavior, not prove STE
 Its API ready file is `build-exchange/evidence/closure/ready.json`. Preserve human
 candidate windows described below.
 
+## Latest human bracket window (2026-10-12)
+
+The user requested the angle-bracket test and display. The registered
+`tutorial_bracket_api` passed on the current exchange candidate at
+`../Alloy-worktrees/exchange-finish/build-step/evidence/bracket-current/report.json`.
+A separate copy is open in `build-bracket-demo/Alloy Bracket.app`, bundle
+`org.alloycad.BracketDemo`, ready file `build-bracket-demo/ready.json`, using
+`build-bracket-demo/human/angle-bracket.alloy`. It has one valid five-hole body,
+four editable features and a larger isometric view. This window is now reserved
+for human use: do not operate, quit or rebuild it. Earlier human windows remain
+reserved too. This is an API workflow rerun, not exact all-native tutorial closure.
+
+Exchange work remains isolated, not integrated to main: STEP source commits
+`6eda8bd`/`fb71037` now have Astra's bounded acceptance after core/API/independent
+mm/in reader and native mm export checks. Native unit switching and File Open
+remain unqualified. Root's STL fresh API suite and native default Save As Mesh
+also pass; added independent stored-normal checks pass on the same exported files.
+Before #44 closure, preserve open-surface export/labeling as a new linked Todo
+issue. Do not add it to GATE-020 if it depends on SRF-001 (which itself depends on
+GATE-020); move that explicit future acceptance to the surface gate with an audit
+entry. Root modified only `tests/stl_export_api.py` in the exchange worktree after
+Sol released it. #23 and #44 are still open pending final docs/split/integration.
+Private StepCandidate remains available for agent testing; it is not the human
+BracketDemo. No release or CI was triggered.
+
 ## Current checkpoint: complete bracket chain
 
 The registered `tutorial_bracket_api` case now passes from blank document through
