@@ -55,7 +55,8 @@ SketchProfiles::RegionsResult SketchProfiles::deriveRegions(const QJsonObject& f
             sources.push_back({entity["id"].toString(),entity,edge});input.Append(edge);
             for(const auto& field:{"startPointId","endPointId"})if(entity[field].isString())endpointIds.insert(entity[field].toString());
         }
-        if(sources.empty())return result;
+        // A single open analytic edge retains the legacy open-profile diagnostic.
+        if(sources.size()<2)return result;
         const auto frame=SketchGeometry::frame(planeName);const auto o=frame["origin"].toArray(),u=frame["uAxis"].toArray(),v=frame["vAxis"].toArray(),n=frame["normal"].toArray();
         const gp_Pnt origin(o[0].toDouble(),o[1].toDouble(),o[2].toDouble());
         const gp_Vec uAxis(u[0].toDouble(),u[1].toDouble(),u[2].toDouble()),vAxis(v[0].toDouble(),v[1].toDouble(),v[2].toDouble());
