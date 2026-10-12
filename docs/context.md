@@ -911,3 +911,23 @@ Distance -200mm, One Side, Cut and five red previews; that value is an observed
 example, not a default, and Through All is not required by these source steps.
 Further research is enumerating exact construction and hole-center inferences
 before implementing the next tutorial slice. No private app remains active.
+
+
+## Native projected endpoint checkpoint (2026-10-12)
+
+Implementation f62ebc7 is integrated and Astra accepted. Native endpoint picking,
+read-only refusal, circle-center Coincident snap and D-created 100mm horizontal
+distance all pass. Source edit/history/storage are covered by focused core
+regression; native Finish/save also passed. See validation/linked-cap-edges.md.
+The private candidate is closed; human build-input remains untouched.
+
+Luna completed the exact construction/five-center contract in external
+knowledge/specs/bracket-construction-snap-path.md; knowledge now has 10 records.
+Next active slice is lazy retained center points of actual circular cap edges,
+using stable source curve lineage. Two anchored ends plus two independent
+Parallel directions should fully constrain the connected guide chain. This is an
+implementation/geometry inference, to be verified, not a claim about reference
+internals. Sol core/UI implement in the isolated face-support worktree; root owns
+builds/apps and Astra verifies. Then implement the tutorial's inline 50mm circle
+entry, five attached centers and four Equal pairs, followed by five-profile Cut.
+SKT-010 remains open/In Progress. No release/tag/CI is triggered.

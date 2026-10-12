@@ -39,6 +39,31 @@ unsupported. These references are excluded from profile boundaries; this is a
 bounded reference-only slice, not general Project profile semantics. Every retained
 reference must still resolve, including unused ones: losing/splitting/merging an
 edge rejects the upstream transaction. Link repair and broader face naming remain
-open. Native projected-endpoint picking/snapping is not yet implemented; endpoint
-dimensions are API-qualified only. The native guide drawing sequence itself was
-not part of this check. The private app was closed and the human app unchanged.
+open. The original native guide drawing sequence was not part of this check;
+the endpoint follow-up below qualifies additional native actions. The private app was closed and the human app unchanged.
+
+
+## Native endpoint follow-up
+
+Implementation `f62ebc7`, verified 2026-10-12. Projected endpoints are selectable
+and read-only, and native line/circle creation can retain Coincident relations
+to them while keeping new authored points separate from derived geometry.
+Supported-face circle preview uses the same resolved plane as the accepted circle.
+
+The focused face-support regression covers line/circle snaps, source edits,
+history/storage and stale-target rejection. Native checks selected a projected
+endpoint, verified `read_only_projection`, then used C and two clicks to create a
+circle with a retained center Coincident. The live circle preview was separately
+checked through the pointer-move API. Native D, two point picks, label placement,
+100 and Enter created a driving horizontal distance from a projected endpoint to
+an authored point; the exact separation is 100 mm and DOF fell 7 to 6. Finish and
+native-file save succeeded. This check found and fixed a preview lookup that had
+incorrectly searched authored points only.
+
+Evidence: `endpoint-native-selected.json`, `endpoint-readonly.json`,
+`endpoint-circle-preview.{json,png}`, `endpoint-native-circle.{json,png}`,
+`endpoint-native-dimension.{json,png}` and `native-endpoint-dimension.alloy` in
+the isolated worktree's `build-face/evidence`. Astra independently accepted the
+reference identities, read-only behavior, retained relations and readable
+dimension/extension lines. Rounded-edge center snaps and the exact tutorial
+construction chain remain next.
