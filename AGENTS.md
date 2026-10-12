@@ -62,6 +62,11 @@ These rules supersede any earlier suggestion to verify behavior in proprietary s
 - Match documented workflows and public screenshots with our own implementation
   and independently authored assets. Do not extract or ship Autodesk assets.
 - Keep visual references with provenance separate from application assets.
+- Keep new bulk research, detailed workflow records, searchable knowledge databases
+  and visual references outside the repository in `../Alloy-reference-records/knowledge`.
+  Retain only lightweight source indexes, implementation contracts and query tools
+  in the codebase. Search the knowledge records before implementing affected
+  workflows and extend them when research resolves a missing behavior or edge case.
 - Use matched viewport size, scale, theme, and comparable state for visual
   comparisons when evidence permits. State limitations of unmatched references.
 - Visual quality is part of feature acceptance: readable labels and controls,

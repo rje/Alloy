@@ -33,6 +33,8 @@ The public repository is [rje/Alloy](https://github.com/rje/Alloy), with the
   cumulative validation gates, and the live pull queue.
 - [Deep-dive research](docs/research/cad-workflows.md): public workflow
   findings behind the backlog, with a dated source registry.
+- [External workflow knowledge](docs/knowledge/README.md): search instructions for
+  source-linked behavior records and visual references stored outside the checkout.
 - [Product scope](docs/product-scope.md): accepted goals, initial coverage, and
   the longer-term feature families.
 - [Architecture](docs/architecture.md): recommended stack, document model,

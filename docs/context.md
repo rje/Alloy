@@ -51,6 +51,22 @@ Updated 2026-10-12. This is the project handoff for a fresh session. Read the ro
   work stays tracked without blocking that first sketch workflow.
 - The user authorized concurrent agents for independent feature work, with shared
   command/document contracts and one reviewed integrated app.
+- Continue working autonomously through the ready queue after reporting useful
+  human checkpoints; a status update or request to show the app does not pause
+  implementation. The user explicitly permits Sol implementation agents with
+  Astra as independent verifier. Keep human test windows untouched while building
+  and validating separate candidates.
+- Luna maintains an external searchable workflow/visual knowledge base using
+  public web research; Astra independently checks high-risk behavior and the
+  integrated implementation. Detailed records, source URLs, images/video frames
+  and derived databases belong in `../Alloy-reference-records/knowledge`, with a
+  lightweight query helper and usage guide in the repo. Keep relevant defaults,
+  selection, visual state, commit/cancel/history and material edge cases sourced.
+- Face selection → face-supported sketch → referenced model-edge dimensions →
+  Extrude Cut/Join → another face sketch is an early core workflow. DOC-006/012,
+  SKT-013/010/016 and SOL-015 are P0; SKT-017 verifies the joined local workflow.
+  The overall UI still falls short of the target: FND-011 tracks concrete icon,
+  density, contextual-toolbar, palette, theme and stale-label corrections.
 - The first manual sketch coordinate controls are functional helpers. User review
   accepts continuing modeling now and a later public-reference compatibility pass
   on numeric entry, drawing inputs, dimensions, selection and palette behavior.
@@ -228,8 +244,8 @@ The user authorized a public GitHub repository/project and an issue backlog with
 cumulative validation gates. The repository is [rje/Alloy](https://github.com/rje/Alloy)
 and the public board is [Alloy](https://github.com/users/rje/projects/1).
 The MIT-licensed foundation is published on `main`.
-Astra's deep dive and backlog are published: **147 issues** across ten phases,
-comprising **94 implementation tasks, 14 research tasks, 22 epics, and 17
+Astra's deep dive and backlog are published: **150 issues** across ten phases,
+comprising **95 implementation tasks, 15 research tasks, 22 epics, and 18
 validation tasks**. All remote issue bodies, dependency links,
 labels, milestones, and live readiness were verified through the API. The shell
 baseline [`GATE-000` #12](https://github.com/rje/Alloy/issues/12) is closed;
@@ -241,8 +257,8 @@ FND-005 and SKT-001/002 are closed with their bounded solver/sketch evidence;
 SKT-003/004 are closed with independently reviewed integrated constraints/dimension
 evidence; SKT-014 is closed with reviewed real-profile/annotation evidence.
 HIS-001/SOL-001 and SKT-015 are closed with reviewed extrusion and local checkpoint
-evidence; their board items are Done. There are 24 tasks closed, 123 open and
-13 dependency-ready at this handoff. Live counts
+evidence; their board items are Done. There are 24 tasks closed, 126 open and
+14 dependency-ready at this handoff. Live counts
 are obtained with tools/backlog.py rather than this earlier publication snapshot. Later epics need
 bounded child issues before implementation; this count does not exhaust parity.
 Read [the backlog](backlog/README.md), [publication receipt](backlog/publication.json),
@@ -357,7 +373,7 @@ while actual other-platform builds and distributable runtime closure remain open
 The exact dated reference release/platform/theme/navigation baseline,
 minimum OS versions/architectures and portable solver runtime qualification
 remain unresolved. They are recorded gaps, not forgotten decisions. Current
-public-interface/build research now covers the major feature families with 137 dated
+public-interface/build research now covers the major feature families with 157 dated
 reference entries, including original community tutorials, contradictions, and open questions. It does not yet specify
 every command, default, error, or visual state.
 
@@ -373,6 +389,26 @@ The recipes separate source dimensions from Alloy-chosen deterministic fixtures.
 SKT-016 #144 and SOL-014 #145 explicitly cover missing construction/distance and
 spherical-cut capabilities. The full die waits on component organization; early
 adaptations must name that deviation. These additions bring the backlog to
-147 tasks: 94 implementation, 14 research, 22 epics and 17 validation tasks.
+150 tasks: 95 implementation, 15 research, 22 epics and 18 validation tasks.
 The nearest sketch/extrude checkpoint SKT-015 and version/manual CI policy remain
 unchanged. Pull readiness and issue state remain authoritative through gh/API.
+
+
+## Active external knowledge and implementation work
+
+The external corpus is at `../Alloy-reference-records/knowledge`: portable JSON
+records and source/image provenance are authoritative, with a rebuildable SQLite
+FTS index. The repository keeps only [the usage guide](knowledge/README.md),
+`tools/knowledge.py`, and neutral planning/source pointers. Initial topics are
+face-supported sketches, projected geometry, edge-relative dimensions, curves,
+selection/constraint status, and solid operations. Visuals are research evidence,
+never shipped assets; unknown version/theme/scale and unplayed video material
+are explicitly qualified. FND-013 #148 accepts the initial six-record, nine-image library after Luna research
+and Astra independent review. Ongoing expansion remains part of implementation.
+
+The next implementation candidate is in progress: analytic circles/arcs and
+Combine Join/Cut/Intersect cores have source review, but are not yet accepted as
+working application features. UI integration and real-app verification remain.
+Build this candidate separately in `build-next` while preserving the live human
+extrusion window. SOL-015 #149 tracks direct Extrude operations; SKT-017 #150
+tracks the subsequent face-sketch/projected-distance/Cut/Join local checkpoint.

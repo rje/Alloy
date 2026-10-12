@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Validate the local backlog before API-only publication; no network writes."""
 import collections
+from datetime import date
 from functools import cache
 import json
 from pathlib import Path
@@ -14,7 +15,9 @@ required = {'key', 'title', 'kind', 'phase', 'priority', 'depends_on', 'labels',
 registry = json.loads((root / 'sources.json').read_text())
 urls = {source['url'] for source in registry['sources'].values() if source['url']}
 reference_ids = {source.get('reference_id') for source in registry['sources'].values()} - {None}
-assert all(source['retrieved'] == registry['retrieved'] for source in registry['sources'].values())
+date.fromisoformat(registry['retrieved'])
+for source in registry['sources'].values():
+    date.fromisoformat(source['retrieved'])
 issues = {}
 for issue in data['issues']:
     assert set(issue) == required, issue.get('key')
@@ -34,7 +37,7 @@ for issue in data['issues']:
     assert body_urls or body_refs, key
     assert all(url in urls for url in body_urls), (key, set(body_urls) - urls)
     assert all(ref in reference_ids for ref in body_refs), (key, set(body_refs) - reference_ids)
-    assert '2026-10-11' in issue['body'], key
+    assert re.search(r'\b\d{4}-\d{2}-\d{2}\b', issue['body']), key
     if issue['kind'] == 'epic':
         assert 'child' in issue['body'] and 'stays open' in issue['body'], key
     issues[key] = issue

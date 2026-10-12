@@ -2,22 +2,22 @@
 
 Prepared 2026-10-11 from public references and the accepted Alloy requirements.
 [issues.json](issues.json) is the machine-readable source for GitHub publication;
-[sources.json](sources.json) records the 137 dated reference entries cited by its
+[sources.json](sources.json) records the 157 dated reference entries cited by its
 issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-There are **147 issues**: **94 implementation, 14 research, 22 epics, and 17
+There are **150 issues**: **95 implementation, 15 research, 22 epics, and 18
 validation gates**. This is a substantial starting decomposition, not a claim
-that 147 tickets exhaust reference CAD application parity. Later epics require linked bounded child
+that 150 tickets exhaust reference CAD application parity. Later epics require linked bounded child
 issues before implementation and remain open until that declared coverage passes.
 
 | Phase | Count | Result |
 | --- | ---: | --- |
-| P0 Foundation | 19 | Public baseline, MIT dependency audit, document/naming/solver decisions, portable controls, native CI/packages/releases and hardware evidence |
+| P0 Foundation | 20 | Public baseline, MIT dependency audit, document/naming/solver decisions, portable controls, native CI/packages/releases and hardware evidence |
 | P1 Geometry/document | 17 | Real hardware-backed OCCT viewport, authored primitive document, selection, undo/save and STEP |
-| P2 Parametric modeling | 32 | Constrained sketches, parameters, editable extrusion/fillet chain and broader basic solid tools |
-| P3 Shape/import/print breadth | 27 | Solids/surfaces, common interchange and qualified printing export |
+| P2 Parametric modeling | 35 | Constrained sketches, parameters, editable extrusion/fillet chain and broader basic solid tools |
+| P3 Shape/import/print breadth | 26 | Solids/surfaces, common interchange and qualified printing export |
 | P4 Initial release | 8 | Robustness, recovery, packaging, performance, physical/visual workflow evidence |
 | P5 Assemblies/drawings | 10 | Components/joints, configurations and associative drawings |
 | P6 Advanced design | 11 | Sheet metal, direct/mesh/Form, advanced modeling, plastic rules and local presentation |
@@ -46,8 +46,8 @@ not product coverage or a replacement claim.
 HIS-001/SOL-001 and the local SKT-015 checkpoint are now closed with independently
 reviewed [sketch/extrusion evidence](../validation/sketch-extrusion.md). The first
 sketch-led part supports upstream edits, history and storage through the actual
-UI/API. Current board items are Done; the live snapshot has 24 closed, 123 open
-and 13 ready tasks. SOL-002 boolean operations and SKT-006 circles/arcs are ready
+UI/API. Current board items are Done; the live snapshot has 24 closed, 126 open
+and 14 ready tasks. SOL-002 boolean operations and SKT-006 circles/arcs are ready
 next modeling slices. Full tutorial and cumulative product gates remain open.
 
 MIT is accepted for Alloy's original source and documentation. Each dependency
@@ -153,7 +153,7 @@ GATE-045. The sketch reprioritization split SKT-013 face attachment, SKT-014 sim
 profiles and HIS-004 broader recompute from the first origin-plane path, and added
 SKT-015 as its focused human-test checkpoint. Original publication.json is the
 historical 135-issue receipt; github.json and validation-summary.json reflect the
-current 147-task backlog. SKT-015 is a bounded local workflow check, distinct from
+current 150-task backlog. SKT-015 is a bounded local workflow check, distinct from
 the cumulative all-platform product gate chain.
 
 The public beginner-project [tutorial recipes](../research/tutorial-gates.md) add

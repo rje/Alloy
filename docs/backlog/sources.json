@@ -1,5 +1,5 @@
 {
-  "retrieved": "2026-10-11",
+  "retrieved": "2026-10-12",
   "sources": {
     "ui": {
       "title": "reference CAD application desktop interface",
@@ -1151,6 +1151,182 @@
       "reference_id": "occt-prism-793",
       "provenance": "Original evidence retained in separate local reference records: extrude-first-slice-sources.json.",
       "note": "Source instructions or observations; Alloy implementation and verification are separate."
+    },
+    "boolean-combine-howto": {
+      "title": "boolean combine howto",
+      "url": null,
+      "retrieved": "2026-10-12",
+      "evidence": "documented",
+      "note": "Bounded workflow evidence; see the external dated source record and knowledge corpus.",
+      "reference_id": "boolean-combine-howto",
+      "provenance": "Public source URL and any visual artifacts retained outside the codebase."
+    },
+    "boolean-combine-reference": {
+      "title": "boolean combine reference",
+      "url": null,
+      "retrieved": "2026-10-12",
+      "evidence": "documented",
+      "note": "Bounded workflow evidence; see the external dated source record and knowledge corpus.",
+      "reference_id": "boolean-combine-reference",
+      "provenance": "Public source URL and any visual artifacts retained outside the codebase."
+    },
+    "boolean-combine-example": {
+      "title": "boolean combine example",
+      "url": null,
+      "retrieved": "2026-10-12",
+      "evidence": "screenshot-observation",
+      "note": "Bounded workflow evidence; see the external dated source record and knowledge corpus.",
+      "reference_id": "boolean-combine-example",
+      "provenance": "Public source URL and any visual artifacts retained outside the codebase."
+    },
+    "boolean-community-inlay": {
+      "title": "boolean community inlay",
+      "url": null,
+      "retrieved": "2026-10-12",
+      "evidence": "documented",
+      "note": "Bounded workflow evidence; see the external dated source record and knowledge corpus.",
+      "reference_id": "boolean-community-inlay",
+      "provenance": "Public source URL and any visual artifacts retained outside the codebase."
+    },
+    "curves-circle-create": {
+      "title": "curves circle create",
+      "url": null,
+      "retrieved": "2026-10-12",
+      "evidence": "documented",
+      "note": "Bounded workflow evidence; see the external dated source record and knowledge corpus.",
+      "reference_id": "curves-circle-create",
+      "provenance": "Public source URL and any visual artifacts retained outside the codebase."
+    },
+    "curves-arc-create": {
+      "title": "curves arc create",
+      "url": null,
+      "retrieved": "2026-10-12",
+      "evidence": "documented",
+      "note": "Bounded workflow evidence; see the external dated source record and knowledge corpus.",
+      "reference_id": "curves-arc-create",
+      "provenance": "Public source URL and any visual artifacts retained outside the codebase."
+    },
+    "curves-community-arcs": {
+      "title": "curves community arcs",
+      "url": null,
+      "retrieved": "2026-10-12",
+      "evidence": "documented",
+      "note": "Bounded workflow evidence; see the external dated source record and knowledge corpus.",
+      "reference_id": "curves-community-arcs",
+      "provenance": "Public source URL and any visual artifacts retained outside the codebase."
+    },
+    "curves-community-dimensions": {
+      "title": "curves community dimensions",
+      "url": null,
+      "retrieved": "2026-10-12",
+      "evidence": "documented",
+      "note": "Bounded workflow evidence; see the external dated source record and knowledge corpus.",
+      "reference_id": "curves-community-dimensions",
+      "provenance": "Public source URL and any visual artifacts retained outside the codebase."
+    },
+    "curves-dimension-api": {
+      "title": "curves dimension api",
+      "url": null,
+      "retrieved": "2026-10-12",
+      "evidence": "documented",
+      "note": "Bounded workflow evidence; see the external dated source record and knowledge corpus.",
+      "reference_id": "curves-dimension-api",
+      "provenance": "Public source URL and any visual artifacts retained outside the codebase."
+    },
+    "curves-shortcuts": {
+      "title": "curves shortcuts",
+      "url": null,
+      "retrieved": "2026-10-12",
+      "evidence": "documented",
+      "note": "Bounded workflow evidence; see the external dated source record and knowledge corpus.",
+      "reference_id": "curves-shortcuts",
+      "provenance": "Public source URL and any visual artifacts retained outside the codebase."
+    },
+    "occt-boolean-793": {
+      "title": "occt boolean 793",
+      "url": "https://raw.githubusercontent.com/Open-Cascade-SAS/OCCT/V7_9_3/src/BRepAlgoAPI/BRepAlgoAPI_BooleanOperation.hxx",
+      "retrieved": "2026-10-12",
+      "evidence": "documented",
+      "note": "Bounded workflow evidence; see the external dated source record and knowledge corpus."
+    },
+    "occt-arc-793": {
+      "title": "occt arc 793",
+      "url": "https://raw.githubusercontent.com/Open-Cascade-SAS/OCCT/V7_9_3/src/GC/GC_MakeArcOfCircle.hxx",
+      "retrieved": "2026-10-12",
+      "evidence": "documented",
+      "note": "Bounded workflow evidence; see the external dated source record and knowledge corpus."
+    },
+    "face-sketch-create": {
+      "title": "face sketch create",
+      "url": null,
+      "retrieved": "2026-10-12",
+      "evidence": "documented",
+      "note": "Bounded workflow evidence; see the external dated source record and knowledge corpus.",
+      "reference_id": "face-sketch-create",
+      "provenance": "Public source URL and any visual artifacts retained outside the codebase."
+    },
+    "face-sketch-overview": {
+      "title": "face sketch overview",
+      "url": null,
+      "retrieved": "2026-10-12",
+      "evidence": "documented",
+      "note": "Bounded workflow evidence; see the external dated source record and knowledge corpus.",
+      "reference_id": "face-sketch-overview",
+      "provenance": "Public source URL and any visual artifacts retained outside the codebase."
+    },
+    "face-sketch-project": {
+      "title": "face sketch project",
+      "url": null,
+      "retrieved": "2026-10-12",
+      "evidence": "documented",
+      "note": "Bounded workflow evidence; see the external dated source record and knowledge corpus.",
+      "reference_id": "face-sketch-project",
+      "provenance": "Public source URL and any visual artifacts retained outside the codebase."
+    },
+    "face-sketch-preferences": {
+      "title": "face sketch preferences",
+      "url": null,
+      "retrieved": "2026-10-12",
+      "evidence": "documented",
+      "note": "Bounded workflow evidence; see the external dated source record and knowledge corpus.",
+      "reference_id": "face-sketch-preferences",
+      "provenance": "Public source URL and any visual artifacts retained outside the codebase."
+    },
+    "face-sketch-repair": {
+      "title": "face sketch repair",
+      "url": null,
+      "retrieved": "2026-10-12",
+      "evidence": "documented",
+      "note": "Bounded workflow evidence; see the external dated source record and knowledge corpus.",
+      "reference_id": "face-sketch-repair",
+      "provenance": "Public source URL and any visual artifacts retained outside the codebase."
+    },
+    "face-sketch-camera-options": {
+      "title": "face sketch camera options",
+      "url": null,
+      "retrieved": "2026-10-12",
+      "evidence": "documented",
+      "note": "Bounded workflow evidence; see the external dated source record and knowledge corpus.",
+      "reference_id": "face-sketch-camera-options",
+      "provenance": "Public source URL and any visual artifacts retained outside the codebase."
+    },
+    "face-sketch-tray": {
+      "title": "face sketch tray",
+      "url": null,
+      "retrieved": "2026-10-12",
+      "evidence": "documented",
+      "note": "Bounded workflow evidence; see the external dated source record and knowledge corpus.",
+      "reference_id": "face-sketch-tray",
+      "provenance": "Public source URL and any visual artifacts retained outside the codebase."
+    },
+    "face-sketch-grip": {
+      "title": "face sketch grip",
+      "url": null,
+      "retrieved": "2026-10-12",
+      "evidence": "documented",
+      "note": "Bounded workflow evidence; see the external dated source record and knowledge corpus.",
+      "reference_id": "face-sketch-grip",
+      "provenance": "Public source URL and any visual artifacts retained outside the codebase."
     }
   },
   "reference_records": "../Alloy-reference-records/",
