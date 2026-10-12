@@ -113,7 +113,7 @@ export. Test persistent face/edge references early. The proposed coverage is in
 [architecture.md](architecture.md) and evidence rules in
 [compatibility.md](compatibility.md).
 
-The exact reference CAD application reference release/platform/theme/navigation baseline,
+The exact dated reference release/platform/theme/navigation baseline,
 minimum OS versions/architectures, sketch solver, and native document format
 remain unresolved. They are recorded gaps, not forgotten decisions. Current
 public-interface/build research now covers the major feature families with 112 dated

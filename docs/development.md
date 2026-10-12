@@ -57,6 +57,10 @@ OCCT scene is not the future geometry model.
 
 ## Verification
 
+The [current shell receipt](validation/neutral-shell.md) records the rebuilt
+widget style and real-app smoke. Earlier physical-input observations remain
+historical until repeated on the candidate under review.
+
 ```sh
 ctest --test-dir build --output-on-failure
 # Or run the same smoke test explicitly:
