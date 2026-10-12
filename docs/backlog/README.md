@@ -166,3 +166,10 @@ feeds GATE-060. SKT-015 remains the earlier rectangle/extrusion human checkpoint
 The source registry now also includes the annotation workflow and tutorial
 evidence. One supplied crop has unknown public provenance, version and scale;
 its observation is qualified separately from retrieved public documentation.
+
+The exact illustrated bracket audit adds five tasks (155 total): DOC-015,
+SKT-018, SKT-019, SOL-016 and TUT-003. See
+[the source-step and visual acceptance contract](../research/illustrated-bracket-gate.md).
+TUT-003 feeds GATE-020 and remains blocked; no skipped or substituted operation
+counts as completion. Constraint icons, visibility, construction styling,
+annotations and preview presentation are required alongside real geometry.

@@ -1,16 +1,16 @@
 {
-  "issues": 147,
+  "issues": 155,
   "kinds": {
-    "research": 14,
-    "implementation": 94,
-    "validation": 17,
+    "research": 15,
+    "implementation": 99,
+    "validation": 19,
     "epic": 22
   },
   "phases": {
-    "P0 Foundation": 19,
+    "P0 Foundation": 20,
     "P1 Geometry/document": 17,
-    "P2 Parametric modeling": 32,
-    "P3 Shape/import/print breadth": 27,
+    "P2 Parametric modeling": 40,
+    "P3 Shape/import/print breadth": 26,
     "P4 Initial release": 8,
     "P5 Assemblies/drawings": 10,
     "P6 Advanced design": 11,
@@ -41,11 +41,12 @@
     "FND-004",
     "FND-006",
     "FND-010",
+    "FND-013",
     "GATE-000"
   ],
-  "source_entries": 134,
-  "public_source_urls": 38,
-  "archived_reference_ids": 96,
+  "source_entries": 158,
+  "public_source_urls": 41,
+  "archived_reference_ids": 118,
   "checks": [
     "schema",
     "unique keys",

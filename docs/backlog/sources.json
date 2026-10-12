@@ -1327,6 +1327,14 @@
       "note": "Bounded workflow evidence; see the external dated source record and knowledge corpus.",
       "reference_id": "face-sketch-grip",
       "provenance": "Public source URL and any visual artifacts retained outside the codebase."
+    },
+    "tutorial-illustrated-bracket": {
+      "title": "Illustrated construction-and-constraints bracket tutorial, three activities",
+      "url": null,
+      "retrieved": "2026-10-12",
+      "evidence": "documented and screenshot observations",
+      "reference_id": "tutorial-illustrated-bracket",
+      "provenance": "Three public activity URLs and 22 unique images archived externally; knowledge/tutorials/illustrated-bracket/audit.json maps every numbered action."
     }
   },
   "reference_records": "../Alloy-reference-records/",

@@ -48,3 +48,10 @@ The expanded batch is independently accepted on 2026-10-12: eight records and
 twelve images, adding solid fillet/chamfer and a beginner face-sketch/Cut/Join
 recipe. Astra checked source attribution, operation labels, image provenance and
 index consistency. Tutorial execution and Alloy visual parity remain unverified.
+
+The exact illustrated bracket tutorial has a separate source-step audit at
+`../Alloy-reference-records/knowledge/tutorials/illustrated-bracket/audit.json`
+and a scene/command-icon provenance manifest beside it. This audit is not yet a
+workflow-record entry in the SQLite index. The public implementation contract is
+[the illustrated bracket gate](../research/illustrated-bracket-gate.md); TUT-003
+tracks exact execution and constraint-icon/visibility acceptance.

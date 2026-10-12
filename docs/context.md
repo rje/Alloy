@@ -519,3 +519,17 @@ identity Alloy Input Candidate). The earlier build-next human window may contain
 unsaved sketch work: preserve it and verify live discovery before any operation.
 The candidate includes Browser/Combine crash prevention and preview changes from
 the preceding section. No milestone release or CI build was triggered.
+
+## Exact illustrated tutorial requirement (2026-10-12)
+
+The user requires tutorial steps to match exactly, including visible constraint
+icons and presentation. The earlier suggestion to skip missing operations is not
+an acceptance path. All three illustrated bracket activities were audited against
+current source and published screenshots with Astra review. See
+[the gate contract](research/illustrated-bracket-gate.md). Source-located detailed
+instructions, uncertainties and 22 unique visual references are external under
+`knowledge/tutorials/illustrated-bracket/`. The exact workflow is blocked, not run.
+Five new backlog tasks #151–155 cover document tabs, constraint-first sessions,
+sketch fillets, multi-profile Press Pull and TUT-003. Existing owners were tightened for
+inference, two-line angles, Equal, construction, region extraction and model-edge
+references. TUT-003 feeds GATE-020; geometry alone cannot close its visual gates.
