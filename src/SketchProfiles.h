@@ -2,13 +2,20 @@
 #include <QJsonObject>
 #include <QString>
 #include <TopoDS_Face.hxx>
+#include <TopoDS_Edge.hxx>
 #include <vector>
+
+struct EvaluatedBoundaryEdge {
+    QString sourceSketchId, sourceEntityId, startContact, endContact, type;
+    TopoDS_Edge edge;
+};
 
 // Derived geometry, never a separately authored feature or persisted display cache.
 struct EvaluatedProfile {
     QString profileId, sketchId, plane;
     TopoDS_Face face;
     QJsonObject summary;
+    std::vector<EvaluatedBoundaryEdge> boundaryEdges;
 };
 
 class SketchProfiles final {

@@ -40,7 +40,7 @@ double separation(const QString& kind, const GCS::Point& a, const GCS::Point& b)
 }
 }
 
-SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters) {
+SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QSet<QString>& lockedPointIds) {
     Result result;
     result.parameters = parameters;
     result.diagnostics = {{"solver", "PlaneGCS"}, {"status", "invalid"}, {"dof", -1},
@@ -94,7 +94,7 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters) {
             coordinates[2*i] = number(point, "uMm"); coordinates[2*i+1] = number(point, "vMm");
             require(std::abs(coordinates[2*i]) <= maximumCoordinate && std::abs(coordinates[2*i+1]) <= maximumCoordinate, "Point outside supported range");
             pointMap.emplace(id, GCS::Point(&coordinates[2*i], &coordinates[2*i+1]));
-            unknowns.push_back(&coordinates[2*i]); unknowns.push_back(&coordinates[2*i+1]);
+            if(!lockedPointIds.contains(id)){unknowns.push_back(&coordinates[2*i]); unknowns.push_back(&coordinates[2*i+1]);}
         }
         auto point = [&](const QString& id) -> GCS::Point& {
             const auto found = pointMap.find(id);
@@ -343,6 +343,10 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters) {
             if(d["driving"].toBool())check(value-number(d,angular ? "valueDeg" : "valueMm"),angular ? 1e-6 : lengthTolerance);
             QJsonObject measurement{{"id",d["id"]},{"kind",kind},{"driving",d["driving"]},{angular ? "valueDeg" : "valueMm",value}};
             measurements.append(measurement);
+        }
+        for(qsizetype i=0;i<points.size();++i)if(lockedPointIds.contains(points[i].toObject()["id"].toString())) {
+            check(coordinates[2*i]-number(points[i].toObject(),"uMm"),lengthTolerance);
+            check(coordinates[2*i+1]-number(points[i].toObject(),"vMm"),lengthTolerance);
         }
         result.parameters["entities"]=solvedEntities;
         QJsonArray solvedPoints;

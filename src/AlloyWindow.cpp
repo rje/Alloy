@@ -747,7 +747,7 @@ void AlloyWindow::registerCommands() {
             if(corners.size()!=2)return failure("no_pending_fillet","Select two sketch corners first");
             const auto chosenUnits=a.value("units").toString(session_.value("inputs").toObject()["units"].toString());
             const double radiusMm=CadDocument::millimeters(a["value"].toDouble(),chosenUnits);
-            const auto solved=SketchGeometry::filletCorners(session_["draftSketch"].toObject(),{{"corners",corners},{"radiusMm",radiusMm}});
+            const auto solved=SketchGeometry::filletCorners(session_["draftSketch"].toObject(),{{"corners",corners},{"radiusMm",radiusMm}},session_.value("projectionContext").toObject());
             auto result=publishSketchSolve(solved);
             if(result.value("ok").isBool() && !result.value("ok").toBool())return result;
             session_.remove("pendingFillet");session_["tool"]="select";
@@ -770,7 +770,7 @@ void AlloyWindow::registerCommands() {
             if(a.contains("session") && a["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
             const auto chosenUnits=a.value("units").toString(session_.value("inputs").toObject()["units"].toString());
             const double radiusMm=CadDocument::millimeters(a["value"].toDouble(),chosenUnits);
-            const auto solved=SketchGeometry::filletCorners(session_["draftSketch"].toObject(),{{"corners",a["corners"]},{"radiusMm",radiusMm}});
+            const auto solved=SketchGeometry::filletCorners(session_["draftSketch"].toObject(),{{"corners",a["corners"]},{"radiusMm",radiusMm}},session_.value("projectionContext").toObject());
             auto result=publishSketchSolve(solved);
             if(result.value("ok").isBool() && !result.value("ok").toBool())return result;
             session_.remove("pendingFillet");
@@ -793,7 +793,8 @@ void AlloyWindow::registerCommands() {
         const auto picked=view_->pickSketch(session_.value("draftSketch").toObject(),a["x"].toDouble(),a["y"].toDouble(),constraint ? (field=="pointIds" ? "point" : "entity") : session_.value("tool")=="dimension" && !session_.value("selection").toObject()["entityIds"].toArray().isEmpty() ? "entity" : QString{});
         if(constraint && picked.isEmpty())return failure("invalid_constraint_target","Pick compatible sketch geometry for the active constraint");
         const auto previousEntities=session_.value("selection").toObject()["entityIds"].toArray();
-        auto isLine=[&](const QJsonValue& id){for(const auto& entry:session_.value("draftSketch").toObject()["parameters"].toObject()["entities"].toArray())if(entry.toObject()["id"]==id)return entry.toObject()["type"]=="line";return false;};
+        const auto pickParameters=SketchGeometry::expandedProjectionFeature(session_.value("draftSketch").toObject(),session_.value("projectionContext").toObject())["parameters"].toObject();
+        auto isLine=[&](const QJsonValue& id){for(const auto& entry:pickParameters["entities"].toArray())if(entry.toObject()["id"]==id)return entry.toObject()["type"]=="line";return false;};
         const bool dimensionLine=session_.value("tool")=="dimension" && picked["kind"]=="entity" && previousEntities.size()==1 && isLine(previousEntities[0]) && isLine(picked["entityId"]);
         const bool accumulate=constraint ? session_.value("selection").toObject()[field].toArray().size()<required : a.value("additive").toBool() || dimensionLine;
         auto selection=accumulate ? session_.value("selection").toObject() : QJsonObject{{"pointIds",QJsonArray{}},{"entityIds",QJsonArray{}}};
@@ -838,7 +839,8 @@ void AlloyWindow::registerCommands() {
         if(tool=="dimension" && session_.value("pendingDimension").toObject().value("phase")=="placing") {
             const auto picked=view_->pickSketch(session_.value("draftSketch").toObject(),a["x"].toDouble(),a["y"].toDouble(),"entity");
             const auto selected=session_.value("selection").toObject()["entityIds"].toArray();
-            auto isLine=[&](const QJsonValue& id){for(const auto& entry:session_.value("draftSketch").toObject()["parameters"].toObject()["entities"].toArray())if(entry.toObject()["id"]==id)return entry.toObject()["type"]=="line";return false;};
+            const auto pickParameters=SketchGeometry::expandedProjectionFeature(session_.value("draftSketch").toObject(),session_.value("projectionContext").toObject())["parameters"].toObject();
+            auto isLine=[&](const QJsonValue& id){for(const auto& entry:pickParameters["entities"].toArray())if(entry.toObject()["id"]==id)return entry.toObject()["type"]=="line";return false;};
             if(selected.size()==1 && picked["kind"]=="entity" && picked["entityId"]!=selected[0] && isLine(selected[0]) && isLine(picked["entityId"])) {
                 cancelDimension();const auto response=execute("sketch.selectionPick",{{"x",a["x"]},{"y",a["y"]},{"additive",true}});
                 return response["ok"].toBool() ? response["result"].toObject() : response;
@@ -962,7 +964,7 @@ void AlloyWindow::registerCommands() {
             if(a.contains("session") && a["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
             const auto chosen=a.contains("entityIds") ? a["entityIds"].toArray() : session_.value("selection").toObject()["entityIds"].toArray();
             return publishSketchSolve(SketchGeometry::setConstruction(session_.value("draftSketch").toObject(),
-                {{"entityIds",chosen},{"construction",a["construction"]}}));
+                {{"entityIds",chosen},{"construction",a["construction"]}},session_.value("projectionContext").toObject()));
         });
     add("sketch.constructionToggle","Normal/Construction","Toggle selected lines between normal and construction geometry (X).",
         {{"session",optionalSession}},[this](const auto& a){
@@ -975,7 +977,7 @@ void AlloyWindow::registerCommands() {
             for(const auto& id:chosen)for(const auto& entry:entities)if(entry.toObject()["id"]==id)
                 allConstruction &= entry.toObject()["construction"].toBool();
             return publishSketchSolve(SketchGeometry::setConstruction(session_.value("draftSketch").toObject(),
-                {{"entityIds",chosen},{"construction",!allConstruction}}));
+                {{"entityIds",chosen},{"construction",!allConstruction}},session_.value("projectionContext").toObject()));
         });
     add("sketch.constraint","Constrain sketch geometry","Solve a geometric relation before replacing the usable sketch draft.",
         {{"type",constraintType},{"pointIds",ids},{"entityIds",ids},{"session",optionalSession}},[this](const auto& a){
@@ -1003,7 +1005,7 @@ void AlloyWindow::registerCommands() {
                     : a.contains("value") ? CadDocument::millimeters(a["value"].toDouble(),a.value("units").toString(session_.value("inputs").toObject()["units"].toString()))
                     : sketchDimensionMeasure(args,a["kind"].toString());
             } else if(a.contains("value") || a.contains("valueDeg"))return failure("invalid_arguments","Driven dimensions measure geometry; omit a value");
-            return publishSketchSolve(SketchGeometry::addDimension(session_.value("draftSketch").toObject(),args));
+            return publishSketchSolve(SketchGeometry::addDimension(session_.value("draftSketch").toObject(),args,session_.value("projectionContext").toObject()));
         });
     add("sketch.dimensionUpdate","Edit driving dimension","Solve the new dimension value before replacing the usable draft.",
         {{"dimensionId",parameter("string","Stable authored dimension UUID.")},{"value",optional(dimValue)},{"valueDeg",optional(angle)},{"units",optional(units)},{"session",optionalSession}},[this](const auto& a){
@@ -1015,7 +1017,7 @@ void AlloyWindow::registerCommands() {
             if(!a.contains(angular ? "valueDeg" : "value") || a.contains(angular ? "value" : "valueDeg"))return failure("invalid_arguments","Supply valueDeg for Arc Sweep or value for a length dimension");
             const auto units=a.value("units").toString(session_.value("inputs").toObject()["units"].toString());
             return publishSketchSolve(SketchGeometry::updateDimension(session_.value("draftSketch").toObject(),{{"dimensionId",a["dimensionId"]},
-                {angular ? "valueDeg" : "valueMm",angular ? a["valueDeg"].toDouble() : CadDocument::millimeters(a["value"].toDouble(),units)}}));
+                {angular ? "valueDeg" : "valueMm",angular ? a["valueDeg"].toDouble() : CadDocument::millimeters(a["value"].toDouble(),units)}},session_.value("projectionContext").toObject()));
         });
     auto previewKind=optional(kind);previewKind["enum"]=QJsonArray{"auto","linear","horizontal","vertical","angle","radius","diameter","arcSweep"};
     auto previewSchema=sketchPixels;previewSchema["kind"]=previewKind;previewSchema["driving"]=optional(parameter("boolean","False previews a driven measurement."));previewSchema["session"]=optionalSession;
@@ -1054,7 +1056,7 @@ void AlloyWindow::registerCommands() {
             if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
             if(a.contains("session") && a["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
             return publishSketchSolve(SketchGeometry::updateAnnotation(session_.value("draftSketch").toObject(),
-                {{"dimensionId",a["dimensionId"]},{"annotation",QJsonObject{{"uMm",a["uMm"]},{"vMm",a["vMm"]}}}}),
+                {{"dimensionId",a["dimensionId"]},{"annotation",QJsonObject{{"uMm",a["uMm"]},{"vMm",a["vMm"]}}}},session_.value("projectionContext").toObject()),
                 a.value("gestureId").toString().isEmpty() ? QString{} : "annotation:"+a["dimensionId"].toString()+":"+a["gestureId"].toString());
         });
     add("sketch.annotationEndGesture","End annotation drag","Close one native annotation drag history group without changing the sketch.",
@@ -1068,7 +1070,7 @@ void AlloyWindow::registerCommands() {
             if(session_.value("command").toString()!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
             if(a.contains("session") && a["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
             const auto units=a.value("units").toString(session_.value("inputs").toObject()["units"].toString());
-            return publishSketchSolve(SketchGeometry::movePoint(session_.value("draftSketch").toObject(),{{"pointId",a["pointId"]},{"uMm",CadDocument::millimeters(a["x"].toDouble(),units)},{"vMm",CadDocument::millimeters(a["y"].toDouble(),units)}}));
+            return publishSketchSolve(SketchGeometry::movePoint(session_.value("draftSketch").toObject(),{{"pointId",a["pointId"]},{"uMm",CadDocument::millimeters(a["x"].toDouble(),units)},{"vMm",CadDocument::millimeters(a["y"].toDouble(),units)}},session_.value("projectionContext").toObject()));
         });
     add("feature.edit","Edit feature","Edit canonical millimeter parameters; validate/evaluate before commit.",
         {{"featureId",featureId},{"parameters",parameter("object","Partial authored millimeter parameters.")}},[this](const auto& a){
@@ -1255,7 +1257,7 @@ void AlloyWindow::registerCommands() {
         }
         if(session_.value("command").toString()=="sketch.edit") {
             const auto draft=session_.value("draftSketch").toObject();
-            const auto evaluated=SketchGeometry::evaluateFeature(draft,session_.value("resolvedFrame").toObject());view_->showSketchDraft(evaluated);
+            const auto evaluated=SketchGeometry::evaluateFeature(draft,session_.value("resolvedFrame").toObject(),session_.value("projectionContext").toObject());view_->showSketchDraft(evaluated);
             result["authoredDraft"]=draft;
             result["documentDraft"]=SketchGeometry::replaceFeature(document_->authored(),draft);
             result["sketchGeometry"]=evaluated.summary;result["geometryEvaluated"]=true;
@@ -1540,7 +1542,7 @@ void AlloyWindow::refresh() {
         if(sketchName_){const QSignalBlocker block(sketchName_);sketchName_->setText(inputs["name"].toString());}
         for(auto* input:sketchInputs_)input->setSuffix(" "+inputs["units"].toString());
         const bool current=session_.value("baseDocumentRevision").toInteger()==static_cast<qint64>(document_->revision());
-        if(current && draft!=displayedSketchDraft_){view_->showSketchDraft(SketchGeometry::evaluateFeature(draft,session_.value("resolvedFrame").toObject()));displayedSketchDraft_=draft;}
+        if(current && draft!=displayedSketchDraft_){view_->showSketchDraft(SketchGeometry::evaluateFeature(draft,session_.value("resolvedFrame").toObject(),session_.value("projectionContext").toObject()));displayedSketchDraft_=draft;}
         if(current)refreshSketchControls();
         const auto fillet=session_.value("pendingFillet").toObject();
         if(current && session_.value("tool")=="fillet" && fillet.contains("previewDraft")) {
@@ -2040,19 +2042,29 @@ QJsonObject AlloyWindow::beginSketch(const QString& plane,const QString& name,co
     if(!session_.isEmpty() && session_.value("command").toString()!="sketch.plane")return failure("session_busy","Complete or cancel the active command first");
     const auto existing=sketchId.isEmpty() ? QJsonObject{} : SketchGeometry::findFeature(document_->authored(),sketchId);
     const auto support=existing.isEmpty() ? selectedSupport : existing["parameters"].toObject().value("support").toObject();
-    QJsonObject resolvedFrame;
+    QJsonObject resolvedFrame;QJsonArray supportEdges;
     if(plane=="face") {
         if(support.isEmpty())return failure("support_required","Select a supported planar face before starting this sketch","support");
-        try {resolvedFrame=GeometryKernel::resolveSketchSupport(document_->evaluation(),support).frame;}
+        try {
+            const auto resolved=GeometryKernel::resolveSketchSupport(document_->evaluation(),support);
+            resolvedFrame=resolved.frame;
+            if(existing.isEmpty())supportEdges=GeometryKernel::supportEdgeDescriptors(resolved);
+        }
         catch(const GeometryKernel::EvaluationError& error) {
             auto result=failure("support_unavailable",QString::fromUtf8(error.what()),"support");
             auto details=result["error"].toObject();details["diagnostics"]=error.diagnostics();result["error"]=details;return result;
         } catch(const std::exception& error) {return failure("support_unavailable",QString::fromUtf8(error.what()),"support");}
     }
-    const auto seed=existing.isEmpty() ? plane=="face" ? SketchGeometry::newSupportedFeature(document_->authored()["documentId"].toString(),support,name)
+    const auto seed=existing.isEmpty() ? plane=="face" ? SketchGeometry::newSupportedFeature(document_->authored()["documentId"].toString(),support,name,supportEdges)
             : SketchGeometry::newFeature(document_->authored()["documentId"].toString(),plane,name)
         : existing;
-    const auto solved=SketchGeometry::solveDraft(seed);
+    QJsonObject projectionContext;
+    if(plane=="face")try {projectionContext=GeometryKernel::projectionContext(document_->evaluation(),seed);}
+    catch(const GeometryKernel::EvaluationError& error) {
+        auto response=failure("support_unavailable",QString::fromUtf8(error.what()),"support");
+        auto details=response["error"].toObject();details["diagnostics"]=error.diagnostics();response["error"]=details;return response;
+    }
+    const auto solved=SketchGeometry::solveDraft(seed,projectionContext);
     if(!solved.ok){auto response=failure("sketch_solve_failed",solved.error);auto error=response["error"].toObject();error["diagnostics"]=solved.diagnostics;response["error"]=error;return response;}
     const auto draft=solved.feature;
     auto inputs=QJsonObject{{"plane",plane},{"name",draft["name"]},{"units",session_.value("inputs").toObject().value("units").toString(document_->authored()["displayUnits"].toString())}};
@@ -2061,7 +2073,7 @@ QJsonObject AlloyWindow::beginSketch(const QString& plane,const QString& name,co
     const auto sessionId=session_.value("id").toString(CadDocument::newId());
     session_={{"id",sessionId},{"command","sketch.edit"},{"status","active"},{"inputs",inputs},{"draftSketch",draft},
         {"tool","select"},{"selection",QJsonObject{{"pointIds",QJsonArray{}},{"entityIds",QJsonArray{}}}},{"solverDiagnostics",solved.diagnostics},
-        {"previewed",false},{"baseDocumentRevision",static_cast<qint64>(document_->revision())},{"resolvedFrame",resolvedFrame}};
+        {"previewed",false},{"baseDocumentRevision",static_cast<qint64>(document_->revision())},{"resolvedFrame",resolvedFrame},{"projectionContext",projectionContext}};
     sketchHistory_={{draft,solved.diagnostics}};sketchHistoryIndex_=0;sketchHistoryGroup_.clear();updateSketchHistoryState();
     selectedBody_.clear();view_->clearPreview();view_->clearSketchDraft();displayedSketchDraft_={};
     selectedSketch_.clear();selectedProfile_.clear();selectedProfileIds_={};view_->selectProfile({},{});view_->setEditDisplay(draft["id"].toString(),dependentBodies(draft["id"].toString()));
@@ -2089,9 +2101,9 @@ QJsonObject AlloyWindow::appendSketchEntity(const QString& tool,const QJsonObjec
     if(inputs.contains("endSnapTarget"))canonical["endSnapTarget"]=inputs["endSnapTarget"];
     const auto draft=session_.value("draftSketch").toObject();
     if(canonical.contains("startSnapTarget") || canonical.contains("endSnapTarget"))
-        return publishSketchSolve(SketchGeometry::addPointerEntity(draft,tool,canonical));
+        return publishSketchSolve(SketchGeometry::addPointerEntity(draft,tool,canonical,session_.value("projectionContext").toObject()));
     const auto updated=tool=="line" ? SketchGeometry::addLine(draft,canonical) : SketchGeometry::addRectangle(draft,canonical);
-    return publishSketchSolve(SketchGeometry::solveDraft(updated));
+    return publishSketchSolve(SketchGeometry::solveDraft(updated,session_.value("projectionContext").toObject()));
 }
 
 QJsonObject AlloyWindow::resolveSketchSnap(double x,double y,const QString& plane,bool midpointOnly) const {
@@ -2252,7 +2264,7 @@ void AlloyWindow::clearFilletPreview() {
     if(!pending.contains("previewDraft"))return;
     pending.remove("previewDraft");pending.remove("previewDiagnostics");session_["pendingFillet"]=pending;
     const auto draft=session_.value("draftSketch").toObject();
-    if(!draft.isEmpty())view_->showSketchDraft(SketchGeometry::evaluateFeature(draft,session_.value("resolvedFrame").toObject()));
+    if(!draft.isEmpty())view_->showSketchDraft(SketchGeometry::evaluateFeature(draft,session_.value("resolvedFrame").toObject(),session_.value("projectionContext").toObject()));
     auto selection=session_.value("selection").toObject();selection["tool"]=session_.value("tool");
     view_->decorateSketch(draft,selection,session_.value("solverDiagnostics").toObject(),
         session_.value("inputs").toObject()["units"].toString());
@@ -2273,11 +2285,11 @@ QJsonObject AlloyWindow::previewFillet(const QJsonObject& args) {
     }
     if(!std::isfinite(radiusMm) || radiusMm<0.001)return failure("invalid_fillet_radius","Enter a positive fillet radius");
     clearFilletPreview();
-    const auto solved=SketchGeometry::filletCorners(session_["draftSketch"].toObject(),{{"corners",corners},{"radiusMm",radiusMm}});
+    const auto solved=SketchGeometry::filletCorners(session_["draftSketch"].toObject(),{{"corners",corners},{"radiusMm",radiusMm}},session_.value("projectionContext").toObject());
     if(!solved.ok) {
         auto response=failure("sketch_fillet_failed",solved.error);auto error=response["error"].toObject();error["diagnostics"]=solved.diagnostics;response["error"]=error;return response;
     }
-    const auto evaluated=SketchGeometry::evaluateFeature(solved.feature,session_.value("resolvedFrame").toObject());
+    const auto evaluated=SketchGeometry::evaluateFeature(solved.feature,session_.value("resolvedFrame").toObject(),session_.value("projectionContext").toObject());
     pending=session_.value("pendingFillet").toObject();pending.remove("previewError");pending["previewDraft"]=solved.feature;
     pending["previewDiagnostics"]=solved.diagnostics;pending["radiusMm"]=radiusMm;
     session_["pendingFillet"]=pending;
@@ -2301,7 +2313,7 @@ QJsonObject AlloyWindow::appendSketchCurve(const QString& tool,const QJsonObject
             canonical["radiusMm"]=length("radius");canonical["startAngleDeg"]=inputs["startAngleDeg"];canonical["sweepAngleDeg"]=inputs["sweepAngleDeg"];}
     } else canonical={{"startUMm",length("startX")},{"startVMm",length("startY")},{"endUMm",length("endX")},{"endVMm",length("endY")},{"throughUMm",length("throughX")},{"throughVMm",length("throughY")}};
     const auto draft=session_["draftSketch"].toObject();
-    return publishSketchSolve(SketchGeometry::solveDraft(tool=="circle" ? SketchGeometry::addCircle(draft,canonical) : SketchGeometry::addArc(draft,canonical)));
+    return publishSketchSolve(SketchGeometry::solveDraft(tool=="circle" ? SketchGeometry::addCircle(draft,canonical) : SketchGeometry::addArc(draft,canonical),session_.value("projectionContext").toObject()));
 }
 
 QJsonObject AlloyWindow::sketchCurveGesture(const QJsonObject& point,bool commit) {
@@ -2334,7 +2346,7 @@ QJsonObject AlloyWindow::sketchCurveGesture(const QJsonObject& point,bool commit
             if(first["status"]=="acquired")canonical["centerSnapTarget"]=first["target"];
             if(point["status"]=="acquired" && point["target"].toObject()["kind"]=="tangent")
                 canonical["tangentSnapTarget"]=point["target"];
-            return publishSketchSolve(SketchGeometry::addPointerCircle(session_["draftSketch"].toObject(),canonical));
+            return publishSketchSolve(SketchGeometry::addPointerCircle(session_["draftSketch"].toObject(),canonical,session_.value("projectionContext").toObject()));
         }
         return appendSketchCurve(tool,inputs);
     }
@@ -2349,7 +2361,7 @@ QJsonObject AlloyWindow::sketchCurveGesture(const QJsonObject& point,bool commit
 }
 
 double AlloyWindow::sketchDimensionMeasure(const QJsonObject& targets,const QString& kind) const {
-    const auto parameters=session_.value("draftSketch").toObject()["parameters"].toObject();
+    const auto parameters=SketchGeometry::expandedProjectionFeature(session_.value("draftSketch").toObject(),session_.value("projectionContext").toObject())["parameters"].toObject();
     if(kind=="angle") {
         const auto ids=targets.value("entityIds").toArray();
         if(ids.size()!=2 || ids[0]==ids[1])throw std::invalid_argument("Select two distinct lines for an angle");
@@ -2388,7 +2400,7 @@ QJsonObject AlloyWindow::publishSketchSolve(const SketchGeometry::SolveResult& s
     }
     const auto candidate=SketchGeometry::replaceFeature(document_->authored(),solved.feature);const auto error=CadDocument::validate(candidate);
     if(!error.isEmpty())return failure("invalid_sketch",error);
-    const auto evaluated=SketchGeometry::evaluateFeature(solved.feature,session_.value("resolvedFrame").toObject());
+    const auto evaluated=SketchGeometry::evaluateFeature(solved.feature,session_.value("resolvedFrame").toObject(),session_.value("projectionContext").toObject());
     recordSketchHistory(solved.feature,solved.diagnostics,journalGroup);
     session_["draftSketch"]=solved.feature;session_["solverDiagnostics"]=solved.diagnostics;session_["previewed"]=false;
     session_.remove("lastSolveFailure");session_.remove("firstPoint");session_.remove("secondPoint");session_.remove("pointerPoint");session_.remove("gestureSweepDeg");session_.remove("snap");
@@ -2433,7 +2445,7 @@ QJsonObject AlloyWindow::traverseSketchHistory(int direction) {
     const int next=sketchHistoryIndex_+direction;
     if(next<0 || next>=static_cast<int>(sketchHistory_.size()))return {{"action","none"},{"changed",false},{"draftHistory",session_["draftHistory"]}};
     const auto entry=sketchHistory_[next];
-    const auto evaluated=SketchGeometry::evaluateFeature(entry.draft,session_.value("resolvedFrame").toObject());
+    const auto evaluated=SketchGeometry::evaluateFeature(entry.draft,session_.value("resolvedFrame").toObject(),session_.value("projectionContext").toObject());
     sketchHistoryIndex_=next;sketchHistoryGroup_.clear();
     cancelDimension();view_->clearSketchCursor();
     session_["draftSketch"]=entry.draft;session_["solverDiagnostics"]=entry.diagnostics;
@@ -2451,7 +2463,7 @@ QJsonObject AlloyWindow::applySketchConstraint(const QString& type,const QJsonOb
     if(type=="horizontalVertical") {
         const auto ids=targets["entityIds"].toArray();
         if(ids.size()!=1)return failure("invalid_constraint_target","Select one line for Horizontal/Vertical");
-        const auto parameters=session_["draftSketch"].toObject()["parameters"].toObject();
+    const auto parameters=SketchGeometry::expandedProjectionFeature(session_.value("draftSketch").toObject(),session_.value("projectionContext").toObject())["parameters"].toObject();
         QMap<QString,QJsonObject> points;for(const auto& entry:parameters["points"].toArray())points[entry.toObject()["id"].toString()]=entry.toObject();
         bool found=false;
         for(const auto& entry:parameters["entities"].toArray()) {
@@ -2462,17 +2474,17 @@ QJsonObject AlloyWindow::applySketchConstraint(const QString& type,const QJsonOb
         }
         if(!found)return failure("stale_entity","Selected line no longer exists");
     }
-    return publishSketchSolve(SketchGeometry::addConstraint(session_.value("draftSketch").toObject(),args));
+    return publishSketchSolve(SketchGeometry::addConstraint(session_.value("draftSketch").toObject(),args,session_.value("projectionContext").toObject()));
 }
 
 QJsonObject AlloyWindow::setSketchSelection(const QJsonObject& selection) {
     if(session_.value("command").toString()!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
     if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))return failure("stale_session","The document changed; cancel and restart this sketch");
-    const auto parameters=session_.value("draftSketch").toObject()["parameters"].toObject();
+    const auto parameters=SketchGeometry::expandedProjectionFeature(session_.value("draftSketch").toObject(),session_.value("projectionContext").toObject())["parameters"].toObject();
     QJsonObject normalized;
     for(const auto& field:QStringList{"pointIds","entityIds","profileIds"}) {
         QSet<QString> available;
-        if(field=="profileIds")for(const auto& profile:SketchGeometry::evaluateFeature(session_.value("draftSketch").toObject(),session_.value("resolvedFrame").toObject()).profiles)available.insert(profile.profileId);
+        if(field=="profileIds")for(const auto& profile:SketchGeometry::evaluateFeature(session_.value("draftSketch").toObject(),session_.value("resolvedFrame").toObject(),session_.value("projectionContext").toObject()).profiles)available.insert(profile.profileId);
         else for(const auto& entry:parameters[field=="pointIds" ? "points" : "entities"].toArray())available.insert(entry.toObject()["id"].toString());
         QJsonArray ids;for(const auto& value:selection[field].toArray()) {
             if(!value.isString() || !available.contains(value.toString()))return failure("stale_entity","Selected sketch geometry does not exist",field);
@@ -2510,12 +2522,13 @@ QJsonObject AlloyWindow::setSketchSelection(const QJsonObject& selection) {
 
 QJsonObject AlloyWindow::sketchDimensionTargets(const QJsonObject& args) const {
     const auto selection=session_.value("selection").toObject();
+    const auto parameters=SketchGeometry::expandedProjectionFeature(session_.value("draftSketch").toObject(),session_.value("projectionContext").toObject())["parameters"].toObject();
     auto points=args.contains("pointIds") ? args["pointIds"].toArray() : selection["pointIds"].toArray();
     const auto entities=selection["entityIds"].toArray();
     if(args.value("kind")=="angle" || (args.value("kind").toString().isEmpty() && (args.contains("entityIds") || entities.size()==2))) {
         const auto chosen=args.contains("entityIds") ? args.value("entityIds").toArray() : entities;
         if(chosen.size()!=2 || chosen[0]==chosen[1])throw std::invalid_argument("Select two distinct lines for an angle");
-        QJsonArray found;for(const auto& id:chosen)for(const auto& value:session_.value("draftSketch").toObject()["parameters"].toObject()["entities"].toArray())if(value.toObject()["id"]==id && value.toObject()["type"]=="line"){found.append(id);break;}
+        QJsonArray found;for(const auto& id:chosen)for(const auto& value:parameters["entities"].toArray())if(value.toObject()["id"]==id && value.toObject()["type"]=="line"){found.append(id);break;}
         if(found.size()!=2)throw std::invalid_argument("Select two lines for an angle");
         QJsonObject result{{"entityIds",chosen}};if(args.contains("raySigns"))result["raySigns"]=args["raySigns"];return result;
     }
@@ -2524,7 +2537,7 @@ QJsonObject AlloyWindow::sketchDimensionTargets(const QJsonObject& args) const {
     if(!entity.isEmpty()) {
         if(args.contains("pointIds"))throw std::invalid_argument("Choose two points or one line for a dimension");
         bool found=false;points={};
-        for(const auto& entry:session_.value("draftSketch").toObject()["parameters"].toObject()["entities"].toArray()) {
+        for(const auto& entry:parameters["entities"].toArray()) {
             const auto line=entry.toObject();if(line["id"]==entity){if(line["type"]!="line")return {{"entityId",entity}};points=QJsonArray{line["startPointId"],line["endPointId"]};found=true;break;}
         }
         if(!found)throw std::invalid_argument("The requested sketch line does not exist");
@@ -2535,7 +2548,7 @@ QJsonObject AlloyWindow::sketchDimensionTargets(const QJsonObject& args) const {
 
 QJsonArray AlloyWindow::angleRaySigns(const QJsonArray& entityIds,const QJsonObject& annotation) const {
     if(entityIds.size()!=2)return {1,1};
-    const auto parameters=session_.value("draftSketch").toObject()["parameters"].toObject();
+    const auto parameters=SketchGeometry::expandedProjectionFeature(session_.value("draftSketch").toObject(),session_.value("projectionContext").toObject())["parameters"].toObject();
     QMap<QString,QPointF> points;for(const auto& value:parameters["points"].toArray()){const auto p=value.toObject();points[p["id"].toString()]={p["uMm"].toDouble(),p["vMm"].toDouble()};}
     QJsonArray lines;for(const auto& id:entityIds)for(const auto& value:parameters["entities"].toArray())if(value.toObject()["id"]==id){lines.append(value);break;}
     if(lines.size()!=2)return {1,1};
@@ -2646,13 +2659,13 @@ QJsonObject AlloyWindow::acceptDimension(const QJsonObject& args) {
     const auto draft=session_.value("draftSketch").toObject();QJsonObject result;
     if(pending.contains("dimensionId")) {
         if(!driving){cancelDimension();view_->setFocus();return {{"authoredChange",false}};}
-        result=publishSketchSolve(SketchGeometry::updateDimension(draft,{{"dimensionId",pending.value("dimensionId")},{angular ? "valueDeg" : "valueMm",valueMm}}));
+        result=publishSketchSolve(SketchGeometry::updateDimension(draft,{{"dimensionId",pending.value("dimensionId")},{angular ? "valueDeg" : "valueMm",valueMm}},session_.value("projectionContext").toObject()));
     } else {
         QJsonObject mutation{{"pointIds",pending.value("pointIds")},{"kind",pending.value("kind")},{"driving",driving},{"annotation",pending.value("annotation")}};
         if(pending.contains("entityId")){mutation.remove("pointIds");mutation["entityId"]=pending["entityId"];}
         if(pending.contains("entityIds")){mutation.remove("pointIds");mutation["entityIds"]=pending["entityIds"];mutation["raySigns"]=pending["raySigns"];}
         if(driving)mutation[angular ? "valueDeg" : "valueMm"]=valueMm;
-        result=publishSketchSolve(SketchGeometry::addDimension(draft,mutation));
+        result=publishSketchSolve(SketchGeometry::addDimension(draft,mutation,session_.value("projectionContext").toObject()));
     }
     if(result.value("ok").isBool() && !result.value("ok").toBool())return result;
     cancelDimension();session_["selection"]=QJsonObject{{"pointIds",QJsonArray{}},{"entityIds",QJsonArray{}}};view_->setFocus();return result;
@@ -2664,7 +2677,8 @@ QJsonObject AlloyWindow::editDimension(const QString& id) {
     if(dimension.isEmpty())return failure("stale_entity","Dimension does not exist");
     const auto valueKey=dimension["kind"]=="arcSweep" || dimension["kind"]=="angle" ? "valueDeg" : "valueMm";
     double value=dimension.value(valueKey).toDouble();for(const auto& entry:session_.value("solverDiagnostics").toObject().value("dimensionValues").toArray())if(entry.toObject().value("id")==id)value=entry.toObject().value(valueKey).toDouble();
-    const auto layout=view_->dimensionLayout(session_.value("draftSketch").toObject(),dimension,value,session_.value("inputs").toObject().value("units").toString());
+    const auto layoutFeature=SketchGeometry::expandedProjectionFeature(session_.value("draftSketch").toObject(),session_.value("projectionContext").toObject());
+    const auto layout=view_->dimensionLayout(layoutFeature,dimension,value,session_.value("inputs").toObject().value("units").toString());
     if(layout.isEmpty())return failure("annotation_unavailable","Look At the sketch plane before editing this label");
     cancelDimension();dimension["dimensionId"]=id;dimension["phase"]="editing";dimension["annotation"]=layout.value("annotation");dimension[dimension["kind"]=="arcSweep" || dimension["kind"]=="angle" ? "measuredValueDeg" : "measuredValueMm"]=value;
     session_["pendingDimension"]=dimension;auto selection=session_.value("selection").toObject();selection["dimensionId"]=id;session_["selection"]=selection;showDimensionEditor();return dimension;

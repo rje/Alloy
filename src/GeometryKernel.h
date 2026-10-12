@@ -1,14 +1,21 @@
 #pragma once
 #include "SketchProfiles.h"
 #include <QJsonObject>
+#include <QJsonArray>
 #include <TopoDS_Shape.hxx>
 #include <stdexcept>
 #include <vector>
 
+struct EvaluatedSupportEdge {
+    QString edgeId, type;
+    TopoDS_Edge edge;
+    QJsonObject provenance;
+};
 struct EvaluatedSupportFace {
     QString faceId, bodyId, producerFeatureId, role;
     TopoDS_Face face;
     QJsonObject frame;
+    std::vector<EvaluatedSupportEdge> boundaryEdges;
 };
 
 struct EvaluatedBody {
@@ -46,6 +53,8 @@ public:
     };
     static TopoDS_Shape primitive(const QString& type, const QJsonObject& parameters);
     static EvaluatedSupportFace resolveSketchSupport(const EvaluatedDocument& evaluation, const QJsonObject& support);
+    static QJsonArray supportEdgeDescriptors(const EvaluatedSupportFace& support);
+    static QJsonObject projectionContext(const EvaluatedDocument& evaluation, const QJsonObject& feature);
     static EvaluatedProfile unionProfiles(const std::vector<EvaluatedProfile>& profiles);
     static TopoDS_Shape extrusion(const EvaluatedProfile& profile, double distanceMm, EvaluatedSupportFace* endCap = nullptr);
     static TopoDS_Shape booleanOperation(const QString& operation, const TopoDS_Shape& target,

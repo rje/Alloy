@@ -86,7 +86,12 @@ QJsonObject solveSketches(QJsonObject candidate) {
     for (int i = 0; i < features.size(); ++i) {
         const auto feature = features[i].toObject();
         if (feature["type"].toString() != "sketch") continue;
-        const auto solution = SketchGeometry::solveDraft(feature);
+        QJsonObject projectionContext;
+        if(feature["parameters"].toObject()["plane"]=="face") {
+            auto prior=candidate;QJsonArray prefix;for(int j=0;j<i;++j)prefix.append(features[j]);prior["features"]=prefix;
+            projectionContext=GeometryKernel::projectionContext(GeometryKernel::evaluateDocument(prior),feature);
+        }
+        const auto solution = SketchGeometry::solveDraft(feature,projectionContext);
         if (!solution.ok) throw GeometryKernel::EvaluationError({{"code","sketch_solve_failed"},
             {"featureId",feature["id"]},{"featureType","sketch"},{"message",solution.error},{"solverDiagnostics",solution.diagnostics}});
         features[i] = solution.feature;

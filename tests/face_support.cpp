@@ -2,6 +2,7 @@
 #include "CadDocument.h"
 #include "SketchGeometry.h"
 #include <QCoreApplication>
+#include <QFile>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QMap>
@@ -91,6 +92,52 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try {
     check(document.save(path).isEmpty(),"Save supported sketch");CadDocument reopened;
     check(reopened.open(path).isEmpty() && reopened.authored()==stable,"Reopen lost authored support relationships");
     worldZ(reopened.sketches()[1],60);check(reopened.bodies()[0].supportFaces[0].faceId==supportCap.faceId,"Reopen changed semantic cap role");
+    // Associative straight references use the real rounded cap, not coordinates copied into saved intent.
+    const auto linkedSeedPath=directory.path()+"/linked-source.alloy";
+    QFile linkedSeed(linkedSeedPath);check(linkedSeed.open(QIODevice::WriteOnly),"Write linked source fixture");
+    check(linkedSeed.write(QJsonDocument(beforeBoss).toJson())>0,"Store linked source fixture");linkedSeed.close();
+    CadDocument linked;const auto linkedSeedError=linked.open(linkedSeedPath);check(linkedSeedError.isEmpty(),"Prepare linked source: "+linkedSeedError);
+    auto linkedCap=GeometryKernel::resolveSketchSupport(linked.evaluation(),support);
+    auto projected=SketchGeometry::newSupportedFeature(owner,support,"Linked construction",GeometryKernel::supportEdgeDescriptors(linkedCap));
+    const auto retainedProjections=projected["parameters"].toObject()["projections"].toArray();
+    check(retainedProjections.size()==4,"Actual rounded cap must auto-retain four straight boundary references");
+    auto context=GeometryKernel::projectionContext(linked.evaluation(),projected);
+    QString firstProjection,secondProjection;
+    for(const auto& reference:retainedProjections){const auto record=reference.toObject();
+        for(const auto& edge:linkedCap.boundaryEdges)if(edge.edgeId==record["source"].toObject()["edgeId"]){
+            if(edge.provenance["sourceEntityId"]==entity(f,0)["id"])firstProjection=record["id"].toString();
+            if(edge.provenance["sourceEntityId"]==entity(f,1)["id"])secondProjection=record["id"].toString();
+        }}
+    check(!firstProjection.isEmpty() && !secondProjection.isEmpty(),"Tutorial outer edge identities missing");
+    projected=SketchGeometry::addLine(projected,{{"u1Mm",60},{"v1Mm",80},{"u2Mm",160},{"v2Mm",90}});
+    projected=SketchGeometry::addLine(projected,{{"u1Mm",500},{"v1Mm",120},{"u2Mm",620},{"v2Mm",180}});
+    const auto firstLocal=entity(projected,0),secondLocal=entity(projected,1);
+    projected=accepted(SketchGeometry::setConstruction(projected,{{"entityIds",QJsonArray{firstLocal["id"],secondLocal["id"]}},{"construction",true}},context));
+    projected=accepted(SketchGeometry::addConstraint(projected,{{"type","parallel"},{"entityIds",QJsonArray{firstLocal["id"],firstProjection}}},context));
+    projected=accepted(SketchGeometry::addConstraint(projected,{{"type","parallel"},{"entityIds",QJsonArray{secondLocal["id"],secondProjection}}},context));
+    projected=accepted(SketchGeometry::addDimension(projected,{{"kind","horizontal"},{"pointIds",QJsonArray{firstLocal["startPointId"],SketchGeometry::projectionPointId(firstProjection,false)}},{"valueMm",40}},context));
+    check(projected["parameters"].toObject()["points"].toArray().size()==4 && projected["parameters"].toObject()["entities"].toArray().size()==2,"Derived projection coordinates leaked into authored geometry");
+    check(!SketchGeometry::solveDraft(projected).ok,"Linked references solved without current source context");
+    check(linked.commit(SketchGeometry::replaceFeature(linked.authored(),projected),"Two external Parallel references").isEmpty(),"Commit linked Parallel/distance");
+    const auto linkedBefore=linked.authored();const auto beforeContext=GeometryKernel::projectionContext(linked.evaluation(),projected);
+    auto resized=accepted(SketchGeometry::updateDimension(f,{{"dimensionId",capDimension},{"valueMm",140}}));
+    resized=accepted(SketchGeometry::updateDimension(resized,{{"dimensionId",radiusId},{"valueMm",80}}));
+    check(linked.commit(SketchGeometry::replaceFeature(linked.authored(),resized),"Resize projected source").isEmpty(),"Source resize lost cap line lineage");
+    const auto linkedAfter=linked.authored();projected=SketchGeometry::findFeature(linkedAfter,projected["id"].toString());
+    check(projected["parameters"].toObject()["projections"].toArray()==retainedProjections,"Upstream resize renamed or appended auto projections");
+    context=GeometryKernel::projectionContext(linked.evaluation(),projected);check(context["lines"]!=beforeContext["lines"],"Projected coordinates did not refresh after source changes");
+    const auto evaluatedLinked=SketchGeometry::evaluateFeature(projected,linkedCap.frame,context);
+    check(evaluatedLinked.profiles.empty() && evaluatedLinked.summary["projectedLines"].toArray().size()==4,"Reference-only lines created profiles or disappeared");
+    check(linked.commit(CadDocument::extrusionCandidate(linked.authored(),{{"featureId",producer["id"]},{"sketchId",f["id"]},{"profileIds",profileIds},{"distanceMm",70}}),"Transport projected cap").isEmpty(),"Projected frame depth transport failed");
+    worldZ(linked.sketches()[2],70);
+    auto badProjection=SketchGeometry::findFeature(linked.authored(),projected["id"].toString());auto badParameters=badProjection["parameters"].toObject();
+    auto badRefs=badParameters["projections"].toArray();auto badRef=badRefs[0].toObject();auto badSource=badRef["source"].toObject();badSource["edgeId"]=CadDocument::newId();badRef["source"]=badSource;badRefs[0]=badRef;badParameters["projections"]=badRefs;badProjection["parameters"]=badParameters;
+    const auto beforeRejected=linked.authored();const auto rejectedCount=linked.history().count();
+    check(!linked.commit(SketchGeometry::replaceFeature(beforeRejected,badProjection),"Unavailable projection").isEmpty() && linked.lastEvaluationError()["code"]=="projection_unavailable","Missing projection was frozen or substituted");
+    check(linked.authored()==beforeRejected && linked.history().count()==rejectedCount,"Projection rejection changed authored work/history");
+    linked.history().undo();check(linked.authored()==linkedAfter,"Projection depth undo changed local intent");linked.history().undo();check(linked.authored()==linkedBefore,"Projection source undo lost relationships");linked.history().redo();linked.history().redo();check(linked.authored()==beforeRejected,"Projection redo changed references");
+    const auto linkedPath=directory.path()+"/linked-support.alloy";check(linked.save(linkedPath).isEmpty(),"Save linked support");CadDocument linkedReopen;check(linkedReopen.open(linkedPath).isEmpty() && linkedReopen.authored()==beforeRejected,"Reopen lost projection intent");
+    worldZ(linkedReopen.sketches()[2],70);
     std::cout<<"PASS: actual bracket planar end-cap reference, immutable local sketch, width/radius/depth transport, nested extrusion and atomic storage\n";
     return 0;
 }catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}}

@@ -114,7 +114,8 @@ private:
     QString selectedProfile_, selectedProfileSketch_, editSourceSketch_;
     QJsonArray selectedProfileIds_;
     QJsonArray hiddenBodyIds_;
-    Handle(AIS_Shape) sketchDraft_, sketchConstructionDraft_, sketchCursor_, sketchSnapCue_;
+    Handle(AIS_Shape) sketchDraft_, sketchConstructionDraft_, projectedDraft_, sketchCursor_, sketchSnapCue_;
+    QJsonArray projectedLines_;
     QJsonArray constructionDraftLineIds_;
     int rightMousePressCount_ = 0;
     int contextMenuEventCount_ = 0;

@@ -2,6 +2,8 @@
 #include "SketchGeometry.h"
 #include <BRepBndLib.hxx>
 #include <BRepAdaptor_Surface.hxx>
+#include <BRepAdaptor_Curve.hxx>
+#include <TopoDS_Vertex.hxx>
 #include <BRepAlgoAPI_BooleanOperation.hxx>
 #include <BRepAlgoAPI_Fuse.hxx>
 #include <BRepCheck_Analyzer.hxx>
@@ -28,6 +30,7 @@
 #include <stdexcept>
 
 namespace {
+[[noreturn]] void reject(const QString& code,const QString& message) {throw GeometryKernel::EvaluationError({{"code",code},{"message",message}});}
 int count(const TopoDS_Shape& shape, TopAbs_ShapeEnum kind) {
     TopTools_IndexedMapOfShape map; TopExp::MapShapes(shape,kind,map); return map.Extent();
 }
@@ -68,11 +71,41 @@ EvaluatedSupportFace GeometryKernel::resolveSketchSupport(const EvaluatedDocumen
     return *found;
 }
 
+QJsonArray GeometryKernel::supportEdgeDescriptors(const EvaluatedSupportFace& support) {
+    QJsonArray result;
+    for(const auto& edge:support.boundaryEdges) {
+        auto descriptor=edge.provenance;descriptor["edgeId"]=edge.edgeId;descriptor["type"]=edge.type;
+        descriptor["supported"]=edge.type=="line";result.append(descriptor);
+    }
+    return result;
+}
+QJsonObject GeometryKernel::projectionContext(const EvaluatedDocument& evaluation,const QJsonObject& feature) {
+    const auto parameters=feature["parameters"].toObject();QJsonArray lines,unsupported;
+    if(parameters["plane"]!="face")return {{"lines",lines},{"unsupportedEdges",unsupported}};
+    const auto cap=resolveSketchSupport(evaluation,parameters["support"].toObject());
+    for(const auto& edge:cap.boundaryEdges)if(edge.type!="line")unsupported.append(edge.edgeId);
+    const auto origin=cap.frame["origin"].toArray(),u=cap.frame["uAxis"].toArray(),v=cap.frame["vAxis"].toArray();
+    auto local=[&](const QJsonArray& point,const QJsonArray& axis){double result=0;for(int i=0;i<3;++i)result+=(point[i].toDouble()-origin[i].toDouble())*axis[i].toDouble();return result;};
+    for(const auto& item:parameters["projections"].toArray()) {
+        const auto projection=item.toObject(),source=projection["source"].toObject();
+        for(const auto& key:{"producerFeatureId","bodyId","faceId"})if(source[key]!=parameters["support"].toObject()[key])
+            reject("projection_unavailable","Projected edge must belong to the retained sketch support");
+        const auto found=std::find_if(cap.boundaryEdges.begin(),cap.boundaryEdges.end(),[&](const auto& edge){return edge.edgeId==source["edgeId"].toString();});
+        if(found==cap.boundaryEdges.end())throw EvaluationError({{"code","projection_unavailable"},{"projectionId",projection["id"]},{"source",source},{"message","Retained support boundary edge is no longer available"}});
+        if(found->type!="line")reject("unsupported_projection","This projection slice supports straight cap edges only");
+        const auto id=projection["id"].toString();const auto a=found->provenance["startMm"].toArray(),b=found->provenance["endMm"].toArray();
+        lines.append(QJsonObject{{"id",id},{"startPointId",SketchGeometry::projectionPointId(id,false)},{"endPointId",SketchGeometry::projectionPointId(id,true)},
+            {"u1Mm",local(a,u)},{"v1Mm",local(a,v)},{"u2Mm",local(b,u)},{"v2Mm",local(b,v)},{"source",source}});
+    }
+    return {{"lines",lines},{"unsupportedEdges",unsupported}};
+}
+
 EvaluatedProfile GeometryKernel::unionProfiles(const std::vector<EvaluatedProfile>& profiles) {
     if(profiles.empty())throw std::invalid_argument("Select at least one current profile");
     if(profiles.size()==1)return profiles.front();
     const auto& first=profiles.front();TopoDS_Shape shape=first.face;
     QStringList profileIds,entityIds;double expectedArea=0;
+    auto lineage=first.boundaryEdges;
     QSet<QString> distinct;
     for(const auto& profile:profiles){
         if(profile.sketchId!=first.sketchId || profile.plane!=first.plane || profile.face.IsNull()
@@ -85,7 +118,27 @@ EvaluatedProfile GeometryKernel::unionProfiles(const std::vector<EvaluatedProfil
     // prism so shared partitions cannot survive as separate feature bodies.
     for(size_t i=1;i<profiles.size();++i){BRepAlgoAPI_Fuse fused(shape,profiles[i].face);
         if(!fused.IsDone() || fused.HasErrors())throw std::runtime_error("OCCT could not unite the selected planar regions");
-        fused.SimplifyResult(true,true);shape=fused.Shape();}
+        fused.SimplifyResult(true,true);shape=fused.Shape();
+        lineage.insert(lineage.end(),profiles[i].boundaryEdges.begin(),profiles[i].boundaryEdges.end());
+        std::vector<EvaluatedBoundaryEdge> next;
+        TopTools_IndexedMapOfShape present;TopExp::MapShapes(shape,TopAbs_EDGE,present);
+        for(const auto& source:lineage) {
+            TopTools_IndexedMapOfShape descendants;
+            if(present.Contains(source.edge))descendants.Add(source.edge);
+            for(const auto& changed:fused.Modified(source.edge))if(changed.ShapeType()==TopAbs_EDGE && present.Contains(changed))descendants.Add(changed);
+            for(int j=1;j<=descendants.Extent();++j){auto mapped=source;mapped.edge=TopoDS::Edge(descendants(j));
+                if(source.type=="line") {
+                    TopoDS_Vertex a,b,c,d;TopExp::Vertices(source.edge,a,b,true);TopExp::Vertices(mapped.edge,c,d,true);
+                    const auto pa=BRep_Tool::Pnt(a),pb=BRep_Tool::Pnt(b),pc=BRep_Tool::Pnt(c),pd=BRep_Tool::Pnt(d);
+                    if(pa.Distance(pc)<=1e-6 && pb.Distance(pd)<=1e-6){}
+                    else if(pa.Distance(pd)<=1e-6 && pb.Distance(pc)<=1e-6)std::swap(mapped.startContact,mapped.endContact);
+                    else reject("ambiguous_projection","A straight source edge was split or merged; endpoint lineage requires explicit repair");
+                }
+                const bool duplicate=std::any_of(next.begin(),next.end(),[&](const auto& prior){return prior.edge.IsSame(mapped.edge) && prior.sourceEntityId==mapped.sourceEntityId && prior.sourceSketchId==mapped.sourceSketchId;});
+                if(!duplicate)next.push_back(mapped);}
+        }
+        lineage=std::move(next);
+    }
     if(shape.IsNull() || !BRepCheck_Analyzer(shape).IsValid() || count(shape,TopAbs_FACE)!=1)
         throw std::invalid_argument("Selected regions must form one connected planar face");
     TopExp_Explorer face(shape,TopAbs_FACE);const auto united=TopoDS::Face(face.Current());
@@ -97,7 +150,7 @@ EvaluatedProfile GeometryKernel::unionProfiles(const std::vector<EvaluatedProfil
     const auto id=QUuid::createUuidV5(QUuid(first.sketchId),QByteArray("alloy-profile-union/1\n")+profileIds.join('\n').toUtf8()).toString(QUuid::WithoutBraces);
     QJsonObject summary{{"profileId",id},{"profileIds",refs},{"sketchId",first.sketchId},{"plane",first.plane},
         {"frame",first.summary["frame"]},{"valid",true},{"areaUnit","mm2"},{"areaMm2",area.Mass()},{"sourceEntityIds",sources},{"type","profile_union"}};
-    return {id,first.sketchId,first.plane,united,summary};
+    return {id,first.sketchId,first.plane,united,summary,lineage};
 }
 
 TopoDS_Shape GeometryKernel::extrusion(const EvaluatedProfile& profile, double distanceMm, EvaluatedSupportFace* endCap) {
@@ -127,6 +180,35 @@ TopoDS_Shape GeometryKernel::extrusion(const EvaluatedProfile& profile, double d
         if(realPlane.Distance(expected)>1e-6 || std::abs(realPlane.Axis().Direction().Dot(direction))<1-1e-9)
             throw std::runtime_error("Generated end cap does not match the transported source frame");
         endCap->role="extrude.endCap";endCap->face=TopoDS::Face(cap);endCap->frame=transported;
+        TopTools_IndexedMapOfShape capEdges;TopExp::MapShapes(cap,TopAbs_EDGE,capEdges);
+        QSet<QString> identities;
+        for(const auto& boundary:profile.boundaryEdges) {
+            const auto transportedEdge=prism.LastShape(boundary.edge);
+            if(transportedEdge.IsNull() || transportedEdge.ShapeType()!=TopAbs_EDGE || !capEdges.Contains(transportedEdge))
+                reject("projection_lineage_unavailable","A source boundary has no unique actual prism cap edge");
+            for(const auto& other:profile.boundaryEdges)if(other.sourceEntityId!=boundary.sourceEntityId && other.edge.IsSame(boundary.edge))
+                reject("ambiguous_projection","A cap edge combines more than one authored source");
+            QStringList contacts{boundary.startContact,boundary.endContact};contacts.sort();
+            const auto signature=boundary.sourceEntityId+"\n"+contacts.join("\n");
+            const auto edgeId=QUuid::createUuidV5(QUuid(boundary.sourceSketchId),QByteArray("alloy-cap-edge/1\n")+signature.toUtf8()).toString(QUuid::WithoutBraces);
+            if(boundary.type=="line" && identities.contains(edgeId))reject("ambiguous_projection","One authored boundary maps to multiple cap edges");identities.insert(edgeId);
+            QJsonObject provenance{{"sourceSketchId",boundary.sourceSketchId},{"sourceEntityId",boundary.sourceEntityId},
+                {"startContact",contacts[0]},{"endContact",contacts[1]}};
+            TopoDS_Vertex start,end;TopExp::Vertices(TopoDS::Edge(transportedEdge),start,end,true);
+            auto a=BRep_Tool::Pnt(start),b=BRep_Tool::Pnt(end);
+            if(boundary.type=="line") {
+                TopoDS_Vertex originalStart,originalEnd;TopExp::Vertices(boundary.edge,originalStart,originalEnd,true);
+                const auto shift=gp_Vec(normal[0].toDouble()*distanceMm,normal[1].toDouble()*distanceMm,normal[2].toDouble()*distanceMm);
+                const auto expectedStart=BRep_Tool::Pnt(originalStart).Translated(shift),expectedEnd=BRep_Tool::Pnt(originalEnd).Translated(shift);
+                if(a.Distance(expectedStart)<=1e-6 && b.Distance(expectedEnd)<=1e-6){}
+                else if(b.Distance(expectedStart)<=1e-6 && a.Distance(expectedEnd)<=1e-6)std::swap(a,b);
+                else reject("ambiguous_projection","Prism endpoint lineage does not match the source boundary");
+            }
+            if(boundary.startContact>boundary.endContact)std::swap(a,b);
+            provenance["startMm"]=QJsonArray{a.X(),a.Y(),a.Z()};provenance["endMm"]=QJsonArray{b.X(),b.Y(),b.Z()};
+            endCap->boundaryEdges.push_back({edgeId,boundary.type,TopoDS::Edge(transportedEdge),provenance});
+        }
+
     }
     if (shape.IsNull() || !BRepCheck_Analyzer(shape).IsValid() || count(shape,TopAbs_SOLID) != 1)
         throw std::runtime_error("Extrusion did not produce one valid solid");
@@ -241,7 +323,7 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored) 
                     try {resolvedFrame=resolveSketchSupport(evaluated,parameters["support"].toObject()).frame;}
                     catch(const EvaluationError& error){auto diagnostic=context;const auto details=error.diagnostics();for(auto it=details.begin();it!=details.end();++it)diagnostic[it.key()]=it.value();throw EvaluationError(diagnostic);}
                 }
-                evaluated.sketches.push_back(SketchGeometry::evaluateFeature(feature,resolvedFrame));
+                evaluated.sketches.push_back(SketchGeometry::evaluateFeature(feature,resolvedFrame,projectionContext(evaluated,feature)));
             } else if (type == "boolean") {
                 const auto targetId = parameters["targetBodyId"].toString();
                 const auto toolIds = parameters["toolBodyIds"].toArray();
@@ -303,7 +385,7 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored) 
                         cap.producerFeatureId=id;cap.bodyId=feature["bodyId"].toString();
                         cap.faceId=QUuid::createUuidV5(QUuid(id),QByteArray("alloy-face/extrude-end-cap/1")).toString(QUuid::WithoutBraces);
                         supportFaces.push_back(cap);
-                        summary["supportFaces"]=QJsonArray{QJsonObject{{"faceId",cap.faceId},{"bodyId",cap.bodyId},{"producerFeatureId",id},{"role",cap.role},{"planar",true},{"frame",cap.frame}}};
+                        summary["supportFaces"]=QJsonArray{QJsonObject{{"faceId",cap.faceId},{"bodyId",cap.bodyId},{"producerFeatureId",id},{"role",cap.role},{"planar",true},{"frame",cap.frame},{"edges",supportEdgeDescriptors(cap)}}};
                     }
                     summary["operation"]="extrude";summary["distanceMm"]=distance;summary["sourceSketchId"]=sketchId;
                     if(plural)summary["sourceProfileIds"]=profileIds;else summary["sourceProfileId"]=parameters["profileId"];

@@ -79,11 +79,14 @@ struct SketchStrokes { TopoDS_Shape normal, construction; int constructionCount 
 SketchStrokes splitSketchStrokes(const EvaluatedSketch& sketch) {
     if(sketch.shape.IsNull())return {};
     const auto entities=sketch.summary.value("entities").toArray();
+    QSet<QString> projectedIds;
+    for(const auto& value:sketch.summary.value("projectedLines").toArray())projectedIds.insert(value.toObject()["id"].toString());
     TopoDS_Iterator child(sketch.shape);
     TopoDS_Compound normal,construction;BRep_Builder builder;builder.MakeCompound(normal);builder.MakeCompound(construction);
     int ordinaryCount=0,constructionCount=0;
     for(const auto& entry:entities) {
         if(!child.More())return {sketch.shape,{}};
+        if(projectedIds.contains(entry.toObject()["id"].toString())){child.Next();continue;}
         if(entry.toObject().value("construction").toBool()) {builder.Add(construction,child.Value());++constructionCount;}
         else {builder.Add(normal,child.Value());++ordinaryCount;}
         child.Next();
@@ -478,9 +481,11 @@ void ReferenceView::showSketchDraft(const EvaluatedSketch& sketch) {
     }
     if(!sketchDraft_.IsNull())context_->Remove(sketchDraft_,false);
     if(!sketchConstructionDraft_.IsNull())context_->Remove(sketchConstructionDraft_,false);
+    if(!projectedDraft_.IsNull())context_->Remove(projectedDraft_,false);
     if(draftSketchId_!=sketch.featureId && sketchModels_.contains(draftSketchId_))context_->Display(sketchModels_.value(draftSketchId_),false);
     if(draftSketchId_!=sketch.featureId && constructionSketchModels_.contains(draftSketchId_))context_->Display(constructionSketchModels_.value(draftSketchId_),false);
-    draftSketchId_=sketch.featureId;sketchDraft_.Nullify();sketchConstructionDraft_.Nullify();constructionDraftLineIds_={};
+    draftSketchId_=sketch.featureId;sketchDraft_.Nullify();sketchConstructionDraft_.Nullify();projectedDraft_.Nullify();
+    projectedLines_=sketch.summary.value("projectedLines").toArray();constructionDraftLineIds_={};
     if(sketchModels_.contains(draftSketchId_))context_->Erase(sketchModels_.value(draftSketchId_),false);
     if(constructionSketchModels_.contains(draftSketchId_))context_->Erase(constructionSketchModels_.value(draftSketchId_),false);
     const auto strokes=splitSketchStrokes(sketch);
@@ -496,9 +501,22 @@ void ReferenceView::showSketchDraft(const EvaluatedSketch& sketch) {
         context_->Display(sketchConstructionDraft_,AIS_WireFrame,-1,false);context_->Deactivate(sketchConstructionDraft_);
         for(const auto& entry:sketch.summary.value("entities").toArray()) {
             const auto entity=entry.toObject();
-            if(entity.value("construction").toBool() && entity.value("type")=="line")
+            if(entity.value("construction").toBool() && entity.value("type")=="line"
+                && !std::any_of(projectedLines_.begin(),projectedLines_.end(),[&](const QJsonValue& value){return value.toObject().value("id")==entity.value("id");}))
                 constructionDraftLineIds_.append(entity.value("id"));
         }
+    }
+    if(!projectedLines_.isEmpty()) {
+        TopoDS_Compound compound;BRep_Builder builder;builder.MakeCompound(compound);
+        for(const auto& value:projectedLines_) {
+            const auto line=value.toObject();const auto a=sketchWorld(sketch.plane,line["u1Mm"].toDouble(),line["v1Mm"].toDouble());
+            const auto b=sketchWorld(sketch.plane,line["u2Mm"].toDouble(),line["v2Mm"].toDouble());
+            if(a.Distance(b)>1e-9)builder.Add(compound,BRepBuilderAPI_MakeEdge(a,b).Edge());
+        }
+        projectedDraft_=sketchPresentation(compound);
+        projectedDraft_->SetColor(Quantity_Color(0.55,0.22,0.72,Quantity_TOC_sRGB));projectedDraft_->SetWidth(2.2*devicePixelRatioF());
+        projectedDraft_->SetZLayer(Graphic3d_ZLayerId_Topmost);
+        context_->Display(projectedDraft_,AIS_WireFrame,-1,false);context_->Deactivate(projectedDraft_);
     }
     applyEditDisplay();
 }
@@ -509,12 +527,13 @@ void ReferenceView::clearSketchDraft() {
         for(const auto& model:profileModels_)context_->Remove(model,false);
         if(!sketchDraft_.IsNull())context_->Remove(sketchDraft_,false);
         if(!sketchConstructionDraft_.IsNull())context_->Remove(sketchConstructionDraft_,false);
+        if(!projectedDraft_.IsNull())context_->Remove(projectedDraft_,false);
         if(sketchModels_.contains(draftSketchId_))context_->Display(sketchModels_.value(draftSketchId_),false);
         if(constructionSketchModels_.contains(draftSketchId_))context_->Display(constructionSketchModels_.value(draftSketchId_),false);
         context_->UpdateCurrentViewer();
     }
     profileModels_.clear();draftProfiles_.clear();
-    sketchDraft_.Nullify();sketchConstructionDraft_.Nullify();constructionDraftLineIds_={};draftSketchId_.clear();clearSketchCursor();applyEditDisplay();
+    sketchDraft_.Nullify();sketchConstructionDraft_.Nullify();projectedDraft_.Nullify();projectedLines_={};constructionDraftLineIds_={};draftSketchId_.clear();clearSketchCursor();applyEditDisplay();
 }
 QJsonObject ReferenceView::pickSketch(const QJsonObject& feature,double x,double y,const QString& filter) const {
     if(view_.IsNull() || x<0 || y<0 || x>=width() || y>=height())return {};
@@ -529,7 +548,7 @@ QJsonObject ReferenceView::pickSketch(const QJsonObject& feature,double x,double
     }
     if(!picked.isEmpty())return {{"kind","point"},{"pointId",picked},{"distancePixels",best}};
     if(filter=="point")return {};
-    best=6;
+    best=6;QJsonObject pickedProjection;
     const auto planePoint=sketchPoint(x,y,plane);const auto hitWorld=sketchWorld(plane,planePoint["uMm"].toDouble(),planePoint["vMm"].toDouble());
     for(const auto& entry:parameters["entities"].toArray()) {
         const auto entity=entry.toObject();QPointF nearest;
@@ -543,9 +562,23 @@ QJsonObject ReferenceView::pickSketch(const QJsonObject& feature,double x,double
             const auto p=projection.NearestPoint();int px,py;view_->Convert(p.X(),p.Y(),p.Z(),px,py);const auto scale=windowScale();nearest={px/scale.x(),py/scale.y()};
         }
         const double distance=std::hypot(nearest.x()-x,nearest.y()-y);
-        if(distance<=best){best=distance;picked=entity["id"].toString();}
+        if(distance<=best){best=distance;picked=entity["id"].toString();pickedProjection={};}
     }
-    if(!picked.isEmpty())return {{"kind","entity"},{"entityId",picked},{"distancePixels",best}};
+    for(const auto& value:projectedLines_) {
+        const auto line=value.toObject();
+        const auto first=projectSketchPoint(line["u1Mm"].toDouble(),line["v1Mm"].toDouble(),plane);
+        const auto last=projectSketchPoint(line["u2Mm"].toDouble(),line["v2Mm"].toDouble(),plane);
+        const QPointF start(first["x"].toDouble(),first["y"].toDouble()),end(last["x"].toDouble(),last["y"].toDouble());
+        const auto delta=end-start;const double length2=delta.x()*delta.x()+delta.y()*delta.y();if(length2<1e-12)continue;
+        const double t=std::clamp(((x-start.x())*delta.x()+(y-start.y())*delta.y())/length2,0.0,1.0);
+        const auto nearest=start+delta*t;const double distance=std::hypot(nearest.x()-x,nearest.y()-y);
+        if(distance<=best){best=distance;picked=line["id"].toString();pickedProjection=line;}
+    }
+    if(!picked.isEmpty()){
+        QJsonObject result{{"kind","entity"},{"entityId",picked},{"distancePixels",best}};
+        if(!pickedProjection.isEmpty()){result["projected"]=true;result["source"]=pickedProjection["source"];}
+        return result;
+    }
     if(!filter.isEmpty())return {};
     const auto hit=sketchPoint(x,y,parameters.value("plane").toString());
     const auto world=sketchWorld(parameters.value("plane").toString(),hit.value("uMm").toDouble(),hit.value("vMm").toDouble());
@@ -744,10 +777,34 @@ void ReferenceView::decorateSketch(const QJsonObject& feature,const QJsonObject&
         highlight->SetZLayer(Graphic3d_ZLayerId_Topmost);
         context_->Display(highlight,AIS_WireFrame,-1,false);context_->Deactivate(highlight);sketchDecorations_.push_back(highlight);
     }
+    QJsonArray projectedUsedIds;QSet<QString> projectedIds;
+    for(const auto& value:projectedLines_)projectedIds.insert(value.toObject()["id"].toString());
+    for(const auto& entry:parameters["constraints"].toArray())
+        for(const auto& id:entry.toObject()["entityIds"].toArray())projectedUsedIds.append(id);
+    for(const auto& value:projectedLines_) {
+        const auto line=value.toObject();const auto id=line["id"];
+        const bool selected=selection["entityIds"].toArray().contains(id);
+        const bool used=projectedUsedIds.contains(id);
+        if(!selected && !used)continue;
+        const auto a=sketchWorld(plane,line["u1Mm"].toDouble(),line["v1Mm"].toDouble());
+        const auto b=sketchWorld(plane,line["u2Mm"].toDouble(),line["v2Mm"].toDouble());
+        if(a.Distance(b)<1e-9)continue;
+        auto highlight=sketchPresentation(BRepBuilderAPI_MakeEdge(a,b).Edge());
+        highlight->SetColor(Quantity_Color(selected ? 0.81 : 0.68,selected ? 0.40 : 0.30,selected ? 0.98 : 0.84,Quantity_TOC_sRGB));
+        highlight->SetWidth((selected ? 4.0 : 3.0)*devicePixelRatioF());
+        highlight->SetZLayer(Graphic3d_ZLayerId_Topmost);
+        context_->Display(highlight,AIS_WireFrame,-1,false);context_->Deactivate(highlight);sketchDecorations_.push_back(highlight);
+    }
     // Independently authored retained-relation badges, anchored to their real
     // targets. The public tutorial scenes show bars, double bars and corner
     // marks; exact hover/selection and collision behavior remain unqualified.
     QMap<QString,QJsonObject> entities;for(const auto& entry:parameters["entities"].toArray())entities[entry.toObject()["id"].toString()]=entry.toObject();
+    for(const auto& value:projectedLines_) {
+        const auto line=value.toObject();const auto start=line["startPointId"].toString(),end=line["endPointId"].toString();
+        points[start]={{"id",start},{"uMm",line["u1Mm"]},{"vMm",line["v1Mm"]}};
+        points[end]={{"id",end},{"uMm",line["u2Mm"]},{"vMm",line["v2Mm"]}};
+        entities[line["id"].toString()]={{"id",line["id"]},{"type","line"},{"startPointId",start},{"endPointId",end}};
+    }
     QMap<QString,int> badgeSlots;
     for(const auto& entry:parameters["constraints"].toArray()) {
         const auto relation=entry.toObject();const auto kind=relation["type"].toString();
@@ -829,7 +886,8 @@ void ReferenceView::decorateSketch(const QJsonObject& feature,const QJsonObject&
             else {stroke(-4,-4,0,4);stroke(0,-4,4,4);}
             const bool selected=selection["entityIds"].toArray().contains(target) ||
                 (kind=="midpoint" && selection["pointIds"].toArray().contains(relation["pointIds"].toArray().at(0)));
-            auto badge=sketchPresentation(strokes);badge->SetColor(selected ? Quantity_Color(0.98,0.43,0.08,Quantity_TOC_RGB) : Quantity_Color(0.36,0.39,0.42,Quantity_TOC_sRGB));badge->SetWidth(2*devicePixelRatioF());badge->SetZLayer(Graphic3d_ZLayerId_Topmost);
+            auto badge=sketchPresentation(strokes);badge->SetColor(projectedIds.contains(target.toString()) ? Quantity_Color(0.73,0.34,0.91,Quantity_TOC_sRGB)
+                : selected ? Quantity_Color(0.98,0.43,0.08,Quantity_TOC_RGB) : Quantity_Color(0.36,0.39,0.42,Quantity_TOC_sRGB));badge->SetWidth(2*devicePixelRatioF());badge->SetZLayer(Graphic3d_ZLayerId_Topmost);
             context_->Display(badge,AIS_WireFrame,-1,false);context_->Deactivate(badge);sketchDecorations_.push_back(badge);
             double left=1e100,top=1e100,right=-1e100,bottom=-1e100;
             for(const double x:{-6.0,6.0})for(const double y:{-6.0,6.0}) {
@@ -840,13 +898,14 @@ void ReferenceView::decorateSketch(const QJsonObject& feature,const QJsonObject&
     }
     QMap<QString,QJsonObject> measurements;
     for(const auto& entry:diagnostics["dimensionValues"].toArray()){const auto value=entry.toObject();measurements[value["id"].toString()]=value;}
+    const auto layoutFeature=SketchGeometry::expandedProjectionFeature(feature,{{"lines",projectedLines_}});
     auto dimensions=parameters.value("dimensions").toArray();
     if(!pending.isEmpty() && !pending.contains("dimensionId")){auto preview=pending;preview["id"]="pending";dimensions.append(preview);}
     for(const auto& entry:dimensions) {
         const auto dimension=entry.toObject();const auto measured=measurements.value(dimension.value("id").toString());
         const bool angular=dimension["kind"]=="arcSweep" || dimension["kind"]=="angle";const auto valueKey=angular ? "valueDeg" : "valueMm";
         const double value=dimension.value("id")=="pending" ? pending.value(angular ? "measuredValueDeg" : "measuredValueMm").toDouble() : measured.value(valueKey).toDouble(dimension.value(valueKey).toDouble());
-        const auto layout=dimensionLayout(feature,dimension,value,units);if(layout.isEmpty())continue;annotationLayouts_.append(layout);
+        const auto layout=dimensionLayout(layoutFeature,dimension,value,units);if(layout.isEmpty())continue;annotationLayouts_.append(layout);
         const bool selected=selection.value("dimensionId")==dimension.value("id");
         const Quantity_Color color=selected || dimension.value("id")=="pending" ? Quantity_Color(0.10,0.34,0.84,Quantity_TOC_RGB) : Quantity_Color(0.10,0.11,0.12,Quantity_TOC_sRGB);
         const auto line=layout.value("line").toArray();auto world=[&](const QJsonValue& v){const auto p=v.toObject();return sketchWorld(plane,p.value("uMm").toDouble(),p.value("vMm").toDouble());};
@@ -1179,6 +1238,10 @@ QJsonObject ReferenceView::diagnostics() const {
     result.insert("draftSketchVisible",!sketchDraft_.IsNull() || !sketchConstructionDraft_.IsNull());
     result.insert("constructionDraftVisible",!sketchConstructionDraft_.IsNull());
     result.insert("constructionDraftLineIds",constructionDraftLineIds_);
+    QJsonArray projectedLineIds;for(const auto& value:projectedLines_)projectedLineIds.append(value.toObject().value("id"));
+    result.insert("projectedDraftVisible",!projectedDraft_.IsNull());
+    result.insert("projectedLineIds",projectedLineIds);
+    result.insert("projectedLines",projectedLines_);
     result.insert("constructionSketches",constructionSketchModels_.size());
     result.insert("rightMousePressCount",rightMousePressCount_);
     result.insert("contextMenuEventCount",contextMenuEventCount_);

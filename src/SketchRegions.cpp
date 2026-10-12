@@ -101,6 +101,7 @@ SketchProfiles::RegionsResult SketchProfiles::deriveRegions(const QJsonObject& f
             GProp_GProps properties;BRepGProp::SurfaceProperties(face,properties);const double area=properties.Mass();
             if(!std::isfinite(area)||area<=1e-8)return refuse("invalid_region","Bounded region has no usable positive area.");
             QStringList wires,sourceIds,pointIds;QJsonArray provenance;
+            std::vector<EvaluatedBoundaryEdge> boundaryEdges;
             for(TopExp_Explorer wireIt(face,TopAbs_WIRE);wireIt.More();wireIt.Next()) {
                 std::vector<Segment> segments;
                 for(BRepTools_WireExplorer walk(TopoDS::Wire(wireIt.Current()),face);walk.More();walk.Next()) {
@@ -114,6 +115,7 @@ SketchProfiles::RegionsResult SketchProfiles::deriveRegions(const QJsonObject& f
                     QJsonObject detail{{"entityId",source.id},{"type",source.entity["type"]},{"firstParameter",curve.FirstParameter()},
                         {"lastParameter",curve.LastParameter()},{"direction",direction},{"startContact",a},{"endContact",b}};
                     segments.push_back({sourceIndex,a,b,direction,detail});provenance.append(detail);sourceIds.append(source.id);
+                    boundaryEdges.push_back({sketchId,source.id,a,b,source.entity["type"].toString(),edge});
                 }
                 if(segments.empty())return refuse("invalid_region","A region wire is empty.");
                 const bool oneSource=std::all_of(segments.begin(),segments.end(),[&](const auto& segment){return segment.source==segments[0].source;});
@@ -142,7 +144,7 @@ SketchProfiles::RegionsResult SketchProfiles::deriveRegions(const QJsonObject& f
             QJsonObject summary{{"profileId",profileId},{"sketchId",sketchId},{"plane",planeName},{"frame",frame},{"kernel","OCCT"},{"valid",true},
                 {"type","planar_region"},{"areaUnit","mm2"},{"areaMm2",area},{"sourceEntityIds",array(sourceIds)},
                 {"sourcePointIds",array(pointIds)},{"edgeProvenance",provenance},{"boundarySignature",signature}};
-            profiles.push_back({profileId,sketchId,planeName,face,summary});
+            profiles.push_back({profileId,sketchId,planeName,face,summary,boundaryEdges});
         }
         if(profiles.empty())return result;
         std::sort(profiles.begin(),profiles.end(),[](const auto& a,const auto& b){return a.profileId<b.profileId;});

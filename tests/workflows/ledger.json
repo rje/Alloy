@@ -619,6 +619,21 @@
       "inputs": [
         "tests/app_harness.py"
       ]
+    },
+    "sketch-linked-projection": {
+      "script": "tests/sketch_regions_api.py",
+      "fixture": "tests/workflows/fixtures/sketch-linked-projection.json",
+      "result": "sketch-linked-projection-api.json",
+      "covers": [],
+      "capabilities": [
+        "sketch.retained_planar_regions",
+        "solid.multi_profile_union",
+        "sketch.semantic_cap_support",
+        "sketch.linked_cap_edges"
+      ],
+      "inputs": [
+        "tests/app_harness.py"
+      ]
     }
   },
   "gates": {
