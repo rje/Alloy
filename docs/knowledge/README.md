@@ -37,3 +37,14 @@ source/image linkage, hashes, index payload consistency and focused search passe
 This qualifies the initial library, not exhaustive compatibility or app behavior.
 The external visual manifest records expected state, source, retrieval date,
 image dimensions, and comparison limits; unknown build/theme/scale remain unknown.
+
+For visual comparison, open
+`../Alloy-reference-records/knowledge/visuals/index.html`. The external contact
+sheet links full-size references and lists each expected state, source, date and
+comparison limits. It is a convenience view of the manifest, not a separate
+source of evidence. New batches remain provisional until independently reviewed.
+
+The expanded batch is independently accepted on 2026-10-12: eight records and
+twelve images, adding solid fillet/chamfer and a beginner face-sketch/Cut/Join
+recipe. Astra checked source attribution, operation labels, image provenance and
+index consistency. Tutorial execution and Alloy visual parity remain unverified.

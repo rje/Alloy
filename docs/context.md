@@ -412,3 +412,20 @@ working application features. UI integration and real-app verification remain.
 Build this candidate separately in `build-next` while preserving the live human
 extrusion window. SOL-015 #149 tracks direct Extrude operations; SKT-017 #150
 tracks the subsequent face-sketch/projected-distance/Cut/Join local checkpoint.
+
+The external visual contact sheet is `knowledge/visuals/index.html` beneath the
+sibling archive. A second batch adds fillet/chamfer and an explicitly separated
+beginner face-sketch/Cut/Join recipe, bringing the corpus to eight records and
+12 images; Astra accepted the corrected expansion after independent source review. No research
+image or bulk record is committed. The initial six-record acceptance remains
+separate from later expansions.
+
+Implementation handoff: Combine core CTest passed in `build-next`; its first
+integrated app compile passed before a later multi-tool union correction.
+Astra identified missing history-prefix display/picking in Combine edits; the
+helper correction is written and the curves agent is integrating renderer stage
+support. Circle/arc UI and renderer integration remain active. Neither new UI
+feature has real-app/native acceptance yet. Focused cases are prepared in
+`tests/boolean_api.py` and `tests/sketch_curves_api.py`, registered in the workflow
+ledger. Relink and test this candidate only after source ownership is released.
+Do not overwrite or operate the existing human extrusion window in `build/`.
