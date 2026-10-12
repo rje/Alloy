@@ -2,6 +2,7 @@
 #include <QMouseEvent>
 #include <QWheelEvent>
 #include <QTimer>
+#include <QJsonArray>
 #include <Aspect_DisplayConnection.hxx>
 #include <Aspect_Grid.hxx>
 #include <OpenGl_GraphicDriver.hxx>
@@ -48,6 +49,9 @@ void ReferenceView::initialize() {
         viewer_->SetDefaultLights(); viewer_->SetLightOn();
         context_ = new AIS_InteractiveContext(viewer_);
         view_ = viewer_->CreateView();
+        // Publish only complete camera states. OCCT otherwise redraws after
+        // each setter, flashing the reset camera during clicks and navigation.
+        view_->SetImmediateUpdate(false);
 #ifdef __APPLE__
         Handle(Cocoa_Window) window = new Cocoa_Window(reinterpret_cast<NSView*>(winId()));
 #elif defined(_WIN32)
@@ -90,13 +94,20 @@ void ReferenceView::resizeEvent(QResizeEvent* e) {
 }
 void ReferenceView::sync() {
     if (view_.IsNull()) return;
-    view_->MustBeResized();
     view_->ChangeRenderingParams().Resolution = qRound(72 * devicePixelRatioF());
     view_->SetCamera(new Graphic3d_Camera(baseCamera_));
+    // Resize after installing the camera so its aspect matches this drawable.
+    view_->MustBeResized();
     view_->SetProj(orientation == "top" ? V3d_Zpos : orientation == "front" ? V3d_Yneg : orientation == "right" ? V3d_Xpos : V3d_XposYnegZpos);
-    view_->Camera()->SetCenter(sceneCenter_);
-    view_->SetSize(sceneScale_ / zoom);
-    view_->Pan(qRound(pan.x() * devicePixelRatioF()), -qRound(pan.y() * devicePixelRatioF()));
+    // Move Eye/Center together: SetCenter alone changes the view direction,
+    // while SetProj preserves the origin's screen offset rather than Center.
+    const auto camera=view_->Camera();
+    camera->MoveEyeTo(gp_Pnt(sceneCenter_.XYZ()-camera->Direction().XYZ()*camera->Distance()));
+    // Fit uses the smaller viewport dimension; V3d::SetSize treats its input
+    // as horizontal on a wide window and can crop a tall model vertically.
+    camera->SetScale(sceneScale_ / (zoom * std::min(camera->Aspect(), 1.0)));
+    const auto scale=windowScale();
+    view_->Pan(qRound(pan.x()*scale.x()),-qRound(pan.y()*scale.y()));
     if (grid) viewer_->ActivateGrid(Aspect_GT_Rectangular, Aspect_GDM_Lines);
     else viewer_->DeactivateGrid();
     if (origin) context_->Display(axes_, false); else context_->Erase(axes_, false);
@@ -134,10 +145,17 @@ void ReferenceView::selectBody(const QString& id) {
     if(models_.contains(id))context_->SetSelected(models_.value(id),false);
     context_->UpdateCurrentViewer();
 }
+QPointF ReferenceView::windowScale() const {
+    // OCCT input/projection uses native window units. Cocoa uses points;
+    // other window backends may use pixels. Framebuffer DPR is separate.
+    int w=0,h=0;view_->Window()->Size(w,h);
+    return {double(w)/width(),double(h)/height()};
+}
 QString ReferenceView::pickBody(int x,int y) {
     if(context_.IsNull() || view_.IsNull())return {};
     if(x<0 || y<0 || x>=width() || y>=height())return {};
-    sync();context_->MoveTo(qRound(x*devicePixelRatioF()),qRound(y*devicePixelRatioF()),view_,true);
+    sync();const auto scale=windowScale();
+    context_->MoveTo(qRound(x*scale.x()),qRound(y*scale.y()),view_,true);
     if(!context_->HasDetected())return {};
     const auto detected=context_->DetectedInteractive();
     for(auto it=models_.begin();it!=models_.end();++it)if(it.value()==detected)return it.key();
@@ -148,7 +166,8 @@ QJsonObject ReferenceView::projectBody(const EvaluatedBody& body) const {
     Bnd_Box bounds;BRepBndLib::AddOptimal(body.shape,bounds,false,false);
     double x0,y0,z0,x1,y1,z1;bounds.Get(x0,y0,z0,x1,y1,z1);int x,y;
     view_->Convert((x0+x1)/2,(y0+y1)/2,(z0+z1)/2,x,y);
-    return {{"x",x/devicePixelRatioF()},{"y",y/devicePixelRatioF()},{"bodyId",body.bodyId},
+    const auto scale=windowScale();
+    return {{"x",x/scale.x()},{"y",y/scale.y()},{"bodyId",body.bodyId},
         {"viewportLocal",true},{"units","logicalPixels"}};
 }
 void ReferenceView::showPreview(const TopoDS_Shape& shape) {
@@ -188,6 +207,11 @@ QJsonObject ReferenceView::diagnostics() const {
     result.insert("displayedBodies",models_.size());
     result.insert("previewVisible",!preview_.IsNull());
     result.insert("documentRevision",static_cast<qint64>(modelRevision_));
+    const auto camera=view_->Camera();
+    auto vector=[](const auto& value) {return QJsonArray{value.X(),value.Y(),value.Z()};};
+    result.insert("camera",QJsonObject{{"eye",vector(camera->Eye())},{"center",vector(camera->Center())},
+        {"direction",vector(camera->Direction())},{"up",vector(camera->Up())},
+        {"scale",camera->Scale()},{"aspect",camera->Aspect()}});
     return result;
 }
 QImage ReferenceView::framebuffer() {

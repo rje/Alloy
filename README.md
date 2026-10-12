@@ -64,6 +64,8 @@ the [GPU foundation receipt](docs/validation/gpu-foundation.md). The current
 style and real-app test. The [primitive workflow receipt](docs/validation/primitives.md)
 records the first editable solids and their real-app regression. macOS, Windows, and Linux are required
 targets; only the macOS runtime is verified today.
+The [viewport input receipt](docs/validation/viewport-input.md) records the later
+camera/redraw and Retina mouse-coordinate fixes, with separate native mouse checks.
 
 For a first hands-on test, build using [development.md](docs/development.md),
 open [examples/gauge-block.alloy](examples/gauge-block.alloy) through File → Open,

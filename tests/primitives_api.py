@@ -38,10 +38,32 @@ def main():
         assert abs(summaries[1]['volumeMm3']-math.pi*250)<1e-6
         assert summaries[0]['boundsMm']['size']==[20,30,10]
         gpu=call('app.state')['viewport']['gpu'];assert gpu['displayedBodies']==2 and gpu['documentRevision']==two['revision']
+        camera=gpu['camera']
+        assert abs(camera['aspect']-initial['viewport']['width']/initial['viewport']['height'])<1e-9
+        assert all(abs(a-b)<1e-9 for a,b in zip(camera['center'],[22.5,15,5])), camera
         point=call('view.projectBody',{'bodyId':body_id})
+        assert 0<=point['x']<initial['viewport']['width'] and 0<=point['y']<initial['viewport']['height'],point
         picked=call('selection.pick',{'x':point['x'],'y':point['y']});assert picked['bodyId']==body_id,picked
+        assert call('app.state')['viewport']['gpu']['camera']==camera, 'Picking must not change the camera'
+        call('view.zoom',{'factor':0.5})
+        zoomed=call('app.state')['viewport']['gpu']['camera']
+        assert zoomed['direction']==camera['direction'] and zoomed['center']==camera['center']
+        assert abs(zoomed['scale']-camera['scale']*2)<1e-9
+        point=call('view.projectBody',{'bodyId':body_id})
+        assert call('selection.pick',{'x':point['x'],'y':point['y']})['bodyId']==body_id
+        assert call('app.state')['viewport']['gpu']['camera']==zoomed
+        call('view.home')
+        call('view.pan',{'x':24,'y':-12})
+        panned=call('app.state')['viewport']['gpu']['camera']
+        assert panned['direction']==camera['direction'] and panned['up']==camera['up']
+        assert panned['center']!=camera['center']
+        assert call('app.state')['viewport']['gpu']['camera']==panned, 'Inspection must not accumulate pan'
+        call('view.home')
         captures.append(call('capture.screenshot',{'path':str(output/'primitives-isometric.png')}))
         call('view.orientation',{'name':'top'})
+        top_camera=call('app.state')['viewport']['gpu']['camera']
+        assert top_camera['direction']==[0,0,-1], 'Named Top must preserve its orientation for offset bodies'
+        assert all(abs(a-b)<1e-9 for a,b in zip(top_camera['center'],[22.5,15,5])), top_camera
         captures.append(call('capture.screenshot',{'path':str(output/'primitives-top.png')}))
         assert captures[0]['viewportSha256']!=captures[1]['viewportSha256']
         call('view.home');call('selection.set',{'bodyId':''})

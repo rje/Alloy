@@ -1,0 +1,65 @@
+{
+  "schema": "alloy-validation/1",
+  "recorded_at": "2026-10-12T03:24:19.441492+00:00",
+  "scope": [
+    "DOC-005 viewport input regression"
+  ],
+  "candidate": {
+    "app": "/Users/rje/src/cpp/Alloy/build/alloy.app/Contents/MacOS/alloy",
+    "source_commit": "7c17ca3d59b23759d54e92446e159521bf9925be",
+    "dirty": true,
+    "sha256": "6acd9f3d497ba90e5cb2c344fc7d2ee7ebac8bfd736e309cc7423cafcae9003f"
+  },
+  "host": {
+    "system": "macOS-26.5.1-arm64-arm-64bit-Mach-O",
+    "architecture": "arm64",
+    "python": "3.14.5"
+  },
+  "runtime_dependencies": {
+    "occtBuildVersion": "7.9.3",
+    "qtVersion": "6.11.2"
+  },
+  "implementation_inputs": {
+    "src/ReferenceView.cpp": "3bc2aa95cef5e9ce2e07186b5e446d8dd2210e7fb77b60f65052b270612af122",
+    "src/ReferenceView.h": "0522f536f032fe26f84546ec1fb06d3333cbd74811e01b583a12d177463f621d",
+    "tests/primitives_api.py": "e9ec0d607a4cc925e8c110b363112fd3d16cdc7b15db98da3d7956766b53fb40"
+  },
+  "regression": {
+    "path": "build/evidence/viewport-fix-final/report.json",
+    "sha256": "26de46f7438708f4f60bab7e9f2aaed6cb947989245a5b2da1ea501665861d62",
+    "cases": {
+      "shell_api": "passed",
+      "DOC-002": "passed",
+      "FND-006": "passed",
+      "primitives": "passed",
+      "primitive-regression": "passed"
+    }
+  },
+  "physical_input": {
+    "status": "passed",
+    "actions": [
+      "Native cylinder click selects evaluated body",
+      "Left drag and middle click preserve camera/document",
+      "Wheel up changes scale only",
+      "Wheel down restores initial camera"
+    ],
+    "evidence": {
+      "build/evidence/viewport-fix-final/physical/restored.json": "5df0500c6f82cf19b6584da9b40e6b4ccd477f7449d6fc73538b2bee8288b0de",
+      "build/evidence/viewport-fix-final/physical/after-first-click.json": "47ea7dc222234b18ddd2393e80249d70eb1ee75e54289850217d21cb55b9df1e",
+      "build/evidence/viewport-fix-final/physical/after-drag.json": "47ea7dc222234b18ddd2393e80249d70eb1ee75e54289850217d21cb55b9df1e",
+      "build/evidence/viewport-fix-final/physical/after-wheel.json": "0caac4427d278900582eb6415389f0e64d89a092c2b85159f7d5095dc48c6354",
+      "build/evidence/viewport-fix-final/physical/final.json": "2a5d95c768cc291ecd91186461eb047708747282302a5250a305a4ca5dd1ab6d"
+    },
+    "limits": [
+      "Continuous middle-button drag not supported by computer-use tool; shared pan command checked by regression",
+      "No temporal video or frame pacing benchmark",
+      "Only macOS runtime verified"
+    ]
+  },
+  "independent_review": "Astra found no material blocker and confirmed source/binary/artifact consistency",
+  "public_capture": {
+    "path": "docs/validation/viewport-input.png",
+    "sha256": "0f1207049d6a981ee6c278a807fd543efd23edab58920e971462a3ae8c9f2185",
+    "source": "run-26v5kmqu/primitives/primitives-isometric.png"
+  }
+}

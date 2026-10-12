@@ -149,6 +149,10 @@ diagnostics, and capture restores native rendering after its offscreen dump.
 `nativeWidth/Height` use OCCT native-window units (logical points on macOS);
 `framebufferWidth/Height` use physical pixels. `kernel.visualizationIntegrated`
 and `kernel.integrated` are true for the implemented authored primitives.
+`camera` reports actual OCCT `eye`, `center`, `direction`, `up` (world-space
+three-element arrays), `scale`, and `aspect`. Input/projection/pan use native
+window dimensions to translate logical coordinates; framebuffer DPR is separate.
+Camera synchronization defers rendering until the completed state is ready.
 
 Primitive lengths/positions are interpreted in `units` (or current display units)
 and stored in millimeters. Canonical dimensions must be 0.001–100000 mm, with

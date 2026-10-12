@@ -87,6 +87,14 @@ OCCT scene and evaluated document. Face/edge selection, persistent-reference
 integration, arbitrary orbit, sketch solver, import and export remain pending.
 Visual/interaction parity and the broader product gates are not accepted.
 
+A reported viewport mouse regression is fixed and independently reviewed.
+Camera setters now defer redraw until a completed view is ready; Retina picking
+and pan use native window coordinates rather than framebuffer DPR. Named views
+retain direction, resize retains aspect, and fit keeps tall geometry visible.
+Actual camera diagnostics, the fresh regression and separate native mouse checks
+are recorded in [viewport input receipt](validation/viewport-input.md).
+The user's three-body model was preserved in a local recovery file and reopened.
+
 FND-006 adds verified live-instance discovery, shared command sessions, observable
 units/search dialogs, draft preview, cancel, stale-commit refusal and transaction
 IDs. Its real two-app workflow and focused selector regression passed; Astra's
@@ -143,7 +151,9 @@ toolchain/artifact audit passed; subsequent candidates remain separate.
 It retains unbundled compile artifacts, not yet independently runnable packages.
 A later uniform Python pin failed Mac/Windows setup while Linux compiled;
 platform-specific archive pins are corrected. The new matrix passed Python
-setup on all four targets and is compiling; CI-001 remains open. See
+setup on all four targets; Linux and macOS arm64 compiled, Windows Qt SDK archive
+extraction failed before compilation, and
+macOS Intel is still compiling at this update. CI-001 remains open. See
 dependencies/native-builds.md.
 Windows named-pipe control, Linux X11/GLX runtime qualification, relocation,
 dependency notices and tagged milestone publishing remain open.
@@ -167,7 +177,7 @@ The first hands-on slice is ready: open the gauge-block sample, edit a Timeline
 feature, create a box/cylinder, preview/cancel, undo/redo and save/reopen. The current
 local build is left running with that sample; discover live identity with
 `python3 tools/alloyctl.py instances`. The retained current regression is
-`build/evidence/primitive-regression/report.json`; reproduce it with
+`build/evidence/viewport-fix-final/report.json`; reproduce it with
 `python3 tests/workflows/run.py --case primitive-regression --evidence build/evidence/primitive-regression`.
 Do not repeat unchanged checks after reasonable assurance.
 

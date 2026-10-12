@@ -42,6 +42,7 @@ protected:
     void wheelEvent(QWheelEvent*) override;
 private:
     void initialize();
+    QPointF windowScale() const;
     Handle(V3d_Viewer) viewer_;
     Handle(V3d_View) view_;
     Handle(AIS_InteractiveContext) context_;

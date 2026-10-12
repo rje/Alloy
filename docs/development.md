@@ -89,6 +89,9 @@ metadata and an Alloy capture. Detailed logs, transcripts and app captures remai
 under ignored `build/evidence/primitive-regression/` and
 `build/evidence/physical-primitives/`. Earlier [GPU foundation](validation/gpu-foundation.md)
 and [shell](validation/neutral-shell.md) receipts preserve their narrower evidence.
+The later [viewport mouse regression](validation/viewport-input.md) records the
+current fix, fresh cumulative regression and native mouse checks. Its retained
+report is `build/evidence/viewport-fix-final/report.json`.
 
 Stop after reasonable assurance. Add useful unit tests for core contracts and
 pragmatic integration coverage for each new workflow; do not duplicate the same
