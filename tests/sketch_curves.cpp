@@ -225,7 +225,7 @@ void lineAngularDimensions(const QString& owner){
     const auto json=QJsonDocument(edited).toJson(QJsonDocument::Compact);const auto reopened=QJsonDocument::fromJson(json).object();
     check(reopened==edited && SketchGeometry::solveDraft(reopened).ok,"Retained line-angle JSON could not be reevaluated");
 }
-void underconstrainedOutlineAngle(const QString& owner){
+QJsonObject underconstrainedOutlineAngle(const QString& owner){
     auto f=SketchGeometry::newFeature(owner,"XY","Retained free outline angle");
     const double vertices[][2]{{0,0},{490,0},{800,240},{735,315},{430,155},{0,155},{0,0}};
     for(int i=0;i<6;++i){
@@ -251,7 +251,47 @@ void underconstrainedOutlineAngle(const QString& owner){
     near(lineLength(f,2),100,"Cap dimension did not solve after angle");near(lineLength(f,5),100,"Cap dimension lost Equal relation");
     check(SketchGeometry::solveDraft(f).diagnostics["dof"].toInt()==0,"Completed outline must have zero DOF");
     check(SketchProfiles::derive(f).ok,"Completed constrained outline profile invalid");
+    return f;
 }
+void retainedFillets(const QString& owner) {
+    auto f=underconstrainedOutlineAngle(owner);
+    const QJsonValue bottom=entity(f,0)["id"],diagonal=entity(f,1)["id"],upper=entity(f,3)["id"],horizontal=entity(f,4)["id"];
+    const QJsonValue removed=f["parameters"].toObject()["dimensions"].toArray()[0].toObject()["id"];
+    check(f["parameters"].toObject()["dimensions"].toArray()[0].toObject()["pointIds"].toArray()
+        ==QJsonArray{entity(f,0)["startPointId"],entity(f,0)["endPointId"]},"Fillet fixture must retain native point-pair lower dimension");
+    const QJsonArray corners{QJsonObject{{"entityIds",QJsonArray{bottom,diagonal}}},QJsonObject{{"entityIds",QJsonArray{upper,horizontal}}}};
+    f=accepted(SketchGeometry::setConstruction(f,{{"entityIds",QJsonArray{entity(f,2)["id"],entity(f,5)["id"]}},{"construction",true}}));
+    for(const auto& pair:std::initializer_list<std::pair<int,int>>{{5,0},{2,1}})
+        f=accepted(SketchGeometry::addPointerCircle(f,{{"centerUMm",0},{"centerVMm",0},{"diameterMm",100},
+            {"centerSnapTarget",QJsonObject{{"kind","midpoint"},{"entityId",entity(f,pair.first)["id"]}}},
+            {"tangentSnapTarget",QJsonObject{{"kind","tangent"},{"entityId",entity(f,pair.second)["id"]}}}}));
+    const auto before=f;
+    const auto result=SketchGeometry::filletCorners(f,{{"corners",corners},{"radiusMm",100}});
+    f=accepted(result);
+    check(result.diagnostics["createdArcIds"].toArray().size()==2,"Fillet did not create both arcs");
+    check(result.diagnostics["removedDimensionIds"].toArray()==QJsonArray{removed},"Fillet did not report obsolete lower length dimension");
+    for(int i=0;i<6;++i)check(entity(f,i)["id"]==entity(before,i)["id"],"Fillet replaced a retained line identity");
+    near(entity(f,8)["radiusMm"].toDouble(),100,"First fillet radius");near(entity(f,9)["radiusMm"].toDouble(),100,"Second fillet radius");
+    near(lineAngle(f,1,1),45,"Fillet lost retained line angle");near(lineLength(f,2),100,"Fillet changed valid cap dimension");
+    const QJsonValue radiusId=lastDimension(f)["id"];
+    const auto edited=accepted(SketchGeometry::updateDimension(f,{{"dimensionId",radiusId},{"valueMm",90}}));
+    near(entity(edited,8)["radiusMm"].toDouble(),90,"Fillet driving radius edit");near(entity(edited,9)["radiusMm"].toDouble(),90,"Fillet Equal radius edit");
+    check(edited["parameters"].toObject()["constraints"]==f["parameters"].toObject()["constraints"],"Fillet edit changed retained relation IDs");
+    const auto oversized=SketchGeometry::filletCorners(before,{{"corners",corners},{"radiusMm",10000}});
+    check(!oversized.ok && oversized.feature==before,"Oversized fillet partially retired corner geometry");
+    auto incompatible=before;
+    auto parameters=incompatible["parameters"].toObject();auto constraints=parameters["constraints"].toArray();
+    const QJsonValue cornerId=entity(before,0)["endPointId"];
+    for(const auto& value:parameters["points"].toArray())if(value.toObject()["id"]==cornerId)
+        constraints.append(QJsonObject{{"id",QUuid::createUuid().toString(QUuid::WithoutBraces)},{"type","fixed"},{"pointIds",QJsonArray{cornerId}},
+            {"uMm",value.toObject()["uMm"]},{"vMm",value.toObject()["vMm"]}});
+    parameters["constraints"]=constraints;incompatible["parameters"]=parameters;
+    const auto rejected=SketchGeometry::filletCorners(incompatible,{{"corners",corners},{"radiusMm",100}});
+    check(!rejected.ok && rejected.feature==incompatible,"Fillet silently removed unrelated corner constraint");
+    const auto reopened=QJsonDocument::fromJson(QJsonDocument(edited).toJson()).object();
+    check(accepted(SketchGeometry::solveDraft(reopened))==edited,"Fillet lost retained intent on JSON roundtrip");
+}
+
 void equalConstraints(const QString& owner){
     auto lines=SketchGeometry::newFeature(owner,"XY","Equal line lengths");
     lines=SketchGeometry::addLine(lines,{{"u1Mm",0},{"v1Mm",0},{"u2Mm",10},{"v2Mm",0}});
@@ -310,7 +350,7 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
     constructionConversion(owner);
     midpointCircle(owner);
     tangentCircle(owner);
-    underconstrainedOutlineAngle(owner);
+    retainedFillets(owner);
     const auto blank=SketchGeometry::newFeature(owner,"XY");
     auto circle=SketchGeometry::addCircle(blank,{{"centerUMm",0},{"centerVMm",0},{"diameterMm",10}});
     circle=accepted(SketchGeometry::solveDraft(circle));analytic(circle,10*std::numbers::pi);

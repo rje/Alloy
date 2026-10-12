@@ -472,3 +472,15 @@ center midpoint relation. No hover/first-center authored history entry is added.
 GPU diagnostics expose `sketchSnapCue.marker: "tangent-square"` and persistent
 constraint glyph identity, contact, bounds and selected state. See
 [bounded tangent validation](validation/sketch-tangent.md) for limits.
+
+### Paired sketch fillets
+
+`sketch.tool {tool:"fillet"}` enters corner picking; two `sketch.placePoint` calls
+resolve connected normal-line joints. `sketch.filletPreview {value,units?}` keeps a
+disposable candidate separate from authored state. `sketch.filletAccept` commits
+one edit and reports `createdArcIds`/`removedDimensionIds`; `sketch.filletCancel`
+discards pending picks/preview. Direct `sketch.fillet {corners:[{entityIds:[a,b]}],
+value,units?}` shares the core mutation. Finish rejects pending input, Undo exits
+the tool before changing history, and raw pending input blocks tab switches.
+See [fillet qualification](validation/sketch-fillet.md), including the open native
+accessibility blocker.

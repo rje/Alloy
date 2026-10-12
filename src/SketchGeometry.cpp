@@ -12,6 +12,7 @@
 #include <numbers>
 #include <QJsonArray>
 #include <QMap>
+#include <QPointF>
 #include <QUuid>
 #include <cmath>
 #include <algorithm>
@@ -387,6 +388,15 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
                 if (constraint.size() != (fixed ? 5 : 3) || constraint.contains("entityIds")
                     || !checkReferences(constraint, "pointIds", fixed ? 1 : 2, pointIds)) return "Invalid point constraint references";
                 if (fixed) { coordinate(constraint, "uMm"); coordinate(constraint, "vMm"); }
+            } else if (type == "arcTangent") {
+                if (constraint.size()!=5 || !checkReferences(constraint,"entityIds",2,entityIds)
+                    || !checkReferences(constraint,"pointIds",1,pointIds) || !constraint["side"].isDouble()
+                    || (constraint["side"].toDouble()!=1 && constraint["side"].toDouble()!=-1))return "Arc tangency requires endpoint and signed side";
+                const auto refs=constraint["entityIds"].toArray(); const auto contact=constraint["pointIds"].toArray()[0];
+                if(!arcIds.contains(refs[0].toString()) || !lineIds.contains(refs[1].toString()))return "Arc tangent references must be arc then line";
+                for(const auto& value:parameters["entities"].toArray()) {const auto e=value.toObject();
+                    if((e["id"]==refs[0] || e["id"]==refs[1]) && e["startPointId"]!=contact && e["endPointId"]!=contact)
+                        return "Arc tangent contact must be a shared endpoint";}
             } else if (type == "tangent") {
                 if (constraint.size()!=4 || !checkReferences(constraint,"entityIds",2,entityIds)
                     || !constraint["side"].isDouble() || (constraint["side"].toDouble()!=1 && constraint["side"].toDouble()!=-1))
@@ -543,6 +553,92 @@ SketchGeometry::SolveResult SketchGeometry::addDimension(const QJsonObject& draf
     } catch (const std::exception& error) { return invalidDraft(draft, QString::fromUtf8(error.what())); }
 }
 
+SketchGeometry::SolveResult SketchGeometry::filletCorners(const QJsonObject& draft, const QJsonObject& arguments) {
+    try {
+        validateDraft(draft); checkFields(arguments,{"corners","radiusMm"});
+        const double radius=coordinate(arguments,"radiusMm");
+        if(radius<minimumLength || !arguments["corners"].isArray() || arguments["corners"].toArray().isEmpty())
+            reject("Fillet requires corners and a positive radius");
+        auto parameters=draft["parameters"].toObject(); auto entities=parameters["entities"].toArray();
+        auto points=parameters["points"].toArray(); auto constraints=parameters["constraints"].toArray();
+        auto dimensions=parameters["dimensions"].toArray();
+        QMap<QString,QJsonObject> pointMap; QMap<QString,QString> roots;
+        for(const auto& value:points){const auto p=value.toObject();pointMap[p["id"].toString()]=p;roots[p["id"].toString()]=p["id"].toString();}
+        auto root=[&](QString id){while(roots[id]!=id)id=roots[id];return id;};
+        for(const auto& value:constraints){const auto c=value.toObject();if(c["type"]!="coincident")continue;
+            const auto refs=c["pointIds"].toArray();roots[root(refs[1].toString())]=root(refs[0].toString());}
+        QSet<QString> touchedLines,retired; QJsonArray arcs,newRelations,removedDimensions;
+        auto xy=[&](const QString& id){const auto p=pointMap[id];return QPointF(p["uMm"].toDouble(),p["vMm"].toDouble());};
+        auto fresh=[&](const QPointF& position){const auto id=newId();points.append(QJsonObject{{"id",id},{"uMm",position.x()},{"vMm",position.y()}});return id;};
+        for(const auto& value:arguments["corners"].toArray()) {
+            if(!value.isObject())reject("Fillet corner must be an object");const auto corner=value.toObject();checkFields(corner,{"entityIds"});
+            const auto refs=corner["entityIds"].toArray();if(!corner["entityIds"].isArray() || refs.size()!=2 || refs[0]==refs[1])reject("Fillet needs two distinct lines");
+            int indices[2]={-1,-1};QJsonObject lines[2];
+            for(int i=0;i<entities.size();++i)for(int j=0;j<2;++j)if(entities[i].toObject()["id"]==refs[j]){indices[j]=i;lines[j]=entities[i].toObject();}
+            for(int j=0;j<2;++j){if(indices[j]<0 || lines[j]["type"]!="line" || lines[j].value("construction").toBool())reject("Fillet supports normal lines only");
+                const auto id=lines[j]["id"].toString();if(touchedLines.contains(id))reject("Fillet corners cannot reuse a line in this slice");touchedLines.insert(id);}
+            QString keys[2];int matches=0;
+            for(const auto& a:{QString("startPointId"),QString("endPointId")})for(const auto& b:{QString("startPointId"),QString("endPointId")})
+                if(root(lines[0][a].toString())==root(lines[1][b].toString())){keys[0]=a;keys[1]=b;++matches;}
+            if(matches!=1)reject("Fillet requires one unambiguous connected corner");
+            const auto cornerRoot=root(lines[0][keys[0]].toString());
+            for(auto it=roots.begin();it!=roots.end();++it)if(root(it.key())==cornerRoot)retired.insert(it.key());
+            const QPointF vertex=xy(lines[0][keys[0]].toString()); QPointF directions[2]; double lengths[2];
+            for(int j=0;j<2;++j){const auto other=keys[j]=="startPointId" ? "endPointId" : "startPointId";
+                directions[j]=xy(lines[j][other].toString())-vertex;lengths[j]=std::hypot(directions[j].x(),directions[j].y());directions[j]/=lengths[j];}
+            const double dot=std::clamp(QPointF::dotProduct(directions[0],directions[1]),-1.0,1.0),angle=std::acos(dot);
+            if(angle<1e-6 || std::numbers::pi-angle<1e-6)reject("Fillet corner lines must not be collinear");
+            const double setback=radius/std::tan(angle/2);
+            for(double length:lengths)if(setback>=length-minimumLength)reject("Fillet radius exceeds available line length");
+            QPointF bisector=directions[0]+directions[1];bisector/=std::hypot(bisector.x(),bisector.y());
+            const QPointF center=vertex+bisector*(radius/std::sin(angle/2));
+            const QPointF contacts[2]={vertex+directions[0]*setback,vertex+directions[1]*setback};
+            const auto centerId=fresh(center),firstId=fresh(contacts[0]),lastId=fresh(contacts[1]),arcId=newId();
+            const double start=std::atan2(contacts[0].y()-center.y(),contacts[0].x()-center.x())/degrees;
+            const double sweep=std::remainder(std::atan2(contacts[1].y()-center.y(),contacts[1].x()-center.x())/degrees-start,360.0);
+            arcs.append(QJsonObject{{"id",arcId},{"type","arc"},{"centerPointId",centerId},{"startPointId",firstId},{"endPointId",lastId},
+                {"radiusMm",radius},{"startAngleDeg",start},{"sweepAngleDeg",sweep}});
+            for(int j=0;j<2;++j){const auto contactId=j==0 ? firstId : lastId;lines[j][keys[j]]=contactId;entities[indices[j]]=lines[j];
+                const auto a=keys[j]=="startPointId" ? contacts[j] : xy(lines[j]["startPointId"].toString());
+                const auto b=keys[j]=="endPointId" ? contacts[j] : xy(lines[j]["endPointId"].toString());
+                const double cross=(b.x()-a.x())*(center.y()-a.y())-(b.y()-a.y())*(center.x()-a.x());
+                newRelations.append(QJsonObject{{"id",newId()},{"type","arcTangent"},{"entityIds",QJsonArray{arcId,lines[j]["id"]}},
+                    {"pointIds",QJsonArray{contactId}},{"side",cross>0 ? 1 : -1}});
+            }
+        }
+        // Retiring a corner never silently drops unrelated authored references.
+        for(const auto& value:entities){const auto e=value.toObject();for(const auto& field:{"startPointId","endPointId","centerPointId"})
+            if(retired.contains(e[field].toString()))reject("Fillet corner is referenced by unrelated geometry");}
+        QJsonArray keptConstraints;
+        for(const auto& value:constraints){const auto c=value.toObject();bool references=false,allRetired=true;
+            for(const auto& id:c["pointIds"].toArray()){references|=retired.contains(id.toString());allRetired&=retired.contains(id.toString());}
+            if(references){if(c["type"]!="coincident" || !allRetired)reject("Fillet corner has an unrelated point constraint");continue;}keptConstraints.append(c);}
+        QJsonArray keptDimensions;
+        for(const auto& value:dimensions){const auto d=value.toObject();bool pointReference=false;for(const auto& id:d["pointIds"].toArray())pointReference|=retired.contains(id.toString());
+            const bool lengthDimension=d["kind"]=="linear" || d["kind"]=="horizontal" || d["kind"]=="vertical";
+            bool affected=lengthDimension && touchedLines.contains(d["entityId"].toString());
+            const auto refs=d["pointIds"].toArray();
+            if(lengthDimension && refs.size()==2)for(const auto& original:parameters["entities"].toArray()) {
+                const auto line=original.toObject();if(!touchedLines.contains(line["id"].toString()))continue;
+                const auto start=root(line["startPointId"].toString()),end=root(line["endPointId"].toString());
+                const auto a=root(refs[0].toString()),b=root(refs[1].toString());
+                if((a==start && b==end) || (a==end && b==start))affected=true;
+            }
+            if(affected)removedDimensions.append(d["id"]);
+            else {if(pointReference)reject("Fillet corner has an unrelated point dimension");keptDimensions.append(d);}}
+        QJsonArray keptPoints;for(const auto& value:points)if(!retired.contains(value.toObject()["id"].toString()))keptPoints.append(value);
+        for(const auto& value:arcs)entities.append(value);for(const auto& value:newRelations)keptConstraints.append(value);
+        const auto firstArc=arcs.first().toObject()["id"];
+        keptDimensions.append(QJsonObject{{"id",newId()},{"kind","radius"},{"entityId",firstArc},{"driving",true},{"valueMm",radius}});
+        for(int i=1;i<arcs.size();++i)keptConstraints.append(QJsonObject{{"id",newId()},{"type","equal"},{"entityIds",QJsonArray{firstArc,arcs[i].toObject()["id"]}}});
+        parameters["points"]=keptPoints;parameters["entities"]=entities;parameters["constraints"]=keptConstraints;parameters["dimensions"]=keptDimensions;
+        auto candidate=draft;candidate["parameters"]=parameters;auto result=solveDraft(candidate);
+        if(!result.ok)return {false,draft,result.diagnostics,result.error};
+        QJsonArray arcIds;for(const auto& value:arcs)arcIds.append(value.toObject()["id"]);
+        result.diagnostics["createdArcIds"]=arcIds;result.diagnostics["removedDimensionIds"]=removedDimensions;return result;
+    }catch(const std::exception& error){return invalidDraft(draft,QString::fromUtf8(error.what()));}
+}
+
 SketchGeometry::SolveResult SketchGeometry::addPointerCircle(const QJsonObject& draft, const QJsonObject& arguments) {
     try {
         validateDraft(draft);
@@ -641,7 +737,7 @@ SketchGeometry::SolveResult SketchGeometry::setConstruction(const QJsonObject& d
             if (!selected.contains(entity["id"].toString())) continue;
             if (entity["type"] != "line") reject("Construction conversion currently supports lines only");
             remaining.remove(entity["id"].toString());
-            if (entity["construction"].toBool() == arguments["construction"].toBool()) continue;
+            if (entity.value("construction").toBool() == arguments["construction"].toBool()) continue;
             if (arguments["construction"].toBool()) entity["construction"] = true;
             else entity.remove("construction");
             entities[i] = entity; changed = true;

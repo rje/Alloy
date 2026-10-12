@@ -568,6 +568,18 @@
       "inputs": [
         "tests/app_harness.py"
       ]
+    },
+    "sketch-fillet": {
+      "script": "tests/sketch_fillet_api.py",
+      "fixture": "tests/workflows/fixtures/sketch-fillet.json",
+      "result": "sketch-fillet-api.json",
+      "covers": [],
+      "capabilities": [
+        "sketch.shared_radius_corner_fillets"
+      ],
+      "inputs": [
+        "tests/app_harness.py"
+      ]
     }
   },
   "gates": {

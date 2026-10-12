@@ -80,6 +80,9 @@ private:
     QJsonObject appendSketchEntity(const QString& tool, const QJsonObject& inputs);
     QJsonObject resolveSketchSnap(double x, double y, const QString& plane, bool midpointOnly = false) const;
     QJsonObject resolveCircleTangentSnap(double x, double y, const QString& plane) const;
+    QJsonObject resolveFilletCorner(double x, double y, const QString& plane) const;
+    QJsonObject previewFillet(const QJsonObject& args);
+    void clearFilletPreview();
     QJsonObject appendSketchCurve(const QString& tool, const QJsonObject& inputs);
     QJsonObject sketchCurveGesture(const QJsonObject& point, bool commit);
     double sketchDimensionMeasure(const QJsonObject& targets, const QString& kind) const;
@@ -164,6 +167,8 @@ private:
     QString sketchWidgetUnits_;
     QTreeWidget* sketchSelectionTree_ = nullptr;
     QPushButton* sketchCurveEntry_ = nullptr;
+    QWidget* sketchFilletControls_ = nullptr;
+    QLineEdit* sketchFilletRadius_ = nullptr;
     QComboBox* sketchDimensionKind_ = nullptr;
     QDoubleSpinBox* sketchDimensionValue_ = nullptr;
     QCheckBox* sketchDimensionDriving_ = nullptr;

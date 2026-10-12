@@ -213,8 +213,8 @@ AlloyWindow::AlloyWindow() {
     sketchToolbar_->setStyleSheet("#sketchToolbar { background: #e1f2f8; border-bottom: 1px solid #9fc7db; }");
     auto* sketchTools=new QHBoxLayout(sketchToolbar_);sketchTools->setContentsMargins(14,5,14,5);
     auto* sketchTitle=new QLabel("SKETCH");sketchTitle->setStyleSheet("font-weight: 700; color: #176588;");sketchTools->addWidget(sketchTitle);
-    for(const auto& tool:QStringList{"line","rectangle","circle","select","dimension"}) {
-        auto* button=new QPushButton(tool=="line" ? "Line  L" : tool=="rectangle" ? "Rectangle  R" : tool=="circle" ? "Circle  C" : tool=="centerArc" ? "Center Arc" : tool=="threePointArc" ? "3-Point Arc" : tool=="dimension" ? "Dimension  D" : "Select");
+    for(const auto& tool:QStringList{"line","rectangle","circle","select","dimension","fillet"}) {
+        auto* button=new QPushButton(tool=="line" ? "Line  L" : tool=="rectangle" ? "Rectangle  R" : tool=="circle" ? "Circle  C" : tool=="dimension" ? "Dimension  D" : tool=="fillet" ? "Fillet" : "Select");
         button->setObjectName("sketch.tool."+tool);sketchTools->addWidget(button);
         connect(button,&QPushButton::clicked,this,[this,tool]{sketchResponse(execute("sketch.tool",{{"tool",tool}}));});
     }
@@ -344,7 +344,7 @@ AlloyWindow::AlloyWindow() {
     });
     for(const auto key:{Qt::Key_Return,Qt::Key_Enter}) {
         auto* finishTool=new QShortcut(QKeySequence(key),view_);finishTool->setContext(Qt::WidgetShortcut);
-        connect(finishTool,&QShortcut::activated,this,[this]{if(session_.value("command")=="sketch.edit" && session_.value("tool")!="select" && session_.value("tool")!="dimension")execute("sketch.tool",{{"tool","select"}});});
+        connect(finishTool,&QShortcut::activated,this,[this]{if(session_.value("command")=="sketch.edit" && session_.value("tool")!="select" && session_.value("tool")!="dimension" && session_.value("tool")!="fillet")execute("sketch.tool",{{"tool","select"}});});
     }
     auto* extrudeShortcut=new QShortcut(QKeySequence("E"),this);
     connect(extrudeShortcut,&QShortcut::activated,this,[this]{
@@ -385,7 +385,7 @@ QString AlloyWindow::tabSwitchBlocker() const {
     if(session_.isEmpty())return {};
     if(session_.value("command")!="sketch.edit")return "Complete or cancel the active command before switching designs";
     if(session_.value("tool")!="select" || session_.contains("firstPoint") || session_.contains("secondPoint")
-        || session_.contains("pendingDimension"))return "Finish or cancel the current sketch input before switching designs";
+        || session_.contains("pendingDimension") || session_.contains("pendingFillet"))return "Finish or cancel the current sketch input before switching designs";
     const auto* focused=QApplication::focusWidget();
     if((focused && sketchPanel_ && sketchPanel_->isAncestorOf(focused) && qobject_cast<const QLineEdit*>(focused))
         || (dimensionEditor_ && dimensionEditor_->isVisible())
@@ -686,15 +686,69 @@ void AlloyWindow::registerCommands() {
     for(const auto& field:QStringList{"centerX","centerY","radius","startX","startY","endX","endY","throughX","throughY"})arcSchema[field]=optional(coordinate);
     add("sketch.addArc","Create analytic arc","Append an exact center/radius/sweep or three-point arc; through point follows start/end.",arcSchema,
         [this](const auto& a){return appendSketchCurve(a["mode"]=="center" ? "centerArc" : "threePointArc",a);});
-    auto sketchTool=parameter("string","Drawing tool in the active sketch context.");sketchTool["enum"]=QJsonArray{"select","line","rectangle","circle","centerArc","threePointArc","dimension"};
+    auto optionalSession=optional(parameter("string","Optional active sketch session identity."));
+    auto sketchTool=parameter("string","Drawing tool in the active sketch context.");sketchTool["enum"]=QJsonArray{"select","line","rectangle","circle","centerArc","threePointArc","dimension","fillet"};
     add("sketch.tool","Sketch drawing tool","Choose a tool and clear its pending first point.",{{"tool",sketchTool}},[this](const auto& a){
         if(session_.value("command").toString()!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
+        const bool leavingFillet=session_.value("tool")=="fillet";
+        clearFilletPreview();session_.remove("pendingFillet");
         cancelDimension();
-        if(session_.value("tool")=="constraint")session_["selection"]=QJsonObject{{"pointIds",QJsonArray{}},{"entityIds",QJsonArray{}},{"profileIds",QJsonArray{}}};
+        if(session_.value("tool")=="constraint" || leavingFillet || a["tool"]=="fillet")
+            session_["selection"]=QJsonObject{{"pointIds",QJsonArray{}},{"entityIds",QJsonArray{}},{"profileIds",QJsonArray{}}};
         session_["tool"]=a["tool"];sketchHistoryGroup_.clear();session_.remove("constraintType");session_.remove("constraintPrompt");session_.remove("firstPoint");session_.remove("secondPoint");session_.remove("pointerPoint");session_.remove("gestureSweepDeg");session_.remove("snap");view_->clearSketchCursor();
+        if(a["tool"]=="fillet" && sketchFilletRadius_) {
+            const QSignalBlocker block(sketchFilletRadius_);
+            sketchFilletRadius_->setText(QString::number(10.0/(session_.value("inputs").toObject()["units"]=="in" ? 25.4 : 1.0),'g',8));
+        }
         view_->setFocus();
         return session_;
     });
+    auto filletCorners=optional(parameter("array","One or two corners, each with entityIds of its two retained incident line IDs."));
+    auto filletRadius=parameter("number","Positive common fillet radius in the chosen length units.");
+    filletRadius["minimum"]=0.000001;filletRadius["maximum"]=100000;
+    add("sketch.filletPreview","Preview sketch fillets","Show disposable trimmed arcs without changing the authored sketch or undo history.",
+        {{"corners",filletCorners},{"value",optional(filletRadius)},{"units",optional(units)},{"session",optionalSession}},[this](const auto& a){
+            if(a.contains("session") && a["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
+            return previewFillet(a);
+        });
+    add("sketch.filletAccept","Accept selected sketch fillets","Apply two selected corners with a common radius in one accepted sketch edit.",
+        {{"value",filletRadius},{"units",optional(units)},{"session",optionalSession}},[this](const auto& a){
+            if(session_.value("command")!="sketch.edit" || session_.value("tool")!="fillet")return failure("no_pending_fillet","Select sketch Fillet and two corners first");
+            if(a.contains("session") && a["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
+            const auto corners=session_.value("pendingFillet").toObject()["corners"].toArray();
+            if(corners.size()!=2)return failure("no_pending_fillet","Select two sketch corners first");
+            const auto chosenUnits=a.value("units").toString(session_.value("inputs").toObject()["units"].toString());
+            const double radiusMm=CadDocument::millimeters(a["value"].toDouble(),chosenUnits);
+            const auto solved=SketchGeometry::filletCorners(session_["draftSketch"].toObject(),{{"corners",corners},{"radiusMm",radiusMm}});
+            auto result=publishSketchSolve(solved);
+            if(result.value("ok").isBool() && !result.value("ok").toBool())return result;
+            session_.remove("pendingFillet");session_["tool"]="select";
+            session_["selection"]=QJsonObject{{"pointIds",QJsonArray{}},{"entityIds",QJsonArray{}},{"profileIds",QJsonArray{}}};
+            result["createdArcIds"]=solved.diagnostics.value("createdArcIds");result["removedDimensionIds"]=solved.diagnostics.value("removedDimensionIds");
+            view_->setFocus();return result;
+        });
+    add("sketch.filletCancel","Cancel selected sketch fillets","Discard only the unaccepted fillet picks and preview.",
+        {{"session",optionalSession}},[this](const auto& a){
+            if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
+            if(a.contains("session") && a["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
+            clearFilletPreview();session_.remove("pendingFillet");session_.remove("snap");view_->clearSketchCursor();
+            session_["selection"]=QJsonObject{{"pointIds",QJsonArray{}},{"entityIds",QJsonArray{}},{"profileIds",QJsonArray{}}};
+            return QJsonObject{{"authoredChange",false}};
+        });
+    add("sketch.fillet","Fillet sketch corners","Trim one or two stable line corners with an exact common radius in one sketch edit.",
+        {{"corners",parameter("array","One or two corners, each with entityIds of two retained incident lines.")},
+            {"value",filletRadius},{"units",optional(units)},{"session",optionalSession}},[this](const auto& a){
+            if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
+            if(a.contains("session") && a["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
+            const auto chosenUnits=a.value("units").toString(session_.value("inputs").toObject()["units"].toString());
+            const double radiusMm=CadDocument::millimeters(a["value"].toDouble(),chosenUnits);
+            const auto solved=SketchGeometry::filletCorners(session_["draftSketch"].toObject(),{{"corners",a["corners"]},{"radiusMm",radiusMm}});
+            auto result=publishSketchSolve(solved);
+            if(result.value("ok").isBool() && !result.value("ok").toBool())return result;
+            session_.remove("pendingFillet");
+            result["createdArcIds"]=solved.diagnostics.value("createdArcIds");result["removedDimensionIds"]=solved.diagnostics.value("removedDimensionIds");
+            return result;
+        });
     auto sketchPixel=parameter("number","Viewport-local logical pixel coordinate.");sketchPixel["minimum"]=0;sketchPixel["maximum"]=10000;
     const QJsonObject sketchPixels{{"x",sketchPixel},{"y",sketchPixel}};
     auto sketchPickSchema=sketchPixels;sketchPickSchema["additive"]=optional(parameter("boolean","Add or toggle a target in the current sketch selection."));
@@ -728,6 +782,31 @@ void AlloyWindow::registerCommands() {
         if(session_.value("command").toString()!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
         if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))return failure("stale_session","The document changed; cancel and restart this sketch");
         const auto tool=session_.value("tool").toString();
+        if(tool=="fillet") {
+            const auto plane=session_.value("inputs").toObject()["plane"].toString();
+            const auto corner=resolveFilletCorner(a["x"].toDouble(),a["y"].toDouble(),plane);
+            if(corner["status"]=="ambiguous")return failure("ambiguous_fillet_corner","Multiple sketch corners are equally close");
+            if(corner["status"]!="acquired")return failure("invalid_fillet_corner","Pick a corner shared by two normal sketch lines");
+            auto pending=session_.value("pendingFillet").toObject();auto corners=pending["corners"].toArray();
+            if(corners.size()>=2)return failure("fillet_radius_pending","Enter or cancel the common fillet radius first");
+            const auto pair=QJsonObject{{"entityIds",corner["target"].toObject()["entityIds"]}};
+            for(const auto& chosen:corners)if(chosen.toObject()["entityIds"]==pair["entityIds"])
+                return failure("duplicate_fillet_corner","Choose a different second corner");
+            corners.append(pair);pending["corners"]=corners;
+            if(!pending.contains("radiusMm"))pending["radiusMm"]=10.0;
+            session_["pendingFillet"]=pending;session_["snap"]=corner;
+            auto selection=session_.value("selection").toObject();auto pointIds=selection["pointIds"].toArray();
+            for(const auto& id:corner["target"].toObject()["pointIds"].toArray())if(!pointIds.contains(id))pointIds.append(id);
+            selection["pointIds"]=pointIds;session_["selection"]=selection;
+            if(corners.size()==2) {
+                const auto preview=previewFillet({});
+                if(preview.value("ok").isBool() && !preview.value("ok").toBool()) {
+                    pending=session_.value("pendingFillet").toObject();pending["previewError"]=preview["error"];session_["pendingFillet"]=pending;
+                }
+                if(sketchFilletRadius_) {sketchFilletRadius_->setFocus();sketchFilletRadius_->selectAll();}
+            }
+            return QJsonObject{{"pendingFillet",session_.value("pendingFillet")},{"corner",corner},{"authoredChange",false}};
+        }
         if(tool=="dimension" && session_.value("pendingDimension").toObject().value("phase")=="placing") {
             const auto picked=view_->pickSketch(session_.value("draftSketch").toObject(),a["x"].toDouble(),a["y"].toDouble(),"entity");
             const auto selected=session_.value("selection").toObject()["entityIds"].toArray();
@@ -777,6 +856,20 @@ void AlloyWindow::registerCommands() {
         if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision())){view_->clearSketchCursor();return QJsonObject{};}
         const auto plane=session_.value("inputs").toObject()["plane"].toString();
         const auto tool=session_.value("tool").toString();
+        if(tool=="fillet") {
+            const auto corner=resolveFilletCorner(a["x"].toDouble(),a["y"].toDouble(),plane);
+            session_["snap"]=corner;
+            const auto chosen=session_.value("pendingFillet").toObject()["corners"].toArray();
+            if(chosen.size()==1 && corner["status"]=="acquired") {
+                const auto pair=QJsonObject{{"entityIds",corner["target"].toObject()["entityIds"]}};
+                if(chosen[0].toObject()["entityIds"]!=pair["entityIds"]) {
+                    const auto preview=previewFillet({{"corners",QJsonArray{chosen[0],pair}}});
+                    if(preview.value("ok").isBool() && !preview.value("ok").toBool())clearFilletPreview();
+                } else clearFilletPreview();
+            } else if(chosen.size()<2)clearFilletPreview();
+            view_->showSketchSnap(plane,corner);
+            return QJsonObject{{"snap",corner},{"authoredChange",false}};
+        }
         const bool circleCenter=tool=="circle" && !session_.contains("firstPoint");
         const bool circleCircumference=tool=="circle" && session_.contains("firstPoint");
         const bool snapping=tool=="line" || tool=="rectangle" || circleCenter || circleCircumference;
@@ -810,7 +903,6 @@ void AlloyWindow::registerCommands() {
     add("view.projectSketchPoint","Project sketch coordinate","Project canonical sketch millimeters into viewport-local logical pixels.",{{"plane",sketchPlane},{"uMm",coordinate},{"vMm",coordinate}},[this](const auto& a){
         return view_->projectSketchPoint(a["uMm"].toDouble(),a["vMm"].toDouble(),a["plane"].toString());
     });
-    auto optionalSession=optional(parameter("string","Optional active sketch session identity."));
     auto constraintType=parameter("string","Geometric relation to apply to the supplied or selected sketch geometry.");
     constraintType["enum"]=QJsonArray{"coincident","horizontal","vertical","parallel","perpendicular","equal","fixed"};
     auto constraintToolType=constraintType;constraintToolType["enum"]=QJsonArray{"coincident","horizontal","vertical","horizontalVertical","parallel","perpendicular","equal","fixed"};
@@ -818,6 +910,10 @@ void AlloyWindow::registerCommands() {
         if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
         if(a.contains("session") && a["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
         if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))return failure("stale_session","The document changed; cancel and restart this sketch");
+        if(session_.value("tool")=="fillet") {
+            clearFilletPreview();session_.remove("pendingFillet");
+            session_["selection"]=QJsonObject{{"pointIds",QJsonArray{}},{"entityIds",QJsonArray{}},{"profileIds",QJsonArray{}}};
+        }
         cancelDimension();view_->clearSketchCursor();session_.remove("snap");
         session_["tool"]="constraint";session_["constraintType"]=a["type"];
         session_.remove("firstPoint");session_.remove("secondPoint");session_.remove("pointerPoint");session_.remove("gestureSweepDeg");
@@ -1366,11 +1462,28 @@ void AlloyWindow::refresh() {
         const bool current=session_.value("baseDocumentRevision").toInteger()==static_cast<qint64>(document_->revision());
         if(current && draft!=displayedSketchDraft_){view_->showSketchDraft(SketchGeometry::evaluateFeature(draft));displayedSketchDraft_=draft;}
         if(current)refreshSketchControls();
+        const auto fillet=session_.value("pendingFillet").toObject();
+        if(current && session_.value("tool")=="fillet" && fillet.contains("previewDraft")) {
+            auto presentationSelection=session_.value("selection").toObject();presentationSelection["tool"]="fillet";
+            view_->decorateSketch(fillet["previewDraft"].toObject(),presentationSelection,
+                fillet["previewDiagnostics"].toObject(),inputs["units"].toString());
+        }
         const auto diagnostics=session_.value("solverDiagnostics").toObject();
         const auto tool=session_.value("tool").toString();QString prompt="Click the first point";
+        if(sketchFilletControls_)sketchFilletControls_->setVisible(tool=="fillet");
+        if(tool=="fillet" && sketchFilletRadius_ && fillet.contains("radiusMm")) {
+            const double displayValue=fillet["radiusMm"].toDouble()/(inputs["units"]=="in" ? 25.4 : 1.0);
+            bool valid=false;const double shown=sketchFilletRadius_->text().toDouble(&valid);
+            if(!valid || std::abs(shown-displayValue)>1e-9*std::max(1.0,std::abs(displayValue))) {
+                const QSignalBlocker block(sketchFilletRadius_);
+                sketchFilletRadius_->setText(QString::number(displayValue,'g',8));
+            }
+        }
         if(tool=="constraint")prompt=session_.value("constraintPrompt").toString();
         else if(tool=="select" || tool=="dimension")prompt="Click to select · Shift-click to add";
         else if(tool=="circle")prompt=session_.contains("firstPoint") ? "Specify diameter · Click the circumference" : "Click the circle center";
+        else if(tool=="fillet")prompt=fillet["corners"].toArray().size()==2 ? "Enter the common radius, then press Enter" :
+            fillet["corners"].toArray().size()==1 ? "Click the second corner" : "Click the first corner";
         else if(tool=="centerArc")prompt=session_.contains("secondPoint") ? "Click the end · Sweep direction follows pointer" : session_.contains("firstPoint") ? "Click the start · Specify radius" : "Click the arc center";
         else if(tool=="threePointArc")prompt=session_.contains("secondPoint") ? "Click a point on the arc" : session_.contains("firstPoint") ? "Click the arc end" : "Click the arc start";
         else if(session_.contains("firstPoint"))prompt="Click the next point · Escape stops drawing";
@@ -1626,6 +1739,8 @@ QJsonObject AlloyWindow::finishSession(const QString& id, bool commit) {
     QJsonObject result{{"sessionId", id}, {"status", commit ? "committed" : "cancelled"}};
     if(commit && target=="sketch.plane")return failure("plane_required","Choose an origin plane before finishing a sketch");
     if(commit && target=="sketch.edit") {
+        if(!session_.value("pendingFillet").toObject().isEmpty())
+            return failure("pending_input_active","Accept or cancel the sketch fillet before finishing");
         if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))return failure("stale_session","The document changed; cancel and restart this sketch");
         const auto candidate=SketchGeometry::replaceFeature(document_->authored(),session_.value("draftSketch").toObject());
         const auto error=document_->commit(candidate,session_.value("inputs").toObject().contains("sketchId") ? "Edit sketch" : "Create sketch");
@@ -1913,6 +2028,96 @@ QJsonObject AlloyWindow::resolveCircleTangentSnap(double x,double y,const QStrin
     return result;
 }
 
+QJsonObject AlloyWindow::resolveFilletCorner(double x,double y,const QString& plane) const {
+    constexpr double radiusPx=8.0,ambiguityPx=0.5;
+    QJsonObject result{{"status","none"},{"radiusPx",radiusPx},{"authoredChange",false}};
+    const auto parameters=session_.value("draftSketch").toObject()["parameters"].toObject();
+    QMap<QString,QJsonObject> points;QMap<QString,QString> parent;
+    for(const auto& entry:parameters["points"].toArray()) {
+        const auto point=entry.toObject();const auto id=point["id"].toString();points[id]=point;parent[id]=id;
+    }
+    auto root=[&](QString id){while(parent.contains(id) && parent.value(id)!=id)id=parent.value(id);return id;};
+    for(const auto& entry:parameters["constraints"].toArray()) {
+        const auto constraint=entry.toObject();if(constraint["type"]!="coincident")continue;
+        const auto ids=constraint["pointIds"].toArray();if(ids.size()!=2)continue;
+        const auto a=root(ids[0].toString()),b=root(ids[1].toString());if(a!=b)parent[b]=a;
+    }
+    QMap<QString,QJsonArray> members;
+    for(auto it=points.cbegin();it!=points.cend();++it)members[root(it.key())].append(it.key());
+    std::vector<QJsonObject> candidates;
+    for(auto it=members.cbegin();it!=members.cend();++it) {
+        QJsonArray lines;
+        for(const auto& entry:parameters["entities"].toArray()) {
+            const auto line=entry.toObject();if(line["type"]!="line" || line["construction"].toBool())continue;
+            if(it.value().contains(line["startPointId"]) || it.value().contains(line["endPointId"]))lines.append(line["id"]);
+        }
+        if(lines.size()!=2)continue;
+        double distance=std::numeric_limits<double>::infinity();QJsonObject nearest;
+        for(const auto& value:it.value()) {
+            const auto point=points.value(value.toString());const auto screen=view_->projectSketchPoint(point["uMm"].toDouble(),point["vMm"].toDouble(),plane);
+            const double current=std::hypot(screen["x"].toDouble()-x,screen["y"].toDouble()-y);
+            if(current<distance){distance=current;nearest=point;}
+        }
+        if(distance>radiusPx)continue;
+        candidates.push_back(QJsonObject{{"target",QJsonObject{{"kind","filletCorner"},{"entityIds",lines},{"pointIds",it.value()}}},
+            {"uMm",nearest["uMm"]},{"vMm",nearest["vMm"]},{"distancePx",distance}});
+    }
+    if(candidates.empty())return result;
+    std::sort(candidates.begin(),candidates.end(),[](const auto& a,const auto& b){
+        if(a["distancePx"].toDouble()!=b["distancePx"].toDouble())return a["distancePx"].toDouble()<b["distancePx"].toDouble();
+        return a["target"].toObject()["entityIds"].toArray()[0].toString()<b["target"].toObject()["entityIds"].toArray()[0].toString();
+    });
+    const auto best=candidates.front();QJsonArray tied;
+    for(const auto& candidate:candidates) {
+        if(candidate["distancePx"].toDouble()-best["distancePx"].toDouble()>ambiguityPx)break;
+        tied.append(candidate);
+    }
+    if(tied.size()>1){result["status"]="ambiguous";result["candidates"]=tied;return result;}
+    result["status"]="acquired";result["target"]=best["target"];result["uMm"]=best["uMm"];
+    result["vMm"]=best["vMm"];result["distancePx"]=best["distancePx"];
+    return result;
+}
+
+void AlloyWindow::clearFilletPreview() {
+    auto pending=session_.value("pendingFillet").toObject();
+    if(!pending.contains("previewDraft"))return;
+    pending.remove("previewDraft");pending.remove("previewDiagnostics");session_["pendingFillet"]=pending;
+    const auto draft=session_.value("draftSketch").toObject();
+    if(!draft.isEmpty())view_->showSketchDraft(SketchGeometry::evaluateFeature(draft));
+    auto selection=session_.value("selection").toObject();selection["tool"]=session_.value("tool");
+    view_->decorateSketch(draft,selection,session_.value("solverDiagnostics").toObject(),
+        session_.value("inputs").toObject()["units"].toString());
+    view_->clearSketchCursor();
+}
+
+QJsonObject AlloyWindow::previewFillet(const QJsonObject& args) {
+    if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
+    if(session_.value("tool")!="fillet")return failure("fillet_tool_inactive","Select sketch Fillet before previewing corners");
+    if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))return failure("stale_session","The document changed; cancel and restart this sketch");
+    auto pending=session_.value("pendingFillet").toObject();
+    const auto corners=args.contains("corners") ? args["corners"].toArray() : pending["corners"].toArray();
+    if(corners.isEmpty() || corners.size()>2)return failure("invalid_fillet_target","Select one or two sketch corners");
+    double radiusMm=pending.value("radiusMm").toDouble();
+    if(args.contains("value")) {
+        const auto units=args.value("units").toString(session_.value("inputs").toObject()["units"].toString());
+        radiusMm=CadDocument::millimeters(args["value"].toDouble(),units);
+    }
+    if(!std::isfinite(radiusMm) || radiusMm<0.001)return failure("invalid_fillet_radius","Enter a positive fillet radius");
+    clearFilletPreview();
+    const auto solved=SketchGeometry::filletCorners(session_["draftSketch"].toObject(),{{"corners",corners},{"radiusMm",radiusMm}});
+    if(!solved.ok) {
+        auto response=failure("sketch_fillet_failed",solved.error);auto error=response["error"].toObject();error["diagnostics"]=solved.diagnostics;response["error"]=error;return response;
+    }
+    const auto evaluated=SketchGeometry::evaluateFeature(solved.feature);
+    pending=session_.value("pendingFillet").toObject();pending.remove("previewError");pending["previewDraft"]=solved.feature;
+    pending["previewDiagnostics"]=solved.diagnostics;pending["radiusMm"]=radiusMm;
+    session_["pendingFillet"]=pending;
+    view_->showSketchDraft(evaluated);
+    return {{"authoredChange",false},{"previewed",true},{"sketchGeometry",evaluated.summary},
+        {"diagnostics",solved.diagnostics},{"createdArcIds",solved.diagnostics.value("createdArcIds")},
+        {"removedDimensionIds",solved.diagnostics.value("removedDimensionIds")}};
+}
+
 QJsonObject AlloyWindow::appendSketchCurve(const QString& tool,const QJsonObject& inputs) {
     if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
     if(inputs.contains("session") && inputs["session"]!=session_["id"])return failure("invalid_session","Session is no longer active");
@@ -2054,7 +2259,7 @@ QJsonObject AlloyWindow::traverseSketchHistory(int direction) {
             if(!response["ok"].toBool())return response;
             return {{"action","cancelled_tool"},{"tool",previous},{"changed",false},{"draftHistory",session_["draftHistory"]}};
         }
-    } else if(session_.value("tool")!="select" || session_.contains("pendingDimension") || session_.contains("firstPoint"))
+    } else if(session_.value("tool")!="select" || session_.contains("pendingDimension") || session_.contains("pendingFillet") || session_.contains("firstPoint"))
         return failure("pending_input_active","Complete or cancel the current sketch tool before Redo");
     const int next=sketchHistoryIndex_+direction;
     if(next<0 || next>=static_cast<int>(sketchHistory_.size()))return {{"action","none"},{"changed",false},{"draftHistory",session_["draftHistory"]}};
@@ -2516,7 +2721,7 @@ void AlloyWindow::showCurveEntry() {
 void AlloyWindow::showSketch() {
     if(sketchDock_)delete sketchDock_;
     sketchInputs_.clear();sketchInfo_=nullptr;sketchName_=nullptr;sketchCurveEntry_=nullptr;
-    sketchSelectionTree_=nullptr;sketchDimensionKind_=nullptr;sketchDimensionValue_=nullptr;sketchDimensionDriving_=nullptr;
+    sketchSelectionTree_=nullptr;sketchFilletControls_=nullptr;sketchFilletRadius_=nullptr;sketchDimensionKind_=nullptr;sketchDimensionValue_=nullptr;sketchDimensionDriving_=nullptr;
     sketchDimensionList_=nullptr;sketchDimensionEdit_=nullptr;sketchDimensionMeasure_=nullptr;sketchWidgetDraft_={};sketchWidgetSelection_={};sketchWidgetUnits_.clear();
     sketchPanel_=new QWidget;sketchPanel_->setObjectName("sketchPanel");sketchPanel_->setFixedWidth(312);
     sketchPanel_->setStyleSheet("#sketchPanel { background: #f7f8f9; border-left: 1px solid #cdd3d8; }");
@@ -2555,6 +2760,27 @@ void AlloyWindow::showSketch() {
         sketchCurveEntry_=new QPushButton("Enter curve values…");sketchCurveEntry_->setObjectName("sketch.curveEntry");sketchCurveEntry_->hide();layout->addWidget(sketchCurveEntry_);
         connect(sketchCurveEntry_,&QPushButton::clicked,this,[this]{showCurveEntry();});
         layout->addLayout(form);sketchInfo_=new QLabel;sketchInfo_->setObjectName("sketch.info");sketchInfo_->setWordWrap(true);layout->addWidget(sketchInfo_);
+        sketchFilletControls_=new QWidget;auto* filletForm=new QFormLayout(sketchFilletControls_);
+        sketchFilletRadius_=new QLineEdit;sketchFilletRadius_->setObjectName("sketch.fillet.radius");
+        sketchFilletRadius_->setPlaceholderText("Select two corners, then enter a radius");
+        sketchFilletRadius_->setText(QString::number(10.0/(inputs["units"]=="in" ? 25.4 : 1.0),'g',8));
+        filletForm->addRow("Fillet radius ("+inputs["units"].toString()+")",sketchFilletRadius_);layout->addWidget(sketchFilletControls_);
+        connect(sketchFilletRadius_,&QLineEdit::textChanged,this,[this](const QString& text){
+            if(session_.value("tool")!="fillet" || session_.value("pendingFillet").toObject()["corners"].toArray().size()!=2)return;
+            bool valid=false;const double value=text.toDouble(&valid);
+            if(valid && value>0)sketchResponse(execute("sketch.filletPreview",{{"value",value}}));
+            else clearFilletPreview();
+        });
+        connect(sketchFilletRadius_,&QLineEdit::returnPressed,this,[this]{
+            bool valid=false;const double value=sketchFilletRadius_->text().toDouble(&valid);
+            if(!valid || value<=0){if(sketchError_)sketchError_->setText("Enter a positive fillet radius");return;}
+            sketchResponse(execute("sketch.filletAccept",{{"value",value}}));
+        });
+        auto* filletEscape=new QShortcut(QKeySequence(Qt::Key_Escape),sketchFilletControls_);
+        filletEscape->setContext(Qt::WidgetWithChildrenShortcut);
+        connect(filletEscape,&QShortcut::activated,this,[this]{
+            if(session_.value("tool")=="fillet")sketchResponse(execute("sketch.tool",{{"tool","select"}}));
+        });
         auto* guidance=new QLabel("Select geometry in the canvas or below.\nShift-click adds to the selection.");guidance->setWordWrap(true);layout->addWidget(guidance);
         sketchSelectionTree_=new QTreeWidget;sketchSelectionTree_->setObjectName("sketch.selection");sketchSelectionTree_->setHeaderHidden(true);
         sketchSelectionTree_->setSelectionMode(QAbstractItemView::ExtendedSelection);sketchSelectionTree_->setMaximumHeight(145);layout->addWidget(sketchSelectionTree_);

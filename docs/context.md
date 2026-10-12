@@ -759,3 +759,16 @@ Astra also accepted uninterrupted native A1 on370c735 for bounded FND-015 closur
 Next: SKT-019 two corner fillets, shared radius100 and obsolete500 dimension removal,
 then mixed-region extraction. Public corner pair identification is inferred from
 source wording/topology; exact second small arc is not independently legible.
+
+## Fillet staging and accessibility recurrence (2026-10-12)
+
+SKT-019 source is staged: paired radius100 fillets with endpoint tangent relations,
+explicit500 dimension removal, shared radius edits and one draft transaction.
+Core and real-app sketch-fillet ledger pass. Native two corners/type100/Return
+also passed on pre-sync binary. Astra found APIpreview100/editor10 mismatch;
+field synchronization fixed and rebuilt. Postbuild bulkAPIsetup→Filletpreview→
+firstAX query crashes; #158 reopened, #153 remains open. Matching PID51719 report
+alloy-2026-10-12-134028.ips and LLDB PID52946 both accessibilitySelectedChildren+184;
+not attributed to sync itself. No private app now alive. Source/current evidence
+remain uncommitted while investigating correct accessibility model notifications.
+Nextregion architecture experiment is external knowledge/specs/occt-planar-regions.md.

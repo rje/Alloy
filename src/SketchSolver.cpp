@@ -166,6 +166,11 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters) {
                 auto& p = point(reference(constraint,"pointIds",0));
                 solver.addConstraintEqual(p.x,constant(number(constraint,"uMm")),t);
                 solver.addConstraintEqual(p.y,constant(number(constraint,"vMm")),t);
+            } else if (type == "arcTangent") {
+                // Shared contact and arc rules already retain the radius. A radial
+                // perpendicular gives tangency full first-order rank at contact.
+                solver.addConstraintPerpendicular(arcMap.at(reference(constraint,"entityIds",0)).center,
+                    point(reference(constraint,"pointIds",0)),line(reference(constraint,"entityIds",1)),t);
             } else if (type == "tangent") {
                 solver.addConstraintTangent(line(reference(constraint,"entityIds",1)),
                     circleMap.at(reference(constraint,"entityIds",0)),number(constraint,"side")>0,t);
@@ -268,6 +273,13 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters) {
             const auto c=entry.toObject(); const auto type=c.value("type").toString();
             if(type=="coincident") check(separation("linear",point(reference(c,"pointIds",0)),point(reference(c,"pointIds",1))),lengthTolerance);
             else if(type=="fixed") {const auto& p=point(reference(c,"pointIds",0));check(*p.x-number(c,"uMm"),lengthTolerance);check(*p.y-number(c,"vMm"),lengthTolerance);}
+            else if(type=="arcTangent") {
+                const auto& arc=arcMap.at(reference(c,"entityIds",0));const auto& target=line(reference(c,"entityIds",1));
+                const auto& contact=point(reference(c,"pointIds",0));
+                const double dx=*target.p2.x-*target.p1.x,dy=*target.p2.y-*target.p1.y,length=std::hypot(dx,dy);
+                check((dx*(*arc.center.y-*target.p1.y)-dy*(*arc.center.x-*target.p1.x))/length-number(c,"side")*(*arc.rad),lengthTolerance);
+                check((dx*(*contact.x-*arc.center.x)+dy*(*contact.y-*arc.center.y))/length,lengthTolerance);
+            }
             else if(type=="tangent") {
                 const auto& circle=circleMap.at(reference(c,"entityIds",0)); const auto& target=line(reference(c,"entityIds",1));
                 const double dx=*target.p2.x-*target.p1.x,dy=*target.p2.y-*target.p1.y,length=std::hypot(dx,dy);
