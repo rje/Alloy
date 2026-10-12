@@ -115,7 +115,7 @@ private:
     QJsonArray selectedProfileIds_;
     QJsonArray hiddenBodyIds_;
     Handle(AIS_Shape) sketchDraft_, sketchConstructionDraft_, projectedDraft_, sketchCursor_, sketchSnapCue_;
-    QJsonArray projectedLines_;
+    QJsonArray projectedLines_, supportPoints_;
     QJsonArray constructionDraftLineIds_;
     int rightMousePressCount_ = 0;
     int contextMenuEventCount_ = 0;

@@ -16,6 +16,7 @@ public:
     static QJsonObject newFeature(const QString& ownerId, const QString& plane,
         const QString& name = "Sketch");
     static QJsonObject newSupportedFeature(const QString& ownerId, const QJsonObject& support, const QString& name = "Sketch", const QJsonArray& supportEdges = {});
+    static QString curveCenterPointId(const QString& sketchId, const QJsonObject& source);
     static QString projectionPointId(const QString& projectionId, bool end);
     static QJsonObject expandedProjectionFeature(const QJsonObject& feature, const QJsonObject& projectionContext);
     static QJsonObject findFeature(const QJsonObject& authored, const QString& sketchId);
@@ -49,7 +50,7 @@ public:
     // Presentation intent in canonical sketch millimeters; never changes the measurement.
     static SolveResult updateAnnotation(const QJsonObject& draft, const QJsonObject& arguments, const QJsonObject& projectionContext = {});
     static SolveResult movePoint(const QJsonObject& draft, const QJsonObject& arguments, const QJsonObject& projectionContext = {});
-    static QString validateParameters(const QJsonObject& parameters, QSet<QString>& authoredIds);
+    static QString validateParameters(const QJsonObject& parameters, QSet<QString>& authoredIds, const QSet<QString>& derivedPointIds = {});
     static QJsonObject frame(const QString& plane);
     static QJsonObject evaluationFrame(const QJsonObject& parameters, const QJsonObject& resolvedFrame = {});
     static EvaluatedSketch evaluateFeature(const QJsonObject& feature, const QJsonObject& resolvedFrame = {}, const QJsonObject& projectionContext = {});

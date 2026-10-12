@@ -485,7 +485,8 @@ void ReferenceView::showSketchDraft(const EvaluatedSketch& sketch) {
     if(draftSketchId_!=sketch.featureId && sketchModels_.contains(draftSketchId_))context_->Display(sketchModels_.value(draftSketchId_),false);
     if(draftSketchId_!=sketch.featureId && constructionSketchModels_.contains(draftSketchId_))context_->Display(constructionSketchModels_.value(draftSketchId_),false);
     draftSketchId_=sketch.featureId;sketchDraft_.Nullify();sketchConstructionDraft_.Nullify();projectedDraft_.Nullify();
-    projectedLines_=sketch.summary.value("projectedLines").toArray();constructionDraftLineIds_={};
+    projectedLines_=sketch.summary.value("projectedLines").toArray();
+    supportPoints_=sketch.summary.value("availableSupportPoints").toArray();constructionDraftLineIds_={};
     if(sketchModels_.contains(draftSketchId_))context_->Erase(sketchModels_.value(draftSketchId_),false);
     if(constructionSketchModels_.contains(draftSketchId_))context_->Erase(constructionSketchModels_.value(draftSketchId_),false);
     const auto strokes=splitSketchStrokes(sketch);
@@ -533,7 +534,7 @@ void ReferenceView::clearSketchDraft() {
         context_->UpdateCurrentViewer();
     }
     profileModels_.clear();draftProfiles_.clear();
-    sketchDraft_.Nullify();sketchConstructionDraft_.Nullify();projectedDraft_.Nullify();projectedLines_={};constructionDraftLineIds_={};draftSketchId_.clear();clearSketchCursor();applyEditDisplay();
+    sketchDraft_.Nullify();sketchConstructionDraft_.Nullify();projectedDraft_.Nullify();projectedLines_={};supportPoints_={};constructionDraftLineIds_={};draftSketchId_.clear();clearSketchCursor();applyEditDisplay();
 }
 QJsonObject ReferenceView::pickSketch(const QJsonObject& feature,double x,double y,const QString& filter) const {
     if(view_.IsNull() || x<0 || y<0 || x>=width() || y>=height())return {};
@@ -559,6 +560,16 @@ QJsonObject ReferenceView::pickSketch(const QJsonObject& feature,double x,double
                 best=distance;picked=id;
                 pickedProjectedPoint={{"projectionId",line["id"]},{"source",line["source"]},{"endpoint",end ? "end" : "start"}};
             }
+        }
+    }
+    if(filter!="entity")for(const auto& value:supportPoints_) {
+        const auto point=value.toObject();const auto id=point["id"].toString();
+        const auto projection=projectSketchPoint(point["uMm"].toDouble(),point["vMm"].toDouble(),plane);
+        const double distance=std::hypot(projection["x"].toDouble()-x,projection["y"].toDouble()-y);
+        if(distance<best-1e-6 || (picked.isEmpty() && distance<=best)
+            || (!pickedProjectedPoint.isEmpty() && std::abs(distance-best)<=1e-6 && id<picked)) {
+            best=distance;picked=id;
+            pickedProjectedPoint={{"source",point["source"]},{"supportPoint",true},{"retained",point["retained"]}};
         }
     }
     if(!picked.isEmpty()){
@@ -805,6 +816,15 @@ void ReferenceView::decorateSketch(const QJsonObject& feature,const QJsonObject&
             marker->SetZLayer(Graphic3d_ZLayerId_Topmost);context_->Display(marker,0,-1,false);context_->Deactivate(marker);sketchDecorations_.push_back(marker);
         }
     }
+    for(const auto& value:supportPoints_) {
+        const auto point=value.toObject();const bool selected=selection["pointIds"].toArray().contains(point["id"]);
+        const bool retained=point.value("retained").toBool();
+        const auto color=Quantity_Color(selected ? 0.84 : retained ? 0.66 : 0.55,
+            selected ? 0.44 : retained ? 0.31 : 0.27,selected ? 0.98 : retained ? 0.85 : 0.70,Quantity_TOC_sRGB);
+        Handle(AIS_Point) marker=new AIS_Point(new Geom_CartesianPoint(sketchWorld(plane,point["uMm"].toDouble(),point["vMm"].toDouble())));
+        marker->Attributes()->SetPointAspect(new Prs3d_PointAspect(Aspect_TOM_PLUS,color,(selected ? 7.0 : 5.0)*devicePixelRatioF()));
+        marker->SetZLayer(Graphic3d_ZLayerId_Topmost);context_->Display(marker,0,-1,false);context_->Deactivate(marker);sketchDecorations_.push_back(marker);
+    }
     for(const auto& entry:parameters["entities"].toArray()) {
         const auto entity=entry.toObject();if(!selection["entityIds"].toArray().contains(entity["id"]))continue;
         const auto edge=SketchGeometry::analyticEdge(parameters,entity,sketchFrame_);
@@ -840,6 +860,10 @@ void ReferenceView::decorateSketch(const QJsonObject& feature,const QJsonObject&
         points[start]={{"id",start},{"uMm",line["u1Mm"]},{"vMm",line["v1Mm"]}};
         points[end]={{"id",end},{"uMm",line["u2Mm"]},{"vMm",line["v2Mm"]}};
         entities[line["id"].toString()]={{"id",line["id"]},{"type","line"},{"startPointId",start},{"endPointId",end}};
+    }
+    for(const auto& value:supportPoints_) {
+        const auto point=value.toObject();
+        if(point.value("retained").toBool())points[point["id"].toString()]=point;
     }
     QMap<QString,int> badgeSlots;
     for(const auto& entry:parameters["constraints"].toArray()) {
@@ -934,7 +958,7 @@ void ReferenceView::decorateSketch(const QJsonObject& feature,const QJsonObject&
     }
     QMap<QString,QJsonObject> measurements;
     for(const auto& entry:diagnostics["dimensionValues"].toArray()){const auto value=entry.toObject();measurements[value["id"].toString()]=value;}
-    const auto layoutFeature=SketchGeometry::expandedProjectionFeature(feature,{{"lines",projectedLines_}});
+    const auto layoutFeature=SketchGeometry::expandedProjectionFeature(feature,{{"lines",projectedLines_},{"points",supportPoints_}});
     auto dimensions=parameters.value("dimensions").toArray();
     if(!pending.isEmpty() && !pending.contains("dimensionId")){auto preview=pending;preview["id"]="pending";dimensions.append(preview);}
     for(const auto& entry:dimensions) {
@@ -1070,6 +1094,8 @@ void ReferenceView::showSketchSnap(const QString& plane,const QJsonObject& snap)
         segment(-1,-1,1,-1);segment(1,-1,1,1);segment(1,1,-1,1);segment(-1,1,-1,-1);
     } else if(snap.value("target").toObject().value("kind")=="midpoint"){
         segment(-1,0.7,1,0.7);segment(1,0.7,0,-1);segment(0,-1,-1,0.7);
+    } else if(snap.value("supportPoint").toBool()){
+        segment(-1,0,1,0);segment(0,-1,0,1);
     } else {
         segment(0,-1,1,0);segment(1,0,0,1);segment(0,1,-1,0);segment(-1,0,0,-1);
         if(snap.value("target").toObject().value("kind")=="origin"){
@@ -1077,7 +1103,9 @@ void ReferenceView::showSketchSnap(const QString& plane,const QJsonObject& snap)
         }
     }
     sketchSnapCue_=sketchPresentation(compound);
-    sketchSnapCue_->SetColor(status=="ambiguous" ? Quantity_Color(0.95,0.53,0.10,Quantity_TOC_RGB) : Quantity_Color(0.08,0.55,0.84,Quantity_TOC_RGB));
+    sketchSnapCue_->SetColor(status=="ambiguous" ? Quantity_Color(0.95,0.53,0.10,Quantity_TOC_RGB)
+        : snap.value("supportPoint").toBool() ? Quantity_Color(0.73,0.34,0.91,Quantity_TOC_sRGB)
+        : Quantity_Color(0.08,0.55,0.84,Quantity_TOC_RGB));
     sketchSnapCue_->SetWidth(2*devicePixelRatioF());sketchSnapCue_->SetZLayer(Graphic3d_ZLayerId_Topmost);
     context_->Display(sketchSnapCue_,AIS_WireFrame,-1,false);context_->Deactivate(sketchSnapCue_);context_->UpdateCurrentViewer();
 }
@@ -1291,6 +1319,11 @@ QJsonObject ReferenceView::diagnostics() const {
     result.insert("projectedPointIds",projectedPointIds);
     result.insert("selectedProjectedPointIds",selectedProjectedPointIds);
     result.insert("projectedEndpoints",projectedEndpoints);
+    result.insert("availableSupportPoints",supportPoints_);
+    QJsonArray selectedSupportPointIds;
+    for(const auto& value:supportPoints_)if(decorationSelection_.value("pointIds").toArray().contains(value.toObject().value("id")))
+        selectedSupportPointIds.append(value.toObject().value("id"));
+    result.insert("selectedSupportPointIds",selectedSupportPointIds);
     result.insert("constructionSketches",constructionSketchModels_.size());
     result.insert("rightMousePressCount",rightMousePressCount_);
     result.insert("contextMenuEventCount",contextMenuEventCount_);
@@ -1310,6 +1343,7 @@ QJsonObject ReferenceView::diagnostics() const {
         (snapCue.value("target").toObject().value("kind")=="filletCorner" ? "fillet-corner-square" :
          snapCue.value("target").toObject().value("kind")=="tangent" ? "tangent-square" :
          snapCue.value("target").toObject().value("kind")=="midpoint" ? "midpoint-triangle" :
+         snapCue.value("supportPoint").toBool() ? "support-center-cross" :
          snapCue.value("target").toObject().value("kind")=="origin" ? "origin-diamond" : "endpoint-diamond") : "none";
     result.insert("sketchSnapCue",snapCue);
     result.insert("sketchConstraintGlyphs",constraintGlyphs_);
