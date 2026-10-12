@@ -773,6 +773,7 @@ QJsonObject ReferenceView::curveDimensionLayout(const QJsonObject& feature,const
     return result;
 }
 QJsonObject ReferenceView::pickAnnotation(double x,double y) const {
+    if(!showDimensions_)return {};
     for(auto i=annotationLayouts_.size()-1;i>=0;--i) {
         const auto layout=annotationLayouts_[i].toObject();if(layout.value("dimensionId")=="pending")continue;
         const auto label=layout.value("label").toObject();const double angle=label.value("angleDegrees").toDouble()*std::acos(-1.0)/180;
@@ -782,6 +783,27 @@ QJsonObject ReferenceView::pickAnnotation(double x,double y) const {
             return {{"kind","dimension"},{"dimensionId",layout.value("dimensionId")},{"part","label"},{"annotation",layout.value("annotation")}};
     }
     return {};
+}
+QJsonObject ReferenceView::pickConstraint(double x,double y) const {
+    if(!showConstraints_ || sketchPlane_.isEmpty())return {};
+    QJsonObject best;double bestDistance=std::numeric_limits<double>::infinity();
+    for(const auto& value:constraintGlyphs_) {
+        const auto glyph=value.toObject(),bounds=glyph.value("bounds").toObject();
+        const double left=bounds.value("x").toDouble(),top=bounds.value("y").toDouble();
+        const double width=bounds.value("width").toDouble(),height=bounds.value("height").toDouble();
+        if(x<left || y<top || x>left+width || y>top+height)continue;
+        const double distance=std::hypot(x-left-width/2,y-top-height/2);
+        if(distance>=bestDistance)continue;
+        bestDistance=distance;
+        best={{"kind","constraint"},{"constraintId",glyph.value("constraintId")},
+            {"entityIds",glyph.value("entityIds")},{"pointIds",glyph.value("pointIds")},
+            {"targets",QJsonObject{{"entityIds",glyph.value("entityIds")},{"pointIds",glyph.value("pointIds")}}},
+            {"bounds",bounds},{"anchorEntityId",glyph.value("anchorEntityId")}};
+    }
+    return best;
+}
+void ReferenceView::setSketchAnnotationVisibility(bool showConstraints,bool showDimensions) {
+    showConstraints_=showConstraints;showDimensions_=showDimensions;
 }
 void ReferenceView::decorateSketch(const QJsonObject& feature,const QJsonObject& selection,const QJsonObject& diagnostics,const QString& units,const QJsonObject& pending) {
     decorationFeature_=feature;decorationSelection_=selection;decorationDiagnostics_=diagnostics;decorationUnits_=units;decorationPending_=pending;
@@ -874,9 +896,43 @@ void ReferenceView::decorateSketch(const QJsonObject& feature,const QJsonObject&
         const auto point=value.toObject();
         if(point.value("retained").toBool())points[point["id"].toString()]=point;
     }
+    QSet<QString> highlightedRelations;
+    auto highlightRelation=[&](const QJsonObject& relation,bool selected,bool hovered) {
+        if((!selected && !hovered) || highlightedRelations.contains(relation["id"].toString()))return;
+        highlightedRelations.insert(relation["id"].toString());
+        const Quantity_Color color=selected ? Quantity_Color(0.08,0.43,0.91,Quantity_TOC_sRGB)
+            : Quantity_Color(0.96,0.59,0.09,Quantity_TOC_sRGB);
+        QSet<QString> highlightedEntities;
+        for(const auto& idValue:relation["entityIds"].toArray()) {
+            const auto id=idValue.toString();if(highlightedEntities.contains(id))continue;highlightedEntities.insert(id);
+            TopoDS_Shape edge;
+            if(projectedIds.contains(id)) {
+                for(const auto& value:projectedLines_)if(value.toObject()["id"]==id) {
+                    const auto line=value.toObject();
+                    const auto a=sketchWorld(plane,line["u1Mm"].toDouble(),line["v1Mm"].toDouble());
+                    const auto b=sketchWorld(plane,line["u2Mm"].toDouble(),line["v2Mm"].toDouble());
+                    if(a.Distance(b)>1e-9)edge=BRepBuilderAPI_MakeEdge(a,b).Edge();
+                    break;
+                }
+            } else if(entities.contains(id))edge=SketchGeometry::analyticEdge(parameters,entities.value(id),sketchFrame_);
+            if(edge.IsNull())continue;
+            const auto overlay=sketchPresentation(edge);overlay->SetColor(color);overlay->SetWidth(3*devicePixelRatioF());
+            overlay->SetZLayer(Graphic3d_ZLayerId_Topmost);
+            context_->Display(overlay,AIS_WireFrame,-1,false);context_->Deactivate(overlay);sketchDecorations_.push_back(overlay);
+        }
+        for(const auto& idValue:relation["pointIds"].toArray()) {
+            const auto point=points.value(idValue.toString());if(point.isEmpty())continue;
+            Handle(AIS_Point) marker=new AIS_Point(new Geom_CartesianPoint(sketchWorld(plane,point["uMm"].toDouble(),point["vMm"].toDouble())));
+            marker->Attributes()->SetPointAspect(new Prs3d_PointAspect(Aspect_TOM_O_POINT,color,4*devicePixelRatioF()));
+            marker->SetZLayer(Graphic3d_ZLayerId_Topmost);
+            context_->Display(marker,0,-1,false);context_->Deactivate(marker);sketchDecorations_.push_back(marker);
+        }
+    };
     QMap<QString,int> badgeSlots;
-    for(const auto& entry:parameters["constraints"].toArray()) {
+    if(showConstraints_)for(const auto& entry:parameters["constraints"].toArray()) {
         const auto relation=entry.toObject();const auto kind=relation["type"].toString();
+        const bool selectedBadge=selection["constraintIds"].toArray().contains(relation["id"]);
+        const bool hoveredBadge=selection.value("hoveredConstraintId")==relation.value("id");
         if(kind=="tangent" || kind=="arcTangent") {
             const auto ids=relation["entityIds"].toArray();if(ids.size()!=2)continue;
             const auto circle=entities.value(ids[0].toString()),line=entities.value(ids[1].toString());
@@ -908,8 +964,12 @@ void ReferenceView::decorateSketch(const QJsonObject& feature,const QJsonObject&
             TopoDS_Compound strokes;BRep_Builder builder;builder.MakeCompound(strokes);
             auto stroke=[&](double x1,double y1,double x2,double y2){builder.Add(strokes,BRepBuilderAPI_MakeEdge(sketchWorld(plane,u+x1*size,v+y1*size),sketchWorld(plane,u+x2*size,v+y2*size)).Edge());};
             stroke(-4,-4,4,-4);stroke(4,-4,4,4);stroke(4,4,-4,4);stroke(-4,4,-4,-4);
-            const bool selected=selection["entityIds"].toArray().contains(ids[0]) || selection["entityIds"].toArray().contains(ids[1]);
-            auto badge=sketchPresentation(strokes);badge->SetColor(selected ? Quantity_Color(0.98,0.43,0.08,Quantity_TOC_RGB) : Quantity_Color(0.36,0.39,0.42,Quantity_TOC_sRGB));badge->SetWidth(2*devicePixelRatioF());badge->SetZLayer(Graphic3d_ZLayerId_Topmost);
+            const bool selectedGeometry=selection["entityIds"].toArray().contains(ids[0]) || selection["entityIds"].toArray().contains(ids[1]);
+            highlightRelation(relation,selectedBadge,hoveredBadge);
+            auto badge=sketchPresentation(strokes);badge->SetColor(selectedBadge ? Quantity_Color(0.08,0.43,0.91,Quantity_TOC_sRGB)
+                : hoveredBadge ? Quantity_Color(0.96,0.59,0.09,Quantity_TOC_sRGB)
+                : selectedGeometry ? Quantity_Color(0.98,0.43,0.08,Quantity_TOC_RGB) : Quantity_Color(0.36,0.39,0.42,Quantity_TOC_sRGB));
+            badge->SetWidth((selectedBadge ? 3.5 : hoveredBadge ? 3.0 : 2.0)*devicePixelRatioF());badge->SetZLayer(Graphic3d_ZLayerId_Topmost);
             context_->Display(badge,AIS_WireFrame,-1,false);context_->Deactivate(badge);sketchDecorations_.push_back(badge);
             double left=1e100,top=1e100,right=-1e100,bottom=-1e100;
             for(const double dx:{-6.0,6.0})for(const double dy:{-6.0,6.0}) {
@@ -918,7 +978,7 @@ void ReferenceView::decorateSketch(const QJsonObject& feature,const QJsonObject&
                 top=std::min(top,corner["y"].toDouble());bottom=std::max(bottom,corner["y"].toDouble());
             }
             constraintGlyphs_.append(QJsonObject{{"constraintId",relation["id"]},{"entityIds",ids},{"pointIds",relation["pointIds"]},{"anchorEntityId",ids[1]},
-                {"kind",kind},{"selected",selected},{"contactMm",QJsonObject{{"uMm",contact.x()},{"vMm",contact.y()}}},
+                {"kind",kind},{"selected",selectedBadge},{"hovered",hoveredBadge},{"contactMm",QJsonObject{{"uMm",contact.x()},{"vMm",contact.y()}}},
                 {"anchorMm",QJsonObject{{"uMm",u},{"vMm",v}}},{"bounds",QJsonObject{{"x",left},{"y",top},
                     {"width",right-left},{"height",bottom-top}}},
                 {"viewportLocal",true},{"units","logicalPixels"}});
@@ -953,16 +1013,21 @@ void ReferenceView::decorateSketch(const QJsonObject& feature,const QJsonObject&
             else if(kind=="vertical")stroke(0,-5,0,5);
             else if(kind=="perpendicular"){stroke(-4,4,-4,-4);stroke(-4,-4,4,-4);}
             else {stroke(-4,-4,0,4);stroke(0,-4,4,4);}
-            const bool selected=selection["entityIds"].toArray().contains(target) ||
+            const bool selectedGeometry=selection["entityIds"].toArray().contains(target) ||
                 (kind=="midpoint" && selection["pointIds"].toArray().contains(relation["pointIds"].toArray().at(0)));
-            auto badge=sketchPresentation(strokes);badge->SetColor(projectedIds.contains(target.toString()) ? Quantity_Color(0.73,0.34,0.91,Quantity_TOC_sRGB)
-                : selected ? Quantity_Color(0.98,0.43,0.08,Quantity_TOC_RGB) : Quantity_Color(0.36,0.39,0.42,Quantity_TOC_sRGB));badge->SetWidth(2*devicePixelRatioF());badge->SetZLayer(Graphic3d_ZLayerId_Topmost);
+            highlightRelation(relation,selectedBadge,hoveredBadge);
+            auto badge=sketchPresentation(strokes);badge->SetColor(selectedBadge ? Quantity_Color(0.08,0.43,0.91,Quantity_TOC_sRGB)
+                : hoveredBadge ? Quantity_Color(0.96,0.59,0.09,Quantity_TOC_sRGB)
+                : selectedGeometry ? Quantity_Color(0.98,0.43,0.08,Quantity_TOC_RGB)
+                : projectedIds.contains(target.toString()) ? Quantity_Color(0.73,0.34,0.91,Quantity_TOC_sRGB)
+                : Quantity_Color(0.36,0.39,0.42,Quantity_TOC_sRGB));
+            badge->SetWidth((selectedBadge ? 3.5 : hoveredBadge ? 3.0 : 2.0)*devicePixelRatioF());badge->SetZLayer(Graphic3d_ZLayerId_Topmost);
             context_->Display(badge,AIS_WireFrame,-1,false);context_->Deactivate(badge);sketchDecorations_.push_back(badge);
             double left=1e100,top=1e100,right=-1e100,bottom=-1e100;
             for(const double x:{-6.0,6.0})for(const double y:{-6.0,6.0}) {
                 const auto corner=projectSketchPoint(u+x*size,v+y*size,plane);left=std::min(left,corner["x"].toDouble());right=std::max(right,corner["x"].toDouble());top=std::min(top,corner["y"].toDouble());bottom=std::max(bottom,corner["y"].toDouble());
             }
-            constraintGlyphs_.append(QJsonObject{{"constraintId",relation["id"]},{"pointIds",relation["pointIds"]},{"entityIds",relation["entityIds"]},{"anchorEntityId",target},{"kind",kind},{"selected",selected},{"anchorMm",QJsonObject{{"uMm",u},{"vMm",v}}},{"bounds",QJsonObject{{"x",left},{"y",top},{"width",right-left},{"height",bottom-top}}},{"viewportLocal",true},{"units","logicalPixels"}});
+            constraintGlyphs_.append(QJsonObject{{"constraintId",relation["id"]},{"pointIds",relation["pointIds"]},{"entityIds",relation["entityIds"]},{"anchorEntityId",target},{"kind",kind},{"selected",selectedBadge},{"hovered",hoveredBadge},{"anchorMm",QJsonObject{{"uMm",u},{"vMm",v}}},{"bounds",QJsonObject{{"x",left},{"y",top},{"width",right-left},{"height",bottom-top}}},{"viewportLocal",true},{"units","logicalPixels"}});
         }
     }
     QMap<QString,QJsonObject> measurements;
@@ -970,7 +1035,7 @@ void ReferenceView::decorateSketch(const QJsonObject& feature,const QJsonObject&
     const auto layoutFeature=SketchGeometry::expandedProjectionFeature(feature,{{"lines",projectedLines_},{"points",supportPoints_}});
     auto dimensions=parameters.value("dimensions").toArray();
     if(!pending.isEmpty() && !pending.contains("dimensionId")){auto preview=pending;preview["id"]="pending";dimensions.append(preview);}
-    for(const auto& entry:dimensions) {
+    if(showDimensions_)for(const auto& entry:dimensions) {
         const auto dimension=entry.toObject();const auto measured=measurements.value(dimension.value("id").toString());
         const bool angular=dimension["kind"]=="arcSweep" || dimension["kind"]=="angle";const auto valueKey=angular ? "valueDeg" : "valueMm";
         const double value=dimension.value("id")=="pending" ? pending.value(angular ? "measuredValueDeg" : "measuredValueMm").toDouble() : measured.value(valueKey).toDouble(dimension.value(valueKey).toDouble());
@@ -1499,6 +1564,14 @@ void ReferenceView::mousePressEvent(QMouseEvent* e) {
                 dispatch("sketch.annotationSelect",{{"dimensionId",draggedAnnotation_}});e->accept();return;
             }
         }
+        if(!sketchPlane_.isEmpty() && decorationSelection_.value("tool")=="select") {
+            const auto badge=pickConstraint(e->position().x(),e->position().y());
+            if(!badge.isEmpty()) {
+                dispatch("sketch.constraintSelect",{{"constraintId",badge.value("constraintId")},
+                    {"additive",e->modifiers().testFlag(Qt::ShiftModifier)}});
+                e->accept();return;
+            }
+        }
         QJsonObject args{{"x",e->position().x()},{"y",e->position().y()}};
         if(!sketchPlane_.isEmpty())args["additive"]=e->modifiers().testFlag(Qt::ShiftModifier);
         else {
@@ -1519,7 +1592,15 @@ void ReferenceView::mouseMoveEvent(QMouseEvent* e) {
         if(QLineF(annotationPress_,e->position()).length()>3)annotationDragged_=true;
         if(annotationDragged_) {const auto p=sketchPoint(std::clamp(e->position().x(),0.0,double(width()-1)),std::clamp(e->position().y(),0.0,double(height()-1)),sketchPlane_);dispatch("sketch.annotationMove",{{"dimensionId",draggedAnnotation_},{"uMm",p.value("uMm")},{"vMm",p.value("vMm")},{"gestureId",annotationGestureId_}});}
         e->accept();
-    } else if(!sketchPlane_.isEmpty()) {dispatch("sketch.pointerMove",{{"x",e->position().x()},{"y",e->position().y()}});e->accept();}
+    } else if(!sketchPlane_.isEmpty()) {
+        if(decorationSelection_.value("tool")=="select") {
+            const auto badge=pickConstraint(e->position().x(),e->position().y());
+            const auto id=badge.value("constraintId").toString();
+            if(id!=decorationSelection_.value("hoveredConstraintId").toString())
+                dispatch("sketch.constraintHover",{{"constraintId",id}});
+        }
+        dispatch("sketch.pointerMove",{{"x",e->position().x()},{"y",e->position().y()}});e->accept();
+    }
     else {
         hoverSupportFace(pickSupportFace(e->position().x(),e->position().y(),documentBodies_));
         QWidget::mouseMoveEvent(e);
@@ -1551,6 +1632,19 @@ void ReferenceView::contextMenuEvent(QContextMenuEvent* e) {
     lastContextMenu_=QJsonObject{{"reason",static_cast<int>(e->reason())},{"sketchActive",sketchActive},
         {"selectTool",selectTool},{"selectedEntities",selectedEntities},
         {"x",e->pos().x()},{"y",e->pos().y()}};
+    if(sketchActive && selectTool && showConstraints_) {
+        const auto badge=pickConstraint(e->pos().x(),e->pos().y());
+        const auto selected=decorationSelection_.value("constraintIds").toArray();
+        if(!badge.isEmpty() || !selected.isEmpty()) {
+            ++contextMenuShownCount_;
+            QMenu menu(this);auto* remove=menu.addAction("Delete Constraint");
+            lastContextMenu_["constraintId"]=badge.value("constraintId");lastContextMenu_["phase"]="open";
+            const auto action=menu.exec(e->globalPos());
+            lastContextMenu_["phase"]="closed";lastContextMenu_["result"]=action==remove ? "selected" : "cancelled";
+            if(action==remove)dispatch("sketch.deleteSelection",badge.isEmpty() ? QJsonObject{} : QJsonObject{{"constraintIds",QJsonArray{badge.value("constraintId")}}});
+            e->accept();return;
+        }
+    }
     if(sketchActive && selectTool && selectedEntities>0) {
         ++contextMenuShownCount_;
         QMenu menu(this);auto* toggle=menu.addAction("Normal/Construction  X");

@@ -47,6 +47,8 @@ public:
     QJsonObject dimensionLayout(const QJsonObject& feature, const QJsonObject& dimension,
         double valueMm, const QString& units) const;
     QJsonObject pickAnnotation(double x, double y) const;
+    QJsonObject pickConstraint(double x, double y) const;
+    void setSketchAnnotationVisibility(bool showConstraints, bool showDimensions);
     QJsonArray annotations() const { return annotationLayouts_; }
     void setSketchPlane(const QString& plane, const QJsonObject& resolvedFrame = {});
     void lookAtSketch(const QString& plane, const QJsonObject& resolvedFrame = {});
@@ -130,6 +132,8 @@ private:
     std::vector<Handle(AIS_InteractiveObject)> sketchDecorations_;
     QJsonArray annotationLayouts_;
     QJsonArray constraintGlyphs_;
+    bool showConstraints_ = true;
+    bool showDimensions_ = true;
     std::vector<EvaluatedProfile> draftProfiles_;
     QMap<QString,Handle(AIS_Shape)> profileModels_;
     QJsonObject decorationFeature_, decorationSelection_, decorationDiagnostics_, decorationPending_;
