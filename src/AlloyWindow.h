@@ -78,7 +78,7 @@ private:
     QJsonObject primitiveCandidate(const QString&, const QJsonObject&) const;
     QJsonObject beginSketch(const QString& plane, const QString& name, const QString& sketchId = {});
     QJsonObject appendSketchEntity(const QString& tool, const QJsonObject& inputs);
-    QJsonObject resolveSketchSnap(double x, double y, const QString& plane) const;
+    QJsonObject resolveSketchSnap(double x, double y, const QString& plane, bool midpointOnly = false) const;
     QJsonObject appendSketchCurve(const QString& tool, const QJsonObject& inputs);
     QJsonObject sketchCurveGesture(const QJsonObject& point, bool commit);
     double sketchDimensionMeasure(const QJsonObject& targets, const QString& kind) const;

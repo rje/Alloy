@@ -726,3 +726,15 @@ converted the selected API-seeded line (`context-menu-sequence.json`). No behavi
 fix needed. Lightweight viewport diagnostics now expose right/contextmenu counts,
 last guard state and popup lifetime for future native automation. Final diagnostic build passed; no app remains active. NativeX + menu conversion + accessibleconstraint
 activation accepted as bounded checks; exact two-edgeShift tutorial step remains.
+
+## Persistent circle midpoint checkpoint (2026-10-12)
+
+Core/UI now retain circle-center midpoint relations to stable normal/construction
+line IDs. Triangle cue during firstcenter placement, atomic freshcenter/circle/
+relation at circumference click; radiusfree. Build and targetedcoretest passed,
+realapp sketch-midpoint ledger passed drivingparentchangescenter, conversion,
+history/storage. Native C/center/circumference/Esc on API-openedA1leftend passed:
+center(0,50), realrelation, DOF1. See docs/validation/sketch-midpoint.md. Astra source
+and capture review accepted the bounded circle-center slice. No appactive. Next tangentcircle
+inference and mixedregion profiles remain distinct CP03 blockers. ExternalLuna
+research is indexed in circles-arcs-dimensions; knowledgevalidate/build passed.

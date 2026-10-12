@@ -671,11 +671,15 @@ void ReferenceView::decorateSketch(const QJsonObject& feature,const QJsonObject&
     QMap<QString,int> badgeSlots;
     for(const auto& entry:parameters["constraints"].toArray()) {
         const auto relation=entry.toObject();const auto kind=relation["type"].toString();
-        if(kind!="equal" && kind!="horizontal" && kind!="vertical" && kind!="perpendicular" && kind!="parallel")continue;
+        if(kind!="equal" && kind!="horizontal" && kind!="vertical" && kind!="perpendicular" && kind!="parallel" && kind!="midpoint")continue;
         for(const auto& target:relation["entityIds"].toArray()) {
             const auto entity=entities.value(target.toString());if(entity.isEmpty())continue;
             double u,v;
-            if(entity["type"]=="line") {
+            if(kind=="midpoint") {
+                const auto pointId=relation["pointIds"].toArray().at(0).toString();
+                const auto point=points.value(pointId);if(entity["type"]!="line" || point.isEmpty())continue;
+                u=point["uMm"].toDouble();v=point["vMm"].toDouble();
+            } else if(entity["type"]=="line") {
                 const auto a=points.value(entity["startPointId"].toString()),b=points.value(entity["endPointId"].toString());
                 u=(a["uMm"].toDouble()+b["uMm"].toDouble())/2;v=(a["vMm"].toDouble()+b["vMm"].toDouble())/2;
             } else {
@@ -690,19 +694,21 @@ void ReferenceView::decorateSketch(const QJsonObject& feature,const QJsonObject&
             const double size=100/pixels;v+=(10+15*badgeSlots[target.toString()]++)*size;
             TopoDS_Compound strokes;BRep_Builder builder;builder.MakeCompound(strokes);
             auto stroke=[&](double x1,double y1,double x2,double y2){builder.Add(strokes,BRepBuilderAPI_MakeEdge(sketchWorld(plane,u+x1*size,v+y1*size),sketchWorld(plane,u+x2*size,v+y2*size)).Edge());};
-            if(kind=="equal"){stroke(-5,-2,5,-2);stroke(-5,2,5,2);}
+            if(kind=="midpoint"){stroke(-5,4,5,4);stroke(5,4,0,-5);stroke(0,-5,-5,4);}
+            else if(kind=="equal"){stroke(-5,-2,5,-2);stroke(-5,2,5,2);}
             else if(kind=="horizontal")stroke(-5,0,5,0);
             else if(kind=="vertical")stroke(0,-5,0,5);
             else if(kind=="perpendicular"){stroke(-4,4,-4,-4);stroke(-4,-4,4,-4);}
             else {stroke(-4,-4,0,4);stroke(0,-4,4,4);}
-            const bool selected=selection["entityIds"].toArray().contains(target);
+            const bool selected=selection["entityIds"].toArray().contains(target) ||
+                (kind=="midpoint" && selection["pointIds"].toArray().contains(relation["pointIds"].toArray().at(0)));
             auto badge=sketchPresentation(strokes);badge->SetColor(selected ? Quantity_Color(0.98,0.43,0.08,Quantity_TOC_RGB) : Quantity_Color(0.36,0.39,0.42,Quantity_TOC_sRGB));badge->SetWidth(2*devicePixelRatioF());badge->SetZLayer(Graphic3d_ZLayerId_Topmost);
             context_->Display(badge,AIS_WireFrame,-1,false);context_->Deactivate(badge);sketchDecorations_.push_back(badge);
             double left=1e100,top=1e100,right=-1e100,bottom=-1e100;
             for(const double x:{-6.0,6.0})for(const double y:{-6.0,6.0}) {
                 const auto corner=projectSketchPoint(u+x*size,v+y*size,plane);left=std::min(left,corner["x"].toDouble());right=std::max(right,corner["x"].toDouble());top=std::min(top,corner["y"].toDouble());bottom=std::max(bottom,corner["y"].toDouble());
             }
-            constraintGlyphs_.append(QJsonObject{{"constraintId",relation["id"]},{"entityIds",relation["entityIds"]},{"anchorEntityId",target},{"kind",kind},{"selected",selected},{"anchorMm",QJsonObject{{"uMm",u},{"vMm",v}}},{"bounds",QJsonObject{{"x",left},{"y",top},{"width",right-left},{"height",bottom-top}}},{"viewportLocal",true},{"units","logicalPixels"}});
+            constraintGlyphs_.append(QJsonObject{{"constraintId",relation["id"]},{"pointIds",relation["pointIds"]},{"entityIds",relation["entityIds"]},{"anchorEntityId",target},{"kind",kind},{"selected",selected},{"anchorMm",QJsonObject{{"uMm",u},{"vMm",v}}},{"bounds",QJsonObject{{"x",left},{"y",top},{"width",right-left},{"height",bottom-top}}},{"viewportLocal",true},{"units","logicalPixels"}});
         }
     }
     QMap<QString,QJsonObject> measurements;
@@ -809,6 +815,8 @@ void ReferenceView::showSketchSnap(const QString& plane,const QJsonObject& snap)
     auto segment=[&](double x1,double y1,double x2,double y2){builder.Add(compound,BRepBuilderAPI_MakeEdge(sketchWorld(plane,u+x1*size,v+y1*size),sketchWorld(plane,u+x2*size,v+y2*size)).Edge());};
     if(status=="ambiguous"){
         segment(-1,-1,1,1);segment(-1,1,1,-1);
+    } else if(snap.value("target").toObject().value("kind")=="midpoint"){
+        segment(-1,0.7,1,0.7);segment(1,0.7,0,-1);segment(0,-1,-1,0.7);
     } else {
         segment(0,-1,1,0);segment(1,0,0,1);segment(0,1,-1,0);segment(-1,0,0,-1);
         if(snap.value("target").toObject().value("kind")=="origin"){
@@ -991,7 +999,9 @@ QJsonObject ReferenceView::diagnostics() const {
     result.insert("sketchDecorations",static_cast<int>(sketchDecorations_.size()));
     result.insert("sketchAnnotations",annotationLayouts_);
     auto snapCue=sketchSnapState_;snapCue["visible"]=!sketchSnapCue_.IsNull();
-    snapCue["marker"]=snapCue.value("status")=="ambiguous" ? "cross" : snapCue.value("status")=="acquired" ? (snapCue.value("target").toObject().value("kind")=="origin" ? "origin-diamond" : "endpoint-diamond") : "none";
+    snapCue["marker"]=snapCue.value("status")=="ambiguous" ? "cross" : snapCue.value("status")=="acquired" ?
+        (snapCue.value("target").toObject().value("kind")=="midpoint" ? "midpoint-triangle" :
+         snapCue.value("target").toObject().value("kind")=="origin" ? "origin-diamond" : "endpoint-diamond") : "none";
     result.insert("sketchSnapCue",snapCue);
     result.insert("sketchConstraintGlyphs",constraintGlyphs_);
     result.insert("sketchConstraintVisibility",QJsonObject{{"visible",!decorationFeature_.isEmpty()},{"editable",false}});

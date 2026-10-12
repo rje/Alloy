@@ -453,3 +453,11 @@ For native-input diagnosis, `app.state.focus` reports the logical focus widget,
 its object name, active-window state and native focus-window relationship. These
 are observations, not proof that an OS key reached the application. In particular,
 Qt may report native child-widget focus through its top-level window.
+
+Circle-center midpoint inference is available through the shared pointer flow:
+`sketch.pointerMove` reports an acquired midpoint target with stable `entityId`;
+first `sketch.placePoint` retains it in `activeSession.firstPoint`; the second
+click atomically authors the circle and `midpoint` point-to-line constraint.
+`viewport.gpu.sketchSnapCue.marker` is `midpoint-triangle`; persistent midpoint
+glyphs include point IDs and target line ID. Hover and first click do not enter
+draft history. Circumference tangent inference remains unavailable.

@@ -544,6 +544,18 @@
       "inputs": [
         "tests/app_harness.py"
       ]
+    },
+    "sketch-midpoint": {
+      "script": "tests/sketch_midpoint_api.py",
+      "fixture": "tests/workflows/fixtures/sketch-midpoint.json",
+      "result": "sketch-midpoint-api.json",
+      "covers": [],
+      "capabilities": [
+        "sketch.persistent_circle_midpoint"
+      ],
+      "inputs": [
+        "tests/app_harness.py"
+      ]
     }
   },
   "gates": {

@@ -37,6 +37,43 @@ QJsonObject pointById(const QJsonObject& f,const QJsonValue& id){
     for(const auto& p:f["parameters"].toObject()["points"].toArray())if(p.toObject()["id"]==id)return p.toObject();
     throw std::runtime_error("Test point reference does not exist");
 }
+void midpointCircle(const QString& owner) {
+    auto line=SketchGeometry::addLine(SketchGeometry::newFeature(owner,"XY"),{{"u1Mm",0},{"v1Mm",0},{"u2Mm",20},{"v2Mm",0}});
+    const QJsonValue lineId=entity(line)["id"], firstId=entity(line)["startPointId"];
+    line=accepted(SketchGeometry::addConstraint(line,{{"type","fixed"},{"pointIds",QJsonArray{firstId}}}));
+    line=accepted(SketchGeometry::addConstraint(line,{{"type","horizontal"},{"entityIds",QJsonArray{lineId}}}));
+    line=accepted(SketchGeometry::addDimension(line,{{"kind","horizontal"},{"entityId",lineId},{"valueMm",20}}));
+    const QJsonValue widthId=lastDimension(line)["id"];
+    line=accepted(SketchGeometry::setConstruction(line,{{"entityIds",QJsonArray{lineId}},{"construction",true}}));
+    const auto circle=accepted(SketchGeometry::addPointerCircle(line,{{"centerUMm",9.9},{"centerVMm",0.1},{"diameterMm",6},
+        {"centerSnapTarget",QJsonObject{{"kind","midpoint"},{"entityId",lineId}}}}));
+    const QJsonValue centerId=entity(circle,1)["centerPointId"];
+    check(centerId!=firstId && centerId!=entity(line)["endPointId"],"Midpoint circle reused a line endpoint identity");
+    const auto relation=circle["parameters"].toObject()["constraints"].toArray().last().toObject();
+    check(relation["type"]=="midpoint" && relation["pointIds"].toArray()==QJsonArray{centerId}
+        && relation["entityIds"].toArray()==QJsonArray{lineId},"Pointer midpoint cue was not retained");
+    check(SketchGeometry::solveDraft(circle).diagnostics["dof"].toInt()==1,"Midpoint froze circle radius or left center unconstrained");
+    auto edited=accepted(SketchGeometry::updateDimension(circle,{{"dimensionId",widthId},{"valueMm",30}}));
+    for(const auto& value:edited["parameters"].toObject()["points"].toArray()) if(value.toObject()["id"]==centerId) {
+        near(value.toObject()["uMm"].toDouble(),15,"Circle center did not follow line midpoint");
+        near(value.toObject()["vMm"].toDouble(),0,"Circle center left construction line");
+    }
+    near(entity(edited,1)["radiusMm"].toDouble(),3,"Midpoint edit changed unconstrained radius");
+    check(edited["parameters"].toObject()["constraints"].toArray().last()==relation,"Midpoint relation identity changed on edit");
+    const auto reopened=QJsonDocument::fromJson(QJsonDocument(edited).toJson()).object();
+    check(accepted(SketchGeometry::solveDraft(reopened))==edited,"Midpoint intent lost on JSON roundtrip");
+    const auto stale=SketchGeometry::addPointerCircle(edited,{{"centerUMm",0},{"centerVMm",0},{"diameterMm",4},
+        {"centerSnapTarget",QJsonObject{{"kind","midpoint"},{"entityId",QUuid::createUuid().toString(QUuid::WithoutBraces)}}}});
+    check(!stale.ok && stale.feature==edited,"Stale midpoint target partially created circle");
+    auto malformed=edited; auto parameters=malformed["parameters"].toObject();
+    auto constraints=parameters["constraints"].toArray(); auto bad=constraints.last().toObject();
+    bad["pointIds"]=QJsonArray{firstId}; constraints[constraints.size()-1]=bad;
+    parameters["constraints"]=constraints; malformed["parameters"]=parameters;
+    check(!SketchGeometry::solveDraft(malformed).ok,"Loaded midpoint accepted a line endpoint as its own midpoint");
+    const auto free=accepted(SketchGeometry::addPointerCircle(line,{{"centerUMm",0},{"centerVMm",0},{"diameterMm",4}}));
+    check(entity(free,1)["centerPointId"]!=firstId,"Unsnapped pointer circle silently shared endpoint identity");
+}
+
 void constructionConversion(const QString& owner) {
     auto rectangle=SketchGeometry::addRectangle(SketchGeometry::newFeature(owner,"XY"),
         {{"u1Mm",0},{"v1Mm",0},{"u2Mm",10},{"v2Mm",6}});
@@ -238,6 +275,7 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
     lineAngularDimensions(owner);
     pointerSnaps(owner);
     constructionConversion(owner);
+    midpointCircle(owner);
     underconstrainedOutlineAngle(owner);
     const auto blank=SketchGeometry::newFeature(owner,"XY");
     auto circle=SketchGeometry::addCircle(blank,{{"centerUMm",0},{"centerVMm",0},{"diameterMm",10}});

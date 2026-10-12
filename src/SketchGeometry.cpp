@@ -387,6 +387,16 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
                 if (constraint.size() != (fixed ? 5 : 3) || constraint.contains("entityIds")
                     || !checkReferences(constraint, "pointIds", fixed ? 1 : 2, pointIds)) return "Invalid point constraint references";
                 if (fixed) { coordinate(constraint, "uMm"); coordinate(constraint, "vMm"); }
+            } else if (type == "midpoint") {
+                if (constraint.size() != 4 || !checkReferences(constraint,"pointIds",1,pointIds)
+                    || !checkReferences(constraint,"entityIds",1,lineIds)) return "Midpoint requires one point and one line";
+                const auto refs = constraint["pointIds"].toArray();
+                for (const auto& entity : parameters["entities"].toArray()) {
+                    const auto line = entity.toObject();
+                    if (line["id"] == constraint["entityIds"].toArray()[0]
+                        && (line["startPointId"] == refs[0] || line["endPointId"] == refs[0]))
+                        return "Midpoint point must be distinct from the line endpoints";
+                }
             } else if (type == "equal") {
                 if (constraint.size() != 3 || !checkReferences(constraint,"entityIds",2,entityIds))
                     return "Equal requires two distinct sketch entities";
@@ -522,6 +532,52 @@ SketchGeometry::SolveResult SketchGeometry::addDimension(const QJsonObject& draf
         const auto result = solveDraft(candidate);
         return result.ok ? result : SolveResult{false, draft, result.diagnostics, result.error};
     } catch (const std::exception& error) { return invalidDraft(draft, QString::fromUtf8(error.what())); }
+}
+
+SketchGeometry::SolveResult SketchGeometry::addPointerCircle(const QJsonObject& draft, const QJsonObject& arguments) {
+    try {
+        validateDraft(draft);
+        checkFields(arguments, {"centerUMm", "centerVMm", "diameterMm", "centerSnapTarget"});
+        double u = coordinate(arguments,"centerUMm"), v = coordinate(arguments,"centerVMm");
+        const double radius = coordinate(arguments,"diameterMm") / 2;
+        if (radius < minimumLength || radius > maximumLength) reject("Circle radius out of supported range");
+        auto parameters = draft["parameters"].toObject();
+        auto points = parameters["points"].toArray(), entities = parameters["entities"].toArray();
+        auto constraints = parameters["constraints"].toArray();
+        QString midpointLine;
+        if (arguments.contains("centerSnapTarget")) {
+            if (!arguments["centerSnapTarget"].isObject()) reject("Circle snap target must be an object");
+            const auto target = arguments["centerSnapTarget"].toObject();
+            checkFields(target, {"kind","entityId"});
+            if (target["kind"] != "midpoint" || !target["entityId"].isString() || !validId(target["entityId"].toString()))
+                reject("Circle center currently supports a line midpoint target");
+            for (const auto& entry : entities) {
+                const auto line = entry.toObject();
+                if (line["id"] != target["entityId"]) continue;
+                if (line["type"] != "line") reject("Midpoint target must be a line");
+                midpointLine = line["id"].toString();
+                QJsonObject first,last;
+                for (const auto& value : points) {
+                    if (value.toObject()["id"] == line["startPointId"]) first = value.toObject();
+                    if (value.toObject()["id"] == line["endPointId"]) last = value.toObject();
+                }
+                u = (first["uMm"].toDouble()+last["uMm"].toDouble())/2;
+                v = (first["vMm"].toDouble()+last["vMm"].toDouble())/2;
+                break;
+            }
+            if (midpointLine.isEmpty()) reject("Circle midpoint target no longer exists");
+        }
+        const auto centerId = newId();
+        points.append(QJsonObject{{"id",centerId},{"uMm",u},{"vMm",v}});
+        entities.append(QJsonObject{{"id",newId()},{"type","circle"},{"centerPointId",centerId},{"radiusMm",radius}});
+        if (!midpointLine.isEmpty()) constraints.append(QJsonObject{{"id",newId()},{"type","midpoint"},
+            {"pointIds",QJsonArray{centerId}},{"entityIds",QJsonArray{midpointLine}}});
+        parameters["points"] = points; parameters["entities"] = entities;
+        if (!midpointLine.isEmpty()) parameters["constraints"] = constraints;
+        auto candidate = draft; candidate["parameters"] = parameters;
+        const auto result = solveDraft(candidate);
+        return result.ok ? result : SolveResult{false,draft,result.diagnostics,result.error};
+    } catch (const std::exception& error) { return invalidDraft(draft,QString::fromUtf8(error.what())); }
 }
 
 SketchGeometry::SolveResult SketchGeometry::setConstruction(const QJsonObject& draft, const QJsonObject& arguments) {

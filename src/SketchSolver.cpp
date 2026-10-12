@@ -166,6 +166,9 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters) {
                 auto& p = point(reference(constraint,"pointIds",0));
                 solver.addConstraintEqual(p.x,constant(number(constraint,"uMm")),t);
                 solver.addConstraintEqual(p.y,constant(number(constraint,"vMm")),t);
+            } else if (type == "midpoint") {
+                auto& target = line(reference(constraint,"entityIds",0));
+                solver.addConstraintP2PSymmetric(target.p1,target.p2,point(reference(constraint,"pointIds",0)),t);
             } else if (type == "horizontal") {
                 solver.addConstraintHorizontal(line(reference(constraint,"entityIds",0)),t);
             } else if (type == "vertical") {
@@ -262,6 +265,11 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters) {
             const auto c=entry.toObject(); const auto type=c.value("type").toString();
             if(type=="coincident") check(separation("linear",point(reference(c,"pointIds",0)),point(reference(c,"pointIds",1))),lengthTolerance);
             else if(type=="fixed") {const auto& p=point(reference(c,"pointIds",0));check(*p.x-number(c,"uMm"),lengthTolerance);check(*p.y-number(c,"vMm"),lengthTolerance);}
+            else if(type=="midpoint") {
+                const auto& p=point(reference(c,"pointIds",0)); const auto& target=line(reference(c,"entityIds",0));
+                check(*p.x-(*target.p1.x+*target.p2.x)/2,lengthTolerance);
+                check(*p.y-(*target.p1.y+*target.p2.y)/2,lengthTolerance);
+            }
             else if(type=="equal") {
                 const auto a = reference(c,"entityIds",0), b = reference(c,"entityIds",1);
                 if (lineMap.contains(a) && lineMap.contains(b))

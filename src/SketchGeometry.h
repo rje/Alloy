@@ -31,6 +31,8 @@ public:
     static SolveResult addPointerEntity(const QJsonObject& draft, const QString& tool,
         const QJsonObject& arguments);
     // Explicit normal/construction conversion retains geometry and relation IDs.
+    // Pointer-only circle creation: a fresh center may retain a line midpoint target.
+    static SolveResult addPointerCircle(const QJsonObject& draft, const QJsonObject& arguments);
     static SolveResult setConstruction(const QJsonObject& draft, const QJsonObject& arguments);
     static SolveResult solveDraft(const QJsonObject& draft);
     static SolveResult addConstraint(const QJsonObject& draft, const QJsonObject& arguments);
