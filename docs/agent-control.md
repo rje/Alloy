@@ -120,16 +120,19 @@ fail without applying the command. Error codes include `invalid_request`,
 | `solid.box` | Required `width`, `depth`, `height`; optional `x`, `y`, `z`, `units`, `name`, `featureId` |
 | `solid.cylinder` | Required `radius`, `height`; same optional placement/unit/name/edit fields |
 | `primitive.box`, `primitive.cylinder` | Open their actual shared dimension dialogs |
-| `solid.extrude` | Required `sketchId`, exclusive `profileId` or distinct `profileIds`, signed `distance`; optional `units` (`mm`/`in`), `name`, existing `featureId`; direct create/edit commit |
+| `solid.extrude` | Required `sketchId`, exclusive `profileId` or distinct `profileIds`, signed `distance`; optional `units` (`mm`/`in`), `name`, existing `featureId`, `operation` (`newBody`/`cut`), one `targetBodyIds` entry for Cut; direct create/edit commit |
 | `solid.pressPullDialog` | Optional `sketchId`, `profileIds`; Modify/Q opens the shared extrusion session before profile selection |
 | `solid.extrudeDialog` | Optional `sketchId`, exclusive `profileId` or `profileIds`; toolbar/E opener for the shared extrusion session |
-| `solid.combine` | Required `targetBodyId`, nonempty distinct `toolBodyIds`, `operation` (`join`/`cut`/`intersect`); optional `keepTools` (default false), `name`, existing `featureId`; direct create/edit commit |
+| `solid.combine` | Required `targetBodyId`, nonempty distinct `toolBodyIds`, `operation` (`join`/`cut`/`intersect`); optional `keepTools` (default false), `name`, existing `featureId`, `operation` (`newBody`/`cut`), one `targetBodyIds` entry for Cut; direct create/edit commit |
 | `solid.combineDialog` | Same fields, all optional; open the shared Combine session, default Join with Keep Tools off |
 | `solid.combineSelectionMode` | `role`: `target` or `tools`; return to input-body display for shared canvas picking |
 | `sketch.create` | Open the docked origin-plane chooser |
 | `sketch.begin` | `plane`: `XY`, `XZ` or `YZ`; optional `name`, `units`; begin an authored draft |
 | `sketch.edit` | `sketchId`: UUID; re-enter a retained sketch |
 | `sketch.line`, `sketch.rectangle` | `x1`, `y1`, `x2`, `y2`; optional `units`, `session`; append stable point/line entities and solve the draft. Rectangles also author four H/V constraints |
+| `sketch.circleDiameterPreview` / `sketch.circleDiameterAccept` | Pending circle center required; `text` or numeric `value`, optional `units`; disposable preview or one atomic circle + driving diameter edit |
+| `sketch.circleDiameterCancel` | Close typed input while retaining the pending center for pointer placement |
+| `solid.extrudeDrag` | Signed `distanceMm`, optional logical `x`/`y` and `phase` (`move`/`end`); same update/preview authority as the native arrow |
 | `sketch.addCircle` | `centerX`, `centerY`, positive `diameter`; optional `units`, `session`; append one analytic circle |
 | `sketch.addArc` | `mode`: `center` requires `centerX`, `centerY`, `radius`, `startAngleDeg`, signed `sweepAngleDeg`; `threePoint` requires `startX`, `startY`, `endX`, `endY`, `throughX`, `throughY`; optional `units`, `session` |
 | `sketch.tool` | `tool`: `select`, `line`, `rectangle`, `circle`, `centerArc`, `threePointArc` or `dimension`; choose the active drawing/selection tool |
@@ -246,8 +249,11 @@ preview; retained IDs alone do not establish valid current geometry.
 
 Canonical extrusion parameters preserve legacy `{sketchId, profileId, distanceMm}`
 or use `{sketchId, profileIds, distanceMm}` with distinct stable IDs. Plural regions
-must come from one earlier sketch and form one connected planar face; they are
-united before one prism. Missing/disjoint/overlapping references reject before
+must come from one earlier sketch. New Body requires one connected planar face;
+those regions are united before one prism. Cut permits disjoint regions, uses
+ephemeral prisms and retains one explicit `targetBodyIds` entry in the existing
+body. It authors no cutter bodies. Editing cannot switch between New Body and
+Cut in this bounded slice. Missing/disjoint/overlapping references reject before
 commit. Body summaries expose `sourceProfileIds` and `sourceAreaMm2`.
 
 Before a distance is entered, ordinary native/API profile picks collect distinct
@@ -530,3 +536,29 @@ ID and source, plus the local Coincident relation, in the same transaction.
 `availableSupportPoints` includes candidates; evaluated `projectedPoints` includes
 retained centers only. These derived points are read-only. Full curve projection
 and direct dimensioning of an unretained center are not implemented.
+
+
+## Inline diameter and five-profile Cut
+
+A circle center followed by typed input uses the shared inline editor with
+`inlineEditor.kind: circleDiameter` and `activeSession.pendingCircleDiameter`.
+Preview does not change authored geometry. Accept creates the circle, owned
+center, applicable snap relation and driving diameter in one draft transaction.
+Escape closes the editor and leaves the center available for pointer placement.
+
+Cut sessions accept `operation: cut` and one `targetBodyIds` entry. Creation may
+discover a single visible intersecting body; ambiguity refuses rather than
+selecting silently. Edits retain captured target identity, including hidden
+targets. Earlier supported-sketch edits resolve the history prefix before that
+sketch, independent of the final Boolean-modified body's available supports.
+
+At zero distance, `previewHandle` can be true while `previewed` is false and OK
+is disabled. An invalid intermediate distance retains the arrow for recovery.
+Successful Cut exposes `cutPreviewToolCount`, `cutPreviewSelectedProfileCount`
+and `extrusionCue` under viewport GPU diagnostics; `lastArrowDrag` records the
+shared command's distance, phase and coordinates. Its `source` is diagnostic
+metadata, not independent proof of physical input: API callers can supply
+coordinates too. Native input evidence is recorded separately.
+
+See [the five-circle Cut receipt](validation/five-circle-cut.md) for qualified
+behavior and remaining tutorial/runtime limits.

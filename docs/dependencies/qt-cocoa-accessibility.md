@@ -36,3 +36,49 @@ equal. Evidence: `build-tutorial/evidence/qt-bundled-launch.log` and
 `qt-bundled-{accepted,undo,redo}.json`. This qualifies the local private bundle
 layout, not portable distribution, signing or other-platform deployment. The
 human testing app and global Qt installation were unchanged.
+
+
+## Item-view cache recurrence and coherent private runtime
+
+A later native second-circle dimension insertion crashed in
+`QAccessibleTable::modelChange` (PID97793, report
+`alloy-2026-10-12-151125.ips`). The table retained IDs whose interfaces had been
+evicted from Qt's global accessibility cache. Both row-change loops asserted
+then dereferenced the missing interface; release builds therefore crashed.
+Table, Tree and List child lookup also returned null for expired cached IDs.
+Earlier Alloy row-retention workarounds do not qualify this general path.
+
+The [local patch proposal](../../tools/dependencies/qt-itemview-cache/itemviews-accessible-cache.patch)
+prunes expired IDs in the two cache rebuild loops and recreates expired children
+in the three view lookups. It is our proposal, not an accepted upstream change.
+Source is public Qt6.11.2 `src/widgets/accessible/itemviews.cpp`, retrieved from
+the pinned archive on2026-10-12. Its copyright and license expression are the
+same Qt Company2016 and Commercial/LGPL3/GPL2/GPL3 alternatives recorded above.
+The standalone regression source is Alloy-authored MIT; the patch modifies Qt
+and retains Qt's applicable licensing.
+
+The [coherent private build recipe](../../tools/dependencies/build-private-qt.sh)
+builds Qtbase libraries and plugins together outside the checkout, with both
+patches, then installs under `../Alloy-dependencies/qt-private-runtime/install`.
+It does not change Homebrew or disable accessibility. Configure Alloy with
+that prefix first, and verify all loaded Qt frameworks/plugins belong to the
+same private build; do not reuse the earlier system-linked Cocoa plugin.
+The recipe retains Widgets, Network, Test and native OpenGL support. SQL and
+PrintSupport are omitted from this local experiment.
+
+The focused regression creates real Table/Tree/List widgets, explicitly evicts
+ordinary child interfaces, re-queries them, then inserts/removes actual model
+rows. It checks recreated names, validity and row counts. Explicit model events
+make this independent of an attached OS accessibility client. It does not
+qualify row/column-header behavior. The unpatched installed Qt6.11.2 fails all
+three recreated-child checks, confirming that the fixture detects the defect.
+The same regression passes all three view cases with the coherent patched
+private runtime (5QtTest results including setup/cleanup, 0failures). Logs are
+`/tmp/alloy-qt-cache-baseline.log` and `/tmp/alloy-qt-cache-private.log`. Native Alloy qualification also passes the formerly crashing second-dimension
+insertion, selected sketch-row Undo/Redo, Finish and selected Browser-row
+Undo/Redo. Accepted/redone draft JSON is exactly equal. Astra independently
+verified `profile-cut/build-cut/evidence/qt-native-*` and the launch log: all
+Qt frameworks and Cocoa/style plugins load from the private installation, and
+Apple M4 hardware acceleration remains active. Some AX row labels still become
+inconsistent after history changes; FND-015 remains open. This is a bounded
+local runtime qualification, not complete accessibility or release acceptance.

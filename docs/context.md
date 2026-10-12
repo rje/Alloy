@@ -953,3 +953,81 @@ profile prisms, one explicit retained target body, signed Distance, native red
 preview/arrow drag. Astra identified a required prefix-history fix for editing
 the earlier supported sketch after Cut; recorded on #154. No new issue count,
 release/tag or CI run.
+
+
+## Five-circle and Cut work in progress (2026-10-12)
+
+In the isolated face-support worktree, native C/center/type50/Return, four
+endpoint/midpoint circle placements and four successive Equal pairs now reach
+five radius25 circles at zero DOF. Finish, diameter50→60, history and exact
+save/reopen pass; Astra independently reviewed the bounded source/state/captures.
+Evidence is build-face/evidence/five-circle-native-constrained.json/.png and
+native-five-equal-circles.alloy. This resumes an existing edited bracket fixture;
+it is not an uninterrupted exact full-tutorial pass. Inline circle source is committed locally as9719c08 and cherry-picked into the
+Cut candidate as7e1b69d; final runtime qualification remains pending.
+
+A separate two-dimension insertion check exposed another Qt accessibility crash:
+QAccessibleTable::modelChange dereferences an expired child interface during
+QComboBox row insertion (report alloy-2026-10-12-151125.ips, PID97793). Earlier
+Alloy row-retention workarounds do not qualify the general path. FND-015 #158
+remains In Progress. A coherent private Qtbase build is underway outside the
+checkout at ../Alloy-dependencies/qt-private-runtime, using pinned6.11.2, the
+previous Cocoa ownership patch and a proposed narrow expired-ID cache fix.
+Installed Qt and the human build-input app remain untouched. No private app is
+currently running. Do not claim this new patch works until regression and actual
+native editing checks pass.
+
+In ../Alloy-worktrees/profile-cut, core81b9cc7 supports five disconnected
+profiles as ephemeral cutters against one retained target, with one Cut feature
+and one valid closed solid. Focused profile_cut checks pass diameter/depth edits,
+prefix evaluation for earlier supported sketches, atomic refusal, history and
+storage. This uses rectangular stock, not the full bracket UI. Sol is finishing
+Cut controls/red previews/arrow dragging; Astra is reviewing independently.
+Root owns integration/builds/apps and the next actual five-hole bracket test.
+No release, tag or CI run has been triggered. Continue the queue after status
+updates; they do not pause implementation.
+
+
+Private Qt runtime now builds and passes the cache regression: unpatched
+Table/Tree/List fail recreation; patched versions pass (5QtTest results,0failed).
+All Qt frameworks/Cocoa/native style loaded exclusively from private install,
+GPU AppleM4 remains active. Native firstØ60/freecenter and secondØ50/origin entry,
+selected-row draftUndo/Redo, Finish and BrowserUndo/Redo pass; Astra accepted
+bounded evidence. AX row-label inconsistencies remain under#158, so no general
+accessibility closure. No globalQt changes.
+
+Integrated profile-cut candidate7e1b69d builds against that runtime; focused
+face_support/profile_cut checks pass. tests/workflows/check_profile_cut.py passes
+actual bracket5toolpreview, one retained validclosedCut solid, earlier supported
+sketchdiameter50→60, Cutdepthedit, exacthistory and reopen. NativeQ/fiveordinary
+profileclicks pass. First arrowdrag found missing coordinate schema bounds;
+Sol fixing that plus stale panel error (75c120b) before native retry. Private
+app intentionally quit for rebuild; human app untouched. Full tutorial gate
+remains open and is not replaced by this supplied-fixture checkpoint.
+
+
+## Native five-hole Cut checkpoint (2026-10-12)
+
+Integrated candidate749a667 includes inline circle entry, retained one-target
+profile Cut, prefix-history support while editing earlier sketches, native
+signed-distance arrow and corrected blue selected-profile/red cutter overlays.
+Native Q, five ordinary region clicks, arrow drag to -200 mm, Cut and OK pass.
+The real bracket is one valid closed solid with five holes. Final API workflow
+passes earlier diameter50→60, Cut depth edit, exact undo/redo and save/reopen.
+Hidden retained-target edit preview/cancel passes. The focused Qt widget modifier
+test passes remove/re-add after distance entry; physical held Cmd-click is not
+verified because the available CUA API does not expose held-modifier clicks.
+
+Astra accepted native geometry/input, final edit-preview visuals and private Qt
+runtime evidence. See validation/five-circle-cut.md and dependency recipe. Full
+TUT-003 and#154 remain open for remaining exact/cumulative coverage, including
+physical platform-modifier evidence. No issue was closed by this bounded slice.
+The task count remains158, with28closed/130open at this checkpoint.
+
+A separate Cut Candidate application is available for human testing in
+../Alloy-worktrees/profile-cut/build-cut/alloy.app, bundleorg.alloycad.CutCandidate.
+It uses the private coherent Qt runtime; preserve it while the user tests. The
+saved native bracket is build-cut/evidence/native-five-hole-bracket.alloy. The
+older build-input app remains untouched. Continue next with the exact illustrated
+tutorial from a clean document, per docs/research/illustrated-bracket-gate.md;
+use another private instance for automation. No release, tag or CI run.

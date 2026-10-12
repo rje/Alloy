@@ -1,0 +1,73 @@
+--- a/src/widgets/accessible/itemviews.cpp
++++ b/src/widgets/accessible/itemviews.cpp
+@@ -589,8 +589,12 @@
+ 
+     const QModelIndex rootIndex = theView->rootIndex();
+     auto id = childToId.constFind(logicalIndex);
+-    if (id != childToId.constEnd())
+-        return QAccessible::accessibleInterface(id.value());
++    if (id != childToId.constEnd()) {
++        if (QAccessibleInterface *iface = QAccessible::accessibleInterface(id.value()))
++            return iface;
++        // The global accessibility cache may evict an interface independently.
++        childToId.remove(logicalIndex);
++    }
+ 
+     int vHeader = verticalHeader() ? 1 : 0;
+     int hHeader = horizontalHeader() ? 1 : 0;
+@@ -667,7 +671,11 @@
+         while (iter != childToId.constEnd()) {
+             QAccessible::Id id = iter.value();
+             QAccessibleInterface *iface = QAccessible::accessibleInterface(id);
+-            Q_ASSERT(iface);
++            if (!iface) {
++                // Drop expired IDs while rebuilding this view's child cache.
++                ++iter;
++                continue;
++            }
+             if (event->modelChangeType() == QAccessibleTableModelChangeEvent::RowsInserted
+                 && iface->role() == QAccessible::RowHeader) {
+                 QAccessibleTableHeaderCell *cell = static_cast<QAccessibleTableHeaderCell*>(iface);
+@@ -704,7 +712,11 @@
+         while (iter != childToId.constEnd()) {
+             QAccessible::Id id = iter.value();
+             QAccessibleInterface *iface = QAccessible::accessibleInterface(id);
+-            Q_ASSERT(iface);
++            if (!iface) {
++                // Drop expired IDs while rebuilding this view's child cache.
++                ++iter;
++                continue;
++            }
+             if (iface->role() == QAccessible::Cell || iface->role() == QAccessible::ListItem) {
+                 Q_ASSERT(iface->tableCellInterface());
+                 QAccessibleTableCell *cell = static_cast<QAccessibleTableCell*>(iface->tableCellInterface());
+@@ -837,8 +849,12 @@
+         return nullptr;
+ 
+     auto id = childToId.constFind(logicalIndex);
+-    if (id != childToId.constEnd())
+-        return QAccessible::accessibleInterface(id.value());
++    if (id != childToId.constEnd()) {
++        if (QAccessibleInterface *iface = QAccessible::accessibleInterface(id.value()))
++            return iface;
++        // The global accessibility cache may evict an interface independently.
++        childToId.remove(logicalIndex);
++    }
+ 
+     QAccessibleInterface *iface = nullptr;
+     int index = logicalIndex;
+@@ -980,8 +996,12 @@
+     }
+ 
+     const auto id = childToId.constFind(logicalIndex);
+-    if (id != childToId.constEnd())
+-        return QAccessible::accessibleInterface(id.value());
++    if (id != childToId.constEnd()) {
++        if (QAccessibleInterface *iface = QAccessible::accessibleInterface(id.value()))
++            return iface;
++        // The global accessibility cache may evict an interface independently.
++        childToId.remove(logicalIndex);
++    }
+ 
+     const QListView *listView = qobject_cast<const QListView*>(theView);
+     Q_ASSERT(listView);

@@ -27,7 +27,11 @@ Connected multi-region Press Pull now produces one editable solid; sketches can
 attach to positive extrusion end caps and follow parent edits. General face support,
 curved model-edge references and broader imports/exports remain ahead. Straight
 cap-edge references support retained Parallel, native endpoint snaps and dimensions.
-Rounded cap centers now anchor fully constrained native construction guides. See the bounded receipts below; this is not complete CAD parity.
+Rounded cap centers now anchor fully constrained native construction guides.
+Inline diameter entry and Equal create five attached circles; native arrow-driven
+Cut produces five holes in one retained solid. Earlier sketch edits, history and
+reopen preserve that chain. See [the five-circle Cut receipt](docs/validation/five-circle-cut.md)
+and the bounded receipts below; this is not complete CAD parity.
 
 The public repository is [rje/Alloy](https://github.com/rje/Alloy), with the
 [issue backlog](https://github.com/rje/Alloy/issues) and
