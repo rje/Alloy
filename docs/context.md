@@ -101,7 +101,9 @@ CI-002, GATE-005 and CI-003. Read [releases.md](releases.md) and the
 [release research](research/cross-platform-releases.md). Native CI is seeded
 for macOS arm64/Intel, Windows x64 and Ubuntu24.04 x64; its initial run compiled Windows and both macOS architectures. Linux failed
 on a missing Fontconfig development header; that run and its artifacts were
-removed with the old-history cleanup. The missing-header fix is pushed and the corrected matrix run is underway.
+removed with the old-history cleanup. The missing-header fix is pushed. The latest
+[matrix run](https://github.com/rje/Alloy/actions/runs/38190781624) tests source
+d11ebf4 and remains pending; the previous corrected candidate was superseded.
 It retains unbundled compile artifacts, not yet independently runnable packages.
 Windows named-pipe control, Linux X11/GLX runtime qualification, relocation,
 dependency notices and tagged milestone publishing remain open.
