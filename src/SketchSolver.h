@@ -10,7 +10,8 @@ struct Result {
     QJsonObject diagnostics;
     QString error;
 };
-// Coordinates and driving lengths are canonical millimeters. The input is never
+// Coordinates and driving lengths are canonical millimeters; line-angle and
+// arc-sweep dimensions use degrees. The input is never
 // mutated; rejected results retain it unchanged. UUIDs stay outside PlaneGCS.
 Result solve(const QJsonObject& parameters);
 }

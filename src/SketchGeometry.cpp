@@ -344,14 +344,22 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
             if (!claimId(dimension["id"].toString())) return "Invalid or duplicate dimension UUID";
             const auto kind = dimension["kind"].toString();
             const bool curve = kind == "radius" || kind == "diameter" || kind == "arcSweep";
+            const bool angle = kind == "angle";
             if (!dimension["driving"].isBool()) return "Dimension requires driving flag";
             if (curve) {
                 if (!(kind=="arcSweep" ? arcIds : curveIds).contains(dimension["entityId"].toString())) return "Invalid curve dimension reference";
+            } else if (angle) {
+                if (!checkReferences(dimension,"entityIds",2,lineIds)) return "Angle requires two distinct lines";
+                if (dimension.contains("raySigns")) {
+                    const auto signs=dimension["raySigns"].toArray();
+                    if (!dimension["raySigns"].isArray() || signs.size()!=2) return "Angle raySigns requires two signs";
+                    for (const auto& sign:signs) if (!sign.isDouble() || (sign.toDouble()!=1 && sign.toDouble()!=-1)) return "Angle ray signs must be +1 or -1";
+                }
             } else if ((kind != "linear" && kind != "horizontal" && kind != "vertical")
                 || !checkReferences(dimension,"pointIds",2,pointIds)) return "Invalid dimension kind or references";
             const bool driving=dimension["driving"].toBool(), placed=dimension.contains("annotation");
-            const auto valueKey=kind=="arcSweep" ? "valueDeg" : "valueMm";
-            if (dimension.size() != (driving ? 5 : 4)+int(placed) || (!driving && dimension.contains(valueKey))) return "Unexpected dimension fields";
+            const auto valueKey=kind=="arcSweep" || angle ? "valueDeg" : "valueMm";
+            if (dimension.size() != (driving ? 5 : 4)+int(placed)+int(angle && dimension.contains("raySigns")) || (!driving && dimension.contains(valueKey))) return "Unexpected dimension fields";
             if (placed) {
                 if (!dimension["annotation"].isObject()) return "Dimension annotation must be an object";
                 const auto annotation = dimension["annotation"].toObject();
@@ -361,7 +369,8 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
             if (driving) {
                 const double value = coordinate(dimension, valueKey);
                 if (kind=="arcSweep" && (value < 1e-6 || value >= 360)) return "Angular dimension must be between zero and 360 degrees";
-                if (kind!="arcSweep" && value < minimumLength) return "Driving dimension must be positive (0.001..100000 mm)";
+                if (angle && (value < 1e-6 || value >= 180)) return "Line angle must be between zero and 180 degrees";
+                if (kind!="arcSweep" && !angle && value < minimumLength) return "Driving dimension must be positive (0.001..100000 mm)";
             }
         }
     } catch (const std::invalid_argument& error) { return QString::fromUtf8(error.what()); }
@@ -409,12 +418,15 @@ SketchGeometry::SolveResult SketchGeometry::addConstraint(const QJsonObject& dra
 SketchGeometry::SolveResult SketchGeometry::addDimension(const QJsonObject& draft, const QJsonObject& arguments) {
     try {
         validateDraft(draft);
-        checkFields(arguments, {"kind", "pointIds", "entityId", "driving", "valueMm", "valueDeg", "annotation"});
+        checkFields(arguments, {"kind", "pointIds", "entityId", "entityIds", "raySigns", "driving", "valueMm", "valueDeg", "annotation"});
         if (arguments.contains("driving") && !arguments["driving"].isBool()) reject("Dimension driving must be Boolean");
         auto parameters = draft["parameters"].toObject();
         QJsonArray pointIds = arguments["pointIds"].toArray();
         const auto kind=arguments["kind"].toString();
         const bool curve=kind=="radius" || kind=="diameter" || kind=="arcSweep";
+        const bool angle=kind=="angle";
+        if (angle && (arguments.contains("pointIds") || arguments.contains("entityId"))) reject("Angle dimensions require two line entityIds");
+        if (!angle && (arguments.contains("entityIds") || arguments.contains("raySigns"))) reject("Only line angles accept entityIds/raySigns");
         if (arguments.contains("entityId") && !curve) {
             if (arguments.contains("pointIds")) reject("Choose dimension points or one line, not both");
             bool found = false;
@@ -429,11 +441,13 @@ SketchGeometry::SolveResult SketchGeometry::addDimension(const QJsonObject& draf
         QJsonObject dimension{{"id", newId()}, {"kind", arguments["kind"]}, {"pointIds", pointIds}, {"driving", driving}};
         if(curve && arguments.contains("pointIds"))reject("Curve dimensions require one entity reference");
         if(curve) {dimension.remove("pointIds"); dimension["entityId"]=arguments["entityId"];}
-        const auto valueKey=kind=="arcSweep" ? "valueDeg" : "valueMm";
+        if(angle) {dimension.remove("pointIds");dimension["entityIds"]=arguments["entityIds"];
+            if(arguments.contains("raySigns"))dimension["raySigns"]=arguments["raySigns"];}
+        const auto valueKey=kind=="arcSweep" || angle ? "valueDeg" : "valueMm";
         if (arguments.contains("annotation")) dimension["annotation"] = arguments["annotation"];
         if (driving) dimension[valueKey] = arguments[valueKey];
         else if (arguments.contains("valueMm") || arguments.contains("valueDeg")) reject("Driven dimensions measure geometry; omit its value");
-        if (arguments.contains(kind=="arcSweep" ? "valueMm" : "valueDeg")) reject("Dimension value has incorrect units");
+        if (arguments.contains(kind=="arcSweep" || angle ? "valueMm" : "valueDeg")) reject("Dimension value has incorrect units");
         auto dimensions = parameters["dimensions"].toArray(); dimensions.append(dimension);
         parameters["dimensions"] = dimensions;
         auto candidate = draft; candidate["parameters"] = parameters;
@@ -453,9 +467,10 @@ SketchGeometry::SolveResult SketchGeometry::updateDimension(const QJsonObject& d
             auto dimension = dimensions[i].toObject();
             if (dimension["id"] != arguments["dimensionId"]) continue;
             if (!dimension["driving"].toBool()) reject("A driven dimension cannot set geometry");
-            const auto key=dimension["kind"]=="arcSweep" ? "valueDeg" : "valueMm";
+            const bool angular=dimension["kind"]=="arcSweep" || dimension["kind"]=="angle";
+            const auto key=angular ? "valueDeg" : "valueMm";
             coordinate(arguments,key);
-            if(arguments.contains(dimension["kind"]=="arcSweep" ? "valueMm" : "valueDeg")) reject("Dimension value has incorrect units");
+            if(arguments.contains(angular ? "valueMm" : "valueDeg")) reject("Dimension value has incorrect units");
             dimension[key] = arguments[key]; dimensions[i] = dimension; found = true; break;
         }
         if (!found) reject("Driving dimension does not exist");

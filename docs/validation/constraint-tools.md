@@ -49,3 +49,17 @@ centered captures. Accepted the bounded API/geometry/storage and initial badge
 presentation: targets visible, active-tool feedback readable, no blocking
 clipping/collision in these fixtures. This is not source-matched visual fidelity
 or native interaction acceptance.
+
+## Native follow-up (2026-10-12)
+
+On the same candidate, root used physical coordinate mouse input to activate
+Equal before selection, pick circle pairs 1/2 then 2/3 without Shift, press Escape,
+select the first circle edge, D, place the label, type 14 and Return, then Finish.
+All three radii became 7 mm; both retained Equal pairs have the intended targets.
+API inspection verified the resulting authored data and undo/redo/save/reopen.
+Initial circles were API seeded; their inferred creation is not covered.
+`native-equal.png`, `native-equal-state.json` and `native-equal-workflow.json`
+under `build-tutorial/evidence` contain capture/state/persistence evidence.
+Astra independently accepted this bounded native result and readable 1/2/1 badge
+placement. Native Equal picking is now covered; the other visual/control gaps
+above and exact tutorial completion remain open.

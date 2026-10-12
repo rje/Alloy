@@ -86,6 +86,7 @@ private:
     QJsonObject setSketchSelection(const QJsonObject& selection);
     QJsonObject applySketchConstraint(const QString& type, const QJsonObject& targets);
     QJsonObject sketchDimensionTargets(const QJsonObject& args) const;
+    QJsonArray angleRaySigns(const QJsonArray& entityIds, const QJsonObject& annotation) const;
     void refreshSketchControls();
     void dimensionSelectionChanged();
     QJsonObject previewDimension(const QJsonObject& args);

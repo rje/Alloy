@@ -5,6 +5,7 @@
 #include <QMap>
 #include <QSet>
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <deque>
 #include <map>
@@ -125,6 +126,22 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters) {
             if (const auto found = arcMap.find(id); found != arcMap.end()) return found->second.rad;
             require(false,"Unknown sketch circle/arc reference");return nullptr;
         };
+        auto raySigns = [&](const QJsonObject& dimension) {
+            std::array<int,2> signs{1,1};
+            if (dimension.contains("raySigns")) {
+                const auto values=dimension["raySigns"].toArray();
+                require(dimension["raySigns"].isArray() && values.size()==2,"Angle requires two ray signs");
+                for(int i=0;i<2;++i) {require(values[i].isDouble() && (values[i].toDouble()==1 || values[i].toDouble()==-1),"Angle ray sign must be +1 or -1");signs[i]=values[i].toInt();}
+            }
+            return signs;
+        };
+        auto signedLineAngle = [&](const QJsonObject& dimension) {
+            const auto& a=line(reference(dimension,"entityIds",0));const auto& b=line(reference(dimension,"entityIds",1));
+            const auto signs=raySigns(dimension);
+            const double ax=(*a.p2.x-*a.p1.x)*signs[0],ay=(*a.p2.y-*a.p1.y)*signs[0];
+            const double bx=(*b.p2.x-*b.p1.x)*signs[1],by=(*b.p2.y-*b.p1.y)*signs[1];
+            return std::atan2(ax*by-ay*bx,ax*bx+ay*by);
+        };
         auto constant = [&](double value) { constants.push_back(value); return &constants.back(); };
         auto tag = [&](const QJsonObject& item) {
             const auto id = item.value("id").toString();
@@ -164,13 +181,21 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters) {
             require(!id.isEmpty() && !ids.contains(id), "Duplicate or empty dimension ID");
             const auto kind=dimension["kind"].toString();
             const bool curve=kind=="radius" || kind=="diameter" || kind=="arcSweep";
-            require(curve || kind=="linear" || kind=="horizontal" || kind=="vertical", "Unsupported dimension kind");
+            const bool angle=kind=="angle";
+            require(curve || angle || kind=="linear" || kind=="horizontal" || kind=="vertical", "Unsupported dimension kind");
             require(dimension["driving"].isBool(), "Dimension requires driving flag");
+            if(angle) {require(dimension["entityIds"].isArray() && dimension["entityIds"].toArray().size()==2 && reference(dimension,"entityIds",0)!=reference(dimension,"entityIds",1),"Angle requires two distinct line IDs");signedLineAngle(dimension);}
             if(!dimension["driving"].toBool()) {ids.insert(id);continue;}
-            const double value=number(dimension,kind=="arcSweep" ? "valueDeg" : "valueMm");
-            require(kind=="arcSweep" ? value>=1e-6 && value<360 : value>=minimumLength && value<=maximumCoordinate, "Driving dimension outside supported range");
+            const double value=number(dimension,kind=="arcSweep" || angle ? "valueDeg" : "valueMm");
+            require(kind=="arcSweep" ? value>=1e-6 && value<360 : angle ? value>=1e-6 && value<180 : value>=minimumLength && value<=maximumCoordinate, "Driving dimension outside supported range");
             const int t=tag(dimension);
-            if(curve) {
+            if(angle) {
+                const auto signs=raySigns(dimension);
+                const double signedTarget=(signedLineAngle(dimension)<0 ? -1 : 1)*value*degrees;
+                const double rayOffset=((signs[1]<0 ? 1 : 0)-(signs[0]<0 ? 1 : 0))*std::numbers::pi;
+                const double target=std::remainder(signedTarget-rayOffset,2*std::numbers::pi);
+                solver.addConstraintL2LAngle(line(reference(dimension,"entityIds",0)),line(reference(dimension,"entityIds",1)),constant(target),t);
+            } else if(curve) {
                 const auto entityId=dimension["entityId"].toString();
                 if(arcMap.contains(entityId)) {auto& arc=arcMap.at(entityId);
                     if(kind=="radius")solver.addConstraintArcRadius(arc,constant(value),t);
@@ -264,9 +289,10 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters) {
         }
         QJsonArray measurements;
         for(const auto& entry:dimensions) {
-            const auto d=entry.toObject();const auto kind=d["kind"].toString();const bool angular=kind=="arcSweep";
+            const auto d=entry.toObject();const auto kind=d["kind"].toString();const bool angular=kind=="arcSweep" || kind=="angle";
             double value;
-            if(kind=="radius" || kind=="diameter" || angular) {const auto id=d["entityId"].toString();
+            if(kind=="angle")value=std::abs(signedLineAngle(d))/degrees;
+            else if(kind=="radius" || kind=="diameter" || kind=="arcSweep") {const auto id=d["entityId"].toString();
                 const auto& curve=arcMap.contains(id) ? static_cast<const GCS::Circle&>(arcMap.at(id)) : circleMap.at(id);
                 value=angular ? std::abs(*arcMap.at(id).endAngle-*arcMap.at(id).startAngle)/degrees : *curve.rad*(kind=="diameter" ? 2 : 1);
             } else value=separation(kind,point(reference(d,"pointIds",0)),point(reference(d,"pointIds",1)));
@@ -282,7 +308,7 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters) {
         result.diagnostics["status"] = dof == 0 ? "fully_constrained" : "underconstrained";
         result.diagnostics["dimensionValues"] = measurements;
         result.diagnostics["maxResidual"] = maxResidual;
-        result.diagnostics["residualUnits"] = "mm for lengths; degrees for arc sweep; normalized sine/cosine for line angles";
+        result.diagnostics["residualUnits"] = "mm for lengths; degrees for angular dimensions; normalized sine/cosine for line relations";
         result.accepted = true;
     } catch (const std::exception& error) {
         result.parameters = parameters;

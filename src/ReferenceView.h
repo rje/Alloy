@@ -71,6 +71,8 @@ private:
     void displayBodies(const std::vector<EvaluatedBody>& bodies);
     QJsonObject curveDimensionLayout(const QJsonObject& feature, const QJsonObject& dimension,
         double value, const QString& units) const;
+    QJsonObject angleDimensionLayout(const QJsonObject& feature, const QJsonObject& dimension,
+        double value) const;
     void clearSketchDecorations();
     void applyEditDisplay(bool redraw = true);
     void clearPreviewPresentation();

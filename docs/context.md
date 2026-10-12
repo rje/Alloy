@@ -558,3 +558,38 @@ interaction/visual checks, then origin/inference and two-line angular dimension
 for the first illustrated activity. Do not treat API-created coordinates as an
 inference or native-input pass. The human `build-input` app was preserved; do not
 replace its binary or discard its document. No CI or release was triggered.
+
+## Parallel tutorial work and angular milestone (2026-10-12)
+
+User explicitly requested subagents working through the board and notification at
+major testing milestones. Use disjoint implementation ownership, root-owned
+build/app/integration and independent Astra verification. Keep tasks/issues/board
+current; stop verification after proportional evidence and proceed to the next
+visible workflow. Research material remains external.
+
+Sol core and UI implementers delivered real two-line angular dimensions for
+SKT-006: stable entity IDs plus raySigns retain quadrant intent, native D supports
+two consecutive line picks, placement chooses acute/obtuse wedge, labels follow
+the arc tangent, and degree values survive length-unit changes. Root's real-app
+`tests/angular_workflow_api.py` passes a constrained triangle -> 5-mm extrusion ->
+45-to-60-degree upstream edit -> undo/redo -> reopen, including 45/135-degree
+pointer preview checks. Core tests passed. Native 45-degree extension and final
+145-degree obtuse entry passed with Astra-reviewed captures. See
+`docs/validation/angular-sketch.md` for exact evidence and limitations.
+
+Native testing caught a Qt macOS accessibilitySelectedChildren crash on a sketch
+list rebuilt every pick. Selection-only refresh now reuses tree items. Retest
+passed; draft-changing refresh still rebuilds so this is targeted mitigation.
+The existing circle-widget preview test failed once, then passed in isolation;
+FND-007 tracks the unresolved flake. Do not claim general input or full-tutorial
+acceptance. The native Equal follow-up also passed; its receipt is updated.
+
+All private native test windows were closed. Human build-input was untouched.
+Updated candidate: build-tutorial/alloy.app (local identity Alloy Tutorial
+Candidate). Useful saved part: build-tutorial/evidence/angular-workflow/angular-plate.alloy
+(current angle60, displayinches, real extrusion). No release/tag/CI run.
+Next primary #32 work: origin/endpoint snapping and durable coincidence before
+claiming exact first activity. Luna prepared bounded public-source instructions
+in ../Alloy-reference-records/knowledge/specs/origin-endpoint-inference.md.
+Read it before implementing; documented snap symbols/retained relationships are
+separate from proposed pixel threshold and unresolved override behavior.

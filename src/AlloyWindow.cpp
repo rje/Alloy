@@ -535,9 +535,12 @@ void AlloyWindow::registerCommands() {
         const auto type=session_.value("constraintType").toString();
         const auto field=type=="fixed" || type=="coincident" ? QString("pointIds") : QString("entityIds");
         const int required=type=="fixed" || type=="horizontal" || type=="vertical" || type=="horizontalVertical" ? 1 : 2;
-        const auto picked=view_->pickSketch(session_.value("draftSketch").toObject(),a["x"].toDouble(),a["y"].toDouble(),constraint ? (field=="pointIds" ? "point" : "entity") : QString{});
+        const auto picked=view_->pickSketch(session_.value("draftSketch").toObject(),a["x"].toDouble(),a["y"].toDouble(),constraint ? (field=="pointIds" ? "point" : "entity") : session_.value("tool")=="dimension" && !session_.value("selection").toObject()["entityIds"].toArray().isEmpty() ? "entity" : QString{});
         if(constraint && picked.isEmpty())return failure("invalid_constraint_target","Pick compatible sketch geometry for the active constraint");
-        const bool accumulate=constraint ? session_.value("selection").toObject()[field].toArray().size()<required : a.value("additive").toBool();
+        const auto previousEntities=session_.value("selection").toObject()["entityIds"].toArray();
+        auto isLine=[&](const QJsonValue& id){for(const auto& entry:session_.value("draftSketch").toObject()["parameters"].toObject()["entities"].toArray())if(entry.toObject()["id"]==id)return entry.toObject()["type"]=="line";return false;};
+        const bool dimensionLine=session_.value("tool")=="dimension" && picked["kind"]=="entity" && previousEntities.size()==1 && isLine(previousEntities[0]) && isLine(picked["entityId"]);
+        const bool accumulate=constraint ? session_.value("selection").toObject()[field].toArray().size()<required : a.value("additive").toBool() || dimensionLine;
         auto selection=accumulate ? session_.value("selection").toObject() : QJsonObject{{"pointIds",QJsonArray{}},{"entityIds",QJsonArray{}}};
         if(!picked.isEmpty()) {
             const auto field=picked["kind"]=="point" ? QString("pointIds") : picked["kind"]=="profile" ? QString("profileIds") : QString("entityIds");
@@ -553,10 +556,17 @@ void AlloyWindow::registerCommands() {
         if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_.revision()))return failure("stale_session","The document changed; cancel and restart this sketch");
         const auto tool=session_.value("tool").toString();
         if(tool=="dimension" && session_.value("pendingDimension").toObject().value("phase")=="placing") {
+            const auto picked=view_->pickSketch(session_.value("draftSketch").toObject(),a["x"].toDouble(),a["y"].toDouble(),"entity");
+            const auto selected=session_.value("selection").toObject()["entityIds"].toArray();
+            auto isLine=[&](const QJsonValue& id){for(const auto& entry:session_.value("draftSketch").toObject()["parameters"].toObject()["entities"].toArray())if(entry.toObject()["id"]==id)return entry.toObject()["type"]=="line";return false;};
+            if(selected.size()==1 && picked["kind"]=="entity" && picked["entityId"]!=selected[0] && isLine(selected[0]) && isLine(picked["entityId"])) {
+                cancelDimension();const auto response=execute("sketch.selectionPick",{{"x",a["x"]},{"y",a["y"]},{"additive",true}});
+                return response["ok"].toBool() ? response["result"].toObject() : response;
+            }
             const auto response=execute("sketch.dimensionPlace",{{"x",a["x"]},{"y",a["y"]}});return response["ok"].toBool() ? response["result"].toObject() : response;
         }
         if(tool=="select" || tool=="dimension" || tool=="constraint") {
-            auto args=a;if(tool=="dimension" && !session_.value("selection").toObject()["pointIds"].toArray().isEmpty())args["additive"]=true;
+            auto args=a;if(tool=="dimension" && (!session_.value("selection").toObject()["pointIds"].toArray().isEmpty() || session_.value("selection").toObject()["entityIds"].toArray().size()==1))args["additive"]=true;
             const auto response=execute("sketch.selectionPick",args);return response["ok"].toBool() ? response["result"].toObject() : response;
         }
         const auto point=view_->sketchPoint(a["x"].toDouble(),a["y"].toDouble(),session_.value("inputs").toObject()["plane"].toString());
@@ -620,20 +630,21 @@ void AlloyWindow::registerCommands() {
             args[field]=a.contains(field) ? a[field] : session_.value("selection").toObject().value(field);
             return applySketchConstraint(a["type"].toString(),args);
         });
-    auto kind=parameter("string","Dimension measurement kind.");kind["enum"]=QJsonArray{"linear","horizontal","vertical","radius","diameter","arcSweep"};
+    auto kind=parameter("string","Dimension measurement kind.");kind["enum"]=QJsonArray{"linear","horizontal","vertical","angle","radius","diameter","arcSweep"};
     auto dimValue=coordinate;dimValue["minimum"]=0.000001;
     add("sketch.dimension","Add sketch dimension","Create a driving or driven line/point or analytic curve dimension.",
-        {{"kind",kind},{"pointIds",ids},{"entityId",optional(parameter("string","Stable selected line, circle or arc identity."))},
+        {{"kind",kind},{"pointIds",ids},{"entityIds",ids},{"raySigns",optional(parameter("array","Angle ray signs relative to each line's authored direction."))},{"entityId",optional(parameter("string","Stable selected line, circle or arc identity."))},
             {"value",optional(dimValue)},{"valueDeg",optional(angle)},{"units",optional(units)},{"annotation",optional(parameter("object","Optional canonical placement {uMm,vMm}."))},{"driving",optional(parameter("boolean","True drives geometry; false measures it."))},{"session",optionalSession}},[this](const auto& a){
             if(session_.value("command").toString()!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
             if(a.contains("session") && a["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
             auto args=sketchDimensionTargets(a);args["kind"]=a["kind"];args["driving"]=a.value("driving").toBool(true);
             if(a.contains("annotation"))args["annotation"]=a["annotation"];
-            const bool angular=a["kind"]=="arcSweep";
+            if(a["kind"]=="angle" && !args.contains("raySigns"))args["raySigns"]=angleRaySigns(args["entityIds"].toArray(),args.value("annotation").toObject());
+            const bool angular=a["kind"]=="arcSweep" || a["kind"]=="angle";
             if(a.contains(angular ? "value" : "valueDeg"))return failure("invalid_arguments","Use valueDeg for Arc Sweep and value for length dimensions");
             if(args["driving"].toBool()) {
                 const auto key=angular ? "valueDeg" : "valueMm";
-                args[key]=angular ? a.value("valueDeg").toDouble(sketchDimensionMeasure(args,"arcSweep"))
+                args[key]=angular ? a.value("valueDeg").toDouble(sketchDimensionMeasure(args,a["kind"].toString()))
                     : a.contains("value") ? CadDocument::millimeters(a["value"].toDouble(),a.value("units").toString(session_.value("inputs").toObject()["units"].toString()))
                     : sketchDimensionMeasure(args,a["kind"].toString());
             } else if(a.contains("value") || a.contains("valueDeg"))return failure("invalid_arguments","Driven dimensions measure geometry; omit a value");
@@ -645,13 +656,13 @@ void AlloyWindow::registerCommands() {
             if(a.contains("session") && a["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
             QJsonObject dimension;
             for(const auto& entry:session_.value("draftSketch").toObject()["parameters"].toObject()["dimensions"].toArray())if(entry.toObject()["id"]==a["dimensionId"]){dimension=entry.toObject();break;}
-            const bool angular=dimension["kind"]=="arcSweep";
+            const bool angular=dimension["kind"]=="arcSweep" || dimension["kind"]=="angle";
             if(!a.contains(angular ? "valueDeg" : "value") || a.contains(angular ? "value" : "valueDeg"))return failure("invalid_arguments","Supply valueDeg for Arc Sweep or value for a length dimension");
             const auto units=a.value("units").toString(session_.value("inputs").toObject()["units"].toString());
             return publishSketchSolve(SketchGeometry::updateDimension(session_.value("draftSketch").toObject(),{{"dimensionId",a["dimensionId"]},
                 {angular ? "valueDeg" : "valueMm",angular ? a["valueDeg"].toDouble() : CadDocument::millimeters(a["value"].toDouble(),units)}}));
         });
-    auto previewKind=optional(kind);previewKind["enum"]=QJsonArray{"auto","linear","horizontal","vertical","radius","diameter","arcSweep"};
+    auto previewKind=optional(kind);previewKind["enum"]=QJsonArray{"auto","linear","horizontal","vertical","angle","radius","diameter","arcSweep"};
     auto previewSchema=sketchPixels;previewSchema["kind"]=previewKind;previewSchema["driving"]=optional(parameter("boolean","False previews a driven measurement."));previewSchema["session"]=optionalSession;
     add("sketch.dimensionPreview","Preview dimension placement","Preview a complete GPU annotation on selected targets without changing intent.",previewSchema,[this](const auto& a){return previewDimension(a);});
     auto placeSchema=sketchPixels;placeSchema["session"]=optionalSession;
@@ -1602,6 +1613,21 @@ QJsonObject AlloyWindow::sketchCurveGesture(const QJsonObject& point,bool commit
 
 double AlloyWindow::sketchDimensionMeasure(const QJsonObject& targets,const QString& kind) const {
     const auto parameters=session_.value("draftSketch").toObject()["parameters"].toObject();
+    if(kind=="angle") {
+        const auto ids=targets.value("entityIds").toArray();
+        if(ids.size()!=2 || ids[0]==ids[1])throw std::invalid_argument("Select two distinct lines for an angle");
+        QMap<QString,QPointF> points;for(const auto& value:parameters["points"].toArray()){const auto p=value.toObject();points[p["id"].toString()]={p["uMm"].toDouble(),p["vMm"].toDouble()};}
+        QJsonArray lines;
+        for(const auto& id:ids)for(const auto& value:parameters["entities"].toArray())if(value.toObject()["id"]==id){lines.append(value);break;}
+        if(lines.size()!=2 || lines[0].toObject()["type"]!="line" || lines[1].toObject()["type"]!="line")throw std::invalid_argument("Select two lines for an angle");
+        auto direction=[&](const QJsonValue& value){const auto line=value.toObject();return points.value(line["endPointId"].toString())-points.value(line["startPointId"].toString());};
+        auto a=direction(lines[0]),b=direction(lines[1]);const auto signs=targets.value("raySigns").toArray();
+        if(signs.size()==2){a*=signs[0].toInt(1);b*=signs[1].toInt(1);}
+        const double cross=a.x()*b.y()-a.y()*b.x(),dot=a.x()*b.x()+a.y()*b.y();
+        const double measured=std::abs(std::atan2(cross,dot))*180/std::numbers::pi;
+        if(measured<1e-6 || measured>179.999999)throw std::invalid_argument("Select nonparallel lines for an angle");
+        return measured;
+    }
     if(targets.contains("entityId")) {
         for(const auto& value:parameters["entities"].toArray()){const auto e=value.toObject();if(e["id"]!=targets["entityId"])continue;
             if(kind=="radius")return e["radiusMm"].toDouble();if(kind=="diameter")return 2*e["radiusMm"].toDouble();
@@ -1698,6 +1724,13 @@ QJsonObject AlloyWindow::sketchDimensionTargets(const QJsonObject& args) const {
     const auto selection=session_.value("selection").toObject();
     auto points=args.contains("pointIds") ? args["pointIds"].toArray() : selection["pointIds"].toArray();
     const auto entities=selection["entityIds"].toArray();
+    if(args.value("kind")=="angle" || (args.value("kind").toString().isEmpty() && (args.contains("entityIds") || entities.size()==2))) {
+        const auto chosen=args.contains("entityIds") ? args.value("entityIds").toArray() : entities;
+        if(chosen.size()!=2 || chosen[0]==chosen[1])throw std::invalid_argument("Select two distinct lines for an angle");
+        QJsonArray found;for(const auto& id:chosen)for(const auto& value:session_.value("draftSketch").toObject()["parameters"].toObject()["entities"].toArray())if(value.toObject()["id"]==id && value.toObject()["type"]=="line"){found.append(id);break;}
+        if(found.size()!=2)throw std::invalid_argument("Select two lines for an angle");
+        QJsonObject result{{"entityIds",chosen}};if(args.contains("raySigns"))result["raySigns"]=args["raySigns"];return result;
+    }
     const auto entity=args.value("entityId").toString(points.isEmpty() && entities.size()==1 ? entities[0].toString() : QString{});
     if(args.contains("entityId") && entity.isEmpty())throw std::invalid_argument("The requested sketch line does not exist");
     if(!entity.isEmpty()) {
@@ -1710,6 +1743,32 @@ QJsonObject AlloyWindow::sketchDimensionTargets(const QJsonObject& args) const {
     }
     if(points.size()!=2 || points[0]==points[1])throw std::invalid_argument("Select one line or two distinct points for a dimension");
     return {{"pointIds",points}};
+}
+
+QJsonArray AlloyWindow::angleRaySigns(const QJsonArray& entityIds,const QJsonObject& annotation) const {
+    if(entityIds.size()!=2)return {1,1};
+    const auto parameters=session_.value("draftSketch").toObject()["parameters"].toObject();
+    QMap<QString,QPointF> points;for(const auto& value:parameters["points"].toArray()){const auto p=value.toObject();points[p["id"].toString()]={p["uMm"].toDouble(),p["vMm"].toDouble()};}
+    QJsonArray lines;for(const auto& id:entityIds)for(const auto& value:parameters["entities"].toArray())if(value.toObject()["id"]==id){lines.append(value);break;}
+    if(lines.size()!=2)return {1,1};
+    auto start=[&](const QJsonValue& value){return points.value(value.toObject()["startPointId"].toString());};
+    auto end=[&](const QJsonValue& value){return points.value(value.toObject()["endPointId"].toString());};
+    const auto a=start(lines[0]),b=start(lines[1]),da=end(lines[0])-a,db=end(lines[1])-b;
+    const double cross=da.x()*db.y()-da.y()*db.x();if(std::abs(cross)<1e-9)return {1,1};
+    const auto offset=b-a;const QPointF origin=a+da*((offset.x()*db.y()-offset.y()*db.x())/cross);
+    auto cursor=QPointF(annotation.value("uMm").toDouble(),annotation.value("vMm").toDouble())-origin;
+    const double radius=std::hypot(cursor.x(),cursor.y());if(radius<1e-9)return {1,1};cursor/=radius;
+    const auto unit=[](QPointF p){const double length=std::hypot(p.x(),p.y());return p/length;};
+    const auto u=unit(da),v=unit(db);QJsonArray choice{1,1};
+    for(int sa:{1,-1})for(int sb:{1,-1}){
+        const auto first=u*sa,second=v*sb;
+        const double sweep=std::atan2(first.x()*second.y()-first.y()*second.x(),first.x()*second.x()+first.y()*second.y());
+        double offset=std::atan2(first.x()*cursor.y()-first.y()*cursor.x(),first.x()*cursor.x()+first.y()*cursor.y());
+        if(sweep>0 && offset<0)offset+=2*std::numbers::pi;
+        if(sweep<0 && offset>0)offset-=2*std::numbers::pi;
+        if(sweep>0 ? offset>=0 && offset<=sweep : offset<=0 && offset>=sweep){choice={sa,sb};break;}
+    }
+    return choice;
 }
 
 void AlloyWindow::sketchResponse(const QJsonObject& response) {
@@ -1726,14 +1785,15 @@ QJsonObject AlloyWindow::previewDimension(const QJsonObject& args) {
     if(args.contains("session") && args["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
     if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_.revision()))return failure("stale_session","The document changed; cancel and restart this sketch");
     if(session_.value("pendingDimension").toObject().value("phase")=="editing")return failure("dimension_input_active","Accept or cancel the current value first");
-    auto pending=session_.value("pendingDimension").toObject();const auto targets=sketchDimensionTargets({});
+    auto pending=session_.value("pendingDimension").toObject();auto targets=sketchDimensionTargets({});
     const auto draft=session_.value("draftSketch").toObject();const auto plane=session_.value("inputs").toObject().value("plane").toString();
     const auto placement=view_->sketchPoint(args.value("x").toDouble(),args.value("y").toDouble(),plane);
     QMap<QString,QPointF> points;
     for(const auto& entry:draft.value("parameters").toObject().value("points").toArray()){const auto p=entry.toObject();points[p.value("id").toString()]={p.value("uMm").toDouble(),p.value("vMm").toDouble()};}
     const auto ids=targets.value("pointIds").toArray();
     const auto orientation=args.value("kind").toString(pending.value("orientation").toString("auto"));QString kind=orientation;
-    if(targets.contains("entityId")) {
+    if(targets.contains("entityIds"))kind="angle";
+    else if(targets.contains("entityId")) {
         QJsonObject entity;for(const auto& entry:draft["parameters"].toObject()["entities"].toArray())if(entry.toObject()["id"]==targets["entityId"]){entity=entry.toObject();break;}
         if(kind=="auto")kind=entity["type"]=="circle" ? "diameter" : "radius";
     } else if(kind=="auto") {
@@ -1745,20 +1805,21 @@ QJsonObject AlloyWindow::previewDimension(const QJsonObject& args) {
         else if(v<std::min(a.y(),b.y()) || v>std::max(a.y(),b.y()))kind="horizontal";
         else if(u<std::min(a.x(),b.x()) || u>std::max(a.x(),b.x()))kind="vertical";else kind="linear";
     }
+    if(kind=="angle")targets["raySigns"]=angleRaySigns(targets["entityIds"].toArray(),{{"uMm",placement.value("uMm")},{"vMm",placement.value("vMm")}});
     const double value=sketchDimensionMeasure(targets,kind);
     if(value<1e-6)return failure("invalid_dimension","This orientation has no measurable span");
     const bool driving=args.value("driving").toBool(pending.value("driving").toBool(sketchDimensionDriving_ ? sketchDimensionDriving_->isChecked() : true));
     pending=targets;pending["phase"]="placing";pending["kind"]=kind;pending["orientation"]=orientation;
     pending["driving"]=driving;
     pending["annotation"]=QJsonObject{{"uMm",placement.value("uMm")},{"vMm",placement.value("vMm")}};
-    pending[kind=="arcSweep" ? "measuredValueDeg" : "measuredValueMm"]=value;
+    pending[kind=="arcSweep" || kind=="angle" ? "measuredValueDeg" : "measuredValueMm"]=value;
     session_["tool"]="dimension";session_["pendingDimension"]=pending;return pending;
 }
 QJsonObject AlloyWindow::acceptDimension(const QJsonObject& args) {
     if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
     if(args.contains("session") && args["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
     const auto pending=session_.value("pendingDimension").toObject();if(pending.value("phase")!="editing")return failure("no_pending_dimension","Place or edit a dimension first");
-    const bool angular=pending["kind"]=="arcSweep";
+    const bool angular=pending["kind"]=="arcSweep" || pending["kind"]=="angle";
     if((args.contains("text") && (args.contains("value") || args.contains("valueDeg"))) || args.contains(angular ? "value" : "valueDeg"))
         return failure("invalid_arguments","Choose text or a numeric quantity with appropriate units");
     const bool driving=pending.value("driving").toBool();double valueMm=pending.value(angular ? "measuredValueDeg" : "measuredValueMm").toDouble();
@@ -1774,7 +1835,7 @@ QJsonObject AlloyWindow::acceptDimension(const QJsonObject& args) {
             if(!angular && !match.captured(2).isEmpty())units=match.captured(2).toLower();
         }
         valueMm=angular ? value : CadDocument::millimeters(value,units);
-        if(!std::isfinite(valueMm) || valueMm<0.000001 || (angular ? valueMm>=360 : valueMm>100000))return failure("invalid_dimension_value",angular ? "Arc Sweep must be greater than zero and smaller than 360 degrees" : "Dimension must be 0.000001..100000 mm");
+        if(!std::isfinite(valueMm) || valueMm<0.000001 || (angular ? valueMm>=(pending["kind"]=="angle" ? 180 : 360) : valueMm>100000))return failure("invalid_dimension_value",angular ? "Angle must be greater than zero and below its supported limit" : "Dimension must be 0.000001..100000 mm");
     }
     const auto draft=session_.value("draftSketch").toObject();QJsonObject result;
     if(pending.contains("dimensionId")) {
@@ -1783,6 +1844,7 @@ QJsonObject AlloyWindow::acceptDimension(const QJsonObject& args) {
     } else {
         QJsonObject mutation{{"pointIds",pending.value("pointIds")},{"kind",pending.value("kind")},{"driving",driving},{"annotation",pending.value("annotation")}};
         if(pending.contains("entityId")){mutation.remove("pointIds");mutation["entityId"]=pending["entityId"];}
+        if(pending.contains("entityIds")){mutation.remove("pointIds");mutation["entityIds"]=pending["entityIds"];mutation["raySigns"]=pending["raySigns"];}
         if(driving)mutation[angular ? "valueDeg" : "valueMm"]=valueMm;
         result=publishSketchSolve(SketchGeometry::addDimension(draft,mutation));
     }
@@ -1794,11 +1856,11 @@ QJsonObject AlloyWindow::editDimension(const QString& id) {
     if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_.revision()))return failure("stale_session","The document changed; cancel and restart this sketch");
     QJsonObject dimension;for(const auto& entry:session_.value("draftSketch").toObject()["parameters"].toObject()["dimensions"].toArray())if(entry.toObject()["id"]==id){dimension=entry.toObject();break;}
     if(dimension.isEmpty())return failure("stale_entity","Dimension does not exist");
-    const auto valueKey=dimension["kind"]=="arcSweep" ? "valueDeg" : "valueMm";
+    const auto valueKey=dimension["kind"]=="arcSweep" || dimension["kind"]=="angle" ? "valueDeg" : "valueMm";
     double value=dimension.value(valueKey).toDouble();for(const auto& entry:session_.value("solverDiagnostics").toObject().value("dimensionValues").toArray())if(entry.toObject().value("id")==id)value=entry.toObject().value(valueKey).toDouble();
     const auto layout=view_->dimensionLayout(session_.value("draftSketch").toObject(),dimension,value,session_.value("inputs").toObject().value("units").toString());
     if(layout.isEmpty())return failure("annotation_unavailable","Look At the sketch plane before editing this label");
-    cancelDimension();dimension["dimensionId"]=id;dimension["phase"]="editing";dimension["annotation"]=layout.value("annotation");dimension[dimension["kind"]=="arcSweep" ? "measuredValueDeg" : "measuredValueMm"]=value;
+    cancelDimension();dimension["dimensionId"]=id;dimension["phase"]="editing";dimension["annotation"]=layout.value("annotation");dimension[dimension["kind"]=="arcSweep" || dimension["kind"]=="angle" ? "measuredValueDeg" : "measuredValueMm"]=value;
     session_["pendingDimension"]=dimension;auto selection=session_.value("selection").toObject();selection["dimensionId"]=id;session_["selection"]=selection;showDimensionEditor();return dimension;
 }
 void AlloyWindow::showDimensionEditor() {
@@ -1814,7 +1876,8 @@ void AlloyWindow::showDimensionEditor() {
     }
     const auto pending=session_.value("pendingDimension").toObject();const auto units=session_.value("inputs").toObject().value("units").toString();const double scale=units=="in" ? 25.4 : 1;
     const bool driving=pending.value("driving").toBool();dimensionEditorValue_->setReadOnly(!driving);
-    dimensionEditorValue_->setText(QString::number(pending.value(pending["kind"]=="arcSweep" ? "measuredValueDeg" : "measuredValueMm").toDouble()/(pending["kind"]=="arcSweep" ? 1 : scale),'g',9)+(pending["kind"]=="arcSweep" ? " deg" : " "+units));
+    const bool angular=pending["kind"]=="arcSweep" || pending["kind"]=="angle";
+    dimensionEditorValue_->setText(QString::number(pending.value(angular ? "measuredValueDeg" : "measuredValueMm").toDouble()/(angular ? 1 : scale),'g',9)+(angular ? " deg" : " "+units));
     dimensionEditorError_->setText(driving ? "Enter accepts · Esc cancels" : "Driven measurement · Enter / Esc closes");
     dimensionEditor_->adjustSize();positionDimensionEditor();dimensionEditor_->show();dimensionEditor_->raise();dimensionEditorValue_->setFocus();dimensionEditorValue_->selectAll();
 }
@@ -1840,7 +1903,7 @@ void AlloyWindow::dimensionSelectionChanged() {
     if(apply)apply->setEnabled(false);
     for(const auto& entry:session_.value("solverDiagnostics").toObject()["dimensionValues"].toArray()) {
         const auto value=entry.toObject();if(value["id"]!=id)continue;
-        const bool angular=value["kind"]=="arcSweep";sketchDimensionEdit_->setSuffix(angular ? " deg" : " "+units);
+        const bool angular=value["kind"]=="arcSweep" || value["kind"]=="angle";sketchDimensionEdit_->setSuffix(angular ? " deg" : " "+units);
         sketchDimensionEdit_->setValue(value[angular ? "valueDeg" : "valueMm"].toDouble()/(angular ? 1 : scale));sketchDimensionEdit_->setEnabled(value["driving"].toBool());
         if(apply)apply->setEnabled(value["driving"].toBool());
         sketchDimensionMeasure_->setText(QString("%1: %2 %3").arg(value["driving"].toBool() ? "Driving" : "Driven measurement")
@@ -1871,7 +1934,7 @@ void AlloyWindow::refreshSketchControls() {
         for(const auto& id:constraint["entityIds"].toArray())relations[id.toString()].append(type.first(1).toUpper()+type.sliced(1));
         for(const auto& id:constraint["pointIds"].toArray())relations[id.toString()].append(type.first(1).toUpper()+type.sliced(1));
     }
-    {
+    if(changed || unitChanged) {
         const QSignalBlocker block(sketchSelectionTree_);sketchSelectionTree_->clear();
         auto* pointGroup=new QTreeWidgetItem(sketchSelectionTree_,{"Points"});pointGroup->setFlags(pointGroup->flags() & ~Qt::ItemIsSelectable);
         auto* lineGroup=new QTreeWidgetItem(sketchSelectionTree_,{"Curves"});lineGroup->setFlags(lineGroup->flags() & ~Qt::ItemIsSelectable);
@@ -1890,6 +1953,15 @@ void AlloyWindow::refreshSketchControls() {
             item->setData(0,Qt::UserRole,"entity");item->setData(0,Qt::UserRole+1,id);item->setSelected(selection["entityIds"].toArray().contains(id));
         }
         pointGroup->setExpanded(true);lineGroup->setExpanded(true);
+    } else if(selected) {
+        const QSignalBlocker block(sketchSelectionTree_);
+        for(int group=0;group<sketchSelectionTree_->topLevelItemCount();++group) {
+            auto* parent=sketchSelectionTree_->topLevelItem(group);
+            for(int i=0;i<parent->childCount();++i) {
+                auto* item=parent->child(i);const auto field=item->data(0,Qt::UserRole).toString()=="point" ? "pointIds" : "entityIds";
+                item->setSelected(selection[field].toArray().contains(item->data(0,Qt::UserRole+1).toString()));
+            }
+        }
     }
     QMap<QString,QJsonObject> values;const auto diagnostics=session_.value("solverDiagnostics").toObject();
     for(const auto& entry:diagnostics["dimensionValues"].toArray()){const auto value=entry.toObject();values[value["id"].toString()]=value;}
@@ -1897,8 +1969,9 @@ void AlloyWindow::refreshSketchControls() {
         const auto previous=sketchDimensionList_->currentData();const QSignalBlocker block(sketchDimensionList_);sketchDimensionList_->clear();
         for(const auto& entry:parameters["dimensions"].toArray()) {
             const auto dimension=entry.toObject();const auto measured=values.value(dimension["id"].toString());const auto kind=dimension["kind"].toString();
+            const bool angular=kind=="arcSweep" || kind=="angle";
             sketchDimensionList_->addItem(QString("%1 %2 %3 · %4").arg(kind.first(1).toUpper()+kind.sliced(1))
-                .arg(QString::number(measured[kind=="arcSweep" ? "valueDeg" : "valueMm"].toDouble()/(kind=="arcSweep" ? 1 : scale),'g',6)).arg(kind=="arcSweep" ? "deg" : units).arg(dimension["driving"].toBool() ? "Driving" : "Driven"),dimension["id"].toString());
+                .arg(QString::number(measured[angular ? "valueDeg" : "valueMm"].toDouble()/(angular ? 1 : scale),'g',6)).arg(angular ? "deg" : units).arg(dimension["driving"].toBool() ? "Driving" : "Driven"),dimension["id"].toString());
         }
         if(sketchDimensionList_->count()==0)sketchDimensionList_->addItem("No dimensions");
         const int previousIndex=sketchDimensionList_->findData(previous);if(previousIndex>=0)sketchDimensionList_->setCurrentIndex(previousIndex);
@@ -1942,13 +2015,15 @@ void AlloyWindow::refreshSketchControls() {
     const QSignalBlocker block(sketchDimensionValue_);
     const bool targetsChanged=selection["pointIds"]!=sketchWidgetSelection_["pointIds"] || selection["entityIds"]!=sketchWidgetSelection_["entityIds"];
     if(targetsChanged) {
-        try {const auto targets=sketchDimensionTargets({});if(targets.contains("entityId")) {
+        try {const auto targets=sketchDimensionTargets({});if(targets.contains("entityIds")) {
+            const QSignalBlocker kindBlock(sketchDimensionKind_);sketchDimensionKind_->setCurrentIndex(sketchDimensionKind_->findData("angle"));
+        }else if(targets.contains("entityId")) {
             QString type;for(const auto& value:parameters["entities"].toArray())if(value.toObject()["id"]==targets["entityId"])type=value.toObject()["type"].toString();
             const QSignalBlocker kindBlock(sketchDimensionKind_);sketchDimensionKind_->setCurrentIndex(sketchDimensionKind_->findData(type=="circle" ? "diameter" : "radius"));
         }}catch(const std::invalid_argument&){}
     }
-    const auto measureKind=sketchDimensionKind_->currentData().toString();sketchDimensionValue_->setSuffix(measureKind=="arcSweep" ? " deg" : " "+units);
-    try {sketchDimensionValue_->setValue(sketchDimensionMeasure(sketchDimensionTargets({}),measureKind)/(measureKind=="arcSweep" ? 1 : scale));}catch(const std::invalid_argument&){}
+    const auto measureKind=sketchDimensionKind_->currentData().toString();const bool angular=measureKind=="arcSweep" || measureKind=="angle";sketchDimensionValue_->setSuffix(angular ? " deg" : " "+units);
+    try {auto targets=sketchDimensionTargets({});if(measureKind=="angle")targets["raySigns"]=angleRaySigns(targets["entityIds"].toArray(),{});sketchDimensionValue_->setValue(sketchDimensionMeasure(targets,measureKind)/(angular ? 1 : scale));}catch(const std::invalid_argument&){}
     sketchWidgetDraft_=draft;sketchWidgetSelection_=selection;sketchWidgetUnits_=units;
 }
 
@@ -2046,7 +2121,7 @@ void AlloyWindow::showSketch() {
         auto* dimensionHelp=new QLabel("Creates a dimension for selected geometry.\nUse D to place a dimension in the canvas.");dimensionHelp->setWordWrap(true);layout->addWidget(dimensionHelp);
         auto* dimensions=new QFormLayout;
         sketchDimensionKind_=new QComboBox;sketchDimensionKind_->setObjectName("sketch.dimension.kind");
-        for(const auto& kind:QStringList{"linear","horizontal","vertical","radius","diameter","arcSweep"})sketchDimensionKind_->addItem(kind=="arcSweep" ? "Arc Sweep" : kind.first(1).toUpper()+kind.sliced(1),kind);
+        for(const auto& kind:QStringList{"linear","horizontal","vertical","angle","radius","diameter","arcSweep"})sketchDimensionKind_->addItem(kind=="arcSweep" ? "Arc Sweep" : kind.first(1).toUpper()+kind.sliced(1),kind);
         dimensions->addRow("Measure",sketchDimensionKind_);
         sketchDimensionDriving_=new QCheckBox("Driving dimension");sketchDimensionDriving_->setChecked(true);sketchDimensionDriving_->setObjectName("sketch.dimension.driving");dimensions->addRow(sketchDimensionDriving_);
         sketchDimensionValue_=new QDoubleSpinBox;sketchDimensionValue_->setDecimals(6);sketchDimensionValue_->setRange(0.000001,100000);sketchDimensionValue_->setKeyboardTracking(false);
@@ -2056,7 +2131,7 @@ void AlloyWindow::showSketch() {
         auto* addDimension=new QPushButton("Add Dimension");addDimension->setObjectName("sketch.dimension.add");layout->addWidget(addDimension);
         connect(addDimension,&QPushButton::clicked,this,[this]{
             QJsonObject args{{"kind",sketchDimensionKind_->currentData().toString()},{"driving",sketchDimensionDriving_->isChecked()}};
-            if(sketchDimensionDriving_->isChecked())args[args["kind"]=="arcSweep" ? "valueDeg" : "value"]=sketchDimensionValue_->value();sketchResponse(execute("sketch.dimension",args));
+            if(sketchDimensionDriving_->isChecked())args[args["kind"]=="arcSweep" || args["kind"]=="angle" ? "valueDeg" : "value"]=sketchDimensionValue_->value();sketchResponse(execute("sketch.dimension",args));
         });
         layout->addWidget(new QLabel("EDIT EXISTING DIMENSION"));
         auto* existingDimensions=new QFormLayout;
@@ -2069,7 +2144,7 @@ void AlloyWindow::showSketch() {
         connect(editDimension,&QPushButton::clicked,this,[this]{
             const auto id=sketchDimensionList_->currentData().toString();if(id.isEmpty())return;
             QString kind;for(const auto& e:session_["draftSketch"].toObject()["parameters"].toObject()["dimensions"].toArray())if(e.toObject()["id"]==id)kind=e.toObject()["kind"].toString();
-            sketchResponse(execute("sketch.dimensionUpdate",{{"dimensionId",id},{kind=="arcSweep" ? "valueDeg" : "value",sketchDimensionEdit_->value()}}));
+            sketchResponse(execute("sketch.dimensionUpdate",{{"dimensionId",id},{kind=="arcSweep" || kind=="angle" ? "valueDeg" : "value",sketchDimensionEdit_->value()}}));
         });
         auto* manualTitle=new QPushButton("Exact-coordinate creation ▾");manualTitle->setCheckable(true);layout->addWidget(manualTitle);
         auto* manual=new QWidget;auto* manualLayout=new QVBoxLayout(manual);manualLayout->setContentsMargins(0,0,0,0);manual->hide();layout->addWidget(manual);

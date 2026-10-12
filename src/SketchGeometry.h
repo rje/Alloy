@@ -26,6 +26,8 @@ public:
     static QJsonObject addRectangle(const QJsonObject& draft, const QJsonObject& arguments);
     static SolveResult solveDraft(const QJsonObject& draft);
     static SolveResult addConstraint(const QJsonObject& draft, const QJsonObject& arguments);
+    // Line angles use kind=angle, two entityIds, optional raySigns (+1/-1),
+    // and driving valueDeg. Ray choice is independent of annotation placement.
     static SolveResult addDimension(const QJsonObject& draft, const QJsonObject& arguments);
     static SolveResult updateDimension(const QJsonObject& draft, const QJsonObject& arguments);
     // Presentation intent in canonical sketch millimeters; never changes the measurement.

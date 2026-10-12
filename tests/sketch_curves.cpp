@@ -24,6 +24,54 @@ double lineLength(const QJsonObject& f,int index){const auto e=entity(f,index);Q
     for(const auto& p:f["parameters"].toObject()["points"].toArray()){
         if(p.toObject()["id"]==e["startPointId"])a=p.toObject();if(p.toObject()["id"]==e["endPointId"])b=p.toObject();}
     return std::hypot(a["uMm"].toDouble()-b["uMm"].toDouble(),a["vMm"].toDouble()-b["vMm"].toDouble());}
+double lineAngle(const QJsonObject& f,int signA,int signB){
+    QJsonObject a,b,c,d;const auto first=entity(f),second=entity(f,1);
+    for(const auto& value:f["parameters"].toObject()["points"].toArray()){const auto p=value.toObject();
+        if(p["id"]==first["startPointId"])a=p;if(p["id"]==first["endPointId"])b=p;
+        if(p["id"]==second["startPointId"])c=p;if(p["id"]==second["endPointId"])d=p;}
+    const double ax=(b["uMm"].toDouble()-a["uMm"].toDouble())*signA,ay=(b["vMm"].toDouble()-a["vMm"].toDouble())*signA;
+    const double bx=(d["uMm"].toDouble()-c["uMm"].toDouble())*signB,by=(d["vMm"].toDouble()-c["vMm"].toDouble())*signB;
+    return std::abs(std::atan2(ax*by-ay*bx,ax*bx+ay*by))*180/std::numbers::pi;
+}
+void lineAngularDimensions(const QString& owner){
+    auto f=SketchGeometry::newFeature(owner,"XY","Two-line angular dimensions");
+    f=SketchGeometry::addLine(f,{{"u1Mm",0},{"v1Mm",0},{"u2Mm",-20},{"v2Mm",0}});
+    const auto vertex=entity(f)["startPointId"];
+    f=SketchGeometry::addLine(f,{{"u1Mm",0},{"v1Mm",0},{"u2Mm",10},{"v2Mm",10},{"startPointId",vertex}});
+    const QJsonArray refs{entity(f)["id"],entity(f,1)["id"]};
+    f=accepted(SketchGeometry::addConstraint(f,{{"type","fixed"},{"pointIds",QJsonArray{vertex}}}));
+    f=accepted(SketchGeometry::addConstraint(f,{{"type","horizontal"},{"entityIds",QJsonArray{refs[0]}}}));
+    for(int i=0;i<2;++i)f=accepted(SketchGeometry::addDimension(f,{{"kind","linear"},{"entityId",refs[i]},{"valueMm",i==0 ? 20 : std::sqrt(200.0)}}));
+    check(SketchGeometry::solveDraft(f).diagnostics["dof"].toInt()==1,"Line angle fixture must have one rotational DOF");
+    near(lineAngle(f,1,1),135,"Segment-directed fixture must expose supplementary angle");
+    // The tutorial's lower segment points left; dimension its rightward extension.
+    f=accepted(SketchGeometry::addDimension(f,{{"kind","angle"},{"entityIds",refs},{"raySigns",QJsonArray{-1,1}},{"valueDeg",45},{"annotation",QJsonObject{{"uMm",12},{"vMm",4}}}}));
+    const auto angleId=lastDimension(f)["id"];
+    check(SketchGeometry::solveDraft(f).diagnostics["dof"].toInt()==0,"Driving line angle must remove rotational freedom");
+    near(lineAngle(f,-1,1),45,"Driving angle used wrong extension sector");
+    // All four ray sectors remain measurements, not additional solver equations.
+    for(const int a:{1,-1})for(const int b:{1,-1})f=accepted(SketchGeometry::addDimension(f,{{"kind","angle"},{"entityIds",refs},{"raySigns",QJsonArray{a,b}},{"driving",false}}));
+    auto result=SketchGeometry::solveDraft(f);const auto measured=result.diagnostics["dimensionValues"].toArray();
+    // Compare explicit geometry for every stored ray choice instead of assuming entity order.
+    const auto dims=f["parameters"].toObject()["dimensions"].toArray();
+    for(int i=dims.size()-4;i<dims.size();++i){const auto signs=dims[i].toObject()["raySigns"].toArray();
+        near(measured[i].toObject()["valueDeg"].toDouble(),lineAngle(f,signs[0].toInt(),signs[1].toInt()),"Driven angle diagnostics disagree with actual rays");
+        check(!dims[i].toObject().contains("valueDeg"),"Driven angular value leaked into authored data");}
+    auto edited=accepted(SketchGeometry::updateDimension(f,{{"dimensionId",angleId},{"valueDeg",60}}));
+    near(lineAngle(edited,-1,1),60,"Angle edit did not solve geometry");near(lineLength(edited,0),20,"Angle edit changed lower length");near(lineLength(edited,1),std::sqrt(200.0),"Angle edit changed angled length");
+    auto moved=accepted(SketchGeometry::updateAnnotation(edited,{{"dimensionId",angleId},{"annotation",QJsonObject{{"uMm",-15},{"vMm",-10}}}}));
+    check(moved["parameters"].toObject()["points"]==edited["parameters"].toObject()["points"],"Annotation drag changed angle geometry");
+    check(moved["parameters"].toObject()["dimensions"].toArray()[2].toObject()["raySigns"].toArray()==QJsonArray{-1,1},"Annotation drag changed angular sector");
+    auto obtuse=accepted(SketchGeometry::updateDimension(edited,{{"dimensionId",angleId},{"valueDeg",145}}));near(lineAngle(obtuse,-1,1),145,"Obtuse driving angle unsupported");
+    const auto conflict=SketchGeometry::addDimension(edited,{{"kind","angle"},{"entityIds",refs},{"raySigns",QJsonArray{-1,1}},{"valueDeg",45}});
+    check(!conflict.ok && conflict.feature==edited && !conflict.error.isEmpty(),"Conflicting angle failed draft preservation");
+    for(const double value:{0.0,180.0,360.0}){const auto invalid=SketchGeometry::updateDimension(edited,{{"dimensionId",angleId},{"valueDeg",value}});check(!invalid.ok && invalid.feature==edited,"Invalid driving angle changed draft");}
+    auto invalid=SketchGeometry::updateDimension(edited,{{"dimensionId",angleId},{"valueMm",60}});check(!invalid.ok && invalid.feature==edited,"Angle accepted millimeters");
+    invalid=SketchGeometry::addDimension(edited,{{"kind","angle"},{"entityIds",QJsonArray{refs[0],refs[0]}},{"valueDeg",45}});check(!invalid.ok && invalid.feature==edited,"Angle accepted same line twice");
+    invalid=SketchGeometry::addDimension(edited,{{"kind","angle"},{"entityIds",refs},{"raySigns",QJsonArray{0,1}},{"valueDeg",45}});check(!invalid.ok && invalid.feature==edited,"Angle accepted invalid ray signs");
+    const auto json=QJsonDocument(edited).toJson(QJsonDocument::Compact);const auto reopened=QJsonDocument::fromJson(json).object();
+    check(reopened==edited && SketchGeometry::solveDraft(reopened).ok,"Retained line-angle JSON could not be reevaluated");
+}
 void equalConstraints(const QString& owner){
     auto lines=SketchGeometry::newFeature(owner,"XY","Equal line lengths");
     lines=SketchGeometry::addLine(lines,{{"u1Mm",0},{"v1Mm",0},{"u2Mm",10},{"v2Mm",0}});
@@ -77,6 +125,7 @@ void analytic(const QJsonObject& f,double length){const auto edge=SketchGeometry
 int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
     const auto owner=QUuid::createUuid().toString(QUuid::WithoutBraces);
     equalConstraints(owner);
+    lineAngularDimensions(owner);
     const auto blank=SketchGeometry::newFeature(owner,"XY");
     auto circle=SketchGeometry::addCircle(blank,{{"centerUMm",0},{"centerVMm",0},{"diameterMm",10}});
     circle=accepted(SketchGeometry::solveDraft(circle));analytic(circle,10*std::numbers::pi);

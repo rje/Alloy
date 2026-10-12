@@ -31,6 +31,9 @@ The public repository is [rje/Alloy](https://github.com/rje/Alloy), with the
 The active delivery order is [tutorial-first checkpoints](docs/backlog/tutorial-sequence.json).
 The first new [constraint-tool checkpoint](docs/validation/constraint-tools.md)
 has real-app API/history/storage evidence; full tutorial and native visual gates remain open.
+The next [angular sketch milestone](docs/validation/angular-sketch.md) verifies
+angle-driven extrusion updates and native angular entry; exact tutorial completion
+and general input qualification remain open.
 
 ## Project documents
 

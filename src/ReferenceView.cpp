@@ -356,6 +356,7 @@ void ReferenceView::clearSketchDecorations() {
 QJsonObject ReferenceView::dimensionLayout(const QJsonObject& feature,const QJsonObject& dimension,double valueMm,const QString& units) const {
     if(view_.IsNull())return {};
     const auto parameters=feature.value("parameters").toObject();const auto plane=parameters.value("plane").toString();
+    if(dimension["kind"]=="angle")return angleDimensionLayout(feature,dimension,valueMm);
     if(dimension["kind"]=="radius" || dimension["kind"]=="diameter" || dimension["kind"]=="arcSweep")return curveDimensionLayout(feature,dimension,valueMm,units);
     const auto ids=dimension.value("pointIds").toArray();if(ids.size()!=2)return {};
     QMap<QString,QPointF> points;
@@ -392,6 +393,55 @@ QJsonObject ReferenceView::dimensionLayout(const QJsonObject& feature,const QJso
         {"line",QJsonArray{point(lineA),point(lineB)}},{"witnesses",QJsonArray{QJsonArray{point(a),point(lineA)},QJsonArray{point(b),point(lineB)}}},
         {"linePixels",QJsonArray{screen(project(lineA)),screen(project(lineB))}},
         {"label",QJsonObject{{"text",text},{"x",label.x()},{"y",label.y()},{"width",metrics.horizontalAdvance(text)+12},{"height",metrics.height()+10},{"angleDegrees",angle}}}};
+}
+QJsonObject ReferenceView::angleDimensionLayout(const QJsonObject& feature,const QJsonObject& dimension,double value) const {
+    const auto parameters=feature["parameters"].toObject();const auto ids=dimension["entityIds"].toArray();if(ids.size()!=2)return {};
+    const auto plane=parameters["plane"].toString();QMap<QString,QPointF> points;
+    for(const auto& entry:parameters["points"].toArray()){const auto p=entry.toObject();points[p["id"].toString()]={p["uMm"].toDouble(),p["vMm"].toDouble()};}
+    QJsonArray lines;for(const auto& id:ids)for(const auto& entry:parameters["entities"].toArray())if(entry.toObject()["id"]==id){lines.append(entry);break;}
+    if(lines.size()!=2 || lines[0].toObject()["type"]!="line" || lines[1].toObject()["type"]!="line")return {};
+    auto start=[&](const QJsonValue& line){return points.value(line.toObject()["startPointId"].toString());};
+    auto end=[&](const QJsonValue& line){return points.value(line.toObject()["endPointId"].toString());};
+    const auto a=start(lines[0]),b=start(lines[1]),da=end(lines[0])-a,db=end(lines[1])-b;
+    const double cross=da.x()*db.y()-da.y()*db.x();if(std::abs(cross)<1e-9)return {};
+    const auto offset=b-a;const QPointF center=a+da*((offset.x()*db.y()-offset.y()*db.x())/cross);
+    const auto signs=dimension["raySigns"].toArray();const int sa=signs.size()==2 ? signs[0].toInt(1) : 1,sb=signs.size()==2 ? signs[1].toInt(1) : 1;
+    auto unit=[](QPointF v){const double length=std::hypot(v.x(),v.y());return v/length;};
+    const auto u=unit(da)*sa,v=unit(db)*sb;const double degrees=180/std::numbers::pi;
+    const double startAngle=std::atan2(u.y(),u.x())*degrees;
+    const double sweep=std::atan2(u.x()*v.y()-u.y()*v.x(),u.x()*v.x()+u.y()*v.y())*degrees;
+    if(std::abs(sweep)<1e-6 || std::abs(sweep)>179.999999)return {};
+    auto project=[&](const QPointF& p){const auto q=projectSketchPoint(p.x(),p.y(),plane);return QPointF(q["x"].toDouble(),q["y"].toDouble());};
+    const auto screenCenter=project(center),screenUnit=project(center+QPointF(100,0));
+    const double pixelsPerMm=std::hypot((screenUnit-screenCenter).x(),(screenUnit-screenCenter).y())/100;if(pixelsPerMm<1e-7)return {};
+    const double mmPerPixel=1/pixelsPerMm;
+    const auto middle=unit(u+v);auto annotation=dimension["annotation"].toObject();
+    const QPointF anchor=annotation.isEmpty() ? center+middle*(46*mmPerPixel) : QPointF(annotation["uMm"].toDouble(),annotation["vMm"].toDouble());
+    annotation={{"uMm",anchor.x()},{"vMm",anchor.y()}};
+    const double radius=std::max(std::hypot((anchor-center).x(),(anchor-center).y()),22*mmPerPixel);
+    const bool driving=dimension.value("driving").toBool(true);
+    const QString content=QString::number(value,'g',6)+QString::fromUtf8("°"),text=driving ? content : "("+content+")";
+    QFont font("Arial");font.setPixelSize(13);const QFontMetricsF metrics(font);
+    const auto screenLabel=project(anchor);auto point=[](const QPointF& p){return QJsonObject{{"uMm",p.x()},{"vMm",p.y()}};};
+    auto radial=[&](double angle,double r){const double rad=angle/degrees;return center+QPointF(std::cos(rad),std::sin(rad))*r;};
+    const auto radialDirection=std::hypot((anchor-center).x(),(anchor-center).y())<1e-9 ? middle : unit(anchor-center);
+    const auto screenTangent=project(center+QPointF(-radialDirection.y(),radialDirection.x())*100)-screenCenter;
+    double labelAngle=std::atan2(-screenTangent.y(),screenTangent.x())*degrees;
+    while(labelAngle>90)labelAngle-=180;while(labelAngle<=-90)labelAngle+=180;
+    QJsonObject result{{"dimensionId",dimension["id"]},{"kind","angle"},{"driving",driving},{"annotation",annotation},{"raySigns",signs},
+        {"valueDeg",value},{"mmPerPixel",mmPerPixel},{"center",point(center)},{"arcRadiusMm",radius},{"startAngleDeg",startAngle},{"sweepAngleDeg",sweep},
+        {"label",QJsonObject{{"text",text},{"x",screenLabel.x()},{"y",screenLabel.y()},{"width",metrics.horizontalAdvance(text)+12},{"height",metrics.height()+10},{"angleDegrees",labelAngle}}}};
+    const double gap=std::min(std::abs(sweep)/4,(metrics.horizontalAdvance(text)/2+7)*mmPerPixel/radius*degrees);
+    const double labelOffset=std::atan2(u.x()*(anchor-center).y()-u.y()*(anchor-center).x(),u.x()*(anchor-center).x()+u.y()*(anchor-center).y())*degrees;
+    QJsonArray arcs;if((sweep>0 && labelOffset>gap && labelOffset<sweep-gap) || (sweep<0 && labelOffset< -gap && labelOffset>sweep+gap)){
+        const double sense=sweep>0 ? 1 : -1;
+        arcs.append(QJsonObject{{"startAngleDeg",startAngle},{"sweepAngleDeg",labelOffset-sense*gap}});
+        arcs.append(QJsonObject{{"startAngleDeg",startAngle+labelOffset+sense*gap},{"sweepAngleDeg",sweep-labelOffset-sense*gap}});
+    }else arcs.append(QJsonObject{{"startAngleDeg",startAngle},{"sweepAngleDeg",sweep}});
+    result["arcSegments"]=arcs;
+    result["witnesses"]=QJsonArray{QJsonArray{point(center+u*(8*mmPerPixel)),point(center+u*radius)},QJsonArray{point(center+v*(8*mmPerPixel)),point(center+v*radius)}};
+    result["line"]=QJsonArray{point(radial(startAngle,radius)),point(radial(startAngle+sweep,radius))};
+    return result;
 }
 QJsonObject ReferenceView::curveDimensionLayout(const QJsonObject& feature,const QJsonObject& dimension,double value,const QString& units) const {
     const auto parameters=feature["parameters"].toObject();const auto plane=parameters["plane"].toString();
@@ -529,7 +579,7 @@ void ReferenceView::decorateSketch(const QJsonObject& feature,const QJsonObject&
     if(!pending.isEmpty() && !pending.contains("dimensionId")){auto preview=pending;preview["id"]="pending";dimensions.append(preview);}
     for(const auto& entry:dimensions) {
         const auto dimension=entry.toObject();const auto measured=measurements.value(dimension.value("id").toString());
-        const bool angular=dimension["kind"]=="arcSweep";const auto valueKey=angular ? "valueDeg" : "valueMm";
+        const bool angular=dimension["kind"]=="arcSweep" || dimension["kind"]=="angle";const auto valueKey=angular ? "valueDeg" : "valueMm";
         const double value=dimension.value("id")=="pending" ? pending.value(angular ? "measuredValueDeg" : "measuredValueMm").toDouble() : measured.value(valueKey).toDouble(dimension.value(valueKey).toDouble());
         const auto layout=dimensionLayout(feature,dimension,value,units);if(layout.isEmpty())continue;annotationLayouts_.append(layout);
         const bool selected=selection.value("dimensionId")==dimension.value("id");
@@ -537,7 +587,7 @@ void ReferenceView::decorateSketch(const QJsonObject& feature,const QJsonObject&
         const auto line=layout.value("line").toArray();auto world=[&](const QJsonValue& v){const auto p=v.toObject();return sketchWorld(plane,p.value("uMm").toDouble(),p.value("vMm").toDouble());};
         const auto frame=SketchGeometry::frame(plane);const auto n=frame.value("normal").toArray(),u=frame.value("uAxis").toArray();
         const double size=layout.value("mmPerPixel").toDouble();
-        if(layout["kind"]!="radius" && layout["kind"]!="arcSweep") {
+        if(layout["kind"]!="radius" && layout["kind"]!="arcSweep" && layout["kind"]!="angle") {
         Handle(PrsDim_LengthDimension) graphic=new PrsDim_LengthDimension(world(line[0]),world(line[1]),gp_Pln(gp_Ax3(gp_Pnt(),gp_Dir(n[0].toDouble(),n[1].toDouble(),n[2].toDouble()),gp_Dir(u[0].toDouble(),u[1].toDouble(),u[2].toDouble()))));
         Handle(Prs3d_DimensionAspect) aspect=new Prs3d_DimensionAspect;aspect->SetCommonColor(color);aspect->MakeText3d(false);aspect->MakeArrows3d(false);aspect->MakeUnitsDisplayed(false);
         aspect->LineAspect()->SetWidth(devicePixelRatioF());
@@ -551,8 +601,9 @@ aspect->ArrowAspect()->SetLength(7*size);aspect->SetArrowTailSize(8*size);aspect
             auto arrow=[&](const gp_Pnt& tip,gp_Vec along){if(along.Magnitude()<1e-9)return;along.Normalize();const auto side=normal.Crossed(along);const auto back=tip.Translated(along*(7*size));segment(tip,back.Translated(side*(2.5*size)));segment(tip,back.Translated(side*(-2.5*size)));};
             if(layout["kind"]=="radius") {const auto leader=layout["leader"].toArray();const auto a=world(leader[0]),b=world(leader[1]);segment(a,b);arrow(a,gp_Vec(a,b));}
             else {
-                for(const auto& value:layout["arcSegments"].toArray()){const auto arc=value.toObject();QJsonObject e{{"type","arc"},{"centerPointId",dimension["entityId"]},{"radiusMm",layout["arcRadiusMm"]},{"startAngleDeg",arc["startAngleDeg"]},{"sweepAngleDeg",arc["sweepAngleDeg"]}};
-                    auto p=parameters;const auto center=layout["center"].toObject();p["points"]=QJsonArray{QJsonObject{{"id",dimension["entityId"]},{"uMm",center["uMm"]},{"vMm",center["vMm"]}}};builder.Add(compound,SketchGeometry::analyticEdge(p,e));}
+                for(const auto& value:layout["arcSegments"].toArray()){const auto arc=value.toObject();const auto centerId=layout["kind"]=="angle" ? QJsonValue("dimension-center") : dimension["entityId"];
+                    QJsonObject e{{"type","arc"},{"centerPointId",centerId},{"radiusMm",layout["arcRadiusMm"]},{"startAngleDeg",arc["startAngleDeg"]},{"sweepAngleDeg",arc["sweepAngleDeg"]}};
+                    auto p=parameters;const auto center=layout["center"].toObject();p["points"]=QJsonArray{QJsonObject{{"id",centerId},{"uMm",center["uMm"]},{"vMm",center["vMm"]}}};builder.Add(compound,SketchGeometry::analyticEdge(p,e));}
                 const double start=layout["startAngleDeg"].toDouble()*std::numbers::pi/180,sweep=layout["sweepAngleDeg"].toDouble()*std::numbers::pi/180;
                 const gp_Vec ua(u[0].toDouble(),u[1].toDouble(),u[2].toDouble()),va=normal.Crossed(ua);
                 const double sense=sweep>0 ? 1 : -1;arrow(world(line[0]),(ua*(-std::sin(start))+va*std::cos(start))*sense);
