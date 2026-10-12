@@ -781,10 +781,10 @@ void AlloyWindow::registerCommands() {
     const QJsonObject sketchPixels{{"x",sketchPixel},{"y",sketchPixel}};
     auto sketchPickSchema=sketchPixels;sketchPickSchema["additive"]=optional(parameter("boolean","Add or toggle a target in the current sketch selection."));
     auto ids=optional(parameter("array","Authored point or line IDs in this sketch; omitted arrays default empty."));
-    add("sketch.selectionSet","Select sketch geometry","Set shared authored-point, line or evaluated-profile selection without changing geometry.",{{"pointIds",ids},{"entityIds",ids},{"profileIds",ids}},[this](const auto& a){
+    add("sketch.selectionSet","Select sketch geometry","Select authored geometry, locked projected references or evaluated profiles without changing geometry.",{{"pointIds",ids},{"entityIds",ids},{"profileIds",ids}},[this](const auto& a){
         return setSketchSelection({{"pointIds",a.value("pointIds").toArray()},{"entityIds",a.value("entityIds").toArray()},{"profileIds",a.value("profileIds").toArray()}});
     });
-    add("sketch.selectionPick","Pick sketch geometry","Pick a visible projected authored point or line in logical pixels.",sketchPickSchema,[this](const auto& a){
+    add("sketch.selectionPick","Pick sketch geometry","Pick an authored point or curve, or a locked projected support edge or endpoint, in logical pixels.",sketchPickSchema,[this](const auto& a){
         if(session_.value("command").toString()!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
         const bool constraint=session_.value("tool")=="constraint";
         const auto type=session_.value("constraintType").toString();
@@ -1069,6 +1069,11 @@ void AlloyWindow::registerCommands() {
         {{"pointId",parameter("string","Stable authored point UUID.")},{"x",coordinate},{"y",coordinate},{"units",optional(units)},{"session",optionalSession}},[this](const auto& a){
             if(session_.value("command").toString()!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
             if(a.contains("session") && a["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
+            for(const auto& value:session_.value("projectionContext").toObject()["lines"].toArray()) {
+                const auto line=value.toObject();
+                if(a["pointId"]==line["startPointId"] || a["pointId"]==line["endPointId"])
+                    return failure("read_only_projection","Projected support endpoints follow their source edge and cannot be moved","pointId");
+            }
             const auto units=a.value("units").toString(session_.value("inputs").toObject()["units"].toString());
             return publishSketchSolve(SketchGeometry::movePoint(session_.value("draftSketch").toObject(),{{"pointId",a["pointId"]},{"uMm",CadDocument::millimeters(a["x"].toDouble(),units)},{"vMm",CadDocument::millimeters(a["y"].toDouble(),units)}},session_.value("projectionContext").toObject()));
         });
@@ -2139,24 +2144,44 @@ QJsonObject AlloyWindow::resolveSketchSnap(double x,double y,const QString& plan
             const auto p=points.value(it.key());offer({{"kind","point"},{"pointId",it.key()}},p["uMm"].toDouble(),p["vMm"].toDouble());
         }
     }
+    for(const auto& value:session_.value("projectionContext").toObject()["lines"].toArray()) {
+        const auto line=value.toObject();
+        for(const bool end:{false,true}) {
+            const auto id=line[end ? "endPointId" : "startPointId"].toString();
+            const double u=line[end ? "u2Mm" : "u1Mm"].toDouble(),v=line[end ? "v2Mm" : "v1Mm"].toDouble();
+            const auto screen=view_->projectSketchPoint(u,v,plane);
+            const double distance=std::hypot(screen["x"].toDouble()-x,screen["y"].toDouble()-y);
+            if(distance<=radiusPx)candidates.push_back(QJsonObject{{"target",QJsonObject{{"kind","point"},{"pointId",id}}},
+                {"uMm",u},{"vMm",v},{"distancePx",distance},{"projected",true},{"projectionId",line["id"]},
+                {"source",line["source"]},{"endpoint",end ? "end" : "start"}});
+        }
+    }
     if(candidates.empty())return result;
     std::sort(candidates.begin(),candidates.end(),[](const QJsonObject& a,const QJsonObject& b){
         const double distanceA=a["distancePx"].toDouble(),distanceB=b["distancePx"].toDouble();
         if(distanceA!=distanceB)return distanceA<distanceB;
         const auto targetA=a["target"].toObject(),targetB=b["target"].toObject();
-        const int rankA=targetA["kind"]=="origin" ? 0 : 1,rankB=targetB["kind"]=="origin" ? 0 : 1;
+        auto rank=[](const QJsonObject& candidate){
+            const auto kind=candidate["target"].toObject()["kind"];
+            return kind=="origin" ? 0 : kind=="point" && !candidate.value("projected").toBool() ? 1
+                : kind=="point" ? 2 : 3;
+        };
+        const int rankA=rank(a),rankB=rank(b);
         if(rankA!=rankB)return rankA<rankB;
         const auto idA=targetA["kind"]=="midpoint" ? targetA["entityId"].toString() : targetA["pointId"].toString();
         const auto idB=targetB["kind"]=="midpoint" ? targetB["entityId"].toString() : targetB["pointId"].toString();
         return idA<idB;
     });
     const auto best=candidates[0];
-    QJsonArray tied;for(const auto& candidate:candidates){if(candidate["distancePx"].toDouble()-best["distancePx"].toDouble()>ambiguityPx)break;
+    QJsonArray tied{best};for(std::size_t i=1;i<candidates.size();++i){const auto& candidate=candidates[i];if(candidate["distancePx"].toDouble()-best["distancePx"].toDouble()>ambiguityPx)break;
         const bool sameLocation=std::hypot(candidate["uMm"].toDouble()-best["uMm"].toDouble(),candidate["vMm"].toDouble()-best["vMm"].toDouble())<1e-8;
-        if(!sameLocation || candidate["target"].toObject()["kind"]!="point" || best["target"].toObject()["kind"]!="origin")tied.append(candidate);
+        const auto candidateKind=candidate["target"].toObject()["kind"],bestKind=best["target"].toObject()["kind"];
+        if(sameLocation && candidateKind=="point" && (bestKind=="origin" || bestKind=="point"))continue;
+        tied.append(candidate);
     }
     if(tied.size()>1){result["status"]="ambiguous";result["candidates"]=tied;return result;}
     result["status"]="acquired";result["target"]=best["target"];result["uMm"]=best["uMm"];result["vMm"]=best["vMm"];result["distancePx"]=best["distancePx"];
+    if(best.value("projected").toBool())for(const auto& field:{"projected","projectionId","source","endpoint"})result[field]=best[field];
     return result;
 }
 
@@ -2351,7 +2376,10 @@ QJsonObject AlloyWindow::sketchCurveGesture(const QJsonObject& point,bool commit
         return appendSketchCurve(tool,inputs);
     }
     try {
-        auto preview=SketchGeometry::newFeature(document_->authored()["documentId"].toString(),session_["inputs"].toObject()["plane"].toString());
+        const auto sketchInputs=session_["inputs"].toObject();const auto plane=sketchInputs["plane"].toString();
+        auto preview=plane=="face"
+            ? SketchGeometry::newSupportedFeature(document_->authored()["documentId"].toString(),sketchInputs["support"].toObject(),"Curve Preview")
+            : SketchGeometry::newFeature(document_->authored()["documentId"].toString(),plane,"Curve Preview");
         if(tool=="circle")preview=SketchGeometry::addCircle(preview,{{"centerUMm",ax},{"centerVMm",ay},{"diameterMm",inputs["diameter"]}});
         else if(tool=="centerArc")preview=SketchGeometry::addArc(preview,{{"centerUMm",ax},{"centerVMm",ay},{"radiusMm",inputs["radius"]},{"startAngleDeg",inputs["startAngleDeg"]},{"sweepAngleDeg",inputs["sweepAngleDeg"]}});
         else preview=SketchGeometry::addArc(preview,{{"startUMm",ax},{"startVMm",ay},{"endUMm",inputs["endX"]},{"endVMm",inputs["endY"]},{"throughUMm",x},{"throughVMm",y}});
@@ -2588,14 +2616,15 @@ QJsonObject AlloyWindow::previewDimension(const QJsonObject& args) {
     if(session_.value("pendingDimension").toObject().value("phase")=="editing")return failure("dimension_input_active","Accept or cancel the current value first");
     auto pending=session_.value("pendingDimension").toObject();auto targets=sketchDimensionTargets({});
     const auto draft=session_.value("draftSketch").toObject();const auto plane=session_.value("inputs").toObject().value("plane").toString();
+    const auto geometry=SketchGeometry::expandedProjectionFeature(draft,session_.value("projectionContext").toObject())["parameters"].toObject();
     const auto placement=view_->sketchPoint(args.value("x").toDouble(),args.value("y").toDouble(),plane);
     QMap<QString,QPointF> points;
-    for(const auto& entry:draft.value("parameters").toObject().value("points").toArray()){const auto p=entry.toObject();points[p.value("id").toString()]={p.value("uMm").toDouble(),p.value("vMm").toDouble()};}
+    for(const auto& entry:geometry.value("points").toArray()){const auto p=entry.toObject();points[p.value("id").toString()]={p.value("uMm").toDouble(),p.value("vMm").toDouble()};}
     const auto ids=targets.value("pointIds").toArray();
     const auto orientation=args.value("kind").toString(pending.value("orientation").toString("auto"));QString kind=orientation;
     if(targets.contains("entityIds"))kind="angle";
     else if(targets.contains("entityId")) {
-        QJsonObject entity;for(const auto& entry:draft["parameters"].toObject()["entities"].toArray())if(entry.toObject()["id"]==targets["entityId"]){entity=entry.toObject();break;}
+        QJsonObject entity;for(const auto& entry:geometry["entities"].toArray())if(entry.toObject()["id"]==targets["entityId"]){entity=entry.toObject();break;}
         if(kind=="auto")kind=entity["type"]=="circle" ? "diameter" : "radius";
     } else if(kind=="auto") {
         if(ids.size()!=2 || !points.contains(ids[0].toString()) || !points.contains(ids[1].toString()))return failure("stale_entity","Dimension targets do not exist");

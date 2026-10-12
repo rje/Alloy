@@ -138,6 +138,38 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try {
     linked.history().undo();check(linked.authored()==linkedAfter,"Projection depth undo changed local intent");linked.history().undo();check(linked.authored()==linkedBefore,"Projection source undo lost relationships");linked.history().redo();linked.history().redo();check(linked.authored()==beforeRejected,"Projection redo changed references");
     const auto linkedPath=directory.path()+"/linked-support.alloy";check(linked.save(linkedPath).isEmpty(),"Save linked support");CadDocument linkedReopen;check(linkedReopen.open(linkedPath).isEmpty() && linkedReopen.authored()==beforeRejected,"Reopen lost projection intent");
     worldZ(linkedReopen.sketches()[2],70);
+    auto snapped=SketchGeometry::findFeature(linkedReopen.authored(),projected["id"].toString());
+    auto snapContext=GeometryKernel::projectionContext(linkedReopen.evaluation(),snapped);
+    const auto snapTarget=SketchGeometry::projectionPointId(secondProjection,false);
+    QJsonObject externalPoint;
+    for(const auto& value:SketchGeometry::expandedProjectionFeature(snapped,snapContext)["parameters"].toObject()["points"].toArray())if(value.toObject()["id"]==snapTarget)externalPoint=value.toObject();
+    check(!externalPoint.isEmpty(),"Projected snap endpoint unavailable");
+    const auto priorPoints=snapped["parameters"].toObject()["points"].toArray().size();
+    snapped=accepted(SketchGeometry::addPointerEntity(snapped,"line",{{"u1Mm",-999},{"v1Mm",-999},{"u2Mm",externalPoint["uMm"].toDouble()+30},{"v2Mm",externalPoint["vMm"].toDouble()+50},{"startSnapTarget",QJsonObject{{"kind","point"},{"pointId",snapTarget}}}},snapContext));
+    const auto snapLine=snapped["parameters"].toObject()["entities"].toArray().last().toObject();
+    check(snapLine["startPointId"]!=snapTarget,"Snapped line took ownership of a projected endpoint");
+    snapped=accepted(SketchGeometry::addPointerCircle(snapped,{{"centerUMm",-999},{"centerVMm",-999},{"diameterMm",50},{"centerSnapTarget",QJsonObject{{"kind","point"},{"pointId",snapTarget}}}},snapContext));
+    const auto snapCircle=snapped["parameters"].toObject()["entities"].toArray().last().toObject();
+    check(snapCircle["centerPointId"]!=snapTarget && snapCircle["centerPointId"]!=snapLine["startPointId"],"Circle snap reused external or line point ownership");
+    check(snapped["parameters"].toObject()["points"].toArray().size()==priorPoints+3,"Snapping persisted virtual points");
+    int snapRelations=0;for(const auto& value:snapped["parameters"].toObject()["constraints"].toArray()){const auto relation=value.toObject();if(relation["type"]=="coincident" && relation["pointIds"].toArray().contains(snapTarget))++snapRelations;}
+    check(snapRelations==2,"Line/circle snaps did not retain explicit coincidence");
+    const auto staleSnap=SketchGeometry::addPointerCircle(snapped,{{"centerUMm",0},{"centerVMm",0},{"diameterMm",50},{"centerSnapTarget",QJsonObject{{"kind","point"},{"pointId",CadDocument::newId()}}}},snapContext);
+    check(!staleSnap.ok && staleSnap.feature==snapped,"Stale point snap changed the draft");
+    check(linkedReopen.commit(SketchGeometry::replaceFeature(linkedReopen.authored(),snapped),"Snapped line and circle").isEmpty(),"Commit projected endpoint snaps");
+    const auto beforeSnapSourceEdit=linkedReopen.authored();
+    resized=accepted(SketchGeometry::updateDimension(resized,{{"dimensionId",capDimension},{"valueMm",160}}));
+    resized=accepted(SketchGeometry::updateDimension(resized,{{"dimensionId",radiusId},{"valueMm",70}}));
+    check(linkedReopen.commit(SketchGeometry::replaceFeature(linkedReopen.authored(),resized),"Move snapped source").isEmpty(),"Source update broke projected coincidences");
+    const auto afterSnapSourceEdit=linkedReopen.authored();snapped=SketchGeometry::findFeature(afterSnapSourceEdit,snapped["id"].toString());
+    const auto updatedSnapContext=GeometryKernel::projectionContext(linkedReopen.evaluation(),snapped);
+    QMap<QString,QPointF> snapPositions;
+    for(const auto& value:SketchGeometry::expandedProjectionFeature(snapped,updatedSnapContext)["parameters"].toObject()["points"].toArray()){const auto point=value.toObject();snapPositions[point["id"].toString()]={point["uMm"].toDouble(),point["vMm"].toDouble()};}
+    check((snapPositions[snapTarget]-QPointF(externalPoint["uMm"].toDouble(),externalPoint["vMm"].toDouble())).manhattanLength()>1e-4,"Test source edit did not move its snap target");
+    for(const auto& id:{snapLine["startPointId"].toString(),snapCircle["centerPointId"].toString()})check((snapPositions[id]-snapPositions[snapTarget]).manhattanLength()<1e-6,"Authored snap stopped following projected endpoint");
+    linkedReopen.history().undo();check(linkedReopen.authored()==beforeSnapSourceEdit,"Snap source undo lost authored relationships");linkedReopen.history().redo();check(linkedReopen.authored()==afterSnapSourceEdit,"Snap source redo changed point IDs");
+    check(linkedReopen.save(linkedPath).isEmpty(),"Save projected snaps");CadDocument snapReopened;check(snapReopened.open(linkedPath).isEmpty() && snapReopened.authored()==afterSnapSourceEdit,"Reopen lost projected snap coincidences");
+
     std::cout<<"PASS: actual bracket planar end-cap reference, immutable local sketch, width/radius/depth transport, nested extrusion and atomic storage\n";
     return 0;
 }catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}}
