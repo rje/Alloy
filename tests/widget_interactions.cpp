@@ -167,7 +167,7 @@ private slots:
         QVERIFY2(run(window,"sketch.constraint",{{"type","horizontal"},{"entityIds",QJsonArray{line["id"]}}}),error_.constData());
         QVERIFY2(run(window,"sketch.dimension",{{"kind","linear"},{"pointIds",QJsonArray{line["startPointId"],line["endPointId"]}},{"value",40},{"driving",true}}),error_.constData());
         const auto original=params(),relation=original["constraints"].toArray().last().toObject();
-        const auto dimension=original["dimensions"].toArray().last().toObject()["id"];
+        const auto dimension=original["dimensions"].toArray().last().toObject().value("id").toString();
         const auto dof=session(window)["solverDiagnostics"].toObject()["dof"].toInt();
         const auto history=session(window)["draftHistory"].toObject()["index"].toInt();
         auto glyphs=[&]{return window.state()["viewport"].toObject()["gpu"].toObject()["sketchConstraintGlyphs"].toArray();};
