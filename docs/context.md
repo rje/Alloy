@@ -19,10 +19,23 @@ remain untouched. Constrained construction color is corrected in `324fb74` and
 Astra accepted actual captures. `e84703d` restores visible historical support
 stock when editing the hole sketch after Cut; the focused visible/hidden stock,
 Cancel/Finish restoration and exact authored-state probe passed Astra review.
-Next: Sol is implementing familiar grouped sketch command menus from Luna's
-external `knowledge/specs/tutorial-command-locations.json`. Preserve
+Grouped sketch menus are implemented in `5c58d36`; [their receipt](validation/sketch-menus.md)
+records focused Qt action tests and
+native nested Circle/Fillet/Parallel/construction/Press Pull dispatch passed.
+Native C works after menu closure without an extra viewport click. Popup pixel
+fidelity remains unqualified because main-window captures exclude separate popups.
+Next: two Sol agents implement [constraint interaction](research/commands/constraint-interaction.md)
+in parallel (command/session/palette and renderer/hit-testing), using Luna's
+external visibility/deletion evidence. Astra verifies each coherent slice. Preserve
 accepted evidence; do not repeat unchanged geometry suites for a color-only fix.
 No release/tag/CI was triggered. Status requests do not pause autonomous work.
+
+`build-human-tutorial/alloy.app` (Alloy Tutorial Preview) is a separately copied
+`5c58d36` candidate with its own `human/tutorial-bracket.alloy`; it is open but
+has not yet been handed off. Root's TutorialCandidate and TutorialPolishCandidate
+are stopped. A newly found usability gap is that editing an existing large
+sketch resets framing to a 100 mm origin-centered view. Coordinate the bounded
+fit correction with the renderer and command agents before the next handoff.
 
 ## Decisions from the conversation
 
