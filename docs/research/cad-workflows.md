@@ -14,7 +14,7 @@ OCCT/OpenGL viewport work was implemented as a bounded follow-up; consult
 ## Reference method and accepted constraints
 
 Only public Autodesk documentation, screenshots, tutorials and published API
-descriptions were used for target-product evidence. No reference CAD application application,
+descriptions were used for target-product evidence. No proprietary reference application,
 installation, trial, web client, account data, private API, traffic or extracted
 asset was accessed. Open-source library documentation/source was studied for
 implementation feasibility. The original 84 primary URLs and additional public

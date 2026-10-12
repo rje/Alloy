@@ -2,7 +2,7 @@
 
 Prepared 2026-10-11 from public references and the accepted Alloy requirements.
 [issues.json](issues.json) is the machine-readable source for GitHub publication;
-[sources.json](sources.json) records the 112 dated primary-source URLs cited by its
+[sources.json](sources.json) records the 112 dated primary-source entries cited by its
 issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
@@ -123,9 +123,9 @@ ten milestones, and readiness labels. See [publication.json](publication.json)
 for the dated receipt. The repository is public and MIT-licensed.
 
 The public [project board](https://github.com/users/rje/projects/1) has a
-repository auto-add workflow. The current CLI token lacks Projects scope, so
-its item count was not separately verified by API. Issue publication and the
-pull queue are verified independently of the board.
+repository auto-add workflow. Projects access is now available through `gh`;
+all 135 board items were verified by API. Keep Status synchronized as tasks start
+and finish. Issue publication and the pull queue are verified independently.
 
 To synchronize dependency labels after closing work:
 

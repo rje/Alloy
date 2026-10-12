@@ -1,12 +1,12 @@
 # Alloy
 
-Alloy is a project to build a standalone, open source, modifiable CAD application
-that grows into a functional feature-for-feature replacement for the reference CAD application.
-Existing reference CAD application users should find its workflows, commands, keyboard controls, and layout
-intimately familiar. Features that currently require cloud access may be deferred.
+Alloy is a standalone, open source, modifiable parametric CAD application.
+The long-term goal is complete functional coverage of professional CAD workflows,
+with familiar commands, keyboard controls, and layouts. Features that currently
+require cloud access may be deferred.
 
 This is a clean-room implementation based on public documentation, instructions,
-and screenshots. We do not run or inspect reference CAD application. Read [AGENTS.md](AGENTS.md)
+and screenshots. We do not run or inspect proprietary reference applications. Read [AGENTS.md](AGENTS.md)
 before researching, designing, or implementing anything in this project.
 
 The first product focus is shape creation: sketches, solids, surfaces, editable
@@ -33,8 +33,8 @@ The public repository is [rje/Alloy](https://github.com/rje/Alloy), with the
 - [Roadmap](docs/roadmap.md): workflow milestones and acceptance criteria.
 - [Compatibility](docs/compatibility.md): how we track familiar behavior and
   separate research evidence from implementation claims.
-- [Target comparison](docs/target-comparison.md): the Maya, Houdini, and reference CAD application
-  paths considered before selecting reference CAD application.
+- [Target comparison](docs/target-comparison.md): animation, procedural content,
+  and parametric CAD paths considered before selecting CAD.
 - [Public interface research](docs/research/interface-reference.md): Astra's
   source-linked interface and interaction findings.
 - [Development](docs/development.md): build, run, and verification instructions.

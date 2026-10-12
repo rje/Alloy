@@ -1,0 +1,1846 @@
+{
+  "observed_at": "2026-10-12T00:43:40.667319+00:00",
+  "scope": "Post-publication cleanup native shell; no authored CAD geometry",
+  "build": "Debug C++20 Qt6.11.2 OCCT7.9.3 on macOS Apple silicon",
+  "widget_style": "Windows (public Qt style)",
+  "source_files_sha256": {
+    "src/AlloyWindow.cpp": "0525c1ac7fdf8b9d4efe53998aa1b3fc7aa500d79a255c13ace76a9dd343b5a4",
+    "src/AlloyWindow.h": "67132194f4864d5eae33e523b141f3cfa3d9500cfdb4a45ea06799f8a9a6f7ca",
+    "src/ControlServer.cpp": "cb8ad74e6bed508791cc0f12e0d09b7cad46d7ccf20e0f5ceeb53178e83fddea",
+    "src/ControlServer.h": "9c692cacf1f764435284b1cec2e3d50a38ebda8ab7aeccd76704adbf67aee651",
+    "src/ReferenceView.cpp": "603ad335b468d3d8c2873e2748d9d8986528bc199dfdd69b82d90315eeec2f28",
+    "src/ReferenceView.h": "d8f709c0e2f441887b7de54da1a3b29c3f0429a79902278c76c9cdfd20084cd4",
+    "src/main.cpp": "7cbe8b9251e9c8ca01b082f8e5388e4e27d56e131015439e40365177dce775cf"
+  },
+  "binary_sha256": "db6029ce6f961de5e00602a8d82fdf85f18a7e37213eea07a4fff0c7c61e72a0",
+  "real_app_smoke": {
+    "result": "passed",
+    "scope": "Native shell, hardware OCCT OpenGL, Retina resize and framebuffer capture; no authored geometry or CAD workflow",
+    "initialState": {
+      "application": "Alloy",
+      "document": {
+        "bodies": 0,
+        "editableHistory": false,
+        "features": 0,
+        "label": "Untitled",
+        "loaded": false,
+        "sketches": 0
+      },
+      "kernel": {
+        "candidate": "Open CASCADE",
+        "discoveredVersion": "7.9.3",
+        "integrated": false,
+        "visualizationIntegrated": true
+      },
+      "revision": 4,
+      "stage": "ui-shell",
+      "ui": {
+        "browserVisible": true,
+        "commandSearchVisible": false,
+        "devicePixelRatio": 2,
+        "navigationVisible": true,
+        "tab": "solid",
+        "timelineVisible": true,
+        "windowHeight": 900,
+        "windowWidth": 1440,
+        "workspace": "design"
+      },
+      "version": "0.1.0",
+      "viewport": {
+        "gpu": {
+          "backend": "OCCT OpenGL",
+          "details": {
+            "FBO buffer": "GL_SRGB8_ALPHA8 GL_DEPTH24_STENCIL8",
+            "GLSLversion": "4.10",
+            "GLdevice": "Apple M4",
+            "GLvendor": "Apple",
+            "GLversion": "4.1 Metal - 90.5",
+            "GPU Texture memory": "12124 MiB",
+            "GPU memory": "12124 MiB",
+            "Max FBO dump size": "16384x16384",
+            "Max MSAA samples": "4",
+            "Max combined texture units": "80",
+            "Max texture size": "16384",
+            "ResolutionRatio": "2",
+            "Viewport": "2376x1274",
+            "Window buffer": "RGB0 ALPHA0 DEPTH0 STENCIL0"
+          },
+          "error": "",
+          "framebufferHeight": 1274,
+          "framebufferWidth": 2376,
+          "hardwareAccelerated": true,
+          "initialized": true,
+          "nativeHeight": 637,
+          "nativeWidth": 1188,
+          "qualification": "hardware-driver-identified",
+          "renderer": "Apple M4",
+          "vendor": "Apple",
+          "version": "4.1 Metal - 90.5"
+        },
+        "gridVisible": true,
+        "height": 637,
+        "orientation": "isometric",
+        "originVisible": true,
+        "pan": {
+          "x": 0,
+          "y": 0
+        },
+        "renderer": "OCCT OpenGL",
+        "width": 1188,
+        "zoom": 1
+      }
+    },
+    "finalState": {
+      "application": "Alloy",
+      "document": {
+        "bodies": 0,
+        "editableHistory": false,
+        "features": 0,
+        "label": "Untitled",
+        "loaded": false,
+        "sketches": 0
+      },
+      "kernel": {
+        "candidate": "Open CASCADE",
+        "discoveredVersion": "7.9.3",
+        "integrated": false,
+        "visualizationIntegrated": true
+      },
+      "revision": 18,
+      "stage": "ui-shell",
+      "ui": {
+        "browserVisible": true,
+        "commandSearchVisible": false,
+        "devicePixelRatio": 2,
+        "navigationVisible": true,
+        "tab": "solid",
+        "timelineVisible": true,
+        "windowHeight": 900,
+        "windowWidth": 1440,
+        "workspace": "design"
+      },
+      "version": "0.1.0",
+      "viewport": {
+        "gpu": {
+          "backend": "OCCT OpenGL",
+          "details": {
+            "FBO buffer": "GL_SRGB8_ALPHA8 GL_DEPTH24_STENCIL8",
+            "GLSLversion": "4.10",
+            "GLdevice": "Apple M4",
+            "GLvendor": "Apple",
+            "GLversion": "4.1 Metal - 90.5",
+            "GPU Texture memory": "12124 MiB",
+            "GPU memory": "12124 MiB",
+            "Max FBO dump size": "16384x16384",
+            "Max MSAA samples": "4",
+            "Max combined texture units": "80",
+            "Max texture size": "16384",
+            "ResolutionRatio": "2",
+            "Viewport": "2376x1274",
+            "Window buffer": "RGB0 ALPHA0 DEPTH0 STENCIL0"
+          },
+          "error": "",
+          "framebufferHeight": 1274,
+          "framebufferWidth": 2376,
+          "hardwareAccelerated": true,
+          "initialized": true,
+          "nativeHeight": 637,
+          "nativeWidth": 1188,
+          "qualification": "hardware-driver-identified",
+          "renderer": "Apple M4",
+          "vendor": "Apple",
+          "version": "4.1 Metal - 90.5"
+        },
+        "gridVisible": true,
+        "height": 637,
+        "orientation": "isometric",
+        "originVisible": true,
+        "pan": {
+          "x": 0,
+          "y": 0
+        },
+        "renderer": "OCCT OpenGL",
+        "width": 1188,
+        "zoom": 1
+      }
+    },
+    "capture": {
+      "devicePixelRatio": 2,
+      "path": "/Users/rje/src/cpp/Alloy/build/evidence/alloy-shell.png",
+      "pixelHeight": 1800,
+      "pixelWidth": 2880,
+      "source": "QWidget chrome + OCCT OpenGL framebuffer",
+      "viewportPixelHeight": 1274,
+      "viewportPixelWidth": 2376,
+      "viewportSha256": "0ddc3a6e4a6fa0901a0671d023419ed7bcab4fd23b111b0ba6705de6d146755e"
+    },
+    "gpuChecks": {
+      "startupBeforeCapture": {
+        "backend": "OCCT OpenGL",
+        "details": {
+          "FBO buffer": "GL_SRGB8_ALPHA8 GL_DEPTH24_STENCIL8",
+          "GLSLversion": "4.10",
+          "GLdevice": "Apple M4",
+          "GLvendor": "Apple",
+          "GLversion": "4.1 Metal - 90.5",
+          "GPU Texture memory": "12124 MiB",
+          "GPU memory": "12124 MiB",
+          "Max FBO dump size": "16384x16384",
+          "Max MSAA samples": "4",
+          "Max combined texture units": "80",
+          "Max texture size": "16384",
+          "ResolutionRatio": "2",
+          "Viewport": "2376x1274",
+          "Window buffer": "RGB0 ALPHA0 DEPTH0 STENCIL0"
+        },
+        "error": "",
+        "framebufferHeight": 1274,
+        "framebufferWidth": 2376,
+        "hardwareAccelerated": true,
+        "initialized": true,
+        "nativeHeight": 637,
+        "nativeWidth": 1188,
+        "qualification": "hardware-driver-identified",
+        "renderer": "Apple M4",
+        "vendor": "Apple",
+        "version": "4.1 Metal - 90.5"
+      },
+      "isometric": {
+        "devicePixelRatio": 2,
+        "path": "/Users/rje/src/cpp/Alloy/build/evidence/alloy-gpu-isometric.png",
+        "pixelHeight": 1800,
+        "pixelWidth": 2880,
+        "source": "QWidget chrome + OCCT OpenGL framebuffer",
+        "viewportPixelHeight": 1274,
+        "viewportPixelWidth": 2376,
+        "viewportSha256": "0ddc3a6e4a6fa0901a0671d023419ed7bcab4fd23b111b0ba6705de6d146755e"
+      },
+      "top": {
+        "devicePixelRatio": 2,
+        "path": "/Users/rje/src/cpp/Alloy/build/evidence/alloy-gpu-top.png",
+        "pixelHeight": 1800,
+        "pixelWidth": 2880,
+        "source": "QWidget chrome + OCCT OpenGL framebuffer",
+        "viewportPixelHeight": 1274,
+        "viewportPixelWidth": 2376,
+        "viewportSha256": "689825b58441db8bc07589e0be6a343de27e251a3be2848f7246c3e97b2ad7e4"
+      },
+      "resized": {
+        "devicePixelRatio": 2,
+        "path": "/Users/rje/src/cpp/Alloy/build/evidence/alloy-gpu-resized.png",
+        "pixelHeight": 1600,
+        "pixelWidth": 2400,
+        "source": "QWidget chrome + OCCT OpenGL framebuffer",
+        "viewportPixelHeight": 1074,
+        "viewportPixelWidth": 1896,
+        "viewportSha256": "bbe9d5fb74bee3a4bbc612380f1ffeb50c00d1bf7f9b99745725182a6e5759fc"
+      },
+      "resizedState": {
+        "application": "Alloy",
+        "document": {
+          "bodies": 0,
+          "editableHistory": false,
+          "features": 0,
+          "label": "Untitled",
+          "loaded": false,
+          "sketches": 0
+        },
+        "kernel": {
+          "candidate": "Open CASCADE",
+          "discoveredVersion": "7.9.3",
+          "integrated": false,
+          "visualizationIntegrated": true
+        },
+        "revision": 2,
+        "stage": "ui-shell",
+        "ui": {
+          "browserVisible": true,
+          "commandSearchVisible": false,
+          "devicePixelRatio": 2,
+          "navigationVisible": true,
+          "tab": "solid",
+          "timelineVisible": true,
+          "windowHeight": 800,
+          "windowWidth": 1200,
+          "workspace": "design"
+        },
+        "version": "0.1.0",
+        "viewport": {
+          "gpu": {
+            "backend": "OCCT OpenGL",
+            "details": {
+              "FBO buffer": "GL_SRGB8_ALPHA8 GL_DEPTH24_STENCIL8",
+              "GLSLversion": "4.10",
+              "GLdevice": "Apple M4",
+              "GLvendor": "Apple",
+              "GLversion": "4.1 Metal - 90.5",
+              "GPU Texture memory": "12124 MiB",
+              "GPU memory": "12124 MiB",
+              "Max FBO dump size": "16384x16384",
+              "Max MSAA samples": "4",
+              "Max combined texture units": "80",
+              "Max texture size": "16384",
+              "ResolutionRatio": "2",
+              "Viewport": "1896x1074",
+              "Window buffer": "RGB0 ALPHA0 DEPTH0 STENCIL0"
+            },
+            "error": "",
+            "framebufferHeight": 1074,
+            "framebufferWidth": 1896,
+            "hardwareAccelerated": true,
+            "initialized": true,
+            "nativeHeight": 537,
+            "nativeWidth": 948,
+            "qualification": "hardware-driver-identified",
+            "renderer": "Apple M4",
+            "vendor": "Apple",
+            "version": "4.1 Metal - 90.5"
+          },
+          "gridVisible": true,
+          "height": 537,
+          "orientation": "top",
+          "originVisible": true,
+          "pan": {
+            "x": 0,
+            "y": 0
+          },
+          "renderer": "OCCT OpenGL",
+          "width": 948,
+          "zoom": 1
+        }
+      }
+    },
+    "sha256": "809a0888429980334e7c8a4686ce2d30545c33059d2835ccc23c23a99c7e0dc2",
+    "transcript": [
+      {
+        "command": "app.state",
+        "args": {},
+        "response": {
+          "command": "app.state",
+          "completion": "completed",
+          "id": "9496004c-8179-4c86-8210-ff8700118616",
+          "ok": true,
+          "result": {
+            "application": "Alloy",
+            "document": {
+              "bodies": 0,
+              "editableHistory": false,
+              "features": 0,
+              "label": "Untitled",
+              "loaded": false,
+              "sketches": 0
+            },
+            "kernel": {
+              "candidate": "Open CASCADE",
+              "discoveredVersion": "7.9.3",
+              "integrated": false,
+              "visualizationIntegrated": true
+            },
+            "revision": 0,
+            "stage": "ui-shell",
+            "ui": {
+              "browserVisible": true,
+              "commandSearchVisible": false,
+              "devicePixelRatio": 2,
+              "navigationVisible": true,
+              "tab": "solid",
+              "timelineVisible": true,
+              "windowHeight": 900,
+              "windowWidth": 1440,
+              "workspace": "design"
+            },
+            "version": "0.1.0",
+            "viewport": {
+              "gpu": {
+                "backend": "OCCT OpenGL",
+                "details": {
+                  "FBO buffer": "GL_SRGB8_ALPHA8 GL_DEPTH24_STENCIL8",
+                  "GLSLversion": "4.10",
+                  "GLdevice": "Apple M4",
+                  "GLvendor": "Apple",
+                  "GLversion": "4.1 Metal - 90.5",
+                  "GPU Texture memory": "12124 MiB",
+                  "GPU memory": "12124 MiB",
+                  "Max FBO dump size": "16384x16384",
+                  "Max MSAA samples": "4",
+                  "Max combined texture units": "80",
+                  "Max texture size": "16384",
+                  "ResolutionRatio": "2",
+                  "Viewport": "2376x1274",
+                  "Window buffer": "RGB0 ALPHA0 DEPTH0 STENCIL0"
+                },
+                "error": "",
+                "framebufferHeight": 1274,
+                "framebufferWidth": 2376,
+                "hardwareAccelerated": true,
+                "initialized": true,
+                "nativeHeight": 637,
+                "nativeWidth": 1188,
+                "qualification": "hardware-driver-identified",
+                "renderer": "Apple M4",
+                "vendor": "Apple",
+                "version": "4.1 Metal - 90.5"
+              },
+              "gridVisible": true,
+              "height": 637,
+              "orientation": "isometric",
+              "originVisible": true,
+              "pan": {
+                "x": 0,
+                "y": 0
+              },
+              "renderer": "OCCT OpenGL",
+              "width": 1188,
+              "zoom": 1
+            }
+          },
+          "revision": 0
+        }
+      },
+      {
+        "command": "capture.screenshot",
+        "args": {
+          "path": "/Users/rje/src/cpp/Alloy/build/evidence/alloy-gpu-isometric.png"
+        },
+        "response": {
+          "command": "capture.screenshot",
+          "completion": "completed",
+          "id": "460328b5-9ba8-4c10-a6a2-15ad42e6bada",
+          "ok": true,
+          "result": {
+            "devicePixelRatio": 2,
+            "path": "/Users/rje/src/cpp/Alloy/build/evidence/alloy-gpu-isometric.png",
+            "pixelHeight": 1800,
+            "pixelWidth": 2880,
+            "source": "QWidget chrome + OCCT OpenGL framebuffer",
+            "viewportPixelHeight": 1274,
+            "viewportPixelWidth": 2376,
+            "viewportSha256": "0ddc3a6e4a6fa0901a0671d023419ed7bcab4fd23b111b0ba6705de6d146755e"
+          },
+          "revision": 0
+        }
+      },
+      {
+        "command": "view.orientation",
+        "args": {
+          "name": "top"
+        },
+        "response": {
+          "command": "view.orientation",
+          "completion": "completed",
+          "id": "3b3387f5-8a59-433d-bc27-f118ecd2e296",
+          "ok": true,
+          "result": {},
+          "revision": 1
+        }
+      },
+      {
+        "command": "capture.screenshot",
+        "args": {
+          "path": "/Users/rje/src/cpp/Alloy/build/evidence/alloy-gpu-top.png"
+        },
+        "response": {
+          "command": "capture.screenshot",
+          "completion": "completed",
+          "id": "80cb57d1-7177-4cbb-97a8-12791d559529",
+          "ok": true,
+          "result": {
+            "devicePixelRatio": 2,
+            "path": "/Users/rje/src/cpp/Alloy/build/evidence/alloy-gpu-top.png",
+            "pixelHeight": 1800,
+            "pixelWidth": 2880,
+            "source": "QWidget chrome + OCCT OpenGL framebuffer",
+            "viewportPixelHeight": 1274,
+            "viewportPixelWidth": 2376,
+            "viewportSha256": "689825b58441db8bc07589e0be6a343de27e251a3be2848f7246c3e97b2ad7e4"
+          },
+          "revision": 1
+        }
+      },
+      {
+        "command": "window.resize",
+        "args": {
+          "width": 1200,
+          "height": 800
+        },
+        "response": {
+          "command": "window.resize",
+          "completion": "completed",
+          "id": "25c1a3e4-493f-4695-b04f-574b4f63ed80",
+          "ok": true,
+          "result": {},
+          "revision": 2
+        }
+      },
+      {
+        "command": "app.state",
+        "args": {},
+        "response": {
+          "command": "app.state",
+          "completion": "completed",
+          "id": "07ceca01-4e4f-4147-b10e-0b93501a8266",
+          "ok": true,
+          "result": {
+            "application": "Alloy",
+            "document": {
+              "bodies": 0,
+              "editableHistory": false,
+              "features": 0,
+              "label": "Untitled",
+              "loaded": false,
+              "sketches": 0
+            },
+            "kernel": {
+              "candidate": "Open CASCADE",
+              "discoveredVersion": "7.9.3",
+              "integrated": false,
+              "visualizationIntegrated": true
+            },
+            "revision": 2,
+            "stage": "ui-shell",
+            "ui": {
+              "browserVisible": true,
+              "commandSearchVisible": false,
+              "devicePixelRatio": 2,
+              "navigationVisible": true,
+              "tab": "solid",
+              "timelineVisible": true,
+              "windowHeight": 800,
+              "windowWidth": 1200,
+              "workspace": "design"
+            },
+            "version": "0.1.0",
+            "viewport": {
+              "gpu": {
+                "backend": "OCCT OpenGL",
+                "details": {
+                  "FBO buffer": "GL_SRGB8_ALPHA8 GL_DEPTH24_STENCIL8",
+                  "GLSLversion": "4.10",
+                  "GLdevice": "Apple M4",
+                  "GLvendor": "Apple",
+                  "GLversion": "4.1 Metal - 90.5",
+                  "GPU Texture memory": "12124 MiB",
+                  "GPU memory": "12124 MiB",
+                  "Max FBO dump size": "16384x16384",
+                  "Max MSAA samples": "4",
+                  "Max combined texture units": "80",
+                  "Max texture size": "16384",
+                  "ResolutionRatio": "2",
+                  "Viewport": "1896x1074",
+                  "Window buffer": "RGB0 ALPHA0 DEPTH0 STENCIL0"
+                },
+                "error": "",
+                "framebufferHeight": 1074,
+                "framebufferWidth": 1896,
+                "hardwareAccelerated": true,
+                "initialized": true,
+                "nativeHeight": 537,
+                "nativeWidth": 948,
+                "qualification": "hardware-driver-identified",
+                "renderer": "Apple M4",
+                "vendor": "Apple",
+                "version": "4.1 Metal - 90.5"
+              },
+              "gridVisible": true,
+              "height": 537,
+              "orientation": "top",
+              "originVisible": true,
+              "pan": {
+                "x": 0,
+                "y": 0
+              },
+              "renderer": "OCCT OpenGL",
+              "width": 948,
+              "zoom": 1
+            }
+          },
+          "revision": 2
+        }
+      },
+      {
+        "command": "capture.screenshot",
+        "args": {
+          "path": "/Users/rje/src/cpp/Alloy/build/evidence/alloy-gpu-resized.png"
+        },
+        "response": {
+          "command": "capture.screenshot",
+          "completion": "completed",
+          "id": "c7d2b32c-37dc-4afb-a9d0-fab4f81f9ea7",
+          "ok": true,
+          "result": {
+            "devicePixelRatio": 2,
+            "path": "/Users/rje/src/cpp/Alloy/build/evidence/alloy-gpu-resized.png",
+            "pixelHeight": 1600,
+            "pixelWidth": 2400,
+            "source": "QWidget chrome + OCCT OpenGL framebuffer",
+            "viewportPixelHeight": 1074,
+            "viewportPixelWidth": 1896,
+            "viewportSha256": "bbe9d5fb74bee3a4bbc612380f1ffeb50c00d1bf7f9b99745725182a6e5759fc"
+          },
+          "revision": 2
+        }
+      },
+      {
+        "command": "window.resize",
+        "args": {
+          "width": 1440,
+          "height": 900
+        },
+        "response": {
+          "command": "window.resize",
+          "completion": "completed",
+          "id": "48120a28-bdb9-4bac-a503-909aa51044da",
+          "ok": true,
+          "result": {},
+          "revision": 3
+        }
+      },
+      {
+        "command": "view.home",
+        "args": {},
+        "response": {
+          "command": "view.home",
+          "completion": "completed",
+          "id": "3703227a-9e70-4b11-b8f5-d2db2cd687f1",
+          "ok": true,
+          "result": {},
+          "revision": 4
+        }
+      },
+      {
+        "command": "app.state",
+        "args": {},
+        "response": {
+          "command": "app.state",
+          "completion": "completed",
+          "id": "2481bae2-0e2e-4ffc-bbd5-55a2372df8d9",
+          "ok": true,
+          "result": {
+            "application": "Alloy",
+            "document": {
+              "bodies": 0,
+              "editableHistory": false,
+              "features": 0,
+              "label": "Untitled",
+              "loaded": false,
+              "sketches": 0
+            },
+            "kernel": {
+              "candidate": "Open CASCADE",
+              "discoveredVersion": "7.9.3",
+              "integrated": false,
+              "visualizationIntegrated": true
+            },
+            "revision": 4,
+            "stage": "ui-shell",
+            "ui": {
+              "browserVisible": true,
+              "commandSearchVisible": false,
+              "devicePixelRatio": 2,
+              "navigationVisible": true,
+              "tab": "solid",
+              "timelineVisible": true,
+              "windowHeight": 900,
+              "windowWidth": 1440,
+              "workspace": "design"
+            },
+            "version": "0.1.0",
+            "viewport": {
+              "gpu": {
+                "backend": "OCCT OpenGL",
+                "details": {
+                  "FBO buffer": "GL_SRGB8_ALPHA8 GL_DEPTH24_STENCIL8",
+                  "GLSLversion": "4.10",
+                  "GLdevice": "Apple M4",
+                  "GLvendor": "Apple",
+                  "GLversion": "4.1 Metal - 90.5",
+                  "GPU Texture memory": "12124 MiB",
+                  "GPU memory": "12124 MiB",
+                  "Max FBO dump size": "16384x16384",
+                  "Max MSAA samples": "4",
+                  "Max combined texture units": "80",
+                  "Max texture size": "16384",
+                  "ResolutionRatio": "2",
+                  "Viewport": "2376x1274",
+                  "Window buffer": "RGB0 ALPHA0 DEPTH0 STENCIL0"
+                },
+                "error": "",
+                "framebufferHeight": 1274,
+                "framebufferWidth": 2376,
+                "hardwareAccelerated": true,
+                "initialized": true,
+                "nativeHeight": 637,
+                "nativeWidth": 1188,
+                "qualification": "hardware-driver-identified",
+                "renderer": "Apple M4",
+                "vendor": "Apple",
+                "version": "4.1 Metal - 90.5"
+              },
+              "gridVisible": true,
+              "height": 637,
+              "orientation": "isometric",
+              "originVisible": true,
+              "pan": {
+                "x": 0,
+                "y": 0
+              },
+              "renderer": "OCCT OpenGL",
+              "width": 1188,
+              "zoom": 1
+            }
+          },
+          "revision": 4
+        }
+      },
+      {
+        "command": "commands.list",
+        "args": {},
+        "response": {
+          "command": "commands.list",
+          "completion": "completed",
+          "id": "79ee8735-3f1d-4d11-b05f-f9cc4925f39c",
+          "ok": true,
+          "result": {
+            "commands": [
+              {
+                "available": true,
+                "description": "Read authoritative real-window shell state.",
+                "id": "app.state",
+                "parameters": {},
+                "title": "Inspect state"
+              },
+              {
+                "available": true,
+                "description": "Discover supported and unavailable commands with argument schemas.",
+                "id": "commands.list",
+                "parameters": {},
+                "title": "List commands"
+              },
+              {
+                "available": true,
+                "description": "Open the native command search dialog (S).",
+                "id": "commands.search",
+                "parameters": {},
+                "title": "Command search"
+              },
+              {
+                "available": true,
+                "description": "Dismiss the command search dialog.",
+                "id": "commands.close",
+                "parameters": {},
+                "title": "Close command search"
+              },
+              {
+                "available": true,
+                "description": "Control the left Browser region.",
+                "id": "layout.browser",
+                "parameters": {
+                  "visible": {
+                    "description": "Whether this region is visible.",
+                    "required": true,
+                    "type": "boolean"
+                  }
+                },
+                "title": "Show / hide Browser"
+              },
+              {
+                "available": true,
+                "description": "Control the empty feature history region.",
+                "id": "layout.timeline",
+                "parameters": {
+                  "visible": {
+                    "description": "Whether this region is visible.",
+                    "required": true,
+                    "type": "boolean"
+                  }
+                },
+                "title": "Show / hide Timeline"
+              },
+              {
+                "available": true,
+                "description": "Control the bottom reference-view controls.",
+                "id": "layout.navigation",
+                "parameters": {
+                  "visible": {
+                    "description": "Whether this region is visible.",
+                    "required": true,
+                    "type": "boolean"
+                  }
+                },
+                "title": "Show / hide Navigation Bar"
+              },
+              {
+                "available": true,
+                "description": "Restore Browser, navigation bar, and Timeline.",
+                "id": "layout.reset",
+                "parameters": {},
+                "title": "Reset to Default Layout"
+              },
+              {
+                "available": true,
+                "description": "Show or hide the reference grid; no model geometry is created.",
+                "id": "view.grid",
+                "parameters": {
+                  "visible": {
+                    "description": "Whether this region is visible.",
+                    "required": true,
+                    "type": "boolean"
+                  }
+                },
+                "title": "Show / hide Grid"
+              },
+              {
+                "available": true,
+                "description": "Show or hide reference axes.",
+                "id": "view.origin",
+                "parameters": {
+                  "visible": {
+                    "description": "Whether this region is visible.",
+                    "required": true,
+                    "type": "boolean"
+                  }
+                },
+                "title": "Show / hide Origin"
+              },
+              {
+                "available": true,
+                "description": "Select a named view of the reference grid.",
+                "id": "view.orientation",
+                "parameters": {
+                  "name": {
+                    "description": "Orthographic orientation of the reference grid.",
+                    "enum": [
+                      "isometric",
+                      "top",
+                      "front",
+                      "right"
+                    ],
+                    "required": true,
+                    "type": "string"
+                  }
+                },
+                "title": "Set view orientation"
+              },
+              {
+                "available": true,
+                "description": "Scale the reference grid; mouse wheel uses this command.",
+                "id": "view.zoom",
+                "parameters": {
+                  "factor": {
+                    "description": "Relative scale factor (0.1 to 10); resulting zoom clamps to 0.1 to 10.",
+                    "maximum": 10,
+                    "minimum": 0.1,
+                    "required": true,
+                    "type": "number"
+                  }
+                },
+                "title": "Zoom reference view"
+              },
+              {
+                "available": true,
+                "description": "Translate the grid; middle-mouse drag uses this command.",
+                "id": "view.pan",
+                "parameters": {
+                  "x": {
+                    "description": "Relative pan in logical pixels; each delta limited to +/-10000.",
+                    "maximum": 10000,
+                    "minimum": -10000,
+                    "required": true,
+                    "type": "number"
+                  },
+                  "y": {
+                    "description": "Relative pan in logical pixels; each delta limited to +/-10000.",
+                    "maximum": 10000,
+                    "minimum": -10000,
+                    "required": true,
+                    "type": "number"
+                  }
+                },
+                "title": "Pan reference view"
+              },
+              {
+                "available": true,
+                "description": "Resize the real native window for layout and framebuffer inspection.",
+                "id": "window.resize",
+                "parameters": {
+                  "height": {
+                    "description": "Logical window size; width 1040..4096, height 640..4096.",
+                    "maximum": 4096,
+                    "minimum": 640,
+                    "required": true,
+                    "type": "number"
+                  },
+                  "width": {
+                    "description": "Logical window size; width 1040..4096, height 640..4096.",
+                    "maximum": 4096,
+                    "minimum": 640,
+                    "required": true,
+                    "type": "number"
+                  }
+                },
+                "title": "Resize window"
+              },
+              {
+                "available": true,
+                "description": "Restore isometric orientation, zoom 1, and zero pan.",
+                "id": "view.home",
+                "parameters": {},
+                "title": "Home view"
+              },
+              {
+                "available": true,
+                "description": "Save a PNG of the actual main window, excluding OS decorations and separate dialogs.",
+                "id": "capture.screenshot",
+                "parameters": {
+                  "path": {
+                    "description": "Absolute destination PNG path; parent directory must exist.",
+                    "required": true,
+                    "type": "string"
+                  }
+                },
+                "title": "Capture screenshot"
+              },
+              {
+                "available": true,
+                "description": "Complete the request, then exit on the next event-loop turn.",
+                "id": "app.quit",
+                "parameters": {},
+                "title": "Quit Alloy"
+              },
+              {
+                "available": false,
+                "description": "Not implemented in the UI shell.",
+                "id": "sketch.create",
+                "parameters": {},
+                "title": "Create Sketch"
+              },
+              {
+                "available": false,
+                "description": "Not implemented in the UI shell.",
+                "id": "solid.extrude",
+                "parameters": {},
+                "title": "Extrude"
+              },
+              {
+                "available": false,
+                "description": "Not implemented in the UI shell.",
+                "id": "solid.revolve",
+                "parameters": {},
+                "title": "Revolve"
+              },
+              {
+                "available": false,
+                "description": "Not implemented in the UI shell.",
+                "id": "solid.fillet",
+                "parameters": {},
+                "title": "Fillet"
+              },
+              {
+                "available": false,
+                "description": "Not implemented in the UI shell.",
+                "id": "solid.shell",
+                "parameters": {},
+                "title": "Shell"
+              },
+              {
+                "available": false,
+                "description": "Not implemented in the UI shell.",
+                "id": "solid.move",
+                "parameters": {},
+                "title": "Move"
+              },
+              {
+                "available": false,
+                "description": "Not implemented in the UI shell.",
+                "id": "construction.plane",
+                "parameters": {},
+                "title": "Plane"
+              },
+              {
+                "available": false,
+                "description": "Not implemented in the UI shell.",
+                "id": "inspect.measure",
+                "parameters": {},
+                "title": "Measure"
+              },
+              {
+                "available": false,
+                "description": "Not implemented in the UI shell.",
+                "id": "document.save",
+                "parameters": {},
+                "title": "Save"
+              },
+              {
+                "available": false,
+                "description": "Not implemented in the UI shell.",
+                "id": "history.undo",
+                "parameters": {},
+                "title": "Undo"
+              },
+              {
+                "available": false,
+                "description": "Not implemented in the UI shell.",
+                "id": "history.redo",
+                "parameters": {},
+                "title": "Redo"
+              }
+            ]
+          },
+          "revision": 4
+        }
+      },
+      {
+        "command": "view.orientation",
+        "args": {
+          "name": "top"
+        },
+        "response": {
+          "command": "view.orientation",
+          "completion": "completed",
+          "id": "a7534995-ee2e-4a1d-be32-b5263c6e48f5",
+          "ok": true,
+          "result": {},
+          "revision": 5
+        }
+      },
+      {
+        "command": "view.grid",
+        "args": {
+          "visible": false
+        },
+        "response": {
+          "command": "view.grid",
+          "completion": "completed",
+          "id": "76d57dcb-1441-40fb-96c6-adb23dc2594e",
+          "ok": true,
+          "result": {},
+          "revision": 6
+        }
+      },
+      {
+        "command": "view.origin",
+        "args": {
+          "visible": false
+        },
+        "response": {
+          "command": "view.origin",
+          "completion": "completed",
+          "id": "6a212127-db59-454b-8f10-1f67a86e1b38",
+          "ok": true,
+          "result": {},
+          "revision": 7
+        }
+      },
+      {
+        "command": "view.zoom",
+        "args": {
+          "factor": 1.5
+        },
+        "response": {
+          "command": "view.zoom",
+          "completion": "completed",
+          "id": "a7c6cde6-c37a-411a-8f85-689edcbaecbc",
+          "ok": true,
+          "result": {},
+          "revision": 8
+        }
+      },
+      {
+        "command": "view.pan",
+        "args": {
+          "x": 32,
+          "y": -18
+        },
+        "response": {
+          "command": "view.pan",
+          "completion": "completed",
+          "id": "2c8a529f-3688-415c-ba44-14d84c1e8e1f",
+          "ok": true,
+          "result": {},
+          "revision": 9
+        }
+      },
+      {
+        "command": "layout.browser",
+        "args": {
+          "visible": false
+        },
+        "response": {
+          "command": "layout.browser",
+          "completion": "completed",
+          "id": "b13ba308-e129-467b-828a-446dfa2201af",
+          "ok": true,
+          "result": {},
+          "revision": 10
+        }
+      },
+      {
+        "command": "layout.timeline",
+        "args": {
+          "visible": false
+        },
+        "response": {
+          "command": "layout.timeline",
+          "completion": "completed",
+          "id": "d4219efa-9acd-4244-a0f9-002054204d22",
+          "ok": true,
+          "result": {},
+          "revision": 11
+        }
+      },
+      {
+        "command": "layout.navigation",
+        "args": {
+          "visible": false
+        },
+        "response": {
+          "command": "layout.navigation",
+          "completion": "completed",
+          "id": "d9033ffe-1c22-493e-9e08-53800fea3f95",
+          "ok": true,
+          "result": {},
+          "revision": 12
+        }
+      },
+      {
+        "command": "app.state",
+        "args": {},
+        "response": {
+          "command": "app.state",
+          "completion": "completed",
+          "id": "791a13dc-23a3-400d-a016-76186e57ade8",
+          "ok": true,
+          "result": {
+            "application": "Alloy",
+            "document": {
+              "bodies": 0,
+              "editableHistory": false,
+              "features": 0,
+              "label": "Untitled",
+              "loaded": false,
+              "sketches": 0
+            },
+            "kernel": {
+              "candidate": "Open CASCADE",
+              "discoveredVersion": "7.9.3",
+              "integrated": false,
+              "visualizationIntegrated": true
+            },
+            "revision": 12,
+            "stage": "ui-shell",
+            "ui": {
+              "browserVisible": false,
+              "commandSearchVisible": false,
+              "devicePixelRatio": 2,
+              "navigationVisible": false,
+              "tab": "solid",
+              "timelineVisible": false,
+              "windowHeight": 900,
+              "windowWidth": 1440,
+              "workspace": "design"
+            },
+            "version": "0.1.0",
+            "viewport": {
+              "gpu": {
+                "backend": "OCCT OpenGL",
+                "details": {
+                  "FBO buffer": "GL_SRGB8_ALPHA8 GL_DEPTH24_STENCIL8",
+                  "GLSLversion": "4.10",
+                  "GLdevice": "Apple M4",
+                  "GLvendor": "Apple",
+                  "GLversion": "4.1 Metal - 90.5",
+                  "GPU Texture memory": "12124 MiB",
+                  "GPU memory": "12124 MiB",
+                  "Max FBO dump size": "16384x16384",
+                  "Max MSAA samples": "4",
+                  "Max combined texture units": "80",
+                  "Max texture size": "16384",
+                  "ResolutionRatio": "2",
+                  "Viewport": "2880x1460",
+                  "Window buffer": "RGB0 ALPHA0 DEPTH0 STENCIL0"
+                },
+                "error": "",
+                "framebufferHeight": 1460,
+                "framebufferWidth": 2880,
+                "hardwareAccelerated": true,
+                "initialized": true,
+                "nativeHeight": 730,
+                "nativeWidth": 1440,
+                "qualification": "hardware-driver-identified",
+                "renderer": "Apple M4",
+                "vendor": "Apple",
+                "version": "4.1 Metal - 90.5"
+              },
+              "gridVisible": false,
+              "height": 730,
+              "orientation": "top",
+              "originVisible": false,
+              "pan": {
+                "x": 32,
+                "y": -18
+              },
+              "renderer": "OCCT OpenGL",
+              "width": 1440,
+              "zoom": 1.5
+            }
+          },
+          "revision": 12
+        }
+      },
+      {
+        "command": "commands.search",
+        "args": {},
+        "response": {
+          "command": "commands.search",
+          "completion": "completed",
+          "id": "933e134d-139d-453c-a8cb-a9a5b27d808a",
+          "ok": true,
+          "result": {},
+          "revision": 13
+        }
+      },
+      {
+        "command": "app.state",
+        "args": {},
+        "response": {
+          "command": "app.state",
+          "completion": "completed",
+          "id": "e5ea7e72-fdfb-4ebc-8308-eccd79b28c1c",
+          "ok": true,
+          "result": {
+            "application": "Alloy",
+            "document": {
+              "bodies": 0,
+              "editableHistory": false,
+              "features": 0,
+              "label": "Untitled",
+              "loaded": false,
+              "sketches": 0
+            },
+            "kernel": {
+              "candidate": "Open CASCADE",
+              "discoveredVersion": "7.9.3",
+              "integrated": false,
+              "visualizationIntegrated": true
+            },
+            "revision": 13,
+            "stage": "ui-shell",
+            "ui": {
+              "browserVisible": false,
+              "commandSearchVisible": true,
+              "devicePixelRatio": 2,
+              "navigationVisible": false,
+              "tab": "solid",
+              "timelineVisible": false,
+              "windowHeight": 900,
+              "windowWidth": 1440,
+              "workspace": "design"
+            },
+            "version": "0.1.0",
+            "viewport": {
+              "gpu": {
+                "backend": "OCCT OpenGL",
+                "details": {
+                  "FBO buffer": "GL_SRGB8_ALPHA8 GL_DEPTH24_STENCIL8",
+                  "GLSLversion": "4.10",
+                  "GLdevice": "Apple M4",
+                  "GLvendor": "Apple",
+                  "GLversion": "4.1 Metal - 90.5",
+                  "GPU Texture memory": "12124 MiB",
+                  "GPU memory": "12124 MiB",
+                  "Max FBO dump size": "16384x16384",
+                  "Max MSAA samples": "4",
+                  "Max combined texture units": "80",
+                  "Max texture size": "16384",
+                  "ResolutionRatio": "2",
+                  "Viewport": "2880x1460",
+                  "Window buffer": "RGB0 ALPHA0 DEPTH0 STENCIL0"
+                },
+                "error": "",
+                "framebufferHeight": 1460,
+                "framebufferWidth": 2880,
+                "hardwareAccelerated": true,
+                "initialized": true,
+                "nativeHeight": 730,
+                "nativeWidth": 1440,
+                "qualification": "hardware-driver-identified",
+                "renderer": "Apple M4",
+                "vendor": "Apple",
+                "version": "4.1 Metal - 90.5"
+              },
+              "gridVisible": false,
+              "height": 730,
+              "orientation": "top",
+              "originVisible": false,
+              "pan": {
+                "x": 32,
+                "y": -18
+              },
+              "renderer": "OCCT OpenGL",
+              "width": 1440,
+              "zoom": 1.5
+            }
+          },
+          "revision": 13
+        }
+      },
+      {
+        "command": "commands.close",
+        "args": {},
+        "response": {
+          "command": "commands.close",
+          "completion": "completed",
+          "id": "b7e240d5-96e1-4cba-8264-b7c8a8cb629d",
+          "ok": true,
+          "result": {},
+          "revision": 14
+        }
+      },
+      {
+        "command": "app.state",
+        "args": {},
+        "response": {
+          "command": "app.state",
+          "completion": "completed",
+          "id": "7b2e7b63-2724-482f-85d8-1edd133f9edb",
+          "ok": true,
+          "result": {
+            "application": "Alloy",
+            "document": {
+              "bodies": 0,
+              "editableHistory": false,
+              "features": 0,
+              "label": "Untitled",
+              "loaded": false,
+              "sketches": 0
+            },
+            "kernel": {
+              "candidate": "Open CASCADE",
+              "discoveredVersion": "7.9.3",
+              "integrated": false,
+              "visualizationIntegrated": true
+            },
+            "revision": 14,
+            "stage": "ui-shell",
+            "ui": {
+              "browserVisible": false,
+              "commandSearchVisible": false,
+              "devicePixelRatio": 2,
+              "navigationVisible": false,
+              "tab": "solid",
+              "timelineVisible": false,
+              "windowHeight": 900,
+              "windowWidth": 1440,
+              "workspace": "design"
+            },
+            "version": "0.1.0",
+            "viewport": {
+              "gpu": {
+                "backend": "OCCT OpenGL",
+                "details": {
+                  "FBO buffer": "GL_SRGB8_ALPHA8 GL_DEPTH24_STENCIL8",
+                  "GLSLversion": "4.10",
+                  "GLdevice": "Apple M4",
+                  "GLvendor": "Apple",
+                  "GLversion": "4.1 Metal - 90.5",
+                  "GPU Texture memory": "12124 MiB",
+                  "GPU memory": "12124 MiB",
+                  "Max FBO dump size": "16384x16384",
+                  "Max MSAA samples": "4",
+                  "Max combined texture units": "80",
+                  "Max texture size": "16384",
+                  "ResolutionRatio": "2",
+                  "Viewport": "2880x1460",
+                  "Window buffer": "RGB0 ALPHA0 DEPTH0 STENCIL0"
+                },
+                "error": "",
+                "framebufferHeight": 1460,
+                "framebufferWidth": 2880,
+                "hardwareAccelerated": true,
+                "initialized": true,
+                "nativeHeight": 730,
+                "nativeWidth": 1440,
+                "qualification": "hardware-driver-identified",
+                "renderer": "Apple M4",
+                "vendor": "Apple",
+                "version": "4.1 Metal - 90.5"
+              },
+              "gridVisible": false,
+              "height": 730,
+              "orientation": "top",
+              "originVisible": false,
+              "pan": {
+                "x": 32,
+                "y": -18
+              },
+              "renderer": "OCCT OpenGL",
+              "width": 1440,
+              "zoom": 1.5
+            }
+          },
+          "revision": 14
+        }
+      },
+      {
+        "command": "app.state",
+        "args": {},
+        "response": {
+          "command": "app.state",
+          "completion": "completed",
+          "id": "c46f585d-b384-4525-a123-9f9d0fe97082",
+          "ok": true,
+          "result": {
+            "application": "Alloy",
+            "document": {
+              "bodies": 0,
+              "editableHistory": false,
+              "features": 0,
+              "label": "Untitled",
+              "loaded": false,
+              "sketches": 0
+            },
+            "kernel": {
+              "candidate": "Open CASCADE",
+              "discoveredVersion": "7.9.3",
+              "integrated": false,
+              "visualizationIntegrated": true
+            },
+            "revision": 14,
+            "stage": "ui-shell",
+            "ui": {
+              "browserVisible": false,
+              "commandSearchVisible": false,
+              "devicePixelRatio": 2,
+              "navigationVisible": false,
+              "tab": "solid",
+              "timelineVisible": false,
+              "windowHeight": 900,
+              "windowWidth": 1440,
+              "workspace": "design"
+            },
+            "version": "0.1.0",
+            "viewport": {
+              "gpu": {
+                "backend": "OCCT OpenGL",
+                "details": {
+                  "FBO buffer": "GL_SRGB8_ALPHA8 GL_DEPTH24_STENCIL8",
+                  "GLSLversion": "4.10",
+                  "GLdevice": "Apple M4",
+                  "GLvendor": "Apple",
+                  "GLversion": "4.1 Metal - 90.5",
+                  "GPU Texture memory": "12124 MiB",
+                  "GPU memory": "12124 MiB",
+                  "Max FBO dump size": "16384x16384",
+                  "Max MSAA samples": "4",
+                  "Max combined texture units": "80",
+                  "Max texture size": "16384",
+                  "ResolutionRatio": "2",
+                  "Viewport": "2880x1460",
+                  "Window buffer": "RGB0 ALPHA0 DEPTH0 STENCIL0"
+                },
+                "error": "",
+                "framebufferHeight": 1460,
+                "framebufferWidth": 2880,
+                "hardwareAccelerated": true,
+                "initialized": true,
+                "nativeHeight": 730,
+                "nativeWidth": 1440,
+                "qualification": "hardware-driver-identified",
+                "renderer": "Apple M4",
+                "vendor": "Apple",
+                "version": "4.1 Metal - 90.5"
+              },
+              "gridVisible": false,
+              "height": 730,
+              "orientation": "top",
+              "originVisible": false,
+              "pan": {
+                "x": 32,
+                "y": -18
+              },
+              "renderer": "OCCT OpenGL",
+              "width": 1440,
+              "zoom": 1.5
+            }
+          },
+          "revision": 14
+        }
+      },
+      {
+        "command": "capture.screenshot",
+        "args": {
+          "path": "/Users/rje/src/cpp/Alloy/build/evidence/alloy-shell-altered.png"
+        },
+        "response": {
+          "command": "capture.screenshot",
+          "completion": "completed",
+          "id": "bc66328e-cb71-4aa5-b2c2-72dfd98fd606",
+          "ok": true,
+          "result": {
+            "devicePixelRatio": 2,
+            "path": "/Users/rje/src/cpp/Alloy/build/evidence/alloy-shell-altered.png",
+            "pixelHeight": 1800,
+            "pixelWidth": 2880,
+            "source": "QWidget chrome + OCCT OpenGL framebuffer",
+            "viewportPixelHeight": 1460,
+            "viewportPixelWidth": 2880,
+            "viewportSha256": "245fc542f46536f76a929487d21da450ffea5611c06b4d801fdf21f42be84e99"
+          },
+          "revision": 14
+        }
+      },
+      {
+        "command": "solid.extrude",
+        "args": {},
+        "response": {
+          "completion": "failed",
+          "error": {
+            "code": "not_implemented",
+            "message": "Extrude is not implemented in the UI shell"
+          },
+          "id": "e173488f-c980-4d25-9ca1-b5f0a453570c",
+          "ok": false
+        }
+      },
+      {
+        "command": "missing.command",
+        "args": {},
+        "response": {
+          "completion": "failed",
+          "error": {
+            "code": "unknown_command",
+            "message": "No command named missing.command"
+          },
+          "id": "d920c4f8-4080-45e0-957d-8a2857aabf10",
+          "ok": false
+        }
+      },
+      {
+        "command": "view.orientation",
+        "args": {
+          "name": "invalid"
+        },
+        "response": {
+          "completion": "failed",
+          "error": {
+            "code": "invalid_arguments",
+            "message": "Unsupported value for name"
+          },
+          "id": "549b519b-9da3-4c14-af84-414fa5b9becb",
+          "ok": false
+        }
+      },
+      {
+        "command": "view.grid",
+        "args": {
+          "visible": "false"
+        },
+        "response": {
+          "completion": "failed",
+          "error": {
+            "code": "invalid_arguments",
+            "message": "Argument visible must be boolean"
+          },
+          "id": "af79c7cc-a900-4478-af5a-db3261b4dba3",
+          "ok": false
+        }
+      },
+      {
+        "command": "view.zoom",
+        "args": {
+          "factor": 0
+        },
+        "response": {
+          "completion": "failed",
+          "error": {
+            "code": "invalid_arguments",
+            "message": "Argument out of range: factor"
+          },
+          "id": "65f54ac4-0a62-4218-8e73-bb0fbe054fd2",
+          "ok": false
+        }
+      },
+      {
+        "command": "view.home",
+        "args": {
+          "unexpected": true
+        },
+        "response": {
+          "completion": "failed",
+          "error": {
+            "code": "invalid_arguments",
+            "message": "Unknown argument: unexpected"
+          },
+          "id": "5808be77-d6d2-4bc0-8df4-db0ca6ba9ead",
+          "ok": false
+        }
+      },
+      {
+        "command": "app.state",
+        "args": {},
+        "response": {
+          "command": "app.state",
+          "completion": "completed",
+          "id": "84f58102-1470-4e99-88ec-928ced420389",
+          "ok": true,
+          "result": {
+            "application": "Alloy",
+            "document": {
+              "bodies": 0,
+              "editableHistory": false,
+              "features": 0,
+              "label": "Untitled",
+              "loaded": false,
+              "sketches": 0
+            },
+            "kernel": {
+              "candidate": "Open CASCADE",
+              "discoveredVersion": "7.9.3",
+              "integrated": false,
+              "visualizationIntegrated": true
+            },
+            "revision": 14,
+            "stage": "ui-shell",
+            "ui": {
+              "browserVisible": false,
+              "commandSearchVisible": false,
+              "devicePixelRatio": 2,
+              "navigationVisible": false,
+              "tab": "solid",
+              "timelineVisible": false,
+              "windowHeight": 900,
+              "windowWidth": 1440,
+              "workspace": "design"
+            },
+            "version": "0.1.0",
+            "viewport": {
+              "gpu": {
+                "backend": "OCCT OpenGL",
+                "details": {
+                  "FBO buffer": "GL_SRGB8_ALPHA8 GL_DEPTH24_STENCIL8",
+                  "GLSLversion": "4.10",
+                  "GLdevice": "Apple M4",
+                  "GLvendor": "Apple",
+                  "GLversion": "4.1 Metal - 90.5",
+                  "GPU Texture memory": "12124 MiB",
+                  "GPU memory": "12124 MiB",
+                  "Max FBO dump size": "16384x16384",
+                  "Max MSAA samples": "4",
+                  "Max combined texture units": "80",
+                  "Max texture size": "16384",
+                  "ResolutionRatio": "2",
+                  "Viewport": "2880x1460",
+                  "Window buffer": "RGB0 ALPHA0 DEPTH0 STENCIL0"
+                },
+                "error": "",
+                "framebufferHeight": 1460,
+                "framebufferWidth": 2880,
+                "hardwareAccelerated": true,
+                "initialized": true,
+                "nativeHeight": 730,
+                "nativeWidth": 1440,
+                "qualification": "hardware-driver-identified",
+                "renderer": "Apple M4",
+                "vendor": "Apple",
+                "version": "4.1 Metal - 90.5"
+              },
+              "gridVisible": false,
+              "height": 730,
+              "orientation": "top",
+              "originVisible": false,
+              "pan": {
+                "x": 32,
+                "y": -18
+              },
+              "renderer": "OCCT OpenGL",
+              "width": 1440,
+              "zoom": 1.5
+            }
+          },
+          "revision": 14
+        }
+      },
+      {
+        "command": "layout.reset",
+        "args": {},
+        "response": {
+          "command": "layout.reset",
+          "completion": "completed",
+          "id": "f005de98-01eb-42d6-92ed-697e09aaacd8",
+          "ok": true,
+          "result": {},
+          "revision": 15
+        }
+      },
+      {
+        "command": "view.home",
+        "args": {},
+        "response": {
+          "command": "view.home",
+          "completion": "completed",
+          "id": "8e4a9be7-a3a7-42e1-b458-744c69a78e31",
+          "ok": true,
+          "result": {},
+          "revision": 16
+        }
+      },
+      {
+        "command": "view.grid",
+        "args": {
+          "visible": true
+        },
+        "response": {
+          "command": "view.grid",
+          "completion": "completed",
+          "id": "78e55fa5-7d1d-4906-9e54-fdff470c4daf",
+          "ok": true,
+          "result": {},
+          "revision": 17
+        }
+      },
+      {
+        "command": "view.origin",
+        "args": {
+          "visible": true
+        },
+        "response": {
+          "command": "view.origin",
+          "completion": "completed",
+          "id": "9ddffe17-f43e-468e-bcba-bb9ae656e25e",
+          "ok": true,
+          "result": {},
+          "revision": 18
+        }
+      },
+      {
+        "command": "app.state",
+        "args": {},
+        "response": {
+          "command": "app.state",
+          "completion": "completed",
+          "id": "b2db0538-4151-4608-87a4-a18f361b52f7",
+          "ok": true,
+          "result": {
+            "application": "Alloy",
+            "document": {
+              "bodies": 0,
+              "editableHistory": false,
+              "features": 0,
+              "label": "Untitled",
+              "loaded": false,
+              "sketches": 0
+            },
+            "kernel": {
+              "candidate": "Open CASCADE",
+              "discoveredVersion": "7.9.3",
+              "integrated": false,
+              "visualizationIntegrated": true
+            },
+            "revision": 18,
+            "stage": "ui-shell",
+            "ui": {
+              "browserVisible": true,
+              "commandSearchVisible": false,
+              "devicePixelRatio": 2,
+              "navigationVisible": true,
+              "tab": "solid",
+              "timelineVisible": true,
+              "windowHeight": 900,
+              "windowWidth": 1440,
+              "workspace": "design"
+            },
+            "version": "0.1.0",
+            "viewport": {
+              "gpu": {
+                "backend": "OCCT OpenGL",
+                "details": {
+                  "FBO buffer": "GL_SRGB8_ALPHA8 GL_DEPTH24_STENCIL8",
+                  "GLSLversion": "4.10",
+                  "GLdevice": "Apple M4",
+                  "GLvendor": "Apple",
+                  "GLversion": "4.1 Metal - 90.5",
+                  "GPU Texture memory": "12124 MiB",
+                  "GPU memory": "12124 MiB",
+                  "Max FBO dump size": "16384x16384",
+                  "Max MSAA samples": "4",
+                  "Max combined texture units": "80",
+                  "Max texture size": "16384",
+                  "ResolutionRatio": "2",
+                  "Viewport": "2376x1274",
+                  "Window buffer": "RGB0 ALPHA0 DEPTH0 STENCIL0"
+                },
+                "error": "",
+                "framebufferHeight": 1274,
+                "framebufferWidth": 2376,
+                "hardwareAccelerated": true,
+                "initialized": true,
+                "nativeHeight": 637,
+                "nativeWidth": 1188,
+                "qualification": "hardware-driver-identified",
+                "renderer": "Apple M4",
+                "vendor": "Apple",
+                "version": "4.1 Metal - 90.5"
+              },
+              "gridVisible": true,
+              "height": 637,
+              "orientation": "isometric",
+              "originVisible": true,
+              "pan": {
+                "x": 0,
+                "y": 0
+              },
+              "renderer": "OCCT OpenGL",
+              "width": 1188,
+              "zoom": 1
+            }
+          },
+          "revision": 18
+        }
+      },
+      {
+        "command": "capture.screenshot",
+        "args": {
+          "path": "/Users/rje/src/cpp/Alloy/build/evidence/alloy-shell.png"
+        },
+        "response": {
+          "command": "capture.screenshot",
+          "completion": "completed",
+          "id": "c1745584-8dec-4074-8e7d-4d29d8d6b8f0",
+          "ok": true,
+          "result": {
+            "devicePixelRatio": 2,
+            "path": "/Users/rje/src/cpp/Alloy/build/evidence/alloy-shell.png",
+            "pixelHeight": 1800,
+            "pixelWidth": 2880,
+            "source": "QWidget chrome + OCCT OpenGL framebuffer",
+            "viewportPixelHeight": 1274,
+            "viewportPixelWidth": 2376,
+            "viewportSha256": "0ddc3a6e4a6fa0901a0671d023419ed7bcab4fd23b111b0ba6705de6d146755e"
+          },
+          "revision": 18
+        }
+      },
+      {
+        "command": "app.quit",
+        "args": {},
+        "response": {
+          "command": "app.quit",
+          "completion": "completed",
+          "id": "26a0dfc9-2706-4db0-9b70-9dbfd3edd6be",
+          "ok": true,
+          "result": {
+            "quitting": true
+          },
+          "revision": 18
+        }
+      }
+    ]
+  },
+  "visual_review": "API-composited screenshot inspected: shell regions present and unclipped; native physical inputs not repeated in this check.",
+  "limits": [
+    "macOS runtime only",
+    "camera/grid/axes only; no authored CAD document",
+    "capture combines Qt chrome and same-camera OCCT offscreen framebuffer; no new native-compositor capture",
+    "No exact visual-compatibility claim"
+  ]
+}

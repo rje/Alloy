@@ -81,7 +81,8 @@ summary = {
     'validation_gates': gates,
     'structurally_ready': [k for k, i in issues.items() if not i['depends_on']],
     'source_entries': len(registry['sources']),
-    'unique_source_urls': len(urls),
-    'checks': ['schema', 'unique keys', 'existing dependencies', 'acyclic', 'topological publication order', 'dated registered primary-source links', 'cumulative gate chain', 'initial and full scope reachability'],
+    'public_source_urls': len(urls),
+    'archived_reference_ids': len(reference_ids),
+    'checks': ['schema', 'unique keys', 'existing dependencies', 'acyclic', 'topological publication order', 'dated registered public links or reference IDs', 'cumulative gate chain', 'initial and full scope reachability'],
 }
 print(json.dumps(summary, indent=2))

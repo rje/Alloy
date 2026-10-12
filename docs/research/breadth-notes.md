@@ -2,7 +2,7 @@
 
 Retrieved **2026-10-11**. Status: **research and proposed decomposition**, not
 implemented Alloy capability or an approved implementation sequence. All
-evidence below is public Autodesk documentation. No reference CAD application application, web
+evidence below is public Autodesk documentation. No proprietary reference application, web
 client, installation, private API, or account-gated material was accessed.
 No reference images or Autodesk assets were copied into application assets.
 

@@ -9,9 +9,9 @@ The project documents must be sufficient to resume without this chat history.
 
 ## Product contract
 
-Alloy is a standalone, open source, modifiable replacement for the reference CAD application
-(formerly the reference CAD application). The long-term goal is functional feature-for-feature
-coverage and an experience intimately familiar to existing reference CAD application users.
+Alloy is a standalone, open source, modifiable parametric CAD application.
+The long-term goal is functional feature-for-feature coverage of the researched
+professional CAD workflows and an intimately familiar experience for existing users.
 The intended visual and interaction target is the same feel as the referenced
 product, including its styling, layouts, keyboard controls, and workflows.
 Features that currently require cloud access may be deferred. All other feature
@@ -25,22 +25,26 @@ printing. A useful first slice does not reduce the eventual replacement goal.
 
 - Use publicly available documentation, screenshots, instructions, published
   API descriptions, and public tutorial material as reference evidence.
-- Do not run, operate, inspect, or capture the actual reference CAD application application. This
+- Do not run, operate, inspect, or capture proprietary reference applications. This
   includes licensed installations, trials, remote sessions, and web clients.
-- Do not inspect reference CAD application binaries, installed resources, private source, leaked
+- Do not inspect their binaries, installed resources, private source, leaked
   material, private APIs, account-gated product data, or non-public information.
 - Do not reverse engineer the product, intercept its traffic, or extract assets.
 - Publicly documented API examples are reference material, not authorization to
-  execute reference CAD application or to obtain runtime observations from it.
+  execute proprietary software or to obtain runtime observations from it.
 - Publicly licensed open source foundations such as Qt and OCCT may be studied
-  and reused under their licenses. This permission does not extend to reference CAD application.
-- Record the source URL and retrieval date for reference evidence. Distinguish
+  and reused under their licenses. This permission does not extend to proprietary software.
+- Record the source URL and retrieval date for reference evidence. Keep reference
+  product names, URLs containing them, and reference images outside the repository
+  in `../Alloy-reference-records/`. Public documents use stable reference IDs;
+  library documentation URLs remain public. Do not reintroduce removed names in
+  files, paths, commit messages, issues, comments, or project fields. Distinguish
   documented behavior, screenshot observations, inference, and unknowns.
 - Resolve ambiguity using additional permitted public evidence. If evidence is
   insufficient, record the uncertainty rather than inspecting the product or
   inventing an exact-match claim.
 
-These rules supersede any earlier suggestion to verify behavior in reference CAD application.
+These rules supersede any earlier suggestion to verify behavior in proprietary software.
 
 ## Familiarity and visual fidelity
 

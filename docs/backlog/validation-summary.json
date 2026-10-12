@@ -43,14 +43,15 @@
     "GATE-000"
   ],
   "source_entries": 112,
-  "unique_source_urls": 112,
+  "public_source_urls": 35,
+  "archived_reference_ids": 77,
   "checks": [
     "schema",
     "unique keys",
     "existing dependencies",
     "acyclic",
     "topological publication order",
-    "dated registered primary-source links",
+    "dated registered public links or reference IDs",
     "cumulative gate chain",
     "initial and full scope reachability"
   ]

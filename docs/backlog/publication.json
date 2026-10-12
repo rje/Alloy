@@ -1,5 +1,5 @@
 {
-  "verified_at": "2026-10-11T23:27:57.528493+00:00",
+  "verified_at": "2026-10-12T00:45:36.897522+00:00",
   "repository": "https://github.com/rje/Alloy",
   "visibility": "public",
   "license": "MIT",
@@ -30,8 +30,11 @@
     "kind/phase/priority labels",
     "milestones",
     "live readiness labels",
-    "public MIT repository"
+    "public MIT repository",
+    "neutral reference IDs and dated external provenance",
+    "all current issue bodies sanitized and exact authored-body match",
+    "135 project items verified through API"
   ],
   "project_url": "https://github.com/users/rje/projects/1",
-  "project_verification": "Public board and repository auto-add configured at creation. Current CLI token lacks project scope; board item count was not independently verified through API."
+  "project_verification": "All 135 issue items independently verified through gh Projects API; no draft or unrelated items. GATE-000 Status Done."
 }

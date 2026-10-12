@@ -1,7 +1,7 @@
 {
   "observed_at": "2026-10-11T23:19:35.225148+00:00",
   "scope": "Native shell with hardware OCCT OpenGL presentation; no authored CAD geometry",
-  "source_base_commit": "c5ee2467f92d0031432ab3c09d01fee96a1252e2",
+  "source_base_commit": null,
   "source_files_sha256": {
     "CMakeLists.txt": "0ff3f011ef1921b38989784b90d48a9f7d358cdaa92d34d1e26444f96ac9b2c1",
     "src/AlloyWindow.cpp": "0525c1ac7fdf8b9d4efe53998aa1b3fc7aa500d79a255c13ace76a9dd343b5a4",
@@ -253,5 +253,6 @@
     "Hardware identification and resize qualified on one macOS Retina display only; no cross-display scale transition or performance benchmark",
     "Windows/Linux builds and physical hardware workflows remain pending",
     "DOC-005 and GATE-010 remain open; initial GATE-000 receipt is historical"
-  ]
+  ],
+  "history_note": "Observed before the authorized history rewrite; original source/binary hashes remain historical evidence and do not describe rebuilt transformed commits."
 }

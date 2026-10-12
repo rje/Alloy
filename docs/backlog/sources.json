@@ -939,5 +939,7 @@
       "evidence": "documented",
       "note": "Public build/deployment foundation; selected implementation and acceptance are Alloy decisions."
     }
-  }
+  },
+  "reference_records": "../Alloy-reference-records/",
+  "publication_policy": "Reference-specific URLs are retained outside the repository; stable IDs preserve the dated evidence chain. Public foundation URLs remain linked."
 }

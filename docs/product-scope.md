@@ -93,10 +93,10 @@ offers cloud services. The precise current inventory still needs research.
 The product direction, clean-room restriction, initial shape-creation focus,
 familiarity goal, and built-in agent control are accepted user requirements.
 Coverage ordering and libraries are recommendations. The user selected C++20
-and the MIT license for Alloy's original source and documentation. The exact reference CAD application
-reference release, supported operating systems for the first release, solver,
-and native document format remain open. The local development host is
-macOS; that does not imply the product will be macOS-only.
+and the MIT license for Alloy's original source and documentation. macOS,
+Windows and Linux are required. The exact dated reference release, minimum OS
+versions, solver and native document format remain open. The local development
+host is macOS; runtime qualification is required on every platform.
 
 ## Public references
 

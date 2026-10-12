@@ -2,7 +2,7 @@
 
 Retrieved **2026-10-11** from public Autodesk documentation. This is an initial,
 bounded reference survey for an independently implemented, Alloy-branded product.
-No reference CAD application application, installation, account, trial, remote session, private API,
+No proprietary reference application, installation, account, trial, remote session, private API,
 or installed resource was accessed. Public API examples were read, not executed.
 
 ## Documented structure
@@ -81,10 +81,10 @@ mapping. Current smoke coverage invokes commands through the local API.
 
 Three public doc images were downloaded and visually inspected. Source URLs,
 checksums, dimensions, and retrieval dates are in
-[reference-images/provenance.json](reference-images/provenance.json). The binary
-images are local research aids, excluded from Git and app assets; their
-redistribution license has not been established. Re-fetch only from those public
-URLs if needed.
+[reference-images/provenance.json](reference-images/provenance.json). The images and their original public URLs are kept in
+`../Alloy-reference-records/`, outside Git and app assets. Their redistribution
+license has not been established. Use the stable IDs to locate the dated public
+sources in those separate records.
 
 - The annotated desktop overview shows neutral light-gray chrome, white canvas,
   a compact top command strip, Browser at canvas left, navigation near bottom

@@ -19,11 +19,12 @@ cmake --build build
 ```
 
 On other platforms provide the Qt installation prefix through CMake as needed.
-CMake produces `build/alloy` on Linux. Windows and Linux builds have not been
-verified. OCCT is now mandatory; there is no QPainter fallback. For nonstandard
+CMake produces `build/alloy` on Linux. The initial native CI compiled Windows and both macOS architectures;
+Linux failed on a missing Fontconfig header. Windows/Linux runtime behavior
+has not been verified. OCCT is now mandatory; there is no QPainter fallback. For nonstandard
 installs set `OpenCASCADE_DIR` to the folder containing `OpenCASCADEConfig.cmake`.
-Visualization integration is not evidence of authored geometry integration. Qt's built-in widget style happens to be named `reference CAD application`;
-that open-source Qt style is unrelated to running the reference CAD application.
+Visualization integration is not evidence of authored geometry integration.
+Alloy uses the public Qt Windows widget style with its own palette and styling.
 
 The public [Qt Widgets documentation](https://doc.qt.io/qt-6/qtwidgets-index.html)
 and [QLocalServer documentation](https://doc.qt.io/qt-6/qlocalserver.html) describe

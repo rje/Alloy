@@ -2,7 +2,7 @@
 
 Research date: **2026-10-11**. All external sources linked below were retrieved
 on that date. This is public documentation/source research and proposed work,
-not an implementation report. No reference CAD application application, installation, resource,
+not an implementation report. No proprietary reference application, installation, resource,
 private API, account, or runtime was accessed. C++20 is accepted; Rust is outside
 the planned stack. **MIT is the accepted license for original Alloy source and
 documentation.** Dependencies retain their own licenses and require an

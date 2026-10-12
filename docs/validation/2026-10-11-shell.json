@@ -32,7 +32,7 @@
     "build/evidence/physical-home-state.json",
     "build/evidence/physical-browser-state.json"
   ],
-  "source_commit": "9b6213d",
+  "source_commit": null,
   "binary_sha256": "024742fff2d0b5924375e56bd45df53ea9d9e76fd89f96512a3074bbf20b7cac",
-  "code_baseline": "Validation ran against the shell source published in initial commit 9b6213d; GPU replacement is separate work."
+  "code_baseline": "Historical shell validation before the authorized history rewrite. Source and screenshot hashes describe the original observed artifact, not a rebuilt transformed commit."
 }

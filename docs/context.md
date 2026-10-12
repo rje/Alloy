@@ -6,9 +6,9 @@ Updated 2026-10-11. This is the project handoff for a fresh session. Read the ro
 ## Decisions from the conversation
 
 - The initial candidates were standalone open-source Maya and Houdini equivalents.
-  reference CAD application was added and became the selected target. The earlier alternatives are
+  Parametric CAD became the selected direction. The earlier alternatives are
   preserved in [target-comparison.md](target-comparison.md).
-- Alloy must eventually be a functional feature-for-feature reference CAD application replacement,
+- Alloy must eventually be a functional feature-for-feature CAD replacement,
   open source and modifiable. It is a standalone app, not a Blender extension.
 - Users should find the same feel: familiar visuals, layout, styling, command
   behavior, keyboard controls, navigation, and workflows. A small initial release
@@ -18,7 +18,7 @@ Updated 2026-10-11. This is the project handoff for a fresh session. Read the ro
 - Initial emphasis is shape creation, sketches, solids/surfaces, common imports,
   and exports suitable for 3D printing.
 - This is a clean-room implementation. Public docs, screenshots, and instructions
-  are the reference material. Never run, inspect, or capture reference CAD application or use
+  are the reference material. Never run, inspect, or capture proprietary reference software or use
   non-public information. Public API descriptions are references only.
 - Agentic control must be built in from the start for operation, self-testing,
   state inspection, and captures. UI and agents use the same application commands.
@@ -58,16 +58,21 @@ open/close, screenshots, and clean exit. See [development.md](development.md) fo
 exact commands, dependencies, evidence paths, and limitations; see
 [agent-control.md](agent-control.md) for the protocol and client.
 
-Local evidence is in ignored `build/evidence/`. Three public reference images
-are present locally and ignored by Git; their source URLs, dates, hashes, and
-dimensions are retained in the [provenance manifest](research/reference-images/provenance.json).
-They are research references, never app assets. A fresh checkout can rebuild
-Alloy evidence and re-fetch permitted references from the recorded URLs.
+Local evidence is in ignored `build/evidence/`. Dated reference URLs and three
+public documentation images are stored separately in `../Alloy-reference-records/`,
+with stable IDs in [the source registry](backlog/sources.json) and
+[the image provenance manifest](research/reference-images/provenance.json).
+They are research references, never app assets. A fresh checkout can build and
+verify Alloy without the private reference records. Product-specific reference
+names and URLs must not be reintroduced in public files or planning records.
+The user authorized a complete reachable-history rewrite and public planning
+cleanup. Older screenshots and source hashes remain historical observations;
+they do not establish that a transformed historical commit was tested unchanged.
 
 The user authorized a public GitHub repository/project and an issue backlog with
 cumulative validation gates. The repository is [rje/Alloy](https://github.com/rje/Alloy)
 and the public board is [Alloy](https://github.com/users/rje/projects/1).
-The MIT-licensed foundation is published on `main` (initial commit `9b6213d`).
+The MIT-licensed foundation is published on `main`.
 Astra's deep dive and backlog are published: **135 issues** across ten phases,
 comprising **87 implementation tasks, 13 research tasks, 22 epics, and 13
 cumulative validation gates**. All remote issue bodies, dependency links,
@@ -82,15 +87,16 @@ and [deep dive](research/cad-workflows.md) before pulling work. Run
 The later cross-platform requirement added five issues: FND-012, CI-001,
 CI-002, GATE-005 and CI-003. Read [releases.md](releases.md) and the
 [release research](research/cross-platform-releases.md). Native CI is seeded
-for macOS arm64/Intel, Windows x64 and Ubuntu24.04 x64; its first
-[run](https://github.com/rje/Alloy/actions/runs/38184291114) is underway and pending verification.
+for macOS arm64/Intel, Windows x64 and Ubuntu24.04 x64; its initial run compiled Windows and both macOS architectures. Linux failed
+on a missing Fontconfig development header; that run and its artifacts were
+removed with the old-history cleanup. A corrected run is the next CI task.
 It retains unbundled compile artifacts, not yet independently runnable packages.
 Windows named-pipe control, Linux X11/GLX runtime qualification, relocation,
 dependency notices and tagged milestone publishing remain open.
 GitHub operations must use `gh` and APIs; the user explicitly rejected browser
-computer control for GitHub. The current CLI token supports repositories/issues
-but lacks the GitHub Projects scope. The board was created before that preference
-was given; its auto-add workflow targets open issues from rje/Alloy.
+computer control for GitHub. The CLI token now supports Projects; all 135 items were verified through the API.
+The board auto-add workflow targets open issues from rje/Alloy. Update Status
+through the CLI/API as tasks start and finish.
 
 ## Where to resume
 
@@ -111,5 +117,5 @@ The exact reference CAD application reference release/platform/theme/navigation 
 minimum OS versions/architectures, sketch solver, and native document format
 remain unresolved. They are recorded gaps, not forgotten decisions. Current
 public-interface/build research now covers the major feature families with 112 dated
-primary-source URLs, contradictions, and open questions. It does not yet specify
+primary-source entries, contradictions, and open questions. It does not yet specify
 every command, default, error, or visual state.
