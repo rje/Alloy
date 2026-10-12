@@ -841,3 +841,43 @@ accepted in presspull-preview-final.json/.png; preview Cancel preserves exact sa
 authored state. Arrow dragging remains unsupported. Sol core is
 planning the planar face reference/frame foundation for CP04, read-only; no face
 implementation is accepted. Root owns builds/app/GitHub. No release or CI ran.
+
+## Active face-support worktree (2026-10-12)
+
+The accepted typed extrusion milestone is committed/pushed as f97c9ba. Its
+build-tutorial app and saved rounded-bracket-50.alloy are preserved. New CP04 work
+is isolated in ../Alloy-worktrees/face-support on feat/face-supported-sketches.
+Sol core owns geometry/document/frame helpers and core tests; Sol UI owns
+AlloyWindow/ReferenceView. Root owns builds and application operation; Astra
+independently reviews. See decisions/005-supported-sketch-frames.md for the bounded
+positive extrusion end-cap contract. No face-support runtime evidence exists yet.
+
+
+Private bundle launch now loads the patched Cocoa plugin from the candidate's
+Contents/PlugIns/platforms directory with plugin-path environment variables unset.
+Native fillet Return/Undo/Redo with accessibility reads passed and accepted/redo
+sessions match exactly; see dependency recipe and qt-bundled evidence. This is a
+local bundle qualification, not portable packaging. The private test app quit.
+
+CP04 core and UI source is staged in the face-support worktree. The first build
+passes after a test-local variable rename; focused face-support, legacy extrusion
+and profile tests pass. Astra found and the UI agent fixed selection through an
+occluding solid face. Real-app and native face workflow qualification remains
+pending; no implementation acceptance or issue closure yet.
+
+
+## Positive end-cap sketch checkpoint (2026-10-12)
+
+CP04's bounded face foundation passed combined build, three focused core tests,
+the 147-command sketch-face-support ledger and native face selection/Create Sketch/
+rectangle/Finish. Astra independently accepted source, state and captures. Parent
+50→60 depth changes transport the evaluated frame while local authored coordinates,
+profile identity and support references remain stable. History and reopen pass.
+See validation/face-supported-sketches.md. General faces, Boolean-modified supports
+and projection remain open; DOC-006/012 and SKT-013 are not fully closed.
+
+Next SKT-010: retained cap-edge projection so construction lines can use Parallel
+and distance constraints against model geometry. Core proposal requires real OCCT
+edge lineage through region union and prism, not indices or nearest-edge guesses.
+Public evidence and design review precede implementation. No app remains running;
+human build-input stays unchanged. No release or CI run.

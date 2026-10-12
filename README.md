@@ -23,8 +23,9 @@ independent design tabs, draft undo, construction lines, midpoint/tangent circle
 inference and paired sketch fillets are implemented. The illustrated first-activity
 outline has a complete native modeling receipt. Rounded sketches now produce
 three real selectable regions with stable IDs through dimension edits and storage.
-Connected multi-region Press Pull now produces one editable solid; face-supported
-sketches and broader imports/exports remain ahead. See the bounded receipts below; this is not complete CAD parity.
+Connected multi-region Press Pull now produces one editable solid; sketches can
+attach to positive extrusion end caps and follow parent edits. General face support,
+projected model edges and broader imports/exports remain ahead. See the bounded receipts below; this is not complete CAD parity.
 
 The public repository is [rje/Alloy](https://github.com/rje/Alloy), with the
 [issue backlog](https://github.com/rje/Alloy/issues) and

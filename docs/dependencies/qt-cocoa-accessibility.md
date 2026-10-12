@@ -19,3 +19,20 @@ QT_DEBUG_PLUGINS=1 build-tutorial/alloy.app/Contents/MacOS/alloy
 The first local patched-plugin run loaded the isolated module and passed the formerly crashing accessibility query through a two-corner Fillet preview and native acceptance. A later Undo crashed through `QComboBox::clear()` and `QAccessibleTable::modelChange`, a distinct path addressed by retaining dimension-combo rows in Alloy. Native preview/editor100, Return, Undo/Redo and accessibility reads now pass with retained combo rows; exact accepted/redo draft equality and the loaded patched dylib were verified and independently reviewed. Evidence is in `build-tutorial/evidence/fillet-combo-*` and `qt-cocoa-combo-qualified-runtime.txt`. Accessibility warnings remain. Default launch/packaged-app checks still need evidence; this experiment does not qualify a release.
 
 Qt's original `qcocoaaccessibilityelement.mm` carries `Copyright (C) 2016 The Qt Company Ltd.` and `SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only`. The patched plugin remains Qt-derived code under its applicable license, separate from Alloy's MIT originals. Distribution requires the matching Qt and patch notices, corresponding source/build instructions, and a usable library replacement path under the selected LGPL terms. Record those in the package inventory and verify the deployed library closure before shipping; see [dependency admission](README.md) and [native releases](../releases.md).
+
+## Private bundle launch qualification
+
+On 2026-10-12 the already-qualified plugin was copied into
+`build-tutorial/alloy.app/Contents/PlugIns/platforms/libqcocoa.dylib` without a
+`qt.conf`. Launching with both plugin-path environment variables unset loaded
+that exact bundled plugin and retained the Homebrew native style plugin fallback.
+Qt 6.11.2's [application search order](https://github.com/qt/qtbase/blob/v6.11.2/src/corelib/kernel/qcoreapplication.cpp#L2782-L2807)
+puts the bundle plugin directory before its installation directory. Do not add a
+`qt.conf` that unintentionally removes that fallback for this private build.
+
+The same bulk fillet preview followed by native Return, Undo and Redo with
+accessibility reads passed. Accepted and redone active sessions were exactly
+equal. Evidence: `build-tutorial/evidence/qt-bundled-launch.log` and
+`qt-bundled-{accepted,undo,redo}.json`. This qualifies the local private bundle
+layout, not portable distribution, signing or other-platform deployment. The
+human testing app and global Qt installation were unchanged.

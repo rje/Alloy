@@ -495,3 +495,16 @@ value,units?}` shares the core mutation. Finish rejects pending input, Undo exit
 the tool before changing history, and raw pending input blocks tab switches.
 See [fillet qualification](validation/sketch-fillet.md), including the open native
 accessibility blocker.
+
+
+### Positive extrusion end-cap sketches
+
+Body summaries expose `supportFaces` with stable producer/body/face UUIDs and the
+evaluated frame. Pass exactly those three IDs as `support` to `selection.faceSet`,
+then `sketch.create`; direct face support is also accepted by `sketch.begin`.
+`selection.facePick` uses viewport-local logical pixels and refuses unsupported or
+occluded faces. `view.projectSketchPoint` accepts exactly one origin `plane` or
+`sketchId`; use `sketchId` for supported sketches, including the active draft.
+Resolved frames are evaluation/session state, never serialized sketch placement.
+This slice supports positive extrusion end caps only. Existing sketch mutation,
+history and Finish/Cancel commands remain authoritative.
