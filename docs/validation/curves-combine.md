@@ -1,6 +1,7 @@
 # Analytic curves and Combine: bounded evidence
 
-Recorded 2026-10-12. Circle/arc and Combine implementation is available in the
+Initial checkpoint recorded 2026-10-12. Later native arc qualification is recorded
+below; Combine native acceptance remains separate. Circle/arc and Combine implementation is available in the
 separate `build-next` candidate. API, geometry, storage and bounded visual review
 passed; native mouse/keyboard acceptance remains incomplete. This does not close
 SKT-006, SOL-002, any tutorial gate or a release gate.
@@ -56,3 +57,33 @@ Direct Extrude Join/Cut/Intersect remains SOL-015, separate from Combine.
 Public-reference records and visuals stay in the external knowledge archive.
 The [query guide](../knowledge/README.md) explains access. Actual test artifacts
 stay under ignored `build-next/evidence`; no research assets are shipped.
+
+## Native arc completion supplement (2026-10-12)
+
+On the private ExchangeCandidate, native Create → Arc menus selected Center
+Point Arc and 3-Point Arc. Center/start/end clicks authored the first quarter arc;
+start/end/through clicks authored the second arc. Native D, curve selection and
+canvas placement opened the radius editor; typing 12 and Enter retained a driving
+12 mm radius on the first arc. It remained an analytic 90° arc, length 6π mm.
+Freehand placement is pixel-limited: the initial radius was 9.9291 mm, and the
+second arc was approximately radius 10.0181 mm with clockwise sweep 181.014°.
+These are placement observations, not claims of exact freehand numeric input.
+
+Native Cmd-Z restored the exact pre-dimension draft; Cmd-Shift-Z restored the
+exact dimensioned draft. Native Finish committed the sketch. API save/reopen
+retained identical authored features. Blank XY setup, inspection and storage
+were API actions; curve creation and radius entry were actual native input.
+The receipt and state captures are under `build-exchange/evidence/closure/`:
+`native-arcs-receipt.json`, `native-arcs-created.json`, `native-arcs-dimensioned.json`,
+`native-arcs-undo.json`, `native-arcs-redo.json`, `native-arcs-finished.json`,
+`native-arcs-reopened.json`, `native-arcs-dimensioned.png` and `native-arcs.alloy`.
+
+The private binary contains unchanged qualified sketch code plus preliminary
+STL work; this check does not qualify exchange features. Existing circle native
+input and placed two-line angular dimension evidence is recorded in
+[the bracket workflow](illustrated-bracket.md), [angular sketches](angular-sketch.md)
+and [five-circle Cut](five-circle-cut.md). Exact visual parity and broad analytic
+constraint families remain separate tracked requirements.
+
+Astra independently reviewed the actual capture and exact state comparisons;
+SKT-006 #33 is closed. SOL-002 Combine remains open for its native completion.

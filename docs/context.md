@@ -9,11 +9,13 @@ Implementation issues must be small enough to finish and close. When a family is
 larger than the current increment, publish linked Todo follow-ups for every
 remaining requirement before closing the verified subset. Preserve cumulative
 gate dependencies. In Progress means current work, not partially implemented work.
-Astra verified publication: 165 total issues, 36 closed and 129 open; seven
+Astra verified publication: 165 total issues, 37 closed and 128 open; seven
 follow-ups (#159–165) are Todo. Astra reviewed the splits; original descriptions are retained in
 [the split audit](backlog/scope-splits-2026-10-12.json). Exact tutorial and physical
 modifier gates remain open. Constraint interaction #152 is closed with its final
-hover capture accepted; arc input #33 is the active closure task.
+hover capture accepted. Arc input #33 is also closed: both native arc variants,
+placed R12, exact native undo/redo and save/reopen passed Astra review. See
+[the native arc supplement](validation/curves-combine.md).
 
 Unfinished exchange work is preserved locally on
 `wip/exchange-preserved-2026-10-12` at `88b50fd`, including its two STEP core commits.
