@@ -16,10 +16,7 @@ find_package(Qt6 6.11.2 EXACT REQUIRED COMPONENTS Widgets Network)
 
 # OCCT is required: the viewport must use its native OpenGL renderer.
 option(ALLOY_BUILD_SPIKES "Build disposable foundation research fixtures" OFF)
-set(ALLOY_OCCT_COMPONENTS FoundationClasses ModelingData ModelingAlgorithms Visualization)
-if(ALLOY_BUILD_SPIKES)
-    list(APPEND ALLOY_OCCT_COMPONENTS ApplicationFramework)
-endif()
+set(ALLOY_OCCT_COMPONENTS FoundationClasses ModelingData ModelingAlgorithms Visualization ApplicationFramework DataExchange)
 find_package(OpenCASCADE 7.9.3 EXACT REQUIRED COMPONENTS ${ALLOY_OCCT_COMPONENTS})
 set(ALLOY_OCCT_VERSION "${OpenCASCADE_MAJOR_VERSION}.${OpenCASCADE_MINOR_VERSION}.${OpenCASCADE_MAINTENANCE_VERSION}")
 message(STATUS "OCCT ${ALLOY_OCCT_VERSION}: native OpenGL visualization")
@@ -32,16 +29,18 @@ target_link_libraries(alloy_sketch_solver PUBLIC Qt6::Core PRIVATE alloy_planegc
 
 add_library(alloy_kernel STATIC
     src/GeometryKernel.cpp src/GeometryKernel.h
+    src/MeshExport.cpp src/MeshExport.h
+    src/StepExchange.cpp src/StepExchange.h
     src/SketchGeometry.cpp src/SketchGeometry.h
     src/SketchProfiles.cpp src/SketchProfiles.h src/SketchRegions.cpp)
 target_include_directories(alloy_kernel PUBLIC src)
 target_include_directories(alloy_kernel SYSTEM PUBLIC ${OpenCASCADE_INCLUDE_DIR})
-target_link_libraries(alloy_kernel PUBLIC alloy_sketch_solver Qt6::Core TKernel TKMath TKG3d TKBRep TKPrim TKTopAlgo TKBO TKBool TKGeomAlgo)
+target_link_libraries(alloy_kernel PUBLIC alloy_sketch_solver Qt6::Core TKernel TKMath TKG3d TKBRep TKPrim TKTopAlgo TKBO TKBool TKGeomAlgo TKMesh TKDESTL TKDESTEP TKXSBase)
 target_compile_definitions(alloy_kernel PUBLIC ALLOY_OCCT_VERSION="${ALLOY_OCCT_VERSION}")
 
 add_library(alloy_application STATIC
     src/AlloyTheme.cpp src/AlloyTheme.h
-    src/AlloyWindow.cpp src/AlloyWindow.h src/CombineControls.cpp
+    src/AlloyWindow.cpp src/AlloyWindow.h src/CombineControls.cpp src/ExportControls.cpp
     src/TutorialRecorder.cpp src/TutorialRecorder.h
     src/CadDocument.cpp src/CadDocument.h
     src/ReferenceView.cpp src/ReferenceView.h
@@ -84,6 +83,10 @@ if(BUILD_TESTING)
     add_executable(geometry_kernel_test tests/geometry_kernel.cpp)
     target_link_libraries(geometry_kernel_test PRIVATE alloy_kernel)
     add_test(NAME geometry_kernel COMMAND geometry_kernel_test)
+    add_executable(step_exchange_test tests/step_exchange.cpp src/CadDocument.cpp src/CadDocument.h)
+    target_include_directories(step_exchange_test PRIVATE src)
+    target_link_libraries(step_exchange_test PRIVATE Qt6::Gui alloy_kernel)
+    add_test(NAME step_exchange COMMAND step_exchange_test)
     add_executable(document_model_test tests/document_model.cpp src/CadDocument.cpp src/CadDocument.h)
     target_include_directories(document_model_test PRIVATE src)
     target_link_libraries(document_model_test PRIVATE Qt6::Gui alloy_kernel)

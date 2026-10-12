@@ -1,4 +1,7 @@
 #include "AlloyWindow.h"
+#include "MeshExport.h"
+#include "StepExchange.h"
+#include <QSaveFile>
 #include "ReferenceView.h"
 #include "GeometryKernel.h"
 #include "SketchGeometry.h"
@@ -145,6 +148,7 @@ AlloyWindow::AlloyWindow() {
     fileMenu->addAction("Open…",QKeySequence::Open,this,[this] { execute("document.openDialog"); });
     fileMenu->addAction("Save",QKeySequence::Save,this,[this] { execute("document.saveDialog"); });
     fileMenu->addAction("Save As…",QKeySequence::SaveAs,this,[this] { execute("document.saveAsDialog"); });
+    fileMenu->addAction("Save As Mesh…",this,[this] { execute("document.exportMeshDialog"); });
     fileMenu->addAction("Document Settings…", this, [this] { execute("document.settings"); });
     fileMenu->addSeparator();
     fileMenu->addAction("Quit", this, [this] { close(); });
@@ -306,6 +310,14 @@ AlloyWindow::AlloyWindow() {
     bodiesNode_=new QTreeWidgetItem(document,{"Bodies"}); bodiesNode_->setExpanded(true);
     sketchesNode_=new QTreeWidgetItem(document,{"Sketches"});sketchesNode_->setExpanded(true);
     document->setExpanded(true); views->setExpanded(true);
+    tree_->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(tree_,&QTreeWidget::customContextMenuRequested,this,[this](const QPoint& point){
+        const auto* item=tree_->itemAt(point);
+        if(!item || item->parent()!=bodiesNode_ || item->isHidden())return;
+        const auto bodyId=item->data(0,Qt::UserRole+1).toString();
+        QMenu menu(this);auto* mesh=menu.addAction("Save As Mesh…");mesh->setEnabled(session_.isEmpty());
+        if(menu.exec(tree_->viewport()->mapToGlobal(point))==mesh)execute("document.exportMeshDialog",{{"bodyId",bodyId}});
+    });
     connect(tree_, &QTreeWidget::itemClicked, this, [this](QTreeWidgetItem* item, int) {
         if(!item || item->isHidden() || !(item->flags()&Qt::ItemIsEnabled))return;
         if(!pendingBrowserVisibility_.isEmpty() && item->data(0,Qt::UserRole+2).toString()==pendingBrowserVisibility_)return;
@@ -645,6 +657,59 @@ void AlloyWindow::registerCommands() {
     auto optional=[](QJsonObject value) { value["required"]=false; return value; };
     auto path=parameter("string","Absolute native .alloy file path.");
     auto discard=optional(parameter("boolean","Explicitly discard unsaved edits."));
+    add("document.importStep","Import STEP","Import one local solid with embedded source and one undo entry.",
+        {{"path",parameter("string","Absolute input STEP path.")},{"name",optional(parameter("string","Imported feature name."))},
+         {"newDesign",optional(parameter("boolean","Open as a separate new design; default imports into the active design."))}},[this](const auto& a){
+            if(!session_.isEmpty())return failure("active_command","Finish or Cancel the active command before importing");
+            auto newTab=a.value("newDesign").toBool() ? std::make_unique<DesignTab>() : nullptr;
+            auto* target=newTab ? newTab->document.get() : document_;
+            auto inputs=a;inputs.remove("newDesign");
+            try {
+                const auto candidate=CadDocument::stepImportCandidate(target->authored(),inputs);
+                if(const auto error=target->commit(candidate,"Import STEP");!error.isEmpty()) {
+                    auto result=failure("step_import_failed",error);auto details=result["error"].toObject();
+                    details["diagnostics"]=target->lastEvaluationError();result["error"]=details;return result;
+                }
+            } catch(const StepExchange::Error& error){return QJsonObject{{"ok",false},{"error",error.diagnostics()}};}
+            if(newTab) {
+                saveActiveTabState();newTab->id=CadDocument::newId();activeTabId_=newTab->id;
+                designTabs_.push_back(std::move(newTab));showActiveTab();
+            }
+            view_->fit(document_->bodies(),document_->sketches());return document_->state();
+        });
+    add("document.exportStep","Export STEP","Export one committed solid with explicit STEP length units.",
+        {{"path",parameter("string","Absolute output STEP path.")},{"bodyId",parameter("string","Stable evaluated body UUID.")},{"units",units}},[this](const auto& a){
+            if(!session_.isEmpty())return failure("active_command","Finish or Cancel the active command before exporting");
+            const auto path=a["path"].toString();if(!QFileInfo(path).isAbsolute())return failure("invalid_path","Choose an absolute output path","path");
+            for(const auto& body:document_->bodies())if(body.bodyId==a["bodyId"].toString()) {
+                try {
+                    const auto output=StepExchange::write(body.shape,a["units"].toString());
+                    QSaveFile file(path);file.setDirectWriteFallback(false);
+                    if(!file.open(QIODevice::WriteOnly) || file.write(output.bytes)!=output.bytes.size() || !file.commit())return failure("export_failed",file.errorString(),"path");
+                    return QJsonObject{{"path",path},{"bodyId",body.bodyId},{"units",a["units"]},{"bytes",output.bytes.size()},
+                        {"diagnostics",output.diagnostics},{"authoredChanged",false}};
+                } catch(const StepExchange::Error& error){return QJsonObject{{"ok",false},{"error",error.diagnostics()}};}
+            }
+            return failure("stale_body","The selected solid no longer exists","bodyId");
+        });
+    auto meshDeviation=parameter("number","Surface deviation in canonical millimeters, independent of output units.");
+    meshDeviation["minimum"]=0.001;meshDeviation["maximum"]=10;
+    auto meshAngle=parameter("number","Normal deviation in degrees.");meshAngle["minimum"]=1;meshAngle["maximum"]=45;
+    auto meshFormat=parameter("string","STL encoding.");meshFormat["enum"]=QJsonArray{"binary","ascii"};
+    add("document.exportStl","Export STL","Export one committed solid with independent tessellation; STL does not embed units.",
+        {{"path",parameter("string","Absolute output STL path.")},{"bodyId",parameter("string","Stable evaluated solid body UUID.")},
+         {"units",units},{"format",meshFormat},{"surfaceDeviationMm",meshDeviation},{"normalDeviationDeg",meshAngle}},[this](const auto& a){
+            if(!session_.isEmpty())return failure("active_command","Finish or Cancel the active command before exporting");
+            for(const auto& body:document_->bodies())if(body.bodyId==a["bodyId"].toString()) {
+                try{return MeshExport::writeStl(body,a["path"].toString(),a["units"].toString(),a["format"]=="binary",a["surfaceDeviationMm"].toDouble(),a["normalDeviationDeg"].toDouble());}
+                catch(const GeometryKernel::EvaluationError& error){return QJsonObject{{"ok",false},{"error",error.diagnostics()}};}
+            }
+            return failure("stale_body","The selected solid no longer exists","bodyId");
+        });
+    add("document.exportMeshDialog","Save As Mesh…","Export a chosen committed solid to a local STL file.",
+        {{"bodyId",optional(parameter("string","Optional initially selected body UUID."))}},[this](const auto& a){
+            return showMeshExport(a.value("bodyId").toString(selectedBody_));
+        });
     add("document.save","Save","Atomically save authored intent; mark clean only after success.",{{"path",path}},[this](const auto& a){
         if(session_.value("command")=="sketch.edit")return failure("active_sketch_draft","Finish or Cancel the sketch before saving");
         const auto error=document_->save(a["path"].toString());
@@ -670,8 +735,13 @@ void AlloyWindow::registerCommands() {
         });
     }
     add("document.openDialog","Open…","Choose a local design and use the shared open command.",{},[this](const auto&){
-        const auto path=QFileDialog::getOpenFileName(this,"Open Design",{},"Alloy Design (*.alloy)");
-        if(path.isEmpty() || !confirmDiscard()) return QJsonObject{{"cancelled",true}};
+        const auto path=QFileDialog::getOpenFileName(this,"Open From Computer",{},"Supported designs (*.alloy *.step *.stp);;Alloy Design (*.alloy);;STEP solid (*.step *.stp)");
+        if(path.isEmpty())return QJsonObject{{"cancelled",true}};
+        if(path.endsWith(".step",Qt::CaseInsensitive) || path.endsWith(".stp",Qt::CaseInsensitive)) {
+            const auto result=execute("document.importStep",{{"path",path},{"newDesign",true}});
+            return result["ok"].toBool() ? result["result"].toObject() : result;
+        }
+        if(!confirmDiscard()) return QJsonObject{{"cancelled",true}};
         const auto response=execute("document.open",{{"path",path},{"discard",true}});
         return response["ok"].toBool() ? response["result"].toObject() : response;
     });

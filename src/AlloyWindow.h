@@ -54,6 +54,7 @@ private:
     QImage captureImage(QImage* viewport = nullptr);
     void refresh();
     void showSearch();
+    QJsonObject showMeshExport(const QString& bodyId);
     QWidget* commandButton(const QString& id, const QString& glyph, bool large = false);
     const Command* findCommand(const QString& id) const;
     QString validateArguments(const Command& command, const QJsonObject& args, QString* field = nullptr) const;
