@@ -1606,6 +1606,11 @@ void ReferenceView::mouseMoveEvent(QMouseEvent* e) {
         QWidget::mouseMoveEvent(e);
     }
 }
+void ReferenceView::leaveEvent(QEvent* e) {
+    if(!sketchPlane_.isEmpty() && !decorationSelection_.value("hoveredConstraintId").toString().isEmpty())
+        dispatch("sketch.constraintHover",{{"constraintId",""}});
+    QWidget::leaveEvent(e);
+}
 void ReferenceView::mouseReleaseEvent(QMouseEvent* e) {
     if(e->button()==Qt::LeftButton && extrusionDragActive_) {
         updateExtrusionDrag(e->position(),"end");extrusionDragActive_=false;e->accept();return;
@@ -1641,7 +1646,11 @@ void ReferenceView::contextMenuEvent(QContextMenuEvent* e) {
             lastContextMenu_["constraintId"]=badge.value("constraintId");lastContextMenu_["phase"]="open";
             const auto action=menu.exec(e->globalPos());
             lastContextMenu_["phase"]="closed";lastContextMenu_["result"]=action==remove ? "selected" : "cancelled";
-            if(action==remove)dispatch("sketch.deleteSelection",badge.isEmpty() ? QJsonObject{} : QJsonObject{{"constraintIds",QJsonArray{badge.value("constraintId")}}});
+            if(action==remove) {
+                const auto clickedId=badge.value("constraintId");
+                const auto ids=badge.isEmpty() || selected.contains(clickedId) ? selected : QJsonArray{clickedId};
+                dispatch("sketch.deleteSelection",{{"constraintIds",ids}});
+            }
             e->accept();return;
         }
     }
