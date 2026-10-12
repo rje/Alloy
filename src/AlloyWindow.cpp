@@ -3,6 +3,7 @@
 #include "GeometryKernel.h"
 #include "SketchGeometry.h"
 #include <QApplication>
+#include <QAction>
 #include <QWindow>
 #include <QCryptographicHash>
 #include <QDialog>
@@ -203,9 +204,23 @@ AlloyWindow::AlloyWindow() {
         auto* row = new QHBoxLayout; row->setSpacing(0);
         for (const auto& [id, glyph] : entries) row->addWidget(commandButton(id, glyph, true));
         box->addLayout(row);
-        auto* label = new QLabel(caption); label->setAlignment(Qt::AlignCenter);
-        label->setStyleSheet("font-size: 10px; color: #7c8790; padding-bottom: 2px;");
-        box->addWidget(label); groups->addLayout(box); groups->addWidget(divider());
+        if(caption=="CREATE" || caption=="MODIFY") {
+            auto* button=new QToolButton;button->setText(caption);button->setObjectName("solid.menu."+caption.toLower());
+            button->setStyleSheet("font-size: 10px; color: #53616b; padding: 0 6px;");
+            auto* menu=new QMenu(button);menu->setObjectName("solid.commands."+caption.toLower());
+            for(const auto& entry:entries) {
+                const auto* command=findCommand(entry.first);
+                if(!command || !command->available)continue;
+                auto* action=menu->addAction(command->title);
+                action->setObjectName("solid.action."+entry.first);action->setToolTip(command->description);
+                connect(action,&QAction::triggered,this,[this,id=entry.first]{execute(id);});
+            }
+            button->setMenu(menu);button->setPopupMode(QToolButton::InstantPopup);box->addWidget(button,0,Qt::AlignHCenter);
+        } else {
+            auto* label=new QLabel(caption);label->setAlignment(Qt::AlignCenter);
+            label->setStyleSheet("font-size: 10px; color: #7c8790; padding-bottom: 2px;");box->addWidget(label);
+        }
+        groups->addLayout(box);groups->addWidget(divider());
     };
     group("CREATE", {{"primitive.box", "▣"}, {"primitive.cylinder", "◉"}, {"sketch.create", "▧"}, {"solid.extrudeDialog", "▣"}});
     group("MODIFY", {{"solid.pressPullDialog", "⇧"}, {"solid.combineDialog", "▣"}, {"solid.fillet", "◩"}, {"solid.shell", "▱"}, {"solid.move", "✥"}});
@@ -220,20 +235,43 @@ AlloyWindow::AlloyWindow() {
     sketchToolbar_->setStyleSheet("#sketchToolbar { background: #e1f2f8; border-bottom: 1px solid #9fc7db; }");
     auto* sketchTools=new QHBoxLayout(sketchToolbar_);sketchTools->setContentsMargins(14,5,14,5);
     auto* sketchTitle=new QLabel("SKETCH");sketchTitle->setStyleSheet("font-weight: 700; color: #176588;");sketchTools->addWidget(sketchTitle);
-    for(const auto& tool:QStringList{"line","rectangle","circle","select","dimension","fillet"}) {
-        auto* button=new QPushButton(tool=="line" ? "Line  L" : tool=="rectangle" ? "Rectangle  R" : tool=="circle" ? "Circle  C" : tool=="dimension" ? "Dimension  D" : tool=="fillet" ? "Fillet" : "Select");
-        button->setObjectName("sketch.tool."+tool);sketchTools->addWidget(button);
-        connect(button,&QPushButton::clicked,this,[this,tool]{sketchResponse(execute("sketch.tool",{{"tool",tool}}));});
+    auto sketchMenu=[&](const QString& label,const QString& id) {
+        auto* button=new QToolButton;button->setText(label);button->setObjectName("sketch.menu."+id);
+        auto* menu=new QMenu(button);menu->setObjectName("sketch.commands."+id);
+        button->setMenu(menu);button->setPopupMode(QToolButton::InstantPopup);sketchTools->addWidget(button);return menu;
+    };
+    auto toolAction=[this](QMenu* menu,const QString& label,const QString& tool) {
+        auto* action=menu->addAction(label);action->setObjectName("sketch.tool."+tool);
+        connect(action,&QAction::triggered,this,[this,tool]{sketchResponse(execute("sketch.tool",{{"tool",tool}}));});return action;
+    };
+    auto* create=sketchMenu("Create","create");
+    toolAction(create,"Line\tL","line");
+    auto* rectangle=create->addMenu("Rectangle");rectangle->setObjectName("sketch.commands.rectangle");
+    toolAction(rectangle,"2-Point Rectangle\tR","rectangle");
+    auto* circle=create->addMenu("Circle");circle->setObjectName("sketch.commands.circle");
+    toolAction(circle,"Center Diameter Circle\tC","circle");
+    auto* arc=create->addMenu("Arc");arc->setObjectName("sketch.commands.arc");
+    toolAction(arc,"Center Point Arc","centerArc");toolAction(arc,"3-Point Arc","threePointArc");
+    create->addSeparator();toolAction(create,"Sketch Dimension\tD","dimension");
+    auto* modify=sketchMenu("Modify","modify");toolAction(modify,"Fillet","fillet");
+    auto* construction=modify->addAction("Normal/Construction\tX");construction->setObjectName("sketch.action.constructionToggle");
+    construction->setToolTip("Toggle selected authored lines; construction does not bound profiles.");
+    connect(construction,&QAction::triggered,this,[this]{sketchResponse(execute("sketch.constructionToggle"));});
+    auto* constraints=sketchMenu("Constraints","constraints");
+    for(const auto& type:QStringList{"coincident","horizontalVertical","horizontal","vertical","parallel","perpendicular","equal","fixed"}) {
+        auto* action=constraints->addAction(type=="horizontalVertical" ? "Horizontal/Vertical" : type.first(1).toUpper()+type.sliced(1));
+        action->setObjectName("sketch.action.constraint."+type);
+        action->setToolTip(type=="fixed" ? "Select one point; retain its position" : type=="coincident" ? "Select two points"
+            : type=="horizontal" || type=="vertical" || type=="horizontalVertical" ? "Pick a line" : "Pick a compatible pair; repeat pairs; Escape exits");
+        connect(action,&QAction::triggered,this,[this,type]{sketchResponse(execute("sketch.constraintTool",{{"type",type}}));});
     }
-    auto* arcTool=new QToolButton;arcTool->setText("Arc");arcTool->setObjectName("sketch.tool.arc");
-    auto* arcMenu=new QMenu(arcTool);arcMenu->addAction("Center Point Arc",this,[this]{sketchResponse(execute("sketch.tool",{{"tool","centerArc"}}));});
-    arcMenu->addAction("3-Point Arc",this,[this]{sketchResponse(execute("sketch.tool",{{"tool","threePointArc"}}));});
-    arcTool->setMenu(arcMenu);arcTool->setPopupMode(QToolButton::InstantPopup);sketchTools->addWidget(arcTool);
+    auto* select=new QPushButton("Select");select->setObjectName("sketch.tool.select");sketchTools->addWidget(select);
+    connect(select,&QPushButton::clicked,this,[this]{sketchResponse(execute("sketch.tool",{{"tool","select"}}));});
     sketchTools->addWidget(commandButton("sketch.lookAt","Look At"));sketchTools->addStretch();
     auto* finish=new QPushButton("Finish Sketch");finish->setObjectName("sketch.finish");
     finish->setStyleSheet("background: #bce5d4; border: 1px solid #77b79b; font-weight: 600;");sketchTools->addWidget(finish);
     connect(finish,&QPushButton::clicked,this,[this]{sketchResponse(execute("sketch.finish"));});
-    auto* cancel=new QPushButton("Cancel");sketchTools->addWidget(cancel);
+    auto* cancel=new QPushButton("Cancel");cancel->setObjectName("sketch.cancel");sketchTools->addWidget(cancel);
     connect(cancel,&QPushButton::clicked,this,[this]{execute("sketch.cancel");});
     layout->addWidget(sketchToolbar_);sketchToolbar_->hide();
 

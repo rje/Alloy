@@ -2,6 +2,9 @@
 #include "AlloyTheme.h"
 #include "ReferenceView.h"
 #include <QApplication>
+#include <QAction>
+#include <QMenu>
+#include <QToolButton>
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDoubleSpinBox>
@@ -110,6 +113,49 @@ private slots:
         QCOMPARE(window.state()["document"].toObject()["features"].toInt(),0);
     }
 
+    void sketchGroupedMenuCommands() {
+        AlloyWindow window;window.resize(1180,760);window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        QVERIFY2(run(window,"sketch.begin",{{"plane","XY"},{"name","Grouped commands"}}),error_.constData());
+        auto* create=window.findChild<QMenu*>("sketch.commands.create");QVERIFY(create);
+        auto* circle=window.findChild<QMenu*>("sketch.commands.circle");QVERIFY(circle);
+        QVERIFY(create->actions().contains(circle->menuAction()));
+        for(const auto& tool:QStringList{"line","rectangle","circle","centerArc","threePointArc","dimension","fillet"}) {
+            auto* action=window.findChild<QAction*>("sketch.tool."+tool);QVERIFY(action);
+            action->trigger();QCOMPARE(session(window)["tool"].toString(),tool);
+        }
+        // Fixed and Coincident use point targets, as in the palette; the
+        // remaining named constraints use the same authoritative tool command.
+        for(const auto& type:QStringList{"coincident","fixed","horizontalVertical","horizontal","vertical","parallel","perpendicular","equal"}) {
+            auto* action=window.findChild<QAction*>("sketch.action.constraint."+type);QVERIFY(action);
+            action->trigger();QCOMPARE(session(window)["tool"].toString(),QString("constraint"));
+            QCOMPARE(session(window)["constraintType"].toString(),type);
+        }
+        QVERIFY2(run(window,"sketch.tool",{{"tool","select"}}),error_.constData());
+        QVERIFY2(run(window,"sketch.line",{{"x1",0},{"y1",0},{"x2",20},{"y2",2},{"units","mm"}}),error_.constData());
+        auto parameters=session(window)["draftSketch"].toObject()["parameters"].toObject();
+        const auto edge=parameters["entities"].toArray().first().toObject();
+        QVERIFY2(run(window,"sketch.selectionSet",{{"pointIds",QJsonArray{edge["startPointId"]}}}),error_.constData());
+        window.findChild<QAction*>("sketch.action.constraint.fixed")->trigger();
+        parameters=session(window)["draftSketch"].toObject()["parameters"].toObject();
+        QCOMPARE(parameters["constraints"].toArray().last().toObject()["type"].toString(),QString("fixed"));
+        QVERIFY2(run(window,"sketch.tool",{{"tool","select"}}),error_.constData());
+        QVERIFY2(run(window,"sketch.selectionSet",{{"entityIds",QJsonArray{edge["id"]}}}),error_.constData());
+        auto* toggle=window.findChild<QAction*>("sketch.action.constructionToggle");QVERIFY(toggle);
+        const auto historyIndex=session(window)["draftHistory"].toObject()["index"].toInt();
+        toggle->trigger();
+        parameters=session(window)["draftSketch"].toObject()["parameters"].toObject();
+        QVERIFY(parameters["entities"].toArray().first().toObject()["construction"].toBool());
+        QCOMPARE(session(window)["draftHistory"].toObject()["index"].toInt(),historyIndex+1);
+        toggle->trigger();
+        QVERIFY(!session(window)["draftSketch"].toObject()["parameters"].toObject()["entities"].toArray().first().toObject()["construction"].toBool());
+        QVERIFY2(run(window,"sketch.cancel"),error_.constData());
+        auto* solidModify=window.findChild<QMenu*>("solid.commands.modify");QVERIFY(solidModify);
+        auto* pressPull=window.findChild<QAction*>("solid.action.solid.pressPullDialog");QVERIFY(pressPull);
+        QVERIFY(solidModify->actions().contains(pressPull));
+        pressPull->trigger();QCOMPARE(session(window)["command"].toString(),QString("solid.extrude"));
+        QVERIFY2(run(window,"command.cancel",{{"session",session(window).value("id").toString()}}),error_.constData());
+    }
     void pressPullProfileModifierToggle() {
         AlloyWindow window;window.resize(1180,760);window.show();window.activateWindow();
         QVERIFY(QTest::qWaitForWindowExposed(&window));
