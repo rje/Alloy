@@ -673,10 +673,11 @@ void AlloyWindow::registerCommands() {
             {"operation",optional(extrudeOperation)},{"targetBodyIds",optional(parameter("array","One Cut target body UUID."))}},[this](const auto& a){return beginSession("solid.extrude",a);});
     auto dragDistance=parameter("number","Signed canonical millimeter distance derived from the canvas arrow drag.");
     dragDistance["minimum"]=-100000;dragDistance["maximum"]=100000;
+    auto dragPixel=optional(parameter("number","Viewport-local logical pixel coordinate."));
+    dragPixel["minimum"]=0;dragPixel["maximum"]=10000;
     auto dragPhase=parameter("string","Arrow drag phase.");dragPhase["enum"]=QJsonArray{"move","end"};
     add("solid.extrudeDrag","Drag extrusion arrow","Update the same one-side Distance preview through the native canvas manipulator.",
-        {{"distanceMm",dragDistance},{"x",optional(parameter("number","Viewport-local logical x coordinate."))},
-            {"y",optional(parameter("number","Viewport-local logical y coordinate."))},{"phase",optional(dragPhase)}},[this](const auto& a){
+        {{"distanceMm",dragDistance},{"x",dragPixel},{"y",dragPixel},{"phase",optional(dragPhase)}},[this](const auto& a){
             if(session_.value("command")!="solid.extrude")return failure("no_active_extrusion","Open Extrude or Press Pull first");
             const auto units=session_.value("inputs").toObject()["units"].toString();
             const double distanceMm=a["distanceMm"].toDouble();
