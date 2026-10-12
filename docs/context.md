@@ -239,8 +239,10 @@ independently reviewed evidence. DOC-003/004/005/007/008 are closed with reviewe
 primitive evidence. UX-001 is closed with independently reviewed input/editor evidence;
 FND-005 and SKT-001/002 are closed with their bounded solver/sketch evidence;
 SKT-003/004 are closed with independently reviewed integrated constraints/dimension
-evidence; SKT-014 is closed with reviewed real-profile/annotation evidence:
-21 tasks closed, 126 open at this handoff. Live counts
+evidence; SKT-014 is closed with reviewed real-profile/annotation evidence.
+HIS-001/SOL-001 and SKT-015 are closed with reviewed extrusion and local checkpoint
+evidence; their board items are Done. There are 24 tasks closed, 123 open and
+13 dependency-ready at this handoff. Live counts
 are obtained with tools/backlog.py rather than this earlier publication snapshot. Later epics need
 bounded child issues before implementation; this count does not exhaust parity.
 Read [the backlog](backlog/README.md), [publication receipt](backlog/publication.json),
@@ -305,7 +307,7 @@ changes, new failures or unresolved risks.
 value, label editing/dragging and proper line graphics now have focused API/native
 evidence and independent Astra acceptance. Broader drawing inputs/inference and
 center-rectangle entry are still open. SKT-008 #35 retains glyphs/per-entity DOF
-and visibility controls. The final binary SHA256 is
+and visibility controls. The annotation correction's earlier binary SHA256 is
 `1610e1ed19378ff5c0ec2d1d4b133559df2d089028598e5c94caa175c9d4bb56`;
 `build/evidence/annotations-final/report.json` identifies source/fixture/artifacts,
 and `annotations-native-final-*` retains physical checks. Earlier visually failed

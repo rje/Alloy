@@ -224,5 +224,7 @@
     "Native save dialogs not repeated; save/reopen verified by same-candidate API workflow.",
     "No full tutorial, cross-platform runtime/package, STEP/export, mounting bracket or release gate accepted.",
     "No CI run, tag or release created."
-  ]
+  ],
+  "qualifiedCommit": "be6a65997052f53d7c8f71a5b7de9c8f9f2b7d04",
+  "qualifiedCommitNote": "All 37 recorded source/fixture inputs exactly match this commit; documentation and later issue-state updates do not require another application run."
 }
