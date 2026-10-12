@@ -96,15 +96,19 @@ SketchStrokes splitSketchStrokes(const EvaluatedSketch& sketch) {
     return {ordinaryCount ? TopoDS_Shape(normal) : TopoDS_Shape{},
         constructionCount ? TopoDS_Shape(construction) : TopoDS_Shape{},constructionCount};
 }
-Handle(AIS_Shape) constructionPresentation(const TopoDS_Shape& shape,bool selected=false) {
-    Handle(AIS_Shape) presentation=new AIS_Shape(shape);
+void styleConstruction(Handle(AIS_Shape) presentation,bool selected,bool fullyConstrained) {
     const Quantity_Color color=selected ? Quantity_Color(0.98,0.43,0.08,Quantity_TOC_RGB)
+        : fullyConstrained ? Quantity_Color(0.12,0.14,0.16,Quantity_TOC_sRGB)
         : Quantity_Color(0.91,0.47,0.11,Quantity_TOC_RGB);
     const Handle(Prs3d_LineAspect) dashed=new Prs3d_LineAspect(color,Aspect_TOL_DASH,selected ? 4 : 1.5);
     presentation->SetColor(color);
     presentation->Attributes()->SetWireAspect(dashed);presentation->Attributes()->SetLineAspect(dashed);
     presentation->Attributes()->SetFreeBoundaryAspect(dashed);presentation->Attributes()->SetUnFreeBoundaryAspect(dashed);
     presentation->SetDisplayMode(AIS_WireFrame);
+}
+Handle(AIS_Shape) constructionPresentation(const TopoDS_Shape& shape,bool selected=false,bool fullyConstrained=false) {
+    Handle(AIS_Shape) presentation=new AIS_Shape(shape);
+    styleConstruction(presentation,selected,fullyConstrained);
     return presentation;
 }
 }
@@ -344,7 +348,7 @@ void ReferenceView::setSketches(const std::vector<EvaluatedSketch>& sketches,qui
             context_->Display(model,AIS_WireFrame,-1,false);context_->Deactivate(model);sketchModels_[sketch.featureId]=model;
         }
         if(!strokes.construction.IsNull()) {
-            const auto model=constructionPresentation(strokes.construction);
+            const auto model=constructionPresentation(strokes.construction,false,sketch.summary["solver"].toObject()["dof"].toInt(-1)==0);
             if(sketch.plane=="face")model->SetZLayer(Graphic3d_ZLayerId_Topmost);
             context_->Display(model,AIS_WireFrame,-1,false);context_->Deactivate(model);constructionSketchModels_[sketch.featureId]=model;
         }
@@ -498,7 +502,7 @@ void ReferenceView::showSketchDraft(const EvaluatedSketch& sketch) {
         context_->Display(sketchDraft_,AIS_WireFrame,-1,false);context_->Deactivate(sketchDraft_);
     }
     if(!strokes.construction.IsNull()) {
-        sketchConstructionDraft_=constructionPresentation(strokes.construction);
+        sketchConstructionDraft_=constructionPresentation(strokes.construction,false,sketch.summary["solver"].toObject()["dof"].toInt(-1)==0);
         if(sketch.plane=="face")sketchConstructionDraft_->SetZLayer(Graphic3d_ZLayerId_Topmost);
         context_->Display(sketchConstructionDraft_,AIS_WireFrame,-1,false);context_->Deactivate(sketchConstructionDraft_);
         for(const auto& entry:sketch.summary.value("entities").toArray()) {
@@ -789,6 +793,10 @@ void ReferenceView::decorateSketch(const QJsonObject& feature,const QJsonObject&
     const auto parameters=feature["parameters"].toObject();const auto plane=parameters["plane"].toString();
     const bool fullyConstrained=diagnostics["dof"].toInt(-1)==0;
     if(!sketchDraft_.IsNull()){sketchDraft_->SetColor(fullyConstrained ? Quantity_Color(0.12,0.14,0.16,Quantity_TOC_sRGB) : Quantity_Color(0.10,0.34,0.84,Quantity_TOC_RGB));context_->Redisplay(sketchDraft_,false);}
+    if(!sketchConstructionDraft_.IsNull()){
+        styleConstruction(sketchConstructionDraft_,false,fullyConstrained);
+        context_->Redisplay(sketchConstructionDraft_,false);
+    }
     QMap<QString,QJsonObject> points;QSet<QString> fixed;
     for(const auto& entry:parameters["constraints"].toArray()) {
         const auto constraint=entry.toObject();if(constraint["type"]=="fixed")for(const auto& id:constraint["pointIds"].toArray())fixed.insert(id.toString());
