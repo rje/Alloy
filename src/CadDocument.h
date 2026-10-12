@@ -32,6 +32,7 @@ public:
     static CandidateEvaluation evaluateCandidate(const QJsonObject& candidate);
     // Canonical args: sketchId, profileId, distanceMm, optional name; either an
     // existing featureId edit or a reserved newFeatureId/newBodyId create pair.
+    const EvaluatedDocument& evaluation() const { return *evaluation_; }
     static QJsonObject extrusionCandidate(const QJsonObject& authored, const QJsonObject& arguments);
     // Canonical args: operation, targetBodyId, toolBodyIds, keepTools, optional
     // name; featureId edits an existing Boolean, newFeatureId reserves a create.

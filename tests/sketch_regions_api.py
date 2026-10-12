@@ -19,6 +19,7 @@ def main():
     captures = []
     capabilities = ['sketch.retained_planar_regions']
     multiprofile = fixture.get('multiprofileExtrusion')
+    face_support = fixture.get('faceSupport')
     with application(args.app, output) as (call, transcript):
         initial = call('app.state')
         session = call('sketch.begin', {'plane': 'XY', 'name': 'Three retained bracket regions'})
@@ -206,6 +207,74 @@ def main():
             assert reopened_solid['authored'] == saved_solid
             inspect_solid(reopened_solid)
             capabilities.append('solid.multi_profile_union')
+        if face_support:
+            assert multiprofile, 'Face checkpoint requires the rounded bracket solid setup'
+            before_face = call('document.inspect')
+            cap = before_face['evaluation']['bodies'][0]['supportFaces'][0]
+            assert cap['role'] == 'extrude.endCap' and cap['planar']
+            support = {key: cap[key] for key in ('producerFeatureId', 'bodyId', 'faceId')}
+            assert cap['frame']['origin'] == [0, 0, 50]
+            # A stale semantic reference must not silently select another planar face.
+            stale = dict(support, faceId='00000000-0000-4000-8000-000000000001')
+            call('selection.faceSet', {'support': stale}, error='support_unavailable')
+            assert call('document.inspect')['authored'] == before_face['authored']
+            selected_cap = call('selection.faceSet', {'support': support})
+            assert selected_cap['kind'] == 'face' and selected_cap['support'] == support
+            face_session = call('sketch.create', {'name': 'Supported local rectangle'})
+            assert face_session['resolvedFrame'] == cap['frame']
+            x1, y1, x2, y2 = face_support['rectangleMm']
+            call('sketch.rectangle', {'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2, 'units': 'mm'})
+            face_preview = call('command.preview', {'session': face_session['id']})
+            local = face_preview['authoredDraft']
+            assert local['parameters']['plane'] == 'face'
+            assert local['parameters']['support'] == support and 'frame' not in local['parameters']
+            call('view.projectSketchPoint', {'sketchId': local['id'], 'uMm': x1, 'vMm': y1})
+            captures.append(call('capture.screenshot', {'path': str(output / 'cap-local-rectangle-preview.png')}))
+            call('sketch.finish')
+            attached = call('document.inspect')
+
+            def inspect_attached(document, z):
+                authored = next(f for f in document['authored']['features'] if f['id'] == local['id'])
+                assert authored == local, 'Support reevaluation changed local authored coordinates or IDs'
+                evaluated = next(f for f in document['evaluation']['sketches'] if f['sketchId'] == local['id'])
+                assert evaluated['frame']['origin'] == [0, 0, z]
+                assert evaluated['frame']['uAxis'] == cap['frame']['uAxis']
+                assert evaluated['frame']['vAxis'] == cap['frame']['vAxis']
+                coordinates = {p['id']: (p['uMm'], p['vMm']) for p in local['parameters']['points']}
+                for point in evaluated['worldPoints']:
+                    u, v = coordinates[point['id']]
+                    assert all(math.isclose(a, b, abs_tol=1e-7) for a, b in zip(point['positionMm'], (u, v, z)))
+                assert len(evaluated['profiles']) == 1
+                assert math.isclose(evaluated['profiles'][0]['areaMm2'], (x2-x1)*(y2-y1), abs_tol=1e-7)
+                current_cap = document['evaluation']['bodies'][0]['supportFaces'][0]
+                assert {key: current_cap[key] for key in support} == support
+                return evaluated['profiles'][0]['profileId']
+
+            face_profile = inspect_attached(attached, 50)
+            depth = face_support['editedDepthMm']
+            call('solid.extrude', {'featureId': retained_identity[0], 'sketchId': edited['id'],
+                'profileIds': sorted(stable_ids), 'distance': depth, 'units': 'mm'})
+            transported = call('document.inspect')
+            assert inspect_attached(transported, depth) == face_profile
+            inspect_solid(transported)
+            call('view.projectSketchPoint', {'sketchId': local['id'], 'uMm': x2, 'vMm': y2})
+            captures.append(call('capture.screenshot', {'path': str(output / 'cap-depth-transport.png')}))
+            call('history.undo')
+            undone = call('document.inspect')
+            assert undone['authored'] == attached['authored']
+            inspect_attached(undone, 50)
+            call('history.redo')
+            assert call('document.inspect')['authored'] == transported['authored']
+            path = output / 'supported-bracket.alloy'
+            call('document.save', {'path': str(path)})
+            saved_face = call('document.inspect')['authored']
+            call('document.new', {'discard': False})
+            call('document.open', {'path': str(path)})
+            reopened_face = call('document.inspect')
+            assert reopened_face['authored'] == saved_face
+            assert inspect_attached(reopened_face, depth) == face_profile
+            inspect_solid(reopened_face)
+            capabilities.append('sketch.semantic_cap_support')
         final = call('app.state')
     result = {
         'result': 'passed', 'testSha256': hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
@@ -215,8 +284,8 @@ def main():
         'evidenceDimensions': {'api': {'status': 'passed'}, 'geometry': {'status': 'passed'},
             'save_reopen': {'status': 'passed'}, 'visual': {'status': 'captured'},
             'physical_input': {'status': 'not_run', 'reason': 'Shared pointer API dispatch is separate from native mouse evidence.'}},
-        'limits': ['Bounded authored-contact regions and connected same-sketch union only.'] if multiprofile else ['Bounded authored-contact regions; multi-profile union extrusion remains separate.']}
-    (output / ('sketch-multiprofile-api.json' if multiprofile else 'sketch-regions-api.json')).write_text(json.dumps(result, indent=2) + '\n')
+        'limits': ['Positive extrusion end-cap support only; arbitrary planar/curved or modified faces remain unsupported.'] if face_support else ['Bounded authored-contact regions and connected same-sketch union only.'] if multiprofile else ['Bounded authored-contact regions; multi-profile union extrusion remains separate.']}
+    (output / ('sketch-face-support-api.json' if face_support else 'sketch-multiprofile-api.json' if multiprofile else 'sketch-regions-api.json')).write_text(json.dumps(result, indent=2) + '\n')
     print('PASS: three selectable rounded-bracket regions, retained edit identities and storage')
 
 

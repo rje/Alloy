@@ -36,9 +36,9 @@ QJsonArray array(const QStringList& values){QJsonArray result;for(const auto& va
 QString rotation(QStringList values){QString best;for(int i=0;i<values.size();++i){QStringList rotated;for(int j=0;j<values.size();++j)rotated.append(values[(i+j)%values.size()]);const auto key=rotated.join('\n');if(best.isEmpty()||key<best)best=key;}return best;}
 }
 
-SketchProfiles::RegionsResult SketchProfiles::deriveRegions(const QJsonObject& feature) {
+SketchProfiles::RegionsResult SketchProfiles::deriveRegions(const QJsonObject& feature, const QJsonObject& resolvedFrame) {
     // Keep proven legacy identities and diagnostics for a simple boundary.
-    const auto legacy=derive(feature);
+    const auto legacy=derive(feature,resolvedFrame);
     if(legacy.ok)return {true,{legacy.profile},legacy.diagnostics,{}};
     RegionsResult result;result.diagnostics=legacy.diagnostics;result.error=legacy.error;
     if(legacy.diagnostics["code"]=="invalid_sketch" || legacy.diagnostics["code"]=="empty_sketch")return result;
@@ -51,13 +51,13 @@ SketchProfiles::RegionsResult SketchProfiles::deriveRegions(const QJsonObject& f
         QSet<QString> endpointIds;
         for(const auto& value:parameters["entities"].toArray()) {
             const auto entity=value.toObject();if(entity["construction"].toBool())continue;
-            const auto edge=SketchGeometry::analyticEdge(parameters,entity);
+            const auto edge=SketchGeometry::analyticEdge(parameters,entity,resolvedFrame);
             sources.push_back({entity["id"].toString(),entity,edge});input.Append(edge);
             for(const auto& field:{"startPointId","endPointId"})if(entity[field].isString())endpointIds.insert(entity[field].toString());
         }
         // A single open analytic edge retains the legacy open-profile diagnostic.
         if(sources.size()<2)return result;
-        const auto frame=SketchGeometry::frame(planeName);const auto o=frame["origin"].toArray(),u=frame["uAxis"].toArray(),v=frame["vAxis"].toArray(),n=frame["normal"].toArray();
+        const auto frame=SketchGeometry::evaluationFrame(parameters,resolvedFrame);const auto o=frame["origin"].toArray(),u=frame["uAxis"].toArray(),v=frame["vAxis"].toArray(),n=frame["normal"].toArray();
         const gp_Pnt origin(o[0].toDouble(),o[1].toDouble(),o[2].toDouble());
         const gp_Vec uAxis(u[0].toDouble(),u[1].toDouble(),u[2].toDouble()),vAxis(v[0].toDouble(),v[1].toDouble(),v[2].toDouble());
         QMap<QString,gp_Pnt> points;

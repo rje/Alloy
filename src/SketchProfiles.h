@@ -25,9 +25,9 @@ public:
         QJsonObject diagnostics;
         QString error;
     };
-    static RegionsResult deriveRegions(const QJsonObject& solvedFeature);
+    static RegionsResult deriveRegions(const QJsonObject& solvedFeature, const QJsonObject& resolvedFrame = {});
     // Input is already validated/solved authored sketch intent. No mutation or
     // solver call occurs here. Open or unsupported regions return diagnostics,
     // leaving the source sketch valid and available for further drawing.
-    static Result derive(const QJsonObject& solvedFeature);
+    static Result derive(const QJsonObject& solvedFeature, const QJsonObject& resolvedFrame = {});
 };

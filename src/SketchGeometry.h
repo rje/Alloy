@@ -14,6 +14,7 @@ public:
     };
     static QJsonObject newFeature(const QString& ownerId, const QString& plane,
         const QString& name = "Sketch");
+    static QJsonObject newSupportedFeature(const QString& ownerId, const QJsonObject& support, const QString& name = "Sketch");
     static QJsonObject findFeature(const QJsonObject& authored, const QString& sketchId);
     static QJsonObject replaceFeature(const QJsonObject& authored, const QJsonObject& draft);
     // Canonical arguments: u1Mm, v1Mm, u2Mm, v2Mm. Lines may reuse explicit point IDs.
@@ -22,7 +23,7 @@ public:
     static QJsonObject addCircle(const QJsonObject& draft, const QJsonObject& arguments);
     static QJsonObject addArc(const QJsonObject& draft, const QJsonObject& arguments);
     // Exact OCCT edge from validated analytic intent, shared by display/profiles.
-    static TopoDS_Edge analyticEdge(const QJsonObject& parameters, const QJsonObject& entity);
+    static TopoDS_Edge analyticEdge(const QJsonObject& parameters, const QJsonObject& entity, const QJsonObject& resolvedFrame = {});
     static QJsonObject addRectangle(const QJsonObject& draft, const QJsonObject& arguments);
     // Pointer creation is transactional. Optional startSnapTarget/endSnapTarget
     // are {kind:origin} or {kind:point,pointId:UUID}; accepted snaps retain
@@ -47,5 +48,6 @@ public:
     static SolveResult movePoint(const QJsonObject& draft, const QJsonObject& arguments);
     static QString validateParameters(const QJsonObject& parameters, QSet<QString>& authoredIds);
     static QJsonObject frame(const QString& plane);
-    static EvaluatedSketch evaluateFeature(const QJsonObject& feature);
+    static QJsonObject evaluationFrame(const QJsonObject& parameters, const QJsonObject& resolvedFrame = {});
+    static EvaluatedSketch evaluateFeature(const QJsonObject& feature, const QJsonObject& resolvedFrame = {});
 };

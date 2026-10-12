@@ -38,6 +38,8 @@ public:
     void selectProfile(const QString& sketchId, const QString& profileId);
     void selectProfiles(const QString& sketchId, const QJsonArray& profileIds);
     QJsonObject pickFinishedProfile(double x, double y) const;
+    QJsonObject pickSupportFace(double x, double y, const std::vector<EvaluatedBody>& bodies) const;
+    void selectSupportFace(const QJsonObject& support, const TopoDS_Face& face = {});
     void setEditDisplay(const QString& sourceSketchId, const QJsonArray& hiddenBodyIds);
     QJsonObject pickSketch(const QJsonObject& feature, double x, double y, const QString& filter = {}) const;
     void decorateSketch(const QJsonObject& feature, const QJsonObject& selection,
@@ -46,10 +48,10 @@ public:
         double valueMm, const QString& units) const;
     QJsonObject pickAnnotation(double x, double y) const;
     QJsonArray annotations() const { return annotationLayouts_; }
-    void setSketchPlane(const QString& plane);
-    void lookAtSketch(const QString& plane);
+    void setSketchPlane(const QString& plane, const QJsonObject& resolvedFrame = {});
+    void lookAtSketch(const QString& plane, const QJsonObject& resolvedFrame = {});
     QJsonObject sketchPoint(double x, double y, const QString& plane) const;
-    QJsonObject projectSketchPoint(double uMm, double vMm, const QString& plane) const;
+    QJsonObject projectSketchPoint(double uMm, double vMm, const QString& plane, const QJsonObject& resolvedFrame = {}) const;
     void showSketchCursor(const QString& plane, const QPointF& first, const QPointF& second, bool rectangle);
     void showSketchSnap(const QString& plane, const QJsonObject& snap);
     void showSketchCurveCursor(const QJsonObject& feature);
@@ -74,8 +76,11 @@ protected:
     void contextMenuEvent(QContextMenuEvent*) override;
     void wheelEvent(QWheelEvent*) override;
 private:
+    gp_Pnt sketchWorld(const QString& plane,double u,double v) const;
+    QJsonObject frameFor(const QString& plane) const;
     void initialize();
     void displayBodies(const std::vector<EvaluatedBody>& bodies);
+    void hoverSupportFace(const QJsonObject& support);
     QJsonObject curveDimensionLayout(const QJsonObject& feature, const QJsonObject& dimension,
         double value, const QString& units) const;
     QJsonObject angleDimensionLayout(const QJsonObject& feature, const QJsonObject& dimension,
@@ -97,6 +102,10 @@ private:
     QMap<QString,Handle(AIS_Shape)> models_;
     QMap<QString,bool> bodyVisibility_;
     QString combineTargetId_;
+    QJsonObject selectedSupportFace_;
+    Handle(AIS_Shape) selectedSupportFaceOverlay_;
+    QJsonObject hoveredSupportFace_;
+    Handle(AIS_Shape) hoveredSupportFaceOverlay_;
     QJsonArray combineToolIds_;
     QMap<QString,Handle(AIS_Shape)> sketchModels_;
     QMap<QString,Handle(AIS_Shape)> constructionSketchModels_;
@@ -124,6 +133,7 @@ private:
     QPointF annotationPress_;
     bool annotationDragged_ = false;
     QString sketchPlane_, draftSketchId_;
+    QJsonObject sketchFrame_;
     quint64 sketchRevision_ = 0;
     Handle(AIS_Shape) preview_;
     std::vector<Handle(AIS_InteractiveObject)> extrusionCue_;

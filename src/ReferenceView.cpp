@@ -54,6 +54,8 @@
 #include <Prs3d_DimensionAspect.hxx>
 #include <Prs3d_ArrowAspect.hxx>
 #include <BRepClass_FaceClassifier.hxx>
+#include <IntCurvesFace_ShapeIntersector.hxx>
+#include <gp_Lin.hxx>
 #include <gp_Pln.hxx>
 #include <BRepMesh_IncrementalMesh.hxx>
 #include <BRep_Tool.hxx>
@@ -67,11 +69,6 @@
 #include <TopoDS_Iterator.hxx>
 
 namespace {
-gp_Pnt sketchWorld(const QString& plane,double u,double v) {
-    const auto frame=SketchGeometry::frame(plane);
-    const auto ua=frame["uAxis"].toArray(),va=frame["vAxis"].toArray();
-    return gp_Pnt(u*ua[0].toDouble()+v*va[0].toDouble(),u*ua[1].toDouble()+v*va[1].toDouble(),u*ua[2].toDouble()+v*va[2].toDouble());
-}
 Handle(AIS_Shape) sketchPresentation(const TopoDS_Shape& shape) {
     Handle(AIS_Shape) presentation=new AIS_Shape(shape);
     presentation->SetColor(Quantity_Color(0.10,0.34,0.84,Quantity_TOC_RGB));
@@ -122,7 +119,7 @@ ReferenceView::~ReferenceView() {
 }
 QJsonObject ReferenceView::cameraState() const {
     return {{"orientation",orientation},{"zoom",zoom},{"panX",pan.x()},{"panY",pan.y()},
-        {"grid",grid},{"origin",origin},{"sketchPlane",sketchPlane_},
+        {"grid",grid},{"origin",origin},{"sketchPlane",sketchPlane_},{"sketchFrame",sketchFrame_},
         {"centerX",sceneCenter_.X()},{"centerY",sceneCenter_.Y()},{"centerZ",sceneCenter_.Z()},
         {"scale",sceneScale_}};
 }
@@ -131,6 +128,7 @@ void ReferenceView::restoreCameraState(const QJsonObject& state) {
     zoom=state.value("zoom").toDouble(1);pan={state.value("panX").toDouble(),state.value("panY").toDouble()};
     grid=state.value("grid").toBool(true);origin=state.value("origin").toBool(true);
     sketchPlane_=state.value("sketchPlane").toString();
+    sketchFrame_=state.value("sketchFrame").toObject();
     sceneCenter_=gp_Pnt(state.value("centerX").toDouble(),state.value("centerY").toDouble(),state.value("centerZ").toDouble());
     sceneScale_=state.value("scale").toDouble(400);
     sync();
@@ -138,6 +136,7 @@ void ReferenceView::restoreCameraState(const QJsonObject& state) {
 void ReferenceView::rebindDocument() {
     if(context_.IsNull())return;
     clearPreview();clearSketchDraft();clearBodyStage();clearSketchCursor();
+    selectSupportFace({},{});hoverSupportFace({});sketchFrame_={};
     setEditDisplay({},{});selectProfile({},{});highlightCombineInputs({},{});
     for(const auto& model:models_)context_->Remove(model,false);
     for(const auto& model:sketchModels_)context_->Remove(model,false);
@@ -224,7 +223,12 @@ void ReferenceView::sync() {
     view_->SetCamera(new Graphic3d_Camera(baseCamera_));
     // Resize after installing the camera so its aspect matches this drawable.
     view_->MustBeResized();
-    view_->SetProj(orientation == "top" ? V3d_Zpos : orientation == "front" ? V3d_Yneg : orientation == "right" ? V3d_Xpos : V3d_XposYnegZpos);
+    if(orientation=="face" && !sketchFrame_.isEmpty()) {
+        const auto n=sketchFrame_.value("normal").toArray(),v=sketchFrame_.value("vAxis").toArray();
+        view_->Camera()->SetDirection(gp_Dir(-n[0].toDouble(),-n[1].toDouble(),-n[2].toDouble()));
+        view_->Camera()->SetUp(gp_Dir(v[0].toDouble(),v[1].toDouble(),v[2].toDouble()));
+        view_->Camera()->OrthogonalizeUp();
+    } else view_->SetProj(orientation == "top" ? V3d_Zpos : orientation == "front" ? V3d_Yneg : orientation == "right" ? V3d_Xpos : V3d_XposYnegZpos);
     // Move Eye/Center together: SetCenter alone changes the view direction,
     // while SetProj preserves the origin's screen offset rather than Center.
     const auto camera=view_->Camera();
@@ -234,9 +238,14 @@ void ReferenceView::sync() {
     camera->SetScale(sceneScale_ / (zoom * std::min(camera->Aspect(), 1.0)));
     const auto scale=windowScale();
     view_->Pan(qRound(pan.x()*scale.x()),-qRound(pan.y()*scale.y()));
-    const auto frame=SketchGeometry::frame(sketchPlane_.isEmpty() ? "XY" : sketchPlane_);
-    const auto normal=frame["normal"].toArray(),u=frame["uAxis"].toArray();
-    viewer_->SetPrivilegedPlane(gp_Ax3(gp_Pnt(),gp_Dir(normal[0].toDouble(),normal[1].toDouble(),normal[2].toDouble()),gp_Dir(u[0].toDouble(),u[1].toDouble(),u[2].toDouble())));
+    const auto frame=frameFor(sketchPlane_.isEmpty() ? "XY" : sketchPlane_);
+    const auto normal=frame["normal"].toArray(),u=frame["uAxis"].toArray(),o=frame["origin"].toArray();
+    const gp_Pnt frameOrigin(o[0].toDouble(),o[1].toDouble(),o[2].toDouble());
+    const gp_Dir frameNormal(normal[0].toDouble(),normal[1].toDouble(),normal[2].toDouble());
+    const gp_Dir frameU(u[0].toDouble(),u[1].toDouble(),u[2].toDouble());
+    viewer_->SetPrivilegedPlane(gp_Ax3(frameOrigin,frameNormal,frameU));
+    axes_->SetComponent(new Geom_Axis2Placement(gp_Ax2(frameOrigin,frameNormal,frameU)));
+    context_->Redisplay(axes_,false);
     // Keep the sketch grid under the whole drawable. Its graphic center moves
     // only in whole grid steps, so panning never shifts the origin lattice.
     double gridCenterU=0,gridCenterV=0,gridStep=10,gridWidth=200,gridHeight=200;
@@ -290,6 +299,7 @@ void ReferenceView::sync() {
 }
 void ReferenceView::setBodies(const std::vector<EvaluatedBody>& bodies,quint64 revision) {
     if(context_.IsNull() || modelRevision_==revision)return;
+    hoverSupportFace({});
     documentBodies_=bodies;modelRevision_=revision;
     if(bodyStageKey_.isEmpty())displayBodies(documentBodies_);
 }
@@ -325,17 +335,20 @@ void ReferenceView::setSketches(const std::vector<EvaluatedSketch>& sketches,qui
         const auto strokes=splitSketchStrokes(sketch);
         if(!strokes.normal.IsNull()) {
             const auto model=sketchPresentation(strokes.normal);model->SetDisplayMode(AIS_WireFrame);
+            if(sketch.plane=="face")model->SetZLayer(Graphic3d_ZLayerId_Topmost);
             if(sketch.summary["solver"].toObject()["dof"].toInt(-1)==0)model->SetColor(Quantity_Color(0.12,0.14,0.16,Quantity_TOC_sRGB));
             context_->Display(model,AIS_WireFrame,-1,false);context_->Deactivate(model);sketchModels_[sketch.featureId]=model;
         }
         if(!strokes.construction.IsNull()) {
             const auto model=constructionPresentation(strokes.construction);
+            if(sketch.plane=="face")model->SetZLayer(Graphic3d_ZLayerId_Topmost);
             context_->Display(model,AIS_WireFrame,-1,false);context_->Deactivate(model);constructionSketchModels_[sketch.featureId]=model;
         }
         for(const auto& profile:sketch.profiles) {
             BRepMesh_IncrementalMesh mesh(profile.face,0.1,false,0.5,false);
             Handle(AIS_Shape) fill=new AIS_Shape(profile.face);fill->SetDisplayMode(AIS_Shaded);fill->Attributes()->SetAutoTriangulation(false);
             fill->Attributes()->SetShadingModel(Graphic3d_TypeOfShadingModel_Unlit,true);
+            if(sketch.plane=="face")fill->SetZLayer(Graphic3d_ZLayerId_Topmost);
             fill->SetTransparency(0.58);context_->Display(fill,AIS_Shaded,-1,false);context_->Deactivate(fill);
             finishedProfileModels_[profile.profileId]=fill;
         }
@@ -382,16 +395,75 @@ void ReferenceView::selectProfiles(const QString& sketchId,const QJsonArray& pro
 }
 QJsonObject ReferenceView::pickFinishedProfile(double x,double y) const {
     if(view_.IsNull() || x<0 || y<0 || x>=width() || y>=height())return {};
+    const auto scale=windowScale();double px,py,pz,dx,dy,dz;
+    view_->ConvertWithProj(qRound(x*scale.x()),qRound(y*scale.y()),px,py,pz,dx,dy,dz);
+    const gp_Vec eye(px,py,pz),ray(dx,dy,dz);
     for(const auto& sketch:finishedSketches_) {
         if((!sketch.visible && sketch.featureId!=editSourceSketch_) || sketch.featureId==draftSketchId_)continue;
-        QJsonObject point;try {point=sketchPoint(x,y,sketch.plane);}catch(const std::exception&){continue;}
-        const auto world=sketchWorld(sketch.plane,point.value("uMm").toDouble(),point.value("vMm").toDouble());
+        const auto frame=sketch.resolvedFrame.isEmpty() ? SketchGeometry::frame(sketch.plane) : sketch.resolvedFrame;
+        const auto o=frame.value("origin").toArray(),n=frame.value("normal").toArray();
+        const gp_Vec origin(o[0].toDouble(),o[1].toDouble(),o[2].toDouble());
+        const gp_Vec normal(n[0].toDouble(),n[1].toDouble(),n[2].toDouble());
+        const double denominator=normal.Dot(ray);if(std::abs(denominator)<1e-10)continue;
+        const double distance=normal.Dot(origin-eye)/denominator;if(distance<0)continue;
+        const auto world=gp_Pnt((eye+ray*distance).XYZ());
         for(const auto& profile:sketch.profiles) {
             BRepClass_FaceClassifier classifier(profile.face,world,1e-7);
             if(classifier.State()==TopAbs_IN)return {{"kind","profile"},{"sketchId",sketch.featureId},{"profileId",profile.profileId}};
         }
     }
     return {};
+}
+QJsonObject ReferenceView::pickSupportFace(double x,double y,const std::vector<EvaluatedBody>& bodies) const {
+    if(view_.IsNull() || x<0 || y<0 || x>=width() || y>=height())return {};
+    const auto scale=windowScale();double px,py,pz,dx,dy,dz;
+    view_->ConvertWithProj(qRound(x*scale.x()),qRound(y*scale.y()),px,py,pz,dx,dy,dz);
+    const gp_Lin ray(gp_Pnt(px,py,pz),gp_Dir(dx,dy,dz));
+    double nearest=std::numeric_limits<double>::infinity();const EvaluatedBody* hitBody=nullptr;TopoDS_Face hitFace;
+    try {
+        for(const auto& body:bodies)if(body.visible && !body.shape.IsNull()) {
+            IntCurvesFace_ShapeIntersector intersections;intersections.Load(body.shape,1e-6);
+            intersections.PerformNearest(ray,0,1e9);
+            if(!intersections.IsDone() || intersections.NbPnt()<1 || intersections.WParameter(1)>=nearest)continue;
+            nearest=intersections.WParameter(1);hitBody=&body;hitFace=intersections.Face(1);
+        }
+    } catch(const Standard_Failure&) {return {};}
+    if(!hitBody)return {};
+    for(const auto& face:hitBody->supportFaces)if(hitFace.IsSame(face.face))
+        return {{"producerFeatureId",face.producerFeatureId},{"bodyId",face.bodyId},{"faceId",face.faceId}};
+    return {};
+}
+void ReferenceView::selectSupportFace(const QJsonObject& support,const TopoDS_Face& face) {
+    hoverSupportFace({});
+    if(!context_.IsNull() && !selectedSupportFaceOverlay_.IsNull())context_->Remove(selectedSupportFaceOverlay_,false);
+    selectedSupportFaceOverlay_.Nullify();selectedSupportFace_=support;
+    if(!context_.IsNull() && !face.IsNull()) {
+        selectedSupportFaceOverlay_=new AIS_Shape(face);
+        selectedSupportFaceOverlay_->SetDisplayMode(AIS_Shaded);
+        selectedSupportFaceOverlay_->SetColor(Quantity_Color(0.16,0.47,0.86,Quantity_TOC_sRGB));
+        selectedSupportFaceOverlay_->SetTransparency(0.48);
+        selectedSupportFaceOverlay_->SetZLayer(Graphic3d_ZLayerId_Topmost);
+        context_->Display(selectedSupportFaceOverlay_,AIS_Shaded,-1,false);
+        context_->Deactivate(selectedSupportFaceOverlay_);
+        context_->UpdateCurrentViewer();
+    }
+}
+void ReferenceView::hoverSupportFace(const QJsonObject& support) {
+    if(support==hoveredSupportFace_)return;
+    if(!context_.IsNull() && !hoveredSupportFaceOverlay_.IsNull())context_->Remove(hoveredSupportFaceOverlay_,false);
+    hoveredSupportFaceOverlay_.Nullify();hoveredSupportFace_=support;
+    if(context_.IsNull() || support.isEmpty() || support==selectedSupportFace_)return;
+    for(const auto& body:documentBodies_)for(const auto& face:body.supportFaces)
+        if(face.bodyId==support.value("bodyId").toString() && face.faceId==support.value("faceId").toString()) {
+            hoveredSupportFaceOverlay_=new AIS_Shape(face.face);
+            hoveredSupportFaceOverlay_->SetDisplayMode(AIS_Shaded);
+            hoveredSupportFaceOverlay_->SetColor(Quantity_Color(0.40,0.67,0.94,Quantity_TOC_sRGB));
+            hoveredSupportFaceOverlay_->SetTransparency(0.62);
+            hoveredSupportFaceOverlay_->SetZLayer(Graphic3d_ZLayerId_Topmost);
+            context_->Display(hoveredSupportFaceOverlay_,AIS_Shaded,-1,false);
+            context_->Deactivate(hoveredSupportFaceOverlay_);
+            context_->UpdateCurrentViewer();return;
+        }
 }
 void ReferenceView::showSketchDraft(const EvaluatedSketch& sketch) {
     if(context_.IsNull())return;
@@ -400,6 +472,7 @@ void ReferenceView::showSketchDraft(const EvaluatedSketch& sketch) {
         BRepMesh_IncrementalMesh mesh(profile.face,0.1,false,0.5,false);
         Handle(AIS_Shape) fill=new AIS_Shape(profile.face);fill->SetDisplayMode(AIS_Shaded);fill->Attributes()->SetAutoTriangulation(false);
         fill->Attributes()->SetShadingModel(Graphic3d_TypeOfShadingModel_Unlit,true);
+        if(sketch.plane=="face")fill->SetZLayer(Graphic3d_ZLayerId_Topmost);
         fill->SetColor(Quantity_Color(0.39,0.68,0.91,Quantity_TOC_sRGB));fill->SetTransparency(0.58);
         context_->Display(fill,AIS_Shaded,-1,false);context_->Deactivate(fill);profileModels_[profile.profileId]=fill;
     }
@@ -413,11 +486,13 @@ void ReferenceView::showSketchDraft(const EvaluatedSketch& sketch) {
     const auto strokes=splitSketchStrokes(sketch);
     if(!strokes.normal.IsNull()) {
         sketchDraft_=sketchPresentation(strokes.normal);
+        if(sketch.plane=="face")sketchDraft_->SetZLayer(Graphic3d_ZLayerId_Topmost);
         if(sketch.summary["solver"].toObject()["dof"].toInt(-1)==0)sketchDraft_->SetColor(Quantity_Color(0.12,0.14,0.16,Quantity_TOC_sRGB));
         context_->Display(sketchDraft_,AIS_WireFrame,-1,false);context_->Deactivate(sketchDraft_);
     }
     if(!strokes.construction.IsNull()) {
         sketchConstructionDraft_=constructionPresentation(strokes.construction);
+        if(sketch.plane=="face")sketchConstructionDraft_->SetZLayer(Graphic3d_ZLayerId_Topmost);
         context_->Display(sketchConstructionDraft_,AIS_WireFrame,-1,false);context_->Deactivate(sketchConstructionDraft_);
         for(const auto& entry:sketch.summary.value("entities").toArray()) {
             const auto entity=entry.toObject();
@@ -463,7 +538,7 @@ QJsonObject ReferenceView::pickSketch(const QJsonObject& feature,double x,double
             const auto delta=end-start;const double length2=delta.x()*delta.x()+delta.y()*delta.y();if(length2<1e-12)continue;
             const double t=std::clamp(((x-start.x())*delta.x()+(y-start.y())*delta.y())/length2,0.0,1.0);nearest=start+delta*t;
         } else {
-            const auto edge=SketchGeometry::analyticEdge(parameters,entity);double first,last;const auto curve=BRep_Tool::Curve(edge,first,last);
+            const auto edge=SketchGeometry::analyticEdge(parameters,entity,sketchFrame_);double first,last;const auto curve=BRep_Tool::Curve(edge,first,last);
             GeomAPI_ProjectPointOnCurve projection(hitWorld,curve,first,last);if(projection.NbPoints()==0)continue;
             const auto p=projection.NearestPoint();int px,py;view_->Convert(p.X(),p.Y(),p.Z(),px,py);const auto scale=windowScale();nearest={px/scale.x(),py/scale.y()};
         }
@@ -663,7 +738,7 @@ void ReferenceView::decorateSketch(const QJsonObject& feature,const QJsonObject&
     }
     for(const auto& entry:parameters["entities"].toArray()) {
         const auto entity=entry.toObject();if(!selection["entityIds"].toArray().contains(entity["id"]))continue;
-        const auto edge=SketchGeometry::analyticEdge(parameters,entity);
+        const auto edge=SketchGeometry::analyticEdge(parameters,entity,sketchFrame_);
         const auto highlight=entity.value("construction").toBool() ? constructionPresentation(edge,true) : sketchPresentation(edge);
         if(!entity.value("construction").toBool()){highlight->SetColor(Quantity_Color(0.98,0.43,0.08,Quantity_TOC_RGB));highlight->SetWidth(4);}
         highlight->SetZLayer(Graphic3d_ZLayerId_Topmost);
@@ -775,10 +850,10 @@ void ReferenceView::decorateSketch(const QJsonObject& feature,const QJsonObject&
         const bool selected=selection.value("dimensionId")==dimension.value("id");
         const Quantity_Color color=selected || dimension.value("id")=="pending" ? Quantity_Color(0.10,0.34,0.84,Quantity_TOC_RGB) : Quantity_Color(0.10,0.11,0.12,Quantity_TOC_sRGB);
         const auto line=layout.value("line").toArray();auto world=[&](const QJsonValue& v){const auto p=v.toObject();return sketchWorld(plane,p.value("uMm").toDouble(),p.value("vMm").toDouble());};
-        const auto frame=SketchGeometry::frame(plane);const auto n=frame.value("normal").toArray(),u=frame.value("uAxis").toArray();
+        const auto frame=frameFor(plane);const auto n=frame.value("normal").toArray(),u=frame.value("uAxis").toArray(),origin=frame.value("origin").toArray();
         const double size=layout.value("mmPerPixel").toDouble();
         if(layout["kind"]!="radius" && layout["kind"]!="arcSweep" && layout["kind"]!="angle") {
-        Handle(PrsDim_LengthDimension) graphic=new PrsDim_LengthDimension(world(line[0]),world(line[1]),gp_Pln(gp_Ax3(gp_Pnt(),gp_Dir(n[0].toDouble(),n[1].toDouble(),n[2].toDouble()),gp_Dir(u[0].toDouble(),u[1].toDouble(),u[2].toDouble()))));
+        Handle(PrsDim_LengthDimension) graphic=new PrsDim_LengthDimension(world(line[0]),world(line[1]),gp_Pln(gp_Ax3(gp_Pnt(origin[0].toDouble(),origin[1].toDouble(),origin[2].toDouble()),gp_Dir(n[0].toDouble(),n[1].toDouble(),n[2].toDouble()),gp_Dir(u[0].toDouble(),u[1].toDouble(),u[2].toDouble()))));
         Handle(Prs3d_DimensionAspect) aspect=new Prs3d_DimensionAspect;aspect->SetCommonColor(color);aspect->MakeText3d(false);aspect->MakeArrows3d(false);aspect->MakeUnitsDisplayed(false);
         aspect->LineAspect()->SetWidth(devicePixelRatioF());
 aspect->ArrowAspect()->SetLength(7*size);aspect->SetArrowTailSize(8*size);aspect->SetExtensionSize(8*size);
@@ -793,7 +868,7 @@ aspect->ArrowAspect()->SetLength(7*size);aspect->SetArrowTailSize(8*size);aspect
             else {
                 for(const auto& value:layout["arcSegments"].toArray()){const auto arc=value.toObject();const auto centerId=layout["kind"]=="angle" ? QJsonValue("dimension-center") : dimension["entityId"];
                     QJsonObject e{{"type","arc"},{"centerPointId",centerId},{"radiusMm",layout["arcRadiusMm"]},{"startAngleDeg",arc["startAngleDeg"]},{"sweepAngleDeg",arc["sweepAngleDeg"]}};
-                    auto p=parameters;const auto center=layout["center"].toObject();p["points"]=QJsonArray{QJsonObject{{"id",centerId},{"uMm",center["uMm"]},{"vMm",center["vMm"]}}};builder.Add(compound,SketchGeometry::analyticEdge(p,e));}
+                    auto p=parameters;const auto center=layout["center"].toObject();p["points"]=QJsonArray{QJsonObject{{"id",centerId},{"uMm",center["uMm"]},{"vMm",center["vMm"]}}};builder.Add(compound,SketchGeometry::analyticEdge(p,e,sketchFrame_));}
                 const double start=layout["startAngleDeg"].toDouble()*std::numbers::pi/180,sweep=layout["sweepAngleDeg"].toDouble()*std::numbers::pi/180;
                 const gp_Vec ua(u[0].toDouble(),u[1].toDouble(),u[2].toDouble()),va=normal.Crossed(ua);
                 const double sense=sweep>0 ? 1 : -1;arrow(world(line[0]),(ua*(-std::sin(start))+va*std::cos(start))*sense);
@@ -817,27 +892,54 @@ aspect->ArrowAspect()->SetLength(7*size);aspect->SetArrowTailSize(8*size);aspect
     }
     context_->UpdateCurrentViewer();
 }
-void ReferenceView::setSketchPlane(const QString& plane) { sketchPlane_=plane; }
-void ReferenceView::lookAtSketch(const QString& plane) {
-    sketchPlane_=plane;orientation=plane=="XY" ? "top" : plane=="XZ" ? "front" : "right";
-    sceneCenter_=gp_Pnt();sceneScale_=100;pan={};zoom=1;sync();
+QJsonObject ReferenceView::frameFor(const QString& plane) const {
+    if(plane=="face") {
+        if(sketchFrame_.isEmpty())throw std::invalid_argument("Face sketch frame is unresolved");
+        return sketchFrame_;
+    }
+    return SketchGeometry::frame(plane);
+}
+gp_Pnt ReferenceView::sketchWorld(const QString& plane,double u,double v) const {
+    const auto frame=frameFor(plane);const auto origin=frame.value("origin").toArray();
+    const auto ua=frame.value("uAxis").toArray(),va=frame.value("vAxis").toArray();
+    return gp_Pnt(origin[0].toDouble()+u*ua[0].toDouble()+v*va[0].toDouble(),
+        origin[1].toDouble()+u*ua[1].toDouble()+v*va[1].toDouble(),
+        origin[2].toDouble()+u*ua[2].toDouble()+v*va[2].toDouble());
+}
+void ReferenceView::setSketchPlane(const QString& plane,const QJsonObject& resolvedFrame) {
+    sketchPlane_=plane;
+    if(!plane.isEmpty() || orientation!="face")sketchFrame_=resolvedFrame;
+}
+void ReferenceView::lookAtSketch(const QString& plane,const QJsonObject& resolvedFrame) {
+    setSketchPlane(plane,resolvedFrame);
+    orientation=plane=="face" ? "face" : plane=="XY" ? "top" : plane=="XZ" ? "front" : "right";
+    const auto o=frameFor(plane).value("origin").toArray();
+    sceneCenter_=gp_Pnt(o[0].toDouble(),o[1].toDouble(),o[2].toDouble());sceneScale_=100;pan={};zoom=1;sync();
 }
 QJsonObject ReferenceView::sketchPoint(double x,double y,const QString& plane) const {
     if(view_.IsNull() || x<0 || y<0 || x>=width() || y>=height())throw std::invalid_argument("Point is outside the initialized viewport");
     const auto scale=windowScale();double px,py,pz,dx,dy,dz;
     view_->ConvertWithProj(qRound(x*scale.x()),qRound(y*scale.y()),px,py,pz,dx,dy,dz);
-    const auto frame=SketchGeometry::frame(plane);const auto normal=frame["normal"].toArray();
+    const auto frame=frameFor(plane);const auto normal=frame["normal"].toArray(),origin=frame["origin"].toArray();
     const gp_Vec n(normal[0].toDouble(),normal[1].toDouble(),normal[2].toDouble()),ray(dx,dy,dz);
     const double denominator=n.Dot(ray);
     if(std::abs(denominator)<1e-9)throw std::invalid_argument("Look At the sketch plane before drawing");
-    const auto world=gp_Vec(px,py,pz)-ray*(n.Dot(gp_Vec(px,py,pz))/denominator);
+    const gp_Vec base(origin[0].toDouble(),origin[1].toDouble(),origin[2].toDouble());
+    const auto world=gp_Vec(px,py,pz)-ray*(n.Dot(gp_Vec(px,py,pz)-base)/denominator)-base;
     const auto u=frame["uAxis"].toArray(),v=frame["vAxis"].toArray();
     return {{"uMm",world.Dot(gp_Vec(u[0].toDouble(),u[1].toDouble(),u[2].toDouble()))},
         {"vMm",world.Dot(gp_Vec(v[0].toDouble(),v[1].toDouble(),v[2].toDouble()))}};
 }
-QJsonObject ReferenceView::projectSketchPoint(double uMm,double vMm,const QString& plane) const {
+QJsonObject ReferenceView::projectSketchPoint(double uMm,double vMm,const QString& plane,const QJsonObject& resolvedFrame) const {
     if(view_.IsNull())return {};
-    const auto world=sketchWorld(plane,uMm,vMm);int x,y;view_->Convert(world.X(),world.Y(),world.Z(),x,y);
+    gp_Pnt world;
+    if(plane=="face" && !resolvedFrame.isEmpty()) {
+        const auto o=resolvedFrame.value("origin").toArray(),u=resolvedFrame.value("uAxis").toArray(),v=resolvedFrame.value("vAxis").toArray();
+        world=gp_Pnt(o[0].toDouble()+uMm*u[0].toDouble()+vMm*v[0].toDouble(),
+            o[1].toDouble()+uMm*u[1].toDouble()+vMm*v[1].toDouble(),
+            o[2].toDouble()+uMm*u[2].toDouble()+vMm*v[2].toDouble());
+    } else world=sketchWorld(plane,uMm,vMm);
+    int x,y;view_->Convert(world.X(),world.Y(),world.Z(),x,y);
     const auto scale=windowScale();return {{"x",x/scale.x()},{"y",y/scale.y()},{"viewportLocal",true},{"units","logicalPixels"}};
 }
 void ReferenceView::showSketchCursor(const QString& plane,const QPointF& first,const QPointF& second,bool rectangle) {
@@ -887,7 +989,7 @@ void ReferenceView::showSketchSnap(const QString& plane,const QJsonObject& snap)
 void ReferenceView::showSketchCurveCursor(const QJsonObject& feature) {
     clearSketchCursor();if(context_.IsNull())return;
     const auto parameters=feature["parameters"].toObject(),entity=parameters["entities"].toArray().first().toObject();
-    sketchCursor_=sketchPresentation(SketchGeometry::analyticEdge(parameters,entity));sketchCursor_->SetColor(Quantity_Color(0.30,0.58,0.87,Quantity_TOC_RGB));
+    sketchCursor_=sketchPresentation(SketchGeometry::analyticEdge(parameters,entity,sketchFrame_));sketchCursor_->SetColor(Quantity_Color(0.30,0.58,0.87,Quantity_TOC_RGB));
     context_->Display(sketchCursor_,AIS_WireFrame,-1,false);context_->Deactivate(sketchCursor_);context_->UpdateCurrentViewer();
 }
 void ReferenceView::clearSketchCursor() {
@@ -981,13 +1083,14 @@ void ReferenceView::showExtrudePreview(const EvaluatedBody& body,const Evaluated
     previewProfile_=profile.profileId;previewProfileIds_=sourceProfileIds.isEmpty() ? QJsonArray{profile.profileId} : sourceProfileIds;
     applyEditDisplay(false);
     GProp_GProps properties;BRepGProp::SurfaceProperties(profile.face,properties);const auto start=properties.CentreOfMass();
-    const auto frame=SketchGeometry::frame(profile.plane);const auto normal=frame.value("normal").toArray();
+    const auto frame=profile.summary.value("frame").toObject().isEmpty() ? SketchGeometry::frame(profile.plane) : profile.summary.value("frame").toObject();
+    const auto normal=frame.value("normal").toArray();
     gp_Vec direction(normal[0].toDouble(),normal[1].toDouble(),normal[2].toDouble());direction*=distanceMm<0 ? -1 : 1;
     const auto end=start.Translated(direction*std::abs(distanceMm));
     const double displayDistance=units=="in" ? distanceMm/25.4 : distanceMm;
     const QString label=QString::number(displayDistance,'f',2)+" "+units;
     extrusionCueState_={{"sketchId",profile.sketchId},{"profileId",profile.profileId},{"profileIds",previewProfileIds_},{"distanceMm",distanceMm},
-        {"units",units},{"label",label},{"plane",profile.plane},
+        {"units",units},{"label",label},{"plane",profile.plane},{"frame",frame},
         {"startMm",QJsonArray{start.X(),start.Y(),start.Z()}},{"endMm",QJsonArray{end.X(),end.Y(),end.Z()}}};
     refreshExtrusionCue();
     context_->UpdateCurrentViewer();
@@ -1002,7 +1105,7 @@ void ReferenceView::refreshExtrusionCue() {
     const gp_Pnt end(endArray[0].toDouble(),endArray[1].toDouble(),endArray[2].toDouble());
     gp_Vec direction(start,end);const double length=direction.Magnitude();if(length<1e-9)return;
     direction.Normalize();
-    const auto frame=SketchGeometry::frame(extrusionCueState_.value("plane").toString());const auto u=frame.value("uAxis").toArray();
+    const auto frame=extrusionCueState_.value("frame").toObject();const auto u=frame.value("uAxis").toArray();
     gp_Vec side(u[0].toDouble(),u[1].toDouble(),u[2].toDouble());
     int startX,startY,endX,endY,sideX,sideY;
     view_->Convert(start.X(),start.Y(),start.Z(),startX,startY);
@@ -1115,6 +1218,9 @@ QJsonObject ReferenceView::diagnostics() const {
     result.insert("combineInputs",QJsonObject{{"targetBodyId",combineTargetId_},{"toolBodyIds",combineToolIds_},
         {"targetColor","blue"},{"toolColor","orange"},{"hiddenSelectedInputsTemporarilyRevealed",true}});
     result.insert("extrusionCue",extrusionCueState_);
+    result.insert("selectedSupportFace",selectedSupportFace_);
+    result.insert("supportFaceHighlightVisible",!selectedSupportFaceOverlay_.IsNull());
+    result.insert("hoveredSupportFace",hoveredSupportFace_);
     result.insert("previewVisible",!preview_.IsNull());
     result.insert("previewReplacedBodyId",previewReplacedBody_);
     result.insert("previewProfileId",previewProfile_);
@@ -1181,7 +1287,10 @@ void ReferenceView::mouseMoveEvent(QMouseEvent* e) {
         if(annotationDragged_) {const auto p=sketchPoint(std::clamp(e->position().x(),0.0,double(width()-1)),std::clamp(e->position().y(),0.0,double(height()-1)),sketchPlane_);dispatch("sketch.annotationMove",{{"dimensionId",draggedAnnotation_},{"uMm",p.value("uMm")},{"vMm",p.value("vMm")},{"gestureId",annotationGestureId_}});}
         e->accept();
     } else if(!sketchPlane_.isEmpty()) {dispatch("sketch.pointerMove",{{"x",e->position().x()},{"y",e->position().y()}});e->accept();}
-    else QWidget::mouseMoveEvent(e);
+    else {
+        hoverSupportFace(pickSupportFace(e->position().x(),e->position().y(),documentBodies_));
+        QWidget::mouseMoveEvent(e);
+    }
 }
 void ReferenceView::mouseReleaseEvent(QMouseEvent* e) {
     if(e->button()==Qt::LeftButton && !draggedAnnotation_.isEmpty()){
@@ -1214,6 +1323,12 @@ void ReferenceView::contextMenuEvent(QContextMenuEvent* e) {
         lastContextMenu_["phase"]="closed";
         lastContextMenu_["result"]=selected==toggle ? "selected" : "cancelled";
         if(selected==toggle)dispatch("sketch.constructionToggle",{});
+        e->accept();return;
+    }
+    const auto menuFace=sketchActive ? QJsonObject{} : pickSupportFace(e->pos().x(),e->pos().y(),documentBodies_);
+    if(!sketchActive && (!menuFace.isEmpty() || !selectedSupportFace_.isEmpty())) {
+        QMenu menu(this);auto* create=menu.addAction("Create Sketch");
+        if(menu.exec(e->globalPos())==create)dispatch("sketch.create",{{"support",menuFace.isEmpty() ? selectedSupportFace_ : menuFace}});
         e->accept();return;
     }
     QWidget::contextMenuEvent(e);

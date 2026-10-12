@@ -76,7 +76,8 @@ private:
     QJsonObject selectFinishedProfile(const QString& sketchId, const QString& profileId, bool additive = false, bool toggle = false);
     QJsonArray dependentBodies(const QString& sketchId) const;
     QJsonObject primitiveCandidate(const QString&, const QJsonObject&) const;
-    QJsonObject beginSketch(const QString& plane, const QString& name, const QString& sketchId = {});
+    QJsonObject beginSketch(const QString& plane, const QString& name, const QString& sketchId = {}, const QJsonObject& support = {});
+    QJsonObject selectSupportFace(const QJsonObject& support);
     QJsonObject appendSketchEntity(const QString& tool, const QJsonObject& inputs);
     QJsonObject resolveSketchSnap(double x, double y, const QString& plane, bool midpointOnly = false) const;
     QJsonObject resolveCircleTangentSnap(double x, double y, const QString& plane) const;
@@ -184,6 +185,7 @@ private:
     QTabBar* documentTabBar_ = nullptr;
     QLabel* browserNote_ = nullptr;
     QString selectedBody_;
+    QJsonObject selectedFace_;
     QString selectedSketch_, selectedProfile_;
     QJsonArray selectedProfileIds_;
     quint64 displayedDocumentRevision_ = 0;
@@ -206,6 +208,7 @@ private:
         int sketchHistoryIndex = -1;
         QString sketchHistoryGroup;
         QString selectedBody, selectedSketch, selectedProfile;
+        QJsonObject selectedFace;
         QJsonArray selectedProfileIds;
     };
     std::vector<std::unique_ptr<DesignTab>> designTabs_;

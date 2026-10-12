@@ -1,6 +1,7 @@
 #include "GeometryKernel.h"
 #include "SketchGeometry.h"
 #include <BRepBndLib.hxx>
+#include <BRepAdaptor_Surface.hxx>
 #include <BRepAlgoAPI_BooleanOperation.hxx>
 #include <BRepAlgoAPI_Fuse.hxx>
 #include <BRepCheck_Analyzer.hxx>
@@ -51,6 +52,22 @@ TopoDS_Shape GeometryKernel::primitive(const QString& type, const QJsonObject& p
         throw std::runtime_error("Kernel did not produce a valid solid");
     return shape;
 }
+EvaluatedSupportFace GeometryKernel::resolveSketchSupport(const EvaluatedDocument& evaluation,const QJsonObject& support) {
+    auto reject=[&](const QString& code,const QString& message){auto diagnostic=support;diagnostic["code"]=code;diagnostic["message"]=message;throw EvaluationError(diagnostic);};
+    if(support.size()!=3)reject("invalid_support","Support requires producerFeatureId, bodyId and faceId");
+    for(const auto& field:{"producerFeatureId","bodyId","faceId"})if(!support[field].isString() || QUuid(support[field].toString()).isNull())reject("invalid_support","Support requires stable UUID references");
+    const auto body=std::find_if(evaluation.bodies.begin(),evaluation.bodies.end(),[&](const auto& value){return value.bodyId==support["bodyId"].toString() && value.featureId==support["producerFeatureId"].toString();});
+    if(body==evaluation.bodies.end())reject("support_unavailable","The exact support producer/body is unavailable or consumed");
+    if(body->summary.contains("lastModifierFeatureId"))reject("unsupported_modified_support","Face support on modified Boolean bodies is outside this slice");
+    const EvaluatedSupportFace* found=nullptr;
+    for(const auto& face:body->supportFaces)if(face.faceId==support["faceId"].toString()){if(found)reject("ambiguous_support","More than one face matches the support reference");found=&face;}
+    if(!found)reject("support_unavailable","Only the current positive-distance extrusion end cap is supported");
+    int matches=0;for(TopExp_Explorer face(body->shape,TopAbs_FACE);face.More();face.Next())if(face.Current().IsSame(found->face))++matches;
+    if(matches!=1 || found->face.IsNull() || !BRepCheck_Analyzer(found->face).IsValid()
+        || BRepAdaptor_Surface(found->face).GetType()!=GeomAbs_Plane)reject("support_unavailable","The retained support is not one real planar producer face");
+    return *found;
+}
+
 EvaluatedProfile GeometryKernel::unionProfiles(const std::vector<EvaluatedProfile>& profiles) {
     if(profiles.empty())throw std::invalid_argument("Select at least one current profile");
     if(profiles.size()==1)return profiles.front();
@@ -79,20 +96,38 @@ EvaluatedProfile GeometryKernel::unionProfiles(const std::vector<EvaluatedProfil
     for(const auto& id:profileIds)refs.append(id);for(const auto& id:entityIds)sources.append(id);
     const auto id=QUuid::createUuidV5(QUuid(first.sketchId),QByteArray("alloy-profile-union/1\n")+profileIds.join('\n').toUtf8()).toString(QUuid::WithoutBraces);
     QJsonObject summary{{"profileId",id},{"profileIds",refs},{"sketchId",first.sketchId},{"plane",first.plane},
-        {"valid",true},{"areaUnit","mm2"},{"areaMm2",area.Mass()},{"sourceEntityIds",sources},{"type","profile_union"}};
+        {"frame",first.summary["frame"]},{"valid",true},{"areaUnit","mm2"},{"areaMm2",area.Mass()},{"sourceEntityIds",sources},{"type","profile_union"}};
     return {id,first.sketchId,first.plane,united,summary};
 }
 
-TopoDS_Shape GeometryKernel::extrusion(const EvaluatedProfile& profile, double distanceMm) {
+TopoDS_Shape GeometryKernel::extrusion(const EvaluatedProfile& profile, double distanceMm, EvaluatedSupportFace* endCap) {
     if (!std::isfinite(distanceMm) || std::abs(distanceMm) < 0.001 || std::abs(distanceMm) > 100000)
         throw std::invalid_argument("Extrusion distance must be signed 0.001..100000 mm; zero is unsupported");
     if (profile.face.IsNull() || !BRepCheck_Analyzer(profile.face).IsValid())
         throw std::invalid_argument("Extrusion requires a current valid closed profile face");
-    const auto normal = SketchGeometry::frame(profile.plane)["normal"].toArray();
+    const auto sourceFrame=profile.summary["frame"].toObject();
+    const auto normal = sourceFrame["normal"].toArray();
+    if(normal.size()!=3)throw std::invalid_argument("Extrusion profile has no resolved frame");
     BRepPrimAPI_MakePrism prism(profile.face,gp_Vec(normal[0].toDouble()*distanceMm,
         normal[1].toDouble()*distanceMm,normal[2].toDouble()*distanceMm),true,true);
     if (!prism.IsDone()) throw std::runtime_error("OCCT could not build the profile extrusion");
     const auto shape = prism.Shape();
+    if(endCap && distanceMm>0) {
+        const auto cap=prism.LastShape();
+        if(cap.IsNull() || cap.ShapeType()!=TopAbs_FACE || BRepAdaptor_Surface(TopoDS::Face(cap)).GetType()!=GeomAbs_Plane)
+            throw std::runtime_error("Prism has no unique planar generated end cap");
+        int matches=0;for(TopExp_Explorer face(shape,TopAbs_FACE);face.More();face.Next())if(face.Current().IsSame(cap))++matches;
+        if(matches!=1)throw std::runtime_error("Generated end cap is not unique on the prism result");
+        auto transported=sourceFrame;auto origin=sourceFrame["origin"].toArray();
+        for(int i=0;i<3;++i)origin[i]=origin[i].toDouble()+normal[i].toDouble()*distanceMm;
+        transported["origin"]=origin;
+        const gp_Pnt expected(origin[0].toDouble(),origin[1].toDouble(),origin[2].toDouble());
+        const gp_Dir direction(normal[0].toDouble(),normal[1].toDouble(),normal[2].toDouble());
+        const auto realPlane=BRepAdaptor_Surface(TopoDS::Face(cap)).Plane();
+        if(realPlane.Distance(expected)>1e-6 || std::abs(realPlane.Axis().Direction().Dot(direction))<1-1e-9)
+            throw std::runtime_error("Generated end cap does not match the transported source frame");
+        endCap->role="extrude.endCap";endCap->face=TopoDS::Face(cap);endCap->frame=transported;
+    }
     if (shape.IsNull() || !BRepCheck_Analyzer(shape).IsValid() || count(shape,TopAbs_SOLID) != 1)
         throw std::runtime_error("Extrusion did not produce one valid solid");
     const auto summary = summarize(shape);
@@ -201,7 +236,12 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored) 
         try {
             if (type == "sketch") {
                 priorSketches[id] = evaluated.sketches.size();
-                evaluated.sketches.push_back(SketchGeometry::evaluateFeature(feature));
+                QJsonObject resolvedFrame;
+                if(parameters["plane"]=="face") {
+                    try {resolvedFrame=resolveSketchSupport(evaluated,parameters["support"].toObject()).frame;}
+                    catch(const EvaluationError& error){auto diagnostic=context;const auto details=error.diagnostics();for(auto it=details.begin();it!=details.end();++it)diagnostic[it.key()]=it.value();throw EvaluationError(diagnostic);}
+                }
+                evaluated.sketches.push_back(SketchGeometry::evaluateFeature(feature,resolvedFrame));
             } else if (type == "boolean") {
                 const auto targetId = parameters["targetBodyId"].toString();
                 const auto toolIds = parameters["toolBodyIds"].toArray();
@@ -234,12 +274,12 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored) 
                 summary["operation"] = parameters["operation"];summary["lastModifierFeatureId"] = id;
                 summary["producerFeatureId"] = target->featureId;summary["targetBodyId"] = targetId;
                 summary["toolBodyIds"] = toolIds;summary["keepTools"] = parameters["keepTools"];
-                target->shape = shape;target->summary = summary;
+                target->shape = shape;target->summary = summary;target->supportFaces.clear();
                 if (!parameters["keepTools"].toBool())
                     std::erase_if(evaluated.bodies,[&](const auto& body){return toolIds.contains(body.bodyId);});
             } else {
                 TopoDS_Shape shape;
-                QJsonObject summary;
+                QJsonObject summary;std::vector<EvaluatedSupportFace> supportFaces;
                 if (type == "extrude") {
                     const auto sketchId = parameters["sketchId"].toString();
                     const bool plural=parameters.contains("profileIds");
@@ -257,13 +297,20 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored) 
                             context["missingProfileId"]=requested;context["profileDiagnostics"]=source.summary["profileDiagnostics"];throw EvaluationError(context);}
                         selected.push_back(*found);}
                     const auto united=unionProfiles(selected);const double distance=parameters["distanceMm"].toDouble();
-                    shape=extrusion(united,distance);summary=summarize(shape);
+                    EvaluatedSupportFace cap;
+                    shape=extrusion(united,distance,&cap);summary=summarize(shape);
+                    if(!cap.face.IsNull()) {
+                        cap.producerFeatureId=id;cap.bodyId=feature["bodyId"].toString();
+                        cap.faceId=QUuid::createUuidV5(QUuid(id),QByteArray("alloy-face/extrude-end-cap/1")).toString(QUuid::WithoutBraces);
+                        supportFaces.push_back(cap);
+                        summary["supportFaces"]=QJsonArray{QJsonObject{{"faceId",cap.faceId},{"bodyId",cap.bodyId},{"producerFeatureId",id},{"role",cap.role},{"planar",true},{"frame",cap.frame}}};
+                    }
                     summary["operation"]="extrude";summary["distanceMm"]=distance;summary["sourceSketchId"]=sketchId;
                     if(plural)summary["sourceProfileIds"]=profileIds;else summary["sourceProfileId"]=parameters["profileId"];
                     summary["sourceEntityIds"]=united.summary["sourceEntityIds"];summary["sourceAreaMm2"]=united.summary["areaMm2"];
                     summary["analyticVolumeMm3"]=united.summary["areaMm2"].toDouble()*std::abs(distance);
                 } else {shape = primitive(type,parameters);summary = summarize(shape);}
-                evaluated.bodies.push_back({id,feature["bodyId"].toString(),feature["name"].toString(),feature["visible"].toBool(),shape,summary});
+                evaluated.bodies.push_back({id,feature["bodyId"].toString(),feature["name"].toString(),feature["visible"].toBool(),shape,summary,supportFaces});
             }
             evaluated.featureOrder.push_back(id);
         } catch (const EvaluationError&) {throw;}

@@ -605,6 +605,20 @@
       "inputs": [
         "tests/app_harness.py"
       ]
+    },
+    "sketch-face-support": {
+      "script": "tests/sketch_regions_api.py",
+      "fixture": "tests/workflows/fixtures/sketch-face-support.json",
+      "result": "sketch-face-support-api.json",
+      "covers": [],
+      "capabilities": [
+        "sketch.retained_planar_regions",
+        "solid.multi_profile_union",
+        "sketch.semantic_cap_support"
+      ],
+      "inputs": [
+        "tests/app_harness.py"
+      ]
     }
   },
   "gates": {

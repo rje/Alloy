@@ -52,6 +52,16 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
                 for (const auto& tool : tools) activeBodies.remove(tool.toString());
             continue;
         }
+        if(feature["type"]=="sketch" && feature["parameters"].toObject()["plane"]=="face") {
+            const auto support=feature["parameters"].toObject()["support"].toObject();const auto producer=support["producerFeatureId"].toString(),body=support["bodyId"].toString();
+            QJsonObject diagnostic{{"featureId",feature["id"]},{"featureType","sketch"},{"support",support}};
+            if(!positions.contains(producer)){diagnostic["code"]="missing_dependency";diagnostic["message"]="Sketch support producer does not exist";}
+            else if(positions[producer]>=i){diagnostic["code"]="forward_dependency";diagnostic["message"]="Sketch support producer must precede its sketch";}
+            else if(features[positions[producer]].toObject()["type"]!="extrude" || features[positions[producer]].toObject()["bodyId"]!=support["bodyId"]){diagnostic["code"]="unsupported_dependency";diagnostic["message"]="Sketch support requires its exact extrusion producer/body";}
+            else if(!activeBodies.contains(body)){diagnostic["code"]="consumed_dependency";diagnostic["message"]="Sketch support body was consumed earlier in history";}
+            else continue;
+            return diagnostic;
+        }
         if (feature["type"] != "extrude") continue;
         const auto parameters = feature["parameters"].toObject();
         const auto source = parameters["sketchId"].toString(), id = feature["id"].toString();

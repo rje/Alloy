@@ -64,7 +64,7 @@ bool intersects(const Point& a, const Point& b, const Point& c, const Point& d, 
 }
 }
 
-SketchProfiles::Result SketchProfiles::derive(const QJsonObject& feature) {
+SketchProfiles::Result SketchProfiles::derive(const QJsonObject& feature, const QJsonObject& resolvedFrame) {
     const auto sketchId = feature["id"].toString();
     const auto parameters = feature["parameters"].toObject();
     const auto plane = parameters["plane"].toString();
@@ -93,7 +93,7 @@ SketchProfiles::Result SketchProfiles::derive(const QJsonObject& feature) {
 
     const bool hasCurves=std::any_of(entities.begin(),entities.end(),[](const auto& value){return value.toObject()["type"]!="line";});
     const auto profileId=QUuid::createUuidV5(QUuid(sketchId),QByteArray("alloy-profile/1\n")+sourceEntityIds.join('\n').toUtf8()).toString(QUuid::WithoutBraces);
-    const auto frame=SketchGeometry::frame(plane);const auto origin=frame["origin"].toArray();
+    const auto frame=SketchGeometry::evaluationFrame(parameters,resolvedFrame);const auto origin=frame["origin"].toArray();
     const auto u=frame["uAxis"].toArray(),v=frame["vAxis"].toArray(),n=frame["normal"].toArray();
     const gp_Ax3 axes(gp_Pnt(origin[0].toDouble(),origin[1].toDouble(),origin[2].toDouble()),
         gp_Dir(n[0].toDouble(),n[1].toDouble(),n[2].toDouble()),gp_Dir(u[0].toDouble(),u[1].toDouble(),u[2].toDouble()));
@@ -101,7 +101,7 @@ SketchProfiles::Result SketchProfiles::derive(const QJsonObject& feature) {
     if(circles) {
         if(entities.size()!=1)return refuse("multiple_loops","This slice supports a single circle or one connected line/arc boundary; separate additional regions into another sketch.");
         try {
-            const auto entity=entities.first().toObject(); BRepBuilderAPI_MakeWire wire(SketchGeometry::analyticEdge(parameters,entity));
+            const auto entity=entities.first().toObject(); BRepBuilderAPI_MakeWire wire(SketchGeometry::analyticEdge(parameters,entity,resolvedFrame));
             BRepBuilderAPI_MakeFace made(gp_Pln(axes),wire.Wire(),true);
             if(!made.IsDone() || !BRepCheck_Analyzer(made.Face()).IsValid())return refuse("invalid_face","OCCT rejected the analytic circle profile.");
             GProp_GProps properties;BRepGProp::SurfaceProperties(made.Face(),properties);
@@ -279,7 +279,7 @@ SketchProfiles::Result SketchProfiles::derive(const QJsonObject& feature) {
                 BRepBuilderAPI_MakeEdge made(vertices.value(directed.start),vertices.value(directed.end));
                 if(!made.IsDone())return refuse("invalid_boundary","OCCT could not construct a boundary edge.");boundary=made.Edge();
             } else {
-                const auto original=SketchGeometry::analyticEdge(parameters,edge.entity);double first,last;
+                const auto original=SketchGeometry::analyticEdge(parameters,edge.entity,resolvedFrame);double first,last;
                 const auto curve=BRep_Tool::Curve(original,first,last);const bool negative=edge.entity["sweepAngleDeg"].toDouble()<0;
                 const auto startVertex=vertices.value(edge.start),endVertex=vertices.value(edge.end);
                 BRepBuilderAPI_MakeEdge made(curve,negative ? endVertex : startVertex,negative ? startVertex : endVertex,first,last);

@@ -16,6 +16,7 @@
 #include <QUuid>
 #include <cmath>
 #include <algorithm>
+#include <array>
 #include <stdexcept>
 
 namespace {
@@ -66,11 +67,11 @@ QString addPoint(QJsonArray& points, double u, double v, const QString& requeste
     points.append(QJsonObject{{"id", id}, {"uMm", u}, {"vMm", v}});
     return id;
 }
-gp_Pnt worldPoint(const QString& plane, double u, double v) {
-    if (plane == "XY") return {u, v, 0};
-    if (plane == "XZ") return {u, 0, v};
-    if (plane == "YZ") return {0, u, v};
-    reject("Unsupported sketch origin plane");
+gp_Pnt worldPoint(const QJsonObject& frame, double u, double v) {
+    const auto origin=frame["origin"].toArray(),uAxis=frame["uAxis"].toArray(),vAxis=frame["vAxis"].toArray();
+    return {origin[0].toDouble()+u*uAxis[0].toDouble()+v*vAxis[0].toDouble(),
+        origin[1].toDouble()+u*uAxis[1].toDouble()+v*vAxis[1].toDouble(),
+        origin[2].toDouble()+u*uAxis[2].toDouble()+v*vAxis[2].toDouble()};
 }
 void checkPointIds(const QJsonObject& arguments) {
     for(const auto& key : {"centerPointId","startPointId","endPointId"})
@@ -93,6 +94,11 @@ QJsonObject SketchGeometry::newFeature(const QString& ownerId, const QString& pl
         {"parameters", QJsonObject{{"plane", plane}, {"points", QJsonArray{}}, {"entities", QJsonArray{}}}}};
     validateDraft(feature);
     return feature;
+}
+
+QJsonObject SketchGeometry::newSupportedFeature(const QString& ownerId, const QJsonObject& support, const QString& name) {
+    auto feature=newFeature(ownerId,"XY",name);auto parameters=feature["parameters"].toObject();
+    parameters["plane"]="face";parameters["support"]=support;feature["parameters"]=parameters;validateDraft(feature);return feature;
 }
 
 QJsonObject SketchGeometry::findFeature(const QJsonObject& authored, const QString& sketchId) {
@@ -200,13 +206,13 @@ QJsonObject SketchGeometry::addArc(const QJsonObject& draft, const QJsonObject& 
     validateDraft(changed); return changed;
 }
 
-TopoDS_Edge SketchGeometry::analyticEdge(const QJsonObject& parameters, const QJsonObject& entity) {
+TopoDS_Edge SketchGeometry::analyticEdge(const QJsonObject& parameters, const QJsonObject& entity, const QJsonObject& resolvedFrame) {
     QMap<QString,gp_Pnt> points;
-    const auto plane = parameters["plane"].toString();
+    const auto sketchFrame=evaluationFrame(parameters,resolvedFrame);
     for (const auto& value : parameters["points"].toArray()) { const auto p=value.toObject();
-        points[p["id"].toString()] = worldPoint(plane,p["uMm"].toDouble(),p["vMm"].toDouble()); }
+        points[p["id"].toString()] = worldPoint(sketchFrame,p["uMm"].toDouble(),p["vMm"].toDouble()); }
     if (entity["type"] == "line") return BRepBuilderAPI_MakeEdge(points[entity["startPointId"].toString()],points[entity["endPointId"].toString()]).Edge();
-    const auto f=frame(plane); const auto n=f["normal"].toArray(), u=f["uAxis"].toArray();
+    const auto f=sketchFrame; const auto n=f["normal"].toArray(), u=f["uAxis"].toArray();
     const gp_Ax2 axes(points[entity["centerPointId"].toString()],gp_Dir(n[0].toDouble(),n[1].toDouble(),n[2].toDouble()),gp_Dir(u[0].toDouble(),u[1].toDouble(),u[2].toDouble()));
     const gp_Circ circle(axes,entity["radiusMm"].toDouble());
     if (entity["type"] == "circle") return BRepBuilderAPI_MakeEdge(circle).Edge();
@@ -290,8 +296,14 @@ SketchGeometry::SolveResult SketchGeometry::addPointerEntity(const QJsonObject& 
 
 QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<QString>& authoredIds) {
     const auto plane = parameters["plane"].toString();
-    if (plane != "XY" && plane != "XZ" && plane != "YZ") return "Unsupported sketch origin plane";
-    const QSet<QString> allowed{"plane", "points", "entities", "constraints", "dimensions", "originPointId"};
+    if (plane != "XY" && plane != "XZ" && plane != "YZ" && plane != "face") return "Unsupported sketch plane";
+    if(plane=="face") {
+        if(!parameters["support"].isObject())return "Face sketch requires authored support references";
+        const auto support=parameters["support"].toObject();
+        if(support.size()!=3)return "Unexpected sketch support fields";
+        for(const auto& key:{"producerFeatureId","bodyId","faceId"})if(!support[key].isString() || !validId(support[key].toString()))return "Sketch support requires stable producer, body and face UUIDs";
+    } else if(parameters.contains("support"))return "Origin-plane sketch cannot carry face support";
+    const QSet<QString> allowed{"plane", "points", "entities", "constraints", "dimensions", "originPointId", "support"};
     for (auto it = parameters.begin(); it != parameters.end(); ++it)
         if (!allowed.contains(it.key())) return "Unknown sketch parameter: " + it.key();
     if (!parameters["points"].isArray() || !parameters["entities"].isArray()) return "Sketch requires points and entities";
@@ -840,16 +852,31 @@ QJsonObject SketchGeometry::frame(const QString& plane) {
     return {{"origin", QJsonArray{0, 0, 0}}, {"uAxis", u}, {"vAxis", v}, {"normal", normal}};
 }
 
-EvaluatedSketch SketchGeometry::evaluateFeature(const QJsonObject& feature) {
+QJsonObject SketchGeometry::evaluationFrame(const QJsonObject& parameters,const QJsonObject& resolvedFrame) {
+    if(parameters["plane"]!="face")return frame(parameters["plane"].toString());
+    if(resolvedFrame.size()!=4)reject("Face sketch requires an explicit resolved support frame");
+    std::array<std::array<double,3>,4> vectors;int index=0;
+    for(const auto& key:{"origin","uAxis","vAxis","normal"}){
+        const auto values=resolvedFrame[key].toArray();if(!resolvedFrame[key].isArray() || values.size()!=3)reject("Invalid resolved support frame");
+        for(int j=0;j<3;++j){if(!values[j].isDouble() || !std::isfinite(values[j].toDouble()))reject("Nonfinite support frame");vectors[index][j]=values[j].toDouble();}++index;}
+    auto dot=[](const auto& a,const auto& b){return a[0]*b[0]+a[1]*b[1]+a[2]*b[2];};
+    for(int i=1;i<4;++i)if(std::abs(dot(vectors[i],vectors[i])-1)>1e-9)reject("Support frame axes must be unit length");
+    if(std::abs(dot(vectors[1],vectors[2]))>1e-9 || std::abs(dot(vectors[1],vectors[3]))>1e-9 || std::abs(dot(vectors[2],vectors[3]))>1e-9)reject("Support frame axes must be orthogonal");
+    const std::array<double,3> cross{vectors[1][1]*vectors[2][2]-vectors[1][2]*vectors[2][1],vectors[1][2]*vectors[2][0]-vectors[1][0]*vectors[2][2],vectors[1][0]*vectors[2][1]-vectors[1][1]*vectors[2][0]};
+    if(dot(cross,vectors[3])<1-1e-9)reject("Support frame must be right handed");return resolvedFrame;
+}
+
+EvaluatedSketch SketchGeometry::evaluateFeature(const QJsonObject& feature, const QJsonObject& resolvedFrame) {
     const auto solution = solveDraft(feature);
     if (!solution.ok) reject(solution.error);
     const auto parameters = solution.feature["parameters"].toObject();
     const auto plane = parameters["plane"].toString();
+    const auto sketchFrame=evaluationFrame(parameters,resolvedFrame);
     QMap<QString, gp_Pnt> points;
     QJsonArray worldPoints;
     for (const auto& entry : parameters["points"].toArray()) {
         const auto point = entry.toObject();
-        const auto world = worldPoint(plane, point["uMm"].toDouble(), point["vMm"].toDouble());
+        const auto world = worldPoint(sketchFrame, point["uMm"].toDouble(), point["vMm"].toDouble());
         points.insert(point["id"].toString(), world);
         worldPoints.append(QJsonObject{{"id", point["id"]}, {"positionMm", QJsonArray{world.X(), world.Y(), world.Z()}}});
     }
@@ -862,7 +889,7 @@ EvaluatedSketch SketchGeometry::evaluateFeature(const QJsonObject& feature) {
         builder.MakeCompound(compound);
         for (const auto& entry : entities) {
             const auto entity = entry.toObject();
-            const auto edge = analyticEdge(parameters,entity);
+            const auto edge = analyticEdge(parameters,entity,sketchFrame);
             builder.Add(compound, edge);
         }
         if (!BRepCheck_Analyzer(compound).IsValid()) throw std::runtime_error("Kernel did not produce valid sketch edges");
@@ -884,9 +911,9 @@ EvaluatedSketch SketchGeometry::evaluateFeature(const QJsonObject& feature) {
         geometry.append(detail);
     }
     QJsonObject summary{{"kernel", "OCCT"}, {"version", ALLOY_OCCT_VERSION}, {"type", "sketch"}, {"valid", true},
-        {"lengthUnit", "mm"}, {"plane", plane}, {"frame", frame(plane)}, {"solverIntegrated", true}, {"solver", solution.diagnostics},
+        {"lengthUnit", "mm"}, {"plane", plane}, {"frame", sketchFrame}, {"solverIntegrated", true}, {"solver", solution.diagnostics},
         {"entities",geometry}, {"pointCount", points.size()}, {"entityCount", entities.size()}, {"worldPoints", worldPoints}, {"boundsMm", bounds}};
-    const auto profile = SketchProfiles::deriveRegions(solution.feature);
+    const auto profile = SketchProfiles::deriveRegions(solution.feature,sketchFrame);
     QJsonArray profileSummaries;
     std::vector<EvaluatedProfile> profiles;
     if (profile.ok) {
@@ -895,5 +922,5 @@ EvaluatedSketch SketchGeometry::evaluateFeature(const QJsonObject& feature) {
     }
     summary["profiles"] = profileSummaries;
     summary["profileDiagnostics"] = profile.diagnostics;
-    return {feature["id"].toString(), feature["name"].toString(), plane, feature["visible"].toBool(), shape, summary, profiles};
+    return {feature["id"].toString(), feature["name"].toString(), plane, feature["visible"].toBool(), shape, summary, profiles, sketchFrame};
 }
