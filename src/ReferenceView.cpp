@@ -1220,6 +1220,17 @@ void ReferenceView::showCutPreview(const EvaluatedBody& body,const std::vector<E
         tool->Attributes()->SetFaceBoundaryAspect(new Prs3d_LineAspect(
             Quantity_Color(0.80,0.12,0.16,Quantity_TOC_sRGB),Aspect_TOL_SOLID,1.6*devicePixelRatioF()));
         context_->Display(tool,AIS_Shaded,-1,false);context_->Deactivate(tool);cutTools_.push_back(tool);
+        // The selected source regions remain blue over the red disposable
+        // cutter volumes. A dedicated top layer keeps coplanar face fills
+        // stable while the normal finished-profile fills are suppressed.
+        Handle(AIS_Shape) selected=new AIS_Shape(profile.face);
+        selected->SetDisplayMode(AIS_Shaded);
+        selected->SetColor(Quantity_Color(0.05,0.36,0.80,Quantity_TOC_sRGB));selected->SetTransparency(0.08);
+        selected->Attributes()->SetFaceBoundaryDraw(true);
+        selected->Attributes()->SetFaceBoundaryAspect(new Prs3d_LineAspect(
+            Quantity_Color(0.88,0.20,0.24,Quantity_TOC_sRGB),Aspect_TOL_SOLID,2.0*devicePixelRatioF()));
+        selected->SetZLayer(Graphic3d_ZLayerId_Topmost);
+        context_->Display(selected,AIS_Shaded,-1,false);context_->Deactivate(selected);cutProfileOverlays_.push_back(selected);
     }
     setExtrusionCue(profiles.front(),distanceMm,sourceProfileIds,units,"cut");
     context_->UpdateCurrentViewer();
@@ -1299,9 +1310,10 @@ void ReferenceView::clearPreviewPresentation() {
     if(!context_.IsNull()) {
         for(const auto& cue:extrusionCue_)context_->Remove(cue,false);
         for(const auto& tool:cutTools_)context_->Remove(tool,false);
+        for(const auto& selected:cutProfileOverlays_)context_->Remove(selected,false);
         if(!preview_.IsNull())context_->Remove(preview_,false);
     }
-    preview_.Nullify();previewReplacedBody_.clear();previewProfile_.clear();previewProfileIds_={};cutTools_.clear();extrusionCue_.clear();extrusionCueState_={};
+    preview_.Nullify();previewReplacedBody_.clear();previewProfile_.clear();previewProfileIds_={};cutTools_.clear();cutProfileOverlays_.clear();extrusionCue_.clear();extrusionCueState_={};
 }
 void ReferenceView::clearPreview() {
     extrusionDragActive_=false;
@@ -1415,6 +1427,7 @@ QJsonObject ReferenceView::diagnostics() const {
         {"targetColor","blue"},{"toolColor","orange"},{"hiddenSelectedInputsTemporarilyRevealed",true}});
     result.insert("extrusionCue",extrusionCueState_);
     result.insert("cutPreviewToolCount",static_cast<int>(cutTools_.size()));
+    result.insert("cutPreviewSelectedProfileCount",static_cast<int>(cutProfileOverlays_.size()));
     result.insert("selectedSupportFace",selectedSupportFace_);
     result.insert("supportFaceHighlightVisible",!selectedSupportFaceOverlay_.IsNull());
     result.insert("hoveredSupportFace",hoveredSupportFace_);

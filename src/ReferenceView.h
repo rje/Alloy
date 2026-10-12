@@ -143,6 +143,7 @@ private:
     quint64 sketchRevision_ = 0;
     Handle(AIS_Shape) preview_;
     std::vector<Handle(AIS_Shape)> cutTools_;
+    std::vector<Handle(AIS_Shape)> cutProfileOverlays_;
     std::vector<Handle(AIS_InteractiveObject)> extrusionCue_;
     QJsonObject extrusionCueState_;
     bool extrusionDragActive_ = false;
