@@ -9,7 +9,7 @@ dependency keys with issue numbers.
 
 There are **147 issues**: **94 implementation, 14 research, 22 epics, and 17
 validation gates**. This is a substantial starting decomposition, not a claim
-that 143 tickets exhaust reference CAD application parity. Later epics require linked bounded child
+that 147 tickets exhaust reference CAD application parity. Later epics require linked bounded child
 issues before implementation and remain open until that declared coverage passes.
 
 | Phase | Count | Result |

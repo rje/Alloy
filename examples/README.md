@@ -62,15 +62,22 @@ automation share its retained point, line, constraint and dimension IDs.
    also lists the points and lines for precise selection.
 4. Select one line or two points, choose Linear/Horizontal/Vertical, and use
    **Add Dimension**. **Driving dimension** controls geometry; unchecking it adds
-   a driven measurement. D opens the dimension selection tool, whose numeric
-   entry is currently in the palette. Driven labels use parentheses.
+   a driven measurement. D opens the dimension tool: click an edge (or first
+   select two points), move the pointer, click to place, then type a value and
+   press Enter. Double-click a driving label to edit; drag labels to move them
+   without changing geometry. Escape abandons pending placement/typing. Driven
+   labels use parentheses and are read-only. The editor accepts numbers with
+   optional mm/in suffixes; expressions are not supported yet.
 5. Apply coincidence to two points, H/V to one line, parallel/perpendicular to
    two lines, or fixed to one point using the palette. Conflicting or redundant
    relations are refused with diagnostics while the last usable draft survives.
 
-The app currently supports these line/point relations and dimensions. Canvas
-dimension placement, inline rectangle entry, double-click dimension editing,
-native point dragging and per-entity constraint badges remain
+6. Click inside the shaded closed rectangle to select its actual evaluated
+   profile. Open or self-crossed line loops report diagnostics instead of a region.
+   Profile fill and picking currently apply during sketch editing.
+
+The app currently supports these line/point relations and dimensions. Inline
+rectangle entry, native point dragging, snapping and per-entity constraint badges remain
 [tracked interaction gaps](../docs/research/commands/sketch-controls.md).
 Face-supported sketches, extrusion, solid face/edge selection, Boolean operations,
 import and printing export also remain ahead. Disabled controls identify work

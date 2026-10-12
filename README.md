@@ -13,7 +13,9 @@ The first product focus is shape creation: sketches, solids, surfaces, editable
 history, common-format import, and export for 3D printing. The current application
 creates and edits real OCCT boxes and cylinders, and supports origin-plane
 sketches with connected lines, rectangles, geometric constraints and driving/driven
-dimensions. GPU rendering, shared undo/redo and native save/reopen cover both.
+dimensions. Placed dimensions have witness lines/arrows, an adjacent numeric editor
+and draggable labels; solved closed line loops produce selectable real profiles.
+GPU rendering, shared undo/redo and native save/reopen cover both.
 Extrusion, broader modeling, import and printing export remain ahead. Agent control and self-testing
 are part of the application from its first runnable version.
 
@@ -76,7 +78,10 @@ the previous workflows on the same candidate.
 The [constraints receipt](docs/validation/sketch-constraints.md) records the later
 line/point selection, rectangle constraints, driving width/height, driven
 measurement, failed-solve preservation and storage/history checks. This supports
-the declared subset, rather than full sketch interaction parity.
+the declared subset, rather than full sketch interaction parity. The later
+[annotation/profile receipt](docs/validation/sketch-annotations.md) records complete
+line dimensions, native inline editing, exact placement-only dragging and actual
+closed-face derivation/picking.
 
 For a first hands-on test, build using [development.md](docs/development.md),
 open [examples/gauge-block.alloy](examples/gauge-block.alloy) through File → Open,
@@ -92,8 +97,12 @@ for an anchored 50 × 25 mm rectangle with editable driving width/height and a
 driven diagonal. Select points or lines to apply coincidence, horizontal,
 vertical, parallel, perpendicular or fixed relations. The palette adds linear,
 horizontal and vertical driving dimensions or driven measurements; Finish commits
-the entire sketch once. Canvas dimension placement/inline editing and per-entity
-constraint diagnostics remain [tracked interaction gaps](docs/research/commands/sketch-controls.md).
+the entire sketch once. Select an edge, press D, click to place its dimension,
+then type a value and press Enter. Double-click driving labels to edit, drag
+labels to reposition, and press Escape to abandon pending edits. Closed-profile
+interiors are filled and selectable while sketch editing. Inline rectangle entry,
+snapping and per-entity constraint diagnostics remain
+[tracked interaction gaps](docs/research/commands/sketch-controls.md).
 
 To list tasks whose dependencies are complete:
 

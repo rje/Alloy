@@ -2,7 +2,7 @@
 
 Alloy now creates and edits real OCCT boxes, cylinders and constrained origin-plane
 line sketches in a hardware-accelerated native viewport. Shared UI/API commands
-provide disposable previews, body and sketch point/line picking, driving/driven
+provide disposable previews, body and sketch point/line/profile picking, driving/driven
 dimensions, geometry inspection, undo/redo and atomic native save/open. C++20, Qt 6.11.2
 Widgets/Network and OCCT 7.9.3 are required; CMake pins those package versions.
 Dependent modeling, broader sketch classes, import and export remain ahead.
@@ -22,7 +22,8 @@ Use File → Open for `examples/gauge-block.alloy`. Click a Timeline feature to
 edit its dimensions, or Box/Cylinder to create another body. See
 [sample instructions](../examples/README.md) and [agent control](agent-control.md).
 `examples/dimensioned-rectangle.alloy` exercises the integrated sketch solver:
-re-enter its Timeline feature and change a driving dimension in the palette.
+re-enter its Timeline feature and double-click a driving label or edit it in the
+palette. D places line dimensions with an adjacent numeric editor.
 
 The solver build uses Eigen 5.0.1 and Boost 1.90.0 headers. CMake accepts matching
 installed versions or fetches the pinned, hash-checked archives by default;
@@ -56,6 +57,8 @@ and [releases](releases.md) for pins, packaging and remaining qualification.
   topology, bounds, area/volume and explicit unit/tolerance policy.
 - `src/SketchGeometry.{h,cpp}`: authored points/lines/relations/dimensions, strict
   references, solved draft mutations, origin-plane frames and real OCCT edges.
+- `src/SketchProfiles.{h,cpp}`: stable single-loop profile derivation, actual valid
+  planar faces, area and source-edge provenance; unsupported boundaries keep diagnostics.
 - `src/SketchSolver.{h,cpp}`: MIT adapter, transient PlaneGCS storage, normalized
   coordinates, diagnostics and independent residual checks.
 - `cmake/PlaneGCS.cmake`, `third_party/planegcs/`: pinned shared-library build,
@@ -70,6 +73,8 @@ and [releases](releases.md) for pins, packaging and remaining qualification.
 - `tests/sketch_solver.cpp`: supported adapter relations, dimensions and failure diagnostics.
 - `tests/sketch_constraints_api.py`: actual constrained rectangle, dimension
   editing, selection, solve failure, undo/cancel and save/reopen workflow.
+- `tests/sketch_annotations_api.py`, `tests/sketch_profiles.cpp`: placed/edited
+  dimensions, exact placement-only mutation, real face derivation and profile picking.
 - `tests/shell_api.py`, `document_api.py`, `session_api.py`: earlier app workflows.
 - `tests/workflows/run.py`: candidate-bound cumulative runner and fixture ledger.
 
@@ -159,9 +164,12 @@ remain pending. Primitive world-XY placement/New Body/default values are bounded
 Alloy proposals. Public references are unmatched in size, scale, OS and design
 state; no exact visual/interaction match is claimed. GATE-010 requires additional
 STEP and cumulative evidence and remains open.
-Canvas dimension placement, inline numeric entry, double-click annotation editing
-and native point dragging are not implemented. Their specific interaction and
-per-entity badge/visibility follow-ups are recorded in
+The later [annotation/profile receipt](validation/sketch-annotations.md) records
+placed dimensions, numeric typing, double-click editing, annotation dragging and
+single-loop face/picking acceptance. For a change to that slice, use the focused
+`sketch_document`/`sketch_profiles` CTest checks and `--case sketch-annotations`.
+Native point dragging, inline rectangle entry and wider inference remain open.
+Their specific interaction and per-entity badge/visibility follow-ups are recorded in
 [sketch controls](research/commands/sketch-controls.md).
 
 The public [Qt Widgets](https://doc.qt.io/qt-6/qtwidgets-index.html),

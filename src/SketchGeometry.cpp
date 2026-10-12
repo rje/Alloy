@@ -228,7 +228,14 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
             if ((kind != "linear" && kind != "horizontal" && kind != "vertical") || !dimension["driving"].isBool()
                 || !checkReferences(dimension, "pointIds", 2, pointIds)) return "Invalid dimension kind or references";
             const bool driving = dimension["driving"].toBool();
-            if (dimension.size() != (driving ? 5 : 4) || (!driving && dimension.contains("valueMm"))) return "Unexpected dimension fields";
+            const bool placed = dimension.contains("annotation");
+            if (dimension.size() != (driving ? 5 : 4) + int(placed) || (!driving && dimension.contains("valueMm"))) return "Unexpected dimension fields";
+            if (placed) {
+                if (!dimension["annotation"].isObject()) return "Dimension annotation must be an object";
+                const auto annotation = dimension["annotation"].toObject();
+                if (annotation.size() != 2) return "Dimension annotation requires only uMm and vMm";
+                coordinate(annotation, "uMm"); coordinate(annotation, "vMm");
+            }
             if (driving) {
                 const double value = coordinate(dimension, "valueMm");
                 if (value < minimumLength) return "Driving dimension must be positive (0.001..100000 mm)";
@@ -279,7 +286,7 @@ SketchGeometry::SolveResult SketchGeometry::addConstraint(const QJsonObject& dra
 SketchGeometry::SolveResult SketchGeometry::addDimension(const QJsonObject& draft, const QJsonObject& arguments) {
     try {
         validateDraft(draft);
-        checkFields(arguments, {"kind", "pointIds", "entityId", "driving", "valueMm"});
+        checkFields(arguments, {"kind", "pointIds", "entityId", "driving", "valueMm", "annotation"});
         if (arguments.contains("driving") && !arguments["driving"].isBool()) reject("Dimension driving must be Boolean");
         auto parameters = draft["parameters"].toObject();
         QJsonArray pointIds = arguments["pointIds"].toArray();
@@ -295,6 +302,7 @@ SketchGeometry::SolveResult SketchGeometry::addDimension(const QJsonObject& draf
         }
         const bool driving = arguments.value("driving").toBool(true);
         QJsonObject dimension{{"id", newId()}, {"kind", arguments["kind"]}, {"pointIds", pointIds}, {"driving", driving}};
+        if (arguments.contains("annotation")) dimension["annotation"] = arguments["annotation"];
         if (driving) dimension["valueMm"] = arguments["valueMm"];
         else if (arguments.contains("valueMm")) reject("Driven dimensions measure geometry; omit valueMm");
         auto dimensions = parameters["dimensions"].toArray(); dimensions.append(dimension);
@@ -324,6 +332,31 @@ SketchGeometry::SolveResult SketchGeometry::updateDimension(const QJsonObject& d
         auto candidate = draft; candidate["parameters"] = parameters;
         const auto result = solveDraft(candidate);
         return result.ok ? result : SolveResult{false, draft, result.diagnostics, result.error};
+    } catch (const std::exception& error) { return invalidDraft(draft, QString::fromUtf8(error.what())); }
+}
+
+SketchGeometry::SolveResult SketchGeometry::updateAnnotation(const QJsonObject& draft, const QJsonObject& arguments) {
+    try {
+        validateDraft(draft);
+        checkFields(arguments, {"dimensionId", "annotation"});
+        if (!arguments["annotation"].isObject()) reject("Dimension annotation must be an object");
+        auto parameters = draft["parameters"].toObject();
+        auto dimensions = parameters["dimensions"].toArray();
+        bool found = false;
+        for (int i = 0; i < dimensions.size(); ++i) {
+            auto dimension = dimensions[i].toObject();
+            if (dimension["id"] != arguments["dimensionId"]) continue;
+            dimension["annotation"] = arguments["annotation"];
+            dimensions[i] = dimension; found = true; break;
+        }
+        if (!found) reject("Dimension does not exist");
+        parameters["dimensions"] = dimensions;
+        auto candidate = draft; candidate["parameters"] = parameters;
+        const auto result = solveDraft(candidate);
+        // A presentation edit preserves accepted authored coordinates verbatim.
+        // Obtain diagnostics without applying any solver normalization to intent.
+        return result.ok ? SolveResult{true, candidate, result.diagnostics, {}}
+                         : SolveResult{false, draft, result.diagnostics, result.error};
     } catch (const std::exception& error) { return invalidDraft(draft, QString::fromUtf8(error.what())); }
 }
 
@@ -394,5 +427,14 @@ EvaluatedSketch SketchGeometry::evaluateFeature(const QJsonObject& feature) {
     QJsonObject summary{{"kernel", "OCCT"}, {"version", ALLOY_OCCT_VERSION}, {"type", "sketch"}, {"valid", true},
         {"lengthUnit", "mm"}, {"plane", plane}, {"frame", frame(plane)}, {"solverIntegrated", true}, {"solver", solution.diagnostics},
         {"pointCount", points.size()}, {"entityCount", entities.size()}, {"worldPoints", worldPoints}, {"boundsMm", bounds}};
-    return {feature["id"].toString(), feature["name"].toString(), plane, feature["visible"].toBool(), shape, summary};
+    const auto profile = SketchProfiles::derive(solution.feature);
+    QJsonArray profileSummaries;
+    std::vector<EvaluatedProfile> profiles;
+    if (profile.ok) {
+        profileSummaries.append(profile.profile.summary);
+        profiles.push_back(profile.profile);
+    }
+    summary["profiles"] = profileSummaries;
+    summary["profileDiagnostics"] = profile.diagnostics;
+    return {feature["id"].toString(), feature["name"].toString(), plane, feature["visible"].toBool(), shape, summary, profiles};
 }

@@ -102,13 +102,21 @@ int main(int argc, char** argv) {
         accept(SketchGeometry::addConstraint(constrained, {{"type", "fixed"}, {"pointIds", QJsonArray{points[0].toObject()["id"]}}}));
         check(SketchGeometry::solveDraft(constrained).diagnostics["dof"].toInt() == 2,
             "fixed rectangle retains only width and height freedom");
-        accept(SketchGeometry::addDimension(constrained, {{"kind", "horizontal"}, {"entityId", lines[0].toObject()["id"]}, {"valueMm", 40}}));
+        accept(SketchGeometry::addDimension(constrained, {{"kind", "horizontal"}, {"entityId", lines[0].toObject()["id"]}, {"valueMm", 40},
+            {"annotation", QJsonObject{{"uMm", 20}, {"vMm", -8}}}}));
         const auto widthId = constrained["parameters"].toObject()["dimensions"].toArray().last().toObject()["id"];
         accept(SketchGeometry::addDimension(constrained, {{"kind", "vertical"}, {"entityId", lines[1].toObject()["id"]}, {"valueMm", 25}}));
         const auto previous = reopened.authored();
         check(reopened.commit(SketchGeometry::replaceFeature(previous, constrained), "Constrain rectangle").isEmpty(), "constrained finish is authoritative");
         check(reopened.sketches()[0].summary["solver"].toObject()["dof"].toInt() == 0, "fixed dimensioned rectangle is fully constrained");
         accept(SketchGeometry::updateDimension(constrained, {{"dimensionId", widthId}, {"valueMm", 50}}));
+        const auto beforePlacement = constrained["parameters"].toObject()["points"].toArray();
+        accept(SketchGeometry::updateAnnotation(constrained, {{"dimensionId", widthId},
+            {"annotation", QJsonObject{{"uMm", 25}, {"vMm", -12}}}}));
+        const auto afterPlacement = constrained["parameters"].toObject()["points"].toArray();
+        check(afterPlacement == beforePlacement, "label movement preserves authored points exactly");
+        check(constrained["parameters"].toObject()["dimensions"].toArray()[0].toObject()["annotation"].toObject()
+            == QJsonObject{{"uMm",25},{"vMm",-12}}, "label movement stores the requested canonical placement");
         check(reopened.commit(SketchGeometry::replaceFeature(reopened.authored(), constrained), "Resize sketch").isEmpty(), "dimension changes solved authored geometry");
         const auto savedSolved = reopened.authored();
         near(reopened.sketches()[0].summary["boundsMm"].toObject()["size"].toArray()[0].toDouble(), 50, "solver width matches OCCT edges");

@@ -327,6 +327,28 @@
         "sketch.constraint_storage",
         "sketch.entity_selection"
       ]
+    },
+    "sketch-annotations": {
+      "script": "tests/sketch_annotations_api.py",
+      "fixture": "tests/workflows/fixtures/sketch-annotations.json",
+      "result": "sketch-annotations-api.json",
+      "covers": [
+        "SKT-014"
+      ],
+      "capabilities": [
+        "sketch.annotation_placement",
+        "sketch.inline_dimension_commands",
+        "sketch.annotation_storage",
+        "sketch.evaluated_line_profiles",
+        "sketch.profile_selection"
+      ],
+      "inputs": [
+        "tests/app_harness.py",
+        "src/SketchProfiles.h",
+        "src/SketchProfiles.cpp",
+        "tests/sketch_document.cpp",
+        "tests/sketch_profiles.cpp"
+      ]
     }
   },
   "gates": {

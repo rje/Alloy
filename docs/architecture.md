@@ -71,7 +71,12 @@ their equation branch follows the signed endpoint difference in the seed.
 OCCT edges. A rejected solve retains the last usable draft. `CadDocument` validates
 and normalizes every sketch before installing a commit or opened document, so a
 failed candidate cannot replace live authored state, geometry or journal entries.
-Derived closed profiles remain SKT-014.
+`SketchProfiles` derives one connected closed line loop into a validated planar
+OCCT face. Stable profile identity combines the sketch ID and source entity IDs;
+summary provenance and area are rebuilt caches. Authored intent remains points/
+lines/relations, with optional dimension annotation coordinates. Moving a label
+validates the candidate while preserving exact accepted point records. Multiple
+regions, holes and curved boundaries remain later sketch work.
 
 `CadDocument` keeps authored intent paired with an immutable `EvaluatedDocument`
 containing separate body and sketch caches. The active sketch session owns a

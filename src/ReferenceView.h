@@ -2,6 +2,7 @@
 #include <QWidget>
 #include <QImage>
 #include <QJsonObject>
+#include <QJsonArray>
 #include <functional>
 #include <AIS_InteractiveContext.hxx>
 #include <AIS_Trihedron.hxx>
@@ -30,7 +31,11 @@ public:
     void clearSketchDraft();
     QJsonObject pickSketch(const QJsonObject& feature, double x, double y) const;
     void decorateSketch(const QJsonObject& feature, const QJsonObject& selection,
-        const QJsonObject& diagnostics, const QString& units);
+        const QJsonObject& diagnostics, const QString& units, const QJsonObject& pending = {});
+    QJsonObject dimensionLayout(const QJsonObject& feature, const QJsonObject& dimension,
+        double valueMm, const QString& units) const;
+    QJsonObject pickAnnotation(double x, double y) const;
+    QJsonArray annotations() const { return annotationLayouts_; }
     void setSketchPlane(const QString& plane);
     void lookAtSketch(const QString& plane);
     QJsonObject sketchPoint(double x, double y, const QString& plane) const;
@@ -51,6 +56,7 @@ protected:
     void mousePressEvent(QMouseEvent*) override;
     void mouseMoveEvent(QMouseEvent*) override;
     void mouseReleaseEvent(QMouseEvent*) override;
+    void mouseDoubleClickEvent(QMouseEvent*) override;
     void wheelEvent(QWheelEvent*) override;
 private:
     void initialize();
@@ -68,6 +74,13 @@ private:
     QMap<QString,Handle(AIS_Shape)> sketchModels_;
     Handle(AIS_Shape) sketchDraft_, sketchCursor_;
     std::vector<Handle(AIS_InteractiveObject)> sketchDecorations_;
+    QJsonArray annotationLayouts_;
+    std::vector<EvaluatedProfile> draftProfiles_;
+    QMap<QString,Handle(AIS_Shape)> profileModels_;
+    QJsonObject decorationFeature_, decorationSelection_, decorationDiagnostics_, decorationPending_;
+    QString decorationUnits_, draggedAnnotation_;
+    QPointF annotationPress_;
+    bool annotationDragged_ = false;
     QString sketchPlane_, draftSketchId_;
     quint64 sketchRevision_ = 0;
     Handle(AIS_Shape) preview_;

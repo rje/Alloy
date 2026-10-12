@@ -1,4 +1,5 @@
 #pragma once
+#include "SketchProfiles.h"
 #include <QJsonObject>
 #include <TopoDS_Shape.hxx>
 #include <vector>
@@ -15,6 +16,7 @@ struct EvaluatedSketch {
     bool visible = true;
     TopoDS_Shape shape;
     QJsonObject summary;
+    std::vector<EvaluatedProfile> profiles;
 };
 
 struct EvaluatedDocument {

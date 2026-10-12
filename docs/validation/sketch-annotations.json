@@ -1,0 +1,104 @@
+{
+  "schema": "alloy-sketch-annotations/1",
+  "recorded": "2026-10-11",
+  "status": "passed for single-loop profile and bounded line dimensions",
+  "candidate": {
+    "app": "/Users/rje/src/cpp/Alloy/build/alloy.app/Contents/MacOS/alloy",
+    "source_commit": "594b88f51621bad55aa186c133ade6e7c89d2115",
+    "dirty": true,
+    "sha256": "1610e1ed19378ff5c0ec2d1d4b133559df2d089028598e5c94caa175c9d4bb56"
+  },
+  "fixture": {
+    "widthMm": 40,
+    "heightMm": 25,
+    "editedWidthMm": 50,
+    "areaBeforeMm2": 1000,
+    "areaAfterMm2": 1250
+  },
+  "checks": {
+    "core": [
+      "sketch_document passed, including exact annotation-move point preservation and saved placement",
+      "sketch_profiles passed, including real valid face, stable identity under width edit, open/self-crossed refusals"
+    ],
+    "realApp": {
+      "report": "build/evidence/annotations-final/report.json",
+      "case": "sketch-annotations",
+      "result": "passed",
+      "capabilities": [
+        "sketch.annotation_placement",
+        "sketch.annotation_storage",
+        "sketch.evaluated_line_profiles",
+        "sketch.inline_dimension_commands",
+        "sketch.profile_selection"
+      ]
+    },
+    "native": {
+      "receipt": "build/evidence/annotations-native-final-checks.json",
+      "finish": "build/evidence/annotations-native-final-committed.json",
+      "result": "passed",
+      "widthEditMm": [
+        50,
+        55
+      ],
+      "profileAreaAfterNativeEditMm2": 1375,
+      "finishUndoCount": 1,
+      "checks": [
+        "actual profile interior click selects evaluated region",
+        "edge click / D / placement / type 50 mm / Enter",
+        "label double-click succeeded on reattempt, type 55 / Enter",
+        "label drag preserves exact authored point array and dimension values",
+        "API-opened editor with native 77 / Escape leaves draft unchanged",
+        "API zoom 1.1 preserves world anchor and logical-pixel hit position",
+        "native Finish commits one sketch transaction"
+      ]
+    },
+    "independentReview": {
+      "reviewer": "Astra",
+      "result": "accepted for SKT-014 and partial SKT-005",
+      "evidence": "current source, executable and artifact hashes matched; final API/native captures inspected; exact drag arrays checked; no tests repeated"
+    }
+  },
+  "capture": {
+    "path": "docs/validation/sketch-annotations.png",
+    "sha256": "d04f02d9c32e3b5e7e658a4b78006e692513be8caacf464770bc309d74a361f2",
+    "source": "/Users/rje/src/cpp/Alloy/build/evidence/annotations-final/run-wv6xdu7v/sketch-annotations/placed-dimensions.png"
+  },
+  "limits": [
+    "Single connected closed line loop only; open/unsupported boundaries keep valid authored sketches with diagnostics.",
+    "Region picking/fill is currently in active sketch editing; post-Finish extrusion selection belongs to the next solid command.",
+    "Constraint glyphs, per-entity solver colors, visibility toggles, general snapping and broader dimension types remain open.",
+    "Stock arrows/GPU text use independently authored portable layout; exact fonts/scale/reference release and whole-product parity are unqualified.",
+    "Hardware Apple M4 OCCT OpenGL verified here; Metal/Vulkan migration and Windows/Linux runtime remain pending.",
+    "No tutorial gate, full cumulative product gate, tag, release or native CI matrix was run for this slice."
+  ],
+  "inputs_sha256": {
+    "tests/workflows/ledger.json": "b1a7411bb4369cabfb197a59407eb28afaad954c277a89c6cabd1d5db7931f27",
+    "docs/backlog/issues.json": "758e059bbd5eb42aad16d03c1c27b470b700ad7b69dbc87cbd980f51d53bd2bc",
+    "tests/workflows/run.py": "de73c9bba394c61717a53845ac52fb6e6a60395a484ddf33b552c3b759c390d3",
+    "CMakeLists.txt": "c9331928a4439cec292020d2ee045abe234d91acfe250ee471cc59e631a3cd57",
+    "tools/alloyctl.py": "7429d3a49baccef9bbf63b90924dccf2ac13c083feb4b55a8bbd499e442aa2ca",
+    "tools/backlog.py": "2db58486ac1cfa3366dc9d942b3e6177531bb800e8a7e0a87390a30ddba13417",
+    "src/AlloyWindow.cpp": "a3c179183219a01d33f6894ca38922c39bbe3fd838e38ad1db685e4004489af0",
+    "src/AlloyWindow.h": "6c677bd67dde33e96a8f018cddeaa939cac6e2ea5f1fc5b440d3ce8dfdba9f62",
+    "src/CadDocument.cpp": "58eb34d81db56180db96e8fe715735e5401ce300b4250336d3c6794e4d298ade",
+    "src/CadDocument.h": "6ccd116b7aa10e07c0487a7b1dd53a4d64b0ce89897ae0cb32dc509540f35090",
+    "src/ControlServer.cpp": "cb8ad74e6bed508791cc0f12e0d09b7cad46d7ccf20e0f5ceeb53178e83fddea",
+    "src/ControlServer.h": "9c692cacf1f764435284b1cec2e3d50a38ebda8ab7aeccd76704adbf67aee651",
+    "src/GeometryKernel.cpp": "e6246e58812aae2db703c1a5ccfe02f7e4a44af4761173b0f26920635a38766b",
+    "src/GeometryKernel.h": "bf59852aa4bf1d4679adf26f64cb441acf731069ff1064517317fca6fe4f2201",
+    "src/ReferenceView.cpp": "0eae5718396aac9865485d7920ad69bd4cc5d788c66addf4f35446c4f28eb138",
+    "src/ReferenceView.h": "54ae3b397dee4d9f4fc9910961f04d3bda5d614bf4758799af310bdf5a991f37",
+    "src/SketchGeometry.cpp": "59e30b5aeb2786d45be5de98ae42b02844ea0e57809a5a27a23ff2876e685a3d",
+    "src/SketchGeometry.h": "5d49a9ca532374fb71aa3b9527a07f712766dd0e82b432e1c783acdf8a83aa4a",
+    "src/SketchProfiles.cpp": "51c2c47a14174d2e0861aff424de67470b2712321a0258dec7730bbb5977138f",
+    "src/SketchProfiles.h": "bcca9e903c28947775a1999ec36bc7e562cbd4795c9183d8b5391822e4703b0d",
+    "src/SketchSolver.cpp": "696a15fcc167a67bf857572fee562b2c663a35eb5fd548b299091ba3218d051d",
+    "src/SketchSolver.h": "51726c477913701cf008515c7a0e3749e4abaef0a99040cc5c72a28f6a0cb8f5",
+    "src/main.cpp": "16853ebf0f003c63d1455a7e36819dd1cc952c43ab4758dc16deb8cda949a9f8",
+    "tests/sketch_annotations_api.py": "5057afca7168866d7c32fda012f88906bfe55207f6b272b9dc281835d06e41d4",
+    "tests/workflows/fixtures/sketch-annotations.json": "4d754d51169a4768294e49d866e9d9ba271d19277e5f7576d5d119c235ce7402",
+    "tests/app_harness.py": "5664939829e851da533d80a942a1b03f869106724683025d367fef3dd9d22d08",
+    "tests/sketch_document.cpp": "b6d0406ae483ee7bc41c461dbe842e6f46e421a661cc313bbe6b12d4cbe13543",
+    "tests/sketch_profiles.cpp": "e4fb193e6b1cb7d3fb1a137e28869e9f20cdf3452a6e2f7d63268c1655c6941b"
+  }
+}

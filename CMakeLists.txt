@@ -30,7 +30,10 @@ add_library(alloy_sketch_solver STATIC src/SketchSolver.cpp src/SketchSolver.h)
 target_include_directories(alloy_sketch_solver PUBLIC src)
 target_link_libraries(alloy_sketch_solver PUBLIC Qt6::Core PRIVATE alloy_planegcs)
 
-add_library(alloy_kernel STATIC src/GeometryKernel.cpp src/GeometryKernel.h src/SketchGeometry.cpp src/SketchGeometry.h)
+add_library(alloy_kernel STATIC
+    src/GeometryKernel.cpp src/GeometryKernel.h
+    src/SketchGeometry.cpp src/SketchGeometry.h
+    src/SketchProfiles.cpp src/SketchProfiles.h)
 target_include_directories(alloy_kernel PUBLIC src)
 target_include_directories(alloy_kernel SYSTEM PUBLIC ${OpenCASCADE_INCLUDE_DIR})
 target_link_libraries(alloy_kernel PUBLIC alloy_sketch_solver Qt6::Core TKernel TKMath TKG3d TKBRep TKPrim TKTopAlgo)
@@ -42,7 +45,7 @@ qt_add_executable(alloy MACOSX_BUNDLE
     src/ReferenceView.cpp src/ReferenceView.h
     src/ControlServer.cpp src/ControlServer.h)
 target_include_directories(alloy SYSTEM PRIVATE ${OpenCASCADE_INCLUDE_DIR})
-target_link_libraries(alloy PRIVATE alloy_kernel Qt6::Widgets Qt6::Network TKService TKV3d TKOpenGl)
+target_link_libraries(alloy PRIVATE alloy_kernel Qt6::Widgets Qt6::Network TKService TKV3d TKOpenGl TKMesh)
 target_compile_definitions(alloy PRIVATE ALLOY_OCCT_VERSION="${ALLOY_OCCT_VERSION}")
 set_target_properties(alloy PROPERTIES
     MACOSX_BUNDLE_BUNDLE_NAME Alloy
@@ -78,6 +81,9 @@ if(BUILD_TESTING)
     target_include_directories(sketch_document_test PRIVATE src)
     target_link_libraries(sketch_document_test PRIVATE Qt6::Gui alloy_kernel)
     add_test(NAME sketch_document COMMAND sketch_document_test)
+    add_executable(sketch_profiles_test tests/sketch_profiles.cpp)
+    target_link_libraries(sketch_profiles_test PRIVATE alloy_kernel)
+    add_test(NAME sketch_profiles COMMAND sketch_profiles_test)
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
     add_test(NAME client_selection COMMAND ${Python3_EXECUTABLE} -E ${CMAKE_CURRENT_SOURCE_DIR}/tests/client_selection.py)
     add_test(NAME shell_api COMMAND ${Python3_EXECUTABLE}

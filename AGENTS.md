@@ -64,6 +64,10 @@ These rules supersede any earlier suggestion to verify behavior in proprietary s
 - Keep visual references with provenance separate from application assets.
 - Use matched viewport size, scale, theme, and comparable state for visual
   comparisons when evidence permits. State limitations of unmatched references.
+- Visual quality is part of feature acceptance: readable labels and controls,
+  deliberate selection colors, smooth GPU geometry and appropriate profile/solid
+  presentation. Inspect actual app captures and native interaction; a functional
+  result with visibly incorrect presentation is unfinished within the current scope.
 - The application remains Alloy-branded.
 - Do not claim a screenshot, mocked control, or empty shell implements CAD.
 - At coherent workflow milestones, perform a bounded independent compatibility

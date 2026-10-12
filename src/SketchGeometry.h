@@ -22,6 +22,8 @@ public:
     static SolveResult addConstraint(const QJsonObject& draft, const QJsonObject& arguments);
     static SolveResult addDimension(const QJsonObject& draft, const QJsonObject& arguments);
     static SolveResult updateDimension(const QJsonObject& draft, const QJsonObject& arguments);
+    // Presentation intent in canonical sketch millimeters; never changes the measurement.
+    static SolveResult updateAnnotation(const QJsonObject& draft, const QJsonObject& arguments);
     static SolveResult movePoint(const QJsonObject& draft, const QJsonObject& arguments);
     static QString validateParameters(const QJsonObject& parameters, QSet<QString>& authoredIds);
     static QJsonObject frame(const QString& plane);

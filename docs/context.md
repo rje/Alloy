@@ -69,6 +69,10 @@ Updated 2026-10-11. This is the project handoff for a fresh session. Read the ro
   supply screenshots or identify missing behavior. In particular, bare dimension
   value labels do not satisfy sketch annotation presentation: research witness
   lines, arrows, placement/editing, glyphs, colors and profiles proactively.
+- The user requires the researched visual quality throughout implementation, not
+  a later cosmetic pass. Treat actual readable annotations/controls, selection,
+  profile/solid presentation and native interaction as feature acceptance, with
+  bounded independent review and honest limitations.
 - The project lives at `~/src/cpp/Alloy`. Alloy is the working name. Astra was
   requested for the initial public-interface research and project foundation,
   and completed that assignment.
@@ -153,9 +157,11 @@ new workflow was repeated after the explicit line-ID fix and native palette
 readability fix. Keep these candidate boundaries explicit in the receipt.
 Application and library operation are qualified only on macOS arm64; portable
 exports are implemented but Windows/Linux compilation and runtime/package closure
-remain unqualified. Canvas dimension placement, inline typing, double-click
-annotation editing, point dragging and per-entity constraint badges remain linked
-follow-ups, not accepted interaction parity.
+remain unqualified. The later [annotation/profile receipt](validation/sketch-annotations.md)
+qualifies D/placement/inline numeric input, driving label double-click editing,
+placement-only label dragging and a selectable real single-loop profile. Native
+point dragging, inference and per-entity constraint badges remain linked follow-ups.
+This is bounded acceptance, not full interaction parity.
 
 A reported viewport mouse regression is fixed and independently reviewed.
 Camera setters now defer redraw until a completed view is ready; Retina picking
@@ -203,8 +209,8 @@ The user authorized a public GitHub repository/project and an issue backlog with
 cumulative validation gates. The repository is [rje/Alloy](https://github.com/rje/Alloy)
 and the public board is [Alloy](https://github.com/users/rje/projects/1).
 The MIT-licensed foundation is published on `main`.
-Astra's deep dive and backlog are published: **143 issues** across ten phases,
-comprising **92 implementation tasks, 14 research tasks, 22 epics, and 15
+Astra's deep dive and backlog are published: **147 issues** across ten phases,
+comprising **94 implementation tasks, 14 research tasks, 22 epics, and 17
 validation tasks**. All remote issue bodies, dependency links,
 labels, milestones, and live readiness were verified through the API. The shell
 baseline [`GATE-000` #12](https://github.com/rje/Alloy/issues/12) is closed;
@@ -214,7 +220,8 @@ independently reviewed evidence. DOC-003/004/005/007/008 are closed with reviewe
 primitive evidence. UX-001 is closed with independently reviewed input/editor evidence;
 FND-005 and SKT-001/002 are closed with their bounded solver/sketch evidence;
 SKT-003/004 are closed with independently reviewed integrated constraints/dimension
-evidence: 20 tasks closed, 123 open at this handoff. Live counts
+evidence; SKT-014 is closed with reviewed real-profile/annotation evidence:
+21 tasks closed, 126 open at this handoff. Live counts
 are obtained with tools/backlog.py rather than this earlier publication snapshot. Later epics need
 bounded child issues before implementation; this count does not exhaust parity.
 Read [the backlog](backlog/README.md), [publication receipt](backlog/publication.json),
@@ -241,7 +248,7 @@ dependencies/native-builds.md.
 Windows named-pipe control, Linux X11/GLX runtime qualification, relocation,
 dependency notices and tagged milestone publishing remain open.
 GitHub operations must use `gh` and APIs; the user explicitly rejected browser
-computer control for GitHub. The CLI token now supports Projects; all 143 board items were verified through the API.
+computer control for GitHub. The CLI token now supports Projects; the current board items are tracked through the API.
 The board auto-add workflow targets open issues from rje/Alloy. Update Status
 through the CLI/API as tasks start and finish.
 
@@ -256,27 +263,33 @@ Its bounded OCCT fixture now passed generator role rebinding, fillet history,
 split/deletion/merge cases; [decision 002](decisions/002-geometric-references.md)
 defines conservative unresolved behavior. DOC-012 still implements the real resolver.
 
-The latest local application binary includes the constraints/dimensions slice.
+The latest local application binary includes placed dimensions and real closed profiles.
 Use `python3 tools/alloyctl.py instances` for authoritative live identity; old
 ready files may be stale. Preserve live authored work and any unfinished draft
 before restarting. Recovery documents remain under the local Alloy Application
 Support directory. The new sample `examples/dimensioned-rectangle.alloy` has a
 50 × 25 mm anchored rectangle, driving width/height and a driven diagonal.
 The application is currently open editing that sample with the readable Sketch
-Palette; the launch record is `build/evidence/human-ready-constraints.json`.
+Palette and placed dimension graphics; the current launch record is
+`build/evidence/human-ready-annotations.json` (private instance registry; select
+this ready file explicitly). Preserve any later human changes before replacement.
 Detailed transcripts/build/test/native artifacts are retained under
 `build/evidence/constraints-*`; the [constraints receipt](validation/sketch-constraints.json)
 identifies which checks ran against each binary. Repeat checks only for material
 changes, new failures or unresolved risks.
 
-**Active correction:** SKT-005 #32 is In Progress for proactive public-reference
-research and proper sketch dimension/annotation interaction. Astra researches
-the complete affected workflow; the UI agent independently checks mature OCCT
-annotation support and portable presentation data. The first accepted solver
-slice contains value labels, not complete dimension graphics. Public sources
-must lead the implementation specification without waiting for user examples.
+**Active correction:** SKT-005 #32 remains In Progress. Its D/placement/inline
+value, label editing/dragging and proper line graphics now have focused API/native
+evidence and independent Astra acceptance. Broader drawing inputs/inference and
+center-rectangle entry are still open. SKT-008 #35 retains glyphs/per-entity DOF
+and visibility controls. The final binary SHA256 is
+`1610e1ed19378ff5c0ec2d1d4b133559df2d089028598e5c94caa175c9d4bb56`;
+`build/evidence/annotations-final/report.json` identifies source/fixture/artifacts,
+and `annotations-native-final-*` retains physical checks. Earlier visually failed
+captures are not accepted. No unchanged full regression, tutorial gate or CI matrix
+was repeated for this bounded correction.
 
-**Next modeling priority:** SKT-014 simple closed profiles, HIS-001 ordered
+**Next modeling priority:** SKT-014 single-loop profiles is complete. HIS-001 ordered
 sketch/profile recompute and SOL-001 extrusion. SKT-015 is the next substantial
 human-test checkpoint: draw a 40 by 25 mm rectangle, extrude 5, edit width to 50,
 verify volume 6250 mm3, undo/redo, cancel and save/reopen. HIS-001 is accepted on

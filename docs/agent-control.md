@@ -119,15 +119,23 @@ fail without applying the command. Error codes include `invalid_request`,
 | `sketch.edit` | `sketchId`: UUID; re-enter a retained sketch |
 | `sketch.line`, `sketch.rectangle` | `x1`, `y1`, `x2`, `y2`; optional `units`, `session`; append stable point/line entities and solve the draft. Rectangles also author four H/V constraints |
 | `sketch.tool` | `tool`: `select`, `line`, `rectangle` or `dimension`; choose the active drawing/selection tool |
-| `sketch.selectionSet` | Optional `pointIds`, `entityIds`: arrays of authored IDs in the active sketch; omitted arrays clear that selection kind |
-| `sketch.selectionPick` | `x`, `y`: logical pixels; optional `additive`: boolean. Pick an authored point or line, sharing native selection state |
+| `sketch.selectionSet` | Optional `pointIds`, `entityIds`, `profileIds`: arrays of authored/evaluated IDs in the active sketch; omitted arrays clear that selection kind |
+| `sketch.selectionPick` | `x`, `y`: logical pixels; optional `additive`: boolean. Pick an authored point, line or evaluated profile interior, sharing native selection state |
 | `sketch.placePoint` | `x`, `y`: logical pixels; native ray/plane two-click drawing path, or selection when the active tool is `select`/`dimension` |
 | `sketch.pointerMove` | `x`, `y`: logical pixels; disposable pending-line/rectangle cursor preview |
 | `sketch.lookAt` | View normal to the active sketch plane |
 | `sketch.finish`, `sketch.cancel` | Commit or discard the active sketch session |
 | `view.projectSketchPoint` | `plane`, `uMm`, `vMm`; actual world-to-viewport projection |
 | `sketch.constraint` | `type`: `coincident`, `horizontal`, `vertical`, `parallel`, `perpendicular` or `fixed`; optional `pointIds`, `entityIds`, `session`. Omitted targets use active sketch selection |
-| `sketch.dimension` | `kind`: `linear`, `horizontal` or `vertical`; optional `pointIds` (two), `entityId` (one line), `value`, `units`, `driving`, `session`. Omitted targets use selection; `driving` defaults true |
+| `sketch.dimension` | `kind`: `linear`, `horizontal` or `vertical`; optional `pointIds` (two), `entityId` (one line), `value`, `units`, `driving`, `annotation`, `session`. Omitted targets use selection; `driving` defaults true |
+| `sketch.dimensionPreview` | `x`, `y`: logical pixels; optional `kind` (`auto`/`linear`/`horizontal`/`vertical`), `driving`, `session`; preview selected targets |
+| `sketch.dimensionPlace` | `x`, `y`, optional `session`; fix placement and show the actual inline numeric editor |
+| `sketch.dimensionAccept` | Optional `text` or `value`, `units`, `session`; accept a number with optional mm/in suffix; expressions are unsupported |
+| `sketch.dimensionCancel` | Optional `session`; abandon pending dimension placement/editing |
+| `sketch.dimensionEdit` | `dimensionId`, optional `session`; open a driving editor or read-only driven measurement |
+| `sketch.annotationSelect` | `dimensionId`; select a retained label |
+| `sketch.annotationPick` | `x`, `y`: logical pixels; actual projected/rotated label hit test |
+| `sketch.annotationMove` | `dimensionId`, `uMm`, `vMm`, optional `session`; move placement only, retaining exact authored points/values |
 | `sketch.dimensionUpdate` | `dimensionId`, positive `value`; optional `units`, `session`; edit a driving dimension by stable UUID |
 | `sketch.movePoint` | `pointId`, `x`, `y`; optional `units`, `session`; seed a point's coordinates and solve the copied draft |
 | `feature.edit` | `featureId`: UUID; `parameters`: partial canonical-mm fields such as `widthMm` |
@@ -171,11 +179,15 @@ reports the accepted solution's diagnostics. GPU state
 reports `displayedSketches`, `draftSketchVisible` and `cursorPreviewVisible`.
 
 Sketch selection is independent of body selection. `activeSession.selection`
-contains `pointIds`/`entityIds`; selected points and lines are orange, fixed points
+contains `pointIds`/`entityIds`/`profileIds`; selected points and lines are orange, fixed points
 green, and the sketch is black at zero DOF or blue while underconstrained.
 This is a whole-sketch classification. Point picking has priority within eight
 logical pixels; line picking uses six. UI clicks and API picking use the same
-projected authored geometry and stable identifiers.
+projected authored geometry and stable identifiers. Region picking follows points
+and lines, classifies the actual accepted OCCT face, and exposes its stable profile ID.
+`geometry.inspect` and `sketchGeometry.profiles` include face area and edge provenance.
+Only one connected simple closed line loop is supported; open/unsupported input
+retains the sketch with `profileDiagnostics`.
 
 Coincidence requires two points, fixed requires one point, H/V requires one line,
 and parallel/perpendicular requires two lines. Fixed captures the point's current
@@ -198,10 +210,16 @@ and journal. Finish commits the normalized points and authored relations once;
 save/reopen reconstructs the same solution from them. Older files without the
 optional arrays remain valid without inferred constraints.
 
-The dimension tool currently selects targets for palette numeric entry. GPU labels
-show measured values (driven values in parentheses), but canvas placement, inline
-typing, double-click label editing and native point dragging remain unimplemented.
-`sketch.movePoint` is a solved coordinate seed, not a physical drag gesture.
+The dimension tool previews selected targets, accepts canvas placement, then opens
+an adjacent QLineEdit. D, native placement, Enter, Escape, label double-click and
+label dragging dispatch the commands above. Authored dimensions optionally store
+`annotation: {uMm, vMm}` in canonical sketch-plane coordinates. The editor accepts
+finite numbers with optional mm/in suffixes; driven values are read-only.
+`app.state.inlineEditor` exposes visibility, text, read-only state and bounds.
+`viewport.sketchAnnotations` exposes real line/witness/label layout, rotation and
+logical-pixel hit bounds; active sessions expose pending placement/editing.
+Captures composite the actual inline widget after the GPU frame.
+`sketch.movePoint` remains a solved coordinate seed, not a physical point drag.
 See the [bounded interaction gaps](research/commands/sketch-controls.md).
 
 `viewport.renderer` is `OCCT OpenGL`; `viewport.gpu` contains live OCCT driver
@@ -267,11 +285,14 @@ and quits. Evidence is written to `build/evidence/`.
 
 The [primitive receipt](validation/primitives.md) adds a coherent create/edit/
 pick/undo/reopen workflow and separate native keyboard/dialog observations.
-Body and active-sketch point/line selection are implemented; solid face/edge
+Body and active-sketch point/line/profile selection are implemented; solid face/edge
 selection is still DOC-006. The [sketch receipt](validation/sketches.md) and
 [constraints receipt](validation/sketch-constraints.md) add drawing, solve,
 driving/driven values, failed-draft preservation, one-entry Finish, cancellation,
 undo and native reopen. Candidate-specific reruns remain identified separately.
+The [annotation/profile receipt](validation/sketch-annotations.md) adds the focused
+`sketch-annotations` case and separate native typing/drag/Finish checks. Full
+cumulative cases are reserved for material cross-cutting changes or milestones.
 Native file dialogs and unsaved-work prompts exist, but observable pending
 document decisions and full physical coverage remain DOC-013.
 

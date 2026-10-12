@@ -61,6 +61,13 @@ private:
     QJsonObject sketchDimensionTargets(const QJsonObject& args) const;
     void refreshSketchControls();
     void dimensionSelectionChanged();
+    QJsonObject previewDimension(const QJsonObject& args);
+    QJsonObject acceptDimension(const QJsonObject& args);
+    QJsonObject editDimension(const QString& id);
+    void cancelDimension();
+    void showDimensionEditor();
+    void positionDimensionEditor();
+    QJsonObject inlineEditorState() const;
     bool confirmDiscard();
     std::vector<Command> commands_;
     ReferenceView* view_ = nullptr;
@@ -101,6 +108,9 @@ private:
     QDoubleSpinBox* sketchDimensionEdit_ = nullptr;
     QLabel* sketchDimensionMeasure_ = nullptr;
     QScrollArea* sketchScroll_ = nullptr;
+    QWidget* dimensionEditor_ = nullptr;
+    QLineEdit* dimensionEditorValue_ = nullptr;
+    QLabel* dimensionEditorError_ = nullptr;
     QHBoxLayout* timelineLayout_ = nullptr;
     QLabel* documentTitle_ = nullptr;
     QLabel* browserNote_ = nullptr;
