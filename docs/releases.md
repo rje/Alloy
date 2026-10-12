@@ -18,7 +18,8 @@ still need the reproducibility audit in FND-009.
 The initial matrix compiled Windows and both macOS architectures; Linux failed
 on a missing Fontconfig development header. The pre-rewrite run and artifacts
 were removed during publication cleanup. The workflow was temporarily disabled
-for the rewrite and will be re-enabled for the corrected run. Artifacts carry
+for the rewrite and is re-enabled for a corrected run with the required Linux
+Fontconfig headers. Fresh complete-matrix results are pending. Artifacts carry
 `unbundled` names and include compilation logs/receipts. They require development
 libraries and are **not supported runnable release packages**. No tagged binary
 release has been published. Only the local macOS hardware viewport is verified.
