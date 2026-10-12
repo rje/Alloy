@@ -380,7 +380,9 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored) 
                 auto summary=summarize(imported.shape);
                 if (!summary["valid"].toBool() || !summary["closed"].toBool()
                     || summary["topology"].toObject()["solids"].toInt()!=1
-                    || !summary["volumeMm3"].isDouble())
+                    || !summary["volumeMm3"].isDouble()
+                    || !std::isfinite(summary["volumeMm3"].toDouble())
+                    || summary["volumeMm3"].toDouble()<=0)
                     failStep("step_invalid_solid","Imported STEP must evaluate to one valid closed solid with positive volume");
                 summary["sourceFormat"]="step";summary["sourcePolicy"]="embedded";
                 summary["sourceSha256"]=source["sha256"];

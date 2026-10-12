@@ -11,8 +11,10 @@
 #include <TopExp.hxx>
 #include <TopTools_IndexedMapOfShape.hxx>
 #include <UnitsMethods_LengthUnit.hxx>
+#include <UnitsMethods.hxx>
 #include <QJsonArray>
 #include <QSet>
+#include <cmath>
 #include <sstream>
 
 namespace {
@@ -67,22 +69,32 @@ StepExchange::ReadResult StepExchange::read(const QByteArray& source) {
     TColStd_SequenceOfAsciiString lengthUnits, angleUnits, solidAngleUnits;
     reader.FileUnits(lengthUnits, angleUnits, solidAngleUnits);
     QJsonArray observedUnits;
-    QSet<QString> distinctUnits;
+    QSet<int> distinctUnits;
     for (Standard_Integer i = 1; i <= lengthUnits.Length(); ++i) {
         const auto unit = QString::fromUtf8(lengthUnits.Value(i).ToCString()).trimmed();
         observedUnits.append(unit);
-        distinctUnits.insert(unit.toCaseFolded());
+        const auto utf8=unit.toUtf8();
+        const auto recognized=UnitsMethods::LengthUnitFromString(utf8.constData(),Standard_False);
+        if (recognized==UnitsMethods_LengthUnit_Undefined)
+            reject("step_units_ambiguous", "STEP length unit is absent or unrecognized",
+                {{"fileLengthUnits", observedUnits}});
+        distinctUnits.insert(static_cast<int>(recognized));
     }
-    if (distinctUnits.size() != 1 || distinctUnits.contains(QString{}))
+    if (distinctUnits.size() != 1)
         reject("step_units_ambiguous", "STEP must declare one unambiguous length unit",
             {{"fileLengthUnits", observedUnits}});
     reader.SetSystemLengthUnit(1.0); // Alloy's OCCT geometry is in millimeters.
     const auto roots = reader.NbRootsForTransfer();
-    if (roots < 1 || reader.TransferRoots() < 1)
+    if (roots < 1)
         reject("step_transfer_failed", "STEP contains no transferable solid", {{"rootCount", roots}});
+    const auto transferred=reader.TransferRoots();
+    if (transferred!=roots)
+        reject("step_transfer_failed", "STEP root translation was incomplete",
+            {{"rootCount", roots}, {"transferredRoots", transferred}});
     const auto solid = onlySolid(reader.OneShape());
     return {solid, {{"code", "step_translated"}, {"fileLengthUnits", observedUnits},
-        {"canonicalLengthUnit", "mm"}, {"rootCount", roots}, {"shapeCount", reader.NbShapes()},
+        {"canonicalLengthUnit", "mm"}, {"rootCount", roots}, {"transferredRoots", transferred},
+        {"shapeCount", reader.NbShapes()},
         {"solidCount", 1}, {"translator", "OCCT STEPControl"}}};
 }
 
