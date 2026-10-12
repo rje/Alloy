@@ -580,6 +580,18 @@
       "inputs": [
         "tests/app_harness.py"
       ]
+    },
+    "sketch-regions": {
+      "script": "tests/sketch_regions_api.py",
+      "fixture": "tests/workflows/fixtures/sketch-regions.json",
+      "result": "sketch-regions-api.json",
+      "covers": [],
+      "capabilities": [
+        "sketch.retained_planar_regions"
+      ],
+      "inputs": [
+        "tests/app_harness.py"
+      ]
     }
   },
   "gates": {

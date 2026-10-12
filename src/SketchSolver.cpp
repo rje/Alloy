@@ -320,7 +320,14 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters) {
                     check(*arc.start.y-*arc.center.y-*arc.rad*std::sin(*arc.startAngle),lengthTolerance);
                     check(*arc.end.x-*arc.center.x-*arc.rad*std::cos(*arc.endAngle),lengthTolerance);
                     check(*arc.end.y-*arc.center.y-*arc.rad*std::sin(*arc.endAngle),lengthTolerance);
-                    e["startAngleDeg"]=std::remainder(*arc.startAngle/degrees,360.0);e["sweepAngleDeg"]=sweep;
+                    // Preserve authored degrees when the solver left both radian
+                    // parameters unchanged; converting back otherwise causes
+                    // tiny authored drift on every save/reopen evaluation.
+                    const double seededStart=e["startAngleDeg"].toDouble()*degrees;
+                    const double seededEnd=(e["startAngleDeg"].toDouble()+e["sweepAngleDeg"].toDouble())*degrees;
+                    if(*arc.startAngle!=seededStart || *arc.endAngle!=seededEnd) {
+                        e["startAngleDeg"]=std::remainder(*arc.startAngle/degrees,360.0);e["sweepAngleDeg"]=sweep;
+                    }
                 }
             } solvedEntities.append(e);
         }

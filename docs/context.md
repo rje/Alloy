@@ -769,6 +769,56 @@ also passed on pre-sync binary. Astra found APIpreview100/editor10 mismatch;
 field synchronization fixed and rebuilt. Postbuild bulkAPIsetup→Filletpreview→
 firstAX query crashes; #158 reopened, #153 remains open. Matching PID51719 report
 alloy-2026-10-12-134028.ips and LLDB PID52946 both accessibilitySelectedChildren+184;
-not attributed to sync itself. No private app now alive. Source/current evidence
-remain uncommitted while investigating correct accessibility model notifications.
+not attributed to sync itself. No private app now alive. Fillet source/current evidence
+were committed locally asdf0c363 while investigating the accessibility bridge.
 Nextregion architecture experiment is external knowledge/specs/occt-planar-regions.md.
+
+
+## Region integration and Qt patch experiment (2026-10-12)
+
+Isolated region core commitsab15671/de02fef are integrated locally. OCCT splitting
+and planar face extraction now return plural evaluated regions with authored
+source/contact signatures, preserving legacy single-profile IDs. Astra reviewed
+the bounded implementation; root build and actualA2 workflow checks are pending.
+Sol is adding the real-app region test. Mixed-reference intersections without
+retained contacts reject explicitly; this is not full SKT-009 closure.
+
+Qt Cocoa plugin experiment is outside the checkout in ../Alloy-dependencies.
+Exact6.11.2 source plus proposed upstream765434 ownership guards compiled and
+loaded through QT_PLUGIN_PATH (not QT_QPA_PLATFORM_PLUGIN_PATH, which still picked
+the system plugin). APIpreview100→AXeditor100→nativeReturn passed, with twoR100
+arcs. NativeUndo/Redo plus AX then crashed PID56575 report135311; FND-015 and
+SKT-019 remain open. No globalQt change, no shipped patch, no release/CI.
+The private app CUA relaunched empty after this crash was identified and quit.
+Human build-input stays untouched.
+
+
+The second patched-runtime crash was QAccessibleTable::modelChange reached by
+QComboBox::clear during Undo. Retained/incremental dimension rows remove that
+reset. Final native preview100/editor100→Return→Undo→Redo with AX reads passes;
+exact accepted/redo authored state confirmed, Astra independently reviewed.
+See fillet-combo-* evidence and dependency recipe. FND-015 stays open for default
+runtime/deployment qualification; no global dependency replacement. Region core,
+legacy profiles and extrusion tests pass. Fillet core's only repeat-solve delta
+was7.1e-15degrees; an actual save/reopen check found the same authored drift. Solver serialization
+now preserves degree fields when both solved radian parameters are exactly
+unchanged; no tolerance hides solver movement, and exact roundtrip checks remain. The first region API run passed geometry and all3 picks,
+but stopped at a save/reopen expected-state comparison currently being corrected.
+
+
+## Three-region workflow checkpoint (2026-10-12)
+
+The final sketch-regions ledger passes actualA2 outline/endcircles/fillets, three
+OCCTfaces with analyticareas, stableIDs radius100→90/cap100→120, eachprofilepick,
+history and exactsave/reopen. See validation/sketch-regions.md. Solver now retains
+authoreddegrees onlywhen both solvedradianparams exactlyequal theirseeds; this
+removes observed7.1e-15degree reopen drift. Region/filletcore pass; olderprofile
+and extrusion regressions passed. No fullSKT-009closure or generalintersectionclaim.
+SKT-019#153closed bounded; snapshot28closed130open/158. FND-015 remains open for
+defaultpatchedruntime deployment; its tested native crashpath passes.
+
+NextSOL-016 underway: Solcore owns CadDocument/GeometryKernel and focusedextrusion
+test; SolUI owns AlloyWindow/ReferenceView/ExtrudeControls. Exclusive legacyprofileId
+or pluralprofileIds, sameearliersketch, contiguousselectedfaceunion→one50mmprism,
+transactional rejectionofinvalid/missing/disjointinputs. UI Shiftselection and
+PressPullQ shareauthoritative extrusion. Rootowns builds/app; Astra verifies.

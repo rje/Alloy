@@ -1,0 +1,26 @@
+Upstream: https://codereview.qt-project.org/c/qt/qtbase/+/765434
+Revision: c7fd3f34b997bb363be15650647665b3b6b8a5f4
+Status at 2026-10-12: NEW (not merged)
+Target file copyright (C) 2016 The Qt Company Ltd.
+Target file SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+--- a/src/plugins/platforms/cocoa/qcocoaaccessibilityelement.mm
++++ b/src/plugins/platforms/cocoa/qcocoaaccessibilityelement.mm
+@@ -219,7 +219,7 @@
+ + (void)removeElementsFromCache:(NSArray *)array {
+     for (uint i = 0; i < array.count; ++i) {
+         QMacAccessibilityElement *cell = [array objectAtIndex:i];
+-        if (cell->axid) { // it's a proper cell, remove from cache
++        if (cell->axid && !cell.isManagedByParent) {
+             QAccessibleCache::instance()->deleteInterface(cell->axid);
+         }
+     }
+@@ -263,7 +263,8 @@
+         [QMacAccessibilityElement removeElementsFromCache:columns];
+         [columns release]; // will also release all entries first
+     }
+-    QAccessibleCache::instance()->deleteInterface(axid);
++    if (axid && !self.isManagedByParent)
++        QAccessibleCache::instance()->deleteInterface(axid);
+     [super dealloc];
+ }

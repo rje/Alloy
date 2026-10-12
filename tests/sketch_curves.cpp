@@ -289,6 +289,7 @@ void retainedFillets(const QString& owner) {
     const auto rejected=SketchGeometry::filletCorners(incompatible,{{"corners",corners},{"radiusMm",100}});
     check(!rejected.ok && rejected.feature==incompatible,"Fillet silently removed unrelated corner constraint");
     const auto reopened=QJsonDocument::fromJson(QJsonDocument(edited).toJson()).object();
+    check(reopened==edited,"Fillet authored JSON changed on serialization");
     check(accepted(SketchGeometry::solveDraft(reopened))==edited,"Fillet lost retained intent on JSON roundtrip");
 }
 

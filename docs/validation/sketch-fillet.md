@@ -1,8 +1,8 @@
 # Paired sketch fillet checkpoint
 
 2026-10-12: implementation and bounded geometry/API evidence are available.
-SKT-019 remains open because native qualification exposed a Qt accessibility
-crash during a later preview/editor synchronization check.
+SKT-019 has bounded core, API and native acceptance on the isolated patched Qt
+runtime described below. FND-015 retains default runtime/deployment qualification.
 
 Two selected connected normal-line corners are trimmed into exact analytic arcs
 with shared endpoint contacts, retained tangent relations, one radius dimension
@@ -34,7 +34,23 @@ legible in the source image. Geometry and visual claims remain bounded according
   `QMacAccessibilityElement accessibilitySelectedChildren+184`. FND-015 reopened.
 
 The official proposed Qt patch765434 identifies parent-managed placeholder elements
-incorrectly deleting their table accessibility interface. An isolated backport is
-being qualified; no patched-runtime acceptance yet. Accessibility stays enabled.
+incorrectly deleting their table accessibility interface. An isolated backport against exact Qt6.11.2 private headers compiled and loaded
+from an external plugin directory (verified by Qt loader output). It passed
+APIpreview100→AXeditor100→nativeReturn with two retainedR100 arcs. Evidence:
+`fillet-patched-preview.json`, `fillet-patched-native-accepted.json/.png`. A subsequent
+native undo/redo with accessibility reads crashed PID56575 (report135311); the
+fix is not accepted as sufficient and is not installed globally or shipped.
+Accessibility stays enabled.
 Neither these results nor future fillet closure establishes mixed-circle region
 extraction, multi-profile Press Pull or the complete second tutorial activity.
+
+
+Final native qualification uses the patched Cocoa plugin plus retained/incremental
+dimension-combo rows. The prior second crash came from QComboBox::clear() during
+Undo. Updated Alloy preserves rows and selection UUIDs where possible. Native
+preview/editor100, Return, Cmd+Z and Cmd+Shift+Z with AX reads all pass. Accepted
+10→undo8→redo10 edges and exact accepted/redo authored equality were inspected.
+Evidence: `fillet-combo-{accepted,undo,redo}.json`, `fillet-combo-redo.png`,
+`qt-cocoa-combo-qualified-runtime.txt`. Astra independently accepted this bounded
+path; AX warnings remain, and the normal unpatched/default shipping runtime is
+not qualified. See [reproducible dependency experiment](../dependencies/qt-cocoa-accessibility.md).

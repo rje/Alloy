@@ -38,6 +38,8 @@
 #include <QRegularExpression>
 #include <QToolButton>
 #include <QTreeWidget>
+#include <QVariant>
+#include <QVector>
 #include <QVBoxLayout>
 #include <QWheelEvent>
 #include <Standard_Failure.hxx>
@@ -2622,14 +2624,22 @@ void AlloyWindow::refreshSketchControls() {
     QMap<QString,QJsonObject> values;const auto diagnostics=session_.value("solverDiagnostics").toObject();
     for(const auto& entry:diagnostics["dimensionValues"].toArray()){const auto value=entry.toObject();values[value["id"].toString()]=value;}
     if(changed || unitChanged) {
-        const auto previous=sketchDimensionList_->currentData();const QSignalBlocker block(sketchDimensionList_);sketchDimensionList_->clear();
+        const auto previous=sketchDimensionList_->currentData();const QSignalBlocker block(sketchDimensionList_);
+        QVector<QPair<QString,QVariant>> rows;
         for(const auto& entry:parameters["dimensions"].toArray()) {
             const auto dimension=entry.toObject();const auto measured=values.value(dimension["id"].toString());const auto kind=dimension["kind"].toString();
             const bool angular=kind=="arcSweep" || kind=="angle";
-            sketchDimensionList_->addItem(QString("%1 %2 %3 · %4").arg(kind.first(1).toUpper()+kind.sliced(1))
-                .arg(QString::number(measured[angular ? "valueDeg" : "valueMm"].toDouble()/(angular ? 1 : scale),'g',6)).arg(angular ? "deg" : units).arg(dimension["driving"].toBool() ? "Driving" : "Driven"),dimension["id"].toString());
+            rows.append({QString("%1 %2 %3 · %4").arg(kind.first(1).toUpper()+kind.sliced(1))
+                .arg(QString::number(measured[angular ? "valueDeg" : "valueMm"].toDouble()/(angular ? 1 : scale),'g',6)).arg(angular ? "deg" : units).arg(dimension["driving"].toBool() ? "Driving" : "Driven"),dimension["id"].toString()});
         }
-        if(sketchDimensionList_->count()==0)sketchDimensionList_->addItem("No dimensions");
+        if(rows.isEmpty())rows.append({"No dimensions",QVariant{}});
+        const int common=std::min(sketchDimensionList_->count(),static_cast<int>(rows.size()));
+        for(int i=0;i<common;++i) {
+            if(sketchDimensionList_->itemText(i)!=rows[i].first)sketchDimensionList_->setItemText(i,rows[i].first);
+            if(sketchDimensionList_->itemData(i)!=rows[i].second)sketchDimensionList_->setItemData(i,rows[i].second);
+        }
+        while(sketchDimensionList_->count()>rows.size())sketchDimensionList_->removeItem(sketchDimensionList_->count()-1);
+        for(int i=common;i<rows.size();++i)sketchDimensionList_->addItem(rows[i].first,rows[i].second);
         const int previousIndex=sketchDimensionList_->findData(previous);if(previousIndex>=0)sketchDimensionList_->setCurrentIndex(previousIndex);
         dimensionSelectionChanged();
     }
