@@ -945,6 +945,50 @@
       "retrieved": "2026-10-11",
       "evidence": "documented",
       "note": "Living public library guide. Transaction authority remains an Alloy decision requiring a version-pinned prototype."
+    },
+    "ui-command-box": {
+      "title": "Public Box command screenshot",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "screenshot-observation",
+      "reference_id": "ui-command-box",
+      "provenance": "Public URL and reference image retained outside Git in Alloy-reference-records/primitive-editing.json."
+    },
+    "ui-command-docking": {
+      "title": "Public command dialog docking guidance",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "reference_id": "ui-command-docking",
+      "provenance": "Public URL and reference image retained outside Git in Alloy-reference-records/primitive-editing.json."
+    },
+    "ui-solid-box": {
+      "title": "Public solid box workflow",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "reference_id": "ui-solid-box",
+      "provenance": "Public URL and reference image retained outside Git in Alloy-reference-records/primitive-editing.json."
+    },
+    "ui-trackpad-navigation": {
+      "title": "Public navigation and trackpad guide",
+      "url": null,
+      "retrieved": "2026-10-11",
+      "evidence": "documented",
+      "reference_id": "ui-trackpad-navigation",
+      "provenance": "Public URL and reference image retained outside Git in Alloy-reference-records/primitive-editing.json."
+    },
+    "qt-docking": {
+      "title": "Qt QDockWidget",
+      "url": "https://doc.qt.io/qt-6/qdockwidget.html",
+      "retrieved": "2026-10-11",
+      "evidence": "documented"
+    },
+    "apple-graphics": {
+      "title": "Apple OpenGL deprecation and Metal direction",
+      "url": "https://developer.apple.com/library/archive/documentation/GraphicsImaging/Conceptual/OpenGL-MacProgGuide/opengl_intro/opengl_intro.html",
+      "retrieved": "2026-10-11",
+      "evidence": "documented"
     }
   },
   "reference_records": "../Alloy-reference-records/",

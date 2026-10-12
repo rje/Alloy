@@ -100,6 +100,7 @@ fail without applying the command. Error codes include `invalid_request`,
 | `command.begin` | `command`: `document.units`, `commands.search`, `solid.box` or `solid.cylinder`; `inputs`: object |
 | `command.update` | `session`: UUID; `inputs`: partial object; validates without committing |
 | `command.preview` | `session`: UUID; primitives evaluate disposable geometry and display it without committing |
+| `command.panelDock` | `docked`: boolean; float or right-redock the active primitive panel |
 | `command.commit`, `command.cancel` | `session`: UUID; explicit completion or refusal |
 | `capture.dialog` | Absolute `.png` path; actual active QWidget dialog |
 | `document.inspect` | Authored root/feature IDs, ownership, canonical units and journal state |
@@ -209,3 +210,16 @@ with document identity, persistent entity references, units/parameters, geometry
 summaries, selection, transactions, undo, save/reopen, and command cancellation
 when those capabilities actually exist. Add real-app geometry/workflow tests
 with each implemented modeling slice; do not fake geometry in automation.
+
+Primitive UI fields invoke shared update/preview on field completion; explicit API
+updates retain explicit preview semantics. `ui.activeDialog.presentation` reports
+`docked-panel` or `floating-panel`; `bounds` are logical main-window-relative
+coordinates. `viewport.x/y/width/height` describe the actual canvas in that same
+space. `viewport.gpu.previewReplacedBodyId` identifies the temporarily hidden
+original presentation, without changing authored state. Panel Close, Escape and
+Cancel route through the shared cancellation command.
+
+Viewport picking retains fractional logical coordinates until native rounding.
+Option/Alt-left drag and middle drag use shared `view.pan`; plain left click uses
+`selection.pick`. Selected bodies are visibly blue; clearing selection restores
+normal appearance without changing the authored document.

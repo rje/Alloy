@@ -2,23 +2,23 @@
 
 Prepared 2026-10-11 from public references and the accepted Alloy requirements.
 [issues.json](issues.json) is the machine-readable source for GitHub publication;
-[sources.json](sources.json) records the 113 dated primary-source entries cited by its
+[sources.json](sources.json) records the 119 dated primary-source entries cited by its
 issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-There are **135 issues**: **87 implementation, 13 research, 22 epics, and 13
+There are **143 issues**: **92 implementation, 14 research, 22 epics, and 15
 validation gates**. This is a substantial starting decomposition, not a claim
-that 135 tickets exhaust reference CAD application parity. Later epics require linked bounded child
+that 143 tickets exhaust reference CAD application parity. Later epics require linked bounded child
 issues before implementation and remain open until that declared coverage passes.
 
 | Phase | Count | Result |
 | --- | ---: | --- |
-| P0 Foundation | 18 | Public baseline, MIT dependency audit, document/naming/solver decisions, portable controls, native CI/packages/releases and hardware evidence |
-| P1 Geometry/document | 15 | Real hardware-backed OCCT viewport, authored primitive document, selection, undo/save and STEP |
-| P2 Parametric modeling | 28 | Constrained sketches, parameters, editable extrusion/fillet chain and broader basic solid tools |
+| P0 Foundation | 19 | Public baseline, MIT dependency audit, document/naming/solver decisions, portable controls, native CI/packages/releases and hardware evidence |
+| P1 Geometry/document | 17 | Real hardware-backed OCCT viewport, authored primitive document, selection, undo/save and STEP |
+| P2 Parametric modeling | 32 | Constrained sketches, parameters, editable extrusion/fillet chain and broader basic solid tools |
 | P3 Shape/import/print breadth | 24 | Solids/surfaces, common interchange and qualified printing export |
-| P4 Initial release | 7 | Robustness, recovery, packaging, performance, physical/visual workflow evidence |
+| P4 Initial release | 8 | Robustness, recovery, packaging, performance, physical/visual workflow evidence |
 | P5 Assemblies/drawings | 9 | Components/joints, configurations and associative drawings |
 | P6 Advanced design | 11 | Sheet metal, direct/mesh/Form, advanced modeling, plastic rules and local presentation |
 | P7 Manufacturing | 9 | Setups, toolpaths, verification/posts, additive, nesting and metrology |
@@ -36,7 +36,7 @@ save/reopen. See [development](../development.md) and the
 [primitive receipt](../validation/primitives.md).
 
 Run `python3 tools/backlog.py ready` before pulling work; live issue states and
-dependencies determine readiness. The next geometry/document work includes
+dependencies determine readiness. The next main modeling work is the sketch-first sequence recorded in [roadmap](../roadmap.md), with a local useful-part checkpoint in SKT-015. Its dependencies no longer wait for the broad GATE-010/platform gates. Remaining geometry/document work includes
 face/edge selection, Browser breadth, STEP interchange, persistent-reference
 integration and observable document decisions. Foundation work still includes
 a dated compatibility baseline, solver admission, portable Windows controls and
@@ -59,6 +59,7 @@ Rust is outside this plan.
 | `GATE-020` | Editable mounting bracket | Constrained sketch → extrusion/join/cut → fillet → upstream edit → reopen/export |
 | `GATE-030` | Surface-authored duct plus enclosure/knob/slot fixtures | Surface continuity, gaps/stitch, thickening, new solid/sketch operations and editable history |
 | `GATE-040` | Imported adapter and printable parts | Independent source files/readback across declared formats, units, losses, mesh validity |
+| `GATE-045` | Native Metal/Vulkan CAD viewport | Packaged hardware and cumulative workflow evidence on every declared target |
 | `GATE-050` | Dependable initial shape release | Packaged app, recovery/negative corpus, performance, physical workflow and qualified visuals |
 | `GATE-060` | Adjustable clamp assembly and drawings | Occurrences, DOF/limits, variants, drawing association/BOM and exports |
 | `GATE-070` | Configured instrument enclosure | Folded/flat metal, Form/direct/mesh edits, advanced modeling, local rendering/animation |
@@ -139,3 +140,11 @@ bundles, `GATE-005` hardware package qualification and `CI-003` milestone releas
 promotion. Existing dependency/packaging/product gates now require all three
 OSes. The [release plan](../releases.md) distinguishes the current compile-only
 CI seed from the future qualified runtime packages.
+
+The later input/editor and renderer decisions added UX-001, RHI-001/RHI-002 and
+GATE-045. The sketch reprioritization split SKT-013 face attachment, SKT-014 simple
+profiles and HIS-004 broader recompute from the first origin-plane path, and added
+SKT-015 as its focused human-test checkpoint. Original publication.json is the
+historical 135-issue receipt; github.json and validation-summary.json reflect the
+current 143-task backlog. SKT-015 is a bounded local workflow check, distinct from
+the cumulative all-platform product gate chain.

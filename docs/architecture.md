@@ -15,7 +15,7 @@ outside the planned stack.
 | --- | --- | --- |
 | Desktop application | C++20 and Qt 6 Widgets | Mature menus, docks, trees, dialogs, actions, input, and model/view support; a useful fit for a dense CAD desktop interface |
 | CAD geometry | OCCT | Established BRep solids/surfaces, modeling algorithms, CAD exchange, and visualization; robustness still needs workflow validation |
-| CAD viewport | GPU-accelerated OCCT AIS/V3d/OpenGL | Hardware acceleration is required; verify live renderer diagnostics, native resize/DPR behavior, and actual framebuffer capture |
+| CAD viewport | Alloy CAD presentation on an established Metal/Vulkan RHI | Accepted destination in decision 003; RHI selection/migration remain open. Current prototype uses GPU OCCT AIS/V3d/OpenGL |
 | Sketch constraints | Evaluate FreeCAD PlaneGCS; compare SolveSpace libslvs | Existing solvers reduce reinvention; functionality, embedding boundaries, maintenance, and license must be checked |
 | Assembly constraints | Evaluate later, including FreeCAD's OndselSolver fork | A later family; do not put assembly infrastructure in the first sketch slice |
 | 3MF | Evaluate lib3mf | Existing read/write and validation support |
@@ -171,3 +171,5 @@ not proof of functional coverage.
   [SolveSpace library](https://solvespace.github.io/solvespace-web/library.html),
   and [FreeCAD OndselSolver](https://github.com/FreeCAD/OndselSolver).
 - [lib3mf](https://github.com/3MFConsortium/lib3mf).
+
+[Decision 003](decisions/003-renderer-direction.md) records the accepted native graphics destination and its implementation/evidence boundaries. Qt QDockWidget is used for modeless command panels; authored command sessions remain their authority.

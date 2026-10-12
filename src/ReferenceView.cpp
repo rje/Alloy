@@ -48,6 +48,12 @@ void ReferenceView::initialize() {
         viewer_ = new V3d_Viewer(driver);
         viewer_->SetDefaultLights(); viewer_->SetLightOn();
         context_ = new AIS_InteractiveContext(viewer_);
+        // Make body selection visible on shaded solids, independent of OCCT's
+        // default (gray) selection color. Hover remains a lighter blue.
+        context_->SelectionStyle()->SetColor(Quantity_Color(0.12,0.43,0.82,Quantity_TOC_RGB));
+        context_->SelectionStyle()->SetDisplayMode(AIS_Shaded);
+        context_->HighlightStyle()->SetColor(Quantity_Color(0.40,0.67,0.94,Quantity_TOC_RGB));
+        context_->HighlightStyle()->SetDisplayMode(AIS_Shaded);
         view_ = viewer_->CreateView();
         // Publish only complete camera states. OCCT otherwise redraws after
         // each setter, flashing the reset camera during clicks and navigation.
@@ -151,7 +157,7 @@ QPointF ReferenceView::windowScale() const {
     int w=0,h=0;view_->Window()->Size(w,h);
     return {double(w)/width(),double(h)/height()};
 }
-QString ReferenceView::pickBody(int x,int y) {
+QString ReferenceView::pickBody(double x,double y) {
     if(context_.IsNull() || view_.IsNull())return {};
     if(x<0 || y<0 || x>=width() || y>=height())return {};
     sync();const auto scale=windowScale();
@@ -170,15 +176,23 @@ QJsonObject ReferenceView::projectBody(const EvaluatedBody& body) const {
     return {{"x",x/scale.x()},{"y",y/scale.y()},{"bodyId",body.bodyId},
         {"viewportLocal",true},{"units","logicalPixels"}};
 }
-void ReferenceView::showPreview(const TopoDS_Shape& shape) {
+void ReferenceView::showPreview(const TopoDS_Shape& shape,const QString& replacedBody) {
     clearPreview();if(context_.IsNull())return;
+    if(models_.contains(replacedBody)) {
+        previewReplacedBody_=replacedBody;context_->Erase(models_.value(replacedBody),false);
+    }
     preview_=new AIS_Shape(shape);preview_->SetColor(Quantity_Color(0.25,0.58,0.76,Quantity_TOC_RGB));
     preview_->SetTransparency(0.55);context_->Display(preview_,AIS_Shaded,-1,false);context_->Deactivate(preview_);
     context_->UpdateCurrentViewer();
 }
 void ReferenceView::clearPreview() {
-    if(!preview_.IsNull() && !context_.IsNull()){context_->Remove(preview_,false);context_->UpdateCurrentViewer();}
+    if(!context_.IsNull()) {
+        if(!preview_.IsNull())context_->Remove(preview_,false);
+        if(models_.contains(previewReplacedBody_))context_->Display(models_.value(previewReplacedBody_),false);
+        if(!preview_.IsNull() || !previewReplacedBody_.isEmpty())context_->UpdateCurrentViewer();
+    }
     preview_.Nullify();
+    previewReplacedBody_.clear();
 }
 QJsonObject ReferenceView::diagnostics() const {
     QJsonObject result{{"initialized", !view_.IsNull()}, {"error", error_}, {"hardwareAccelerated", false},
@@ -206,6 +220,7 @@ QJsonObject ReferenceView::diagnostics() const {
     result.insert("details", raw);
     result.insert("displayedBodies",models_.size());
     result.insert("previewVisible",!preview_.IsNull());
+    result.insert("previewReplacedBodyId",previewReplacedBody_);
     result.insert("documentRevision",static_cast<qint64>(modelRevision_));
     const auto camera=view_->Camera();
     auto vector=[](const auto& value) {return QJsonArray{value.X(),value.Y(),value.Z()};};
@@ -235,17 +250,22 @@ QImage ReferenceView::framebuffer() {
     return image;
 }
 void ReferenceView::mousePressEvent(QMouseEvent* e) {
-    if (e->button() == Qt::MiddleButton) { last_ = e->position(); setCursor(Qt::ClosedHandCursor); e->accept(); }
+    if (e->button() == Qt::MiddleButton || (e->button()==Qt::LeftButton && e->modifiers().testFlag(Qt::AltModifier))) {
+        panButton_=e->button();last_=e->position();setCursor(Qt::ClosedHandCursor);e->accept();
+    }
     else if(e->button()==Qt::LeftButton){dispatch("selection.pick",{{"x",e->position().x()},{"y",e->position().y()}});e->accept();}
     else QWidget::mousePressEvent(e);
 }
 void ReferenceView::mouseMoveEvent(QMouseEvent* e) {
-    if (e->buttons() & Qt::MiddleButton) {
+    if (panButton_!=Qt::NoButton && e->buttons().testFlag(panButton_)) {
         const auto delta = e->position() - last_; last_ = e->position();
         dispatch("view.pan", {{"x",delta.x()},{"y",delta.y()}}); e->accept();
     } else QWidget::mouseMoveEvent(e);
 }
-void ReferenceView::mouseReleaseEvent(QMouseEvent* e) { unsetCursor(); QWidget::mouseReleaseEvent(e); }
+void ReferenceView::mouseReleaseEvent(QMouseEvent* e) {
+    if(e->button()==panButton_) {panButton_=Qt::NoButton;unsetCursor();e->accept();}
+    else QWidget::mouseReleaseEvent(e);
+}
 void ReferenceView::wheelEvent(QWheelEvent* e) {
     dispatch("view.zoom", {{"factor",std::clamp(std::pow(1.0015,e->angleDelta().y()),0.1,10.0)}}); e->accept();
 }

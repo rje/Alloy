@@ -1,17 +1,17 @@
 {
-  "issues": 135,
+  "issues": 143,
   "kinds": {
-    "research": 13,
-    "implementation": 87,
-    "validation": 13,
+    "research": 14,
+    "implementation": 92,
+    "validation": 15,
     "epic": 22
   },
   "phases": {
-    "P0 Foundation": 18,
-    "P1 Geometry/document": 15,
-    "P2 Parametric modeling": 28,
+    "P0 Foundation": 19,
+    "P1 Geometry/document": 17,
+    "P2 Parametric modeling": 32,
     "P3 Shape/import/print breadth": 24,
-    "P4 Initial release": 7,
+    "P4 Initial release": 8,
     "P5 Assemblies/drawings": 9,
     "P6 Advanced design": 11,
     "P7 Manufacturing": 9,
@@ -25,6 +25,7 @@
     "GATE-020",
     "GATE-030",
     "GATE-040",
+    "GATE-045",
     "GATE-050",
     "GATE-060",
     "GATE-070",
@@ -42,9 +43,9 @@
     "FND-010",
     "GATE-000"
   ],
-  "source_entries": 113,
-  "public_source_urls": 36,
-  "archived_reference_ids": 77,
+  "source_entries": 119,
+  "public_source_urls": 38,
+  "archived_reference_ids": 81,
   "checks": [
     "schema",
     "unique keys",

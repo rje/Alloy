@@ -27,7 +27,22 @@ Acceptance: valid kernel geometry, expected dimensions/body count, round-trip
 document state, accurate selection, and a visible result in the real app. Keep
 native document and imported evaluated shapes distinct.
 
-## 2. The first parametric modeling workflow
+## Next: the sketch-first human-test milestone
+
+After the input/editor fix, the execution priority is FND-005 solver admission,
+SKT-001 origin-plane sketch lifecycle, SKT-002 lines/rectangles, SKT-003 constraints,
+SKT-004 linear driving/driven dimensions, SKT-014 simple closed profile, HIS-001
+ordered recompute and SOL-001 extrusion. SKT-015 checks this complete workflow:
+40 by 25 mm rectangle, 5 mm extrusion, upstream width changed to 50, undo/redo,
+cancel and save/reopen. This is the next interesting human-test target.
+
+The first workflow does not wait for STEP, every platform package, planar-face
+attachment, holes or named expressions. Those remain required tasks and full
+product gates. SKT-013 preserves planar-face attachment; SKT-009 retains complex
+regions and holes; PAR-001/HIS-004 add named expressions and broader dependencies.
+The shared operation/undo authority is extended before extrusion lands.
+
+## 2. The broader parametric modeling workflow
 
 Create a plane sketch, draw a profile, constrain and dimension it, finish the
 sketch, extrude, and fillet. Change the original dimension, recompute downstream
@@ -81,3 +96,5 @@ results, screenshots, and remaining gaps. A successful build is build evidence.
 A smoke test is control/workflow evidence. Geometry checks and matched visual
 comparisons establish different claims. Run checks appropriate to the increment
 and stop once the requested behavior is convincingly demonstrated.
+
+Native renderer migration is tracked in RHI-001/RHI-002 and GATE-045 under [decision 003](decisions/003-renderer-direction.md), without blocking the first sketch milestone. Published builds follow [version cadence](releases.md).

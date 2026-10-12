@@ -40,6 +40,17 @@ Updated 2026-10-11. This is the project handoff for a fresh session. Read the ro
 - macOS, Windows, and Linux are required product targets. Milestone releases
   must offer downloadable native builds with platform-specific runtime and
   cumulative workflow evidence. Currently only macOS runtime is verified.
+- Native CI runs only for version tags or explicit manual dispatch. Cut coherent
+  reviewed workflow versions; ordinary commits/PR updates do not run the matrix.
+- The accepted renderer destination is Alloy CAD presentation on an established
+  RHI with native Metal on macOS and Vulkan on Windows/Linux. OCCT remains the
+  kernel; current visualization is still AIS/V3d/OpenGL. See decision 003.
+- The next main modeling milestone is origin-plane sketch → rectangle →
+  constraints/dimensions → extrusion → upstream edit, undo/redo and save/reopen.
+  Primitives established geometry/history/storage; broad STEP/platform/face/region
+  work stays tracked without blocking that first sketch workflow.
+- The user authorized concurrent agents for independent feature work, with shared
+  command/document contracts and one reviewed integrated app.
 - The project lives at `~/src/cpp/Alloy`. Alloy is the working name. Astra was
   requested for the initial public-interface research and project foundation,
   and completed that assignment.
@@ -95,6 +106,15 @@ Actual camera diagnostics, the fresh regression and separate native mouse checks
 are recorded in [viewport input receipt](validation/viewport-input.md).
 The user's three-body model was preserved in a local recovery file and reopened.
 
+The subsequent [Mac editing receipt](validation/mac-editing.md) records fractional
+JSON-to-native picking, distinct blue selection, Option/Alt-left pan and a real
+Qt QDockWidget primitive panel. Field completion updates disposable previews;
+editing temporarily hides the target presentation, with restoration on cancel,
+failure or stale sessions. Dock/float state and bounds are inspectable through
+the API. Final cumulative regression and Astra review passed; native typing→OK
+and title-close checks passed on the docked candidate. Physical Option-drag
+remains unverified because the exposed computer-use API cannot hold a modifier.
+
 FND-006 adds verified live-instance discovery, shared command sessions, observable
 units/search dialogs, draft preview, cancel, stale-commit refusal and transaction
 IDs. Its real two-app workflow and focused selector regression passed; Astra's
@@ -124,15 +144,16 @@ The user authorized a public GitHub repository/project and an issue backlog with
 cumulative validation gates. The repository is [rje/Alloy](https://github.com/rje/Alloy)
 and the public board is [Alloy](https://github.com/users/rje/projects/1).
 The MIT-licensed foundation is published on `main`.
-Astra's deep dive and backlog are published: **135 issues** across ten phases,
-comprising **87 implementation tasks, 13 research tasks, 22 epics, and 13
-cumulative validation gates**. All remote issue bodies, dependency links,
+Astra's deep dive and backlog are published: **143 issues** across ten phases,
+comprising **92 implementation tasks, 14 research tasks, 22 epics, and 15
+validation tasks**. All remote issue bodies, dependency links,
 labels, milestones, and live readiness were verified through the API. The shell
 baseline [`GATE-000` #12](https://github.com/rje/Alloy/issues/12) is closed;
 FND-010 #10 is also closed with independently reviewed runner evidence;
 FND-003, FND-002, DOC-002, FND-006, FND-004, FND-009 and DOC-001 are closed after
 independently reviewed evidence. DOC-003/004/005/007/008 are closed with reviewed
-primitive evidence: 14 tasks closed, 121 open at this handoff. Live counts
+primitive evidence: UX-001 is closed with independently reviewed input/editor evidence: 15 tasks
+closed, 128 open at this handoff. Live counts
 are obtained with tools/backlog.py rather than this earlier publication snapshot. Later epics need
 bounded child issues before implementation; this count does not exhaust parity.
 Read [the backlog](backlog/README.md), [publication receipt](backlog/publication.json),
@@ -153,12 +174,13 @@ A later uniform Python pin failed Mac/Windows setup while Linux compiled;
 platform-specific archive pins are corrected. The new matrix passed Python
 setup on all four targets; Linux and macOS arm64 compiled, Windows Qt SDK archive
 extraction failed before compilation, and
-macOS Intel is still compiling at this update. CI-001 remains open. See
+macOS Intel also compiled successfully. CI-001 remains open. The later automatic
+run 38199898011 was cancelled under the accepted tag/manual build policy. See
 dependencies/native-builds.md.
 Windows named-pipe control, Linux X11/GLX runtime qualification, relocation,
 dependency notices and tagged milestone publishing remain open.
 GitHub operations must use `gh` and APIs; the user explicitly rejected browser
-computer control for GitHub. The CLI token now supports Projects; all 135 items were verified through the API.
+computer control for GitHub. The CLI token now supports Projects; all 143 board items were verified through the API.
 The board auto-add workflow targets open issues from rje/Alloy. Update Status
 through the CLI/API as tasks start and finish.
 
@@ -173,30 +195,34 @@ Its bounded OCCT fixture now passed generator role rebinding, fillet history,
 split/deletion/merge cases; [decision 002](decisions/002-geometric-references.md)
 defines conservative unresolved behavior. DOC-012 still implements the real resolver.
 
-The first hands-on slice is ready: open the gauge-block sample, edit a Timeline
-feature, create a box/cylinder, preview/cancel, undo/redo and save/reopen. The current
-local build is left running with that sample; discover live identity with
-`python3 tools/alloyctl.py instances`. The retained current regression is
-`build/evidence/viewport-fix-final/report.json`; reproduce it with
-`python3 tests/workflows/run.py --case primitive-regression --evidence build/evidence/primitive-regression`.
-Do not repeat unchanged checks after reasonable assurance.
+The rebuilt hands-on slice is open with the user's preserved three-body model.
+Use `python3 tools/alloyctl.py instances` to obtain the current identity. Native
+reopen resets the session journal while preserving authored feature history.
+The final input/editor/selection regression is
+`build/evidence/mac-editing-final/report.json`; reproduce using the documented
+primitive-regression case only when a material change warrants it.
 
-Pull the next dependency-ready work through `tools/backlog.py`: complete
-face/edge selection (DOC-006), Browser breadth (DOC-009), full CAD camera
-navigation (DOC-010), STEP read/write (DOC-011), the application geometric-reference resolver (DOC-012), and
-observable document decisions (DOC-013). Hardware package qualification and
-Windows control remain separate foundation work. Research permitted public
-interaction details as commands enter implementation; world-XY primitive
-placement, New Body and initial dialog values are bounded Alloy proposals,
-not a claim of exact reference compatibility. GATE-010 remains open until its
-full useful-object and independent STEP evidence exist.
+**Next execution priority:** FND-005 solver admission and SKT-001 origin-plane
+sketches, then SKT-002 lines/rectangles, SKT-003 constraints, SKT-004 linear
+dimensions, SKT-014 simple closed profiles, HIS-001 ordered sketch/profile
+recompute and SOL-001 extrusion. SKT-015 is the next human-test checkpoint:
+draw a 40 by 25 mm rectangle, extrude 5, edit width to 50, verify volume 6250 mm3,
+undo/redo, cancel and save/reopen. HIS-001 is accepted on an actual sketch/profile
+dependency first; SOL-001 then extends the same authority to solids.
 
-The first parametric workflow then adds a constrained/dimensioned sketch,
-extrusion, fillet, upstream dimension change and recompute, save/reopen, and mesh
-export. Test persistent face/edge references early. The proposed coverage is in
-[product-scope.md](product-scope.md), with boundaries in
-[architecture.md](architecture.md) and evidence rules in
-[compatibility.md](compatibility.md).
+SKT-001 no longer waits for GATE-010 or face-reference resolution. SKT-013 retains
+face-attached sketches; SKT-009 retains circles/holes/complex regions; PAR-001 and
+HIS-004 retain named expressions and broader recompute. Full bracket and product
+release gates remain unchanged in meaning. STEP, face/edge selection, full camera
+navigation and qualified platform packages remain separate required work.
+RHI-001/RHI-002 and GATE-045 record the accepted native graphics migration.
+
+The user authorized simultaneous feature agents. At this handoff the assigned
+tracks are sketch_document (authored sketch/history), sketch_ui (UI and GPU
+viewport interactions) and Astra (solver selection/spike). Agents coordinate the
+shared command/state contract and own separate files; integration builds and
+cumulative evidence remain one candidate. Read their actual worktree changes and
+messages before resuming; do not assume unfinished sketches are available.
 
 FND-002 admission supports shared Qt/OCCT and FTL FreeType. The pinned component
 record, retained notices and local absolute-path link audit are in docs/dependencies.
@@ -206,6 +232,6 @@ CI-002/CI-003. Solver candidates remain unadmitted.
 The exact dated reference release/platform/theme/navigation baseline,
 minimum OS versions/architectures and sketch solver
 remain unresolved. They are recorded gaps, not forgotten decisions. Current
-public-interface/build research now covers the major feature families with 113 dated
+public-interface/build research now covers the major feature families with 119 dated
 primary-source entries, contradictions, and open questions. It does not yet specify
 every command, default, error, or visual state.

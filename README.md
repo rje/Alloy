@@ -65,12 +65,12 @@ style and real-app test. The [primitive workflow receipt](docs/validation/primit
 records the first editable solids and their real-app regression. macOS, Windows, and Linux are required
 targets; only the macOS runtime is verified today.
 The [viewport input receipt](docs/validation/viewport-input.md) records the later
-camera/redraw and Retina mouse-coordinate fixes, with separate native mouse checks.
+camera/redraw and native-coordinate fixes. The later [Mac editing receipt](docs/validation/mac-editing.md) records fractional Retina picking, blue selection and the Qt docked editor.
 
 For a first hands-on test, build using [development.md](docs/development.md),
 open [examples/gauge-block.alloy](examples/gauge-block.alloy) through File → Open,
 and click a Timeline feature to edit its dimensions. Box and Cylinder open
-dimension dialogs with disposable Preview and Cancel. Try undo/redo and Save As;
+a dockable side panel with field-driven disposable Preview and Cancel. Try undo/redo and Save As;
 the [sample instructions](examples/README.md) describe the supported controls.
 
 To list tasks whose dependencies are complete:

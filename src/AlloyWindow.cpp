@@ -5,6 +5,7 @@
 #include <QCryptographicHash>
 #include <QDialog>
 #include <QDialogButtonBox>
+#include <QDockWidget>
 #include <QComboBox>
 #include <QDoubleSpinBox>
 #include <QFormLayout>
@@ -52,6 +53,16 @@ QWidget* divider() {
     line->setStyleSheet("color: #d1d4d6;");
     return line;
 }
+class CommandDock final : public QDockWidget {
+public:
+    using QDockWidget::QDockWidget;
+    std::function<void()> onClose;
+protected:
+    void closeEvent(QCloseEvent* event) override {
+        if(onClose)onClose();
+        QDockWidget::closeEvent(event);
+    }
+};
 }
 
 AlloyWindow::AlloyWindow() {
@@ -184,7 +195,9 @@ AlloyWindow::AlloyWindow() {
     browserLayout->addWidget(browserNote);
     body->addWidget(browser_);
     auto* canvas = new QVBoxLayout; canvas->setContentsMargins(0, 0, 0, 0); canvas->setSpacing(0);
-    canvas->addWidget(view_, 1);
+    // Scope Qt docking to the canvas, preserving the toolbar and Timeline width.
+    canvasWindow_=new QMainWindow;canvasWindow_->setWindowFlags(Qt::Widget);
+    canvasWindow_->setCentralWidget(view_);canvas->addWidget(canvasWindow_,1);
     navigation_ = new QWidget; navigation_->setStyleSheet("background: #f0f2f3;");
     auto* nav = new QHBoxLayout(navigation_); nav->setContentsMargins(8, 2, 8, 5); nav->setSpacing(2);
     nav->addStretch(); nav->addWidget(commandButton("view.home", "Home"));
@@ -369,7 +382,7 @@ void AlloyWindow::registerCommands() {
     });
     auto point=parameter("number","Viewport-local logical pixel coordinate.");point["minimum"]=0;point["maximum"]=10000;
     add("selection.pick","Pick body","Pick actual OCCT geometry at viewport-local coordinates.",{{"x",point},{"y",point}},[this](const auto& a){
-        selectedBody_=view_->pickBody(a["x"].toInt(),a["y"].toInt());view_->selectBody(selectedBody_);
+        selectedBody_=view_->pickBody(a["x"].toDouble(),a["y"].toDouble());view_->selectBody(selectedBody_);
         return QJsonObject{{"bodyId",selectedBody_},{"kind","body"}};
     });
     add("view.projectBody","Project body center","Return actual OCCT projection for a body's center, in logical pixels.",{{"bodyId",bodyId}},[this](const auto& a){
@@ -416,7 +429,8 @@ void AlloyWindow::registerCommands() {
             for(const auto& entry:features) {const auto feature=entry.toObject();if(!id.isEmpty() && feature["id"]!=id)continue;
                 if(id.isEmpty() && feature!=features.last().toObject())continue;
                 const auto shape=GeometryKernel::primitive(feature["type"].toString(),feature["parameters"].toObject());
-                view_->showPreview(shape);result["geometry"]=GeometryKernel::summarize(shape);break;
+                view_->showPreview(shape,id.isEmpty() ? QString{} : feature["bodyId"].toString());
+                result["geometry"]=GeometryKernel::summarize(shape);break;
             }
             result["geometryEvaluated"]=true;
         } else result["geometryEvaluated"] = false;
@@ -426,6 +440,14 @@ void AlloyWindow::registerCommands() {
         [this](const auto& a) { return finishSession(a["session"].toString(), true); });
     add("command.cancel", "Cancel command session", "Discard the real dialog draft without an undo entry.", sessionId,
         [this](const auto& a) { return finishSession(a["session"].toString(), false); });
+    add("command.panelDock","Dock command panel","Dock or float the active modeling panel through Qt.",
+        {{"docked",parameter("boolean","True docks the panel on the right; false floats it.")}},[this](const auto& a){
+            if(!primitiveDock_ || !session_.value("command").toString().startsWith("solid."))
+                return failure("no_active_dialog","No modeling panel is active");
+            primitiveDock_->setFloating(!a["docked"].toBool());
+            if(a["docked"].toBool())canvasWindow_->addDockWidget(Qt::RightDockWidgetArea,primitiveDock_);
+            return QJsonObject{{"docked",!primitiveDock_->isFloating()}};
+        });
     const QJsonObject visible{{"visible", parameter("boolean", "Whether this region is visible.")}};
     add("layout.browser", "Show / hide Browser", "Control the left Browser region.", visible, [this](const auto& a) { browserVisible_ = a.value("visible").toBool(); return QJsonObject{}; });
     add("layout.timeline", "Show / hide Timeline", "Control the empty feature history region.", visible, [this](const auto& a) { timelineVisible_ = a.value("visible").toBool(); return QJsonObject{}; });
@@ -461,8 +483,8 @@ void AlloyWindow::registerCommands() {
     add("capture.dialog", "Capture active dialog", "Capture the real search/settings QWidget; no geometry or OS decoration claim.", {{"path", parameter("string", "Absolute destination PNG path.")}}, [this](const auto& a) {
         const auto path = a["path"].toString();
         if (!QDir::isAbsolutePath(path) || !path.endsWith(".png", Qt::CaseInsensitive)) return failure("invalid_arguments", "Requires an absolute PNG path", "path");
-        auto* dialog = session_.value("command").toString() == "commands.search" ? search_
-            : session_.value("command").toString().startsWith("solid.") ? primitiveDialog_ : unitsDialog_;
+        QWidget* dialog = session_.value("command").toString() == "commands.search" ? search_
+            : session_.value("command").toString().startsWith("solid.") ? primitivePanel_ : unitsDialog_;
         if (session_.isEmpty() || !dialog || !dialog->isVisible()) return failure("no_active_dialog", "No active dialog to capture");
         const auto pixels = dialog->grab(); QSaveFile file(path);
         if (!file.open(QIODevice::WriteOnly) || !pixels.save(&file, "PNG") || !file.commit()) return failure("capture_failed", "Could not save active dialog");
@@ -527,10 +549,12 @@ QJsonObject AlloyWindow::state() const {
     view_->sync();
     const auto target=session_.value("command").toString();
     const bool dialogVisible=target=="commands.search" ? bool(search_ && search_->isVisible())
-        : target.startsWith("solid.") ? bool(primitiveDialog_ && primitiveDialog_->isVisible()) : bool(unitsDialog_ && unitsDialog_->isVisible());
+        : target.startsWith("solid.") ? bool(primitivePanel_ && primitivePanel_->isVisible()) : bool(unitsDialog_ && unitsDialog_->isVisible());
     const auto dialogInputs=session_.isEmpty() ? QJsonObject{} : target.startsWith("solid.") ? primitiveWidgetInputs()
         : target=="commands.search" ? QJsonObject{{"query",searchInput_ ? searchInput_->text() : QString{}}}
         : QJsonObject{{"units",unitsInput_ ? unitsInput_->currentText() : QString{}}};
+    const auto panelRect=primitiveDock_ ? QRect(primitiveDock_->mapToGlobal(QPoint())-mapToGlobal(QPoint()),primitiveDock_->size()) : QRect{};
+    const auto viewPosition=view_->mapTo(this,QPoint());
     return {{"application", "Alloy"}, {"version", "0.1.0"}, {"stage", "primitive-preview"},
         {"runtime", QJsonObject{{"qtVersion", qVersion()}, {"occtBuildVersion", ALLOY_OCCT_VERSION}}},
         {"revision", static_cast<qint64>(revision_)},
@@ -540,8 +564,10 @@ QJsonObject AlloyWindow::state() const {
         {"kernel", QJsonObject{{"candidate", "Open CASCADE"}, {"discoveredVersion", ALLOY_OCCT_VERSION}, {"integrated", true}, {"visualizationIntegrated", true}, {"policy",GeometryKernel::policy()}}},
         {"ui", QJsonObject{{"workspace", "design"}, {"tab", "solid"}, {"browserVisible", browserVisible_}, {"timelineVisible", timelineVisible_}, {"navigationVisible", navigationVisible_}, {"commandSearchVisible", search_ && search_->isVisible()}, {"windowWidth", width()}, {"windowHeight", height()}, {"devicePixelRatio", devicePixelRatioF()},
             {"activeDialog", QJsonObject{{"command", session_.value("command")},
-                {"visible",dialogVisible},{"inputs",dialogInputs}}}}},
-        {"viewport", QJsonObject{{"renderer", "OCCT OpenGL"}, {"gpu", view_->diagnostics()}, {"orientation", view_->orientation}, {"gridVisible", view_->grid}, {"originVisible", view_->origin}, {"zoom", view_->zoom}, {"pan", QJsonObject{{"x", view_->pan.x()}, {"y", view_->pan.y()}}}, {"width", view_->width()}, {"height", view_->height()}}}};
+                {"visible",dialogVisible},{"inputs",dialogInputs},
+                {"presentation",target.startsWith("solid.") ? (primitiveDock_ && primitiveDock_->isFloating() ? "floating-panel" : "docked-panel") : "dialog"},
+                {"bounds",QJsonObject{{"x",panelRect.x()},{"y",panelRect.y()},{"width",panelRect.width()},{"height",panelRect.height()}}}}}}},
+        {"viewport", QJsonObject{{"renderer", "OCCT OpenGL"}, {"gpu", view_->diagnostics()}, {"orientation", view_->orientation}, {"gridVisible", view_->grid}, {"originVisible", view_->origin}, {"zoom", view_->zoom}, {"pan", QJsonObject{{"x", view_->pan.x()}, {"y", view_->pan.y()}}}, {"x",viewPosition.x()},{"y",viewPosition.y()},{"width", view_->width()}, {"height", view_->height()}}}};
 }
 
 void AlloyWindow::refresh() {
@@ -584,14 +610,14 @@ void AlloyWindow::refresh() {
     if (session_.value("command").toString() == "commands.search" && searchInput_) {
         searchInput_->setText(session_.value("inputs").toObject()["query"].toString());
     }
-    if(session_.value("command").toString().startsWith("solid.") && primitiveDialog_) {
+    if(session_.value("command").toString().startsWith("solid.") && primitivePanel_) {
         const auto inputs=session_.value("inputs").toObject();
         for(auto it=primitiveInputs_.begin();it!=primitiveInputs_.end();++it){const QSignalBlocker block(it.value());it.value()->setValue(inputs[it.key()].toDouble());it.value()->setSuffix(" "+inputs["units"].toString());}
         const QSignalBlocker block(primitiveName_);primitiveName_->setText(inputs["name"].toString());
     }
     view_->sync();
     const auto gpu = view_->diagnostics();
-    status_->setText(QString("  %3 · %4 bodies · %1 · Zoom %2%    |    Click: select · Middle mouse: pan · Wheel: zoom · S: commands")
+    status_->setText(QString("  %3 · %4 bodies · %1 · Zoom %2%    |    Click: select · Alt/Option + drag: pan · Wheel: zoom · S: commands")
         .arg(view_->orientation).arg(qRound(view_->zoom * 100)).arg(gpu.value("hardwareAccelerated").toBool() ? "OCCT OpenGL" : "GPU UNQUALIFIED: " + gpu.value("qualification").toString()).arg(document_.bodies().size()));
 }
 
@@ -670,7 +696,7 @@ QJsonObject AlloyWindow::finishSession(const QString& id, bool commit) {
     session_ = {};
     if (target == "commands.search" && search_) search_->hide();
     if (target == "document.units" && unitsDialog_) unitsDialog_->hide();
-    if(target.startsWith("solid.")) {if(primitiveDialog_)primitiveDialog_->hide();view_->clearPreview();}
+    if(target.startsWith("solid.")) {if(primitiveDock_)primitiveDock_->hide();view_->clearPreview();}
     return result;
 }
 
@@ -723,12 +749,17 @@ QJsonObject AlloyWindow::primitiveWidgetInputs() const {
     return inputs;
 }
 void AlloyWindow::showPrimitive() {
-    if(primitiveDialog_)delete primitiveDialog_;
-    primitiveInputs_.clear();primitiveDialog_=new QDialog(this);
+    if(primitiveDock_)delete primitiveDock_;
+    primitiveInputs_.clear();primitivePanel_=new QWidget;
+    primitivePanel_->setObjectName("primitivePanel");primitivePanel_->setFixedWidth(312);
+    primitivePanel_->setStyleSheet("#primitivePanel { background: #f7f8f9; border-left: 1px solid #cdd3d8; }");
     const auto command=session_.value("command").toString();const auto inputs=session_.value("inputs").toObject();
-    primitiveDialog_->setWindowTitle(command=="solid.box" ? "Box" : "Cylinder");
-    primitiveDialog_->setWindowModality(Qt::WindowModal);
-    auto* layout=new QVBoxLayout(primitiveDialog_);auto* form=new QFormLayout;
+    auto* dock=new CommandDock(command=="solid.box" ? "Box" : "Cylinder",canvasWindow_);
+    primitiveDock_=dock;dock->setObjectName("primitiveDock");
+    dock->setAllowedAreas(Qt::LeftDockWidgetArea|Qt::RightDockWidgetArea);dock->setWidget(primitivePanel_);
+    dock->onClose=[this]{if(session_.value("command").toString().startsWith("solid."))execute("command.cancel",{{"session",session_.value("id")}});};
+    primitivePanel_->setWindowTitle(command=="solid.box" ? "Box" : "Cylinder");
+    auto* layout=new QVBoxLayout(primitivePanel_);auto* form=new QFormLayout;
     auto* plane=new QLabel(inputs.value("featureId").toString().isEmpty() ? "XY plane · New Body" : "XY plane · Edit Body");layout->addWidget(plane);
     primitiveName_=new QLineEdit(inputs["name"].toString());primitiveName_->setObjectName("primitive.name");form->addRow("Name",primitiveName_);
     const QStringList fields=command=="solid.box" ? QStringList{"width","depth","height","x","y","z"}
@@ -738,12 +769,11 @@ void AlloyWindow::showPrimitive() {
         input->setSuffix(" "+inputs["units"].toString());input->setValue(inputs[field].toDouble());input->setObjectName("primitive."+field);
         primitiveInputs_[field]=input;form->addRow(field.first(1).toUpper()+field.sliced(1),input);
         connect(input,qOverload<double>(&QDoubleSpinBox::valueChanged),this,[this,field](double value){
-            const auto response=execute("command.update",{{"session",session_.value("id")},{"inputs",QJsonObject{{field,value}}}});
-            if(!response["ok"].toBool())primitiveError_->setText(response["error"].toObject()["message"].toString());
+            updatePrimitive({{field,value}});
         });
     }
-    connect(primitiveName_,&QLineEdit::textChanged,this,[this](const QString& value){
-        execute("command.update",{{"session",session_.value("id")},{"inputs",QJsonObject{{"name",value}}}});
+    connect(primitiveName_,&QLineEdit::editingFinished,this,[this]{
+        if(session_.value("command").toString().startsWith("solid."))updatePrimitive({{"name",primitiveName_->text()}});
     });
     layout->addLayout(form);primitiveError_=new QLabel;primitiveError_->setWordWrap(true);primitiveError_->setMaximumWidth(400);
     primitiveError_->setStyleSheet("color: #a63832;");layout->addWidget(primitiveError_);
@@ -758,8 +788,15 @@ void AlloyWindow::showPrimitive() {
         if(!response["ok"].toBool())primitiveError_->setText(response["error"].toObject()["message"].toString());
     });
     connect(buttons,&QDialogButtonBox::rejected,this,[this]{execute("command.cancel",{{"session",session_.value("id")}});});
-    connect(primitiveDialog_,&QDialog::rejected,this,[this]{execute("command.cancel",{{"session",session_.value("id")}});});
-    layout->addWidget(buttons);primitiveDialog_->show();primitiveDialog_->raise();
+    auto* escape=new QShortcut(QKeySequence(Qt::Key_Escape),primitivePanel_);
+    connect(escape,&QShortcut::activated,this,[this]{execute("command.cancel",{{"session",session_.value("id")}});});
+    layout->addWidget(buttons);layout->addStretch();canvasWindow_->addDockWidget(Qt::RightDockWidgetArea,dock);
+    dock->show();
+}
+void AlloyWindow::updatePrimitive(const QJsonObject& inputs) {
+    auto response=execute("command.update",{{"session",session_.value("id")},{"inputs",inputs}});
+    if(response["ok"].toBool())response=execute("command.preview",{{"session",session_.value("id")}});
+    primitiveError_->setText(response["ok"].toBool() ? "" : response["error"].toObject()["message"].toString());
 }
 
 bool AlloyWindow::confirmDiscard() {

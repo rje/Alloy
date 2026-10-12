@@ -9,7 +9,8 @@ x64. Minimum OS versions and additional architectures need explicit qualificatio
 
 The [Native builds workflow](../.github/workflows/native-build.yml) runs native
 Release compilation on `macos-15`, `macos-15-intel`, `windows-2022`, and
-`ubuntu-24.04`. It also supports manual dispatch. [tools/ci/build.py](../tools/ci/build.py)
+`ubuntu-24.04`. It runs only for `v*` version tags or explicit manual dispatch. Ordinary branch
+commits and pull-request updates do not start the native matrix. [tools/ci/build.py](../tools/ci/build.py)
 downloads Qt 6.11.2 using a reviewed pinned aqt revision and builds exact OCCT
 7.9.3 and FreeType 2.13.3 source revisions. CMake and Ninja/action versions are
 pinned. FND-009 records tested compiler/image baselines and pins downloader
@@ -67,3 +68,18 @@ The [public-source release research](research/cross-platform-releases.md) record
 retrieval dates, Qt archive metadata, the verified Windows downloader discovery
 fix, deployment references, and unknowns. The live [backlog](backlog/README.md)
 and its GitHub links are authoritative for implementation status.
+
+## Version cadence
+
+Run proportionate local checks while developing. Cut an annotated semantic version
+such as `v0.2.0-alpha.1` at a coherent, reviewed workflow milestone; align the
+application/CMake version and record the source/capability notes before tagging.
+Tag pushes intentionally start the full native matrix. Manual dispatch is reserved
+for an explicit candidate/toolchain investigation. Do not start a replacement
+matrix after every small commit or issue closure.
+
+The automatic development-commit run 38199898011 was cancelled when this policy
+was accepted. No version is cut by the editor/input fix alone: the current Windows
+Qt SDK extraction failure and unbundled artifacts still prevent a supported
+cross-platform binary release. CI-001 owns that blocker. CI-003 promotes the exact
+qualified milestone archives without rebuilding them.

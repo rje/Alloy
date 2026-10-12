@@ -1,0 +1,72 @@
+{
+  "schema": "alloy-validation/1",
+  "recorded_at": "2026-10-12T04:11:27.878345+00:00",
+  "scope": [
+    "UX-001 fractional picking, Mac pan binding, docked primitive editor and visible selection"
+  ],
+  "candidate": {
+    "app": "/Users/rje/src/cpp/Alloy/build/alloy.app/Contents/MacOS/alloy",
+    "source_commit": "27c4b4a3b1e43638fa8bbdf4b6286e985e9442ca",
+    "dirty": true,
+    "sha256": "d7ca0122977c9be660900bb5ab2b4943d8be21f21448e43d0567db3c7945bc80"
+  },
+  "host": {
+    "system": "macOS-26.5.1-arm64-arm-64bit-Mach-O",
+    "architecture": "arm64",
+    "python": "3.14.5"
+  },
+  "runtime_dependencies": {
+    "occtBuildVersion": "7.9.3",
+    "qtVersion": "6.11.2"
+  },
+  "implementation_inputs": {
+    "src/ReferenceView.cpp": "39cf24c5b300b23e84c7f8f568d6fac05a7cb830e78a47c12a1a8189a849a3d5",
+    "src/ReferenceView.h": "b4e1b758a1c11cdfd4780d0aa38328c72cdadd462c14df254740e9153a5309e5",
+    "src/AlloyWindow.cpp": "34653d6d515f83d9f37dcf2e832a6b6fecd9241da7a6ee73741b5e545e6066ee",
+    "src/AlloyWindow.h": "d5213d3fb96446210c3cbd9e3ae9eb47311b31c773cbe74c4a4f0d1dff6f4842",
+    "tests/primitives_api.py": "2c8dc2cf0a734c12e60e40931eaca232dad4e5534c5c37a006ccd10f25225fb4"
+  },
+  "regression": {
+    "path": "build/evidence/mac-editing-final/report.json",
+    "sha256": "9a795796c9e5c6b30066f888a96589a2df3a914d7412623b9659a1f110d422b1",
+    "cases": {
+      "shell_api": "passed",
+      "DOC-002": "passed",
+      "FND-006": "passed",
+      "primitives": "passed",
+      "primitive-regression": "passed"
+    }
+  },
+  "physical_input": {
+    "status": "passed_subset",
+    "candidate": "QDockWidget candidate before the later selection-color-only change",
+    "candidate_sha256": "418d9af895d6e3fca367af68fb2bb84a23fa423c24f67368283d74819a620b08",
+    "actions": [
+      "Odd physical Retina pixel click selects cylinder",
+      "Type width 12 in the actual text field and click OK without Tab commits one edit",
+      "Undo returns original sample; dock title Close cancels edited preview without authored change"
+    ],
+    "evidence": {
+      "build/evidence/mac-editing-dock/physical/restored-model.json": "c937e71d0fd70e7df44cace8ed3d47cf5b60cd5a480603a6c46882b13864b13d",
+      "build/evidence/mac-editing-dock/physical/odd-click.json": "d3c805166c95d0b4dceda421af5ca8e5c0e76dd38e86eeea33758de67d224f78",
+      "build/evidence/mac-editing-dock/physical/after-close.json": "3c66eae16edeb6c76c94ede9bdbb240622b477262435980638645adbdf1d456b",
+      "build/evidence/mac-editing-dock/physical/before-close.json": "3de3fb69c3aa08d19bf62f2adae2874367e0f5c81f6af01127164a0539034632",
+      "build/evidence/mac-editing-dock/physical/type-ok.json": "d44918e8ddc6566be12afb561cf5a1bc7a43c6692bd50d167d0c1add9e32729c"
+    },
+    "limits": [
+      "Option/Alt drag cannot be held with the exposed computer-use API; shared pan command and source path verified",
+      "Native selected cylinder visibly blue on rebuilt final app; no authored edit performed",
+      "Only macOS runtime qualified; no exact reference parity claim"
+    ]
+  },
+  "independent_review": "Astra approved dock lifecycle, picking, restoration, final blue selection and matching source/binary/artifact evidence. No material blocker. Later planning-only changes do not warrant app reruns.",
+  "public_captures": {
+    "docs/validation/mac-editing-selected.png": "d1d798d97a6cb716a4ca43f7763a67309ab5299f5828db1da6663f756496e3f2",
+    "docs/validation/mac-editing-panel.png": "51e9d6c2e3631c411dc13d15d0f08ec009d8aacd3207d6468f72353ab18bb986"
+  },
+  "limits": [
+    "No arbitrary orbit, face/edge selection, exact placement/manipulator workflow or native trackpad parity",
+    "Renderer still OCCT OpenGL; Metal/Vulkan migration remains planned",
+    "Backlog/context planning was refined after regression; retained recorded input hashes are historical"
+  ]
+}

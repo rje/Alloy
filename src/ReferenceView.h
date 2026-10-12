@@ -27,9 +27,9 @@ public:
     void setBodies(const std::vector<EvaluatedBody>& bodies, quint64 revision);
     void fit(const std::vector<EvaluatedBody>& bodies);
     void selectBody(const QString& id);
-    QString pickBody(int x,int y);
+    QString pickBody(double x,double y);
     QJsonObject projectBody(const EvaluatedBody& body) const;
-    void showPreview(const TopoDS_Shape& shape);
+    void showPreview(const TopoDS_Shape& shape,const QString& replacedBody = {});
     void clearPreview();
     QPaintEngine* paintEngine() const override { return nullptr; }
 protected:
@@ -50,8 +50,10 @@ private:
     Handle(Graphic3d_Camera) baseCamera_;
     QString error_;
     QPointF last_;
+    Qt::MouseButton panButton_ = Qt::NoButton;
     QMap<QString,Handle(AIS_Shape)> models_;
     Handle(AIS_Shape) preview_;
+    QString previewReplacedBody_;
     quint64 modelRevision_ = 0;
     double sceneScale_ = 400;
     gp_Pnt sceneCenter_;

@@ -43,7 +43,17 @@ def main():
         assert all(abs(a-b)<1e-9 for a,b in zip(camera['center'],[22.5,15,5])), camera
         point=call('view.projectBody',{'bodyId':body_id})
         assert 0<=point['x']<initial['viewport']['width'] and 0<=point['y']<initial['viewport']['height'],point
+        unselected=call('capture.screenshot',{'path':str(output/'bodies-unselected.png')})
+        call('selection.set',{'bodyId':body_id})
+        selected=call('capture.screenshot',{'path':str(output/'body-selected.png')})
+        assert selected['viewportSha256']!=unselected['viewportSha256'], 'Selection must visibly change the shaded body'
+        call('selection.set',{'bodyId':''})
+        cleared=call('capture.screenshot',{'path':str(output/'selection-cleared.png')})
+        assert cleared['viewportSha256']==unselected['viewportSha256'], 'Clearing selection must restore the body appearance'
+        assert call('document.inspect')==two, 'Selection must not edit the document'
         picked=call('selection.pick',{'x':point['x'],'y':point['y']});assert picked['bodyId']==body_id,picked
+        fractional=call('selection.pick',{'x':point['x']+0.5,'y':point['y']+0.5})
+        assert fractional['bodyId']==body_id, 'Retina fractional mouse coordinates must not become zero'
         assert call('app.state')['viewport']['gpu']['camera']==camera, 'Picking must not change the camera'
         call('view.zoom',{'factor':0.5})
         zoomed=call('app.state')['viewport']['gpu']['camera']
@@ -81,9 +91,22 @@ def main():
         call('history.undo');call('feature.edit',{'featureId':box_id,'parameters':{'depthMm':32}})
         branched=call('document.inspect');assert not branched['undo']['canRedo']
         draft=call('feature.editDialog',{'featureId':box_id})
-        call('command.update',{'session':draft['id'],'inputs':{'width':50}})
-        assert call('app.state')['ui']['activeDialog']['inputs']['width']==50
-        call('command.preview',{'session':draft['id']});call('command.cancel',{'session':draft['id']})
+        panel_state=call('app.state');panel=panel_state['ui']['activeDialog'];viewport=panel_state['viewport']
+        assert panel['presentation']=='docked-panel' and panel['visible']
+        assert viewport['x']+viewport['width']<=panel['bounds']['x'], 'Editor must reserve space outside the model viewport'
+        call('command.panelDock',{'docked':False})
+        assert call('app.state')['ui']['activeDialog']['presentation']=='floating-panel'
+        call('command.panelDock',{'docked':True})
+        assert call('app.state')['ui']['activeDialog']['presentation']=='docked-panel'
+        call('command.update',{'session':draft['id'],'inputs':{'width':12}})
+        assert call('app.state')['ui']['activeDialog']['inputs']['width']==12
+        call('command.preview',{'session':draft['id']})
+        assert call('app.state')['viewport']['gpu']['previewReplacedBodyId']==body_id
+        captures.append(call('capture.screenshot',{'path':str(output/'edit-panel-preview.png')}))
+        call('command.update',{'session':draft['id'],'inputs':{'width':0.000001}})
+        call('command.preview',{'session':draft['id']},'command_failed')
+        assert call('app.state')['viewport']['gpu']['previewReplacedBodyId']==''
+        call('command.cancel',{'session':draft['id']})
         assert call('document.inspect')==branched
         call('document.units',{'units':'in'})
         call('solid.box',{'width':1,'depth':1,'height':1,'x':100,'units':'in','name':'Inch cube'})

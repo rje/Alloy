@@ -1,8 +1,48 @@
 {
   "repository": "rje/Alloy",
   "project_url": "https://github.com/users/rje/projects/1",
-  "updated": "2026-10-12T03:27:50.946307+00:00",
+  "updated": "2026-10-12T04:19:45.923419+00:00",
   "issues": {
+    "HIS-004": {
+      "number": 143,
+      "url": "https://github.com/rje/Alloy/issues/143",
+      "state": "open"
+    },
+    "SKT-013": {
+      "number": 142,
+      "url": "https://github.com/rje/Alloy/issues/142",
+      "state": "open"
+    },
+    "SKT-015": {
+      "number": 141,
+      "url": "https://github.com/rje/Alloy/issues/141",
+      "state": "open"
+    },
+    "SKT-014": {
+      "number": 140,
+      "url": "https://github.com/rje/Alloy/issues/140",
+      "state": "open"
+    },
+    "GATE-045": {
+      "number": 139,
+      "url": "https://github.com/rje/Alloy/issues/139",
+      "state": "open"
+    },
+    "RHI-002": {
+      "number": 138,
+      "url": "https://github.com/rje/Alloy/issues/138",
+      "state": "open"
+    },
+    "RHI-001": {
+      "number": 137,
+      "url": "https://github.com/rje/Alloy/issues/137",
+      "state": "open"
+    },
+    "UX-001": {
+      "number": 136,
+      "url": "https://github.com/rje/Alloy/issues/136",
+      "state": "closed"
+    },
     "CI-003": {
       "number": 135,
       "url": "https://github.com/rje/Alloy/issues/135",

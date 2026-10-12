@@ -17,6 +17,7 @@ class QDoubleSpinBox;
 class QCloseEvent;
 class QTreeWidgetItem;
 class QHBoxLayout;
+class QDockWidget;
 
 // UI and automation dispatch against the same authored document.
 class AlloyWindow final : public QMainWindow {
@@ -45,6 +46,7 @@ private:
     QJsonObject finishSession(const QString& id, bool commit);
     void showUnits();
     void showPrimitive();
+    void updatePrimitive(const QJsonObject& inputs);
     QJsonObject primitiveCandidate(const QString&, const QJsonObject&) const;
     bool confirmDiscard();
     std::vector<Command> commands_;
@@ -58,7 +60,9 @@ private:
     QDialog* unitsDialog_ = nullptr;
     QComboBox* unitsInput_ = nullptr;
     QLineEdit* searchInput_ = nullptr;
-    QDialog* primitiveDialog_ = nullptr;
+    QWidget* primitivePanel_ = nullptr;
+    QDockWidget* primitiveDock_ = nullptr;
+    QMainWindow* canvasWindow_ = nullptr;
     QJsonObject primitiveWidgetInputs() const;
     QMap<QString,QDoubleSpinBox*> primitiveInputs_;
     QLabel* primitiveError_ = nullptr;

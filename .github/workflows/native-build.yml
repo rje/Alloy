@@ -3,17 +3,15 @@ name: Native builds
 on:
   workflow_dispatch:
   push:
-    branches: [main]
-    paths: [src/**, CMakeLists.txt, tools/ci/**, .github/workflows/native-build.yml]
-  pull_request:
-    paths: [src/**, CMakeLists.txt, tools/ci/**, .github/workflows/native-build.yml]
+    # Compile milestone versions, not every development commit or PR update.
+    tags: ['v*']
 
 permissions:
   contents: read
 
 concurrency:
   group: native-${{ github.ref }}
-  # Let the full native matrix finish; newer pushes replace only a queued candidate.
+  # Let an explicitly selected version's full matrix finish.
   cancel-in-progress: false
 
 jobs:
