@@ -32,8 +32,8 @@ Updated 2026-10-11. This is the project handoff for a fresh session. Read the ro
   Third-party libraries retain their own licenses.
 - Before modeling operations accumulate, settle authored operation history,
   transaction authority, undo/redo and recompute boundaries. FND-003/FND-004
-  lead this work; see architecture.md. The FND-003 library comparison and decision are complete; application
-  integration remains pending. See decisions/001-authored-document.md.
+  lead this work; see architecture.md. The FND-003 comparison and DOC-002 authored
+  integration are complete. See decisions/001-authored-document.md.
 - The user requires a GPU-accelerated 3D viewport from the foundation, with
   actual renderer evidence. OCCT/OpenGL replaced the QPainter reference grid;
   software rendering does not satisfy viewport acceptance.
@@ -59,13 +59,21 @@ The cumulative runner in `tests/workflows/run.py` now wraps the real shell case,
 with fixture/candidate/artifact hashes, capability checks and live gate prerequisites.
 Its real-app success and focused refusal checks passed, and Astra reviewed the
 bounded implementation. See [runner receipt](validation/workflow-runner.md). Physical
-and visual acceptance remain separate. DOC-002 is also registered; later cases remain unavailable.
+and visual acceptance remain separate. DOC-002 and FND-006 are also registered;
+later cases remain unavailable.
 The DOC-002 authored layer now has a root UUID, typed owned primitive intent,
 canonical millimeters and mm/in display units. A bounded unit fixture and the
 real-app DOC-002 case passed. Modeling operations are not exposed yet; see
 [authored receipt](validation/authored-document.md). There is no CAD geometry, sketch solver, native persistence,
 import, or export yet. Modeling controls are explicitly unavailable. Visual and
 physical-input parity have not been established.
+
+FND-006 adds verified live-instance discovery, shared command sessions, observable
+units/search dialogs, draft preview, cancel, stale-commit refusal and transaction
+IDs. Its real two-app workflow and focused selector regression passed; Astra's
+independent review found no remaining blocker. See
+[session receipt](validation/command-sessions.md). Modeling previews and async
+jobs await real features; Windows local-control adaptation remains FND-012.
 
 The native Debug build and CTest real-app smoke passed on Apple silicon macOS
 with Qt 6.11.2. The smoke exercised real commands, state changes, errors, search
@@ -94,7 +102,7 @@ cumulative validation gates**. All remote issue bodies, dependency links,
 labels, milestones, and live readiness were verified through the API. The shell
 baseline [`GATE-000` #12](https://github.com/rje/Alloy/issues/12) is closed;
 FND-010 #10 is also closed with independently reviewed runner evidence;
-FND-003 is now closed after its independently reviewed comparison. Live counts
+FND-003, FND-002 and DOC-002 are closed after independently reviewed evidence. Live counts
 are obtained with tools/backlog.py rather than this earlier publication snapshot. Later epics need
 bounded child issues before implementation; this count does not exhaust parity.
 Read [the backlog](backlog/README.md), [publication receipt](backlog/publication.json),
@@ -106,9 +114,10 @@ CI-002, GATE-005 and CI-003. Read [releases.md](releases.md) and the
 [release research](research/cross-platform-releases.md). Native CI is seeded
 for macOS arm64/Intel, Windows x64 and Ubuntu24.04 x64; its initial run compiled Windows and both macOS architectures. Linux failed
 on a missing Fontconfig development header; that run and its artifacts were
-removed with the old-history cleanup. The missing-header fix is pushed. The latest
-[matrix run](https://github.com/rje/Alloy/actions/runs/38190781624) tests source
-d11ebf4 and remains pending; the previous corrected candidate was superseded.
+removed with the old-history cleanup. The corrected
+[matrix run](https://github.com/rje/Alloy/actions/runs/38192218283) compiled all
+four targets successfully at source 12fe534. FND-009 is auditing its toolchain
+metadata and artifacts; subsequent candidates remain separate.
 It retains unbundled compile artifacts, not yet independently runnable packages.
 Windows named-pipe control, Linux X11/GLX runtime qualification, relocation,
 dependency notices and tagged milestone publishing remain open.
@@ -122,8 +131,8 @@ through the CLI/API as tasks start and finish.
 FND-003 is complete with a permitted Qt/OCCT comparison and independently reviewed
 [decision 001](decisions/001-authored-document.md). It selects authored JSON and one
 QUndoStack, with no persisted session journal. DOC-002 integration and its focused evidence are complete;
-FND-006/DOC-003/DOC-004 supply shared sessions, undo and native storage next.
-FND-004 resolves stable geometric references independently.
+FND-006 shared sessions are complete; DOC-003/DOC-004 supply exposed undo and
+native storage next. FND-004 resolves stable geometric references independently.
 
 The proposed next product increment is [roadmap milestone 1](roadmap.md): integrate OCCT
 and a real CAD viewport/document; create/select/inspect a primitive; add undo,

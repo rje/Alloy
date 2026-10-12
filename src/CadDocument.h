@@ -19,8 +19,9 @@ public:
     static QString newId();
 private:
     friend class DocumentEdit;
-    void apply(const QJsonObject& value);
+    void apply(const QJsonObject& value, const QString& transaction = {});
     QJsonObject authored_;
     QUndoStack history_;
     quint64 revision_ = 0;
+    QString lastTransaction_;
 };

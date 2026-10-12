@@ -4,6 +4,7 @@
 #include <QCommandLineParser>
 #include <QDir>
 #include <QFileInfo>
+#include <QFile>
 #include <QJsonDocument>
 #include <QSaveFile>
 #include <QStyleFactory>
@@ -23,6 +24,7 @@ int main(int argc, char** argv) {
     parser.addVersionOption();
     parser.addOption({"control-socket", "Local socket path in an existing private directory.", "path"});
     parser.addOption({"ready-file", "Write endpoint discovery JSON when the real window is ready.", "path"});
+    parser.addOption({"instance-dir", "Private instance discovery directory (default ~/.alloy/instances).", "path", QDir::homePath() + "/.alloy/instances"});
     parser.process(app);
 
     QTemporaryDir privateDirectory(QDir::tempPath() + "/alloy-XXXXXX");
@@ -43,10 +45,23 @@ int main(int argc, char** argv) {
         return 2;
     }
     window.show();
+    const auto instanceDirectory = parser.value("instance-dir");
+    const bool existed = QFileInfo::exists(instanceDirectory);
+    if (!QDir::isAbsolutePath(instanceDirectory) || !QDir().mkpath(instanceDirectory)
+        || (!existed && !QFile::setPermissions(instanceDirectory, QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ExeOwner))
+        || (QFileInfo(instanceDirectory).permissions() & unsafe)) {
+        std::fprintf(stderr, "Cannot create private instance discovery directory.\n"); return 2;
+    }
+    const auto instancePath = instanceDirectory + "/" + window.identity()["instanceId"].toString() + ".json";
+    QObject::connect(&app, &QCoreApplication::aboutToQuit, &app, [instancePath] { QFile::remove(instancePath); });
     QTimer::singleShot(0, &window, [&] {
-        const QJsonObject ready{{"protocol", "alloy-control/1"}, {"socket", server.fullServerName()},
-            {"pid", QCoreApplication::applicationPid()}, {"status", "ready"}};
+        auto ready = window.identity(); ready["socket"] = server.fullServerName(); ready["status"] = "ready";
         const auto bytes = QJsonDocument(ready).toJson(QJsonDocument::Compact) + '\n';
+        { QSaveFile registry(instancePath);
+          if (!registry.open(QIODevice::WriteOnly)) { app.exit(2); return; }
+          registry.setPermissions(QFileDevice::ReadOwner | QFileDevice::WriteOwner);
+          if (registry.write(bytes) != bytes.size() || !registry.commit()) { app.exit(2); return; }
+        }
         if (parser.isSet("ready-file")) {
             QSaveFile file(parser.value("ready-file"));
             if (!file.open(QIODevice::WriteOnly)) {

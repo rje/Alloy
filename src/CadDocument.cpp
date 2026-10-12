@@ -9,11 +9,12 @@ class DocumentEdit final : public QUndoCommand {
 public:
     DocumentEdit(CadDocument& document, QJsonObject candidate, const QString& label)
         : document_(document), before_(document.authored()), after_(std::move(candidate)) { setText(label); }
-    void undo() override { document_.apply(before_); }
-    void redo() override { document_.apply(after_); }
+    void undo() override { document_.apply(before_, id_); }
+    void redo() override { document_.apply(after_, id_); }
 private:
     CadDocument& document_;
     QJsonObject before_, after_;
+    QString id_ = CadDocument::newId();
 };
 
 QString CadDocument::newId() { return QUuid::createUuid().toString(QUuid::WithoutBraces); }
@@ -24,7 +25,9 @@ void CadDocument::reset() {
         {"displayUnits", "mm"}, {"features", QJsonArray{}}});
     history_.setClean();
 }
-void CadDocument::apply(const QJsonObject& value) { authored_ = value; ++revision_; }
+void CadDocument::apply(const QJsonObject& value, const QString& transaction) {
+    authored_ = value; lastTransaction_ = transaction; ++revision_;
+}
 QString CadDocument::commit(const QJsonObject& candidate, const QString& label) {
     const auto error = validate(candidate);
     if (!error.isEmpty()) return error;
@@ -82,6 +85,7 @@ QJsonObject CadDocument::state() const {
     return {{"loaded", true}, {"id", authored_["documentId"]}, {"label", "Untitled"},
         {"units", authored_["displayUnits"]}, {"canonicalLengthUnit", "mm"},
         {"revision", static_cast<qint64>(revision_)}, {"dirty", !history_.isClean()},
+        {"lastTransactionId", lastTransaction_},
         {"features", authored_["features"].toArray().size()}, {"bodies", 0}, {"sketches", 0},
         {"editableHistory", true}, {"authored", authored_},
         {"undo", QJsonObject{{"canUndo", history_.canUndo()}, {"canRedo", history_.canRedo()},

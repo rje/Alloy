@@ -4,8 +4,9 @@ Alloy currently builds a native **UI shell with a hardware-accelerated OCCT 3D
 viewport**. C++20, Qt 6.11.2 Widgets/Network, and OCCT 7.9.3 are required and the
 CMake package versions are pinned to this verified baseline. OCCT visualization
 is linked and integrated; its reference grid and axes are presentation objects,
-not authored CAD geometry. No sketch solver is integrated. There is no CAD
-document, editable feature history, file persistence, import, or export.
+not authored CAD geometry. The authored document now has stable IDs, mm/in units,
+one undo authority and shared draft sessions. No sketch solver, modeled geometry,
+native file persistence, import, or export is integrated yet.
 
 ## Build and run
 
@@ -19,8 +20,8 @@ cmake --build build
 ```
 
 On other platforms provide the Qt installation prefix through CMake as needed.
-CMake produces `build/alloy` on Linux. The initial native CI compiled Windows and both macOS architectures;
-Linux failed on a missing Fontconfig header. Windows/Linux runtime behavior
+CMake produces `build/alloy` on Linux. The corrected native CI compiled Windows,
+Linux and both macOS architectures at 12fe534. Windows/Linux runtime behavior
 has not been verified. OCCT is now mandatory; there is no QPainter fallback. For nonstandard
 installs set `OpenCASCADE_DIR` to the folder containing `OpenCASCADEConfig.cmake`.
 Visualization integration is not evidence of authored geometry integration.
@@ -43,17 +44,20 @@ logical widget dimensions and device pixel ratio.
 
 - `src/main.cpp`: native entrypoint, private endpoint setup, startup discovery.
 - `src/AlloyWindow.{h,cpp}`: shell, shared commands/state, search, screenshot composition.
+- `src/CadDocument.{h,cpp}`: authoritative authored intent, identity/units validation
+  and one QUndoStack; evaluated geometry is still pending.
 - `src/ReferenceView.{h,cpp}`: native OCCT AIS/V3d/OpenGL view, grid/axes, camera,
   live driver diagnostics, Retina framebuffer capture; no document objects.
 - `src/ControlServer.{h,cpp}`: newline JSON transport and structured dispatch.
 - `tools/alloyctl.py`: stdlib CLI for discovery, execution, state, and capture.
 - `tests/shell_api.py`: real app entrypoint/API smoke test.
+- `tests/document_api.py`, `tests/session_api.py`: real authored-unit and two-app
+  session/discovery workflows. See their candidate-bound validation receipts.
 - `docs/research/interface-reference.md`: public-only interface findings, source
   provenance, implementation guesses, and visual evidence limits.
 
-The initial code intentionally keeps shell state small. The next geometry slice
-should introduce authored document state and evaluated shapes separately; the
-OCCT scene is not the future geometry model.
+Authored intent is independent of viewport state. The next geometry slice adds
+evaluated shapes; the OCCT scene is not the authored model.
 
 ## Verification
 

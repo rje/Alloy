@@ -2,8 +2,9 @@
 
 FND-010 adds a stdlib Python runner around the existing real-entrypoint
 `tests/shell_api.py`. It does not implement CAD or a separate automation model.
-Only `shell_api` and `FND-010` cases exist today. The latter runs the shell plus
-refusal checks using its actual observed capabilities.
+Registered cases are `shell_api`, `FND-010`, `DOC-002` and `FND-006`.
+FND-010 runs the shell plus refusal checks using its actual observed capabilities;
+the document/session cases exercise their real app features.
 
 ```sh
 python3 tests/workflows/run.py --case FND-010 --build --evidence build/evidence/FND-010

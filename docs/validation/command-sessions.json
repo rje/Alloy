@@ -1,0 +1,35 @@
+{
+  "scope": "FND-006 shared command sessions and discovery, display-units target only",
+  "candidate_base_commit": "e5e72b87725fedbdbe1402cfbc65cc05eae8afbd",
+  "dirty_candidate": true,
+  "result": "passed",
+  "sha256": {
+    "src/AlloyWindow.cpp": "430cb1f30cc52cb3a6b3d18fbac6d203638e8f3e02cd09ae32ac00e169ad471d",
+    "src/AlloyWindow.h": "19570d28dd40f798370d64bf03b4476d6ef092fd8f10e4029efdd6bd52c2339e",
+    "src/main.cpp": "16853ebf0f003c63d1455a7e36819dd1cc952c43ab4758dc16deb8cda949a9f8",
+    "src/CadDocument.cpp": "6d98efd4b6addef41649ae1ab173f9daafd772829e24c4518fee1faf776caf1a",
+    "src/CadDocument.h": "233dbb988436b5552fb778402feec981a68622ff9b36b71996cead6f7ca43f1b",
+    "tools/alloyctl.py": "2a0f455befc5d046784d245804cbb8c8432a233f30bdb9790a3404550b6a0590",
+    "tests/session_api.py": "89cb72a9227247283d3a6de290acd89cf3b72a4696b737eea048cffd3202abf2",
+    "tests/workflows/fixtures/sessions.json": "77cbedc4f2955a6fc24648e12383816c0a6acb461be5f0ab0ee965e883981121",
+    "tests/workflows/ledger.json": "3205b7d1c6b770884838c10f8d153a06c0c272cdfce44beba2a0ac071270e7c5",
+    "tests/workflows/run.py": "25ed122e7d795e916de19e11acfae597fc0f1fd2bb4983a6765c946f8b759ead",
+    "build/alloy.app/Contents/MacOS/alloy": "98f2e7ee19d4ca2a79bb26161ba6907e8a7374256e7fd0d05a5dea4f12b5b871",
+    "build/evidence/FND-006/report.json": "01c6a0b8c3bf88a3b214f04af477b9c0491a3178ab51fda1f06a9e595b40cc03",
+    "build/evidence/shell-api.json": "f51cbde063f07444493fdd78c695a69da259058556bed3e37fd8647c031c2015"
+  },
+  "case_receipt_sha256": "1d25aeaa66c687cad28aa881367ec5617082dc37c55ec732a51984d9c16adb36",
+  "shell_regression_note": "Passed after session fix; only dialog styling/text changed subsequently. No further shell run needed.",
+  "limits": [
+    "No geometry session or asynchronous modeling job yet.",
+    "Windows transport/startup adaptation remains FND-012.",
+    "API dialog capture is not physical keyboard/mouse or visual-compatibility evidence."
+  ],
+  "focused_client_selection_fix": {
+    "result": "passed",
+    "command": "python3 -E tests/client_selection.py",
+    "client_sha256": "7429d3a49baccef9bbf63b90924dccf2ac13c083feb4b55a8bbd499e442aa2ca",
+    "test_sha256": "bb1a8b22bd9b57283e48747eaa4fa3190216e9781f7665e41fdbe0f26bd8f5f5",
+    "note": "After Astra found selector precedence defect; metadata-only regression. Full app receipt retains original tested client bytes; app/session protocol code unchanged."
+  }
+}

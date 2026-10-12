@@ -3,6 +3,8 @@
 #include <QApplication>
 #include <QCryptographicHash>
 #include <QDialog>
+#include <QDialogButtonBox>
+#include <QComboBox>
 #include <QDir>
 #include <QFileInfo>
 #include <QHBoxLayout>
@@ -16,6 +18,7 @@
 #include <QPainter>
 #include <QPushButton>
 #include <QSaveFile>
+#include <QSignalBlocker>
 #include <QShortcut>
 #include <QStatusBar>
 #include <QTimer>
@@ -27,9 +30,11 @@
 #include <cmath>
 
 namespace {
-QJsonObject failure(const QString& code, const QString& message) {
+QJsonObject failure(const QString& code, const QString& message, const QString& field = {}) {
+    QJsonObject error{{"code", code}, {"message", message}};
+    if (!field.isEmpty()) error["field"] = field;
     return {{"ok", false}, {"completion", "failed"},
-        {"error", QJsonObject{{"code", code}, {"message", message}}}};
+        {"error", error}};
 }
 QJsonObject parameter(const QString& type, const QString& description) {
     return {{"type", type}, {"description", description}, {"required", true}};
@@ -55,6 +60,9 @@ AlloyWindow::AlloyWindow() {
         QPushButton:disabled, QToolButton:disabled { color: #939ca3; }
         QMenu { background: #fff; border: 1px solid #b9c1c7; padding: 5px; }
         QMenu::item { padding: 6px 22px; } QMenu::item:selected { background: #deedf5; }
+        QDialog { background: #f7f8f9; }
+        QComboBox { background: white; color: #323c44; border: 1px solid #9aabb8; padding: 6px; }
+        QComboBox QAbstractItemView { background: white; color: #323c44; selection-background-color: #deedf5; }
         QTreeWidget { border: 0; background: #fafbfc; outline: 0; }
         QTreeWidget::item { height: 27px; } QTreeWidget::item:selected { background: #deedf5; color: #263944; }
         QLineEdit { border: 1px solid #9aabb8; border-radius: 3px; padding: 8px; background: white; }
@@ -79,6 +87,7 @@ AlloyWindow::AlloyWindow() {
     auto* file = new QPushButton("File");
     auto* fileMenu = new QMenu(file);
     auto* unavailable = fileMenu->addAction("New / Open / Save — document layer pending"); unavailable->setEnabled(false);
+    fileMenu->addAction("Document Settings…", this, [this] { execute("document.settings"); });
     fileMenu->addSeparator();
     fileMenu->addAction("Quit", this, [this] { execute("app.quit"); });
     file->setMenu(fileMenu); top->addWidget(file);
@@ -218,9 +227,16 @@ void AlloyWindow::registerCommands() {
         commands_.push_back({id, title, description, parameters, true, std::move(run)});
     };
     add("app.state", "Inspect state", "Read authoritative real-window shell state.", {}, [this](const auto&) { return state(); });
+    add("app.identity", "Instance identity", "Protocol, process, window and unique instance identity.", {}, [this](const auto&) { return identity(); });
     add("commands.list", "List commands", "Discover supported and unavailable commands with argument schemas.", {}, [this](const auto&) { return QJsonObject{{"commands", commands()}}; });
-    add("commands.search", "Command search", "Open the native command search dialog (S).", {}, [this](const auto&) { showSearch(); return QJsonObject{}; });
-    add("commands.close", "Close command search", "Dismiss the command search dialog.", {}, [this](const auto&) { if (search_) search_->hide(); return QJsonObject{}; });
+    add("commands.search", "Command search", "Open a discoverable native search session (S).", {}, [this](const auto&) {
+        if (session_.value("command").toString() == "commands.search") { showSearch(); return session_; }
+        return beginSession("commands.search", {});
+    });
+    add("commands.close", "Close command search", "Dismiss the native search session.", {}, [this](const auto&) {
+        if (session_.value("command").toString() == "commands.search") return finishSession(session_.value("id").toString(), false);
+        if (search_) search_->hide(); return QJsonObject{};
+    });
     auto units = parameter("string", "Display units; authored lengths remain canonical millimeters.");
     units.insert("enum", QJsonArray{"mm", "in"});
     add("document.units", "Display units", "Change display units without rescaling authored geometry.", {{"units", units}}, [this](const auto& a) {
@@ -229,10 +245,50 @@ void AlloyWindow::registerCommands() {
         return error.isEmpty() ? document_.state() : failure("invalid_document", error);
     });
     add("document.inspect", "Inspect document", "Read authoritative authored IDs, units and ownership.", {}, [this](const auto&) { return document_.state(); });
+    add("document.settings", "Document Settings", "Open a shared display-unit editing session.", {}, [this](const auto&) { return beginSession("document.units", {}); });
     add("document.new", "New document", "Create a fresh authored document; dirty replacement requires explicit discard.", {{"discard", parameter("boolean", "Explicitly discard unsaved edits.")}}, [this](const auto& a) {
         if (!document_.history().isClean() && !a.value("discard").toBool()) return failure("unsaved_changes", "Save or explicitly discard the current document");
         document_.reset(); return document_.state();
     });
+    auto sessionTarget = parameter("string", "Implemented session target; modeling targets follow alongside their features.");
+    sessionTarget["enum"] = QJsonArray{"document.units", "commands.search"};
+    add("command.begin", "Begin command session", "Begin a real editable dialog with disposable inputs.",
+        {{"command", sessionTarget}, {"inputs", parameter("object", "Initial input overrides.")}},
+        [this](const auto& a) { return beginSession(a["command"].toString(), a["inputs"].toObject()); });
+    const QJsonObject sessionId{{"session", parameter("string", "Unique active session ID.")}};
+    auto updateSchema = sessionId; updateSchema["inputs"] = parameter("object", "Partial input changes; unknown fields are rejected.");
+    add("command.update", "Update command inputs", "Validate and update the actual dialog draft without committing intent.", updateSchema, [this](const auto& a) {
+        if (session_.isEmpty() || session_.value("id") != a["session"]) return failure("invalid_session", "Session is no longer active");
+        auto inputs = session_.value("inputs").toObject();
+        const auto updates = a["inputs"].toObject();
+        for (auto it = updates.begin(); it != updates.end(); ++it) inputs[it.key()] = it.value();
+        const auto target = session_.value("command").toString();
+        if (target == "commands.search") {
+            if (inputs.size() != 1 || !inputs["query"].isString()) return failure("invalid_arguments", "Search input requires a query string");
+        } else {
+            QString field;
+            const auto error = validateArguments(*findCommand(target), inputs, &field);
+            if (!error.isEmpty()) return failure("invalid_arguments", error, field);
+        }
+        session_["inputs"] = inputs; session_["previewed"] = false; return session_;
+    });
+    add("command.preview", "Inspect command preview", "Inspect disposable authored draft; no evaluated geometry is implied.", sessionId, [this](const auto& a) {
+        if (session_.isEmpty() || session_.value("id") != a["session"]) return failure("invalid_session", "Session is no longer active");
+        if (session_.value("command").toString() != "commands.search"
+            && session_.value("baseDocumentRevision").toInteger() != static_cast<qint64>(document_.revision()))
+            return failure("stale_session", "The document changed; cancel and restart this edit");
+        session_["previewed"] = true;
+        auto result = session_;
+        if (session_.value("command").toString() == "document.units") {
+            auto draft = document_.authored(); draft["displayUnits"] = session_.value("inputs").toObject()["units"];
+            result["authoredDraft"] = draft;
+        }
+        result["geometryEvaluated"] = false; return result;
+    });
+    add("command.commit", "Commit command session", "Commit the validated draft through the same authoritative command.", sessionId,
+        [this](const auto& a) { return finishSession(a["session"].toString(), true); });
+    add("command.cancel", "Cancel command session", "Discard the real dialog draft without an undo entry.", sessionId,
+        [this](const auto& a) { return finishSession(a["session"].toString(), false); });
     const QJsonObject visible{{"visible", parameter("boolean", "Whether this region is visible.")}};
     add("layout.browser", "Show / hide Browser", "Control the left Browser region.", visible, [this](const auto& a) { browserVisible_ = a.value("visible").toBool(); return QJsonObject{}; });
     add("layout.timeline", "Show / hide Timeline", "Control the empty feature history region.", visible, [this](const auto& a) { timelineVisible_ = a.value("visible").toBool(); return QJsonObject{}; });
@@ -265,6 +321,16 @@ void AlloyWindow::registerCommands() {
         if (!file.open(QIODevice::WriteOnly) || !pixels.save(&file, "PNG") || !file.commit()) return failure("capture_failed", "Could not write screenshot");
         return QJsonObject{{"path", path}, {"pixelWidth", pixels.width()}, {"pixelHeight", pixels.height()}, {"devicePixelRatio", pixels.devicePixelRatio()}, {"source", "QWidget chrome + OCCT OpenGL framebuffer"}, {"viewportPixelWidth", framebuffer.width()}, {"viewportPixelHeight", framebuffer.height()}, {"viewportSha256", QString::fromLatin1(QCryptographicHash::hash(QByteArrayView(reinterpret_cast<const char*>(framebuffer.constBits()), framebuffer.sizeInBytes()), QCryptographicHash::Sha256).toHex())}};
     });
+    add("capture.dialog", "Capture active dialog", "Capture the real search/settings QWidget; no geometry or OS decoration claim.", {{"path", parameter("string", "Absolute destination PNG path.")}}, [this](const auto& a) {
+        const auto path = a["path"].toString();
+        if (!QDir::isAbsolutePath(path) || !path.endsWith(".png", Qt::CaseInsensitive)) return failure("invalid_arguments", "Requires an absolute PNG path", "path");
+        auto* dialog = session_.value("command").toString() == "commands.search" ? search_ : unitsDialog_;
+        if (session_.isEmpty() || !dialog || !dialog->isVisible()) return failure("no_active_dialog", "No active dialog to capture");
+        const auto pixels = dialog->grab(); QSaveFile file(path);
+        if (!file.open(QIODevice::WriteOnly) || !pixels.save(&file, "PNG") || !file.commit()) return failure("capture_failed", "Could not save active dialog");
+        return QJsonObject{{"path", path}, {"source", "active QWidget dialog"}, {"sessionId", session_.value("id")},
+            {"pixelWidth", pixels.width()}, {"pixelHeight", pixels.height()}};
+    });
     add("app.quit", "Quit Alloy", "Complete the request, then exit on the next event-loop turn.", {}, [](const auto&) { QTimer::singleShot(0, qApp, &QApplication::quit); return QJsonObject{{"quitting", true}}; });
     for (const auto& pair : QList<QPair<QString, QString>>{{"sketch.create", "Create Sketch"}, {"solid.extrude", "Extrude"}, {"solid.revolve", "Revolve"}, {"solid.fillet", "Fillet"}, {"solid.shell", "Shell"}, {"solid.move", "Move"}, {"construction.plane", "Plane"}, {"inspect.measure", "Measure"}, {"document.save", "Save"}, {"history.undo", "Undo"}, {"history.redo", "Redo"}}) {
         commands_.push_back({pair.first, pair.second, "Not implemented in the UI shell.", {}, false, {}});
@@ -282,21 +348,32 @@ QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
     const auto* command = findCommand(id);
     if (!command) return failure("unknown_command", "No command named " + id);
     if (!command->available) return failure("not_implemented", command->title + " is not implemented in the UI shell");
-    for (auto it = args.begin(); it != args.end(); ++it) if (!command->parameters.contains(it.key())) return failure("invalid_arguments", "Unknown argument: " + it.key());
-    for (auto it = command->parameters.begin(); it != command->parameters.end(); ++it) {
-        const auto spec = it.value().toObject();
-        const auto value = args.value(it.key());
-        const QString type = spec.value("type").toString();
-        if (value.isUndefined() || (type == "boolean" && !value.isBool()) || (type == "string" && !value.isString()) || (type == "number" && !value.isDouble())) return failure("invalid_arguments", "Argument " + it.key() + " must be " + type);
-        if (spec.contains("enum") && !spec.value("enum").toArray().contains(value)) return failure("invalid_arguments", "Unsupported value for " + it.key());
-        if (type == "number" && (!std::isfinite(value.toDouble()) || value.toDouble() < spec.value("minimum").toDouble() || value.toDouble() > spec.value("maximum").toDouble())) return failure("invalid_arguments", "Argument out of range: " + it.key());
-    }
+    QString field;
+    const auto argumentError = validateArguments(*command, args, &field);
+    if (!argumentError.isEmpty()) return failure("invalid_arguments", argumentError, field);
     auto result = command->run(args);
     if (result.value("ok").isBool() && !result.value("ok").toBool()) return result;
     const bool changesState = id == "window.resize" || id.startsWith("layout.") || id.startsWith("view.") || (id == "commands.search" || id == "commands.close");
     if (changesState) ++revision_;
     refresh();
-    return {{"ok", true}, {"completion", "completed"}, {"command", id}, {"revision", static_cast<qint64>(revision_)}, {"result", result}};
+    return {{"ok", true}, {"completion", "completed"}, {"command", id}, {"revision", static_cast<qint64>(revision_)},
+        {"documentRevision", static_cast<qint64>(document_.revision())}, {"result", result}};
+}
+
+QString AlloyWindow::validateArguments(const Command& command, const QJsonObject& args, QString* field) const {
+    for (auto it = args.begin(); it != args.end(); ++it) if (!command.parameters.contains(it.key())) {
+        if (field) *field = it.key(); return "Unknown argument: " + it.key();
+    }
+    for (auto it = command.parameters.begin(); it != command.parameters.end(); ++it) {
+        if (field) *field = it.key();
+        const auto spec = it.value().toObject();
+        const auto value = args.value(it.key());
+        const QString type = spec.value("type").toString();
+        if (value.isUndefined() || (type == "boolean" && !value.isBool()) || (type == "string" && !value.isString()) || (type == "number" && !value.isDouble()) || (type == "object" && !value.isObject())) return "Argument " + it.key() + " must be " + type;
+        if (spec.contains("enum") && !spec.value("enum").toArray().contains(value)) return "Unsupported value for " + it.key();
+        if (type == "number" && (!std::isfinite(value.toDouble()) || value.toDouble() < spec.value("minimum").toDouble() || value.toDouble() > spec.value("maximum").toDouble())) return "Argument out of range: " + it.key();
+    }
+    return {};
 }
 
 QJsonObject AlloyWindow::state() const {
@@ -305,9 +382,15 @@ QJsonObject AlloyWindow::state() const {
     return {{"application", "Alloy"}, {"version", "0.1.0"}, {"stage", "document-foundation"},
         {"runtime", QJsonObject{{"qtVersion", qVersion()}, {"occtBuildVersion", ALLOY_OCCT_VERSION}}},
         {"revision", static_cast<qint64>(revision_)},
+        {"identity", identity()}, {"activeSession", session_},
         {"document", document_.state()},
         {"kernel", QJsonObject{{"candidate", "Open CASCADE"}, {"discoveredVersion", ALLOY_OCCT_VERSION}, {"integrated", false}, {"visualizationIntegrated", true}}},
-        {"ui", QJsonObject{{"workspace", "design"}, {"tab", "solid"}, {"browserVisible", browserVisible_}, {"timelineVisible", timelineVisible_}, {"navigationVisible", navigationVisible_}, {"commandSearchVisible", search_ && search_->isVisible()}, {"windowWidth", width()}, {"windowHeight", height()}, {"devicePixelRatio", devicePixelRatioF()}}},
+        {"ui", QJsonObject{{"workspace", "design"}, {"tab", "solid"}, {"browserVisible", browserVisible_}, {"timelineVisible", timelineVisible_}, {"navigationVisible", navigationVisible_}, {"commandSearchVisible", search_ && search_->isVisible()}, {"windowWidth", width()}, {"windowHeight", height()}, {"devicePixelRatio", devicePixelRatioF()},
+            {"activeDialog", QJsonObject{{"command", session_.value("command")},
+                {"visible", session_.value("command").toString() == "commands.search" ? bool(search_ && search_->isVisible()) : bool(unitsDialog_ && unitsDialog_->isVisible())},
+                {"inputs", session_.isEmpty() ? QJsonObject{} : (session_.value("command").toString() == "commands.search"
+                    ? QJsonObject{{"query", searchInput_ ? searchInput_->text() : QString{}}}
+                    : QJsonObject{{"units", unitsInput_ ? unitsInput_->currentText() : QString{}}})}}}}},
         {"viewport", QJsonObject{{"renderer", "OCCT OpenGL"}, {"gpu", view_->diagnostics()}, {"orientation", view_->orientation}, {"gridVisible", view_->grid}, {"originVisible", view_->origin}, {"zoom", view_->zoom}, {"pan", QJsonObject{{"x", view_->pan.x()}, {"y", view_->pan.y()}}}, {"width", view_->width()}, {"height", view_->height()}}}};
 }
 
@@ -316,6 +399,13 @@ void AlloyWindow::refresh() {
     browser_->setVisible(browserVisible_); timeline_->setVisible(timelineVisible_); navigation_->setVisible(navigationVisible_);
     tree_->topLevelItem(0)->child(0)->child(0)->setText(0, "Units: " + document_.authored()["displayUnits"].toString());
     setWindowTitle(QString("Untitled%1 — Alloy").arg(document_.history().isClean() ? "" : " *"));
+    if (session_.value("command").toString() == "document.units" && unitsInput_) {
+        const QSignalBlocker block(unitsInput_);
+        unitsInput_->setCurrentText(session_.value("inputs").toObject()["units"].toString());
+    }
+    if (session_.value("command").toString() == "commands.search" && searchInput_) {
+        searchInput_->setText(session_.value("inputs").toObject()["query"].toString());
+    }
     view_->sync();
     const auto gpu = view_->diagnostics();
     status_->setText(QString("  %3 · No model geometry · %1 · Zoom %2%    |    Middle mouse: pan · Wheel: zoom · S: commands")
@@ -328,7 +418,8 @@ void AlloyWindow::showSearch() {
     search_->setWindowTitle("Alloy — Commands"); search_->resize(510, 400);
     connect(search_, &QDialog::rejected, this, [this] { execute("commands.close"); });
     auto* layout = new QVBoxLayout(search_);
-    auto* input = new QLineEdit; input->setPlaceholderText("Search supported commands…"); layout->addWidget(input);
+    auto* input = new QLineEdit; searchInput_ = input;
+    input->setPlaceholderText("Search supported commands…"); layout->addWidget(input);
     auto* list = new QListWidget; layout->addWidget(list);
     auto populate = [this, list](const QString& query) {
         list->clear();
@@ -341,10 +432,75 @@ void AlloyWindow::showSearch() {
     };
     populate("");
     connect(input, &QLineEdit::textChanged, search_, populate);
+    connect(input, &QLineEdit::textChanged, search_, [this](const QString& query) {
+        if (session_.value("command").toString() == "commands.search" && session_.value("inputs").toObject()["query"].toString() != query)
+            execute("command.update", {{"session", session_.value("id")}, {"inputs", QJsonObject{{"query", query}}}});
+    });
     auto activate = [this, list] {
         if (const auto* item = list->currentItem()) { const auto id = item->data(Qt::UserRole).toString(); execute("commands.close"); execute(id); }
     };
     connect(input, &QLineEdit::returnPressed, search_, activate);
     connect(list, &QListWidget::itemActivated, search_, [activate](QListWidgetItem*) { activate(); });
     search_->show(); input->setFocus();
+}
+
+QJsonObject AlloyWindow::identity() const {
+    return {{"application", "Alloy"}, {"protocol", "alloy-control/1"}, {"instanceId", instanceId_},
+        {"pid", QCoreApplication::applicationPid()}, {"windowId", QString::number(static_cast<qulonglong>(winId()), 16)},
+        {"capabilities", QJsonArray{"shell", "authored-document", "command-sessions"}}};
+}
+
+QJsonObject AlloyWindow::beginSession(const QString& command, const QJsonObject& inputs) {
+    if (!session_.isEmpty()) return failure("session_busy", "Complete or cancel the active command first");
+    QJsonObject values = command == "commands.search" ? QJsonObject{{"query", ""}}
+        : QJsonObject{{"units", document_.authored()["displayUnits"]}};
+    for (auto it = inputs.begin(); it != inputs.end(); ++it) values[it.key()] = it.value();
+    if (command == "commands.search") {
+        if (values.size() != 1 || !values["query"].isString()) return failure("invalid_arguments", "Search requires a query string");
+    } else {
+        const auto error = validateArguments(*findCommand(command), values);
+        if (!error.isEmpty()) return failure("invalid_arguments", error);
+    }
+    session_ = {{"id", CadDocument::newId()}, {"command", command}, {"status", "active"},
+        {"inputs", values}, {"previewed", false}, {"baseDocumentRevision", static_cast<qint64>(document_.revision())},
+        {"inputSchema", command == "commands.search" ? QJsonObject{{"query", parameter("string", "Search text")}} : findCommand(command)->parameters}};
+    if (command == "commands.search") showSearch(); else showUnits();
+    return session_;
+}
+
+QJsonObject AlloyWindow::finishSession(const QString& id, bool commit) {
+    if (session_.isEmpty() || session_.value("id").toString() != id) return failure("invalid_session", "Session is no longer active");
+    const auto target = session_.value("command").toString();
+    QJsonObject result{{"sessionId", id}, {"status", commit ? "committed" : "cancelled"}};
+    if (commit && target != "commands.search") {
+        if (session_.value("baseDocumentRevision").toInteger() != static_cast<qint64>(document_.revision()))
+            return failure("stale_session", "The document changed; cancel and restart this edit");
+        auto response = execute(target, session_.value("inputs").toObject());
+        if (!response["ok"].toBool()) return response;
+        result["commandResult"] = response;
+    }
+    session_ = {};
+    if (target == "commands.search" && search_) search_->hide();
+    if (target == "document.units" && unitsDialog_) unitsDialog_->hide();
+    return result;
+}
+
+void AlloyWindow::showUnits() {
+    if (!unitsDialog_) {
+        unitsDialog_ = new QDialog(this); unitsDialog_->setWindowTitle("Document Settings");
+        unitsDialog_->setWindowModality(Qt::WindowModal);
+        auto* layout = new QVBoxLayout(unitsDialog_);
+        layout->addWidget(new QLabel("Units — changing units preserves the model's size"));
+        unitsInput_ = new QComboBox; unitsInput_->addItems({"mm", "in"});
+        unitsInput_->setObjectName("document.units.input"); layout->addWidget(unitsInput_);
+        auto* buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel); layout->addWidget(buttons);
+        connect(unitsInput_, &QComboBox::currentTextChanged, this, [this](const QString& units) {
+            execute("command.update", {{"session", session_.value("id")}, {"inputs", QJsonObject{{"units", units}}}});
+        });
+        connect(buttons, &QDialogButtonBox::accepted, this, [this] { execute("command.commit", {{"session", session_.value("id")}}); });
+        connect(buttons, &QDialogButtonBox::rejected, unitsDialog_, &QDialog::reject);
+        connect(unitsDialog_, &QDialog::rejected, this, [this] { execute("command.cancel", {{"session", session_.value("id")}}); });
+    }
+    { const QSignalBlocker block(unitsInput_); unitsInput_->setCurrentText(session_.value("inputs").toObject()["units"].toString()); }
+    unitsDialog_->show(); unitsDialog_->raise();
 }

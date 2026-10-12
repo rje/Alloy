@@ -1,0 +1,7 @@
+{
+  "schema": "alloy-session-fixture/1",
+  "target": "document.units",
+  "inputs": {"units": "in"},
+  "invalid_inputs": {"units": "cm"},
+  "search_query": "Home"
+}

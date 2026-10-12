@@ -46,6 +46,7 @@ if(BUILD_TESTING)
     target_link_libraries(document_model_test PRIVATE Qt6::Gui)
     add_test(NAME document_model COMMAND document_model_test)
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
+    add_test(NAME client_selection COMMAND ${Python3_EXECUTABLE} -E ${CMAKE_CURRENT_SOURCE_DIR}/tests/client_selection.py)
     add_test(NAME shell_api COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/shell_api.py
         --app $<TARGET_FILE:alloy> --output ${CMAKE_BINARY_DIR}/evidence)

@@ -1,6 +1,13 @@
 {
   "version": 1,
   "cases": {
+    "FND-006": {
+      "script": "tests/session_api.py",
+      "fixture": "tests/workflows/fixtures/sessions.json",
+      "result": "session-api.json",
+      "covers": ["FND-006"],
+      "capabilities": ["commands.sessions", "commands.shared_dialog", "commands.completion", "instances.discovery"]
+    },
     "DOC-002": {
       "script": "tests/document_api.py",
       "fixture": "tests/workflows/fixtures/document.json",
@@ -29,5 +36,5 @@
       "dimensions": ["build", "api", "hardware", "physical_input", "visual"]
     }
   },
-  "future_gate_policy": "Every later gate inherits earlier requirements and requires case coverage plus live closed-state prerequisites for every ancestor task. Unknown or missing cases block acceptance. Only the shell and runner-integrity cases exist today."
+  "future_gate_policy": "Every later gate inherits earlier requirements and requires case coverage plus live closed-state prerequisites for every ancestor task. Unknown or missing cases block acceptance. Registered cases do not imply product-gate acceptance."
 }

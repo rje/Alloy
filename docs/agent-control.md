@@ -12,7 +12,10 @@ command is available yet.
 
 On Linux, use `./build/alloy`. The app prints one startup JSON line containing
 `protocol`, `socket`, `pid`, and `status: "ready"`. `--ready-file` writes the same
-object atomically after the window is shown. Each launch defaults to a fresh
+object atomically after the window is shown. It now also includes a unique
+`instanceId`, native `windowId` and capability families, matching `app.identity`.
+Each launch registers a private record in `~/.alloy/instances/` (override with
+`--instance-dir`) and removes its own record on orderly quit. Each launch defaults to a fresh
 private temporary directory containing its socket. Keep the app running while
 using the client in another terminal:
 
@@ -25,6 +28,13 @@ python3 tools/alloyctl.py --ready-file /tmp/alloy-ready.json exec layout.reset
 python3 tools/alloyctl.py --ready-file /tmp/alloy-ready.json screenshot /tmp/alloy.png
 python3 tools/alloyctl.py --ready-file /tmp/alloy-ready.json exec app.quit
 ```
+
+`python3 tools/alloyctl.py instances` verifies live identities and reports stale
+records. With one live registered instance, commands can omit endpoint flags.
+With several, pass `--instance UUID`; the client refuses an ambiguous choice.
+Ready-file selection verifies the live protocol/PID/window/instance UUID before
+sending an operation. Stale records never cause socket deletion or endpoint
+takeover. Explicit `--socket` remains a caller-selected direct endpoint.
 
 Alternatively pass `--socket PATH` to the client or set `ALLOY_SOCKET`. For a
 chosen app endpoint, `--control-socket /absolute/private-directory/control.sock`
@@ -82,6 +92,13 @@ and `capture_failed`.
 | `commands.list` | Registry with both implemented and unavailable entries |
 | `app.state` | Real shell/window/view state, live GPU diagnostics, zero authored geometry counts |
 | `commands.search`, `commands.close` | Show/dismiss the native search dialog |
+| `app.identity` | Stable protocol/process/window/instance identity and capabilities |
+| `document.settings` | Open the native shared display-units edit dialog |
+| `command.begin` | `command`: `document.units` or `commands.search`; `inputs`: object |
+| `command.update` | `session`: UUID; `inputs`: partial object; validates without committing |
+| `command.preview` | `session`: UUID; disposable draft, explicitly no evaluated geometry |
+| `command.commit`, `command.cancel` | `session`: UUID; explicit completion or refusal |
+| `capture.dialog` | Absolute `.png` path; actual active QWidget dialog |
 | `document.inspect` | Authored root/feature IDs, ownership, canonical units and journal state |
 | `document.units` | `units`: `mm` or `in`; display conversion preserves canonical values |
 | `document.new` | `discard`: boolean; dirty replacement refuses unless explicitly acknowledged |
@@ -126,6 +143,15 @@ is never reported as success. Capture results add `viewportPixelWidth`,
 `viewportPixelHeight`, and `viewportSha256` (raw RGB32 framebuffer bytes) so camera
 changes can be checked independently of status labels and shell layout changes.
 No screenshot establishes authored geometry or CAD workflow acceptance.
+
+`activeSession` exposes actual dialog inputs/schema, the base document revision,
+status and session UUID. `ui.activeDialog` separately inspects widget visibility
+and displayed inputs. Draft updates and previews create no undo entries; commit
+calls the same registered document command as direct UI/API execution. Cancelled
+or superseded IDs cannot commit. `document.lastTransactionId` identifies the last
+committed/undone/redone journal entry. These are synchronous operations; no async
+job family is exposed until a real long operation needs it. A main-window capture
+excludes separate dialogs; `capture.dialog` captures those real 2D widgets.
 
 ## Verification and extension contract
 
