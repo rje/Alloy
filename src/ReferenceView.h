@@ -63,6 +63,9 @@ public:
     QJsonObject projectBody(const EvaluatedBody& body) const;
     void showPreview(const TopoDS_Shape& shape,const QString& replacedBody = {}, bool neutral = false);
     void showExtrudePreview(const EvaluatedBody& body, const EvaluatedProfile& profile, double distanceMm, const QJsonArray& sourceProfileIds = {}, const QString& units = "mm");
+    void showCutPreview(const EvaluatedBody& body, const std::vector<EvaluatedProfile>& profiles, double distanceMm,
+        const QJsonArray& sourceProfileIds, const QString& units);
+    void showExtrudeHandle(const EvaluatedProfile& profile,const QJsonArray& sourceProfileIds,const QString& units,const QString& operation,double distanceMm = 0);
     void clearPreview();
     QPaintEngine* paintEngine() const override { return nullptr; }
 protected:
@@ -89,6 +92,8 @@ private:
     void applyEditDisplay(bool redraw = true);
     void clearPreviewPresentation();
     void refreshExtrusionCue();
+    void setExtrusionCue(const EvaluatedProfile& profile,double distanceMm,const QJsonArray& sourceProfileIds,const QString& units,const QString& operation);
+    void updateExtrusionDrag(const QPointF& position,const QString& phase);
     void replacePreview(const TopoDS_Shape& shape, const QString& replacedBody, bool neutral);
     QPointF windowScale() const;
     Handle(V3d_Viewer) viewer_;
@@ -137,8 +142,12 @@ private:
     QJsonObject sketchFrame_;
     quint64 sketchRevision_ = 0;
     Handle(AIS_Shape) preview_;
+    std::vector<Handle(AIS_Shape)> cutTools_;
     std::vector<Handle(AIS_InteractiveObject)> extrusionCue_;
     QJsonObject extrusionCueState_;
+    bool extrusionDragActive_ = false;
+    QPointF extrusionDragPress_;
+    double extrusionDragInitialMm_ = 0;
     QString previewReplacedBody_, previewProfile_;
     QJsonArray previewProfileIds_;
     quint64 modelRevision_ = 0;

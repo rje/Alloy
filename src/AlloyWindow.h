@@ -58,6 +58,7 @@ private:
     QJsonObject beginExtrude(const QJsonObject& inputs);
     QString validateExtrudeInputs(const QJsonObject& inputs) const;
     QJsonObject extrusionCandidate(const QJsonObject& inputs, bool hideSource) const;
+    QJsonArray discoverCutTargets(const QJsonObject& inputs) const;
     QJsonObject previewExtrude();
     void showExtrude();
     void refreshExtrudeControls();
@@ -138,6 +139,9 @@ private:
     QWidget* extrudePanel_ = nullptr;
     QDockWidget* extrudeDock_ = nullptr;
     QComboBox* extrudeProfile_ = nullptr;
+    QComboBox* extrudeOperation_ = nullptr;
+    QComboBox* extrudeTarget_ = nullptr;
+    QLabel* extrudeTargetLabel_ = nullptr;
     QDoubleSpinBox* extrudeDistance_ = nullptr;
     QLabel* extrudeError_ = nullptr;
     QPushButton* extrudeOk_ = nullptr;
