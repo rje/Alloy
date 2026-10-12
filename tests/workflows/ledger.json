@@ -1,6 +1,13 @@
 {
   "version": 1,
   "cases": {
+    "FND-009": {
+      "script": "tests/native_builds.py",
+      "fixture": "tests/workflows/fixtures/native-builds.json",
+      "result": "native-builds.json",
+      "covers": ["FND-009"],
+      "capabilities": ["build.native_baseline"]
+    },
     "FND-006": {
       "script": "tests/session_api.py",
       "fixture": "tests/workflows/fixtures/sessions.json",

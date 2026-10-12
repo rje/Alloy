@@ -1,0 +1,98 @@
+{
+  "observed_at": "2026-10-12T02:12:07.165223+00:00",
+  "result": "passed",
+  "candidate": {
+    "app": "/Users/rje/src/cpp/Alloy/build/alloy.app/Contents/MacOS/alloy",
+    "source_commit": "c229a930ce793f90436ae14d6c10d72ebf27f78c",
+    "dirty": true,
+    "sha256": "98f2e7ee19d4ca2a79bb26161ba6907e8a7374256e7fd0d05a5dea4f12b5b871"
+  },
+  "inputs_sha256": {
+    "tests/workflows/ledger.json": "26dbcfce22588ac0df0ee51bd63bcd03a569cce759c7334564d679abd72512d2",
+    "docs/backlog/issues.json": "e7dd634d06a26ea5f58b7ae3c4d95c215119b75b245ff858a0e5d02baa28e1b7",
+    "tests/workflows/run.py": "25ed122e7d795e916de19e11acfae597fc0f1fd2bb4983a6765c946f8b759ead",
+    "CMakeLists.txt": "399a9986e135c7b0e3e503024a8d36a8372fe213106f2996404eb91c2fad0b00",
+    "tools/alloyctl.py": "7429d3a49baccef9bbf63b90924dccf2ac13c083feb4b55a8bbd499e442aa2ca",
+    "tools/backlog.py": "2db58486ac1cfa3366dc9d942b3e6177531bb800e8a7e0a87390a30ddba13417",
+    "src/AlloyWindow.cpp": "430cb1f30cc52cb3a6b3d18fbac6d203638e8f3e02cd09ae32ac00e169ad471d",
+    "src/AlloyWindow.h": "19570d28dd40f798370d64bf03b4476d6ef092fd8f10e4029efdd6bd52c2339e",
+    "src/CadDocument.cpp": "6d98efd4b6addef41649ae1ab173f9daafd772829e24c4518fee1faf776caf1a",
+    "src/CadDocument.h": "233dbb988436b5552fb778402feec981a68622ff9b36b71996cead6f7ca43f1b",
+    "src/ControlServer.cpp": "cb8ad74e6bed508791cc0f12e0d09b7cad46d7ccf20e0f5ceeb53178e83fddea",
+    "src/ControlServer.h": "9c692cacf1f764435284b1cec2e3d50a38ebda8ab7aeccd76704adbf67aee651",
+    "src/ReferenceView.cpp": "603ad335b468d3d8c2873e2748d9d8986528bc199dfdd69b82d90315eeec2f28",
+    "src/ReferenceView.h": "d8f709c0e2f441887b7de54da1a3b29c3f0429a79902278c76c9cdfd20084cd4",
+    "src/main.cpp": "16853ebf0f003c63d1455a7e36819dd1cc952c43ab4758dc16deb8cda949a9f8",
+    "tests/native_builds.py": "084da57ecdaf00847b37639ccc87b64cb2b4a42c59d7a2a27d816d3105bd4f7c",
+    "tests/workflows/fixtures/native-builds.json": "b8118a12eb49459c18d6b889eb9232ec83fb48b6e785348dbd10f36b92aa3a50"
+  },
+  "nativeRecordSha256": "04da22b4b4b23b9558622a33b53357bf51bd340c667dc8f96484ba28b4ded9c1",
+  "nativeBuilds": {
+    "linux-x64": {
+      "source_commit": "12fe5345d2a165eaea54fac95cd2079b37ac37f1",
+      "compiler": "GNU 13.3.0",
+      "binary_sha256": "730c2afca84ae41715b2b92fd589b2acf1d420f8d613ae6bf00fa4e52f70ac0f",
+      "runtime_tested": false
+    },
+    "macos-arm64": {
+      "source_commit": "12fe5345d2a165eaea54fac95cd2079b37ac37f1",
+      "compiler": "AppleClang 17.0.0.17000013",
+      "binary_sha256": "566c4b1235849780b405c06ec0ed6d1e2a82bea52c9c0600436bc2ed7644a40b",
+      "runtime_tested": false
+    },
+    "macos-x64": {
+      "source_commit": "12fe5345d2a165eaea54fac95cd2079b37ac37f1",
+      "compiler": "AppleClang 17.0.0.17000013",
+      "binary_sha256": "062949e785c7009dfe2c860dab16cd275ff596bc6b07f4686ca793e9775d833d",
+      "runtime_tested": false
+    },
+    "windows-x64": {
+      "source_commit": "12fe5345d2a165eaea54fac95cd2079b37ac37f1",
+      "compiler": "MSVC 19.44.35229.0",
+      "binary_sha256": "6c359db472c3fe75c3b467b2b23e857181b24e2af2d01f8f6c7f72c9217bbbe3",
+      "runtime_tested": false
+    }
+  },
+  "dimensions": {
+    "build": {
+      "status": "not_run",
+      "reason": "Inspected four prior clean native compilation artifacts at the explicitly recorded source commit; current local binary was not rebuilt by this case.",
+      "receipt": "/Users/rje/src/cpp/Alloy/build/evidence/FND-009/run-436o8ujt/FND-009/native-builds.json"
+    },
+    "api": {
+      "status": "passed",
+      "receipt": "/Users/rje/src/cpp/Alloy/build/evidence/FND-009/run-436o8ujt/FND-009/native-builds.json",
+      "commands": 3
+    },
+    "hardware": {
+      "status": "not_run",
+      "reason": "No applicable case has produced this evidence."
+    },
+    "geometry": {
+      "status": "not_run",
+      "reason": "No applicable case has produced this evidence."
+    },
+    "save_reopen": {
+      "status": "not_run",
+      "reason": "No applicable case has produced this evidence."
+    },
+    "export": {
+      "status": "not_run",
+      "reason": "No applicable case has produced this evidence."
+    },
+    "physical_input": {
+      "status": "not_run",
+      "reason": "No applicable case has produced this evidence."
+    },
+    "visual": {
+      "status": "not_run",
+      "reason": "No applicable case has produced this evidence."
+    }
+  },
+  "report_sha256": "d16bc18cf365868e064b86d06d8e7951b2f15edd9976b1479d3cc9627206a754",
+  "case_sha256": "c24562466073617f9fe10aa0e960d14282cff8e511732503f94f69aa11384331",
+  "limits": [
+    "Four native compiles are explicitly at12fe534; current local build evidence remains not_run.",
+    "No runtime/GL/control claim for Windows or Linux; unbundled artifacts."
+  ]
+}

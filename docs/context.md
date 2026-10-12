@@ -116,8 +116,8 @@ for macOS arm64/Intel, Windows x64 and Ubuntu24.04 x64; its initial run compiled
 on a missing Fontconfig development header; that run and its artifacts were
 removed with the old-history cleanup. The corrected
 [matrix run](https://github.com/rje/Alloy/actions/runs/38192218283) compiled all
-four targets successfully at source 12fe534. FND-009 is auditing its toolchain
-metadata and artifacts; subsequent candidates remain separate.
+four targets successfully at source 12fe534. FND-009's independently reviewed
+toolchain/artifact audit passed; subsequent candidates remain separate.
 It retains unbundled compile artifacts, not yet independently runnable packages.
 Windows named-pipe control, Linux X11/GLX runtime qualification, relocation,
 dependency notices and tagged milestone publishing remain open.
@@ -133,6 +133,9 @@ FND-003 is complete with a permitted Qt/OCCT comparison and independently review
 QUndoStack, with no persisted session journal. DOC-002 integration and its focused evidence are complete;
 FND-006 shared sessions are complete; DOC-003/DOC-004 supply exposed undo and
 native storage next. FND-004 resolves stable geometric references independently.
+Its bounded OCCT fixture now passed generator role rebinding, fillet history,
+split/deletion/merge cases; [decision 002](decisions/002-geometric-references.md)
+defines conservative unresolved behavior. DOC-012 still implements the real resolver.
 
 The proposed next product increment is [roadmap milestone 1](roadmap.md): integrate OCCT
 and a real CAD viewport/document; create/select/inspect a primitive; add undo,

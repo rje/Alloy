@@ -1,0 +1,160 @@
+{
+  "schema": "alloy-native-targets/1",
+  "observed_at": "2026-10-12",
+  "source_commit": "12fe5345d2a165eaea54fac95cd2079b37ac37f1",
+  "run_url": "https://github.com/rje/Alloy/actions/runs/38192218283",
+  "qt": "6.11.2",
+  "occt_commit": "a016080bf6738d6aeae020badee4e888ad1540a5",
+  "freetype_commit": "42608f77f20749dd6ddc9e0536788eaad70ea4b5",
+  "aqt_commit": "076e1659807d0b362a3ed684d54c2e9c775eb9c7",
+  "cmake": "3.31.6",
+  "ninja": "1.11.1.4",
+  "targets": {
+    "linux-x64": {
+      "compiler_id": "GNU",
+      "compiler_version": "13.3.0",
+      "runner_image_version": "20261004.327.1",
+      "minimum_runtime_candidate": "Ubuntu 24.04 x64, glibc 2.39, X11/GLX",
+      "compiled": {
+        "result": "compiled",
+        "target": "linux-x64",
+        "observed_at": "2026-10-12T01:52:34.321367+00:00",
+        "source_commit": "12fe5345d2a165eaea54fac95cd2079b37ac37f1",
+        "qt": "6.11.2",
+        "occt_commit": "a016080bf6738d6aeae020badee4e888ad1540a5",
+        "freetype_commit": "42608f77f20749dd6ddc9e0536788eaad70ea4b5",
+        "binary_sha256": "730c2afca84ae41715b2b92fd589b2acf1d420f8d613ae6bf00fa4e52f70ac0f",
+        "runtime_tested": false,
+        "gpu_tested": false,
+        "dependencies_bundled": false
+      },
+      "artifact_directory": "build/evidence/native-matrix-38192218283/alloy-linux-x64-unbundled-12fe5345d2a165eaea54fac95cd2079b37ac37f1",
+      "checked_files_sha256": {
+        "build.json": "462a9e57e1b7555221e59ac9c8bf8891c19f4057a6b412296ef62769e5a7b3b2",
+        "13-cmake.log": "4e1f1fcc3eb07a415d25b8731d26f8752b70b3a8c5dac695d43807744acf6f1b",
+        "16-cmake.log": "9fac151db7458b820cab23fca75df6d6aa9e25f7ab9623c5b2a998bfbdb97fa3",
+        "alloy": "730c2afca84ae41715b2b92fd589b2acf1d420f8d613ae6bf00fa4e52f70ac0f"
+      }
+    },
+    "macos-arm64": {
+      "compiler_id": "AppleClang",
+      "compiler_version": "17.0.0.17000013",
+      "runner_image_version": "20260907.0337.1",
+      "minimum_runtime_candidate": "macOS 13",
+      "compiled": {
+        "result": "compiled",
+        "target": "macos-arm64",
+        "observed_at": "2026-10-12T01:45:04.196983+00:00",
+        "source_commit": "12fe5345d2a165eaea54fac95cd2079b37ac37f1",
+        "qt": "6.11.2",
+        "occt_commit": "a016080bf6738d6aeae020badee4e888ad1540a5",
+        "freetype_commit": "42608f77f20749dd6ddc9e0536788eaad70ea4b5",
+        "binary_sha256": "566c4b1235849780b405c06ec0ed6d1e2a82bea52c9c0600436bc2ed7644a40b",
+        "runtime_tested": false,
+        "gpu_tested": false,
+        "dependencies_bundled": false
+      },
+      "artifact_directory": "build/evidence/native-matrix-38192218283/alloy-macos-arm64-unbundled-12fe5345d2a165eaea54fac95cd2079b37ac37f1",
+      "checked_files_sha256": {
+        "build.json": "fc81bab6e7064be0d188e635dbf081bd7f6838ced36a8d876ffda372e665a892",
+        "13-cmake.log": "5376e0a199e61f5be6c184fabcf8e5d22c7da73bee7958c29bdfcfe303d5050a",
+        "16-cmake.log": "18a2db030b0f42df1469289fe13ddc84adb074ffa77b71d66bf11d434fdb0f38",
+        "alloy.app/Contents/MacOS/alloy": "566c4b1235849780b405c06ec0ed6d1e2a82bea52c9c0600436bc2ed7644a40b"
+      },
+      "observed_binary_deployment": {
+        "minimum_macos": "15.0",
+        "sdk": "15.5"
+      }
+    },
+    "macos-x64": {
+      "compiler_id": "AppleClang",
+      "compiler_version": "17.0.0.17000013",
+      "runner_image_version": "20260824.0482.1",
+      "minimum_runtime_candidate": "macOS 13",
+      "compiled": {
+        "result": "compiled",
+        "target": "macos-x64",
+        "observed_at": "2026-10-12T01:57:28.917249+00:00",
+        "source_commit": "12fe5345d2a165eaea54fac95cd2079b37ac37f1",
+        "qt": "6.11.2",
+        "occt_commit": "a016080bf6738d6aeae020badee4e888ad1540a5",
+        "freetype_commit": "42608f77f20749dd6ddc9e0536788eaad70ea4b5",
+        "binary_sha256": "062949e785c7009dfe2c860dab16cd275ff596bc6b07f4686ca793e9775d833d",
+        "runtime_tested": false,
+        "gpu_tested": false,
+        "dependencies_bundled": false
+      },
+      "artifact_directory": "build/evidence/native-matrix-38192218283/alloy-macos-x64-unbundled-12fe5345d2a165eaea54fac95cd2079b37ac37f1",
+      "checked_files_sha256": {
+        "build.json": "a494baac61233f45235b4f1d035863562fd703c87a82f5a0a9b09924167c9866",
+        "13-cmake.log": "37749ceacd5749928c784055a6180f5277b22eb09f004eda13586a8f29adf4dd",
+        "16-cmake.log": "b8fd71aa1b60e13e29a9ffa2d02ad6355ccc88821d1c606ae22e159a1e4ba16b",
+        "alloy.app/Contents/MacOS/alloy": "062949e785c7009dfe2c860dab16cd275ff596bc6b07f4686ca793e9775d833d"
+      },
+      "observed_binary_deployment": {
+        "minimum_macos": "15.0",
+        "sdk": "15.5"
+      }
+    },
+    "windows-x64": {
+      "compiler_id": "MSVC",
+      "compiler_version": "19.44.35229.0",
+      "runner_image_version": "20261004.326.1",
+      "minimum_runtime_candidate": "Windows 10 1809",
+      "compiled": {
+        "result": "compiled",
+        "target": "windows-x64",
+        "observed_at": "2026-10-12T01:46:49.866154+00:00",
+        "source_commit": "12fe5345d2a165eaea54fac95cd2079b37ac37f1",
+        "qt": "6.11.2",
+        "occt_commit": "a016080bf6738d6aeae020badee4e888ad1540a5",
+        "freetype_commit": "42608f77f20749dd6ddc9e0536788eaad70ea4b5",
+        "binary_sha256": "6c359db472c3fe75c3b467b2b23e857181b24e2af2d01f8f6c7f72c9217bbbe3",
+        "runtime_tested": false,
+        "gpu_tested": false,
+        "dependencies_bundled": false
+      },
+      "artifact_directory": "build/evidence/native-matrix-38192218283/alloy-windows-x64-unbundled-12fe5345d2a165eaea54fac95cd2079b37ac37f1",
+      "checked_files_sha256": {
+        "build.json": "22cd7db7994f04c04e5aa824a259ce8b5a907cf36f500d9682453cc1c2c63f72",
+        "13-cmake.log": "05669228a0697b4e962c14f3d47611793e44c46f4fe1f1a5c9abb1c8c2db61ee",
+        "16-cmake.log": "f7598f7dc148325bf3145eecbbec27ae1cc75e56af65a469c8c73a354d391e1f",
+        "alloy.exe": "6c359db472c3fe75c3b467b2b23e857181b24e2af2d01f8f6c7f72c9217bbbe3"
+      }
+    }
+  },
+  "source_options": {
+    "occt_shared": true,
+    "occt_disabled_modules": [
+      "ApplicationFramework",
+      "DataExchange",
+      "Draw",
+      "DETools"
+    ],
+    "disabled_optional": [
+      "TBB",
+      "VTK",
+      "FREEIMAGE",
+      "FFMPEG",
+      "RAPIDJSON",
+      "DRACO"
+    ],
+    "freetype_external_dependencies": false
+  },
+  "limits": [
+    "These are tested development compiler baselines and proposed runtime floors, not runtime qualification.",
+    "Hosted runner images and OS headers are rolling; version guards detect compiler drift but do not reproduce the entire OS image or bit-identical binaries.",
+    "Qt SDK archive integrity is checked by the pinned downloader; an offline archive mirror and full per-package source distribution belong to CI-002.",
+    "No Windows/Linux hardware or control-runtime qualification from compilation."
+  ],
+  "public_sources": [
+    {
+      "url": "https://doc.qt.io/qt-6.11/supported-platforms.html",
+      "retrieved": "2026-10-11"
+    },
+    {
+      "url": "https://doc.qt.io/qt-6.11/macos.html",
+      "retrieved": "2026-10-11"
+    }
+  ]
+}

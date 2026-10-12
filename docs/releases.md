@@ -12,8 +12,9 @@ Release compilation on `macos-15`, `macos-15-intel`, `windows-2022`, and
 `ubuntu-24.04`. It also supports manual dispatch. [tools/ci/build.py](../tools/ci/build.py)
 downloads Qt 6.11.2 using a reviewed pinned aqt revision and builds exact OCCT
 7.9.3 and FreeType 2.13.3 source revisions. CMake and Ninja/action versions are
-pinned. Other downloader dependencies, hosted image revisions and system headers
-still need the reproducibility audit in FND-009.
+pinned. FND-009 records tested compiler/image baselines and pins downloader
+dependencies; see [native development baseline](dependencies/native-builds.md).
+Hosted OS images/system headers remain rolling, with compiler drift guards.
 
 The initial matrix compiled Windows and both macOS architectures; Linux failed
 on a missing Fontconfig development header. The pre-rewrite run and artifacts

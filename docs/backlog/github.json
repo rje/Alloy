@@ -1,7 +1,7 @@
 {
   "repository": "rje/Alloy",
   "project_url": "https://github.com/users/rje/projects/1",
-  "updated": "2026-10-12T01:44:56.509004+00:00",
+  "updated": "2026-10-12T02:05:56.519063+00:00",
   "issues": {
     "CI-003": {
       "number": 135,
@@ -651,7 +651,7 @@
     "FND-006": {
       "number": 6,
       "url": "https://github.com/rje/Alloy/issues/6",
-      "state": "open"
+      "state": "closed"
     },
     "FND-005": {
       "number": 5,

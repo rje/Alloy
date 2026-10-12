@@ -1,0 +1,9 @@
+{
+  "record": "docs/dependencies/native-targets.json",
+  "targets": [
+    "linux-x64",
+    "macos-arm64",
+    "macos-x64",
+    "windows-x64"
+  ]
+}

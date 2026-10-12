@@ -28,6 +28,7 @@ def main():
     parser.add_argument('--target', choices=TARGETS, required=True)
     args = parser.parse_args()
     expected_os, arch, host, qt_arch = TARGETS[args.target]
+    baseline = json.loads((ROOT / 'docs/dependencies/native-targets.json').read_text())['targets'][args.target]
     if sys.platform != expected_os or platform.machine() != arch:
         raise RuntimeError(f'Expected {expected_os}/{arch}, observed {sys.platform}/{platform.machine()}')
     artifact = ROOT / 'build/ci-artifact'
@@ -92,7 +93,9 @@ def main():
         build(occt_source, 'occt', occt, options)
         directory = ROOT / 'build/ci-native'
         run('cmake', '-S', ROOT, '-B', directory, *generator, *shared,
-            f'-DCMAKE_PREFIX_PATH={qt};{occt};{ft}', '-DBUILD_TESTING=OFF')
+            f'-DCMAKE_PREFIX_PATH={qt};{occt};{ft}', '-DBUILD_TESTING=OFF',
+            f'-DALLOY_EXPECTED_COMPILER_ID={baseline["compiler_id"]}',
+            f'-DALLOY_EXPECTED_COMPILER_VERSION={baseline["compiler_version"]}')
         run('cmake', '--build', directory, '--config', 'Release', '--parallel', '3')
         binary = directory / ('alloy.app' if sys.platform == 'darwin' else
                               'Release/alloy.exe' if sys.platform == 'win32' else 'alloy')
@@ -105,6 +108,9 @@ def main():
         receipt = {'result':'compiled', 'target':args.target, 'observed_at':datetime.now(timezone.utc).isoformat(),
                    'source_commit':os.environ.get('GITHUB_SHA'), 'qt':QT_VERSION,
                    'occt_commit':OCCT, 'freetype_commit':FREETYPE,
+                   'compiler_baseline': {key:baseline[key] for key in ('compiler_id','compiler_version')},
+                   'host':platform.platform(), 'python':platform.python_version(),
+                   'runner_image':os.environ.get('ImageOS'), 'runner_image_version':os.environ.get('ImageVersion'),
                    'binary_sha256':hashlib.sha256(executable.read_bytes()).hexdigest(),
                    'runtime_tested':False, 'gpu_tested':False, 'dependencies_bundled':False}
         (artifact / 'build.json').write_text(json.dumps(receipt,indent=2)+'\n')

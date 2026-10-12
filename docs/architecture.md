@@ -105,6 +105,9 @@ guides; prototype conclusions must identify the actual pinned library versions.
 Fillets, projections, and downstream sketches depend on faces and edges that can
 change when an upstream feature changes. Raw face/edge indices are insufficient.
 Prototype supported reference tracking before building a large command catalog.
+The permitted primitive/fillet/split/deletion/merge fixture passed; see
+[decision 002](decisions/002-geometric-references.md). The application resolver
+remains DOC-012, with no raw-index or nearest-edge fallback.
 
 The first edit fixture should change a sketch dimension and demonstrate whether
 the extrude and fillet update correctly. Add split/merge cases as coverage grows.

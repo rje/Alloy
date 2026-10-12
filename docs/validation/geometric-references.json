@@ -1,0 +1,70 @@
+{
+  "observed_at": "2026-10-11",
+  "result": {
+    "deletion": {
+      "automaticReattachment": false,
+      "deleted": true,
+      "resolution": "unresolved",
+      "valid": true
+    },
+    "limits": [
+      "OCCT-only fixture; no application feature or persistent-reference subsystem implemented",
+      "Semantic roles apply only to this primitive generator; no topology-index or nearest-edge fallback",
+      "Generic history composition, load/recompute reference resolution and user repair remain follow-up work"
+    ],
+    "linearRoleToleranceMm": 1e-06,
+    "merge": {
+      "resolution": "merged_requires_repair",
+      "sameDescendant": true,
+      "sourceEdges": 2,
+      "valid": true
+    },
+    "occt": "7.9.3",
+    "reference": {
+      "bodyId": "c38031dd-5112-4e5b-836a-4746bc12bfe1",
+      "generatorRole": "edge:positive-x:positive-y",
+      "kind": "edge",
+      "producerFeatureId": "286b6725-8aab-44d2-90d2-e22d85380411"
+    },
+    "result": "passed",
+    "split": {
+      "automaticReattachment": false,
+      "modifiedDescendants": 2,
+      "resolution": "ambiguous",
+      "valid": true
+    },
+    "widthEdits": [
+      {
+        "faceRole": "face:positive-x",
+        "filletRadiusMm": 1,
+        "generatedShapes": 1,
+        "modifiedFaceDescendants": 1,
+        "originalEdgeDeleted": true,
+        "resolution": "unique",
+        "role": "edge:positive-x:positive-y",
+        "valid": true,
+        "widthMm": 10
+      },
+      {
+        "faceRole": "face:positive-x",
+        "filletRadiusMm": 1,
+        "generatedShapes": 1,
+        "modifiedFaceDescendants": 1,
+        "originalEdgeDeleted": true,
+        "resolution": "unique",
+        "role": "edge:positive-x:positive-y",
+        "valid": true,
+        "widthMm": 22
+      }
+    ]
+  },
+  "commands": [
+    "cmake --build build --target topology_reference_spike",
+    "build/topology_reference_spike build/evidence/FND-004"
+  ],
+  "sha256": {
+    "research/prototypes/topology_references.cpp": "8746723df453e06cc76b8e92c3fa6b8068e2712c93ef5cfc0f5f006a5bb99245",
+    "build/topology_reference_spike": "143ba41ec984fc5c580150f08327a51454ab3f90574810f393eaa1183d881462",
+    "build/evidence/FND-004/topology-references.json": "2ad27f5609e0822a0ee0fcb8ae1c00cd5e152b663c3dfbd17911a08b3e2bd6a6"
+  }
+}
