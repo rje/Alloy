@@ -87,3 +87,21 @@ constraint families remain separate tracked requirements.
 
 Astra independently reviewed the actual capture and exact state comparisons;
 SKT-006 #33 is closed. SOL-002 Combine remains open for its native completion.
+
+## Native Combine completion supplement (2026-10-12)
+
+An API-created 20 × 20 × 10 mm plate and radius-3 through-cylinder were selected
+using native Combine controls. Native target/tool selection, Cut, Keep Tools
+checked and OK produced two valid closed bodies. Reopening the Timeline feature,
+unchecking Keep Tools and accepting produced one valid closed plate with the same
+body ID and volume 4000 − 90π = 3717.256661176918 mm³. Actual captures show both
+checkbox states and the resulting hole. API save/reopen preserves exact authored
+features. No automation substitution was used for the Combine controls.
+
+Evidence: `build-exchange/evidence/closure/native-combine-receipt.json`, matching
+`native-combine-*.json` states, `native-combine-keep-true.png`,
+`native-combine-keep-false.png`, `native-combine-result.png` and `native-combine.alloy`.
+Astra independently inspected captures, topology, volume, identity and storage.
+Combined with the earlier API Join/Intersect, hidden-target, atomic-failure and
+history checks, SOL-002 #40 is qualified for closure. This does not claim physical
+input for every operation or resolve the separate #158 accessibility row-name issue.
