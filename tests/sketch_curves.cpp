@@ -121,6 +121,33 @@ void lineAngularDimensions(const QString& owner){
     const auto json=QJsonDocument(edited).toJson(QJsonDocument::Compact);const auto reopened=QJsonDocument::fromJson(json).object();
     check(reopened==edited && SketchGeometry::solveDraft(reopened).ok,"Retained line-angle JSON could not be reevaluated");
 }
+void underconstrainedOutlineAngle(const QString& owner){
+    auto f=SketchGeometry::newFeature(owner,"XY","Retained free outline angle");
+    const double vertices[][2]{{0,0},{490,0},{800,240},{735,315},{430,155},{0,155},{0,0}};
+    for(int i=0;i<6;++i){
+        QJsonObject args{{"u1Mm",vertices[i][0]},{"v1Mm",vertices[i][1]},{"u2Mm",vertices[i+1][0]},{"v2Mm",vertices[i+1][1]}};
+        args["startSnapTarget"]=i==0 ? QJsonObject{{"kind","origin"}} : QJsonObject{{"kind","point"},{"pointId",entity(f,i-1)["endPointId"]}};
+        if(i==5)args["endSnapTarget"]=QJsonObject{{"kind","origin"}};
+        f=accepted(SketchGeometry::addPointerEntity(f,"line",args));
+    }
+    auto pair=[&](const QString& kind,int a,int b){f=accepted(SketchGeometry::addConstraint(f,{{"type",kind},{"entityIds",QJsonArray{entity(f,a)["id"],entity(f,b)["id"]}}}));};
+    pair("perpendicular",5,0);pair("perpendicular",1,2);pair("perpendicular",2,3);
+    for(int i:{0,4})f=accepted(SketchGeometry::addConstraint(f,{{"type","horizontal"},{"entityIds",QJsonArray{entity(f,i)["id"]}}}));
+    pair("equal",0,1);pair("equal",2,5);
+    f=accepted(SketchGeometry::addDimension(f,{{"kind","horizontal"},{"entityId",entity(f)["id"]},{"valueMm",500}}));
+    const auto before=f;
+    f=accepted(SketchGeometry::addDimension(f,{{"kind","angle"},{"entityIds",QJsonArray{entity(f)["id"],entity(f,1)["id"]}},{"raySigns",QJsonArray{1,1}},{"valueDeg",45}}));
+    near(lineAngle(f,1,1),45,"Free-cap outline angle did not solve");
+    near(lineLength(f,0),500,"Free-cap angle changed driving lower length");near(lineLength(f,1),500,"Free-cap angle lost Equal length");
+    check(SketchGeometry::solveDraft(f).diagnostics["dof"].toInt()==1,"Angle falsely fixed remaining cap freedom");
+    check(lineLength(f,2)>0.001 && lineLength(f,5)>0.001,"Underdetermined angle solve collapsed unconstrained cap");
+    check(f["parameters"].toObject()["constraints"]==before["parameters"].toObject()["constraints"],"Solver introduced an authored cap constraint");
+    const auto profile=SketchProfiles::derive(f);check(profile.ok,qPrintable(profile.error));
+    f=accepted(SketchGeometry::addDimension(f,{{"kind","linear"},{"entityId",entity(f,2)["id"]},{"valueMm",100}}));
+    near(lineLength(f,2),100,"Cap dimension did not solve after angle");near(lineLength(f,5),100,"Cap dimension lost Equal relation");
+    check(SketchGeometry::solveDraft(f).diagnostics["dof"].toInt()==0,"Completed outline must have zero DOF");
+    check(SketchProfiles::derive(f).ok,"Completed constrained outline profile invalid");
+}
 void equalConstraints(const QString& owner){
     auto lines=SketchGeometry::newFeature(owner,"XY","Equal line lengths");
     lines=SketchGeometry::addLine(lines,{{"u1Mm",0},{"v1Mm",0},{"u2Mm",10},{"v2Mm",0}});
@@ -176,6 +203,7 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
     equalConstraints(owner);
     lineAngularDimensions(owner);
     pointerSnaps(owner);
+    underconstrainedOutlineAngle(owner);
     const auto blank=SketchGeometry::newFeature(owner,"XY");
     auto circle=SketchGeometry::addCircle(blank,{{"centerUMm",0},{"centerVMm",0},{"diameterMm",10}});
     circle=accepted(SketchGeometry::solveDraft(circle));analytic(circle,10*std::numbers::pi);

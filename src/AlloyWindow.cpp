@@ -1944,7 +1944,25 @@ QJsonObject AlloyWindow::previewDimension(const QJsonObject& args) {
         const auto a=points.value(ids[0].toString()),b=points.value(ids[1].toString());
         const double du=std::abs(b.x()-a.x()),dv=std::abs(b.y()-a.y());
         const double u=placement.value("uMm").toDouble(),v=placement.value("vMm").toDouble();
+        const auto selection=session_.value("selection").toObject();
+        const bool singleLine=selection.value("entityIds").toArray().size()==1 && selection.value("pointIds").toArray().isEmpty();
+        // Alloy policy: nearby placement on an oblique selected line means its
+        // aligned length. Farther placement still exposes axis projections.
+        constexpr double alignedBandPx=96;
+        bool nearObliqueLine=false;
+        if(singleLine && du>=1e-7 && dv>=1e-7){
+            const auto pa=view_->projectSketchPoint(a.x(),a.y(),plane),pb=view_->projectSketchPoint(b.x(),b.y(),plane);
+            const QPointF start(pa["x"].toDouble(),pa["y"].toDouble()),end(pb["x"].toDouble(),pb["y"].toDouble());
+            const QPointF cursor(args.value("x").toDouble(),args.value("y").toDouble()),span=end-start;
+            const double length2=span.x()*span.x()+span.y()*span.y();
+            if(length2>1e-8){
+                const double t=std::clamp(((cursor.x()-start.x())*span.x()+(cursor.y()-start.y())*span.y())/length2,0.0,1.0);
+                const auto closest=start+span*t;
+                nearObliqueLine=std::hypot(cursor.x()-closest.x(),cursor.y()-closest.y())<=alignedBandPx;
+            }
+        }
         if(dv<1e-7)kind="horizontal";else if(du<1e-7)kind="vertical";
+        else if(nearObliqueLine)kind="linear";
         else if(v<std::min(a.y(),b.y()) || v>std::max(a.y(),b.y()))kind="horizontal";
         else if(u<std::min(a.x(),b.x()) || u>std::max(a.x(),b.x()))kind="vertical";else kind="linear";
     }

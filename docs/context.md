@@ -641,3 +641,34 @@ logic chooses horizontal/vertical at the source placement. Core linear length an
 tangent rendering exist; adjust selection policy then qualify the actual six-edge
 outline with repeated Perpendicular/HV/Equal and constraint-stage captures. Document
 +tab remains separate DOC-015; full tutorial remains blocked.
+
+## First activity modeling checkpoint (2026-10-12)
+
+The actual six-edge first-activity modeling sequence passes through the real app:
+three Perpendicular pairs, two H/V relations, two Equal pairs, then500mm,45degrees
+and aligned100mm; fully constrained closed profile, exact relations/glyph targets,
+area, Finish, undo/redo and save/reopen. tests/bracket_activity1_api.py is registered
+as bracket-activity1 with covers[]: this does not close TUT-003. Native isolated
+D/pick/place/type100 proves the new automatic aligned policy on an API-seeded edge.
+See docs/validation/bracket-activity1.md for receipts and limits.
+
+The workflow exposed actual defects fixed in this slice: a1-mm projection could
+quantize to zero and hide constraint badges at10% zoom; the default PlaneGCS
+particular DogLeg step collapsed a free cap while adding45degrees. Badge scale now
+samples100mm, and the solver uses its supported least-norm step without inventing
+constraints. Existing independent residual/collapse checks remain. Five focused
+sketch/solver/profile/extrusion/curve regressions pass. An adaptive fine grid now
+covers the drawable across zoom/pan/resize; initial OCCT grid-center sign bug was
+corrected and final captures independently reviewed by Astra. No CI/release ran.
+
+Next DOC-015 (#151): genuine independent document tabs required by exact Activity1.
+Plan: heap-owned CadDocument per stable tab because QUndoStack is noncopyable;
+one shared viewport/palette rebound centrally, with all revision/draft/widget
+caches invalidated even for equal-revision documents. Preserve accepted sketch
+session+journal/camera/selection across switching. Guard raw inline input, partial
+gestures and solid dialogs rather than silently discarding them. Deferred callbacks
+must capture tabId/sessionId. Close/quit considers every dirty document and draft;
+Save must require Finish/Cancel for uncommitted drafts. No reorder/detach scope.
+Sol has the reviewed plan; implementation has not started. After tabs, perform the
+complete native first activity with constraint-stage visual comparison. Full
+three-activity tutorial remains blocked by later modeling capabilities.

@@ -118,6 +118,9 @@ private:
     quint64 modelRevision_ = 0;
     std::vector<EvaluatedBody> documentBodies_;
     QString bodyStageKey_;
+    double gridCenterU_ = 0, gridCenterV_ = 0, gridStep_ = 10;
+    double gridWidth_ = 200, gridHeight_ = 200;
+    bool adaptiveGrid_ = false;
     double sceneScale_ = 400;
     int msaaRequested_ = 4, msaaEnabled_ = 0, msaaMaximum_ = 0;
     bool msaaTextures_ = false;

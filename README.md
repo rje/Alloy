@@ -34,6 +34,10 @@ has real-app API/history/storage evidence; full tutorial and native visual gates
 The next [angular sketch milestone](docs/validation/angular-sketch.md) verifies
 angle-driven extrusion updates and native angular entry; exact tutorial completion
 and general input qualification remain open.
+The [first illustrated activity modeling checkpoint](docs/validation/bracket-activity1.md)
+now verifies the six-edge constrained outline and 500/45/100 dimensions, with
+native aligned entry and improved grid/badge rendering. New-document tabs and a
+complete native tutorial run remain ahead.
 
 ## Project documents
 

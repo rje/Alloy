@@ -27,7 +27,9 @@
 #include <Xw_Window.hxx>
 #endif
 #include <algorithm>
+#include <array>
 #include <cmath>
+#include <limits>
 #include <numbers>
 #include <stdexcept>
 #include <BRepBndLib.hxx>
@@ -177,6 +179,49 @@ void ReferenceView::sync() {
     const auto frame=SketchGeometry::frame(sketchPlane_.isEmpty() ? "XY" : sketchPlane_);
     const auto normal=frame["normal"].toArray(),u=frame["uAxis"].toArray();
     viewer_->SetPrivilegedPlane(gp_Ax3(gp_Pnt(),gp_Dir(normal[0].toDouble(),normal[1].toDouble(),normal[2].toDouble()),gp_Dir(u[0].toDouble(),u[1].toDouble(),u[2].toDouble())));
+    // Keep the sketch grid under the whole drawable. Its graphic center moves
+    // only in whole grid steps, so panning never shifts the origin lattice.
+    double gridCenterU=0,gridCenterV=0,gridStep=10,gridWidth=200,gridHeight=200;
+    bool adaptive=false;
+    if(!sketchPlane_.isEmpty() && width()>1 && height()>1) {
+        try {
+            const auto corners=std::array<QJsonObject,4>{
+                sketchPoint(0,0,sketchPlane_),sketchPoint(width()-1,0,sketchPlane_),
+                sketchPoint(0,height()-1,sketchPlane_),sketchPoint(width()-1,height()-1,sketchPlane_)};
+            double minU=std::numeric_limits<double>::infinity(),maxU=-minU;
+            double minV=minU,maxV=-minU;
+            for(const auto& corner:corners) {
+                const double cu=corner["uMm"].toDouble(),cv=corner["vMm"].toDouble();
+                minU=std::min(minU,cu);maxU=std::max(maxU,cu);
+                minV=std::min(minV,cv);maxV=std::max(maxV,cv);
+            }
+            const double mmPerPixel=std::max((maxU-minU)/(width()-1),(maxV-minV)/(height()-1));
+            if(std::isfinite(mmPerPixel) && mmPerPixel>0) {
+                // Ten logical pixels is Alloy's fine-grid presentation choice.
+                const double desired=std::clamp(mmPerPixel*10.0,1e-6,1e9);
+                const double decade=std::pow(10.0,std::floor(std::log10(desired)));
+                const double scaled=desired/decade;
+                gridStep=(scaled<=1 ? 1 : scaled<=2 ? 2 : scaled<=5 ? 5 : 10)*decade;
+                gridCenterU=std::round(((minU+maxU)/2)/gridStep)*gridStep;
+                gridCenterV=std::round(((minV+maxV)/2)/gridStep)*gridStep;
+                // OCCT's graphic sizes are half-extents about the grid center.
+                gridWidth=std::ceil((std::max(std::abs(minU-gridCenterU),std::abs(maxU-gridCenterU))+2*gridStep)/gridStep)*gridStep;
+                gridHeight=std::ceil((std::max(std::abs(minV-gridCenterV),std::abs(maxV-gridCenterV))+2*gridStep)/gridStep)*gridStep;
+                adaptive=true;
+            }
+        } catch(const std::exception&) { /* An edge-on plane cannot show a useful sketch grid. */ }
+    }
+    if(gridCenterU!=gridCenterU_ || gridCenterV!=gridCenterV_ || gridStep!=gridStep_) {
+        // V3d_RectangularGrid applies the negated origin to its graphic
+        // transformation. Pass -center to place the finite grid at +center.
+        viewer_->SetRectangularGridValues(-gridCenterU,-gridCenterV,gridStep,gridStep,0);
+        gridCenterU_=gridCenterU;gridCenterV_=gridCenterV;gridStep_=gridStep;
+    }
+    if(gridWidth!=gridWidth_ || gridHeight!=gridHeight_) {
+        viewer_->SetRectangularGridGraphicValues(gridWidth,gridHeight,0);
+        gridWidth_=gridWidth;gridHeight_=gridHeight;
+    }
+    adaptiveGrid_=adaptive;
     if (grid) viewer_->ActivateGrid(Aspect_GT_Rectangular, Aspect_GDM_Lines);
     else viewer_->DeactivateGrid();
     if (origin) context_->Display(axes_, false); else context_->Erase(axes_, false);
@@ -553,9 +598,11 @@ void ReferenceView::decorateSketch(const QJsonObject& feature,const QJsonObject&
                 const double angle=(entity["type"]=="arc" ? entity["startAngleDeg"].toDouble()+entity["sweepAngleDeg"].toDouble()/2 : 45)*std::numbers::pi/180;
                 u=center["uMm"].toDouble()+entity["radiusMm"].toDouble()*std::cos(angle);v=center["vMm"].toDouble()+entity["radiusMm"].toDouble()*std::sin(angle);
             }
-            const auto p=projectSketchPoint(u,v,plane),q=projectSketchPoint(u+1,v,plane);
+            // Measure a longer basis: a one-mm projection can round to the same
+            // framebuffer pixel when zoomed out and incorrectly hide the badge.
+            const auto p=projectSketchPoint(u,v,plane),q=projectSketchPoint(u+100,v,plane);
             const double pixels=std::hypot(q["x"].toDouble()-p["x"].toDouble(),q["y"].toDouble()-p["y"].toDouble());if(pixels<1e-6)continue;
-            const double size=1/pixels;v+=(10+15*badgeSlots[target.toString()]++)*size;
+            const double size=100/pixels;v+=(10+15*badgeSlots[target.toString()]++)*size;
             TopoDS_Compound strokes;BRep_Builder builder;builder.MakeCompound(strokes);
             auto stroke=[&](double x1,double y1,double x2,double y2){builder.Add(strokes,BRepBuilderAPI_MakeEdge(sketchWorld(plane,u+x1*size,v+y1*size),sketchWorld(plane,u+x2*size,v+y2*size)).Edge());};
             if(kind=="equal"){stroke(-5,-2,5,-2);stroke(-5,2,5,2);}
@@ -841,6 +888,9 @@ QJsonObject ReferenceView::diagnostics() const {
     result.insert("draftSketchVisible",!sketchDraft_.IsNull());
     result.insert("draftSketchId",draftSketchId_);
     result.insert("sketchPlane",sketchPlane_);
+    result.insert("sketchGrid",QJsonObject{{"adaptive",adaptiveGrid_},{"centerUMm",gridCenterU_},
+        {"centerVMm",gridCenterV_},{"stepMm",gridStep_},{"graphicHalfWidthMm",gridWidth_},
+        {"graphicHalfHeightMm",gridHeight_}});
     result.insert("cursorPreviewVisible",!sketchCursor_.IsNull());
     result.insert("sketchDecorations",static_cast<int>(sketchDecorations_.size()));
     result.insert("sketchAnnotations",annotationLayouts_);

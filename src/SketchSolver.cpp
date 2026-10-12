@@ -149,6 +149,12 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters) {
             ids.insert(id); const int value = tagIds.size()+1; tagIds[value] = id; return value;
         };
         GCS::System solver;
+        // A pivot-selected particular step can erase unconstrained geometry
+        // (for example a free cap length while adding a line angle). PlaneGCS's
+        // least-norm step changes the constrained directions without adding
+        // motion in the Jacobian nullspace. No extra authored constraint is added.
+        solver.dogLegGaussStep = GCS::LeastNormFullPivLU;
+        result.diagnostics["dogLegStep"] = "least_norm_full_piv_lu";
         QSet<int> internalTags;
         for(auto& [id,arc]:arcMap) {const int t=tagIds.size()+1;tagIds[t]=id;internalTags.insert(t);solver.addConstraintArcRules(arc,t);}
         for (const auto& entry : constraints) {

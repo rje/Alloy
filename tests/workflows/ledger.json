@@ -506,6 +506,18 @@
       "inputs": [
         "tests/app_harness.py"
       ]
+    },
+    "bracket-activity1": {
+      "script": "tests/bracket_activity1_api.py",
+      "fixture": "tests/workflows/fixtures/bracket-activity1.json",
+      "result": "bracket-activity1-api.json",
+      "covers": [],
+      "capabilities": [
+        "tutorial.activity1_shape_constraints_dimensions"
+      ],
+      "inputs": [
+        "tests/app_harness.py"
+      ]
     }
   },
   "gates": {
