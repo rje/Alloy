@@ -5,49 +5,207 @@
       "script": "tests/kernel_api.py",
       "fixture": "tests/workflows/fixtures/kernel.json",
       "result": "kernel-api.json",
-      "covers": ["DOC-001"],
-      "capabilities": ["kernel.real_solid"]
+      "covers": [
+        "DOC-001"
+      ],
+      "capabilities": [
+        "kernel.real_solid"
+      ],
+      "inputs": [
+        "tests/app_harness.py"
+      ]
     },
     "FND-009": {
       "script": "tests/native_builds.py",
       "fixture": "tests/workflows/fixtures/native-builds.json",
       "result": "native-builds.json",
-      "covers": ["FND-009"],
-      "capabilities": ["build.native_baseline"]
+      "covers": [
+        "FND-009"
+      ],
+      "capabilities": [
+        "build.native_baseline"
+      ],
+      "inputs": [
+        "tests/app_harness.py"
+      ]
     },
     "FND-006": {
       "script": "tests/session_api.py",
       "fixture": "tests/workflows/fixtures/sessions.json",
       "result": "session-api.json",
-      "covers": ["FND-006"],
-      "capabilities": ["commands.sessions", "commands.shared_dialog", "commands.completion", "instances.discovery"]
+      "covers": [
+        "FND-006"
+      ],
+      "capabilities": [
+        "commands.sessions",
+        "commands.shared_dialog",
+        "commands.completion",
+        "instances.discovery"
+      ]
     },
     "DOC-002": {
       "script": "tests/document_api.py",
       "fixture": "tests/workflows/fixtures/document.json",
       "result": "document-api.json",
-      "covers": ["DOC-002"],
-      "capabilities": ["document.identities", "document.units", "document.ownership_inspection"]
+      "covers": [
+        "DOC-002"
+      ],
+      "capabilities": [
+        "document.identities",
+        "document.units",
+        "document.ownership_inspection"
+      ]
     },
     "shell_api": {
       "script": "tests/shell_api.py",
       "fixture": "tests/workflows/fixtures/shell.json",
       "result": "shell-api.json",
       "covers": [],
-      "capabilities": ["shell.commands", "shell.layout", "shell.search", "shell.errors", "viewport.hardware", "viewport.resize", "viewport.capture"]
+      "capabilities": [
+        "shell.commands",
+        "shell.layout",
+        "shell.search",
+        "shell.errors",
+        "viewport.hardware",
+        "viewport.resize",
+        "viewport.capture"
+      ]
     },
     "FND-010": {
-      "requires": ["shell_api"],
+      "requires": [
+        "shell_api"
+      ],
       "check": "coverage_guards",
-      "covers": ["FND-010"],
-      "capabilities": ["runner.refuses_missing_evidence"]
+      "covers": [
+        "FND-010"
+      ],
+      "capabilities": [
+        "runner.refuses_missing_evidence"
+      ]
+    },
+    "primitives": {
+      "script": "tests/primitives_api.py",
+      "fixture": "tests/workflows/fixtures/primitives.json",
+      "result": "primitives-api.json",
+      "covers": [
+        "DOC-003",
+        "DOC-004",
+        "DOC-005",
+        "DOC-007",
+        "DOC-008"
+      ],
+      "capabilities": [
+        "document.transactions",
+        "document.atomic_native_storage",
+        "viewport.document_brep",
+        "primitives.editable",
+        "geometry.trustworthy_summaries"
+      ],
+      "inputs": [
+        "tests/app_harness.py",
+        "tests/geometry_kernel.cpp"
+      ]
+    },
+    "DOC-003": {
+      "requires": [
+        "primitives"
+      ],
+      "check": "case_alias",
+      "covers": [
+        "DOC-003"
+      ],
+      "capabilities": [
+        "document.transactions"
+      ]
+    },
+    "DOC-004": {
+      "requires": [
+        "primitives"
+      ],
+      "check": "case_alias",
+      "covers": [
+        "DOC-004"
+      ],
+      "capabilities": [
+        "document.atomic_native_storage"
+      ]
+    },
+    "DOC-005": {
+      "requires": [
+        "primitives"
+      ],
+      "check": "case_alias",
+      "covers": [
+        "DOC-005"
+      ],
+      "capabilities": [
+        "viewport.document_brep"
+      ]
+    },
+    "DOC-007": {
+      "requires": [
+        "primitives"
+      ],
+      "check": "case_alias",
+      "covers": [
+        "DOC-007"
+      ],
+      "capabilities": [
+        "primitives.editable"
+      ]
+    },
+    "DOC-008": {
+      "requires": [
+        "primitives"
+      ],
+      "check": "case_alias",
+      "covers": [
+        "DOC-008"
+      ],
+      "capabilities": [
+        "geometry.trustworthy_summaries"
+      ]
+    },
+    "primitive-regression": {
+      "requires": [
+        "shell_api",
+        "DOC-002",
+        "FND-006",
+        "primitives"
+      ],
+      "check": "case_alias",
+      "covers": [],
+      "capabilities": [
+        "document.transactions",
+        "document.atomic_native_storage",
+        "viewport.document_brep",
+        "primitives.editable",
+        "geometry.trustworthy_summaries"
+      ]
     }
   },
   "gates": {
     "GATE-000": {
-      "cases": ["shell_api"],
-      "capabilities": ["shell.commands", "shell.layout", "shell.search", "shell.errors", "viewport.hardware", "viewport.resize", "viewport.capture", "shell.physical_input"],
-      "dimensions": ["build", "api", "hardware", "physical_input", "visual"]
+      "cases": [
+        "shell_api"
+      ],
+      "capabilities": [
+        "shell.commands",
+        "shell.layout",
+        "shell.search",
+        "shell.errors",
+        "viewport.hardware",
+        "viewport.resize",
+        "viewport.capture",
+        "shell.physical_input"
+      ],
+      "dimensions": [
+        "build",
+        "api",
+        "hardware",
+        "physical_input",
+        "visual"
+      ]
     }
   },
   "future_gate_policy": "Every later gate inherits earlier requirements and requires case coverage plus live closed-state prerequisites for every ancestor task. Unknown or missing cases block acceptance. Registered cases do not imply product-gate acceptance."

@@ -1,12 +1,10 @@
 # Development and observed evidence
 
-Alloy currently builds a native **UI shell with a hardware-accelerated OCCT 3D
-viewport**. C++20, Qt 6.11.2 Widgets/Network, and OCCT 7.9.3 are required and the
-CMake package versions are pinned to this verified baseline. OCCT visualization
-is linked and integrated; its reference grid and axes are presentation objects,
-not authored CAD geometry. The authored document now has stable IDs, mm/in units,
-one undo authority and shared draft sessions. No sketch solver, modeled geometry,
-native file persistence, import, or export is integrated yet.
+Alloy now creates and edits real OCCT boxes and cylinders in a hardware-accelerated
+native viewport. Shared UI/API commands provide disposable previews, body picking,
+geometry inspection, undo/redo and atomic native save/open. C++20, Qt 6.11.2
+Widgets/Network and OCCT 7.9.3 are required; CMake pins those package versions.
+Sketches, dependent modeling, import and export remain ahead.
 
 ## Build and run
 
@@ -19,128 +17,110 @@ cmake --build build
 ./build/alloy.app/Contents/MacOS/alloy --ready-file /tmp/alloy-ready.json
 ```
 
-On other platforms provide the Qt installation prefix through CMake as needed.
-CMake produces `build/alloy` on Linux. The corrected native CI compiled Windows,
-Linux and both macOS architectures at 12fe534. Windows/Linux runtime behavior
-has not been verified. OCCT is now mandatory; there is no QPainter fallback. For nonstandard
-installs set `OpenCASCADE_DIR` to the folder containing `OpenCASCADEConfig.cmake`.
-Visualization integration is not evidence of authored geometry integration.
-Alloy uses the public Qt Windows widget style with its own palette and styling.
+Use File → Open for `examples/gauge-block.alloy`. Click a Timeline feature to
+edit its dimensions, or Box/Cylinder to create another body. See
+[sample instructions](../examples/README.md) and [agent control](agent-control.md).
 
-The public [Qt Widgets documentation](https://doc.qt.io/qt-6/qtwidgets-index.html)
-and [QLocalServer documentation](https://doc.qt.io/qt-6/qlocalserver.html) describe
-the UI/IPC foundations. The public
-[OCCT visualization guide](https://www.occt3d.com/dev/doc/overview/html/occt_user_guides__visualization.html)
-describes the integrated visualization and interactive-object facilities. These are permitted open-source foundation references, retrieved
-2026-10-11. Authored geometry and distribution/license packaging remain separate work.
-Native macOS integration was checked against the installed 7.9.3 public headers
-and public version-pinned source for
-[Cocoa_Window](https://github.com/Open-Cascade-SAS/OCCT/blob/V7_9_3/src/Cocoa/Cocoa_Window.mm)
-and [OpenGl_Window](https://github.com/Open-Cascade-SAS/OCCT/blob/V7_9_3/src/OpenGl/OpenGl_Window_1.mm),
-retrieved 2026-10-11. OCCT performs native backing-pixel conversion; Qt provides
-logical widget dimensions and device pixel ratio.
+On other platforms provide the Qt prefix through CMake as needed. Linux produces
+`build/alloy`. For nonstandard OCCT installs set `OpenCASCADE_DIR` to the folder
+containing `OpenCASCADEConfig.cmake`. OCCT is mandatory; initialization errors
+have no raster fallback. Alloy uses the public Qt Windows widget style with its
+own palette and styling.
+
+The corrected native matrix compiled Windows, Linux and both macOS architectures
+at source 12fe534. Each later source candidate needs its own result. Runtime
+behavior is verified only on local Apple silicon macOS; hosted compile artifacts
+are unbundled, with no tagged runnable release. See [native baseline](dependencies/native-builds.md)
+and [releases](releases.md) for pins, packaging and remaining qualification.
 
 ## Source map
 
-- `src/main.cpp`: native entrypoint, private endpoint setup, startup discovery.
-- `src/AlloyWindow.{h,cpp}`: shell, shared commands/state, search, screenshot composition.
-- `src/CadDocument.{h,cpp}`: authoritative authored intent, identity/units validation
-  and one QUndoStack; evaluated geometry is still pending.
-- `src/ReferenceView.{h,cpp}`: native OCCT AIS/V3d/OpenGL view, grid/axes, camera,
-  live driver diagnostics, Retina framebuffer capture; no document objects.
-- `src/ControlServer.{h,cpp}`: newline JSON transport and structured dispatch.
-- `tools/alloyctl.py`: stdlib CLI for discovery, execution, state, and capture.
-- `tests/shell_api.py`: real app entrypoint/API smoke test.
-- `tests/document_api.py`, `tests/session_api.py`: real authored-unit and two-app
-  session/discovery workflows. See their candidate-bound validation receipts.
-- `docs/research/interface-reference.md`: public-only interface findings, source
-  provenance, implementation guesses, and visual evidence limits.
+- `src/main.cpp`: native entrypoint, private endpoint and instance discovery.
+- `src/AlloyWindow.{h,cpp}`: shared commands, dialogs, Browser/Timeline, selection
+  and actual scene/chrome capture.
+- `src/CadDocument.{h,cpp}`: authoritative authored JSON, validation, one
+  QUndoStack, paired evaluated snapshots and atomic native storage.
+- `src/GeometryKernel.{h,cpp}`: thin OCCT primitive evaluation, validity,
+  topology, bounds, area/volume and explicit unit/tolerance policy.
+- `src/ReferenceView.{h,cpp}`: native AIS/V3d/OpenGL view, real document BReps,
+  disposable preview, body picking, named cameras and driver diagnostics.
+- `src/ControlServer.{h,cpp}` and `tools/alloyctl.py`: local JSON transport and
+  stdlib client; Windows transport adaptation remains open.
+- `tests/primitives_api.py`: real create/edit/pick/undo/save/reopen workflow.
+- `tests/shell_api.py`, `document_api.py`, `session_api.py`: earlier app workflows.
+- `tests/workflows/run.py`: candidate-bound cumulative runner and fixture ledger.
 
-Authored intent is independent of viewport state. The next geometry slice adds
-evaluated shapes; the OCCT scene is not the authored model.
+Authored intent is independent of evaluated OCCT shapes and AIS presentation.
+Native files persist authored features, IDs and canonical parameters; reopening
+evaluates them and starts a clean empty session journal. No display cache is
+treated as the editable document.
 
 ## Verification
 
-The [current shell receipt](validation/neutral-shell.md) records the rebuilt
-widget style and real-app smoke. Earlier physical-input observations remain
-historical until repeated on the candidate under review.
+Use focused core tests and one growing real-entrypoint regression:
 
 ```sh
-ctest --test-dir build --output-on-failure
-# Or run the same smoke test explicitly:
-python3 tests/shell_api.py --app build/alloy.app/Contents/MacOS/alloy --output build/evidence
+ctest --test-dir build -R '^(document_model|geometry_kernel|client_selection)$' --output-on-failure
+python3 tests/workflows/run.py --case primitive-regression --evidence build/evidence/primitive-regression
 ```
 
-A desktop session is required for native-window evidence. Headless Qt plugins
-may help CI later, but such captures must be labeled separately. Do not replace
-the real-app test with an independent model of state. See
-[agent-control.md](agent-control.md) for operation/capture commands.
+A desktop session is required. The runner launches fresh native apps and invokes
+their shared commands; it never substitutes an independent automation model.
+`--build` also builds the known configured app target. Without it, compilation
+is marked unperformed and the tested prebuilt binary is identified separately.
 
-Observed on **2026-10-11**, Apple silicon macOS, Apple Clang 17.0.0, Python 3.14.5,
-Qt 6.11.2 (Homebrew `qtbase` 6.11.2_1), OCCT 7.9.3 (7.9.3_1):
+Observed 2026-10-11 on macOS 26.5.1 arm64, Apple Clang 17.0.0, Python 3.14.5,
+Qt 6.11.2 and OCCT 7.9.3:
 
 | Evidence | Result and boundary |
 | --- | --- |
-| CMake/configure | Qt 6.11.2 and OCCT 7.9.3 pinned, required and linked |
-| Native build | Debug app compiled and linked with warning flags |
-| Real-app API | CTest `shell_api` passed 1/1; commands, state, errors, search lifecycle, native resize, captures, exit |
-| GPU renderer | Live OCCT diagnostics: vendor Apple, device Apple M4, OpenGL `4.1 Metal - 90.5`, GLSL 4.10; hardware driver identified |
-| Retina/framebuffer | DPR 2; native 1440×900 and 1200×800 windows captured at 2880×1800 and 2400×1600; native GL viewport dimensions checked before offscreen captures; isometric/top framebuffer hashes differ |
-| Authored geometry/kernel | Not implemented or tested; only OCCT presentation grid/axes |
-| Keyboard/mouse | GPU build physical Top and S/search Home/Return checked; prior QPainter-shell Cmd+Option+B remains historical evidence |
-| Visual capture | Main-window PNG inspected; no clipping or missing major shell regions at 1440×900 logical size |
-| Product workflow | No sketch-to-solid or artist workflow acceptance yet |
+| Native build | Debug application compiled and linked with warning flags |
+| Focused core tests | Geometry kernel, authored document and client selection passed 3/3 |
+| Fresh app regression | Shell, authored units, shared sessions and primitives passed; the aggregate case reuses these four runs |
+| Geometry | Valid real solids, analytic volumes/bounds, stable IDs across edits/undo/reopen, invalid input refusal |
+| GPU | Live Apple M4 hardware OpenGL; actual BRep shading/picking and distinct isometric/top framebuffer captures |
+| Native storage | Atomic authored save, failure preservation, malformed/future-version refusal, editable reopen and saved-checkpoint behavior |
+| Physical UI | Toolbar box creation and width typing; Cmd+Z/Cmd+Shift+Z; native Save; Timeline edit and Cancel |
+| Independent review | Astra approved the bounded DOC-003/004/005/007/008 slice after two material fixes |
+| Remaining acceptance | Face/edge selection, STEP, printing export, full file-dialog/decision coverage, other-OS runtime and visual familiarity remain open |
 
-Generated, ignored local evidence:
+The [primitive receipt](validation/primitives.md) retains public candidate/fixture
+metadata and an Alloy capture. Detailed logs, transcripts and app captures remain
+under ignored `build/evidence/primitive-regression/` and
+`build/evidence/physical-primitives/`. Earlier [GPU foundation](validation/gpu-foundation.md)
+and [shell](validation/neutral-shell.md) receipts preserve their narrower evidence.
 
-- `build/evidence/app.log`: app startup endpoint/log.
-- `build/evidence/shell-api.json`: initial/final authoritative state, command
-  transcript, capture dimensions and SHA-256.
-- `build/evidence/alloy-shell.png`: restored shell, 2880×1800 physical pixels,
-  device scale 2 at 1440×900 logical size.
-- `build/evidence/alloy-gpu-isometric.png`, `alloy-gpu-top.png`: camera-only
-  change checked using the OCCT framebuffer SHA-256, separately from shell pixels.
-- `build/evidence/alloy-gpu-resized.png`: 1200×800 logical native window, top
-  view; 2400×1600 PNG on the verified Retina display.
-- `build/evidence/alloy-shell-altered.png`: different actual UI state with hidden
-  panels/grid/axes, for a basic check that automation affects rendering.
+Stop after reasonable assurance. Add useful unit tests for core contracts and
+pragmatic integration coverage for each new workflow; do not duplicate the same
+application sequence under every issue alias.
 
-The resumed-session [shell baseline](validation/current-shell.md) also records
-selected physical-input checks and preserves a public-safe Alloy capture. The
-[GPU foundation receipt](validation/gpu-foundation.md) records the new hardware
-viewport and separate native-compositor/keyboard observations.
+## GPU and compatibility boundaries
 
-The screenshots were visually inspected. The shell has readable layout and
-truthful unavailable-modeling indicators. Toolbar symbols are simple geometric
-text glyphs, not production icons. The Browser is fixed-width/full-height, the
-viewport has OCCT reference axes rather than an interactive view cube. Named
-orthographic cameras, pan and zoom are implemented; arbitrary orbit, perspective
-controls, model picking, snapping, and authored model rendering remain pending. Published reference images
-are unmatched in size, scale, OS, and design state; no pixel-match claim is made.
+`app.state.viewport.gpu` reports actual OCCT context/vendor/device/version,
+initialization errors, native drawable size, device scale and framebuffer pixels.
+Known software renderers are rejected for qualification; unidentified drivers
+remain unverified. Hardware identity is evidence of acceleration, not a benchmark
+or proof of future model performance. The regression checks native startup/resize
+dimensions before offscreen captures, avoiding a capture that masks a drawable bug.
 
-Ordinary setup installed `qtbase` and `opencascade` with their Homebrew
-dependencies; Homebrew also upgraded `hwloc` from 2.14.0 to 2.15.0. No proprietary
-application was launched or inspected, and no package/service was published.
+`capture.screenshot` combines actual Qt chrome and OCCT `ToPixMap` GPU rendering
+of the same scene/camera. It excludes OS decorations, menus and separate dialogs;
+`capture.dialog` captures the active real widget dialog. Native compositor and
+physical inputs are checked separately using computer-use tools. Never infer
+geometry, physical interaction or visual compatibility from a screenshot alone.
 
-## GPU qualification boundary
+Named orthographic cameras, pan/zoom and body picking exist. Arbitrary orbit,
+face/edge picking, snapping, an interactive view cube and broader Browser controls
+remain pending. Primitive world-XY placement/New Body/default values are bounded
+Alloy proposals. Public references are unmatched in size, scale, OS and design
+state; no exact visual/interaction match is claimed. GATE-010 requires additional
+STEP and cumulative evidence and remains open.
 
-`app.state.viewport.gpu` reports live OCCT diagnostics, vendor, renderer, version,
-initialization/error, native window units, requested framebuffer pixels, and
-`hardwareAccelerated`. Known software renderers (llvmpipe, softpipe, swrast,
-SwiftShader, or an identity containing software) are rejected for qualification;
-unrecognized identities remain unverified. The smoke test fails unless a known
-hardware driver is identified. This is driver-identity evidence, not a performance
-benchmark or a guarantee of every future CAD workload. Failure/unverified status
-is visible in the status bar. OpenGL initialization errors have no raster fallback.
-
-`capture.screenshot` combines actual Qt chrome with OCCT `ToPixMap` GPU rendering
-at the current viewport size and device scale. It is an offscreen framebuffer
-render of the same scene/camera, not an OS-compositor screenshot; physical native
-window observation remains a separate check. The smoke test does not yet qualify
-picking, arbitrary orbit, cross-display scaling changes, long-running graphics
-resource behavior, or Linux/Windows. No reference CAD application runtime was used for comparison.
-
-This increment partially advances DOC-005 (GPU viewport) but does not close it or
-GATE-010: those additionally require actual document geometry, selection/picking,
-and the first useful-object cumulative workflow. GATE-000 records the earlier
-shell baseline and remains separate.
+The public [Qt Widgets](https://doc.qt.io/qt-6/qtwidgets-index.html),
+[QLocalServer](https://doc.qt.io/qt-6/qlocalserver.html) and
+[OCCT visualization](https://www.occt3d.com/dev/doc/overview/html/occt_user_guides__visualization.html)
+guides support the foundations (retrieved 2026-10-11). Native scaling was checked
+against version-pinned public
+[Cocoa_Window](https://github.com/Open-Cascade-SAS/OCCT/blob/V7_9_3/src/Cocoa/Cocoa_Window.mm)
+and [OpenGl_Window](https://github.com/Open-Cascade-SAS/OCCT/blob/V7_9_3/src/OpenGl/OpenGl_Window_1.mm)
+sources. No proprietary reference application was operated or inspected.

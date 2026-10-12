@@ -59,9 +59,9 @@ migration and failure boundaries. OCAF naming remains a separate evaluation.
 
 The user requires these architectural questions to be settled before modeling
 operations accumulate. FND-003 is the initial decision/prototype task; DOC-002
-depends on it. This section records requirements and proposed boundaries, not
-an implemented application stack. Decision 001 selects QUndoStack as the sole
-editing journal; integration follows in DOC-002/DOC-003/DOC-004.
+depends on it. Decision 001 selects QUndoStack as the sole editing journal;
+DOC-002/003/004 now integrate it for the primitive document. Requirements for
+dependent feature recomputation below remain future work.
 
 The authored feature history describes how the model is constructed: stable
 operation IDs, typed parameters and units, input references, dependencies and
@@ -86,12 +86,22 @@ Saved-state tracking belongs to authored state: undoing to the saved checkpoint
 can clear the dirty flag. Whether session undo history survives reopening is a
 separate decision from persistence of the editable feature history.
 
-FND-003 must compare a thin authored schema with OCAF using the same small
-primitive/edit fixture. Investigate OCAF's transaction facilities and Qt's
-QUndoStack grouping/clean-state support, then select one authority without two
-independently advancing stacks. Verify create/edit/undo/redo, branching after
-undo, grouped edits, cancel/invalid edits, stable IDs, save/reopen, unknown schema
-versions and atomic-write failure before admitting the first modeling operation.
+The implemented primitive transaction holds paired authored JSON and immutable
+evaluated-body snapshots. It evaluates and validates a candidate before pushing
+one QUndoStack command. A rejected candidate leaves live state untouched;
+undo/redo installs the corresponding authored/geometry pair and advances the
+document revision. This keeps the first synchronous workflow small. Native
+QSaveFile writes authored JSON atomically; open validates/evaluates before
+replacing state and starts a clean, empty session journal. AIS presentations
+are regenerated from the evaluated bodies and are never persisted as intent.
+
+FND-003 compared a thin authored schema with OCAF using the same small
+primitive/edit fixture, investigated OCAF's transaction facilities and Qt's
+QUndoStack grouping/clean-state support and selected one authority without two
+independently advancing stacks. The first real-app primitive workflow verifies
+create/edit/undo/redo, branching after undo, cancel/invalid edits, stable IDs,
+save/reopen, unknown schema versions and atomic-write failure. Broader gesture
+grouping and dependent feature graphs follow the workflows that need them.
 FND-004 covers persistent geometric references alongside this decision. Larger
 recompute scheduling follows real feature dependencies in HIS-001.
 

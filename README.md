@@ -11,8 +11,9 @@ before researching, designing, or implementing anything in this project.
 
 The first product focus is shape creation: sketches, solids, surfaces, editable
 history, common-format import, and export for 3D printing. The current application
-has a hardware viewport and an empty authored document, but is not yet a functioning
-CAD modeler. Agent control and
+creates and edits real OCCT boxes and cylinders, with GPU rendering, undo/redo,
+and native save/reopen. Sketches, broader modeling, import, and printing export
+remain ahead. Agent control and
 self-testing are part of the application from its first runnable version.
 
 The public repository is [rje/Alloy](https://github.com/rje/Alloy), with the
@@ -60,9 +61,15 @@ The 3D viewport uses GPU-accelerated OCCT OpenGL. Live Apple M4 diagnostics,
 Retina resize, native window display, and framebuffer capture were verified in
 the [GPU foundation receipt](docs/validation/gpu-foundation.md). The current
 [post-cleanup shell receipt](docs/validation/neutral-shell.md) records the rebuilt
-style and real-app test. The scene remains
-a grid and axes over an empty authored document. macOS, Windows, and Linux are required
+style and real-app test. The [primitive workflow receipt](docs/validation/primitives.md)
+records the first editable solids and their real-app regression. macOS, Windows, and Linux are required
 targets; only the macOS runtime is verified today.
+
+For a first hands-on test, build using [development.md](docs/development.md),
+open [examples/gauge-block.alloy](examples/gauge-block.alloy) through File → Open,
+and click a Timeline feature to edit its dimensions. Box and Cylinder open
+dimension dialogs with disposable Preview and Cancel. Try undo/redo and Save As;
+the [sample instructions](examples/README.md) describe the supported controls.
 
 To list tasks whose dependencies are complete:
 

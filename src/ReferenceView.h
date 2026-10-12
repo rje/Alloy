@@ -7,6 +7,9 @@
 #include <AIS_Trihedron.hxx>
 #include <V3d_View.hxx>
 #include <V3d_Viewer.hxx>
+#include <AIS_Shape.hxx>
+#include <QMap>
+#include "GeometryKernel.h"
 
 // GPU presentation only. Reference axes/grid are not authored document objects.
 class ReferenceView final : public QWidget {
@@ -21,6 +24,13 @@ public:
     void sync();
     QJsonObject diagnostics() const;
     QImage framebuffer();
+    void setBodies(const std::vector<EvaluatedBody>& bodies, quint64 revision);
+    void fit(const std::vector<EvaluatedBody>& bodies);
+    void selectBody(const QString& id);
+    QString pickBody(int x,int y);
+    QJsonObject projectBody(const EvaluatedBody& body) const;
+    void showPreview(const TopoDS_Shape& shape);
+    void clearPreview();
     QPaintEngine* paintEngine() const override { return nullptr; }
 protected:
     void showEvent(QShowEvent*) override;
@@ -39,4 +49,9 @@ private:
     Handle(Graphic3d_Camera) baseCamera_;
     QString error_;
     QPointF last_;
+    QMap<QString,Handle(AIS_Shape)> models_;
+    Handle(AIS_Shape) preview_;
+    quint64 modelRevision_ = 0;
+    double sceneScale_ = 400;
+    gp_Pnt sceneCenter_;
 };

@@ -1,0 +1,4 @@
+{
+  "box": {"width":20,"depth":30,"height":10,"name":"Gauge block","units":"mm"},
+  "cylinder": {"radius":5,"height":10,"x":40,"y":10,"name":"Cylinder","units":"mm"}
+}

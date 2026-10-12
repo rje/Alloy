@@ -1,0 +1,38 @@
+{
+    "displayUnits": "mm",
+    "documentId": "574c3797-508a-49bf-9bb9-9e641addafe2",
+    "features": [
+        {
+            "bodyId": "82a32e66-f5ac-4800-99b2-c4b6221f747e",
+            "id": "9a01f953-1dfd-4f33-a142-eb20655afa58",
+            "name": "Gauge block",
+            "ownerId": "574c3797-508a-49bf-9bb9-9e641addafe2",
+            "parameters": {
+                "depthMm": 32,
+                "heightMm": 10,
+                "widthMm": 24,
+                "xMm": 0,
+                "yMm": 0,
+                "zMm": 0
+            },
+            "type": "box",
+            "visible": true
+        },
+        {
+            "bodyId": "675039a6-9808-4e4e-b127-6c655e1c15c5",
+            "id": "dda572cc-ab31-47e7-8d31-0de1a82f1032",
+            "name": "Cylinder",
+            "ownerId": "574c3797-508a-49bf-9bb9-9e641addafe2",
+            "parameters": {
+                "heightMm": 10,
+                "radiusMm": 5,
+                "xMm": 40,
+                "yMm": 10,
+                "zMm": 0
+            },
+            "type": "cylinder",
+            "visible": true
+        }
+    ],
+    "schema": "alloy-document/1"
+}

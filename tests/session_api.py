@@ -92,7 +92,7 @@ def main():
             (directory / 'wrong.json').write_text(json.dumps(wrong))
             stale = subprocess.run([*cli, '--ready-file', str(directory / 'wrong.json'), 'exec', 'document.units', '--args', '{"units":"in"}'], capture_output=True, text=True)
             assert stale.returncode == 2 and call('document.inspect')[0] == before
-            call('app.quit'); assert processes[0].wait(timeout=5) == 0
+            call('app.quit', {'discard':True}); assert processes[0].wait(timeout=5) == 0
             # A dead registry record is classified stale; the other live app is selected.
             (directory / 'instances/dead.json').write_text(json.dumps(records[0]))
             remaining = discover(directory / 'instances')

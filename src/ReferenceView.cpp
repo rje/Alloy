@@ -20,6 +20,10 @@
 #endif
 #include <algorithm>
 #include <cmath>
+#include <BRepBndLib.hxx>
+#include <Bnd_Box.hxx>
+#include <Prs3d_Drawer.hxx>
+#include <Prs3d_LineAspect.hxx>
 
 ReferenceView::ReferenceView(QWidget* parent) : QWidget(parent) {
     setMinimumSize(400, 300);
@@ -90,13 +94,72 @@ void ReferenceView::sync() {
     view_->ChangeRenderingParams().Resolution = qRound(72 * devicePixelRatioF());
     view_->SetCamera(new Graphic3d_Camera(baseCamera_));
     view_->SetProj(orientation == "top" ? V3d_Zpos : orientation == "front" ? V3d_Yneg : orientation == "right" ? V3d_Xpos : V3d_XposYnegZpos);
-    view_->SetSize(400.0 / zoom);
+    view_->Camera()->SetCenter(sceneCenter_);
+    view_->SetSize(sceneScale_ / zoom);
     view_->Pan(qRound(pan.x() * devicePixelRatioF()), -qRound(pan.y() * devicePixelRatioF()));
     if (grid) viewer_->ActivateGrid(Aspect_GT_Rectangular, Aspect_GDM_Lines);
     else viewer_->DeactivateGrid();
     if (origin) context_->Display(axes_, false); else context_->Erase(axes_, false);
     context_->Deactivate(axes_);
     view_->Redraw();
+}
+void ReferenceView::setBodies(const std::vector<EvaluatedBody>& bodies,quint64 revision) {
+    if(context_.IsNull() || modelRevision_==revision)return;
+    for(const auto& model:models_)context_->Remove(model,false);
+    models_.clear();
+    for(const auto& body:bodies) {
+        if(!body.visible)continue;
+        Handle(AIS_Shape) model=new AIS_Shape(body.shape);
+        model->SetColor(Quantity_Color(0.67,0.72,0.76,Quantity_TOC_RGB));
+        model->Attributes()->SetFaceBoundaryDraw(true);
+        model->Attributes()->SetFaceBoundaryAspect(new Prs3d_LineAspect(Quantity_Color(0.20,0.25,0.29,Quantity_TOC_RGB),Aspect_TOL_SOLID,1));
+        context_->Display(model,AIS_Shaded,0,false);models_[body.bodyId]=model;
+    }
+    modelRevision_=revision;context_->UpdateCurrentViewer();
+}
+void ReferenceView::fit(const std::vector<EvaluatedBody>& bodies) {
+    Bnd_Box bounds;
+    for(const auto& body:bodies)if(body.visible)BRepBndLib::AddOptimal(body.shape,bounds,false,false);
+    if(bounds.IsVoid()){sceneScale_=400;sceneCenter_=gp_Pnt();}
+    else {
+        double x0,y0,z0,x1,y1,z1;bounds.Get(x0,y0,z0,x1,y1,z1);
+        sceneCenter_=gp_Pnt((x0+x1)/2,(y0+y1)/2,(z0+z1)/2);
+        sceneScale_=std::max({x1-x0,y1-y0,z1-z0,1.0})*1.7;
+    }
+    zoom=1;pan={};sync();
+}
+void ReferenceView::selectBody(const QString& id) {
+    if(context_.IsNull())return;
+    context_->ClearSelected(false);
+    if(models_.contains(id))context_->SetSelected(models_.value(id),false);
+    context_->UpdateCurrentViewer();
+}
+QString ReferenceView::pickBody(int x,int y) {
+    if(context_.IsNull() || view_.IsNull())return {};
+    if(x<0 || y<0 || x>=width() || y>=height())return {};
+    sync();context_->MoveTo(qRound(x*devicePixelRatioF()),qRound(y*devicePixelRatioF()),view_,true);
+    if(!context_->HasDetected())return {};
+    const auto detected=context_->DetectedInteractive();
+    for(auto it=models_.begin();it!=models_.end();++it)if(it.value()==detected)return it.key();
+    return {};
+}
+QJsonObject ReferenceView::projectBody(const EvaluatedBody& body) const {
+    if(view_.IsNull())return {};
+    Bnd_Box bounds;BRepBndLib::AddOptimal(body.shape,bounds,false,false);
+    double x0,y0,z0,x1,y1,z1;bounds.Get(x0,y0,z0,x1,y1,z1);int x,y;
+    view_->Convert((x0+x1)/2,(y0+y1)/2,(z0+z1)/2,x,y);
+    return {{"x",x/devicePixelRatioF()},{"y",y/devicePixelRatioF()},{"bodyId",body.bodyId},
+        {"viewportLocal",true},{"units","logicalPixels"}};
+}
+void ReferenceView::showPreview(const TopoDS_Shape& shape) {
+    clearPreview();if(context_.IsNull())return;
+    preview_=new AIS_Shape(shape);preview_->SetColor(Quantity_Color(0.25,0.58,0.76,Quantity_TOC_RGB));
+    preview_->SetTransparency(0.55);context_->Display(preview_,AIS_Shaded,-1,false);context_->Deactivate(preview_);
+    context_->UpdateCurrentViewer();
+}
+void ReferenceView::clearPreview() {
+    if(!preview_.IsNull() && !context_.IsNull()){context_->Remove(preview_,false);context_->UpdateCurrentViewer();}
+    preview_.Nullify();
 }
 QJsonObject ReferenceView::diagnostics() const {
     QJsonObject result{{"initialized", !view_.IsNull()}, {"error", error_}, {"hardwareAccelerated", false},
@@ -122,6 +185,9 @@ QJsonObject ReferenceView::diagnostics() const {
     result.insert("hardwareAccelerated", !software && knownGpu && !version.isEmpty());
     result.insert("qualification", software ? "software-rejected" : knownGpu && !version.isEmpty() ? "hardware-driver-identified" : "unverified");
     result.insert("details", raw);
+    result.insert("displayedBodies",models_.size());
+    result.insert("previewVisible",!preview_.IsNull());
+    result.insert("documentRevision",static_cast<qint64>(modelRevision_));
     return result;
 }
 QImage ReferenceView::framebuffer() {
@@ -146,6 +212,7 @@ QImage ReferenceView::framebuffer() {
 }
 void ReferenceView::mousePressEvent(QMouseEvent* e) {
     if (e->button() == Qt::MiddleButton) { last_ = e->position(); setCursor(Qt::ClosedHandCursor); e->accept(); }
+    else if(e->button()==Qt::LeftButton){dispatch("selection.pick",{{"x",e->position().x()},{"y",e->position().y()}});e->accept();}
     else QWidget::mousePressEvent(e);
 }
 void ReferenceView::mouseMoveEvent(QMouseEvent* e) {

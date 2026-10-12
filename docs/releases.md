@@ -16,17 +16,15 @@ pinned. FND-009 records tested compiler/image baselines and pins downloader
 dependencies; see [native development baseline](dependencies/native-builds.md).
 Hosted OS images/system headers remain rolling, with compiler drift guards.
 
-The initial matrix compiled Windows and both macOS architectures; Linux failed
-on a missing Fontconfig development header. The pre-rewrite run and artifacts
-were removed during publication cleanup. The workflow was temporarily disabled
-for the rewrite and is re-enabled for a corrected run with the required Linux
-Fontconfig headers. The corrected [matrix run](https://github.com/rje/Alloy/actions/runs/38192218283)
-compiled all four targets at source 12fe534; FND-009 is auditing its toolchain
-metadata and artifacts. Artifacts carry
+The corrected [matrix run](https://github.com/rje/Alloy/actions/runs/38192218283)
+compiled all four targets at source 12fe534; FND-009 completed the independently
+reviewed toolchain/artifact audit. Later candidates need their own matrix result.
+Artifacts carry
 `unbundled` names and include compilation logs/receipts. They require development
 libraries and are **not supported runnable release packages**. No tagged binary
 release has been published. Only the local macOS hardware viewport is verified.
-See [GPU evidence](validation/gpu-foundation.md).
+See [GPU evidence](validation/gpu-foundation.md) and the local
+[editable primitive workflow](validation/primitives.md).
 
 CI compilation does not run the existing hardware smoke on hosted machines.
 The strict GPU test remains intact. Linux Xw_Window currently requires X11/GLX;

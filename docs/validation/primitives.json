@@ -1,0 +1,525 @@
+{
+  "schema": "alloy-validation/1",
+  "recorded_at": "2026-10-12T02:34:15.144087+00:00",
+  "scope": [
+    "DOC-003",
+    "DOC-004",
+    "DOC-005",
+    "DOC-007",
+    "DOC-008"
+  ],
+  "candidate": {
+    "app": "/Users/rje/src/cpp/Alloy/build/alloy.app/Contents/MacOS/alloy",
+    "source_commit": "782425b4010631de7beb92fac128e1b868739716",
+    "dirty": true,
+    "sha256": "08e2845a3c34502ab9b9e319f7d249c09e74ba28468d2727f5251fbd2cc8b79d"
+  },
+  "host": {
+    "system": "macOS-26.5.1-arm64-arm-64bit-Mach-O",
+    "architecture": "arm64",
+    "python": "3.14.5"
+  },
+  "runtime_dependencies": {
+    "occtBuildVersion": "7.9.3",
+    "qtVersion": "6.11.2"
+  },
+  "source_and_fixture_sha256": {
+    "tests/workflows/ledger.json": "3830bc4220a2067a1220ef51c92d39e14799ac1bbe755dbcf2329283c38519b1",
+    "docs/backlog/issues.json": "e7dd634d06a26ea5f58b7ae3c4d95c215119b75b245ff858a0e5d02baa28e1b7",
+    "tests/workflows/run.py": "de73c9bba394c61717a53845ac52fb6e6a60395a484ddf33b552c3b759c390d3",
+    "CMakeLists.txt": "2cdc697e542c1df43f5a56d5ef6aaae17f42821af64eb341fbfa9b21ed14cc32",
+    "tools/alloyctl.py": "7429d3a49baccef9bbf63b90924dccf2ac13c083feb4b55a8bbd499e442aa2ca",
+    "tools/backlog.py": "2db58486ac1cfa3366dc9d942b3e6177531bb800e8a7e0a87390a30ddba13417",
+    "src/AlloyWindow.cpp": "d6830ee8b09735f38fbd41190ce80b5060d4e6f3299b5af83009124142a94d71",
+    "src/AlloyWindow.h": "b9409a798557bf732d8928264302cca6d717eb5d29a8d6cce1ae616a42c3d1a3",
+    "src/CadDocument.cpp": "3518688987f4d01063d767fff79cbfb74bff7b678c86a574291d0e128fb181d0",
+    "src/CadDocument.h": "e8ba2595925e5d4de051d9922a47f339b1bc52f47a303804ce4ce1c373162403",
+    "src/ControlServer.cpp": "cb8ad74e6bed508791cc0f12e0d09b7cad46d7ccf20e0f5ceeb53178e83fddea",
+    "src/ControlServer.h": "9c692cacf1f764435284b1cec2e3d50a38ebda8ab7aeccd76704adbf67aee651",
+    "src/GeometryKernel.cpp": "cd1aab04808f48e5850e6578dbc42039cd1f0701a4d13a1cb6142a0c02e29669",
+    "src/GeometryKernel.h": "622038cb13f47fcaca35224bcdea13cd1521ff9329ef02cd4aafd457b3c923f7",
+    "src/ReferenceView.cpp": "784e3e5fb3891fa71ff4eda869db4aa7e0835059ca1d88910b73032757175862",
+    "src/ReferenceView.h": "f07b35c60b93c6b01a0931eb9527cde5852b01a1f276cd82cdc6d5b9cfc9436f",
+    "src/main.cpp": "16853ebf0f003c63d1455a7e36819dd1cc952c43ab4758dc16deb8cda949a9f8",
+    "tests/shell_api.py": "419fd2235b54866536b09c8e14da1cc87753072bb221465a894f165e3ca4ce02",
+    "tests/workflows/fixtures/shell.json": "c5a970b012456aeb4ed5f1e864929ee0e26a32fdbaba77c4a27070a37ca6ad09",
+    "tests/document_api.py": "30b047e82d38585c6bb31eef54d65a40066bd3dfad3056f7ecd3e19443478e18",
+    "tests/workflows/fixtures/document.json": "4c48b2e0f12a0be1b1acc1f84ac3c00d1a94335e80abec8b4098210664581ad3",
+    "tests/session_api.py": "55293d711871471a9bb4e6262f7a8cf5f1c8f317c5dd238cad3915f678a88bb8",
+    "tests/workflows/fixtures/sessions.json": "77cbedc4f2955a6fc24648e12383816c0a6acb461be5f0ab0ee965e883981121",
+    "tests/primitives_api.py": "5ffb01ae0768a3fd176bbb55f4b7346bb16acaab272fe9a4b80d8c43e139c597",
+    "tests/workflows/fixtures/primitives.json": "0f7fcc0c685523139ee2c941da57909632763f2c1b4368e33aecebec7ba3e390",
+    "tests/app_harness.py": "5664939829e851da533d80a942a1b03f869106724683025d367fef3dd9d22d08",
+    "tests/geometry_kernel.cpp": "de9aeb2f7b9cb2b35b2cf955b95fb735701a9685b34ff7752a931ec565bf95cd"
+  },
+  "regression": {
+    "path": "build/evidence/primitive-regression/report.json",
+    "sha256": "648f39a277ee2673907370e29a69ec1236bb5d44757d850a266aefdface2b48e",
+    "cases": {
+      "shell_api": "passed",
+      "DOC-002": "passed",
+      "FND-006": "passed",
+      "primitives": "passed",
+      "primitive-regression": "passed"
+    },
+    "observed_capabilities": [
+      "commands.completion",
+      "commands.sessions",
+      "commands.shared_dialog",
+      "document.atomic_native_storage",
+      "document.identities",
+      "document.ownership_inspection",
+      "document.transactions",
+      "document.units",
+      "geometry.trustworthy_summaries",
+      "instances.discovery",
+      "primitives.editable",
+      "shell.commands",
+      "shell.errors",
+      "shell.layout",
+      "shell.search",
+      "viewport.capture",
+      "viewport.document_brep",
+      "viewport.hardware",
+      "viewport.resize"
+    ],
+    "dimensions": {
+      "build": {
+        "status": "not_run",
+        "reason": "Prebuilt candidate; compilation was not performed by this run."
+      },
+      "api": {
+        "status": "passed",
+        "receipt": "/Users/rje/src/cpp/Alloy/build/evidence/primitive-regression/run-i4pql454/primitives/primitives-api.json",
+        "commands": 73
+      },
+      "hardware": {
+        "status": "passed",
+        "diagnostics": {
+          "backend": "OCCT OpenGL",
+          "details": {
+            "FBO buffer": "GL_SRGB8_ALPHA8 GL_DEPTH24_STENCIL8",
+            "GLSLversion": "4.10",
+            "GLdevice": "Apple M4",
+            "GLvendor": "Apple",
+            "GLversion": "4.1 Metal - 90.5",
+            "GPU Texture memory": "12124 MiB",
+            "GPU memory": "12124 MiB",
+            "Max FBO dump size": "16384x16384",
+            "Max MSAA samples": "4",
+            "Max combined texture units": "80",
+            "Max texture size": "16384",
+            "ResolutionRatio": "2",
+            "Viewport": "2376x1274",
+            "Window buffer": "RGB0 ALPHA0 DEPTH0 STENCIL0"
+          },
+          "displayedBodies": 0,
+          "documentRevision": 0,
+          "error": "",
+          "framebufferHeight": 1274,
+          "framebufferWidth": 2376,
+          "hardwareAccelerated": true,
+          "initialized": true,
+          "nativeHeight": 637,
+          "nativeWidth": 1188,
+          "previewVisible": false,
+          "qualification": "hardware-driver-identified",
+          "renderer": "Apple M4",
+          "vendor": "Apple",
+          "version": "4.1 Metal - 90.5"
+        }
+      },
+      "geometry": {
+        "status": "passed",
+        "receipt": "/Users/rje/src/cpp/Alloy/build/evidence/primitive-regression/run-i4pql454/primitives/primitives-api.json"
+      },
+      "save_reopen": {
+        "status": "passed",
+        "receipt": "/Users/rje/src/cpp/Alloy/build/evidence/primitive-regression/run-i4pql454/primitives/primitives-api.json"
+      },
+      "export": {
+        "status": "not_applicable",
+        "reason": "Shell case has no authored CAD geometry; a later CAD gate requires its own real cases."
+      },
+      "physical_input": {
+        "status": "not_run",
+        "reason": "API actions are not physical keyboard/mouse evidence."
+      },
+      "visual": {
+        "status": "captured",
+        "reason": "Actual GPU/model/dialog captures; familiarity/physical acceptance remains separate.",
+        "receipt": "/Users/rje/src/cpp/Alloy/build/evidence/primitive-regression/run-i4pql454/primitives/primitives-api.json"
+      }
+    },
+    "artifacts": {
+      "run-i4pql454/DOC-002/app.log": {
+        "sha256": "327fbf37fb6ba083e44e3a47d2f78135cdea01b9ca2c4697ff13d98a8771d10c",
+        "bytes": 307
+      },
+      "run-i4pql454/DOC-002/case.log": {
+        "sha256": "13c50300c6650930b1966bbe7148e6038188a2c6b1312a1224cb8816ece65cf3",
+        "bytes": 79
+      },
+      "run-i4pql454/DOC-002/document-api.json": {
+        "sha256": "ce7fb9d914eba79d262dbf700e43dc783363c2ec2beb3d7eadfa3cdda7f4c3e3",
+        "bytes": 19889
+      },
+      "run-i4pql454/FND-006/app-0.log": {
+        "sha256": "14988b881d7b9ca225f9e0a546d2ebcd7952fb901ecd037c1187ba347b7a2e21",
+        "bytes": 307
+      },
+      "run-i4pql454/FND-006/app-1.log": {
+        "sha256": "b75c4c90bb910e3342274c456e67f9c48bbb1f9da217d9325132c9b30a80c9b6",
+        "bytes": 307
+      },
+      "run-i4pql454/FND-006/case.log": {
+        "sha256": "18b06d2f0a6376dc52d82daa1b902cecea47b1e7c335c5d96060cd30ca9e9579",
+        "bytes": 96
+      },
+      "run-i4pql454/FND-006/document-settings.png": {
+        "sha256": "7ee95631115f1e48b3e8263a3b79501e417e0b67f6f36b0d204755166e5cfe93",
+        "bytes": 12951
+      },
+      "run-i4pql454/FND-006/session-api.json": {
+        "sha256": "48474cc6e1592e1831c9fedf44c7493117cb96aebc3f8a8b1a1ff9544ec18da3",
+        "bytes": 55292
+      },
+      "run-i4pql454/primitives/app.log": {
+        "sha256": "0dc96ba905516d6391dc4115a2cff422f7bfbbeb7ad7c986d3679d82f4a6b78c",
+        "bytes": 307
+      },
+      "run-i4pql454/primitives/box-dialog.png": {
+        "sha256": "c93d533917e8943830e6c538710801f2e973a5be133437b5e6548332d1e5c8d7",
+        "bytes": 38467
+      },
+      "run-i4pql454/primitives/case.log": {
+        "sha256": "6ba23e84bfa6ed98d66714697f2b1a2dfde6400be6984d8e64a6791d904720ce",
+        "bytes": 89
+      },
+      "run-i4pql454/primitives/gauge-block.alloy": {
+        "sha256": "5f71b7335fd9b18e5f13950983df69a4b58bd55703d5ea1352b95ba716cc4598",
+        "bytes": 1134
+      },
+      "run-i4pql454/primitives/malformed.alloy": {
+        "sha256": "3c17e9b8e078476abdbe642f92a564abc29ad3dbc18cb31cd9b0349d6b70e1ee",
+        "bytes": 703
+      },
+      "run-i4pql454/primitives/primitives-api.json": {
+        "sha256": "61c8e74827701b79ebe9cd2f6b9ebb311d97df04517057d037c33bf83879ac25",
+        "bytes": 266162
+      },
+      "run-i4pql454/primitives/primitives-final.png": {
+        "sha256": "4fac6928157d500aa0eb8bc15cb5a74b50567bf0581be5d23248db7cd59802be",
+        "bytes": 230456
+      },
+      "run-i4pql454/primitives/primitives-isometric.png": {
+        "sha256": "1588ff12253b517e7bd0d234c84a9b66ea52677c17a76a6b3095005adf9ec873",
+        "bytes": 228032
+      },
+      "run-i4pql454/primitives/primitives-top.png": {
+        "sha256": "b44882748a9f35f129cee869bbaabcc3a9fd8bafd0eacb1931d6ec8f5597830c",
+        "bytes": 163016
+      },
+      "run-i4pql454/shell_api/alloy-gpu-isometric.png": {
+        "sha256": "415793322e50dedd4de2e30760acd7af96958f74b6c3407621870705a5439c4d",
+        "bytes": 229656
+      },
+      "run-i4pql454/shell_api/alloy-gpu-resized.png": {
+        "sha256": "c6d995f29a42dcb48559c54384362d93023a5c605159ddc730d0526c9b74f01e",
+        "bytes": 144563
+      },
+      "run-i4pql454/shell_api/alloy-gpu-top.png": {
+        "sha256": "e13fb983fa2cc0dced76608814c3849832cb3921b90533362db768a3612dfa12",
+        "bytes": 150929
+      },
+      "run-i4pql454/shell_api/alloy-shell-altered.png": {
+        "sha256": "e8734e639154c6d3ac5fc561bb333570d9db27b51e75a76a5c7bcdbb1d481119",
+        "bytes": 92388
+      },
+      "run-i4pql454/shell_api/alloy-shell.png": {
+        "sha256": "415793322e50dedd4de2e30760acd7af96958f74b6c3407621870705a5439c4d",
+        "bytes": 229656
+      },
+      "run-i4pql454/shell_api/app.log": {
+        "sha256": "428202a34b9332df86833f7912817e0732dd826b2a9e187de24a7bac6839006a",
+        "bytes": 270
+      },
+      "run-i4pql454/shell_api/case.log": {
+        "sha256": "8b57a7561af4b7786d9bd9c7f3875138f5e1b9aa360ecd79c3d538c9a7b8fe34",
+        "bytes": 211
+      },
+      "run-i4pql454/shell_api/shell-api.json": {
+        "sha256": "3d6a95f6243b11c8f1936138f821e4bfbca93ffab866a777e8baec4a48c5731c",
+        "bytes": 100226
+      }
+    }
+  },
+  "focused_ctest": {
+    "tests": [
+      "geometry_kernel",
+      "document_model",
+      "client_selection"
+    ],
+    "result": "passed 3/3",
+    "log": "build/Testing/Temporary/LastTest.log",
+    "sha256": "211ab3da9db89a48ce94e234c4c4b35a94846a1430caf78113afa1d23e7b5c6e"
+  },
+  "physical": {
+    "source": "native Alloy UI operated through computer-use tools; authoritative state inspected through Alloy control API",
+    "checks": [
+      "toolbar box creation",
+      "width typed as 35 mm",
+      "Cmd+Z",
+      "Cmd+Shift+Z",
+      "native Save dialog",
+      "Timeline edit shows persisted dimensions",
+      "Cancel edit"
+    ],
+    "document": {
+      "authored": {
+        "displayUnits": "mm",
+        "documentId": "af10e6b4-6e0b-4eb9-bafc-6aa4a5af715a",
+        "features": [
+          {
+            "bodyId": "4220f69f-647c-4c20-93af-4050c29eafea",
+            "id": "e022f129-0b03-4ce4-8efd-5b4a47b362a2",
+            "name": "Box",
+            "ownerId": "af10e6b4-6e0b-4eb9-bafc-6aa4a5af715a",
+            "parameters": {
+              "depthMm": 30,
+              "heightMm": 10,
+              "widthMm": 35,
+              "xMm": 0,
+              "yMm": 0,
+              "zMm": 0
+            },
+            "type": "box",
+            "visible": true
+          }
+        ],
+        "schema": "alloy-document/1"
+      },
+      "bodies": 1,
+      "canonicalLengthUnit": "mm",
+      "dirty": false,
+      "editableHistory": true,
+      "evaluation": {
+        "bodies": [
+          {
+            "areaMm2": 3400,
+            "areaUnit": "mm2",
+            "bodyId": "4220f69f-647c-4c20-93af-4050c29eafea",
+            "boundsMm": {
+              "max": [
+                35,
+                30,
+                10
+              ],
+              "min": [
+                0,
+                0,
+                0
+              ],
+              "size": [
+                35,
+                30,
+                10
+              ]
+            },
+            "closed": true,
+            "featureId": "e022f129-0b03-4ce4-8efd-5b4a47b362a2",
+            "kernel": "OCCT",
+            "lengthUnit": "mm",
+            "name": "Box",
+            "topology": {
+              "edges": 12,
+              "faces": 6,
+              "shells": 1,
+              "solids": 1,
+              "vertices": 8
+            },
+            "type": "solid",
+            "valid": true,
+            "version": "7.9.3",
+            "visible": true,
+            "volumeMm3": 10500,
+            "volumeUnit": "mm3"
+          }
+        ],
+        "documentRevision": 4,
+        "status": "current"
+      },
+      "features": 1,
+      "id": "af10e6b4-6e0b-4eb9-bafc-6aa4a5af715a",
+      "label": "keyboard-box",
+      "lastTransactionId": "1ad18730-824c-4d38-92ec-d15100923e2f",
+      "loaded": true,
+      "path": "/Users/rje/src/cpp/Alloy/build/evidence/physical-primitives/keyboard-box.alloy",
+      "revision": 4,
+      "sketches": 0,
+      "undo": {
+        "canRedo": false,
+        "canUndo": true,
+        "count": 1,
+        "index": 1,
+        "redoText": "",
+        "undoText": "Create box"
+      },
+      "units": "mm"
+    },
+    "gpu": {
+      "backend": "OCCT OpenGL",
+      "details": {
+        "FBO buffer": "GL_SRGB8_ALPHA8 GL_DEPTH24_STENCIL8",
+        "GLSLversion": "4.10",
+        "GLdevice": "Apple M4",
+        "GLvendor": "Apple",
+        "GLversion": "4.1 Metal - 90.5",
+        "GPU Texture memory": "12124 MiB",
+        "GPU memory": "12124 MiB",
+        "Max FBO dump size": "16384x16384",
+        "Max MSAA samples": "4",
+        "Max combined texture units": "80",
+        "Max texture size": "16384",
+        "ResolutionRatio": "2",
+        "Viewport": "2376x1274",
+        "Window buffer": "RGB0 ALPHA0 DEPTH0 STENCIL0"
+      },
+      "displayedBodies": 1,
+      "documentRevision": 4,
+      "error": "",
+      "framebufferHeight": 1274,
+      "framebufferWidth": 2376,
+      "hardwareAccelerated": true,
+      "initialized": true,
+      "nativeHeight": 637,
+      "nativeWidth": 1188,
+      "previewVisible": false,
+      "qualification": "hardware-driver-identified",
+      "renderer": "Apple M4",
+      "vendor": "Apple",
+      "version": "4.1 Metal - 90.5"
+    },
+    "artifact_sha256": {
+      "physical-box.png": "a31971eb4eb43bb7d055db3cce1b9e2c77f678aef3e250e802e7807ad930fad9",
+      "physical-redo.json": "053c4f26a9558a53c281a8f61168e20e37fcd26f8f7c6ab3a9db83d9dabd0639",
+      "keyboard-box.alloy": "3d68714921aeeb437d56a2a417a54808ef5f68284ac22be2202a32094ee99ae4",
+      "human-sample.json": "c1f702c6ab65c30d6da19ebd2db0f6580c2757f91bae64c32ca2bf9e031b41de",
+      "human-sample.png": "4fac6928157d500aa0eb8bc15cb5a74b50567bf0581be5d23248db7cd59802be",
+      "physical-saved.json": "be422a8305765ec08476cc429da754e1b48fde624d2448ab50425f7c5aabaa66",
+      "physical-create.json": "c403bed887da2a07b0541e2113952ed0bec9fd398b8f91cde64210483c1862a5"
+    },
+    "unqualified": [
+      "physical Browser body selection",
+      "face/edge selection",
+      "complete document-decision/dialog flow",
+      "reference visual/interaction compatibility"
+    ]
+  },
+  "human_sample": {
+    "path": "examples/gauge-block.alloy",
+    "sha256": "5f71b7335fd9b18e5f13950983df69a4b58bd55703d5ea1352b95ba716cc4598",
+    "bodies": [
+      {
+        "areaMm2": 2656,
+        "areaUnit": "mm2",
+        "bodyId": "82a32e66-f5ac-4800-99b2-c4b6221f747e",
+        "boundsMm": {
+          "max": [
+            24,
+            32,
+            10
+          ],
+          "min": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            24,
+            32,
+            10
+          ]
+        },
+        "closed": true,
+        "featureId": "9a01f953-1dfd-4f33-a142-eb20655afa58",
+        "kernel": "OCCT",
+        "lengthUnit": "mm",
+        "name": "Gauge block",
+        "topology": {
+          "edges": 12,
+          "faces": 6,
+          "shells": 1,
+          "solids": 1,
+          "vertices": 8
+        },
+        "type": "solid",
+        "valid": true,
+        "version": "7.9.3",
+        "visible": true,
+        "volumeMm3": 7680,
+        "volumeUnit": "mm3"
+      },
+      {
+        "areaMm2": 471.238898038469,
+        "areaUnit": "mm2",
+        "bodyId": "675039a6-9808-4e4e-b127-6c655e1c15c5",
+        "boundsMm": {
+          "max": [
+            45,
+            15,
+            10
+          ],
+          "min": [
+            35,
+            5,
+            0
+          ],
+          "size": [
+            10,
+            10,
+            10
+          ]
+        },
+        "closed": true,
+        "featureId": "dda572cc-ab31-47e7-8d31-0de1a82f1032",
+        "kernel": "OCCT",
+        "lengthUnit": "mm",
+        "name": "Cylinder",
+        "topology": {
+          "edges": 3,
+          "faces": 3,
+          "shells": 1,
+          "solids": 1,
+          "vertices": 2
+        },
+        "type": "solid",
+        "valid": true,
+        "version": "7.9.3",
+        "visible": true,
+        "volumeMm3": 785.3981633974482,
+        "volumeUnit": "mm3"
+      }
+    ],
+    "dirty": false
+  },
+  "public_capture": {
+    "path": "docs/validation/primitives.png",
+    "sha256": "4fac6928157d500aa0eb8bc15cb5a74b50567bf0581be5d23248db7cd59802be",
+    "source": "actual Qt chrome plus OCCT GPU framebuffer; excludes OS decorations"
+  },
+  "independent_review": {
+    "reviewer": "Astra",
+    "result": "approved bounded primitive/undo/storage slice",
+    "limits": "physical checks and familiarity remain separate"
+  },
+  "limits": [
+    "No STEP or printing export",
+    "Only body selection; no face/edge selection",
+    "World XY/New Body/default dimensions are bounded Alloy proposals",
+    "No claim of full GATE-010 acceptance",
+    "Only local macOS hardware runtime verified",
+    "No published binary package",
+    "Aggregate export explanation inherited from shell; export remains unimplemented"
+  ]
+}

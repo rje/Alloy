@@ -27,28 +27,21 @@ issues before implementation and remain open until that declared coverage passes
 
 ## Pullable work and current evidence
 
-The initial graph had seven tasks without prerequisites. The shell baseline,
-[`GATE-000` #12](https://github.com/rje/Alloy/issues/12), is now closed with
-real-app evidence. The verified publication has **133 open issues and five ready
-tasks**:
+The shell gate and runner, authored-history decision, dependency admission,
+geometric-reference prototype, command sessions, native-toolchain audit and
+thin modeling kernel are complete with independently reviewed evidence. The
+first real primitive workflow now verifies rendering/picking, editable box and
+cylinder intent, one undo authority, trustworthy measurements and native
+save/reopen. See [development](../development.md) and the
+[primitive receipt](../validation/primitives.md).
 
-- `FND-001`: choose a dated public compatibility baseline.
-- `FND-002`: audit dependency admission/distribution under the accepted MIT decision.
-- `FND-003`: prototype authored persistence/transaction authority.
-- `FND-004`: prototype persistent face/edge references.
-- `FND-006`: extend instance discovery and real command lifecycle/automation.
-
-These five tasks are **ready**, not already complete. Recompute the live queue
-before pulling work; issue states can change after this publication snapshot.
-The existing shell, CLI, initial research, CMake build and API smoke are already
-present; the backlog does not pretend they need to be created again. The
-shell-only gate can be closed with reviewed current evidence without closing
-broader foundation governance or future CAD tasks. See
-[the current-shell receipt](../validation/current-shell.md), if present, and
-[development](../development.md). GPU viewport work is now explicitly required;
-`DOC-005` covers the full rendering/document/selection integration and remains
-open until all its criteria hold, even if a hardware-backed empty viewport lands
-first.
+Run `python3 tools/backlog.py ready` before pulling work; live issue states and
+dependencies determine readiness. The next geometry/document work includes
+face/edge selection, Browser breadth, STEP interchange, persistent-reference
+integration and observable document decisions. Foundation work still includes
+a dated compatibility baseline, solver admission, portable Windows controls and
+qualified runtime packages. The issue count measures the starting backlog,
+not product coverage or a replacement claim.
 
 MIT is accepted for Alloy's original source and documentation. Each dependency
 keeps its own terms. A GPL-only solver or format library must not slip into the
@@ -80,8 +73,9 @@ showcase object need not exercise every option, so retain small focused fixtures
 alongside it. Run **all previously accepted representative workflows** on the
 same candidate build. A previous green issue is not a fresh regression result.
 
-The runner is implemented by `FND-010`; only `shell_api` and `FND-010` cases
-exist today. `python3 tests/workflows/run.py --gate GATE-020 --cumulative
+The runner is implemented by `FND-010`; the [ledger](../../tests/workflows/ledger.json)
+lists current shell, authored, session, kernel, native-audit and primitive cases.
+`python3 tests/workflows/run.py --gate GATE-020 --cumulative
 --evidence build/evidence/GATE-020` refuses acceptance until that gate's evidence
 specification, actual feature cases and live prerequisites are complete. Read
 [workflow validation](../workflow-validation.md). Existing `ctest` remains valid.

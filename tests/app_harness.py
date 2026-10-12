@@ -35,7 +35,7 @@ def application(app, output):
                         assert response['error']['code'] == error, response
                     return response.get('result', {})
                 yield call, transcript
-                call('app.quit')
+                call('app.quit', {'discard':True})
                 assert process.wait(timeout=5) == 0
             finally:
                 if process.poll() is None:

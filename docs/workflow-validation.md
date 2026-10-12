@@ -2,13 +2,15 @@
 
 FND-010 adds a stdlib Python runner around the existing real-entrypoint
 `tests/shell_api.py`. It does not implement CAD or a separate automation model.
-Registered cases are `shell_api`, `FND-010`, `DOC-002` and `FND-006`.
+Registered cases include `shell_api`, `FND-010`, `DOC-001`, `DOC-002`, `FND-006`,
+`FND-009`, `primitives` and `primitive-regression`; the ledger is authoritative.
 FND-010 runs the shell plus refusal checks using its actual observed capabilities;
 the document/session cases exercise their real app features.
 
 ```sh
 python3 tests/workflows/run.py --case FND-010 --build --evidence build/evidence/FND-010
 python3 tests/workflows/run.py --case shell_api --app /absolute/path/to/alloy --evidence build/evidence/shell
+python3 tests/workflows/run.py --case primitive-regression --evidence build/evidence/primitive-regression
 ```
 
 `--build` verifies the configured source root and requires its known app output,
@@ -26,6 +28,15 @@ Build, API, hardware, geometry, save/reopen, export, physical input and visual
 results have separate statuses/reasons. A shell capture is recorded as captured;
 physical inputs and visual compatibility have not been qualified by this runner.
 CAD dimensions are non-applicable to the shell, not accepted modeling evidence.
+
+`primitives` covers DOC-003/004/005/007/008 in one real create/edit/pick/undo/
+save/reopen workflow. Their named cases alias that fresh evidence rather than
+launching duplicate workflows. `primitive-regression` runs shell, authored units,
+shared sessions and primitives once each. See the [primitive receipt](validation/primitives.md)
+for separate native physical checks. STEP and printing export remain unimplemented;
+the aggregate report's inherited shell export explanation does not qualify export.
+`FND-009` audits retained historical native-matrix artifacts separately from the
+current candidate; its build dimension stays unperformed for a prebuilt app.
 
 To exercise refusal explicitly:
 

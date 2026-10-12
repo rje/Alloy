@@ -55,7 +55,7 @@ def main():
 
                 initial = call("app.state")
                 assert initial["document"]["loaded"] and initial["document"]["features"] == 0
-                assert initial["document"]["bodies"] == 0 and not initial["kernel"]["integrated"]
+                assert initial["document"]["bodies"] == 0 and initial["kernel"]["integrated"]
                 gpu = initial["viewport"]["gpu"]
                 assert gpu["initialized"] and gpu["hardwareAccelerated"], gpu
                 assert gpu["vendor"] and gpu["renderer"] and gpu["version"], gpu

@@ -2,6 +2,7 @@
 #include <QMainWindow>
 #include <QJsonArray>
 #include <QJsonObject>
+#include <QMap>
 #include <functional>
 #include <vector>
 #include "CadDocument.h"
@@ -12,6 +13,10 @@ class QDialog;
 class ReferenceView;
 class QComboBox;
 class QLineEdit;
+class QDoubleSpinBox;
+class QCloseEvent;
+class QTreeWidgetItem;
+class QHBoxLayout;
 
 // UI and automation dispatch against the same authored document.
 class AlloyWindow final : public QMainWindow {
@@ -21,6 +26,8 @@ public:
     QJsonObject state() const;
     QJsonArray commands() const;
     QJsonObject identity() const;
+protected:
+    void closeEvent(QCloseEvent*) override;
 private:
     struct Command {
         QString id, title, description;
@@ -37,6 +44,9 @@ private:
     QJsonObject beginSession(const QString& command, const QJsonObject& inputs);
     QJsonObject finishSession(const QString& id, bool commit);
     void showUnits();
+    void showPrimitive();
+    QJsonObject primitiveCandidate(const QString&, const QJsonObject&) const;
+    bool confirmDiscard();
     std::vector<Command> commands_;
     ReferenceView* view_ = nullptr;
     QWidget* browser_ = nullptr;
@@ -48,6 +58,18 @@ private:
     QDialog* unitsDialog_ = nullptr;
     QComboBox* unitsInput_ = nullptr;
     QLineEdit* searchInput_ = nullptr;
+    QDialog* primitiveDialog_ = nullptr;
+    QJsonObject primitiveWidgetInputs() const;
+    QMap<QString,QDoubleSpinBox*> primitiveInputs_;
+    QLabel* primitiveError_ = nullptr;
+    QLineEdit* primitiveName_ = nullptr;
+    QTreeWidgetItem* bodiesNode_ = nullptr;
+    QHBoxLayout* timelineLayout_ = nullptr;
+    QLabel* documentTitle_ = nullptr;
+    QLabel* browserNote_ = nullptr;
+    QString selectedBody_;
+    quint64 displayedDocumentRevision_ = 0;
+    bool authorizedQuit_ = false;
     QJsonObject session_;
     QString instanceId_ = CadDocument::newId();
     bool browserVisible_ = true;

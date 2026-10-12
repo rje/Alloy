@@ -54,30 +54,46 @@ grid with named orientations, pan, and zoom. A private local control socket and
 OCCT 7.9.3 is linked for native AIS/V3d/OpenGL visualization; the live Apple M4
 hardware driver and Retina framebuffer/startup/resize were verified. See the
 [GPU foundation receipt](validation/gpu-foundation.md). `kernel.visualizationIntegrated`
-is true. DOC-001 now links the thin OCCT modeling boundary; `kernel.probe`
+is true. DOC-001 links the thin OCCT modeling boundary; `kernel.probe`
 evaluates a real diagnostic solid without adding authored geometry. Its real-app
 case and box/cylinder/open-face unit checks passed and Astra reviewed the slice.
-See [kernel receipt](validation/kernel-boundary.json). Document operations and
-rendered primitives follow separately.
+See [kernel receipt](validation/kernel-boundary.json). The document now evaluates
+authored boxes and cylinders through that same boundary and renders their real
+AIS shapes; `kernel.integrated` is true.
 The cumulative runner in `tests/workflows/run.py` now wraps the real shell case,
 with fixture/candidate/artifact hashes, capability checks and live gate prerequisites.
 Its real-app success and focused refusal checks passed, and Astra reviewed the
 bounded implementation. See [runner receipt](validation/workflow-runner.md). Physical
-and visual acceptance remain separate. DOC-002 and FND-006 are also registered;
-later cases remain unavailable.
+and visual acceptance remain separate. DOC-002, FND-006, the shared `primitives`
+case and DOC-003/004/005/007/008 aliases are registered. `primitive-regression`
+runs shell, document, sessions and primitives once each on the same candidate.
 The DOC-002 authored layer now has a root UUID, typed owned primitive intent,
 canonical millimeters and mm/in display units. A bounded unit fixture and the
-real-app DOC-002 case passed. Modeling operations are not exposed yet; see
-[authored receipt](validation/authored-document.md). There is no CAD geometry, sketch solver, native persistence,
-import, or export yet. Modeling controls are explicitly unavailable. Visual and
-physical-input parity have not been established.
+real-app DOC-002 case passed; see [authored receipt](validation/authored-document.md).
+Box/cylinder creation, dimension editing, deletion, undo/redo and native `.alloy`
+save/open are implemented. Candidate authored state and evaluated geometry are
+validated before one journal entry is committed. Undo restores both snapshots;
+redo preserves IDs, and divergent edits discard the abandoned redo branch.
+Files retain editable intent; evaluated geometry is rebuilt on open. Reopening
+starts a clean session journal. Invalid edits/files and failed saves preserve
+the live document. Preview is disposable, with no authored edit on cancel.
+
+The [primitive receipt](validation/primitives.md) records the passing cumulative
+real-app regression, three focused CTest checks and Astra's independent review.
+Separate native UI checks covered toolbar creation, dimension typing, keyboard
+undo/redo, native Save and Timeline edit/cancel. An editable sample lives in
+`examples/gauge-block.alloy`. Body picking and geometry inspection use the actual
+OCCT scene and evaluated document. Face/edge selection, persistent-reference
+integration, arbitrary orbit, sketch solver, import and export remain pending.
+Visual/interaction parity and the broader product gates are not accepted.
 
 FND-006 adds verified live-instance discovery, shared command sessions, observable
 units/search dialogs, draft preview, cancel, stale-commit refusal and transaction
 IDs. Its real two-app workflow and focused selector regression passed; Astra's
 independent review found no remaining blocker. See
-[session receipt](validation/command-sessions.md). Modeling previews and async
-jobs await real features; Windows local-control adaptation remains FND-012.
+[session receipt](validation/command-sessions.md). Primitive sessions extend this
+same flow with real geometry previews; asynchronous jobs await a long-running
+feature. Windows local-control adaptation remains FND-012.
 
 The native Debug build and CTest real-app smoke passed on Apple silicon macOS
 with Qt 6.11.2. The smoke exercised real commands, state changes, errors, search
@@ -106,7 +122,9 @@ cumulative validation gates**. All remote issue bodies, dependency links,
 labels, milestones, and live readiness were verified through the API. The shell
 baseline [`GATE-000` #12](https://github.com/rje/Alloy/issues/12) is closed;
 FND-010 #10 is also closed with independently reviewed runner evidence;
-FND-003, FND-002 and DOC-002 are closed after independently reviewed evidence. Live counts
+FND-003, FND-002, DOC-002, FND-006, FND-004, FND-009 and DOC-001 are closed after
+independently reviewed evidence. DOC-003/004/005/007/008 have reviewed primitive
+evidence; their live issue states are the authority. Live counts
 are obtained with tools/backlog.py rather than this earlier publication snapshot. Later epics need
 bounded child issues before implementation; this count does not exhaust parity.
 Read [the backlog](backlog/README.md), [publication receipt](backlog/publication.json),
@@ -135,17 +153,29 @@ through the CLI/API as tasks start and finish.
 FND-003 is complete with a permitted Qt/OCCT comparison and independently reviewed
 [decision 001](decisions/001-authored-document.md). It selects authored JSON and one
 QUndoStack, with no persisted session journal. DOC-002 integration and its focused evidence are complete;
-FND-006 shared sessions are complete; DOC-003/DOC-004 supply exposed undo and
-native storage next. FND-004 resolves stable geometric references independently.
+FND-006 shared sessions and the first exposed modeling/undo/storage slice are
+complete. FND-004 resolves stable geometric references independently.
 Its bounded OCCT fixture now passed generator role rebinding, fillet history,
 split/deletion/merge cases; [decision 002](decisions/002-geometric-references.md)
 defines conservative unresolved behavior. DOC-012 still implements the real resolver.
 
-The proposed next product increment is [roadmap milestone 1](roadmap.md): integrate OCCT
-and a real CAD viewport/document; create/select/inspect a primitive; add undo,
-save/reopen, and small STEP import/export fixtures through the shared command path.
-Research the public interaction details needed for those commands as they enter
-implementation. Do not claim geometry success from the existing reference grid.
+The first hands-on slice is ready: open the gauge-block sample, edit a Timeline
+feature, create a box/cylinder, preview/cancel, undo/redo and save/reopen. The current
+local build is left running with that sample; discover live identity with
+`python3 tools/alloyctl.py instances`. The retained current regression is
+`build/evidence/primitive-regression/report.json`; reproduce it with
+`python3 tests/workflows/run.py --case primitive-regression --evidence build/evidence/primitive-regression`.
+Do not repeat unchanged checks after reasonable assurance.
+
+Pull the next dependency-ready work through `tools/backlog.py`: complete
+face/edge selection (DOC-006), Browser breadth (DOC-009), STEP read/write
+(DOC-010/011), the application geometric-reference resolver (DOC-012), and
+observable document decisions (DOC-013). Hardware package qualification and
+Windows control remain separate foundation work. Research permitted public
+interaction details as commands enter implementation; world-XY primitive
+placement, New Body and initial dialog values are bounded Alloy proposals,
+not a claim of exact reference compatibility. GATE-010 remains open until its
+full useful-object and independent STEP evidence exist.
 
 The first parametric workflow then adds a constrained/dimensioned sketch,
 extrusion, fillet, upstream dimension change and recompute, save/reopen, and mesh

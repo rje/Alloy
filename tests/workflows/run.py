@@ -163,11 +163,18 @@ def main():
                     raise ValueError('Coverage refusal checks failed')
                 report['cases'][name] = {'status': 'passed', 'checks': checks, 'note': 'Validation-metadata fault injection only; no application/model state was mocked.'}
                 observed.update(spec['capabilities'])
+            elif spec.get('check') == 'case_alias':
+                if not spec.get('requires') or set(spec['capabilities'])-observed:
+                    raise ValueError(f'{name}: alias lacks actual fresh prerequisite evidence')
+                report['cases'][name]={'status':'passed','requires':spec['requires'],
+                    'note':'Uses fresh shared workflow evidence already executed in this run; no duplicate app run.'}
             else:
                 case_dir = run_dir / name
                 case_dir.mkdir()
                 for key in ('script', 'fixture'):
                     inputs[spec[key]] = digest(ROOT / spec[key])
+                for path in spec.get('inputs',[]):
+                    inputs[path]=digest(ROOT/path)
                 command = [sys.executable, '-E', str(ROOT / spec['script']), '--app', str(app), '--output', str(case_dir), '--fixture', str(ROOT / spec['fixture'])]
                 execution = run_logged(command, case_dir / 'case.log', 60)
                 if execution['returncode']:
