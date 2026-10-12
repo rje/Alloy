@@ -88,6 +88,31 @@ ReferenceView::ReferenceView(QWidget* parent) : QWidget(parent) {
 ReferenceView::~ReferenceView() {
     if (!view_.IsNull()) view_->Remove();
 }
+QJsonObject ReferenceView::cameraState() const {
+    return {{"orientation",orientation},{"zoom",zoom},{"panX",pan.x()},{"panY",pan.y()},
+        {"grid",grid},{"origin",origin},{"sketchPlane",sketchPlane_},
+        {"centerX",sceneCenter_.X()},{"centerY",sceneCenter_.Y()},{"centerZ",sceneCenter_.Z()},
+        {"scale",sceneScale_}};
+}
+void ReferenceView::restoreCameraState(const QJsonObject& state) {
+    orientation=state.value("orientation").toString("isometric");
+    zoom=state.value("zoom").toDouble(1);pan={state.value("panX").toDouble(),state.value("panY").toDouble()};
+    grid=state.value("grid").toBool(true);origin=state.value("origin").toBool(true);
+    sketchPlane_=state.value("sketchPlane").toString();
+    sceneCenter_=gp_Pnt(state.value("centerX").toDouble(),state.value("centerY").toDouble(),state.value("centerZ").toDouble());
+    sceneScale_=state.value("scale").toDouble(400);
+    sync();
+}
+void ReferenceView::rebindDocument() {
+    if(context_.IsNull())return;
+    clearPreview();clearSketchDraft();clearBodyStage();clearSketchCursor();
+    setEditDisplay({},{});selectProfile({},{});highlightCombineInputs({},{});
+    for(const auto& model:models_)context_->Remove(model,false);
+    for(const auto& model:sketchModels_)context_->Remove(model,false);
+    for(const auto& model:finishedProfileModels_)context_->Remove(model,false);
+    models_.clear();bodyVisibility_.clear();sketchModels_.clear();finishedProfileModels_.clear();finishedSketches_.clear();
+    modelRevision_=std::numeric_limits<quint64>::max();sketchRevision_=modelRevision_;
+}
 void ReferenceView::initialize() {
     if (!view_.IsNull() || !error_.isEmpty()) return;
     try {

@@ -109,6 +109,10 @@ fail without applying the command. Error codes include `invalid_request`,
 | `capture.dialog` | Absolute `.png` path; actual active QWidget dialog or modeling dock |
 | `document.inspect` | Authored root/feature IDs, ownership, canonical units and journal state |
 | `document.units` | `units`: `mm` or `in`; display conversion preserves canonical values |
+| `document.tabs` | Active stable tab ID plus open design titles, paths, dirty and sketch-draft flags; also in `app.state.documentTabs` |
+| `document.tabNew` | Create and activate an independent blank design; native plus and Cmd/Ctrl+N use this |
+| `document.tabActivate` | `tabId`: restore document, accepted sketch draft/journal, selection and camera; pending input refuses |
+| `document.tabClose` | `tabId`, optional `discard`; dirty close requires saved state or explicit discard; active pending command refuses |
 | `document.new` | `discard`: boolean; dirty replacement refuses unless explicitly acknowledged |
 | `document.save` | `path`: absolute `.alloy` path; atomic authored save, clean only after success |
 | `document.open` | `path`: absolute `.alloy` path; optional `discard`: boolean, default false |

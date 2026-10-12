@@ -49,6 +49,21 @@ Begin with the feature dependencies needed by the first workflow. Introduce
 incremental recomputation when real edits justify it. Keep save/open and undo
 consistent with the same document state rather than serializing UI widgets.
 
+Each open design tab owns one heap-allocated `CadDocument` and its undo stack.
+Stable tab IDs identify window-local ownership; authored document IDs retain their
+persistence meaning. One viewport and palette bind to the active tab. Switching
+snapshots accepted sketch drafts and their local edit journal, selected IDs, and
+camera; it invalidates geometry and widget caches even when document revisions
+coincide. Deferred UI actions carry tab/session identity.
+
+Raw inline input, partial sketch gestures and other active commands must be
+completed or canceled before switching. An accepted sketch draft may be retained
+across tabs, but must be Finished or Canceled before saving. Close targets one
+tab; quit checks all tabs. An open sketch is conservatively marked dirty, including
+an unchanged edit session. Closing the last tab creates a fresh blank design.
+Native New and plus create tabs; legacy `document.new/open` explicitly replace the
+active document with existing dirty-work guards. Detach/reorder are deferred.
+
 Origin-plane sketch intent is now implemented within `alloy-document/1`. A sketch
 is a typed feature with a stable UUID, root owner, XY/XZ/YZ plane, canonical-mm
 points and line entities referencing stable endpoint IDs. Rectangles contain four

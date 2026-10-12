@@ -31,6 +31,7 @@
 #include <QSignalBlocker>
 #include <QShortcut>
 #include <QStatusBar>
+#include <QTabBar>
 #include <QTimer>
 #include <QCheckBox>
 #include <QScrollArea>
@@ -42,6 +43,7 @@
 #include <Standard_Failure.hxx>
 #include <algorithm>
 #include <cmath>
+#include <limits>
 #include <numbers>
 
 namespace {
@@ -73,6 +75,8 @@ protected:
 }
 
 AlloyWindow::AlloyWindow() {
+    auto firstTab=std::make_unique<DesignTab>();firstTab->id=CadDocument::newId();
+    activeTabId_=firstTab->id;document_=firstTab->document.get();designTabs_.push_back(std::move(firstTab));
     setWindowTitle("Untitled — Alloy");
     resize(1440, 900);
     setMinimumSize(1040, 640);
@@ -115,7 +119,10 @@ AlloyWindow::AlloyWindow() {
     top->addWidget(brand);
     auto* file = new QPushButton("File");
     auto* fileMenu = new QMenu(file);
-    fileMenu->addAction("New",QKeySequence::New,this,[this] { if(confirmDiscard()) execute("document.new",{{"discard",true}}); });
+    fileMenu->addAction("New",QKeySequence::New,this,[this] {
+        const auto result=execute("document.tabNew");
+        if(!result["ok"].toBool())statusBar()->showMessage(result["error"].toObject()["message"].toString(),5000);
+    });
     fileMenu->addAction("Open…",QKeySequence::Open,this,[this] { execute("document.openDialog"); });
     fileMenu->addAction("Save",QKeySequence::Save,this,[this] { execute("document.saveDialog"); });
     fileMenu->addAction("Save As…",QKeySequence::SaveAs,this,[this] { execute("document.saveAsDialog"); });
@@ -134,6 +141,38 @@ AlloyWindow::AlloyWindow() {
     auto* local = new QLabel("●  LOCAL"); local->setStyleSheet("border: 0; color: #51796b; padding: 8px;");
     top->addWidget(local);
     layout->addWidget(appBar);
+
+    auto* documentTabRow=new QWidget;documentTabRow->setFixedHeight(31);
+    documentTabRow->setStyleSheet("background: #e8ebed; border-bottom: 1px solid #cdd3d8;");
+    auto* documentTabLayout=new QHBoxLayout(documentTabRow);documentTabLayout->setContentsMargins(7,0,7,0);documentTabLayout->setSpacing(4);
+    documentTabBar_=new QTabBar;documentTabBar_->setObjectName("document.tabs");documentTabBar_->setTabsClosable(true);
+    documentTabBar_->setExpanding(false);documentTabBar_->setDrawBase(false);
+    documentTabBar_->setStyleSheet("QTabBar::tab { padding: 5px 18px; min-width: 96px; background: #dce2e6; border: 1px solid #c6d0d6; border-bottom: 0; } QTabBar::tab:selected { background: #f7f8f9; color: #235d79; }");
+    documentTabLayout->addWidget(documentTabBar_);auto* newTab=new QPushButton("+");newTab->setObjectName("document.tabNew");
+    newTab->setFixedWidth(29);newTab->setToolTip("New design tab");documentTabLayout->addWidget(newTab);documentTabLayout->addStretch();
+    connect(newTab,&QPushButton::clicked,this,[this]{const auto result=execute("document.tabNew");if(!result["ok"].toBool())statusBar()->showMessage(result["error"].toObject()["message"].toString(),5000);});
+    connect(documentTabBar_,&QTabBar::currentChanged,this,[this](int index){
+        if(switchingTabs_ || index<0)return;
+        const auto result=execute("document.tabActivate",{{"tabId",documentTabBar_->tabData(index).toString()}});
+        if(!result["ok"].toBool()) {statusBar()->showMessage(result["error"].toObject()["message"].toString(),5000);refreshTabs();}
+    });
+    connect(documentTabBar_,&QTabBar::tabCloseRequested,this,[this](int index){
+        const auto id=documentTabBar_->tabData(index).toString();
+        const auto previousTabId=activeTabId_;
+        const bool inactive=id!=previousTabId;
+        if(tabHasUnsavedWork(id)) {
+            if(inactive) {const auto result=execute("document.tabActivate",{{"tabId",id}});if(!result["ok"].toBool()){statusBar()->showMessage(result["error"].toObject()["message"].toString(),5000);return;}}
+            const bool approved=confirmDiscard();
+            if(inactive) {
+                const auto restored=execute("document.tabActivate",{{"tabId",previousTabId}});
+                if(!restored["ok"].toBool()){statusBar()->showMessage(restored["error"].toObject()["message"].toString(),5000);return;}
+            }
+            if(!approved)return;
+        }
+        const auto result=execute("document.tabClose",{{"tabId",id},{"discard",true}});
+        if(!result["ok"].toBool())statusBar()->showMessage(result["error"].toObject()["message"].toString(),5000);
+    });
+    layout->addWidget(documentTabRow);
 
     auto* ribbon = new QWidget;
     ribbon->setFixedHeight(107);
@@ -225,16 +264,18 @@ AlloyWindow::AlloyWindow() {
         if(!item || column!=0 || (item->parent()!=sketchesNode_ && item->parent()!=bodiesNode_))return;
         const auto id=item->data(0,Qt::UserRole+2).toString();const bool visible=item->checkState(0)==Qt::Checked;
         pendingBrowserVisibility_=id;
+        const auto tabId=activeTabId_,sessionId=session_.value("id").toString();
         // A checkbox changes before Qt emits itemClicked for this same item.
         // Rebuilding the Browser inside that event would invalidate Qt's pointer.
-        QTimer::singleShot(0,this,[this,id,visible]{
+        QTimer::singleShot(0,this,[this,id,visible,tabId,sessionId]{
+            if(tabId!=activeTabId_ || sessionId!=session_.value("id").toString())return;
             if(pendingBrowserVisibility_==id)pendingBrowserVisibility_.clear();
             const auto response=execute("feature.visibility",{{"featureId",id},{"visible",visible}});
             if(!response["ok"].toBool()) {
                 const QSignalBlocker block(tree_);
                 for(auto* parent:{bodiesNode_,sketchesNode_})for(int i=0;i<parent->childCount();++i) {
                     auto* current=parent->child(i);if(current->data(0,Qt::UserRole+2).toString()!=id)continue;
-                    for(const auto& entry:document_.authored()["features"].toArray()) {
+                    for(const auto& entry:document_->authored()["features"].toArray()) {
                         const auto feature=entry.toObject();if(feature["id"]==id)current->setCheckState(0,feature["visible"].toBool() ? Qt::Checked : Qt::Unchecked);
                     }
                 }
@@ -243,7 +284,8 @@ AlloyWindow::AlloyWindow() {
     });
     connect(tree_,&QTreeWidget::itemDoubleClicked,this,[this](QTreeWidgetItem* item,int) {
         if(!item)return;const auto feature=item->data(0,Qt::UserRole+2).toString();
-        if(!feature.isEmpty())QTimer::singleShot(0,this,[this,feature]{execute("feature.editDialog",{{"featureId",feature}});});
+        const auto tabId=activeTabId_;
+        if(!feature.isEmpty())QTimer::singleShot(0,this,[this,feature,tabId]{if(tabId==activeTabId_)execute("feature.editDialog",{{"featureId",feature}});});
     });
     browserLayout->addWidget(tree_, 1);
     auto* browserNote = new QLabel("Create a sketch, box or cylinder.\nDouble-click a Browser or Timeline\nfeature to edit it."); browserNote_=browserNote;
@@ -279,7 +321,7 @@ AlloyWindow::AlloyWindow() {
     editMenu->addAction("Undo",QKeySequence::Undo,this,[this]{execute("history.undo");});
     editMenu->addAction("Redo",QKeySequence::Redo,this,[this]{execute("history.redo");});
     editMenu->addAction("Delete Selected Body",QKeySequence::Delete,this,[this]{
-        for(const auto& body:document_.bodies()) if(body.bodyId==selectedBody_) { execute("feature.delete",{{"featureId",body.featureId}}); break; }
+        for(const auto& body:document_->bodies()) if(body.bodyId==selectedBody_) { execute("feature.delete",{{"featureId",body.featureId}}); break; }
     });
     viewMenu->addAction("Show / Hide Browser", QKeySequence("Ctrl+Alt+B"), this, [this] { execute("layout.browser", {{"visible", !browserVisible_}}); });
     viewMenu->addAction("Show / Hide Navigation Bar", QKeySequence("Ctrl+Alt+N"), this, [this] { execute("layout.navigation", {{"visible", !navigationVisible_}}); });
@@ -334,6 +376,108 @@ QWidget* AlloyWindow::commandButton(const QString& id, const QString& glyph, boo
     return button;
 }
 
+QString AlloyWindow::tabSwitchBlocker() const {
+    if(session_.isEmpty())return {};
+    if(session_.value("command")!="sketch.edit")return "Complete or cancel the active command before switching designs";
+    if(session_.value("tool")!="select" || session_.contains("firstPoint") || session_.contains("secondPoint")
+        || session_.contains("pendingDimension"))return "Finish or cancel the current sketch input before switching designs";
+    const auto* focused=QApplication::focusWidget();
+    if((focused && sketchPanel_ && sketchPanel_->isAncestorOf(focused) && qobject_cast<const QLineEdit*>(focused))
+        || (dimensionEditor_ && dimensionEditor_->isVisible())
+        || (findChild<QDialog*>("curveEntry") && findChild<QDialog*>("curveEntry")->isVisible()))
+        return "Accept or cancel the inline input before switching designs";
+    return {};
+}
+
+void AlloyWindow::saveActiveTabState() {
+    for(auto& tab:designTabs_)if(tab->id==activeTabId_) {
+        tab->session=session_;tab->sketchHistory=sketchHistory_;tab->sketchHistoryIndex=sketchHistoryIndex_;
+        tab->sketchHistoryGroup=sketchHistoryGroup_;tab->selectedBody=selectedBody_;
+        tab->selectedSketch=selectedSketch_;tab->selectedProfile=selectedProfile_;
+        tab->camera=view_->cameraState();return;
+    }
+}
+
+void AlloyWindow::showActiveTab() {
+    DesignTab* active=nullptr;for(auto& tab:designTabs_)if(tab->id==activeTabId_){active=tab.get();break;}
+    if(!active)return;
+    switchingTabs_=true;
+    if(dimensionEditor_)dimensionEditor_->hide();
+    if(sketchDock_)sketchDock_->hide();
+    view_->rebindDocument();
+    document_=active->document.get();session_=active->session;
+    sketchHistory_=active->sketchHistory;sketchHistoryIndex_=active->sketchHistoryIndex;
+    sketchHistoryGroup_=active->sketchHistoryGroup;
+    selectedBody_=active->selectedBody;selectedSketch_=active->selectedSketch;selectedProfile_=active->selectedProfile;
+    displayedDocumentRevision_=std::numeric_limits<quint64>::max();displayedSketchDraft_={};
+    sketchWidgetDraft_={};sketchWidgetSelection_={};sketchWidgetUnits_.clear();pendingBrowserVisibility_.clear();
+    view_->restoreCameraState(active->camera);
+    if(session_.value("command")=="sketch.edit") {
+        const auto id=session_.value("draftSketch").toObject()["id"].toString();
+        view_->setEditDisplay(id,dependentBodies(id));showSketch();
+    }
+    refreshTabs();switchingTabs_=false;
+}
+
+bool AlloyWindow::tabHasUnsavedWork(const QString& tabId) const {
+    for(const auto& tab:designTabs_)if(tab->id==tabId) {
+        const auto session=tabId==activeTabId_ ? session_ : tab->session;
+        return !tab->document->history().isClean() || session.value("command")=="sketch.edit";
+    }
+    return false;
+}
+
+QJsonObject AlloyWindow::documentTabs() const {
+    QJsonArray tabs;
+    for(const auto& tab:designTabs_) {
+        const auto session=tab->id==activeTabId_ ? session_ : tab->session;
+        tabs.append(QJsonObject{{"tabId",tab->id},{"title",tab->document->state()["label"]},
+            {"path",tab->document->path()},{"dirty",tabHasUnsavedWork(tab->id)},
+            {"hasSketchDraft",session.value("command")=="sketch.edit"}});
+    }
+    return {{"activeTabId",activeTabId_},{"tabs",tabs},{"count",tabs.size()}};
+}
+
+void AlloyWindow::refreshTabs() {
+    if(!documentTabBar_)return;
+    const QSignalBlocker block(documentTabBar_);
+    bool rebuild=documentTabBar_->count()!=static_cast<int>(designTabs_.size());
+    if(!rebuild)for(int i=0;i<documentTabBar_->count();++i)rebuild|=documentTabBar_->tabData(i).toString()!=designTabs_[i]->id;
+    if(rebuild) {
+        while(documentTabBar_->count())documentTabBar_->removeTab(0);
+        for(const auto& tab:designTabs_) {const int i=documentTabBar_->addTab(QString{});documentTabBar_->setTabData(i,tab->id);}
+    }
+    for(int i=0;i<documentTabBar_->count();++i) {
+        const auto& tab=designTabs_[i];
+        const auto label=tab->document->state()["label"].toString();
+        documentTabBar_->setTabText(i,label+(tabHasUnsavedWork(tab->id) ? " *" : ""));
+        if(tab->id==activeTabId_)documentTabBar_->setCurrentIndex(i);
+    }
+}
+
+QJsonObject AlloyWindow::activateTab(const QString& tabId) {
+    if(tabId==activeTabId_)return documentTabs();
+    bool found=false;for(const auto& tab:designTabs_)found|=tab->id==tabId;
+    if(!found)return failure("stale_tab","Design tab does not exist","tabId");
+    if(const auto blocker=tabSwitchBlocker();!blocker.isEmpty())return failure("pending_input_active",blocker);
+    saveActiveTabState();activeTabId_=tabId;showActiveTab();return documentTabs();
+}
+
+QJsonObject AlloyWindow::closeTab(const QString& tabId,bool discard) {
+    auto it=std::find_if(designTabs_.begin(),designTabs_.end(),[&](const auto& tab){return tab->id==tabId;});
+    if(it==designTabs_.end())return failure("stale_tab","Design tab does not exist","tabId");
+    if(tabHasUnsavedWork(tabId) && !discard)return failure("unsaved_changes","Save or explicitly discard the design before closing its tab");
+    const bool active=tabId==activeTabId_;
+    if(active)if(const auto blocker=tabSwitchBlocker();!blocker.isEmpty())return failure("pending_input_active",blocker);
+    if(active && !session_.isEmpty() && session_.value("command")=="sketch.edit") {
+        session_={};sketchHistory_.clear();sketchHistoryIndex_=-1;sketchHistoryGroup_.clear();
+    }
+    designTabs_.erase(it);
+    if(designTabs_.empty()) {auto replacement=std::make_unique<DesignTab>();replacement->id=CadDocument::newId();designTabs_.push_back(std::move(replacement));}
+    if(active) {activeTabId_=designTabs_.front()->id;showActiveTab();}
+    refreshTabs();return documentTabs();
+}
+
 void AlloyWindow::registerCommands() {
     auto add = [this](QString id, QString title, QString description, QJsonObject parameters,
                      std::function<QJsonObject(const QJsonObject&)> run) {
@@ -361,32 +505,49 @@ void AlloyWindow::registerCommands() {
     auto units = parameter("string", "Display units; authored lengths remain canonical millimeters.");
     units.insert("enum", QJsonArray{"mm", "in"});
     add("document.units", "Display units", "Change display units without rescaling authored geometry.", {{"units", units}}, [this](const auto& a) {
-        auto candidate = document_.authored(); candidate["displayUnits"] = a.value("units");
-        const auto error = document_.commit(candidate, "Change display units");
-        return error.isEmpty() ? document_.state() : failure("invalid_document", error);
+        auto candidate = document_->authored(); candidate["displayUnits"] = a.value("units");
+        const auto error = document_->commit(candidate, "Change display units");
+        return error.isEmpty() ? document_->state() : failure("invalid_document", error);
     });
-    add("document.inspect", "Inspect document", "Read authoritative authored IDs, units and ownership.", {}, [this](const auto&) { return document_.state(); });
+    add("document.inspect", "Inspect document", "Read authoritative authored IDs, units and ownership.", {}, [this](const auto&) { return document_->state(); });
     add("document.settings", "Document Settings", "Open a shared display-unit editing session.", {}, [this](const auto&) { return beginSession("document.units", {}); });
+    add("document.tabs","List design tabs","Inspect open local designs and the active tab.",{},[this](const auto&){return documentTabs();});
+    add("document.tabNew","New design tab","Open and activate an independent empty local design.",{},[this](const auto&){
+        if(const auto blocker=tabSwitchBlocker();!blocker.isEmpty())return failure("pending_input_active",blocker);
+        saveActiveTabState();auto tab=std::make_unique<DesignTab>();tab->id=CadDocument::newId();
+        activeTabId_=tab->id;designTabs_.push_back(std::move(tab));showActiveTab();return documentTabs();
+    });
+    add("document.tabActivate","Activate design tab","Restore one open design, including its sketch and camera state.",
+        {{"tabId",parameter("string","Stable local design tab ID.")}},[this](const auto& a){return activateTab(a["tabId"].toString());});
+    add("document.tabClose","Close design tab","Close one local design; dirty work needs explicit discard or Save.",
+        {{"tabId",parameter("string","Stable local design tab ID.")},{"discard",QJsonObject{{"type","boolean"},{"required",false},{"description","Explicitly discard unsaved work."}}}},
+        [this](const auto& a){return closeTab(a["tabId"].toString(),a.value("discard").toBool());});
     add("document.new", "New document", "Create a fresh authored document; dirty replacement requires explicit discard.", {{"discard", parameter("boolean", "Explicitly discard unsaved edits.")}}, [this](const auto& a) {
-        if (!document_.history().isClean() && !a.value("discard").toBool()) return failure("unsaved_changes", "Save or explicitly discard the current document");
-        document_.reset(); return document_.state();
+        if (tabHasUnsavedWork(activeTabId_) && !a.value("discard").toBool()) return failure("unsaved_changes", "Save or explicitly discard the current document");
+        if(!session_.isEmpty())finishSession(session_.value("id").toString(),false);
+        document_->reset();view_->rebindDocument();displayedDocumentRevision_=std::numeric_limits<quint64>::max();
+        selectedBody_.clear();selectedSketch_.clear();selectedProfile_.clear();view_->fit({},{});return document_->state();
     });
     auto optional=[](QJsonObject value) { value["required"]=false; return value; };
     auto path=parameter("string","Absolute native .alloy file path.");
     auto discard=optional(parameter("boolean","Explicitly discard unsaved edits."));
     add("document.save","Save","Atomically save authored intent; mark clean only after success.",{{"path",path}},[this](const auto& a){
-        const auto error=document_.save(a["path"].toString());
-        return error.isEmpty() ? document_.state() : failure("save_failed",error,"path");
+        if(session_.value("command")=="sketch.edit")return failure("active_sketch_draft","Finish or Cancel the sketch before saving");
+        const auto error=document_->save(a["path"].toString());
+        return error.isEmpty() ? document_->state() : failure("save_failed",error,"path");
     });
     add("document.open","Open","Validate and evaluate before replacing the current document.",{{"path",path},{"discard",discard}},[this](const auto& a){
-        if(!document_.history().isClean() && !a.value("discard").toBool()) return failure("unsaved_changes","Save or explicitly discard the current document");
-        const auto error=document_.open(a["path"].toString());
-        if(error.isEmpty())view_->fit(document_.bodies(),document_.sketches());
-        return error.isEmpty() ? document_.state() : failure("open_failed",error,"path");
+        if(tabHasUnsavedWork(activeTabId_) && !a.value("discard").toBool()) return failure("unsaved_changes","Save or explicitly discard the current document");
+        const auto error=document_->open(a["path"].toString());
+        if(error.isEmpty()){if(!session_.isEmpty())finishSession(session_.value("id").toString(),false);
+            view_->rebindDocument();displayedDocumentRevision_=std::numeric_limits<quint64>::max();
+            selectedBody_.clear();selectedSketch_.clear();selectedProfile_.clear();view_->fit(document_->bodies(),document_->sketches());}
+        return error.isEmpty() ? document_->state() : failure("open_failed",error,"path");
     });
     for(const auto& id:{"document.saveDialog","document.saveAsDialog"}) {
         add(id,QString(id).endsWith("AsDialog") ? "Save As…" : "Save","Choose a local file and use the shared save command.",{},[this,id](const auto&){
-            auto path=document_.path();
+            if(session_.value("command")=="sketch.edit")return failure("active_sketch_draft","Finish or Cancel the sketch before saving");
+            auto path=document_->path();
             if(path.isEmpty() || QString(id).endsWith("AsDialog")) path=QFileDialog::getSaveFileName(this,"Save Design",path.isEmpty() ? "Untitled.alloy" : path,"Alloy Design (*.alloy)");
             if(path.isEmpty()) return QJsonObject{{"cancelled",true}};
             if(!path.endsWith(".alloy",Qt::CaseInsensitive)) path+=".alloy";
@@ -402,11 +563,11 @@ void AlloyWindow::registerCommands() {
     });
     add("history.undo","Undo","Undo an accepted sketch edit in an active sketch, otherwise one committed document edit.",{},[this](const auto&){
         if(session_.value("command")=="sketch.edit")return traverseSketchHistory(-1);
-        document_.history().undo();return document_.state();
+        document_->history().undo();return document_->state();
     });
     add("history.redo","Redo","Redo an accepted sketch edit in an active sketch, otherwise one committed document edit.",{},[this](const auto&){
         if(session_.value("command")=="sketch.edit")return traverseSketchHistory(1);
-        document_.history().redo();return document_.state();
+        document_->history().redo();return document_->state();
     });
     auto length=parameter("number","Length in the selected display units; converted to canonical millimeters.");
     length["minimum"]=0.000001; length["maximum"]=100000;
@@ -421,9 +582,9 @@ void AlloyWindow::registerCommands() {
         const auto id="solid."+type;
         add(id,type=="box" ? "Box" : "Cylinder","Create or edit a real primitive as a New Body.",schema,[this,id](const auto& a){
             const auto candidate=primitiveCandidate(id,a);
-            const auto error=document_.commit(candidate,a.value("featureId").toString().isEmpty() ? "Create "+id.sliced(6) : "Edit "+id.sliced(6));
+            const auto error=document_->commit(candidate,a.value("featureId").toString().isEmpty() ? "Create "+id.sliced(6) : "Edit "+id.sliced(6));
             if(!error.isEmpty()) return failure("evaluation_failed",error);
-            view_->fit(document_.bodies(),document_.sketches()); return document_.state();
+            view_->fit(document_->bodies(),document_->sketches()); return document_->state();
         });
         add("primitive."+type,type=="box" ? "Box" : "Cylinder","Open a shared primitive dimension dialog.",{},[this,id](const auto&){return beginSession(id,{});});
     }
@@ -435,12 +596,12 @@ void AlloyWindow::registerCommands() {
         {"units",optional(units)},{"name",optional(parameter("string","Extrusion feature name."))},{"featureId",optional(featureId)}};
     add("solid.extrude","Create or edit extrusion","Commit a one-side distance New Body extrusion of an accepted profile.",extrudeSchema,[this](const auto& a){
         QJsonObject candidate;try {candidate=extrusionCandidate(a,true);}catch(const std::exception& error){return failure("evaluation_failed",QString::fromUtf8(error.what()));}
-        const auto error=document_.commit(candidate,a.value("featureId").toString().isEmpty() ? "Extrude" : "Edit extrusion");
-        if(!error.isEmpty()){auto result=failure("evaluation_failed",error);auto details=result["error"].toObject();details["diagnostics"]=document_.lastEvaluationError();result["error"]=details;return result;}
+        const auto error=document_->commit(candidate,a.value("featureId").toString().isEmpty() ? "Extrude" : "Edit extrusion");
+        if(!error.isEmpty()){auto result=failure("evaluation_failed",error);auto details=result["error"].toObject();details["diagnostics"]=document_->lastEvaluationError();result["error"]=details;return result;}
         selectedSketch_.clear();selectedProfile_.clear();view_->selectProfile({},{});
         const auto target=a.value("featureId").toString(candidate["features"].toArray().last().toObject()["id"].toString());
-        for(const auto& body:document_.bodies())if(body.featureId==target)selectedBody_=body.bodyId;
-        return document_.state();
+        for(const auto& body:document_->bodies())if(body.featureId==target)selectedBody_=body.bodyId;
+        return document_->state();
     });
     add("solid.extrudeDialog","Extrude","Open a docked profile extrusion with disposable live preview (E).",
         {{"sketchId",optional(sketchIdentity)},{"profileId",optional(profileIdentity)}},[this](const auto& a){return beginSession("solid.extrude",a);});
@@ -451,9 +612,9 @@ void AlloyWindow::registerCommands() {
         {"name",optional(parameter("string","Boolean feature name; default Combine."))},{"featureId",optional(featureId)}};
     add("solid.combine","Combine bodies","Apply Join, Cut or Intersect to explicit bodies in one editable history feature; requires one valid closed solid result.",combineSchema,[this](const auto& a){
         QJsonObject candidate;try{candidate=combineCandidate(a);}catch(const std::exception& error){return failure("evaluation_failed",QString::fromUtf8(error.what()));}
-        const auto error=document_.commit(candidate,a.value("featureId").toString().isEmpty() ? "Combine" : "Edit Combine");
-        if(!error.isEmpty()){auto result=failure("evaluation_failed",error);auto details=result["error"].toObject();details["diagnostics"]=document_.lastEvaluationError();result["error"]=details;return result;}
-        selectedBody_=a["targetBodyId"].toString();selectedSketch_.clear();selectedProfile_.clear();return document_.state();
+        const auto error=document_->commit(candidate,a.value("featureId").toString().isEmpty() ? "Combine" : "Edit Combine");
+        if(!error.isEmpty()){auto result=failure("evaluation_failed",error);auto details=result["error"].toObject();details["diagnostics"]=document_->lastEvaluationError();result["error"]=details;return result;}
+        selectedBody_=a["targetBodyId"].toString();selectedSketch_.clear();selectedProfile_.clear();return document_->state();
     });
     auto combineInitial=combineSchema;for(auto it=combineInitial.begin();it!=combineInitial.end();++it)it.value()=optional(it.value().toObject());
     add("solid.combineDialog","Combine","Choose Target Body, Tool Bodies, operation and Keep Tools in the adjacent panel.",combineInitial,
@@ -466,17 +627,17 @@ void AlloyWindow::registerCommands() {
     });
     add("feature.visibility","Show or hide feature","Change actual authored visibility in one undoable transaction.",
         {{"featureId",featureId},{"visible",parameter("boolean","Whether the feature is visible.")}},[this](const auto& a){
-            auto candidate=document_.authored();auto features=candidate["features"].toArray();bool found=false;
+            auto candidate=document_->authored();auto features=candidate["features"].toArray();bool found=false;
             for(int i=0;i<features.size();++i){auto feature=features[i].toObject();if(feature["id"]!=a["featureId"])continue;
                 if(feature["type"]=="boolean")return failure("unsupported_visibility","Combine modifies the target body; change that body's producer visibility in Browser","featureId");
                 feature["visible"]=a["visible"];features[i]=feature;found=true;break;}
             if(!found)return failure("stale_entity","Feature does not exist","featureId");candidate["features"]=features;
-            const bool liveCombine=session_.value("command")=="solid.combine" && session_.value("baseDocumentRevision").toInteger()==static_cast<qint64>(document_.revision());
-            const auto error=document_.commit(candidate,"Change visibility");
+            const bool liveCombine=session_.value("command")=="solid.combine" && session_.value("baseDocumentRevision").toInteger()==static_cast<qint64>(document_->revision());
+            const auto error=document_->commit(candidate,"Change visibility");
             if(!error.isEmpty())return failure("evaluation_failed",error);
             // Visibility alone does not change the chosen operation inputs.
-            if(liveCombine){session_["baseDocumentRevision"]=static_cast<qint64>(document_.revision());previewCombine();}
-            return document_.state();
+            if(liveCombine){session_["baseDocumentRevision"]=static_cast<qint64>(document_->revision());previewCombine();}
+            return document_->state();
         });
     auto sketchPlane=parameter("string","Origin plane of the authored two-dimensional sketch.");
     sketchPlane["enum"]=QJsonArray{"XY","XZ","YZ"};
@@ -490,8 +651,8 @@ void AlloyWindow::registerCommands() {
             return result;
         }
         if(!session_.isEmpty())return failure("session_busy","Complete or cancel the active command first");
-        session_={{"id",CadDocument::newId()},{"command","sketch.plane"},{"status","active"},{"inputs",QJsonObject{{"name",a.value("name").toString("Sketch")},{"units",a.value("units").toString(document_.authored()["displayUnits"].toString())}}},
-            {"baseDocumentRevision",static_cast<qint64>(document_.revision())},{"previewed",false}};
+        session_={{"id",CadDocument::newId()},{"command","sketch.plane"},{"status","active"},{"inputs",QJsonObject{{"name",a.value("name").toString("Sketch")},{"units",a.value("units").toString(document_->authored()["displayUnits"].toString())}}},
+            {"baseDocumentRevision",static_cast<qint64>(document_->revision())},{"previewed",false}};
         showSketch();return session_;
     });
     add("sketch.begin","Choose sketch plane","Enter origin-plane sketch editing with a disposable authored draft.",sketchBeginSchema,[this](const auto& a){
@@ -500,7 +661,7 @@ void AlloyWindow::registerCommands() {
         return result;
     });
     add("sketch.edit","Edit Sketch","Re-enter an authored sketch without changing it until Finish.",{{"sketchId",sketchId}},[this](const auto& a){
-        const auto feature=SketchGeometry::findFeature(document_.authored(),a["sketchId"].toString());
+        const auto feature=SketchGeometry::findFeature(document_->authored(),a["sketchId"].toString());
         return beginSketch(feature["parameters"].toObject()["plane"].toString(),feature["name"].toString(),feature["id"].toString());
     });
     auto coordinate=parameter("number","Sketch coordinate in the supplied units or the active display units.");
@@ -560,7 +721,7 @@ void AlloyWindow::registerCommands() {
     });
     add("sketch.placePoint","Place sketch point","Resolve an actual viewport point on the active plane; two clicks author the chosen entity.",sketchPickSchema,[this](const auto& a){
         if(session_.value("command").toString()!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
-        if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_.revision()))return failure("stale_session","The document changed; cancel and restart this sketch");
+        if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))return failure("stale_session","The document changed; cancel and restart this sketch");
         const auto tool=session_.value("tool").toString();
         if(tool=="dimension" && session_.value("pendingDimension").toObject().value("phase")=="placing") {
             const auto picked=view_->pickSketch(session_.value("draftSketch").toObject(),a["x"].toDouble(),a["y"].toDouble(),"entity");
@@ -605,7 +766,7 @@ void AlloyWindow::registerCommands() {
             try{return previewDimension(a);}catch(const std::invalid_argument&){return QJsonObject{};}
         }
         if(session_.value("command").toString()!="sketch.edit")return QJsonObject{};
-        if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_.revision())){view_->clearSketchCursor();return QJsonObject{};}
+        if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision())){view_->clearSketchCursor();return QJsonObject{};}
         const auto plane=session_.value("inputs").toObject()["plane"].toString();
         const auto tool=session_.value("tool").toString();
         const bool snapping=tool=="line" || tool=="rectangle";
@@ -641,7 +802,7 @@ void AlloyWindow::registerCommands() {
     add("sketch.constraintTool","Activate sketch constraint","Apply compatible preselection, then repeatedly pick geometry; Escape returns to Select.",{{"type",constraintToolType},{"session",optionalSession}},[this](const auto& a){
         if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
         if(a.contains("session") && a["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
-        if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_.revision()))return failure("stale_session","The document changed; cancel and restart this sketch");
+        if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))return failure("stale_session","The document changed; cancel and restart this sketch");
         cancelDimension();view_->clearSketchCursor();session_.remove("snap");
         session_["tool"]="constraint";session_["constraintType"]=a["type"];
         session_.remove("firstPoint");session_.remove("secondPoint");session_.remove("pointerPoint");session_.remove("gestureSweepDeg");
@@ -744,29 +905,29 @@ void AlloyWindow::registerCommands() {
         });
     add("feature.edit","Edit feature","Edit canonical millimeter parameters; validate/evaluate before commit.",
         {{"featureId",featureId},{"parameters",parameter("object","Partial authored millimeter parameters.")}},[this](const auto& a){
-            auto candidate=document_.authored();auto features=candidate["features"].toArray();bool found=false;
+            auto candidate=document_->authored();auto features=candidate["features"].toArray();bool found=false;
             for(int i=0;i<features.size();++i) {auto feature=features[i].toObject();if(feature["id"]!=a["featureId"]) continue;
                 auto parameters=feature["parameters"].toObject();const auto edits=a["parameters"].toObject();
                 for(auto it=edits.begin();it!=edits.end();++it) parameters[it.key()]=it.value();
                 feature["parameters"]=parameters;features[i]=feature;found=true;break;
             }
             if(!found)return failure("stale_entity","Feature does not exist","featureId");
-            candidate["features"]=features;const auto error=document_.commit(candidate,"Edit feature");
-            return error.isEmpty() ? document_.state() : failure("evaluation_failed",error,"parameters");
+            candidate["features"]=features;const auto error=document_->commit(candidate,"Edit feature");
+            return error.isEmpty() ? document_->state() : failure("evaluation_failed",error,"parameters");
         });
     add("feature.delete","Delete feature","Delete a primitive in one undoable transaction.",{{"featureId",featureId}},[this](const auto& a){
-        auto candidate=document_.authored();auto features=candidate["features"].toArray();bool found=false;
+        auto candidate=document_->authored();auto features=candidate["features"].toArray();bool found=false;
         for(int i=0;i<features.size();++i) if(features[i].toObject()["id"]==a["featureId"]) {features.removeAt(i);found=true;break;}
         if(!found)return failure("stale_entity","Feature does not exist","featureId");
-        candidate["features"]=features;const auto error=document_.commit(candidate,"Delete feature");
-        return error.isEmpty() ? document_.state() : failure("evaluation_failed",error);
+        candidate["features"]=features;const auto error=document_->commit(candidate,"Delete feature");
+        return error.isEmpty() ? document_->state() : failure("evaluation_failed",error);
     });
     add("feature.editDialog","Edit feature…","Open the same primitive command with its saved dimensions.",{{"featureId",featureId}},[this](const auto& a){
-        for(const auto& entry:document_.authored()["features"].toArray()) {const auto feature=entry.toObject();if(feature["id"]!=a["featureId"])continue;
+        for(const auto& entry:document_->authored()["features"].toArray()) {const auto feature=entry.toObject();if(feature["id"]!=a["featureId"])continue;
             if(feature["type"].toString()=="sketch")return beginSketch(feature["parameters"].toObject()["plane"].toString(),feature["name"].toString(),feature["id"].toString());
             const auto p=feature["parameters"].toObject();
             if(feature["type"]=="extrude") {
-                const auto unit=document_.authored()["displayUnits"].toString();const double scale=unit=="in" ? 25.4 : 1;
+                const auto unit=document_->authored()["displayUnits"].toString();const double scale=unit=="in" ? 25.4 : 1;
                 return beginSession("solid.extrude",{{"featureId",feature["id"]},{"sketchId",p["sketchId"]},{"profileId",p["profileId"]},
                     {"distance",p["distanceMm"].toDouble()/scale},{"units",unit},{"name",feature["name"]}});
             }
@@ -774,7 +935,7 @@ void AlloyWindow::registerCommands() {
                 auto inputs=p;inputs["featureId"]=feature["id"];inputs["name"]=feature["name"];
                 return beginSession("solid.combine",inputs);
             }
-            const auto unit=document_.authored()["displayUnits"].toString();const double scale=unit=="in" ? 25.4 : 1;
+            const auto unit=document_->authored()["displayUnits"].toString();const double scale=unit=="in" ? 25.4 : 1;
             QJsonObject inputs{{"featureId",feature["id"]},{"name",feature["name"]},{"units",unit}};
             for(auto it=p.begin();it!=p.end();++it) inputs[it.key().chopped(2)]=it.value().toDouble()/scale;
             return beginSession("solid."+feature["type"].toString(),inputs);
@@ -782,7 +943,7 @@ void AlloyWindow::registerCommands() {
         return failure("stale_entity","Feature does not exist","featureId");
     });
     add("geometry.inspect","Inspect geometry","Current evaluated body summaries from OCCT, keyed to authored identities.",{},[this](const auto&){
-        return document_.state()["evaluation"].toObject();
+        return document_->state()["evaluation"].toObject();
     });
     auto bodyId=parameter("string","Stable body UUID; empty string clears selection.");
     add("selection.set","Select body","Select a visible body through the same path as the Browser.",{{"bodyId",bodyId}},[this](const auto& a){
@@ -792,7 +953,7 @@ void AlloyWindow::registerCommands() {
             if(!found)return failure("stale_entity","Body is unavailable at this Combine history stage","bodyId");
             selectCombineBody(id);return QJsonObject{{"bodyId",id},{"kind","body"},{"combineInputs",session_.value("inputs")}};
         }
-        for(const auto& body:document_.bodies()) found=found || (body.bodyId==id && body.visible);
+        for(const auto& body:document_->bodies()) found=found || (body.bodyId==id && body.visible);
         if(!found)return failure("stale_entity","Visible body does not exist","bodyId");
         selectedBody_=id;selectedSketch_.clear();selectedProfile_.clear();view_->selectProfile({},{});view_->selectBody(id);return QJsonObject{{"bodyId",id},{"kind","body"}};
     });
@@ -800,7 +961,7 @@ void AlloyWindow::registerCommands() {
         {{"sketchId",sketchIdentity},{"profileId",profileIdentity}},[this](const auto& a){return selectFinishedProfile(a["sketchId"].toString(),a["profileId"].toString());});
     add("selection.sketchSet","Select sketch","Select a finished sketch through the same path as the Browser.",
         {{"sketchId",sketchIdentity}},[this](const auto& a){
-            const auto id=a["sketchId"].toString();for(const auto& sketch:document_.sketches())if(sketch.featureId==id) {
+            const auto id=a["sketchId"].toString();for(const auto& sketch:document_->sketches())if(sketch.featureId==id) {
                 selectedBody_.clear();selectedSketch_=id;selectedProfile_.clear();view_->selectBody({});view_->selectProfile(id,{});
                 if(session_.value("command")=="solid.extrude" && sketch.profiles.size()==1)return selectFinishedProfile(id,sketch.profiles.front().profileId);
                 return QJsonObject{{"kind","sketch"},{"sketchId",id}};
@@ -821,7 +982,7 @@ void AlloyWindow::registerCommands() {
         return QJsonObject{{"bodyId",selectedBody_},{"kind","body"}};
     });
     add("view.projectBody","Project body center","Return actual OCCT projection for a body's center, in logical pixels.",{{"bodyId",bodyId}},[this](const auto& a){
-        for(const auto& body:document_.bodies()) if(body.bodyId==a["bodyId"].toString())return view_->projectBody(body);
+        for(const auto& body:document_->bodies()) if(body.bodyId==a["bodyId"].toString())return view_->projectBody(body);
         return failure("stale_entity","Body does not exist");
     });
     auto sessionTarget = parameter("string", "Implemented session target; modeling targets follow alongside their features.");
@@ -848,7 +1009,7 @@ void AlloyWindow::registerCommands() {
                 session_.remove("geometry");session_.remove("documentDraft");session_.remove("finalBodyCount");session_["previewError"]=response["error"];
                 view_->clearPreview();view_->setEditDisplay({},{});refreshCombineControls();return response;
             };
-            if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_.revision()))
+            if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))
                 return reject("stale_session","The document changed; cancel and restart Combine");
             if(updates.contains("featureId") && updates.value("featureId")!=session_.value("inputs").toObject().value("featureId"))
                 return reject("invalid_arguments","Combine edit identity cannot change","featureId");
@@ -859,7 +1020,7 @@ void AlloyWindow::registerCommands() {
             if(!inputs["name"].isString() || inputs["name"].toString().trimmed().isEmpty())return failure("invalid_arguments","Sketch name must be nonempty","name");
             if(inputs["units"]!="mm" && inputs["units"]!="in")return failure("invalid_arguments","Unsupported display units","units");
             if(target=="sketch.edit"){
-                if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_.revision()))return failure("stale_session","The document changed; cancel and restart this sketch");
+                if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))return failure("stale_session","The document changed; cancel and restart this sketch");
                 auto draft=session_.value("draftSketch").toObject();draft["name"]=inputs["name"];
                 recordSketchHistory(draft,session_.value("solverDiagnostics").toObject());session_["draftSketch"]=draft;
             }
@@ -881,18 +1042,18 @@ void AlloyWindow::registerCommands() {
         if(session_.value("command")=="solid.combine")return previewCombine();
         session_["previewed"]=false;view_->clearPreview();
         if (session_.value("command").toString() != "commands.search"
-            && session_.value("baseDocumentRevision").toInteger() != static_cast<qint64>(document_.revision()))
+            && session_.value("baseDocumentRevision").toInteger() != static_cast<qint64>(document_->revision()))
             return failure("stale_session", "The document changed; cancel and restart this edit");
         auto result = session_;
         if (session_.value("command").toString() == "document.units") {
-            auto draft = document_.authored(); draft["displayUnits"] = session_.value("inputs").toObject()["units"];
+            auto draft = document_->authored(); draft["displayUnits"] = session_.value("inputs").toObject()["units"];
             result["authoredDraft"] = draft;
         }
         if(session_.value("command").toString()=="sketch.edit") {
             const auto draft=session_.value("draftSketch").toObject();
             const auto evaluated=SketchGeometry::evaluateFeature(draft);view_->showSketchDraft(evaluated);
             result["authoredDraft"]=draft;
-            result["documentDraft"]=SketchGeometry::replaceFeature(document_.authored(),draft);
+            result["documentDraft"]=SketchGeometry::replaceFeature(document_->authored(),draft);
             result["sketchGeometry"]=evaluated.summary;result["geometryEvaluated"]=true;
         } else if(session_.value("command").toString().startsWith("solid.")) {
             const auto candidate=primitiveCandidate(session_.value("command").toString(),session_.value("inputs").toObject());
@@ -958,7 +1119,7 @@ void AlloyWindow::registerCommands() {
                     body.visible=body.bodyId==inputs["targetBodyId"].toString() || (body.visible && !inputs["toolBodyIds"].toArray().contains(body.bodyId));
                 view_->fit(bodies,candidate.evaluation->sketches);return QJsonObject{};}
         }
-        view_->fit(document_.bodies(),document_.sketches());return QJsonObject{};
+        view_->fit(document_->bodies(),document_->sketches());return QJsonObject{};
     });
     add("capture.screenshot", "Capture screenshot", "Save a PNG of the actual main window, excluding OS decorations and separate dialogs.", {{"path", parameter("string", "Absolute destination PNG path; parent directory must exist.")}}, [this](const auto& a) {
         const QString path = a.value("path").toString();
@@ -987,7 +1148,8 @@ void AlloyWindow::registerCommands() {
             {"pixelWidth", pixels.width()}, {"pixelHeight", pixels.height()}};
     });
     add("app.quit", "Quit Alloy", "Complete the request, then exit; dirty designs require explicit discard.", {{"discard",discard}}, [this](const auto& a) {
-        if(!document_.history().isClean() && !a.value("discard").toBool())return failure("unsaved_changes","Save or explicitly discard the design before quitting");
+        if(!a.value("discard").toBool())for(const auto& tab:designTabs_)if(tabHasUnsavedWork(tab->id))
+            return failure("unsaved_changes","Save or explicitly discard all open designs before quitting");
         authorizedQuit_=true;
         QTimer::singleShot(0,qApp,&QApplication::quit);return QJsonObject{{"quitting",true}};
     });
@@ -1025,7 +1187,7 @@ QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
     if (changesState) ++revision_;
     refresh();
     return {{"ok", true}, {"completion", "completed"}, {"command", id}, {"revision", static_cast<qint64>(revision_)},
-        {"documentRevision", static_cast<qint64>(document_.revision())}, {"result", result}};
+        {"documentRevision", static_cast<qint64>(document_->revision())}, {"result", result}};
 }
 
 QString AlloyWindow::validateArguments(const Command& command, const QJsonObject& args, QString* field) const {
@@ -1064,7 +1226,7 @@ QJsonObject AlloyWindow::state() const {
     return {{"application", "Alloy"}, {"version", "0.1.0"}, {"stage", "sketch-authoring"},
         {"runtime", QJsonObject{{"qtVersion", qVersion()}, {"occtBuildVersion", ALLOY_OCCT_VERSION}}},
         {"revision", static_cast<qint64>(revision_)},
-        {"identity", identity()}, {"activeSession", session_},
+        {"identity", identity()}, {"activeSession", session_}, {"documentTabs",documentTabs()},
         {"inlineEditor",inlineEditorState()},
         {"focus",QJsonObject{{"widgetClass",QApplication::focusWidget() ? QApplication::focusWidget()->metaObject()->className() : ""},
             {"widgetName",QApplication::focusWidget() ? QApplication::focusWidget()->objectName() : QString{}},
@@ -1072,7 +1234,7 @@ QJsonObject AlloyWindow::state() const {
             {"active",isActiveWindow()},
             {"windowClass",QGuiApplication::focusWindow() ? QGuiApplication::focusWindow()->metaObject()->className() : ""},
             {"viewportWindow",QGuiApplication::focusWindow()==view_->windowHandle()}}},
-        {"document", document_.state()},
+        {"document", document_->state()},
         {"selection",target=="solid.combine" ? QJsonObject{{"kind","combine"},{"role",session_.value("selectionRole")},
             {"targetBodyId",session_.value("inputs").toObject()["targetBodyId"]},{"toolBodyIds",session_.value("inputs").toObject()["toolBodyIds"]}}
             : target=="sketch.edit" ? QJsonObject{{"kind","sketch"},{"sketchId",session_.value("draftSketch").toObject()["id"]},
@@ -1093,12 +1255,13 @@ QJsonObject AlloyWindow::state() const {
 void AlloyWindow::refresh() {
     if (!browser_) return;
     browser_->setVisible(browserVisible_); timeline_->setVisible(timelineVisible_); navigation_->setVisible(navigationVisible_);
-    tree_->topLevelItem(0)->child(0)->child(0)->setText(0, "Units: " + document_.authored()["displayUnits"].toString());
-    const auto label=document_.state()["label"].toString();
-    const auto title=label+(document_.history().isClean() ? "" : " *");
+    tree_->topLevelItem(0)->child(0)->child(0)->setText(0, "Units: " + document_->authored()["displayUnits"].toString());
+    const auto label=document_->state()["label"].toString();
+    const auto title=label+(tabHasUnsavedWork(activeTabId_) ? " *" : "");
     setWindowTitle(title+" — Alloy");documentTitle_->setText("◇   "+title);tree_->topLevelItem(0)->setText(0,"◇  "+label);
+    refreshTabs();
     if(!session_.isEmpty() && session_.value("command").toString()!="commands.search"
-        && session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_.revision())) {
+        && session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision())) {
         view_->clearPreview();view_->clearSketchDraft();view_->setEditDisplay({},{});displayedSketchDraft_={};session_["previewed"]=false;
         if(session_.value("command")=="solid.combine") {
             session_["geometryEvaluated"]=false;session_.remove("geometry");session_.remove("documentDraft");session_.remove("finalBodyCount");
@@ -1107,24 +1270,24 @@ void AlloyWindow::refresh() {
         }
     }
     if(session_.value("command")!="solid.combine")view_->clearBodyStage();
-    if(displayedDocumentRevision_!=document_.revision()) {
+    if(displayedDocumentRevision_!=document_->revision()) {
         const QSignalBlocker block(tree_);
         qDeleteAll(bodiesNode_->takeChildren());
         qDeleteAll(sketchesNode_->takeChildren());
         while(auto* item=timelineLayout_->takeAt(0)){delete item->widget();delete item;}
         timelineLayout_->addWidget(new QLabel("TIMELINE"));
         bool selectedExists=false;
-        for(const auto& body:document_.bodies()) {
+        for(const auto& body:document_->bodies()) {
             auto* item=new QTreeWidgetItem(bodiesNode_,{body.name});item->setData(0,Qt::UserRole+1,body.bodyId);item->setData(0,Qt::UserRole+2,body.featureId);item->setFlags(item->flags()|Qt::ItemIsUserCheckable);item->setCheckState(0,body.visible ? Qt::Checked : Qt::Unchecked);
             selectedExists=selectedExists || (body.bodyId==selectedBody_ && body.visible);
         }
         if(!selectedExists)selectedBody_.clear();
-        for(const auto& sketch:document_.sketches()) {
+        for(const auto& sketch:document_->sketches()) {
             auto* item=new QTreeWidgetItem(sketchesNode_,{sketch.name});item->setData(0,Qt::UserRole+2,sketch.featureId);item->setFlags(item->flags()|Qt::ItemIsUserCheckable);item->setCheckState(0,sketch.visible ? Qt::Checked : Qt::Unchecked);
         }
         // Timeline order follows retained authored feature order, independent
         // of whether evaluation produced a solid body or a sketch wire.
-        for(const auto& entry:document_.authored()["features"].toArray()) {
+        for(const auto& entry:document_->authored()["features"].toArray()) {
             const auto feature=entry.toObject();const auto id=feature["id"].toString(),name=feature["name"].toString();
             auto* button=new QToolButton;button->setText((feature["type"]=="sketch" ? "▧ " : "")+name);button->setToolTip("Edit "+name);button->setProperty("featureId",id);
             connect(button,&QToolButton::clicked,this,[this,id]{execute("feature.editDialog",{{"featureId",id}});});
@@ -1132,12 +1295,12 @@ void AlloyWindow::refresh() {
             button->setMenu(menu);button->setPopupMode(QToolButton::MenuButtonPopup);timelineLayout_->addWidget(button);
         }
         timelineLayout_->addStretch();bodiesNode_->setExpanded(true);
-        view_->setBodies(document_.bodies(),document_.revision());
-        view_->setSketches(document_.sketches(),document_.revision());
+        view_->setBodies(document_->bodies(),document_->revision());
+        view_->setSketches(document_->sketches(),document_->revision());
         bool sketchExists=false,profileExists=false;
-        for(const auto& sketch:document_.sketches())if(sketch.featureId==selectedSketch_ && sketch.visible){sketchExists=true;for(const auto& profile:sketch.profiles)profileExists=profileExists || profile.profileId==selectedProfile_;}
+        for(const auto& sketch:document_->sketches())if(sketch.featureId==selectedSketch_ && sketch.visible){sketchExists=true;for(const auto& profile:sketch.profiles)profileExists=profileExists || profile.profileId==selectedProfile_;}
         if(!sketchExists)selectedSketch_.clear();if(!profileExists)selectedProfile_.clear();view_->selectProfile(selectedSketch_,selectedProfile_);
-        displayedDocumentRevision_=document_.revision();
+        displayedDocumentRevision_=document_->revision();
     }
     for(int i=0;i<bodiesNode_->childCount();++i)bodiesNode_->child(i)->setSelected(bodiesNode_->child(i)->data(0,Qt::UserRole+1).toString()==selectedBody_);
     view_->selectBody(selectedBody_);
@@ -1164,7 +1327,7 @@ void AlloyWindow::refresh() {
         const auto inputs=session_.value("inputs").toObject(),draft=session_.value("draftSketch").toObject();
         if(sketchName_){const QSignalBlocker block(sketchName_);sketchName_->setText(inputs["name"].toString());}
         for(auto* input:sketchInputs_)input->setSuffix(" "+inputs["units"].toString());
-        const bool current=session_.value("baseDocumentRevision").toInteger()==static_cast<qint64>(document_.revision());
+        const bool current=session_.value("baseDocumentRevision").toInteger()==static_cast<qint64>(document_->revision());
         if(current && draft!=displayedSketchDraft_){view_->showSketchDraft(SketchGeometry::evaluateFeature(draft));displayedSketchDraft_=draft;}
         if(current)refreshSketchControls();
         const auto diagnostics=session_.value("solverDiagnostics").toObject();
@@ -1193,7 +1356,7 @@ void AlloyWindow::refresh() {
     positionDimensionEditor();
     const auto gpu = view_->diagnostics();
     status_->setText(QString("  %3 · %4 bodies · %1 · Zoom %2%    |    "+QString(editingSketch ? "L: line · R: rectangle · C: circle · D: dimension · Shift-click: add selection" : "Click: select")+" · Alt/Option + drag: pan · Wheel: zoom")
-        .arg(view_->orientation).arg(qRound(view_->zoom * 100)).arg(gpu.value("hardwareAccelerated").toBool() ? "OCCT OpenGL" : "GPU UNQUALIFIED: " + gpu.value("qualification").toString()).arg(document_.bodies().size()));
+        .arg(view_->orientation).arg(qRound(view_->zoom * 100)).arg(gpu.value("hardwareAccelerated").toBool() ? "OCCT OpenGL" : "GPU UNQUALIFIED: " + gpu.value("qualification").toString()).arg(document_->bodies().size()));
 }
 
 void AlloyWindow::showSearch() {
@@ -1245,14 +1408,14 @@ QString AlloyWindow::validateExtrudeInputs(const QJsonObject& inputs) const {
 }
 QJsonObject AlloyWindow::extrusionCandidate(const QJsonObject& inputs,bool hideSource) const {
     QJsonObject arguments{{"sketchId",inputs.value("sketchId")},{"profileId",inputs.value("profileId")},
-        {"distanceMm",CadDocument::millimeters(inputs.value("distance").toDouble(),inputs.value("units").toString(document_.authored()["displayUnits"].toString()))}};
+        {"distanceMm",CadDocument::millimeters(inputs.value("distance").toDouble(),inputs.value("units").toString(document_->authored()["displayUnits"].toString()))}};
     if(inputs.contains("name"))arguments["name"]=inputs.value("name");
     if(!inputs.value("featureId").toString().isEmpty())arguments["featureId"]=inputs.value("featureId");
     else if(session_.value("command")=="solid.extrude" && session_.value("inputs").toObject().value("sketchId")==inputs.value("sketchId")
         && session_.value("inputs").toObject().value("profileId")==inputs.value("profileId")) {
         arguments["newFeatureId"]=session_.value("newFeatureId");arguments["newBodyId"]=session_.value("newBodyId");
     }
-    auto candidate=CadDocument::extrusionCandidate(document_.authored(),arguments);
+    auto candidate=CadDocument::extrusionCandidate(document_->authored(),arguments);
     // Consume only a newly created feature. Re-editing an extrusion preserves
     // a sketch the user explicitly showed after its original consumption.
     if(hideSource && inputs.value("featureId").toString().isEmpty()) {
@@ -1264,26 +1427,26 @@ QJsonObject AlloyWindow::extrusionCandidate(const QJsonObject& inputs,bool hideS
 }
 QJsonObject AlloyWindow::beginExtrude(const QJsonObject& overrides) {
     if(!session_.isEmpty())return failure("session_busy","Complete or cancel the active command first");
-    const auto units=document_.authored()["displayUnits"].toString();
+    const auto units=document_->authored()["displayUnits"].toString();
     QJsonObject inputs{{"distance",0},{"units",units},{"name","Extrude"}};
     for(auto i=overrides.begin();i!=overrides.end();++i)inputs[i.key()]=i.value();
     if(inputs.value("sketchId").toString().isEmpty() && !selectedSketch_.isEmpty())inputs["sketchId"]=selectedSketch_;
     if(inputs.value("profileId").toString().isEmpty() && !selectedProfile_.isEmpty() && inputs.value("sketchId")==selectedSketch_)inputs["profileId"]=selectedProfile_;
     if(inputs.value("profileId").toString().isEmpty()) {
         std::vector<EvaluatedProfile> candidates;
-        for(const auto& sketch:document_.sketches())if(inputs.value("sketchId").toString().isEmpty() ? sketch.visible : sketch.featureId==inputs["sketchId"].toString())
+        for(const auto& sketch:document_->sketches())if(inputs.value("sketchId").toString().isEmpty() ? sketch.visible : sketch.featureId==inputs["sketchId"].toString())
             candidates.insert(candidates.end(),sketch.profiles.begin(),sketch.profiles.end());
         if(candidates.size()==1){inputs["sketchId"]=candidates.front().sketchId;inputs["profileId"]=candidates.front().profileId;}
     }
     const auto error=validateExtrudeInputs(inputs);if(!error.isEmpty())return failure("invalid_arguments",error);
     const auto id=inputs.value("featureId").toString();
     if(!id.isEmpty()) {
-        bool found=false;for(const auto& entry:document_.authored()["features"].toArray()){const auto feature=entry.toObject();found=found || (feature["id"]==id && feature["type"]=="extrude");}
+        bool found=false;for(const auto& entry:document_->authored()["features"].toArray()){const auto feature=entry.toObject();found=found || (feature["id"]==id && feature["type"]=="extrude");}
         if(!found)return failure("stale_entity","Extrusion feature does not exist","featureId");
     }
     session_={{"id",CadDocument::newId()},{"command","solid.extrude"},{"status","active"},{"inputs",inputs},
         {"source",QJsonObject{{"sketchId",inputs.value("sketchId")},{"profileId",inputs.value("profileId")}}},
-        {"previewed",false},{"baseDocumentRevision",static_cast<qint64>(document_.revision())},
+        {"previewed",false},{"baseDocumentRevision",static_cast<qint64>(document_->revision())},
         {"inputSchema",findCommand("solid.extrude")->parameters}};
     if(id.isEmpty()){session_["newFeatureId"]=CadDocument::newId();session_["newBodyId"]=CadDocument::newId();}
     selectedBody_.clear();selectedSketch_=inputs.value("sketchId").toString();selectedProfile_=inputs.value("profileId").toString();
@@ -1293,13 +1456,13 @@ QJsonObject AlloyWindow::beginExtrude(const QJsonObject& overrides) {
 }
 QJsonObject AlloyWindow::previewExtrude() {
     session_["previewed"]=false;session_["geometryEvaluated"]=false;session_.remove("geometry");session_.remove("documentDraft");
-    if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_.revision())) {
+    if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision())) {
         view_->clearPreview();view_->setEditDisplay({},{});return failure("stale_session","The document changed; cancel and restart this extrusion");
     }
     auto reject=[this](QJsonObject error){view_->clearPreview();view_->setEditDisplay({},{});return error;};
     const auto inputs=session_.value("inputs").toObject();
     QJsonArray hidden;
-    if(!inputs.value("featureId").toString().isEmpty())for(const auto& body:document_.bodies())if(body.featureId==inputs["featureId"].toString())hidden.append(body.bodyId);
+    if(!inputs.value("featureId").toString().isEmpty())for(const auto& body:document_->bodies())if(body.featureId==inputs["featureId"].toString())hidden.append(body.bodyId);
     view_->setEditDisplay(inputs.value("sketchId").toString(),hidden);
     if(inputs.value("sketchId").toString().isEmpty() || inputs.value("profileId").toString().isEmpty())return reject(failure("profile_required","Select a closed sketch region to extrude","profileId"));
     QJsonObject candidate;try {candidate=extrusionCandidate(inputs,false);}catch(const std::exception& error){return reject(failure("evaluation_failed",QString::fromUtf8(error.what())));}
@@ -1318,7 +1481,7 @@ QJsonObject AlloyWindow::previewExtrude() {
     return session_;
 }
 QJsonObject AlloyWindow::selectFinishedProfile(const QString& sketchId,const QString& profileId) {
-    bool found=false;for(const auto& sketch:document_.sketches())if(sketch.featureId==sketchId)
+    bool found=false;for(const auto& sketch:document_->sketches())if(sketch.featureId==sketchId)
         for(const auto& profile:sketch.profiles)found=found || profile.profileId==profileId;
     if(!found)return failure("stale_entity","Closed profile does not exist in that sketch","profileId");
     selectedBody_.clear();selectedSketch_=sketchId;selectedProfile_=profileId;view_->selectBody({});view_->selectProfile(sketchId,profileId);
@@ -1328,7 +1491,7 @@ QJsonObject AlloyWindow::selectFinishedProfile(const QString& sketchId,const QSt
 QJsonArray AlloyWindow::dependentBodies(const QString& sketchId) const {
     QJsonArray result;
     // The supported graph currently contains direct sketch -> extrusion edges.
-    for(const auto& entry:document_.authored()["features"].toArray()) {
+    for(const auto& entry:document_->authored()["features"].toArray()) {
         const auto feature=entry.toObject();if(feature["type"]=="extrude" && feature["parameters"].toObject()["sketchId"]==sketchId)result.append(feature["bodyId"]);
     }
     return result;
@@ -1372,12 +1535,12 @@ void AlloyWindow::refreshExtrudeControls() {
     const auto inputs=session_.value("inputs").toObject();
     selectedSketch_=inputs.value("sketchId").toString();selectedProfile_=inputs.value("profileId").toString();view_->selectProfile(selectedSketch_,selectedProfile_);
     {const QSignalBlocker block(extrudeProfile_);extrudeProfile_->clear();extrudeProfile_->addItem("Select profile…");
-        int selected=0;for(const auto& sketch:document_.sketches())if(sketch.visible || sketch.featureId==inputs.value("sketchId").toString())for(const auto& profile:sketch.profiles) {
+        int selected=0;for(const auto& sketch:document_->sketches())if(sketch.visible || sketch.featureId==inputs.value("sketchId").toString())for(const auto& profile:sketch.profiles) {
             extrudeProfile_->addItem(sketch.name+" · "+QString::number(profile.summary.value("areaMm2").toDouble(),'g',6)+" mm²",QVariant::fromValue(QJsonObject{{"sketchId",sketch.featureId},{"profileId",profile.profileId}}));
             if(profile.profileId==inputs.value("profileId").toString() && sketch.featureId==inputs.value("sketchId").toString())selected=extrudeProfile_->count()-1;
         }extrudeProfile_->setCurrentIndex(selected);}
     {const QSignalBlocker block(extrudeDistance_);extrudeDistance_->setValue(inputs["distance"].toDouble());extrudeDistance_->setSuffix(" "+inputs["units"].toString());}
-    extrudeOk_->setEnabled(session_.value("previewed").toBool() && session_.value("baseDocumentRevision").toInteger()==static_cast<qint64>(document_.revision()));
+    extrudeOk_->setEnabled(session_.value("previewed").toBool() && session_.value("baseDocumentRevision").toInteger()==static_cast<qint64>(document_->revision()));
 }
 void AlloyWindow::updateExtrude(const QJsonObject& inputs) {
     updatingExtrudePreview_=true;
@@ -1401,9 +1564,9 @@ QJsonObject AlloyWindow::beginSession(const QString& command, const QJsonObject&
     }
     if (!session_.isEmpty()) return failure("session_busy", "Complete or cancel the active command first");
     QJsonObject values = command == "commands.search" ? QJsonObject{{"query", ""}}
-        : QJsonObject{{"units", document_.authored()["displayUnits"]}};
+        : QJsonObject{{"units", document_->authored()["displayUnits"]}};
     if(command.startsWith("solid.")) {
-        const auto units=document_.authored()["displayUnits"].toString();const double scale=units=="in" ? 25.4 : 1;
+        const auto units=document_->authored()["displayUnits"].toString();const double scale=units=="in" ? 25.4 : 1;
         values={{"height",10/scale},{"x",0},{"y",0},{"z",0},{"units",units},{"name",command=="solid.box" ? "Box" : "Cylinder"}};
         if(command=="solid.box"){values["width"]=20/scale;values["depth"]=30/scale;} else values["radius"]=5/scale;
     }
@@ -1415,7 +1578,7 @@ QJsonObject AlloyWindow::beginSession(const QString& command, const QJsonObject&
         if (!error.isEmpty()) return failure("invalid_arguments", error);
     }
     session_ = {{"id", CadDocument::newId()}, {"command", command}, {"status", "active"},
-        {"inputs", values}, {"previewed", false}, {"baseDocumentRevision", static_cast<qint64>(document_.revision())},
+        {"inputs", values}, {"previewed", false}, {"baseDocumentRevision", static_cast<qint64>(document_->revision())},
         {"inputSchema", command == "commands.search" ? QJsonObject{{"query", parameter("string", "Search text")}} : findCommand(command)->parameters}};
     if (command == "commands.search") showSearch(); else if(command.startsWith("solid.")) showPrimitive(); else showUnits();
     return session_;
@@ -1427,13 +1590,13 @@ QJsonObject AlloyWindow::finishSession(const QString& id, bool commit) {
     QJsonObject result{{"sessionId", id}, {"status", commit ? "committed" : "cancelled"}};
     if(commit && target=="sketch.plane")return failure("plane_required","Choose an origin plane before finishing a sketch");
     if(commit && target=="sketch.edit") {
-        if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_.revision()))return failure("stale_session","The document changed; cancel and restart this sketch");
-        const auto candidate=SketchGeometry::replaceFeature(document_.authored(),session_.value("draftSketch").toObject());
-        const auto error=document_.commit(candidate,session_.value("inputs").toObject().contains("sketchId") ? "Edit sketch" : "Create sketch");
+        if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))return failure("stale_session","The document changed; cancel and restart this sketch");
+        const auto candidate=SketchGeometry::replaceFeature(document_->authored(),session_.value("draftSketch").toObject());
+        const auto error=document_->commit(candidate,session_.value("inputs").toObject().contains("sketchId") ? "Edit sketch" : "Create sketch");
         if(!error.isEmpty())return failure("evaluation_failed",error);
-        result["document"]=document_.state();
+        result["document"]=document_->state();
     } else if (commit && target != "commands.search") {
-        if (session_.value("baseDocumentRevision").toInteger() != static_cast<qint64>(document_.revision())) {
+        if (session_.value("baseDocumentRevision").toInteger() != static_cast<qint64>(document_->revision())) {
             if(target=="solid.combine") {
                 session_["previewed"]=false;session_["geometryEvaluated"]=false;session_.remove("geometry");session_.remove("documentDraft");session_.remove("finalBodyCount");
                 session_["previewError"]=QJsonObject{{"code","stale_session"},{"message","The document changed; cancel and restart Combine"}};
@@ -1489,7 +1652,7 @@ void AlloyWindow::showUnits() {
 }
 
 QJsonObject AlloyWindow::primitiveCandidate(const QString& command,const QJsonObject& inputs) const {
-    auto candidate=document_.authored();auto features=candidate["features"].toArray();
+    auto candidate=document_->authored();auto features=candidate["features"].toArray();
     const auto type=command.sliced(6);const auto id=inputs.value("featureId").toString();
     int index=-1;QJsonObject feature;
     if(!id.isEmpty()) {
@@ -1569,26 +1732,26 @@ void AlloyWindow::updatePrimitive(const QJsonObject& inputs) {
 
 QJsonObject AlloyWindow::beginSketch(const QString& plane,const QString& name,const QString& sketchId) {
     if(!session_.isEmpty() && session_.value("command").toString()!="sketch.plane")return failure("session_busy","Complete or cancel the active command first");
-    const auto seed=sketchId.isEmpty() ? SketchGeometry::newFeature(document_.authored()["documentId"].toString(),plane,name)
-        : SketchGeometry::findFeature(document_.authored(),sketchId);
+    const auto seed=sketchId.isEmpty() ? SketchGeometry::newFeature(document_->authored()["documentId"].toString(),plane,name)
+        : SketchGeometry::findFeature(document_->authored(),sketchId);
     const auto solved=SketchGeometry::solveDraft(seed);
     if(!solved.ok){auto response=failure("sketch_solve_failed",solved.error);auto error=response["error"].toObject();error["diagnostics"]=solved.diagnostics;response["error"]=error;return response;}
     const auto draft=solved.feature;
-    auto inputs=QJsonObject{{"plane",plane},{"name",draft["name"]},{"units",session_.value("inputs").toObject().value("units").toString(document_.authored()["displayUnits"].toString())}};
+    auto inputs=QJsonObject{{"plane",plane},{"name",draft["name"]},{"units",session_.value("inputs").toObject().value("units").toString(document_->authored()["displayUnits"].toString())}};
     if(!sketchId.isEmpty())inputs["sketchId"]=sketchId;
     const auto sessionId=session_.value("id").toString(CadDocument::newId());
     session_={{"id",sessionId},{"command","sketch.edit"},{"status","active"},{"inputs",inputs},{"draftSketch",draft},
         {"tool","select"},{"selection",QJsonObject{{"pointIds",QJsonArray{}},{"entityIds",QJsonArray{}}}},{"solverDiagnostics",solved.diagnostics},
-        {"previewed",false},{"baseDocumentRevision",static_cast<qint64>(document_.revision())}};
+        {"previewed",false},{"baseDocumentRevision",static_cast<qint64>(document_->revision())}};
     sketchHistory_={{draft,solved.diagnostics}};sketchHistoryIndex_=0;sketchHistoryGroup_.clear();updateSketchHistoryState();
     selectedBody_.clear();view_->clearPreview();view_->clearSketchDraft();displayedSketchDraft_={};
     selectedSketch_.clear();selectedProfile_.clear();view_->selectProfile({},{});view_->setEditDisplay(draft["id"].toString(),dependentBodies(draft["id"].toString()));
     view_->lookAtSketch(plane);showSketch();view_->setFocus(Qt::OtherFocusReason);
-    const auto sketchSession=session_.value("id").toString();
+    const auto sketchSession=session_.value("id").toString(),tabId=activeTabId_;
     // Restore focus after the plane-picker replacement and toolbar layout.
     // The native viewport must also receive keyboard activation on macOS.
-    QTimer::singleShot(0,this,[this,sketchSession]{
-        if(session_.value("id").toString()!=sketchSession || session_.value("command").toString()!="sketch.edit")return;
+    QTimer::singleShot(0,this,[this,sketchSession,tabId]{
+        if(tabId!=activeTabId_ || session_.value("id").toString()!=sketchSession || session_.value("command").toString()!="sketch.edit")return;
         view_->setFocus(Qt::OtherFocusReason);
         if(view_->windowHandle())view_->windowHandle()->requestActivate();
     });
@@ -1598,7 +1761,7 @@ QJsonObject AlloyWindow::beginSketch(const QString& plane,const QString& name,co
 QJsonObject AlloyWindow::appendSketchEntity(const QString& tool,const QJsonObject& inputs) {
     if(session_.value("command").toString()!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
     if(inputs.contains("session") && inputs["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
-    if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_.revision()))return failure("stale_session","The document changed; cancel and restart this sketch");
+    if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))return failure("stale_session","The document changed; cancel and restart this sketch");
     const auto units=inputs.value("units").toString(session_.value("inputs").toObject()["units"].toString());
     QJsonObject canonical{{"u1Mm",CadDocument::millimeters(inputs["x1"].toDouble(),units)},{"v1Mm",CadDocument::millimeters(inputs["y1"].toDouble(),units)},
         {"u2Mm",CadDocument::millimeters(inputs["x2"].toDouble(),units)},{"v2Mm",CadDocument::millimeters(inputs["y2"].toDouble(),units)}};
@@ -1654,7 +1817,7 @@ QJsonObject AlloyWindow::resolveSketchSnap(double x,double y,const QString& plan
 QJsonObject AlloyWindow::appendSketchCurve(const QString& tool,const QJsonObject& inputs) {
     if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
     if(inputs.contains("session") && inputs["session"]!=session_["id"])return failure("invalid_session","Session is no longer active");
-    if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_.revision()))return failure("stale_session","The document changed; cancel and restart this sketch");
+    if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))return failure("stale_session","The document changed; cancel and restart this sketch");
     const auto units=inputs.value("units").toString(session_["inputs"].toObject()["units"].toString());
     auto length=[&](const char* field){if(!inputs.value(field).isDouble())throw std::invalid_argument("Missing curve coordinate/length");return CadDocument::millimeters(inputs[field].toDouble(),units);};
     QJsonObject canonical;
@@ -1694,7 +1857,7 @@ QJsonObject AlloyWindow::sketchCurveGesture(const QJsonObject& point,bool commit
     }
     if(commit)return appendSketchCurve(tool,inputs);
     try {
-        auto preview=SketchGeometry::newFeature(document_.authored()["documentId"].toString(),session_["inputs"].toObject()["plane"].toString());
+        auto preview=SketchGeometry::newFeature(document_->authored()["documentId"].toString(),session_["inputs"].toObject()["plane"].toString());
         if(tool=="circle")preview=SketchGeometry::addCircle(preview,{{"centerUMm",ax},{"centerVMm",ay},{"diameterMm",inputs["diameter"]}});
         else if(tool=="centerArc")preview=SketchGeometry::addArc(preview,{{"centerUMm",ax},{"centerVMm",ay},{"radiusMm",inputs["radius"]},{"startAngleDeg",inputs["startAngleDeg"]},{"sweepAngleDeg",inputs["sweepAngleDeg"]}});
         else preview=SketchGeometry::addArc(preview,{{"startUMm",ax},{"startVMm",ay},{"endUMm",inputs["endX"]},{"endVMm",inputs["endY"]},{"throughUMm",x},{"throughVMm",y}});
@@ -1736,12 +1899,12 @@ double AlloyWindow::sketchDimensionMeasure(const QJsonObject& targets,const QStr
 
 QJsonObject AlloyWindow::publishSketchSolve(const SketchGeometry::SolveResult& solved,const QString& journalGroup) {
     if(session_.value("command").toString()!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
-    if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_.revision()))return failure("stale_session","The document changed; cancel and restart this sketch");
+    if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))return failure("stale_session","The document changed; cancel and restart this sketch");
     if(!solved.ok) {
         session_["lastSolveFailure"]=solved.diagnostics;
         auto response=failure("sketch_solve_failed",solved.error);auto error=response["error"].toObject();error["diagnostics"]=solved.diagnostics;response["error"]=error;return response;
     }
-    const auto candidate=SketchGeometry::replaceFeature(document_.authored(),solved.feature);const auto error=CadDocument::validate(candidate);
+    const auto candidate=SketchGeometry::replaceFeature(document_->authored(),solved.feature);const auto error=CadDocument::validate(candidate);
     if(!error.isEmpty())return failure("invalid_sketch",error);
     const auto evaluated=SketchGeometry::evaluateFeature(solved.feature);
     recordSketchHistory(solved.feature,solved.diagnostics,journalGroup);
@@ -1771,7 +1934,7 @@ void AlloyWindow::recordSketchHistory(const QJsonObject& draft,const QJsonObject
 }
 
 QJsonObject AlloyWindow::traverseSketchHistory(int direction) {
-    if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_.revision()))
+    if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))
         return failure("stale_session","The document changed; cancel and restart this sketch");
     if(direction<0) {
         if(session_.value("pendingDimension").toObject()["phase"]=="editing") {
@@ -1822,7 +1985,7 @@ QJsonObject AlloyWindow::applySketchConstraint(const QString& type,const QJsonOb
 
 QJsonObject AlloyWindow::setSketchSelection(const QJsonObject& selection) {
     if(session_.value("command").toString()!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
-    if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_.revision()))return failure("stale_session","The document changed; cancel and restart this sketch");
+    if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))return failure("stale_session","The document changed; cancel and restart this sketch");
     const auto parameters=session_.value("draftSketch").toObject()["parameters"].toObject();
     QJsonObject normalized;
     for(const auto& field:QStringList{"pointIds","entityIds","profileIds"}) {
@@ -1926,7 +2089,7 @@ void AlloyWindow::cancelDimension() {
 QJsonObject AlloyWindow::previewDimension(const QJsonObject& args) {
     if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
     if(args.contains("session") && args["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
-    if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_.revision()))return failure("stale_session","The document changed; cancel and restart this sketch");
+    if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))return failure("stale_session","The document changed; cancel and restart this sketch");
     if(session_.value("pendingDimension").toObject().value("phase")=="editing")return failure("dimension_input_active","Accept or cancel the current value first");
     auto pending=session_.value("pendingDimension").toObject();auto targets=sketchDimensionTargets({});
     const auto draft=session_.value("draftSketch").toObject();const auto plane=session_.value("inputs").toObject().value("plane").toString();
@@ -2014,7 +2177,7 @@ QJsonObject AlloyWindow::acceptDimension(const QJsonObject& args) {
 }
 QJsonObject AlloyWindow::editDimension(const QString& id) {
     if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
-    if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_.revision()))return failure("stale_session","The document changed; cancel and restart this sketch");
+    if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))return failure("stale_session","The document changed; cancel and restart this sketch");
     QJsonObject dimension;for(const auto& entry:session_.value("draftSketch").toObject()["parameters"].toObject()["dimensions"].toArray())if(entry.toObject()["id"]==id){dimension=entry.toObject();break;}
     if(dimension.isEmpty())return failure("stale_entity","Dimension does not exist");
     const auto valueKey=dimension["kind"]=="arcSweep" || dimension["kind"]=="angle" ? "valueDeg" : "valueMm";
@@ -2247,7 +2410,13 @@ void AlloyWindow::showSketch() {
         for(const auto& plane:QStringList{"XY","XZ","YZ"}) {
             auto* button=new QPushButton(plane+" Plane");button->setObjectName("sketch.plane."+plane);layout->addWidget(button);
             // Defer replacement of the panel until this clicked signal returns.
-            connect(button,&QPushButton::clicked,this,[this,plane]{QTimer::singleShot(0,this,[this,plane]{sketchResponse(execute("sketch.begin",{{"plane",plane}}));});});
+            connect(button,&QPushButton::clicked,this,[this,plane]{
+                const auto tabId=activeTabId_,sessionId=session_.value("id").toString();
+                QTimer::singleShot(0,this,[this,plane,tabId,sessionId]{
+                    if(tabId==activeTabId_ && session_.value("id").toString()==sessionId)
+                        sketchResponse(execute("sketch.begin",{{"plane",plane}}));
+                });
+            });
         }
     } else {
         const auto inputs=session_.value("inputs").toObject();
@@ -2342,13 +2511,43 @@ void AlloyWindow::showSketch() {
 }
 
 bool AlloyWindow::confirmDiscard() {
-    if(document_.history().isClean())return true;
-    const auto choice=QMessageBox::warning(this,"Unsaved Design","Save changes to this design?",
+    if(!tabHasUnsavedWork(activeTabId_))return true;
+    const auto choice=QMessageBox::warning(this,"Unsaved Design",QString("Save changes to %1?").arg(document_->state()["label"].toString()),
         QMessageBox::Save|QMessageBox::Discard|QMessageBox::Cancel,QMessageBox::Save);
     if(choice==QMessageBox::Cancel)return false;
     if(choice==QMessageBox::Discard)return true;
-    execute("document.saveDialog");return document_.history().isClean();
+    if(session_.value("command")=="sketch.edit") {
+        QMessageBox::information(this,"Finish Sketch","Finish or Cancel the sketch before saving this design.");return false;
+    }
+    execute("document.saveDialog");return document_->history().isClean();
+}
+bool AlloyWindow::confirmAllDiscard() {
+    bool dirty=false;for(const auto& tab:designTabs_)dirty|=tabHasUnsavedWork(tab->id);
+    if(!dirty)return true;
+    const auto choice=QMessageBox::warning(this,"Unsaved Designs","Save changes in open designs before quitting?",
+        QMessageBox::Save|QMessageBox::Discard|QMessageBox::Cancel,QMessageBox::Save);
+    if(choice==QMessageBox::Cancel)return false;
+    if(choice==QMessageBox::Discard)return true;
+    for(const auto& tab:designTabs_)if(tabHasUnsavedWork(tab->id)) {
+        const auto session=tab->id==activeTabId_ ? session_ : tab->session;
+        if(session.value("command")=="sketch.edit") {
+            QMessageBox::information(this,"Finish Sketch","Finish or Cancel open sketches before saving all designs.");return false;
+        }
+    }
+    const auto previous=activeTabId_;
+    for(const auto& tab:designTabs_)if(tabHasUnsavedWork(tab->id)) {
+        const auto response=activateTab(tab->id);
+        if(response.value("ok").isBool() && !response.value("ok").toBool()) {
+            QMessageBox::information(this,"Finish Input",response.value("error").toObject().value("message").toString());return false;
+        }
+        refresh();
+        if(session_.value("command")=="sketch.edit") {
+            QMessageBox::information(this,"Finish Sketch","Finish or Cancel the sketch before saving this design.");return false;
+        }
+        execute("document.saveDialog");if(!document_->history().isClean())return false;
+    }
+    activateTab(previous);refresh();return true;
 }
 void AlloyWindow::closeEvent(QCloseEvent* event) {
-    if(authorizedQuit_ || confirmDiscard())event->accept();else event->ignore();
+    if(authorizedQuit_ || confirmAllDiscard())event->accept();else event->ignore();
 }

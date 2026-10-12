@@ -669,6 +669,20 @@ session+journal/camera/selection across switching. Guard raw inline input, parti
 gestures and solid dialogs rather than silently discarding them. Deferred callbacks
 must capture tabId/sessionId. Close/quit considers every dirty document and draft;
 Save must require Finish/Cancel for uncommitted drafts. No reorder/detach scope.
-Sol has the reviewed plan; implementation has not started. After tabs, perform the
+Sol has staged the implementation and a coherent real-app workflow test. Root is
+compiling and Astra is reviewing ownership/lifecycle before acceptance. After tabs, perform the
 complete native first activity with constraint-stage visual comparison. Full
 three-activity tutorial remains blocked by later modeling capabilities.
+
+## Document tabs checkpoint (2026-10-12)
+
+DOC-015 now has independent heap-owned documents and per-tab sketch draft/history,
+selection/camera retention. Build passes; 85-command real-app workflow passes at
+build-tutorial/evidence/document-tabs-ledger/report.json. Astra reviewed ownership,
+cache resets, deferred callback guards and dirty lifecycle. Native plus, A/B/A,
+Cmd+N, inactive dirty-close Cancel/Discard passed with authoritative state receipts.
+The native pass caught canceled closure changing active tab; fixed and retested.
+See docs/validation/document-tabs.md for scope and remaining Save-close qualification.
+No private test app remains running. Next: complete native illustrated Activity1,
+then construction and inferred circles for Activity2. Video capture remains #157,
+planned but unqualified; no recording was made. No release or CI run.

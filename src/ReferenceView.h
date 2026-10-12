@@ -24,6 +24,9 @@ public:
     std::function<void(const QString&, const QJsonObject&)> dispatch;
     void sync();
     QJsonObject diagnostics() const;
+    QJsonObject cameraState() const;
+    void restoreCameraState(const QJsonObject& state);
+    void rebindDocument();
     QImage framebuffer();
     void setBodies(const std::vector<EvaluatedBody>& bodies, quint64 revision);
     void setBodyStage(const std::vector<EvaluatedBody>& bodies, const QString& stageKey);

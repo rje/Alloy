@@ -4,6 +4,7 @@
 #include <QJsonObject>
 #include <QMap>
 #include <functional>
+#include <memory>
 #include <vector>
 #include "CadDocument.h"
 #include "SketchGeometry.h"
@@ -24,6 +25,7 @@ class QCheckBox;
 class QPushButton;
 class QScrollArea;
 class QListWidget;
+class QTabBar;
 
 // UI and automation dispatch against the same authored document.
 class AlloyWindow final : public QMainWindow {
@@ -101,6 +103,15 @@ private:
     void positionDimensionEditor();
     QJsonObject inlineEditorState() const;
     bool confirmDiscard();
+    bool confirmAllDiscard();
+    QJsonObject documentTabs() const;
+    QJsonObject activateTab(const QString& tabId);
+    QJsonObject closeTab(const QString& tabId, bool discard);
+    QString tabSwitchBlocker() const;
+    void saveActiveTabState();
+    void showActiveTab();
+    void refreshTabs();
+    bool tabHasUnsavedWork(const QString& tabId) const;
     std::vector<Command> commands_;
     ReferenceView* view_ = nullptr;
     QWidget* browser_ = nullptr;
@@ -164,6 +175,7 @@ private:
     QLabel* dimensionEditorError_ = nullptr;
     QHBoxLayout* timelineLayout_ = nullptr;
     QLabel* documentTitle_ = nullptr;
+    QTabBar* documentTabBar_ = nullptr;
     QLabel* browserNote_ = nullptr;
     QString selectedBody_;
     QString selectedSketch_, selectedProfile_;
@@ -179,5 +191,17 @@ private:
     bool timelineVisible_ = true;
     bool navigationVisible_ = true;
     quint64 revision_ = 0;
-    CadDocument document_;
+    struct DesignTab {
+        QString id;
+        std::unique_ptr<CadDocument> document = std::make_unique<CadDocument>();
+        QJsonObject session, camera;
+        std::vector<SketchHistoryEntry> sketchHistory;
+        int sketchHistoryIndex = -1;
+        QString sketchHistoryGroup;
+        QString selectedBody, selectedSketch, selectedProfile;
+    };
+    std::vector<std::unique_ptr<DesignTab>> designTabs_;
+    QString activeTabId_;
+    CadDocument* document_ = nullptr;
+    bool switchingTabs_ = false;
 };

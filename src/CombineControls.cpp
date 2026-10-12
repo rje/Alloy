@@ -68,13 +68,13 @@ QJsonObject AlloyWindow::combineCandidate(const QJsonObject& inputs) const {
     const auto featureId = inputs.value("featureId").toString();
     if (!featureId.isEmpty()) arguments["featureId"] = featureId;
     else if (session_.value("command") == "solid.combine") arguments["newFeatureId"] = session_["newFeatureId"];
-    return CadDocument::booleanCandidate(document_.authored(),arguments);
+    return CadDocument::booleanCandidate(document_->authored(),arguments);
 }
 
 std::vector<EvaluatedBody> AlloyWindow::combineInputBodies() const {
     const auto featureId = session_.value("inputs").toObject().value("featureId").toString();
-    if (featureId.isEmpty()) return document_.bodies();
-    auto prefix = document_.authored();QJsonArray features;bool found = false;
+    if (featureId.isEmpty()) return document_->bodies();
+    auto prefix = document_->authored();QJsonArray features;bool found = false;
     for (const auto& entry : prefix["features"].toArray()) {
         if (entry.toObject()["id"] == featureId) {found = true;break;}
         features.append(entry);
@@ -95,14 +95,14 @@ QJsonObject AlloyWindow::beginCombine(const QJsonObject& overrides) {
     const auto featureId = inputs.value("featureId").toString();
     if (!featureId.isEmpty()) {
         bool found = false;
-        for (const auto& entry : document_.authored()["features"].toArray()) {
+        for (const auto& entry : document_->authored()["features"].toArray()) {
             const auto feature = entry.toObject();
             found = found || (feature["id"] == featureId && feature["type"] == "boolean");
         }
         if (!found) return failure("stale_entity","Combine feature does not exist","featureId");
     }
     session_ = {{"id",CadDocument::newId()},{"command","solid.combine"},{"status","active"},{"inputs",inputs},
-        {"previewed",false},{"geometryEvaluated",false},{"baseDocumentRevision",static_cast<qint64>(document_.revision())},
+        {"previewed",false},{"geometryEvaluated",false},{"baseDocumentRevision",static_cast<qint64>(document_->revision())},
         {"inputSchema",findCommand("solid.combine")->parameters},{"selectionRole","target"}};
     if (featureId.isEmpty()) session_["newFeatureId"] = CadDocument::newId();
     if (inputs["targetBodyId"].toString().isEmpty() && !selectedBody_.isEmpty()) {
@@ -127,7 +127,7 @@ QJsonObject AlloyWindow::previewCombine() {
         session_["previewError"] = response["error"];refreshCombineControls();return response;
     };
     if (session_.value("command") != "solid.combine") return failure("invalid_session","Combine is not active");
-    if (session_.value("baseDocumentRevision").toInteger() != static_cast<qint64>(document_.revision()))
+    if (session_.value("baseDocumentRevision").toInteger() != static_cast<qint64>(document_->revision()))
         return reject(failure("stale_session","The document changed; cancel and restart Combine"));
     const auto inputs = session_.value("inputs").toObject();
     if (inputs["targetBodyId"].toString().isEmpty()) return reject(failure("target_required","Select Target Body","targetBodyId"));
@@ -158,7 +158,7 @@ QJsonObject AlloyWindow::previewCombine() {
     const auto found = std::find_if(displayEvaluation->bodies.begin(),displayEvaluation->bodies.end(),
         [&](const auto& body){return body.bodyId == targetId;});
     if (found == displayEvaluation->bodies.end()) return reject(failure("evaluation_failed","The evaluated Combine target result is unavailable"));
-    const auto stageKey = "combine:"+QString::number(document_.revision())+":"+featureId+":result:"
+    const auto stageKey = "combine:"+QString::number(document_->revision())+":"+featureId+":result:"
         +QString::fromUtf8(QJsonDocument(inputs).toJson(QJsonDocument::Compact));
     view_->setBodyStage(displayEvaluation->bodies,stageKey);
     view_->setEditDisplay({},inputs["toolBodyIds"].toArray());view_->showPreview(found->shape,targetId,true);
@@ -278,11 +278,11 @@ void AlloyWindow::refreshCombineControls() {
     {const QSignalBlocker block(combinePickTools_);combinePickTools_->setChecked(role == "tools");}
     combinePickTools_->setText(QString("Select Tool Bodies (%1)").arg(tools.size()));
     combineError_->setText(session_.value("previewError").toObject().value("message").toString());
-    const bool current = session_.value("baseDocumentRevision").toInteger() == static_cast<qint64>(document_.revision());
+    const bool current = session_.value("baseDocumentRevision").toInteger() == static_cast<qint64>(document_->revision());
     combineOk_->setEnabled(session_.value("previewed").toBool() && current);
     if (current && inputsAvailable && !session_.value("previewed").toBool()) {
         const auto featureId = inputs.value("featureId").toString(session_.value("newFeatureId").toString());
-        const auto stageKey = "combine:"+QString::number(document_.revision())+":"+featureId+":inputs";
+        const auto stageKey = "combine:"+QString::number(document_->revision())+":"+featureId+":inputs";
         view_->setBodyStage(available,stageKey);session_["presentationStage"] = "before_feature";
     } else if (!current || !inputsAvailable) {
         view_->clearBodyStage();session_["presentationStage"] = "current_document";

@@ -1,0 +1,7 @@
+{
+  "case": "document-tabs",
+  "boxA": {"width": 10, "depth": 12, "height": 14, "units": "mm"},
+  "boxB": {"width": 20, "depth": 22, "height": 24, "units": "mm"},
+  "draftWidthMm": 8,
+  "draftHeightMm": 6
+}

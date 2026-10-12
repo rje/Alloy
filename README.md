@@ -36,8 +36,9 @@ angle-driven extrusion updates and native angular entry; exact tutorial completi
 and general input qualification remain open.
 The [first illustrated activity modeling checkpoint](docs/validation/bracket-activity1.md)
 now verifies the six-edge constrained outline and 500/45/100 dimensions, with
-native aligned entry and improved grid/badge rendering. New-document tabs and a
-complete native tutorial run remain ahead.
+native aligned entry and improved grid/badge rendering. Independent [document tabs](docs/validation/document-tabs.md)
+now retain each design and unfinished sketch history. A complete native tutorial
+run remains ahead.
 
 ## Project documents
 

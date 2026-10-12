@@ -518,6 +518,20 @@
       "inputs": [
         "tests/app_harness.py"
       ]
+    },
+    "document-tabs": {
+      "script": "tests/document_tabs_api.py",
+      "fixture": "tests/workflows/fixtures/document-tabs.json",
+      "result": "document-tabs-api.json",
+      "covers": [],
+      "capabilities": [
+        "document.independent_tabs",
+        "document.retained_tab_sketch_session",
+        "document.all_tab_dirty_guard"
+      ],
+      "inputs": [
+        "tests/app_harness.py"
+      ]
     }
   },
   "gates": {
