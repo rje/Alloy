@@ -294,6 +294,9 @@ SketchGeometry::SolveResult SketchGeometry::addPointerEntity(const QJsonObject& 
                 id=selected["pointId"].toString();
             } else reject("Unsupported snap target kind");
             for (const auto& entry:points) {const auto p=entry.toObject();if(p["id"]==id){u=p["uMm"].toDouble();v=p["vMm"].toDouble();return id;}}
+            for(const auto& entry:expandedProjectionFeature(draft,projectionContext)["parameters"].toObject()["points"].toArray()) {
+                const auto p=entry.toObject();if(p["id"]==id){u=p["uMm"].toDouble();v=p["vMm"].toDouble();return id;}
+            }
             reject("Snap target point does not exist");
         };
         const auto startTarget=target("startSnapTarget",u1,v1),endTarget=target("endSnapTarget",u2,v2);
@@ -711,10 +714,18 @@ SketchGeometry::SolveResult SketchGeometry::addPointerCircle(const QJsonObject& 
         auto parameters = draft["parameters"].toObject();
         auto points = parameters["points"].toArray(), entities = parameters["entities"].toArray();
         auto constraints = parameters["constraints"].toArray();
-        QString midpointLine;
+        QString midpointLine,coincidentPoint;
         if (arguments.contains("centerSnapTarget")) {
             if (!arguments["centerSnapTarget"].isObject()) reject("Circle snap target must be an object");
             const auto target = arguments["centerSnapTarget"].toObject();
+            if(target["kind"]=="point") {
+                if(target.size()!=2 || !target["pointId"].isString() || !validId(target["pointId"].toString()))reject("Circle center point snap requires a stable pointId");
+                for(const auto& value:expandedProjectionFeature(draft,projectionContext)["parameters"].toObject()["points"].toArray()) {
+                    const auto point=value.toObject();if(point["id"]!=target["pointId"])continue;
+                    coincidentPoint=point["id"].toString();u=point["uMm"].toDouble();v=point["vMm"].toDouble();break;
+                }
+                if(coincidentPoint.isEmpty())reject("Circle center snap point no longer exists");
+            } else {
             checkFields(target, {"kind","entityId"});
             if (target["kind"] != "midpoint" || !target["entityId"].isString() || !validId(target["entityId"].toString()))
                 reject("Circle center currently supports a line midpoint target");
@@ -733,6 +744,7 @@ SketchGeometry::SolveResult SketchGeometry::addPointerCircle(const QJsonObject& 
                 break;
             }
             if (midpointLine.isEmpty()) reject("Circle midpoint target no longer exists");
+            }
         }
         QString tangentLine; int tangentSide = 0;
         if (arguments.contains("tangentSnapTarget")) {
@@ -767,10 +779,11 @@ SketchGeometry::SolveResult SketchGeometry::addPointerCircle(const QJsonObject& 
         entities.append(QJsonObject{{"id",circleId},{"type","circle"},{"centerPointId",centerId},{"radiusMm",radius}});
         if (!tangentLine.isEmpty()) constraints.append(QJsonObject{{"id",newId()},{"type","tangent"},
             {"entityIds",QJsonArray{circleId,tangentLine}},{"side",tangentSide}});
+        if(!coincidentPoint.isEmpty())constraints.append(QJsonObject{{"id",newId()},{"type","coincident"},{"pointIds",QJsonArray{centerId,coincidentPoint}}});
         if (!midpointLine.isEmpty()) constraints.append(QJsonObject{{"id",newId()},{"type","midpoint"},
             {"pointIds",QJsonArray{centerId}},{"entityIds",QJsonArray{midpointLine}}});
         parameters["points"] = points; parameters["entities"] = entities;
-        if (!midpointLine.isEmpty() || !tangentLine.isEmpty()) parameters["constraints"] = constraints;
+        if (!midpointLine.isEmpty() || !tangentLine.isEmpty() || !coincidentPoint.isEmpty()) parameters["constraints"] = constraints;
         auto candidate = draft; candidate["parameters"] = parameters;
         const auto result = solveDraft(candidate,projectionContext);
         return result.ok ? result : SolveResult{false,draft,result.diagnostics,result.error};
