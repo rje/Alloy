@@ -13,7 +13,8 @@ permissions:
 
 concurrency:
   group: native-${{ github.ref }}
-  cancel-in-progress: true
+  # Let the full native matrix finish; newer pushes replace only a queued candidate.
+  cancel-in-progress: false
 
 jobs:
   build:
