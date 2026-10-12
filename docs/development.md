@@ -20,6 +20,13 @@ cmake --build build
 ./build/alloy.app/Contents/MacOS/alloy --ready-file /tmp/alloy-ready.json
 ```
 
+For private macOS candidates using Qt 6.11.2 accessibility automation, see the
+[isolated Cocoa patch recipe](dependencies/qt-cocoa-accessibility.md). The qualified
+local layout places the exact patched `libqcocoa.dylib` in the candidate bundle's
+`Contents/PlugIns/platforms` directory, without `qt.conf` or plugin-path environment
+overrides. Never replace the globally installed plugin or rebuild a human test
+candidate. This local workaround does not qualify release packaging.
+
 Use File → Open for `examples/gauge-block.alloy`. Click a Timeline feature to
 edit its dimensions, or Box/Cylinder to create another body. See
 [sample instructions](../examples/README.md) and [agent control](agent-control.md).
