@@ -35,9 +35,12 @@ It also checks unchanged ASCII count/byte/removal metadata. The existing
 refusal. Both pass. Exact tessellation totals are receipt evidence, not regression
 assertions. The strict independent checker was not changed.
 
-The simple hemispherical box and curved ASCII paths can still have preexisting
-non-unit or degenerate facets at other mesh settings; this bounded correction does
-not qualify every spherical tessellation or curved ASCII export. The integrated
+The unchanged curved ASCII path emits duplicate-vertex zero-area pole facets
+at 0.05 mm / 8 degree settings in the full die, its four-feature prefix, and a
+simple hemispherical box fixture. Reported bad facets have unit normals. This
+confirmed remainder is tracked as PRT-008/#206. Earlier binary failures preceded
+the final direct-equality fix; no remaining binary or separate non-unit-normal
+defect is established by that evidence. The integrated
 real-application die export and final tutorial recording remain the root's next
 verification, separate from these kernel/artifact checks.
 
