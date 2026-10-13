@@ -114,6 +114,15 @@ above the base; #266 is probing exact axis-trimmed cavity geometry and comparing
 the section boundary, without changing authored dimensions. No replacement
 Shell policy or complete source match is accepted yet.
 
+The exact circular-meridian cavity proof now passes source80/R50 and control85/R55:
+BRep/Boolean-input validity, normal wall5, independent disk-integral volume and
+the same60mm strip Intersect all pass. A bounded production candidate is authorized
+only for an unmodified exact circular Full360 two-face Revolve, with true axis,
+two simple cavity roots strictly above the selected plane and actual lineage.
+This self-closing offset case uses a disclosed closed-cap policy; source boundary
+parity remains unknown. No general Shell replacement or full workflow is accepted.
+Evidence: external validation/ornament-feasibility/exact-cavity-{source,control}.
+
 ## Earlier accepted checkpoints and development history
 
 The dated entries below preserve historical evidence and may describe pending
