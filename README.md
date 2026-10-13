@@ -37,6 +37,9 @@ same five-hole solid with explicitly recorded selection and visual limitations.
 This is not complete CAD parity.
 Annotated real-app tutorial movies can now be recorded with local commands; see
 [the video recipe and verified results](docs/validation/tutorial-video.md).
+The completed bracket can be exported as one valid STEP solid or a closed STL
+mesh. A full-size design and millimeter STEP/STL plus a labeled 0.2-scale STL
+print sample have [independent readback evidence](docs/validation/bracket-exchange.md).
 
 The public repository is [rje/Alloy](https://github.com/rje/Alloy), with the
 [issue backlog](https://github.com/rje/Alloy/issues) and
