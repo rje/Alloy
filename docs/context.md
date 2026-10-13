@@ -32,7 +32,7 @@ visual parity remain qualified. The external
 editable models and STL deliverables. The Revolve receipt is
 [validation/revolve-tutorial.md](validation/revolve-tutorial.md).
 
-**118 of 242 issues are closed.** Recent accepted work includes compact ribbon
+**119 of 242 issues are closed.** Recent accepted work includes compact ribbon
 icons #218, retained Extrude Intersect #219, nested profile/island diagnostics
 #165, portable local controls #220, shared-line fillets #221, typed Line length
 locks #222, retained Sweep #223 and native Sweep controls #224. Each has a scoped
@@ -52,8 +52,8 @@ links that capture alongside the full movie/model/STL. Native ingredient tests
 remain distinct from API movie evidence; no physical OS or exact pixel claim.
 The source's post-fillet dimension drivenness is unknown; Alloy's explicit
 reference-span conversion is disclosed. No full tutorial replay was needed for
-the symbol-only change. The private GUI slot is reserved for #238 constraint input; #239 needs one settled
-palette capture next. Mirror editors are closed.
+the symbol-only change. The private GUI slot is reserved for #238 corrected Concentric glyph capture.
+Native Mirror validation editors are closed.
 Keep only one private validation editor open at a time.
 
 **Keyring #233 and driving fillet dimensions #235 are independently accepted and closed.**
@@ -99,12 +99,17 @@ Sol owners implement source constraint gestures #238, parallel-line dimensions
 isolated `../Alloy-worktrees/wall-outlet-gate` with prepared source-order API
 recording runner (`521fde8`) and independent geometry/relation oracle
 (`5288517`, `3835dfe`). Only syntax is checked; no completed workflow is implied.
-#239 candidate `f711bae` passed geometry/input review but needs a settled palette
-capture before visual acceptance; its immediate post-Return capture overlaps.
-#238 source-order Concentric/point H/V/Equal core fixture passes; native proof
-is in preparation. Native Mirror #241 is implementing shared window/role controls. Shared schema/solver edits and private GUI
+#239 is independently accepted, integrated (`e16f0ab`, `2537bc4`, review
+`811f6a9`) and closed. Its settled palette capture resolved the immediate-layout
+overlap without a production change. #238 candidate `e6814e9` passed the actual
+native source-order sequence and core checks and passed Astra geometry/input review. Its Concentric crosshair glyph is being
+corrected to recognizable rings before visual acceptance. Native Mirror #241
+passed corrected drag selection/axis/Cancel/accept and a 58-call shared API flow;
+its candidate is being packaged for independent review. Shared schema/solver edits and private GUI
 checks remain coordinated. The integrated application build and both Mirror /
-rounded-intent core tests passed (2/2, 2.23 s); no full tutorial replay was needed.
+rounded-intent core tests passed (2/2, 2.23 s); no full tutorial replay was needed. After #239 integration, Mirror and parallel-line
+core checks passed together (2/2, 2.11 s); default app rebuild will include the
+remaining reviewed children before the full gate.
 New typed rectangle fillets now retain driving size/origin through #235. Legacy
 #228 files retain their explicit measured-span policy. The integrated #235/#237
 application build and both affected core tests passed (2/2, 2.55 s). Text retains authored parameters and uses mature font
