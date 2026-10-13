@@ -12,7 +12,7 @@ PROTOCOL = 'alloy-control/1'
 INSTANCE_DIR = Path.home() / '.alloy/instances'
 
 
-def request(endpoint, command, args=None, timeout=5):
+def request(endpoint, command, args=None, timeout=30):
     request_id = str(uuid.uuid4())
     message = {"id": request_id, "command": command, "args": args or {}}
     with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as client:
@@ -81,6 +81,7 @@ def choose_endpoint(socket_path=None, ready_file=None, instance=None,
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--timeout", type=float, default=30, help="Command response deadline in seconds (default: 30); timeout does not cancel a command")
     selectors = parser.add_mutually_exclusive_group()
     selectors.add_argument("--socket", help="Explicit endpoint; ALLOY_SOCKET is a fallback when no selector is supplied")
     selectors.add_argument("--ready-file", help="Read and verify endpoint from startup discovery JSON")
@@ -107,7 +108,9 @@ def main():
         else: command, args = options.command, json.loads(options.args)
         if not isinstance(args, dict):
             raise ValueError("--args must be a JSON object")
-        response = request(endpoint, command, args)
+        if options.timeout <= 0:
+            raise ValueError("--timeout must be positive")
+        response = request(endpoint, command, args, timeout=options.timeout)
         print(json.dumps(response, indent=2))
         return 0 if response.get("ok") else 1
     except (OSError, ValueError, RuntimeError, KeyError) as error:

@@ -627,3 +627,15 @@ contacts/ordered intersection branches. Changed incident source sets may
 intentionally invalidate a profile reference; upstream feature evaluation fails
 atomically with `profile_unavailable` instead of selecting another face. No
 composite full-circle shortcut is added for an untrimmed crossing sketch.
+
+### Command response deadline
+
+The client waits up to30seconds for a command response; `--timeout` overrides
+this bound. Instance identity probes remain2seconds. Loft with downstream Shell
+was observed taking5.2seconds for redo and8.2seconds to reopen in the GPU app,
+while core evaluation was under1second for the whole focused case. The previous
+5second client deadline could abandon a valid in-flight operation. A timeout
+does not cancel or roll back a command: inspect the document before retrying.
+This client bound is not an interactive performance claim; render/recompute
+responsiveness remains subject to future optimization. Workflow transcripts now
+record elapsed command time alongside the actual result.

@@ -28,8 +28,10 @@ def application(app, output):
                 endpoint = json.loads(ready.read_text())['socket']
                 transcript = []
                 def call(command, parameters=None, error=None):
+                    started = time.monotonic()
                     response = request(endpoint, command, parameters)
-                    transcript.append({'command': command, 'args': parameters or {}, 'response': response})
+                    transcript.append({'command': command, 'args': parameters or {}, 'response': response,
+                                       'elapsedMs': round((time.monotonic()-started)*1000, 1)})
                     assert response['ok'] == (error is None), response
                     if error:
                         assert response['error']['code'] == error, response

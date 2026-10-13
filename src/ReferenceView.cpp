@@ -431,6 +431,13 @@ QString ReferenceView::pickConstructionPlane(double x,double y) const {
 }
 void ReferenceView::applyEditDisplay(bool redraw) {
     if(context_.IsNull())return;
+    // Datum fills may be coplanar with Loft caps. Hide only their transient
+    // presentation during a valid preview; authored visibility stays intact.
+    for(const auto& plane:constructionPlanes_)if(constructionPlaneModels_.contains(plane.featureId)) {
+        const auto model=constructionPlaneModels_.value(plane.featureId);
+        if(plane.visible && (selectedLoftProfileIds_.isEmpty() || preview_.IsNull()))context_->Display(model,false);
+        else context_->Erase(model,false);
+    }
     for(const auto& sketch:finishedSketches_) {
         const bool visible=(sketch.visible || sketch.featureId==editSourceSketch_) && sketch.featureId!=draftSketchId_;
         if(sketchModels_.contains(sketch.featureId)) {
