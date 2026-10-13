@@ -71,3 +71,29 @@ claimed. No private editor remains open. Astra independently reviewed source, Qt
 bounded blocker. Final integration and issue acceptance remain parent-owned.
 No full Revolve workflow qualification, angular controls, automatic axis selection,
 or general nonparallel line distance support is claimed by this slice.
+
+## Independent acceptance
+
+Astra accepts bounded #215 candidate `10cac47` on 2026-10-13. Independent review
+covered the authored schema, profile participation, solver equation and endpoint
+postcheck, shared command and input routing, annotation construction, focused test
+sources, persisted core/Qt logs, saved draft and all three actual captures. The
+reviewer reused the recorded runs and did not launch another editor.
+
+Centerline conversion preserves line/point identity and boundary participation;
+it does not silently substitute Construction. The diameter normalizes the retained
+axis/edge pair and side, uses half the full value for its one distance equation,
+and rejects loss of parallel orientation before publishing an accepted draft.
+The focused free-endpoint case specifically tests this refusal without inventing
+a parallel constraint. Driven dimensions add no equation and omit authored value.
+The saved draft contains driving 110 and driven outer diameter references, both
+with retained side -1; the driven value is evaluated rather than stored.
+
+The captured Ø100 and Ø110 annotations span genuinely mirrored witnesses across
+the axis; `(Ø165)` is readable and distinguished as driven. The palette conversion
+control is visible after scrolling. The early conversion image is not a fitted
+whole-profile view; later annotation captures show the complete fixture. Qt input
+and shared-API setup/edit activation boundaries are as documented above, with no
+physical OS input or label double-click claim. There is no blocking mismatch in
+this child. Exact visual parity, arbitrary nonparallel line dimensions, native
+Revolve selection/manipulation and the complete tutorial remain separate gates.
