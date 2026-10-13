@@ -28,7 +28,8 @@ Boolean correction #265. #260 is accepted and closed; main app rebuild passes.
 Sol is validating retained open fit-spline Offset (#261). Section Analysis (#262)
 is independently accepted and closed: core, 79-call actual-app API, native3/3,
 actual GPU captures and integrated main build/core pass. Circular Body Pattern (#263) is now active in an isolated Sol lane.
-#265 remains Todo pending those inputs. Public sources/visuals stay external in
+#265 has an active headless failure investigation while those inputs finish;
+acceptance still requires retained Pattern/Join reproduction. Public sources/visuals stay external in
 the ornament-pattern knowledge record.
 
 Full-Revolve planar support #260 is independently accepted: actual 80/5/R50
@@ -49,7 +50,7 @@ application regression: retained Circular Pattern has not been implemented.
 Do not claim #264 feasible or complete from the separate ingredient tests. The
 chosen image-like spline coordinates and failed logs are retained externally;
 Sol is reviewing Boolean robustness without replacing the source geometry.
-New Todo #265 (SOL-039) tracks the bounded correction; #264 depends on it.
+Active #265 (SOL-039) tracks the bounded correction; #264 depends on it.
 A second external probe using the actual candidate SketchRegions profile and
 GeometryKernel extrusion/Intersect reproduces invalid fifteen-solid array Join.
 Actual retained Circular Pattern/application reproduction is still required.
