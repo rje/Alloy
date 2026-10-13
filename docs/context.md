@@ -77,16 +77,21 @@ separate in [validation/fit-point-spline.md](validation/fit-point-spline.md).
 The degree-five C2 evaluator is real; its baseline acceleration, knot and handle
 mapping policies are disclosed Alloy choices.
 
-Arc slot #252 and control spline/curvature comb #254 are actively implemented
+Arc slot #252 is independently accepted and integrated as 5beec9c/1e62c33.
+Main builds and three slot/spline core tests pass; native creation and 44-call
+combined source API evidence are separate in validation/center-point-arc-slot.md.
+A reviewed integration correction explicitly chooses the intended preview group.
+Control spline/curvature comb #254 and ellipse #256 are actively implemented
 in isolated worktrees. Root has also started conic #255 in
 `../Alloy-worktrees/conic` / `feat/conic`, candidate a534335 with retained OCCT
 geometry and shared creation/Rho commands. App builds and focused core passes
 1/1 (0.42 s), including asymmetric shoulder/tangents and exact retained history.
-Astra pre-reviewed the core; two integration corrections are applied. Native
-controls and real-app verification remain ahead; no feature acceptance.
-Ellipse #256 and full lesson #257 remain Todo.
-Root owns `tests/center_point_arc_slot_api.py`: prepared/syntax-checked only,
-not executed. It checks both slots in one sketch, source radius/H/V/radial-line/
+Astra pre-reviewed the core; two integration corrections are applied. Partial creation/Rho numeric controls are committed as 81713cf; a 39-call
+real-app preview/refusal/edit/history run passes in external conic api-attempt-04.
+On-canvas Rho arrow/drag and native context OK test remain ahead; no acceptance.
+Full lesson #257 remains Todo.
+Root owns `tests/center_point_arc_slot_api.py`: passed 44 calls on the reviewed
+arc candidate, with exact source model and an inspected readable capture. It checks both slots in one sketch, source radius/H/V/radial-line/
 135-degree constraints, two analytic regions, radius edit and exact history/
 reopen. Wait for the author candidate and the sole private-editor lease before
 running. Root also prepared `tests/control_point_spline_api.py` (syntax-only):
@@ -120,7 +125,7 @@ visual parity remain qualified. The external
 editable models and STL deliverables. The Revolve receipt is
 [validation/revolve-tutorial.md](validation/revolve-tutorial.md).
 
-**132 of 258 issues are closed.** Recent accepted work includes compact ribbon
+**133 of 258 issues are closed.** Recent accepted work includes compact ribbon
 icons #218, retained Extrude Intersect #219, nested profile/island diagnostics
 #165, portable local controls #220, shared-line fillets #221, typed Line length
 locks #222, retained Sweep #223 and native Sweep controls #224. Each has a scoped

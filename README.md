@@ -274,3 +274,7 @@ H/V and D150/R25 constraints, edits, cancellation and history/reopen.
 [Fit Point Spline](docs/validation/fit-point-spline.md) now supports retained fit
 points, insertion/removal and tangent direction/weight handles, real closed profiles
 and editable storage/history, with independent bounded native/API acceptance.
+
+[Center Point Arc Slot](docs/validation/center-point-arc-slot.md) now retains
+analytic radial intent alongside straight slots, with native creation and separate
+source dimensions, editable geometry and persistence evidence.
