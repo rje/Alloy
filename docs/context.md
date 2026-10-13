@@ -2556,3 +2556,11 @@ New prerequisite #259 (SKT-064) tracks solver-grounded independent solved color.
 Sol implements a bounded fix using PlaneGCS nullspace-dependent parameter
 mapping; Astra has reviewed functional evidence but cannot accept the
 visual gate yet. Failed attempts01/02 retain offviewport fixture mistakes.
+
+#259 focused root fixture is tests/mixed_sketch_colors_api.py, prepared but not
+yet run. It loads the full attempt03 source model, checks entityFreedom for
+fixed ellipse/free conic, captures unselected/selected states, removes the first
+axis dimension (7→8DOF), captures the underdefined control, then Cancel verifies
+exact original authoring and finished-state solved metadata/capture. Candidate
+worktree is ../Alloy-worktrees/entity-solved-colors; Sol owns implementation,
+Astra source review, root sole editor lease when binary is ready.
