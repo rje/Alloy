@@ -117,7 +117,8 @@ access. The accepted tutorial, ASCII, point-to-edge and Timeline checkpoints thr
 c328566 were pushed at that checkpoint. The refreshed toy recording and deliverables use true edge
 dimensions; earlier artifacts remain archived.
 SKT-036/#212 independently accepts side-face boss and inclined-support coverage.
-Parent#150 is Todo for native recovery#213; API/core recovery passes. Broader #43 retains history behavior beyond accepted Timeline readability;
+Parent #150 and native recovery #213 are now independently accepted and CLOSED;
+ordinary Qt row selection/Space verifies visible refusal, Cancel and correction. Broader #43 retains history behavior beyond accepted Timeline readability;
 #83 retains performance work. RHI-003/#208 is independently accepted research (1e0d0fe); see
 dependencies/rhi-shortlist.md. No replacement renderer is selected; #137 retains cross-platform qualification
 and adoption decisions. SKT-035/#209 is independently accepted (b6b1f00): affected-sketch context in
@@ -1860,3 +1861,15 @@ evidence; no repeated full tutorial for this unchanged integration. #215 owns
 the next private GUI slot. #216 controls preparation runs in parallel against
 its frozen Centerline contract, with acceptance blocked until #215 integration.
 #217 remains Todo. Ninety of 217 issues are closed. No release or CI run.
+
+
+## Multi-face cumulative gate complete (2026-10-13)
+
+Test-only 827cf6a and independent af89878 close #213 and parent #150. Root ran
+the recovery-only real Qt application once: 3/3 pass in 4050ms, process exit0.
+Ordinary row click/Space resolves the native input qualification; the previous
+checkbox indicator hit remains unexplained. Both split/deleted supports visibly
+refuse with disabled OK; Cancel/correction preserve document and history exactly.
+Reuse accepted #205/#209/#212 for the cumulative gate. No production change,
+OS input or broad repair/relink claim. There are 92 closed issues of 217; only
+#215/#216 remain actively owned. #215 currently owns the private GUI slot.
