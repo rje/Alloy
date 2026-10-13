@@ -58,3 +58,43 @@ but no cumulative tutorial replay is claimed here. The historical #228 model,
 captures and receipt describe the earlier driven policy and remain valid for
 that stored model. Broader arbitrary tilted rectangles, zero-length sides and
 general virtual-corner dimensions are outside this finite slice.
+
+## Independent acceptance
+
+Accepted `346c9d5cf6a9b32675aacbaab25322d962eb2892` atop `15209e6` on
+2026-10-13 after independent source, focused test-source/log, authored model and
+actual-capture review. The initial review found that the invariant mistakenly
+rejected unrelated circles/arcs in the same sketch. The follow-up records only
+the owned corner-arc UUIDs; its focused core regression appends both unrelated
+curve types and preserves those identities. The retained side, quarter-arc,
+origin, overall-witness and positive-residual checks remain intact. The earlier
+five-field candidate can derive its corner set from explicit side tangencies.
+No further GUI run or tutorial replay was needed for this validation-only fix.
+
+The bounded new-authoring path retains the original driving width/height IDs
+and values and independently editable radii. Two explicit `supportLine`
+relations preserve origin incidence using existing PlaneGCS equations; finite
+`pointOnCurve` validation is unchanged. The authored intent checks the supported
+right/down origin rectangle rather than claiming arbitrary rectangle orientation.
+The accepted legacy driven-span fixture is not migrated. Reported and persisted
+core evidence covers analytic R6 geometry, a single R5.5 edit, 70/35 resizing,
+atomic R30 refusal, downstream extrusion identity/volume and undo/reopen.
+
+The actual API report gives area 2420.3312960896974 square millimeters for the
+70×35 mixed-radius outline; its independent formula is
+`70*35 - (1-pi/4)*(3*6*6 + 5.5*5.5)`. The saved source retains its two overall
+drivers and the two origin support incidences. The inspected settled
+`driving-rounded-edited.png` clearly shows 70, 35, one R5.5 and three R6 labels,
+with readable palette text and real GPU geometry. The immediate
+`native-edited.png` has overlapping summary/profile text before layout settles;
+that image is not evidence of a fully readable palette. The separate settled
+API capture supplies that visual evidence, without attributing a production
+layout fix to this change.
+
+Native test source uses shared commands for fixture creation and editor
+activation, then command-produced focus and Qt key events for Cancel, radius
+and width edits. It does not repair focus between those input steps. This is
+bounded Qt event evidence, not physical OS input, label-double-click activation,
+a repeated native four-fillet walkthrough or a new full keyring movie. Original
+source post-fillet drivenness remains unknown; preserving it here is an explicit
+Alloy behavior. Historical tutorial captures describe their original saved policy.
