@@ -125,11 +125,11 @@ and adoption decisions. SKT-035/#209 is independently accepted (b6b1f00): affect
 atomic support failures. See validation/multi-face-independent.md. The isolated Metal investigation #210 is independently accepted and CLOSED
 (5b29523/916daff); production remains OpenGL. The next illustrated Revolve foundation #214 is independently accepted and
 CLOSED (b504efd/1d9e235); integrated application build and focused core pass.
-Active work is #215 distinct Centerline plus diameter-to-axis dimensions and
-#216 native selection/Partial angular dragging, in separate Sol worktrees.
-The #216 owner can prepare controls against the frozen Centerline contract, but
-acceptance waits for integrated #215. Astra verifies both; full tutorial #217
-remains Todo. Public source steps 39–50 and visual evidence stay
+Centerline #215 is independently accepted and CLOSED (6d9ed55/783f6ce); the
+integrated app build and Centerline/Revolve core checks pass. Active work is
+#216 native selection/Partial angular dragging and #217 full tutorial runner,
+in separate Sol worktrees. The runner prepares against the frozen pointer API;
+its final cumulative run waits for accepted #216. Astra verifies both. Public source steps 39–50 and visual evidence stay
 external in tutorial.next-revolve-feature-checkpoint. Centerline can form profile
 boundaries; it is not Construction. The detached lesson axis must also coexist
 with a separate closed profile. No release,
@@ -1886,3 +1886,15 @@ Astra source/log/capture review reports no bounded blocker. Final acceptance and
 integration remain parent-owned; this does not qualify
 the full Revolve workflow or automatic axis/angular controls. See
 [the contract and bounded receipt](validation/centerline-diameter.md).
+
+
+## Centerline integrated; native controls and complete runner active (2026-10-13)
+
+#215 is closed after6d9ed55/783f6ce. The integrated app builds; focused
+sketch_centerline and solid_revolve tests pass2/2 in0.96s. Candidate recorded
+Qt input/captures are independently accepted without repeating unchanged GUI.
+#216 owns the next private GUI slot. #217 prepares the complete runner/media
+and source-step receipt in parallel, with final execution waiting for accepted
+#216. Reference fixture choices and independent Pappus oracle are external in
+knowledge/tutorials/revolve-next-slice/alloy-fixture-plan.md. 93 of217 issues
+are closed; only216/217 are actively owned. No release or per-commit CI.
