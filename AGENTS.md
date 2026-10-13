@@ -106,6 +106,9 @@ These rules supersede any earlier suggestion to verify behavior in proprietary s
   close it before launching the next candidate; preserve any user-owned instance.
 - Self-test through the real application entrypoint. Keep build, API, geometry,
   screenshot, and artist-workflow evidence distinct.
+- Input tests must not repair focus or selection between demonstrated user steps.
+  Initial harness activation is separate; verify the actual focus/selection state
+  produced by the command before delivering the next key or click.
 
 ## Implementation and scope
 

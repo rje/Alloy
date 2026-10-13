@@ -25,8 +25,9 @@ remaining requirements. Main's default application is rebuilt through #224:
 **Active: Circle Tab-to-Enter repair #226.** Sol works in
 `../Alloy-worktrees/circle-tab-lock`; its focused native test owns the private GUI
 slot until explicitly released. This fixes a source-sequence focus gap found by
-#222's native probe. Astra independently verifies the candidate before root
-integrates it. Only #226 is active; full paper-clip gate #225 stays Todo until
+#222's native probe. The first candidate test restored focus after Tab and masked a real remaining
+null-focus defect; the author is correcting it and testing without that repair.
+Astra independently verifies the corrected candidate before root integrates it. Only #226 is active; full paper-clip gate #225 stays Todo until
 that final prerequisite closes. Source path authoring, actual paired fillets and
 native Sweep prerequisites are already accepted. Do not substitute preauthored
 semicircles or coordinate-seeded lines for the source interactions.
