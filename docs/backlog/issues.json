@@ -3337,6 +3337,23 @@
         "phase:P0"
       ],
       "body": "Recording at 15 fps can take longer than the timer interval, leaving a periodic capture timer perpetually overdue and starving native accessibility/input. The interrupted straw-bung run took 67\u2013220 seconds for native actions; recorder-off inspection took 0.12 seconds.\n\nAcceptance: yield between expensive captures while preserving wall-clock video timing, repeated-frame accounting and overlays. Build and run one bounded native recorder-on responsiveness probe, inspect resulting recording, then continue #170. Preserve the interrupted attempt; do not claim it as a completed tutorial. No broad geometry regression is needed for timer scheduling alone."
+    },
+    {
+      "key": "FND-017",
+      "title": "Qualify visible body context menus and native Move activation",
+      "kind": "implementation",
+      "phase": "P0 Foundation",
+      "priority": "P1",
+      "depends_on": [
+        "SOL-019"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P0",
+        "priority:P1",
+        "area:fnd"
+      ],
+      "body": "## Observed blocker\nDuring #170 native recording, right-click cutter delivered native Qt press/release and contextMenuEventCount=1; contextMenuVisible was true. Yet native AX, screenshot and composed app capture did not show a usable popup. Browser right-click and bounded Down/Return did not activate Move. Toolbar Move continues with an explicit source-route mismatch; this is not exact context-menu acceptance.\n\n## Bounded acceptance\nDiagnose event delivery, popup placement/visibility and native action dispatch separately. Correct body menu inspection counters (current shown count excludes this branch), then fix the demonstrated app defect if present. Verify one actual right-click body -> visible Move/Copy -> native activation and Cancel on the GPU app, with popup capture and state evidence. If this is solely a computer-control limitation, record it honestly and retain the unverified native requirement; synthetic tests alone do not close it. Preserve Browser Save As Mesh and sketch context menu routes. Avoid speculative platform or Qt rewrites.\n\nSol implements/investigates in isolated bung-native-fixes; Astra verifies independently. Public reference source remains external. #170 stays open for the exact route until resolved.\n"
     }
   ]
 }

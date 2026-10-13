@@ -38,3 +38,11 @@ Local commands `sketch.trimPreview` / `sketch.trim` accept `entityId,uMm,vMm`.
 Trim. The accepted result diagnoses removed/created entities, removed
 constraints/dimensions, and the trimmed interval. The existing sketch journal,
 solver authority, and one-transaction Finish/Cancel remain authoritative.
+
+## Integrated real-app checkpoint
+
+The combined candidate in `build-support-integrated` builds and passes both
+changed core tests. Its bounded real-app script passes with GPU captures under
+`build-support-integrated/evidence/`. Root inspected Trim preview and actual
+separated profile selection. Native input and independent acceptance remain
+pending; this checkpoint does not close the complete support tutorial.

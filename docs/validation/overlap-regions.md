@@ -43,3 +43,11 @@ profile repair message, while the focused kernel check proves the internal
 `profile_unavailable` diagnostic. The script checks that current public boundary
 and verifies that Cancel restores exact accepted intent; it does not require an
 unadvertised nested diagnostics object. Integrated rerun remains pending.
+
+## Integrated real-app checkpoint
+
+The combined candidate in `build-support-integrated` builds and passes both
+changed core tests. Its bounded real-app script passes with GPU captures under
+`build-support-integrated/evidence/`. Root inspected Trim preview and actual
+separated profile selection. Native input and independent acceptance remain
+pending; this checkpoint does not close the complete support tutorial.

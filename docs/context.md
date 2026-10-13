@@ -3,6 +3,28 @@
 Updated 2026-10-12. This is the project handoff for a fresh session. Read the root
 [AGENTS.md](../AGENTS.md) first; its reference restrictions apply to all work.
 
+## Current integrated checkpoint (2026-10-12)
+
+The native straw-bung run completed all modeling through physical UI: eight
+features, one valid solid, expected volume and closed oriented STL. Raw recording
+and a 208-second edited version remain external, with input event/frame mapping.
+#178 recorder responsiveness is independently accepted and closed. #170 remains
+open for #179 context-menu route and the recorded Combine selection recovery;
+see `validation/straw-bung-native.md`. Toolbar Move was an explicit workaround,
+not exact source parity. Sol owns the bounded popup investigation.
+
+Main now includes #174 regions and #177 line Trim. Separate private-Qt build
+`build-support-integrated` succeeds. The two changed core tests pass together;
+`tests/sketch_trim_api.py` and `tests/workflows/check_overlap_regions.py` pass
+through the real GPU app, including preview, selection, history and reopen.
+Evidence is under that build's `evidence/` directory. Astra owns the native and
+independent acceptance next; neither feature is closed yet. The region script
+was corrected to check the public generic evaluation error plus useful message;
+its core test separately checks the internal missing-profile diagnostic.
+
+The native review app uses `/tmp/alloy-support-integrated-ready.json`.
+No release/tag/CI triggered. Backlog: 179 issues, 45 closed, 134 open.
+
 ## Resumed active work (2026-10-12)
 
 User requested continued autonomous work. #170 is In Progress: Astra owns the
