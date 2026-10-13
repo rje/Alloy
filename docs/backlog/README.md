@@ -51,8 +51,8 @@ retains actual Windows desktop qualification.
 The independently transcribed paper-clip lesson is queued as #221–225: shared-line
 fillets, typed line locks, retained Sweep, native controls and full workflow gate.
 Sweep foundation #223, shared-line fillets #221 and typed line locks #222 are
-accepted, as is native Sweep #224. Circle Tab-to-Enter repair #226 is active;
-full gate #225 remains Todo until it passes.
+accepted, as are native Sweep #224 and corrected Circle Tab-to-Enter #226.
+Full paper-clip gate #225 is now active.
 
 After every slice, run the smallest complete author/edit/finish/undo/reopen
 workflow it enables in a private real application instance. Record source steps

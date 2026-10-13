@@ -3,16 +3,6 @@
 Updated 2026-10-13. This is the project handoff for a fresh session. Read the root
 [AGENTS.md](../AGENTS.md) first; its reference restrictions apply to all work.
 
-Circle diameter Tab-to-Enter source input SKT-041/#226 has a candidate in
-`../Alloy-worktrees/circle-tab-lock` (`feat/circle-tab-lock`). The shared
-`sketch.circleDiameterLock` command keeps a valid diameter and GPU preview in
-session state after Tab; Enter commits one retained circle and driving diameter,
-while Escape cancels the pending input. Focused injected-Qt input and a separate
-real-entrypoint API replay pass, including unchanged geometry on cancel and exact
-save/reopen. The private editor is closed. See
-[the Circle Tab receipt](validation/circle-tab-lock.md). Independent review and
-main integration remain pending; full paper-clip tutorial #225 remains Todo.
-
 ## Current checkpoint — read first (2026-10-13)
 
 The nested cubes #172, egg cup #173, toy block #146, die #147 and subsequent
@@ -24,32 +14,36 @@ visual parity remain qualified. The external
 editable models and STL deliverables. The Revolve receipt is
 [validation/revolve-tutorial.md](validation/revolve-tutorial.md).
 
-**104 of 226 issues are closed.** Recent accepted work includes compact ribbon
+**105 of 226 issues are closed.** Recent accepted work includes compact ribbon
 icons #218, retained Extrude Intersect #219, nested profile/island diagnostics
 #165, portable local controls #220, shared-line fillets #221, typed Line length
 locks #222, retained Sweep #223 and native Sweep controls #224. Each has a scoped
 receipt in `docs/validation/`; broad parents remain Todo for their actual
-remaining requirements. Main's default application is rebuilt through #224:
+remaining requirements. Main's default application is rebuilt through #226:
 `build-tutorial-polish/alloy.app/Contents/MacOS/alloy`.
 
-**Active: Circle Tab-to-Enter repair #226.** Sol works in
-`../Alloy-worktrees/circle-tab-lock`; its focused native test owns the private GUI
-slot until explicitly released. This fixes a source-sequence focus gap found by
-#222's native probe. The first candidate test restored focus after Tab and masked a real remaining
-null-focus defect; the author is correcting it and testing without that repair.
-Astra independently verifies the corrected candidate before root integrates it. Only #226 is active; full paper-clip gate #225 stays Todo until
-that final prerequisite closes. Source path authoring, actual paired fillets and
-native Sweep prerequisites are already accepted. Do not substitute preauthored
-semicircles or coordinate-seeded lines for the source interactions.
+**Active: full paper-clip gate #225.** Every prerequisite is accepted, including
+Circle Tab-to-Enter #226. Its corrected native test observes focus after each
+step without intermediate repairs; the initial masked test is superseded. See
+validation/circle-tab-lock.md. Main's app rebuild passes through the corrected
+source and independent receipt46419a2.
 
-Next, run the complete paper-clip lesson through shared commands, retain native
+Sol is preparing the complete workflow in a fresh `paper-clip-tutorial` worktree;
+Astra verifies the result before acceptance. The private GUI slot is free until
+Sol requests it for this gate. Use real typed Line/Tab commands, actual paired
+fillets, Circle Tab/Enter and native Sweep selectors through shared authority.
+Do not substitute preauthored semicircles or coordinate-seeded lines.
+
+Run the complete paper-clip lesson through shared commands, retain native
 ingredient evidence, record the full creation movie, save the editable document,
 and verify the millimeter STL. The exact public source ledger, visual references
 and independently derived geometry contract are external under
 `knowledge/tutorials/next-sweep-slice/paper-clip/`. Fillet width annotations use an
 explicit disclosed reference-span conversion; source post-fillet drivenness is
 unknown. Update the gallery only after independent acceptance. The tutorial
-sequence and live GitHub board remain the pull queue.
+sequence and live GitHub board remain the pull queue. Luna has identified an
+illustrated initials-keyring candidate externally; Astra is checking its source
+contract in parallel. It is not yet an implementation queue or accepted gate.
 
 **Native compile milestone #132 is closed.** All four clean jobs in manually
 triggered run38396495940 passed at source d072534. Downloaded artifacts, compiler
