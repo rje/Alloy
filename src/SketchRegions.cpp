@@ -218,8 +218,9 @@ SketchProfiles::RegionsResult SketchProfiles::deriveRegions(const QJsonObject& f
                 }
                 if(segments.empty())return refuse("invalid_region","A region wire is empty.");
                 const bool oneSource=std::all_of(segments.begin(),segments.end(),[&](const auto& segment){return segment.source==segments[0].source;});
-                if(oneSource){if(sources[segments[0].source].entity["type"]!="circle")return refuse("ambiguous_region_provenance","A closed single-source wire is not a circle.");
-                    wires.append("full-circle:"+sources[segments[0].source].id);continue;}
+                if(oneSource){const auto type=sources[segments[0].source].entity["type"].toString();
+                    if(type!="circle" && type!="ellipse")return refuse("ambiguous_region_provenance","A closed single-source wire needs an analytic closed conic.");
+                    wires.append("full-"+type+":"+sources[segments[0].source].id);continue;}
                 // Start at a source transition, so the circle seam never enters identity.
                 size_t start=0;while(segments[start].lineage==segments[(start+segments.size()-1)%segments.size()].lineage)++start;
                 QStringList forward,reverse;

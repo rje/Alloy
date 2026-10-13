@@ -43,6 +43,10 @@ public:
         const QJsonObject& projectionContext = {});
     static SolveResult addCenterPointArcSlot(const QJsonObject& draft, const QJsonObject& arguments,
         const QJsonObject& projectionContext = {});
+    // Center, first-axis point, and an arbitrary point on the resulting
+    // ellipse contour. Two retained full construction axes carry dimensions.
+    static SolveResult addCenterPointEllipse(const QJsonObject& draft,const QJsonObject& arguments,
+        const QJsonObject& projectionContext = {});
     // Pointer creation is transactional. Optional startSnapTarget/endSnapTarget
     // are {kind:origin}, {kind:point,pointId:UUID}, or for Line endpoints
     // {kind:midpoint,entityId:lineUUID}. Accepted snaps retain distinct

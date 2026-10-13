@@ -348,6 +348,7 @@ AlloyWindow::AlloyWindow() {
     auto* slot=create->addMenu("Slot");slot->setObjectName("sketch.commands.slot");
     toolAction(slot,"Center Point Slot","centerPointSlot");
     toolAction(slot,"Center Point Arc Slot","centerPointArcSlot");
+    toolAction(create,"Center Point Ellipse","centerPointEllipse");
     auto* arc=create->addMenu("Arc");arc->setObjectName("sketch.commands.arc");
     toolAction(arc,"Center Point Arc","centerArc");toolAction(arc,"3-Point Arc","threePointArc");
     auto* spline=create->addMenu("Spline");spline->setObjectName("sketch.commands.spline");toolAction(spline,"Fit Point Spline","fitSpline");toolAction(spline,"Control Point Spline","controlSpline");
@@ -622,7 +623,7 @@ bool AlloyWindow::eventFilter(QObject* watched,QEvent* event) {
     // the outer Qt shortcut window. Handle delivered sketch dimension keys here.
     if(watched==view_ && event->type()==QEvent::KeyPress && session_.value("command")=="sketch.edit") {
         const auto* key=static_cast<QKeyEvent*>(event);if(!(key->modifiers()&(Qt::ControlModifier|Qt::MetaModifier|Qt::AltModifier)) && key->key()==Qt::Key_D){sketchResponse(execute("sketch.tool",{{"tool","dimension"}}));return true;}
-        if((session_.value("tool")=="centerPointSlot" || session_.value("tool")=="centerPointArcSlot") && session_.contains("firstPoint") &&
+        if((session_.value("tool")=="centerPointSlot" || session_.value("tool")=="centerPointArcSlot" || session_.value("tool")=="centerPointEllipse") && session_.contains("firstPoint") &&
             !(key->modifiers()&(Qt::ControlModifier|Qt::MetaModifier|Qt::AltModifier)) && key->text().size()==1 &&
             ((key->text()[0]>=QLatin1Char('0') && key->text()[0]<=QLatin1Char('9')) || key->text()==".")) {
             showSlotEditor(key->text());return true;
@@ -635,7 +636,7 @@ bool AlloyWindow::eventFilter(QObject* watched,QEvent* event) {
         if(key->key()==Qt::Key_Escape && session_.contains("pendingCircleDiameter")) {
             sketchResponse(execute("sketch.circleDiameterCancel"));return true;
         }
-        if(key->key()==Qt::Key_Escape && (session_.value("tool")=="centerPointSlot" || session_.value("tool")=="centerPointArcSlot")) {
+        if(key->key()==Qt::Key_Escape && (session_.value("tool")=="centerPointSlot" || session_.value("tool")=="centerPointArcSlot" || session_.value("tool")=="centerPointEllipse")) {
             sketchResponse(execute("sketch.tool",{{"tool","select"}}));return true;
         }
         if(key->key()==Qt::Key_Escape && session_.value("tool")=="line") {
@@ -1557,6 +1558,64 @@ void AlloyWindow::registerCommands() {
          {"centerSnapTarget",optional(parameter("object","Origin or retained point for the path center."))},
          {"session",optional(parameter("string","Optional active sketch session identity."))}},
         [this](const auto& a){return appendCenterPointArcSlot(a);});
+    add("sketch.centerPointEllipse","Center Point Ellipse","Create an analytic ellipse from center, first-axis point and one contour point, or a typed full second-axis length.",
+        {{"centerX",coordinate},{"centerY",coordinate},{"firstX",coordinate},{"firstY",coordinate},
+         {"contourX",optional(coordinate)},{"contourY",optional(coordinate)},
+         {"secondFullLength",optional(sizeCoordinate)},{"secondSide",optional(parameter("number","+1 or -1 side of the first axis."))},
+         {"units",optional(units)},
+         {"centerSnapTarget",optional(parameter("object","Origin or retained point for ellipse center."))},
+         {"session",optional(parameter("string","Optional active sketch session identity."))}},
+        [this](const auto& a){return appendCenterPointEllipse(a);});
+    add("sketch.ellipseTypedInput","Ellipse full axis values","Preview first full length and angle, or a signed second full length.",
+        {{"firstLengthText",optional(parameter("string","Positive full first-axis length."))},
+         {"angleText",optional(parameter("string","First-axis direction angle."))},
+         {"secondLengthText",optional(parameter("string","Signed full second-axis length."))}},[this](const auto& a){
+            if(session_.value("command")!="sketch.edit" || session_.value("tool")!="centerPointEllipse" || !session_.contains("firstPoint"))
+                return failure("ellipse_input_unavailable","Choose the ellipse center first");
+            const auto units=session_.value("inputs").toObject()["units"].toString();
+            QJsonObject pending;bool valid=false;
+            if(session_.contains("secondPoint")){
+                if(!a.contains("secondLengthText") || a.size()!=1)return failure("invalid_arguments","Enter only the second full axis length");
+                const double length=a["secondLengthText"].toString().toDouble(&valid);
+                if(valid && std::isfinite(length) && std::abs(CadDocument::millimeters(length,units))>=0.002)
+                    pending={{"phase","second"},{"fullMm",std::abs(CadDocument::millimeters(length,units))},
+                        {"side",length<0 ? -1 : 1},{"valid",true}};
+            }else{
+                if(!a.contains("firstLengthText") || a.contains("secondLengthText"))return failure("invalid_arguments","Enter first full length and angle");
+                const double length=a["firstLengthText"].toString().toDouble(&valid);
+                bool angleValid=false;const double angle=a.value("angleText").toString("0").toDouble(&angleValid);
+                if(valid && angleValid && std::isfinite(length) && std::isfinite(angle) && CadDocument::millimeters(length,units)>=0.002)
+                    pending={{"phase","first"},{"fullMm",CadDocument::millimeters(length,units)},
+                        {"angleDeg",angle},{"valid",true}};
+            }
+            if(pending.isEmpty())pending={{"valid",false}};
+            session_["pendingEllipseTyped"]=pending;
+            return QJsonObject{{"pending",pending},{"authoredChange",false}};
+        });
+    add("sketch.ellipseTypedAccept","Accept ellipse full axis value","Accept a typed first axis or finish the typed second axis.",{},[this](const auto&){
+        if(session_.value("command")!="sketch.edit" || session_.value("tool")!="centerPointEllipse" || !session_.contains("firstPoint"))
+            return failure("ellipse_input_unavailable","Choose the ellipse center first");
+        const auto typed=session_["pendingEllipseTyped"].toObject(),first=session_["firstPoint"].toObject();
+        if(!typed["valid"].toBool())return failure("invalid_ellipse_input","Enter a valid full axis value");
+        const double cu=first["uMm"].toDouble(),cv=first["vMm"].toDouble();
+        if(!session_.contains("secondPoint")){
+            if(typed["phase"]!="first")return failure("invalid_ellipse_input","Enter the first full axis length");
+            const double angle=typed["angleDeg"].toDouble()*std::numbers::pi/180.0;
+            session_["secondPoint"]=QJsonObject{{"uMm",cu+typed["fullMm"].toDouble()*std::cos(angle)/2},
+                {"vMm",cv+typed["fullMm"].toDouble()*std::sin(angle)/2}};
+            hideSlotEditor();showSlotEditor();return QJsonObject{{"placement",false},{"nextPoint","ellipse second full axis"}};
+        }
+        if(typed["phase"]!="second")return failure("invalid_ellipse_input","Enter the second full axis length");
+        const auto second=session_["secondPoint"].toObject();
+        QJsonObject inputs{{"centerX",cu},{"centerY",cv},{"firstX",second["uMm"]},{"firstY",second["vMm"]},
+            {"secondFullLength",typed["fullMm"]},{"secondSide",typed["side"]},{"units","mm"}};
+        if(first["status"]=="acquired")inputs["centerSnapTarget"]=first["target"];
+        const auto response=appendCenterPointEllipse(inputs);
+        if(response.value("ok").isBool() && !response["ok"].toBool())return response;
+        session_.remove("firstPoint");session_.remove("secondPoint");hideSlotEditor();view_->clearSketchCursor();
+        view_->setFocus(Qt::OtherFocusReason);
+        return QJsonObject{{"placement",true},{"draftSketch",session_.value("draftSketch")}};
+    });
     add("sketch.slotTypedInput","Center Point Slot values","Preview typed half-length, angle or width for the active slot gesture.",
         {{"distanceText",optional(parameter("string","Positive center-to-end-center distance."))},
          {"angleText",optional(parameter("string","Direction angle in degrees."))},
@@ -1919,7 +1978,7 @@ void AlloyWindow::registerCommands() {
             if(a.contains("session") && a["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
             cancelTwoPointRectangle();view_->setFocus();return QJsonObject{{"pending",false},{"authoredChange",false}};
         });
-    auto sketchTool=parameter("string","Drawing tool in the active sketch context.");sketchTool["enum"]=QJsonArray{"select","point","line","rectangle","centerRectangle","centerPointSlot","centerPointArcSlot","circle","twoPointCircle","centerArc","threePointArc","dimension","fillet","trim","offset","mirror","fitSpline","controlSpline","insertFitPoint","conic"};
+    auto sketchTool=parameter("string","Drawing tool in the active sketch context.");sketchTool["enum"]=QJsonArray{"select","point","line","rectangle","centerRectangle","centerPointSlot","centerPointArcSlot","centerPointEllipse","circle","twoPointCircle","centerArc","threePointArc","dimension","fillet","trim","offset","mirror","fitSpline","controlSpline","insertFitPoint","conic"};
     add("sketch.tool","Sketch drawing tool","Choose a tool and clear its pending first point.",{{"tool",sketchTool}},[this](const auto& a){
         if(session_.value("command").toString()!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
         cancelConicInput();
@@ -2186,7 +2245,7 @@ void AlloyWindow::registerCommands() {
         const bool circleCenter=tool=="circle" && !session_.contains("firstPoint");
         const bool circleCircumference=tool=="circle" && session_.contains("firstPoint");
         const auto snap=circleCircumference ? resolveCircleTangentSnap(a["x"].toDouble(),a["y"].toDouble(),plane)
-            : tool=="point" || tool=="line" || tool=="rectangle" || (tool=="centerRectangle" && !session_.contains("firstPoint")) || ((tool=="centerPointSlot" || tool=="centerPointArcSlot") && !session_.contains("firstPoint")) || circleCenter
+            : tool=="point" || tool=="line" || tool=="rectangle" || (tool=="centerRectangle" && !session_.contains("firstPoint")) || ((tool=="centerPointSlot" || tool=="centerPointArcSlot" || tool=="centerPointEllipse") && !session_.contains("firstPoint")) || circleCenter
                 ? resolveSketchSnap(a["x"].toDouble(),a["y"].toDouble(),plane,circleCenter || tool=="centerRectangle" || tool=="line") : QJsonObject{};
         if(!snap.isEmpty()){session_["snap"]=snap;if(snap["status"]=="ambiguous")return failure("ambiguous_snap","Multiple sketch points are equally close; move toward the intended point");}
         auto point=snap.isEmpty() ? view_->sketchPoint(a["x"].toDouble(),a["y"].toDouble(),plane) : snap;
@@ -2203,6 +2262,38 @@ void AlloyWindow::registerCommands() {
         if(tool=="centerRectangle" && session_.contains("pendingCenterRectangle"))cancelCenterRectangle();
         if(tool=="rectangle" && session_.contains("pendingTwoPointRectangle"))return failure("pending_input_active","Accept or cancel the typed rectangle before clicking");
         if(tool=="circle" || tool=="twoPointCircle" || tool=="centerArc" || tool=="threePointArc")return sketchCurveGesture(point,true);
+        if(tool=="centerPointEllipse"){
+            if(!session_.contains("firstPoint")){
+                session_["firstPoint"]=point;return QJsonObject{{"placement",false},{"nextPoint","first axis endpoint"}};
+            }
+            const auto first=session_["firstPoint"].toObject();
+            if(!session_.contains("secondPoint")){
+                const auto typed=session_.value("pendingEllipseTyped").toObject();
+                if(typed["phase"]=="first"){
+                    if(!typed["valid"].toBool())return failure("invalid_ellipse_input","Enter a valid first full axis and angle");
+                    const double angle=typed["angleDeg"].toDouble()*std::numbers::pi/180.0;
+                    point={{"uMm",first["uMm"].toDouble()+typed["fullMm"].toDouble()*std::cos(angle)/2},
+                        {"vMm",first["vMm"].toDouble()+typed["fullMm"].toDouble()*std::sin(angle)/2}};
+                }
+                if(std::hypot(point["uMm"].toDouble()-first["uMm"].toDouble(),
+                    point["vMm"].toDouble()-first["vMm"].toDouble())<0.001)
+                    return failure("ellipse_axis_required","Place the first axis endpoint away from the center");
+                session_["secondPoint"]=point;hideSlotEditor();return QJsonObject{{"placement",false},{"nextPoint","ellipse contour point"}};
+            }
+            const auto second=session_["secondPoint"].toObject();
+            QJsonObject inputs{{"centerX",first["uMm"]},{"centerY",first["vMm"]},
+                {"firstX",second["uMm"]},{"firstY",second["vMm"]},{"units","mm"}};
+            const auto typed=session_.value("pendingEllipseTyped").toObject();
+            if(typed["phase"]=="second"){
+                if(!typed["valid"].toBool())return failure("invalid_ellipse_input","Enter a valid second full axis length");
+                inputs["secondFullLength"]=typed["fullMm"];inputs["secondSide"]=typed["side"];
+            }else{inputs["contourX"]=point["uMm"];inputs["contourY"]=point["vMm"];}
+            if(first["status"]=="acquired")inputs["centerSnapTarget"]=first["target"];
+            const auto response=appendCenterPointEllipse(inputs);
+            if(response.value("ok").isBool() && !response["ok"].toBool())return response;
+            session_.remove("firstPoint");session_.remove("secondPoint");hideSlotEditor();view_->clearSketchCursor();
+            return QJsonObject{{"placement",true},{"draftSketch",session_.value("draftSketch")}};
+        }
         if(tool=="centerPointArcSlot") {
             if(!session_.contains("firstPoint")){
                 session_["firstPoint"]=point;return QJsonObject{{"placement",false},{"nextPoint","first path end center"}};
@@ -2354,7 +2445,7 @@ void AlloyWindow::registerCommands() {
         }
         const bool circleCenter=tool=="circle" && !session_.contains("firstPoint");
         const bool circleCircumference=tool=="circle" && session_.contains("firstPoint");
-        const bool snapping=tool=="point" || tool=="line" || tool=="rectangle" || (tool=="centerRectangle" && !session_.contains("firstPoint")) || ((tool=="centerPointSlot" || tool=="centerPointArcSlot") && !session_.contains("firstPoint")) || circleCenter || circleCircumference;
+        const bool snapping=tool=="point" || tool=="line" || tool=="rectangle" || (tool=="centerRectangle" && !session_.contains("firstPoint")) || ((tool=="centerPointSlot" || tool=="centerPointArcSlot" || tool=="centerPointEllipse") && !session_.contains("firstPoint")) || circleCenter || circleCircumference;
         const auto snap=circleCircumference ? resolveCircleTangentSnap(a["x"].toDouble(),a["y"].toDouble(),plane)
             : snapping ? resolveSketchSnap(a["x"].toDouble(),a["y"].toDouble(),plane,circleCenter || tool=="centerRectangle" || tool=="line") : QJsonObject{};
         if(tool=="point") {
@@ -2383,6 +2474,20 @@ void AlloyWindow::registerCommands() {
             auto pointer=session_.value("pointerPoint").toObject();pointer["direction"]=point["direction"];session_["pointerPoint"]=pointer;
         }
         const auto first=session_.value("firstPoint").toObject();
+        if(tool=="centerPointEllipse" && session_.contains("secondPoint")){
+            const auto second=session_["secondPoint"].toObject();
+            QJsonObject canonical{{"centerUMm",first["uMm"]},{"centerVMm",first["vMm"]},
+                {"firstUMm",second["uMm"]},{"firstVMm",second["vMm"]}};
+            const auto typed=session_.value("pendingEllipseTyped").toObject();
+            if(typed["phase"]=="second" && typed["valid"].toBool()){
+                canonical["secondFullMm"]=typed["fullMm"];canonical["secondSide"]=typed["side"];
+            }else{canonical["contourUMm"]=point["uMm"];canonical["contourVMm"]=point["vMm"];}
+            if(first["status"]=="acquired")canonical["centerSnapTarget"]=first["target"];
+            const auto preview=SketchGeometry::addCenterPointEllipse(session_["draftSketch"].toObject(),canonical,
+                session_.value("projectionContext").toObject());
+            if(preview.ok)view_->showSketchEllipseCursor(preview.feature);else view_->clearSketchCursor();
+            return QJsonObject{{"authoredChange",false},{"previewed",preview.ok}};
+        }
         if(tool=="centerPointArcSlot" && session_.contains("thirdPoint")) {
             const auto second=session_["secondPoint"].toObject(),third=session_["thirdPoint"].toObject();
             const double cx=first["uMm"].toDouble(),cy=first["vMm"].toDouble();
@@ -3667,6 +3772,9 @@ void AlloyWindow::refresh() {
             "Click a side arc to set full width · Escape ends Slot" : session_.contains("secondPoint") ?
             "Click the second path end center to set sweep" : session_.contains("firstPoint") ?
             "Click the first path end center to set radius" : "Click the path arc center · Origin snap adds Coincident";
+        else if(tool=="centerPointEllipse")prompt=session_.contains("secondPoint") ?
+            "Click a point on the ellipse contour · Escape ends Ellipse" : session_.contains("firstPoint") ?
+            "Click first axis endpoint · Type full length, Tab angle" : "Click ellipse center · Origin snap adds Coincident";
         else if(tool=="line")prompt=session_.value("pendingLineLength").toObject().value("phase")=="locked"
             ? QString("%1 %2 locked · Point sets %3 · Click places · Escape ends chain").arg(
                 QString::number(session_.value("pendingLineLength").toObject()["lengthMm"].toDouble()/(inputs["units"]=="in" ? 25.4 : 1),'g',9),
@@ -4666,11 +4774,31 @@ QJsonObject AlloyWindow::appendCenterPointArcSlot(const QJsonObject& inputs) {
         session_.value("projectionContext").toObject()));
 }
 
+QJsonObject AlloyWindow::appendCenterPointEllipse(const QJsonObject& inputs) {
+    if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
+    if(inputs.contains("session") && inputs["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
+    if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))
+        return failure("stale_session","The document changed; cancel and restart this sketch");
+    const auto units=inputs.value("units").toString(session_.value("inputs").toObject()["units"].toString());
+    QJsonObject canonical{{"centerUMm",CadDocument::millimeters(inputs["centerX"].toDouble(),units)},
+        {"centerVMm",CadDocument::millimeters(inputs["centerY"].toDouble(),units)},
+        {"firstUMm",CadDocument::millimeters(inputs["firstX"].toDouble(),units)},
+        {"firstVMm",CadDocument::millimeters(inputs["firstY"].toDouble(),units)}};
+    if(inputs.contains("contourX"))canonical["contourUMm"]=CadDocument::millimeters(inputs["contourX"].toDouble(),units);
+    if(inputs.contains("contourY"))canonical["contourVMm"]=CadDocument::millimeters(inputs["contourY"].toDouble(),units);
+    if(inputs.contains("secondFullLength"))canonical["secondFullMm"]=CadDocument::millimeters(inputs["secondFullLength"].toDouble(),units);
+    if(inputs.contains("secondSide"))canonical["secondSide"]=inputs["secondSide"];
+    if(inputs.contains("centerSnapTarget"))canonical["centerSnapTarget"]=inputs["centerSnapTarget"];
+    return publishSketchSolve(SketchGeometry::addCenterPointEllipse(session_.value("draftSketch").toObject(),canonical,
+        session_.value("projectionContext").toObject()));
+}
+
 void AlloyWindow::hideSlotEditor() {
     if(slotEditor_)slotEditor_->hide();
     for(auto* field:{slotDistance_,slotAngle_,slotWidth_})if(field){const QSignalBlocker block(field);field->clear();}
     session_.remove("pendingSlotTyped");
     session_.remove("pendingArcSlotTyped");
+    session_.remove("pendingEllipseTyped");
 }
 
 void AlloyWindow::showSlotEditor(const QString& initialText) {
@@ -4685,16 +4813,19 @@ void AlloyWindow::showSlotEditor(const QString& initialText) {
         slotAngle_=new QLineEdit;slotAngle_->setObjectName("sketch.slot.angle");slotAngle_->setPlaceholderText("Angle (deg)");layout->addWidget(slotAngle_);
         slotWidth_=new QLineEdit;slotWidth_->setObjectName("sketch.slot.width");slotWidth_->setPlaceholderText("Full width");layout->addWidget(slotWidth_);
         auto update=[this]{
-            const bool arc=session_.value("tool")=="centerPointArcSlot";
-            if(!arc && session_.value("tool")!="centerPointSlot")return;
+            const bool arc=session_.value("tool")=="centerPointArcSlot",ellipse=session_.value("tool")=="centerPointEllipse";
+            if(!arc && !ellipse && session_.value("tool")!="centerPointSlot")return;
             const bool widthStage=arc ? session_.contains("thirdPoint") : session_.contains("secondPoint");
             const bool sweepStage=arc && session_.contains("secondPoint") && !widthStage;
-            const auto response=execute(arc ? "sketch.arcSlotTypedInput" : "sketch.slotTypedInput",
+            const auto response=execute(ellipse ? "sketch.ellipseTypedInput" : arc ? "sketch.arcSlotTypedInput" : "sketch.slotTypedInput",
+                ellipse ? (widthStage ? QJsonObject{{"secondLengthText",slotWidth_->text()}} :
+                    QJsonObject{{"firstLengthText",slotDistance_->text()},{"angleText",slotAngle_->text()}}) :
                 widthStage ? QJsonObject{{"widthText",slotWidth_->text()}} : sweepStage ?
                 QJsonObject{{"sweepText",slotAngle_->text()}} :
                 QJsonObject{{"distanceText",slotDistance_->text()},{"angleText",slotAngle_->text()}});
             if(slotInputHint_)slotInputHint_->setText(response.value("ok").toBool() ?
-                (widthStage ? "Click side edge to place · Escape cancels" : sweepStage ?
+                (ellipse ? (widthStage ? "Second full axis · signed side · Return places" : "First full axis · Tab angle · Return accepts") :
+                widthStage ? "Click side edge to place · Escape cancels" : sweepStage ?
                     "Signed sweep · Click second path endpoint" : "Tab sets angle · Click end center to continue") :
                 response.value("error").toObject().value("message").toString());
         };
@@ -4702,19 +4833,23 @@ void AlloyWindow::showSlotEditor(const QString& initialText) {
         connect(slotAngle_,&QLineEdit::textChanged,this,[update](const QString&){update();});
         connect(slotWidth_,&QLineEdit::textChanged,this,[update](const QString&){update();});
         connect(slotDistance_,&QLineEdit::returnPressed,this,[this]{slotAngle_->setFocus();slotAngle_->selectAll();});
-        connect(slotAngle_,&QLineEdit::returnPressed,this,[this]{sketchResponse(execute(session_.value("tool")=="centerPointArcSlot" ? "sketch.arcSlotTypedAccept" : "sketch.slotTypedAccept"));});
-        connect(slotWidth_,&QLineEdit::returnPressed,this,[this]{sketchResponse(execute(session_.value("tool")=="centerPointArcSlot" ? "sketch.arcSlotTypedAccept" : "sketch.slotTypedAccept"));});
+        connect(slotAngle_,&QLineEdit::returnPressed,this,[this]{sketchResponse(execute(session_.value("tool")=="centerPointEllipse" ? "sketch.ellipseTypedAccept" : session_.value("tool")=="centerPointArcSlot" ? "sketch.arcSlotTypedAccept" : "sketch.slotTypedAccept"));});
+        connect(slotWidth_,&QLineEdit::returnPressed,this,[this]{sketchResponse(execute(session_.value("tool")=="centerPointEllipse" ? "sketch.ellipseTypedAccept" : session_.value("tool")=="centerPointArcSlot" ? "sketch.arcSlotTypedAccept" : "sketch.slotTypedAccept"));});
         auto* escape=new QShortcut(QKeySequence(Qt::Key_Escape),slotEditor_);escape->setContext(Qt::WidgetWithChildrenShortcut);
         connect(escape,&QShortcut::activated,this,[this]{sketchResponse(execute("sketch.tool",{{"tool","select"}}));});
         slotEditor_->setFixedWidth(220);
     }
-    const bool arc=session_.value("tool")=="centerPointArcSlot";
+    const bool arc=session_.value("tool")=="centerPointArcSlot",ellipse=session_.value("tool")=="centerPointEllipse";
     const bool widthStage=arc ? session_.contains("thirdPoint") : session_.contains("secondPoint");
     const bool sweepStage=arc && session_.contains("secondPoint") && !widthStage;
     slotDistance_->setVisible(!widthStage && !sweepStage);slotAngle_->setVisible(!widthStage);slotWidth_->setVisible(widthStage);
-    slotDistance_->setPlaceholderText(arc ? "Path radius" : "Half-length");
+    slotDistance_->setObjectName(ellipse ? "sketch.ellipse.firstLength" : "sketch.slot.halfLength");
+    slotAngle_->setObjectName(ellipse ? "sketch.ellipse.angle" : "sketch.slot.angle");
+    slotWidth_->setObjectName(ellipse ? "sketch.ellipse.secondLength" : "sketch.slot.width");
+    slotDistance_->setPlaceholderText(ellipse ? "First full axis" : arc ? "Path radius" : "Half-length");
     slotAngle_->setPlaceholderText(sweepStage ? "Signed sweep (deg)" : "Angle (deg)");
-    slotInputHint_->setText(widthStage ? "Full width · Click side arc to place" : sweepStage ?
+    slotWidth_->setPlaceholderText(ellipse ? "Second full axis (+/-)" : "Full width");
+    slotInputHint_->setText(ellipse ? (widthStage ? "Second full axis · sign chooses side" : "First full axis · Tab direction angle") : widthStage ? "Full width · Click side arc to place" : sweepStage ?
         "Signed open sweep · Click second path end" : arc ? "Path radius · Tab direction angle" : "Half-length · Tab angle · Click end center");
     auto* field=widthStage ? slotWidth_ : sweepStage ? slotAngle_ : slotDistance_;
     {const QSignalBlocker block(field);field->setText(initialText);}
@@ -4723,7 +4858,9 @@ void AlloyWindow::showSlotEditor(const QString& initialText) {
     }
     slotEditor_->adjustSize();slotEditor_->move(std::max(8,view_->width()-slotEditor_->width()-16),40);
     slotEditor_->show();slotEditor_->raise();field->setFocus();field->setCursorPosition(field->text().size());
-    if(!initialText.isEmpty())execute(arc ? "sketch.arcSlotTypedInput" : "sketch.slotTypedInput",
+    if(!initialText.isEmpty())execute(ellipse ? "sketch.ellipseTypedInput" : arc ? "sketch.arcSlotTypedInput" : "sketch.slotTypedInput",
+        ellipse ? (widthStage ? QJsonObject{{"secondLengthText",initialText}} :
+            QJsonObject{{"firstLengthText",initialText},{"angleText",slotAngle_->text()}}) :
         widthStage ? QJsonObject{{"widthText",initialText}} : sweepStage ? QJsonObject{{"sweepText",initialText}} :
         QJsonObject{{"distanceText",initialText},{"angleText",slotAngle_->text()}});
 }
@@ -5911,6 +6048,7 @@ QJsonObject AlloyWindow::previewDimension(const QJsonObject& args) {
     else if(targets.contains("entityIds"))kind=targets.value("kind").toString("angle");
     else if(targets.contains("entityId")) {
         QJsonObject entity;for(const auto& entry:geometry["entities"].toArray())if(entry.toObject()["id"]==targets["entityId"]){entity=entry.toObject();break;}
+        if(entity["type"]=="ellipse")return failure("ellipse_axis_required","Select either full construction axis to dimension the ellipse");
         if(kind=="auto")kind=entity["type"]=="circle" ? "diameter" : "radius";
     } else if(kind=="auto") {
         if(ids.size()!=2 || !points.contains(ids[0].toString()) || !points.contains(ids[1].toString()))return failure("stale_entity","Dimension targets do not exist");
@@ -6234,7 +6372,8 @@ void AlloyWindow::refreshSketchControls() {
             const auto entity=entry.toObject();if(entity["type"]=="point")continue;
             const auto id=entity["id"].toString();liveEntities.insert(id);
             auto* item=rowForId(lineGroup,id);
-            QString label=entity["type"]=="circle" ? QString("Circle %1  ·  P%2 · R%3").arg(++index).arg(pointNumbers.value(entity["centerPointId"].toString())).arg(entity["radiusMm"].toDouble()/scale) : QString("%1 %2  ·  P%3 → P%4").arg(entity["type"]=="arc" ? "Arc" : "Line").arg(++index).arg(pointNumbers.value(entity["startPointId"].toString())).arg(pointNumbers.value(entity["endPointId"].toString()));
+            QString label=entity["type"]=="ellipse" ? QString("Ellipse %1 · full axes in Construction").arg(++index) :
+                entity["type"]=="circle" ? QString("Circle %1  ·  P%2 · R%3").arg(++index).arg(pointNumbers.value(entity["centerPointId"].toString())).arg(entity["radiusMm"].toDouble()/scale) : QString("%1 %2  ·  P%3 → P%4").arg(entity["type"]=="arc" ? "Arc" : "Line").arg(++index).arg(pointNumbers.value(entity["startPointId"].toString())).arg(pointNumbers.value(entity["endPointId"].toString()));
             if(entity["type"]=="fitSpline")label=QString("Fit Point Spline %1 · Degree 5").arg(index);
             if(entity["type"]=="controlSpline")label=QString("Control Point Spline %1 · Degree %2 (maximum %3)").arg(index).arg(std::min(entity["maximumDegree"].toInt(),int(entity["pointIds"].toArray().size())-1)).arg(entity["maximumDegree"].toInt());
             if(entity["construction"].toBool())label+=" · Construction";

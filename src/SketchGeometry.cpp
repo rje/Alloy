@@ -6,6 +6,7 @@
 #include "RoundedLoopOffset.h"
 #include "SketchMirror.h"
 #include "SketchArcSlot.h"
+#include "SketchEllipse.h"
 #include <BRepBndLib.hxx>
 #include <BRepBuilderAPI_MakeEdge.hxx>
 #include <BRepBuilderAPI_MakeVertex.hxx>
@@ -15,6 +16,7 @@
 #include <TopoDS_Compound.hxx>
 #include <TopoDS_Edge.hxx>
 #include <gp_Circ.hxx>
+#include <gp_Elips.hxx>
 #include <gp_Ax2.hxx>
 #include <numbers>
 #include <QJsonArray>
@@ -499,6 +501,21 @@ TopoDS_Edge SketchGeometry::analyticEdge(const QJsonObject& parameters, const QJ
     if(entity["type"]=="fitSpline"||entity["type"]=="controlSpline")return BRepBuilderAPI_MakeEdge(SketchSpline::evaluate(parameters,entity,evaluationFrame(parameters,resolvedFrame)).curve).Edge();
     if(entity["type"]=="conic")return BRepBuilderAPI_MakeEdge(SketchConic::evaluate(parameters,entity,evaluationFrame(parameters,resolvedFrame))).Edge();
     if (entity["type"] == "line") return BRepBuilderAPI_MakeEdge(points[entity["startPointId"].toString()],points[entity["endPointId"].toString()]).Edge();
+    if(entity["type"]=="ellipse"){
+        const auto resolved=SketchEllipse::axes(parameters,entity);
+        const auto normal=sketchFrame["normal"].toArray(),uAxis=sketchFrame["uAxis"].toArray(),vAxis=sketchFrame["vAxis"].toArray();
+        const bool firstMajor=resolved.firstRadius>=resolved.secondRadius;
+        const double directionU=firstMajor ? resolved.firstU : resolved.secondU;
+        const double directionV=firstMajor ? resolved.firstV : resolved.secondV;
+        const gp_Dir majorDirection(uAxis[0].toDouble()*directionU+vAxis[0].toDouble()*directionV,
+            uAxis[1].toDouble()*directionU+vAxis[1].toDouble()*directionV,
+            uAxis[2].toDouble()*directionU+vAxis[2].toDouble()*directionV);
+        const gp_Ax2 ellipseAxes(points[entity["centerPointId"].toString()],
+            gp_Dir(normal[0].toDouble(),normal[1].toDouble(),normal[2].toDouble()),majorDirection);
+        const double major=std::max(resolved.firstRadius,resolved.secondRadius),minor=std::min(resolved.firstRadius,resolved.secondRadius);
+        if(std::abs(major-minor)<=1e-9*major)return BRepBuilderAPI_MakeEdge(gp_Circ(ellipseAxes,major)).Edge();
+        return BRepBuilderAPI_MakeEdge(gp_Elips(ellipseAxes,major,minor)).Edge();
+    }
     const auto f=sketchFrame; const auto n=f["normal"].toArray(), u=f["uAxis"].toArray();
     const gp_Ax2 axes(points[entity["centerPointId"].toString()],gp_Dir(n[0].toDouble(),n[1].toDouble(),n[2].toDouble()),gp_Dir(u[0].toDouble(),u[1].toDouble(),u[2].toDouble()));
     const gp_Circ circle(axes,entity["radiusMm"].toDouble());
@@ -756,6 +773,68 @@ SketchGeometry::SolveResult SketchGeometry::addCenterPointArcSlot(const QJsonObj
     }catch(const std::exception& error){return invalidDraft(draft,QString::fromUtf8(error.what()));}
 }
 
+SketchGeometry::SolveResult SketchGeometry::addCenterPointEllipse(const QJsonObject& draft,const QJsonObject& arguments,
+    const QJsonObject& projectionContext) {
+    try {
+        validateDraft(draft);
+        checkFields(arguments,{"centerUMm","centerVMm","firstUMm","firstVMm","contourUMm","contourVMm","secondFullMm","secondSide","centerSnapTarget"});
+        double cu=coordinate(arguments,"centerUMm"),cv=coordinate(arguments,"centerVMm");
+        const double au=coordinate(arguments,"firstUMm"),av=coordinate(arguments,"firstVMm");
+        const bool contour=arguments.contains("contourUMm") || arguments.contains("contourVMm");
+        const bool typed=arguments.contains("secondFullMm") || arguments.contains("secondSide");
+        if(contour==typed || (contour && (!arguments.contains("contourUMm") || !arguments.contains("contourVMm"))) ||
+            (typed && (!arguments.contains("secondFullMm") || !arguments.contains("secondSide"))))
+            reject("Ellipse needs either one contour point or one full second-axis length and side");
+        auto parameters=draft["parameters"].toObject();auto points=parameters["points"].toArray();
+        auto entities=parameters["entities"].toArray(),constraints=parameters["constraints"].toArray();
+        QString targetId;
+        if(arguments.contains("centerSnapTarget")){
+            if(!arguments["centerSnapTarget"].isObject())reject("Ellipse center snap must be an object");
+            const auto target=arguments["centerSnapTarget"].toObject();
+            if(target["kind"]=="origin" && target.size()==1){
+                targetId=parameters["originPointId"].toString();
+                if(targetId.isEmpty()){
+                    targetId=newId();parameters["originPointId"]=targetId;
+                    points.append(QJsonObject{{"id",targetId},{"uMm",0},{"vMm",0}});
+                    constraints.append(QJsonObject{{"id",newId()},{"type","fixed"},{"pointIds",QJsonArray{targetId}},{"uMm",0},{"vMm",0}});
+                }
+                cu=0;cv=0;
+            }else if(target["kind"]=="point" && target.size()==2 && validId(target["pointId"].toString())){
+                targetId=target["pointId"].toString();retainSupportPoint(parameters,projectionContext,targetId);
+                bool found=false;
+                for(const auto& value:expandedProjectionFeature(QJsonObject{{"parameters",parameters}},projectionContext)["parameters"].toObject()["points"].toArray()){
+                    const auto p=value.toObject();if(p["id"]!=targetId)continue;cu=p["uMm"].toDouble();cv=p["vMm"].toDouble();found=true;break;
+                }
+                if(!found)reject("Ellipse center snap point is unavailable");
+            }else reject("Ellipse center accepts an origin or retained point snap");
+        }
+        double signedB=0;
+        if(contour) signedB=SketchEllipse::secondRadiusFromContour(cu,cv,au,av,
+            coordinate(arguments,"contourUMm"),coordinate(arguments,"contourVMm"));
+        else {
+            const double full=coordinate(arguments,"secondFullMm"),side=coordinate(arguments,"secondSide");
+            if(full<0.002 || full>200000 || (side!=1 && side!=-1))reject("Ellipse second full length and side are invalid");
+            signedB=side*full/2;
+        }
+        const double dx=au-cu,dy=av-cv,a=std::hypot(dx,dy),nx=-dy/a,ny=dx/a;
+        auto point=[&](double u,double v){const auto id=newId();points.append(QJsonObject{{"id",id},{"uMm",u},{"vMm",v}});return id;};
+        const auto center=point(cu,cv),firstNegative=point(2*cu-au,2*cv-av),firstPositive=point(au,av);
+        const auto secondNegative=point(cu-signedB*nx,cv-signedB*ny),secondPositive=point(cu+signedB*nx,cv+signedB*ny);
+        const auto firstAxis=newId(),secondAxis=newId(),ellipseId=newId();
+        entities.append(QJsonObject{{"id",firstAxis},{"type","line"},{"startPointId",firstNegative},{"endPointId",firstPositive},{"construction",true}});
+        entities.append(QJsonObject{{"id",secondAxis},{"type","line"},{"startPointId",secondNegative},{"endPointId",secondPositive},{"construction",true}});
+        entities.append(QJsonObject{{"id",ellipseId},{"type","ellipse"},{"centerPointId",center},{"firstAxisId",firstAxis},{"secondAxisId",secondAxis}});
+        constraints.append(QJsonObject{{"id",newId()},{"type","midpoint"},{"pointIds",QJsonArray{center}},{"entityIds",QJsonArray{firstAxis}}});
+        constraints.append(QJsonObject{{"id",newId()},{"type","midpoint"},{"pointIds",QJsonArray{center}},{"entityIds",QJsonArray{secondAxis}}});
+        constraints.append(QJsonObject{{"id",newId()},{"type","perpendicular"},{"entityIds",QJsonArray{firstAxis,secondAxis}}});
+        if(!targetId.isEmpty())constraints.append(QJsonObject{{"id",newId()},{"type","coincident"},{"pointIds",QJsonArray{center,targetId}}});
+        parameters["points"]=points;parameters["entities"]=entities;parameters["constraints"]=constraints;
+        auto candidate=draft;candidate["parameters"]=parameters;
+        const auto result=solveDraft(candidate,projectionContext);
+        return result.ok ? result : SolveResult{false,draft,result.diagnostics,result.error};
+    }catch(const std::exception& error){return invalidDraft(draft,QString::fromUtf8(error.what()));}
+}
+
 SketchGeometry::SolveResult SketchGeometry::addPointerEntity(const QJsonObject& draft, const QString& tool, const QJsonObject& arguments, const QJsonObject& projectionContext) {
     try {
         validateDraft(draft);
@@ -929,6 +1008,13 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
             if (!claimId(entity["id"].toString())) return "Invalid or duplicate sketch entity UUID";
             if(type=="fitSpline"||type=="controlSpline"){const auto error=SketchSpline::validate(parameters,entity);if(!error.isEmpty())return error;for(const auto& id:entity["pointIds"].toArray())usedPoints.insert(id.toString());entityIds.insert(entity["id"].toString());continue;}
             if(type=="conic"){const auto error=SketchConic::validate(parameters,entity);if(!error.isEmpty())return error;for(const auto& id:entity["pointIds"].toArray())usedPoints.insert(id.toString());entityIds.insert(entity["id"].toString());continue;}
+            if(type=="ellipse"){
+                if(entity.size()!=5 || !points.contains(entity["centerPointId"].toString()) ||
+                    !entity["firstAxisId"].isString() || !entity["secondAxisId"].isString() ||
+                    entity["firstAxisId"]==entity["secondAxisId"])
+                    return "Ellipse requires one center and two distinct retained axes";
+                usedPoints.insert(entity["centerPointId"].toString());entityIds.insert(entity["id"].toString());continue;
+            }
             if (type != "line" && type != "circle" && type != "arc" && type != "point") return "Unsupported sketch entity type";
             if(type=="point") {
                 if(entity.size()!=3 || !points.contains(entity["pointId"].toString()))return "Point entity requires exactly one existing point UUID";
@@ -1004,6 +1090,25 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
         for (const auto& entry : parameters["entities"].toArray()) {const auto e=entry.toObject();
             if(e["type"]=="line") lineIds.insert(e["id"].toString());
             else {curveIds.insert(e["id"].toString()); if(e["type"]=="arc") arcIds.insert(e["id"].toString());}}
+        QSet<QString> ownedEllipseAxes;
+        for(const auto& value:parameters["entities"].toArray()){
+            const auto ellipse=value.toObject();if(ellipse["type"]!="ellipse")continue;
+            const auto center=ellipse["centerPointId"].toString();
+            const auto first=ellipse["firstAxisId"].toString(),second=ellipse["secondAxisId"].toString();
+            if(!lineIds.contains(first) || !lineIds.contains(second) || ownedEllipseAxes.contains(first) || ownedEllipseAxes.contains(second))
+                return "Ellipse axes must be distinct retained construction lines";
+            ownedEllipseAxes.insert(first);ownedEllipseAxes.insert(second);
+            bool firstMid=false,secondMid=false,perpendicular=false;
+            for(const auto& relationValue:parameters["constraints"].toArray()){
+                const auto relation=relationValue.toObject();const auto ids=relation["entityIds"].toArray();
+                if(relation["type"]=="midpoint" && relation["pointIds"].toArray()==QJsonArray{center}){
+                    firstMid|=ids==QJsonArray{first};secondMid|=ids==QJsonArray{second};
+                }
+                if(relation["type"]=="perpendicular" && ids.size()==2 && ids.contains(first) && ids.contains(second))perpendicular=true;
+            }
+            if(!firstMid || !secondMid || !perpendicular)return "Ellipse lost its center or perpendicular axis relations";
+            try{SketchEllipse::axes(parameters,ellipse);}catch(const std::exception& error){return QString::fromUtf8(error.what());}
+        }
         if(parameters.contains("slotGroups") && !parameters["slotGroups"].isArray())return "Slot groups must be an array";
         for(const auto& value:parameters["slotGroups"].toArray()) {
             if(!value.isObject())return "Slot group must be an object";
@@ -1277,7 +1382,7 @@ SketchGeometry::SolveResult SketchGeometry::addConstraint(const QJsonObject& dra
         parameters["constraints"] = constraints;
         if((constraint["type"]=="horizontal" || constraint["type"]=="vertical") && constraint["entityIds"].toArray().size()==1) {
             const auto guideId=constraint["entityIds"].toArray()[0];
-            for(const auto& value:parameters["slotGroups"].toArray()) {
+            for(const auto& value:parameters.value("slotGroups").toArray()) {
                 const auto group=value.toObject();if(group["centerlineId"]!=guideId)continue;
                 auto entities=parameters["entities"].toArray(),points=parameters["points"].toArray();
                 QJsonObject guide;for(const auto& entry:entities)if(entry.toObject()["id"]==guideId){guide=entry.toObject();break;}
@@ -2097,6 +2202,13 @@ EvaluatedSketch SketchGeometry::evaluateFeature(const QJsonObject& feature, cons
         else if(e["type"]=="fitSpline"){const auto spline=SketchSpline::evaluate(parameters,e);detail["degree"]=5;detail["continuity"]="C2";detail["fitParameters"]=QJsonArray::fromVariantList([&]{QVariantList list;for(double t:spline.parameters)list.append(t);return list;}());detail["tangentHandles"]=spline.handles;detail["curvatureComb"]=SketchSpline::comb(parameters,e);}
         else if(e["type"]=="controlSpline"){const auto spline=SketchSpline::evaluate(parameters,e);detail["degree"]=spline.curve->Degree();detail["continuity"]=spline.curve->IsCN(2)?"C2":spline.curve->IsCN(1)?"C1":"C0";detail["curveSamples"]=SketchSpline::curveSamples(spline);QJsonArray poles;for(const auto& id:e["pointIds"].toArray())for(const auto& v:parameters["points"].toArray()){const auto p=v.toObject();if(p["id"]==id)poles.append(QJsonObject{{"pointId",id},{"uMm",p["uMm"]},{"vMm",p["vMm"]}});}detail["controlPoints"]=poles;detail["curvatureComb"]=SketchSpline::comb(parameters,e);}
         else if(e["type"]=="conic"){const auto curve=SketchConic::evaluate(parameters,e);const auto shoulder=curve->Value(0.5);detail["degree"]=2;detail["shoulderLocalMm"]=QJsonArray{shoulder.X(),shoulder.Y()};}
+        else if(e["type"]=="ellipse"){
+            const auto axes=SketchEllipse::axes(parameters,e);const auto center=points[e["centerPointId"].toString()];
+            detail["centerMm"]=QJsonArray{center.X(),center.Y(),center.Z()};
+            detail["firstRadiusMm"]=axes.firstRadius;detail["secondRadiusMm"]=axes.secondRadius;
+            detail["majorRadiusMm"]=std::max(axes.firstRadius,axes.secondRadius);
+            detail["minorRadiusMm"]=std::min(axes.firstRadius,axes.secondRadius);
+        }
         else if(e["type"]=="point") {const auto p=points[e["pointId"].toString()];detail["positionMm"]=QJsonArray{p.X(),p.Y(),p.Z()};}
         else {const auto center=points[e["centerPointId"].toString()]; detail["centerMm"]=QJsonArray{center.X(),center.Y(),center.Z()};
             detail["lengthMm"]=e["radiusMm"].toDouble()*(e["type"]=="circle" ? 2*std::numbers::pi : std::abs(e["sweepAngleDeg"].toDouble())*degrees);

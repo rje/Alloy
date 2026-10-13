@@ -1,4 +1,5 @@
 #include "SketchProfiles.h"
+#include "SketchEllipse.h"
 #include "SketchGeometry.h"
 #include <BRepBuilderAPI_MakeEdge.hxx>
 #include <BRepBuilderAPI_MakeFace.hxx>
@@ -100,22 +101,28 @@ SketchProfiles::Result SketchProfiles::derive(const QJsonObject& feature, const 
     const auto u=frame["uAxis"].toArray(),v=frame["vAxis"].toArray(),n=frame["normal"].toArray();
     const gp_Ax3 axes(gp_Pnt(origin[0].toDouble(),origin[1].toDouble(),origin[2].toDouble()),
         gp_Dir(n[0].toDouble(),n[1].toDouble(),n[2].toDouble()),gp_Dir(u[0].toDouble(),u[1].toDouble(),u[2].toDouble()));
-    int circles=0;for(const auto& value:entities)if(value.toObject()["type"]=="circle")++circles;
+    int circles=0;for(const auto& value:entities)if(value.toObject()["type"]=="circle" || value.toObject()["type"]=="ellipse")++circles;
     if(circles) {
-        if(entities.size()!=1)return refuse("multiple_loops","This slice supports a single circle or one connected line/arc boundary; separate additional regions into another sketch.");
+        if(entities.size()!=1)return refuse("multiple_loops","This slice supports a single closed conic or one connected line/arc boundary; separate additional regions into another sketch.");
         try {
             const auto entity=entities.first().toObject(); BRepBuilderAPI_MakeWire wire(SketchGeometry::analyticEdge(parameters,entity,resolvedFrame));
             BRepBuilderAPI_MakeFace made(gp_Pln(axes),wire.Wire(),true);
-            if(!made.IsDone() || !BRepCheck_Analyzer(made.Face()).IsValid())return refuse("invalid_face","OCCT rejected the analytic circle profile.");
+            if(!made.IsDone() || !BRepCheck_Analyzer(made.Face()).IsValid())return refuse("invalid_face","OCCT rejected the analytic closed conic profile.");
             GProp_GProps properties;BRepGProp::SurfaceProperties(made.Face(),properties);
-            const double analyticArea=std::numbers::pi*std::pow(entity["radiusMm"].toDouble(),2),area=properties.Mass();
-            if(!std::isfinite(area) || std::abs(area-analyticArea)>std::max(1e-6,analyticArea*1e-9))return refuse("invalid_face","Circle face area does not match its analytic radius.");
+            const auto type=entity["type"].toString();
+            double analyticArea=0;
+            if(type=="ellipse"){
+                const auto semiaxes=SketchEllipse::axes(parameters,entity);
+                analyticArea=std::numbers::pi*semiaxes.firstRadius*semiaxes.secondRadius;
+            }else analyticArea=std::numbers::pi*std::pow(entity["radiusMm"].toDouble(),2);
+            const double area=properties.Mass();
+            if(!std::isfinite(area) || std::abs(area-analyticArea)>std::max(1e-6,analyticArea*1e-9))return refuse("invalid_face","Closed conic face area does not match its analytic axes.");
             QJsonObject summary{{"profileId",profileId},{"sketchId",sketchId},{"plane",plane},{"frame",frame},{"kernel","OCCT"},{"valid",true},
-                {"type","closed_circle_profile"},{"areaUnit","mm2"},{"areaMm2",area},{"analyticAreaMm2",analyticArea},
+                {"type",type=="ellipse" ? "closed_ellipse_profile" : "closed_circle_profile"},{"areaUnit","mm2"},{"areaMm2",area},{"analyticAreaMm2",analyticArea},
                 {"sourcePointIds",ids(sourcePointIds)},{"sourceEntityIds",ids(sourceEntityIds)},
-                {"edgeProvenance",QJsonArray{QJsonObject{{"entityId",entity["id"]},{"centerPointId",entity["centerPointId"]},{"type","circle"}}}},
+                {"edgeProvenance",QJsonArray{QJsonObject{{"entityId",entity["id"]},{"centerPointId",entity["centerPointId"]},{"type",type}}}},
                 {"vertices",QJsonArray{}},{"maxEndpointAdjustmentMm",0}};
-            return {true,{profileId,sketchId,plane,made.Face(),summary,{{sketchId,entity["id"].toString(),{},{},"circle",TopoDS::Edge(TopExp_Explorer(made.Face(),TopAbs_EDGE).Current())}}},{{"code","closed_profile"},{"profileCount",1},{"sketchId",sketchId}}, {}};
+            return {true,{profileId,sketchId,plane,made.Face(),summary,{{sketchId,entity["id"].toString(),{},{},type,TopoDS::Edge(TopExp_Explorer(made.Face(),TopAbs_EDGE).Current())}}},{{"code","closed_profile"},{"profileCount",1},{"sketchId",sketchId}}, {}};
         } catch(const Standard_Failure& error){return refuse("kernel_failure",QString::fromUtf8(error.GetMessageString()));}
     }
     QMap<QString, Point> points;

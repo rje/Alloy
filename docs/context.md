@@ -2538,3 +2538,14 @@ GPU captures pass; a separate real-app shared-API run passes the complete
 source constraint/edit/history/reopen chain. See the
 [candidate receipt](validation/center-point-arc-slot.md). Independent review
 is pending; the full multi-page lesson remains separate.
+
+## Center Point Ellipse candidate (2026-10-13)
+
+#256 adds a retained analytic ellipse with two full construction axes and live
+Midpoint/Perpendicular relations. The documented center, first-axis point, and
+contour-point picks produce a closed selectable OCCT profile. Explicit origin
+Coincident, Horizontal, and full-axis D275/D100 take the source fixture to zero
+DOF and area `6875π mm²`; equality/crossing edits retain authored identities.
+Focused core and native creation/dimension tests pass with inspected captures;
+the private editor is closed. See the [candidate receipt](validation/center-point-ellipse.md).
+Independent review and full sketch-lesson validation remain separate.

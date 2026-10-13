@@ -178,10 +178,11 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
             const auto entity = entry.toObject();
             const auto id = entity.value("id").toString();
             const auto type=entity["type"].toString();
-            require((type=="line" || type=="circle" || type=="arc" || type=="point" || type=="fitSpline" || type=="controlSpline" || type=="conic") && !id.isEmpty() && !ids.contains(id), "Unsupported or duplicate sketch entity");
+            require((type=="line" || type=="circle" || type=="arc" || type=="point" || type=="fitSpline" || type=="controlSpline" || type=="conic" || type=="ellipse") && !id.isEmpty() && !ids.contains(id), "Unsupported or duplicate sketch entity");
             ids.insert(id);
             if(type=="point") {point(entity["pointId"].toString());continue;}
-            if(type=="fitSpline"||type=="controlSpline" || type=="conic"){for(const auto& id:entity["pointIds"].toArray())point(id.toString());continue;}
+            if(type=="fitSpline"||type=="controlSpline" || type=="conic" || type=="ellipse"){for(const auto& id:entity["pointIds"].toArray())point(id.toString());continue;}
+            if(type=="ellipse"){point(entity["centerPointId"].toString());continue;}
             if(type=="line") {GCS::Line line;line.p1=point(entity["startPointId"].toString());line.p2=point(entity["endPointId"].toString());lineMap.emplace(id,line);}
             else {
                 curveParameters.push_back(number(entity,"radiusMm"));auto* radius=&curveParameters.back();

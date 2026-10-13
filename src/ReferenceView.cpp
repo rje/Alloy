@@ -1566,6 +1566,17 @@ void ReferenceView::showSketchSlotCursor(const QJsonObject& feature,bool arcSlot
     sketchCursor_->SetWidth(2*devicePixelRatioF());
     context_->Display(sketchCursor_,AIS_WireFrame,-1,false);context_->Deactivate(sketchCursor_);context_->UpdateCurrentViewer();
 }
+void ReferenceView::showSketchEllipseCursor(const QJsonObject& feature) {
+    clearSketchCursor();if(context_.IsNull())return;
+    const auto parameters=feature["parameters"].toObject();
+    QJsonObject ellipse;
+    for(const auto& value:parameters["entities"].toArray())if(value.toObject()["type"]=="ellipse")ellipse=value.toObject();
+    if(ellipse.isEmpty())return;
+    sketchCursor_=sketchPresentation(SketchGeometry::analyticEdge(parameters,ellipse,sketchFrame_));
+    sketchCursor_->SetColor(Quantity_Color(0.30,0.58,0.87,Quantity_TOC_RGB));
+    sketchCursor_->SetWidth(2*devicePixelRatioF());
+    context_->Display(sketchCursor_,AIS_WireFrame,-1,false);context_->Deactivate(sketchCursor_);context_->UpdateCurrentViewer();
+}
 void ReferenceView::cancelSlotPointDrag() {
     if(slotPointDrag_.isEmpty())return;
     slotPointDrag_={};clearSketchCursor();
