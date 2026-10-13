@@ -152,9 +152,17 @@ QJsonObject MeshExport::writeStl(const std::vector<EvaluatedBody>& bodies,const 
                 // Check identical serialized vertices directly. A fused
                 // multiply-add cross product of equal vectors can retain a
                 // tiny rounding residue instead of returning exact zero.
+                const auto cross=gp_Vec(a,b).Crossed(gp_Vec(a,c));
                 if(sameVertex(0,1) || sameVertex(1,2) || sameVertex(0,2)
-                    || gp_Vec(a,b).Crossed(gp_Vec(a,c)).SquareMagnitude()==0) {++serializedCollapsed;continue;}
-                retained.append(facet,50);++writtenTriangles;
+                    || cross.SquareMagnitude()==0) {++serializedCollapsed;continue;}
+                // OCCT computed its normal before float32 vertex rounding.
+                // Derive the binary normal from the actual serialized winding,
+                // preserving all 38 coordinate/attribute bytes without healing.
+                const double length=cross.Magnitude();char normal[12];
+                const double components[3]{cross.X()/length,cross.Y()/length,cross.Z()/length};
+                for(int axis=0;axis<3;++axis)
+                    qToLittleEndian(std::bit_cast<quint32>(static_cast<float>(components[axis])),normal+axis*4);
+                retained.append(normal,12);retained.append(facet+12,38);++writtenTriangles;
             }
             if(output.write(retained)!=retained.size())reject("export_failed",output.errorString());
             readTriangles+=records;

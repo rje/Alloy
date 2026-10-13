@@ -241,6 +241,13 @@ runner bounds and saved-model tip-material assertions prevent recurrence. See
 validation/ornament-apex-fixture.md. Actual corrected final visual/full gate
 remains pending; current04 is not a visual pass.
 
+#269 binary STL candidate fixes one edited-ornament normal mismatch caused by
+float32 vertex rounding. It recomputes only staged facet normal bytes from actual
+serialized vertices; coordinates/winding/counts/checker remain unchanged. Actual
+export regression reproduces the old failure and passes alongside pole/multibody
+checks. Root owns targeted saved original+edited re-export, reusing creation and
+history evidence. See validation/stl-serialized-normals.md; no full replay required.
+
 Source boundary reread: the tutorial explicitly selects the bottom face for
 Inside5 Shell, but its section image does not prove an annular opening. That
 earlier requirement was inferred. The exact inward meridian closes on the axis
