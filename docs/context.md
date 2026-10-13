@@ -60,8 +60,10 @@ limits and separate native evidence. Issue/board Done. All private editors close
 The external gallery has nine creations: eight checked solid meshes and one sketch.
 Next tutorial #251–257 covers the full31-step slots/splines/conic/ellipse lesson.
 Straight slot #251 is actively implemented in the isolated center-point-slot
-worktree; other children/gate remain Todo. A separate Sol design lane researches
-finite spline semantics for Astra review before implementation. Firstpoint is
+worktree; fit spline #253 now also active in an isolated worktree after independent
+finite C2 quintic-Hermite design review. Other children/gate remain Todo.
+Derivative scaling and exact OCCT joins require focused evidence; the baseline
+acceleration/knot policy is an explicit Alloy choice. Firstpoint is
 slot center (PDF prose conflicts with pictured/official UI); centerline150/R25
 means overall200x50. Arc pathR150/endR15 with135degree radial relation yields
 upper90degree sweep. Final ellipse275x100 is horizontal/centered; inferred

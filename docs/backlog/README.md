@@ -81,8 +81,8 @@ in their broad parent issues.
 The next full thirteen-page sketch lesson is #251–257: center-point slots,
 arc slots, fit/control splines and their editing/curvature combs, conic Rho,
 center-point ellipse, and a cumulative all31-step gate. Straight slot #251 is
-active. Remaining implementations and full gate stay Todo; spline design research
-runs in parallel before its implementation starts. Source is sketch-only, so
+active alongside fit spline #253 after independent finite-geometry design review.
+Remaining implementations and full gate stay Todo. Source is sketch-only, so
 no invented extrusion or STL replaces the documented endpoint. Detailed public
 references and independent corrections stay outside Git under
 `knowledge/tutorials/after-countersunk-plate/`.
