@@ -64,6 +64,16 @@
       "remaining": "First full geometry run passes 21 spherical cuts. Final acceptance awaits serialized STL pole correction, origin overlay readability and final artifact/history recording."
     },
     {
+      "id": "CP-12",
+      "title": "Direct dimensions from circle centers to retained model edges",
+      "issues": [
+        "SKT-034"
+      ],
+      "acceptance": "Reproduce the toy-block first-stud center/edge/label/value gesture with real retained dimensions; edge edits move the circle, history and storage preserve references, and annotations remain readable.",
+      "status": "todo",
+      "remaining": "Bounded gesture follow-up after die acceptance; SKT-017 retains side-face boss and inclined support coverage."
+    },
+    {
       "id": "CP-06",
       "title": "Printable straw bung with joined boss and transformed cutter",
       "issues": [
