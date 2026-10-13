@@ -119,3 +119,36 @@ including blank/creation/dimensions/controls/final, saved original/edited retain
 IDs and all three exact reopen responses. The unchanged strict STL reader was
 independently rerun and passed. Review reported no bounded blocker. Final issue
 acceptance/integration remain parent-owned; broader Revolve modes remain #49.
+
+## Independent gate acceptance
+
+Astra accepts bounded TUT-008/#217 candidate `9fe5131` on 2026-10-13. Review
+covered the source-step contract and runner, recorded report/transcripts, original
+and edited authored files, actual dimension/Partial/final captures and ten movie
+frames spanning blank setup through creation and the completed body. Accepted
+#214/#215/#216 kernel, Centerline and Qt interaction evidence is reused; the
+reviewer did not launch another editor or repeat the full tutorial.
+
+The authored sketch has one distinct Centerline and the eight-edge closed
+one-sided outline, full diameter dimensions 100/165 and truthful eight remaining
+DOF. Full volume 501961.5797954747 mm³ agrees with the independently chosen
+polygon's first moment. Partial uses pointer coordinates to derive 70 degrees.
+The diameter edit retains entity/profile/feature references and yields the
+solved-polygon volume 419494.77263874287 mm³. Original and edited files retain
+the same Revolve parameters and entity IDs; all three recovery reopen results
+were independently compared exactly with their corresponding saved JSON.
+
+Independent readback with the unchanged strict STL reader passes: 2392 facets,
+one closed component, finite unit normals aligned with winding, bounds
+[-82.5,-82.5,0] to [82.5,82.5,50] mm and signed volume 501761.5971722183 mm³.
+The approximately 0.040% tessellation-volume difference is distinct from the
+analytic CAD result. Dimensions, complete angular ring, controls and final body
+are readable and fully framed in the inspected captures.
+
+The 86.5-second movie has 865 frames and zero capture failures. Its recorded
+665 repeated frames and 199 delayed ticks are not interactive performance proof.
+It is shared-API workflow evidence, with separate accepted Qt input evidence;
+physical OS operation and exact source camera/style are unqualified. The first
+complete run's expected unsaved-changes guard and separate authorized-discard
+reopen recovery are preserved explicitly. This acceptance does not relabel that
+history as an uninterrupted successful run or claim broader Revolve modes.
