@@ -50,8 +50,9 @@ transport child #220 is accepted with actual native pipe/ACL evidence; #131
 retains actual Windows desktop qualification.
 The independently transcribed paper-clip lesson is queued as #221–225: shared-line
 fillets, typed line locks, retained Sweep, native controls and full workflow gate.
-Sweep foundation #223 is accepted. Shared-line fillets #221 and native Sweep
-controls #224 are active in parallel; other prerequisites remain Todo.
+Sweep foundation #223 is accepted. Shared-line fillets #221, typed line locks #222
+and native Sweep controls #224 are active in separate worktrees; full gate #225
+remains Todo.
 
 After every slice, run the smallest complete author/edit/finish/undo/reopen
 workflow it enables in a private real application instance. Record source steps

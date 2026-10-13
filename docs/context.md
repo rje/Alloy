@@ -27,11 +27,12 @@ integrated; main app rebuild passes. See validation/profile-regions.md.
 Active work: root owns #132, one manual milestone compile matrix for the accepted
 current integrations and corrected native dependency options. Run 38396495940
 was manually dispatched at source d07253470a346f1b29faa87b33fcced51416ea0c;
-Linux x64 and macOS arm64 have passed; their downloaded binaries, source/dependency
-receipts, architectures and compile logs are checked under
-`build/evidence/native-matrix-38396495940/{linux-x64,macos-arm64}`.
-Windows also passed with executable/source-contract receipts checked; Intel Mac
-is the last live target. Windows text-contract hashes match CRLF checkout bytes. Do not dispatch a duplicate.
+All four native jobs passed. Downloaded binaries, architectures, compiler/link logs,
+required OCCT modules and source/dependency checksums are verified under
+`build/evidence/native-matrix-38396495940/<target>`. The updated native target
+manifest preserves the old record separately. Windows text-contract hashes match
+CRLF checkout bytes. Independent Astra artifact review is pending before closing
+#132; no duplicate matrix or remote runtime/GPU qualification is implied.
 The actual native file-sheet gate #167 remains Todo: two computer-control window
 binding attempts failed before interaction; no app defect or sheet pass claimed.
 Sol records the capability limit and closes its private editor. Windows transport
@@ -40,7 +41,8 @@ desktop/GPU and second-user access-denial qualification.
 Paper-clip source geometry is independently transcribed externally; #221–225 track
 shared-line fillets, typed chained-line locks, Sweep foundation/native controls and
 full tutorial. Foundation #223 is accepted; Sol owns shared-line fillets #221 and native Sweep
-controls #224 in parallel. Typed line locks #222 and full gate #225 remain Todo. Fillet width annotations must survive via explicit span
+controls #224 in parallel. A third Sol owns typed line locks #222; full gate #225
+remains Todo until those native prerequisites pass. Fillet width annotations must survive via explicit span
 conversion; original post-fillet drivenness is unknown. No fabricated semicircles
 or coordinate-seeded path authoring can close the complete source gate.
 Candidate/evidence worktrees: `../Alloy-worktrees/local-transport` (`feat/local-transport`)

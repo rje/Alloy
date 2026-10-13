@@ -90,7 +90,7 @@
       ],
       "acceptance": "Create the seven typed-length chained lines, paired fillets consuming three shared lines, front-plane diameter2 circle, retained full perpendicular Sweep and checked STL with full creation recording. Preserve visible span dimensions and distinguish native/API evidence.",
       "status": "in_progress",
-      "remaining": "Sweep foundation accepted; shared-line fillets and native Sweep active. Typed line locks and full tutorial gate remain Todo.",
+      "remaining": "Sweep foundation accepted; shared-line fillets, typed line locks and native Sweep active in separate worktrees. Full tutorial gate remains Todo.",
       "evidence": "docs/validation/solid-sweep.md"
     },
     {
