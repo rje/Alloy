@@ -47,3 +47,9 @@ analytic conic and honest seven-DOF preview. These are shared API calls, not nat
 mouse/keyboard evidence. The on-canvas Rho arrow and its drag, native context OK,
 preview cancellation/stale-input checks and independent final acceptance remain
 required. No source workflow completion is claimed.
+
+The candidate now adds the independently authored on-canvas shoulder arrow,
+continuous Rho drag, context-menu OK and existing-curve Rho editing. Focused
+native evidence passes; see [the candidate receipt](../validation/conic.md).
+Independent final acceptance remains pending; earlier pending statements above
+record the implementation sequence rather than the current controls.

@@ -1131,6 +1131,7 @@ void ReferenceView::decorateSketch(const QJsonObject& feature,const QJsonObject&
         context_->Display(highlight,AIS_WireFrame,-1,false);context_->Deactivate(highlight);sketchDecorations_.push_back(highlight);
     }
     decorateSplineHandles(feature,selection);
+    decorateConicHandle(feature,selection);
     QJsonArray projectedUsedIds;QSet<QString> projectedIds;
     for(const auto& value:projectedLines_)projectedIds.insert(value.toObject()["id"].toString());
     for(const auto& entry:parameters["constraints"].toArray())
@@ -1998,6 +1999,7 @@ QJsonObject ReferenceView::diagnostics() const {
     result.insert("sketchSnapCue",snapCue);
     result.insert("sketchConstraintGlyphs",constraintGlyphs_);
     result.insert("splineHandles",splineHandleState_);
+    result.insert("conicHandle",conicHandleState_);
     result.insert("sketchConstraintVisibility",QJsonObject{{"visible",!decorationFeature_.isEmpty()},{"editable",false}});
     QJsonArray profiles;for(const auto& profile:draftProfiles_) {
         auto summary=profile.summary;TopLoc_Location location;const auto triangles=BRep_Tool::Triangulation(profile.face,location);
@@ -2069,6 +2071,12 @@ QImage ReferenceView::framebuffer() {
     return image;
 }
 void ReferenceView::mousePressEvent(QMouseEvent* e) {
+    if(e->button()==Qt::LeftButton && !e->modifiers().testFlag(Qt::AltModifier) &&
+       decorationSelection_.value("tool")=="conic" && !conicHandleState_.isEmpty() &&
+       QLineF(e->position(),QPointF(conicHandleState_["x"].toDouble(),conicHandleState_["y"].toDouble())).length()<12) {
+        conicDragging_=true;setFocus(Qt::MouseFocusReason);e->accept();return;
+    }
+
     if(e->button()==Qt::LeftButton && !e->modifiers().testFlag(Qt::AltModifier) && !sketchPlane_.isEmpty() && decorationSelection_.value("tool")=="mirror"){
         mirrorWindowActive_=true;mirrorWindowPress_=e->position();setFocus(Qt::MouseFocusReason);
         if(!mirrorWindowBand_)mirrorWindowBand_=new QRubberBand(QRubberBand::Rectangle,this);
@@ -2164,6 +2172,10 @@ void ReferenceView::mousePressEvent(QMouseEvent* e) {
     else QWidget::mousePressEvent(e);
 }
 void ReferenceView::mouseMoveEvent(QMouseEvent* e) {
+    if(conicDragging_ && e->buttons().testFlag(Qt::LeftButton)) {
+        dispatch("sketch.conicHandleDrag",{{"x",e->position().x()},{"y",e->position().y()}});e->accept();return;
+    }
+
     if(!slotPointDrag_.isEmpty() && e->buttons().testFlag(Qt::LeftButton)) {
         const auto start=sketchPoint(slotPointDrag_["pressX"].toDouble(),slotPointDrag_["pressY"].toDouble(),sketchPlane_);
         const auto end=sketchPoint(e->position().x(),e->position().y(),sketchPlane_);
@@ -2220,6 +2232,11 @@ void ReferenceView::leaveEvent(QEvent* e) {
     QWidget::leaveEvent(e);
 }
 void ReferenceView::mouseReleaseEvent(QMouseEvent* e) {
+    if(conicDragging_ && e->button()==Qt::LeftButton) {
+        conicDragging_=false;
+        dispatch("sketch.conicHandleDrag",{{"x",e->position().x()},{"y",e->position().y()}});e->accept();return;
+    }
+
     if(e->button()==Qt::LeftButton && !slotPointDrag_.isEmpty()) {
         const auto drag=slotPointDrag_;slotPointDrag_={};clearSketchCursor();
         if(std::hypot(e->position().x()-drag["pressX"].toDouble(),e->position().y()-drag["pressY"].toDouble())>=4) {
@@ -2272,6 +2289,15 @@ void ReferenceView::contextMenuEvent(QContextMenuEvent* e) {
     lastContextMenu_=QJsonObject{{"reason",static_cast<int>(e->reason())},{"sketchActive",sketchActive},
         {"selectTool",selectTool},{"selectedEntities",selectedEntities},
         {"x",e->pos().x()},{"y",e->pos().y()}};
+    if(sketchActive && selectTool && selectedEntities==1) {
+        const QString selected=decorationSelection_.value("entityIds").toArray().at(0).toString();
+        for(const auto& value:decorationFeature_["parameters"].toObject()["entities"].toArray()) {
+            const auto entity=value.toObject();if(entity["id"]!=selected || entity["type"]!="conic")continue;
+            QMenu menu(this);auto* edit=menu.addAction("Edit Conic Rho");
+            if(menu.exec(e->globalPos())==edit)dispatch("sketch.conicEdit",{{"entityId",selected}});
+            e->accept();return;
+        }
+    }
     if(sketchActive && decorationSelection_.value("tool")=="conic") {
         QMenu menu(this);auto* accept=menu.addAction("OK");accept->setObjectName("sketch.conic.ok");
         auto* cancel=menu.addAction("Cancel");const auto* chosen=menu.exec(e->globalPos());

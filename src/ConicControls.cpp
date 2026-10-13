@@ -24,6 +24,33 @@ QJsonObject AlloyWindow::conicCommand(const QString& operation,const QJsonObject
         return failure("stale_session","Restart the sketch after a document change");
     const auto draft=session_.value("draftSketch").toObject();
     const auto context=session_.value("projectionContext").toObject();
+    if(operation=="edit") {
+        QJsonObject entity;const auto parameters=draft["parameters"].toObject();
+        for(const auto& value:parameters["entities"].toArray()) {
+            const auto candidate=value.toObject();
+            if(candidate["id"]==inputs["entityId"] && candidate["type"]=="conic")entity=candidate;
+        }
+        if(entity.isEmpty())return failure("conic_required","Select an existing conic");
+        QJsonArray picks;
+        for(const auto& id:entity["pointIds"].toArray())for(const auto& value:parameters["points"].toArray()) {
+            const auto point=value.toObject();if(point["id"]==id)
+                picks.append(QJsonObject{{"uMm",point["uMm"]},{"vMm",point["vMm"]},{"pointId",id}});
+        }
+        execute("sketch.tool",{{"tool","conic"}});
+        session_["pendingConic"]=QJsonObject{{"points",picks},{"base",draft},{"editingId",entity["id"]},
+            {"rho",entity["rho"]},{"text",QString::number(entity["rho"].toDouble(),'g',12)},{"valid",false}};
+        showConicEditor();return conicCommand("preview",{{"text",session_["pendingConic"].toObject()["text"]}});
+    }
+    if(operation=="handle") {
+        const auto pending=session_.value("pendingConic").toObject();const auto picks=pending["points"].toArray();
+        if(picks.size()!=3)return failure("conic_incomplete","Place three conic controls before dragging Rho");
+        const auto a=picks[0].toObject(),b=picks[1].toObject(),v=picks[2].toObject();
+        const double mx=(a["uMm"].toDouble()+b["uMm"].toDouble())/2,my=(a["vMm"].toDouble()+b["vMm"].toDouble())/2;
+        const double dx=v["uMm"].toDouble()-mx,dy=v["vMm"].toDouble()-my;
+        const auto point=view_->sketchPoint(inputs["x"].toDouble(),inputs["y"].toDouble(),session_["inputs"].toObject()["plane"].toString(),session_["resolvedFrame"].toObject());
+        const double rho=((point["uMm"].toDouble()-mx)*dx+(point["vMm"].toDouble()-my)*dy)/(dx*dx+dy*dy);
+        return conicCommand("preview",{{"text",QString::number(rho,'g',12)}});
+    }
     if(operation=="cancel") {
         cancelConicInput();execute("sketch.tool",{{"tool","select"}});view_->setFocus();
         return {{"pending",false},{"authoredChange",false}};
@@ -41,14 +68,15 @@ QJsonObject AlloyWindow::conicCommand(const QString& operation,const QJsonObject
         }
         bool numeric=false;const double rho=inputs["text"].toString().toDouble(&numeric);
         const auto picks=pending["points"].toArray();
-        const auto solved=SketchConic::add(draft,{{"start",picks[0]},{"end",picks[1]},{"vertex",picks[2]},{"rho",rho}},context);
+        const auto solved=pending.contains("editingId") ? SketchConic::setRho(draft,pending["editingId"].toString(),rho,context)
+            : SketchConic::add(draft,{{"start",picks[0]},{"end",picks[1]},{"vertex",picks[2]},{"rho",rho}},context);
         pending["valid"]=numeric&&std::isfinite(rho)&&solved.ok;
         pending["text"]=inputs["text"];
         if(pending["valid"].toBool()) {
-            pending["rho"]=rho;pending["previewDraft"]=solved.feature;pending["diagnostics"]=solved.diagnostics;pending["entityId"]=solved.diagnostics["createdConicId"];
+            pending["rho"]=rho;pending["previewDraft"]=solved.feature;pending["diagnostics"]=solved.diagnostics;pending["entityId"]=pending.contains("editingId")?pending["editingId"]:solved.diagnostics["createdConicId"];
             view_->showSketchDraft(evaluateSketchDraft(solved.feature));
             auto selected=session_.value("selection").toObject();selected["tool"]="conic";
-            selected["entityIds"]=QJsonArray{solved.diagnostics["createdConicId"]};
+            selected["entityIds"]=QJsonArray{pending["entityId"]};
             view_->decorateSketch(solved.feature,selected,solved.diagnostics,session_.value("inputs").toObject()["units"].toString());
         }
         session_["pendingConic"]=pending;
@@ -70,6 +98,7 @@ QJsonObject AlloyWindow::conicCommand(const QString& operation,const QJsonObject
 }
 
 void AlloyWindow::cancelConicInput() {
+    view_->clearConicDrag();
     const bool pending=session_.contains("pendingConic");
     session_.remove("pendingConic");
     if(conicEditor_)conicEditor_->hide();

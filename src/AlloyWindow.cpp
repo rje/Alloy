@@ -1505,6 +1505,10 @@ void AlloyWindow::registerCommands() {
         {{"text",parameter("string","Pending Rho numeric text.")}},[this](const auto& a){return conicCommand("preview",a);});
     add("sketch.conicAccept","Accept Conic","Publish the valid pending conic as one sketch edit.",{},
         [this](const auto& a){return conicCommand("accept",a);});
+    add("sketch.conicHandleDrag","Drag Conic Rho","Project the pointer onto the conic median for a disposable Rho preview.",
+        {{"x",coordinate},{"y",coordinate}},[this](const auto& a){return conicCommand("handle",a);});
+    add("sketch.conicEdit","Edit Conic Rho","Open a disposable editor for an existing conic.",
+        {{"entityId",parameter("string","Stable conic UUID.")}},[this](const auto& a){return conicCommand("edit",a);});
     add("sketch.conicCancel","Cancel Conic","Discard pending conic creation.",{},
         [this](const auto& a){return conicCommand("cancel",a);});
     auto splineEntity=parameter("string","Stable authored fit spline UUID.");
