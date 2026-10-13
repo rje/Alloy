@@ -4661,7 +4661,7 @@
       "labels": [
         "area:sol"
       ],
-      "body": "## Result\nCircular Pattern Bodies: one seed, retained vertical axis, Full360, total quantity8 including seed. Stable occurrence identities and ownership, editable count and source references. Use existing transforms without independent authored clones. Unused pattern modes/suppression remain SOL-009.\n\n## Verification\nNative body/axis selection and count with readable real preview/Cancel/OK. Check angular placement, equal occurrence geometry/volume, retained source/count edits and exact history/reopen. Verify eight participants can feed existing multi-body Extrude Join to one connected result. Direction/phase defaults are explicit Alloy policy where source is unknown.\n\n## Source and acceptance boundary\nSource ornament-pattern-20261013, public illustrated lesson independently audited2026-10-13. Exact source ledger, public provenance/images, unknowns and decisions are external at knowledge/tutorials/after-slots-splines/independent-contract.md. No reference application use. Use existing authoritative commands/geometry, native ingredient evidence, GPU captures and proportional checks; Astra independently verifies. Preserve broader parent remainders. This child does not complete the full tutorial gate.\n"
+      "body": "## Result\nCircular Pattern Bodies: one seed, retained vertical axis, Full360, total quantity8 including seed. Stable occurrence identities and ownership, editable count and source references. Use existing transforms without independent authored clones. Unused pattern modes/suppression remain SOL-009.\n\n## Verification\nNative body/axis selection and count with readable real preview/Cancel/OK. Check angular placement, equal occurrence geometry/volume, retained source/count edits and exact history/reopen. Verify eight participants can feed existing multi-body Extrude Join to one connected result. Direction/phase defaults are explicit Alloy policy where source is unknown.\n\n## Source and acceptance boundary\nSource ornament-pattern-20261013, public illustrated lesson independently audited2026-10-13. Exact source ledger, public provenance/images, unknowns and decisions are external at knowledge/tutorials/after-slots-splines/independent-contract.md. No reference application use. Use existing authoritative commands/geometry, native ingredient evidence, GPU captures and proportional checks; Astra independently verifies. Preserve broader parent remainders. This child does not complete the full tutorial gate.\n\n## Accepted 2026-10-13\nIntegrated ebd5647/d0ba161/b1be3bf/51d79df. Core validates eight bodies, stable identities, source/count edits, exact-offset rigid rotations preserving original geometry, simple eight-participant hub Join, missing-target refusal and history/reopen. Settled native05 passes3/3 with independently inspected readable captures. Main app builds and Pattern/Mirror core2/2 pass1.51s. Receipt docs/validation/circular-body-pattern.md records selection adaptations and native timing. Full ornament remains separate.\n"
     },
     {
       "key": "TUT-014",
@@ -4690,7 +4690,8 @@
       "depends_on": [
         "SKT-065",
         "SOL-038",
-        "SOL-040"
+        "SOL-040",
+        "SOL-041"
       ],
       "labels": [
         "area:sol"
@@ -4711,6 +4712,20 @@
         "area:sol"
       ],
       "body": "## Result\nCorrect the retained source80/5/R50 FullRevolve InsideShell5 so its inner surface and seam are suitable for subsequent Boolean modeling. Preserve source geometry, named removed face and authored Shell semantics. Reuse mature kernel operations; no tolerance inflation, hidden approximation, source-shape substitution or invalid-result bypass.\n\n## Localized evidence\nUntouched retained and raw Shell inputs are BRep-valid but fail Boolean self-interference checks. Inner Geom_OffsetSurface face3 has a periodic seam with measured curve/surface deviation0.765708011mm and tolerance0.803871299mm, extending through the inner body height. Regular off-tip wall/opening checks accepted in #260 did not establish this downstream contract. The actual blank-document prefix refuses its60mm Intersect. Clean diagnostics record before/after input hashes and avoid eager destructive Boolean constructors. External validation/ornament-feasibility/retained-prefix-clean and deliverables/ornament-2026-10-13/source-prefix-01 preserve failures.\n\n## Verification\nRequire untouched shell BRep and Boolean-input validity, independently measured seam consistency, the actual constrained source profile and retained support lineage, regular wall/opening geometry, and successful real-application strip Intersect. Confirm input geometry is unchanged by diagnostics/Boolean consumers, supported upstream source edit, exact undo/reopen and meaningful failure behavior. Astra reviews the correction and evidence. Full pattern/hub Join remains SOL-039, full movie/bore/STL gate TUT-014. Rigid exact-offset rotation is a distinct active SOL-038 correction.\n"
+    },
+    {
+      "key": "SOL-041",
+      "title": "Keep Join lineage Boolean checks nondestructive",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SOL-020"
+      ],
+      "labels": [
+        "area:sol"
+      ],
+      "body": "## Result\nConfigure Join lineage Common operations before their first execution so earlier evaluated inputs remain immutable. src/JoinResults.cpp covers() currently invokes the eager two-shape BRepAlgoAPI_Common constructor, then sets NonDestructive and calls Build again. The initial computation precedes the intended policy. Use the existing documented non-destructive kernel setup; preserve explicit participant ownership and numeric acceptance policy.\n\n## Verification\nA focused Join regression should serialize retained source shapes before/after evaluation, exercise real multi-participant coverage and repeat evaluation, and retain one valid connected result with unchanged source geometry and identities. Inspect that the constructor cannot execute early. Use core evidence and existing native controls; no UI replay is necessary for this kernel-only correction. Do not silently mix numerical integration or Shell repairs into this patch. Astra independently reviews. This bounded correction does not close cumulative ornament Join SOL-039 or full tutorial TUT-014.\n"
     }
   ]
 }

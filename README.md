@@ -140,6 +140,12 @@ adds retained origin-plane GPU clipping with inherited material and hatching.
 Core, shared-API lifecycle and native Qt input pass with inspected GPU captures;
 physical OS input and Windows/Linux runtime remain separately qualified.
 
+[Circular Body Pattern](docs/validation/circular-body-pattern.md) now retains
+an origin-Z full pattern with editable total count, stable occurrence identities,
+and native selection/preview/Cancel controls. Exact rigid rotations preserve
+offset-curve geometry, with source edits, history and reopen verified. The full
+ornament workflow remains gated on its Shell and cumulative Join corrections.
+
 ## Project documents
 
 - [Continuation context](docs/context.md): decisions from this conversation,

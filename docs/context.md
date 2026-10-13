@@ -42,9 +42,13 @@ integrated03de12f/0564a19. Main app build and focused core pass. Native preview
 shows both curves through Cancel/accept; API closure/Intersect and exact history
 evidence remain separate. See validation/fit-spline-offset.md. Section Analysis (#262)
 is independently accepted and closed: core, 79-call actual-app API, native3/3,
-actual GPU captures and integrated main build/core pass. Circular Body Pattern (#263) is now active in an isolated Sol lane.
-#266 now owns the localized inner Shell seam correction; #263 also verifies
-rigid rotation of exact-offset geometry. #265 is back in Todo pending those
+actual GPU captures and integrated main build/core pass. Circular Body Pattern (#263) is independently accepted and closed, integrated
+as ebd5647/d0ba161/b1be3bf/51d79df. Main app build and Pattern/Mirror core2/2
+pass1.51s; native05 settled captures and exact-offset location rotation are
+reviewed. See validation/circular-body-pattern.md.
+#266 owns the localized inner Shell seam correction. New active #267 fixes
+the eager Boolean constructor in Join lineage checks without changing UI or
+numerical policy; Sol works in ../Alloy-worktrees/join-lineage-immutable. #265 is back in Todo pending those
 inputs; its cumulative Join investigation remains recorded.
 Acceptance still requires retained Pattern/Join reproduction. Public sources/visuals stay external in
 the ornament-pattern knowledge record.
@@ -86,7 +90,7 @@ inner Shell seam: curve/surface deviation about0.7657mm under0.8039mm tolerance,
 despite passing BRep validity and regular off-seam thickness checks. #266 owns
 that correction. A separate deep-copy rotation makes the exact-offset prism
 invalid; preserving geometry under a rigid location transform passes the same
-checks and is being verified in #263. Astra's shared-partition proposal has not
+checks and is accepted in #263. Astra's shared-partition proposal has not
 run because its prerequisite shell is not Boolean-valid. Earlier diagnostic
 metrics taken after an eager Boolean constructor were confounded; subsequent
 before/after-hash checks independently establish the untouched-input defects.
