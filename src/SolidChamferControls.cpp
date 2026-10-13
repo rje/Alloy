@@ -18,7 +18,7 @@ std::vector<EvaluatedBody> AlloyWindow::chamferInputBodies() const {
 }
 QJsonObject AlloyWindow::chamferCandidate(const QJsonObject& inputs) const {
     auto args=inputs;if(!args.contains("featureId") && session_.value("command")=="solid.chamfer")args["newFeatureId"]=session_["newFeatureId"];
-    return CadDocument::chamferCandidate(document_->authored(),args);
+    return CadDocument::chamferCandidate(document_->authored(),authoringArguments(args));
 }
 QJsonObject AlloyWindow::beginChamfer(const QJsonObject& overrides) {
     if(!session_.isEmpty())return chamferFailure("session_busy","Complete or cancel the active command first");

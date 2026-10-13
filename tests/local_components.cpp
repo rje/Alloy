@@ -28,6 +28,13 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
     commit(d,CadDocument::extrusionCandidate(d.authored(),{{"ownerId",d.activeOwnerId()},{"sketchId",sketchId},{"profileId",profile},{"distanceMm",20}}));
     check(d.bodies().size()==2 && d.bodies()[1].ownerId==definition,"Extrusion must belong to component");const auto dieBody=d.bodies()[1].bodyId;
     QJsonArray edges;for(const auto& edge:d.bodies()[1].solidEdges)edges.append(edge.edgeId);check(edges.size()==12,"Die cube has twelve edges");
+    // Newly integrated die tools use the same owner authority.
+    const auto chamfer=CadDocument::evaluateCandidate(CadDocument::chamferCandidate(d.authored(),{{"ownerId",definition},{"targetBodyId",dieBody},{"edgeIds",edges},{"distanceMm",1}}));
+    check(chamfer.ok && chamfer.evaluation->bodies[1].ownerId==definition,"Component Chamfer ownership");
+    const auto face=d.bodies()[1].supportFaces[0];const auto frame=face.frame;const auto o=frame["origin"].toArray(),u=frame["uAxis"].toArray(),v=frame["vAxis"].toArray();
+    const double center[3]={0,0,20};double uv[2]={};for(int axis=0;axis<3;++axis){uv[0]+=(center[axis]-o[axis].toDouble())*u[axis].toDouble();uv[1]+=(center[axis]-o[axis].toDouble())*v[axis].toDouble();}
+    const auto sphere=CadDocument::evaluateCandidate(CadDocument::sphereCandidate(d.authored(),{{"ownerId",definition},{"targetBodyId",dieBody},{"support",QJsonObject{{"bodyId",dieBody},{"producerFeatureId",face.producerFeatureId},{"faceId",face.faceId}}},{"uMm",uv[0]},{"vMm",uv[1]},{"diameterMm",3},{"operation","cut"}}));
+    check(sphere.ok && sphere.evaluation->bodies[1].ownerId==definition,"Component Sphere ownership");
     commit(d,CadDocument::filletCandidate(d.authored(),{{"ownerId",definition},{"targetBodyId",dieBody},{"edgeIds",edges},{"radiusMm",1},{"tangentChain",true}}));
     const auto authored=d.authored();check(d.activateOwner(root).isEmpty(),"Activate root failed");
     const auto fillet=authored["features"].toArray().last().toObject();commit(d,CadDocument::filletCandidate(d.authored(),{{"ownerId",root},{"featureId",fillet["id"]},{"targetBodyId",dieBody},{"edgeIds",edges},{"radiusMm",1.2},{"tangentChain",true}}));

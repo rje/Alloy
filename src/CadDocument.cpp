@@ -404,14 +404,14 @@ QJsonObject CadDocument::filletCandidate(const QJsonObject& authored,const QJson
     const auto error=validateStructure(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());return candidate;
 }
 QJsonObject CadDocument::chamferCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
-    const QSet<QString> allowed{"targetBodyId","edgeIds","distanceMm","name","featureId","newFeatureId"};
+    const QSet<QString> allowed{"targetBodyId","edgeIds","distanceMm","name","featureId","newFeatureId","ownerId"};
     for(auto it=arguments.begin();it!=arguments.end();++it)if(!allowed.contains(it.key()))throw std::invalid_argument("Unknown Chamfer argument");
     if(arguments.contains("featureId") && arguments.contains("newFeatureId"))throw std::invalid_argument("Choose existing or new Chamfer identity");
     auto candidate=authored;auto features=candidate["features"].toArray();QJsonObject feature;int index=-1;
     if(arguments.contains("featureId")) {
         for(int i=0;i<features.size();++i)if(features[i].toObject()["id"]==arguments["featureId"]){feature=features[i].toObject();index=i;break;}
         if(index<0 || feature["type"]!="chamfer")throw std::invalid_argument("Chamfer feature unavailable");
-    } else feature={{"id",arguments.value("newFeatureId").toString(newId())},{"ownerId",authored["documentId"]},{"type","chamfer"},{"name","Chamfer"},{"visible",true}};
+    } else feature={{"id",arguments.value("newFeatureId").toString(newId())},{"ownerId",arguments.value("ownerId").toString(authored["documentId"].toString())},{"type","chamfer"},{"name","Chamfer"},{"visible",true}};
     if(arguments.contains("name"))feature["name"]=arguments["name"];
     feature["parameters"]=QJsonObject{{"targetBodyId",arguments["targetBodyId"]},{"edgeIds",arguments["edgeIds"]},{"distanceMm",arguments["distanceMm"]}};
     if(index>=0)features[index]=feature;else features.append(feature);candidate["features"]=features;
