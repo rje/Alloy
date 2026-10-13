@@ -81,3 +81,41 @@ polyline surrogate. This source stage does not require extrusion or STL.
 
 Native events are Qt events, not a physical OS input claim. macOS is the verified
 runtime; Windows/Linux runtime and release packaging remain separate foundations.
+
+## Independent acceptance
+
+Accepted bounded #253 candidate `e9ea9263634c1fc88f2ba670dd2adad0e5ba7efa`
+after source/core/native/API/artifact review. No additional editor or unchanged
+workflow replay was used. This acceptance excludes #254 and the full #257 lesson.
+
+Independently reviewed the exact quintic Hermite endpoint derivatives, global
+nonuniform chord-span scaling and OCCT multiplicity reduction. The focused core
+checks actual C2 derivatives, through-point residuals, retained active handles
+through3→2→3 edits, independent boundary-area integration and atomic invalid
+input. OCCT exceptions are normalized before ordinary sketch edits can escape
+the transactional solve path. Explicit point-solver/handle freedom avoids a false
+fully-constrained claim. The disclosed interpolation and grip policies remain
+Alloy choices; this is not exact reference-algorithm equivalence.
+
+The original38-call API saved file independently compares exactly with its
+report's `sourceState.authored`: three retained fit points, two active handle
+records and a real closing line. Core and shared-command profile/history evidence
+is sufficient without repeating the same geometry run on the final input-only
+changes. The API binary provenance limitation above is preserved.
+
+Reviewed the final3930ms native log and test: existing QAction activation is
+programmatic; subsequent curve picks, Check, point selection/Backspace, actual
+context-menu insertion and tangent grip events are Qt-dispatched input with no
+intermediate focus repair. The identified unsupported selection argument,
+no-motion mutation and pending-drag history hazards are corrected. Escape, tool
+changes and history clear the shared preview and view token; release cannot
+restore an obsolete draft. The final exact-draft guard also rejects a direct-API
+edit during a pending drag, with its separate13-call real-app evidence.
+
+Inspected the final framed GPU image: all six green grips are visible, the orange
+curve and handle association are distinguishable, and the palette is readable.
+The actual framed draft independently compares exactly with the earlier native
+state, so framing did not manufacture different geometry. This resolves the
+earlier edge-clipped evidence limitation. The shallow source-stage curve is
+an arbitrary fixture, not a matched reference screenshot; open-profile status
+is truthful. Final app SHA and runtime qualifications remain as recorded above.
