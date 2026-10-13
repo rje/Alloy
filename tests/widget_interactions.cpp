@@ -11,6 +11,7 @@
 #include <QImage>
 #include <QComboBox>
 #include <QDoubleSpinBox>
+#include <QDialogButtonBox>
 #include <QScrollArea>
 #include <QScrollBar>
 #include <QDockWidget>
@@ -79,6 +80,59 @@ private slots:
         QCOMPARE(parameters["dimensions"].toArray()[0].toObject()["valueMm"].toDouble(),26.0);
         QVERIFY2(run(window,"sketch.cancel"),error_.constData());
         QCOMPARE(window.state()["document"].toObject()["features"].toInt(),0);
+    }
+    void shellFaceThicknessCancelCommit() {
+        AlloyWindow window;window.resize(1180,760);window.show();window.activateWindow();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));auto* view=viewport(window);QVERIFY(view);
+        // Only stock authoring uses commands; Shell input is dispatched to real widgets.
+        QVERIFY2(run(window,"sketch.begin",{{"plane","XY"}}),error_.constData());
+        QVERIFY2(run(window,"sketch.rectangle",{{"x1",0},{"y1",0},{"x2",25},{"y2",25}}),error_.constData());
+        QVERIFY2(run(window,"sketch.finish"),error_.constData());
+        auto inspected=window.execute("document.inspect")["result"].toObject();
+        const auto sketch=inspected["evaluation"].toObject()["sketches"].toArray()[0].toObject();
+        QVERIFY2(run(window,"solid.extrude",{{"sketchId",sketch["sketchId"]},
+            {"profileId",sketch["profiles"].toArray()[0].toObject()["profileId"]},{"distance",12.5}}),error_.constData());
+        QVERIFY2(run(window,"selection.set",{{"bodyId",""}}),error_.constData());
+        QVERIFY2(run(window,"view.home"),error_.constData());
+        inspected=window.execute("document.inspect")["result"].toObject();
+        const auto baseline=inspected["authored"].toObject();
+        const auto body=inspected["evaluation"].toObject()["bodies"].toArray()[0].toObject();
+        QJsonObject cap;
+        for(const auto& value:body["supportFaces"].toArray()) {
+            const auto face=value.toObject();
+            if(face["frame"].toObject()["normal"].toArray()==QJsonArray{0,0,1})cap=face;
+        }
+        QVERIFY(!cap.isEmpty());
+        auto* shell=window.findChild<QToolButton*>("command.solid.shellDialog");QVERIFY(shell);
+        for(const bool commit:{false,true}) {
+            QTest::mouseClick(shell,Qt::LeftButton);
+            QTRY_COMPARE(session(window)["command"].toString(),QString("solid.shell"));
+            QVERIFY(!session(window)["geometryEvaluated"].toBool());
+            auto* dock=window.findChild<QDockWidget*>("shellDock");QVERIFY(dock);
+            auto* buttons=dock->findChild<QDialogButtonBox*>();QVERIFY(buttons);
+            QVERIFY(!buttons->button(QDialogButtonBox::Ok)->isEnabled());
+            const auto projected=view->projectSketchPoint(12.5,12.5,"face",cap["frame"].toObject());
+            QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,
+                QPoint(qRound(projected["x"].toDouble()),qRound(projected["y"].toDouble())));
+            QTRY_COMPARE(session(window)["inputs"].toObject()["removedFace"].toObject()["faceId"],cap["faceId"]);
+            auto* thickness=dock->findChild<QDoubleSpinBox*>("shellThickness");QVERIFY(thickness);
+            thickness->setFocus();thickness->selectAll();QTest::keyClicks(thickness,"2");QTest::keyClick(thickness,Qt::Key_Return);
+            QTRY_VERIFY(session(window)["geometryEvaluated"].toBool());
+            QVERIFY(std::abs(session(window)["geometry"].toObject()["volumeMm3"].toDouble()-3182)<1e-4);
+            QVERIFY(buttons->button(QDialogButtonBox::Ok)->isEnabled());
+            QCOMPARE(window.execute("document.inspect")["result"].toObject()["authored"].toObject(),baseline);
+            QTest::mouseClick(buttons->button(commit ? QDialogButtonBox::Ok : QDialogButtonBox::Cancel),Qt::LeftButton);
+            QTRY_VERIFY(session(window).isEmpty());
+            inspected=window.execute("document.inspect")["result"].toObject();
+            if(!commit)QCOMPARE(inspected["authored"].toObject(),baseline);
+        }
+        const auto features=inspected["authored"].toObject()["features"].toArray();
+        QCOMPARE(features.size(),baseline["features"].toArray().size()+1);
+        QCOMPARE(features.last().toObject()["type"].toString(),QString("shell"));
+        const auto result=inspected["evaluation"].toObject()["bodies"].toArray()[0].toObject();
+        QCOMPARE(result["bodyId"],body["bodyId"]);
+        QVERIFY(result["valid"].toBool() && result["closed"].toBool());
+        QVERIFY(std::abs(result["volumeMm3"].toDouble()-3182)<1e-4);
     }
     void moveActionsAtShortHeights() {
         AlloyWindow window;window.resize(1136,790);window.show();
