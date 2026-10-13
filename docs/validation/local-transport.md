@@ -60,3 +60,48 @@ exchange, Windows owned-directory ACL validation/refusal and Python helper
 correlation, without GUI. No actual Windows runtime claim yet. Parent #131 still
 requires normal-user Windows application workflow, desktop/GPU and actual
 second-user denial evidence. No general ACL manager or remote transport added.
+
+## Independent acceptance — 2026-10-13
+
+Astra accepts the bounded #220 child, candidate `f5465b7`, integrated as
+`9c42f080cb22402bb1b02cb09734b91dab4ede77`, after source and actual evidence review.
+This supersedes the pending Windows acceptance above. No extra GUI or test replay
+was performed by the reviewer.
+
+Source review required three corrections before runtime qualification: protected
+and inheritable existing Windows directory ACLs, binary CRT streams, and exact
+byte/correlation assertions that cannot count a transport failure as a wrong-ID
+success. All are present in the accepted source. Trusted helper resolution remains
+independent of discovery contents; transport metadata survives selection and live
+identity verification. The helper has a bounded socket deadline; the legacy Unix
+client retains its existing inactivity-timeout behavior.
+
+The macOS report, runner, capture and focused log were independently inspected.
+Actual helper-backed identity/state requests, CLI ready-file selection, stale-ID
+refusal, malformed input, command routing, framebuffer capture and clean quit
+passed without adding authored geometry. The capture is readable at DPR2. CTest
+passed 1/1 in 3.22 seconds, with four Qt lifecycle/test results passing.
+
+Manual Windows run `38401749556` used the exact integrated source above. Downloaded
+evidence under main's `build/evidence/local-transport-windows-38401749556` reports
+Windows Server 2022 AMD64, Python 3.12.10 and Qt 6.11.2. CTest passed 1/1 in
+0.92 seconds (0.93 seconds total). The downloaded helper independently hashes to
+`e394beae6a47622bfbcd832389c6050db68af2b1353720f58ceb896e06f56d28`,
+matching the report. Candidate and integrated transport/test sources are identical.
+
+Windows LastTest.log contains the actual command and passing process result but
+no per-case Qt stdout. Coverage is therefore attributed to the inspected compiled
+test source and invocation, not invented named-case output: qExec receives only
+the executable argument, so both test slots run. Active QVERIFY/QCOMPARE checks
+exercise current-user directory creation/reuse, noninheritable and shared-policy
+refusal; actual UserAccessOption named-pipe server/helper fragmented exact bytes;
+bounds, partial EOF, read/connection failure; successful Python exchange and exact
+wrong-ID refusal; and remote-address syntax refusal. These assertions are not
+disabled by a Release build. The blank case-output log is a reporting limitation,
+not grounds for claiming additional evidence.
+
+This establishes native Windows non-GUI local transport and ACL-policy validation,
+plus the macOS app regression. It does not establish an ordinary-user Windows CAD
+desktop session, GPU, packaging completeness, or actual second-user access denial.
+Those remain under #131; explicit custom Windows server names remain unsupported.
+No broader platform/runtime claim or further unchanged run is required for #220.
