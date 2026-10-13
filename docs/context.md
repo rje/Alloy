@@ -68,7 +68,7 @@ slot center (PDF prose conflicts with pictured/official UI); centerline150/R25
 means overall200x50. Arc pathR150/endR15 with135degree radial relation yields
 upper90degree sweep. Final ellipse275x100 is horizontal/centered; inferred
 constraint steps remain explicit. External independent contract and command
-research: knowledge/tutorials/after-countersunk-plate/. No new feature accepted. Root has prepared tests/center_point_slot_api.py and tests/fit_point_spline_api.py for real-app authority/history checks; slot remains syntax-only; spline API passed38calls with exact edits/history/reopen in validation/fit-point-spline-api.md. Native input/visual fixes remain pending; no feature acceptance. Run only after the author returns the single GUI slot. The independently reviewed full-step gate plan is validation/slots-splines-tutorial-prep.md; it is preparation, not runtime evidence. External knowledge corpus now has19 validated/indexed records, including the complete new lesson and six archived visual references. Conic mapping and spline-degree/continuity designs are under independent review before implementation.
+research: knowledge/tutorials/after-countersunk-plate/. No new feature accepted. Root has prepared tests/center_point_slot_api.py and tests/fit_point_spline_api.py for real-app authority/history checks; slot API passed 37 calls and spline API passed 38 calls with exact edits/history/reopen. Slot candidate 0c5786c has full native input and focused Escape/late-release evidence, pending final independent review and integration. Spline has a passing native workflow and is completing its final drag-state guard/capture receipt. Neither feature is accepted on main yet. The root grants the sole private-editor lease. The independently reviewed full-step gate plan is validation/slots-splines-tutorial-prep.md; it is preparation, not runtime evidence. External knowledge corpus now has19 validated/indexed records, including the complete new lesson and six archived visual references. Conic mapping and spline-degree/continuity designs are under independent review before implementation.
 
 User requested private repository visibility on 2026-10-13. `rje/Alloy` is now
 PRIVATE, verified through GitHub CLI. Preserve private visibility unless the user
@@ -85,7 +85,7 @@ visual parity remain qualified. The external
 editable models and STL deliverables. The Revolve receipt is
 [validation/revolve-tutorial.md](validation/revolve-tutorial.md).
 
-**130 of 257 issues are closed.** Recent accepted work includes compact ribbon
+**130 of 258 issues are closed.** Recent accepted work includes compact ribbon
 icons #218, retained Extrude Intersect #219, nested profile/island diagnostics
 #165, portable local controls #220, shared-line fillets #221, typed Line length
 locks #222, retained Sweep #223 and native Sweep controls #224. Each has a scoped
@@ -2466,3 +2466,6 @@ STL, Length/Thickness edits, exact undo/redo and source-state reopen pass. See
 `deliverables/countersunk-plate-2026-10-13/attempt-01`. The private editor is
 closed. Independent cumulative review is pending; the full lesson is not yet
 accepted, and the movie is shared-API input rather than physical native input.
+
+Slot live solved-drag preview is explicitly retained as Todo #258; the bounded
+#251 candidate currently previews a rubber line and solves on release.

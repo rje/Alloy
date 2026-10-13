@@ -4579,6 +4579,20 @@
         "area:tut"
       ],
       "body": "## Scope and result\nFollow every action of the public13-page31-step lesson from a blank document: centered straight slot, dimensioned arc slot, fit/control splines and their demonstrated edits/curvature combs, conic Rho edit and final dimensioned ellipse. Preserve separate source sketches and source visibility/order. Record full creation movie, editable file, actual source-stage captures and structured geometry/history/reopen evidence. Source is sketch-only; STL/solid extrusion is not a substitute or requirement. Require independent source-step, native ingredient, GPU visual and artifact review. Record source ambiguities and explicit adaptations, not unsupported exact parity. All child completion is necessary but does not itself pass this cumulative gate.\n\n## Reference and verification boundary\nSource `sketch-slots-splines-20261013`, public illustrated lesson retrieved2026-10-13. Detailed source URLs, archived PDF/images and independent audit stay outside Git at knowledge/tutorials/after-countersunk-plate/. Resolve material public-reference ambiguity before coding. This child does not close broader sketch-family owners. Tests target changed geometry/authoring contracts and one meaningful native workflow; reuse accepted unchanged evidence. Implementation, API, native input and visual claims remain separate.\n"
+    },
+    {
+      "key": "SKT-063",
+      "title": "Preview solved slot geometry during point dragging",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P2",
+      "depends_on": [
+        "SKT-057"
+      ],
+      "labels": [
+        "area:skt"
+      ],
+      "body": "## Problem and result\nThe bounded center-point slot implementation retains and solves slot intent on mouse release but displays only a rubber line during point dragging. Replace that visual limitation with the actual solved temporary capsule while dragging, keeping committed authoring and history unchanged until release.\n\n## Scope and verification\nReuse the existing shared solve/evaluate path with a disposable draft, not a second model or generic interaction framework. Escape, tool/history/session changes and invalid cursor candidates restore the authoritative view and prevent late-release commits. One actual native rough-slot drag should show an intermediate solved shape, leave authored state unchanged before release, commit one history step, and cancel exactly. Inspect GPU preview and maintain usable input responsiveness. Reuse accepted #251 geometry/source workflow evidence; this is a presentation follow-up, not acceptance of the full lesson.\n\n## Reference boundary\nRecorded from the Alloy candidate and the public source contract sketch-slots-splines-20261013. Exact historical reference drag presentation remains qualified; this is the required Alloy live-editing quality improvement.\n"
     }
   ]
 }

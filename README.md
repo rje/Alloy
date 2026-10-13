@@ -114,7 +114,7 @@ angle, current-target All termination and native preview/Cancel/timeline edits.
 Its scoped geometry, input and GPU evidence is independently accepted. The
 [nine-hole Spacing/Adjust pattern](docs/validation/hole-spacing-pattern-controls.md)
 is also independently accepted, including a thicker-target control. The complete
-parameterized plate movie/model/STL gate remains in progress.
+[parameterized plate gate](docs/validation/countersunk-plate-tutorial.md) is independently accepted, with a full creation movie, editable model and checked STL.
 
 The private development repository is [rje/Alloy](https://github.com/rje/Alloy), with the
 [issue backlog](https://github.com/rje/Alloy/issues) and
