@@ -2,6 +2,7 @@
 #include "AlloyTheme.h"
 #include "ReferenceView.h"
 #include <QApplication>
+#include <QAccessible>
 #include <QAction>
 #include <QMenu>
 #include <QToolButton>
@@ -120,6 +121,10 @@ private slots:
         auto* tree=window.findChild<QTreeWidget*>("sketch.selection");QVERIFY(tree);
         auto* points=tree->topLevelItem(0);auto* curves=tree->topLevelItem(1);
         QVERIFY(points && curves);
+        auto* accessible=QAccessible::queryAccessibleInterface(tree);QVERIFY(accessible);
+        auto accessibleNames=[&]{QStringList result;for(int i=0;i<accessible->childCount();++i)
+            if(auto* child=accessible->child(i))result.append(child->text(QAccessible::Name));return result;};
+        accessibleNames(); // Prime Qt's logical-index cache before row insertion.
         QVERIFY2(run(window,"sketch.line",{{"x1",0},{"y1",0},{"x2",20},{"y2",0},{"units","mm"}}),error_.constData());
         const auto line=session(window)["draftSketch"].toObject()["parameters"].toObject()["entities"].toArray().first().toObject();
         const auto lineId=line["id"].toString();
@@ -128,14 +133,26 @@ private slots:
         auto* firstPoint=points->child(0);QVERIFY(firstPoint);
         QVERIFY2(run(window,"sketch.selectionSet",{{"entityIds",QJsonArray{lineId}}}),error_.constData());
         QVERIFY(lineRow->isSelected());
+        QVERIFY(accessibleNames().join(" ").contains("Line 1"));
         QVERIFY2(run(window,"history.undo"),error_.constData());
         QCOMPARE(tree->topLevelItem(0),points);QCOMPARE(tree->topLevelItem(1),curves);
         QCOMPARE(curves->child(0),lineRow);QCOMPARE(points->child(0),firstPoint);
         QVERIFY(lineRow->isHidden());QVERIFY(!lineRow->isSelected());
+        QCoreApplication::processEvents();
+        QVERIFY(!accessibleNames().join(" ").contains("Line 1"));
         QVERIFY2(run(window,"history.redo"),error_.constData());
         QCOMPARE(curves->child(0),lineRow);QCOMPARE(points->child(0),firstPoint);
         QVERIFY(!lineRow->isHidden());
         QCOMPARE(lineRow->data(0,Qt::UserRole+1).toString(),lineId);
+        QCoreApplication::processEvents();
+        QVERIFY(accessibleNames().join(" ").contains("Line 1"));
+        QVERIFY2(run(window,"sketch.line",{{"x1",20},{"y1",0},{"x2",30},{"y2",10},{"units","mm"}}),error_.constData());
+        QCoreApplication::processEvents();
+        QVERIFY(accessibleNames().join(" ").contains("Line 2"));
+        QVERIFY2(run(window,"history.undo"),error_.constData());
+        QCoreApplication::processEvents();
+        const auto remaining=accessibleNames().join(" ");
+        QVERIFY(remaining.contains("Line 1"));QVERIFY(!remaining.contains("Line 2"));
         QVERIFY2(run(window,"sketch.cancel"),error_.constData());
     }
 

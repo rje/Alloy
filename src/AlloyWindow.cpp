@@ -7,6 +7,7 @@
 #include "SketchGeometry.h"
 #include "TutorialRecorder.h"
 #include <QApplication>
+#include <QAccessible>
 #include <QAction>
 #include <QWindow>
 #include <QCryptographicHash>
@@ -3465,18 +3466,21 @@ void AlloyWindow::refreshSketchControls() {
         const auto pointEntries=parameters["points"].toArray(),entityEntries=parameters["entities"].toArray();
         auto* pointGroup=sketchSelectionTree_->topLevelItemCount()==2 ? sketchSelectionTree_->topLevelItem(0) : nullptr;
         auto* lineGroup=sketchSelectionTree_->topLevelItemCount()==2 ? sketchSelectionTree_->topLevelItem(1) : nullptr;
+        bool accessibleRowsChanged=false,accessibleLabelsChanged=false;
         if(!pointGroup || !lineGroup) {
             pointGroup=new QTreeWidgetItem(sketchSelectionTree_,{"Points"});pointGroup->setFlags(pointGroup->flags() & ~Qt::ItemIsSelectable);
             lineGroup=new QTreeWidgetItem(sketchSelectionTree_,{"Curves"});lineGroup->setFlags(lineGroup->flags() & ~Qt::ItemIsSelectable);
+            accessibleRowsChanged=true;
         }
         // Native accessibility clients can hold a row while an edit inserts or
         // removes geometry. Keep each item's identity tied to its authored ID;
         // retiring a row only hides it until Undo restores that same ID.
-        auto rowForId=[](QTreeWidgetItem* group,const QString& id) {
+        auto rowForId=[&](QTreeWidgetItem* group,const QString& id) {
             for(int i=0;i<group->childCount();++i) {
                 auto* item=group->child(i);
                 if(item->data(0,Qt::UserRole+1).toString()==id)return item;
             }
+            accessibleRowsChanged=true;
             return new QTreeWidgetItem(group);
         };
         QSet<QString> livePoints,liveEntities;
@@ -3486,9 +3490,10 @@ void AlloyWindow::refreshSketchControls() {
             auto* item=rowForId(pointGroup,id);
             QString label=QString("P%1  (%2, %3) %4").arg(index).arg(QString::number(point["uMm"].toDouble()/scale,'g',5)).arg(QString::number(point["vMm"].toDouble()/scale,'g',5)).arg(units);
             if(relations.contains(id))label+=" · "+relations[id].join(", ");
-            item->setText(0,label);
+            if(item->text(0)!=label){item->setText(0,label);accessibleLabelsChanged=true;}
             item->setData(0,Qt::UserRole,"point");item->setData(0,Qt::UserRole+1,id);item->setSelected(selection["pointIds"].toArray().contains(id));
-            item->setFlags(item->flags()|Qt::ItemIsEnabled|Qt::ItemIsSelectable);item->setHidden(false);
+            item->setFlags(item->flags()|Qt::ItemIsEnabled|Qt::ItemIsSelectable);
+            if(item->isHidden()){item->setHidden(false);accessibleRowsChanged=true;}
         }
         index=0;
         for(const auto& entry:entityEntries) {
@@ -3497,21 +3502,30 @@ void AlloyWindow::refreshSketchControls() {
             QString label=entity["type"]=="circle" ? QString("Circle %1  ·  P%2 · R%3").arg(++index).arg(pointNumbers.value(entity["centerPointId"].toString())).arg(entity["radiusMm"].toDouble()/scale) : QString("%1 %2  ·  P%3 → P%4").arg(entity["type"]=="arc" ? "Arc" : "Line").arg(++index).arg(pointNumbers.value(entity["startPointId"].toString())).arg(pointNumbers.value(entity["endPointId"].toString()));
             if(entity["construction"].toBool())label+=" · Construction";
             if(relations.contains(id))label+=" · "+relations[id].join(", ");
-            item->setText(0,label);
+            if(item->text(0)!=label){item->setText(0,label);accessibleLabelsChanged=true;}
             item->setData(0,Qt::UserRole,"entity");item->setData(0,Qt::UserRole+1,id);item->setSelected(selection["entityIds"].toArray().contains(id));
-            item->setFlags(item->flags()|Qt::ItemIsEnabled|Qt::ItemIsSelectable);item->setHidden(false);
+            item->setFlags(item->flags()|Qt::ItemIsEnabled|Qt::ItemIsSelectable);
+            if(item->isHidden()){item->setHidden(false);accessibleRowsChanged=true;}
         }
-        auto retireRows=[](QTreeWidgetItem* group,const QSet<QString>& live) {
+        auto retireRows=[&](QTreeWidgetItem* group,const QSet<QString>& live) {
             for(int i=0;i<group->childCount();++i) {
                 auto* item=group->child(i);
                 if(live.contains(item->data(0,Qt::UserRole+1).toString()))continue;
                 item->setSelected(false);
                 item->setFlags(item->flags() & ~(Qt::ItemIsEnabled|Qt::ItemIsSelectable));
-                item->setHidden(true);
+                if(!item->isHidden()){item->setHidden(true);accessibleRowsChanged=true;}
             }
         };
         retireRows(pointGroup,livePoints);retireRows(lineGroup,liveEntities);
         pointGroup->setExpanded(true);lineGroup->setExpanded(true);
+        if(accessibleRowsChanged || accessibleLabelsChanged)if(auto* accessible=QAccessible::queryAccessibleInterface(sketchSelectionTree_))
+            if(auto* table=accessible->tableInterface()) {
+                // QTreeWidget hides rows without a model insertion/removal event.
+                // Qt's accessible tree caches child interfaces by visible index;
+                // hide/reveal or changed labels can otherwise report stale rows.
+                QAccessibleTableModelChangeEvent reset(sketchSelectionTree_,QAccessibleTableModelChangeEvent::ModelReset);
+                table->modelChange(&reset);
+            }
     } else if(selected) {
         const QSignalBlocker block(sketchSelectionTree_);
         for(int group=0;group<sketchSelectionTree_->topLevelItemCount();++group) {

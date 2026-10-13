@@ -100,3 +100,16 @@ and dark fully constrained outline. Its shape, dimensions, viewport scale and
 theme are not matched to the public image, so this is categorical color evidence,
 not a pixel comparison or complete tutorial visual acceptance. The exact native
 held-modifier and uninterrupted-source gates listed above remain open.
+
+A follow-up cache probe found that Qt's accessible tree can retain child
+interfaces under old visible row indexes after a row is hidden. A local Qt
+widget reproducer reported the hidden first row in place of the visible last
+row; an accessibility table ModelReset corrected that enumeration. Alloy now
+resets this cache once when sketch row visibility, membership or label changes.
+The native candidate reports all four point rows, four curve rows and headings
+after Dimension 50, native Undo and native Redo, with valid authored geometry.
+Activating Equal later still caused the macOS AX child listing to omit the
+curve rows while the rows and command state remained present. This focused fix
+does not qualify general macOS accessibility or close FND-015 #158. The Qt
+widget suite passes 8/8; the native AX receipts are under the private
+`build-tutorial-completion` evidence directory.
