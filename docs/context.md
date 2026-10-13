@@ -78,7 +78,13 @@ The degree-five C2 evaluator is real; its baseline acceleration, knot and handle
 mapping policies are disclosed Alloy choices.
 
 Arc slot #252 and control spline/curvature comb #254 are actively implemented
-in isolated worktrees. Conic #255, ellipse #256 and full lesson #257 remain Todo.
+in isolated worktrees. Root has also started conic #255 in
+`../Alloy-worktrees/conic` / `feat/conic`, candidate a534335 with retained OCCT
+geometry and shared creation/Rho commands. App builds and focused core passes
+1/1 (0.42 s), including asymmetric shoulder/tangents and exact retained history.
+Astra pre-reviewed the core; two integration corrections are applied. Native
+controls and real-app verification remain ahead; no feature acceptance.
+Ellipse #256 and full lesson #257 remain Todo.
 Root owns `tests/center_point_arc_slot_api.py`: prepared/syntax-checked only,
 not executed. It checks both slots in one sketch, source radius/H/V/radial-line/
 135-degree constraints, two analytic regions, radius edit and exact history/
