@@ -1359,6 +1359,14 @@
       "evidence": "Public four-page instructions and screenshot/drawing observations; independently audited",
       "reference_id": "plate-countersink-pattern-20261013",
       "provenance": "External knowledge/tutorials/next-after-outlet/independent-countersink-contract.md records source, pages, exact geometry and qualified direction selections."
+    },
+    "sketch-slots-splines-20261013": {
+      "title": "Illustrated slots, splines, conic and ellipse sketch lesson",
+      "url": null,
+      "retrieved": "2026-10-13",
+      "evidence": "Public thirteen-page instructions and screenshot observations; independently audited",
+      "reference_id": "sketch-slots-splines-20261013",
+      "provenance": "External knowledge/tutorials/after-countersunk-plate/independent-contract.md records source, pages, exact geometry and qualified direction selections."
     }
   },
   "reference_records": "../Alloy-reference-records/",

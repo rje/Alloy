@@ -58,7 +58,15 @@ The 21.1-second full creation movie, editable file, independently checked closed
 See validation/countersunk-plate-tutorial.md for source adaptations, recording
 limits and separate native evidence. Issue/board Done. All private editors closed.
 The external gallery has nine creations: eight checked solid meshes and one sketch.
-Next tutorial public-reference audit is underway; no new feature is accepted yet.
+Next tutorial #251–257 covers the full31-step slots/splines/conic/ellipse lesson.
+Straight slot #251 is actively implemented in the isolated center-point-slot
+worktree; other children/gate remain Todo. A separate Sol design lane researches
+finite spline semantics for Astra review before implementation. Firstpoint is
+slot center (PDF prose conflicts with pictured/official UI); centerline150/R25
+means overall200x50. Arc pathR150/endR15 with135degree radial relation yields
+upper90degree sweep. Final ellipse275x100 is horizontal/centered; inferred
+constraint steps remain explicit. External independent contract and command
+research: knowledge/tutorials/after-countersunk-plate/. No new feature accepted.
 
 User requested private repository visibility on 2026-10-13. `rje/Alloy` is now
 PRIVATE, verified through GitHub CLI. Preserve private visibility unless the user
@@ -75,7 +83,7 @@ visual parity remain qualified. The external
 editable models and STL deliverables. The Revolve receipt is
 [validation/revolve-tutorial.md](validation/revolve-tutorial.md).
 
-**130 of 250 issues are closed.** Recent accepted work includes compact ribbon
+**130 of 257 issues are closed.** Recent accepted work includes compact ribbon
 icons #218, retained Extrude Intersect #219, nested profile/island diagnostics
 #165, portable local controls #220, shared-line fillets #221, typed Line length
 locks #222, retained Sweep #223 and native Sweep controls #224. Each has a scoped

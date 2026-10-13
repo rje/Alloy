@@ -4476,6 +4476,109 @@
         "area:par"
       ],
       "body": "## Scope\nRetain the existing Change Parameters dialog by owned safe pointer. Extend its existing command with optional visible:false to close only that dialog through normal close semantics; repeated open reuses it. Expose actual parameter dialog pixels through capture.dialog and verify existing owned-popup movie composition includes its real in-bounds position. No reconstructed controls or generic UI automation framework. Keep the table current when authoritative parameter commands run while open, preserving pending editor text and selection.\n\n## Acceptance and verification\nOne real-app open, shared-command add Length75/Width50/Thickness10, readable table screenshot and recording frame, close sequence. Closing changes no authored data and leaves no duplicate dialog. Preserve native table entry behavior; reuse existing native receipt where unchanged. Verify pending user text is not overwritten by table refresh. Keep original parameter schema and modeling authority unchanged.\n\n## Evidence boundary\nThe current captureImage already composes visible owned Qt top-level widgets; reuse it rather than add another compositor. The capture.screenshot description is stale about separate dialogs and should accurately describe supported owned Qt surfaces. OS-owned dialogs remain outside this bounded feature. This supports TUT-012's source Change Parameters stage; no full tutorial pass is implied.\n\n\n## Accepted 2026-10-13\nImplementationf3d46af/reviewdc79583 integrated; default application rebuilt. Owned dialog reuse/close, live table refresh preserving pending values/selection, real dialog capture and movie composition accepted. Focused Qt state test exits0 in2.165s; actual-app API and inspected three-row movie capture pass. Receipt docs/validation/parameter-dialog-capture.md preserves initial cleanup/process-overlap qualification. Full plate remains pending.\n"
+    },
+    {
+      "key": "SKT-057",
+      "title": "Author editable center-point slots through native sketch controls",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-010"
+      ],
+      "labels": [
+        "area:skt"
+      ],
+      "body": "## Scope and result\nCreate Center Point Slot with center, direction/half-length and width picks. Preserve center at origin, a horizontal construction centerline, two tangent straight sides and semicircular ends. Source dimensions are centerline150 and endradius25: overall200x50, centers\u00b175. Demonstrate initial free movement then Horizontal and D length/radius without replacing authored intent with fixed coordinates. Reuse shared commands and real sketch entities/constraints, stable selection IDs, GPU preview and Escape/Cancel. Verify a rough angled slot becomes source-defined, dimension edits change geometry, a closed real profile results, and exact undo/save/reopen. Actual native click/constraint/dimension chain must run without focus repair; inspect readable constraints and dimensions.\n\n## Reference and verification boundary\nSource `sketch-slots-splines-20261013`, public illustrated lesson retrieved2026-10-13. Detailed source URLs, archived PDF/images and independent audit stay outside Git at knowledge/tutorials/after-countersunk-plate/. Resolve material public-reference ambiguity before coding. This child does not close broader sketch-family owners. Tests target changed geometry/authoring contracts and one meaningful native workflow; reuse accepted unchanged evidence. Implementation, API, native input and visual claims remain separate.\n\nSource inconsistency: PDF prose calls the first point an end; pictured midpoint and official UI establish center-first. Preserve midpoint/origin Coincident, not fixed end centers. Native typed half-length/Tab angle/width follow official documented controls; distinguish these from full construction-line length dimension150.\n"
+    },
+    {
+      "key": "SKT-058",
+      "title": "Author center-point arc slots with retained radial intent",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-057"
+      ],
+      "labels": [
+        "area:skt"
+      ],
+      "body": "## Scope and result\nImplement native Center Point Arc Slot picks, construction path and tangent rounded ends through shared commands. Preserve path R150, endradius15, horizontal endpoint relation and source135degree radial construction relationship. Independent source audit determines sweep from geometry; do not confuse the135degree construction angle with slot sweep. Cover the source X conversion to construction geometry. Support retained radius/angular edits, stable IDs, preview/Cancel and exact history/reopen. Verify closed rounded open-path arc-band profile (no inner hole), analytic geometry and visible constraint references in real app. Keep unsupported variants explicit.\n\n## Reference and verification boundary\nSource `sketch-slots-splines-20261013`, public illustrated lesson retrieved2026-10-13. Detailed source URLs, archived PDF/images and independent audit stay outside Git at knowledge/tutorials/after-countersunk-plate/. Resolve material public-reference ambiguity before coding. This child does not close broader sketch-family owners. Tests target changed geometry/authoring contracts and one meaningful native workflow; reuse accepted unchanged evidence. Implementation, API, native input and visual claims remain separate.\n\n## Independent source clarification\nSource geometry gives upper90degree sweep. Execute source radial Line, X construction conversion and D135 relative to straight-slot construction line. Reuse existing X command.\n"
+    },
+    {
+      "key": "SKT-059",
+      "title": "Create and edit fit-point splines with tangent handles",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-010"
+      ],
+      "labels": [
+        "area:skt"
+      ],
+      "body": "## Scope and result\nRetain fit points and tangent-handle intent in authored sketch state; evaluate real OCCT curves. Cover source three-fit-point creation, fit-point removal/insertion and tangent direction/weight editing. Shared native/API commands, stable selection identity, invalid-input atomicity, preview/Cancel, undo and save/reopen are required. Use mature interpolation foundations. Verify through-point geometry, one meaningful handle/point edit and downstream profile compatibility where applicable. Inspect real handles and curves; no polyline surrogate or fixed screenshot.\n\n## Reference and verification boundary\nSource `sketch-slots-splines-20261013`, public illustrated lesson retrieved2026-10-13. Detailed source URLs, archived PDF/images and independent audit stay outside Git at knowledge/tutorials/after-countersunk-plate/. Resolve material public-reference ambiguity before coding. This child does not close broader sketch-family owners. Tests target changed geometry/authoring contracts and one meaningful native workflow; reuse accepted unchanged evidence. Implementation, API, native input and visual claims remain separate.\n\nBefore coding, document bounded interpolation/degree/handle design from public references; unspecified tutorial coordinates are disclosed fixture choices.\n\n## Independent source clarification\nFinite interpolation/handle policy is an implementation decision requiring independent design audit; source arbitrary point placements do not establish exact pixel coordinates.\n"
+    },
+    {
+      "key": "SKT-060",
+      "title": "Create control-point splines and inspect curvature combs",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-059"
+      ],
+      "labels": [
+        "area:skt"
+      ],
+      "body": "## Scope and result\nRetain source control points/degree and editable control cage; build real evaluated spline. Native/API control-point creation and cage drag share authority. Add curve curvature-comb display for fit/control splines with clear selection and correct geometric sampling. Verify a control-point edit changes the curve, undo/save/reopen preserves authoring, and comb/handles are readable. Distinguish documented defaults from inference; source has three control points. Broader SKT-012 requirements remain tracked separately.\n\n## Reference and verification boundary\nSource `sketch-slots-splines-20261013`, public illustrated lesson retrieved2026-10-13. Detailed source URLs, archived PDF/images and independent audit stay outside Git at knowledge/tutorials/after-countersunk-plate/. Resolve material public-reference ambiguity before coding. This child does not close broader sketch-family owners. Tests target changed geometry/authoring contracts and one meaningful native workflow; reuse accepted unchanged evidence. Implementation, API, native input and visual claims remain separate.\n\n## Independent source clarification\nThree control points do not establish a source degree default; document chosen degree and degree/curve behavior explicitly.\n"
+    },
+    {
+      "key": "SKT-061",
+      "title": "Author editable three-point conics with Rho control",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-010"
+      ],
+      "labels": [
+        "area:skt"
+      ],
+      "body": "## Scope and result\nCreate the source three-point conic using actual native picks and retained rational-curve intent, with editable Rho and visible handle/arrow. Research endpoint/apex and Rho semantics before implementation. Shared API/native authority, stable IDs, valid-domain errors, preview/Cancel and exact history/reopen. Verify actual evaluated conic geometry and a meaningful Rho edit, inspect native control visibility. Do not substitute a spline fitted to one screenshot.\n\n## Reference and verification boundary\nSource `sketch-slots-splines-20261013`, public illustrated lesson retrieved2026-10-13. Detailed source URLs, archived PDF/images and independent audit stay outside Git at knowledge/tutorials/after-countersunk-plate/. Resolve material public-reference ambiguity before coding. This child does not close broader sketch-family owners. Tests target changed geometry/authoring contracts and one meaningful native workflow; reuse accepted unchanged evidence. Implementation, API, native input and visual claims remain separate.\n\nDocument Rho parameter mapping and domain before coding, grounded in public sources and evaluated geometry.\n\n## Independent source clarification\nRho mapping is geometric, not simply an arbitrary rational weight.\n"
+    },
+    {
+      "key": "SKT-062",
+      "title": "Author center-point ellipses with driving axis dimensions",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-010"
+      ],
+      "labels": [
+        "area:skt"
+      ],
+      "body": "## Scope and result\nImplement center, first-axis and second-axis native ellipse creation with real analytic geometry and retained axis intent. Source final ellipse is centered at origin and dimensioned275x100. Driving dimensions must update geometry, with shared API commands, stable IDs, preview/Cancel and undo/save/reopen. Verify source bounds, one changed axis and real closed profile; inspect readable dimension targets and native picking.\n\n## Reference and verification boundary\nSource `sketch-slots-splines-20261013`, public illustrated lesson retrieved2026-10-13. Detailed source URLs, archived PDF/images and independent audit stay outside Git at knowledge/tutorials/after-countersunk-plate/. Resolve material public-reference ambiguity before coding. This child does not close broader sketch-family owners. Tests target changed geometry/authoring contracts and one meaningful native workflow; reuse accepted unchanged evidence. Implementation, API, native input and visual claims remain separate.\n\n## Independent source clarification\nFinal ellipse is horizontal and fully defined in the reference. Center/orientation constraint steps are inferred where source text omits them; disclose those steps.\n"
+    },
+    {
+      "key": "TUT-013",
+      "title": "Gate: complete illustrated slots and spline sketch lesson",
+      "kind": "validation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-057",
+        "SKT-058",
+        "SKT-059",
+        "SKT-060",
+        "SKT-061",
+        "SKT-062"
+      ],
+      "labels": [
+        "area:tut"
+      ],
+      "body": "## Scope and result\nFollow every action of the public13-page31-step lesson from a blank document: centered straight slot, dimensioned arc slot, fit/control splines and their demonstrated edits/curvature combs, conic Rho edit and final dimensioned ellipse. Preserve separate source sketches and source visibility/order. Record full creation movie, editable file, actual source-stage captures and structured geometry/history/reopen evidence. Source is sketch-only; STL/solid extrusion is not a substitute or requirement. Require independent source-step, native ingredient, GPU visual and artifact review. Record source ambiguities and explicit adaptations, not unsupported exact parity. All child completion is necessary but does not itself pass this cumulative gate.\n\n## Reference and verification boundary\nSource `sketch-slots-splines-20261013`, public illustrated lesson retrieved2026-10-13. Detailed source URLs, archived PDF/images and independent audit stay outside Git at knowledge/tutorials/after-countersunk-plate/. Resolve material public-reference ambiguity before coding. This child does not close broader sketch-family owners. Tests target changed geometry/authoring contracts and one meaningful native workflow; reuse accepted unchanged evidence. Implementation, API, native input and visual claims remain separate.\n"
     }
   ]
 }

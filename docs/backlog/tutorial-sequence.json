@@ -148,6 +148,22 @@
       "evidence": "docs/validation/countersunk-plate-tutorial.md"
     },
     {
+      "id": "CP-18",
+      "title": "Complete slots and spline sketch lesson",
+      "issues": [
+        "SKT-057",
+        "SKT-058",
+        "SKT-059",
+        "SKT-060",
+        "SKT-061",
+        "SKT-062",
+        "TUT-013"
+      ],
+      "acceptance": "Full31-step public lesson: straight/arc slots, fit/control splines with demonstrated edits and combs, conic and ellipse; complete movie, editable sketches, source-stage geometry/visual checks and history/reopen. Source ends sketch-only.",
+      "status": "in_progress",
+      "remaining": "Straight slot first; remaining bounded children Todo. Full gate awaits every source stage and independent evidence."
+    },
+    {
       "id": "CP-12",
       "title": "Direct dimensions from circle centers to retained model edges",
       "issues": [
