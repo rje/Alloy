@@ -76,6 +76,13 @@ private:
     QString pendingBrowserVisibility_;
     QJsonObject trimPointerInput(const QJsonObject& pixels) const;
     QJsonObject previewTrim(const QJsonObject& inputs);
+    QJsonObject beginFillet(const QJsonObject& inputs);
+    QJsonObject filletCandidate(const QJsonObject& inputs) const;
+    QJsonObject previewFillet();
+    void showFillet();
+    std::vector<EvaluatedBody> filletInputBodies() const;
+    QDockWidget* filletDock_ = nullptr;
+    QShortcut* filletEscape_ = nullptr;
     QJsonObject beginMove(const QJsonObject& inputs);
     QJsonObject moveCandidate(const QJsonObject& inputs) const;
     QJsonObject previewMove();

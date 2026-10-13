@@ -1,3 +1,4 @@
+#include "SolidFillet.h"
 #include <BRepBuilderAPI_Transform.hxx>
 #include <gp_Ax1.hxx>
 #include <gp_Trsf.hxx>
@@ -405,6 +406,10 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored) 
                 summary["translator"]="OCCT STEPControl";
                 evaluated.bodies.push_back({id,feature["bodyId"].toString(),feature["name"].toString(),
                     feature["visible"].toBool(),imported.shape,summary,{}});
+            } else if(type=="fillet") {
+                const auto target=std::find_if(evaluated.bodies.begin(),evaluated.bodies.end(),[&](const auto& body){return body.bodyId==parameters["targetBodyId"].toString();});
+                if(target==evaluated.bodies.end())throw EvaluationError({{"code","body_unavailable"},{"featureId",id},{"message","Fillet target must be active earlier in history"}});
+                SolidFillet::evaluate(*target,parameters,id);
             } else if (type == "move") {
                 const auto bodyId=parameters["targetBodyId"].toString();
                 auto body=std::find_if(evaluated.bodies.begin(),evaluated.bodies.end(),[&](const auto& item){return item.bodyId==bodyId;});

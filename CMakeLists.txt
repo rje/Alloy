@@ -35,12 +35,12 @@ add_library(alloy_kernel STATIC
     src/SketchProfiles.cpp src/SketchProfiles.h src/SketchRegions.cpp)
 target_include_directories(alloy_kernel PUBLIC src)
 target_include_directories(alloy_kernel SYSTEM PUBLIC ${OpenCASCADE_INCLUDE_DIR})
-target_link_libraries(alloy_kernel PUBLIC alloy_sketch_solver Qt6::Core TKernel TKMath TKG3d TKBRep TKPrim TKTopAlgo TKBO TKBool TKGeomAlgo TKMesh TKDESTL TKDESTEP TKXSBase)
+target_link_libraries(alloy_kernel PUBLIC alloy_sketch_solver Qt6::Core TKernel TKMath TKG3d TKBRep TKPrim TKTopAlgo TKFillet TKBO TKBool TKGeomAlgo TKMesh TKDESTL TKDESTEP TKXSBase)
 target_compile_definitions(alloy_kernel PUBLIC ALLOY_OCCT_VERSION="${ALLOY_OCCT_VERSION}")
 
 add_library(alloy_application STATIC
     src/AlloyTheme.cpp src/AlloyTheme.h
-    src/AlloyWindow.cpp src/AlloyWindow.h src/MoveControls.cpp src/CombineControls.cpp src/ExportControls.cpp src/StepExportControls.cpp
+    src/AlloyWindow.cpp src/AlloyWindow.h src/SolidFilletControls.cpp src/MoveControls.cpp src/CombineControls.cpp src/ExportControls.cpp src/StepExportControls.cpp
     src/TutorialRecorder.cpp src/TutorialRecorder.h
     src/CadDocument.cpp src/CadDocument.h
     src/ReferenceView.cpp src/ReferenceView.h
@@ -117,6 +117,9 @@ if(BUILD_TESTING)
     target_include_directories(sketch_trim_test PRIVATE src)
     target_link_libraries(sketch_trim_test PRIVATE Qt6::Gui alloy_kernel)
     add_test(NAME sketch_trim COMMAND sketch_trim_test)
+    add_executable(solid_fillet_test tests/solid_fillet.cpp src/CadDocument.cpp src/CadDocument.h)
+    target_link_libraries(solid_fillet_test PRIVATE alloy_kernel Qt6::Widgets)
+    add_test(NAME solid_fillet COMMAND solid_fillet_test)
     add_executable(move_document_test tests/move_document.cpp src/CadDocument.cpp src/CadDocument.h)
     target_include_directories(move_document_test PRIVATE src)
     target_link_libraries(move_document_test PRIVATE Qt6::Gui alloy_kernel)

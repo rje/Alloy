@@ -1,3 +1,4 @@
+#include <BRepAdaptor_Curve.hxx>
 #include <BRepPrimAPI_MakeCylinder.hxx>
 #include <BRepPrimAPI_MakeCone.hxx>
 #include <BRepPrimAPI_MakeTorus.hxx>
@@ -1299,6 +1300,46 @@ QString ReferenceView::pickBody(double x,double y) {
     const auto detected=context_->DetectedInteractive();
     for(auto it=models_.begin();it!=models_.end();++it)if(it.value()==detected)return it.key();
     return {};
+}
+QJsonObject ReferenceView::projectSolidEdge(const EvaluatedSolidEdge& edge) const {
+    if(view_.IsNull() || edge.edge.IsNull())return {};
+    BRepAdaptor_Curve curve(edge.edge);const auto p=curve.Value((curve.FirstParameter()+curve.LastParameter())/2);int x,y;view_->Convert(p.X(),p.Y(),p.Z(),x,y);const auto scale=windowScale();
+    return {{"x",x/scale.x()},{"y",y/scale.y()},{"edgeId",edge.edgeId},{"viewportLocal",true}};
+}
+QJsonObject ReferenceView::pickSolidEdge(double x,double y,const std::vector<EvaluatedBody>& bodies) const {
+    if(view_.IsNull() || x<0 || y<0 || x>=width() || y>=height())return {};
+    const auto scale=windowScale();double best=10;QJsonObject result;
+    for(const auto& body:bodies)if(body.visible)for(const auto& edge:body.solidEdges)if(!edge.edge.IsNull()) {
+        BRepAdaptor_Curve curve(edge.edge);const int count=curve.GetType()==GeomAbs_Line ? 1 : 64;
+        for(int i=0;i<count;++i) {
+            const double t0=curve.FirstParameter()+(curve.LastParameter()-curve.FirstParameter())*i/count,t1=curve.FirstParameter()+(curve.LastParameter()-curve.FirstParameter())*(i+1)/count;
+            const auto a=curve.Value(t0),b=curve.Value(t1);int ax,ay,bx,by;view_->Convert(a.X(),a.Y(),a.Z(),ax,ay);view_->Convert(b.X(),b.Y(),b.Z(),bx,by);
+            const QPointF start(ax/scale.x(),ay/scale.y()),delta(bx/scale.x()-start.x(),by/scale.y()-start.y()),point(x,y);
+            const auto length=QPointF::dotProduct(delta,delta);if(length<1e-10)continue;
+            const auto fraction=std::clamp(QPointF::dotProduct(point-start,delta)/length,0.0,1.0);const auto projected=start+delta*fraction;const double distance=QLineF(point,projected).length();if(distance>=best)continue;
+            // Screen proximity selects a real edge; authored identity still comes
+            // solely from provenance. Suppress back-side edges behind a face.
+            const auto world=curve.Value(t0+(t1-t0)*fraction);double px,py,pz,dx,dy,dz;view_->ConvertWithProj(qRound(projected.x()*scale.x()),qRound(projected.y()*scale.y()),px,py,pz,dx,dy,dz);
+            const gp_Lin ray(gp_Pnt(px,py,pz),gp_Dir(dx,dy,dz));IntCurvesFace_ShapeIntersector hit;hit.Load(body.shape,1e-6);hit.PerformNearest(ray,0,1e9);
+            const double depth=gp_Vec(ray.Location(),world).Dot(gp_Vec(ray.Direction()));
+            if(hit.IsDone() && hit.NbPnt()>0 && hit.WParameter(1)<depth-view_->Camera()->Scale()/std::max(height(),1)*2)continue;
+            best=distance;result={{"bodyId",body.bodyId},{"edgeId",edge.edgeId},{"kind","edge"},{"distancePx",distance}};
+        }
+    }
+    return result;
+}
+void ReferenceView::clearSolidEdgeHighlights() {
+    if(!context_.IsNull())for(const auto& shape:solidEdgeHighlights_)context_->Remove(shape,false);solidEdgeHighlights_.clear();
+}
+void ReferenceView::highlightSolidEdges(const std::vector<EvaluatedBody>& bodies,const QString& bodyId,const QJsonArray& ids) {
+    clearSolidEdgeHighlights();if(context_.IsNull())return;
+    for(const auto& body:bodies)if(body.bodyId==bodyId)for(const auto& edge:body.solidEdges)if(ids.contains(edge.edgeId) && !edge.edge.IsNull()) {
+        BRepAdaptor_Curve curve(edge.edge);BRep_Builder builder;TopoDS_Compound shape;builder.MakeCompound(shape);
+        const int count=curve.GetType()==GeomAbs_Line ? 1 : 64;
+        for(int i=0;i<count;++i){const auto a=curve.Value(curve.FirstParameter()+(curve.LastParameter()-curve.FirstParameter())*i/count),b=curve.Value(curve.FirstParameter()+(curve.LastParameter()-curve.FirstParameter())*(i+1)/count);const gp_Vec delta(a,b);if(delta.Magnitude()>1e-9)builder.Add(shape,BRepPrimAPI_MakeCylinder(gp_Ax2(a,gp_Dir(delta)),view_->Camera()->Scale()*1.6/std::max(height(),1),delta.Magnitude()).Shape());}
+        Handle(AIS_Shape) cue=new AIS_Shape(shape);cue->SetColor(Quantity_Color(.08,.43,.91,Quantity_TOC_sRGB));cue->Attributes()->SetShadingModel(Graphic3d_TOSM_UNLIT);cue->Attributes()->SetFaceBoundaryDraw(false);cue->SetZLayer(Graphic3d_ZLayerId_Topmost);context_->Display(cue,AIS_Shaded,-1,false);context_->Deactivate(cue);solidEdgeHighlights_.push_back(cue);
+    }
+    context_->UpdateCurrentViewer();
 }
 QJsonObject ReferenceView::projectBody(const EvaluatedBody& body) const {
     if(view_.IsNull())return {};

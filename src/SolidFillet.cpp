@@ -72,3 +72,38 @@ QJsonArray SolidFillet::descriptors(const std::vector<EvaluatedSolidEdge>& edges
     }
     return result;
 }
+
+void SolidFillet::evaluate(EvaluatedBody& body,const QJsonObject& parameters,const QString& featureId) {
+    auto fail=[&](const QString& code,const QString& message,const QString& edgeId=QString{}) {
+        throw GeometryKernel::EvaluationError({{"code",code},{"message",message},{"featureId",featureId},{"targetBodyId",body.bodyId},{"edgeId",edgeId}});
+    };
+    BRepFilletAPI_MakeFillet builder(body.shape);QSet<QString> seeds;QJsonArray contours;
+    for(const auto& value:parameters["edgeIds"].toArray()) {
+        const auto id=value.toString();
+        const auto edge=std::find_if(body.solidEdges.begin(),body.solidEdges.end(),[&](const auto& item){return item.edgeId==id;});
+        if(edge==body.solidEdges.end())fail("fillet_edge_unavailable","Authored edge provenance is no longer present",id);
+        if(edge->edge.IsNull())fail("fillet_edge_"+edge->provenance["resolutionError"].toString("unavailable"),"Authored edge was deleted or has ambiguous descendants",id);
+        builder.Add(parameters["radiusMm"].toDouble(),edge->edge);seeds.insert(id);
+    }
+    for(int contour=1;contour<=builder.NbContours();++contour) {
+        QJsonArray chain;
+        for(int index=1;index<=builder.NbEdges(contour);++index) {
+            const auto actual=builder.Edge(contour,index);QStringList identities;
+            for(const auto& edge:body.solidEdges)if(!edge.edge.IsNull() && edge.edge.IsSame(actual))identities.append(edge.edgeId);
+            QJsonArray ids;for(const auto& id:identities)ids.append(id);
+            chain.append(QJsonObject{{"edgeIds",ids},{"named",!ids.isEmpty()}});
+        }
+        contours.append(chain);
+    }
+    builder.Build();if(!builder.IsDone())fail("fillet_failed","The selected edges cannot be filleted at this radius");
+    const auto result=builder.Shape();auto summary=GeometryKernel::summarize(result);
+    if(!summary["valid"].toBool() || !summary["closed"].toBool() || summary["topology"].toObject()["solids"].toInt()!=1 || summary["volumeMm3"].toDouble()<=0)
+        fail("fillet_invalid_result","Fillet must produce one valid closed solid");
+    std::vector<EvaluatedSupportFace> caps;TopTools_IndexedMapOfShape faces;TopExp::MapShapes(result,TopAbs_FACE,faces);
+    for(const auto& cap:body.supportFaces)if(faces.Contains(cap.face))caps.push_back(cap);
+    TopTools_IndexedMapOfShape edges;TopExp::MapShapes(result,TopAbs_EDGE,edges);
+    for(auto& edge:body.solidEdges)if(!edge.edge.IsNull() && !edges.Contains(edge.edge)) {edge.edge.Nullify();edge.provenance["resolutionError"]="modified_by_fillet";}
+    body.shape=result;body.supportFaces=caps;
+    QJsonArray capValues;for(const auto& cap:caps)capValues.append(QJsonObject{{"faceId",cap.faceId},{"bodyId",cap.bodyId},{"producerFeatureId",cap.producerFeatureId},{"role",cap.role},{"planar",true},{"frame",cap.frame},{"edges",GeometryKernel::supportEdgeDescriptors(cap)}});
+    summary["supportFaces"]=capValues;summary["solidEdges"]=descriptors(body.solidEdges);summary["lastModifierFeatureId"]=featureId;summary["producerFeatureId"]=body.featureId;summary["operation"]="fillet";summary["radiusMm"]=parameters["radiusMm"];summary["selectedEdgeIds"]=parameters["edgeIds"];summary["tangentContours"]=contours;body.summary=summary;
+}

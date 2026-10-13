@@ -42,6 +42,7 @@ public:
     // Canonical args: operation, targetBodyId, toolBodyIds, keepTools, optional
     // name; featureId edits an existing Boolean, newFeatureId reserves a create.
     // The target retains its producer body ID; this feature owns no new body.
+    static QJsonObject filletCandidate(const QJsonObject& authored, const QJsonObject& arguments);
     static QJsonObject moveCandidate(const QJsonObject& authored, const QJsonObject& arguments);
     static QJsonObject booleanCandidate(const QJsonObject& authored, const QJsonObject& arguments);
     static QString validate(const QJsonObject& candidate);

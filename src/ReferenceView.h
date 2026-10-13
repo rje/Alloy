@@ -64,6 +64,10 @@ public:
     void recordContextMenu(const QJsonObject& state,bool shown = false);
     void highlightCombineInputs(const QString& targetBodyId, const QJsonArray& toolBodyIds);
     QString pickBody(double x,double y);
+    QJsonObject pickSolidEdge(double x,double y,const std::vector<EvaluatedBody>& bodies) const;
+    QJsonObject projectSolidEdge(const EvaluatedSolidEdge& edge) const;
+    void highlightSolidEdges(const std::vector<EvaluatedBody>& bodies,const QString& bodyId,const QJsonArray& edgeIds);
+    void clearSolidEdgeHighlights();
     QJsonObject projectBody(const EvaluatedBody& body) const;
     void showPreview(const TopoDS_Shape& shape,const QString& replacedBody = {}, bool neutral = false);
     void showExtrudePreview(const EvaluatedBody& body, const EvaluatedProfile& profile, double distanceMm, const QJsonArray& sourceProfileIds = {}, const QString& units = "mm");
@@ -88,6 +92,7 @@ protected:
     void contextMenuEvent(QContextMenuEvent*) override;
     void wheelEvent(QWheelEvent*) override;
 private:
+    std::vector<Handle(AIS_Shape)> solidEdgeHighlights_;
     gp_Pnt sketchWorld(const QString& plane,double u,double v) const;
     QJsonObject frameFor(const QString& plane) const;
     void initialize();

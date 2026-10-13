@@ -1,3 +1,4 @@
+#include "SolidFillet.h"
 #include "CadDocument.h"
 #include "SketchGeometry.h"
 #include "StepExchange.h"
@@ -314,6 +315,21 @@ QJsonObject CadDocument::extrusionCandidate(const QJsonObject& authored, const Q
     if (!error.isEmpty()) reject(error);
     return candidate;
 }
+QJsonObject CadDocument::filletCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
+    const QSet<QString> allowed{"targetBodyId","edgeIds","radiusMm","name","featureId","newFeatureId","tangentChain"};
+    for(auto it=arguments.begin();it!=arguments.end();++it)if(!allowed.contains(it.key()))throw std::invalid_argument("Unknown Fillet argument");
+    if(arguments.contains("featureId") && arguments.contains("newFeatureId"))throw std::invalid_argument("Choose existing or new Fillet identity");
+    if(arguments.contains("tangentChain") && (!arguments["tangentChain"].isBool() || !arguments["tangentChain"].toBool()))throw std::invalid_argument("Only Tangent Chain On is supported");
+    auto candidate=authored;auto features=candidate["features"].toArray();QJsonObject feature;int index=-1;
+    if(arguments.contains("featureId")) {
+        for(int i=0;i<features.size();++i)if(features[i].toObject()["id"]==arguments["featureId"]){feature=features[i].toObject();index=i;break;}
+        if(index<0 || feature["type"]!="fillet")throw std::invalid_argument("Fillet feature unavailable");
+    } else feature={{"id",arguments.value("newFeatureId").toString(newId())},{"ownerId",authored["documentId"]},{"type","fillet"},{"name","Fillet"},{"visible",true}};
+    if(arguments.contains("name"))feature["name"]=arguments["name"];
+    feature["parameters"]=QJsonObject{{"targetBodyId",arguments["targetBodyId"]},{"edgeIds",arguments["edgeIds"]},{"radiusMm",arguments["radiusMm"]},{"tangentChain",arguments.value("tangentChain").toBool(true)}};
+    if(index>=0)features[index]=feature;else features.append(feature);candidate["features"]=features;
+    const auto error=validateStructure(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());return candidate;
+}
 QJsonObject CadDocument::moveCandidate(const QJsonObject& authored, const QJsonObject& arguments) {
     const QSet<QString> allowed{"targetBodyId","xMm","yMm","zMm","xDeg","yDeg","zDeg","pivotXMm","pivotYMm","pivotZMm","name","featureId","newFeatureId","steps"};
     for(auto it=arguments.begin();it!=arguments.end();++it)if(!allowed.contains(it.key()))throw std::invalid_argument("Unknown Move argument");
@@ -422,6 +438,12 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
             if (!error.isEmpty()) return error;
             continue;
         }
+        if(type=="fillet") {
+            if(feature.contains("bodyId") || p.size()!=4 || !validId(p["targetBodyId"].toString()) || !p["edgeIds"].isArray() || p["edgeIds"].toArray().isEmpty() || p["edgeIds"].toArray().size()>100 || !p["tangentChain"].isBool() || !p["tangentChain"].toBool())return "Fillet requires one target, edge references and tangent chain enabled";
+            QSet<QString> edges;for(const auto& edge:p["edgeIds"].toArray()){if(!edge.isString() || !validId(edge.toString()) || edges.contains(edge.toString()))return "Fillet edge references must be distinct stable UUIDs";edges.insert(edge.toString());}
+            if(!p["radiusMm"].isDouble() || !std::isfinite(p["radiusMm"].toDouble()) || p["radiusMm"].toDouble()<0.001 || p["radiusMm"].toDouble()>100000)return "Fillet radius must be 0.001..100000 mm";
+            continue;
+        }
         if (type == "move") {
             if(feature.contains("bodyId") || p.size()!=5 || !validId(p["targetBodyId"].toString()) || !p["steps"].isArray() || p["steps"].toArray().size()>1000)return "Move requires one retained target body and bounded steps";
             for(const auto& key:{"pivotXMm","pivotYMm","pivotZMm"})if(!p[key].isDouble() || !std::isfinite(p[key].toDouble()) || std::abs(p[key].toDouble())>100000)return "Invalid Move pivot";
@@ -508,7 +530,7 @@ QJsonObject CadDocument::state() const {
     for (const auto& id : evaluation_->featureOrder) order.append(id);
     QJsonArray evaluated;
     for(const auto& body:evaluation_->bodies) {
-        auto summary=body.summary; summary["featureId"]=body.featureId; summary["bodyId"]=body.bodyId;
+        auto summary=body.summary; summary["solidEdges"]=SolidFillet::descriptors(body.solidEdges); summary["featureId"]=body.featureId; summary["bodyId"]=body.bodyId;
         summary["name"]=body.name; summary["visible"]=body.visible; evaluated.append(summary);
     }
     QJsonArray evaluatedSketches;
