@@ -259,8 +259,9 @@ def main():
                           and math.isclose(edge['midpointMm'][2], 2, abs_tol=1e-6)]
             assert len(hole_edges) == 1, 'Upper Cut-hole rim lacks unique retained edge provenance'
             edge_id = hole_edges[0]['edgeId']
-            point = call('view.projectEdge', {'bodyId': body_id, 'edgeId': edge_id})
             session = call('solid.filletDialog', {'targetBodyId': body_id})
+            # Opening the panel resizes the viewport; project into its current frame.
+            point = call('view.projectEdge', {'bodyId': body_id, 'edgeId': edge_id})
             picked = call('selection.pick', {'x': point['x'], 'y': point['y']})
             assert picked['edgeId'] == edge_id
             call('command.update', {'session': session['id'], 'inputs': {'radiusMm': 1}})
