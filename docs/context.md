@@ -2469,3 +2469,14 @@ accepted, and the movie is shared-API input rather than physical native input.
 
 Slot live solved-drag preview is explicitly retained as Todo #258; the bounded
 #251 candidate currently previews a rubber line and solves on release.
+## Center Point Slot candidate (2026-10-13)
+
+#251 adds an origin-snapped center-first straight slot with retained construction
+centerline, two semicircular arcs, two sides, live Midpoint/Coincident/Equal/
+Tangent relations, native half-length/angle/width entry and pointer preview.
+The source sequence rough drag → Horizontal → D150 → R25 closes to a 200 ×
+50 mm profile with zero remaining DOF; later length edit, atomic refusal,
+history and reopen pass focused core/native and real-app API checks. The settled
+native captures are readable and the private editor is closed. See the
+[candidate receipt](validation/center-point-slot.md). Independent review is
+pending; this is one ingredient of the later full sketch lesson.

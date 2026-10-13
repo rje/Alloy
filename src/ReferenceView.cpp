@@ -635,6 +635,7 @@ void ReferenceView::hoverSupportFace(const QJsonObject& support) {
         }
 }
 void ReferenceView::showSketchDraft(const EvaluatedSketch& sketch) {
+    cancelSlotPointDrag();
     if(context_.IsNull())return;
     for(const auto& model:profileModels_)context_->Remove(model,false);profileModels_.clear();draftProfiles_=sketch.profiles;
     for(const auto& profile:sketch.profiles) {
@@ -702,6 +703,7 @@ void ReferenceView::showSketchDraft(const EvaluatedSketch& sketch) {
     applyEditDisplay();
 }
 void ReferenceView::clearSketchDraft() {
+    cancelSlotPointDrag();
     clearSketchDecorations();
     decorationFeature_={};decorationPending_={};annotationLayouts_={};draggedAnnotation_.clear();
     if(!context_.IsNull()) {
@@ -1412,6 +1414,7 @@ gp_Pnt ReferenceView::sketchWorld(const QString& plane,double u,double v) const 
         origin[2].toDouble()+u*ua[2].toDouble()+v*va[2].toDouble());
 }
 void ReferenceView::setSketchPlane(const QString& plane,const QJsonObject& resolvedFrame) {
+    if(plane!=sketchPlane_)cancelSlotPointDrag();
     sketchPlane_=plane;
     if(!plane.isEmpty() || orientation!="face")sketchFrame_=resolvedFrame;
 }
@@ -1518,6 +1521,29 @@ void ReferenceView::showSketchCurveCursor(const QJsonObject& feature) {
     const auto parameters=feature["parameters"].toObject(),entity=parameters["entities"].toArray().first().toObject();
     sketchCursor_=sketchPresentation(SketchGeometry::analyticEdge(parameters,entity,sketchFrame_));sketchCursor_->SetColor(Quantity_Color(0.30,0.58,0.87,Quantity_TOC_RGB));
     context_->Display(sketchCursor_,AIS_WireFrame,-1,false);context_->Deactivate(sketchCursor_);context_->UpdateCurrentViewer();
+}
+void ReferenceView::showSketchSlotCursor(const QJsonObject& feature) {
+    clearSketchCursor();if(context_.IsNull())return;
+    const auto parameters=feature["parameters"].toObject();
+    const auto groups=parameters["slotGroups"].toArray();
+    if(groups.isEmpty())return;
+    const auto group=groups.last().toObject();QSet<QString> ids;
+    for(const auto& id:group["sideIds"].toArray())ids.insert(id.toString());
+    for(const auto& id:group["arcIds"].toArray())ids.insert(id.toString());
+    ids.insert(group["centerlineId"].toString());
+    TopoDS_Compound compound;BRep_Builder builder;builder.MakeCompound(compound);
+    for(const auto& entry:parameters["entities"].toArray()){
+        const auto entity=entry.toObject();if(ids.contains(entity["id"].toString()))
+            builder.Add(compound,SketchGeometry::analyticEdge(parameters,entity,sketchFrame_));
+    }
+    sketchCursor_=sketchPresentation(compound);
+    sketchCursor_->SetColor(Quantity_Color(0.30,0.58,0.87,Quantity_TOC_RGB));
+    sketchCursor_->SetWidth(2*devicePixelRatioF());
+    context_->Display(sketchCursor_,AIS_WireFrame,-1,false);context_->Deactivate(sketchCursor_);context_->UpdateCurrentViewer();
+}
+void ReferenceView::cancelSlotPointDrag() {
+    if(slotPointDrag_.isEmpty())return;
+    slotPointDrag_={};clearSketchCursor();
 }
 void ReferenceView::clearSketchCursor() {
     if(!context_.IsNull() && !sketchCursor_.IsNull())context_->Remove(sketchCursor_,false);
@@ -2074,6 +2100,18 @@ void ReferenceView::mousePressEvent(QMouseEvent* e) {
                     {"additive",e->modifiers().testFlag(Qt::ShiftModifier)}});
                 e->accept();return;
             }
+            const auto groups=decorationFeature_["parameters"].toObject()["slotGroups"].toArray();
+            if(!groups.isEmpty() && decorationDiagnostics_["dof"].toInt(-1)>0) {
+                const auto hit=pickSketch(decorationFeature_,e->position().x(),e->position().y(),"point");
+                for(const auto& value:groups) {
+                    const auto group=value.toObject();QJsonObject guide;
+                    for(const auto& entry:decorationFeature_["parameters"].toObject()["entities"].toArray())
+                        if(entry.toObject()["id"]==group["centerlineId"]){guide=entry.toObject();break;}
+                    if(hit["kind"]!="point" || (hit["pointId"]!=guide["startPointId"] && hit["pointId"]!=guide["endPointId"]))continue;
+                    slotPointDrag_={{"pointId",hit["pointId"]},{"pressX",e->position().x()},{"pressY",e->position().y()}};
+                    setFocus(Qt::MouseFocusReason);e->accept();return;
+                }
+            }
         }
         if(!sketchPlane_.isEmpty() && decorationSelection_.value("tool")!="point" && decorationSelection_.value("tool")!="line" && decorationSelection_.value("tool")!="rectangle" && decorationSelection_.value("tool")!="circle" && decorationSelection_.value("tool")!="twoPointCircle" && decorationSelection_.value("tool")!="centerArc" && decorationSelection_.value("tool")!="threePointArc" && decorationPending_.value("phase")!="placing") {
             const auto picked=pickAnnotation(e->position().x(),e->position().y());
@@ -2093,6 +2131,13 @@ void ReferenceView::mousePressEvent(QMouseEvent* e) {
     else QWidget::mousePressEvent(e);
 }
 void ReferenceView::mouseMoveEvent(QMouseEvent* e) {
+    if(!slotPointDrag_.isEmpty() && e->buttons().testFlag(Qt::LeftButton)) {
+        const auto start=sketchPoint(slotPointDrag_["pressX"].toDouble(),slotPointDrag_["pressY"].toDouble(),sketchPlane_);
+        const auto end=sketchPoint(e->position().x(),e->position().y(),sketchPlane_);
+        showSketchCursor(sketchPlane_,{start["uMm"].toDouble(),start["vMm"].toDouble()},
+            {end["uMm"].toDouble(),end["vMm"].toDouble()},false);
+        e->accept();return;
+    }
     if(mirrorWindowActive_ && e->buttons().testFlag(Qt::LeftButton)){
         if(QLineF(mirrorWindowPress_,e->position()).length()>=4){mirrorWindowBand_->setGeometry(QRect(mirrorWindowPress_.toPoint(),e->position().toPoint()).normalized());mirrorWindowBand_->show();}
         e->accept();return;
@@ -2141,6 +2186,14 @@ void ReferenceView::leaveEvent(QEvent* e) {
     QWidget::leaveEvent(e);
 }
 void ReferenceView::mouseReleaseEvent(QMouseEvent* e) {
+    if(e->button()==Qt::LeftButton && !slotPointDrag_.isEmpty()) {
+        const auto drag=slotPointDrag_;slotPointDrag_={};clearSketchCursor();
+        if(std::hypot(e->position().x()-drag["pressX"].toDouble(),e->position().y()-drag["pressY"].toDouble())>=4) {
+            const auto point=sketchPoint(e->position().x(),e->position().y(),sketchPlane_);
+            dispatch("sketch.movePoint",{{"pointId",drag["pointId"]},{"x",point["uMm"]},{"y",point["vMm"]},{"units","mm"}});
+        } else dispatch("sketch.selectionPick",{{"x",e->position().x()},{"y",e->position().y()}});
+        e->accept();return;
+    }
     if(e->button()==Qt::LeftButton && mirrorWindowActive_){
         mirrorWindowActive_=false;if(mirrorWindowBand_)mirrorWindowBand_->hide();
         if(QLineF(mirrorWindowPress_,e->position()).length()>=4)

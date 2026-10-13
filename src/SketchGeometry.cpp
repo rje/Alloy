@@ -21,6 +21,7 @@
 #include <cmath>
 #include <algorithm>
 #include <array>
+#include <tuple>
 #include <stdexcept>
 
 namespace {
@@ -116,6 +117,42 @@ void validateRoundedIntent(const QJsonObject& parameters) {
         const auto onHorizontal=[&](const QPointF& p){return std::abs(p.y()-(bottom ? -h : 0))<tol;};
         if(!(onVertical(a)&&onHorizontal(b)) && !(onHorizontal(a)&&onVertical(b)))
             reject("Rounded rectangle arc contacts left their adjacent supports");
+    }
+}
+void validateSlotGroups(const QJsonObject& parameters) {
+    if(!parameters.contains("slotGroups"))return;
+    QMap<QString,QJsonObject> points,entities;
+    for(const auto& value:parameters["points"].toArray()){const auto p=value.toObject();points[p["id"].toString()]=p;}
+    for(const auto& value:parameters["entities"].toArray()){const auto e=value.toObject();entities[e["id"].toString()]=e;}
+    auto at=[&](const QJsonValue& id){const auto p=points[id.toString()];return QPointF(p["uMm"].toDouble(),p["vMm"].toDouble());};
+    constexpr double tol=1e-5;
+    for(const auto& value:parameters["slotGroups"].toArray()){
+        const auto group=value.toObject(),guide=entities[group["centerlineId"].toString()];
+        const auto sides=group["sideIds"].toArray(),arcs=group["arcIds"].toArray();
+        const auto top=entities[sides[0].toString()],bottom=entities[sides[1].toString()];
+        const auto right=entities[arcs[0].toString()],left=entities[arcs[1].toString()];
+        if(guide["type"]!="line" || !guide["construction"].toBool() || top["type"]!="line" || bottom["type"]!="line"
+            || right["type"]!="arc" || left["type"]!="arc" || right["centerPointId"]!=guide["endPointId"]
+            || left["centerPointId"]!=guide["startPointId"] || right["startPointId"]!=top["endPointId"]
+            || right["endPointId"]!=bottom["startPointId"] || left["startPointId"]!=bottom["endPointId"]
+            || left["endPointId"]!=top["startPointId"] || top["construction"].toBool() || bottom["construction"].toBool())
+            reject("Center Point Slot boundary identity changed");
+        const auto a=at(guide["startPointId"]),b=at(guide["endPointId"]),c=at(group["centerPointId"]);
+        const auto d=b-a;const double length=std::hypot(d.x(),d.y());
+        if(length<minimumLength || std::hypot(c.x()-(a.x()+b.x())/2,c.y()-(a.y()+b.y())/2)>tol)
+            reject("Center Point Slot lost its midpoint or length");
+        const double r=right["radiusMm"].toDouble();
+        if(r<minimumLength || std::abs(r-left["radiusMm"].toDouble())>tol ||
+            std::abs(right["sweepAngleDeg"].toDouble()+180)>1e-3 || std::abs(left["sweepAngleDeg"].toDouble()+180)>1e-3)
+            reject("Center Point Slot lost equal semicircular ends");
+        const auto cross=[&](const QPointF& p,const QPointF& origin){return (d.x()*(p.y()-origin.y())-d.y()*(p.x()-origin.x()))/length;};
+        const auto dot=[&](const QPointF& p,const QPointF& origin){return (d.x()*(p.x()-origin.x())+d.y()*(p.y()-origin.y()))/length;};
+        for(const auto& id:{top["startPointId"],top["endPointId"]})
+            if(std::abs(cross(at(id),id==top["startPointId"] ? a : b)-r)>tol ||
+                std::abs(dot(at(id),id==top["startPointId"] ? a : b))>tol)reject("Slot upper side left its tangent contacts");
+        for(const auto& id:{bottom["startPointId"],bottom["endPointId"]})
+            if(std::abs(cross(at(id),id==bottom["startPointId"] ? b : a)+r)>tol ||
+                std::abs(dot(at(id),id==bottom["startPointId"] ? b : a))>tol)reject("Slot lower side left its tangent contacts");
     }
 }
 void validateArguments(const QJsonObject& arguments, bool line) {
@@ -532,6 +569,78 @@ SketchGeometry::SolveResult SketchGeometry::addCenterRectangle(const QJsonObject
     } catch(const std::exception& error) {return invalidDraft(draft,QString::fromUtf8(error.what()));}
 }
 
+SketchGeometry::SolveResult SketchGeometry::addCenterPointSlot(const QJsonObject& draft,const QJsonObject& arguments,
+    const QJsonObject& projectionContext) {
+    try {
+        validateDraft(draft);
+        checkFields(arguments,{"centerUMm","centerVMm","endUMm","endVMm","widthMm","centerSnapTarget"});
+        double u=coordinate(arguments,"centerUMm"),v=coordinate(arguments,"centerVMm");
+        const double endU=coordinate(arguments,"endUMm"),endV=coordinate(arguments,"endVMm");
+        const double width=coordinate(arguments,"widthMm");
+        const double radius=width/2;
+        auto parameters=draft["parameters"].toObject();auto points=parameters["points"].toArray();
+        auto entities=parameters["entities"].toArray(),constraints=parameters["constraints"].toArray();
+        QString targetId;
+        if(arguments.contains("centerSnapTarget")) {
+            if(!arguments["centerSnapTarget"].isObject())reject("Slot center snap target must be an object");
+            const auto target=arguments["centerSnapTarget"].toObject();
+            if(target["kind"]=="origin" && target.size()==1) {
+                targetId=parameters["originPointId"].toString();
+                if(targetId.isEmpty()) {
+                    targetId=newId();parameters["originPointId"]=targetId;
+                    points.append(QJsonObject{{"id",targetId},{"uMm",0},{"vMm",0}});
+                    constraints.append(QJsonObject{{"id",newId()},{"type","fixed"},{"pointIds",QJsonArray{targetId}},{"uMm",0},{"vMm",0}});
+                }
+                u=0;v=0;
+            } else if(target["kind"]=="point" && target.size()==2 && validId(target["pointId"].toString())) {
+                targetId=target["pointId"].toString();retainSupportPoint(parameters,projectionContext,targetId);
+                bool found=false;
+                for(const auto& value:expandedProjectionFeature(QJsonObject{{"parameters",parameters}},projectionContext)["parameters"].toObject()["points"].toArray()) {
+                    const auto p=value.toObject();if(p["id"]!=targetId)continue;u=p["uMm"].toDouble();v=p["vMm"].toDouble();found=true;break;
+                }
+                if(!found)reject("Slot center snap point is unavailable");
+            } else reject("Slot center accepts an origin or retained point snap");
+        }
+        const double half=std::hypot(endU-u,endV-v);
+        if(half<minimumLength || radius<minimumLength || half*2+width>maximumLength)
+            reject("Center Point Slot needs a nonzero half-length and width within the supported range");
+        const double dx=(endU-u)/half,dy=(endV-v)/half;
+        const double nx=-dy,ny=dx, angle=std::atan2(ny,nx)/degrees;
+        auto point=[&](double x,double y){const auto id=newId();points.append(QJsonObject{{"id",id},{"uMm",x},{"vMm",y}});return id;};
+        const auto center=point(u,v),leftCenter=point(u-half*dx,v-half*dy),rightCenter=point(u+half*dx,v+half*dy);
+        const auto leftTop=point(u-half*dx+radius*nx,v-half*dy+radius*ny);
+        const auto rightTop=point(u+half*dx+radius*nx,v+half*dy+radius*ny);
+        const auto rightBottom=point(u+half*dx-radius*nx,v+half*dy-radius*ny);
+        const auto leftBottom=point(u-half*dx-radius*nx,v-half*dy-radius*ny);
+        auto line=[&](const QString& first,const QString& last,bool construction){const auto id=newId();
+            QJsonObject e{{"id",id},{"type","line"},{"startPointId",first},{"endPointId",last}};
+            if(construction)e["construction"]=true;entities.append(e);return id;};
+        const auto top=line(leftTop,rightTop,false),bottom=line(rightBottom,leftBottom,false);
+        const auto guide=line(leftCenter,rightCenter,true);
+        auto arc=[&](const QString& arcCenter,const QString& first,const QString& last,double start){const auto id=newId();
+            entities.append(QJsonObject{{"id",id},{"type","arc"},{"centerPointId",arcCenter},{"startPointId",first},
+                {"endPointId",last},{"radiusMm",radius},{"startAngleDeg",std::remainder(start,360.0)},{"sweepAngleDeg",-180.0}});return id;};
+        const auto rightArc=arc(rightCenter,rightTop,rightBottom,angle);
+        const auto leftArc=arc(leftCenter,leftBottom,leftTop,angle-180);
+        constraints.append(QJsonObject{{"id",newId()},{"type","midpoint"},{"pointIds",QJsonArray{center}},{"entityIds",QJsonArray{guide}}});
+        if(!targetId.isEmpty())constraints.append(QJsonObject{{"id",newId()},{"type","coincident"},{"pointIds",QJsonArray{center,targetId}}});
+        constraints.append(QJsonObject{{"id",newId()},{"type","equal"},{"entityIds",QJsonArray{rightArc,leftArc}}});
+        for(const auto& contact:std::array<std::tuple<QString,QString,QString>,4>{{
+                {rightArc,top,rightTop},{rightArc,bottom,rightBottom},{leftArc,bottom,leftBottom},{leftArc,top,leftTop}}})
+            constraints.append(QJsonObject{{"id",newId()},{"type","arcTangent"},
+                {"entityIds",QJsonArray{std::get<0>(contact),std::get<1>(contact)}},
+                {"pointIds",QJsonArray{std::get<2>(contact)}},{"side",-1}});
+        auto groups=parameters["slotGroups"].toArray();
+        groups.append(QJsonObject{{"id",newId()},{"centerPointId",center},{"centerlineId",guide},
+            {"sideIds",QJsonArray{top,bottom}},{"arcIds",QJsonArray{rightArc,leftArc}}});
+        parameters["slotGroups"]=groups;
+        parameters["points"]=points;parameters["entities"]=entities;parameters["constraints"]=constraints;
+        auto candidate=draft;candidate["parameters"]=parameters;
+        auto solved=solveDraft(candidate,projectionContext);
+        return solved.ok ? solved : SolveResult{false,draft,solved.diagnostics,solved.error};
+    }catch(const std::exception& error){return invalidDraft(draft,QString::fromUtf8(error.what()));}
+}
+
 SketchGeometry::SolveResult SketchGeometry::addPointerEntity(const QJsonObject& draft, const QString& tool, const QJsonObject& arguments, const QJsonObject& projectionContext) {
     try {
         validateDraft(draft);
@@ -642,7 +751,7 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
         try {return validateParameters(expandedProjectionFeature({{"parameters",parameters}},{{"lines",lines},{"points",resolvedPoints}})["parameters"].toObject(),authoredIds,referenceIds);}
         catch(const std::exception& error){return QString::fromUtf8(error.what());}
     }
-    const QSet<QString> allowed{"plane", "planeId", "points", "entities", "constraints", "dimensions", "originPointId", "support", "texts", "loopOffsets", "roundedRectangleIntent", "mirrorGroups"};
+    const QSet<QString> allowed{"plane", "planeId", "points", "entities", "constraints", "dimensions", "originPointId", "support", "texts", "loopOffsets", "roundedRectangleIntent", "mirrorGroups", "slotGroups"};
     for (auto it = parameters.begin(); it != parameters.end(); ++it)
         if (!allowed.contains(it.key())) return "Unknown sketch parameter: " + it.key();
     if (!parameters["points"].isArray() || !parameters["entities"].isArray()) return "Sketch requires points and entities";
@@ -778,6 +887,21 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
         for (const auto& entry : parameters["entities"].toArray()) {const auto e=entry.toObject();
             if(e["type"]=="line") lineIds.insert(e["id"].toString());
             else {curveIds.insert(e["id"].toString()); if(e["type"]=="arc") arcIds.insert(e["id"].toString());}}
+        if(parameters.contains("slotGroups") && !parameters["slotGroups"].isArray())return "Slot groups must be an array";
+        for(const auto& value:parameters["slotGroups"].toArray()) {
+            if(!value.isObject())return "Slot group must be an object";
+            const auto group=value.toObject();
+            if(group.size()!=5 || !claimId(group["id"].toString()) ||
+                !points.contains(group["centerPointId"].toString()) || !lineIds.contains(group["centerlineId"].toString()) ||
+                !checkReferences(group,"sideIds",2,lineIds) || !checkReferences(group,"arcIds",2,arcIds))
+                return "Invalid Center Point Slot references";
+            const auto centerlineId=group["centerlineId"].toString();
+            if(group["sideIds"].toArray().contains(centerlineId))return "Slot centerline cannot bound its profile";
+            bool construction=false;
+            for(const auto& entry:parameters["entities"].toArray())if(entry.toObject()["id"]==centerlineId)
+                construction=entry.toObject()["construction"].toBool();
+            if(!construction)return "Slot centerline must remain construction geometry";
+        }
         for (const auto& entry : parameters["constraints"].toArray()) {
             if (!entry.isObject()) return "Sketch constraint must be an object";
             const auto constraint = entry.toObject();
@@ -947,7 +1071,7 @@ SketchGeometry::SolveResult SketchGeometry::solveDraft(const QJsonObject& draft,
         if(draft["parameters"].toObject().contains("texts"))parameters["texts"]=draft["parameters"].toObject()["texts"];
         if(draft["parameters"].toObject().contains("projections"))parameters["projections"]=draft["parameters"].toObject()["projections"];
         if(draft["parameters"].toObject().contains("pointReferences"))parameters["pointReferences"]=draft["parameters"].toObject()["pointReferences"];
-        solved["parameters"]=parameters;validateDraft(solved);validateRoundedIntent(parameters);
+        solved["parameters"]=parameters;validateDraft(solved);validateRoundedIntent(parameters);validateSlotGroups(parameters);
         return {true,solved,result.diagnostics,{}};
     } catch(const std::exception& error){return invalidDraft(draft,QString::fromUtf8(error.what()));}
 }
@@ -994,6 +1118,34 @@ SketchGeometry::SolveResult SketchGeometry::addConstraint(const QJsonObject& dra
         }
         constraints.append(constraint);
         parameters["constraints"] = constraints;
+        if((constraint["type"]=="horizontal" || constraint["type"]=="vertical") && constraint["entityIds"].toArray().size()==1) {
+            const auto guideId=constraint["entityIds"].toArray()[0];
+            for(const auto& value:parameters["slotGroups"].toArray()) {
+                const auto group=value.toObject();if(group["centerlineId"]!=guideId)continue;
+                auto entities=parameters["entities"].toArray(),points=parameters["points"].toArray();
+                QJsonObject guide;for(const auto& entry:entities)if(entry.toObject()["id"]==guideId){guide=entry.toObject();break;}
+                QJsonObject center,start,end;for(const auto& entry:points){const auto p=entry.toObject();
+                    if(p["id"]==group["centerPointId"])center=p;
+                    if(p["id"]==guide["startPointId"])start=p;
+                    if(p["id"]==guide["endPointId"])end=p;
+                }
+                if(center.isEmpty() || start.isEmpty() || end.isEmpty())reject("Slot guide points are unavailable");
+                const double dx=end["uMm"].toDouble()-start["uMm"].toDouble(),dy=end["vMm"].toDouble()-start["vMm"].toDouble();
+                const double angle=std::atan2(dy,dx),target=constraint["type"]=="horizontal" ?
+                    (dx>=0 ? 0.0 : std::numbers::pi) : (dy>=0 ? std::numbers::pi/2 : -std::numbers::pi/2);
+                const double rotation=std::remainder(target-angle,2*std::numbers::pi),cs=std::cos(rotation),sn=std::sin(rotation);
+                QSet<QString> owned{group["centerPointId"].toString(),guide["startPointId"].toString(),guide["endPointId"].toString()};
+                for(const auto& id:group["sideIds"].toArray())for(const auto& entry:entities)if(entry.toObject()["id"]==id){
+                    owned.insert(entry.toObject()["startPointId"].toString());owned.insert(entry.toObject()["endPointId"].toString());}
+                const double cx=center["uMm"].toDouble(),cy=center["vMm"].toDouble();
+                for(int i=0;i<points.size();++i){auto p=points[i].toObject();if(!owned.contains(p["id"].toString()))continue;
+                    const double x=p["uMm"].toDouble()-cx,y=p["vMm"].toDouble()-cy;
+                    p["uMm"]=cx+cs*x-sn*y;p["vMm"]=cy+sn*x+cs*y;points[i]=p;}
+                for(int i=0;i<entities.size();++i){auto e=entities[i].toObject();if(!group["arcIds"].toArray().contains(e["id"]))continue;
+                    e["startAngleDeg"]=std::remainder(e["startAngleDeg"].toDouble()+rotation/degrees,360.0);entities[i]=e;}
+                parameters["points"]=points;parameters["entities"]=entities;break;
+            }
+        }
         auto candidate = draft; candidate["parameters"] = parameters;
         const auto pointPair=(constraint["type"]=="horizontal" || constraint["type"]=="vertical") && constraint.contains("pointIds");
         if(pointPair && constraint["pointIds"].toArray().size()!=2)reject("Point alignment requires two ordered points");
@@ -1702,7 +1854,7 @@ SketchGeometry::SolveResult SketchGeometry::movePoint(const QJsonObject& draft, 
         if(parameters.value("projections").toArray().isEmpty() && parameters.value("pointReferences").toArray().isEmpty()) {
             const auto result=SketchSolver::solve(parameters);
             if(!result.accepted)return {false,draft,result.diagnostics,result.error};
-            candidate["parameters"]=result.parameters;validateDraft(candidate);return {true,candidate,result.diagnostics,{}};
+            candidate["parameters"]=result.parameters;validateDraft(candidate);validateSlotGroups(result.parameters);return {true,candidate,result.diagnostics,{}};
         }
         return solveDraft(candidate,projectionContext);
     } catch (const std::exception& error) { return invalidDraft(draft, QString::fromUtf8(error.what())); }

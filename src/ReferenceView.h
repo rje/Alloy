@@ -73,6 +73,8 @@ public:
     void showSketchCursor(const QString& plane, const QPointF& first, const QPointF& second, bool rectangle, bool centered = false);
     void showSketchSnap(const QString& plane, const QJsonObject& snap);
     void showSketchCurveCursor(const QJsonObject& feature);
+    void showSketchSlotCursor(const QJsonObject& feature);
+    void cancelSlotPointDrag();
     void clearSketchCursor();
     void showSketchTextHandles(const QJsonObject& text,const QString& plane,const QJsonObject& frame);
     void clearSketchTextHandles();
@@ -154,6 +156,7 @@ private:
     QMap<QString,Handle(AIS_Shape)> sketchModels_;
     std::vector<Handle(AIS_Shape)> sketchTextHandles_;
     QJsonObject sketchTextHandleState_, sketchTextDrag_;
+    QJsonObject slotPointDrag_;
     QMap<QString,Handle(AIS_Shape)> constructionSketchModels_, centerlineSketchModels_;
     QMap<QString,Handle(AIS_Shape)> constructionPlaneModels_;
     std::vector<EvaluatedConstructionPlane> constructionPlanes_;

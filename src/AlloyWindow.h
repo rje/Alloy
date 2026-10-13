@@ -29,6 +29,7 @@ class QScrollArea;
 class QListWidget;
 class QTabBar;
 class QImage;
+class QFrame;
 class TutorialRecorder;
 
 // UI and automation dispatch against the same authored document.
@@ -193,6 +194,9 @@ private:
     QJsonObject appendStandalonePoint(const QJsonObject& inputs);
     QJsonObject appendSketchEntity(const QString& tool, const QJsonObject& inputs);
     QJsonObject appendCenterRectangle(const QJsonObject& inputs);
+    QJsonObject appendCenterPointSlot(const QJsonObject& inputs);
+    void showSlotEditor(const QString& initialText = {});
+    void hideSlotEditor();
     QJsonObject appendCircleOffset(const QJsonObject& inputs,bool update);
     EvaluatedSketch evaluateSketchDraft(const QJsonObject& draft) const;
     QJsonObject previewLoopOffset(const QJsonObject& inputs);
@@ -340,6 +344,11 @@ private:
     QWidget* dimensionEditor_ = nullptr;
     QLineEdit* dimensionEditorValue_ = nullptr;
     QLineEdit* centerRectangleHeight_ = nullptr;
+    QFrame* slotEditor_ = nullptr;
+    QLineEdit* slotDistance_ = nullptr;
+    QLineEdit* slotAngle_ = nullptr;
+    QLineEdit* slotWidth_ = nullptr;
+    QLabel* slotInputHint_ = nullptr;
     QLabel* twoPointWidthLabel_ = nullptr;
     QLabel* twoPointHeightLabel_ = nullptr;
     QLabel* dimensionEditorError_ = nullptr;

@@ -344,6 +344,8 @@ AlloyWindow::AlloyWindow() {
     auto* textAction=create->addAction("Sketch Text");textAction->setObjectName("sketch.action.text");
     connect(textAction,&QAction::triggered,this,[this]{sketchResponse(execute("sketch.text"));});
     toolAction(circle,"2-Point Circle","twoPointCircle");
+    auto* slot=create->addMenu("Slot");slot->setObjectName("sketch.commands.slot");
+    toolAction(slot,"Center Point Slot","centerPointSlot");
     auto* arc=create->addMenu("Arc");arc->setObjectName("sketch.commands.arc");
     toolAction(arc,"Center Point Arc","centerArc");toolAction(arc,"3-Point Arc","threePointArc");
     create->addSeparator();toolAction(create,"Sketch Dimension\tD","dimension");
@@ -611,6 +613,11 @@ bool AlloyWindow::eventFilter(QObject* watched,QEvent* event) {
     // the outer Qt shortcut window. Handle delivered sketch dimension keys here.
     if(watched==view_ && event->type()==QEvent::KeyPress && session_.value("command")=="sketch.edit") {
         const auto* key=static_cast<QKeyEvent*>(event);if(!(key->modifiers()&(Qt::ControlModifier|Qt::MetaModifier|Qt::AltModifier)) && key->key()==Qt::Key_D){sketchResponse(execute("sketch.tool",{{"tool","dimension"}}));return true;}
+        if(session_.value("tool")=="centerPointSlot" && session_.contains("firstPoint") &&
+            !(key->modifiers()&(Qt::ControlModifier|Qt::MetaModifier|Qt::AltModifier)) && key->text().size()==1 &&
+            ((key->text()[0]>=QLatin1Char('0') && key->text()[0]<=QLatin1Char('9')) || key->text()==".")) {
+            showSlotEditor(key->text());return true;
+        }
         if(!(key->modifiers()&(Qt::ControlModifier|Qt::MetaModifier|Qt::AltModifier)) && key->key()==Qt::Key_L && session_.value("tool")!="line") {sketchResponse(execute("sketch.tool",{{"tool","line"}}));return true;}
         if(!(key->modifiers()&(Qt::ControlModifier|Qt::MetaModifier|Qt::AltModifier)) && key->key()==Qt::Key_C && session_.value("tool")!="circle") {sketchResponse(execute("sketch.circle"));return true;}
         if((key->key()==Qt::Key_Return || key->key()==Qt::Key_Enter) && session_.value("pendingCircleDiameter").toObject().value("phase")=="locked") {
@@ -618,6 +625,9 @@ bool AlloyWindow::eventFilter(QObject* watched,QEvent* event) {
         }
         if(key->key()==Qt::Key_Escape && session_.contains("pendingCircleDiameter")) {
             sketchResponse(execute("sketch.circleDiameterCancel"));return true;
+        }
+        if(key->key()==Qt::Key_Escape && session_.value("tool")=="centerPointSlot") {
+            sketchResponse(execute("sketch.tool",{{"tool","select"}}));return true;
         }
         if(key->key()==Qt::Key_Escape && session_.value("tool")=="line") {
             if(session_.value("pendingLineLength").toObject().value("phase")=="editing")execute("sketch.lineLengthCancel");
@@ -1481,6 +1491,60 @@ void AlloyWindow::registerCommands() {
         {{"centerX",coordinate},{"centerY",coordinate},{"width",sizeCoordinate},{"height",sizeCoordinate},{"units",optional(units)},
          {"centerSnapTarget",optional(parameter("object","Origin, authored point or line midpoint center target."))},{"session",optional(parameter("string","Optional active sketch session identity."))}},
         [this](const auto& a){return appendCenterRectangle(a);});
+    add("sketch.centerPointSlot","Center Point Slot","Create a retained straight slot from center, one end center and full width.",
+        {{"centerX",coordinate},{"centerY",coordinate},{"endX",coordinate},{"endY",coordinate},{"width",sizeCoordinate},
+         {"units",optional(units)},{"centerSnapTarget",optional(parameter("object","Origin or retained point for the slot center."))},
+         {"session",optional(parameter("string","Optional active sketch session identity."))}},
+        [this](const auto& a){return appendCenterPointSlot(a);});
+    add("sketch.slotTypedInput","Center Point Slot values","Preview typed half-length, angle or width for the active slot gesture.",
+        {{"distanceText",optional(parameter("string","Positive center-to-end-center distance."))},
+         {"angleText",optional(parameter("string","Direction angle in degrees."))},
+         {"widthText",optional(parameter("string","Positive full slot width."))}},[this](const auto& a){
+            if(session_.value("command")!="sketch.edit" || session_.value("tool")!="centerPointSlot" || !session_.contains("firstPoint"))
+                return failure("slot_input_unavailable","Choose the slot center first");
+            const auto units=session_.value("inputs").toObject()["units"].toString();
+            QJsonObject pending;bool valid=false;
+            if(session_.contains("secondPoint")) {
+                if(!a.contains("widthText") || a.contains("distanceText") || a.contains("angleText"))return failure("invalid_arguments","Enter slot width at the final stage");
+                const double width=a["widthText"].toString().toDouble(&valid);
+                if(valid && std::isfinite(width) && width>0 && CadDocument::millimeters(width,units)>=0.002 && CadDocument::millimeters(width,units)<=100000)
+                    pending={{"phase","width"},{"widthMm",CadDocument::millimeters(width,units)},{"valid",true}};
+            } else {
+                if(!a.contains("distanceText") || a.contains("widthText"))return failure("invalid_arguments","Enter half-length and angle before the end-center click");
+                const double distance=a["distanceText"].toString().toDouble(&valid);
+                bool angleValid=false;const double angle=a.value("angleText").toString("0").toDouble(&angleValid);
+                if(valid && angleValid && std::isfinite(distance) && std::isfinite(angle) && distance>0 &&
+                    CadDocument::millimeters(distance,units)>=0.001 && CadDocument::millimeters(distance,units)<=50000)
+                    pending={{"phase","direction"},{"halfLengthMm",CadDocument::millimeters(distance,units)},
+                        {"angleDeg",angle},{"valid",true}};
+            }
+            if(pending.isEmpty())pending={{"valid",false}};
+            session_["pendingSlotTyped"]=pending;
+            return QJsonObject{{"pending",pending},{"authoredChange",false}};
+        });
+    add("sketch.slotTypedAccept","Accept typed slot stage","Use typed half-length and angle, then typed full width, in the active slot gesture.",{},[this](const auto&){
+        if(session_.value("command")!="sketch.edit" || session_.value("tool")!="centerPointSlot" || !session_.contains("firstPoint"))
+            return failure("slot_input_unavailable","Choose the slot center first");
+        const auto typed=session_.value("pendingSlotTyped").toObject(),first=session_["firstPoint"].toObject();
+        if(!typed["valid"].toBool())return failure("invalid_slot_input","Enter a valid slot value");
+        const double cx=first["uMm"].toDouble(),cy=first["vMm"].toDouble();
+        if(!session_.contains("secondPoint")) {
+            if(typed["phase"]!="direction")return failure("invalid_slot_input","Enter half-length and angle");
+            const double angle=typed["angleDeg"].toDouble()*std::numbers::pi/180.0;
+            session_["secondPoint"]=QJsonObject{{"uMm",cx+typed["halfLengthMm"].toDouble()*std::cos(angle)},
+                {"vMm",cy+typed["halfLengthMm"].toDouble()*std::sin(angle)}};
+            hideSlotEditor();showSlotEditor();return QJsonObject{{"placement",false},{"nextPoint","straight side width"}};
+        }
+        if(typed["phase"]!="width")return failure("invalid_slot_input","Enter full slot width");
+        const auto second=session_["secondPoint"].toObject();
+        QJsonObject inputs{{"centerX",cx},{"centerY",cy},{"endX",second["uMm"]},{"endY",second["vMm"]},
+            {"width",typed["widthMm"]},{"units","mm"}};
+        if(first["status"]=="acquired")inputs["centerSnapTarget"]=first["target"];
+        const auto response=appendCenterPointSlot(inputs);
+        if(response.value("ok").isBool() && !response["ok"].toBool())return response;
+        session_.remove("firstPoint");session_.remove("secondPoint");hideSlotEditor();view_->clearSketchCursor();
+        view_->setFocus(Qt::OtherFocusReason);return QJsonObject{{"placement",true},{"draftSketch",session_.value("draftSketch")}};
+    });
     auto angle=parameter("number","Explicit angle in degrees; length display units do not convert it.");angle["minimum"]=-100000;angle["maximum"]=100000;
     const auto sketchSession=optional(parameter("string","Optional active sketch session identity."));
     const auto textValue=parameter("string","One to sixteen uppercase Latin letters or digits in a pinned DejaVu Sans font.");
@@ -1731,9 +1795,10 @@ void AlloyWindow::registerCommands() {
             if(a.contains("session") && a["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
             cancelTwoPointRectangle();view_->setFocus();return QJsonObject{{"pending",false},{"authoredChange",false}};
         });
-    auto sketchTool=parameter("string","Drawing tool in the active sketch context.");sketchTool["enum"]=QJsonArray{"select","point","line","rectangle","centerRectangle","circle","twoPointCircle","centerArc","threePointArc","dimension","fillet","trim","offset","mirror"};
+    auto sketchTool=parameter("string","Drawing tool in the active sketch context.");sketchTool["enum"]=QJsonArray{"select","point","line","rectangle","centerRectangle","centerPointSlot","circle","twoPointCircle","centerArc","threePointArc","dimension","fillet","trim","offset","mirror"};
     add("sketch.tool","Sketch drawing tool","Choose a tool and clear its pending first point.",{{"tool",sketchTool}},[this](const auto& a){
         if(session_.value("command").toString()!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
+        view_->cancelSlotPointDrag();
         auto badgeSelection=session_.value("selection").toObject();badgeSelection.remove("constraintIds");badgeSelection.remove("dimensionId");
         session_["selection"]=badgeSelection;session_.remove("hoveredConstraintId");
         const bool leavingFillet=session_.value("tool")=="fillet";
@@ -1745,6 +1810,7 @@ void AlloyWindow::registerCommands() {
         cancelLineLength();
         cancelCenterRectangle();
         cancelTwoPointRectangle();
+        hideSlotEditor();
         if(leavingMirror){
             if(session_.contains("pendingSketchMirror"))execute("sketch.mirrorCancel");
             session_.remove("mirrorSelection");
@@ -1992,7 +2058,7 @@ void AlloyWindow::registerCommands() {
         const bool circleCenter=tool=="circle" && !session_.contains("firstPoint");
         const bool circleCircumference=tool=="circle" && session_.contains("firstPoint");
         const auto snap=circleCircumference ? resolveCircleTangentSnap(a["x"].toDouble(),a["y"].toDouble(),plane)
-            : tool=="point" || tool=="line" || tool=="rectangle" || (tool=="centerRectangle" && !session_.contains("firstPoint")) || circleCenter
+            : tool=="point" || tool=="line" || tool=="rectangle" || (tool=="centerRectangle" && !session_.contains("firstPoint")) || (tool=="centerPointSlot" && !session_.contains("firstPoint")) || circleCenter
                 ? resolveSketchSnap(a["x"].toDouble(),a["y"].toDouble(),plane,circleCenter || tool=="centerRectangle" || tool=="line") : QJsonObject{};
         if(!snap.isEmpty()){session_["snap"]=snap;if(snap["status"]=="ambiguous")return failure("ambiguous_snap","Multiple sketch points are equally close; move toward the intended point");}
         auto point=snap.isEmpty() ? view_->sketchPoint(a["x"].toDouble(),a["y"].toDouble(),plane) : snap;
@@ -2009,6 +2075,41 @@ void AlloyWindow::registerCommands() {
         if(tool=="centerRectangle" && session_.contains("pendingCenterRectangle"))cancelCenterRectangle();
         if(tool=="rectangle" && session_.contains("pendingTwoPointRectangle"))return failure("pending_input_active","Accept or cancel the typed rectangle before clicking");
         if(tool=="circle" || tool=="twoPointCircle" || tool=="centerArc" || tool=="threePointArc")return sketchCurveGesture(point,true);
+        if(tool=="centerPointSlot") {
+            if(!session_.contains("firstPoint")){
+                session_["firstPoint"]=point;
+                return QJsonObject{{"placement",false},{"nextPoint","end arc center"}};
+            }
+            if(!session_.contains("secondPoint")){
+                const auto first=session_["firstPoint"].toObject();
+                if(session_.contains("pendingSlotTyped")) {
+                    const auto typed=session_["pendingSlotTyped"].toObject();
+                    if(!typed["valid"].toBool() || typed["phase"]!="direction")return failure("invalid_slot_input","Enter a valid half-length and angle");
+                    const double angle=typed["angleDeg"].toDouble()*std::numbers::pi/180.0;
+                    point={{"uMm",first["uMm"].toDouble()+typed["halfLengthMm"].toDouble()*std::cos(angle)},
+                        {"vMm",first["vMm"].toDouble()+typed["halfLengthMm"].toDouble()*std::sin(angle)}};
+                }
+                if(std::hypot(point["uMm"].toDouble()-first["uMm"].toDouble(),point["vMm"].toDouble()-first["vMm"].toDouble())<0.001)
+                    return failure("slot_half_length_required","Place the end arc center away from the slot center");
+                session_["secondPoint"]=point;hideSlotEditor();return QJsonObject{{"placement",false},{"nextPoint","straight side width"}};
+            }
+            const auto first=session_["firstPoint"].toObject(),second=session_["secondPoint"].toObject();
+            const double cx=first["uMm"].toDouble(),cy=first["vMm"].toDouble();
+            const double dx=second["uMm"].toDouble()-cx,dy=second["vMm"].toDouble()-cy;
+            double width=2*std::abs((dx*(point["vMm"].toDouble()-cy)-dy*(point["uMm"].toDouble()-cx))/std::hypot(dx,dy));
+            if(session_.contains("pendingSlotTyped")) {
+                const auto typed=session_["pendingSlotTyped"].toObject();
+                if(!typed["valid"].toBool() || typed["phase"]!="width")return failure("invalid_slot_input","Enter a valid full width");
+                width=typed["widthMm"].toDouble();
+            }
+            QJsonObject inputs{{"centerX",cx},{"centerY",cy},{"endX",second["uMm"]},{"endY",second["vMm"]},
+                {"width",width},{"units","mm"}};
+            if(first["status"]=="acquired")inputs["centerSnapTarget"]=first["target"];
+            const auto response=appendCenterPointSlot(inputs);
+            if(response.value("ok").isBool() && !response["ok"].toBool())return response;
+            session_.remove("firstPoint");session_.remove("secondPoint");hideSlotEditor();view_->clearSketchCursor();
+            return QJsonObject{{"placement",true},{"draftSketch",session_.value("draftSketch")}};
+        }
         if(!session_.contains("firstPoint")){session_["firstPoint"]=point;return QJsonObject{{"placement",false},{"firstPoint",point}};}
         const bool lockedLine=tool=="line" && session_.contains("pendingLineLength");
         if(lockedLine) {
@@ -2077,7 +2178,7 @@ void AlloyWindow::registerCommands() {
         }
         const bool circleCenter=tool=="circle" && !session_.contains("firstPoint");
         const bool circleCircumference=tool=="circle" && session_.contains("firstPoint");
-        const bool snapping=tool=="point" || tool=="line" || tool=="rectangle" || (tool=="centerRectangle" && !session_.contains("firstPoint")) || circleCenter || circleCircumference;
+        const bool snapping=tool=="point" || tool=="line" || tool=="rectangle" || (tool=="centerRectangle" && !session_.contains("firstPoint")) || (tool=="centerPointSlot" && !session_.contains("firstPoint")) || circleCenter || circleCircumference;
         const auto snap=circleCircumference ? resolveCircleTangentSnap(a["x"].toDouble(),a["y"].toDouble(),plane)
             : snapping ? resolveSketchSnap(a["x"].toDouble(),a["y"].toDouble(),plane,circleCenter || tool=="centerRectangle" || tool=="line") : QJsonObject{};
         if(tool=="point") {
@@ -2106,10 +2207,32 @@ void AlloyWindow::registerCommands() {
             auto pointer=session_.value("pointerPoint").toObject();pointer["direction"]=point["direction"];session_["pointerPoint"]=pointer;
         }
         const auto first=session_.value("firstPoint").toObject();
+        if(tool=="centerPointSlot" && session_.contains("secondPoint")) {
+            const auto second=session_["secondPoint"].toObject();
+            const double cx=first["uMm"].toDouble(),cy=first["vMm"].toDouble();
+            const double dx=second["uMm"].toDouble()-cx,dy=second["vMm"].toDouble()-cy;
+            double width=2*std::abs((dx*(point["vMm"].toDouble()-cy)-dy*(point["uMm"].toDouble()-cx))/std::hypot(dx,dy));
+            const auto typed=session_.value("pendingSlotTyped").toObject();
+            if(typed["phase"]=="width" && typed["valid"].toBool())width=typed["widthMm"].toDouble();
+            if(width<0.002){view_->clearSketchCursor();return QJsonObject{{"authoredChange",false}};}
+            QJsonObject canonical{{"centerUMm",cx},{"centerVMm",cy},{"endUMm",second["uMm"]},{"endVMm",second["vMm"]},{"widthMm",width}};
+            if(first["status"]=="acquired")canonical["centerSnapTarget"]=first["target"];
+            const auto preview=SketchGeometry::addCenterPointSlot(session_["draftSketch"].toObject(),canonical,session_.value("projectionContext").toObject());
+            if(preview.ok)view_->showSketchSlotCursor(preview.feature);else view_->clearSketchCursor();
+            return QJsonObject{{"authoredChange",false},{"previewed",preview.ok},{"widthMm",width}};
+        }
         if(tool=="circle" || tool=="twoPointCircle" || tool=="centerArc" || tool=="threePointArc") {
             auto preview=sketchCurveGesture(point,false);
             if(circleCircumference){view_->showSketchSnap(plane,snap);preview["snap"]=snap;}
             return preview;
+        }
+        if(tool=="centerPointSlot") {
+            const auto typed=session_.value("pendingSlotTyped").toObject();
+            if(typed["phase"]=="direction" && typed["valid"].toBool()){
+                const double angle=typed["angleDeg"].toDouble()*std::numbers::pi/180.0;
+                point={{"uMm",first["uMm"].toDouble()+typed["halfLengthMm"].toDouble()*std::cos(angle)},
+                    {"vMm",first["vMm"].toDouble()+typed["halfLengthMm"].toDouble()*std::sin(angle)}};
+            }
         }
         view_->showSketchCursor(plane,{first["uMm"].toDouble(),first["vMm"].toDouble()},{point["uMm"].toDouble(),point["vMm"].toDouble()},tool=="rectangle" || tool=="centerRectangle",tool=="centerRectangle");
         if(tool=="line" && session_.value("pendingLineLength").toObject().value("phase")=="locked")showLineLockCue(point);
@@ -2125,10 +2248,12 @@ void AlloyWindow::registerCommands() {
     });
     add("sketch.finish","Finish Sketch","Commit the active sketch draft through the shared undo authority.",{},[this](const auto&){
         if(!session_.value("command").toString().startsWith("sketch."))return failure("no_active_sketch","Enter a sketch first");
+        hideSlotEditor();
         return finishSession(session_.value("id").toString(),true);
     });
     add("sketch.cancel","Cancel Sketch","Discard the active sketch draft without an undo entry.",{},[this](const auto&){
         if(!session_.value("command").toString().startsWith("sketch."))return failure("no_active_sketch","Enter a sketch first");
+        hideSlotEditor();
         return finishSession(session_.value("id").toString(),false);
     });
     add("view.projectSketchPoint","Project sketch coordinate","Project canonical sketch millimeters into viewport-local logical pixels.",{{"plane",optional(sketchPlane)},{"sketchId",optional(sketchId)},{"uMm",coordinate},{"vMm",coordinate}},[this](const auto& a){
@@ -3315,6 +3440,10 @@ void AlloyWindow::refresh() {
         else if(tool=="twoPointCircle")prompt=session_.contains("pendingCircleDiameter") ?
             "Type diameter · Return places · Escape cancels" : session_.contains("firstPoint") ?
             "Move toward second endpoint · Type diameter or click" : "Click first diameter endpoint";
+        else if(tool=="centerPointSlot")prompt=session_.contains("secondPoint") ?
+            "Click a straight side edge to set full width · Escape ends Slot" :
+            session_.contains("firstPoint") ? "Click one end arc center to set half-length and angle" :
+                "Click the slot center · Origin snap adds Coincident";
         else if(tool=="line")prompt=session_.value("pendingLineLength").toObject().value("phase")=="locked"
             ? QString("%1 %2 locked · Point sets %3 · Click places · Escape ends chain").arg(
                 QString::number(session_.value("pendingLineLength").toObject()["lengthMm"].toDouble()/(inputs["units"]=="in" ? 25.4 : 1),'g',9),
@@ -3879,6 +4008,7 @@ QJsonObject AlloyWindow::beginSession(const QString& command, const QJsonObject&
 
 QJsonObject AlloyWindow::finishSession(const QString& id, bool commit) {
     if (session_.isEmpty() || session_.value("id").toString() != id) return failure("invalid_session", "Session is no longer active");
+    view_->cancelSlotPointDrag();
     const auto target = session_.value("command").toString();
     QJsonObject result{{"sessionId", id}, {"status", commit ? "committed" : "cancelled"}};
     if(commit && target=="sketch.plane")return failure("plane_required","Choose an origin plane before finishing a sketch");
@@ -4277,6 +4407,70 @@ QJsonObject AlloyWindow::appendCenterRectangle(const QJsonObject& inputs) {
     if(inputs.contains("centerSnapTarget"))canonical["centerSnapTarget"]=inputs["centerSnapTarget"];
     if(inputs.contains("drivingSize"))canonical["drivingSize"]=inputs["drivingSize"];
     return publishSketchSolve(SketchGeometry::addCenterRectangle(session_.value("draftSketch").toObject(),canonical,session_.value("projectionContext").toObject()));
+}
+
+QJsonObject AlloyWindow::appendCenterPointSlot(const QJsonObject& inputs) {
+    if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
+    if(inputs.contains("session") && inputs["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
+    if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))return failure("stale_session","The document changed; cancel and restart this sketch");
+    const auto units=inputs.value("units").toString(session_.value("inputs").toObject()["units"].toString());
+    QJsonObject canonical{{"centerUMm",CadDocument::millimeters(inputs["centerX"].toDouble(),units)},
+        {"centerVMm",CadDocument::millimeters(inputs["centerY"].toDouble(),units)},
+        {"endUMm",CadDocument::millimeters(inputs["endX"].toDouble(),units)},
+        {"endVMm",CadDocument::millimeters(inputs["endY"].toDouble(),units)},
+        {"widthMm",CadDocument::millimeters(inputs["width"].toDouble(),units)}};
+    if(inputs.contains("centerSnapTarget"))canonical["centerSnapTarget"]=inputs["centerSnapTarget"];
+    return publishSketchSolve(SketchGeometry::addCenterPointSlot(session_.value("draftSketch").toObject(),canonical,
+        session_.value("projectionContext").toObject()));
+}
+
+void AlloyWindow::hideSlotEditor() {
+    if(slotEditor_)slotEditor_->hide();
+    session_.remove("pendingSlotTyped");
+}
+
+void AlloyWindow::showSlotEditor(const QString& initialText) {
+    if(!slotEditor_) {
+        slotEditor_=new QFrame(view_);slotEditor_->setObjectName("sketchSlotEditor");
+        slotEditor_->setAttribute(Qt::WA_NativeWindow);slotEditor_->setStyleSheet(
+            "#sketchSlotEditor { background: #f7f8f9; border: 1px solid #9aabb8; } QLineEdit { background: white; color: #20252a; padding: 5px; }");
+        auto* layout=new QVBoxLayout(slotEditor_);layout->setContentsMargins(8,8,8,8);layout->setSpacing(4);
+        slotInputHint_=new QLabel;slotInputHint_->setWordWrap(true);
+        slotInputHint_->setStyleSheet("color: #334754; background: #f7f8f9; font-size: 11px;");layout->addWidget(slotInputHint_);
+        slotDistance_=new QLineEdit;slotDistance_->setObjectName("sketch.slot.halfLength");slotDistance_->setPlaceholderText("Half-length");layout->addWidget(slotDistance_);
+        slotAngle_=new QLineEdit;slotAngle_->setObjectName("sketch.slot.angle");slotAngle_->setPlaceholderText("Angle (deg)");layout->addWidget(slotAngle_);
+        slotWidth_=new QLineEdit;slotWidth_->setObjectName("sketch.slot.width");slotWidth_->setPlaceholderText("Full width");layout->addWidget(slotWidth_);
+        auto update=[this]{
+            if(session_.value("tool")!="centerPointSlot")return;
+            const bool widthStage=session_.contains("secondPoint");
+            const auto response=execute("sketch.slotTypedInput",widthStage ? QJsonObject{{"widthText",slotWidth_->text()}}
+                : QJsonObject{{"distanceText",slotDistance_->text()},{"angleText",slotAngle_->text()}});
+            if(slotInputHint_)slotInputHint_->setText(response.value("ok").toBool() ?
+                (widthStage ? "Click side edge to place · Escape cancels" : "Tab sets angle · Click end center to continue") :
+                response.value("error").toObject().value("message").toString());
+        };
+        connect(slotDistance_,&QLineEdit::textChanged,this,[update](const QString&){update();});
+        connect(slotAngle_,&QLineEdit::textChanged,this,[update](const QString&){update();});
+        connect(slotWidth_,&QLineEdit::textChanged,this,[update](const QString&){update();});
+        connect(slotDistance_,&QLineEdit::returnPressed,this,[this]{slotAngle_->setFocus();slotAngle_->selectAll();});
+        connect(slotAngle_,&QLineEdit::returnPressed,this,[this]{sketchResponse(execute("sketch.slotTypedAccept"));});
+        connect(slotWidth_,&QLineEdit::returnPressed,this,[this]{sketchResponse(execute("sketch.slotTypedAccept"));});
+        auto* escape=new QShortcut(QKeySequence(Qt::Key_Escape),slotEditor_);escape->setContext(Qt::WidgetWithChildrenShortcut);
+        connect(escape,&QShortcut::activated,this,[this]{sketchResponse(execute("sketch.tool",{{"tool","select"}}));});
+        slotEditor_->setFixedWidth(220);
+    }
+    const bool widthStage=session_.contains("secondPoint");
+    slotDistance_->setVisible(!widthStage);slotAngle_->setVisible(!widthStage);slotWidth_->setVisible(widthStage);
+    slotInputHint_->setText(widthStage ? "Full width · Click side edge to place" : "Half-length · Tab angle · Click end center");
+    auto* field=widthStage ? slotWidth_ : slotDistance_;
+    {const QSignalBlocker block(field);field->setText(initialText);}
+    if(!widthStage && slotAngle_->text().isEmpty()){
+        const QSignalBlocker block(slotAngle_);slotAngle_->setText("0");
+    }
+    slotEditor_->adjustSize();slotEditor_->move(std::max(8,view_->width()-slotEditor_->width()-16),40);
+    slotEditor_->show();slotEditor_->raise();field->setFocus();field->setCursorPosition(field->text().size());
+    if(!initialText.isEmpty())execute("sketch.slotTypedInput",widthStage ? QJsonObject{{"widthText",initialText}}
+        : QJsonObject{{"distanceText",initialText},{"angleText",slotAngle_->text()}});
 }
 
 QJsonObject AlloyWindow::appendCircleOffset(const QJsonObject& inputs,bool update) {
@@ -4909,6 +5103,7 @@ void AlloyWindow::recordSketchHistory(const QJsonObject& draft,const QJsonObject
 QJsonObject AlloyWindow::traverseSketchHistory(int direction) {
     if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))
         return failure("stale_session","The document changed; cancel and restart this sketch");
+    view_->cancelSlotPointDrag();
     if(session_.contains("pendingSketchMirror")){
         session_.remove("pendingSketchMirror");const auto draft=session_["draftSketch"].toObject();
         view_->showSketchDraft(evaluateSketchDraft(draft));displayedSketchDraft_=draft;view_->setFocus();

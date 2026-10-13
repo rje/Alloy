@@ -37,6 +37,10 @@ public:
     // a retained center point, and driving width/height dimensions.
     static SolveResult addCenterRectangle(const QJsonObject& draft, const QJsonObject& arguments,
         const QJsonObject& projectionContext = {});
+    // Center, one end-center direction/half-length and full width. The guide is
+    // construction geometry; the four outer analytic edges form one profile.
+    static SolveResult addCenterPointSlot(const QJsonObject& draft, const QJsonObject& arguments,
+        const QJsonObject& projectionContext = {});
     // Pointer creation is transactional. Optional startSnapTarget/endSnapTarget
     // are {kind:origin}, {kind:point,pointId:UUID}, or for Line endpoints
     // {kind:midpoint,entityId:lineUUID}. Accepted snaps retain distinct
