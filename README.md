@@ -266,3 +266,7 @@ The [countersunk plate tutorial](docs/validation/countersunk-plate-tutorial.md)
 now passes its full source sequence with named parameters, a retained Point,
 Countersink Hole and nine-instance Spacing/Adjust, a complete creation movie,
 editable file and independently checked STL.
+
+[Center Point Slot](docs/validation/center-point-slot.md) is independently accepted:
+center-first pointer/typed creation, retained analytic geometry, construction guide,
+H/V and D150/R25 constraints, edits, cancellation and history/reopen.
