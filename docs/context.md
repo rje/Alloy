@@ -1930,3 +1930,20 @@ existing native Revolve input test passes3/3. Actualwidget inspection is in
 app.state.ui.ribbon. See validation/ribbon-icons.md for bounded evidence and
 physical/cross-platform limits. Independent capture acceptance remains pending.
 Broader contextual toolbar and interface work stays in parent11.
+## Illustrated Revolve gate candidate complete (2026-10-13)
+
+TUT-008 #217 ran against accepted integrated controls checkpoint 8529a0a from a
+blank design: all source steps 39–50, real Centerline/full diameters, automatic
+Profile/Axis, coordinate-derived Partial 70° drag, Full commit, named-view exploration
+and labeled save/STL extension are recorded. The independently authored rough
+polygon matches its Pappus oracle (501961.579795 mm³); sketch remains truthfully
+underconstrained at 8 DOF. Strict millimeter STL readback passes 2392 closed/oriented
+facets and 165×165×50 bounds. Retained Ø110 edit/history passes; exact original and
+edited reopen was completed in an explicitly separate short recovery after fixing
+an omitted discard argument, not claimed as uninterrupted success. Movie is 86.5s
+with API/step captions and no EDITED banner. Astra source/artifact/strict-reader
+review reports no bounded blocker. Private editor exited; GUI slot released.
+Final acceptance and board counts are root-owned. See
+[the source-step and visual receipt](validation/revolve-tutorial.md) and
+[runner](../tests/revolve_tutorial_api.py). No exact geometry/pixel/physical-input
+claim or broader Revolve-mode qualification follows.
