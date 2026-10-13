@@ -56,3 +56,12 @@ The focused pole, multibody and new regression suite passes 3/3 in 2.55 seconds.
 Accept this bounded source/core export correction. The separate saved original
 and edited ornament re-exports remain pending at this review; this receipt does
 not close the full cumulative tutorial gate or claim native interaction coverage.
+
+## Actual saved-model runtime acceptance
+
+The targeted actual-app `reexport-01` now passes both saved original and edited
+ornament exports with the unchanged strict checker. Independent source-hash and
+facet-byte comparison confirms all coordinate/attribute bytes and facet counts
+are unchanged, while serialized normals are corrected. See
+[aggregate tutorial acceptance](ornament-tutorial-acceptance.md) for exact
+artifacts, hashes and preserved initial failure. Accept #269 runtime.
