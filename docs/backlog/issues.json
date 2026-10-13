@@ -4209,7 +4209,8 @@
         "SOL-020",
         "SOL-022",
         "SKT-030",
-        "PRT-001"
+        "PRT-001",
+        "SOL-034"
       ],
       "labels": [
         "area:tut"
@@ -4243,6 +4244,21 @@
         "area:skt"
       ],
       "body": "## Observed limitation\nThe bounded rounded-rectangle slice SKT-043 converts original driving 60/30 dimensions into honest measured overall spans and discloses release of the corner-origin coincidence. A radius edit can then change outer size; the prototype 6 to 5.5 mm edit produced approximately 59.6999 by 29.6996 mm. This preserves measurement meaning but not original design intent.\n\n## Scope and intended result\nResearch and implement retained driving overall width/height and origin anchoring for an ordinary dimensioned rectangle with four sketch fillets. Width, height and radius remain independently editable where geometrically valid; changing radius alone keeps the authored outer size and placement. Use existing solver/constraint facilities where possible. Do not hide overconstraints or relabel driven values as driving.\n\n## Acceptance\n- Origin-based 60 by 30 rectangle with four R6 fillets retains driving 60/30 intent and stable dimension IDs; edit a radius to 5.5 without translating or shrinking the outer rectangle.\n- Supported width/height edits rebuild fillets and downstream extrusion with retained feature identity; impossible radii refuse atomically with useful attribution.\n- Explain dimensions anchored to removed sharp corners using researched, readable annotation behavior and explicit authored references. Preserve existing driven-span documents and loading behavior.\n- Preview, Cancel, undo/redo and exact save/reopen retain the same authority. Verify one focused core fixture and one real-app edit chain with readable dimension states.\n\n## Limits and provenance\nThis is follow-up parametric functionality, not a claim about undocumented source internals. Public keyring source ID warwick-initials-keyring-20261013 leaves post-fillet drivenness unknown, so its bounded tutorial gate may use explicitly disclosed reference conversion. Broader arbitrary-corner dimensions are outside this first follow-up; record any remaining scope rather than silently dropping it.\n"
+    },
+    {
+      "key": "SOL-034",
+      "title": "Retain circular hole rim edges after Extrude Cut for downstream Fillet",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SOL-015",
+        "SOL-022"
+      ],
+      "labels": [
+        "area:sol"
+      ],
+      "body": "## Observed prerequisite\nPreparing TUT-010 found that Extrude Cut creates prism tools without retaining their edge provenance. Only preexisting target solidEdges are transferred. A new circular hole rim therefore lacks a stable selectable edge for the source-prescribed upper-edge R1 Fillet.\n\n## Bounded scope\nRetain the new circular hole entry rim from an analytic circle extrusion Cut using existing kernel history and profile identities. Expose it through the same edge descriptors and viewport selection used by solid Fillet. Avoid coordinate-only or transient topology-index identity. Broader arbitrary Boolean intersection edge naming stays with existing topology owners.\n\n## Acceptance\n- On a 2mm floor, author a face-supported diameter4 circle and Cut -10mm. Inspect/select the new upper hole rim and apply R1 solid Fillet through existing commands.\n- Retained edge identity survives a supported circle diameter edit, or refuses an ambiguous/invalid change atomically with attribution; verify one edit and undo.\n- Save/reopen keeps Cut, edge reference and Fillet. The broad remaining floor stays usable as a sketch support for subsequent Text.\n- One focused kernel check and one actual-app chain with readable selected rim/fillet preview are enough; reuse the full keyring gate for cumulative evidence.\n\n## Reference\nPublic source warwick-initials-keyring-20261013 page5 step18. Detailed public evidence and visuals remain outside the repository. This records a discovered prerequisite, not completed behavior.\n"
     }
   ]
 }

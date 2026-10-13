@@ -105,7 +105,8 @@
         "SKT-045",
         "SKT-046",
         "SKT-047",
-        "TUT-010"
+        "TUT-010",
+        "SOL-034"
       ],
       "acceptance": "Typed two-point Rectangle, sequential fillets, retained rounded-loop offset/rim, two-point Circle cut, hole fillet and editable placed text Join, with full creation movie and checked STL.",
       "status": "in_progress",

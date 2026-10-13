@@ -15,7 +15,7 @@ visual parity remain qualified. The external
 editable models and STL deliverables. The Revolve receipt is
 [validation/revolve-tutorial.md](validation/revolve-tutorial.md).
 
-**111 of 235 issues are closed.** Recent accepted work includes compact ribbon
+**111 of 236 issues are closed.** Recent accepted work includes compact ribbon
 icons #218, retained Extrude Intersect #219, nested profile/island diagnostics
 #165, portable local controls #220, shared-line fillets #221, typed Line length
 locks #222, retained Sweep #223 and native Sweep controls #224. Each has a scoped
@@ -49,7 +49,9 @@ validation/sketch-text.md. The two active children have separate Sol worktrees. 
 is independently accepted and closed; see validation/sketch-text-controls.md.
 Rounded fillets #228 are independently accepted and closed; see
 validation/rounded-rectangle-fillets.md. Offset #229 now follows; full gate #233 runner preparation is active in a
-separate worktree, with execution waiting for accepted #229/#230 integration. Follow-up #235 tracks driving overall size/origin retention through
+separate worktree, with execution waiting for accepted #229/#230 integration. Cut rim provenance #236 is a newly discovered prerequisite for the source R1 hole
+fillet; full gate preparation exposed the missing retained edge descriptors.
+Follow-up #235 tracks driving overall size/origin retention through
 sketch fillets; #228 permits explicit measured-span conversion, so radius edits
 can alter overall size. Text retains authored parameters and uses mature font
 outlines; generated glyph curves are not individual solver entities. Detailed
