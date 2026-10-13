@@ -26,25 +26,39 @@ separate from Qt widget events. Plane viewport-profile context, amber preview,
 numeric Enter completion and modal capture are verified. The broader inline
 arrow presentation remains in #56.
 
-Mirror #188, multi-body STL #193 and Center Rectangle #189 are integrated
-through8026f86. Independent verifier overnight_specs owns the desktop for their
-focused Qt and real-app review. Root fixed Mirror guards that inserted a null
-command into idle sessions in11245c4; review rerun is pending. Do not rebuild or
-launch another private app until the verifier releases the slot.
+Center Rectangle #189 and multi-body STL #193 have independent bounded
+acceptance and are closed; see their independent validation receipts. Mirror
+#188 geometry/input passes but panel clipping and selected-source visibility
+required fixes (integrated9eee023), awaiting Astra final review.
 
-Root owns named planar faces #187 and the full nested-cubes runner
-(tests/nested_cubes_api.py, prepared but not run). Focused named-face lineage
-checks pass, including outward orientation, unique descendant transfer and
-source edit/history. Full Shell/Mirror/Combine/Cut/Fillet chain evidence remains
-required before acceptance. Complete nested-cubes gate #172 remains open.
+Root's full nested-cubes runner tests/nested_cubes_api.py now passes actual
+blank-to-two-body geometry, three orthogonal cuts, twelve edge fillets, offset
+plane/center rectangle, upstream Shell edit/undo/redo and exact reopen. Independent
+strict STL reader verifies two closed oriented components, inner bounds6.5..18.5
+and volume1728. Binary precision collapsed eight rounded-pole triangles; detached
+export-mesh filtering fixes this (#194 PRT-006), with unchanged manifold checks.
+Full movie53.4seconds at external demos/2026-10-13/nested-cubes/
+nested-cubes-from-blank.mp4; evidence/nested-cubes-movie contains editable file,
+STL, captures and transcript. Gate #172 remains open pending independent review.
+Named planar faces #187 now allow evaluated producer/body lineage through Mirror
+and Combine; exact kernel face references still validate every attachment.
 
-Sol planes_finish owns circular-section Loft #190 in tutorial-loft; focused
-section/Shell/edit/history tests and build pass, candidate integration pending.
-Sol tutorial_shell owns retained circle Offset #192 in tutorial-circle-offset.
-Feature Rectangular Pattern #191 remains Todo. All three full tutorial gates
-are open. Public step/visual ledgers for nested cubes, egg cup and exact toy-block
-video selections live externally under knowledge/tutorials. Native input,
-API, geometry and visual claims must remain separate.
+Loft #190 integrated973d95e, bounded circular section/Shell tests pass; Astra owns
+the exclusive desktop for corrected Mirror, authorized modal shutdown #195,
+nested outcome/movie and Loft interaction/visual review. Root must not rebuild
+or launch until released. tests/widget_interactions.cpp remains verifier-owned.
+Root prepared tests/egg_cup_api.py for full source-sized export/movie; NOT RUN.
+Astra's existing Loft script edits final dimensions and is feature verification,
+not the final source-sized egg-cup deliverable.
+
+Circle Offset #192 ready as49ebe3f, not integrated while Astra uses desktop.
+Sol tutorial_shell now owns #196 SKT-033 inner Shell roof and occurrence-aware
+recess-center references in a new isolated worktree. Sol planes_finish owns #191
+additive feature Rectangular Pattern in tutorial-pattern. Both coordinate optional
+occurrenceId provenance without changing legacy reference identity. Public source
+contract external knowledge/tutorials/toy-block/inner-roof-reference-contract.json.
+All three overnight full tutorial gates remain open. Native input, API, geometry
+and visual claims remain separate; CUA OS events are currently unavailable.
 
 ## Complete support demo (2026-10-12)
 

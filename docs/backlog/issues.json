@@ -1673,7 +1673,8 @@
         "HIS-002",
         "HIS-004",
         "FND-010",
-        "SKT-032"
+        "SKT-032",
+        "SKT-033"
       ],
       "labels": [
         "area:tut"
@@ -3227,7 +3228,8 @@
         "GEO-002",
         "SKT-030",
         "SKT-031",
-        "PRT-005"
+        "PRT-005",
+        "PRT-006"
       ],
       "labels": [
         "kind:validation",
@@ -3593,6 +3595,49 @@
         "area:prt"
       ],
       "body": "## Scope and acceptance\nBounded extension of accepted single-solid printing export. Nested cubes finishes with two distinct material solids: pierced hollow outer cube and centered12mm inner cube. Allow explicit multiple selected bodies or all active visible bodies, keep single-body behavior and units. Mesh each real valid solid into one STL while preserving relative placement; verify two closed oriented connected mesh components, bounds/clearance and independent readback. Shared export UI/API, clear selection and file errors; never silently omit the inner cube. No slicer/physical print success claim without evidence.\n\n## Source and verification\nPublic tutorial sources retrieved2026-10-12, detailed step ledgers and images in the external knowledge/tutorials archive. Require independent Astra review and source-step coverage, with geometry, API, input and visuals distinguished. This issue is Todo, not evidence of implementation.\n"
+    },
+    {
+      "key": "PRT-006",
+      "title": "Remove binary STL facets collapsed by output precision",
+      "kind": "implementation",
+      "phase": "P3 Shapes, exchange, and printing",
+      "priority": "P1",
+      "depends_on": [
+        "PRT-005"
+      ],
+      "labels": [
+        "area:prt"
+      ],
+      "body": "## Scope and acceptance\nThe full nested-cubes export exposed eight triangles whose distinct double vertices collapse to one binary float position at rounded corner poles. Filter zero-area facets at output precision on detached mesh; retain OCCT normals/writer and atomic export. Verify complete nested cubes remains two closed consistently oriented components, inner bounds6.5..18.5 and volume1728, accurate triangle count, no authored change. Do not weaken independent manifold checks.\n\nDiscovered in real application verification2026-10-13. Root owns the bounded correction and independent review; broader tutorial gates remain open.\n"
+    },
+    {
+      "key": "FND-019",
+      "title": "Honor authorized API shutdown with mesh export modal open",
+      "kind": "implementation",
+      "phase": "P0 Foundation",
+      "priority": "P1",
+      "depends_on": [
+        "FND-003"
+      ],
+      "labels": [
+        "area:fnd"
+      ],
+      "body": "## Scope and acceptance\nIndependent export review found app.quit(discard:true) returned success but the process stayed alive with Save As Mesh open. Reject the owned modal before authorized application quit; preserve existing unsaved-design protection. Verify actual modal-open quit exits0 and the API response is delivered.\n\nDiscovered in real application verification2026-10-13. Root owns the bounded correction and independent review; broader tutorial gates remain open.\n"
+    },
+    {
+      "key": "SKT-033",
+      "title": "Retain Shell inner roof and occurrence-aware recess center references",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SOL-024",
+        "SOL-027"
+      ],
+      "labels": [
+        "area:skt"
+      ],
+      "body": "## Scope and acceptance\nBounded toy-block prerequisite: eight-stud bottom Shell1.49 offers the actual inner planar roof at z8.11, normal negative Z, and eight distinct circular recess centers. Derive stable roof identity from Shell feature and source-face kernel offset history; no nearest-face guessing. Preserve optional pattern occurrenceId alongside actual source sketch/entity identity in center schema, hashing, dedup and validation. Absent occurrence keeps legacy IDs.\n\nCreate inner-roof sketch, diagonal from recess(3.9,3.9) to(11.9,11.9), then midpoint(7.9,7.9) circle diameter6.3. Verify retained plane under thickness edit, midpoint under pattern spacing edit, missing occurrence refusal, undo/reopen, real viewport center snaps and readable captures. Keep coplanarity protection. Offset/tubes belong to following tasks.\n\n## Reference and verification\nPublic toy-block source step9-10; external knowledge/tutorials/toy-block/inner-roof-reference-contract.json and toy-block-ledger.json record evidence and inferred dimensions. Require independent Astra review. Full toy-block gate remains open.\n"
     }
   ]
 }

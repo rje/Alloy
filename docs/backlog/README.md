@@ -7,7 +7,7 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current publication contains **193 issues**: **132 implementation, 15 research,
+The current publication contains **196 issues**: **135 implementation, 15 research,
 22 epics, and 24 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 
@@ -57,10 +57,10 @@ require macOS/Windows/Linux qualification; CI remains tag/manual only.
 
 | Phase | Count | Result |
 | --- | ---: | --- |
-| P0 Foundation | 22 | Public baseline, MIT dependency audit, document/naming/solver decisions, portable controls, native CI/packages/releases and hardware evidence |
+| P0 Foundation | 23 | Public baseline, MIT dependency audit, document/naming/solver decisions, portable controls, native CI/packages/releases and hardware evidence |
 | P1 Geometry/document | 18 | Real hardware-backed OCCT viewport, authored primitive document, selection, undo/save and STEP |
-| P2 Parametric modeling | 59 | Constrained sketches, parameters, editable extrusion/fillet chain and broader basic solid tools |
-| P3 Shape/import/print breadth | 27 | Solids/surfaces, common interchange and qualified printing export |
+| P2 Parametric modeling | 60 | Constrained sketches, parameters, editable extrusion/fillet chain and broader basic solid tools |
+| P3 Shape/import/print breadth | 28 | Solids/surfaces, common interchange and qualified printing export |
 | P4 Initial release | 8 | Robustness, recovery, packaging, performance, physical/visual workflow evidence |
 | P5 Assemblies/drawings | 10 | Components/joints, configurations and associative drawings |
 | P6 Advanced design | 11 | Sheet metal, direct/mesh/Form, advanced modeling, plastic rules and local presentation |
