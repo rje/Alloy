@@ -256,6 +256,8 @@ AlloyWindow::AlloyWindow() {
                 connect(action,&QAction::triggered,this,[this]{execute("sketch.circle");});
                 auto* text=menu->addAction("Sketch Text");text->setObjectName("solid.action.sketch.text");
                 connect(text,&QAction::triggered,this,[this]{execute("sketch.text");});
+                auto* twoPoint=circle->addAction("2-Point Circle");twoPoint->setObjectName("solid.action.sketch.twoPointCircle");
+                connect(twoPoint,&QAction::triggered,this,[this]{execute("sketch.twoPointCircle");});
             }
             button->setMenu(menu);button->setPopupMode(QToolButton::InstantPopup);box->addWidget(button,0,Qt::AlignHCenter);
         } else {
@@ -283,6 +285,7 @@ AlloyWindow::AlloyWindow() {
     auto toolAction=[this](QMenu* menu,const QString& label,const QString& tool) {
         auto* action=menu->addAction(label);action->setObjectName("sketch.tool."+tool);
         connect(action,&QAction::triggered,this,[this,tool]{sketchResponse(tool=="circle" ? execute("sketch.circle") :
+            tool=="twoPointCircle" ? execute("sketch.twoPointCircle") :
             tool=="rectangle" ? execute("sketch.twoPointRectangle") : execute("sketch.tool",{{"tool",tool}}));});return action;
     };
     auto* create=sketchMenu("Create","create");
@@ -294,6 +297,7 @@ AlloyWindow::AlloyWindow() {
     toolAction(circle,"Center Diameter Circle\tC","circle");
     auto* textAction=create->addAction("Sketch Text");textAction->setObjectName("sketch.action.text");
     connect(textAction,&QAction::triggered,this,[this]{sketchResponse(execute("sketch.text"));});
+    toolAction(circle,"2-Point Circle","twoPointCircle");
     auto* arc=create->addMenu("Arc");arc->setObjectName("sketch.commands.arc");
     toolAction(arc,"Center Point Arc","centerArc");toolAction(arc,"3-Point Arc","threePointArc");
     create->addSeparator();toolAction(create,"Sketch Dimension\tD","dimension");
@@ -483,7 +487,7 @@ AlloyWindow::AlloyWindow() {
             if(session_.value("command")=="solid.sphere"){if(previewSphere()["previewed"].toBool())execute("command.commit",{{"session",session_["id"]}});return;}
             if(session_.value("command")!="sketch.edit")return;
             if(session_.value("tool")=="offset" && session_.value("pendingOffset").toObject()["valid"].toBool())execute("sketch.offsetAccept");
-            else if(session_.value("tool")=="circle" && session_.value("pendingCircleDiameter").toObject().value("phase")=="locked")
+            else if((session_.value("tool")=="circle" || session_.value("tool")=="twoPointCircle") && session_.value("pendingCircleDiameter").toObject().value("phase")=="locked")
                 sketchResponse(execute("sketch.circleDiameterAccept"));
             else if(session_.value("tool")=="rectangle" && session_.contains("pendingTwoPointRectangle"))
                 sketchResponse(execute("sketch.twoPointRectangleAccept"));
@@ -572,13 +576,13 @@ bool AlloyWindow::eventFilter(QObject* watched,QEvent* event) {
         if(session_["inputs"].toObject().contains("uMm") && key->text().size()==1 && ((key->text()[0]>='0' && key->text()[0]<='9') || key->text()=="."))if(auto* field=sphereDock_->findChild<QDoubleSpinBox*>("sphereDiameter")){field->setFocus();field->selectAll();QApplication::sendEvent(field,event);return true;}
     }
     if(watched==view_ && event->type()==QEvent::KeyPress && session_.value("command")=="sketch.edit"
-        && (session_.value("tool")=="circle" || session_.value("tool")=="centerRectangle" || session_.value("tool")=="line" || session_.value("tool")=="rectangle") && session_.contains("firstPoint")
+        && (session_.value("tool")=="circle" || session_.value("tool")=="twoPointCircle" || session_.value("tool")=="centerRectangle" || session_.value("tool")=="line" || session_.value("tool")=="rectangle") && session_.contains("firstPoint")
         && !session_.contains("pendingDimension") && !session_.contains("pendingCircleDiameter") && !session_.contains("pendingCenterRectangle") && !session_.contains("pendingLineLength") && !session_.contains("pendingTwoPointRectangle")) {
         const auto* key=static_cast<QKeyEvent*>(event);
         const auto modifiers=key->modifiers();const auto character=key->text();
         if(!(modifiers&(Qt::ControlModifier|Qt::MetaModifier|Qt::AltModifier)) && character.size()==1
             && ((character[0]>=QLatin1Char('0') && character[0]<=QLatin1Char('9')) || character==".")) {
-            const auto response=session_.value("tool")=="circle" ? execute("sketch.circleDiameterPreview",{{"text",character}})
+            const auto response=(session_.value("tool")=="circle" || session_.value("tool")=="twoPointCircle") ? execute("sketch.circleDiameterPreview",{{"text",character}})
                 : session_.value("tool")=="line" ? execute("sketch.lineLengthPreview",{{"text",character}})
                 : execute(session_.value("tool")=="rectangle" ? "sketch.twoPointRectanglePreview" : "sketch.centerRectanglePreview",{{"widthText",character},{"heightText",""}});
             sketchResponse(response);return response.value("ok").toBool();
@@ -1326,6 +1330,19 @@ void AlloyWindow::registerCommands() {
         }
         return session_;
     });
+    add("sketch.twoPointCircle","2-Point Circle","Start a circle from the first diameter endpoint and a pointer direction.",sketchCreateSchema,[this](const auto& a){
+        if(session_.value("command")=="sketch.edit") {
+            if(!a.isEmpty())return failure("invalid_arguments","Active circle entry uses the current sketch support");
+            const auto response=execute("sketch.tool",{{"tool","twoPointCircle"}});
+            return response.value("ok").toBool() ? response.value("result").toObject() : response;
+        }
+        if(!session_.isEmpty())return failure("session_busy","Complete or cancel the active command first");
+        const auto response=execute("sketch.create",a);
+        if(!response.value("ok").toBool())return response;
+        session_[session_.value("command")=="sketch.plane" ? "pendingTool" : "tool"]="twoPointCircle";
+        if(session_.value("command")=="sketch.plane")showSketch();
+        view_->setFocus(Qt::OtherFocusReason);return session_;
+    });
     add("sketch.twoPointRectangle","Two-Point Rectangle","Start a corner rectangle before choosing an origin plane or supported planar face (R).",sketchCreateSchema,[this](const auto& a){
         if(session_.value("command")=="sketch.edit") {
             if(!a.isEmpty())return failure("invalid_arguments","Active rectangle entry uses the current sketch support");
@@ -1402,6 +1419,21 @@ void AlloyWindow::registerCommands() {
     add("sketch.addCircle","Center Diameter Circle","Append one exact analytic circle in the active sketch.",
         {{"centerX",coordinate},{"centerY",coordinate},{"diameter",coordinate},{"units",optional(units)},{"session",sketchSession}},
         [this](const auto& a){return appendSketchCurve("circle",a);});
+    add("sketch.addTwoPointCircle","2-Point Circle","Append a diameter-endpoint circle with retained first endpoint and direction.",
+        {{"startX",coordinate},{"startY",coordinate},{"endX",coordinate},{"endY",coordinate},{"diameter",coordinate},
+         {"units",optional(units)},{"session",sketchSession}},[this](const auto& a){
+            if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
+            if(a.contains("session") && a["session"]!=session_["id"])return failure("invalid_session","Session is no longer active");
+            const auto unit=a.value("units").toString(session_["inputs"].toObject()["units"].toString());
+            if(unit!="mm" && unit!="in")return failure("invalid_units","Circle coordinates use mm or in");
+            const double scale=unit=="in" ? 25.4 : 1.0;
+            const double du=(a["endX"].toDouble()-a["startX"].toDouble())*scale;
+            const double dv=(a["endY"].toDouble()-a["startY"].toDouble())*scale;
+            return publishSketchSolve(SketchGeometry::addTwoPointCircle(session_["draftSketch"].toObject(),
+                {{"startUMm",a["startX"].toDouble()*scale},{"startVMm",a["startY"].toDouble()*scale},
+                 {"directionU",du},{"directionV",dv},{"diameterMm",a["diameter"].toDouble()*scale}},
+                session_.value("projectionContext").toObject()));
+        });
     auto offsetDistance=parameter("number","Signed one-side circle offset in the supplied units.");offsetDistance["minimum"]=-100000;offsetDistance["maximum"]=100000;
     add("sketch.circleOffset","Offset Circle","Create one retained concentric circle from a source circle and signed radial offset.",
         {{"sourceEntityId",parameter("string","Authored source circle UUID.")},{"distance",offsetDistance},{"units",optional(units)},
@@ -1467,7 +1499,7 @@ void AlloyWindow::registerCommands() {
             if(a.contains("session") && a["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
             cancelTwoPointRectangle();view_->setFocus();return QJsonObject{{"pending",false},{"authoredChange",false}};
         });
-    auto sketchTool=parameter("string","Drawing tool in the active sketch context.");sketchTool["enum"]=QJsonArray{"select","line","rectangle","centerRectangle","circle","centerArc","threePointArc","dimension","fillet","trim","offset"};
+    auto sketchTool=parameter("string","Drawing tool in the active sketch context.");sketchTool["enum"]=QJsonArray{"select","line","rectangle","centerRectangle","circle","twoPointCircle","centerArc","threePointArc","dimension","fillet","trim","offset"};
     add("sketch.tool","Sketch drawing tool","Choose a tool and clear its pending first point.",{{"tool",sketchTool}},[this](const auto& a){
         if(session_.value("command").toString()!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
         auto badgeSelection=session_.value("selection").toObject();badgeSelection.remove("constraintIds");badgeSelection.remove("dimensionId");
@@ -1691,10 +1723,10 @@ void AlloyWindow::registerCommands() {
                 ? resolveSketchSnap(a["x"].toDouble(),a["y"].toDouble(),plane,circleCenter || tool=="centerRectangle") : QJsonObject{};
         if(!snap.isEmpty()){session_["snap"]=snap;if(snap["status"]=="ambiguous")return failure("ambiguous_snap","Multiple sketch points are equally close; move toward the intended point");}
         auto point=snap.isEmpty() ? view_->sketchPoint(a["x"].toDouble(),a["y"].toDouble(),plane) : snap;
-        if(tool=="circle" && session_.contains("pendingCircleDiameter") && session_.contains("firstPoint"))cancelCircleDiameter();
+        if((tool=="circle" || tool=="twoPointCircle") && session_.contains("pendingCircleDiameter") && session_.contains("firstPoint"))cancelCircleDiameter();
         if(tool=="centerRectangle" && session_.contains("pendingCenterRectangle"))cancelCenterRectangle();
         if(tool=="rectangle" && session_.contains("pendingTwoPointRectangle"))return failure("pending_input_active","Accept or cancel the typed rectangle before clicking");
-        if(tool=="circle" || tool=="centerArc" || tool=="threePointArc")return sketchCurveGesture(point,true);
+        if(tool=="circle" || tool=="twoPointCircle" || tool=="centerArc" || tool=="threePointArc")return sketchCurveGesture(point,true);
         if(!session_.contains("firstPoint")){session_["firstPoint"]=point;return QJsonObject{{"placement",false},{"firstPoint",point}};}
         const bool lockedLine=tool=="line" && session_.contains("pendingLineLength");
         if(lockedLine) {
@@ -1742,7 +1774,7 @@ void AlloyWindow::registerCommands() {
         if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision())){view_->clearSketchCursor();return QJsonObject{};}
         const auto plane=session_.value("inputs").toObject()["plane"].toString();
         const auto tool=session_.value("tool").toString();
-        if((tool=="circle" && session_.contains("pendingCircleDiameter")) || (tool=="centerRectangle" && session_.contains("pendingCenterRectangle")))
+        if(((tool=="circle" || tool=="twoPointCircle") && session_.contains("pendingCircleDiameter")) || (tool=="centerRectangle" && session_.contains("pendingCenterRectangle")))
             return QJsonObject{{"authoredChange",false}};
         if(tool=="trim") {const auto inputs=trimPointerInput(a);if(inputs.isEmpty()){session_.remove("pendingTrim");view_->clearSketchCursor();return QJsonObject{{"authoredChange",false}};}return previewTrim(inputs);}
         if(tool=="fillet") {
@@ -1785,7 +1817,7 @@ void AlloyWindow::registerCommands() {
             auto pointer=session_.value("pointerPoint").toObject();pointer["direction"]=point["direction"];session_["pointerPoint"]=pointer;
         }
         const auto first=session_.value("firstPoint").toObject();
-        if(tool=="circle" || tool=="centerArc" || tool=="threePointArc") {
+        if(tool=="circle" || tool=="twoPointCircle" || tool=="centerArc" || tool=="threePointArc") {
             auto preview=sketchCurveGesture(point,false);
             if(circleCircumference){view_->showSketchSnap(plane,snap);preview["snap"]=snap;}
             return preview;
@@ -2950,6 +2982,9 @@ void AlloyWindow::refresh() {
             "Diameter locked · Enter places circle · Escape cancels" : session_.contains("pendingCircleDiameter") ?
             "Type diameter · Tab locks or Return places · Escape cancels" :
             session_.contains("firstPoint") ? "Type a diameter or click the circumference" : "Click the circle center";
+        else if(tool=="twoPointCircle")prompt=session_.contains("pendingCircleDiameter") ?
+            "Type diameter · Return places · Escape cancels" : session_.contains("firstPoint") ?
+            "Move toward second endpoint · Type diameter or click" : "Click first diameter endpoint";
         else if(tool=="line")prompt=session_.value("pendingLineLength").toObject().value("phase")=="locked"
             ? QString("%1 %2 locked · Point sets %3 · Click places · Escape ends chain").arg(
                 QString::number(session_.value("pendingLineLength").toObject()["lengthMm"].toDouble()/(inputs["units"]=="in" ? 25.4 : 1),'g',9),
@@ -4135,10 +4170,11 @@ QJsonObject AlloyWindow::appendSketchCurve(const QString& tool,const QJsonObject
 
 QJsonObject AlloyWindow::sketchCurveGesture(const QJsonObject& point,bool commit) {
     const auto tool=session_["tool"].toString();
-    if(!session_.contains("firstPoint")) {if(commit)session_["firstPoint"]=point;return {{"placement",false},{"nextPoint",tool=="circle" ? "circumference" : tool=="centerArc" ? "start" : "end"}};}
+    if(!session_.contains("firstPoint")) {if(commit)session_["firstPoint"]=point;return {{"placement",false},{"nextPoint",tool=="circle" ? "circumference" : tool=="twoPointCircle" ? "diameter direction" : tool=="centerArc" ? "start" : "end"}};}
     const auto first=session_["firstPoint"].toObject();const double ax=first["uMm"].toDouble(),ay=first["vMm"].toDouble(),x=point["uMm"].toDouble(),y=point["vMm"].toDouble();
     QJsonObject inputs{{"units","mm"}};
     if(tool=="circle")inputs={{"centerX",ax},{"centerY",ay},{"diameter",2*std::hypot(x-ax,y-ay)},{"units","mm"}};
+    else if(tool=="twoPointCircle")inputs={{"diameter",std::hypot(x-ax,y-ay)},{"units","mm"}};
     else {
         if(!session_.contains("secondPoint")) {
             if(commit)session_["secondPoint"]=point;
@@ -4165,6 +4201,13 @@ QJsonObject AlloyWindow::sketchCurveGesture(const QJsonObject& point,bool commit
                 canonical["tangentSnapTarget"]=point["target"];
             return publishSketchSolve(SketchGeometry::addPointerCircle(session_["draftSketch"].toObject(),canonical,session_.value("projectionContext").toObject()));
         }
+        if(tool=="twoPointCircle") {
+            const double diameter=inputs["diameter"].toDouble();
+            if(diameter<0.002)return failure("invalid_circle_diameter","Move the second diameter endpoint away from the first");
+            return publishSketchSolve(SketchGeometry::addTwoPointCircle(session_["draftSketch"].toObject(),
+                {{"startUMm",ax},{"startVMm",ay},{"directionU",(x-ax)/diameter},{"directionV",(y-ay)/diameter},{"diameterMm",diameter}},
+                session_.value("projectionContext").toObject()));
+        }
         return appendSketchCurve(tool,inputs);
     }
     try {
@@ -4174,6 +4217,7 @@ QJsonObject AlloyWindow::sketchCurveGesture(const QJsonObject& point,bool commit
             : plane=="construction" ? SketchGeometry::newConstructionPlaneFeature(document_->activeOwnerId(),sketchInputs["planeId"].toString(),"Curve Preview")
             : SketchGeometry::newFeature(document_->activeOwnerId(),plane,"Curve Preview");
         if(tool=="circle")preview=SketchGeometry::addCircle(preview,{{"centerUMm",ax},{"centerVMm",ay},{"diameterMm",inputs["diameter"]}});
+        else if(tool=="twoPointCircle")preview=SketchGeometry::addCircle(preview,{{"centerUMm",(ax+x)/2},{"centerVMm",(ay+y)/2},{"diameterMm",inputs["diameter"]}});
         else if(tool=="centerArc")preview=SketchGeometry::addArc(preview,{{"centerUMm",ax},{"centerVMm",ay},{"radiusMm",inputs["radius"]},{"startAngleDeg",inputs["startAngleDeg"]},{"sweepAngleDeg",inputs["sweepAngleDeg"]}});
         else preview=SketchGeometry::addArc(preview,{{"startUMm",ax},{"startVMm",ay},{"endUMm",inputs["endX"]},{"endVMm",inputs["endY"]},{"throughUMm",x},{"throughVMm",y}});
         const auto e=preview["parameters"].toObject()["entities"].toArray().first().toObject();view_->showSketchCurveCursor(preview);
@@ -4460,8 +4504,9 @@ void AlloyWindow::sketchResponse(const QJsonObject& response) {
 }
 
 QJsonObject AlloyWindow::previewCircleDiameter(const QJsonObject& args) {
-    if(session_.value("command")!="sketch.edit" || session_.value("tool")!="circle" || !session_.contains("firstPoint"))
-        return failure("no_pending_circle","Click a circle center first");
+    const bool twoPoint=session_.value("tool")=="twoPointCircle";
+    if(session_.value("command")!="sketch.edit" || (session_.value("tool")!="circle" && !twoPoint) || !session_.contains("firstPoint"))
+        return failure("no_pending_circle","Click the first circle point first");
     if(args.contains("session") && args["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
     if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))
         return failure("stale_session","The document changed; cancel and restart this sketch");
@@ -4482,10 +4527,19 @@ QJsonObject AlloyWindow::previewCircleDiameter(const QJsonObject& args) {
     const bool opening=!session_.contains("pendingCircleDiameter");
     QJsonObject pending{{"phase","editing"},{"text",text},{"valid",valid}};
     if(valid)pending["diameterMm"]=diameterMm;
+    if(twoPoint) {
+        const auto start=session_.value("firstPoint").toObject(),pointer=session_.value("pointerPoint").toObject();
+        const double du=pointer["uMm"].toDouble()-start["uMm"].toDouble();
+        const double dv=pointer["vMm"].toDouble()-start["vMm"].toDouble();
+        const double length=std::hypot(du,dv);
+        if(length<0.002)return failure("circle_direction_required","Move the pointer away from the first diameter endpoint before typing");
+        pending["directionU"]=du/length;pending["directionV"]=dv/length;
+    }
     session_["pendingCircleDiameter"]=pending;
     if(valid) {
-        const auto center=session_.value("firstPoint").toObject();
-        sketchCurveGesture({{"uMm",center["uMm"].toDouble()+diameterMm/2},{"vMm",center["vMm"]}},false);
+        const auto first=session_.value("firstPoint").toObject();
+        sketchCurveGesture({{"uMm",first["uMm"].toDouble()+diameterMm*(twoPoint ? pending["directionU"].toDouble() : 0.5)},
+            {"vMm",first["vMm"].toDouble()+diameterMm*(twoPoint ? pending["directionV"].toDouble() : 0.0)}},false);
     } else view_->clearSketchCursor();
     if(opening)showCircleDiameterEditor(text);
     else {
@@ -4503,8 +4557,8 @@ QJsonObject AlloyWindow::lockCircleDiameter(const QJsonObject& args) {
         const auto preview=previewCircleDiameter(args);
         if(preview.value("ok").isBool() && !preview.value("ok").toBool())return preview;
     }
-    if(session_.value("command")!="sketch.edit" || session_.value("tool")!="circle" || !session_.contains("firstPoint"))
-        return failure("no_pending_circle","Click a circle center first");
+    if(session_.value("command")!="sketch.edit" || (session_.value("tool")!="circle" && session_.value("tool")!="twoPointCircle") || !session_.contains("firstPoint"))
+        return failure("no_pending_circle","Click the first circle point first");
     if(args.contains("session") && args["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
     auto pending=session_.value("pendingCircleDiameter").toObject();
     if(!pending.value("valid").toBool())return failure("invalid_circle_diameter","Enter a diameter from 0.002 to 100000 mm");
@@ -4522,17 +4576,24 @@ QJsonObject AlloyWindow::acceptCircleDiameter(const QJsonObject& args) {
         const auto preview=previewCircleDiameter(args);
         if(preview.value("ok").isBool() && !preview.value("ok").toBool())return preview;
     }
-    if(session_.value("command")!="sketch.edit" || session_.value("tool")!="circle" || !session_.contains("firstPoint"))
-        return failure("no_pending_circle","Click a circle center first");
+    const bool twoPoint=session_.value("tool")=="twoPointCircle";
+    if(session_.value("command")!="sketch.edit" || (session_.value("tool")!="circle" && !twoPoint) || !session_.contains("firstPoint"))
+        return failure("no_pending_circle","Click the first circle point first");
     if(args.contains("session") && args["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
     const auto pending=session_.value("pendingCircleDiameter").toObject();
     if(!pending.value("valid").toBool())return failure("invalid_circle_diameter","Enter a diameter from 0.002 to 100000 mm");
-    const auto center=session_["firstPoint"].toObject();const double diameterMm=pending["diameterMm"].toDouble();
-    QJsonObject canonical{{"centerUMm",center["uMm"]},{"centerVMm",center["vMm"]},
-        {"diameterMm",diameterMm},{"drivingDiameterMm",diameterMm}};
-    if(center["status"]=="acquired")canonical["centerSnapTarget"]=center["target"];
-    const auto result=publishSketchSolve(SketchGeometry::addPointerCircle(session_["draftSketch"].toObject(),canonical,
-        session_.value("projectionContext").toObject()));
+    const auto first=session_["firstPoint"].toObject();const double diameterMm=pending["diameterMm"].toDouble();
+    SketchGeometry::SolveResult solved;
+    if(twoPoint)solved=SketchGeometry::addTwoPointCircle(session_["draftSketch"].toObject(),
+        {{"startUMm",first["uMm"]},{"startVMm",first["vMm"]},{"directionU",pending["directionU"]},
+         {"directionV",pending["directionV"]},{"diameterMm",diameterMm}},session_.value("projectionContext").toObject());
+    else {
+        QJsonObject canonical{{"centerUMm",first["uMm"]},{"centerVMm",first["vMm"]},
+            {"diameterMm",diameterMm},{"drivingDiameterMm",diameterMm}};
+        if(first["status"]=="acquired")canonical["centerSnapTarget"]=first["target"];
+        solved=SketchGeometry::addPointerCircle(session_["draftSketch"].toObject(),canonical,session_.value("projectionContext").toObject());
+    }
+    const auto result=publishSketchSolve(solved);
     if(result.value("ok").isBool() && !result.value("ok").toBool())return result;
     cancelCircleDiameter();view_->setFocus();return result;
 }
@@ -4943,8 +5004,10 @@ void AlloyWindow::positionDimensionEditor() {
     if(circle.isEmpty() && !session_.contains("pendingCenterRectangle") && !session_.contains("pendingTwoPointRectangle") && !session_.contains("pendingLineLength") && session_.value("pendingDimension").toObject().value("phase")!="editing")return;
     auto point=session_.value("pendingDimension").toObject().value("annotation").toObject();
     if(!circle.isEmpty()) {
-        const auto center=session_.value("firstPoint").toObject();
-        point={{"uMm",center["uMm"].toDouble()+circle.value("diameterMm").toDouble(10)/2},{"vMm",center["vMm"]}};
+        const auto first=session_.value("firstPoint").toObject();
+        const bool twoPoint=session_.value("tool")=="twoPointCircle";
+        point={{"uMm",first["uMm"].toDouble()+circle.value("diameterMm").toDouble(10)*(twoPoint ? circle["directionU"].toDouble() : 0.5)},
+            {"vMm",first["vMm"].toDouble()+circle.value("diameterMm").toDouble(10)*(twoPoint ? circle["directionV"].toDouble() : 0.0)}};
     }
     if(session_.contains("pendingCenterRectangle")) {
         const auto center=session_.value("firstPoint").toObject();
@@ -4968,7 +5031,7 @@ void AlloyWindow::positionDimensionEditor() {
 QJsonObject AlloyWindow::inlineEditorState() const {
     if(!dimensionEditor_)return {{"visible",false}};
     return {{"visible",dimensionEditor_->isVisible()},{"kind",session_.contains("pendingTwoPointRectangle") ? "twoPointRectangle" : session_.contains("pendingCenterRectangle") ? "centerRectangle" :
-        session_.contains("pendingCircleDiameter") ? "circleDiameter" : session_.contains("pendingLineLength") ? "lineLength" : "dimension"},{"heightText",centerRectangleHeight_ ? centerRectangleHeight_->text() : QString{}},
+        session_.contains("pendingCircleDiameter") ? (session_.value("tool")=="twoPointCircle" ? "twoPointCircleDiameter" : "circleDiameter") : session_.contains("pendingLineLength") ? "lineLength" : "dimension"},{"heightText",centerRectangleHeight_ ? centerRectangleHeight_->text() : QString{}},
         {"text",dimensionEditorValue_->text()},{"readOnly",dimensionEditorValue_->isReadOnly()},
         {"bounds",QJsonObject{{"x",dimensionEditor_->x()},{"y",dimensionEditor_->y()},{"width",dimensionEditor_->width()},{"height",dimensionEditor_->height()}}}};
 }
@@ -5225,6 +5288,7 @@ void AlloyWindow::showSketch() {
     scroll->setWidget(content);panelLayout->addWidget(scroll,1);
     if(choosing) {
         auto* help=new QLabel(session_.value("pendingTool")=="circle" ? "Center Diameter Circle: choose an origin plane or click a supported planar face." :
+            session_.value("pendingTool")=="twoPointCircle" ? "2-Point Circle: choose an origin plane or click a supported planar face." :
             session_.value("pendingTool")=="rectangle" ? "2-Point Rectangle: choose an origin plane or click a supported planar face." :
             "Choose an origin plane or click a supported planar face in the viewport.");help->setWordWrap(true);layout->addWidget(help);
         for(const auto& plane:QStringList{"XY","XZ","YZ"}) {

@@ -343,6 +343,38 @@ void analytic(const QJsonObject& f,double length){const auto edge=SketchGeometry
     GProp_GProps properties;BRepGProp::LinearProperties(edge,properties);near(properties.Mass(),length,"OCCT analytic edge length");}
 }
 
+void twoPointCircle(const QString& owner) {
+    const auto blank=SketchGeometry::newFeature(owner,"XY");
+    const auto zero=SketchGeometry::addTwoPointCircle(blank,{{"startUMm",10},{"startVMm",10},
+        {"directionU",0},{"directionV",0},{"diameterMm",4}});
+    check(!zero.ok && zero.feature==blank,"Zero direction changed the draft");
+    auto circle=accepted(SketchGeometry::addTwoPointCircle(blank,{{"startUMm",10},{"startVMm",10},
+        {"directionU",3},{"directionV",4},{"diameterMm",4}}));
+    const auto e=entity(circle);
+    const auto startId=e["diameterStartPointId"],centerId=e["centerPointId"];
+    near(e["radiusMm"].toDouble(),2,"Initial two-point radius");
+    near(pointById(circle,startId)["uMm"].toDouble(),10,"First diameter endpoint moved");
+    near(pointById(circle,centerId)["uMm"].toDouble(),11.2,"Initial midpoint U");
+    near(pointById(circle,centerId)["vMm"].toDouble(),11.6,"Initial midpoint V");
+    const auto start=pointById(circle,startId);
+    const double secondU=start["uMm"].toDouble()+4*e["diameterDirectionU"].toDouble();
+    const double secondV=start["vMm"].toDouble()+4*e["diameterDirectionV"].toDouble();
+    near(std::hypot(secondU-start["uMm"].toDouble(),secondV-start["vMm"].toDouble()),4,"Authored diameter endpoints are not four millimeters apart");
+    check(SketchProfiles::derive(circle).ok,"Two-point circle has no disk profile");
+    circle=accepted(SketchGeometry::updateDimension(circle,{{"dimensionId",lastDimension(circle)["id"]},{"valueMm",6}}));
+    near(pointById(circle,startId)["uMm"].toDouble(),10,"Diameter edit moved first endpoint");
+    near(pointById(circle,centerId)["uMm"].toDouble(),11.8,"Diameter edit lost midpoint U");
+    near(pointById(circle,centerId)["vMm"].toDouble(),12.4,"Diameter edit lost midpoint V");
+    circle=accepted(SketchGeometry::movePoint(circle,{{"pointId",startId},{"uMm",20},{"vMm",30}}));
+    near(pointById(circle,centerId)["uMm"].toDouble(),21.8,"Endpoint edit did not translate center U");
+    near(pointById(circle,centerId)["vMm"].toDouble(),32.4,"Endpoint edit did not translate center V");
+    circle=accepted(SketchGeometry::movePoint(circle,{{"pointId",centerId},{"uMm",22.8},{"vMm",33.4}}));
+    near(pointById(circle,startId)["uMm"].toDouble(),21,"Center edit did not translate endpoint U");
+    near(pointById(circle,startId)["vMm"].toDouble(),31,"Center edit did not translate endpoint V");
+    const auto reopened=accepted(SketchGeometry::solveDraft(QJsonDocument::fromJson(QJsonDocument(circle).toJson()).object()));
+    check(reopened["parameters"].toObject()==circle["parameters"].toObject(),"Two-point intent drifted through JSON reopen solve");
+}
+
 int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
     const auto owner=QUuid::createUuid().toString(QUuid::WithoutBraces);
     equalConstraints(owner);
@@ -351,6 +383,7 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
     constructionConversion(owner);
     midpointCircle(owner);
     tangentCircle(owner);
+    twoPointCircle(owner);
     retainedFillets(owner);
     const auto blank=SketchGeometry::newFeature(owner,"XY");
     auto circle=SketchGeometry::addCircle(blank,{{"centerUMm",0},{"centerVMm",0},{"diameterMm",10}});

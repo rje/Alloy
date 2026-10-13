@@ -552,13 +552,21 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
             const bool hasCenterline=entity.contains("centerline");
             if(hasCenterline && (type!="line" || !entity["centerline"].isBool()))return "Centerline must be a boolean on a line entity";
             if(entity["centerline"].toBool() && entity["construction"].toBool())return "Centerline and Construction are distinct mutually exclusive linetypes";
-            if (entity.size() != (type == "line" ? 4 : type == "circle" ? 4 : 8) + int(hasConstruction) + int(hasCenterline)) return "Unexpected sketch entity fields";
+            const bool twoPointCircle=type=="circle" && entity.contains("diameterStartPointId");
+            if (entity.size() != (type == "line" ? 4 : type == "circle" ? 4 : 8) + int(hasConstruction) + int(hasCenterline) + (twoPointCircle ? 3 : 0)) return "Unexpected sketch entity fields";
             if (type != "line") {
                 const auto centerId = entity["centerPointId"].toString();
                 if (!points.contains(centerId)) return "Curve center does not exist";
                 usedPoints.insert(centerId);
                 const double radius=coordinate(entity,"radiusMm");
                 if (radius < minimumLength) return "Curve radius out of supported range";
+                if(twoPointCircle) {
+                    const auto startId=entity["diameterStartPointId"].toString();
+                    if(!points.contains(startId) || startId==centerId)return "Two-point circle needs a distinct retained diameter endpoint";
+                    const double du=coordinate(entity,"diameterDirectionU"),dv=coordinate(entity,"diameterDirectionV");
+                    if(std::abs(std::hypot(du,dv)-1)>1e-9)return "Two-point circle direction must be unit length";
+                    usedPoints.insert(startId);
+                }
                 if (type == "arc") {
                     const double start=coordinate(entity,"startAngleDeg"), sweep=coordinate(entity,"sweepAngleDeg");
                     if (std::abs(start) > 180 || std::abs(sweep) < 1e-6 || std::abs(sweep) >= 360 || radius*std::abs(sweep)*degrees < minimumLength)
@@ -1128,6 +1136,35 @@ SketchGeometry::SolveResult SketchGeometry::addPointerCircle(const QJsonObject& 
     } catch (const std::exception& error) { return invalidDraft(draft,QString::fromUtf8(error.what())); }
 }
 
+SketchGeometry::SolveResult SketchGeometry::addTwoPointCircle(const QJsonObject& draft, const QJsonObject& arguments, const QJsonObject& projectionContext) {
+    try {
+        validateDraft(draft);
+        checkFields(arguments,{"startUMm","startVMm","directionU","directionV","diameterMm"});
+        const double u=coordinate(arguments,"startUMm"),v=coordinate(arguments,"startVMm");
+        const double du=coordinate(arguments,"directionU"),dv=coordinate(arguments,"directionV");
+        const double length=std::hypot(du,dv),diameter=coordinate(arguments,"diameterMm");
+        if(length<1e-9 || diameter<2*minimumLength || diameter>2*maximumLength)
+            reject("Two-point circle needs a direction and diameter from 0.002 to 200000 mm");
+        const double unitU=du/length,unitV=dv/length,radius=diameter/2;
+        auto parameters=draft["parameters"].toObject();
+        auto points=parameters["points"].toArray(),entities=parameters["entities"].toArray(),dimensions=parameters["dimensions"].toArray();
+        const auto startId=newId(),centerId=newId(),circleId=newId(),dimensionId=newId();
+        points.append(QJsonObject{{"id",startId},{"uMm",u},{"vMm",v}});
+        points.append(QJsonObject{{"id",centerId},{"uMm",u+unitU*radius},{"vMm",v+unitV*radius}});
+        entities.append(QJsonObject{{"id",circleId},{"type","circle"},{"centerPointId",centerId},{"radiusMm",radius},
+            {"diameterStartPointId",startId},{"diameterDirectionU",unitU},{"diameterDirectionV",unitV}});
+        dimensions.append(QJsonObject{{"id",dimensionId},{"kind","diameter"},{"entityId",circleId},{"driving",true},{"valueMm",diameter}});
+        parameters["points"]=points;parameters["entities"]=entities;parameters["dimensions"]=dimensions;
+        auto candidate=draft;candidate["parameters"]=parameters;
+        auto result=solveDraft(candidate,projectionContext);
+        if(!result.ok)return {false,draft,result.diagnostics,result.error};
+        result.diagnostics["createdCircleId"]=circleId;
+        result.diagnostics["createdDimensionId"]=dimensionId;
+        result.diagnostics["diameterStartPointId"]=startId;
+        return result;
+    } catch(const std::exception& error) {return invalidDraft(draft,QString::fromUtf8(error.what()));}
+}
+
 SketchGeometry::SolveResult SketchGeometry::setCenterline(const QJsonObject& draft, const QJsonObject& arguments, const QJsonObject& projectionContext) {
     try {
         validateDraft(draft);
@@ -1319,6 +1356,19 @@ SketchGeometry::SolveResult SketchGeometry::movePoint(const QJsonObject& draft, 
         auto parameters = draft["parameters"].toObject();
         if (arguments["pointId"]==parameters.value("originPointId") && parameters.contains("originPointId")) reject("Sketch origin reference cannot be moved");
         auto points = parameters["points"].toArray();
+        // Moving the familiar circle-center handle translates its retained
+        // first diameter endpoint. The solver then derives the new center.
+        for(const auto& value:parameters["entities"].toArray()) {
+            const auto circle=value.toObject();
+            if(circle["type"]!="circle" || !circle.contains("diameterStartPointId") || circle["centerPointId"]!=arguments["pointId"])continue;
+            QJsonObject oldCenter;for(const auto& pointValue:points)if(pointValue.toObject()["id"]==arguments["pointId"]){oldCenter=pointValue.toObject();break;}
+            if(oldCenter.isEmpty())reject("Two-point circle center does not exist");
+            const double du=arguments["uMm"].toDouble()-oldCenter["uMm"].toDouble();
+            const double dv=arguments["vMm"].toDouble()-oldCenter["vMm"].toDouble();
+            for(int i=0;i<points.size();++i)if(points[i].toObject()["id"]==circle["diameterStartPointId"]) {
+                auto start=points[i].toObject();start["uMm"]=start["uMm"].toDouble()+du;start["vMm"]=start["vMm"].toDouble()+dv;points[i]=start;break;
+            }
+        }
         bool found = false;
         for (int i = 0; i < points.size(); ++i) {
             auto point = points[i].toObject();

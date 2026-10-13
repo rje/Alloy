@@ -100,6 +100,24 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
             }
             require(foundTarget,"Circle offset result no longer exists");
         }
+        QSet<QString> diameterStartIds;
+        for(const auto& value:entities) {
+            const auto circle=value.toObject();
+            if(circle["type"]!="circle" || !circle.contains("diameterStartPointId"))continue;
+            const auto startId=circle["diameterStartPointId"].toString(),centerId=circle["centerPointId"].toString();
+            diameterStartIds.insert(startId);
+            QJsonObject start;int centerIndex=-1;
+            for(qsizetype i=0;i<points.size();++i) {
+                const auto p=points[i].toObject();
+                if(p["id"]==startId)start=p;
+                if(p["id"]==centerId)centerIndex=i;
+            }
+            require(!start.isEmpty() && centerIndex>=0,"Two-point circle endpoint or center is unavailable");
+            auto center=points[centerIndex].toObject();
+            center["uMm"]=number(start,"uMm")+number(circle,"diameterDirectionU")*number(circle,"radiusMm");
+            center["vMm"]=number(start,"vMm")+number(circle,"diameterDirectionV")*number(circle,"radiusMm");
+            points[centerIndex]=center;
+        }
         // All storage is allocated before pointers enter the solver. std::map
         // nodes and deque elements retain addresses as their containers grow.
         std::vector<double> coordinates(static_cast<size_t>(points.size()) * 2);
@@ -120,7 +138,7 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
             coordinates[2*i] = number(point, "uMm"); coordinates[2*i+1] = number(point, "vMm");
             require(std::abs(coordinates[2*i]) <= maximumCoordinate && std::abs(coordinates[2*i+1]) <= maximumCoordinate, "Point outside supported range");
             pointMap.emplace(id, GCS::Point(&coordinates[2*i], &coordinates[2*i+1]));
-            if(!lockedPointIds.contains(id)){unknowns.push_back(&coordinates[2*i]); unknowns.push_back(&coordinates[2*i+1]);}
+            if(!lockedPointIds.contains(id) && !diameterStartIds.contains(id)){unknowns.push_back(&coordinates[2*i]); unknowns.push_back(&coordinates[2*i+1]);}
         }
         auto point = [&](const QString& id) -> GCS::Point& {
             const auto found = pointMap.find(id);
@@ -181,8 +199,17 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
         // motion in the Jacobian nullspace. No extra authored constraint is added.
         solver.dogLegGaussStep = GCS::LeastNormFullPivLU;
         result.diagnostics["dogLegStep"] = "least_norm_full_piv_lu";
-        QSet<int> internalTags;
-        for(auto& [id,arc]:arcMap) {const int t=tagIds.size()+1;tagIds[t]=id;internalTags.insert(t);solver.addConstraintArcRules(arc,t);}
+        QSet<int> internalTags;int internalRuleCount=0;
+        for(auto& [id,arc]:arcMap) {const int t=tagIds.size()+1;tagIds[t]=id;internalTags.insert(t);solver.addConstraintArcRules(arc,t);internalRuleCount+=4;}
+        for(const auto& value:entities) {
+            const auto e=value.toObject();if(e["type"]!="circle" || !e.contains("diameterStartPointId"))continue;
+            const auto id=e["id"].toString();auto& center=point(e["centerPointId"].toString());
+            auto& start=point(e["diameterStartPointId"].toString());auto* radius=circleMap.at(id).rad;
+            const int t=tagIds.size()+1;tagIds[t]=id;internalTags.insert(t);
+            solver.addConstraintP2PDistance(start,center,radius,t);
+            solver.addConstraintP2PAngle(start,center,constant(std::atan2(number(e,"diameterDirectionV"),number(e,"diameterDirectionU"))),t);
+            internalRuleCount+=2;
+        }
         for (const auto& entry : constraints) {
             const auto constraint = entry.toObject();
             const auto type = constraint.value("type").toString(); const int t = tag(constraint);
@@ -270,7 +297,7 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
             }
         }
         result.diagnostics["constraintCount"] = tagIds.size()-internalTags.size();
-        result.diagnostics["internalCurveRuleCount"] = internalTags.size()*4;
+        result.diagnostics["internalCurveRuleCount"] = internalRuleCount;
         int dof = static_cast<int>(unknowns.size());
         if (!tagIds.isEmpty()) {
             solver.declareUnknowns(unknowns); solver.initSolution(GCS::DogLeg);
@@ -311,6 +338,13 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
             maxResidual = std::max(maxResidual,std::abs(residual));
             require(std::abs(residual) <= tolerance, "Independent geometric residual exceeds tolerance");
         };
+        for(const auto& value:entities) {
+            const auto e=value.toObject();if(e["type"]!="circle" || !e.contains("diameterStartPointId"))continue;
+            const auto& center=point(e["centerPointId"].toString()),&start=point(e["diameterStartPointId"].toString());
+            const double radius=*circleMap.at(e["id"].toString()).rad;
+            check(*center.x-*start.x-number(e,"diameterDirectionU")*radius,lengthTolerance);
+            check(*center.y-*start.y-number(e,"diameterDirectionV")*radius,lengthTolerance);
+        }
         for (const auto& entry : constraints) {
             const auto c=entry.toObject(); const auto type=c.value("type").toString();
             if(type=="coincident") check(separation("linear",point(reference(c,"pointIds",0)),point(reference(c,"pointIds",1))),lengthTolerance);
