@@ -78,7 +78,8 @@ try:
             call('view.orientation',{'name':row['view']})
             for u,v in row['centers']:
                 if placed:session=call('solid.repeatSphere',{'support':row['support']})
-                else:session=call('solid.sphereDialog',{'support':row['support'],'diameterMm':3,'operation':'cut'})
+                else:session=call('solid.sphereDialog',{'support':row['support'],'diameterMm':3})
+                assert session['inputs']['operation']=='cut' and 'uMm' not in session['inputs'] and 'vMm' not in session['inputs']
                 point=call('view.projectFacePoint',{'support':row['support'],'uMm':u,'vMm':v})
                 call('selection.pick',{'x':point['x'],'y':point['y']})
                 # Pixel placement is genuinely exercised; canonical fixture coordinates
