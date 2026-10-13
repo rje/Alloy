@@ -69,3 +69,32 @@ other Inspect tools remain in DOC-014. They are not claimed by this gate.
 Astra reviewed this proposed contract on 2026-10-13. The atomic replacement,
 evaluation-preservation and ID rules above incorporate that review. No GPU or
 native implementation acceptance has occurred.
+
+## Isolated GPU feasibility result
+
+Root ran an external fixture linked to the existing `alloy_application` library,
+using the actual `ReferenceView` and a kernel-created hollow cylinder. This is
+not the application command entrypoint, native input, or the ornament tutorial.
+The fixture temporarily accesses renderer internals; that access is not proposed
+production architecture. Both private proof processes exited normally.
+
+Built-in `SetCappingHatch` yielded identical hatched/solid-cap images. OCCT 7.9.3
+[OpenGl_Context.cxx](https://raw.githubusercontent.com/Open-Cascade-SAS/OCCT/V7_9_3/src/OpenGl/OpenGl_Context.cxx)
+(retrieved 2026-10-13) disables polygon stipple without fixed-function support.
+The observed Mac core-profile result is consistent with that limitation.
+
+An independently generated repeating 32×32 diagonal-stripe texture, projected
+onto the cap through `Graphic3d_Texture2Dplane`, visibly hatches both side walls
+and the base cross-section while preserving the open cavity and inherited body
+material. Hatched, plain-cap and unclipped captures are distinct. Production
+should use this capping texture path rather than relying on legacy stipple.
+Hatch spacing/style still needs comparison with the source inspection image.
+
+External evidence: `validation/section-analysis/proof/` contains source, executable,
+three captures, GPU diagnostics and report; `attempt-01-stipple/` preserves the
+failed built-in-hatch experiment. Astra independently inspected the three images,
+source and GPU diagnostics and accepted bounded Apple M4 / OpenGL 4.1 Metal
+rendering feasibility. Derive texture axes from each chosen plane in production;
+the fixed X/Z axes here exercise only one plane. Reapply clipping when solid
+actors are recreated. Other materials and platforms remain unverified.
+Retained analysis records, shared commands and native controls are not implemented.

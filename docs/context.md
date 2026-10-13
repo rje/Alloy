@@ -26,13 +26,14 @@ now independently accepted and closed (79fa11b/e805afb); main app builds.
 The complete ornament lesson is tracked by #264, with prerequisites #260–263.
 Sol is implementing full-Revolve generated planar face support (#260) and
 retained open fit-spline Offset (#261) in isolated worktrees; Astra independently
-reviews their contracts and evidence. Section Analysis (#262) and Circular Body
-Pattern (#263) remain Todo. The public source contract and archived visuals live
+reviews their contracts and evidence. Root is proving Section Analysis (#262)
+in the actual GPU viewport; Circular Body Pattern (#263) remains Todo. The public source contract and archived visuals live
 outside the repository in the ornament-pattern knowledge record.
 
 The first isolated OCCT geometry proof for #260 passes the actual 80 mm height,
 5 mm base, R50 arc, Full Revolve and Inside Shell 5 mm sequence. This proves
-kernel feasibility only; stable authored face references, native controls and
+kernel feasibility only (regular-wall normal probes also measure 5 mm); stable
+authored face references, native controls and
 edit/history/storage acceptance remain unverified. The tutorial itself has not
 run. All source steps, including hatched section inspection, remain required.
 
