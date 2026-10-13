@@ -255,3 +255,35 @@ This acceptance covers the numerical correction and retained Join only.
 Downstream bore, source edit/history/reopen, strict STL and complete tutorial
 acceptance remain separate. No GUI or duplicate model replay was performed by
 this reviewer.
+
+
+## Single-result ownership performance candidate
+
+Actual cumulative-02 hub Join passes, but adding the bore construction plane
+recomputes the ordered model and times out at180 seconds. A native CPU sample
+places that work in per-input coverage Common Build; the capture recording also
+fails after the long frame gap. This is not a complete source movie/tutorial pass.
+
+After independent design agreement, the bounded branch skips redundant Common
+only when the completed configured Fuse has exactly one output solid, after the
+existing no-mixed-topology and valid/closed/positive-result guards. FUSE is the
+union of the explicit inputs, so that result is their unique ownership destination.
+Boundary history alone is not used as a proof of material containment. Multiple
+outputs retain numerical coverage grouping; actual Fuse face/edge history,
+participant order/primary identity, prior-union volume, added-material requirement,
+use counts and stored result ledger remain unchanged. No document cache or
+geometry strategy changes.
+
+The existing single/multiple-output regressions pass3/3 in1.95 seconds. The actual
+retained eight-body fixture plus hub evaluates joinResults in21.774 seconds with
+all eight participants assigned to the original first body and result volume
+17818.829392961095 mm3. This headless timing differs from the earlier70-second
+application command, so it is not a matched speed ratio. The output is saved for
+the same independent topology-empty input-minus-result oracle, which passes all
+nine inputs with successful valid residuals and no faces/edges/vertices. Cumulative actual
+application latency and downstream source gate remain separate.
+
+External evidence: `single-join-core-final.log`, `retained-single-join.cpp`,
+`retained-single-join.json`, `retained-single-join.brep`,
+`retained-single-join-containment.json`. Library contract retrieved2026-10-13:
+[OCCT Boolean operations](https://dev.opencascade.org/doc/overview/html/specification__boolean_operations.html).

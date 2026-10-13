@@ -83,12 +83,17 @@ GeometryKernel::JoinResult GeometryKernel::joinResults(const QJsonObject& featur
     for(int i=1;i<=solids.Extent();++i){const auto shape=solids(i);auto summary=summarize(shape);
         if(!summary["valid"].toBool() || !summary["closed"].toBool() || summary["volumeMm3"].toDouble()<=0)
             reject("join_result_invalid","Every Join output must be a valid closed positive-volume solid");
+        // FUSE is the union of every explicit solid input. With one validated
+        // result its ownership destination is unique; repeating Common for
+        // each input adds no grouping information. Multiple results still
+        // require the full coverage checks below.
+        const bool singleResult=solids.Extent()==1;
         QStringList targets,profileIds,entityIds;std::vector<TopoDS_Shape> prior;std::vector<EvaluatedSupportFace> candidates;
         const EvaluatedBody* primary=nullptr;double sourceArea=0;
-        for(size_t j=0;j<participants.size();++j)if(covers(shape,participants[j].shape)){
+        for(size_t j=0;j<participants.size();++j)if(singleResult || covers(shape,participants[j].shape)){
             ++participantUses[j];targets.append(participants[j].bodyId);prior.push_back(participants[j].shape);
             if(!primary)primary=&participants[j];candidates.insert(candidates.end(),participants[j].supportFaces.begin(),participants[j].supportFaces.end());}
-        for(size_t j=0;j<profiles.size();++j)if(covers(shape,tools[j])){
+        for(size_t j=0;j<profiles.size();++j)if(singleResult || covers(shape,tools[j])){
             ++profileUses[j];profileIds.append(profiles[j].profileId);sourceArea+=profiles[j].summary["areaMm2"].toDouble();
             entityIds.append(strings(profiles[j].summary["sourceEntityIds"].toArray()));
             if(!caps[j].face.IsNull()){auto cap=caps[j];cap.producerFeatureId=id;

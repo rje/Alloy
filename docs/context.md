@@ -157,6 +157,14 @@ not byte identity. Containment and cumulative acceptance remain pending.
 See validation/exact-offset-join-investigation.md and external retained coverage
 reports. No dimensions, kernel tolerance, authored evaluator or Fuse changed.
 
+The numerical correction permits actual cumulative hub Join, but downstream
+construction-plane ordered recompute times out180s in repeated coverage Common.
+The bounded performance candidate uses completed valid single-solid Fuse union
+ownership without repeating Common per input; multi-output grouping, actual
+history, addition/ledger checks remain unchanged. Focused single/multi Join core
+passes; retained headless Join is21.774s with same result geometry/ownership.
+Full application latency and cumulative gate remain pending; no broad caching.
+
 Source boundary reread: the tutorial explicitly selects the bottom face for
 Inside5 Shell, but its section image does not prove an annular opening. That
 earlier requirement was inferred. The exact inward meridian closes on the axis
