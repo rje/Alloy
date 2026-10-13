@@ -572,7 +572,14 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored) 
                         auto target=std::find_if(evaluated.bodies.begin(),evaluated.bodies.end(),[&](const auto& body){return body.bodyId==targets[0].toString();});
                         if(target==evaluated.bodies.end()) {context["code"]="body_unavailable";context["message"]="The exact extrusion target must be an active body earlier in feature history";throw EvaluationError(context);}
                         const double distance=parameters["distanceMm"].toDouble();std::vector<TopoDS_Shape> tools;std::vector<EvaluatedSupportFace> joinCaps;double area=0;QStringList sourceEntities;
-                        for(const auto& profile:selected) {EvaluatedSupportFace cap;tools.push_back(extrusion(profile,distance,joining ? &cap : nullptr));if(!cap.face.IsNull())joinCaps.push_back(cap);area+=profile.summary["areaMm2"].toDouble();
+                        const bool circularCut=parameters["operation"]=="cut" && selected.size()==1
+                            && selected.front().boundaryEdges.size()==1 && selected.front().boundaryEdges.front().type=="circle";
+                        for(const auto& profile:selected) {EvaluatedSupportFace cap;std::vector<EvaluatedSolidEdge> toolEdges;
+                            tools.push_back(extrusion(profile,distance,joining ? &cap : nullptr,
+                                circularCut ? &toolEdges : nullptr,id));
+                            if(circularCut)for(auto& edge:toolEdges)if(edge.provenance["role"]=="baseRim")
+                                target->solidEdges.push_back(std::move(edge));
+                            if(!cap.face.IsNull())joinCaps.push_back(cap);area+=profile.summary["areaMm2"].toDouble();
                             for(const auto& entity:profile.summary["sourceEntityIds"].toArray())sourceEntities.append(entity.toString());}
                         const double previousVolume=target->summary["volumeMm3"].toDouble();
                         TopoDS_Shape cutShape;

@@ -2187,3 +2187,12 @@ edits, atomic refusal, undo and exact reopen. This is a candidate pending
 independent review/integration. The source's 60/30 overall spans remain driven
 references, and the full lesson remains #233. See
 [the scoped receipt](validation/rounded-loop-offset.md).
+## Circular Cut rim candidate (2026-10-13)
+
+SOL-034/#236 carries the entry rim of one analytic circle Extrude Cut through
+the existing Boolean edge history, so a face-supported Ø4 Cut -10 on a 2 mm
+floor exposes a selectable upper edge for R1 solid Fillet. The focused kernel
+and actual-app API chains pass diameter edit, undo, save/reopen and retained
+broad floor support for Sketch Text; selected-rim and Fillet GPU captures are
+in the isolated build evidence. Independent review and the full keyring gate
+remain pending. See [the bounded receipt](validation/cut-hole-rim.md).
