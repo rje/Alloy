@@ -37,7 +37,14 @@ full-size `.alloy`, STEP and STL retain the authored size.
 The focused `step_exchange` native test, real-app independent STEP import and
 export test, and real-app STL unit/refinement/manifold test pass on this
 candidate. The prior native STEP export sheet and millimeter save passed
-independent readback. Physical change of its unit dropdown, native STEP File
-Open and native STL save sheet remain unqualified. These gaps concern UI
+independent readback. The earlier native default STL Save As Mesh sheet/save also passed;
+`exchange-finish/build-step/evidence/stl-native-receipt.json` records its
+12-triangle mesh, bounds and normals. Physical STEP unit-dropdown changes,
+native STEP File Open and nondefault mesh-setting interaction remain unqualified. These gaps concern UI
 operation; the shared command paths and format outputs above are verified.
 The exact physical tutorial and multi-platform product gates remain open.
+
+The integrated main candidate a840d36 built successfully and repeated the
+saved-bracket export/readback check in the external `integrated-check/` folder.
+Its STEP/STL bounds and mesh checks pass. No full geometry rerun was needed for
+the UI-only changes. Remaining native file-dialog checks are tracked in #167.

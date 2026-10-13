@@ -3114,6 +3114,24 @@
         "area:prt"
       ],
       "body": "## Scope\nPreserved follow-up from PRT-001 (#44): allow deliberate STL export of evaluated open surfaces once surface authoring exists. Label the selection/output as non-solid; never claim an open sheet is watertight or printable volume.\n\n## Acceptance\nUI/API share export authority, units and tessellation controls. Export an independently measured open sheet, read triangles independently, confirm boundary edges and correct area/bounds. Closed-solid mesh behavior remains unchanged. Useful errors preserve the design and existing destination files.\n\n## Verification\nRun the surface fixture at GATE-030. Keep actual topology, warning presentation and exported-file evidence separate. This deferred requirement is not part of the closed-solid bracket delivery.\n"
+    },
+    {
+      "key": "DOC-016",
+      "title": "Qualify native STEP and STL file dialogs and unit selection",
+      "kind": "validation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P0",
+      "depends_on": [
+        "DOC-011",
+        "PRT-001"
+      ],
+      "labels": [
+        "kind:validation",
+        "phase:P2",
+        "priority:P0",
+        "area:doc"
+      ],
+      "body": "## Scope\nComplete the remaining native UI evidence for the implemented STEP/STL commands: File Open a STEP source, switch STEP export units in the sheet, and change nondefault mesh settings through Save As Mesh. Preserve the accepted format/API checks; do not rerun unrelated modeling.\n\n## Acceptance\nUse actual application controls and native file sheets, inspect selected body/unit/settings and actual exported file with independent readers. Keep source document unchanged by export. Confirm cancel leaves no output or authoring edit. Record tool limitations separately from proven app defects.\n\n## Current evidence\nSingle-solid STEP import/export, mm/in units, binary/ASCII STL refinement/manifold checks and bracket outputs pass real-app API and independent readback. Earlier native mm STEP export and default STL Save As Mesh passed (step-native-receipt.json and stl-native-receipt.json in exchange-finish/build-step/evidence). The current CUA Open path entry did not accept the target reliably; this does not establish a translator failure. No full native file-dialog claim.\n"
     }
   ]
 }
