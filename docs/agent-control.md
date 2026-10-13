@@ -156,6 +156,8 @@ fail without applying the command. Error codes include `invalid_request`,
 | `sketch.lineLengthCancel` | Clear the session-only typed Line value while retaining the chain start |
 | `solid.extrudeDrag` | Signed `distanceMm`, optional logical `x`/`y` and `phase` (`move`/`end`); same update/preview authority as the native arrow |
 | `sketch.addCircle` | `centerX`, `centerY`, positive `diameter`; optional `units`, `session`; append one analytic circle |
+| `sketch.textAdd` | `text` (1-16 uppercase A-Z/0-9), `height` (cap height), `x`, `y`, `angleDeg`, optional `units`, `session`; create one retained text object in an otherwise empty active sketch. Pinned regular font identity is authored automatically |
+| `sketch.textUpdate` | `textId` and optional `text`, `height`, `x`, `y`, `angleDeg`, `units`, `session`; edit the same number of ordered glyph profile slots atomically. Font identity and style are fixed in this bounded foundation |
 | `sketch.addArc` | `mode`: `center` requires `centerX`, `centerY`, `radius`, `startAngleDeg`, signed `sweepAngleDeg`; `threePoint` requires `startX`, `startY`, `endX`, `endY`, `throughX`, `throughY`; optional `units`, `session` |
 | `sketch.tool` | `tool`: `select`, `line`, `rectangle`, `circle`, `centerArc`, `threePointArc` or `dimension`; choose the active drawing/selection tool |
 | `sketch.selectionSet` | Optional `pointIds`, `entityIds`, `profileIds`: arrays of authored/evaluated IDs in the active sketch; omitted arrays clear that selection kind |

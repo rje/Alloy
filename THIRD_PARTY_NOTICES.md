@@ -41,6 +41,16 @@ in their source headers. Boost 1.90.0 headers retain the respective contributors
 notices under [BSL-1.0](LICENSES/BSL-1.0.txt). Exact archives, hashes and license
 sources are recorded in [components.json](docs/dependencies/components.json).
 
+Sketch Text bundles the unmodified DejaVu Sans regular TTF from DejaVu Fonts
+2.37. Font SHA-256: `7da195a74c55bef988d0d48f9508bd5d849425c1770dba5d7bfc6ce9ed848954`.
+The DejaVu changes and the underlying Bitstream and Arev contributions carry
+their own terms and required notices in [the release license](third_party/dejavu/LICENSE).
+The [official release archive](https://sourceforge.net/projects/dejavu/files/dejavu/2.37/)
+was retrieved 2026-10-13; its SHA-256 is
+`fa9ca4d13871dd122f61258a80d01751d603b4d3ee14095d65453b4e846e17d7`.
+The font is not MIT licensed. Authored text records pin its asset ID and digest;
+geometry evaluation refuses missing or changed bytes.
+
 The [dependency admission record](docs/dependencies/README.md) distinguishes these
 approved foundations from candidate libraries. A future downloadable package
 must add its complete deployed libraries/plugins, source availability, all

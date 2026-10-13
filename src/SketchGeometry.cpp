@@ -1,5 +1,6 @@
 #include "SketchGeometry.h"
 #include "SketchSolver.h"
+#include "SketchText.h"
 #include <BRepBndLib.hxx>
 #include <BRepBuilderAPI_MakeEdge.hxx>
 #include <BRepCheck_Analyzer.hxx>
@@ -496,13 +497,23 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
             sources.insert(centerKey);referenceIds.insert(reference["id"].toString());
             resolvedPoints.append(QJsonObject{{"id",reference["id"]},{"source",source},{"uMm",0},{"vMm",0}});
         }
+        if(parameters.contains("texts")){
+            auto textOnly=parameters;textOnly.remove("projections");textOnly.remove("pointReferences");
+            return validateParameters(textOnly,authoredIds);
+        }
         try {return validateParameters(expandedProjectionFeature({{"parameters",parameters}},{{"lines",lines},{"points",resolvedPoints}})["parameters"].toObject(),authoredIds,referenceIds);}
         catch(const std::exception& error){return QString::fromUtf8(error.what());}
     }
-    const QSet<QString> allowed{"plane", "planeId", "points", "entities", "constraints", "dimensions", "originPointId", "support"};
+    const QSet<QString> allowed{"plane", "planeId", "points", "entities", "constraints", "dimensions", "originPointId", "support", "texts"};
     for (auto it = parameters.begin(); it != parameters.end(); ++it)
         if (!allowed.contains(it.key())) return "Unknown sketch parameter: " + it.key();
     if (!parameters["points"].isArray() || !parameters["entities"].isArray()) return "Sketch requires points and entities";
+    if(parameters.contains("texts")){
+        if(!parameters["texts"].isArray() || parameters["texts"].toArray().size()!=1 || !parameters["entities"].toArray().isEmpty())return "Sketch Text requires exactly one text object and no analytic entities";
+        auto ids=authoredIds;const auto error=SketchText::validate(parameters["texts"].toArray().first().toObject(),ids);
+        if(!error.isEmpty())return error;
+        authoredIds=ids;
+    }
     for (const auto& field : {"constraints", "dimensions"})
         if (parameters.contains(field) && !parameters[field].isArray()) return QString(field) + " must be an array";
     QMap<QString, QJsonObject> points;
@@ -729,6 +740,8 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
 SketchGeometry::SolveResult SketchGeometry::solveDraft(const QJsonObject& draft, const QJsonObject& projectionContext) {
     try {
         validateDraft(draft);
+        if(draft["parameters"].toObject().contains("texts"))
+            return {true,draft,{{"solver","direct text parameters"},{"status","accepted"}}, {}};
         const auto expanded=expandedProjectionFeature(draft,projectionContext);
         QSet<QString> lockedPoints,virtualEntities;
         for(const auto& value:draft["parameters"].toObject()["projections"].toArray()){const auto id=value.toObject()["id"].toString();
@@ -743,6 +756,7 @@ SketchGeometry::SolveResult SketchGeometry::solveDraft(const QJsonObject& draft,
         for(const auto& value:parameters["points"].toArray())if(!lockedPoints.contains(value.toObject()["id"].toString()))points.append(value);
         for(const auto& value:parameters["entities"].toArray())if(!virtualEntities.contains(value.toObject()["id"].toString()))entities.append(value);
         parameters["points"]=points;parameters["entities"]=entities;
+        if(draft["parameters"].toObject().contains("texts"))parameters["texts"]=draft["parameters"].toObject()["texts"];
         if(draft["parameters"].toObject().contains("projections"))parameters["projections"]=draft["parameters"].toObject()["projections"];
         if(draft["parameters"].toObject().contains("pointReferences"))parameters["pointReferences"]=draft["parameters"].toObject()["pointReferences"];
         solved["parameters"]=parameters;validateDraft(solved);
@@ -1364,11 +1378,19 @@ EvaluatedSketch SketchGeometry::evaluateFeature(const QJsonObject& feature, cons
         profiles = profile.profiles;
         for (const auto& region : profiles) profileSummaries.append(region.summary);
     }
+    if(parameters.contains("texts")){
+        const auto generated=SketchText::evaluate(solution.feature,sketchFrame);
+        shape=generated.shape;profiles=generated.profiles;profileSummaries=generated.summary["profiles"].toArray();
+        summary["texts"]=QJsonArray{generated.summary};summary["boundsMm"]=GeometryKernel::summarize(shape)["boundsMm"];
+        summary["solverIntegrated"]=false;
+    }
     QJsonArray retainedSupportPoints;for(const auto& point:projectionContext["points"].toArray())for(const auto& reference:solution.feature["parameters"].toObject()["pointReferences"].toArray())if(point.toObject()["id"]==reference.toObject()["id"]){auto retained=point.toObject();retained["retained"]=true;retainedSupportPoints.append(retained);}
     summary["projectedPoints"]=retainedSupportPoints;summary["availableSupportPoints"]=projectionContext["points"].toArray();
     summary["projectedLines"]=projectionContext["lines"].toArray();
     summary["unsupportedProjectedEdges"]=projectionContext["unsupportedEdges"].toArray();
     summary["profiles"] = profileSummaries;
-    summary["profileDiagnostics"] = profile.diagnostics;
+    summary["profileDiagnostics"] = parameters.contains("texts")
+        ? QJsonObject{{"code","text_profiles"},{"profileCount",static_cast<int>(profiles.size())}}
+        : profile.diagnostics;
     return {feature["id"].toString(), feature["name"].toString(), plane, feature["visible"].toBool(), shape, summary, profiles, sketchFrame, {}, entityEdges};
 }

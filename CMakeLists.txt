@@ -31,11 +31,12 @@ add_library(alloy_kernel STATIC
     src/GeometryKernel.cpp src/GeometryKernel.h src/PlanarFaces.cpp src/PlanarFaces.h src/SolidFillet.cpp src/SolidFillet.h src/SolidChamfer.cpp src/SolidChamfer.h src/SolidShell.cpp src/SolidShell.h src/SolidSphere.cpp src/SolidSphere.h src/SolidLoft.cpp src/SolidLoft.h src/SolidRevolve.cpp src/SolidRevolve.h src/SolidSweep.cpp src/SolidSweep.h src/FeaturePattern.cpp src/FeaturePattern.h src/SolidMirror.cpp src/SolidMirror.h src/JoinResults.cpp
     src/MeshExport.cpp src/MeshExport.h
     src/StepExchange.cpp src/StepExchange.h
-    src/SketchGeometry.cpp src/SketchTrim.cpp src/SketchGeometry.h
+    src/SketchGeometry.cpp src/SketchTrim.cpp src/SketchGeometry.h src/SketchText.cpp src/SketchText.h
     src/SketchProfiles.cpp src/SketchProfiles.h src/SketchRegions.cpp)
 target_include_directories(alloy_kernel PUBLIC src)
 target_include_directories(alloy_kernel SYSTEM PUBLIC ${OpenCASCADE_INCLUDE_DIR})
-target_link_libraries(alloy_kernel PUBLIC alloy_sketch_solver Qt6::Core TKernel TKMath TKG3d TKBRep TKPrim TKTopAlgo TKFillet TKOffset TKBO TKBool TKGeomAlgo TKMesh TKDESTL TKDESTEP TKXSBase)
+target_link_libraries(alloy_kernel PUBLIC alloy_sketch_solver Qt6::Gui TKernel TKMath TKG3d TKBRep TKPrim TKTopAlgo TKFillet TKOffset TKBO TKBool TKGeomAlgo TKMesh TKDESTL TKDESTEP TKXSBase)
+qt_add_resources(alloy_kernel "alloy_text_font" PREFIX "/alloy/fonts" BASE "third_party/dejavu" FILES "third_party/dejavu/DejaVuSans.ttf")
 target_compile_definitions(alloy_kernel PUBLIC ALLOY_OCCT_VERSION="${ALLOY_OCCT_VERSION}")
 
 add_library(alloy_application STATIC
@@ -75,6 +76,9 @@ if(ALLOY_BUILD_SPIKES)
 endif()
 if(BUILD_TESTING)
     find_package(Qt6 6.11.2 EXACT REQUIRED COMPONENTS Test)
+    add_executable(sketch_text_test tests/sketch_text.cpp)
+    target_link_libraries(sketch_text_test PRIVATE alloy_kernel Qt6::Gui)
+    add_test(NAME sketch_text COMMAND sketch_text_test)
     add_executable(multi_face_controls_test tests/multi_face_controls.cpp)
     target_link_libraries(multi_face_controls_test PRIVATE alloy_application Qt6::Test)
     add_test(NAME multi_face_controls COMMAND multi_face_controls_test)

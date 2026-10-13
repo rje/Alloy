@@ -2126,3 +2126,16 @@ with analytic API-authored fixtures. Full source authoring/tutorial remains
 separate; no unsupported Sweep modes are implied. Independent review and
 integration pending. See [receipt](validation/sweep-controls.md) and
 [shared contract](research/solid-sweep.md).
+
+## Sketch Text foundation candidate (2026-10-13)
+
+SKT-046/#231 adds a pinned, redistributable DejaVu Sans 2.37 regular font and
+retained text intent on one named planar face. Qt outlines become exact OCCT
+line/Bezier wires and planar glyph faces with holes. Each character index is a
+stable profile slot owned by one text UUID; same-count edits retain those IDs,
+while count changes are refused. The shared API and existing extrusion authority
+joined DSB then DS8 after text/height/placement edit to one floor body with
+positive checked volumes, undo/redo and exact save/reopen. A native Apple M4
+OpenGL capture shows legible raised outlines/holes. The bounded receipt is
+[Sketch Text](validation/sketch-text.md). Independent review, native text
+placement, broader shaping and the complete keyring lesson remain open.

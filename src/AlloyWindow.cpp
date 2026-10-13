@@ -9,6 +9,7 @@
 #include "ReferenceView.h"
 #include "GeometryKernel.h"
 #include "SketchGeometry.h"
+#include "SketchText.h"
 #include "TutorialRecorder.h"
 #include <QApplication>
 #include <QAccessible>
@@ -1335,6 +1336,40 @@ void AlloyWindow::registerCommands() {
         [this](const auto& a){return appendCenterRectangle(a);});
     auto angle=parameter("number","Explicit angle in degrees; length display units do not convert it.");angle["minimum"]=-100000;angle["maximum"]=100000;
     const auto sketchSession=optional(parameter("string","Optional active sketch session identity."));
+    const auto textValue=parameter("string","One to sixteen uppercase Latin letters or digits in the pinned DejaVu Sans regular font.");
+    auto textHeight=parameter("number","Cap height in sketch display units.");textHeight["minimum"]=0.1;textHeight["maximum"]=1000;
+    add("sketch.textAdd","Sketch Text","Create one retained, selectable text object on a text-only sketch.",
+        {{"text",textValue},{"height",textHeight},{"x",coordinate},{"y",coordinate},{"angleDeg",angle},{"units",optional(units)},{"session",sketchSession}},
+        [this](const auto& a){
+            if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
+            if(a.contains("session") && a["session"]!=session_["id"])return failure("invalid_session","Session is no longer active");
+            auto draft=session_["draftSketch"].toObject(),p=draft["parameters"].toObject();
+            if(!p["entities"].toArray().isEmpty() || p.contains("texts"))return failure("text_only_sketch","Sketch Text requires an otherwise empty sketch");
+            const auto unit=a.value("units").toString(session_["inputs"].toObject()["units"].toString());
+            p["texts"]=QJsonArray{SketchText::create({{"text",a["text"]},{"heightMm",CadDocument::millimeters(a["height"].toDouble(),unit)},
+                {"uMm",CadDocument::millimeters(a["x"].toDouble(),unit)},{"vMm",CadDocument::millimeters(a["y"].toDouble(),unit)},{"angleDeg",a["angleDeg"]}})};
+            draft["parameters"]=p;return publishSketchSolve(SketchGeometry::solveDraft(draft,session_.value("projectionContext").toObject()));
+        });
+    add("sketch.textUpdate","Edit Sketch Text","Edit retained text and placement; dependent profile slots remain stable when available.",
+        {{"textId",parameter("string","Retained text object UUID.")},{"text",optional(textValue)},{"height",optional(textHeight)},
+         {"x",optional(coordinate)},{"y",optional(coordinate)},{"angleDeg",optional(angle)},{"units",optional(units)},{"session",sketchSession}},
+        [this](const auto& a){
+            if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
+            if(a.contains("session") && a["session"]!=session_["id"])return failure("invalid_session","Session is no longer active");
+            auto draft=session_["draftSketch"].toObject(),p=draft["parameters"].toObject();auto texts=p["texts"].toArray();
+            if(texts.size()!=1 || texts.first().toObject()["id"]!=a["textId"])return failure("text_unavailable","The text object is unavailable");
+            auto t=texts.first().toObject();const auto unit=a.value("units").toString(session_["inputs"].toObject()["units"].toString());
+            if(a.contains("text")){
+                if(a["text"].toString().size()!=t["text"].toString().size())
+                    return failure("text_slot_count_changed","This Sketch Text edit keeps the same number of glyph profile slots; create a new text sketch to change the count");
+                t["text"]=a["text"];
+            }
+            for(const auto pair:{std::pair{"height","heightMm"},std::pair{"x","uMm"},std::pair{"y","vMm"}})
+                if(a.contains(pair.first))t[pair.second]=CadDocument::millimeters(a[pair.first].toDouble(),unit);
+            if(a.contains("angleDeg"))t["angleDeg"]=a["angleDeg"];
+            p["texts"]=QJsonArray{t};draft["parameters"]=p;
+            return publishSketchSolve(SketchGeometry::solveDraft(draft,session_.value("projectionContext").toObject()));
+        });
     add("sketch.addCircle","Center Diameter Circle","Append one exact analytic circle in the active sketch.",
         {{"centerX",coordinate},{"centerY",coordinate},{"diameter",coordinate},{"units",optional(units)},{"session",sketchSession}},
         [this](const auto& a){return appendSketchCurve("circle",a);});
