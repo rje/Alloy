@@ -227,3 +227,31 @@ explicit no-face/no-edge/no-vertex checks. Maximum conservative pair discrepancy
 including both reported integration errors is1.4163313e-5 mm3. The tighter GK
 run reached maximum relative estimate1.55805024e-10; these are library estimates,
 not mathematical error bounds. No GUI was launched in these headless checks.
+## Independent acceptance of the numerical correction
+
+Astra reviewed `edcd76e` plus `48125ca` (integrated as `a22c676`/`a3f6f4e`).
+Accepted for the bounded Join coverage calculation: both inputs use the same
+explicit adaptive integration, and the sum of estimated absolute errors consumes
+part of the existing material threshold. No kernel tolerance, geometry, Fuse
+policy or material-loss threshold is relaxed. The achieved errors are estimates,
+not rigorous mathematical bounds.
+
+Independent source/evidence review confirms the focused regressions pass 3/3
+in 2.03 s. The saved actual corrected Join result preserves all eight ribs and
+hub: each configured input-minus-result Cut succeeds, is BRep-valid and contains
+no face, edge or vertex (`retained-joined-containment.json`). The independent
+raw-diff classification establishes preservation of existing geometry, tolerances,
+parameter ranges and topology despite added OCCT support representations; byte
+identity is explicitly not claimed.
+
+The actual cumulative-02 Join now succeeds. Its inspected
+`eight-ribs-hub-join.png` shows the complete selected rib assembly and bottom hub,
+one visible retained body and no dialog obstruction. This is actual API/GPU
+Join evidence, not independent geometric proof from an image or native input
+parity. The external retained source fixture reproduces the numerical failure;
+the ordinary regression fixtures do not claim that exact trigger.
+
+This acceptance covers the numerical correction and retained Join only.
+Downstream bore, source edit/history/reopen, strict STL and complete tutorial
+acceptance remain separate. No GUI or duplicate model replay was performed by
+this reviewer.
