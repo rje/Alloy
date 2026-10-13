@@ -15,13 +15,14 @@ are `demos/2026-10-13/revolve/revolve-complete.mp4` and
 
 Native Revolve controls #216 and original compact ribbon icons #218 are accepted.
 Main's default app is rebuilt with both. Receipt `validation/ribbon-icons.md`
-records actual1040/1400 Retina layout and native input evidence. All private
+records actual 1040/1400 Retina layout and native input evidence. All private
 editors are closed. No release/tag or per-commit CI was triggered.
 
-96 of218 issues are closed. Next active work is #165: Sol audits existing nested
-profile/island behavior in an isolated worktree, then implements a finishable
-scope with Astra verification. Split oversized remaining scope into linked Todo
-issues. Other broad parents remain Todo. The sections below are a chronological
+96 of 219 issues are closed. Active work: Sol implements bounded nested
+profile/island coverage and diagnostics #165, and a second Sol implements
+retained-target Extrude Intersect #219 in separate worktrees. Astra independently
+verifies both. Intersect parent #161 retains broader operation-edit and typed-Return
+qualification as Todo. Split oversized remaining scope into linked Todo issues. Other broad parents remain Todo. The sections below are a chronological
 record; older ownership, pending status and counts are historical.
 
 ## Overnight queue authorized (2026-10-12)

@@ -1,7 +1,7 @@
 {
   "repository": "rje/Alloy",
   "project_url": "https://github.com/users/rje/projects/1",
-  "updated": "2026-10-13T11:31:05.195290+00:00",
+  "updated": "2026-10-13T11:36:45.214682+00:00",
   "issues": {
     "FND-023": {
       "number": 218,
@@ -1091,6 +1091,11 @@
     "FND-001": {
       "number": 1,
       "url": "https://github.com/rje/Alloy/issues/1",
+      "state": "open"
+    },
+    "SOL-031": {
+      "number": 219,
+      "url": "https://github.com/rje/Alloy/issues/219",
       "state": "open"
     }
   }
