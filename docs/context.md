@@ -47,6 +47,10 @@ application regression: retained Circular Pattern has not been implemented.
 Do not claim #264 feasible or complete from the separate ingredient tests. The
 chosen image-like spline coordinates and failed logs are retained externally;
 Sol is reviewing Boolean robustness without replacing the source geometry.
+New Todo #265 (SOL-039) tracks the bounded correction; #264 depends on it.
+A second external probe using the actual candidate SketchRegions profile and
+GeometryKernel extrusion/Intersect reproduces invalid fifteen-solid array Join.
+Actual retained Circular Pattern/application reproduction is still required.
 
 ## Earlier accepted checkpoints and development history
 

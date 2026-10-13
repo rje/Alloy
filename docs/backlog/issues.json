@@ -4673,12 +4673,28 @@
         "SOL-037",
         "SKT-065",
         "DOC-021",
-        "SOL-038"
+        "SOL-038",
+        "SOL-039"
       ],
       "labels": [
         "area:gate"
       ],
       "body": "## Complete source workflow\nFrom blank:80/5/R50 vertical profile\u2192Full360 Revolve\u2192Inside Shell5 removing actual bottom disk\u2192Section Analysis/hatching\u2192midplane fitted spline and Offset5 with disclosed endpoint connector transition\u2192one-side retained Intersect\u2192Full circular body pattern total8\u2192base circle diameter10/Join5 into one body\u2192diameter4 hanging-hole Cut. Source free spline coordinates/side and dragged Intersect extent are explicit fixture choices. Preserve all source inspection steps. Optional brim is excluded explicitly.\n\n## Deliverables and gate\nFull creation movie, editable authored file, source-stage captures, structured geometry/visibility/analysis evidence, meaningful upstream spline or offset and pattern-count edits with exact history/reopen. Verify real8body\u21921body join, bore opening, valid positive-volume solid, and independently checked manifold millimeter STL as declared printing extension. Do not import tutorial STL. Reuse independently accepted native ingredient receipts while qualifying API recording. Independent complete-step/GPU/geometry/artifact review required before closing.\n\n## Source and acceptance boundary\nSource ornament-pattern-20261013, public illustrated lesson independently audited2026-10-13. Exact source ledger, public provenance/images, unknowns and decisions are external at knowledge/tutorials/after-slots-splines/independent-contract.md. No reference application use. Use existing authoritative commands/geometry, native ingredient evidence, GPU captures and proportional checks; Astra independently verifies. Preserve broader parent remainders. This child does not complete the full tutorial gate.\n"
+    },
+    {
+      "key": "SOL-039",
+      "title": "Unite patterned exact-offset members into one valid solid",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-065",
+        "SOL-038"
+      ],
+      "labels": [
+        "area:sol"
+      ],
+      "body": "## Result\nResolve the cumulative exact-offset Boolean robustness gate for the ornament: eight retained circular-pattern members plus the prescribed diameter10, height5 hub must form one valid connected solid, followed by a transverse diameter4 hanging bore. Preserve the authored source geometry, references and source steps. Diagnose through the actual profile/Intersect/Pattern/Join authority before choosing a bounded kernel or representation correction. Do not hide invalid results, loosen validity checks or substitute a simpler solid.\n\n## Evidence motivating this child\nExternal validation/ornament-feasibility/authoritative-profile.cpp uses the candidate actual SketchRegions profile and GeometryKernel extrusion/Intersect. The source-like fitted strip gives one valid member, but nine-input Fuse returns invalid15-solid geometry. Earlier raw-face construction and sequential Fuse also failed. The shell and final array are still external fixtures; full application reproduction remains required. Unspecified fit points are disclosed fixture choices, not prescribed source numbers.\n\n## Verification\nReproduce through retained authored commands once dependencies land. Verify one valid connected result containing all eight complete members and the hub, stable body ownership, meaningful source edit, exact undo/reopen and strict closed STL. Prove the transverse hole exits both sides. Keep numerical volume integration consistent in Join lineage checks for exact offset geometry. Astra independently reviews the failure cause and final evidence. Source alias ornament-pattern-20261013; public source and visual provenance remain external.\n"
     }
   ]
 }

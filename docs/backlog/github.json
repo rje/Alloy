@@ -1,8 +1,13 @@
 {
   "repository": "rje/Alloy",
   "project_url": "https://github.com/users/rje/projects/1",
-  "updated": "2026-10-13T20:18:47.429430+00:00",
+  "updated": "2026-10-13T20:39:46.143441+00:00",
   "issues": {
+    "SOL-039": {
+      "number": 265,
+      "url": "https://github.com/rje/Alloy/issues/265",
+      "state": "open"
+    },
     "TUT-014": {
       "number": 264,
       "url": "https://github.com/rje/Alloy/issues/264",
