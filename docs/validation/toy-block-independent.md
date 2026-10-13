@@ -68,3 +68,46 @@ ledger, editable model, STL and six captures. Independent event log and captures
 are in `build-tutorial-polish/evidence/toy-independent/` (`qt-input.txt`,
 `qt-pattern.png`, `qt-roof-midpoint.png`, `movie-contact.png`). The movie is
 external at `demos/2026-10-13/toy-block/toy-block-complete.mp4`.
+
+## Updated retained edge-dimension gate
+
+Independently accepted 2026-10-13 after SKT-034/#205 and HIS-005/#207. This new
+run supersedes the first-stud coordinate-component adaptation for the current
+deliverable; the original evidence and the historical qualification above remain
+unchanged. The new evidence is `build-tutorial-polish/evidence/toy-block-point-edge/`
+and the external movie is
+`demos/2026-10-13/toy-block/toy-block-with-edge-dimensions.mp4`.
+
+The reviewer inspected the saved ten-feature model. Stud contains diameter5
+and two driving `pointLineDistance` dimensions of3.9, each retaining the same
+circle-center ID and a projected straight-edge ID with an oriented side. The
+center is (3.9,11.9), radius2.5; no coordinate-component replacement remains.
+The actual Top capture `first-stud-edge-dimensions.png` shows both readable3.9
+witnesses, Ø5 and Fully constrained. Separate independently accepted #205 Qt
+evidence covers the direct D/center/edge/placement/Enter gesture; this full run
+uses the same authoritative commands through the API.
+
+The row pattern moves inward in world −Y by8, preserving the same eight stud
+locations. Stored signed extents depend on each retained edge's direction and
+must not be read as global coordinates. The roof construction endpoints remain
+world (3.9,3.9,8.11) and (11.9,11.9,8.11), matching the public Bottom-view
+first-row first to second-row second diagonal. Their distinct occurrence-aware
+center references, coincident endpoints, midpoint relation and retained inward
+circle offset remain in the file. Changing the stud seed did not require
+reversing that diagonal. The sampled Bottom movie frame confirms its screen
+orientation and subsequent three-tube result.
+
+The new complete ledger passes128commands, completed-chain stud-height edit,
+undo/redo/restoration and exact reopen. The60.8second movie reports608frames
+and zero capture failures. Independent samples span base creation, the new
+edge dimensions, roof diagonal, midpoint/offset, tube pattern and finished
+underside. Captions identify API execution; this is not an uninterrupted OS
+mouse walkthrough. The small overall model framing remains a presentation
+limitation, without obscuring the dedicated dimension capture.
+
+Independent strict readback of the new STL confirms one closed consistently
+oriented component,36644triangles, finite unit normals aligned with winding,
+31.8×15.8×11.3mm bounds and signed volume2451.5489396895mm³. The existing exact
+19-edge fillet and full-source modeling scope remain accepted. No new GUI replay,
+physical-input claim, exact pixel parity or broad parent-feature closure is
+inferred from this update.
