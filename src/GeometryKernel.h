@@ -19,12 +19,19 @@ struct EvaluatedSupportFace {
     std::vector<EvaluatedSupportEdge> boundaryEdges;
 };
 
+struct EvaluatedSolidEdge {
+    QString edgeId;
+    TopoDS_Edge edge;
+    QJsonObject provenance;
+};
+
 struct EvaluatedBody {
     QString featureId, bodyId, name;
     bool visible = true;
     TopoDS_Shape shape;
     QJsonObject summary;
     std::vector<EvaluatedSupportFace> supportFaces;
+    std::vector<EvaluatedSolidEdge> solidEdges;
 };
 
 struct EvaluatedSketch {
