@@ -57,7 +57,7 @@ public:
     QJsonArray annotations() const { return annotationLayouts_; }
     void setSketchPlane(const QString& plane, const QJsonObject& resolvedFrame = {});
     void lookAtSketch(const QString& plane, const QJsonObject& resolvedFrame = {}, const TopoDS_Shape& content = {});
-    QJsonObject sketchPoint(double x, double y, const QString& plane) const;
+    QJsonObject sketchPoint(double x, double y, const QString& plane, const QJsonObject& resolvedFrame = {}) const;
     QJsonObject projectSketchPoint(double uMm, double vMm, const QString& plane, const QJsonObject& resolvedFrame = {}) const;
     void showTrimPreview(const QString& plane,const QJsonObject& segment);
     void showSketchCursor(const QString& plane, const QPointF& first, const QPointF& second, bool rectangle, bool centered = false);
@@ -76,6 +76,7 @@ public:
     void highlightSolidEdges(const std::vector<EvaluatedBody>& bodies,const QString& bodyId,const QJsonArray& edgeIds);
     void clearSolidEdgeHighlights();
     QJsonObject projectBody(const EvaluatedBody& body) const;
+    void showSpherePreview(const TopoDS_Shape& tool, bool cut);
     void showPreview(const TopoDS_Shape& shape,const QString& replacedBody = {}, bool neutral = false);
     void showExtrudePreview(const EvaluatedBody& body, const EvaluatedProfile& profile, double distanceMm, const QJsonArray& sourceProfileIds = {}, const QString& units = "mm");
     void showCutPreview(const EvaluatedBody& body, const std::vector<EvaluatedProfile>& profiles, double distanceMm,

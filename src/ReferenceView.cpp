@@ -1237,11 +1237,11 @@ void ReferenceView::lookAtSketch(const QString& plane,const QJsonObject& resolve
     }
     pan={};zoom=1;sync();
 }
-QJsonObject ReferenceView::sketchPoint(double x,double y,const QString& plane) const {
+QJsonObject ReferenceView::sketchPoint(double x,double y,const QString& plane,const QJsonObject& resolvedFrame) const {
     if(view_.IsNull() || x<0 || y<0 || x>=width() || y>=height())throw std::invalid_argument("Point is outside the initialized viewport");
     const auto scale=windowScale();double px,py,pz,dx,dy,dz;
     view_->ConvertWithProj(qRound(x*scale.x()),qRound(y*scale.y()),px,py,pz,dx,dy,dz);
-    const auto frame=frameFor(plane);const auto normal=frame["normal"].toArray(),origin=frame["origin"].toArray();
+    const auto frame=resolvedFrame.isEmpty() ? frameFor(plane) : resolvedFrame;const auto normal=frame["normal"].toArray(),origin=frame["origin"].toArray();
     const gp_Vec n(normal[0].toDouble(),normal[1].toDouble(),normal[2].toDouble()),ray(dx,dy,dz);
     const double denominator=n.Dot(ray);
     if(std::abs(denominator)<1e-9)throw std::invalid_argument("Look At the sketch plane before drawing");
@@ -1492,6 +1492,13 @@ void ReferenceView::replacePreview(const TopoDS_Shape& shape,const QString& repl
         Quantity_Color(0.18,0.22,0.25,Quantity_TOC_sRGB),Aspect_TOL_SOLID,devicePixelRatioF()));
     context_->Display(preview_,AIS_Shaded,-1,false);context_->Deactivate(preview_);
     applyEditDisplay(false);
+}
+void ReferenceView::showSpherePreview(const TopoDS_Shape& tool,bool cut) {
+    replacePreview(tool,{},false);
+    if(context_.IsNull())return;
+    preview_->SetColor(Quantity_Color(cut ? .91 : .16,cut ? .24 : .47,cut ? .27 : .86,Quantity_TOC_sRGB));
+    preview_->SetTransparency(cut ? .48 : .20);
+    context_->Redisplay(preview_,false);context_->UpdateCurrentViewer();
 }
 void ReferenceView::showPreview(const TopoDS_Shape& shape,const QString& replacedBody,bool neutral) {
     replacePreview(shape,replacedBody,neutral);
@@ -1745,6 +1752,7 @@ QJsonObject ReferenceView::diagnostics() const {
     result.insert("supportFaceHighlightVisible",!selectedSupportFaceOverlay_.IsNull());
     result.insert("hoveredSupportFace",hoveredSupportFace_);
     result.insert("previewVisible",!preview_.IsNull());
+    if(!preview_.IsNull()){Quantity_Color color;preview_->Color(color);double red,green,blue;color.Values(red,green,blue,Quantity_TOC_sRGB);result.insert("previewAppearance",QJsonObject{{"red",red},{"green",green},{"blue",blue},{"transparency",preview_->Transparency()}});}
     result.insert("previewReplacedBodyId",previewReplacedBody_);
     result.insert("previewProfileId",previewProfile_);
     result.insert("previewProfileIds",previewProfileIds_);
@@ -1943,12 +1951,19 @@ void ReferenceView::contextMenuEvent(QContextMenuEvent* e) {
     const auto menuFace=sketchActive ? QJsonObject{} : pickSupportFace(e->pos().x(),e->pos().y(),documentBodies_);
     const auto menuBody=sketchActive ? QString{} : pickBody(e->pos().x(),e->pos().y());
     if(!sketchActive && (!menuBody.isEmpty() || !menuFace.isEmpty() || !selectedSupportFace_.isEmpty())) {
-        QMenu menu(this);menu.setObjectName("context.viewportBody");QAction* create=nullptr;if(!menuFace.isEmpty() || !selectedSupportFace_.isEmpty()){create=menu.addAction("Create Sketch");create->setObjectName("context.createSketch");}QAction* move=nullptr;if(!menuBody.isEmpty()){move=menu.addAction("Move/Copy");move->setObjectName("context.moveBody");}
-        QJsonArray actions;for(const auto* action:menu.actions())actions.append(QJsonObject{{"id",action->objectName()},{"text",action->text()},{"enabled",action->isEnabled()}});
+        auto* menu=new QMenu(this);menu->setObjectName("context.viewportBody");menu->setAttribute(Qt::WA_DeleteOnClose);
+        QAction* create=nullptr;if(!menuFace.isEmpty() || !selectedSupportFace_.isEmpty()){create=menu->addAction("Create Sketch");create->setObjectName("context.createSketch");}
+        QAction* repeat=nullptr;if(!menuFace.isEmpty()){repeat=menu->addAction("Repeat Sphere");repeat->setObjectName("context.repeatSphere");}
+        QAction* move=nullptr;if(!menuBody.isEmpty()){move=menu->addAction("Move/Copy");move->setObjectName("context.moveBody");}
+        QJsonArray actions;for(const auto* action:menu->actions())actions.append(QJsonObject{{"id",action->objectName()},{"text",action->text()},{"enabled",action->isEnabled()}});
         lastContextMenu_["origin"]="viewport";lastContextMenu_["bodyId"]=menuBody;lastContextMenu_["support"]=menuFace;lastContextMenu_["actions"]=actions;lastContextMenu_["phase"]="open";++contextMenuShownCount_;
-        const auto action=menu.exec(e->globalPos());lastContextMenu_["phase"]="closed";lastContextMenu_["result"]=action ? action->objectName() : QString("cancelled");
-        if(create && action==create)dispatch("sketch.create",{{"support",menuFace.isEmpty() ? selectedSupportFace_ : menuFace}});else if(move && action==move)dispatch("solid.moveDialog",{{"targetBodyId",menuBody}});
-        e->accept();return;
+        connect(menu,&QMenu::triggered,this,[this,create,repeat,move,menuFace,menuBody](QAction* action){lastContextMenu_["result"]=action->objectName();
+            if(action==create)dispatch("sketch.create",{{"support",menuFace.isEmpty() ? selectedSupportFace_ : menuFace}});
+            else if(action==repeat)dispatch("solid.repeatSphere",{{"support",menuFace}});
+            else if(action==move)dispatch("solid.moveDialog",{{"targetBodyId",menuBody}});
+        });
+        connect(menu,&QMenu::aboutToHide,this,[this]{lastContextMenu_["phase"]="closed";if(!lastContextMenu_.contains("result"))lastContextMenu_["result"]="cancelled";});
+        menu->popup(e->globalPos());e->accept();return;
     }
     QWidget::contextMenuEvent(e);
 }

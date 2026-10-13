@@ -658,3 +658,22 @@ bodyIds and allVisible. Scope resolves actual material bodies owned by the child
 definition and excludes root bodies regardless of visibility. Empty or dangling
 scope fails. Save As Mesh exposes these occurrence choices alongside existing
 body choices. See [contract and evidence limits](research/local-components.md).
+
+## Face-positioned Sphere candidate
+
+`solid.sphere` directly creates/edits a retained face-positioned Sphere; the
+same schema opens `solid.sphereDialog`. Inputs are `support` containing
+`bodyId`/`producerFeatureId`/`faceId`, face-local `uMm`/`vMm`, canonical
+`diameterMm`, `operation` (`cut` or `newBody`), optional `targetBodyId` for Cut,
+`featureId` for editing, and `name`. Cut defaults to the support body.
+A dialog can omit the face and center: `selection.pick` first chooses an actual
+supported face, then places the center through a second viewport ray. An explicit
+support starts at center placement. `selection.faceSet`/`facePick` also bind the
+same support. `view.projectFacePoint {support,uMm,vMm}` returns logical viewport
+coordinates using the exact resolved face frame. Session `selectionRole` reports
+`face`/`center`/`placed`. `command.update`, `preview`, `commit` and `cancel` reuse
+authoritative authored state and disposable real geometry. Preview carries the
+evaluated result summary and GPU `previewAppearance` diagnostics expose actual
+color/transparency. `solid.repeatSphere {support}` clears center and binds that
+new face, preserving last accepted diameter as an explicit Alloy choice.
+See [the candidate evidence limits](validation/face-sphere-controls.md).

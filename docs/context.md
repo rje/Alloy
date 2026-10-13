@@ -1591,3 +1591,19 @@ creation and root activation on reopen are recorded Alloy choices, not claimed
 reference defaults. Focused kernel ownership/history/storage/STL readback passes;
 real-entrypoint runner is prepared. Native/API/visual acceptance awaits Astra's
 independent serialized desktop review. No acceptance, push or release is implied.
+
+
+## Face Sphere controls candidate (SOL-014 #145)
+
+Isolated `face-sphere-controls` layers real face-pick/center-click, diameter/Enter,
+red disposable Cut tool, New Body, editing/Cancel/OK and nonmodal context Repeat
+on the integrated Sphere core. Stable feature/body IDs are reserved per session.
+`solid.sphere`, `solid.sphereDialog`, `solid.repeatSphere` and
+`view.projectFacePoint` are the frozen shared API. Repeat binds its new actual
+face and clears center; diameter3/default and last-accepted carry-over are explicit
+Alloy choices. Build/application and dedicated Qt widget test compile with the
+private coherent Qt runtime; core Sphere test passes. Real-app API runner and
+focused widget run await root's exclusive desktop assignment and Astra review.
+No GUI was launched by the implementer. Root must inject `authoringArguments`
+into the candidate wrapper when integrating active component ownership.
+See `validation/face-sphere-controls.md`; full die gate remains separate.

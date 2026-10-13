@@ -84,6 +84,15 @@ private:
     std::vector<EvaluatedBody> filletInputBodies() const;
     QDockWidget* filletDock_ = nullptr;
     QShortcut* filletEscape_ = nullptr;
+    QJsonObject beginSphere(const QJsonObject& inputs);
+    QJsonObject sphereCandidate(const QJsonObject& inputs) const;
+    EvaluatedDocument sphereInputDocument() const;
+    QJsonObject selectSphereFace(const QJsonObject& support);
+    QJsonObject placeSphereCenter(double x,double y);
+    QJsonObject previewSphere();
+    void showSphere();
+    QDockWidget* sphereDock_ = nullptr;
+    double lastSphereDiameterMm_ = 3.0;
     QJsonObject beginChamfer(const QJsonObject& inputs);
     QJsonObject chamferCandidate(const QJsonObject& inputs) const;
     QJsonObject previewChamfer();

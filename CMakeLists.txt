@@ -40,7 +40,7 @@ target_compile_definitions(alloy_kernel PUBLIC ALLOY_OCCT_VERSION="${ALLOY_OCCT_
 
 add_library(alloy_application STATIC
     src/AlloyTheme.cpp src/AlloyTheme.h
-    src/AlloyWindow.cpp src/AlloyWindow.h src/SolidFilletControls.cpp src/SolidChamferControls.cpp src/SolidShellControls.cpp src/LoftControls.cpp src/PatternControls.cpp src/SolidMirrorControls.cpp src/MoveControls.cpp src/CombineControls.cpp src/ExportControls.cpp src/StepExportControls.cpp
+    src/AlloyWindow.cpp src/AlloyWindow.h src/SolidFilletControls.cpp src/SolidChamferControls.cpp src/SphereControls.cpp src/SolidShellControls.cpp src/LoftControls.cpp src/PatternControls.cpp src/SolidMirrorControls.cpp src/MoveControls.cpp src/CombineControls.cpp src/ExportControls.cpp src/StepExportControls.cpp
     src/TutorialRecorder.cpp src/TutorialRecorder.h
     src/CadDocument.cpp src/CadDocument.h
     src/ReferenceView.cpp src/ReferenceView.h
@@ -73,6 +73,10 @@ if(ALLOY_BUILD_SPIKES)
 endif()
 if(BUILD_TESTING)
     find_package(Qt6 6.11.2 EXACT REQUIRED COMPONENTS Test)
+    add_executable(sphere_controls_test tests/sphere_controls.cpp)
+    target_link_libraries(sphere_controls_test PRIVATE alloy_application Qt6::Test)
+    add_test(NAME sphere_controls COMMAND sphere_controls_test)
+    set_tests_properties(sphere_controls PROPERTIES TIMEOUT 30 LABELS "widget;gpu" RUN_SERIAL TRUE)
     add_executable(widget_interactions_test tests/widget_interactions.cpp)
     target_link_libraries(widget_interactions_test PRIVATE alloy_application Qt6::Test)
     add_test(NAME widget_interactions COMMAND widget_interactions_test)

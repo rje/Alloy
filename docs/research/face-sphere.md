@@ -24,6 +24,7 @@ instructions. Verify21 authored cuts, all6 original planar face IDs, volume loss
 47.25π from the rounded baseline, upstream rounding edit, history and reopen.
 Do not count spherical topology patches as pips; kernel seams can split them.
 
-Current core candidate is being checked. Shared command/UI, Repeat and complete
-die/component/STL/movie acceptance remain outstanding. Exact pixels, view-cube
+Core Sphere passes its focused six-face/21-cut checks. Shared command/UI and
+Repeat now have a compiled candidate; independent real-app/native qualification
+and complete die/component/STL/movie acceptance remain outstanding. Exact pixels, view-cube
 interaction and physical OS input are not established by core tests.
