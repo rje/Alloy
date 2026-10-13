@@ -25,6 +25,16 @@ Sources, PDFs, images and detailed step research remain outside Git under
 `../Alloy-reference-records/knowledge/tutorials/warwick/`. Older screenshot
 command locations require current public reference checks. A matching final
 shape alone cannot replace prescribed Join, body transform or face operations.
+## Next researched workflow: straw bung (2026-10-12)
+
+The compact contract is [straw-bung-gate.md](research/straw-bung-gate.md), with a
+14-step external source ledger and recovered original public video. #168 owns
+Join plus its persistent positive cap; #169 owns body Move; #170 owns the
+cumulative gate. PDF/video cutter and rotation values differ and are explicitly
+preserved. Sequential Free Move gesture fields reset while placement accumulates.
+Circle-first plane/face selection remains a native interaction gap. Research is
+complete for this bounded contract; candidate acceptance and full gate execution
+remain pending. No new feature is claimed implemented by this entry.
 
 ## User slicer milestone (2026-10-12)
 
