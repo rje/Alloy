@@ -18,7 +18,7 @@ std::vector<EvaluatedBody> AlloyWindow::filletInputBodies() const {
 }
 QJsonObject AlloyWindow::filletCandidate(const QJsonObject& inputs) const {
     auto args=inputs;if(!args.contains("featureId") && session_.value("command")=="solid.fillet")args["newFeatureId"]=session_["newFeatureId"];
-    return CadDocument::filletCandidate(document_->authored(),args);
+    return CadDocument::filletCandidate(document_->authored(),authoringArguments(args));
 }
 QJsonObject AlloyWindow::beginFillet(const QJsonObject& overrides) {
     if(!session_.isEmpty())return filletFailure("session_busy","Complete or cancel the active command first");

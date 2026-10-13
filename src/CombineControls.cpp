@@ -68,7 +68,7 @@ QJsonObject AlloyWindow::combineCandidate(const QJsonObject& inputs) const {
     const auto featureId = inputs.value("featureId").toString();
     if (!featureId.isEmpty()) arguments["featureId"] = featureId;
     else if (session_.value("command") == "solid.combine") arguments["newFeatureId"] = session_["newFeatureId"];
-    return CadDocument::booleanCandidate(document_->authored(),arguments);
+    return CadDocument::booleanCandidate(document_->authored(),authoringArguments(arguments));
 }
 
 std::vector<EvaluatedBody> AlloyWindow::combineInputBodies() const {

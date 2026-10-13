@@ -621,6 +621,11 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored) 
             throw EvaluationError(context);
         }
     }
+    QMap<QString,QString> owners;
+    for(const auto& value:authored["features"].toArray()){const auto f=value.toObject();owners[f["id"].toString()]=f["ownerId"].toString();}
+    for(auto& body:evaluated.bodies){body.ownerId=owners[body.featureId];body.summary["ownerId"]=body.ownerId;}
+    for(auto& sketch:evaluated.sketches){sketch.ownerId=owners[sketch.featureId];sketch.summary["ownerId"]=sketch.ownerId;}
+    for(auto& plane:evaluated.constructionPlanes)plane.ownerId=owners[plane.featureId];
     return evaluated;
 }
 QJsonObject GeometryKernel::policy() {

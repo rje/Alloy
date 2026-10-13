@@ -1572,3 +1572,18 @@ Actual API runner `tests/solid_chamfer_api.py` is prepared but unrun; root owns
 private editor serialization and independent review. Select all edges is an
 explicit native button; source drag-window gesture remains mismatch, not parity.
 Broader variants remain SOL-005. See `validation/solid-chamfer.md`.
+## Local component candidate (2026-10-13)
+
+ASM-004 #200 has an isolated local-components candidate: real authored local
+component definitions and distinct root-child identity occurrences, per-design
+activation outside CAD history, active-owner creation and retained-owner editing.
+Browser radio/grouping and active-owner Timeline use actual evaluation ownership.
+Existing STL export offers occurrence scope and resolves actual component material
+bodies, excluding root stock. Root-only files remain valid; unsupported nesting,
+instances/transforms/external references/joints remain in ASM-001. Explicit
+cross-component modeling inputs and dangling ownership fail atomically.
+See [the bounded contract](research/local-components.md). Checked activation on
+creation and root activation on reopen are recorded Alloy choices, not claimed
+reference defaults. Focused kernel ownership/history/storage/STL readback passes;
+real-entrypoint runner is prepared. Native/API/visual acceptance awaits Astra's
+independent serialized desktop review. No acceptance, push or release is implied.

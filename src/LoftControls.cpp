@@ -16,7 +16,7 @@ QJsonObject failure(const QString& code,const QString& message){return {{"ok",fa
 
 QJsonObject AlloyWindow::loftCandidate(const QJsonObject& inputs) const {
     auto args=inputs;if(!args.contains("featureId") && session_.value("command")=="solid.loft") {args["newFeatureId"]=session_["newFeatureId"];args["newBodyId"]=session_["newBodyId"];}
-    return CadDocument::loftCandidate(document_->authored(),args);
+    return CadDocument::loftCandidate(document_->authored(),authoringArguments(args));
 }
 QJsonObject AlloyWindow::beginLoft(const QJsonObject& overrides) {
     if(!session_.isEmpty())return failure("session_busy","Complete or cancel the active command first");

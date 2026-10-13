@@ -16,7 +16,7 @@ QJsonObject shellFailure(const QString& code,const QString& message,const QJsonO
 QJsonObject AlloyWindow::shellCandidate(const QJsonObject& inputs) const {
     auto args=inputs;
     if(!args.contains("featureId") && session_.value("command")=="solid.shell")args["newFeatureId"]=session_["newFeatureId"];
-    return CadDocument::shellCandidate(document_->authored(),args);
+    return CadDocument::shellCandidate(document_->authored(),authoringArguments(args));
 }
 QJsonObject AlloyWindow::beginShell(const QJsonObject& overrides) {
     if(!session_.isEmpty())return shellFailure("session_busy","Complete or cancel the active command first");

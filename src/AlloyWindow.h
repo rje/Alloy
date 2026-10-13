@@ -78,6 +78,7 @@ private:
     QJsonObject previewTrim(const QJsonObject& inputs);
     QJsonObject beginFillet(const QJsonObject& inputs);
     QJsonObject filletCandidate(const QJsonObject& inputs) const;
+    QJsonObject authoringArguments(QJsonObject arguments) const { arguments["ownerId"]=document_->activeOwnerId();return arguments; }
     QJsonObject previewFillet();
     void showFillet();
     std::vector<EvaluatedBody> filletInputBodies() const;

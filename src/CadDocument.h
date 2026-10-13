@@ -19,6 +19,10 @@ public:
     CadDocument();
     const QJsonObject& authored() const { return authored_; }
     QJsonObject state() const;
+    QString activeOwnerId() const;
+    QString activateOwner(const QString& ownerId);
+    static bool hasOwner(const QJsonObject& authored, const QString& ownerId);
+    static QJsonObject componentCandidate(const QJsonObject& authored, const QString& name);
     quint64 revision() const { return revision_; }
     QUndoStack& history() { return history_; }
     void reset();
@@ -63,6 +67,7 @@ private:
     quint64 revision_ = 0;
     QString lastTransaction_;
     QString path_;
+    QString activeOwnerId_;
     QJsonObject lastEvaluationError_;
     std::shared_ptr<const EvaluatedDocument> evaluation_ = std::make_shared<const EvaluatedDocument>();
 };

@@ -15,6 +15,7 @@
 #include <QRegularExpression>
 #include <Standard_Failure.hxx>
 #include <cmath>
+#include <functional>
 #include <stdexcept>
 
 namespace {
@@ -42,6 +43,22 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
         }
         if (feature.contains("bodyId")) bodyPositions[feature["bodyId"].toString()] = i;
         for(const auto& value:feature["bodyResults"].toArray()) {const auto record=value.toObject();if(record["participantBodyIds"].toArray().isEmpty())bodyPositions[record["bodyId"].toString()]=i;}
+    }
+    QMap<QString,QString> referencedOwners;
+    for(const auto& value:features) {
+        const auto f=value.toObject();const auto owner=f["ownerId"].toString();referencedOwners[f["id"].toString()]=owner;
+        if(f.contains("bodyId"))referencedOwners[f["bodyId"].toString()]=owner;
+        for(const auto& result:f["bodyResults"].toArray()){const auto body=result.toObject()["bodyId"].toString();if(!referencedOwners.contains(body))referencedOwners[body]=owner;}
+    }
+    for(const auto& value:features) {
+        const auto f=value.toObject();const auto owner=f["ownerId"].toString();
+        std::function<bool(const QJsonValue&)> crossOwner=[&](const QJsonValue& v) {
+            if(v.isString())return referencedOwners.contains(v.toString()) && referencedOwners[v.toString()]!=owner;
+            if(v.isArray())for(const auto& child:v.toArray())if(crossOwner(child))return true;
+            if(v.isObject())for(const auto& child:v.toObject())if(crossOwner(child))return true;
+            return false;
+        };
+        if(crossOwner(f["parameters"]))return {{"featureId",f["id"]},{"code","cross_component_dependency"},{"message","Cross-component modeling references are not supported"}};
     }
     QSet<QString> activeBodies;
     for (int i = 0; i < features.size(); ++i) {
@@ -174,10 +191,28 @@ private:
     QString id_ = CadDocument::newId();
 };
 
+bool CadDocument::hasOwner(const QJsonObject& authored,const QString& ownerId) {
+    if(ownerId==authored["documentId"].toString())return true;
+    for(const auto& value:authored["components"].toArray())if(value.toObject()["id"]==ownerId)return true;
+    return false;
+}
+QString CadDocument::activeOwnerId() const {return hasOwner(authored_,activeOwnerId_) ? activeOwnerId_ : authored_["documentId"].toString();}
+QString CadDocument::activateOwner(const QString& ownerId) {
+    if(!hasOwner(authored_,ownerId))return "Component definition does not exist";
+    activeOwnerId_=ownerId;return {};
+}
+QJsonObject CadDocument::componentCandidate(const QJsonObject& authored,const QString& name) {
+    if(name.trimmed().isEmpty())throw std::invalid_argument("Component name is required");
+    auto candidate=authored;auto components=candidate["components"].toArray();auto occurrences=candidate["occurrences"].toArray();
+    const auto id=newId();components.append(QJsonObject{{"id",id},{"name",name.trimmed()}});
+    occurrences.append(QJsonObject{{"id",newId()},{"definitionId",id},{"parentId",authored["documentId"]},{"placement","identity"}});
+    candidate["components"]=components;candidate["occurrences"]=occurrences;return candidate;
+}
 QString CadDocument::newId() { return QUuid::createUuid().toString(QUuid::WithoutBraces); }
 CadDocument::CadDocument() { reset(); }
 void CadDocument::reset() {
     history_.clear();
+    activeOwnerId_.clear();
     path_.clear();
     lastEvaluationError_ = {};
     apply({{"schema", "alloy-document/1"}, {"documentId", newId()},
@@ -185,7 +220,9 @@ void CadDocument::reset() {
     history_.setClean();
 }
 void CadDocument::apply(const QJsonObject& value, std::shared_ptr<const EvaluatedDocument> evaluation, const QString& transaction) {
-    authored_ = value; evaluation_=std::move(evaluation); lastTransaction_ = transaction; ++revision_;
+    authored_ = value;
+    if(!hasOwner(authored_,activeOwnerId_))activeOwnerId_=authored_["documentId"].toString();
+    evaluation_=std::move(evaluation); lastTransaction_ = transaction; ++revision_;
 }
 QString CadDocument::commit(const QJsonObject& candidate, const QString& label) {
     lastEvaluationError_ = {};
@@ -216,6 +253,7 @@ QString CadDocument::open(const QString& path) {
     if (parse.error!=QJsonParseError::NoError || !data.isObject()) return "Malformed native document";
     auto prepared = evaluateCandidate(data.object());
     if (!prepared.ok) {lastEvaluationError_ = prepared.diagnostics;return prepared.error;}
+    activeOwnerId_.clear();
     history_.clear(); apply(prepared.authored,std::move(prepared.evaluation)); path_=path; history_.setClean();
     return {};
 }
@@ -258,7 +296,7 @@ EvaluatedDocument CadDocument::evaluationBefore(const QString& featureId) const 
 QJsonObject CadDocument::stepImportCandidate(const QJsonObject& authored, const QJsonObject& arguments) {
     if (!validate(authored).isEmpty())
         throw StepExchange::Error({{"code","invalid_document"},{"message","Cannot import into an invalid document"}});
-    const QSet<QString> allowed{"path", "name", "newFeatureId", "newBodyId"};
+    const QSet<QString> allowed{"ownerId","path", "name", "newFeatureId", "newBodyId"};
     for (auto it=arguments.begin();it!=arguments.end();++it)
         if (!allowed.contains(it.key()))
             throw StepExchange::Error({{"code","invalid_arguments"},{"message","Unknown STEP import argument"},{"field",it.key()}});
@@ -291,7 +329,7 @@ QJsonObject CadDocument::stepImportCandidate(const QJsonObject& authored, const 
     auto candidate=authored;
     auto features=candidate.value("features").toArray();
     features.append(QJsonObject{{"id",featureId},{"bodyId",bodyId},
-        {"ownerId",candidate.value("documentId")},{"type","stepImport"},
+        {"ownerId",arguments.value("ownerId").toString(authored["documentId"].toString())},{"type","stepImport"},
         {"name",name},{"visible",true},{"parameters",QJsonObject{{"source",source}}}});
     candidate["features"]=features;
     return candidate;
@@ -300,7 +338,7 @@ QJsonObject CadDocument::extrusionCandidate(const QJsonObject& authored, const Q
     auto reject = [](const QString& message) {throw std::invalid_argument(message.toStdString());};
     const auto initial = validate(authored);
     if (!initial.isEmpty()) reject(initial);
-    const QSet<QString> allowed{"sketchId","profileId","profileIds","distanceMm","name","featureId","newFeatureId","newBodyId","operation","targetBodyIds"};
+    const QSet<QString> allowed{"ownerId","sketchId","profileId","profileIds","distanceMm","name","featureId","newFeatureId","newBodyId","operation","targetBodyIds"};
     for (auto it = arguments.begin(); it != arguments.end(); ++it)
         if (!allowed.contains(it.key())) reject("Unknown extrusion argument: "+it.key());
     const bool edit = arguments.contains("featureId"), newFeature = arguments.contains("newFeatureId"), newBody = arguments.contains("newBodyId");
@@ -323,7 +361,7 @@ QJsonObject CadDocument::extrusionCandidate(const QJsonObject& authored, const Q
     if(!cut && !edit && newFeature!=newBody)reject("New Body reserves newFeatureId/newBodyId together");
     if(!cut && arguments.contains("targetBodyIds"))reject("New Body cannot carry retained target references");
     if(!edit) {
-        feature={{"id",newFeature ? arguments["newFeatureId"] : QJsonValue(newId())},{"ownerId",authored["documentId"]},{"type","extrude"},{"name",cut ? (operation=="join" ? "Extrude Join" : "Extrude Cut") : "Extrude"},{"visible",true}};
+        feature={{"id",newFeature ? arguments["newFeatureId"] : QJsonValue(newId())},{"ownerId",arguments.value("ownerId").toString(authored["documentId"].toString())},{"type","extrude"},{"name",cut ? (operation=="join" ? "Extrude Join" : "Extrude Cut") : "Extrude"},{"visible",true}};
         if(!cut)feature["bodyId"]=newBody ? arguments["newBodyId"] : QJsonValue(newId());
         if(operation=="join")feature["bodyResults"]=QJsonArray{};
     }
@@ -351,7 +389,7 @@ QJsonObject CadDocument::extrusionCandidate(const QJsonObject& authored, const Q
     return candidate;
 }
 QJsonObject CadDocument::filletCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
-    const QSet<QString> allowed{"targetBodyId","edgeIds","radiusMm","name","featureId","newFeatureId","tangentChain"};
+    const QSet<QString> allowed{"ownerId","targetBodyId","edgeIds","radiusMm","name","featureId","newFeatureId","tangentChain"};
     for(auto it=arguments.begin();it!=arguments.end();++it)if(!allowed.contains(it.key()))throw std::invalid_argument("Unknown Fillet argument");
     if(arguments.contains("featureId") && arguments.contains("newFeatureId"))throw std::invalid_argument("Choose existing or new Fillet identity");
     if(arguments.contains("tangentChain") && (!arguments["tangentChain"].isBool() || !arguments["tangentChain"].toBool()))throw std::invalid_argument("Only Tangent Chain On is supported");
@@ -359,7 +397,7 @@ QJsonObject CadDocument::filletCandidate(const QJsonObject& authored,const QJson
     if(arguments.contains("featureId")) {
         for(int i=0;i<features.size();++i)if(features[i].toObject()["id"]==arguments["featureId"]){feature=features[i].toObject();index=i;break;}
         if(index<0 || feature["type"]!="fillet")throw std::invalid_argument("Fillet feature unavailable");
-    } else feature={{"id",arguments.value("newFeatureId").toString(newId())},{"ownerId",authored["documentId"]},{"type","fillet"},{"name","Fillet"},{"visible",true}};
+    } else feature={{"id",arguments.value("newFeatureId").toString(newId())},{"ownerId",arguments.value("ownerId").toString(authored["documentId"].toString())},{"type","fillet"},{"name","Fillet"},{"visible",true}};
     if(arguments.contains("name"))feature["name"]=arguments["name"];
     feature["parameters"]=QJsonObject{{"targetBodyId",arguments["targetBodyId"]},{"edgeIds",arguments["edgeIds"]},{"radiusMm",arguments["radiusMm"]},{"tangentChain",arguments.value("tangentChain").toBool(true)}};
     if(index>=0)features[index]=feature;else features.append(feature);candidate["features"]=features;
@@ -382,7 +420,7 @@ QJsonObject CadDocument::chamferCandidate(const QJsonObject& authored,const QJso
 QJsonObject CadDocument::patternCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
     auto candidate=authored;auto features=candidate["features"].toArray();QJsonObject feature;int index=-1;
     if(arguments.contains("featureId")){for(int i=0;i<features.size();++i)if(features[i].toObject()["id"]==arguments["featureId"]){feature=features[i].toObject();index=i;break;}if(index<0 || feature["type"]!="rectangularPattern")throw std::invalid_argument("Pattern feature unavailable");}
-    else feature={{"id",arguments.value("newFeatureId").toString(newId())},{"ownerId",authored["documentId"]},{"type","rectangularPattern"},{"name","Rectangular Pattern"},{"visible",true}};
+    else feature={{"id",arguments.value("newFeatureId").toString(newId())},{"ownerId",arguments.value("ownerId").toString(authored["documentId"].toString())},{"type","rectangularPattern"},{"name","Rectangular Pattern"},{"visible",true}};
     feature["parameters"]=QJsonObject{{"sourceFeatureId",arguments["sourceFeatureId"]},{"targetBodyId",arguments["targetBodyId"]},{"axes",arguments["axes"]}};if(arguments.contains("name"))feature["name"]=arguments["name"];
     if(index<0)features.append(feature);else features[index]=feature;candidate["features"]=features;return candidate;
 }
@@ -392,7 +430,7 @@ QJsonObject CadDocument::loftCandidate(const QJsonObject& authored,const QJsonOb
     if(arguments.contains("featureId")) {
         for(int i=0;i<features.size();++i)if(features[i].toObject()["id"]==arguments["featureId"]){feature=features[i].toObject();index=i;break;}
         if(index<0 || feature["type"]!="loft")throw std::invalid_argument("Loft feature unavailable");
-    } else feature={{"id",arguments.value("newFeatureId").toString(newId())},{"bodyId",arguments.value("newBodyId").toString(newId())},{"ownerId",authored["documentId"]},{"type","loft"},{"name","Loft"},{"visible",true}};
+    } else feature={{"id",arguments.value("newFeatureId").toString(newId())},{"bodyId",arguments.value("newBodyId").toString(newId())},{"ownerId",arguments.value("ownerId").toString(authored["documentId"].toString())},{"type","loft"},{"name","Loft"},{"visible",true}};
     feature["parameters"]=QJsonObject{{"profiles",arguments["profiles"]}};
     if(arguments.contains("name"))feature["name"]=arguments["name"];
     if(index<0)features.append(feature);else features[index]=feature;candidate["features"]=features;return candidate;
@@ -418,28 +456,28 @@ QJsonObject CadDocument::sphereCandidate(const QJsonObject& authored,const QJson
     const auto error=validate(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());return candidate;
 }
 QJsonObject CadDocument::shellCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
-    const QSet<QString> allowed{"targetBodyId","removedFace","thicknessMm","name","featureId","newFeatureId"};
+    const QSet<QString> allowed{"ownerId","targetBodyId","removedFace","thicknessMm","name","featureId","newFeatureId"};
     for(auto it=arguments.begin();it!=arguments.end();++it)if(!allowed.contains(it.key()))throw std::invalid_argument("Unknown Shell argument");
     if(arguments.contains("featureId") && arguments.contains("newFeatureId"))throw std::invalid_argument("Choose existing or new Shell identity");
     auto candidate=authored;auto features=candidate["features"].toArray();QJsonObject feature;int index=-1;
     if(arguments.contains("featureId")) {
         for(int i=0;i<features.size();++i)if(features[i].toObject()["id"]==arguments["featureId"]){feature=features[i].toObject();index=i;break;}
         if(index<0 || feature["type"]!="shell")throw std::invalid_argument("Shell feature unavailable");
-    } else feature={{"id",arguments.value("newFeatureId").toString(newId())},{"ownerId",authored["documentId"]},{"type","shell"},{"name","Shell"},{"visible",true}};
+    } else feature={{"id",arguments.value("newFeatureId").toString(newId())},{"ownerId",arguments.value("ownerId").toString(authored["documentId"].toString())},{"type","shell"},{"name","Shell"},{"visible",true}};
     if(arguments.contains("name"))feature["name"]=arguments["name"];
     feature["parameters"]=QJsonObject{{"targetBodyId",arguments["targetBodyId"]},{"removedFace",arguments["removedFace"]},{"thicknessMm",arguments["thicknessMm"]}};
     if(index>=0)features[index]=feature;else features.append(feature);candidate["features"]=features;
     const auto error=validateStructure(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());return candidate;
 }
 QJsonObject CadDocument::mirrorCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
-    const QSet<QString> allowed{"sourceBodyId","mirrorPlane","name","featureId","newFeatureId","newBodyId"};
+    const QSet<QString> allowed{"ownerId","sourceBodyId","mirrorPlane","name","featureId","newFeatureId","newBodyId"};
     for(auto it=arguments.begin();it!=arguments.end();++it)if(!allowed.contains(it.key()))throw std::invalid_argument("Unknown Mirror argument");
     if(arguments.contains("featureId") && (arguments.contains("newFeatureId") || arguments.contains("newBodyId")))throw std::invalid_argument("Choose existing or new Mirror identity");
     auto candidate=authored;auto features=candidate["features"].toArray();QJsonObject feature;int index=-1;
     if(arguments.contains("featureId")){
         for(int i=0;i<features.size();++i)if(features[i].toObject()["id"]==arguments["featureId"]){feature=features[i].toObject();index=i;break;}
         if(index<0 || feature["type"]!="mirror")throw std::invalid_argument("Mirror feature unavailable");
-    }else feature={{"id",arguments.value("newFeatureId").toString(newId())},{"ownerId",authored["documentId"]},
+    }else feature={{"id",arguments.value("newFeatureId").toString(newId())},{"ownerId",arguments.value("ownerId").toString(authored["documentId"].toString())},
         {"bodyId",arguments.value("newBodyId").toString(newId())},{"type","mirror"},{"name","Mirror"},{"visible",true}};
     if(arguments.contains("name"))feature["name"]=arguments["name"];
     feature["parameters"]=QJsonObject{{"sourceBodyId",arguments["sourceBodyId"]},{"mirrorPlane",arguments["mirrorPlane"]}};
@@ -447,7 +485,7 @@ QJsonObject CadDocument::mirrorCandidate(const QJsonObject& authored,const QJson
     const auto error=validateStructure(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());return candidate;
 }
 QJsonObject CadDocument::moveCandidate(const QJsonObject& authored, const QJsonObject& arguments) {
-    const QSet<QString> allowed{"targetBodyId","xMm","yMm","zMm","xDeg","yDeg","zDeg","pivotXMm","pivotYMm","pivotZMm","name","featureId","newFeatureId","steps"};
+    const QSet<QString> allowed{"ownerId","targetBodyId","xMm","yMm","zMm","xDeg","yDeg","zDeg","pivotXMm","pivotYMm","pivotZMm","name","featureId","newFeatureId","steps"};
     for(auto it=arguments.begin();it!=arguments.end();++it)if(!allowed.contains(it.key()))throw std::invalid_argument("Unknown Move argument");
     if(arguments.contains("featureId") && arguments.contains("newFeatureId"))throw std::invalid_argument("Choose existing or new Move identity");
     for(const auto& key:{"xMm","yMm","zMm","xDeg","yDeg","zDeg","pivotXMm","pivotYMm","pivotZMm"})if(arguments.contains(key) && !arguments[key].isDouble())throw std::invalid_argument("Move values must be numeric");
@@ -456,7 +494,7 @@ QJsonObject CadDocument::moveCandidate(const QJsonObject& authored, const QJsonO
     if(arguments.contains("featureId")) {
         for(int i=0;i<features.size();++i)if(features[i].toObject()["id"]==arguments["featureId"]){feature=features[i].toObject();index=i;break;}
         if(index<0 || feature["type"]!="move")throw std::invalid_argument("Move feature unavailable");
-    } else feature={{"id",arguments.value("newFeatureId").toString(newId())},{"ownerId",authored["documentId"]},{"type","move"},{"name","Move"},{"visible",true}};
+    } else feature={{"id",arguments.value("newFeatureId").toString(newId())},{"ownerId",arguments.value("ownerId").toString(authored["documentId"].toString())},{"type","move"},{"name","Move"},{"visible",true}};
     if(arguments.contains("name"))feature["name"]=arguments["name"];
     QJsonObject parameters{{"targetBodyId",arguments["targetBodyId"]}};
     for(const auto& key:{"pivotXMm","pivotYMm","pivotZMm"})parameters[key]=arguments.value(key).toDouble();
@@ -474,7 +512,7 @@ QJsonObject CadDocument::booleanCandidate(const QJsonObject& authored, const QJs
     auto reject = [](const QString& message) {throw std::invalid_argument(message.toStdString());};
     const auto initial = validate(authored);
     if (!initial.isEmpty()) reject(initial);
-    const QSet<QString> allowed{"operation","targetBodyId","toolBodyIds","keepTools","name","featureId","newFeatureId"};
+    const QSet<QString> allowed{"ownerId","operation","targetBodyId","toolBodyIds","keepTools","name","featureId","newFeatureId"};
     for (auto it = arguments.begin(); it != arguments.end(); ++it)
         if (!allowed.contains(it.key())) reject("Unknown Boolean argument: "+it.key());
     if (arguments.contains("featureId") && arguments.contains("newFeatureId"))
@@ -487,7 +525,7 @@ QJsonObject CadDocument::booleanCandidate(const QJsonObject& authored, const QJs
         }
         if (index < 0 || feature["type"] != "boolean") reject("Boolean feature identity/type is no longer available");
     } else feature = {{"id",arguments.contains("newFeatureId") ? arguments["newFeatureId"] : QJsonValue(newId())},
-        {"ownerId",authored["documentId"]},{"type","boolean"},{"name","Combine"},{"visible",true}};
+        {"ownerId",arguments.value("ownerId").toString(authored["documentId"].toString())},{"type","boolean"},{"name","Combine"},{"visible",true}};
     if (arguments.contains("name")) feature["name"] = arguments["name"];
     feature["parameters"] = QJsonObject{{"operation",arguments["operation"]},{"targetBodyId",arguments["targetBodyId"]},
         {"toolBodyIds",arguments["toolBodyIds"]},{"keepTools",arguments["keepTools"]}};
@@ -518,7 +556,21 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
     const auto units = candidate["displayUnits"].toString();
     if (units != "mm" && units != "in") return "Unsupported display units";
     if (!candidate["features"].isArray()) return "Features must be an array";
-    QSet<QString> ids{root};
+    QSet<QString> ids{root}, owners{root};
+    if(candidate.contains("components") && !candidate["components"].isArray())return "Components must be an array";
+    if(candidate.contains("occurrences") && !candidate["occurrences"].isArray())return "Occurrences must be an array";
+    for(const auto& value:candidate["components"].toArray()) {
+        const auto component=value.toObject();const auto id=component["id"].toString();
+        if(component.size()!=2 || !validId(id) || ids.contains(id) || !component["name"].isString() || component["name"].toString().trimmed().isEmpty())return "Invalid local component definition";
+        ids.insert(id);owners.insert(id);
+    }
+    QSet<QString> instantiated;
+    for(const auto& value:candidate["occurrences"].toArray()) {
+        const auto occurrence=value.toObject();const auto id=occurrence["id"].toString(),definition=occurrence["definitionId"].toString();
+        if(occurrence.size()!=4 || !validId(id) || ids.contains(id) || definition==root || !owners.contains(definition) || instantiated.contains(definition) || occurrence["parentId"]!=root || occurrence["placement"]!="identity")return "Only one root-child identity occurrence per local component is supported";
+        ids.insert(id);instantiated.insert(definition);
+    }
+    if(instantiated.size()!=owners.size()-1)return "Each local component requires one occurrence";
     for (const auto& item : candidate["features"].toArray()) {
         if (!item.isObject()) return "Feature must be an object";
         const auto feature = item.toObject();
@@ -526,7 +578,7 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
         const auto id = feature["id"].toString();
         if (!validId(id) || ids.contains(id)) return "Invalid or duplicate authored UUID";
         ids.insert(id);
-        if (feature["ownerId"].toString() != root) return "Feature must belong to the document root";
+        if (!owners.contains(feature["ownerId"].toString())) return "Feature owner must be an existing component definition";
         if (!feature["name"].isString() || feature["name"].toString().trimmed().isEmpty()
             || !feature["visible"].isBool()) return "Feature name and visibility are required";
         const auto type = feature["type"].toString();
@@ -714,8 +766,8 @@ QJsonObject CadDocument::state() const {
         evaluatedSketches.append(summary);
     }
     QJsonArray evaluatedPlanes;
-    for(const auto& plane:evaluation_->constructionPlanes)evaluatedPlanes.append(QJsonObject{{"featureId",plane.featureId},{"name",plane.name},{"visible",plane.visible},{"frame",plane.frame}});
-    return {{"loaded", true}, {"id", authored_["documentId"]}, {"label", path_.isEmpty() ? "Untitled" : QFileInfo(path_).completeBaseName()}, {"path",path_},
+    for(const auto& plane:evaluation_->constructionPlanes)evaluatedPlanes.append(QJsonObject{{"ownerId",plane.ownerId},{"featureId",plane.featureId},{"name",plane.name},{"visible",plane.visible},{"frame",plane.frame}});
+    return {{"activeOwnerId",activeOwnerId()},{"components",authored_["components"].toArray()},{"occurrences",authored_["occurrences"].toArray()},{"loaded", true}, {"id", authored_["documentId"]}, {"label", path_.isEmpty() ? "Untitled" : QFileInfo(path_).completeBaseName()}, {"path",path_},
         {"units", authored_["displayUnits"]}, {"canonicalLengthUnit", "mm"},
         {"revision", static_cast<qint64>(revision_)}, {"dirty", !history_.isClean()},
         {"lastTransactionId", lastTransaction_},

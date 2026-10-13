@@ -639,3 +639,22 @@ does not cancel or roll back a command: inspect the document before retrying.
 This client bound is not an interactive performance claim; render/recompute
 responsiveness remains subject to future optimization. Workflow transcripts now
 record elapsed command time alongside the actual result.
+
+### Local component ownership (bounded ASM-004)
+
+`component.create {name,activate?}` authors a named local definition and its
+separate identity-placement root-child occurrence in one CAD transaction.
+`activate` defaults to true as an explicit Alloy choice. `component.newDialog`
+opens the same Name/Activate UI; `component.activate {definitionId}` selects a
+root or child authoring owner for this design without CAD history or revision.
+`component.inspect` reports root/active owner and authored definitions/occurrences.
+New features belong to the active definition; edits preserve their original owner.
+Cross-component modeling dependencies are unsupported and fail explicitly.
+Native reopen activates root. `document.inspect` includes active owner and real
+evaluated ownership; authored JSON contains only persistent definitions/occurrences.
+
+`document.exportStl` also accepts `occurrenceId`, mutually exclusive with bodyId,
+bodyIds and allVisible. Scope resolves actual material bodies owned by the child
+definition and excludes root bodies regardless of visibility. Empty or dangling
+scope fails. Save As Mesh exposes these occurrence choices alongside existing
+body choices. See [contract and evidence limits](research/local-components.md).

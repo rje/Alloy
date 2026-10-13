@@ -22,10 +22,17 @@ QJsonObject AlloyWindow::showMeshExport(const QString& bodyId,const QJsonArray& 
     auto* bodies=new QComboBox;bodies->setObjectName("mesh.export.body");
     for(const auto& body:document_->bodies())bodies->addItem(body.name,body.bodyId);
     if(const int index=bodies->findData(bodyId);index>=0)bodies->setCurrentIndex(index);
+    for(const auto& value:document_->authored()["occurrences"].toArray()){
+        const auto occurrence=value.toObject();QString name;
+        for(const auto& definition:document_->authored()["components"].toArray())if(definition.toObject()["id"]==occurrence["definitionId"])name=definition.toObject()["name"].toString();
+        bodies->addItem("Component: "+name,"occurrence:"+occurrence["id"].toString());
+    }
     bodies->addItem("Selected bodies…","selected");bodies->addItem("All visible bodies","visible");
     if(!bodyIds.isEmpty())bodies->setCurrentIndex(bodies->findData("selected"));
     if(allVisible || (bodyId.isEmpty() && bodyIds.isEmpty() && document_->bodies().size()>1))bodies->setCurrentIndex(bodies->findData("visible"));
-    form->addRow("Bodies",bodies);
+    if(bodyId.isEmpty() && bodyIds.isEmpty() && !allVisible && document_->activeOwnerId()!=document_->authored()["documentId"].toString())
+        for(const auto& value:document_->authored()["occurrences"].toArray()){const auto occurrence=value.toObject();if(occurrence["definitionId"]==document_->activeOwnerId())bodies->setCurrentIndex(bodies->findData("occurrence:"+occurrence["id"].toString()));}
+    form->addRow("Bodies / Component",bodies);
     auto* selected=new QListWidget(dialog);selected->setObjectName("mesh.export.bodyIds");
     for(const auto& body:document_->bodies()) {
         auto* item=new QListWidgetItem(body.name+(body.visible ? QString{} : " (Hidden)"),selected);
@@ -57,7 +64,8 @@ QJsonObject AlloyWindow::showMeshExport(const QString& bodyId,const QJsonArray& 
         else if(bodies->currentData()=="selected") {
             QJsonArray ids;for(int i=0;i<selected->count();++i)if(selected->item(i)->checkState()==Qt::Checked)ids.append(selected->item(i)->data(Qt::UserRole).toString());
             if(ids.isEmpty()){status->setText("Select at least one body.");return;}selection["bodyIds"]=ids;
-        } else selection["bodyId"]=bodies->currentData().toString();
+        } else if(bodies->currentData().toString().startsWith("occurrence:"))selection["occurrenceId"]=bodies->currentData().toString().sliced(11);
+        else selection["bodyId"]=bodies->currentData().toString();
         auto path=QFileDialog::getSaveFileName(dialog,"Save As Mesh",bodies->currentText()+".stl","STL mesh (*.stl)");
         if(path.isEmpty())return;
         if(document_->authored().value("documentId").toString()!=documentId || document_->revision()!=revision) {
@@ -74,6 +82,7 @@ QJsonObject AlloyWindow::showMeshExport(const QString& bodyId,const QJsonArray& 
     QJsonObject state{{"visible",true}};
     if(bodies->currentData()=="visible")state["allVisible"]=true;
     else if(bodies->currentData()=="selected")state["bodyIds"]=bodyIds;
+    else if(bodies->currentData().toString().startsWith("occurrence:"))state["occurrenceId"]=bodies->currentData().toString().sliced(11);
     else state["bodyId"]=bodies->currentData().toString();
     return state;
 }

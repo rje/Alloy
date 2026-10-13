@@ -17,7 +17,7 @@ QJsonObject AlloyWindow::mirrorCandidate(const QJsonObject& inputs) const {
     if(!args.contains("featureId") && session_.value("command")=="solid.mirror"){
         args["newFeatureId"]=session_["newFeatureId"];args["newBodyId"]=session_["newBodyId"];
     }
-    return CadDocument::mirrorCandidate(document_->authored(),args);
+    return CadDocument::mirrorCandidate(document_->authored(),authoringArguments(args));
 }
 QJsonObject AlloyWindow::beginMirror(const QJsonObject& overrides){
     if(!session_.isEmpty())return mirrorFailure("session_busy","Complete or cancel the active command first");

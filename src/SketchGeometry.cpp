@@ -167,13 +167,16 @@ QJsonObject SketchGeometry::findFeature(const QJsonObject& authored, const QStri
 
 QJsonObject SketchGeometry::replaceFeature(const QJsonObject& authored, const QJsonObject& draft) {
     validateDraft(draft);
-    if (draft["ownerId"] != authored["documentId"]) reject("Sketch belongs to a different document");
+    bool ownerExists=draft["ownerId"]==authored["documentId"];
+    for(const auto& value:authored["components"].toArray())ownerExists=ownerExists || value.toObject()["id"]==draft["ownerId"];
+    if (!ownerExists) reject("Sketch component does not exist");
     auto candidate = authored;
     auto features = candidate["features"].toArray();
     bool found = false;
     for (int i = 0; i < features.size(); ++i) {
         const auto feature = features[i].toObject();
         if (feature["id"] != draft["id"]) continue;
+        if (feature["ownerId"] != draft["ownerId"]) reject("Sketch edits cannot change owner");
         if (found || feature["type"].toString() != "sketch") reject("Invalid sketch feature identity");
         features[i] = draft;
         found = true;

@@ -32,6 +32,7 @@ struct EvaluatedBody {
     QJsonObject summary;
     std::vector<EvaluatedSupportFace> supportFaces;
     std::vector<EvaluatedSolidEdge> solidEdges;
+    QString ownerId;
 };
 
 struct EvaluatedSketch {
@@ -41,12 +42,14 @@ struct EvaluatedSketch {
     QJsonObject summary;
     std::vector<EvaluatedProfile> profiles;
     QJsonObject resolvedFrame;
+    QString ownerId;
 };
 
 struct EvaluatedConstructionPlane {
     QString featureId, name;
     bool visible = true;
     QJsonObject frame;
+    QString ownerId;
 };
 
 struct EvaluatedDocument {

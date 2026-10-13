@@ -19,7 +19,7 @@ QJsonObject moveFailure(const QString& message){return {{"ok",false},{"completio
 QJsonObject AlloyWindow::moveCandidate(const QJsonObject& inputs) const {
     auto args=inputs;
     if(!args.contains("featureId") && session_.value("command")=="solid.move")args["newFeatureId"]=session_["newFeatureId"];
-    return CadDocument::moveCandidate(document_->authored(),args);
+    return CadDocument::moveCandidate(document_->authored(),authoringArguments(args));
 }
 QJsonObject AlloyWindow::beginMove(const QJsonObject& overrides) {
     if(!session_.isEmpty())return moveFailure("Complete or cancel the active command first");

@@ -18,7 +18,7 @@ QJsonObject failure(const QString& code,const QString& message){return {{"ok",fa
 }
 QJsonObject AlloyWindow::patternCandidate(const QJsonObject& inputs) const {
     auto args=inputs;if(!args.contains("featureId") && session_.value("command")=="solid.rectangularPattern")args["newFeatureId"]=session_["newFeatureId"];
-    return CadDocument::patternCandidate(document_->authored(),args);
+    return CadDocument::patternCandidate(document_->authored(),authoringArguments(args));
 }
 std::vector<EvaluatedBody> AlloyWindow::patternInputBodies() const {
     const auto edit=session_["inputs"].toObject()["featureId"].toString();return edit.isEmpty() ? document_->bodies() : document_->evaluationBefore(edit).bodies;
