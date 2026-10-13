@@ -9,9 +9,12 @@
 #include <BRepCheck_Analyzer.hxx>
 #include <BRepGProp.hxx>
 #include <BRepTools_WireExplorer.hxx>
+#include <BRepTools_ReShape.hxx>
+#include <TopoDS_Iterator.hxx>
 #include <BRepTopAdaptor_FClass2d.hxx>
 #include <BRep_Tool.hxx>
 #include <GProp_GProps.hxx>
+#include <GeomAPI_ProjectPointOnCurve.hxx>
 #include <gp_Ax3.hxx>
 #include <gp_Pln.hxx>
 #include <gp_Vec.hxx>
@@ -31,7 +34,7 @@
 namespace {
 constexpr double contactTolerance=1e-6;
 struct Source {QString id;QJsonObject entity;TopoDS_Edge edge;};
-struct Segment {int source;QString start,end;int direction;QJsonObject detail;};
+struct Segment {int source;QString lineage,start,end;int direction;QJsonObject detail;};
 QJsonArray array(const QStringList& values){QJsonArray result;for(const auto& value:values)result.append(value);return result;}
 QString rotation(QStringList values){QString best;for(int i=0;i<values.size();++i){QStringList rotated;for(int j=0;j<values.size();++j)rotated.append(values[(i+j)%values.size()]);const auto key=rotated.join('\n');if(best.isEmpty()||key<best)best=key;}return best;}
 }
@@ -67,17 +70,50 @@ SketchProfiles::RegionsResult SketchProfiles::deriveRegions(const QJsonObject& f
         BOPAlgo_Builder splitter;splitter.SetToFillHistory(true);splitter.SetArguments(input);splitter.Perform();
         if(splitter.HasErrors())return refuse("region_split_failed","OCCT could not split the analytic sketch arrangement.");
         TopTools_IndexedMapOfShape edges;TopExp::MapShapes(splitter.Shape(),TopAbs_EDGE,edges);
-        std::vector<int> sourceByEdge(edges.Extent()+1,-1);TopTools_ListOfShape halfedges;
+        std::vector<int> sourceByEdge(edges.Extent()+1,-1);
+        std::vector<QStringList> lineageByEdge(edges.Extent()+1);TopTools_ListOfShape halfedges;
         for(int i=1;i<=edges.Extent();++i) {
             for(int j=0;j<int(sources.size());++j){bool mapped=edges(i).IsSame(sources[j].edge);
                 for(const auto& modified:splitter.Modified(sources[j].edge))mapped|=edges(i).IsSame(modified);
-                if(!mapped)continue;if(sourceByEdge[i]!=-1)return refuse("ambiguous_region_provenance","A split edge maps to overlapping authored sources.");sourceByEdge[i]=j;}
+                if(!mapped)continue;
+                if(sourceByEdge[i]!=-1 && (sources[j].entity["type"]!="line" || sources[sourceByEdge[i]].entity["type"]!="line"))
+                    return refuse("ambiguous_region_provenance","Coincident curved sources require explicit authored repair.");
+                lineageByEdge[i].append(sources[j].id);
+                if(sourceByEdge[i]<0 || sources[j].id<sources[sourceByEdge[i]].id)sourceByEdge[i]=j;}
+            lineageByEdge[i].sort();
             if(sourceByEdge[i]<0)return refuse("unmapped_region_provenance","A split edge has no authored source.");
             auto edge=TopoDS::Edge(edges(i));BOPTools_AlgoTools2D::BuildPCurveForEdgeOnFace(edge,generating);
             halfedges.Append(edge.Oriented(TopAbs_FORWARD));halfedges.Append(edge.Oriented(TopAbs_REVERSED));
         }
         BOPAlgo_BuilderFace builder;builder.SetFace(generating);builder.SetShapes(halfedges);builder.Perform();
         if(builder.HasErrors())return refuse("region_faces_failed","OCCT could not construct bounded planar regions.");
+        // OCCT supplies the arrangement. Name new intersections from incident
+        // authored source sets and their ordered branch on one retained curve.
+        // Include multiplicity so a collapsing/changing contact cannot alias an
+        // earlier branch; numeric coordinates/parameters never enter the ID.
+        QMap<QString,std::vector<std::pair<double,gp_Pnt>>> intersectionGroups;
+        TopTools_IndexedMapOfShape vertices;TopExp::MapShapes(splitter.Shape(),TopAbs_VERTEX,vertices);
+        for(int vertexIndex=1;vertexIndex<=vertices.Extent();++vertexIndex) {
+            const auto vertex=TopoDS::Vertex(vertices(vertexIndex));const auto location=BRep_Tool::Pnt(vertex);QStringList incident;
+            for(int i=1;i<=edges.Extent();++i) {
+                TopoDS_Vertex first,last;TopExp::Vertices(TopoDS::Edge(edges(i)),first,last);
+                if(location.Distance(BRep_Tool::Pnt(first))<=contactTolerance || location.Distance(BRep_Tool::Pnt(last))<=contactTolerance)
+                    incident.append(lineageByEdge[i]);
+            }
+            incident.removeDuplicates();incident.sort();if(incident.size()<2)continue;
+            const auto source=std::find_if(sources.begin(),sources.end(),[&](const auto& source){return source.id==incident[0];});
+            double firstParameter,lastParameter;const auto curve=BRep_Tool::Curve(source->edge,firstParameter,lastParameter);
+            GeomAPI_ProjectPointOnCurve projection(location,curve,firstParameter,lastParameter);
+            if(projection.NbPoints()==0)return refuse("ambiguous_region_provenance","An intersection cannot be placed on its retained source curve.");
+            auto& group=intersectionGroups[incident.join(',')];
+            if(std::none_of(group.begin(),group.end(),[&](const auto& entry){return entry.second.Distance(location)<=contactTolerance;}))
+                group.push_back({projection.LowerDistanceParameter(),location});
+        }
+        QMap<QString,std::vector<gp_Pnt>> intersectionLocations;
+        for(auto group=intersectionGroups.begin();group!=intersectionGroups.end();++group) {
+            auto values=group.value();std::sort(values.begin(),values.end(),[](const auto& a,const auto& b){return a.first<b.first;});
+            for(int i=0;i<int(values.size());++i)intersectionLocations["intersection:"+group.key()+":"+QString::number(values.size())+":"+QString::number(i)].push_back(values[i].second);
+        }
         // Coordinates locate authored references; only their stable IDs enter signatures.
         auto contact=[&](const gp_Pnt& location){QStringList ids;
             for(const auto& id:endpointIds)if(points[id].Distance(location)<=contactTolerance)ids.append(id);
@@ -91,11 +127,24 @@ SketchProfiles::RegionsResult SketchProfiles::deriveRegions(const QJsonObject& f
                 const gp_Vec delta(a,b),offset(a,center);const auto foot=a.Translated(delta*(offset.Dot(delta)/delta.SquareMagnitude()));
                 if(foot.Distance(location)<=contactTolerance)tangentIds.append(relation["id"].toString());
             }
-            tangentIds.sort();return tangentIds.isEmpty()?QString{}:QString("tangent:")+tangentIds.join(',');
+            tangentIds.sort();if(!tangentIds.isEmpty())return QString("tangent:")+tangentIds.join(',');
+            QStringList contacts;for(auto entry=intersectionLocations.begin();entry!=intersectionLocations.end();++entry)
+                for(const auto& point:entry.value())if(point.Distance(location)<=contactTolerance)contacts.append(entry.key());
+            contacts.removeDuplicates();contacts.sort();return contacts.join('|');
         };
         std::vector<EvaluatedProfile> profiles;QSet<QString> signatures;
         for(const auto& shape:builder.Areas()) {
-            const auto face=TopoDS::Face(shape);
+            auto face=TopoDS::Face(shape);
+            // BuilderFace may retain an open guide as an INTERNAL wire. It is
+            // not a planar region boundary and must not create an internal
+            // prism face when the closed region is extruded.
+            Handle(BRepTools_ReShape) boundaries=new BRepTools_ReShape;
+            for(TopExp_Explorer wire(face,TopAbs_WIRE);wire.More();wire.Next()) {
+                bool bounded=false;for(TopoDS_Iterator edge(wire.Current());edge.More();edge.Next())
+                    bounded|=edge.Value().Orientation()==TopAbs_FORWARD || edge.Value().Orientation()==TopAbs_REVERSED;
+                if(!bounded)boundaries->Remove(wire.Current());
+            }
+            face=TopoDS::Face(boundaries->Apply(face));
             if(BRepTopAdaptor_FClass2d(face,1e-7).PerformInfinitePoint()!=TopAbs_OUT)continue;
             if(!BRepCheck_Analyzer(face).IsValid())return refuse("invalid_region","OCCT constructed an invalid bounded face.");
             GProp_GProps properties;BRepGProp::SurfaceProperties(face,properties);const double area=properties.Mass();
@@ -110,11 +159,15 @@ SketchProfiles::RegionsResult SketchProfiles::deriveRegions(const QJsonObject& f
                     const int sourceIndex=sourceByEdge[index];const auto& source=sources[sourceIndex];
                     TopoDS_Vertex first,last;TopExp::Vertices(edge,first,last,true);
                     const auto a=contact(BRep_Tool::Pnt(first)),b=contact(BRep_Tool::Pnt(last));
-                    const int direction=edge.Orientation()==source.edge.Orientation()?1:-1;
+                    int direction=edge.Orientation()==source.edge.Orientation()?1:-1;
+                    if(source.entity["type"]=="line") {
+                        TopoDS_Vertex sourceFirst,sourceLast;TopExp::Vertices(source.edge,sourceFirst,sourceLast,true);
+                        direction=gp_Vec(BRep_Tool::Pnt(first),BRep_Tool::Pnt(last)).Dot(gp_Vec(BRep_Tool::Pnt(sourceFirst),BRep_Tool::Pnt(sourceLast)))>=0 ? 1 : -1;
+                    }
                     BRepAdaptor_Curve curve(edge);
-                    QJsonObject detail{{"entityId",source.id},{"type",source.entity["type"]},{"firstParameter",curve.FirstParameter()},
+                    QJsonObject detail{{"entityId",source.id},{"sourceEntityIds",array(lineageByEdge[index])},{"type",source.entity["type"]},{"firstParameter",curve.FirstParameter()},
                         {"lastParameter",curve.LastParameter()},{"direction",direction},{"startContact",a},{"endContact",b}};
-                    segments.push_back({sourceIndex,a,b,direction,detail});provenance.append(detail);sourceIds.append(source.id);
+                    segments.push_back({sourceIndex,lineageByEdge[index].join(','),a,b,direction,detail});provenance.append(detail);sourceIds.append(lineageByEdge[index]);
                     boundaryEdges.push_back({sketchId,source.id,a,b,source.entity["type"].toString(),edge});
                 }
                 if(segments.empty())return refuse("invalid_region","A region wire is empty.");
@@ -122,14 +175,14 @@ SketchProfiles::RegionsResult SketchProfiles::deriveRegions(const QJsonObject& f
                 if(oneSource){if(sources[segments[0].source].entity["type"]!="circle")return refuse("ambiguous_region_provenance","A closed single-source wire is not a circle.");
                     wires.append("full-circle:"+sources[segments[0].source].id);continue;}
                 // Start at a source transition, so the circle seam never enters identity.
-                size_t start=0;while(segments[start].source==segments[(start+segments.size()-1)%segments.size()].source)++start;
+                size_t start=0;while(segments[start].lineage==segments[(start+segments.size()-1)%segments.size()].lineage)++start;
                 QStringList forward,reverse;
                 for(size_t offset=0;offset<segments.size();) {
                     const auto& first=segments[(start+offset)%segments.size()];auto last=first;++offset;
-                    while(offset<segments.size() && segments[(start+offset)%segments.size()].source==first.source){
+                    while(offset<segments.size() && segments[(start+offset)%segments.size()].lineage==first.lineage){
                         const auto& next=segments[(start+offset)%segments.size()];if(next.direction!=first.direction)return refuse("ambiguous_region_provenance","Same-source boundary reverses unexpectedly.");last=next;++offset;}
                     if(first.start.isEmpty()||last.end.isEmpty())return refuse("ambiguous_region_provenance","A region contact lacks a retained authored reference.");
-                    const auto source=sources[first.source].id;
+                    const auto source=first.lineage;
                     forward.append(source+":"+first.start+":"+last.end+":"+QString::number(first.direction));
                     reverse.prepend(source+":"+last.end+":"+first.start+":"+QString::number(-first.direction));
                 }

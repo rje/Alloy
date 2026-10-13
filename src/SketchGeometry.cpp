@@ -279,9 +279,22 @@ QJsonObject SketchGeometry::addRectangle(const QJsonObject& draft, const QJsonOb
     auto parameters = changed["parameters"].toObject();
     const auto entities = parameters["entities"].toArray();
     auto constraints = parameters["constraints"].toArray();
-    for (int i = 0; i < 4; ++i)
-        constraints.append(QJsonObject{{"id", newId()}, {"type", i % 2 == 0 ? "horizontal" : "vertical"},
-            {"entityIds", QJsonArray{entities[entities.size() - 4 + i].toObject()["id"]}}});
+    for (int i = 0; i < 4; ++i) {
+        const auto edge=entities[entities.size()-4+i].toObject();const auto type=i%2==0 ? QString("horizontal") : QString("vertical");
+        // Adjacent rectangles reuse exact point IDs. Their shared side already
+        // has the same inferred relation; adding it twice makes PlaneGCS reject
+        // an otherwise useful overlapping-profile sketch as redundant.
+        bool inferred=false;
+        for(const auto& relation:constraints)if(relation.toObject()["type"]==type) {
+            const auto existingId=relation.toObject()["entityIds"].toArray()[0];
+            for(const auto& value:entities)if(value.toObject()["id"]==existingId) {
+                const auto other=value.toObject();
+                inferred|=(other["startPointId"]==edge["startPointId"] && other["endPointId"]==edge["endPointId"])
+                    || (other["startPointId"]==edge["endPointId"] && other["endPointId"]==edge["startPointId"]);
+            }
+        }
+        if(!inferred)constraints.append(QJsonObject{{"id",newId()},{"type",type},{"entityIds",QJsonArray{edge["id"]}}});
+    }
     parameters["constraints"] = constraints;
     changed["parameters"] = parameters;
     return changed;

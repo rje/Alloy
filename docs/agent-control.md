@@ -618,3 +618,12 @@ Without support it returns the existing `sketch.plane` session plus
 pending intent and returns `sketch.edit` with `tool: circle`. In an active
 sketch, invoke without arguments to activate Circle. `sketch.cancel` discards
 both pending support selection and uncommitted circle drafts.
+
+Overlapping sketch profiles expose one derived UUID per actual atomic bounded
+region through existing `document.inspect`/selection commands. Each split
+boundary's `edgeProvenance.sourceEntityIds` lists all coincident authored straight
+sources; `entityId` is the stable canonical member. Region IDs use retained source
+contacts/ordered intersection branches. Changed incident source sets may
+intentionally invalidate a profile reference; upstream feature evaluation fails
+atomically with `profile_unavailable` instead of selecting another face. No
+composite full-circle shortcut is added for an untrimmed crossing sketch.

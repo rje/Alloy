@@ -1344,3 +1344,22 @@ exact saved authored state restored (`native-escape-fixed.json`). The moved
 body now uses opaque selection blue with neutral stock; the fresh capture was
 independently accepted. Native context-menu activation remains inconclusive;
 there is no uninterrupted exact full-tutorial claim.
+
+## Straw-support region candidate (2026-10-12)
+
+Isolated `../Alloy-worktrees/support-regions` implements SKT-027 #174 with OCCT
+source-set edge provenance for coincident straight lines and stable intersection
+branch naming. Focused post-Trim geometry reaches five real selectable regions;
+raw crossings remain nine atomic cells rather than an invented full disk.
+Diameter edits retain the disk profile or explicitly refuse changed bridge
+references. Adjacent API rectangles avoid duplicate inferred relations on shared
+point pairs. See `validation/overlap-regions.md` and
+`research/straw-support-regions.md`. Real-app script is prepared; native/API
+capture and independent review remain pending.
+
+Public video170–192s revealed Trim operations omitted by the PDF, now owned by
+SKT-029 #177. External `knowledge/tutorials/warwick/straw-support-ledger.json`
+records source URL/hash/timestamps and observed versus inferred geometry.
+The video247s source preview shows two separated profiles,4mm and Join; Bodies
+folder is collapsed, so its intermediate body semantics remain unknown. SOL-020
+#176 owns that later multi-result compatibility work; #174 does not change it.
