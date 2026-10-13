@@ -1,8 +1,7 @@
 # Face Sphere independent review
 
-Reviewed 2026-10-13 on candidate db3e0ee. Functional controls/API accepted for
-bounded SOL-014/#145; visual acceptance remains pending the red-cutter correction
-below. The reviewer did not implement the feature. Full die/component integration
+Reviewed 2026-10-13 on candidate db3e0ee. Functional controls/API and corrected visual presentation accepted for
+bounded SOL-014/#145; see the integrated follow-up below. The reviewer did not implement the feature. Full die/component integration
 and Left/Back Browser routes require the later integrated gate.
 
 The actual-app `sphere_controls_api.py` run passed exact face and center ray
@@ -40,3 +39,26 @@ Evidence: `build-sphere/evidence/sphere-independent/` contains `report.json`,
 `sphere-pips-committed.png`, `qt-input.txt`, and
 `qt-different-face-preview.png`. The 21-pip kernel gate was already verified
 separately and was not repeated in this controls review.
+
+## Integrated visual and named-view follow-up
+
+On 2026-10-13, the integrated focused Qt case passed 3/3 in 2.151 seconds.
+Actual Browser Left and Back row clicks changed the view; subsequent actual
+face rays resolved the expected -X and +Y cube faces. Accept bounded DOC-019/#203.
+Named views remain an explicit adaptation of the source view-cube gesture.
+
+Inspected `build-tutorial-polish/evidence/sphere-final-independent/`
+`qt-origin-preview.png` and `qt-different-face-preview.png`: valid Sphere preview
+uses neutral stock, a blue support outline and a clearly red/pink transparent
+cutter. The white radial wheel is gone after disabling origin arrow cones;
+colored axes and labels remain. This closes the visual issue above. The small
+axis label can still overlap the origin, but no longer masks the sphere with
+radial geometry. The same directory contains the final `qt-input.txt`.
+
+The existing actual oblique `evidence/die-final/04-complete-die.png` shows
+readable recessed rim/shading. Bright head-on cavity lighting can be perceptually
+ambiguous; volume and spherical-cut geometry are verified separately. No broader
+renderer change or matched-source final-image claim is required by this evidence.
+The preview optimization was reviewed: new/last feature reuses the already
+validated full evaluation; historical edits still validate downstream history
+and evaluate the edited prefix for its stage summary.
