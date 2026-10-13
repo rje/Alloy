@@ -7,6 +7,7 @@
 #include <QMenu>
 #include <QToolButton>
 #include <QCheckBox>
+#include <QRadioButton>
 #include <QTemporaryDir>
 #include <QImage>
 #include <QComboBox>
@@ -588,6 +589,40 @@ private slots:
         const auto result=final["evaluation"].toObject()["bodies"].toArray()[0].toObject();
         QVERIFY(result["valid"].toBool() && result["closed"].toBool());QCOMPARE(result["bodyId"],body["bodyId"]);
         QVERIFY(result["volumeMm3"].toDouble()<8000);
+    }
+    void localComponentDialogActivationAndExportScope() {
+        AlloyWindow window;window.resize(1180,800);window.show();QVERIFY(QTest::qWaitForWindowExposed(&window));
+        auto inspect=[&]{return window.execute("document.inspect")["result"].toObject();};
+        const auto root=inspect()["authored"].toObject().value("documentId");
+        QVERIFY2(run(window,"solid.box",{{"width",100},{"depth",100},{"height",5},{"name","Root stock"}}),error_.constData());
+        const auto baseline=inspect()["authored"].toObject();
+        auto* action=window.findChild<QAction*>("solid.action.component.newDialog");QVERIFY(action);
+        for(bool commit:{false,true}) {
+            action->trigger();auto* dialog=window.findChild<QDialog*>("component.new.dialog");QVERIFY(dialog);QTRY_VERIFY(dialog->isVisible());
+            auto* name=dialog->findChild<QLineEdit*>("component.new.name");auto* activate=dialog->findChild<QCheckBox*>("component.new.activate");QVERIFY(name && activate);QVERIFY(activate->isChecked());
+            name->selectAll();QTest::keyClicks(name,"die");QTest::mouseClick(activate,Qt::LeftButton,Qt::NoModifier,QPoint(8,activate->height()/2));QVERIFY(!activate->isChecked());
+            if(commit)dialog->grab().save("build-components/evidence/components-independent/qt-new-component.png");
+            auto* buttons=dialog->findChild<QDialogButtonBox*>();QVERIFY(buttons);QTest::mouseClick(buttons->button(commit ? QDialogButtonBox::Ok : QDialogButtonBox::Cancel),Qt::LeftButton);
+            QCoreApplication::sendPostedEvents(nullptr,QEvent::DeferredDelete);
+            if(!commit)QCOMPARE(inspect()["authored"].toObject(),baseline);
+        }
+        const auto authored=inspect()["authored"].toObject();const auto component=authored["components"].toArray()[0].toObject();const auto id=component["id"].toString();
+        QCOMPARE(component["name"].toString(),QString("die"));QCOMPARE(inspect()["activeOwnerId"],root);
+        auto* child=window.findChild<QRadioButton*>("component.activate."+id);auto* rootRadio=window.findChild<QRadioButton*>("component.activate.root");QVERIFY(child && rootRadio);
+        const auto revision=inspect().value("revision");QTest::mouseClick(child,Qt::LeftButton,Qt::NoModifier,QPoint(8,child->height()/2));QCOMPARE(inspect()["activeOwnerId"].toString(),id);QCOMPARE(inspect()["revision"],revision);QCOMPARE(inspect()["authored"].toObject(),authored);
+        QVERIFY2(run(window,"solid.box",{{"width",20},{"depth",20},{"height",20},{"x",120},{"name","Die body"}}),error_.constData());
+        const auto body=inspect()["evaluation"].toObject()["bodies"].toArray().last().toObject();QCOMPARE(body["ownerId"].toString(),id);
+        auto* tree=window.findChild<QTreeWidget*>("browser.tree");QVERIFY(tree);QTreeWidgetItem* bodyRow=nullptr;
+        for(QTreeWidgetItemIterator it(tree);*it;++it)if((*it)->data(0,Qt::UserRole+1).toString()==body["bodyId"].toString())bodyRow=*it;
+        QVERIFY(bodyRow && bodyRow->parent() && bodyRow->parent()->parent());QCOMPARE(bodyRow->parent()->parent()->data(0,Qt::UserRole+3).toString(),id);
+        QTest::mouseClick(rootRadio,Qt::LeftButton,Qt::NoModifier,QPoint(8,rootRadio->height()/2));QCOMPARE(inspect()["activeOwnerId"],root);QTest::mouseClick(child,Qt::LeftButton,Qt::NoModifier,QPoint(8,child->height()/2));QCOMPARE(inspect()["activeOwnerId"].toString(),id);
+        QVERIFY2(run(window,"selection.set",{{"bodyId",""}}),error_.constData());
+        QVERIFY2(run(window,"view.home"),error_.constData());
+        QVERIFY2(run(window,"capture.screenshot",{{"path",QDir::currentPath()+"/build-components/evidence/components-independent/qt-browser.png"}}),error_.constData());
+        QVERIFY2(run(window,"document.exportMeshDialog"),error_.constData());auto* dialog=window.findChild<QDialog*>("mesh.export.dialog");QVERIFY(dialog);QTRY_VERIFY(dialog->isVisible());
+        auto* scope=dialog->findChild<QComboBox*>("mesh.export.body");QVERIFY(scope);QCOMPARE(scope->currentText(),QString("Component: die"));
+        dialog->grab().save("build-components/evidence/components-independent/qt-export-scope.png");
+        auto* buttons=dialog->findChild<QDialogButtonBox*>();QVERIFY(buttons);QTest::mouseClick(buttons->button(QDialogButtonBox::Cancel),Qt::LeftButton);
     }
     void moveActionsAtShortHeights() {
         AlloyWindow window;window.resize(1136,790);window.show();
