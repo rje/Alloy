@@ -78,3 +78,30 @@ CAD history references and a production local control endpoint are not delivered
 Physical multi-display/DPR transitions were not exercised; ordinary Retina sizing
 is observed. Windows/Linux Vulkan, integer-ID capability qualification, distribution,
 RHI admission/selection and renderer migration remain RHI-001/RHI-002 work.
+
+## Independent acceptance
+
+Astra independently accepts the bounded RHI-004/#210 experiment at4baad2c
+(integrated as5b29523),2026-10-13. Final source, pinned shader bytes/license
+provenance, report and all six framebuffer captures were inspected. No redundant
+GUI run was performed. Triangle locations/reversed-face winding, geometric
+normals and shared face geometry for color/ID passes are coherent. Actual Metal
+on Apple M4 with DPR2 produced readable shaded bodies, edges/grid and blue face
+selection. Four-sample color and single-sample linearRGBA8 IDs are separate.
+Six readbacks match independent OCCT rays, including background and a front,
+first-drawn cylinder occluding the later box. Resize pixel sizes and post-resource
+recreation selection agree with the recorded state.
+
+The cleanup correction disables callbacks, drains readback storage before release,
+and invalidates queued finalizers by generation. The observed cancellation had
+native completion already done and Qt finalization pending; fresh picking then
+succeeded. It does not prove teardown during in-flight GPU work. Exit0 qualifies
+the recorded clean close only.
+
+The cylinder boundary is visibly coarse and shaded faces retain tessellation
+faceting. Full-texture readbacks transfer roughly8–11MB each; six observed
+2.407–3.506ms latencies are not a benchmark or interaction-performance guarantee.
+Numeric vendor/device IDs are0 and no explicit driver-version qualification was
+obtained. Face picking is actual; edge IDs are manifest-only. Integer attachments,
+physical pointer input, display transitions, Windows/Linux Vulkan, production CAD
+quality and adoption remain unqualified. Parent RHI-001/#137 stays Todo.
