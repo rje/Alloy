@@ -78,7 +78,7 @@ def main():
             radial = draft()['parameters']['entities'][-1]
             assert radial['startPointId'] == path['startPointId']
             params = draft()['parameters']
-            equivalent = {path['centerPointId'], params['originPointId']}
+            equivalent = {params['originPointId']}
             while True:
                 expanded = set(equivalent)
                 for constraint in params['constraints']:
@@ -88,6 +88,7 @@ def main():
                 if expanded == equivalent:
                     break
                 equivalent = expanded
+            assert path['centerPointId'] in equivalent, 'Arc path center must retain origin association'
             assert radial['endPointId'] in equivalent, 'Radial line must retain origin/center association'
             call('sketch.construction', {'entityIds': [radial['id']], 'construction': True})
             params = draft()['parameters']
