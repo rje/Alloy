@@ -34,3 +34,16 @@ pending: three placements, visible Rho handle/field, context-menu OK, Cancel and
 invalid pending numeric input must be exercised without focus repair. Invalid
 text must prevent OK even when retaining the previous valid preview. Do not
 close #255 until those controls and actual GPU evidence are independently reviewed.
+
+Shared-app creation preview and numeric Rho controls are now implemented on the
+isolated branch. A 39-call real-app check passed using binary
+`442fe94af1f14d73d299465c99c66ae3de959beafa361a980c31a45161b15636`,
+with three projected-pointer placements, disposable preview, invalid Rho refusal,
+valid acceptance, meaningful edit and exact history/reopen. External evidence:
+`deliverables/conic-2026-10-13/api-attempt-04`. Earlier attempts preserve a pending
+JSON initialization defect and missing numeric schema range, both corrected.
+The actual capture shows a readable upper-left Rho/OK/Cancel panel, selected
+analytic conic and honest seven-DOF preview. These are shared API calls, not native
+mouse/keyboard evidence. The on-canvas Rho arrow and its drag, native context OK,
+preview cancellation/stale-input checks and independent final acceptance remain
+required. No source workflow completion is claimed.

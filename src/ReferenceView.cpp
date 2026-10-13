@@ -2272,6 +2272,13 @@ void ReferenceView::contextMenuEvent(QContextMenuEvent* e) {
     lastContextMenu_=QJsonObject{{"reason",static_cast<int>(e->reason())},{"sketchActive",sketchActive},
         {"selectTool",selectTool},{"selectedEntities",selectedEntities},
         {"x",e->pos().x()},{"y",e->pos().y()}};
+    if(sketchActive && decorationSelection_.value("tool")=="conic") {
+        QMenu menu(this);auto* accept=menu.addAction("OK");accept->setObjectName("sketch.conic.ok");
+        auto* cancel=menu.addAction("Cancel");const auto* chosen=menu.exec(e->globalPos());
+        if(chosen==accept)dispatch("sketch.conicAccept",{});
+        else if(chosen==cancel)dispatch("sketch.conicCancel",{});
+        e->accept();return;
+    }
     if(sketchActive && selectTool && decorationSelection_["entityIds"].toArray().size()==1){const auto id=decorationSelection_.value("entityIds").toArray().at(0);for(const auto& value:decorationFeature_["parameters"].toObject()["entities"].toArray())if(value.toObject()["id"]==id&&value.toObject()["type"]=="fitSpline"){QMenu menu(this);auto* insert=menu.addAction("Insert Spline Fit Point");insert->setObjectName("sketch.spline.insertFitPoint");if(menu.exec(e->globalPos())==insert)dispatch("sketch.splineInsertMode",{{"entityId",id}});e->accept();return;}}
     if(sketchActive && selectTool && showConstraints_) {
         const auto badge=pickConstraint(e->pos().x(),e->pos().y());

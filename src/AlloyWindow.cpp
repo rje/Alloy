@@ -351,6 +351,7 @@ AlloyWindow::AlloyWindow() {
     auto* arc=create->addMenu("Arc");arc->setObjectName("sketch.commands.arc");
     toolAction(arc,"Center Point Arc","centerArc");toolAction(arc,"3-Point Arc","threePointArc");
     auto* spline=create->addMenu("Spline");spline->setObjectName("sketch.commands.spline");toolAction(spline,"Fit Point Spline","fitSpline");toolAction(spline,"Control Point Spline","controlSpline");
+    toolAction(create,"Conic Curve","conic");
     create->addSeparator();toolAction(create,"Sketch Dimension\tD","dimension");
     auto* modify=sketchMenu("Modify","modify");toolAction(modify,"Fillet","fillet");toolAction(modify,"Trim","trim");toolAction(modify,"Offset\tO","offset");
     auto* sketchMirrorAction=modify->addAction("Mirror");sketchMirrorAction->setObjectName("sketch.action.mirror");
@@ -541,6 +542,7 @@ AlloyWindow::AlloyWindow() {
             if(session_.value("command")=="solid.hole"){if(previewHole()["previewed"].toBool())execute("command.commit",{{"session",session_["id"]}});return;}
             if(session_.value("command")=="solid.sphere"){if(previewSphere()["previewed"].toBool())execute("command.commit",{{"session",session_["id"]}});return;}
             if(session_.value("command")!="sketch.edit")return;
+            if(session_.value("tool")=="conic"){sketchResponse(execute("sketch.conicAccept"));return;}
             if(session_.value("tool")=="fitSpline"||session_.value("tool")=="controlSpline"){sketchResponse(execute("sketch.splineComplete"));return;}
             if(session_.value("tool")=="mirror"){
                 if(session_.contains("pendingSketchMirror"))sketchResponse(execute("sketch.mirrorAccept"));
@@ -596,6 +598,8 @@ QImage AlloyWindow::captureImage(QImage* viewport) {
     composition.drawImage(view_->mapTo(this,QPoint()),framebuffer);
     if(dimensionEditor_&&dimensionEditor_->isVisible())
         composition.drawPixmap(dimensionEditor_->mapTo(this,QPoint()),dimensionEditor_->grab());
+    if(conicEditor_&&conicEditor_->isVisible())
+        composition.drawPixmap(conicEditor_->mapTo(this,QPoint()),conicEditor_->grab());
     if(lineLockCue_&&lineLockCue_->isVisible())
         composition.drawPixmap(lineLockCue_->mapTo(this,QPoint()),lineLockCue_->grab());
     // Qt-owned popups use separate top-level surfaces. Compose those visible
@@ -1490,13 +1494,19 @@ void AlloyWindow::registerCommands() {
     for(const auto& tool:QStringList{"line","rectangle"})add("sketch."+tool,tool=="line" ? "Line" : "Two-Point Rectangle",
         "Append stable authored points and edges to the active sketch draft.",drawSchema,[this,tool](const auto& a){return appendSketchEntity(tool,a);});
     auto conicPoint=parameter("object","Canonical millimeter point {uMm,vMm}, optionally retained pointId.");
-    auto conicRho=parameter("number","Shoulder ratio strictly between 0 and 1.");
+    auto conicRho=parameter("number","Shoulder ratio strictly between 0 and 1.");conicRho["minimum"]=0;conicRho["maximum"]=1;
     add("sketch.conicAdd","Conic Curve","Create a retained rational quadratic from start, end, tangent vertex and Rho.",
         {{"start",conicPoint},{"end",conicPoint},{"vertex",conicPoint},{"rho",conicRho}},
         [this](const auto& a){return conicCommand("add",a);});
     add("sketch.conicRho","Edit Conic Rho","Update the retained shoulder ratio through the shared sketch authority.",
         {{"entityId",parameter("string","Stable conic UUID.")},{"rho",conicRho}},
         [this](const auto& a){return conicCommand("rho",a);});
+    add("sketch.conicPreview","Preview Conic Rho","Validate pending Rho without changing authoring.",
+        {{"text",parameter("string","Pending Rho numeric text.")}},[this](const auto& a){return conicCommand("preview",a);});
+    add("sketch.conicAccept","Accept Conic","Publish the valid pending conic as one sketch edit.",{},
+        [this](const auto& a){return conicCommand("accept",a);});
+    add("sketch.conicCancel","Cancel Conic","Discard pending conic creation.",{},
+        [this](const auto& a){return conicCommand("cancel",a);});
     auto splineEntity=parameter("string","Stable authored fit spline UUID.");
     auto splinePoint=parameter("string","Stable fit point UUID.");
     auto splineScalar=parameter("number","Canonical spline derivative or parameter.");splineScalar["minimum"]=-100000;splineScalar["maximum"]=100000;
@@ -1905,9 +1915,10 @@ void AlloyWindow::registerCommands() {
             if(a.contains("session") && a["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
             cancelTwoPointRectangle();view_->setFocus();return QJsonObject{{"pending",false},{"authoredChange",false}};
         });
-    auto sketchTool=parameter("string","Drawing tool in the active sketch context.");sketchTool["enum"]=QJsonArray{"select","point","line","rectangle","centerRectangle","centerPointSlot","centerPointArcSlot","circle","twoPointCircle","centerArc","threePointArc","dimension","fillet","trim","offset","mirror","fitSpline","controlSpline","insertFitPoint"};
+    auto sketchTool=parameter("string","Drawing tool in the active sketch context.");sketchTool["enum"]=QJsonArray{"select","point","line","rectangle","centerRectangle","centerPointSlot","centerPointArcSlot","circle","twoPointCircle","centerArc","threePointArc","dimension","fillet","trim","offset","mirror","fitSpline","controlSpline","insertFitPoint","conic"};
     add("sketch.tool","Sketch drawing tool","Choose a tool and clear its pending first point.",{{"tool",sketchTool}},[this](const auto& a){
         if(session_.value("command").toString()!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
+        cancelConicInput();
         view_->cancelSlotPointDrag();
         if(session_.contains("pendingSplineDrag"))splineCommand("drag",{{"phase","cancel"}});
         auto badgeSelection=session_.value("selection").toObject();badgeSelection.remove("constraintIds");badgeSelection.remove("dimensionId");
@@ -2069,6 +2080,7 @@ void AlloyWindow::registerCommands() {
         if(session_.value("command").toString()!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
         if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))return failure("stale_session","The document changed; cancel and restart this sketch");
         const auto tool=session_.value("tool").toString();
+        if(tool=="conic")return conicPointer(a,true);
         if(tool=="fitSpline" || tool=="controlSpline" || tool=="insertFitPoint")return splinePointer(a,true);
         if(tool=="offset") {
             if(session_.value("inputs").toObject()["plane"]=="face" && session_.value("draftSketch").toObject()["parameters"].toObject()["entities"].toArray().isEmpty()) {
@@ -2316,6 +2328,7 @@ void AlloyWindow::registerCommands() {
         if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision())){view_->clearSketchCursor();return QJsonObject{};}
         const auto plane=session_.value("inputs").toObject()["plane"].toString();
         const auto tool=session_.value("tool").toString();
+        if(tool=="conic")return conicPointer(a,false);
         if(tool=="fitSpline" || tool=="controlSpline" || tool=="insertFitPoint")return splinePointer(a,false);
         if(((tool=="circle" || tool=="twoPointCircle") && session_.contains("pendingCircleDiameter")) || (tool=="centerRectangle" && session_.contains("pendingCenterRectangle")))
             return QJsonObject{{"authoredChange",false}};
@@ -3582,7 +3595,14 @@ void AlloyWindow::refresh() {
             view_->decorateSketch(fillet["previewDraft"].toObject(),presentationSelection,
                 fillet["previewDiagnostics"].toObject(),inputs["units"].toString());
         }
-        const auto diagnostics=session_.value("solverDiagnostics").toObject();
+        auto diagnostics=session_.value("solverDiagnostics").toObject();
+        const auto conicPreview=session_.value("pendingConic").toObject();
+        if(conicPreview.contains("previewDraft")) {
+            diagnostics=conicPreview["diagnostics"].toObject();
+            auto selected=session_.value("selection").toObject();selected["tool"]="conic";
+            selected["entityIds"]=QJsonArray{conicPreview["entityId"]};
+            view_->decorateSketch(conicPreview["previewDraft"].toObject(),selected,diagnostics,inputs["units"].toString());
+        }
         const auto splinePreview=session_.value("pendingSplineDrag").toObject();if(splinePreview.contains("previewDraft")){auto selected=session_.value("selection").toObject();selected["tool"]="select";view_->decorateSketch(splinePreview["previewDraft"].toObject(),selected,splinePreview["diagnostics"].toObject(),inputs["units"].toString());}
         const auto tool=session_.value("tool").toString();if(auto* complete=findChild<QPushButton*>("sketch.spline.complete")){complete->setVisible(tool=="fitSpline"||tool=="controlSpline");complete->setEnabled(session_.value("pendingSplinePoints").toArray().size()>=2);}
         QString prompt="Click the first point";
@@ -3620,7 +3640,8 @@ void AlloyWindow::refresh() {
                 sketchFilletRadius_->setText(QString::number(displayValue,'g',8));
             }
         }
-        if(tool=="constraint")prompt=session_.value("constraintPrompt").toString();
+        if(tool=="conic") {const int count=session_["pendingConic"].toObject()["points"].toArray().size();prompt=count==0?"Place conic start":count==1?"Place conic end":count==2?"Place tangent vertex":"Conic preview · Set Rho, then OK";}
+        else if(tool=="constraint")prompt=session_.value("constraintPrompt").toString();
         else if(tool=="select" || tool=="dimension")prompt="Click to select · Shift-click to add";
         else if(tool=="point")prompt="Click to place a point · Escape stops Point";
         else if(tool=="rectangle")prompt=session_.contains("pendingTwoPointRectangle") ? "Width × height · Tab switches · Enter places · Escape cancels" :
@@ -4206,6 +4227,7 @@ QJsonObject AlloyWindow::beginSession(const QString& command, const QJsonObject&
 
 QJsonObject AlloyWindow::finishSession(const QString& id, bool commit) {
     if (session_.isEmpty() || session_.value("id").toString() != id) return failure("invalid_session", "Session is no longer active");
+    cancelConicInput();
     view_->cancelSlotPointDrag();
     const auto target = session_.value("command").toString();
     QJsonObject result{{"sessionId", id}, {"status", commit ? "committed" : "cancelled"}};
@@ -5333,6 +5355,7 @@ QJsonObject AlloyWindow::traverseSketchHistory(int direction) {
     if(session_.contains("pendingSplineDrag"))splineCommand("drag",{{"phase","cancel"}});
     if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))
         return failure("stale_session","The document changed; cancel and restart this sketch");
+    cancelConicInput();
     view_->cancelSlotPointDrag();
     if(session_.contains("pendingSketchMirror")){
         session_.remove("pendingSketchMirror");const auto draft=session_["draftSketch"].toObject();
