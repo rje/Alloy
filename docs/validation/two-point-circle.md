@@ -83,3 +83,15 @@ measurements are at `../Alloy-reference-records/deliverables/two-point-circle-20
 and `two-point-circle-palette-layout.json`. The original geometry/input run was
 not repeated. No physical OS input, exact unspecified source hole position, general
 snapping, or cumulative tutorial claim is made.
+
+Independent visual follow-up accepted `ec3bb11` on 2026-10-13. Review of the
+actual settled image, before/after metrics, persisted 1523 ms passing log and
+test delta confirms that queued layout processing resolves the overlap without
+changing label sizes or application code. The summary, profile status and inline
+4 mm input are readable in the settled capture. The earlier minimum-height
+hypothesis is not supported by these measurements: preferred height and actual
+height-for-width already agree. This closes the pending #230 visual gap and
+completes bounded acceptance together with the geometry/input review above.
+The added event settling is capture synchronization, not a focus/selection
+repair or replacement for the earlier modeling evidence. No full replay or
+additional independent editor was required.
