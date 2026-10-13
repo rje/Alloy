@@ -27,7 +27,7 @@ QJsonObject AlloyWindow::sphereCandidate(const QJsonObject& inputs) const {
     if(!args.contains("featureId") && session_.value("command")=="solid.sphere") {
         args["newFeatureId"]=session_["newFeatureId"];args["newBodyId"]=session_["newBodyId"];
     }
-    return CadDocument::sphereCandidate(document_->authored(),args);
+    return CadDocument::sphereCandidate(document_->authored(),authoringArguments(args));
 }
 QJsonObject AlloyWindow::beginSphere(const QJsonObject& overrides) {
     if(!session_.isEmpty())return sphereFailure("session_busy","Complete or cancel the active command first");
