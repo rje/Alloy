@@ -1363,3 +1363,14 @@ records source URL/hash/timestamps and observed versus inferred geometry.
 The video247s source preview shows two separated profiles,4mm and Join; Bodies
 folder is collapsed, so its intermediate body semantics remain unknown. SOL-020
 #176 owns that later multi-result compatibility work; #174 does not change it.
+## Bounded Trim candidate (2026-10-12)
+
+Isolated `../Alloy-worktrees/sketch-trim` adds SKT-029 #177: T/Modify Trim for
+line targets against finite line/circle boundaries, GPU interval hover cue,
+shared API/click draft edits and retained point-on-curve contacts. Source video
+170–191s trims circle-internal chords, left-edge halves and the guide while
+retaining full circle; outside-left stubs remain uncertain and are preserved.
+Build and three focused source/solver/document tests pass. The real-app API
+script and native evidence are pending combined #174/#177 qualification after
+Astra releases the desktop. See `validation/sketch-trim.md`. No push/closure;
+Extend/Break and broader curve trimming remain in parent #47.

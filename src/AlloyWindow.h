@@ -74,6 +74,8 @@ private:
     void updateExtrude(const QJsonObject& inputs);
     bool updatingExtrudePreview_ = false;
     QString pendingBrowserVisibility_;
+    QJsonObject trimPointerInput(const QJsonObject& pixels) const;
+    QJsonObject previewTrim(const QJsonObject& inputs);
     QJsonObject beginMove(const QJsonObject& inputs);
     QJsonObject moveCandidate(const QJsonObject& inputs) const;
     QJsonObject previewMove();

@@ -486,6 +486,9 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
                 if (constraint.size() != (fixed ? 5 : 3) || constraint.contains("entityIds")
                     || !checkReferences(constraint, "pointIds", fixed ? 1 : 2, pointIds)) return "Invalid point constraint references";
                 if (fixed) { coordinate(constraint, "uMm"); coordinate(constraint, "vMm"); }
+            } else if (type == "pointOnCurve") {
+                if(constraint.size()!=4 || !checkReferences(constraint,"pointIds",1,pointIds) || !checkReferences(constraint,"entityIds",1,entityIds))return "Point-on-curve requires one point and one curve";
+                const auto id=constraint["entityIds"].toArray()[0];for(const auto& entry:parameters["entities"].toArray())if(entry.toObject()["id"]==id && entry.toObject()["type"]!="line" && entry.toObject()["type"]!="circle")return "Point-on-curve supports lines and circles";
             } else if (type == "arcTangent") {
                 if (constraint.size()!=5 || !checkReferences(constraint,"entityIds",2,entityIds)
                     || !checkReferences(constraint,"pointIds",1,pointIds) || !constraint["side"].isDouble()

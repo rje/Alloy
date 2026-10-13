@@ -1017,13 +1017,13 @@ void ReferenceView::decorateSketch(const QJsonObject& feature,const QJsonObject&
                 {"viewportLocal",true},{"units","logicalPixels"}});
             continue;
         }
-        if(kind!="equal" && kind!="horizontal" && kind!="vertical" && kind!="perpendicular" && kind!="parallel" && kind!="midpoint")continue;
+        if(kind!="equal" && kind!="horizontal" && kind!="vertical" && kind!="perpendicular" && kind!="parallel" && kind!="midpoint" && kind!="pointOnCurve")continue;
         for(const auto& target:relation["entityIds"].toArray()) {
             const auto entity=entities.value(target.toString());if(entity.isEmpty())continue;
             double u,v;
-            if(kind=="midpoint") {
+            if(kind=="midpoint" || kind=="pointOnCurve") {
                 const auto pointId=relation["pointIds"].toArray().at(0).toString();
-                const auto point=points.value(pointId);if(entity["type"]!="line" || point.isEmpty())continue;
+                const auto point=points.value(pointId);if((kind=="midpoint" && entity["type"]!="line") || point.isEmpty())continue;
                 u=point["uMm"].toDouble();v=point["vMm"].toDouble();
             } else if(entity["type"]=="line") {
                 const auto a=points.value(entity["startPointId"].toString()),b=points.value(entity["endPointId"].toString());
@@ -1049,7 +1049,8 @@ void ReferenceView::decorateSketch(const QJsonObject& feature,const QJsonObject&
             }
             TopoDS_Compound strokes;BRep_Builder builder;builder.MakeCompound(strokes);
             auto stroke=[&](double x1,double y1,double x2,double y2){builder.Add(strokes,BRepBuilderAPI_MakeEdge(sketchWorld(plane,u+x1*size,v+y1*size),sketchWorld(plane,u+x2*size,v+y2*size)).Edge());};
-            if(kind=="midpoint"){stroke(-5,4,5,4);stroke(5,4,0,-5);stroke(0,-5,-5,4);}
+            if(kind=="pointOnCurve"){stroke(-3,-3,3,-3);stroke(3,-3,3,3);stroke(3,3,-3,3);stroke(-3,3,-3,-3);stroke(-1,0,1,0);}
+            else if(kind=="midpoint"){stroke(-5,4,5,4);stroke(5,4,0,-5);stroke(0,-5,-5,4);}
             else if(kind=="equal"){stroke(-5,-2,5,-2);stroke(-5,2,5,2);}
             else if(kind=="horizontal")stroke(-5,0,5,0);
             else if(kind=="vertical")stroke(0,-5,0,5);
@@ -1185,6 +1186,13 @@ QJsonObject ReferenceView::projectSketchPoint(double uMm,double vMm,const QStrin
     } else world=sketchWorld(plane,uMm,vMm);
     int x,y;view_->Convert(world.X(),world.Y(),world.Z(),x,y);
     const auto scale=windowScale();return {{"x",x/scale.x()},{"y",y/scale.y()},{"viewportLocal",true},{"units","logicalPixels"}};
+}
+void ReferenceView::showTrimPreview(const QString& plane,const QJsonObject& segment) {
+    clearSketchCursor();if(context_.IsNull() || segment.isEmpty())return;
+    const auto a=sketchWorld(plane,segment["u1Mm"].toDouble(),segment["v1Mm"].toDouble()),b=sketchWorld(plane,segment["u2Mm"].toDouble(),segment["v2Mm"].toDouble());
+    const gp_Vec delta(a,b);if(delta.Magnitude()<1e-9)return;
+    const auto shape=BRepPrimAPI_MakeCylinder(gp_Ax2(a,gp_Dir(delta)),view_->Camera()->Scale()*2.0/std::max(height(),1),delta.Magnitude()).Shape();
+    sketchCursor_=new AIS_Shape(shape);sketchCursor_->SetColor(Quantity_Color(.86,.12,.10,Quantity_TOC_sRGB));sketchCursor_->SetZLayer(Graphic3d_ZLayerId_Topmost);sketchCursor_->Attributes()->SetShadingModel(Graphic3d_TOSM_UNLIT);context_->Display(sketchCursor_,AIS_Shaded,-1,false);context_->Deactivate(sketchCursor_);context_->UpdateCurrentViewer();
 }
 void ReferenceView::showSketchCursor(const QString& plane,const QPointF& first,const QPointF& second,bool rectangle) {
     clearSketchCursor();if(context_.IsNull() || first==second)return;

@@ -31,7 +31,7 @@ add_library(alloy_kernel STATIC
     src/GeometryKernel.cpp src/GeometryKernel.h
     src/MeshExport.cpp src/MeshExport.h
     src/StepExchange.cpp src/StepExchange.h
-    src/SketchGeometry.cpp src/SketchGeometry.h
+    src/SketchGeometry.cpp src/SketchTrim.cpp src/SketchGeometry.h
     src/SketchProfiles.cpp src/SketchProfiles.h src/SketchRegions.cpp)
 target_include_directories(alloy_kernel PUBLIC src)
 target_include_directories(alloy_kernel SYSTEM PUBLIC ${OpenCASCADE_INCLUDE_DIR})
@@ -113,6 +113,10 @@ if(BUILD_TESTING)
     target_include_directories(profile_join_test PRIVATE src)
     target_link_libraries(profile_join_test PRIVATE Qt6::Gui alloy_kernel)
     add_test(NAME profile_join COMMAND profile_join_test)
+    add_executable(sketch_trim_test tests/sketch_trim.cpp src/CadDocument.cpp src/CadDocument.h)
+    target_include_directories(sketch_trim_test PRIVATE src)
+    target_link_libraries(sketch_trim_test PRIVATE Qt6::Gui alloy_kernel)
+    add_test(NAME sketch_trim COMMAND sketch_trim_test)
     add_executable(move_document_test tests/move_document.cpp src/CadDocument.cpp src/CadDocument.h)
     target_include_directories(move_document_test PRIVATE src)
     target_link_libraries(move_document_test PRIVATE Qt6::Gui alloy_kernel)

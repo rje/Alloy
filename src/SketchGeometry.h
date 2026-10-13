@@ -38,6 +38,7 @@ public:
     // Explicit normal/construction conversion retains geometry and relation IDs.
     // Pointer-only circle creation retains optional midpoint centerSnapTarget and
     // finite-line tangentSnapTarget; the signed tangent branch survives edits.
+    static SolveResult trimLine(const QJsonObject& draft, const QJsonObject& arguments, const QJsonObject& projectionContext = {});
     static SolveResult filletCorners(const QJsonObject& draft, const QJsonObject& arguments, const QJsonObject& projectionContext = {});
     // Optional drivingDiameterMm retains the inline typed diameter in the same transaction.
     static SolveResult addPointerCircle(const QJsonObject& draft, const QJsonObject& arguments, const QJsonObject& projectionContext = {});
