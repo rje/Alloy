@@ -1,7 +1,7 @@
 # Section Analysis candidate
 
 DOC-021/#262, 2026-10-13. Origin-plane inspection is retained separately from
-modeling features. This is a bounded candidate, pending independent review.
+modeling features. Independent bounded acceptance is recorded below.
 
 ## Contract and reference
 
@@ -93,4 +93,27 @@ run retains readable native-preview/committed/edit/plain/hidden/shown captures.
 The earlier isolated GPU proof remains distinct from command-entrypoint evidence.
 Windows/Linux runtime and the full ornament lesson are not verified by this
 candidate. Source comparison supports bounded roles/readability, not matched
-viewport or pixel parity. Independent final acceptance remains pending.
+viewport or pixel parity.
+
+## Independent bounded acceptance
+
+2026-10-13: independently reviewed production candidate `afeec29` and final
+native fixture/receipt `771c417`, without implementing production changes or
+launching another editor. Review reused the source/core/API evidence above,
+the external ornament contract and corrected neutral-material capture. It also
+inspected the final native fixture, passing 3/3 log and actual preview, plain
+edit, hidden and shown images under `native-root-03/`.
+
+| Contract | Result | Evidence and limits |
+| --- | --- | --- |
+| Origin-plane clipped inspection with material hatching | Matched within scope | Actual hollow solid remains visibly open; walls/base are hatched, plain mode removes hatch, hide restores the whole solid. |
+| Geometry and modeling history remain unchanged | Matched | Separate authored analyses, exact evaluated pointer/BRep reuse in core, and unchanged feature/evaluation checks in API/native fixtures. |
+| Create, preview, Cancel, edit and visibility | Matched for Qt input | Actual Inspect menu, combo selection, indicator clicks and context event pass; no in-sequence focus/selection repair. |
+| Undo, replacement and storage | Matched | Focused core and 79-call real-entrypoint API evidence cover exact authoring, single-active replacement, tabs and reopen. |
+| Presentation and reference fidelity | Bounded match | Readable roles and hatching; neutral settled panel capture is separate from native preview with its combo popup visible. Exact pixels/platform defaults remain unknown. |
+| Physical OS input and other-platform runtime | Unknown | Injected Qt events establish this bounded native fixture; they do not establish physical mouse behavior or Windows/Linux GPU support. |
+
+Accept #262 as the retained zero-offset origin-plane Section Analysis ingredient.
+General transforms, custom colors and simultaneous sections remain DOC-014;
+the complete ornament workflow remains a separate cumulative gate. No additional
+replay was needed after the focused evidence met this scope.
