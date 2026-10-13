@@ -1,6 +1,6 @@
 # Countersunk plate full source gate — candidate (#249)
 
-Status: **candidate for independent review**, 2026-10-13. One blank-document
+Status: **independently accepted bounded full source gate**, 2026-10-13. One blank-document
 shared-API creation run passed, with full movie, editable source, strict STL,
 saved-BRep openings, parameter edits and exact history/reopen. Native ingredient
 checks are separate; this movie does not demonstrate physical keyboard or
@@ -81,3 +81,41 @@ table and controls are readable, the red Hole preview is visible, and the
 final nine countersinks are smooth and distinct. Matching to the public page
 views remains bounded by different viewport/layout and unknown source picks;
 pixel-exact or general Hole/Pattern parity is not claimed.
+
+## Independent cumulative acceptance
+
+Accepted #249 at receipt/runner candidate `1faf900` using the recorded app binary
+identified above. Independent review covered the previously audited four-page
+source contract, runner and saved-BRep oracle, 107-command report, actual stage
+captures, representative creation-movie frames and persisted model. The verifier
+also extracted the Pattern preview directly from the movie at 18 seconds and
+reran the unchanged strict STL reader offline. No editor or full creation replay
+was needed.
+
+The saved model exactly equals the report's source authored snapshot. Its six
+features are Sketch, Extrude, Fillet, Sketch, Hole and Rectangular Pattern;
+Length/Width remain driving stable-ID bindings and Extrude retains Thickness.
+The centered rough rectangle's construction diagonals and origin relationship
+are preserved. The point sketch contains one true Point and retained two-edge
+dimensions, not a surrogate circle. Hole and Adjust Pattern remain distinct
+editable features. The source bounds/grid/volume, saved-BRep radial and tunnel
+samples, exact parameter edit/history/reopen checks and separately accepted
+padded-target Adjust control together support the functional source chain.
+
+Independent STL readback agrees with all reported mesh fields: 7,760 triangles,
+one closed oriented component and the exact stated envelope. Its relative volume
+error is approximately 0.0073066%. Both saved-artifact hashes match the report.
+Actual table, rectangle and two-distance Point captures are readable; Hole has a
+smooth red preview, Pattern exposes Spacing/Adjust and the intended signed
+axes, and the final oblique view clearly shows nine smooth conical cavities.
+The movie samples show the real table and successive modeling stages, rather
+than only an already-completed model.
+
+Acceptance combines API creation with the separately accepted native ingredients;
+it does not relabel the movie as uninterrupted physical input. Repeated/delayed
+frames, unmatched public screenshot scale, numeric rather than named viewport
+dimension labels, embedded drawing substitution and chosen edge/sign adaptation
+remain explicit limits. The source's optional suppression UI is not generalized
+beyond this all-nine-occurrences result. Export and integrity edits are disclosed
+extensions. No broader parameter-expression, Hole-family, arbitrary Adjust,
+other-platform runtime or release claim follows from this gate.
