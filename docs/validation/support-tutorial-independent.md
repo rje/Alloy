@@ -23,3 +23,16 @@ original recording remains unchanged. The EDITED banner stays visible. Root
 inspected an 80-second sample: Move controls, pointer cue and the full numeric
 caption are readable. This is a continuation from the accepted filleted fixture;
 the original picking and window-resize recoveries remain in the record.
+## Final bounded fix review
+
+2026-10-12, combined candidate `b545bb8` (picking `1696119`, Move width `3a06aef`), one private editor. #183 and #184 pass independent native review on preserved pre-Move/moved snapshots; no tutorial reconstruction or geometry rerun was needed. Source review confirms supported OCCT face selection maps back to the stable body identity, retaining an inactive whole-body selection owner for the blue cue. The Move form scrolls independently of its fixed confirmation footer.
+
+At requested 1136×790, a physical cutter click selected the correct body and visibly highlighted its whole surface blue, with stock neutral. Right-click at the previously failing cutter location opened the actual Move/Copy popup. Native Down/Return activated Move with the correct cutter; physical Cancel restored exact authored data. One attempted coordinate activation of the popup dismissed it without opening Move, so this receipt qualifies keyboard menu activation, not successful pointer activation of that menu item.
+
+Move's OK and Cancel remained fully visible at both scroll positions. A native wheel gesture over the form label area exposed all three pivot fields and their units without horizontal clipping. A preceding wheel gesture over Pivot X changed that spinbox value, as Qt spinbox input; this disposable draft was canceled and exact authored restoration was checked. This is scroll/footer accessibility evidence, reusing prior accepted numeric Move commit evidence rather than committing another redundant Move.
+
+On the saved moved fixture, physical viewport clicks selected the stock target and then the protruding cutter tool. Inspection confirmed the exact target/tool IDs and a valid Combine preview; no checkbox recovery was used. Physical Cancel restored the exact saved authored model. Both fixtures remained clean and the sole editor quit. External `demos/2026-10-12/straw-support-native/fix-review/` contains source fixtures, state observations and body/popup/Move/Combine captures.
+
+The original raw continuation remains unchanged and retains its recoveries. The optional edited continuation was separately checked: 145.6 seconds, 1456 frames, 33 mapped windows, 314 retained actions; raw/log/edited hashes and contiguous frame mappings agree, and the sampled frame shows a readable persistent EDITED banner. Editing supplies presentation evidence, not additional modeling provenance.
+
+**Final verdict:** the functional #171 video-variant gate can close on the complete blank shared-authority API workflow, accepted native subsystem evidence, recorded native continuation and these bounded fix checks. The earlier picking/layout acceptance findings are resolved by #183/#184. Preserve all prior scope limits: this is cumulative evidence, not a new uninterrupted native-from-blank movie; PDF six-edge fillets, optional text/chamfer, exact annotation placement and inferred transform-frame parity are not claimed.
