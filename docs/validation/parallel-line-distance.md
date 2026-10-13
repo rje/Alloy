@@ -9,3 +9,32 @@ Validation: `parallel_line_distance` passed: independent 11 and 28 mm distances,
 App and both test targets compile on macOS AppleClang/Qt 6.11.2/OCCT 7.9.3. Final native log: external `validation/parallel-line-distance-2026-10-13/native-settled-ctest.log` (1/1 passed, 7.00 s); capture: `parallel-line-d-11-28-settled.png` beside it. The GUI test canceled its draft and closed its window. The prior fixture timeout was its unsaved-close confirmation dialog, confirmed by a native stack sample and corrected in the fixture.
 
 The original immediate `parallel-line-d-11-28.png` remains as unsettled evidence: its palette profile warning overlaps the info text. The final fixture processes queued Qt events, waits 80 ms, then measures and captures the same final state. At the actual 274 px label width, info is y=47..92 and profile moves from y=68 before settlement to y=98 after, leaving a 6 px gap; height-for-width and actual heights agree at 45/60 px. `parallel-line-palette-layout.json` retains those measurements. The settled capture shows both palette blocks and dimension labels readable, so no production layout change was needed for this candidate.
+
+## Independent acceptance
+
+Accepted `439065b` atop `f711bae` on 2026-10-13 after independent source,
+focused test and actual capture review. The relation retains the ordered line
+UUIDs and signed side, contributes one perpendicular-distance equation, and
+checks both endpoint offsets after solving. It does not silently add Parallel.
+Existing Centerline Diameter routing retains precedence; nonparallel ordinary
+pairs retain Angle routing. Source inspection and the focused core evidence
+cover edits, duplicate/nonparallel refusals, loss-of-orientation refusal,
+unchanged authored state on failure and exact history/reopen. Broader tilted
+line input and physical OS events are not claimed from the horizontal fixture.
+
+The native fixture starts from shared-command-authored lines and constraints,
+then sets initial viewport focus before the demonstrated D sequence. Actual Qt
+line picks, separate label placement, typed 11/28 and Return use command-produced
+editor focus without intervening focus repair. The settled follow-up passes its
+single CTest in 7.00 seconds. This is Qt-dispatched widget evidence, separate
+from the reported three focused core/regression passes and the future full
+outlet gate.
+
+The first screenshot's palette overlap was real capture timing, not an expected
+consequence of open geometry. The inspected settled image now has readable
+11/28 dimensions, two witnesses per label, DOF feedback and the fixture's
+open-profile warning. Persisted metrics show the profile label moving from y68
+to y98 after queued layout, below the info label's y47+45 extent. The correction
+only synchronizes capture and adds the layout assertion; no production layout
+fix or focus manipulation is attributed to it. Original evidence is retained.
+No extra editor run or full tutorial replay was needed for this review.
