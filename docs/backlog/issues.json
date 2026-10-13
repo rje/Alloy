@@ -3304,7 +3304,7 @@
         "priority:P1",
         "area:sol"
       ],
-      "body": "## Scope and acceptance\nFollow-up to bounded single-target Join #168, required by straw-support #171. Audit source step7 profile selection and intermediate body count: separated selected regions may be joined through existing geometry or require multiple results. Do not assume final connected form proves every intermediate Join result is one solid.\n\nAcceptance: support documented participant/body-result semantics for the exact tutorial regions and heights (20,4,24,22 mm). Preserve target/created body identity, history, previews and editable selection as needed. If the source uses a different operation for a genuinely disconnected result, correct the ledger with public evidence rather than invent a Join rule. Independently check intermediate connected components/volume and native selection; unsupported disconnected inputs must remain atomic until implemented. Source: external knowledge/tutorials/warwick/straw-support.pdf page3, reviewed 2026-10-12.\n\nUI and automation share authoritative commands and state. Separate geometry, native input and visual evidence. Public URLs/images remain outside Git.\n\n## Confirmed source requirement (2026-10-12)\nPublic PDF page3 step7 selects the bridge and middle strip (x26..29); the unselected inner strip (x23..26) separates these regions. Join 4 mm against the existing circle extrusion therefore temporarily yields disconnected solids. Subsequent outer and inner strip extrusions connect the final form. Current boolean_multiple_solids refusal blocks the exact sequence. Implement explicit multi-result Join/body identity semantics; do not substitute New Body. Source evidence and images remain in external knowledge/tutorials/warwick.\n"
+      "body": "## Scope and acceptance\nFollow-up to bounded single-target Join #168, required by straw-support #171. Audit source step7 profile selection and intermediate body count: separated selected regions may be joined through existing geometry or require multiple results. Do not assume final connected form proves every intermediate Join result is one solid.\n\nAcceptance: support documented participant/body-result semantics for the exact tutorial regions and heights (20,4,24,22 mm). Preserve target/created body identity, history, previews and editable selection as needed. If the source uses a different operation for a genuinely disconnected result, correct the ledger with public evidence rather than invent a Join rule. Independently check intermediate connected components/volume and native selection; unsupported disconnected inputs must remain atomic until implemented. Source: external knowledge/tutorials/warwick/straw-support.pdf page3, reviewed 2026-10-12.\n\nUI and automation share authoritative commands and state. Separate geometry, native input and visual evidence. Public URLs/images remain outside Git.\n\n## Confirmed source requirement (2026-10-12)\nPublic PDF page3 step7 selects the bridge and middle strip (x26..29); the unselected inner strip (x23..26) separates these regions. Join 4 mm against the existing circle extrusion therefore temporarily yields disconnected solids. Subsequent outer and inner strip extrusions connect the final form. Current boolean_multiple_solids refusal blocks the exact sequence. Implement explicit multi-result Join/body identity semantics; do not substitute New Body. Source evidence and images remain in external knowledge/tutorials/warwick.\n\nEvidence refinement: original video247s shows Profile 2 selected, Distance 4 mm, Join and visibly separated bridge/strip; video250s shows the committed intermediate geometry. Bodies folder is collapsed, so reference body count/identity is unknown. Disconnected geometry is observed; exact internal body representation must not be claimed. Retained images: external straw-support-pages/video247.png and video250.png.\n"
     },
     {
       "key": "SKT-029",
@@ -3327,13 +3327,14 @@
       "key": "FND-016",
       "title": "Keep native input responsive during tutorial recording",
       "kind": "implementation",
-      "phase": "P1 Foundation",
+      "phase": "P0 Foundation",
       "priority": "P1",
       "depends_on": [],
       "labels": [
         "kind:implementation",
         "priority:P1",
-        "area:fnd"
+        "area:fnd",
+        "phase:P0"
       ],
       "body": "Recording at 15 fps can take longer than the timer interval, leaving a periodic capture timer perpetually overdue and starving native accessibility/input. The interrupted straw-bung run took 67\u2013220 seconds for native actions; recorder-off inspection took 0.12 seconds.\n\nAcceptance: yield between expensive captures while preserving wall-clock video timing, repeated-frame accounting and overlays. Build and run one bounded native recorder-on responsiveness probe, inspect resulting recording, then continue #170. Preserve the interrupted attempt; do not claim it as a completed tutorial. No broad geometry regression is needed for timer scheduling alone."
     }
