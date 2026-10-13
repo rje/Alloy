@@ -62,63 +62,62 @@ recorded final fillet5.760seconds/reopen5.415seconds and zero capture failures.
 Weaker underside fill makes roof/tube inspection readable. Broader performance83
 and navigation22 remain Todo.
 
-All three requested gates are done; authorized overflow die#147 is now active.
-External source record knowledge/tutorials/warwick/library-die-ledger.md was
-updated with Center Rectangle189 acceptance and official public component/Sphere/
-Repeat descriptions. Root implements face-positioned Sphere Cut/Repeat#145.
-Components200 is independently accepted and integrated704f279/60a774c;
-actualAPI/Qtcreation/activation/grouping/scopedexportpass. Integration241b870
-checksSphere/Chamfer owners and injectsactiveownerintoChamferwrapper.
-Chamfer201 is independently accepted and integrated d3ce00d/e927785, with API
-workflow and focused Qt input passing; source window-selection is adapted to
-Select All Edges. Broader SOL005 stays Todo. Root Sphere core ea9a85c passes21
-hemisphere cuts, six preserved face IDs, expected volume, upstream rounding edit,
-history/reopen and New Body. Spheres orient their poles to the support normal;
-world-Z poles caused invalid Boolean topology on side supports. No healing or
-weakened validity checks. API/UI/Repeat and full die workflow remain outstanding.
+The overflow die #147 is also independently accepted and CLOSED. Its full
+shared-API run has 230 successful commands, 24 features owned by the named die
+component and 21 diameter-3 spherical cuts across six faces. Expected removal
+47.25π mm³, upstream rounding edit, undo/redo and exact authored reopen pass.
+Final BRep volume is 7801.394541 mm³. The binary STL has 53,414 facets, one closed
+oriented component, 20 mm bounds and mesh volume 7801.733045 mm³. The complete
+323.3-second movie has zero capture failures. Evidence is in
+`build-tutorial-polish/evidence/die-final/`; external deliverables are in
+`deliverables/die-2026-10-13/`, with movie `demos/2026-10-13/die/die-complete.mp4`.
+Independent receipt: `validation/die-independent.md`, commit af89e64.
 
-SphereAPI/UI/Repeat db3e0ee integrated72afb22 plus activeowner a7e83b7;
-independent API/Qt differentfaceRepeat pass in6858187. Entercommit remains
-unverified in inactive macOS testwindow; numericReturn+actualOK passes. Review
-found purple cutter blending with blue selectedstock. Root now suppresses body
-selection duringSphere and uses a blue outline instead of filledsupport for
-validpreview; buildpasses, visual acceptance pending firstfullrunpreviewcapture.
+Bounded die prerequisites are accepted: components #200 (704f279/60a774c),
+Chamfer #201 (d3ce00d/e927785), Sphere #145 and named views #203 (b30fff1).
+Components have real local definition/occurrence ownership, active-owner creation
+and component-scoped STL. Nested instances, transforms and broader assemblies
+remain in #87. Chamfer supports equal distance; broader variants remain in #50.
+The source window-selection gesture is adapted to Select All Edges; named views
+replace the view cube and an ordinary menu replaces radial Repeat. Physical OS
+input and exact visual parity are not claimed. Actual Qt events verify the
+bounded controls; OK commits, while Enter commit remains unqualified in the
+inactive test window. The source permits either.
 
-The first full die run completed all21cuts and six named views, but strict STL
-readback found3zero-area serialized pole facets. PRT007#204 correction is integrated
-c942a9c and independently accepted5e60bf7. Actualsavedmodel mm/in exports pass
-unchanged strictreadback:53414facets,oneclosedcomponent,20mm bounds; retainedbytes
-are unchanged apart from3removedrecords/header. Focused regression and existing
-multibody atomic refusal pass. CurvedASCII/othermeshsettings remain unqualified.
-Sphere145 and views203 are independently accepted/CLOSED after correctedred
-captures and actual Browser Left/Back Qt routing (b30fff1). End-on origin arrow
-cones are disabled while coloredaxes/labels remain. New/lastSphere previews reuse
-fullcandidate evaluation; historicaleditspreserve requiredprefix evaluation.
-Final die gate147 is independently accepted/CLOSED (af89e64). Actual finalrun
-230successfulcommands,24featuresownedbydie,21pips,47.25*pi volume removal,
-upstream rounding edit/history/exact reopen pass. Final323.3secondmovie haszero
-capturefailures. Evidence/die-final; externaldeliverables/die-2026-10-13 contains
-editablegame-pieces.alloy,die-mm.stl andsummary. Firstattempt archived separately.
-Receipt validation/die-independent.md distinguishes allsourcegesture adaptations.
-Allfour overnight tutorials are done; no privateeditor remains running.
-Continue authorized coherentbacklog: SKT034#205 directcirclecenter-to-retained
-straightmodel-edge dimensions, plus independent PRT008#206 curvedASCII pole
-facets. Sol implementation is active in isolatedworktrees: point-edge-dimensions
-(agentdie_chamfer) and ascii-pole-facets (agentdie_components). Astraovernight_specs
-independently verifies;
-root serializes GUI; currently no editor running. Main55dd087 is pushed.
-External dimension spec knowledge/specs/point-edge-dimension-next-slice.md.
-Broader150 retainsside-faceboss/inclinedsupport;43 hascrowded24featureTimeline;
-83 retainsperformance. No release/tag orpercommitCI is triggered.
-Sphere declaration uses type sphere,
-parameters support/uMm/vMm/diameterMm/operation and optional targetBodyId; internal
-candidate ownerId defaults root, edits preserve owner. During component integration
-inject activeOwner in its UI wrapper and include new Chamfer wrapper too.
-Components require real definition/occurrence ownership and scoped STL; no body
-name substitute. Sphere recesses must be spherical, with actual face support and
-Repeat UI. Proposed20mm cube/1mmrounding/diameter3/21pips are declared fixture
-choices. Source default component activation and Repeat carry-over remain unknown;
-choose and document bounded defaults. Wider assembly/chamfer parents remain Todo.
+Sphere uses retained planar support, local u/v, diameter and Cut/New Body, with
+Repeat binding the newly selected face and clearing the old center. Last accepted
+diameter carry-over and checked component activation are explicit Alloy choices.
+The 20 mm cube, 1 mm rounding and 21-pip placement are deterministic fixture
+choices, not source dimensions. Sphere poles align with the support normal to
+avoid the observed side-face Boolean failure. Full downstream history validates
+before historical edit previews; new/last previews reuse the same evaluation.
+Neutral stock, a blue support outline and red cutter are independently accepted.
+Origin arrow cones are suppressed because an end-on cone masked small pips;
+colored axes and labels remain. Oblique cavities read clearly; head-on lighting
+can be ambiguous. Broader rendering and performance work remains separate.
+
+The first die run exposed three collapsed serialized binary pole facets.
+PRT-007 #204 is fixed and accepted (c942a9c/5e60bf7): remove exact collapsed
+records without changing retained bytes, CAD or mesh tolerances; preserve atomic
+output and accurate counts. The unchanged strict reader passes. First-attempt
+artifacts and movie remain archived separately. PRT-008 #206 also fixes the
+confirmed curved ASCII counterpart (66322f7). Actual-app component exports in
+mm/in pass strict readback with 53,414 facets and 29 removed ASCII records;
+authored state, undo and revision remain unchanged. Focused pole and existing
+multi-body/atomic-refusal tests pass. No universal all-settings mesh claim.
+See `validation/stl-pole-facets.md`.
+
+All four overnight tutorial gates are Done. Only SKT-034 #205 is currently
+In Progress: direct circle-center to retained straight model-edge dimensions.
+Sol (die_chamfer) implements in `../Alloy-worktrees/point-edge-dimensions`;
+Astra (overnight_specs) independently verifies. The external contract is
+`knowledge/specs/point-edge-dimension-next-slice.md`. Root serializes private GUI
+access; no editor is currently running. The main acceptance checkpoint 55dd087
+is pushed; the later ASCII correction is local pending the next coherent push.
+Broader #150 retains side-face boss and inclined support coverage; #43 records
+crowded 24-feature Timeline labels, and #83 retains performance work. No release,
+tag or per-commit CI is triggered. Continue authorized backlog work while the user
+is asleep; do not stop just because the first three gates are complete.
 
 ## Complete support demo (2026-10-12)
 

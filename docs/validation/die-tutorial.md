@@ -47,4 +47,5 @@ nine captured stages and exact authored reopen. The complete movie is external a
 `demos/2026-10-13/die/die-complete.mp4`, 323.3 seconds with zero capture failures.
 Editable model and millimeter STL are in external `deliverables/die-2026-10-13/`.
 The crowded 24-feature Timeline is tracked in HIS-003/#43. Curved ASCII export
-requires PRT-008/#206; this gate qualifies the binary artifact.
+now has separate accepted evidence in PRT-008/#206; this tutorial gate
+qualifies its recorded binary artifact.

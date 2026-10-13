@@ -38,7 +38,7 @@ The accepted bung/support gates and earlier bracket receipts remain valid;
 outstanding exact-native bracket follow-ups remain Todo after this sequence.
 Source PDFs, URLs, visual references and detailed ledgers stay in external
 `knowledge/tutorials`; nested cubes, egg cup and the adapted toy block are accepted with documented API/input limits. The adapted die gate is also accepted. Next: direct center-to-edge dimension
-input #205 and the separate curved ASCII export defect #206.
+input #205. The separate curved ASCII export fix #206 is accepted.
 
 After every slice, run the smallest complete author/edit/finish/undo/reopen
 workflow it enables in a private real application instance. Record source steps
