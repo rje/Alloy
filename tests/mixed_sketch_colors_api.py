@@ -32,7 +32,6 @@ def main():
             call('window.resize', {'width': 1500, 'height': 1000})
             call('sketch.edit', {'sketchId': sketch['id']})
             call('sketch.lookAt')
-            call('view.zoom', {'factor': .25})
             call('sketch.selectionSet', {'entityIds': [], 'pointIds': [], 'profileIds': []})
 
             def capture(name, expected_dof):
