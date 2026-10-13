@@ -10,7 +10,7 @@ import json
 from pathlib import Path
 import time
 from app_harness import application
-from wall_outlet_oracle import verify
+from wall_outlet_oracle import near, verify
 
 
 def main():
@@ -110,6 +110,12 @@ def main():
             call('sketch.mirrorStart')
             a, b = pixel(-29, 9), pixel(29, 44)
             selection = call('sketch.mirrorWindow', {'x1': a['x'], 'y1': a['y'], 'x2': b['x'], 'y2': b['y']})
+            expected_curves = {e['id'] for e in upper + arcs}
+            expected_points = {e[key] for e in upper + arcs
+                               for key in ('startPointId', 'endPointId', 'centerPointId') if key in e}
+            assert set(selection['mirrorSelection']['sourceEntityIds']) == expected_curves
+            assert set(selection['mirrorSelection']['pointIds']) == expected_points
+            assert selection['curveCount'] == selection['pointCount'] == 6
             report['mirrorCollection'] = selection
             call('sketch.mirrorRole', {'role': 'axis'})
             call('sketch.mirrorPick', pixel(22, 0))
@@ -147,6 +153,16 @@ def main():
             call('sketch.dimensionUpdate', {'dimensionId': distance_id, 'value': 12, 'units': 'mm'})
             edited = draft()
             assert edited != final_draft and active()['solverDiagnostics']['dof'] == 0
+            assert edited['parameters']['mirrorGroups'] == final_draft['parameters']['mirrorGroups']
+            ep = {p['id']: p for p in edited['parameters']['points']}
+            ee = {e['id']: e for e in edited['parameters']['entities']}
+            for pair in edited['parameters']['mirrorGroups'][0]['entityPairs']:
+                source, reflected = ee[pair['sourceEntityId']], ee[pair['resultEntityId']]
+                if source['type'] == 'arc':
+                    near(ep[source['centerPointId']]['vMm'], 26)
+                    near(ep[reflected['centerPointId']]['vMm'], -26)
+                    near(source['radiusMm'], 17)
+                    near(reflected['radiusMm'], 17)
             call('history.undo')
             assert draft() == final_draft
             call('history.redo')
