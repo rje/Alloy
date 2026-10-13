@@ -60,7 +60,7 @@ def main():
             'annotations': '60/30 measured overall reference spans after corner fillets; drivenness retired',
             'rim': 'explicit sketch on actual z2 cap, source transition left sketch creation implicit',
             'hole': 'written diameter 4 over later apparent screenshot diameter 5; first endpoint (5,-15), second direction +X, center (7,-15); placement is Alloy choice',
-            'text': 'personalized DSB, pinned licensed DejaVu Sans 2.37 Bold, cap height 14; handles move baseline to (50,-5) and rotate about 180 degrees; source examples, not mandatory font/default',
+            'text': 'personalized DSB, pinned licensed DejaVu Sans 2.37 Bold, cap height 14; handles move baseline to (55,-5) and rotate about 180 degrees; source examples, not mandatory font/default',
             'exportAndEdit': 'Save is source step 21; STL and supported same-slot text edit/undo/reopen are Alloy checks'},
         'evidenceKinds': {'movie': 'shared API through actual Alloy commands', 'native': 'reuse accepted child tests',
                           'geometry': 'evaluated OCCT bodies/profiles', 'mesh': 'independent strict STL readback'},
@@ -290,12 +290,12 @@ def main():
                 return call('sketch.textHandle', {'mode': mode, 'phase': phase,
                     'startX': start['x'], 'startY': start['y'],
                     'x': end['x'], 'y': end['y']})
-            start, end = project(5, -20), project(50, -5)
+            start, end = project(5, -20), project(55, -5)
             handle('begin', 'move', start, start)
             handle('move', 'move', start, end)
             handle('end', 'move', start, end)
             pending_text = active()['pendingText']
-            assert math.isclose(pending_text['uMm'], 50, abs_tol=.25)
+            assert math.isclose(pending_text['uMm'], 55, abs_tol=.25)
             assert math.isclose(pending_text['vMm'], -5, abs_tol=.25)
             arm = max(8, 14*1.35)
             start, end = project(pending_text['uMm']+arm, pending_text['vMm']), project(pending_text['uMm']-arm, pending_text['vMm'])
@@ -311,7 +311,14 @@ def main():
             text_sketch = draft()
             assert text_sketch['parameters']['texts'][0]['id'] == pending_text['id']
             call('sketch.finish')
-            text_profiles = inspect()['evaluation']['sketches'][-1]['profiles']
+            text_evaluation = inspect()['evaluation']['sketches'][-1]
+            text_bounds = text_evaluation['boundsMm']
+            # Keep every glyph right of the R1-rounded bore and inside the
+            # straight-sided inner-floor strip; avoid additive-volume overlap.
+            assert text_bounds['min'][0] > 10.5 and text_bounds['max'][0] < 54
+            assert text_bounds['min'][1] > -28.5 and text_bounds['max'][1] < -1.5
+            report['textBoundsMm'] = text_bounds
+            text_profiles = text_evaluation['profiles']
             assert len(text_profiles) == 3
             assert [p['innerLoopCount'] for p in text_profiles] == [1, 0, 2]
             text_ids = [p['profileId'] for p in text_profiles]

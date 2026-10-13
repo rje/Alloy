@@ -31,7 +31,7 @@ value takes precedence over a later apparent Ø5 screenshot. The first diameter
 endpoint (5,−15), direction +X and resulting center (7,−15) are fixture
 choices, not measured public dimensions. Personalized DSB uses the licensed
 pinned DejaVu Sans 2.37 Bold asset at 14 mm, moves its baseline from (5,−20)
-to approximately (50,−5) by the real handle command, then rotates about 180°
+to approximately (55,−5) by the real handle command, then rotates about 180°
 with the other handle. The source offers font, size and rotation examples;
 these are declared choices, not claims of a default or exact font match.
 Export and the DS8 same-slot edit are Alloy-owned checks after the source Save.
@@ -52,3 +52,10 @@ repository forbidden-byte scan passed. They establish script readiness only.
 The next real-app pass requires the integrated prerequisites, one private GUI
 slot, full movie/model/STL artifacts outside Git, source-step and geometry
 ledger, capture inspection, then bounded independent compatibility review.
+
+Independent preflight review found that the earlier proposed baseline x50 could
+put the leftmost glyph across the bore fillet. The fixture now uses x55 and
+asserts actual evaluated text bounds clear of the bore and within the inner
+floor before Join. This is a source-permitted personalization choice; the
+runner still has not been executed or accepted. No other material source-step
+mismatch was found in the bounded read-only review.
