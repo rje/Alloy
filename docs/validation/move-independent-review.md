@@ -15,8 +15,9 @@ attachment and arbitrary pivot picking remain outside this bounded child of #53.
 The initial wire triad was visibly faint under native macOS line-width limits.
 The replacement solid GPU cylinders/cones/rings are readable over the gray
 preview and accepted. This is a bounded readability correction, not evidence
-of exact reference styling. Previewed selection stays neutral gray while the
-historical public source shows blue; exact selection styling remains unmatched.
+of exact reference styling. A follow-up gives the moving body opaque selection
+blue while stock stays neutral; that distinction was independently inspected
+in the rebuilt app and accepted against the public selection treatment.
 
 Native verification used the exact private Move application and API-seeded
 plate/cylinder fixture. Typed Y10 then Tab stored a rotation and reset live
@@ -35,7 +36,15 @@ Evidence is in
 rotation; API Undo restored the fixture and separately inspected inputs then
 succeeded. It is recovery evidence, not an uninterrupted tutorial claim.
 
-Escape after a viewport drag did not dismiss the panel. The Cancel button
-worked; the native Escape defect was sent to the implementation owner for a
-focused correction. Final acceptance awaits that correction or explicit scope
-tracking. No additional modeling suite is required for the presentation change.
+Escape initially failed after a viewport drag. The focused correction scopes
+the panel shortcut to its lifetime and reuses a viewport shortcut enabled only
+during Move, with handle input focusing the viewport. In the rebuilt app, Move
+had already been opened/canceled once. An independent physical arrow drag in
+the reopened session followed by Escape removed the panel and emptied the
+session; the authored document exactly matched the saved source. Evidence is
+`native-escape-fixed.json`. The focused repeated-open widget test also passed.
+
+The bounded #169 Move capability is **accepted**. Full uninterrupted native
+tutorial entry, the unverified physical context-menu route and exact historical
+layout/style equality remain outside this acceptance. No additional modeling
+suite was needed for the presentation and shortcut corrections.
