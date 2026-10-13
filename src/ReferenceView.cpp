@@ -394,9 +394,9 @@ void ReferenceView::setConstructionPlanes(const std::vector<EvaluatedConstructio
             origin[1].toDouble()+x*u[1].toDouble()+y*v[1].toDouble(),origin[2].toDouble()+x*u[2].toDouble()+y*v[2].toDouble());};
         BRepBuilderAPI_MakePolygon border;border.Add(point(-30,-30));border.Add(point(30,-30));border.Add(point(30,30));border.Add(point(-30,30));border.Close();
         Handle(AIS_Shape) model=new AIS_Shape(BRepBuilderAPI_MakeFace(border.Wire()).Face());
-        model->SetColor(Quantity_Color(0.18,0.66,0.72,Quantity_TOC_sRGB));model->SetTransparency(0.84);
+        model->SetColor(Quantity_Color(0.94,0.63,0.16,Quantity_TOC_sRGB));model->SetTransparency(0.84);
         model->Attributes()->SetFaceBoundaryDraw(true);
-        model->Attributes()->SetFaceBoundaryAspect(new Prs3d_LineAspect(Quantity_Color(0.14,0.54,0.61,Quantity_TOC_sRGB),Aspect_TOL_SOLID,1.5));
+        model->Attributes()->SetFaceBoundaryAspect(new Prs3d_LineAspect(Quantity_Color(0.72,0.43,0.08,Quantity_TOC_sRGB),Aspect_TOL_SOLID,1.5));
         context_->Display(model,AIS_Shaded,plane.visible ? AIS_Shape::SelectionMode(TopAbs_FACE) : -1,false);
         if(!plane.visible)context_->Erase(model,false);
         constructionPlaneModels_[plane.featureId]=model;
@@ -406,7 +406,7 @@ void ReferenceView::setConstructionPlanes(const std::vector<EvaluatedConstructio
 void ReferenceView::selectConstructionPlane(const QString& planeId) {
     if(context_.IsNull())return;
     for(auto it=constructionPlaneModels_.begin();it!=constructionPlaneModels_.end();++it) {
-        it.value()->SetColor(it.key()==planeId ? Quantity_Color(0.10,0.34,0.84,Quantity_TOC_sRGB) : Quantity_Color(0.18,0.66,0.72,Quantity_TOC_sRGB));
+        it.value()->SetColor(it.key()==planeId ? Quantity_Color(0.10,0.34,0.84,Quantity_TOC_sRGB) : Quantity_Color(0.94,0.63,0.16,Quantity_TOC_sRGB));
         context_->Redisplay(it.value(),false);
     }
     context_->UpdateCurrentViewer();
@@ -1886,6 +1886,18 @@ void ReferenceView::contextMenuEvent(QContextMenuEvent* e) {
         lastContextMenu_["phase"]="closed";
         lastContextMenu_["result"]=selected==toggle ? "selected" : "cancelled";
         if(selected==toggle)dispatch("sketch.constructionToggle",{});
+        e->accept();return;
+    }
+    const auto menuProfile=sketchActive ? QJsonObject{} : pickFinishedProfile(e->pos().x(),e->pos().y());
+    if(!menuProfile.isEmpty()) {
+        QMenu menu(this);menu.setObjectName("context.viewportProfile");
+        auto* offset=menu.addAction("Offset Plane");offset->setObjectName("context.offsetPlane");
+        lastContextMenu_["origin"]="viewport";lastContextMenu_["sketchId"]=menuProfile["sketchId"];
+        lastContextMenu_["actions"]=QJsonArray{QJsonObject{{"id",offset->objectName()},{"text",offset->text()},{"enabled",true}}};
+        lastContextMenu_["phase"]="open";++contextMenuShownCount_;
+        const auto action=menu.exec(e->globalPos());lastContextMenu_["phase"]="closed";
+        lastContextMenu_["result"]=action==offset ? offset->objectName() : QString("cancelled");
+        if(action==offset){dispatch("selection.sketchSet",{{"sketchId",menuProfile["sketchId"]}});dispatch("construction.plane",{});}
         e->accept();return;
     }
     const auto menuFace=sketchActive ? QJsonObject{} : pickSupportFace(e->pos().x(),e->pos().y(),documentBodies_);

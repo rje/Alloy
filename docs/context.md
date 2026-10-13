@@ -27,9 +27,13 @@ Offset planes #186 candidate18483b1 integrated as800abb3; selected-plane routing
 fix74ea9c5. Full integrated build and focused plane/shell/named-face checks pass.
 Sol's40-command real-app plane ledger passes in build-tutorial-polish/evidence/
 construction-planes, including inherited plane selection, frame edits, history,
-reopen and fitted GPU screenshot. Private PID94409 exited0. Astra now owns desktop
-for independent plane review; root must not rebuild/change application code until
-released. CUA pipe is unavailable; use clearly labeled Qt-event evidence if needed.
+reopen and fitted GPU screenshot. Private PID94409 exited0. Astra
+passed the bounded Browser/toolbar plane Qt workflow. Root then added the source
+viewport-profile context Offset Plane action, amber presentation, and modal
+dialog capture routing; build passes. Astra currently owns desktop for the
+final narrow followup, including Enter input behavior; root must not rebuild or
+change application code until released. Plane Qt test additions in
+tests/widget_interactions.cpp are still verifier-owned/uncommitted. CUA pipe is unavailable; use clearly labeled Qt-event evidence if needed.
 
 Mirror #188 candidate d247a88 in tutorial-mirror is READY TO CHERRY-PICK after
 plane review releases desktop. Focused reflection/Combine tests pass: two3182mm3

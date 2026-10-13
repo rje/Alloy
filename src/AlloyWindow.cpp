@@ -985,7 +985,7 @@ void AlloyWindow::registerCommands() {
         if(a.contains("featureId") && editing["type"]!="constructionPlane")return failure("stale_entity","Construction plane does not exist","featureId");
         if(source.isEmpty()) {
             if(apiExecuting_)return failure("source_required","Supply one planar source and offset","source");
-            QDialog dialog(this);dialog.setWindowTitle("Offset Plane");auto* layout=new QVBoxLayout(&dialog);
+            QDialog dialog(this);dialog.setObjectName("constructionPlaneDialog");dialog.setWindowTitle("Offset Plane");auto* layout=new QVBoxLayout(&dialog);
             auto* form=new QFormLayout;auto* choices=new QComboBox(&dialog);choices->setObjectName("construction.source");
             for(const auto& plane:QStringList{"XY","XZ","YZ"})choices->addItem(plane+" Plane",QJsonObject{{"plane",plane}});
             const auto& sources=editing.isEmpty() ? document_->evaluation() : document_->evaluationBefore(editing["id"].toString());
@@ -1931,7 +1931,10 @@ void AlloyWindow::registerCommands() {
             : session_.value("command").toString() == "solid.combine" ? combinePanel_
             : session_.value("command").toString().startsWith("solid.") ? primitivePanel_
             : session_.value("command").toString().startsWith("sketch.") ? sketchPanel_ : unitsDialog_;
-        if (session_.isEmpty() || !dialog || !dialog->isVisible()) return failure("no_active_dialog", "No active dialog to capture");
+        const auto* activeModal=QApplication::activeModalWidget();
+        const bool planeDialog=activeModal && activeModal->objectName()=="constructionPlaneDialog";
+        if(planeDialog)dialog=QApplication::activeModalWidget();
+        if ((!planeDialog && session_.isEmpty()) || !dialog || !dialog->isVisible()) return failure("no_active_dialog", "No active dialog to capture");
         const auto pixels = dialog->grab(); QSaveFile file(path);
         if (!file.open(QIODevice::WriteOnly) || !pixels.save(&file, "PNG") || !file.commit()) return failure("capture_failed", "Could not save active dialog");
         return QJsonObject{{"path", path}, {"source", "active QWidget dialog"}, {"sessionId", session_.value("id")},
