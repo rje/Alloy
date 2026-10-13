@@ -71,8 +71,8 @@
         "SKT-034"
       ],
       "acceptance": "Reproduce the toy-block first-stud center/edge/label/value gesture with real retained dimensions; edge edits move the circle, history and storage preserve references, and annotations remain readable.",
-      "status": "todo",
-      "remaining": "Bounded gesture follow-up after die acceptance; SKT-017 retains side-face boss and inclined support coverage."
+      "status": "in_progress",
+      "remaining": "Sol implements the bounded dimension command/UI in an isolated worktree; Astra reviews public contract and then verifies native/geometry evidence. Separate ASCII export206 runs in parallel."
     },
     {
       "id": "CP-06",

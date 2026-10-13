@@ -103,8 +103,11 @@ Receipt validation/die-independent.md distinguishes allsourcegesture adaptations
 Allfour overnight tutorials are done; no privateeditor remains running.
 Continue authorized coherentbacklog: SKT034#205 directcirclecenter-to-retained
 straightmodel-edge dimensions, plus independent PRT008#206 curvedASCII pole
-facets. Sol implementation can proceed in isolatedworktrees, Astra verifies;
-root serializes GUI. External dimension spec knowledge/specs/point-edge-dimension-next-slice.md.
+facets. Sol implementation is active in isolatedworktrees: point-edge-dimensions
+(agentdie_chamfer) and ascii-pole-facets (agentdie_components). Astraovernight_specs
+independently verifies;
+root serializes GUI; currently no editor running. Main55dd087 is pushed.
+External dimension spec knowledge/specs/point-edge-dimension-next-slice.md.
 Broader150 retainsside-faceboss/inclinedsupport;43 hascrowded24featureTimeline;
 83 retainsperformance. No release/tag orpercommitCI is triggered.
 Sphere declaration uses type sphere,
