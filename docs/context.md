@@ -44,8 +44,14 @@ exact Undo/Redo and save/reopen, in a labeled 366.5-second recording. It continu
 from the accepted filleted fixture; it is not a blank-document movie. Native
 right-click cutter Move and Combine cutter picking failed; #183 investigates the
 saved state. Move OK/Cancel clipped at1136×790; #184 adds bounded scrolling.
-Both are active children blocking full #171 acceptance; no full rerun is needed
-for their corrections. Astra is completing the source/media receipt.
+Both candidate fixes are integrated and their focused widget checks pass.
+#183 uses supported OCCT face selection because mode0 sensitive-cylinder bounds
+were inverted for this circle prism; geometry and stable body identity are
+unchanged. #184 scrolls the form with fixed actions and reserves scrollbar width.
+Astra owns the sole native editor for the two bounded rechecks. Both issues and
+#171 remain active until its verdict. No full modeling rerun is needed.
+The full source/media receipt is `validation/support-tutorial-independent.md`;
+an independently reviewed 145.6-second edited continuation accompanies the raw.
 External recording: `../Alloy-reference-records/demos/2026-10-12/straw-support-native/`.
 Desktop ownership is serialized: #183 diagnostic first, then independent layout
 review. Do not launch another editor concurrently.
