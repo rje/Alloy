@@ -44,3 +44,39 @@ transcript are in
 The inspected OpenGL capture shows readable bold DSB glyphs and visible move
 and rotation handles; the joined capture shows the rotated raised letters.
 This is a bounded #232 candidate, not a full keyring-tutorial acceptance.
+
+## Independent review
+
+Independent source and artifact review of candidate `cd915e11` found the
+bounded shared-authority implementation sound. Preview evaluates generated
+geometry into disposable session state; OK reuses validated sketch publication
+and its stale-revision checks before recording a draft edit. Cancel restores
+the accepted draft. Same-count ordinal profile slots and finite text/font
+restrictions retain the #231 contract. Validation and disabled-OK branches were
+source-inspected; they are not claimed as extra live negative tests.
+
+The bold TTF and complete license were independently compared byte-for-byte
+with the original 2.37 release archive. The declared bold SHA-256 matches, and
+the compiled resource uses the same hash-checked loading path as regular text.
+Actual dialog, preview and joined captures show readable fields, bold DSB,
+visible move/rotation handles, and raised letters with D/B holes. The 41-call
+real-executable transcript has successful responses throughout and supplies the
+supported-face/handle/Join evidence. The palette in preview reports the still
+uncommitted draft; generated pending text remains separate until OK.
+
+The final native test source contains activation only at initial harness setup.
+Production dialog opening/reopening establishes text focus; the test then
+asserts that focus and uses actual typing, font/height controls and viewport
+handle drags. It does not repair focus between those steps. Command activation,
+plane fixture and reopening Edit use shared API setup, so this is bounded
+Qt-dispatched control evidence rather than physical OS input or a complete
+native tutorial. Native placement rotates about 90 degrees; the separate API
+fixture reaches approximately 180 degrees. No exact source font/style, general
+font/shaping, full keyring lesson or cross-platform runtime claim is made.
+
+Accepted on 2026-10-13. The persisted native log records 3 passing stages,
+0 failures, 2375 ms. Its temporary height diagnostic was removed afterward;
+the root reviewer independently inspected that tested version before commit
+and confirmed the same initial-only activation sequence. Earlier tests with
+intermediate focus repairs are superseded and are not acceptance evidence.
+No additional editor or unchanged replay was needed.
