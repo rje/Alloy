@@ -44,3 +44,35 @@ files (model, capture, transcript, report) are in
 This verifies the bounded API and visual geometry fixture. Physical native text
 creation and placement, exact reference styling and the complete keyring lesson
 are unknown here; the dialog and cumulative lesson are separate work.
+
+## Independent acceptance
+
+Accepted candidate `aea9628` for the bounded foundation on 2026-10-13.
+Independent review covered the helper, schema/evaluation integration, shared API
+publication path, focused test source and persisted passing core log, all 28
+successful API responses, authored save data, and the actual raised-initials
+capture. No additional editor or unchanged test replay was needed.
+
+The bundled font and complete license are byte-identical to their members in
+the declared 2.37 release archive; independently computed archive and font
+SHA-256 values match the notices. The embedded-resource/hash check avoids system
+font fallback. Retained text parameters remain distinct from generated geometry.
+The finite direct-advance layout and exact line/cubic conversion preserve the
+observed D/B/8 holes; the actual joined DS8 capture shows readable raised letters
+and cavity depth, without a missing-glyph or visible geometry defect.
+
+The final saved document exactly equals the transcript's final authored state.
+The reviewed API run proves one-body Join, same-slot replacement, undo/redo and
+exact reopen. Slot identity means character **position**, intentionally allowing
+B to become 8 while retaining that slot's profile ID; it does not promise glyph
+identity across insertions or arbitrary topology naming. Count changes refuse
+before publication. Invalid font identity is exercised by the core test; other
+validation/publication refusal branches were source-inspected, not claimed as
+additional live negative tests. Geometry is evaluated before draft/history
+publication, and normal document commit retains downstream atomic validation.
+
+This accepts #231 only. Native text controls/placement, alternate fonts/styles,
+general shaping, mixed analytic/text sketches, persistent glyph-edge references,
+cross-platform runtime equivalence, and the cumulative source lesson remain
+outside this evidence. The source's optional font and rotation choices are not
+represented as exact visual parity by this regular-font foundation fixture.
