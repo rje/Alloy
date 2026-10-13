@@ -2022,3 +2022,13 @@ zero-gap contacts, tangent controls, overlapping strips and Centerline behavior
 remain supported. Core4/4, real API and bounded native annulus/island selection
 gates pass. Independent review and integration remain pending. See
 [the contract and receipt](validation/profile-regions.md).
+
+## Native exchange binding assessment (2026-10-13)
+
+#167's remaining actual macOS sheet gate was assessed on the current private
+app. Computer-use binding returned cgWindowNotFound even with an unchanged
+binary validation copy using a unique bundle identifier. The API ready/capture
+path worked, but no native target/sheet input was available. Editors were closed;
+accepted exchange/API/readback evidence remains unchanged. No application defect
+or native completion is claimed. See
+[the bounded assessment](validation/native-exchange-assessment.md).
