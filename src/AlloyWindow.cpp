@@ -2361,7 +2361,7 @@ void AlloyWindow::registerCommands() {
             if(first["status"]=="acquired")canonical["centerSnapTarget"]=first["target"];
             const auto preview=SketchGeometry::addCenterPointArcSlot(session_["draftSketch"].toObject(),canonical,
                 session_.value("projectionContext").toObject());
-            if(preview.ok)view_->showSketchSlotCursor(preview.feature);else view_->clearSketchCursor();
+            if(preview.ok)view_->showSketchSlotCursor(preview.feature,true);else view_->clearSketchCursor();
             return QJsonObject{{"authoredChange",false},{"previewed",preview.ok},{"widthMm",width}};
         }
         if(tool=="centerPointSlot" && session_.contains("secondPoint")) {
@@ -2375,7 +2375,7 @@ void AlloyWindow::registerCommands() {
             QJsonObject canonical{{"centerUMm",cx},{"centerVMm",cy},{"endUMm",second["uMm"]},{"endVMm",second["vMm"]},{"widthMm",width}};
             if(first["status"]=="acquired")canonical["centerSnapTarget"]=first["target"];
             const auto preview=SketchGeometry::addCenterPointSlot(session_["draftSketch"].toObject(),canonical,session_.value("projectionContext").toObject());
-            if(preview.ok)view_->showSketchSlotCursor(preview.feature);else view_->clearSketchCursor();
+            if(preview.ok)view_->showSketchSlotCursor(preview.feature,false);else view_->clearSketchCursor();
             return QJsonObject{{"authoredChange",false},{"previewed",preview.ok},{"widthMm",width}};
         }
         if(tool=="circle" || tool=="twoPointCircle" || tool=="centerArc" || tool=="threePointArc") {

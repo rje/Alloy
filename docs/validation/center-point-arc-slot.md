@@ -81,3 +81,14 @@ is covered by the shared API. Typed values establish initial geometry without
 adding driving dimensions. The finite sub-180° sweep and restrictions on
 derived-boundary edits remain explicit; this is not acceptance of the full
 31-step lesson or general arc-slot parity.
+
+## Main integration
+
+Integrated as `5beec9c` with review `1e62c33`. Main application rebuild and
+three focused arc-slot/straight-slot/fit-spline core tests pass (3/3, 1.55 s).
+Astra checked merged tool cleanup and shared solve/evaluator routing. The review
+also found that a new straight slot after an existing arc slot could preview
+the old arc group. Both callers now explicitly pass the intended slot type;
+the renderer never substitutes another group type. Astra source review and the
+final application rebuild pass for this presentation-only correction. Prior
+native/API evidence is reused with this qualification; no full GUI replay.

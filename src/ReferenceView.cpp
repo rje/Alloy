@@ -1524,14 +1524,14 @@ void ReferenceView::showSketchCurveCursor(const QJsonObject& feature) {
     sketchCursor_=sketchPresentation(SketchGeometry::analyticEdge(parameters,entity,sketchFrame_));sketchCursor_->SetColor(Quantity_Color(0.30,0.58,0.87,Quantity_TOC_RGB));
     context_->Display(sketchCursor_,AIS_WireFrame,-1,false);context_->Deactivate(sketchCursor_);context_->UpdateCurrentViewer();
 }
-void ReferenceView::showSketchSlotCursor(const QJsonObject& feature) {
+void ReferenceView::showSketchSlotCursor(const QJsonObject& feature,bool arcSlot) {
     clearSketchCursor();if(context_.IsNull())return;
     const auto parameters=feature["parameters"].toObject();
     const auto groups=parameters["slotGroups"].toArray();
     const auto arcGroups=parameters["arcSlotGroups"].toArray();
-    if(groups.isEmpty() && arcGroups.isEmpty())return;
+    if(arcSlot ? arcGroups.isEmpty() : groups.isEmpty())return;
     QSet<QString> ids;
-    if(!arcGroups.isEmpty()){
+    if(arcSlot){
         const auto group=arcGroups.last().toObject();
         for(const auto& key:{"pathArcId","outerArcId","innerArcId"})ids.insert(group[key].toString());
         for(const auto& cap:group["capIds"].toArray())ids.insert(cap.toString());

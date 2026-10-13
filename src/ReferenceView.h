@@ -76,7 +76,7 @@ public:
     void showSketchCursor(const QString& plane, const QPointF& first, const QPointF& second, bool rectangle, bool centered = false);
     void showSketchSnap(const QString& plane, const QJsonObject& snap);
     void showSketchCurveCursor(const QJsonObject& feature);
-    void showSketchSlotCursor(const QJsonObject& feature);
+    void showSketchSlotCursor(const QJsonObject& feature,bool arcSlot);
     void cancelSlotPointDrag();
     void clearSketchCursor();
     void showSketchTextHandles(const QJsonObject& text,const QString& plane,const QJsonObject& frame);
