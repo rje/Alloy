@@ -61,9 +61,10 @@ Circle, text geometry, text placement and the full tutorial gate. Rectangle #227
 text geometry #231, rounded fillets #228 and native text placement #232 are
 accepted and closed, as are rounded-loop Offset #229 and two-point Circle #230;
 Cut rim provenance #236 is also accepted. Full gate #233 is independently accepted and closed, with a full creation
-movie, editable file and checked STL in the seven-card review gallery. Follow-up #235 retains driving rectangle size and
-origin intent through fillets; the bounded tutorial currently discloses measured
-reference spans and release of the removed corner anchor.
+movie, editable file and checked STL in the seven-card review gallery. Follow-up #235 is independently accepted and retains driving rectangle size and
+origin intent through fillets. The older tutorial movie and saved model preserve
+their disclosed measured-span policy. Rough pointer rectangle #237 is accepted;
+constraints #238, parallel-line dimensions #239 and Mirror #240 are active.
 
 After every slice, run the smallest complete author/edit/finish/undo/reopen
 workflow it enables in a private real application instance. Record source steps
