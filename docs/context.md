@@ -2071,3 +2071,12 @@ atomic refusals and geometric self-interference checks are included. Source-shap
 analytic core and real-app API pass; native controls and full source authoring
 remain #224/#225 and #221/#222. Independent review/integration are pending.
 See [contract](research/solid-sweep.md) and [receipt](validation/solid-sweep.md).
+
+
+SKT-039 / #221 candidate adds paired sketch fillets that exactly exhaust a
+shared horizontal return line, preserving real arc/contact identities and
+converting consumed width dimension IDs to disclosed reference spans. Other
+affected lengths/relations retire explicitly; unrelated dependencies refuse.
+The constrained paper-clip source core/API and native ingredient evidence are
+bounded prerequisites, not a full tutorial or typed-line claim. Resume from
+[the scoped receipt](validation/shared-line-fillets.md).

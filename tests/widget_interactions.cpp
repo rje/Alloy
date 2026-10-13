@@ -23,6 +23,7 @@
 #include <QDockWidget>
 #include <QJsonDocument>
 #include <QLineEdit>
+#include <QLabel>
 #include <QListWidget>
 #include <QPushButton>
 #include <QStyle>
@@ -63,6 +64,38 @@ private slots:
         QPalette dark;dark.setColor(QPalette::Window,Qt::black);dark.setColor(QPalette::Base,Qt::black);
         qApp->setPalette(dark);AlloyTheme::apply(*qApp);
         QCOMPARE(qApp->palette().color(QPalette::Window),QColor("#f7f8f9"));
+    }
+    void sharedLineFilletTypedRadius() {
+        AlloyWindow window;window.resize(1400,1000);window.show();window.activateWindow();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        QVERIFY2(run(window,"sketch.begin",{{"plane","XY"},{"name","Paired source returns"}}),error_.constData());
+        const double vertices[][2]={{0,0},{0,40},{14,40},{14,-20},{3,-20},{3,24},{11,24},{11,0}};
+        for(int i=0;i<7;++i)QVERIFY2(run(window,"sketch.line",{{"x1",vertices[i][0]},{"y1",vertices[i][1]},{"x2",vertices[i+1][0]},{"y2",vertices[i+1][1]},{"units","mm"}}),error_.constData());
+        auto draft=[&]{return session(window)["draftSketch"].toObject();};
+        const auto edges=draft()["parameters"].toObject()["entities"].toArray();
+        QVERIFY2(run(window,"sketch.constraint",{{"type","fixed"},{"pointIds",QJsonArray{edges[0].toObject()["startPointId"]}}}),error_.constData());
+        for(int i=0;i<7;++i){const auto id=edges[i].toObject()["id"];const auto kind=i%2 ? "horizontal" : "vertical";
+            QVERIFY2(run(window,"sketch.constraint",{{"type",kind},{"entityIds",QJsonArray{id}}}),error_.constData());
+            QVERIFY2(run(window,"sketch.dimension",{{"kind",kind},{"entityId",id},{"value",std::hypot(vertices[i+1][0]-vertices[i][0],vertices[i+1][1]-vertices[i][1])},{"units","mm"}}),error_.constData());}
+        QVERIFY2(run(window,"view.zoom",{{"factor",1.2}}),error_.constData());
+        auto* view=viewport(window);QVERIFY(view);const auto center=view->projectSketchPoint(7,10,"XY");
+        QVERIFY2(run(window,"view.pan",{{"x",view->width()/2-center["x"].toDouble()},{"y",view->height()/2-center["y"].toDouble()}}),error_.constData());
+        const double radii[]={7,5.5,4};
+        for(int pair=0;pair<3;++pair){QVERIFY2(run(window,"sketch.tool",{{"tool","fillet"}}),error_.constData());
+            QCoreApplication::processEvents();
+            for(int i=pair*2+1;i<=pair*2+2;++i){const auto pixel=sketchPixel(view,vertices[i][0],vertices[i][1]);QVERIFY2(view->rect().contains(pixel),qPrintable(QString("Corner outside viewport: %1,%2 in %3,%4").arg(pixel.x()).arg(pixel.y()).arg(view->width()).arg(view->height())));QTest::mouseMove(view,pixel);QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,pixel);}
+            QCOMPARE(session(window)["pendingFillet"].toObject()["corners"].toArray().size(),2);
+            auto* input=window.findChild<QLineEdit*>("sketch.fillet.radius");QVERIFY(input);
+            input->setFocus();input->selectAll();QTest::keyClicks(input,QString::number(radii[pair]));
+            QTRY_VERIFY(session(window)["pendingFillet"].toObject().contains("previewDraft"));
+            auto* notice=window.findChild<QLabel*>("sketch.fillet.referenceChanges");QVERIFY(notice);QVERIFY(notice->text().contains("1 width(s)"));
+            const auto before=draft();
+            if(pair==2){const auto path=qEnvironmentVariable("ALLOY_SHARED_FILLET_CAPTURE");if(!path.isEmpty())QVERIFY2(run(window,"capture.screenshot",{{"path",path}}),error_.constData());}
+            QTest::keyClick(input,Qt::Key_Return);
+            QTRY_VERIFY(!session(window).contains("pendingFillet"));QVERIFY(draft()!=before);
+        }
+        QCOMPARE(draft()["parameters"].toObject()["entities"].toArray().size(),10);
+        QVERIFY2(run(window,"sketch.cancel"),error_.constData());window.close();
     }
     void timelineOverflowTargets() {
         const auto fixture=qEnvironmentVariable("ALLOY_TIMELINE_FIXTURE");

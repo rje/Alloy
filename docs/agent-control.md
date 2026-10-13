@@ -525,6 +525,15 @@ the tool before changing history, and raw pending input blocks tab switches.
 See [fillet qualification](validation/sketch-fillet.md), including the open native
 accessibility blocker.
 
+Exactly exhausted shared horizontal return lines are supported for coincident
+center/contact equal-radius paired arcs. Surviving line IDs persist; consumed
+width dimension IDs become driven point-pair reference spans. Preview diagnostics
+report `convertedReferenceDimensionIds`, `removedConstraintIds` and
+`removedEntityIds` alongside removed dimensions. The visible impact notice
+explains conversion/retirement before Enter. Negative remainder or unsupported
+unrelated references refuse atomically. See [shared-line qualification](validation/shared-line-fillets.md).
+
+
 
 ### Positive extrusion end-cap sketches
 

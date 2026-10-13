@@ -1397,7 +1397,7 @@ void AlloyWindow::registerCommands() {
             if(result.value("ok").isBool() && !result.value("ok").toBool())return result;
             session_.remove("pendingFillet");session_["tool"]="select";
             session_["selection"]=QJsonObject{{"pointIds",QJsonArray{}},{"entityIds",QJsonArray{}},{"profileIds",QJsonArray{}}};
-            result["createdArcIds"]=solved.diagnostics.value("createdArcIds");result["removedDimensionIds"]=solved.diagnostics.value("removedDimensionIds");
+            result["createdArcIds"]=solved.diagnostics.value("createdArcIds");result["removedDimensionIds"]=solved.diagnostics.value("removedDimensionIds");result["convertedReferenceDimensionIds"]=solved.diagnostics.value("convertedReferenceDimensionIds");result["removedConstraintIds"]=solved.diagnostics.value("removedConstraintIds");result["removedEntityIds"]=solved.diagnostics.value("removedEntityIds");
             view_->setFocus();return result;
         });
     add("sketch.filletCancel","Cancel selected sketch fillets","Discard only the unaccepted fillet picks and preview.",
@@ -1419,7 +1419,7 @@ void AlloyWindow::registerCommands() {
             auto result=publishSketchSolve(solved);
             if(result.value("ok").isBool() && !result.value("ok").toBool())return result;
             session_.remove("pendingFillet");
-            result["createdArcIds"]=solved.diagnostics.value("createdArcIds");result["removedDimensionIds"]=solved.diagnostics.value("removedDimensionIds");
+            result["createdArcIds"]=solved.diagnostics.value("createdArcIds");result["removedDimensionIds"]=solved.diagnostics.value("removedDimensionIds");result["convertedReferenceDimensionIds"]=solved.diagnostics.value("convertedReferenceDimensionIds");result["removedConstraintIds"]=solved.diagnostics.value("removedConstraintIds");result["removedEntityIds"]=solved.diagnostics.value("removedEntityIds");
             return result;
         });
     auto sketchPixel=parameter("number","Viewport-local logical pixel coordinate.");sketchPixel["minimum"]=0;sketchPixel["maximum"]=10000;
@@ -2705,6 +2705,11 @@ void AlloyWindow::refresh() {
         const auto diagnostics=session_.value("solverDiagnostics").toObject();
         const auto tool=session_.value("tool").toString();QString prompt="Click the first point";
         if(sketchFilletControls_)sketchFilletControls_->setVisible(tool=="fillet");
+        if(sketchFilletControls_)if(auto* impact=sketchFilletControls_->findChild<QLabel*>("sketch.fillet.referenceChanges")) {
+            const auto changes=fillet["previewDiagnostics"].toObject();
+            const int converted=changes["convertedReferenceDimensionIds"].toArray().size(),retiredDimensions=changes["removedDimensionIds"].toArray().size(),retiredConstraints=changes["removedConstraintIds"].toArray().size();
+            impact->setText(fillet.contains("previewDraft") ? QString("%1 width(s) become reference spans.\nRetire %2 dimension(s), %3 constraint(s).\nEnter accepts; Escape cancels.").arg(converted).arg(retiredDimensions).arg(retiredConstraints) : QString{});
+        }
         if(sketchOffsetControls_)sketchOffsetControls_->setVisible(tool=="offset");
         if(sketchOffsetControls_)if(auto* accept=sketchOffsetControls_->findChild<QPushButton*>("sketch.offset.accept"))
             accept->setEnabled(tool=="offset" && session_.value("pendingOffset").toObject()["valid"].toBool());
@@ -4781,10 +4786,11 @@ void AlloyWindow::showSketch() {
         sketchCurveEntry_=new QPushButton("Enter curve values…");sketchCurveEntry_->setObjectName("sketch.curveEntry");sketchCurveEntry_->hide();layout->addWidget(sketchCurveEntry_);
         connect(sketchCurveEntry_,&QPushButton::clicked,this,[this]{showCurveEntry();});
         layout->addLayout(form);sketchInfo_=new QLabel;sketchInfo_->setObjectName("sketch.info");sketchInfo_->setWordWrap(true);layout->addWidget(sketchInfo_);sketchProfileInfo_=new QLabel;sketchProfileInfo_->setObjectName("sketch.profileStatus");sketchProfileInfo_->setWordWrap(true);layout->addWidget(sketchProfileInfo_);
-        sketchFilletControls_=new QWidget;auto* filletForm=new QFormLayout(sketchFilletControls_);
+        sketchFilletControls_=new QWidget;auto* filletForm=new QFormLayout(sketchFilletControls_);filletForm->setSizeConstraint(QLayout::SetMinimumSize);
         sketchFilletRadius_=new QLineEdit;sketchFilletRadius_->setObjectName("sketch.fillet.radius");
         sketchFilletRadius_->setPlaceholderText("Select two corners, then enter a radius");
         sketchFilletRadius_->setText(QString::number(10.0/(inputs["units"]=="in" ? 25.4 : 1.0),'g',8));
+        auto* filletImpact=new QLabel;filletImpact->setObjectName("sketch.fillet.referenceChanges");filletImpact->setWordWrap(true);filletImpact->setMinimumHeight(filletImpact->fontMetrics().lineSpacing()*3);filletForm->addRow(filletImpact);
         filletForm->addRow("Fillet radius ("+inputs["units"].toString()+")",sketchFilletRadius_);layout->addWidget(sketchFilletControls_);
         connect(sketchFilletRadius_,&QLineEdit::textChanged,this,[this](const QString& text){
             if(session_.value("tool")!="fillet" || session_.value("pendingFillet").toObject()["corners"].toArray().size()!=2)return;
