@@ -25,7 +25,9 @@ def main():
             parameters = sketch['parameters']
             ellipse = next(e for e in parameters['entities'] if e['type'] == 'ellipse')
             conic = next(e for e in parameters['entities'] if e['type'] == 'conic')
-            dimension = next(d for d in parameters['dimensions'] if d.get('entityId') == ellipse['firstAxisId'])
+            axis = next(e for e in parameters['entities'] if e['id'] == ellipse['firstAxisId'])
+            axis_points = {axis['startPointId'], axis['endPointId']}
+            dimension = next(d for d in parameters['dimensions'] if set(d.get('pointIds', [])) == axis_points)
             report.update(ellipseId=ellipse['id'], conicId=conic['id'], removedDimensionId=dimension['id'])
             call('window.resize', {'width': 1500, 'height': 1000})
             call('sketch.edit', {'sketchId': sketch['id']})
