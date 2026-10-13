@@ -38,6 +38,85 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
     const auto bottom=std::find_if(body.supportFaces.begin(),body.supportFaces.end(),[](const auto& face){return face.role=="extrude.base";});check(bottom!=body.supportFaces.end(),"Retained bottom face missing");
     const QJsonObject bottomRef{{"producerFeatureId",bottom->producerFeatureId},{"bodyId",target},{"faceId",bottom->faceId}};
     check(d.commit(CadDocument::shellCandidate(d.authored(),{{"targetBodyId",target},{"removedFace",bottomRef},{"thicknessMm",1.49}}),"Shell").isEmpty(),"Stud pattern Shell failed: "+d.lastEvaluationError()["message"].toString());
+    const auto& shelled=d.bodies()[0];
+    const auto roof=std::find_if(shelled.supportFaces.begin(),shelled.supportFaces.end(),[](const auto& face){
+        return face.role=="shell-inner" && std::abs(face.frame["origin"].toArray()[2].toDouble()-8.11)<1e-5;
+    });
+    check(roof!=shelled.supportFaces.end() && roof->frame["normal"].toArray()[2].toDouble()==-1,"named inner roof at z8.11 normal -Z");
+    check(roof->boundaryEdges.size()==8,"eight source-mapped roof mouths");
+    const QJsonObject roofRef{{"producerFeatureId",roof->producerFeatureId},{"bodyId",roof->bodyId},{"faceId",roof->faceId}};
+    auto recess=SketchGeometry::newSupportedFeature(owner,roofRef,"Recess centers");
+    const auto centers=GeometryKernel::projectionContext(d.evaluation(),recess)["points"].toArray();
+    check(centers.size()==8,"eight distinct occurrence-aware recess centers");
+    QSet<QString> centerIds,centerOccurrences;QJsonObject first,diagonal;
+    for(const auto& value:centers){const auto p=value.toObject();centerIds.insert(p["id"].toString());
+        const auto s=p["source"].toObject();if(s.contains("occurrenceId"))centerOccurrences.insert(s["occurrenceId"].toString());
+        const double u=p["uMm"].toDouble(),v=p["vMm"].toDouble();
+        if(std::abs(u-3.9)<1e-5 && std::abs(v+3.9)<1e-5)first=p;
+        if(std::abs(u-11.9)<1e-5 && std::abs(v+11.9)<1e-5)diagonal=p;
+    }
+    check(centerIds.size()==8 && centerOccurrences.size()==7,"seed plus seven distinct occurrence center identities");
+    check(!first.isEmpty() && !diagonal.isEmpty() && first["id"]!=diagonal["id"],"tutorial diagonal recess centers");
+    auto line=SketchGeometry::addPointerEntity(recess,"line",{{"u1Mm",3.9},{"v1Mm",-3.9},{"u2Mm",11.9},{"v2Mm",-11.9},
+        {"startSnapTarget",QJsonObject{{"kind","point"},{"pointId",first["id"]}}},
+        {"endSnapTarget",QJsonObject{{"kind","point"},{"pointId",diagonal["id"]}}}},GeometryKernel::projectionContext(d.evaluation(),recess));
+    check(line.ok,"retained diagonal from roof centers");recess=line.feature;
+    const auto lineId=recess["parameters"].toObject()["entities"].toArray().last().toObject()["id"].toString();
+    auto construction=SketchGeometry::setConstruction(recess,{{"entityIds",QJsonArray{lineId}},{"construction",true}},GeometryKernel::projectionContext(d.evaluation(),recess));
+    check(construction.ok,"construction diagonal");recess=construction.feature;
+    auto circle=SketchGeometry::addPointerCircle(recess,{{"centerUMm",7.9},{"centerVMm",-7.9},{"diameterMm",6.3},
+        {"centerSnapTarget",QJsonObject{{"kind","midpoint"},{"entityId",lineId}}}},GeometryKernel::projectionContext(d.evaluation(),recess));
+    check(circle.ok,"midpoint recess circle");recess=circle.feature;
+    check(recess["parameters"].toObject()["pointReferences"].toArray().size()==2,"two retained occurrence center references");
+    const auto midpointCircle=recess["parameters"].toObject()["entities"].toArray().last().toObject();
+    check(midpointCircle["type"]=="circle" && !midpointCircle["construction"].toBool(),"nonconstruction recess circle");
+    bool midpointRelation=false;for(const auto& value:recess["parameters"].toObject()["constraints"].toArray()){
+        const auto c=value.toObject();if(c["type"]=="midpoint" && c["entityIds"].toArray().contains(lineId))midpointRelation=true;
+    }
+    check(midpointRelation,"retained diagonal midpoint relation");
+    check(d.commit(SketchGeometry::replaceFeature(d.authored(),recess),"Recess sketch").isEmpty(),"commit diagonal midpoint circle");
+    const auto circleCenterId=recess["parameters"].toObject()["entities"].toArray().last().toObject()["centerPointId"].toString();
+    const auto expectedReferences=recess["parameters"].toObject()["pointReferences"].toArray();
+    auto checkMidpoint=[&](double expectedU){
+        const auto context=GeometryKernel::projectionContext(d.evaluation(),recess);
+        const auto solved=SketchGeometry::solveDraft(recess,context);check(solved.ok,"recess sketch re-solve");
+        bool found=false;for(const auto& value:solved.feature["parameters"].toObject()["points"].toArray()){
+            const auto p=value.toObject();if(p["id"].toString()!=circleCenterId)continue;
+            check(std::abs(p["uMm"].toDouble()-expectedU)<1e-5 && std::abs(p["vMm"].toDouble()+7.9)<1e-5,"midpoint circle did not follow referenced diagonal");found=true;
+        }
+        check(found,"midpoint circle center unavailable");
+        check(SketchGeometry::findFeature(d.authored(),recess["id"].toString())["parameters"].toObject()["pointReferences"].toArray()==expectedReferences,"authored occurrence references changed");
+    };
+    checkMidpoint(7.9);
+    const auto shellFeature=d.authored()["features"].toArray()[5].toObject();
+    check(shellFeature["type"]=="shell","shell feature history position");
+    check(d.commit(CadDocument::shellCandidate(d.authored(),{{"featureId",shellFeature["id"]},{"targetBodyId",target},
+        {"removedFace",bottomRef},{"thicknessMm",1.3}}),"Roof thickness edit").isEmpty(),"Shell thickness edit with retained roof sketch");
+    check(std::abs(GeometryKernel::resolveSketchSupport(d.evaluation(),roofRef).frame["origin"].toArray()[2].toDouble()-8.3)<1e-5,"roof height after thickness edit");
+    checkMidpoint(7.9);d.history().undo();checkMidpoint(7.9);
+    auto widerAxes=axes;auto wideAxis=widerAxes[0].toObject();wideAxis["extentMm"]=std::copysign(23.5,wideAxis["extentMm"].toDouble());widerAxes[0]=wideAxis;
+    const auto pitchError=d.commit(CadDocument::patternCandidate(d.authored(),{{"featureId",pattern["id"]},{"sourceFeatureId",seed["id"]},
+        {"targetBodyId",target},{"axes",widerAxes}}),"Stud pitch edit");
+    check(pitchError.isEmpty(),"Pattern pitch edit with retained roof sketch: "+pitchError);
+    checkMidpoint(7.9-0.5/6.0);d.history().undo();checkMidpoint(7.9);
+    auto removalProbe=SketchGeometry::newSupportedFeature(owner,roofRef,"Occurrence removal probe");
+    QJsonObject lastCenter;const auto removalContext=GeometryKernel::projectionContext(d.evaluation(),removalProbe);
+    for(const auto& value:removalContext["points"].toArray()){
+        const auto p=value.toObject();if(std::abs(p["uMm"].toDouble()-27.9)<1e-5 && std::abs(p["vMm"].toDouble()+11.9)<1e-5)lastCenter=p;
+    }
+    check(!lastCenter.isEmpty() && lastCenter["source"].toObject().contains("occurrenceId"),"last occurrence center");
+    auto probeCircle=SketchGeometry::addPointerCircle(removalProbe,{{"centerUMm",0},{"centerVMm",0},{"diameterMm",1},
+        {"centerSnapTarget",QJsonObject{{"kind","point"},{"pointId",lastCenter["id"]}}}},removalContext);
+    check(probeCircle.ok,"retain final occurrence reference");removalProbe=probeCircle.feature;
+    check(d.commit(SketchGeometry::replaceFeature(d.authored(),removalProbe),"Occurrence probe").isEmpty(),"commit occurrence probe");
+    auto fewerAxes=axes;auto fewerX=fewerAxes[0].toObject();fewerX["quantity"]=3;fewerAxes[0]=fewerX;
+    const auto protectedDocument=d.authored();const auto protectedRevision=d.revision();const auto protectedHistory=d.history().count();
+    const auto fewerError=d.commit(CadDocument::patternCandidate(d.authored(),{{"featureId",pattern["id"]},{"sourceFeatureId",seed["id"]},
+        {"targetBodyId",target},{"axes",fewerAxes}}),"Remove referenced occurrence");
+    check(!fewerError.isEmpty() && d.lastEvaluationError()["code"]=="projection_unavailable","missing pattern occurrence did not refuse dependent sketch");
+    check(d.authored()==protectedDocument && d.revision()==protectedRevision && d.history().count()==protectedHistory,"missing occurrence refusal changed accepted work");
+    d.history().undo();bool probePresent=false;for(const auto& value:d.authored()["features"].toArray())if(value.toObject()["id"]==removalProbe["id"])probePresent=true;
+    check(!probePresent,"remove probe from tutorial continuation");
     // Place the tube sketch at the source roof height with its downward normal;
     // actual roof selection/center snaps are qualified by the separate roof feature.
     const auto planeId=CadDocument::newId();append(d,{{"id",planeId},{"ownerId",owner},{"type","constructionPlane"},{"name","Tube plane"},{"visible",true},{"parameters",QJsonObject{{"source",QJsonObject{{"support",bottomRef}}},{"offsetMm",-8.11}}}});
@@ -59,5 +138,6 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
     check(d.commit(CadDocument::filletCandidate(d.authored(),{{"targetBodyId",target},{"edgeIds",filletEdges},{"radiusMm",0.2},{"tangentChain",true}}),"Fillet 19").isEmpty(),"Final nineteen-edge0.2 Fillet failed: "+d.lastEvaluationError()["message"].toString());
     check(d.bodies().size()==1 && d.bodies()[0].summary["valid"].toBool() && d.bodies()[0].summary["closed"].toBool(),"Final valid closed one body");
     QTemporaryDir temp;const auto path=temp.filePath("pattern.alloy");check(d.save(path).isEmpty(),"Pattern save");CadDocument reopened;check(reopened.open(path).isEmpty() && reopened.authored()==d.authored(),"Exact pattern reopen");
-    std::cout<<"Eight additive stud instances, stable rim IDs, seed rebuild/history/reopen and atomic axis refusal passed\n";return 0;
+    check(SketchGeometry::findFeature(reopened.authored(),recess["id"].toString())["parameters"].toObject()["pointReferences"].toArray()==expectedReferences,"Reopen lost occurrence-aware center references");
+    std::cout<<"Eight stud instances and inner roof centers, retained diagonal/midpoint, edit/history/reopen and missing occurrence refusal passed\n";return 0;
 }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}
