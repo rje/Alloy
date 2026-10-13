@@ -342,7 +342,13 @@ void ReferenceView::displayBodies(const std::vector<EvaluatedBody>& bodies) {
         model->SetColor(Quantity_Color(0.67,0.72,0.76,Quantity_TOC_RGB));
         model->Attributes()->SetFaceBoundaryDraw(true);
         model->Attributes()->SetFaceBoundaryAspect(new Prs3d_LineAspect(Quantity_Color(0.20,0.25,0.29,Quantity_TOC_RGB),Aspect_TOL_SOLID,1));
-        context_->Display(model,AIS_Shaded,0,false);models_[body.bodyId]=model;bodyVisibility_[body.bodyId]=body.visible;
+        // OCCT 7.9.3 whole-cylinder selection can invert prism bounds.
+        // Face selection uses actual domains and maps to the same body ID.
+        // Keep the inactive global owner for whole-body SetSelected cues.
+        context_->Display(model,AIS_Shaded,0,false);
+        context_->Deactivate(model,0);
+        context_->Activate(model,AIS_Shape::SelectionMode(TopAbs_FACE));
+        models_[body.bodyId]=model;bodyVisibility_[body.bodyId]=body.visible;
     }
     applyEditDisplay();
 }
@@ -400,7 +406,7 @@ void ReferenceView::applyEditDisplay(bool redraw) {
     for(auto i=models_.begin();i!=models_.end();++i) {
         const bool visible=bodyVisibility_.value(i.key()) || i.key()==combineTargetId_ || combineToolIds_.contains(i.key());
         if(!visible || hiddenBodyIds_.contains(i.key()) || i.key()==previewReplacedBody_)context_->Erase(i.value(),false);
-        else context_->Display(i.value(),false);
+        else context_->Display(i.value(),AIS_Shaded,AIS_Shape::SelectionMode(TopAbs_FACE),false);
     }
     if(redraw)context_->UpdateCurrentViewer();
 }

@@ -51,6 +51,16 @@ Desktop ownership is serialized: #183 diagnostic first, then independent layout
 review. Do not launch another editor concurrently.
 Backlog after two bounded follow-ups: 184 issues, 53 closed, 131 open. No release/CI run.
 
+## Circle-prism selection candidate (2026-10-12)
+
+DOC-017 / #183 addresses a reproduced support cutter picking failure. Pinned
+OCCT whole-shape sensitive cylinder bounds invert for this circle prism;
+face selection has correct bounds. Candidate uses supported face mode for body
+hits while retaining inactive global owners for whole-body selected cues.
+Build and focused prism/body/Combine widget check pass; independent native
+acceptance is pending. See
+[the diagnostic receipt](validation/body-picking.md).
+
 ## Current integrated checkpoint (2026-10-12)
 
 The functional straw-bung original-video variant #170 is accepted and closed.

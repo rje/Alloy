@@ -128,6 +128,17 @@ private slots:
             QCOMPARE(window.execute("document.inspect")["result"].toObject()["authored"].toObject(),authored);
         }
     }
+    void circlePrismBodyPicking() {
+        AlloyWindow window;window.resize(1136,790);window.show();window.activateWindow();QVERIFY(QTest::qWaitForWindowExposed(&window));auto* view=viewport(window);QVERIFY(view);
+        QVERIFY2(run(window,"solid.box",{{"width",10},{"depth",10},{"height",10},{"x",20},{"y",0},{"z",0},{"units","mm"}}),error_.constData());
+        QVERIFY2(run(window,"sketch.begin",{{"plane","XY"}}),error_.constData());QVERIFY2(run(window,"sketch.addCircle",{{"centerX",7.5},{"centerY",-5},{"diameter",5.2},{"units","mm"}}),error_.constData());QVERIFY2(run(window,"sketch.finish"),error_.constData());
+        auto inspected=window.execute("document.inspect")["result"].toObject();const auto sketch=inspected["evaluation"].toObject()["sketches"].toArray().last().toObject();
+        QVERIFY2(run(window,"solid.extrude",{{"sketchId",sketch["sketchId"]},{"profileId",sketch["profiles"].toArray().first().toObject()["profileId"]},{"distance",47},{"units","mm"}}),error_.constData());QVERIFY2(run(window,"view.home"),error_.constData());
+        const auto bodies=window.execute("document.inspect")["result"].toObject()["evaluation"].toObject()["bodies"].toArray();const auto stock=bodies[0].toObject()["bodyId"].toString(),cutter=bodies[1].toObject()["bodyId"].toString();
+        const auto point=window.execute("view.projectBody",{{"bodyId",cutter}})["result"].toObject();QCOMPARE(view->pickBody(point["x"].toDouble(),point["y"].toDouble()),cutter);
+        QVERIFY2(run(window,"selection.pick",{{"x",point["x"]},{"y",point["y"]}}),error_.constData());QCOMPARE(window.state()["selection"].toObject()["bodyId"].toString(),cutter);
+        QVERIFY2(run(window,"solid.combineDialog",{{"targetBodyId",stock}}),error_.constData());QVERIFY2(run(window,"solid.combineSelectionMode",{{"role","tools"}}),error_.constData());const auto toolPoint=window.execute("view.projectBody",{{"bodyId",cutter}})["result"].toObject();QVERIFY2(run(window,"selection.pick",{{"x",toolPoint["x"]},{"y",toolPoint["y"]}}),error_.constData());QVERIFY(session(window)["inputs"].toObject()["toolBodyIds"].toArray().contains(cutter));QVERIFY2(run(window,"command.cancel",{{"session",session(window)["id"]}}),error_.constData());
+    }
     void popupCaptureUsesGlobalCoordinates() {
         AlloyWindow window;window.setGeometry(160,120,1180,760);window.show();window.activateWindow();
         QVERIFY(QTest::qWaitForWindowExposed(&window));auto* view=viewport(window);QVERIFY(view);
