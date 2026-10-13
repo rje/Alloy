@@ -213,7 +213,7 @@ QJsonObject TutorialRecorder::stop(qint64 documentRevision) {
     result.insert("documentRevision",documentRevision);
     result.insert("source","Alloy Qt chrome + OCCT OpenGL framebuffer");
     result.insert("inputScope","Qt events delivered to Alloy widgets while recording");
-    result.insert("textInputPolicy","Editor text redacted; generic text input events retained");
+    result.insert("textInputPolicy","Editor text redacted except observed numeric characters in Alloy numeric fields; password fields always redacted");
     result.insert("separateNativePopupCoverage","not guaranteed");
     QSaveFile metadata(metadataPath_);
     if(metadata.open(QIODevice::WriteOnly)) {
@@ -264,16 +264,26 @@ bool TutorialRecorder::eventFilter(QObject* watched,QEvent* event) {
             {"angleY",wheel->angleDelta().y()},{"modifiers",int(wheel->modifiers())}});
     } else if(type==QEvent::KeyPress||type==QEvent::KeyRelease||type==QEvent::ShortcutOverride) {
         const auto* key=static_cast<QKeyEvent*>(event);
-        const auto* line=qobject_cast<QLineEdit*>(widget);
-        const bool editor=line||qobject_cast<QTextEdit*>(widget)||qobject_cast<QPlainTextEdit*>(widget);
+        // Qt can propagate a key event from its focused editor to a parent.
+        // Apply the focused editor's policy on every delivery of that event.
+        const auto isEditor=[](const QWidget* candidate) {
+            return qobject_cast<const QLineEdit*>(candidate)
+                ||qobject_cast<const QTextEdit*>(candidate)
+                ||qobject_cast<const QPlainTextEdit*>(candidate);
+        };
+        auto* focused=QApplication::focusWidget();
+        const QWidget* input=focused&&belongsTo(focused,window_)&&isEditor(focused)
+            ?focused:widget;
+        const auto* line=qobject_cast<const QLineEdit*>(input);
+        const bool editor=isEditor(input);
         const bool password=line&&line->echoMode()!=QLineEdit::Normal;
         bool numeric=line&&!password;
         if(numeric) {
             numeric=false;
-            for(auto* parent=widget->parentWidget();parent;parent=parent->parentWidget())
+            for(auto* parent=input->parentWidget();parent;parent=parent->parentWidget())
                 if(qobject_cast<QAbstractSpinBox*>(parent)){numeric=true;break;}
-            numeric=numeric||widget->objectName().contains("dimension",Qt::CaseInsensitive)
-                ||widget->objectName().contains("radius",Qt::CaseInsensitive);
+            numeric=numeric||input->objectName()=="sketch.inlineValue"
+                ||input->objectName()=="sketch.fillet.radius";
         }
         if(type==QEvent::KeyPress&&!editor)heldKeys_.insert(key->key());
         else if(type==QEvent::KeyRelease)heldKeys_.remove(key->key());
