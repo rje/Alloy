@@ -15,6 +15,12 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
  const QJsonArray picks{QJsonObject{{"uMm",0},{"vMm",0}},QJsonObject{{"uMm",15},{"vMm",30}},QJsonObject{{"uMm",100},{"vMm",0}}};draft=accept(SketchSpline::add(draft,{{"points",picks}}));
  const auto splineId=entity(draft)["id"].toString();auto ids=entity(draft)["pointIds"].toArray();const auto first=ids[0].toString(),middle=ids[1].toString(),last=ids[2].toString();
  auto fixed=draft;for(const auto& id:ids)fixed=accept(SketchGeometry::addConstraint(fixed,{{"type","fixed"},{"pointIds",QJsonArray{id}}}));const auto fixedSolve=SketchGeometry::solveDraft(fixed);check(fixedSolve.ok&&fixedSolve.diagnostics["pointSolverDof"].toInt(-1)==0&&fixedSolve.diagnostics["splineHandleDof"].toInt()==6&&fixedSolve.diagnostics["status"]=="underconstrained","fixed positions still expose editable handle freedom");
+ const auto moved=SketchGeometry::movePoint(draft,{{"pointId",middle},{"uMm",20},{"vMm",35}});
+ check(moved.ok&&moved.diagnostics["splineHandleDof"].toInt()==6,"point move retains spline handle freedom");
+ const auto movedFit=SketchSpline::evaluate(moved.feature["parameters"].toObject(),entity(moved.feature));
+ check(movedFit.curve->Value(movedFit.parameters[1]).Distance(gp_Pnt(20,35,0))<1e-7,"point move evaluates actual spline");
+ const auto collapsed=SketchGeometry::movePoint(draft,{{"pointId",middle},{"uMm",0},{"vMm",0}});
+ check(!collapsed.ok&&collapsed.feature==draft,"collapsed fit-point move refuses atomically");
  const auto empty=SketchGeometry::newFeature(doc.authored()["documentId"].toString(),"XY");const auto duplicate=SketchSpline::add(empty,{{"points",QJsonArray{QJsonObject{{"uMm",0},{"vMm",0}},QJsonObject{{"uMm",0},{"vMm",0}}}}});check(!duplicate.ok&&duplicate.feature==empty,"duplicate points refuse atomically");
  auto eval=[&]{return SketchSpline::evaluate(draft["parameters"].toObject(),entity(draft));};
  auto fit=eval();check(fit.curve->Degree()==5&&fit.curve->IsCN(2),"real degree5 C2");check(fit.parameters[1]<0.3,"nonuniform spans");check(fit.curve->Value(fit.parameters[1]).Distance(gp_Pnt(15,30,0))<1e-7,"through fit point");

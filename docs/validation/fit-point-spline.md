@@ -119,3 +119,16 @@ state, so framing did not manufacture different geometry. This resolves the
 earlier edge-clipped evidence limitation. The shallow source-stage curve is
 an arbitrary fixture, not a matched reference screenshot; open-profile status
 is truthful. Final app SHA and runtime qualifications remain as recorded above.
+
+## Main integration check
+
+Integrated implementation `375ee76` and independent receipt `f708e11` alongside
+accepted straight slots. Astra found the slot point-move normalization shortcut
+could bypass spline evaluation and handle-freedom diagnostics. The integrated
+path now normalizes arc seeds, then uses shared draft validation and restores the
+original draft on refusal. Astra reviewed this correction. Main application
+build and both focused slot/spline core tests pass (2/2, 0.79 s), including an
+actual moved spline, retained handle freedom and atomic collapsed-point refusal.
+The first added refusal assertion exposed a changed failed-result payload; it
+was corrected before this passing run. Earlier native evidence is reused for
+unchanged input routing; no full GUI replay was needed.

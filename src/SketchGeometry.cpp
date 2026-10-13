@@ -1860,9 +1860,11 @@ SketchGeometry::SolveResult SketchGeometry::movePoint(const QJsonObject& draft, 
         if(parameters.value("projections").toArray().isEmpty() && parameters.value("pointReferences").toArray().isEmpty()) {
             const auto result=SketchSolver::solve(parameters);
             if(!result.accepted)return {false,draft,result.diagnostics,result.error};
-            candidate["parameters"]=result.parameters;validateDraft(candidate);validateSlotGroups(result.parameters);return {true,candidate,result.diagnostics,{}};
+            candidate["parameters"]=result.parameters;
         }
-        return solveDraft(candidate,projectionContext);
+        auto solved=solveDraft(candidate,projectionContext);
+        if(!solved.ok)solved.feature=draft;
+        return solved;
     } catch (const std::exception& error) { return invalidDraft(draft, QString::fromUtf8(error.what())); }
 }
 
