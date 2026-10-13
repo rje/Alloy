@@ -3,6 +3,12 @@
 Updated 2026-10-13. This is the project handoff for a fresh session. Read the root
 [AGENTS.md](../AGENTS.md) first; its reference restrictions apply to all work.
 
+The original overnight queue, die overflow and subsequent ornament increment are
+complete. The [completion audit](validation/overnight-queue-audit.md) checks the
+requested movies, editable files, strict meshes and independent receipts against
+current artifacts. The remaining product backlog stays Todo; no new feature has
+been pulled after this accepted milestone.
+
 ## Accepted ornament gate — 2026-10-13
 
 The complete bounded ornament tutorial264 and binary normal fix269 are now
