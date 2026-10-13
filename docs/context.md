@@ -32,7 +32,7 @@ visual parity remain qualified. The external
 editable models and STL deliverables. The Revolve receipt is
 [validation/revolve-tutorial.md](validation/revolve-tutorial.md).
 
-**119 of 242 issues are closed.** Recent accepted work includes compact ribbon
+**120 of 242 issues are closed.** Recent accepted work includes compact ribbon
 icons #218, retained Extrude Intersect #219, nested profile/island diagnostics
 #165, portable local controls #220, shared-line fillets #221, typed Line length
 locks #222, retained Sweep #223 and native Sweep controls #224. Each has a scoped
@@ -52,8 +52,8 @@ links that capture alongside the full movie/model/STL. Native ingredient tests
 remain distinct from API movie evidence; no physical OS or exact pixel claim.
 The source's post-fillet dimension drivenness is unknown; Alloy's explicit
 reference-span conversion is disclosed. No full tutorial replay was needed for
-the symbol-only change. The private GUI slot is reserved for #238 corrected Concentric glyph capture.
-Native Mirror validation editors are closed.
+the symbol-only change. The private GUI slot is free; all child validation editors are closed. Root
+will reserve it for the full tutorial after final native Mirror acceptance.
 Keep only one private validation editor open at a time.
 
 **Keyring #233 and driving fillet dimensions #235 are independently accepted and closed.**
@@ -101,11 +101,11 @@ recording runner (`521fde8`) and independent geometry/relation oracle
 (`5288517`, `3835dfe`). Only syntax is checked; no completed workflow is implied.
 #239 is independently accepted, integrated (`e16f0ab`, `2537bc4`, review
 `811f6a9`) and closed. Its settled palette capture resolved the immediate-layout
-overlap without a production change. #238 candidate `e6814e9` passed the actual
-native source-order sequence and core checks and passed Astra geometry/input review. Its Concentric crosshair glyph is being
-corrected to recognizable rings before visual acceptance. Native Mirror #241
-passed corrected drag selection/axis/Cancel/accept and a 58-call shared API flow;
-its candidate is being packaged for independent review. Shared schema/solver edits and private GUI
+overlap without a production change. #238 is independently accepted, integrated (`a6fae44`, `fbec737`, review
+`e0b779e`) and closed. Concentric rings are recognizable and source-order
+relations retain meaningful solver diagnostics. Native Mirror #241 passed its
+corrected controls and a 17-call unrelated-point selection guard; final delta
+review is pending. Shared schema/solver edits and private GUI
 checks remain coordinated. The integrated application build and both Mirror /
 rounded-intent core tests passed (2/2, 2.23 s); no full tutorial replay was needed. After #239 integration, Mirror and parallel-line
 core checks passed together (2/2, 2.11 s); default app rebuild will include the
