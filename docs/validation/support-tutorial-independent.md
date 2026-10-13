@@ -13,3 +13,13 @@ Final native geometry is one valid closed solid32×15×24mm, analytic volume4936
 External evidence: `demos/2026-10-12/straw-support-native/` contains the detailed native-step ledger, independent-review JSON/hashes, raw movie/log/metadata, sampled frames, native model/STL and state captures. Raw366.5s/3665frames at10fps,1150×902,1381captures/2284repeats,zero capture failures. Sampled60/195/315/355s show readable captions, input/command overlays and correct model states, including fitted content after resizing. The editor was saved and closed before handoff. Existing complete API evidence is `build-tutorial-polish/evidence/support-tutorial/`.
 
 The cumulative functional video-variant result is independently verified. Source-route and minimum-height UI acceptance remain bounded by the two reported findings until their disposition is recorded. No PDF six-edge variant, optional text/chamfer, complete native-from-blank provenance or general CAD parity is implied.
+
+## Edited continuation
+
+The existing idle-cut helper produced `native-continuation-edited.mp4` beside
+the raw movie: 145.6 seconds, 33 normal-speed retained segments, 314 relevant
+input/caption/command events. Its edit map preserves source intervals and the
+original recording remains unchanged. The EDITED banner stays visible. Root
+inspected an 80-second sample: Move controls, pointer cue and the full numeric
+caption are readable. This is a continuation from the accepted filleted fixture;
+the original picking and window-resize recoveries remain in the record.
