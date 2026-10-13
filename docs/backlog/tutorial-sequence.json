@@ -11,10 +11,10 @@
         "SKT-028",
         "TUT-004"
       ],
-      "acceptance": "Follow the 14 illustrated modeling steps, then edit/undo/reopen and export a measured closed STL. Independently verify native and API evidence separately.",
-      "status": "in_progress",
-      "evidence": "docs/validation/straw-bung.md",
-      "remaining": "Astra runs the full native source-step walkthrough and recording; accepted API/export and bounded feature evidence retained."
+      "acceptance": "Complete the original-video modeling variant, then edit/undo/reopen and export a measured closed STL. Independently verify native and API evidence separately; PDF numeric variant remains unexecuted.",
+      "status": "done",
+      "evidence": "docs/validation/straw-bung-native.md",
+      "remaining": "None for this functional video-variant gate. Old movie recoveries remain explicit; popup and accessible picker fixes have separate native receipts, Home-to-C transient stays in #7."
     },
     {
       "id": "CP-01",
@@ -93,13 +93,14 @@
       "title": "Straw support with multi-height Join and solid fillets",
       "issues": [
         "SKT-027",
+        "SKT-029",
         "SOL-020",
-        "SOL-003",
+        "SOL-022",
         "TUT-005"
       ],
       "acceptance": "Exact core source sequence with profile/edge selections and export readback.",
       "status": "in_progress",
-      "remaining": "Only overlap partition prerequisite #174 is active; successive Join and solid fillets remain Todo."
+      "remaining": "Trim and regions independently accepted. Multi-result Join #176 and bounded video-variant solid fillet #182 are active; full gate remains Todo until these integrate."
     },
     {
       "id": "CP-08",

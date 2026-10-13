@@ -34,6 +34,10 @@ reopen preserve that chain. See [the five-circle Cut receipt](docs/validation/fi
 and [the complete bracket workflow receipt](docs/validation/illustrated-bracket.md).
 The blank-document API chain passes; a separate native walkthrough reaches the
 same five-hole solid with explicitly recorded selection and visual limitations.
+Bounded line Trim now removes intervals at line/circle intersections with
+retained constraints, undo and storage. Overlapping lines and circles form real
+selectable regions, including coincident strip boundaries; the next illustrated
+support sketch passes [independent native checks](docs/validation/support-independent-review.md).
 This is not complete CAD parity.
 Annotated real-app tutorial movies can now be recorded with local commands; see
 [the video recipe and verified results](docs/validation/tutorial-video.md).

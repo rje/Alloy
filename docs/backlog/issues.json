@@ -860,7 +860,7 @@
         "priority:P0",
         "area:sol"
       ],
-      "body": "## Problem and result\nAdd editable constant-radius edge fillets. Deliver the bounded result below within Alloy's standalone C++20 product; the current application is only a Qt shell.\n\n## Scope\nImplement selected-edge constant-radius fillet, tangent-chain option, preview and authored edge references with rollback for impossible radii.\n\n## Acceptance criteria\n- Valid fillet survives normal upstream dimension edits; impossible radius reports a failure and retains usable preceding result.\n- UI and local API share authoritative document/commands; expose arguments, selection, errors and result inspection. Undo/save coverage follows the dependencies, never a separate automation model.\n\n## Proposed verification and evidence\nFillet selected longitudinal bracket edges at 1 mm, compare bounds/volume change, edit radius, undo, and test an excessive radius.\n\nAdd/execute `python3 tests/workflows/run.py --case SOL-003 --evidence build/evidence/SOL-003` (case not implemented yet; the runner refuses missing cases). Record actual commands, fixture hashes, dependency versions, assertions and artifacts. Keep build, API, geometry, save/reopen, export, physical input and visual evidence separate; mark non-applicable dimensions with a reason.\n\n## Public reference evidence\n- Fillet reference (reference `fillet`) \u2014 retrieved 2026-10-11.\n\nReferences describe documented product/library behavior. Scope, implementation strategy, fixture values and acceptance thresholds are Alloy proposals unless explicitly stated otherwise. Never run or inspect reference CAD application; use public documentation/screenshots only.\n\n## Limits and open questions\nOnly the stated subset is in scope; record unsupported options explicitly. This issue is planned, not implemented or verified.\n"
+      "body": "## Problem and result\nAdd editable constant-radius edge fillets. Deliver the bounded result below within Alloy's standalone C++20 product; the current application is only a Qt shell.\n\n## Scope\nImplement selected-edge constant-radius fillet, tangent-chain option, preview and authored edge references with rollback for impossible radii.\n\n## Acceptance criteria\n- Valid fillet survives normal upstream dimension edits; impossible radius reports a failure and retains usable preceding result.\n- UI and local API share authoritative document/commands; expose arguments, selection, errors and result inspection. Undo/save coverage follows the dependencies, never a separate automation model.\n\n## Proposed verification and evidence\nFillet selected longitudinal bracket edges at 1 mm, compare bounds/volume change, edit radius, undo, and test an excessive radius.\n\nAdd/execute `python3 tests/workflows/run.py --case SOL-003 --evidence build/evidence/SOL-003` (case not implemented yet; the runner refuses missing cases). Record actual commands, fixture hashes, dependency versions, assertions and artifacts. Keep build, API, geometry, save/reopen, export, physical input and visual evidence separate; mark non-applicable dimensions with a reason.\n\n## Public reference evidence\n- Fillet reference (reference `fillet`) \u2014 retrieved 2026-10-11.\n\nReferences describe documented product/library behavior. Scope, implementation strategy, fixture values and acceptance thresholds are Alloy proposals unless explicitly stated otherwise. Never run or inspect reference CAD application; use public documentation/screenshots only.\n\n## Limits and open questions\nOnly the stated subset is in scope; record unsupported options explicitly. This issue is planned, not implemented or verified.\n\n## Bounded tutorial child\nSOL-022 (#182) implements the video-variant two-seed constant-radius fillet with tangent-chain ON and generated-edge references. Tangent-chain OFF, radius manipulator and remaining general selection/modes stay here. Do not treat its acceptance as full fillet-family completion.\n"
     },
     {
       "key": "HIS-002",
@@ -3188,7 +3188,7 @@
         "priority:P1",
         "area:tut"
       ],
-      "body": "## Source and scope\nExternal knowledge/tutorials/warwick/straw-bung.pdf, 3 pages / 14 steps, retrieved 2026-10-12. Follow every prescribed modeling step: circle, base extrusion, face sketch, Join boss, face sketch, New Body cutter, body rotation/translation, Combine Cut. Export STL as an Alloy delivery extension, separately labeled from source steps.\n\n## Acceptance\n- Maintain a per-step ledger of source inputs, commands, selected entities, expected state and actual evidence. Record inferred dimensions/transform choices explicitly.\n- Start blank; run the shared application automation flow step by step, supplement native input where command/gesture behavior is claimed. Capture representative face selection, Join preview, transform and final result at comparable view/scale.\n- Verify one final valid solid, a through angled bore, intended dimensions and body ownership; upstream edit, undo/redo and reopen preserve the chain.\n- Export a closed correctly scaled STL and independently read it back. Produce an honestly labeled demonstration movie with command/input overlays.\n- Astra independently reviews candidate and visual/output evidence. Existing bracket workflow remains a bounded regression check. Old-interface command locations are researched, not assumed identical.\n\n## Verification contract\nUse the shared authoritative UI/API and real GPU-backed application. Verify authored history, supported upstream edits, commit/cancel, undo/redo and save/reopen proportionately. Inspect real geometry separately from screenshots and native interaction. Record matched, mismatch, blocked or unknown; no exact parity claim from API-only construction. Public source URLs and images stay in the external knowledge archive.\n"
+      "body": "## Source and scope\nExternal knowledge/tutorials/warwick contains the 3-page/14-step PDF and original public video, retrieved 2026-10-12. This functional gate qualifies the original-video numeric variant: diameters/depths 26/3, 19/8, 6.2/40, Y+10 then local Z-20. The PDF60/X-10 variant remains explicitly recorded but unexecuted; no exact-PDF or flawless uninterrupted-input claim. Follow every prescribed modeling step: circle, base extrusion, face sketch, Join boss, face sketch, New Body cutter, body rotation/translation, Combine Cut. Export STL as an Alloy delivery extension, separately labeled from source steps.\n\n## Acceptance\n- Maintain a per-step ledger of source inputs, commands, selected entities, expected state and actual evidence. Record inferred dimensions/transform choices explicitly.\n- Start blank; run the shared application automation flow step by step, supplement native input where command/gesture behavior is claimed. Capture representative face selection, Join preview, transform and final result at comparable view/scale.\n- Verify one final valid solid, a through angled bore, intended dimensions and body ownership; upstream edit, undo/redo and reopen preserve the chain.\n- Export a closed correctly scaled STL and independently read it back. Produce an honestly labeled demonstration movie with command/input overlays.\n- Astra independently reviews candidate and visual/output evidence. Existing bracket workflow remains a bounded regression check. Old-interface command locations are researched, not assumed identical.\n\n## Verification contract\nUse the shared authoritative UI/API and real GPU-backed application. Verify authored history, supported upstream edits, commit/cancel, undo/redo and save/reopen proportionately. Inspect real geometry separately from screenshots and native interaction. Record matched, mismatch, blocked or unknown; no exact parity claim from API-only construction. Public source URLs and images stay in the external knowledge archive.\n"
     },
     {
       "key": "TUT-005",
@@ -3198,10 +3198,10 @@
       "priority": "P1",
       "depends_on": [
         "TUT-004",
-        "SOL-003",
         "SKT-027",
         "SOL-020",
-        "SKT-029"
+        "SKT-029",
+        "SOL-022"
       ],
       "labels": [
         "kind:validation",
@@ -3209,7 +3209,7 @@
         "priority:P1",
         "area:tut"
       ],
-      "body": "## Scope\nExternal knowledge/tutorials/warwick/straw-support.pdf, 5 pages, retrieved 2026-10-12. Audit all numbered steps including optional resize separately. Build the rectangle/circle/prong profiles, join extrusions at the stated heights, apply solid edge fillets, create and transform the cutter and Combine Cut.\n\n## Acceptance\nA complete step ledger, selected-region and selected-edge captures, readable controls, native/API evidence separation, editable/reopened solid and independently read-back printable STL. Verify profile partitioning and multi-height Join instead of substituting primitives. Resolve illustrated selections before implementation. Optional chamfer/text branches stay explicitly outside the core gate and mapped to existing broader feature issues.\n\n## Verification contract\nUse the shared authoritative UI/API and real GPU-backed application. Verify authored history, supported upstream edits, commit/cancel, undo/redo and save/reopen proportionately. Inspect real geometry separately from screenshots and native interaction. Record matched, mismatch, blocked or unknown; no exact parity claim from API-only construction. Public source URLs and images stay in the external knowledge archive.\n\n## Source correction\nOriginal public video includes required Trim operations omitted by the PDF; #177 implements the bounded prerequisite. Keep the PDF/video distinction in the step ledger.\n"
+      "body": "## Scope\nExternal knowledge/tutorials/warwick/straw-support.pdf, 5 pages, retrieved 2026-10-12. Audit all numbered steps including optional resize separately. Build the rectangle/circle/prong profiles, join extrusions at the stated heights, apply solid edge fillets, create and transform the cutter and Combine Cut.\n\n## Acceptance\nA complete step ledger, selected-region and selected-edge captures, readable controls, native/API evidence separation, editable/reopened solid and independently read-back printable STL. Verify profile partitioning and multi-height Join instead of substituting primitives. Resolve illustrated selections before implementation. Optional chamfer/text branches stay explicitly outside the core gate and mapped to existing broader feature issues.\n\n## Verification contract\nUse the shared authoritative UI/API and real GPU-backed application. Verify authored history, supported upstream edits, commit/cancel, undo/redo and save/reopen proportionately. Inspect real geometry separately from screenshots and native interaction. Record matched, mismatch, blocked or unknown; no exact parity claim from API-only construction. Public source URLs and images stay in the external knowledge archive.\n\n## Source correction\nOriginal public video includes required Trim operations omitted by the PDF; #177 implements the bounded prerequisite. Keep the PDF/video distinction in the step ledger.\n\nThe first complete run follows the original video variant, including two fillet seed edges at1mm. The PDF six-edge0.5mm variant remains separately tracked, not silently equated. Bounded fillet child #182 supplies this gate; broader parent #48 stays open.\n"
     },
     {
       "key": "TUT-006",
@@ -3371,6 +3371,38 @@
         "area:fnd"
       ],
       "body": "Independent review of the 208-second native straw-bung edit found long step captions clipped at the right edge, including the numeric tail after the menu limitation. The input overlay and edited banner are intact. Fit supported captions into the reserved band with wrapping or bounded font adjustment; do not cover application controls. Verify one real recording frame at the supported capture size containing a long caption and its complete numeric tail. Preserve old recordings as evidence; no full modeling rerun is needed for this text layout fix. Keep this polish issue Todo while current native menu and sketch gates finish."
+    },
+    {
+      "key": "SOL-021",
+      "title": "Keep accessible Combine target and tool pickers synchronized",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [],
+      "labels": [
+        "kind:implementation",
+        "phase:P2",
+        "priority:P1",
+        "area:sol"
+      ],
+      "body": "Bounded child of #49 exposed by native tutorial #170. Accessibility toggles Select Target Body visually but Qt toggle emits toggled, while Alloy listened only to clicked; the authoritative selectionRole stayed tools and next stock click selected a tool. Physical pointer activation worked. Connect both native input paths to the same mode command, retain one active role, and keep refresh signal-blocked. Verify the Qt accessibility action and a native accessibility activation followed by viewport stock selection; Cancel must preserve authored state. No geometry behavior changes or full tutorial rebuild are needed. Evidence lives externally in straw-bung-native/input-recovery and existing parent #49 comment."
+    },
+    {
+      "key": "SOL-022",
+      "title": "Add bounded tutorial solid edge fillets with retained edge references",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SOL-020"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P2",
+        "priority:P1",
+        "area:sol"
+      ],
+      "body": "Bounded child of #48 and the generated-edge subset of #24. Public support VIDEO variant picks two outer-prong edges and radius1mm; PDF six-edge0.5mm is distinct and not claimed. Exact source contract/provenance is external knowledge/specs/solid-fillet-support-2026-10-12.md. Implement single-target, one-set constant-radius G1 rolling-ball fillet with tangent-chain ON; OFF, radius manipulator and broader modes stay in parent #48. Use real native F/Modify, two edge seeds, readable highlights, numeric preview, OK/Cancel/Escape, editable history and the authoritative API. Persist generator/profile/contact/role edge references; transport exact unique OCCT history through Join, never bind by index/proximity. Preserve unaffected original disk cap at z20 for the next sketch. Source naming is bounded, not general topology repair. Use mature OCCT fillet implementation. Verify exact source sequence, upstream prong-height and radius edits, one impossible-radius atomic refusal, undo and reopen. Independent native/source visual review required; all footage/images stay outside Git. Coordinate multi-result Join #176 before shared kernel hooks."
     }
   ]
 }

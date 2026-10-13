@@ -5,31 +5,38 @@ Updated 2026-10-12. This is the project handoff for a fresh session. Read the ro
 
 ## Current integrated checkpoint (2026-10-12)
 
-The native straw-bung run completed all modeling through physical UI: eight
-features, one valid solid, expected volume and closed oriented STL. Raw recording
-and a 208-second edited version remain external, with input event/frame mapping.
-#178 recorder responsiveness is independently accepted and closed. #170 remains
-open for #179 context-menu route and the recorded Combine selection recovery;
-see `validation/straw-bung-native.md`. Toolbar Move was an explicit workaround,
-not exact source parity. Sol owns the bounded popup investigation.
+The functional straw-bung original-video variant #170 is accepted and closed.
+Blank API and native flows, editable history, closed oriented millimeter STL,
+independent geometry and input evidence, raw recording and a 208-second edited
+movie meet the gate cumulatively. PDF60/X-10 numeric variant is recorded but
+unexecuted. Original footage retains its recoveries; no flawless-input claim.
+See `validation/straw-bung-native.md`. The transient Home-to-C recovery could not
+be reproduced and remains noted under #7. No speculative focus fix was made.
 
-Main now includes #174 regions and #177 line Trim. Separate private-Qt build
-`build-support-integrated` succeeds. The two changed core tests pass together;
-`tests/sketch_trim_api.py` and `tests/workflows/check_overlap_regions.py` pass
-through the real GPU app, including preview, selection, history and reopen.
-Evidence is under that build's `evidence/` directory. Astra accepted native Trim, exact undo and five physical region selections;
-both bounded features are now closed. See `validation/support-independent-review.md`. The region script
-was corrected to check the public generic evaluation error plus useful message;
-its core test separately checks the internal missing-profile diagnostic.
+Accepted and closed: #174 real overlapping regions, #177 bounded line Trim,
+#178 responsive recording, #179 correctly composed native popup/Move route,
+#181 accessible Combine target/tool mode synchronization, #180 readable fitted
+captions. Each has independent Astra evidence. Build/API/native checks remained
+proportional; no full modeling rerun was used for small input/layout fixes.
+Current main binary is `build-tutorial-polish/alloy.app/Contents/MacOS/alloy`,
+using the private coherent Qt runtime. Separate support build/evidence remains
+under `build-support-integrated`. All private review editors are closed; keep
+only one open during subsequent validation and preserve any user-owned app.
 
-The support and popup review editors are saved and closed. #179 is accepted:
-physical right-click, readable popup, native Move activation and exact Cancel.
-See `validation/popup-independent-review.md`. Astra now investigates the remaining
-Home-to-C and Combine target-picker recoveries under #170 using one saved-fixture
-editor. Existing parent issues #7/#49 hold those requirements. Sol researches
-#176 multi-result Join and the source-specific solid fillet prerequisite before
-implementation. Caption fitting #180 is Todo.
-No release/tag/CI triggered. Backlog: 180 issues, 48 closed, 132 open.
+Active work is #176 multi-result/successive Extrude Join in isolated
+`successive-join`, and #182 bounded source-video solid-edge fillet in
+`solid-fillet`. Sol implements both; Astra verifies independently after root
+integration. Join stores explicit connected result ownership and preserves
+surviving earlier caps. Fillet uses retained generated corner/end-rim references,
+constant G1 radius, rolling-ball and tangent-chain ON; OFF/manipulator/general
+modes remain #48. Both must retain the original disk cap at z20 for the next
+face sketch. Avoid selecting the latest prong cap by mistake. No current native
+editor is required while these branches implement.
+
+#171 full support tutorial remains Todo until those slices integrate; Trim and
+five-region native evidence is already accepted. Public video two-edge1mm fillet
+and PDF six-edge0.5mm variant stay distinct. Bulk references/media remain outside
+Git. No release/tag/CI triggered. Backlog: 182 issues, 51 closed, 131 open.
 
 ## Resumed active work (2026-10-12)
 
