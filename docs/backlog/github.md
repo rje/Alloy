@@ -218,3 +218,4 @@ This is a publication snapshot. Use `python3 tools/backlog.py ready` for the liv
 | [#195 FND-019: Honor authorized API shutdown with mesh export modal open](https://github.com/rje/Alloy/issues/195) | P0 Foundation | implementation | P1 | [#3](https://github.com/rje/Alloy/issues/3) |
 | [#197 FND-020: Expose bounded command deadlines for longer CAD operations](https://github.com/rje/Alloy/issues/197) | P0 Foundation | implementation | P1 | [#3](https://github.com/rje/Alloy/issues/3) |
 | [#206 PRT-008: Remove collapsed spherical-pole facets from ASCII STL output](https://github.com/rje/Alloy/issues/206) | P3 Shape/import/print breadth | implementation | P1 | [#204](https://github.com/rje/Alloy/issues/204) |
+| [#211 FND-022: Keep sketch palette summary readable below the name field](https://github.com/rje/Alloy/issues/211) | P0 Foundation | implementation | P1 | [#11](https://github.com/rje/Alloy/issues/11) |
