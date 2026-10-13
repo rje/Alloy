@@ -2,13 +2,13 @@
 
 Prepared 2026-10-11 from public references and the accepted Alloy requirements.
 [issues.json](issues.json) is the machine-readable source for GitHub publication;
-[sources.json](sources.json) records the 160 dated reference entries cited by its
+[sources.json](sources.json) records the 161 dated reference entries cited by its
 issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current publication contains **243 issues**: **175 implementation, 16 research,
-22 epics, and 30 validation gates**. Counts describe decomposition, not coverage.
+The current publication contains **249 issues**: **180 implementation, 16 research,
+22 epics, and 31 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 
 ## Active delivery order
@@ -68,6 +68,13 @@ Mirror foundation #240 is also accepted. All five wall-outlet prerequisites #237
 The eight-card gallery includes its full creation movie and editable sketch;
 exact history/reopen passed separately. See validation/wall-outlet-tutorial.md.
 
+The next independently audited four-page countersunk-plate practice is #244–249:
+named length bindings, post-fillet rim lineage, standalone sketch Point, retained
+All Countersink Hole, Spacing/Adjust Hole pattern and cumulative movie/model/STL
+gate. #244 and #245 start in parallel; the remaining issues stay Todo until ready.
+Full arithmetic parameters, other Hole types and general pattern families remain
+in their broad parent issues.
+
 After every slice, run the smallest complete author/edit/finish/undo/reopen
 workflow it enables in a private real application instance. Record source steps
 as passed, mismatch, blocked or unknown. For documented input gestures, use native
@@ -88,7 +95,7 @@ require macOS/Windows/Linux qualification; CI remains tag/manual only.
 | --- | ---: | --- |
 | P0 Foundation | 30 | Public baseline, MIT dependency audit, document/naming/solver decisions, portable controls, native CI/packages/releases and hardware evidence |
 | P1 Geometry/document | 20 | Real hardware-backed OCCT viewport, authored primitive document, selection, undo/save and STEP |
-| P2 Parametric modeling | 90 | Constrained sketches, parameters, editable extrusion/fillet chain and broader basic solid tools |
+| P2 Parametric modeling | 96 | Constrained sketches, parameters, editable extrusion/fillet chain and broader basic solid tools |
 | P3 Shape/import/print breadth | 34 | Solids/surfaces, common interchange and qualified printing export |
 | P4 Initial release | 9 | Robustness, recovery, packaging, performance, physical/visual workflow evidence |
 | P5 Assemblies/drawings | 11 | Components/joints, configurations and associative drawings |

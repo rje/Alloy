@@ -131,6 +131,21 @@
       "evidence": "docs/validation/wall-outlet-tutorial.md"
     },
     {
+      "id": "CP-17",
+      "title": "Parameterized nine-hole countersunk plate",
+      "issues": [
+        "PAR-002",
+        "DOC-020",
+        "SKT-056",
+        "SOL-035",
+        "SOL-036",
+        "TUT-012"
+      ],
+      "acceptance": "Named length bindings, vertical fillet with retained rims, true sketch Point with two edge distances, retained All Countersink and nine-hole Spacing/Adjust feature pattern; full creation movie, editable file and checked STL extension.",
+      "status": "in_progress",
+      "remaining": "Independent source audit accepted. Named parameters and rim lineage are initial parallel implementation lanes; remaining children wait on dependencies."
+    },
+    {
       "id": "CP-12",
       "title": "Direct dimensions from circle centers to retained model edges",
       "issues": [

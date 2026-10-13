@@ -16,6 +16,17 @@ All private validation editors are closed. The gallery now has eight creations:
 seven solid/STL lessons and this sketch-only lesson. Both issues and their board
 items are Done. Older paragraphs below retain development history.
 
+**Active queue: parameterized countersunk plate #244–249.** Astra independently
+verified the four-page public lesson and its embedded drawing. Five bounded
+implementation slices plus a cumulative gate preserve named dimensions,
+post-fillet edge references, real standalone sketch Point, retained All Hole,
+and 3x3 Spacing/Adjust feature pattern. Named length bindings #244 and post-fillet
+rim lineage #245 are the initial parallel Sol lanes; #246–249 remain Todo.
+External source contract: `knowledge/tutorials/next-after-outlet/independent-countersink-contract.md`.
+No new feature or full tutorial pass is implied. General arithmetic expressions,
+other Hole types and general Adjust remain broad-parent scope. Default build is
+still the accepted outlet milestone; all private editors are closed.
+
 User requested private repository visibility on 2026-10-13. `rje/Alloy` is now
 PRIVATE, verified through GitHub CLI. Preserve private visibility unless the user
 requests otherwise; the MIT license and long-term open-source product goal are
@@ -31,7 +42,7 @@ visual parity remain qualified. The external
 editable models and STL deliverables. The Revolve receipt is
 [validation/revolve-tutorial.md](validation/revolve-tutorial.md).
 
-**123 of 243 issues are closed.** Recent accepted work includes compact ribbon
+**123 of 249 issues are closed.** Recent accepted work includes compact ribbon
 icons #218, retained Extrude Intersect #219, nested profile/island diagnostics
 #165, portable local controls #220, shared-line fillets #221, typed Line length
 locks #222, retained Sweep #223 and native Sweep controls #224. Each has a scoped

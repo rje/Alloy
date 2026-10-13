@@ -1351,6 +1351,14 @@
       "evidence": "documented and observed-screenshot",
       "reference_id": "wall-outlet-sketch-20261013",
       "provenance": "Three public pages and five original screenshots independently reviewed; full URLs and records outside Git in knowledge/tutorials/wall-outlet-audit/."
+    },
+    "plate-countersink-pattern-20261013": {
+      "title": "Illustrated parameterized countersunk plate drawing practice",
+      "url": null,
+      "retrieved": "2026-10-13",
+      "evidence": "Public four-page instructions and screenshot/drawing observations; independently audited",
+      "reference_id": "plate-countersink-pattern-20261013",
+      "provenance": "External knowledge/tutorials/next-after-outlet/independent-countersink-contract.md records source, pages, exact geometry and qualified direction selections."
     }
   },
   "reference_records": "../Alloy-reference-records/",
