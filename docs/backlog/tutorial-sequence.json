@@ -100,7 +100,7 @@
       ],
       "acceptance": "Exact core source sequence with profile/edge selections and export readback.",
       "status": "in_progress",
-      "remaining": "Trim and regions independently accepted. Multi-result Join #176 and bounded video-variant solid fillet #182 are active; full gate remains Todo until these integrate."
+      "remaining": "Trim, overlapping regions, successive Join and bounded solid-edge Fillet accepted. Complete original-video cutter/Move/Combine/export chain and full native gate #171 next; PDF variant remains separate."
     },
     {
       "id": "CP-08",

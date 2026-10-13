@@ -62,5 +62,8 @@ Integrated real-app/API verification passes at
 captures. Startup refresh now reads session state without inserting an empty
 command; radius schema explicitly permits the dock range. These two integration
 defects were caught and corrected before native review.
-Independent native F/two physical picks/capture evidence remains pending.
+Independent native F/two physical picks/capture evidence passes after the source
+seed correction and finish-focus fix. See [the independent receipt](support-solid-independent-review.md).
+The earlier API screenshots use the superseded top-rim seed inference; corrected
+native captures and model are the accepted source silhouette evidence.
 No exact native or visual match is claimed by the build/core evidence alone.

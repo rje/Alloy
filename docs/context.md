@@ -15,20 +15,29 @@ supported circle, history and reopen. Real-app/API and independent native
 acceptance remain pending the combined candidate. See
 [the candidate receipt](validation/solid-fillet.md).
 
-## Join and Fillet integration (2026-10-12)
+## Current support checkpoint (2026-10-12)
 
-#176 and #182 candidates are integrated. Combined app builds; focused core
-checks pass. Sequential real-entrypoint runners pass under
-`build-tutorial-polish/evidence/successive-join` and `solid-fillet`: source
-20/4/24/22 Join, stable result ownership, retained disk cap, actual fillet edge
-hit testing, preview/cancel/commit, edits, undo/redo and reopen. Root corrected
-new session reads that inserted null command state and missing radius schema
-bounds caught by app verification. Astra owns the single native review editor;
-Independent review caught two additional bounded defects: Fillet finish focus and
-early Join edit previews using downstream solids. Both are corrected; a targeted
-saved-source real-app preview now shows its two historical results and Cancel
-preserves the final authored model. Native recheck is pending, so both issues remain active.
-The complete #171 supported-hole/export runner is being prepared separately.
+#176 successive/multi-result Join and #182 bounded solid-edge Fillet are accepted
+and closed after independent Astra native/source review. See
+[the receipt](validation/support-solid-independent-review.md). The integrated
+binary is `build-tutorial-polish/alloy.app/Contents/MacOS/alloy`. Core and real-app
+checks cover source 20/4/24/22 Join, stable result ownership, retained original
+disk cap, actual edge picks, edits, preview/cancel, undo/redo and reopen.
+Native review caught and verified fixes for Fillet finish keyboard focus and
+early Join previews incorrectly displaying downstream geometry.
+
+The corrected VIDEO recipe selects BOTH outer vertical corners at x32,y-10/y0,
+not a top rim. Public frames07/10/14 supersede that earlier inferred seed mapping.
+Corrected native preview/commit and saved model are under
+`build-tutorial-polish/evidence/independent-support-solid`; earlier API fillet
+captures use the superseded seed recipe and remain feature evidence only.
+The PDF six-edge0.5mm variant remains unexecuted. Broader fillet modes stay #48.
+All private review editors are closed. Continue one-editor-at-a-time validation.
+
+Next work is the complete #171 video tutorial chain through the supported
+cutter47, local Move and Combine Cut, history and printable export. Its runner
+is being prepared in `successive-join`; no complete tutorial acceptance yet.
+Backlog after these closures: 182 issues, 53 closed, 129 open. No release/CI run.
 
 ## Current integrated checkpoint (2026-10-12)
 
