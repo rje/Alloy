@@ -5,6 +5,13 @@ Updated 2026-10-13. This is the project handoff for a fresh session. Read the ro
 
 ## Active ornament gate — 2026-10-13
 
+Latest: #268 bounded append reuse is integrated0088e64 with independent
+source/core acceptance9d6e20a. Four focused checks pass; main app and saved-model
+geometry verifier build. Fresh cumulative-04 is running from blank with creation
+recording, source edits/history/reopen and strict STL/oracle checks. No result is
+claimed yet. Root owns the sole private editor. See
+validation/document-prefix-append.md; upstream edits/open still fully rebuild.
+
 Shell correction #266 is independently accepted and closed, integrated
 0499f83/d3d3fbe. Main app and saved-model geometry verifier build; generic Shell
 and full-Revolve support core2/2 pass1.50s. Real-app source/control edits,
