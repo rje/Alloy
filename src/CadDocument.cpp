@@ -35,6 +35,7 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
                     return {{"featureId",feature["id"]},{"featureType",feature["type"]},{"code","plane_dependency_unavailable"},{"message","Plane source must be an earlier feature of the expected type"}};
             }
         }
+        if(feature["type"]=="rectangularPattern") {const auto seed=feature["parameters"].toObject()["sourceFeatureId"].toString();if(!positions.contains(seed) || positions[seed]>=i || features[positions[seed]].toObject()["type"]!="extrude")return {{"featureId",feature["id"]},{"code","pattern_seed_unavailable"},{"message","Pattern seed must be an earlier Extrude feature"}};}
         if(feature["type"]=="loft")for(const auto& value:feature["parameters"].toObject()["profiles"].toArray()) {
             const auto sketch=value.toObject()["sketchId"].toString();
             if(!positions.contains(sketch) || positions[sketch]>=i || features[positions[sketch]].toObject()["type"]!="sketch")return {{"featureId",feature["id"]},{"featureType","loft"},{"code","loft_profile_unavailable"},{"message","Loft sections must reference earlier sketch features"}};
@@ -46,7 +47,7 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
     for (int i = 0; i < features.size(); ++i) {
         const auto feature = features[i].toObject();
         if (feature.contains("bodyId")) activeBodies.insert(feature["bodyId"].toString());
-        if (feature["type"] == "move" || feature["type"] == "fillet" || feature["type"] == "shell") {
+        if (feature["type"] == "move" || feature["type"] == "fillet" || feature["type"] == "shell" || feature["type"]=="rectangularPattern") {
             const auto body = feature["parameters"].toObject()["targetBodyId"].toString();
             if (!bodyPositions.contains(body) || bodyPositions[body]>=i || !activeBodies.contains(body))
                 return {{"featureId",feature["id"]},{"featureType",feature["type"]},{"bodyId",body},{"code","body_unavailable"},{"message","Solid modifier requires an active earlier body"}};
@@ -356,6 +357,14 @@ QJsonObject CadDocument::filletCandidate(const QJsonObject& authored,const QJson
     if(index>=0)features[index]=feature;else features.append(feature);candidate["features"]=features;
     const auto error=validateStructure(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());return candidate;
 }
+QJsonObject CadDocument::patternCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
+    auto candidate=authored;auto features=candidate["features"].toArray();QJsonObject feature;int index=-1;
+    if(arguments.contains("featureId")){for(int i=0;i<features.size();++i)if(features[i].toObject()["id"]==arguments["featureId"]){feature=features[i].toObject();index=i;break;}if(index<0 || feature["type"]!="rectangularPattern")throw std::invalid_argument("Pattern feature unavailable");}
+    else feature={{"id",arguments.value("newFeatureId").toString(newId())},{"ownerId",authored["documentId"]},{"type","rectangularPattern"},{"name","Rectangular Pattern"},{"visible",true}};
+    feature["parameters"]=QJsonObject{{"sourceFeatureId",arguments["sourceFeatureId"]},{"targetBodyId",arguments["targetBodyId"]},{"axes",arguments["axes"]}};if(arguments.contains("name"))feature["name"]=arguments["name"];
+    if(index<0)features.append(feature);else features[index]=feature;candidate["features"]=features;return candidate;
+}
+
 QJsonObject CadDocument::loftCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
     auto candidate=authored;auto features=candidate["features"].toArray();QJsonObject feature;int index=-1;
     if(arguments.contains("featureId")) {
@@ -520,6 +529,11 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
             if(feature.contains("bodyId") || p.size()!=4 || !validId(p["targetBodyId"].toString()) || !p["edgeIds"].isArray() || p["edgeIds"].toArray().isEmpty() || p["edgeIds"].toArray().size()>100 || !p["tangentChain"].isBool() || !p["tangentChain"].toBool())return "Fillet requires one target, edge references and tangent chain enabled";
             QSet<QString> edges;for(const auto& edge:p["edgeIds"].toArray()){if(!edge.isString() || !validId(edge.toString()) || edges.contains(edge.toString()))return "Fillet edge references must be distinct stable UUIDs";edges.insert(edge.toString());}
             if(!p["radiusMm"].isDouble() || !std::isfinite(p["radiusMm"].toDouble()) || p["radiusMm"].toDouble()<0.001 || p["radiusMm"].toDouble()>100000)return "Fillet radius must be 0.001..100000 mm";
+            continue;
+        }
+        if(type=="rectangularPattern") {
+            if(feature.contains("bodyId") || p.size()!=3 || !validId(p["sourceFeatureId"].toString()) || !validId(p["targetBodyId"].toString()) || !p["axes"].isArray() || p["axes"].toArray().size()<1 || p["axes"].toArray().size()>2)return "Pattern requires one seed, target body and one or two axes";
+            QSet<QString> edges;int total=1;for(const auto& value:p["axes"].toArray()){const auto axis=value.toObject();const auto quantity=axis["quantity"].toDouble();if(axis.size()!=3 || !validId(axis["edgeId"].toString()) || edges.contains(axis["edgeId"].toString()) || !axis["quantity"].isDouble() || quantity!=std::floor(quantity) || quantity<2 || quantity>100 || !axis["extentMm"].isDouble() || !std::isfinite(axis["extentMm"].toDouble()) || std::abs(axis["extentMm"].toDouble())<0.001 || std::abs(axis["extentMm"].toDouble())>100000)return "Pattern axes require distinct edge IDs, quantity2–100 and signed nonzero extent";edges.insert(axis["edgeId"].toString());total*=int(quantity);}if(total>1000)return "Pattern exceeds 1000 instances";
             continue;
         }
         if(type=="loft") {

@@ -43,6 +43,7 @@ public:
     // name; featureId edits an existing Boolean, newFeatureId reserves a create.
     // The target retains its producer body ID; this feature owns no new body.
     static QJsonObject filletCandidate(const QJsonObject& authored, const QJsonObject& arguments);
+    static QJsonObject patternCandidate(const QJsonObject& authored,const QJsonObject& arguments);
     static QJsonObject loftCandidate(const QJsonObject& authored,const QJsonObject& arguments);
     static QJsonObject shellCandidate(const QJsonObject& authored, const QJsonObject& arguments);
     static QJsonObject mirrorCandidate(const QJsonObject& authored, const QJsonObject& arguments);

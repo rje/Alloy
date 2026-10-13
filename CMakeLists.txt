@@ -28,7 +28,7 @@ target_include_directories(alloy_sketch_solver PUBLIC src)
 target_link_libraries(alloy_sketch_solver PUBLIC Qt6::Core PRIVATE alloy_planegcs)
 
 add_library(alloy_kernel STATIC
-    src/GeometryKernel.cpp src/GeometryKernel.h src/PlanarFaces.cpp src/PlanarFaces.h src/SolidFillet.cpp src/SolidFillet.h src/SolidShell.cpp src/SolidShell.h src/SolidLoft.cpp src/SolidLoft.h src/SolidMirror.cpp src/SolidMirror.h src/JoinResults.cpp
+    src/GeometryKernel.cpp src/GeometryKernel.h src/PlanarFaces.cpp src/PlanarFaces.h src/SolidFillet.cpp src/SolidFillet.h src/SolidShell.cpp src/SolidShell.h src/SolidLoft.cpp src/SolidLoft.h src/FeaturePattern.cpp src/FeaturePattern.h src/SolidMirror.cpp src/SolidMirror.h src/JoinResults.cpp
     src/MeshExport.cpp src/MeshExport.h
     src/StepExchange.cpp src/StepExchange.h
     src/SketchGeometry.cpp src/SketchTrim.cpp src/SketchGeometry.h
@@ -163,6 +163,10 @@ if(BUILD_TESTING)
     target_include_directories(face_support_test PRIVATE src)
     target_link_libraries(face_support_test PRIVATE Qt6::Gui alloy_kernel)
     add_test(NAME face_support COMMAND face_support_test)
+    add_executable(feature_pattern_test tests/feature_pattern.cpp src/CadDocument.cpp src/CadDocument.h)
+    target_include_directories(feature_pattern_test PRIVATE src)
+    target_link_libraries(feature_pattern_test PRIVATE Qt6::Gui alloy_kernel)
+    add_test(NAME feature_pattern COMMAND feature_pattern_test)
     add_executable(solid_loft_test tests/solid_loft.cpp src/CadDocument.cpp src/CadDocument.h)
     target_include_directories(solid_loft_test PRIVATE src)
     target_link_libraries(solid_loft_test PRIVATE Qt6::Gui alloy_kernel)
