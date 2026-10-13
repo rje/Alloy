@@ -52,3 +52,32 @@ The subsequent multi-group solver correction was checked by the focused core
 test and rebuilt app; the API run predates that narrow correction. The later
 full sketch lesson, general slots beyond the bounded open-sweep domain, and
 constraints on analytically derived boundary contacts remain separate work.
+
+## Independent acceptance
+
+Accepted the bounded #252 candidate `6ea27e0f304b598a5f7e1b668ed8a7c35253d80c`
+after source, focused core/native logs, actual GPU captures, API report and
+authored-file review. The reviewer did not implement the candidate or launch
+an additional editor. Each group maps its two cap UUIDs to its own radius
+unknown; the final core control changes a second group's radius without
+changing the first. Loaded-data guards reject independent constraints on
+derived contacts/arcs, and post-solve regeneration checks the retained boundary.
+
+The inspected saved document exactly equals the API report's source authored
+state. Its radial construction line retains the left path-end UUID and origin
+UUID; the path is clockwise −90°, with separate straight-slot and arc-band
+regions, areas `7500 + 625π` and `2475π` mm², and zero DOF. The R170 edit
+retains the region identities and yields `2775π` mm² for the band. Existing
+exact history/reopen assertions and atomic R10 refusal provide proportionate
+coverage; the final multi-group correction has core/build evidence rather
+than a repeated unchanged single-group API run.
+
+The native typed, rough and preview images and API `defined-two-slots.png`
+show smooth bands, readable palette text and the source dimensions. The
+native fixture uses initial-only harness activation, action activation and
+actual Qt pointer/key events; it proves creation controls, not the complete
+source constraint gesture sequence or physical OS input. That final sequence
+is covered by the shared API. Typed values establish initial geometry without
+adding driving dimensions. The finite sub-180° sweep and restrictions on
+derived-boundary edits remain explicit; this is not acceptance of the full
+31-step lesson or general arc-slot parity.
