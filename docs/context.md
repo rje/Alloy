@@ -25,10 +25,10 @@ now independently accepted and closed (79fa11b/e805afb); main app builds.
 
 The complete ornament lesson is tracked by #264, with prerequisites #260–263 and
 Boolean correction #265. #260 is accepted and closed; main app rebuild passes.
-Retained open fit-spline Offset (#261) is ready for independent review at
-candidate20bf114. Its corrected native preview shows both curves and verifies
-rendered edge counts through preview/Cancel/accept; the earlier API geometry
-evidence remains separate. Section Analysis (#262)
+Retained open fit-spline Offset (#261) is independently accepted and closed,
+integrated03de12f/0564a19. Main app build and focused core pass. Native preview
+shows both curves through Cancel/accept; API closure/Intersect and exact history
+evidence remain separate. See validation/fit-spline-offset.md. Section Analysis (#262)
 is independently accepted and closed: core, 79-call actual-app API, native3/3,
 actual GPU captures and integrated main build/core pass. Circular Body Pattern (#263) is now active in an isolated Sol lane.
 #265 has an active headless failure investigation while those inputs finish;
