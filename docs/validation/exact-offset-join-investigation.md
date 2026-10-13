@@ -197,7 +197,11 @@ and pcurve representations were added to a shared edge. Existing 3D curves match
 independent raw-diff reconstruction classifies every change as additive support
 representations. Original geometry, parameter ranges, tolerances and topology
 are exact under index remapping; serialized bytes are not identical.
-Topology-empty residuals and history/reopen remain separately recorded gates. No permanent repository fixture reproduces this
+The saved candidate joined BRep now passes all nine configured input-minus-result
+Cuts: successful non-destructive Boolean, valid residual, and no remaining faces,
+edges or vertices. The independent raw-diff review classifies the additive support
+representations. Real application cumulative-02 also passes hub Join; its downstream
+bore/edit/history/reopen/strict-STL acceptance remains separate. No permanent repository fixture reproduces this
 source-specific numerical trigger; the saved retained external fixture and probe
 are required to replay it. Existing exact-offset Pattern core fixture is an
 untrimmed prism, not the same shell-derived rib, so it was not broadened into a
@@ -205,10 +209,21 @@ different geometry claim.
 
 External evidence: `validation/ornament-feasibility/retained-join-coverage.json`,
 `retained-join-coverage-tight.json`, `retained-join-candidate.cpp`,
-`retained-join-candidate.json`, `join-input-additive-diff-review.json`,
+`retained-joined-candidate.brep`, `retained-joined-containment.cpp`,
+`retained-joined-containment.json`, `join-input-additive-diff-review.json`,
 `join-coverage-core-final.log`, and the saved
 `deliverables/ornament-2026-10-13/cumulative-01/ornament-pattern-eight.alloy`.
 The raw report's no-residual-solids observation is qualified; the final candidate
 probe additionally rejects residual faces/edges/vertices. Independent Astra review
 and real application cumulative source/edit/through-bore/strict-STL acceptance
 remain required before closing #265/#264.
+
+
+The first completion probe stopped at byte-preservation (additive support cache)
+and then used BRepAlgoAPI_Check on an empty residual, which is not a valid Boolean
+argument. Its incomplete report is not a pass. The final containment probe reuses
+the saved joined BRep and applies BRepCheck_Analyzer to residual validity plus
+explicit no-face/no-edge/no-vertex checks. Maximum conservative pair discrepancy
+including both reported integration errors is1.4163313e-5 mm3. The tighter GK
+run reached maximum relative estimate1.55805024e-10; these are library estimates,
+not mathematical error bounds. No GUI was launched in these headless checks.
