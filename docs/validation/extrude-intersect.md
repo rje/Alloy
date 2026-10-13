@@ -81,3 +81,29 @@ Astra reviewed source, final native log/API report and three captures, including
 compound-preview correction, and reported no remaining bounded blocker. Final
 integration and issue acceptance remain root-owned. Other platforms and broader
 Extrude modes remain unqualified.
+
+## Independent acceptance — 2026-10-13
+
+Astra independently accepts candidate `ed32dc389a3cf749528953eab8964d02377670c2`
+for SOL-031/#219. Review covered the modifier predicates in document validation,
+ordered dependencies, shared command/edit/preview routing, same-owner target
+filtering, actual Common evaluation and retained identity/provenance. The existing
+Boolean path unites tools before Common and checks one closed positive result;
+Intersect correctly bypasses Cut's positive-removed-volume requirement.
+
+Independent review identified and the author corrected a real preview mismatch:
+requiring the source profiles to form one connected planar face rejected valid
+compound-tool intersections. The final branch uses the first profile solely for
+the cue and displays the evaluated result. The persisted API report passes this
+regression at 20 mm³ with both references retained, alongside 1800/2400 mm³
+overlap/edit results across 55 commands. Source, focused core log, native Qt log
+and all three listed captures were inspected without another app run. The blue
+overlap, Intersect/Target Body labels, distance, Cancel and OK are readable.
+
+The Qt result establishes dispatched spin/combo/button behavior after API fixture
+selection and dialog activation; it does not establish physical input, popup
+selection, global E or typed Return. The immediate native preview capture has an
+unpopulated Timeline while the later API captures show history; no additional
+Timeline acceptance is inferred from it. Source defaults and target policy remain
+the documented Alloy choices above. No remaining blocker was found in this
+bounded child; #161's broader operation and input requirements remain deferred.
