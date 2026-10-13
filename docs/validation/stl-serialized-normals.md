@@ -31,3 +31,28 @@ External evidence under `validation/ornament-feasibility/`:
 `stl-serialized-normal-final.log`. Actual saved original/edited export validation
 is performed separately by root's targeted runner; the accepted creation movie,
 history and reopen evidence are reused. No editor was opened for this correction.
+
+## Independent acceptance
+
+Astra reviewed candidate `7b18282` on 2026-10-13 without implementing the
+correction or replaying unchanged modeling work. Source inspection confirms
+that retained binary records replace only the 12 normal bytes, using the ordered
+cross product of decoded serialized vertices. The remaining 38 bytes, exact
+collapse policy, count updates, ASCII path and atomic output flow are preserved.
+
+Independent numerical reconstruction of the external witness gives normal
+alignment 0.9999999999999999 while every witness vertex rounds to the original
+float bytes. A float32 normal derived from those serialized vertices aligns at
+0.9999999999999996. This supports the diagnosed precision mismatch without
+claiming to recover the original double-precision tessellation.
+
+The actual-export regression and durable before/final logs were inspected:
+the old implementation fails the unchanged strict normal checker; the corrected
+millimeter and inch exports pass with eight facets, no removals, one closed
+positive component and unchanged original BRep. The cap-coordinate assertion
+and source inspection cover preservation of the affected serialized geometry.
+The focused pole, multibody and new regression suite passes 3/3 in 2.55 seconds.
+
+Accept this bounded source/core export correction. The separate saved original
+and edited ornament re-exports remain pending at this review; this receipt does
+not close the full cumulative tutorial gate or claim native interaction coverage.
