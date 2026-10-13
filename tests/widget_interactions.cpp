@@ -176,6 +176,49 @@ private slots:
         QVERIFY(!session(window).contains("pendingCenterRectangle"));
         QVERIFY2(run(window,"sketch.cancel"),error_.constData());
     }
+    void circleOffsetFlipPreviewCancelAccept() {
+        AlloyWindow window;window.resize(1180,760);window.show();window.activateWindow();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        QVERIFY2(run(window,"sketch.begin",{{"plane","XY"}}),error_.constData());
+        QVERIFY2(run(window,"sketch.addCircle",{{"centerX",0},{"centerY",0},{"diameter",6.3}}),error_.constData());
+        const auto original=session(window)["draftSketch"].toObject();
+        const auto source=original["parameters"].toObject()["entities"].toArray()[0].toObject()["id"];
+        QVERIFY2(run(window,"sketch.selectionSet",{{"entityIds",QJsonArray{source}}}),error_.constData());
+        auto* action=window.findChild<QAction*>("sketch.tool.offset");QVERIFY(action);action->trigger();
+        QTRY_COMPARE(session(window)["tool"].toString(),QString("offset"));
+        QTRY_VERIFY(session(window)["pendingOffset"].toObject()["valid"].toBool());
+        QCOMPARE(session(window)["draftSketch"].toObject(),original);
+        auto* flip=window.findChild<QPushButton*>("sketch.offset.flip");QVERIFY(flip);
+        QTest::mouseClick(flip,Qt::LeftButton);
+        QTRY_COMPARE(session(window)["pendingOffset"].toObject()["distanceMm"].toDouble(),-1.0);
+        const auto preview=session(window)["pendingOffset"].toObject()["previewDraft"].toObject();
+        QVERIFY(std::abs(preview["parameters"].toObject()["entities"].toArray()[1].toObject()["radiusMm"].toDouble()-2.15)<1e-6);
+        auto* cancel=window.findChild<QPushButton*>("sketch.offset.cancel");QVERIFY(cancel);
+        QTest::mouseClick(cancel,Qt::LeftButton);
+        QCOMPARE(session(window)["draftSketch"].toObject(),original);
+        QVERIFY(!session(window).contains("pendingOffset"));
+        QVERIFY2(run(window,"sketch.tool",{{"tool","offset"}}),error_.constData());
+        QVERIFY2(run(window,"sketch.offsetPreview",{{"sourceEntityId",source},{"distance",-1}}),error_.constData());
+        auto* accept=window.findChild<QPushButton*>("sketch.offset.accept");QVERIFY(accept);
+        QTest::mouseClick(accept,Qt::LeftButton);
+        const auto authored=session(window)["draftSketch"].toObject()["parameters"].toObject();
+        QCOMPARE(authored["entities"].toArray().size(),2);
+        QCOMPARE(authored["constraints"].toArray().size(),2);
+        QVERIFY(std::abs(authored["entities"].toArray()[1].toObject()["radiusMm"].toDouble()-2.15)<1e-6);
+        const auto targetId=authored["entities"].toArray()[1].toObject()["id"];
+        QVERIFY2(run(window,"sketch.selectionSet",{{"entityIds",QJsonArray{source}}}),error_.constData());
+        QVERIFY2(run(window,"sketch.tool",{{"tool","offset"}}),error_.constData());
+        QTRY_VERIFY(session(window)["pendingOffset"].toObject()["constraintId"].isString());
+        auto* distance=window.findChild<QLineEdit*>("sketch.offset.distance");QVERIFY(distance);
+        distance->setText("-1.5");
+        QTRY_COMPARE(session(window)["pendingOffset"].toObject()["distanceMm"].toDouble(),-1.5);
+        QTest::mouseClick(accept,Qt::LeftButton);
+        const auto edited=session(window)["draftSketch"].toObject()["parameters"].toObject();
+        QCOMPARE(edited["entities"].toArray().size(),2);
+        QCOMPARE(edited["entities"].toArray()[1].toObject()["id"],targetId);
+        QVERIFY(std::abs(edited["entities"].toArray()[1].toObject()["radiusMm"].toDouble()-1.65)<1e-6);
+        QVERIFY2(run(window,"sketch.cancel"),error_.constData());
+    }
     void shellFaceThicknessCancelCommit() {
         AlloyWindow window;window.resize(1180,760);window.show();window.activateWindow();
         QVERIFY(QTest::qWaitForWindowExposed(&window));auto* view=viewport(window);QVERIFY(view);

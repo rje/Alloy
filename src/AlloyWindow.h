@@ -124,6 +124,10 @@ private:
     QJsonObject selectSupportFace(const QJsonObject& support);
     QJsonObject appendSketchEntity(const QString& tool, const QJsonObject& inputs);
     QJsonObject appendCenterRectangle(const QJsonObject& inputs);
+    QJsonObject appendCircleOffset(const QJsonObject& inputs,bool update);
+    QJsonObject previewCircleOffset(const QJsonObject& inputs);
+    QJsonObject acceptCircleOffset(const QJsonObject& inputs);
+    void cancelCircleOffset();
     QJsonObject resolveSketchSnap(double x, double y, const QString& plane, bool includeMidpoints = false) const;
     QJsonObject resolveCircleTangentSnap(double x, double y, const QString& plane) const;
     QJsonObject resolveFilletCorner(double x, double y, const QString& plane) const;
@@ -229,6 +233,8 @@ private:
     QPushButton* sketchCurveEntry_ = nullptr;
     QWidget* sketchFilletControls_ = nullptr;
     QLineEdit* sketchFilletRadius_ = nullptr;
+    QWidget* sketchOffsetControls_ = nullptr;
+    QLineEdit* sketchOffsetDistance_ = nullptr;
     QComboBox* sketchDimensionKind_ = nullptr;
     QDoubleSpinBox* sketchDimensionValue_ = nullptr;
     QCheckBox* sketchDimensionDriving_ = nullptr;

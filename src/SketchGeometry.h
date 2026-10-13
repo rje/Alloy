@@ -47,6 +47,10 @@ public:
     static SolveResult filletCorners(const QJsonObject& draft, const QJsonObject& arguments, const QJsonObject& projectionContext = {});
     // Optional drivingDiameterMm retains the inline typed diameter in the same transaction.
     static SolveResult addPointerCircle(const QJsonObject& draft, const QJsonObject& arguments, const QJsonObject& projectionContext = {});
+    // Retained circle-only radial offset. The constraint holds source and
+    // result UUIDs; a distinct coincident center point follows source moves.
+    static SolveResult addCircleOffset(const QJsonObject& draft,const QJsonObject& arguments,const QJsonObject& projectionContext = {});
+    static SolveResult updateCircleOffset(const QJsonObject& draft,const QJsonObject& arguments,const QJsonObject& projectionContext = {});
     static SolveResult setConstruction(const QJsonObject& draft, const QJsonObject& arguments, const QJsonObject& projectionContext = {});
     static SolveResult solveDraft(const QJsonObject& draft, const QJsonObject& projectionContext = {});
     static SolveResult addConstraint(const QJsonObject& draft, const QJsonObject& arguments, const QJsonObject& projectionContext = {});

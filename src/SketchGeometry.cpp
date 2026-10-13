@@ -612,6 +612,27 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
                 const bool lines = lineIds.contains(refs[0].toString()) && lineIds.contains(refs[1].toString());
                 const bool curves = curveIds.contains(refs[0].toString()) && curveIds.contains(refs[1].toString());
                 if (!lines && !curves) return "Equal requires two lines or two circles/arcs";
+            } else if(type=="circleOffset") {
+                if(constraint.size()!=4 || !checkReferences(constraint,"entityIds",2,entityIds)
+                    || constraint.contains("pointIds"))return "Circle offset requires source and result circle IDs";
+                const auto refs=constraint["entityIds"].toArray();
+                bool source=false,target=false;QString sourceCenter,targetCenter;
+                for(const auto& value:parameters["entities"].toArray()) {
+                    const auto entity=value.toObject();
+                    if(entity["id"]==refs[0]){source=entity["type"]=="circle";sourceCenter=entity["centerPointId"].toString();}
+                    if(entity["id"]==refs[1]){target=entity["type"]=="circle";targetCenter=entity["centerPointId"].toString();}
+                }
+                if(!source || !target)return "Circle offset requires two circles";
+                bool concentric=sourceCenter==targetCenter;
+                for(const auto& value:parameters["constraints"].toArray())if(value.toObject()["type"]=="coincident") {
+                    const auto ids=value.toObject()["pointIds"].toArray();
+                    concentric|=ids==QJsonArray{sourceCenter,targetCenter} || ids==QJsonArray{targetCenter,sourceCenter};
+                }
+                if(!concentric)return "Circle offset requires retained concentric centers";
+                const double distance=coordinate(constraint,"distanceMm");
+                if(std::abs(distance)<minimumLength || std::abs(distance)>maximumLength)return "Invalid circle offset distance";
+                for(const auto& other:parameters["constraints"].toArray())if(other.toObject()["type"]=="circleOffset"
+                    && other.toObject()["entityIds"].toArray()[1]==refs[0])return "Offset result cannot be used as a source in this slice";
             } else if (type == "horizontal" || type == "vertical" || type == "parallel" || type == "perpendicular") {
                 if (constraint.size() != 3 || constraint.contains("pointIds")
                     || !checkReferences(constraint, "entityIds", (type == "parallel" || type == "perpendicular") ? 2 : 1, lineIds))
@@ -988,6 +1009,59 @@ SketchGeometry::SolveResult SketchGeometry::setConstruction(const QJsonObject& d
         const auto result = solveDraft(candidate,projectionContext);
         return result.ok ? result : SolveResult{false, draft, result.diagnostics, result.error};
     } catch (const std::exception& error) { return invalidDraft(draft, QString::fromUtf8(error.what())); }
+}
+
+SketchGeometry::SolveResult SketchGeometry::addCircleOffset(const QJsonObject& draft,const QJsonObject& arguments,const QJsonObject& projectionContext) {
+    try {
+        validateDraft(draft);
+        checkFields(arguments,{"sourceEntityId","distanceMm"});
+        const auto sourceId=arguments["sourceEntityId"].toString();
+        if(!validId(sourceId))reject("Offset requires a stable source circle ID");
+        const double distance=coordinate(arguments,"distanceMm");
+        if(std::abs(distance)<minimumLength)reject("Circle offset distance must be at least 0.001 mm");
+        auto parameters=draft["parameters"].toObject();auto entities=parameters["entities"].toArray();
+        auto points=parameters["points"].toArray(),constraints=parameters["constraints"].toArray();
+        QJsonObject source,sourceCenter;
+        for(const auto& value:entities)if(value.toObject()["id"]==sourceId){source=value.toObject();break;}
+        if(source["type"]!="circle")reject("Circle Offset requires one authored circle");
+        for(const auto& value:constraints)if(value.toObject()["type"]=="circleOffset"
+            && value.toObject()["entityIds"].toArray()[1]==sourceId)reject("Offset result cannot be used as a source in this slice");
+        for(const auto& value:points)if(value.toObject()["id"]==source["centerPointId"]){sourceCenter=value.toObject();break;}
+        if(sourceCenter.isEmpty())reject("Source circle center no longer exists");
+        const double radius=source["radiusMm"].toDouble()+distance;
+        if(radius<minimumLength || radius>maximumLength)reject("Offset would create an invalid circle radius");
+        const auto centerId=newId(),targetId=newId(),relationId=newId();
+        points.append(QJsonObject{{"id",centerId},{"uMm",sourceCenter["uMm"]},{"vMm",sourceCenter["vMm"]}});
+        entities.append(QJsonObject{{"id",targetId},{"type","circle"},{"centerPointId",centerId},{"radiusMm",radius}});
+        constraints.append(QJsonObject{{"id",newId()},{"type","coincident"},{"pointIds",QJsonArray{source["centerPointId"],centerId}}});
+        constraints.append(QJsonObject{{"id",relationId},{"type","circleOffset"},{"entityIds",QJsonArray{sourceId,targetId}},{"distanceMm",distance}});
+        parameters["points"]=points;parameters["entities"]=entities;parameters["constraints"]=constraints;
+        auto candidate=draft;candidate["parameters"]=parameters;
+        const auto result=solveDraft(candidate,projectionContext);
+        return result.ok ? result : SolveResult{false,draft,result.diagnostics,result.error};
+    } catch(const std::exception& error){return invalidDraft(draft,QString::fromUtf8(error.what()));}
+}
+
+SketchGeometry::SolveResult SketchGeometry::updateCircleOffset(const QJsonObject& draft,const QJsonObject& arguments,const QJsonObject& projectionContext) {
+    try {
+        validateDraft(draft);
+        checkFields(arguments,{"constraintId","distanceMm"});
+        const auto id=arguments["constraintId"].toString();if(!validId(id))reject("Offset requires a stable constraint ID");
+        const double distance=coordinate(arguments,"distanceMm");
+        if(std::abs(distance)<minimumLength)reject("Circle offset distance must be at least 0.001 mm");
+        auto parameters=draft["parameters"].toObject();auto constraints=parameters["constraints"].toArray();
+        bool found=false;
+        for(qsizetype i=0;i<constraints.size();++i) {
+            auto relation=constraints[i].toObject();
+            if(relation["id"]!=id)continue;
+            if(relation["type"]!="circleOffset")reject("Selected constraint is not a circle offset");
+            relation["distanceMm"]=distance;constraints[i]=relation;found=true;break;
+        }
+        if(!found)reject("Circle offset constraint no longer exists");
+        parameters["constraints"]=constraints;auto candidate=draft;candidate["parameters"]=parameters;
+        const auto result=solveDraft(candidate,projectionContext);
+        return result.ok ? result : SolveResult{false,draft,result.diagnostics,result.error};
+    } catch(const std::exception& error){return invalidDraft(draft,QString::fromUtf8(error.what()));}
 }
 
 SketchGeometry::SolveResult SketchGeometry::updateDimension(const QJsonObject& draft, const QJsonObject& arguments, const QJsonObject& projectionContext) {

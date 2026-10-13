@@ -74,6 +74,27 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
                     p["uMm"]=u+e["radiusMm"].toDouble()*std::cos(angle);p["vMm"]=v+e["radiusMm"].toDouble()*std::sin(angle);points[j]=p;}
             }
         }
+        // The authored source circle owns its radius. Seed each retained result
+        // from that source before PlaneGCS solves; editing the offset must not
+        // make the least-norm step resize an otherwise free source circle.
+        for(const auto& value:constraints) {
+            const auto relation=value.toObject();if(relation["type"]!="circleOffset")continue;
+            const auto refs=relation["entityIds"].toArray();
+            require(refs.size()==2,"Circle offset requires source and result");
+            double sourceRadius=0;bool foundSource=false,foundTarget=false;
+            for(const auto& entity:entities)if(entity.toObject()["id"]==refs[0]) {
+                require(entity.toObject()["type"]=="circle","Circle offset source must be a circle");
+                sourceRadius=number(entity.toObject(),"radiusMm");foundSource=true;break;
+            }
+            require(foundSource,"Circle offset source no longer exists");
+            const double targetRadius=sourceRadius+number(relation,"distanceMm");
+            require(targetRadius>=minimumLength && targetRadius<=maximumCoordinate,"Circle offset would create an invalid radius");
+            for(qsizetype i=0;i<entities.size();++i)if(entities[i].toObject()["id"]==refs[1]) {
+                auto target=entities[i].toObject();require(target["type"]=="circle","Circle offset result must be a circle");
+                target["radiusMm"]=targetRadius;entities[i]=target;foundTarget=true;break;
+            }
+            require(foundTarget,"Circle offset result no longer exists");
+        }
         // All storage is allocated before pointers enter the solver. std::map
         // nodes and deque elements retain addresses as their containers grow.
         std::vector<double> coordinates(static_cast<size_t>(points.size()) * 2);
@@ -193,6 +214,9 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
                 require(a != b,"Equal requires distinct sketch entities");
                 if (lineMap.contains(a) && lineMap.contains(b)) solver.addConstraintEqualLength(line(a),line(b),t);
                 else solver.addConstraintEqual(radius(a),radius(b),t);
+            } else if(type=="circleOffset") {
+                solver.addConstraintDifference(radius(reference(constraint,"entityIds",0)),
+                    radius(reference(constraint,"entityIds",1)),constant(number(constraint,"distanceMm")),t);
             } else require(false,"Unsupported sketch constraint");
         }
         for (const auto& entry : dimensions) {
@@ -306,6 +330,9 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
                 if (lineMap.contains(a) && lineMap.contains(b))
                     check(separation("linear",line(a).p1,line(a).p2)-separation("linear",line(b).p1,line(b).p2),lengthTolerance);
                 else check(*radius(a)-*radius(b),lengthTolerance);
+            }
+            else if(type=="circleOffset") {
+                check(*radius(reference(c,"entityIds",1))-*radius(reference(c,"entityIds",0))-number(c,"distanceMm"),lengthTolerance);
             }
             else {
                 const auto& a=line(reference(c,"entityIds",0)); const double ax=*a.p2.x-*a.p1.x,ay=*a.p2.y-*a.p1.y;

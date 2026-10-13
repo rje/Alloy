@@ -280,7 +280,7 @@ AlloyWindow::AlloyWindow() {
     auto* arc=create->addMenu("Arc");arc->setObjectName("sketch.commands.arc");
     toolAction(arc,"Center Point Arc","centerArc");toolAction(arc,"3-Point Arc","threePointArc");
     create->addSeparator();toolAction(create,"Sketch Dimension\tD","dimension");
-    auto* modify=sketchMenu("Modify","modify");toolAction(modify,"Fillet","fillet");toolAction(modify,"Trim","trim");
+    auto* modify=sketchMenu("Modify","modify");toolAction(modify,"Fillet","fillet");toolAction(modify,"Trim","trim");toolAction(modify,"Offset\tO","offset");
     auto* construction=modify->addAction("Normal/Construction\tX");construction->setObjectName("sketch.action.constructionToggle");
     construction->setToolTip("Toggle selected authored lines; construction does not bound profiles.");
     connect(construction,&QAction::triggered,this,[this]{sketchResponse(execute("sketch.constructionToggle"));});
@@ -433,8 +433,8 @@ AlloyWindow::AlloyWindow() {
     connect(searchShortcut, &QShortcut::activated, this, [this] {
         if (!qobject_cast<QLineEdit*>(QApplication::focusWidget())) execute("commands.search");
     });
-    for(const auto& tool:QStringList{"line","rectangle","circle","dimension","trim"}) {
-        auto* shortcut=new QShortcut(QKeySequence(tool=="line" ? "L" : tool=="rectangle" ? "R" : tool=="circle" ? "C" : tool=="trim" ? "T" : "D"),this);
+    for(const auto& tool:QStringList{"line","rectangle","circle","dimension","trim","offset"}) {
+        auto* shortcut=new QShortcut(QKeySequence(tool=="line" ? "L" : tool=="rectangle" ? "R" : tool=="circle" ? "C" : tool=="trim" ? "T" : tool=="offset" ? "O" : "D"),this);
         connect(shortcut,&QShortcut::activated,this,[this,tool]{
             if(qobject_cast<QLineEdit*>(QApplication::focusWidget()))return;
             if(tool=="circle")execute("sketch.circle");
@@ -448,7 +448,11 @@ AlloyWindow::AlloyWindow() {
     });
     for(const auto key:{Qt::Key_Return,Qt::Key_Enter}) {
         auto* finishTool=new QShortcut(QKeySequence(key),view_);finishTool->setContext(Qt::WidgetShortcut);
-        connect(finishTool,&QShortcut::activated,this,[this]{if(session_.value("command")=="sketch.edit" && session_.value("tool")!="select" && session_.value("tool")!="dimension" && session_.value("tool")!="fillet")execute("sketch.tool",{{"tool","select"}});});
+        connect(finishTool,&QShortcut::activated,this,[this]{
+            if(session_.value("command")!="sketch.edit")return;
+            if(session_.value("tool")=="offset" && session_.value("pendingOffset").toObject()["valid"].toBool())execute("sketch.offsetAccept");
+            else if(session_.value("tool")!="select" && session_.value("tool")!="dimension" && session_.value("tool")!="fillet")execute("sketch.tool",{{"tool","select"}});
+        });
     }
     auto* solidFilletShortcut=new QShortcut(QKeySequence("F"),this);connect(solidFilletShortcut,&QShortcut::activated,this,[this]{if(session_.isEmpty())execute("solid.filletDialog");});
     auto* extrudeShortcut=new QShortcut(QKeySequence("E"),this);
@@ -1143,6 +1147,15 @@ void AlloyWindow::registerCommands() {
     add("sketch.addCircle","Center Diameter Circle","Append one exact analytic circle in the active sketch.",
         {{"centerX",coordinate},{"centerY",coordinate},{"diameter",coordinate},{"units",optional(units)},{"session",sketchSession}},
         [this](const auto& a){return appendSketchCurve("circle",a);});
+    auto offsetDistance=parameter("number","Signed one-side circle offset in the supplied units.");offsetDistance["minimum"]=-100000;offsetDistance["maximum"]=100000;
+    add("sketch.circleOffset","Offset Circle","Create one retained concentric circle from a source circle and signed radial offset.",
+        {{"sourceEntityId",parameter("string","Authored source circle UUID.")},{"distance",offsetDistance},{"units",optional(units)},
+         {"session",optional(parameter("string","Optional active sketch session identity."))}},
+        [this](const auto& a){return appendCircleOffset(a,false);});
+    add("sketch.circleOffsetUpdate","Edit Circle Offset","Edit retained signed radial distance without changing the source circle.",
+        {{"constraintId",parameter("string","Retained circle offset constraint UUID.")},{"distance",offsetDistance},{"units",optional(units)},
+         {"session",optional(parameter("string","Optional active sketch session identity."))}},
+        [this](const auto& a){return appendCircleOffset(a,true);});
     auto arcMode=parameter("string","Center/radius/sweep or named start/end/through construction.");arcMode["enum"]=QJsonArray{"center","threePoint"};
     QJsonObject arcSchema{{"mode",arcMode},{"units",optional(units)},{"session",sketchSession},
         {"startAngleDeg",optional(angle)},{"sweepAngleDeg",optional(angle)}};
@@ -1176,13 +1189,14 @@ void AlloyWindow::registerCommands() {
             if(a.contains("session") && a["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
             cancelCenterRectangle();view_->setFocus();return QJsonObject{{"pending",false},{"authoredChange",false}};
         });
-    auto sketchTool=parameter("string","Drawing tool in the active sketch context.");sketchTool["enum"]=QJsonArray{"select","line","rectangle","centerRectangle","circle","centerArc","threePointArc","dimension","fillet","trim"};
+    auto sketchTool=parameter("string","Drawing tool in the active sketch context.");sketchTool["enum"]=QJsonArray{"select","line","rectangle","centerRectangle","circle","centerArc","threePointArc","dimension","fillet","trim","offset"};
     add("sketch.tool","Sketch drawing tool","Choose a tool and clear its pending first point.",{{"tool",sketchTool}},[this](const auto& a){
         if(session_.value("command").toString()!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
         auto badgeSelection=session_.value("selection").toObject();badgeSelection.remove("constraintIds");badgeSelection.remove("dimensionId");
         session_["selection"]=badgeSelection;session_.remove("hoveredConstraintId");
         const bool leavingFillet=session_.value("tool")=="fillet";
         clearFilletPreview();session_.remove("pendingFillet");
+        cancelCircleOffset();
         cancelDimension();
         cancelCircleDiameter();
         cancelCenterRectangle();
@@ -1193,9 +1207,27 @@ void AlloyWindow::registerCommands() {
             const QSignalBlocker block(sketchFilletRadius_);
             sketchFilletRadius_->setText(QString::number(10.0/(session_.value("inputs").toObject()["units"]=="in" ? 25.4 : 1.0),'g',8));
         }
+        if(a["tool"]=="offset") {
+            const auto selected=session_.value("selection").toObject()["entityIds"].toArray();
+            if(selected.size()==1)previewCircleOffset({{"sourceEntityId",selected[0]}});
+        }
         view_->setFocus();
         return session_;
     });
+    const QJsonObject offsetInput{{"sourceEntityId",optional(parameter("string","Authored source circle UUID."))},
+        {"distance",optional(offsetDistance)},{"flip",optional(parameter("boolean","Reverse the pending one-side offset direction."))},
+        {"units",optional(units)},{"session",optionalSession}};
+    add("sketch.offsetPreview","Preview Circle Offset","Show a disposable concentric circle while retaining the authored sketch.",
+        offsetInput,[this](const auto& a){return previewCircleOffset(a);});
+    add("sketch.offsetAccept","Accept Circle Offset","Commit the previewed retained circle offset as one sketch edit.",
+        offsetInput,[this](const auto& a){return acceptCircleOffset(a);});
+    add("sketch.offsetCancel","Cancel Circle Offset","Remove disposable offset geometry and exit Offset.",
+        {{"session",optionalSession}},[this](const auto& a){
+            if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
+            if(a.contains("session") && a["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
+            cancelCircleOffset();session_["tool"]="select";view_->setFocus();
+            return QJsonObject{{"pending",false},{"authoredChange",false}};
+        });
     auto trimCoordinate=parameter("number","Canonical sketch-plane coordinate in millimeters.");trimCoordinate["minimum"]=-100000;trimCoordinate["maximum"]=100000;
     const QJsonObject trimSchema{{"entityId",parameter("string","Authored line to trim.")},{"uMm",trimCoordinate},{"vMm",trimCoordinate}};
     add("sketch.trimPreview","Preview Trim","Highlight one removable line interval without changing the sketch or history.",trimSchema,[this](const auto& a){return previewTrim(a);});
@@ -1259,7 +1291,12 @@ void AlloyWindow::registerCommands() {
     auto sketchPickSchema=sketchPixels;sketchPickSchema["additive"]=optional(parameter("boolean","Add or toggle a target in the current sketch selection."));
     auto ids=optional(parameter("array","Authored point or line IDs in this sketch; omitted arrays default empty."));
     add("sketch.selectionSet","Select sketch geometry","Select authored geometry, locked projected references or evaluated profiles without changing geometry.",{{"pointIds",ids},{"entityIds",ids},{"profileIds",ids}},[this](const auto& a){
-        return setSketchSelection({{"pointIds",a.value("pointIds").toArray()},{"entityIds",a.value("entityIds").toArray()},{"profileIds",a.value("profileIds").toArray()}});
+        auto result=setSketchSelection({{"pointIds",a.value("pointIds").toArray()},{"entityIds",a.value("entityIds").toArray()},{"profileIds",a.value("profileIds").toArray()}});
+        const auto selected=a.value("entityIds").toArray();
+        if(session_.value("tool")=="offset" && selected.size()==1) {
+            return previewCircleOffset({{"sourceEntityId",selected[0]}});
+        }
+        return result;
     });
     add("sketch.selectionPick","Pick sketch geometry","Pick an authored point or curve, or a locked projected support edge or endpoint, in logical pixels.",sketchPickSchema,[this](const auto& a){
         if(session_.value("command").toString()!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
@@ -1288,6 +1325,17 @@ void AlloyWindow::registerCommands() {
         if(session_.value("command").toString()!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
         if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))return failure("stale_session","The document changed; cancel and restart this sketch");
         const auto tool=session_.value("tool").toString();
+        if(tool=="offset") {
+            const auto picked=view_->pickSketch(session_.value("draftSketch").toObject(),a["x"].toDouble(),a["y"].toDouble(),"entity");
+            if(picked["kind"]!="entity")return failure("source_required","Pick one authored circle to offset");
+            const auto sourceId=picked["entityId"].toString();
+            bool circle=false;for(const auto& value:session_.value("draftSketch").toObject()["parameters"].toObject()["entities"].toArray())
+                if(value.toObject()["id"]==sourceId && value.toObject()["type"]=="circle")circle=true;
+            if(!circle)return failure("unsupported_offset_source","Circle Offset supports one circle");
+            setSketchSelection({{"pointIds",QJsonArray{}},{"entityIds",QJsonArray{sourceId}},{"profileIds",QJsonArray{}}});
+            const auto response=previewCircleOffset({{"sourceEntityId",sourceId}});
+            return response;
+        }
         if(tool=="trim") {const auto inputs=trimPointerInput(a);if(inputs.isEmpty())return failure("trim_target_required","Pick an authored line interval");const auto response=execute("sketch.trim",inputs);return response["ok"].toBool() ? response["result"].toObject() : response;}
         if(tool=="fillet") {
             const auto plane=session_.value("inputs").toObject()["plane"].toString();
@@ -2360,6 +2408,20 @@ void AlloyWindow::refresh() {
         const auto diagnostics=session_.value("solverDiagnostics").toObject();
         const auto tool=session_.value("tool").toString();QString prompt="Click the first point";
         if(sketchFilletControls_)sketchFilletControls_->setVisible(tool=="fillet");
+        if(sketchOffsetControls_)sketchOffsetControls_->setVisible(tool=="offset");
+        if(sketchOffsetControls_)if(auto* accept=sketchOffsetControls_->findChild<QPushButton*>("sketch.offset.accept"))
+            accept->setEnabled(tool=="offset" && session_.value("pendingOffset").toObject()["valid"].toBool());
+        if(tool=="offset" && sketchOffsetDistance_ && session_.contains("pendingOffset")) {
+            const auto pending=session_.value("pendingOffset").toObject();
+            const double distance=pending["distanceMm"].toDouble();
+            const double scale=inputs["units"]=="in" ? 25.4 : 1;
+            bool valid=false;const double shown=sketchOffsetDistance_->text().toDouble(&valid);
+            if(!(QApplication::focusWidget()==sketchOffsetDistance_ && !pending["valid"].toBool())
+                && (!valid || std::abs(shown-distance/scale)>1e-9*std::max(1.0,std::abs(distance/scale)))) {
+                const QSignalBlocker block(sketchOffsetDistance_);
+                sketchOffsetDistance_->setText(QString::number(distance/scale,'g',8));
+            }
+        }
         if(tool=="fillet" && sketchFilletRadius_ && fillet.contains("radiusMm")) {
             const double displayValue=fillet["radiusMm"].toDouble()/(inputs["units"]=="in" ? 25.4 : 1.0);
             bool valid=false;const double shown=sketchFilletRadius_->text().toDouble(&valid);
@@ -2375,6 +2437,8 @@ void AlloyWindow::refresh() {
         else if(tool=="circle")prompt=session_.contains("pendingCircleDiameter") ? "Enter the circle diameter · Return accepts · Escape cancels" :
             session_.contains("firstPoint") ? "Type a diameter or click the circumference" : "Click the circle center";
         else if(tool=="trim")prompt="Click the highlighted segment to remove · Escape or Enter exits";
+        else if(tool=="offset")prompt=session_.value("pendingOffset").toObject()["valid"].toBool() ?
+            "One Side · Set signed distance or Flip · OK accepts" : "Select one circle · Set distance · Flip changes side";
         else if(tool=="fillet")prompt=fillet["corners"].toArray().size()==2 ? "Enter the common radius, then press Enter" :
             fillet["corners"].toArray().size()==1 ? "Click the second corner" : "Click the first corner";
         else if(tool=="centerArc")prompt=session_.contains("secondPoint") ? "Click the end · Sweep direction follows pointer" : session_.contains("firstPoint") ? "Click the start · Specify radius" : "Click the arc center";
@@ -2852,6 +2916,8 @@ QJsonObject AlloyWindow::finishSession(const QString& id, bool commit) {
             return failure("pending_input_active","Accept or cancel the typed circle diameter before finishing");
         if(session_.contains("pendingCenterRectangle"))
             return failure("pending_input_active","Accept or cancel the typed center rectangle before finishing");
+        if(session_.contains("pendingOffset"))
+            return failure("pending_input_active","Accept or cancel the circle offset before finishing");
         if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))return failure("stale_session","The document changed; cancel and restart this sketch");
         const auto candidate=SketchGeometry::replaceFeature(document_->authored(),session_.value("draftSketch").toObject());
         const auto error=document_->commit(candidate,session_.value("inputs").toObject().contains("sketchId") ? "Edit sketch" : "Create sketch");
@@ -3115,6 +3181,93 @@ QJsonObject AlloyWindow::appendCenterRectangle(const QJsonObject& inputs) {
         {"heightMm",CadDocument::millimeters(inputs["height"].toDouble(),units)}};
     if(inputs.contains("centerSnapTarget"))canonical["centerSnapTarget"]=inputs["centerSnapTarget"];
     return publishSketchSolve(SketchGeometry::addCenterRectangle(session_.value("draftSketch").toObject(),canonical,session_.value("projectionContext").toObject()));
+}
+
+QJsonObject AlloyWindow::appendCircleOffset(const QJsonObject& inputs,bool update) {
+    if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
+    if(inputs.contains("session") && inputs["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
+    if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))
+        return failure("stale_session","The document changed; cancel and restart this sketch");
+    const auto units=inputs.value("units").toString(session_.value("inputs").toObject()["units"].toString());
+    const double distance=CadDocument::millimeters(inputs["distance"].toDouble(),units);
+    const QJsonObject canonical=update ? QJsonObject{{"constraintId",inputs["constraintId"]},{"distanceMm",distance}}
+        : QJsonObject{{"sourceEntityId",inputs["sourceEntityId"]},{"distanceMm",distance}};
+    const auto draft=session_.value("draftSketch").toObject(),context=session_.value("projectionContext").toObject();
+    return publishSketchSolve(update ? SketchGeometry::updateCircleOffset(draft,canonical,context)
+        : SketchGeometry::addCircleOffset(draft,canonical,context));
+}
+
+QJsonObject AlloyWindow::previewCircleOffset(const QJsonObject& inputs) {
+    if(session_.value("command")!="sketch.edit" || session_.value("tool")!="offset")
+        return failure("no_offset_tool","Activate sketch Offset first");
+    if(inputs.contains("session") && inputs["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
+    if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))
+        return failure("stale_session","The document changed; cancel and restart this sketch");
+    auto pending=session_.value("pendingOffset").toObject();
+    const auto selected=session_.value("selection").toObject()["entityIds"].toArray();
+    const auto source=inputs.value("sourceEntityId").toString(pending.value("sourceEntityId").toString(
+        selected.size()==1 ? selected[0].toString() : QString{}));
+    if(source.isEmpty())return failure("source_required","Select one source circle");
+    const auto units=inputs.value("units").toString(session_.value("inputs").toObject()["units"].toString());
+    const auto draft=session_.value("draftSketch").toObject(),context=session_.value("projectionContext").toObject();
+    QJsonObject existing;
+    for(const auto& value:draft["parameters"].toObject()["constraints"].toArray()) {
+        const auto relation=value.toObject();
+        if(relation["type"]!="circleOffset" || relation["entityIds"].toArray()[0]!=source)continue;
+        if(!existing.isEmpty())return failure("ambiguous_offset","Source circle has multiple offsets; use the constraint ID API");
+        existing=relation;
+    }
+    double distance=inputs.contains("distance") ? CadDocument::millimeters(inputs["distance"].toDouble(),units)
+        : pending["sourceEntityId"]==source ? pending.value("distanceMm").toDouble(1)
+        : existing.isEmpty() ? 1 : existing["distanceMm"].toDouble();
+    if(inputs.value("flip").toBool())distance=-distance;
+    const auto solved=existing.isEmpty()
+        ? SketchGeometry::addCircleOffset(draft,{{"sourceEntityId",source},{"distanceMm",distance}},context)
+        : SketchGeometry::updateCircleOffset(draft,{{"constraintId",existing["id"]},{"distanceMm",distance}},context);
+    if(!solved.ok) {
+        pending={{"sourceEntityId",source},{"distanceMm",distance},{"valid",false},{"error",solved.error}};
+        if(!existing.isEmpty())pending["constraintId"]=existing["id"];
+        session_["pendingOffset"]=pending;
+        view_->showSketchDraft(SketchGeometry::evaluateFeature(draft,session_.value("resolvedFrame").toObject(),context));
+        displayedSketchDraft_=draft;
+        return failure("invalid_circle_offset",solved.error);
+    }
+    try {
+        const auto evaluated=SketchGeometry::evaluateFeature(solved.feature,session_.value("resolvedFrame").toObject(),context);
+        pending={{"sourceEntityId",source},{"distanceMm",distance},{"valid",true},{"previewDraft",solved.feature}};
+        if(!existing.isEmpty())pending["constraintId"]=existing["id"];
+        session_["pendingOffset"]=pending;view_->showSketchDraft(evaluated);
+        return {{"pendingOffset",pending},{"sketchGeometry",evaluated.summary},{"authoredChange",false}};
+    } catch(const std::exception& error){return failure("preview_failed",QString::fromUtf8(error.what()));}
+}
+
+QJsonObject AlloyWindow::acceptCircleOffset(const QJsonObject& inputs) {
+    if(!inputs.isEmpty()) {
+        const auto preview=previewCircleOffset(inputs);
+        if(preview.value("ok").isBool() && !preview.value("ok").toBool())return preview;
+    }
+    const auto pending=session_.value("pendingOffset").toObject();
+    if(session_.value("tool")!="offset" || !pending["valid"].toBool())
+        return failure("no_valid_offset_preview","Select a source circle and preview a valid distance first");
+    const bool editing=pending.contains("constraintId");
+    const auto result=appendCircleOffset(editing
+        ? QJsonObject{{"constraintId",pending["constraintId"]},{"distance",pending["distanceMm"]},{"units","mm"}}
+        : QJsonObject{{"sourceEntityId",pending["sourceEntityId"]},{"distance",pending["distanceMm"]},{"units","mm"}},editing);
+    if(!result.value("ok").isBool() || result.value("ok").toBool()) {
+        cancelCircleOffset();session_["tool"]="select";view_->setFocus();
+    }
+    return result;
+}
+
+void AlloyWindow::cancelCircleOffset() {
+    if(!session_.contains("pendingOffset"))return;
+    session_.remove("pendingOffset");
+    const auto draft=session_.value("draftSketch").toObject();
+    if(!draft.isEmpty()) {
+        view_->showSketchDraft(SketchGeometry::evaluateFeature(draft,session_.value("resolvedFrame").toObject(),
+            session_.value("projectionContext").toObject()));
+        displayedSketchDraft_=draft;
+    }
 }
 
 QJsonObject AlloyWindow::resolveSketchSnap(double x,double y,const QString& plane,bool includeMidpoints) const {
@@ -3483,7 +3636,7 @@ QJsonObject AlloyWindow::publishSketchSolve(const SketchGeometry::SolveResult& s
         auto details=response["error"].toObject();details["diagnostics"]=error.diagnostics();response["error"]=details;return response;
     }
     const auto evaluated=SketchGeometry::evaluateFeature(solved.feature,session_.value("resolvedFrame").toObject(),context);
-    cancelCircleDiameter();cancelCenterRectangle();
+    cancelCircleDiameter();cancelCenterRectangle();cancelCircleOffset();
     recordSketchHistory(solved.feature,solved.diagnostics,journalGroup);
     session_["draftSketch"]=solved.feature;session_["solverDiagnostics"]=solved.diagnostics;session_["projectionContext"]=context;session_["previewed"]=false;
     auto selection=session_.value("selection").toObject();selection.remove("constraintIds");session_["selection"]=selection;session_.remove("hoveredConstraintId");
@@ -4222,7 +4375,7 @@ void AlloyWindow::showCurveEntry() {
 void AlloyWindow::showSketch() {
     if(sketchDock_)delete sketchDock_;
     sketchInputs_.clear();sketchInfo_=nullptr;sketchName_=nullptr;sketchCurveEntry_=nullptr;
-    sketchSelectionTree_=nullptr;sketchFilletControls_=nullptr;sketchFilletRadius_=nullptr;sketchDimensionKind_=nullptr;sketchDimensionValue_=nullptr;sketchDimensionDriving_=nullptr;
+    sketchSelectionTree_=nullptr;sketchFilletControls_=nullptr;sketchFilletRadius_=nullptr;sketchOffsetControls_=nullptr;sketchOffsetDistance_=nullptr;sketchDimensionKind_=nullptr;sketchDimensionValue_=nullptr;sketchDimensionDriving_=nullptr;
     sketchShowConstraints_=nullptr;sketchShowDimensions_=nullptr;
     sketchDimensionList_=nullptr;sketchDimensionEdit_=nullptr;sketchDimensionMeasure_=nullptr;sketchWidgetDraft_={};sketchWidgetSelection_={};sketchWidgetUnits_.clear();
     sketchPanel_=new QWidget;sketchPanel_->setObjectName("sketchPanel");sketchPanel_->setFixedWidth(312);
@@ -4293,6 +4446,39 @@ void AlloyWindow::showSketch() {
         connect(filletEscape,&QShortcut::activated,this,[this]{
             if(session_.value("tool")=="fillet")sketchResponse(execute("sketch.tool",{{"tool","select"}}));
         });
+        sketchOffsetControls_=new QWidget;sketchOffsetControls_->setObjectName("sketch.offset.controls");
+        auto* offsetLayout=new QVBoxLayout(sketchOffsetControls_);offsetLayout->setContentsMargins(0,0,0,0);
+        offsetLayout->addWidget(new QLabel("One Side · Select one circle"));
+        auto* offsetRow=new QHBoxLayout;
+        sketchOffsetDistance_=new QLineEdit("1");sketchOffsetDistance_->setObjectName("sketch.offset.distance");
+        sketchOffsetDistance_->setPlaceholderText("Distance ("+inputs["units"].toString()+")");
+        offsetRow->addWidget(sketchOffsetDistance_);
+        auto* flip=new QPushButton("Flip");flip->setObjectName("sketch.offset.flip");offsetRow->addWidget(flip);offsetLayout->addLayout(offsetRow);
+        auto* offsetActions=new QHBoxLayout;auto* apply=new QPushButton("OK");apply->setObjectName("sketch.offset.accept");
+        auto* cancel=new QPushButton("Cancel Offset");cancel->setObjectName("sketch.offset.cancel");
+        offsetActions->addWidget(apply);offsetActions->addWidget(cancel);offsetLayout->addLayout(offsetActions);
+        layout->addWidget(sketchOffsetControls_);sketchOffsetControls_->hide();
+        connect(sketchOffsetDistance_,&QLineEdit::textChanged,this,[this](const QString& text){
+            if(session_.value("tool")!="offset" || !session_.contains("pendingOffset"))return;
+            bool valid=false;const double distance=text.toDouble(&valid);
+            if(valid)sketchResponse(execute("sketch.offsetPreview",{{"distance",distance}}));
+            else {execute("sketch.offsetPreview",{{"distance",0}});if(sketchError_)sketchError_->setText("Enter a signed offset distance");}
+        });
+        connect(sketchOffsetDistance_,&QLineEdit::returnPressed,this,[this]{sketchResponse(execute("sketch.offsetAccept"));});
+        connect(flip,&QPushButton::clicked,this,[this]{
+            const auto response=execute("sketch.offsetPreview",{{"flip",true}});sketchResponse(response);
+            const auto pending=session_.value("pendingOffset").toObject();
+            if(pending.contains("distanceMm") && sketchOffsetDistance_) {
+                const QSignalBlocker block(sketchOffsetDistance_);
+                const double scale=session_.value("inputs").toObject()["units"]=="in" ? 25.4 : 1;
+                sketchOffsetDistance_->setText(QString::number(pending["distanceMm"].toDouble()/scale,'g',8));
+            }
+        });
+        connect(apply,&QPushButton::clicked,this,[this]{sketchResponse(execute("sketch.offsetAccept"));});
+        connect(cancel,&QPushButton::clicked,this,[this]{sketchResponse(execute("sketch.offsetCancel"));});
+        auto* offsetEscape=new QShortcut(QKeySequence(Qt::Key_Escape),sketchOffsetControls_);
+        offsetEscape->setContext(Qt::WidgetWithChildrenShortcut);
+        connect(offsetEscape,&QShortcut::activated,this,[this]{sketchResponse(execute("sketch.offsetCancel"));});
         auto* guidance=new QLabel("Select geometry in the canvas or below.\nShift-click adds to the selection.");guidance->setWordWrap(true);layout->addWidget(guidance);
         sketchSelectionTree_=new QTreeWidget;sketchSelectionTree_->setObjectName("sketch.selection");sketchSelectionTree_->setHeaderHidden(true);
         sketchSelectionTree_->setSelectionMode(QAbstractItemView::ExtendedSelection);sketchSelectionTree_->setMaximumHeight(145);layout->addWidget(sketchSelectionTree_);

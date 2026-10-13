@@ -1078,7 +1078,7 @@ void ReferenceView::decorateSketch(const QJsonObject& feature,const QJsonObject&
                 {"viewportLocal",true},{"units","logicalPixels"}});
             continue;
         }
-        if(kind!="equal" && kind!="horizontal" && kind!="vertical" && kind!="perpendicular" && kind!="parallel" && kind!="midpoint" && kind!="pointOnCurve")continue;
+        if(kind!="equal" && kind!="horizontal" && kind!="vertical" && kind!="perpendicular" && kind!="parallel" && kind!="midpoint" && kind!="pointOnCurve" && kind!="circleOffset")continue;
         for(const auto& target:relation["entityIds"].toArray()) {
             const auto entity=entities.value(target.toString());if(entity.isEmpty())continue;
             double u,v;
@@ -1112,6 +1112,7 @@ void ReferenceView::decorateSketch(const QJsonObject& feature,const QJsonObject&
             auto stroke=[&](double x1,double y1,double x2,double y2){builder.Add(strokes,BRepBuilderAPI_MakeEdge(sketchWorld(plane,u+x1*size,v+y1*size),sketchWorld(plane,u+x2*size,v+y2*size)).Edge());};
             if(kind=="pointOnCurve"){stroke(-3,-3,3,-3);stroke(3,-3,3,3);stroke(3,3,-3,3);stroke(-3,3,-3,-3);stroke(-1,0,1,0);}
             else if(kind=="midpoint"){stroke(-5,4,5,4);stroke(5,4,0,-5);stroke(0,-5,-5,4);}
+            else if(kind=="circleOffset"){stroke(-5,-4,5,-4);stroke(-5,4,5,4);stroke(0,-2,0,2);stroke(-2,0,0,2);stroke(2,0,0,2);}
             else if(kind=="equal"){stroke(-5,-2,5,-2);stroke(-5,2,5,2);}
             else if(kind=="horizontal")stroke(-5,0,5,0);
             else if(kind=="vertical")stroke(0,-5,0,5);
