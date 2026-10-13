@@ -214,6 +214,7 @@ def main():
             capture('03-defined-straight-slot')
             stage(8, 'Create > Slot > Center Point Arc Slot')
             call('sketch.tool', {'tool': 'centerPointArcSlot'})
+            call('view.zoom', {'factor': .55})
             stage(9, 'Origin path center, rough endpoints, fourth width pick')
             click(0, 0)
             click(-100, 110)
@@ -226,7 +227,7 @@ def main():
             call('sketch.dimension', {'kind': 'radius', 'entityId': arc['pathArcId'], 'value': 150,
                  'units': 'mm', 'annotation': {'uMm': 0, 'vMm': 175}})
             call('sketch.dimension', {'kind': 'radius', 'entityId': arc['capIds'][0], 'value': 15,
-                 'units': 'mm', 'annotation': {'uMm': -115, 'vMm': 122}})
+                 'units': 'mm', 'annotation': {'uMm': 130, 'vMm': 135}})
             path = by_id(parameters()['entities'])[arc['pathArcId']]
             call('sketch.constraint', {'type': 'horizontal', 'pointIds': [path['startPointId'], path['endPointId']]})
             stage(11, 'Line from left path end to origin; convert it to Construction')
@@ -262,7 +263,7 @@ def main():
             stage(15, 'New XY Sketch2; activate Fit Point Spline')
             call('sketch.begin', {'plane': 'XY', 'name': 'Splines'})
             call('sketch.lookAt')
-            call('view.zoom', {'factor': .7})
+            call('view.zoom', {'factor': .35})
             call('sketch.tool', {'tool': 'fitSpline'})
             stage(16, 'Three arbitrary fit picks; Complete check and Escape')
             for u, v in ((-45, -35), (-15, 0), (45, -30)):
@@ -334,12 +335,17 @@ def main():
             assert not inspect()['authored']['features'][1]['visible']
             call('sketch.begin', {'plane': 'XY', 'name': 'Conic and Ellipse'})
             call('sketch.lookAt')
-            call('view.zoom', {'factor': .45})
+            call('view.zoom', {'factor': .25})
             call('sketch.tool', {'tool': 'conic'})
             stage(27, 'Three conic picks; adjust retained Rho to pictured example 0.683')
             for u, v in ((-35, 110), (35, 110), (0, 155)):
                 click(u, v)
             assert session()['pendingConic']['valid']
+            controls = session()['pendingConic']['points']
+            a, b, vertex = controls
+            mx, my = (a['uMm']+b['uMm'])/2, (a['vMm']+b['vMm'])/2
+            call('sketch.conicHandleDrag', point(mx+.683*(vertex['uMm']-mx), my+.683*(vertex['vMm']-my)))
+            assert abs(session()['pendingConic']['rho']-.683) < .02
             call('sketch.conicPreview', {'text': '0.683'})
             assert session()['pendingConic']['valid']
             capture('09-conic-rho-preview')
@@ -367,7 +373,7 @@ def main():
             third_id = draft()['id']
             assert any(c['type'] == 'coincident' and ellipse['centerPointId'] in c.get('pointIds', [])
                        for c in parameters()['constraints'])
-            assert session()['solverDiagnostics']['dof'] > 0, 'Open conic keeps whole sketch underdefined'
+            assert session()['solverDiagnostics']['dof'] == 7, 'Only the open conic retains six point freedoms and Rho'
             capture('10-dimensioned-ellipse-and-conic')
             call('sketch.finish')
             source = inspect()

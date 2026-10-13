@@ -21,3 +21,14 @@ Python syntax and the 31-stage sequence were checked, and command literals
 were compared with the current application registration. No editor was
 launched; no workflow, movie, geometry or compatibility pass is claimed.
 The first real attempt must retain its log/report if any source step fails.
+
+
+## Integrated execution checkpoint
+
+2026-10-13: all six prerequisites are accepted and integrated. Attempts 01/02
+stopped on scripted viewport coordinates outside the view, first at arc width,
+then at the control spline upper pole. They remain external failure records,
+not product or workflow acceptance. The runner now frames each complete planned
+sketch, places R15 near its associated cap, invokes the shared conic handle-drag
+command before exact numeric Rho, and asserts seven remaining third-sketch DOF
+belong to the open conic. Attempt03 is running; no final acceptance yet.
