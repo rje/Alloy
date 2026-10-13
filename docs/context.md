@@ -1650,3 +1650,16 @@ binary/ASCII box/atomic-refusal checks pass. See
 [the bounded receipt and remaining limits](validation/stl-pole-facets.md).
 Root owns integrated app/export and final movie; no GitHub closure or broad
 spherical/curved-ASCII qualification is implied by the isolated candidate.
+
+## ASCII spherical-pole STL follow-up (2026-10-13)
+
+PRT-008 #206 has an independently reviewed isolated candidate. The actual ASCII
+serialization path now drops exact duplicate-vertex/zero-area pole facets while
+preserving retained text/normals, units, CAD, mesh settings and atomic publication.
+Four-feature pole and existing binary/ASCII placed-body/atomic checks pass.
+One private real-app shared-command export of the saved complete die passes
+unchanged strict ASCII mm/in readback: 53,414 facets, 29 serialized removals,
+one closed oriented component and scaled 20 mm bounds. Authored/undo/revision
+stay unchanged; the app exits cleanly and the desktop is released. Astra accepts
+bounded code/artifact evidence; root integration/issue closure remain separate.
+See [the updated pole receipt](validation/stl-pole-facets.md).

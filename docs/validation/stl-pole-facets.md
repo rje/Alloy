@@ -62,3 +62,37 @@ The final companion test additionally checks ASCII zero-removal/count/byte
 metadata. Reported candidate focused tests were reused rather than rerunning a
 broad suite. Full application recording/export remains the cumulative #147 gate;
 this acceptance does not qualify the preexisting curved ASCII limitations above.
+
+## ASCII correction and independent review (PRT-008)
+
+2026-10-13: the ASCII path now parses the private OCCT staging file's facet
+records, removes exact duplicate-vertex/zero-area facets at printed coordinate
+precision, and preserves every retained facet's original text and normal.
+It requires complete facet/solid records and finite coordinates; malformed,
+empty or incomplete staged output fails before atomic destination replacement.
+No CAD, tessellation settings, area tolerance or binary filtering changed.
+Published triangle/byte/removal metadata reflects the corrected ASCII file.
+
+The same four-feature prefix now passes the unchanged strict reader in both
+ASCII mm and inches, with one closed oriented component, finite unit normals,
+positive areas, scaled 20 mm bounds and volume approximation. The current
+receipt has nine ASCII removals and 7,614 retained facets; regression assertions
+use actual header/reader/published counts rather than pinning these totals.
+Existing binary and placed-body/ASCII/atomic-refusal checks also pass.
+
+One private real-application run reopened the saved complete die and exported
+its actual component occurrence through shared `document.exportStl`, ASCII,
+0.05 mm / 8 degrees, in both units. Each output has 53,414 facets, 29 serialized
+removals and 13,513,758 bytes. Unchanged strict readback passes one closed oriented
+component, finite unit normals and scaled 20 mm bounds. Millimeter mesh volume is
+7801.733058817477 mm³. Authored data, undo state and revision stay exactly unchanged
+across both exports. The harness closes the application with a successful clean
+exit and releases the serialized desktop slot.
+
+Evidence is in the isolated ASCII candidate's
+`build-ascii/evidence/shared-app/`: `die-mm-ascii.stl`, `die-in-ascii.stl`,
+`ascii-export-report.json`, `transcript.json` and `app.log`.
+Astra independently inspected both actual-app artifacts and reviewed the staged
+parser, retained records, refusal/atomic paths and metadata; bounded #206 review
+accepts the candidate. This does not establish universal curved-mesh quality at
+all settings. Root owns integration, issue closure and publication decisions.

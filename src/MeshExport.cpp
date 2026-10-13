@@ -164,11 +164,45 @@ QJsonObject MeshExport::writeStl(const std::vector<EvaluatedBody>& bodies,const 
         if(!output.seek(80) || output.write(count,4)!=4)reject("export_failed",output.errorString());
         triangles=writtenTriangles;collapsedTriangles+=serializedCollapsed;
     } else {
+        // Parse only the OCCT writer's staged ASCII records. Preserve each
+        // retained facet's original text and normal; remove exact collapses
+        // at the printed coordinate precision without adding a tolerance.
+        const auto header=input.readLine();
+        if(!header.trimmed().startsWith("solid"))reject("export_failed","ASCII STL writer produced an invalid header");
+        QByteArray retained=header;qint64 asciiTriangles=0;bool ended=false;
+        const auto flush=[&]{
+            if(output.write(retained)!=retained.size())reject("export_failed",output.errorString());
+            retained.clear();
+        };
         while(!input.atEnd()) {
-            const auto chunk=input.read(1024*1024);
-            if(chunk.isEmpty() && input.error()!=QFileDevice::NoError)reject("export_failed",input.errorString());
-            if(output.write(chunk)!=chunk.size())reject("export_failed",output.errorString());
+            auto facet=input.readLine();const auto first=facet.trimmed();
+            if(first.startsWith("endsolid")) {retained.append(facet);ended=true;break;}
+            if(!first.startsWith("facet normal "))reject("export_failed","ASCII STL writer produced an invalid facet");
+            const auto outer=input.readLine();facet.append(outer);
+            if(outer.trimmed()!="outer loop")reject("export_failed","ASCII STL facet is missing its loop");
+            double vertices[3][3];
+            for(int point=0;point<3;++point) {
+                const auto line=input.readLine();facet.append(line);const auto fields=line.simplified().split(' ');
+                if(fields.size()!=4 || fields[0]!="vertex")reject("export_failed","ASCII STL facet requires three vertices");
+                for(int axis=0;axis<3;++axis) {
+                    bool ok=false;const auto coordinate=fields[axis+1].toDouble(&ok);
+                    if(!ok || !std::isfinite(coordinate))reject("export_failed","ASCII STL contains an invalid vertex");
+                    vertices[point][axis]=coordinate;
+                }
+            }
+            const auto endLoop=input.readLine(),endFacet=input.readLine();facet.append(endLoop);facet.append(endFacet);
+            if(endLoop.trimmed()!="endloop" || endFacet.trimmed()!="endfacet")reject("export_failed","ASCII STL writer produced a truncated facet");
+            const auto sameVertex=[&](int a,int b){return vertices[a][0]==vertices[b][0] && vertices[a][1]==vertices[b][1] && vertices[a][2]==vertices[b][2];};
+            const gp_Pnt a(vertices[0][0],vertices[0][1],vertices[0][2]),
+                b(vertices[1][0],vertices[1][1],vertices[1][2]),c(vertices[2][0],vertices[2][1],vertices[2][2]);
+            if(sameVertex(0,1) || sameVertex(1,2) || sameVertex(0,2)
+                || gp_Vec(a,b).Crossed(gp_Vec(a,c)).SquareMagnitude()==0) {++serializedCollapsed;continue;}
+            retained.append(facet);++asciiTriangles;
+            if(retained.size()>=1024*1024)flush();
         }
+        if(!ended || !input.atEnd() || input.error()!=QFileDevice::NoError)reject("export_failed","ASCII STL writer produced an incomplete solid");
+        if(asciiTriangles==0)reject("mesh_failed","All facets collapse in serialized ASCII STL");
+        flush();triangles=asciiTriangles;collapsedTriangles+=serializedCollapsed;
     }
     const auto outputBytes=output.size();
     if(!output.commit())reject("export_failed",output.errorString());

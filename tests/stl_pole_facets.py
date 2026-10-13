@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Strict binary readback of a four-feature spherical-pole regression fixture."""
+"""Strict binary/ASCII readback of a four-feature spherical-pole regression fixture."""
 import argparse
 import json
 import math
@@ -31,14 +31,18 @@ with tempfile.TemporaryDirectory(prefix='alloy-stl-pole-') as directory:
         assert math.isclose(mesh['signedVolume'] / scale**3, metadata['brep']['volumeMm3'], rel_tol=2e-5)
         assert result['surfaceDeviationMm'] == .05 and result['normalDeviationDeg'] == 8
         assert result['authoredChanged'] is False
-    # Preserve the existing ASCII branch and its metadata; strict curved ASCII
-    # quality is outside this binary-facet correction. Existing multibody_mesh
-    # separately verifies unchanged ASCII boxes through the strict reader.
-    ascii_path = Path(directory) / 'pole-mm-ascii.stl'
-    ascii_result = metadata['ascii']
-    assert ascii_result['serializedCollapsedTrianglesRemoved'] == 0
-    assert ascii_result['collapsedTrianglesRemoved'] == 0
-    assert ascii_result['bytes'] == ascii_path.stat().st_size
-    assert ascii_result['triangles'] == ascii_path.read_text().count('facet normal')
+    for units, scale in [('mm', 1), ('in', 1 / 25.4)]:
+        path = Path(directory) / f'pole-{units}-ascii.stl'
+        result = metadata[f'ascii-{units}']
+        mesh = inspect_stl(path, False)
+        assert result['serializedCollapsedTrianglesRemoved'] > 0
+        assert result['collapsedTrianglesRemoved'] == result['serializedCollapsedTrianglesRemoved']
+        assert result['bytes'] == path.stat().st_size
+        assert result['triangles'] == path.read_text().count('facet normal') == mesh['triangles']
+        assert len(mesh['components']) == 1
+        assert all(math.isclose(mesh['bounds'][1][i] - mesh['bounds'][0][i], 20 * scale, abs_tol=1e-6) for i in range(3))
+        assert math.isclose(mesh['signedVolume'] / scale**3, metadata['brep']['volumeMm3'], rel_tol=2e-5)
+        assert result['surfaceDeviationMm'] == .05 and result['normalDeviationDeg'] == 8
+        assert result['authoredChanged'] is False
     assert authored.read_bytes() == before
 print('PASS: actual serialized pole removal, unchanged strict normals/manifold/winding, mm/in, metadata and authored storage')
