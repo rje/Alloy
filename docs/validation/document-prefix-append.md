@@ -41,3 +41,25 @@ Evidence is external under `validation/ornament-feasibility/`:
 `document-prefix-append-core-final.log`. Root owns the actual cumulative-04 API,
 GPU, recording, edit/reopen and strict-STL gate. This receipt does not close the
 full ornament or claim a general document checkpoint/cache architecture.
+
+## Independent bounded acceptance
+
+Astra independently reviewed final candidate `c9597d7`, the guard and shared
+ordered evaluator, transaction integration and focused fixture. Accepted for
+source/core scope: reuse requires exactly one permitted append and exact current
+authored/resolved prefix plus metadata and evaluated order. The sole automatic
+Cut visibility exception modifies only the copied source sketch. The current
+binding resolver preserves feature count/order/IDs; no ID-only admission is used.
+Static/open and changed-prefix paths continue through full evaluation.
+
+The focused 4/4 final log passes in 1.09 s. The actual plane/sketch/through-Cut
+fixture establishes analytic volume and full-evaluator agreement, original
+support identity and geometry, preview isolation, failed transaction atomicity,
+one hide+Cut undo entry, redo, upstream fallback and full reopen. Its test-only
+Free flag baseline is qualified above. Production geometry is not normalized.
+No additional test replay was needed for this review.
+
+This accepts the bounded evaluation change, not measured speed or complete
+workflow success on the ornament. Root's cumulative-04 actual API/GPU timing,
+recording, source edit/reopen and strict-STL evidence remain pending. No new
+native-input or broad checkpoint/cache compatibility claim is made.
