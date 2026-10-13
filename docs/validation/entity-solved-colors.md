@@ -3,7 +3,7 @@
 2026-10-13, #259, isolated `fix/entity-solved-colors` from 9455df2. The complete
 sketch lesson exposed a defined ellipse colored blue because an unrelated
 conic retained seven DOF. This candidate classifies geometry from actual solver
-freedom instead of whole-sketch DOF. Independent compatibility acceptance is pending; focused API metadata and
+freedom instead of whole-sketch DOF. Independent bounded acceptance is recorded below; focused API metadata and
 edit/history preservation passed on the repaired candidate.
 
 The pinned PlaneGCS public source provides `getDependentParams`: its Jacobian
@@ -48,10 +48,30 @@ No private editor was launched by this implementation lane. Root owns the
 separate focused app fixture `tests/mixed_sketch_colors_api.py`. Attempt02
 passed full-model reopen, fixed/free entity metadata, dimension removal7→8DOF,
 selected and finished states, and exact authored preservation after Cancel.
-Attempt01 preserves the concrete validation lifetime crash. Attempt03 passed with readable corrected captures on the same binary; the
-previous runner needlessly reduced an already fitted viewport. All four final
-captures were inspected: fixed ellipse/axes/center are black, the independent
-conic is blue, selected ellipse remains orange, and dimension removal makes the
-ellipse free. Finished state retains the mixed solved colors. Evidence remains
-external under `deliverables/mixed-sketch-colors-2026-10-13/attempt-01`,
-`attempt-02`, and `attempt-03`. The final private editor is closed.
+Attempt01 preserves the concrete validation lifetime crash. Attempt03 passed
+on the same repaired binary with readable framing. Final evidence is external at
+`../Alloy-reference-records/deliverables/mixed-sketch-colors-2026-10-13/attempt-03/`.
+
+## Independent acceptance
+
+Accepted 2026-10-13 against candidate `4f26782` (documentation amendment of reviewed production `f4cfdd7`).
+The independent reviewer inspected the final source, pinned solver nullspace
+implementation, focused core fixtures and the actual report plus all four PNGs.
+The defined ellipse is black beside a blue free conic; removing its full-axis
+dimension makes it blue and raises total DOF from seven to eight. Selection
+remains orange, and the finished view retains black/blue classification. The
+275/100 witnesses and palette are readable at the inspected scale. The focused
+application run reports API pass and preserves authored data exactly on Cancel.
+No additional editor or unchanged workflow replay was launched for this review.
+
+The derived-geometry regression raised during review is resolved by the zero
+solver-freedom certificate, with a focused arc-slot assertion. Explicitly free
+fit/conic shape parameters are still excluded from fixed classification; mixed
+unresolved derived dependencies remain conservative. This is local Jacobian
+freedom, not universal nonlinear rigidity. Late diagnosis can temporarily solve
+redundancies inside PlaneGCS; solved geometry and measurements are extracted
+before that call, and the added classification reads pointer identity only.
+Owned-string copies remove the observed temporary-reference lifetime failure
+without changing validation policy. This acceptance establishes the bounded
+color correction and clears #257's remaining visual blocker. API captures do
+not establish new physical-input coverage.
