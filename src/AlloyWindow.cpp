@@ -248,7 +248,7 @@ AlloyWindow::AlloyWindow() {
         groups->addLayout(box);groups->addWidget(divider());
     };
     group("CREATE", {{"primitive.box", "▣"}, {"primitive.cylinder", "◉"}, {"sketch.create", "▧"}, {"solid.extrudeDialog", "▣"}});
-    group("MODIFY", {{"solid.pressPullDialog", "⇧"}, {"solid.combineDialog", "▣"}, {"solid.filletDialog", "◩"}, {"solid.shell", "▱"}, {"solid.moveDialog", "✥"}});
+    group("MODIFY", {{"solid.pressPullDialog", "⇧"}, {"solid.combineDialog", "▣"}, {"solid.filletDialog", "◩"}, {"solid.shellDialog", "▱"}, {"solid.moveDialog", "✥"}});
     group("CONSTRUCT", {{"construction.plane", "▰"}});
     group("INSPECT", {{"inspect.measure", "↔"}});
     groups->addStretch();
@@ -883,6 +883,20 @@ void AlloyWindow::registerCommands() {
         const auto error=document_->commit(candidate,"Fillet");if(!error.isEmpty()){auto response=failure("evaluation_failed",error);auto details=response["error"].toObject();details["diagnostics"]=document_->lastEvaluationError();response["error"]=details;return response;}return document_->state();
     });
     add("solid.filletDialog","Fillet","Open constant-radius edge fillet controls (F).",filletSchema,[this](const auto& a){return beginFillet(a);});
+    auto shellThickness=parameter("number","Canonical inside thickness in mm.");shellThickness["minimum"]=0;shellThickness["maximum"]=100000;
+    QJsonObject shellSchema{{"targetBodyId",optional(parameter("string","Retained body UUID."))},
+        {"removedFace",optional(parameter("object","One stable planar face reference."))},
+        {"thicknessMm",optional(shellThickness)},{"featureId",optional(featureId)},
+        {"name",optional(parameter("string","Shell feature name."))}};
+    add("solid.shell","Shell","Create or edit one-face sharp inward shell.",shellSchema,[this](const auto& a){
+        QJsonObject candidate;try{candidate=shellCandidate(a);}catch(const std::exception& e){return failure("invalid_arguments",QString::fromUtf8(e.what()));}
+        const auto error=document_->commit(candidate,"Shell");if(!error.isEmpty()){
+            auto response=failure("evaluation_failed",error);auto details=response["error"].toObject();
+            details["diagnostics"]=document_->lastEvaluationError();response["error"]=details;return response;
+        }
+        return document_->state();
+    });
+    add("solid.shellDialog","Shell","Open one-face sharp inward shell controls.",shellSchema,[this](const auto& a){return beginShell(a);});
     add("view.projectEdge","Project named solid edge","Project the actual current provenance edge midpoint.",{{"bodyId",parameter("string","Retained body UUID.")},{"edgeId",parameter("string","Stable edge UUID.")}},[this](const auto& a){
         const auto bodies=session_.value("command")=="solid.fillet" ? filletInputBodies() : document_->bodies();for(const auto& body:bodies)if(body.bodyId==a["bodyId"].toString())for(const auto& edge:body.solidEdges)if(edge.edgeId==a["edgeId"].toString() && !edge.edge.IsNull())return view_->projectSolidEdge(edge);return failure("edge_unavailable","Named edge unavailable");
     });
@@ -1524,6 +1538,7 @@ void AlloyWindow::registerCommands() {
                 return beginSession("solid.extrude",inputs);
             }
             if(feature["type"]=="fillet") {auto inputs=p;inputs["featureId"]=feature["id"];inputs["name"]=feature["name"];return beginFillet(inputs);}
+            if(feature["type"]=="shell") {auto inputs=p;inputs["featureId"]=feature["id"];inputs["name"]=feature["name"];return beginShell(inputs);}
             if(feature["type"]=="move") {auto inputs=p;inputs["featureId"]=feature["id"];inputs["name"]=feature["name"];return beginMove(inputs);}
             if(feature["type"]=="move") {auto inputs=p;inputs["featureId"]=feature["id"];inputs["name"]=feature["name"];return beginMove(inputs);}
             if(feature["type"]=="boolean") {
@@ -1585,6 +1600,15 @@ void AlloyWindow::registerCommands() {
     });
     add("selection.pick","Pick body or region","Pick actual OCCT geometry at viewport-local coordinates; Shift adds sketch regions.",{{"x",point},{"y",point},{"additive",optional(parameter("boolean","Add a picked region in the current same-sketch selection."))},
         {"toggle",optional(parameter("boolean","Toggle a picked region in the current same-sketch selection."))}},[this](const auto& a){
+        if(session_.value("command")=="solid.shell") {
+            const auto hit=view_->pickSupportFace(a["x"].toDouble(),a["y"].toDouble(),
+                session_["inputs"].toObject()["featureId"].toString().isEmpty() ? document_->bodies()
+                    : document_->evaluationBefore(session_["inputs"].toObject()["featureId"].toString()).bodies);
+            if(hit.isEmpty())return failure("face_required","Click a retained planar face to remove");
+            auto response=execute("command.update",{{"session",session_["id"]},
+                {"inputs",QJsonObject{{"targetBodyId",hit["bodyId"]},{"removedFace",hit}}}});
+            if(!response["ok"].toBool())return response;previewShell();return hit;
+        }
         if(session_.value("command")=="solid.fillet") {
             const auto hit=view_->pickSolidEdge(a["x"].toDouble(),a["y"].toDouble(),filletInputBodies());if(hit.isEmpty())return failure("edge_required","Click a visible solid edge with retained provenance");
             auto inputs=session_["inputs"].toObject();auto edges=inputs["edgeIds"].toArray();const auto target=hit["bodyId"].toString();if(inputs["targetBodyId"].toString()!=target)edges={};
@@ -1622,7 +1646,7 @@ void AlloyWindow::registerCommands() {
         return failure("stale_entity","Body does not exist");
     });
     auto sessionTarget = parameter("string", "Implemented session target; modeling targets follow alongside their features.");
-    sessionTarget["enum"] = QJsonArray{"document.units", "commands.search","solid.box","solid.cylinder","solid.extrude","solid.combine","solid.move","solid.fillet","sketch.create"};
+    sessionTarget["enum"] = QJsonArray{"document.units", "commands.search","solid.box","solid.cylinder","solid.extrude","solid.combine","solid.move","solid.fillet","solid.shell","sketch.create"};
     add("command.begin", "Begin command session", "Begin a real editable dialog with disposable inputs.",
         {{"command", sessionTarget}, {"inputs", parameter("object", "Initial input overrides.")}},
         [this](const auto& a) { return beginSession(a["command"].toString(), a["inputs"].toObject()); });
@@ -1651,6 +1675,10 @@ void AlloyWindow::registerCommands() {
             if(updates.contains("featureId") && updates["featureId"]!=session_["inputs"].toObject()["featureId"])return failure("invalid_arguments","Fillet edit identity cannot change");
             const auto error=validateArguments(*findCommand(target),inputs);if(!error.isEmpty())return failure("invalid_arguments",error);
             if(!inputs["tangentChain"].toBool())return failure("unsupported_option","Tangent Chain Off is outside this slice");
+        } else if(target=="solid.shell") {
+            if(updates.contains("featureId") && updates["featureId"]!=session_["inputs"].toObject()["featureId"])
+                return failure("invalid_arguments","Shell edit identity cannot change");
+            const auto error=validateArguments(*findCommand(target),inputs);if(!error.isEmpty())return failure("invalid_arguments",error);
         } else if(target=="solid.combine") {
             auto reject=[this](const QString& code,const QString& message,const QString& field=QString{}) {
                 auto response=failure(code,message,field);session_["previewed"]=false;session_["geometryEvaluated"]=false;
@@ -1697,6 +1725,7 @@ void AlloyWindow::registerCommands() {
             return preview;
         }
         if(session_.value("command")=="solid.fillet")return previewFillet();
+        if(session_.value("command")=="solid.shell")return previewShell();
         if(session_.value("command")=="solid.move")return previewMove();
         if(session_.value("command")=="solid.combine")return previewCombine();
         session_["previewed"]=false;view_->clearPreview();
@@ -1735,7 +1764,7 @@ void AlloyWindow::registerCommands() {
     add("command.panelDock","Dock command panel","Dock or float the active modeling panel through Qt.",
         {{"docked",parameter("boolean","True docks the panel on the right; false floats it.")}},[this](const auto& a){
             const auto target=session_.value("command").toString();
-            auto* dock=target=="solid.fillet" ? filletDock_ : target=="solid.move" ? moveDock_ : target=="solid.extrude" ? extrudeDock_ : target=="solid.combine" ? combineDock_ : target.startsWith("sketch.") ? sketchDock_ : target.startsWith("solid.") ? primitiveDock_ : nullptr;
+            auto* dock=target=="solid.fillet" ? filletDock_ : target=="solid.shell" ? shellDock_ : target=="solid.move" ? moveDock_ : target=="solid.extrude" ? extrudeDock_ : target=="solid.combine" ? combineDock_ : target.startsWith("sketch.") ? sketchDock_ : target.startsWith("solid.") ? primitiveDock_ : nullptr;
             if(!dock)
                 return failure("no_active_dialog","No modeling panel is active");
             dock->setFloating(!a["docked"].toBool());
@@ -1823,7 +1852,7 @@ void AlloyWindow::registerCommands() {
         authorizedQuit_=true;
         QTimer::singleShot(0,qApp,&QApplication::quit);return QJsonObject{{"quitting",true}};
     });
-    for (const auto& pair : QList<QPair<QString, QString>>{{"solid.revolve", "Revolve"}, {"solid.shell", "Shell"}, {"construction.plane", "Plane"}, {"inspect.measure", "Measure"}}) {
+    for (const auto& pair : QList<QPair<QString, QString>>{{"solid.revolve", "Revolve"}, {"construction.plane", "Plane"}, {"inspect.measure", "Measure"}}) {
         commands_.push_back({pair.first, pair.second, "Not implemented in the UI shell.", {}, false, {}});
     }
 }
@@ -1894,16 +1923,17 @@ QJsonObject AlloyWindow::state() const {
     const auto target=session_.value("command").toString();
     const bool dialogVisible=target=="commands.search" ? bool(search_ && search_->isVisible())
         : target=="solid.fillet" ? bool(filletDock_ && filletDock_->isVisible())
+        : target=="solid.shell" ? bool(shellDock_ && shellDock_->isVisible())
         : target=="solid.move" ? bool(moveDock_ && moveDock_->isVisible())
         : target=="solid.extrude" ? bool(extrudePanel_ && extrudePanel_->isVisible())
         : target=="solid.combine" ? bool(combinePanel_ && combinePanel_->isVisible())
         : target.startsWith("solid.") ? bool(primitivePanel_ && primitivePanel_->isVisible())
         : target.startsWith("sketch.") ? bool(sketchPanel_ && sketchPanel_->isVisible()) : bool(unitsDialog_ && unitsDialog_->isVisible());
-    const auto dialogInputs=session_.isEmpty() ? QJsonObject{} : (target=="solid.fillet" || target=="solid.move" || target=="solid.extrude" || target=="solid.combine") ? session_.value("inputs").toObject() : target.startsWith("solid.") ? primitiveWidgetInputs()
+    const auto dialogInputs=session_.isEmpty() ? QJsonObject{} : (target=="solid.fillet" || target=="solid.shell" || target=="solid.move" || target=="solid.extrude" || target=="solid.combine") ? session_.value("inputs").toObject() : target.startsWith("solid.") ? primitiveWidgetInputs()
         : target.startsWith("sketch.") ? session_.value("inputs").toObject()
         : target=="commands.search" ? QJsonObject{{"query",searchInput_ ? searchInput_->text() : QString{}}}
         : QJsonObject{{"units",unitsInput_ ? unitsInput_->currentText() : QString{}}};
-    const auto* activeDock=target=="solid.fillet" ? filletDock_ : target=="solid.move" ? moveDock_ : target=="solid.extrude" ? extrudeDock_ : target=="solid.combine" ? combineDock_ : target.startsWith("sketch.") ? sketchDock_ : primitiveDock_;
+    const auto* activeDock=target=="solid.fillet" ? filletDock_ : target=="solid.shell" ? shellDock_ : target=="solid.move" ? moveDock_ : target=="solid.extrude" ? extrudeDock_ : target=="solid.combine" ? combineDock_ : target.startsWith("sketch.") ? sketchDock_ : primitiveDock_;
     const auto panelRect=activeDock ? QRect(activeDock->mapToGlobal(QPoint())-mapToGlobal(QPoint()),activeDock->size()) : QRect{};
     QJsonArray popups;
     for(auto* popup:QApplication::topLevelWidgets()) {
@@ -1970,7 +2000,7 @@ void AlloyWindow::refresh() {
     const auto historicalSketchId=session_.value("command")=="sketch.edit"
         && session_.value("baseDocumentRevision").toInteger()==static_cast<qint64>(document_->revision())
         ? session_.value("inputs").toObject().value("sketchId").toString() : QString{};
-    if(session_.value("command")!="solid.fillet" && session_.value("command")!="solid.move" && session_.value("command")!="solid.combine" && !(session_.value("command")=="solid.extrude" && !session_.value("inputs").toObject().value("featureId").toString().isEmpty()) && historicalSketchId.isEmpty())view_->clearBodyStage();
+    if(session_.value("command")!="solid.fillet" && session_.value("command")!="solid.shell" && session_.value("command")!="solid.move" && session_.value("command")!="solid.combine" && !(session_.value("command")=="solid.extrude" && !session_.value("inputs").toObject().value("featureId").toString().isEmpty()) && historicalSketchId.isEmpty())view_->clearBodyStage();
     if(displayedDocumentRevision_!=document_->revision()) {
         const QSignalBlocker block(tree_);
         // Keep Browser rows keyed by their stable IDs. Removing all children on
@@ -2075,7 +2105,10 @@ void AlloyWindow::refresh() {
     if(session_.value("command")=="solid.move" && moveDock_)for(const auto& key:{"xMm","yMm","zMm","xDeg","yDeg","zDeg","pivotXMm","pivotYMm","pivotZMm"})if(auto* field=moveDock_->findChild<QDoubleSpinBox*>(key)){const QSignalBlocker blocker(field);field->setValue(session_["inputs"].toObject()[key].toDouble());}
     if(session_.value("command")=="solid.fillet" && filletDock_)if(auto* field=filletDock_->findChild<QDoubleSpinBox*>("filletRadius")){const QSignalBlocker blocker(field);field->setValue(session_["inputs"].toObject()["radiusMm"].toDouble());}
     if(session_.value("command")=="solid.fillet" && filletDock_)if(auto* box=filletDock_->findChild<QDialogButtonBox*>())box->button(QDialogButtonBox::Ok)->setEnabled(session_["previewed"].toBool() && session_["geometryEvaluated"].toBool() && session_["baseDocumentRevision"].toInteger()==static_cast<qint64>(document_->revision()));
+    if(session_.value("command")=="solid.shell" && shellDock_)if(auto* field=shellDock_->findChild<QDoubleSpinBox*>("shellThickness")){const QSignalBlocker blocker(field);field->setValue(session_["inputs"].toObject()["thicknessMm"].toDouble());}
+    if(session_.value("command")=="solid.shell" && shellDock_)if(auto* box=shellDock_->findChild<QDialogButtonBox*>())box->button(QDialogButtonBox::Ok)->setEnabled(session_["previewed"].toBool() && session_["geometryEvaluated"].toBool() && session_["baseDocumentRevision"].toInteger()==static_cast<qint64>(document_->revision()));
     if(filletEscape_)filletEscape_->setEnabled(session_.value("command")=="solid.fillet");
+    if(shellEscape_)shellEscape_->setEnabled(session_.value("command")=="solid.shell");
     if(moveEscape_)moveEscape_->setEnabled(session_.value("command")=="solid.move");
     if(combineEscape_)combineEscape_->setEnabled(session_.value("command")=="solid.combine");
     if(editingSketch) {
@@ -2527,6 +2560,7 @@ void AlloyWindow::updateExtrude(const QJsonObject& inputs) {
 QJsonObject AlloyWindow::beginSession(const QString& command, const QJsonObject& inputs) {
     if(command=="solid.extrude")return beginExtrude(inputs);
     if(command=="solid.fillet")return beginFillet(inputs);
+    if(command=="solid.shell")return beginShell(inputs);
     if(command=="solid.move")return beginMove(inputs);
     if(command=="solid.combine")return beginCombine(inputs);
     if(command=="sketch.create") {
@@ -2616,6 +2650,7 @@ QJsonObject AlloyWindow::finishSession(const QString& id, bool commit) {
             if(view_->windowHandle())view_->windowHandle()->requestActivate();
         });
     }
+    else if(target=="solid.shell") {if(shellEscape_)shellEscape_->setEnabled(false);if(shellDock_)shellDock_->hide();view_->clearPreview();view_->clearBodyStage();}
     else if(target=="solid.move") {if(moveEscape_)moveEscape_->setEnabled(false);if(moveDock_)moveDock_->hide();view_->clearMoveCue(true);view_->clearPreview();view_->clearBodyStage();}
     else if(target.startsWith("solid.")) {if(primitiveDock_)primitiveDock_->hide();view_->clearPreview();}
     if(target.startsWith("sketch.")) {

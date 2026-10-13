@@ -28,19 +28,19 @@ target_include_directories(alloy_sketch_solver PUBLIC src)
 target_link_libraries(alloy_sketch_solver PUBLIC Qt6::Core PRIVATE alloy_planegcs)
 
 add_library(alloy_kernel STATIC
-    src/GeometryKernel.cpp src/GeometryKernel.h src/PlanarFaces.cpp src/PlanarFaces.h src/SolidFillet.cpp src/SolidFillet.h src/JoinResults.cpp
+    src/GeometryKernel.cpp src/GeometryKernel.h src/PlanarFaces.cpp src/PlanarFaces.h src/SolidFillet.cpp src/SolidFillet.h src/SolidShell.cpp src/SolidShell.h src/JoinResults.cpp
     src/MeshExport.cpp src/MeshExport.h
     src/StepExchange.cpp src/StepExchange.h
     src/SketchGeometry.cpp src/SketchTrim.cpp src/SketchGeometry.h
     src/SketchProfiles.cpp src/SketchProfiles.h src/SketchRegions.cpp)
 target_include_directories(alloy_kernel PUBLIC src)
 target_include_directories(alloy_kernel SYSTEM PUBLIC ${OpenCASCADE_INCLUDE_DIR})
-target_link_libraries(alloy_kernel PUBLIC alloy_sketch_solver Qt6::Core TKernel TKMath TKG3d TKBRep TKPrim TKTopAlgo TKFillet TKBO TKBool TKGeomAlgo TKMesh TKDESTL TKDESTEP TKXSBase)
+target_link_libraries(alloy_kernel PUBLIC alloy_sketch_solver Qt6::Core TKernel TKMath TKG3d TKBRep TKPrim TKTopAlgo TKFillet TKOffset TKBO TKBool TKGeomAlgo TKMesh TKDESTL TKDESTEP TKXSBase)
 target_compile_definitions(alloy_kernel PUBLIC ALLOY_OCCT_VERSION="${ALLOY_OCCT_VERSION}")
 
 add_library(alloy_application STATIC
     src/AlloyTheme.cpp src/AlloyTheme.h
-    src/AlloyWindow.cpp src/AlloyWindow.h src/SolidFilletControls.cpp src/MoveControls.cpp src/CombineControls.cpp src/ExportControls.cpp src/StepExportControls.cpp
+    src/AlloyWindow.cpp src/AlloyWindow.h src/SolidFilletControls.cpp src/SolidShellControls.cpp src/MoveControls.cpp src/CombineControls.cpp src/ExportControls.cpp src/StepExportControls.cpp
     src/TutorialRecorder.cpp src/TutorialRecorder.h
     src/CadDocument.cpp src/CadDocument.h
     src/ReferenceView.cpp src/ReferenceView.h
@@ -123,6 +123,9 @@ if(BUILD_TESTING)
     add_executable(solid_fillet_test tests/solid_fillet.cpp src/CadDocument.cpp src/CadDocument.h)
     target_link_libraries(solid_fillet_test PRIVATE alloy_kernel Qt6::Widgets)
     add_test(NAME solid_fillet COMMAND solid_fillet_test)
+    add_executable(solid_shell_test tests/solid_shell.cpp src/CadDocument.cpp src/CadDocument.h)
+    target_link_libraries(solid_shell_test PRIVATE alloy_kernel Qt6::Widgets)
+    add_test(NAME solid_shell COMMAND solid_shell_test)
     add_executable(move_document_test tests/move_document.cpp src/CadDocument.cpp src/CadDocument.h)
     target_include_directories(move_document_test PRIVATE src)
     target_link_libraries(move_document_test PRIVATE Qt6::Gui alloy_kernel)

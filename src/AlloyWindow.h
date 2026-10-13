@@ -83,6 +83,12 @@ private:
     std::vector<EvaluatedBody> filletInputBodies() const;
     QDockWidget* filletDock_ = nullptr;
     QShortcut* filletEscape_ = nullptr;
+    QJsonObject beginShell(const QJsonObject& inputs);
+    QJsonObject shellCandidate(const QJsonObject& inputs) const;
+    QJsonObject previewShell();
+    void showShell();
+    QDockWidget* shellDock_ = nullptr;
+    QShortcut* shellEscape_ = nullptr;
     QJsonObject beginMove(const QJsonObject& inputs);
     QJsonObject moveCandidate(const QJsonObject& inputs) const;
     QJsonObject previewMove();

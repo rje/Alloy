@@ -1,5 +1,6 @@
 #include "PlanarFaces.h"
 #include "SolidFillet.h"
+#include "SolidShell.h"
 #include <BRepBuilderAPI_Transform.hxx>
 #include <gp_Ax1.hxx>
 #include <gp_Trsf.hxx>
@@ -73,6 +74,7 @@ EvaluatedSupportFace GeometryKernel::resolveSketchSupport(const EvaluatedDocumen
     const EvaluatedSupportFace* found=nullptr;
     for(const auto& face:body->supportFaces)if(face.faceId==support["faceId"].toString() && face.producerFeatureId==support["producerFeatureId"].toString()){if(found)reject("ambiguous_support","More than one face matches the support reference");found=&face;}
     if(!found)reject("support_unavailable","The exact named planar support has no unique surviving face");
+
     int matches=0;for(TopExp_Explorer face(body->shape,TopAbs_FACE);face.More();face.Next())if(face.Current().IsSame(found->face))++matches;
     if(matches!=1 || found->face.IsNull() || !BRepCheck_Analyzer(found->face).IsValid()
         || BRepAdaptor_Surface(found->face).GetType()!=GeomAbs_Plane)reject("support_unavailable","The retained support is not one real planar producer face");
@@ -413,6 +415,10 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored) 
                 const auto target=std::find_if(evaluated.bodies.begin(),evaluated.bodies.end(),[&](const auto& body){return body.bodyId==parameters["targetBodyId"].toString();});
                 if(target==evaluated.bodies.end())throw EvaluationError({{"code","body_unavailable"},{"featureId",id},{"message","Fillet target must be active earlier in history"}});
                 SolidFillet::evaluate(*target,parameters,id);
+            } else if(type=="shell") {
+                const auto target=std::find_if(evaluated.bodies.begin(),evaluated.bodies.end(),[&](const auto& body){return body.bodyId==parameters["targetBodyId"].toString();});
+                if(target==evaluated.bodies.end())throw EvaluationError({{"code","body_unavailable"},{"featureId",id},{"message","Shell target must be active earlier in history"}});
+                SolidShell::evaluate(*target,parameters,id);
             } else if (type == "move") {
                 const auto bodyId=parameters["targetBodyId"].toString();
                 auto body=std::find_if(evaluated.bodies.begin(),evaluated.bodies.end(),[&](const auto& item){return item.bodyId==bodyId;});
