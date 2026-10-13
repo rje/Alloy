@@ -7,8 +7,9 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-There are **158 issues**: **102 implementation, 15 research, 22 epics, and 19
-validation gates**. Issue count is a decomposition, not a product coverage claim.
+The current publication contains **176 issues**: **115 implementation, 15 research,
+22 epics, and 24 validation gates**. Counts describe decomposition, not coverage.
+Use the live issue state for completion and readiness.
 
 ## Active delivery order
 
@@ -18,13 +19,19 @@ still checking live dependencies. The project board exposes the same **Delivery
 order** number. A blocked broad issue may receive a bounded implementation slice;
 that does not close the issue or waive its remaining acceptance criteria.
 
-1. Constraint-first editing, Equal, native picking, dimensions and retained badges.
-2. Exact first illustrated activity, including origin attachment, the two-line
-   angle and new-document interaction.
-3. Construction, inferred circles, sketch fillets and multi-region Press Pull.
-4. Face-supported sketch and references to existing model edges.
-5. Five-circle Cut and the complete illustrated gate, followed by the wider
-   printing/export checkpoint.
+1. Straw bung: retained-target Extrude Join (#168), authored body movement (#169),
+   command-first Circle (#175), then the complete illustrated workflow and print export gate (#170).
+2. Finish outstanding exact-native bracket evidence as bounded follow-ups;
+   retain prior API/slicer success without relabeling it as full native parity.
+3. Straw support: profile partitions, joined heights and solid fillets (#171).
+4. Nested cubes: shell, mirror, multi-face sketches, offset plane and center
+   rectangle (#172).
+5. Egg cup: offset circular sections, ordered loft and shell (#173).
+
+The four tutorials reuse existing feature owners where possible; source PDFs,
+URLs, visual references and detailed ledgers stay in external
+`knowledge/tutorials/warwick`. Join and body Move are bounded children of #161
+and #53; their wider requirements remain Todo.
 
 After every slice, run the smallest complete author/edit/finish/undo/reopen
 workflow it enables in a private real application instance. Record source steps

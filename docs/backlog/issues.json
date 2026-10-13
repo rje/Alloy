@@ -1354,7 +1354,7 @@
         "priority:P1",
         "area:sol"
       ],
-      "body": "## Problem and result\nImplement move/copy and align for bodies with history. Deliver the bounded result below within Alloy's standalone C++20 product; the current application is only a Qt shell.\n\n## Scope\nAdd transform inputs, copy-vs-move distinction and geometry-based alignment with shared selection and preview.\n\n## Acceptance criteria\n- Transform is authored; copy gets new identity; dependent features either retain correct ownership or report unsupported move.\n- UI and local API share authoritative document/commands; expose arguments, selection, errors and result inspection. Undo/save coverage follows the dependencies, never a separate automation model.\n\n## Proposed verification and evidence\nCopy a plate by 30 mm then align planar faces; verify transform matrices, bounds, identities and undo/save.\n\nAdd/execute `python3 tests/workflows/run.py --case SOL-008 --evidence build/evidence/SOL-008` (case not implemented yet; the runner refuses missing cases). Record actual commands, fixture hashes, dependency versions, assertions and artifacts. Keep build, API, geometry, save/reopen, export, physical input and visual evidence separate; mark non-applicable dimensions with a reason.\n\n## Public reference evidence\n- Solid modification tools (reference `modify`) \u2014 retrieved 2026-10-11.\n- reference CAD application public command-input descriptions (reference `inputs`) \u2014 retrieved 2026-10-11.\n\nReferences describe documented product/library behavior. Scope, implementation strategy, fixture values and acceptance thresholds are Alloy proposals unless explicitly stated otherwise. Never run or inspect reference CAD application; use public documentation/screenshots only.\n\n## Limits and open questions\nOnly the stated subset is in scope; record unsupported options explicitly. This issue is planned, not implemented or verified.\n"
+      "body": "## Problem and result\nImplement move/copy and align for bodies with history. Deliver the bounded result below within Alloy's standalone C++20 product; the current application is only a Qt shell.\n\n## Scope\nAdd transform inputs, copy-vs-move distinction and geometry-based alignment with shared selection and preview.\n\n## Acceptance criteria\n- Transform is authored; copy gets new identity; dependent features either retain correct ownership or report unsupported move.\n- UI and local API share authoritative document/commands; expose arguments, selection, errors and result inspection. Undo/save coverage follows the dependencies, never a separate automation model.\n\n## Proposed verification and evidence\nCopy a plate by 30 mm then align planar faces; verify transform matrices, bounds, identities and undo/save.\n\nAdd/execute `python3 tests/workflows/run.py --case SOL-008 --evidence build/evidence/SOL-008` (case not implemented yet; the runner refuses missing cases). Record actual commands, fixture hashes, dependency versions, assertions and artifacts. Keep build, API, geometry, save/reopen, export, physical input and visual evidence separate; mark non-applicable dimensions with a reason.\n\n## Public reference evidence\n- Solid modification tools (reference `modify`) \u2014 retrieved 2026-10-11.\n- reference CAD application public command-input descriptions (reference `inputs`) \u2014 retrieved 2026-10-11.\n\nReferences describe documented product/library behavior. Scope, implementation strategy, fixture values and acceptance thresholds are Alloy proposals unless explicitly stated otherwise. Never run or inspect reference CAD application; use public documentation/screenshots only.\n\n## Limits and open questions\nOnly the stated subset is in scope; record unsupported options explicitly. This issue is planned, not implemented or verified.\n\n## Tutorial decomposition\nBody translation/rotation is isolated in SOL-019 for the next tutorial. Copy, alignment and remaining modes stay here; this parent is not closed by the Move subset.\n"
     },
     {
       "key": "SOL-009",
@@ -3060,7 +3060,7 @@
         "priority:P0",
         "area:sol"
       ],
-      "body": "## Problem and result\nFinish the explicitly deferred portion of SOL-015.\n\n## Scope\n- Join a profile prism as a boss on an existing body; Intersect retains overlap.\n- Same authored operation feature/target identity and stored participant policy, signed distance and supported face/origin sketches.\n- Explicit invalid/no-overlap behavior and operation-edit boundaries; preserve cancellation/live state.\n\n## Acceptance criteria\n- Native/API rectangular boss Join and bounded Intersect have independently checked volumes, target IDs, previews and one history feature with no authored cutter.\n- Upstream edit, cancel, failed overlap, undo/redo and save/reopen preserve the intended operation.\n- UI and API share authoritative commands and state. Retain stable references, atomic failure, unit correctness, undo/redo and native save/reopen where the operation authors data. Verify the real workflow proportionately; distinguish API, native input, geometry and visuals.\n\n## Split provenance\nSplit from #149 on 2026-10-12. The original now records only the independently accepted subset; this task retains the remaining requirements. Public evidence and uncertainty remain in the external knowledge archive and existing command contracts.\n\n## Status\nTodo. This broader scope is not implemented or accepted.\n"
+      "body": "## Problem and result\nFinish the explicitly deferred portion of SOL-015.\n\n## Scope\n- Join a profile prism as a boss on an existing body; Intersect retains overlap.\n- Same authored operation feature/target identity and stored participant policy, signed distance and supported face/origin sketches.\n- Explicit invalid/no-overlap behavior and operation-edit boundaries; preserve cancellation/live state.\n\n## Acceptance criteria\n- Native/API rectangular boss Join and bounded Intersect have independently checked volumes, target IDs, previews and one history feature with no authored cutter.\n- Upstream edit, cancel, failed overlap, undo/redo and save/reopen preserve the intended operation.\n- UI and API share authoritative commands and state. Retain stable references, atomic failure, unit correctness, undo/redo and native save/reopen where the operation authors data. Verify the real workflow proportionately; distinguish API, native input, geometry and visuals.\n\n## Split provenance\nSplit from #149 on 2026-10-12. The original now records only the independently accepted subset; this task retains the remaining requirements. Public evidence and uncertainty remain in the external knowledge archive and existing command contracts.\n\n## Status\nTodo. This broader scope is not implemented or accepted.\n\n## Tutorial decomposition\nExtrude Join is isolated in SOL-018 for the next tutorial. This issue retains Intersect and broader operation-edit coverage; it is not closed by Join alone.\n"
     },
     {
       "key": "SKT-025",
@@ -3132,6 +3132,177 @@
         "area:doc"
       ],
       "body": "## Scope\nComplete the remaining native UI evidence for the implemented STEP/STL commands: File Open a STEP source, switch STEP export units in the sheet, and change nondefault mesh settings through Save As Mesh. Preserve the accepted format/API checks; do not rerun unrelated modeling.\n\n## Acceptance\nUse actual application controls and native file sheets, inspect selected body/unit/settings and actual exported file with independent readers. Keep source document unchanged by export. Confirm cancel leaves no output or authoring edit. Record tool limitations separately from proven app defects.\n\n## Current evidence\nSingle-solid STEP import/export, mm/in units, binary/ASCII STL refinement/manifold checks and bracket outputs pass real-app API and independent readback. Earlier native mm STEP export and default STL Save As Mesh passed (step-native-receipt.json and stl-native-receipt.json in exchange-finish/build-step/evidence). The current CUA Open path entry did not accept the target reliably; this does not establish a translator failure. No full native file-dialog claim.\n"
+    },
+    {
+      "key": "SOL-018",
+      "title": "Add retained-target Extrude Join and sketch support on its end cap",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SOL-015"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P2",
+        "priority:P1",
+        "area:sol"
+      ],
+      "body": "## Scope\nBounded child of #161. Join selected sketch profiles into one existing body with stored target identity, signed distance, preview and editable history. Preserve the joined end-cap provenance needed to attach the next sketch. Intersect remains #161.\n\n## Acceptance\n- In the straw-bung sequence, a 26 mm diameter circle extrudes 3 mm as New Body; a 19 mm circle on its top extrudes 8 mm as Join, leaving one valid stepped solid.\n- A 6.2 mm circle can then be sketched on the new top and extruded as a separate cutter body.\n- Independently check expected volume/bounds and retained body identity. Upstream boss-height edits move the supported sketch correctly.\n- Native operation selection, preview, confirm and cancel are usable; invalid disconnected Join fails atomically.\n\n## Reference\nExternal knowledge/tutorials/warwick, straw-bung pages 1-2, retrieved 2026-10-12.\n\n## Verification contract\nUse the shared authoritative UI/API and real GPU-backed application. Verify authored history, supported upstream edits, commit/cancel, undo/redo and save/reopen proportionately. Inspect real geometry separately from screenshots and native interaction. Record matched, mismatch, blocked or unknown; no exact parity claim from API-only construction. Public source URLs and images stay in the external knowledge archive.\n"
+    },
+    {
+      "key": "SOL-019",
+      "title": "Add editable body translation and rotation with a visible manipulator",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "HIS-001",
+        "SOL-002"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P2",
+        "priority:P1",
+        "area:sol"
+      ],
+      "body": "## Scope\nBounded child of #53: Move a body using explicit translation, rotation, pivot and a visible manipulator, persisted in feature history. Copy, geometry alignment and broader modes remain #53. The tutorial requires rotating an extruded cutter by 10 degrees and translating it through the target before Combine Cut; do not substitute an oblique sketch or baked replacement shape.\n\n## Acceptance\n- Body selection, researched Move controls, rotation ring and translation handles update one preview through shared commands; explicit values are inspectable.\n- Commit authors a transform feature preserving body identity. Edit recomputes downstream Combine Cut; cancel preserves the prior document.\n- Rotation/pivot/order are documented and checked against independently computed geometry. One translation/rotation, undo/redo and reopen workflow is sufficient for the bounded contract.\n- The transformed cutter cuts the stepped tutorial bung into one valid solid; reference-frame or dependency failure is explicit.\n\n## Reference\nExternal knowledge/tutorials/warwick, straw-bung page 3, retrieved 2026-10-12. Resolve sign/pivot uncertainties in the step ledger before exact-input claims.\n\n## Verification contract\nUse the shared authoritative UI/API and real GPU-backed application. Verify authored history, supported upstream edits, commit/cancel, undo/redo and save/reopen proportionately. Inspect real geometry separately from screenshots and native interaction. Record matched, mismatch, blocked or unknown; no exact parity claim from API-only construction. Public source URLs and images stay in the external knowledge archive.\n"
+    },
+    {
+      "key": "TUT-004",
+      "title": "Gate: illustrated straw bung from face sketches to printable angled hole",
+      "kind": "validation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SOL-018",
+        "SOL-019",
+        "PRT-001",
+        "SKT-028"
+      ],
+      "labels": [
+        "kind:validation",
+        "phase:P2",
+        "priority:P1",
+        "area:tut"
+      ],
+      "body": "## Source and scope\nExternal knowledge/tutorials/warwick/straw-bung.pdf, 3 pages / 14 steps, retrieved 2026-10-12. Follow every prescribed modeling step: circle, base extrusion, face sketch, Join boss, face sketch, New Body cutter, body rotation/translation, Combine Cut. Export STL as an Alloy delivery extension, separately labeled from source steps.\n\n## Acceptance\n- Maintain a per-step ledger of source inputs, commands, selected entities, expected state and actual evidence. Record inferred dimensions/transform choices explicitly.\n- Start blank; run the shared application automation flow step by step, supplement native input where command/gesture behavior is claimed. Capture representative face selection, Join preview, transform and final result at comparable view/scale.\n- Verify one final valid solid, a through angled bore, intended dimensions and body ownership; upstream edit, undo/redo and reopen preserve the chain.\n- Export a closed correctly scaled STL and independently read it back. Produce an honestly labeled demonstration movie with command/input overlays.\n- Astra independently reviews candidate and visual/output evidence. Existing bracket workflow remains a bounded regression check. Old-interface command locations are researched, not assumed identical.\n\n## Verification contract\nUse the shared authoritative UI/API and real GPU-backed application. Verify authored history, supported upstream edits, commit/cancel, undo/redo and save/reopen proportionately. Inspect real geometry separately from screenshots and native interaction. Record matched, mismatch, blocked or unknown; no exact parity claim from API-only construction. Public source URLs and images stay in the external knowledge archive.\n"
+    },
+    {
+      "key": "TUT-005",
+      "title": "Gate: illustrated straw support with joined heights and solid fillets",
+      "kind": "validation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "TUT-004",
+        "SOL-003",
+        "SKT-024",
+        "SKT-027",
+        "SOL-020"
+      ],
+      "labels": [
+        "kind:validation",
+        "phase:P2",
+        "priority:P1",
+        "area:tut"
+      ],
+      "body": "## Scope\nExternal knowledge/tutorials/warwick/straw-support.pdf, 5 pages, retrieved 2026-10-12. Audit all numbered steps including optional resize separately. Build the rectangle/circle/prong profiles, join extrusions at the stated heights, apply solid edge fillets, create and transform the cutter and Combine Cut.\n\n## Acceptance\nA complete step ledger, selected-region and selected-edge captures, readable controls, native/API evidence separation, editable/reopened solid and independently read-back printable STL. Verify profile partitioning and multi-height Join instead of substituting primitives. Resolve illustrated selections before implementation. Optional chamfer/text branches stay explicitly outside the core gate and mapped to existing broader feature issues.\n\n## Verification contract\nUse the shared authoritative UI/API and real GPU-backed application. Verify authored history, supported upstream edits, commit/cancel, undo/redo and save/reopen proportionately. Inspect real geometry separately from screenshots and native interaction. Record matched, mismatch, blocked or unknown; no exact parity claim from API-only construction. Public source URLs and images stay in the external knowledge archive.\n"
+    },
+    {
+      "key": "TUT-006",
+      "title": "Gate: illustrated nested cubes with shell mirror and multiple face cuts",
+      "kind": "validation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "TUT-005",
+        "SOL-006",
+        "SOL-009",
+        "GEO-001",
+        "SKT-025",
+        "SKT-021"
+      ],
+      "labels": [
+        "kind:validation",
+        "phase:P2",
+        "priority:P1",
+        "area:tut"
+      ],
+      "body": "## Scope\nExternal knowledge/tutorials/warwick/cube-in-cube.pdf, 6 pages / 14 steps, retrieved 2026-10-12. Follow rectangle/extrusion, inward Shell, body Mirror, Combine Join, circular cuts on three faces, solid fillets, offset plane and center rectangle for an internal cube.\n\n## Acceptance\nAudit exact selections/dimensions into a step ledger. Show actual face sketch support and mirror/plane references in authored history, native controls and captures. Verify hollow outer and separate inner solids, wall thickness, hole dimensions and relative clearance, supported upstream edit/undo/reopen and independent STL readback. Offset-plane sign and illustration ambiguities must be resolved or reported unknown.\n\n## Verification contract\nUse the shared authoritative UI/API and real GPU-backed application. Verify authored history, supported upstream edits, commit/cancel, undo/redo and save/reopen proportionately. Inspect real geometry separately from screenshots and native interaction. Record matched, mismatch, blocked or unknown; no exact parity claim from API-only construction. Public source URLs and images stay in the external knowledge archive.\n"
+    },
+    {
+      "key": "TUT-007",
+      "title": "Gate: illustrated egg cup with offset sections loft and shell",
+      "kind": "validation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "GEO-001",
+        "SOL-012",
+        "SOL-006",
+        "PRT-001"
+      ],
+      "labels": [
+        "kind:validation",
+        "phase:P2",
+        "priority:P1",
+        "area:tut"
+      ],
+      "body": "## Scope\nExternal knowledge/tutorials/warwick/egg-cup.pdf, 4 pages / 14 steps, retrieved 2026-10-12. Build four circular sections on authored offset planes, loft in the prescribed order, remove the top face using an inward shell.\n\n## Acceptance\nStep ledger records section diameters, spacing, ordered profile selection and shell thickness. Inspect planes, loft and shell previews and final form against public illustrations. Verify section order, one valid open-top solid with intended wall thickness, dependency edit/undo/reopen and printable mesh readback. Record exact-input and visual limitations honestly.\n\n## Verification contract\nUse the shared authoritative UI/API and real GPU-backed application. Verify authored history, supported upstream edits, commit/cancel, undo/redo and save/reopen proportionately. Inspect real geometry separately from screenshots and native interaction. Record matched, mismatch, blocked or unknown; no exact parity claim from API-only construction. Public source URLs and images stay in the external knowledge archive.\n"
+    },
+    {
+      "key": "SKT-027",
+      "title": "Partition overlapping lines and circles into selectable sketch regions",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-009"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P2",
+        "priority:P1",
+        "area:skt"
+      ],
+      "body": "## Scope and acceptance\nBounded planar arrangement support required by the straw-support gate (#171). Its 32 x 10 rectangle, diameter15 circle and three 3 x 10 strips intersect or share segments. This is distinct from #165 nested-hole containment.\n\nAcceptance: compute actual split boundaries and selectable regions with stable provenance; selecting a full circular region then the illustrated separated side regions gives the documented extrusion inputs. Avoid duplicate coincident edges or arbitrary region IDs. Upstream dimension edit and save/reopen retain intended selections or report an explicit changed-reference failure. Verify the actual small tutorial fixture, not an exhaustive arrangement corpus. Capture region highlighting and independently inspect resulting area/topology. Source: external knowledge/tutorials/warwick/straw-support.pdf pages2-3, reviewed 2026-10-12.\n\nUI and automation share authoritative commands and state. Separate geometry, native input and visual evidence. Public URLs/images remain outside Git.\n"
+    },
+    {
+      "key": "SKT-028",
+      "title": "Start circle drawing before selecting the sketch plane or face",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-002",
+        "SKT-008"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P2",
+        "priority:P1",
+        "area:skt"
+      ],
+      "body": "## Scope and acceptance\nBounded child of #7 for the straw-bung source steps. A Center Diameter Circle command invoked outside an active sketch must prompt for a supported plane/face, begin the sketch, and continue directly into circle placement. Existing sketches retain normal C behavior.\n\nAcceptance: native command-first XY circle and command-first supported top-face circle follow the source sequence without manual Create Sketch substitution; focus goes to the viewport/numeric input, Enter accepts diameter, Escape/cancel leaves no unwanted authored sketch or stale tool. Shared automation can inspect pending support selection and active tool. Check undo and one save/reopen chain; record keyboard mappings against current public documentation. Source: external straw-bung step ledger. General shortcuts/focus remain #7.\n\nUI and automation share authoritative commands and state. Separate geometry, native input and visual evidence. Public URLs/images remain outside Git.\n"
+    },
+    {
+      "key": "SOL-020",
+      "title": "Qualify Join for separated tutorial profiles and successive joined heights",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SOL-018",
+        "SKT-027"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P2",
+        "priority:P1",
+        "area:sol"
+      ],
+      "body": "## Scope and acceptance\nFollow-up to bounded single-target Join #168, required by straw-support #171. Audit source step7 profile selection and intermediate body count: separated selected regions may be joined through existing geometry or require multiple results. Do not assume final connected form proves every intermediate Join result is one solid.\n\nAcceptance: support documented participant/body-result semantics for the exact tutorial regions and heights (20,4,24,22 mm). Preserve target/created body identity, history, previews and editable selection as needed. If the source uses a different operation for a genuinely disconnected result, correct the ledger with public evidence rather than invent a Join rule. Independently check intermediate connected components/volume and native selection; unsupported disconnected inputs must remain atomic until implemented. Source: external knowledge/tutorials/warwick/straw-support.pdf page3, reviewed 2026-10-12.\n\nUI and automation share authoritative commands and state. Separate geometry, native input and visual evidence. Public URLs/images remain outside Git.\n"
     }
   ]
 }

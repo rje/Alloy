@@ -3,6 +3,29 @@
 Updated 2026-10-12. This is the project handoff for a fresh session. Read the root
 [AGENTS.md](../AGENTS.md) first; its reference restrictions apply to all work.
 
+## Active next tutorial: straw bung (2026-10-12)
+
+User approved the four illustrated tutorial candidates and requested feature
+issues plus implementation. New issues #168-176 cover bounded Extrude Join, body translation/rotation,
+command-first Circle, overlapping-profile partitioning, successive Join results
+and four cumulative tutorial gates. #168, #169 and #175 are
+actively implemented in separate worktrees by Sol; Astra researches the exact
+source steps and independently verifies candidates. Remaining broad copy/align
+scope stays #53; Intersect stays #161. No new feature is accepted yet. The source audit found overlapping-profile
+requirements distinct from nested holes (#174) and successive Join result
+qualification (#176). Backlog: 176 total, 41 closed, 135 open.
+
+Delivery order: straw bung (#170), straw support (#171), nested cubes (#172),
+then egg cup (#173). Existing owners cover solid fillets (#41), shell (#51),
+mirror (#54), construction planes (#56), loft (#58), face support (#159),
+center rectangle (#162) and profile topology (#165). Tutorial-first sequence
+is updated without closing remaining bracket/native-input issues.
+
+Sources, PDFs, images and detailed step research remain outside Git under
+`../Alloy-reference-records/knowledge/tutorials/warwick/`. Older screenshot
+command locations require current public reference checks. A matching final
+shape alone cannot replace prescribed Join, body transform or face operations.
+
 ## User slicer milestone (2026-10-12)
 
 The user confirmed the delivered STL imports successfully and "slice looks great".
