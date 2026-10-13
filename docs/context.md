@@ -57,9 +57,10 @@ actual GPU captures and integrated main build/core pass. Circular Body Pattern (
 as ebd5647/d0ba161/b1be3bf/51d79df. Main app build and Pattern/Mirror core2/2
 pass1.51s; native05 settled captures and exact-offset location rotation are
 reviewed. See validation/circular-body-pattern.md.
-#266 owns the localized inner Shell seam correction. New active #267 fixes
-the eager Boolean constructor in Join lineage checks without changing UI or
-numerical policy; Sol works in ../Alloy-worktrees/join-lineage-immutable. #265 is back in Todo pending those
+#266 owns the localized inner Shell seam correction. Join lineage correction
+#267 is independently accepted and closed (b36fbac/5498152): kernel configuration
+precedes execution, repeated evaluation preserves geometry, and main app plus
+focused core2/2 pass1.59s. UI and numerical policy are unchanged. #265 is back in Todo pending those
 inputs; its cumulative Join investigation remains recorded.
 Acceptance still requires retained Pattern/Join reproduction. Public sources/visuals stay external in
 the ornament-pattern knowledge record.
