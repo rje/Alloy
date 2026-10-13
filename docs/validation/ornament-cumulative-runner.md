@@ -1,9 +1,9 @@
-# Cumulative ornament API runner draft
+# Cumulative ornament API runner
 
 `tests/ornament_cumulative_api.py` is prepared for the #265 cumulative kernel/API
-gate after #266 and the accepted retained-feature prerequisites. It has only
-been syntax checked; it has not launched an editor or evaluated the model.
-This draft neither activates/closes #265 nor satisfies #264's movie/input review.
+gate after accepted #266 and the retained-feature prerequisites. The first real
+run reaches Pattern8 and refuses hub Join; #265 is active and #264 remains Todo.
+Neither the partial recording nor the ingredient passes satisfy the full gate.
 
 The runner reuses `ornament_source_api.create_seed` from a blank model through
 source profile, Full Revolve, Inside Shell 5, Section Analysis, exact -5 fitted
@@ -40,7 +40,7 @@ construction-plane records use `featureId`. Join iterates authored `targetBodyId
 in their supplied occurrence order and retains that order in participant ownership;
 only profile IDs are sorted. The runner asserts the authored target array as well
 as the ledger, so it does not confuse creation/evaluation identifiers or impose
-a sorted participant order. These checks remain unexecuted draft assertions.
+a sorted participant order. The first run reaches the Pattern stage; later assertions remain pending.
 
 The draft now requires a built `ornament_geometry_verify` via `--geometry-verifier`.
 It independently opens both saved final models with CadDocument, requires one
@@ -57,7 +57,7 @@ Free flag, as qualified in SOL-041. No production geometry is normalized.
 
 Original reopen now also checks final body validity, identity and volume, alongside
 authored equality. The verifier target builds and runner syntax checks pass;
-no saved-model verification or cumulative modeling has been executed. Its external
+the first cumulative run stops at Join, before saved-model verification. Its external
 process timeout is separately configurable (default 600 seconds) for repeated
 known-slow exact history evaluation; this changes no application protocol.
 
@@ -74,4 +74,20 @@ original final state is then reopened before the upstream offset validation.
 Thus the required count test still runs before Join in its retained source state
 without putting validation edits in the creation movie. Both the original -5
 source result and edited -4 result export independently checked millimeter STLs.
-All recording/modeling/oracle assertions remain unexecuted pending the gate lease.
+Full recording/modeling/oracle acceptance remains pending the Join correction.
+
+## First actual run — 2026-10-13
+
+Main b94fbf2, external `deliverables/ornament-2026-10-13/cumulative-01`.
+The corrected Shell, exact strip Intersect and eight retained Pattern bodies
+pass. The diameter10, distance-5 hub Join refuses `join_lineage_ambiguous`: a
+connected input does not map wholly to one result. The explicit target list,
+full transcript, report, Pattern8 editable checkpoint and 44-second partial
+recording are preserved. No bore, final STL, edit/reopen or geometry-oracle pass
+is claimed. The private editor exited normally through harness cleanup.
+
+Root inspected actual radial, section, strip and Pattern captures. The revised
+strip capture now exposes both curves without solid occlusion; Pattern shows
+the complete eight-rib arrangement with the original seed selected in blue.
+The numerical coverage check versus true material preservation is the next
+#265 investigation. Tolerances and authored geometry remain unchanged.
