@@ -12,38 +12,34 @@ post-Finish undo grouping remains an evidence gap; no code change was made for
 this question. See [the compact contract](research/sketch-history.md) and its
 external source record.
 
-## Active next tutorial: straw bung (2026-10-12)
+## Active tutorial delivery: straw bung (2026-10-12)
 
-User approved the four illustrated tutorial candidates and requested feature
-issues plus implementation. New issues #168-176 cover bounded Extrude Join, body translation/rotation,
-command-first Circle, overlapping-profile partitioning, successive Join results
-and four cumulative tutorial gates. #168, #169 and #175 are
-actively implemented in separate worktrees by Sol; Astra researches the exact
-source steps and independently verifies candidates. Remaining broad copy/align
-scope stays #53; Intersect stays #161. No new feature is accepted yet. The source audit found overlapping-profile
-requirements distinct from nested holes (#174) and successive Join result
-qualification (#176). Backlog: 176 total, 41 closed, 135 open.
+Nine published issues (#168-176) add four illustrated tutorial gates and bounded
+Join, Move, command-first Circle, overlapping-profile partition and successive
+Join-result work. The three first features are integrated on main. Join has
+independent native/geometry acceptance; Move and Circle finish bounded native
+qualification. Move-handle contrast is being corrected. No release was cut.
 
-Delivery order: straw bung (#170), straw support (#171), nested cubes (#172),
-then egg cup (#173). Existing owners cover solid fillets (#41), shell (#51),
-mirror (#54), construction planes (#56), loft (#58), face support (#159),
-center rectangle (#162) and profile topology (#165). Tutorial-first sequence
-is updated without closing remaining bracket/native-input issues.
+The combined real-app video-variant chain passed: Circle -> base extrusion ->
+face Circle -> Join -> Join-cap Circle -> cutter extrusion -> local Move ->
+Combine Cut -> edit/undo/reopen -> STL. Astra independently accepted geometry,
+actual captures and mesh. See [the checkpoint](validation/straw-bung.md) and
+[independent review](validation/straw-bung-independent-review.md). The result is
+one valid solid and a closed 26 x 26 x 11 mm print mesh. Files are outside Git in
+`../Alloy-reference-records/deliverables/straw-bung-2026-10-12/`.
 
-Sources, PDFs, images and detailed step research remain outside Git under
-`../Alloy-reference-records/knowledge/tutorials/warwick/`. Older screenshot
-command locations require current public reference checks. A matching final
-shape alone cannot replace prescribed Join, body transform or face operations.
-## Next researched workflow: straw bung (2026-10-12)
+The full native step-by-step/movie gate #170 remains open. Source PDF and video
+values differ; preserve the variants and inferred foot pivot/local composition
+rather than claim exact PDF input parity. The [source contract](research/straw-bung-gate.md)
+links the external 14-step ledger and public video provenance. Bulk research
+remains in `../Alloy-reference-records/knowledge/tutorials/warwick/`.
 
-The compact contract is [straw-bung-gate.md](research/straw-bung-gate.md), with a
-14-step external source ledger and recovered original public video. #168 owns
-Join plus its persistent positive cap; #169 owns body Move; #170 owns the
-cumulative gate. PDF/video cutter and rotation values differ and are explicitly
-preserved. Sequential Free Move gesture fields reset while placement accumulates.
-Circle-first plane/face selection remains a native interaction gap. Research is
-complete for this bounded contract; candidate acceptance and full gate execution
-remain pending. No new feature is claimed implemented by this entry.
+Next: straw support #171 (overlap partitions #174, successive Join #176, solid
+fillets #41); nested cubes #172 (shell #51, mirror #54, planes #56, faces #159,
+center rectangle #162); egg cup #173 (planes, loft #58, shell). Broader Copy/Align
+stays #53 and Intersect stays #161. Existing bracket native follow-ups remain
+Todo. Backlog at publication: 176 total, 41 closed, 135 open; use live state for
+subsequent feature closures.
 
 ## User slicer milestone (2026-10-12)
 
