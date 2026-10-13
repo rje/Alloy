@@ -913,7 +913,7 @@
         "priority:P0",
         "area:prt"
       ],
-      "body": "## Problem and result\nExport selected real solids to STL with explicit tessellation units. Deliver the bounded result below within Alloy's standalone C++20 product; the current application is only a Qt shell.\n\n## Scope\nAdd binary/ASCII STL export from chosen evaluated bodies with explicit unit convention and chord/angular controls independent of viewport LOD.\n\n## Acceptance criteria\n- Export contains correct selected geometry and oriented closed mesh; open surface export is labeled non-solid; exported file is not the native document.\n- UI and local API share authoritative document/commands; expose arguments, selection, errors and result inspection. Undo/save coverage follows the dependencies, never a separate automation model.\n\n## Proposed verification and evidence\nExport a plate and cylinder, independently read triangles, verify bounds/scale/edge manifoldness/normals and increasing refinement; retain file and settings.\n\nAdd/execute `python3 tests/workflows/run.py --case PRT-001 --evidence build/evidence/PRT-001` (case not implemented yet; the runner refuses missing cases). Record actual commands, fixture hashes, dependency versions, assertions and artifacts. Keep build, API, geometry, save/reopen, export, physical input and visual evidence separate; mark non-applicable dimensions with a reason.\n\n## Public reference evidence\n- Mesh export tools (reference `meshexport`) \u2014 retrieved 2026-10-11.\n- Save As Mesh format, units, and structure (reference `print`) \u2014 retrieved 2026-10-11.\n- [Public mesh validity guidance](https://help.autodesk.com/cloudhelp/2026/ENU/NETF/files/GUID-CCEA9C88-4647-4598-9F4D-07454389F34F.htm) \u2014 retrieved 2026-10-11.\n\nReferences describe documented product/library behavior. Scope, implementation strategy, fixture values and acceptance thresholds are Alloy proposals unless explicitly stated otherwise. Never run or inspect reference CAD application; use public documentation/screenshots only.\n\n## Limits and open questions\nOnly the stated subset is in scope; record unsupported options explicitly. This issue is planned, not implemented or verified.\n"
+      "body": "## Problem and result\nExport selected real solids to STL with explicit tessellation units. Deliver the bounded result below within Alloy's standalone C++20 product; the current application is only a Qt shell.\n\n## Scope\nAdd binary/ASCII STL export from chosen evaluated bodies with explicit unit convention and chord/angular controls independent of viewport LOD.\n\n## Acceptance criteria\n- Export contains correct selected geometry and oriented closed mesh; exported file is not the native document.\n- UI and local API share authoritative document/commands; expose arguments, selection, errors and result inspection. Undo/save coverage follows the dependencies, never a separate automation model.\n\n## Proposed verification and evidence\nExport a plate and cylinder, independently read triangles, verify bounds/scale/edge manifoldness/normals and increasing refinement; retain file and settings.\n\nAdd/execute `python3 tests/workflows/run.py --case PRT-001 --evidence build/evidence/PRT-001` (case not implemented yet; the runner refuses missing cases). Record actual commands, fixture hashes, dependency versions, assertions and artifacts. Keep build, API, geometry, save/reopen, export, physical input and visual evidence separate; mark non-applicable dimensions with a reason.\n\n## Public reference evidence\n- Mesh export tools (reference `meshexport`) \u2014 retrieved 2026-10-11.\n- Save As Mesh format, units, and structure (reference `print`) \u2014 retrieved 2026-10-11.\n- [Public mesh validity guidance](https://help.autodesk.com/cloudhelp/2026/ENU/NETF/files/GUID-CCEA9C88-4647-4598-9F4D-07454389F34F.htm) \u2014 retrieved 2026-10-11.\n\nReferences describe documented product/library behavior. Scope, implementation strategy, fixture values and acceptance thresholds are Alloy proposals unless explicitly stated otherwise. Never run or inspect reference CAD application; use public documentation/screenshots only.\n\n## Limits and open questions\nOnly the stated subset is in scope; record unsupported options explicitly. This issue is planned, not implemented or verified.\n\n## Explicit remaining-scope split\nOpen-surface STL export and non-solid labeling move to PRT-004, which depends on surface authoring. This issue retains selected closed-solid export and all mesh/unit/refinement acceptance. The surface gate depends on PRT-004; the bracket gate does not wait on unavailable surface modeling.\n"
     },
     {
       "key": "SKT-015",
@@ -1711,7 +1711,8 @@
         "SKT-016",
         "SOL-014",
         "TUT-001",
-        "SKT-026"
+        "SKT-026",
+        "PRT-004"
       ],
       "labels": [
         "kind:validation",
@@ -3095,6 +3096,24 @@
         "priority:P0"
       ],
       "body": "## Problem and result\nFinish the explicitly deferred portion of SKT-010.\n\n## Scope\n- Explicit associative-linked versus independent-copy projection choice, preference controls and supported analytic curve/vertex scope beyond accepted cap line/center references.\n- Relink, break-link and deletion repair commands with visible link status and source IDs.\n- Dimension to actual projected model edge and dependent solid recompute, cooperating with point-to-edge distance owner.\n\n## Acceptance criteria\n- Project line/analytic curve/vertex targets with retained provenance or explicit independent copies.\n- Resize source: retained perpendicular dimension and downstream geometry follow correctly.\n- Remove/ambiguous source then exercise explicit relink, break and delete with undo/save/reopen; no fallback, stale success or silent unlink.\n- UI and API share authoritative commands and state. Retain stable references, atomic failure, unit correctness, undo/redo and native save/reopen where the operation authors data. Verify the real workflow proportionately; distinguish API, native input, geometry and visuals.\n\n## Split provenance\nSplit from #46 on 2026-10-12. The original now records only the independently accepted subset; this task retains the remaining requirements. Public evidence and uncertainty remain in the external knowledge archive and existing command contracts.\n\n## Status\nTodo. This broader scope is not implemented or accepted.\n"
+    },
+    {
+      "key": "PRT-004",
+      "title": "Export open surfaces to STL with explicit non-solid labeling",
+      "kind": "implementation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P1",
+      "depends_on": [
+        "PRT-001",
+        "SRF-001"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P3",
+        "priority:P1",
+        "area:prt"
+      ],
+      "body": "## Scope\nPreserved follow-up from PRT-001 (#44): allow deliberate STL export of evaluated open surfaces once surface authoring exists. Label the selection/output as non-solid; never claim an open sheet is watertight or printable volume.\n\n## Acceptance\nUI/API share export authority, units and tessellation controls. Export an independently measured open sheet, read triangles independently, confirm boundary edges and correct area/bounds. Closed-solid mesh behavior remains unchanged. Useful errors preserve the design and existing destination files.\n\n## Verification\nRun the surface fixture at GATE-030. Keep actual topology, warning presentation and exported-file evidence separate. This deferred requirement is not part of the closed-solid bracket delivery.\n"
     }
   ]
 }

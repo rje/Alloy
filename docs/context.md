@@ -3,6 +3,20 @@
 Updated 2026-10-12. This is the project handoff for a fresh session. Read the root
 [AGENTS.md](../AGENTS.md) first; its reference restrictions apply to all work.
 
+## Active delivery: tutorial through slicer export (2026-10-12)
+
+User explicitly requested complete native tutorial interaction, bounded reference
+visual review, and STEP/STL exchange now, ending with an STL they can open in a
+slicer. Sol owns `tutorial-completion` (UI) and `exchange-finish` (preserved export
+work); Astra independently verifies. Root owns integration, GitHub and handoff.
+#23/#44/#155/#158 are actively being worked. Open-surface STL scope from #44 is
+explicitly preserved in #166 (PRT-004), Todo and attached to the surface gate.
+Do not silently scale the tutorial model: deliver exact-size geometry plus a
+clearly labeled smaller slicer sample. Printer/build-volume clarification is
+pending, but does not block millimeter STL generation or independent mesh checks.
+Native held-modifier coverage remains a separate evidence limitation; do not
+rename synthetic Qt input as physical input or claim an exact gate without it.
+
 ## Tutorial recording delivered (2026-10-12)
 
 #157 is closed and Done on the project board. Backlog snapshot: 165 total,
