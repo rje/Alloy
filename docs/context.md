@@ -46,7 +46,8 @@ links that capture alongside the full movie/model/STL. Native ingredient tests
 remain distinct from API movie evidence; no physical OS or exact pixel claim.
 The source's post-fillet dimension drivenness is unknown; Alloy's explicit
 reference-span conversion is disclosed. No full tutorial replay was needed for
-the symbol-only change. The private GUI slot is reserved for #239 parallel-line D input; Mirror editors are closed.
+the symbol-only change. The private GUI slot is reserved for #238 constraint input; #239 needs one settled
+palette capture next. Mirror editors are closed.
 Keep only one private validation editor open at a time.
 
 **Keyring #233 and driving fillet dimensions #235 are independently accepted and closed.**
@@ -89,8 +90,13 @@ edit policy; pending input is cancelled on history traversal and corrected GPU
 captures show smooth reflected arcs. See validation/sketch-mirror-foundation.md.
 Sol owners implement source constraint gestures #238, parallel-line dimensions
 #239 and native Mirror collection #241. Full gate #242 remains Todo. Root has an
-isolated `../Alloy-worktrees/wall-outlet-gate` for upcoming runner preparation;
-no completed workflow is implied. Shared schema/solver edits and private GUI
+isolated `../Alloy-worktrees/wall-outlet-gate` with prepared source-order API
+recording runner (`521fde8`) and independent geometry/relation oracle
+(`5288517`, `3835dfe`). Only syntax is checked; no completed workflow is implied.
+#239 candidate `f711bae` passed geometry/input review but needs a settled palette
+capture before visual acceptance; its immediate post-Return capture overlaps.
+#238 source-order Concentric/point H/V/Equal core fixture passes; native proof
+is in preparation. Native Mirror #241 is implementing shared window/role controls. Shared schema/solver edits and private GUI
 checks remain coordinated. The integrated application build and both Mirror /
 rounded-intent core tests passed (2/2, 2.23 s); no full tutorial replay was needed.
 New typed rectangle fillets now retain driving size/origin through #235. Legacy
