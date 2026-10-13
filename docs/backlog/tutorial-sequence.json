@@ -95,7 +95,6 @@
         "SKT-027",
         "SOL-020",
         "SOL-003",
-        "SKT-024",
         "TUT-005"
       ],
       "acceptance": "Exact core source sequence with profile/edge selections and export readback.",
