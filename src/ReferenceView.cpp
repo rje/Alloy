@@ -155,6 +155,7 @@ void ReferenceView::restoreCameraState(const QJsonObject& state) {
     sync();
 }
 void ReferenceView::rebindDocument() {
+    clearPatternAxes();
     if(context_.IsNull())return;
     clearPreview();clearSketchDraft();clearBodyStage();clearSketchCursor();
     selectSupportFace({},{});hoverSupportFace({});sketchFrame_={};
@@ -1400,6 +1401,22 @@ QJsonObject ReferenceView::pickSolidEdge(double x,double y,const std::vector<Eva
 }
 void ReferenceView::clearSolidEdgeHighlights() {
     if(!context_.IsNull())for(const auto& shape:solidEdgeHighlights_)context_->Remove(shape,false);solidEdgeHighlights_.clear();
+}
+void ReferenceView::clearPatternAxes() {
+    if(!context_.IsNull())for(const auto& model:patternAxes_)context_->Remove(model,false);patternAxes_.clear();
+}
+void ReferenceView::showPatternAxes(const QJsonObject& summary) {
+    clearPatternAxes();if(context_.IsNull() || view_.IsNull())return;
+    const auto center=summary["seedCenterMm"].toArray();if(center.size()!=3)return;const gp_Pnt origin(center[0].toDouble(),center[1].toDouble(),center[2].toDouble());
+    const double radius=view_->Camera()->Scale()*1.5/std::max(height(),1);int index=0;
+    for(const auto& value:summary["patternAxes"].toArray()) {
+        const auto axis=value.toObject();const auto d=axis["direction"].toArray();if(d.size()!=3)continue;const double extent=axis["extentMm"].toDouble();if(std::abs(extent)<1e-6)continue;
+        const gp_Dir direction(d[0].toDouble()*(extent<0 ? -1 : 1),d[1].toDouble()*(extent<0 ? -1 : 1),d[2].toDouble()*(extent<0 ? -1 : 1));
+        const auto length=std::abs(extent),head=std::min(radius*6,length*.25);BRep_Builder builder;TopoDS_Compound shape;builder.MakeCompound(shape);
+        if(length>head)builder.Add(shape,BRepPrimAPI_MakeCylinder(gp_Ax2(origin,direction),radius,length-head).Shape());builder.Add(shape,BRepPrimAPI_MakeCone(gp_Ax2(origin.Translated(gp_Vec(direction)*(length-head)),direction),radius*3,0,head).Shape());
+        Handle(AIS_Shape) cue=new AIS_Shape(shape);cue->SetColor(index++==0 ? Quantity_Color(.08,.43,.91,Quantity_TOC_sRGB) : Quantity_Color(.08,.57,.58,Quantity_TOC_sRGB));cue->Attributes()->SetShadingModel(Graphic3d_TOSM_UNLIT);cue->Attributes()->SetFaceBoundaryDraw(false);cue->SetZLayer(Graphic3d_ZLayerId_Topmost);context_->Display(cue,AIS_Shaded,-1,false);context_->Deactivate(cue);patternAxes_.push_back(cue);
+    }
+    context_->UpdateCurrentViewer();
 }
 void ReferenceView::highlightSolidEdges(const std::vector<EvaluatedBody>& bodies,const QString& bodyId,const QJsonArray& ids) {
     clearSolidEdgeHighlights();if(context_.IsNull())return;

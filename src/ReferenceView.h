@@ -71,6 +71,8 @@ public:
     QString pickBody(double x,double y);
     QJsonObject pickSolidEdge(double x,double y,const std::vector<EvaluatedBody>& bodies) const;
     QJsonObject projectSolidEdge(const EvaluatedSolidEdge& edge) const;
+    void showPatternAxes(const QJsonObject& summary);
+    void clearPatternAxes();
     void highlightSolidEdges(const std::vector<EvaluatedBody>& bodies,const QString& bodyId,const QJsonArray& edgeIds);
     void clearSolidEdgeHighlights();
     QJsonObject projectBody(const EvaluatedBody& body) const;
@@ -137,6 +139,7 @@ private:
     std::vector<EvaluatedConstructionPlane> constructionPlanes_;
     QString selectedConstructionPlane_;
     quint64 constructionPlaneRevision_ = 0;
+    std::vector<Handle(AIS_Shape)> patternAxes_;
     QMap<QString,Handle(AIS_Shape)> finishedProfileModels_;
     std::vector<EvaluatedSketch> finishedSketches_;
     QSet<QString> selectedLoftProfileIds_;

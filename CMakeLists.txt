@@ -40,7 +40,7 @@ target_compile_definitions(alloy_kernel PUBLIC ALLOY_OCCT_VERSION="${ALLOY_OCCT_
 
 add_library(alloy_application STATIC
     src/AlloyTheme.cpp src/AlloyTheme.h
-    src/AlloyWindow.cpp src/AlloyWindow.h src/SolidFilletControls.cpp src/SolidShellControls.cpp src/LoftControls.cpp src/SolidMirrorControls.cpp src/MoveControls.cpp src/CombineControls.cpp src/ExportControls.cpp src/StepExportControls.cpp
+    src/AlloyWindow.cpp src/AlloyWindow.h src/SolidFilletControls.cpp src/SolidShellControls.cpp src/LoftControls.cpp src/PatternControls.cpp src/SolidMirrorControls.cpp src/MoveControls.cpp src/CombineControls.cpp src/ExportControls.cpp src/StepExportControls.cpp
     src/TutorialRecorder.cpp src/TutorialRecorder.h
     src/CadDocument.cpp src/CadDocument.h
     src/ReferenceView.cpp src/ReferenceView.h

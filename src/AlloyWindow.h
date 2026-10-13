@@ -84,6 +84,15 @@ private:
     QDockWidget* filletDock_ = nullptr;
     QShortcut* filletEscape_ = nullptr;
     QJsonObject beginShell(const QJsonObject& inputs);
+    QJsonObject patternCandidate(const QJsonObject& inputs) const;
+    QJsonObject beginPattern(const QJsonObject& overrides={});
+    QJsonObject previewPattern();
+    QJsonObject selectPatternFeature(const QString& featureId);
+    QJsonObject selectPatternAxis(const QString& edgeId,int index);
+    std::vector<EvaluatedBody> patternInputBodies() const;
+    void showPattern();
+    QDockWidget* patternDock_=nullptr;
+    QShortcut* patternEscape_=nullptr;
     QJsonObject loftCandidate(const QJsonObject& inputs) const;
     QJsonObject beginLoft(const QJsonObject& overrides={});
     QJsonObject previewLoft();
