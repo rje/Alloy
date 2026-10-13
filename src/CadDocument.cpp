@@ -53,6 +53,14 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
                 return {{"featureId",feature["id"]},{"featureType",feature["type"]},{"bodyId",body},{"code","body_unavailable"},{"message","Solid modifier requires an active earlier body"}};
             continue;
         }
+        if(feature["type"]=="sphere") {
+            const auto p=feature["parameters"].toObject(),support=p["support"].toObject();
+            const auto body=support["bodyId"].toString(),producer=support["producerFeatureId"].toString();
+            if(!bodyPositions.contains(body) || bodyPositions[body]>=i || !activeBodies.contains(body)
+                || !positions.contains(producer) || positions[producer]>=i)
+                return {{"featureId",feature["id"]},{"code","sphere_support_unavailable"},{"message","Sphere requires an active earlier planar support"}};
+            continue;
+        }
         if(feature["type"]=="mirror") {
             const auto parameters=feature["parameters"].toObject();const auto source=parameters["sourceBodyId"].toString();
             const auto plane=parameters["mirrorPlane"].toObject();const auto planeBody=plane["bodyId"].toString();
@@ -376,6 +384,25 @@ QJsonObject CadDocument::loftCandidate(const QJsonObject& authored,const QJsonOb
     if(index<0)features.append(feature);else features[index]=feature;candidate["features"]=features;return candidate;
 }
 
+QJsonObject CadDocument::sphereCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
+    const QSet<QString> allowed{"support","uMm","vMm","diameterMm","operation","targetBodyId","name","featureId","newFeatureId","newBodyId","ownerId"};
+    for(auto it=arguments.begin();it!=arguments.end();++it)if(!allowed.contains(it.key()))throw std::invalid_argument("Unknown Sphere argument");
+    if(arguments.contains("featureId") && (arguments.contains("newFeatureId") || arguments.contains("newBodyId")))throw std::invalid_argument("Choose an existing or new Sphere identity");
+    auto candidate=authored;auto features=candidate["features"].toArray();QJsonObject feature;int index=-1;
+    if(arguments.contains("featureId")) {
+        for(int i=0;i<features.size();++i)if(features[i].toObject()["id"]==arguments["featureId"]){feature=features[i].toObject();index=i;break;}
+        if(index<0 || feature["type"]!="sphere")throw std::invalid_argument("Sphere feature unavailable");
+    } else feature={{"id",arguments.value("newFeatureId").toString(newId())},{"ownerId",arguments.value("ownerId").toString(authored["documentId"].toString())},{"type","sphere"},{"name","Sphere"},{"visible",true}};
+    if(arguments.contains("name"))feature["name"]=arguments["name"];
+    const auto operation=arguments.value("operation").toString("cut");
+    if(index>=0 && feature["parameters"].toObject()["operation"]!=operation)throw std::invalid_argument("Sphere edits preserve Cut or New Body ownership");
+    QJsonObject parameters{{"support",arguments["support"]},{"uMm",arguments["uMm"]},{"vMm",arguments["vMm"]},{"diameterMm",arguments["diameterMm"]},{"operation",operation}};
+    if(operation=="cut")parameters["targetBodyId"]=arguments["targetBodyId"];
+    else if(operation=="newBody" && !feature.contains("bodyId"))feature["bodyId"]=arguments.value("newBodyId").toString(newId());
+    feature["parameters"]=parameters;
+    if(index>=0)features[index]=feature;else features.append(feature);candidate["features"]=features;
+    const auto error=validate(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());return candidate;
+}
 QJsonObject CadDocument::shellCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
     const QSet<QString> allowed{"targetBodyId","removedFace","thicknessMm","name","featureId","newFeatureId"};
     for(auto it=arguments.begin();it!=arguments.end();++it)if(!allowed.contains(it.key()))throw std::invalid_argument("Unknown Shell argument");
@@ -540,6 +567,20 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
             if(!validId(feature["bodyId"].toString()) || ids.contains(feature["bodyId"].toString()) || p.size()!=1 || !p["profiles"].isArray() || p["profiles"].toArray().size()<2 || p["profiles"].toArray().size()>32)return "Loft requires a distinct body ID and 2–32 ordered profile references";
             ids.insert(feature["bodyId"].toString());QSet<QString> profiles;
             for(const auto& value:p["profiles"].toArray()){const auto ref=value.toObject();const auto key=ref["sketchId"].toString()+"/"+ref["profileId"].toString();if(ref.size()!=2 || !validId(ref["sketchId"].toString()) || !validId(ref["profileId"].toString()) || profiles.contains(key))return "Loft profiles must be distinct stable sketch/profile references";profiles.insert(key);}
+            continue;
+        }
+        if(type=="sphere") {
+            const auto support=p["support"].toObject();
+            if(support.size()!=3 || !validId(support["bodyId"].toString()) || !validId(support["faceId"].toString()) || !validId(support["producerFeatureId"].toString()))return "Sphere requires a stable planar face reference";
+            for(const auto& key:{"uMm","vMm","diameterMm"})if(!p[key].isDouble() || !std::isfinite(p[key].toDouble()) || std::abs(p[key].toDouble())>100000)return "Invalid Sphere dimension";
+            if(p["diameterMm"].toDouble()<0.001)return "Sphere diameter must be positive";
+            if(p["operation"]=="cut") {
+                if(p.size()!=6 || feature.contains("bodyId") || p["targetBodyId"]!=support["bodyId"])return "Sphere Cut must target the supported body";
+            } else if(p["operation"]=="newBody") {
+                const auto body=feature["bodyId"].toString();
+                if(p.size()!=5 || !validId(body) || ids.contains(body))return "Sphere New Body requires a distinct stable body identity";
+                ids.insert(body);
+            } else return "Sphere supports Cut or New Body";
             continue;
         }
         if(type=="shell") {

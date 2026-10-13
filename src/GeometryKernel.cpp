@@ -1,6 +1,7 @@
 #include "PlanarFaces.h"
 #include "SolidFillet.h"
 #include "SolidShell.h"
+#include "SolidSphere.h"
 #include "SolidLoft.h"
 #include "FeaturePattern.h"
 #include "SolidMirror.h"
@@ -453,6 +454,8 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored) 
                 FeaturePattern::evaluate(*target,feature,seed,evaluated);
             } else if(type=="loft") {
                 evaluated.bodies.push_back(SolidLoft::evaluate(feature,evaluated));
+            } else if(type=="sphere") {
+                SolidSphere::evaluate(evaluated,feature);
             } else if(type=="shell") {
                 const auto target=std::find_if(evaluated.bodies.begin(),evaluated.bodies.end(),[&](const auto& body){return body.bodyId==parameters["targetBodyId"].toString();});
                 if(target==evaluated.bodies.end())throw EvaluationError({{"code","body_unavailable"},{"featureId",id},{"message","Shell target must be active earlier in history"}});

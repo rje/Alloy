@@ -28,7 +28,7 @@ target_include_directories(alloy_sketch_solver PUBLIC src)
 target_link_libraries(alloy_sketch_solver PUBLIC Qt6::Core PRIVATE alloy_planegcs)
 
 add_library(alloy_kernel STATIC
-    src/GeometryKernel.cpp src/GeometryKernel.h src/PlanarFaces.cpp src/PlanarFaces.h src/SolidFillet.cpp src/SolidFillet.h src/SolidShell.cpp src/SolidShell.h src/SolidLoft.cpp src/SolidLoft.h src/FeaturePattern.cpp src/FeaturePattern.h src/SolidMirror.cpp src/SolidMirror.h src/JoinResults.cpp
+    src/GeometryKernel.cpp src/GeometryKernel.h src/PlanarFaces.cpp src/PlanarFaces.h src/SolidFillet.cpp src/SolidFillet.h src/SolidShell.cpp src/SolidShell.h src/SolidSphere.cpp src/SolidSphere.h src/SolidLoft.cpp src/SolidLoft.h src/FeaturePattern.cpp src/FeaturePattern.h src/SolidMirror.cpp src/SolidMirror.h src/JoinResults.cpp
     src/MeshExport.cpp src/MeshExport.h
     src/StepExchange.cpp src/StepExchange.h
     src/SketchGeometry.cpp src/SketchTrim.cpp src/SketchGeometry.h
@@ -131,6 +131,9 @@ if(BUILD_TESTING)
     add_executable(solid_fillet_test tests/solid_fillet.cpp src/CadDocument.cpp src/CadDocument.h)
     target_link_libraries(solid_fillet_test PRIVATE alloy_kernel Qt6::Widgets)
     add_test(NAME solid_fillet COMMAND solid_fillet_test)
+    add_executable(solid_sphere_test tests/solid_sphere.cpp src/CadDocument.cpp src/CadDocument.h)
+    target_link_libraries(solid_sphere_test PRIVATE alloy_kernel Qt6::Widgets)
+    add_test(NAME solid_sphere COMMAND solid_sphere_test)
     add_executable(solid_shell_test tests/solid_shell.cpp src/CadDocument.cpp src/CadDocument.h)
     target_link_libraries(solid_shell_test PRIVATE alloy_kernel Qt6::Widgets)
     add_test(NAME solid_shell COMMAND solid_shell_test)
