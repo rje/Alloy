@@ -9,3 +9,7 @@ Evidence: `build-support-integrated/evidence/independent/{setup.json,native-undo
 ## Edited native movie review
 
 The separate straw-bung highlight v2 is208s/48normal-speed windows. All475relevant logged events are retained; raw/log/edited hashes match, and edited frame windows are contiguous. Sampled frames show the persistent EDITED banner, native model states, and the explicit context-menu limitation. Long captions clip at the right edge; this is tracked separately, and raw recording plus full ledger remain authoritative. Review does not upgrade the unresolved source menu route or claim full exact parity.
+
+### Caption follow-up #180
+
+Independent layout acceptance on59d2aa3+b4a7340: inspected actual saved-model clip frames in external `straw-bung-native/caption-fit-check-v2/{long-caption.png,numeric-tail.png}`. Both formerly clipped captions fit the reserved band; full numeric3523.796469 and−20 remain readable, with−20 kept together on the second line. Application content remains unobscured. Source uses word wrapping plus measured font fitting within52pixels; arbitrary token splitting was removed after initial review. Receipt confirms21frames/4.2s/zero capture failures and exact authored data unchanged. This qualifies caption layout only, not a new modeling run; earlier raw and edited demonstrations remain unchanged.
