@@ -25,6 +25,29 @@ class NamedLengthParametersControlsTest final:public QObject{
         const auto result=window.execute(command,args);if(!result["ok"].toBool())qFatal("%s: %s",qPrintable(command),QJsonDocument(result).toJson().constData());return result["result"].toObject();
     }
 private slots:
+    void ownedDialogCaptureAndPendingEdits() {
+        AlloyTheme::apply(*qApp);AlloyWindow window;window.resize(1400,900);window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));QApplication::setActiveWindow(&window);
+        call(window,"document.parametersDialog");
+        auto* dialog=window.findChild<QDialog*>("parameters.dialog");QVERIFY(dialog && dialog->isVisible());
+        call(window,"document.parametersDialog");QCOMPARE(window.findChildren<QDialog*>("parameters.dialog").size(),1);
+        auto* name=dialog->findChild<QLineEdit*>("parameters.name");auto* value=dialog->findChild<QLineEdit*>("parameters.value");
+        auto* table=dialog->findChild<QTableWidget*>("parameters.table");QVERIFY(name && value && table);
+        name->setText("Uncommitted");value->setText("123");
+        call(window,"document.parameterAdd",{{"name","Length"},{"value",75},{"units","mm"}});
+        table->setCurrentCell(0,0);const auto selected=table->item(0,0)->data(Qt::UserRole);
+        call(window,"document.parameterAdd",{{"name","Width"},{"value",50},{"units","mm"}});
+        call(window,"document.parameterAdd",{{"name","Thickness"},{"value",10},{"units","mm"}});
+        QCOMPARE(table->rowCount(),3);QCOMPARE(name->text(),QString("Uncommitted"));QCOMPARE(value->text(),QString("123"));
+        QCOMPARE(table->item(table->currentRow(),0)->data(Qt::UserRole),selected);
+        QCOMPARE(table->item(2,0)->text(),QString("Thickness"));QCOMPARE(table->item(2,2)->text(),QString("10"));
+        const auto before=call(window,"document.inspect")["authored"].toObject();
+        call(window,"document.parametersDialog",{{"visible",false}});QVERIFY(!dialog->isVisible());
+        QCOMPARE(call(window,"document.inspect")["authored"].toObject(),before);
+        call(window,"document.parametersDialog");auto* reopened=window.findChildren<QDialog*>("parameters.dialog").last();QVERIFY(reopened->isVisible());
+        call(window,"document.parametersDialog",{{"visible",false}});call(window,"document.new",{{"discard",true}});window.close();
+    }
+
     void nativeCreateName(){
         AlloyTheme::apply(*qApp);AlloyWindow window;window.resize(1300,900);window.show();window.activateWindow();
         QVERIFY(QTest::qWaitForWindowExposed(&window));QApplication::setActiveWindow(&window);

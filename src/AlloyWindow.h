@@ -1,5 +1,6 @@
 #pragma once
 #include <QMainWindow>
+#include <QPointer>
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QMap>
@@ -64,6 +65,7 @@ private:
     void showUnits();
     QJsonObject lengthParameter(const QString& name) const;
     void showLengthParameters();
+    void refreshLengthParameters();
     void showPrimitive();
     void updatePrimitive(const QJsonObject& inputs);
     QJsonObject beginExtrude(const QJsonObject& inputs);
@@ -271,6 +273,7 @@ private:
     QLabel* status_ = nullptr;
     QDialog* search_ = nullptr;
     QDialog* unitsDialog_ = nullptr;
+    QPointer<QDialog> lengthParametersDialog_;
     QComboBox* unitsInput_ = nullptr;
     QLineEdit* searchInput_ = nullptr;
     QWidget* primitivePanel_ = nullptr;

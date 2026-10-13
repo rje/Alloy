@@ -860,7 +860,12 @@ void AlloyWindow::registerCommands() {
             QJsonObject candidate;try{candidate=CadDocument::lengthParameterCandidate(document_->authored(),a);}catch(const std::exception& e){return failure("invalid_parameter",QString::fromUtf8(e.what()));}
             const auto error=document_->commit(candidate,"Edit user length");return error.isEmpty() ? document_->state() : failure("parameter_evaluation_failed",error);
         });
-    add("document.parametersDialog","Change Parameters","Open native controls for document-owned user lengths.",{},[this](const auto&){
+    add("document.parametersDialog","Change Parameters","Show or close the owned user-length dialog.",
+        {{"visible",optional(parameter("boolean","Show (default true) or close this dialog only."))}},[this](const auto& a){
+        if(!a.value("visible").toBool(true)) {
+            if(lengthParametersDialog_)lengthParametersDialog_->close();
+            return QJsonObject{{"visible",false}};
+        }
         if(!session_.isEmpty())return failure("active_command","Finish or Cancel the active command first");
         showLengthParameters();return QJsonObject{{"visible",true},{"userParameters",document_->authored()["userParameters"]}};
     });
@@ -2828,7 +2833,7 @@ void AlloyWindow::registerCommands() {
         [this](const auto&){return recorder_->status();});
     add("recording.stop", "Finish tutorial recording", "Finalize MP4 and timestamped event/metadata sidecars.",{},
         [this](const auto&){return recorder_->stop(document_->revision());});
-    add("capture.screenshot", "Capture screenshot", "Save a PNG of the actual main window, excluding OS decorations and separate dialogs.", {{"path", parameter("string", "Absolute destination PNG path; parent directory must exist.")}}, [this](const auto& a) {
+    add("capture.screenshot", "Capture screenshot", "Save the main window and visible owned Qt popups within its bounds; excludes OS decorations.", {{"path", parameter("string", "Absolute destination PNG path; parent directory must exist.")}}, [this](const auto& a) {
         const QString path = a.value("path").toString();
         if (!QDir::isAbsolutePath(path) || !path.endsWith(".png", Qt::CaseInsensitive)) return failure("invalid_arguments", "Screenshot requires an absolute .png path");
         QImage framebuffer;
@@ -2857,7 +2862,7 @@ void AlloyWindow::registerCommands() {
             : session_.value("command").toString().startsWith("solid.") ? primitivePanel_
             : session_.value("command").toString().startsWith("sketch.") ? sketchPanel_ : unitsDialog_;
         const auto* activeModal=QApplication::activeModalWidget();
-        const bool planeDialog=activeModal && (activeModal->objectName()=="constructionPlaneDialog" || activeModal->objectName()=="mesh.export.dialog");
+        const bool planeDialog=activeModal && (activeModal->objectName()=="constructionPlaneDialog" || activeModal->objectName()=="mesh.export.dialog" || activeModal==lengthParametersDialog_.data());
         if(planeDialog)dialog=QApplication::activeModalWidget();
         if ((!planeDialog && session_.isEmpty()) || !dialog || !dialog->isVisible()) return failure("no_active_dialog", "No active dialog to capture");
         const auto pixels = dialog->grab(); QSaveFile file(path);
@@ -3029,6 +3034,7 @@ QJsonObject AlloyWindow::state() const {
 }
 
 void AlloyWindow::refresh() {
+    refreshLengthParameters();
     if (!browser_) return;
     browser_->setVisible(browserVisible_); timeline_->setVisible(timelineVisible_); navigation_->setVisible(navigationVisible_);
     tree_->topLevelItem(0)->child(0)->child(0)->setText(0, "Units: " + document_->authored()["displayUnits"].toString());
@@ -3997,8 +4003,32 @@ QJsonObject AlloyWindow::lengthParameter(const QString& name) const {
     return {};
 }
 
+void AlloyWindow::refreshLengthParameters() {
+    if(!lengthParametersDialog_)return;
+    auto* table=lengthParametersDialog_->findChild<QTableWidget*>("parameters.table");
+    if(!table)return;
+    const auto rows=document_->authored()["userParameters"].toArray();
+    const auto encoded=QJsonDocument(rows).toJson(QJsonDocument::Compact);
+    if(table->property("parameterRows").toByteArray()==encoded)return;
+    const auto* selected=table->item(table->currentRow(),0);
+    const QString selectedId=selected ? selected->data(Qt::UserRole).toString() : QString{};
+    const QSignalBlocker block(table);table->setRowCount(rows.size());
+    for(int i=0;i<rows.size();++i) {
+        const auto row=rows[i].toObject();const double scale=row["units"]=="in" ? 25.4 : 1;
+        const QStringList cells{row["name"].toString(),row["units"].toString(),QString::number(row["valueMm"].toDouble()/scale,'g',10)};
+        for(int j=0;j<3;++j){auto* item=new QTableWidgetItem(cells[j]);item->setData(Qt::UserRole,row["id"]);table->setItem(i,j,item);}
+        if(row["id"].toString()==selectedId)table->setCurrentCell(i,0);
+    }
+    table->setProperty("parameterRows",encoded);table->resizeColumnsToContents();
+    // Refresh only table data; preserve unsaved name/value/unit editor input.
+}
+
 void AlloyWindow::showLengthParameters() {
-    auto* dialog=new QDialog(this);dialog->setAttribute(Qt::WA_DeleteOnClose);
+    if(lengthParametersDialog_) {
+        refreshLengthParameters();lengthParametersDialog_->show();lengthParametersDialog_->raise();return;
+    }
+    auto* dialog=new QDialog(this);lengthParametersDialog_=dialog;
+    dialog->setObjectName("parameters.dialog");dialog->setAttribute(Qt::WA_DeleteOnClose);
     dialog->setWindowTitle("Change Parameters");dialog->setWindowModality(Qt::WindowModal);
     auto* layout=new QVBoxLayout(dialog);
     auto* table=new QTableWidget(0,3,dialog);table->setObjectName("parameters.table");
@@ -4011,12 +4041,7 @@ void AlloyWindow::showLengthParameters() {
     auto* actions=new QHBoxLayout;auto* add=new QPushButton("Add",dialog);add->setObjectName("parameters.add");actions->addWidget(add);
     auto* edit=new QPushButton("Update",dialog);edit->setObjectName("parameters.update");actions->addWidget(edit);
     auto* close=new QPushButton("Close",dialog);actions->addWidget(close);layout->addLayout(actions);
-    auto refresh=[this,table]{const auto rows=document_->authored()["userParameters"].toArray();table->setRowCount(rows.size());
-        for(int i=0;i<rows.size();++i){const auto row=rows[i].toObject();const double scale=row["units"]=="in" ? 25.4 : 1;
-            const QStringList cells{row["name"].toString(),row["units"].toString(),QString::number(row["valueMm"].toDouble()/scale,'g',10)};
-            for(int j=0;j<3;++j){auto* item=new QTableWidgetItem(cells[j]);item->setData(Qt::UserRole,row["id"]);table->setItem(i,j,item);}}
-        table->resizeColumnsToContents();};
-    refresh();
+    refreshLengthParameters();
     connect(table,&QTableWidget::cellClicked,dialog,[=,this](int row,int){const auto rows=document_->authored()["userParameters"].toArray();if(row<0 || row>=rows.size())return;
         const auto entry=rows[row].toObject();name->setText(entry["name"].toString());unit->setCurrentText(entry["units"].toString());
         value->setText(QString::number(entry["valueMm"].toDouble()/(entry["units"]=="in" ? 25.4 : 1),'g',10));});
@@ -4027,12 +4052,12 @@ void AlloyWindow::showLengthParameters() {
             args["parameterId"]=selected->data(Qt::UserRole).toString();}
         const auto result=execute(updating ? "document.parameterUpdate" : "document.parameterAdd",args);
         if(!result["ok"].toBool()){status->setText(result["error"].toObject()["message"].toString());return;}
-        status->clear();refresh();
+        status->clear();refreshLengthParameters();
     };
     connect(add,&QPushButton::clicked,dialog,[=]{submit(false);});
     connect(edit,&QPushButton::clicked,dialog,[=]{submit(true);});
     connect(close,&QPushButton::clicked,dialog,&QDialog::close);
-    connect(dialog,&QDialog::finished,this,[this]{activateWindow();});
+    connect(dialog,&QDialog::finished,this,[this,dialog]{if(lengthParametersDialog_==dialog)lengthParametersDialog_.clear();activateWindow();});
     dialog->resize(390,360);dialog->show();name->setFocus();
 }
 
