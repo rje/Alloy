@@ -50,7 +50,7 @@ try:
                 if not e['available']:continue
                 delta=[y-x for x,y in zip(e['startMm'],e['endMm'])]
                 if abs(delta[coordinate])>1 and math.isclose(abs(delta[coordinate]),math.sqrt(sum(x*x for x in delta)),abs_tol=1e-6):
-                    return {'edgeId':e['edgeId'],'quantity':quantity,'extentMm':math.copysign(extent,delta[coordinate])}
+                    return {'edgeId':e['edgeId'],'quantity':quantity,'extentMm':math.copysign(abs(extent),delta[coordinate])*(1 if extent>=0 else -1)}
             raise AssertionError('Missing retained straight axis')
         assert call('app.state')['viewport']['gpu']['hardwareAccelerated']
         step('Create a 31.8 by 15.8 mm base, extrude 9.6 mm')
@@ -65,18 +65,28 @@ try:
         call('document.save',{'path':str(out/'toy-block.alloy')})
         step('Sketch a 5 mm stud, 3.9 mm from each adjacent edge; Join 1.7 mm')
         call('sketch.begin',{'support':support(cap),'name':'Stud'})
-        call('sketch.addCircle',{'centerX':3.9,'centerY':3.9,'diameter':5,'units':'mm'})
+        call('view.orientation',{'name':'top'})
+        call('sketch.addCircle',{'centerX':5,'centerY':10,'diameter':5,'units':'mm'})
         circle=draft()['parameters']['entities'][-1]
-        projected=call('app.state')['activeSession']['projectionContext']['lines']
-        corners=[(line['startPointId'],line['u1Mm'],line['v1Mm']) for line in projected]+[(line['endPointId'],line['u2Mm'],line['v2Mm']) for line in projected]
-        origin=next(point for point,u,v in corners if abs(u)<1e-6 and abs(v)<1e-6)
-        for kind in ('horizontal','vertical'):
-            call('sketch.dimension',{'kind':kind,'pointIds':[origin,circle['centerPointId']],'value':3.9,'units':'mm'})
         call('sketch.dimension',{'kind':'diameter','entityId':circle['id'],'value':5,'units':'mm'})
+        projected=call('app.state')['activeSession']['projectionContext']['lines']
+        left=next(line for line in projected if abs(line['u1Mm'])<1e-6 and abs(line['u2Mm'])<1e-6)
+        top=next(line for line in projected if abs(line['v1Mm']-15.8)<1e-6 and abs(line['v2Mm']-15.8)<1e-6)
+        call('sketch.tool',{'tool':'dimension'})
+        for edge,placement in [(top,(-3,13)),(left,(2,19))]:
+            call('sketch.selectionSet',{'pointIds':[circle['centerPointId']],'entityIds':[edge['id']]})
+            pixel=project(*placement)
+            preview=call('sketch.dimensionPreview',pixel);assert preview['kind']=='pointLineDistance'
+            call('sketch.dimensionPlace',pixel);call('sketch.dimensionAccept',{'text':'3.9'})
+        parameters=draft()['parameters']
+        center=next(point for point in parameters['points'] if point['id']==circle['centerPointId'])
+        assert math.isclose(center['uMm'],3.9,abs_tol=1e-6) and math.isclose(center['vMm'],11.9,abs_tol=1e-6)
+        assert len([dimension for dimension in parameters['dimensions'] if dimension['kind']=='pointLineDistance'])==2
+        call('capture.screenshot',{'path':str(out/'first-stud-edge-dimensions.png')})
         stud=finish();call('solid.extrude',{'sketchId':stud['sketchId'],'profileId':stud['profiles'][0]['profileId'],'distance':1.7,'operation':'join','targetBodyIds':[target]})
         stud_seed=inspect()['authored']['features'][-1]
         step('Pattern the stud feature: 4 over 24 mm, 2 over 8 mm')
-        call('solid.rectangularPattern',{'sourceFeatureId':stud_seed['id'],'targetBodyId':target,'axes':[axis(0,4,24),axis(1,2,8)]})
+        call('solid.rectangularPattern',{'sourceFeatureId':stud_seed['id'],'targetBodyId':target,'axes':[axis(0,4,24),axis(1,2,-8)]})
         stage('02-eight-studs')
         bottom=next(f for f in body()['supportFaces'] if f['role']=='extrude.base' and f['frame']['normal'][2]<-.999)
         step('Shell inward 1.49 mm from the bottom face')
@@ -84,7 +94,7 @@ try:
         stage('03-hollow-block')
         roofs=[f for f in body()['supportFaces'] if f['frame']['normal'][2]<-.999 and abs(f['frame']['origin'][2]-8.11)<1e-5]
         assert roofs,'Missing actual inner roof support'
-        roof=roofs[0];call('sketch.begin',{'support':support(roof),'name':'Retained tube centers'})
+        roof=roofs[0];call('view.orientation',{'name':'bottom'});call('sketch.begin',{'support':support(roof),'name':'Retained tube centers'})
         context=call('app.state')['activeSession']['projectionContext']
         centers=context['points'];assert len(centers)==8
         assert roof['role']=='shell-inner'

@@ -71,8 +71,9 @@
         "SKT-034"
       ],
       "acceptance": "Reproduce the toy-block first-stud center/edge/label/value gesture with real retained dimensions; edge edits move the circle, history and storage preserve references, and annotations remain readable.",
-      "status": "in_progress",
-      "remaining": "Sol implements the bounded dimension command/UI in an isolated worktree; Astra reviews public contract and then verifies native/geometry evidence. Separate ASCII export206 is accepted."
+      "status": "done",
+      "remaining": "Bounded center-to-straight-edge dimensions accepted. Broader SKT-017 retains side-face boss and inclined support coverage; original toy movie remains explicitly adapted until updated recording passes.",
+      "evidence": "docs/validation/point-edge-dimensions-independent.md"
     },
     {
       "id": "CP-06",

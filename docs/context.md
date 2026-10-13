@@ -107,10 +107,11 @@ authored state, undo and revision remain unchanged. Focused pole and existing
 multi-body/atomic-refusal tests pass. No universal all-settings mesh claim.
 See `validation/stl-pole-facets.md`.
 
-All four overnight tutorial gates are Done. SKT-034 #205 is currently
-In Progress: direct circle-center to retained straight model-edge dimensions.
-Sol (die_chamfer) implements in `../Alloy-worktrees/point-edge-dimensions`;
-Astra (overnight_specs) independently verifies. The external contract is
+All four overnight tutorial gates are Done. SKT-034 #205 is independently accepted and CLOSED (5846877/0fa5eed): direct
+circle-center to retained straight model-edge dimensions.
+Core/API and independent Qt input pass, including D, center/edge selection,
+separate placement, 3.9/Enter twice, Escape, label drag, upstream edge movement,
+Cut volumes and exact reopen. Receipt: validation/point-edge-dimensions-independent.md. The external contract is
 `knowledge/specs/point-edge-dimension-next-slice.md`. Root serializes private GUI
 access; no editor is currently running. The main acceptance checkpoint 55dd087
 is pushed; the later ASCII correction is local pending the next coherent push.
@@ -119,7 +120,7 @@ crowded 24-feature Timeline labels, and #83 retains performance work. No release
 tag or per-commit CI is triggered. Continue authorized backlog work while the user
 is asleep; do not stop just because the first three gates are complete.
 
-HIS-005 #207 is the second active bounded slice: fixed-size readable Timeline
+HIS-005 #207 is the only active bounded slice: fixed-size readable Timeline
 targets, complete name/type tooltips, horizontal overflow and a view-only route
 to the latest feature. Sol (die_components) owns isolated timeline-overflow.
 External research is knowledge/specs/feature-timeline-readability-slice.md. Public
@@ -1685,3 +1686,10 @@ and authored evidence live in `build-point-edge/evidence/{api,widget}`; all priv
 validation processes closed and desktop released to root for Astra review.
 See `validation/point-edge-dimensions.md`. Broader SKT-017/025/026 remain separate;
 no issue closure, release or push implied by this candidate.
+
+Root prepares an updated full toy runner using the actual center-to-top/left-edge
+dimensions instead of the earlier corner-coordinate substitute. First stud moves
+to (3.9,11.9), row pattern runs -Y8; the source Bottom-view construction diagonal
+retains world endpoints (3.9,3.9) and (11.9,11.9). Do not change that diagonal just
+because the seed occurrence moved. After #207 integration, run one new complete
+movie/artifact gate; preserve the original accepted evidence and its limitations.
