@@ -76,6 +76,11 @@ Handle(AIS_Shape) sketchPresentation(const TopoDS_Shape& shape) {
     presentation->SetWidth(2);
     return presentation;
 }
+Quantity_Color unselectedSketchProfileColor() {
+    // The public tutorial's editable region is a pale warm fill. Keep blue
+    // reserved for selected profiles and red for Cut previews.
+    return Quantity_Color(0.98,0.84,0.71,Quantity_TOC_sRGB);
+}
 struct SketchStrokes { TopoDS_Shape normal, construction; int constructionCount = 0; };
 SketchStrokes splitSketchStrokes(const EvaluatedSketch& sketch) {
     if(sketch.shape.IsNull())return {};
@@ -378,7 +383,7 @@ void ReferenceView::applyEditDisplay(bool redraw) {
         for(const auto& profile:sketch.profiles)if(finishedProfileModels_.contains(profile.profileId)) {
             const auto fill=finishedProfileModels_.value(profile.profileId);
             fill->SetColor(selectedProfileIds_.contains(profile.profileId) && sketch.featureId==selectedProfileSketch_
-                ? Quantity_Color(0.17,0.48,0.90,Quantity_TOC_sRGB) : Quantity_Color(0.39,0.68,0.91,Quantity_TOC_sRGB));
+                ? Quantity_Color(0.17,0.48,0.90,Quantity_TOC_sRGB) : unselectedSketchProfileColor());
             // The extrusion base cap occupies this same plane. Keep its sketch
             // outline, but suppress the coplanar transparent profile fill.
             if(visible && !previewProfileIds_.contains(profile.profileId))context_->Display(fill,false);else context_->Erase(fill,false);
@@ -481,7 +486,7 @@ void ReferenceView::showSketchDraft(const EvaluatedSketch& sketch) {
         Handle(AIS_Shape) fill=new AIS_Shape(profile.face);fill->SetDisplayMode(AIS_Shaded);fill->Attributes()->SetAutoTriangulation(false);
         fill->Attributes()->SetShadingModel(Graphic3d_TypeOfShadingModel_Unlit,true);
         if(sketch.plane=="face")fill->SetZLayer(Graphic3d_ZLayerId_Topmost);
-        fill->SetColor(Quantity_Color(0.39,0.68,0.91,Quantity_TOC_sRGB));fill->SetTransparency(0.58);
+        fill->SetColor(unselectedSketchProfileColor());fill->SetTransparency(0.58);
         context_->Display(fill,AIS_Shaded,-1,false);context_->Deactivate(fill);profileModels_[profile.profileId]=fill;
     }
     if(!sketchDraft_.IsNull())context_->Remove(sketchDraft_,false);
@@ -809,7 +814,7 @@ void ReferenceView::decorateSketch(const QJsonObject& feature,const QJsonObject&
     decorationFeature_=feature;decorationSelection_=selection;decorationDiagnostics_=diagnostics;decorationUnits_=units;decorationPending_=pending;
     clearSketchDecorations();if(context_.IsNull())return;
     for(auto i=profileModels_.begin();i!=profileModels_.end();++i) {
-        i.value()->SetColor(selection.value("profileIds").toArray().contains(i.key()) ? Quantity_Color(0.17,0.48,0.90,Quantity_TOC_sRGB) : Quantity_Color(0.39,0.68,0.91,Quantity_TOC_sRGB));
+        i.value()->SetColor(selection.value("profileIds").toArray().contains(i.key()) ? Quantity_Color(0.17,0.48,0.90,Quantity_TOC_sRGB) : unselectedSketchProfileColor());
         context_->Redisplay(i.value(),false);
     }
     const auto parameters=feature["parameters"].toObject();const auto plane=parameters["plane"].toString();
@@ -1596,19 +1601,19 @@ void ReferenceView::mousePressEvent(QMouseEvent* e) {
                 }
             }
         }
-        if(!sketchPlane_.isEmpty() && decorationSelection_.value("tool")!="line" && decorationSelection_.value("tool")!="rectangle" && decorationSelection_.value("tool")!="circle" && decorationSelection_.value("tool")!="centerArc" && decorationSelection_.value("tool")!="threePointArc" && decorationPending_.value("phase")!="placing") {
-            const auto picked=pickAnnotation(e->position().x(),e->position().y());
-            if(!picked.isEmpty()) {
-                draggedAnnotation_=picked.value("dimensionId").toString();annotationGestureId_=QString::number(++nextAnnotationGesture_);annotationPress_=e->position();annotationDragged_=false;
-                dispatch("sketch.annotationSelect",{{"dimensionId",draggedAnnotation_}});e->accept();return;
-            }
-        }
         if(!sketchPlane_.isEmpty() && decorationSelection_.value("tool")=="select") {
             const auto badge=pickConstraint(e->position().x(),e->position().y());
             if(!badge.isEmpty()) {
                 dispatch("sketch.constraintSelect",{{"constraintId",badge.value("constraintId")},
                     {"additive",e->modifiers().testFlag(Qt::ShiftModifier)}});
                 e->accept();return;
+            }
+        }
+        if(!sketchPlane_.isEmpty() && decorationSelection_.value("tool")!="line" && decorationSelection_.value("tool")!="rectangle" && decorationSelection_.value("tool")!="circle" && decorationSelection_.value("tool")!="centerArc" && decorationSelection_.value("tool")!="threePointArc" && decorationPending_.value("phase")!="placing") {
+            const auto picked=pickAnnotation(e->position().x(),e->position().y());
+            if(!picked.isEmpty()) {
+                draggedAnnotation_=picked.value("dimensionId").toString();annotationGestureId_=QString::number(++nextAnnotationGesture_);annotationPress_=e->position();annotationDragged_=false;
+                dispatch("sketch.annotationSelect",{{"dimensionId",draggedAnnotation_}});e->accept();return;
             }
         }
         QJsonObject args{{"x",e->position().x()},{"y",e->position().y()}};

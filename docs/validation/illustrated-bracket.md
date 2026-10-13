@@ -74,3 +74,29 @@ The external `knowledge/tutorials/illustrated-bracket/step-status-2026-10-12.jso
 maps all 49 source subinstructions and transition/selection notes to this run's
 API/native evidence and explicit gaps. Its color-pending entry is superseded by
 the accepted correction above; it remains a dated audit, not a live test result.
+
+## Native interaction and profile presentation candidate
+
+The later `tutorial-completion` candidate retains sketch selection-tree rows by
+authored point/curve ID across geometry insertion, deletion and draft Undo/Redo.
+Retired rows are hidden and disabled, then reused if Undo restores their ID.
+This addresses one row-lifetime risk for native accessibility clients; it does
+not establish that all AX row labels are authoritative on macOS. A focused real
+Qt widget test confirms pointer identity, hidden/selected state and restoration.
+
+The same candidate gives constraint badges click priority over overlapping
+dimension annotations in Select mode. The previous native widget test failed
+to select its target badge on the earlier candidate; it passes after this
+change, as does the full widget suite (8 passed, 0 failed). The selected badge
+remains a synthesized Qt pointer result until separately checked with physical
+native input.
+
+The archived public Activity 1 final-result image, retrieved 2026-10-12 in the
+external visual manifest, shows a pale warm unselected region. Alloy previously
+showed that state in blue. The candidate uses a pale warm fill and reserves blue
+for selected profiles. `build-tutorial-completion/warm-profile.png` is an actual
+GPU-backed application capture of an edited rectangle confirming the new color
+and dark fully constrained outline. Its shape, dimensions, viewport scale and
+theme are not matched to the public image, so this is categorical color evidence,
+not a pixel comparison or complete tutorial visual acceptance. The exact native
+held-modifier and uninterrupted-source gates listed above remain open.

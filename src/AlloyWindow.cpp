@@ -3465,38 +3465,52 @@ void AlloyWindow::refreshSketchControls() {
         const auto pointEntries=parameters["points"].toArray(),entityEntries=parameters["entities"].toArray();
         auto* pointGroup=sketchSelectionTree_->topLevelItemCount()==2 ? sketchSelectionTree_->topLevelItem(0) : nullptr;
         auto* lineGroup=sketchSelectionTree_->topLevelItemCount()==2 ? sketchSelectionTree_->topLevelItem(1) : nullptr;
-        auto sameIds=[](QTreeWidgetItem* group,const QJsonArray& entries) {
-            if(!group || group->childCount()!=entries.size())return false;
-            for(int i=0;i<entries.size();++i)if(group->child(i)->data(0,Qt::UserRole+1).toString()!=entries[i].toObject()["id"].toString())return false;
-            return true;
-        };
-        const bool stable=sameIds(pointGroup,pointEntries) && sameIds(lineGroup,entityEntries);
-        if(!stable) {
-            // A solved coordinate/dimension change preserves authored IDs. Keep
-            // those QTreeWidgetItems alive for native accessibility clients.
-            sketchSelectionTree_->clearSelection();sketchSelectionTree_->clear();
+        if(!pointGroup || !lineGroup) {
             pointGroup=new QTreeWidgetItem(sketchSelectionTree_,{"Points"});pointGroup->setFlags(pointGroup->flags() & ~Qt::ItemIsSelectable);
             lineGroup=new QTreeWidgetItem(sketchSelectionTree_,{"Curves"});lineGroup->setFlags(lineGroup->flags() & ~Qt::ItemIsSelectable);
         }
+        // Native accessibility clients can hold a row while an edit inserts or
+        // removes geometry. Keep each item's identity tied to its authored ID;
+        // retiring a row only hides it until Undo restores that same ID.
+        auto rowForId=[](QTreeWidgetItem* group,const QString& id) {
+            for(int i=0;i<group->childCount();++i) {
+                auto* item=group->child(i);
+                if(item->data(0,Qt::UserRole+1).toString()==id)return item;
+            }
+            return new QTreeWidgetItem(group);
+        };
+        QSet<QString> livePoints,liveEntities;
         int index=0;
         for(const auto& entry:pointEntries) {
-            const auto point=entry.toObject();const auto id=point["id"].toString();points[id]=point;pointNumbers[id]=++index;
-            auto* item=stable ? pointGroup->child(index-1) : new QTreeWidgetItem(pointGroup);
+            const auto point=entry.toObject();const auto id=point["id"].toString();points[id]=point;pointNumbers[id]=++index;livePoints.insert(id);
+            auto* item=rowForId(pointGroup,id);
             QString label=QString("P%1  (%2, %3) %4").arg(index).arg(QString::number(point["uMm"].toDouble()/scale,'g',5)).arg(QString::number(point["vMm"].toDouble()/scale,'g',5)).arg(units);
             if(relations.contains(id))label+=" · "+relations[id].join(", ");
             item->setText(0,label);
             item->setData(0,Qt::UserRole,"point");item->setData(0,Qt::UserRole+1,id);item->setSelected(selection["pointIds"].toArray().contains(id));
+            item->setFlags(item->flags()|Qt::ItemIsEnabled|Qt::ItemIsSelectable);item->setHidden(false);
         }
         index=0;
         for(const auto& entry:entityEntries) {
-            const auto entity=entry.toObject();const auto id=entity["id"].toString();
-            auto* item=stable ? lineGroup->child(index) : new QTreeWidgetItem(lineGroup);
+            const auto entity=entry.toObject();const auto id=entity["id"].toString();liveEntities.insert(id);
+            auto* item=rowForId(lineGroup,id);
             QString label=entity["type"]=="circle" ? QString("Circle %1  ·  P%2 · R%3").arg(++index).arg(pointNumbers.value(entity["centerPointId"].toString())).arg(entity["radiusMm"].toDouble()/scale) : QString("%1 %2  ·  P%3 → P%4").arg(entity["type"]=="arc" ? "Arc" : "Line").arg(++index).arg(pointNumbers.value(entity["startPointId"].toString())).arg(pointNumbers.value(entity["endPointId"].toString()));
             if(entity["construction"].toBool())label+=" · Construction";
             if(relations.contains(id))label+=" · "+relations[id].join(", ");
             item->setText(0,label);
             item->setData(0,Qt::UserRole,"entity");item->setData(0,Qt::UserRole+1,id);item->setSelected(selection["entityIds"].toArray().contains(id));
+            item->setFlags(item->flags()|Qt::ItemIsEnabled|Qt::ItemIsSelectable);item->setHidden(false);
         }
+        auto retireRows=[](QTreeWidgetItem* group,const QSet<QString>& live) {
+            for(int i=0;i<group->childCount();++i) {
+                auto* item=group->child(i);
+                if(live.contains(item->data(0,Qt::UserRole+1).toString()))continue;
+                item->setSelected(false);
+                item->setFlags(item->flags() & ~(Qt::ItemIsEnabled|Qt::ItemIsSelectable));
+                item->setHidden(true);
+            }
+        };
+        retireRows(pointGroup,livePoints);retireRows(lineGroup,liveEntities);
         pointGroup->setExpanded(true);lineGroup->setExpanded(true);
     } else if(selected) {
         const QSignalBlocker block(sketchSelectionTree_);

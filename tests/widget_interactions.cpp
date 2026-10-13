@@ -113,6 +113,32 @@ private slots:
         QCOMPARE(window.state()["document"].toObject()["features"].toInt(),0);
     }
 
+    void sketchRowsSurviveDraftUndoRedo() {
+        AlloyWindow window;window.resize(1180,760);window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        QVERIFY2(run(window,"sketch.begin",{{"plane","XY"},{"name","Stable rows"}}),error_.constData());
+        auto* tree=window.findChild<QTreeWidget*>("sketch.selection");QVERIFY(tree);
+        auto* points=tree->topLevelItem(0);auto* curves=tree->topLevelItem(1);
+        QVERIFY(points && curves);
+        QVERIFY2(run(window,"sketch.line",{{"x1",0},{"y1",0},{"x2",20},{"y2",0},{"units","mm"}}),error_.constData());
+        const auto line=session(window)["draftSketch"].toObject()["parameters"].toObject()["entities"].toArray().first().toObject();
+        const auto lineId=line["id"].toString();
+        auto* lineRow=curves->child(0);QVERIFY(lineRow);
+        QCOMPARE(lineRow->data(0,Qt::UserRole+1).toString(),lineId);
+        auto* firstPoint=points->child(0);QVERIFY(firstPoint);
+        QVERIFY2(run(window,"sketch.selectionSet",{{"entityIds",QJsonArray{lineId}}}),error_.constData());
+        QVERIFY(lineRow->isSelected());
+        QVERIFY2(run(window,"history.undo"),error_.constData());
+        QCOMPARE(tree->topLevelItem(0),points);QCOMPARE(tree->topLevelItem(1),curves);
+        QCOMPARE(curves->child(0),lineRow);QCOMPARE(points->child(0),firstPoint);
+        QVERIFY(lineRow->isHidden());QVERIFY(!lineRow->isSelected());
+        QVERIFY2(run(window,"history.redo"),error_.constData());
+        QCOMPARE(curves->child(0),lineRow);QCOMPARE(points->child(0),firstPoint);
+        QVERIFY(!lineRow->isHidden());
+        QCOMPARE(lineRow->data(0,Qt::UserRole+1).toString(),lineId);
+        QVERIFY2(run(window,"sketch.cancel"),error_.constData());
+    }
+
     void sketchGroupedMenuCommands() {
         AlloyWindow window;window.resize(1180,760);window.show();
         QVERIFY(QTest::qWaitForWindowExposed(&window));
