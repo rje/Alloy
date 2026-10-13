@@ -4,6 +4,7 @@
 #include "SolidShell.h"
 #include "SolidSphere.h"
 #include "SolidLoft.h"
+#include "SolidRevolve.h"
 #include "FeaturePattern.h"
 #include "SolidMirror.h"
 #include <BRepBuilderAPI_Transform.hxx>
@@ -457,6 +458,9 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored) 
                 QJsonObject seed;for(const auto& value:authored["features"].toArray())if(value.toObject()["id"]==parameters["sourceFeatureId"]){seed=value.toObject();break;}
                 if(target==evaluated.bodies.end())throw EvaluationError({{"code","body_unavailable"},{"message","Pattern target must be active earlier in history"}});
                 FeaturePattern::evaluate(*target,feature,seed,evaluated);
+            } else if(type=="revolve") {
+                QJsonObject source;for(const auto& entry:authored["features"].toArray())if(entry.toObject()["id"]==parameters["sketchId"])source=entry.toObject();
+                evaluated.bodies.push_back(SolidRevolve::evaluate(feature,evaluated,source));
             } else if(type=="loft") {
                 evaluated.bodies.push_back(SolidLoft::evaluate(feature,evaluated));
             } else if(type=="sphere") {

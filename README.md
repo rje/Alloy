@@ -204,3 +204,7 @@ not been performed. There is no affiliation with Autodesk.
 The [multi-face validation candidate](docs/validation/multi-face-gate.md) records
 passing core/API and native side/inclined evidence, plus the remaining native
 support-refusal recovery gate; it is not full SKT-017 acceptance.
+
+Retained same-sketch New Body Full/Partial Revolve is available through the
+[shared API foundation](docs/research/solid-revolve.md). Native Revolve controls
+and tutorial workflow acceptance remain pending; see [candidate evidence](docs/validation/solid-revolve.md).

@@ -1838,3 +1838,13 @@ does not. Diameter annotations span the mirrored full diameter and retain both
 line references; they are not half-radius distance labels. Unsupported
 nonparallel pairs must refuse explicitly. Core #214 initially uses ordinary
 retained straight sketch axes; automatic Centerline discovery belongs to #216.
+
+## Retained Revolve foundation candidate (2026-10-13)
+
+SOL029/#214 adds New Body Full/Partial Revolve around a retained same-sketch
+straight line through shared authoring/session commands. Core and real-app API
+geometry/history/storage pass; native controls remain SOL030/#216. Centerline
+intent/profile and diameter-to-axis semantics belong to SKT038/#215. Normal
+boundary-line axes are supported without construction conversion. Only exact
+partial cap provenance is named; curved support and Boolean modes remain #49.
+See [contract](research/solid-revolve.md) and [evidence/limits](validation/solid-revolve.md).

@@ -135,18 +135,20 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
             QSet<QString> survivors;for(const auto& value:feature["bodyResults"].toArray())survivors.insert(value.toObject()["bodyId"].toString());
             if(!survivors.isEmpty()) {for(const auto& value:feature["parameters"].toObject()["targetBodyIds"].toArray())if(!survivors.contains(value.toString()))activeBodies.remove(value.toString());activeBodies.unite(survivors);}
         }
-        if (feature["type"] != "extrude") continue;
+        if (feature["type"] != "extrude" && feature["type"] != "revolve") continue;
         const auto parameters = feature["parameters"].toObject();
         const auto source = parameters["sketchId"].toString(), id = feature["id"].toString();
-        QJsonObject diagnostic{{"featureId",id},{"featureType","extrude"},{"sketchId",source}};
+        QJsonObject diagnostic{{"featureId",id},{"featureType",feature["type"]},{"sketchId",source}};
         if(parameters.contains("profileIds"))diagnostic["profileIds"]=parameters["profileIds"];
         else diagnostic["profileId"]=parameters["profileId"];
-        if (source == id) {diagnostic["code"] = "cyclic_dependency";diagnostic["message"] = "An extrusion cannot reference itself";}
-        else if (!positions.contains(source)) {diagnostic["code"] = "missing_dependency";diagnostic["message"] = "Extrusion input sketch does not exist";}
+        const QString operationName=feature["type"]=="revolve" ? "Revolve":"Extrusion";
+        if(feature["type"]=="revolve")diagnostic["axisEntityId"]=parameters["axisEntityId"];
+        if (source == id) {diagnostic["code"] = "cyclic_dependency";diagnostic["message"] = operationName+" cannot reference itself";}
+        else if (!positions.contains(source)) {diagnostic["code"] = "missing_dependency";diagnostic["message"] = operationName+" input sketch does not exist";}
         else if (features[positions.value(source)].toObject()["type"] != "sketch") {
-            diagnostic["code"] = "unsupported_dependency";diagnostic["message"] = "Extrusion input must reference a sketch feature";
+            diagnostic["code"] = "unsupported_dependency";diagnostic["message"] = operationName+" input must reference a sketch feature";
         } else if (positions.value(source) >= i) {
-            diagnostic["code"] = "forward_dependency";diagnostic["message"] = "Extrusion input sketch must precede it in feature history";
+            diagnostic["code"] = "forward_dependency";diagnostic["message"] = operationName+" input sketch must precede it in feature history";
         } else continue;
         return diagnostic;
     }
@@ -431,6 +433,18 @@ QJsonObject CadDocument::patternCandidate(const QJsonObject& authored,const QJso
     if(index<0)features.append(feature);else features[index]=feature;candidate["features"]=features;return candidate;
 }
 
+QJsonObject CadDocument::revolveCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
+    const QSet<QString> allowed{"ownerId","sketchId","profileId","axisEntityId","extent","angleDeg","name","featureId","newFeatureId","newBodyId"};
+    for(auto it=arguments.begin();it!=arguments.end();++it)if(!allowed.contains(it.key()))throw std::invalid_argument("Unknown Revolve argument");
+    if(arguments.contains("featureId") && (arguments.contains("newFeatureId") || arguments.contains("newBodyId")))throw std::invalid_argument("Choose existing or new Revolve identity");
+    if(!arguments.contains("featureId") && arguments.contains("newFeatureId")!=arguments.contains("newBodyId"))throw std::invalid_argument("Reserve feature and body identities together");
+    auto candidate=authored;auto features=candidate["features"].toArray();QJsonObject feature;int index=-1;
+    if(arguments.contains("featureId")){for(int i=0;i<features.size();++i)if(features[i].toObject()["id"]==arguments["featureId"]){feature=features[i].toObject();index=i;break;}if(index<0 || feature["type"]!="revolve")throw std::invalid_argument("Revolve feature unavailable");}
+    else feature={{"id",arguments.value("newFeatureId").toString(newId())},{"bodyId",arguments.value("newBodyId").toString(newId())},{"ownerId",arguments.value("ownerId").toString(authored["documentId"].toString())},{"type","revolve"},{"name","Revolve"},{"visible",true}};
+    const auto extent=arguments.value("extent").toString("full");if(arguments.contains("extent") && !arguments["extent"].isString())throw std::invalid_argument("Revolve extent must be a string");if(arguments.contains("angleDeg") && !arguments["angleDeg"].isDouble())throw std::invalid_argument("Revolve angle must be numeric");feature["parameters"]=QJsonObject{{"sketchId",arguments["sketchId"]},{"profileId",arguments["profileId"]},{"axisEntityId",arguments["axisEntityId"]},{"extent",extent},{"angleDeg",arguments.value("angleDeg").toDouble(360)}};
+    if(arguments.contains("name"))feature["name"]=arguments["name"];if(index<0)features.append(feature);else features[index]=feature;candidate["features"]=features;const auto error=validateStructure(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());return candidate;
+}
+
 QJsonObject CadDocument::loftCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
     auto candidate=authored;auto features=candidate["features"].toArray();QJsonObject feature;int index=-1;
     if(arguments.contains("featureId")) {
@@ -640,6 +654,10 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
             if(feature.contains("bodyId") || p.size()!=3 || !validId(p["sourceFeatureId"].toString()) || !validId(p["targetBodyId"].toString()) || !p["axes"].isArray() || p["axes"].toArray().size()<1 || p["axes"].toArray().size()>2)return "Pattern requires one seed, target body and one or two axes";
             QSet<QString> edges;int total=1;for(const auto& value:p["axes"].toArray()){const auto axis=value.toObject();const auto quantity=axis["quantity"].toDouble();if(axis.size()!=3 || !validId(axis["edgeId"].toString()) || edges.contains(axis["edgeId"].toString()) || !axis["quantity"].isDouble() || quantity!=std::floor(quantity) || quantity<2 || quantity>100 || !axis["extentMm"].isDouble() || !std::isfinite(axis["extentMm"].toDouble()) || std::abs(axis["extentMm"].toDouble())<0.001 || std::abs(axis["extentMm"].toDouble())>100000)return "Pattern axes require distinct edge IDs, quantity2–100 and signed nonzero extent";edges.insert(axis["edgeId"].toString());total*=int(quantity);}if(total>1000)return "Pattern exceeds 1000 instances";
             continue;
+        }
+        if(type=="revolve") {
+            if(!validId(feature["bodyId"].toString()) || ids.contains(feature["bodyId"].toString()) || p.size()!=5 || !validId(p["sketchId"].toString()) || !validId(p["profileId"].toString()) || !validId(p["axisEntityId"].toString()))return "Revolve requires a distinct body and stable sketch/profile/axis identities";
+            ids.insert(feature["bodyId"].toString());const auto angle=p["angleDeg"].toDouble();if(!p["angleDeg"].isDouble() || !std::isfinite(angle) || (p["extent"]!="full" && p["extent"]!="partial") || (p["extent"]=="full" ? angle!=360 : angle<.001 || angle>=360))return "Revolve requires Full360 or Partial angle0.001..<360 degrees";continue;
         }
         if(type=="loft") {
             if(!validId(feature["bodyId"].toString()) || ids.contains(feature["bodyId"].toString()) || p.size()!=1 || !p["profiles"].isArray() || p["profiles"].toArray().size()<2 || p["profiles"].toArray().size()>32)return "Loft requires a distinct body ID and 2–32 ordered profile references";
