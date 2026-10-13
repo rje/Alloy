@@ -182,6 +182,15 @@ history, addition/ledger checks remain unchanged. Focused single/multi Join core
 passes; retained headless Join is21.774s with same result geometry/ownership.
 Full application latency and cumulative gate remain pending; no broad caching.
 
+#268 candidate exact one-feature append reuse now builds. Repeated source solves
+and preJoin input BReps are byte-identical; full ordered re-evaluation nevertheless
+repeats an expensive Fuse. A member current-document path reuses the complete
+accepted evaluation only for exact authored/resolved/global/order prefix matches
+and one appended plane/sketch/Cut; automatic Cut source-hide is the sole metadata
+exception. Same kernel suffix authority, full upstream/open fallback and focused
+snapshot/failure/history core checks pass. See validation/document-prefix-append.md.
+Actual cumulative04 and independent final acceptance remain pending.
+
 Source boundary reread: the tutorial explicitly selects the bottom face for
 Inside5 Shell, but its section image does not prove an annular opening. That
 earlier requirement was inferred. The exact inward meridian closes on the axis

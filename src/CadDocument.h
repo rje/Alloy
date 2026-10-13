@@ -38,6 +38,8 @@ public:
     QString commit(const QJsonObject& candidate, const QString& label);
     QJsonObject lastEvaluationError() const { return lastEvaluationError_; }
     static CandidateEvaluation evaluateCandidate(const QJsonObject& candidate);
+    // Reuse only the exact accepted prefix for one bounded append command.
+    CandidateEvaluation prepareCandidate(const QJsonObject& candidate) const;
     // Canonical args: sketchId, profileId, distanceMm, optional name; either an
     // existing featureId edit or a reserved newFeatureId/newBodyId New Body pair.
     // Cut adds operation=cut and exactly one targetBodyIds entry; it owns no body.
@@ -68,6 +70,8 @@ public:
     static QString newId();
 private:
     friend class DocumentEdit;
+    static CandidateEvaluation evaluateCandidateFromPrefix(const QJsonObject& candidate,
+        const EvaluatedDocument* prefix, int firstFeature);
     static QString validateStructure(const QJsonObject& candidate, QJsonObject* errorContext = nullptr);
     void apply(const QJsonObject& value, std::shared_ptr<const EvaluatedDocument> evaluation, const QString& transaction = {});
     QJsonObject authored_;

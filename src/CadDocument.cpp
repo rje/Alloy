@@ -1,5 +1,6 @@
 #include "SolidFillet.h"
 #include "CadDocument.h"
+#include "DocumentAppend.h"
 #include "CircularPattern.h"
 #include "SketchGeometry.h"
 #include "StepExchange.h"
@@ -192,15 +193,15 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
     // cannot form cycles and consumed bodies cannot be used as stale inputs.
     return {};
 }
-QJsonObject solveSketches(QJsonObject candidate) {
+QJsonObject solveSketches(QJsonObject candidate,int firstFeature=0,const EvaluatedDocument* seed=nullptr) {
     auto features = candidate["features"].toArray();
-    for (int i = 0; i < features.size(); ++i) {
+    for (int i = firstFeature; i < features.size(); ++i) {
         const auto feature = features[i].toObject();
         if (feature["type"].toString() != "sketch") continue;
         QJsonObject projectionContext;
         if(feature["parameters"].toObject()["plane"]=="face") {
             auto prior=candidate;QJsonArray prefix;for(int j=0;j<i;++j)prefix.append(features[j]);prior["features"]=prefix;
-            try {projectionContext=GeometryKernel::projectionContext(GeometryKernel::evaluateDocument(prior),feature);}
+            try {projectionContext=GeometryKernel::projectionContext(seed ? *seed : GeometryKernel::evaluateDocument(prior),feature);}
             catch(const GeometryKernel::EvaluationError& error) {
                 auto diagnostics=error.diagnostics();
                 if(!diagnostics.contains("featureId"))diagnostics["featureId"]=feature["id"];
@@ -340,7 +341,7 @@ QString CadDocument::commit(const QJsonObject& candidate, const QString& label) 
         lastEvaluationError_ = {{"code","invalid_document"},{"message",error}}; return error;
     }
     if (candidate == authored_) return {};
-    auto prepared = evaluateCandidate(candidate);
+    auto prepared = prepareCandidate(candidate);
     if (!prepared.ok) {lastEvaluationError_ = prepared.diagnostics;return prepared.error;}
     if (prepared.authored == authored_) return {};
     history_.push(new DocumentEdit(*this,prepared.authored,std::move(prepared.evaluation),label));
@@ -366,7 +367,24 @@ QString CadDocument::open(const QString& path) {
     history_.clear(); apply(prepared.authored,std::move(prepared.evaluation)); path_=path; history_.setClean();
     return {};
 }
+CadDocument::CandidateEvaluation CadDocument::prepareCandidate(const QJsonObject& candidate) const {
+    if(evaluation_)try {
+        const auto plan=DocumentAppend::classify(authored_,candidate,resolveLengthBindings(authored_),
+            resolveLengthBindings(candidate),evaluation_->featureOrder);
+        if(plan) {
+            auto prefix=*evaluation_;
+            if(!plan->hiddenSketchId.isEmpty())for(auto& sketch:prefix.sketches)
+                if(sketch.featureId==plan->hiddenSketchId)sketch.visible=false;
+            return evaluateCandidateFromPrefix(candidate,&prefix,plan->featureCount);
+        }
+    } catch(const std::exception&) {} // Ordinary evaluator owns structured errors.
+    return evaluateCandidate(candidate);
+}
 CadDocument::CandidateEvaluation CadDocument::evaluateCandidate(const QJsonObject& candidate) {
+    return evaluateCandidateFromPrefix(candidate,nullptr,0);
+}
+CadDocument::CandidateEvaluation CadDocument::evaluateCandidateFromPrefix(const QJsonObject& candidate,
+    const EvaluatedDocument* prefix,int firstFeature) {
     CandidateEvaluation result;
     result.authored = candidate;
     QJsonObject structuralContext;
@@ -381,14 +399,15 @@ CadDocument::CandidateEvaluation CadDocument::evaluateCandidate(const QJsonObjec
     const auto dependency = dependencyError(resolved);
     if (!dependency.isEmpty()) {result.diagnostics = dependency;result.error = dependency["message"].toString();return result;}
     try {
-        const auto solved = solveSketches(resolved);
-        auto evaluated = std::make_shared<const EvaluatedDocument>(GeometryKernel::evaluateDocument(solved));
+        const auto solved = solveSketches(resolved,firstFeature,prefix);
+        auto evaluated = std::make_shared<const EvaluatedDocument>(prefix
+            ? GeometryKernel::evaluateDocument(solved,*prefix) : GeometryKernel::evaluateDocument(solved));
         result.authored = solved;
         auto normalized=solved["features"].toArray();
         for(int i=0;i<normalized.size();++i){auto feature=normalized[i].toObject();if(evaluated->joinBodyResults.contains(feature["id"].toString())){feature["bodyResults"]=evaluated->joinBodyResults[feature["id"].toString()];normalized[i]=feature;}}
         result.authored["features"]=normalized;
         result.evaluation = std::move(evaluated); result.ok = true;
-        result.diagnostics = {{"code","evaluated"},{"recompute","full_ordered"},{"featureCount",solved["features"].toArray().size()}};
+        result.diagnostics = {{"code","evaluated"},{"recompute",prefix ? "exact_prefix_append" : "full_ordered"},{"featureCount",solved["features"].toArray().size()}};
     } catch (const GeometryKernel::EvaluationError& error) {result.diagnostics = error.diagnostics();result.error = QString::fromUtf8(error.what());}
       catch (const Standard_Failure& error) {
         result.error = "Kernel evaluation failed: "+QString::fromUtf8(error.GetMessageString());
@@ -1021,7 +1040,7 @@ QJsonObject CadDocument::state() const {
         {"revision", static_cast<qint64>(revision_)}, {"dirty", !history_.isClean()},
         {"lastTransactionId", lastTransaction_},
         {"features", authored_["features"].toArray().size()}, {"bodies",static_cast<int>(evaluation_->bodies.size())}, {"sketches", static_cast<int>(evaluation_->sketches.size())},
-        {"evaluation",QJsonObject{{"status","current"},{"recompute","full_ordered"},{"featureOrder",order},{"joinBodyResults",evaluation_->joinBodyResults},
+        {"evaluation",QJsonObject{{"status","current"},{"recompute",evaluation_->recompute},{"featureOrder",order},{"joinBodyResults",evaluation_->joinBodyResults},
             {"documentRevision",static_cast<qint64>(revision_)},{"bodies",evaluated},{"sketches",evaluatedSketches},{"constructionPlanes",evaluatedPlanes}}},
         {"editableHistory", true}, {"authored", authored_},
         {"undo", QJsonObject{{"canUndo", history_.canUndo()}, {"canRedo", history_.canRedo()},

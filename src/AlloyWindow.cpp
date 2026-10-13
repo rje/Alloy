@@ -4148,7 +4148,7 @@ QJsonObject AlloyWindow::previewExtrude() {
         inputs["targetBodyIds"]=discovered;session_["inputs"]=inputs;
     }
     QJsonObject candidate;try {candidate=extrusionCandidate(inputs,false);}catch(const std::exception& error){return rejectWithHandle(failure("evaluation_failed",QString::fromUtf8(error.what())));}
-    const auto evaluated=CadDocument::evaluateCandidate(candidate);
+    const auto evaluated=document_->prepareCandidate(candidate);
     if(!evaluated.ok){auto result=failure("evaluation_failed",evaluated.error);auto error=result["error"].toObject();error["diagnostics"]=evaluated.diagnostics;result["error"]=error;return rejectWithHandle(result);}
     auto stage=evaluated.evaluation;
     if(!editId.isEmpty()) {

@@ -28,6 +28,7 @@ target_include_directories(alloy_sketch_solver PUBLIC src)
 target_link_libraries(alloy_sketch_solver PUBLIC Qt6::Core PRIVATE alloy_planegcs)
 
 add_library(alloy_kernel STATIC
+    src/DocumentAppend.cpp src/DocumentAppend.h
     src/GeometryKernel.cpp src/GeometryKernel.h src/PlanarFaces.cpp src/PlanarFaces.h src/SolidFillet.cpp src/SolidFillet.h src/SolidChamfer.cpp src/SolidChamfer.h src/SolidShell.cpp src/SolidShell.h src/RevolvedShellCap.cpp src/RevolvedShellCap.h src/SolidSphere.cpp src/SolidSphere.h src/SolidHole.cpp src/SolidHole.h src/SolidLoft.cpp src/SolidLoft.h src/SolidRevolve.cpp src/SolidRevolve.h src/SolidSweep.cpp src/SolidSweep.h src/FeaturePattern.cpp src/FeaturePattern.h src/SolidMirror.cpp src/SolidTransform.cpp src/CircularPattern.cpp src/SolidMirror.h src/JoinResults.cpp
     src/MeshExport.cpp src/MeshExport.h
     src/StepExchange.cpp src/StepExchange.h
@@ -75,6 +76,9 @@ if(ALLOY_BUILD_SPIKES)
         TKernel TKMath TKBRep TKPrim TKTopAlgo TKLCAF TKCAF TKBin TKBinL TKCDF)
 endif()
 if(BUILD_TESTING)
+    add_executable(document_append_test tests/document_append.cpp src/CadDocument.cpp src/CadDocument.h)
+    target_link_libraries(document_append_test PRIVATE alloy_kernel Qt6::Widgets)
+    add_test(NAME document_append COMMAND document_append_test)
     add_executable(section_analysis_controls_test tests/section_analysis_controls.cpp)
     target_link_libraries(section_analysis_controls_test PRIVATE alloy_application Qt6::Test)
     add_executable(section_analysis_test tests/section_analysis.cpp src/CadDocument.cpp src/CadDocument.h)

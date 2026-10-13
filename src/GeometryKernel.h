@@ -61,6 +61,7 @@ struct EvaluatedDocument {
     std::vector<EvaluatedConstructionPlane> constructionPlanes;
     std::vector<QString> featureOrder;
     QJsonObject joinBodyResults;
+    QString recompute = "full_ordered";
 };
 
 // Small OCCT boundary. Authored values and presentation objects stay elsewhere.
@@ -90,5 +91,6 @@ public:
     static QJsonObject summarize(const TopoDS_Shape& shape);
     static std::vector<EvaluatedBody> evaluate(const QJsonObject& authored);
     static EvaluatedDocument evaluateDocument(const QJsonObject& authored);
+    static EvaluatedDocument evaluateDocument(const QJsonObject& authored,const EvaluatedDocument& prefix);
     static QJsonObject policy();
 };

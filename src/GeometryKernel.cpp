@@ -396,9 +396,21 @@ std::vector<EvaluatedBody> GeometryKernel::evaluate(const QJsonObject& authored)
     return evaluateDocument(authored).bodies;
 }
 EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored) {
-    EvaluatedDocument evaluated;
+    return evaluateDocument(authored,EvaluatedDocument{});
+}
+EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,const EvaluatedDocument& prefix) {
+    auto evaluated=prefix;
+    evaluated.recompute=prefix.featureOrder.empty() ? "full_ordered" : "exact_prefix_append";
+    const auto features=authored["features"].toArray();
+    if(prefix.featureOrder.size()>static_cast<size_t>(features.size()))
+        reject("invalid_evaluation_prefix","Evaluated prefix exceeds authored history");
+    for(size_t i=0;i<prefix.featureOrder.size();++i)
+        if(prefix.featureOrder[i]!=features[static_cast<int>(i)].toObject()["id"].toString())
+            reject("invalid_evaluation_prefix","Evaluated prefix order does not match authored history");
     QMap<QString,size_t> priorSketches;
-    for (const auto& entry : authored["features"].toArray()) {
+    for(size_t i=0;i<evaluated.sketches.size();++i)priorSketches[evaluated.sketches[i].featureId]=i;
+    for (int featureIndex=static_cast<int>(prefix.featureOrder.size());featureIndex<features.size();++featureIndex) {
+        const auto entry=features[featureIndex];
         const auto feature = entry.toObject();
         const auto id = feature["id"].toString(), type = feature["type"].toString();
         const auto parameters = feature["parameters"].toObject();
