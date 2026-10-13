@@ -73,6 +73,11 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
     const auto badPoint=CadDocument::holeCandidate(stable,missing);
     check(!doc.commit(badPoint,"Missing point").isEmpty() && doc.revision()==revision && doc.authored()==stable,
         "Missing retained point refuses atomically");
+    const auto diagnostic=doc.lastEvaluationError();
+    check(diagnostic["featureId"]==holeId && diagnostic["featureType"]=="hole"
+        && diagnostic["sourceSketchId"]==pointSketch["id"] && diagnostic["sourceEntityId"]==point["id"]
+        && diagnostic["sourcePointId"]==missing["sourcePointId"] && diagnostic["targetBodyId"]==target,
+        "Hole refusal attributes retained source and target");
     QTemporaryDir temp;const auto path=temp.filePath("hole.alloy");check(doc.save(path).isEmpty(),"Save Hole document");
     CadDocument reopened;check(reopened.open(path).isEmpty() && reopened.authored()==stable,"Exact Hole reopen");
     near(reopened.bodies()[0].summary["entryMm"].toArray()[0].toDouble(),-32.5);

@@ -475,7 +475,13 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored) 
                 SolidSphere::evaluate(evaluated,feature);
             } else if(type=="hole") {
                 QJsonObject source;for(const auto& entry:authored["features"].toArray())if(entry.toObject()["id"]==parameters["sourceSketchId"]) {source=entry.toObject();break;}
-                SolidHole::evaluate(evaluated,feature,source);
+                try {SolidHole::evaluate(evaluated,feature,source);}
+                catch(const EvaluationError& error) {
+                    auto details=error.diagnostics();
+                    details["featureId"]=id;details["featureType"]="hole";
+                    for(const auto& key:{"sourceSketchId","sourceEntityId","sourcePointId","targetBodyId"})details[key]=parameters[key];
+                    throw EvaluationError(details);
+                }
             } else if(type=="shell") {
                 const auto target=std::find_if(evaluated.bodies.begin(),evaluated.bodies.end(),[&](const auto& body){return body.bodyId==parameters["targetBodyId"].toString();});
                 if(target==evaluated.bodies.end())throw EvaluationError({{"code","body_unavailable"},{"featureId",id},{"message","Shell target must be active earlier in history"}});
