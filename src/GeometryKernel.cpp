@@ -122,8 +122,10 @@ QJsonObject GeometryKernel::projectionContext(const EvaluatedDocument& evaluatio
         if(edge.type=="line")continue;
         BRepAdaptor_Curve curve(edge.edge);if(curve.GetType()!=GeomAbs_Circle)continue;
         const auto circle=curve.Circle();const auto center=circle.Location();
-        const auto lineage=edge.provenance;const auto key=lineage["sourceSketchId"].toString()+":"+lineage["sourceEntityId"].toString();
+        const auto lineage=edge.provenance;const auto key=lineage["sourceSketchId"].toString()+":"+lineage["sourceEntityId"].toString()
+            +(lineage.contains("occurrenceId") ? ":"+lineage["occurrenceId"].toString() : QString{});
         auto source=parameters["support"].toObject();source["sourceSketchId"]=lineage["sourceSketchId"];source["sourceEntityId"]=lineage["sourceEntityId"];source["role"]="curveCenter";
+        if(lineage.contains("occurrenceId"))source["occurrenceId"]=lineage["occurrenceId"];
         const QJsonArray world{center.X(),center.Y(),center.Z()};
         const double cu=local(world,u),cv=local(world,v);
         double normalDistance=0;const auto normal=cap.frame["normal"].toArray();for(int i=0;i<3;++i)normalDistance+=(world[i].toDouble()-origin[i].toDouble())*normal[i].toDouble();

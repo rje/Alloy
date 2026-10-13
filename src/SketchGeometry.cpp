@@ -125,6 +125,8 @@ QJsonObject SketchGeometry::newConstructionPlaneFeature(const QString& ownerId,c
 
 QString SketchGeometry::curveCenterPointId(const QString& sketchId,const QJsonObject& source) {
     QStringList signature;for(const auto& key:{"producerFeatureId","bodyId","faceId","sourceSketchId","sourceEntityId","role"})signature.append(source[key].toString());
+    // Keep legacy center UUIDs unchanged when no feature occurrence exists.
+    if(source.contains("occurrenceId"))signature.append(source["occurrenceId"].toString());
     return QUuid::createUuidV5(QUuid(sketchId),QByteArray("alloy-support-point/1\n")+signature.join('\n').toUtf8()).toString(QUuid::WithoutBraces);
 }
 QString SketchGeometry::projectionPointId(const QString& id,bool end) {
@@ -459,11 +461,14 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
         for(const auto& value:parameters["pointReferences"].toArray()) {
             if(!value.isObject())return "Support point reference must be an object";const auto reference=value.toObject();
             if(reference.size()!=2 || !validId(reference["id"].toString()) || !reference["source"].isObject())return "Invalid support point reference";
-            const auto source=reference["source"].toObject();if(source.size()!=6 || source["role"]!="curveCenter")return "Unsupported support point role";
+            const auto source=reference["source"].toObject();if((source.size()!=6 && source.size()!=7) || source["role"]!="curveCenter"
+                || (source.size()==7 && (!source["occurrenceId"].isString() || !validId(source["occurrenceId"].toString()))))return "Unsupported support point role";
             for(const auto& key:{"producerFeatureId","bodyId","faceId","sourceSketchId","sourceEntityId"})if(!source[key].isString() || !validId(source[key].toString()))return "Support point source requires stable UUIDs";
             for(const auto& key:{"producerFeatureId","bodyId","faceId"})if(source[key]!=parameters["support"].toObject()[key])return "Point reference must belong to sketch support";
-            if(sources.contains(source["sourceSketchId"].toString()+":"+source["sourceEntityId"].toString()))return "Duplicate support center reference";
-            sources.insert(source["sourceSketchId"].toString()+":"+source["sourceEntityId"].toString());referenceIds.insert(reference["id"].toString());
+            const auto centerKey=source["sourceSketchId"].toString()+":"+source["sourceEntityId"].toString()
+                +(source.contains("occurrenceId") ? ":"+source["occurrenceId"].toString() : QString{});
+            if(sources.contains(centerKey))return "Duplicate support center reference";
+            sources.insert(centerKey);referenceIds.insert(reference["id"].toString());
             resolvedPoints.append(QJsonObject{{"id",reference["id"]},{"source",source},{"uMm",0},{"vMm",0}});
         }
         try {return validateParameters(expandedProjectionFeature({{"parameters",parameters}},{{"lines",lines},{"points",resolvedPoints}})["parameters"].toObject(),authoredIds,referenceIds);}
