@@ -10,6 +10,7 @@
 #include <V3d_Viewer.hxx>
 #include <AIS_Shape.hxx>
 #include <QMap>
+#include <QSet>
 #include "GeometryKernel.h"
 class QContextMenuEvent;
 
@@ -39,6 +40,7 @@ public:
     void showSketchDraft(const EvaluatedSketch& sketch);
     void clearSketchDraft();
     void selectProfile(const QString& sketchId, const QString& profileId);
+    void selectLoftProfiles(const QJsonArray& references);
     void selectProfiles(const QString& sketchId, const QJsonArray& profileIds);
     QJsonObject pickFinishedProfile(double x, double y) const;
     QJsonObject pickSupportFace(double x, double y, const std::vector<EvaluatedBody>& bodies) const;
@@ -137,6 +139,7 @@ private:
     quint64 constructionPlaneRevision_ = 0;
     QMap<QString,Handle(AIS_Shape)> finishedProfileModels_;
     std::vector<EvaluatedSketch> finishedSketches_;
+    QSet<QString> selectedLoftProfileIds_;
     QString selectedProfile_, selectedProfileSketch_, editSourceSketch_;
     QJsonArray selectedProfileIds_;
     QJsonArray hiddenBodyIds_;

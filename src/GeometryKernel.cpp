@@ -1,6 +1,7 @@
 #include "PlanarFaces.h"
 #include "SolidFillet.h"
 #include "SolidShell.h"
+#include "SolidLoft.h"
 #include "SolidMirror.h"
 #include <BRepBuilderAPI_Transform.hxx>
 #include <gp_Ax1.hxx>
@@ -442,6 +443,8 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored) 
                 const auto target=std::find_if(evaluated.bodies.begin(),evaluated.bodies.end(),[&](const auto& body){return body.bodyId==parameters["targetBodyId"].toString();});
                 if(target==evaluated.bodies.end())throw EvaluationError({{"code","body_unavailable"},{"featureId",id},{"message","Fillet target must be active earlier in history"}});
                 SolidFillet::evaluate(*target,parameters,id);
+            } else if(type=="loft") {
+                evaluated.bodies.push_back(SolidLoft::evaluate(feature,evaluated));
             } else if(type=="shell") {
                 const auto target=std::find_if(evaluated.bodies.begin(),evaluated.bodies.end(),[&](const auto& body){return body.bodyId==parameters["targetBodyId"].toString();});
                 if(target==evaluated.bodies.end())throw EvaluationError({{"code","body_unavailable"},{"featureId",id},{"message","Shell target must be active earlier in history"}});

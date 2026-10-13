@@ -28,7 +28,7 @@ target_include_directories(alloy_sketch_solver PUBLIC src)
 target_link_libraries(alloy_sketch_solver PUBLIC Qt6::Core PRIVATE alloy_planegcs)
 
 add_library(alloy_kernel STATIC
-    src/GeometryKernel.cpp src/GeometryKernel.h src/PlanarFaces.cpp src/PlanarFaces.h src/SolidFillet.cpp src/SolidFillet.h src/SolidShell.cpp src/SolidShell.h src/SolidMirror.cpp src/SolidMirror.h src/JoinResults.cpp
+    src/GeometryKernel.cpp src/GeometryKernel.h src/PlanarFaces.cpp src/PlanarFaces.h src/SolidFillet.cpp src/SolidFillet.h src/SolidShell.cpp src/SolidShell.h src/SolidLoft.cpp src/SolidLoft.h src/SolidMirror.cpp src/SolidMirror.h src/JoinResults.cpp
     src/MeshExport.cpp src/MeshExport.h
     src/StepExchange.cpp src/StepExchange.h
     src/SketchGeometry.cpp src/SketchTrim.cpp src/SketchGeometry.h
@@ -40,7 +40,7 @@ target_compile_definitions(alloy_kernel PUBLIC ALLOY_OCCT_VERSION="${ALLOY_OCCT_
 
 add_library(alloy_application STATIC
     src/AlloyTheme.cpp src/AlloyTheme.h
-    src/AlloyWindow.cpp src/AlloyWindow.h src/SolidFilletControls.cpp src/SolidShellControls.cpp src/SolidMirrorControls.cpp src/MoveControls.cpp src/CombineControls.cpp src/ExportControls.cpp src/StepExportControls.cpp
+    src/AlloyWindow.cpp src/AlloyWindow.h src/SolidFilletControls.cpp src/SolidShellControls.cpp src/LoftControls.cpp src/SolidMirrorControls.cpp src/MoveControls.cpp src/CombineControls.cpp src/ExportControls.cpp src/StepExportControls.cpp
     src/TutorialRecorder.cpp src/TutorialRecorder.h
     src/CadDocument.cpp src/CadDocument.h
     src/ReferenceView.cpp src/ReferenceView.h
@@ -159,6 +159,10 @@ if(BUILD_TESTING)
     target_include_directories(face_support_test PRIVATE src)
     target_link_libraries(face_support_test PRIVATE Qt6::Gui alloy_kernel)
     add_test(NAME face_support COMMAND face_support_test)
+    add_executable(solid_loft_test tests/solid_loft.cpp src/CadDocument.cpp src/CadDocument.h)
+    target_include_directories(solid_loft_test PRIVATE src)
+    target_link_libraries(solid_loft_test PRIVATE Qt6::Gui alloy_kernel)
+    add_test(NAME solid_loft COMMAND solid_loft_test)
     add_executable(construction_plane_test tests/construction_plane.cpp src/CadDocument.cpp src/CadDocument.h)
     target_include_directories(construction_plane_test PRIVATE src)
     target_link_libraries(construction_plane_test PRIVATE Qt6::Gui alloy_kernel)

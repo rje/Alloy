@@ -84,6 +84,13 @@ private:
     QDockWidget* filletDock_ = nullptr;
     QShortcut* filletEscape_ = nullptr;
     QJsonObject beginShell(const QJsonObject& inputs);
+    QJsonObject loftCandidate(const QJsonObject& inputs) const;
+    QJsonObject beginLoft(const QJsonObject& overrides={});
+    QJsonObject previewLoft();
+    QJsonObject selectLoftProfile(const QString& sketchId,const QString& profileId);
+    void showLoft();
+    QDockWidget* loftDock_=nullptr;
+    QShortcut* loftEscape_=nullptr;
     QJsonObject shellCandidate(const QJsonObject& inputs) const;
     QJsonObject previewShell();
     void showShell();

@@ -443,7 +443,7 @@ void ReferenceView::applyEditDisplay(bool redraw) {
         }
         for(const auto& profile:sketch.profiles)if(finishedProfileModels_.contains(profile.profileId)) {
             const auto fill=finishedProfileModels_.value(profile.profileId);
-            fill->SetColor(selectedProfileIds_.contains(profile.profileId) && sketch.featureId==selectedProfileSketch_
+            fill->SetColor((selectedProfileIds_.contains(profile.profileId) && sketch.featureId==selectedProfileSketch_) || selectedLoftProfileIds_.contains(profile.profileId)
                 ? Quantity_Color(0.17,0.48,0.90,Quantity_TOC_sRGB) : unselectedSketchProfileColor());
             // The extrusion base cap occupies this same plane. Keep its sketch
             // outline, but suppress the coplanar transparent profile fill.
@@ -463,6 +463,9 @@ void ReferenceView::setEditDisplay(const QString& sourceSketchId,const QJsonArra
 void ReferenceView::selectProfile(const QString& sketchId,const QString& profileId) {
     selectProfiles(sketchId,profileId.isEmpty() ? QJsonArray{} : QJsonArray{profileId});
 }
+void ReferenceView::selectLoftProfiles(const QJsonArray& references) {
+    selectedLoftProfileIds_.clear();for(const auto& value:references)selectedLoftProfileIds_.insert(value.toObject()["profileId"].toString());applyEditDisplay();
+}
 void ReferenceView::selectProfiles(const QString& sketchId,const QJsonArray& profileIds) {
     selectedProfileSketch_=sketchId;selectedProfileIds_=profileIds;
     selectedProfile_=profileIds.isEmpty() ? QString{} : profileIds.first().toString();applyEditDisplay();
@@ -472,6 +475,7 @@ QJsonObject ReferenceView::pickFinishedProfile(double x,double y) const {
     const auto scale=windowScale();double px,py,pz,dx,dy,dz;
     view_->ConvertWithProj(qRound(x*scale.x()),qRound(y*scale.y()),px,py,pz,dx,dy,dz);
     const gp_Vec eye(px,py,pz),ray(dx,dy,dz);
+    double nearest=std::numeric_limits<double>::infinity();QJsonObject hit;
     for(const auto& sketch:finishedSketches_) {
         if((!sketch.visible && sketch.featureId!=editSourceSketch_) || sketch.featureId==draftSketchId_)continue;
         const auto frame=sketch.resolvedFrame.isEmpty() ? SketchGeometry::frame(sketch.plane) : sketch.resolvedFrame;
@@ -479,14 +483,14 @@ QJsonObject ReferenceView::pickFinishedProfile(double x,double y) const {
         const gp_Vec origin(o[0].toDouble(),o[1].toDouble(),o[2].toDouble());
         const gp_Vec normal(n[0].toDouble(),n[1].toDouble(),n[2].toDouble());
         const double denominator=normal.Dot(ray);if(std::abs(denominator)<1e-10)continue;
-        const double distance=normal.Dot(origin-eye)/denominator;if(distance<0)continue;
+        const double distance=normal.Dot(origin-eye)/denominator;if(distance<0 || distance>=nearest)continue;
         const auto world=gp_Pnt((eye+ray*distance).XYZ());
         for(const auto& profile:sketch.profiles) {
             BRepClass_FaceClassifier classifier(profile.face,world,1e-7);
-            if(classifier.State()==TopAbs_IN)return {{"kind","profile"},{"sketchId",sketch.featureId},{"profileId",profile.profileId}};
+            if(classifier.State()==TopAbs_IN){nearest=distance;hit={{"kind","profile"},{"sketchId",sketch.featureId},{"profileId",profile.profileId}};}
         }
     }
-    return {};
+    return hit;
 }
 QJsonObject ReferenceView::pickSupportFace(double x,double y,const std::vector<EvaluatedBody>& bodies) const {
     if(view_.IsNull() || x<0 || y<0 || x>=width() || y>=height())return {};

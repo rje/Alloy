@@ -36,6 +36,10 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
                     return {{"featureId",feature["id"]},{"featureType",feature["type"]},{"code","plane_dependency_unavailable"},{"message","Plane source must be an earlier feature of the expected type"}};
             }
         }
+        if(feature["type"]=="loft")for(const auto& value:feature["parameters"].toObject()["profiles"].toArray()) {
+            const auto sketch=value.toObject()["sketchId"].toString();
+            if(!positions.contains(sketch) || positions[sketch]>=i || features[positions[sketch]].toObject()["type"]!="sketch")return {{"featureId",feature["id"]},{"featureType","loft"},{"code","loft_profile_unavailable"},{"message","Loft sections must reference earlier sketch features"}};
+        }
         if (feature.contains("bodyId")) bodyPositions[feature["bodyId"].toString()] = i;
         for(const auto& value:feature["bodyResults"].toArray()) {const auto record=value.toObject();if(record["participantBodyIds"].toArray().isEmpty())bodyPositions[record["bodyId"].toString()]=i;}
     }
@@ -89,7 +93,7 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
             QJsonObject diagnostic{{"featureId",feature["id"]},{"featureType","sketch"},{"support",support}};
             if(!positions.contains(producer)){diagnostic["code"]="missing_dependency";diagnostic["message"]="Sketch support producer does not exist";}
             else if(positions[producer]>=i){diagnostic["code"]="forward_dependency";diagnostic["message"]="Sketch support producer must precede its sketch";}
-            else if(features[positions[producer]].toObject()["type"]!="extrude" || (features[positions[producer]].toObject()["bodyId"]!=support["bodyId"] && !features[positions[producer]].toObject()["parameters"].toObject()["targetBodyIds"].toArray().contains(support["bodyId"]) && !resultOwns(features[positions[producer]].toObject(),support["bodyId"]))){diagnostic["code"]="unsupported_dependency";diagnostic["message"]="Planar support requires its exact extrusion producer/body";}
+            else if((features[positions[producer]].toObject()["type"]!="extrude" && features[positions[producer]].toObject()["type"]!="loft") || (features[positions[producer]].toObject()["bodyId"]!=support["bodyId"] && !features[positions[producer]].toObject()["parameters"].toObject()["targetBodyIds"].toArray().contains(support["bodyId"]) && !resultOwns(features[positions[producer]].toObject(),support["bodyId"]))){diagnostic["code"]="unsupported_dependency";diagnostic["message"]="Planar support requires its exact evaluated producer/body";}
             else if(!activeBodies.contains(body)){diagnostic["code"]="consumed_dependency";diagnostic["message"]="Sketch support body was consumed earlier in history";}
             else continue;
             return diagnostic;
@@ -350,6 +354,17 @@ QJsonObject CadDocument::filletCandidate(const QJsonObject& authored,const QJson
     if(index>=0)features[index]=feature;else features.append(feature);candidate["features"]=features;
     const auto error=validateStructure(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());return candidate;
 }
+QJsonObject CadDocument::loftCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
+    auto candidate=authored;auto features=candidate["features"].toArray();QJsonObject feature;int index=-1;
+    if(arguments.contains("featureId")) {
+        for(int i=0;i<features.size();++i)if(features[i].toObject()["id"]==arguments["featureId"]){feature=features[i].toObject();index=i;break;}
+        if(index<0 || feature["type"]!="loft")throw std::invalid_argument("Loft feature unavailable");
+    } else feature={{"id",arguments.value("newFeatureId").toString(newId())},{"bodyId",arguments.value("newBodyId").toString(newId())},{"ownerId",authored["documentId"]},{"type","loft"},{"name","Loft"},{"visible",true}};
+    feature["parameters"]=QJsonObject{{"profiles",arguments["profiles"]}};
+    if(arguments.contains("name"))feature["name"]=arguments["name"];
+    if(index<0)features.append(feature);else features[index]=feature;candidate["features"]=features;return candidate;
+}
+
 QJsonObject CadDocument::shellCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
     const QSet<QString> allowed{"targetBodyId","removedFace","thicknessMm","name","featureId","newFeatureId"};
     for(auto it=arguments.begin();it!=arguments.end();++it)if(!allowed.contains(it.key()))throw std::invalid_argument("Unknown Shell argument");
@@ -503,6 +518,12 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
             if(feature.contains("bodyId") || p.size()!=4 || !validId(p["targetBodyId"].toString()) || !p["edgeIds"].isArray() || p["edgeIds"].toArray().isEmpty() || p["edgeIds"].toArray().size()>100 || !p["tangentChain"].isBool() || !p["tangentChain"].toBool())return "Fillet requires one target, edge references and tangent chain enabled";
             QSet<QString> edges;for(const auto& edge:p["edgeIds"].toArray()){if(!edge.isString() || !validId(edge.toString()) || edges.contains(edge.toString()))return "Fillet edge references must be distinct stable UUIDs";edges.insert(edge.toString());}
             if(!p["radiusMm"].isDouble() || !std::isfinite(p["radiusMm"].toDouble()) || p["radiusMm"].toDouble()<0.001 || p["radiusMm"].toDouble()>100000)return "Fillet radius must be 0.001..100000 mm";
+            continue;
+        }
+        if(type=="loft") {
+            if(!validId(feature["bodyId"].toString()) || ids.contains(feature["bodyId"].toString()) || p.size()!=1 || !p["profiles"].isArray() || p["profiles"].toArray().size()<2 || p["profiles"].toArray().size()>32)return "Loft requires a distinct body ID and 2–32 ordered profile references";
+            ids.insert(feature["bodyId"].toString());QSet<QString> profiles;
+            for(const auto& value:p["profiles"].toArray()){const auto ref=value.toObject();const auto key=ref["sketchId"].toString()+"/"+ref["profileId"].toString();if(ref.size()!=2 || !validId(ref["sketchId"].toString()) || !validId(ref["profileId"].toString()) || profiles.contains(key))return "Loft profiles must be distinct stable sketch/profile references";profiles.insert(key);}
             continue;
         }
         if(type=="shell") {
