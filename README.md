@@ -278,3 +278,9 @@ and editable storage/history, with independent bounded native/API acceptance.
 [Center Point Arc Slot](docs/validation/center-point-arc-slot.md) now retains
 analytic radial intent alongside straight slots, with native creation and separate
 source dimensions, editable geometry and persistence evidence.
+
+The complete [slots and splines lesson](docs/validation/slots-splines-tutorial.md)
+now passes three source-order sketches, editable spline/conic operations, exact
+slot/ellipse dimensions, a full creation movie and verified history/reopen.
+[Per-entity solved colors](docs/validation/entity-solved-colors.md) distinguish
+defined geometry from unrelated free curves; corrected images postdate the movie.

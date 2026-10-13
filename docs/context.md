@@ -3,6 +3,24 @@
 Updated 2026-10-13. This is the project handoff for a fresh session. Read the root
 [AGENTS.md](../AGENTS.md) first; its reference restrictions apply to all work.
 
+## Latest accepted checkpoint — 2026-10-13
+
+Full slots/splines/conic/ellipse lesson #257 and color follow-up #259 are accepted
+and closed. The complete31-step API sequence passes247calls, saves three editable
+sketches with first two hidden, and verifies analytic geometry plus meaningful
+edits/exact undo/redo/reopen. The64.5s full creation movie predates the final
+solved-color correction; four corrected real-app captures independently verify
+black defined ellipse, blue free conic, orange selection and blue ellipse after
+removing a dimension. See validation/slots-splines-tutorial.md and
+validation/entity-solved-colors.md. No solid/STL is required by this sketch lesson.
+Main app builds and combined solved-color/ellipse/arc-slot core3/3 pass1.44s.
+All private editors are closed. Original failed attempts are preserved externally.
+The local gallery now includes ten complete creations (eight solid meshes and
+two sketch lessons), explicitly qualifying movie versus corrected-capture timing.
+Older checkpoint entries below retain historical state; this paragraph supersedes
+their pending or active claims for #251–257 and #259. Slot drag preview #258 is
+now In Progress with Sol in an isolated worktree, with Astra verification to follow.
+
 ## Current checkpoint — read first (2026-10-13)
 
 #259 has an isolated candidate for per-entity solved coloring from PlaneGCS
@@ -130,7 +148,7 @@ visual parity remain qualified. The external
 editable models and STL deliverables. The Revolve receipt is
 [validation/revolve-tutorial.md](validation/revolve-tutorial.md).
 
-**136 of 259 issues are closed.** Recent accepted work includes compact ribbon
+**138 of 259 issues are closed.** Recent accepted work includes compact ribbon
 icons #218, retained Extrude Intersect #219, nested profile/island diagnostics
 #165, portable local controls #220, shared-line fillets #221, typed Line length
 locks #222, retained Sweep #223 and native Sweep controls #224. Each has a scoped
