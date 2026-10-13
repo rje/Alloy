@@ -40,3 +40,22 @@ non-unit or degenerate facets at other mesh settings; this bounded correction do
 not qualify every spherical tessellation or curved ASCII export. The integrated
 real-application die export and final tutorial recording remain the root's next
 verification, separate from these kernel/artifact checks.
+
+## Independent acceptance
+
+Independent review on 2026-10-13 accepts bounded #204 at integrated c942a9c.
+The reviewer inspected private staging, disabled direct-write fallback, exception
+paths before `QSaveFile::commit`, finite serialized coordinates, duplicate/zero-area
+filtering, header rewrite, verbatim retained 50-byte records, published-byte/count
+metadata and unchanged ASCII copy path. No tolerance-based deletion or authored
+shape mutation was introduced. The initially misplaced Python discovery now
+precedes test registration, and the final regression avoids platform-specific
+exact tessellation totals while checking actual removed serialized facets.
+
+The reviewer independently reran the unchanged strict reader on the existing full
+die millimeter and inch artifacts: both have 53,414 facets, one closed oriented
+component, header/metadata/reader agreement and exact `84 + 50 * count` byte size.
+The final companion test additionally checks ASCII zero-removal/count/byte
+metadata. Reported candidate focused tests were reused rather than rerunning a
+broad suite. Full application recording/export remains the cumulative #147 gate;
+this acceptance does not qualify the preexisting curved ASCII limitations above.
