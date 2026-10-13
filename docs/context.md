@@ -1747,3 +1747,15 @@ compact repository shortlist after Astra review. No dependency is selected or
 adopted by this child. RHI-001 #137 retains actual spike/platform/admission work
 and remains Todo. This research does not interrupt modeling or change the current
 OCCT OpenGL viewport.
+
+## Isolated graphics investigation queued (2026-10-13)
+
+RHI-003/#208 is independently accepted source research in
+`dependencies/rhi-shortlist.md`. RHI-004/#210 now investigates an opt-in Qt6.11.2
+Metal sample with actual OCCT box/cylinder triangles, depth/edges/selection,
+RGBA8 ID readback and native capture/resize evidence. Sol owns an isolated
+worktree; Astra verifies. No production renderer changes or adoption are claimed.
+Shader Tools is absent; any reused example shader bundles need matching source
+and license provenance. The existing app remains OpenGL. Parent#137 retains
+Vulkan-host evidence, admission, selection and migration. Root serializes GUI
+access behind the active#150 multi-face gate.
