@@ -92,6 +92,11 @@ def verify(sketch, diagnostics):
     relation_types = [c['type'] for c in p['constraints']]
     assert relation_types.count('midpoint') >= 2
     assert 'concentric' in relation_types and 'equal' in relation_types
+    arc_centers = {entities[i]['centerPointId'] for i in source_ids if entities[i]['type'] == 'arc'}
+    assert any(c['type'] == 'vertical' and len(c.get('pointIds', [])) == 2
+               and circle['centerPointId'] in c['pointIds']
+               and bool(arc_centers.intersection(c['pointIds']))
+               for c in p['constraints']), 'Missing retained circle-to-arc center Vertical relation'
     area = 2 * (14 * chord + 289 * math.asin(14 / 17))
     return {'outerBoundsMm': [-35, -57, 35, 57], 'cutoutAreaMm2': area,
             'circleAreaMm2': 36 * math.pi,
