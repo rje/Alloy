@@ -62,3 +62,33 @@ separate Qt probe of source Circle Tab→Enter moved focus away from the editor
 before Enter (`QApplication::focusWidget()` was null after Tab). The bounded
 follow-up is SKT-041/#226 before full tutorial acceptance. Paired shared-line fillets, native Sweep and the complete object
 remain separately tracked. Broader rectangle/inference work stays in #162.
+
+## Independent acceptance
+
+Astra reviewed `434ef2c3` and the cleanup correction `63490641` on
+2026-10-13. Source, native preview capture, saved authored data, API evidence
+and the focused cleanup log support bounded #222 acceptance. No independent
+GUI replay or additional test run was needed.
+
+Length preview and lock remain disposable session state; placement solves the
+line, H/V relation and driving dimension before publishing one accepted draft.
+The next start uses the solved endpoint. Modifier guards keep ordinary command
+shortcuts separate from numeric input. Invalid zero cannot place a line. The
+reviewed API save exactly matches its report and contains seven lines, seven
+driving values 40/14/60/11/44/8/24 and fifteen retained relations. The native
+44 mm · V capture has a readable cue and preceding dimension witnesses.
+
+The original seven-segment native success is reported tool-output evidence,
+with the actual saved state/captures and test source retained; the overwritten
+CTest log is not evidence of that successful run. The subsequent persisted
+cleanup log has three passing Qt stages in 1.865 seconds. Its fixture uses
+shared API setup and Cancel to inspect real widget visibility and exact authored
+preservation, rather than claiming a physical Cancel click. Source inspection
+also confirms cue hiding on tab rebinding; that branch has no new runtime claim.
+The earlier pointer-at-start cue-hide guard was compiled and source-reviewed,
+not independently exercised here.
+
+The discovered whole-sketch Cancel cue leak is resolved. Physical OS input,
+reference styling and reference constraint-storage parity remain unqualified.
+The distinct Circle Tab→Enter issue #226 and full source tutorial gate remain
+open; this receipt does not treat ordinary Circle Return as equivalent evidence.
