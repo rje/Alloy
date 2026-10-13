@@ -63,4 +63,25 @@ App SHA256:
 `a386b69def76e7b3632405c96a5b446ebb1d705f67201fda42886c96e956454f`.
 Native fixture SHA256:
 `9ab0ad64f4f2ba24810c844783f1d3bb58837d6027abf03f9d372d06d154d295`.
-Independent source/native/capture acceptance remains pending.
+## Independent acceptance
+
+Accepted 2026-10-13 against final candidate `cba2d95` (documentation-only amendment of
+reviewed production `a0c34d6`). The independent reviewer
+inspected the final command/view lifecycle, Qt fixture, persisted final log,
+intermediate state and actual GPU capture. The capsule/profile is smooth and
+readable; the saved state independently confirms the authoritative draft equals
+the gesture base while the preview differs. The fixture proves two successive
+solves, analytic profile area, one release history entry and the listed late
+release cancellation paths. Initial shared setup and command-driven history/tool
+checks remain distinct from actual Qt pointer and Escape delivery. No additional
+editor, duplicate API replay or physical-input claim was needed.
+
+The earlier schema blocker is corrected with explicit numeric bounds and
+pre-handler refusal cleanup. Native coordinate-conversion failure now cancels
+through the same authority. Preview refresh preserves only the live pointer
+token, and unchanged-base validation prevents publishing an obsolete draft.
+The palette point rows retain authoritative accepted coordinates during the
+transient preview; they are not a listing of preview coordinates. The displayed
+curve, fill and decorations use solved preview geometry. Timing figures above
+are two local samples, not a general performance benchmark. No remaining
+bounded acceptance blocker was identified.
