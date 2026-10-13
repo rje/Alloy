@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Source-order ornament prefix for retained Join diagnostics, not a full gate."""
 import argparse
+import hashlib
 import json
 import math
 from pathlib import Path
@@ -35,10 +36,13 @@ def create_seed(call, out):
     call('sketch.constraint', {'type': 'fixed', 'pointIds': [axis['startPointId']]})
     for kind, edge in (('vertical', axis), ('horizontal', radial)):
         call('sketch.constraint', {'type': kind, 'entityIds': [edge['id']]})
-    for kind, edge, value in (('linear', axis, 80), ('linear', radial, 5), ('radius', arc, 50)):
-        call('sketch.dimension', {'kind': kind, 'entityId': edge['id'], 'value': value, 'units': 'mm'})
+    for kind, edge, value, label in (('linear', axis, 80, (-10, 40)),
+                                    ('linear', radial, 5, (2.5, -8)),
+                                    ('radius', arc, 50, (35, 40))):
+        call('sketch.dimension', {'kind': kind, 'entityId': edge['id'], 'value': value,
+             'units': 'mm', 'annotation': {'uMm': label[0], 'vMm': label[1]}})
     source_id = draft()['id']
-    call('view.home'); capture('radial-profile')
+    call('sketch.lookAt'); capture('radial-profile')
     call('sketch.finish')
     profile = inspect()['evaluation']['sketches'][-1]['profiles'][0]['profileId']
     call('solid.revolve', {'sketchId': source_id, 'profileId': profile, 'axisEntityId': axis['id']})
@@ -53,6 +57,7 @@ def create_seed(call, out):
     analysis = inspect()['authored']['analyses'][-1]
     assert inspect()['authored']['features'] == before
     capture('section-hatched')
+    call('view.orientation', {'name': 'front'}); capture('section-front')
     call('analysis.visibility', {'analysisId': analysis['id'], 'visible': False})
     call('sketch.begin', {'plane': 'XZ', 'name': 'S shaped strip'})
     fixture = [(-4, -1), (6, 19), (-5, 45), (3, 89)]
@@ -67,7 +72,7 @@ def create_seed(call, out):
              'units': 'mm', 'startSnapTarget': {'kind': 'point', 'pointId': spline[field]},
              'endSnapTarget': {'kind': 'point', 'pointId': derived[field]}})
     strip_id = draft()['id']
-    call('view.home'); capture('closed-strip')
+    call('sketch.lookAt'); capture('closed-strip')
     call('sketch.finish')
     strip = inspect()['evaluation']['sketches'][-1]
     assert len(strip['profiles']) == 1
@@ -90,7 +95,8 @@ def main():
     parser.add_argument('--output', required=True)
     args = parser.parse_args()
     out = Path(args.output).resolve(); out.mkdir(parents=True, exist_ok=True)
-    transcript = []; report = {'status': 'incomplete', 'fullTutorialAccepted': False}
+    transcript = []; report = {'status': 'incomplete', 'fullTutorialAccepted': False,
+        'appSha256': hashlib.sha256(Path(args.app).read_bytes()).hexdigest()}
     try:
         with application(args.app, out) as (call, transcript):
             report.update(create_seed(call, out))
