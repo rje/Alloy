@@ -296,7 +296,8 @@ bool TutorialRecorder::eventFilter(QObject* watched,QEvent* event) {
         writeEvent({{"type",type==QEvent::KeyPress?"key_press":type==QEvent::KeyRelease?"key_release":"shortcut_override"},
             {"origin",event->spontaneous()?"native_qt":"synthetic_qt"},
             {"key",shown},
-            {"editorRedacted",editor},{"modifiers",int(key->modifiers())},{"widget",widget->objectName()}});
+            {"editorRedacted",editor&&shown=="Text input"},{"numericAllowed",safeNumber},
+            {"modifiers",int(key->modifiers())},{"widget",widget->objectName()}});
     }
     return false;
 }
