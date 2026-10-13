@@ -25,9 +25,10 @@ def check_quadratic(details, height):
         assert math.isclose(sample['vMm'], 2*height*t*(1-t), abs_tol=1e-6)
         assert math.isclose(sample['signedCurvaturePerMm'], curvature, abs_tol=1e-8)
         if not sample['clipped']:
+            # Reviewed display convention is outward, opposite the curvature vector.
             gain = curvature*comb['gainMmSquared']
-            assert math.isclose(sample['tipUMm'], sample['uMm']-dy/speed*gain, abs_tol=1e-5)
-            assert math.isclose(sample['tipVMm'], sample['vMm']+dx/speed*gain, abs_tol=1e-5)
+            assert math.isclose(sample['tipUMm'], sample['uMm']+dy/speed*gain, abs_tol=1e-5)
+            assert math.isclose(sample['tipVMm'], sample['vMm']-dx/speed*gain, abs_tol=1e-5)
 
 
 def main():
