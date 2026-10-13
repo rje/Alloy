@@ -111,3 +111,29 @@ Astra accepted the edited highlight: all 37 relevant observed actions remain in
 the nine segments, hashes/timing reconcile, and sampled overlays are readable.
 Final redaction source fixes were accepted with build evidence; no unchanged
 geometry rerun was required. Issue #157 is closed; #154/#155 remain open.
+
+## Idle editing and responsiveness follow-up
+
+`tools/trim_tutorial_idle.py` produces a separate edited demonstration from a
+cleanly stopped raw clip and its recorder event log. It retains normal-speed
+windows around recorded input, captions and visible commands, adds a persistent
+EDITED banner, and emits an explicit frame mapping with provenance. It never
+replaces the raw video. Example:
+
+```sh
+python3 tools/trim_tutorial_idle.py \
+  --raw /absolute/external/path/tutorial-raw.mp4 \
+  --output /absolute/external/path/tutorial-edited.mp4
+```
+
+Qualification used the interrupted first straw-bung attempt: 45 relevant logged
+actions retained in six windows, 27.267 seconds; the output frame count matched
+the edit map. A rendered frame was inspected for banner and application clarity.
+This interrupted attempt is not a completed workflow or acceptance video.
+
+Issue #178 addresses native input starvation during capture. GPU readback can
+exceed the requested frame interval, keeping a periodic timer overdue. A
+single-shot timer now starts a fresh interval after capture, preserving the
+existing explicit wall-clock repeats. Build passed and Astra's recorder-on native
+inspection measured 0.354 seconds, compared with 67–220 seconds before the fix.
+The restarted complete native workflow and stopped-video check remain pending.
