@@ -39,7 +39,7 @@ ALLOY_NESTED_REGIONS_EVIDENCE="$PWD/build-profile-regions/evidence/native" build
 Core4/4 passed. The new fixture checks exact nested areas, void classification,
 source provenance, driving width/radius edits with stable profile IDs, exact
 undo/redo and save/reopen, separate real extrusion volumes, open/duplicate status,
-precise bow-tie refusal and the observed10nm accidental kernel closure. Controls
+precise bow-tie refusal and the observed 1e-8 mm accidental kernel closure. Controls
 include transitive Coincident correction, zero-gap separate endpoints, and a
 100 mm² valid open-chain cell with two excluded tails. Existing overlap/tangent
 and Centerline gates remain passing.
@@ -61,5 +61,64 @@ is ordinary selection styling; the surrounding body retains normal gray.
 Visual inspection found readable controls/status and genuine GPU geometry. No
 matched public screenshot exists for this bounded fixture; exact visual parity,
 general touching/tangent policies and arbitrary malformed component repair remain
-unknown. No automatic healing or relink UI is claimed. Independent candidate
-review is pending; this receipt does not close the issue.
+unknown. No automatic healing or relink UI is claimed. Issue integration and closure remain root-owned; independent acceptance follows.
+
+
+## Independent acceptance — 2026-10-13
+
+Astra independently accepts candidate `f0bc8ad` for the bounded #165 gate after
+source, persisted logs, API report/transcript, saved-state assertions and five
+actual captures were reviewed. No additional application run was required.
+The final core log passes four checks in 2.24 seconds; native Qt passes three
+checks in 5.247 seconds. The 67-command API transcript passes the authored
+reference, preview/Cancel, units, edit/history/reopen and refusal assertions.
+Independent arithmetic matches edited outer volume 6250−180π =
+5684.513322353837 mm³ and island volume 20π = 62.83185307179586 mm³.
+
+The actual splitter-vertex history guard does not introduce proximity naming or
+a general healing threshold. It distinguishes shared/transitively Coincident
+endpoints and declared contact semantics from the observed undeclared merge.
+The measured case is **1e-8 mm**, or 10 pm, not 10 nm. An initially overbroad
+legacy open-profile early refusal was removed during review: the final focused
+checks preserve an exact zero-gap chain and a 100 mm² open-chain cell with two
+unused tails, alongside accepted overlapping strips and Centerline behavior.
+The exact legacy single-cycle self-intersection refusal remains deliberately
+bounded; arbitrary contact classification and repair are not claimed.
+
+Native source inspection confirms actual toolbar activation, viewport cell picks,
+spin-arrow distance entry, pointer Cancel/OK and Browser row/Space visibility.
+Source geometry, projected click coordinates, history/storage commands and the
+diagnostic fixture use the shared API. The runner now waits for evaluated sketch
+visibility and guards empty selections; its earlier unsafe test-array access is
+not evidence of a production selection crash.
+
+The annulus/island previews and completed solids show a real void and separate
+central body. The palette visibly reports three cells/two inner loops, complete
+coincident source counts, unused geometry and the measured undeclared-gap refusal.
+The preview profile combo clips the trailing area-unit suffix for the fixture
+name; operation, distance and buttons remain readable. This narrow-field visual
+limit is qualified rather than described as pixel-perfect presentation. Physical
+OS input, native construction of the seeded sketch, cross-platform runtime and
+matched public visual parity remain unqualified. No bounded acceptance blocker
+remains.
+
+### Reconciliation with SKT-024 acceptance
+
+The rectangle/hole and nested-island criteria are met by exact cell/solid areas,
+void classification, retained provenance and edit/reopen evidence. Open inputs
+now expose excluded entities or portions without discarding legitimate cells;
+self-crossing single cycles retain their precise refusal. The observed separated
+endpoint merge is explicitly refused, while duplicate straight edges retain all
+source identities and a warning without creating extra cells; ambiguous curved
+duplicates retain the existing explicit refusal. Existing supported touching,
+tangent and intersecting arrangements remain accepted by the retained region and
+overlap fixtures. They are not reclassified as generally unsupported contacts.
+
+This satisfies the issue's instruction to broaden only documented supported
+contact cases and to prevent silent unintended gap/duplicate profiles in the
+bounded cases. No automatic geometry correction or duplicate deletion was added.
+A universal classifier for every malformed arrangement, every type of near
+contact, or user intent is neither evidenced nor claimed; it is not substituted
+for the retained supported cases. The shared UI/API, atomicity, units, history and
+storage criteria are covered above. No concrete unmet requirement within this
+recorded acceptance gate was identified for a new child issue.
