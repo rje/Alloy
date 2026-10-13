@@ -3,6 +3,12 @@
 Updated 2026-10-13. This is the project handoff for a fresh session. Read the root
 [AGENTS.md](../AGENTS.md) first; its reference restrictions apply to all work.
 
+The isolated #239 candidate adds shared D distance for two parallel authored
+straight lines. It retains both line UUIDs, signed side and perpendicular
+distance, without silently adding a Parallel relation. Focused core and native
+11/28 checks passed; see [validation/parallel-line-distance.md](validation/parallel-line-distance.md).
+Independent review and main integration remain pending.
+
 The isolated #237 rough Center Rectangle candidate separates pointer placement
 from typed size entry: a pointer corner leaves two size degrees of freedom,
 while typed width/height remains driving. Focused core and native GPU/D/history/

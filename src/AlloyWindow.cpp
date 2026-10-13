@@ -1983,7 +1983,7 @@ void AlloyWindow::registerCommands() {
             args[field]=a.contains(field) ? a[field] : session_.value("selection").toObject().value(field);
             return applySketchConstraint(a["type"].toString(),args);
         });
-    auto kind=parameter("string","Dimension measurement kind.");kind["enum"]=QJsonArray{"linear","horizontal","vertical","angle","radius","diameter","arcSweep","pointLineDistance","centerlineDiameter"};
+    auto kind=parameter("string","Dimension measurement kind.");kind["enum"]=QJsonArray{"linear","horizontal","vertical","angle","radius","diameter","arcSweep","pointLineDistance","parallelLineDistance","centerlineDiameter"};
     auto dimValue=coordinate;dimValue["minimum"]=0.000001;
     add("sketch.dimension","Add sketch dimension","Create a driving/driven dimension. pointLineDistance uses pointIds plus entityId; centerlineDiameter uses two parallel line entityIds with one Centerline and a full diameter value.",
         {{"kind",kind},{"pointIds",ids},{"entityIds",ids},{"raySigns",optional(parameter("array","Angle ray signs relative to each line's authored direction."))},{"entityId",optional(parameter("string","Stable selected line, circle or arc identity."))},
@@ -2015,7 +2015,7 @@ void AlloyWindow::registerCommands() {
             return publishSketchSolve(SketchGeometry::updateDimension(session_.value("draftSketch").toObject(),{{"dimensionId",a["dimensionId"]},
                 {angular ? "valueDeg" : "valueMm",angular ? a["valueDeg"].toDouble() : CadDocument::millimeters(a["value"].toDouble(),units)}},session_.value("projectionContext").toObject()));
         });
-    auto previewKind=optional(kind);previewKind["enum"]=QJsonArray{"auto","linear","horizontal","vertical","angle","radius","diameter","arcSweep","pointLineDistance","centerlineDiameter"};
+    auto previewKind=optional(kind);previewKind["enum"]=QJsonArray{"auto","linear","horizontal","vertical","angle","radius","diameter","arcSweep","pointLineDistance","parallelLineDistance","centerlineDiameter"};
     auto previewSchema=sketchPixels;previewSchema["kind"]=previewKind;previewSchema["driving"]=optional(parameter("boolean","False previews a driven measurement."));previewSchema["session"]=optionalSession;
     add("sketch.dimensionPreview","Preview dimension placement","Preview a complete GPU annotation on selected targets without changing intent.",previewSchema,[this](const auto& a){return previewDimension(a);});
     auto placeSchema=sketchPixels;placeSchema["session"]=optionalSession;
@@ -4406,6 +4406,16 @@ double AlloyWindow::sketchDimensionMeasure(const QJsonObject& targets,const QStr
         return measured;
     }
     if(kind=="centerlineDiameter")return SketchGeometry::centerlineDiameterValue(session_.value("draftSketch").toObject(),targets["entityIds"].toArray(),session_.value("projectionContext").toObject());
+    if(kind=="parallelLineDistance") {
+        const auto ids=targets["entityIds"].toArray();if(ids.size()!=2 || ids[0]==ids[1])throw std::invalid_argument("Select two distinct straight lines");
+        QMap<QString,QPointF> points;for(const auto& row:parameters["points"].toArray()){const auto p=row.toObject();points[p["id"].toString()]={p["uMm"].toDouble(),p["vMm"].toDouble()};}
+        QJsonObject first,second;for(const auto& row:parameters["entities"].toArray()){const auto line=row.toObject();if(line["id"]==ids[0])first=line;if(line["id"]==ids[1])second=line;}
+        if(first["type"]!="line" || second["type"]!="line")throw std::invalid_argument("Distance requires two straight lines");
+        const auto a=points.value(first["startPointId"].toString()),b=points.value(first["endPointId"].toString()),c=points.value(second["startPointId"].toString()),d=points.value(second["endPointId"].toString());
+        const auto axis=b-a,edge=d-c;const double length=std::hypot(axis.x(),axis.y()),edgeLength=std::hypot(edge.x(),edge.y());
+        if(length<.001 || edgeLength<.001 || std::abs(axis.x()*edge.y()-axis.y()*edge.x())/(length*edgeLength)>1e-9)throw std::invalid_argument("Distance requires two parallel straight lines");
+        return std::abs(axis.x()*(c.y()-a.y())-axis.y()*(c.x()-a.x()))/length;
+    }
     if(kind=="pointLineDistance") {
         const auto ids=targets["pointIds"].toArray();if(ids.size()!=1)throw std::invalid_argument("Select a point and a straight edge");QMap<QString,QPointF> points;for(const auto& value:parameters["points"].toArray()){const auto p=value.toObject();points[p["id"].toString()]={p["uMm"].toDouble(),p["vMm"].toDouble()};}QJsonObject edge;for(const auto& value:parameters["entities"].toArray())if(value.toObject()["id"]==targets["entityId"])edge=value.toObject();if(edge["type"]!="line" || !points.contains(ids[0].toString()))throw std::invalid_argument("Point-edge targets unavailable");const auto a=points.value(edge["startPointId"].toString()),b=points.value(edge["endPointId"].toString()),q=points.value(ids[0].toString());const auto d=b-a;const double length=std::hypot(d.x(),d.y());if(length<.001)throw std::invalid_argument("Point-edge target is degenerate");return std::abs(d.x()*(q.y()-a.y())-d.y()*(q.x()-a.x()))/length;
     }
@@ -4613,6 +4623,12 @@ QJsonObject AlloyWindow::sketchDimensionTargets(const QJsonObject& args) const {
             SketchGeometry::centerlineDiameterValue(session_.value("draftSketch").toObject(),pair,session_.value("projectionContext").toObject());
             return {{"entityIds",first.value("centerline").toBool() ? pair : QJsonArray{pair[1],pair[0]}},{"kind","centerlineDiameter"}};
         }
+    }
+    if(args.value("kind")=="parallelLineDistance" || (args.value("kind").toString().isEmpty() && pair.size()==2)) {
+        QJsonObject target{{"entityIds",pair},{"kind","parallelLineDistance"}};
+        try {if(sketchDimensionMeasure(target,"parallelLineDistance")>=.001)return target;}
+        catch(const std::invalid_argument&) {if(args.value("kind")=="parallelLineDistance")throw;}
+        if(args.value("kind")=="parallelLineDistance")throw std::invalid_argument("Distance requires separated parallel lines");
     }
     if(args.value("kind")=="angle" || (args.value("kind").toString().isEmpty() && (args.contains("entityIds") || entities.size()==2))) {
         const auto chosen=args.contains("entityIds") ? args.value("entityIds").toArray() : entities;
@@ -5052,6 +5068,18 @@ QJsonObject AlloyWindow::previewDimension(const QJsonObject& args) {
     pending["driving"]=driving;
     pending["annotation"]=QJsonObject{{"uMm",placement.value("uMm")},{"vMm",placement.value("vMm")}};
     pending[kind=="arcSweep" || kind=="angle" ? "measuredValueDeg" : "measuredValueMm"]=value;
+    if(kind=="parallelLineDistance") {
+        const auto chosen=targets["entityIds"].toArray();
+        for(const auto& row:draft["parameters"].toObject()["dimensions"].toArray()) {
+            const auto existing=row.toObject();const auto ids=existing["entityIds"].toArray();
+            if(existing["kind"]==kind && ids.size()==2 && (ids==chosen || (ids[0]==chosen[1] && ids[1]==chosen[0]))) {
+                pending["dimensionId"]=existing["id"];
+                pending["driving"]=existing["driving"];
+                pending["annotation"]=existing["annotation"];
+                break;
+            }
+        }
+    }
     session_["tool"]="dimension";session_["pendingDimension"]=pending;return pending;
 }
 QJsonObject AlloyWindow::acceptDimension(const QJsonObject& args) {
@@ -5595,7 +5623,7 @@ void AlloyWindow::showSketch() {
         auto* dimensionHelp=new QLabel("Creates a dimension for selected geometry.\nUse D to place a dimension in the canvas.");dimensionHelp->setWordWrap(true);layout->addWidget(dimensionHelp);
         auto* dimensions=new QFormLayout;
         sketchDimensionKind_=new QComboBox;sketchDimensionKind_->setObjectName("sketch.dimension.kind");
-        for(const auto& kind:QStringList{"linear","horizontal","vertical","angle","radius","diameter","arcSweep","pointLineDistance","centerlineDiameter"})sketchDimensionKind_->addItem(kind=="centerlineDiameter" ? "Centerline Diameter" : kind=="pointLineDistance" ? "Point to Edge" : kind=="arcSweep" ? "Arc Sweep" : kind.first(1).toUpper()+kind.sliced(1),kind);
+        for(const auto& kind:QStringList{"linear","horizontal","vertical","angle","radius","diameter","arcSweep","pointLineDistance","parallelLineDistance","centerlineDiameter"})sketchDimensionKind_->addItem(kind=="centerlineDiameter" ? "Centerline Diameter" : kind=="pointLineDistance" ? "Point to Edge" : kind=="parallelLineDistance" ? "Parallel Distance" : kind=="arcSweep" ? "Arc Sweep" : kind.first(1).toUpper()+kind.sliced(1),kind);
         dimensions->addRow("Measure",sketchDimensionKind_);
         sketchDimensionDriving_=new QCheckBox("Driving dimension");sketchDimensionDriving_->setChecked(true);sketchDimensionDriving_->setObjectName("sketch.dimension.driving");dimensions->addRow(sketchDimensionDriving_);
         sketchDimensionValue_=new QDoubleSpinBox;sketchDimensionValue_->setDecimals(6);sketchDimensionValue_->setRange(0.000001,100000);sketchDimensionValue_->setKeyboardTracking(false);

@@ -790,6 +790,22 @@ QJsonObject ReferenceView::dimensionLayout(const QJsonObject& feature,const QJso
         auto span=dimension;span["kind"]="linear";span["pointIds"]=QJsonArray{"diameter-profile-witness","diameter-mirrored-witness"};span["diameterPresentation"]=true;
         auto layout=dimensionLayout(derived,span,valueMm,units);layout["kind"]="centerlineDiameter";layout["entityIds"]=ids;layout["side"]=dimension["side"];return layout;
     }
+    if(dimension["kind"]=="parallelLineDistance") {
+        const auto ids=dimension["entityIds"].toArray();if(ids.size()!=2)return {};
+        QMap<QString,QPointF> points;for(const auto& row:parameters["points"].toArray()){const auto p=row.toObject();points[p["id"].toString()]={p["uMm"].toDouble(),p["vMm"].toDouble()};}
+        QJsonObject first,second;for(const auto& row:parameters["entities"].toArray()){const auto line=row.toObject();if(line["id"]==ids[0])first=line;if(line["id"]==ids[1])second=line;}
+        if(first["type"]!="line" || second["type"]!="line")return {};
+        const auto a=points.value(first["startPointId"].toString()),b=points.value(first["endPointId"].toString());
+        const auto c=points.value(second["startPointId"].toString()),d=points.value(second["endPointId"].toString());
+        const auto axis=b-a;const double length2=axis.x()*axis.x()+axis.y()*axis.y();if(length2<1e-6)return {};
+        const auto secondWitness=(c+d)/2,firstWitness=a+axis*((secondWitness.x()-a.x())*axis.x()+(secondWitness.y()-a.y())*axis.y())/length2;
+        auto derived=feature;auto pp=parameters;auto rows=pp["points"].toArray();
+        rows.append(QJsonObject{{"id","parallel-distance-first-witness"},{"uMm",firstWitness.x()},{"vMm",firstWitness.y()}});
+        rows.append(QJsonObject{{"id","parallel-distance-second-witness"},{"uMm",secondWitness.x()},{"vMm",secondWitness.y()}});
+        pp["points"]=rows;derived["parameters"]=pp;
+        auto span=dimension;span["kind"]="linear";span["pointIds"]=QJsonArray{"parallel-distance-first-witness","parallel-distance-second-witness"};
+        auto layout=dimensionLayout(derived,span,valueMm,units);layout["kind"]="parallelLineDistance";layout["entityIds"]=ids;layout["side"]=dimension["side"];return layout;
+    }
     if(dimension["kind"]=="pointLineDistance") {
         const auto ids=dimension["pointIds"].toArray();if(ids.size()!=1)return {};QMap<QString,QPointF> points;for(const auto& value:parameters["points"].toArray()){const auto p=value.toObject();points[p["id"].toString()]={p["uMm"].toDouble(),p["vMm"].toDouble()};}QJsonObject edge;for(const auto& value:parameters["entities"].toArray())if(value.toObject()["id"]==dimension["entityId"])edge=value.toObject();if(edge["type"]!="line" || !points.contains(ids[0].toString()))return {};const auto a=points.value(edge["startPointId"].toString()),b=points.value(edge["endPointId"].toString()),q=points.value(ids[0].toString());const auto d=b-a;const double length2=d.x()*d.x()+d.y()*d.y();if(length2<1e-6)return {};const auto foot=a+d*((q.x()-a.x())*d.x()+(q.y()-a.y())*d.y())/length2;
         auto derived=feature;auto pp=parameters;auto rows=parameters["points"].toArray();rows.append(QJsonObject{{"id","dimension-perpendicular-foot"},{"uMm",foot.x()},{"vMm",foot.y()}});pp["points"]=rows;derived["parameters"]=pp;auto linear=dimension;linear["kind"]="linear";linear["pointIds"]=QJsonArray{ids[0],"dimension-perpendicular-foot"};auto layout=dimensionLayout(derived,linear,valueMm,units);layout["kind"]="pointLineDistance";layout["pointIds"]=ids;layout["entityId"]=dimension["entityId"];layout["measurementFoot"]=QJsonObject{{"uMm",foot.x()},{"vMm",foot.y()}};return layout;

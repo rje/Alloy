@@ -185,6 +185,20 @@ QJsonObject centerlinePair(const QJsonObject& parameters,const QJsonArray& ids) 
     if(std::abs(offset)<1e-9)reject("Centerline diameter requires a nonzero offset; use Coincident for zero");
     return {{"entityIds",QJsonArray{first["id"],second["id"]}},{"signedOffsetMm",offset}};
 }
+QJsonObject parallelLinePair(const QJsonObject& parameters,const QJsonArray& ids) {
+    if(ids.size()!=2 || ids[0]==ids[1])reject("Distance requires two distinct straight lines");
+    QJsonObject first,second;
+    for(const auto& value:parameters["entities"].toArray()){const auto line=value.toObject();if(line["id"]==ids[0])first=line;if(line["id"]==ids[1])second=line;}
+    if(first["type"]!="line" || second["type"]!="line")reject("Distance requires two straight lines");
+    QMap<QString,QPointF> points;for(const auto& value:parameters["points"].toArray()){const auto point=value.toObject();points[point["id"].toString()]={point["uMm"].toDouble(),point["vMm"].toDouble()};}
+    const auto a=points[first["startPointId"].toString()],b=points[first["endPointId"].toString()],c=points[second["startPointId"].toString()],d=points[second["endPointId"].toString()];
+    const auto axis=b-a,edge=d-c;const auto length=std::hypot(axis.x(),axis.y()),edgeLength=std::hypot(edge.x(),edge.y());
+    if(length<minimumLength || edgeLength<minimumLength)reject("Distance line is degenerate");
+    if(std::abs(axis.x()*edge.y()-axis.y()*edge.x())/(length*edgeLength)>1e-9)reject("Distance requires parallel lines; retain their orientation with sketch constraints");
+    const auto offset=(axis.x()*(c.y()-a.y())-axis.y()*(c.x()-a.x()))/length;
+    if(std::abs(offset)<minimumLength)reject("Use Coincident for overlapping lines");
+    return {{"entityIds",ids},{"signedOffsetMm",offset}};
+}
 }
 double SketchGeometry::centerlineDiameterValue(const QJsonObject& draft,const QJsonArray& ids,const QJsonObject& context) {
     return 2*std::abs(centerlinePair(expandedProjectionFeature(draft,context)["parameters"].toObject(),ids)["signedOffsetMm"].toDouble());
@@ -821,6 +835,9 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
                 for(const auto& value:parameters["entities"].toArray()){const auto line=value.toObject();if(line["id"]==ids[0])axis=line;if(line["id"]==ids[1])edge=line;}
                 if(!axis["centerline"].toBool() || edge["centerline"].toBool() || axis["construction"].toBool() || edge["construction"].toBool())return "Diameter requires an ordered Centerline and ordinary profile line";
                 if(!dimension["side"].isDouble() || (dimension["side"].toDouble()!=1 && dimension["side"].toDouble()!=-1))return "Centerline diameter side must be +1 or -1";
+            } else if(kind=="parallelLineDistance") {
+                if(!checkReferences(dimension,"entityIds",2,lineIds))return "Parallel distance requires two distinct straight lines";
+                if(!dimension["side"].isDouble() || (dimension["side"].toDouble()!=1 && dimension["side"].toDouble()!=-1))return "Parallel distance side must be +1 or -1";
             } else if(kind=="pointLineDistance") {
                 if(!checkReferences(dimension,"pointIds",1,pointIds) || !lineIds.contains(dimension["entityId"].toString()))return "Point-edge dimension requires one point and a straight line";
                 if(!dimension["side"].isDouble() || (dimension["side"].toDouble()!=1 && dimension["side"].toDouble()!=-1))return "Point-edge dimension side must be +1 or -1";
@@ -828,7 +845,7 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
                 || !checkReferences(dimension,"pointIds",2,pointIds)) return "Invalid dimension kind or references";
             const bool driving=dimension["driving"].toBool(), placed=dimension.contains("annotation");
             const auto valueKey=kind=="arcSweep" || angle ? "valueDeg" : "valueMm";
-            if (dimension.size() != (driving ? 5 : 4)+int(placed)+int(angle && dimension.contains("raySigns"))+2*int(kind=="pointLineDistance")+int(kind=="centerlineDiameter") || (!driving && dimension.contains(valueKey))) return "Unexpected dimension fields";
+            if (dimension.size() != (driving ? 5 : 4)+int(placed)+int(angle && dimension.contains("raySigns"))+2*int(kind=="pointLineDistance")+int(kind=="centerlineDiameter" || kind=="parallelLineDistance") || (!driving && dimension.contains(valueKey))) return "Unexpected dimension fields";
             if (placed) {
                 if (!dimension["annotation"].isObject()) return "Dimension annotation must be an object";
                 const auto annotation = dimension["annotation"].toObject();
@@ -918,8 +935,8 @@ SketchGeometry::SolveResult SketchGeometry::addDimension(const QJsonObject& draf
         const auto kind=arguments["kind"].toString();
         const bool curve=kind=="radius" || kind=="diameter" || kind=="arcSweep";
         const bool angle=kind=="angle";
-        if ((angle || kind=="centerlineDiameter") && (arguments.contains("pointIds") || arguments.contains("entityId"))) reject("Line-pair dimensions require two line entityIds");
-        if (!angle && kind!="centerlineDiameter" && (arguments.contains("entityIds") || arguments.contains("raySigns"))) reject("Only line-pair dimensions accept entityIds; raySigns are for angles");
+        if ((angle || kind=="centerlineDiameter" || kind=="parallelLineDistance") && (arguments.contains("pointIds") || arguments.contains("entityId"))) reject("Line-pair dimensions require two line entityIds");
+        if (!angle && kind!="centerlineDiameter" && kind!="parallelLineDistance" && (arguments.contains("entityIds") || arguments.contains("raySigns"))) reject("Only line-pair dimensions accept entityIds; raySigns are for angles");
         if (arguments.contains("entityId") && !curve && kind!="pointLineDistance") {
             if (arguments.contains("pointIds")) reject("Choose dimension points or one line, not both");
             bool found = false;
@@ -941,6 +958,11 @@ SketchGeometry::SolveResult SketchGeometry::addDimension(const QJsonObject& draf
             const auto pair=centerlinePair(expandedProjectionFeature(draft,projectionContext)["parameters"].toObject(),arguments["entityIds"].toArray());
             dimension.remove("pointIds");dimension["entityIds"]=pair["entityIds"];dimension["side"]=pair["signedOffsetMm"].toDouble()>0 ? 1 : -1;
         }
+        if(kind=="parallelLineDistance") {
+            if(arguments.contains("raySigns"))reject("Parallel distance does not accept angle ray signs");
+            const auto pair=parallelLinePair(expandedProjectionFeature(draft,projectionContext)["parameters"].toObject(),arguments["entityIds"].toArray());
+            dimension.remove("pointIds");dimension["entityIds"]=pair["entityIds"];dimension["side"]=pair["signedOffsetMm"].toDouble()>0 ? 1 : -1;
+        }
         if(kind=="pointLineDistance") {
             if(pointIds.size()!=1 || !arguments["entityId"].isString())reject("Point-edge dimension requires one point and one line");
             const auto expanded=expandedProjectionFeature(draft,projectionContext)["parameters"].toObject();QMap<QString,QPointF> points;for(const auto& value:expanded["points"].toArray()){const auto p=value.toObject();points[p["id"].toString()]={p["uMm"].toDouble(),p["vMm"].toDouble()};}
@@ -953,7 +975,9 @@ SketchGeometry::SolveResult SketchGeometry::addDimension(const QJsonObject& draf
         if (driving) dimension[valueKey] = arguments[valueKey];
         else if (arguments.contains("valueMm") || arguments.contains("valueDeg")) reject("Driven dimensions measure geometry; omit its value");
         if (arguments.contains(kind=="arcSweep" || angle ? "valueMm" : "valueDeg")) reject("Dimension value has incorrect units");
-        auto dimensions = parameters["dimensions"].toArray(); dimensions.append(dimension);
+        auto dimensions = parameters["dimensions"].toArray();
+        if(kind=="parallelLineDistance")for(const auto& existing:dimensions){const auto row=existing.toObject();const auto prior=row["entityIds"].toArray(),chosen=dimension["entityIds"].toArray();if(row["kind"]==kind && (prior==chosen || (prior.size()==2 && prior[0]==chosen[1] && prior[1]==chosen[0])))reject("These lines already have a distance dimension; edit its value");}
+        dimensions.append(dimension);
         parameters["dimensions"] = dimensions;
         auto candidate = draft; candidate["parameters"] = parameters;
         const auto result = solveDraft(candidate,projectionContext);
