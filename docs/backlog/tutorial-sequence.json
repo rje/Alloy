@@ -87,11 +87,12 @@
         "SOL-032",
         "SOL-033",
         "SKT-041",
+        "SKT-048",
         "TUT-009"
       ],
       "acceptance": "Create the seven typed-length chained lines, paired fillets consuming three shared lines, front-plane diameter2 circle, retained full perpendicular Sweep and checked STL with full creation recording. Preserve visible span dimensions and distinguish native/API evidence.",
       "status": "in_progress",
-      "remaining": "All native/modeling prerequisites accepted, including corrected Circle Tab-to-Enter without test-side focus repair. Full source-authoring movie/model/STL gate is active.",
+      "remaining": "Full creation/API/geometry/STL pass; independent review identified empty tangent symbols. SKT-048 must pass bounded visual correction before the gate closes.",
       "evidence": "docs/validation/solid-sweep.md"
     },
     {
