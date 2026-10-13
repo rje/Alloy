@@ -108,6 +108,11 @@ binds direct Length, Width and Thickness names to driving sketch dimensions
 and Extrude distance with stable IDs, native entry controls and atomic rebuild.
 Independent review is pending; the complete plate lesson remains separate.
 
+[Named length parameters](docs/validation/named-length-parameters.md) now bind
+sketch dimensions and Extrude distance by stable identity, with native name
+entry, atomic recompute and undo/save/reopen. This bounded slice supports direct
+names and numeric lengths; general arithmetic expressions remain ahead.
+
 The private development repository is [rje/Alloy](https://github.com/rje/Alloy), with the
 [issue backlog](https://github.com/rje/Alloy/issues) and
 [Alloy project board](https://github.com/users/rje/projects/1).

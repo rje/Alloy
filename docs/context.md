@@ -16,6 +16,16 @@ All private validation editors are closed. The gallery now has eight creations:
 seven solid/STL lessons and this sketch-only lesson. Both issues and their board
 items are Done. Older paragraphs below retain development history.
 
+**Named length parameters #244 are independently accepted and closed.**
+Implementationae65828 and review3b7a0fc are integrated; default app rebuild and
+integrated core1/1 (0.48s) passed. Native table/ordinary Distance/name controls,
+actual rough Rectangle/D/name creation, atomic recompute and exact history/reopen
+have scoped evidence. See validation/named-length-parameters.md. General
+expressions and broader visual parity remain PAR-001; full plate gate249 waits.
+Standalone Point246 is the active implementation and owns the sole private GUI
+slot for its final neutral point-only status capture. Hole247 remains Todo;
+read-only architecture preparation is allowed, no implementation started.
+
 **Post-fillet rim lineage #245 is independently accepted and closed.**
 Implementation0ec82b8/reviewa772a53 are integrated and the default app rebuild
 passed. Real shortened boundary identities support10mm point distances through
@@ -51,7 +61,7 @@ visual parity remain qualified. The external
 editable models and STL deliverables. The Revolve receipt is
 [validation/revolve-tutorial.md](validation/revolve-tutorial.md).
 
-**124 of 249 issues are closed.** Recent accepted work includes compact ribbon
+**125 of 249 issues are closed.** Recent accepted work includes compact ribbon
 icons #218, retained Extrude Intersect #219, nested profile/island diagnostics
 #165, portable local controls #220, shared-line fillets #221, typed Line length
 locks #222, retained Sweep #223 and native Sweep controls #224. Each has a scoped
