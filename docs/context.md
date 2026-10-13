@@ -5,7 +5,7 @@ Updated 2026-10-13. This is the project handoff for a fresh session. Read the ro
 
 ## Current checkpoint — read first (2026-10-13)
 
-**Newest accepted milestone: wall-outlet sketch #242 and snap correction #243.**
+**Prior accepted milestone: wall-outlet sketch #242 and snap correction #243.**
 Astra independently accepted source-order creation, final zero-DOF geometry,
 readable dimensions/constraint symbols, 29.4-second full API movie and editable
 sketch, plus the separate exact edit/history/reopen tail. The original incomplete
@@ -49,15 +49,16 @@ controls/captures pass. Legacy additive Extent/Identical stays unchanged. See
 validation/hole-spacing-pattern-controls.md and backend receipt for finite
 seed-specific mode and original seed-cut limitations.
 
-**Active gate: complete countersunk plate #249.** All prerequisites244–248 and
-250 are accepted. Sol prepares the full source-order runner in the isolated
-countersunk-plate-gate worktree; run after rebasing onto this integrated main.
-Require actual parameter table, blank-to-save movie, editable model, strict STL,
-source geometry and meaningful named edits/history/reopen, then independent
-review. The prefix already has scoped independent evidence; no full pass yet.
-All private editors are closed; root coordinates one validation GUI at a time.
-External source contract:
-`knowledge/tutorials/next-after-outlet/independent-countersink-contract.md`.
+**Newest accepted milestone: complete countersunk plate #249.**
+Integrated runner f3bf3f9/cabb05c and receipt a9aca83/review5cbb02b pass the full
+source-order gate: actual parameter table, named rectangle/extrude, rounded plate,
+Point/two edge distances, Countersink All and nine-instance Spacing/Adjust.
+The 21.1-second full creation movie, editable file, independently checked closed
+7760-triangle STL, saved-BRep openings and exact edit/history/reopen are accepted.
+See validation/countersunk-plate-tutorial.md for source adaptations, recording
+limits and separate native evidence. Issue/board Done. All private editors closed.
+The external gallery has nine creations: eight checked solid meshes and one sketch.
+Next tutorial public-reference audit is underway; no new feature is accepted yet.
 
 User requested private repository visibility on 2026-10-13. `rje/Alloy` is now
 PRIVATE, verified through GitHub CLI. Preserve private visibility unless the user
@@ -74,7 +75,7 @@ visual parity remain qualified. The external
 editable models and STL deliverables. The Revolve receipt is
 [validation/revolve-tutorial.md](validation/revolve-tutorial.md).
 
-**129 of 250 issues are closed.** Recent accepted work includes compact ribbon
+**130 of 250 issues are closed.** Recent accepted work includes compact ribbon
 icons #218, retained Extrude Intersect #219, nested profile/island diagnostics
 #165, portable local controls #220, shared-line fillets #221, typed Line length
 locks #222, retained Sweep #223 and native Sweep controls #224. Each has a scoped

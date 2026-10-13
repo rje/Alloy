@@ -261,3 +261,8 @@ font choices, height, preview, move/rotation handles, Cancel/OK and edit reopeni
 The [initials-keyring full runner](docs/validation/keyring-tutorial-prep.md) is
 prepared but has not been executed. It retains the public lesson's step order;
 its upper Cut-hole edge Fillet needs bounded provenance work before acceptance.
+
+The [countersunk plate tutorial](docs/validation/countersunk-plate-tutorial.md)
+now passes its full source sequence with named parameters, a retained Point,
+Countersink Hole and nine-instance Spacing/Adjust, a complete creation movie,
+editable file and independently checked STL.

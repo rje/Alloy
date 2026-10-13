@@ -72,7 +72,8 @@ The next independently audited four-page countersunk-plate practice is #244–24
 named length bindings, post-fillet rim lineage, standalone sketch Point, retained
 All Countersink Hole, Spacing/Adjust Hole pattern and cumulative movie/model/STL
 gate. #244–248 and parameter-dialog capture #250 are independently accepted.
-The full creation/movie/model/STL gate #249 is active. The cumulative [gate preparation](../validation/countersunk-plate-prep.md)
+The full creation/movie/model/STL gate #249 is independently accepted and closed.
+See [the accepted receipt](../validation/countersunk-plate-tutorial.md). The cumulative [gate preparation](../validation/countersunk-plate-prep.md)
 records the source sequence, output checks and visual acceptance.
 Full arithmetic parameters, other Hole types and general pattern families remain
 in their broad parent issues.
