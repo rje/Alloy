@@ -43,8 +43,9 @@ input #205 and curved ASCII export fix #206 are accepted. Timeline readability
 The subsequent Centerline/Revolve lesson #217 and native prerequisites214–216
 are accepted, as is compact original ribbon artwork #218. Next active work is
 #165: audit and complete bounded nested-profile/island handling and diagnostics.
-Bounded retained-target Extrude Intersect #219 proceeds in a separate worktree;
-its broader operation-edit parent #161 remains Todo.
+Bounded retained-target Extrude Intersect #219 is accepted; its broader
+operation-edit parent #161 remains Todo. Native compile matrix #132 is also active,
+with a single manual milestone dispatch planned after the current integrations.
 
 After every slice, run the smallest complete author/edit/finish/undo/reopen
 workflow it enables in a private real application instance. Record source steps

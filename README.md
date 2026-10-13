@@ -16,7 +16,7 @@ sketches with connected lines, rectangles, geometric constraints and driving/dri
 dimensions. Placed dimensions have witness lines/arrows, an adjacent numeric editor
 and draggable labels; solved closed line loops produce selectable real profiles.
 Finished profiles remain selectable and support editable one-side New Body,
-Cut and successive Join extrusions with retained connected result bodies. Upstream sketch edits rebuild their solids through the same history.
+Cut, successive Join and retained-target Intersect extrusions with connected result bodies. Upstream sketch edits rebuild their solids through the same history.
 GPU rendering, shared undo/redo and native save/reopen cover this chain.
 Analytic circles/arcs, curve dimensions, editable Combine Join/Cut/Intersect,
 independent design tabs, draft undo, construction lines, midpoint/tangent circle

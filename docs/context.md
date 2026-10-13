@@ -20,10 +20,10 @@ Main's default app is rebuilt with both. Receipt `validation/ribbon-icons.md`
 records actual 1040/1400 Retina layout and native input evidence. All private
 editors are closed. No release/tag or per-commit CI was triggered.
 
-96 of 219 issues are closed. Active work: Sol implements bounded nested
-profile/island coverage and diagnostics #165, and a second Sol implements
-retained-target Extrude Intersect #219 in separate worktrees. Astra independently
-verifies both. Root also owns #132: repair native dependency options and run one
+97 of 219 issues are closed. Retained-target Extrude Intersect #219 is accepted
+and integrated; the main app rebuild passes. See validation/extrude-intersect.md.
+Active work: Sol implements bounded nested profile/island coverage and diagnostics
+#165 with Astra verification. Root also owns #132: repair native dependency options and run one
 manual milestone compile matrix after the current integrations. No tag/release
 or per-commit CI. Intersect parent #161 retains broader operation-edit and
 typed-Return qualification as Todo. Split oversized remaining scope into linked Todo issues. Other broad parents remain Todo. The sections below are a chronological
@@ -1997,3 +1997,10 @@ Astra source/log/capture review reports no blocker; private editors exited and
 GUI slot is released. Final integration/acceptance are root-owned. Parent #161
 remains Todo for broader operation migration/edit and typed-Return/focus coverage.
 See [the compact contract and receipt](validation/extrude-intersect.md).
+
+## Retained Intersect integrated (2026-10-13)
+
+#219 is CLOSED after5ac93d8 and independent4e5be86. Main app rebuild passes;
+candidate core/native/API evidence and actual captures are reused. Parent161
+remains Todo for its explicit wider scope.97 of219 issues are closed. Active
+owners are165 (profile regions) and132 (one manual milestone compile matrix).
