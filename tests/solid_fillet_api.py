@@ -10,7 +10,7 @@ with application(a.app,out) as (call,log):
         if not e['available']:continue
         x,y=e['startMm'],e['endMm'];role=e['provenance']['role']
         if abs(x[0]-32)>1e-6 or abs(y[0]-32)>1e-6:continue
-        if (role=='sideCorner' and abs(x[1]+10)<1e-6 and max(x[2],y[2])>23.9) or (role=='endRim' and abs(x[2]-24)<1e-6 and abs(x[1]-y[1])>9):seeds.append(e['edgeId'])
+        if role=='sideCorner' and (abs(x[1]+10)<1e-6 or abs(x[1])<1e-6) and max(x[2],y[2])>23.9:seeds.append(e['edgeId'])
     assert len(seeds)==2
     session=call('solid.filletDialog',{'targetBodyId':target});assert session['inputs']['radiusMm']==0
     # Actual edge hit testing from projected geometry, separate from physical native input.

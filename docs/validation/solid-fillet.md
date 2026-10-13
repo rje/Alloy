@@ -2,8 +2,10 @@
 
 SOL-022 / #182 implements one constant-radius G1 rolling-ball selection set,
 with Tangent Chain **On**. Off, radius dragging and broader fillet modes remain
-in SOL-003 / #48. The source-video gate uses two outer-prong seeds and radius
-1 mm. The separate PDF six-edge / 0.5-mm variant is unclaimed. The external
+in SOL-003 / #48. The source-video gate uses the two outer-prong vertical corners at inferred source coordinates
+(32,-10) and (32,0), with radius 1 mm. Public selection/result frames identify
+both as side corners; the earlier top-rim interpretation was corrected by
+independent review of the final planar-cap preview. The separate PDF six-edge / 0.5-mm variant is unclaimed. The external
 contract is `knowledge/specs/solid-fillet-support-2026-10-12.md` in the reference
 records sibling; world-coordinate identification of the two video picks is
 explicitly inferred from the authored source fixture.

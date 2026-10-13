@@ -5,7 +5,7 @@ Updated 2026-10-12. This is the project handoff for a fresh session. Read the ro
 
 ## Bounded solid fillet candidate (2026-10-12)
 
-SOL-022 / #182 adds the video-variant two-edge 1-mm solid fillet, numeric G1
+SOL-022 / #182 adds the video-variant two-vertical-corner 1-mm solid fillet, numeric G1
 rolling-ball controls with Tangent Chain On, shared API and provenance-based
 edge identity. Off/manipulator/broader modes remain #48; general naming remains
 DOC-012. The PDF six-edge 0.5-mm variant is separate and unclaimed. Build and

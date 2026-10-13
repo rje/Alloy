@@ -15,10 +15,9 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try {
     auto build=[&](double height){BRepPrimAPI_MakePrism prism(profile.face,gp_Vec(0,0,height),true,true);auto edges=SolidFillet::prismEdges(prism,profile,generator);EvaluatedBody body{generator,CadDocument::newId(),"Prong",true,prism.Shape(),GeometryKernel::summarize(prism.Shape()),{},edges};return body;};
     auto body=build(24);const auto descriptors=SolidFillet::descriptors(body.solidEdges);check(descriptors.size()==8,"four rim/four generated corners");QJsonArray selected;
     for(const auto& value:descriptors){const auto edge=value.toObject(),p=edge["provenance"].toObject();const auto a=edge["startMm"].toArray(),b=edge["endMm"].toArray();if(std::abs(a[0].toDouble()-32)>1e-7 || std::abs(b[0].toDouble()-32)>1e-7)continue;
-        if(p["role"]=="sideCorner" && std::abs(a[1].toDouble()+10)<1e-7)selected.append(edge["edgeId"]);
-        if(p["role"]=="endRim" && std::abs(a[1].toDouble()-b[1].toDouble())>9)selected.append(edge["edgeId"]);
+        if(p["role"]=="sideCorner" && (std::abs(a[1].toDouble()+10)<1e-7 || std::abs(a[1].toDouble())<1e-7))selected.append(edge["edgeId"]);
     }
-    check(selected.size()==2,"video corner/rim provenance");const auto original=body;SolidFillet::evaluate(body,{{"edgeIds",selected},{"radiusMm",1}},CadDocument::newId());check(body.summary["valid"].toBool() && body.summary["volumeMm3"].toDouble()<720,"real rounded prong");
+    check(selected.size()==2,"video two vertical corner provenance");const auto original=body;SolidFillet::evaluate(body,{{"edgeIds",selected},{"radiusMm",1}},CadDocument::newId());check(body.summary["valid"].toBool() && body.summary["volumeMm3"].toDouble()<720,"real rounded prong");
     auto resized=build(26);for(const auto& id:selected){bool found=false;for(const auto& edge:resized.solidEdges)found|=edge.edgeId==id.toString();check(found,"height edit retains edge identity");}SolidFillet::evaluate(resized,{{"edgeIds",selected},{"radiusMm",.5}},CadDocument::newId());check(resized.summary["valid"].toBool(),"edited radius/height valid");
     auto impossible=original;bool rejected=false;try{SolidFillet::evaluate(impossible,{{"edgeIds",selected},{"radiusMm",10}},CadDocument::newId());}catch(const std::exception&){rejected=true;}check(rejected && impossible.shape.IsSame(original.shape),"impossible radius atomic");
     // A descriptor scattered into another result may be unavailable there.
@@ -34,9 +33,9 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try {
         for(const auto& value:SolidFillet::descriptors(source.bodies()[0].solidEdges)) {
             const auto edge=value.toObject(),p=edge["provenance"].toObject();if(!edge["available"].toBool())continue;
             const auto a=edge["startMm"].toArray(),b=edge["endMm"].toArray();if(std::abs(a[0].toDouble()-32)>1e-6 || std::abs(b[0].toDouble()-32)>1e-6)continue;
-            if((p["role"]=="sideCorner" && std::abs(a[1].toDouble()+10)<1e-6 && std::max(a[2].toDouble(),b[2].toDouble())>23.9) || (p["role"]=="endRim" && std::abs(a[2].toDouble()-24)<1e-6 && std::abs(a[1].toDouble()-b[1].toDouble())>9)) {ids.append(edge["edgeId"]);generator=p["generatorFeatureId"].toString();}
+            if(p["role"]=="sideCorner" && (std::abs(a[1].toDouble()+10)<1e-6 || std::abs(a[1].toDouble())<1e-6) && std::max(a[2].toDouble(),b[2].toDouble())>23.9) {ids.append(edge["edgeId"]);generator=p["generatorFeatureId"].toString();}
         }
-        check(ids.size()==2,"exact video joined corner/rim seeds");QJsonObject support;
+        check(ids.size()==2,"video joined two vertical corner seeds");QJsonObject support;
         for(const auto& cap:source.bodies()[0].supportFaces)if(std::abs(cap.frame["origin"].toArray()[2].toDouble()-20)<1e-6)support={{"bodyId",cap.bodyId},{"faceId",cap.faceId},{"producerFeatureId",cap.producerFeatureId}};
         check(!support.isEmpty(),"original disk cap20");QJsonObject args{{"targetBodyId",target},{"edgeIds",ids},{"radiusMm",1}};
         check(source.commit(CadDocument::filletCandidate(before,args),"Source Fillet").isEmpty(),"joined source fillet commit");auto filleted=source.authored();const auto featureId=filleted["features"].toArray().last().toObject()["id"].toString();
