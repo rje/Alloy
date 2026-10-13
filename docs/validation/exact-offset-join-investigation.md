@@ -194,8 +194,10 @@ The focused profile_join, successive_join and join_lineage_immutable regressions
 pass3/3. The retained external source-specific Join now returns successfully. The probe
 then stops at original participant byte preservation: additional located surface
 and pcurve representations were added to a shared edge. Existing 3D curves match;
-classification of cache enrichment versus destructive mutation remains pending.
-Topology-empty residuals and history/reopen must complete after that classification. No permanent repository fixture reproduces this
+independent raw-diff reconstruction classifies every change as additive support
+representations. Original geometry, parameter ranges, tolerances and topology
+are exact under index remapping; serialized bytes are not identical.
+Topology-empty residuals and history/reopen remain separately recorded gates. No permanent repository fixture reproduces this
 source-specific numerical trigger; the saved retained external fixture and probe
 are required to replay it. Existing exact-offset Pattern core fixture is an
 untrimmed prism, not the same shell-derived rib, so it was not broadened into a
@@ -203,7 +205,8 @@ different geometry claim.
 
 External evidence: `validation/ornament-feasibility/retained-join-coverage.json`,
 `retained-join-coverage-tight.json`, `retained-join-candidate.cpp`,
-`retained-join-candidate.json`, `join-coverage-core-final.log`, and the saved
+`retained-join-candidate.json`, `join-input-additive-diff-review.json`,
+`join-coverage-core-final.log`, and the saved
 `deliverables/ornament-2026-10-13/cumulative-01/ornament-pattern-eight.alloy`.
 The raw report's no-residual-solids observation is qualified; the final candidate
 probe additionally rejects residual faces/edges/vertices. Independent Astra review

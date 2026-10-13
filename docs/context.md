@@ -143,8 +143,9 @@ coverage estimators caused false ownership refusal. The bounded #265 candidate
 uses consistent explicit GK1e-11 and both reported error estimates against the
 unchanged material threshold. Simple Join regressions pass; source-specific
 retained Join now returns, but adds located pcurve representations to shared
-inputs; cache/geometry classification, containment, cumulative acceptance and
-independent review remain pending.
+inputs; independent raw-diff reconstruction confirms additive support caches
+with exact original geometry/topology/ranges/tolerances under index remapping,
+not byte identity. Containment and cumulative acceptance remain pending.
 See validation/exact-offset-join-investigation.md and external retained coverage
 reports. No dimensions, kernel tolerance, authored evaluator or Fuse changed.
 
