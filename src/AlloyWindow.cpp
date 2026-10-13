@@ -740,19 +740,41 @@ void AlloyWindow::registerCommands() {
     meshDeviation["minimum"]=0.001;meshDeviation["maximum"]=10;
     auto meshAngle=parameter("number","Normal deviation in degrees.");meshAngle["minimum"]=1;meshAngle["maximum"]=45;
     auto meshFormat=parameter("string","STL encoding.");meshFormat["enum"]=QJsonArray{"binary","ascii"};
-    add("document.exportStl","Export STL","Export one committed solid with independent tessellation; STL does not embed units.",
-        {{"path",parameter("string","Absolute output STL path.")},{"bodyId",parameter("string","Stable evaluated solid body UUID.")},
+    add("document.exportStl","Export STL","Export selected committed solids preserving world placement; STL does not embed units.",
+        {{"path",parameter("string","Absolute output STL path.")},{"bodyId",optional(parameter("string","Stable evaluated solid body UUID."))},
+         {"bodyIds",optional(parameter("array","Distinct evaluated solid body UUIDs."))},{"allVisible",optional(parameter("boolean","Export all active visible bodies."))},
          {"units",units},{"format",meshFormat},{"surfaceDeviationMm",meshDeviation},{"normalDeviationDeg",meshAngle}},[this](const auto& a){
             if(!session_.isEmpty())return failure("active_command","Finish or Cancel the active command before exporting");
-            for(const auto& body:document_->bodies())if(body.bodyId==a["bodyId"].toString()) {
-                try{return MeshExport::writeStl(body,a["path"].toString(),a["units"].toString(),a["format"]=="binary",a["surfaceDeviationMm"].toDouble(),a["normalDeviationDeg"].toDouble());}
-                catch(const GeometryKernel::EvaluationError& error){return QJsonObject{{"ok",false},{"error",error.diagnostics()}};}
+            if(int(a.contains("bodyId"))+int(a.contains("bodyIds"))+int(a.contains("allVisible"))!=1)
+                return failure("invalid_body_selection","Choose bodyId, bodyIds, or allVisible:true");
+            QJsonArray ids;
+            if(a.contains("bodyId"))ids.append(a["bodyId"]);
+            else if(a.contains("bodyIds"))ids=a["bodyIds"].toArray();
+            else {if(!a["allVisible"].toBool())return failure("invalid_body_selection","allVisible must be true");
+                for(const auto& body:document_->bodies())if(body.visible)ids.append(body.bodyId);}
+            if(ids.isEmpty())return failure("solid_required","Select at least one committed solid");
+            QSet<QString> distinct;std::vector<EvaluatedBody> selected;
+            for(const auto& value:ids) {
+                if(!value.isString() || value.toString().isEmpty() || distinct.contains(value.toString()))
+                    return failure("invalid_body_selection","Body IDs must be distinct nonempty strings");
+                distinct.insert(value.toString());bool found=false;
+                for(const auto& body:document_->bodies())if(body.bodyId==value.toString()){selected.push_back(body);found=true;break;}
+                if(!found)return failure("stale_body","A selected solid no longer exists","bodyIds");
             }
-            return failure("stale_body","The selected solid no longer exists","bodyId");
+            try{return MeshExport::writeStl(selected,a["path"].toString(),a["units"].toString(),a["format"]=="binary",a["surfaceDeviationMm"].toDouble(),a["normalDeviationDeg"].toDouble());}
+            catch(const GeometryKernel::EvaluationError& error){return QJsonObject{{"ok",false},{"error",error.diagnostics()}};}
+
         });
-    add("document.exportMeshDialog","Save As Mesh…","Export a chosen committed solid to a local STL file.",
-        {{"bodyId",optional(parameter("string","Optional initially selected body UUID."))}},[this](const auto& a){
-            return showMeshExport(a.value("bodyId").toString(selectedBody_));
+    add("document.exportMeshDialog","Save As Mesh…","Export chosen committed solids to a local STL file.",
+        {{"bodyId",optional(parameter("string","Optional initially selected body UUID."))},
+         {"bodyIds",optional(parameter("array","Initially checked body UUIDs."))},{"allVisible",optional(parameter("boolean","Initially choose all active visible bodies."))}},[this](const auto& a){
+            if(int(a.contains("bodyId"))+int(a.contains("bodyIds"))+int(a.contains("allVisible"))>1)return failure("invalid_body_selection","Choose one export selection source");
+            if(a.contains("bodyId")) {bool found=false;for(const auto& body:document_->bodies())found=found || body.bodyId==a["bodyId"].toString();if(!found)return failure("stale_body","The selected solid no longer exists","bodyId");}
+            if(a.contains("bodyIds"))for(const auto& id:a["bodyIds"].toArray()) {
+                bool found=false;for(const auto& body:document_->bodies())found=found || body.bodyId==id.toString();
+                if(!id.isString() || !found)return failure("stale_body","A selected solid no longer exists","bodyIds");
+            }
+            return showMeshExport(a.value("bodyId").toString(selectedBody_),a["bodyIds"].toArray(),a.value("allVisible").toBool());
         });
     add("document.save","Save","Atomically save authored intent; mark clean only after success.",{{"path",path}},[this](const auto& a){
         if(session_.value("command")=="sketch.edit")return failure("active_sketch_draft","Finish or Cancel the sketch before saving");

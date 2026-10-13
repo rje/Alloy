@@ -159,7 +159,10 @@ if(BUILD_TESTING)
     target_include_directories(construction_plane_test PRIVATE src)
     target_link_libraries(construction_plane_test PRIVATE Qt6::Gui alloy_kernel)
     add_test(NAME construction_plane COMMAND construction_plane_test)
+    add_executable(multibody_mesh_test tests/multibody_mesh.cpp)
+    target_link_libraries(multibody_mesh_test PRIVATE Qt6::Core alloy_kernel)
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
+    add_test(NAME multibody_mesh COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/multibody_mesh.py --fixture $<TARGET_FILE:multibody_mesh_test>)
     add_test(NAME client_selection COMMAND ${Python3_EXECUTABLE} -E ${CMAKE_CURRENT_SOURCE_DIR}/tests/client_selection.py)
     add_test(NAME shell_api COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/shell_api.py

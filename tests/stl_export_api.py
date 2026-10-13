@@ -34,7 +34,9 @@ def inspect_stl(path, binary):
     key = lambda p: tuple(round(x/tolerance) for x in p)
     edges = Counter()
     volume = 0
-    for (a, b, c), normal in zip(triangles, normals):
+    neighbors = {}
+    triangle_volumes = []
+    for index, ((a, b, c), normal) in enumerate(zip(triangles, normals)):
         assert all(math.isfinite(x) for p in (a, b, c, normal) for x in p)
         ab, ac = [b[i]-a[i] for i in range(3)], [c[i]-a[i] for i in range(3)]
         cross = [ab[(i+1)%3]*ac[(i+2)%3]-ab[(i+2)%3]*ac[(i+1)%3] for i in range(3)]
@@ -46,10 +48,28 @@ def inspect_stl(path, binary):
         assert len({ka, kb, kc}) == 3, 'Degenerate output triangle'
         for u, v in ((ka, kb), (kb, kc), (kc, ka)):
             edges[u, v] += 1
-        volume += sum(a[i]*(b[(i+1)%3]*c[(i+2)%3]-b[(i+2)%3]*c[(i+1)%3]) for i in range(3))/6
+        for vertex in (ka, kb, kc):
+            neighbors.setdefault(vertex, []).append(index)
+        triangle_volume = sum(a[i]*(b[(i+1)%3]*c[(i+2)%3]-b[(i+2)%3]*c[(i+1)%3]) for i in range(3))/6
+        triangle_volumes.append(triangle_volume)
+        volume += triangle_volume
+    components = []
+    remaining = set(range(len(triangles)))
+    while remaining:
+        pending = [remaining.pop()]; component = []
+        while pending:
+            index = pending.pop(); component.append(index)
+            for point in triangles[index]:
+                for adjacent in neighbors[key(point)]:
+                    if adjacent in remaining:
+                        remaining.remove(adjacent); pending.append(adjacent)
+        points_in_component = [p for i in component for p in triangles[i]]
+        signed_volume = sum(triangle_volumes[i] for i in component)
+        assert signed_volume > 0, "Each component must have positive signed volume"
+        components.append({"triangles": len(component), "bounds": [[min(p[i] for p in points_in_component) for i in range(3)], [max(p[i] for p in points_in_component) for i in range(3)]], "signedVolume": signed_volume})
     assert all(count == 1 and edges[v, u] == 1 for (u, v), count in edges.items()), 'Open or inconsistently oriented mesh'
     assert volume > 0, 'Mesh winding must have positive signed volume'
-    return {'triangles': len(triangles), 'bounds': [low, high], 'signedVolume': volume, 'facetNormals': 'finite, unit length and aligned with winding'}
+    return {'components': components, 'triangles': len(triangles), 'bounds': [low, high], 'signedVolume': volume, 'facetNormals': 'finite, unit length and aligned with winding'}
 
 
 def main():
