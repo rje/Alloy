@@ -2,8 +2,7 @@
 
 2026-10-13, isolated `feat/control-point-spline`, based on the accepted fit spline
 and shared validation correction. Source contract:
-[control-point-spline.md](../research/control-point-spline.md). Independent
-acceptance is pending; this is an implementation and evidence receipt.
+[control-point-spline.md](../research/control-point-spline.md). The independent verdict below qualifies this implementation and evidence receipt.
 
 The candidate app builds with Qt 6.11.2 and OCCT on arm64 macOS. Targeted control
 and existing fit geometry fixtures pass. Control checks independently derive
@@ -42,6 +41,33 @@ Root owns the distinct real-app API acceptance script
 `api-pass` across 32 calls on the same app binary, checking mixed source
 curves, independent control positions/curvature/tips, presentation-only changes,
 actual closed areas and exact authored history/reopen. Evidence remains external
-at `deliverables/control-point-spline-2026-10-13/api-attempt-02`. The initial
-attempt is retained; root will supply its failure qualification. Independent
-compatibility acceptance remains pending.
+at `deliverables/control-point-spline-2026-10-13/api-attempt-02`. The initial attempt is retained: its expected tip used the inward normal,
+contrary to the reviewed outward convention. Only the test oracle changed;
+the passing attempt uses the same product binary.
+
+## Independent acceptance
+
+Accepted candidate `1c592a52193d0f14a96a74667f46d22f5b2f7db2` after source,
+focused test logs, actual native/API images, report and saved-model review.
+No additional editor or unchanged workflow replay was needed. Three retained
+poles evaluate as a genuine quadratic under either maximum degree, and cage
+legs remain presentation rather than additional solver entities. The shared
+fit/control solver preserves separate fit-handle DOF. Comb settings retain
+authored geometry and DOF while using the same exact OCCT curve derivatives.
+
+The signed-curvature and outward-tip equations are consistent, including
+reversal; the independent quadratic position/curvature and closed-area core
+checks are meaningful. Zero-speed samples break the envelope, zero curvature
+does not invent teeth, and clipping remains inspectable. The corrected
+32-call API report uses the candidate binary listed above; its saved document
+exactly matches `sourceState.authored`. Core/API history and reopen assertions
+complement native pole commit/cancel/late-release and actual comb controls.
+
+The inspected native image contains the complete three-pole cage, both combs,
+all selected fit grips and readable controls without clipping or label overlap.
+The API image is a smaller overview with readable controls. Native evidence
+is Qt-dispatched input after initial harness activation, with QAction tool
+activation; it does not establish physical OS input or a mouse-open menu path.
+Knot policy, comb gain/defaults/clipping and arbitrary fixture coordinates are
+explicit Alloy choices. This accepts the bounded #254 ingredient, not exact
+reference curvature-display parity, other-platform runtime or full lesson #257.
