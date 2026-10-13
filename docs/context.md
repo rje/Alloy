@@ -111,9 +111,9 @@ before/after-hash checks independently establish the untouched-input defects.
 Source boundary reread: the tutorial explicitly selects the bottom face for
 Inside5 Shell, but its section image does not prove an annular opening. That
 earlier requirement was inferred. The exact inward meridian closes on the axis
-above the base; #266 is probing exact axis-trimmed cavity geometry and comparing
-the section boundary, without changing authored dimensions. No replacement
-Shell policy or complete source match is accepted yet.
+above the base; #266 implements a bounded exact axis-trimmed cavity candidate
+without changing authored dimensions. The disclosed closed-cap policy is
+authorized; exact source boundary parity and the complete workflow remain unknown.
 
 The exact circular-meridian cavity proof now passes source80/R50 and control85/R55:
 BRep/Boolean-input validity, normal wall5, independent disk-integral volume and
@@ -123,6 +123,11 @@ two simple cavity roots strictly above the selected plane and actual lineage.
 This self-closing offset case uses a disclosed closed-cap policy; source boundary
 parity remains unknown. No general Shell replacement or full workflow is accepted.
 Evidence: external validation/ornament-feasibility/exact-cavity-{source,control}.
+The candidate now builds and passes explicit source/control policy, Boolean
+validity, independent volumes and edit/history/reopen core checks. Actual app
+source-prefix Intersect passes, with source/control API history/reopen and
+readable section captures. See validation/revolved-shell-closed-cap.md. Independent
+review and integration remain pending; #265 cumulative Join remains separate.
 
 The cumulative runner is prepared in `tests/ornament_cumulative_api.py`
 (3567dba/5b65cc9). It reuses the source prefix, verifies retained Pattern count

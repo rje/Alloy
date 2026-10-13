@@ -1,5 +1,14 @@
 # Full-Revolve planar support candidate
 
+**Boundary qualification after #266:** the original receipt below records the
+#260 observations, not an accepted annular-opening contract. Subsequent clean
+Boolean-argument checks found the old source Shell self-interfering near its
+inner seam/apex. Public evidence establishes bottom-face selection and Inside5,
+but does not establish an annular opening. The bounded exact circular case now
+uses the disclosed [closed-cap policy](revolved-shell-closed-cap.md); generated
+disk identity and controls remain the accepted #260 ingredient. Its historical
+opening/validity claims below are superseded for this source-specific geometry.
+
 2026-10-13, #260, isolated `feat/revolve-planar-support` from e805afb. Independent
 acceptance is recorded below; scoped native input and GPU inspection pass. Source/implementation
 contract: [revolve-planar-support.md](../research/revolve-planar-support.md).

@@ -1,4 +1,5 @@
 #include "SolidShell.h"
+#include "RevolvedShellCap.h"
 #include "SolidFillet.h"
 #include <BRepOffsetAPI_MakeThickSolid.hxx>
 #include <BRepOffset_MakeOffset.hxx>
@@ -107,6 +108,7 @@ void SolidShell::evaluate(EvaluatedBody& body,const QJsonObject& parameters,cons
     if(!oldFaces.Contains(source->face) || BRepAdaptor_Surface(source->face).GetType()!=GeomAbs_Plane)
         fail("shell_face_unavailable","The selected face must be a current planar solid face");
     const double thickness=parameters["thicknessMm"].toDouble();
+    if(auto closed=RevolvedShellCap::evaluate(body,*source,thickness,featureId)){body=std::move(*closed);return;}
     TopTools_ListOfShape removed;removed.Append(source->face);
     BRepOffsetAPI_MakeThickSolid builder;
     builder.MakeThickSolidByJoin(body.shape,removed,-thickness,1e-4,BRepOffset_Skin,false,false,GeomAbs_Intersection);
