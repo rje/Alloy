@@ -545,6 +545,50 @@ private slots:
         auto* pending=window.findChild<QDoubleSpinBox*>("patternExtent0");QVERIFY(pending);pending->setFocus();pending->selectAll();QTest::keyClicks(pending,"23");
         QCOMPARE(pending->value(),axes[0].toObject()["extent"].toDouble());
     }
+    void chamferEdgesDistanceCancelCommit() {
+        AlloyWindow window;window.resize(1180,760);window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));auto* view=viewport(window);QVERIFY(view);
+        QVERIFY2(run(window,"sketch.begin",{{"plane","XY"}}),error_.constData());
+        QVERIFY2(run(window,"sketch.rectangle",{{"x1",-10},{"y1",-10},{"x2",10},{"y2",10}}),error_.constData());
+        QVERIFY2(run(window,"sketch.finish"),error_.constData());
+        auto state=window.execute("document.inspect")["result"].toObject();
+        const auto sketch=state["evaluation"].toObject()["sketches"].toArray().last().toObject();
+        QVERIFY2(run(window,"solid.extrude",{{"sketchId",sketch["sketchId"]},{"profileId",sketch["profiles"].toArray()[0].toObject()["profileId"]},{"distance",20}}),error_.constData());
+        state=window.execute("document.inspect")["result"].toObject();const auto baseline=state["authored"].toObject();
+        const auto body=state["evaluation"].toObject()["bodies"].toArray()[0].toObject();
+        QVERIFY2(run(window,"view.home"),error_.constData());
+        auto* tool=window.findChild<QToolButton*>("command.solid.chamferDialog");QVERIFY(tool);
+        for(bool commit:{false,true}) {
+            QTest::mouseClick(tool,Qt::LeftButton);QCOMPARE(session(window)["command"].toString(),QString("solid.chamfer"));
+            auto* dock=window.findChild<QDockWidget*>("chamferDock");QVERIFY(dock);
+            if(!commit) {
+                int picked=0;
+                for(const auto& value:body["solidEdges"].toArray()) {
+                    const auto edge=value.toObject();const auto a=edge["startMm"].toArray(),b=edge["endMm"].toArray();
+                    if(std::abs(a[2].toDouble()-20)>1e-6 || std::abs(b[2].toDouble()-20)>1e-6)continue;
+                    const auto p=window.execute("view.projectEdge",{{"bodyId",body["bodyId"]},{"edgeId",edge["edgeId"]}})["result"].toObject();
+                    QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,QPoint(qRound(p["x"].toDouble()),qRound(p["y"].toDouble())));
+                    QCOMPARE(session(window)["inputs"].toObject()["edgeIds"].toArray().size(),++picked);
+                    if(picked==2)break;
+                }
+                QCOMPARE(picked,2);
+            }
+            auto* all=dock->findChild<QPushButton*>("chamferSelectAll");QVERIFY(all);QTest::mouseClick(all,Qt::LeftButton);
+            QCOMPARE(session(window)["inputs"].toObject()["edgeIds"].toArray().size(),12);
+            auto* distance=dock->findChild<QDoubleSpinBox*>("chamferDistance");QVERIFY(distance);
+            distance->setFocus();distance->selectAll();QTest::keyClicks(distance,"1");QTest::keyClick(distance,Qt::Key_Return);
+            QVERIFY(session(window)["geometryEvaluated"].toBool());QCOMPARE(window.execute("document.inspect")["result"].toObject()["authored"].toObject(),baseline);
+            auto* buttons=dock->findChild<QDialogButtonBox*>();QVERIFY(buttons);QVERIFY(buttons->button(QDialogButtonBox::Ok)->isEnabled());
+            if(commit)QVERIFY2(run(window,"capture.screenshot",{{"path",QDir::currentPath()+"/build-chamfer/evidence/chamfer-independent/qt-preview.png"}}),error_.constData());
+            QTest::mouseClick(buttons->button(commit ? QDialogButtonBox::Ok : QDialogButtonBox::Cancel),Qt::LeftButton);
+            QVERIFY(session(window).isEmpty());if(!commit)QCOMPARE(window.execute("document.inspect")["result"].toObject()["authored"].toObject(),baseline);
+        }
+        const auto final=window.execute("document.inspect")["result"].toObject();
+        QCOMPARE(final["authored"].toObject()["features"].toArray().last().toObject()["type"].toString(),QString("chamfer"));
+        const auto result=final["evaluation"].toObject()["bodies"].toArray()[0].toObject();
+        QVERIFY(result["valid"].toBool() && result["closed"].toBool());QCOMPARE(result["bodyId"],body["bodyId"]);
+        QVERIFY(result["volumeMm3"].toDouble()<8000);
+    }
     void moveActionsAtShortHeights() {
         AlloyWindow window;window.resize(1136,790);window.show();
         QVERIFY(QTest::qWaitForWindowExposed(&window));
