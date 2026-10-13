@@ -15,8 +15,8 @@ creates and edits real OCCT boxes and cylinders, and supports origin-plane
 sketches with connected lines, rectangles, geometric constraints and driving/driven
 dimensions. Placed dimensions have witness lines/arrows, an adjacent numeric editor
 and draggable labels; solved closed line loops produce selectable real profiles.
-Finished profiles remain selectable and can create editable one-side New Body
-extrusions. Upstream sketch edits rebuild their solids through the same history.
+Finished profiles remain selectable and support editable one-side New Body,
+Cut and bounded one-target Join extrusions. Upstream sketch edits rebuild their solids through the same history.
 GPU rendering, shared undo/redo and native save/reopen cover this chain.
 Analytic circles/arcs, curve dimensions, editable Combine Join/Cut/Intersect,
 independent design tabs, draft undo, construction lines, midpoint/tangent circle
@@ -37,6 +37,10 @@ same five-hole solid with explicitly recorded selection and visual limitations.
 This is not complete CAD parity.
 Annotated real-app tutorial movies can now be recorded with local commands; see
 [the video recipe and verified results](docs/validation/tutorial-video.md).
+The next illustrated object now passes an integrated API chain: command-first
+Circle, a joined boss, a sketch on its new cap, an editable body Move and Combine
+Cut. The [straw-bung checkpoint](docs/validation/straw-bung.md) includes a closed
+26 x 26 x 11 mm STL and separate native/visual evidence limits.
 The completed bracket can be exported as one valid STEP solid or a closed STL
 mesh. A full-size design and millimeter STEP/STL plus a labeled 0.2-scale STL
 print sample have [independent readback evidence](docs/validation/bracket-exchange.md).
