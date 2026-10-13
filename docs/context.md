@@ -22,10 +22,14 @@ both bounded features are now closed. See `validation/support-independent-review
 was corrected to check the public generic evaluation error plus useful message;
 its core test separately checks the internal missing-profile diagnostic.
 
-The support review editor is saved and closed. Astra owns one popup-fix editor
-next, using the accepted saved bung fixture. Sol researches #176 multi-result
-Join semantics before implementation. Caption fitting #180 is Todo.
-No release/tag/CI triggered. Backlog: 180 issues, 47 closed, 133 open.
+The support and popup review editors are saved and closed. #179 is accepted:
+physical right-click, readable popup, native Move activation and exact Cancel.
+See `validation/popup-independent-review.md`. Astra now investigates the remaining
+Home-to-C and Combine target-picker recoveries under #170 using one saved-fixture
+editor. Existing parent issues #7/#49 hold those requirements. Sol researches
+#176 multi-result Join and the source-specific solid fillet prerequisite before
+implementation. Caption fitting #180 is Todo.
+No release/tag/CI triggered. Backlog: 180 issues, 48 closed, 132 open.
 
 ## Resumed active work (2026-10-12)
 
