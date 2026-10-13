@@ -4473,6 +4473,11 @@ void AlloyWindow::recordSketchHistory(const QJsonObject& draft,const QJsonObject
 QJsonObject AlloyWindow::traverseSketchHistory(int direction) {
     if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))
         return failure("stale_session","The document changed; cancel and restart this sketch");
+    if(session_.contains("pendingSketchMirror")){
+        session_.remove("pendingSketchMirror");const auto draft=session_["draftSketch"].toObject();
+        view_->showSketchDraft(evaluateSketchDraft(draft));displayedSketchDraft_=draft;view_->setFocus();
+        return {{"action","cancelled_input"},{"changed",false},{"draftHistory",session_["draftHistory"]}};
+    }
     if(direction<0) {
         if(session_.contains("pendingTwoPointRectangle")) {
             cancelTwoPointRectangle();view_->setFocus();return {{"action","cancelled_input"},{"changed",false},{"draftHistory",session_["draftHistory"]}};

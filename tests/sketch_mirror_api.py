@@ -46,6 +46,16 @@ def main():
         call('sketch.mirrorCancel')
         assert draft() == original and 'pendingSketchMirror' not in call('app.state')['activeSession']
         call('sketch.mirrorAccept', error='mirror_preview_required')
+        call('sketch.mirrorPreview', input_)
+        undo = call('history.undo')
+        assert undo['action'] == 'cancelled_input' and not undo['changed']
+        assert draft() == original and 'pendingSketchMirror' not in call('app.state')['activeSession']
+        call('sketch.mirrorAccept', error='mirror_preview_required')
+        call('sketch.mirrorPreview', input_)
+        redo = call('history.redo')
+        assert redo['action'] == 'cancelled_input' and not redo['changed']
+        assert draft() == original and 'pendingSketchMirror' not in call('app.state')['activeSession']
+        call('sketch.mirrorAccept', error='mirror_preview_required')
         preview = call('sketch.mirrorPreview', input_)
         accepted = call('sketch.mirrorAccept')
         authored_group = accepted['draftSketch']['parameters']['mirrorGroups'][0]

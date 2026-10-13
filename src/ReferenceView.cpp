@@ -82,6 +82,8 @@ Handle(AIS_Shape) sketchPresentation(const TopoDS_Shape& shape) {
     Handle(AIS_Shape) presentation=new AIS_Shape(shape);
     presentation->SetColor(Quantity_Color(0.10,0.34,0.84,Quantity_TOC_RGB));
     presentation->SetWidth(2);
+    presentation->Attributes()->SetDeviationCoefficient(0.0001);
+    presentation->Attributes()->SetDeviationAngle(0.1);
     return presentation;
 }
 Quantity_Color unselectedSketchProfileColor() {
@@ -408,7 +410,7 @@ void ReferenceView::setSketches(const std::vector<EvaluatedSketch>& sketches,qui
             context_->Display(model,AIS_WireFrame,-1,false);context_->Deactivate(model);centerlineSketchModels_[sketch.featureId]=model;
         }
         for(const auto& profile:sketch.profiles) {
-            BRepMesh_IncrementalMesh mesh(profile.face,0.1,false,0.5,false);
+            BRepMesh_IncrementalMesh mesh(profile.face,0.005,false,0.1,false);
             Handle(AIS_Shape) fill=new AIS_Shape(profile.face);fill->SetDisplayMode(AIS_Shaded);fill->Attributes()->SetAutoTriangulation(false);
             fill->Attributes()->SetShadingModel(Graphic3d_TypeOfShadingModel_Unlit,true);
             if(sketch.plane=="face")fill->SetZLayer(Graphic3d_ZLayerId_Topmost);
@@ -596,7 +598,7 @@ void ReferenceView::showSketchDraft(const EvaluatedSketch& sketch) {
     if(context_.IsNull())return;
     for(const auto& model:profileModels_)context_->Remove(model,false);profileModels_.clear();draftProfiles_=sketch.profiles;
     for(const auto& profile:sketch.profiles) {
-        BRepMesh_IncrementalMesh mesh(profile.face,0.1,false,0.5,false);
+        BRepMesh_IncrementalMesh mesh(profile.face,0.005,false,0.1,false);
         Handle(AIS_Shape) fill=new AIS_Shape(profile.face);fill->SetDisplayMode(AIS_Shaded);fill->Attributes()->SetAutoTriangulation(false);
         fill->Attributes()->SetShadingModel(Graphic3d_TypeOfShadingModel_Unlit,true);
         if(sketch.plane=="face")fill->SetZLayer(Graphic3d_ZLayerId_Topmost);
