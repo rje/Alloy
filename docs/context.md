@@ -2004,3 +2004,13 @@ See [the compact contract and receipt](validation/extrude-intersect.md).
 candidate core/native/API evidence and actual captures are reused. Parent161
 remains Todo for its explicit wider scope.97 of219 issues are closed. Active
 owners are165 (profile regions) and132 (one manual milestone compile matrix).
+
+## Nested profile-region candidate (2026-10-13)
+
+#165 candidate adds exact nested-cell/void metadata, stable-ID edit/storage
+coverage and observable unused/coincident/gap diagnostics. An actual undeclared
+OCCT endpoint merge is refused without healing; accepted open-chain cells,
+zero-gap contacts, tangent controls, overlapping strips and Centerline behavior
+remain supported. Core4/4, real API and bounded native annulus/island selection
+gates pass. Independent review and integration remain pending. See
+[the contract and receipt](validation/profile-regions.md).

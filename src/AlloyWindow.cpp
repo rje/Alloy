@@ -2683,7 +2683,9 @@ void AlloyWindow::refresh() {
         if(sketchName_){const QSignalBlocker block(sketchName_);sketchName_->setText(inputs["name"].toString());}
         for(auto* input:sketchInputs_)input->setSuffix(" "+inputs["units"].toString());
         const bool current=session_.value("baseDocumentRevision").toInteger()==static_cast<qint64>(document_->revision());
-        if(current && draft!=displayedSketchDraft_){view_->showSketchDraft(SketchGeometry::evaluateFeature(draft,session_.value("resolvedFrame").toObject(),session_.value("projectionContext").toObject()));displayedSketchDraft_=draft;}
+        const auto profileSource=QJsonObject{{"draft",draft},{"frame",session_.value("resolvedFrame")},{"projection",session_.value("projectionContext")}};
+        const auto profileStamp=QString::fromLatin1(QCryptographicHash::hash(QJsonDocument(profileSource).toJson(QJsonDocument::Compact),QCryptographicHash::Sha256).toHex());
+        if(current && draft!=displayedSketchDraft_){const auto evaluated=SketchGeometry::evaluateFeature(draft,session_.value("resolvedFrame").toObject(),session_.value("projectionContext").toObject());view_->showSketchDraft(evaluated);session_["profileDiagnostics"]=evaluated.summary["profileDiagnostics"];session_["profileSummaries"]=evaluated.summary["profiles"];session_["profileDiagnosticsSource"]=profileStamp;displayedSketchDraft_=draft;}
         if(current)refreshSketchControls();
         const auto fillet=session_.value("pendingFillet").toObject();
         if(current && session_.value("tool")=="fillet" && fillet.contains("previewDraft")) {
@@ -2735,6 +2737,15 @@ void AlloyWindow::refresh() {
             .arg(inputs["plane"].toString()).arg(draft["parameters"].toObject()["entities"].toArray().size())
             .arg(prompt)
             .arg(diagnostics["dof"].toInt(-1)==0 ? "Fully constrained" : QString("%1 degrees of freedom").arg(diagnostics["dof"].toInt())));
+        if(sketchProfileInfo_){
+            auto profileDiagnostics=session_.value("profileDiagnostics").toObject();auto profiles=session_.value("profileSummaries").toArray();
+            if(profileDiagnostics.isEmpty() || session_.value("profileDiagnosticsSource")!=profileStamp){const auto evaluated=SketchGeometry::evaluateFeature(draft,session_.value("resolvedFrame").toObject(),session_.value("projectionContext").toObject());profileDiagnostics=evaluated.summary["profileDiagnostics"].toObject();profiles=evaluated.summary["profiles"].toArray();session_["profileDiagnostics"]=profileDiagnostics;session_["profileSummaries"]=profiles;session_["profileDiagnosticsSource"]=profileStamp;}
+            int voids=0;for(const auto& p:profiles)voids+=p.toObject()["innerLoopCount"].toInt();QString text=profiles.isEmpty() ? "No closed selectable region" : QString("%1 selectable region(s) · %2 inner loop(s)").arg(profiles.size()).arg(voids);
+            bool warning=profiles.isEmpty() && profileDiagnostics["code"]!="empty_sketch";if(warning)text+="\n"+profileDiagnostics["message"].toString();
+            for(const auto& notice:profileDiagnostics["notices"].toArray()){const auto n=notice.toObject();if(n["severity"]!="warning")continue;warning=true;if(n["code"]=="coincident_boundary_sources")text+=QString("\n%1 coincident sources share one boundary.").arg(n["entityIds"].toArray().size());else if(n["code"]=="ignored_open_segments")text+=QString("\n%1 source curve(s) have excluded open portions.").arg(n["entityIds"].toArray().size());else text+=QString("\n%1 open entity/curve(s) excluded from profiles.").arg(n["entityIds"].toArray().size());}
+            if(!profileDiagnostics["endpointGaps"].toArray().isEmpty()){double closest=std::numeric_limits<double>::infinity();for(const auto& g:profileDiagnostics["endpointGaps"].toArray())closest=std::min(closest,g.toObject()["distanceMm"].toDouble());text+="\nNearest endpoint gap: "+QString::number(closest,'g',6)+" mm (not closed)";}
+            sketchProfileInfo_->setText(text);sketchProfileInfo_->setStyleSheet(warning ? "color:#9a5800":"color:#53616b");sketchProfileInfo_->setToolTip(QString::fromUtf8(QJsonDocument(profileDiagnostics).toJson(QJsonDocument::Indented)));
+        }
         if(!current && sketchError_)sketchError_->setText("The document changed. Cancel and restart this sketch.");
         const auto draftHistory=session_.value("draftHistory").toObject();
         if(auto* undo=findChild<QToolButton*>("command.history.undo"))undo->setToolTip(session_.value("pendingDimension").toObject()["phase"]=="editing" ? "Undo cancels the current dimension value" :
@@ -4706,7 +4717,7 @@ void AlloyWindow::showCurveEntry() {
 
 void AlloyWindow::showSketch() {
     if(sketchDock_)delete sketchDock_;
-    sketchInputs_.clear();sketchInfo_=nullptr;sketchName_=nullptr;sketchCurveEntry_=nullptr;
+    sketchInputs_.clear();sketchInfo_=nullptr;sketchProfileInfo_=nullptr;sketchName_=nullptr;sketchCurveEntry_=nullptr;
     sketchSelectionTree_=nullptr;sketchFilletControls_=nullptr;sketchFilletRadius_=nullptr;sketchOffsetControls_=nullptr;sketchOffsetDistance_=nullptr;sketchDimensionKind_=nullptr;sketchDimensionValue_=nullptr;sketchDimensionDriving_=nullptr;
     sketchShowConstraints_=nullptr;sketchShowDimensions_=nullptr;
     sketchDimensionList_=nullptr;sketchDimensionEdit_=nullptr;sketchDimensionMeasure_=nullptr;sketchWidgetDraft_={};sketchWidgetSelection_={};sketchWidgetUnits_.clear();
@@ -4757,7 +4768,7 @@ void AlloyWindow::showSketch() {
         });
         sketchCurveEntry_=new QPushButton("Enter curve values…");sketchCurveEntry_->setObjectName("sketch.curveEntry");sketchCurveEntry_->hide();layout->addWidget(sketchCurveEntry_);
         connect(sketchCurveEntry_,&QPushButton::clicked,this,[this]{showCurveEntry();});
-        layout->addLayout(form);sketchInfo_=new QLabel;sketchInfo_->setObjectName("sketch.info");sketchInfo_->setWordWrap(true);layout->addWidget(sketchInfo_);
+        layout->addLayout(form);sketchInfo_=new QLabel;sketchInfo_->setObjectName("sketch.info");sketchInfo_->setWordWrap(true);layout->addWidget(sketchInfo_);sketchProfileInfo_=new QLabel;sketchProfileInfo_->setObjectName("sketch.profileStatus");sketchProfileInfo_->setWordWrap(true);layout->addWidget(sketchProfileInfo_);
         sketchFilletControls_=new QWidget;auto* filletForm=new QFormLayout(sketchFilletControls_);
         sketchFilletRadius_=new QLineEdit;sketchFilletRadius_->setObjectName("sketch.fillet.radius");
         sketchFilletRadius_->setPlaceholderText("Select two corners, then enter a radius");

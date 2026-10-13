@@ -263,6 +263,7 @@ private:
     QWidget* sketchToolbar_ = nullptr;
     QShortcut* sketchEscape_ = nullptr;
     QLabel* sketchInfo_ = nullptr;
+    QLabel* sketchProfileInfo_ = nullptr;
     QLabel* sketchError_ = nullptr;
     QLineEdit* sketchName_ = nullptr;
     QMap<QString,QDoubleSpinBox*> sketchInputs_;
