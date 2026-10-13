@@ -168,7 +168,7 @@ void TutorialRecorder::frame() {
             if(!caption_.isEmpty()) {
                 painter.setPen(Qt::white);QFont font=painter.font();font.setBold(true);
                 const QRect captionRect(margin,frameHeight_-59,frameWidth_-2*margin,52);
-                const int flags=Qt::AlignVCenter|Qt::AlignLeft|Qt::TextWordWrap|Qt::TextWrapAnywhere;
+                const int flags=Qt::AlignVCenter|Qt::AlignLeft|Qt::TextWordWrap;
                 for(int size=25;size>=12;--size) {
                     font.setPixelSize(size);
                     const auto bounds=QFontMetrics(font).boundingRect(captionRect,flags,caption_);
