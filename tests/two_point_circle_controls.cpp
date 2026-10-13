@@ -6,6 +6,7 @@
 #include <QDir>
 #include <QFile>
 #include <QJsonDocument>
+#include <QLabel>
 #include <QLineEdit>
 #include <QMouseEvent>
 #include <QTemporaryDir>
@@ -29,6 +30,56 @@ class TwoPointCircleControlsTest final : public QObject {
         return {};
     }
 private slots:
+    void settledPalettePreview() {
+        const auto output=qEnvironmentVariable("ALLOY_TWO_POINT_CIRCLE_EVIDENCE");
+        QVERIFY(!output.isEmpty());
+        AlloyTheme::apply(*qApp);AlloyWindow w;w.resize(1300,900);w.show();w.activateWindow();
+        QVERIFY(QTest::qWaitForWindowExposed(&w));
+        QApplication::setActiveWindow(&w);
+        ReferenceView* view=nullptr;for(auto* child:w.findChildren<QWidget*>())
+            if(auto* candidate=dynamic_cast<ReferenceView*>(child))view=candidate;
+        QVERIFY(view);view->setFocus();
+        call(w,"sketch.begin",{{"plane","XY"}});
+        call(w,"sketch.rectangle",{{"x1",0},{"y1",0},{"x2",30},{"y2",20},{"units","mm"}});
+        call(w,"sketch.finish");
+        auto evaluation=call(w,"document.inspect")["evaluation"].toObject();
+        const auto floorSketch=evaluation["sketches"].toArray().first().toObject();
+        call(w,"solid.extrude",{{"sketchId",floorSketch["sketchId"]},
+            {"profileId",floorSketch["profiles"].toArray().first().toObject()["profileId"]},
+            {"distance",2},{"units","mm"}});
+        evaluation=call(w,"document.inspect")["evaluation"].toObject();
+        const auto body=evaluation["bodies"].toArray().first().toObject();
+        QJsonObject face;for(const auto& value:body["supportFaces"].toArray())
+            if(value.toObject()["role"]=="extrude.endCap")face=value.toObject();
+        QVERIFY(!face.isEmpty());QJsonObject support;
+        for(const auto key:{"bodyId","producerFeatureId","faceId"})support[key]=face[key];
+        call(w,"selection.faceSet",{{"support",support}});
+        call(w,"sketch.twoPointCircle");
+        const auto sketchId=draft(w).value("id");
+        auto pixel=[&](double u,double v){const auto p=call(w,"view.projectSketchPoint",{{"sketchId",sketchId},{"uMm",u},{"vMm",v}});
+            return QPoint(qRound(p["x"].toDouble()),qRound(p["y"].toDouble()));};
+        QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,pixel(16,8));
+        const QPoint direction=pixel(20,8);
+        QMouseEvent move(QEvent::MouseMove,QPointF(direction),QPointF(view->mapToGlobal(direction)),Qt::NoButton,Qt::NoButton,Qt::NoModifier);
+        QApplication::sendEvent(view,&move);
+        QTRY_COMPARE(QApplication::focusWidget(),static_cast<QWidget*>(view));
+        QTest::keyClick(view,Qt::Key_4);
+        auto* input=w.findChild<QLineEdit*>("sketch.inlineValue");QVERIFY(input && input->isVisible());
+        auto* info=w.findChild<QLabel*>("sketch.info");auto* profile=w.findChild<QLabel*>("sketch.profileStatus");
+        QVERIFY(info && profile);
+        auto measure=[](QLabel* label){const auto g=label->geometry();return QJsonObject{{"text",label->text()},
+            {"x",g.x()},{"y",g.y()},{"width",g.width()},{"height",g.height()},
+            {"sizeHintHeight",label->sizeHint().height()},{"heightForWidth",label->heightForWidth(g.width())},
+            {"minimumHeight",label->minimumHeight()}};};
+        QJsonObject metrics{{"beforeInfo",measure(info)},{"beforeProfile",measure(profile)}};
+        QApplication::processEvents();QTest::qWait(80);QApplication::processEvents();
+        metrics["afterInfo"]=measure(info);metrics["afterProfile"]=measure(profile);
+        QVERIFY(profile->geometry().top()>info->geometry().bottom());
+        QFile file(output+"/two-point-circle-palette-layout.json");QVERIFY(file.open(QIODevice::WriteOnly));
+        file.write(QJsonDocument(metrics).toJson(QJsonDocument::Indented));file.close();
+        call(w,"capture.screenshot",{{"path",output+"/two-point-circle-preview-settled.png"}});
+        w.hide();
+    }
     void diameterEndpointOnFaceAndCut() {
         QTemporaryDir scratch;QVERIFY(scratch.isValid());
         auto output=qEnvironmentVariable("ALLOY_TWO_POINT_CIRCLE_EVIDENCE");
@@ -75,6 +126,7 @@ private slots:
         auto* input=w.findChild<QLineEdit*>("sketch.inlineValue");QVERIFY(input && input->isVisible());
         QCOMPARE(w.state()["inlineEditor"].toObject()["kind"].toString(),QString("twoPointCircleDiameter"));
         QCOMPARE(draft(w),before);QTRY_COMPARE(QApplication::focusWidget(),static_cast<QWidget*>(input));
+        QApplication::processEvents();QTest::qWait(80);QApplication::processEvents();
         call(w,"capture.screenshot",{{"path",output+"/two-point-circle-preview.png"}});
         QTest::keyClick(input,Qt::Key_Return);
         QVERIFY(!active(w).contains("pendingCircleDiameter"));

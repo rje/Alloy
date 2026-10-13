@@ -38,20 +38,21 @@ finish, save and reopen. It used the existing Cut operation to remove Ø4
 through 2 mm, yielding 1174.8672587712815 mm³ (1200 − 8π), followed by Cut
 undo/redo. Saved authored data retained the endpoint, direction and Ø4.
 
-The [native preview capture](../../../Alloy-reference-records/deliverables/two-point-circle-2026-10-13/two-point-circle-preview.png)
-was inspected at its original 2600 × 1800 pixels: the circle and `4` inline
-editor are visible on the floor face. It is an actual OCCT OpenGL capture on
+The [settled native preview capture](../../../Alloy-reference-records/deliverables/two-point-circle-2026-10-13/two-point-circle-preview-settled.png)
+was inspected at its original 2600 × 1800 pixels: the circle, `4` inline editor,
+and Sketch Palette status are readable on the floor face. It is an actual OCCT OpenGL capture on
 Apple M4, vendor Apple, GL `4.1 Metal - 90.5`, 1464 × 1142 framebuffer at 2×
 display scale, four-sample MSAA. The test's end-state JSON and saved `.alloy`
-models are in the same external deliverables directory. The capture also shows
-an existing Sketch Palette status-text overlap at this viewport size; no matched
-public screenshot exists for the exact Alloy fixture. The source's exact hole
+models are in the same external deliverables directory. An earlier immediate
+capture had overlapping palette lines before Qt processed a pending layout;
+the settled capture supersedes it for visual review. No matched public screenshot
+exists for the exact Alloy fixture. The source's exact hole
 placement and broader circle modes remain outside this bounded candidate.
 
 ## Independent acceptance
 
-Geometry/input review of candidate `c61855fb` completed on 2026-10-13;
-final visual acceptance remains pending the palette overlap correction. Independent review covered the final solver/schema/input source,
+Geometry/input review of candidate `c61855fb` completed on 2026-10-13.
+Independent review covered the final solver/schema/input source,
 focused test source, saved models/end-state JSON and actual preview capture.
 The signed post-solve checks use the newly solved radius and enforce the center
 on the retained direction side; diameter/endpoint/center edits preserve the
@@ -69,12 +70,16 @@ are distinct from shared-API face selection, command launch, edits, refusal
 request, history, reopen and Cut. The final source has initial harness focus
 setup only, with natural focus assertions before subsequent typed actions.
 
-The circle and inline value are readable. The capture also contains a concrete
-palette text overlap, not an unknown reference-styling difference. This branch already includes the accepted #227 dynamic label-height
-correction. The earlier pre-#227 attribution was incorrect: the actual candidate
-still overlaps despite those calls. The cause has not been established by live
-layout measurements. A bounded layout correction and readable capture are
-required before closing this visual gap; a later #233 capture must also inspect
-the integrated palette. Geometry/input evidence above remains valid, but this
-review does not accept the current palette presentation as finished. No physical OS input, exact unspecified source hole position, general
+The palette overlap was a capture-timing artifact, measured in the named
+`settledPalettePreview` Qt fixture. Immediately after typing, the info label
+was at y=47 with height 60 while the profile label remained at y=68. After
+queued events and 80 ms, the profile label moved to y=113, below the info
+label's bottom at y=106. The labels' `heightForWidth`, `sizeHint` and minimum
+heights agreed (60 and 30 px at 274 px width). The settled capture shows clear
+spacing. The branch already included #227's dynamic label-height correction;
+the earlier pre-#227 attribution was incorrect. No production sizing change
+was needed. The named probe passed 3/3 in 1.523 s; its persisted log and label
+measurements are at `../Alloy-reference-records/deliverables/two-point-circle-2026-10-13/settled-palette-test.log`
+and `two-point-circle-palette-layout.json`. The original geometry/input run was
+not repeated. No physical OS input, exact unspecified source hole position, general
 snapping, or cumulative tutorial claim is made.
