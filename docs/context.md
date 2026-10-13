@@ -107,7 +107,7 @@ authored state, undo and revision remain unchanged. Focused pole and existing
 multi-body/atomic-refusal tests pass. No universal all-settings mesh claim.
 See `validation/stl-pole-facets.md`.
 
-All four overnight tutorial gates are Done. Only SKT-034 #205 is currently
+All four overnight tutorial gates are Done. SKT-034 #205 is currently
 In Progress: direct circle-center to retained straight model-edge dimensions.
 Sol (die_chamfer) implements in `../Alloy-worktrees/point-edge-dimensions`;
 Astra (overnight_specs) independently verifies. The external contract is
@@ -118,6 +118,14 @@ Broader #150 retains side-face boss and inclined support coverage; #43 records
 crowded 24-feature Timeline labels, and #83 retains performance work. No release,
 tag or per-commit CI is triggered. Continue authorized backlog work while the user
 is asleep; do not stop just because the first three gates are complete.
+
+HIS-005 #207 is the second active bounded slice: fixed-size readable Timeline
+targets, complete name/type tooltips, horizontal overflow and a view-only route
+to the latest feature. Sol (die_components) owns isolated timeline-overflow.
+External research is knowledge/specs/feature-timeline-readability-slice.md. Public
+Move to End changes model history; do not label a view-only scroll that way or
+add a fake rollback control. Existing edit/context authority remains unchanged.
+Broader HIS-003 stays Todo. Reuse the saved die and a focused Qt/capture check.
 
 ## Complete support demo (2026-10-12)
 
