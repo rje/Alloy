@@ -2,6 +2,7 @@
 #include <TopoDS_Compound.hxx>
 #include <QWindow>
 #include "AlloyWindow.h"
+#include "CommandIcons.h"
 #include "MeshExport.h"
 #include "StepExchange.h"
 #include <QSaveFile>
@@ -210,11 +211,12 @@ AlloyWindow::AlloyWindow() {
     layout->addWidget(documentTabRow);
 
     auto* ribbon = new QWidget;
-    ribbon->setFixedHeight(107);
+    ribbon->setObjectName("modelingRibbon");
+    ribbon->setFixedHeight(94);
     ribbon->setStyleSheet("background: #f7f8f9;");
     auto* ribbonLayout = new QHBoxLayout(ribbon); ribbonLayout->setContentsMargins(14, 0, 12, 6);
-    auto* workspace = new QLabel("DESIGN"); workspace->setAlignment(Qt::AlignCenter); workspace->setFixedWidth(110);
-    workspace->setStyleSheet("font-weight: 600; font-size: 13px; border: 1px solid #c7cfd5; border-radius: 4px; padding: 22px 8px;");
+    auto* workspace = new QLabel("DESIGN"); workspace->setAlignment(Qt::AlignCenter); workspace->setFixedWidth(86);
+    workspace->setStyleSheet("font-weight: 600; font-size: 13px; border: 1px solid #c7cfd5; border-radius: 4px; padding: 16px 6px;");
     ribbonLayout->addWidget(workspace);
     auto* ribbonRight = new QVBoxLayout; ribbonRight->setSpacing(0);
     auto* tabs = new QHBoxLayout; tabs->setSpacing(18);
@@ -228,7 +230,7 @@ AlloyWindow::AlloyWindow() {
     auto* groups = new QHBoxLayout; groups->setSpacing(14);
     auto group = [&](const QString& caption, const QList<QPair<QString, QString>>& entries) {
         auto* box = new QVBoxLayout; box->setSpacing(0);
-        auto* row = new QHBoxLayout; row->setSpacing(0);
+        auto* row = new QHBoxLayout; row->setSpacing(1);
         for (const auto& [id, glyph] : entries) row->addWidget(commandButton(id, glyph, true));
         box->addLayout(row);
         if(caption=="CREATE" || caption=="MODIFY") {
@@ -239,7 +241,7 @@ AlloyWindow::AlloyWindow() {
                 const auto* command=findCommand(entry.first);
                 if(!command || !command->available)continue;
                 auto* action=menu->addAction(command->title);
-                action->setObjectName("solid.action."+entry.first);action->setToolTip(command->description);
+                action->setObjectName("solid.action."+entry.first);action->setToolTip(command->description);action->setIcon(commandIcon(entry.first));
                 connect(action,&QAction::triggered,this,[this,id=entry.first]{execute(id);});
             }
             if(caption=="CREATE") {
@@ -261,8 +263,6 @@ AlloyWindow::AlloyWindow() {
     group("CONSTRUCT", {{"construction.plane", "▰"}});
     group("INSPECT", {{"inspect.measure", "↔"}});
     groups->addStretch();
-    auto* stage = new QLabel("LOCAL DESIGN\nSketch · Solid");
-    stage->setStyleSheet("font-size: 11px; color: #7e898f; padding: 8px;"); groups->addWidget(stage);
     ribbonRight->addLayout(groups); ribbonLayout->addLayout(ribbonRight, 1); layout->addWidget(ribbon);
 
     sketchToolbar_=new QWidget;sketchToolbar_->setObjectName("sketchToolbar");
@@ -568,8 +568,16 @@ QWidget* AlloyWindow::commandButton(const QString& id, const QString& glyph, boo
     button->setEnabled(command->available);
     button->setToolTip(command->title + "\n" + command->description);
     if (large) {
-        button->setMinimumWidth(67); button->setFixedHeight(49);
-        button->setStyleSheet("QToolButton { font-size: 11px; padding: 1px 7px; }");
+        button->setText(command->title);
+        button->setAccessibleName(command->title);
+        button->setIcon(commandIcon(id));
+        button->setIconSize(QSize(32,32));
+        button->setToolButtonStyle(Qt::ToolButtonIconOnly);
+        button->setFixedSize(40,40);
+        button->setStyleSheet("QToolButton { padding: 3px; border: 1px solid transparent; border-radius: 3px; }"
+            "QToolButton:hover { background: #e1edf4; border-color: #b8cbd8; }"
+            "QToolButton:pressed { background: #c9e2f1; }"
+            "QToolButton:focus { border-color: #2388b6; }");
     }
     connect(button, &QToolButton::clicked, this, [this, id] { execute(id); });
     return button;
