@@ -31,7 +31,10 @@ TopoDS_Shape fuse(const std::vector<TopoDS_Shape>& inputs, std::unique_ptr<BRepA
     operation.SimplifyResult(true,true,1e-12);const auto shape=operation.Shape();if(history)*history=std::move(owned);return shape;
 }
 bool covers(const TopoDS_Shape& result,const TopoDS_Shape& input){
-    BRepAlgoAPI_Common shared(result,input);shared.SetNonDestructive(true);shared.SetRunParallel(false);shared.Build();
+    // The two-shape constructor runs immediately, before immutability flags.
+    TopTools_ListOfShape objects,tools;objects.Append(result);tools.Append(input);
+    BRepAlgoAPI_Common shared;shared.SetArguments(objects);shared.SetTools(tools);
+    shared.SetNonDestructive(true);shared.SetRunParallel(false);shared.Build();
     if(!shared.IsDone() || shared.HasErrors())reject("join_lineage_failed","OCCT could not verify Join component lineage");
     const double inputVolume=GeometryKernel::summarize(input)["volumeMm3"].toDouble();
     GProp_GProps properties;BRepGProp::VolumeProperties(shared.Shape(),properties);const double sharedVolume=std::abs(properties.Mass());
