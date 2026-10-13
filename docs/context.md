@@ -2439,3 +2439,19 @@ offset, reusing unchanged native behavior. See
 captures were inspected; private editors are closed. Independent review and
 integration remain pending. Pattern and the full parameterized plate remain
 separate children.
+
+## Countersunk plate cumulative gate candidate (2026-10-13)
+
+After #244–248 and #250 were independently accepted on main, #249's first
+blank-document shared-API source run completed. The 21.1-second movie includes
+the actual Change Parameters table before modeling, rough centered rectangle
+with Length/Width bindings, Thickness extrusion, four R5 Fillets, supported
+Point with two retained 10 mm edge dimensions, Hole Ø4/Ø10/90°/All preview and
+commit, and two-axis 3×3 Spacing/Adjust Pattern through source Save. The saved
+one-solid BRep independently passes nine top openings, mid-frustum sections,
+bottom exits and through-bore classifier checks. Strict one-component millimeter
+STL, Length/Thickness edits, exact undo/redo and source-state reopen pass. See
+[the candidate receipt](validation/countersunk-plate-tutorial.md) and external
+`deliverables/countersunk-plate-2026-10-13/attempt-01`. The private editor is
+closed. Independent cumulative review is pending; the full lesson is not yet
+accepted, and the movie is shared-API input rather than physical native input.
