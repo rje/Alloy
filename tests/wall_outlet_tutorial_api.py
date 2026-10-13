@@ -67,7 +67,8 @@ def main():
                 (output / (name + '.json')).write_text(json.dumps(raw('app.state'), indent=2)+'\n')
             def dimension(kind, entity_ids, value, label):
                 before = {d['id'] for d in params()['dimensions']}
-                call('sketch.dimension', {'kind': kind, 'entityIds': entity_ids,
+                targets = {'entityId': entity_ids[0]} if len(entity_ids) == 1 else {'entityIds': entity_ids}
+                call('sketch.dimension', {'kind': kind, **targets,
                      'value': value, 'units': 'mm', 'driving': True,
                      'annotation': {'uMm': label[0], 'vMm': label[1]}})
                 new = [d for d in params()['dimensions'] if d['id'] not in before]
