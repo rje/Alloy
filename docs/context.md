@@ -44,9 +44,11 @@ conversion; original post-fillet drivenness is unknown. No fabricated semicircle
 or coordinate-seeded path authoring can close the complete source gate.
 Active worktrees: `../Alloy-worktrees/local-transport` (`feat/local-transport`)
 for #220 and `../Alloy-worktrees/sweep-foundation` (`feat/sweep-foundation`) for
-#223. Neither candidate is accepted yet. Astra identified Windows ACL inheritance
-and raw stdout fixes in #220; author is addressing them before real-app/hosted
-transport qualification. No private editor is currently reserved/open. No tag/release
+#223. Neither candidate is accepted yet. Astra cleared the corrected Windows ACL
+inheritance, binary streams and correlation checks in #220. Its macOS real-app
+regression passed and the private editor is closed. The manual Windows non-GUI
+gate is prepared but has not been dispatched. Wait for that result before
+acceptance; no private GUI is reserved. No tag/release
 or per-commit CI. Intersect parent #161 retains broader operation-edit and
 typed-Return qualification as Todo. Split oversized remaining scope into linked Todo issues. Other broad parents remain Todo. The sections below are a chronological
 record; older ownership, pending status and counts are historical.
