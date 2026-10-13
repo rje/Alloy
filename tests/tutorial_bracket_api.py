@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 """One-candidate illustrated bracket API chain; physical tutorial input is separate evidence."""
 import argparse
+from contextlib import ExitStack
 import hashlib
 import json
 import math
+import subprocess
+import time
 from pathlib import Path
 from app_harness import application
 
@@ -25,24 +28,75 @@ def main():
     parser.add_argument('--app', required=True)
     parser.add_argument('--output', required=True)
     parser.add_argument('--fixture', default=str(Path(__file__).parent / 'workflows/fixtures/tutorial-bracket.json'))
+    parser.add_argument('--record-video', type=Path, help='Absolute MP4 path outside the checkout')
+    parser.add_argument('--pace', type=float, default=0.55, help='Seconds to show each visible modeling change')
     args = parser.parse_args()
+    assert args.pace >= 0
+    if args.record_video:
+        assert args.record_video.is_absolute(), '--record-video needs an absolute path'
+        assert not args.record_video.resolve().is_relative_to(Path(__file__).resolve().parents[1]), \
+            'Store video evidence outside the checkout'
+        args.record_video.parent.mkdir(parents=True, exist_ok=True)
     fixture_path = Path(args.fixture)
     f = json.loads(fixture_path.read_text())
     assert f['case'] == 'tutorial-bracket'
     output = Path(args.output).resolve()
     output.mkdir(parents=True, exist_ok=True)
-    stages, captures, transcript = [], [], []
+    stages, captures, transcript, video_events = [], [], [], []
+    video_active = False
     receipt = {'result': 'failed', 'covers': [], 'fixtureSha256': hashlib.sha256(fixture_path.read_bytes()).hexdigest(),
+               'candidate': {'sourceCommit': subprocess.check_output(
+                   ['git', 'rev-parse', 'HEAD'], cwd=Path(__file__).resolve().parents[1], text=True).strip(),
+                   'workingTreeStatus': subprocess.check_output(
+                       ['git', 'status', '--short'], cwd=Path(__file__).resolve().parents[1], text=True).splitlines(),
+                   'appPath': str(Path(args.app).resolve()),
+                   'appSha256': hashlib.sha256(Path(args.app).resolve().read_bytes()).hexdigest(),
+                   'driverSha256': hashlib.sha256(Path(__file__).read_bytes()).hexdigest()},
                'sourceReferenceIds': f['sourceReferenceIds'], 'stages': stages, 'captures': captures,
                'limits': ['API commands share application state and pointer placement; no physical keys or mouse input are claimed.',
                           'Near-elbow seed and terminal circular-center snap interpretation are explicit source-informed inference.',
                           'Fillet removes the 500 mm dimension; final longitudinal size is evaluated, not assumed uniquely specified.',
                           'Captures require separate visual review; source New Design/tab interaction is outside this API case.']}
     try:
-        with application(args.app, output) as (call, transcript):
+        with application(args.app, output) as (raw_call, transcript), ExitStack() as recording_guard:
+            def stop_active_recording():
+                if video_active:
+                    receipt['recording']['result'] = raw_call('recording.stop')
+
+            recording_guard.callback(stop_active_recording)
+
+            def call(command, parameters=None, error=None):
+                result = raw_call(command, parameters, error)
+                if video_active and command in {
+                    'sketch.begin', 'sketch.placePoint', 'sketch.filletAccept',
+                    'sketch.selectionSet', 'sketch.constraintTool', 'sketch.tool',
+                    'sketch.dimensionPlace', 'sketch.pointerMove',
+                    'sketch.circleDiameterPreview',
+                    'sketch.construction', 'sketch.dimensionAccept', 'sketch.circleDiameterAccept',
+                    'sketch.finish', 'selection.profileSet', 'selection.faceSet',
+                    'command.commit', 'command.update',
+                }:
+                    video_events.append({'time': time.time(), 'kind': 'action', 'command': command,
+                                         'args': parameters or {}})
+                    time.sleep(args.pace)
+                return result
+
+            def caption(text):
+                if video_active:
+                    raw_call('recording.step', {'text': text})
+                    video_events.append({'time': time.time(), 'kind': 'caption', 'text': text})
+                    time.sleep(max(0.8, args.pace))
+
             call('window.resize', {'width': 1600, 'height': 900})
             receipt['initialState'] = call('app.state')
             assert receipt['initialState']['document']['features'] == 0
+            if args.record_video:
+                receipt['recording'] = {'requestedPath': str(args.record_video), 'fps': 15,
+                                        'paceSeconds': args.pace, 'source': 'Alloy local API'}
+                raw_call('recording.start', {'path': str(args.record_video), 'fps': 15})
+                video_active = True
+                caption('Alloy local API  |  Blank design → illustrated bracket')
+            caption('A1  |  Draw the six-segment outline from the origin')
             session = call('sketch.begin', {'plane': 'XY', 'name': 'Illustrated bracket outline', 'units': 'mm'})
 
             def preview():
@@ -91,13 +145,16 @@ def main():
             ids = [e['id'] for e in edges]
             assert draft()['parameters']['originPointId']
             checkpoint('a1-01-outline')
+            caption('A1  |  Apply perpendicular constraints')
             apply_pairs('perpendicular', [(ids[a], ids[b]) for a, b in f['perpendicularPairs']])
             checkpoint('a1-02-perpendicular')
+            caption('A1  |  Constrain the horizontal edges')
             call('sketch.constraintTool', {'type': 'horizontalVertical'})
             for index in f['horizontalTargets']:
                 assert call('sketch.selectionSet', {'entityIds': [ids[index]]})['constraintApplied']
             call('sketch.tool', {'tool': 'select'})
             checkpoint('a1-03-horizontal')
+            caption('A1  |  Make matching edges equal')
             apply_pairs('equal', [(ids[a], ids[b]) for a, b in f['equalPairs']])
             checkpoint('a1-04-equal')
 
@@ -118,6 +175,7 @@ def main():
                 assert authored['kind'] == kind
                 return authored['id']
 
+            caption('A1  |  Place 500 mm, 45°, and 100 mm dimensions')
             a, b = line(0)
             lower = project((a[0]+b[0])/2, (a[1]+b[1])/2)
             lower['y'] += 35
@@ -137,9 +195,11 @@ def main():
             checkpoint('a1-05-dimensions-fully-constrained')
 
             # Activity 2 continues the same sketch: terminal construction and circles.
+            caption('A2  |  Convert the cap lines to construction geometry')
             call('sketch.selectionSet', {'entityIds': [ids[2], ids[5]]})
             call('sketch.construction', {'construction': True})
             end_circles = []
+            caption('A2  |  Add midpoint-centered tangent end circles')
             for end, tangent in f['endTangentPairs']:
                 a, b = line(end)
                 center = ((a[0]+b[0])/2, (a[1]+b[1])/2)
@@ -161,6 +221,7 @@ def main():
                 end_circles.append(circle['id'])
             call('sketch.tool', {'tool': 'select'})
             checkpoint('a2-01-construction-and-end-circles')
+            caption('A2  |  Round both bends with 100 mm fillets')
             call('sketch.tool', {'tool': 'fillet'})
             for first, second in f['filletPairs']:
                 call('sketch.placePoint', project(*line(first)[1]))
@@ -181,13 +242,18 @@ def main():
             checkpoint('a2-02-fillets-three-regions', independentAreaMm2=stock_area)
             source_id = rounded['id']
             profile_ids = sorted(r['profileId'] for r in regions)
+            caption('A2  |  Finish the sketch and select three solid regions')
             call('sketch.finish')
             call('solid.pressPullDialog', {'sketchId': source_id})
             for index, profile_id in enumerate(profile_ids):
                 call('selection.profileSet', {'sketchId': source_id, 'profileId': profile_id, 'additive': index > 0})
             extrusion_session = call('app.state')['activeSession']['id']
+            caption('A2  |  Preview the solid at 50 mm depth')
             call('command.update', {'session': extrusion_session, 'inputs': {'distance': f['extrusionMm'], 'units': 'mm'}})
             call('command.preview', {'session': extrusion_session})
+            if video_active:
+                time.sleep(args.pace)
+            caption('A2  |  Commit one closed body')
             call('command.commit', {'session': extrusion_session})
             stock = call('document.inspect')
             body = stock['evaluation']['bodies'][0]
@@ -197,6 +263,7 @@ def main():
 
             cap = body['supportFaces'][0]
             support = {key: cap[key] for key in ('producerFeatureId', 'bodyId', 'faceId')}
+            caption('A2  |  Start a sketch on the solid top face')
             call('sketch.create', {'name': 'Illustrated bracket guides and holes'})
             call('selection.faceSet', {'support': support})
             session = call('sketch.begin', {'support': support, 'name': 'Illustrated bracket guides and holes', 'units': 'mm'})
@@ -216,6 +283,7 @@ def main():
                                 (p['uMm']+ref0['u2Mm']-ref0['u1Mm'], p['vMm']+ref0['v2Mm']-ref0['v1Mm']),
                                 (q['uMm'], q['vMm']),
                                 (q['uMm']+ref1['u2Mm']-ref1['u1Mm'], q['vMm']+ref1['v2Mm']-ref1['v1Mm']))
+            caption('A2  |  Draw two connected guides between cap centers')
             frame_view()
             call('sketch.tool', {'tool': 'line'})
             for uv, expected in [((p['uMm'], p['vMm']), p['id']), ((bend[0]+7, bend[1]+8), None),
@@ -228,6 +296,7 @@ def main():
             guides = draft()['parameters']['entities']
             assert len(guides) == 2 and all(e['type'] == 'line' for e in guides)
             guide_ids = [e['id'] for e in guides]
+            caption('A2  |  Make both guides construction lines, parallel to body edges')
             call('sketch.selectionSet', {'entityIds': guide_ids})
             call('sketch.construction', {'construction': True})
             apply_pairs('parallel', [(guide_ids[i], references[i]['id']) for i in range(2)])
@@ -246,6 +315,7 @@ def main():
                        (((joint[0]+end[0])/2, (joint[1]+end[1])/2), {'kind': 'midpoint', 'entityId': guide_ids[1]}),
                        (end, {'kind': 'point', 'pointId': guides[1]['endPointId']})]
             circles = []
+            caption('A3  |  Place five Ø50 mm circles at anchored guide points')
             for index, (center, expected) in enumerate(centers):
                 call('sketch.tool', {'tool': 'circle'})
                 before = draft()
@@ -268,6 +338,7 @@ def main():
                 assert circle['type'] == 'circle'
                 circles.append(circle['id'])
             call('sketch.tool', {'tool': 'select'})
+            caption('A3  |  Link all five circles with Equal constraints')
             apply_pairs('equal', list(zip(circles, circles[1:])))
             holes = draft()
             parameters = holes['parameters']
@@ -283,6 +354,7 @@ def main():
             hole_profiles = sorted(r['profileId'] for r in preview()['sketchGeometry']['profiles'])
             assert len(hole_profiles) == 5
             checkpoint('a3-01-five-equal-circles')
+            caption('A3  |  Finish the hole sketch and select five regions')
             call('sketch.finish')
             # API profile collection mirrors the five native region choices;
             # the parent retains independent physical selection/arrow evidence.
@@ -290,16 +362,23 @@ def main():
             for index, profile_id in enumerate(hole_profiles):
                 call('selection.profileSet', {'sketchId': holes['id'], 'profileId': profile_id, 'additive': index > 0})
             cut_session = call('app.state')['activeSession']['id']
+            caption(f'A3  |  Preview a {f["cutDistanceMm"]} mm Cut through the stock')
             call('command.update', {'session': cut_session, 'inputs': {'distance': f['cutDistanceMm'], 'units': 'mm',
                                                                      'operation': 'cut', 'targetBodyIds': [body['bodyId']]}})
             call('command.preview', {'session': cut_session})
+            if video_active:
+                time.sleep(args.pace)
             checkpoint('a3-02-five-profile-cut-preview')
             gpu = call('app.state')['viewport']['gpu']
             assert gpu['cutPreviewToolCount'] == 5 and gpu['previewReplacedBodyId'] == body['bodyId']
             assert gpu['extrusionCue']['operation'] == 'cut'
             near(gpu['extrusionCue']['distanceMm'], f['cutDistanceMm'])
             before_cut = call('document.inspect')['authored']
+            caption('A3  |  Commit the five-hole bracket')
             call('command.commit', {'session': cut_session})
+            call('view.home')
+            if video_active:
+                call('view.zoom', {'factor': 2.3})
             finished = call('document.inspect')
             assert finished['features'] == 4 and finished['bodies'] == 1
             solid = finished['evaluation']['bodies'][0]
@@ -313,6 +392,24 @@ def main():
             assert cut['parameters']['operation'] == 'cut' and 'bodyId' not in cut
             checkpoint('a3-03-finished-five-holes', independentRemovedVolumeMm3=removed,
                        independentVolumeMm3=stock_area*f['extrusionMm']-removed)
+            if video_active:
+                caption('Save  |  Write the authored five-hole design')
+                model_path = args.record_video.with_suffix('.alloy')
+                call('document.save', {'path': str(model_path)})
+                receipt['recording']['modelPath'] = str(model_path)
+                caption('Complete  |  One valid solid with five through-holes')
+                time.sleep(2)
+                receipt['recording']['statusBeforeStop'] = raw_call('recording.status')
+                video_active = False
+                receipt['recording']['result'] = raw_call('recording.stop')
+                assert args.record_video.is_file() and args.record_video.stat().st_size > 1024
+                assert not raw_call('recording.status')['active']
+                receipt['recording']['videoSha256'] = hashlib.sha256(args.record_video.read_bytes()).hexdigest()
+                event_path = args.record_video.with_suffix('.events.json')
+                event_path.write_text(json.dumps({'source': 'Alloy local API', 'video': str(args.record_video),
+                                                  'scope': 'Construction only; history/edit/storage checks follow outside the video.',
+                                                  'events': video_events}, indent=2) + '\n')
+                receipt['recording']['eventPath'] = str(event_path)
             # Editing this pre-Cut sketch must display its real history-prefix
             # stock, without mutating the retained final Cut or body visibility.
             call('sketch.edit', {'sketchId': holes['id']})
