@@ -33,3 +33,20 @@ rough rectangle state remain under `attempt-01` beside this evidence.
 
 The cumulative blank-to-final tutorial gate and broader compatibility review
 remain pending integration of this candidate.
+
+## Independent acceptance
+
+Accepted candidate `c6589ff0c49b2e0d34d1b8c5b1d313e9c13f1c2c` after
+source, regression-test and actual GPU image/state review. The correction
+restores projected-support overlap precedence without treating two unrelated
+authored points as one. Coincident traversal uses retained point IDs; midpoint
+association uses retained relations. Neither operation mutates authored data.
+
+The reported five passing Qt cases include setup/cleanup, the actual viewport
+rectangle/axis/circle clicks, atomic unlinked-point refusal, and a supported-face
+origin regression. That last fixture authors stock and invokes pointer preview
+and placement through shared commands; it is not an OS-click claim. Initial
+window activation is separate from the demonstrated clicks, with no intervening
+focus repair. The inspected circle capture has readable palette text and the
+expected origin circle. No additional GUI run was needed. This closes the
+bounded snap defect, not a universal inference or projected-reference policy.
