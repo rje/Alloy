@@ -91,7 +91,7 @@ void AlloyWindow::showMirror(){
     connect(buttons,&QDialogButtonBox::accepted,panel,[this,status]{const auto response=execute("command.commit",{{"session",session_["id"]}});
         if(!response["ok"].toBool())status->setText(response["error"].toObject()["message"].toString());});
     connect(buttons,&QDialogButtonBox::rejected,panel,[this]{execute("command.cancel",{{"session",session_["id"]}});});
-    auto cancel=[this]{if(session_["command"]=="solid.mirror")execute("command.cancel",{{"session",session_["id"]}});};
+    auto cancel=[this]{if(session_.value("command")=="solid.mirror")execute("command.cancel",{{"session",session_["id"]}});};
     auto* escape=new QShortcut(QKeySequence(Qt::Key_Escape),panel);escape->setContext(Qt::WidgetWithChildrenShortcut);connect(escape,&QShortcut::activated,panel,cancel);
     if(!mirrorEscape_){mirrorEscape_=new QShortcut(QKeySequence(Qt::Key_Escape),view_);mirrorEscape_->setContext(Qt::WidgetShortcut);connect(mirrorEscape_,&QShortcut::activated,this,cancel);}
     mirrorEscape_->setEnabled(true);canvasWindow_->addDockWidget(Qt::RightDockWidgetArea,mirrorDock_);mirrorDock_->show();

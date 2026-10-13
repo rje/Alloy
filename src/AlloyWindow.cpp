@@ -944,7 +944,7 @@ void AlloyWindow::registerCommands() {
     add("solid.mirrorDialog","Mirror","Open body Mirror controls.",mirrorSchema,[this](const auto& a){return beginMirror(a);});
     auto mirrorRole=parameter("string","Which Mirror input the next canvas click selects.");mirrorRole["enum"]=QJsonArray{"objects","mirrorPlane"};
     add("solid.mirrorRole","Choose Mirror selection","Choose object or plane before the next viewport pick.",{{"role",mirrorRole}},[this](const auto& a){
-        if(session_["command"]!="solid.mirror")return failure("invalid_session","Mirror is not active");
+        if(session_.value("command")!="solid.mirror")return failure("invalid_session","Mirror is not active");
         session_["selectionRole"]=a["role"];return session_;
     });
     add("view.projectEdge","Project named solid edge","Project the actual current provenance edge midpoint.",{{"bodyId",parameter("string","Retained body UUID.")},{"edgeId",parameter("string","Stable edge UUID.")}},[this](const auto& a){
@@ -1676,7 +1676,7 @@ void AlloyWindow::registerCommands() {
     auto bodyId=parameter("string","Stable body UUID; empty string clears selection.");
     add("selection.set","Select body","Select a visible body through the same path as the Browser.",{{"bodyId",bodyId}},[this](const auto& a){
         const auto id=a["bodyId"].toString();bool found=id.isEmpty();
-        if(session_["command"]=="solid.mirror"){
+        if(session_.value("command")=="solid.mirror"){
             const auto edit=session_["inputs"].toObject()["featureId"].toString();
             const auto available=edit.isEmpty() ? document_->bodies() : document_->evaluationBefore(edit).bodies;
             for(const auto& body:available)found|=body.bodyId==id;
@@ -1701,7 +1701,7 @@ void AlloyWindow::registerCommands() {
         selectedBody_=id;selectedFace_={};selectedPlane_.clear();view_->selectSupportFace({},{});selectedSketch_.clear();selectedProfile_.clear();selectedProfileIds_={};view_->selectProfile({},{});view_->selectBody(id);return QJsonObject{{"bodyId",id},{"kind","body"}};
     });
     add("selection.faceSet","Select planar face","Select a stable supported face for Create Sketch.",{{"support",supportIdentity}},[this](const auto& a){
-        if(session_["command"]=="solid.mirror"){
+        if(session_.value("command")=="solid.mirror"){
             auto response=execute("command.update",{{"session",session_["id"]},{"inputs",QJsonObject{{"mirrorPlane",a["support"]}}}});
             if(!response["ok"].toBool())return response;return previewMirror();
         }
@@ -1736,7 +1736,7 @@ void AlloyWindow::registerCommands() {
     });
     add("selection.pick","Pick body or region","Pick actual OCCT geometry at viewport-local coordinates; Shift adds sketch regions.",{{"x",point},{"y",point},{"additive",optional(parameter("boolean","Add a picked region in the current same-sketch selection."))},
         {"toggle",optional(parameter("boolean","Toggle a picked region in the current same-sketch selection."))}},[this](const auto& a){
-        if(session_["command"]=="solid.mirror"){
+        if(session_.value("command")=="solid.mirror"){
             const auto edit=session_["inputs"].toObject()["featureId"].toString();
             const auto available=edit.isEmpty() ? document_->bodies() : document_->evaluationBefore(edit).bodies;
             if(session_["selectionRole"]=="objects"){
@@ -1991,6 +1991,7 @@ void AlloyWindow::registerCommands() {
         const auto path = a["path"].toString();
         if (!QDir::isAbsolutePath(path) || !path.endsWith(".png", Qt::CaseInsensitive)) return failure("invalid_arguments", "Requires an absolute PNG path", "path");
         QWidget* dialog = session_.value("command").toString() == "commands.search" ? search_
+            : session_.value("command").toString() == "solid.mirror" ? mirrorDock_->widget()
             : session_.value("command").toString() == "solid.shell" ? shellDock_->widget()
             : session_.value("command").toString() == "solid.fillet" ? filletDock_->widget()
             : session_.value("command").toString() == "solid.move" ? moveDock_->widget()
@@ -1999,7 +2000,7 @@ void AlloyWindow::registerCommands() {
             : session_.value("command").toString().startsWith("solid.") ? primitivePanel_
             : session_.value("command").toString().startsWith("sketch.") ? sketchPanel_ : unitsDialog_;
         const auto* activeModal=QApplication::activeModalWidget();
-        const bool planeDialog=activeModal && activeModal->objectName()=="constructionPlaneDialog";
+        const bool planeDialog=activeModal && (activeModal->objectName()=="constructionPlaneDialog" || activeModal->objectName()=="mesh.export.dialog");
         if(planeDialog)dialog=QApplication::activeModalWidget();
         if ((!planeDialog && session_.isEmpty()) || !dialog || !dialog->isVisible()) return failure("no_active_dialog", "No active dialog to capture");
         const auto pixels = dialog->grab(); QSaveFile file(path);
