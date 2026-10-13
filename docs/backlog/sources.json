@@ -1335,6 +1335,14 @@
       "evidence": "documented and screenshot observations",
       "reference_id": "tutorial-illustrated-bracket",
       "provenance": "Three public activity URLs and 22 unique images archived externally; knowledge/tutorials/illustrated-bracket/audit.json maps every numbered action."
+    },
+    "warwick-initials-keyring-20261013": {
+      "title": "Illustrated initials keyring lesson, six pages",
+      "url": null,
+      "retrieved": "2026-10-13",
+      "evidence": "Public instructions and screenshot observations; independently reviewed",
+      "reference_id": "warwick-initials-keyring-20261013",
+      "provenance": "External knowledge/tutorials/warwick/initials-keyring-independent-contract.md records creator, URL, pages, source discrepancies and explicit fixture choices."
     }
   },
   "reference_records": "../Alloy-reference-records/",

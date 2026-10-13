@@ -14,7 +14,7 @@ visual parity remain qualified. The external
 editable models and STL deliverables. The Revolve receipt is
 [validation/revolve-tutorial.md](validation/revolve-tutorial.md).
 
-**105 of 226 issues are closed.** Recent accepted work includes compact ribbon
+**105 of 233 issues are closed.** Recent accepted work includes compact ribbon
 icons #218, retained Extrude Intersect #219, nested profile/island diagnostics
 #165, portable local controls #220, shared-line fillets #221, typed Line length
 locks #222, retained Sweep #223 and native Sweep controls #224. Each has a scoped
@@ -29,8 +29,8 @@ validation/circle-tab-lock.md. Main's app rebuild passes through the corrected
 source and independent receipt46419a2.
 
 Sol is preparing the complete workflow in a fresh `paper-clip-tutorial` worktree;
-Astra verifies the result before acceptance. The private GUI slot is free until
-Sol requests it for this gate. Use real typed Line/Tab commands, actual paired
+Astra verifies the result before acceptance. The first full creation/API/export run passed and its editor is closed. Sol
+is packaging the candidate for independent review; the private GUI slot is free. Use real typed Line/Tab commands, actual paired
 fillets, Circle Tab/Enter and native Sweep selectors through shared authority.
 Do not substitute preauthored semicircles or coordinate-seeded lines.
 
@@ -41,9 +41,16 @@ and independently derived geometry contract are external under
 `knowledge/tutorials/next-sweep-slice/paper-clip/`. Fillet width annotations use an
 explicit disclosed reference-span conversion; source post-fillet drivenness is
 unknown. Update the gallery only after independent acceptance. The tutorial
-sequence and live GitHub board remain the pull queue. Luna has identified an
-illustrated initials-keyring candidate externally; Astra is checking its source
-contract in parallel. It is not yet an implementation queue or accepted gate.
+sequence and live GitHub board remain the pull queue. Luna identified an
+illustrated initials-keyring candidate externally; Astra
+independently checked all six source pages. Seven bounded issues #227–233 now
+queue typed two-point Rectangle, overall fillet annotations, rounded-loop Offset,
+two-point Circle, editable text geometry, native text placement and the full gate.
+Rectangle #227 and text geometry #231 are active in isolated Sol worktrees.
+The other children remain Todo. Text must retain authored parameters and use mature font-outline facilities;
+generated glyph curves need not become individual solver entities. Detailed
+source choices and uncertainties are external in
+`knowledge/tutorials/warwick/initials-keyring-independent-contract.md`.
 
 **Native compile milestone #132 is closed.** All four clean jobs in manually
 triggered run38396495940 passed at source d072534. Downloaded artifacts, compiler

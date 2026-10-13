@@ -95,6 +95,22 @@
       "evidence": "docs/validation/solid-sweep.md"
     },
     {
+      "id": "CP-15",
+      "title": "Personalized initials keyring with raised rim and editable text",
+      "issues": [
+        "SKT-042",
+        "SKT-043",
+        "SKT-044",
+        "SKT-045",
+        "SKT-046",
+        "SKT-047",
+        "TUT-010"
+      ],
+      "acceptance": "Typed two-point Rectangle, sequential fillets, retained rounded-loop offset/rim, two-point Circle cut, hole fillet and editable placed text Join, with full creation movie and checked STL.",
+      "status": "in_progress",
+      "remaining": "Seven bounded children queued; two-point Rectangle #227 and text geometry #231 active. Source adaptations and font provenance must remain explicit. Public source contract is external."
+    },
+    {
       "id": "CP-12",
       "title": "Direct dimensions from circle centers to retained model edges",
       "issues": [

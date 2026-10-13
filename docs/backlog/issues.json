@@ -1092,7 +1092,7 @@
         "priority:P1",
         "area:skt"
       ],
-      "body": "## Problem and result\nImplement sketch trim, extend, break and constrained offset. Deliver the bounded result below within Alloy's standalone C++20 product; implemented children and remaining scope are distinguished below.\n\n## Scope\nAdd bounded analytic line/arc/circle modifications and offset distance relation; update affected constraints/IDs explicitly.\n\n## Acceptance criteria\n- Trimmed profile remains usable; removed constraints are reported; unsupported spline offsets fail cleanly rather than flattening to hidden polylines.\n- UI and local API share authoritative document/commands; expose arguments, selection, errors and result inspection. Undo/save coverage follows the dependencies, never a separate automation model.\n\n## Proposed verification and evidence\nBuild a slotted plate by offsetting lines/arcs, trim crossings, change offset, extrude result and undo; test no-intersection and collapsing offset cases.\n\nAdd/execute `python3 tests/workflows/run.py --case SKT-011 --evidence build/evidence/SKT-011` (case not implemented yet; the runner refuses missing cases). Record actual commands, fixture hashes, dependency versions, assertions and artifacts. Keep build, API, geometry, save/reopen, export, physical input and visual evidence separate; mark non-applicable dimensions with a reason.\n\n## Public reference evidence\n- Sketch modification tools (reference `sketchmodify`) \u2014 retrieved 2026-10-11.\n\nReferences describe documented product/library behavior. Scope, implementation strategy, fixture values and acceptance thresholds are Alloy proposals unless explicitly stated otherwise. Never run or inspect reference CAD application; use public documentation/screenshots only.\n\n## Limits and open questions\nOnly the stated subset is in scope; record unsupported options explicitly. \n\n\n## Tutorial delivery order\nFollow `docs/backlog/tutorial-sequence.json`. Implement tutorial-required slices first; retain full issue acceptance and dependencies. Record each source step separately as passed, mismatch, blocked or unknown, with API/geometry, native-input and visual evidence distinguished.\n\n## Tutorial decomposition\nBounded line Trim for the support tutorial is isolated in SKT-029 (#177). Other curve combinations, Extend, Break and Offset stay here.\n\n## Bounded overnight child\nSKT-032 (#192) owns retained circular Sketch Offset and Flip. Remaining chains/lines/arcs and other tool breadth remain here.\n\n\n## Accepted bounded evidence and retained remainder\nSKT-029/#177 supplies bounded line Trim; SKT-032/#192 supplies retained circle Offset/Flip. These do not close the parent: line/arc/chain offset, Extend, Break and remaining curve modification/input acceptance remain Todo. Reuse current implementation and accepted child evidence rather than treating the original shell-era description as current state.\n\n\n## Bounded paper-clip children\nBounded shared-line fillets live in SKT-039; other Trim/Extend/Break/Offset scope stays here.\n"
+      "body": "## Problem and result\nImplement sketch trim, extend, break and constrained offset. Deliver the bounded result below within Alloy's standalone C++20 product; implemented children and remaining scope are distinguished below.\n\n## Scope\nAdd bounded analytic line/arc/circle modifications and offset distance relation; update affected constraints/IDs explicitly.\n\n## Acceptance criteria\n- Trimmed profile remains usable; removed constraints are reported; unsupported spline offsets fail cleanly rather than flattening to hidden polylines.\n- UI and local API share authoritative document/commands; expose arguments, selection, errors and result inspection. Undo/save coverage follows the dependencies, never a separate automation model.\n\n## Proposed verification and evidence\nBuild a slotted plate by offsetting lines/arcs, trim crossings, change offset, extrude result and undo; test no-intersection and collapsing offset cases.\n\nAdd/execute `python3 tests/workflows/run.py --case SKT-011 --evidence build/evidence/SKT-011` (case not implemented yet; the runner refuses missing cases). Record actual commands, fixture hashes, dependency versions, assertions and artifacts. Keep build, API, geometry, save/reopen, export, physical input and visual evidence separate; mark non-applicable dimensions with a reason.\n\n## Public reference evidence\n- Sketch modification tools (reference `sketchmodify`) \u2014 retrieved 2026-10-11.\n\nReferences describe documented product/library behavior. Scope, implementation strategy, fixture values and acceptance thresholds are Alloy proposals unless explicitly stated otherwise. Never run or inspect reference CAD application; use public documentation/screenshots only.\n\n## Limits and open questions\nOnly the stated subset is in scope; record unsupported options explicitly. \n\n\n## Tutorial delivery order\nFollow `docs/backlog/tutorial-sequence.json`. Implement tutorial-required slices first; retain full issue acceptance and dependencies. Record each source step separately as passed, mismatch, blocked or unknown, with API/geometry, native-input and visual evidence distinguished.\n\n## Tutorial decomposition\nBounded line Trim for the support tutorial is isolated in SKT-029 (#177). Other curve combinations, Extend, Break and Offset stay here.\n\n## Bounded overnight child\nSKT-032 (#192) owns retained circular Sketch Offset and Flip. Remaining chains/lines/arcs and other tool breadth remain here.\n\n\n## Accepted bounded evidence and retained remainder\nSKT-029/#177 supplies bounded line Trim; SKT-032/#192 supplies retained circle Offset/Flip. These do not close the parent: line/arc/chain offset, Extend, Break and remaining curve modification/input acceptance remain Todo. Reuse current implementation and accepted child evidence rather than treating the original shell-era description as current state.\n\n\n## Bounded paper-clip children\nBounded shared-line fillets live in SKT-039; other Trim/Extend/Break/Offset scope stays here.\n\n\n## Bounded follow-up\n[SKT-044 / #229](https://github.com/rje/Alloy/issues/229) owns the rounded closed-loop Offset slice for the keyring. This parent remains open for its remaining offset, extend and break scope.\n"
     },
     {
       "key": "SKT-019",
@@ -2995,7 +2995,8 @@
       "priority": "P0",
       "depends_on": [
         "SKT-005",
-        "SKT-040"
+        "SKT-040",
+        "SKT-042"
       ],
       "labels": [
         "kind:implementation",
@@ -4096,6 +4097,123 @@
         "area:skt"
       ],
       "body": "## Observed gap\nThe paper-clip public lesson specifies a Front-plane origin circle: C, pick center, type diameter2, Tab, Enter. The bounded SKT-040 native probe found that Tab leaves the inline circle editor without a focused widget; Enter cannot finish the specified sequence. Circle typed Return alone already passes. Keep this pre-existing source-interaction gap separate from the accepted Line work.\n\n## Scope and acceptance\nPreserve the typed diameter and useful preview through Tab, then commit exactly one circle with Enter through the shared Circle command. Keep the correct focus/keyboard ownership and a readable value/lock cue; Escape cancels without geometry. Do not turn Tab into an early commit or silently substitute Return-only source instructions. Retain the existing circle diameter/constraint policy and the accepted typed Line path; broader dynamic-input fields remain outside this child.\n\n## Verification\nOne focused actual Qt event sequence on XZ at origin: C, center pick, type2, Tab, Enter; inspect radius1 geometry, preview/value readability, exact authored result and normal command continuation. Add an Escape check and reuse the existing Return-only/Line evidence unless shared handling changes. Record failed pre-fix probe and successful result; distinguish injected Qt from physical OS delivery. Astra independently reviews source/log/capture; no full unrelated replay.\n\n## Reference evidence\nSource ID sweep-paper-clip-warwick-2017-20261013, publicly archived and independently transcribed2026-10-13. URLs/images and exact step ledger stay external in knowledge/tutorials/next-sweep-slice/paper-clip. This fixes the demonstrated sequence; internal focus/constraint semantics of the reference application remain unknown. TUT-009/#225 depends on this child before full tutorial acceptance.\n\n\n## Accepted 2026-10-13\nCorrected source integrated as8cdfe25 plus a1b8fd8 and final independent receipt46419a2. Main app rebuild passes. Strict Qt test activates only the initial test window, observes actual focus after center clicks/typing/Tab, then sends Return/Escape to the current focus widget with no intermediate repair; persisted3-stage3332ms pass. Circle lock retains inline-editor focus and restores editability on completion/cancel. The first test masked a real null-focus defect; that assessment is superseded by the corrected source/log in docs/validation/circle-tab-lock.md. Real executable23-command API lock/accept/Cancel/exact-reopen evidence remains valid. No physical OS input or full225 claim.\n"
+    },
+    {
+      "key": "SKT-042",
+      "title": "Enter two-point Rectangle width and height through native inline controls",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-002",
+        "SKT-004",
+        "SKT-040"
+      ],
+      "labels": [
+        "area:skt"
+      ],
+      "body": "## Problem and bounded scope\nThe lesson starts an origin-based two-point Rectangle and types 60\u00d730 using Tab between fields and Enter twice. Center Rectangle is a different workflow. Extend existing rectangle/shared inline command authority, not a second geometry model. Current rectangle appends coordinates or pointer H/V geometry without driving size dimensions. Reuse command-first pending-tool plane selection and the dual-field inline editor, retaining distinct corner semantics. Source command precedes plane selection; do not require a hidden pre-created sketch.\n\n## Acceptance criteria\n- Actual origin first-corner pick, pointer quadrant, independently labeled width/height entry, Tab switching, Enter completion then tool exit produce 60\u00d730 with retained driving dimensions and origin relation. Final source orientation is right/down in Top view. Do not invent mandatory field-entry order. Internal first/second Enter transitions are unknown: first commits and second exits is an explicit Alloy policy. Establish quadrant with actual pointer movement after first click; do not seed it silently.\n- Preview is disposable; invalid values refuse, Escape and tool exit clear inputs without partial geometry. Existing centered rectangle and typed Line retain their authority.\n- Expose values/phase/selection through API and save only authored parameters.\n\n## Verification\nOne focused uninterrupted Qt sequence plus shared API fixture: exact bounds0..60/\u221230..0, retained dimensions, preview/Cancel and draft undo/redo/reopen. Assert natural focus transitions rather than repair focus between keys. Inspect readable values and full rectangle.\n\n## Parent scope and limits\nBounded child of SKT-021; angled rectangle modes, generic inference and other dynamic fields remain there. No Center Rectangle substitution or physical OS claim.\n\n## Public reference evidence\nSource ID warwick-initials-keyring-20261013, public six-page lesson independently inspected 2026-10-13. Detailed pages, provenance and uncertainties remain external in knowledge/tutorials/warwick/initials-keyring-independent-contract.md. Documented steps, screenshot observations and Alloy fixture choices must remain distinct.\n"
+    },
+    {
+      "key": "SKT-043",
+      "title": "Preserve rounded rectangle overall dimension annotations through four sketch fillets",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-039",
+        "SKT-042"
+      ],
+      "labels": [
+        "area:skt"
+      ],
+      "body": "## Problem and bounded scope\nThe lesson applies four sequential R6 sketch fillets by selecting adjacent sides. Images retain60/30 overall annotations. Existing fillet code can retire touched line lengths; qualify and minimally extend the actual sequential case.\n\n## Acceptance criteria\n- Four side-pair selections and radius 6 yield one rounded 60\u00d730 boundary, four lines/four quarter arcs, without handcrafted arcs. Preserve surviving IDs.\n- Keep original overall width/height dimension IDs as meaningful overall spans: preserve driving semantics if genuinely supported; otherwise explicitly convert to driven spans between retained outer tangent endpoints, disclose conversion before acceptance and use reference styling. Do not silently reinterpret60/30 as shortened straight lengths. Source post-fillet drivenness is unknown.\n- Cancel exact; unrelated references preserve or refuse. Supported radius edit retains overall annotation meaning or explicitly reports unsupported dependencies.\n\n## Verification\nUse actual SKT-042 authored rectangle, each sequential fillet, readable 60/30/R6 annotations, analytic area 1800\u221236*(4\u2212pi), preview/Cancel, one radius edit and undo/reopen. Reuse shared fillet tests except affected reference handling.\n\n## Parent scope and limits\nBounded extension of SKT-019/SKT-039. No general virtual-corner dimension framework or arbitrary constraint surgery.\n\n## Public reference evidence\nSource ID warwick-initials-keyring-20261013, public six-page lesson independently inspected 2026-10-13. Detailed pages, provenance and uncertainties remain external in knowledge/tutorials/warwick/initials-keyring-independent-contract.md. Documented steps, screenshot observations and Alloy fixture choices must remain distinct.\n"
+    },
+    {
+      "key": "SKT-044",
+      "title": "Offset a retained rounded line-and-arc closed loop into a selectable rim",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-030",
+        "SKT-010",
+        "SKT-024",
+        "SKT-043"
+      ],
+      "labels": [
+        "area:skt"
+      ],
+      "body": "## Problem and bounded scope\nThe lesson offsets the rounded perimeter inward 1.5 and extrudes the annular border above the top face. Existing retained circular Offset is insufficient. Support one simple closed tangent line/arc loop, including a projected planar-face perimeter, through existing offset authority.\n\n## Acceptance criteria\n- Retain source sketch/entity or model-edge lineage and signed offset; native whole-loop selection and checked Chain Selection, numeric \u22121.5, preview/Cancel/OK. Explicit top-face sketch setup is an Alloy action where the source transition is implicit.\n- Outer 60\u00d730/R6 and inner 57\u00d727/R4.5 produce a selectable annulus at z 2, not an inset filled pad. Join 1.5 makes rim top z 3.5.\n- Evaluate OCCT offset facilities; preserve exact lines/arcs/provenance where uniquely supported, not nearest-edge naming. Collapsed/self-intersecting/ambiguous output refuses atomically.\n- Source width/radius and signed-distance edits recompute retained loop/region or give explicit attribution; exact history/storage.\n\n## Verification\nAnalytic rounded-loop area and rim volume, real native loop select/value/Cancel/OK, profile pick\u2192Join, one upstream edit, collapse refusal, undo/reopen. Check source-face lineage and annotations/capture, not merely final mesh.\n\n## Parent scope and limits\nBounded child of SKT-011. Open offsets, arbitrary splines, all join styles and automatic topology repair remain deferred there; circle Offset stays intact.\n\n## Public reference evidence\nSource ID warwick-initials-keyring-20261013, public six-page lesson independently inspected 2026-10-13. Detailed pages, provenance and uncertainties remain external in knowledge/tutorials/warwick/initials-keyring-independent-contract.md. Documented steps, screenshot observations and Alloy fixture choices must remain distinct.\n"
+    },
+    {
+      "key": "SKT-045",
+      "title": "Author a two-point Circle with typed diameter and native endpoint placement",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-006",
+        "SKT-028",
+        "SKT-041"
+      ],
+      "labels": [
+        "area:skt"
+      ],
+      "body": "## Problem and bounded scope\nThe keyring uses 2-Point Circle: first diameter endpoint then second direction/value. The approximate grid instruction locates the first endpoint, not the center. Reuse analytic circle evaluation while retaining truthful two-point authoring semantics.\n\n## Acceptance criteria\n- Native named mode, first endpoint, second-end pointer direction, typed diameter 4 and Enter create a valid circle on a selected planar face. Provide disposable preview, Cancel, invalid-value refusal and API parity.\n- Author diameter endpoint intent and editable diameter/position without storing untracked viewport coordinates. Specify the Alloy representation rather than claim unknown reference internals.\n- Written\u00d84 is authoritative gate value; later apparent\u00d85 screenshot discrepancy remains explicit. Exact hole position/direction is a disclosed fixture choice. Existing center-circle is unchanged.\n\n## Verification\nOne actual Qt endpoint/direction/type4/Enter and Cancel case; verify endpoints separation 4, radius 2, center midpoint, on-face frame, retained edits/history/reopen. Then circle region Cut through 2 mm floor via existing Extrude.\n\n## Parent scope and limits\nExtends the accepted center-circle foundation SKT-006 with a distinct two-point mode. No dedicated Hole feature, three-point/tangent Circle or new Cut engine is required by this slice.\n\n## Public reference evidence\nSource ID warwick-initials-keyring-20261013, public six-page lesson independently inspected 2026-10-13. Detailed pages, provenance and uncertainties remain external in knowledge/tutorials/warwick/initials-keyring-independent-contract.md. Documented steps, screenshot observations and Alloy fixture choices must remain distinct.\n"
+    },
+    {
+      "key": "SKT-046",
+      "title": "Create editable sketch text with licensed font outlines and persistent profiles",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-024",
+        "SKT-030",
+        "SOL-020"
+      ],
+      "labels": [
+        "area:skt"
+      ],
+      "body": "## Problem and bounded scope\nProvide real editable text-as-sketch geometry for personalized raised initials. Evaluate mature Qt font shaping/outline APIs and OCCT curve/wire construction first. One finite Latin text fixture and explicitly selected licensed font suffice; no custom typography engine. Keep authored text parameters distinct from evaluated/generated glyph geometry: glyph outline curves need not become individually solver-authored sketch entities. Evaluate Qt outline extraction/shaping and OCCT Bezier/BSpline-to-wire/region conversion directly; do not require general sketch spline authoring as a prerequisite. Generated geometry must remain reproducible from retained authored text/font data.\n\n## Acceptance criteria\n- Authored string/font identity/style/height/position/angle and retained text object ID survive edit/history/reopen on a named planar face. Do not substitute bitmap, prebuilt logo or handcrafted glyphs.\n- Define font provenance and deterministic missing-font behavior before implementation; no silently changed geometry on another machine. Assess outline embedding/cache licensing if used.\n- D/S/B or equivalent chosen initials yield correct closed glyph boundaries and holes, selectable disconnected profiles, Join 1.5 to floor through existing extrusion. Curved glyph outlines must be actual bounded kernel curves/validated approximation with recorded tolerance.\n- Supported text/height edit updates dependents by an explicit group/profile contract; changed glyph topology may refuse atomically with useful diagnostic, never guess old glyph IDs. Invalid outlines/missing font fail clearly.\n\n## Verification\nCore/API actual chosen font fixture with glyph holes, rotation/translation/height and one text edit, valid extrusion/positive geometry, missing-font refusal and exact save/reopen. Independent source/license review and actual app geometry capture; prove scope without exhaustive Unicode/font testing.\n\n## Parent scope and limits\nNew bounded foundation; broader Unicode shaping, text-on-path, all font formats, typography parity and arbitrary glyph-topology migration remain separate. Personalization is source-authorized; sample fonts are not mandatory defaults.\n\n## Public reference evidence\nSource ID warwick-initials-keyring-20261013, public six-page lesson independently inspected 2026-10-13. Detailed pages, provenance and uncertainties remain external in knowledge/tutorials/warwick/initials-keyring-independent-contract.md. Documented steps, screenshot observations and Alloy fixture choices must remain distinct.\n"
+    },
+    {
+      "key": "SKT-047",
+      "title": "Place and rotate editable Sketch Text through native controls",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-046"
+      ],
+      "labels": [
+        "area:skt"
+      ],
+      "body": "## Problem and bounded scope\nThe source enters letters in a Text dialog then uses a center move handle and rotation handle before acceptance. Build controls over accepted text authority; a static text import is insufficient.\n\n## Acceptance criteria\n- Actual Sketch Text command and face selection, editable string/font/height, visible text preview, pointer move and rotation handles, Cancel/OK and feature/sketch edit reopening share API state.\n- Handle movement resolves in sketch frame and supports source-like rotation; precise fixture text/height/angle/font are disclosed choices. Preserve readable dialog and closed-letter holes.\n- Preview does not commit; Cancel restores authored/history state; unsupported font/outline errors visible and acceptance disabled.\n\n## Verification\nOne focused Qt dialog typing, font/height change, pointer translation+rotation, Cancel/OK, edit and text-profile\u2192Join route with actual GPU captures. Assert input focus naturally; distinguish API fixture setup and Qt-dispatched vs physical OS events.\n\n## Parent scope and limits\nFinite native controls for SKT-046, not a broad rich-text editor or exact undocumented handle/default replication.\n\n## Public reference evidence\nSource ID warwick-initials-keyring-20261013, public six-page lesson independently inspected 2026-10-13. Detailed pages, provenance and uncertainties remain external in knowledge/tutorials/warwick/initials-keyring-independent-contract.md. Documented steps, screenshot observations and Alloy fixture choices must remain distinct.\n"
+    },
+    {
+      "key": "TUT-010",
+      "title": "Gate: personalized initials keyring from typed rectangle to raised text",
+      "kind": "validation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-042",
+        "SKT-043",
+        "SKT-044",
+        "SKT-045",
+        "SKT-047",
+        "SOL-015",
+        "SOL-020",
+        "SOL-022",
+        "SKT-030",
+        "PRT-001"
+      ],
+      "labels": [
+        "area:tut"
+      ],
+      "body": "## Problem and bounded scope\nComplete all 21 illustrated steps from blank, with source-defined features and explicitly chosen personalization. No supplied model/assets. Do not begin cumulative acceptance until prerequisites are independently accepted.\n\n## Acceptance criteria\n- Follow origin XY 60\u00d730 two-point Rectangle/Tab/Enter twice; four sequential R6 sketch fillets; New Body 2; inward rounded-loop offset1.5 on top face; annularJoin 1.5; face 2-Point Circle \u00d84; Cut \u221210 mm; circular hole-edge Fillet R1; editable text placed/rotated and Join 1.5; Save.\n- Preserve source 60/30 annotations honestly; disclose driven conversion, written\u00d84 versus screenshot\u00d85, approximate first diameter endpoint and chosen hole center, optional font/content/height/rotation and explicit top face sketch setup. Page 6 screenshot confirms text Join.\n- Native inputs already accepted may be reused, but full real-app source chain must execute without direct replacement geometry. Final one connected solid shows rim/hole/letter holes/raised initials.\n- Additional Alloy gate: one relevant source/text edit, history/reopen, strict STL export/readback and complete creation recording. Separate these extras from source instructions.\n\n## Verification\nOne full actual-app ledger/movie with representative captures and authored references, analytic pre-text shape checks, BRep validity and independent strict mesh readback. Independent reviewer samples whole creation/source comparison, records adaptations and limitations, reuses prerequisite tests instead of broad reruns.\n\n## Parent scope and limits\nNew candidate gate only, not started/accepted by proposal. Existing broad sketch/text/offset requirements remain open; no exact font/pixel/physical OS or universal printability claim.\n\n## Public reference evidence\nSource ID warwick-initials-keyring-20261013, public six-page lesson independently inspected 2026-10-13. Detailed pages, provenance and uncertainties remain external in knowledge/tutorials/warwick/initials-keyring-independent-contract.md. Documented steps, screenshot observations and Alloy fixture choices must remain distinct.\n"
     }
   ]
 }
