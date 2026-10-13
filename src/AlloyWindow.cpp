@@ -2978,8 +2978,11 @@ void AlloyWindow::refresh() {
         if(sketchFilletControls_)if(auto* impact=sketchFilletControls_->findChild<QLabel*>("sketch.fillet.referenceChanges")) {
             const auto changes=fillet["previewDiagnostics"].toObject();
             const int converted=changes["convertedReferenceDimensionIds"].toArray().size(),retiredDimensions=changes["removedDimensionIds"].toArray().size(),retiredConstraints=changes["removedConstraintIds"].toArray().size();
-            QString notice=QString("%1 width(s) or height(s) become reference spans.\nRetire %2 dimension(s), %3 constraint(s).\nEnter accepts; Escape cancels.").arg(converted).arg(retiredDimensions).arg(retiredConstraints);
+            const int retained=changes["retainedDrivingDimensionIds"].toArray().size();
+            QString notice=retained ? QString("Retain %1 driving overall dimension(s).\nRetire %2 dimension(s), %3 constraint(s).\nEnter accepts; Escape cancels.").arg(retained).arg(retiredDimensions).arg(retiredConstraints)
+                : QString("%1 width(s) or height(s) become reference spans.\nRetire %2 dimension(s), %3 constraint(s).\nEnter accepts; Escape cancels.").arg(converted).arg(retiredDimensions).arg(retiredConstraints);
             if(changes["releasedOriginCoincidence"].toBool())notice+="\nOrigin corner coincidence retires; outline loses its origin anchor.";
+            if(changes["originSupportLineIds"].toArray().size()==2)notice+="\nOrigin remains fixed at the intersection of the two side supports.";
             impact->setText(fillet.contains("previewDraft") ? notice : QString{});
             impact->setMinimumHeight(fillet.contains("previewDraft") ? impact->heightForWidth(impact->width()) : 0);
         }
@@ -5202,7 +5205,8 @@ void AlloyWindow::refreshSketchControls() {
     QMap<QString,QJsonObject> points;QMap<QString,int> pointNumbers;
     QMap<QString,QStringList> relations;
     for(const auto& entry:parameters["constraints"].toArray()) {
-        const auto constraint=entry.toObject();const auto type=constraint["type"]=="pointOnCurve" ? QString("coincident") : constraint["type"].toString();
+        const auto constraint=entry.toObject();const auto type=constraint["type"]=="pointOnCurve" ? QString("coincident") :
+            constraint["type"]=="supportLine" ? QString("support line (internal)") : constraint["type"].toString();
         for(const auto& id:constraint["entityIds"].toArray())relations[id.toString()].append(type.first(1).toUpper()+type.sliced(1));
         for(const auto& id:constraint["pointIds"].toArray())relations[id.toString()].append(type.first(1).toUpper()+type.sliced(1));
     }

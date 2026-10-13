@@ -2231,3 +2231,17 @@ and actual-app API chains pass diameter edit, undo, save/reopen and retained
 broad floor support for Sketch Text; selected-rim and Fillet GPU captures are
 in the isolated build evidence. Independent review and the full keyring gate
 remain pending. See [the bounded receipt](validation/cut-hole-rim.md).
+
+## Driving rounded rectangle candidate (2026-10-13)
+
+SKT-049/#235 adds an opt-in finite rectangle policy for newly authored,
+origin-based typed 60×30 outlines. Four separately created R6 sketch fillets
+retain driving overall width/height UUIDs and origin support through explicit
+internal supporting-line incidences. A single R5.5 edit leaves outer bounds
+unchanged, while 70×35 size edits rebuild the downstream 2 mm solid with
+stable profile/body IDs. Oversized edits refuse atomically. Focused core,
+injected Qt editor and actual-app API/capture cases pass; independent review
+is pending. Existing #228 driven files are not migrated. The historical #228
+and #233 receipts describe their originally captured policy; the #233 runner
+has updated new-authoring assertions but was not replayed for this follow-up.
+See [the bounded receipt](validation/rounded-driving-intent.md).

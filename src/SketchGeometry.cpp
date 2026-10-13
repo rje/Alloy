@@ -47,6 +47,60 @@ void validateDraft(const QJsonObject& draft, const QSet<QString>& derivedPointId
     const auto error = SketchGeometry::validateParameters(draft["parameters"].toObject(), ids,derivedPointIds);
     if (!error.isEmpty()) reject(error);
 }
+void validateRoundedIntent(const QJsonObject& parameters) {
+    if(!parameters.contains("roundedRectangleIntent"))return;
+    const auto intent=parameters["roundedRectangleIntent"].toObject();
+    const auto ids=intent["sideIds"].toArray(),directions=intent["sideDirections"].toArray();
+    if(ids.size()!=4 || directions.size()!=4)reject("Rounded rectangle has incomplete side intent");
+    QMap<QString,QJsonObject> points,entities,dimensions;
+    for(const auto& value:parameters["points"].toArray()){const auto p=value.toObject();points[p["id"].toString()]=p;}
+    for(const auto& value:parameters["entities"].toArray()){const auto e=value.toObject();entities[e["id"].toString()]=e;}
+    for(const auto& value:parameters["dimensions"].toArray()){const auto d=value.toObject();dimensions[d["id"].toString()]=d;}
+    const auto width=dimensions[intent["widthId"].toString()],height=dimensions[intent["heightId"].toString()];
+    if(width["kind"]!="horizontal" || height["kind"]!="vertical" || !width["driving"].toBool() || !height["driving"].toBool())
+        reject("Rounded rectangle lost driving overall dimensions");
+    const double w=width["valueMm"].toDouble(),h=height["valueMm"].toDouble(),tol=1e-5;
+    if(w<=minimumLength || h<=minimumLength || intent["originPointId"]!=parameters["originPointId"])
+        reject("Rounded rectangle lost origin or positive overall size");
+    const auto at=[&](const QString& id){const auto p=points[id];return QPointF(p["uMm"].toDouble(),p["vMm"].toDouble());};
+    if(std::hypot(at(intent["originPointId"].toString()).x(),at(intent["originPointId"].toString()).y())>tol)
+        reject("Rounded rectangle origin moved");
+    int horizontal=0,vertical=0;QSet<QString> distinct;
+    for(int i=0;i<4;++i){const auto id=ids[i].toString();const auto e=entities[id];if(e["type"]!="line" || distinct.contains(id))reject("Rounded rectangle side identity changed");distinct.insert(id);
+        const auto a=at(e["startPointId"].toString()),b=at(e["endPointId"].toString());
+        const double dx=b.x()-a.x(),dy=b.y()-a.y();const int sign=directions[i].toInt();
+        if(sign!=1 && sign!=-1)reject("Rounded rectangle side direction is invalid");
+        if(std::abs(dy)<tol && std::abs(dx)>minimumLength){++horizontal;if(dx*sign<=minimumLength ||
+            (std::abs(a.y())>tol && std::abs(a.y()+h)>tol) || std::min(a.x(),b.x()) < -tol || std::max(a.x(),b.x())>w+tol)reject("Rounded rectangle horizontal side folded or left its support");}
+        else if(std::abs(dx)<tol && std::abs(dy)>minimumLength){++vertical;if(dy*sign<=minimumLength ||
+            (std::abs(a.x())>tol && std::abs(a.x()-w)>tol) || std::min(a.y(),b.y()) < -h-tol || std::max(a.y(),b.y())>tol)reject("Rounded rectangle vertical side folded or left its support");}
+        else reject("Rounded rectangle side is no longer axis aligned");
+    }
+    if(horizontal!=2 || vertical!=2)reject("Rounded rectangle lost opposing supports");
+    for(const auto& dimension:{width,height}){
+        const auto refs=dimension["pointIds"].toArray();if(refs.size()!=2)reject("Rounded rectangle overall witnesses are missing");
+        const auto a=at(refs[0].toString()),b=at(refs[1].toString());
+        if(std::abs(dimension["kind"]=="horizontal" ? std::abs(a.x()-b.x())-w : std::abs(a.y()-b.y())-h)>tol)
+            reject("Rounded rectangle overall dimension no longer spans its supports");
+    }
+    int arcs=0;QSet<int> corners;
+    for(const auto& value:parameters["entities"].toArray()){const auto e=value.toObject();if(e["type"]=="line")continue;
+        if(e["type"]!="arc")reject("Rounded rectangle has an unsupported curve");++arcs;
+        const double r=e["radiusMm"].toDouble();const auto c=at(e["centerPointId"].toString());
+        if(std::abs(std::abs(e["sweepAngleDeg"].toDouble())-90)>1e-3 || r<=minimumLength)
+            reject("Rounded rectangle arc changed its quarter-circle branch");
+        const bool left=std::abs(c.x()-r)<tol,right=std::abs(c.x()-(w-r))<tol;
+        const bool top=std::abs(c.y()+r)<tol,bottom=std::abs(c.y()-(-h+r))<tol;
+        if((left==right) || (top==bottom))reject("Rounded rectangle arc left an outer corner");
+        const int corner=(right ? 1 : 0)+(bottom ? 2 : 0);if(corners.contains(corner))reject("Rounded rectangle duplicated a corner arc");corners.insert(corner);
+        const auto a=at(e["startPointId"].toString()),b=at(e["endPointId"].toString());
+        const auto onVertical=[&](const QPointF& p){return std::abs(p.x()-(right ? w : 0))<tol;};
+        const auto onHorizontal=[&](const QPointF& p){return std::abs(p.y()-(bottom ? -h : 0))<tol;};
+        if(!(onVertical(a)&&onHorizontal(b)) && !(onHorizontal(a)&&onVertical(b)))
+            reject("Rounded rectangle arc contacts left their adjacent supports");
+    }
+    if(arcs<1 || arcs>4)reject("Rounded rectangle has an unsupported corner count");
+}
 void validateArguments(const QJsonObject& arguments, bool line) {
     const QSet<QString> fields = line ? QSet<QString>{"u1Mm", "v1Mm", "u2Mm", "v2Mm", "startPointId", "endPointId"}
                                      : QSet<QString>{"u1Mm", "v1Mm", "u2Mm", "v2Mm"};
@@ -509,7 +563,7 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
         try {return validateParameters(expandedProjectionFeature({{"parameters",parameters}},{{"lines",lines},{"points",resolvedPoints}})["parameters"].toObject(),authoredIds,referenceIds);}
         catch(const std::exception& error){return QString::fromUtf8(error.what());}
     }
-    const QSet<QString> allowed{"plane", "planeId", "points", "entities", "constraints", "dimensions", "originPointId", "support", "texts", "loopOffsets"};
+    const QSet<QString> allowed{"plane", "planeId", "points", "entities", "constraints", "dimensions", "originPointId", "support", "texts", "loopOffsets", "roundedRectangleIntent"};
     for (auto it = parameters.begin(); it != parameters.end(); ++it)
         if (!allowed.contains(it.key())) return "Unknown sketch parameter: " + it.key();
     if (!parameters["points"].isArray() || !parameters["entities"].isArray()) return "Sketch requires points and entities";
@@ -528,6 +582,16 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
     }
     for (const auto& field : {"constraints", "dimensions"})
         if (parameters.contains(field) && !parameters[field].isArray()) return QString(field) + " must be an array";
+    if(parameters.contains("roundedRectangleIntent")){
+        const auto marker=parameters["roundedRectangleIntent"].toObject();
+        if(!parameters["roundedRectangleIntent"].isObject() || marker.size()!=5 ||
+            !marker["sideIds"].isArray() || marker["sideIds"].toArray().size()!=4 ||
+            !marker["sideDirections"].isArray() || marker["sideDirections"].toArray().size()!=4 ||
+            !validId(marker["widthId"].toString()) || !validId(marker["heightId"].toString()) ||
+            !validId(marker["originPointId"].toString()))return "Invalid rounded rectangle driving intent";
+        for(const auto& id:marker["sideIds"].toArray())if(!validId(id.toString()))return "Invalid rounded rectangle side reference";
+        for(const auto& sign:marker["sideDirections"].toArray())if(!sign.isDouble() || std::abs(sign.toInt())!=1)return "Invalid rounded rectangle side direction";
+    }
     QMap<QString, QJsonObject> points;
     auto claimId = [&](const QString& id) {
         if (!validId(id) || authoredIds.contains(id)) return false;
@@ -638,9 +702,11 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
                 if (constraint.size() != (fixed ? 5 : 3) || constraint.contains("entityIds")
                     || !checkReferences(constraint, "pointIds", fixed ? 1 : 2, pointIds)) return "Invalid point constraint references";
                 if (fixed) { coordinate(constraint, "uMm"); coordinate(constraint, "vMm"); }
-            } else if (type == "pointOnCurve") {
+            } else if (type == "pointOnCurve" || type == "supportLine") {
                 if(constraint.size()!=4 || !checkReferences(constraint,"pointIds",1,pointIds) || !checkReferences(constraint,"entityIds",1,entityIds))return "Point-on-curve requires one point and one curve";
-                const auto id=constraint["entityIds"].toArray()[0];for(const auto& entry:parameters["entities"].toArray())if(entry.toObject()["id"]==id && entry.toObject()["type"]!="line" && entry.toObject()["type"]!="circle")return "Point-on-curve supports lines and circles";
+                const auto id=constraint["entityIds"].toArray()[0];for(const auto& entry:parameters["entities"].toArray())if(entry.toObject()["id"]==id &&
+                    (type=="supportLine" ? entry.toObject()["type"]!="line" : entry.toObject()["type"]!="line" && entry.toObject()["type"]!="circle"))
+                    return type=="supportLine" ? "Supporting-line incidence requires a line" : "Point-on-curve supports lines and circles";
             } else if (type == "arcTangent") {
                 if (constraint.size()!=5 || !checkReferences(constraint,"entityIds",2,entityIds)
                     || !checkReferences(constraint,"pointIds",1,pointIds) || !constraint["side"].isDouble()
@@ -779,7 +845,7 @@ SketchGeometry::SolveResult SketchGeometry::solveDraft(const QJsonObject& draft,
         if(draft["parameters"].toObject().contains("texts"))parameters["texts"]=draft["parameters"].toObject()["texts"];
         if(draft["parameters"].toObject().contains("projections"))parameters["projections"]=draft["parameters"].toObject()["projections"];
         if(draft["parameters"].toObject().contains("pointReferences"))parameters["pointReferences"]=draft["parameters"].toObject()["pointReferences"];
-        solved["parameters"]=parameters;validateDraft(solved);
+        solved["parameters"]=parameters;validateDraft(solved);validateRoundedIntent(parameters);
         return {true,solved,result.diagnostics,{}};
     } catch(const std::exception& error){return invalidDraft(draft,QString::fromUtf8(error.what()));}
 }
@@ -891,6 +957,58 @@ SketchGeometry::SolveResult SketchGeometry::filletCorners(const QJsonObject& dra
         auto root=[&](QString id){while(roots[id]!=id)id=roots[id];return id;};
         for(const auto& value:constraints){const auto c=value.toObject();if(c["type"]!="coincident")continue;
             const auto refs=c["pointIds"].toArray();roots[root(refs[1].toString())]=root(refs[0].toString());}
+        const auto position=[&](const QString& id){const auto p=pointMap[id];return QPointF(p["uMm"].toDouble(),p["vMm"].toDouble());};
+        bool drivingRectangle=rectangleOutline;
+        QJsonArray sideIds,sideDirections;
+        QMap<QString,int> degree;
+        QMap<QString,QSet<QString>> adjacency;
+        QSet<int> axes;
+        double minU=maximumLength,maxU=-maximumLength,minV=maximumLength,maxV=-maximumLength;
+        for(const auto& value:entities){const auto e=value.toObject();
+            if(e["type"]!="line" && e["type"]!="arc")continue;
+            const auto a=position(e["startPointId"].toString()),b=position(e["endPointId"].toString());
+            const auto start=root(e["startPointId"].toString()),end=root(e["endPointId"].toString());
+            ++degree[start];++degree[end];adjacency[start].insert(end);adjacency[end].insert(start);
+            if(e["type"]=="arc") {if(std::abs(std::abs(e["sweepAngleDeg"].toDouble())-90)>1e-4)drivingRectangle=false;continue;}
+            const bool horizontal=std::abs(a.y()-b.y())<1e-6 && std::abs(a.x()-b.x())>minimumLength;
+            const bool vertical=std::abs(a.x()-b.x())<1e-6 && std::abs(a.y()-b.y())>minimumLength;
+            if(horizontal==vertical)drivingRectangle=false;
+            axes.insert(horizontal ? 0 : 1);
+            sideIds.append(e["id"]);sideDirections.append(horizontal ? (b.x()>a.x() ? 1 : -1) : (b.y()>a.y() ? 1 : -1));
+            minU=std::min({minU,a.x(),b.x()});maxU=std::max({maxU,a.x(),b.x()});
+            minV=std::min({minV,a.y(),b.y()});maxV=std::max({maxV,a.y(),b.y()});
+        }
+        for(const auto count:degree)if(count!=2)drivingRectangle=false;
+        if(!degree.isEmpty()){
+            QSet<QString> reached;QStringList pending{degree.firstKey()};
+            while(!pending.isEmpty()){const auto node=pending.takeLast();if(reached.contains(node))continue;
+                reached.insert(node);for(const auto& next:adjacency[node])pending.append(next);}
+            if(reached.size()!=degree.size())drivingRectangle=false;
+        }
+        drivingRectangle &= axes.size()==2 && sideIds.size()==4 && minU<maxU-minimumLength && minV<maxV-minimumLength;
+        const auto originId=parameters["originPointId"].toString();
+        bool originFixed=false;
+        for(const auto& value:constraints){const auto c=value.toObject();if(c["type"]=="fixed" && c["pointIds"].toArray()==QJsonArray{originId}
+            && std::abs(c["uMm"].toDouble())<1e-7 && std::abs(c["vMm"].toDouble())<1e-7)originFixed=true;}
+        drivingRectangle &= originFixed && std::abs(minU)<1e-6 && std::abs(maxV)<1e-6;
+        QString widthId,heightId;int horizontalSides=0,verticalSides=0;
+        for(const auto& value:entities){const auto e=value.toObject();if(e["type"]!="line")continue;
+            const auto a=position(e["startPointId"].toString()),b=position(e["endPointId"].toString());
+            if(std::abs(a.y()-b.y())<1e-6){++horizontalSides;if(std::abs(a.y()-minV)>1e-6 && std::abs(a.y()-maxV)>1e-6)drivingRectangle=false;}
+            else {++verticalSides;if(std::abs(a.x()-minU)>1e-6 && std::abs(a.x()-maxU)>1e-6)drivingRectangle=false;}
+        }
+        drivingRectangle &= horizontalSides==2 && verticalSides==2;
+        for(const auto& value:dimensions){const auto d=value.toObject();
+            if(d["kind"]!="horizontal" && d["kind"]!="vertical")continue;
+            if(d.contains("entityId") || !d["driving"].toBool() || !d.contains("valueMm") || d["pointIds"].toArray().size()!=2)continue;
+            const auto refs=d["pointIds"].toArray();const auto a=position(refs[0].toString()),b=position(refs[1].toString());
+            if(d["kind"]=="horizontal" && std::abs(std::abs(a.x()-b.x())-(maxU-minU))<1e-5
+                && std::abs(d["valueMm"].toDouble()-(maxU-minU))<1e-5)widthId=d["id"].toString();
+            if(d["kind"]=="vertical" && std::abs(std::abs(a.y()-b.y())-(maxV-minV))<1e-5
+                && std::abs(d["valueMm"].toDouble()-(maxV-minV))<1e-5)heightId=d["id"].toString();
+        }
+        drivingRectangle &= !widthId.isEmpty() && !heightId.isEmpty();
+        if(parameters.contains("roundedRectangleIntent"))drivingRectangle &= parameters["roundedRectangleIntent"].toObject()["sideIds"].toArray()==sideIds;
         QSet<QString> touchedLines,retired,removedLines,discardedFresh;
         QJsonArray arcs,newRelations,removedDimensions,removedConstraints,convertedDimensions;
         const auto originalEntities=entities;
@@ -898,6 +1016,7 @@ SketchGeometry::SolveResult SketchGeometry::filletCorners(const QJsonObject& dra
         QMap<QString,QMap<QString,Trim>> trims;
         QMap<QString,QJsonArray> spanEndpoints;
         QMap<QString,QMap<QString,QString>> overallContacts;
+        QJsonArray originCornerLines;
         auto xy=[&](const QString& id){const auto p=pointMap[id];return QPointF(p["uMm"].toDouble(),p["vMm"].toDouble());};
         auto fresh=[&](const QPointF& position){const auto id=newId();const QJsonObject p{{"id",id},{"uMm",position.x()},{"vMm",position.y()}};points.append(p);pointMap[id]=p;return id;};
         for(const auto& value:arguments["corners"].toArray()) {
@@ -912,6 +1031,7 @@ SketchGeometry::SolveResult SketchGeometry::filletCorners(const QJsonObject& dra
                 if(root(lines[0][a].toString())==root(lines[1][b].toString())){keys[0]=a;keys[1]=b;++matches;}
             if(matches!=1)reject("Fillet requires one unambiguous connected corner");
             const auto cornerRoot=root(lines[0][keys[0]].toString());
+            if(drivingRectangle && cornerRoot==root(originId))originCornerLines=refs;
             for(auto it=roots.begin();it!=roots.end();++it)if(root(it.key())==cornerRoot)retired.insert(it.key());
             const QPointF vertex=xy(lines[0][keys[0]].toString()); QPointF directions[2]; double lengths[2];
             for(int j=0;j<2;++j){const auto other=keys[j]=="startPointId" ? "endPointId" : "startPointId";
@@ -978,6 +1098,7 @@ SketchGeometry::SolveResult SketchGeometry::filletCorners(const QJsonObject& dra
             if(retired.contains(e[field].toString()))reject("Fillet corner is referenced by unrelated geometry");}
         QJsonArray keptConstraints;
         bool releasedOriginAnchor=false;
+        QJsonArray originSupportLines;
         for(const auto& value:constraints){const auto c=value.toObject();bool references=false,allRetired=true;
             for(const auto& id:c["pointIds"].toArray()){references|=retired.contains(id.toString());allRetired&=retired.contains(id.toString());}
             bool removedEntity=false;for(const auto& id:c["entityIds"].toArray())removedEntity|=removedLines.contains(id.toString());
@@ -986,7 +1107,11 @@ SketchGeometry::SolveResult SketchGeometry::filletCorners(const QJsonObject& dra
             }
             if(removedEntity){if(c["type"]!="horizontal" && c["type"]!="vertical")reject("Exhausted fillet line has an unsupported entity constraint");removedConstraints.append(c["id"]);continue;}
             if(references){if(c["type"]!="coincident" || !allRetired)reject("Fillet corner has an unrelated point constraint");
-                if(rectangleOutline && c["pointIds"].toArray().contains(parameters["originPointId"]))releasedOriginAnchor=true;
+                if(rectangleOutline && c["pointIds"].toArray().contains(parameters["originPointId"])) {
+                    if(drivingRectangle){
+                        for(const auto& id:originCornerLines)if(!originSupportLines.contains(id))originSupportLines.append(id);
+                    } else releasedOriginAnchor=true;
+                }
                 removedConstraints.append(c["id"]);continue;}keptConstraints.append(c);}
         QJsonArray keptDimensions;
         for(const auto& value:dimensions){const auto d=value.toObject();bool pointReference=false;for(const auto& id:d["pointIds"].toArray())pointReference|=retired.contains(id.toString());
@@ -1019,22 +1144,30 @@ SketchGeometry::SolveResult SketchGeometry::filletCorners(const QJsonObject& dra
                     mapped[i]=replacement;
                 }
                 if(mapped[0]==mapped[1])reject("Rounded rectangle overall span endpoints coincide");
-                span["pointIds"]=mapped;span.remove("valueMm");span["driving"]=false;
-                keptDimensions.append(span);convertedDimensions.append(d["id"]);
+                span["pointIds"]=mapped;
+                if(!drivingRectangle){span.remove("valueMm");span["driving"]=false;convertedDimensions.append(d["id"]);}
+                keptDimensions.append(span);
             } else if(affected)removedDimensions.append(d["id"]);
             else {if(pointReference)reject("Fillet corner has an unrelated point dimension");keptDimensions.append(d);}}
         QJsonArray keptPoints;for(const auto& value:points)if((!retired.contains(value.toObject()["id"].toString()) ||
                 (rectangleOutline && value.toObject()["id"]==parameters["originPointId"]))
                 && !discardedFresh.contains(value.toObject()["id"].toString()))keptPoints.append(value);
         for(const auto& value:arcs)entities.append(value);for(const auto& value:newRelations)keptConstraints.append(value);
+        if(drivingRectangle && originSupportLines.size()==2)for(const auto& lineId:originSupportLines)
+            keptConstraints.append(QJsonObject{{"id",newId()},{"type","supportLine"},{"pointIds",QJsonArray{originId}},{"entityIds",QJsonArray{lineId}}});
         const auto firstArc=arcs.first().toObject()["id"];
         keptDimensions.append(QJsonObject{{"id",newId()},{"kind","radius"},{"entityId",firstArc},{"driving",true},{"valueMm",radius}});
         for(int i=1;i<arcs.size();++i)if(arcs[i].toObject()["centerPointId"]!=arcs.first().toObject()["centerPointId"])keptConstraints.append(QJsonObject{{"id",newId()},{"type","equal"},{"entityIds",QJsonArray{firstArc,arcs[i].toObject()["id"]}}});
         parameters["points"]=keptPoints;parameters["entities"]=entities;parameters["constraints"]=keptConstraints;parameters["dimensions"]=keptDimensions;
+        if(drivingRectangle && !parameters.contains("roundedRectangleIntent"))parameters["roundedRectangleIntent"]=QJsonObject{
+            {"sideIds",sideIds},{"sideDirections",sideDirections},{"widthId",widthId},{"heightId",heightId},{"originPointId",originId}};
         auto candidate=draft;candidate["parameters"]=parameters;auto result=solveDraft(candidate,projectionContext);
         if(!result.ok)return {false,draft,result.diagnostics,result.error};
         QJsonArray arcIds;for(const auto& value:arcs)arcIds.append(value.toObject()["id"]);
-        result.diagnostics["createdArcIds"]=arcIds;result.diagnostics["removedDimensionIds"]=removedDimensions;result.diagnostics["removedConstraintIds"]=removedConstraints;result.diagnostics["convertedReferenceDimensionIds"]=convertedDimensions;result.diagnostics["releasedOriginCoincidence"]=releasedOriginAnchor;QJsonArray retiredLines;for(const auto& id:removedLines)retiredLines.append(id);result.diagnostics["removedEntityIds"]=retiredLines;return result;
+        result.diagnostics["createdArcIds"]=arcIds;result.diagnostics["removedDimensionIds"]=removedDimensions;result.diagnostics["removedConstraintIds"]=removedConstraints;result.diagnostics["convertedReferenceDimensionIds"]=convertedDimensions;result.diagnostics["releasedOriginCoincidence"]=releasedOriginAnchor;
+        result.diagnostics["retainedDrivingDimensionIds"]=drivingRectangle ? QJsonArray{widthId,heightId} : QJsonArray{};
+        result.diagnostics["originSupportLineIds"]=originSupportLines;
+        QJsonArray retiredLines;for(const auto& id:removedLines)retiredLines.append(id);result.diagnostics["removedEntityIds"]=retiredLines;return result;
     }catch(const std::exception& error){return invalidDraft(draft,QString::fromUtf8(error.what()));}
 }
 

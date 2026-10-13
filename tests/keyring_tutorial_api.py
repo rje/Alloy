@@ -57,7 +57,7 @@ def main():
         'result': 'incomplete', 'sourceId': SOURCE_ID, 'sourceSteps': list(range(1, 22)),
         'sourceChoices': {
             'fixture': 'XY x0..60, y-30..0; four ordinary R6 quarter-arcs',
-            'annotations': '60/30 measured overall reference spans after corner fillets; drivenness retired',
+            'annotations': 'Alloy retains driving 60/30 overall spans on this origin-based rectangle; source post-fillet drivenness is unknown',
             'rim': 'explicit sketch on actual z2 cap, source transition left sketch creation implicit',
             'hole': 'written diameter 4 over later apparent screenshot diameter 5; first endpoint (5,-15), second direction +X, center (7,-15); placement is Alloy choice',
             'text': 'personalized DSB, pinned licensed DejaVu Sans 2.37 Bold, cap height 14; handles move baseline to (55,-5) and rotate about 180 degrees; source examples, not mandatory font/default',
@@ -161,7 +161,7 @@ def main():
                 assert len([e for e in current['parameters']['entities'] if e['type'] == 'arc']) == index+1
                 for dimension_id, expected in zip(dimensions, (60, 30)):
                     dim = next(d for d in current['parameters']['dimensions'] if d['id'] == dimension_id)
-                    assert not dim['driving'] and 'valueMm' not in dim
+                    assert dim['driving'] and dim['valueMm'] == expected
                     close(measured_span(current, dim), expected)
                 if index in (0, 3): capture(f'03-fillet-{index+1}')
             rounded = draft()
@@ -172,7 +172,7 @@ def main():
             source_profile = inspect()['evaluation']['sketches'][0]['profiles'][0]
             close(source_profile['areaMm2'], OUTER_AREA)
             report['roundedSource'] = {'profileId': source_profile['profileId'],
-                'referenceDimensionIds': dimensions, 'radiusDimensionIds': radius_ids}
+                'drivingDimensionIds': dimensions, 'radiusDimensionIds': radius_ids}
 
             stage('8', 'Extrude rounded profile 2 mm as New Body')
             call('solid.extrude', {'sketchId': rounded['id'], 'profileId': source_profile['profileId'],
