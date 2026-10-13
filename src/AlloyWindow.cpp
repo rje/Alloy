@@ -2013,6 +2013,7 @@ void AlloyWindow::refresh() {
     sketchEscape_->setEnabled(editingSketch || session_.value("command")=="sketch.plane");
     if(extrudeEscape_)extrudeEscape_->setEnabled(session_.value("command")=="solid.extrude");
     if(session_.value("command")=="solid.move" && moveDock_)for(const auto& key:{"xMm","yMm","zMm","xDeg","yDeg","zDeg","pivotXMm","pivotYMm","pivotZMm"})if(auto* field=moveDock_->findChild<QDoubleSpinBox*>(key)){const QSignalBlocker blocker(field);field->setValue(session_["inputs"].toObject()[key].toDouble());}
+    if(moveEscape_)moveEscape_->setEnabled(session_.value("command")=="solid.move");
     if(combineEscape_)combineEscape_->setEnabled(session_.value("command")=="solid.combine");
     if(editingSketch) {
         const auto inputs=session_.value("inputs").toObject(),draft=session_.value("draftSketch").toObject();
@@ -2515,7 +2516,7 @@ QJsonObject AlloyWindow::finishSession(const QString& id, bool commit) {
         if(combineEscape_)combineEscape_->setEnabled(false);if(combineDock_)combineDock_->hide();
         view_->clearPreview();view_->setEditDisplay({},{});view_->highlightCombineInputs({},{});
     }
-    else if(target=="solid.move") {if(moveDock_)moveDock_->hide();view_->clearMoveCue(true);view_->clearPreview();view_->clearBodyStage();}
+    else if(target=="solid.move") {if(moveEscape_)moveEscape_->setEnabled(false);if(moveDock_)moveDock_->hide();view_->clearMoveCue(true);view_->clearPreview();view_->clearBodyStage();}
     else if(target.startsWith("solid.")) {if(primitiveDock_)primitiveDock_->hide();view_->clearPreview();}
     if(target.startsWith("sketch.")) {
         if(sketchDock_)sketchDock_->hide();view_->clearSketchDraft();displayedSketchDraft_={};view_->setSketchPlane({});view_->setEditDisplay({},{});view_->clearBodyStage();view_->setSketchAnnotationVisibility(true,true);

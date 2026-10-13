@@ -76,6 +76,21 @@ private slots:
         QVERIFY2(run(window,"sketch.cancel"),error_.constData());
         QCOMPARE(window.state()["document"].toObject()["features"].toInt(),0);
     }
+    void moveEscapeRepeatedSessions() {
+        AlloyWindow window;window.resize(1180,760);window.show();window.activateWindow();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));auto* view=viewport(window);QVERIFY(view);
+        QVERIFY2(run(window,"solid.cylinder",{{"radius",3},{"height",40},{"z",11},{"units","mm"}}),error_.constData());
+        const auto inspected=window.execute("document.inspect")["result"].toObject();
+        const auto authored=inspected["authored"].toObject();const auto body=authored["features"].toArray()[0].toObject()["bodyId"];
+        for(int i=0;i<3;++i){
+            QVERIFY2(run(window,"solid.moveDialog",{{"targetBodyId",body}}),error_.constData());
+            QVERIFY2(run(window,"solid.moveHandle",{{"field","zMm"},{"value",2}}),error_.constData());
+            QVERIFY2(run(window,"solid.moveApplyGesture"),error_.constData());
+            view->setFocus();QTest::keyClick(view,Qt::Key_Escape);QCoreApplication::processEvents();
+            QVERIFY(session(window).isEmpty());
+            QCOMPARE(window.execute("document.inspect")["result"].toObject()["authored"].toObject(),authored);
+        }
+    }
     void planeCircleDimension() {
         AlloyWindow window;window.resize(1180,760);window.show();window.activateWindow();
         QVERIFY(QTest::qWaitForWindowExposed(&window));

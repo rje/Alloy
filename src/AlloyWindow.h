@@ -79,6 +79,7 @@ private:
     QJsonObject previewMove();
     void showMove();
     QDockWidget* moveDock_ = nullptr;
+    QShortcut* moveEscape_ = nullptr;
     QJsonObject beginCombine(const QJsonObject& inputs);
     QJsonObject combineCandidate(const QJsonObject& inputs) const;
     QString validateCombineInputs(const QJsonObject& inputs) const;

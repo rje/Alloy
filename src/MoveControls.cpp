@@ -39,7 +39,7 @@ QJsonObject AlloyWindow::previewMove() {
     const auto featureId=session_["inputs"].toObject()["featureId"].toString();
     if(!featureId.isEmpty()){QJsonArray features;for(const auto& f:candidate["features"].toArray()){features.append(f);if(f.toObject()["id"]==featureId)break;}candidate["features"]=features;stage=CadDocument::evaluateCandidate(candidate).evaluation;}
     const auto inputs=session_["inputs"].toObject();const auto target=inputs["targetBodyId"].toString();
-    for(const auto& body:stage->bodies)if(body.bodyId==target){view_->setBodyStage(stage->bodies,"move:"+session_["id"].toString());view_->showPreview(body.shape,target,true);view_->showMoveCue(inputs);session_["geometry"]=body.summary;break;}
+    for(const auto& body:stage->bodies)if(body.bodyId==target){view_->setBodyStage(stage->bodies,"move:"+session_["id"].toString());view_->showMovePreview(body.shape,target);view_->showMoveCue(inputs);session_["geometry"]=body.summary;break;}
     session_["previewed"]=true;session_["geometryEvaluated"]=true;return session_;
 }
 void AlloyWindow::showMove() {
@@ -59,6 +59,9 @@ void AlloyWindow::showMove() {
     form->addRow(status);auto* buttons=new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel,panel);form->addRow(buttons);
     connect(buttons,&QDialogButtonBox::accepted,panel,[this,status]{auto response=execute("command.commit",{{"session",session_["id"]}});if(!response["ok"].toBool())status->setText(response["error"].toObject()["message"].toString());});
     connect(buttons,&QDialogButtonBox::rejected,panel,[this]{execute("command.cancel",{{"session",session_["id"]}});});
-    auto* escape=new QShortcut(QKeySequence(Qt::Key_Escape),canvasWindow_);connect(escape,&QShortcut::activated,panel,[this]{if(session_.value("command")=="solid.move")execute("command.cancel",{{"session",session_["id"]}});});
+    auto cancel=[this]{if(session_.value("command")=="solid.move")execute("command.cancel",{{"session",session_["id"]}});};
+    auto* escape=new QShortcut(QKeySequence(Qt::Key_Escape),panel);escape->setContext(Qt::WidgetWithChildrenShortcut);connect(escape,&QShortcut::activated,panel,cancel);
+    if(!moveEscape_){moveEscape_=new QShortcut(QKeySequence(Qt::Key_Escape),view_);moveEscape_->setContext(Qt::WidgetShortcut);connect(moveEscape_,&QShortcut::activated,this,cancel);}
+    moveEscape_->setEnabled(true);
     canvasWindow_->addDockWidget(Qt::RightDockWidgetArea,moveDock_);moveDock_->show();
 }

@@ -47,8 +47,15 @@ A bounded follow-up replaces platform-clamped wire handles with screen-sized
 solid cylinders/cones and torus rings, using unlit saturated axis colors. The
 post-build `move-preview-solid-triad.png` actual-app capture was inspected and
 shows readable handles against the stock; projected hit targets are unchanged.
-Native numeric completion, context menu and arrow/ring dragging are implemented
-but await independent native verification on the integrated candidate.
+Astra independently accepted native Y10 and localZ−20 numeric completion/reset,
+physical axis-arrow and rotation-ring gestures/reset, native OK/Cancel and
+reopen. A narrow Escape follow-up removes duplicate shortcut lifetime, explicitly
+focuses the dragged viewport and restores exact saved intent when canceled after
+a drag; repeated-session widget regression and independent native Escape pass.
+The moving body now uses established opaque selection blue; the stock remains
+neutral. `move-preview-blue-solid-triad.png` and `native-escape-fixed.json` record
+those bounded results. Native body context-menu activation remains inconclusive;
+its implementation is not represented as a verified uninterrupted tutorial path.
 
 ## Local control
 

@@ -1306,6 +1306,10 @@ void ReferenceView::clearMoveCue(bool resetGesture) {
     if(!context_.IsNull())for(const auto& cue:moveCue_)context_->Remove(cue,false);
     moveCue_.clear();moveCueState_={};
 }
+void ReferenceView::showMovePreview(const TopoDS_Shape& shape,const QString& bodyId) {
+    replacePreview(shape,bodyId,true);
+    if(!preview_.IsNull()){preview_->SetColor(Quantity_Color(0.16,0.47,0.86,Quantity_TOC_sRGB));context_->Redisplay(preview_,false);}
+}
 void ReferenceView::showMoveCue(const QJsonObject& inputs) {
     clearMoveCue();if(view_.IsNull())return;
     auto parameters=inputs;auto steps=inputs["steps"].toArray();QJsonObject delta;for(const auto& key:{"xMm","yMm","zMm","xDeg","yDeg","zDeg"})delta[key]=inputs.value(key).toDouble();steps.append(delta);parameters["steps"]=steps;const auto transform=GeometryKernel::moveTransform(parameters);
@@ -1641,7 +1645,7 @@ void ReferenceView::mousePressEvent(QMouseEvent* e) {
             if(d<best){best=d;picked=h;mode="translation";}
             auto ring=h["ring"].toArray();for(int i=1;i<ring.size();++i){auto d=distance(e->position(),point(ring[i-1].toObject()),point(ring[i].toObject()));if(d<best){best=d;picked=h;mode="rotation";}}
         }
-        if(!picked.isEmpty()){moveDrag_={{"handle",picked},{"mode",mode},{"pressX",e->position().x()},{"pressY",e->position().y()},{"initialInputs",moveCueState_["inputs"]}};e->accept();return;}
+        if(!picked.isEmpty()){setFocus(Qt::MouseFocusReason);moveDrag_={{"handle",picked},{"mode",mode},{"pressX",e->position().x()},{"pressY",e->position().y()},{"initialInputs",moveCueState_["inputs"]}};e->accept();return;}
     }
     if(e->button()==Qt::RightButton)++rightMousePressCount_;
     if (e->button() == Qt::MiddleButton || (e->button()==Qt::LeftButton && e->modifiers().testFlag(Qt::AltModifier))) {

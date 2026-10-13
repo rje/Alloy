@@ -68,6 +68,7 @@ public:
     void showCutPreview(const EvaluatedBody& body, const std::vector<EvaluatedProfile>& profiles, double distanceMm,
         const QJsonArray& sourceProfileIds, const QString& units);
     void showExtrudeHandle(const EvaluatedProfile& profile,const QJsonArray& sourceProfileIds,const QString& units,const QString& operation,double distanceMm = 0);
+    void showMovePreview(const TopoDS_Shape& shape,const QString& bodyId);
     void showMoveCue(const QJsonObject& inputs);
     void clearMoveCue(bool resetGesture = false);
     QJsonObject moveCueState() const { return moveCueState_; }

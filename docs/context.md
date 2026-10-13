@@ -1297,3 +1297,14 @@ instead of GL-width-clamped wire handles. Build and the actual-app
 state `T * R` applies rotation then translation to a point. Astra's native numeric
 and manipulator review is pending on the private MoveCandidate; no exact/native
 closure claim is made.
+
+
+Astra independently accepted Move numeric Y10/localZ−20 completion/reset,
+physical arrow/ring drag and native OK/Cancel/save. Repeated Move openings left
+orphaned Escape shortcuts: a bounded follow-up gives the panel its own shortcut,
+reuses one viewport shortcut and focuses the dragged viewport. Build, focused
+repeat-open/Escape widget regression and actual native drag→Escape pass with
+exact saved authored state restored (`native-escape-fixed.json`). The moved
+body now uses opaque selection blue with neutral stock; the fresh capture was
+independently accepted. Native context-menu activation remains inconclusive;
+there is no uninterrupted exact full-tutorial claim.
