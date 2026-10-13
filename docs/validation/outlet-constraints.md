@@ -13,3 +13,38 @@ Focused native Qt input exercised actual midpoint hover and two pointer clicks, 
 Independent visual review found the first Concentric square/crosshair at both arc midpoints mismatched the public `a2-concentric.png` reference glyph. The corrected original badge draws two rings once near the shared solved center. A focused settled GPU capture shows the rings; its 12×13 logical-pixel hitbox at x411/y245 does not overlap the point-Vertical hitbox at x431/y245 or any other badge. The public image is a small instructional crop with a different viewport scale, so this is a shape/placement match, not a pixel match.
 
 Validation: `outlet_constraints_test` passed after the final projection-lock preservation guard; `outlet_constraints_controls_test` passed again (3/3, 8.1 s) after the glyph correction. The guard only excludes external projected support points from authored point serialization while an initial reference point is temporarily held; the native fixture uses authored points. The private editor closed after capture. Native pointer and API checks share the production `AlloyWindow` commands and retained `SketchGeometry` data; the core fixture is independent of viewport picking.
+
+## Independent acceptance
+
+Accepted `2ad0bd368067cc8951537171fdfb8d7d8aad333a` atop `e6814e9` on
+2026-10-13. Independent review covered the implementation, exact source-like
+rectangle/opposed-arc core fixture, persisted core output, corrected native log
+and actual GPU capture. No additional validation editor was opened.
+
+The redundancy exception requires a successful solve without conflicts, a
+clean solve of the same system with Concentric removed, and successful
+independent residual checks of the full retained system. It preserves the
+reported redundant IDs rather than silently discarding authored relations.
+The fixture exercises the real dependent center-height equation; duplicate
+Equal, duplicate Concentric and incompatible fixed-center refusals remain
+covered. This accepts the bounded dependent-equation policy, not a general
+promise to accept arbitrary redundant systems. Temporary first-point locking
+is used only to establish initial selection-order placement, then the system
+is solved again without that lock. No hidden Fixed relation is serialized.
+The final external-support guard preserves the preexisting projection filtering.
+
+Midpoint endpoints retain source-line references and follow an upstream edit.
+The actual Qt test covers midpoint hover/two clicks and the Concentric, point
+H/V and Equal pair clicks. Fixture geometry, tool activation, selection clearing
+and construction conversion use shared commands; this is not a native menu or
+Shift-selection claim. It introduces no focus repair between the demonstrated
+pair picks. The corrected run records 3/3 in 8.101 seconds.
+
+The first review rejected the square-crosshair Concentric badge. The corrected
+capture now shows one recognizable, independently authored pair of rings near
+the shared center, separate from the point-Vertical badge and midpoint markers.
+The focused assertions check one stable relation badge and noncolliding bounds
+in this fixture. Labels and palette are readable. Badge clicking, arbitrary
+layout collision avoidance and physical OS input remain unverified. Six DOF
+are truthfully reported for this rough fixture; mirrored/dimensioned zero-DOF
+completion remains the cumulative tutorial gate.
