@@ -48,8 +48,8 @@ shutdown202. Receipt validation/toy-block-independent.md; app/runner f17589e,
 independent Qt tests/receipts8c769b3. Final48second movie external
  demos/2026-10-13/toy-block/toy-block-complete.mp4; editable model and STL in
  deliverables/toy-block-2026-10-13. Strict one-component36644triangle mesh,
-31.8x15.8x11.3mm. Seed edit/history/exact reopen pass. First stud uses two retained
-projected-corner3.9 dimensions; direct center-to-edge gesture remains SKT017#150.
+31.8x15.8x11.3mm. Seed edit/history/exact reopen pass. The original movie used projected-corner3.9 dimensions. The refreshed accepted
+movie now uses true retained point-to-edge3.9 dimensions; see the update below.
 Physical OS input and exact visual parity are not claimed.
 
 Pattern native-widget timeline/axes/Enter/Cancel/OK, Browser Bottom/roof click,
@@ -113,16 +113,18 @@ Core/API and independent Qt input pass, including D, center/edge selection,
 separate placement, 3.9/Enter twice, Escape, label drag, upstream edge movement,
 Cut volumes and exact reopen. Receipt: validation/point-edge-dimensions-independent.md. The external contract is
 `knowledge/specs/point-edge-dimension-next-slice.md`. Root serializes private GUI
-access; no editor is currently running. The main acceptance checkpoint 55dd087
-is pushed; the later ASCII correction is local pending the next coherent push.
-Broader #150 retains side-face boss and inclined support coverage; #43 records
-crowded 24-feature Timeline labels, and #83 retains performance work. No release,
+access; no editor is currently running. The accepted tutorial, ASCII, point-to-edge and Timeline checkpoints through
+c328566 are pushed. The refreshed toy recording and deliverables use true edge
+dimensions; earlier artifacts remain archived.
+Active #150 adds side-face boss, inclined support and preserved-state recovery
+coverage. Broader #43 retains history behavior beyond accepted Timeline readability;
+#83 retains performance work. Active #208 compares native graphics foundations. No release,
 tag or per-commit CI is triggered. Continue authorized backlog work while the user
 is asleep; do not stop just because the first three gates are complete.
 
 HIS-005 #207 is independently accepted and CLOSED (4e34866/8f87058): fixed-size readable Timeline
 targets, complete name/type tooltips, horizontal overflow and a view-only route
-to the latest feature. Sol (die_components) owns isolated timeline-overflow.
+to the latest feature. Implementation and independent review are integrated.
 External research is knowledge/specs/feature-timeline-readability-slice.md. Public
 Move to End changes model history; do not label a view-only scroll that way or
 add a fake rollback control. Existing edit/context authority remains unchanged.
