@@ -45,3 +45,18 @@ Remaining gate evidence includes the uninterrupted native sequence and its
 input-overlay movie, exact source-step/selection ledger and bounded visual
 comparison. Separate feature-level native checks cannot be relabeled as that
 complete walkthrough. Other-platform runtime qualification remains outstanding.
+
+## Independent and regression acceptance
+
+See [independent combined review](straw-bung-independent-review.md),
+[Join native review](join-independent-review.md),
+[Circle entry](circle-entry.md) and [Move native review](move-independent-review.md).
+All three bounded feature slices are independently accepted. Native Move
+Escape-after-reopen and handle dragging pass after the shortcut-lifetime fix;
+solid GPU handles and blue moving-body selection replace the faint gray preview.
+The earlier complete bracket API chain also passed on this combined candidate
+(`build-tutorial-polish/evidence/bracket-after-bung/tutorial-bracket-api.json`).
+These receipts do not close the uninterrupted native tutorial/movie gate.
+
+Deliverables are retained outside Git in
+`../Alloy-reference-records/deliverables/straw-bung-2026-10-12/`.

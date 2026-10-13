@@ -16,9 +16,9 @@ external source record.
 
 Nine published issues (#168-176) add four illustrated tutorial gates and bounded
 Join, Move, command-first Circle, overlapping-profile partition and successive
-Join-result work. The three first features are integrated on main. Join has
-independent native/geometry acceptance; Move and Circle finish bounded native
-qualification. Move-handle contrast is being corrected. No release was cut.
+Join-result work. The three first features are integrated on main. Join, Move and Circle have independent bounded native/geometry acceptance.
+Move handles use solid GPU shapes; its selected preview is blue and repeated
+session Escape cancellation is fixed and natively verified. No release was cut.
 
 The combined real-app video-variant chain passed: Circle -> base extrusion ->
 face Circle -> Join -> Join-cap Circle -> cutter extrusion -> local Move ->
@@ -38,8 +38,11 @@ Next: straw support #171 (overlap partitions #174, successive Join #176, solid
 fillets #41); nested cubes #172 (shell #51, mirror #54, planes #56, faces #159,
 center rectangle #162); egg cup #173 (planes, loft #58, shell). Broader Copy/Align
 stays #53 and Intersect stays #161. Existing bracket native follow-ups remain
-Todo. Backlog at publication: 176 total, 41 closed, 135 open; use live state for
-subsequent feature closures.
+Todo. The three bounded implementation slices are complete; #170 remains
+Todo for uninterrupted native input, source-step ledger completion and movie.
+Backlog after their closure: 176 total, 44 closed, 132 open. No implementation
+issue remains In Progress at this checkpoint. The prior bracket API chain passed
+on the combined candidate. Final UI-only fixes do not change modeling geometry.
 
 ## User slicer milestone (2026-10-12)
 
