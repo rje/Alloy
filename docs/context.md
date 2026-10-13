@@ -2347,3 +2347,19 @@ real-window circle gesture, an unlinked equal-coordinate ambiguity control,
 and an empty supported-face origin check pass. The full outlet lesson
 still requires a separate cumulative rerun. See
 [the candidate receipt](validation/coincident-snap-clusters.md).
+
+## Shortened straight rim candidate (2026-10-13)
+
+DOC-020/#245 retains unique current straight top-rim descendants after a centered
+75×50×10 plate's four vertical R5 Fillets. Actual OCCT history supplies identity;
+updated oriented endpoints distinguish current boundary ends from source sketch
+corner ancestry. Missing/split references refuse without geometry fallback.
+Focused core 3/3 and 59 actual-app API calls pass retained two-edge 10 mm distances,
+centered width/radius edits, atomic refusal, exact history and reopen; readable
+Apple M4 GPU captures were inspected. The fixture uses a circle center, so
+standalone Point #246 and the complete plate remain separate. Final opt-in routing
+and later-Boolean metadata refresh use final build/core evidence; preceding API
+captures cover the unchanged active fillet branch. Future signed direction
+consumers (#248) must use oriented endpoints rather than raw curve parameter
+signs. See [contract and receipt](validation/fillet-rim-lineage.md). Independent
+review and integration remain pending; the private editor is closed.

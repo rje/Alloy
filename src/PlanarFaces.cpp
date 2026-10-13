@@ -22,8 +22,33 @@ TopoDS_Shape descendant(BRepBuilderAPI_MakeShape& op,const TopoDS_Shape& source,
     return choices.Extent()==1 ? choices(1) : TopoDS_Shape{};
 }
 }
+bool PlanarFaces::updateStraightBoundary(const TopoDS_Edge& source,
+    const TopoDS_Edge& next,QJsonObject& provenance) {
+    if(source.IsNull() || next.IsNull())return false;
+    BRepAdaptor_Curve before(source),after(next);
+    if(before.GetType()!=GeomAbs_Line || after.GetType()!=GeomAbs_Line)return false;
+    auto a=after.Value(after.FirstParameter()),b=after.Value(after.LastParameter());
+    const auto oldA=provenance["startMm"].toArray(),oldB=provenance["endMm"].toArray();
+    // Support boundaries already carry their oriented endpoints. Solid edges
+    // initially use the curve parameter direction, as their public descriptors do.
+    const auto first=oldA.size()==3 ? gp_Pnt(oldA[0].toDouble(),oldA[1].toDouble(),oldA[2].toDouble()) : before.Value(before.FirstParameter());
+    const auto last=oldB.size()==3 ? gp_Pnt(oldB[0].toDouble(),oldB[1].toDouble(),oldB[2].toDouble()) : before.Value(before.LastParameter());
+    const gp_Vec direction(first,last),current(a,b);
+    if(direction.Magnitude()<1e-6 || current.Magnitude()<1e-6
+        || direction.Crossed(current).Magnitude()>1e-9*direction.Magnitude()*current.Magnitude()
+        || before.Line().Distance(a)>1e-6 || before.Line().Distance(b)>1e-6)return false;
+    if(direction.Dot(current)<0)std::swap(a,b);
+    if(provenance.contains("startContact") || provenance.contains("endContact")) {
+        provenance["sourceBoundaryContacts"]=QJsonObject{{"start",provenance["startContact"]},{"end",provenance["endContact"]}};
+        provenance.remove("startContact");provenance.remove("endContact");
+    }
+    provenance["endpointProvenance"]="currentKernelBoundary";
+    provenance["lineage"]="uniqueModifiedStraight";
+    provenance["startMm"]=point(a);provenance["endMm"]=point(b);
+    return true;
+}
 std::vector<EvaluatedSupportFace> PlanarFaces::transfer(BRepBuilderAPI_MakeShape& op,
-    const std::vector<EvaluatedSupportFace>& sources,const TopoDS_Shape& result) {
+    const std::vector<EvaluatedSupportFace>& sources,const TopoDS_Shape& result,bool retainModifiedStraight) {
     TopTools_IndexedMapOfShape present;TopExp::MapShapes(result,TopAbs_FACE,present);
     std::vector<EvaluatedSupportFace> output;QSet<QString> seen;
     for(auto source:sources) {
@@ -40,9 +65,10 @@ std::vector<EvaluatedSupportFace> PlanarFaces::transfer(BRepBuilderAPI_MakeShape
         std::vector<EvaluatedSupportEdge> retained;
         for(auto edge:source.boundaryEdges) {
             const auto mapped=descendant(op,edge.edge,edges,TopAbs_EDGE);if(mapped.IsNull())continue;
-            // Changed edge endpoints invalidate projected endpoint provenance.
-            // Retain the face but do not offer a misleading old boundary link.
-            if(!mapped.IsSame(edge.edge))continue;
+            // Kernel history alone chooses the edge; coordinates only verify
+            // straight-line scope and preserve endpoint roles on that choice.
+            if(!mapped.IsSame(edge.edge)
+                && (!retainModifiedStraight || edge.type!="line" || !updateStraightBoundary(edge.edge,TopoDS::Edge(mapped),edge.provenance)))continue;
             edge.edge=TopoDS::Edge(mapped);retained.push_back(edge);
         }
         source.boundaryEdges=retained;

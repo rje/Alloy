@@ -42,7 +42,7 @@ std::vector<EvaluatedSolidEdge> SolidFillet::prismEdges(BRepPrimAPI_MakePrism& p
     }
     return result;
 }
-std::vector<EvaluatedSolidEdge> SolidFillet::transferEdges(BRepAlgoAPI_BooleanOperation& operation,const std::vector<EvaluatedSolidEdge>& inputs,const TopoDS_Shape& solid) {
+std::vector<EvaluatedSolidEdge> SolidFillet::transferEdges(BRepBuilderAPI_MakeShape& operation,const std::vector<EvaluatedSolidEdge>& inputs,const TopoDS_Shape& solid,bool straightModifiedOnly) {
     TopTools_IndexedMapOfShape present;TopExp::MapShapes(solid,TopAbs_EDGE,present);
     struct Resolution {EvaluatedSolidEdge source;TopTools_IndexedMapOfShape candidates;bool ambiguous=false;};
     QMap<QString,Resolution> groups;
@@ -56,7 +56,24 @@ std::vector<EvaluatedSolidEdge> SolidFillet::transferEdges(BRepAlgoAPI_BooleanOp
     std::vector<EvaluatedSolidEdge> result;
     for(const auto& group:groups) {
         auto mapped=group.source;
-        if(!group.ambiguous && group.candidates.Extent()==1){mapped.edge=TopoDS::Edge(group.candidates(1));mapped.provenance.remove("resolutionError");}
+        if(!group.ambiguous && group.candidates.Extent()==1){
+            const auto next=TopoDS::Edge(group.candidates(1));
+            if(straightModifiedOnly && !next.IsSame(mapped.edge)
+                && !PlanarFaces::updateStraightBoundary(mapped.edge,next,mapped.provenance)) {
+                mapped.edge.Nullify();mapped.provenance["resolutionError"]="modified_by_fillet";
+            } else {
+                // A subsequent Boolean may modify a retained fillet descendant.
+                // Refresh oriented metadata or remove it before exposing a new
+                // curve's own endpoints; never publish stale current endpoints.
+                if(!straightModifiedOnly && !next.IsSame(mapped.edge)
+                    && mapped.provenance.contains("endpointProvenance")
+                    && !PlanarFaces::updateStraightBoundary(mapped.edge,next,mapped.provenance)) {
+                    mapped.provenance.remove("endpointProvenance");mapped.provenance.remove("lineage");
+                    mapped.provenance.remove("startMm");mapped.provenance.remove("endMm");
+                }
+                mapped.edge=next;mapped.provenance.remove("resolutionError");
+            }
+        }
         else {mapped.edge.Nullify();mapped.provenance["resolutionError"]=group.ambiguous || group.candidates.Extent()>1 ? "ambiguous_split" : "deleted";}
         result.push_back(mapped);
     }
@@ -68,7 +85,7 @@ QJsonArray SolidFillet::descriptors(const std::vector<EvaluatedSolidEdge>& edges
         QJsonObject value{{"edgeId",edge.edgeId},{"provenance",edge.provenance},{"available",!edge.edge.IsNull()}};
         if(!edge.edge.IsNull()) {
             BRepAdaptor_Curve curve(edge.edge);const auto a=curve.Value(curve.FirstParameter()),b=curve.Value(curve.LastParameter()),mid=curve.Value((curve.FirstParameter()+curve.LastParameter())/2);
-            value["startMm"]=QJsonArray{a.X(),a.Y(),a.Z()};value["endMm"]=QJsonArray{b.X(),b.Y(),b.Z()};value["midpointMm"]=QJsonArray{mid.X(),mid.Y(),mid.Z()};
+            value["startMm"]=edge.provenance.contains("endpointProvenance") ? edge.provenance["startMm"] : QJsonValue(QJsonArray{a.X(),a.Y(),a.Z()});value["endMm"]=edge.provenance.contains("endpointProvenance") ? edge.provenance["endMm"] : QJsonValue(QJsonArray{b.X(),b.Y(),b.Z()});value["midpointMm"]=QJsonArray{mid.X(),mid.Y(),mid.Z()};
         }
         result.append(value);
     }
@@ -101,9 +118,9 @@ void SolidFillet::evaluate(EvaluatedBody& body,const QJsonObject& parameters,con
     const auto result=builder.Shape();auto summary=GeometryKernel::summarize(result);
     if(!summary["valid"].toBool() || !summary["closed"].toBool() || summary["topology"].toObject()["solids"].toInt()!=1 || summary["volumeMm3"].toDouble()<=0)
         fail("fillet_invalid_result","Fillet must produce one valid closed solid");
-    auto caps=PlanarFaces::transfer(builder,body.supportFaces,result);
-    TopTools_IndexedMapOfShape edges;TopExp::MapShapes(result,TopAbs_EDGE,edges);
-    for(auto& edge:body.solidEdges)if(!edge.edge.IsNull() && !edges.Contains(edge.edge)) {edge.edge.Nullify();edge.provenance["resolutionError"]="modified_by_fillet";}
+    auto caps=PlanarFaces::transfer(builder,body.supportFaces,result,true);
+    auto edges=transferEdges(builder,body.solidEdges,result,true);
+    body.solidEdges=std::move(edges);
     body.shape=result;body.supportFaces=caps;
     QJsonArray capValues;for(const auto& cap:caps)capValues.append(QJsonObject{{"faceId",cap.faceId},{"bodyId",cap.bodyId},{"producerFeatureId",cap.producerFeatureId},{"role",cap.role},{"planar",true},{"frame",cap.frame},{"edges",GeometryKernel::supportEdgeDescriptors(cap)}});
     summary["supportFaces"]=capValues;summary["solidEdges"]=descriptors(body.solidEdges);summary["lastModifierFeatureId"]=featureId;summary["producerFeatureId"]=body.featureId;summary["operation"]="fillet";summary["radiusMm"]=parameters["radiusMm"];summary["selectedEdgeIds"]=parameters["edgeIds"];summary["tangentContours"]=contours;body.summary=summary;
