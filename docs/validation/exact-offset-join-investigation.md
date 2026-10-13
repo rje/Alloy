@@ -60,6 +60,20 @@ change, simplified source solid or discarded result is used.
 
 ## Retained reproduction plan and remaining decision
 
+The first actual-app source prefix now exposes an earlier failure. Root's
+`tests/ornament_source_api.py` authored the constrained profile, Full Revolve,
+Shell, retained hatched section and exact offset strip from blank. Shell volume
+is 37826.7374468 mm³ and the one closed XZ strip has area 510.8141335884 mm².
+The 60 mm retained Intersect refuses with `boolean_empty_result`, unlike the
+headless probe. This is not a successful seed or full tutorial. External
+`deliverables/ornament-2026-10-13/source-prefix-01/` preserves the 46-call
+transcript, actual pre-Intersect inspected authoring and captures; its separate
+authored JSON was extracted from that inspection, not saved by the application.
+The editor exited. Localize the discrepancy before claiming the raw kernel
+probe predicts the retained workflow. Tiny numerical or topology differences
+are hypotheses, not an established cause. The runner now saves a pre-Intersect
+document on its next invocation; that added save has not yet executed.
+
 After #261/#263 are accepted, reproduce from a fresh design through the shared
 application commands. Reuse the accepted #260 source fixture to author the
 constrained XZ radial profile, Full Revolve and retained generated bottom-face
