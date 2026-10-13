@@ -3,6 +3,11 @@
 Updated 2026-10-13. This is the project handoff for a fresh session. Read the root
 [AGENTS.md](../AGENTS.md) first; its reference restrictions apply to all work.
 
+The isolated tangent badge fix #234 replaces empty square markers with a curve
+touching a line. Its bounded macOS GPU capture and retained hover/pick identity
+check are in [the candidate receipt](validation/tangent-badges.md). Independent
+review and main integration remain pending.
+
 ## Current checkpoint — read first (2026-10-13)
 
 The nested cubes #172, egg cup #173, toy block #146, die #147 and subsequent

@@ -1143,7 +1143,13 @@ void ReferenceView::decorateSketch(const QJsonObject& feature,const QJsonObject&
             }
             TopoDS_Compound strokes;BRep_Builder builder;builder.MakeCompound(strokes);
             auto stroke=[&](double x1,double y1,double x2,double y2){builder.Add(strokes,BRepBuilderAPI_MakeEdge(sketchWorld(plane,u+x1*size,shiftedV+y1*size),sketchWorld(plane,u+x2*size,shiftedV+y2*size)).Edge());};
-            stroke(-4,-4,4,-4);stroke(4,-4,4,4);stroke(4,4,-4,4);stroke(-4,4,-4,-4);
+            // A tangent line touches the low point of a compact curved trace.
+            // Keep both strokes inside the existing 12-pixel pick bounds.
+            stroke(-5,-4,5,-4);
+            const auto curveY=[](int px){return -4.0+0.32*px*px;};
+            for(int x=-5;x<5;++x) {
+                stroke(x,curveY(x),x+1,curveY(x+1));
+            }
             const bool selectedGeometry=selection["entityIds"].toArray().contains(ids[0]) || selection["entityIds"].toArray().contains(ids[1]);
             highlightRelation(relation,selectedBadge,hoveredBadge);
             auto badge=sketchPresentation(strokes);badge->SetColor(selectedBadge ? Quantity_Color(0.08,0.43,0.91,Quantity_TOC_sRGB)
