@@ -24,7 +24,10 @@ checks pass. Sequential real-entrypoint runners pass under
 hit testing, preview/cancel/commit, edits, undo/redo and reopen. Root corrected
 new session reads that inserted null command state and missing radius schema
 bounds caught by app verification. Astra owns the single native review editor;
-independent native acceptance is pending, so both issues remain active.
+Independent review caught two additional bounded defects: Fillet finish focus and
+early Join edit previews using downstream solids. Both are corrected; a targeted
+saved-source real-app preview now shows its two historical results and Cancel
+preserves the final authored model. Native recheck is pending, so both issues remain active.
 The complete #171 supported-hole/export runner is being prepared separately.
 
 ## Current integrated checkpoint (2026-10-12)

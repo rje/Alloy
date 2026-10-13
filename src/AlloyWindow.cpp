@@ -1970,7 +1970,7 @@ void AlloyWindow::refresh() {
     const auto historicalSketchId=session_.value("command")=="sketch.edit"
         && session_.value("baseDocumentRevision").toInteger()==static_cast<qint64>(document_->revision())
         ? session_.value("inputs").toObject().value("sketchId").toString() : QString{};
-    if(session_.value("command")!="solid.fillet" && session_.value("command")!="solid.move" && session_.value("command")!="solid.combine" && historicalSketchId.isEmpty())view_->clearBodyStage();
+    if(session_.value("command")!="solid.fillet" && session_.value("command")!="solid.move" && session_.value("command")!="solid.combine" && !(session_.value("command")=="solid.extrude" && !session_.value("inputs").toObject().value("featureId").toString().isEmpty()) && historicalSketchId.isEmpty())view_->clearBodyStage();
     if(displayedDocumentRevision_!=document_->revision()) {
         const QSignalBlocker block(tree_);
         // Keep Browser rows keyed by their stable IDs. Removing all children on
@@ -2308,6 +2308,7 @@ QJsonObject AlloyWindow::previewExtrude() {
     const auto featureId=inputs.value("featureId").toString(session_.value("newFeatureId").toString());
     const auto editId=inputs.value("featureId").toString();
     const auto history=editId.isEmpty() ? document_->evaluation() : document_->evaluationBefore(editId);
+    if(!editId.isEmpty())view_->setBodyStage(history.bodies,"extrude-source:"+session_.value("id").toString());
     std::vector<EvaluatedProfile> profiles;
     for(const auto& id:profileIds)for(const auto& sketch:history.sketches)if(sketch.featureId==inputs["sketchId"].toString())
         for(const auto& item:sketch.profiles)if(item.profileId==id.toString())profiles.push_back(item);
@@ -2339,21 +2340,29 @@ QJsonObject AlloyWindow::previewExtrude() {
     QJsonObject candidate;try {candidate=extrusionCandidate(inputs,false);}catch(const std::exception& error){return rejectWithHandle(failure("evaluation_failed",QString::fromUtf8(error.what())));}
     const auto evaluated=CadDocument::evaluateCandidate(candidate);
     if(!evaluated.ok){auto result=failure("evaluation_failed",evaluated.error);auto error=result["error"].toObject();error["diagnostics"]=evaluated.diagnostics;result["error"]=error;return rejectWithHandle(result);}
+    auto stage=evaluated.evaluation;
+    if(!editId.isEmpty()) {
+        auto prefix=evaluated.authored;QJsonArray features;
+        for(const auto& entry:prefix["features"].toArray()) {features.append(entry);if(entry.toObject()["id"]==editId)break;}
+        prefix["features"]=features;const auto early=CadDocument::evaluateCandidate(prefix);
+        if(!early.ok)return rejectWithHandle(failure("evaluation_failed",early.error));
+        stage=early.evaluation;
+    }
     const EvaluatedBody* body=nullptr;
     const auto targetId=cut ? inputs["targetBodyIds"].toArray().first().toString() : QString{};
-    for(const auto& item:evaluated.evaluation->bodies)if(cut ? item.bodyId==targetId : item.featureId==featureId)body=&item;
+    for(const auto& item:stage->bodies)if(cut ? item.bodyId==targetId : item.featureId==featureId)body=&item;
     if(!body || profiles.size()!=static_cast<std::size_t>(profileIds.size()))return rejectWithHandle(failure("evaluation_failed","The evaluated source or extrusion result is unavailable"));
     try {
         if(inputs.value("operation")=="cut")view_->showCutPreview(*body,profiles,distance,profileIds,inputs["units"].toString());
         else if(inputs["operation"]=="join") {
             auto display=*body;TopoDS_Compound compound;BRep_Builder builder;builder.MakeCompound(compound);
             QJsonArray ids,summaries;
-            const auto ownership=evaluated.evaluation->joinBodyResults[featureId].toArray();
+            const auto ownership=stage->joinBodyResults[featureId].toArray();
             for(const auto& record:ownership) {const auto resultId=record.toObject()["bodyId"].toString();ids.append(resultId);
-                for(const auto& result:evaluated.evaluation->bodies)if(result.bodyId==resultId){builder.Add(compound,result.shape);summaries.append(QJsonObject{{"bodyId",resultId},{"geometry",result.summary}});}}
+                for(const auto& result:stage->bodies)if(result.bodyId==resultId){builder.Add(compound,result.shape);summaries.append(QJsonObject{{"bodyId",resultId},{"geometry",result.summary}});}}
             display.shape=compound;view_->setEditDisplay(inputs["sketchId"].toString(),inputs["targetBodyIds"].toArray());
             view_->showExtrudePreview(display,profiles.front(),distance,profileIds,inputs["units"].toString());
-            session_["resultBodyIds"]=ids;session_["resultBodies"]=summaries;session_["bodyResults"]=ownership;session_["evaluatedBodyCount"]=int(evaluated.evaluation->bodies.size());
+            session_["resultBodyIds"]=ids;session_["resultBodies"]=summaries;session_["bodyResults"]=ownership;session_["evaluatedBodyCount"]=int(stage->bodies.size());
         } else view_->showExtrudePreview(*body,GeometryKernel::unionProfiles(profiles),distance,profileIds,inputs["units"].toString());
     }catch(const std::exception& error){return rejectWithHandle(failure("evaluation_failed",QString::fromUtf8(error.what())));}
     view_->selectProfiles(inputs["sketchId"].toString(),profileIds);
@@ -2589,12 +2598,24 @@ QJsonObject AlloyWindow::finishSession(const QString& id, bool commit) {
     if(dimensionEditor_)dimensionEditor_->hide();
     if (target == "commands.search" && search_) search_->hide();
     if (target == "document.units" && unitsDialog_) unitsDialog_->hide();
-    if(target=="solid.extrude"){if(extrudeEscape_)extrudeEscape_->setEnabled(false);if(extrudeDock_)extrudeDock_->hide();view_->clearPreview();view_->setEditDisplay({},{});}
+    if(target=="solid.extrude"){if(extrudeEscape_)extrudeEscape_->setEnabled(false);if(extrudeDock_)extrudeDock_->hide();view_->clearPreview();view_->setEditDisplay({},{});view_->clearBodyStage();}
     else if(target=="solid.combine") {
         if(combineEscape_)combineEscape_->setEnabled(false);if(combineDock_)combineDock_->hide();
         view_->clearPreview();view_->setEditDisplay({},{});view_->highlightCombineInputs({},{});
     }
-    else if(target=="solid.fillet") {if(filletEscape_)filletEscape_->setEnabled(false);if(filletDock_)filletDock_->hide();view_->clearSolidEdgeHighlights();view_->clearPreview();view_->clearBodyStage();}
+    else if(target=="solid.fillet") {
+        if(filletEscape_)filletEscape_->setEnabled(false);
+        if(filletDock_)filletDock_->hide();
+        view_->clearSolidEdgeHighlights();view_->clearPreview();view_->clearBodyStage();
+        const auto tabId=activeTabId_;
+        view_->setFocus(Qt::OtherFocusReason);
+        // Dock removal can change native keyboard activation after this callback.
+        QTimer::singleShot(0,this,[this,tabId]{
+            if(tabId!=activeTabId_ || !session_.isEmpty())return;
+            view_->setFocus(Qt::OtherFocusReason);
+            if(view_->windowHandle())view_->windowHandle()->requestActivate();
+        });
+    }
     else if(target=="solid.move") {if(moveEscape_)moveEscape_->setEnabled(false);if(moveDock_)moveDock_->hide();view_->clearMoveCue(true);view_->clearPreview();view_->clearBodyStage();}
     else if(target.startsWith("solid.")) {if(primitiveDock_)primitiveDock_->hide();view_->clearPreview();}
     if(target.startsWith("sketch.")) {

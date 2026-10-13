@@ -38,6 +38,9 @@ with application(args.app,out) as (call,log):
     call('solid.extrude',{'sketchId':sketch['sketchId'],'profileId':ids['inner'],'distance':22,'units':'mm','operation':'join'});final=stage('04-inner22');assert final['bodies']==1 and final['evaluation']['bodies'][0]['bodyId']==b0
     body=final['evaluation']['bodies'][0];assert any(f['faceId']==cap['faceId'] and f['producerFeatureId']==cap['producerFeatureId'] for f in body['supportFaces'])
     bridge_area=next(p['areaMm2'] for p in sketch['profiles'] if p['profileId']==ids['bridge']);assert math.isclose(body['volumeMm3'],math.pi*56.25*20+bridge_area*4+30*(4+24+22),rel_tol=1e-8)
+    edit=call('feature.editDialog',{'featureId':join['id']});early=call('command.preview',{'session':edit['id']});assert early['evaluatedBodyCount']==2 and len(early['resultBodies'])==2
+    assert sorted(early['resultBodyIds'])==sorted(b['bodyId'] for b in intermediate['evaluation']['bodies'])
+    call('capture.screenshot',{'path':str(out/'05-history-join4-preview.png')});call('command.cancel',{'session':edit['id']});assert call('document.inspect')['authored']==final['authored']
     call('solid.extrude',{**inputs,'featureId':join['id'],'distance':5});assert call('document.inspect')['evaluation']['bodies'][0]['bodyId']==b0
     call('history.undo');assert call('document.inspect')['authored']==final['authored'];call('history.redo');call('history.undo')
     call('solid.extrude',{**inputs,'featureId':join['id'],'distance':-4},'evaluation_failed');assert call('document.inspect')['authored']==final['authored']
