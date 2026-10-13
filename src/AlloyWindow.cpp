@@ -4633,6 +4633,7 @@ void AlloyWindow::showSketch() {
     auto* content=new QWidget;content->setObjectName("sketchScrollContent");
     content->setStyleSheet("#sketchScrollContent { background: #f7f8f9; color: #323c44; }");
     auto* layout=new QVBoxLayout(content);layout->setContentsMargins(6,6,6,6);
+    layout->setSizeConstraint(QLayout::SetMinAndMaxSize);
     auto* scroll=new QScrollArea;sketchScroll_=scroll;scroll->setWidgetResizable(true);scroll->setFrameShape(QFrame::NoFrame);
     scroll->viewport()->setObjectName("sketchScrollViewport");
     scroll->viewport()->setStyleSheet("#sketchScrollViewport { background: #f7f8f9; color: #323c44; }");
