@@ -1242,3 +1242,15 @@ malformed/multiple-solid atomic refusal, history, and reopen after removal of
 the original source. See `docs/validation/step-exchange.md`. Native dialog and
 visual qualification are still outstanding; do not close #23 on API evidence
 alone. Unrelated STL work is preserved but not qualified by this checkpoint.
+
+## Bounded Extrude Join candidate (2026-10-12)
+
+Isolated `../Alloy-worktrees/bung-join` implements SOL-018 #168: one retained
+Extrude Join target, shared dialog/API operation, authored references, recompute
+and a supported positive Join cap when the exact cap survives the fuse. The
+public straw-bung steps now reach Ø26×3 flange, Ø19×8 neck and a third Ø6.2 tool
+on the joined cap. Focused Join/Cut/face-support tests and actual API dialog
+preview/cancel/commit, Undo/Redo, Join depth edit/tool recompute and save/reopen
+pass. See `validation/profile-join.md` for evidence and limits. Physical input
+and independent compatibility review remain pending. Body Move/Copy and the
+full tutorial remain separate work; no release or issue closure is implied.

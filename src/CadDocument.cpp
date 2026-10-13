@@ -60,17 +60,17 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
             QJsonObject diagnostic{{"featureId",feature["id"]},{"featureType","sketch"},{"support",support}};
             if(!positions.contains(producer)){diagnostic["code"]="missing_dependency";diagnostic["message"]="Sketch support producer does not exist";}
             else if(positions[producer]>=i){diagnostic["code"]="forward_dependency";diagnostic["message"]="Sketch support producer must precede its sketch";}
-            else if(features[positions[producer]].toObject()["type"]!="extrude" || features[positions[producer]].toObject()["bodyId"]!=support["bodyId"]){diagnostic["code"]="unsupported_dependency";diagnostic["message"]="Sketch support requires its exact extrusion producer/body";}
+            else if(features[positions[producer]].toObject()["type"]!="extrude" || (features[positions[producer]].toObject()["bodyId"]!=support["bodyId"] && !features[positions[producer]].toObject()["parameters"].toObject()["targetBodyIds"].toArray().contains(support["bodyId"]))){diagnostic["code"]="unsupported_dependency";diagnostic["message"]="Sketch support requires its exact extrusion producer/body";}
             else if(!activeBodies.contains(body)){diagnostic["code"]="consumed_dependency";diagnostic["message"]="Sketch support body was consumed earlier in history";}
             else continue;
             return diagnostic;
         }
-        if(feature["type"]=="extrude" && feature["parameters"].toObject()["operation"]=="cut") {
+        if(feature["type"]=="extrude" && (feature["parameters"].toObject()["operation"]=="cut" || feature["parameters"].toObject()["operation"]=="join")) {
             const auto target=feature["parameters"].toObject()["targetBodyIds"].toArray()[0].toString();
             QJsonObject diagnostic{{"featureId",feature["id"]},{"featureType","extrude"},{"targetBodyId",target}};
-            if(!bodyPositions.contains(target)){diagnostic["code"]="missing_dependency";diagnostic["message"]="Cut target body does not exist";return diagnostic;}
-            if(bodyPositions.value(target)>=i){diagnostic["code"]="forward_dependency";diagnostic["message"]="Cut target must precede its modifier";return diagnostic;}
-            if(!activeBodies.contains(target)){diagnostic["code"]="consumed_dependency";diagnostic["message"]="Cut target was consumed by an earlier feature";return diagnostic;}
+            if(!bodyPositions.contains(target)){diagnostic["code"]="missing_dependency";diagnostic["message"]="Extrusion target body does not exist";return diagnostic;}
+            if(bodyPositions.value(target)>=i){diagnostic["code"]="forward_dependency";diagnostic["message"]="Extrusion target must precede its modifier";return diagnostic;}
+            if(!activeBodies.contains(target)){diagnostic["code"]="consumed_dependency";diagnostic["message"]="Extrusion target was consumed by an earlier feature";return diagnostic;}
         }
         if (feature["type"] != "extrude") continue;
         const auto parameters = feature["parameters"].toObject();
@@ -266,14 +266,14 @@ QJsonObject CadDocument::extrusionCandidate(const QJsonObject& authored, const Q
     if(arguments.contains("operation") && !arguments["operation"].isString())reject("Extrusion operation must be a string");
     const auto previousParameters=feature["parameters"].toObject();
     const auto operation=arguments.value("operation").toString(previousParameters.value("operation").toString("newBody"));
-    if(operation!="newBody" && operation!="cut")reject("This extrusion slice supports New Body or Cut only");
-    const bool cut=operation=="cut";
-    if(edit && cut!=(previousParameters["operation"]=="cut"))reject("Changing an existing extrusion between New Body and Cut requires explicit body identity migration");
-    if(cut && newBody)reject("Cut modifies retained targets and cannot own a new body ID");
+    if(operation!="newBody" && operation!="cut" && operation!="join")reject("This extrusion slice supports New Body, Join or Cut only");
+    const bool cut=operation!="newBody";
+    if(edit && operation!=previousParameters.value("operation").toString("newBody"))reject("Changing an existing extrusion operation requires explicit body identity migration");
+    if(cut && newBody)reject("Join/Cut modifies retained targets and cannot own a new body ID");
     if(!cut && !edit && newFeature!=newBody)reject("New Body reserves newFeatureId/newBodyId together");
-    if(!cut && arguments.contains("targetBodyIds"))reject("New Body cannot carry Cut target references");
+    if(!cut && arguments.contains("targetBodyIds"))reject("New Body cannot carry retained target references");
     if(!edit) {
-        feature={{"id",newFeature ? arguments["newFeatureId"] : QJsonValue(newId())},{"ownerId",authored["documentId"]},{"type","extrude"},{"name",cut ? "Extrude Cut" : "Extrude"},{"visible",true}};
+        feature={{"id",newFeature ? arguments["newFeatureId"] : QJsonValue(newId())},{"ownerId",authored["documentId"]},{"type","extrude"},{"name",cut ? (operation=="join" ? "Extrude Join" : "Extrude Cut") : "Extrude"},{"visible",true}};
         if(!cut)feature["bodyId"]=newBody ? arguments["newBodyId"] : QJsonValue(newId());
     }
     if (arguments.contains("name")) feature["name"] = arguments["name"];
@@ -281,8 +281,8 @@ QJsonObject CadDocument::extrusionCandidate(const QJsonObject& authored, const Q
     auto profileParameters=QJsonObject{{"sketchId",arguments["sketchId"]},{"distanceMm",arguments["distanceMm"]}};
     if(cut) {
         const auto targets=arguments.contains("targetBodyIds") ? arguments["targetBodyIds"] : previousParameters["targetBodyIds"];
-        if(!targets.isArray() || targets.toArray().size()!=1 || !targets.toArray()[0].isString() || !validId(targets.toArray()[0].toString()))reject("Cut requires exactly one explicit stable targetBodyIds entry");
-        profileParameters["operation"]="cut";profileParameters["targetBodyIds"]=targets;
+        if(!targets.isArray() || targets.toArray().size()!=1 || !targets.toArray()[0].isString() || !validId(targets.toArray()[0].toString()))reject("Join/Cut requires exactly one explicit stable targetBodyIds entry");
+        profileParameters["operation"]=operation;profileParameters["targetBodyIds"]=targets;
     }
     if(arguments.contains("profileIds")) {
         if(!arguments["profileIds"].isArray() || arguments["profileIds"].toArray().isEmpty())reject("Choose a nonempty profileIds array");
@@ -400,10 +400,10 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
             continue;
         }
         if (type != "box" && type != "cylinder" && type != "extrude") return "Unsupported feature type";
-        const bool cut=type=="extrude" && p["operation"]=="cut";
+        const bool cut=type=="extrude" && (p["operation"]=="cut" || p["operation"]=="join");
         if(cut) {
-            if(feature.contains("bodyId"))return "Extrude Cut modifies a target and cannot own a new body ID";
-            if(!p["targetBodyIds"].isArray() || p["targetBodyIds"].toArray().size()!=1 || !p["targetBodyIds"].toArray()[0].isString() || !validId(p["targetBodyIds"].toArray()[0].toString()))return "Cut requires exactly one stable targetBodyIds entry";
+            if(feature.contains("bodyId"))return "Extrude Join/Cut modifies a target and cannot own a new body ID";
+            if(!p["targetBodyIds"].isArray() || p["targetBodyIds"].toArray().size()!=1 || !p["targetBodyIds"].toArray()[0].isString() || !validId(p["targetBodyIds"].toArray()[0].toString()))return "Join/Cut requires exactly one stable targetBodyIds entry";
         } else {
             const auto bodyId = feature["bodyId"].toString();
             if (!validId(bodyId) || ids.contains(bodyId)) return "Invalid or duplicate authored UUID";

@@ -62,11 +62,11 @@ EvaluatedSupportFace GeometryKernel::resolveSketchSupport(const EvaluatedDocumen
     auto reject=[&](const QString& code,const QString& message){auto diagnostic=support;diagnostic["code"]=code;diagnostic["message"]=message;throw EvaluationError(diagnostic);};
     if(support.size()!=3)reject("invalid_support","Support requires producerFeatureId, bodyId and faceId");
     for(const auto& field:{"producerFeatureId","bodyId","faceId"})if(!support[field].isString() || QUuid(support[field].toString()).isNull())reject("invalid_support","Support requires stable UUID references");
-    const auto body=std::find_if(evaluation.bodies.begin(),evaluation.bodies.end(),[&](const auto& value){return value.bodyId==support["bodyId"].toString() && value.featureId==support["producerFeatureId"].toString();});
+    const auto body=std::find_if(evaluation.bodies.begin(),evaluation.bodies.end(),[&](const auto& value){return value.bodyId==support["bodyId"].toString();});
     if(body==evaluation.bodies.end())reject("support_unavailable","The exact support producer/body is unavailable or consumed");
-    if(body->summary.contains("lastModifierFeatureId"))reject("unsupported_modified_support","Face support on modified Boolean bodies is outside this slice");
+    if(body->summary.contains("lastModifierFeatureId") && body->summary["operation"]!="join")reject("unsupported_modified_support","Face support on modified Boolean bodies is outside this slice");
     const EvaluatedSupportFace* found=nullptr;
-    for(const auto& face:body->supportFaces)if(face.faceId==support["faceId"].toString()){if(found)reject("ambiguous_support","More than one face matches the support reference");found=&face;}
+    for(const auto& face:body->supportFaces)if(face.faceId==support["faceId"].toString() && face.producerFeatureId==support["producerFeatureId"].toString()){if(found)reject("ambiguous_support","More than one face matches the support reference");found=&face;}
     if(!found)reject("support_unavailable","Only the current positive-distance extrusion end cap is supported");
     int matches=0;for(TopExp_Explorer face(body->shape,TopAbs_FACE);face.More();face.Next())if(face.Current().IsSame(found->face))++matches;
     if(matches!=1 || found->face.IsNull() || !BRepCheck_Analyzer(found->face).IsValid()
@@ -445,27 +445,40 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored) 
                         if(found==source.profiles.end()) {context["code"]="profile_unavailable";context["message"]="The referenced profile no longer exists; repair the sketch or select a current closed profile";
                             context["missingProfileId"]=requested;context["profileDiagnostics"]=source.summary["profileDiagnostics"];throw EvaluationError(context);}
                         selected.push_back(*found);}
-                    if(parameters["operation"]=="cut") {
-                        const auto targets=parameters["targetBodyIds"].toArray();context["targetBodyIds"]=targets;context["operation"]="cut";
-                        if(targets.size()!=1)reject("unsupported_cut_targets","This Cut slice requires one retained target body");
+                    if(parameters["operation"]=="cut" || parameters["operation"]=="join") {
+                        const bool joining=parameters["operation"]=="join";
+                        const auto targets=parameters["targetBodyIds"].toArray();context["targetBodyIds"]=targets;context["operation"]=parameters["operation"];
+                        if(targets.size()!=1)reject("unsupported_extrude_targets","Join/Cut requires one retained target body");
                         auto target=std::find_if(evaluated.bodies.begin(),evaluated.bodies.end(),[&](const auto& body){return body.bodyId==targets[0].toString();});
-                        if(target==evaluated.bodies.end()) {context["code"]="body_unavailable";context["message"]="The exact Cut target must be an active body earlier in feature history";throw EvaluationError(context);}
-                        const double distance=parameters["distanceMm"].toDouble();std::vector<TopoDS_Shape> tools;double area=0;QStringList sourceEntities;
-                        for(const auto& profile:selected) {tools.push_back(extrusion(profile,distance));area+=profile.summary["areaMm2"].toDouble();
+                        if(target==evaluated.bodies.end()) {context["code"]="body_unavailable";context["message"]="The exact extrusion target must be an active body earlier in feature history";throw EvaluationError(context);}
+                        const double distance=parameters["distanceMm"].toDouble();std::vector<TopoDS_Shape> tools;std::vector<EvaluatedSupportFace> joinCaps;double area=0;QStringList sourceEntities;
+                        for(const auto& profile:selected) {EvaluatedSupportFace cap;tools.push_back(extrusion(profile,distance,joining ? &cap : nullptr));if(!cap.face.IsNull())joinCaps.push_back(cap);area+=profile.summary["areaMm2"].toDouble();
                             for(const auto& entity:profile.summary["sourceEntityIds"].toArray())sourceEntities.append(entity.toString());}
                         const double previousVolume=target->summary["volumeMm3"].toDouble();
                         TopoDS_Shape cutShape;
-                        try {cutShape=booleanOperation("cut",target->shape,tools);}
+                        try {cutShape=booleanOperation(joining ? "join" : "cut",target->shape,tools);}
                         catch(const EvaluationError& error){const auto details=error.diagnostics();for(auto it=details.begin();it!=details.end();++it)context[it.key()]=it.value();throw EvaluationError(context);}
                         auto cutSummary=summarize(cutShape);
-                        const double removed=previousVolume-cutSummary["volumeMm3"].toDouble();
-                        if(removed<=std::max(1e-6,previousVolume*1e-12)){context["code"]="cut_no_intersection";context["message"]="Selected profile prisms do not remove positive volume from the retained target";throw EvaluationError(context);}
-                        cutSummary["operation"]="cut";cutSummary["lastModifierFeatureId"]=id;cutSummary["producerFeatureId"]=target->featureId;
+                        const double removed=joining ? cutSummary["volumeMm3"].toDouble()-previousVolume : previousVolume-cutSummary["volumeMm3"].toDouble();
+                        if(removed<=std::max(1e-6,previousVolume*1e-12)){context["code"]=joining ? "join_no_addition" : "cut_no_intersection";context["message"]=joining ? "Selected profile prisms do not add positive volume to the retained target" : "Selected profile prisms do not remove positive volume from the retained target";throw EvaluationError(context);}
+                        cutSummary["operation"]=parameters["operation"];cutSummary["lastModifierFeatureId"]=id;cutSummary["producerFeatureId"]=target->featureId;
                         cutSummary["targetBodyIds"]=targets;cutSummary["sourceSketchId"]=sketchId;cutSummary["distanceMm"]=distance;
                         if(plural)cutSummary["sourceProfileIds"]=profileIds;else cutSummary["sourceProfileId"]=parameters["profileId"];
                         sourceEntities.removeDuplicates();sourceEntities.sort();QJsonArray refs;for(const auto& entity:sourceEntities)refs.append(entity);
-                        cutSummary["sourceEntityIds"]=refs;cutSummary["sourceAreaMm2"]=area;cutSummary["removedVolumeMm3"]=removed;
-                        target->shape=cutShape;target->summary=cutSummary;target->supportFaces.clear();
+                        cutSummary["sourceEntityIds"]=refs;cutSummary["sourceAreaMm2"]=area;cutSummary[joining ? "addedVolumeMm3" : "removedVolumeMm3"]=removed;
+                        target->shape=cutShape;target->supportFaces.clear();
+                        if(joining && joinCaps.size()==1) {
+                            auto cap=joinCaps.front();
+                            // Retain only the independently named positive cap when the
+                            // complete prism cap survives as a face of the joined solid.
+                            for(TopExp_Explorer faces(cutShape,TopAbs_FACE);faces.More();faces.Next())if(faces.Current().IsSame(cap.face)) {
+                                cap.producerFeatureId=id;cap.bodyId=target->bodyId;
+                                cap.faceId=QUuid::createUuidV5(QUuid(id),QByteArray("alloy-face/extrude-end-cap/1")).toString(QUuid::WithoutBraces);
+                                target->supportFaces.push_back(cap);
+                                cutSummary["supportFaces"]=QJsonArray{QJsonObject{{"faceId",cap.faceId},{"bodyId",cap.bodyId},{"producerFeatureId",id},{"role",cap.role},{"planar",true},{"frame",cap.frame},{"edges",supportEdgeDescriptors(cap)}}};break;
+                            }
+                        }
+                        target->summary=cutSummary;
                         evaluated.featureOrder.push_back(id);continue;
                     }
                     const auto united=unionProfiles(selected);const double distance=parameters["distanceMm"].toDouble();

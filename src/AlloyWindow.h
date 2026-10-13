@@ -67,7 +67,7 @@ private:
     QJsonObject beginExtrude(const QJsonObject& inputs);
     QString validateExtrudeInputs(const QJsonObject& inputs) const;
     QJsonObject extrusionCandidate(const QJsonObject& inputs, bool hideSource) const;
-    QJsonArray discoverCutTargets(const QJsonObject& inputs) const;
+    QJsonArray discoverExtrudeTargets(const QJsonObject& inputs) const;
     QJsonObject previewExtrude();
     void showExtrude();
     void refreshExtrudeControls();

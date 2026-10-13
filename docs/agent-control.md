@@ -120,7 +120,7 @@ fail without applying the command. Error codes include `invalid_request`,
 | `solid.box` | Required `width`, `depth`, `height`; optional `x`, `y`, `z`, `units`, `name`, `featureId` |
 | `solid.cylinder` | Required `radius`, `height`; same optional placement/unit/name/edit fields |
 | `primitive.box`, `primitive.cylinder` | Open their actual shared dimension dialogs |
-| `solid.extrude` | Required `sketchId`, exclusive `profileId` or distinct `profileIds`, signed `distance`; optional `units` (`mm`/`in`), `name`, existing `featureId`, `operation` (`newBody`/`cut`), one `targetBodyIds` entry for Cut; direct create/edit commit |
+| `solid.extrude` | Required `sketchId`, exclusive `profileId` or distinct `profileIds`, signed `distance`; optional `units` (`mm`/`in`), `name`, existing `featureId`, `operation` (`newBody`/`join`/`cut`), one `targetBodyIds` entry for Join/Cut; direct create/edit commit |
 | `solid.pressPullDialog` | Optional `sketchId`, `profileIds`; Modify/Q opens the shared extrusion session before profile selection |
 | `solid.extrudeDialog` | Optional `sketchId`, exclusive `profileId` or `profileIds`; toolbar/E opener for the shared extrusion session |
 | `solid.combine` | Required `targetBodyId`, nonempty distinct `toolBodyIds`, `operation` (`join`/`cut`/`intersect`); optional `keepTools` (default false), `name`, existing `featureId`, `operation` (`newBody`/`cut`), one `targetBodyIds` entry for Cut; direct create/edit commit |
@@ -597,3 +597,16 @@ install a trusted FFmpeg build with libx264 on PATH, run the short smoke recipe,
 and independently verify GPU capture, overlays, duration and completion before
 claiming that platform qualified. Only macOS is qualified today. FFmpeg is not
 bundled in published Alloy packages. See [video validation](validation/tutorial-video.md).
+
+## Bounded retained Extrude Join
+
+`solid.extrude`, `solid.extrudeDialog` and `solid.pressPullDialog` accept
+`operation: join` with one stable `targetBodyIds` entry. Omitting the target on
+creation discovers exactly one visible body that can form one connected union
+with positive added volume; ambiguity fails instead of choosing another body.
+Dialog previews are disposable and share the authored/evaluation authority.
+Join keeps target body/producer identity and adds `lastModifierFeatureId`,
+`operation: join`, `targetBodyIds`, `addedVolumeMm3` and source-profile summaries.
+An exact surviving single positive cap receives Join-feature support provenance
+for the next face sketch. Existing features retain their operation while edited.
+See [Join contract and bounded evidence](validation/profile-join.md).
