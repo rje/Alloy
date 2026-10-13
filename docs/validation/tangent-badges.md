@@ -21,3 +21,19 @@ retained arc-tangent relation `a220f2cc-1cab-4181-bebd-17e47d68bbd0` set
 selected the same relation ID; its glyph reported `selected: true`. The sketch
 edit was canceled and the private app exited without saving the source model.
 The full tutorial workflow was not replayed for this visual change.
+
+## Independent acceptance
+
+Accepted candidate `acb2dd0` on 2026-10-13. Independent source review confirms
+that only the tangent/arc-tangent stroke construction changes; anchors, pick
+bounds, relation identity and selection/highlight routing are untouched. The
+reported real-app hover/pick result above supplies the bounded interaction
+check; it is shared API input, not a physical pointer claim.
+
+The actual GPU capture was inspected both as a complete frame and as an
+original-resolution crop. The badges now visibly depict a curved trace touching
+a straight line. Their small normal-scale presentation is distinguishable from
+the previous empty outline boxes; the crop confirms actual strokes rather than
+missing font glyphs. This resolves the concrete paper-clip badge defect. Exact
+reference symbol parity and broader constraint-icon styling are not asserted.
+No tutorial replay or additional editor was needed for this isolated visual fix.
