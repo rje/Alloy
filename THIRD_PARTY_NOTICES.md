@@ -47,3 +47,12 @@ must add its complete deployed libraries/plugins, source availability, all
 third-party notices and compatible-library replacement/installation instructions.
 The current repository and unbundled CI artifacts are not a completed runtime
 distribution bundle.
+
+## Disposable Metal spike shader assets
+
+The opt-in `research/prototypes/metal-rhi/shaders` source and precompiled bundles
+come from Qtbase6.11.2 commit `ef55f427f2c8b410d34f8a7681020a3000cf6866`.
+Copyright (C) The Qt Company Ltd.; used under BSD-3-Clause, separately from
+Alloy's MIT code. Corresponding source, full license, upstream REUSE provenance
+and SHA-256 hashes are retained in that directory. No Shader Tools/qsb compiler
+is included. This does not change Qt runtime licensing or admit a production RHI.

@@ -62,6 +62,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
 endif()
 include(CTest)
 if(ALLOY_BUILD_SPIKES)
+    add_subdirectory(research/prototypes/metal-rhi)
     add_executable(topology_reference_spike research/prototypes/topology_references.cpp)
     target_include_directories(topology_reference_spike SYSTEM PRIVATE ${OpenCASCADE_INCLUDE_DIR})
     target_link_libraries(topology_reference_spike PRIVATE Qt6::Core

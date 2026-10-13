@@ -1793,3 +1793,18 @@ is recorded in broader operation-edit#161; spin arrows/OK pass. No relink/repair
 UI is claimed. Immediate Qt Timeline capture layout is qualified in the receipt.
 #210 owns the private GUI slot for a bounded Metal sample run; no Alloy editor
 is left open. Main builds include the independently accepted palette fix#211.
+
+## Isolated Metal investigation candidate (2026-10-13)
+
+RHI-004 #210 has a compiled opt-in C++20 Qt6.11.2/OCCT7.9.3 sample, independently
+buildable without solver configuration. Default Alloy/OpenGL authority is untouched.
+Pinned BSD-licensed Qt example shader bundles avoid new shader tooling; source,
+hashes and notices are recorded. Actual Metal/AppleM4/DPR2 fixture rendering,
+known face IDs/background/depth against OCCT rays, native capture, narrow/wide
+resize, resource recreation and pending Qt-result cancellation pass; process
+exits cleanly and releases the desktop. Astra source/artifact review reports no
+bounded blocker. No RHI adoption or migration follows. Edge IDs are manifest-only,
+full-texture picking/coarse cylinder edges remain spike limits, native GPU-in-flight
+close and physical display transitions are unqualified, and numeric GPU IDs/driver
+version remain unknown. See [the bounded receipt](validation/metal-rhi-spike.md)
+and [standalone build/runner](../research/prototypes/metal-rhi/README.md).
