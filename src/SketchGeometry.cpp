@@ -5,6 +5,7 @@
 #include "SketchMirror.h"
 #include <BRepBndLib.hxx>
 #include <BRepBuilderAPI_MakeEdge.hxx>
+#include <BRepBuilderAPI_MakeVertex.hxx>
 #include <BRepCheck_Analyzer.hxx>
 #include <BRep_Builder.hxx>
 #include <Bnd_Box.hxx>
@@ -312,6 +313,42 @@ QJsonObject SketchGeometry::addLine(const QJsonObject& draft, const QJsonObject&
     parameters["entities"] = entities;
     changed["parameters"] = parameters;
     return changed;
+}
+
+SketchGeometry::SolveResult SketchGeometry::addStandalonePoint(const QJsonObject& draft,
+    const QJsonObject& arguments,const QJsonObject& projectionContext) {
+    try {
+        validateDraft(draft);checkFields(arguments,{"uMm","vMm","snapTarget"});
+        double u=coordinate(arguments,"uMm"),v=coordinate(arguments,"vMm");
+        auto parameters=draft["parameters"].toObject();auto points=parameters["points"].toArray();
+        auto entities=parameters["entities"].toArray(),constraints=parameters["constraints"].toArray();
+        QString target;
+        if(arguments.contains("snapTarget")) {
+            if(!arguments["snapTarget"].isObject())reject("Point snap target must be an object");
+            const auto snap=arguments["snapTarget"].toObject();
+            if(snap["kind"]=="origin" && snap.size()==1) {
+                target=parameters["originPointId"].toString();u=0;v=0;
+                if(target.isEmpty()) {
+                    target=newId();parameters["originPointId"]=target;
+                    points.append(QJsonObject{{"id",target},{"uMm",0},{"vMm",0}});
+                    constraints.append(QJsonObject{{"id",newId()},{"type","fixed"},{"pointIds",QJsonArray{target}},{"uMm",0},{"vMm",0}});
+                }
+            } else if(snap["kind"]=="point" && snap.size()==2 && validId(snap["pointId"].toString())) {
+                target=snap["pointId"].toString();retainSupportPoint(parameters,projectionContext,target);
+                bool found=false;auto lookup=draft;lookup["parameters"]=parameters;
+                for(const auto& value:expandedProjectionFeature(lookup,projectionContext)["parameters"].toObject()["points"].toArray()) {
+                    const auto point=value.toObject();if(point["id"]!=target)continue;
+                    u=point["uMm"].toDouble();v=point["vMm"].toDouble();found=true;break;
+                }
+                if(!found)reject("Point snap target is unavailable");
+            } else reject("Point accepts an origin or retained point snap");
+        }
+        const auto id=newId();points.append(QJsonObject{{"id",id},{"uMm",u},{"vMm",v}});
+        entities.append(QJsonObject{{"id",newId()},{"type","point"},{"pointId",id}});
+        if(!target.isEmpty())constraints.append(QJsonObject{{"id",newId()},{"type","coincident"},{"pointIds",QJsonArray{id,target}}});
+        parameters["points"]=points;parameters["entities"]=entities;parameters["constraints"]=constraints;
+        auto changed=draft;changed["parameters"]=parameters;return solveDraft(changed,projectionContext);
+    } catch(const std::exception& e){return {false,draft,{},QString::fromUtf8(e.what())};}
 }
 
 QJsonObject SketchGeometry::addCircle(const QJsonObject& draft, const QJsonObject& arguments) {
@@ -666,7 +703,11 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
             const auto entity = entry.toObject();
             const auto type = entity["type"].toString();
             if (!claimId(entity["id"].toString())) return "Invalid or duplicate sketch entity UUID";
-            if (type != "line" && type != "circle" && type != "arc") return "Unsupported sketch entity type";
+            if (type != "line" && type != "circle" && type != "arc" && type != "point") return "Unsupported sketch entity type";
+            if(type=="point") {
+                if(entity.size()!=3 || !points.contains(entity["pointId"].toString()))return "Point entity requires exactly one existing point UUID";
+                usedPoints.insert(entity["pointId"].toString());entityIds.insert(entity["id"].toString());continue;
+            }
             const bool hasConstruction = entity.contains("construction");
             if (hasConstruction && (type != "line" || !entity["construction"].isBool()))
                 return "Construction must be a boolean on a line entity";
@@ -1714,6 +1755,9 @@ EvaluatedSketch SketchGeometry::evaluateFeature(const QJsonObject& feature, cons
         builder.MakeCompound(compound);
         for (const auto& entry : entities) {
             const auto entity = entry.toObject();
+            if(entity["type"]=="point") {
+                builder.Add(compound,BRepBuilderAPI_MakeVertex(points[entity["pointId"].toString()]).Vertex());continue;
+            }
             const auto edge = analyticEdge(parameters,entity,sketchFrame);
             builder.Add(compound, edge);
             entityEdges.insert(entity["id"].toString(),edge);
@@ -1730,6 +1774,7 @@ EvaluatedSketch SketchGeometry::evaluateFeature(const QJsonObject& feature, cons
     QJsonArray geometry;
     for(const auto& value : entities) {const auto e=value.toObject(); auto detail=e;
         if(e["type"]=="line") detail["lengthMm"]=points[e["startPointId"].toString()].Distance(points[e["endPointId"].toString()]);
+        else if(e["type"]=="point") {const auto p=points[e["pointId"].toString()];detail["positionMm"]=QJsonArray{p.X(),p.Y(),p.Z()};}
         else {const auto center=points[e["centerPointId"].toString()]; detail["centerMm"]=QJsonArray{center.X(),center.Y(),center.Z()};
             detail["lengthMm"]=e["radiusMm"].toDouble()*(e["type"]=="circle" ? 2*std::numbers::pi : std::abs(e["sweepAngleDeg"].toDouble())*degrees);
             if(e["type"]=="arc") {const auto first=points[e["startPointId"].toString()],last=points[e["endPointId"].toString()];
@@ -1756,8 +1801,14 @@ EvaluatedSketch SketchGeometry::evaluateFeature(const QJsonObject& feature, cons
     summary["projectedPoints"]=retainedSupportPoints;summary["availableSupportPoints"]=projectionContext["points"].toArray();
     summary["projectedLines"]=projectionContext["lines"].toArray();
     summary["unsupportedProjectedEdges"]=projectionContext["unsupportedEdges"].toArray();
+    QJsonArray standalonePoints;for(const auto& item:geometry)if(item.toObject()["type"]=="point")standalonePoints.append(item);
+    summary["standalonePoints"]=standalonePoints;
+    summary["standalonePointCount"]=standalonePoints.size();
     summary["profiles"] = profileSummaries;
-    summary["profileDiagnostics"] = parameters.contains("texts")
+    const auto authoredEntities=solution.feature["parameters"].toObject()["entities"].toArray();
+    summary["profileDiagnostics"] = !standalonePoints.isEmpty() && std::all_of(authoredEntities.begin(),authoredEntities.end(),[](const auto& e){return e.toObject()["type"]=="point";})
+        ? QJsonObject{{"code","point_only_sketch"},{"message","Standalone points do not bound a profile"},{"profileCount",0}}
+        : parameters.contains("texts")
         ? QJsonObject{{"code","text_profiles"},{"profileCount",static_cast<int>(profiles.size())}}
         : profile.diagnostics;
     return {feature["id"].toString(), feature["name"].toString(), plane, feature["visible"].toBool(), shape, summary, profiles, sketchFrame, {}, entityEdges};

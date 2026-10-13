@@ -41,7 +41,7 @@ target_compile_definitions(alloy_kernel PUBLIC ALLOY_OCCT_VERSION="${ALLOY_OCCT_
 
 add_library(alloy_application STATIC
     src/AlloyTheme.cpp src/AlloyTheme.h
-    src/AlloyWindow.cpp src/AlloyWindow.h src/SketchTextControls.cpp src/CommandIcons.cpp src/CommandIcons.h src/SolidFilletControls.cpp src/SolidChamferControls.cpp src/SphereControls.cpp src/SolidShellControls.cpp src/LoftControls.cpp src/RevolveCommands.cpp src/SweepCommands.cpp src/SweepSelection.cpp src/PatternControls.cpp src/SolidMirrorControls.cpp src/MoveControls.cpp src/CombineControls.cpp src/ExportControls.cpp src/StepExportControls.cpp
+    src/AlloyWindow.cpp src/AlloyWindow.h src/PointControls.cpp src/SketchTextControls.cpp src/CommandIcons.cpp src/CommandIcons.h src/SolidFilletControls.cpp src/SolidChamferControls.cpp src/SphereControls.cpp src/SolidShellControls.cpp src/LoftControls.cpp src/RevolveCommands.cpp src/SweepCommands.cpp src/SweepSelection.cpp src/PatternControls.cpp src/SolidMirrorControls.cpp src/MoveControls.cpp src/CombineControls.cpp src/ExportControls.cpp src/StepExportControls.cpp
     src/TutorialRecorder.cpp src/TutorialRecorder.h
     src/CadDocument.cpp src/CadDocument.h
     src/ReferenceView.cpp src/ReferenceView.h src/ReferenceRevolve.cpp src/ReferenceSweep.cpp src/ReferenceSketchText.cpp
@@ -134,6 +134,10 @@ if(BUILD_TESTING)
     target_link_libraries(two_point_circle_controls_test PRIVATE alloy_application Qt6::Test)
     add_test(NAME two_point_circle_controls COMMAND two_point_circle_controls_test)
     set_tests_properties(two_point_circle_controls PROPERTIES TIMEOUT 45 LABELS "widget;gpu" RUN_SERIAL TRUE)
+    add_executable(standalone_point_controls_test tests/standalone_point_controls.cpp)
+    target_link_libraries(standalone_point_controls_test PRIVATE alloy_application Qt6::Test)
+    add_test(NAME standalone_point_controls COMMAND standalone_point_controls_test)
+    set_tests_properties(standalone_point_controls PROPERTIES TIMEOUT 30 LABELS "widget;gpu" RUN_SERIAL TRUE)
     add_executable(point_edge_controls_test tests/point_edge_controls.cpp)
     target_link_libraries(point_edge_controls_test PRIVATE alloy_application Qt6::Test)
     add_test(NAME point_edge_controls COMMAND point_edge_controls_test)
@@ -270,6 +274,9 @@ if(BUILD_TESTING)
     target_link_libraries(rounded_rectangle_controls_test PRIVATE alloy_application Qt6::Test)
     add_test(NAME rounded_rectangle_controls COMMAND rounded_rectangle_controls_test)
     set_tests_properties(rounded_rectangle_controls PROPERTIES TIMEOUT 45 LABELS "widget;gpu" RUN_SERIAL TRUE)
+    add_executable(standalone_sketch_point_test tests/standalone_sketch_point.cpp src/CadDocument.cpp src/CadDocument.h)
+    target_link_libraries(standalone_sketch_point_test PRIVATE alloy_kernel Qt6::Widgets)
+    add_test(NAME standalone_sketch_point COMMAND standalone_sketch_point_test)
     add_executable(fillet_rim_lineage_test tests/fillet_rim_lineage.cpp src/CadDocument.cpp src/CadDocument.h)
     target_link_libraries(fillet_rim_lineage_test PRIVATE alloy_kernel Qt6::Widgets)
     add_test(NAME fillet_rim_lineage COMMAND fillet_rim_lineage_test)

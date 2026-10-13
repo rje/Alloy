@@ -47,7 +47,7 @@ QMap<QString,QString> endpointEquivalence(const QJsonObject& parameters){
 SketchProfiles::RegionsResult enrich(const QJsonObject& feature,SketchProfiles::RegionsResult result) {
     const auto parameters=feature["parameters"].toObject();QMap<QString,QJsonObject> entities,points;
     for(const auto& p:parameters["points"].toArray())points[p.toObject()["id"].toString()]=p.toObject();
-    for(const auto& e:parameters["entities"].toArray())if(!e.toObject()["construction"].toBool())entities[e.toObject()["id"].toString()]=e.toObject();
+    for(const auto& e:parameters["entities"].toArray())if(!e.toObject()["construction"].toBool() && e.toObject()["type"]!="point")entities[e.toObject()["id"].toString()]=e.toObject();
     QSet<QString> used;for(auto& profile:result.profiles){for(const auto& id:profile.summary["sourceEntityIds"].toArray())used.insert(id.toString());int loops=0;for(TopExp_Explorer wire(profile.face,TopAbs_WIRE);wire.More();wire.Next())++loops;profile.summary["outerLoopCount"]=1;profile.summary["innerLoopCount"]=std::max(0,loops-1);}
     const auto representative=endpointEquivalence(parameters);
     QStringList ignored,guides;QMap<QString,int> degree;QMap<QString,QStringList> incident;
@@ -78,7 +78,7 @@ SketchProfiles::RegionsResult SketchProfiles::deriveRegions(const QJsonObject& f
         std::vector<Source> sources;TopTools_ListOfShape input;
         QSet<QString> endpointIds;
         for(const auto& value:parameters["entities"].toArray()) {
-            const auto entity=value.toObject();if(entity["construction"].toBool())continue;
+            const auto entity=value.toObject();if(entity["construction"].toBool() || entity["type"]=="point")continue;
             const auto edge=SketchGeometry::analyticEdge(parameters,entity,resolvedFrame);
             sources.push_back({entity["id"].toString(),entity,edge});input.Append(edge);
             for(const auto& field:{"startPointId","endPointId"})if(entity[field].isString())endpointIds.insert(entity[field].toString());

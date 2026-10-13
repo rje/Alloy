@@ -2391,3 +2391,21 @@ core, native Qt and real-entrypoint API checks pass; independent review remains.
 See [the candidate receipt](validation/named-length-parameters.md). The full
 plate/countersink exercise and arithmetic parameter expressions remain
 separate work.
+
+## Standalone sketch Point candidate (2026-10-13)
+
+SKT-056/#246 adds a true `{id,type:point,pointId}` entity using existing solver
+coordinates and one actual OCCT vertex, excluded from profile boundaries.
+Create→Point/native one-click and shared `sketch.addPoint` use the same authority;
+point-only sketches finish/edit/save/reopen with zero profiles. Finished GPU
+markers and `sketchPoint` picks expose exact sketch/entity/point UUIDs for future
+Hole. The rounded-plate two10mm D workflow passes actual Qt menu/pointer/value
+input with no focus repair; width75→85 moves the point x−27.5→−32.5 via retained
+shortened rims. Core3/3, final focusednative6.06s and real executable67-call API
+pass history/reopen/refusals; actual readable captures were inspected. An empty
+body cue no longer clears finished point selection during UI refresh. Final
+neutral point-only label uses native capture evidence, while preceding API
+behavior is unchanged. See [contract/receipt](validation/standalone-sketch-point.md).
+Independent review/integration remain pending. Preserve the parallel #244
+parameter binding fields during additive merge. Private editors are closed;
+Hole and the complete parameterized plate remain separate work.

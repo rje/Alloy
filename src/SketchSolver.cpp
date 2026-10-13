@@ -157,8 +157,9 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
             const auto entity = entry.toObject();
             const auto id = entity.value("id").toString();
             const auto type=entity["type"].toString();
-            require((type=="line" || type=="circle" || type=="arc") && !id.isEmpty() && !ids.contains(id), "Unsupported or duplicate sketch entity");
+            require((type=="line" || type=="circle" || type=="arc" || type=="point") && !id.isEmpty() && !ids.contains(id), "Unsupported or duplicate sketch entity");
             ids.insert(id);
+            if(type=="point") {point(entity["pointId"].toString());continue;}
             if(type=="line") {GCS::Line line;line.p1=point(entity["startPointId"].toString());line.p2=point(entity["endPointId"].toString());lineMap.emplace(id,line);}
             else {
                 curveParameters.push_back(number(entity,"radiusMm"));auto* radius=&curveParameters.back();
@@ -479,7 +480,7 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
         }
         QJsonArray solvedEntities;
         for(const auto& value:entities) {auto e=value.toObject();const auto id=e["id"].toString();
-            if(e["type"]!="line") {
+            if(e["type"]=="circle" || e["type"]=="arc") {
                 const auto& curve=e["type"]=="arc" ? static_cast<const GCS::Circle&>(arcMap.at(id)) : circleMap.at(id);
                 require(std::isfinite(*curve.rad) && *curve.rad>=minimumLength && *curve.rad<=maximumCoordinate,"Solved curve radius outside supported range");
                 e["radiusMm"]=*curve.rad;

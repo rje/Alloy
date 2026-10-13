@@ -86,7 +86,7 @@ SketchProfiles::Result SketchProfiles::derive(const QJsonObject& feature, const 
     for (const auto& value : parameters["points"].toArray()) sourcePointIds.append(value.toObject()["id"].toString());
     QJsonArray entities;
     for (const auto& value : parameters["entities"].toArray()) {
-        if (value.toObject()["construction"].toBool()) continue;
+        if (value.toObject()["construction"].toBool() || value.toObject()["type"]=="point") continue;
         entities.append(value);
         sourceEntityIds.append(value.toObject()["id"].toString());
     }

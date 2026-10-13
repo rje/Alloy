@@ -103,6 +103,7 @@ SketchStrokes splitSketchStrokes(const EvaluatedSketch& sketch) {
     int ordinaryCount=0,constructionCount=0,centerlineCount=0;
     for(const auto& entry:entities) {
         if(!child.More())return {sketch.shape,{},{},0};
+        if(entry.toObject()["type"]=="point"){child.Next();continue;}
         if(projectedIds.contains(entry.toObject()["id"].toString())){child.Next();continue;}
         if(entry.toObject().value("construction").toBool()) {builder.Add(construction,child.Value());++constructionCount;}
         else if(entry.toObject().value("centerline").toBool()) {builder.Add(centerline,child.Value());++centerlineCount;}
@@ -187,6 +188,8 @@ void ReferenceView::rebindDocument() {
     for(const auto& model:centerlineSketchModels_)context_->Remove(model,false);
     for(const auto& model:constructionPlaneModels_)context_->Remove(model,false);
     for(const auto& model:finishedProfileModels_)context_->Remove(model,false);
+    for(const auto& model:finishedPointModels_)context_->Remove(model,false);
+    finishedPointModels_.clear();selectedFinishedPoint_={};
     models_.clear();bodyVisibility_.clear();sketchModels_.clear();constructionSketchModels_.clear();centerlineSketchModels_.clear();constructionPlaneModels_.clear();constructionPlanes_.clear();finishedProfileModels_.clear();finishedSketches_.clear();
     modelRevision_=std::numeric_limits<quint64>::max();sketchRevision_=modelRevision_;constructionPlaneRevision_=modelRevision_;
 }
@@ -391,6 +394,8 @@ void ReferenceView::setSketches(const std::vector<EvaluatedSketch>& sketches,qui
     for(const auto& model:constructionSketchModels_)context_->Remove(model,false);
     for(const auto& model:centerlineSketchModels_)context_->Remove(model,false);
     for(const auto& model:finishedProfileModels_)context_->Remove(model,false);
+    for(const auto& model:finishedPointModels_)context_->Remove(model,false);
+    finishedPointModels_.clear();selectedFinishedPoint_={};
     sketchModels_.clear();constructionSketchModels_.clear();centerlineSketchModels_.clear();finishedProfileModels_.clear();finishedSketches_=sketches;
     for(const auto& sketch:sketches) {
         const auto strokes=splitSketchStrokes(sketch);
@@ -409,6 +414,13 @@ void ReferenceView::setSketches(const std::vector<EvaluatedSketch>& sketches,qui
             const auto model=centerlinePresentation(strokes.centerline,false,sketch.summary["solver"].toObject()["dof"].toInt(-1)==0);
             if(sketch.plane=="face")model->SetZLayer(Graphic3d_ZLayerId_Topmost);
             context_->Display(model,AIS_WireFrame,-1,false);context_->Deactivate(model);centerlineSketchModels_[sketch.featureId]=model;
+        }
+        for(const auto& entry:sketch.summary["standalonePoints"].toArray()) {
+            const auto point=entry.toObject();const auto p=point["positionMm"].toArray();
+            Handle(AIS_Point) marker=new AIS_Point(new Geom_CartesianPoint(gp_Pnt(p[0].toDouble(),p[1].toDouble(),p[2].toDouble())));
+            marker->SetZLayer(Graphic3d_ZLayerId_Topmost);
+            context_->Display(marker,0,-1,false);context_->Deactivate(marker);
+            finishedPointModels_[point["id"].toString()]=marker;
         }
         for(const auto& profile:sketch.profiles) {
             BRepMesh_IncrementalMesh mesh(profile.face,0.005,false,0.1,false);
@@ -490,6 +502,15 @@ void ReferenceView::applyEditDisplay(bool redraw) {
             if(visible)context_->Display(centerlineSketchModels_.value(sketch.featureId),false);
             else context_->Erase(centerlineSketchModels_.value(sketch.featureId),false);
         }
+        for(const auto& entry:sketch.summary["standalonePoints"].toArray()) {
+            const auto point=entry.toObject();const auto marker=finishedPointModels_.value(point["id"].toString());if(marker.IsNull())continue;
+            const bool selected=selectedFinishedPoint_["sketchId"]==sketch.featureId && selectedFinishedPoint_["pointId"]==point["pointId"];
+            const auto color=selected ? Quantity_Color(0.98,0.43,0.08,Quantity_TOC_RGB)
+                : sketch.summary["solver"].toObject()["dof"].toInt(-1)==0 ? Quantity_Color(0.12,0.14,0.16,Quantity_TOC_sRGB) : Quantity_Color(0.10,0.34,0.84,Quantity_TOC_RGB);
+            marker->Attributes()->SetPointAspect(new Prs3d_PointAspect(Aspect_TOM_O_POINT,color,selected ? 3 : 2.5));
+            if(visible)context_->Display(marker,false);else context_->Erase(marker,false);
+            context_->Redisplay(marker,false);
+        }
         for(const auto& profile:sketch.profiles)if(finishedProfileModels_.contains(profile.profileId)) {
             const auto fill=finishedProfileModels_.value(profile.profileId);
             fill->SetColor((selectedProfileIds_.contains(profile.profileId) && sketch.featureId==selectedProfileSketch_) || selectedLoftProfileIds_.contains(profile.profileId)
@@ -519,8 +540,26 @@ void ReferenceView::selectLoftProfiles(const QJsonArray& references) {
     selectedLoftProfileIds_.clear();for(const auto& value:references)selectedLoftProfileIds_.insert(value.toObject()["profileId"].toString());applyEditDisplay();
 }
 void ReferenceView::selectProfiles(const QString& sketchId,const QJsonArray& profileIds) {
+    selectedFinishedPoint_={};
     selectedProfileSketch_=sketchId;selectedProfileIds_=profileIds;
     selectedProfile_=profileIds.isEmpty() ? QString{} : profileIds.first().toString();applyEditDisplay();
+}
+void ReferenceView::selectFinishedPoint(const QJsonObject& reference) {
+    selectedFinishedPoint_=reference;applyEditDisplay();
+}
+QJsonObject ReferenceView::pickFinishedPoint(double x,double y) const {
+    if(view_.IsNull() || x<0 || y<0 || x>=width() || y>=height())return {};
+    const auto scale=windowScale();double best=8;QJsonObject hit;
+    for(const auto& sketch:finishedSketches_) {
+        if((!sketch.visible && sketch.featureId!=editSourceSketch_ && !commandSketches_.contains(sketch.featureId)) || sketch.featureId==draftSketchId_)continue;
+        for(const auto& item:sketch.summary["standalonePoints"].toArray()) {
+            const auto point=item.toObject();const auto p=point["positionMm"].toArray();int px,py;
+            view_->Convert(p[0].toDouble(),p[1].toDouble(),p[2].toDouble(),px,py);
+            const double distance=std::hypot(px/scale.x()-x,py/scale.y()-y);if(distance>best)continue;
+            best=distance;hit={{"kind","sketchPoint"},{"sketchId",sketch.featureId},{"entityId",point["id"]},{"pointId",point["pointId"]},{"positionMm",p}};
+        }
+    }
+    return hit;
 }
 QJsonObject ReferenceView::pickFinishedProfile(double x,double y) const {
     if(view_.IsNull() || x<0 || y<0 || x>=width() || y>=height())return {};
@@ -719,6 +758,7 @@ QJsonObject ReferenceView::pickSketch(const QJsonObject& feature,double x,double
     }
     if(!picked.isEmpty()){
         QJsonObject result{{"kind","point"},{"pointId",picked},{"distancePixels",best}};
+        for(const auto& entry:parameters["entities"].toArray())if(entry.toObject()["type"]=="point" && entry.toObject()["pointId"]==picked)result["entityId"]=entry.toObject()["id"];
         if(!pickedProjectedPoint.isEmpty()){
             result["projected"]=true;
             for(auto it=pickedProjectedPoint.begin();it!=pickedProjectedPoint.end();++it)result[it.key()]=it.value();
@@ -729,7 +769,8 @@ QJsonObject ReferenceView::pickSketch(const QJsonObject& feature,double x,double
     best=6;QJsonObject pickedProjection;
     const auto planePoint=sketchPoint(x,y,plane,resolvedFrame);const auto hitWorld=world(planePoint["uMm"].toDouble(),planePoint["vMm"].toDouble());
     for(const auto& entry:parameters["entities"].toArray()) {
-        const auto entity=entry.toObject();if(filter=="line" && entity["type"]!="line")continue;QPointF nearest;
+        const auto entity=entry.toObject();if(entity["type"]=="point")continue;
+        if(filter=="line" && entity["type"]!="line")continue;QPointF nearest;
         if(entity["type"]=="line") {
             const auto start=points.value(entity["startPointId"].toString()),end=points.value(entity["endPointId"].toString());
             const auto delta=end-start;const double length2=delta.x()*delta.x()+delta.y()*delta.y();if(length2<1e-12)continue;
@@ -1039,7 +1080,8 @@ void ReferenceView::decorateSketch(const QJsonObject& feature,const QJsonObject&
     }
     for(const auto& entry:parameters["points"].toArray()) {
         const auto point=entry.toObject();const auto id=point["id"].toString();points[id]=point;
-        const bool selected=selection["pointIds"].toArray().contains(id);
+        bool selected=selection["pointIds"].toArray().contains(id);
+        for(const auto& e:parameters["entities"].toArray())if(e.toObject()["type"]=="point" && e.toObject()["pointId"]==id && selection["entityIds"].toArray().contains(e.toObject()["id"]))selected=true;
         const Quantity_Color color=selected ? Quantity_Color(0.98,0.43,0.08,Quantity_TOC_RGB)
             : fixed.contains(id) ? Quantity_Color(0.10,0.52,0.24,Quantity_TOC_RGB)
             : fullyConstrained ? Quantity_Color(0.12,0.14,0.16,Quantity_TOC_sRGB) : Quantity_Color(0.10,0.34,0.84,Quantity_TOC_RGB);
@@ -1071,7 +1113,7 @@ void ReferenceView::decorateSketch(const QJsonObject& feature,const QJsonObject&
         marker->SetZLayer(Graphic3d_ZLayerId_Topmost);context_->Display(marker,0,-1,false);context_->Deactivate(marker);sketchDecorations_.push_back(marker);
     }
     for(const auto& entry:parameters["entities"].toArray()) {
-        const auto entity=entry.toObject();if(!selection["entityIds"].toArray().contains(entity["id"]))continue;
+        const auto entity=entry.toObject();if(entity["type"]=="point" || !selection["entityIds"].toArray().contains(entity["id"]))continue;
         const auto edge=SketchGeometry::analyticEdge(parameters,entity,sketchFrame_);
         const auto highlight=entity.value("construction").toBool() ? constructionPresentation(edge,true) : entity.value("centerline").toBool() ? centerlinePresentation(edge,true) : sketchPresentation(edge);
         if(!entity.value("construction").toBool() && !entity.value("centerline").toBool()){highlight->SetColor(Quantity_Color(0.98,0.43,0.08,Quantity_TOC_RGB));highlight->SetWidth(4);}
@@ -1496,6 +1538,9 @@ void ReferenceView::fit(const std::vector<EvaluatedBody>& bodies,const std::vect
     zoom=1;pan={};sync();
 }
 void ReferenceView::selectBody(const QString& id) {
+    // refreshUI reapplies an empty body cue while a finished point is selected.
+    // Actual clear/sketch/profile picks clear through selectProfiles instead.
+    if(!id.isEmpty() && !selectedFinishedPoint_.isEmpty()){selectedFinishedPoint_={};applyEditDisplay(false);}
     if(context_.IsNull())return;
     context_->ClearSelected(false);
     if(models_.contains(id))context_->SetSelected(models_.value(id),false);
@@ -1891,6 +1936,15 @@ QJsonObject ReferenceView::diagnostics() const {
         summary["displayTriangleCount"]=triangles.IsNull() ? 0 : triangles->NbTriangles();profiles.append(summary);
     }
     result.insert("sketchProfiles",profiles);
+    QJsonArray standaloneMarkers;
+    for(const auto& sketch:finishedSketches_)for(const auto& entry:sketch.summary["standalonePoints"].toArray()) {
+        const auto point=entry.toObject();const auto marker=finishedPointModels_.value(point["id"].toString());
+        auto descriptor=point;descriptor["sketchId"]=sketch.featureId;
+        descriptor["visible"]=!context_.IsNull() && !marker.IsNull() && context_->IsDisplayed(marker);
+        descriptor["selected"]=selectedFinishedPoint_["sketchId"]==sketch.featureId && selectedFinishedPoint_["pointId"]==point["pointId"];
+        standaloneMarkers.append(descriptor);
+    }
+    result["standalonePointMarkers"]=standaloneMarkers;result["selectedFinishedPoint"]=selectedFinishedPoint_;
     QJsonArray finishedProfiles;for(const auto& sketch:finishedSketches_)for(const auto& profile:sketch.profiles) {
         auto summary=profile.summary;TopLoc_Location location;const auto triangles=BRep_Tool::Triangulation(profile.face,location);
         summary["displayTriangleCount"]=triangles.IsNull() ? 0 : triangles->NbTriangles();
@@ -2007,7 +2061,7 @@ void ReferenceView::mousePressEvent(QMouseEvent* e) {
                 e->accept();return;
             }
         }
-        if(!sketchPlane_.isEmpty() && decorationSelection_.value("tool")!="line" && decorationSelection_.value("tool")!="rectangle" && decorationSelection_.value("tool")!="circle" && decorationSelection_.value("tool")!="twoPointCircle" && decorationSelection_.value("tool")!="centerArc" && decorationSelection_.value("tool")!="threePointArc" && decorationPending_.value("phase")!="placing") {
+        if(!sketchPlane_.isEmpty() && decorationSelection_.value("tool")!="point" && decorationSelection_.value("tool")!="line" && decorationSelection_.value("tool")!="rectangle" && decorationSelection_.value("tool")!="circle" && decorationSelection_.value("tool")!="twoPointCircle" && decorationSelection_.value("tool")!="centerArc" && decorationSelection_.value("tool")!="threePointArc" && decorationPending_.value("phase")!="placing") {
             const auto picked=pickAnnotation(e->position().x(),e->position().y());
             if(!picked.isEmpty()) {
                 draggedAnnotation_=picked.value("dimensionId").toString();annotationGestureId_=QString::number(++nextAnnotationGesture_);annotationPress_=e->position();annotationDragged_=false;

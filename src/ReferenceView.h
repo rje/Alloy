@@ -40,6 +40,9 @@ public:
     QString pickConstructionPlane(double x,double y) const;
     void showSketchDraft(const EvaluatedSketch& sketch);
     void clearSketchDraft();
+    QJsonObject pickFinishedPoint(double x,double y) const;
+    void selectFinishedPoint(const QJsonObject& reference);
+    QJsonObject finishedPointSelection() const { return selectedFinishedPoint_; }
     void selectProfile(const QString& sketchId, const QString& profileId);
     void selectLoftProfiles(const QJsonArray& references);
     void selectProfiles(const QString& sketchId, const QJsonArray& profileIds);
@@ -158,6 +161,8 @@ private:
     std::vector<Handle(AIS_Shape)> patternAxes_;
     QMap<QString,Handle(AIS_Shape)> finishedProfileModels_;
     std::vector<EvaluatedSketch> finishedSketches_;
+    QMap<QString,Handle(AIS_InteractiveObject)> finishedPointModels_;
+    QJsonObject selectedFinishedPoint_;
     QSet<QString> selectedLoftProfileIds_;
     QSet<QString> commandSketches_;
     std::vector<Handle(AIS_Shape)> sweepPathOverlays_;

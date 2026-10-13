@@ -333,6 +333,7 @@ AlloyWindow::AlloyWindow() {
     };
     auto* create=sketchMenu("Create","create");
     toolAction(create,"Line\tL","line");
+    toolAction(create,"Point","point");
     auto* rectangle=create->addMenu("Rectangle");rectangle->setObjectName("sketch.commands.rectangle");
     toolAction(rectangle,"2-Point Rectangle\tR","rectangle");
     toolAction(rectangle,"Center Rectangle","centerRectangle");
@@ -1446,6 +1447,9 @@ void AlloyWindow::registerCommands() {
     for(const auto& tool:QStringList{"line","rectangle"})add("sketch."+tool,tool=="line" ? "Line" : "Two-Point Rectangle",
         "Append stable authored points and edges to the active sketch draft.",drawSchema,[this,tool](const auto& a){return appendSketchEntity(tool,a);});
     auto sizeCoordinate=parameter("number","Positive width or height in the supplied units.");sizeCoordinate["minimum"]=0.001;sizeCoordinate["maximum"]=100000;
+    add("sketch.addPoint","Point","Create one standalone sketch point; it has no curve or profile boundary.",
+        {{"x",coordinate},{"y",coordinate},{"units",optional(units)},{"session",optional(parameter("string","Active sketch session UUID."))}},
+        [this](const auto& a){return appendStandalonePoint(a);});
     add("sketch.centerRectangle","Center Rectangle","Create a centered rectangle with construction diagonals, retained center and driving width and height.",
         {{"centerX",coordinate},{"centerY",coordinate},{"width",sizeCoordinate},{"height",sizeCoordinate},{"units",optional(units)},
          {"centerSnapTarget",optional(parameter("object","Origin, authored point or line midpoint center target."))},{"session",optional(parameter("string","Optional active sketch session identity."))}},
@@ -1700,7 +1704,7 @@ void AlloyWindow::registerCommands() {
             if(a.contains("session") && a["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
             cancelTwoPointRectangle();view_->setFocus();return QJsonObject{{"pending",false},{"authoredChange",false}};
         });
-    auto sketchTool=parameter("string","Drawing tool in the active sketch context.");sketchTool["enum"]=QJsonArray{"select","line","rectangle","centerRectangle","circle","twoPointCircle","centerArc","threePointArc","dimension","fillet","trim","offset","mirror"};
+    auto sketchTool=parameter("string","Drawing tool in the active sketch context.");sketchTool["enum"]=QJsonArray{"select","point","line","rectangle","centerRectangle","circle","twoPointCircle","centerArc","threePointArc","dimension","fillet","trim","offset","mirror"};
     add("sketch.tool","Sketch drawing tool","Choose a tool and clear its pending first point.",{{"tool",sketchTool}},[this](const auto& a){
         if(session_.value("command").toString()!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
         auto badgeSelection=session_.value("selection").toObject();badgeSelection.remove("constraintIds");badgeSelection.remove("dimensionId");
@@ -1857,7 +1861,7 @@ void AlloyWindow::registerCommands() {
         }
         auto result=setSketchSelection(selection);if(!result["ok"].isBool())result["picked"]=picked;return result;
     });
-    add("sketch.placePoint","Place sketch point","Resolve an actual viewport point on the active plane; two clicks author the chosen entity.",sketchPickSchema,[this](const auto& a){
+    add("sketch.placePoint","Place sketch point","Resolve an actual viewport point on the active plane; Point uses one click and curve tools use their own gestures.",sketchPickSchema,[this](const auto& a){
         if(session_.value("command").toString()!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
         if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))return failure("stale_session","The document changed; cancel and restart this sketch");
         const auto tool=session_.value("tool").toString();
@@ -1961,10 +1965,19 @@ void AlloyWindow::registerCommands() {
         const bool circleCenter=tool=="circle" && !session_.contains("firstPoint");
         const bool circleCircumference=tool=="circle" && session_.contains("firstPoint");
         const auto snap=circleCircumference ? resolveCircleTangentSnap(a["x"].toDouble(),a["y"].toDouble(),plane)
-            : tool=="line" || tool=="rectangle" || (tool=="centerRectangle" && !session_.contains("firstPoint")) || circleCenter
+            : tool=="point" || tool=="line" || tool=="rectangle" || (tool=="centerRectangle" && !session_.contains("firstPoint")) || circleCenter
                 ? resolveSketchSnap(a["x"].toDouble(),a["y"].toDouble(),plane,circleCenter || tool=="centerRectangle" || tool=="line") : QJsonObject{};
         if(!snap.isEmpty()){session_["snap"]=snap;if(snap["status"]=="ambiguous")return failure("ambiguous_snap","Multiple sketch points are equally close; move toward the intended point");}
         auto point=snap.isEmpty() ? view_->sketchPoint(a["x"].toDouble(),a["y"].toDouble(),plane) : snap;
+        if(tool=="point") {
+            QJsonObject inputs{{"x",point["uMm"]},{"y",point["vMm"]},{"units","mm"}};
+            if(point["status"]=="acquired")inputs["snapTarget"]=point["target"];
+            auto response=appendStandalonePoint(inputs);
+            if(response["ok"].isBool() && !response["ok"].toBool())return response;
+            session_.remove("firstPoint");view_->clearSketchCursor();
+            view_->setFocus(Qt::OtherFocusReason);
+            return QJsonObject{{"placement",true},{"entity",session_["draftSketch"].toObject()["parameters"].toObject()["entities"].toArray().last()}};
+        }
         if((tool=="circle" || tool=="twoPointCircle") && session_.contains("pendingCircleDiameter") && session_.contains("firstPoint"))cancelCircleDiameter();
         if(tool=="centerRectangle" && session_.contains("pendingCenterRectangle"))cancelCenterRectangle();
         if(tool=="rectangle" && session_.contains("pendingTwoPointRectangle"))return failure("pending_input_active","Accept or cancel the typed rectangle before clicking");
@@ -2037,9 +2050,15 @@ void AlloyWindow::registerCommands() {
         }
         const bool circleCenter=tool=="circle" && !session_.contains("firstPoint");
         const bool circleCircumference=tool=="circle" && session_.contains("firstPoint");
-        const bool snapping=tool=="line" || tool=="rectangle" || (tool=="centerRectangle" && !session_.contains("firstPoint")) || circleCenter || circleCircumference;
+        const bool snapping=tool=="point" || tool=="line" || tool=="rectangle" || (tool=="centerRectangle" && !session_.contains("firstPoint")) || circleCenter || circleCircumference;
         const auto snap=circleCircumference ? resolveCircleTangentSnap(a["x"].toDouble(),a["y"].toDouble(),plane)
             : snapping ? resolveSketchSnap(a["x"].toDouble(),a["y"].toDouble(),plane,circleCenter || tool=="centerRectangle" || tool=="line") : QJsonObject{};
+        if(tool=="point") {
+            const auto position=snap.isEmpty() ? view_->sketchPoint(a["x"].toDouble(),a["y"].toDouble(),plane) : snap;
+            auto cue=position;cue["status"]="acquired";view_->showSketchSnap(plane,cue);
+            session_["pointerPoint"]=position;session_["snap"]=snap;
+            return QJsonObject{{"point",position},{"snap",snap},{"authoredChange",false}};
+        }
         if(snapping){session_["snap"]=snap;if(!session_.contains("firstPoint")){view_->clearSketchCursor();view_->showSketchSnap(plane,snap);return QJsonObject{{"snap",snap},{"authoredChange",false}};}}
         if(!session_.contains("firstPoint"))return QJsonObject{};
         auto point=snapping ? snap : view_->sketchPoint(a["x"].toDouble(),a["y"].toDouble(),plane);
@@ -2522,6 +2541,14 @@ void AlloyWindow::registerCommands() {
         }
         const bool selectingProfile=session_.value("command")=="solid.extrude" || session_.value("command")=="solid.loft";
         if(!selectingProfile) {
+            if(session_.isEmpty()) {
+                const auto point=view_->pickFinishedPoint(a["x"].toDouble(),a["y"].toDouble());
+                if(!point.isEmpty()) {
+                    selectedBody_.clear();selectedFace_={};selectedPlane_.clear();selectedSketch_=point["sketchId"].toString();selectedProfile_.clear();selectedProfileIds_={};
+                    view_->selectBody({});view_->selectSupportFace({},{});view_->selectProfile({},{});view_->selectFinishedPoint(point);
+                    return point;
+                }
+            }
             const auto support=view_->pickSupportFace(a["x"].toDouble(),a["y"].toDouble(),document_->bodies());
             if(!support.isEmpty()) {
                 if(session_.value("command")=="sketch.plane")return beginSketch("face",session_.value("inputs").toObject().value("name").toString("Sketch"),{},support);
@@ -2959,6 +2986,7 @@ QJsonObject AlloyWindow::state() const {
             : !selectedPlane_.isEmpty() ? QJsonObject{{"kind","constructionPlane"},{"planeId",selectedPlane_}}
             : !selectedFace_.isEmpty() ? QJsonObject{{"kind","face"},{"support",selectedFace_}}
             : !selectedProfileIds_.isEmpty() ? QJsonObject{{"kind","profile"},{"sketchId",selectedSketch_},{"profileIds",selectedProfileIds_},{"profileId",selectedProfile_}}
+            : !view_->finishedPointSelection().isEmpty() && view_->finishedPointSelection()["sketchId"]==selectedSketch_ ? view_->finishedPointSelection()
             : !selectedSketch_.isEmpty() ? QJsonObject{{"kind","sketch"},{"sketchId",selectedSketch_}}
             : QJsonObject{{"kind","body"},{"bodyId",selectedBody_}}},
         {"kernel", QJsonObject{{"candidate", "Open CASCADE"}, {"discoveredVersion", ALLOY_OCCT_VERSION}, {"integrated", true}, {"visualizationIntegrated", true}, {"policy",GeometryKernel::policy()}}},
@@ -3238,6 +3266,7 @@ void AlloyWindow::refresh() {
         }
         if(tool=="constraint")prompt=session_.value("constraintPrompt").toString();
         else if(tool=="select" || tool=="dimension")prompt="Click to select · Shift-click to add";
+        else if(tool=="point")prompt="Click to place a point · Escape stops Point";
         else if(tool=="rectangle")prompt=session_.contains("pendingTwoPointRectangle") ? "Width × height · Tab switches · Enter places · Escape cancels" :
             session_.contains("firstPoint") ? "Move into a quadrant · Type width and height or click the opposite corner" : "Click the first rectangle corner";
         else if(tool=="centerRectangle")prompt=session_.contains("pendingCenterRectangle") ? "Enter width and height · Tab switches · Return accepts · Escape cancels" :
@@ -3277,9 +3306,13 @@ void AlloyWindow::refresh() {
         const auto mirrorPreview=session_.value("pendingSketchMirror").toObject();
         if(!mirrorPreview.isEmpty())prompt="Mirror preview · inspect reflected geometry";
         if(tool=="trim" && !session_.value("trimNotice").toString().isEmpty())prompt+="\n"+session_.value("trimNotice").toString();
+        int standaloneCount=0,curveCount=0;
+        for(const auto& e:(mirrorPreview.isEmpty() ? draft : mirrorPreview["draft"].toObject())["parameters"].toObject()["entities"].toArray()) {
+            if(e.toObject()["type"]=="point")++standaloneCount;else ++curveCount;
+        }
         if(sketchInfo_)sketchInfo_->setText(QString("%1 plane · %2\n%3\n%4")
             .arg(inputs["plane"].toString()).arg(draft["parameters"].toObject().contains("loopOffsets") || session_.value("pendingLoopOffset").toObject()["valid"].toBool() ? QString("generated closed loop")
-                : QString("%1 edges").arg(mirrorPreview.isEmpty() ? draft["parameters"].toObject()["entities"].toArray().size() : mirrorPreview["draft"].toObject()["parameters"].toObject()["entities"].toArray().size()))
+                : standaloneCount ? QString("%1 curves · %2 standalone points").arg(curveCount).arg(standaloneCount) : QString("%1 edges").arg(curveCount))
             .arg(prompt)
             .arg((mirrorPreview.isEmpty() ? diagnostics : mirrorPreview["diagnostics"].toObject())["dof"].toInt(-1)==0 ? "Fully constrained" : QString("%1 degrees of freedom").arg((mirrorPreview.isEmpty() ? diagnostics : mirrorPreview["diagnostics"].toObject())["dof"].toInt())));
         // Long live-entry prompts can grow after the scroll layout has measured
@@ -3297,7 +3330,8 @@ void AlloyWindow::refresh() {
                 profiles=generated["profiles"].toArray();profileDiagnostics=generated["profileDiagnostics"].toObject();
             }
             int voids=0;for(const auto& p:profiles)voids+=p.toObject()["innerLoopCount"].toInt();QString text=profiles.isEmpty() ? "No closed selectable region" : QString("%1 selectable region(s) · %2 inner loop(s)").arg(profiles.size()).arg(voids);
-            bool warning=profiles.isEmpty() && profileDiagnostics["code"]!="empty_sketch";if(warning)text+="\n"+profileDiagnostics["message"].toString();
+            if(profileDiagnostics["code"]=="point_only_sketch")text="Standalone points · no profile boundaries";
+            bool warning=profiles.isEmpty() && profileDiagnostics["code"]!="empty_sketch" && profileDiagnostics["code"]!="point_only_sketch";if(warning)text+="\n"+profileDiagnostics["message"].toString();
             for(const auto& notice:profileDiagnostics["notices"].toArray()){const auto n=notice.toObject();if(n["severity"]!="warning")continue;warning=true;if(n["code"]=="coincident_boundary_sources")text+=QString("\n%1 coincident sources share one boundary.").arg(n["entityIds"].toArray().size());else if(n["code"]=="ignored_open_segments")text+=QString("\n%1 source curve(s) have excluded open portions.").arg(n["entityIds"].toArray().size());else text+=QString("\n%1 open entity/curve(s) excluded from profiles.").arg(n["entityIds"].toArray().size());}
             if(!profileDiagnostics["endpointGaps"].toArray().isEmpty()){double closest=std::numeric_limits<double>::infinity();for(const auto& g:profileDiagnostics["endpointGaps"].toArray())closest=std::min(closest,g.toObject()["distanceMm"].toDouble());text+="\nNearest endpoint gap: "+QString::number(closest,'g',6)+" mm (not closed)";}
             sketchProfileInfo_->setText(text);sketchProfileInfo_->setMinimumHeight(sketchProfileInfo_->sizeHint().height());
@@ -4378,7 +4412,8 @@ QJsonObject AlloyWindow::resolveSketchSnap(double x,double y,const QString& plan
     offer({{"kind","origin"}},0,0);
     QMap<QString,bool> endpointIds;
     for(const auto& entry:parameters["entities"].toArray()){
-        const auto e=entry.toObject();if(e["type"]!="line" && e["type"]!="arc")continue;
+        const auto e=entry.toObject();if(e["type"]=="point"){endpointIds[e["pointId"].toString()]=true;continue;}
+        if(e["type"]!="line" && e["type"]!="arc")continue;
         endpointIds[e["startPointId"].toString()]=true;endpointIds[e["endPointId"].toString()]=true;
     }
     for(const auto& entry:parameters["constraints"].toArray()) {
@@ -5685,7 +5720,8 @@ void AlloyWindow::refreshSketchControls() {
         }
         index=0;
         for(const auto& entry:entityEntries) {
-            const auto entity=entry.toObject();const auto id=entity["id"].toString();liveEntities.insert(id);
+            const auto entity=entry.toObject();if(entity["type"]=="point")continue;
+            const auto id=entity["id"].toString();liveEntities.insert(id);
             auto* item=rowForId(lineGroup,id);
             QString label=entity["type"]=="circle" ? QString("Circle %1  ·  P%2 · R%3").arg(++index).arg(pointNumbers.value(entity["centerPointId"].toString())).arg(entity["radiusMm"].toDouble()/scale) : QString("%1 %2  ·  P%3 → P%4").arg(entity["type"]=="arc" ? "Arc" : "Line").arg(++index).arg(pointNumbers.value(entity["startPointId"].toString())).arg(pointNumbers.value(entity["endPointId"].toString()));
             if(entity["construction"].toBool())label+=" · Construction";

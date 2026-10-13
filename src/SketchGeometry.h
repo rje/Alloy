@@ -24,6 +24,9 @@ public:
     static QJsonObject replaceFeature(const QJsonObject& authored, const QJsonObject& draft);
     // Canonical arguments: u1Mm, v1Mm, u2Mm, v2Mm. Lines may reuse explicit point IDs.
     static QJsonObject addLine(const QJsonObject& draft, const QJsonObject& arguments);
+    // A true point entity owns one stable solver point, with no curve/profile.
+    static SolveResult addStandalonePoint(const QJsonObject& draft, const QJsonObject& arguments,
+        const QJsonObject& projectionContext = {});
     // Curve inputs normalize to analytic radius and signed angular sweep.
     static QJsonObject addCircle(const QJsonObject& draft, const QJsonObject& arguments);
     static QJsonObject addArc(const QJsonObject& draft, const QJsonObject& arguments);

@@ -179,6 +179,7 @@ private:
     void syncSketchTextDialog();
     QDialog* sketchTextDialog_ = nullptr;
     QJsonObject selectSupportFace(const QJsonObject& support);
+    QJsonObject appendStandalonePoint(const QJsonObject& inputs);
     QJsonObject appendSketchEntity(const QString& tool, const QJsonObject& inputs);
     QJsonObject appendCenterRectangle(const QJsonObject& inputs);
     QJsonObject appendCircleOffset(const QJsonObject& inputs,bool update);
