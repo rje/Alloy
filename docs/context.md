@@ -59,6 +59,7 @@ See validation/countersunk-plate-tutorial.md for source adaptations, recording
 limits and separate native evidence. Issue/board Done. All private editors closed.
 The external gallery has nine creations: eight checked solid meshes and one sketch.
 Next tutorial #251–257 covers the full31-step slots/splines/conic/ellipse lesson.
+Fit Point Spline #253 now has an isolated candidate in `feat/fit-point-spline`: real degree5 C2 authored curves, point removal/insertion, tangent direction/weight, shared commands and exact closed-region support. Core, first real-app API and corrected native Qt ingredients pass; independent final acceptance remains pending. Native input checks cover source picks/Check/Escape/Delete/context insertion, no-motion selection, handle Preview/Cancel and Undo/late-release. Read [validation/fit-point-spline.md](validation/fit-point-spline.md), [research/fit-point-spline.md](research/fit-point-spline.md) and external source design before resuming. #254 remains Todo.
 Straight slot #251 is independently accepted and integrated as e3f1843/46dbae1.
 Main app build and focused core pass; native/API/visual evidence is recorded in
 validation/center-point-slot.md. Solved geometry during dragging remains #258.

@@ -7,6 +7,7 @@
 #include <TopoDS_Compound.hxx>
 #include "ReferenceView.h"
 #include "SketchGeometry.h"
+#include "SketchSpline.h"
 #include "GeometryKernel.h"
 #include <QMouseEvent>
 #include <QWheelEvent>
@@ -847,7 +848,7 @@ QJsonObject ReferenceView::selectSketchWindow(const QJsonObject& feature,double 
 }
 void ReferenceView::clearSketchDecorations() {
     if(!context_.IsNull())for(const auto& decoration:sketchDecorations_)context_->Remove(decoration,false);
-    sketchDecorations_.clear();
+    sketchDecorations_.clear();splineHandleState_={};
     annotationLayouts_={};
     constraintGlyphs_={};
 }
@@ -1122,6 +1123,7 @@ void ReferenceView::decorateSketch(const QJsonObject& feature,const QJsonObject&
         highlight->SetZLayer(Graphic3d_ZLayerId_Topmost);
         context_->Display(highlight,AIS_WireFrame,-1,false);context_->Deactivate(highlight);sketchDecorations_.push_back(highlight);
     }
+    decorateSplineHandles(feature,selection);
     QJsonArray projectedUsedIds;QSet<QString> projectedIds;
     for(const auto& value:projectedLines_)projectedIds.insert(value.toObject()["id"].toString());
     for(const auto& entry:parameters["constraints"].toArray())
@@ -1970,6 +1972,7 @@ QJsonObject ReferenceView::diagnostics() const {
          snapCue.value("target").toObject().value("kind")=="origin" ? "origin-diamond" : "endpoint-diamond") : "none";
     result.insert("sketchSnapCue",snapCue);
     result.insert("sketchConstraintGlyphs",constraintGlyphs_);
+    result.insert("splineHandles",splineHandleState_);
     result.insert("sketchConstraintVisibility",QJsonObject{{"visible",!decorationFeature_.isEmpty()},{"editable",false}});
     QJsonArray profiles;for(const auto& profile:draftProfiles_) {
         auto summary=profile.summary;TopLoc_Location location;const auto triangles=BRep_Tool::Triangulation(profile.face,location);
@@ -2045,6 +2048,11 @@ void ReferenceView::mousePressEvent(QMouseEvent* e) {
         mirrorWindowActive_=true;mirrorWindowPress_=e->position();setFocus(Qt::MouseFocusReason);
         if(!mirrorWindowBand_)mirrorWindowBand_=new QRubberBand(QRubberBand::Rectangle,this);
         mirrorWindowBand_->setGeometry(QRect(mirrorWindowPress_.toPoint(),QSize()));e->accept();return;
+    }
+    if(e->button()==Qt::LeftButton && !e->modifiers().testFlag(Qt::AltModifier) && decorationSelection_.value("tool")=="select"){
+        QJsonObject picked;double best=9;for(const auto& value:splineHandleState_["grips"].toArray()){const auto grip=value.toObject();const double distance=QLineF(e->position(),QPointF(grip["x"].toDouble(),grip["y"].toDouble())).length();if(distance<best){best=distance;picked=grip;}}
+        if(picked.isEmpty() && !decorationFeature_.isEmpty()){const auto hit=pickSketch(decorationFeature_,e->position().x(),e->position().y(),"point",sketchFrame_);if(!hit.isEmpty())for(const auto& v:decorationFeature_["parameters"].toObject()["entities"].toArray()){const auto spline=v.toObject();if(spline["type"]=="fitSpline"&&spline["pointIds"].toArray().contains(hit["pointId"])){picked={{"kind","point"},{"entityId",spline["id"]},{"pointId",hit["pointId"]}};break;}}}
+        if(!picked.isEmpty()){setFocus(Qt::MouseFocusReason);if(picked["kind"]=="point")dispatch("sketch.selectionPick",{{"x",e->position().x()},{"y",e->position().y()}});splineDrag_=picked;splineDrag_["pressX"]=e->position().x();splineDrag_["pressY"]=e->position().y();splineDrag_["moved"]=false;auto begin=picked;begin.remove("x");begin.remove("y");begin["phase"]="begin";dispatch("sketch.splineDrag",begin);e->accept();return;}
     }
     if(e->button()==Qt::LeftButton && !sketchTextHandleState_.isEmpty()){
         const auto move=sketchTextHandleState_["move"].toObject(),rotate=sketchTextHandleState_["rotate"].toObject();
@@ -2138,6 +2146,7 @@ void ReferenceView::mouseMoveEvent(QMouseEvent* e) {
             {end["uMm"].toDouble(),end["vMm"].toDouble()},false);
         e->accept();return;
     }
+    if(!splineDrag_.isEmpty() && e->buttons().testFlag(Qt::LeftButton)){const QPointF press(splineDrag_["pressX"].toDouble(),splineDrag_["pressY"].toDouble());if(QLineF(press,e->position()).length()<4&&!splineDrag_["moved"].toBool()){e->accept();return;}splineDrag_["moved"]=true;const auto p=sketchPoint(e->position().x(),e->position().y(),sketchPlane_,sketchFrame_);dispatch("sketch.splineDrag",{{"phase","move"},{"uMm",p["uMm"]},{"vMm",p["vMm"]}});e->accept();return;}
     if(mirrorWindowActive_ && e->buttons().testFlag(Qt::LeftButton)){
         if(QLineF(mirrorWindowPress_,e->position()).length()>=4){mirrorWindowBand_->setGeometry(QRect(mirrorWindowPress_.toPoint(),e->position().toPoint()).normalized());mirrorWindowBand_->show();}
         e->accept();return;
@@ -2194,6 +2203,7 @@ void ReferenceView::mouseReleaseEvent(QMouseEvent* e) {
         } else dispatch("sketch.selectionPick",{{"x",e->position().x()},{"y",e->position().y()}});
         e->accept();return;
     }
+    if(e->button()==Qt::LeftButton && !splineDrag_.isEmpty()){const bool moved=splineDrag_["moved"].toBool();splineDrag_={};if(!moved){dispatch("sketch.splineDrag",{{"phase","cancel"}});e->accept();return;}const auto p=sketchPoint(e->position().x(),e->position().y(),sketchPlane_,sketchFrame_);dispatch("sketch.splineDrag",{{"phase","end"},{"uMm",p["uMm"]},{"vMm",p["vMm"]}});e->accept();return;}
     if(e->button()==Qt::LeftButton && mirrorWindowActive_){
         mirrorWindowActive_=false;if(mirrorWindowBand_)mirrorWindowBand_->hide();
         if(QLineF(mirrorWindowPress_,e->position()).length()>=4)
@@ -2237,6 +2247,7 @@ void ReferenceView::contextMenuEvent(QContextMenuEvent* e) {
     lastContextMenu_=QJsonObject{{"reason",static_cast<int>(e->reason())},{"sketchActive",sketchActive},
         {"selectTool",selectTool},{"selectedEntities",selectedEntities},
         {"x",e->pos().x()},{"y",e->pos().y()}};
+    if(sketchActive && selectTool && decorationSelection_["entityIds"].toArray().size()==1){const auto id=decorationSelection_.value("entityIds").toArray().at(0);for(const auto& value:decorationFeature_["parameters"].toObject()["entities"].toArray())if(value.toObject()["id"]==id&&value.toObject()["type"]=="fitSpline"){QMenu menu(this);auto* insert=menu.addAction("Insert Spline Fit Point");insert->setObjectName("sketch.spline.insertFitPoint");if(menu.exec(e->globalPos())==insert)dispatch("sketch.splineInsertMode",{{"entityId",id}});e->accept();return;}}
     if(sketchActive && selectTool && showConstraints_) {
         const auto badge=pickConstraint(e->pos().x(),e->pos().y());
         const auto selected=decorationSelection_.value("constraintIds").toArray();

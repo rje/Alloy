@@ -61,6 +61,9 @@ public:
         const QJsonObject& diagnostics, const QString& units, const QJsonObject& pending = {});
     QJsonObject dimensionLayout(const QJsonObject& feature, const QJsonObject& dimension,
         double valueMm, const QString& units) const;
+    void decorateSplineHandles(const QJsonObject& feature,const QJsonObject& selection);
+    void clearSplineDrag() { splineDrag_={}; }
+    QJsonObject splineHandles() const { return splineHandleState_; }
     QJsonObject pickAnnotation(double x, double y) const;
     QJsonObject pickConstraint(double x, double y) const;
     void setSketchAnnotationVisibility(bool showConstraints, bool showDimensions);
@@ -179,6 +182,7 @@ private:
     QJsonArray projectedLines_, supportPoints_;
     QJsonArray constructionDraftLineIds_, centerlineDraftLineIds_;
     int rightMousePressCount_ = 0;
+    QJsonObject splineHandleState_,splineDrag_;
     int contextMenuEventCount_ = 0;
     int contextMenuShownCount_ = 0;
     QJsonObject lastContextMenu_;

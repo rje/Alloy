@@ -93,6 +93,7 @@ SketchProfiles::Result SketchProfiles::derive(const QJsonObject& feature, const 
     sourcePointIds.sort(); sourceEntityIds.sort();
     if (sourceEntityIds.isEmpty()) return refuse("empty_sketch", "Draw a closed line boundary to create a profile.");
 
+    if(std::any_of(entities.begin(),entities.end(),[](const auto& value){return value.toObject()["type"]=="fitSpline";}))return refuse("open_profile","Close the spline boundary to create a profile.");
     const bool hasCurves=std::any_of(entities.begin(),entities.end(),[](const auto& value){return value.toObject()["type"]!="line";});
     const auto profileId=QUuid::createUuidV5(QUuid(sketchId),QByteArray("alloy-profile/1\n")+sourceEntityIds.join('\n').toUtf8()).toString(QUuid::WithoutBraces);
     const auto frame=SketchGeometry::evaluationFrame(parameters,resolvedFrame);const auto origin=frame["origin"].toArray();

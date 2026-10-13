@@ -192,6 +192,8 @@ private:
     QDialog* sketchTextDialog_ = nullptr;
     QJsonObject selectSupportFace(const QJsonObject& support);
     QJsonObject appendStandalonePoint(const QJsonObject& inputs);
+    QJsonObject splineCommand(const QString& operation,const QJsonObject& inputs = {});
+    QJsonObject splinePointer(const QJsonObject& inputs,bool place);
     QJsonObject appendSketchEntity(const QString& tool, const QJsonObject& inputs);
     QJsonObject appendCenterRectangle(const QJsonObject& inputs);
     QJsonObject appendCenterPointSlot(const QJsonObject& inputs);
