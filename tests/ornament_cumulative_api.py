@@ -198,6 +198,8 @@ def main():
     parser.add_argument('--app', required=True)
     parser.add_argument('--output', required=True)
     parser.add_argument('--record-video', type=Path)
+    parser.add_argument('--record-fps', type=int, choices=(5, 10), default=10,
+                        help='Real-time capture rate; 5 fps accommodates longer exact geometry commands.')
     parser.add_argument('--geometry-verifier', required=True, help='Built ornament_geometry_verify executable.')
     parser.add_argument('--geometry-verifier-timeout', type=float, default=600)
     parser.add_argument('--command-timeout', type=float, default=30,
@@ -238,7 +240,7 @@ def main():
             raw_call('window.resize', {'width': 1400, 'height': 1000})
             assert not raw_call('document.inspect')['authored']['features']
             if movie:
-                raw_call('recording.start', {'path': str(movie), 'fps': 10})
+                raw_call('recording.start', {'path': str(movie), 'fps': args.record_fps})
                 recording = True
                 time.sleep(.5)
             def stage(caption):
