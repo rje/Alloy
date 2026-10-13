@@ -232,6 +232,11 @@ AlloyWindow::AlloyWindow() {
                 action->setObjectName("solid.action."+entry.first);action->setToolTip(command->description);
                 connect(action,&QAction::triggered,this,[this,id=entry.first]{execute(id);});
             }
+            if(caption=="CREATE") {
+                auto* circle=menu->addMenu("Circle");circle->setObjectName("solid.commands.circle");
+                auto* action=circle->addAction("Center Diameter Circle\tC");action->setObjectName("solid.action.sketch.circle");
+                connect(action,&QAction::triggered,this,[this]{execute("sketch.circle");});
+            }
             button->setMenu(menu);button->setPopupMode(QToolButton::InstantPopup);box->addWidget(button,0,Qt::AlignHCenter);
         } else {
             auto* label=new QLabel(caption);label->setAlignment(Qt::AlignCenter);
@@ -259,7 +264,7 @@ AlloyWindow::AlloyWindow() {
     };
     auto toolAction=[this](QMenu* menu,const QString& label,const QString& tool) {
         auto* action=menu->addAction(label);action->setObjectName("sketch.tool."+tool);
-        connect(action,&QAction::triggered,this,[this,tool]{sketchResponse(execute("sketch.tool",{{"tool",tool}}));});return action;
+        connect(action,&QAction::triggered,this,[this,tool]{sketchResponse(tool=="circle" ? execute("sketch.circle") : execute("sketch.tool",{{"tool",tool}}));});return action;
     };
     auto* create=sketchMenu("Create","create");
     toolAction(create,"Line\tL","line");
@@ -413,7 +418,9 @@ AlloyWindow::AlloyWindow() {
     for(const auto& tool:QStringList{"line","rectangle","circle","dimension"}) {
         auto* shortcut=new QShortcut(QKeySequence(tool=="line" ? "L" : tool=="rectangle" ? "R" : tool=="circle" ? "C" : "D"),this);
         connect(shortcut,&QShortcut::activated,this,[this,tool]{
-            if(session_.value("command").toString()=="sketch.edit" && !qobject_cast<QLineEdit*>(QApplication::focusWidget()))execute("sketch.tool",{{"tool",tool}});
+            if(qobject_cast<QLineEdit*>(QApplication::focusWidget()))return;
+            if(tool=="circle")execute("sketch.circle");
+            else if(session_.value("command").toString()=="sketch.edit")execute("sketch.tool",{{"tool",tool}});
         });
     }
     auto* constructionShortcut=new QShortcut(QKeySequence("X"),this);
@@ -436,7 +443,8 @@ AlloyWindow::AlloyWindow() {
     sketchEscape_=new QShortcut(QKeySequence(Qt::Key_Escape),view_);
     sketchEscape_->setContext(Qt::WidgetShortcut);sketchEscape_->setEnabled(false);
     connect(sketchEscape_,&QShortcut::activated,this,[this]{
-        if(session_.value("command").toString()=="sketch.edit") {
+        if(session_.value("command")=="sketch.plane")execute("sketch.cancel");
+        else if(session_.value("command").toString()=="sketch.edit") {
             if(session_.contains("pendingCircleDiameter"))execute("sketch.circleDiameterCancel");
             else if(session_.contains("pendingDimension"))execute("sketch.dimensionCancel");
             else execute("sketch.tool",{{"tool","select"}});
@@ -938,6 +946,22 @@ void AlloyWindow::registerCommands() {
         session_={{"id",CadDocument::newId()},{"command","sketch.plane"},{"status","active"},{"inputs",QJsonObject{{"name",a.value("name").toString("Sketch")},{"units",a.value("units").toString(document_->authored()["displayUnits"].toString())}}},
             {"baseDocumentRevision",static_cast<qint64>(document_->revision())},{"previewed",false}};
         showSketch();return session_;
+    });
+    add("sketch.circle","Center Diameter Circle","Start a circle before choosing an origin plane or supported planar face (C).",sketchCreateSchema,[this](const auto& a){
+        if(session_.value("command")=="sketch.edit") {
+            if(!a.isEmpty())return failure("invalid_arguments","Active circle entry uses the current sketch support");
+            const auto response=execute("sketch.tool",{{"tool","circle"}});
+            return response.value("ok").toBool() ? response.value("result").toObject() : response;
+        }
+        if(!session_.isEmpty())return failure("session_busy","Complete or cancel the active command first");
+        const auto response=execute("sketch.create",a);
+        if(!response.value("ok").toBool())return response;
+        if(session_.value("command")=="sketch.plane") {
+            session_["pendingTool"]="circle";showSketch();view_->setFocus(Qt::OtherFocusReason);
+        } else {
+            session_["tool"]="circle";view_->setFocus(Qt::OtherFocusReason);
+        }
+        return session_;
     });
     add("sketch.begin","Choose sketch plane or face","Enter sketch editing with a disposable authored draft.",sketchBeginSchema,[this](const auto& a){
         if(a.contains("plane")==a.contains("support"))return failure("invalid_arguments","Choose exactly one origin plane or face support");
@@ -1980,7 +2004,7 @@ void AlloyWindow::refresh() {
     }
     const bool editingSketch=session_.value("command").toString()=="sketch.edit";
     sketchToolbar_->setVisible(editingSketch);
-    sketchEscape_->setEnabled(editingSketch);
+    sketchEscape_->setEnabled(editingSketch || session_.value("command")=="sketch.plane");
     if(extrudeEscape_)extrudeEscape_->setEnabled(session_.value("command")=="solid.extrude");
     if(session_.value("command")=="solid.move" && moveDock_)for(const auto& key:{"xMm","yMm","zMm","xDeg","yDeg","zDeg","pivotXMm","pivotYMm","pivotZMm"})if(auto* field=moveDock_->findChild<QDoubleSpinBox*>(key)){const QSignalBlocker blocker(field);field->setValue(session_["inputs"].toObject()[key].toDouble());}
     if(combineEscape_)combineEscape_->setEnabled(session_.value("command")=="solid.combine");
@@ -2641,9 +2665,10 @@ QJsonObject AlloyWindow::beginSketch(const QString& plane,const QString& name,co
     auto inputs=QJsonObject{{"plane",plane},{"name",draft["name"]},{"units",session_.value("inputs").toObject().value("units").toString(document_->authored()["displayUnits"].toString())}};
     if(!sketchId.isEmpty())inputs["sketchId"]=sketchId;
     if(!support.isEmpty())inputs["support"]=support;
+    const auto entryTool=session_.value("pendingTool").toString("select");
     const auto sessionId=session_.value("id").toString(CadDocument::newId());
     session_={{"id",sessionId},{"command","sketch.edit"},{"status","active"},{"inputs",inputs},{"draftSketch",draft},
-        {"tool","select"},{"selection",QJsonObject{{"pointIds",QJsonArray{}},{"entityIds",QJsonArray{}}}},{"solverDiagnostics",solved.diagnostics},
+        {"tool",entryTool},{"selection",QJsonObject{{"pointIds",QJsonArray{}},{"entityIds",QJsonArray{}}}},{"solverDiagnostics",solved.diagnostics},
         {"previewed",false},{"baseDocumentRevision",static_cast<qint64>(document_->revision())},{"resolvedFrame",resolvedFrame},{"projectionContext",projectionContext},
         {"displayOptions",QJsonObject{{"showConstraints",true},{"showDimensions",true}}}};
     sketchHistory_={{draft,solved.diagnostics}};sketchHistoryIndex_=0;sketchHistoryGroup_.clear();updateSketchHistoryState();
@@ -3699,7 +3724,7 @@ void AlloyWindow::showSketch() {
     scroll->viewport()->setStyleSheet("#sketchScrollViewport { background: #f7f8f9; color: #323c44; }");
     scroll->setWidget(content);panelLayout->addWidget(scroll,1);
     if(choosing) {
-        auto* help=new QLabel("Choose an origin plane or click a supported planar face in the viewport.");help->setWordWrap(true);layout->addWidget(help);
+        auto* help=new QLabel(session_.value("pendingTool")=="circle" ? "Center Diameter Circle: choose an origin plane or click a supported planar face." : "Choose an origin plane or click a supported planar face in the viewport.");help->setWordWrap(true);layout->addWidget(help);
         for(const auto& plane:QStringList{"XY","XZ","YZ"}) {
             auto* button=new QPushButton(plane+" Plane");button->setObjectName("sketch.plane."+plane);layout->addWidget(button);
             // Defer replacement of the panel until this clicked signal returns.

@@ -1264,3 +1264,15 @@ Focused core plus real-app API/history/reopen/downstream Combine evidence pass;
 native manipulator/context-menu verification and integrated tutorial remain
 pending. See [the bounded contract](validation/body-move.md). No push/release or
 issue closure performed. Root integrates from isolated `bung-move` candidate.
+
+## Command-first Circle entry candidate (2026-10-12)
+
+In isolated `../Alloy-worktrees/circle-entry`, SKT-028 starts Center Diameter
+Circle with `sketch.circle`, global C or Solid Create → Circle, before choosing
+XY or a supported cap. The pending session carries `pendingTool: circle`, then
+enters the same circle tool with viewport focus. Existing typed diameter/Enter
+and Cancel authority are reused. Focused widget events and a real-app API chain
+through origin, first extrusion cap and Join cap pass with cancellation and
+save/reopen. See `validation/circle-entry.md`. Physical native evidence and
+independent review remain pending. No arbitrary face support or other global
+shortcut repairs are implied.

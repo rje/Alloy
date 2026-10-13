@@ -53,6 +53,29 @@ private slots:
         qApp->setPalette(dark);AlloyTheme::apply(*qApp);
         QCOMPARE(qApp->palette().color(QPalette::Window),QColor("#f7f8f9"));
     }
+    void commandFirstCircle() {
+        AlloyWindow window;window.resize(1180,760);window.show();window.activateWindow();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));auto* view=viewport(window);QVERIFY(view);
+        view->setFocus();QTest::keyClick(view,Qt::Key_C);
+        QTRY_COMPARE(session(window)["command"].toString(),QString("sketch.plane"));
+        QCOMPARE(session(window)["pendingTool"].toString(),QString("circle"));
+        QTest::keyClick(view,Qt::Key_Escape);QTRY_VERIFY(session(window).isEmpty());
+        QCOMPARE(window.state()["document"].toObject()["features"].toInt(),0);
+        auto* action=window.findChild<QAction*>("solid.action.sketch.circle");QVERIFY(action);action->trigger();
+        QTRY_COMPARE(session(window)["pendingTool"].toString(),QString("circle"));
+        auto* plane=window.findChild<QPushButton*>("sketch.plane.XY");QVERIFY(plane);QTest::mouseClick(plane,Qt::LeftButton);
+        QTRY_COMPARE(session(window)["tool"].toString(),QString("circle"));
+        QTRY_VERIFY(QApplication::focusWidget()==view);
+        QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,sketchPixel(view,0,0));
+        QTest::keyClick(view,Qt::Key_2);
+        auto* value=window.findChild<QLineEdit*>("sketch.inlineValue");QVERIFY(value);QTRY_VERIFY(value->isVisible());
+        QTRY_VERIFY(QApplication::focusWidget()==value);QTest::keyClicks(value,"6");QTest::keyClick(value,Qt::Key_Return);
+        auto parameters=session(window)["draftSketch"].toObject()["parameters"].toObject();
+        QCOMPARE(parameters["entities"].toArray().size(),1);QCOMPARE(parameters["dimensions"].toArray().size(),1);
+        QCOMPARE(parameters["dimensions"].toArray()[0].toObject()["valueMm"].toDouble(),26.0);
+        QVERIFY2(run(window,"sketch.cancel"),error_.constData());
+        QCOMPARE(window.state()["document"].toObject()["features"].toInt(),0);
+    }
     void planeCircleDimension() {
         AlloyWindow window;window.resize(1180,760);window.show();window.activateWindow();
         QVERIFY(QTest::qWaitForWindowExposed(&window));

@@ -610,3 +610,11 @@ Join keeps target body/producer identity and adds `lastModifierFeatureId`,
 An exact surviving single positive cap receives Join-feature support provenance
 for the next face sketch. Existing features retain their operation while edited.
 See [Join contract and bounded evidence](validation/profile-join.md).
+
+`sketch.circle` starts Center Diameter Circle before support selection, with
+optional `plane`, `support`, `name` and `units` matching `sketch.create`.
+Without support it returns the existing `sketch.plane` session plus
+`pendingTool: circle`. `sketch.begin` or native support selection consumes that
+pending intent and returns `sketch.edit` with `tool: circle`. In an active
+sketch, invoke without arguments to activate Circle. `sketch.cancel` discards
+both pending support selection and uncommitted circle drafts.
