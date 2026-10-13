@@ -1,5 +1,10 @@
 # Center Point Slot candidate (#251, 2026-10-13)
 
+The historical rubber-line limitation below has a #258 isolated live solved
+preview candidate; see [slot-drag-preview.md](slot-drag-preview.md) for current
+implementation and separate native evidence. Its independent acceptance is
+pending; the original #251 receipt remains historical evidence.
+
 The public sketch lesson's straight slot starts at the origin, receives a rough
 end-arc center and side-width click, then has its construction centerline made
 horizontal, dimensioned 150 mm between arc centers, and one end radius

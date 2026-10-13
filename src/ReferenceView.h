@@ -82,6 +82,7 @@ public:
     void showSketchSlotCursor(const QJsonObject& feature,bool arcSlot);
     void showSketchEllipseCursor(const QJsonObject& feature);
     void cancelSlotPointDrag();
+    void showSlotDragPreview(const EvaluatedSketch& evaluated,const QJsonObject& draft,const QJsonObject& selection,const QJsonObject& diagnostics,const QString& units);
     void clearSketchCursor();
     void showSketchTextHandles(const QJsonObject& text,const QString& plane,const QJsonObject& frame);
     void clearSketchTextHandles();

@@ -23,6 +23,12 @@ now In Progress with Sol in an isolated worktree, with Astra verification to fol
 
 ## Current checkpoint — read first (2026-10-13)
 
+#258 has an isolated live solved slot-drag candidate. Actual temporary OCCT
+capsule/profile updates reuse the shared point solve, leave authored draft/history
+unchanged until release, and cancel through tool/history/session/invalid-input
+paths. Focused native evidence passes; independent review remains pending.
+See validation/slot-drag-preview.md.
+
 #259 has an isolated candidate for per-entity solved coloring from PlaneGCS
 solved-coordinate nullspace metadata. Mixed ellipse/conic freedom and dimension
 removal core checks pass; root focused app capture and independent acceptance

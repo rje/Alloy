@@ -1593,6 +1593,9 @@ void ReferenceView::showSketchEllipseCursor(const QJsonObject& feature) {
     sketchCursor_->SetWidth(2*devicePixelRatioF());
     context_->Display(sketchCursor_,AIS_WireFrame,-1,false);context_->Deactivate(sketchCursor_);context_->UpdateCurrentViewer();
 }
+void ReferenceView::showSlotDragPreview(const EvaluatedSketch& evaluated,const QJsonObject& draft,const QJsonObject& selection,const QJsonObject& diagnostics,const QString& units) {
+    const auto gesture=slotPointDrag_;showSketchDraft(evaluated);decorateSketch(draft,selection,diagnostics,units);slotPointDrag_=gesture;
+}
 void ReferenceView::cancelSlotPointDrag() {
     if(slotPointDrag_.isEmpty())return;
     slotPointDrag_={};clearSketchCursor();
@@ -2013,6 +2016,7 @@ QJsonObject ReferenceView::diagnostics() const {
         {"centerVMm",gridCenterV_},{"stepMm",gridStep_},{"graphicHalfWidthMm",gridWidth_},
         {"graphicHalfHeightMm",gridHeight_}});
     result.insert("cursorPreviewVisible",!sketchCursor_.IsNull());
+    result.insert("slotDragPreviewVisible",slotPointDrag_["moved"].toBool());
     result.insert("splineCagePreviewVisible",!splineCageCursor_.IsNull());
     result.insert("sketchDecorations",static_cast<int>(sketchDecorations_.size()));
     result.insert("sketchAnnotations",annotationLayouts_);
@@ -2177,6 +2181,7 @@ void ReferenceView::mousePressEvent(QMouseEvent* e) {
                         if(entry.toObject()["id"]==group["centerlineId"]){guide=entry.toObject();break;}
                     if(hit["kind"]!="point" || (hit["pointId"]!=guide["startPointId"] && hit["pointId"]!=guide["endPointId"]))continue;
                     slotPointDrag_={{"pointId",hit["pointId"]},{"pressX",e->position().x()},{"pressY",e->position().y()}};
+                    dispatch("sketch.slotDrag",{{"phase","begin"},{"pointId",hit["pointId"]}});
                     setFocus(Qt::MouseFocusReason);e->accept();return;
                 }
             }
@@ -2204,10 +2209,12 @@ void ReferenceView::mouseMoveEvent(QMouseEvent* e) {
     }
 
     if(!slotPointDrag_.isEmpty() && e->buttons().testFlag(Qt::LeftButton)) {
-        const auto start=sketchPoint(slotPointDrag_["pressX"].toDouble(),slotPointDrag_["pressY"].toDouble(),sketchPlane_);
-        const auto end=sketchPoint(e->position().x(),e->position().y(),sketchPlane_);
-        showSketchCursor(sketchPlane_,{start["uMm"].toDouble(),start["vMm"].toDouble()},
-            {end["uMm"].toDouble(),end["vMm"].toDouble()},false);
+        const QPointF press(slotPointDrag_["pressX"].toDouble(),slotPointDrag_["pressY"].toDouble());
+        if(QLineF(press,e->position()).length()<4&&!slotPointDrag_["moved"].toBool()){e->accept();return;}
+        slotPointDrag_["moved"]=true;
+        try {const auto end=sketchPoint(e->position().x(),e->position().y(),sketchPlane_,sketchFrame_);
+            dispatch("sketch.slotDrag",{{"phase","move"},{"uMm",end["uMm"]},{"vMm",end["vMm"]}});
+        } catch(const std::exception&) {dispatch("sketch.slotDrag",{{"phase","cancel"}});}
         e->accept();return;
     }
     if(!splineDrag_.isEmpty() && e->buttons().testFlag(Qt::LeftButton)){const QPointF press(splineDrag_["pressX"].toDouble(),splineDrag_["pressY"].toDouble());if(QLineF(press,e->position()).length()<4&&!splineDrag_["moved"].toBool()){e->accept();return;}splineDrag_["moved"]=true;const auto p=sketchPoint(e->position().x(),e->position().y(),sketchPlane_,sketchFrame_);dispatch("sketch.splineDrag",{{"phase","move"},{"uMm",p["uMm"]},{"vMm",p["vMm"]}});e->accept();return;}
@@ -2266,10 +2273,11 @@ void ReferenceView::mouseReleaseEvent(QMouseEvent* e) {
 
     if(e->button()==Qt::LeftButton && !slotPointDrag_.isEmpty()) {
         const auto drag=slotPointDrag_;slotPointDrag_={};clearSketchCursor();
-        if(std::hypot(e->position().x()-drag["pressX"].toDouble(),e->position().y()-drag["pressY"].toDouble())>=4) {
-            const auto point=sketchPoint(e->position().x(),e->position().y(),sketchPlane_);
-            dispatch("sketch.movePoint",{{"pointId",drag["pointId"]},{"x",point["uMm"]},{"y",point["vMm"]},{"units","mm"}});
-        } else dispatch("sketch.selectionPick",{{"x",e->position().x()},{"y",e->position().y()}});
+        if(drag["moved"].toBool()) {
+            try {const auto point=sketchPoint(e->position().x(),e->position().y(),sketchPlane_,sketchFrame_);
+                dispatch("sketch.slotDrag",{{"phase","end"},{"uMm",point["uMm"]},{"vMm",point["vMm"]}});
+            } catch(const std::exception&) {dispatch("sketch.slotDrag",{{"phase","cancel"}});}
+        } else {dispatch("sketch.slotDrag",{{"phase","cancel"}});dispatch("sketch.selectionPick",{{"x",e->position().x()},{"y",e->position().y()}});}
         e->accept();return;
     }
     if(e->button()==Qt::LeftButton && !splineDrag_.isEmpty()){const bool moved=splineDrag_["moved"].toBool();splineDrag_={};if(!moved){dispatch("sketch.splineDrag",{{"phase","cancel"}});e->accept();return;}const auto p=sketchPoint(e->position().x(),e->position().y(),sketchPlane_,sketchFrame_);dispatch("sketch.splineDrag",{{"phase","end"},{"uMm",p["uMm"]},{"vMm",p["vMm"]}});e->accept();return;}

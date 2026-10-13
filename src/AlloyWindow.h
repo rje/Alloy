@@ -234,6 +234,8 @@ private:
     void showSketch();
     void showCurveEntry();
     void sketchResponse(const QJsonObject& response);
+    void cancelSlotDrag();
+    QJsonObject slotDrag(const QJsonObject& args);
     QJsonObject publishSketchSolve(const SketchGeometry::SolveResult& solved, const QString& journalGroup = {});
     QJsonObject traverseSketchHistory(int direction);
     void recordSketchHistory(const QJsonObject& draft, const QJsonObject& diagnostics, const QString& group = {});

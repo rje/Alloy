@@ -1982,7 +1982,7 @@ void AlloyWindow::registerCommands() {
     add("sketch.tool","Sketch drawing tool","Choose a tool and clear its pending first point.",{{"tool",sketchTool}},[this](const auto& a){
         if(session_.value("command").toString()!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
         cancelConicInput();
-        view_->cancelSlotPointDrag();
+        cancelSlotDrag();
         if(session_.contains("pendingSplineDrag"))splineCommand("drag",{{"phase","cancel"}});
         auto badgeSelection=session_.value("selection").toObject();badgeSelection.remove("constraintIds");badgeSelection.remove("dimensionId");
         session_["selection"]=badgeSelection;session_.remove("hoveredConstraintId");
@@ -2816,6 +2816,10 @@ void AlloyWindow::registerCommands() {
             const auto key="annotation:"+a["dimensionId"].toString()+":"+a["gestureId"].toString();
             const bool ended=sketchHistoryGroup_==key;if(ended)sketchHistoryGroup_.clear();return QJsonObject{{"ended",ended}};
         });
+    auto slotDragPhase=parameter("string","Disposable slot gesture phase.");slotDragPhase["enum"]=QJsonArray{"begin","move","end","cancel"};
+    auto slotDragCoordinate=parameter("number","Canonical millimeter cursor coordinate.");slotDragCoordinate["minimum"]=-100000;slotDragCoordinate["maximum"]=100000;
+    add("sketch.slotDrag","Drag slot end center","Preview exact solved capsule without editing authoring until release.",
+        {{"phase",slotDragPhase},{"pointId",optional(parameter("string","Retained slot guide endpoint UUID."))},{"uMm",optional(slotDragCoordinate)},{"vMm",optional(slotDragCoordinate)}},[this](const auto& a){return slotDrag(a);});
     add("sketch.movePoint","Move sketch point","Solve a seeded point movement without deforming the usable draft on failure.",
         {{"pointId",parameter("string","Stable authored point UUID.")},{"x",coordinate},{"y",coordinate},{"units",optional(units)},{"session",optionalSession}},[this](const auto& a){
             if(session_.value("command").toString()!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
@@ -3340,7 +3344,7 @@ QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
     if (!command->available) return finish(failure("not_implemented", command->title + " is not implemented in the UI shell"));
     QString field;
     const auto argumentError = validateArguments(*command, args, &field);
-    if (!argumentError.isEmpty()) return finish(failure("invalid_arguments", argumentError, field));
+    if (!argumentError.isEmpty()) {if(id=="sketch.slotDrag")cancelSlotDrag();return finish(failure("invalid_arguments", argumentError, field));}
     QJsonObject result;
     // A rejected constraint attempt can still change the active tool, pending
     // selection and retry prompt. Publish that presentation without committing
@@ -3712,6 +3716,7 @@ void AlloyWindow::refresh() {
             selected["entityIds"]=QJsonArray{conicPreview["entityId"]};
             view_->decorateSketch(conicPreview["previewDraft"].toObject(),selected,diagnostics,inputs["units"].toString());
         }
+        const auto slotPreview=session_.value("pendingSlotDrag").toObject();if(slotPreview.contains("previewDraft")){auto selected=session_.value("selection").toObject();selected["tool"]="select";view_->decorateSketch(slotPreview["previewDraft"].toObject(),selected,slotPreview["diagnostics"].toObject(),inputs["units"].toString());}
         const auto splinePreview=session_.value("pendingSplineDrag").toObject();if(splinePreview.contains("previewDraft")){auto selected=session_.value("selection").toObject();selected["tool"]="select";view_->decorateSketch(splinePreview["previewDraft"].toObject(),selected,splinePreview["diagnostics"].toObject(),inputs["units"].toString());}
         const auto tool=session_.value("tool").toString();if(auto* complete=findChild<QPushButton*>("sketch.spline.complete")){complete->setVisible(tool=="fitSpline"||tool=="controlSpline");complete->setEnabled(session_.value("pendingSplinePoints").toArray().size()>=2);}
         QString prompt="Click the first point";
@@ -4340,7 +4345,7 @@ QJsonObject AlloyWindow::beginSession(const QString& command, const QJsonObject&
 QJsonObject AlloyWindow::finishSession(const QString& id, bool commit) {
     if (session_.isEmpty() || session_.value("id").toString() != id) return failure("invalid_session", "Session is no longer active");
     cancelConicInput();
-    view_->cancelSlotPointDrag();
+    cancelSlotDrag();
     const auto target = session_.value("command").toString();
     QJsonObject result{{"sessionId", id}, {"status", commit ? "committed" : "cancelled"}};
     if(commit && target=="sketch.plane")return failure("plane_required","Choose an origin plane before finishing a sketch");
@@ -5446,6 +5451,7 @@ double AlloyWindow::sketchDimensionMeasure(const QJsonObject& targets,const QStr
 }
 
 QJsonObject AlloyWindow::publishSketchSolve(const SketchGeometry::SolveResult& solved,const QString& journalGroup) {
+    if(session_.contains("pendingSlotDrag"))cancelSlotDrag();
     if(session_.value("command").toString()!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
     if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))return failure("stale_session","The document changed; cancel and restart this sketch");
     if(!solved.ok) {
@@ -5497,7 +5503,7 @@ QJsonObject AlloyWindow::traverseSketchHistory(int direction) {
     if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))
         return failure("stale_session","The document changed; cancel and restart this sketch");
     cancelConicInput();
-    view_->cancelSlotPointDrag();
+    cancelSlotDrag();
     if(session_.contains("pendingSketchMirror")){
         session_.remove("pendingSketchMirror");const auto draft=session_["draftSketch"].toObject();
         view_->showSketchDraft(evaluateSketchDraft(draft));displayedSketchDraft_=draft;view_->setFocus();
