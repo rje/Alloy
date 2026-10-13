@@ -40,8 +40,8 @@ links that capture alongside the full movie/model/STL. Native ingredient tests
 remain distinct from API movie evidence; no physical OS or exact pixel claim.
 The source's post-fillet dimension drivenness is unknown; Alloy's explicit
 reference-span conversion is disclosed. No full tutorial replay was needed for
-the symbol-only change. The private GUI slot is free after #233 recording; keep only one private
-validation editor open at a time.
+the symbol-only change. The private GUI slot is reserved for #235 focused edit/capture, then #237.
+Keep only one private validation editor open at a time.
 
 **Keyring gate #233 is closed; driving fillet dimensions #235 implementation is active.**
 Luna identified the illustrated initials-keyring lesson externally; Astra
@@ -75,8 +75,10 @@ point-on-curve semantics or migrating old driven sketches. The board marks #235
 In Progress. Astra now independently audits the next sketch-only tutorial. Luna is researching a self-contained wall-outlet sketch lesson externally;
 the sample-dependent doorstop activity was not promoted as a full gate. The independent audit is complete; #237–242 now track rough Center Rectangle,
 source constraint gestures, parallel-line dimensions, associative sketch Mirror,
-native Mirror selection and the full sketch-only gate. They remain Todo until
-assigned. No implementation or completed-workflow claim is implied.
+native Mirror selection and the full sketch-only gate. Sol owners now implement #237 in `../Alloy-worktrees/rough-center-rectangle`
+and #240 in `../Alloy-worktrees/sketch-mirror`, alongside #235. Other children
+remain Todo; no completed-workflow claim is implied. Shared solver/schema
+changes must be coordinated and native GUI checks serialized.
 Follow-up #235 tracks driving overall size/origin retention through
 sketch fillets; #228 permits explicit measured-span conversion, so radius edits
 can alter overall size. Text retains authored parameters and uses mature font

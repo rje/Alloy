@@ -125,8 +125,8 @@
         "TUT-011"
       ],
       "acceptance": "Complete all three source activities from blank through Finish Sketch with retained relations, truthful initial/final DOF, readable dimensions/badges, full creation movie and editable sketch. No source solid or print claim.",
-      "status": "todo",
-      "remaining": "Six bounded children published after independent source audit; implementations not yet accepted. Source details and visual references remain external."
+      "status": "in_progress",
+      "remaining": "Rough Center Rectangle #237 and associative Mirror foundation #240 active; source constraint gestures #238, parallel-line D #239, native Mirror #241 and full gate #242 remain Todo. #235 driving fillet intent runs alongside."
     },
     {
       "id": "CP-12",
