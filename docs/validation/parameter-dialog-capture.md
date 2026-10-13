@@ -36,3 +36,22 @@ processes. The owned stalled process was terminated; its incomplete log is
 preserved. The test now explicitly discards its fixture before closing, and the
 corrected run exits0. The API editor also exited0; no validation editor remains.
 There was no application behavior change for this harness cleanup correction.
+
+## Independent acceptance
+
+Accepted candidate `1c2fbd21add6a046ef93109ea55f7cac98db14d8` for #250 after
+independent source, focused Qt log and real-app capture/recording review. The
+owned pointer, normal close/reopen lifecycle and table-only refresh preserve
+pending editor values and stable selected parameter identity. The corrected
+2.165 s Qt run passes; its setup setters are widget-state evidence, not a new
+native typing workflow. The earlier incomplete cleanup and brief process overlap
+remain explicitly recorded above.
+
+The actual dialog PNG clearly shows Length75, Width50 and Thickness10 mm.
+`api/movie-three-rows.png` also shows all three rows in the existing main-window
+compositor; the earlier two-row sample is a genuine intermediate recording
+state. No replacement compositor or synthetic table pixels were introduced.
+The API close preserves authored state. This resolves the table-visibility gap
+for the future cumulative gate, without accepting #249 or claiming physical
+input, matched source styling or out-of-bounds dialog capture. No additional
+GUI run was performed by the verifier.
