@@ -16,6 +16,15 @@ All private validation editors are closed. The gallery now has eight creations:
 seven solid/STL lessons and this sketch-only lesson. Both issues and their board
 items are Done. Older paragraphs below retain development history.
 
+**Post-fillet rim lineage #245 is independently accepted and closed.**
+Implementation0ec82b8/reviewa772a53 are integrated and the default app rebuild
+passed. Real shortened boundary identities support10mm point distances through
+width/radius changes; core3/3 and59-call real-app evidence have independent
+acceptance. See validation/fillet-rim-lineage.md. Sol now implements standalone
+Point #246 in a new isolated worktree; #244 named parameters remains active.
+The #244 worker owns the sole private validation GUI slot. No full plate gate
+pass yet; #247–249 stay Todo.
+
 **Active queue: parameterized countersunk plate #244–249.** Astra independently
 verified the four-page public lesson and its embedded drawing. Five bounded
 implementation slices plus a cumulative gate preserve named dimensions,
@@ -42,7 +51,7 @@ visual parity remain qualified. The external
 editable models and STL deliverables. The Revolve receipt is
 [validation/revolve-tutorial.md](validation/revolve-tutorial.md).
 
-**123 of 249 issues are closed.** Recent accepted work includes compact ribbon
+**124 of 249 issues are closed.** Recent accepted work includes compact ribbon
 icons #218, retained Extrude Intersect #219, nested profile/island diagnostics
 #165, portable local controls #220, shared-line fillets #221, typed Line length
 locks #222, retained Sweep #223 and native Sweep controls #224. Each has a scoped
