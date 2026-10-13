@@ -11,3 +11,39 @@ Run `cmake --build build-sketch-mirror-controls --target alloy sketch_mirror_tes
 The accepted Mirror core regression passed 1/1. The focused native Qt run passed in 11.89 seconds after correcting a clipped palette summary; its actual `build-sketch-mirror-controls/evidence/sketch-mirror-controls-native/mirror-window-preview.png` reads “12 objects · 6 curves · 6 distinct points,” identifies the chosen axis, and visibly distinguishes the selected upper curves from the lower blue preview. The accepted capture shows the lower group with Mirror controls closed. The real-app API route passed 58 calls; `build-sketch-mirror-controls/evidence/sketch-mirror-controls-api/report.json` and its preview/accepted PNGs record the same count and geometry. It also checks Clear, missing-source/axis refusal, disposable Cancel and retained six-pair Accept. The native test asserts that every selected curve is one of the six source IDs, so the crossing diagonals, frame, circle and axis are absent. The resulting sketch remains truthfully underconstrained at 33 DOF; final full-lesson constraints belong to the cumulative gate. Both validation editors exited. These captures do not establish physical OS input or a complete source lesson.
 
 Review follow-up: preselected curves are limited to authored lines/arcs, and preselected points remain only when they belong to those curves. A manual point pick now refuses until one of its source curves is collected; failure leaves both the Mirror collection and highlighted sketch selection unchanged. The short real-app `tests/sketch_mirror_point_guard_api.py` passed 17 calls: it checked a preselected line plus unrelated circle/center, refusal of that center with unchanged selection/draft, and acceptance of the line's other endpoint. Its report and app log are in `build-sketch-mirror-controls/evidence/sketch-mirror-point-guard/`. The editor exited. The accepted six-curve native and API captures above predate this guard-only change; no layout or window-collection behavior changed.
+
+## Independent acceptance
+
+Accepted `82dd6db` atop `1ac87d2` on 2026-10-13 after independent source,
+focused test-source/results and actual capture review. The native fixture uses
+only initial activation, shared fixture setup/action activation, then actual
+Qt drag-window collection and palette role/Preview/Cancel/OK clicks. Its
+11.89-second pass and the 58-call real-app report establish the bounded source
+collection route. Analytic projected arc extrema and line endpoints determine
+full enclosure; crossing frame/diagonal geometry is excluded. Six retained
+curves plus six distinct related points truthfully produce Alloy's displayed
+12 objects; the public selection counter's composition remains inferred.
+
+The first review found manual/preselected unrelated points could be counted
+but omitted by the curve-only Mirror operation. The guard now filters startup
+selection and refuses unrelated manual points before changing collection,
+highlights or draft. The short 17-call API report confirms both refusal and a
+supported related-endpoint pick. This correction leaves the demonstrated
+window collection and layout unchanged; no native replay was necessary.
+
+Source review also confirms Clear, a new window and a changed object/axis pick
+invalidate any pending preview while keeping the Mirror tool active. Merely
+switching selector role does not change inputs. Cancel restores the current
+draft; accepted preview uses the foundation's authoritative single sketch edit.
+The already accepted foundation supplies symmetry, edit propagation and
+history/storage evidence rather than a new duplicate sweep here.
+
+The corrected native preview capture has readable object/point counts, explicit
+axis identity and legible role/action controls. Selected upper curves and lower
+preview are distinguishable; the accepted capture closes the controls. The
+outer fixture frame reaches the viewport limits, so this is not a full-sheet
+framing claim. The review's earlier suggestion that this branch predated the
+foundation smoothing fix was incorrect: its base contains the cherry-picked
+fix. No additional rendering regression was established by this review.
+Physical OS input, standalone-point mirroring, arbitrary selection policies and
+the complete fully defined outlet tutorial remain outside this acceptance.
