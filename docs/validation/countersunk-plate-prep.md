@@ -76,3 +76,10 @@ check can reuse unchanged successful creation footage if clearly separated.
 The gallery receives a new card only after independent review accepts the full
 source sequence and its required output evidence. Update issue #249 and board
 only from that evidence; no cumulative pass is implied by this preparation.
+
+Prepared source-order helper: `tests/countersunk_plate_source.py` authors the
+blank parameter table, rough centered rectangle with named dimensions, bound
+Extrude, four Fillets and actual supported Point with two edge distances. Python
+syntax compilation passes; it has not been run and does not establish runtime
+or visual acceptance. Hole/Pattern and final artifact orchestration remain for
+the cumulative runner after the dependencies are accepted.
