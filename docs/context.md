@@ -40,7 +40,7 @@ links that capture alongside the full movie/model/STL. Native ingredient tests
 remain distinct from API movie evidence; no physical OS or exact pixel claim.
 The source's post-fillet dimension drivenness is unknown; Alloy's explicit
 reference-span conversion is disclosed. No full tutorial replay was needed for
-the symbol-only change. The private GUI slot is reserved for #235 focused edit/capture, then #237.
+the symbol-only change. The private GUI slot is reserved for #240 Mirror API capture; #235 and #237 editors are closed.
 Keep only one private validation editor open at a time.
 
 **Keyring gate #233 is closed; driving fillet dimensions #235 implementation is active.**
@@ -66,17 +66,23 @@ by receipt validation/keyring-tutorial.md (59f94eb, integrated9da32a9). External
 STL and report; `demos/2026-10-13/initials-keyring` has the 63.8-second movie.
 Text clearance, same-slot edit/history and exact reopen pass. The seven-card
 gallery links all final artifacts; earlier failed runner attempts remain separate.
-Astra completed the bounded #235 design; Sol is implementing it in isolated
+Astra completed the bounded #235 design; Sol candidate `15209e6` passed focused
+core, native and real-app checks. Independent review found its intent validator
+incorrectly included unrelated sketch curves; Sol is correcting that bounded
+composability defect before acceptance in isolated
 `../Alloy-worktrees/rounded-driving-intent` (`feat/rounded-driving-intent`).
 The external spec is `knowledge/specs/rounded-rectangle-driving-intent-2026-10-13.md`.
 It retains driving dimension IDs/values through tangent endpoints and explicit
 supporting-line incidence at the fixed origin, without changing existing finite
 point-on-curve semantics or migrating old driven sketches. The board marks #235
-In Progress. Astra now independently audits the next sketch-only tutorial. Luna is researching a self-contained wall-outlet sketch lesson externally;
+In Progress. Luna researched a self-contained wall-outlet sketch lesson externally;
 the sample-dependent doorstop activity was not promoted as a full gate. The independent audit is complete; #237–242 now track rough Center Rectangle,
 source constraint gestures, parallel-line dimensions, associative sketch Mirror,
 native Mirror selection and the full sketch-only gate. Sol owners now implement #237 in `../Alloy-worktrees/rough-center-rectangle`
-and #240 in `../Alloy-worktrees/sketch-mirror`, alongside #235. Other children
+and #240 in `../Alloy-worktrees/sketch-mirror`, alongside #235. The #237 candidate
+`1dbe089` passed rough pointer/D 70/114 and unchanged typed-input checks and is
+under Astra review. Mirror has a passing focused six-curve core candidate; its
+real-app preview/Cancel/Accept evidence is pending. Other children
 remain Todo; no completed-workflow claim is implied. Shared solver/schema
 changes must be coordinated and native GUI checks serialized.
 Follow-up #235 tracks driving overall size/origin retention through
