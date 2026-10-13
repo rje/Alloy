@@ -33,3 +33,11 @@ slow operations (for example 120 seconds); the shared test harness retains its
 30-second default for all existing callers. This changes no application protocol,
 modeling algorithm or production timeout. A root-granted exclusive editor lease
 and accepted prerequisite candidate are required before executing the runner.
+
+Source-only API review confirms that `sketch.begin` returns the active session
+directly with `resolvedFrame`. Plane creation returns `planeId`, while evaluated
+construction-plane records use `featureId`. Join iterates authored `targetBodyIds`
+in their supplied occurrence order and retains that order in participant ownership;
+only profile IDs are sorted. The runner asserts the authored target array as well
+as the ledger, so it does not confuse creation/evaluation identifiers or impose
+a sorted participant order. These checks remain unexecuted draft assertions.

@@ -66,6 +66,8 @@ def run(call, out, report):
     assert joined_body['bodyId'] == ids[0]
     join_feature = joined['authored']['features'][-1]
     ledger = join_feature['bodyResults']
+    # Join walks authored targetBodyIds in supplied order; it sorts profile IDs only.
+    assert join_feature['parameters']['targetBodyIds'] == ids
     assert len(ledger) == 1 and ledger[0]['participantBodyIds'] == ids
     report['hubJoin'] = joined_body
     call('view.home'); capture('eight-ribs-hub-join')
@@ -73,12 +75,14 @@ def run(call, out, report):
     report['stage'] = 'transverse-hole'
     plane_id = call('construction.plane', {'source': {'plane': 'XZ'}, 'offset': 10,
                     'units': 'mm', 'name': 'Bore start y -10'})['planeId']
+    # Creation returns planeId; evaluated construction plane records expose featureId.
     plane = next(p for p in inspect()['evaluation']['constructionPlanes'] if p['featureId'] == plane_id)
     frame = plane['frame']
     for key, expected in (('origin', [0, -10, 0]), ('normal', [0, -1, 0]),
                           ('uAxis', [1, 0, 0]), ('vAxis', [0, 0, 1])):
         assert len(frame[key]) == 3
         assert all(math.isclose(a, b, abs_tol=1e-8) for a, b in zip(frame[key], expected)), frame
+    # sketch.begin returns the active session directly, including resolvedFrame.
     session = call('sketch.begin', {'planeId': plane_id, 'name': 'Transverse diameter 4 bore'})
     assert session['resolvedFrame'] == frame
     call('sketch.addCircle', {'centerX': 0, 'centerY': -2.5, 'diameter': 4, 'units': 'mm'})
