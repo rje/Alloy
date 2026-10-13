@@ -2,6 +2,7 @@
 #include "SketchSolver.h"
 #include "SketchText.h"
 #include "RoundedLoopOffset.h"
+#include "SketchMirror.h"
 #include <BRepBndLib.hxx>
 #include <BRepBuilderAPI_MakeEdge.hxx>
 #include <BRepCheck_Analyzer.hxx>
@@ -578,7 +579,7 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
         try {return validateParameters(expandedProjectionFeature({{"parameters",parameters}},{{"lines",lines},{"points",resolvedPoints}})["parameters"].toObject(),authoredIds,referenceIds);}
         catch(const std::exception& error){return QString::fromUtf8(error.what());}
     }
-    const QSet<QString> allowed{"plane", "planeId", "points", "entities", "constraints", "dimensions", "originPointId", "support", "texts", "loopOffsets", "roundedRectangleIntent"};
+    const QSet<QString> allowed{"plane", "planeId", "points", "entities", "constraints", "dimensions", "originPointId", "support", "texts", "loopOffsets", "roundedRectangleIntent", "mirrorGroups"};
     for (auto it = parameters.begin(); it != parameters.end(); ++it)
         if (!allowed.contains(it.key())) return "Unknown sketch parameter: " + it.key();
     if (!parameters["points"].isArray() || !parameters["entities"].isArray()) return "Sketch requires points and entities";
@@ -787,6 +788,10 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
                     return "Invalid line constraint references";
             } else return "Unsupported sketch constraint type";
         }
+        if(parameters.contains("mirrorGroups")){
+            const auto mirrorError=SketchMirror::validate(parameters);if(!mirrorError.isEmpty())return mirrorError;
+            for(const auto& value:parameters["mirrorGroups"].toArray())if(!claimId(value.toObject()["id"].toString()))return "Invalid or duplicate Mirror group UUID";
+        }
         if (!originId.isEmpty()) {
             bool fixed=false;
             for (const auto& entry:parameters["constraints"].toArray()) {const auto c=entry.toObject();
@@ -866,6 +871,15 @@ SketchGeometry::SolveResult SketchGeometry::solveDraft(const QJsonObject& draft,
         solved["parameters"]=parameters;validateDraft(solved);validateRoundedIntent(parameters);
         return {true,solved,result.diagnostics,{}};
     } catch(const std::exception& error){return invalidDraft(draft,QString::fromUtf8(error.what()));}
+}
+
+SketchGeometry::SolveResult SketchGeometry::mirrorEntities(const QJsonObject& draft,const QJsonObject& arguments,const QJsonObject& projectionContext){
+    try{
+        validateDraft(draft);checkFields(arguments,{"sourceEntityIds","axisEntityId"});
+        auto candidate=draft;candidate["parameters"]=SketchMirror::create(draft["parameters"].toObject(),arguments);
+        const auto result=solveDraft(candidate,projectionContext);
+        return result.ok ? result : SolveResult{false,draft,result.diagnostics,result.error};
+    }catch(const std::exception& error){return invalidDraft(draft,QString::fromUtf8(error.what()));}
 }
 
 SketchGeometry::SolveResult SketchGeometry::addConstraint(const QJsonObject& draft, const QJsonObject& arguments, const QJsonObject& projectionContext) {
@@ -1524,6 +1538,25 @@ SketchGeometry::SolveResult SketchGeometry::movePoint(const QJsonObject& draft, 
         coordinate(arguments, "uMm"); coordinate(arguments, "vMm");
         auto parameters = draft["parameters"].toObject();
         if (arguments["pointId"]==parameters.value("originPointId") && parameters.contains("originPointId")) reject("Sketch origin reference cannot be moved");
+        for(const auto& groupValue:parameters.value("mirrorGroups").toArray()){
+            const auto group=groupValue.toObject();
+            for(const auto& pairValue:group["pointPairs"].toArray()){
+                const auto pair=pairValue.toObject();if(pair["resultPointId"]!=arguments["pointId"])continue;
+                QJsonObject axis;for(const auto& value:parameters["entities"].toArray())if(value.toObject()["id"]==group["axisEntityId"]){axis=value.toObject();break;}
+                if(axis["type"]!="line")reject("Mirror axis line is missing");
+                QPointF ends[2];int found=0;
+                for(const auto& value:parameters["points"].toArray()){
+                    const auto point=value.toObject();if(point["id"]==axis["startPointId"]){ends[0]={point["uMm"].toDouble(),point["vMm"].toDouble()};++found;}
+                    if(point["id"]==axis["endPointId"]){ends[1]={point["uMm"].toDouble(),point["vMm"].toDouble()};++found;}
+                }
+                if(found!=2)reject("Mirror axis points are missing");
+                const QPointF target(arguments["uMm"].toDouble(),arguments["vMm"].toDouble()),direction=ends[1]-ends[0];
+                const double norm=QPointF::dotProduct(direction,direction);
+                if(norm<minimumLength*minimumLength)reject("Mirror axis is degenerate");
+                const auto source=2*(ends[0]+direction*(QPointF::dotProduct(target-ends[0],direction)/norm))-target;
+                return movePoint(draft,{{"pointId",pair["sourcePointId"]},{"uMm",source.x()},{"vMm",source.y()}},projectionContext);
+            }
+        }
         auto points = parameters["points"].toArray();
         // Moving the familiar circle-center handle translates its retained
         // first diameter endpoint. The solver then derives the new center.

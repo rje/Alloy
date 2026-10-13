@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 #include "SketchSolver.h"
+#include "SketchMirror.h"
 #include "GCS.h"
 #include <QJsonArray>
 #include <QMap>
@@ -118,6 +119,10 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
             center["vMm"]=number(start,"vMm")+number(circle,"diameterDirectionV")*number(circle,"radiusMm");
             points[centerIndex]=center;
         }
+        if(parameters.contains("mirrorGroups")){
+            auto seeded=SketchMirror::seed({{"points",points},{"entities",entities},{"mirrorGroups",parameters["mirrorGroups"]}});
+            points=seeded["points"].toArray();entities=seeded["entities"].toArray();
+        }
         // All storage is allocated before pointers enter the solver. std::map
         // nodes and deque elements retain addresses as their containers grow.
         std::vector<double> coordinates(static_cast<size_t>(points.size()) * 2);
@@ -129,6 +134,10 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
         std::deque<double> constants;
         GCS::VEC_pD unknowns;
         QMap<int, QString> tagIds;
+        QMap<QString,QString> mirrorSources;
+        for(const auto& groupValue:parameters["mirrorGroups"].toArray())for(const auto& pairValue:groupValue.toObject()["entityPairs"].toArray()){
+            const auto pair=pairValue.toObject();mirrorSources[pair["resultEntityId"].toString()]=pair["sourceEntityId"].toString();
+        }
         QSet<QString> ids;
         for (qsizetype i = 0; i < points.size(); ++i) {
             const auto point = points[i].toObject();
@@ -152,12 +161,14 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
             ids.insert(id);
             if(type=="line") {GCS::Line line;line.p1=point(entity["startPointId"].toString());line.p2=point(entity["endPointId"].toString());lineMap.emplace(id,line);}
             else {
-                curveParameters.push_back(number(entity,"radiusMm"));auto* radius=&curveParameters.back();unknowns.push_back(radius);
+                curveParameters.push_back(number(entity,"radiusMm"));auto* radius=&curveParameters.back();
+                const bool derivedArc=type=="arc" && mirrorSources.contains(id);
+                if(!derivedArc)unknowns.push_back(radius);
                 if(type=="circle") {GCS::Circle circle;circle.center=point(entity["centerPointId"].toString());circle.rad=radius;circleMap.emplace(id,circle);}
                 else {GCS::Arc arc;arc.center=point(entity["centerPointId"].toString());arc.rad=radius;
                     arc.start=point(entity["startPointId"].toString());arc.end=point(entity["endPointId"].toString());
-                    curveParameters.push_back(number(entity,"startAngleDeg")*degrees);arc.startAngle=&curveParameters.back();unknowns.push_back(arc.startAngle);
-                    curveParameters.push_back((number(entity,"startAngleDeg")+number(entity,"sweepAngleDeg"))*degrees);arc.endAngle=&curveParameters.back();unknowns.push_back(arc.endAngle);
+                    curveParameters.push_back(number(entity,"startAngleDeg")*degrees);arc.startAngle=&curveParameters.back();if(!derivedArc)unknowns.push_back(arc.startAngle);
+                    curveParameters.push_back((number(entity,"startAngleDeg")+number(entity,"sweepAngleDeg"))*degrees);arc.endAngle=&curveParameters.back();if(!derivedArc)unknowns.push_back(arc.endAngle);
                     arcMap.emplace(id,arc);}
             }
         }
@@ -200,7 +211,7 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
         solver.dogLegGaussStep = GCS::LeastNormFullPivLU;
         result.diagnostics["dogLegStep"] = "least_norm_full_piv_lu";
         QSet<int> internalTags;int internalRuleCount=0;
-        for(auto& [id,arc]:arcMap) {const int t=tagIds.size()+1;tagIds[t]=id;internalTags.insert(t);solver.addConstraintArcRules(arc,t);internalRuleCount+=4;}
+        for(auto& [id,arc]:arcMap) {if(mirrorSources.contains(id))continue;const int t=tagIds.size()+1;tagIds[t]=id;internalTags.insert(t);solver.addConstraintArcRules(arc,t);internalRuleCount+=4;}
         for(const auto& value:entities) {
             const auto e=value.toObject();if(e["type"]!="circle" || !e.contains("diameterStartPointId"))continue;
             const auto id=e["id"].toString();auto& center=point(e["centerPointId"].toString());
@@ -250,6 +261,16 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
                 solver.addConstraintDifference(radius(reference(constraint,"entityIds",0)),
                     radius(reference(constraint,"entityIds",1)),constant(number(constraint,"distanceMm")),t);
             } else require(false,"Unsupported sketch constraint");
+        }
+        // A mirror relation uses one point-pair symmetry equation per distinct
+        // source point. Arc center/endpoints and ArcRules imply equal radii, so
+        // an additional radius equation would be redundant.
+        for(const auto& groupValue:parameters["mirrorGroups"].toArray()){
+            const auto group=groupValue.toObject();auto& axis=line(group["axisEntityId"].toString());
+            for(const auto& pairValue:group["pointPairs"].toArray()){
+                const auto pair=pairValue.toObject();const int t=tagIds.size()+1;tagIds[t]=group["id"].toString();
+                solver.addConstraintP2PSymmetric(point(pair["sourcePointId"].toString()),point(pair["resultPointId"].toString()),axis,t);
+            }
         }
         for (const auto& entry : dimensions) {
             const auto dimension = entry.toObject();
@@ -324,6 +345,18 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
             }
             solver.applySolution();
         }
+        // Result arcs are an analytic consequence of source arc plus mirrored
+        // center/endpoints. Repeating ArcRules on them is partially redundant.
+        for(const auto& groupValue:parameters["mirrorGroups"].toArray()){
+            const auto group=groupValue.toObject();const auto& axis=line(group["axisEntityId"].toString());
+            const double angle=std::atan2(*axis.p2.y-*axis.p1.y,*axis.p2.x-*axis.p1.x);
+            for(const auto& pairValue:group["entityPairs"].toArray()){
+                const auto pair=pairValue.toObject();const auto sourceId=pair["sourceEntityId"].toString(),resultId=pair["resultEntityId"].toString();
+                if(!arcMap.contains(resultId))continue;
+                const auto& source=arcMap.at(sourceId);auto& target=arcMap.at(resultId);
+                *target.rad=*source.rad;*target.startAngle=2*angle-*source.startAngle;*target.endAngle=2*angle-*source.endAngle;
+            }
+        }
         // Independent checks avoid accepting an algorithm status with invalid
         // coordinates or a collapsed edge. Residuals below use geometry, not the
         // solver's differently scaled per-constraint error functions.
@@ -389,6 +422,17 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
                 else if(type=="vertical")check(ax,lengthTolerance);
                 else {const auto& b=line(reference(c,"entityIds",1));const double bx=*b.p2.x-*b.p1.x,by=*b.p2.y-*b.p1.y;
                     check((type=="parallel" ? ax*by-ay*bx : ax*bx+ay*by)/(std::hypot(ax,ay)*std::hypot(bx,by)),angularTolerance);}
+            }
+        }
+        for(const auto& groupValue:parameters["mirrorGroups"].toArray()){
+            const auto group=groupValue.toObject();const auto& axis=line(group["axisEntityId"].toString());
+            const double dx=*axis.p2.x-*axis.p1.x,dy=*axis.p2.y-*axis.p1.y,norm=dx*dx+dy*dy;
+            require(norm>=minimumLength*minimumLength,"Mirror axis collapsed");
+            for(const auto& pairValue:group["pointPairs"].toArray()){
+                const auto pair=pairValue.toObject();const auto& source=point(pair["sourcePointId"].toString());const auto& target=point(pair["resultPointId"].toString());
+                const double t=((*source.x-*axis.p1.x)*dx+(*source.y-*axis.p1.y)*dy)/norm;
+                check(*target.x-(2*(*axis.p1.x+t*dx)-*source.x),lengthTolerance);
+                check(*target.y-(2*(*axis.p1.y+t*dy)-*source.y),lengthTolerance);
             }
         }
         QJsonArray solvedEntities;

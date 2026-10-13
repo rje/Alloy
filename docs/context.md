@@ -2248,3 +2248,14 @@ The historical #228
 and #233 receipts describe their originally captured policy; the #233 runner
 has updated new-authoring assertions but was not replayed for this follow-up.
 See [the bounded receipt](validation/rounded-driving-intent.md).
+
+## Sketch Mirror foundation candidate (2026-10-13)
+
+SKT-053/#240 adds a retained straight-axis symmetry group for selected sketch
+lines and arcs, including stable entity/point mappings and reversed analytic
+arc sweep. Source/axis edits propagate through PlaneGCS without copied source
+constraints or extra independent DOF. Shared API preview, Cancel and Accept
+are implemented; native selection and controls remain SKT-054/#241. The
+six-curve rough-source fixture, focused regressions and real-app API captures
+are recorded in [the scoped receipt](validation/sketch-mirror-foundation.md).
+This isolated candidate awaits independent review and integration.

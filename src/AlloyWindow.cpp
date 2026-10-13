@@ -1451,6 +1451,36 @@ void AlloyWindow::registerCommands() {
     for(const auto& field:QStringList{"centerX","centerY","radius","startX","startY","endX","endY","throughX","throughY"})arcSchema[field]=optional(coordinate);
     add("sketch.addArc","Create analytic arc","Append an exact center/radius/sweep or three-point arc; through point follows start/end.",arcSchema,
         [this](const auto& a){return appendSketchCurve(a["mode"]=="center" ? "centerArc" : "threePointArc",a);});
+    const QJsonObject sketchMirrorSchema{{"sourceEntityIds",parameter("array","Distinct authored line/arc UUIDs to reflect.")},
+        {"axisEntityId",parameter("string","Authored straight line UUID used as Mirror Line.")},
+        {"session",sketchSession}};
+    add("sketch.mirrorPreview","Preview sketch Mirror","Preview retained line/arc symmetry without changing authored geometry.",sketchMirrorSchema,[this](const auto& a){
+        if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
+        if(a.contains("session") && a["session"]!=session_["id"])return failure("invalid_session","Session is no longer active");
+        const auto inputs=QJsonObject{{"sourceEntityIds",a["sourceEntityIds"]},{"axisEntityId",a["axisEntityId"]}};
+        const auto solved=SketchGeometry::mirrorEntities(session_["draftSketch"].toObject(),inputs,session_.value("projectionContext").toObject());
+        if(!solved.ok)return failure("sketch_mirror_failed",solved.error);
+        const auto evaluated=SketchGeometry::evaluateFeature(solved.feature,session_.value("resolvedFrame").toObject(),session_.value("projectionContext").toObject());
+        session_["pendingSketchMirror"]=QJsonObject{{"inputs",inputs},{"draft",solved.feature},{"diagnostics",solved.diagnostics},{"geometry",evaluated.summary}};
+        view_->showSketchDraft(evaluated);displayedSketchDraft_=session_["draftSketch"].toObject();
+        return QJsonObject{{"pending",true},{"authoredChange",false},{"sketchGeometry",evaluated.summary},{"diagnostics",solved.diagnostics},
+            {"mirrorGroup",solved.feature["parameters"].toObject()["mirrorGroups"].toArray().last()}};
+    });
+    add("sketch.mirrorAccept","Accept sketch Mirror","Accept the previewed retained symmetry group as one sketch edit.",{{"session",sketchSession}},[this](const auto& a){
+        if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
+        if(a.contains("session") && a["session"]!=session_["id"])return failure("invalid_session","Session is no longer active");
+        const auto pending=session_.value("pendingSketchMirror").toObject();
+        if(pending.isEmpty())return failure("mirror_preview_required","Preview sketch Mirror before accepting");
+        const auto solved=SketchGeometry::solveDraft(pending["draft"].toObject(),session_.value("projectionContext").toObject());
+        return publishSketchSolve(solved,"Sketch Mirror");
+    });
+    add("sketch.mirrorCancel","Cancel sketch Mirror","Discard the disposable Mirror preview and restore the current draft.",{{"session",sketchSession}},[this](const auto& a){
+        if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
+        if(a.contains("session") && a["session"]!=session_["id"])return failure("invalid_session","Session is no longer active");
+        session_.remove("pendingSketchMirror");const auto draft=session_["draftSketch"].toObject();
+        view_->showSketchDraft(SketchGeometry::evaluateFeature(draft,session_.value("resolvedFrame").toObject(),session_.value("projectionContext").toObject()));
+        displayedSketchDraft_=draft;return QJsonObject{{"pending",false},{"authoredChange",false}};
+    });
     auto optionalSession=optional(parameter("string","Optional active sketch session identity."));
     auto circleValue=parameter("number","Positive circle diameter in the chosen display units.");
     circleValue["minimum"]=0.000001;circleValue["maximum"]=100000;
@@ -3040,12 +3070,14 @@ void AlloyWindow::refresh() {
         else if(tool=="centerArc")prompt=session_.contains("secondPoint") ? "Click the end · Sweep direction follows pointer" : session_.contains("firstPoint") ? "Click the start · Specify radius" : "Click the arc center";
         else if(tool=="threePointArc")prompt=session_.contains("secondPoint") ? "Click a point on the arc" : session_.contains("firstPoint") ? "Click the arc end" : "Click the arc start";
         else if(session_.contains("firstPoint"))prompt="Click the next point · Escape stops drawing";
+        const auto mirrorPreview=session_.value("pendingSketchMirror").toObject();
+        if(!mirrorPreview.isEmpty())prompt="Mirror preview · inspect reflected geometry";
         if(tool=="trim" && !session_.value("trimNotice").toString().isEmpty())prompt+="\n"+session_.value("trimNotice").toString();
         if(sketchInfo_)sketchInfo_->setText(QString("%1 plane · %2\n%3\n%4")
             .arg(inputs["plane"].toString()).arg(draft["parameters"].toObject().contains("loopOffsets") || session_.value("pendingLoopOffset").toObject()["valid"].toBool() ? QString("generated closed loop")
-                : QString("%1 edges").arg(draft["parameters"].toObject()["entities"].toArray().size()))
+                : QString("%1 edges").arg(mirrorPreview.isEmpty() ? draft["parameters"].toObject()["entities"].toArray().size() : mirrorPreview["draft"].toObject()["parameters"].toObject()["entities"].toArray().size()))
             .arg(prompt)
-            .arg(diagnostics["dof"].toInt(-1)==0 ? "Fully constrained" : QString("%1 degrees of freedom").arg(diagnostics["dof"].toInt())));
+            .arg((mirrorPreview.isEmpty() ? diagnostics : mirrorPreview["diagnostics"].toObject())["dof"].toInt(-1)==0 ? "Fully constrained" : QString("%1 degrees of freedom").arg((mirrorPreview.isEmpty() ? diagnostics : mirrorPreview["diagnostics"].toObject())["dof"].toInt())));
         // Long live-entry prompts can grow after the scroll layout has measured
         // its children. Keep their actual minimum heights in sync with the text.
         if(sketchInfo_)sketchInfo_->setMinimumHeight(sketchInfo_->sizeHint().height());
@@ -3054,6 +3086,10 @@ void AlloyWindow::refresh() {
             if(profileDiagnostics.isEmpty() || session_.value("profileDiagnosticsSource")!=profileStamp){const auto evaluated=evaluateSketchDraft(draft);profileDiagnostics=evaluated.summary["profileDiagnostics"].toObject();profiles=evaluated.summary["profiles"].toArray();session_["profileDiagnostics"]=profileDiagnostics;session_["profileSummaries"]=profiles;session_["profileDiagnosticsSource"]=profileStamp;}
             if(session_.value("pendingLoopOffset").toObject()["valid"].toBool()){
                 const auto generated=session_.value("pendingLoopOffset").toObject()["previewGeometry"].toObject();
+                profiles=generated["profiles"].toArray();profileDiagnostics=generated["profileDiagnostics"].toObject();
+            }
+            if(!mirrorPreview.isEmpty()){
+                const auto generated=mirrorPreview["geometry"].toObject();
                 profiles=generated["profiles"].toArray();profileDiagnostics=generated["profileDiagnostics"].toObject();
             }
             int voids=0;for(const auto& p:profiles)voids+=p.toObject()["innerLoopCount"].toInt();QString text=profiles.isEmpty() ? "No closed selectable region" : QString("%1 selectable region(s) · %2 inner loop(s)").arg(profiles.size()).arg(voids);
@@ -4406,7 +4442,7 @@ QJsonObject AlloyWindow::publishSketchSolve(const SketchGeometry::SolveResult& s
         auto details=response["error"].toObject();details["diagnostics"]=error.diagnostics();response["error"]=details;return response;
     }
     const auto evaluated=evaluateSketchDraft(solved.feature);
-    cancelCircleDiameter();cancelCenterRectangle();cancelTwoPointRectangle();cancelCircleOffset();
+    cancelCircleDiameter();cancelCenterRectangle();cancelTwoPointRectangle();cancelCircleOffset();session_.remove("pendingSketchMirror");
     recordSketchHistory(solved.feature,solved.diagnostics,journalGroup);
     session_["draftSketch"]=solved.feature;session_["solverDiagnostics"]=solved.diagnostics;session_["projectionContext"]=context;session_["previewed"]=false;
     auto selection=session_.value("selection").toObject();selection.remove("constraintIds");session_["selection"]=selection;session_.remove("hoveredConstraintId");
