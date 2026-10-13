@@ -26,12 +26,12 @@ visual parity remain qualified. The external
 editable models and STL deliverables. The Revolve receipt is
 [validation/revolve-tutorial.md](validation/revolve-tutorial.md).
 
-**117 of 242 issues are closed.** Recent accepted work includes compact ribbon
+**118 of 242 issues are closed.** Recent accepted work includes compact ribbon
 icons #218, retained Extrude Intersect #219, nested profile/island diagnostics
 #165, portable local controls #220, shared-line fillets #221, typed Line length
 locks #222, retained Sweep #223 and native Sweep controls #224. Each has a scoped
 receipt in `docs/validation/`; broad parents remain Todo for their actual
-remaining requirements. Main's default application is rebuilt with accepted #235 and #237, alongside
+remaining requirements. Main's default application is rebuilt with accepted #235, #237 and #240, alongside
 #227–232, #234 and #236:
 `build-tutorial-polish/alloy.app/Contents/MacOS/alloy`.
 
@@ -46,7 +46,7 @@ links that capture alongside the full movie/model/STL. Native ingredient tests
 remain distinct from API movie evidence; no physical OS or exact pixel claim.
 The source's post-fillet dimension drivenness is unknown; Alloy's explicit
 reference-span conversion is disclosed. No full tutorial replay was needed for
-the symbol-only change. The private GUI slot is reserved for #240 corrected Mirror capture; all other validation editors are closed.
+the symbol-only change. The private GUI slot is reserved for #239 parallel-line D input; Mirror editors are closed.
 Keep only one private validation editor open at a time.
 
 **Keyring #233 and driving fillet dimensions #235 are independently accepted and closed.**
@@ -82,15 +82,17 @@ validation/rounded-driving-intent.md. Luna researched the next self-contained
 wall-outlet sketch externally; the sample-dependent doorstop was not promoted.
 The independent audit is complete; #237–242 now track rough Center Rectangle,
 source constraint gestures, parallel-line dimensions, associative sketch Mirror,
-native Mirror selection and the full sketch-only gate. Sol owners now implement parallel-line dimensions #239 and Mirror #240 in
-`../Alloy-worktrees/sketch-mirror`, alongside source constraint gestures #238. The #237 candidate is independently accepted, integrated (`0414f50`, review
-`29a5f52`) and closed: rough pointer/D 70/114, unchanged typed input and readable
-GPU captures pass. Mirror candidate `49eda49` passed core and basic API checks;
-independent review found stale preview acceptance after draft undo/redo and
-faceted reflected-arc presentation. Sol is fixing both before acceptance.
-Its symmetry, DOF and explicit edit policy otherwise passed review. Other children
-remain Todo; no completed-workflow claim is implied. Shared solver/schema
-changes must be coordinated and native GUI checks serialized.
+native Mirror selection and the full sketch-only gate. Rough rectangle #237 and
+Mirror foundation #240 are independently accepted and closed. Mirror integration
+`aad481b` plus `6f5dc29` (review `2a0455d`) retains solver symmetry and explicit
+edit policy; pending input is cancelled on history traversal and corrected GPU
+captures show smooth reflected arcs. See validation/sketch-mirror-foundation.md.
+Sol owners implement source constraint gestures #238, parallel-line dimensions
+#239 and native Mirror collection #241. Full gate #242 remains Todo. Root has an
+isolated `../Alloy-worktrees/wall-outlet-gate` for upcoming runner preparation;
+no completed workflow is implied. Shared schema/solver edits and private GUI
+checks remain coordinated. The integrated application build and both Mirror /
+rounded-intent core tests passed (2/2, 2.23 s); no full tutorial replay was needed.
 New typed rectangle fillets now retain driving size/origin through #235. Legacy
 #228 files retain their explicit measured-span policy. The integrated #235/#237
 application build and both affected core tests passed (2/2, 2.55 s). Text retains authored parameters and uses mature font
