@@ -126,7 +126,7 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
             else continue;
             return diagnostic;
         }
-        if(feature["type"]=="extrude" && (feature["parameters"].toObject()["operation"]=="cut" || feature["parameters"].toObject()["operation"]=="join")) {
+        if(feature["type"]=="extrude" && (feature["parameters"].toObject()["operation"]=="cut" || feature["parameters"].toObject()["operation"]=="join" || feature["parameters"].toObject()["operation"]=="intersect")) {
             for(const auto& value:feature["parameters"].toObject()["targetBodyIds"].toArray()) {const auto target=value.toString();
             QJsonObject diagnostic{{"featureId",feature["id"]},{"featureType","extrude"},{"targetBodyId",target}};
             if(!bodyPositions.contains(target)){diagnostic["code"]="missing_dependency";diagnostic["message"]="Extrusion target body does not exist";return diagnostic;}
@@ -362,14 +362,14 @@ QJsonObject CadDocument::extrusionCandidate(const QJsonObject& authored, const Q
     if(arguments.contains("operation") && !arguments["operation"].isString())reject("Extrusion operation must be a string");
     const auto previousParameters=feature["parameters"].toObject();
     const auto operation=arguments.value("operation").toString(previousParameters.value("operation").toString("newBody"));
-    if(operation!="newBody" && operation!="cut" && operation!="join")reject("This extrusion slice supports New Body, Join or Cut only");
+    if(operation!="newBody" && operation!="cut" && operation!="join" && operation!="intersect")reject("This extrusion slice supports New Body, Join, Cut or Intersect only");
     const bool cut=operation!="newBody";
     if(edit && operation!=previousParameters.value("operation").toString("newBody"))reject("Changing an existing extrusion operation requires explicit body identity migration");
-    if(cut && newBody)reject("Join/Cut modifies retained targets and cannot own a new body ID");
+    if(cut && newBody)reject("Join/Cut/Intersect modifies retained targets and cannot own a new body ID");
     if(!cut && !edit && newFeature!=newBody)reject("New Body reserves newFeatureId/newBodyId together");
     if(!cut && arguments.contains("targetBodyIds"))reject("New Body cannot carry retained target references");
     if(!edit) {
-        feature={{"id",newFeature ? arguments["newFeatureId"] : QJsonValue(newId())},{"ownerId",arguments.value("ownerId").toString(authored["documentId"].toString())},{"type","extrude"},{"name",cut ? (operation=="join" ? "Extrude Join" : "Extrude Cut") : "Extrude"},{"visible",true}};
+        feature={{"id",newFeature ? arguments["newFeatureId"] : QJsonValue(newId())},{"ownerId",arguments.value("ownerId").toString(authored["documentId"].toString())},{"type","extrude"},{"name",cut ? (operation=="join" ? "Extrude Join" : operation=="intersect" ? "Extrude Intersect" : "Extrude Cut") : "Extrude"},{"visible",true}};
         if(!cut)feature["bodyId"]=newBody ? arguments["newBodyId"] : QJsonValue(newId());
         if(operation=="join")feature["bodyResults"]=QJsonArray{};
     }
@@ -378,8 +378,8 @@ QJsonObject CadDocument::extrusionCandidate(const QJsonObject& authored, const Q
     auto profileParameters=QJsonObject{{"sketchId",arguments["sketchId"]},{"distanceMm",arguments["distanceMm"]}};
     if(cut) {
         const auto targets=arguments.contains("targetBodyIds") ? arguments["targetBodyIds"] : previousParameters["targetBodyIds"];
-        if(!targets.isArray() || targets.toArray().isEmpty() || (operation=="cut" && targets.toArray().size()!=1))reject("Join requires participants; Cut requires one target");
-        QSet<QString> chosen;for(const auto& value:targets.toArray()){if(!value.isString() || !validId(value.toString()) || chosen.contains(value.toString()))reject("Join/Cut targets must be distinct stable body IDs");chosen.insert(value.toString());}
+        if(!targets.isArray() || targets.toArray().isEmpty() || (operation!="join" && targets.toArray().size()!=1))reject("Join requires participants; Cut/Intersect require one target");
+        QSet<QString> chosen;for(const auto& value:targets.toArray()){if(!value.isString() || !validId(value.toString()) || chosen.contains(value.toString()))reject("Join/Cut/Intersect targets must be distinct stable body IDs");chosen.insert(value.toString());}
         profileParameters["operation"]=operation;profileParameters["targetBodyIds"]=targets;
     }
     if(arguments.contains("profileIds")) {
@@ -717,11 +717,11 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
             continue;
         }
         if (type != "box" && type != "cylinder" && type != "extrude") return "Unsupported feature type";
-        const bool cut=type=="extrude" && (p["operation"]=="cut" || p["operation"]=="join");
+        const bool cut=type=="extrude" && (p["operation"]=="cut" || p["operation"]=="join" || p["operation"]=="intersect");
         if(cut) {
-            if(feature.contains("bodyId"))return "Extrude Join/Cut modifies a target and cannot own a new body ID";
-            if(!p["targetBodyIds"].isArray() || p["targetBodyIds"].toArray().isEmpty() || ((p["operation"]=="cut" || !feature.contains("bodyResults")) && p["targetBodyIds"].toArray().size()!=1))return "Join requires participants; Cut and legacy Join require one target";
-            QSet<QString> targets;for(const auto& value:p["targetBodyIds"].toArray()){if(!value.isString() || !validId(value.toString()) || targets.contains(value.toString()))return "Join/Cut targets must be distinct stable body IDs";targets.insert(value.toString());}
+            if(feature.contains("bodyId"))return "Extrude Join/Cut/Intersect modifies a target and cannot own a new body ID";
+            if(!p["targetBodyIds"].isArray() || p["targetBodyIds"].toArray().isEmpty() || ((p["operation"]=="cut" || !feature.contains("bodyResults")) && p["targetBodyIds"].toArray().size()!=1))return "Join requires participants; Cut/Intersect and legacy Join require one target";
+            QSet<QString> targets;for(const auto& value:p["targetBodyIds"].toArray()){if(!value.isString() || !validId(value.toString()) || targets.contains(value.toString()))return "Join/Cut/Intersect targets must be distinct stable body IDs";targets.insert(value.toString());}
         } else {
             const auto bodyId = feature["bodyId"].toString();
             if (!validId(bodyId) || ids.contains(bodyId)) return "Invalid or duplicate authored UUID";

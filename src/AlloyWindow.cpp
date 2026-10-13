@@ -948,12 +948,12 @@ void AlloyWindow::registerCommands() {
     auto sketchIdentity=parameter("string","Stable source sketch UUID.");
     auto profileIdentity=parameter("string","Stable accepted closed-profile UUID.");
     auto profileIdentities=parameter("array","Distinct closed-profile UUIDs from one accepted sketch.");
-    auto extrudeOperation=parameter("string","One Side Distance operation with an explicit target for Join/Cut.");
-    extrudeOperation["enum"]=QJsonArray{"newBody","join","cut"};
+    auto extrudeOperation=parameter("string","One Side Distance operation with an explicit target for Join/Cut/Intersect.");
+    extrudeOperation["enum"]=QJsonArray{"newBody","join","cut","intersect"};
     QJsonObject extrudeSchema{{"sketchId",sketchIdentity},{"profileId",optional(profileIdentity)},{"profileIds",optional(profileIdentities)},{"distance",extrusionDistance},
         {"units",optional(units)},{"name",optional(parameter("string","Extrusion feature name."))},{"featureId",optional(featureId)},
-        {"operation",optional(extrudeOperation)},{"targetBodyIds",optional(parameter("array","Ordered retained participant body UUIDs for Join; one for Cut."))}};
-    add("solid.extrude","Create or edit extrusion","Commit a one-side distance New Body, Join or Cut extrusion of accepted profiles.",extrudeSchema,[this](const auto& a){
+        {"operation",optional(extrudeOperation)},{"targetBodyIds",optional(parameter("array","Ordered retained participant body UUIDs for Join; one for Cut/Intersect."))}};
+    add("solid.extrude","Create or edit extrusion","Commit a one-side distance New Body, Join, Cut or Intersect extrusion of accepted profiles.",extrudeSchema,[this](const auto& a){
         auto inputs=a;
         if(!inputs.value("featureId").toString().isEmpty()) {
             QJsonObject existing;
@@ -971,16 +971,16 @@ void AlloyWindow::registerCommands() {
         if(!inputs.contains("units"))inputs["units"]=document_->authored()["displayUnits"];
         if(const auto invalid=validateExtrudeInputs(inputs);!invalid.isEmpty())return failure("invalid_arguments",invalid);
         if(!inputs.contains("profileId") && !inputs.contains("profileIds"))return failure("profile_required","Select a closed sketch region to extrude","profileIds");
-        if((inputs.value("operation")=="cut" || inputs.value("operation")=="join") && !inputs.contains("targetBodyIds")) {
+        if((inputs.value("operation")=="cut" || inputs.value("operation")=="join" || inputs.value("operation")=="intersect") && !inputs.contains("targetBodyIds")) {
             try {inputs["targetBodyIds"]=discoverExtrudeTargets(inputs);}catch(const std::exception& error){return failure("evaluation_failed",QString::fromUtf8(error.what()));}
-            if(inputs["targetBodyIds"].toArray().isEmpty() || (inputs["operation"]=="cut" && inputs["targetBodyIds"].toArray().size()!=1))return failure("cut_targets_ambiguous","Join needs eligible visible participants; Cut needs one target; choose explicitly","targetBodyIds");
+            if(inputs["targetBodyIds"].toArray().isEmpty() || (inputs["operation"]!="join" && inputs["targetBodyIds"].toArray().size()!=1))return failure("cut_targets_ambiguous","Join needs eligible visible participants; Cut/Intersect need one target; choose explicitly","targetBodyIds");
         }
         QJsonObject candidate;try {candidate=extrusionCandidate(inputs,true);}catch(const std::exception& error){return failure("evaluation_failed",QString::fromUtf8(error.what()));}
         const auto error=document_->commit(candidate,a.value("featureId").toString().isEmpty() ? "Extrude" : "Edit extrusion");
         if(!error.isEmpty()){auto result=failure("evaluation_failed",error);auto details=result["error"].toObject();details["diagnostics"]=document_->lastEvaluationError();result["error"]=details;return result;}
         selectedSketch_.clear();selectedProfile_.clear();selectedProfileIds_={};view_->selectProfile({},{});
         const auto target=inputs.value("featureId").toString(candidate["features"].toArray().last().toObject()["id"].toString());
-        if((inputs.value("operation")=="cut" || inputs.value("operation")=="join"))selectedBody_=inputs["targetBodyIds"].toArray().first().toString();
+        if((inputs.value("operation")=="cut" || inputs.value("operation")=="join" || inputs.value("operation")=="intersect"))selectedBody_=inputs["targetBodyIds"].toArray().first().toString();
         else for(const auto& body:document_->bodies())if(body.featureId==target)selectedBody_=body.bodyId;
         return document_->state();
     });
@@ -1891,7 +1891,7 @@ void AlloyWindow::registerCommands() {
                     {"distance",p["distanceMm"].toDouble()/scale},{"units",unit},{"name",feature["name"]}};
                 if(p.contains("profileIds"))inputs["profileIds"]=p["profileIds"];
                 else inputs["profileId"]=p["profileId"];
-                if(p["operation"]=="cut" || p["operation"]=="join") {inputs["operation"]=p["operation"];inputs["targetBodyIds"]=p["targetBodyIds"];}
+                if(p["operation"]=="cut" || p["operation"]=="join" || p["operation"]=="intersect") {inputs["operation"]=p["operation"];inputs["targetBodyIds"]=p["targetBodyIds"];}
                 return beginSession("solid.extrude",inputs);
             }
             if(feature["type"]=="fillet") {auto inputs=p;inputs["featureId"]=feature["id"];inputs["name"]=feature["name"];return beginFillet(inputs);}
@@ -2804,10 +2804,10 @@ QString AlloyWindow::validateExtrudeInputs(const QJsonObject& inputs) const {
         seen.insert(value.toString());
     }
     const auto operation=inputs.value("operation").toString("newBody");
-    if(operation!="newBody" && operation!="cut" && operation!="join")return "Choose New Body, Join or Cut";
+    if(operation!="newBody" && operation!="cut" && operation!="join" && operation!="intersect")return "Choose New Body, Join, Cut or Intersect";
     if(inputs.contains("targetBodyIds")) {
         const auto targets=inputs["targetBodyIds"].toArray();
-        if(operation=="newBody" || (operation=="cut" && targets.size()>1))return "Cut accepts one target; Join accepts ordered participants";
+        if(operation=="newBody" || (operation!="join" && targets.size()>1))return "Cut/Intersect accept one target; Join accepts ordered participants";
         QSet<QString> targetsSeen;for(const auto& target:targets){if(!target.isString() || target.toString().isEmpty() || targetsSeen.contains(target.toString()))return "Target IDs must be distinct nonempty body IDs";targetsSeen.insert(target.toString());}
     }
     if(inputs.value("name").toString().trimmed().isEmpty())return "Extrusion name must be nonempty";
@@ -2830,7 +2830,7 @@ QJsonArray AlloyWindow::discoverExtrudeTargets(const QJsonObject& inputs) const 
         if(!found)return {};
     }
     QJsonArray targets;
-    for(const auto& body:history.bodies)if(body.visible)for(const auto& tool:tools) {
+    for(const auto& body:history.bodies)if(body.visible && (inputs.value("operation")!="intersect" || body.ownerId==SketchGeometry::findFeature(document_->authored(),sketchId)["ownerId"].toString()))for(const auto& tool:tools) {
         try {
             const bool joining=inputs.value("operation")=="join";
             const auto overlap=GeometryKernel::booleanOperation(joining ? "join" : "intersect",body.shape,{tool});
@@ -2848,7 +2848,7 @@ QJsonObject AlloyWindow::extrusionCandidate(const QJsonObject& inputs,bool hideS
         {"distanceMm",CadDocument::millimeters(inputs.value("distance").toDouble(),inputs.value("units").toString(document_->authored()["displayUnits"].toString()))}};
     if(inputs.contains("profileIds"))arguments["profileIds"]=inputs["profileIds"];
     else arguments["profileId"]=inputs.value("profileId");
-    if((inputs.value("operation")=="cut" || inputs.value("operation")=="join")){
+    if((inputs.value("operation")=="cut" || inputs.value("operation")=="join" || inputs.value("operation")=="intersect")){
         arguments["operation"]=inputs["operation"];arguments["targetBodyIds"]=inputs.value("targetBodyIds");
     }
     if(inputs.contains("name"))arguments["name"]=inputs.value("name");
@@ -2917,7 +2917,7 @@ QJsonObject AlloyWindow::previewExtrude() {
         view_->clearPreview();view_->setEditDisplay({},{});return failure("stale_session","The document changed; cancel and restart this extrusion");
     }
     auto reject=[this](QJsonObject error){view_->clearPreview();view_->setEditDisplay({},{});return error;};
-    auto inputs=session_.value("inputs").toObject();const bool cut=(inputs.value("operation")=="cut" || inputs.value("operation")=="join");
+    auto inputs=session_.value("inputs").toObject();const bool cut=(inputs.value("operation")=="cut" || inputs.value("operation")=="join" || inputs.value("operation")=="intersect");
     QJsonArray hidden;
     if(!inputs.value("featureId").toString().isEmpty())for(const auto& body:document_->bodies())if(body.featureId==inputs["featureId"].toString())hidden.append(body.bodyId);
     view_->setEditDisplay(inputs.value("sketchId").toString(),hidden);
@@ -2948,10 +2948,10 @@ QJsonObject AlloyWindow::previewExtrude() {
         QJsonArray discovered;
         try {discovered=discoverExtrudeTargets(inputs);}
         catch(const std::exception& error){return rejectWithHandle(failure("evaluation_failed",QString::fromUtf8(error.what())));}
-        if(discovered.isEmpty() || (inputs["operation"]=="cut" && discovered.size()!=1)) {
+        if(discovered.isEmpty() || (inputs["operation"]!="join" && discovered.size()!=1)) {
             view_->showExtrudeHandle(profiles.front(),profileIds,inputs["units"].toString(),inputs.value("operation").toString("newBody"),distance);
             session_["previewHandle"]=true;
-            return failure("cut_targets_ambiguous","Join needs eligible visible participants; Cut needs one target; choose explicitly","targetBodyIds");
+            return failure("cut_targets_ambiguous","Join needs eligible visible participants; Cut/Intersect need one target; choose explicitly","targetBodyIds");
         }
         inputs["targetBodyIds"]=discovered;session_["inputs"]=inputs;
     }
@@ -2981,7 +2981,8 @@ QJsonObject AlloyWindow::previewExtrude() {
             display.shape=compound;view_->setEditDisplay(inputs["sketchId"].toString(),inputs["targetBodyIds"].toArray());
             view_->showExtrudePreview(display,profiles.front(),distance,profileIds,inputs["units"].toString());
             session_["resultBodyIds"]=ids;session_["resultBodies"]=summaries;session_["bodyResults"]=ownership;session_["evaluatedBodyCount"]=int(stage->bodies.size());
-        } else view_->showExtrudePreview(*body,GeometryKernel::unionProfiles(profiles),distance,profileIds,inputs["units"].toString());
+        } else if(inputs["operation"]=="intersect")view_->showExtrudePreview(*body,profiles.front(),distance,profileIds,inputs["units"].toString());
+        else view_->showExtrudePreview(*body,GeometryKernel::unionProfiles(profiles),distance,profileIds,inputs["units"].toString());
     }catch(const std::exception& error){return rejectWithHandle(failure("evaluation_failed",QString::fromUtf8(error.what())));}
     view_->selectProfiles(inputs["sketchId"].toString(),profileIds);
     session_["previewed"]=true;session_["geometryEvaluated"]=true;session_["geometry"]=body->summary;
@@ -3031,7 +3032,7 @@ QJsonArray AlloyWindow::dependentBodies(const QString& sketchId) const {
         }
         if((feature["type"]=="extrude" || feature["type"]=="revolve") && sketches.contains(parameters["sketchId"].toString())) {
             producerFeatures.insert(feature["id"].toString());
-            if((parameters["operation"]=="cut" || parameters["operation"]=="join")) {
+            if((parameters["operation"]=="cut" || parameters["operation"]=="join" || parameters["operation"]=="intersect")) {
                 for(const auto& target:parameters["targetBodyIds"].toArray())if(!result.contains(target))result.append(target);
                 for(const auto& value:feature["bodyResults"].toArray()){const auto id=value.toObject()["bodyId"];if(!result.contains(id))result.append(id);}
             } else if(!feature["bodyId"].toString().isEmpty() && !result.contains(feature["bodyId"]))result.append(feature["bodyId"]);
@@ -3055,7 +3056,7 @@ void AlloyWindow::showExtrude() {
     extrudeDistance_->setDecimals(6);extrudeDistance_->setKeyboardTracking(false);extrudeDistance_->setValue(session_.value("inputs").toObject()["distance"].toDouble());
     form->addRow("Distance",extrudeDistance_);
     extrudeOperation_=new QComboBox;extrudeOperation_->setObjectName("extrude.operation");
-    extrudeOperation_->addItem("New Body","newBody");extrudeOperation_->addItem("Join","join");extrudeOperation_->addItem("Cut","cut");form->addRow("Operation",extrudeOperation_);
+    extrudeOperation_->addItem("New Body","newBody");extrudeOperation_->addItem("Join","join");extrudeOperation_->addItem("Cut","cut");extrudeOperation_->addItem("Intersect","intersect");form->addRow("Operation",extrudeOperation_);
     extrudeTarget_=new QComboBox;extrudeTarget_->setObjectName("extrude.targetBody");
     extrudeTargetLabel_=new QLabel("Objects to Cut");form->addRow(extrudeTargetLabel_,extrudeTarget_);
     layout->addLayout(form);
@@ -3115,7 +3116,7 @@ void AlloyWindow::refreshExtrudeControls() {
         extrudeOperation_->setCurrentIndex(extrudeOperation_->findData(inputs.value("operation").toString("newBody")));
         extrudeOperation_->setEnabled(inputs.value("featureId").toString().isEmpty());
     }
-    const bool cut=(inputs.value("operation")=="cut" || inputs.value("operation")=="join");extrudeTargetLabel_->setText(inputs.value("operation")=="join" ? "Target Body" : "Objects to Cut");extrudeTargetLabel_->setVisible(cut);extrudeTarget_->setVisible(cut);
+    const bool cut=(inputs.value("operation")=="cut" || inputs.value("operation")=="join" || inputs.value("operation")=="intersect");extrudeTargetLabel_->setText(inputs.value("operation")=="cut" ? "Objects to Cut" : "Target Body");extrudeTargetLabel_->setVisible(cut);extrudeTarget_->setVisible(cut);
     if(cut) {
         const auto targetId=inputs.value("targetBodyIds").toArray().isEmpty() ? QString{} : inputs["targetBodyIds"].toArray().first().toString();
         const auto editId=inputs.value("featureId").toString();
@@ -3123,7 +3124,7 @@ void AlloyWindow::refreshExtrudeControls() {
         QVector<QPair<QString,QJsonArray>> rows{{"Auto · visible intersecting bodies",{}}};
         const auto targetIds=inputs.value("targetBodyIds").toArray();
         if(targetIds.size()>1)rows.append({QString("%1 retained participant bodies").arg(targetIds.size()),targetIds});
-        for(const auto& body:history.bodies)if(body.visible || body.bodyId==targetId)
+        for(const auto& body:history.bodies)if((body.visible || body.bodyId==targetId) && (inputs.value("operation")!="intersect" || body.ownerId==SketchGeometry::findFeature(document_->authored(),inputs["sketchId"].toString())["ownerId"].toString()))
             rows.append({body.name+(body.visible ? QString{} : " · hidden"),QJsonArray{body.bodyId}});
         if(!targetId.isEmpty() && std::none_of(rows.begin(),rows.end(),[&](const auto& row){return row.second==QJsonArray{targetId};}))
             rows.append({"Unavailable retained target",QJsonArray{targetId}});

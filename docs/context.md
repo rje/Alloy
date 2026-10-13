@@ -1984,3 +1984,16 @@ Astra independently source-reviewed the patch and found no blocker. Syntax and
 CMake component consistency checks pass. The actual four-target manual matrix
 will run once after current integrations; no remote compile/runtime success is
 claimed yet. #132 remains In Progress.
+## Retained Extrude Intersect candidate (2026-10-13)
+
+SOL-031 #219 adds Profile Plane / One Side / signed Distance Intersect through
+existing OCCT Common, Extrude API and native operation/target fields. One exact
+same-owner target and its body/producer IDs are retained; the modifier owns no
+cutter body. Full containment is valid, empty/touch/disconnected results refuse
+atomically, and compound selected profiles share preview/commit authority. Core
+signed-face/upstream/edit/history/storage checks, shared API units/discovery and
+compound-preview regression, and actual Qt operation selection/Cancel/OK pass.
+Astra source/log/capture review reports no blocker; private editors exited and
+GUI slot is released. Final integration/acceptance are root-owned. Parent #161
+remains Todo for broader operation migration/edit and typed-Return/focus coverage.
+See [the compact contract and receipt](validation/extrude-intersect.md).

@@ -558,10 +558,10 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored) 
                         evaluated.joinBodyResults[id]=joined.ownership;
                         evaluated.featureOrder.push_back(id);continue;
                     }
-                    if(parameters["operation"]=="cut" || parameters["operation"]=="join") {
+                    if(parameters["operation"]=="cut" || parameters["operation"]=="join" || parameters["operation"]=="intersect") {
                         const bool joining=parameters["operation"]=="join";
                         const auto targets=parameters["targetBodyIds"].toArray();context["targetBodyIds"]=targets;context["operation"]=parameters["operation"];
-                        if(targets.size()!=1)reject("unsupported_extrude_targets","Join/Cut requires one retained target body");
+                        if(targets.size()!=1)reject("unsupported_extrude_targets","Extrude modifier requires one retained target body");
                         auto target=std::find_if(evaluated.bodies.begin(),evaluated.bodies.end(),[&](const auto& body){return body.bodyId==targets[0].toString();});
                         if(target==evaluated.bodies.end()) {context["code"]="body_unavailable";context["message"]="The exact extrusion target must be an active body earlier in feature history";throw EvaluationError(context);}
                         const double distance=parameters["distanceMm"].toDouble();std::vector<TopoDS_Shape> tools;std::vector<EvaluatedSupportFace> joinCaps;double area=0;QStringList sourceEntities;
@@ -569,16 +569,17 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored) 
                             for(const auto& entity:profile.summary["sourceEntityIds"].toArray())sourceEntities.append(entity.toString());}
                         const double previousVolume=target->summary["volumeMm3"].toDouble();
                         TopoDS_Shape cutShape;
-                        try {cutShape=booleanOperation(joining ? "join" : "cut",target->shape,tools,&target->supportFaces,&target->solidEdges);}
+                        try {cutShape=booleanOperation(parameters["operation"].toString(),target->shape,tools,&target->supportFaces,&target->solidEdges);}
                         catch(const EvaluationError& error){const auto details=error.diagnostics();for(auto it=details.begin();it!=details.end();++it)context[it.key()]=it.value();throw EvaluationError(context);}
                         auto cutSummary=summarize(cutShape);
                         const double removed=joining ? cutSummary["volumeMm3"].toDouble()-previousVolume : previousVolume-cutSummary["volumeMm3"].toDouble();
-                        if(removed<=std::max(1e-6,previousVolume*1e-12)){context["code"]=joining ? "join_no_addition" : "cut_no_intersection";context["message"]=joining ? "Selected profile prisms do not add positive volume to the retained target" : "Selected profile prisms do not remove positive volume from the retained target";throw EvaluationError(context);}
+                        if(parameters["operation"]!="intersect" && removed<=std::max(1e-6,previousVolume*1e-12)){context["code"]=joining ? "join_no_addition" : "cut_no_intersection";context["message"]=joining ? "Selected profile prisms do not add positive volume to the retained target" : "Selected profile prisms do not remove positive volume from the retained target";throw EvaluationError(context);}
                         cutSummary["operation"]=parameters["operation"];cutSummary["lastModifierFeatureId"]=id;cutSummary["producerFeatureId"]=target->featureId;
                         cutSummary["targetBodyIds"]=targets;cutSummary["sourceSketchId"]=sketchId;cutSummary["distanceMm"]=distance;
                         if(plural)cutSummary["sourceProfileIds"]=profileIds;else cutSummary["sourceProfileId"]=parameters["profileId"];
                         sourceEntities.removeDuplicates();sourceEntities.sort();QJsonArray refs;for(const auto& entity:sourceEntities)refs.append(entity);
                         cutSummary["sourceEntityIds"]=refs;cutSummary["sourceAreaMm2"]=area;cutSummary[joining ? "addedVolumeMm3" : "removedVolumeMm3"]=removed;
+                        if(parameters["operation"]=="intersect")cutSummary["overlapVolumeMm3"]=cutSummary.value("volumeMm3");
                         target->shape=cutShape;
                         if(joining && joinCaps.size()==1) {
                             auto cap=joinCaps.front();

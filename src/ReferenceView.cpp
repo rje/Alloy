@@ -1581,7 +1581,7 @@ void ReferenceView::showExtrudePreview(const EvaluatedBody& body,const Evaluated
     preview_->SetColor(Quantity_Color(0.16,0.47,0.86,Quantity_TOC_sRGB));
     preview_->SetTransparency(0.20);
     context_->Redisplay(preview_,false);
-    setExtrusionCue(profile,distanceMm,sourceProfileIds,units,body.summary["operation"]=="join" ? "join" : "newBody");
+    setExtrusionCue(profile,distanceMm,sourceProfileIds,units,body.summary["operation"]=="join" || body.summary["operation"]=="intersect" ? body.summary["operation"].toString() : QString("newBody"));
     context_->UpdateCurrentViewer();
 }
 void ReferenceView::showCutPreview(const EvaluatedBody& body,const std::vector<EvaluatedProfile>& profiles,double distanceMm,

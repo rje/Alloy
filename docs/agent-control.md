@@ -729,3 +729,16 @@ Axis is identity; external axis projection is unsupported. See the
 accessible names, tooltips, enabled/icon/focus state and logical bounds.
 `fullyVisible` checks each widget against the ribbon rectangle after layout.
 It is inspection only and does not change command routing or authored data.
+
+### Retained Extrude Intersect
+
+`solid.extrude` and `command.begin({command:"solid.extrude",inputs:{...}})` support
+`operation:"intersect"`, existing coplanar profile refs, signed distance/units and
+one `targetBodyIds` entry. Initial discovery only selects one visible same-owner
+eligible body; ambiguity requires explicit selection. Target IDs persist for
+recompute. The operation retains body/producer identity, authors one modifier
+with no cutter body, and publishes overlap volume. Full containment is valid;
+empty/touch/disconnected results refuse atomically. Native operation/target fields
+share the same authority. `solid.extrudeDialog` remains selection-oriented; provide
+full initial modeling inputs through `command.begin` or update the session. See
+[the bounded contract and evidence](validation/extrude-intersect.md).
