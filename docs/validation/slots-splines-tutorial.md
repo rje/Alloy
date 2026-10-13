@@ -1,10 +1,10 @@
-# Slots and splines tutorial gate — functional pass, visual acceptance pending
+# Slots and splines tutorial gate — bounded acceptance
 
 2026-10-13. Independent review for #257, source record
-`sketch-slots-splines-20261013`. **The gate is not accepted yet.** The sole
-remaining blocker identified in this review is #259 / SKT-064: the fully
-constrained ellipse is colored blue when a separate free conic keeps the
-whole sketch underdefined. The public final image shows the ellipse black.
+`sketch-slots-splines-20261013`. **Accepted after the focused #259 correction.**
+The complete functional creation/history evidence below is supplemented by
+corrected mixed-sketch color captures. The full creation movie predates that
+visual fix and still shows the formerly blue defined ellipse.
 
 ## Provenance and evidence
 
@@ -65,7 +65,7 @@ and final ellipse dimension witnesses are readable and geometry appears smooth
 at the inspected capture scale. The final image
 `10-dimensioned-ellipse-and-conic.png` proves the remaining color mismatch.
 
-## Explicit choices and outstanding acceptance
+## Explicit choices and final visual acceptance
 
 The origin-first slot interpretation follows the documented center-first tool
 and source drawing, resolving imprecise prose. Fit/control/conic coordinates
@@ -76,10 +76,26 @@ actions omitted by the prose are made explicit as origin Coincident, Horizontal
 and full-axis dimensions. Shared API tool/selection/dimension calls are not
 claims of a continuous native tutorial performance or exact public UI parity.
 
-#259 must establish truthful per-entity solved coloring: this fully constrained
-ellipse should be black while the free conic remains blue, and an underdefined
-ellipse must remain blue. Classification must follow actual solver freedom,
-not merely dimension names/counts. A focused corrected capture and bounded
-solver/presentation evidence can complete this gate without repeating unchanged
-creation/history. The existing movie must remain identified as predating that
-visual correction. Until that review, #257 remains pending acceptance.
+The sole visual blocker, #259 / SKT-064, is resolved by the independently
+reviewed solver-freedom classification (`4f26782`, production unchanged from reviewed `f4cfdd7`).
+Focused corrected evidence is external at
+`../Alloy-reference-records/deliverables/mixed-sketch-colors-2026-10-13/attempt-03/`:
+`report.json`, `defined-ellipse-free-conic.png`,
+`underdefined-ellipse-free-conic.png`, `selected-defined-ellipse.png` and
+`finished-mixed-sketch.png`. Tested corrected app SHA-256:
+`8f2fa56b361d96b032aec2168d12b5411895a8549c82216d452f22dd6ff271a6`.
+The 19-call focused API run reopened the actual three-sketch source model,
+proved black fixed ellipse beside blue free conic, orange selection, blue
+ellipse after actual dimension removal (seven to eight DOF), and exact authored
+preservation on Cancel. All four actual captures were independently inspected;
+geometry, dimensions and palette are readable at this framing. Core evidence
+also preserves zero-DOF derived arc-slot coloring and explicitly free evaluator
+parameters. See `entity-solved-colors.md` for the bounded implementation review.
+
+This completes #257 using the existing full creation/model/history evidence
+and the focused corrected visual evidence. The original 64.5-second recording
+remains unedited and explicitly predates the color correction; it is not a
+video of the corrected final presentation. No full workflow replay was needed.
+Acceptance covers the complete researched sketch lesson with the documented
+Alloy choices above and separate native ingredient evidence, not continuous
+physical-input execution, universal solver rigidity or broad pixel parity.
