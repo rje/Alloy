@@ -69,3 +69,27 @@ dimension input, right/down shape and two Enter completion under injected Qt;
 **unknown** for physical OS input, exact reference styling and the reference's
 retained constraint semantics. Angled modes and broad inference remain with
 the parent sketch issue; the full rounded keyring lesson is separate.
+
+## Independent acceptance
+
+Accepted `89c5d58` with corrective candidate `ffefc014` on 2026-10-13.
+Independent review covered the shared authoring/inline-input implementation,
+original native sequence and API evidence, saved authored rectangle, and the
+corrective source, persisted 1556 ms native log and actual corrected capture.
+No additional editor or unchanged full replay was needed.
+
+The corrective test checks natural focus at each key transition and sends keys
+to the focused widget; it does not insert a focus repair between the demonstrated
+steps. Invalid Return preserves draft/history, ordinary keyboard correction
+previews valid dimensions, Escape disposes the inputs and cursor, and the next
+Circle editor remains editable. Initial harness activation and API fixture/tool
+setup are explicit, distinct from these tested input transitions.
+
+The earlier palette clipping is resolved in the reviewed capture: summary and
+profile text are readable with appropriate spacing. Width/Height labels and
+values are legible. The inline editor still overlaps part of the lower-right
+preview edge as disclosed above; the actual authored bounds, closed profile and
+retained dimensions supply the geometry evidence. This is bounded Qt-dispatched
+input and real shared-API/storage acceptance, not physical OS input or exact
+reference focus/styling parity. Full lesson and rounded-outline behavior remain
+separate gates.
