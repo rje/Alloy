@@ -61,3 +61,33 @@ rounded outline and visible outer 60/30/R6 annotations in Alloy's tested
 fixture. Post-fillet driving behavior and exact reference styling remain
 **unknown**. The distinct retained-driving overall-size capability and the
 complete keyring lesson remain outside this issue.
+
+## Independent acceptance
+
+Accepted candidate `959a72ee` for #228 on 2026-10-13. Independent review covered
+fillet remapping/retirement and side-pair session code, the core and native test
+sources and persisted passing logs, API report/saved authored data, and actual
+preview capture. The saved model exactly equals the report's authored object;
+both original dimension IDs remain non-driving point-pair spans without a
+stale valueMm, measuring actual outer 60/30 bounds rather than trimmed sides.
+The radius-edit test explicitly compares their new measurements to the changed
+boundary bounds. It does not establish size invariance or origin anchoring;
+that capability is retained separately in #235.
+
+The preview clearly shows (60), (30), four R6 labels, and the complete notice
+that conversion occurs and the outline loses its origin anchor. The fixed
+origin marker is not misrepresented as an attached contour constraint in this
+receipt. This candidate capture predates the separately accepted #234 tangent
+badge correction and still contains the old outline-box badges; reuse #234's
+corrected actual capture/source acceptance for that unchanged presentation path.
+
+The native case uses real viewport side-pair clicks and typed radius/Return,
+asserting natural focus on the radius editor without in-sequence repairs.
+Its rectangle/tool setup and preview Cancel use shared API commands; it is not
+claimed as native Cancel-key or physical OS evidence. The final one-corner
+Accept guard merely requires the sidePair state already asserted by that
+passing case and preserves the older two-corner route. Source inspection and
+its successful rebuild are sufficient for that post-capture guard; no unchanged
+replay was needed. This accepts the demonstrated rounded-outline/annotation
+slice, with the disclosed reference conversion, not full source solver parity
+or the cumulative keyring lesson.
