@@ -56,3 +56,36 @@ error in its save/reopen assertion, fixed by owning the JSON value; the model
 had already saved and reopened. A transient palette overlap in an immediate
 capture cleared after queued layout events; the passing fixture asserts
 non-overlap before its settled capture.
+
+## Independent acceptance
+
+Accepted the bounded #251 candidate `0c5786c` after source, core fixture, native
+input evidence, actual GPU captures and saved-model/API review. No additional
+editor or unchanged full-workflow replay was used. This accepts the straight-slot
+ingredient; arc slots and the complete lesson remain separate gates.
+
+The authored boundary uses ordinary lines/arcs with explicit midpoint, origin
+coincidence, equality and tangency relations. The core now asserts the rough
+3DOF state and drag, then 2/1/0DOF, analytic area and200×50 bounds, retained IDs,
+edit/refusal/history/storage. Snapped creation resolves the center before deriving
+the endpoint vector, preserving the picked end-center meaning. Independent saved
+JSON comparison exactly matches the37-call API report's `sourceAuthored`; the
+reported source envelope is200×50 within numerical tolerance.
+
+Inspected native typed/defined captures: the capsule is smooth, the construction
+guide is distinct,150/R25 witnesses and fully-constrained status are readable,
+and tangent/equality/midpoint marks render visibly. The native test launches the
+existing QAction programmatically, then exercises actual Qt pointer/key inputs
+with initial harness focus only; this is not physical OS input or a mouse-opened
+menu claim. The persisted CTest log reports3stages passing,7.641s Qt time/8.23s
+CTest elapsed. API execution and geometry evidence remain separate.
+
+The independently found Escape-before-release defect is resolved by clearing
+the view drag token in tool, history, session and draft/plane teardown. Reviewed
+the focused test's actual press/move/Escape/release and exact draft comparison;
+the author reports its1.181s passing run. The earlier full native/API binaries
+predate only this lifecycle correction. Source inspection establishes the shared
+teardown routing; only Escape/late release received the additional focused input
+run. During drag, the current product displays a rubber line and solves the
+capsule on release, as explicitly disclosed above. This is not a live-deformed
+slot preview or broad visual-parity claim.
