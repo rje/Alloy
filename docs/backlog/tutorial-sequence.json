@@ -126,8 +126,9 @@
         "TUT-011"
       ],
       "acceptance": "Complete all three source activities from blank through Finish Sketch with retained relations, truthful initial/final DOF, readable dimensions/badges, full creation movie and editable sketch. No source solid or print claim.",
-      "status": "in_progress",
-      "remaining": "Prerequisites #237\u2013241 accepted. Full gate242 attempt01 found coincident origin/rectangle-center snap ambiguity; bounded fix243 active before retry. No cumulative pass yet."
+      "status": "done",
+      "remaining": "None for bounded source/API sketch gate. Separate exact history tail, native ingredient evidence and footer capture limitation are recorded. No solid or STL in source.",
+      "evidence": "docs/validation/wall-outlet-tutorial.md"
     },
     {
       "id": "CP-12",

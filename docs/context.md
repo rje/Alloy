@@ -5,6 +5,17 @@ Updated 2026-10-13. This is the project handoff for a fresh session. Read the ro
 
 ## Current checkpoint — read first (2026-10-13)
 
+**Newest accepted milestone: wall-outlet sketch #242 and snap correction #243.**
+Astra independently accepted source-order creation, final zero-DOF geometry,
+readable dimensions/constraint symbols, 29.4-second full API movie and editable
+sketch, plus the separate exact edit/history/reopen tail. The original incomplete
+attempt report remains preserved. See [validation/wall-outlet-tutorial.md](validation/wall-outlet-tutorial.md).
+Implementation625610e/baf143a and review78e8412/620e156 are integrated; the default
+application rebuilt successfully and matches the reviewed candidate's source.
+All private validation editors are closed. The gallery now has eight creations:
+seven solid/STL lessons and this sketch-only lesson. Both issues and their board
+items are Done. Older paragraphs below retain development history.
+
 User requested private repository visibility on 2026-10-13. `rje/Alloy` is now
 PRIVATE, verified through GitHub CLI. Preserve private visibility unless the user
 requests otherwise; the MIT license and long-term open-source product goal are
@@ -20,7 +31,7 @@ visual parity remain qualified. The external
 editable models and STL deliverables. The Revolve receipt is
 [validation/revolve-tutorial.md](validation/revolve-tutorial.md).
 
-**121 of 243 issues are closed.** Recent accepted work includes compact ribbon
+**123 of 243 issues are closed.** Recent accepted work includes compact ribbon
 icons #218, retained Extrude Intersect #219, nested profile/island diagnostics
 #165, portable local controls #220, shared-line fillets #221, typed Line length
 locks #222, retained Sweep #223 and native Sweep controls #224. Each has a scoped
@@ -40,8 +51,8 @@ links that capture alongside the full movie/model/STL. Native ingredient tests
 remain distinct from API movie evidence; no physical OS or exact pixel claim.
 The source's post-fillet dimension drivenness is unknown; Alloy's explicit
 reference-span conversion is disclosed. No full tutorial replay was needed for
-the symbol-only change. The private GUI slot is owned by root for the saved-model history tail.
-The source-creation attempt and Sol focused snap tests have exited.
+the symbol-only change. All private validation editors are closed after the focused saved-model history
+check. The default application is rebuilt with the #243 candidate correction.
 Keep only one private validation editor open at a time.
 
 **Keyring #233 and driving fillet dimensions #235 are independently accepted and closed.**
@@ -109,8 +120,8 @@ failed on six reflected coordinates differing by at most 1.07e-14 mm after edit
 entry reevaluation. The runner now compares exact undo against the actual
 edit-entry baseline, after verifying that baseline with the geometry oracle;
 `tests/wall_outlet_history.py` checks the saved artifact without replaying creation.
-The original attempt report remains incomplete and preserved. Acceptance awaits
-that focused tail and #243's projected-support precedence correction, identified
+The original attempt report remains incomplete and preserved. The focused tail passed exact undo/redo/reopen (history-tail-01); acceptance
+awaits independent final review and #243's projected-support precedence correction, identified
 by Astra and covered by Sol's supported-face-origin Qt check. No full gate pass
 yet. The final post-Finish capture has minor transient footer clipping; final
 sketch dimensions and geometry are readable.
