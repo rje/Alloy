@@ -5,6 +5,12 @@ Updated 2026-10-13. This is the project handoff for a fresh session. Read the ro
 
 ## Current checkpoint — read first (2026-10-13)
 
+#259 has an isolated candidate for per-entity solved coloring from PlaneGCS
+solved-coordinate nullspace metadata. Mixed ellipse/conic freedom and dimension
+removal core checks pass; root focused app capture and independent acceptance
+remain pending. See validation/entity-solved-colors.md. No broad color parity
+claim or whole-sketch fixed-color shortcut is intended.
+
 **Prior accepted milestone: wall-outlet sketch #242 and snap correction #243.**
 Astra independently accepted source-order creation, final zero-DOF geometry,
 readable dimensions/constraint symbols, 29.4-second full API movie and editable

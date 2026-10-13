@@ -545,7 +545,7 @@ QJsonObject SketchGeometry::addRectangle(const QJsonObject& draft, const QJsonOb
         // an otherwise useful overlapping-profile sketch as redundant.
         bool inferred=false;
         for(const auto& relation:constraints)if(relation.toObject()["type"]==type) {
-            const auto existingId=relation.toObject()["entityIds"].toArray()[0];
+            const auto existingId=relation.toObject()["entityIds"].toArray()[0].toString();
             for(const auto& value:entities)if(value.toObject()["id"]==existingId) {
                 const auto other=value.toObject();
                 inferred|=(other["startPointId"]==edge["startPointId"] && other["endPointId"]==edge["endPointId"])
@@ -1159,14 +1159,14 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
                 if (fixed) { coordinate(constraint, "uMm"); coordinate(constraint, "vMm"); }
             } else if (type == "pointOnCurve" || type == "supportLine") {
                 if(constraint.size()!=4 || !checkReferences(constraint,"pointIds",1,pointIds) || !checkReferences(constraint,"entityIds",1,entityIds))return "Point-on-curve requires one point and one curve";
-                const auto id=constraint["entityIds"].toArray()[0];for(const auto& entry:parameters["entities"].toArray())if(entry.toObject()["id"]==id &&
+                const auto id=constraint["entityIds"].toArray()[0].toString();for(const auto& entry:parameters["entities"].toArray())if(entry.toObject()["id"]==id &&
                     (type=="supportLine" ? entry.toObject()["type"]!="line" : entry.toObject()["type"]!="line" && entry.toObject()["type"]!="circle"))
                     return type=="supportLine" ? "Supporting-line incidence requires a line" : "Point-on-curve supports lines and circles";
             } else if (type == "arcTangent") {
                 if (constraint.size()!=5 || !checkReferences(constraint,"entityIds",2,entityIds)
                     || !checkReferences(constraint,"pointIds",1,pointIds) || !constraint["side"].isDouble()
                     || (constraint["side"].toDouble()!=1 && constraint["side"].toDouble()!=-1))return "Arc tangency requires endpoint and signed side";
-                const auto refs=constraint["entityIds"].toArray(); const auto contact=constraint["pointIds"].toArray()[0];
+                const auto refs=constraint["entityIds"].toArray(); const auto contact=constraint["pointIds"].toArray()[0].toString();
                 if(!arcIds.contains(refs[0].toString()) || !lineIds.contains(refs[1].toString()))return "Arc tangent references must be arc then line";
                 for(const auto& value:parameters["entities"].toArray()) {const auto e=value.toObject();
                     if((e["id"]==refs[0] || e["id"]==refs[1]) && e["startPointId"]!=contact && e["endPointId"]!=contact)
@@ -1381,7 +1381,7 @@ SketchGeometry::SolveResult SketchGeometry::addConstraint(const QJsonObject& dra
         constraints.append(constraint);
         parameters["constraints"] = constraints;
         if((constraint["type"]=="horizontal" || constraint["type"]=="vertical") && constraint["entityIds"].toArray().size()==1) {
-            const auto guideId=constraint["entityIds"].toArray()[0];
+            const auto guideId=constraint["entityIds"].toArray()[0].toString();
             for(const auto& value:parameters.value("slotGroups").toArray()) {
                 const auto group=value.toObject();if(group["centerlineId"]!=guideId)continue;
                 auto entities=parameters["entities"].toArray(),points=parameters["points"].toArray();
@@ -1720,7 +1720,7 @@ SketchGeometry::SolveResult SketchGeometry::filletCorners(const QJsonObject& dra
         for(const auto& value:arcs)entities.append(value);for(const auto& value:newRelations)keptConstraints.append(value);
         if(drivingRectangle && originSupportLines.size()==2)for(const auto& lineId:originSupportLines)
             keptConstraints.append(QJsonObject{{"id",newId()},{"type","supportLine"},{"pointIds",QJsonArray{originId}},{"entityIds",QJsonArray{lineId}}});
-        const auto firstArc=arcs.first().toObject()["id"];
+        const auto firstArc=arcs.first().toObject()["id"].toString();
         keptDimensions.append(QJsonObject{{"id",newId()},{"kind","radius"},{"entityId",firstArc},{"driving",true},{"valueMm",radius}});
         for(int i=1;i<arcs.size();++i)if(arcs[i].toObject()["centerPointId"]!=arcs.first().toObject()["centerPointId"])keptConstraints.append(QJsonObject{{"id",newId()},{"type","equal"},{"entityIds",QJsonArray{firstArc,arcs[i].toObject()["id"]}}});
         parameters["points"]=keptPoints;parameters["entities"]=entities;parameters["constraints"]=keptConstraints;parameters["dimensions"]=keptDimensions;

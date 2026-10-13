@@ -11,6 +11,7 @@
 #include <cmath>
 #include <deque>
 #include <map>
+#include <set>
 #include <numbers>
 #include <stdexcept>
 #include <vector>
@@ -587,6 +588,36 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
         QJsonArray solvedPoints;
         for (qsizetype i=0;i<points.size();++i) {auto p=points[i].toObject();p["uMm"]=coordinates[2*i];p["vMm"]=coordinates[2*i+1];solvedPoints.append(p);}
         result.parameters["points"] = solvedPoints;
+        // PlaneGCS returns every parameter participating in a Jacobian nullspace
+        // direction, including parameters coupled to the independent pivots.
+        // Diagnose at the accepted coordinates, rather than the initial guess.
+        GCS::VEC_pD movable;
+        if(tagIds.isEmpty())movable=unknowns;
+        else {solver.invalidatedDiagnosis();solver.diagnose(GCS::DogLeg);solver.getDependentParams(movable);}
+        const std::set<double*> freeParameters(movable.begin(),movable.end());
+        QJsonObject pointFreedom,entityFreedom;
+        for(const auto& [id,p]:pointMap){
+            const bool determinate=dof==0||(!derivedPointIds.contains(id)&&!diameterStartIds.contains(id));
+            const bool uFree=freeParameters.contains(p.x),vFree=freeParameters.contains(p.y);
+            pointFreedom[id]=QJsonObject{{"uFree",uFree},{"vFree",vFree},{"determinate",determinate},{"fullyConstrained",determinate&&!uFree&&!vFree}};
+        }
+        for(const auto& value:entities){
+            const auto e=value.toObject();const auto id=e["id"].toString(),type=e["type"].toString();QSet<QString> owned;
+            bool determinate=true,fixed=true;
+            auto own=[&](const QString& p){if(!p.isEmpty())owned.insert(p);};
+            if(type=="point")own(e["pointId"].toString());
+            else if(type=="fitSpline"||type=="controlSpline"||type=="conic")for(const auto& p:e["pointIds"].toArray())own(p.toString());
+            else {for(const auto& key:{"centerPointId","startPointId","endPointId"})own(e[key].toString());}
+            if(type=="ellipse")for(const auto& key:{"firstAxisId","secondAxisId"}){const auto& axis=lineMap.at(e[key].toString());fixed&=!freeParameters.contains(axis.p1.x)&&!freeParameters.contains(axis.p1.y)&&!freeParameters.contains(axis.p2.x)&&!freeParameters.contains(axis.p2.y);}
+            for(const auto& p:owned){const auto freedom=pointFreedom[p].toObject();determinate&=freedom["determinate"].toBool();fixed&=freedom["fullyConstrained"].toBool();}
+            if(type=="circle")fixed&=!freeParameters.contains(circleMap.at(id).rad);
+            if(type=="arc"){const auto& arc=arcMap.at(id);fixed&=!freeParameters.contains(arc.rad)&&!freeParameters.contains(arc.startAngle)&&!freeParameters.contains(arc.endAngle);determinate&=dof==0||(!derivedArcIds.contains(id)&&!mirrorSources.contains(id));}
+            // These authored shape parameters are intentionally outside PlaneGCS.
+            if(type=="fitSpline"||type=="conic")fixed=false;
+            entityFreedom[id]=QJsonObject{{"determinate",determinate},{"fullyConstrained",determinate&&fixed}};
+        }
+        result.diagnostics["freedomSource"]="PlaneGCS solved-coordinate Jacobian nullspace";
+        result.diagnostics["pointFreedom"]=pointFreedom;result.diagnostics["entityFreedom"]=entityFreedom;
         result.diagnostics["dof"] = dof;
         result.diagnostics["status"] = dof == 0 ? "fully_constrained" : "underconstrained";
         result.diagnostics["dimensionValues"] = measurements;

@@ -33,7 +33,7 @@ int main(int argc,char** argv){
         result=SketchGeometry::addDimension(sketch,{{"kind","linear"},{"entityId",firstId},{"valueMm",275}});
         if(!result.ok)throw std::runtime_error(result.error.toStdString());sketch=result.feature;
         check(result.diagnostics["dof"]==1,"first full-axis D275 removes one DOF");
-        const auto firstDimensionId=sketch["parameters"].toObject()["dimensions"].toArray().last().toObject()["id"];
+        const auto firstDimensionId=sketch["parameters"].toObject()["dimensions"].toArray().last().toObject()["id"].toString();
         result=SketchGeometry::addDimension(sketch,{{"kind","linear"},{"entityId",secondId},{"valueMm",100}});
         if(!result.ok)throw std::runtime_error(result.error.toStdString());sketch=result.feature;
         check(result.diagnostics["dof"]==0,"second full-axis D100 finishes ellipse definition");

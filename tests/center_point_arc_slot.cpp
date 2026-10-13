@@ -51,7 +51,7 @@ int main(int argc,char** argv){
         result=SketchGeometry::addDimension(sketch,{{"kind","radius"},{"entityId",group["pathArcId"]},{"valueMm",150}});
         if(!result.ok)throw std::runtime_error(result.error.toStdString());sketch=result.feature;
         check(result.diagnostics["dof"].toInt(-1)==2,"path R150");
-        const auto pathRadiusId=sketch["parameters"].toObject()["dimensions"].toArray().last().toObject()["id"];
+        const auto pathRadiusId=sketch["parameters"].toObject()["dimensions"].toArray().last().toObject()["id"].toString();
         result=SketchGeometry::addDimension(sketch,{{"kind","radius"},{"entityId",caps[0]},{"valueMm",15}});
         if(!result.ok)throw std::runtime_error(result.error.toStdString());sketch=result.feature;
         check(result.diagnostics["dof"].toInt(-1)==1,"cap R15");
@@ -62,13 +62,15 @@ int main(int argc,char** argv){
             {"u2Mm",0},{"v2Mm",0},{"startSnapTarget",QJsonObject{{"kind","point"},{"pointId",path["startPointId"]}}},
             {"endSnapTarget",QJsonObject{{"kind","origin"}}}});
         if(!result.ok)throw std::runtime_error(result.error.toStdString());sketch=result.feature;
-        const auto lines=sketch["parameters"].toObject()["entities"].toArray();const auto radialId=lines.last().toObject()["id"];
+        const auto lines=sketch["parameters"].toObject()["entities"].toArray();const auto radialId=lines.last().toObject()["id"].toString();
         result=SketchGeometry::setConstruction(sketch,{{"entityIds",QJsonArray{radialId}},{"construction",true}});
         if(!result.ok)throw std::runtime_error(result.error.toStdString());sketch=result.feature;
         result=SketchGeometry::addDimension(sketch,{{"kind","angle"},{"entityIds",QJsonArray{straightGuide,radialId}},
             {"raySigns",QJsonArray{1,-1}},{"valueDeg",135}});
         if(!result.ok)throw std::runtime_error(result.error.toStdString());sketch=result.feature;
         check(result.diagnostics["dof"].toInt(-1)==0,"radial D135 fully constrains arc slot");
+        for(const auto& value:result.feature["parameters"].toObject()["entities"].toArray())
+            check(result.diagnostics["entityFreedom"].toObject()[value.toObject()["id"].toString()].toObject()["fullyConstrained"].toBool(),"zero-freedom derived arc slot retains fixed entity color");
         geometry=SketchGeometry::evaluateFeature(sketch);
         check(geometry.profiles.size()==2,"two closed source regions remain");
         bool foundArcRegion=false;

@@ -1,3 +1,4 @@
+#include <AIS_ColoredShape.hxx>
 #include <BRepAdaptor_Curve.hxx>
 #include <BRepPrimAPI_MakeCylinder.hxx>
 #include <BRepPrimAPI_MakeCone.hxx>
@@ -81,7 +82,7 @@
 
 namespace {
 Handle(AIS_Shape) sketchPresentation(const TopoDS_Shape& shape) {
-    Handle(AIS_Shape) presentation=new AIS_Shape(shape);
+    Handle(AIS_Shape) presentation=new AIS_ColoredShape(shape);
     presentation->SetColor(Quantity_Color(0.10,0.34,0.84,Quantity_TOC_RGB));
     presentation->SetWidth(2);
     presentation->Attributes()->SetDeviationCoefficient(0.0001);
@@ -92,6 +93,21 @@ Quantity_Color unselectedSketchProfileColor() {
     // The public tutorial's editable region is a pale warm fill. Keep blue
     // reserved for selected profiles and red for Cut previews.
     return Quantity_Color(0.98,0.84,0.71,Quantity_TOC_sRGB);
+}
+bool solvedEntity(const QJsonObject& diagnostics,const QString& id){return diagnostics["entityFreedom"].toObject()[id].toObject()["fullyConstrained"].toBool();}
+bool solvedPoint(const QJsonObject& diagnostics,const QString& id){return diagnostics["pointFreedom"].toObject()[id].toObject()["fullyConstrained"].toBool();}
+void colorSolvedEntities(const Handle(AIS_Shape)& presentation,const QJsonArray& entities,const QJsonObject& diagnostics,int kind=0,const QJsonArray& projectedLines={}) {
+    const auto colored=Handle(AIS_ColoredShape)::DownCast(presentation);if(colored.IsNull())return;
+    QSet<QString> projected;for(const auto& p:projectedLines)projected.insert(p.toObject()["id"].toString());
+    TopoDS_Iterator child(presentation->Shape());
+    for(const auto& v:entities){const auto e=v.toObject();if(e["type"]=="point"||projected.contains(e["id"].toString()))continue;
+        const bool construction=e["construction"].toBool(),centerline=e["centerline"].toBool();
+        if((kind==1)!=construction)continue;
+        if(!construction&&((kind==2)!=centerline))continue;
+        if(!child.More())break;
+        const Quantity_Color color=solvedEntity(diagnostics,e["id"].toString())?Quantity_Color(.12,.14,.16,Quantity_TOC_sRGB):construction?Quantity_Color(.91,.47,.11,Quantity_TOC_RGB):centerline?Quantity_Color(.20,.45,.82,Quantity_TOC_RGB):Quantity_Color(.10,.34,.84,Quantity_TOC_RGB);
+        colored->SetCustomColor(child.Value(),color);child.Next();
+    }
 }
 struct SketchStrokes { TopoDS_Shape normal, construction, centerline; int constructionCount = 0; };
 SketchStrokes splitSketchStrokes(const EvaluatedSketch& sketch) {
@@ -134,7 +150,7 @@ void styleConstruction(Handle(AIS_Shape) presentation,bool selected,bool fullyCo
     presentation->SetDisplayMode(AIS_WireFrame);
 }
 Handle(AIS_Shape) constructionPresentation(const TopoDS_Shape& shape,bool selected=false,bool fullyConstrained=false) {
-    Handle(AIS_Shape) presentation=new AIS_Shape(shape);
+    Handle(AIS_Shape) presentation=new AIS_ColoredShape(shape);
     styleConstruction(presentation,selected,fullyConstrained);
     return presentation;
 }
@@ -149,7 +165,7 @@ void styleCenterline(Handle(AIS_Shape) presentation,bool selected,bool fullyCons
     presentation->SetDisplayMode(AIS_WireFrame);
 }
 Handle(AIS_Shape) centerlinePresentation(const TopoDS_Shape& shape,bool selected=false,bool fullyConstrained=false) {
-    Handle(AIS_Shape) presentation=new AIS_Shape(shape);
+    Handle(AIS_Shape) presentation=new AIS_ColoredShape(shape);
     styleCenterline(presentation,selected,fullyConstrained);
     return presentation;
 }
@@ -411,17 +427,17 @@ void ReferenceView::setSketches(const std::vector<EvaluatedSketch>& sketches,qui
             const auto model=sketchPresentation(strokes.normal);model->SetDisplayMode(AIS_WireFrame);
             if(sketch.plane=="face")model->SetZLayer(Graphic3d_ZLayerId_Topmost);
             if(sketch.summary["solver"].toObject()["dof"].toInt(-1)==0)model->SetColor(Quantity_Color(0.12,0.14,0.16,Quantity_TOC_sRGB));
-            context_->Display(model,AIS_WireFrame,-1,false);context_->Deactivate(model);sketchModels_[sketch.featureId]=model;
+            colorSolvedEntities(model,sketch.summary["entities"].toArray(),sketch.summary["solver"].toObject(),0,sketch.summary["projectedLines"].toArray());context_->Display(model,AIS_WireFrame,-1,false);context_->Deactivate(model);sketchModels_[sketch.featureId]=model;
         }
         if(!strokes.construction.IsNull()) {
             const auto model=constructionPresentation(strokes.construction,false,sketch.summary["solver"].toObject()["dof"].toInt(-1)==0);
             if(sketch.plane=="face")model->SetZLayer(Graphic3d_ZLayerId_Topmost);
-            context_->Display(model,AIS_WireFrame,-1,false);context_->Deactivate(model);constructionSketchModels_[sketch.featureId]=model;
+            colorSolvedEntities(model,sketch.summary["entities"].toArray(),sketch.summary["solver"].toObject(),1,sketch.summary["projectedLines"].toArray());context_->Display(model,AIS_WireFrame,-1,false);context_->Deactivate(model);constructionSketchModels_[sketch.featureId]=model;
         }
         if(!strokes.centerline.IsNull()) {
             const auto model=centerlinePresentation(strokes.centerline,false,sketch.summary["solver"].toObject()["dof"].toInt(-1)==0);
             if(sketch.plane=="face")model->SetZLayer(Graphic3d_ZLayerId_Topmost);
-            context_->Display(model,AIS_WireFrame,-1,false);context_->Deactivate(model);centerlineSketchModels_[sketch.featureId]=model;
+            colorSolvedEntities(model,sketch.summary["entities"].toArray(),sketch.summary["solver"].toObject(),2,sketch.summary["projectedLines"].toArray());context_->Display(model,AIS_WireFrame,-1,false);context_->Deactivate(model);centerlineSketchModels_[sketch.featureId]=model;
         }
         for(const auto& entry:sketch.summary["standalonePoints"].toArray()) {
             const auto point=entry.toObject();const auto p=point["positionMm"].toArray();
@@ -514,7 +530,7 @@ void ReferenceView::applyEditDisplay(bool redraw) {
             const auto point=entry.toObject();const auto marker=finishedPointModels_.value(point["id"].toString());if(marker.IsNull())continue;
             const bool selected=selectedFinishedPoint_["sketchId"]==sketch.featureId && selectedFinishedPoint_["pointId"]==point["pointId"];
             const auto color=selected ? Quantity_Color(0.98,0.43,0.08,Quantity_TOC_RGB)
-                : sketch.summary["solver"].toObject()["dof"].toInt(-1)==0 ? Quantity_Color(0.12,0.14,0.16,Quantity_TOC_sRGB) : Quantity_Color(0.10,0.34,0.84,Quantity_TOC_RGB);
+                : solvedPoint(sketch.summary["solver"].toObject(),point["pointId"].toString()) ? Quantity_Color(0.12,0.14,0.16,Quantity_TOC_sRGB) : Quantity_Color(0.10,0.34,0.84,Quantity_TOC_RGB);
             marker->Attributes()->SetPointAspect(new Prs3d_PointAspect(Aspect_TOM_O_POINT,color,selected ? 3 : 2.5));
             if(visible)context_->Display(marker,false);else context_->Erase(marker,false);
             context_->Redisplay(marker,false);
@@ -1075,14 +1091,14 @@ void ReferenceView::decorateSketch(const QJsonObject& feature,const QJsonObject&
     }
     const auto parameters=feature["parameters"].toObject();const auto plane=parameters["plane"].toString();
     const bool fullyConstrained=diagnostics["dof"].toInt(-1)==0;
-    if(!sketchDraft_.IsNull()){sketchDraft_->SetColor(fullyConstrained ? Quantity_Color(0.12,0.14,0.16,Quantity_TOC_sRGB) : Quantity_Color(0.10,0.34,0.84,Quantity_TOC_RGB));context_->Redisplay(sketchDraft_,false);}
+    if(!sketchDraft_.IsNull()){sketchDraft_->SetColor(fullyConstrained ? Quantity_Color(0.12,0.14,0.16,Quantity_TOC_sRGB) : Quantity_Color(0.10,0.34,0.84,Quantity_TOC_RGB));colorSolvedEntities(sketchDraft_,parameters["entities"].toArray(),diagnostics,0,projectedLines_);context_->Redisplay(sketchDraft_,false);}
     if(!sketchConstructionDraft_.IsNull()){
         styleConstruction(sketchConstructionDraft_,false,fullyConstrained);
-        context_->Redisplay(sketchConstructionDraft_,false);
+        colorSolvedEntities(sketchConstructionDraft_,parameters["entities"].toArray(),diagnostics,1,projectedLines_);context_->Redisplay(sketchConstructionDraft_,false);
     }
     if(!sketchCenterlineDraft_.IsNull()){
         styleCenterline(sketchCenterlineDraft_,false,fullyConstrained);
-        context_->Redisplay(sketchCenterlineDraft_,false);
+        colorSolvedEntities(sketchCenterlineDraft_,parameters["entities"].toArray(),diagnostics,2,projectedLines_);context_->Redisplay(sketchCenterlineDraft_,false);
     }
     QMap<QString,QJsonObject> points;QSet<QString> fixed;
     for(const auto& entry:parameters["constraints"].toArray()) {
@@ -1094,7 +1110,7 @@ void ReferenceView::decorateSketch(const QJsonObject& feature,const QJsonObject&
         for(const auto& e:parameters["entities"].toArray())if(e.toObject()["type"]=="point" && e.toObject()["pointId"]==id && selection["entityIds"].toArray().contains(e.toObject()["id"]))selected=true;
         const Quantity_Color color=selected ? Quantity_Color(0.98,0.43,0.08,Quantity_TOC_RGB)
             : fixed.contains(id) ? Quantity_Color(0.10,0.52,0.24,Quantity_TOC_RGB)
-            : fullyConstrained ? Quantity_Color(0.12,0.14,0.16,Quantity_TOC_sRGB) : Quantity_Color(0.10,0.34,0.84,Quantity_TOC_RGB);
+            : solvedPoint(diagnostics,id) ? Quantity_Color(0.12,0.14,0.16,Quantity_TOC_sRGB) : Quantity_Color(0.10,0.34,0.84,Quantity_TOC_RGB);
         Handle(AIS_Point) marker=new AIS_Point(new Geom_CartesianPoint(sketchWorld(plane,point["uMm"].toDouble(),point["vMm"].toDouble())));
         marker->Attributes()->SetPointAspect(new Prs3d_PointAspect(Aspect_TOM_O_POINT,color,selected ? 3 : 2));
         marker->SetZLayer(Graphic3d_ZLayerId_Topmost);context_->Display(marker,0,-1,false);context_->Deactivate(marker);sketchDecorations_.push_back(marker);
