@@ -64,8 +64,8 @@ Cut rim provenance #236 is also accepted. Full gate #233 is independently accept
 movie, editable file and checked STL in the seven-card review gallery. Follow-up #235 is independently accepted and retains driving rectangle size and
 origin intent through fillets. The older tutorial movie and saved model preserve
 their disclosed measured-span policy. Rough pointer rectangle #237 is accepted;
-Mirror foundation #240 is also accepted. Parallel-line dimensions #239 are accepted. Constraints #238 and native Mirror
-collection #241 remain active.
+Mirror foundation #240 is also accepted. All five wall-outlet prerequisites #237–241 are independently accepted. Root
+is running the cumulative sketch-only gate #242 from blank; no full pass yet.
 
 After every slice, run the smallest complete author/edit/finish/undo/reopen
 workflow it enables in a private real application instance. Record source steps
