@@ -5,6 +5,7 @@
 #include <QDir>
 #include <QEvent>
 #include <QFileInfo>
+#include <QFontMetrics>
 #include <QJsonDocument>
 #include <QKeyEvent>
 #include <QKeySequence>
@@ -165,8 +166,15 @@ void TutorialRecorder::frame() {
             const int margin=18;
             painter.drawImage(0,38,image);
             if(!caption_.isEmpty()) {
-                painter.setPen(Qt::white);QFont font=painter.font();font.setPixelSize(25);font.setBold(true);painter.setFont(font);
-                painter.drawText(QRect(margin,frameHeight_-59,frameWidth_-2*margin,52),Qt::AlignVCenter|Qt::AlignLeft,caption_);
+                painter.setPen(Qt::white);QFont font=painter.font();font.setBold(true);
+                const QRect captionRect(margin,frameHeight_-59,frameWidth_-2*margin,52);
+                const int flags=Qt::AlignVCenter|Qt::AlignLeft|Qt::TextWordWrap|Qt::TextWrapAnywhere;
+                for(int size=25;size>=12;--size) {
+                    font.setPixelSize(size);
+                    const auto bounds=QFontMetrics(font).boundingRect(captionRect,flags,caption_);
+                    if(bounds.height()<=captionRect.height() && bounds.width()<=captionRect.width())break;
+                }
+                painter.setFont(font);painter.drawText(captionRect,flags,caption_);
             }
             if(!lastCommand_.isEmpty()) {
                 painter.setPen(Qt::white);QFont font=painter.font();font.setPixelSize(17);painter.setFont(font);
