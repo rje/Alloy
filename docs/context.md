@@ -3,6 +3,14 @@
 Updated 2026-10-12. This is the project handoff for a fresh session. Read the root
 [AGENTS.md](../AGENTS.md) first; its reference restrictions apply to all work.
 
+## User slicer milestone (2026-10-12)
+
+The user confirmed the delivered STL imports successfully and "slice looks great".
+Their screenshot shows the five-hole bracket on an Original Prusa MK3.5 bed.
+Record this as successful user import/slicing evidence, with no physical-print
+claim. See validation/bracket-exchange.md. Exact native tutorial and accessibility
+follow-ups remain open; slicer success does not close those unrelated gaps.
+
 ## Active delivery: tutorial through slicer export (2026-10-12)
 
 User explicitly requested complete native tutorial interaction, bounded reference
