@@ -15,7 +15,7 @@ edits, undo/redo and exact storage. Positive and negative normal alignment pass.
 
 Focused core3/3 passes (Sweep, region evaluator and Revolve regression).
 Material refusal controls include center misalignment, missing profile/entity, wrong path order,
-non-G1 kink,10nm undeclared gap, explicit Coincident correction and branched
+non-G1 kink, approximately 1e-8 mm (10 pm) undeclared gap, explicit Coincident correction and branched
 selection. Radius2 makes neighboring3mm centerline legs collide; the actual
 OCCT geometric self-interference check refuses it as `sweep_self_intersection`,
 with accepted authored state unchanged. A separate local-component fixture
@@ -46,6 +46,38 @@ ctest --test-dir build-sweep -R '^(solid_sweep|sketch_regions|solid_revolve)$' -
 python3 tests/solid_sweep_api.py --app build-sweep/alloy.app/Contents/MacOS/alloy --output build-sweep/evidence/api
 ```
 
-Independent Astra review pending; root owns acceptance and integration. No
-native input, exact source sketch workflow, generic sweep family or broad
-parent completion is implied. See [shared contract](../research/solid-sweep.md).
+## Independent acceptance
+
+Astra reviewed candidate `580947fb0f0e8c0e887130a08dbb41df26af9484` on
+2026-10-13 without changing its implementation or repeating the app run.
+The kernel, shared session/dependency paths, focused test source and persisted
+core/API evidence support acceptance of #223's circle-section, full-length,
+Perpendicular, New Body foundation.
+
+Source review confirms exact solved source-entity edges, retained ordered IDs
+and start point, authored Coincident/shared-point connectivity, oriented G1
+checks, and no proximity-based path repair. OCCT pipe construction is followed
+by solid/volume validation and a geometric self-interference check; the focused
+colliding-leg fixture specifically reaches that rejection. Only unique actual
+First/Last planar caps receive semantic identities and outward frames. Curved
+side naming and cap boundary projection references are not claimed.
+
+The persisted core log records all three focused tests passing in 1.59 seconds.
+The real-app report and runner cover preview/Cancel, retained commit/edit IDs,
+history, atomic missing-reference refusal, upstream section/end edits, and
+reopen. Independent inspection found the saved authored JSON exactly matches
+the report's edited document. The edited analytic volume
+`0.64*pi*(137+16.5*pi) = 379.6778663423 mm³` matches the reported geometry.
+Both actual captures show the entire smooth gray pipe and distinct ends, with
+readable Browser/Timeline. The model is relatively small in the viewport and
+arc/line seams remain visible; these images establish bounded presentation,
+not matched reference styling.
+
+The endpoint-gap fixture is approximately `1e-8 mm` (10 pm), not 10 nm; the
+wording above and in the contract is corrected without changing the test or
+its meaning. This review reuses persisted runs rather than claiming a new run.
+Native controls/input (#224), typed path and paired-fillet authoring (#222/#221),
+and cumulative source tutorial (#225) remain separate. The analytic fixture
+is not evidence that those authoring steps are available. Root owns integration
+and issue closure; the broader Sweep family remains unqualified. See the
+[shared contract](../research/solid-sweep.md).

@@ -47,7 +47,7 @@ solid; OCCT `BRepAlgoAPI_Check` additionally checks geometric self-interference.
 Internal numerical policies are explicit Alloy choices: coordinate roundoff uses
 64×double epsilon×coordinate scale, tangent/normal dot checks use1−1e−10 and
 profile-center alignment uses1e−7 mm. These are not documented reference closure
-tolerances and do not heal path gaps. A positively separated10nm endpoint pair
+tolerances and do not heal path gaps. A positively separated approximately 1e-8 mm (10 pm) endpoint pair
 is refused, while an explicit Coincident correction is accepted.
 
 Only unique planar result faces found by exact identity in the pipe builder's
