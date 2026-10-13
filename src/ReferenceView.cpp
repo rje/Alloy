@@ -447,6 +447,9 @@ void ReferenceView::applyEditDisplay(bool redraw) {
                 ? Quantity_Color(0.17,0.48,0.90,Quantity_TOC_sRGB) : unselectedSketchProfileColor());
             // The extrusion base cap occupies this same plane. Keep its sketch
             // outline, but suppress the coplanar transparent profile fill.
+            // Loft caps occupy the selected section planes. Keep blue section
+            // outlines during preview without competing coplanar filled faces.
+            context_->SetDisplayMode(fill,selectedLoftProfileIds_.contains(profile.profileId) && !preview_.IsNull() ? AIS_WireFrame : AIS_Shaded,false);
             if(visible && !previewProfileIds_.contains(profile.profileId))context_->Display(fill,false);else context_->Erase(fill,false);
         }
     }

@@ -2312,7 +2312,8 @@ void AlloyWindow::refresh() {
         view_->setEditDisplay(historicalSketchId,{});
     }
     for(int i=0;i<bodiesNode_->childCount();++i)bodiesNode_->child(i)->setSelected(bodiesNode_->child(i)->data(0,Qt::UserRole+1).toString()==selectedBody_);
-    view_->selectBody(selectedBody_);
+    view_->selectBody(session_.value("command")=="solid.mirror"
+        ? session_.value("inputs").toObject()["sourceBodyId"].toString() : selectedBody_);
     if (session_.value("command").toString() == "document.units" && unitsInput_) {
         const QSignalBlocker block(unitsInput_);
         unitsInput_->setCurrentText(session_.value("inputs").toObject()["units"].toString());
