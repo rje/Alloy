@@ -17,7 +17,7 @@ std::vector<EvaluatedBody> AlloyWindow::filletInputBodies() const {
     return edit.isEmpty() ? document_->bodies() : document_->evaluationBefore(edit).bodies;
 }
 QJsonObject AlloyWindow::filletCandidate(const QJsonObject& inputs) const {
-    auto args=inputs;if(!args.contains("featureId") && session_["command"]=="solid.fillet")args["newFeatureId"]=session_["newFeatureId"];
+    auto args=inputs;if(!args.contains("featureId") && session_.value("command")=="solid.fillet")args["newFeatureId"]=session_["newFeatureId"];
     return CadDocument::filletCandidate(document_->authored(),args);
 }
 QJsonObject AlloyWindow::beginFillet(const QJsonObject& overrides) {
@@ -60,6 +60,6 @@ void AlloyWindow::showFillet() {
     auto* status=new QLabel(panel);status->setObjectName("filletError");status->setWordWrap(true);form->addRow(status);
     connect(radius,&QDoubleSpinBox::valueChanged,panel,[this](double value){const auto response=execute("command.update",{{"session",session_["id"]},{"inputs",QJsonObject{{"radiusMm",value}}}});if(response["ok"].toBool())previewFillet();});
     auto* buttons=new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel,panel);form->addRow(buttons);buttons->button(QDialogButtonBox::Ok)->setEnabled(false);connect(buttons,&QDialogButtonBox::accepted,panel,[this,status]{const auto response=execute("command.commit",{{"session",session_["id"]}});if(!response["ok"].toBool())status->setText(response["error"].toObject()["message"].toString());});connect(buttons,&QDialogButtonBox::rejected,panel,[this]{execute("command.cancel",{{"session",session_["id"]}});});
-    auto cancel=[this]{if(session_["command"]=="solid.fillet")execute("command.cancel",{{"session",session_["id"]}});};auto* escape=new QShortcut(QKeySequence(Qt::Key_Escape),panel);escape->setContext(Qt::WidgetWithChildrenShortcut);connect(escape,&QShortcut::activated,panel,cancel);
+    auto cancel=[this]{if(session_.value("command")=="solid.fillet")execute("command.cancel",{{"session",session_["id"]}});};auto* escape=new QShortcut(QKeySequence(Qt::Key_Escape),panel);escape->setContext(Qt::WidgetWithChildrenShortcut);connect(escape,&QShortcut::activated,panel,cancel);
     if(!filletEscape_){filletEscape_=new QShortcut(QKeySequence(Qt::Key_Escape),view_);filletEscape_->setContext(Qt::WidgetShortcut);connect(filletEscape_,&QShortcut::activated,this,cancel);}filletEscape_->setEnabled(true);canvasWindow_->addDockWidget(Qt::RightDockWidgetArea,filletDock_);filletDock_->show();
 }

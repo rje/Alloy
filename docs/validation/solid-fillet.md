@@ -55,6 +55,10 @@ refusal and exact save/reopen. Run:
 ./build-fillet/solid_fillet_test ../successive-join/build-successive/evidence/support-successive.alloy
 ```
 
-Real-app/API and independent native F/two physical picks/capture evidence remain
-pending the combined candidate.
+Integrated real-app/API verification passes at
+`build-tutorial-polish/evidence/solid-fillet/report.json`, with preview and committed
+captures. Startup refresh now reads session state without inserting an empty
+command; radius schema explicitly permits the dock range. These two integration
+defects were caught and corrected before native review.
+Independent native F/two physical picks/capture evidence remains pending.
 No exact native or visual match is claimed by the build/core evidence alone.

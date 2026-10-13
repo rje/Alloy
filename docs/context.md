@@ -15,6 +15,18 @@ supported circle, history and reopen. Real-app/API and independent native
 acceptance remain pending the combined candidate. See
 [the candidate receipt](validation/solid-fillet.md).
 
+## Join and Fillet integration (2026-10-12)
+
+#176 and #182 candidates are integrated. Combined app builds; focused core
+checks pass. Sequential real-entrypoint runners pass under
+`build-tutorial-polish/evidence/successive-join` and `solid-fillet`: source
+20/4/24/22 Join, stable result ownership, retained disk cap, actual fillet edge
+hit testing, preview/cancel/commit, edits, undo/redo and reopen. Root corrected
+new session reads that inserted null command state and missing radius schema
+bounds caught by app verification. Astra owns the single native review editor;
+independent native acceptance is pending, so both issues remain active.
+The complete #171 supported-hole/export runner is being prepared separately.
+
 ## Current integrated checkpoint (2026-10-12)
 
 The functional straw-bung original-video variant #170 is accepted and closed.

@@ -876,14 +876,15 @@ void AlloyWindow::registerCommands() {
             return preview;
         });
     auto operation=parameter("string","Explicit Boolean operation.");operation["enum"]=QJsonArray{"join","cut","intersect"};
-    QJsonObject filletSchema{{"targetBodyId",optional(parameter("string","Earlier retained body UUID."))},{"edgeIds",optional(parameter("array","Stable extrusion edge UUIDs."))},{"radiusMm",optional(parameter("number","Constant canonical radius in mm."))},{"tangentChain",optional(parameter("boolean","Only true is supported by this slice."))},{"featureId",optional(featureId)},{"name",optional(parameter("string","Fillet feature name."))}};
+    auto solidFilletRadius=parameter("number","Constant canonical radius in mm.");solidFilletRadius["minimum"]=0;solidFilletRadius["maximum"]=100000;
+    QJsonObject filletSchema{{"targetBodyId",optional(parameter("string","Earlier retained body UUID."))},{"edgeIds",optional(parameter("array","Stable extrusion edge UUIDs."))},{"radiusMm",optional(solidFilletRadius)},{"tangentChain",optional(parameter("boolean","Only true is supported by this slice."))},{"featureId",optional(featureId)},{"name",optional(parameter("string","Fillet feature name."))}};
     add("solid.fillet","Fillet","Create or edit constant-radius G1 rolling-ball edge fillet; tangent chain On.",filletSchema,[this](const auto& a){
         QJsonObject candidate;try{candidate=filletCandidate(a);}catch(const std::exception& e){return failure("invalid_arguments",QString::fromUtf8(e.what()));}
         const auto error=document_->commit(candidate,"Fillet");if(!error.isEmpty()){auto response=failure("evaluation_failed",error);auto details=response["error"].toObject();details["diagnostics"]=document_->lastEvaluationError();response["error"]=details;return response;}return document_->state();
     });
     add("solid.filletDialog","Fillet","Open constant-radius edge fillet controls (F).",filletSchema,[this](const auto& a){return beginFillet(a);});
     add("view.projectEdge","Project named solid edge","Project the actual current provenance edge midpoint.",{{"bodyId",parameter("string","Retained body UUID.")},{"edgeId",parameter("string","Stable edge UUID.")}},[this](const auto& a){
-        const auto bodies=session_["command"]=="solid.fillet" ? filletInputBodies() : document_->bodies();for(const auto& body:bodies)if(body.bodyId==a["bodyId"].toString())for(const auto& edge:body.solidEdges)if(edge.edgeId==a["edgeId"].toString() && !edge.edge.IsNull())return view_->projectSolidEdge(edge);return failure("edge_unavailable","Named edge unavailable");
+        const auto bodies=session_.value("command")=="solid.fillet" ? filletInputBodies() : document_->bodies();for(const auto& body:bodies)if(body.bodyId==a["bodyId"].toString())for(const auto& edge:body.solidEdges)if(edge.edgeId==a["edgeId"].toString() && !edge.edge.IsNull())return view_->projectSolidEdge(edge);return failure("edge_unavailable","Named edge unavailable");
     });
     QJsonObject moveSchema{{"steps",optional(parameter("array","Accumulated local rigid gesture deltas."))},{"targetBodyId",optional(parameter("string","Retained earlier body UUID."))},{"featureId",optional(featureId)},{"name",optional(parameter("string","Move feature name."))}};
     for(const auto& key:{"xMm","yMm","zMm","xDeg","yDeg","zDeg","pivotXMm","pivotYMm","pivotZMm"}){auto value=parameter("number","Local triad delta mm/degrees, or world pivot mm.");value["minimum"]=-100000;value["maximum"]=100000;moveSchema[key]=optional(value);}
@@ -1058,7 +1059,7 @@ void AlloyWindow::registerCommands() {
     auto filletRadius=parameter("number","Positive common fillet radius in the chosen length units.");
     filletRadius["minimum"]=0.000001;filletRadius["maximum"]=100000;
     add("sketch.filletPreview","Preview sketch fillets","Show disposable trimmed arcs without changing the authored sketch or undo history.",
-        {{"corners",filletCorners},{"value",optional(filletRadius)},{"units",optional(units)},{"session",optionalSession}},[this](const auto& a){
+        {{"corners",filletCorners},{"value",optional(solidFilletRadius)},{"units",optional(units)},{"session",optionalSession}},[this](const auto& a){
             if(a.contains("session") && a["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
             return previewFillet(a);
         });
@@ -1584,7 +1585,7 @@ void AlloyWindow::registerCommands() {
     });
     add("selection.pick","Pick body or region","Pick actual OCCT geometry at viewport-local coordinates; Shift adds sketch regions.",{{"x",point},{"y",point},{"additive",optional(parameter("boolean","Add a picked region in the current same-sketch selection."))},
         {"toggle",optional(parameter("boolean","Toggle a picked region in the current same-sketch selection."))}},[this](const auto& a){
-        if(session_["command"]=="solid.fillet") {
+        if(session_.value("command")=="solid.fillet") {
             const auto hit=view_->pickSolidEdge(a["x"].toDouble(),a["y"].toDouble(),filletInputBodies());if(hit.isEmpty())return failure("edge_required","Click a visible solid edge with retained provenance");
             auto inputs=session_["inputs"].toObject();auto edges=inputs["edgeIds"].toArray();const auto target=hit["bodyId"].toString();if(inputs["targetBodyId"].toString()!=target)edges={};
             const auto id=hit["edgeId"];if(edges.contains(id)){for(int i=0;i<edges.size();++i)if(edges[i]==id){edges.removeAt(i);break;}}else edges.append(id);
@@ -2072,9 +2073,9 @@ void AlloyWindow::refresh() {
     sketchEscape_->setEnabled(editingSketch || session_.value("command")=="sketch.plane");
     if(extrudeEscape_)extrudeEscape_->setEnabled(session_.value("command")=="solid.extrude");
     if(session_.value("command")=="solid.move" && moveDock_)for(const auto& key:{"xMm","yMm","zMm","xDeg","yDeg","zDeg","pivotXMm","pivotYMm","pivotZMm"})if(auto* field=moveDock_->findChild<QDoubleSpinBox*>(key)){const QSignalBlocker blocker(field);field->setValue(session_["inputs"].toObject()[key].toDouble());}
-    if(session_["command"]=="solid.fillet" && filletDock_)if(auto* field=filletDock_->findChild<QDoubleSpinBox*>("filletRadius")){const QSignalBlocker blocker(field);field->setValue(session_["inputs"].toObject()["radiusMm"].toDouble());}
-    if(session_["command"]=="solid.fillet" && filletDock_)if(auto* box=filletDock_->findChild<QDialogButtonBox*>())box->button(QDialogButtonBox::Ok)->setEnabled(session_["previewed"].toBool() && session_["geometryEvaluated"].toBool() && session_["baseDocumentRevision"].toInteger()==static_cast<qint64>(document_->revision()));
-    if(filletEscape_)filletEscape_->setEnabled(session_["command"]=="solid.fillet");
+    if(session_.value("command")=="solid.fillet" && filletDock_)if(auto* field=filletDock_->findChild<QDoubleSpinBox*>("filletRadius")){const QSignalBlocker blocker(field);field->setValue(session_["inputs"].toObject()["radiusMm"].toDouble());}
+    if(session_.value("command")=="solid.fillet" && filletDock_)if(auto* box=filletDock_->findChild<QDialogButtonBox*>())box->button(QDialogButtonBox::Ok)->setEnabled(session_["previewed"].toBool() && session_["geometryEvaluated"].toBool() && session_["baseDocumentRevision"].toInteger()==static_cast<qint64>(document_->revision()));
+    if(filletEscape_)filletEscape_->setEnabled(session_.value("command")=="solid.fillet");
     if(moveEscape_)moveEscape_->setEnabled(session_.value("command")=="solid.move");
     if(combineEscape_)combineEscape_->setEnabled(session_.value("command")=="solid.combine");
     if(editingSketch) {
