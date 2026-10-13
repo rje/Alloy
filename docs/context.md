@@ -1,6 +1,6 @@
 # Continuation context
 
-Updated 2026-10-12. This is the project handoff for a fresh session. Read the root
+Updated 2026-10-13. This is the project handoff for a fresh session. Read the root
 [AGENTS.md](../AGENTS.md) first; its reference restrictions apply to all work.
 
 ## Overnight queue authorized (2026-10-12)
@@ -16,40 +16,35 @@ file and verified STL. Native input and API evidence remain separate; do not
 close broad feature parents for bounded children. No nightly completion estimate
 or release is promised. Keep board updates tied to real active ownership.
 
-## Overnight implementation checkpoint (2026-10-12)
+## Overnight implementation checkpoint (2026-10-13)
 
-Shell #185 has bounded independent Astra acceptance; see validation/solid-shell.md.
-Actual geometry/API/visual and focused Qt input evidence pass. OS mouse automation
-is unavailable (CUA native pipe startup failure), explicitly distinct from Qt
-widget event verification. Shell corrections are integrated through8167b5e.
+Shell #185 and offset planes #186 have bounded independent Astra acceptance;
+see validation/solid-shell.md and validation/offset-planes.md. Both issues are
+closed. Actual geometry/API/visual and focused Qt input evidence pass. OS mouse
+automation is unavailable (CUA native pipe startup failure); this is explicitly
+separate from Qt widget events. Plane viewport-profile context, amber preview,
+numeric Enter completion and modal capture are verified. The broader inline
+arrow presentation remains in #56.
 
-Offset planes #186 candidate18483b1 integrated as800abb3; selected-plane routing
-fix74ea9c5. Full integrated build and focused plane/shell/named-face checks pass.
-Sol's40-command real-app plane ledger passes in build-tutorial-polish/evidence/
-construction-planes, including inherited plane selection, frame edits, history,
-reopen and fitted GPU screenshot. Private PID94409 exited0. Astra
-passed the bounded Browser/toolbar plane Qt workflow. Root then added the source
-viewport-profile context Offset Plane action, amber presentation, and modal
-dialog capture routing; build passes. Astra currently owns desktop for the
-final narrow followup, including Enter input behavior; root must not rebuild or
-change application code until released. Plane Qt test additions in
-tests/widget_interactions.cpp are still verifier-owned/uncommitted. CUA pipe is unavailable; use clearly labeled Qt-event evidence if needed.
+Mirror #188, multi-body STL #193 and Center Rectangle #189 are integrated
+through8026f86. Independent verifier overnight_specs owns the desktop for their
+focused Qt and real-app review. Root fixed Mirror guards that inserted a null
+command into idle sessions in11245c4; review rerun is pending. Do not rebuild or
+launch another private app until the verifier releases the slot.
 
-Mirror #188 candidate d247a88 in tutorial-mirror is READY TO CHERRY-PICK after
-plane review releases desktop. Focused reflection/Combine tests pass: two3182mm3
-halves and one6364mm3 hollow cube. No real-app Mirror acceptance yet. Sol now owns
-Center Rectangle #189 in tutorial-center-rectangle. Sol planes_finish now owns
-multi-body STL #193 in tutorial-multibody-stl. No other private app may launch.
-Root owns named planar faces #187 and Mirror integration; #187 remains open for
-complete Shell/Mirror/Combine/Cut/Fillet chain evidence. First expanded normal
-test caught prism history orientation differing from solid orientation; fixed
-to actual solid faces, test passes. Shared unique mapping covers Extrude Join.
+Root owns named planar faces #187 and the full nested-cubes runner
+(tests/nested_cubes_api.py, prepared but not run). Focused named-face lineage
+checks pass, including outward orientation, unique descendant transfer and
+source edit/history. Full Shell/Mirror/Combine/Cut/Fillet chain evidence remains
+required before acceptance. Complete nested-cubes gate #172 remains open.
 
-Tracked children: Center Rectangle #189, circular-section Loft #190, additive
-feature Rectangular Pattern #191, retained circle Offset #192, multi-body STL
-#193. Broader parent requirements remain Todo. All three full tutorial gates
-are open. Source/visual ledgers for nested cubes, egg cup and exact toy-block
-video selections are external under knowledge/tutorials.
+Sol planes_finish owns circular-section Loft #190 in tutorial-loft; focused
+section/Shell/edit/history tests and build pass, candidate integration pending.
+Sol tutorial_shell owns retained circle Offset #192 in tutorial-circle-offset.
+Feature Rectangular Pattern #191 remains Todo. All three full tutorial gates
+are open. Public step/visual ledgers for nested cubes, egg cup and exact toy-block
+video selections live externally under knowledge/tutorials. Native input,
+API, geometry and visual claims must remain separate.
 
 ## Complete support demo (2026-10-12)
 
