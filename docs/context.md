@@ -15,6 +15,14 @@ unknown. #265 is now In Progress for cumulative Pattern/Join/bore/edit/STL;
 a919696 but has not evaluated a complete ornament yet. This current status
 supersedes earlier pending #266 descriptions below.
 
+The first cumulative run (`deliverables/ornament-2026-10-13/cumulative-01`
+external) passes source Shell/Intersect and retained Pattern8, then refuses
+the explicit eight-body hub Join with `join_lineage_ambiguous`. Report, full
+transcript, partial recording and editable Pattern8 checkpoint are preserved.
+No final hole/model/STL pass is claimed. Sol investigates ownership coverage
+versus actual material loss under #265; the private editor exited. Main source
+b94fbf2 includes the prepared original creation recording and two-STL recipe.
+
 ## Latest accepted checkpoint — 2026-10-13
 
 Full slots/splines/conic/ellipse lesson #257 and color follow-up #259 are accepted
