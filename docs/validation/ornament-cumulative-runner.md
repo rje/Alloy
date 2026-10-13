@@ -91,3 +91,19 @@ strip capture now exposes both curves without solid occlusion; Pattern shows
 the complete eight-rib arrangement with the original seed selected in blue.
 The numerical coverage check versus true material preservation is the next
 #265 investigation. Tolerances and authored geometry remain unchanged.
+
+## Coverage diagnosis
+
+The preserved retained Pattern8 fixture produces one BRep/Boolean-valid raw
+Fuse solid (17818.82939296109 mm³). Each of the eight input members and the hub
+has an empty exact input-minus-result Cut. Geometry loss is therefore not
+observed in this diagnostic. `retained-join-coverage.json` is retained externally
+under `validation/ornament-feasibility`.
+
+The ownership check compares an adaptively integrated input (about2278.110944
+mm³ per rib) with a fixed-rule Common volume (about2278.106 mm³). Even the
+existing topology-dispatched adaptive Common value differs by about0.000049
+mm³, exceeding the unchanged approximately0.000023 mm³ acceptance threshold.
+Sol is evaluating consistent integration and error handling; no tolerance
+increase or geometry substitution is authorized by this evidence. This raw
+geometry diagnosis is distinct from successful retained application Join.
