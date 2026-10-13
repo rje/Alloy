@@ -20,7 +20,7 @@ Main's default app is rebuilt with both. Receipt `validation/ribbon-icons.md`
 records actual 1040/1400 Retina layout and native input evidence. All private
 editors are closed. No release/tag or per-commit CI was triggered.
 
-102 of 225 issues are closed. Retained-target Extrude Intersect #219 is accepted
+102 of 226 issues are closed. Retained-target Extrude Intersect #219 is accepted
 and integrated; the main app rebuild passes. See validation/extrude-intersect.md.
 Nested profile/island coverage and diagnostics #165 are independently accepted and
 integrated; main app rebuild passes. See validation/profile-regions.md.
@@ -55,7 +55,8 @@ validation/local-transport.md distinguishes native pipe/ACL evidence from untest
 Windows desktop/GPU/second-user denial. Sweep223 is accepted and integrated as5fe11a0 plus independent reviewb500ef9;
 main app rebuild passes. Shared-line fillets221 are integrated as06db7ab plus
 review6fced1d; combined fillet/Sweep core2/2 pass. The private GUI slot is reserved
-for222 native evidence;224 waits for release. No tag/release
+for224 native evidence after222 released it. Circle source Tab-to-Enter focus
+gap #226 is queued separately and blocks full225 acceptance. No tag/release
 or per-commit CI. Intersect parent #161 retains broader operation-edit and
 typed-Return qualification as Todo. Split oversized remaining scope into linked Todo issues. Other broad parents remain Todo. The sections below are a chronological
 record; older ownership, pending status and counts are historical.

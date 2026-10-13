@@ -7,7 +7,7 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current publication contains **225 issues**: **159 implementation, 16 research,
+The current publication contains **226 issues**: **160 implementation, 16 research,
 22 epics, and 28 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 
@@ -52,7 +52,8 @@ The independently transcribed paper-clip lesson is queued as #221–225: shared-
 fillets, typed line locks, retained Sweep, native controls and full workflow gate.
 Sweep foundation #223 and shared-line fillets #221 are accepted. Typed line locks
 #222 and native Sweep controls #224 are active in separate worktrees; full gate
-#225 remains Todo.
+#225 remains Todo. Circle Tab-to-Enter focus gap #226 is a separate queued
+prerequisite found by the native source-sequence probe.
 
 After every slice, run the smallest complete author/edit/finish/undo/reopen
 workflow it enables in a private real application instance. Record source steps
@@ -74,7 +75,7 @@ require macOS/Windows/Linux qualification; CI remains tag/manual only.
 | --- | ---: | --- |
 | P0 Foundation | 30 | Public baseline, MIT dependency audit, document/naming/solver decisions, portable controls, native CI/packages/releases and hardware evidence |
 | P1 Geometry/document | 20 | Real hardware-backed OCCT viewport, authored primitive document, selection, undo/save and STEP |
-| P2 Parametric modeling | 73 | Constrained sketches, parameters, editable extrusion/fillet chain and broader basic solid tools |
+| P2 Parametric modeling | 74 | Constrained sketches, parameters, editable extrusion/fillet chain and broader basic solid tools |
 | P3 Shape/import/print breadth | 33 | Solids/surfaces, common interchange and qualified printing export |
 | P4 Initial release | 9 | Robustness, recovery, packaging, performance, physical/visual workflow evidence |
 | P5 Assemblies/drawings | 11 | Components/joints, configurations and associative drawings |
