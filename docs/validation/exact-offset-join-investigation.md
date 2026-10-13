@@ -309,3 +309,31 @@ from the earlier coverage correction. No geometry or tolerance is changed.
 This is bounded source/core acceptance, not a new GUI or full cumulative pass.
 The final bore, edit/history/reopen, mesh and recording remain separate gates.
 No duplicate test or model replay was needed for independent review.
+
+## Independent #265 cumulative acceptance
+
+Astra checked the current SOL-039/#265 issue scope against terminal
+cumulative-04. Accepted for closure: the actual retained source/profile/Intersect,
+Pattern8 and prescribed diameter10/height5 hub Join produce one valid connected
+body with stable primary ownership. The original and offset-edited saved models
+pass independent BRep/Boolean validity, all eight complete members plus hub
+preservation (all nine residual volumes zero), through-bore void samples at both
+exits and adjacent retained hub material. Count history, meaningful upstream
+offset edit, exact authored undo/redo/reopen and both strict closed oriented
+one-component millimeter STL readbacks pass through the actual application.
+
+The failure diagnosis and bounded fixes are independently reviewed above:
+invalid source Shell and deep-copy inputs were resolved in their prerequisites;
+retained Join coverage used inconsistent volume integration, then redundant
+single-output coverage work caused latency. No tolerance relaxation, replacement
+solid or hidden invalid result establishes this acceptance. Added OCCT support
+representations are qualified separately from original geometry preservation.
+
+Evidence is external cumulative-04 `report.json`, `transcript.json`,
+`geometry-verifier.log`, original/edited authored files and STL files, alongside
+the preserved kernel diagnostics and prior independent receipts. The issue
+explicitly permits disclosed free spline points. Its retained geometry gate is
+complete despite the known open-crown visual difference in that fixture; #264's
+full tutorial visual gate remains blocked until the corrected fixture is
+independently reviewed. This acceptance does not claim full source visual parity
+or transfer cumulative-04 results to the changed cumulative-05 geometry.
