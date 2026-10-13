@@ -78,6 +78,8 @@ public:
             polygon({{11,7},{17,7},{17,12},{21,12},{21,24},{11,24}},blue);
             painter->setBrush(Qt::NoBrush); pen(accent,2); painter->drawArc(QRectF(2,13,27,14),-20*16,235*16);
             arrow({5,22},{3,17},accent);
+        } else if (command_ == "solid.sweepDialog") {
+            painter->setBrush(Qt::NoBrush);painter->setPen(QPen(edge,6,Qt::SolidLine,Qt::RoundCap));QPainterPath path;path.moveTo(5,26);path.lineTo(5,13);path.cubicTo(5,2,26,2,26,13);path.lineTo(26,25);painter->drawPath(path);painter->setPen(QPen(blue,4,Qt::SolidLine,Qt::RoundCap));painter->drawPath(path);painter->setBrush(white);pen(edge);painter->drawEllipse(QRectF(2,24,6,4));arrow({12,27},{23,27},accent);
         } else if (command_ == "solid.loftDialog") {
             polygon({{4,24},{12,7},{22,7},{28,24}},pale);
             pen(edge); painter->setBrush(blue); painter->drawEllipse(QRectF(4,20,24,8));

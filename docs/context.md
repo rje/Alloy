@@ -2100,3 +2100,13 @@ fillet tool entry remain intact. A separate source Circle Tab then Enter probe
 lost editor focus, so SKT-041/#226 owns that bounded follow-up before
 the full tutorial gate. Physical OS input, exact reference styling and the
 complete object remain unqualified. See [the scoped receipt](validation/typed-line-lock.md).
+## Native Sweep controls candidate (2026-10-13)
+
+#224 candidate adds Create/Profile/Path selectors, explicit checked Alloy Chain
+Selection policy, actual finished line/arc picking, temporary retained-source
+visibility and readable GPU chain/profile highlights plus real solid preview.
+Native3/3 and shared API pass Cancel/OK/edit/undo/reopen and both normal signs,
+with analytic API-authored fixtures. Full source authoring/tutorial remains
+separate; no unsupported Sweep modes are implied. Independent review and
+integration pending. See [receipt](validation/sweep-controls.md) and
+[shared contract](research/solid-sweep.md).

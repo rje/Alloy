@@ -45,6 +45,10 @@ public:
     QJsonObject pickFinishedProfile(double x, double y) const;
     QJsonObject pickSupportFace(double x, double y, const std::vector<EvaluatedBody>& bodies) const;
     void selectSupportFace(const QJsonObject& support, const TopoDS_Face& face = {}, bool outline = false);
+    void setCommandSketches(const QSet<QString>& ids);
+    void showSweepProfile(const EvaluatedProfile& profile);
+    void showSweepPath(const EvaluatedSketch& sketch,const QJsonArray& entityIds);
+    void clearSweepPath();
     void setEditDisplay(const QString& sourceSketchId, const QJsonArray& hiddenBodyIds);
     QJsonObject pickSketch(const QJsonObject& feature, double x, double y, const QString& filter = {}, const QJsonObject& resolvedFrame = {}) const;
     void decorateSketch(const QJsonObject& feature, const QJsonObject& selection,
@@ -148,6 +152,10 @@ private:
     QMap<QString,Handle(AIS_Shape)> finishedProfileModels_;
     std::vector<EvaluatedSketch> finishedSketches_;
     QSet<QString> selectedLoftProfileIds_;
+    QSet<QString> commandSketches_;
+    std::vector<Handle(AIS_Shape)> sweepPathOverlays_;
+    Handle(AIS_Shape) sweepProfileOverlay_;
+    QJsonObject sweepPathState_;
     QString selectedProfile_, selectedProfileSketch_, editSourceSketch_;
     QJsonArray selectedProfileIds_;
     QJsonArray hiddenBodyIds_;

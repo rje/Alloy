@@ -176,6 +176,7 @@ void ReferenceView::rebindDocument() {
     if(context_.IsNull())return;
     clearPreview();clearSketchDraft();clearBodyStage();clearSketchCursor();
     selectSupportFace({},{});hoverSupportFace({});sketchFrame_={};
+    clearSweepPath();commandSketches_.clear();
     setEditDisplay({},{});selectProfile({},{});highlightCombineInputs({},{});
     for(const auto& model:models_)context_->Remove(model,false);
     for(const auto& model:sketchModels_)context_->Remove(model,false);
@@ -473,7 +474,7 @@ void ReferenceView::applyEditDisplay(bool redraw) {
         else context_->Erase(model,false);
     }
     for(const auto& sketch:finishedSketches_) {
-        const bool visible=(sketch.visible || sketch.featureId==editSourceSketch_) && sketch.featureId!=draftSketchId_;
+        const bool visible=(sketch.visible || sketch.featureId==editSourceSketch_ || commandSketches_.contains(sketch.featureId)) && sketch.featureId!=draftSketchId_;
         if(sketchModels_.contains(sketch.featureId)) {
             if(visible)context_->Display(sketchModels_.value(sketch.featureId),false);
             else context_->Erase(sketchModels_.value(sketch.featureId),false);
@@ -525,7 +526,7 @@ QJsonObject ReferenceView::pickFinishedProfile(double x,double y) const {
     const gp_Vec eye(px,py,pz),ray(dx,dy,dz);
     double nearest=std::numeric_limits<double>::infinity();QJsonObject hit;
     for(const auto& sketch:finishedSketches_) {
-        if((!sketch.visible && sketch.featureId!=editSourceSketch_) || sketch.featureId==draftSketchId_)continue;
+        if((!sketch.visible && sketch.featureId!=editSourceSketch_ && !commandSketches_.contains(sketch.featureId)) || sketch.featureId==draftSketchId_)continue;
         const auto frame=sketch.resolvedFrame.isEmpty() ? SketchGeometry::frame(sketch.plane) : sketch.resolvedFrame;
         const auto o=frame.value("origin").toArray(),n=frame.value("normal").toArray();
         const gp_Vec origin(o[0].toDouble(),o[1].toDouble(),o[2].toDouble());
@@ -1814,10 +1815,12 @@ QJsonObject ReferenceView::diagnostics() const {
     QJsonArray finishedProfiles;for(const auto& sketch:finishedSketches_)for(const auto& profile:sketch.profiles) {
         auto summary=profile.summary;TopLoc_Location location;const auto triangles=BRep_Tool::Triangulation(profile.face,location);
         summary["displayTriangleCount"]=triangles.IsNull() ? 0 : triangles->NbTriangles();
-        summary["visible"]=(sketch.visible || sketch.featureId==editSourceSketch_) && sketch.featureId!=draftSketchId_;
+        summary["visible"]=(sketch.visible || sketch.featureId==editSourceSketch_ || commandSketches_.contains(sketch.featureId)) && sketch.featureId!=draftSketchId_;
         summary["selected"]=selectedProfileIds_.contains(profile.profileId) && sketch.featureId==selectedProfileSketch_;finishedProfiles.append(summary);
     }
     result.insert("finishedProfiles",finishedProfiles);
+    result.insert("sweepPath",sweepPathState_);
+    QJsonArray commandSketches;for(const auto& id:commandSketches_)commandSketches.append(id);result.insert("commandSketches",commandSketches);
     result.insert("editDisplay",QJsonObject{{"sourceSketchId",editSourceSketch_},{"hiddenBodyIds",hiddenBodyIds_}});
     result.insert("combineInputs",QJsonObject{{"targetBodyId",combineTargetId_},{"toolBodyIds",combineToolIds_},
         {"targetColor","blue"},{"toolColor","orange"},{"hiddenSelectedInputsTemporarilyRevealed",true}});

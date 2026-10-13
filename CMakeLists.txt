@@ -40,10 +40,10 @@ target_compile_definitions(alloy_kernel PUBLIC ALLOY_OCCT_VERSION="${ALLOY_OCCT_
 
 add_library(alloy_application STATIC
     src/AlloyTheme.cpp src/AlloyTheme.h
-    src/AlloyWindow.cpp src/AlloyWindow.h src/CommandIcons.cpp src/CommandIcons.h src/SolidFilletControls.cpp src/SolidChamferControls.cpp src/SphereControls.cpp src/SolidShellControls.cpp src/LoftControls.cpp src/RevolveCommands.cpp src/SweepCommands.cpp src/PatternControls.cpp src/SolidMirrorControls.cpp src/MoveControls.cpp src/CombineControls.cpp src/ExportControls.cpp src/StepExportControls.cpp
+    src/AlloyWindow.cpp src/AlloyWindow.h src/CommandIcons.cpp src/CommandIcons.h src/SolidFilletControls.cpp src/SolidChamferControls.cpp src/SphereControls.cpp src/SolidShellControls.cpp src/LoftControls.cpp src/RevolveCommands.cpp src/SweepCommands.cpp src/SweepSelection.cpp src/PatternControls.cpp src/SolidMirrorControls.cpp src/MoveControls.cpp src/CombineControls.cpp src/ExportControls.cpp src/StepExportControls.cpp
     src/TutorialRecorder.cpp src/TutorialRecorder.h
     src/CadDocument.cpp src/CadDocument.h
-    src/ReferenceView.cpp src/ReferenceView.h src/ReferenceRevolve.cpp
+    src/ReferenceView.cpp src/ReferenceView.h src/ReferenceRevolve.cpp src/ReferenceSweep.cpp
     src/ControlServer.cpp src/ControlServer.h)
 target_include_directories(alloy_application PUBLIC src)
 target_include_directories(alloy_application SYSTEM PRIVATE ${OpenCASCADE_INCLUDE_DIR})
@@ -105,6 +105,11 @@ if(BUILD_TESTING)
     target_link_libraries(nested_regions_controls_test PRIVATE alloy_application Qt6::Test)
     add_test(NAME nested_regions_controls COMMAND nested_regions_controls_test)
     set_tests_properties(nested_regions_controls PROPERTIES TIMEOUT 45 LABELS "widget;gpu" RUN_SERIAL TRUE)
+    add_executable(sweep_controls_test tests/sweep_controls.cpp)
+    target_link_libraries(sweep_controls_test PRIVATE alloy_application Qt6::Test)
+    add_test(NAME sweep_controls COMMAND sweep_controls_test)
+    set_tests_properties(sweep_controls PROPERTIES TIMEOUT 45 LABELS "widget;gpu" RUN_SERIAL TRUE)
+
     add_executable(revolve_controls_test tests/revolve_controls.cpp)
     target_link_libraries(revolve_controls_test PRIVATE alloy_application Qt6::Test)
     add_test(NAME revolve_controls COMMAND revolve_controls_test)

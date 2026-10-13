@@ -113,6 +113,15 @@ private:
     QJsonObject sweepCandidate(const QJsonObject& inputs) const;
     QJsonObject beginSweep(const QJsonObject& inputs);
     QJsonObject previewSweep();
+    QJsonObject pickSweep(double x,double y);
+    QJsonObject selectSweep(const QJsonObject& arguments);
+    QJsonObject sweepPathSelection(const EvaluatedSketch& sketch,const QJsonArray& seeds,bool expand) const;
+    EvaluatedDocument sweepInputDocument() const;
+    void showSweep();
+    void refreshSweepControls();
+    void displaySweepSelection();
+    QDockWidget* sweepDock_=nullptr;
+    QShortcut* sweepEscape_=nullptr;
     QJsonObject revolveCandidate(const QJsonObject& inputs) const;
     QJsonObject beginRevolve(const QJsonObject& overrides);
     QJsonObject previewRevolve();
