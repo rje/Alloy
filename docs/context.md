@@ -17,13 +17,15 @@ Main now includes #174 regions and #177 line Trim. Separate private-Qt build
 `build-support-integrated` succeeds. The two changed core tests pass together;
 `tests/sketch_trim_api.py` and `tests/workflows/check_overlap_regions.py` pass
 through the real GPU app, including preview, selection, history and reopen.
-Evidence is under that build's `evidence/` directory. Astra owns the native and
-independent acceptance next; neither feature is closed yet. The region script
+Evidence is under that build's `evidence/` directory. Astra accepted native Trim, exact undo and five physical region selections;
+both bounded features are now closed. See `validation/support-independent-review.md`. The region script
 was corrected to check the public generic evaluation error plus useful message;
 its core test separately checks the internal missing-profile diagnostic.
 
-The native review app uses `/tmp/alloy-support-integrated-ready.json`.
-No release/tag/CI triggered. Backlog: 179 issues, 45 closed, 134 open.
+The support review editor is saved and closed. Astra owns one popup-fix editor
+next, using the accepted saved bung fixture. Sol researches #176 multi-result
+Join semantics before implementation. Caption fitting #180 is Todo.
+No release/tag/CI triggered. Backlog: 180 issues, 47 closed, 133 open.
 
 ## Resumed active work (2026-10-12)
 
