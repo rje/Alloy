@@ -16,6 +16,7 @@
 #include <Standard_Failure.hxx>
 #include <cmath>
 #include <functional>
+#include <numbers>
 #include <stdexcept>
 
 namespace {
@@ -68,6 +69,18 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
             const auto body = feature["parameters"].toObject()["targetBodyId"].toString();
             if (!bodyPositions.contains(body) || bodyPositions[body]>=i || !activeBodies.contains(body))
                 return {{"featureId",feature["id"]},{"featureType",feature["type"]},{"bodyId",body},{"code","body_unavailable"},{"message","Solid modifier requires an active earlier body"}};
+            continue;
+        }
+        if(feature["type"]=="hole") {
+            const auto p=feature["parameters"].toObject();const auto sketch=p["sourceSketchId"].toString(),body=p["targetBodyId"].toString();
+            if(!positions.contains(sketch) || positions[sketch]>=i || features[positions[sketch]].toObject()["type"]!="sketch"
+                || !bodyPositions.contains(body) || bodyPositions[body]>=i || !activeBodies.contains(body))
+                return {{"featureId",feature["id"]},{"featureType","hole"},{"code","hole_dependency_unavailable"},
+                    {"message","Hole requires an earlier supported sketch point and active target body"}};
+            const auto source=features[positions[sketch]].toObject();const auto support=source["parameters"].toObject()["support"].toObject();
+            if(source["ownerId"]!=feature["ownerId"] || source["parameters"].toObject()["plane"]!="face" || support["bodyId"]!=body)
+                return {{"featureId",feature["id"]},{"featureType","hole"},{"code","hole_support_unavailable"},
+                    {"message","Hole source must be a supported sketch on its same-owner target body"}};
             continue;
         }
         if(feature["type"]=="sphere") {
@@ -539,6 +552,27 @@ QJsonObject CadDocument::sphereCandidate(const QJsonObject& authored,const QJson
     if(index>=0)features[index]=feature;else features.append(feature);candidate["features"]=features;
     const auto error=validate(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());return candidate;
 }
+QJsonObject CadDocument::holeCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
+    const QSet<QString> allowed{"sourceSketchId","sourceEntityId","sourcePointId","targetBodyId","placement","holeType","extent",
+        "boreDiameterMm","sinkDiameterMm","includedAngleDeg","name","featureId","newFeatureId","ownerId"};
+    for(auto it=arguments.begin();it!=arguments.end();++it)if(!allowed.contains(it.key()))throw std::invalid_argument("Unknown Hole argument");
+    if(arguments.contains("featureId") && arguments.contains("newFeatureId"))throw std::invalid_argument("Choose an existing or new Hole identity");
+    auto candidate=authored;auto features=candidate["features"].toArray();QJsonObject feature;int index=-1;
+    if(arguments.contains("featureId")) {
+        for(int i=0;i<features.size();++i)if(features[i].toObject()["id"]==arguments["featureId"]){feature=features[i].toObject();index=i;break;}
+        if(index<0 || feature["type"]!="hole")throw std::invalid_argument("Hole feature unavailable");
+    } else feature={{"id",arguments.value("newFeatureId").toString(newId())},{"ownerId",arguments.value("ownerId").toString(authored["documentId"].toString())},
+        {"type","hole"},{"name","Hole"},{"visible",true}};
+    auto p=feature["parameters"].toObject();
+    for(const auto& key:{"sourceSketchId","sourceEntityId","sourcePointId","targetBodyId","placement","holeType","extent",
+        "boreDiameterMm","sinkDiameterMm","includedAngleDeg"})if(arguments.contains(key))p[key]=arguments[key];
+    if(!p.contains("placement"))p["placement"]="fromSketch";
+    if(!p.contains("holeType"))p["holeType"]="countersink";
+    if(!p.contains("extent"))p["extent"]="all";
+    feature["parameters"]=p;if(arguments.contains("name"))feature["name"]=arguments["name"];
+    if(index<0)features.append(feature);else features[index]=feature;candidate["features"]=features;
+    const auto error=validate(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());return candidate;
+}
 QJsonObject CadDocument::shellCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
     const QSet<QString> allowed{"ownerId","targetBodyId","removedFace","thicknessMm","name","featureId","newFeatureId"};
     for(auto it=arguments.begin();it!=arguments.end();++it)if(!allowed.contains(it.key()))throw std::invalid_argument("Unknown Shell argument");
@@ -721,6 +755,19 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
             if(feature.contains("bodyId") || p.size()!=4 || !validId(p["targetBodyId"].toString()) || !p["edgeIds"].isArray() || p["edgeIds"].toArray().isEmpty() || p["edgeIds"].toArray().size()>100 || !p["tangentChain"].isBool() || !p["tangentChain"].toBool())return "Fillet requires one target, edge references and tangent chain enabled";
             QSet<QString> edges;for(const auto& edge:p["edgeIds"].toArray()){if(!edge.isString() || !validId(edge.toString()) || edges.contains(edge.toString()))return "Fillet edge references must be distinct stable UUIDs";edges.insert(edge.toString());}
             if(!p["radiusMm"].isDouble() || !std::isfinite(p["radiusMm"].toDouble()) || p["radiusMm"].toDouble()<0.001 || p["radiusMm"].toDouble()>100000)return "Fillet radius must be 0.001..100000 mm";
+            continue;
+        }
+        if(type=="hole") {
+            if(feature.contains("bodyId") || p.size()!=10 || !validId(p["sourceSketchId"].toString()) || !validId(p["sourceEntityId"].toString())
+                || !validId(p["sourcePointId"].toString()) || !validId(p["targetBodyId"].toString())
+                || p["placement"]!="fromSketch" || p["holeType"]!="countersink" || p["extent"]!="all")
+                return "Hole requires one retained sketch point, one target and From Sketch Countersink All";
+            for(const auto& key:{"boreDiameterMm","sinkDiameterMm","includedAngleDeg"})if(!p[key].isDouble() || !std::isfinite(p[key].toDouble()))return "Hole dimensions must be finite";
+            const auto bore=p["boreDiameterMm"].toDouble(),sink=p["sinkDiameterMm"].toDouble(),angle=p["includedAngleDeg"].toDouble();
+            if(bore<0.001 || bore>100000 || sink<=bore || sink>100000 || angle<=1 || angle>=179)
+                return "Hole requires positive bore, larger sink and included angle within (1,179) degrees";
+            const auto depth=(sink-bore)/(2*std::tan(angle*std::numbers::pi/360));
+            if(!std::isfinite(depth) || depth<0.001 || depth>100000)return "Hole countersink depth is outside supported bounds";
             continue;
         }
         if(type=="chamfer") {

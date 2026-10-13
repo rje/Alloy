@@ -3,6 +3,7 @@
 #include "SolidChamfer.h"
 #include "SolidShell.h"
 #include "SolidSphere.h"
+#include "SolidHole.h"
 #include "SolidLoft.h"
 #include "SolidRevolve.h"
 #include "SolidSweep.h"
@@ -472,6 +473,9 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored) 
                 evaluated.bodies.push_back(SolidLoft::evaluate(feature,evaluated));
             } else if(type=="sphere") {
                 SolidSphere::evaluate(evaluated,feature);
+            } else if(type=="hole") {
+                QJsonObject source;for(const auto& entry:authored["features"].toArray())if(entry.toObject()["id"]==parameters["sourceSketchId"]) {source=entry.toObject();break;}
+                SolidHole::evaluate(evaluated,feature,source);
             } else if(type=="shell") {
                 const auto target=std::find_if(evaluated.bodies.begin(),evaluated.bodies.end(),[&](const auto& body){return body.bodyId==parameters["targetBodyId"].toString();});
                 if(target==evaluated.bodies.end())throw EvaluationError({{"code","body_unavailable"},{"featureId",id},{"message","Shell target must be active earlier in history"}});

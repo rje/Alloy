@@ -28,7 +28,7 @@ target_include_directories(alloy_sketch_solver PUBLIC src)
 target_link_libraries(alloy_sketch_solver PUBLIC Qt6::Core PRIVATE alloy_planegcs)
 
 add_library(alloy_kernel STATIC
-    src/GeometryKernel.cpp src/GeometryKernel.h src/PlanarFaces.cpp src/PlanarFaces.h src/SolidFillet.cpp src/SolidFillet.h src/SolidChamfer.cpp src/SolidChamfer.h src/SolidShell.cpp src/SolidShell.h src/SolidSphere.cpp src/SolidSphere.h src/SolidLoft.cpp src/SolidLoft.h src/SolidRevolve.cpp src/SolidRevolve.h src/SolidSweep.cpp src/SolidSweep.h src/FeaturePattern.cpp src/FeaturePattern.h src/SolidMirror.cpp src/SolidMirror.h src/JoinResults.cpp
+    src/GeometryKernel.cpp src/GeometryKernel.h src/PlanarFaces.cpp src/PlanarFaces.h src/SolidFillet.cpp src/SolidFillet.h src/SolidChamfer.cpp src/SolidChamfer.h src/SolidShell.cpp src/SolidShell.h src/SolidSphere.cpp src/SolidSphere.h src/SolidHole.cpp src/SolidHole.h src/SolidLoft.cpp src/SolidLoft.h src/SolidRevolve.cpp src/SolidRevolve.h src/SolidSweep.cpp src/SolidSweep.h src/FeaturePattern.cpp src/FeaturePattern.h src/SolidMirror.cpp src/SolidMirror.h src/JoinResults.cpp
     src/MeshExport.cpp src/MeshExport.h
     src/StepExchange.cpp src/StepExchange.h
     src/SketchGeometry.cpp src/SketchTrim.cpp src/SketchGeometry.h src/SketchText.cpp src/SketchText.h src/RoundedLoopOffset.cpp src/RoundedLoopOffset.h
@@ -277,6 +277,9 @@ if(BUILD_TESTING)
     add_executable(standalone_sketch_point_test tests/standalone_sketch_point.cpp src/CadDocument.cpp src/CadDocument.h)
     target_link_libraries(standalone_sketch_point_test PRIVATE alloy_kernel Qt6::Widgets)
     add_test(NAME standalone_sketch_point COMMAND standalone_sketch_point_test)
+    add_executable(countersink_hole_test tests/countersink_hole.cpp src/CadDocument.cpp src/CadDocument.h)
+    target_link_libraries(countersink_hole_test PRIVATE alloy_kernel Qt6::Widgets)
+    add_test(NAME countersink_hole COMMAND countersink_hole_test)
     add_executable(fillet_rim_lineage_test tests/fillet_rim_lineage.cpp src/CadDocument.cpp src/CadDocument.h)
     target_link_libraries(fillet_rim_lineage_test PRIVATE alloy_kernel Qt6::Widgets)
     add_test(NAME fillet_rim_lineage COMMAND fillet_rim_lineage_test)

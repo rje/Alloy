@@ -55,6 +55,7 @@ public:
     static QJsonObject revolveCandidate(const QJsonObject& authored,const QJsonObject& arguments);
     static QJsonObject loftCandidate(const QJsonObject& authored,const QJsonObject& arguments);
     static QJsonObject sphereCandidate(const QJsonObject& authored, const QJsonObject& arguments);
+    static QJsonObject holeCandidate(const QJsonObject& authored, const QJsonObject& arguments);
     static QJsonObject shellCandidate(const QJsonObject& authored, const QJsonObject& arguments);
     static QJsonObject mirrorCandidate(const QJsonObject& authored, const QJsonObject& arguments);
     static QJsonObject moveCandidate(const QJsonObject& authored, const QJsonObject& arguments);
