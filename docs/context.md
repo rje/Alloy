@@ -1921,3 +1921,12 @@ gate. Root implements original vector ribbon icons and compact group spacing
 in isolated #218, with GUI verification waiting for #217 to release the slot.
 94 of218 issues are closed; only217/218 are actively owned. No release/tag
 or per-commit CI. Broader parent49 and11 remain Todo.
+## Compact original modeling ribbon candidate (2026-10-13)
+
+#218 provides16 original vector action icons,94-pixel ribbon and unchanged
+command routing with full tooltip/accessibility/menu names. Actual1040/1400
+Retina blank, dimensioned sketch, preview and solid captures fit all targets;
+existing native Revolve input test passes3/3. Actualwidget inspection is in
+app.state.ui.ribbon. See validation/ribbon-icons.md for bounded evidence and
+physical/cross-platform limits. Independent capture acceptance remains pending.
+Broader contextual toolbar and interface work stays in parent11.

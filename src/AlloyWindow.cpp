@@ -2414,6 +2414,23 @@ QJsonObject AlloyWindow::state() const {
                     {"globalBounds",QJsonObject{{"x",global.x()+rect.x()},{"y",global.y()+rect.y()},{"width",rect.width()},{"height",rect.height()}}}});}item["actions"]=actions;}
         popups.append(item);
     }
+    QJsonObject ribbonState;
+    if (const auto* ribbon = findChild<QWidget*>("modelingRibbon")) {
+        QJsonArray buttons;
+        for (const auto* button : ribbon->findChildren<QToolButton*>()) {
+            const auto position = button->mapTo(ribbon, QPoint());
+            const QRect bounds(position, button->size());
+            buttons.append(QJsonObject{{"id",button->objectName()}, {"text",button->text()},
+                {"accessibleName",button->accessibleName()}, {"toolTip",button->toolTip()},
+                {"enabled",button->isEnabled()}, {"visible",button->isVisible()},
+                {"hasIcon",!button->icon().isNull()}, {"focused",button->hasFocus()},
+                {"fullyVisible",ribbon->rect().contains(bounds)},
+                {"bounds",QJsonObject{{"x",bounds.x()},{"y",bounds.y()},
+                    {"width",bounds.width()},{"height",bounds.height()}}}});
+        }
+        ribbonState = {{"height",ribbon->height()}, {"width",ribbon->width()},
+            {"units","logicalPixels"}, {"buttons",buttons}};
+    }
     const auto viewPosition=view_->mapTo(this,QPoint());
     return {{"application", "Alloy"}, {"version", "0.1.0"}, {"stage", "sketch-authoring"},
         {"runtime", QJsonObject{{"qtVersion", qVersion()}, {"occtBuildVersion", ALLOY_OCCT_VERSION}}},
@@ -2440,7 +2457,7 @@ QJsonObject AlloyWindow::state() const {
             : !selectedSketch_.isEmpty() ? QJsonObject{{"kind","sketch"},{"sketchId",selectedSketch_}}
             : QJsonObject{{"kind","body"},{"bodyId",selectedBody_}}},
         {"kernel", QJsonObject{{"candidate", "Open CASCADE"}, {"discoveredVersion", ALLOY_OCCT_VERSION}, {"integrated", true}, {"visualizationIntegrated", true}, {"policy",GeometryKernel::policy()}}},
-        {"ui", QJsonObject{{"workspace", "design"}, {"tab",target=="sketch.edit" ? "sketch" : "solid"}, {"browserVisible", browserVisible_}, {"timelineVisible", timelineVisible_}, {"timeline",timelineState()}, {"navigationVisible", navigationVisible_}, {"commandSearchVisible", search_ && search_->isVisible()}, {"windowWidth", width()}, {"windowHeight", height()}, {"devicePixelRatio", devicePixelRatioF()},
+        {"ui", QJsonObject{{"workspace", "design"}, {"tab",target=="sketch.edit" ? "sketch" : "solid"}, {"browserVisible", browserVisible_}, {"timelineVisible", timelineVisible_}, {"timeline",timelineState()}, {"ribbon",ribbonState}, {"navigationVisible", navigationVisible_}, {"commandSearchVisible", search_ && search_->isVisible()}, {"windowWidth", width()}, {"windowHeight", height()}, {"devicePixelRatio", devicePixelRatioF()},
             {"ownedPopups",popups},{"activeDialog", QJsonObject{{"command", session_.value("command")},
                 {"visible",dialogVisible},{"inputs",dialogInputs},
                 {"presentation",target.startsWith("solid.") || target.startsWith("sketch.") ? (activeDock && activeDock->isFloating() ? "floating-panel" : "docked-panel") : "dialog"},

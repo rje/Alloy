@@ -724,3 +724,8 @@ geometry is in `viewport.gpu.revolveCue`, with derived inputs in `angularDrag`.
 Full requires extent full and canonical angle360 together. Same-sketch Project
 Axis is identity; external axis projection is unsupported. See the
 [bounded native receipt](validation/revolve-controls.md).
+
+`app.state.ui.ribbon` reports actual modeling ribbon button IDs, full text,
+accessible names, tooltips, enabled/icon/focus state and logical bounds.
+`fullyVisible` checks each widget against the ribbon rectangle after layout.
+It is inspection only and does not change command routing or authored data.
