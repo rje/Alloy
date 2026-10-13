@@ -41,6 +41,8 @@ public:
     // construction geometry; the four outer analytic edges form one profile.
     static SolveResult addCenterPointSlot(const QJsonObject& draft, const QJsonObject& arguments,
         const QJsonObject& projectionContext = {});
+    static SolveResult addCenterPointArcSlot(const QJsonObject& draft, const QJsonObject& arguments,
+        const QJsonObject& projectionContext = {});
     // Pointer creation is transactional. Optional startSnapTarget/endSnapTarget
     // are {kind:origin}, {kind:point,pointId:UUID}, or for Line endpoints
     // {kind:midpoint,entityId:lineUUID}. Accepted snaps retain distinct

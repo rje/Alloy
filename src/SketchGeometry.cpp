@@ -4,6 +4,7 @@
 #include "SketchText.h"
 #include "RoundedLoopOffset.h"
 #include "SketchMirror.h"
+#include "SketchArcSlot.h"
 #include <BRepBndLib.hxx>
 #include <BRepBuilderAPI_MakeEdge.hxx>
 #include <BRepBuilderAPI_MakeVertex.hxx>
@@ -154,6 +155,50 @@ void validateSlotGroups(const QJsonObject& parameters) {
         for(const auto& id:{bottom["startPointId"],bottom["endPointId"]})
             if(std::abs(cross(at(id),id==bottom["startPointId"] ? b : a)+r)>tol ||
                 std::abs(dot(at(id),id==bottom["startPointId"] ? b : a))>tol)reject("Slot lower side left its tangent contacts");
+    }
+}
+void validateArcSlotGroups(const QJsonObject& parameters) {
+    if(!parameters.contains("arcSlotGroups"))return;
+    QMap<QString,QJsonObject> entities;
+    for(const auto& value:parameters["entities"].toArray()){
+        const auto e=value.toObject();entities[e["id"].toString()]=e;
+    }
+    for(const auto& value:parameters["arcSlotGroups"].toArray()){
+        const auto group=value.toObject();const auto caps=group["capIds"].toArray();
+        if(caps.size()!=2)reject("Arc slot lost its two caps");
+        const auto path=entities[group["pathArcId"].toString()],outer=entities[group["outerArcId"].toString()];
+        const auto inner=entities[group["innerArcId"].toString()],lastCap=entities[caps[0].toString()],firstCap=entities[caps[1].toString()];
+        if(path["type"]!="arc" || !path["construction"].toBool() || outer["type"]!="arc" || inner["type"]!="arc" ||
+            lastCap["type"]!="arc" || firstCap["type"]!="arc" || outer["construction"].toBool() ||
+            inner["construction"].toBool() || lastCap["construction"].toBool() || firstCap["construction"].toBool() ||
+            outer["centerPointId"]!=path["centerPointId"] || inner["centerPointId"]!=path["centerPointId"] ||
+            lastCap["centerPointId"]!=path["endPointId"] || firstCap["centerPointId"]!=path["startPointId"] ||
+            outer["endPointId"]!=lastCap["startPointId"] || lastCap["endPointId"]!=inner["startPointId"] ||
+            inner["endPointId"]!=firstCap["startPointId"] || firstCap["endPointId"]!=outer["startPointId"])
+            reject("Arc slot lost its analytic boundary identities");
+    }
+    const auto expected=SketchArcSlot::derive(parameters);
+    QMap<QString,QJsonObject> expectedPoints,expectedEntities;
+    for(const auto& value:expected["points"].toArray()){
+        const auto p=value.toObject();expectedPoints[p["id"].toString()]=p;
+    }
+    for(const auto& value:expected["entities"].toArray()){
+        const auto e=value.toObject();expectedEntities[e["id"].toString()]=e;
+    }
+    const auto derivedPoints=SketchArcSlot::derivedPointIds(parameters),derivedArcs=SketchArcSlot::derivedArcIds(parameters);
+    for(const auto& value:parameters["points"].toArray()){
+        const auto p=value.toObject();if(!derivedPoints.contains(p["id"].toString()))continue;
+        const auto e=expectedPoints[p["id"].toString()];
+        if(std::hypot(p["uMm"].toDouble()-e["uMm"].toDouble(),p["vMm"].toDouble()-e["vMm"].toDouble())>1e-5)
+            reject("Arc slot contact left its tangent radial position");
+    }
+    for(const auto& value:parameters["entities"].toArray()){
+        const auto arc=value.toObject();if(!derivedArcs.contains(arc["id"].toString()))continue;
+        const auto e=expectedEntities[arc["id"].toString()];
+        if(std::abs(arc["radiusMm"].toDouble()-e["radiusMm"].toDouble())>1e-5 ||
+            std::abs(std::remainder(arc["startAngleDeg"].toDouble()-e["startAngleDeg"].toDouble(),360.0))>1e-5 ||
+            std::abs(arc["sweepAngleDeg"].toDouble()-e["sweepAngleDeg"].toDouble())>1e-5)
+            reject("Arc slot analytic boundary left its retained path");
     }
 }
 void validateArguments(const QJsonObject& arguments, bool line) {
@@ -643,6 +688,72 @@ SketchGeometry::SolveResult SketchGeometry::addCenterPointSlot(const QJsonObject
     }catch(const std::exception& error){return invalidDraft(draft,QString::fromUtf8(error.what()));}
 }
 
+SketchGeometry::SolveResult SketchGeometry::addCenterPointArcSlot(const QJsonObject& draft,const QJsonObject& arguments,
+    const QJsonObject& projectionContext) {
+    try {
+        validateDraft(draft);
+        checkFields(arguments,{"centerUMm","centerVMm","firstUMm","firstVMm","lastUMm","lastVMm","widthMm","centerSnapTarget"});
+        double u=coordinate(arguments,"centerUMm"),v=coordinate(arguments,"centerVMm");
+        const double ax=coordinate(arguments,"firstUMm"),ay=coordinate(arguments,"firstVMm");
+        const double bx=coordinate(arguments,"lastUMm"),by=coordinate(arguments,"lastVMm");
+        const double endRadius=coordinate(arguments,"widthMm")/2;
+        auto parameters=draft["parameters"].toObject();auto points=parameters["points"].toArray();
+        auto entities=parameters["entities"].toArray(),constraints=parameters["constraints"].toArray();
+        QString targetId;
+        if(arguments.contains("centerSnapTarget")) {
+            if(!arguments["centerSnapTarget"].isObject())reject("Arc slot center snap target must be an object");
+            const auto target=arguments["centerSnapTarget"].toObject();
+            if(target["kind"]=="origin" && target.size()==1) {
+                targetId=parameters["originPointId"].toString();
+                if(targetId.isEmpty()){
+                    targetId=newId();parameters["originPointId"]=targetId;
+                    points.append(QJsonObject{{"id",targetId},{"uMm",0},{"vMm",0}});
+                    constraints.append(QJsonObject{{"id",newId()},{"type","fixed"},{"pointIds",QJsonArray{targetId}},{"uMm",0},{"vMm",0}});
+                }
+                u=0;v=0;
+            } else if(target["kind"]=="point" && target.size()==2 && validId(target["pointId"].toString())) {
+                targetId=target["pointId"].toString();retainSupportPoint(parameters,projectionContext,targetId);
+                bool found=false;
+                for(const auto& value:expandedProjectionFeature(QJsonObject{{"parameters",parameters}},projectionContext)["parameters"].toObject()["points"].toArray()){
+                    const auto p=value.toObject();if(p["id"]!=targetId)continue;u=p["uMm"].toDouble();v=p["vMm"].toDouble();found=true;break;
+                }
+                if(!found)reject("Arc slot center snap point is unavailable");
+            } else reject("Arc slot center accepts an origin or retained point snap");
+        }
+        const double radius=std::hypot(ax-u,ay-v),lastDistance=std::hypot(bx-u,by-v);
+        if(radius<minimumLength || lastDistance<minimumLength || endRadius<minimumLength ||
+            radius<=endRadius+minimumLength || radius+endRadius>maximumLength)
+            reject("Arc slot needs a nonzero path radius and a smaller positive end radius");
+        const double firstAngle=std::atan2(ay-v,ax-u),lastAngle=std::atan2(by-v,bx-u);
+        const double sweep=std::remainder(lastAngle-firstAngle,2*std::numbers::pi);
+        if(std::abs(sweep)<1e-5 || std::abs(sweep)>=std::numbers::pi-1e-5)
+            reject("Arc slot needs distinct path endpoints and an open sweep below 180 degrees");
+        auto point=[&](double x,double y){const auto id=newId();points.append(QJsonObject{{"id",id},{"uMm",x},{"vMm",y}});return id;};
+        const auto center=point(u,v),first=point(ax,ay),last=point(u+radius*std::cos(lastAngle),v+radius*std::sin(lastAngle));
+        const auto outerFirst=point(0,0),outerLast=point(0,0),innerLast=point(0,0),innerFirst=point(0,0);
+        auto arc=[&](const QString& arcCenter,const QString& start,const QString& end,double r,double startAngle,double arcSweep,bool construction){
+            const auto id=newId();QJsonObject e{{"id",id},{"type","arc"},{"centerPointId",arcCenter},
+                {"startPointId",start},{"endPointId",end},{"radiusMm",r},
+                {"startAngleDeg",startAngle/degrees},{"sweepAngleDeg",arcSweep/degrees}};
+            if(construction)e["construction"]=true;entities.append(e);return id;
+        };
+        const auto path=arc(center,first,last,radius,firstAngle,sweep,true);
+        const auto outer=arc(center,outerFirst,outerLast,radius+endRadius,firstAngle,sweep,false);
+        const auto capLast=arc(last,outerLast,innerLast,endRadius,lastAngle,(sweep<0 ? -1 : 1)*std::numbers::pi,false);
+        const auto inner=arc(center,innerLast,innerFirst,radius-endRadius,lastAngle,-sweep,false);
+        const auto capFirst=arc(first,innerFirst,outerFirst,endRadius,firstAngle+std::numbers::pi,(sweep<0 ? -1 : 1)*std::numbers::pi,false);
+        if(!targetId.isEmpty())constraints.append(QJsonObject{{"id",newId()},{"type","coincident"},{"pointIds",QJsonArray{center,targetId}}});
+        auto groups=parameters["arcSlotGroups"].toArray();groups.append(QJsonObject{{"id",newId()},
+            {"pathArcId",path},{"outerArcId",outer},{"innerArcId",inner},
+            {"capIds",QJsonArray{capLast,capFirst}},{"sweepSign",sweep<0 ? -1 : 1}});
+        parameters["arcSlotGroups"]=groups;parameters["points"]=points;parameters["entities"]=entities;
+        parameters["constraints"]=constraints;parameters=SketchArcSlot::derive(parameters);
+        auto candidate=draft;candidate["parameters"]=parameters;
+        const auto solved=solveDraft(candidate,projectionContext);
+        return solved.ok ? solved : SolveResult{false,draft,solved.diagnostics,solved.error};
+    }catch(const std::exception& error){return invalidDraft(draft,QString::fromUtf8(error.what()));}
+}
+
 SketchGeometry::SolveResult SketchGeometry::addPointerEntity(const QJsonObject& draft, const QString& tool, const QJsonObject& arguments, const QJsonObject& projectionContext) {
     try {
         validateDraft(draft);
@@ -753,7 +864,7 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
         try {return validateParameters(expandedProjectionFeature({{"parameters",parameters}},{{"lines",lines},{"points",resolvedPoints}})["parameters"].toObject(),authoredIds,referenceIds);}
         catch(const std::exception& error){return QString::fromUtf8(error.what());}
     }
-    const QSet<QString> allowed{"plane", "planeId", "points", "entities", "constraints", "dimensions", "originPointId", "support", "texts", "loopOffsets", "roundedRectangleIntent", "mirrorGroups", "slotGroups"};
+    const QSet<QString> allowed{"plane", "planeId", "points", "entities", "constraints", "dimensions", "originPointId", "support", "texts", "loopOffsets", "roundedRectangleIntent", "mirrorGroups", "slotGroups", "arcSlotGroups"};
     for (auto it = parameters.begin(); it != parameters.end(); ++it)
         if (!allowed.contains(it.key())) return "Unknown sketch parameter: " + it.key();
     if (!parameters["points"].isArray() || !parameters["entities"].isArray()) return "Sketch requires points and entities";
@@ -821,8 +932,8 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
                 usedPoints.insert(entity["pointId"].toString());entityIds.insert(entity["id"].toString());continue;
             }
             const bool hasConstruction = entity.contains("construction");
-            if (hasConstruction && (type != "line" || !entity["construction"].isBool()))
-                return "Construction must be a boolean on a line entity";
+            if (hasConstruction && ((type != "line" && type != "arc") || !entity["construction"].isBool()))
+                return "Construction must be a boolean on a line or arc entity";
             const bool hasCenterline=entity.contains("centerline");
             if(hasCenterline && (type!="line" || !entity["centerline"].isBool()))return "Centerline must be a boolean on a line entity";
             if(entity["centerline"].toBool() && entity["construction"].toBool())return "Centerline and Construction are distinct mutually exclusive linetypes";
@@ -905,9 +1016,32 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
                 construction=entry.toObject()["construction"].toBool();
             if(!construction)return "Slot centerline must remain construction geometry";
         }
+        if(parameters.contains("arcSlotGroups") && !parameters["arcSlotGroups"].isArray())return "Arc slot groups must be an array";
+        QSet<QString> arcSlotOwnedIds;
+        for(const auto& value:parameters["arcSlotGroups"].toArray()){
+            if(!value.isObject())return "Arc slot group must be an object";
+            const auto group=value.toObject();
+            const auto sign=group["sweepSign"].toInt();
+            if(group.size()!=6 || !claimId(group["id"].toString()) || !arcIds.contains(group["pathArcId"].toString()) ||
+                !arcIds.contains(group["outerArcId"].toString()) || !arcIds.contains(group["innerArcId"].toString()) ||
+                !checkReferences(group,"capIds",2,arcIds) || (sign!=1 && sign!=-1))
+                return "Invalid Center Point Arc Slot references";
+            for(const auto& id:QJsonArray{group["pathArcId"],group["outerArcId"],group["innerArcId"],
+                group["capIds"].toArray().at(0),group["capIds"].toArray().at(1)}){
+                if(arcSlotOwnedIds.contains(id.toString()))return "Arc slot curve belongs to more than one boundary role";
+                arcSlotOwnedIds.insert(id.toString());
+            }
+        }
+        const auto arcSlotDerivedPoints=SketchArcSlot::derivedPointIds(parameters);
+        const auto arcSlotDerivedArcs=SketchArcSlot::derivedArcIds(parameters);
+        const auto arcSlotCaps=SketchArcSlot::capIds(parameters);
         for (const auto& entry : parameters["constraints"].toArray()) {
             if (!entry.isObject()) return "Sketch constraint must be an object";
             const auto constraint = entry.toObject();
+            for(const auto& id:constraint.value("pointIds").toArray())if(arcSlotDerivedPoints.contains(id.toString()))
+                return "Arc slot tangent contacts cannot own independent constraints";
+            for(const auto& id:constraint.value("entityIds").toArray())if(arcSlotDerivedArcs.contains(id.toString()))
+                return "Arc slot boundary arcs cannot own independent constraints";
             if (!claimId(constraint["id"].toString())) return "Invalid or duplicate constraint UUID";
             const auto type = constraint["type"].toString();
             if (type == "coincident" || type == "fixed") {
@@ -1001,6 +1135,12 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
         for (const auto& entry : parameters["dimensions"].toArray()) {
             if (!entry.isObject()) return "Sketch dimension must be an object";
             const auto dimension = entry.toObject();
+            for(const auto& id:dimension.value("pointIds").toArray())if(arcSlotDerivedPoints.contains(id.toString()))
+                return "Arc slot tangent contacts cannot own independent dimensions";
+            const auto boundaryId=dimension.value("entityId").toString();
+            if(arcSlotDerivedArcs.contains(boundaryId) && !(arcSlotCaps.contains(boundaryId) &&
+                (dimension.value("kind")=="radius" || dimension.value("kind")=="diameter")))
+                return "Arc slot boundary accepts only a rounded end radius dimension";
             if (!claimId(dimension["id"].toString())) return "Invalid or duplicate dimension UUID";
             const auto kind = dimension["kind"].toString();
             const bool curve = kind == "radius" || kind == "diameter" || kind == "arcSweep";
@@ -1074,7 +1214,7 @@ SketchGeometry::SolveResult SketchGeometry::solveDraft(const QJsonObject& draft,
         if(draft["parameters"].toObject().contains("texts"))parameters["texts"]=draft["parameters"].toObject()["texts"];
         if(draft["parameters"].toObject().contains("projections"))parameters["projections"]=draft["parameters"].toObject()["projections"];
         if(draft["parameters"].toObject().contains("pointReferences"))parameters["pointReferences"]=draft["parameters"].toObject()["pointReferences"];
-        solved["parameters"]=parameters;validateDraft(solved);validateRoundedIntent(parameters);validateSlotGroups(parameters);
+        solved["parameters"]=parameters;validateDraft(solved);validateRoundedIntent(parameters);validateSlotGroups(parameters);validateArcSlotGroups(parameters);
         for(const auto& value:entities)if(value.toObject()["type"]=="fitSpline")SketchSpline::evaluate(parameters,value.toObject());
         auto diagnostics=result.diagnostics;int handleDof=0;for(const auto& v:entities)if(v.toObject()["type"]=="fitSpline")handleDof+=2*v.toObject()["pointIds"].toArray().size();
         if(handleDof){diagnostics["pointSolverDof"]=diagnostics["dof"];diagnostics["splineHandleDof"]=handleDof;diagnostics["dof"]=diagnostics["dof"].toInt()+handleDof;diagnostics["splineSolverScope"]="Fit-point constraints only; tangent vectors are editable evaluator parameters";diagnostics["status"]="underconstrained";}
@@ -1098,6 +1238,11 @@ SketchGeometry::SolveResult SketchGeometry::addConstraint(const QJsonObject& dra
         auto constraint = arguments;
         constraint["id"] = newId();
         auto parameters = draft["parameters"].toObject();
+        const auto derivedPoints=SketchArcSlot::derivedPointIds(parameters),derivedArcs=SketchArcSlot::derivedArcIds(parameters);
+        for(const auto& value:constraint.value("pointIds").toArray())if(derivedPoints.contains(value.toString()))
+            reject("Arc slot tangent contact is derived; constrain its path endpoint instead");
+        for(const auto& value:constraint.value("entityIds").toArray())if(derivedArcs.contains(value.toString()))
+            reject("Arc slot boundary is derived; constrain its path arc instead");
         if(constraint["type"]=="horizontalVertical") {
             const auto ids=constraint["pointIds"].toArray();
             if(ids.size()!=2)reject("Horizontal/Vertical requires two ordered points");
@@ -1175,6 +1320,13 @@ SketchGeometry::SolveResult SketchGeometry::addDimension(const QJsonObject& draf
         auto parameters = draft["parameters"].toObject();
         QJsonArray pointIds = arguments["pointIds"].toArray();
         const auto kind=arguments["kind"].toString();
+        const auto derivedPoints=SketchArcSlot::derivedPointIds(parameters),derivedArcs=SketchArcSlot::derivedArcIds(parameters);
+        for(const auto& value:pointIds)if(derivedPoints.contains(value.toString()))
+            reject("Arc slot tangent contact is derived; dimension its path instead");
+        const auto entityId=arguments["entityId"].toString();
+        if(derivedArcs.contains(entityId) && !(SketchArcSlot::capIds(parameters).contains(entityId) &&
+            (kind=="radius" || kind=="diameter")))
+            reject("Arc slot side is derived; dimension the path or rounded end radius instead");
         const bool curve=kind=="radius" || kind=="diameter" || kind=="arcSweep";
         const bool angle=kind=="angle";
         if ((angle || kind=="centerlineDiameter" || kind=="parallelLineDistance") && (arguments.contains("pointIds") || arguments.contains("entityId"))) reject("Line-pair dimensions require two line entityIds");
@@ -1813,6 +1965,8 @@ SketchGeometry::SolveResult SketchGeometry::movePoint(const QJsonObject& draft, 
         coordinate(arguments, "uMm"); coordinate(arguments, "vMm");
         auto parameters = draft["parameters"].toObject();
         if (arguments["pointId"]==parameters.value("originPointId") && parameters.contains("originPointId")) reject("Sketch origin reference cannot be moved");
+        if(SketchArcSlot::derivedPointIds(parameters).contains(arguments["pointId"].toString()))
+            reject("Arc slot tangent contact is derived; move a path endpoint instead");
         for(const auto& groupValue:parameters.value("mirrorGroups").toArray()){
             const auto group=groupValue.toObject();
             for(const auto& pairValue:group["pointPairs"].toArray()){

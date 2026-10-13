@@ -197,6 +197,7 @@ private:
     QJsonObject appendSketchEntity(const QString& tool, const QJsonObject& inputs);
     QJsonObject appendCenterRectangle(const QJsonObject& inputs);
     QJsonObject appendCenterPointSlot(const QJsonObject& inputs);
+    QJsonObject appendCenterPointArcSlot(const QJsonObject& inputs);
     void showSlotEditor(const QString& initialText = {});
     void hideSlotEditor();
     QJsonObject appendCircleOffset(const QJsonObject& inputs,bool update);

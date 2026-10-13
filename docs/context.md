@@ -2515,3 +2515,16 @@ history and reopen pass focused core/native and real-app API checks. The settled
 native captures are readable and the private editor is closed. See the
 [candidate receipt](validation/center-point-slot.md). Independent review is
 pending; this is one ingredient of the later full sketch lesson.
+
+## Center Point Arc Slot candidate (2026-10-13)
+
+#252 adds a center-first open arc slot with a retained construction path arc,
+two analytic side arcs and two rounded caps. The path center/endpoints and cap
+radius stay independently editable; derived contacts and sides regenerate and
+cannot take independent constraints. The focused source core reaches R150,
+R15, Horizontal and D135 at zero DOF with two selectable profiles alongside
+the prior straight slot. Native typed and pointer creation, preview and settled
+GPU captures pass; a separate real-app shared-API run passes the complete
+source constraint/edit/history/reopen chain. See the
+[candidate receipt](validation/center-point-arc-slot.md). Independent review
+is pending; the full multi-page lesson remains separate.

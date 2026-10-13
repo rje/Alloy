@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 #include "SketchSolver.h"
 #include "SketchMirror.h"
+#include "SketchArcSlot.h"
 #include "GCS.h"
 #include <QJsonArray>
 #include <QMap>
@@ -80,6 +81,22 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
                     p["uMm"]=u+e["radiusMm"].toDouble()*std::cos(angle);p["vMm"]=v+e["radiusMm"].toDouble()*std::sin(angle);points[j]=p;}
             }
         }
+        if(parameters.contains("arcSlotGroups")) {
+            const auto capPrimary=SketchArcSlot::capPrimaryIds(parameters);
+            for(const auto& value:dimensions) {
+                const auto d=value.toObject();
+                const auto capId=d["entityId"].toString();
+                if(!d["driving"].toBool() || !capPrimary.contains(capId) ||
+                    (d["kind"]!="radius" && d["kind"]!="diameter"))continue;
+                const double requested=number(d,"valueMm")/(d["kind"]=="diameter" ? 2 : 1);
+                for(int i=0;i<entities.size();++i)if(entities[i].toObject()["id"]==capPrimary.value(capId)){
+                    auto cap=entities[i].toObject();cap["radiusMm"]=requested;entities[i]=cap;break;
+                }
+            }
+            auto seeded=SketchArcSlot::derive(QJsonObject{{"points",points},{"entities",entities},
+                {"arcSlotGroups",parameters["arcSlotGroups"]}});
+            points=seeded["points"].toArray();entities=seeded["entities"].toArray();
+        }
         // The authored source circle owns its radius. Seed each retained result
         // from that source before PlaneGCS solves; editing the offset must not
         // make the least-norm step resize an otherwise free source circle.
@@ -135,6 +152,9 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
         GCS::VEC_pD unknowns;
         QMap<int, QString> tagIds;
         QMap<QString,QString> mirrorSources;
+        const auto derivedArcIds=SketchArcSlot::derivedArcIds(parameters);
+        const auto derivedPointIds=SketchArcSlot::derivedPointIds(parameters);
+        const auto capPrimary=SketchArcSlot::capPrimaryIds(parameters);
         for(const auto& groupValue:parameters["mirrorGroups"].toArray())for(const auto& pairValue:groupValue.toObject()["entityPairs"].toArray()){
             const auto pair=pairValue.toObject();mirrorSources[pair["resultEntityId"].toString()]=pair["sourceEntityId"].toString();
         }
@@ -147,7 +167,8 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
             coordinates[2*i] = number(point, "uMm"); coordinates[2*i+1] = number(point, "vMm");
             require(std::abs(coordinates[2*i]) <= maximumCoordinate && std::abs(coordinates[2*i+1]) <= maximumCoordinate, "Point outside supported range");
             pointMap.emplace(id, GCS::Point(&coordinates[2*i], &coordinates[2*i+1]));
-            if(!lockedPointIds.contains(id) && !diameterStartIds.contains(id)){unknowns.push_back(&coordinates[2*i]); unknowns.push_back(&coordinates[2*i+1]);}
+            if(!lockedPointIds.contains(id) && !diameterStartIds.contains(id) && !derivedPointIds.contains(id)){
+                unknowns.push_back(&coordinates[2*i]); unknowns.push_back(&coordinates[2*i+1]);}
         }
         auto point = [&](const QString& id) -> GCS::Point& {
             const auto found = pointMap.find(id);
@@ -164,8 +185,8 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
             if(type=="line") {GCS::Line line;line.p1=point(entity["startPointId"].toString());line.p2=point(entity["endPointId"].toString());lineMap.emplace(id,line);}
             else {
                 curveParameters.push_back(number(entity,"radiusMm"));auto* radius=&curveParameters.back();
-                const bool derivedArc=type=="arc" && mirrorSources.contains(id);
-                if(!derivedArc)unknowns.push_back(radius);
+                const bool derivedArc=type=="arc" && (mirrorSources.contains(id) || derivedArcIds.contains(id));
+                if(!derivedArc || capPrimary.value(id)==id)unknowns.push_back(radius);
                 if(type=="circle") {GCS::Circle circle;circle.center=point(entity["centerPointId"].toString());circle.rad=radius;circleMap.emplace(id,circle);}
                 else {GCS::Arc arc;arc.center=point(entity["centerPointId"].toString());arc.rad=radius;
                     arc.start=point(entity["startPointId"].toString());arc.end=point(entity["endPointId"].toString());
@@ -174,6 +195,8 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
                     arcMap.emplace(id,arc);}
             }
         }
+        for(auto it=capPrimary.cbegin();it!=capPrimary.cend();++it)if(it.key()!=it.value())
+            arcMap.at(it.key()).rad=arcMap.at(it.value()).rad;
         auto line = [&](const QString& id) -> GCS::Line& {
             const auto found = lineMap.find(id);
             require(found != lineMap.end(), "Unknown sketch line reference"); return found->second;
@@ -213,7 +236,7 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
         solver.dogLegGaussStep = GCS::LeastNormFullPivLU;
         result.diagnostics["dogLegStep"] = "least_norm_full_piv_lu";
         QSet<int> internalTags;int internalRuleCount=0;
-        for(auto& [id,arc]:arcMap) {if(mirrorSources.contains(id))continue;const int t=tagIds.size()+1;tagIds[t]=id;internalTags.insert(t);solver.addConstraintArcRules(arc,t);internalRuleCount+=4;}
+        for(auto& [id,arc]:arcMap) {if(mirrorSources.contains(id) || derivedArcIds.contains(id))continue;const int t=tagIds.size()+1;tagIds[t]=id;internalTags.insert(t);solver.addConstraintArcRules(arc,t);internalRuleCount+=4;}
         for(const auto& value:entities) {
             const auto e=value.toObject();if(e["type"]!="circle" || !e.contains("diameterStartPointId"))continue;
             const auto id=e["id"].toString();auto& center=point(e["centerPointId"].toString());
@@ -387,6 +410,30 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
                 if(!arcMap.contains(resultId))continue;
                 const auto& source=arcMap.at(sourceId);auto& target=arcMap.at(resultId);
                 *target.rad=*source.rad;*target.startAngle=2*angle-*source.startAngle;*target.endAngle=2*angle-*source.endAngle;
+            }
+        }
+        if(parameters.contains("arcSlotGroups")) {
+            QJsonArray solvedPoints,solvedEntities;
+            for(int i=0;i<points.size();++i){auto p=points[i].toObject();p["uMm"]=coordinates[2*i];p["vMm"]=coordinates[2*i+1];solvedPoints.append(p);}
+            for(const auto& value:entities){auto e=value.toObject();const auto id=e["id"].toString();
+                if(e["type"]=="arc"){
+                    const auto& arc=arcMap.at(id);e["radiusMm"]=*arc.rad;
+                    e["startAngleDeg"]=*arc.startAngle/degrees;
+                    e["sweepAngleDeg"]=(*arc.endAngle-*arc.startAngle)/degrees;
+                }
+                solvedEntities.append(e);
+            }
+            const auto derived=SketchArcSlot::derive(QJsonObject{{"points",solvedPoints},{"entities",solvedEntities},
+                {"arcSlotGroups",parameters["arcSlotGroups"]}});
+            for(const auto& value:derived["points"].toArray()){
+                const auto p=value.toObject();const auto id=p["id"].toString();if(!derivedPointIds.contains(id))continue;
+                auto& target=pointMap.at(id);*target.x=number(p,"uMm");*target.y=number(p,"vMm");
+            }
+            for(const auto& value:derived["entities"].toArray()){
+                const auto e=value.toObject();const auto id=e["id"].toString();if(!derivedArcIds.contains(id))continue;
+                auto& target=arcMap.at(id);*target.rad=number(e,"radiusMm");
+                *target.startAngle=number(e,"startAngleDeg")*degrees;
+                *target.endAngle=(number(e,"startAngleDeg")+number(e,"sweepAngleDeg"))*degrees;
             }
         }
         // Independent checks avoid accepting an algorithm status with invalid

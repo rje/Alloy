@@ -1528,11 +1528,19 @@ void ReferenceView::showSketchSlotCursor(const QJsonObject& feature) {
     clearSketchCursor();if(context_.IsNull())return;
     const auto parameters=feature["parameters"].toObject();
     const auto groups=parameters["slotGroups"].toArray();
-    if(groups.isEmpty())return;
-    const auto group=groups.last().toObject();QSet<QString> ids;
-    for(const auto& id:group["sideIds"].toArray())ids.insert(id.toString());
-    for(const auto& id:group["arcIds"].toArray())ids.insert(id.toString());
-    ids.insert(group["centerlineId"].toString());
+    const auto arcGroups=parameters["arcSlotGroups"].toArray();
+    if(groups.isEmpty() && arcGroups.isEmpty())return;
+    QSet<QString> ids;
+    if(!arcGroups.isEmpty()){
+        const auto group=arcGroups.last().toObject();
+        for(const auto& key:{"pathArcId","outerArcId","innerArcId"})ids.insert(group[key].toString());
+        for(const auto& cap:group["capIds"].toArray())ids.insert(cap.toString());
+    } else {
+        const auto group=groups.last().toObject();
+        for(const auto& id:group["sideIds"].toArray())ids.insert(id.toString());
+        for(const auto& id:group["arcIds"].toArray())ids.insert(id.toString());
+        ids.insert(group["centerlineId"].toString());
+    }
     TopoDS_Compound compound;BRep_Builder builder;builder.MakeCompound(compound);
     for(const auto& entry:parameters["entities"].toArray()){
         const auto entity=entry.toObject();if(ids.contains(entity["id"].toString()))
