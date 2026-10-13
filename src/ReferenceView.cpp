@@ -182,7 +182,11 @@ void ReferenceView::initialize() {
         key->SetIntensity(0.9f);
         Handle(V3d_AmbientLight) ambient=new V3d_AmbientLight(Quantity_NOC_WHITE);
         ambient->SetIntensity(0.45f);
-        viewer_->AddLight(key);viewer_->AddLight(ambient);viewer_->SetLightOn();
+        // A weaker world-space underside fill keeps internal roofs and tube
+        // rims readable when inspecting a bottom-facing sketch or solid.
+        Handle(V3d_DirectionalLight) fill=new V3d_DirectionalLight(gp_Dir(0.5,-0.6,1),Quantity_NOC_WHITE,false);
+        fill->SetIntensity(0.55f);
+        viewer_->AddLight(key);viewer_->AddLight(fill);viewer_->AddLight(ambient);viewer_->SetLightOn();
         context_ = new AIS_InteractiveContext(viewer_);
         // Make body selection visible on shaded solids, independent of OCCT's
         // default (gray) selection color. Hover remains a lighter blue.
@@ -251,7 +255,7 @@ void ReferenceView::sync() {
         view_->Camera()->SetDirection(gp_Dir(-n[0].toDouble(),-n[1].toDouble(),-n[2].toDouble()));
         view_->Camera()->SetUp(gp_Dir(v[0].toDouble(),v[1].toDouble(),v[2].toDouble()));
         view_->Camera()->OrthogonalizeUp();
-    } else view_->SetProj(orientation == "top" ? V3d_Zpos : orientation == "front" ? V3d_Yneg : orientation == "right" ? V3d_Xpos : V3d_XposYnegZpos);
+    } else view_->SetProj(orientation == "top" ? V3d_Zpos : orientation == "bottom" ? V3d_Zneg : orientation == "front" ? V3d_Yneg : orientation == "right" ? V3d_Xpos : V3d_XposYnegZpos);
     // Move Eye/Center together: SetCenter alone changes the view direction,
     // while SetProj preserves the origin's screen offset rather than Center.
     const auto camera=view_->Camera();
@@ -339,8 +343,10 @@ void ReferenceView::displayBodies(const std::vector<EvaluatedBody>& bodies) {
     models_.clear();bodyVisibility_.clear();
     for(const auto& body:bodies) {
         Handle(AIS_Shape) model=new AIS_Shape(body.shape);model->SetDisplayMode(AIS_Shaded);
-        model->SetOwnDeviationCoefficient(0.0001);
-        model->SetOwnDeviationAngle(0.04);
+        // Bound screen presentation detail separately from export accuracy.
+        // The finer legacy angular mesh stalled small multi-fillet parts.
+        model->SetOwnDeviationCoefficient(0.0005);
+        model->SetOwnDeviationAngle(0.10);
         model->SetColor(Quantity_Color(0.67,0.72,0.76,Quantity_TOC_RGB));
         model->Attributes()->SetFaceBoundaryDraw(true);
         model->Attributes()->SetFaceBoundaryAspect(new Prs3d_LineAspect(Quantity_Color(0.20,0.25,0.29,Quantity_TOC_RGB),Aspect_TOL_SOLID,1));
@@ -1478,8 +1484,8 @@ void ReferenceView::replacePreview(const TopoDS_Shape& shape,const QString& repl
         previewReplacedBody_=replacedBody;context_->Erase(models_.value(replacedBody),false);
     }
     preview_=new AIS_Shape(shape);preview_->SetColor(neutral ? Quantity_Color(0.67,0.72,0.76,Quantity_TOC_RGB) : Quantity_Color(0.25,0.58,0.76,Quantity_TOC_RGB));
-    preview_->SetOwnDeviationCoefficient(0.0001);
-    preview_->SetOwnDeviationAngle(0.04);
+    preview_->SetOwnDeviationCoefficient(0.0005);
+    preview_->SetOwnDeviationAngle(0.10);
     preview_->SetTransparency(neutral ? 0.0 : 0.55);
     preview_->Attributes()->SetFaceBoundaryDraw(true);
     if(neutral)preview_->Attributes()->SetFaceBoundaryAspect(new Prs3d_LineAspect(
