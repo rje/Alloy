@@ -4346,12 +4346,27 @@
         "SKT-051",
         "SKT-052",
         "SKT-053",
-        "SKT-054"
+        "SKT-054",
+        "SKT-055"
       ],
       "labels": [
         "area:tut"
       ],
       "body": "## Source endpoint\nComplete all three illustrated activities from a blank design through Finish Sketch. This is a sketch-only lesson; do not claim solid, export or printing coverage. Save/edit/history are additional Alloy checks.\n\n## Required workflow\nRough origin Center Rectangle; line snapped to opposite side midpoints and converted to Construction; origin circle; rough upper two-point rectangle; two vertical sides converted to Construction; two outward three-point arcs; actual Mirror window collection and axis; Concentric then point Vertical then Equal; driving overall 70/114, circle diameter12, two-line distances11/28 and arc radius17; show constraints and Finish Sketch. Rough seeds and inferred object-count composition remain explicit.\n\n## Independent acceptance\nStart with nonzero DOF and end with zero DOF and black defined geometry without hidden fixed cutout coordinates. Outer bounds x\u00b135/y\u00b157; upper arc center(0,25), radius17, chord y11/39 at x\u00b1sqrt93; lower reflection center(0,-25); central radius6. Each cutout area is 2*(14*sqrt93+289*asin(14/17)). Inspect readable dimensions and relation icons, actual authored identities, one reflected upstream edit and exact undo/reopen. Deliver a complete API creation movie and editable model, reuse bounded native ingredient evidence, and keep physical OS/exact pixel claims separate. Independent reviewer must inspect actual captures and source-step coverage before closure.\n\n## Public source and limits\nSource wall-outlet-sketch-20261013, three public illustrated activities independently reviewed 2026-10-13. Detailed numbered steps, URLs, images and uncertainty notes remain outside Git in knowledge/tutorials/wall-outlet-audit/independent-contract.md. Source ends at Finish Sketch; no solid or print operation is implied.\n"
+    },
+    {
+      "key": "SKT-055",
+      "title": "Snap coherently to retained coincident point clusters",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-050"
+      ],
+      "labels": [
+        "area:skt"
+      ],
+      "body": "## Problem and evidence\nFull source gate #242 attempt-01 creates a rough origin Center Rectangle and midpoint construction axis, then the source origin Circle click fails with ambiguous_snap. The saved state has two distinct point UUIDs at zero, connected by an authored Coincident relation (rectangle center and origin). Evidence remains external in deliverables/wall-outlet-sketch-2026-10-13/attempt-01.\n\n## Scope\nTreat explicitly retained coincident points as one snap target cluster, with a deterministic existing authored target (prefer origin when part of the cluster). Preserve UUIDs, constraints and separate points; do not merge all numerically colocated geometry or invent new Fixed constraints. Unrelated equally close points must remain ambiguous.\n\n## Acceptance\nThe actual shared pointer path can place the origin circle after the rough centered rectangle and midpoint axis, retaining its origin relation. One focused linked-cluster control, one unrelated coincident-coordinate ambiguity control, and a short real-app circle gesture establish the changed contract. Preserve transient preview/Cancel and authored history. Root then resumes #242; this issue alone is not a full tutorial pass.\n\nPublic source wall-outlet-sketch-20261013; public steps and provenance remain external. This is a product integration fix discovered through the real source sequence.\n"
     }
   ]
 }

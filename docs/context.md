@@ -32,7 +32,7 @@ visual parity remain qualified. The external
 editable models and STL deliverables. The Revolve receipt is
 [validation/revolve-tutorial.md](validation/revolve-tutorial.md).
 
-**121 of 242 issues are closed.** Recent accepted work includes compact ribbon
+**121 of 243 issues are closed.** Recent accepted work includes compact ribbon
 icons #218, retained Extrude Intersect #219, nested profile/island diagnostics
 #165, portable local controls #220, shared-line fillets #221, typed Line length
 locks #222, retained Sweep #223 and native Sweep controls #224. Each has a scoped
@@ -52,8 +52,8 @@ links that capture alongside the full movie/model/STL. Native ingredient tests
 remain distinct from API movie evidence; no physical OS or exact pixel claim.
 The source's post-fillet dimension drivenness is unknown; Alloy's explicit
 reference-span conversion is disclosed. No full tutorial replay was needed for
-the symbol-only change. The private GUI slot is reserved by root for full tutorial #242. All child
-validation editors are closed.
+the symbol-only change. The private GUI slot is reserved for #243 coincident snap fix. Root
+full-tutorial attempt has exited; all other validation editors are closed.
 Keep only one private validation editor open at a time.
 
 **Keyring #233 and driving fillet dimensions #235 are independently accepted and closed.**
@@ -107,9 +107,12 @@ relations retain meaningful solver diagnostics. Native Mirror #241 is independen
 `dff7790`, review `40b78e7`) and closed. All five children #237–241 are now
 accepted. Root owns the active full source-order gate #242: build, blank-to-finish
 API movie, exact final geometry/relation checks, editable file and history/reopen.
-Integrated build and three affected core tests passed (3/3, 3.14 s). First full
-recorded attempt is running under external deliverables/wall-outlet-sketch-2026-10-13/attempt-01;
-no final success or movie acceptance is claimed.
+Integrated build and three affected core tests passed (3/3, 3.14 s). First full recorded attempt failed at the origin Circle click after rough Center
+Rectangle and midpoint axis: retained coincident origin/center points were
+incorrectly treated as ambiguous snap targets. New #243/SKT-055 tracks the
+bounded fix, owned by Sol. External deliverables/wall-outlet-sketch-2026-10-13/attempt-01
+and its movie remain explicitly incomplete; the editor exited. No full success
+is claimed, and #242 now depends on #243.
 The source ends at a sketch, so there is no STL claim for this lesson. Shared schema/solver edits and private GUI
 checks remain coordinated. The integrated application build and both Mirror /
 rounded-intent core tests passed (2/2, 2.23 s); no full tutorial replay was needed. After #239 integration, Mirror and parallel-line

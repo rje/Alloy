@@ -122,11 +122,12 @@
         "SKT-052",
         "SKT-053",
         "SKT-054",
+        "SKT-055",
         "TUT-011"
       ],
       "acceptance": "Complete all three source activities from blank through Finish Sketch with retained relations, truthful initial/final DOF, readable dimensions/badges, full creation movie and editable sketch. No source solid or print claim.",
       "status": "in_progress",
-      "remaining": "All five prerequisites #237\u2013241 independently accepted and integrated. Root is running complete source-order sketch gate #242; no cumulative pass yet."
+      "remaining": "Prerequisites #237\u2013241 accepted. Full gate242 attempt01 found coincident origin/rectangle-center snap ambiguity; bounded fix243 active before retry. No cumulative pass yet."
     },
     {
       "id": "CP-12",
