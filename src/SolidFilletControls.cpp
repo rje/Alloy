@@ -23,6 +23,7 @@ QJsonObject AlloyWindow::filletCandidate(const QJsonObject& inputs) const {
 QJsonObject AlloyWindow::beginFillet(const QJsonObject& overrides) {
     if(!session_.isEmpty())return filletFailure("session_busy","Complete or cancel the active command first");
     auto error=validateArguments(*findCommand("solid.fillet"),overrides);if(!error.isEmpty())return filletFailure("invalid_arguments",error);
+    if(overrides.contains("tangentChain") && !overrides["tangentChain"].toBool())return filletFailure("unsupported_option","Tangent Chain Off is outside this slice");
     QJsonObject inputs{{"targetBodyId",selectedBody_},{"edgeIds",QJsonArray{}},{"radiusMm",0.0},{"tangentChain",true},{"name","Fillet"}};
     if(overrides.contains("featureId"))for(const auto& value:document_->authored()["features"].toArray())if(value.toObject()["id"]==overrides["featureId"]) {
         const auto feature=value.toObject();if(feature["type"]!="fillet")return filletFailure("stale_entity","Fillet feature unavailable");inputs=feature["parameters"].toObject();inputs["name"]=feature["name"];inputs["featureId"]=feature["id"];
