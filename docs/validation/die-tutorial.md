@@ -1,9 +1,10 @@
 # Die tutorial workflow
 
-The complete workflow is implemented in `tests/die_tutorial_api.py`. Acceptance
-is pending the final export correction and independent review. The first full
-run created all 21 spherical pips but failed strict STL readback; it is retained
-as diagnostic evidence, not a passing deliverable.
+The complete workflow is implemented in `tests/die_tutorial_api.py`. The final shared-API run passes geometry, component ownership, upstream edit,
+history, reopen and strict STL checks. Independent tutorial review accepted the bounded gate; see
+[the independent receipt](die-independent.md).
+The first attempt failed strict STL readback; it remains archived as diagnostic
+evidence separately from the corrected final recording.
 
 The public source is the external TUT-002 ledger
 `knowledge/tutorials/warwick/library-die-ledger.md`, retrieved 2026-10-13.
@@ -35,7 +36,15 @@ Alloy choice because public instructions leave it unspecified. The source allows
 Enter or OK; only OK commit is qualified in the inactive macOS Qt test window.
 There is no source final-die image for a matched visual comparison.
 
-Before final acceptance, binary export must remove the three observed collapsed
-serialized pole facets while preserving strict mesh criteria. The separate
-origin-arrow obstruction is a display decoration defect, verified by origin
-on/off captures; it does not change the exact hemispherical geometry.
+The final binary export removes three collapsed serialized pole facets and passes
+the unchanged strict reader: 53,414 facets, one closed oriented component, 20 mm
+bounds and volume7801.733045 mm³ (BRep7801.394541 mm³). The separately corrected
+origin-arrow obstruction was a display decoration defect, verified by origin
+on/off captures; it did not change exact hemispherical geometry.
+
+Final evidence: `build-tutorial-polish/evidence/die-final/`, 230 successful commands,
+nine captured stages and exact authored reopen. The complete movie is external at
+`demos/2026-10-13/die/die-complete.mp4`, 323.3 seconds with zero capture failures.
+Editable model and millimeter STL are in external `deliverables/die-2026-10-13/`.
+The crowded 24-feature Timeline is tracked in HIS-003/#43. Curved ASCII export
+requires PRT-008/#206; this gate qualifies the binary artifact.

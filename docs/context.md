@@ -94,14 +94,19 @@ Sphere145 and views203 are independently accepted/CLOSED after correctedred
 captures and actual Browser Left/Back Qt routing (b30fff1). End-on origin arrow
 cones are disabled while coloredaxes/labels remain. New/lastSphere previews reuse
 fullcandidate evaluation; historicaleditspreserve requiredprefix evaluation.
-Root owns exclusive GUI for finalfullmovie session65778, evidence/die-final;
-firstattempt is archived in evidence/die-first-attempt and external movie subfolder
-first-attempt-pole-export-failure. No otherprivateeditor while thisrun is active.
-Gate147 staysopen until finalstrictSTL/history/reopen/recording review.
-The next bounded sketch child SKT034#205 is queuedTodo: direct circle-center to
-retainedstraightmodel-edge dimensions, closingtoy first-stud gesture adaptation.
-External spec knowledge/specs/point-edge-dimension-next-slice.md; broader150 keeps
-side-faceboss/inclinedsupport scope. Do notpull until currentdie gate is accepted.
+Final die gate147 is independently accepted/CLOSED (af89e64). Actual finalrun
+230successfulcommands,24featuresownedbydie,21pips,47.25*pi volume removal,
+upstream rounding edit/history/exact reopen pass. Final323.3secondmovie haszero
+capturefailures. Evidence/die-final; externaldeliverables/die-2026-10-13 contains
+editablegame-pieces.alloy,die-mm.stl andsummary. Firstattempt archived separately.
+Receipt validation/die-independent.md distinguishes allsourcegesture adaptations.
+Allfour overnight tutorials are done; no privateeditor remains running.
+Continue authorized coherentbacklog: SKT034#205 directcirclecenter-to-retained
+straightmodel-edge dimensions, plus independent PRT008#206 curvedASCII pole
+facets. Sol implementation can proceed in isolatedworktrees, Astra verifies;
+root serializes GUI. External dimension spec knowledge/specs/point-edge-dimension-next-slice.md.
+Broader150 retainsside-faceboss/inclinedsupport;43 hascrowded24featureTimeline;
+83 retainsperformance. No release/tag orpercommitCI is triggered.
 Sphere declaration uses type sphere,
 parameters support/uMm/vMm/diameterMm/operation and optional targetBodyId; internal
 candidate ownerId defaults root, edits preserve owner. During component integration

@@ -60,8 +60,9 @@
         "TUT-002"
       ],
       "acceptance": "Complete source component and spherical-cut workflow, cancel/finish checks and printable STL; no cylindrical pip substitution.",
-      "status": "in_progress",
-      "remaining": "First full geometry run passes 21 spherical cuts. Final acceptance awaits serialized STL pole correction, origin overlay readability and final artifact/history recording."
+      "status": "done",
+      "remaining": "None for the accepted adapted API/artifact gate. Native gesture differences are explicit; Timeline43, curvedASCII206 and broader performance83 remain separate.",
+      "evidence": "docs/validation/die-independent.md"
     },
     {
       "id": "CP-12",

@@ -55,7 +55,10 @@ recordings, editable models and independently checked STL files. These exercise
 inward Shell, body Mirror, offset planes, centered rectangles, retained planar
 face sketches and ordered circular Loft sections. The full
 [toy block](docs/validation/toy-block-independent.md) also passes feature patterns,
-Shell roof references, retained circle Offset and nineteen-edge rounding.
+Shell roof references, retained circle Offset and nineteen-edge rounding. The
+[die tutorial](docs/validation/die-independent.md) adds named local component
+ownership, Chamfer trials, face-positioned spherical cuts and Repeat, with a
+complete creation movie and checked component STL.
 Acceptance is bounded to the
 documented workflows; exact visual and physical-input parity remains qualified.
 The next illustrated object now passes an integrated API chain: command-first

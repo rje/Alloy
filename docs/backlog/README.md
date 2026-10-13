@@ -37,7 +37,8 @@ as Todo. No full tutorial is complete merely because its final shape looks right
 The accepted bung/support gates and earlier bracket receipts remain valid;
 outstanding exact-native bracket follow-ups remain Todo after this sequence.
 Source PDFs, URLs, visual references and detailed ledgers stay in external
-`knowledge/tutorials`; nested cubes, egg cup and the adapted toy block are accepted with documented API/input limits. Die is the active overflow workflow.
+`knowledge/tutorials`; nested cubes, egg cup and the adapted toy block are accepted with documented API/input limits. The adapted die gate is also accepted. Next: direct center-to-edge dimension
+input #205 and the separate curved ASCII export defect #206.
 
 After every slice, run the smallest complete author/edit/finish/undo/reopen
 workflow it enables in a private real application instance. Record source steps
