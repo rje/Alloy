@@ -77,6 +77,10 @@ The next illustrated object now passes an integrated API chain: command-first
 Circle, a joined boss, a sketch on its new cap, an editable body Move and Combine
 Cut. The [straw-bung checkpoint](docs/validation/straw-bung.md) includes a closed
 26 x 26 x 11 mm STL and separate native/visual evidence limits.
+The complete [paper-clip lesson](docs/validation/paper-clip-tutorial.md) now adds
+seven typed lines, six sketch fillets and a retained circular Sweep, with a full
+creation movie, editable source and checked STL. A focused corrected capture
+records recognizable tangent symbols; the movie predates that visual fix.
 Typed chained Line now supports positive length entry, Tab lock, pointer H/V
 direction and click continuation with retained dimensions; the bounded
 [Line input receipt](docs/validation/typed-line-lock.md) records exact seven-segment

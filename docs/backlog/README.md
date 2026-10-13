@@ -52,14 +52,15 @@ The independently transcribed paper-clip lesson is queued as #221–225: shared-
 fillets, typed line locks, retained Sweep, native controls and full workflow gate.
 Sweep foundation #223, shared-line fillets #221 and typed line locks #222 are
 accepted, as are native Sweep #224 and corrected Circle Tab-to-Enter #226.
-Full paper-clip gate #225 is active. Its creation, geometry and mesh checks pass;
-independent review found empty tangent symbols. Bounded glyph fix #234 is active
-and must pass before the gate closes.
+Full paper-clip gate #225 and tangent-symbol correction #234 are accepted and
+closed. The full movie predates that visual fix; the receipt and external gallery
+include the corrected sketch capture.
 The independently reviewed initials-keyring lesson follows as #227–233: typed
 two-point Rectangle, retained rounded dimensions, mixed-loop Offset, two-point
 Circle, text geometry, text placement and the full tutorial gate. Rectangle #227
-and text geometry #231 are accepted and closed. Rounded-rectangle fillets #228
-and native text placement #232 are active; the remaining children stay Todo.
+and text geometry #231 are accepted and closed. Rounded-rectangle fillets #228,
+two-point Circle #230 and native text placement #232 are active; Offset #229
+and full gate #233 stay Todo.
 
 After every slice, run the smallest complete author/edit/finish/undo/reopen
 workflow it enables in a private real application instance. Record source steps

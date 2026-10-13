@@ -3,62 +3,52 @@
 Updated 2026-10-13. This is the project handoff for a fresh session. Read the root
 [AGENTS.md](../AGENTS.md) first; its reference restrictions apply to all work.
 
-The isolated tangent badge fix #234 replaces empty square markers with a curve
-touching a line. Its bounded macOS GPU capture and retained hover/pick identity
-check are in [the candidate receipt](validation/tangent-badges.md). Independent
-review and main integration remain pending.
-
 ## Current checkpoint — read first (2026-10-13)
 
 The nested cubes #172, egg cup #173, toy block #146, die #147 and subsequent
-Centerline/Revolve #217 tutorial gates are accepted and closed. Their receipts
+Centerline/Revolve #217 and paper-clip #225 tutorial gates are accepted and
+closed. Their receipts
 separate full API creation movies/editable files/checked STL from bounded Qt
 input evidence and explicit source adaptations. Physical OS input and exact
 visual parity remain qualified. The external
-`../Alloy-reference-records/demos/2026-10-13/index.html` links all five movies,
+`../Alloy-reference-records/demos/2026-10-13/index.html` links all six movies,
 editable models and STL deliverables. The Revolve receipt is
 [validation/revolve-tutorial.md](validation/revolve-tutorial.md).
 
-**107 of 234 issues are closed.** Recent accepted work includes compact ribbon
+**109 of 234 issues are closed.** Recent accepted work includes compact ribbon
 icons #218, retained Extrude Intersect #219, nested profile/island diagnostics
 #165, portable local controls #220, shared-line fillets #221, typed Line length
 locks #222, retained Sweep #223 and native Sweep controls #224. Each has a scoped
 receipt in `docs/validation/`; broad parents remain Todo for their actual
-remaining requirements. Main's default application is rebuilt through accepted #227 and #231:
+remaining requirements. Main's default application is rebuilt through accepted
+#227, #231 and #234:
 `build-tutorial-polish/alloy.app/Contents/MacOS/alloy`.
 
-**Active: full paper-clip gate #225.** Modeling prerequisites are accepted, including
-Circle Tab-to-Enter #226. Its corrected native test observes focus after each
-step without intermediate repairs; the initial masked test is superseded. See
-validation/circle-tab-lock.md. Main's app rebuild passes through the corrected
-source and independent receipt46419a2.
+**Paper-clip gate #225 and tangent-symbol correction #234 are closed.** The
+complete source chain uses real typed Line/Tab input, six actual fillet arcs,
+Circle Tab/Enter and Sweep selectors. Astra independently checked its movie,
+authored source, analytic geometry, strict one-component STL and edit/history/
+reopen evidence. See validation/paper-clip-tutorial.md. The 160-second movie
+predates the tangent-symbol correction; the focused corrected GPU capture and
+validation/tangent-badges.md establish current readability. The external gallery
+links that capture alongside the full movie/model/STL. Native ingredient tests
+remain distinct from API movie evidence; no physical OS or exact pixel claim.
+The source's post-fillet dimension drivenness is unknown; Alloy's explicit
+reference-span conversion is disclosed. No full tutorial replay was needed for
+the symbol-only change. The private GUI slot is currently reserved for #228
+focused native/API checks; other agents must wait before launching an editor.
 
-The full source workflow passed in `paper-clip-tutorial`; runner a2aa39a is
-committed there. Astra independently confirmed movie, authored model, geometry
-and strict mesh checks, but found tangent badges are empty boxes. Small glyph
-fix #234 is active in an isolated Sol worktree; final #225 acceptance awaits it.
-No full tutorial replay is needed. The private GUI slot is reserved for the bounded
-tangent badge check. Rectangle #227 palette and invalid-input/Cancel follow-ups
-passed independent review. The full movie
-uses typed Line/Tab commands, actual paired fillets, Circle Tab/Enter and Sweep
-selectors through shared authority, with no seeded lines or substitute arcs.
-Retain this accepted functional evidence while fixing the bounded visual gap. The exact public source ledger, visual references
-and independently derived geometry contract are external under
-`knowledge/tutorials/next-sweep-slice/paper-clip/`. Fillet width annotations use an
-explicit disclosed reference-span conversion; source post-fillet drivenness is
-unknown. Update the gallery only after independent acceptance. The tutorial
-sequence and live GitHub board remain the pull queue. Luna identified an
-illustrated initials-keyring candidate externally; Astra
+**Active: keyring rounded fillets #228, two-point Circle #230 and text placement #232.**
+Luna identified the illustrated initials-keyring lesson externally; Astra
 independently checked all six source pages. Seven bounded issues #227–233 now
 queue typed two-point Rectangle, overall fillet annotations, rounded-loop Offset,
 two-point Circle, editable text geometry, native text placement and the full gate.
 Rectangle #227 and text geometry #231 are independently accepted, integrated
 and closed; their receipts are validation/two-point-rectangle.md and
-validation/sketch-text.md. Rounded-rectangle fillets #228 and native text placement #232 are active in
-separate Sol worktrees. Rounded-loop Offset #229, two-point Circle #230 and
-full gate #233 remain Todo. Text must retain authored parameters and use
-mature font-outline facilities;
-generated glyph curves need not become individual solver entities. Detailed
+validation/sketch-text.md. The three active children have separate Sol worktrees.
+Rounded-loop Offset #229 and full gate #233 remain Todo. Text retains authored
+parameters and uses mature font-outline facilities; generated glyph curves are
+not individual solver entities. Detailed
 source choices and uncertainties are external in
 `knowledge/tutorials/warwick/initials-keyring-independent-contract.md`.
 
