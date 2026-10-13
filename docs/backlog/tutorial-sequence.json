@@ -46,7 +46,7 @@
       "acceptance": "Resolve public demonstration selections; complete shell, feature patterns, offset annulus, fillets, editable/reopened model and checked STL with full creation recording.",
       "status": "done",
       "evidence": "docs/validation/toy-block-independent.md",
-      "remaining": "Adapted functional API/artifact gate accepted. Direct first-stud center-to-edge dimension gesture remains SKT-017/#150; physical OS input and exact visual parity unverified."
+      "remaining": "Updated full API/artifact gate accepted with actual retained point-to-edge first-stud dimensions and separate Qt gesture evidence. Physical OS input and exact visual parity remain unverified."
     },
     {
       "id": "CP-11",
@@ -72,7 +72,7 @@
       ],
       "acceptance": "Reproduce the toy-block first-stud center/edge/label/value gesture with real retained dimensions; edge edits move the circle, history and storage preserve references, and annotations remain readable.",
       "status": "done",
-      "remaining": "Bounded center-to-straight-edge dimensions accepted. Broader SKT-017 retains side-face boss and inclined support coverage; original toy movie remains explicitly adapted until updated recording passes.",
+      "remaining": "Bounded direct point-to-edge workflow accepted, including an updated full toy movie/artifact gate. SKT-017 retains side-face boss and inclined support coverage.",
       "evidence": "docs/validation/point-edge-dimensions-independent.md"
     },
     {

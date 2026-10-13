@@ -120,7 +120,7 @@ crowded 24-feature Timeline labels, and #83 retains performance work. No release
 tag or per-commit CI is triggered. Continue authorized backlog work while the user
 is asleep; do not stop just because the first three gates are complete.
 
-HIS-005 #207 is the only active bounded slice: fixed-size readable Timeline
+HIS-005 #207 is independently accepted and CLOSED (4e34866/8f87058): fixed-size readable Timeline
 targets, complete name/type tooltips, horizontal overflow and a view-only route
 to the latest feature. Sol (die_components) owns isolated timeline-overflow.
 External research is knowledge/specs/feature-timeline-readability-slice.md. Public
@@ -1687,12 +1687,18 @@ validation processes closed and desktop released to root for Astra review.
 See `validation/point-edge-dimensions.md`. Broader SKT-017/025/026 remain separate;
 no issue closure, release or push implied by this candidate.
 
-Root prepares an updated full toy runner using the actual center-to-top/left-edge
+The updated full toy runner now passes using the actual center-to-top/left-edge
 dimensions instead of the earlier corner-coordinate substitute. First stud moves
 to (3.9,11.9), row pattern runs -Y8; the source Bottom-view construction diagonal
 retains world endpoints (3.9,3.9) and (11.9,11.9). Do not change that diagonal just
-because the seed occurrence moved. After #207 integration, run one new complete
-movie/artifact gate; preserve the original accepted evidence and its limitations.
+because the seed occurrence moved. New evidence/toy-block-point-edge has API-pass,
+128 commands, 60.8-second complete movie with zero capture failures, and the same
+strict 36,644-facet/2451.548940 mm³ final STL. External movie is
+demos/2026-10-13/toy-block/toy-block-with-edge-dimensions.mp4. Astra independently accepted these updated artifacts (3dcdf1a). Deliverables
+toy-block-2026-10-13 now contain the new model/STL/summary, with previous files
+archived in previous-corner-dimensions; original movie/evidence remain untouched.
+No private editor is running. Sol audits remaining SKT-017/#150 prerequisites
+read-only before root chooses the next bounded gate; no new task is active yet.
 
 ## Timeline overflow candidate (2026-10-13)
 

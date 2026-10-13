@@ -62,6 +62,10 @@ Shell roof references, retained circle Offset and nineteen-edge rounding. The
 [die tutorial](docs/validation/die-independent.md) adds named local component
 ownership, Chamfer trials, face-positioned spherical cuts and Repeat, with a
 complete creation movie and checked component STL.
+[Point-to-edge dimensions](docs/validation/point-edge-dimensions-independent.md)
+now retain circle offsets when model edges move, with a verified Dimension
+selection/placement workflow. The [Timeline](docs/validation/timeline-overflow.md)
+keeps fixed-size feature targets and scrolls when history grows.
 Acceptance is bounded to the
 documented workflows; exact visual and physical-input parity remains qualified.
 The next illustrated object now passes an integrated API chain: command-first

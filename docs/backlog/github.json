@@ -1,12 +1,12 @@
 {
   "repository": "rje/Alloy",
   "project_url": "https://github.com/users/rje/projects/1",
-  "updated": "2026-10-13T09:20:21.640055+00:00",
+  "updated": "2026-10-13T09:26:16.647056+00:00",
   "issues": {
     "HIS-005": {
       "number": 207,
       "url": "https://github.com/rje/Alloy/issues/207",
-      "state": "open"
+      "state": "closed"
     },
     "PRT-008": {
       "number": 206,
