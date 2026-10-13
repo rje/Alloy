@@ -5,64 +5,59 @@ Updated 2026-10-13. This is the project handoff for a fresh session. Read the ro
 
 ## Current checkpoint — read first (2026-10-13)
 
-The authorized nested-cubes #172, egg-cup #173, toy-block #146 and die #147
-workflow gates are accepted and closed, with the explicit adaptations and input
-limits in their independent receipts. The subsequent Centerline/Revolve tutorial
-#217 is also accepted: full creation movie, editable original/edited documents,
-strict STL and retained edit/history/reopen evidence. Canonical external outputs
-are `demos/2026-10-13/revolve/revolve-complete.mp4` and
-`deliverables/revolve-2026-10-13/`; receipt `validation/revolve-tutorial.md`.
-The external `demos/2026-10-13/index.html` is a local gallery linking all five
-accepted full movies, editable files and STL outputs.
+The nested cubes #172, egg cup #173, toy block #146, die #147 and subsequent
+Centerline/Revolve #217 tutorial gates are accepted and closed. Their receipts
+separate full API creation movies/editable files/checked STL from bounded Qt
+input evidence and explicit source adaptations. Physical OS input and exact
+visual parity remain qualified. The external
+`../Alloy-reference-records/demos/2026-10-13/index.html` links all five movies,
+editable models and STL deliverables. The Revolve receipt is
+[validation/revolve-tutorial.md](validation/revolve-tutorial.md).
 
-Native Revolve controls #216 and original compact ribbon icons #218 are accepted.
-Main's default app is rebuilt with both. Receipt `validation/ribbon-icons.md`
-records actual 1040/1400 Retina layout and native input evidence. All private
-editors are closed. No release/tag or per-commit CI was triggered.
+**104 of 226 issues are closed.** Recent accepted work includes compact ribbon
+icons #218, retained Extrude Intersect #219, nested profile/island diagnostics
+#165, portable local controls #220, shared-line fillets #221, typed Line length
+locks #222, retained Sweep #223 and native Sweep controls #224. Each has a scoped
+receipt in `docs/validation/`; broad parents remain Todo for their actual
+remaining requirements. Main's default application is rebuilt through #224:
+`build-tutorial-polish/alloy.app/Contents/MacOS/alloy`.
 
-103 of 226 issues are closed. Retained-target Extrude Intersect #219 is accepted
-and integrated; the main app rebuild passes. See validation/extrude-intersect.md.
-Nested profile/island coverage and diagnostics #165 are independently accepted and
-integrated; main app rebuild passes. See validation/profile-regions.md.
-Native compile milestone #132 is accepted and closed after one manual matrix for
-the accepted tutorial integrations and corrected native dependency options. Run 38396495940
-was manually dispatched at source d07253470a346f1b29faa87b33fcced51416ea0c;
-All four native jobs passed. Downloaded binaries, architectures, compiler/link logs,
-required OCCT modules and source/dependency checksums are verified under
-`build/evidence/native-matrix-38396495940/<target>`. The updated native target
-manifest preserves the old record separately. Windows text-contract hashes match
-CRLF checkout bytes. Astra independently accepted artifact/source/claim review;
-receipt validation/native-milestone.md. No duplicate matrix or remote runtime/GPU
-qualification is implied.
-The actual native file-sheet gate #167 remains Todo: two computer-control window
-binding attempts failed before interaction; no app defect or sheet pass claimed.
-Sol records the capability limit and closes its private editor. Windows transport
-child #220 is accepted after actual Windows transport and Astra review; #131 retains actual Windows
-desktop/GPU and second-user access-denial qualification.
-Paper-clip source geometry is independently transcribed externally; #221–225 track
-shared-line fillets, typed chained-line locks, Sweep foundation/native controls and
-full tutorial. Foundation #223 and shared-line fillets #221 are accepted and
-integrated. Typed line locks #222 are also accepted as fb99efc/3b4591f with
-independent receipt f95d743; main app rebuild passes. Sol owns native Sweep
-controls #224 and Circle Tab-to-Enter repair #226; full gate #225 remains Todo
-until those native prerequisites pass. Fillet width annotations must survive via explicit span
-conversion; original post-fillet drivenness is unknown. No fabricated semicircles
-or coordinate-seeded path authoring can close the complete source gate.
-Candidate/evidence worktrees: `../Alloy-worktrees/local-transport` (`feat/local-transport`)
-for #220 and `../Alloy-worktrees/sweep-foundation` (`feat/sweep-foundation`) for
-#223. Transport is accepted/integrated as9c42f08 plus independent review9ec8ac2;
-main app/helper rebuild passes. Windows run38401749556 passed at9c42f08 and
-artifacts are under build/evidence/local-transport-windows-38401749556. Receipt
-validation/local-transport.md distinguishes native pipe/ACL evidence from untested
-Windows desktop/GPU/second-user denial. Sweep223 is accepted and integrated as5fe11a0 plus independent reviewb500ef9;
-main app rebuild passes. Shared-line fillets221 are integrated as06db7ab plus
-review6fced1d; combined fillet/Sweep core2/2 pass. The private GUI slot is free after successful #224 native evidence and the
-focused #222 Cancel fix. Circle
-source Tab-to-Enter focus gap #226 is active separately and blocks full225
-acceptance. No tag/release
-or per-commit CI. Intersect parent #161 retains broader operation-edit and
-typed-Return qualification as Todo. Split oversized remaining scope into linked Todo issues. Other broad parents remain Todo. The sections below are a chronological
-record; older ownership, pending status and counts are historical.
+**Active: Circle Tab-to-Enter repair #226.** Sol works in
+`../Alloy-worktrees/circle-tab-lock`; its focused native test owns the private GUI
+slot until explicitly released. This fixes a source-sequence focus gap found by
+#222's native probe. Astra independently verifies the candidate before root
+integrates it. Only #226 is active; full paper-clip gate #225 stays Todo until
+that final prerequisite closes. Source path authoring, actual paired fillets and
+native Sweep prerequisites are already accepted. Do not substitute preauthored
+semicircles or coordinate-seeded lines for the source interactions.
+
+Next, run the complete paper-clip lesson through shared commands, retain native
+ingredient evidence, record the full creation movie, save the editable document,
+and verify the millimeter STL. The exact public source ledger, visual references
+and independently derived geometry contract are external under
+`knowledge/tutorials/next-sweep-slice/paper-clip/`. Fillet width annotations use an
+explicit disclosed reference-span conversion; source post-fillet drivenness is
+unknown. Update the gallery only after independent acceptance. The tutorial
+sequence and live GitHub board remain the pull queue.
+
+**Native compile milestone #132 is closed.** All four clean jobs in manually
+triggered run38396495940 passed at source d072534. Downloaded artifacts, compiler
+and dependency/source records were independently checked; see
+[validation/native-milestone.md](validation/native-milestone.md) and
+`build/evidence/native-matrix-38396495940/<target>`. This source predates #220
+and Sweep. Windows text-contract hashes reflect CRLF checkout bytes; actual Mac
+headers remain15.0/SDK15.5. The separate Qt-only Windows control run38401749556
+passed for #220. None of these compile/control receipts establishes remote CAD
+runtime, hardware rendering or a redistributable bundle. #131 and packaging/runtime
+gates retain that work. No duplicate matrix, per-commit CI, tag or release.
+
+The actual native file-sheet gate #167 remains Todo after two computer-control
+binding failures before interaction; no application defect or sheet pass is
+claimed. See validation/native-exchange-assessment.md. Keep one private editor
+at a time, close it after evidence, and preserve user-owned instances.
+
+The sections below are chronological records; older ownership, pending status,
+counts and candidate descriptions are historical.
 
 ## Overnight queue authorized (2026-10-12)
 
