@@ -124,6 +124,14 @@ This self-closing offset case uses a disclosed closed-cap policy; source boundar
 parity remains unknown. No general Shell replacement or full workflow is accepted.
 Evidence: external validation/ornament-feasibility/exact-cavity-{source,control}.
 
+The cumulative runner is prepared in `tests/ornament_cumulative_api.py`
+(3567dba/5b65cc9). It reuses the source prefix, verifies retained Pattern count
+edits, explicit eight-participant Join, framed transverse Cut, upstream Offset
+edit/history/reopen and strict millimeter STL. API schema and syntax checks pass;
+it has not launched an editor or established cumulative acceptance. #265 remains
+Todo until #266 is independently accepted. See
+[runner scope](validation/ornament-cumulative-runner.md).
+
 ## Earlier accepted checkpoints and development history
 
 The dated entries below preserve historical evidence and may describe pending
