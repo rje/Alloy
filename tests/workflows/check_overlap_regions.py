@@ -54,7 +54,9 @@ def main():
         assert math.isclose(inspect()['evaluation']['bodies'][0]['volumeMm3'],math.pi*64*20,abs_tol=1e-5)
         call('history.undo');call('solid.extrude',{'sketchId':sketch_id,'profileId':selected['bridge'],'distance':4});stable=inspect()['authored']
         call('sketch.edit',{'sketchId':sketch_id});call('sketch.dimensionUpdate',{'dimensionId':diameter,'value':16})
-        refused=call('sketch.finish',ok=False);assert refused['error']['diagnostics']['code']=='profile_unavailable'
+        refused=call('sketch.finish',ok=False)
+        assert refused['error']['code']=='evaluation_failed'
+        assert 'referenced profile no longer exists' in refused['error']['message']
         call('sketch.cancel');assert inspect()['authored']==stable
         call('history.undo');call('history.redo');assert inspect()['authored']==stable
         call('document.save',{'path':str(out/'support-reference-check.alloy')});call('document.new',{'discard':True})

@@ -36,3 +36,10 @@ source two-region selection, disk editing/reference failure and storage through
 the shared API. It is prepared but not yet run in this candidate. Native Trim,
 full source tutorial, matched source-scale visual comparison and independent
 compatibility review remain pending. Other-platform runtime remains unqualified.
+
+The first combined app run reached the intended changed-bridge refusal. Its
+public `sketch.finish` boundary exposes `evaluation_failed` with the missing
+profile repair message, while the focused kernel check proves the internal
+`profile_unavailable` diagnostic. The script checks that current public boundary
+and verifies that Cancel restores exact accepted intent; it does not require an
+unadvertised nested diagnostics object. Integrated rerun remains pending.
