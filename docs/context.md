@@ -46,7 +46,7 @@ links that capture alongside the full movie/model/STL. Native ingredient tests
 remain distinct from API movie evidence; no physical OS or exact pixel claim.
 The source's post-fillet dimension drivenness is unknown; Alloy's explicit
 reference-span conversion is disclosed. No full tutorial replay was needed for
-the symbol-only change. The private GUI slot is free; #235, #237 and #240 validation editors are closed.
+the symbol-only change. The private GUI slot is reserved for #240 corrected Mirror capture; all other validation editors are closed.
 Keep only one private validation editor open at a time.
 
 **Keyring #233 and driving fillet dimensions #235 are independently accepted and closed.**
@@ -85,8 +85,10 @@ source constraint gestures, parallel-line dimensions, associative sketch Mirror,
 native Mirror selection and the full sketch-only gate. Sol owners now implement parallel-line dimensions #239 and Mirror #240 in
 `../Alloy-worktrees/sketch-mirror`, alongside source constraint gestures #238. The #237 candidate is independently accepted, integrated (`0414f50`, review
 `29a5f52`) and closed: rough pointer/D 70/114, unchanged typed input and readable
-GPU captures pass. Mirror core and real-app preview/Cancel/Accept evidence have
-passed and are being packaged for independent review. Other children
+GPU captures pass. Mirror candidate `49eda49` passed core and basic API checks;
+independent review found stale preview acceptance after draft undo/redo and
+faceted reflected-arc presentation. Sol is fixing both before acceptance.
+Its symmetry, DOF and explicit edit policy otherwise passed review. Other children
 remain Todo; no completed-workflow claim is implied. Shared solver/schema
 changes must be coordinated and native GUI checks serialized.
 New typed rectangle fillets now retain driving size/origin through #235. Legacy
