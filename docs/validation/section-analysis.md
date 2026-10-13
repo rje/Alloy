@@ -73,13 +73,24 @@ XZ selector, checked Show Hatching and unselected gray inherited body material;
 hatched/plain states were inspected. This is a focused UI synchronization receipt,
 not a replay of the API lifecycle.
 
-Native Qt acceptance is pending. Attempts 01–04 lacked a reliable initial Qt
-activation; subsequent pointer-popup attempts reached a visible list and real
-sectionPlane focus but coordinate item clicks did not change its current selection.
-The product combo was retained. The bounded harness now uses an actual combo click,
-verifies popup visibility and focus, and sends Down/Return for selection; it has not
-run. One initial OS foreground request and QApplication activation after API setup
-are separate from native demonstration. No in-sequence focus repair is performed. The earlier isolated GPU feasibility proof remains distinct from
-actual command-entrypoint evidence. Windows/Linux runtime and the full ornament
-lesson are not verified by this candidate. Source screenshot comparison supports
-bounded roles/readability, not matched viewport or pixel parity.
+Native Qt lifecycle now passes 3/3 in 4.849 seconds in external
+`validation/section-analysis/native-root-03/`. It opens Inspect, selects XZ by
+clicking the actual combo then Down/Return, previews/Cancel/reopens/commits, opens
+Analysis context Edit, clicks the hatch indicator, accepts, checks exact undo/redo,
+and clicks Browser hide/show. Root inspected the actual edited plain-cap capture.
+One initial OS foreground request and QApplication activation after API setup
+are separate from the native demonstration; no in-sequence focus repair occurs.
+The context menu receives the same Qt QContextMenuEvent used by existing native
+fixtures; this is Qt input evidence, not a physical OS mouse-event claim.
+
+Earlier author attempts did not complete the popup selection. Root attempt01
+passed plane/Cancel/commit but exposed a missing test context-menu event; attempt02
+reached Edit but its checkbox-center click missed the indicator. Only the fixture
+changed to deliver that context event and click the indicator. Failed logs are
+preserved; no product selector was replaced to accommodate testing. The successful
+run retains readable native-preview/committed/edit/plain/hidden/shown captures.
+
+The earlier isolated GPU proof remains distinct from command-entrypoint evidence.
+Windows/Linux runtime and the full ornament lesson are not verified by this
+candidate. Source comparison supports bounded roles/readability, not matched
+viewport or pixel parity. Independent final acceptance remains pending.
