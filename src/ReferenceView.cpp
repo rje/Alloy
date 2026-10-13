@@ -1612,7 +1612,7 @@ void ReferenceView::showPatternAxes(const QJsonObject& summary) {
     const auto center=summary["seedCenterMm"].toArray();if(center.size()!=3)return;const gp_Pnt origin(center[0].toDouble(),center[1].toDouble(),center[2].toDouble());
     const double radius=view_->Camera()->Scale()*1.5/std::max(height(),1);int index=0;
     for(const auto& value:summary["patternAxes"].toArray()) {
-        const auto axis=value.toObject();const auto d=axis["direction"].toArray();if(d.size()!=3)continue;const double extent=axis["extentMm"].toDouble();if(std::abs(extent)<1e-6)continue;
+        const auto axis=value.toObject();const auto d=axis["direction"].toArray();if(d.size()!=3)continue;const double extent=axis.contains("totalSpanMm") ? axis["totalSpanMm"].toDouble() : axis["extentMm"].toDouble();if(std::abs(extent)<1e-6)continue;
         const gp_Dir direction(d[0].toDouble()*(extent<0 ? -1 : 1),d[1].toDouble()*(extent<0 ? -1 : 1),d[2].toDouble()*(extent<0 ? -1 : 1));
         const auto length=std::abs(extent),head=std::min(radius*6,length*.25);BRep_Builder builder;TopoDS_Compound shape;builder.MakeCompound(shape);
         if(length>head)builder.Add(shape,BRepPrimAPI_MakeCylinder(gp_Ax2(origin,direction),radius,length-head).Shape());builder.Add(shape,BRepPrimAPI_MakeCone(gp_Ax2(origin.Translated(gp_Vec(direction)*(length-head)),direction),radius*3,0,head).Shape());
