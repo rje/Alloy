@@ -41,12 +41,21 @@ See validation/parameter-dialog-capture.md for separate state/API/native limits
 and the corrected first-run test-cleanup/process-overlap qualification. All
 private editors are closed. Full gate249 can record the actual three-row table.
 
-**Active work: Hole Spacing/Adjust pattern #248.** Preserve existing additive
-Extent/Identical behavior. Resolve retained seed point/frame, translate each
-nonseed occurrence and recompute All against the current target; never copy a
-finite seed cutter. The padded underside control distinguishes Adjust. Full
-plate gate #249 remains Todo. Its source-order stock/Point prefix already has
-independently reviewed real-app evidence; full movie/STL remains ahead.
+**Hole Spacing/Adjust pattern #248 is independently accepted and closed.**
+Backendf407aa6/native82da8e1/reviewbba0ae3 integrated. Default app rebuilt with
+accepted parameter-dialog support. Actual oriented signed axes,9-hole geometry,
+thicker underside Adjust, retained edits/history/reopen and readable native
+controls/captures pass. Legacy additive Extent/Identical stays unchanged. See
+validation/hole-spacing-pattern-controls.md and backend receipt for finite
+seed-specific mode and original seed-cut limitations.
+
+**Active gate: complete countersunk plate #249.** All prerequisites244–248 and
+250 are accepted. Sol prepares the full source-order runner in the isolated
+countersunk-plate-gate worktree; run after rebasing onto this integrated main.
+Require actual parameter table, blank-to-save movie, editable model, strict STL,
+source geometry and meaningful named edits/history/reopen, then independent
+review. The prefix already has scoped independent evidence; no full pass yet.
+All private editors are closed; root coordinates one validation GUI at a time.
 External source contract:
 `knowledge/tutorials/next-after-outlet/independent-countersink-contract.md`.
 
@@ -65,7 +74,7 @@ visual parity remain qualified. The external
 editable models and STL deliverables. The Revolve receipt is
 [validation/revolve-tutorial.md](validation/revolve-tutorial.md).
 
-**128 of 250 issues are closed.** Recent accepted work includes compact ribbon
+**129 of 250 issues are closed.** Recent accepted work includes compact ribbon
 icons #218, retained Extrude Intersect #219, nested profile/island diagnostics
 #165, portable local controls #220, shared-line fillets #221, typed Line length
 locks #222, retained Sweep #223 and native Sweep controls #224. Each has a scoped
