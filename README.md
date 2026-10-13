@@ -77,6 +77,10 @@ The next illustrated object now passes an integrated API chain: command-first
 Circle, a joined boss, a sketch on its new cap, an editable body Move and Combine
 Cut. The [straw-bung checkpoint](docs/validation/straw-bung.md) includes a closed
 26 x 26 x 11 mm STL and separate native/visual evidence limits.
+Typed chained Line now supports positive length entry, Tab lock, pointer H/V
+direction and click continuation with retained dimensions; the bounded
+[Line input receipt](docs/validation/typed-line-lock.md) records exact seven-segment
+native Qt and real-entrypoint API evidence.
 The completed bracket can be exported as one valid STEP solid or a closed STL
 mesh. A full-size design and millimeter STEP/STL plus a labeled 0.2-scale STL
 print sample have [independent readback evidence](docs/validation/bracket-exchange.md).

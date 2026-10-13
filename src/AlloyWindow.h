@@ -192,6 +192,11 @@ private:
     QJsonObject previewCircleDiameter(const QJsonObject& args);
     QJsonObject acceptCircleDiameter(const QJsonObject& args);
     void cancelCircleDiameter();
+    QJsonObject previewLineLength(const QJsonObject& args);
+    QJsonObject lockLineLength(const QJsonObject& args);
+    void cancelLineLength();
+    QJsonObject lockedLinePoint(const QJsonObject& pointer) const;
+    void showLineLockCue(const QJsonObject& point);
     QJsonObject previewCenterRectangle(const QJsonObject& args);
     QJsonObject acceptCenterRectangle(const QJsonObject& args);
     void cancelCenterRectangle();
@@ -292,6 +297,7 @@ private:
     QLineEdit* dimensionEditorValue_ = nullptr;
     QLineEdit* centerRectangleHeight_ = nullptr;
     QLabel* dimensionEditorError_ = nullptr;
+    QLabel* lineLockCue_ = nullptr;
     QHBoxLayout* timelineLayout_ = nullptr;
     QLabel* documentTitle_ = nullptr;
     QTabBar* documentTabBar_ = nullptr;

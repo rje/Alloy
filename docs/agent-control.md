@@ -150,6 +150,8 @@ fail without applying the command. Error codes include `invalid_request`,
 | `sketch.line`, `sketch.rectangle` | `x1`, `y1`, `x2`, `y2`; optional `units`, `session`; append stable point/line entities and solve the draft. Rectangles also author four H/V constraints |
 | `sketch.circleDiameterPreview` / `sketch.circleDiameterAccept` | Pending circle center required; `text` or numeric `value`, optional `units`; disposable preview or one atomic circle + driving diameter edit |
 | `sketch.circleDiameterCancel` | Close typed input while retaining the pending center for pointer placement |
+| `sketch.lineLengthPreview` / `sketch.lineLengthLock` | With Line and a pending first point, supply `text` or numeric `value` plus optional `units` (`mm`/`in`) and `session`. Preview is disposable; Lock stores a session-only positive length. Move the pointer to choose dominant horizontal/vertical direction, then `sketch.placePoint` commits one line with retained H/V relation and driving length dimension; the next point remains chained |
+| `sketch.lineLengthCancel` | Clear the session-only typed Line value while retaining the chain start |
 | `solid.extrudeDrag` | Signed `distanceMm`, optional logical `x`/`y` and `phase` (`move`/`end`); same update/preview authority as the native arrow |
 | `sketch.addCircle` | `centerX`, `centerY`, positive `diameter`; optional `units`, `session`; append one analytic circle |
 | `sketch.addArc` | `mode`: `center` requires `centerX`, `centerY`, `radius`, `startAngleDeg`, signed `sweepAngleDeg`; `threePoint` requires `startX`, `startY`, `endX`, `endY`, `throughX`, `throughY`; optional `units`, `session` |

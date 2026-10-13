@@ -2084,3 +2084,16 @@ affected lengths/relations retire explicitly; unrelated dependencies refuse.
 The constrained paper-clip source core/API and native ingredient evidence are
 bounded prerequisites, not a full tutorial or typed-line claim. Resume from
 [the scoped receipt](validation/shared-line-fillets.md).
+## Typed chained Line candidate (2026-10-13)
+
+SKT-040/#222 adds source L, first point, positive typed length, Tab lock,
+pointer-dominant H/V preview and click continuation to the existing Line tool.
+The pending lock is session-only; each accepted segment retains a driving H/V
+length dimension and an H/V relation. Actual Qt events pass the exact seven
+source endpoints plus invalid refusal, Escape, undo/redo and exact storage;
+the real executable replay passes the same shared commands and saved model.
+The viewport cue shows value, units and direction. Circle typed Return and
+fillet tool entry remain intact. A separate source Circle Tab then Enter probe
+lost editor focus, so SKT-041/#226 owns that bounded follow-up before
+the full tutorial gate. Physical OS input, exact reference styling and the
+complete object remain unqualified. See [the scoped receipt](validation/typed-line-lock.md).
