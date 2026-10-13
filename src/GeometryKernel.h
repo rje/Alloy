@@ -18,6 +18,7 @@ struct EvaluatedSupportFace {
     TopoDS_Face face;
     QJsonObject frame;
     std::vector<EvaluatedSupportEdge> boundaryEdges;
+    QJsonObject provenance; // Retained generator identity, independent of current coordinates.
 };
 
 struct EvaluatedSolidEdge {

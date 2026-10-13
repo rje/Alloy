@@ -30,12 +30,12 @@ reviews their contracts and evidence. Root is proving Section Analysis (#262)
 in the actual GPU viewport; Circular Body Pattern (#263) remains Todo. The public source contract and archived visuals live
 outside the repository in the ornament-pattern knowledge record.
 
-The first isolated OCCT geometry proof for #260 passes the actual 80 mm height,
-5 mm base, R50 arc, Full Revolve and Inside Shell 5 mm sequence. This proves
-kernel feasibility only (regular-wall normal probes also measure 5 mm); stable
-authored face references, native controls and
-edit/history/storage acceptance remain unverified. The tutorial itself has not
-run. All source steps, including hatched section inspection, remain required.
+Full-Revolve planar support #260 is independently accepted: actual 80/5/R50
+profile, generated bottom-face lineage, Inside Shell 5 mm, measured wall/opening,
+upstream edits and exact history/reopen pass. Native face selection and Shell
+preview/Cancel/commit pass with inspected GPU captures. See
+validation/revolve-planar-support.md. The full ornament has not run; all source
+steps and the cumulative Join risk remain required.
 
 Section Analysis implementation is now assigned to a third isolated Sol lane in
 `../Alloy-worktrees/section-analysis`; its kernel/UI candidate is not accepted.

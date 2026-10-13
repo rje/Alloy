@@ -96,6 +96,8 @@ void SolidShell::evaluate(EvaluatedBody& body,const QJsonObject& parameters,cons
         throw GeometryKernel::EvaluationError({{"code",code},{"message",message},{"featureId",featureId},
             {"targetBodyId",body.bodyId},{"removedFace",support}});
     };
+    const auto matches=std::count_if(body.supportFaces.begin(),body.supportFaces.end(),[&](const auto& face){return face.bodyId==support["bodyId"].toString()&&face.faceId==support["faceId"].toString()&&face.producerFeatureId==support["producerFeatureId"].toString();});
+    if(matches>1)fail("shell_face_ambiguous","More than one current face matches the removed-face lineage");
     const auto source=std::find_if(body.supportFaces.begin(),body.supportFaces.end(),[&](const auto& face){
         return face.bodyId==support["bodyId"].toString() && face.faceId==support["faceId"].toString()
             && face.producerFeatureId==support["producerFeatureId"].toString();

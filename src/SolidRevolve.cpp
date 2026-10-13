@@ -5,12 +5,47 @@
 #include <BRepBndLib.hxx>
 #include <BRepBuilderAPI_Transform.hxx>
 #include <BRepAdaptor_Surface.hxx>
+#include <BRepAdaptor_Curve.hxx>
+#include <TopExp.hxx>
+#include <TopTools_IndexedMapOfShape.hxx>
 #include <Bnd_Box.hxx>
 #include <TopoDS.hxx>
 #include <QUuid>
+#include <QSet>
+#include <algorithm>
 #include <numbers>
 #include <cmath>
 
+namespace {
+void retainGeneratedRadialFaces(BRepPrimAPI_MakeRevol& sweep,const EvaluatedProfile& profile,const gp_Ax1& axis,EvaluatedBody& body){
+    TopTools_IndexedMapOfShape solidFaces;TopExp::MapShapes(body.shape,TopAbs_FACE,solidFaces);QJsonArray unresolved;QSet<QString> blocked;
+    for(const auto& boundary:profile.boundaryEdges){
+        if(boundary.type!="line"||boundary.edge.IsNull())continue;
+        const BRepAdaptor_Curve curve(boundary.edge);if(curve.GetType()!=GeomAbs_Line||std::abs(curve.Line().Direction().Dot(axis.Direction()))>1e-7)continue;
+        const auto start=curve.Value(curve.FirstParameter()),end=curve.Value(curve.LastParameter());
+        if(gp_Lin(axis).Distance(start)<1e-7&&gp_Lin(axis).Distance(end)<1e-7)continue;
+        QStringList contacts{boundary.startContact,boundary.endContact};contacts.sort();
+        const auto faceId=QUuid::createUuidV5(QUuid(body.featureId),QByteArray("alloy-revolve-radial-face/1\n")+profile.sketchId.toUtf8()+'\n'+profile.profileId.toUtf8()+'\n'+boundary.sourceEntityId.toUtf8()+'\n'+contacts.join('/').toUtf8()).toString(QUuid::WithoutBraces);
+        if(blocked.contains(faceId))continue;
+        auto refuse=[&](const QString& code){blocked.insert(faceId);std::erase_if(body.supportFaces,[&](const auto& f){return f.faceId==faceId;});unresolved.append(QJsonObject{{"faceId",faceId},{"sourceEntityId",boundary.sourceEntityId},{"code",code}});};
+        TopTools_IndexedMapOfShape generated;
+        for(const auto& next:sweep.Generated(boundary.edge))if(next.ShapeType()==TopAbs_FACE&&solidFaces.Contains(next))generated.Add(next);
+        if(generated.Extent()!=1){refuse(generated.IsEmpty()?"generated_face_missing":"generated_face_ambiguous");continue;}
+        const auto face=TopoDS::Face(solidFaces(solidFaces.FindIndex(generated(1))));const BRepAdaptor_Surface surface(face);
+        if(surface.GetType()!=GeomAbs_Plane||!surface.Plane().Axis().Direction().IsParallel(axis.Direction(),1e-7)){refuse("generated_face_not_planar");continue;}
+        auto normal=surface.Plane().Position().XDirection().Crossed(surface.Plane().Position().YDirection());if(face.Orientation()==TopAbs_REVERSED)normal.Reverse();
+        const auto origin=axis.Location().Translated(gp_Vec(axis.Direction())*(gp_Vec(axis.Location(),surface.Plane().Location()).Dot(gp_Vec(normal))/axis.Direction().Dot(normal)));
+        gp_Vec radial(origin,end);if(radial.Magnitude()<1e-7)radial=gp_Vec(origin,start);radial-=gp_Vec(normal)*radial.Dot(gp_Vec(normal));const gp_Dir u(radial),v=normal.Crossed(u);
+        auto xyz=[](const auto& q){return QJsonArray{q.X(),q.Y(),q.Z()};};
+        QJsonObject frame{{"origin",xyz(origin)},{"uAxis",xyz(u)},{"vAxis",xyz(v)},{"normal",xyz(normal)}};
+        QJsonObject provenance{{"kind","uniqueKernelGeneratedRadialFace"},{"sourceSketchId",profile.sketchId},{"sourceProfileId",profile.profileId},{"sourceEntityId",boundary.sourceEntityId},{"startContact",boundary.startContact},{"endContact",boundary.endContact}};
+        const auto prior=std::find_if(body.supportFaces.begin(),body.supportFaces.end(),[&](const auto& f){return f.faceId==faceId;});
+        if(prior!=body.supportFaces.end()){if(!prior->face.IsSame(face)){refuse("generated_face_ambiguous");}continue;}
+        body.supportFaces.push_back({faceId,body.bodyId,body.featureId,"revolve.radial",face,frame,{},provenance});
+    }
+    if(!unresolved.isEmpty())body.summary["generatedPlanarSupportErrors"]=unresolved;
+}
+}
 EvaluatedBody SolidRevolve::evaluate(const QJsonObject& feature,const EvaluatedDocument& prior,const QJsonObject& source) {
     const auto p=feature["parameters"].toObject();
     auto reject=[&](const QString& code,const QString& message){throw GeometryKernel::EvaluationError({{"featureId",feature["id"]},{"featureType","revolve"},{"sketchId",p["sketchId"]},{"profileId",p["profileId"]},{"axisEntityId",p["axisEntityId"]},{"code",code},{"message",message}});};
@@ -32,5 +67,6 @@ EvaluatedBody SolidRevolve::evaluate(const QJsonObject& feature,const EvaluatedD
     EvaluatedBody body;body.featureId=feature["id"].toString();body.bodyId=feature["bodyId"].toString();body.name=feature["name"].toString();body.visible=feature["visible"].toBool();body.shape=sweep.Shape();body.summary=GeometryKernel::summarize(body.shape);
     if(!body.summary["valid"].toBool() || !body.summary["closed"].toBool() || body.summary["topology"].toObject()["solids"]!=1 || !std::isfinite(body.summary["volumeMm3"].toDouble()) || body.summary["volumeMm3"].toDouble()<=0)reject("revolve_invalid","Revolve must produce one valid closed solid with positive volume");
     if(p["extent"]=="partial")for(int end=0;end<2;++end){const auto shape=end ? sweep.LastShape() : sweep.FirstShape();if(shape.IsNull() || shape.ShapeType()!=TopAbs_FACE || BRepAdaptor_Surface(TopoDS::Face(shape)).GetType()!=GeomAbs_Plane)continue;auto frame=sketch->resolvedFrame;gp_Trsf rotation;rotation.SetRotation(axis,end ? radians:0);for(const auto& key:{"origin","uAxis","vAxis","normal"}){const auto q=frame[key].toArray();if(QString(key)=="origin"){gp_Pnt v(q[0].toDouble(),q[1].toDouble(),q[2].toDouble());v.Transform(rotation);frame[key]=QJsonArray{v.X(),v.Y(),v.Z()};}else{gp_Vec v(q[0].toDouble(),q[1].toDouble(),q[2].toDouble());v.Transform(rotation);frame[key]=QJsonArray{v.X(),v.Y(),v.Z()};}}if((end ? -1:1)*(x1>1e-7 ? 1:-1)<0){for(const auto& key:{"normal","vAxis"}){auto values=frame[key].toArray();for(int i=0;i<3;++i)values[i]=-values[i].toDouble();frame[key]=values;}}const QString role=end ? "revolve.end":"revolve.start";body.supportFaces.push_back({QUuid::createUuidV5(QUuid(body.featureId),("alloy-face/"+role+"/1").toUtf8()).toString(QUuid::WithoutBraces),body.bodyId,body.featureId,role,TopoDS::Face(shape),frame,{}});}
+    if(p["extent"]=="full")retainGeneratedRadialFaces(sweep,*profile,axis,body);
     body.summary["supportFaces"]=PlanarFaces::descriptors(body.supportFaces);body.summary["operation"]="revolve";body.summary["sourceSketchId"]=p["sketchId"];body.summary["sourceProfileId"]=p["profileId"];body.summary["axisEntityId"]=p["axisEntityId"];body.summary["extent"]=p["extent"];body.summary["angleDeg"]=p["angleDeg"];body.summary["axisStartMm"]=QJsonArray{a.X(),a.Y(),a.Z()};body.summary["axisDirection"]=QJsonArray{axis.Direction().X(),axis.Direction().Y(),axis.Direction().Z()};return body;
 }

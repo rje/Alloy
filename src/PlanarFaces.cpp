@@ -114,6 +114,6 @@ std::vector<EvaluatedSupportFace> PlanarFaces::prismSides(BRepPrimAPI_MakePrism&
 }
 QJsonArray PlanarFaces::descriptors(const std::vector<EvaluatedSupportFace>& faces) {
     QJsonArray output;
-    for(const auto& f:faces)output.append(QJsonObject{{"faceId",f.faceId},{"bodyId",f.bodyId},{"producerFeatureId",f.producerFeatureId},{"role",f.role},{"planar",true},{"frame",f.frame},{"edges",GeometryKernel::supportEdgeDescriptors(f)}});
+    for(const auto& f:faces){QJsonObject descriptor{{"faceId",f.faceId},{"bodyId",f.bodyId},{"producerFeatureId",f.producerFeatureId},{"role",f.role},{"planar",true},{"frame",f.frame},{"edges",GeometryKernel::supportEdgeDescriptors(f)}};if(!f.provenance.isEmpty())descriptor["provenance"]=f.provenance;output.append(descriptor);}
     return output;
 }
