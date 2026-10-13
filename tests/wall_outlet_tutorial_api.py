@@ -10,7 +10,8 @@ import json
 from pathlib import Path
 import time
 from app_harness import application
-from wall_outlet_oracle import near, verify
+from wall_outlet_oracle import verify
+from wall_outlet_history import verify_history
 
 
 def main():
@@ -148,28 +149,7 @@ def main():
             capture('06-finished')
             stop()
             authored = raw('document.inspect')['authored']
-            assert len(authored['features']) == 1
-            call('sketch.edit', {'sketchId': final_draft['id']})
-            call('sketch.dimensionUpdate', {'dimensionId': distance_id, 'value': 12, 'units': 'mm'})
-            edited = draft()
-            assert edited != final_draft and active()['solverDiagnostics']['dof'] == 0
-            assert edited['parameters']['mirrorGroups'] == final_draft['parameters']['mirrorGroups']
-            ep = {p['id']: p for p in edited['parameters']['points']}
-            ee = {e['id']: e for e in edited['parameters']['entities']}
-            for pair in edited['parameters']['mirrorGroups'][0]['entityPairs']:
-                source, reflected = ee[pair['sourceEntityId']], ee[pair['resultEntityId']]
-                if source['type'] == 'arc':
-                    near(ep[source['centerPointId']]['vMm'], 26)
-                    near(ep[reflected['centerPointId']]['vMm'], -26)
-                    near(source['radiusMm'], 17)
-                    near(reflected['radiusMm'], 17)
-            call('history.undo')
-            assert draft() == final_draft
-            call('history.redo')
-            assert draft() == edited
-            call('sketch.cancel')
-            call('document.open', {'path': str(model), 'discard': True})
-            assert raw('document.inspect')['authored'] == authored
+            report['history'] = verify_history(raw, model)
             report.update(result='passed', savedModel=str(model), authored=authored)
     finally:
         report['transcript'] = transcript

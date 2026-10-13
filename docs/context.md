@@ -3,18 +3,6 @@
 Updated 2026-10-13. This is the project handoff for a fresh session. Read the root
 [AGENTS.md](../AGENTS.md) first; its reference restrictions apply to all work.
 
-The isolated #239 candidate adds shared D distance for two parallel authored
-straight lines. It retains both line UUIDs, signed side and perpendicular
-distance, without silently adding a Parallel relation. Focused core and native
-11/28 checks passed; see [validation/parallel-line-distance.md](validation/parallel-line-distance.md).
-Independent review and main integration remain pending.
-
-The isolated #237 rough Center Rectangle candidate separates pointer placement
-from typed size entry: a pointer corner leaves two size degrees of freedom,
-while typed width/height remains driving. Focused core and native GPU/D/history/
-reopen checks passed; see [validation/rough-center-rectangle.md](validation/rough-center-rectangle.md).
-Independent review and main integration remain pending.
-
 ## Current checkpoint — read first (2026-10-13)
 
 User requested private repository visibility on 2026-10-13. `rje/Alloy` is now
@@ -52,8 +40,8 @@ links that capture alongside the full movie/model/STL. Native ingredient tests
 remain distinct from API movie evidence; no physical OS or exact pixel claim.
 The source's post-fillet dimension drivenness is unknown; Alloy's explicit
 reference-span conversion is disclosed. No full tutorial replay was needed for
-the symbol-only change. The private GUI slot is reserved for #243 coincident snap fix. Root
-full-tutorial attempt has exited; all other validation editors are closed.
+the symbol-only change. The private GUI slot is owned by root for the saved-model history tail.
+The source-creation attempt and Sol focused snap tests have exited.
 Keep only one private validation editor open at a time.
 
 **Keyring #233 and driving fillet dimensions #235 are independently accepted and closed.**
@@ -113,6 +101,19 @@ incorrectly treated as ambiguous snap targets. New #243/SKT-055 tracks the
 bounded fix, owned by Sol. External deliverables/wall-outlet-sketch-2026-10-13/attempt-01
 and its movie remain explicitly incomplete; the editor exited. No full success
 is claimed, and #242 now depends on #243.
+Attempt02 completed the source creation, Finish and Save using the #243 candidate
+(a117be8), with a 29.4-second API movie and zero-DOF final sketch. Astra independently
+checked the source, geometry, readable dimensions/constraint symbols and movie.
+Its subsequent history check compared against the earlier pre-Finish draft and
+failed on six reflected coordinates differing by at most 1.07e-14 mm after edit
+entry reevaluation. The runner now compares exact undo against the actual
+edit-entry baseline, after verifying that baseline with the geometry oracle;
+`tests/wall_outlet_history.py` checks the saved artifact without replaying creation.
+The original attempt report remains incomplete and preserved. Acceptance awaits
+that focused tail and #243's projected-support precedence correction, identified
+by Astra and covered by Sol's supported-face-origin Qt check. No full gate pass
+yet. The final post-Finish capture has minor transient footer clipping; final
+sketch dimensions and geometry are readable.
 The source ends at a sketch, so there is no STL claim for this lesson. Shared schema/solver edits and private GUI
 checks remain coordinated. The integrated application build and both Mirror /
 rounded-intent core tests passed (2/2, 2.23 s); no full tutorial replay was needed. After #239 integration, Mirror and parallel-line
