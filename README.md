@@ -230,3 +230,7 @@ The [native Revolve candidate](docs/validation/revolve-controls.md) adds Profile
 Axis selectors, unambiguous Centerline inference and a real angular Partial
 preview before Full/OK through the shared authority. The full illustrated tutorial
 and broader Revolve modes remain separate gates.
+
+Sketch Text has [native control candidate evidence](docs/validation/sketch-text-controls.md):
+the shared command now opens an editable Qt dialog with two pinned regular/bold
+font choices, height, preview, move/rotation handles, Cancel/OK and edit reopening.

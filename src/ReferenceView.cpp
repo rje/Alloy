@@ -1837,6 +1837,7 @@ QJsonObject ReferenceView::diagnostics() const {
     result.insert("supportFaceHighlightVisible",!selectedSupportFaceOverlay_.IsNull());
     result.insert("hoveredSupportFace",hoveredSupportFace_);
     result.insert("revolveCue",revolveCueState_);result.insert("revolvePointer",revolvePointerState_);
+    result.insert("sketchTextHandles",sketchTextHandleState_);
     result.insert("previewVisible",!preview_.IsNull());
     if(!preview_.IsNull()){Quantity_Color color;preview_->Color(color);double red,green,blue;color.Values(red,green,blue,Quantity_TOC_sRGB);result.insert("previewAppearance",QJsonObject{{"red",red},{"green",green},{"blue",blue},{"transparency",preview_->Transparency()}});}
     result.insert("previewReplacedBodyId",previewReplacedBody_);
@@ -1873,6 +1874,15 @@ QImage ReferenceView::framebuffer() {
     return image;
 }
 void ReferenceView::mousePressEvent(QMouseEvent* e) {
+    if(e->button()==Qt::LeftButton && !sketchTextHandleState_.isEmpty()){
+        const auto move=sketchTextHandleState_["move"].toObject(),rotate=sketchTextHandleState_["rotate"].toObject();
+        const QPointF m(move["x"].toDouble(),move["y"].toDouble()),r(rotate["x"].toDouble(),rotate["y"].toDouble());
+        const auto mode=QLineF(e->position(),m).length()<12 ? QString("move")
+            : QLineF(e->position(),r).length()<12 ? QString("rotate") : QString{};
+        if(!mode.isEmpty()){sketchTextDrag_={{"mode",mode},{"startX",e->position().x()},{"startY",e->position().y()}};
+            setFocus(Qt::MouseFocusReason);dispatch("sketch.textHandle",{{"mode",mode},{"phase","begin"},
+                {"startX",e->position().x()},{"startY",e->position().y()},{"x",e->position().x()},{"y",e->position().y()}});e->accept();return;}
+    }
     if(!revolveCueState_.isEmpty())revolvePointerState_={{"event","press"},{"x",e->position().x()},{"y",e->position().y()},{"button",int(e->button())},{"modifiers",int(e->modifiers())}};
     if(e->button()==Qt::LeftButton && !e->modifiers().testFlag(Qt::AltModifier) && !revolveCueState_.isEmpty()) {
         auto point=[](const QJsonObject& p){return QPointF(p["x"].toDouble(),p["y"].toDouble());};
@@ -1937,6 +1947,11 @@ void ReferenceView::mousePressEvent(QMouseEvent* e) {
     else QWidget::mousePressEvent(e);
 }
 void ReferenceView::mouseMoveEvent(QMouseEvent* e) {
+    if(!sketchTextDrag_.isEmpty() && e->buttons().testFlag(Qt::LeftButton)){
+        dispatch("sketch.textHandle",{{"mode",sketchTextDrag_["mode"]},{"phase","move"},
+            {"startX",sketchTextDrag_["startX"]},{"startY",sketchTextDrag_["startY"]},
+            {"x",e->position().x()},{"y",e->position().y()}});e->accept();return;
+    }
     if(!revolveDrag_.isEmpty() && e->buttons().testFlag(Qt::LeftButton)){updateRevolveDrag(e->position(),"move");e->accept();return;}
     if(!moveDrag_.isEmpty() && e->buttons().testFlag(Qt::LeftButton)) {
         const auto h=moveDrag_["handle"].toObject();auto point=[](const QJsonObject& p){return QPointF(p["x"].toDouble(),p["y"].toDouble());};
@@ -1976,6 +1991,10 @@ void ReferenceView::leaveEvent(QEvent* e) {
     QWidget::leaveEvent(e);
 }
 void ReferenceView::mouseReleaseEvent(QMouseEvent* e) {
+    if(e->button()==Qt::LeftButton && !sketchTextDrag_.isEmpty()){
+        const auto drag=sketchTextDrag_;sketchTextDrag_={};dispatch("sketch.textHandle",{{"mode",drag["mode"]},{"phase","end"},
+            {"startX",drag["startX"]},{"startY",drag["startY"]},{"x",e->position().x()},{"y",e->position().y()}});e->accept();return;
+    }
     if(!revolveDrag_.isEmpty() && e->button()==Qt::LeftButton){updateRevolveDrag(e->position(),"end");revolveDrag_={};e->accept();return;}
     if(!moveDrag_.isEmpty() && e->button()==Qt::LeftButton){moveDrag_={};if(dispatch)dispatch("solid.moveApplyGesture",{});e->accept();return;}
 

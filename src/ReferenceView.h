@@ -68,6 +68,8 @@ public:
     void showSketchSnap(const QString& plane, const QJsonObject& snap);
     void showSketchCurveCursor(const QJsonObject& feature);
     void clearSketchCursor();
+    void showSketchTextHandles(const QJsonObject& text,const QString& plane,const QJsonObject& frame);
+    void clearSketchTextHandles();
     void fit(const std::vector<EvaluatedBody>& bodies, const std::vector<EvaluatedSketch>& sketches = {});
     void selectBody(const QString& id);
     void recordContextMenu(const QJsonObject& state,bool shown = false);
@@ -143,6 +145,8 @@ private:
     Handle(AIS_Shape) hoveredSupportFaceOverlay_;
     QJsonArray combineToolIds_;
     QMap<QString,Handle(AIS_Shape)> sketchModels_;
+    std::vector<Handle(AIS_Shape)> sketchTextHandles_;
+    QJsonObject sketchTextHandleState_, sketchTextDrag_;
     QMap<QString,Handle(AIS_Shape)> constructionSketchModels_, centerlineSketchModels_;
     QMap<QString,Handle(AIS_Shape)> constructionPlaneModels_;
     std::vector<EvaluatedConstructionPlane> constructionPlanes_;

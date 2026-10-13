@@ -254,6 +254,8 @@ AlloyWindow::AlloyWindow() {
                 auto* circle=menu->addMenu("Circle");circle->setObjectName("solid.commands.circle");
                 auto* action=circle->addAction("Center Diameter Circle\tC");action->setObjectName("solid.action.sketch.circle");
                 connect(action,&QAction::triggered,this,[this]{execute("sketch.circle");});
+                auto* text=menu->addAction("Sketch Text");text->setObjectName("solid.action.sketch.text");
+                connect(text,&QAction::triggered,this,[this]{execute("sketch.text");});
             }
             button->setMenu(menu);button->setPopupMode(QToolButton::InstantPopup);box->addWidget(button,0,Qt::AlignHCenter);
         } else {
@@ -290,6 +292,8 @@ AlloyWindow::AlloyWindow() {
     toolAction(rectangle,"Center Rectangle","centerRectangle");
     auto* circle=create->addMenu("Circle");circle->setObjectName("sketch.commands.circle");
     toolAction(circle,"Center Diameter Circle\tC","circle");
+    auto* textAction=create->addAction("Sketch Text");textAction->setObjectName("sketch.action.text");
+    connect(textAction,&QAction::triggered,this,[this]{sketchResponse(execute("sketch.text"));});
     auto* arc=create->addMenu("Arc");arc->setObjectName("sketch.commands.arc");
     toolAction(arc,"Center Point Arc","centerArc");toolAction(arc,"3-Point Arc","threePointArc");
     create->addSeparator();toolAction(create,"Sketch Dimension\tD","dimension");
@@ -1284,6 +1288,28 @@ void AlloyWindow::registerCommands() {
             {"baseDocumentRevision",static_cast<qint64>(document_->revision())},{"previewed",false}};
         showSketch();return session_;
     });
+    add("sketch.text","Sketch Text","Select a planar face, then enter and place retained text.",sketchCreateSchema,[this](const auto& a){
+        if(session_.value("command")=="sketch.edit")return beginSketchText();
+        if(!session_.isEmpty())return failure("session_busy","Complete or cancel the active command first");
+        const auto response=execute("sketch.create",a);if(!response["ok"].toBool())return response;
+        if(session_.value("command")=="sketch.plane"){session_["pendingTool"]="text";showSketch();}
+        else if(session_.value("command")=="sketch.edit")QTimer::singleShot(0,this,[this]{execute("sketch.textDialog");});
+        return response["result"].toObject();
+    });
+    add("sketch.textDialog","Text dialog","Open editable text controls on the active sketch.",{},[this](const auto&){return beginSketchText();});
+    add("sketch.textFonts","Text fonts","List the exact bundled font assets available for text geometry.",{},[](const auto&){return QJsonObject{{"fonts",SketchText::fonts()}};});
+    auto textNumber=optional(parameter("number","Canonical millimeter placement or angle."));textNumber["minimum"]=-360000;textNumber["maximum"]=360000;
+    auto pointerNumber=parameter("number","Viewport-local logical pixel coordinate.");pointerNumber["minimum"]=-100000;pointerNumber["maximum"]=100000;
+    add("sketch.textPreview","Preview Sketch Text","Preview text without changing the authored sketch.",
+        {{"text",optional(parameter("string","Uppercase Latin text."))},{"fontId",optional(parameter("string","Bundled font ID."))},
+         {"heightMm",textNumber},{"uMm",textNumber},{"vMm",textNumber},{"angleDeg",textNumber}},
+        [this](const auto& a){return previewSketchText(a);});
+    add("sketch.textHandle","Move Sketch Text handle","Drag a move or rotation handle in the sketch plane.",
+        {{"mode",parameter("string","move or rotate")},{"phase",parameter("string","begin, move or end")},
+         {"startX",pointerNumber},{"startY",pointerNumber},{"x",pointerNumber},{"y",pointerNumber}},
+        [this](const auto& a){return moveSketchTextHandle(a);});
+    add("sketch.textAccept","Accept Sketch Text","Publish one validated sketch edit.",{},[this](const auto&){return acceptSketchText();});
+    add("sketch.textCancel","Cancel Sketch Text","Discard the text preview.",{},[this](const auto&){return cancelSketchText();});
     add("sketch.circle","Center Diameter Circle","Start a circle before choosing an origin plane or supported planar face (C).",sketchCreateSchema,[this](const auto& a){
         if(session_.value("command")=="sketch.edit") {
             if(!a.isEmpty())return failure("invalid_arguments","Active circle entry uses the current sketch support");
@@ -1336,22 +1362,24 @@ void AlloyWindow::registerCommands() {
         [this](const auto& a){return appendCenterRectangle(a);});
     auto angle=parameter("number","Explicit angle in degrees; length display units do not convert it.");angle["minimum"]=-100000;angle["maximum"]=100000;
     const auto sketchSession=optional(parameter("string","Optional active sketch session identity."));
-    const auto textValue=parameter("string","One to sixteen uppercase Latin letters or digits in the pinned DejaVu Sans regular font.");
+    const auto textValue=parameter("string","One to sixteen uppercase Latin letters or digits in a pinned DejaVu Sans font.");
     auto textHeight=parameter("number","Cap height in sketch display units.");textHeight["minimum"]=0.1;textHeight["maximum"]=1000;
+    auto textFont=parameter("string","One of the exact bundled DejaVu Sans 2.37 font assets.");
+    textFont["enum"]=QJsonArray{SketchText::fontId(),QString("dejavu-sans-2.37-bold")};
     add("sketch.textAdd","Sketch Text","Create one retained, selectable text object on a text-only sketch.",
-        {{"text",textValue},{"height",textHeight},{"x",coordinate},{"y",coordinate},{"angleDeg",angle},{"units",optional(units)},{"session",sketchSession}},
+        {{"text",textValue},{"fontId",optional(textFont)},{"height",textHeight},{"x",coordinate},{"y",coordinate},{"angleDeg",angle},{"units",optional(units)},{"session",sketchSession}},
         [this](const auto& a){
             if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
             if(a.contains("session") && a["session"]!=session_["id"])return failure("invalid_session","Session is no longer active");
             auto draft=session_["draftSketch"].toObject(),p=draft["parameters"].toObject();
             if(!p["entities"].toArray().isEmpty() || p.contains("texts"))return failure("text_only_sketch","Sketch Text requires an otherwise empty sketch");
             const auto unit=a.value("units").toString(session_["inputs"].toObject()["units"].toString());
-            p["texts"]=QJsonArray{SketchText::create({{"text",a["text"]},{"heightMm",CadDocument::millimeters(a["height"].toDouble(),unit)},
+            p["texts"]=QJsonArray{SketchText::create({{"text",a["text"]},{"fontId",a.value("fontId").toString(SketchText::fontId())},{"heightMm",CadDocument::millimeters(a["height"].toDouble(),unit)},
                 {"uMm",CadDocument::millimeters(a["x"].toDouble(),unit)},{"vMm",CadDocument::millimeters(a["y"].toDouble(),unit)},{"angleDeg",a["angleDeg"]}})};
             draft["parameters"]=p;return publishSketchSolve(SketchGeometry::solveDraft(draft,session_.value("projectionContext").toObject()));
         });
     add("sketch.textUpdate","Edit Sketch Text","Edit retained text and placement; dependent profile slots remain stable when available.",
-        {{"textId",parameter("string","Retained text object UUID.")},{"text",optional(textValue)},{"height",optional(textHeight)},
+        {{"textId",parameter("string","Retained text object UUID.")},{"text",optional(textValue)},{"fontId",optional(textFont)},{"height",optional(textHeight)},
          {"x",optional(coordinate)},{"y",optional(coordinate)},{"angleDeg",optional(angle)},{"units",optional(units)},{"session",sketchSession}},
         [this](const auto& a){
             if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
@@ -1364,6 +1392,7 @@ void AlloyWindow::registerCommands() {
                     return failure("text_slot_count_changed","This Sketch Text edit keeps the same number of glyph profile slots; create a new text sketch to change the count");
                 t["text"]=a["text"];
             }
+            if(a.contains("fontId")){const auto id=a["fontId"].toString();t["fontId"]=id;t["fontSha256"]=SketchText::fontSha256(id);t["style"]=id.endsWith("-bold") ? "bold" : "regular";}
             for(const auto pair:{std::pair{"height","heightMm"},std::pair{"x","uMm"},std::pair{"y","vMm"}})
                 if(a.contains(pair.first))t[pair.second]=CadDocument::millimeters(a[pair.first].toDouble(),unit);
             if(a.contains("angleDeg"))t["angleDeg"]=a["angleDeg"];
@@ -2464,7 +2493,8 @@ void AlloyWindow::registerCommands() {
     add("capture.dialog", "Capture active dialog", "Capture the real search/settings QWidget; no geometry or OS decoration claim.", {{"path", parameter("string", "Absolute destination PNG path.")}}, [this](const auto& a) {
         const auto path = a["path"].toString();
         if (!QDir::isAbsolutePath(path) || !path.endsWith(".png", Qt::CaseInsensitive)) return failure("invalid_arguments", "Requires an absolute PNG path", "path");
-        QWidget* dialog = session_.value("command")=="solid.sweep" ? (sweepDock_ ? sweepDock_->widget():nullptr) : session_.value("command").toString() == "solid.revolve" ? (revolveDock_ ? revolveDock_->widget():nullptr) : session_.value("command").toString() == "commands.search" ? search_
+        QWidget* dialog = !session_.value("pendingText").toObject().isEmpty() ? sketchTextDialog_
+            : session_.value("command")=="solid.sweep" ? (sweepDock_ ? sweepDock_->widget():nullptr) : session_.value("command").toString() == "solid.revolve" ? (revolveDock_ ? revolveDock_->widget():nullptr) : session_.value("command").toString() == "commands.search" ? search_
             : session_.value("command").toString() == "solid.mirror" ? mirrorDock_->widget()
             : session_.value("command").toString() == "solid.rectangularPattern" ? patternDock_->widget()
             : session_.value("command").toString() == "solid.loft" ? loftDock_->widget()
@@ -3457,6 +3487,7 @@ QJsonObject AlloyWindow::finishSession(const QString& id, bool commit) {
         }
         result["commandResult"] = response;
     }
+    if(target=="sketch.edit") { view_->clearSketchTextHandles();if(sketchTextDialog_)sketchTextDialog_->hide(); }
     session_ = {};
     if(target=="sketch.edit"){sketchHistory_.clear();sketchHistoryIndex_=-1;sketchHistoryGroup_.clear();}
     if(dimensionEditor_)dimensionEditor_->hide();
@@ -3685,6 +3716,9 @@ QJsonObject AlloyWindow::beginSketch(const QString& plane,const QString& name,co
         if(tabId!=activeTabId_ || session_.value("id").toString()!=sketchSession || session_.value("command").toString()!="sketch.edit")return;
         view_->setFocus(Qt::OtherFocusReason);
         if(view_->windowHandle())view_->windowHandle()->requestActivate();
+    });
+    if(entryTool=="text")QTimer::singleShot(0,this,[this,sketchSession,tabId]{
+        if(tabId==activeTabId_ && session_.value("id").toString()==sketchSession)execute("sketch.textDialog");
     });
     return session_;
 }

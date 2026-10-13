@@ -168,6 +168,14 @@ private:
     QJsonArray dependentBodies(const QString& sketchId) const;
     QJsonObject primitiveCandidate(const QString&, const QJsonObject&) const;
     QJsonObject beginSketch(const QString& plane, const QString& name, const QString& sketchId = {}, const QJsonObject& support = {});
+    QJsonObject beginSketchText();
+    QJsonObject previewSketchText(const QJsonObject& values);
+    QJsonObject moveSketchTextHandle(const QJsonObject& values);
+    QJsonObject acceptSketchText();
+    QJsonObject cancelSketchText();
+    void showSketchTextDialog();
+    void syncSketchTextDialog();
+    QDialog* sketchTextDialog_ = nullptr;
     QJsonObject selectSupportFace(const QJsonObject& support);
     QJsonObject appendSketchEntity(const QString& tool, const QJsonObject& inputs);
     QJsonObject appendCenterRectangle(const QJsonObject& inputs);

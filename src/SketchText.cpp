@@ -29,15 +29,18 @@ static void initializeTextFontResource(){Q_INIT_RESOURCE(alloy_text_font);}
 namespace {
 constexpr auto digest="7da195a74c55bef988d0d48f9508bd5d849425c1770dba5d7bfc6ce9ed848954";
 constexpr auto asset="dejavu-sans-2.37-regular";
+constexpr auto boldDigest="e6476c1b80502924294eed40894c5b18e06c181444ca953e5334262df9c27724";
+constexpr auto boldAsset="dejavu-sans-2.37-bold";
 [[noreturn]] void fail(const QString& message){throw std::invalid_argument(message.toStdString());}
 bool validId(const QString& id){return !QUuid(id).isNull() && QUuid(id).toString(QUuid::WithoutBraces)==id;}
-QByteArray fontBytes(){
+QByteArray fontBytes(const QString& id){
     initializeTextFontResource();
-    QFile font(":/alloy/fonts/DejaVuSans.ttf");
-    if(!font.open(QIODevice::ReadOnly))fail("Sketch Text font is missing: "+QString::fromLatin1(asset));
+    const bool bold=id==boldAsset;
+    QFile font(bold ? ":/alloy/fonts/DejaVuSans-Bold.ttf" : ":/alloy/fonts/DejaVuSans.ttf");
+    if(!font.open(QIODevice::ReadOnly))fail("Sketch Text font is missing: "+id);
     const auto bytes=font.readAll();
-    if(QCryptographicHash::hash(bytes,QCryptographicHash::Sha256).toHex()!=digest)
-        fail("Sketch Text font hash mismatch: "+QString::fromLatin1(asset));
+    if(QCryptographicHash::hash(bytes,QCryptographicHash::Sha256).toHex()!=SketchText::fontSha256(id).toLatin1())
+        fail("Sketch Text font hash mismatch: "+id);
     return bytes;
 }
 gp_Pnt point(const QJsonObject& frame,const QJsonObject& text,const QPointF& p,double scale){
@@ -94,9 +97,18 @@ QList<QPainterPath> subpaths(const QPainterPath& path){
 
 QString SketchText::fontId(){return QString::fromLatin1(asset);}
 QString SketchText::fontSha256(){return QString::fromLatin1(digest);}
+QString SketchText::fontSha256(const QString& id){
+    if(id==asset)return QString::fromLatin1(digest);
+    if(id==boldAsset)return QString::fromLatin1(boldDigest);
+    fail("Unsupported Sketch Text font asset: "+id);
+}
+QJsonArray SketchText::fonts(){return {QJsonObject{{"id",asset},{"label","DejaVu Sans Regular"},{"style","regular"},{"sha256",digest}},
+    QJsonObject{{"id",boldAsset},{"label","DejaVu Sans Bold"},{"style","bold"},{"sha256",boldDigest}}};}
 QString SketchText::validate(const QJsonObject& text,QSet<QString>& ids){
     if(text.size()!=9 || !validId(text["id"].toString()) || ids.contains(text["id"].toString()))return "Sketch Text requires a distinct stable text ID";
-    if(text["fontId"]!=fontId() || text["fontSha256"]!=fontSha256() || text["style"]!="regular")return "Unsupported Sketch Text font asset, digest or style";
+    const auto id=text["fontId"].toString();
+    if((id!=asset && id!=boldAsset) || text["fontSha256"]!=fontSha256(id)
+        || text["style"]!=(id==boldAsset ? "bold" : "regular"))return "Unsupported Sketch Text font asset, digest or style";
     const auto value=text["text"].toString();
     if(value.isEmpty() || value.size()>16)return "Sketch Text requires 1 to 16 uppercase Latin letters or digits";
     for(const auto c:value)if(!((c>=u'A' && c<=u'Z') || (c>=u'0' && c<=u'9')))return "Sketch Text supports uppercase A-Z and 0-9 only";
@@ -105,14 +117,15 @@ QString SketchText::validate(const QJsonObject& text,QSet<QString>& ids){
     ids.insert(text["id"].toString());return {};
 }
 QJsonObject SketchText::create(const QJsonObject& a){
-    return {{"id",QUuid::createUuid().toString(QUuid::WithoutBraces)},{"text",a["text"]},{"fontId",fontId()},{"fontSha256",fontSha256()},
-        {"style","regular"},{"heightMm",a["heightMm"]},{"uMm",a["uMm"]},{"vMm",a["vMm"]},{"angleDeg",a["angleDeg"]}};
+    const auto id=a.value("fontId").toString(fontId());
+    return {{"id",QUuid::createUuid().toString(QUuid::WithoutBraces)},{"text",a["text"]},{"fontId",id},{"fontSha256",fontSha256(id)},
+        {"style",id==boldAsset ? "bold" : "regular"},{"heightMm",a["heightMm"]},{"uMm",a["uMm"]},{"vMm",a["vMm"]},{"angleDeg",a["angleDeg"]}};
 }
 SketchText::Result SketchText::evaluate(const QJsonObject& sketch,const QJsonObject& frame){
     const auto parameters=sketch["parameters"].toObject();const auto texts=parameters["texts"].toArray();
     if(texts.size()!=1 || !parameters["entities"].toArray().isEmpty())fail("Sketch Text currently requires a text-only sketch");
     const auto text=texts.first().toObject();QSet<QString> ids;const auto error=validate(text,ids);if(!error.isEmpty())fail(error);
-    QRawFont font; font.loadFromData(fontBytes(),1000,QFont::PreferNoHinting);if(!font.isValid())fail("Pinned Sketch Text font could not be loaded");
+    QRawFont font; font.loadFromData(fontBytes(text["fontId"].toString()),1000,QFont::PreferNoHinting);if(!font.isValid())fail("Pinned Sketch Text font could not be loaded");
     const auto cap=font.pathForGlyph(font.glyphIndexesForString("H").value(0)).boundingRect().height();
     if(!(cap>0))fail("Pinned Sketch Text font has no cap height");
     const auto scale=text["heightMm"].toDouble()/cap;
@@ -145,7 +158,7 @@ SketchText::Result SketchText::evaluate(const QJsonObject& sketch,const QJsonObj
         summaries.append(summary);totalArea+=mass.Mass();builder.Add(shape,face.Face());
         advance+=advances[index].x();
     }
-    result.shape=shape;result.summary={{"textId",text["id"]},{"text",text["text"]},{"fontId",fontId()},{"fontSha256",fontSha256()},
+    result.shape=shape;result.summary={{"textId",text["id"]},{"text",text["text"]},{"fontId",text["fontId"]},{"fontSha256",text["fontSha256"]},
         {"heightMm",text["heightMm"]},{"uMm",text["uMm"]},{"vMm",text["vMm"]},{"angleDeg",text["angleDeg"]},
         {"profileIds",QJsonArray{}},{"profiles",summaries},{"areaMm2",totalArea}};
     QJsonArray idsOut;for(const auto& profile:result.profiles)idsOut.append(profile.profileId);result.summary["profileIds"]=idsOut;

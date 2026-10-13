@@ -1,5 +1,6 @@
 #pragma once
 #include "SketchProfiles.h"
+#include <QJsonArray>
 #include <QJsonObject>
 #include <QSet>
 #include <TopoDS_Shape.hxx>
@@ -14,4 +15,6 @@ public:
     static QJsonObject create(const QJsonObject& arguments);
     static QString fontId();
     static QString fontSha256();
+    static QString fontSha256(const QString& id);
+    static QJsonArray fonts();
 };

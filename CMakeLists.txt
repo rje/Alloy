@@ -36,15 +36,15 @@ add_library(alloy_kernel STATIC
 target_include_directories(alloy_kernel PUBLIC src)
 target_include_directories(alloy_kernel SYSTEM PUBLIC ${OpenCASCADE_INCLUDE_DIR})
 target_link_libraries(alloy_kernel PUBLIC alloy_sketch_solver Qt6::Gui TKernel TKMath TKG3d TKBRep TKPrim TKTopAlgo TKFillet TKOffset TKBO TKBool TKGeomAlgo TKMesh TKDESTL TKDESTEP TKXSBase)
-qt_add_resources(alloy_kernel "alloy_text_font" PREFIX "/alloy/fonts" BASE "third_party/dejavu" FILES "third_party/dejavu/DejaVuSans.ttf")
+qt_add_resources(alloy_kernel "alloy_text_font" PREFIX "/alloy/fonts" BASE "third_party/dejavu" FILES "third_party/dejavu/DejaVuSans.ttf" "third_party/dejavu/DejaVuSans-Bold.ttf")
 target_compile_definitions(alloy_kernel PUBLIC ALLOY_OCCT_VERSION="${ALLOY_OCCT_VERSION}")
 
 add_library(alloy_application STATIC
     src/AlloyTheme.cpp src/AlloyTheme.h
-    src/AlloyWindow.cpp src/AlloyWindow.h src/CommandIcons.cpp src/CommandIcons.h src/SolidFilletControls.cpp src/SolidChamferControls.cpp src/SphereControls.cpp src/SolidShellControls.cpp src/LoftControls.cpp src/RevolveCommands.cpp src/SweepCommands.cpp src/SweepSelection.cpp src/PatternControls.cpp src/SolidMirrorControls.cpp src/MoveControls.cpp src/CombineControls.cpp src/ExportControls.cpp src/StepExportControls.cpp
+    src/AlloyWindow.cpp src/AlloyWindow.h src/SketchTextControls.cpp src/CommandIcons.cpp src/CommandIcons.h src/SolidFilletControls.cpp src/SolidChamferControls.cpp src/SphereControls.cpp src/SolidShellControls.cpp src/LoftControls.cpp src/RevolveCommands.cpp src/SweepCommands.cpp src/SweepSelection.cpp src/PatternControls.cpp src/SolidMirrorControls.cpp src/MoveControls.cpp src/CombineControls.cpp src/ExportControls.cpp src/StepExportControls.cpp
     src/TutorialRecorder.cpp src/TutorialRecorder.h
     src/CadDocument.cpp src/CadDocument.h
-    src/ReferenceView.cpp src/ReferenceView.h src/ReferenceRevolve.cpp src/ReferenceSweep.cpp
+    src/ReferenceView.cpp src/ReferenceView.h src/ReferenceRevolve.cpp src/ReferenceSweep.cpp src/ReferenceSketchText.cpp
     src/ControlServer.cpp src/ControlServer.h)
 target_include_directories(alloy_application PUBLIC src)
 target_include_directories(alloy_application SYSTEM PRIVATE ${OpenCASCADE_INCLUDE_DIR})
@@ -79,6 +79,10 @@ if(BUILD_TESTING)
     add_executable(sketch_text_test tests/sketch_text.cpp)
     target_link_libraries(sketch_text_test PRIVATE alloy_kernel Qt6::Gui)
     add_test(NAME sketch_text COMMAND sketch_text_test)
+    add_executable(sketch_text_controls_test tests/sketch_text_controls.cpp)
+    target_link_libraries(sketch_text_controls_test PRIVATE alloy_application Qt6::Test)
+    add_test(NAME sketch_text_controls COMMAND sketch_text_controls_test)
+    set_tests_properties(sketch_text_controls PROPERTIES TIMEOUT 45 LABELS "widget;gpu" RUN_SERIAL TRUE)
     add_executable(multi_face_controls_test tests/multi_face_controls.cpp)
     target_link_libraries(multi_face_controls_test PRIVATE alloy_application Qt6::Test)
     add_test(NAME multi_face_controls COMMAND multi_face_controls_test)

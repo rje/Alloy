@@ -2146,3 +2146,14 @@ radius edit and exact storage pass. The radius edit updates the honest measured
 spans to about 59.6999 × 29.6996; preserving driving 60/30 through that edit
 is separate future work. Independent review and integration remain pending.
 See [the bounded receipt](validation/rounded-rectangle-fillets.md).
+
+## Native Sketch Text controls candidate (2026-10-13)
+
+SKT-047/#232 candidate adds a command-first Text entry, real modeless Qt text
+dialog, exact regular/bold DejaVu 2.37 choices, editable height/position/angle,
+and GPU move/rotation handles. The preview is disposable; Cancel restores the
+sketch draft and OK publishes one existing-authority edit. Focused injected-Qt
+typing and pointer interaction and real-app API/Join/capture passed on macOS.
+This is pending independent review and integration. See
+[the controls receipt](validation/sketch-text-controls.md). Same-count text slot
+identity, finite uppercase glyphs and text-only sketch limits still apply.

@@ -41,8 +41,11 @@ in their source headers. Boost 1.90.0 headers retain the respective contributors
 notices under [BSL-1.0](LICENSES/BSL-1.0.txt). Exact archives, hashes and license
 sources are recorded in [components.json](docs/dependencies/components.json).
 
-Sketch Text bundles the unmodified DejaVu Sans regular TTF from DejaVu Fonts
-2.37. Font SHA-256: `7da195a74c55bef988d0d48f9508bd5d849425c1770dba5d7bfc6ce9ed848954`.
+Sketch Text bundles the unmodified DejaVu Sans regular and bold TTFs from
+DejaVu Fonts 2.37. Regular SHA-256:
+`7da195a74c55bef988d0d48f9508bd5d849425c1770dba5d7bfc6ce9ed848954`.
+Bold SHA-256:
+`e6476c1b80502924294eed40894c5b18e06c181444ca953e5334262df9c27724`.
 The DejaVu changes and the underlying Bitstream and Arev contributions carry
 their own terms and required notices in [the release license](third_party/dejavu/LICENSE).
 The [official release archive](https://sourceforge.net/projects/dejavu/files/dejavu/2.37/)
