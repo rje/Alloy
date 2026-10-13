@@ -162,7 +162,13 @@ QJsonObject solveSketches(QJsonObject candidate) {
         QJsonObject projectionContext;
         if(feature["parameters"].toObject()["plane"]=="face") {
             auto prior=candidate;QJsonArray prefix;for(int j=0;j<i;++j)prefix.append(features[j]);prior["features"]=prefix;
-            projectionContext=GeometryKernel::projectionContext(GeometryKernel::evaluateDocument(prior),feature);
+            try {projectionContext=GeometryKernel::projectionContext(GeometryKernel::evaluateDocument(prior),feature);}
+            catch(const GeometryKernel::EvaluationError& error) {
+                auto diagnostics=error.diagnostics();
+                if(!diagnostics.contains("featureId"))diagnostics["featureId"]=feature["id"];
+                if(diagnostics["featureId"]==feature["id"] && !diagnostics.contains("featureType"))diagnostics["featureType"]="sketch";
+                throw GeometryKernel::EvaluationError(diagnostics);
+            }
         }
         const auto solution = SketchGeometry::solveDraft(feature,projectionContext);
         if (!solution.ok) throw GeometryKernel::EvaluationError({{"code","sketch_solve_failed"},
