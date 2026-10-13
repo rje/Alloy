@@ -715,3 +715,12 @@ and store retained side. D and dimension preview/place/accept recognize the same
 pair and display the full mirrored diameter. It adds one half-distance equation;
 independent orientation constraints remain necessary to keep both lines parallel.
 Nonparallel, zero, degenerate or conflicting results refuse transactionally.
+
+Revolve native controls share `solid.revolveDialog`, `solid.revolveSelection`
+(Profile/Axis role and optional clear), and `selection.pick`. For angular gestures,
+`solid.revolveDrag` accepts viewport-local logical x/y plus begin/move/end; angle
+comes from the actual projected ring, not an angle argument. Its world/screen
+geometry is in `viewport.gpu.revolveCue`, with derived inputs in `angularDrag`.
+Full requires extent full and canonical angle360 together. Same-sketch Project
+Axis is identity; external axis projection is unsupported. See the
+[bounded native receipt](validation/revolve-controls.md).

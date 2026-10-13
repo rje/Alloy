@@ -43,7 +43,7 @@ add_library(alloy_application STATIC
     src/AlloyWindow.cpp src/AlloyWindow.h src/SolidFilletControls.cpp src/SolidChamferControls.cpp src/SphereControls.cpp src/SolidShellControls.cpp src/LoftControls.cpp src/RevolveCommands.cpp src/PatternControls.cpp src/SolidMirrorControls.cpp src/MoveControls.cpp src/CombineControls.cpp src/ExportControls.cpp src/StepExportControls.cpp
     src/TutorialRecorder.cpp src/TutorialRecorder.h
     src/CadDocument.cpp src/CadDocument.h
-    src/ReferenceView.cpp src/ReferenceView.h
+    src/ReferenceView.cpp src/ReferenceView.h src/ReferenceRevolve.cpp
     src/ControlServer.cpp src/ControlServer.h)
 target_include_directories(alloy_application PUBLIC src)
 target_include_directories(alloy_application SYSTEM PRIVATE ${OpenCASCADE_INCLUDE_DIR})
@@ -92,6 +92,10 @@ if(BUILD_TESTING)
     target_link_libraries(point_edge_controls_test PRIVATE alloy_application Qt6::Test)
     add_test(NAME point_edge_controls COMMAND point_edge_controls_test)
     set_tests_properties(point_edge_controls PROPERTIES TIMEOUT 30 LABELS "widget;gpu" RUN_SERIAL TRUE)
+    add_executable(revolve_controls_test tests/revolve_controls.cpp)
+    target_link_libraries(revolve_controls_test PRIVATE alloy_application Qt6::Test)
+    add_test(NAME revolve_controls COMMAND revolve_controls_test)
+    set_tests_properties(revolve_controls PROPERTIES TIMEOUT 45 LABELS "widget;gpu" RUN_SERIAL TRUE)
     add_executable(sphere_controls_test tests/sphere_controls.cpp)
     target_link_libraries(sphere_controls_test PRIVATE alloy_application Qt6::Test)
     add_test(NAME sphere_controls COMMAND sphere_controls_test)

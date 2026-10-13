@@ -12,9 +12,10 @@ and detached-open profile behavior belong to SKT-038/#215.
 `solid.revolve` exposes the shared draft, reserved feature/body IDs and input
 schema; `command.update`, `command.preview`, `command.cancel`, `command.commit`
 and `feature.editDialog` share that authority. Preview evaluates actual OCCT
-geometry without authoring history. Native controls are unavailable and the
-session states `nativeControlsAvailable:false`; SOL-030/#216 owns those controls.
-No interactive dialog or angular manipulator is claimed.
+geometry without authoring history. SOL-030 adds native dock controls and the session now states
+`nativeControlsAvailable:true`. `solid.revolveDialog` opens the same shared draft
+with explicit Profile/Axis selector roles. See [the native contract and
+evidence](../validation/revolve-controls.md).
 
 Defaults are Full/360°. Partial accepts 0.001°≤angle<360°. Positive rotation follows
 the right-hand rule about the retained line's start→end direction; this is an

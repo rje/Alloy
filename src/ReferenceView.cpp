@@ -342,6 +342,7 @@ void ReferenceView::sync() {
     context_->Deactivate(axes_);
     if(!decorationFeature_.isEmpty())decorateSketch(decorationFeature_,decorationSelection_,decorationDiagnostics_,decorationUnits_,decorationPending_);
     if(!extrusionCueState_.isEmpty())refreshExtrusionCue();
+    if(!revolveCueState_.isEmpty())refreshRevolveCue();
     view_->Redraw();
 }
 void ReferenceView::setBodies(const std::vector<EvaluatedBody>& bodies,quint64 revision) {
@@ -674,22 +675,24 @@ void ReferenceView::clearSketchDraft() {
     profileModels_.clear();draftProfiles_.clear();
     sketchDraft_.Nullify();sketchConstructionDraft_.Nullify();sketchCenterlineDraft_.Nullify();projectedDraft_.Nullify();projectedLines_={};supportPoints_={};constructionDraftLineIds_={};centerlineDraftLineIds_={};draftSketchId_.clear();clearSketchCursor();applyEditDisplay();
 }
-QJsonObject ReferenceView::pickSketch(const QJsonObject& feature,double x,double y,const QString& filter) const {
+QJsonObject ReferenceView::pickSketch(const QJsonObject& feature,double x,double y,const QString& filter,const QJsonObject& resolvedFrame) const {
     if(view_.IsNull() || x<0 || y<0 || x>=width() || y>=height())return {};
     const auto parameters=feature["parameters"].toObject();const auto plane=parameters["plane"].toString();
+    const auto frame=resolvedFrame.isEmpty() ? frameFor(plane) : resolvedFrame;
+    auto world=[&](double u,double v){const auto o=frame["origin"].toArray(),a=frame["uAxis"].toArray(),b=frame["vAxis"].toArray();return gp_Pnt(o[0].toDouble()+u*a[0].toDouble()+v*b[0].toDouble(),o[1].toDouble()+u*a[1].toDouble()+v*b[1].toDouble(),o[2].toDouble()+u*a[2].toDouble()+v*b[2].toDouble());};
     QMap<QString,QPointF> points;
     double best=8;QString picked;QJsonObject pickedProjectedPoint;
     for(const auto& entry:parameters["points"].toArray()) {
-        const auto point=entry.toObject();const auto projection=projectSketchPoint(point["uMm"].toDouble(),point["vMm"].toDouble(),plane);
+        const auto point=entry.toObject();const auto projection=projectSketchPoint(point["uMm"].toDouble(),point["vMm"].toDouble(),plane,resolvedFrame);
         const QPointF p(projection["x"].toDouble(),projection["y"].toDouble());points[point["id"].toString()]=p;
         const double distance=std::hypot(p.x()-x,p.y()-y);
-        if(filter!="entity" && distance<=best){best=distance;picked=point["id"].toString();pickedProjectedPoint={};}
+        if(filter!="entity" && filter!="line" && distance<=best){best=distance;picked=point["id"].toString();pickedProjectedPoint={};}
     }
-    if(filter!="entity")for(const auto& value:projectedLines_) {
+    if(filter!="entity" && filter!="line")if(resolvedFrame.isEmpty())for(const auto& value:projectedLines_) {
         const auto line=value.toObject();
         for(const bool end:{false,true}) {
             const auto id=line[end ? "endPointId" : "startPointId"].toString();
-            const auto projection=projectSketchPoint(line[end ? "u2Mm" : "u1Mm"].toDouble(),line[end ? "v2Mm" : "v1Mm"].toDouble(),plane);
+            const auto projection=projectSketchPoint(line[end ? "u2Mm" : "u1Mm"].toDouble(),line[end ? "v2Mm" : "v1Mm"].toDouble(),plane,resolvedFrame);
             const double distance=std::hypot(projection["x"].toDouble()-x,projection["y"].toDouble()-y);
             // Coincident cap corners may have several virtual IDs. Choose a
             // stable one; authored points retain precedence at equal distance.
@@ -700,9 +703,9 @@ QJsonObject ReferenceView::pickSketch(const QJsonObject& feature,double x,double
             }
         }
     }
-    if(filter!="entity")for(const auto& value:supportPoints_) {
+    if(filter!="entity" && filter!="line")if(resolvedFrame.isEmpty())for(const auto& value:supportPoints_) {
         const auto point=value.toObject();const auto id=point["id"].toString();
-        const auto projection=projectSketchPoint(point["uMm"].toDouble(),point["vMm"].toDouble(),plane);
+        const auto projection=projectSketchPoint(point["uMm"].toDouble(),point["vMm"].toDouble(),plane,resolvedFrame);
         const double distance=std::hypot(projection["x"].toDouble()-x,projection["y"].toDouble()-y);
         if(distance<best-1e-6 || (picked.isEmpty() && distance<=best)
             || (!pickedProjectedPoint.isEmpty() && std::abs(distance-best)<=1e-6 && id<picked)) {
@@ -720,25 +723,25 @@ QJsonObject ReferenceView::pickSketch(const QJsonObject& feature,double x,double
     }
     if(filter=="point")return {};
     best=6;QJsonObject pickedProjection;
-    const auto planePoint=sketchPoint(x,y,plane);const auto hitWorld=sketchWorld(plane,planePoint["uMm"].toDouble(),planePoint["vMm"].toDouble());
+    const auto planePoint=sketchPoint(x,y,plane,resolvedFrame);const auto hitWorld=world(planePoint["uMm"].toDouble(),planePoint["vMm"].toDouble());
     for(const auto& entry:parameters["entities"].toArray()) {
-        const auto entity=entry.toObject();QPointF nearest;
+        const auto entity=entry.toObject();if(filter=="line" && entity["type"]!="line")continue;QPointF nearest;
         if(entity["type"]=="line") {
             const auto start=points.value(entity["startPointId"].toString()),end=points.value(entity["endPointId"].toString());
             const auto delta=end-start;const double length2=delta.x()*delta.x()+delta.y()*delta.y();if(length2<1e-12)continue;
             const double t=std::clamp(((x-start.x())*delta.x()+(y-start.y())*delta.y())/length2,0.0,1.0);nearest=start+delta*t;
         } else {
-            const auto edge=SketchGeometry::analyticEdge(parameters,entity,sketchFrame_);double first,last;const auto curve=BRep_Tool::Curve(edge,first,last);
+            const auto edge=SketchGeometry::analyticEdge(parameters,entity,frame);double first,last;const auto curve=BRep_Tool::Curve(edge,first,last);
             GeomAPI_ProjectPointOnCurve projection(hitWorld,curve,first,last);if(projection.NbPoints()==0)continue;
             const auto p=projection.NearestPoint();int px,py;view_->Convert(p.X(),p.Y(),p.Z(),px,py);const auto scale=windowScale();nearest={px/scale.x(),py/scale.y()};
         }
         const double distance=std::hypot(nearest.x()-x,nearest.y()-y);
         if(distance<=best){best=distance;picked=entity["id"].toString();pickedProjection={};}
     }
-    for(const auto& value:projectedLines_) {
+    if(resolvedFrame.isEmpty())for(const auto& value:projectedLines_) {
         const auto line=value.toObject();
-        const auto first=projectSketchPoint(line["u1Mm"].toDouble(),line["v1Mm"].toDouble(),plane);
-        const auto last=projectSketchPoint(line["u2Mm"].toDouble(),line["v2Mm"].toDouble(),plane);
+        const auto first=projectSketchPoint(line["u1Mm"].toDouble(),line["v1Mm"].toDouble(),plane,resolvedFrame);
+        const auto last=projectSketchPoint(line["u2Mm"].toDouble(),line["v2Mm"].toDouble(),plane,resolvedFrame);
         const QPointF start(first["x"].toDouble(),first["y"].toDouble()),end(last["x"].toDouble(),last["y"].toDouble());
         const auto delta=end-start;const double length2=delta.x()*delta.x()+delta.y()*delta.y();if(length2<1e-12)continue;
         const double t=std::clamp(((x-start.x())*delta.x()+(y-start.y())*delta.y())/length2,0.0,1.0);
@@ -751,10 +754,10 @@ QJsonObject ReferenceView::pickSketch(const QJsonObject& feature,double x,double
         return result;
     }
     if(!filter.isEmpty())return {};
-    const auto hit=sketchPoint(x,y,parameters.value("plane").toString());
-    const auto world=sketchWorld(parameters.value("plane").toString(),hit.value("uMm").toDouble(),hit.value("vMm").toDouble());
+    const auto hit=sketchPoint(x,y,parameters.value("plane").toString(),resolvedFrame);
+    const auto profileWorld=world(hit.value("uMm").toDouble(),hit.value("vMm").toDouble());
     for(const auto& profile:draftProfiles_) {
-        BRepClass_FaceClassifier classifier(profile.face,world,1e-7);
+        BRepClass_FaceClassifier classifier(profile.face,profileWorld,1e-7);
         if(classifier.State()==TopAbs_IN)return {{"kind","profile"},{"profileId",profile.profileId}};
     }
     return {};
@@ -1695,6 +1698,7 @@ void ReferenceView::refreshExtrusionCue() {
         {"y",endY/scale.y()+21.0*(sideY-endY)/scale.y()/(100*sidePixels)}};
 }
 void ReferenceView::clearPreviewPresentation() {
+    clearRevolveCue();
     if(!context_.IsNull()) {
         for(const auto& cue:extrusionCue_)context_->Remove(cue,false);
         for(const auto& tool:cutTools_)context_->Remove(tool,false);
@@ -1823,6 +1827,7 @@ QJsonObject ReferenceView::diagnostics() const {
     result.insert("selectedSupportFace",selectedSupportFace_);
     result.insert("supportFaceHighlightVisible",!selectedSupportFaceOverlay_.IsNull());
     result.insert("hoveredSupportFace",hoveredSupportFace_);
+    result.insert("revolveCue",revolveCueState_);result.insert("revolvePointer",revolvePointerState_);
     result.insert("previewVisible",!preview_.IsNull());
     if(!preview_.IsNull()){Quantity_Color color;preview_->Color(color);double red,green,blue;color.Values(red,green,blue,Quantity_TOC_sRGB);result.insert("previewAppearance",QJsonObject{{"red",red},{"green",green},{"blue",blue},{"transparency",preview_->Transparency()}});}
     result.insert("previewReplacedBodyId",previewReplacedBody_);
@@ -1859,6 +1864,16 @@ QImage ReferenceView::framebuffer() {
     return image;
 }
 void ReferenceView::mousePressEvent(QMouseEvent* e) {
+    if(!revolveCueState_.isEmpty())revolvePointerState_={{"event","press"},{"x",e->position().x()},{"y",e->position().y()},{"button",int(e->button())},{"modifiers",int(e->modifiers())}};
+    if(e->button()==Qt::LeftButton && !e->modifiers().testFlag(Qt::AltModifier) && !revolveCueState_.isEmpty()) {
+        auto point=[](const QJsonObject& p){return QPointF(p["x"].toDouble(),p["y"].toDouble());};
+        bool picked=QLineF(e->position(),point(revolveCueState_["endScreen"].toObject())).length()<11;
+        const auto ring=revolveCueState_["ringScreen"].toArray();
+        for(int i=1;i<ring.size() && !picked;++i){const auto a=point(ring[i-1].toObject()),b=point(ring[i].toObject()),d=b-a;const auto length=QPointF::dotProduct(d,d);const auto t=length>1e-8 ? std::clamp(QPointF::dotProduct(e->position()-a,d)/length,0.0,1.0):0.;picked=QLineF(e->position(),a+d*t).length()<7;}
+        revolvePointerState_["picked"]=picked;
+        if(picked && revolveCueState_["dragAvailable"].toBool()){setFocus(Qt::MouseFocusReason);revolveDrag_=revolveCueState_;updateRevolveDrag(e->position(),"begin");e->accept();return;}
+    }
+
     if(e->button()==Qt::LeftButton && !moveCueState_.isEmpty()) {
         auto point=[](const QJsonObject& p){return QPointF(p["x"].toDouble(),p["y"].toDouble());};
         auto distance=[](const QPointF& p,const QPointF& a,const QPointF& b){auto d=b-a;auto l=QPointF::dotProduct(d,d);return QLineF(p,a+d*(l>1e-9 ? std::clamp(QPointF::dotProduct(p-a,d)/l,0.0,1.0) : 0.0)).length();};
@@ -1913,6 +1928,7 @@ void ReferenceView::mousePressEvent(QMouseEvent* e) {
     else QWidget::mousePressEvent(e);
 }
 void ReferenceView::mouseMoveEvent(QMouseEvent* e) {
+    if(!revolveDrag_.isEmpty() && e->buttons().testFlag(Qt::LeftButton)){updateRevolveDrag(e->position(),"move");e->accept();return;}
     if(!moveDrag_.isEmpty() && e->buttons().testFlag(Qt::LeftButton)) {
         const auto h=moveDrag_["handle"].toObject();auto point=[](const QJsonObject& p){return QPointF(p["x"].toDouble(),p["y"].toDouble());};
         const auto center=point(h["start"].toObject());const QPointF press(moveDrag_["pressX"].toDouble(),moveDrag_["pressY"].toDouble());
@@ -1951,6 +1967,7 @@ void ReferenceView::leaveEvent(QEvent* e) {
     QWidget::leaveEvent(e);
 }
 void ReferenceView::mouseReleaseEvent(QMouseEvent* e) {
+    if(!revolveDrag_.isEmpty() && e->button()==Qt::LeftButton){updateRevolveDrag(e->position(),"end");revolveDrag_={};e->accept();return;}
     if(!moveDrag_.isEmpty() && e->button()==Qt::LeftButton){moveDrag_={};if(dispatch)dispatch("solid.moveApplyGesture",{});e->accept();return;}
 
     if(e->button()==Qt::LeftButton && extrusionDragActive_) {

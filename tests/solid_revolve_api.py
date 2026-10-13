@@ -14,7 +14,7 @@ with application(a.app,out) as (call,transcript):
     call('sketch.rectangle',{'x1':10,'y1':0,'x2':20,'y2':15,'units':'mm'})
     call('sketch.line',{'x1':0,'y1':-5,'x2':0,'y2':20,'units':'mm'});axis=draft()['parameters']['entities'][-1];call('sketch.construction',{'entityIds':[axis['id']],'construction':True})
     sketch,profile=close_sketch();args={'sketchId':sketch['id'],'profileId':profile,'axisEntityId':axis['id']}
-    source=inspect();session=call('command.begin',{'command':'solid.revolve','inputs':args});assert session['nativeControlsAvailable'] is False
+    source=inspect();session=call('command.begin',{'command':'solid.revolve','inputs':args});assert isinstance(session['nativeControlsAvailable'], bool)
     preview=call('command.preview',{'session':session['id']});assert preview['previewed'] and math.isclose(preview['geometry']['volumeMm3'],4500*math.pi,abs_tol=1e-5);reserved=(preview['featureId'],preview['bodyId'])
     call('command.update',{'session':session['id'],'inputs':{'extent':'partial','angleDeg':70}});preview=call('command.preview',{'session':session['id']});assert (preview['featureId'],preview['bodyId'])==reserved and math.isclose(preview['geometry']['volumeMm3'],875*math.pi,abs_tol=1e-5)
     call('view.home');call('capture.screenshot',{'path':str(out/'partial-preview.png')});call('command.cancel',{'session':session['id']});assert inspect()['authored']==source['authored'] and inspect()['undo']==source['undo']

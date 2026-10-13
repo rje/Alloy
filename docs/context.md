@@ -1898,3 +1898,16 @@ and source-step receipt in parallel, with final execution waiting for accepted
 #216. Reference fixture choices and independent Pappus oracle are external in
 knowledge/tutorials/revolve-next-slice/alloy-fixture-plan.md. 93 of217 issues
 are closed; only216/217 are actively owned. No release or per-commit CI.
+## Native Revolve candidate (2026-10-13)
+
+SOL030/#216 builds on accepted SOL029 and SKT038 checkpoint783f6ce. Actual Qt
+Centerline auto-selection, explicit finished Profile/Axis picks, real angular
+press/move/release, Partial→Full, Cancel/fresh session, commit/edit/history/storage
+pass. Shared pointer-coordinate API also passes and refuses ambiguous inference.
+Native drag yields70.0432° with unchanged ring basis; source fixture values and
+ring mapping/style remain Alloy choices. Guarded immutable session IDs prevent
+late signals/JSON reads from recreating canceled sessions. Source sketch hides
+on commit and is temporarily revealed for edit. See
+[contract/evidence and capture limits](validation/revolve-controls.md). Astra
+review reports no bounded blocker; root owns independent acceptance/integration.
+Full tutorial/movie/print output remains TUT008/#217, broader modes remain #49.

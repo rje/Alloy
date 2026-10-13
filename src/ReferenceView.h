@@ -46,7 +46,7 @@ public:
     QJsonObject pickSupportFace(double x, double y, const std::vector<EvaluatedBody>& bodies) const;
     void selectSupportFace(const QJsonObject& support, const TopoDS_Face& face = {}, bool outline = false);
     void setEditDisplay(const QString& sourceSketchId, const QJsonArray& hiddenBodyIds);
-    QJsonObject pickSketch(const QJsonObject& feature, double x, double y, const QString& filter = {}) const;
+    QJsonObject pickSketch(const QJsonObject& feature, double x, double y, const QString& filter = {}, const QJsonObject& resolvedFrame = {}) const;
     void decorateSketch(const QJsonObject& feature, const QJsonObject& selection,
         const QJsonObject& diagnostics, const QString& units, const QJsonObject& pending = {});
     QJsonObject dimensionLayout(const QJsonObject& feature, const QJsonObject& dimension,
@@ -82,6 +82,10 @@ public:
     void showCutPreview(const EvaluatedBody& body, const std::vector<EvaluatedProfile>& profiles, double distanceMm,
         const QJsonArray& sourceProfileIds, const QString& units);
     void showExtrudeHandle(const EvaluatedProfile& profile,const QJsonArray& sourceProfileIds,const QString& units,const QString& operation,double distanceMm = 0);
+    void showRevolveCue(const QJsonObject& geometry,const EvaluatedProfile& profile);
+    void clearRevolveCue(bool resetGesture = false);
+    QJsonObject revolvePointerAngle(double x,double y,const QString& phase);
+    QJsonObject revolveCueState() const { return revolveCueState_; }
     void showMovePreview(const TopoDS_Shape& shape,const QString& bodyId);
     void showMoveCue(const QJsonObject& inputs);
     void clearMoveCue(bool resetGesture = false);
@@ -193,5 +197,9 @@ private:
     std::vector<Handle(AIS_Shape)> moveCue_;
     QJsonObject moveCueState_;
     QJsonObject moveDrag_;
+    std::vector<Handle(AIS_Shape)> revolveCue_;
+    QJsonObject revolveCueState_,revolveDrag_,revolvePointerState_;
+    void refreshRevolveCue();
+    void updateRevolveDrag(const QPointF& position,const QString& phase);
     gp_Pnt sceneCenter_;
 };

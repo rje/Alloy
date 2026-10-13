@@ -113,6 +113,12 @@ private:
     QJsonObject revolveCandidate(const QJsonObject& inputs) const;
     QJsonObject beginRevolve(const QJsonObject& overrides);
     QJsonObject previewRevolve();
+    QJsonObject pickRevolve(double x,double y);
+    void showRevolve();
+    void refreshRevolveControls();
+    EvaluatedDocument revolveInputDocument() const;
+    QDockWidget* revolveDock_=nullptr;
+    QShortcut* revolveEscape_=nullptr;
     QJsonObject loftCandidate(const QJsonObject& inputs) const;
     QJsonObject beginLoft(const QJsonObject& overrides={});
     QJsonObject previewLoft();
