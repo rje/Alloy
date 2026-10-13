@@ -51,6 +51,8 @@ QJsonObject AlloyWindow::previewShell() {
     };
     if(session_["baseDocumentRevision"].toInteger()!=static_cast<qint64>(document_->revision()))return reject("stale_session","The document changed; cancel and restart Shell");
     const auto inputs=session_["inputs"].toObject();
+    if(shellDock_)if(auto* label=shellDock_->findChild<QLabel*>("shellSelection"))
+        label->setText(inputs["removedFace"].toObject().isEmpty() ? "0 selected" : "1 selected");
     if(inputs["removedFace"].toObject().isEmpty())return reject("face_required","Select a planar face to remove");
     if(inputs["thicknessMm"].toDouble()<=0)return reject("thickness_required","Enter an inside thickness");
     QJsonObject candidate;try{candidate=shellCandidate(inputs);}catch(const std::exception& error){return reject("invalid_arguments",QString::fromUtf8(error.what()));}
@@ -75,7 +77,10 @@ void AlloyWindow::showShell() {
     shellDock_=new QDockWidget("Shell",canvasWindow_);shellDock_->setObjectName("shellDock");
     shellDock_->setFeatures(QDockWidget::DockWidgetMovable|QDockWidget::DockWidgetFloatable);
     auto* panel=new QWidget(shellDock_);shellDock_->setWidget(panel);auto* form=new QFormLayout(panel);
-    form->addRow("Selection",new QLabel("1 Face",panel));
+    form->addRow("Object",new QLabel("Faces",panel));
+    auto* selected=new QLabel(panel);selected->setObjectName("shellSelection");
+    selected->setText(session_["inputs"].toObject()["removedFace"].toObject().isEmpty() ? "0 selected" : "1 selected");
+    form->addRow("Selection",selected);
     form->addRow("Type",new QLabel("Sharp Offset",panel));form->addRow("Direction",new QLabel("Inside",panel));
     auto* thickness=new QDoubleSpinBox(panel);thickness->setObjectName("shellThickness");thickness->setAccessibleName("Inside Thickness");
     thickness->setKeyboardTracking(false);thickness->setDecimals(3);thickness->setRange(0,100000);thickness->setSuffix(" mm");

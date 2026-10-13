@@ -34,17 +34,25 @@ void SolidShell::evaluate(EvaluatedBody& body,const QJsonObject& parameters,cons
         || summary["topology"].toObject()["solids"].toInt()!=1 || summary["volumeMm3"].toDouble()<=0)
         fail("shell_invalid_result","Shell must produce one valid closed solid");
     const auto sourcePlane=BRepAdaptor_Surface(source->face).Plane();
+    TopTools_IndexedMapOfShape sourceEdges;TopExp::MapShapes(source->face,TopAbs_EDGE,sourceEdges);
+    TopTools_IndexedMapOfShape historyFaces;
+    for(const auto& descendant:builder.Modified(source->face))if(descendant.ShapeType()==TopAbs_FACE)historyFaces.Add(descendant);
+    for(const auto& descendant:builder.Generated(source->face))if(descendant.ShapeType()==TopAbs_FACE)historyFaces.Add(descendant);
     TopTools_IndexedMapOfShape faces;TopExp::MapShapes(result,TopAbs_FACE,faces);
     TopoDS_Face rim;int rimMatches=0;
     for(int i=1;i<=faces.Extent();++i){
         const auto face=TopoDS::Face(faces(i));const BRepAdaptor_Surface surface(face);
-        if(surface.GetType()==GeomAbs_Plane
+        if(surface.GetType()!=GeomAbs_Plane)continue;
+        TopTools_IndexedMapOfShape rimEdges;TopExp::MapShapes(face,TopAbs_EDGE,rimEdges);
+        bool retainsBoundary=sourceEdges.Extent()>0;
+        for(int edge=1;edge<=sourceEdges.Extent();++edge)retainsBoundary &= rimEdges.Contains(sourceEdges(edge));
+        if((historyFaces.Contains(face) || retainsBoundary)
             && surface.Plane().Axis().Direction().IsParallel(sourcePlane.Axis().Direction(),1e-7)
             && surface.Plane().Distance(sourcePlane.Location())<1e-5){
             rim=face;++rimMatches;
         }
     }
-    if(rimMatches!=1)fail("shell_rim_ambiguous","Shell did not preserve one identifiable planar opening rim");
+    if(rimMatches!=1)fail("shell_rim_ambiguous","Shell did not preserve one planar rim with the removed face boundary");
     std::vector<EvaluatedSupportFace> retained;
     auto opening=*source;opening.face=rim;opening.role="shell-rim";opening.boundaryEdges.clear();retained.push_back(opening);
     for(const auto& face:body.supportFaces)if(face.faceId!=source->faceId && faces.Contains(face.face))retained.push_back(face);
