@@ -19,7 +19,11 @@ identities. Other bodies use UUIDv5 of feature UUID, occurrence index and source
 UUID; their mapped supports and edges use corresponding source identities.
 They are evaluated derivatives, with no independently authored clone features.
 The bounded `SolidTransform` helper reuses the existing exact OCCT transform
-history path used by Mirror. Every mapped face/edge must be an actual unique
+history path used by Mirror. Proper circular rotations use OCCT location transforms
+without deep-copying exact curves/pcurves; Mirror retains deep geometry copying
+for reflection. A deep-copy rotation was independently found to invalidate a
+valid exact offset prism through pcurve tolerance loss; rigid placement preserves
+its exact geometry and original serialized BRep. Every mapped face/edge must be an actual unique
 result descendant, and every occurrence preserves one valid closed solid and
 its volume. Current owner placements are identity; cross-owner dependencies refuse.
 

@@ -43,9 +43,11 @@ TopoDS_Shape uniqueMapped(BRepBuilderAPI_Transform& builder,const TopoDS_Shape& 
 }
 EvaluatedBody SolidTransform::copy(const EvaluatedBody& source,const gp_Trsf& reflection,
     const QString& featureId,const QString& bodyId,const QString& name,bool visible,
-    const QByteArray& idPrefix,const QString& operation,const QString& sourceEdgeKey){
+    const QByteArray& idPrefix,const QString& operation,const QString& sourceEdgeKey,bool copyGeometry){
     auto fail=[&](const QString& code,const QString& message){throw GeometryKernel::EvaluationError({{"code",operation+"_"+code},{"message",message},{"featureId",featureId},{"sourceBodyId",source.bodyId}});};
-    BRepBuilderAPI_Transform builder(source.shape,reflection,true);
+    // Proper rigid rotations retain exact geometry and pcurves through location.
+    // Reflection callers still request geometry copying.
+    BRepBuilderAPI_Transform builder(source.shape,reflection,copyGeometry);
     if(!builder.IsDone())fail("failed","Body transform failed");
     const auto result=builder.Shape();auto summary=GeometryKernel::summarize(result);
     const auto sourceVolume=source.summary["volumeMm3"].toDouble(),resultVolume=summary["volumeMm3"].toDouble();

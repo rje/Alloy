@@ -12,7 +12,15 @@ and a simple radius-6 hub produces one valid connected solid. Reducing the count
 with downstream occurrence references refuses without altering authored state;
 fractional count also refuses. This simple fixture is independent ingredient
 proof, not an ornament approximation. Existing Mirror regression passes after the
-shared exact-transform helper extraction. Final core 2/2 passed in 0.55 s.
+shared exact-transform helper extraction. Initial core 2/2 passed in 0.55 s. Final rigid-transform core 2/2 passed in 1.61 s.
+The added regression constructs the actual declared fit points (-4,-1), (6,19),
+(-5,45), (3,89), exact -5 offset and explicit endpoint connectors in XZ, extrudes
+the strip 60 mm as a New Body, then evaluates eight occurrences twice. All actual
+solids remain valid/equal-volume with mapped supports/edges and repeat identities;
+the original serialized BRep and authored document stay unchanged. Proper rotations
+use exact OCCT locations; Mirror keeps reflection deep-copy behavior. This fixes
+independently observed pcurve damage from deep-copying that valid exact prism,
+without approximating its curves or claiming the cumulative Intersect/Join works.
 
 Native `circular_body_pattern_controls_test` loads the core-authored real seed,
 then clicks the toolbar command and actual body in the viewport, chooses Origin Z
@@ -35,12 +43,17 @@ No fixture focus repair or speculative product timer remains. Objects text is co
 M4, Apple OpenGL 4.1 Metal and display ratio 2, with actual GPU framebuffer captures.
 This is macOS evidence; Windows/Linux runtime qualification remains separate.
 
-Evidence is external at `validation/circular-body-pattern/`: `core-final.log`,
+Evidence is external at `validation/circular-body-pattern/`: `core-final.log`, `core-rigid-final.log`,
 `native-attempt-01.log`, preserved `attempt-01/`/`attempt-02/` captures and attempt logs, `native-attempt-05.log`,
 `native-eight-preview.png`, `native-eight-accepted.png`, preview/final state JSON,
 `source-seed.alloy` and `native-eight.alloy`. The private editor exited normally.
-App SHA256: `170384937d5687fdd6a0e2cc48f999c90e48e07d95d56133565bbd5182748d79`.
-Native fixture SHA256: `400ed904536f7ed2b262c5a155cad0f80e9b2a9d36b22557a0a1e85a11bad8dc`.
+Final app builds on rebased main cf07ebc with the rigid-placement fix.
+App SHA256: `61ab4cc0b99d1fbfef34ee1abbbddc0c1cdd176e01ad3ad41be7d04b5b90232e`.
+Native fixture SHA256: `05fdbd821b321c2f54b55bcce6cd2db5c2012e44b1434231a8e24b9b1f558b07`.
+
+Native attempt 05 predates the final rigid-placement helper change and dependency
+rebase; its UI source is unchanged. Final core/app-build evidence covers the
+helper and additive integration; no unchanged native replay was required.
 
 Compatibility: matched documented Bodies/one seed/Full/total eight and actual
 editable ownership/history behavior. Origin Z selection, initial count 3,
