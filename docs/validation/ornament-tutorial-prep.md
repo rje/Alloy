@@ -3,7 +3,8 @@
 Prepared 2026-10-13. This is a plan, not an accepted tutorial. Public source
 `ornament-pattern-20261013` and its detailed independent ledger, images and
 provenance remain in external `knowledge/tutorials/after-slots-splines/`.
-Prerequisites #260–262 are accepted; #263 and #265 remain required.
+Prerequisites #260–263 are accepted; Shell correction #266 and cumulative
+Join verification #265 remain required.
 
 ## Source sequence and recording
 
@@ -38,7 +39,9 @@ floor, partly obscured by its gizmo. The earlier open-bottom requirement was an
 inference. #266 investigates exact offset/axis trimming without changing source
 dimensions; keep resulting boundary compatibility qualified until reviewed.
 
-The current prefix runner is `tests/ornament_source_api.py`. Its first actual-app
+The current prefix runner is `tests/ornament_source_api.py`; its optional stage
+callback supplies source-order movie captions without changing modeling commands.
+No full ornament recording is accepted yet. Its first actual-app
 run refuses Intersect; see `exact-offset-join-investigation.md`. Do not reuse its
 diagnostic captures as final movie framing: the radial profile is too small and
 oblique, and the strip is partly occluded. Use Look At for sketch stages and

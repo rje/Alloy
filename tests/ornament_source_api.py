@@ -8,14 +8,16 @@ from pathlib import Path
 from app_harness import application
 
 
-def create_seed(call, out):
+def create_seed(call, out, stage=None):
     """Author the source through Intersect; reused by the future cumulative gate."""
+    stage = stage or (lambda caption: None)
     def inspect(): return call('document.inspect')
     def draft(): return call('app.state')['activeSession']['draftSketch']
     def entity(): return draft()['parameters']['entities'][-1]
     def capture(name): call('capture.screenshot', {'path': str(out/(name+'.png'))})
     assert not inspect()['authored']['features']
     call('window.resize', {'width': 1400, 'height': 1000})
+    stage('Sketch radial profile: height 80, base 5, arc radius 50 mm')
     call('sketch.begin', {'plane': 'XZ', 'name': 'Radial profile'})
     call('sketch.line', {'x1': 0, 'y1': 0, 'x2': 0, 'y2': 80, 'units': 'mm'})
     axis = entity()
@@ -45,20 +47,24 @@ def create_seed(call, out):
     call('sketch.lookAt'); capture('radial-profile')
     call('sketch.finish')
     profile = inspect()['evaluation']['sketches'][-1]['profiles'][0]['profileId']
+    stage('Full Revolve around the vertical profile boundary')
     call('solid.revolve', {'sketchId': source_id, 'profileId': profile, 'axisEntityId': axis['id']})
     body = inspect()['evaluation']['bodies'][0]
     face = next(f for f in body['supportFaces'] if f['role'] == 'revolve.radial')
+    stage('Select bottom face; Inside Shell 5 mm')
     call('solid.shell', {'targetBodyId': body['bodyId'], 'removedFace':
          {k: face[k] for k in ('producerFeatureId', 'bodyId', 'faceId')}, 'thicknessMm': 5})
     call('view.home'); capture('shell')
     before = inspect()['authored']['features']
     call('view.origin', {'visible': True})
+    stage('Inspect hollow interior with hatched XZ Section Analysis')
     call('inspect.section', {'plane': 'XZ', 'hatch': True})
     analysis = inspect()['authored']['analyses'][-1]
     assert inspect()['authored']['features'] == before
     capture('section-hatched')
     call('view.orientation', {'name': 'front'}); capture('section-front')
     call('analysis.visibility', {'analysisId': analysis['id'], 'visible': False})
+    stage('Sketch S-shaped fit spline; Offset 5 mm and connect ends')
     call('sketch.begin', {'plane': 'XZ', 'name': 'S shaped strip'})
     fixture = [(-4, -1), (6, 19), (-5, 45), (3, 89)]
     call('sketch.splineAdd', {'points': [{'uMm': x, 'vMm': y} for x, y in fixture]})
@@ -77,6 +83,7 @@ def create_seed(call, out):
     strip = inspect()['evaluation']['sketches'][-1]
     assert len(strip['profiles']) == 1
     call('document.save', {'path': str(out/'ornament-pre-intersect.alloy')})
+    stage('Intersect the closed strip through the shell to create one rib')
     call('solid.extrude', {'sketchId': strip_id, 'profileId': strip['profiles'][0]['profileId'],
          'distance': 60, 'units': 'mm', 'operation': 'intersect', 'targetBodyIds': [body['bodyId']]})
     state = inspect()
