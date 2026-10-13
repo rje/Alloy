@@ -43,3 +43,28 @@ Compatibility status: **matched** for the bounded source C/type/Tab/Enter
 ingredient and Circle2 result under injected Qt events; **unknown** for physical
 OS input, exact reference styling, and reference constraint storage. Full
 paper-clip tutorial #225 remains a separate gate.
+
+## Independent acceptance
+
+Astra independently reviewed candidate `008695b8be4a6ace5593835964d052056e70af9a`
+on 2026-10-13. Source, persisted Qt log and test, actual locked preview capture,
+API report and saved authored model support bounded #226 acceptance. No extra
+GUI run or unchanged replay was needed. The native log records three passing
+stages in 2383 ms; API saved JSON exactly matches its report and retains one
+XZ radius-1 circle and a driving diameter of 2 mm.
+
+Tab is intercepted only for the active inline editing state and invokes shared
+lock authority. The locked diameter stays disposable until the existing atomic
+Circle accept path runs. Accept/Cancel and common session/tab teardown restore
+the shared field's editability; the native case explicitly checks the next Circle
+entry is editable and cancellation preserves the first circle. The actual cue
+and instructions are readable, with a visible circle preview at the disclosed
+eightfold zoom.
+
+The test directs keys to real Qt widgets and explicitly calls view setFocus before
+Return/Escape. Source also requests viewport focus when locking, but this evidence
+does not independently prove automatic OS-level focus transfer. Acceptance covers
+shared lock state and dispatched key routing, not physical keyboard focus or
+reference styling/storage parity. The prior null-focus probe remains recorded
+as failed evidence rather than being relabeled. Full #225 tutorial acceptance
+remains separate.
