@@ -110,3 +110,56 @@ before #265 or the full ornament can be accepted.
 Library evidence (retrieved 2026-10-13):
 [OCCT 7.9.3 gluing contract](https://raw.githubusercontent.com/Open-Cascade-SAS/OCCT/V7_9_3/src/BOPAlgo/BOPAlgo_GlueEnum.hxx),
 [SameParameter declarations](https://raw.githubusercontent.com/Open-Cascade-SAS/OCCT/V7_9_3/src/BRepLib/BRepLib.hxx).
+
+## Retained prefix and stopped shared partition
+
+The actual application source prefix at main 22d8237 independently reproduces a
+prior refusal: the same constrained source, Shell, Section, exact retained strip
+and explicit Lines reach one profile, but the 60 mm Intersect refuses
+`boolean_empty_result`. External `deliverables/ornament-2026-10-13/source-prefix-01`
+retains the complete command transcript, pre-Intersect authored JSON and inspection.
+This earlier refusal must be resolved before retained Pattern/Join acceptance.
+
+Astra proposed one shared ancestor CellsBuilder partition: unchanged shell S,
+exact prism T0, its 45° rotation T1 and hub H; select
+`H OR (S AND T0) OR (S AND T1)` with common material 1 and remove boundaries once.
+The prerequisite checks now stop that experiment before partitioning. No all-parts,
+selected result, material-equivalence classifier run or eight-member expansion is
+claimed.
+
+The first retained diagnostic mistakenly used an eager Common constructor before
+setting non-destructive flags. Its post-operation metrics were confounded. The
+external `retained-prefix/method-confound.txt` labels this attempt. The corrected
+`retained-prefix-clean` captures untouched shapes and verifies serialized hashes
+before/after OCCT argument checks. Independent `raw-inputs-clean` checks the
+original raw shell/prisms before any Common or partition.
+
+Clean retained and raw checks both establish an original Shell issue:
+BRepCheck-valid, closed, one solid, but Boolean self-interference status 2. Their
+worst edge tolerance is approximately 0.8038713 mm. The reported fault contains
+inner face 3 (`Geom_OffsetSurface`), its seam and adjoining edges/vertices; it does
+not identify the outer revolution face. Inner seam edge 5 has a measured
+curve/pcurve deviation of 0.765708011 mm. Its end vertices are approximately
+(-2.73098, 0, 0) and (-0.071672, 0, 73.93430) mm, with the same high tolerance.
+This spans the inner seam rather than establishing an apex-only defect. The
+precise self-intersection parameter pair remains unknown. The prior regular-wall,
+opening and BRep checks remain their recorded bounded evidence; they did not
+establish Boolean-argument validity for downstream operations.
+
+A distinct rotation defect affects the diagnostic prism: the original exact
+prism passes both checks, while a deep-copy 45° transform fails Boolean
+InvalidCurveOnSurface and cap-face UnorientableShape. The offset boundary's cap
+pcurve deviation reaches 5.28355e-7 mm against a 5.18806e-7 mm edge tolerance.
+The same rigid rotation with shared geometry/location passes BRep and Boolean
+argument checks and preserves the source hash. This is a narrowly demonstrated
+rigid-rotation representation remedy, not a cure for Shell or array Join. #263
+owns its actual retained Pattern, lineage and immutability qualification; Mirror
+reflection policy remains separate.
+
+Evidence: `retained-prefix-clean/{report.json,shell-subshapes.json,prism1-subshapes.json}`,
+`raw-inputs-clean/report.json`, `shared-prism-rotation/report.json` and their input/
+fault BReps. The read-only inspection and build helpers are external alongside
+these records. No GUI, source simplification, tolerance alteration, production
+approximation or CellsBuilder patch was introduced. Shell robustness, rigid
+rotation and existing Join-lineage non-destructive processing require separate
+bounded ownership and review.

@@ -2695,3 +2695,14 @@ no production approximation fallback is justified. Astra reviews the structural
 Boolean diagnosis before further experiments; actual retained #263 Pattern/Join reproduction remains
 required. See validation/exact-offset-join-investigation.md and external
 validation/ornament-feasibility. No editor was launched for these diagnostics.
+
+#265 clean input qualification now blocks the proposed CellsBuilder experiment:
+untouched retained and raw Shells are BRep-valid but fail OCCT Boolean
+self-interference checks on the inner offset face/seam (~0.804 mm acquired edge
+tolerance). A first eager-constructor diagnostic was confounded and is explicitly
+labeled externally; clean pre-BOP hashes confirm the finding independently.
+Actual source-prefix Intersect also refuses before Pattern. Separate exact-prism
+rigid rotation passes with shared locations and fails under deep copy; #263 owns
+that bounded transform correction and retained validation. No partition/8-member
+expansion or production geometry policy changed. See the updated investigation
+receipt; Shell and Join-lineage concerns need separate bounded decisions.
