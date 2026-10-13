@@ -48,6 +48,16 @@ the complete blank-model workflow through the shared API with command overlays.
 This is not complete CAD parity.
 Annotated real-app tutorial movies can now be recorded with local commands; see
 [the video recipe and verified results](docs/validation/tutorial-video.md).
+The overnight tutorials now include independently accepted
+[nested cubes](docs/validation/nested-cubes-independent.md) and a
+[lofted egg cup](docs/validation/egg-cup-independent.md), with full creation
+recordings, editable models and independently checked STL files. These exercise
+inward Shell, body Mirror, offset planes, centered rectangles, retained planar
+face sketches and ordered circular Loft sections. The full
+[toy block](docs/validation/toy-block-independent.md) also passes feature patterns,
+Shell roof references, retained circle Offset and nineteen-edge rounding.
+Acceptance is bounded to the
+documented workflows; exact visual and physical-input parity remains qualified.
 The next illustrated object now passes an integrated API chain: command-first
 Circle, a joined boss, a sketch on its new cap, an editable body Move and Combine
 Cut. The [straw-bung checkpoint](docs/validation/straw-bung.md) includes a closed

@@ -15,7 +15,9 @@
         "TUT-006"
       ],
       "acceptance": "Shell, mirror, face cuts, fillets and centered internal body retain editable references.",
-      "status": "todo"
+      "status": "done",
+      "evidence": "docs/validation/nested-cubes-independent.md",
+      "remaining": "None for the bounded functional API/artifact gate. Separate Qt interaction evidence and exact visual/native limitations are recorded in the receipt."
     },
     {
       "id": "CP-09",
@@ -25,7 +27,9 @@
         "TUT-007"
       ],
       "acceptance": "Four ordered sections on offset planes, loft and inward shell produce a printable editable solid.",
-      "status": "todo"
+      "status": "done",
+      "evidence": "docs/validation/egg-cup-independent.md",
+      "remaining": "None for the bounded functional API/artifact gate. Separate Qt interaction evidence and exact visual/native limitations are recorded in the receipt."
     },
     {
       "id": "CP-10",
@@ -33,15 +37,24 @@
       "issues": [
         "SOL-027",
         "SKT-032",
+        "SKT-033",
+        "DOC-018",
+        "REL-007",
+        "FND-021",
         "TUT-001"
       ],
       "acceptance": "Resolve public demonstration selections; complete shell, feature patterns, offset annulus, fillets, editable/reopened model and checked STL with full creation recording.",
-      "status": "todo"
+      "status": "done",
+      "evidence": "docs/validation/toy-block-independent.md",
+      "remaining": "Adapted functional API/artifact gate accepted. Direct first-stud center-to-edge dimension gesture remains SKT-017/#150; physical OS input and exact visual parity unverified."
     },
     {
       "id": "CP-11",
       "title": "Overflow: face-positioned spherical die cuts",
       "issues": [
+        "ASM-004",
+        "SOL-028",
+        "SOL-014",
         "TUT-002"
       ],
       "acceptance": "Complete source component and spherical-cut workflow, cancel/finish checks and printable STL; no cylindrical pip substitution.",

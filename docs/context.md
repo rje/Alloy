@@ -18,47 +18,63 @@ or release is promised. Keep board updates tied to real active ownership.
 
 ## Overnight implementation checkpoint (2026-10-13)
 
-Shell #185 and offset planes #186 have bounded independent Astra acceptance;
-see validation/solid-shell.md and validation/offset-planes.md. Both issues are
-closed. Actual geometry/API/visual and focused Qt input evidence pass. OS mouse
-automation is unavailable (CUA native pipe startup failure); this is explicitly
-separate from Qt widget events. Plane viewport-profile context, amber preview,
-numeric Enter completion and modal capture are verified. The broader inline
-arrow presentation remains in #56.
+Nested cubes #172 and egg cup #173 are independently accepted as complete
+API/artifact gates and CLOSED. Receipts: validation/nested-cubes-independent.md
+and validation/egg-cup-independent.md. Each has an editable source-sized model,
+strictly checked STL, full blank-to-finish movie and separate bounded Qt input
+evidence. Physical OS automation remains unavailable; exact interpolation or
+pixel parity is not claimed. Shell185, planes186, named faces187, Mirror188,
+Center Rectangle189, Loft190, circle Offset192, multi-body STL193, binary facet
+precision fix194, modal quit195, and bounded client deadline197 are CLOSED.
 
-Center Rectangle #189 and multi-body STL #193 have independent bounded
-acceptance and are closed; see their independent validation receipts. Mirror
-#188 geometry/input passes but panel clipping and selected-source visibility
-required fixes (integrated9eee023), awaiting Astra final review.
+Nested deliverables external deliverables/nested-cubes-2026-10-13; movie53.4sec
+external demos/2026-10-13/nested-cubes/nested-cubes-from-blank.mp4. Evidence in
+build-tutorial-polish/evidence/nested-cubes-movie. Two closed components; inner
+12mm cube centered inside25mm outer, eight collapsed binary pole facets filtered
+on detached mesh without weakening strict readback. Named face support uses exact
+evaluated producer/body/face lineage, including Boolean survivor ownership.
 
-Root's full nested-cubes runner tests/nested_cubes_api.py now passes actual
-blank-to-two-body geometry, three orthogonal cuts, twelve edge fillets, offset
-plane/center rectangle, upstream Shell edit/undo/redo and exact reopen. Independent
-strict STL reader verifies two closed oriented components, inner bounds6.5..18.5
-and volume1728. Binary precision collapsed eight rounded-pole triangles; detached
-export-mesh filtering fixes this (#194 PRT-006), with unchanged manifold checks.
-Full movie53.4seconds at external demos/2026-10-13/nested-cubes/
-nested-cubes-from-blank.mp4; evidence/nested-cubes-movie contains editable file,
-STL, captures and transcript. Gate #172 remains open pending independent review.
-Named planar faces #187 now allow evaluated producer/body lineage through Mirror
-and Combine; exact kernel face references still validate every attachment.
+Egg deliverables external deliverables/egg-cup-2026-10-13; final movie36.7sec
+external demos/2026-10-13/egg-cup/egg-cup-complete.mp4. Final evidence in
+evidence/egg-cup-final; one closed13450triangle STL, source heights0/18/38/58.
+Loft uses blue section outlines and suppresses transient datum fills during
+valid preview; authored visibility preserved. Full parameter/history evidence
+in evidence/loft-timing. Default client deadline30sec, configurable--timeout,
+identity probes2sec. Some redo/reopen took5–9sec; performance followup stays#83.
 
-Loft #190 integrated973d95e, bounded circular section/Shell tests pass; Astra owns
-the exclusive desktop for corrected Mirror, authorized modal shutdown #195,
-nested outcome/movie and Loft interaction/visual review. Root must not rebuild
-or launch until released. tests/widget_interactions.cpp remains verifier-owned.
-Root prepared tests/egg_cup_api.py for full source-sized export/movie; NOT RUN.
-Astra's existing Loft script edits final dimensions and is feature verification,
-not the final source-sized egg-cup deliverable.
+Toy block #146 is independently accepted as an adapted complete API/artifact
+gate and CLOSED, together with Pattern191, roof196, Bottom198, display199 and
+shutdown202. Receipt validation/toy-block-independent.md; app/runner f17589e,
+independent Qt tests/receipts8c769b3. Final48second movie external
+ demos/2026-10-13/toy-block/toy-block-complete.mp4; editable model and STL in
+ deliverables/toy-block-2026-10-13. Strict one-component36644triangle mesh,
+31.8x15.8x11.3mm. Seed edit/history/exact reopen pass. First stud uses two retained
+projected-corner3.9 dimensions; direct center-to-edge gesture remains SKT017#150.
+Physical OS input and exact visual parity are not claimed.
 
-Circle Offset #192 ready as49ebe3f, not integrated while Astra uses desktop.
-Sol tutorial_shell now owns #196 SKT-033 inner Shell roof and occurrence-aware
-recess-center references in a new isolated worktree. Sol planes_finish owns #191
-additive feature Rectangular Pattern in tutorial-pattern. Both coordinate optional
-occurrenceId provenance without changing legacy reference identity. Public source
-contract external knowledge/tutorials/toy-block/inner-roof-reference-contract.json.
-All three overnight full tutorial gates remain open. Native input, API, geometry
-and visual claims remain separate; CUA OS events are currently unavailable.
+Pattern native-widget timeline/axes/Enter/Cancel/OK, Browser Bottom/roof click,
+eight center candidates, two retained references and construction midpoint circle
+pass. Mac global shortcut focus was unavailable; actual menu actions plus Qt
+mouse events supplied bounded input evidence. Active pending numeric teardown
+passes after child signals are blocked before window member destruction.
+Display tessellation .0005/.10 leaves exact CAD/export tolerances unchanged;
+recorded final fillet5.760seconds/reopen5.415seconds and zero capture failures.
+Weaker underside fill makes roof/tube inspection readable. Broader performance83
+and navigation22 remain Todo.
+
+All three requested gates are done; authorized overflow die#147 is now active.
+External source record knowledge/tutorials/warwick/library-die-ledger.md was
+updated with Center Rectangle189 acceptance and official public component/Sphere/
+Repeat descriptions. Root implements face-positioned Sphere Cut/Repeat#145.
+Sol die_components owns ASM004#200 in ../Alloy-worktrees/local-components;
+Sol die_chamfer owns SOL028#201 in ../Alloy-worktrees/equal-chamfer. Astra supplies
+independent review, starting with a read-only Sphere/reference risk pass. Root
+serializes all GUI validation and integration; no private editor remains open.
+Components require real definition/occurrence ownership and scoped STL; no body
+name substitute. Sphere recesses must be spherical, with actual face support and
+Repeat UI. Proposed20mm cube/1mmrounding/diameter3/21pips are declared fixture
+choices. Source default component activation and Repeat carry-over remain unknown;
+choose and document bounded defaults. Wider assembly/chamfer parents remain Todo.
 
 ## Complete support demo (2026-10-12)
 

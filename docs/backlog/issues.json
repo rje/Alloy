@@ -1035,7 +1035,7 @@
         "priority:P0",
         "area:skt"
       ],
-      "body": "## Problem and result\nCheckpoint: face sketch, model-edge dimensions and dependent cut. Deliver the researched workflow through shared Alloy commands and authored history.\n\n## Scope\nExercise the ordinary repeated modeling chain: create an extruded plate, choose its top planar face, project a boundary, dimension new geometry from that model edge, Extrude Cut, then create another sketch on an intact side face and Join a boss. Include an inclined planar support fixture.\n\n## Acceptance criteria\nThe actual UI supports the complete workflow without API-only substitutes. Support/projection references resolve at the correct history position and survive supported edits. New geometry remains dimensioned from the intended edge when that edge moves. Deleted/ambiguous support produces explicit recoverable diagnostics instead of silently reattaching. Geometry, history, IDs and native storage remain correct.\n\n## Proposed verification and evidence\nUse a 40\u00d725\u00d75 plate and radius-3 circle whose center is 5 mm from the right projected edge. Cut 5 mm: volume5000\u221245\u03c0. Edit width40\u219250; center follows the edge while the5mm offset remains, and volume becomes6250\u221245\u03c0. Add a side-face rectangular boss with independently specified dimensions. Inspect local/world frames on an inclined planar face, undo/redo, preview cancel and save/reopen. Perform bounded native face/edge selection and dimension placement. Reuse relevant accepted workflows once on the candidate, and inspect actual reference-comparable images.\n\n## Public reference evidence\n- Sketch editing and projection (reference `sketchmode`, reference `project`) \u2014 retrieved 2026-10-11.\n- Face-based modeling tutorials and preference-sensitive projection findings are recorded externally, retrieved 2026-10-12.\n\n## Limits and open questions\nThis is a local workflow checkpoint, not a cross-platform package/release or full product-parity gate. Curved-surface wrapping and unsupported topology changes remain explicitly separate.\n\n\n## Tutorial delivery order\nFollow `docs/backlog/tutorial-sequence.json`. Implement tutorial-required slices first; retain full issue acceptance and dependencies. Record each source step separately as passed, mismatch, blocked or unknown, with API/geometry, native-input and visual evidence distinguished.\n"
+      "body": "## Problem and result\nCheckpoint: face sketch, model-edge dimensions and dependent cut. Deliver the researched workflow through shared Alloy commands and authored history.\n\n## Scope\nExercise the ordinary repeated modeling chain: create an extruded plate, choose its top planar face, project a boundary, dimension new geometry from that model edge, Extrude Cut, then create another sketch on an intact side face and Join a boss. Include an inclined planar support fixture.\n\n## Acceptance criteria\nThe actual UI supports the complete workflow without API-only substitutes. Support/projection references resolve at the correct history position and survive supported edits. New geometry remains dimensioned from the intended edge when that edge moves. Deleted/ambiguous support produces explicit recoverable diagnostics instead of silently reattaching. Geometry, history, IDs and native storage remain correct.\n\n## Proposed verification and evidence\nUse a 40\u00d725\u00d75 plate and radius-3 circle whose center is 5 mm from the right projected edge. Cut 5 mm: volume5000\u221245\u03c0. Edit width40\u219250; center follows the edge while the5mm offset remains, and volume becomes6250\u221245\u03c0. Add a side-face rectangular boss with independently specified dimensions. Inspect local/world frames on an inclined planar face, undo/redo, preview cancel and save/reopen. Perform bounded native face/edge selection and dimension placement. Reuse relevant accepted workflows once on the candidate, and inspect actual reference-comparable images.\n\n## Public reference evidence\n- Sketch editing and projection (reference `sketchmode`, reference `project`) \u2014 retrieved 2026-10-11.\n- Face-based modeling tutorials and preference-sensitive projection findings are recorded externally, retrieved 2026-10-12.\n\n## Limits and open questions\nThis is a local workflow checkpoint, not a cross-platform package/release or full product-parity gate. Curved-surface wrapping and unsupported topology changes remain explicitly separate.\n\n\n## Tutorial delivery order\nFollow `docs/backlog/tutorial-sequence.json`. Implement tutorial-required slices first; retain full issue acceptance and dependencies. Record each source step separately as passed, mismatch, blocked or unknown, with API/geometry, native-input and visual evidence distinguished.\n\n## Toy-block input follow-up\nThe full toy-block candidate uses retained horizontal/vertical dimensions from a projected corner to the stud center for two3.9mm offsets. Geometry is equivalent for the axis-aligned corner; direct center-to-model-edge dimension selection is not thereby verified. Include that source-facing gesture in this checkpoint and compare native input/constraint placement. This remainder stays Todo after any functional toy gate acceptance.\n"
     },
     {
       "key": "DOC-015",
@@ -1303,7 +1303,7 @@
         "priority:P1",
         "area:sol"
       ],
-      "body": "## Problem and result\nAdd equal-distance and two-distance chamfers. Deliver the bounded result below within Alloy's standalone C++20 product; the current application is only a Qt shell.\n\n## Scope\nImplement edge selection, supported distance/angle variants and tangent-chain handling with history references.\n\n## Acceptance criteria\n- A chamfer is editable and separate from fillet; impossible distances fail with target identification.\n- UI and local API share authoritative document/commands; expose arguments, selection, errors and result inspection. Undo/save coverage follows the dependencies, never a separate automation model.\n\n## Proposed verification and evidence\nChamfer a plate edge and cylinder rim, verify expected planar cross-section and preserved upstream references after size edit.\n\nAdd/execute `python3 tests/workflows/run.py --case SOL-005 --evidence build/evidence/SOL-005` (case not implemented yet; the runner refuses missing cases). Record actual commands, fixture hashes, dependency versions, assertions and artifacts. Keep build, API, geometry, save/reopen, export, physical input and visual evidence separate; mark non-applicable dimensions with a reason.\n\n## Public reference evidence\n- Solid modification tools (reference `modify`) \u2014 retrieved 2026-10-11.\n\nReferences describe documented product/library behavior. Scope, implementation strategy, fixture values and acceptance thresholds are Alloy proposals unless explicitly stated otherwise. Never run or inspect reference CAD application; use public documentation/screenshots only.\n\n## Limits and open questions\nOnly the stated subset is in scope; record unsupported options explicitly. This issue is planned, not implemented or verified.\n"
+      "body": "## Problem and result\nAdd equal-distance and two-distance chamfers. Deliver the bounded result below within Alloy's standalone C++20 product; the current application is only a Qt shell.\n\n## Scope\nImplement edge selection, supported distance/angle variants and tangent-chain handling with history references.\n\n## Acceptance criteria\n- A chamfer is editable and separate from fillet; impossible distances fail with target identification.\n- UI and local API share authoritative document/commands; expose arguments, selection, errors and result inspection. Undo/save coverage follows the dependencies, never a separate automation model.\n\n## Proposed verification and evidence\nChamfer a plate edge and cylinder rim, verify expected planar cross-section and preserved upstream references after size edit.\n\nAdd/execute `python3 tests/workflows/run.py --case SOL-005 --evidence build/evidence/SOL-005` (case not implemented yet; the runner refuses missing cases). Record actual commands, fixture hashes, dependency versions, assertions and artifacts. Keep build, API, geometry, save/reopen, export, physical input and visual evidence separate; mark non-applicable dimensions with a reason.\n\n## Public reference evidence\n- Solid modification tools (reference `modify`) \u2014 retrieved 2026-10-11.\n\nReferences describe documented product/library behavior. Scope, implementation strategy, fixture values and acceptance thresholds are Alloy proposals unless explicitly stated otherwise. Never run or inspect reference CAD application; use public documentation/screenshots only.\n\n## Limits and open questions\nOnly the stated subset is in scope; record unsupported options explicitly. This issue is planned, not implemented or verified.\n\n## Bounded tutorial child\nSOL-028 owns the die-required bounded slice. This parent remains Todo for its full scope.\n"
     },
     {
       "key": "SOL-006",
@@ -1617,9 +1617,8 @@
       "depends_on": [
         "DOC-003",
         "DOC-004",
-        "DOC-006",
         "DOC-008",
-        "DOC-012",
+        "SKT-030",
         "SOL-002"
       ],
       "labels": [
@@ -1659,27 +1658,25 @@
         "SKT-008",
         "SKT-009",
         "SKT-010",
-        "SKT-011",
-        "SKT-013",
-        "SKT-016",
-        "SOL-002",
-        "SOL-003",
-        "SOL-006",
+        "SOL-018",
+        "SOL-022",
+        "SOL-024",
         "SOL-027",
-        "DOC-006",
-        "DOC-009",
-        "DOC-010",
-        "DOC-012",
-        "HIS-002",
-        "HIS-004",
-        "FND-010",
+        "SKT-030",
         "SKT-032",
-        "SKT-033"
+        "SKT-033",
+        "DOC-003",
+        "DOC-004",
+        "DOC-018",
+        "PRT-001",
+        "FND-010",
+        "REL-007",
+        "FND-021"
       ],
       "labels": [
         "area:tut"
       ],
-      "body": "## Problem and result\nGate: follow the complete public toy-block beginner lesson. Make public beginner-project exercises executable without hidden substitutes.\n\n## Scope\nFrom an empty document, follow the original lesson: 15.8 by 31.8 rectangle, 9.6 extrusion, positioned joined studs, two-direction feature pattern, 1.49 inward shell, construction/midpoint tube placement, offset annulus, tube pattern and 0.2 fillets. Use the source recipe and checkpoints in docs/research/tutorial-gates.md; local Save replaces cloud organization explicitly.\n\n## Acceptance criteria\nEvery demonstrated modeling step is available to a human and succeeds through shared real-app commands. Check actual constrained sketch, one valid solid, eight studs, three underside tubes, thickness/sections, editable feature history, save/reopen and one upstream edit/undo/redo. Resolve exact source underside snap and final fillet edge set before freezing the recipe. A base-only prefix is never full tutorial completion.\n\n## Proposed verification and evidence\nWhen prerequisites are implemented, register a full ordered tutorial case. Retain per-step passed/adapted/blocked/failed results, source and fixture versions, actual commands and checkpoint geometry/captures. Use native controls for uncovered Tab, selection, Cancel and timeline behavior. Compare permitted public views when inspected; keep geometry, visual and physical evidence distinct. Run accepted cumulative cases once on the milestone candidate, not once per tutorial.\n\n## Public reference evidence\n- Original public lesson (reference `tutorial-toy-block-2026`) \u2014 retrieved 2026-10-11. Source instructions and Alloy-chosen fixture values are distinguished in docs/research/tutorial-gates.md. Original URLs stay in the external reference records.\n\n## Limits and open questions\nBlocked and unexecuted. Source transcript selections still need public demonstration clarification. This local workflow gate does not establish three-platform packages or pixel parity; SKT-015 and GATE-020 keep their existing meanings.\n"
+      "body": "## Problem and result\nGate: follow the complete public toy-block beginner lesson. Make public beginner-project exercises executable without hidden substitutes.\n\n## Scope\nFrom an empty document, follow the original lesson: 15.8 by 31.8 rectangle, 9.6 extrusion, positioned joined studs, two-direction feature pattern, 1.49 inward shell, construction/midpoint tube placement, offset annulus, tube pattern and 0.2 fillets. Use the source recipe and checkpoints in docs/research/tutorial-gates.md; local Save replaces cloud organization explicitly.\n\n## Acceptance criteria\nEvery demonstrated modeling step is available to a human and succeeds through shared real-app commands. Check actual constrained sketch, one valid solid, eight studs, three underside tubes, thickness/sections, editable feature history, save/reopen and one upstream edit/undo/redo. Resolve exact source underside snap and final fillet edge set before freezing the recipe. A base-only prefix is never full tutorial completion.\n\n## Proposed verification and evidence\nWhen prerequisites are implemented, register a full ordered tutorial case. Retain per-step passed/adapted/blocked/failed results, source and fixture versions, actual commands and checkpoint geometry/captures. Use native controls for uncovered Tab, selection, Cancel and timeline behavior. Compare permitted public views when inspected; keep geometry, visual and physical evidence distinct. Run accepted cumulative cases once on the milestone candidate, not once per tutorial.\n\n## Public reference evidence\n- Original public lesson (reference `tutorial-toy-block-2026`) \u2014 retrieved 2026-10-11. Source instructions and Alloy-chosen fixture values are distinguished in docs/research/tutorial-gates.md. Original URLs stay in the external reference records.\n\n## Limits and open questions\nComplete candidate executed; independent cumulative review pending. Public demonstration selections are resolved in external toy-block ledgers. Initial stud placement uses retained projected-corner coordinate dimensions, producing the two intended 3.9 mm offsets; direct center-to-model-edge input remains a tracked compatibility adaptation in SKT-017/#150. Broader parent feature requirements remain Todo; dependencies now name the bounded implementations used by this gate. This local workflow gate does not establish three-platform packages or pixel parity; SKT-015 and GATE-020 keep their existing meanings.\n"
     },
     {
       "key": "GATE-030",
@@ -2008,7 +2005,7 @@
         "priority:P1",
         "area:rel"
       ],
-      "body": "## Problem and result\nSet and qualify useful performance budgets from real documents. Deliver the bounded result below within Alloy's standalone C++20 product; the current application is only a Qt shell.\n\n## Scope\nMeasure startup, selection/orbit, sketch solve, recompute, save/import and cancellation on bracket, duct, multi-body and growing-feature fixtures; set budgets before optimization.\n\n## Acceptance criteria\n- Declared hardware/data size and p50/p95 or repeatable ranges accompany budgets; a nonblocking operation remains cancelable without losing edits.\n- UI and local API share authoritative document/commands; expose arguments, selection, errors and result inspection. Undo/save coverage follows the dependencies, never a separate automation model.\n\n## Proposed verification and evidence\nBenchmark fresh/warm runs through real app API and physical orbit; profile only failed budgets, record traces and object/feature counts.\n\nAdd/execute `python3 tests/workflows/run.py --case REL-004 --evidence build/evidence/REL-004` (case not implemented yet; the runner refuses missing cases). Record actual commands, fixture hashes, dependency versions, assertions and artifacts. Keep build, API, geometry, save/reopen, export, physical input and visual evidence separate; mark non-applicable dimensions with a reason.\n\n## Public reference evidence\n- [OCCT visualization](https://www.occt3d.com/dev/doc/overview/html/occt_user_guides__visualization.html) \u2014 retrieved 2026-10-11.\n- reference CAD application public command-input descriptions (reference `inputs`) \u2014 retrieved 2026-10-11.\n\nReferences describe documented product/library behavior. Scope, implementation strategy, fixture values and acceptance thresholds are Alloy proposals unless explicitly stated otherwise. Never run or inspect reference CAD application; use public documentation/screenshots only.\n\n## Limits and open questions\nOnly the stated subset is in scope; record unsupported options explicitly. This issue is planned, not implemented or verified.\n"
+      "body": "## Problem and result\nSet and qualify useful performance budgets from real documents. Deliver the bounded result below within Alloy's standalone C++20 product; the current application is only a Qt shell.\n\n## Scope\nMeasure startup, selection/orbit, sketch solve, recompute, save/import and cancellation on bracket, duct, multi-body and growing-feature fixtures; set budgets before optimization.\n\n## Acceptance criteria\n- Declared hardware/data size and p50/p95 or repeatable ranges accompany budgets; a nonblocking operation remains cancelable without losing edits.\n- UI and local API share authoritative document/commands; expose arguments, selection, errors and result inspection. Undo/save coverage follows the dependencies, never a separate automation model.\n\n## Proposed verification and evidence\nBenchmark fresh/warm runs through real app API and physical orbit; profile only failed budgets, record traces and object/feature counts.\n\nAdd/execute `python3 tests/workflows/run.py --case REL-004 --evidence build/evidence/REL-004` (case not implemented yet; the runner refuses missing cases). Record actual commands, fixture hashes, dependency versions, assertions and artifacts. Keep build, API, geometry, save/reopen, export, physical input and visual evidence separate; mark non-applicable dimensions with a reason.\n\n## Public reference evidence\n- [OCCT visualization](https://www.occt3d.com/dev/doc/overview/html/occt_user_guides__visualization.html) \u2014 retrieved 2026-10-11.\n- reference CAD application public command-input descriptions (reference `inputs`) \u2014 retrieved 2026-10-11.\n\nReferences describe documented product/library behavior. Scope, implementation strategy, fixture values and acceptance thresholds are Alloy proposals unless explicitly stated otherwise. Never run or inspect reference CAD application; use public documentation/screenshots only.\n\n## Limits and open questions\nOnly the stated subset is in scope; record unsupported options explicitly. This issue is planned, not implemented or verified.\n\n\n## Concrete tutorial latency followup\nEgg-cup Loft with downstream Shell2: GPU app redo5.195s and native reopen8.242s observed2026-10-13; complete focused geometry test0.78s. Use evidence/loft-timing and full egg-cup transcript to separate kernel, tessellation, selection rebuild and redraw costs. FND-020 raises the client response deadline only; it does not resolve interactive latency. Preserve smooth visual quality and authored history while reducing repeated display work.\n"
     },
     {
       "key": "REL-005",
@@ -2167,7 +2164,7 @@
         "priority:P1",
         "area:asm"
       ],
-      "body": "## Problem and result\nAdd components, occurrences and local external references. Deliver the bounded result below within Alloy's standalone C++20 product; the current application is only a Qt shell.\n\n## Scope\nSeparate reusable component definitions from placed occurrences, active ownership and local referenced-document identity; update with explicit missing-source handling.\n\n## Acceptance criteria\n- Two instances share source geometry but have distinct placements/IDs; modifying source updates intended assembly instances after accepted update.\n- UI and local API share authoritative document/commands; expose arguments, selection, errors and result inspection. Undo/save coverage follows the dependencies, never a separate automation model.\n\n## Proposed verification and evidence\nBuild clamp body/jaw/screw from local files, duplicate one part, move occurrences, save/reopen and update source dimension; compare BOM counts and transforms.\n\nAdd/execute `python3 tests/workflows/run.py --case ASM-001 --evidence build/evidence/ASM-001` (case not implemented yet; the runner refuses missing cases). Record actual commands, fixture hashes, dependency versions, assertions and artifacts. Keep build, API, geometry, save/reopen, export, physical input and visual evidence separate; mark non-applicable dimensions with a reason.\n\n## Public reference evidence\n- Components (reference `B01`) \u2014 retrieved 2026-10-11.\n- Work offline in reference CAD application (reference `B04`) \u2014 retrieved 2026-10-11.\n\nReferences describe documented product/library behavior. Scope, implementation strategy, fixture values and acceptance thresholds are Alloy proposals unless explicitly stated otherwise. Never run or inspect reference CAD application; use public documentation/screenshots only.\n\n## Limits and open questions\nOnly the stated subset is in scope; record unsupported options explicitly. This issue is planned, not implemented or verified.\n"
+      "body": "## Problem and result\nAdd components, occurrences and local external references. Deliver the bounded result below within Alloy's standalone C++20 product; the current application is only a Qt shell.\n\n## Scope\nSeparate reusable component definitions from placed occurrences, active ownership and local referenced-document identity; update with explicit missing-source handling.\n\n## Acceptance criteria\n- Two instances share source geometry but have distinct placements/IDs; modifying source updates intended assembly instances after accepted update.\n- UI and local API share authoritative document/commands; expose arguments, selection, errors and result inspection. Undo/save coverage follows the dependencies, never a separate automation model.\n\n## Proposed verification and evidence\nBuild clamp body/jaw/screw from local files, duplicate one part, move occurrences, save/reopen and update source dimension; compare BOM counts and transforms.\n\nAdd/execute `python3 tests/workflows/run.py --case ASM-001 --evidence build/evidence/ASM-001` (case not implemented yet; the runner refuses missing cases). Record actual commands, fixture hashes, dependency versions, assertions and artifacts. Keep build, API, geometry, save/reopen, export, physical input and visual evidence separate; mark non-applicable dimensions with a reason.\n\n## Public reference evidence\n- Components (reference `B01`) \u2014 retrieved 2026-10-11.\n- Work offline in reference CAD application (reference `B04`) \u2014 retrieved 2026-10-11.\n\nReferences describe documented product/library behavior. Scope, implementation strategy, fixture values and acceptance thresholds are Alloy proposals unless explicitly stated otherwise. Never run or inspect reference CAD application; use public documentation/screenshots only.\n\n## Limits and open questions\nOnly the stated subset is in scope; record unsupported options explicitly. This issue is planned, not implemented or verified.\n\n## Bounded tutorial child\nASM-004 owns the die-required bounded slice. This parent remains Todo for its full scope.\n"
     },
     {
       "key": "ASM-002",
@@ -2297,24 +2294,22 @@
       "phase": "P5 Assemblies/drawings",
       "priority": "P1",
       "depends_on": [
-        "SKT-015",
-        "SKT-005",
-        "SOL-002",
-        "SOL-003",
-        "SOL-005",
+        "ASM-004",
+        "SKT-031",
+        "SOL-001",
+        "SOL-022",
+        "SOL-028",
         "SOL-014",
-        "DOC-006",
-        "DOC-010",
-        "DOC-012",
+        "SKT-030",
+        "DOC-003",
+        "DOC-004",
         "PRT-001",
-        "FND-010",
-        "ASM-001",
-        "SKT-021"
+        "FND-010"
       ],
       "labels": [
         "area:tut"
       ],
-      "body": "## Problem and result\nGate: follow the complete public first-project die lesson and export STL. Make public beginner-project exercises executable without hidden substitutes.\n\n## Scope\nFollow the original library lesson from a blank file: named component, center-point square, cube extrusion, compare/cancel Chamfer and Fillet, accept rounding, face-positioned spherical cuts with Repeat on all six sides, and component STL export. The 20 mm cube, 1 mm rounding and diameter-3 pip layout are explicit Alloy fixture choices because the author lets learners choose dimensions.\n\n## Acceptance criteria\nAll source steps succeed with real UI/API operations, including component organization and actual spherical recesses. Inspect one valid solid, opposite face counts summing to seven, 21 pips, preview cancellation, retained feature identities, save/reopen and manifold millimeter-scale STL readback. Do not report body-only or cylinder-cut adaptations as a complete original tutorial pass.\n\n## Proposed verification and evidence\nRegister the full ordered recipe when dependencies exist. Freeze the face-axis/pip table, inspect analytic initial volume 8000 mm3 and hemispherical removal 47.25*pi mm3 from the measured rounded cube, and capture all six faces plus oblique view. Record native face selection, Repeat and rounding Cancel; use API for reproducible modeling/inspection. Source images are not yet inspected, so visible expected-shape checks cannot claim a matched-reference image.\n\n## Public reference evidence\n- Original public lesson (reference `tutorial-library-die`) \u2014 retrieved 2026-10-11. Source instructions and Alloy-chosen fixture values are distinguished in docs/research/tutorial-gates.md. Original URLs stay in the external reference records.\n\n## Limits and open questions\nBlocked and unexecuted. Full component step currently belongs to the later component milestone. A clearly labeled model-only adaptation may be explored earlier but cannot close this issue. No printing/upload service or automatic CI per commit.\n"
+      "body": "## Problem and result\nGate: follow the complete public first-project die lesson and export STL. Make public beginner-project exercises executable without hidden substitutes.\n\n## Scope\nFollow the original library lesson from a blank file: named component, center-point square, cube extrusion, compare/cancel Chamfer and Fillet, accept rounding, face-positioned spherical cuts with Repeat on all six sides, and component STL export. The 20 mm cube, 1 mm rounding and diameter-3 pip layout are explicit Alloy fixture choices because the author lets learners choose dimensions.\n\n## Acceptance criteria\nAll source steps succeed with real UI/API operations, including component organization and actual spherical recesses. Inspect one valid solid, opposite face counts summing to seven, 21 pips, preview cancellation, retained feature identities, save/reopen and manifold millimeter-scale STL readback. Do not report body-only or cylinder-cut adaptations as a complete original tutorial pass.\n\n## Proposed verification and evidence\nRegister the full ordered recipe when dependencies exist. Freeze the face-axis/pip table, inspect analytic initial volume 8000 mm3 and hemispherical removal 47.25*pi mm3 from the measured rounded cube, and capture all six faces plus oblique view. Record native face selection, Repeat and rounding Cancel; use API for reproducible modeling/inspection. External source ledger records available historical images and unavailable final-model reference; do not claim a matched-reference final screenshot.\n\n## Public reference evidence\n- Original public lesson (reference `tutorial-library-die`) \u2014 retrieved 2026-10-11. Source instructions and Alloy-chosen fixture values are distinguished in docs/research/tutorial-gates.md. Original URLs stay in the external reference records.\n\n## Limits and open questions\nUnexecuted overflow gate. ASM-004 and SOL-028 own bounded local-component and equal-distance chamfer prerequisites; wider assembly/chamfer requirements remain Todo. All source-facing gestures and any adaptations must be recorded separately. No printing/upload service or automatic CI per commit.\n"
     },
     {
       "key": "GATE-060",
@@ -3638,6 +3633,95 @@
         "area:skt"
       ],
       "body": "## Scope and acceptance\nBounded toy-block prerequisite: eight-stud bottom Shell1.49 offers the actual inner planar roof at z8.11, normal negative Z, and eight distinct circular recess centers. Derive stable roof identity from Shell feature and source-face kernel offset history; no nearest-face guessing. Preserve optional pattern occurrenceId alongside actual source sketch/entity identity in center schema, hashing, dedup and validation. Absent occurrence keeps legacy IDs.\n\nCreate inner-roof sketch, diagonal from recess(3.9,3.9) to(11.9,11.9), then midpoint(7.9,7.9) circle diameter6.3. Verify retained plane under thickness edit, midpoint under pattern spacing edit, missing occurrence refusal, undo/reopen, real viewport center snaps and readable captures. Keep coplanarity protection. Offset/tubes belong to following tasks.\n\n## Reference and verification\nPublic toy-block source step9-10; external knowledge/tutorials/toy-block/inner-roof-reference-contract.json and toy-block-ledger.json record evidence and inferred dimensions. Require independent Astra review. Full toy-block gate remains open.\n"
+    },
+    {
+      "key": "FND-020",
+      "title": "Expose bounded command deadlines for longer CAD operations",
+      "kind": "implementation",
+      "phase": "P0 Foundation",
+      "priority": "P1",
+      "depends_on": [
+        "FND-003"
+      ],
+      "labels": [
+        "area:fnd"
+      ],
+      "body": "## Scope and observed failure\nLoft plus Shell source edits exceeded the Python client's5second deadline although geometry succeeded with a measured30second diagnostic bound. Actual redo5.195seconds and reopen8.242seconds; focused kernel test0.78seconds total. Provide configurable positive CLI response timeout with a30second default, preserve2second discovery identity checks, and record elapsed command time in workflow transcripts. Document that timeout does not cancel an in-flight edit; inspect before retrying.\n\n## Acceptance\nRun actual egg-cup save/reopen/export through the normal client deadline; independently review observed timing and successful state. Keep a separate responsiveness followup for CAD display/recompute latency: changing client deadline is not a UI performance fix. No broad async operation framework is required for this bounded correction.\n"
+    },
+    {
+      "key": "DOC-018",
+      "title": "Expose a bottom named view for underside tutorial inspection",
+      "kind": "implementation",
+      "phase": "P1 Geometry and documents",
+      "priority": "P1",
+      "depends_on": [
+        "FND-003"
+      ],
+      "labels": [
+        "area:doc"
+      ],
+      "body": "## Scope and acceptance\nBounded child of DOC-010/#22, required to inspect finished toy-block underside through the shared camera API. Add Bottom to Browser Named Views and view.orientation enum; use the real OCCT negative-Z camera. Preserve top/front/right/isometric and Home. Verify actual model orientation and a readable underside capture showing three hollow tubes, plus Browser input routing. No broader camera or view-cube parity claim; remaining navigation requirements stay#22.\n\nActual bottom view exposed inadequate underside lighting. Add a weaker world-space underside fill while retaining the key and ambient lights; independently inspect internal roofs/tube rims and top-view contrast.\n"
+    },
+    {
+      "key": "REL-007",
+      "title": "Bound display tessellation cost for small filleted tutorial parts",
+      "kind": "implementation",
+      "phase": "P4 Initial release",
+      "priority": "P1",
+      "depends_on": [
+        "DOC-005"
+      ],
+      "labels": [
+        "area:rel"
+      ],
+      "body": "## Observed problem\nThe complete toy block evaluates in the focused core test but its nineteen-edge fillet stalls38.32seconds in the GPU application while recording. A10second native sample attributes4817/6344 main-thread samples to refresh/setBodies/displayBodies/AIS shaded tessellation/BRepMesh Delaunay, not the CAD fillet builder. Recorder correctly rejects a gap over300slots; do not relax this guard or fake continuity.\n\n## Bounded correction and acceptance\nUse a reasonable relative display mesh policy for committed and preview bodies, preserving exact geometry and independently configured export tolerances. Candidate deviation coefficient0.0005 and angular deviation0.10rad; compare actual capture silhouettes/rounded corners against prior display. Verify complete toy workflow, fillet/reopen latency under existing30second client bound, full real-time movie with no capture failure and independent STL unchanged quality. Astra checks actual visible quality; no universal frame-budget claim. Broader performance remains#83.\n\nOCCT7.9.3 default drawer coefficient0.001/angle0.349rad; candidate0.0005/0.10 is finer. Relative chordal bound is maxBBoxDimension*coefficient*4 (0.0636mm for this block), so claim observed closeup quality rather than universal subpixel accuracy. Trial actual reopen improved to1.143seconds from8.085seconds; fullrecording and independent visuals pending.\n"
+    },
+    {
+      "key": "ASM-004",
+      "title": "Author a named local component with activation and scoped STL export",
+      "kind": "implementation",
+      "phase": "P5 Assemblies/drawings",
+      "priority": "P1",
+      "depends_on": [
+        "DOC-002",
+        "DOC-003",
+        "DOC-004",
+        "PRT-001"
+      ],
+      "labels": [
+        "area:asm"
+      ],
+      "body": "## Scope\nBounded child of ASM-001/#87 for the die lesson. Introduce authored local component definitions and distinct identity-placement occurrences under the root; features belong to a definition through ownerId. New Component creates a named component; Browser activation selects the authoring owner. Root-only legacy files remain valid. Activation is per design tab, not a modeling undo operation. New features use the active definition; edits preserve the original owner. Reject unsupported cross-component modeling references explicitly.\n\nExpose shared component create/activate/inspect commands, actual Browser ownership, and a component occurrence selector for existing local STL export. Resolve scope to actual material bodies; do not substitute body names or visibility. Unsupported nesting, reused instances, transforms, external documents and joints stay in ASM-001 and its wider roadmap.\n\n## Verification\nCreate root stock plus a named die component, author a centered sketch/extrusion/modifier chain inside it, activate root/component without moving existing features, and inspect stable definition/occurrence/owner IDs. Undo/redo and native reopen preserve authored structure. Component-scoped STL excludes root stock and independently reads as the intended one solid in millimeters. Verify actual Browser activation and export controls, and reject invalid/dangling ownership atomically. Use focused tests and one cumulative app workflow, not exhaustive assembly tests.\n\n## Public evidence\nExternal knowledge/tutorials/warwick/library-die-ledger.md records source tutorial-library-die, retrieved2026-10-13. Named component and Browser activation are documented. Proposed single local occurrence architecture is Alloy's implementation choice; default activation/reopen behavior needs public evidence or an explicit bounded choice. Original URLs and images remain external. The historical Make/3D Print label is separate from scoped local export semantics.\n"
+    },
+    {
+      "key": "SOL-028",
+      "title": "Preview and commit equal-distance chamfers on retained solid edges",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SOL-022",
+        "DOC-003",
+        "DOC-004"
+      ],
+      "labels": [
+        "area:sol"
+      ],
+      "body": "## Scope\nBounded child of SOL-005/#50 needed to compare Chamfer and Fillet in the die tutorial. Implement OCCT equal-distance chamfer on explicitly selected edges, with shared command/API, readable docked parameter panel, live preview, Cancel/OK, authored feature editing and retained target/edge references. Use existing edge selection and history authority. Two-distance/angle variants and broader tangent-chain options remain in SOL-005; expose no inert controls for them.\n\n## Verification\nOn a20mm cube, preview1mm chamfer over all12edges then Cancel with document/history unchanged; commit a bounded chamfer fixture separately and check geometry, upstream size edit, undo/redo and exact reopen. Refuse impossible distances atomically. In the tutorial compare/cancel Chamfer and Fillet before accepting the chosen Fillet. Verify human multi-edge selection and actual preview/commit controls; record any window-selection gesture mismatch rather than substituting an API-only claim.\n\n## Public evidence\nSource tutorial-library-die, public instructions retrieved2026-10-13, external knowledge/tutorials/warwick/library-die-ledger.md. The author prescribes trying both edge treatments but leaves size/type choices to the learner;20mm cube and1mm distance are Alloy fixture proposals. No proprietary program operation or extracted assets.\n"
+    },
+    {
+      "key": "FND-021",
+      "title": "Prevent numeric panel callbacks during window destruction",
+      "kind": "implementation",
+      "phase": "P0 Foundation",
+      "priority": "P0",
+      "depends_on": [
+        "FND-003"
+      ],
+      "labels": [
+        "area:fnd"
+      ],
+      "body": "## Observed failure\nIndependent Pattern Qt validation exposed a real shutdown crash when the editor is destroyed with an active panel and uncommitted numeric text. Spinbox hideEvent interprets text and emits valueChanged after derived AlloyWindow members have been destroyed; panel-owned callbacks then read invalid session state. Crash receipt widget_interactions_test-2026-10-13-005419.ips.\n\n## Correction and acceptance\nQuiesce child control signals before derived window state destruction, preserving ordinary live numeric input. Closing an active numeric command must not evaluate or commit a draft during teardown. Add one focused active-Pattern/uncommitted-number destruction regression and rerun the affected actual Qt interaction case. No broad shutdown rewrite or exhaustive command matrix. Independent reviewer confirms original crash route no longer faults.\n"
     }
   ]
 }

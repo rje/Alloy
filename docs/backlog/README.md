@@ -7,7 +7,7 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current publication contains **196 issues**: **135 implementation, 15 research,
+The current publication contains **202 issues**: **141 implementation, 15 research,
 22 epics, and 24 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 
@@ -37,7 +37,7 @@ as Todo. No full tutorial is complete merely because its final shape looks right
 The accepted bung/support gates and earlier bracket receipts remain valid;
 outstanding exact-native bracket follow-ups remain Todo after this sequence.
 Source PDFs, URLs, visual references and detailed ledgers stay in external
-`knowledge/tutorials`; none of the queued gates is currently accepted.
+`knowledge/tutorials`; nested cubes, egg cup and the adapted toy block are accepted with documented API/input limits. Die is the active overflow workflow.
 
 After every slice, run the smallest complete author/edit/finish/undo/reopen
 workflow it enables in a private real application instance. Record source steps
@@ -57,12 +57,12 @@ require macOS/Windows/Linux qualification; CI remains tag/manual only.
 
 | Phase | Count | Result |
 | --- | ---: | --- |
-| P0 Foundation | 23 | Public baseline, MIT dependency audit, document/naming/solver decisions, portable controls, native CI/packages/releases and hardware evidence |
-| P1 Geometry/document | 18 | Real hardware-backed OCCT viewport, authored primitive document, selection, undo/save and STEP |
-| P2 Parametric modeling | 60 | Constrained sketches, parameters, editable extrusion/fillet chain and broader basic solid tools |
+| P0 Foundation | 25 | Public baseline, MIT dependency audit, document/naming/solver decisions, portable controls, native CI/packages/releases and hardware evidence |
+| P1 Geometry/document | 19 | Real hardware-backed OCCT viewport, authored primitive document, selection, undo/save and STEP |
+| P2 Parametric modeling | 61 | Constrained sketches, parameters, editable extrusion/fillet chain and broader basic solid tools |
 | P3 Shape/import/print breadth | 28 | Solids/surfaces, common interchange and qualified printing export |
-| P4 Initial release | 8 | Robustness, recovery, packaging, performance, physical/visual workflow evidence |
-| P5 Assemblies/drawings | 10 | Components/joints, configurations and associative drawings |
+| P4 Initial release | 9 | Robustness, recovery, packaging, performance, physical/visual workflow evidence |
+| P5 Assemblies/drawings | 11 | Components/joints, configurations and associative drawings |
 | P6 Advanced design | 11 | Sheet metal, direct/mesh/Form, advanced modeling, plastic rules and local presentation |
 | P7 Manufacturing | 9 | Setups, toolpaths, verification/posts, additive, nesting and metrology |
 | P8 Analysis/electronics | 10 | Traceable study/result data, local ECAD/MCAD and fabrication |
