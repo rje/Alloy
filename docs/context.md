@@ -50,8 +50,8 @@ qualified native/API/GPU evidence. The default main app is rebuilt.
 The external `validation/ornament-feasibility/` kernel probe exposes an unresolved
 cumulative risk: the exact-offset strip produces a valid shell Intersect member
 and first-member/hub Join, but eight rotated members fail to unite validly under
-both sequential and simultaneous Boolean strategies. This is not yet a full
-application regression: retained Circular Pattern has not been implemented.
+both sequential and simultaneous Boolean strategies. These probes predate the
+retained Circular Pattern candidate and do not establish its cumulative result.
 Do not claim #264 feasible or complete from the separate ingredient tests. The
 chosen image-like spline coordinates and failed logs are retained externally;
 Sol is reviewing Boolean robustness without replacing the source geometry.
@@ -69,7 +69,15 @@ validation/exact-offset-join-investigation.md identify preserved46-call evidence
 and exact pre-Intersect authoring. The private editor exited; no seed or full
 tutorial pass is claimed. Shared-transform, SameParameter and bounded offset
 approximation probes all failed to cure the raw array Join; no fallback changed
-production geometry. Astra's shared-partition proposal remains diagnostic only.
+production geometry. Clean, pre-Boolean checks now localize a self-interfering
+inner Shell seam: curve/surface deviation about0.7657mm under0.8039mm tolerance,
+despite passing BRep validity and regular off-seam thickness checks. #266 owns
+that correction. A separate deep-copy rotation makes the exact-offset prism
+invalid; preserving geometry under a rigid location transform passes the same
+checks and is being verified in #263. Astra's shared-partition proposal has not
+run because its prerequisite shell is not Boolean-valid. Earlier diagnostic
+metrics taken after an eager Boolean constructor were confounded; subsequent
+before/after-hash checks independently establish the untouched-input defects.
 
 ## Earlier accepted checkpoints and development history
 
