@@ -71,9 +71,8 @@ exact history/reopen passed separately. See validation/wall-outlet-tutorial.md.
 The next independently audited four-page countersunk-plate practice is #244–249:
 named length bindings, post-fillet rim lineage, standalone sketch Point, retained
 All Countersink Hole, Spacing/Adjust Hole pattern and cumulative movie/model/STL
-gate. #244–246 are independently accepted; #247 Hole is active, with geometry
-and native controls implemented in parallel. Pattern #248 and full gate #249
-remain Todo. The cumulative [gate preparation](../validation/countersunk-plate-prep.md)
+gate. #244–247 are independently accepted; Pattern #248 is active, with geometry
+and native controls implemented in parallel. Full gate #249 remains Todo. The cumulative [gate preparation](../validation/countersunk-plate-prep.md)
 records the source sequence, output checks and visual acceptance.
 Full arithmetic parameters, other Hole types and general pattern families remain
 in their broad parent issues.

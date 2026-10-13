@@ -143,7 +143,7 @@
       ],
       "acceptance": "Named length bindings, vertical fillet with retained rims, true sketch Point with two edge distances, retained All Countersink and nine-hole Spacing/Adjust feature pattern; full creation movie, editable file and checked STL extension.",
       "status": "in_progress",
-      "remaining": "Parameters244, rim245 and Point246 independently accepted. Hole247 active; Pattern248 and fullgate249 await dependencies."
+      "remaining": "Prerequisites244\u2013247 independently accepted. Spacing/Adjust Hole Pattern248 active; fullgate249 awaits pattern."
     },
     {
       "id": "CP-12",

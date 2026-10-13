@@ -24,12 +24,23 @@ two retained edge distances and finished selection have scoped independent
 acceptance in validation/standalone-sketch-point.md. Named bindings and ordinary
 Distance controls remain intact. All private editors are closed.
 
-**Active work: through Countersink Hole #247.** Implement a distinct retained
-point/target feature with All extent, native preview/edit controls and reusable
-occurrence evaluation. Pattern #248 and full parameterized plate #249 remain Todo.
-Public source contract is external:
+**Countersink Hole #247 is independently accepted and closed.**
+Combined implementation20c5a15/reviewec275ed integrated; default app
+rebuilt. Retained point/target, target-derived All reach, native fields and
+preview/Cancel/commit/timeline edit pass. A genuine target-pick defect was fixed
+by restoring selectable stock before picking; red overlay depth bias removes
+preview striping without altering geometry. Core/API/native evidence remains
+separate; see validation/countersink-hole-controls.md and backend receipt.
+All private validation editors are closed.
+
+**Active work: Hole Spacing/Adjust pattern #248.** Preserve existing additive
+Extent/Identical behavior. Resolve retained seed point/frame, translate each
+nonseed occurrence and recompute All against the current target; never copy a
+finite seed cutter. The padded underside control distinguishes Adjust. Full
+plate gate #249 remains Todo. Its source-order stock/Point prefix already has
+independently reviewed real-app evidence; full movie/STL remains ahead.
+External source contract:
 `knowledge/tutorials/next-after-outlet/independent-countersink-contract.md`.
-General parameter expressions and broader Hole modes remain parent scope.
 
 User requested private repository visibility on 2026-10-13. `rje/Alloy` is now
 PRIVATE, verified through GitHub CLI. Preserve private visibility unless the user
@@ -46,7 +57,7 @@ visual parity remain qualified. The external
 editable models and STL deliverables. The Revolve receipt is
 [validation/revolve-tutorial.md](validation/revolve-tutorial.md).
 
-**126 of 249 issues are closed.** Recent accepted work includes compact ribbon
+**127 of 249 issues are closed.** Recent accepted work includes compact ribbon
 icons #218, retained Extrude Intersect #219, nested profile/island diagnostics
 #165, portable local controls #220, shared-line fillets #221, typed Line length
 locks #222, retained Sweep #223 and native Sweep controls #224. Each has a scoped

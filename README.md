@@ -108,6 +108,12 @@ sketch dimensions and Extrude distance by stable identity, with native name
 entry, atomic recompute and undo/save/reopen. This bounded slice supports direct
 names and numeric lengths; general arithmetic expressions remain ahead.
 
+[Retained Countersink Hole](docs/validation/countersink-hole-controls.md) now
+cuts from a face-supported sketch Point with editable bore/sink diameters and
+angle, current-target All termination and native preview/Cancel/timeline edits.
+Its scoped geometry, input and GPU evidence is independently accepted. The
+nine-hole Spacing/Adjust pattern and complete plate lesson remain ahead.
+
 The private development repository is [rje/Alloy](https://github.com/rje/Alloy), with the
 [issue backlog](https://github.com/rje/Alloy/issues) and
 [Alloy project board](https://github.com/users/rje/projects/1).
