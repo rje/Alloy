@@ -95,6 +95,13 @@ run because its prerequisite shell is not Boolean-valid. Earlier diagnostic
 metrics taken after an eager Boolean constructor were confounded; subsequent
 before/after-hash checks independently establish the untouched-input defects.
 
+Source boundary reread: the tutorial explicitly selects the bottom face for
+Inside5 Shell, but its section image does not prove an annular opening. That
+earlier requirement was inferred. The exact inward meridian closes on the axis
+above the base; #266 is probing exact axis-trimmed cavity geometry and comparing
+the section boundary, without changing authored dimensions. No replacement
+Shell policy or complete source match is accepted yet.
+
 ## Earlier accepted checkpoints and development history
 
 The dated entries below preserve historical evidence and may describe pending
