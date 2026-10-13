@@ -1,3 +1,6 @@
+#include <BRepPrimAPI_MakeCylinder.hxx>
+#include <BRepPrimAPI_MakeCone.hxx>
+#include <BRepPrimAPI_MakeTorus.hxx>
 #include <BRepBuilderAPI_MakeEdge.hxx>
 #include <BRep_Builder.hxx>
 #include <TopoDS_Compound.hxx>
@@ -1308,19 +1311,21 @@ void ReferenceView::showMoveCue(const QJsonObject& inputs) {
     auto parameters=inputs;auto steps=inputs["steps"].toArray();QJsonObject delta;for(const auto& key:{"xMm","yMm","zMm","xDeg","yDeg","zDeg"})delta[key]=inputs.value(key).toDouble();steps.append(delta);parameters["steps"]=steps;const auto transform=GeometryKernel::moveTransform(parameters);
     gp_Pnt center(inputs["pivotXMm"].toDouble(),inputs["pivotYMm"].toDouble(),inputs["pivotZMm"].toDouble());center.Transform(transform);
     const auto scale=windowScale();auto screen=[&](const gp_Pnt& p){int x,y;view_->Convert(p.X(),p.Y(),p.Z(),x,y);return QJsonObject{{"x",x/scale.x()},{"y",y/scale.y()}};};
-    // Fixed screen-sized world-axis handles, rendered as GPU geometry.
+    // Screen-sized solid local-triad handles avoid platform GL line-width clamps.
     const double radius=view_->Camera()->Scale()*0.065;
     const gp_Vec axes[]={gp_Vec(1,0,0),gp_Vec(0,1,0),gp_Vec(0,0,1)};
     QJsonArray handles;
     for(int axis=0;axis<3;++axis){
         const auto a=axes[axis].Transformed(transform),u=axes[(axis+1)%3].Transformed(transform),v=axes[(axis+2)%3].Transformed(transform);
         BRep_Builder builder;TopoDS_Compound shape;builder.MakeCompound(shape);
-        auto edge=[&](const gp_Pnt& p,const gp_Pnt& q){if(p.Distance(q)>1e-9)builder.Add(shape,BRepBuilderAPI_MakeEdge(p,q).Edge());};
-        const auto end=center.Translated(a*radius*1.65);edge(center,end);
-        edge(end,end.Translated(a*(-radius*.22)+u*(radius*.09)));edge(end,end.Translated(a*(-radius*.22)-u*(radius*.09)));
+        const double shaftRadius=radius*.035,arrowLength=radius*.28;
+        const auto end=center.Translated(a*radius*1.65);
+        builder.Add(shape,BRepPrimAPI_MakeCylinder(gp_Ax2(center,gp_Dir(a)),shaftRadius,radius*1.65-arrowLength).Shape());
+        builder.Add(shape,BRepPrimAPI_MakeCone(gp_Ax2(end.Translated(a*(-arrowLength)),gp_Dir(a)),radius*.12,0,arrowLength).Shape());
+        builder.Add(shape,BRepPrimAPI_MakeTorus(gp_Ax2(center,gp_Dir(a),gp_Dir(u)),radius,shaftRadius).Shape());
         QJsonArray ring;gp_Pnt previous=center.Translated(u*radius);ring.append(screen(previous));
-        for(int i=1;i<=64;++i){const double angle=i*2*std::acos(-1.0)/64;const auto point=center.Translated(u*(radius*std::cos(angle))+v*(radius*std::sin(angle)));edge(previous,point);ring.append(screen(point));previous=point;}
-        auto cue=new AIS_Shape(shape);cue->SetZLayer(Graphic3d_ZLayerId_Topmost);cue->SetColor(axis==0 ? Quantity_Color(.85,.22,.18,Quantity_TOC_RGB) : axis==1 ? Quantity_Color(.2,.65,.24,Quantity_TOC_RGB) : Quantity_Color(.18,.42,.88,Quantity_TOC_RGB));cue->SetWidth(2.5);context_->Display(cue,AIS_WireFrame,-1,false);context_->Deactivate(cue);moveCue_.push_back(cue);
+        for(int i=1;i<=64;++i){const double angle=i*2*std::acos(-1.0)/64;const auto point=center.Translated(u*(radius*std::cos(angle))+v*(radius*std::sin(angle)));ring.append(screen(point));previous=point;}
+        auto cue=new AIS_Shape(shape);cue->SetZLayer(Graphic3d_ZLayerId_Topmost);cue->SetColor(axis==0 ? Quantity_Color(.88,.12,.10,Quantity_TOC_sRGB) : axis==1 ? Quantity_Color(.08,.57,.18,Quantity_TOC_sRGB) : Quantity_Color(.08,.30,.88,Quantity_TOC_sRGB));cue->Attributes()->SetShadingModel(Graphic3d_TOSM_UNLIT);cue->Attributes()->SetFaceBoundaryDraw(false);cue->SetOwnDeviationCoefficient(.0001);context_->Display(cue,AIS_Shaded,-1,false);context_->Deactivate(cue);moveCue_.push_back(cue);
         handles.append(QJsonObject{{"axis",axis},{"start",screen(center)},{"end",screen(end)},{"mmLength",radius*1.65},{"ring",ring},{"basisU",screen(center.Translated(u*radius))},{"basisV",screen(center.Translated(v*radius))}});
     }
     moveCueState_={{"inputs",inputs},{"handles",handles},{"pivotScreen",screen(center)},{"viewportLocal",true},{"units","logicalPixels"}};view_->Redraw();

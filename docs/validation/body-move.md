@@ -22,8 +22,8 @@ The initial pivot is the selected solid's bounding-box bottom center; explicit
 Pivot X/Y/Z fields can change it. That default and local-axis composition are
 bounded Alloy rules inferred for this tutorial, not established universal
 reference defaults. The video-supported cutter foot is (0,0,11). Local rotations
-compose X, then Y, then Z within each delta; translation precedes rotation within
-a mixed delta. Separate rotation and translation gestures match the researched
+compose X, then Y, then Z within each delta; a point rotates first, then translates within
+a mixed delta (`T * R`). Separate rotation and translation gestures match the researched
 path. An editable authored Free Move is an Alloy requirement, not a claim that
 the reference normally stores Free Move parametrically.
 
@@ -43,6 +43,10 @@ Move after Cut, and save/reopen. Captures are under the private worktree
 `build-move/evidence/move/`: `move-preview.png`, `move-panel.png`,
 `moved-cut.png`, `report.json` and `transcript.json`. The real preview and panel
 were inspected; the manipulator is GPU geometry in the top overlay layer.
+A bounded follow-up replaces platform-clamped wire handles with screen-sized
+solid cylinders/cones and torus rings, using unlit saturated axis colors. The
+post-build `move-preview-solid-triad.png` actual-app capture was inspected and
+shows readable handles against the stock; projected hit targets are unchanged.
 Native numeric completion, context menu and arrow/ring dragging are implemented
 but await independent native verification on the integrated candidate.
 

@@ -1290,3 +1290,10 @@ circle-entry candidate's `build-circle/evidence/native-*`. API3mm extrusion and
 tutorial run. The inherited Create dropdown could not be activated through the
 attempted CUA calls, so only its synthesized widget action is verified. Review
 is pending; the desktop is released for root's combined qualification.
+
+The bounded Move visual follow-up uses solid unlit GPU shafts/cones/torus rings
+instead of GL-width-clamped wire handles. Build and the actual-app
+`move-preview-solid-triad.png` capture passed own inspection. Mixed-step docs now
+state `T * R` applies rotation then translation to a point. Astra's native numeric
+and manipulator review is pending on the private MoveCandidate; no exact/native
+closure claim is made.
