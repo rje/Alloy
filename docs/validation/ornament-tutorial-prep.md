@@ -70,3 +70,15 @@ actual valid eight-to-one Join, transverse bore and independently inspected STL.
 Keep API, native Qt input, GPU and geometry evidence distinct. Astra reviews the
 integrated result and public visual references. Ingredient passes and diagnostic
 kernel probes alone cannot close this gate.
+
+## Candidate capture review
+
+The #266 candidate prefix now reports `source-prefix-pass` in external
+`validation/ornament-feasibility/shell-cap-api-01`; this is ingredient evidence,
+not full tutorial acceptance. Root inspected radial-profile, closed-strip,
+section-front and intersect-seed images. The profile dimensions and final rib
+are readable, but the section base is clipped and the solid obscures the strip.
+The prepared prefix now zooms out for the front section and explicitly hides
+the shell while sketching the strip, restoring it before Intersect. This is a
+disclosed visibility choice, with no change to authored dimensions or geometry.
+These revised capture steps await the next cumulative run.

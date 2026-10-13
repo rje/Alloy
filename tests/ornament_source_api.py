@@ -62,9 +62,11 @@ def create_seed(call, out, stage=None):
     analysis = inspect()['authored']['analyses'][-1]
     assert inspect()['authored']['features'] == before
     capture('section-hatched')
-    call('view.orientation', {'name': 'front'}); capture('section-front')
+    call('view.orientation', {'name': 'front'})
+    call('view.zoom', {'factor': .8}); capture('section-front')
     call('analysis.visibility', {'analysisId': analysis['id'], 'visible': False})
-    stage('Sketch S-shaped fit spline; Offset 5 mm and connect ends')
+    call('feature.visibility', {'featureId': body['featureId'], 'visible': False})
+    stage('Hide shell; sketch S-shaped fit spline, Offset 5 mm and connect ends')
     call('sketch.begin', {'plane': 'XZ', 'name': 'S shaped strip'})
     fixture = [(-4, -1), (6, 19), (-5, 45), (3, 89)]
     call('sketch.splineAdd', {'points': [{'uMm': x, 'vMm': y} for x, y in fixture]})
@@ -82,6 +84,7 @@ def create_seed(call, out, stage=None):
     call('sketch.finish')
     strip = inspect()['evaluation']['sketches'][-1]
     assert len(strip['profiles']) == 1
+    call('feature.visibility', {'featureId': body['featureId'], 'visible': True})
     call('document.save', {'path': str(out/'ornament-pre-intersect.alloy')})
     stage('Intersect the closed strip through the shell to create one rib')
     call('solid.extrude', {'sketchId': strip_id, 'profileId': strip['profiles'][0]['profileId'],
