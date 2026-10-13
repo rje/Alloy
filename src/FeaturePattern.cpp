@@ -2,6 +2,7 @@
 #include "FeaturePattern.h"
 #include "SolidFillet.h"
 #include "PlanarFaces.h"
+#include "SolidHole.h"
 #include <BRepAdaptor_Curve.hxx>
 #include <BRepGProp.hxx>
 #include <GProp_GProps.hxx>
@@ -11,7 +12,88 @@
 #include <algorithm>
 #include <cmath>
 
+namespace {
+[[noreturn]] void holeFailure(const QString& code,const QString& message) {
+    throw GeometryKernel::EvaluationError({{"code",code},{"message",message}});
+}
+gp_Pnt point(const QJsonArray& values) {
+    if(values.size()!=3 || !values[0].isDouble() || !values[1].isDouble() || !values[2].isDouble())
+        holeFailure("pattern_point_unavailable","The retained Hole point has no world placement");
+    return {values[0].toDouble(),values[1].toDouble(),values[2].toDouble()};
+}
+void evaluateHole(EvaluatedBody& target,const QJsonObject& feature,const QJsonObject& seed,const EvaluatedDocument& prior) {
+    const auto p=feature["parameters"].toObject(),source=seed["parameters"].toObject();
+    if(source["targetBodyId"]!=target.bodyId || p["targetBodyId"]!=target.bodyId
+        || p["distribution"]!="spacing" || p["computeType"]!="adjust")
+        holeFailure("unsupported_pattern_seed","Hole Pattern requires its retained target, Spacing and Adjust");
+    const EvaluatedSketch* sketch=nullptr;
+    for(const auto& item:prior.sketches)if(item.featureId==source["sourceSketchId"].toString()){sketch=&item;break;}
+    if(!sketch)holeFailure("pattern_point_unavailable","Hole seed sketch is unavailable");
+    QJsonObject retained;
+    for(const auto& value:sketch->summary["standalonePoints"].toArray()) {
+        const auto item=value.toObject();
+        if(item["id"]==source["sourceEntityId"] && item["pointId"]==source["sourcePointId"]){retained=item;break;}
+    }
+    if(retained.isEmpty())holeFailure("pattern_point_unavailable","Hole seed point identity is unavailable");
+    const auto entry=point(retained["positionMm"].toArray());
+    const auto normal=sketch->resolvedFrame["normal"].toArray();
+    if(normal.size()!=3)holeFailure("pattern_support_unavailable","Hole seed support frame is unavailable");
+    const gp_Dir outward(normal[0].toDouble(),normal[1].toDouble(),normal[2].toDouble());
+    std::vector<gp_Vec> directions;std::vector<int> quantities;std::vector<double> spacings;QJsonArray resolvedAxes;
+    for(const auto& value:p["axes"].toArray()) {
+        auto axis=value.toObject();
+        const auto edge=std::find_if(target.solidEdges.begin(),target.solidEdges.end(),[&](const auto& item){return item.edgeId==axis["edgeId"].toString();});
+        if(edge==target.solidEdges.end() || edge->edge.IsNull())holeFailure("pattern_axis_unavailable","Select a current retained straight model edge");
+        BRepAdaptor_Curve curve(edge->edge);if(curve.GetType()!=GeomAbs_Line)holeFailure("unsupported_pattern_axis","Hole Pattern directions require straight edges");
+        const auto start=edge->provenance["startMm"].toArray(),end=edge->provenance["endMm"].toArray();
+        const auto a=point(start),b=point(end),first=curve.Value(curve.FirstParameter()),last=curve.Value(curve.LastParameter());
+        if(!((a.Distance(first)<1e-6 && b.Distance(last)<1e-6) || (a.Distance(last)<1e-6 && b.Distance(first)<1e-6)))
+            holeFailure("pattern_axis_unavailable","Oriented edge endpoints do not match the current kernel edge");
+        gp_Vec direction(a,b);if(direction.Magnitude()<1e-6)holeFailure("pattern_axis_unavailable","Pattern axis is degenerate");direction.Normalize();
+        if(!directions.empty() && std::abs(direction.Dot(directions.front()))>1e-8)
+            holeFailure("unsupported_pattern_axes","Hole Pattern requires perpendicular directions");
+        directions.push_back(direction);quantities.push_back(axis["quantity"].toInt());spacings.push_back(axis["spacingMm"].toDouble());
+        axis["orientedStartMm"]=start;axis["orientedEndMm"]=end;
+        axis["directionMode"]="one";axis["direction"]=QJsonArray{direction.X(),direction.Y(),direction.Z()};
+        axis["totalSpanMm"]=axis["spacingMm"].toDouble()*(axis["quantity"].toInt()-1);
+        resolvedAxes.append(axis);
+    }
+    if(directions.size()!=2)holeFailure("pattern_axis_required","Hole Pattern requires two directions");
+    const double sink=source["sinkDiameterMm"].toDouble();
+    if(std::abs(spacings[0])+1e-7<sink || std::abs(spacings[1])+1e-7<sink)
+        holeFailure("pattern_overlapping_openings","This Hole Pattern requires separated countersink openings");
+    const int q1=quantities[0],q2=quantities[1];
+    std::vector<TopoDS_Shape> tools;QJsonArray instances;const auto id=feature["id"].toString();
+    for(int j=0;j<q2;++j)for(int i=0;i<q1;++i) {
+        const gp_Vec translation=directions[0]*(spacings[0]*i)+directions[1]*(spacings[1]*j);
+        const auto center=entry.Translated(translation);
+        const auto instanceId=QUuid::createUuidV5(QUuid(id),QByteArray("alloy-pattern-instance/1/")+QByteArray::number(i)+"/"+QByteArray::number(j)).toString(QUuid::WithoutBraces);
+        instances.append(QJsonObject{{"instanceId",instanceId},{"index1",i},{"index2",j},
+            {"translationMm",QJsonArray{translation.X(),translation.Y(),translation.Z()}},
+            {"centerMm",QJsonArray{center.X(),center.Y(),center.Z()}},{"seed",i==0 && j==0}});
+        if(i==0 && j==0)continue; // The retained Hole already cut the seed.
+        tools.push_back(SolidHole::tool(target.shape,center,outward,source["boreDiameterMm"].toDouble(),
+            source["sinkDiameterMm"].toDouble(),source["includedAngleDeg"].toDouble()));
+    }
+    if(tools.size()!=size_t(q1*q2-1))holeFailure("pattern_instance_unavailable","Hole occurrence generation is incomplete");
+    const auto before=GeometryKernel::summarize(target.shape)["volumeMm3"].toDouble();
+    auto faces=target.supportFaces;auto edges=target.solidEdges;
+    const auto result=GeometryKernel::booleanOperation("cut",target.shape,tools,&faces,&edges);
+    auto summary=GeometryKernel::summarize(result);
+    const auto removed=before-summary["volumeMm3"].toDouble();
+    if(!std::isfinite(removed) || removed<=1e-7)holeFailure("pattern_no_effect","Hole Pattern removed no target material");
+    summary["operation"]="rectangularPattern";summary["seedFeatureId"]=seed["id"];
+    summary["lastModifierFeatureId"]=id;summary["instances"]=instances;
+    summary["instanceCount"]=q1*q2;summary["seedCenterMm"]=retained["positionMm"];
+    summary["patternAxes"]=resolvedAxes;summary["computeType"]="Adjust";summary["distribution"]="Spacing";
+    summary["removedVolumeMm3"]=removed;summary["supportFaces"]=PlanarFaces::descriptors(faces);
+    summary["solidEdges"]=SolidFillet::descriptors(edges);
+    target.shape=result;target.summary=summary;target.supportFaces=std::move(faces);target.solidEdges=std::move(edges);
+}
+}
+
 void FeaturePattern::evaluate(EvaluatedBody& target,const QJsonObject& feature,const QJsonObject& seed,const EvaluatedDocument& prior) {
+    if(seed["type"]=="hole")return evaluateHole(target,feature,seed,prior);
     auto reject=[](const QString& code,const QString& message){throw GeometryKernel::EvaluationError({{"code",code},{"message",message}});};
     const auto p=feature["parameters"].toObject(),source=seed["parameters"].toObject();
     if(seed["type"]!="extrude" || source["operation"]!="join" || source["targetBodyIds"].toArray()!=QJsonArray{target.bodyId})reject("unsupported_pattern_seed","Pattern supports one-target additive Extrude Join features");

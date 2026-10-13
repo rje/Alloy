@@ -462,7 +462,13 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored) 
                 const auto target=std::find_if(evaluated.bodies.begin(),evaluated.bodies.end(),[&](const auto& body){return body.bodyId==parameters["targetBodyId"].toString();});
                 QJsonObject seed;for(const auto& value:authored["features"].toArray())if(value.toObject()["id"]==parameters["sourceFeatureId"]){seed=value.toObject();break;}
                 if(target==evaluated.bodies.end())throw EvaluationError({{"code","body_unavailable"},{"message","Pattern target must be active earlier in history"}});
-                FeaturePattern::evaluate(*target,feature,seed,evaluated);
+                try {FeaturePattern::evaluate(*target,feature,seed,evaluated);}
+                catch(const EvaluationError& error) {
+                    auto details=error.diagnostics();details["featureId"]=id;details["featureType"]="rectangularPattern";
+                    details["sourceFeatureId"]=parameters["sourceFeatureId"];
+                    details["targetBodyId"]=parameters["targetBodyId"];
+                    throw EvaluationError(details);
+                }
             } else if(type=="sweep") {
                 QJsonObject source;for(const auto& entry:authored["features"].toArray())if(entry.toObject()["id"]==parameters["pathSketchId"])source=entry.toObject();
                 evaluated.bodies.push_back(SolidSweep::evaluate(feature,evaluated,source));

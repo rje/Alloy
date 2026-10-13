@@ -37,7 +37,18 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
                     return {{"featureId",feature["id"]},{"featureType",feature["type"]},{"code","plane_dependency_unavailable"},{"message","Plane source must be an earlier feature of the expected type"}};
             }
         }
-        if(feature["type"]=="rectangularPattern") {const auto seed=feature["parameters"].toObject()["sourceFeatureId"].toString();if(!positions.contains(seed) || positions[seed]>=i || features[positions[seed]].toObject()["type"]!="extrude")return {{"featureId",feature["id"]},{"code","pattern_seed_unavailable"},{"message","Pattern seed must be an earlier Extrude feature"}};}
+        if(feature["type"]=="rectangularPattern") {
+            const auto p=feature["parameters"].toObject();const auto seed=p["sourceFeatureId"].toString();
+            if(!positions.contains(seed) || positions[seed]>=i)
+                return {{"featureId",feature["id"]},{"code","pattern_seed_unavailable"},{"message","Pattern seed must be an earlier feature"}};
+            const auto source=features[positions[seed]].toObject();
+            if(source["type"]!="extrude" && source["type"]!="hole")
+                return {{"featureId",feature["id"]},{"code","pattern_seed_unavailable"},{"message","Pattern seed must be an earlier supported feature"}};
+            if((source["type"]=="hole")!=p.contains("distribution"))
+                return {{"featureId",feature["id"]},{"code","pattern_mode_mismatch"},{"message","Pattern distribution must match its retained seed type"}};
+            if(source["type"]=="hole" && (source["parameters"].toObject()["targetBodyId"]!=p["targetBodyId"] || source["ownerId"]!=feature["ownerId"]))
+                return {{"featureId",feature["id"]},{"code","pattern_seed_unavailable"},{"message","Hole Pattern seed and target must share body and owner"}};
+        }
         if(feature["type"]=="loft")for(const auto& value:feature["parameters"].toObject()["profiles"].toArray()) {
             const auto sketch=value.toObject()["sketchId"].toString();
             if(!positions.contains(sketch) || positions[sketch]>=i || features[positions[sketch]].toObject()["type"]!="sketch")return {{"featureId",feature["id"]},{"featureType","loft"},{"code","loft_profile_unavailable"},{"message","Loft sections must reference earlier sketch features"}};
@@ -491,10 +502,23 @@ QJsonObject CadDocument::chamferCandidate(const QJsonObject& authored,const QJso
     const auto error=validateStructure(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());return candidate;
 }
 QJsonObject CadDocument::patternCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
+    const QSet<QString> allowed{"sourceFeatureId","targetBodyId","axes","distribution","computeType","name","featureId","newFeatureId","ownerId"};
+    for(auto it=arguments.begin();it!=arguments.end();++it)if(!allowed.contains(it.key()))throw std::invalid_argument("Unknown Pattern argument");
+    if(arguments.contains("featureId") && arguments.contains("newFeatureId"))throw std::invalid_argument("Choose an existing or new Pattern identity");
     auto candidate=authored;auto features=candidate["features"].toArray();QJsonObject feature;int index=-1;
     if(arguments.contains("featureId")){for(int i=0;i<features.size();++i)if(features[i].toObject()["id"]==arguments["featureId"]){feature=features[i].toObject();index=i;break;}if(index<0 || feature["type"]!="rectangularPattern")throw std::invalid_argument("Pattern feature unavailable");}
     else feature={{"id",arguments.value("newFeatureId").toString(newId())},{"ownerId",arguments.value("ownerId").toString(authored["documentId"].toString())},{"type","rectangularPattern"},{"name","Rectangular Pattern"},{"visible",true}};
-    feature["parameters"]=QJsonObject{{"sourceFeatureId",arguments["sourceFeatureId"]},{"targetBodyId",arguments["targetBodyId"]},{"axes",arguments["axes"]}};if(arguments.contains("name"))feature["name"]=arguments["name"];
+    auto p=feature["parameters"].toObject();for(const auto& key:{"sourceFeatureId","targetBodyId","axes","distribution","computeType"})if(arguments.contains(key))p[key]=arguments[key];
+    QJsonObject seed;for(const auto& item:features)if(item.toObject()["id"]==p["sourceFeatureId"]){seed=item.toObject();break;}
+    if(seed["type"]=="extrude") {
+        if((p.contains("distribution") && p["distribution"]!="extent") || (p.contains("computeType") && p["computeType"]!="identical"))
+            throw std::invalid_argument("Additive Pattern supports Extent and Identical only");
+        p.remove("distribution");p.remove("computeType");
+    } else if(seed["type"]=="hole") {
+        if(!p.contains("distribution"))p["distribution"]="spacing";
+        if(!p.contains("computeType"))p["computeType"]="adjust";
+    }
+    feature["parameters"]=p;if(arguments.contains("name"))feature["name"]=arguments["name"];
     if(index<0)features.append(feature);else features[index]=feature;candidate["features"]=features;return candidate;
 }
 
@@ -777,8 +801,21 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
             continue;
         }
         if(type=="rectangularPattern") {
-            if(feature.contains("bodyId") || p.size()!=3 || !validId(p["sourceFeatureId"].toString()) || !validId(p["targetBodyId"].toString()) || !p["axes"].isArray() || p["axes"].toArray().size()<1 || p["axes"].toArray().size()>2)return "Pattern requires one seed, target body and one or two axes";
-            QSet<QString> edges;int total=1;for(const auto& value:p["axes"].toArray()){const auto axis=value.toObject();const auto quantity=axis["quantity"].toDouble();if(axis.size()!=3 || !validId(axis["edgeId"].toString()) || edges.contains(axis["edgeId"].toString()) || !axis["quantity"].isDouble() || quantity!=std::floor(quantity) || quantity<2 || quantity>100 || !axis["extentMm"].isDouble() || !std::isfinite(axis["extentMm"].toDouble()) || std::abs(axis["extentMm"].toDouble())<0.001 || std::abs(axis["extentMm"].toDouble())>100000)return "Pattern axes require distinct edge IDs, quantity2–100 and signed nonzero extent";edges.insert(axis["edgeId"].toString());total*=int(quantity);}if(total>1000)return "Pattern exceeds 1000 instances";
+            const bool hole=p.contains("distribution") || p.contains("computeType");
+            const auto axisCount=p["axes"].toArray().size();
+            if(feature.contains("bodyId") || p.size()!=(hole ? 5:3) || !validId(p["sourceFeatureId"].toString()) || !validId(p["targetBodyId"].toString())
+                || !p["axes"].isArray() || (hole ? axisCount!=2 : axisCount<1 || axisCount>2))
+                return "Pattern requires one seed, target body and supported axes";
+            if(hole && (p["distribution"]!="spacing" || p["computeType"]!="adjust"))return "Hole Pattern requires Spacing and Adjust";
+            QSet<QString> edges;int total=1;for(const auto& value:p["axes"].toArray()){
+                const auto axis=value.toObject();const auto quantityValue=axis["quantity"];
+                const auto quantity=quantityValue.toDouble(),distance=axis[hole ? "spacingMm":"extentMm"].toDouble();
+                if(!value.isObject() || axis.size()!=(hole ? 4:3) || !validId(axis["edgeId"].toString()) || edges.contains(axis["edgeId"].toString())
+                    || !quantityValue.isDouble() || quantity!=std::floor(quantity) || quantity<2 || quantity>100
+                    || !axis[hole ? "spacingMm":"extentMm"].isDouble() || !std::isfinite(distance) || std::abs(distance)<0.001 || std::abs(distance)>100000
+                    || (hole && axis["direction"]!="one"))return "Pattern axes require distinct edges, quantity2–100 and signed nonzero distance";
+                edges.insert(axis["edgeId"].toString());total*=int(quantity);
+            }if(total>1000)return "Pattern exceeds 1000 instances";
             continue;
         }
         if(type=="sweep") {
