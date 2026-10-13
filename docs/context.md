@@ -1623,3 +1623,17 @@ focused widget run await root's exclusive desktop assignment and Astra review.
 No GUI was launched by the implementer. Root must inject `authoringArguments`
 into the candidate wrapper when integrating active component ownership.
 See `validation/face-sphere-controls.md`; full die gate remains separate.
+
+## Serialized pole STL correction candidate (2026-10-13)
+
+PRT-007 #204 inspects staged binary STL facet records before atomic publication,
+removing exact serialized duplicate-vertex/zero-area facets and correcting header,
+triangle, byte and removal metadata. It preserves CAD, mesh tolerances, retained
+facet bytes and the existing ASCII path. The complete saved die reexports through
+non-GUI authoritative evaluation with 53,414 facets after three serialization
+removals; unchanged strict mm/in checks pass one closed component, normals,
+winding and 20 mm bounds. Focused four-feature pole fixture and existing placed
+binary/ASCII box/atomic-refusal checks pass. See
+[the bounded receipt and remaining limits](validation/stl-pole-facets.md).
+Root owns integrated app/export and final movie; no GitHub closure or broad
+spherical/curved-ASCII qualification is implied by the isolated candidate.

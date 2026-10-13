@@ -16,6 +16,9 @@
 #include <QFileInfo>
 #include <QSaveFile>
 #include <QTemporaryFile>
+#include <QtEndian>
+#include <algorithm>
+#include <bit>
 #include <cmath>
 #include <numbers>
 
@@ -108,18 +111,71 @@ QJsonObject MeshExport::writeStl(const std::vector<EvaluatedBody>& bodies,const 
     if(!writer.Write(shape,stagingPath.toUtf8().constData()))reject("export_failed","STL writer failed");
     QFile input(stagingPath);
     if(!input.open(QIODevice::ReadOnly) || input.size()==0)reject("export_failed","STL writer produced no readable output");
+    // Validate actual serialized binary facets as well as the detached mesh.
+    // The prior cross-product-only check can miss identical pole vertices due
+    // to floating-point cancellation; no area tolerance or CAD healing is used.
+    quint32 serializedTriangles=0;quint32 writtenTriangles=0;qint64 serializedCollapsed=0;
+    QByteArray binaryHeader;
+    if(binary) {
+        binaryHeader=input.read(84);
+        if(binaryHeader.size()!=84)reject("export_failed","Binary STL writer produced a truncated header");
+        serializedTriangles=qFromLittleEndian<quint32>(binaryHeader.constData()+80);
+        if(serializedTriangles==0 || input.size()!=84+qint64(serializedTriangles)*50)
+            reject("export_failed","Binary STL writer produced an inconsistent facet count");
+    }
     QSaveFile output(path);output.setDirectWriteFallback(false);
     if(!output.open(QIODevice::WriteOnly))reject("export_failed",output.errorString());
-    while(!input.atEnd()) {
-        const auto chunk=input.read(1024*1024);
-        if(chunk.isEmpty() && input.error()!=QFileDevice::NoError)reject("export_failed",input.errorString());
-        if(output.write(chunk)!=chunk.size())reject("export_failed",output.errorString());
+    if(binary) {
+        if(output.write(binaryHeader)!=84)reject("export_failed",output.errorString());
+        quint32 readTriangles=0;
+        while(readTriangles<serializedTriangles) {
+            const auto records=std::min<quint32>(serializedTriangles-readTriangles,20000);
+            const auto chunk=input.read(qint64(records)*50);
+            if(chunk.size()!=qint64(records)*50)reject("export_failed","Binary STL facet read failed");
+            QByteArray retained;retained.reserve(chunk.size());
+            for(quint32 index=0;index<records;++index) {
+                const auto* facet=chunk.constData()+qint64(index)*50;
+                double vertices[3][3];
+                for(int point=0;point<3;++point)for(int axis=0;axis<3;++axis) {
+                    const auto bits=qFromLittleEndian<quint32>(facet+12+(point*3+axis)*4);
+                    const auto coordinate=std::bit_cast<float>(bits);
+                    if(!std::isfinite(coordinate))reject("export_failed","Binary STL contains a nonfinite vertex");
+                    vertices[point][axis]=coordinate;
+                }
+                const gp_Pnt a(vertices[0][0],vertices[0][1],vertices[0][2]),
+                    b(vertices[1][0],vertices[1][1],vertices[1][2]),
+                    c(vertices[2][0],vertices[2][1],vertices[2][2]);
+                const auto sameVertex=[&](int first,int second) {
+                    return vertices[first][0]==vertices[second][0] && vertices[first][1]==vertices[second][1]
+                        && vertices[first][2]==vertices[second][2];
+                };
+                // Check identical serialized vertices directly. A fused
+                // multiply-add cross product of equal vectors can retain a
+                // tiny rounding residue instead of returning exact zero.
+                if(sameVertex(0,1) || sameVertex(1,2) || sameVertex(0,2)
+                    || gp_Vec(a,b).Crossed(gp_Vec(a,c)).SquareMagnitude()==0) {++serializedCollapsed;continue;}
+                retained.append(facet,50);++writtenTriangles;
+            }
+            if(output.write(retained)!=retained.size())reject("export_failed",output.errorString());
+            readTriangles+=records;
+        }
+        if(writtenTriangles==0)reject("mesh_failed","All facets collapse in serialized binary STL");
+        char count[4];qToLittleEndian(writtenTriangles,count);
+        if(!output.seek(80) || output.write(count,4)!=4)reject("export_failed",output.errorString());
+        triangles=writtenTriangles;collapsedTriangles+=serializedCollapsed;
+    } else {
+        while(!input.atEnd()) {
+            const auto chunk=input.read(1024*1024);
+            if(chunk.isEmpty() && input.error()!=QFileDevice::NoError)reject("export_failed",input.errorString());
+            if(output.write(chunk)!=chunk.size())reject("export_failed",output.errorString());
+        }
     }
+    const auto outputBytes=output.size();
     if(!output.commit())reject("export_failed",output.errorString());
     QJsonObject result{{"path",destination.absoluteFilePath()},{"format",binary ? "stlBinary" : "stlAscii"},
         {"bodyIds",bodyIds},{"bodyCount",int(bodies.size())},{"units",units},{"unitsEmbedded",false},
         {"surfaceDeviationMm",surfaceDeviationMm},{"normalDeviationDeg",normalDeviationDeg},
-        {"triangles",triangles},{"collapsedTrianglesRemoved",collapsedTriangles},{"faces",faces},{"bytes",input.size()},
+        {"triangles",triangles},{"collapsedTrianglesRemoved",collapsedTriangles},{"serializedCollapsedTrianglesRemoved",serializedCollapsed},{"faces",faces},{"bytes",outputBytes},
         {"mesherStatus",mesherStatus},{"authoredChanged",false}};
     if(bodies.size()==1)result["bodyId"]=bodies.front().bodyId;
     return result;

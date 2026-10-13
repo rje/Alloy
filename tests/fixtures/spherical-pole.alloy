@@ -1,0 +1,223 @@
+{
+  "components": [
+    {
+      "id": "bb5596db-b4f4-4bd4-9abb-503adccb9310",
+      "name": "die"
+    }
+  ],
+  "displayUnits": "mm",
+  "documentId": "8ec2d65a-3339-4f1f-a957-2ca78a230167",
+  "features": [
+    {
+      "id": "cb577fd1-6a21-45c1-809c-47af78e0ca45",
+      "name": "Die base",
+      "ownerId": "bb5596db-b4f4-4bd4-9abb-503adccb9310",
+      "parameters": {
+        "constraints": [
+          {
+            "entityIds": [
+              "3e427fec-f132-4b00-9be5-f6e8d0a8d553"
+            ],
+            "id": "51db49fe-af33-49bc-a1e9-998a54b3b81e",
+            "type": "horizontal"
+          },
+          {
+            "entityIds": [
+              "badafb79-312d-4b48-a1eb-6ac9b413415c"
+            ],
+            "id": "dc383ac6-31e0-4676-9ee5-d9a6f41995c7",
+            "type": "vertical"
+          },
+          {
+            "entityIds": [
+              "fd9b76ee-faa1-4a62-8853-f77d27b615a2"
+            ],
+            "id": "982a371d-b2ba-4965-a8f2-9b3de68777d9",
+            "pointIds": [
+              "0a6de2b5-9b06-4dab-9fc3-ffb710ac4324"
+            ],
+            "type": "midpoint"
+          },
+          {
+            "entityIds": [
+              "b98fa4c8-b736-4cf3-9d87-0dceef2e1bdd"
+            ],
+            "id": "fe06ed15-d05c-4f5e-914e-276e268c02ab",
+            "pointIds": [
+              "0a6de2b5-9b06-4dab-9fc3-ffb710ac4324"
+            ],
+            "type": "midpoint"
+          },
+          {
+            "id": "3ae1ae22-f434-4afc-a66a-ce8de6667bfe",
+            "pointIds": [
+              "0a6de2b5-9b06-4dab-9fc3-ffb710ac4324"
+            ],
+            "type": "fixed",
+            "uMm": 0,
+            "vMm": 0
+          }
+        ],
+        "dimensions": [
+          {
+            "driving": true,
+            "id": "633ab25c-ac3e-4d5a-9ea1-89f0451a4412",
+            "kind": "horizontal",
+            "pointIds": [
+              "3c1b541b-59e5-4586-8e79-57e98ac8c28b",
+              "80630443-f5d5-443c-ab53-7077116c4f8f"
+            ],
+            "valueMm": 20
+          },
+          {
+            "driving": true,
+            "id": "8740a376-09ee-4966-9f09-9e8a77922e09",
+            "kind": "vertical",
+            "pointIds": [
+              "80630443-f5d5-443c-ab53-7077116c4f8f",
+              "c10623d6-02e1-44de-a780-a275a604a96b"
+            ],
+            "valueMm": 20
+          }
+        ],
+        "entities": [
+          {
+            "endPointId": "80630443-f5d5-443c-ab53-7077116c4f8f",
+            "id": "3e427fec-f132-4b00-9be5-f6e8d0a8d553",
+            "startPointId": "3c1b541b-59e5-4586-8e79-57e98ac8c28b",
+            "type": "line"
+          },
+          {
+            "endPointId": "c10623d6-02e1-44de-a780-a275a604a96b",
+            "id": "badafb79-312d-4b48-a1eb-6ac9b413415c",
+            "startPointId": "80630443-f5d5-443c-ab53-7077116c4f8f",
+            "type": "line"
+          },
+          {
+            "endPointId": "74b8bf90-e70e-4216-ac8a-809dfe521b75",
+            "id": "7107d00f-363a-4878-99af-3d3914bdaba6",
+            "startPointId": "c10623d6-02e1-44de-a780-a275a604a96b",
+            "type": "line"
+          },
+          {
+            "endPointId": "3c1b541b-59e5-4586-8e79-57e98ac8c28b",
+            "id": "09c1b673-8e25-4430-8316-90211cabea7e",
+            "startPointId": "74b8bf90-e70e-4216-ac8a-809dfe521b75",
+            "type": "line"
+          },
+          {
+            "construction": true,
+            "endPointId": "c10623d6-02e1-44de-a780-a275a604a96b",
+            "id": "fd9b76ee-faa1-4a62-8853-f77d27b615a2",
+            "startPointId": "3c1b541b-59e5-4586-8e79-57e98ac8c28b",
+            "type": "line"
+          },
+          {
+            "construction": true,
+            "endPointId": "74b8bf90-e70e-4216-ac8a-809dfe521b75",
+            "id": "b98fa4c8-b736-4cf3-9d87-0dceef2e1bdd",
+            "startPointId": "80630443-f5d5-443c-ab53-7077116c4f8f",
+            "type": "line"
+          }
+        ],
+        "plane": "XY",
+        "points": [
+          {
+            "id": "3c1b541b-59e5-4586-8e79-57e98ac8c28b",
+            "uMm": -10,
+            "vMm": -10
+          },
+          {
+            "id": "80630443-f5d5-443c-ab53-7077116c4f8f",
+            "uMm": 10,
+            "vMm": -10
+          },
+          {
+            "id": "c10623d6-02e1-44de-a780-a275a604a96b",
+            "uMm": 10,
+            "vMm": 10
+          },
+          {
+            "id": "74b8bf90-e70e-4216-ac8a-809dfe521b75",
+            "uMm": -10,
+            "vMm": 10
+          },
+          {
+            "id": "0a6de2b5-9b06-4dab-9fc3-ffb710ac4324",
+            "uMm": 0,
+            "vMm": 0
+          }
+        ]
+      },
+      "type": "sketch",
+      "visible": false
+    },
+    {
+      "bodyId": "ac2c7d60-a8d3-4751-8b3b-4cc4bafe133a",
+      "id": "8c7a561e-8c82-4f4d-a84f-711c7b62bd5f",
+      "name": "Extrude",
+      "ownerId": "bb5596db-b4f4-4bd4-9abb-503adccb9310",
+      "parameters": {
+        "distanceMm": 20,
+        "profileId": "0441d556-c98d-54ca-b6d3-44488ab33dd8",
+        "sketchId": "cb577fd1-6a21-45c1-809c-47af78e0ca45"
+      },
+      "type": "extrude",
+      "visible": true
+    },
+    {
+      "id": "33c0d3d9-ad48-4cc3-bb49-f085c3a62618",
+      "name": "Fillet",
+      "ownerId": "bb5596db-b4f4-4bd4-9abb-503adccb9310",
+      "parameters": {
+        "edgeIds": [
+          "fc03f294-0ff7-595d-ba9c-0b4cb692d127",
+          "688c71fa-48ea-5638-816f-5a0f671fd295",
+          "23afbf0a-47b7-5810-8591-97e81203485c",
+          "3dc82bb3-c2ea-5fae-83f6-44ab1da68341",
+          "9a814472-cb89-5445-969e-4912ae8c7f41",
+          "7321681a-0ebb-5b71-ae7b-e7b49ff27628",
+          "3558f9c0-9ee5-52b4-a6b6-2870d39333d9",
+          "1b8a3100-07bf-53ed-8b72-0850a7e155b8",
+          "867771ee-245b-5c6a-8404-8ab8093c1456",
+          "df7c39b5-0ae3-5500-8da6-54ec678e1fbe",
+          "8f9ed1fa-b60f-5c39-9d35-aad060d9d5f7",
+          "3609a87c-2fd2-522d-b5e4-378592119f0c"
+        ],
+        "radiusMm": 1,
+        "tangentChain": true,
+        "targetBodyId": "ac2c7d60-a8d3-4751-8b3b-4cc4bafe133a"
+      },
+      "type": "fillet",
+      "visible": true
+    },
+    {
+      "id": "a55a21f8-1c6c-4ffc-b8e8-7c326afddc83",
+      "name": "Sphere",
+      "ownerId": "bb5596db-b4f4-4bd4-9abb-503adccb9310",
+      "parameters": {
+        "diameterMm": 3,
+        "operation": "cut",
+        "support": {
+          "bodyId": "ac2c7d60-a8d3-4751-8b3b-4cc4bafe133a",
+          "faceId": "a7cbe59a-c5b8-5824-8d39-06e6a881a2c0",
+          "producerFeatureId": "8c7a561e-8c82-4f4d-a84f-711c7b62bd5f"
+        },
+        "targetBodyId": "ac2c7d60-a8d3-4751-8b3b-4cc4bafe133a",
+        "uMm": 0,
+        "vMm": 0
+      },
+      "type": "sphere",
+      "visible": true
+    }
+  ],
+  "occurrences": [
+    {
+      "definitionId": "bb5596db-b4f4-4bd4-9abb-503adccb9310",
+      "id": "a3382ead-f50c-470c-81cc-02386fdcdad5",
+      "parentId": "8ec2d65a-3339-4f1f-a957-2ca78a230167",
+      "placement": "identity"
+    }
+  ],
+  "schema": "alloy-document/1"
+}
