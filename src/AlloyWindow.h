@@ -180,6 +180,11 @@ private:
     QJsonObject appendSketchEntity(const QString& tool, const QJsonObject& inputs);
     QJsonObject appendCenterRectangle(const QJsonObject& inputs);
     QJsonObject appendCircleOffset(const QJsonObject& inputs,bool update);
+    EvaluatedSketch evaluateSketchDraft(const QJsonObject& draft) const;
+    QJsonObject previewLoopOffset(const QJsonObject& inputs);
+    QJsonObject acceptLoopOffset(const QJsonObject& inputs);
+    QJsonObject updateLoopOffset(const QJsonObject& inputs);
+    void cancelLoopOffset();
     QJsonObject previewCircleOffset(const QJsonObject& inputs);
     QJsonObject acceptCircleOffset(const QJsonObject& inputs);
     void cancelCircleOffset();

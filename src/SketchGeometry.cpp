@@ -1,6 +1,7 @@
 #include "SketchGeometry.h"
 #include "SketchSolver.h"
 #include "SketchText.h"
+#include "RoundedLoopOffset.h"
 #include <BRepBndLib.hxx>
 #include <BRepBuilderAPI_MakeEdge.hxx>
 #include <BRepCheck_Analyzer.hxx>
@@ -504,10 +505,17 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
         try {return validateParameters(expandedProjectionFeature({{"parameters",parameters}},{{"lines",lines},{"points",resolvedPoints}})["parameters"].toObject(),authoredIds,referenceIds);}
         catch(const std::exception& error){return QString::fromUtf8(error.what());}
     }
-    const QSet<QString> allowed{"plane", "planeId", "points", "entities", "constraints", "dimensions", "originPointId", "support", "texts"};
+    const QSet<QString> allowed{"plane", "planeId", "points", "entities", "constraints", "dimensions", "originPointId", "support", "texts", "loopOffsets"};
     for (auto it = parameters.begin(); it != parameters.end(); ++it)
         if (!allowed.contains(it.key())) return "Unknown sketch parameter: " + it.key();
     if (!parameters["points"].isArray() || !parameters["entities"].isArray()) return "Sketch requires points and entities";
+    if(parameters.contains("loopOffsets")){
+        const auto error=RoundedLoopOffset::validate(parameters);
+        if(!error.isEmpty())return error;
+        const auto id=parameters["loopOffsets"].toArray().first().toObject()["id"].toString();
+        if(authoredIds.contains(id))return "Duplicate loop offset UUID";
+        authoredIds.insert(id);return {};
+    }
     if(parameters.contains("texts")){
         if(!parameters["texts"].isArray() || parameters["texts"].toArray().size()!=1 || !parameters["entities"].toArray().isEmpty())return "Sketch Text requires exactly one text object and no analytic entities";
         auto ids=authoredIds;const auto error=SketchText::validate(parameters["texts"].toArray().first().toObject(),ids);
@@ -748,7 +756,7 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
 SketchGeometry::SolveResult SketchGeometry::solveDraft(const QJsonObject& draft, const QJsonObject& projectionContext) {
     try {
         validateDraft(draft);
-        if(draft["parameters"].toObject().contains("texts"))
+        if(draft["parameters"].toObject().contains("texts") || draft["parameters"].toObject().contains("loopOffsets"))
             return {true,draft,{{"solver","direct text parameters"},{"status","accepted"}}, {}};
         const auto expanded=expandedProjectionFeature(draft,projectionContext);
         QSet<QString> lockedPoints,virtualEntities;

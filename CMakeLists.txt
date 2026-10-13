@@ -31,7 +31,7 @@ add_library(alloy_kernel STATIC
     src/GeometryKernel.cpp src/GeometryKernel.h src/PlanarFaces.cpp src/PlanarFaces.h src/SolidFillet.cpp src/SolidFillet.h src/SolidChamfer.cpp src/SolidChamfer.h src/SolidShell.cpp src/SolidShell.h src/SolidSphere.cpp src/SolidSphere.h src/SolidLoft.cpp src/SolidLoft.h src/SolidRevolve.cpp src/SolidRevolve.h src/SolidSweep.cpp src/SolidSweep.h src/FeaturePattern.cpp src/FeaturePattern.h src/SolidMirror.cpp src/SolidMirror.h src/JoinResults.cpp
     src/MeshExport.cpp src/MeshExport.h
     src/StepExchange.cpp src/StepExchange.h
-    src/SketchGeometry.cpp src/SketchTrim.cpp src/SketchGeometry.h src/SketchText.cpp src/SketchText.h
+    src/SketchGeometry.cpp src/SketchTrim.cpp src/SketchGeometry.h src/SketchText.cpp src/SketchText.h src/RoundedLoopOffset.cpp src/RoundedLoopOffset.h
     src/SketchProfiles.cpp src/SketchProfiles.h src/SketchRegions.cpp)
 target_include_directories(alloy_kernel PUBLIC src)
 target_include_directories(alloy_kernel SYSTEM PUBLIC ${OpenCASCADE_INCLUDE_DIR})
@@ -76,6 +76,13 @@ if(ALLOY_BUILD_SPIKES)
 endif()
 if(BUILD_TESTING)
     find_package(Qt6 6.11.2 EXACT REQUIRED COMPONENTS Test)
+    add_executable(rounded_loop_offset_test tests/rounded_loop_offset.cpp src/CadDocument.cpp src/CadDocument.h)
+    target_link_libraries(rounded_loop_offset_test PRIVATE alloy_kernel Qt6::Widgets)
+    add_test(NAME rounded_loop_offset COMMAND rounded_loop_offset_test)
+    add_executable(rounded_loop_offset_controls_test tests/rounded_loop_offset_controls.cpp)
+    target_link_libraries(rounded_loop_offset_controls_test PRIVATE alloy_application Qt6::Test)
+    add_test(NAME rounded_loop_offset_controls COMMAND rounded_loop_offset_controls_test)
+    set_tests_properties(rounded_loop_offset_controls PROPERTIES TIMEOUT 90 LABELS "widget;gpu" RUN_SERIAL TRUE)
     add_executable(sketch_text_test tests/sketch_text.cpp)
     target_link_libraries(sketch_text_test PRIVATE alloy_kernel Qt6::Gui)
     add_test(NAME sketch_text COMMAND sketch_text_test)

@@ -2173,3 +2173,15 @@ acceptance claim. Exact rim, hole and text lineage is asserted. Rounded-loop
 Offset #229 and 2-Point Circle #230 still need integration, and SOL-034/#236
 must retain the upper Cut-hole rim for the source's R1 Fillet plus the broad
 floor support for Text. Run the cumulative movie only after those gates land.
+## Rounded-loop Offset candidate (2026-10-13)
+
+SKT-044/#229 adds one generated-only retained loop offset on an actual named
+rounded top face. The source click selects a real outer edge, checked Chain
+previews the entire contour at signed −1.5 mm, and OK creates an exact annulus
+with a stable profile identity; Escape discards the preview. The bounded
+R6 source on the z=2 cap yields a 57 × 27/R4.5 inner loop and a 1.5 mm joined
+raised rim. Core, native Qt and real-app API evidence pass geometry, preview,
+edits, atomic refusal, undo and exact reopen. This is a candidate pending
+independent review/integration. The source's 60/30 overall spans remain driven
+references, and the full lesson remains #233. See
+[the scoped receipt](validation/rounded-loop-offset.md).

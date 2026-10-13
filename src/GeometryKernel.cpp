@@ -14,6 +14,7 @@
 #include "GeometryKernel.h"
 #include "SolidFillet.h"
 #include "SketchGeometry.h"
+#include "RoundedLoopOffset.h"
 #include "StepExchange.h"
 #include <BRepBndLib.hxx>
 #include <BRepAdaptor_Surface.hxx>
@@ -407,7 +408,9 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored) 
                     for(const auto& plane:evaluated.constructionPlanes)if(plane.featureId==parameters["planeId"].toString())resolvedFrame=plane.frame;
                     if(resolvedFrame.isEmpty())throw EvaluationError({{"code","plane_unavailable"},{"message","Sketch construction plane is unavailable"},{"featureId",id}});
                 }
-                evaluated.sketches.push_back(SketchGeometry::evaluateFeature(feature,resolvedFrame,projectionContext(evaluated,feature)));
+                if(parameters.contains("loopOffsets"))
+                    evaluated.sketches.push_back(RoundedLoopOffset::evaluate(feature,resolveSketchSupport(evaluated,parameters["support"].toObject())));
+                else evaluated.sketches.push_back(SketchGeometry::evaluateFeature(feature,resolvedFrame,projectionContext(evaluated,feature)));
             } else if (type == "stepImport") {
                 const auto failStep=[&](const QString& code,const QString& message) {
                     auto details=context;details["code"]=code;details["message"]=message;
