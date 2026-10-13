@@ -34,9 +34,13 @@ captures use the superseded seed recipe and remain feature evidence only.
 The PDF six-edge0.5mm variant remains unexecuted. Broader fillet modes stay #48.
 All private review editors are closed. Continue one-editor-at-a-time validation.
 
-Next work is the complete #171 video tutorial chain through the supported
-cutter47, local Move and Combine Cut, history and printable export. Its runner
-is being prepared in `successive-join`; no complete tutorial acceptance yet.
+#171 is active. The complete shared-API video tutorial passes through dimensioned
+Trim, Join, corrected Fillet, original-cap circle, cutter47, local Move and Combine
+Cut, upstream edit/diameter edit, undo/reopen and closed millimeter STL. Evidence
+and deliverables are `build-tutorial-polish/evidence/support-tutorial/`; final
+32×15×24 mm, 1,550 triangles. See `validation/support-tutorial.md` for source
+values and declared transform inference. Astra is reviewing full evidence and
+remaining native path; full tutorial acceptance is still pending.
 Backlog after these closures: 182 issues, 53 closed, 129 open. No release/CI run.
 
 ## Current integrated checkpoint (2026-10-12)

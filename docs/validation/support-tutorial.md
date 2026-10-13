@@ -31,7 +31,7 @@ its complete selection map remains separate and unknown.
 | 13–16 / video419/434/449s | Move Body, Free Move; Y−10°, Z−31 mm, final X−2 mm; no copy | Incremental numeric observations; declared foot pivot/local frame below; native trajectory separate |
 | 17–19 / video450–470s | Combine Cut: support target, moved cylinder tool, Keep Tools off | Preview/cancel, consumed tool, one valid closed retained solid, analytic removed volume, one Undo/Redo |
 | 20 optional | Separate Alloy diameter edit5.2→6.2; restore by Undo | Supported edit evidence only; source outro points to a separate adjustment video |
-| Printable artifact qualification | Native save/reopen and binary mm STL | Exact authored reopen; independent stdlib triangle readback verifies closed/oriented mesh, volume and bounds |
+| Printable artifact qualification | Save/reopen and binary mm STL | Exact authored reopen; independent stdlib triangle readback verifies closed/oriented mesh, volume and bounds |
 
 The optional text and hole chamfer shown after the core cut are explicitly
 outside this gate, mapped to remaining emboss/text coverage #101 and solid Chamfer #50. The PDF
@@ -67,16 +67,19 @@ print result is claimed.
 
 ```sh
 python3 tests/support_tutorial_api.py \
-  --app build-support-integrated/alloy.app/Contents/MacOS/alloy \
-  --output build-support-integrated/evidence/support-tutorial
+  --app build-tutorial-polish/alloy.app/Contents/MacOS/alloy \
+  --output build-tutorial-polish/evidence/support-tutorial
 ```
 
 The runner writes `support-tutorial-api.json` even on failure, full command
 transcript, dimensioned sketch/selection/preview/final captures,
 `straw-support-video.alloy` and `straw-support-video-mm.stl`. It checks one upstream
 outer-height24→26 edit through Join, Fillet, supported sketch, Move and Cut,
-restores it, and separately checks diameter resize. Syntax verification passes;
-API, geometry, GPU captures, native interaction and matched visual review remain
-pending. Current commands cover the intended route; no new implementation is
-requested by this runner. Any real-app failure is a bounded blocker, not grounds
-to replace source steps with equivalent primitives or pre-positioned cutters.
+restores it, and separately checks diameter resize. The complete shared-API run
+passes on the integrated candidate: one valid closed solid, 32×15×24 mm, analytic
+bore removal 431.295677 mm³ and a closed oriented 1,550-triangle STL with measured
+mesh volume 4935.951640 mm³. Actual GPU captures cover every stage; root inspected
+the final shape. Evidence is `build-tutorial-polish/evidence/support-tutorial/`.
+No slicer/print or full native parity is claimed. Astra is independently reviewing
+the full source/geometry evidence and qualifying the remaining native path.
+Current commands cover this route without further feature implementation.
