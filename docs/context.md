@@ -23,6 +23,14 @@ No final hole/model/STL pass is claimed. Sol investigates ownership coverage
 versus actual material loss under #265; the private editor exited. Main source
 b94fbf2 includes the prepared original creation recording and two-STL recipe.
 
+The numerical Join candidate is integrated a22c676; main app and latest strict
+geometry verifier build. Its explicit consistent adaptive integration and combined
+estimated-error budget retain the original material threshold. Independent raw
+BRep review classifies shared-edge changes as added support representations; all
+original geometry/tolerances/topology remain, but byte identity is not claimed.
+The full `cumulative-02` run has started with a180-second command timeout and
+creation recording. Its outcome is pending; do not treat a running gate as passed.
+
 ## Latest accepted checkpoint — 2026-10-13
 
 Full slots/splines/conic/ellipse lesson #257 and color follow-up #259 are accepted
