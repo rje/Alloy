@@ -24,6 +24,64 @@ class TwoPointRectangleControlsTest final : public QObject {
     QJsonObject session(AlloyWindow& window) {return window.state()["activeSession"].toObject();}
     QJsonObject draft(AlloyWindow& window) {return session(window)["draftSketch"].toObject();}
 private slots:
+    void invalidCancelAndPalette() {
+        QTemporaryDir temporary;auto output=qEnvironmentVariable("ALLOY_RECTANGLE_EVIDENCE");
+        if(output.isEmpty())output=temporary.path();QDir().mkpath(output);
+        AlloyTheme::apply(*qApp);AlloyWindow window;window.resize(1400,900);window.show();window.activateWindow();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));QApplication::setActiveWindow(&window);
+        ReferenceView* view=nullptr;for(auto* child:window.findChildren<QWidget*>())if(auto* candidate=dynamic_cast<ReferenceView*>(child))view=candidate;
+        QVERIFY(view);call(window,"sketch.begin",{{"plane","XY"},{"units","mm"}});call(window,"sketch.lookAt");
+        call(window,"sketch.tool",{{"tool","rectangle"}});
+        const auto sketchId=draft(window)["id"];
+        auto pixel=[&](double u,double v){const auto p=call(window,"view.projectSketchPoint",{{"sketchId",sketchId},{"uMm",u},{"vMm",v}});
+            return QPoint(qRound(p["x"].toDouble()),qRound(p["y"].toDouble()));};
+        QTRY_COMPARE(QApplication::focusWidget(),static_cast<QWidget*>(view));
+        QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,pixel(0,0));
+        const auto directionPixel=pixel(20,-10);
+        QMouseEvent motion(QEvent::MouseMove,QPointF(directionPixel),QPointF(view->mapToGlobal(directionPixel)),
+            Qt::NoButton,Qt::NoButton,Qt::NoModifier);QApplication::sendEvent(view,&motion);
+        const auto before=draft(window);const auto beforeHistory=session(window).value("draftHistory");
+        QTRY_COMPARE(QApplication::focusWidget(),static_cast<QWidget*>(view));
+        QTest::keyClick(QApplication::focusWidget(),Qt::Key_0);
+        auto* width=window.findChild<QLineEdit*>("sketch.inlineValue");auto* height=window.findChild<QLineEdit*>("sketch.centerRectangle.height");
+        auto* widthLabel=window.findChild<QLabel*>("sketch.twoPointRectangle.widthLabel");
+        auto* heightLabel=window.findChild<QLabel*>("sketch.twoPointRectangle.heightLabel");
+        QVERIFY(width && height && widthLabel && heightLabel);
+        QTRY_COMPARE(QApplication::focusWidget(),static_cast<QWidget*>(width));
+        QTest::keyClick(QApplication::focusWidget(),Qt::Key_Tab);
+        QTRY_COMPARE(QApplication::focusWidget(),static_cast<QWidget*>(height));
+        QTest::keyClick(QApplication::focusWidget(),Qt::Key_3);QTest::keyClick(QApplication::focusWidget(),Qt::Key_0);
+        QTest::keyClick(QApplication::focusWidget(),Qt::Key_Return);
+        QCOMPARE(draft(window),before);QCOMPARE(session(window)["draftHistory"],beforeHistory);
+        QVERIFY(session(window).contains("pendingTwoPointRectangle"));
+        QTRY_COMPARE(QApplication::focusWidget(),static_cast<QWidget*>(height));
+        QTest::keyClick(QApplication::focusWidget(),Qt::Key_Backtab);
+        QTRY_COMPARE(QApplication::focusWidget(),static_cast<QWidget*>(width));
+        QTest::keyClick(QApplication::focusWidget(),Qt::Key_A,Qt::ControlModifier);
+        QTest::keyClick(QApplication::focusWidget(),Qt::Key_6);QTest::keyClick(QApplication::focusWidget(),Qt::Key_0);
+        QTest::keyClick(QApplication::focusWidget(),Qt::Key_Tab);
+        QTRY_COMPARE(QApplication::focusWidget(),static_cast<QWidget*>(height));
+        QVERIFY(widthLabel->isVisible() && heightLabel->isVisible());
+        QCOMPARE(draft(window),before);QVERIFY(view->diagnostics()["cursorPreviewVisible"].toBool());
+        auto* info=window.findChild<QLabel*>("sketch.info");auto* profile=window.findChild<QLabel*>("sketch.profileStatus");
+        QVERIFY(info && profile);
+        QTRY_VERIFY(profile->y()>=info->y()+info->height());
+        qInfo("palette info y=%d h=%d hint=%d text=%s",info->y(),info->height(),info->sizeHint().height(),qPrintable(info->text()));
+        qInfo("palette profile y=%d h=%d hint=%d",profile->y(),profile->height(),profile->sizeHint().height());
+        call(window,"capture.screenshot",{{"path",output+"/rectangle-cancel-preview.png"}});
+        QTest::keyClick(QApplication::focusWidget(),Qt::Key_Escape);
+        QVERIFY(!session(window).contains("pendingTwoPointRectangle"));QVERIFY(!width->isVisible());
+        QVERIFY(!widthLabel->isVisible() && !heightLabel->isVisible());
+        QVERIFY(!view->diagnostics()["cursorPreviewVisible"].toBool());QCOMPARE(draft(window),before);
+        QCOMPARE(session(window)["draftHistory"],beforeHistory);
+        call(window,"sketch.tool",{{"tool","circle"}});
+        QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,pixel(0,0));
+        QTRY_COMPARE(QApplication::focusWidget(),static_cast<QWidget*>(view));
+        QTest::keyClick(QApplication::focusWidget(),Qt::Key_2);
+        QVERIFY(width->isVisible() && !width->isReadOnly());
+        QVERIFY(!widthLabel->isVisible() && !heightLabel->isVisible());
+        call(window,"sketch.circleDiameterCancel");call(window,"sketch.cancel");window.close();
+    }
     void sourceRectangle() {
         QTemporaryDir temporary;auto output=qEnvironmentVariable("ALLOY_RECTANGLE_EVIDENCE");
         if(output.isEmpty())output=temporary.path();QDir().mkpath(output);

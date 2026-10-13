@@ -17,8 +17,7 @@ quadrant only in the active session; the GPU cursor shows the resulting bounds.
 Accept uses the existing four-line rectangle authority and publishes both
 driving dimensions with the corner-origin coincidence in one solved draft edit.
 No pending value enters saved data. Source inspection confirms invalid positive
-size parsing refuses Accept and Cancel/tool change clears the typed input;
-these two refusal branches were not separately exercised in the runtime cases.
+size parsing refuses Accept and Cancel/tool change clears the typed input.
 The direct coordinate `sketch.rectangle`, Center Rectangle, Circle and Line
 remain available through their existing commands and editors.
 
@@ -32,10 +31,29 @@ four edges, driving 60/30 dimensions, draft undo/redo and exact save/reopen.
 After the source sequence, a bounded shared-editor check opens Circle and Line
 input and confirms their value field is editable with the Rectangle labels
 hidden. `build/evidence/two-point-rectangle/native.log` is the persisted log.
-The inspected `rectangle-preview.png` visibly contains the full right/down
-outline and persistent Width 60 / Height 30 labels; `rectangle-committed.png`,
-saved model and `state.json` are adjacent. Pointer movement is an injected Qt
-event on Alloy's real view, not a physical OS mouse receipt.
+The inspected `rectangle-preview.png` visibly contains the right/down outline
+and persistent Width 60 / Height 30 labels. The editor covers part of the
+lower-right outline in this 1400 × 900 capture; the authored bounds and closed
+profile are verified from the model, not from an unobscured preview. The
+`rectangle-committed.png`, saved model and `state.json` are adjacent. Pointer
+movement is an injected Qt event on Alloy's real view, not a physical OS mouse
+receipt.
+
+Independent review found the Sketch Palette summary compressed to 15 logical
+pixels even though its current text needed 60; the profile status likewise
+needed 30. The dynamic labels now update their minimum heights from their text
+size hints. The focused `invalidCancelAndPalette` Qt case passed in 1556 ms
+(3 stages, 0 failures): typed 0 × 30 followed by Return leaves the draft and
+history unchanged, keyboard correction to 60 × 30 gives a preview, and Escape
+clears the pending input, labels and GPU cursor without authoring. A subsequent
+Circle input is editable. The test changes focus only through normal Tab,
+Shift-Tab and tool actions after initial harness activation. In
+`build/evidence/two-point-rectangle/invalid-cancel.log`, the live summary and
+profile labels each have their required height (60 and 30 logical pixels),
+with no overlap. The inspected `rectangle-cancel-preview.png` shows readable
+palette summary/profile and normal spacing before selection guidance. Its
+lower-right outline is likewise behind the inline editor. The original
+`rectangle-preview.png` is retained as pre-correction evidence of clipping.
 
 `tests/two_point_rectangle_api.py` passed against the Alloy executable with 24
 shared command calls. It uses projected origin and pointer positions, previews

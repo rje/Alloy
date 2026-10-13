@@ -2874,6 +2874,9 @@ void AlloyWindow::refresh() {
             .arg(inputs["plane"].toString()).arg(draft["parameters"].toObject()["entities"].toArray().size())
             .arg(prompt)
             .arg(diagnostics["dof"].toInt(-1)==0 ? "Fully constrained" : QString("%1 degrees of freedom").arg(diagnostics["dof"].toInt())));
+        // Long live-entry prompts can grow after the scroll layout has measured
+        // its children. Keep their actual minimum heights in sync with the text.
+        if(sketchInfo_)sketchInfo_->setMinimumHeight(sketchInfo_->sizeHint().height());
         if(sketchProfileInfo_){
             auto profileDiagnostics=session_.value("profileDiagnostics").toObject();auto profiles=session_.value("profileSummaries").toArray();
             if(profileDiagnostics.isEmpty() || session_.value("profileDiagnosticsSource")!=profileStamp){const auto evaluated=SketchGeometry::evaluateFeature(draft,session_.value("resolvedFrame").toObject(),session_.value("projectionContext").toObject());profileDiagnostics=evaluated.summary["profileDiagnostics"].toObject();profiles=evaluated.summary["profiles"].toArray();session_["profileDiagnostics"]=profileDiagnostics;session_["profileSummaries"]=profiles;session_["profileDiagnosticsSource"]=profileStamp;}
@@ -2881,7 +2884,8 @@ void AlloyWindow::refresh() {
             bool warning=profiles.isEmpty() && profileDiagnostics["code"]!="empty_sketch";if(warning)text+="\n"+profileDiagnostics["message"].toString();
             for(const auto& notice:profileDiagnostics["notices"].toArray()){const auto n=notice.toObject();if(n["severity"]!="warning")continue;warning=true;if(n["code"]=="coincident_boundary_sources")text+=QString("\n%1 coincident sources share one boundary.").arg(n["entityIds"].toArray().size());else if(n["code"]=="ignored_open_segments")text+=QString("\n%1 source curve(s) have excluded open portions.").arg(n["entityIds"].toArray().size());else text+=QString("\n%1 open entity/curve(s) excluded from profiles.").arg(n["entityIds"].toArray().size());}
             if(!profileDiagnostics["endpointGaps"].toArray().isEmpty()){double closest=std::numeric_limits<double>::infinity();for(const auto& g:profileDiagnostics["endpointGaps"].toArray())closest=std::min(closest,g.toObject()["distanceMm"].toDouble());text+="\nNearest endpoint gap: "+QString::number(closest,'g',6)+" mm (not closed)";}
-            sketchProfileInfo_->setText(text);sketchProfileInfo_->setStyleSheet(warning ? "color:#9a5800":"color:#53616b");sketchProfileInfo_->setToolTip(QString::fromUtf8(QJsonDocument(profileDiagnostics).toJson(QJsonDocument::Indented)));
+            sketchProfileInfo_->setText(text);sketchProfileInfo_->setMinimumHeight(sketchProfileInfo_->sizeHint().height());
+            sketchProfileInfo_->setStyleSheet(warning ? "color:#9a5800":"color:#53616b");sketchProfileInfo_->setToolTip(QString::fromUtf8(QJsonDocument(profileDiagnostics).toJson(QJsonDocument::Indented)));
         }
         if(!current && sketchError_)sketchError_->setText("The document changed. Cancel and restart this sketch.");
         const auto draftHistory=session_.value("draftHistory").toObject();
