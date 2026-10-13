@@ -88,3 +88,9 @@ Typed full-axis values initialize geometry without driving dimensions, and
 the labeled full-axis convention remains a qualified Alloy policy. This accepts
 #256's source ingredient; it does not establish the combined conic/ellipse
 lesson, general ellipse constraints, cross-platform runtime or exact styling.
+
+Integration on main preserves all curve dispatch and explicit slot-preview routing.
+Independent merge review caught ellipse in the generic pointIds dispatch; it was
+removed so the dedicated centerPointId validation executes. Main app rebuild and
+focused ellipse core pass (0.42s) after that correction. Earlier combined
+ellipse/conic/control core pass3/3 remains separately recorded.
