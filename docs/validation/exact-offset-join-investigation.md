@@ -1,8 +1,9 @@
 # Exact-offset array Join investigation
 
-SOL-039/#265, 2026-10-13. Headless diagnostic findings only; no production
-correction or cumulative acceptance is claimed. #261 and #263 remain required
-inputs for retained-command reproduction.
+SOL-039/#265, 2026-10-13. Historical diagnostic findings below are preserved.
+Accepted #261/#263/#266 now permit actual retained Intersect and eight-body
+Pattern. The current bounded correction addresses coverage integration;
+cumulative application acceptance remains separate.
 
 ## Exact fixture and authority
 
@@ -163,3 +164,48 @@ these records. No GUI, source simplification, tolerance alteration, production
 approximation or CellsBuilder patch was introduced. Shell robustness, rigid
 rotation and existing Join-lineage non-destructive processing require separate
 bounded ownership and review.
+
+
+## Retained coverage correction candidate
+
+Actual cumulative-01 reaches accepted exact Shell, strip Intersect and Pattern8,
+then refuses hub Join with `join_lineage_ambiguous`. The saved eight-body design
+reopens through CadDocument. A configured non-destructive Fuse returns one
+BRep/Boolean-valid closed solid; participant-minus-result Cut contains no residual
+solids for all eight ribs and hub. This establishes a different retained failure
+from the invalid raw fifteen-solid result discussed above.
+
+Coverage previously compared topology-dependent `summarize(input)` adaptive
+integration with default fixed integration of Common. Each rib Common underreports
+by about0.005 mm3. Even topology-dependent adaptive summaries differ enough to
+fail the unchanged material threshold. Explicit Gauss–Kronrod on both shapes,
+requested1e-11/OnlyClosed=true/IsUseSpan=false, reports maximum reached relative
+error1.5581e-10 and maximum pair difference1.3527e-5 mm3. Adding both estimated
+absolute errors remains below the existing2.2781e-5 mm3 threshold for every rib.
+No material threshold or kernel tolerance is relaxed.
+
+`covers()` now uses that consistent integration independently of offset-edge
+representation. It checks Common validity, handles no-solid overlap before
+integration, refuses nonfinite/failed/unconverged estimates, and includes both
+reported absolute errors in the unchanged coverage comparison. There is no
+geometry approximation, altered Fuse, dimensions change or residual fallback.
+
+The focused profile_join, successive_join and join_lineage_immutable regressions
+pass3/3. The retained external source-specific Join now returns successfully. The probe
+then stops at original participant byte preservation: additional located surface
+and pcurve representations were added to a shared edge. Existing 3D curves match;
+classification of cache enrichment versus destructive mutation remains pending.
+Topology-empty residuals and history/reopen must complete after that classification. No permanent repository fixture reproduces this
+source-specific numerical trigger; the saved retained external fixture and probe
+are required to replay it. Existing exact-offset Pattern core fixture is an
+untrimmed prism, not the same shell-derived rib, so it was not broadened into a
+different geometry claim.
+
+External evidence: `validation/ornament-feasibility/retained-join-coverage.json`,
+`retained-join-coverage-tight.json`, `retained-join-candidate.cpp`,
+`retained-join-candidate.json`, `join-coverage-core-final.log`, and the saved
+`deliverables/ornament-2026-10-13/cumulative-01/ornament-pattern-eight.alloy`.
+The raw report's no-residual-solids observation is qualified; the final candidate
+probe additionally rejects residual faces/edges/vertices. Independent Astra review
+and real application cumulative source/edit/through-bore/strict-STL acceptance
+remain required before closing #265/#264.

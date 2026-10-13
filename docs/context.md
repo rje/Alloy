@@ -128,6 +128,18 @@ run because its prerequisite shell is not Boolean-valid. Earlier diagnostic
 metrics taken after an eager Boolean constructor were confounded; subsequent
 before/after-hash checks independently establish the untouched-input defects.
 
+Actual cumulative-01 now passes exact Shell/Intersect/Pattern8 but hub Join
+refuses `join_lineage_ambiguous`. Headless retained Fuse is one Boolean-valid
+solid with no participant-minus-result residual solids; mixed fixed/adaptive
+coverage estimators caused false ownership refusal. The bounded #265 candidate
+uses consistent explicit GK1e-11 and both reported error estimates against the
+unchanged material threshold. Simple Join regressions pass; source-specific
+retained Join now returns, but adds located pcurve representations to shared
+inputs; cache/geometry classification, containment, cumulative acceptance and
+independent review remain pending.
+See validation/exact-offset-join-investigation.md and external retained coverage
+reports. No dimensions, kernel tolerance, authored evaluator or Fuse changed.
+
 Source boundary reread: the tutorial explicitly selects the bottom face for
 Inside5 Shell, but its section image does not prove an annular opening. That
 earlier requirement was inferred. The exact inward meridian closes on the axis

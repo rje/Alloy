@@ -30,16 +30,29 @@ TopoDS_Shape fuse(const std::vector<TopoDS_Shape>& inputs, std::unique_ptr<BRepA
     if(!operation.IsDone() || operation.HasErrors())reject("join_kernel_failed","OCCT could not unite the Join inputs");
     operation.SimplifyResult(true,true,1e-12);const auto shape=operation.Shape();if(history)*history=std::move(owned);return shape;
 }
+struct CoverageVolume {double volume,error;};
+CoverageVolume coverageVolume(const TopoDS_Shape& shape){
+    GProp_GProps properties;
+    const double error=BRepGProp::VolumePropertiesGK(shape,properties,1e-11,true,false);
+    const double volume=std::abs(properties.Mass());
+    if(!std::isfinite(error)||error<0||error>1e-8||!std::isfinite(volume))
+        reject("join_lineage_failed","Adaptive Join coverage integration did not converge");
+    return {volume,error};
+}
 bool covers(const TopoDS_Shape& result,const TopoDS_Shape& input){
     // The two-shape constructor runs immediately, before immutability flags.
     TopTools_ListOfShape objects,tools;objects.Append(result);tools.Append(input);
     BRepAlgoAPI_Common shared;shared.SetArguments(objects);shared.SetTools(tools);
     shared.SetNonDestructive(true);shared.SetRunParallel(false);shared.Build();
-    if(!shared.IsDone() || shared.HasErrors())reject("join_lineage_failed","OCCT could not verify Join component lineage");
-    const double inputVolume=GeometryKernel::summarize(input)["volumeMm3"].toDouble();
-    GProp_GProps properties;BRepGProp::VolumeProperties(shared.Shape(),properties);const double sharedVolume=std::abs(properties.Mass());
-    if(sharedVolume<=1e-7)return false;
-    if(std::abs(sharedVolume-inputVolume)>std::max(1e-6,inputVolume*1e-8))
+    if(!shared.IsDone() || shared.HasErrors() || shared.Shape().IsNull() || !BRepCheck_Analyzer(shared.Shape()).IsValid())reject("join_lineage_failed","OCCT could not verify Join component lineage");
+    // Use the same adaptive authority even when a Boolean replaces the exact
+    // offset-edge representation; summarize dispatch is topology-dependent.
+    if(!TopExp_Explorer(shared.Shape(),TopAbs_SOLID).More())return false;
+    const auto inputVolume=coverageVolume(input),sharedVolume=coverageVolume(shared.Shape());
+    if(sharedVolume.volume<=1e-7)return false;
+    const double uncertainty=inputVolume.volume*inputVolume.error+sharedVolume.volume*sharedVolume.error;
+    if(std::abs(sharedVolume.volume-inputVolume.volume)+uncertainty
+        >std::max(1e-6,inputVolume.volume*1e-8))
         reject("join_lineage_ambiguous","A connected Join input does not map wholly to one output solid");
     return true;
 }
