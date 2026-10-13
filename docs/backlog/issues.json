@@ -4689,12 +4689,28 @@
       "priority": "P1",
       "depends_on": [
         "SKT-065",
-        "SOL-038"
+        "SOL-038",
+        "SOL-040"
       ],
       "labels": [
         "area:sol"
       ],
-      "body": "## Result\nResolve the cumulative exact-offset Boolean robustness gate for the ornament: eight retained circular-pattern members plus the prescribed diameter10, height5 hub must form one valid connected solid, followed by a transverse diameter4 hanging bore. Preserve the authored source geometry, references and source steps. Diagnose through the actual profile/Intersect/Pattern/Join authority before choosing a bounded kernel or representation correction. Do not hide invalid results, loosen validity checks or substitute a simpler solid.\n\n## Evidence motivating this child\nExternal validation/ornament-feasibility/authoritative-profile.cpp uses the candidate actual SketchRegions profile and GeometryKernel extrusion/Intersect. The source-like fitted strip gives one valid member, but nine-input Fuse returns invalid15-solid geometry. Earlier raw-face construction and sequential Fuse also failed. The shell and final array are still external fixtures; full application reproduction remains required. Unspecified fit points are disclosed fixture choices, not prescribed source numbers.\n\n## Verification\nReproduce through retained authored commands once dependencies land. Verify one valid connected result containing all eight complete members and the hub, stable body ownership, meaningful source edit, exact undo/reopen and strict closed STL. Prove the transverse hole exits both sides. Keep numerical volume integration consistent in Join lineage checks for exact offset geometry. Astra independently reviews the failure cause and final evidence. Source alias ornament-pattern-20261013; public source and visual provenance remain external.\n"
+      "body": "## Result\nResolve the cumulative exact-offset Boolean robustness gate for the ornament: eight retained circular-pattern members plus the prescribed diameter10, height5 hub must form one valid connected solid, followed by a transverse diameter4 hanging bore. Preserve the authored source geometry, references and source steps. Diagnose through the actual profile/Intersect/Pattern/Join authority before choosing a bounded kernel or representation correction. Do not hide invalid results, loosen validity checks or substitute a simpler solid.\n\n## Evidence motivating this child\nExternal validation/ornament-feasibility/authoritative-profile.cpp uses the candidate actual SketchRegions profile and GeometryKernel extrusion/Intersect. The source-like fitted strip gives one valid member, but nine-input Fuse returns invalid15-solid geometry. Earlier raw-face construction and sequential Fuse also failed. The shell and final array are still external fixtures; full application reproduction remains required. Unspecified fit points are disclosed fixture choices, not prescribed source numbers.\n\n## Verification\nReproduce through retained authored commands once dependencies land. Verify one valid connected result containing all eight complete members and the hub, stable body ownership, meaningful source edit, exact undo/reopen and strict closed STL. Prove the transverse hole exits both sides. Keep numerical volume integration consistent in Join lineage checks for exact offset geometry. Astra independently reviews the failure cause and final evidence. Source alias ornament-pattern-20261013; public source and visual provenance remain external.\n\n## Bounded prerequisite split\nThe diagnosed inner Shell seam correction is SOL-040. Exact rigid-copy rotation remains with active SOL-038. This issue resumes the cumulative retained Join after those inputs pass; earlier raw probes do not establish a valid source shell.\n"
+    },
+    {
+      "key": "SOL-040",
+      "title": "Preserve accurate inner seam geometry in a revolved inward Shell",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SOL-037",
+        "SKT-065"
+      ],
+      "labels": [
+        "area:sol"
+      ],
+      "body": "## Result\nCorrect the retained source80/5/R50 FullRevolve InsideShell5 so its inner surface and seam are suitable for subsequent Boolean modeling. Preserve source geometry, named removed face and authored Shell semantics. Reuse mature kernel operations; no tolerance inflation, hidden approximation, source-shape substitution or invalid-result bypass.\n\n## Localized evidence\nUntouched retained and raw Shell inputs are BRep-valid but fail Boolean self-interference checks. Inner Geom_OffsetSurface face3 has a periodic seam with measured curve/surface deviation0.765708011mm and tolerance0.803871299mm, extending through the inner body height. Regular off-tip wall/opening checks accepted in #260 did not establish this downstream contract. The actual blank-document prefix refuses its60mm Intersect. Clean diagnostics record before/after input hashes and avoid eager destructive Boolean constructors. External validation/ornament-feasibility/retained-prefix-clean and deliverables/ornament-2026-10-13/source-prefix-01 preserve failures.\n\n## Verification\nRequire untouched shell BRep and Boolean-input validity, independently measured seam consistency, the actual constrained source profile and retained support lineage, regular wall/opening geometry, and successful real-application strip Intersect. Confirm input geometry is unchanged by diagnostics/Boolean consumers, supported upstream source edit, exact undo/reopen and meaningful failure behavior. Astra reviews the correction and evidence. Full pattern/hub Join remains SOL-039, full movie/bore/STL gate TUT-014. Rigid exact-offset rotation is a distinct active SOL-038 correction.\n"
     }
   ]
 }
