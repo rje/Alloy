@@ -3,6 +3,15 @@
 Updated 2026-10-12. This is the project handoff for a fresh session. Read the root
 [AGENTS.md](../AGENTS.md) first; its reference restrictions apply to all work.
 
+## Sketch timeline research (2026-10-12)
+
+User requested a parallel architectural check. Public evidence supports one
+sketch feature in the main timeline with action-level editing undo, not a nested
+parametric timeline. Keep current intent/draft-journal separation. Exact current
+post-Finish undo grouping remains an evidence gap; no code change was made for
+this question. See [the compact contract](research/sketch-history.md) and its
+external source record.
+
 ## Active next tutorial: straw bung (2026-10-12)
 
 User approved the four illustrated tutorial candidates and requested feature
