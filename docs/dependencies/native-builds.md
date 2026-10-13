@@ -24,10 +24,15 @@ targets the observed Ubuntu 24.04 host rather than claiming older-distro support
 
 All targets use Qt 6.11.2 public SDKs, exact OCCT 7.9.3 / FreeType 2.13.3 source
 commits, shared libraries, CMake 3.31.6 and Ninja 1.11.1.4. The reviewed downloader
-revision and its observed dependency constraints are in `tools/ci/`. OCCT's
-ApplicationFramework, DataExchange, Draw and DETools modules and optional TBB,
-VTK, FreeImage, FFmpeg, RapidJSON and Draco are disabled. The research spikes
-require ApplicationFramework from a separate development installation.
+revision and its observed dependency constraints are in `tools/ci/`. The historical
+run disabled ApplicationFramework, DataExchange, Draw and DETools. The current app
+requires ApplicationFramework and DataExchange for its complete native dependency
+graph and STEP/STL exchange; the milestone script now explicitly enables all six
+required OCCT modules and disables only Draw/DETools. Optional TBB, VTK, FreeImage,
+FFmpeg, RapidJSON and Draco remain disabled. Current CMake also verifies the pinned
+PlaneGCS sources and Eigen/Boost headers; build receipts identify its source manifest
+and build contract. These option changes are pending a new native matrix, not
+retroactive claims about the historical artifacts.
 
 On the declared native development host, install Python 3.12.10 on macOS/Windows
 or 3.12.15 on Linux and the compiler above, clone Alloy, then run:

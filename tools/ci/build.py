@@ -15,6 +15,9 @@ ROOT = Path(__file__).resolve().parents[2]
 OCCT = 'a016080bf6738d6aeae020badee4e888ad1540a5'  # V7_9_3
 FREETYPE = '42608f77f20749dd6ddc9e0536788eaad70ea4b5'  # VER-2-13-3
 QT_VERSION = '6.11.2'
+OCCT_REQUIRED_MODULES = ('FoundationClasses', 'ModelingData', 'ModelingAlgorithms',
+                         'Visualization', 'ApplicationFramework', 'DataExchange')
+OCCT_DISABLED_MODULES = ('Draw', 'DETools')
 TARGETS = {
     'macos-arm64': ('darwin', 'arm64', 'mac', 'clang_64'),
     'macos-x64': ('darwin', 'x86_64', 'mac', 'clang_64'),
@@ -88,8 +91,8 @@ def main():
                    f'-D3RDPARTY_FREETYPE_DIR={ft}', '-DUSE_FREETYPE=ON', '-DUSE_OPENGL=ON',
                    '-DUSE_TBB=OFF', '-DUSE_VTK=OFF', '-DUSE_FREEIMAGE=OFF',
                    '-DUSE_FFMPEG=OFF', '-DUSE_RAPIDJSON=OFF', '-DUSE_DRACO=OFF']
-        options += [f'-DBUILD_MODULE_{module}=OFF' for module in
-                    ('ApplicationFramework','DataExchange','Draw','DETools')]
+        options += [f'-DBUILD_MODULE_{module}=ON' for module in OCCT_REQUIRED_MODULES]
+        options += [f'-DBUILD_MODULE_{module}=OFF' for module in OCCT_DISABLED_MODULES]
         build(occt_source, 'occt', occt, options)
         directory = ROOT / 'build/ci-native'
         run('cmake', '-S', ROOT, '-B', directory, *generator, *shared,
@@ -108,6 +111,12 @@ def main():
         receipt = {'result':'compiled', 'target':args.target, 'observed_at':datetime.now(timezone.utc).isoformat(),
                    'source_commit':os.environ.get('GITHUB_SHA'), 'qt':QT_VERSION,
                    'occt_commit':OCCT, 'freetype_commit':FREETYPE,
+                   'occt_required_modules':list(OCCT_REQUIRED_MODULES),
+                   'occt_disabled_modules':list(OCCT_DISABLED_MODULES),
+                   'solver_sources_manifest_sha256':hashlib.sha256(
+                       (ROOT / 'third_party/planegcs/sources.json').read_bytes()).hexdigest(),
+                   'solver_build_contract_sha256':hashlib.sha256(
+                       (ROOT / 'cmake/PlaneGCS.cmake').read_bytes()).hexdigest(),
                    'compiler_baseline': {key:baseline[key] for key in ('compiler_id','compiler_version')},
                    'host':platform.platform(), 'python':platform.python_version(),
                    'runner_image':os.environ.get('ImageOS'), 'runner_image_version':os.environ.get('ImageVersion'),
