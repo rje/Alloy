@@ -1396,3 +1396,14 @@ Build and three focused source/solver/document tests pass. The real-app API
 script and native evidence are pending combined #174/#177 qualification after
 Astra releases the desktop. See `validation/sketch-trim.md`. No push/closure;
 Extend/Break and broader curve trimming remain in parent #47.
+## Owned popup capture diagnostic candidate (2026-10-12)
+
+In isolated `bung-native-fixes`, FND-017 #179 corrects top-level owned popup capture
+from parent-chain mapping to explicit global-coordinate subtraction. Actual body
+menus now report phase/target/actions/result; API state exposes real popup/action
+rectangles and old/new mappings. Native#170 delivered right-click/context events
+but its popup was missing from composed capture/AX and no native Down/Return
+reached Qt during the blocked interval. Build passes; narrow capture widget and
+native menu→Move verification await the serialized desktop slot. Source-backed
+capture correction is distinct from unproved command/AX defects. No Qt patch or
+push/closure. See `validation/popup-capture.md`.

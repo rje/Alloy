@@ -61,6 +61,7 @@ public:
     void clearSketchCursor();
     void fit(const std::vector<EvaluatedBody>& bodies, const std::vector<EvaluatedSketch>& sketches = {});
     void selectBody(const QString& id);
+    void recordContextMenu(const QJsonObject& state,bool shown = false);
     void highlightCombineInputs(const QString& targetBodyId, const QJsonArray& toolBodyIds);
     QString pickBody(double x,double y);
     QJsonObject projectBody(const EvaluatedBody& body) const;

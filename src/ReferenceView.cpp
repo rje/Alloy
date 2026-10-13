@@ -1756,6 +1756,9 @@ void ReferenceView::mouseDoubleClickEvent(QMouseEvent* e) {
     }
     QWidget::mouseDoubleClickEvent(e);
 }
+void ReferenceView::recordContextMenu(const QJsonObject& state,bool shown) {
+    lastContextMenu_=state;if(shown)++contextMenuShownCount_;
+}
 void ReferenceView::contextMenuEvent(QContextMenuEvent* e) {
     ++contextMenuEventCount_;
     const bool sketchActive=!sketchPlane_.isEmpty();
@@ -1794,8 +1797,11 @@ void ReferenceView::contextMenuEvent(QContextMenuEvent* e) {
     const auto menuFace=sketchActive ? QJsonObject{} : pickSupportFace(e->pos().x(),e->pos().y(),documentBodies_);
     const auto menuBody=sketchActive ? QString{} : pickBody(e->pos().x(),e->pos().y());
     if(!sketchActive && (!menuBody.isEmpty() || !menuFace.isEmpty() || !selectedSupportFace_.isEmpty())) {
-        QMenu menu(this);QAction* create=nullptr;if(!menuFace.isEmpty() || !selectedSupportFace_.isEmpty())create=menu.addAction("Create Sketch");QAction* move=nullptr;if(!menuBody.isEmpty())move=menu.addAction("Move/Copy");
-        const auto action=menu.exec(e->globalPos());if(create && action==create)dispatch("sketch.create",{{"support",menuFace.isEmpty() ? selectedSupportFace_ : menuFace}});else if(move && action==move)dispatch("solid.moveDialog",{{"targetBodyId",menuBody}});
+        QMenu menu(this);menu.setObjectName("context.viewportBody");QAction* create=nullptr;if(!menuFace.isEmpty() || !selectedSupportFace_.isEmpty()){create=menu.addAction("Create Sketch");create->setObjectName("context.createSketch");}QAction* move=nullptr;if(!menuBody.isEmpty()){move=menu.addAction("Move/Copy");move->setObjectName("context.moveBody");}
+        QJsonArray actions;for(const auto* action:menu.actions())actions.append(QJsonObject{{"id",action->objectName()},{"text",action->text()},{"enabled",action->isEnabled()}});
+        lastContextMenu_["origin"]="viewport";lastContextMenu_["bodyId"]=menuBody;lastContextMenu_["support"]=menuFace;lastContextMenu_["actions"]=actions;lastContextMenu_["phase"]="open";++contextMenuShownCount_;
+        const auto action=menu.exec(e->globalPos());lastContextMenu_["phase"]="closed";lastContextMenu_["result"]=action ? action->objectName() : QString("cancelled");
+        if(create && action==create)dispatch("sketch.create",{{"support",menuFace.isEmpty() ? selectedSupportFace_ : menuFace}});else if(move && action==move)dispatch("solid.moveDialog",{{"targetBodyId",menuBody}});
         e->accept();return;
     }
     QWidget::contextMenuEvent(e);

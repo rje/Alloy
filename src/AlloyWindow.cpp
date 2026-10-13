@@ -1,3 +1,4 @@
+#include <QWindow>
 #include "AlloyWindow.h"
 #include "MeshExport.h"
 #include "StepExchange.h"
@@ -322,8 +323,10 @@ AlloyWindow::AlloyWindow() {
         const auto* item=tree_->itemAt(point);
         if(!item || item->parent()!=bodiesNode_ || item->isHidden())return;
         const auto bodyId=item->data(0,Qt::UserRole+1).toString();
-        QMenu menu(this);auto* move=menu.addAction("Move/Copy");move->setEnabled(session_.isEmpty());auto* mesh=menu.addAction("Save As Mesh…");mesh->setEnabled(session_.isEmpty());
-        const auto* action=menu.exec(tree_->viewport()->mapToGlobal(point));if(action==move)execute("solid.moveDialog",{{"targetBodyId",bodyId}});else if(action==mesh)execute("document.exportMeshDialog",{{"bodyId",bodyId}});
+        QMenu menu(this);menu.setObjectName("context.browserBody");auto* move=menu.addAction("Move/Copy");move->setObjectName("context.moveBody");move->setEnabled(session_.isEmpty());auto* mesh=menu.addAction("Save As Mesh…");mesh->setObjectName("context.exportMesh");mesh->setEnabled(session_.isEmpty());
+        QJsonArray actions;for(const auto* action:menu.actions())actions.append(QJsonObject{{"id",action->objectName()},{"text",action->text()},{"enabled",action->isEnabled()}});
+        QJsonObject context{{"origin","browser"},{"bodyId",bodyId},{"phase","open"},{"actions",actions}};view_->recordContextMenu(context,true);
+        const auto* action=menu.exec(tree_->viewport()->mapToGlobal(point));context["phase"]="closed";context["result"]=action ? action->objectName() : QString("cancelled");view_->recordContextMenu(context);if(action==move)execute("solid.moveDialog",{{"targetBodyId",bodyId}});else if(action==mesh)execute("document.exportMeshDialog",{{"bodyId",bodyId}});
     });
     connect(tree_, &QTreeWidget::itemClicked, this, [this](QTreeWidgetItem* item, int) {
         if(!item || item->isHidden() || !(item->flags()&Qt::ItemIsEnabled))return;
@@ -470,7 +473,10 @@ QImage AlloyWindow::captureImage(QImage* viewport) {
         if(popup==this||!popup->isVisible())continue;
         bool owned=false;for(auto* parent=popup->parentWidget();parent;parent=parent->parentWidget())
             if(parent==this){owned=true;break;}
-        if(owned)composition.drawPixmap(popup->mapTo(this,QPoint()),popup->grab());
+        // A top-level popup's geometry is in global screen coordinates even
+        // when it has a QObject parent. mapTo follows parent offsets and would
+        // add the viewport/browser offset a second time.
+        if(owned)composition.drawPixmap(popup->mapToGlobal(QPoint())-mapToGlobal(QPoint()),popup->grab());
     }
     composition.end();
     return pixels.toImage();
@@ -1872,6 +1878,19 @@ QJsonObject AlloyWindow::state() const {
         : QJsonObject{{"units",unitsInput_ ? unitsInput_->currentText() : QString{}}};
     const auto* activeDock=target=="solid.move" ? moveDock_ : target=="solid.extrude" ? extrudeDock_ : target=="solid.combine" ? combineDock_ : target.startsWith("sketch.") ? sketchDock_ : primitiveDock_;
     const auto panelRect=activeDock ? QRect(activeDock->mapToGlobal(QPoint())-mapToGlobal(QPoint()),activeDock->size()) : QRect{};
+    QJsonArray popups;
+    for(auto* popup:QApplication::topLevelWidgets()) {
+        if(popup==this || !popup->isVisible())continue;bool owned=false;
+        for(auto* parent=popup->parentWidget();parent;parent=parent->parentWidget())if(parent==this){owned=true;break;}
+        if(!owned)continue;
+        const auto global=popup->mapToGlobal(QPoint()),local=global-mapToGlobal(QPoint()),legacy=popup->mapTo(this,QPoint());
+        auto bounds=[&](const QPoint& position){return QJsonObject{{"x",position.x()},{"y",position.y()},{"width",popup->width()},{"height",popup->height()}};};
+        QJsonObject item{{"class",popup->metaObject()->className()},{"name",popup->objectName()},{"globalBounds",bounds(global)},{"windowLocalBounds",bounds(local)},{"legacyParentMappedBounds",bounds(legacy)},
+            {"active",popup==QApplication::activePopupWidget()},{"nativeSurfaceVisible",popup->windowHandle() && popup->windowHandle()->isVisible()},{"viewportLocal",false},{"units","logicalPixels"}};
+        if(auto* menu=qobject_cast<QMenu*>(popup)){QJsonArray actions;for(const auto* action:menu->actions()){const auto rect=menu->actionGeometry(const_cast<QAction*>(action));actions.append(QJsonObject{{"id",action->objectName()},{"text",action->text()},{"enabled",action->isEnabled()},{"active",action==menu->activeAction()},
+                    {"globalBounds",QJsonObject{{"x",global.x()+rect.x()},{"y",global.y()+rect.y()},{"width",rect.width()},{"height",rect.height()}}}});}item["actions"]=actions;}
+        popups.append(item);
+    }
     const auto viewPosition=view_->mapTo(this,QPoint());
     return {{"application", "Alloy"}, {"version", "0.1.0"}, {"stage", "sketch-authoring"},
         {"runtime", QJsonObject{{"qtVersion", qVersion()}, {"occtBuildVersion", ALLOY_OCCT_VERSION}}},
@@ -1897,7 +1916,7 @@ QJsonObject AlloyWindow::state() const {
             : QJsonObject{{"kind","body"},{"bodyId",selectedBody_}}},
         {"kernel", QJsonObject{{"candidate", "Open CASCADE"}, {"discoveredVersion", ALLOY_OCCT_VERSION}, {"integrated", true}, {"visualizationIntegrated", true}, {"policy",GeometryKernel::policy()}}},
         {"ui", QJsonObject{{"workspace", "design"}, {"tab",target=="sketch.edit" ? "sketch" : "solid"}, {"browserVisible", browserVisible_}, {"timelineVisible", timelineVisible_}, {"navigationVisible", navigationVisible_}, {"commandSearchVisible", search_ && search_->isVisible()}, {"windowWidth", width()}, {"windowHeight", height()}, {"devicePixelRatio", devicePixelRatioF()},
-            {"activeDialog", QJsonObject{{"command", session_.value("command")},
+            {"ownedPopups",popups},{"activeDialog", QJsonObject{{"command", session_.value("command")},
                 {"visible",dialogVisible},{"inputs",dialogInputs},
                 {"presentation",target.startsWith("solid.") || target.startsWith("sketch.") ? (activeDock && activeDock->isFloating() ? "floating-panel" : "docked-panel") : "dialog"},
                 {"bounds",QJsonObject{{"x",panelRect.x()},{"y",panelRect.y()},{"width",panelRect.width()},{"height",panelRect.height()}}}}}}},

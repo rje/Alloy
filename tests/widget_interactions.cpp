@@ -7,6 +7,8 @@
 #include <QMenu>
 #include <QToolButton>
 #include <QCheckBox>
+#include <QTemporaryDir>
+#include <QImage>
 #include <QComboBox>
 #include <QDoubleSpinBox>
 #include <QScrollArea>
@@ -90,6 +92,19 @@ private slots:
             QVERIFY(session(window).isEmpty());
             QCOMPARE(window.execute("document.inspect")["result"].toObject()["authored"].toObject(),authored);
         }
+    }
+    void popupCaptureUsesGlobalCoordinates() {
+        AlloyWindow window;window.setGeometry(160,120,1180,760);window.show();window.activateWindow();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));auto* view=viewport(window);QVERIFY(view);
+        QMenu menu(view);menu.setObjectName("capture.fixturePopup");menu.setStyleSheet("QMenu {background:#b91726; color:white; border:0; padding:8px;} QMenu::item {background:#b91726; padding:8px;}");menu.addAction("Capture fixture");
+        menu.popup(view->mapToGlobal(QPoint(220,180)));QCoreApplication::processEvents();QVERIFY(menu.isVisible());
+        const auto global=menu.mapToGlobal(QPoint()),local=global-window.mapToGlobal(QPoint());
+        QVERIFY(local!=menu.mapTo(&window,QPoint()));
+        const auto popupState=window.state()["ui"].toObject()["ownedPopups"].toArray();QVERIFY(!popupState.isEmpty());
+        QTemporaryDir temporary;const auto path=temporary.filePath("popup.png");QVERIFY2(run(window,"capture.screenshot",{{"path",path}}),error_.constData());
+        const QImage pixels(path);QVERIFY(!pixels.isNull());const double scale=double(pixels.width())/window.width();
+        const auto color=pixels.pixelColor(qRound((local.x()+4)*scale),qRound((local.y()+4)*scale));
+        QVERIFY2(color.red()>120 && color.green()<70,QColor(color).name().toUtf8().constData());menu.close();
     }
     void planeCircleDimension() {
         AlloyWindow window;window.resize(1180,760);window.show();window.activateWindow();
