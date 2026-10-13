@@ -7,11 +7,14 @@ Updated 2026-10-12. This is the project handoff for a fresh session. Read the ro
 
 User explicitly requested complete native tutorial interaction, bounded reference
 visual review, and STEP/STL exchange now, ending with an STL they can open in a
-slicer. STEP/STL and bounded UI fixes are integrated on main; final combined
-build/native export checks are running. Sol continues the concrete #158 AX row
-label omission, separately from its accepted row-lifetime improvement. Astra
-accepted profile fill, badge hit priority, and independent mesh/STEP checks.
-#23/#44/#155/#158 are actively being worked. Open-surface STL scope from #44 is
+slicer. STEP/STL and bounded UI fixes are integrated on main; combined
+build and bracket export check passed. The bounded #158 dimension/Undo/Redo AX
+fix is integrated; Equal-tool activation still omits some OS accessibility labels. Astra
+accepted profile fill, badge hit priority, independent mesh/STEP checks and the
+bounded native AX improvement. Private review apps are closed; models retained.
+#23/#44 are closed and Done. #155/#158 remain open and Todo with explicit
+remaining evidence/AX work. #167 preserves native STEP Open/unit dropdown and
+nondefault mesh settings qualification. Backlog: 167 total, 41 closed, 126 open. Open-surface STL scope from #44 is
 explicitly preserved in #166 (PRT-004), Todo and attached to the surface gate.
 
 Slicer files are already delivered under
