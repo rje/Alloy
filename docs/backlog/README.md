@@ -7,7 +7,7 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current publication contains **184 issues**: **123 implementation, 15 research,
+The current publication contains **186 issues**: **125 implementation, 15 research,
 22 epics, and 24 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 
@@ -19,21 +19,25 @@ still checking live dependencies. The project board exposes the same **Delivery
 order** number. A blocked broad issue may receive a bounded implementation slice;
 that does not close the issue or waive its remaining acceptance criteria.
 
-1. Straw bung: functional original-video gate (#170) is accepted through cumulative
-   API, native, geometry, export and recording evidence. The original movie retains
-   its input recoveries; the PDF numeric variant remains unexecuted.
-2. Finish outstanding exact-native bracket evidence as bounded follow-ups;
-   retain prior API/slicer success without relabeling it as full native parity.
-3. Straw support: cumulative original-video modeling/export gate (#171) accepted;
-   full API chain, native continuation and bounded input fixes have independent evidence.
-4. Nested cubes: shell, mirror, multi-face sketches, offset plane and center
-   rectangle (#172).
-5. Egg cup: offset circular sections, ordered loft and shell (#173).
+1. **Nested cubes #172**: inward Shell #185, offset planes #186, body Mirror,
+   multi-face sketches and center rectangle. Sol implements bounded children;
+   Astra researches and independently verifies the integrated workflow.
+2. **Egg cup #173**: reuse Shell/planes; add ordered circular-section Loft.
+3. **Toy block #146**: full lesson, including rectangular feature patterns,
+   underside face references, offset annuli/tubes and the final fillet selections.
+4. **Overflow: die #147**, then coherent ready backlog work if the first three
+   pass before the user returns. Do not substitute cylindrical pips or omit the
+   source component workflow.
 
-The four tutorials reuse existing feature owners where possible; source PDFs,
-URLs, visual references and detailed ledgers stay in external
-`knowledge/tutorials/warwick`. Join and body Move are bounded children of #161
-and #53; their wider requirements remain Todo.
+This overnight order was authorized 2026-10-12. Each completed tutorial delivers
+source-step coverage, a full creation movie, editable model and checked STL.
+Keep physical input, API, geometry and visual evidence distinct. Split broad
+prerequisites into finishable children before pulling them; retain wider scope
+as Todo. No full tutorial is complete merely because its final shape looks right.
+The accepted bung/support gates and earlier bracket receipts remain valid;
+outstanding exact-native bracket follow-ups remain Todo after this sequence.
+Source PDFs, URLs, visual references and detailed ledgers stay in external
+`knowledge/tutorials`; none of the queued gates is currently accepted.
 
 After every slice, run the smallest complete author/edit/finish/undo/reopen
 workflow it enables in a private real application instance. Record source steps

@@ -3,6 +3,19 @@
 Updated 2026-10-12. This is the project handoff for a fresh session. Read the root
 [AGENTS.md](../AGENTS.md) first; its reference restrictions apply to all work.
 
+## Overnight queue authorized (2026-10-12)
+
+User selected autonomous overnight tutorial work: nested cubes #172, egg cup
+#173, toy block #146, followed by die #147 and coherent backlog work if these
+finish before the user returns. The tutorial sequence file is authoritative.
+Sol owns bounded Shell and offset-plane candidates in separate worktrees;
+Astra researches the exact public step/visual ledgers externally and independently
+verifies integrated work. Root serializes integration and private editor access.
+Each full gate needs source-step coverage, complete creation recording, editable
+file and verified STL. Native input and API evidence remain separate; do not
+close broad feature parents for bounded children. No nightly completion estimate
+or release is promised. Keep board updates tied to real active ownership.
+
 ## Complete support demo (2026-10-12)
 
 Requested full creation movie delivered at
@@ -10,7 +23,7 @@ Requested full creation movie delivered at
 78.1seconds, from blank through sketch/Trim/Join/Fillet/cutter/Combine/export,
 actual API command overlays and captions, no EDITED banner. Full runner passes;
 blank/sketch/final frames inspected. Native continuation remains separate.
-User wants to discuss next steps after this deliverable; no new queue work started.
+The subsequent overnight queue above supersedes the discussion pause.
 
 ## Current accepted support checkpoint (2026-10-12)
 
@@ -68,7 +81,7 @@ only one open during subsequent validation and preserve any user-owned app.
 
 The earlier Join/Fillet candidate work is now accepted and closed as recorded
 above. Broader Fillet options remain Todo under #41; the PDF variant remains
-separate. No implementation is active while the next milestone is discussed.
+separate. Current implementation ownership is recorded in the overnight queue above.
 
 ## Historical checkpoints
 

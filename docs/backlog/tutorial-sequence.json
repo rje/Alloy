@@ -1,7 +1,49 @@
 {
   "version": 1,
-  "policy": "Tutorial-first delivery; ranks order work, not permission to bypass dependencies or close partially implemented issues. Earlier checkpoints may implement bounded slices of later-ranked owners. Unrelated roadmap work follows this path; urgent regressions interrupt it.",
+  "policy": "User-selected overnight order: nested cubes, egg cup, toy block; then die and coherent backlog work if all pass before user returns. Ranks never waive dependencies or verification. Split broad prerequisites into bounded issues and leave remainders Todo. Urgent regressions interrupt.",
   "checkpoints": [
+    {
+      "id": "CP-08",
+      "title": "Nested cubes with multi-face sketching and construction planes",
+      "issues": [
+        "SOL-024",
+        "GEO-002",
+        "SOL-009",
+        "SKT-025",
+        "SKT-021",
+        "TUT-006"
+      ],
+      "acceptance": "Shell, mirror, face cuts, fillets and centered internal body retain editable references.",
+      "status": "todo"
+    },
+    {
+      "id": "CP-09",
+      "title": "Lofted and shelled egg cup",
+      "issues": [
+        "SOL-012",
+        "TUT-007"
+      ],
+      "acceptance": "Four ordered sections on offset planes, loft and inward shell produce a printable editable solid.",
+      "status": "todo"
+    },
+    {
+      "id": "CP-10",
+      "title": "Complete toy block with feature patterns and underside tubes",
+      "issues": [
+        "TUT-001"
+      ],
+      "acceptance": "Resolve public demonstration selections; complete shell, feature patterns, offset annulus, fillets, editable/reopened model and checked STL with full creation recording.",
+      "status": "todo"
+    },
+    {
+      "id": "CP-11",
+      "title": "Overflow: face-positioned spherical die cuts",
+      "issues": [
+        "TUT-002"
+      ],
+      "acceptance": "Complete source component and spherical-cut workflow, cancel/finish checks and printable STL; no cylindrical pip substitution.",
+      "status": "todo"
+    },
     {
       "id": "CP-06",
       "title": "Printable straw bung with joined boss and transformed cutter",
@@ -102,30 +144,6 @@
       "status": "done",
       "remaining": "None for cumulative functional original-video gate. PDF fillet variant and optional text/chamfer remain with broader owners. Media is a labeled native continuation, with original recoveries and separate fixed-input receipts.",
       "evidence": "docs/validation/support-tutorial-independent.md"
-    },
-    {
-      "id": "CP-08",
-      "title": "Nested cubes with multi-face sketching and construction planes",
-      "issues": [
-        "SOL-006",
-        "SOL-009",
-        "GEO-001",
-        "SKT-025",
-        "SKT-021",
-        "TUT-006"
-      ],
-      "acceptance": "Shell, mirror, face cuts, fillets and centered internal body retain editable references.",
-      "status": "todo"
-    },
-    {
-      "id": "CP-09",
-      "title": "Lofted and shelled egg cup",
-      "issues": [
-        "SOL-012",
-        "TUT-007"
-      ],
-      "acceptance": "Four ordered sections on offset planes, loft and inward shell produce a printable editable solid.",
-      "status": "todo"
     }
   ]
 }
