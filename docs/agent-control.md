@@ -700,3 +700,18 @@ is **Show latest**, not a model-history Move to End command.
 tooltips/accessibility names, fully-visible flags and scrollbar position/range.
 Fixed glyph targets preserve existing single-click edit and context actions.
 See [the bounded input/capture receipt](validation/timeline-overflow.md).
+
+### Centerline and parallel-edge diameter
+
+In a sketch, `sketch.centerline` accepts `entityIds` and boolean `centerline`;
+`sketch.centerlineToggle` converts the current selected authored lines. IDs and
+relations survive conversion. Centerline is boundary-capable, separately stored
+from Construction. Explicit conversion clears the other linetype intent.
+
+`sketch.dimension` supports `kind: "centerlineDiameter"`, two `entityIds` (one
+Centerline, one parallel ordinary line), `value`/`units` for driving or
+`driving: false` for read-only measurement. Authored refs normalize to axis first
+and store retained side. D and dimension preview/place/accept recognize the same
+pair and display the full mirrored diameter. It adds one half-distance equation;
+independent orientation constraints remain necessary to keep both lines parallel.
+Nonparallel, zero, degenerate or conflicting results refuse transactionally.

@@ -231,7 +231,7 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
             const auto kind=dimension["kind"].toString();
             const bool curve=kind=="radius" || kind=="diameter" || kind=="arcSweep";
             const bool angle=kind=="angle";
-            require(curve || angle || kind=="pointLineDistance" || kind=="linear" || kind=="horizontal" || kind=="vertical", "Unsupported dimension kind");
+            require(curve || angle || kind=="centerlineDiameter" || kind=="pointLineDistance" || kind=="linear" || kind=="horizontal" || kind=="vertical", "Unsupported dimension kind");
             require(dimension["driving"].isBool(), "Dimension requires driving flag");
             if(angle) {require(dimension["entityIds"].isArray() && dimension["entityIds"].toArray().size()==2 && reference(dimension,"entityIds",0)!=reference(dimension,"entityIds",1),"Angle requires two distinct line IDs");signedLineAngle(dimension);}
             if(!dimension["driving"].toBool()) {ids.insert(id);continue;}
@@ -244,6 +244,12 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
                 const double rayOffset=((signs[1]<0 ? 1 : 0)-(signs[0]<0 ? 1 : 0))*std::numbers::pi;
                 const double target=std::remainder(signedTarget-rayOffset,2*std::numbers::pi);
                 solver.addConstraintL2LAngle(line(reference(dimension,"entityIds",0)),line(reference(dimension,"entityIds",1)),constant(target),t);
+            } else if(kind=="centerlineDiameter") {
+                auto& axis=line(reference(dimension,"entityIds",0));auto& edge=line(reference(dimension,"entityIds",1));
+                require(dimension["side"].toInt()==1 || dimension["side"].toInt()==-1,"Centerline diameter requires retained side");
+                // Parallelism is retained by independent sketch intent, not a
+                // hidden relation. The diameter contributes one distance DOF.
+                solver.addConstraintP2LDistance(edge.p1,axis,constant(value/2),dimension["side"].toInt()>0,t);
             } else if(kind=="pointLineDistance") {
                 auto& p=point(reference(dimension,"pointIds",0));auto& l=line(dimension["entityId"].toString());pointLineDistance(p,l);
                 require(dimension["side"].toInt()==1 || dimension["side"].toInt()==-1,"Point-edge dimension needs retained side");
@@ -383,6 +389,13 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
             else if(kind=="radius" || kind=="diameter" || kind=="arcSweep") {const auto id=d["entityId"].toString();
                 const auto& curve=arcMap.contains(id) ? static_cast<const GCS::Circle&>(arcMap.at(id)) : circleMap.at(id);
                 value=angular ? std::abs(*arcMap.at(id).endAngle-*arcMap.at(id).startAngle)/degrees : *curve.rad*(kind=="diameter" ? 2 : 1);
+            } else if(kind=="centerlineDiameter") {
+                const auto& axis=line(reference(d,"entityIds",0));const auto& edge=line(reference(d,"entityIds",1));
+                const auto first=pointLineDistance(edge.p1,axis),second=pointLineDistance(edge.p2,axis);
+                require(std::abs(first-second)<=lengthTolerance,"Centerline diameter lost parallel orientation; retain Parallel/Horizontal/Vertical constraints");
+                const auto side=d["side"].toInt();require(side==1 || side==-1,"Centerline diameter side is invalid");
+                require(std::abs(first)>1e-9,"Centerline diameter requires nonzero offset");
+                value=2*(d["driving"].toBool() ? side*first : std::abs(first));
             } else if(kind=="pointLineDistance"){const auto signedValue=pointLineDistance(point(reference(d,"pointIds",0)),line(d["entityId"].toString()));value=d["driving"].toBool() ? d["side"].toInt()*signedValue : std::abs(signedValue);}
             else value=separation(kind,point(reference(d,"pointIds",0)),point(reference(d,"pointIds",1)));
             if(d["driving"].toBool())check(value-number(d,angular ? "valueDeg" : "valueMm"),angular ? 1e-6 : lengthTolerance);

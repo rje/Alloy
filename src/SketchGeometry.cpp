@@ -95,6 +95,28 @@ SketchGeometry::SolveResult invalidDraft(const QJsonObject& draft, const QString
 }
 }
 
+namespace {
+QJsonObject centerlinePair(const QJsonObject& parameters,const QJsonArray& ids) {
+    if(ids.size()!=2 || ids[0]==ids[1])reject("Diameter requires a centerline and a distinct parallel profile line");
+    QJsonObject first,second;
+    for(const auto& value:parameters["entities"].toArray()){const auto line=value.toObject();if(line["id"]==ids[0])first=line;if(line["id"]==ids[1])second=line;}
+    if(first["type"]!="line" || second["type"]!="line")reject("Centerline diameter supports straight lines only");
+    if(first["centerline"].toBool()==second["centerline"].toBool())reject("Diameter requires exactly one Centerline");
+    if(second["centerline"].toBool())std::swap(first,second);
+    if(first["construction"].toBool() || second["construction"].toBool())reject("Centerline diameter requires boundary-capable lines");
+    QMap<QString,QPointF> points;for(const auto& value:parameters["points"].toArray()){const auto point=value.toObject();points[point["id"].toString()]={point["uMm"].toDouble(),point["vMm"].toDouble()};}
+    const auto a=points[first["startPointId"].toString()],b=points[first["endPointId"].toString()],c=points[second["startPointId"].toString()],d=points[second["endPointId"].toString()];
+    const auto axis=b-a,edge=d-c;const auto length=std::hypot(axis.x(),axis.y()),edgeLength=std::hypot(edge.x(),edge.y());
+    if(length<minimumLength || edgeLength<minimumLength)reject("Centerline diameter line is degenerate");
+    if(std::abs(axis.x()*edge.y()-axis.y()*edge.x())/(length*edgeLength)>1e-9)reject("Centerline diameter requires parallel lines; retain their orientation with sketch constraints");
+    const auto offset=(axis.x()*(c.y()-a.y())-axis.y()*(c.x()-a.x()))/length;
+    if(std::abs(offset)<1e-9)reject("Centerline diameter requires a nonzero offset; use Coincident for zero");
+    return {{"entityIds",QJsonArray{first["id"],second["id"]}},{"signedOffsetMm",offset}};
+}
+}
+double SketchGeometry::centerlineDiameterValue(const QJsonObject& draft,const QJsonArray& ids,const QJsonObject& context) {
+    return 2*std::abs(centerlinePair(expandedProjectionFeature(draft,context)["parameters"].toObject(),ids)["signedOffsetMm"].toDouble());
+}
 QJsonObject SketchGeometry::newFeature(const QString& ownerId, const QString& plane, const QString& name) {
     frame(plane);
     QJsonObject feature{{"id", newId()}, {"ownerId", ownerId}, {"type", "sketch"},
@@ -516,7 +538,10 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
             const bool hasConstruction = entity.contains("construction");
             if (hasConstruction && (type != "line" || !entity["construction"].isBool()))
                 return "Construction must be a boolean on a line entity";
-            if (entity.size() != (type == "line" ? 4 : type == "circle" ? 4 : 8) + (hasConstruction ? 1 : 0)) return "Unexpected sketch entity fields";
+            const bool hasCenterline=entity.contains("centerline");
+            if(hasCenterline && (type!="line" || !entity["centerline"].isBool()))return "Centerline must be a boolean on a line entity";
+            if(entity["centerline"].toBool() && entity["construction"].toBool())return "Centerline and Construction are distinct mutually exclusive linetypes";
+            if (entity.size() != (type == "line" ? 4 : type == "circle" ? 4 : 8) + int(hasConstruction) + int(hasCenterline)) return "Unexpected sketch entity fields";
             if (type != "line") {
                 const auto centerId = entity["centerPointId"].toString();
                 if (!points.contains(centerId)) return "Curve center does not exist";
@@ -670,6 +695,12 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
                     if (!dimension["raySigns"].isArray() || signs.size()!=2) return "Angle raySigns requires two signs";
                     for (const auto& sign:signs) if (!sign.isDouble() || (sign.toDouble()!=1 && sign.toDouble()!=-1)) return "Angle ray signs must be +1 or -1";
                 }
+            } else if(kind=="centerlineDiameter") {
+                if(!checkReferences(dimension,"entityIds",2,lineIds))return "Centerline diameter requires two distinct line references";
+                const auto ids=dimension["entityIds"].toArray();QJsonObject axis,edge;
+                for(const auto& value:parameters["entities"].toArray()){const auto line=value.toObject();if(line["id"]==ids[0])axis=line;if(line["id"]==ids[1])edge=line;}
+                if(!axis["centerline"].toBool() || edge["centerline"].toBool() || axis["construction"].toBool() || edge["construction"].toBool())return "Diameter requires an ordered Centerline and ordinary profile line";
+                if(!dimension["side"].isDouble() || (dimension["side"].toDouble()!=1 && dimension["side"].toDouble()!=-1))return "Centerline diameter side must be +1 or -1";
             } else if(kind=="pointLineDistance") {
                 if(!checkReferences(dimension,"pointIds",1,pointIds) || !lineIds.contains(dimension["entityId"].toString()))return "Point-edge dimension requires one point and a straight line";
                 if(!dimension["side"].isDouble() || (dimension["side"].toDouble()!=1 && dimension["side"].toDouble()!=-1))return "Point-edge dimension side must be +1 or -1";
@@ -677,7 +708,7 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
                 || !checkReferences(dimension,"pointIds",2,pointIds)) return "Invalid dimension kind or references";
             const bool driving=dimension["driving"].toBool(), placed=dimension.contains("annotation");
             const auto valueKey=kind=="arcSweep" || angle ? "valueDeg" : "valueMm";
-            if (dimension.size() != (driving ? 5 : 4)+int(placed)+int(angle && dimension.contains("raySigns"))+2*int(kind=="pointLineDistance") || (!driving && dimension.contains(valueKey))) return "Unexpected dimension fields";
+            if (dimension.size() != (driving ? 5 : 4)+int(placed)+int(angle && dimension.contains("raySigns"))+2*int(kind=="pointLineDistance")+int(kind=="centerlineDiameter") || (!driving && dimension.contains(valueKey))) return "Unexpected dimension fields";
             if (placed) {
                 if (!dimension["annotation"].isObject()) return "Dimension annotation must be an object";
                 const auto annotation = dimension["annotation"].toObject();
@@ -755,8 +786,8 @@ SketchGeometry::SolveResult SketchGeometry::addDimension(const QJsonObject& draf
         const auto kind=arguments["kind"].toString();
         const bool curve=kind=="radius" || kind=="diameter" || kind=="arcSweep";
         const bool angle=kind=="angle";
-        if (angle && (arguments.contains("pointIds") || arguments.contains("entityId"))) reject("Angle dimensions require two line entityIds");
-        if (!angle && (arguments.contains("entityIds") || arguments.contains("raySigns"))) reject("Only line angles accept entityIds/raySigns");
+        if ((angle || kind=="centerlineDiameter") && (arguments.contains("pointIds") || arguments.contains("entityId"))) reject("Line-pair dimensions require two line entityIds");
+        if (!angle && kind!="centerlineDiameter" && (arguments.contains("entityIds") || arguments.contains("raySigns"))) reject("Only line-pair dimensions accept entityIds; raySigns are for angles");
         if (arguments.contains("entityId") && !curve && kind!="pointLineDistance") {
             if (arguments.contains("pointIds")) reject("Choose dimension points or one line, not both");
             bool found = false;
@@ -773,6 +804,11 @@ SketchGeometry::SolveResult SketchGeometry::addDimension(const QJsonObject& draf
         if(curve) {dimension.remove("pointIds"); dimension["entityId"]=arguments["entityId"];}
         if(angle) {dimension.remove("pointIds");dimension["entityIds"]=arguments["entityIds"];
             if(arguments.contains("raySigns"))dimension["raySigns"]=arguments["raySigns"];}
+        if(kind=="centerlineDiameter") {
+            if(arguments.contains("raySigns"))reject("Centerline diameter does not accept angle ray signs");
+            const auto pair=centerlinePair(expandedProjectionFeature(draft,projectionContext)["parameters"].toObject(),arguments["entityIds"].toArray());
+            dimension.remove("pointIds");dimension["entityIds"]=pair["entityIds"];dimension["side"]=pair["signedOffsetMm"].toDouble()>0 ? 1 : -1;
+        }
         if(kind=="pointLineDistance") {
             if(pointIds.size()!=1 || !arguments["entityId"].isString())reject("Point-edge dimension requires one point and one line");
             const auto expanded=expandedProjectionFeature(draft,projectionContext)["parameters"].toObject();QMap<QString,QPointF> points;for(const auto& value:expanded["points"].toArray()){const auto p=value.toObject();points[p["id"].toString()]={p["uMm"].toDouble(),p["vMm"].toDouble()};}
@@ -989,6 +1025,46 @@ SketchGeometry::SolveResult SketchGeometry::addPointerCircle(const QJsonObject& 
     } catch (const std::exception& error) { return invalidDraft(draft,QString::fromUtf8(error.what())); }
 }
 
+SketchGeometry::SolveResult SketchGeometry::setCenterline(const QJsonObject& draft, const QJsonObject& arguments, const QJsonObject& projectionContext) {
+    try {
+        validateDraft(draft);
+        checkFields(arguments, {"entityIds", "centerline"});
+        if (!arguments["centerline"].isBool()) reject("Centerline requires an explicit boolean");
+        if (!arguments["entityIds"].isArray() || arguments["entityIds"].toArray().isEmpty())
+            reject("Select at least one line for centerline conversion");
+        QSet<QString> selected;
+        for (const auto& value : arguments["entityIds"].toArray()) {
+            if (!value.isString() || QUuid(value.toString()).isNull() || selected.contains(value.toString()))
+                reject("Centerline selection requires distinct line UUIDs");
+            selected.insert(value.toString());
+        }
+        auto parameters = draft["parameters"].toObject();
+        auto entities = parameters["entities"].toArray();
+        auto remaining = selected;
+        bool changed = false;
+        for (int i = 0; i < entities.size(); ++i) {
+            auto entity = entities[i].toObject();
+            if (!selected.contains(entity["id"].toString())) continue;
+            if (entity["type"] != "line") reject("Centerline conversion currently supports lines only");
+            remaining.remove(entity["id"].toString());
+            if (entity.value("centerline").toBool() == arguments["centerline"].toBool()) continue;
+            if (arguments["centerline"].toBool()) { entity["centerline"] = true; entity.remove("construction"); }
+            else entity.remove("centerline");
+            entities[i] = entity; changed = true;
+        }
+        if (!remaining.isEmpty()) reject("Centerline selection contains a missing entity");
+        if (!changed) {
+            auto result = solveDraft(draft,projectionContext);
+            result.feature = draft;
+            return result;
+        }
+        parameters["entities"] = entities;
+        auto candidate = draft; candidate["parameters"] = parameters;
+        const auto result = solveDraft(candidate,projectionContext);
+        return result.ok ? result : SolveResult{false, draft, result.diagnostics, result.error};
+    } catch (const std::exception& error) { return invalidDraft(draft, QString::fromUtf8(error.what())); }
+}
+
 SketchGeometry::SolveResult SketchGeometry::setConstruction(const QJsonObject& draft, const QJsonObject& arguments, const QJsonObject& projectionContext) {
     try {
         validateDraft(draft);
@@ -1012,7 +1088,7 @@ SketchGeometry::SolveResult SketchGeometry::setConstruction(const QJsonObject& d
             if (entity["type"] != "line") reject("Construction conversion currently supports lines only");
             remaining.remove(entity["id"].toString());
             if (entity.value("construction").toBool() == arguments["construction"].toBool()) continue;
-            if (arguments["construction"].toBool()) entity["construction"] = true;
+            if (arguments["construction"].toBool()) { entity["construction"] = true; entity.remove("centerline"); }
             else entity.remove("construction");
             entities[i] = entity; changed = true;
         }

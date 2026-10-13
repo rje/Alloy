@@ -89,25 +89,27 @@ Quantity_Color unselectedSketchProfileColor() {
     // reserved for selected profiles and red for Cut previews.
     return Quantity_Color(0.98,0.84,0.71,Quantity_TOC_sRGB);
 }
-struct SketchStrokes { TopoDS_Shape normal, construction; int constructionCount = 0; };
+struct SketchStrokes { TopoDS_Shape normal, construction, centerline; int constructionCount = 0; };
 SketchStrokes splitSketchStrokes(const EvaluatedSketch& sketch) {
     if(sketch.shape.IsNull())return {};
     const auto entities=sketch.summary.value("entities").toArray();
     QSet<QString> projectedIds;
     for(const auto& value:sketch.summary.value("projectedLines").toArray())projectedIds.insert(value.toObject()["id"].toString());
     TopoDS_Iterator child(sketch.shape);
-    TopoDS_Compound normal,construction;BRep_Builder builder;builder.MakeCompound(normal);builder.MakeCompound(construction);
-    int ordinaryCount=0,constructionCount=0;
+    TopoDS_Compound normal,construction,centerline;BRep_Builder builder;builder.MakeCompound(normal);builder.MakeCompound(construction);builder.MakeCompound(centerline);
+    int ordinaryCount=0,constructionCount=0,centerlineCount=0;
     for(const auto& entry:entities) {
-        if(!child.More())return {sketch.shape,{}};
+        if(!child.More())return {sketch.shape,{},{},0};
         if(projectedIds.contains(entry.toObject()["id"].toString())){child.Next();continue;}
         if(entry.toObject().value("construction").toBool()) {builder.Add(construction,child.Value());++constructionCount;}
+        else if(entry.toObject().value("centerline").toBool()) {builder.Add(centerline,child.Value());++centerlineCount;}
         else {builder.Add(normal,child.Value());++ordinaryCount;}
         child.Next();
     }
-    if(child.More())return {sketch.shape,{}};
+    if(child.More())return {sketch.shape,{},{},0};
     return {ordinaryCount ? TopoDS_Shape(normal) : TopoDS_Shape{},
-        constructionCount ? TopoDS_Shape(construction) : TopoDS_Shape{},constructionCount};
+        constructionCount ? TopoDS_Shape(construction) : TopoDS_Shape{},
+        centerlineCount ? TopoDS_Shape(centerline) : TopoDS_Shape{},constructionCount};
 }
 void styleConstruction(Handle(AIS_Shape) presentation,bool selected,bool fullyConstrained) {
     const Quantity_Color color=selected ? Quantity_Color(0.98,0.43,0.08,Quantity_TOC_RGB)
@@ -122,6 +124,21 @@ void styleConstruction(Handle(AIS_Shape) presentation,bool selected,bool fullyCo
 Handle(AIS_Shape) constructionPresentation(const TopoDS_Shape& shape,bool selected=false,bool fullyConstrained=false) {
     Handle(AIS_Shape) presentation=new AIS_Shape(shape);
     styleConstruction(presentation,selected,fullyConstrained);
+    return presentation;
+}
+void styleCenterline(Handle(AIS_Shape) presentation,bool selected,bool fullyConstrained) {
+    const Quantity_Color color=selected ? Quantity_Color(0.98,0.43,0.08,Quantity_TOC_RGB)
+        : fullyConstrained ? Quantity_Color(0.12,0.14,0.16,Quantity_TOC_sRGB)
+        : Quantity_Color(0.20,0.45,0.82,Quantity_TOC_RGB);
+    const Handle(Prs3d_LineAspect) dashed=new Prs3d_LineAspect(color,Aspect_TOL_DOTDASH,selected ? 4 : 1.5);
+    presentation->SetColor(color);
+    presentation->Attributes()->SetWireAspect(dashed);presentation->Attributes()->SetLineAspect(dashed);
+    presentation->Attributes()->SetFreeBoundaryAspect(dashed);presentation->Attributes()->SetUnFreeBoundaryAspect(dashed);
+    presentation->SetDisplayMode(AIS_WireFrame);
+}
+Handle(AIS_Shape) centerlinePresentation(const TopoDS_Shape& shape,bool selected=false,bool fullyConstrained=false) {
+    Handle(AIS_Shape) presentation=new AIS_Shape(shape);
+    styleCenterline(presentation,selected,fullyConstrained);
     return presentation;
 }
 }
@@ -163,9 +180,10 @@ void ReferenceView::rebindDocument() {
     for(const auto& model:models_)context_->Remove(model,false);
     for(const auto& model:sketchModels_)context_->Remove(model,false);
     for(const auto& model:constructionSketchModels_)context_->Remove(model,false);
+    for(const auto& model:centerlineSketchModels_)context_->Remove(model,false);
     for(const auto& model:constructionPlaneModels_)context_->Remove(model,false);
     for(const auto& model:finishedProfileModels_)context_->Remove(model,false);
-    models_.clear();bodyVisibility_.clear();sketchModels_.clear();constructionSketchModels_.clear();constructionPlaneModels_.clear();constructionPlanes_.clear();finishedProfileModels_.clear();finishedSketches_.clear();
+    models_.clear();bodyVisibility_.clear();sketchModels_.clear();constructionSketchModels_.clear();centerlineSketchModels_.clear();constructionPlaneModels_.clear();constructionPlanes_.clear();finishedProfileModels_.clear();finishedSketches_.clear();
     modelRevision_=std::numeric_limits<quint64>::max();sketchRevision_=modelRevision_;constructionPlaneRevision_=modelRevision_;
 }
 void ReferenceView::initialize() {
@@ -366,8 +384,9 @@ void ReferenceView::setSketches(const std::vector<EvaluatedSketch>& sketches,qui
     if(context_.IsNull() || sketchRevision_==revision)return;
     for(const auto& model:sketchModels_)context_->Remove(model,false);
     for(const auto& model:constructionSketchModels_)context_->Remove(model,false);
+    for(const auto& model:centerlineSketchModels_)context_->Remove(model,false);
     for(const auto& model:finishedProfileModels_)context_->Remove(model,false);
-    sketchModels_.clear();constructionSketchModels_.clear();finishedProfileModels_.clear();finishedSketches_=sketches;
+    sketchModels_.clear();constructionSketchModels_.clear();centerlineSketchModels_.clear();finishedProfileModels_.clear();finishedSketches_=sketches;
     for(const auto& sketch:sketches) {
         const auto strokes=splitSketchStrokes(sketch);
         if(!strokes.normal.IsNull()) {
@@ -380,6 +399,11 @@ void ReferenceView::setSketches(const std::vector<EvaluatedSketch>& sketches,qui
             const auto model=constructionPresentation(strokes.construction,false,sketch.summary["solver"].toObject()["dof"].toInt(-1)==0);
             if(sketch.plane=="face")model->SetZLayer(Graphic3d_ZLayerId_Topmost);
             context_->Display(model,AIS_WireFrame,-1,false);context_->Deactivate(model);constructionSketchModels_[sketch.featureId]=model;
+        }
+        if(!strokes.centerline.IsNull()) {
+            const auto model=centerlinePresentation(strokes.centerline,false,sketch.summary["solver"].toObject()["dof"].toInt(-1)==0);
+            if(sketch.plane=="face")model->SetZLayer(Graphic3d_ZLayerId_Topmost);
+            context_->Display(model,AIS_WireFrame,-1,false);context_->Deactivate(model);centerlineSketchModels_[sketch.featureId]=model;
         }
         for(const auto& profile:sketch.profiles) {
             BRepMesh_IncrementalMesh mesh(profile.face,0.1,false,0.5,false);
@@ -456,6 +480,10 @@ void ReferenceView::applyEditDisplay(bool redraw) {
         if(constructionSketchModels_.contains(sketch.featureId)) {
             if(visible)context_->Display(constructionSketchModels_.value(sketch.featureId),false);
             else context_->Erase(constructionSketchModels_.value(sketch.featureId),false);
+        }
+        if(centerlineSketchModels_.contains(sketch.featureId)) {
+            if(visible)context_->Display(centerlineSketchModels_.value(sketch.featureId),false);
+            else context_->Erase(centerlineSketchModels_.value(sketch.featureId),false);
         }
         for(const auto& profile:sketch.profiles)if(finishedProfileModels_.contains(profile.profileId)) {
             const auto fill=finishedProfileModels_.value(profile.profileId);
@@ -575,14 +603,17 @@ void ReferenceView::showSketchDraft(const EvaluatedSketch& sketch) {
     }
     if(!sketchDraft_.IsNull())context_->Remove(sketchDraft_,false);
     if(!sketchConstructionDraft_.IsNull())context_->Remove(sketchConstructionDraft_,false);
+    if(!sketchCenterlineDraft_.IsNull())context_->Remove(sketchCenterlineDraft_,false);
     if(!projectedDraft_.IsNull())context_->Remove(projectedDraft_,false);
     if(draftSketchId_!=sketch.featureId && sketchModels_.contains(draftSketchId_))context_->Display(sketchModels_.value(draftSketchId_),false);
     if(draftSketchId_!=sketch.featureId && constructionSketchModels_.contains(draftSketchId_))context_->Display(constructionSketchModels_.value(draftSketchId_),false);
-    draftSketchId_=sketch.featureId;sketchDraft_.Nullify();sketchConstructionDraft_.Nullify();projectedDraft_.Nullify();
+    if(draftSketchId_!=sketch.featureId && centerlineSketchModels_.contains(draftSketchId_))context_->Display(centerlineSketchModels_.value(draftSketchId_),false);
+    draftSketchId_=sketch.featureId;sketchDraft_.Nullify();sketchConstructionDraft_.Nullify();sketchCenterlineDraft_.Nullify();projectedDraft_.Nullify();
     projectedLines_=sketch.summary.value("projectedLines").toArray();
-    supportPoints_=sketch.summary.value("availableSupportPoints").toArray();constructionDraftLineIds_={};
+    supportPoints_=sketch.summary.value("availableSupportPoints").toArray();constructionDraftLineIds_={};centerlineDraftLineIds_={};
     if(sketchModels_.contains(draftSketchId_))context_->Erase(sketchModels_.value(draftSketchId_),false);
     if(constructionSketchModels_.contains(draftSketchId_))context_->Erase(constructionSketchModels_.value(draftSketchId_),false);
+    if(centerlineSketchModels_.contains(draftSketchId_))context_->Erase(centerlineSketchModels_.value(draftSketchId_),false);
     const auto strokes=splitSketchStrokes(sketch);
     if(!strokes.normal.IsNull()) {
         sketchDraft_=sketchPresentation(strokes.normal);
@@ -599,6 +630,17 @@ void ReferenceView::showSketchDraft(const EvaluatedSketch& sketch) {
             if(entity.value("construction").toBool() && entity.value("type")=="line"
                 && !std::any_of(projectedLines_.begin(),projectedLines_.end(),[&](const QJsonValue& value){return value.toObject().value("id")==entity.value("id");}))
                 constructionDraftLineIds_.append(entity.value("id"));
+        }
+    }
+    if(!strokes.centerline.IsNull()) {
+        sketchCenterlineDraft_=centerlinePresentation(strokes.centerline,false,sketch.summary["solver"].toObject()["dof"].toInt(-1)==0);
+        if(sketch.plane=="face")sketchCenterlineDraft_->SetZLayer(Graphic3d_ZLayerId_Topmost);
+        context_->Display(sketchCenterlineDraft_,AIS_WireFrame,-1,false);context_->Deactivate(sketchCenterlineDraft_);
+        for(const auto& entry:sketch.summary.value("entities").toArray()) {
+            const auto entity=entry.toObject();
+            if(entity.value("centerline").toBool() && entity.value("type")=="line"
+                && !std::any_of(projectedLines_.begin(),projectedLines_.end(),[&](const QJsonValue& value){return value.toObject().value("id")==entity.value("id");}))
+                centerlineDraftLineIds_.append(entity.value("id"));
         }
     }
     if(!projectedLines_.isEmpty()) {
@@ -622,13 +664,15 @@ void ReferenceView::clearSketchDraft() {
         for(const auto& model:profileModels_)context_->Remove(model,false);
         if(!sketchDraft_.IsNull())context_->Remove(sketchDraft_,false);
         if(!sketchConstructionDraft_.IsNull())context_->Remove(sketchConstructionDraft_,false);
+        if(!sketchCenterlineDraft_.IsNull())context_->Remove(sketchCenterlineDraft_,false);
         if(!projectedDraft_.IsNull())context_->Remove(projectedDraft_,false);
         if(sketchModels_.contains(draftSketchId_))context_->Display(sketchModels_.value(draftSketchId_),false);
         if(constructionSketchModels_.contains(draftSketchId_))context_->Display(constructionSketchModels_.value(draftSketchId_),false);
+        if(centerlineSketchModels_.contains(draftSketchId_))context_->Display(centerlineSketchModels_.value(draftSketchId_),false);
         context_->UpdateCurrentViewer();
     }
     profileModels_.clear();draftProfiles_.clear();
-    sketchDraft_.Nullify();sketchConstructionDraft_.Nullify();projectedDraft_.Nullify();projectedLines_={};supportPoints_={};constructionDraftLineIds_={};draftSketchId_.clear();clearSketchCursor();applyEditDisplay();
+    sketchDraft_.Nullify();sketchConstructionDraft_.Nullify();sketchCenterlineDraft_.Nullify();projectedDraft_.Nullify();projectedLines_={};supportPoints_={};constructionDraftLineIds_={};centerlineDraftLineIds_={};draftSketchId_.clear();clearSketchCursor();applyEditDisplay();
 }
 QJsonObject ReferenceView::pickSketch(const QJsonObject& feature,double x,double y,const QString& filter) const {
     if(view_.IsNull() || x<0 || y<0 || x>=width() || y>=height())return {};
@@ -726,6 +770,20 @@ QJsonObject ReferenceView::dimensionLayout(const QJsonObject& feature,const QJso
     const auto parameters=feature.value("parameters").toObject();const auto plane=parameters.value("plane").toString();
     if(dimension["kind"]=="angle")return angleDimensionLayout(feature,dimension,valueMm);
     if(dimension["kind"]=="radius" || dimension["kind"]=="diameter" || dimension["kind"]=="arcSweep")return curveDimensionLayout(feature,dimension,valueMm,units);
+    if(dimension["kind"]=="centerlineDiameter") {
+        const auto ids=dimension["entityIds"].toArray();if(ids.size()!=2)return {};
+        QMap<QString,QPointF> points;for(const auto& row:parameters["points"].toArray()){const auto p=row.toObject();points[p["id"].toString()]={p["uMm"].toDouble(),p["vMm"].toDouble()};}
+        QJsonObject axis,edge;for(const auto& row:parameters["entities"].toArray()){const auto e=row.toObject();if(e["id"]==ids[0])axis=e;if(e["id"]==ids[1])edge=e;}
+        if(axis["type"]!="line" || edge["type"]!="line")return {};
+        const auto a=points.value(axis["startPointId"].toString()),b=points.value(axis["endPointId"].toString()),q=points.value(edge["startPointId"].toString());
+        const auto d=b-a;const double length2=d.x()*d.x()+d.y()*d.y();if(length2<1e-6)return {};
+        const auto foot=a+d*((q.x()-a.x())*d.x()+(q.y()-a.y())*d.y())/length2,mirror=foot*2-q;
+        auto derived=feature;auto pp=parameters;auto rows=pp["points"].toArray();
+        rows.append(QJsonObject{{"id","diameter-profile-witness"},{"uMm",q.x()},{"vMm",q.y()}});
+        rows.append(QJsonObject{{"id","diameter-mirrored-witness"},{"uMm",mirror.x()},{"vMm",mirror.y()}});pp["points"]=rows;derived["parameters"]=pp;
+        auto span=dimension;span["kind"]="linear";span["pointIds"]=QJsonArray{"diameter-profile-witness","diameter-mirrored-witness"};span["diameterPresentation"]=true;
+        auto layout=dimensionLayout(derived,span,valueMm,units);layout["kind"]="centerlineDiameter";layout["entityIds"]=ids;layout["side"]=dimension["side"];return layout;
+    }
     if(dimension["kind"]=="pointLineDistance") {
         const auto ids=dimension["pointIds"].toArray();if(ids.size()!=1)return {};QMap<QString,QPointF> points;for(const auto& value:parameters["points"].toArray()){const auto p=value.toObject();points[p["id"].toString()]={p["uMm"].toDouble(),p["vMm"].toDouble()};}QJsonObject edge;for(const auto& value:parameters["entities"].toArray())if(value.toObject()["id"]==dimension["entityId"])edge=value.toObject();if(edge["type"]!="line" || !points.contains(ids[0].toString()))return {};const auto a=points.value(edge["startPointId"].toString()),b=points.value(edge["endPointId"].toString()),q=points.value(ids[0].toString());const auto d=b-a;const double length2=d.x()*d.x()+d.y()*d.y();if(length2<1e-6)return {};const auto foot=a+d*((q.x()-a.x())*d.x()+(q.y()-a.y())*d.y())/length2;
         auto derived=feature;auto pp=parameters;auto rows=parameters["points"].toArray();rows.append(QJsonObject{{"id","dimension-perpendicular-foot"},{"uMm",foot.x()},{"vMm",foot.y()}});pp["points"]=rows;derived["parameters"]=pp;auto linear=dimension;linear["kind"]="linear";linear["pointIds"]=QJsonArray{ids[0],"dimension-perpendicular-foot"};auto layout=dimensionLayout(derived,linear,valueMm,units);layout["kind"]="pointLineDistance";layout["pointIds"]=ids;layout["entityId"]=dimension["entityId"];layout["measurementFoot"]=QJsonObject{{"uMm",foot.x()},{"vMm",foot.y()}};return layout;
@@ -757,7 +815,7 @@ QJsonObject ReferenceView::dimensionLayout(const QJsonObject& feature,const QJso
     double angle=std::atan2(-axis.y(),axis.x())*180/std::acos(-1.0);
     while(angle>90)angle-=180;while(angle<=-90)angle+=180;
     const double scale=units=="in" ? 25.4 : 1;const bool driving=dimension.value("driving").toBool(true);
-    const QString text=(driving ? "" : "(")+QString::number(valueMm/scale,'g',6)+(driving ? "" : ")");
+    const QString text=(driving ? "" : "(")+(dimension["diameterPresentation"].toBool() ? QString::fromUtf8("Ø") : QString{})+QString::number(valueMm/scale,'g',6)+(driving ? "" : ")");
     const auto label=project(c);
     auto point=[](const QPointF& p){return QJsonObject{{"uMm",p.x()},{"vMm",p.y()}};};
     auto screen=[](const QPointF& p){return QJsonObject{{"x",p.x()},{"y",p.y()}};};
@@ -912,6 +970,10 @@ void ReferenceView::decorateSketch(const QJsonObject& feature,const QJsonObject&
         styleConstruction(sketchConstructionDraft_,false,fullyConstrained);
         context_->Redisplay(sketchConstructionDraft_,false);
     }
+    if(!sketchCenterlineDraft_.IsNull()){
+        styleCenterline(sketchCenterlineDraft_,false,fullyConstrained);
+        context_->Redisplay(sketchCenterlineDraft_,false);
+    }
     QMap<QString,QJsonObject> points;QSet<QString> fixed;
     for(const auto& entry:parameters["constraints"].toArray()) {
         const auto constraint=entry.toObject();if(constraint["type"]=="fixed")for(const auto& id:constraint["pointIds"].toArray())fixed.insert(id.toString());
@@ -952,8 +1014,8 @@ void ReferenceView::decorateSketch(const QJsonObject& feature,const QJsonObject&
     for(const auto& entry:parameters["entities"].toArray()) {
         const auto entity=entry.toObject();if(!selection["entityIds"].toArray().contains(entity["id"]))continue;
         const auto edge=SketchGeometry::analyticEdge(parameters,entity,sketchFrame_);
-        const auto highlight=entity.value("construction").toBool() ? constructionPresentation(edge,true) : sketchPresentation(edge);
-        if(!entity.value("construction").toBool()){highlight->SetColor(Quantity_Color(0.98,0.43,0.08,Quantity_TOC_RGB));highlight->SetWidth(4);}
+        const auto highlight=entity.value("construction").toBool() ? constructionPresentation(edge,true) : entity.value("centerline").toBool() ? centerlinePresentation(edge,true) : sketchPresentation(edge);
+        if(!entity.value("construction").toBool() && !entity.value("centerline").toBool()){highlight->SetColor(Quantity_Color(0.98,0.43,0.08,Quantity_TOC_RGB));highlight->SetWidth(4);}
         highlight->SetZLayer(Graphic3d_ZLayerId_Topmost);
         context_->Display(highlight,AIS_WireFrame,-1,false);context_->Deactivate(highlight);sketchDecorations_.push_back(highlight);
     }
@@ -1686,10 +1748,14 @@ QJsonObject ReferenceView::diagnostics() const {
     int displayedSketches=sketchModels_.size();
     for(auto it=constructionSketchModels_.cbegin();it!=constructionSketchModels_.cend();++it)
         if(!sketchModels_.contains(it.key()))++displayedSketches;
+    for(auto it=centerlineSketchModels_.cbegin();it!=centerlineSketchModels_.cend();++it)
+        if(!sketchModels_.contains(it.key()) && !constructionSketchModels_.contains(it.key()))++displayedSketches;
     result.insert("displayedSketches",displayedSketches);
-    result.insert("draftSketchVisible",!sketchDraft_.IsNull() || !sketchConstructionDraft_.IsNull());
+    result.insert("draftSketchVisible",!sketchDraft_.IsNull() || !sketchConstructionDraft_.IsNull() || !sketchCenterlineDraft_.IsNull());
     result.insert("constructionDraftVisible",!sketchConstructionDraft_.IsNull());
     result.insert("constructionDraftLineIds",constructionDraftLineIds_);
+    result.insert("centerlineDraftVisible",!sketchCenterlineDraft_.IsNull());
+    result.insert("centerlineDraftLineIds",centerlineDraftLineIds_);
     QJsonArray projectedLineIds,projectedPointIds,selectedProjectedPointIds,projectedEndpoints;
     for(const auto& value:projectedLines_) {
         const auto line=value.toObject();projectedLineIds.append(line.value("id"));

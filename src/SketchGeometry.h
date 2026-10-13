@@ -51,6 +51,8 @@ public:
     // result UUIDs; a distinct coincident center point follows source moves.
     static SolveResult addCircleOffset(const QJsonObject& draft,const QJsonObject& arguments,const QJsonObject& projectionContext = {});
     static SolveResult updateCircleOffset(const QJsonObject& draft,const QJsonObject& arguments,const QJsonObject& projectionContext = {});
+    static double centerlineDiameterValue(const QJsonObject& draft, const QJsonArray& entityIds, const QJsonObject& projectionContext = {});
+    static SolveResult setCenterline(const QJsonObject& draft, const QJsonObject& arguments, const QJsonObject& projectionContext = {});
     static SolveResult setConstruction(const QJsonObject& draft, const QJsonObject& arguments, const QJsonObject& projectionContext = {});
     static SolveResult solveDraft(const QJsonObject& draft, const QJsonObject& projectionContext = {});
     static SolveResult addConstraint(const QJsonObject& draft, const QJsonObject& arguments, const QJsonObject& projectionContext = {});

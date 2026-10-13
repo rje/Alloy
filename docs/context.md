@@ -1873,3 +1873,16 @@ refuse with disabled OK; Cancel/correction preserve document and history exactly
 Reuse accepted #205/#209/#212 for the cumulative gate. No production change,
 OS input or broad repair/relink claim. There are 92 closed issues of 217; only
 #215/#216 remain actively owned. #215 currently owns the private GUI slot.
+## Centerline diameter candidate (2026-10-13)
+
+SKT-038 #215 now has a bounded Centerline intent and parallel-edge full diameter
+implementation in an isolated candidate. Centerline remains boundary-capable;
+a detached open axis preserves a separate closed profile. D selects axis plus
+parallel profile edge, places mirrored Ø witnesses and uses the existing numeric
+editor; driving edits retain side and refuse lost parallel orientation rather
+than adding hidden relations. Geometry/storage checks and real GPU Qt workflow
+passed, including typed value/edit/Cancel, driven read-only and undo/reopen.
+Astra source/log/capture review reports no bounded blocker. Final acceptance and
+integration remain parent-owned; this does not qualify
+the full Revolve workflow or automatic axis/angular controls. See
+[the contract and bounded receipt](validation/centerline-diameter.md).

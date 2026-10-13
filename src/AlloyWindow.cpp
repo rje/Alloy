@@ -1634,6 +1634,27 @@ void AlloyWindow::registerCommands() {
             return publishSketchSolve(SketchGeometry::setConstruction(session_.value("draftSketch").toObject(),
                 {{"entityIds",chosen},{"construction",!allConstruction}},session_.value("projectionContext").toObject()));
         });
+    add("sketch.centerline","Set centerline geometry","Convert selected or explicit authored lines without changing their IDs or relations.",
+        {{"entityIds",ids},{"centerline",parameter("boolean","True for centerline; false for normal geometry.")},{"session",optionalSession}},[this](const auto& a){
+            if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
+            if(a.contains("session") && a["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
+            const auto chosen=a.contains("entityIds") ? a["entityIds"].toArray() : session_.value("selection").toObject()["entityIds"].toArray();
+            return publishSketchSolve(SketchGeometry::setCenterline(session_.value("draftSketch").toObject(),
+                {{"entityIds",chosen},{"centerline",a["centerline"]}},session_.value("projectionContext").toObject()));
+        });
+    add("sketch.centerlineToggle","Normal/Centerline","Toggle selected authored lines between normal and boundary-capable Centerline.",
+        {{"session",optionalSession}},[this](const auto& a){
+            if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
+            if(a.contains("session") && a["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
+            const auto chosen=session_.value("selection").toObject()["entityIds"].toArray();
+            if(chosen.isEmpty())return failure("invalid_constraint_target","Select one or more lines to convert");
+            bool allCenterline=true;
+            const auto entities=session_.value("draftSketch").toObject()["parameters"].toObject()["entities"].toArray();
+            for(const auto& id:chosen)for(const auto& entry:entities)if(entry.toObject()["id"]==id)
+                allCenterline &= entry.toObject()["centerline"].toBool();
+            return publishSketchSolve(SketchGeometry::setCenterline(session_.value("draftSketch").toObject(),
+                {{"entityIds",chosen},{"centerline",!allCenterline}},session_.value("projectionContext").toObject()));
+        });
     add("sketch.constraint","Constrain sketch geometry","Solve a geometric relation before replacing the usable sketch draft.",
         {{"type",constraintType},{"pointIds",ids},{"entityIds",ids},{"session",optionalSession}},[this](const auto& a){
             if(session_.value("command").toString()!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
@@ -1642,9 +1663,9 @@ void AlloyWindow::registerCommands() {
             args[field]=a.contains(field) ? a[field] : session_.value("selection").toObject().value(field);
             return applySketchConstraint(a["type"].toString(),args);
         });
-    auto kind=parameter("string","Dimension measurement kind.");kind["enum"]=QJsonArray{"linear","horizontal","vertical","angle","radius","diameter","arcSweep","pointLineDistance"};
+    auto kind=parameter("string","Dimension measurement kind.");kind["enum"]=QJsonArray{"linear","horizontal","vertical","angle","radius","diameter","arcSweep","pointLineDistance","centerlineDiameter"};
     auto dimValue=coordinate;dimValue["minimum"]=0.000001;
-    add("sketch.dimension","Add sketch dimension","Create a driving/driven dimension. pointLineDistance uses one pointIds entry and entityId: positive distance to supporting line, retaining initial side.",
+    add("sketch.dimension","Add sketch dimension","Create a driving/driven dimension. pointLineDistance uses pointIds plus entityId; centerlineDiameter uses two parallel line entityIds with one Centerline and a full diameter value.",
         {{"kind",kind},{"pointIds",ids},{"entityIds",ids},{"raySigns",optional(parameter("array","Angle ray signs relative to each line's authored direction."))},{"entityId",optional(parameter("string","Stable selected line, circle or arc identity."))},
             {"value",optional(dimValue)},{"valueDeg",optional(angle)},{"units",optional(units)},{"annotation",optional(parameter("object","Optional canonical placement {uMm,vMm}."))},{"driving",optional(parameter("boolean","True drives geometry; false measures it."))},{"session",optionalSession}},[this](const auto& a){
             if(session_.value("command").toString()!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
@@ -1674,7 +1695,7 @@ void AlloyWindow::registerCommands() {
             return publishSketchSolve(SketchGeometry::updateDimension(session_.value("draftSketch").toObject(),{{"dimensionId",a["dimensionId"]},
                 {angular ? "valueDeg" : "valueMm",angular ? a["valueDeg"].toDouble() : CadDocument::millimeters(a["value"].toDouble(),units)}},session_.value("projectionContext").toObject()));
         });
-    auto previewKind=optional(kind);previewKind["enum"]=QJsonArray{"auto","linear","horizontal","vertical","angle","radius","diameter","arcSweep","pointLineDistance"};
+    auto previewKind=optional(kind);previewKind["enum"]=QJsonArray{"auto","linear","horizontal","vertical","angle","radius","diameter","arcSweep","pointLineDistance","centerlineDiameter"};
     auto previewSchema=sketchPixels;previewSchema["kind"]=previewKind;previewSchema["driving"]=optional(parameter("boolean","False previews a driven measurement."));previewSchema["session"]=optionalSession;
     add("sketch.dimensionPreview","Preview dimension placement","Preview a complete GPU annotation on selected targets without changing intent.",previewSchema,[this](const auto& a){return previewDimension(a);});
     auto placeSchema=sketchPixels;placeSchema["session"]=optionalSession;
@@ -3846,6 +3867,7 @@ double AlloyWindow::sketchDimensionMeasure(const QJsonObject& targets,const QStr
         if(measured<1e-6 || measured>179.999999)throw std::invalid_argument("Select nonparallel lines for an angle");
         return measured;
     }
+    if(kind=="centerlineDiameter")return SketchGeometry::centerlineDiameterValue(session_.value("draftSketch").toObject(),targets["entityIds"].toArray(),session_.value("projectionContext").toObject());
     if(kind=="pointLineDistance") {
         const auto ids=targets["pointIds"].toArray();if(ids.size()!=1)throw std::invalid_argument("Select a point and a straight edge");QMap<QString,QPointF> points;for(const auto& value:parameters["points"].toArray()){const auto p=value.toObject();points[p["id"].toString()]={p["uMm"].toDouble(),p["vMm"].toDouble()};}QJsonObject edge;for(const auto& value:parameters["entities"].toArray())if(value.toObject()["id"]==targets["entityId"])edge=value.toObject();if(edge["type"]!="line" || !points.contains(ids[0].toString()))throw std::invalid_argument("Point-edge targets unavailable");const auto a=points.value(edge["startPointId"].toString()),b=points.value(edge["endPointId"].toString()),q=points.value(ids[0].toString());const auto d=b-a;const double length=std::hypot(d.x(),d.y());if(length<.001)throw std::invalid_argument("Point-edge target is degenerate");return std::abs(d.x()*(q.y()-a.y())-d.y()*(q.x()-a.x()))/length;
     }
@@ -4032,6 +4054,17 @@ QJsonObject AlloyWindow::sketchDimensionTargets(const QJsonObject& args) const {
             throw std::invalid_argument("Snap a sketch line or circle to this support center before dimensioning it");
     }
     const auto entities=selection["entityIds"].toArray();
+    const auto pair=args.contains("entityIds") ? args["entityIds"].toArray() : entities;
+    if(args.value("kind")=="centerlineDiameter" || (args.value("kind").toString().isEmpty() && pair.size()==2)) {
+        QJsonObject first,second;
+        for(const auto& row:parameters["entities"].toArray()) {
+            const auto e=row.toObject();if(e["id"]==(pair.size()>0 ? pair[0] : QJsonValue{}))first=e;if(e["id"]==(pair.size()>1 ? pair[1] : QJsonValue{}))second=e;
+        }
+        if(args.value("kind")=="centerlineDiameter" || first.value("centerline").toBool() || second.value("centerline").toBool()) {
+            SketchGeometry::centerlineDiameterValue(session_.value("draftSketch").toObject(),pair,session_.value("projectionContext").toObject());
+            return {{"entityIds",first.value("centerline").toBool() ? pair : QJsonArray{pair[1],pair[0]}},{"kind","centerlineDiameter"}};
+        }
+    }
     if(args.value("kind")=="angle" || (args.value("kind").toString().isEmpty() && (args.contains("entityIds") || entities.size()==2))) {
         const auto chosen=args.contains("entityIds") ? args.value("entityIds").toArray() : entities;
         if(chosen.size()!=2 || chosen[0]==chosen[1])throw std::invalid_argument("Select two distinct lines for an angle");
@@ -4231,7 +4264,7 @@ QJsonObject AlloyWindow::previewDimension(const QJsonObject& args) {
     const auto ids=targets.value("pointIds").toArray();
     const auto orientation=args.value("kind").toString(pending.value("orientation").toString("auto"));QString kind=orientation;
     if(targets.contains("entityId") && targets["pointIds"].toArray().size()==1)kind="pointLineDistance";
-    else if(targets.contains("entityIds"))kind="angle";
+    else if(targets.contains("entityIds"))kind=targets.value("kind").toString("angle");
     else if(targets.contains("entityId")) {
         QJsonObject entity;for(const auto& entry:geometry["entities"].toArray())if(entry.toObject()["id"]==targets["entityId"]){entity=entry.toObject();break;}
         if(kind=="auto")kind=entity["type"]=="circle" ? "diameter" : "radius";
@@ -4301,7 +4334,7 @@ QJsonObject AlloyWindow::acceptDimension(const QJsonObject& args) {
     } else {
         QJsonObject mutation{{"pointIds",pending.value("pointIds")},{"kind",pending.value("kind")},{"driving",driving},{"annotation",pending.value("annotation")}};
         if(pending.contains("entityId")){if(pending["kind"]!="pointLineDistance")mutation.remove("pointIds");mutation["entityId"]=pending["entityId"];}
-        if(pending.contains("entityIds")){mutation.remove("pointIds");mutation["entityIds"]=pending["entityIds"];mutation["raySigns"]=pending["raySigns"];}
+        if(pending.contains("entityIds")){mutation.remove("pointIds");mutation["entityIds"]=pending["entityIds"];if(pending["kind"]=="angle")mutation["raySigns"]=pending["raySigns"];}
         if(driving)mutation[angular ? "valueDeg" : "valueMm"]=valueMm;
         result=publishSketchSolve(SketchGeometry::addDimension(draft,mutation,session_.value("projectionContext").toObject()));
     }
@@ -4482,6 +4515,7 @@ void AlloyWindow::refreshSketchControls() {
             auto* item=rowForId(lineGroup,id);
             QString label=entity["type"]=="circle" ? QString("Circle %1  ·  P%2 · R%3").arg(++index).arg(pointNumbers.value(entity["centerPointId"].toString())).arg(entity["radiusMm"].toDouble()/scale) : QString("%1 %2  ·  P%3 → P%4").arg(entity["type"]=="arc" ? "Arc" : "Line").arg(++index).arg(pointNumbers.value(entity["startPointId"].toString())).arg(pointNumbers.value(entity["endPointId"].toString()));
             if(entity["construction"].toBool())label+=" · Construction";
+            if(entity["centerline"].toBool())label+=" · Centerline";
             if(relations.contains(id))label+=" · "+relations[id].join(", ");
             if(item->text(0)!=label){item->setText(0,label);accessibleLabelsChanged=true;}
             item->setData(0,Qt::UserRole,"entity");item->setData(0,Qt::UserRole+1,id);item->setSelected(selection["entityIds"].toArray().contains(id));
@@ -4578,7 +4612,7 @@ void AlloyWindow::refreshSketchControls() {
     const bool targetsChanged=selection["pointIds"]!=sketchWidgetSelection_["pointIds"] || selection["entityIds"]!=sketchWidgetSelection_["entityIds"];
     if(targetsChanged) {
         try {const auto targets=sketchDimensionTargets({});if(targets.contains("entityIds")) {
-            const QSignalBlocker kindBlock(sketchDimensionKind_);sketchDimensionKind_->setCurrentIndex(sketchDimensionKind_->findData("angle"));
+            const QSignalBlocker kindBlock(sketchDimensionKind_);sketchDimensionKind_->setCurrentIndex(sketchDimensionKind_->findData(targets.value("kind").toString("angle")));
         }else if(targets.contains("entityId") && targets["pointIds"].toArray().size()==1) {
             const QSignalBlocker kindBlock(sketchDimensionKind_);sketchDimensionKind_->setCurrentIndex(sketchDimensionKind_->findData("pointLineDistance"));
         }else if(targets.contains("entityId")) {
@@ -4767,11 +4801,15 @@ void AlloyWindow::showSketch() {
         auto* construction=new QPushButton("Normal/Construction  X");construction->setObjectName("sketch.construction.toggle");
         construction->setToolTip("Convert selected lines; construction lines remain usable for constraints but do not bound profiles.");
         connect(construction,&QPushButton::clicked,this,[this]{sketchResponse(execute("sketch.constructionToggle"));});
-        layout->addWidget(construction);layout->addWidget(new QLabel("NEW DIMENSION"));
+        layout->addWidget(construction);
+        auto* centerline=new QPushButton("Normal/Centerline");centerline->setObjectName("sketch.centerline.toggle");
+        centerline->setToolTip("Convert selected lines; centerlines remain profile boundaries and support full diameter dimensions.");
+        connect(centerline,&QPushButton::clicked,this,[this]{sketchResponse(execute("sketch.centerlineToggle"));});layout->addWidget(centerline);
+        layout->addWidget(new QLabel("NEW DIMENSION"));
         auto* dimensionHelp=new QLabel("Creates a dimension for selected geometry.\nUse D to place a dimension in the canvas.");dimensionHelp->setWordWrap(true);layout->addWidget(dimensionHelp);
         auto* dimensions=new QFormLayout;
         sketchDimensionKind_=new QComboBox;sketchDimensionKind_->setObjectName("sketch.dimension.kind");
-        for(const auto& kind:QStringList{"linear","horizontal","vertical","angle","radius","diameter","arcSweep","pointLineDistance"})sketchDimensionKind_->addItem(kind=="pointLineDistance" ? "Point to Edge" : kind=="arcSweep" ? "Arc Sweep" : kind.first(1).toUpper()+kind.sliced(1),kind);
+        for(const auto& kind:QStringList{"linear","horizontal","vertical","angle","radius","diameter","arcSweep","pointLineDistance","centerlineDiameter"})sketchDimensionKind_->addItem(kind=="centerlineDiameter" ? "Centerline Diameter" : kind=="pointLineDistance" ? "Point to Edge" : kind=="arcSweep" ? "Arc Sweep" : kind.first(1).toUpper()+kind.sliced(1),kind);
         dimensions->addRow("Measure",sketchDimensionKind_);
         sketchDimensionDriving_=new QCheckBox("Driving dimension");sketchDimensionDriving_->setChecked(true);sketchDimensionDriving_->setObjectName("sketch.dimension.driving");dimensions->addRow(sketchDimensionDriving_);
         sketchDimensionValue_=new QDoubleSpinBox;sketchDimensionValue_->setDecimals(6);sketchDimensionValue_->setRange(0.000001,100000);sketchDimensionValue_->setKeyboardTracking(false);
