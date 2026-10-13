@@ -1,3 +1,6 @@
+#include <BRepBuilderAPI_MakeEdge.hxx>
+#include <BRep_Builder.hxx>
+#include <TopoDS_Compound.hxx>
 #include "ReferenceView.h"
 #include "SketchGeometry.h"
 #include "GeometryKernel.h"
@@ -1295,6 +1298,33 @@ QJsonObject ReferenceView::projectBody(const EvaluatedBody& body) const {
     return {{"x",x/scale.x()},{"y",y/scale.y()},{"bodyId",body.bodyId},
         {"viewportLocal",true},{"units","logicalPixels"}};
 }
+void ReferenceView::clearMoveCue(bool resetGesture) {
+    if(resetGesture)moveDrag_={};
+    if(!context_.IsNull())for(const auto& cue:moveCue_)context_->Remove(cue,false);
+    moveCue_.clear();moveCueState_={};
+}
+void ReferenceView::showMoveCue(const QJsonObject& inputs) {
+    clearMoveCue();if(view_.IsNull())return;
+    auto parameters=inputs;auto steps=inputs["steps"].toArray();QJsonObject delta;for(const auto& key:{"xMm","yMm","zMm","xDeg","yDeg","zDeg"})delta[key]=inputs.value(key).toDouble();steps.append(delta);parameters["steps"]=steps;const auto transform=GeometryKernel::moveTransform(parameters);
+    gp_Pnt center(inputs["pivotXMm"].toDouble(),inputs["pivotYMm"].toDouble(),inputs["pivotZMm"].toDouble());center.Transform(transform);
+    const auto scale=windowScale();auto screen=[&](const gp_Pnt& p){int x,y;view_->Convert(p.X(),p.Y(),p.Z(),x,y);return QJsonObject{{"x",x/scale.x()},{"y",y/scale.y()}};};
+    // Fixed screen-sized world-axis handles, rendered as GPU geometry.
+    const double radius=view_->Camera()->Scale()*0.065;
+    const gp_Vec axes[]={gp_Vec(1,0,0),gp_Vec(0,1,0),gp_Vec(0,0,1)};
+    QJsonArray handles;
+    for(int axis=0;axis<3;++axis){
+        const auto a=axes[axis].Transformed(transform),u=axes[(axis+1)%3].Transformed(transform),v=axes[(axis+2)%3].Transformed(transform);
+        BRep_Builder builder;TopoDS_Compound shape;builder.MakeCompound(shape);
+        auto edge=[&](const gp_Pnt& p,const gp_Pnt& q){if(p.Distance(q)>1e-9)builder.Add(shape,BRepBuilderAPI_MakeEdge(p,q).Edge());};
+        const auto end=center.Translated(a*radius*1.65);edge(center,end);
+        edge(end,end.Translated(a*(-radius*.22)+u*(radius*.09)));edge(end,end.Translated(a*(-radius*.22)-u*(radius*.09)));
+        QJsonArray ring;gp_Pnt previous=center.Translated(u*radius);ring.append(screen(previous));
+        for(int i=1;i<=64;++i){const double angle=i*2*std::acos(-1.0)/64;const auto point=center.Translated(u*(radius*std::cos(angle))+v*(radius*std::sin(angle)));edge(previous,point);ring.append(screen(point));previous=point;}
+        auto cue=new AIS_Shape(shape);cue->SetZLayer(Graphic3d_ZLayerId_Topmost);cue->SetColor(axis==0 ? Quantity_Color(.85,.22,.18,Quantity_TOC_RGB) : axis==1 ? Quantity_Color(.2,.65,.24,Quantity_TOC_RGB) : Quantity_Color(.18,.42,.88,Quantity_TOC_RGB));cue->SetWidth(2.5);context_->Display(cue,AIS_WireFrame,-1,false);context_->Deactivate(cue);moveCue_.push_back(cue);
+        handles.append(QJsonObject{{"axis",axis},{"start",screen(center)},{"end",screen(end)},{"mmLength",radius*1.65},{"ring",ring},{"basisU",screen(center.Translated(u*radius))},{"basisV",screen(center.Translated(v*radius))}});
+    }
+    moveCueState_={{"inputs",inputs},{"handles",handles},{"pivotScreen",screen(center)},{"viewportLocal",true},{"units","logicalPixels"}};view_->Redraw();
+}
 void ReferenceView::replacePreview(const TopoDS_Shape& shape,const QString& replacedBody,bool neutral) {
     // Remove the previous presentation without exposing an intermediate empty
     // scene or the original body while the replacement is being installed.
@@ -1598,6 +1628,16 @@ QImage ReferenceView::framebuffer() {
     return image;
 }
 void ReferenceView::mousePressEvent(QMouseEvent* e) {
+    if(e->button()==Qt::LeftButton && !moveCueState_.isEmpty()) {
+        auto point=[](const QJsonObject& p){return QPointF(p["x"].toDouble(),p["y"].toDouble());};
+        auto distance=[](const QPointF& p,const QPointF& a,const QPointF& b){auto d=b-a;auto l=QPointF::dotProduct(d,d);return QLineF(p,a+d*(l>1e-9 ? std::clamp(QPointF::dotProduct(p-a,d)/l,0.0,1.0) : 0.0)).length();};
+        double best=9;QJsonObject picked;QString mode;
+        for(const auto& entry:moveCueState_["handles"].toArray()){const auto h=entry.toObject();const auto center=point(h["start"].toObject()),end=point(h["end"].toObject());const auto d=distance(e->position(),center+(end-center)*.25,end);
+            if(d<best){best=d;picked=h;mode="translation";}
+            auto ring=h["ring"].toArray();for(int i=1;i<ring.size();++i){auto d=distance(e->position(),point(ring[i-1].toObject()),point(ring[i].toObject()));if(d<best){best=d;picked=h;mode="rotation";}}
+        }
+        if(!picked.isEmpty()){moveDrag_={{"handle",picked},{"mode",mode},{"pressX",e->position().x()},{"pressY",e->position().y()},{"initialInputs",moveCueState_["inputs"]}};e->accept();return;}
+    }
     if(e->button()==Qt::RightButton)++rightMousePressCount_;
     if (e->button() == Qt::MiddleButton || (e->button()==Qt::LeftButton && e->modifiers().testFlag(Qt::AltModifier))) {
         panButton_=e->button();last_=e->position();setCursor(Qt::ClosedHandCursor);e->accept();
@@ -1642,6 +1682,15 @@ void ReferenceView::mousePressEvent(QMouseEvent* e) {
     else QWidget::mousePressEvent(e);
 }
 void ReferenceView::mouseMoveEvent(QMouseEvent* e) {
+    if(!moveDrag_.isEmpty() && e->buttons().testFlag(Qt::LeftButton)) {
+        const auto h=moveDrag_["handle"].toObject();auto point=[](const QJsonObject& p){return QPointF(p["x"].toDouble(),p["y"].toDouble());};
+        const auto center=point(h["start"].toObject());const QPointF press(moveDrag_["pressX"].toDouble(),moveDrag_["pressY"].toDouble());
+        const int axis=h["axis"].toInt();const QStringList distances{"xMm","yMm","zMm"},angles{"xDeg","yDeg","zDeg"};QString key;double delta=0;
+        if(moveDrag_["mode"]=="translation") {auto direction=point(h["end"].toObject())-center;auto length2=QPointF::dotProduct(direction,direction);if(length2<1e-8)return;delta=QPointF::dotProduct(e->position()-press,direction)/length2*h["mmLength"].toDouble();key=distances[axis];}
+        else {const auto u=point(h["basisU"].toObject())-center,v=point(h["basisV"].toObject())-center;const auto determinant=u.x()*v.y()-u.y()*v.x();if(std::abs(determinant)<1e-8)return;auto angle=[&](const QPointF& p){auto q=p-center;return std::atan2((u.x()*q.y()-u.y()*q.x())/determinant,(q.x()*v.y()-q.y()*v.x())/determinant);};delta=std::remainder(angle(e->position())-angle(press),2*std::acos(-1.0))*180/std::acos(-1.0);key=angles[axis];}
+        if(dispatch)dispatch("solid.moveHandle",{{"field",key},{"value",moveDrag_["initialInputs"].toObject()[key].toDouble()+delta}});e->accept();return;
+    }
+
     if(extrusionDragActive_ && e->buttons().testFlag(Qt::LeftButton)) {
         updateExtrusionDrag(e->position(),"move");e->accept();
     } else if (panButton_!=Qt::NoButton && e->buttons().testFlag(panButton_)) {
@@ -1671,6 +1720,8 @@ void ReferenceView::leaveEvent(QEvent* e) {
     QWidget::leaveEvent(e);
 }
 void ReferenceView::mouseReleaseEvent(QMouseEvent* e) {
+    if(!moveDrag_.isEmpty() && e->button()==Qt::LeftButton){moveDrag_={};if(dispatch)dispatch("solid.moveApplyGesture",{});e->accept();return;}
+
     if(e->button()==Qt::LeftButton && extrusionDragActive_) {
         updateExtrusionDrag(e->position(),"end");extrusionDragActive_=false;e->accept();return;
     }
@@ -1724,9 +1775,10 @@ void ReferenceView::contextMenuEvent(QContextMenuEvent* e) {
         e->accept();return;
     }
     const auto menuFace=sketchActive ? QJsonObject{} : pickSupportFace(e->pos().x(),e->pos().y(),documentBodies_);
-    if(!sketchActive && (!menuFace.isEmpty() || !selectedSupportFace_.isEmpty())) {
-        QMenu menu(this);auto* create=menu.addAction("Create Sketch");
-        if(menu.exec(e->globalPos())==create)dispatch("sketch.create",{{"support",menuFace.isEmpty() ? selectedSupportFace_ : menuFace}});
+    const auto menuBody=sketchActive ? QString{} : pickBody(e->pos().x(),e->pos().y());
+    if(!sketchActive && (!menuBody.isEmpty() || !menuFace.isEmpty() || !selectedSupportFace_.isEmpty())) {
+        QMenu menu(this);QAction* create=nullptr;if(!menuFace.isEmpty() || !selectedSupportFace_.isEmpty())create=menu.addAction("Create Sketch");QAction* move=nullptr;if(!menuBody.isEmpty())move=menu.addAction("Move/Copy");
+        const auto action=menu.exec(e->globalPos());if(create && action==create)dispatch("sketch.create",{{"support",menuFace.isEmpty() ? selectedSupportFace_ : menuFace}});else if(move && action==move)dispatch("solid.moveDialog",{{"targetBodyId",menuBody}});
         e->accept();return;
     }
     QWidget::contextMenuEvent(e);

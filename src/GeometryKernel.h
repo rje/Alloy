@@ -1,3 +1,4 @@
+#include <gp_Trsf.hxx>
 #pragma once
 #include "SketchProfiles.h"
 #include <QJsonObject>
@@ -51,6 +52,7 @@ public:
     private:
         QJsonObject diagnostics_;
     };
+    static gp_Trsf moveTransform(const QJsonObject& parameters);
     static TopoDS_Shape primitive(const QString& type, const QJsonObject& parameters);
     static EvaluatedSupportFace resolveSketchSupport(const EvaluatedDocument& evaluation, const QJsonObject& support);
     static QJsonArray supportEdgeDescriptors(const EvaluatedSupportFace& support);

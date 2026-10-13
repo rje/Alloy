@@ -1,3 +1,6 @@
+#include <BRepBuilderAPI_Transform.hxx>
+#include <gp_Ax1.hxx>
+#include <gp_Trsf.hxx>
 #include "GeometryKernel.h"
 #include "SketchGeometry.h"
 #include "StepExchange.h"
@@ -248,6 +251,15 @@ TopoDS_Shape GeometryKernel::extrusion(const EvaluatedProfile& profile, double d
         throw std::runtime_error("Extrusion volume does not match profile area times distance");
     return shape;
 }
+gp_Trsf GeometryKernel::moveTransform(const QJsonObject& parameters) {
+    gp_Trsf result;const gp_Vec pivot(parameters["pivotXMm"].toDouble(),parameters["pivotYMm"].toDouble(),parameters["pivotZMm"].toDouble());result.SetTranslation(pivot);
+    const char* angles[]={"xDeg","yDeg","zDeg"};const gp_Dir axes[]={gp_Dir(1,0,0),gp_Dir(0,1,0),gp_Dir(0,0,1)};
+    for(const auto& item:parameters["steps"].toArray()){const auto step=item.toObject();gp_Trsf rotation;
+        for(int i=0;i<3;++i){gp_Trsf r;r.SetRotation(gp_Ax1(gp_Pnt(0,0,0),axes[i]),step[angles[i]].toDouble()*std::acos(-1.0)/180);rotation=r*rotation;}
+        gp_Trsf translation;translation.SetTranslation(gp_Vec(step["xMm"].toDouble(),step["yMm"].toDouble(),step["zMm"].toDouble()));result=result*translation*rotation;
+    }
+    gp_Trsf undoPivot;undoPivot.SetTranslation(-pivot);return result*undoPivot;
+}
 TopoDS_Shape GeometryKernel::booleanOperation(const QString& operation, const TopoDS_Shape& target,
     const std::vector<TopoDS_Shape>& tools) {
     auto reject = [](const QString& code, const QString& message) {
@@ -391,6 +403,15 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored) 
                 summary["translator"]="OCCT STEPControl";
                 evaluated.bodies.push_back({id,feature["bodyId"].toString(),feature["name"].toString(),
                     feature["visible"].toBool(),imported.shape,summary,{}});
+            } else if (type == "move") {
+                const auto bodyId=parameters["targetBodyId"].toString();
+                auto body=std::find_if(evaluated.bodies.begin(),evaluated.bodies.end(),[&](const auto& item){return item.bodyId==bodyId;});
+                if(body==evaluated.bodies.end()){context["code"]="body_unavailable";context["message"]="Move body must be active earlier in history";throw EvaluationError(context);}
+                const auto transform=moveTransform(parameters);
+                BRepBuilderAPI_Transform builder(body->shape,transform,true);if(!builder.IsDone())throw std::runtime_error("Move transform failed");
+                body->shape=builder.Shape();body->summary=summarize(body->shape);body->summary["lastModifierFeatureId"]=id;body->summary["operation"]="move";
+                // Transported cap lineage is outside this bounded solid-body slice.
+                body->supportFaces.clear();
             } else if (type == "boolean") {
                 const auto targetId = parameters["targetBodyId"].toString();
                 const auto toolIds = parameters["toolBodyIds"].toArray();

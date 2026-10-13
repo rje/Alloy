@@ -68,6 +68,9 @@ public:
     void showCutPreview(const EvaluatedBody& body, const std::vector<EvaluatedProfile>& profiles, double distanceMm,
         const QJsonArray& sourceProfileIds, const QString& units);
     void showExtrudeHandle(const EvaluatedProfile& profile,const QJsonArray& sourceProfileIds,const QString& units,const QString& operation,double distanceMm = 0);
+    void showMoveCue(const QJsonObject& inputs);
+    void clearMoveCue(bool resetGesture = false);
+    QJsonObject moveCueState() const { return moveCueState_; }
     void clearPreview();
     QPaintEngine* paintEngine() const override { return nullptr; }
 protected:
@@ -165,5 +168,8 @@ private:
     double sceneScale_ = 400;
     int msaaRequested_ = 4, msaaEnabled_ = 0, msaaMaximum_ = 0;
     bool msaaTextures_ = false;
+    std::vector<Handle(AIS_Shape)> moveCue_;
+    QJsonObject moveCueState_;
+    QJsonObject moveDrag_;
     gp_Pnt sceneCenter_;
 };

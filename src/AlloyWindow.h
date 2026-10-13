@@ -74,6 +74,11 @@ private:
     void updateExtrude(const QJsonObject& inputs);
     bool updatingExtrudePreview_ = false;
     QString pendingBrowserVisibility_;
+    QJsonObject beginMove(const QJsonObject& inputs);
+    QJsonObject moveCandidate(const QJsonObject& inputs) const;
+    QJsonObject previewMove();
+    void showMove();
+    QDockWidget* moveDock_ = nullptr;
     QJsonObject beginCombine(const QJsonObject& inputs);
     QJsonObject combineCandidate(const QJsonObject& inputs) const;
     QString validateCombineInputs(const QJsonObject& inputs) const;

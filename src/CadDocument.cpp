@@ -31,6 +31,12 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
     for (int i = 0; i < features.size(); ++i) {
         const auto feature = features[i].toObject();
         if (feature.contains("bodyId")) activeBodies.insert(feature["bodyId"].toString());
+        if (feature["type"] == "move") {
+            const auto body = feature["parameters"].toObject()["targetBodyId"].toString();
+            if (!bodyPositions.contains(body) || bodyPositions[body]>=i || !activeBodies.contains(body))
+                return {{"featureId",feature["id"]},{"featureType","move"},{"bodyId",body},{"code","body_unavailable"},{"message","Move requires an active earlier body"}};
+            continue;
+        }
         if (feature["type"] == "boolean") {
             const auto parameters = feature["parameters"].toObject();
             const auto target = parameters["targetBodyId"].toString();
@@ -298,6 +304,30 @@ QJsonObject CadDocument::extrusionCandidate(const QJsonObject& authored, const Q
     if (!error.isEmpty()) reject(error);
     return candidate;
 }
+QJsonObject CadDocument::moveCandidate(const QJsonObject& authored, const QJsonObject& arguments) {
+    const QSet<QString> allowed{"targetBodyId","xMm","yMm","zMm","xDeg","yDeg","zDeg","pivotXMm","pivotYMm","pivotZMm","name","featureId","newFeatureId","steps"};
+    for(auto it=arguments.begin();it!=arguments.end();++it)if(!allowed.contains(it.key()))throw std::invalid_argument("Unknown Move argument");
+    if(arguments.contains("featureId") && arguments.contains("newFeatureId"))throw std::invalid_argument("Choose existing or new Move identity");
+    for(const auto& key:{"xMm","yMm","zMm","xDeg","yDeg","zDeg","pivotXMm","pivotYMm","pivotZMm"})if(arguments.contains(key) && !arguments[key].isDouble())throw std::invalid_argument("Move values must be numeric");
+    if(arguments.contains("steps") && !arguments["steps"].isArray())throw std::invalid_argument("Move steps must be an array");
+    auto candidate=authored;auto features=authored["features"].toArray();QJsonObject feature;int index=-1;
+    if(arguments.contains("featureId")) {
+        for(int i=0;i<features.size();++i)if(features[i].toObject()["id"]==arguments["featureId"]){feature=features[i].toObject();index=i;break;}
+        if(index<0 || feature["type"]!="move")throw std::invalid_argument("Move feature unavailable");
+    } else feature={{"id",arguments.value("newFeatureId").toString(newId())},{"ownerId",authored["documentId"]},{"type","move"},{"name","Move"},{"visible",true}};
+    if(arguments.contains("name"))feature["name"]=arguments["name"];
+    QJsonObject parameters{{"targetBodyId",arguments["targetBodyId"]}};
+    for(const auto& key:{"pivotXMm","pivotYMm","pivotZMm"})parameters[key]=arguments.value(key).toDouble();
+    QJsonArray steps;for(const auto& entry:arguments.value("steps").toArray()){
+        if(!entry.isObject())throw std::invalid_argument("Move step must be an object");const auto values=entry.toObject();QJsonObject normalized;
+        const QSet<QString> keys{"xMm","yMm","zMm","xDeg","yDeg","zDeg"};for(auto it=values.begin();it!=values.end();++it)if(!keys.contains(it.key()) || !it.value().isDouble())throw std::invalid_argument("Unknown or nonnumeric Move step value");
+        for(const auto& key:keys)normalized[key]=values.value(key).toDouble();steps.append(normalized);
+    }QJsonObject delta;bool changed=false;
+    for(const auto& key:{"xMm","yMm","zMm","xDeg","yDeg","zDeg"}){delta[key]=arguments.value(key).toDouble();changed|=delta[key].toDouble()!=0;}
+    if(changed)steps.append(delta);parameters["steps"]=steps;
+    feature["parameters"]=parameters;if(index>=0)features[index]=feature;else features.append(feature);candidate["features"]=features;
+    const auto error=validateStructure(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());return candidate;
+}
 QJsonObject CadDocument::booleanCandidate(const QJsonObject& authored, const QJsonObject& arguments) {
     auto reject = [](const QString& message) {throw std::invalid_argument(message.toStdString());};
     const auto initial = validate(authored);
@@ -380,6 +410,12 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
             if (feature.contains("bodyId")) return "Sketches do not own solid body IDs";
             const auto error = SketchGeometry::validateParameters(p, ids);
             if (!error.isEmpty()) return error;
+            continue;
+        }
+        if (type == "move") {
+            if(feature.contains("bodyId") || p.size()!=5 || !validId(p["targetBodyId"].toString()) || !p["steps"].isArray() || p["steps"].toArray().size()>1000)return "Move requires one retained target body and bounded steps";
+            for(const auto& key:{"pivotXMm","pivotYMm","pivotZMm"})if(!p[key].isDouble() || !std::isfinite(p[key].toDouble()) || std::abs(p[key].toDouble())>100000)return "Invalid Move pivot";
+            for(const auto& step:p["steps"].toArray()){if(!step.isObject() || step.toObject().size()!=6)return "Invalid Move step";for(const auto& key:{"xMm","yMm","zMm","xDeg","yDeg","zDeg"})if(!step.toObject()[key].isDouble() || !std::isfinite(step.toObject()[key].toDouble()) || std::abs(step.toObject()[key].toDouble())>100000)return "Invalid Move step value";}
             continue;
         }
         if (type == "boolean") {

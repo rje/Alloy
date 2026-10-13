@@ -1254,3 +1254,13 @@ preview/cancel/commit, Undo/Redo, Join depth edit/tool recompute and save/reopen
 pass. See `validation/profile-join.md` for evidence and limits. Physical input
 and independent compatibility review remain pending. Body Move/Copy and the
 full tutorial remain separate work; no release or issue closure is implied.
+## Bounded body Move candidate (2026-10-12)
+
+SOL-019 #169 adds one-body Free Move with accumulated local rigid deltas,
+explicit pivot, GPU arrow/ring handles and one editable authored transaction.
+Copy/align remain in parent #53. The public video-backed route is 40 mm cutter,
+Y+10°, localZ-20 about foot(0,0,11); PDF60/X-10 is a distinct variant.
+Focused core plus real-app API/history/reopen/downstream Combine evidence pass;
+native manipulator/context-menu verification and integrated tutorial remain
+pending. See [the bounded contract](validation/body-move.md). No push/release or
+issue closure performed. Root integrates from isolated `bung-move` candidate.

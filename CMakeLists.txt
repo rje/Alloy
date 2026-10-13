@@ -40,7 +40,7 @@ target_compile_definitions(alloy_kernel PUBLIC ALLOY_OCCT_VERSION="${ALLOY_OCCT_
 
 add_library(alloy_application STATIC
     src/AlloyTheme.cpp src/AlloyTheme.h
-    src/AlloyWindow.cpp src/AlloyWindow.h src/CombineControls.cpp src/ExportControls.cpp src/StepExportControls.cpp
+    src/AlloyWindow.cpp src/AlloyWindow.h src/MoveControls.cpp src/CombineControls.cpp src/ExportControls.cpp src/StepExportControls.cpp
     src/TutorialRecorder.cpp src/TutorialRecorder.h
     src/CadDocument.cpp src/CadDocument.h
     src/ReferenceView.cpp src/ReferenceView.h
@@ -113,6 +113,10 @@ if(BUILD_TESTING)
     target_include_directories(profile_join_test PRIVATE src)
     target_link_libraries(profile_join_test PRIVATE Qt6::Gui alloy_kernel)
     add_test(NAME profile_join COMMAND profile_join_test)
+    add_executable(move_document_test tests/move_document.cpp src/CadDocument.cpp src/CadDocument.h)
+    target_include_directories(move_document_test PRIVATE src)
+    target_link_libraries(move_document_test PRIVATE Qt6::Gui alloy_kernel)
+    add_test(NAME move_document COMMAND move_document_test)
     add_executable(boolean_document_test tests/boolean_document.cpp src/CadDocument.cpp src/CadDocument.h)
     target_include_directories(boolean_document_test PRIVATE src)
     target_link_libraries(boolean_document_test PRIVATE Qt6::Gui alloy_kernel)
