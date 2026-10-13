@@ -52,3 +52,40 @@ not physical OS input evidence. Styling has no matched public viewport capture.
 The inherited overall 60/30 labels are driven measured references after
 filleting; they cannot yet hold authored width through a radius edit (#235).
 The complete keyring lesson remains #233.
+
+## Independent acceptance
+
+Accepted candidate `8d604130` for #229 on 2026-10-13. Independent review covered
+the evaluator and support-resolution path, preview/publication/refresh changes,
+core/native/API test source, persisted passing native log (3 stages, 2697 ms),
+API report, and actual native preview and isometric joined-rim captures. No
+additional editor or unchanged full replay was required.
+
+The source is the actual resolved face wire, not a recreated rectangle or frozen
+projection. Exact support identity and the set of eight distinct source-entity
+identities gate evaluation. The retained object's annulus-role UUID remains
+independent of kernel edge ordering. The evaluator tries both kernel distance
+signs, then uses area direction and planar intersection containment to select
+one geometric side; negative means inward for the tested top-face fixture.
+This is not an additional claim that arbitrary face orientations or general
+closed curves were tested. Missing/ambiguous lineage or invalid/collapsed result
+refuses instead of silently substituting geometry.
+
+The actual fixture has four R4.5 inner arcs, 57×27 inner bounds and annular area
+247.4800842940 mm². The reported joined volume is 3909.4147974995 mm³. Core/API
+checks establish source-radius and offset-distance recompute, stable profile
+identity, exact undo/reopen and rejected-collapse preservation. The source edit
+uses its actual changed outline; it does not imply driving overall-size
+retention. Generated geometry is evaluated from the correct history prefix
+before publishing a sketch edit. The refresh correction decorates the same
+pending generated draft shown in the view, avoiding expansion of unrelated
+base projections into that preview.
+
+The native test uses a real boundary click, ordinary field click and signed
+key entry, Escape, re-pick and Return. Only initial harness activation is
+forced; sketch/support/tool setup is shared API. The complete annulus is
+visible, Chain/distance controls are readable, and the isometric capture shows
+continuous raised rim and recessed floor. No remaining visual blocker was
+identified in these states. This remains a generated-only, single rounded-loop
+slice; general curved projection, individually named offset edges, physical OS
+input and the full keyring tutorial are not established here.
