@@ -1,7 +1,7 @@
 # Native Hole Spacing Pattern controls (#248)
 
-Status: candidate, 2026-10-13; independent acceptance and integration separate.
-Public basis: `plate-countersink-pattern-20261013`, page 5, retrieved 2026-10-13.
+Status: independently accepted bounded #248, 2026-10-13; integration separate.
+Public basis: `plate-countersink-pattern-20261013`, page 4, retrieved 2026-10-13.
 The panel shows Features, one object, two directions, Spacing, quantities 3/3,
 adjacent distances 27.5/15 mm, One Direction and Adjust. Public evidence and
 unknown selection order/signs/defaults remain outside the repository in
@@ -59,3 +59,32 @@ Native artifacts: `build-pattern/evidence/pattern-controls/`.
 
 Missing/ambiguous references refuse atomically. Additional Pattern families and
 source-order full workflow remain parent scope; no exhaustive replay claimed.
+
+## Independent acceptance
+
+Accepted combined candidate `234293ee922769083454680df88bb0adc8346b72` after
+independent backend/control source, focused evidence, actual captures and saved
+API artifact review. The retained oriented endpoint roles control both signed
+translation and displayed total-span arrows. Each additional Hole occurrence
+rebuilds All against the current target; the underside-pad classifier checks and
+analytic volume distinguish this Adjust implementation from a finite seed clone.
+The additive Extent/Identical branch remains separate. The documented original
+seed-fill limitation is retained, not generalized into arbitrary feature Adjust.
+
+Independent API readback found 47 calls and exact equality between the saved
+padded model and reported authored state. Reported plain and padded volumes are
+35391.01779328286 and 37377.92045775362 mm³, matching the stated analytic oracles.
+The saved Pattern retains its Hole seed, target, two oriented edge identities,
+3/3 quantities and signed −27.5/+15 spacings. Core source checks cover edits,
+atomic attributed refusal, exact history and reopen; native 6.32 s evidence
+covers actual menu/Timeline/edge selection, typed fields, Flip, Cancel/OK and
+edit with no focus repair after initial activation.
+
+Actual native preview and final images show nine smooth, countable conical
+entries and bores. Spacing, Adjust, quantity, signed distances and action controls
+are readable; cues use the same signs as geometry. The immediate final capture
+retains a blank area from the closed dock, so it does not establish settled
+post-close layout fidelity. Disabled finite mode rows and named-edge/sign choices
+are explicit Alloy adaptations; source selection/default parity and physical OS
+input remain unknown. The public page reference above was corrected to page 4.
+No verifier GUI replay was performed. Full source-order #249 remains separate.
