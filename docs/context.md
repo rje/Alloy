@@ -19,7 +19,7 @@ The local gallery now includes ten complete creations (eight solid meshes and
 two sketch lessons), explicitly qualifying movie versus corrected-capture timing.
 Older checkpoint entries below retain historical state; this paragraph supersedes
 their pending or active claims for #251–257 and #259. Slot drag preview #258 is
-now In Progress with Sol in an isolated worktree, with Astra verification to follow.
+now independently accepted and closed (79fa11b/e805afb); main app builds.
 
 ## Current checkpoint — read first (2026-10-13)
 
@@ -92,7 +92,7 @@ The external gallery has nine creations: eight checked solid meshes and one sket
 The full 31-step source gate #257 is now In Progress; its runner is being prepared. Its source-order plan and geometry
 oracles are in [validation/slots-splines-tutorial-prep.md](validation/slots-splines-tutorial-prep.md).
 The external contract/design records are under
-`knowledge/tutorials/after-countersunk-plate/`; the 19-record knowledge corpus
+`knowledge/tutorials/after-countersunk-plate/`; the 20-record knowledge corpus
 includes six archived visual references for this lesson.
 
 Straight slot #251 is independently accepted and integrated as e3f1843/46dbae1.
@@ -154,7 +154,7 @@ visual parity remain qualified. The external
 editable models and STL deliverables. The Revolve receipt is
 [validation/revolve-tutorial.md](validation/revolve-tutorial.md).
 
-**138 of 264 issues are closed.** Recent accepted work includes compact ribbon
+**139 of 264 issues are closed.** Recent accepted work includes compact ribbon
 icons #218, retained Extrude Intersect #219, nested profile/island diagnostics
 #165, portable local controls #220, shared-line fillets #221, typed Line length
 locks #222, retained Sweep #223 and native Sweep controls #224. Each has a scoped
@@ -2602,3 +2602,11 @@ First prove FullRevolve80/5/R50 bottom-face Shell5 geometry before broader work.
 No source step is dropped; spline connector automation is unknown and explicit
 retained Line connectors are disclosed. All five issues remain Todo while #258
 finishes. No ornament runtime or implementation acceptance yet.
+
+Latest: #258 solved slot preview accepted and integrated; native evidence in
+validation/slot-drag-preview.md includes actual capsule/profile, unchanged draft
+until release, exact cancellation and late-release protection. Private editor
+closed. #260 full-Revolve planar support/Shell source proof is now In Progress
+with Sol; #261 open-spline offset is active in a second isolated Sol lane.
+#262–264 remain Todo. First prove the actual80/5/R50→Shell5 source
+geometry, then stable generated-face naming and native support selection.
