@@ -61,5 +61,30 @@ Evidence paths under `build-shared-fillets/evidence/shared-fillets/`:
 pair-3-preview.png,all-returns.png}`. API process exited cleanly. Final native capture was inspected: all three reference spans and the complete
 conversion/retirement notice are readable. Final native Qt result: 3/3 in
 5.202 seconds; final focused core including the explicit contact-agreement guard: 1/1 in
-0.63 seconds. Independent candidate review remains required before
-closure. GUI slot released; no further app replay planned.
+0.63 seconds. Independent acceptance is recorded below. GUI slot released; no further app replay planned.
+
+## Independent acceptance
+
+Astra independently reviewed candidate `3b32a276f8f22100af0ba253f9537c7adc3d9b4b`
+on 2026-10-13. Source, focused core and Qt logs, API runner/report, saved authored
+model and final native preview support bounded #221 acceptance. No new app or
+test run was needed. The saved document exactly matches the report's authored
+JSON; its measured path length is 186.83627878423158 mm.
+
+Original-line trim planning precedes mutation. Exhaustion requires two trims,
+agreeing contacts and equal-radius return centers; surviving line IDs persist.
+Shared actual center/contact identities avoid a redundant Equal equation, while
+outer arc-line tangencies remain explicit. The tested radius edit retains
+oriented G1 continuity. Unsupported references and negative residuals refuse
+without changing the accepted draft. The implementation does not promise
+general arc/arc fillets or arbitrary dependency repair.
+
+The final actual Qt capture shows complete returns, readable (14), (11), (8),
+and the conversion/retirement notice before acceptance. The open-profile warning
+is truthful for this path, though not specific to Sweep. The Qt case uses API
+seed/tool activation followed by actual viewport picks, typed radii and Return;
+it does not establish chained-line authoring or physical OS input. API evidence
+separately covers preview/Cancel, refusal, history, radius edit and exact reopen.
+The source's visible 8-span is preserved as an explicitly driven-by-geometry
+reference adaptation; source post-acceptance drivenness remains unknown. Full
+source authoring and the cumulative Sweep tutorial remain separate gates.
