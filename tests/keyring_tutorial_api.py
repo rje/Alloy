@@ -101,7 +101,8 @@ def main():
             def active(): return state()['activeSession']
             def draft(): return active()['draftSketch']
             def pixel(u, v):
-                return call('view.projectSketchPoint', {'sketchId': draft()['id'], 'uMm': u, 'vMm': v})
+                point = call('view.projectSketchPoint', {'sketchId': draft()['id'], 'uMm': u, 'vMm': v})
+                return {'x': point['x'], 'y': point['y']}
             def capture(name):
                 call('capture.screenshot', {'path': str(output / (name + '.png'))})
                 (output / (name + '.json')).write_text(json.dumps(state(), indent=2) + '\n')
