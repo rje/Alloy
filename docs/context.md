@@ -1911,3 +1911,13 @@ on commit and is temporarily revealed for edit. See
 [contract/evidence and capture limits](validation/revolve-controls.md). Astra
 review reports no bounded blocker; root owns independent acceptance/integration.
 Full tutorial/movie/print output remains TUT008/#217, broader modes remain #49.
+
+## Native Revolve integrated; complete tutorial and ribbon polish active (2026-10-13)
+
+#216 is CLOSED after0a5bc65/8529a0a and successful main app rebuild.
+Its accepted native/API evidence is reused. #217 owns the sole private GUI
+slot for the complete from-blank Revolve movie, history, exact reopen and STL
+gate. Root implements original vector ribbon icons and compact group spacing
+in isolated #218, with GUI verification waiting for #217 to release the slot.
+94 of218 issues are closed; only217/218 are actively owned. No release/tag
+or per-commit CI. Broader parent49 and11 remain Todo.
