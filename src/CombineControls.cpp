@@ -219,8 +219,10 @@ void AlloyWindow::showCombine() {
     });
     connect(combineOperation_,qOverload<int>(&QComboBox::currentIndexChanged),this,[this](int index){updateCombine({{"operation",combineOperation_->itemData(index).toString()}});});
     connect(combineKeepTools_,&QCheckBox::toggled,this,[this](bool keep){updateCombine({{"keepTools",keep}});});
-    connect(combinePickTarget_,&QPushButton::clicked,this,[this]{execute("solid.combineSelectionMode",{{"role","target"}});refreshCombineControls();});
-    connect(combinePickTools_,&QPushButton::clicked,this,[this]{execute("solid.combineSelectionMode",{{"role","tools"}});refreshCombineControls();});
+    // Accessibility exposes these checkable buttons as toggles. Qt's toggle
+    // action emits toggled, not clicked; both inputs must change the same role.
+    connect(combinePickTarget_,&QPushButton::toggled,this,[this](bool checked){if(checked)execute("solid.combineSelectionMode",{{"role","target"}});refreshCombineControls();});
+    connect(combinePickTools_,&QPushButton::toggled,this,[this](bool checked){if(checked)execute("solid.combineSelectionMode",{{"role","tools"}});refreshCombineControls();});
     connect(buttons,&QDialogButtonBox::accepted,this,[this]{
         const auto response = execute("command.commit",{{"session",session_["id"]}});
         if (!response["ok"].toBool()) {

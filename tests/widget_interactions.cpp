@@ -342,6 +342,29 @@ private slots:
         QCOMPARE(window.state()["document"].toObject()["revision"],before["revision"]);
         QVERIFY2(run(window,"command.cancel",{{"session",sessionId}}),error_.constData());
     }
+    void combineAccessibleSelectionRole() {
+        AlloyWindow window;window.resize(1180,760);window.show();window.activateWindow();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        QVERIFY2(run(window,"solid.box",{{"width",30},{"depth",20},{"height",5}}),error_.constData());
+        const auto authored=window.state()["document"].toObject()["authored"].toObject();
+        const auto body=authored["features"].toArray()[0].toObject()["bodyId"];
+        QVERIFY2(run(window,"solid.combineDialog",{{"targetBodyId",body}}),error_.constData());
+        auto* target=window.findChild<QPushButton*>("combine.pickTarget");
+        auto* tools=window.findChild<QPushButton*>("combine.pickTools");QVERIFY(target);QVERIFY(tools);
+        auto* accessible=QAccessible::queryAccessibleInterface(target);QVERIFY(accessible);QVERIFY(accessible->actionInterface());
+        QCOMPARE(session(window)["selectionRole"].toString(),QString("tools"));
+        accessible->actionInterface()->doAction(QAccessibleActionInterface::toggleAction());
+        QCOMPARE(session(window)["selectionRole"].toString(),QString("target"));
+        QVERIFY(target->isChecked());QVERIFY(!tools->isChecked());
+        // An active role cannot be unchecked into a misleading no-role state.
+        accessible->actionInterface()->doAction(QAccessibleActionInterface::toggleAction());
+        QVERIFY(target->isChecked());
+        QTest::mouseClick(tools,Qt::LeftButton);
+        QCOMPARE(session(window)["selectionRole"].toString(),QString("tools"));
+        QVERIFY(!target->isChecked());QVERIFY(tools->isChecked());
+        QVERIFY2(run(window,"command.cancel",{{"session",session(window)["id"]}}),error_.constData());
+        QCOMPARE(window.state()["document"].toObject()["authored"].toObject(),authored);
+    }
     void combineCheckboxAndCommit() {
         AlloyWindow window;window.resize(1180,640);window.show();window.activateWindow();
         QVERIFY(QTest::qWaitForWindowExposed(&window));
