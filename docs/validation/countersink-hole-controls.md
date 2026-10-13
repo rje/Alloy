@@ -1,6 +1,6 @@
 # Native Countersink Hole controls — candidate (#247)
 
-Status: bounded native candidate, 2026-10-13; independent review pending.
+Status: bounded #247 independently accepted, 2026-10-13; integration is separate.
 Public basis: `plate-countersink-pattern-20261013`, page 4, retrieved 2026-10-13.
 Its pictured Hole uses one sketch point, Countersink, Simple tap, All extent,
 bore Ø4 mm, countersink Ø10 mm and 90° included angle. The drawing's sink depth
@@ -94,3 +94,36 @@ Hole history. Exact source pointer timing, keyboard launch defaults, pixel/style
 comparison, broad Hole families, physical OS input, other-platform runtime,
 nine-hole Pattern, the complete named-parameter tutorial and release remain
 unqualified. Viewport size/scale are unmatched to the public page.
+
+## Independent acceptance
+
+Accepted candidate `a2debb81bc01ae0860d8965240578b87af2d9832` for the bounded
+#247 Hole prerequisite after independent backend/control source, core/native
+logs, actual GPU images, API transcript and persisted authored-model review.
+No verifier GUI replay was needed.
+
+The kernel resolves the retained standalone entity/point against its earlier
+supported sketch, checks the surviving trimmed face and current material entry,
+and drills opposite the outward support normal. All reach is recomputed from
+current target bounds; the reusable occurrence tool does not retain a finite
+seed depth. The focused XZ fixture verifies a non-world-Z direction. The
+countersink formula yields 3 mm depth and 67π mm³ removal for the source seed.
+The requested diagnostic correction preserves the underlying error code while
+attributing Hole feature, source sketch/entity/point and target; the existing
+atomic missing-point check now verifies those fields.
+
+Independent artifact readback found 43 API calls and exact equality between the
+saved model and reported authored state. The width-85 result volume differs from
+`41500 + 183π` by about 3.7e−9 mm³, retaining the point at x−32.5. Core and API
+evidence support the stated edits, refusals, exact history and reopen limits.
+The corrected native test has initial-only activation, actual menu/point/target
+picks, focused numeric entry, exact Cancel, OK and Timeline edit; its passed
+8.03 s run is distinct from the API fixture and from physical OS input.
+
+The initial red cone had visible depth-fighting stripes. Independent inspection
+of `final-preview/hole-preview-depth-bias.png` confirms their removal, with a
+smooth red entry, gray stock and readable complete controls. The source change
+biases only presentation, and independent transcript comparison confirms exact
+authored preservation after the focused Cancel. The earlier native behavior run
+remains applicable; no unrecorded full replay is implied. Broader Hole modes,
+occurrence-specific Adjust #248 and cumulative #249 remain separate gates.
