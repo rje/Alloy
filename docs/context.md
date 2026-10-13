@@ -21,19 +21,25 @@ Older checkpoint entries below retain historical state; this paragraph supersede
 their pending or active claims for #251–257 and #259. Slot drag preview #258 is
 now independently accepted and closed (79fa11b/e805afb); main app builds.
 
-## Current checkpoint — read first (2026-10-13)
+## Current work — ornament tutorial (2026-10-13)
 
-#258 has an isolated live solved slot-drag candidate. Actual temporary OCCT
-capsule/profile updates reuse the shared point solve, leave authored draft/history
-unchanged until release, and cancel through tool/history/session/invalid-input
-paths. Focused native evidence passes; independent review remains pending.
-See validation/slot-drag-preview.md.
+The complete ornament lesson is tracked by #264, with prerequisites #260–263.
+Sol is implementing full-Revolve generated planar face support (#260) and
+retained open fit-spline Offset (#261) in isolated worktrees; Astra independently
+reviews their contracts and evidence. Section Analysis (#262) and Circular Body
+Pattern (#263) remain Todo. The public source contract and archived visuals live
+outside the repository in the ornament-pattern knowledge record.
 
-#259 has an isolated candidate for per-entity solved coloring from PlaneGCS
-solved-coordinate nullspace metadata. Mixed ellipse/conic freedom and dimension
-removal core checks pass; root focused app capture and independent acceptance
-remain pending. See validation/entity-solved-colors.md. No broad color parity
-claim or whole-sketch fixed-color shortcut is intended.
+The first isolated OCCT geometry proof for #260 passes the actual 80 mm height,
+5 mm base, R50 arc, Full Revolve and Inside Shell 5 mm sequence. This proves
+kernel feasibility only; stable authored face references, native controls and
+edit/history/storage acceptance remain unverified. The tutorial itself has not
+run. All source steps, including hatched section inspection, remain required.
+
+## Earlier accepted checkpoints and development history
+
+The dated entries below preserve historical evidence and may describe pending
+states that the latest accepted checkpoint above supersedes.
 
 **Prior accepted milestone: wall-outlet sketch #242 and snap correction #243.**
 Astra independently accepted source-order creation, final zero-DOF geometry,
