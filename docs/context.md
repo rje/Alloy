@@ -207,6 +207,14 @@ exception. Same kernel suffix authority, full upstream/open fallback and focused
 snapshot/failure/history core checks pass. See validation/document-prefix-append.md.
 Actual cumulative04 and independent final acceptance remain pending.
 
+Independent cumulative04 visual review identifies an open crown at70.483mm
+against the source closed pointed80mm apex. Free upper fit placement(3,89)
+excluded the axis; bounded runner correction(17,89) preserves all dimensions and
+otherpoints. Exact profiles/Intersect−5/−4 now include the apex and reach80mm;
+runner bounds and saved-model tip-material assertions prevent recurrence. See
+validation/ornament-apex-fixture.md. Actual corrected final visual/full gate
+remains pending; current04 is not a visual pass.
+
 Source boundary reread: the tutorial explicitly selects the bottom face for
 Inside5 Shell, but its section image does not prove an annular opening. That
 earlier requirement was inferred. The exact inward meridian closes on the axis

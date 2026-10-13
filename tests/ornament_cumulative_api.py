@@ -23,6 +23,7 @@ def run(call, out, report, stage, stop_recording):
         row = rows[0]
         assert row['valid'] and row['closed'] and row['volumeMm3'] > 0
         assert row['topology']['solids'] == 1
+        assert math.isclose(row['boundsMm']['max'][2], 80, abs_tol=2e-6), row['boundsMm']
         return row
     def occurrences(state, count):
         rows = state['evaluation']['bodies']

@@ -68,7 +68,9 @@ def create_seed(call, out, stage=None):
     call('feature.visibility', {'featureId': body['featureId'], 'visible': False})
     stage('Hide shell; sketch S-shaped fit spline, Offset 5 mm and connect ends')
     call('sketch.begin', {'plane': 'XZ', 'name': 'S shaped strip'})
-    fixture = [(-4, -1), (6, 19), (-5, 45), (3, 89)]
+    # Disclosed free placement: the upper point keeps the exact strip across
+    # the rotation axis at the 80 mm apex for both -5 and -4 mm offsets.
+    fixture = [(-4, -1), (6, 19), (-5, 45), (17, 89)]
     call('sketch.splineAdd', {'points': [{'uMm': x, 'vMm': y} for x, y in fixture]})
     spline = entity()
     call('sketch.splineOffset', {'sourceEntityId': spline['id'], 'distance': -5, 'units': 'mm'})
@@ -93,6 +95,7 @@ def create_seed(call, out, stage=None):
     assert len(state['evaluation']['bodies']) == 1
     seed = state['evaluation']['bodies'][0]
     assert seed['valid'] and seed['closed'] and seed['volumeMm3'] > 0
+    assert math.isclose(seed['boundsMm']['max'][2], 80, abs_tol=2e-6), seed['boundsMm']
     call('view.home'); capture('intersect-seed')
     call('document.save', {'path': str(out/'ornament-seed.alloy')})
     return {'bodyId': seed['bodyId'], 'stripSketchId': strip_id, 'offsetEntityId': derived['id'],

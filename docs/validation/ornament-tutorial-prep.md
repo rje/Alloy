@@ -26,8 +26,12 @@ Reuse accepted native ingredient evidence rather than rerun unchanged controls.
 | Delivery | Save and millimeter STL export | Editable model, final capture, checked closed oriented manifold mesh |
 
 Free spline coordinates, offset side, Intersect reach, selected axis object and
-hole placement are disclosed Alloy fixture choices. Current diagnostic points
-are (-4,-1), (6,19), (-5,45), (3,89), offset -5 and reach60 in XZ normal -Y.
+hole placement are disclosed Alloy fixture choices. Current runner points
+are (-4,-1), (6,19), (-5,45), (17,89), offset -5 and reach60 in XZ normal -Y.
+The prior upper(3,89) diagnostic fixture clipped the crown at70.48; the revised
+free placement keeps the strip across the80mm apex for both -5/-4 offsets.
+See [apex fixture correction](ornament-apex-fixture.md); exact source points
+remain unknown.
 Hub fixture spans z=-5..0. Final transverse hole positioning must match the
 archived source image; its numeric placement is not source-prescribed. Explicit
 Line closure is disclosed because automatic closure is unknown. Optional print
