@@ -102,6 +102,8 @@ These rules supersede any earlier suggestion to verify behavior in proprietary s
   undo, save/reopen, parameters, geometry summaries, and viewport state.
 - Prefer Alloy's control API for operation, verification, and captures. Direct
   desktop UI control is reserved for Alloy behavior the API does not expose.
+- Keep only one private validation editor open at a time. Save its evidence and
+  close it before launching the next candidate; preserve any user-owned instance.
 - Self-test through the real application entrypoint. Keep build, API, geometry,
   screenshot, and artist-workflow evidence distinct.
 
