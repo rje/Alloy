@@ -25,7 +25,9 @@ and integrated; the main app rebuild passes. See validation/extrude-intersect.md
 Nested profile/island coverage and diagnostics #165 are independently accepted and
 integrated; main app rebuild passes. See validation/profile-regions.md.
 Active work: root owns #132, one manual milestone compile matrix for the accepted
-current integrations and corrected native dependency options. No tag/release
+current integrations and corrected native dependency options. Run 38396495940
+was manually dispatched at source d07253470a346f1b29faa87b33fcced51416ea0c;
+all four target results remain pending. Do not dispatch a duplicate. No tag/release
 or per-commit CI. Intersect parent #161 retains broader operation-edit and
 typed-Return qualification as Todo. Split oversized remaining scope into linked Todo issues. Other broad parents remain Todo. The sections below are a chronological
 record; older ownership, pending status and counts are historical.
