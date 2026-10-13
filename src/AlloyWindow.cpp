@@ -473,6 +473,8 @@ AlloyWindow::AlloyWindow() {
             if(session_.value("command")=="solid.sphere"){if(previewSphere()["previewed"].toBool())execute("command.commit",{{"session",session_["id"]}});return;}
             if(session_.value("command")!="sketch.edit")return;
             if(session_.value("tool")=="offset" && session_.value("pendingOffset").toObject()["valid"].toBool())execute("sketch.offsetAccept");
+            else if(session_.value("tool")=="circle" && session_.value("pendingCircleDiameter").toObject().value("phase")=="locked")
+                sketchResponse(execute("sketch.circleDiameterAccept"));
             else if(session_.value("tool")!="select" && session_.value("tool")!="dimension" && session_.value("tool")!="fillet")execute("sketch.tool",{{"tool","select"}});
         });
     }
@@ -538,6 +540,13 @@ bool AlloyWindow::eventFilter(QObject* watched,QEvent* event) {
     if(watched==view_ && event->type()==QEvent::KeyPress && session_.value("command")=="sketch.edit") {
         const auto* key=static_cast<QKeyEvent*>(event);if(!(key->modifiers()&(Qt::ControlModifier|Qt::MetaModifier|Qt::AltModifier)) && key->key()==Qt::Key_D){sketchResponse(execute("sketch.tool",{{"tool","dimension"}}));return true;}
         if(!(key->modifiers()&(Qt::ControlModifier|Qt::MetaModifier|Qt::AltModifier)) && key->key()==Qt::Key_L && session_.value("tool")!="line") {sketchResponse(execute("sketch.tool",{{"tool","line"}}));return true;}
+        if(!(key->modifiers()&(Qt::ControlModifier|Qt::MetaModifier|Qt::AltModifier)) && key->key()==Qt::Key_C && session_.value("tool")!="circle") {sketchResponse(execute("sketch.circle"));return true;}
+        if((key->key()==Qt::Key_Return || key->key()==Qt::Key_Enter) && session_.value("pendingCircleDiameter").toObject().value("phase")=="locked") {
+            sketchResponse(execute("sketch.circleDiameterAccept"));return true;
+        }
+        if(key->key()==Qt::Key_Escape && session_.contains("pendingCircleDiameter")) {
+            sketchResponse(execute("sketch.circleDiameterCancel"));return true;
+        }
         if(key->key()==Qt::Key_Escape && session_.value("tool")=="line") {
             if(session_.value("pendingLineLength").toObject().value("phase")=="editing")execute("sketch.lineLengthCancel");
             else sketchResponse(execute("sketch.tool",{{"tool","select"}}));
@@ -562,10 +571,12 @@ bool AlloyWindow::eventFilter(QObject* watched,QEvent* event) {
             sketchResponse(response);return response.value("ok").toBool();
         }
     }
-    if(watched==dimensionEditorValue_ && event->type()==QEvent::KeyPress && session_.value("pendingLineLength").toObject().value("phase")=="editing") {
+    if(watched==dimensionEditorValue_ && event->type()==QEvent::KeyPress
+        && (session_.value("pendingLineLength").toObject().value("phase")=="editing"
+            || session_.value("pendingCircleDiameter").toObject().value("phase")=="editing")) {
         const auto* key=static_cast<QKeyEvent*>(event);
-        if(key->key()==Qt::Key_Tab || key->key()==Qt::Key_Return || key->key()==Qt::Key_Enter) {
-            const auto response=execute("sketch.lineLengthLock",{{"text",dimensionEditorValue_->text()}});
+        if(key->key()==Qt::Key_Tab || (session_.contains("pendingLineLength") && (key->key()==Qt::Key_Return || key->key()==Qt::Key_Enter))) {
+            const auto response=execute(session_.contains("pendingCircleDiameter") ? "sketch.circleDiameterLock" : "sketch.lineLengthLock",{{"text",dimensionEditorValue_->text()}});
             sketchResponse(response);return true;
         }
     }
@@ -649,6 +660,7 @@ void AlloyWindow::showActiveTab() {
     if(!active)return;
     switchingTabs_=true;
     if(dimensionEditor_)dimensionEditor_->hide();
+    if(dimensionEditorValue_)dimensionEditorValue_->setReadOnly(false);
     if(lineLockCue_)lineLockCue_->hide();
     if(sketchDock_)sketchDock_->hide();
     view_->rebindDocument();
@@ -1327,6 +1339,8 @@ void AlloyWindow::registerCommands() {
         {"value",optional(circleValue)},{"units",optional(units)},{"session",optionalSession}};
     add("sketch.circleDiameterPreview","Preview typed circle diameter","Show a disposable circle from the pending center without changing authored geometry.",
         circleInputSchema,[this](const auto& a){return previewCircleDiameter(a);});
+    add("sketch.circleDiameterLock","Lock typed circle diameter","Keep a valid diameter preview through Tab; Enter places the circle.",
+        circleInputSchema,[this](const auto& a){return lockCircleDiameter(a);});
     add("sketch.circleDiameterAccept","Accept typed circle diameter","Atomically create the circle and its driving diameter dimension from the pending center.",
         circleInputSchema,[this](const auto& a){return acceptCircleDiameter(a);});
     add("sketch.circleDiameterCancel","Cancel typed circle diameter","Close the inline value and keep the circle center for pointer placement.",
@@ -2793,7 +2807,9 @@ void AlloyWindow::refresh() {
         else if(tool=="select" || tool=="dimension")prompt="Click to select · Shift-click to add";
         else if(tool=="centerRectangle")prompt=session_.contains("pendingCenterRectangle") ? "Enter width and height · Tab switches · Return accepts · Escape cancels" :
             session_.contains("firstPoint") ? "Click a corner or type width and height" : "Click the rectangle center";
-        else if(tool=="circle")prompt=session_.contains("pendingCircleDiameter") ? "Enter the circle diameter · Return accepts · Escape cancels" :
+        else if(tool=="circle")prompt=session_.value("pendingCircleDiameter").toObject().value("phase")=="locked" ?
+            "Diameter locked · Enter places circle · Escape cancels" : session_.contains("pendingCircleDiameter") ?
+            "Type diameter · Tab locks or Return places · Escape cancels" :
             session_.contains("firstPoint") ? "Type a diameter or click the circumference" : "Click the circle center";
         else if(tool=="line")prompt=session_.value("pendingLineLength").toObject().value("phase")=="locked"
             ? QString("%1 %2 locked · Point sets %3 · Click places · Escape ends chain").arg(
@@ -3328,6 +3344,7 @@ QJsonObject AlloyWindow::finishSession(const QString& id, bool commit) {
     session_ = {};
     if(target=="sketch.edit"){sketchHistory_.clear();sketchHistoryIndex_=-1;sketchHistoryGroup_.clear();}
     if(dimensionEditor_)dimensionEditor_->hide();
+    if(dimensionEditorValue_)dimensionEditorValue_->setReadOnly(false);
     if(lineLockCue_)lineLockCue_->hide();
     if (target == "commands.search" && search_) search_->hide();
     if (target == "document.units" && unitsDialog_) unitsDialog_->hide();
@@ -4306,11 +4323,32 @@ QJsonObject AlloyWindow::previewCircleDiameter(const QJsonObject& args) {
     } else view_->clearSketchCursor();
     if(opening)showCircleDiameterEditor(text);
     else {
+        if(dimensionEditorValue_)dimensionEditorValue_->setReadOnly(false);
         if(dimensionEditorValue_ && dimensionEditorValue_->text()!=text) {
             const QSignalBlocker block(dimensionEditorValue_);dimensionEditorValue_->setText(text);
         }
         if(dimensionEditorError_)dimensionEditorError_->setText(valid ? "Enter accepts · Esc cancels" : "Enter a diameter from 0.002 to 100000 mm");
     }
+    return {{"pendingCircleDiameter",pending},{"authoredChange",false}};
+}
+
+QJsonObject AlloyWindow::lockCircleDiameter(const QJsonObject& args) {
+    if(!args.isEmpty() && (args.contains("text") || args.contains("value"))) {
+        const auto preview=previewCircleDiameter(args);
+        if(preview.value("ok").isBool() && !preview.value("ok").toBool())return preview;
+    }
+    if(session_.value("command")!="sketch.edit" || session_.value("tool")!="circle" || !session_.contains("firstPoint"))
+        return failure("no_pending_circle","Click a circle center first");
+    if(args.contains("session") && args["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
+    auto pending=session_.value("pendingCircleDiameter").toObject();
+    if(!pending.value("valid").toBool())return failure("invalid_circle_diameter","Enter a diameter from 0.002 to 100000 mm");
+    pending["phase"]="locked";session_["pendingCircleDiameter"]=pending;
+    const auto units=session_.value("inputs").toObject().value("units").toString("mm");
+    if(dimensionEditorValue_)dimensionEditorValue_->setReadOnly(true);
+    if(dimensionEditorError_)dimensionEditorError_->setText(QString::fromUtf8("Ø%1 %2 locked · Enter places · Esc cancels")
+        .arg(QString::number(pending["diameterMm"].toDouble()/(units=="in" ? 25.4 : 1.0),'g',9),units));
+    if(dimensionEditor_) {dimensionEditor_->adjustSize();positionDimensionEditor();dimensionEditor_->show();dimensionEditor_->raise();}
+    view_->setFocus(Qt::OtherFocusReason);
     return {{"pendingCircleDiameter",pending},{"authoredChange",false}};
 }
 
@@ -4338,6 +4376,7 @@ void AlloyWindow::cancelCircleDiameter() {
     if(!session_.contains("pendingCircleDiameter"))return;
     session_.remove("pendingCircleDiameter");
     if(dimensionEditor_)dimensionEditor_->hide();
+    if(dimensionEditorValue_)dimensionEditorValue_->setReadOnly(false);
     view_->clearSketchCursor();
 }
 
@@ -4636,6 +4675,7 @@ void AlloyWindow::ensureSketchInlineEditor() {
 }
 void AlloyWindow::showCircleDiameterEditor(const QString& text) {
     ensureSketchInlineEditor();
+    dimensionEditorValue_->installEventFilter(this);
     centerRectangleHeight_->hide();
     dimensionEditorValue_->setReadOnly(false);
     {const QSignalBlocker block(dimensionEditorValue_);dimensionEditorValue_->setText(text);}

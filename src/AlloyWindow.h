@@ -199,6 +199,7 @@ private:
     QJsonObject previewDimension(const QJsonObject& args);
     QJsonObject acceptDimension(const QJsonObject& args);
     QJsonObject previewCircleDiameter(const QJsonObject& args);
+    QJsonObject lockCircleDiameter(const QJsonObject& args);
     QJsonObject acceptCircleDiameter(const QJsonObject& args);
     void cancelCircleDiameter();
     QJsonObject previewLineLength(const QJsonObject& args);

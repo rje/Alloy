@@ -3,6 +3,16 @@
 Updated 2026-10-13. This is the project handoff for a fresh session. Read the root
 [AGENTS.md](../AGENTS.md) first; its reference restrictions apply to all work.
 
+Circle diameter Tab-to-Enter source input SKT-041/#226 has a candidate in
+`../Alloy-worktrees/circle-tab-lock` (`feat/circle-tab-lock`). The shared
+`sketch.circleDiameterLock` command keeps a valid diameter and GPU preview in
+session state after Tab; Enter commits one retained circle and driving diameter,
+while Escape cancels the pending input. Focused injected-Qt input and a separate
+real-entrypoint API replay pass, including unchanged geometry on cancel and exact
+save/reopen. The private editor is closed. See
+[the Circle Tab receipt](validation/circle-tab-lock.md). Independent review and
+main integration remain pending; full paper-clip tutorial #225 remains Todo.
+
 ## Current checkpoint — read first (2026-10-13)
 
 The nested cubes #172, egg cup #173, toy block #146, die #147 and subsequent
