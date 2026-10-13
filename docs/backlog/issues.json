@@ -4455,12 +4455,27 @@
         "SKT-056",
         "SOL-035",
         "SOL-036",
-        "PRT-001"
+        "PRT-001",
+        "PAR-003"
       ],
       "labels": [
         "area:tut"
       ],
       "body": "## Required source sequence\nReview the legible embedded source drawing (disclose substitution for opening its separately named companion PDF); new metric design; add Length75/Width50/Thickness10 user parameters; XY center rectangle dimensions by those names; Extrude by Thickness; R5 vertical-edge Fillet; top-face sketch Point10 mm from both adjacent edges; Countersink Hole4/10 mm,90degrees,All; feature rectangular Pattern3x3,Spacing27.5/15,One Direction,Adjust; inspect against drawing and save. Do not replace named expressions, standalone Point, Hole or Adjust with numeric/Cut approximations.\n\n## Independent cumulative acceptance\nBlank-to-final full creation movie, editable authored model and checked millimeter STL as an Alloy export extension. Verify 75x50x10 envelope, R5 outline,9 actual through bores with conical sink depth3, grid and edge margins, stable named bindings, one upstream parameter edit, undo/redo/reopen and one closed consistently oriented mesh. Analytic BRep volume is 36500-353*pi mm3 (35391.0177932828); compare tessellated volume with an appropriate mesh tolerance. Inspect readable parameter/Hole/Pattern controls and final GPU geometry against public figures, with exact source uncertainties recorded. Native ingredient receipts are separate from API movie/physical input. Independent Astra review is required before closure; failed attempts remain preserved.\n\n## Gate boundaries\nThe source ends at saved design. STL and history tests are explicit Alloy extras. No physical print or full product compatibility claim.\n\n## Public source and limits\nSource plate-countersink-pattern-20261013, public four-page illustrated practice independently audited 2026-10-13. URLs, pages, detailed steps and unknowns remain external in knowledge/tutorials/next-after-outlet/independent-countersink-contract.md. Use only public clean-room references. Native ingredient evidence, API creation movies and exact physical-input/visual claims remain separate.\n\n## Preparation checkpoint 2026-10-13\nSource-order cumulative evidence plan is docs/validation/countersunk-plate-prep.md; independently checked against the audited public lesson. tests/countersunk_plate_source.py prepares centered named stock and true supported Point through shared commands. Syntax checked only; no execution or cumulative acceptance claimed. Hole247 and Pattern248 remain required before pulling this gate. Final outer runner must include parameter-table visual evidence and clearly distinguish API creation from native ingredient evidence.\n"
+    },
+    {
+      "key": "PAR-003",
+      "title": "Expose owned parameter dialog lifecycle and capture for tutorial recording",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "PAR-002"
+      ],
+      "labels": [
+        "area:par"
+      ],
+      "body": "## Scope\nRetain the existing Change Parameters dialog by owned safe pointer. Extend its existing command with optional visible:false to close only that dialog through normal close semantics; repeated open reuses it. Expose actual parameter dialog pixels through capture.dialog and verify existing owned-popup movie composition includes its real in-bounds position. No reconstructed controls or generic UI automation framework. Keep the table current when authoritative parameter commands run while open, preserving pending editor text and selection.\n\n## Acceptance and verification\nOne real-app open, shared-command add Length75/Width50/Thickness10, readable table screenshot and recording frame, close sequence. Closing changes no authored data and leaves no duplicate dialog. Preserve native table entry behavior; reuse existing native receipt where unchanged. Verify pending user text is not overwritten by table refresh. Keep original parameter schema and modeling authority unchanged.\n\n## Evidence boundary\nThe current captureImage already composes visible owned Qt top-level widgets; reuse it rather than add another compositor. The capture.screenshot description is stale about separate dialogs and should accurately describe supported owned Qt surfaces. OS-owned dialogs remain outside this bounded feature. This supports TUT-012's source Change Parameters stage; no full tutorial pass is implied.\n"
     }
   ]
 }

@@ -139,11 +139,12 @@
         "SKT-056",
         "SOL-035",
         "SOL-036",
+        "PAR-003",
         "TUT-012"
       ],
       "acceptance": "Named length bindings, vertical fillet with retained rims, true sketch Point with two edge distances, retained All Countersink and nine-hole Spacing/Adjust feature pattern; full creation movie, editable file and checked STL extension.",
       "status": "in_progress",
-      "remaining": "Prerequisites244\u2013247 independently accepted. Spacing/Adjust Hole Pattern248 active; fullgate249 awaits pattern."
+      "remaining": "Pattern248 and owned parameter dialog capture250 active; fullgate249 waits for both."
     },
     {
       "id": "CP-12",
