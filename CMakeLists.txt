@@ -31,7 +31,7 @@ add_library(alloy_kernel STATIC
     src/GeometryKernel.cpp src/GeometryKernel.h src/PlanarFaces.cpp src/PlanarFaces.h src/SolidFillet.cpp src/SolidFillet.h src/SolidChamfer.cpp src/SolidChamfer.h src/SolidShell.cpp src/SolidShell.h src/SolidSphere.cpp src/SolidSphere.h src/SolidHole.cpp src/SolidHole.h src/SolidLoft.cpp src/SolidLoft.h src/SolidRevolve.cpp src/SolidRevolve.h src/SolidSweep.cpp src/SolidSweep.h src/FeaturePattern.cpp src/FeaturePattern.h src/SolidMirror.cpp src/SolidMirror.h src/JoinResults.cpp
     src/MeshExport.cpp src/MeshExport.h
     src/StepExchange.cpp src/StepExchange.h
-    src/SketchSpline.cpp src/SketchSpline.h src/SketchGeometry.cpp src/SketchTrim.cpp src/SketchGeometry.h src/SketchText.cpp src/SketchText.h src/RoundedLoopOffset.cpp src/RoundedLoopOffset.h
+    src/SketchSpline.cpp src/SketchSpline.h src/SketchConic.cpp src/SketchConic.h src/SketchGeometry.cpp src/SketchTrim.cpp src/SketchGeometry.h src/SketchText.cpp src/SketchText.h src/RoundedLoopOffset.cpp src/RoundedLoopOffset.h
     src/SketchProfiles.cpp src/SketchProfiles.h src/SketchRegions.cpp)
 target_include_directories(alloy_kernel PUBLIC src)
 target_include_directories(alloy_kernel SYSTEM PUBLIC ${OpenCASCADE_INCLUDE_DIR})
@@ -41,7 +41,7 @@ target_compile_definitions(alloy_kernel PUBLIC ALLOY_OCCT_VERSION="${ALLOY_OCCT_
 
 add_library(alloy_application STATIC
     src/AlloyTheme.cpp src/AlloyTheme.h
-    src/AlloyWindow.cpp src/AlloyWindow.h src/PointControls.cpp src/SplineControls.cpp src/SketchTextControls.cpp src/CommandIcons.cpp src/CommandIcons.h src/SolidFilletControls.cpp src/SolidChamferControls.cpp src/SphereControls.cpp src/SolidHoleControls.cpp src/SolidShellControls.cpp src/LoftControls.cpp src/RevolveCommands.cpp src/SweepCommands.cpp src/SweepSelection.cpp src/PatternControls.cpp src/SolidMirrorControls.cpp src/MoveControls.cpp src/CombineControls.cpp src/ExportControls.cpp src/StepExportControls.cpp
+    src/AlloyWindow.cpp src/AlloyWindow.h src/PointControls.cpp src/SplineControls.cpp src/ConicControls.cpp src/SketchTextControls.cpp src/CommandIcons.cpp src/CommandIcons.h src/SolidFilletControls.cpp src/SolidChamferControls.cpp src/SphereControls.cpp src/SolidHoleControls.cpp src/SolidShellControls.cpp src/LoftControls.cpp src/RevolveCommands.cpp src/SweepCommands.cpp src/SweepSelection.cpp src/PatternControls.cpp src/SolidMirrorControls.cpp src/MoveControls.cpp src/CombineControls.cpp src/ExportControls.cpp src/StepExportControls.cpp
     src/TutorialRecorder.cpp src/TutorialRecorder.h
     src/CadDocument.cpp src/CadDocument.h
     src/ReferenceView.cpp src/ReferenceView.h src/ReferenceRevolve.cpp src/ReferenceSweep.cpp src/ReferenceSketchText.cpp src/ReferenceSpline.cpp
@@ -82,6 +82,9 @@ if(BUILD_TESTING)
     add_executable(control_point_spline_test tests/control_point_spline.cpp src/CadDocument.cpp src/CadDocument.h)
     target_link_libraries(control_point_spline_test PRIVATE alloy_kernel Qt6::Widgets)
     add_test(NAME control_point_spline COMMAND control_point_spline_test)
+    add_executable(conic_test tests/conic.cpp src/CadDocument.cpp src/CadDocument.h)
+    target_link_libraries(conic_test PRIVATE alloy_kernel Qt6::Widgets)
+    add_test(NAME conic COMMAND conic_test)
     add_executable(fit_point_spline_controls_test tests/fit_point_spline_controls.cpp)
     target_link_libraries(fit_point_spline_controls_test PRIVATE alloy_application Qt6::Test)
     add_test(NAME fit_point_spline_controls COMMAND fit_point_spline_controls_test)

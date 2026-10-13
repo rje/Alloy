@@ -1,6 +1,7 @@
 #include "SketchGeometry.h"
 #include "SketchSolver.h"
 #include "SketchSpline.h"
+#include "SketchConic.h"
 #include "SketchText.h"
 #include "RoundedLoopOffset.h"
 #include "SketchMirror.h"
@@ -496,6 +497,7 @@ TopoDS_Edge SketchGeometry::analyticEdge(const QJsonObject& parameters, const QJ
     for (const auto& value : parameters["points"].toArray()) { const auto p=value.toObject();
         points[p["id"].toString()] = worldPoint(sketchFrame,p["uMm"].toDouble(),p["vMm"].toDouble()); }
     if(entity["type"]=="fitSpline"||entity["type"]=="controlSpline")return BRepBuilderAPI_MakeEdge(SketchSpline::evaluate(parameters,entity,evaluationFrame(parameters,resolvedFrame)).curve).Edge();
+    if(entity["type"]=="conic")return BRepBuilderAPI_MakeEdge(SketchConic::evaluate(parameters,entity,evaluationFrame(parameters,resolvedFrame))).Edge();
     if (entity["type"] == "line") return BRepBuilderAPI_MakeEdge(points[entity["startPointId"].toString()],points[entity["endPointId"].toString()]).Edge();
     const auto f=sketchFrame; const auto n=f["normal"].toArray(), u=f["uAxis"].toArray();
     const gp_Ax2 axes(points[entity["centerPointId"].toString()],gp_Dir(n[0].toDouble(),n[1].toDouble(),n[2].toDouble()),gp_Dir(u[0].toDouble(),u[1].toDouble(),u[2].toDouble()));
@@ -926,6 +928,7 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
             const auto type = entity["type"].toString();
             if (!claimId(entity["id"].toString())) return "Invalid or duplicate sketch entity UUID";
             if(type=="fitSpline"||type=="controlSpline"){const auto error=SketchSpline::validate(parameters,entity);if(!error.isEmpty())return error;for(const auto& id:entity["pointIds"].toArray())usedPoints.insert(id.toString());entityIds.insert(entity["id"].toString());continue;}
+            if(type=="conic"){const auto error=SketchConic::validate(parameters,entity);if(!error.isEmpty())return error;for(const auto& id:entity["pointIds"].toArray())usedPoints.insert(id.toString());entityIds.insert(entity["id"].toString());continue;}
             if (type != "line" && type != "circle" && type != "arc" && type != "point") return "Unsupported sketch entity type";
             if(type=="point") {
                 if(entity.size()!=3 || !points.contains(entity["pointId"].toString()))return "Point entity requires exactly one existing point UUID";
@@ -1216,8 +1219,11 @@ SketchGeometry::SolveResult SketchGeometry::solveDraft(const QJsonObject& draft,
         if(draft["parameters"].toObject().contains("pointReferences"))parameters["pointReferences"]=draft["parameters"].toObject()["pointReferences"];
         solved["parameters"]=parameters;validateDraft(solved);validateRoundedIntent(parameters);validateSlotGroups(parameters);validateArcSlotGroups(parameters);
         for(const auto& value:entities)if(value.toObject()["type"]=="fitSpline"||value.toObject()["type"]=="controlSpline")SketchSpline::evaluate(parameters,value.toObject());
+        for(const auto& value:entities)if(value.toObject()["type"]=="conic")SketchConic::evaluate(parameters,value.toObject());
         auto diagnostics=result.diagnostics;int handleDof=0;for(const auto& v:entities)if(v.toObject()["type"]=="fitSpline")handleDof+=2*v.toObject()["pointIds"].toArray().size();
         if(handleDof){diagnostics["pointSolverDof"]=diagnostics["dof"];diagnostics["splineHandleDof"]=handleDof;diagnostics["dof"]=diagnostics["dof"].toInt()+handleDof;diagnostics["splineSolverScope"]="Fit-point constraints only; tangent vectors are editable evaluator parameters";diagnostics["status"]="underconstrained";}
+        int rhoDof=0;for(const auto& value:entities)if(value.toObject()["type"]=="conic")++rhoDof;
+        if(rhoDof){diagnostics["conicRhoDof"]=rhoDof;diagnostics["dof"]=diagnostics["dof"].toInt()+rhoDof;diagnostics["status"]="underconstrained";}
         return {true,solved,diagnostics,{}};
     } catch(const std::exception& error){return invalidDraft(draft,QString::fromUtf8(error.what()));}
 }
@@ -2090,6 +2096,7 @@ EvaluatedSketch SketchGeometry::evaluateFeature(const QJsonObject& feature, cons
         if(e["type"]=="line") detail["lengthMm"]=points[e["startPointId"].toString()].Distance(points[e["endPointId"].toString()]);
         else if(e["type"]=="fitSpline"){const auto spline=SketchSpline::evaluate(parameters,e);detail["degree"]=5;detail["continuity"]="C2";detail["fitParameters"]=QJsonArray::fromVariantList([&]{QVariantList list;for(double t:spline.parameters)list.append(t);return list;}());detail["tangentHandles"]=spline.handles;detail["curvatureComb"]=SketchSpline::comb(parameters,e);}
         else if(e["type"]=="controlSpline"){const auto spline=SketchSpline::evaluate(parameters,e);detail["degree"]=spline.curve->Degree();detail["continuity"]=spline.curve->IsCN(2)?"C2":spline.curve->IsCN(1)?"C1":"C0";detail["curveSamples"]=SketchSpline::curveSamples(spline);QJsonArray poles;for(const auto& id:e["pointIds"].toArray())for(const auto& v:parameters["points"].toArray()){const auto p=v.toObject();if(p["id"]==id)poles.append(QJsonObject{{"pointId",id},{"uMm",p["uMm"]},{"vMm",p["vMm"]}});}detail["controlPoints"]=poles;detail["curvatureComb"]=SketchSpline::comb(parameters,e);}
+        else if(e["type"]=="conic"){const auto curve=SketchConic::evaluate(parameters,e);const auto shoulder=curve->Value(0.5);detail["degree"]=2;detail["shoulderLocalMm"]=QJsonArray{shoulder.X(),shoulder.Y()};}
         else if(e["type"]=="point") {const auto p=points[e["pointId"].toString()];detail["positionMm"]=QJsonArray{p.X(),p.Y(),p.Z()};}
         else {const auto center=points[e["centerPointId"].toString()]; detail["centerMm"]=QJsonArray{center.X(),center.Y(),center.Z()};
             detail["lengthMm"]=e["radiusMm"].toDouble()*(e["type"]=="circle" ? 2*std::numbers::pi : std::abs(e["sweepAngleDeg"].toDouble())*degrees);

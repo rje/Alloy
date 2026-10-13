@@ -197,6 +197,7 @@ private:
     QJsonObject selectedSplineEntity() const;
     void buildSplinePalette(QVBoxLayout* layout);
     void refreshSplinePalette();
+    QJsonObject conicCommand(const QString& operation,const QJsonObject& inputs);
     QJsonObject splineCommand(const QString& operation,const QJsonObject& inputs = {});
     QJsonObject splinePointer(const QJsonObject& inputs,bool place);
     QJsonObject appendSketchEntity(const QString& tool, const QJsonObject& inputs);

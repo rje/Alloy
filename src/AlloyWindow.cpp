@@ -1489,6 +1489,14 @@ void AlloyWindow::registerCommands() {
         {"units",optional(units)},{"session",optional(parameter("string","Optional active sketch session identity."))}};
     for(const auto& tool:QStringList{"line","rectangle"})add("sketch."+tool,tool=="line" ? "Line" : "Two-Point Rectangle",
         "Append stable authored points and edges to the active sketch draft.",drawSchema,[this,tool](const auto& a){return appendSketchEntity(tool,a);});
+    auto conicPoint=parameter("object","Canonical millimeter point {uMm,vMm}, optionally retained pointId.");
+    auto conicRho=parameter("number","Shoulder ratio strictly between 0 and 1.");
+    add("sketch.conicAdd","Conic Curve","Create a retained rational quadratic from start, end, tangent vertex and Rho.",
+        {{"start",conicPoint},{"end",conicPoint},{"vertex",conicPoint},{"rho",conicRho}},
+        [this](const auto& a){return conicCommand("add",a);});
+    add("sketch.conicRho","Edit Conic Rho","Update the retained shoulder ratio through the shared sketch authority.",
+        {{"entityId",parameter("string","Stable conic UUID.")},{"rho",conicRho}},
+        [this](const auto& a){return conicCommand("rho",a);});
     auto splineEntity=parameter("string","Stable authored fit spline UUID.");
     auto splinePoint=parameter("string","Stable fit point UUID.");
     auto splineScalar=parameter("number","Canonical spline derivative or parameter.");splineScalar["minimum"]=-100000;splineScalar["maximum"]=100000;
