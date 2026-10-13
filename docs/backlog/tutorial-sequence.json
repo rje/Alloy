@@ -12,9 +12,9 @@
         "TUT-004"
       ],
       "acceptance": "Follow the 14 illustrated modeling steps, then edit/undo/reopen and export a measured closed STL. Independently verify native and API evidence separately.",
-      "status": "in_progress",
-      "evidence": "Pending; source ledger in external knowledge/tutorials/warwick.",
-      "remaining": "Join, authored body Move and command-first Circle are active; full gate awaits independent review."
+      "status": "todo",
+      "evidence": "docs/validation/straw-bung.md",
+      "remaining": "All three bounded feature prerequisites are independently accepted. API/export chain passed; full uninterrupted native source-step walkthrough and annotated movie remain Todo."
     },
     {
       "id": "CP-01",

@@ -19,8 +19,9 @@ still checking live dependencies. The project board exposes the same **Delivery
 order** number. A blocked broad issue may receive a bounded implementation slice;
 that does not close the issue or waive its remaining acceptance criteria.
 
-1. Straw bung: retained-target Extrude Join (#168), authored body movement (#169),
-   command-first Circle (#175), then the complete illustrated workflow and print export gate (#170).
+1. Straw bung: complete the uninterrupted native walkthrough/movie gate (#170).
+   Join (#168), Move (#169), command-first Circle (#175) and the integrated API/STL
+   checkpoint are accepted; the full native gate remains Todo.
 2. Finish outstanding exact-native bracket evidence as bounded follow-ups;
    retain prior API/slicer success without relabeling it as full native parity.
 3. Straw support: profile partitions, joined heights and solid fillets (#171).
