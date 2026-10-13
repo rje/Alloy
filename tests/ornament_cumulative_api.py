@@ -247,8 +247,14 @@ def main():
                     time.sleep(.45)
             def call(command, parameters=None):
                 report['pendingCommand'] = {'command': command, 'args': parameters or {}}
+                (out/'progress.json').write_text(json.dumps({
+                    'stage': report.get('stage'), 'pendingCommand': report['pendingCommand'],
+                    'startedAtUnixSeconds': time.time()}, indent=2)+'\n')
                 result = raw_call(command, parameters)
                 report.pop('pendingCommand', None)
+                (out/'progress.json').write_text(json.dumps({
+                    'stage': report.get('stage'), 'completedCommand': command,
+                    'completedAtUnixSeconds': time.time()}, indent=2)+'\n')
                 if recording and command.startswith(('sketch.', 'solid.', 'selection.', 'command.', 'view.', 'analysis.')):
                     time.sleep(.2)
                 return result
