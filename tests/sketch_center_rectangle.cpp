@@ -50,6 +50,39 @@ int main(int argc,char** argv) {
         const auto path=directory.path()+"/center-rectangle.alloy";
         check(document.save(path).isEmpty(),"save centered sketch");
         CadDocument reopened;check(reopened.open(path).isEmpty() && reopened.authored()==committed,"reopen retains center, guides and dimensions");
+        CadDocument roughDocument;
+        const auto roughEmpty=SketchGeometry::newFeature(roughDocument.activeOwnerId(),"XY");
+        auto rough=SketchGeometry::addCenterRectangle(roughEmpty,{{"centerUMm",0},{"centerVMm",0},{"widthMm",68},{"heightMm",110},
+            {"centerSnapTarget",QJsonObject{{"kind","origin"}}},{"drivingSize",false}});
+        check(rough.ok,rough.error.toUtf8().constData());
+        auto roughSketch=rough.feature;
+        const auto roughParameters=roughSketch["parameters"].toObject();
+        check(roughParameters["entities"].toArray().size()==6 && roughParameters["dimensions"].toArray().isEmpty(),
+            "pointer rectangle retains edges and diagonals without hidden size dimensions");
+        check(rough.diagnostics["dof"].toInt(-1)==2,"rough origin-centered rectangle has two size degrees of freedom");
+        const auto roughEdges=roughParameters["entities"].toArray();
+        rough=SketchGeometry::addDimension(roughSketch,{{"kind","horizontal"},{"entityId",roughEdges[0].toObject()["id"]},{"valueMm",70}});
+        check(rough.ok && rough.diagnostics["dof"].toInt(-1)==1,"width dimension leaves height free");
+        roughSketch=rough.feature;
+        rough=SketchGeometry::addDimension(roughSketch,{{"kind","vertical"},{"entityId",roughEdges[1].toObject()["id"]},{"valueMm",114}});
+        check(rough.ok && rough.diagnostics["dof"].toInt(-1)==0,"height dimension fully defines rough rectangle");
+        roughSketch=rough.feature;
+        const auto sized=roughSketch["parameters"].toObject()["dimensions"].toArray();
+        check(sized.size()==2 && sized[0].toObject()["driving"].toBool() && sized[1].toObject()["driving"].toBool(),
+            "D creates the only two driving size dimensions");
+        const auto roughGeometry=SketchGeometry::evaluateFeature(roughSketch);
+        near(roughGeometry.summary["boundsMm"].toObject()["min"].toArray()[0].toDouble(),-35,"final centered width");
+        near(roughGeometry.summary["boundsMm"].toObject()["max"].toArray()[1].toDouble(),57,"final centered height");
+        check(roughDocument.commit(SketchGeometry::replaceFeature(roughDocument.authored(),roughSketch),"Rough rectangle").isEmpty(),
+            "commit dimensioned rough rectangle");
+        const auto roughCommitted=roughDocument.authored();
+        roughDocument.history().undo();check(roughDocument.sketches().empty(),"undo removes rough rectangle");
+        roughDocument.history().redo();check(roughDocument.authored()==roughCommitted,"redo restores rough rectangle");
+        const auto roughPath=directory.path()+"/rough-center-rectangle.alloy";
+        check(roughDocument.save(roughPath).isEmpty(),"save rough rectangle");
+        CadDocument roughReopened;check(roughReopened.open(roughPath).isEmpty() && roughReopened.authored()==roughCommitted,
+            "reopen retains only explicit dimensions");
+        check(reopened.authored()==committed,"old saved driving dimensions remain unchanged");
         auto origin=SketchGeometry::newFeature(owner,"XY");
         auto snapped=SketchGeometry::addCenterRectangle(origin,{{"centerUMm",0.02},{"centerVMm",0.02},{"widthMm",12},{"heightMm",12},
             {"centerSnapTarget",QJsonObject{{"kind","origin"}}}});
@@ -65,6 +98,6 @@ int main(int argc,char** argv) {
         check(elevated.profiles.size()==1,"center rectangle produces one region on offset plane");
         near(elevated.profiles[0].summary["areaMm2"].toDouble(),144,"12 by 12 offset-plane profile area");
         near(elevated.summary["boundsMm"].toObject()["min"].toArray()[2].toDouble(),6.5,"offset-plane world elevation");
-        std::cout<<"PASS: center rectangle relations, resize, profile, snap, undo and reopen\n";
+        std::cout<<"PASS: typed and rough center rectangle intent, two size DOF, D sizing, profile, undo and reopen\n";
     } catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}
 }

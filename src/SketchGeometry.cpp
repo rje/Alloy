@@ -339,7 +339,9 @@ SketchGeometry::SolveResult SketchGeometry::addCenterRectangle(const QJsonObject
     const QJsonObject& projectionContext) {
     try {
         validateDraft(draft);
-        checkFields(arguments,{"centerUMm","centerVMm","widthMm","heightMm","centerSnapTarget"});
+        checkFields(arguments,{"centerUMm","centerVMm","widthMm","heightMm","centerSnapTarget","drivingSize"});
+        if(arguments.contains("drivingSize") && !arguments["drivingSize"].isBool())reject("Center rectangle drivingSize must be boolean");
+        const bool drivingSize=arguments.value("drivingSize").toBool(true);
         double u=coordinate(arguments,"centerUMm"),v=coordinate(arguments,"centerVMm");
         const double width=coordinate(arguments,"widthMm"),height=coordinate(arguments,"heightMm");
         if(width<minimumLength || height<minimumLength || width>maximumLength || height>maximumLength)
@@ -398,8 +400,10 @@ SketchGeometry::SolveResult SketchGeometry::addCenterRectangle(const QJsonObject
         if(!coincidentPoint.isEmpty())constraints.append(QJsonObject{{"id",newId()},{"type","coincident"},{"pointIds",QJsonArray{center,coincidentPoint}}});
         else if(!midpointLine.isEmpty())constraints.append(QJsonObject{{"id",newId()},{"type","midpoint"},{"pointIds",QJsonArray{center}},{"entityIds",QJsonArray{midpointLine}}});
         else constraints.append(QJsonObject{{"id",newId()},{"type","fixed"},{"pointIds",QJsonArray{center}},{"uMm",u},{"vMm",v}});
-        dimensions.append(QJsonObject{{"id",newId()},{"kind","horizontal"},{"pointIds",QJsonArray{a,b}},{"driving",true},{"valueMm",width}});
-        dimensions.append(QJsonObject{{"id",newId()},{"kind","vertical"},{"pointIds",QJsonArray{b,c}},{"driving",true},{"valueMm",height}});
+        if(drivingSize) {
+            dimensions.append(QJsonObject{{"id",newId()},{"kind","horizontal"},{"pointIds",QJsonArray{a,b}},{"driving",true},{"valueMm",width}});
+            dimensions.append(QJsonObject{{"id",newId()},{"kind","vertical"},{"pointIds",QJsonArray{b,c}},{"driving",true},{"valueMm",height}});
+        }
         parameters["points"]=points;parameters["entities"]=entities;parameters["constraints"]=constraints;parameters["dimensions"]=dimensions;
         auto candidate=draft;candidate["parameters"]=parameters;
         const auto result=solveDraft(candidate,projectionContext);

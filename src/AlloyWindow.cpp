@@ -1778,7 +1778,8 @@ void AlloyWindow::registerCommands() {
         if(tool=="centerRectangle") {
             QJsonObject centered{{"centerX",first["uMm"]},{"centerY",first["vMm"]},
                 {"width",2*std::abs(point["uMm"].toDouble()-first["uMm"].toDouble())},
-                {"height",2*std::abs(point["vMm"].toDouble()-first["vMm"].toDouble())},{"units","mm"}};
+                {"height",2*std::abs(point["vMm"].toDouble()-first["vMm"].toDouble())},{"units","mm"},
+                {"drivingSize",false}};
             if(first["status"]=="acquired")centered["centerSnapTarget"]=first["target"];
             response=appendCenterRectangle(centered);
         } else response=appendSketchEntity(tool,inputs);
@@ -3853,6 +3854,7 @@ QJsonObject AlloyWindow::appendCenterRectangle(const QJsonObject& inputs) {
         {"widthMm",CadDocument::millimeters(inputs["width"].toDouble(),units)},
         {"heightMm",CadDocument::millimeters(inputs["height"].toDouble(),units)}};
     if(inputs.contains("centerSnapTarget"))canonical["centerSnapTarget"]=inputs["centerSnapTarget"];
+    if(inputs.contains("drivingSize"))canonical["drivingSize"]=inputs["drivingSize"];
     return publishSketchSolve(SketchGeometry::addCenterRectangle(session_.value("draftSketch").toObject(),canonical,session_.value("projectionContext").toObject()));
 }
 
