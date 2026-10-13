@@ -50,3 +50,40 @@ cumulative-gate acceptance follows from these bounded children.
 
 Evidence is in the isolated candidate's `build-multi-face/evidence/{api,widget}`;
 see [the candidate receipt](multi-face-gate.md) for commands and individual files.
+
+## Recovery completion and cumulative gate acceptance
+
+2026-10-13. Astra independently accepts #213 candidate `827cf6a` and the
+cumulative bounded SKT-017/#150 gate. This supersedes the pending recovery and
+parent status above, preserving the original evidence and limitations. Review
+used the test-only diff, persisted `qt-results.txt`, six state snapshots and
+actual error/recovery captures in the main checkout's
+`build-tutorial-polish/evidence/support-recovery`. No new editor or test run was
+needed. The recorded recovery-only run passes three Qt phases, zero failures,
+in 4050 ms; separate CTest registration selects that same recovery case.
+
+The native test clicks an ordinary list row, verifies its current stable body
+ID and sends Space to the QListWidget. It waits for both the item check state
+and authoritative session tool IDs, reacquiring the item after list rebuild.
+It uses no check-state setter or API tool-selection substitute. Both split and
+deleted supports produce readable red errors and disabled OK controls. Their
+structured diagnostics identify the dependent sketch and exact support triple.
+The error captures show the intended checked tool and accepted model with tool
+selection overlays; the recovered capture restores the intact notch geometry.
+The error label is visible after ordinary scrolling; the target control is then
+partly scrolled out, rather than clipped within its layout.
+
+All six saved documents have identical authored state, document revision 2 and
+empty unchanged undo history. The top-level UI revision changes as sessions
+change; it is not the document revision. Split recovery uses Cancel. Deleted
+support recovery toggles back to the original Notch tool, obtains a valid
+preview and clicks OK, with no authored change. This supplies the missing
+native preservation/correction route alongside accepted #209 atomic diagnostic
+checks, #212 side/inclined authoring and retained history, and #205 retained
+point-to-edge dimensions. No repeated full tutorial run is implied or needed.
+
+The original checkbox-indicator hit remains unexplained; keyboard activation
+is the qualified ordinary control route. Evidence is synthesized Qt input,
+not physical OS input. Join spin arrows plus OK remain the accepted distance
+entry route. General relink/repair, broad projection policies, exact visual
+parity and cross-platform runtime remain outside this bounded cumulative gate.
