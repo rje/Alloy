@@ -137,3 +137,17 @@ single-shot timer now starts a fresh interval after capture, preserving the
 existing explicit wall-clock repeats. Build passed and Astra's recorder-on native
 inspection measured 0.354 seconds, compared with 67–220 seconds before the fix.
 The restarted complete native workflow and stopped-video check remain pending.
+
+## Complete support creation movie
+
+User-facing progress demos should omit the EDITED banner; retain editing details
+in sidecar metadata. Do not substitute a continuation for a requested full build.
+
+`tests/support_tutorial_api.py --record-video <external.mp4>` now records the
+complete creation from a blank document through millimeter STL export, with
+paced actual API commands and stage captions. History/edit regression checks
+continue after recording stops. The first complete movie is external
+`demos/2026-10-12/support-complete/support-from-blank.mp4`:78.1seconds,781frames,
+10fps,1244×902,zero capture failures. Blank/sketch/final frames were inspected;
+the full modeling and closed-STL assertions pass. This is an API-driven app
+recording, not physical mouse/keyboard footage. The private editor closed.

@@ -7,6 +7,8 @@ Physical keys/gestures, annotation appearance and visual parity are separate gat
 import argparse
 import json
 import math
+import time
+from contextlib import ExitStack
 from pathlib import Path
 
 from app_harness import application
@@ -37,6 +39,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--app', required=True)
     parser.add_argument('--output', required=True)
+    parser.add_argument('--record-video', type=Path)
+    parser.add_argument('--pace', type=float, default=0.65)
     args = parser.parse_args()
     output = Path(args.output).resolve()
     output.mkdir(parents=True, exist_ok=True)
@@ -50,7 +54,45 @@ def main():
                                   'orderedLocalSteps': [{'yDeg': -10}, {'zMm': -31}, {'xMm': -2}]},
                'stages': []}
     try:
-        with application(args.app, output) as (call, transcript):
+        with application(args.app, output) as (raw_call, transcript), ExitStack() as guard:
+            recording = False
+            def stop_recording():
+                nonlocal recording
+                if recording:
+                    receipt['recording'] = raw_call('recording.stop')
+                    recording = False
+            guard.callback(stop_recording)
+            def caption(text):
+                if recording:
+                    raw_call('recording.step', {'text': text})
+                    time.sleep(0.8)
+            def call(command, parameters=None, error=None):
+                parameters = parameters or {}
+                if recording:
+                    titles = {'sketch.begin': 'Create sketch', 'sketch.rectangle': 'Draw rectangle',
+                              'sketch.line': 'Draw the center guide', 'sketch.addCircle': 'Draw the main circle',
+                              'sketch.trim': 'Trim the intersecting sketch segments',
+                              'sketch.finish': 'Finish sketch', 'solid.filletDialog': 'Round both outer corners: 1 mm',
+                              'sketch.circle': 'Create the bore sketch on the original circular face',
+                              'solid.move': 'Tilt cutter 10 degrees, then move it through the support'}
+                    if command in titles: caption(titles[command])
+                    if command == 'solid.extrude':
+                        caption(f"Extrude {parameters['distance']} mm: {parameters.get('operation', 'new body')}")
+                    if command == 'command.begin' and parameters.get('command') == 'solid.combine':
+                        caption('Combine Cut: subtract the tilted cutter')
+                result = raw_call(command, parameters, error)
+                if recording and (command.startswith(('sketch.', 'solid.', 'selection.')) or command in {'command.update','command.commit','command.cancel'}):
+                    time.sleep(args.pace)
+                return result
+            if args.record_video:
+                video = args.record_video.resolve()
+                assert not video.is_relative_to(Path(__file__).resolve().parents[1])
+                video.parent.mkdir(parents=True, exist_ok=True)
+                raw_call('window.resize', {'width': 1400, 'height': 900})
+                raw_call('recording.start', {'path': str(video), 'fps': 10})
+                recording = True
+                caption('Build a straw support from a blank design')
+
             receipt['transcript'] = transcript
             state = call('app.state')
             assert state['viewport']['gpu']['hardwareAccelerated']
@@ -240,6 +282,16 @@ def main():
             removed_volume = math.pi*2.6**2*20/math.cos(math.radians(10))
             expected_volume = filleted_body['volumeMm3'] - removed_volume
             assert math.isclose(final['volumeMm3'], expected_volume, rel_tol=1e-7)
+            if recording:
+                caption('Save the finished support and export a millimeter STL')
+                call('selection.set', {'bodyId': ''})
+                call('document.save', {'path': str(output / 'straw-support-video.alloy')})
+                call('document.exportStl', {'path': str(output / 'straw-support-video-mm.stl'),
+                     'bodyId': target, 'units': 'mm', 'format': 'binary',
+                     'surfaceDeviationMm': 0.03, 'normalDeviationDeg': 5})
+                caption('Complete: 32 x 15 x 24 mm support, ready to slice')
+                time.sleep(2)
+                stop_recording()
             call('history.undo')
             assert inspect()['authored'] == moved['authored']
             call('history.redo')

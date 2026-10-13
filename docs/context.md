@@ -15,6 +15,15 @@ supported circle, history and reopen. Real-app/API and independent native
 acceptance remain pending the combined candidate. See
 [the candidate receipt](validation/solid-fillet.md).
 
+## Complete support demo (2026-10-12)
+
+Requested full creation movie delivered at
+`../Alloy-reference-records/demos/2026-10-12/support-complete/support-from-blank.mp4`.
+78.1seconds, from blank through sketch/Trim/Join/Fillet/cutter/Combine/export,
+actual API command overlays and captions, no EDITED banner. Full runner passes;
+blank/sketch/final frames inspected. Native continuation remains separate.
+User wants to discuss next steps after this deliverable; no new queue work started.
+
 ## Current accepted support checkpoint (2026-10-12)
 
 The cumulative functional original-video support tutorial #171 is accepted.
