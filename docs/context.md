@@ -2278,3 +2278,15 @@ are implemented; native selection and controls remain SKT-054/#241. The
 six-curve rough-source fixture, focused regressions and real-app API captures
 are recorded in [the scoped receipt](validation/sketch-mirror-foundation.md).
 This isolated candidate awaits independent review and integration.
+
+## Outlet sketch relations candidate (2026-10-13)
+
+SKT-051/#238 adds retained Concentric for circle/arc pairs, ordered point-pair
+Horizontal/Vertical, and midpoint inference at either Line endpoint. The
+source-order rough rectangle/two-arc Concentric → circle-center/arc-center
+Vertical → Equal core fixture passes, including its bounded rank-redundancy
+case without dropping any relation. A focused native Qt sequence passed real
+midpoint hover/clicks, construction conversion, constraint picks and a settled
+GPU capture. The rough sketch still has six DOF; the full reflected and
+dimensioned lesson is separate. Independent review remains. See
+[the candidate receipt](validation/outlet-constraints.md).

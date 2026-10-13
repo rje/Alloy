@@ -504,7 +504,8 @@ SketchGeometry::SolveResult SketchGeometry::addPointerEntity(const QJsonObject& 
         auto parameters=draft["parameters"].toObject();auto points=parameters["points"].toArray();
         auto entities=parameters["entities"].toArray();auto constraints=parameters["constraints"].toArray();
         auto freshPoint=[&](double u,double v) {const auto id=newId();points.append(QJsonObject{{"id",id},{"uMm",u},{"vMm",v}});return id;};
-        auto target=[&](const QString& key,double& u,double& v) -> QString {
+        QString startMidpointLine,endMidpointLine;
+        auto target=[&](const QString& key,double& u,double& v,QString& midpointLine) -> QString {
             if (!arguments.contains(key)) return {};
             if (!arguments[key].isObject()) reject("Snap target must be an object");
             const auto selected=arguments[key].toObject();const auto kind=selected["kind"].toString();QString id;
@@ -518,6 +519,15 @@ SketchGeometry::SolveResult SketchGeometry::addPointerEntity(const QJsonObject& 
             } else if (kind=="point") {
                 if (selected.size()!=2 || !selected["pointId"].isString() || !validId(selected["pointId"].toString())) reject("Endpoint snap requires a stable pointId");
                 id=selected["pointId"].toString();retainSupportPoint(parameters,projectionContext,id);
+            } else if (kind=="midpoint" && tool=="line") {
+                if(selected.size()!=2 || !selected["entityId"].isString() || !validId(selected["entityId"].toString()))reject("Midpoint snap requires a stable line ID");
+                for(const auto& value:entities){const auto line=value.toObject();if(line["id"]!=selected["entityId"] || line["type"]!="line")continue;
+                    QJsonObject first,last;for(const auto& value:points){const auto point=value.toObject();if(point["id"]==line["startPointId"])first=point;if(point["id"]==line["endPointId"])last=point;}
+                    if(first.isEmpty() || last.isEmpty())break;
+                    u=(first["uMm"].toDouble()+last["uMm"].toDouble())/2;v=(first["vMm"].toDouble()+last["vMm"].toDouble())/2;
+                    midpointLine=line["id"].toString();return {};
+                }
+                reject("Midpoint snap line no longer exists");
             } else reject("Unsupported snap target kind");
             for (const auto& entry:points) {const auto p=entry.toObject();if(p["id"]==id){u=p["uMm"].toDouble();v=p["vMm"].toDouble();return id;}}
             for(const auto& entry:expandedProjectionFeature(QJsonObject{{"parameters",parameters}},projectionContext)["parameters"].toObject()["points"].toArray()) {
@@ -525,7 +535,7 @@ SketchGeometry::SolveResult SketchGeometry::addPointerEntity(const QJsonObject& 
             }
             reject("Snap target point does not exist");
         };
-        const auto startTarget=target("startSnapTarget",u1,v1),endTarget=target("endSnapTarget",u2,v2);
+        const auto startTarget=target("startSnapTarget",u1,v1,startMidpointLine),endTarget=target("endSnapTarget",u2,v2,endMidpointLine);
         if (tool=="line" && (std::hypot(u2-u1,v2-v1)<minimumLength || std::hypot(u2-u1,v2-v1)>maximumLength)) reject("Snapped line length out of supported range");
         if (tool=="rectangle" && (std::abs(u2-u1)<minimumLength || std::abs(v2-v1)<minimumLength)) reject("Snapped rectangle sides must be at least 0.001 mm");
         const auto first=freshPoint(u1,v1);QString last;
@@ -543,6 +553,8 @@ SketchGeometry::SolveResult SketchGeometry::addPointerEntity(const QJsonObject& 
             if (!selected.isEmpty())constraints.append(QJsonObject{{"id",newId()},{"type","coincident"},{"pointIds",QJsonArray{endpoint,selected}}});
         };
         coincide(first,startTarget);coincide(last,endTarget);
+        if(!startMidpointLine.isEmpty())constraints.append(QJsonObject{{"id",newId()},{"type","midpoint"},{"pointIds",QJsonArray{first}},{"entityIds",QJsonArray{startMidpointLine}}});
+        if(!endMidpointLine.isEmpty())constraints.append(QJsonObject{{"id",newId()},{"type","midpoint"},{"pointIds",QJsonArray{last}},{"entityIds",QJsonArray{endMidpointLine}}});
         parameters["points"]=points;parameters["entities"]=entities;parameters["constraints"]=constraints;
         auto candidate=draft;candidate["parameters"]=parameters;
         const auto result=solveDraft(candidate,projectionContext);
@@ -768,6 +780,12 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
                         && (line["startPointId"] == refs[0] || line["endPointId"] == refs[0]))
                         return "Midpoint point must be distinct from the line endpoints";
                 }
+            } else if(type=="concentric") {
+                if(constraint.size()!=3 || !checkReferences(constraint,"entityIds",2,curveIds) || constraint.contains("pointIds"))
+                    return "Concentric requires two distinct circles or arcs";
+            } else if((type=="horizontal" || type=="vertical") && constraint.contains("pointIds")) {
+                if(constraint.size()!=3 || !checkReferences(constraint,"pointIds",2,pointIds) || constraint.contains("entityIds"))
+                    return "Point alignment requires two distinct sketch points";
             } else if (type == "equal") {
                 if (constraint.size() != 3 || !checkReferences(constraint,"entityIds",2,entityIds))
                     return "Equal requires two distinct sketch entities";
@@ -863,7 +881,7 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
     return {};
 }
 
-SketchGeometry::SolveResult SketchGeometry::solveDraft(const QJsonObject& draft, const QJsonObject& projectionContext) {
+SketchGeometry::SolveResult SketchGeometry::solveDraft(const QJsonObject& draft, const QJsonObject& projectionContext, const QString& initialReferencePointId) {
     try {
         validateDraft(draft);
         if(draft["parameters"].toObject().contains("texts") || draft["parameters"].toObject().contains("loopOffsets"))
@@ -874,12 +892,14 @@ SketchGeometry::SolveResult SketchGeometry::solveDraft(const QJsonObject& draft,
             virtualEntities.insert(id);lockedPoints.insert(projectionPointId(id,false));lockedPoints.insert(projectionPointId(id,true));}
         QSet<QString> derivedPoints;
         for(const auto& value:draft["parameters"].toObject()["pointReferences"].toArray()){const auto id=value.toObject()["id"].toString();lockedPoints.insert(id);derivedPoints.insert(id);}
+        const auto externalLockedPoints=lockedPoints;
+        if(!initialReferencePointId.isEmpty())lockedPoints.insert(initialReferencePointId);
         validateDraft(expanded,derivedPoints);
         const auto result=SketchSolver::solve(expanded["parameters"].toObject(),lockedPoints);
         if(!result.accepted)return {false,draft,result.diagnostics,result.error};
         auto solved=draft;auto parameters=result.parameters;
         QJsonArray points,entities;
-        for(const auto& value:parameters["points"].toArray())if(!lockedPoints.contains(value.toObject()["id"].toString()))points.append(value);
+        for(const auto& value:parameters["points"].toArray())if(!externalLockedPoints.contains(value.toObject()["id"].toString()))points.append(value);
         for(const auto& value:parameters["entities"].toArray())if(!virtualEntities.contains(value.toObject()["id"].toString()))entities.append(value);
         parameters["points"]=points;parameters["entities"]=entities;
         if(draft["parameters"].toObject().contains("texts"))parameters["texts"]=draft["parameters"].toObject()["texts"];
@@ -906,6 +926,13 @@ SketchGeometry::SolveResult SketchGeometry::addConstraint(const QJsonObject& dra
         auto constraint = arguments;
         constraint["id"] = newId();
         auto parameters = draft["parameters"].toObject();
+        if(constraint["type"]=="horizontalVertical") {
+            const auto ids=constraint["pointIds"].toArray();
+            if(ids.size()!=2)reject("Horizontal/Vertical requires two ordered points");
+            QJsonObject a,b;for(const auto& value:parameters["points"].toArray()){const auto p=value.toObject();if(p["id"]==ids[0])a=p;if(p["id"]==ids[1])b=p;}
+            if(a.isEmpty() || b.isEmpty())reject("Alignment point no longer exists");
+            constraint["type"]=std::abs(a["uMm"].toDouble()-b["uMm"].toDouble())>=std::abs(a["vMm"].toDouble()-b["vMm"].toDouble()) ? "horizontal" : "vertical";
+        }
         if (constraint["type"].toString() == "fixed") {
             const auto pointIds = constraint["pointIds"].toArray();
             if (pointIds.size() != 1) reject("Fixed constraint requires one point");
@@ -917,10 +944,25 @@ SketchGeometry::SolveResult SketchGeometry::addConstraint(const QJsonObject& dra
             }
             if (!found) reject("Fixed point does not exist");
         }
-        auto constraints = parameters["constraints"].toArray(); constraints.append(constraint);
+        auto constraints = parameters["constraints"].toArray();
+        if(constraint["type"]=="concentric")for(const auto& value:constraints) {
+            const auto prior=value.toObject();if(prior["type"]!="concentric")continue;
+            const auto a=prior["entityIds"].toArray(),b=constraint["entityIds"].toArray();
+            if(a.size()==2 && b.size()==2 && ((a[0]==b[0] && a[1]==b[1]) || (a[0]==b[1] && a[1]==b[0])))reject("Concentric relation already exists for this pair");
+        }
+        constraints.append(constraint);
         parameters["constraints"] = constraints;
         auto candidate = draft; candidate["parameters"] = parameters;
-        const auto result = solveDraft(candidate,projectionContext);
+        const auto pointPair=(constraint["type"]=="horizontal" || constraint["type"]=="vertical") && constraint.contains("pointIds");
+        if(pointPair && constraint["pointIds"].toArray().size()!=2)reject("Point alignment requires two ordered points");
+        QString first=pointPair ? constraint["pointIds"].toArray().at(0).toString() : QString{};
+        if(constraint["type"]=="concentric" && constraint["entityIds"].toArray().size()==2) {
+            const auto source=constraint["entityIds"].toArray().at(0);
+            for(const auto& value:parameters["entities"].toArray())if(value.toObject()["id"]==source)first=value.toObject()["centerPointId"].toString();
+        }
+        auto result=solveDraft(candidate,projectionContext,first);
+        if(!result.ok && !first.isEmpty())result=solveDraft(candidate,projectionContext);
+        if(result.ok && !first.isEmpty())result=solveDraft(result.feature,projectionContext);
         return result.ok ? result : SolveResult{false, draft, result.diagnostics, result.error};
     } catch (const std::exception& error) { return invalidDraft(draft, QString::fromUtf8(error.what())); }
 }

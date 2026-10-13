@@ -1188,11 +1188,16 @@ void ReferenceView::decorateSketch(const QJsonObject& feature,const QJsonObject&
                 {"viewportLocal",true},{"units","logicalPixels"}});
             continue;
         }
-        if(kind!="equal" && kind!="horizontal" && kind!="vertical" && kind!="perpendicular" && kind!="parallel" && kind!="midpoint" && kind!="pointOnCurve" && kind!="circleOffset")continue;
-        for(const auto& target:relation["entityIds"].toArray()) {
-            const auto entity=entities.value(target.toString());if(entity.isEmpty())continue;
+        if(kind!="equal" && kind!="horizontal" && kind!="vertical" && kind!="concentric" && kind!="perpendicular" && kind!="parallel" && kind!="midpoint" && kind!="pointOnCurve" && kind!="circleOffset")continue;
+        const bool pointAlignment=(kind=="horizontal" || kind=="vertical") && relation.contains("pointIds");
+        const auto targets=pointAlignment ? QJsonArray{relation["pointIds"].toArray().at(1)} : relation["entityIds"].toArray();
+        for(const auto& target:targets) {
+            const auto entity=entities.value(target.toString());if(!pointAlignment && entity.isEmpty())continue;
             double u,v;
-            if(kind=="midpoint" || kind=="pointOnCurve") {
+            if(pointAlignment) {
+                const auto point=points.value(target.toString());if(point.isEmpty())continue;
+                u=point["uMm"].toDouble();v=point["vMm"].toDouble();
+            } else if(kind=="midpoint" || kind=="pointOnCurve") {
                 const auto pointId=relation["pointIds"].toArray().at(0).toString();
                 const auto point=points.value(pointId);if((kind=="midpoint" && entity["type"]!="line") || point.isEmpty())continue;
                 u=point["uMm"].toDouble();v=point["vMm"].toDouble();
@@ -1224,11 +1229,12 @@ void ReferenceView::decorateSketch(const QJsonObject& feature,const QJsonObject&
             else if(kind=="midpoint"){stroke(-5,4,5,4);stroke(5,4,0,-5);stroke(0,-5,-5,4);}
             else if(kind=="circleOffset"){stroke(-5,-4,5,-4);stroke(-5,4,5,4);stroke(0,-2,0,2);stroke(-2,0,0,2);stroke(2,0,0,2);}
             else if(kind=="equal"){stroke(-5,-2,5,-2);stroke(-5,2,5,2);}
+            else if(kind=="concentric"){stroke(-5,0,-2,0);stroke(2,0,5,0);stroke(0,-5,0,-2);stroke(0,2,0,5);stroke(-2,-2,2,-2);stroke(2,-2,2,2);stroke(2,2,-2,2);stroke(-2,2,-2,-2);}
             else if(kind=="horizontal")stroke(-5,0,5,0);
             else if(kind=="vertical")stroke(0,-5,0,5);
             else if(kind=="perpendicular"){stroke(-4,4,-4,-4);stroke(-4,-4,4,-4);}
             else {stroke(-4,-4,0,4);stroke(0,-4,4,4);}
-            const bool selectedGeometry=selection["entityIds"].toArray().contains(target) ||
+            const bool selectedGeometry=selection[pointAlignment ? "pointIds" : "entityIds"].toArray().contains(target) ||
                 (kind=="midpoint" && selection["pointIds"].toArray().contains(relation["pointIds"].toArray().at(0)));
             highlightRelation(relation,selectedBadge,hoveredBadge);
             auto badge=sketchPresentation(strokes);badge->SetColor(selectedBadge ? Quantity_Color(0.08,0.43,0.91,Quantity_TOC_sRGB)

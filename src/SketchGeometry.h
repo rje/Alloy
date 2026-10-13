@@ -35,8 +35,9 @@ public:
     static SolveResult addCenterRectangle(const QJsonObject& draft, const QJsonObject& arguments,
         const QJsonObject& projectionContext = {});
     // Pointer creation is transactional. Optional startSnapTarget/endSnapTarget
-    // are {kind:origin} or {kind:point,pointId:UUID}; accepted snaps retain
-    // distinct endpoint IDs and real coincidence constraints. Explicit coordinate
+    // are {kind:origin}, {kind:point,pointId:UUID}, or for Line endpoints
+    // {kind:midpoint,entityId:lineUUID}. Accepted snaps retain distinct
+    // endpoint IDs and real coincidence or midpoint constraints. Explicit coordinate
     // creation above never acquires an implicit target.
     static SolveResult addPointerEntity(const QJsonObject& draft, const QString& tool,
         const QJsonObject& arguments, const QJsonObject& projectionContext = {});
@@ -58,7 +59,7 @@ public:
     static double centerlineDiameterValue(const QJsonObject& draft, const QJsonArray& entityIds, const QJsonObject& projectionContext = {});
     static SolveResult setCenterline(const QJsonObject& draft, const QJsonObject& arguments, const QJsonObject& projectionContext = {});
     static SolveResult setConstruction(const QJsonObject& draft, const QJsonObject& arguments, const QJsonObject& projectionContext = {});
-    static SolveResult solveDraft(const QJsonObject& draft, const QJsonObject& projectionContext = {});
+    static SolveResult solveDraft(const QJsonObject& draft, const QJsonObject& projectionContext = {}, const QString& initialReferencePointId = {});
     static SolveResult addConstraint(const QJsonObject& draft, const QJsonObject& arguments, const QJsonObject& projectionContext = {});
     // Line angles use kind=angle, two entityIds, optional raySigns (+1/-1),
     // and driving valueDeg. Ray choice is independent of annotation placement.

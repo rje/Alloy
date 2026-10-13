@@ -244,10 +244,19 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
             } else if (type == "midpoint") {
                 auto& target = line(reference(constraint,"entityIds",0));
                 solver.addConstraintP2PSymmetric(target.p1,target.p2,point(reference(constraint,"pointIds",0)),t);
+            } else if(type=="concentric") {
+                auto center=[&](const QString& id) -> GCS::Point& {
+                    if(auto found=circleMap.find(id);found!=circleMap.end())return found->second.center;
+                    if(auto found=arcMap.find(id);found!=arcMap.end())return found->second.center;
+                    require(false,"Concentric requires two circles or arcs");return point(id);
+                };
+                solver.addConstraintP2PCoincident(center(reference(constraint,"entityIds",0)),center(reference(constraint,"entityIds",1)),t);
             } else if (type == "horizontal") {
-                solver.addConstraintHorizontal(line(reference(constraint,"entityIds",0)),t);
+                if(constraint.contains("pointIds"))solver.addConstraintEqual(point(reference(constraint,"pointIds",0)).y,point(reference(constraint,"pointIds",1)).y,t);
+                else solver.addConstraintHorizontal(line(reference(constraint,"entityIds",0)),t);
             } else if (type == "vertical") {
-                solver.addConstraintVertical(line(reference(constraint,"entityIds",0)),t);
+                if(constraint.contains("pointIds"))solver.addConstraintEqual(point(reference(constraint,"pointIds",0)).x,point(reference(constraint,"pointIds",1)).x,t);
+                else solver.addConstraintVertical(line(reference(constraint,"entityIds",0)),t);
             } else if (type == "parallel") {
                 solver.addConstraintParallel(line(reference(constraint,"entityIds",0)),line(reference(constraint,"entityIds",1)),t);
             } else if (type == "perpendicular") {
@@ -338,13 +347,29 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
                 return array;
             };
             redundant.insert(redundant.end(),partial.begin(),partial.end());
+            QSet<QString> concentricIds;for(const auto& value:constraints)if(value.toObject()["type"]=="concentric")concentricIds.insert(value.toObject()["id"].toString());
+            bool scopedConcentricRedundancy=!redundant.empty() && conflicts.empty() && status==GCS::SolveStatus::Success && !concentricIds.isEmpty();
+            if(scopedConcentricRedundancy) {
+                // PlaneGCS may tag an older line relation, rather than the new
+                // Concentric equation, as redundant in the same rank cycle.
+                // Remove only Concentric in a separate diagnostic solve. If the
+                // remaining authored system is clean, the rank loss depends on
+                // Concentric; all equations still participate below and their
+                // independently checked geometric residuals must pass.
+                auto base=parameters;QJsonArray kept;
+                for(const auto& value:constraints)if(value.toObject()["type"]!="concentric")kept.append(value);
+                base["constraints"]=kept;
+                const auto baseline=SketchSolver::solve(base,lockedPointIds);
+                scopedConcentricRedundancy=baseline.accepted;
+            }
+            if(scopedConcentricRedundancy)result.diagnostics["acceptedConcentricDependentRedundancyIds"]=mapped(redundant);
             result.diagnostics["conflictingConstraintIds"] = mapped(conflicts);
             result.diagnostics["redundantConstraintIds"] = mapped(redundant);
             result.diagnostics["conflictingEntityIds"] = mapped(conflicts,true);
             result.diagnostics["redundantEntityIds"] = mapped(redundant,true);
             result.diagnostics["solverStatus"] = static_cast<int>(status);
             dof = solver.dofsNumber(); result.diagnostics["dof"] = dof;
-            if (!conflicts.empty() || !redundant.empty() || status != GCS::SolveStatus::Success) {
+            if (!conflicts.empty() || (!redundant.empty() && !scopedConcentricRedundancy) || status != GCS::SolveStatus::Success) {
                 result.diagnostics["status"] = !conflicts.empty() ? "conflicting" : !redundant.empty() ? "redundant" : "failed";
                 result.error = "Sketch solve rejected: " + result.diagnostics.value("status").toString(); return result;
             }
@@ -412,6 +437,14 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
                 check(*p.x-(*target.p1.x+*target.p2.x)/2,lengthTolerance);
                 check(*p.y-(*target.p1.y+*target.p2.y)/2,lengthTolerance);
             }
+            else if(type=="concentric") {
+                auto center=[&](const QString& id) -> GCS::Point& {
+                    if(auto found=circleMap.find(id);found!=circleMap.end())return found->second.center;
+                    return arcMap.at(id).center;
+                };
+                const auto& a=center(reference(c,"entityIds",0));const auto& b=center(reference(c,"entityIds",1));
+                check(*a.x-*b.x,lengthTolerance);check(*a.y-*b.y,lengthTolerance);
+            }
             else if(type=="equal") {
                 const auto a = reference(c,"entityIds",0), b = reference(c,"entityIds",1);
                 if (lineMap.contains(a) && lineMap.contains(b))
@@ -420,6 +453,10 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
             }
             else if(type=="circleOffset") {
                 check(*radius(reference(c,"entityIds",1))-*radius(reference(c,"entityIds",0))-number(c,"distanceMm"),lengthTolerance);
+            }
+            else if((type=="horizontal" || type=="vertical") && c.contains("pointIds")) {
+                const auto& a=point(reference(c,"pointIds",0));const auto& b=point(reference(c,"pointIds",1));
+                check(type=="horizontal" ? *a.y-*b.y : *a.x-*b.x,lengthTolerance);
             }
             else {
                 const auto& a=line(reference(c,"entityIds",0)); const double ax=*a.p2.x-*a.p1.x,ay=*a.p2.y-*a.p1.y;
