@@ -1190,13 +1190,19 @@ void ReferenceView::decorateSketch(const QJsonObject& feature,const QJsonObject&
         }
         if(kind!="equal" && kind!="horizontal" && kind!="vertical" && kind!="concentric" && kind!="perpendicular" && kind!="parallel" && kind!="midpoint" && kind!="pointOnCurve" && kind!="circleOffset")continue;
         const bool pointAlignment=(kind=="horizontal" || kind=="vertical") && relation.contains("pointIds");
-        const auto targets=pointAlignment ? QJsonArray{relation["pointIds"].toArray().at(1)} : relation["entityIds"].toArray();
+        // Concentric has one semantic center shared by the pair. One badge
+        // near that center is clearer than a badge on each distant arc rim.
+        const auto targets=pointAlignment ? QJsonArray{relation["pointIds"].toArray().at(1)}
+            : kind=="concentric" ? QJsonArray{relation["entityIds"].toArray().at(0)} : relation["entityIds"].toArray();
         for(const auto& target:targets) {
             const auto entity=entities.value(target.toString());if(!pointAlignment && entity.isEmpty())continue;
             double u,v;
             if(pointAlignment) {
                 const auto point=points.value(target.toString());if(point.isEmpty())continue;
                 u=point["uMm"].toDouble();v=point["vMm"].toDouble();
+            } else if(kind=="concentric") {
+                const auto center=points.value(entity["centerPointId"].toString());if(center.isEmpty())continue;
+                u=center["uMm"].toDouble();v=center["vMm"].toDouble();
             } else if(kind=="midpoint" || kind=="pointOnCurve") {
                 const auto pointId=relation["pointIds"].toArray().at(0).toString();
                 const auto point=points.value(pointId);if((kind=="midpoint" && entity["type"]!="line") || point.isEmpty())continue;
@@ -1215,6 +1221,7 @@ void ReferenceView::decorateSketch(const QJsonObject& feature,const QJsonObject&
             const double pixels=std::hypot(q["x"].toDouble()-p["x"].toDouble(),q["y"].toDouble()-p["y"].toDouble());if(pixels<1e-6)continue;
             const auto anchorId=target.toString();
             const double size=100/pixels;v+=(10+15*badgeSlots[anchorId]++)*size;
+            if(kind=="concentric")u-=20*size;
             bool originAvoidanceApplied=originShiftPixels.contains(anchorId);
             if(originAvoidanceApplied)v+=originShiftPixels.value(anchorId)*size;
             else {
@@ -1229,7 +1236,12 @@ void ReferenceView::decorateSketch(const QJsonObject& feature,const QJsonObject&
             else if(kind=="midpoint"){stroke(-5,4,5,4);stroke(5,4,0,-5);stroke(0,-5,-5,4);}
             else if(kind=="circleOffset"){stroke(-5,-4,5,-4);stroke(-5,4,5,4);stroke(0,-2,0,2);stroke(-2,0,0,2);stroke(2,0,0,2);}
             else if(kind=="equal"){stroke(-5,-2,5,-2);stroke(-5,2,5,2);}
-            else if(kind=="concentric"){stroke(-5,0,-2,0);stroke(2,0,5,0);stroke(0,-5,0,-2);stroke(0,2,0,5);stroke(-2,-2,2,-2);stroke(2,-2,2,2);stroke(2,2,-2,2);stroke(-2,2,-2,-2);}
+            else if(kind=="concentric"){
+                for(const double radius:{5.0,2.0})for(int i=0;i<16;++i){
+                    const double a=2*std::numbers::pi*i/16,b=2*std::numbers::pi*(i+1)/16;
+                    stroke(radius*std::cos(a),radius*std::sin(a),radius*std::cos(b),radius*std::sin(b));
+                }
+            }
             else if(kind=="horizontal")stroke(-5,0,5,0);
             else if(kind=="vertical")stroke(0,-5,0,5);
             else if(kind=="perpendicular"){stroke(-4,4,-4,-4);stroke(-4,-4,4,-4);}

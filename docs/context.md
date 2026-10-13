@@ -2286,7 +2286,8 @@ Horizontal/Vertical, and midpoint inference at either Line endpoint. The
 source-order rough rectangle/two-arc Concentric → circle-center/arc-center
 Vertical → Equal core fixture passes, including its bounded rank-redundancy
 case without dropping any relation. A focused native Qt sequence passed real
-midpoint hover/clicks, construction conversion, constraint picks and a settled
-GPU capture. The rough sketch still has six DOF; the full reflected and
-dimensioned lesson is separate. Independent review remains. See
+midpoint hover/clicks, shared-API construction conversion, constraint picks
+and a settled GPU capture. The corrected Concentric badge uses one two-ring
+glyph near the shared center. The rough sketch still has six DOF; the full
+reflected and dimensioned lesson is separate. Independent review remains. See
 [the candidate receipt](validation/outlet-constraints.md).

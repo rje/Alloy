@@ -65,6 +65,13 @@ private slots:
         QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,pixel(ac["uMm"].toDouble()+a["radiusMm"].toDouble()*std::cos(aa),ac["vMm"].toDouble()+a["radiusMm"].toDouble()*std::sin(aa)));
         QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,pixel(bc["uMm"].toDouble()+b["radiusMm"].toDouble()*std::cos(ba),bc["vMm"].toDouble()+b["radiusMm"].toDouble()*std::sin(ba)));
         QTRY_VERIFY(draft(w)["parameters"].toObject()["constraints"].toArray().last().toObject()["type"]=="equal");
+        const auto glyphs=view->diagnostics()["sketchConstraintGlyphs"].toArray();QJsonObject concentric;int rings=0;
+        for(const auto& value:glyphs)if(value.toObject()["kind"]=="concentric"){concentric=value.toObject();++rings;}
+        QCOMPARE(rings,1);const auto anchor=concentric["anchorMm"].toObject();const auto solvedCenter=point(w,a["centerPointId"]);
+        QVERIFY(std::hypot(anchor["uMm"].toDouble()-solvedCenter["uMm"].toDouble(),anchor["vMm"].toDouble()-solvedCenter["vMm"].toDouble())<4);
+        const auto bounds=concentric["bounds"].toObject();const QRect ringBounds(bounds["x"].toInt(),bounds["y"].toInt(),bounds["width"].toInt(),bounds["height"].toInt());
+        for(const auto& value:glyphs){const auto other=value.toObject();if(other["constraintId"]==concentric["constraintId"])continue;
+            const auto box=other["bounds"].toObject();QVERIFY(!ringBounds.intersects(QRect(box["x"].toInt(),box["y"].toInt(),box["width"].toInt(),box["height"].toInt())));}
         const auto output=qEnvironmentVariable("ALLOY_OUTLET_CONSTRAINTS_EVIDENCE");
         if(!output.isEmpty()){QDir().mkpath(output);call(w,"sketch.tool",{{"tool","select"}});call(w,"capture.screenshot",{{"path",output+"/outlet-constraints-native.png"}});QFile file(output+"/outlet-constraints-state.json");QVERIFY(file.open(QIODevice::WriteOnly));file.write(QJsonDocument(w.state()).toJson());}
         call(w,"command.cancel",{{"session",session(w)["id"]}});w.close();
