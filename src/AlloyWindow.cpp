@@ -285,6 +285,8 @@ AlloyWindow::AlloyWindow() {
                 connect(action,&QAction::triggered,this,[this,id=entry.first]{execute(id);});
             }
             if(caption=="CREATE") {
+                auto* hole=menu->addAction(commandIcon("solid.holeDialog"),"Hole");hole->setObjectName("solid.action.solid.holeDialog");
+                connect(hole,&QAction::triggered,this,[this]{execute("solid.holeDialog");});
                 auto* component=menu->addAction("New Component");component->setObjectName("solid.action.component.newDialog");connect(component,&QAction::triggered,this,[this]{execute("component.newDialog");});
                 auto* pattern=menu->addAction("Rectangular Pattern");pattern->setObjectName("solid.action.solid.rectangularPatternDialog");connect(pattern,&QAction::triggered,this,[this]{execute("solid.rectangularPatternDialog");});
                 auto* rectangle=menu->addMenu("Rectangle");rectangle->setObjectName("solid.commands.rectangle");
@@ -530,6 +532,7 @@ AlloyWindow::AlloyWindow() {
     for(const auto key:{Qt::Key_Return,Qt::Key_Enter}) {
         auto* finishTool=new QShortcut(QKeySequence(key),view_);finishTool->setContext(Qt::WidgetShortcut);
         connect(finishTool,&QShortcut::activated,this,[this]{
+            if(session_.value("command")=="solid.hole"){if(previewHole()["previewed"].toBool())execute("command.commit",{{"session",session_["id"]}});return;}
             if(session_.value("command")=="solid.sphere"){if(previewSphere()["previewed"].toBool())execute("command.commit",{{"session",session_["id"]}});return;}
             if(session_.value("command")!="sketch.edit")return;
             if(session_.value("tool")=="mirror"){
@@ -1143,6 +1146,25 @@ void AlloyWindow::registerCommands() {
         const auto error=document_->commit(candidate,"Fillet");if(!error.isEmpty()){auto response=failure("evaluation_failed",error);auto details=response["error"].toObject();details["diagnostics"]=document_->lastEvaluationError();response["error"]=details;return response;}return document_->state();
     });
     add("solid.filletDialog","Fillet","Open constant-radius edge fillet controls (F).",filletSchema,[this](const auto& a){return beginFillet(a);});
+    auto holeLength=parameter("number","Positive canonical length in millimeters.");holeLength["minimum"]=.001;holeLength["maximum"]=100000;
+    auto holeAngle=parameter("number","Countersink included angle in degrees.");holeAngle["minimum"]=.001;holeAngle["maximum"]=179.999;
+    auto holePlacement=parameter("string","One explicit standalone point from a supported sketch.");holePlacement["enum"]=QJsonArray{"fromSketch"};
+    auto holeType=parameter("string","This slice supports Countersink only.");holeType["enum"]=QJsonArray{"countersink"};
+    auto holeExtent=parameter("string","Recomputed through termination against the current target.");holeExtent["enum"]=QJsonArray{"all"};
+    QJsonObject holeSchema{{"sourceSketchId",optional(parameter("string","Retained source sketch UUID."))},
+        {"sourceEntityId",optional(parameter("string","Explicit standalone Point entity UUID."))},
+        {"sourcePointId",optional(parameter("string","Stable point UUID referenced by that entity."))},
+        {"targetBodyId",optional(parameter("string","Same-owner support body to cut."))},
+        {"placement",optional(holePlacement)},{"holeType",optional(holeType)},{"extent",optional(holeExtent)},
+        {"boreDiameterMm",optional(holeLength)},{"sinkDiameterMm",optional(holeLength)},{"includedAngleDeg",optional(holeAngle)},
+        {"featureId",optional(featureId)},{"name",optional(parameter("string","Hole feature name."))}};
+    add("solid.hole","Hole","Create/edit one retained From Sketch Countersink Hole with All termination.",holeSchema,[this](const auto& a){
+        auto inputs=a;const QJsonObject defaults{{"placement","fromSketch"},{"holeType","countersink"},{"extent","all"},{"boreDiameterMm",4},{"sinkDiameterMm",10},{"includedAngleDeg",90}};
+        if(!inputs.contains("featureId"))for(auto i=defaults.begin();i!=defaults.end();++i)if(!inputs.contains(i.key()))inputs[i.key()]=i.value();
+        QJsonObject candidate;try{candidate=holeCandidate(inputs);}catch(const std::exception& e){return failure("invalid_arguments",QString::fromUtf8(e.what()));}
+        const auto error=document_->commit(candidate,"Hole");if(!error.isEmpty()){auto r=failure("evaluation_failed",error);auto detail=r["error"].toObject();detail["diagnostics"]=document_->lastEvaluationError();r["error"]=detail;return r;}return document_->state();
+    });
+    add("solid.holeDialog","Hole","Select one standalone sketch Point and preview a real through Countersink cut.",holeSchema,[this](const auto& a){return beginHole(a);});
     auto sphereCoordinate=parameter("number","Face-local center coordinate in canonical mm.");sphereCoordinate["minimum"]=-100000;sphereCoordinate["maximum"]=100000;
     auto sphereDiameter=parameter("number","Sphere diameter in canonical mm.");sphereDiameter["minimum"]=.001;sphereDiameter["maximum"]=100000;
     auto sphereOperation=parameter("string","Cut or New Body.");sphereOperation["enum"]=QJsonArray{"cut","newBody"};
@@ -2390,6 +2412,7 @@ void AlloyWindow::registerCommands() {
             const auto p=feature["parameters"].toObject();
             if(feature["type"]=="rectangularPattern")return beginPattern({{"featureId",feature["id"]}});
             if(feature["type"]=="sweep")return beginSweep({{"featureId",feature["id"]}});
+            if(feature["type"]=="hole")return beginHole({{"featureId",feature["id"]}});
             if(feature["type"]=="revolve")return beginRevolve({{"featureId",feature["id"]}});
             if(feature["type"]=="loft")return beginLoft({{"featureId",feature["id"]}});
             if(feature["type"]=="constructionPlane") {
@@ -2493,6 +2516,7 @@ void AlloyWindow::registerCommands() {
     });
     add("selection.pick","Pick body or region","Pick actual OCCT geometry at viewport-local coordinates; Shift adds sketch regions.",{{"x",point},{"y",point},{"additive",optional(parameter("boolean","Add a picked region in the current same-sketch selection."))},
         {"toggle",optional(parameter("boolean","Toggle a picked region in the current same-sketch selection."))}},[this](const auto& a){
+        if(session_.value("command")=="solid.hole")return pickHole(a["x"].toDouble(),a["y"].toDouble());
         if(session_.value("command")=="solid.sphere") {
             if(session_["selectionRole"]=="face" || !session_["inputs"].toObject().contains("support")){const auto support=view_->pickSupportFace(a["x"].toDouble(),a["y"].toDouble(),sphereInputDocument().bodies);if(support.isEmpty())return failure("face_required","Click an actual retained planar body face");return selectSphereFace(support);}
             return placeSphereCenter(a["x"].toDouble(),a["y"].toDouble());
@@ -2613,6 +2637,9 @@ void AlloyWindow::registerCommands() {
             if(updates.contains("featureId") && updates["featureId"]!=session_["inputs"].toObject()["featureId"])return failure("invalid_arguments","Fillet edit identity cannot change");
             const auto error=validateArguments(*findCommand(target),inputs);if(!error.isEmpty())return failure("invalid_arguments",error);
             if(!inputs["tangentChain"].toBool())return failure("unsupported_option","Tangent Chain Off is outside this slice");
+        } else if(target=="solid.hole") {
+            if(updates.contains("featureId") && updates["featureId"]!=session_["inputs"].toObject()["featureId"])return failure("invalid_arguments","Hole edit identity cannot change");
+            const auto error=validateArguments(*findCommand(target),inputs);if(!error.isEmpty())return failure("invalid_arguments",error);
         } else if(target=="solid.sphere") {
             const auto previous=session_["inputs"].toObject();if(updates.contains("featureId") && updates["featureId"]!=previous["featureId"])return failure("invalid_arguments","Sphere edit identity cannot change");
             if(previous.contains("featureId") && updates.contains("operation") && updates["operation"]!=previous["operation"])return failure("invalid_arguments","Sphere edits preserve operation");
@@ -2674,7 +2701,7 @@ void AlloyWindow::registerCommands() {
             session_["source"]=source;
         }
         session_["previewed"] = false;if(target!="solid.extrude" || !updatingExtrudePreview_)view_->clearPreview();
-        if(target=="solid.sweep" || target=="solid.revolve") {session_["geometryEvaluated"]=false;session_.remove("geometry");session_.remove("documentDraft");session_.remove("previewError");}
+        if(target=="solid.hole" || target=="solid.sweep" || target=="solid.revolve") {session_["geometryEvaluated"]=false;session_.remove("geometry");session_.remove("documentDraft");session_.remove("previewError");}
         if(target=="solid.rectangularPattern") {session_["geometryEvaluated"]=false;session_.remove("geometry");session_.remove("documentDraft");view_->clearPatternAxes();}
         if(target=="solid.combine") {
             session_["geometryEvaluated"]=false;session_.remove("geometry");session_.remove("documentDraft");session_.remove("finalBodyCount");session_.remove("previewError");view_->setEditDisplay({},{});
@@ -2690,6 +2717,7 @@ void AlloyWindow::registerCommands() {
         }
         if(session_.value("command")=="solid.fillet")return previewFillet();
         if(session_.value("command")=="solid.chamfer")return previewChamfer();
+        if(session_.value("command")=="solid.hole")return previewHole();
         if(session_.value("command")=="solid.sphere")return previewSphere();
         if(session_.value("command")=="solid.rectangularPattern")return previewPattern();
         if(session_.value("command")=="solid.sweep")return previewSweep();
@@ -2735,7 +2763,7 @@ void AlloyWindow::registerCommands() {
     add("command.panelDock","Dock command panel","Dock or float the active modeling panel through Qt.",
         {{"docked",parameter("boolean","True docks the panel on the right; false floats it.")}},[this](const auto& a){
             const auto target=session_.value("command").toString();
-            auto* dock=target=="solid.sweep" ? sweepDock_ : target=="solid.revolve" ? revolveDock_ : target=="solid.sphere" ? sphereDock_ : target=="solid.chamfer" ? chamferDock_ : target=="solid.fillet" ? filletDock_ : target=="solid.rectangularPattern" ? patternDock_ : target=="solid.loft" ? loftDock_ : target=="solid.shell" ? shellDock_ : target=="solid.mirror" ? mirrorDock_ : target=="solid.move" ? moveDock_ : target=="solid.extrude" ? extrudeDock_ : target=="solid.combine" ? combineDock_ : target.startsWith("sketch.") ? sketchDock_ : target.startsWith("solid.") ? primitiveDock_ : nullptr;
+            auto* dock=target=="solid.sweep" ? sweepDock_ : target=="solid.revolve" ? revolveDock_ : target=="solid.hole" ? holeDock_ : target=="solid.sphere" ? sphereDock_ : target=="solid.chamfer" ? chamferDock_ : target=="solid.fillet" ? filletDock_ : target=="solid.rectangularPattern" ? patternDock_ : target=="solid.loft" ? loftDock_ : target=="solid.shell" ? shellDock_ : target=="solid.mirror" ? mirrorDock_ : target=="solid.move" ? moveDock_ : target=="solid.extrude" ? extrudeDock_ : target=="solid.combine" ? combineDock_ : target.startsWith("sketch.") ? sketchDock_ : target.startsWith("solid.") ? primitiveDock_ : nullptr;
             if(!dock)
                 return failure("no_active_dialog","No modeling panel is active");
             dock->setFloating(!a["docked"].toBool());
@@ -2819,6 +2847,7 @@ void AlloyWindow::registerCommands() {
             : session_.value("command").toString() == "solid.rectangularPattern" ? patternDock_->widget()
             : session_.value("command").toString() == "solid.loft" ? loftDock_->widget()
             : session_.value("command").toString() == "solid.shell" ? shellDock_->widget()
+            : session_.value("command").toString() == "solid.hole" ? holeDock_->widget()
             : session_.value("command").toString() == "solid.sphere" ? sphereDock_->widget()
             : session_.value("command").toString() == "solid.chamfer" ? chamferDock_->widget()
             : session_.value("command").toString() == "solid.fillet" ? filletDock_->widget()
@@ -2915,6 +2944,7 @@ QJsonObject AlloyWindow::state() const {
     view_->sync();
     const auto target=session_.value("command").toString();
     const bool dialogVisible=target=="solid.sweep" ? bool(sweepDock_ && sweepDock_->isVisible()) : target=="solid.revolve" ? bool(revolveDock_ && revolveDock_->isVisible()) : target=="commands.search" ? bool(search_ && search_->isVisible())
+        : target=="solid.hole" ? bool(holeDock_ && holeDock_->isVisible())
         : target=="solid.sphere" ? bool(sphereDock_ && sphereDock_->isVisible())
         : target=="solid.chamfer" ? bool(chamferDock_ && chamferDock_->isVisible())
         : target=="solid.fillet" ? bool(filletDock_ && filletDock_->isVisible())
@@ -2927,11 +2957,11 @@ QJsonObject AlloyWindow::state() const {
         : target=="solid.combine" ? bool(combinePanel_ && combinePanel_->isVisible())
         : target.startsWith("solid.") ? bool(primitivePanel_ && primitivePanel_->isVisible())
         : target.startsWith("sketch.") ? bool(sketchPanel_ && sketchPanel_->isVisible()) : bool(unitsDialog_ && unitsDialog_->isVisible());
-    const auto dialogInputs=session_.isEmpty() ? QJsonObject{} : (target=="solid.sweep" || target=="solid.revolve" || target=="solid.sphere" || target=="solid.chamfer" || target=="solid.fillet" || target=="solid.rectangularPattern" || target=="solid.loft" || target=="solid.shell" || target=="solid.mirror" || target=="solid.move" || target=="solid.extrude" || target=="solid.combine") ? session_.value("inputs").toObject() : target.startsWith("solid.") ? primitiveWidgetInputs()
+    const auto dialogInputs=session_.isEmpty() ? QJsonObject{} : (target=="solid.hole" || target=="solid.sweep" || target=="solid.revolve" || target=="solid.sphere" || target=="solid.chamfer" || target=="solid.fillet" || target=="solid.rectangularPattern" || target=="solid.loft" || target=="solid.shell" || target=="solid.mirror" || target=="solid.move" || target=="solid.extrude" || target=="solid.combine") ? session_.value("inputs").toObject() : target.startsWith("solid.") ? primitiveWidgetInputs()
         : target.startsWith("sketch.") ? session_.value("inputs").toObject()
         : target=="commands.search" ? QJsonObject{{"query",searchInput_ ? searchInput_->text() : QString{}}}
         : QJsonObject{{"units",unitsInput_ ? unitsInput_->currentText() : QString{}}};
-    const auto* activeDock=target=="solid.sweep" ? sweepDock_ : target=="solid.revolve" ? revolveDock_ : target=="solid.sphere" ? sphereDock_ : target=="solid.chamfer" ? chamferDock_ : target=="solid.fillet" ? filletDock_ : target=="solid.rectangularPattern" ? patternDock_ : target=="solid.loft" ? loftDock_ : target=="solid.shell" ? shellDock_ : target=="solid.mirror" ? mirrorDock_ : target=="solid.move" ? moveDock_ : target=="solid.extrude" ? extrudeDock_ : target=="solid.combine" ? combineDock_ : target.startsWith("sketch.") ? sketchDock_ : primitiveDock_;
+    const auto* activeDock=target=="solid.sweep" ? sweepDock_ : target=="solid.revolve" ? revolveDock_ : target=="solid.hole" ? holeDock_ : target=="solid.sphere" ? sphereDock_ : target=="solid.chamfer" ? chamferDock_ : target=="solid.fillet" ? filletDock_ : target=="solid.rectangularPattern" ? patternDock_ : target=="solid.loft" ? loftDock_ : target=="solid.shell" ? shellDock_ : target=="solid.mirror" ? mirrorDock_ : target=="solid.move" ? moveDock_ : target=="solid.extrude" ? extrudeDock_ : target=="solid.combine" ? combineDock_ : target.startsWith("sketch.") ? sketchDock_ : primitiveDock_;
     const auto panelRect=activeDock ? QRect(activeDock->mapToGlobal(QPoint())-mapToGlobal(QPoint()),activeDock->size()) : QRect{};
     QJsonArray popups;
     for(auto* popup:QApplication::topLevelWidgets()) {
@@ -3172,7 +3202,7 @@ void AlloyWindow::refresh() {
     for(int i=0;i<bodiesNode_->childCount();++i)bodiesNode_->child(i)->setSelected(bodiesNode_->child(i)->data(0,Qt::UserRole+1).toString()==selectedBody_);
     view_->selectBody(session_.value("command")=="solid.mirror"
         ? session_.value("inputs").toObject()["sourceBodyId"].toString()
-        : session_.value("command")=="solid.sphere" ? QString{} : selectedBody_);
+        : session_.value("command")=="solid.sphere" || session_.value("command")=="solid.hole" ? QString{} : selectedBody_);
     if (session_.value("command").toString() == "document.units" && unitsInput_) {
         const QSignalBlocker block(unitsInput_);
         unitsInput_->setCurrentText(session_.value("inputs").toObject()["units"].toString());
@@ -3203,6 +3233,7 @@ void AlloyWindow::refresh() {
     if(chamferEscape_)chamferEscape_->setEnabled(session_.value("command")=="solid.chamfer");
     if(session_.value("command")=="solid.rectangularPattern" && patternDock_)if(auto* box=patternDock_->findChild<QDialogButtonBox*>())box->button(QDialogButtonBox::Ok)->setEnabled(session_["previewed"].toBool() && session_["geometryEvaluated"].toBool() && session_["baseDocumentRevision"].toInteger()==static_cast<qint64>(document_->revision()));
     if(patternEscape_)patternEscape_->setEnabled(session_.value("command")=="solid.rectangularPattern");
+    refreshHoleControls();
     refreshSweepControls();
     refreshRevolveControls();
     if(sweepEscape_)sweepEscape_->setEnabled(session_.value("command")=="solid.sweep");
@@ -3800,6 +3831,7 @@ QJsonObject AlloyWindow::beginSession(const QString& command, const QJsonObject&
     if(command=="solid.extrude")return beginExtrude(inputs);
     if(command=="solid.fillet")return beginFillet(inputs);
     if(command=="solid.chamfer")return beginChamfer(inputs);
+    if(command=="solid.hole")return beginHole(inputs);
     if(command=="solid.sphere")return beginSphere(inputs);
     if(command=="solid.rectangularPattern")return beginPattern(inputs);
     if(command=="solid.sweep")return beginSweep(inputs);
@@ -3911,6 +3943,7 @@ QJsonObject AlloyWindow::finishSession(const QString& id, bool commit) {
             if(view_->windowHandle())view_->windowHandle()->requestActivate();
         });
     }
+    else if(target=="solid.hole") {if(holeEscape_)holeEscape_->setEnabled(false);if(holeDock_)holeDock_->hide();view_->clearPreview();view_->clearBodyStage();view_->setCommandSketches({});view_->selectFinishedPoint({});view_->setFocus();}
     else if(target=="solid.sphere") {if(sphereDock_)sphereDock_->hide();view_->selectSupportFace({},{});view_->clearPreview();view_->clearBodyStage();view_->setFocus();}
     else if(target=="solid.chamfer") {
         if(chamferEscape_)chamferEscape_->setEnabled(false);

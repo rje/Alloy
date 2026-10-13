@@ -95,6 +95,15 @@ private:
     void showSphere();
     QDockWidget* sphereDock_ = nullptr;
     double lastSphereDiameterMm_ = 3.0;
+    QJsonObject beginHole(const QJsonObject& overrides = {});
+    QJsonObject holeCandidate(const QJsonObject& inputs) const;
+    EvaluatedDocument holeInputDocument() const;
+    QJsonObject pickHole(double x,double y);
+    QJsonObject previewHole();
+    void showHole();
+    void refreshHoleControls();
+    QDockWidget* holeDock_ = nullptr;
+    QShortcut* holeEscape_ = nullptr;
     QJsonObject beginChamfer(const QJsonObject& inputs);
     QJsonObject chamferCandidate(const QJsonObject& inputs) const;
     QJsonObject previewChamfer();

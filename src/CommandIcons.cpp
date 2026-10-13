@@ -70,6 +70,11 @@ public:
             painter->drawLine(QPointF(8,14),QPointF(14,23));
             polygon({{15,20},{25,6},{29,9},{19,23}}, accent);
             polygon({{15,20},{19,23},{14,25}}, white);
+        } else if (command_ == "solid.holeDialog") {
+            polygon({{3,12},{20,5},{29,16},{12,25}},pale);
+            pen(edge);painter->setBrush(side);painter->drawEllipse(QRectF(9,10,13,8));
+            painter->setBrush(white);painter->drawEllipse(QRectF(12,12,7,4));
+            arrow({16,2},{16,9},accent);
         } else if (command_ == "solid.extrudeDialog") {
             painter->save(); painter->translate(-2,3); painter->scale(.88,.88); cube(); painter->restore();
             arrow({27,21},{27,2},edge);

@@ -2394,3 +2394,20 @@ behavior is unchanged. See [contract/receipt](validation/standalone-sketch-point
 Independent review/integration remain pending. Preserve the parallel #244
 parameter binding fields during additive merge. Private editors are closed;
 Hole and the complete parameterized plate remain separate work.
+
+## Native Countersink Hole candidate (2026-10-13)
+
+SOL-035/#247 now has native Create→Hole, explicit finished Point/target picks,
+From Sketch/Countersink/Simple/All, editable bore/sink/angle and derived depth
+through the backend's shared authority. The native Qt 8.03 s ingredient passes
+actual field edits, exact Cancel, fresh Point/OK and Timeline edit with one
+initial activation after API setup and no in-sequence focus repair. Select Target
+now removes the unselectable disposable preview before actual stock picking;
+read-only session guards prevent canceled-session insertion. A final focused
+GPU capture removes coincident red-cone striping with presentation-only polygon
+offset, reusing unchanged native behavior. See
+[native receipt](validation/countersink-hole-controls.md) and
+[backend/API receipt](validation/countersink-hole-backend.md). Actual Apple M4
+captures were inspected; private editors are closed. Independent review and
+integration remain pending. Pattern and the full parameterized plate remain
+separate children.

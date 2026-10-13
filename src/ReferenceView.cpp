@@ -1689,6 +1689,20 @@ void ReferenceView::replacePreview(const TopoDS_Shape& shape,const QString& repl
     context_->Display(preview_,AIS_Shaded,-1,false);context_->Deactivate(preview_);
     applyEditDisplay(false);
 }
+void ReferenceView::showHolePreview(const EvaluatedBody& result,const TopoDS_Shape& removedMaterial) {
+    replacePreview(result.shape,result.bodyId,true);
+    if(context_.IsNull())return;
+    Handle(AIS_Shape) removed=new AIS_Shape(removedMaterial);
+    removed->SetColor(Quantity_Color(.91,.24,.27,Quantity_TOC_sRGB));removed->SetTransparency(.48);
+    removed->SetOwnDeviationCoefficient(.0001);removed->SetOwnDeviationAngle(.04);
+    // Removed stock shares the exact cavity surface with the gray result.
+    // Bias only this disposable presentation; retain actual cutter geometry.
+    removed->SetPolygonOffsets(Aspect_POM_Fill,-2.f,-4.f);
+    removed->Attributes()->SetFaceBoundaryDraw(true);
+    removed->Attributes()->SetFaceBoundaryAspect(new Prs3d_LineAspect(Quantity_Color(.80,.12,.16,Quantity_TOC_sRGB),Aspect_TOL_SOLID,1.6*devicePixelRatioF()));
+    context_->Display(removed,AIS_Shaded,-1,false);context_->Deactivate(removed);cutTools_.push_back(removed);
+    context_->UpdateCurrentViewer();
+}
 void ReferenceView::showSpherePreview(const TopoDS_Shape& tool,bool cut) {
     replacePreview(tool,{},false);
     if(context_.IsNull())return;
