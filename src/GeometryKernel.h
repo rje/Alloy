@@ -3,6 +3,7 @@
 #include "SketchProfiles.h"
 #include <QJsonObject>
 #include <QJsonArray>
+#include <QMap>
 #include <TopoDS_Shape.hxx>
 #include <stdexcept>
 #include <vector>
@@ -43,6 +44,7 @@ struct EvaluatedSketch {
     std::vector<EvaluatedProfile> profiles;
     QJsonObject resolvedFrame;
     QString ownerId;
+    QMap<QString,TopoDS_Edge> entityEdges; // Exact solved source-entity lineage.
 };
 
 struct EvaluatedConstructionPlane {

@@ -110,6 +110,9 @@ private:
     void showPattern();
     QDockWidget* patternDock_=nullptr;
     QShortcut* patternEscape_=nullptr;
+    QJsonObject sweepCandidate(const QJsonObject& inputs) const;
+    QJsonObject beginSweep(const QJsonObject& inputs);
+    QJsonObject previewSweep();
     QJsonObject revolveCandidate(const QJsonObject& inputs) const;
     QJsonObject beginRevolve(const QJsonObject& overrides);
     QJsonObject previewRevolve();

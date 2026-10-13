@@ -49,6 +49,7 @@ public:
     static QJsonObject filletCandidate(const QJsonObject& authored, const QJsonObject& arguments);
     static QJsonObject chamferCandidate(const QJsonObject& authored, const QJsonObject& arguments);
     static QJsonObject patternCandidate(const QJsonObject& authored,const QJsonObject& arguments);
+    static QJsonObject sweepCandidate(const QJsonObject& authored,const QJsonObject& arguments);
     static QJsonObject revolveCandidate(const QJsonObject& authored,const QJsonObject& arguments);
     static QJsonObject loftCandidate(const QJsonObject& authored,const QJsonObject& arguments);
     static QJsonObject sphereCandidate(const QJsonObject& authored, const QJsonObject& arguments);

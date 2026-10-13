@@ -135,6 +135,10 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
             QSet<QString> survivors;for(const auto& value:feature["bodyResults"].toArray())survivors.insert(value.toObject()["bodyId"].toString());
             if(!survivors.isEmpty()) {for(const auto& value:feature["parameters"].toObject()["targetBodyIds"].toArray())if(!survivors.contains(value.toString()))activeBodies.remove(value.toString());activeBodies.unite(survivors);}
         }
+        if(feature["type"]=="sweep")for(const auto& field:{"profileSketchId","pathSketchId"}) {
+            const auto source=feature["parameters"].toObject()[field].toString();if(positions.contains(source) && positions.value(source)<i && features[positions.value(source)].toObject()["type"]=="sketch")continue;
+            return QJsonObject{{"code",!positions.contains(source)?"missing_dependency":positions.value(source)>=i?"forward_dependency":"unsupported_dependency"},{"message","Sweep sources must be earlier retained sketches"},{"featureId",feature["id"]},{"featureType","sweep"},{"input",field},{"sketchId",source}};
+        }
         if (feature["type"] != "extrude" && feature["type"] != "revolve") continue;
         const auto parameters = feature["parameters"].toObject();
         const auto source = parameters["sketchId"].toString(), id = feature["id"].toString();
@@ -433,6 +437,18 @@ QJsonObject CadDocument::patternCandidate(const QJsonObject& authored,const QJso
     if(index<0)features.append(feature);else features[index]=feature;candidate["features"]=features;return candidate;
 }
 
+QJsonObject CadDocument::sweepCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
+    const QSet<QString> allowed{"ownerId","profileSketchId","profileId","pathSketchId","pathEntityIds","pathStartPointId","extent","orientation","operation","name","featureId","newFeatureId","newBodyId"};
+    for(auto it=arguments.begin();it!=arguments.end();++it)if(!allowed.contains(it.key()))throw std::invalid_argument("Unknown Sweep argument");
+    if(arguments.contains("featureId") && (arguments.contains("newFeatureId") || arguments.contains("newBodyId")))throw std::invalid_argument("Choose existing or reserved Sweep identities");
+    if(!arguments.contains("featureId") && arguments.contains("newFeatureId")!=arguments.contains("newBodyId"))throw std::invalid_argument("Reserve Sweep feature and body identities together");
+    auto candidate=authored;auto features=candidate["features"].toArray();QJsonObject feature;int index=-1;
+    if(arguments.contains("featureId")){for(int i=0;i<features.size();++i)if(features[i].toObject()["id"]==arguments["featureId"]){feature=features[i].toObject();index=i;break;}if(index<0 || feature["type"]!="sweep")throw std::invalid_argument("Sweep feature unavailable");}
+    else feature={{"id",arguments.value("newFeatureId").toString(newId())},{"bodyId",arguments.value("newBodyId").toString(newId())},{"ownerId",arguments.value("ownerId").toString(authored["documentId"].toString())},{"type","sweep"},{"name","Sweep"},{"visible",true}};
+    feature["parameters"]=QJsonObject{{"profileSketchId",arguments["profileSketchId"]},{"profileId",arguments["profileId"]},{"pathSketchId",arguments["pathSketchId"]},{"pathEntityIds",arguments["pathEntityIds"]},{"pathStartPointId",arguments["pathStartPointId"]},{"extent",arguments.contains("extent")?arguments["extent"]:QJsonValue("full")},{"orientation",arguments.contains("orientation")?arguments["orientation"]:QJsonValue("perpendicular")},{"operation",arguments.contains("operation")?arguments["operation"]:QJsonValue("newBody")}};
+    if(arguments.contains("name"))feature["name"]=arguments["name"];if(index<0)features.append(feature);else features[index]=feature;candidate["features"]=features;const auto error=validateStructure(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());return candidate;
+}
+
 QJsonObject CadDocument::revolveCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
     const QSet<QString> allowed{"ownerId","sketchId","profileId","axisEntityId","extent","angleDeg","name","featureId","newFeatureId","newBodyId"};
     for(auto it=arguments.begin();it!=arguments.end();++it)if(!allowed.contains(it.key()))throw std::invalid_argument("Unknown Revolve argument");
@@ -654,6 +670,14 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
             if(feature.contains("bodyId") || p.size()!=3 || !validId(p["sourceFeatureId"].toString()) || !validId(p["targetBodyId"].toString()) || !p["axes"].isArray() || p["axes"].toArray().size()<1 || p["axes"].toArray().size()>2)return "Pattern requires one seed, target body and one or two axes";
             QSet<QString> edges;int total=1;for(const auto& value:p["axes"].toArray()){const auto axis=value.toObject();const auto quantity=axis["quantity"].toDouble();if(axis.size()!=3 || !validId(axis["edgeId"].toString()) || edges.contains(axis["edgeId"].toString()) || !axis["quantity"].isDouble() || quantity!=std::floor(quantity) || quantity<2 || quantity>100 || !axis["extentMm"].isDouble() || !std::isfinite(axis["extentMm"].toDouble()) || std::abs(axis["extentMm"].toDouble())<0.001 || std::abs(axis["extentMm"].toDouble())>100000)return "Pattern axes require distinct edge IDs, quantity2–100 and signed nonzero extent";edges.insert(axis["edgeId"].toString());total*=int(quantity);}if(total>1000)return "Pattern exceeds 1000 instances";
             continue;
+        }
+        if(type=="sweep") {
+            if(!validId(feature["bodyId"].toString()) || ids.contains(feature["bodyId"].toString()) || p.size()!=8)return "Sweep requires a distinct body and exact supported parameters";
+            for(const auto& key:{"profileSketchId","profileId","pathSketchId","pathStartPointId"})if(!p[key].isString() || !validId(p[key].toString()))return "Sweep requires stable profile/path/start identities";
+            if(!p["pathEntityIds"].isArray() || p["pathEntityIds"].toArray().isEmpty() || p["pathEntityIds"].toArray().size()>1000)return "Sweep requires an ordered retained path";
+            QSet<QString> path;for(const auto& id:p["pathEntityIds"].toArray()){if(!id.isString() || !validId(id.toString()) || path.contains(id.toString()))return "Sweep path entities must be distinct UUIDs";path.insert(id.toString());}
+            if(p["extent"]!="full" || p["orientation"]!="perpendicular" || p["operation"]!="newBody")return "Sweep supports Full Perpendicular New Body only";
+            ids.insert(feature["bodyId"].toString());continue;
         }
         if(type=="revolve") {
             if(!validId(feature["bodyId"].toString()) || ids.contains(feature["bodyId"].toString()) || p.size()!=5 || !validId(p["sketchId"].toString()) || !validId(p["profileId"].toString()) || !validId(p["axisEntityId"].toString()))return "Revolve requires a distinct body and stable sketch/profile/axis identities";

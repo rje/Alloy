@@ -2061,3 +2061,12 @@ macOS focused transport and one real-app regression passed; actual Windows
 non-GUI evidence is pending. This does not close FND-012 / #131 desktop, GPU,
 normal-user workflow or second-user denial qualification. Continue from
 [the scoped receipt](validation/local-transport.md).
+## Retained Sweep foundation candidate (2026-10-13)
+
+#223 candidate supports an earlier circular profile and retained ordered open
+G1 line/arc path, Full Perpendicular New Body, through shared API and actual
+OCCT preview/history/storage. Exact evaluated entity-edge mapping, actionable
+atomic refusals and geometric self-interference checks are included. Source-shaped
+analytic core and real-app API pass; native controls and full source authoring
+remain #224/#225 and #221/#222. Independent review/integration are pending.
+See [contract](research/solid-sweep.md) and [receipt](validation/solid-sweep.md).

@@ -1042,6 +1042,9 @@ void AlloyWindow::registerCommands() {
     add("selection.featureSet","Select timeline feature","Select the seed feature of an active Rectangular Pattern.",{{"featureId",featureId}},[this](const auto& a){return selectPatternFeature(a["featureId"].toString());});
     auto patternAxisIndex=parameter("number","Axis index0 or1.");patternAxisIndex["minimum"]=0;patternAxisIndex["maximum"]=1;
     add("selection.patternAxisSet","Select pattern axis","Choose a retained straight edge for an active feature pattern.",{{"edgeId",parameter("string","Retained solid edge UUID.")},{"axis",patternAxisIndex}},[this](const auto& a){if(a["axis"].toDouble()!=a["axis"].toInt())return failure("invalid_arguments","Axis must be0 or1");return selectPatternAxis(a["edgeId"].toString(),a["axis"].toInt());});
+    auto sweepExtent=parameter("string","Full path only.");sweepExtent["enum"]=QJsonArray{"full"};auto sweepOrientation=parameter("string","Circle section remains perpendicular to the path.");sweepOrientation["enum"]=QJsonArray{"perpendicular"};auto sweepOperation=parameter("string","New Body only.");sweepOperation["enum"]=QJsonArray{"newBody"};
+    QJsonObject sweepSchema{{"profileSketchId",parameter("string","Earlier circle profile sketch UUID.")},{"profileId",parameter("string","Retained circular disk profile UUID.")},{"pathSketchId",parameter("string","Earlier solved path sketch UUID.")},{"pathEntityIds",parameter("array","Ordered retained open G1 line/arc entity UUIDs.")},{"pathStartPointId",parameter("string","Retained source endpoint UUID defining path direction.")},{"extent",optional(sweepExtent)},{"orientation",optional(sweepOrientation)},{"operation",optional(sweepOperation)},{"featureId",optional(featureId)},{"name",optional(parameter("string","Sweep feature name."))}};
+    add("solid.sweep","Sweep","Create/edit Full Perpendicular New Body from a circle and retained open G1 line/arc path; native controls pending.",sweepSchema,[this](const auto& a){QJsonObject candidate;try{candidate=sweepCandidate(a);}catch(const std::exception& e){return failure("invalid_arguments",QString::fromUtf8(e.what()));}const auto error=document_->commit(candidate,"Sweep");if(!error.isEmpty()){auto r=failure("evaluation_failed",error);auto e=r["error"].toObject();e["diagnostics"]=document_->lastEvaluationError();r["error"]=e;return r;}return document_->state();});
     auto revolveExtent=parameter("string","Full360 or positive Partial sweep; New Body only.");revolveExtent["enum"]=QJsonArray{"full","partial"};
     auto revolveAngle=parameter("number","Canonical degrees. Positive right-hand rotation about authored axis start-to-end; Full requires360.");revolveAngle["minimum"]=.001;revolveAngle["maximum"]=360;
     QJsonObject revolveSchema{{"sketchId",parameter("string","Earlier solved source sketch UUID.")},{"profileId",parameter("string","Retained closed profile UUID.")},{"axisEntityId",parameter("string","Authored straight line UUID in the source sketch.")},{"extent",optional(revolveExtent)},{"angleDeg",optional(revolveAngle)},{"featureId",optional(featureId)},{"name",optional(parameter("string","Revolve feature name."))}};
@@ -1880,6 +1883,7 @@ void AlloyWindow::registerCommands() {
             if(feature["type"].toString()=="sketch")return beginSketch(feature["parameters"].toObject()["plane"].toString(),feature["name"].toString(),feature["id"].toString());
             const auto p=feature["parameters"].toObject();
             if(feature["type"]=="rectangularPattern")return beginPattern({{"featureId",feature["id"]}});
+            if(feature["type"]=="sweep")return beginSweep({{"featureId",feature["id"]}});
             if(feature["type"]=="revolve")return beginRevolve({{"featureId",feature["id"]}});
             if(feature["type"]=="loft")return beginLoft({{"featureId",feature["id"]}});
             if(feature["type"]=="constructionPlane") {
@@ -2057,7 +2061,7 @@ void AlloyWindow::registerCommands() {
         return failure("stale_entity","Body does not exist");
     });
     auto sessionTarget = parameter("string", "Implemented session target; modeling targets follow alongside their features.");
-    sessionTarget["enum"] = QJsonArray{"document.units", "commands.search","solid.box","solid.cylinder","solid.extrude","solid.combine","solid.move","solid.fillet","solid.chamfer","solid.sphere","solid.shell","solid.loft","solid.revolve","solid.rectangularPattern","solid.mirror","sketch.create"};
+    sessionTarget["enum"] = QJsonArray{"document.units", "commands.search","solid.box","solid.cylinder","solid.extrude","solid.combine","solid.move","solid.fillet","solid.chamfer","solid.sphere","solid.shell","solid.loft","solid.revolve","solid.sweep","solid.rectangularPattern","solid.mirror","sketch.create"};
     add("command.begin", "Begin command session", "Begin a real editable dialog with disposable inputs.",
         {{"command", sessionTarget}, {"inputs", parameter("object", "Initial input overrides.")}},
         [this](const auto& a) { return beginSession(a["command"].toString(), a["inputs"].toObject()); });
@@ -2097,6 +2101,9 @@ void AlloyWindow::registerCommands() {
 
         } else if(target=="solid.rectangularPattern") {
             if(updates.contains("featureId") && updates["featureId"]!=session_["inputs"].toObject()["featureId"])return failure("invalid_arguments","Pattern edit identity cannot change");const auto error=validateArguments(*findCommand(target),inputs);if(!error.isEmpty())return failure("invalid_arguments",error);
+        } else if(target=="solid.sweep") {
+            if(updates.contains("featureId") && updates["featureId"]!=session_.value("inputs").toObject().value("featureId"))return failure("invalid_arguments","Sweep edit identity cannot change");
+            const auto error=validateArguments(*findCommand(target),inputs);if(!error.isEmpty())return failure("invalid_arguments",error);
         } else if(target=="solid.revolve") {
             if(updates.contains("featureId") && updates["featureId"]!=session_["inputs"].toObject()["featureId"])return failure("invalid_arguments","Revolve edit identity cannot change");
             const auto error=validateArguments(*findCommand("solid.revolveDialog"),inputs);if(!error.isEmpty())return failure("invalid_arguments",error);
@@ -2144,7 +2151,7 @@ void AlloyWindow::registerCommands() {
             session_["source"]=source;
         }
         session_["previewed"] = false;if(target!="solid.extrude" || !updatingExtrudePreview_)view_->clearPreview();
-        if(target=="solid.revolve") {session_["geometryEvaluated"]=false;session_.remove("geometry");session_.remove("documentDraft");session_.remove("previewError");}
+        if(target=="solid.sweep" || target=="solid.revolve") {session_["geometryEvaluated"]=false;session_.remove("geometry");session_.remove("documentDraft");session_.remove("previewError");}
         if(target=="solid.rectangularPattern") {session_["geometryEvaluated"]=false;session_.remove("geometry");session_.remove("documentDraft");view_->clearPatternAxes();}
         if(target=="solid.combine") {
             session_["geometryEvaluated"]=false;session_.remove("geometry");session_.remove("documentDraft");session_.remove("finalBodyCount");session_.remove("previewError");view_->setEditDisplay({},{});
@@ -2162,6 +2169,7 @@ void AlloyWindow::registerCommands() {
         if(session_.value("command")=="solid.chamfer")return previewChamfer();
         if(session_.value("command")=="solid.sphere")return previewSphere();
         if(session_.value("command")=="solid.rectangularPattern")return previewPattern();
+        if(session_.value("command")=="solid.sweep")return previewSweep();
         if(session_.value("command")=="solid.revolve")return previewRevolve();
         if(session_.value("command")=="solid.loft")return previewLoft();
         if(session_.value("command")=="solid.shell")return previewShell();
@@ -2204,6 +2212,7 @@ void AlloyWindow::registerCommands() {
     add("command.panelDock","Dock command panel","Dock or float the active modeling panel through Qt.",
         {{"docked",parameter("boolean","True docks the panel on the right; false floats it.")}},[this](const auto& a){
             const auto target=session_.value("command").toString();
+            if(target=="solid.sweep")return failure("native_controls_pending","Sweep native controls are not implemented in this foundation");
             auto* dock=target=="solid.revolve" ? revolveDock_ : target=="solid.sphere" ? sphereDock_ : target=="solid.chamfer" ? chamferDock_ : target=="solid.fillet" ? filletDock_ : target=="solid.rectangularPattern" ? patternDock_ : target=="solid.loft" ? loftDock_ : target=="solid.shell" ? shellDock_ : target=="solid.mirror" ? mirrorDock_ : target=="solid.move" ? moveDock_ : target=="solid.extrude" ? extrudeDock_ : target=="solid.combine" ? combineDock_ : target.startsWith("sketch.") ? sketchDock_ : target.startsWith("solid.") ? primitiveDock_ : nullptr;
             if(!dock)
                 return failure("no_active_dialog","No modeling panel is active");
@@ -2282,7 +2291,7 @@ void AlloyWindow::registerCommands() {
     add("capture.dialog", "Capture active dialog", "Capture the real search/settings QWidget; no geometry or OS decoration claim.", {{"path", parameter("string", "Absolute destination PNG path.")}}, [this](const auto& a) {
         const auto path = a["path"].toString();
         if (!QDir::isAbsolutePath(path) || !path.endsWith(".png", Qt::CaseInsensitive)) return failure("invalid_arguments", "Requires an absolute PNG path", "path");
-        QWidget* dialog = session_.value("command").toString() == "solid.revolve" ? (revolveDock_ ? revolveDock_->widget():nullptr) : session_.value("command").toString() == "commands.search" ? search_
+        QWidget* dialog = session_.value("command")=="solid.sweep" ? nullptr : session_.value("command").toString() == "solid.revolve" ? (revolveDock_ ? revolveDock_->widget():nullptr) : session_.value("command").toString() == "commands.search" ? search_
             : session_.value("command").toString() == "solid.mirror" ? mirrorDock_->widget()
             : session_.value("command").toString() == "solid.rectangularPattern" ? patternDock_->widget()
             : session_.value("command").toString() == "solid.loft" ? loftDock_->widget()
@@ -2382,7 +2391,7 @@ QJsonObject AlloyWindow::state() const {
     // Report the current native drawable, not a previous offscreen capture FBO.
     view_->sync();
     const auto target=session_.value("command").toString();
-    const bool dialogVisible=target=="solid.revolve" ? bool(revolveDock_ && revolveDock_->isVisible()) : target=="commands.search" ? bool(search_ && search_->isVisible())
+    const bool dialogVisible=target=="solid.sweep" ? false : target=="solid.revolve" ? bool(revolveDock_ && revolveDock_->isVisible()) : target=="commands.search" ? bool(search_ && search_->isVisible())
         : target=="solid.sphere" ? bool(sphereDock_ && sphereDock_->isVisible())
         : target=="solid.chamfer" ? bool(chamferDock_ && chamferDock_->isVisible())
         : target=="solid.fillet" ? bool(filletDock_ && filletDock_->isVisible())
@@ -2395,11 +2404,11 @@ QJsonObject AlloyWindow::state() const {
         : target=="solid.combine" ? bool(combinePanel_ && combinePanel_->isVisible())
         : target.startsWith("solid.") ? bool(primitivePanel_ && primitivePanel_->isVisible())
         : target.startsWith("sketch.") ? bool(sketchPanel_ && sketchPanel_->isVisible()) : bool(unitsDialog_ && unitsDialog_->isVisible());
-    const auto dialogInputs=session_.isEmpty() ? QJsonObject{} : (target=="solid.revolve" || target=="solid.sphere" || target=="solid.chamfer" || target=="solid.fillet" || target=="solid.rectangularPattern" || target=="solid.loft" || target=="solid.shell" || target=="solid.mirror" || target=="solid.move" || target=="solid.extrude" || target=="solid.combine") ? session_.value("inputs").toObject() : target.startsWith("solid.") ? primitiveWidgetInputs()
+    const auto dialogInputs=session_.isEmpty() ? QJsonObject{} : (target=="solid.sweep" || target=="solid.revolve" || target=="solid.sphere" || target=="solid.chamfer" || target=="solid.fillet" || target=="solid.rectangularPattern" || target=="solid.loft" || target=="solid.shell" || target=="solid.mirror" || target=="solid.move" || target=="solid.extrude" || target=="solid.combine") ? session_.value("inputs").toObject() : target.startsWith("solid.") ? primitiveWidgetInputs()
         : target.startsWith("sketch.") ? session_.value("inputs").toObject()
         : target=="commands.search" ? QJsonObject{{"query",searchInput_ ? searchInput_->text() : QString{}}}
         : QJsonObject{{"units",unitsInput_ ? unitsInput_->currentText() : QString{}}};
-    const auto* activeDock=target=="solid.revolve" ? revolveDock_ : target=="solid.sphere" ? sphereDock_ : target=="solid.chamfer" ? chamferDock_ : target=="solid.fillet" ? filletDock_ : target=="solid.rectangularPattern" ? patternDock_ : target=="solid.loft" ? loftDock_ : target=="solid.shell" ? shellDock_ : target=="solid.mirror" ? mirrorDock_ : target=="solid.move" ? moveDock_ : target=="solid.extrude" ? extrudeDock_ : target=="solid.combine" ? combineDock_ : target.startsWith("sketch.") ? sketchDock_ : primitiveDock_;
+    const auto* activeDock=target=="solid.sweep" ? nullptr : target=="solid.revolve" ? revolveDock_ : target=="solid.sphere" ? sphereDock_ : target=="solid.chamfer" ? chamferDock_ : target=="solid.fillet" ? filletDock_ : target=="solid.rectangularPattern" ? patternDock_ : target=="solid.loft" ? loftDock_ : target=="solid.shell" ? shellDock_ : target=="solid.mirror" ? mirrorDock_ : target=="solid.move" ? moveDock_ : target=="solid.extrude" ? extrudeDock_ : target=="solid.combine" ? combineDock_ : target.startsWith("sketch.") ? sketchDock_ : primitiveDock_;
     const auto panelRect=activeDock ? QRect(activeDock->mapToGlobal(QPoint())-mapToGlobal(QPoint()),activeDock->size()) : QRect{};
     QJsonArray popups;
     for(auto* popup:QApplication::topLevelWidgets()) {
@@ -2485,7 +2494,7 @@ void AlloyWindow::refresh() {
     const auto historicalSketchId=session_.value("command")=="sketch.edit"
         && session_.value("baseDocumentRevision").toInteger()==static_cast<qint64>(document_->revision())
         ? session_.value("inputs").toObject().value("sketchId").toString() : QString{};
-    if(session_.value("command")!="solid.revolve" && session_.value("command")!="solid.sphere" && session_.value("command")!="solid.chamfer" && session_.value("command")!="solid.fillet" && session_.value("command")!="solid.rectangularPattern" && session_.value("command")!="solid.loft" && session_.value("command")!="solid.shell" && session_.value("command")!="solid.mirror" && session_.value("command")!="solid.move" && session_.value("command")!="solid.combine" && !(session_.value("command")=="solid.extrude" && !session_.value("inputs").toObject().value("featureId").toString().isEmpty()) && historicalSketchId.isEmpty())view_->clearBodyStage();
+    if(session_.value("command")!="solid.sweep" && session_.value("command")!="solid.revolve" && session_.value("command")!="solid.sphere" && session_.value("command")!="solid.chamfer" && session_.value("command")!="solid.fillet" && session_.value("command")!="solid.rectangularPattern" && session_.value("command")!="solid.loft" && session_.value("command")!="solid.shell" && session_.value("command")!="solid.mirror" && session_.value("command")!="solid.move" && session_.value("command")!="solid.combine" && !(session_.value("command")=="solid.extrude" && !session_.value("inputs").toObject().value("featureId").toString().isEmpty()) && historicalSketchId.isEmpty())view_->clearBodyStage();
     if(displayedDocumentRevision_!=document_->revision()) {
         const QSignalBlocker block(tree_);
         // Keep Browser rows keyed by their stable IDs. Removing all children on
@@ -2591,7 +2600,7 @@ void AlloyWindow::refresh() {
             static const QMap<QString,QPair<QString,QString>> presentation{
                 {"sketch",{"▧","Sketch"}},{"box",{"▣","Box"}},{"cylinder",{"◉","Cylinder"}},
                 {"extrude",{"▣","Extrude"}},{"sphere",{"●","Sphere"}},{"fillet",{"◩","Fillet"}},
-                {"revolve",{"◉","Revolve"}},{"chamfer",{"◪","Chamfer"}},{"shell",{"▱","Shell"}},{"loft",{"◒","Loft"}},
+                {"sweep",{"◒","Sweep"}},{"revolve",{"◉","Revolve"}},{"chamfer",{"◪","Chamfer"}},{"shell",{"▱","Shell"}},{"loft",{"◒","Loft"}},
                 {"mirror",{"◧","Mirror"}},{"move",{"✥","Move"}},{"boolean",{"▣","Combine"}},
                 {"constructionPlane",{"▰","Construction Plane"}},{"rectangularPattern",{"▦","Rectangular Pattern"}},
                 {"stepImport",{"▣","STEP Import"}}};
@@ -3038,6 +3047,7 @@ QJsonArray AlloyWindow::dependentBodies(const QString& sketchId) const {
         if(feature["type"]=="sketch" && parameters["plane"]=="construction" && planes.contains(parameters["planeId"].toString()))sketches.insert(feature["id"].toString());
         if(feature["type"]=="sketch" && parameters["plane"]=="face"
             && producerFeatures.contains(parameters["support"].toObject()["producerFeatureId"].toString()))sketches.insert(feature["id"].toString());
+        if(feature["type"]=="sweep" && (sketches.contains(parameters["profileSketchId"].toString()) || sketches.contains(parameters["pathSketchId"].toString()))) {producerFeatures.insert(feature["id"].toString());if(!result.contains(feature["bodyId"]))result.append(feature["bodyId"]);}
         if(feature["type"]=="loft")for(const auto& value:parameters["profiles"].toArray())if(sketches.contains(value.toObject()["sketchId"].toString())) {
             producerFeatures.insert(feature["id"].toString());if(!result.contains(feature["bodyId"]))result.append(feature["bodyId"]);break;
         }
@@ -3170,6 +3180,7 @@ QJsonObject AlloyWindow::beginSession(const QString& command, const QJsonObject&
     if(command=="solid.chamfer")return beginChamfer(inputs);
     if(command=="solid.sphere")return beginSphere(inputs);
     if(command=="solid.rectangularPattern")return beginPattern(inputs);
+    if(command=="solid.sweep")return beginSweep(inputs);
     if(command=="solid.revolve")return beginRevolve(inputs);
     if(command=="solid.loft")return beginLoft(inputs);
     if(command=="solid.shell")return beginShell(inputs);
@@ -3282,6 +3293,7 @@ QJsonObject AlloyWindow::finishSession(const QString& id, bool commit) {
         });
     }
     else if(target=="solid.rectangularPattern") {if(patternEscape_)patternEscape_->setEnabled(false);if(patternDock_)patternDock_->hide();view_->clearPatternAxes();view_->clearSolidEdgeHighlights();view_->clearPreview();view_->clearBodyStage();}
+    else if(target=="solid.sweep") {view_->selectProfile({},{});view_->setEditDisplay({},{});view_->clearPreview();view_->clearBodyStage();}
     else if(target=="solid.revolve") {if(revolveEscape_)revolveEscape_->setEnabled(false);if(revolveDock_)revolveDock_->hide();view_->clearRevolveCue(true);view_->selectProfile({},{});view_->setEditDisplay({},{});view_->clearPreview();view_->clearBodyStage();}
     else if(target=="solid.loft") {if(loftEscape_)loftEscape_->setEnabled(false);if(loftDock_)loftDock_->hide();view_->selectLoftProfiles({});view_->clearPreview();view_->clearBodyStage();}
     else if(target=="solid.shell") {if(shellEscape_)shellEscape_->setEnabled(false);if(shellDock_)shellDock_->hide();view_->clearPreview();view_->clearBodyStage();}

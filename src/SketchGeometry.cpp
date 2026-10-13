@@ -1274,6 +1274,7 @@ EvaluatedSketch SketchGeometry::evaluateFeature(const QJsonObject& feature, cons
         worldPoints.append(QJsonObject{{"id", point["id"]}, {"positionMm", QJsonArray{world.X(), world.Y(), world.Z()}}});
     }
     TopoDS_Shape shape;
+    QMap<QString,TopoDS_Edge> entityEdges;
     QJsonValue bounds(QJsonValue::Null);
     const auto entities = parameters["entities"].toArray();
     if (!entities.isEmpty()) {
@@ -1284,6 +1285,7 @@ EvaluatedSketch SketchGeometry::evaluateFeature(const QJsonObject& feature, cons
             const auto entity = entry.toObject();
             const auto edge = analyticEdge(parameters,entity,sketchFrame);
             builder.Add(compound, edge);
+            entityEdges.insert(entity["id"].toString(),edge);
         }
         if (!BRepCheck_Analyzer(compound).IsValid()) throw std::runtime_error("Kernel did not produce valid sketch edges");
         shape = compound;
@@ -1319,5 +1321,5 @@ EvaluatedSketch SketchGeometry::evaluateFeature(const QJsonObject& feature, cons
     summary["unsupportedProjectedEdges"]=projectionContext["unsupportedEdges"].toArray();
     summary["profiles"] = profileSummaries;
     summary["profileDiagnostics"] = profile.diagnostics;
-    return {feature["id"].toString(), feature["name"].toString(), plane, feature["visible"].toBool(), shape, summary, profiles, sketchFrame};
+    return {feature["id"].toString(), feature["name"].toString(), plane, feature["visible"].toBool(), shape, summary, profiles, sketchFrame, {}, entityEdges};
 }
