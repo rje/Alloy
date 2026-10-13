@@ -20,7 +20,7 @@ Main's default app is rebuilt with both. Receipt `validation/ribbon-icons.md`
 records actual 1040/1400 Retina layout and native input evidence. All private
 editors are closed. No release/tag or per-commit CI was triggered.
 
-102 of 226 issues are closed. Retained-target Extrude Intersect #219 is accepted
+103 of 226 issues are closed. Retained-target Extrude Intersect #219 is accepted
 and integrated; the main app rebuild passes. See validation/extrude-intersect.md.
 Nested profile/island coverage and diagnostics #165 are independently accepted and
 integrated; main app rebuild passes. See validation/profile-regions.md.
@@ -42,8 +42,10 @@ desktop/GPU and second-user access-denial qualification.
 Paper-clip source geometry is independently transcribed externally; #221–225 track
 shared-line fillets, typed chained-line locks, Sweep foundation/native controls and
 full tutorial. Foundation #223 and shared-line fillets #221 are accepted and
-integrated. Sol owns typed line locks #222 and native Sweep controls #224 in
-parallel; full gate #225 remains Todo until those native prerequisites pass. Fillet width annotations must survive via explicit span
+integrated. Typed line locks #222 are also accepted as fb99efc/3b4591f with
+independent receipt f95d743; main app rebuild passes. Sol owns native Sweep
+controls #224 and Circle Tab-to-Enter repair #226; full gate #225 remains Todo
+until those native prerequisites pass. Fillet width annotations must survive via explicit span
 conversion; original post-fillet drivenness is unknown. No fabricated semicircles
 or coordinate-seeded path authoring can close the complete source gate.
 Candidate/evidence worktrees: `../Alloy-worktrees/local-transport` (`feat/local-transport`)
@@ -54,9 +56,10 @@ artifacts are under build/evidence/local-transport-windows-38401749556. Receipt
 validation/local-transport.md distinguishes native pipe/ACL evidence from untested
 Windows desktop/GPU/second-user denial. Sweep223 is accepted and integrated as5fe11a0 plus independent reviewb500ef9;
 main app rebuild passes. Shared-line fillets221 are integrated as06db7ab plus
-review6fced1d; combined fillet/Sweep core2/2 pass. The private GUI slot is reserved
-for224 native evidence after222 released it. Circle source Tab-to-Enter focus
-gap #226 is queued separately and blocks full225 acceptance. No tag/release
+review6fced1d; combined fillet/Sweep core2/2 pass. The private GUI slot is free after successful #224 native evidence and the
+focused #222 Cancel fix. Circle
+source Tab-to-Enter focus gap #226 is active separately and blocks full225
+acceptance. No tag/release
 or per-commit CI. Intersect parent #161 retains broader operation-edit and
 typed-Return qualification as Todo. Split oversized remaining scope into linked Todo issues. Other broad parents remain Todo. The sections below are a chronological
 record; older ownership, pending status and counts are historical.
