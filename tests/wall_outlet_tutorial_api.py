@@ -118,7 +118,7 @@ def main():
             assert len(params()['mirrorGroups'][0]['entityPairs']) == 6
             stage('A2: Concentric arcs; Vertical centers; Equal arc radii')
             call('sketch.constraint', {'type': 'concentric', 'entityIds': [e['id'] for e in arcs]})
-            call('sketch.constraint', {'type': 'vertical',
+            call('sketch.constraint', {'type': 'horizontalVertical',
                  'pointIds': [circle['centerPointId'], arcs[0]['centerPointId']]})
             call('sketch.constraint', {'type': 'equal', 'entityIds': [e['id'] for e in arcs]})
             call('sketch.displayOptions', {'showConstraints': True, 'showDimensions': True})
