@@ -1733,3 +1733,12 @@ Recoverability means preserving accepted state and allowing Cancel/correction;
 replacement-support/relink UI is not implemented or claimed. Keep private GUI
 serialized. No new feature implementation should be invented if existing commands
 pass this full gate; split a concrete missing behavior if encountered.
+
+RHI-003 #208 is active parallel research owned by Luna (die_research): a small
+primary-source comparison of maintained open C++-usable native Metal/Vulkan
+foundations, with Qt integration, licensing, shader/picking/capture feasibility
+and a proposed OCCT-data spike. Bulk research stays external; root will write a
+compact repository shortlist after Astra review. No dependency is selected or
+adopted by this child. RHI-001 #137 retains actual spike/platform/admission work
+and remains Todo. This research does not interrupt modeling or change the current
+OCCT OpenGL viewport.
