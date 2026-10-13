@@ -2633,3 +2633,14 @@ closed. #260 full-Revolve planar support/Shell source proof is now In Progress
 with Sol; #261 open-spline offset is active in a second isolated Sol lane.
 #262–264 remain Todo. First prove the actual80/5/R50→Shell5 source
 geometry, then stable generated-face naming and native support selection.
+
+## Origin Section Analysis candidate (2026-10-13)
+
+DOC-021/#262 adds optional retained analyses outside features, document-wide ID/
+plane/single-active validation and analysis-only undo transactions reusing exact
+evaluated geometry. Shared Inspect commands, native plane/hatch/Cancel/OK controls,
+Analysis browser edit/show/hide and GPU texture-capped clipping are implemented.
+Focused core and 79-call real-entrypoint API evidence pass, including exact modeling
+preservation, replacement undo/redo, save/reopen and document tabs. The full ornament
+lesson and independent acceptance remain separate. Final neutral hatch/plain captures and corrected panel synchronize successfully;
+native popup input remains pending qualification; see validation/section-analysis.md.

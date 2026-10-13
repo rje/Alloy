@@ -9,6 +9,7 @@
 #include <V3d_View.hxx>
 #include <V3d_Viewer.hxx>
 #include <AIS_Shape.hxx>
+#include <Graphic3d_ClipPlane.hxx>
 #include <QMap>
 #include <QSet>
 #include "GeometryKernel.h"
@@ -31,6 +32,7 @@ public:
     void restoreCameraState(const QJsonObject& state);
     void rebindDocument();
     QImage framebuffer();
+    void setSectionAnalysis(const QJsonObject& analysis);
     void setBodies(const std::vector<EvaluatedBody>& bodies, quint64 revision);
     void setBodyStage(const std::vector<EvaluatedBody>& bodies, const QString& stageKey);
     void clearBodyStage();
@@ -153,6 +155,8 @@ private:
     QString error_;
     QPointF last_;
     Qt::MouseButton panButton_ = Qt::NoButton;
+    QJsonObject sectionAnalysis_;
+    Handle(Graphic3d_ClipPlane) sectionClip_;
     QMap<QString,Handle(AIS_Shape)> models_;
     QMap<QString,bool> bodyVisibility_;
     QString combineTargetId_;

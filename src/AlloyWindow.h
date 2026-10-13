@@ -55,6 +55,13 @@ private:
         std::function<QJsonObject(const QJsonObject&)> run;
     };
     void registerCommands();
+    void registerSectionCommands();
+    QJsonObject beginSection(const QJsonObject& args);
+    QJsonObject previewSection();
+    void showSection();
+    void refreshSection();
+    QDockWidget* sectionDock_ = nullptr;
+    QTreeWidgetItem* analysesNode_ = nullptr;
     QImage captureImage(QImage* viewport = nullptr);
     void refresh();
     void showSearch();

@@ -33,6 +33,8 @@ public:
     QString path() const { return path_; }
     const std::vector<EvaluatedBody>& bodies() const { return evaluation_->bodies; }
     const std::vector<EvaluatedSketch>& sketches() const { return evaluation_->sketches; }
+    QString commitAnalyses(const QJsonArray& analyses, const QString& label);
+    static QJsonObject sectionCandidate(const QJsonObject& authored, const QJsonObject& args);
     QString commit(const QJsonObject& candidate, const QString& label);
     QJsonObject lastEvaluationError() const { return lastEvaluationError_; }
     static CandidateEvaluation evaluateCandidate(const QJsonObject& candidate);

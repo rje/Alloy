@@ -135,6 +135,10 @@ Native fillet history qualification uses an isolated
 default deployment qualification remains open. Exact physical-input tutorial
 parity remains separate from the accepted functional gates above.
 
+The bounded [Section Analysis candidate](docs/validation/section-analysis.md) adds
+retained origin-plane GPU clipping with inherited material and hatching. Core and
+shared-API lifecycle pass; independent/native input qualification remains pending.
+
 ## Project documents
 
 - [Continuation context](docs/context.md): decisions from this conversation,

@@ -304,6 +304,27 @@ void CadDocument::apply(const QJsonObject& value, std::shared_ptr<const Evaluate
     if(!hasOwner(authored_,activeOwnerId_))activeOwnerId_=authored_["documentId"].toString();
     evaluation_=std::move(evaluation); lastTransaction_ = transaction; ++revision_;
 }
+QString CadDocument::commitAnalyses(const QJsonArray& analyses,const QString& label) {
+    auto candidate=authored_;candidate["analyses"]=analyses;
+    lastEvaluationError_={};const auto error=validateStructure(candidate);
+    if(!error.isEmpty()){lastEvaluationError_={{"code","invalid_document"},{"message",error}};return error;}
+    if(candidate!=authored_)history_.push(new DocumentEdit(*this,candidate,evaluation_,label));
+    return {};
+}
+QJsonObject CadDocument::sectionCandidate(const QJsonObject& authored,const QJsonObject& args) {
+    const QSet<QString> allowed{"analysisId","newAnalysisId","name","plane","visible","hatch"};
+    for(auto it=args.begin();it!=args.end();++it)if(!allowed.contains(it.key()))throw std::invalid_argument("Unknown section argument");
+    auto candidate=authored;auto rows=candidate["analyses"].toArray();int index=-1;
+    const auto id=args["analysisId"].toString();
+    if(!id.isEmpty())for(int i=0;i<rows.size();++i)if(rows[i].toObject()["id"]==id){index=i;break;}
+    if(!id.isEmpty() && index<0)throw std::invalid_argument("Section analysis is unavailable");
+    auto row=index<0 ? QJsonObject{{"id",args.value("newAnalysisId").toString(newId())},{"type","section"},{"name","Section Analysis"},{"plane","XZ"},{"visible",true},{"hatch",true}} : rows[index].toObject();
+    for(const auto& key:{"name","plane","visible","hatch"})if(args.contains(key))row[key]=args[key];
+    if(row["visible"].toBool())for(int i=0;i<rows.size();++i){auto prior=rows[i].toObject();prior["visible"]=false;rows[i]=prior;}
+    if(index<0)rows.append(row);else rows[index]=row;
+    candidate["analyses"]=rows;const auto error=validateStructure(candidate);
+    if(!error.isEmpty())throw std::invalid_argument(error.toStdString());return candidate;
+}
 QString CadDocument::commit(const QJsonObject& candidate, const QString& label) {
     lastEvaluationError_ = {};
     if (candidate["documentId"] != authored_["documentId"]) {
@@ -702,6 +723,16 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
     if (units != "mm" && units != "in") return "Unsupported display units";
     if (!candidate["features"].isArray()) return "Features must be an array";
     QSet<QString> ids{root}, owners{root};
+    if(candidate.contains("analyses") && !candidate["analyses"].isArray())return "Analyses must be an array";
+    int activeSections=0;
+    for(const auto& entry:candidate["analyses"].toArray()) {
+        const auto row=entry.toObject();const auto id=row["id"].toString(),plane=row["plane"].toString();
+        if(!entry.isObject() || row.size()!=6 || !validId(id) || ids.contains(id) || row["type"]!="section"
+            || !row["name"].isString() || row["name"].toString().trimmed().isEmpty()
+            || (plane!="XY" && plane!="XZ" && plane!="YZ") || !row["visible"].isBool() || !row["hatch"].isBool())return "Invalid section analysis record";
+        ids.insert(id);if(row["visible"].toBool())++activeSections;
+    }
+    if(activeSections>1)return "Only one section analysis may be visible";
     if(candidate.contains("userParameters") && !candidate["userParameters"].isArray())return "User parameters must be an array";
     QSet<QString> names;
     static const QRegularExpression parameterName("^[A-Za-z_][A-Za-z0-9_]*$");

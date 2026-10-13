@@ -41,7 +41,7 @@ target_compile_definitions(alloy_kernel PUBLIC ALLOY_OCCT_VERSION="${ALLOY_OCCT_
 
 add_library(alloy_application STATIC
     src/AlloyTheme.cpp src/AlloyTheme.h
-    src/AlloyWindow.cpp src/AlloyWindow.h src/PointControls.cpp src/SplineControls.cpp src/SlotDragControls.cpp src/ConicControls.cpp src/SketchTextControls.cpp src/CommandIcons.cpp src/CommandIcons.h src/SolidFilletControls.cpp src/SolidChamferControls.cpp src/SphereControls.cpp src/SolidHoleControls.cpp src/SolidShellControls.cpp src/LoftControls.cpp src/RevolveCommands.cpp src/SweepCommands.cpp src/SweepSelection.cpp src/PatternControls.cpp src/SolidMirrorControls.cpp src/MoveControls.cpp src/CombineControls.cpp src/ExportControls.cpp src/StepExportControls.cpp
+    src/AlloyWindow.cpp src/AlloyWindow.h src/PointControls.cpp src/SplineControls.cpp src/SlotDragControls.cpp src/ConicControls.cpp src/SketchTextControls.cpp src/CommandIcons.cpp src/CommandIcons.h src/SolidFilletControls.cpp src/SolidChamferControls.cpp src/SphereControls.cpp src/SolidHoleControls.cpp src/SolidShellControls.cpp src/LoftControls.cpp src/RevolveCommands.cpp src/SweepCommands.cpp src/SweepSelection.cpp src/PatternControls.cpp src/SolidMirrorControls.cpp src/SectionAnalysisControls.cpp src/ReferenceSection.cpp src/MoveControls.cpp src/CombineControls.cpp src/ExportControls.cpp src/StepExportControls.cpp
     src/TutorialRecorder.cpp src/TutorialRecorder.h
     src/CadDocument.cpp src/CadDocument.h
     src/ReferenceView.cpp src/ReferenceView.h src/ReferenceRevolve.cpp src/ReferenceSweep.cpp src/ReferenceSketchText.cpp src/ReferenceSpline.cpp src/ReferenceConic.cpp
@@ -75,6 +75,11 @@ if(ALLOY_BUILD_SPIKES)
         TKernel TKMath TKBRep TKPrim TKTopAlgo TKLCAF TKCAF TKBin TKBinL TKCDF)
 endif()
 if(BUILD_TESTING)
+    add_executable(section_analysis_controls_test tests/section_analysis_controls.cpp)
+    target_link_libraries(section_analysis_controls_test PRIVATE alloy_application Qt6::Test)
+    add_executable(section_analysis_test tests/section_analysis.cpp src/CadDocument.cpp src/CadDocument.h)
+    target_link_libraries(section_analysis_test PRIVATE alloy_kernel Qt6::Widgets)
+    add_test(NAME section_analysis COMMAND section_analysis_test)
     add_executable(control_point_spline_controls_test tests/control_point_spline_controls.cpp)
     target_link_libraries(control_point_spline_controls_test PRIVATE alloy_application Qt6::Test)
     add_test(NAME control_point_spline_controls COMMAND control_point_spline_controls_test)

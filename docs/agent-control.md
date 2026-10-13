@@ -783,3 +783,14 @@ empty/touch/disconnected results refuse atomically. Native operation/target fiel
 share the same authority. `solid.extrudeDialog` remains selection-oriented; provide
 full initial modeling inputs through `command.begin` or update the session. See
 [the bounded contract and evidence](validation/extrude-intersect.md).
+
+## Origin Section Analysis
+
+`inspect.sectionDialog` opens the native preview panel; `inspect.section` creates
+or edits a retained section using `plane: XY|XZ|YZ`, optional `analysisId`, `name`
+and `hatch`. `analysis.inspect` reads document-owned records; `analysis.visibility`
+uses `analysisId` and `visible`. Show deactivates the previous section in the same
+undo entry. Shared command session update/preview/commit/cancel applies. Analysis
+records do not enter the modeling Timeline or change evaluated geometry. Fixed
+positive world half-spaces and bounded verification are described in
+[the Section Analysis receipt](validation/section-analysis.md).

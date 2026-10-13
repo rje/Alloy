@@ -408,6 +408,7 @@ void ReferenceView::displayBodies(const std::vector<EvaluatedBody>& bodies) {
         context_->Display(model,AIS_Shaded,0,false);
         context_->Deactivate(model,0);
         context_->Activate(model,AIS_Shape::SelectionMode(TopAbs_FACE));
+        if(!sectionClip_.IsNull())model->AddClipPlane(sectionClip_);
         models_[body.bodyId]=model;bodyVisibility_[body.bodyId]=body.visible;
     }
     applyEditDisplay();
@@ -1946,6 +1947,8 @@ void ReferenceView::updateExtrusionDrag(const QPointF& position,const QString& p
 QJsonObject ReferenceView::diagnostics() const {
     QJsonObject result{{"initialized", !view_.IsNull()}, {"error", error_}, {"hardwareAccelerated", false},
         {"qualification", "unverified"}, {"backend", "OCCT OpenGL"}};
+    result["sectionAnalysis"]=sectionAnalysis_;
+    result["sectionClippedActors"]=sectionClip_.IsNull() ? 0 : models_.size();
     if (view_.IsNull()) return result;
     TColStd_IndexedDataMapOfStringString info;
     view_->DiagnosticInformation(info, Graphic3d_DiagnosticInfo_Basic);
