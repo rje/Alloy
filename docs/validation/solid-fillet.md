@@ -46,6 +46,15 @@ fillet, retained disk-cap sketch, edit, undo/redo and exact reopen.
 
 `tests/solid_fillet_api.py` checks the saved joined source fixture through the
 actual app: edge hit testing, preview without authored mutation, Cancel,
-commit, edit, undo/redo and save/reopen. Full joined core, real-app/API and
-independent native F/two physical picks/capture evidence are pending integration.
+commit, edit, undo/redo and save/reopen. The joined source core passes against the #176 fixture: two actual seeds at
+1 mm, radius edit to 0.5 mm, outer height 24→26 retaining edge IDs, one
+undo/redo, original disk-cap20 supported Ø5.2 circle, impossible-radius atomic
+refusal and exact save/reopen. Run:
+
+```sh
+./build-fillet/solid_fillet_test ../successive-join/build-successive/evidence/support-successive.alloy
+```
+
+Real-app/API and independent native F/two physical picks/capture evidence remain
+pending the combined candidate.
 No exact native or visual match is claimed by the build/core evidence alone.

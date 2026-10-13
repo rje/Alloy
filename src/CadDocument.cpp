@@ -34,10 +34,10 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
     for (int i = 0; i < features.size(); ++i) {
         const auto feature = features[i].toObject();
         if (feature.contains("bodyId")) activeBodies.insert(feature["bodyId"].toString());
-        if (feature["type"] == "move") {
+        if (feature["type"] == "move" || feature["type"] == "fillet") {
             const auto body = feature["parameters"].toObject()["targetBodyId"].toString();
             if (!bodyPositions.contains(body) || bodyPositions[body]>=i || !activeBodies.contains(body))
-                return {{"featureId",feature["id"]},{"featureType","move"},{"bodyId",body},{"code","body_unavailable"},{"message","Move requires an active earlier body"}};
+                return {{"featureId",feature["id"]},{"featureType",feature["type"]},{"bodyId",body},{"code","body_unavailable"},{"message","Solid modifier requires an active earlier body"}};
             continue;
         }
         if (feature["type"] == "boolean") {

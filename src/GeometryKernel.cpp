@@ -69,7 +69,7 @@ EvaluatedSupportFace GeometryKernel::resolveSketchSupport(const EvaluatedDocumen
     for(const auto& field:{"producerFeatureId","bodyId","faceId"})if(!support[field].isString() || QUuid(support[field].toString()).isNull())reject("invalid_support","Support requires stable UUID references");
     const auto body=std::find_if(evaluation.bodies.begin(),evaluation.bodies.end(),[&](const auto& value){return value.bodyId==support["bodyId"].toString();});
     if(body==evaluation.bodies.end())reject("support_unavailable","The exact support producer/body is unavailable or consumed");
-    if(body->summary.contains("lastModifierFeatureId") && body->summary["operation"]!="join")reject("unsupported_modified_support","Face support on modified Boolean bodies is outside this slice");
+    if(body->summary.contains("lastModifierFeatureId") && body->summary["operation"]!="join" && body->summary["operation"]!="fillet")reject("unsupported_modified_support","Face support on modified Boolean bodies is outside this slice");
     const EvaluatedSupportFace* found=nullptr;
     for(const auto& face:body->supportFaces)if(face.faceId==support["faceId"].toString() && face.producerFeatureId==support["producerFeatureId"].toString()){if(found)reject("ambiguous_support","More than one face matches the support reference");found=&face;}
     if(!found)reject("support_unavailable","Only the current positive-distance extrusion end cap is supported");
@@ -418,7 +418,7 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored) 
                 BRepBuilderAPI_Transform builder(body->shape,transform,true);if(!builder.IsDone())throw std::runtime_error("Move transform failed");
                 body->shape=builder.Shape();body->summary=summarize(body->shape);body->summary["lastModifierFeatureId"]=id;body->summary["operation"]="move";
                 // Transported cap lineage is outside this bounded solid-body slice.
-                body->supportFaces.clear();
+                body->supportFaces.clear();body->solidEdges.clear();
             } else if (type == "boolean") {
                 const auto targetId = parameters["targetBodyId"].toString();
                 const auto toolIds = parameters["toolBodyIds"].toArray();

@@ -9,8 +9,10 @@ SOL-022 / #182 adds the video-variant two-edge 1-mm solid fillet, numeric G1
 rolling-ball controls with Tangent Chain On, shared API and provenance-based
 edge identity. Off/manipulator/broader modes remain #48; general naming remains
 DOC-012. The PDF six-edge 0.5-mm variant is separate and unclaimed. Build and
-focused prism/failure/edit/merged-lineage checks pass; joined-source and native
-acceptance remain pending integration with #176. See
+focused prism/failure/edit/merged-lineage checks pass. The joined #176 source
+fixture passes two-seed fillet, radius/outer-height edits, original disk-cap20
+supported circle, history and reopen. Real-app/API and independent native
+acceptance remain pending the combined candidate. See
 [the candidate receipt](validation/solid-fillet.md).
 
 ## Current integrated checkpoint (2026-10-12)
