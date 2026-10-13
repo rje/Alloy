@@ -235,3 +235,7 @@ and broader Revolve modes remain separate gates.
 Sketch Text has [native control candidate evidence](docs/validation/sketch-text-controls.md):
 the shared command now opens an editable Qt dialog with two pinned regular/bold
 font choices, height, preview, move/rotation handles, Cancel/OK and edit reopening.
+
+The [initials-keyring full runner](docs/validation/keyring-tutorial-prep.md) is
+prepared but has not been executed. It retains the public lesson's step order;
+its upper Cut-hole edge Fillet needs bounded provenance work before acceptance.

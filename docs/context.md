@@ -2160,3 +2160,13 @@ typing and pointer interaction and real-app API/Join/capture passed on macOS.
 This is pending independent review and integration. See
 [the controls receipt](validation/sketch-text-controls.md). Same-count text slot
 identity, finite uppercase glyphs and text-only sketch limits still apply.
+
+## Keyring full runner preparation (2026-10-13)
+
+TUT-010/#233 has an isolated `feat/keyring-tutorial` worktree from `add7b2a`.
+Its proposed [source-step runner](validation/keyring-tutorial-prep.md) maps the
+complete blank-to-Save lesson and separate edit/STL checks without a GUI run or
+acceptance claim. Exact rim, hole and text lineage is asserted. Rounded-loop
+Offset #229 and 2-Point Circle #230 still need integration, and SOL-034/#236
+must retain the upper Cut-hole rim for the source's R1 Fillet plus the broad
+floor support for Text. Run the cumulative movie only after those gates land.
