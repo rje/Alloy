@@ -5,6 +5,15 @@ Updated 2026-10-13. This is the project handoff for a fresh session. Read the ro
 
 ## Active ornament gate — 2026-10-13
 
+Latest: corrected cumulative-05 is terminal. Creation visuals independently pass,
+including closed pointed apex;82.6s5fps movie is valid. Original strict STL,
+source/count edit/history and both reopens pass. Edited binary STL then fails
+facet-normal agreement with emitted vertex winding. PRT-009/#269 is the bounded
+active export fix;264 returns to Todo with that dependency. Sol diagnoses the
+preserved mesh; no relaxed checker or geometry policy. A separate headless
+saved-model geometry audit is running because the API runner stopped before it.
+All private editors are closed. Do not rerun creation for an export-only fix.
+
 Current: cumulative-04 finished with complete API/history/reopen, both strict
 millimeter STLs and saved-model geometry oracle passing. Its85.6s recording is
 valid, but independent visual review rejects the truncated crown. Append timings

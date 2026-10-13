@@ -4674,7 +4674,8 @@
         "SKT-065",
         "DOC-021",
         "SOL-038",
-        "SOL-039"
+        "SOL-039",
+        "PRT-009"
       ],
       "labels": [
         "area:gate"
@@ -4743,6 +4744,20 @@
         "area:sol"
       ],
       "body": "## Observed problem\nThe retained eight-rib ornament plus hub joins successfully, but appending its transverse construction plane fully recomputes the unchanged modeling prefix. Cumulative-02 timed out180s in coverage Common. The independently accepted single-result ownership optimization removes that redundant work; cumulative-03 still spends over60s in the actual Fuse Build during the unchanged-prefix recomputation. Source geometry and all nine inputs have independent exact containment evidence.\n\n## Bounded work\nIdentify the first-versus-repeated evaluation difference using the saved retained fixture and actual app timing: distinguish unnecessary prefix recomputation, repeated sketch-solve drift, and kernel cost. Implement the smallest evidence-supported correction. Preserve authored dimensions, persistent identities, ownership, atomic failures and upstream invalidation. Do not inflate tolerances, substitute approximate geometry, skip upstream changes or introduce broad speculative caching.\n\n## Verification\nUse the real app to create the eight-rib hub Join, append the bore construction plane/sketch/Cut, and perform a meaningful upstream edit with undo/reopen. Record per-command timings and compare identical stages. Verify unchanged geometry for unchanged inputs and recomputation for changed inputs. Existing narrow Join regressions plus the cumulative saved-model containment/bore/STL oracle suffice; avoid a broad replay. Independent Astra review required. Full cumulative acceptance remains SOL-039 and TUT-014; no movie acceptance from frozen or shortened clips.\n\n## Evidence\nExternal deliverables/ornament-2026-10-13/cumulative-02 and cumulative-03; profiles recorded during actual processing. See docs/validation/exact-offset-join-investigation.md and ornament-cumulative-runner.md.\n\n\n## Accepted 2026-10-13\nIntegrated0088e64, source/core9d6e20a, independent runtime reviewb5ecdc9. Focused4/4 and cumulative04 creation/edit/history/reopen/both strict STLs/saved-model containment and bore oracle pass. Append plane4.73s/sketchFinish4.41s/Cut10.89s versus prior129.86/126.39/134.50s. Upstream edits/open fully rebuild; no geometry/tolerance policy change. See docs/validation/document-prefix-append.md. The independent apex visual mismatch remains TUT-014; corrected cumulative05 is pending.\n"
+    },
+    {
+      "key": "PRT-009",
+      "title": "Preserve facet normal agreement after binary STL serialization",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "PRT-007"
+      ],
+      "labels": [
+        "area:prt"
+      ],
+      "body": "## Observed failure\nCorrected ornament cumulative05 passes original strict STL, upstream offset edit, history and both saved-model reopens, but edited binary STL fails the existing facet normal versus vertex-winding check. Preserve the external failed artifact and diagnose actual orientation, output quantization and thin facets before selecting a correction.\n\n## Bounded result\nEnsure emitted facet normals agree with emitted vertices while preserving valid oriented closed mesh topology and model geometry. Reuse existing serialization/pole handling. Do not weaken the checker or silently discard valid material to force a pass. No broad tessellation redesign.\n\n## Verification\nUse the actual failed edited mesh and saved document for numerical diagnosis, a focused serialization regression covering the observed cause, and real application export of the retained original and edited models. Require strict STL orientation/manifold checks and existing volume agreement. Independent Astra review; full source creation recording remains TUT-014 and does not need unrelated replay for an export-only fix.\n\nExternal evidence: deliverables/ornament-2026-10-13/cumulative-05/report.json, transcript.json and ornament-offset-4-mm.stl.\n"
     }
   ]
 }
