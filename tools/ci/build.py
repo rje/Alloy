@@ -108,8 +108,12 @@ def main():
         else:
             shutil.copy2(binary, artifact / binary.name)
             executable = binary
+        helper = directory / ('Release/alloy-local-client.exe' if sys.platform == 'win32' else 'alloy-local-client')
+        shutil.copy2(helper, artifact / helper.name)
+        shutil.copy2(ROOT / 'tools/alloyctl.py', artifact / 'alloyctl.py')
         receipt = {'result':'compiled', 'target':args.target, 'observed_at':datetime.now(timezone.utc).isoformat(),
                    'source_commit':os.environ.get('GITHUB_SHA'), 'qt':QT_VERSION,
+                   'local_client_sha256':hashlib.sha256(helper.read_bytes()).hexdigest(),
                    'occt_commit':OCCT, 'freetype_commit':FREETYPE,
                    'occt_required_modules':list(OCCT_REQUIRED_MODULES),
                    'occt_disabled_modules':list(OCCT_DISABLED_MODULES),

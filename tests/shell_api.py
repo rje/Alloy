@@ -5,6 +5,7 @@ import hashlib
 import json
 from pathlib import Path
 import socket
+import os
 import struct
 import subprocess
 import sys
@@ -12,7 +13,7 @@ import tempfile
 import time
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
-from alloyctl import request
+from alloyctl import request, record_endpoint, exchange
 
 
 def main():
@@ -28,11 +29,11 @@ def main():
     output.mkdir(parents=True, exist_ok=True)
     transcript = []
     # Use /tmp to keep the Unix socket path below macOS's sockaddr_un limit.
-    with tempfile.TemporaryDirectory(prefix="alloy-test-", dir="/tmp") as directory:
-        ready = Path(directory) / "ready.json"
+    with tempfile.TemporaryDirectory(prefix="alloy-test-", dir="/tmp" if os.name != "nt" else None) as directory:
+        ready = Path(directory) / ("ready/ready.json" if os.name == "nt" else "ready.json")
         endpoint = str(Path(directory) / "control.sock")
         with (output / "app.log").open("w") as log:
-            process = subprocess.Popen([str(Path(args.app).resolve()), "--control-socket", endpoint, "--ready-file", str(ready)], stdout=log, stderr=subprocess.STDOUT)
+            process = subprocess.Popen([str(Path(args.app).resolve()), "--ready-file", str(ready), "--instance-dir", str(Path(directory)/"instances")], stdout=log, stderr=subprocess.STDOUT)
             try:
                 deadline = time.monotonic() + 12
                 while not ready.exists():
@@ -42,9 +43,11 @@ def main():
                         raise AssertionError("Native app did not become ready")
                     time.sleep(0.05)
                 assert json.loads(ready.read_text())["status"] == "ready"
+                endpoint, transport = record_endpoint(json.loads(ready.read_text()))
+                helper = str(Path(args.app).resolve().parent/"alloy-local-client.exe") if os.name == "nt" else None
 
                 def call(command, parameters=None, expected_error=None):
-                    response = request(endpoint, command, parameters)
+                    response = request(endpoint, command, parameters, transport=transport, helper=helper)
                     transcript.append({"command": command, "args": parameters or {}, "response": response})
                     if expected_error:
                         assert not response["ok"] and response["completion"] == "failed", response
@@ -117,13 +120,8 @@ def main():
                 call("view.home", {"unexpected": True}, "invalid_arguments")
                 assert call("app.state")["revision"] == changed["revision"]
                 # Validate parse errors through the actual server, separately from client validation.
-                with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as client:
-                    client.settimeout(3)
-                    client.connect(endpoint)
-                    client.sendall(b"not JSON\n")
-                    with client.makefile("rb") as stream:
-                        bad = json.loads(stream.readline())
-                    assert bad["error"]["code"] == "invalid_request" and not bad["ok"]
+                bad = json.loads(exchange(endpoint,b"not JSON\n",timeout=3,transport=transport,helper=helper))
+                assert bad["error"]["code"] == "invalid_request" and not bad["ok"]
 
                 call("layout.reset")
                 call("view.home")

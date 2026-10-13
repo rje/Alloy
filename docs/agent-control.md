@@ -15,7 +15,7 @@ path as the UI.
 ```
 
 On Linux, use `./build/alloy`. The app prints one startup JSON line containing
-`protocol`, `socket`, `pid`, and `status: "ready"`. `--ready-file` writes the same
+`protocol`, `transport`, `endpoint`, legacy `socket`, `pid`, and `status: "ready"`. `--ready-file` writes the same
 object atomically after the window is shown. It now also includes a unique
 `instanceId`, native `windowId` and capability families, matching `app.identity`.
 Each launch registers a private record in `~/.alloy/instances/` (override with
@@ -45,8 +45,26 @@ chosen app endpoint, `--control-socket /absolute/private-directory/control.sock`
 requires an existing directory with no group/other permissions, normally mode
 0700. The app will not remove an existing socket to steal another instance's
 endpoint. On macOS keep socket paths short (the operating system limits them).
-The client currently supports Unix-domain sockets on macOS/Linux. Windows client
-transport remains unimplemented.
+macOS/Linux use `unix-domain-socket`. Windows uses `windows-named-pipe` and a
+fresh instance UUID name under the local `\\.\pipe\` namespace; remote names
+and Windows `--control-socket` overrides are refused. This default is an Alloy
+choice. Qt's user-access option protects the pipe. Registry and ready-file parent
+directories must have a protected current-user-only ACL granting inheritable
+full access; an existing unqualified policy fails closed rather than being rewritten.
+On Windows choose a fresh ready-file parent directory, not a shared temporary root.
+
+Windows Python requests use the packaged QtCore/Network `alloy-local-client.exe`
+byte bridge. Resolve it from the installed/source build location or explicitly
+configure `--transport-helper PATH` / `ALLOY_LOCAL_CLIENT`; discovery JSON never
+selects executable code. The bridge has one absolute connect/write/read deadline,
+64 KiB request and 1 MiB response limits. Python owns JSON/correlation validation
+and kills/reaps the bridge on outer timeout. Legacy Unix clients retain their
+existing socket inactivity timeout semantics. Timeout does not cancel an app command.
+
+Build the helper alongside the app, or configure `tools/local-control` alone for
+the Qt-only non-GUI test. The manual-only `local-transport.yml` Windows milestone
+qualifies transport and owned-directory ACL handling, not desktop/GPU support.
+See [the bounded receipt](validation/local-transport.md) for evidence and pending gates.
 
 ## Protocol and completion
 

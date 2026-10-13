@@ -2048,3 +2048,13 @@ path worked, but no native target/sheet input was available. Editors were closed
 accepted exchange/API/readback evidence remains unchanged. No application defect
 or native completion is claimed. See
 [the bounded assessment](validation/native-exchange-assessment.md).
+
+## Portable control candidate (2026-10-13)
+
+FND-024 / #220 candidate adds explicit Unix/named-pipe discovery, a packaged
+Qt byte bridge for Windows Python clients, protected inheritable current-user
+registry/ready ACL validation and a manual Qt-only Windows transport milestone.
+macOS focused transport and one real-app regression passed; actual Windows
+non-GUI evidence is pending. This does not close FND-012 / #131 desktop, GPU,
+normal-user workflow or second-user denial qualification. Continue from
+[the scoped receipt](validation/local-transport.md).
