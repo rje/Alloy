@@ -306,6 +306,78 @@ QJsonObject SketchGeometry::addRectangle(const QJsonObject& draft, const QJsonOb
     return changed;
 }
 
+SketchGeometry::SolveResult SketchGeometry::addCenterRectangle(const QJsonObject& draft, const QJsonObject& arguments,
+    const QJsonObject& projectionContext) {
+    try {
+        validateDraft(draft);
+        checkFields(arguments,{"centerUMm","centerVMm","widthMm","heightMm","centerSnapTarget"});
+        double u=coordinate(arguments,"centerUMm"),v=coordinate(arguments,"centerVMm");
+        const double width=coordinate(arguments,"widthMm"),height=coordinate(arguments,"heightMm");
+        if(width<minimumLength || height<minimumLength || width>maximumLength || height>maximumLength)
+            reject("Center rectangle width and height must be within 0.001..100000 mm");
+        auto parameters=draft["parameters"].toObject();auto points=parameters["points"].toArray();
+        auto entities=parameters["entities"].toArray(),constraints=parameters["constraints"].toArray();
+        auto dimensions=parameters["dimensions"].toArray();
+        QString coincidentPoint,midpointLine;
+        if(arguments.contains("centerSnapTarget")) {
+            if(!arguments["centerSnapTarget"].isObject())reject("Center snap target must be an object");
+            const auto target=arguments["centerSnapTarget"].toObject();
+            if(target["kind"]=="origin") {
+                if(target.size()!=1)reject("Origin snap target only accepts kind");
+                coincidentPoint=parameters["originPointId"].toString();
+                if(coincidentPoint.isEmpty()) {
+                    coincidentPoint=newId();parameters["originPointId"]=coincidentPoint;
+                    points.append(QJsonObject{{"id",coincidentPoint},{"uMm",0},{"vMm",0}});
+                    constraints.append(QJsonObject{{"id",newId()},{"type","fixed"},{"pointIds",QJsonArray{coincidentPoint}},{"uMm",0},{"vMm",0}});
+                }
+                u=0;v=0;
+            } else if(target["kind"]=="point") {
+                if(target.size()!=2 || !target["pointId"].isString() || !validId(target["pointId"].toString()))reject("Center snap requires a stable pointId");
+                retainSupportPoint(parameters,projectionContext,target["pointId"].toString());
+                for(const auto& value:expandedProjectionFeature(QJsonObject{{"parameters",parameters}},projectionContext)["parameters"].toObject()["points"].toArray()) {
+                    const auto point=value.toObject();if(point["id"]!=target["pointId"])continue;
+                    coincidentPoint=point["id"].toString();u=point["uMm"].toDouble();v=point["vMm"].toDouble();break;
+                }
+                if(coincidentPoint.isEmpty())reject("Center snap point no longer exists");
+            } else if(target["kind"]=="midpoint") {
+                if(target.size()!=2 || !target["entityId"].isString() || !validId(target["entityId"].toString()))reject("Midpoint snap requires a line UUID");
+                for(const auto& entry:entities) {
+                    const auto line=entry.toObject();if(line["id"]!=target["entityId"])continue;
+                    if(line["type"]!="line")reject("Midpoint target must be a line");
+                    QJsonObject first,last;
+                    for(const auto& value:points) {const auto point=value.toObject();
+                        if(point["id"]==line["startPointId"])first=point;
+                        if(point["id"]==line["endPointId"])last=point;}
+                    midpointLine=line["id"].toString();u=(first["uMm"].toDouble()+last["uMm"].toDouble())/2;
+                    v=(first["vMm"].toDouble()+last["vMm"].toDouble())/2;break;
+                }
+                if(midpointLine.isEmpty())reject("Center midpoint target no longer exists");
+            } else reject("Unsupported center snap target");
+        }
+        auto point=[&](double x,double y){const auto id=newId();points.append(QJsonObject{{"id",id},{"uMm",x},{"vMm",y}});return id;};
+        const auto a=point(u-width/2,v-height/2),b=point(u+width/2,v-height/2);
+        const auto c=point(u+width/2,v+height/2),d=point(u-width/2,v+height/2),center=point(u,v);
+        auto line=[&](const QString& first,const QString& last,bool construction=false){const auto id=newId();
+            QJsonObject entity{{"id",id},{"type","line"},{"startPointId",first},{"endPointId",last}};
+            if(construction)entity["construction"]=true;entities.append(entity);return id;};
+        const auto bottom=line(a,b),right=line(b,c);line(c,d);line(d,a);
+        const auto diagonalAC=line(a,c,true),diagonalBD=line(b,d,true);
+        constraints.append(QJsonObject{{"id",newId()},{"type","horizontal"},{"entityIds",QJsonArray{bottom}}});
+        constraints.append(QJsonObject{{"id",newId()},{"type","vertical"},{"entityIds",QJsonArray{right}}});
+        for(const auto& diagonal:{diagonalAC,diagonalBD})
+            constraints.append(QJsonObject{{"id",newId()},{"type","midpoint"},{"pointIds",QJsonArray{center}},{"entityIds",QJsonArray{diagonal}}});
+        if(!coincidentPoint.isEmpty())constraints.append(QJsonObject{{"id",newId()},{"type","coincident"},{"pointIds",QJsonArray{center,coincidentPoint}}});
+        else if(!midpointLine.isEmpty())constraints.append(QJsonObject{{"id",newId()},{"type","midpoint"},{"pointIds",QJsonArray{center}},{"entityIds",QJsonArray{midpointLine}}});
+        else constraints.append(QJsonObject{{"id",newId()},{"type","fixed"},{"pointIds",QJsonArray{center}},{"uMm",u},{"vMm",v}});
+        dimensions.append(QJsonObject{{"id",newId()},{"kind","horizontal"},{"pointIds",QJsonArray{a,b}},{"driving",true},{"valueMm",width}});
+        dimensions.append(QJsonObject{{"id",newId()},{"kind","vertical"},{"pointIds",QJsonArray{b,c}},{"driving",true},{"valueMm",height}});
+        parameters["points"]=points;parameters["entities"]=entities;parameters["constraints"]=constraints;parameters["dimensions"]=dimensions;
+        auto candidate=draft;candidate["parameters"]=parameters;
+        const auto result=solveDraft(candidate,projectionContext);
+        return result.ok ? result : SolveResult{false,draft,result.diagnostics,result.error};
+    } catch(const std::exception& error) {return invalidDraft(draft,QString::fromUtf8(error.what()));}
+}
+
 SketchGeometry::SolveResult SketchGeometry::addPointerEntity(const QJsonObject& draft, const QString& tool, const QJsonObject& arguments, const QJsonObject& projectionContext) {
     try {
         validateDraft(draft);
@@ -468,6 +540,14 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
                 usedPoints.insert(startId); usedPoints.insert(endId);
             }
             entityIds.insert(entity["id"].toString());
+        }
+        // A midpoint relation can retain a construction center point even when
+        // that point is not an endpoint of any visible edge.
+        for(const auto& value:parameters["constraints"].toArray()) {
+            const auto constraint=value.toObject();
+            if(constraint["type"]=="midpoint" && constraint["pointIds"].isArray()
+                && constraint["pointIds"].toArray().size()==1)
+                usedPoints.insert(constraint["pointIds"].toArray()[0].toString());
         }
         if (usedPoints.size() != points.size()) return "Sketch contains unreferenced points";
         auto checkReferences = [](const QJsonObject& object, const QString& field, int count, const QSet<QString>& valid) {

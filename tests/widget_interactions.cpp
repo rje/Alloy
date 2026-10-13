@@ -152,6 +152,30 @@ private slots:
         const auto results=inspected["evaluation"].toObject()["bodies"].toArray();QCOMPARE(results.size(),2);
         for(const auto& result:results)QVERIFY(std::abs(result.toObject()["volumeMm3"].toDouble()-3182)<1e-4);
     }
+    void centerRectangleGestureAndInlineValues() {
+        AlloyWindow window;window.resize(1180,760);window.show();window.activateWindow();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));auto* view=viewport(window);QVERIFY(view);
+        QVERIFY2(run(window,"sketch.begin",{{"plane","XY"}}),error_.constData());
+        auto* action=window.findChild<QAction*>("sketch.tool.centerRectangle");QVERIFY(action);
+        action->trigger();QCOMPARE(session(window)["tool"].toString(),QString("centerRectangle"));
+        view->setFocus();QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,sketchPixel(view,12.5,12.5));
+        QTRY_VERIFY(session(window).contains("firstPoint"));
+        QTest::keyClick(view,Qt::Key_1);
+        auto* width=window.findChild<QLineEdit*>("sketch.inlineValue");
+        auto* height=window.findChild<QLineEdit*>("sketch.centerRectangle.height");
+        QVERIFY(width && height);QTRY_VERIFY(width->isVisible() && height->isVisible());
+        QTRY_VERIFY(QApplication::focusWidget()==width);
+        QTest::keyClick(width,Qt::Key_2);QCOMPARE(width->text(),QString("12"));
+        QTest::keyClick(width,Qt::Key_Tab);QTRY_VERIFY(QApplication::focusWidget()==height);
+        QTest::keyClicks(height,"12");QTest::keyClick(height,Qt::Key_Return);
+        auto parameters=session(window)["draftSketch"].toObject()["parameters"].toObject();
+        QCOMPARE(parameters["entities"].toArray().size(),6);
+        QCOMPARE(parameters["dimensions"].toArray().size(),2);
+        QCOMPARE(parameters["dimensions"].toArray()[0].toObject()["valueMm"].toDouble(),12.0);
+        QCOMPARE(parameters["dimensions"].toArray()[1].toObject()["valueMm"].toDouble(),12.0);
+        QVERIFY(!session(window).contains("pendingCenterRectangle"));
+        QVERIFY2(run(window,"sketch.cancel"),error_.constData());
+    }
     void shellFaceThicknessCancelCommit() {
         AlloyWindow window;window.resize(1180,760);window.show();window.activateWindow();
         QVERIFY(QTest::qWaitForWindowExposed(&window));auto* view=viewport(window);QVERIFY(view);

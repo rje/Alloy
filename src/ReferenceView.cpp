@@ -1248,13 +1248,15 @@ void ReferenceView::showTrimPreview(const QString& plane,const QJsonObject& segm
     const auto shape=BRepPrimAPI_MakeCylinder(gp_Ax2(a,gp_Dir(delta)),view_->Camera()->Scale()*2.0/std::max(height(),1),delta.Magnitude()).Shape();
     sketchCursor_=new AIS_Shape(shape);sketchCursor_->SetColor(Quantity_Color(.86,.12,.10,Quantity_TOC_sRGB));sketchCursor_->SetZLayer(Graphic3d_ZLayerId_Topmost);sketchCursor_->Attributes()->SetShadingModel(Graphic3d_TOSM_UNLIT);context_->Display(sketchCursor_,AIS_Shaded,-1,false);context_->Deactivate(sketchCursor_);context_->UpdateCurrentViewer();
 }
-void ReferenceView::showSketchCursor(const QString& plane,const QPointF& first,const QPointF& second,bool rectangle) {
+void ReferenceView::showSketchCursor(const QString& plane,const QPointF& first,const QPointF& second,bool rectangle,bool centered) {
     clearSketchCursor();if(context_.IsNull() || first==second)return;
-    BRepBuilderAPI_MakePolygon polygon;polygon.Add(sketchWorld(plane,first.x(),first.y()));
+    if(centered && (first.x()==second.x() || first.y()==second.y()))return;
+    const QPointF origin=centered ? QPointF(2*first.x()-second.x(),2*first.y()-second.y()) : first;
+    BRepBuilderAPI_MakePolygon polygon;polygon.Add(sketchWorld(plane,origin.x(),origin.y()));
     if(rectangle) {
         if(first.x()==second.x() || first.y()==second.y())return;
-        polygon.Add(sketchWorld(plane,second.x(),first.y()));polygon.Add(sketchWorld(plane,second.x(),second.y()));
-        polygon.Add(sketchWorld(plane,first.x(),second.y()));polygon.Close();
+        polygon.Add(sketchWorld(plane,second.x(),origin.y()));polygon.Add(sketchWorld(plane,second.x(),second.y()));
+        polygon.Add(sketchWorld(plane,origin.x(),second.y()));polygon.Close();
     } else polygon.Add(sketchWorld(plane,second.x(),second.y()));
     if(!polygon.IsDone())return;
     sketchCursor_=sketchPresentation(polygon.Wire());

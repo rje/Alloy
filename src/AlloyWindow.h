@@ -116,6 +116,7 @@ private:
     QJsonObject beginSketch(const QString& plane, const QString& name, const QString& sketchId = {}, const QJsonObject& support = {});
     QJsonObject selectSupportFace(const QJsonObject& support);
     QJsonObject appendSketchEntity(const QString& tool, const QJsonObject& inputs);
+    QJsonObject appendCenterRectangle(const QJsonObject& inputs);
     QJsonObject resolveSketchSnap(double x, double y, const QString& plane, bool includeMidpoints = false) const;
     QJsonObject resolveCircleTangentSnap(double x, double y, const QString& plane) const;
     QJsonObject resolveFilletCorner(double x, double y, const QString& plane) const;
@@ -142,6 +143,9 @@ private:
     QJsonObject previewCircleDiameter(const QJsonObject& args);
     QJsonObject acceptCircleDiameter(const QJsonObject& args);
     void cancelCircleDiameter();
+    QJsonObject previewCenterRectangle(const QJsonObject& args);
+    QJsonObject acceptCenterRectangle(const QJsonObject& args);
+    void cancelCenterRectangle();
     void ensureSketchInlineEditor();
     void showCircleDiameterEditor(const QString& text);
     QJsonObject editDimension(const QString& id);
@@ -229,6 +233,7 @@ private:
     QScrollArea* sketchScroll_ = nullptr;
     QWidget* dimensionEditor_ = nullptr;
     QLineEdit* dimensionEditorValue_ = nullptr;
+    QLineEdit* centerRectangleHeight_ = nullptr;
     QLabel* dimensionEditorError_ = nullptr;
     QHBoxLayout* timelineLayout_ = nullptr;
     QLabel* documentTitle_ = nullptr;
