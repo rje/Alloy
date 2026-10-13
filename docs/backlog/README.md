@@ -7,7 +7,7 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current publication contains **219 issues**: **154 implementation, 16 research,
+The current publication contains **220 issues**: **155 implementation, 16 research,
 22 epics, and 27 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 
@@ -41,11 +41,12 @@ Source PDFs, URLs, visual references and detailed ledgers stay in external
 input #205 and curved ASCII export fix #206 are accepted. Timeline readability
 #207 is also accepted; the updated full toy recording uses actual edge dimensions.
 The subsequent Centerline/Revolve lesson #217 and native prerequisites214–216
-are accepted, as is compact original ribbon artwork #218. Next active work is
-#165: audit and complete bounded nested-profile/island handling and diagnostics.
+are accepted, as is compact original ribbon artwork #218. Nested-profile/island
+handling and diagnostics #165 are independently accepted.
 Bounded retained-target Extrude Intersect #219 is accepted; its broader
 operation-edit parent #161 remains Todo. Native compile matrix #132 is also active,
-with a single manual milestone dispatch planned after the current integrations.
+with one manual milestone matrix running at source d072534. The bounded Windows
+transport child #220 is active; #131 retains actual Windows desktop qualification.
 
 After every slice, run the smallest complete author/edit/finish/undo/reopen
 workflow it enables in a private real application instance. Record source steps
@@ -65,7 +66,7 @@ require macOS/Windows/Linux qualification; CI remains tag/manual only.
 
 | Phase | Count | Result |
 | --- | ---: | --- |
-| P0 Foundation | 29 | Public baseline, MIT dependency audit, document/naming/solver decisions, portable controls, native CI/packages/releases and hardware evidence |
+| P0 Foundation | 30 | Public baseline, MIT dependency audit, document/naming/solver decisions, portable controls, native CI/packages/releases and hardware evidence |
 | P1 Geometry/document | 20 | Real hardware-backed OCCT viewport, authored primitive document, selection, undo/save and STEP |
 | P2 Parametric modeling | 71 | Constrained sketches, parameters, editable extrusion/fillet chain and broader basic solid tools |
 | P3 Shape/import/print breadth | 30 | Solids/surfaces, common interchange and qualified printing export |
@@ -153,11 +154,11 @@ solver validation.
 ## Validation and publication
 
 ```sh
-python3 docs/backlog/validate.py
+python3 tools/backlog.py validate
 python3 tools/backlog.py ready
 ```
 
-The stdlib validator checks root/issue schema, unique keys, dependency existence,
+The current publisher validator checks root/issue schema, unique keys, dependency existence,
 acyclicity, dependency-first publication order, required issue-body sections,
 dated source links, epic decomposition requirements, the cumulative gate chain,
 and reachability of all tasks from the final gate. Initial tasks reach the
@@ -222,3 +223,9 @@ SKT-018, SKT-019, SOL-016 and TUT-003. See
 TUT-003 feeds GATE-020 and remains blocked; no skipped or substituted operation
 counts as completion. Constraint icons, visibility, construction styling,
 annotations and preview presentation are required alongside real geometry.
+
+The older `docs/backlog/validate.py` assumes the original seed prose headings and
+publication order. It currently fails on preexisting SKT-005 heading changes; it
+is not a passing validation of the evolved backlog. The publisher validator above
+checks current schema and acyclic dependencies; it does not establish reference
+coverage or cumulative product acceptance.

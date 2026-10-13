@@ -20,14 +20,19 @@ Main's default app is rebuilt with both. Receipt `validation/ribbon-icons.md`
 records actual 1040/1400 Retina layout and native input evidence. All private
 editors are closed. No release/tag or per-commit CI was triggered.
 
-98 of 219 issues are closed. Retained-target Extrude Intersect #219 is accepted
+98 of 220 issues are closed. Retained-target Extrude Intersect #219 is accepted
 and integrated; the main app rebuild passes. See validation/extrude-intersect.md.
 Nested profile/island coverage and diagnostics #165 are independently accepted and
 integrated; main app rebuild passes. See validation/profile-regions.md.
 Active work: root owns #132, one manual milestone compile matrix for the accepted
 current integrations and corrected native dependency options. Run 38396495940
 was manually dispatched at source d07253470a346f1b29faa87b33fcced51416ea0c;
-all four target results remain pending. Do not dispatch a duplicate. No tag/release
+all four target results remain pending. Do not dispatch a duplicate.
+The actual native file-sheet gate #167 remains Todo: two computer-control window
+binding attempts failed before interaction; no app defect or sheet pass claimed.
+Sol records the capability limit and closes its private editor. Windows transport
+child #220 is active after Astra architecture review; #131 retains actual Windows
+desktop/GPU and second-user access-denial qualification. No tag/release
 or per-commit CI. Intersect parent #161 retains broader operation-edit and
 typed-Return qualification as Todo. Split oversized remaining scope into linked Todo issues. Other broad parents remain Todo. The sections below are a chronological
 record; older ownership, pending status and counts are historical.
