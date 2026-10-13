@@ -1,0 +1,11 @@
+# Independent Trim and overlapping-region review
+
+2026-10-12: bounded acceptance for #174/#177, candidates126dcfa/d6f3af9 in integrated `build-support-integrated/alloy.app`. Reviewed OCCT interval construction, atomic solver publication, point-on-curve retention, source-set region signatures, authored reorder stability, explicit reference refusal, and the existing focused core/API receipts. No broad suite repeated.
+
+Independent native fixture used shared API setup of32×10rectangle,7.5guide,Ø15circle and all three3×10overlapping strips. Native T activated Trim; top-chord pointer click removed the correct interval. CmdZ exited Trim and the second CmdZ restored the exact authored draft. Native T and five source interval clicks (top, upper/lower left boundary, guide, bottom) followed by Return and native Finish produced five real regions: disk176.7145867644259mm², bridge86.00196961848577mm², and three30mm²strips. Five physical viewport clicks selected five distinct profile IDs with corresponding GPU highlights. Tiny dangling left fragments remain without extra profiles.
+
+Evidence: `build-support-integrated/evidence/independent/{setup.json,native-undo.json,native-trim-final.json,review.json,native-*.png,native-trimmed-support.alloy}`. Red Trim preview independently inspected in the existing actual-app `sketch-trim/trim-preview.png`; its segment and color are readable. The available CUA interface has no hover-only primitive, so native hover is unqualified, while preview and physical click are separately qualified. The independent native setup omitted dimension annotations; safe dimension retention/removal is supported by reviewed source/core/API evidence. This is feature acceptance, not the complete source tutorial. Saved review editor was closed before desktop handoff.
+
+## Edited native movie review
+
+The separate straw-bung highlight v2 is208s/48normal-speed windows. All475relevant logged events are retained; raw/log/edited hashes match, and edited frame windows are contiguous. Sampled frames show the persistent EDITED banner, native model states, and the explicit context-menu limitation. Long captions clip at the right edge; this is tracked separately, and raw recording plus full ledger remain authoritative. Review does not upgrade the unresolved source menu route or claim full exact parity.
