@@ -12,6 +12,10 @@
 #include <QComboBox>
 #include <QDoubleSpinBox>
 #include <QDialogButtonBox>
+#include <QDialog>
+#include <QDir>
+#include <QContextMenuEvent>
+#include <QTimer>
 #include <QScrollArea>
 #include <QScrollBar>
 #include <QDockWidget>
@@ -133,6 +137,89 @@ private slots:
         QCOMPARE(result["bodyId"],body["bodyId"]);
         QVERIFY(result["valid"].toBool() && result["closed"].toBool());
         QVERIFY(std::abs(result["volumeMm3"].toDouble()-3182)<1e-4);
+    }
+    void offsetPlaneSelectedSketchAndPlaneInput() {
+        AlloyWindow window;window.resize(1180,760);window.show();window.activateWindow();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        QVERIFY2(run(window,"sketch.begin",{{"plane","XY"}}),error_.constData());
+        QVERIFY2(run(window,"sketch.rectangle",{{"x1",0},{"y1",0},{"x2",20},{"y2",20}}),error_.constData());
+        QVERIFY2(run(window,"sketch.finish"),error_.constData());
+        auto inspected=window.execute("document.inspect")["result"].toObject();
+        QString sourceId=inspected["evaluation"].toObject()["sketches"].toArray()[0].toObject()["sketchId"].toString();
+        auto* view=viewport(window);QVERIFY(view);
+        auto* tree=window.findChild<QTreeWidget*>("browser.tree");QVERIFY(tree);
+        auto* offset=window.findChild<QToolButton*>("command.construction.plane");QVERIFY(offset);
+        auto* create=window.findChild<QToolButton*>("command.sketch.create");QVERIFY(create);
+        for(int pass=0;pass<3;++pass) {
+            QTreeWidgetItem* sourceItem=nullptr;
+            for(QTreeWidgetItemIterator it(tree);*it;++it)
+                if((*it)->data(0,Qt::UserRole+2).toString()==sourceId)sourceItem=*it;
+            QVERIFY(sourceItem);tree->scrollToItem(sourceItem);
+            QTest::mouseClick(tree->viewport(),Qt::LeftButton,Qt::NoModifier,tree->visualItemRect(sourceItem).center());
+            const auto before=window.execute("document.inspect")["result"].toObject()["authored"].toObject();
+            bool handled=false;
+            auto fillDialog=[&]{
+                auto* dialog=qobject_cast<QDialog*>(QApplication::activeModalWidget());
+                if(!dialog)return;
+                QTimer::singleShot(5000,dialog,&QDialog::reject);
+                auto* choices=dialog->findChild<QComboBox*>("construction.source");
+                auto* value=dialog->findChild<QDoubleSpinBox*>("construction.offset");
+                auto* buttons=dialog->findChild<QDialogButtonBox*>();
+                QVERIFY(choices && value && buttons);
+                QCOMPARE(choices->currentData().toJsonObject().value(pass<2 ? "sketchId" : "planeId").toString(),sourceId);
+                value->setFocus();value->selectAll();QTest::keyClicks(value,pass<2 ? "18" : "20");
+                // Tab commits the numeric editor without accepting the modal dialog.
+                QTest::keyClick(value,Qt::Key_Tab);
+                QCOMPARE(value->value(),pass<2 ? 18.0 : 20.0);
+                QCOMPARE(window.execute("document.inspect")["result"].toObject()["authored"].toObject(),before);
+                if(pass==1) {
+                    QVERIFY2(run(window,"capture.dialog",{{"path",QDir::currentPath()+"/build-tutorial-polish/evidence/construction-planes/qt-offset-dialog.png"}}),error_.constData());
+                    QVERIFY2(run(window,"capture.screenshot",{{"path",QDir::currentPath()+"/build-tutorial-polish/evidence/construction-planes/qt-amber-preview.png"}}),error_.constData());
+                    value->setFocus();value->selectAll();QTest::keyClicks(value,"18");
+                    QTest::keyClick(value,Qt::Key_Return);
+                    QVERIFY2(!dialog->isVisible(),"Enter in Offset must accept the plane dialog");
+                    handled=true;return;
+                }
+                handled=true;
+                QTest::mouseClick(buttons->button(pass==0 ? QDialogButtonBox::Cancel : QDialogButtonBox::Ok),Qt::LeftButton);
+            };
+            if(pass==1) {
+                QVERIFY2(run(window,"view.orientation",{{"name","top"}}),error_.constData());
+                QTimer::singleShot(100,&window,[&]{
+                    auto* menu=qobject_cast<QMenu*>(QApplication::activePopupWidget());QVERIFY(menu);
+                    QTimer::singleShot(5000,menu,&QMenu::close);
+                    QCOMPARE(menu->objectName(),QString("context.viewportProfile"));
+                    auto* action=menu->findChild<QAction*>("context.offsetPlane");QVERIFY(action);
+                    menu->grab().save("build-tutorial-polish/evidence/construction-planes/qt-profile-context.png");
+                    QTimer::singleShot(100,&window,fillDialog);
+                    QTest::mouseClick(menu,Qt::LeftButton,Qt::NoModifier,menu->actionGeometry(action).center());
+                });
+                const auto point=sketchPixel(view,10,10);
+                QContextMenuEvent event(QContextMenuEvent::Mouse,point,view->mapToGlobal(point));
+                QApplication::sendEvent(view,&event);
+            } else {
+                QTimer::singleShot(100,&window,fillDialog);
+                QTest::mouseClick(offset,Qt::LeftButton);
+            }
+            QVERIFY(handled);
+            inspected=window.execute("document.inspect")["result"].toObject();
+            if(pass==0){QCOMPARE(inspected["authored"].toObject(),before);continue;}
+            const auto planes=inspected["evaluation"].toObject()["constructionPlanes"].toArray();
+            QCOMPARE(planes.size(),pass);
+            const auto plane=planes.last().toObject();
+            QCOMPARE(plane["frame"].toObject()["origin"].toArray()[2].toDouble(),pass==1 ? 18.0 : 38.0);
+            sourceId=plane["featureId"].toString();
+            QTreeWidgetItem* planeItem=nullptr;
+            for(QTreeWidgetItemIterator it(tree);*it;++it)
+                if((*it)->data(0,Qt::UserRole+2).toString()==sourceId)planeItem=*it;
+            QVERIFY(planeItem);tree->scrollToItem(planeItem);
+            QTest::mouseClick(tree->viewport(),Qt::LeftButton,Qt::NoModifier,tree->visualItemRect(planeItem).center());
+            QTest::mouseClick(create,Qt::LeftButton);
+            QTRY_COMPARE(session(window)["command"].toString(),QString("sketch.edit"));
+            QCOMPARE(session(window)["inputs"].toObject()["planeId"].toString(),sourceId);
+            QCOMPARE(session(window)["resolvedFrame"].toObject()["origin"].toArray()[2].toDouble(),pass==1 ? 18.0 : 38.0);
+            QVERIFY2(run(window,"sketch.cancel"),error_.constData());
+        }
     }
     void moveActionsAtShortHeights() {
         AlloyWindow window;window.resize(1136,790);window.show();
