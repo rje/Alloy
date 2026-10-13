@@ -37,3 +37,30 @@ The finite fixture verifies one circle and one Cut target. Other tool shapes,
 multiple selected profiles, later Boolean splits, native mouse/keyboard input,
 and full keyring completion are not established here; the cumulative tutorial
 gate is #233.
+
+## Independent acceptance
+
+Accepted candidate `eb739051` on 2026-10-13. Independent review covered the
+nine-line kernel delta, existing prism-edge identity/history transfer, focused
+core test and persisted 0.33 s passing log, all 62 successful real-app API
+responses, report and actual selected-rim/committed/text-support captures.
+No additional editor or unchanged Boolean test sweep was needed.
+
+Only a single analytic-circle Cut contributes its prism base-rim descriptor.
+Its UUID derives from Cut feature, source profile/entity and role, not an edge
+index. Existing transfer admits only exact surviving edges or unique Modified
+edges actually present in the result; absent tool edges are unavailable and
+split descendants remain ambiguous. Thus adding a descriptor does not make a
+non-result cutter edge selectable. The focused fixture demonstrates the entry
+rim's usable identity before Fillet and retained authored input identity after
+that predecessor edge is consumed. Recompute after diameter change, original
+broad-floor support, undo and exact reopen are exercised.
+
+The actual preview has a readable R1 control and blue selected circular rim;
+the committed opening and subsequent text preview on the retained floor are
+visible. Head-on shading alone is not the geometric proof: the kernel chain and
+reported volume reduction from 3574.8672587713 to 3571.8693070026 mm³ establish
+the accepted fillet result. Selection here is shared viewport API input, not a
+new native-pointer claim. General Cut-edge naming, multiple profiles and later
+split recovery remain outside this narrowly supported entry-rim contract; the
+complete rounded keyring chain remains the separate #233 gate.
