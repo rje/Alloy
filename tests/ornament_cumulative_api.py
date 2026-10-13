@@ -54,7 +54,7 @@ def run(call, out, report, stage, stop_recording):
     call('document.save', {'path': str(pattern_path)})
 
     report['stage'] = 'eight-participant-hub-join'
-    stage('Bottom hub: XY diameter 10, Extrude -5 Join with all eight retained members')
+    stage('Create bottom hub: diameter 10 mm, Extrude 5 mm downward and Join all eight ribs')
     call('sketch.begin', {'plane': 'XY', 'name': 'Bottom hub diameter 10'})
     call('sketch.addCircle', {'centerX': 0, 'centerY': 0, 'diameter': 10, 'units': 'mm'})
     hub_id = call('app.state')['activeSession']['draftSketch']['id']
@@ -73,7 +73,7 @@ def run(call, out, report, stage, stop_recording):
     call('view.home'); capture('eight-ribs-hub-join')
 
     report['stage'] = 'transverse-hole'
-    stage('Transverse diameter 4 Cut: disclosed XZ offset-plane and bore-position fixture')
+    stage('Create hanging hole: diameter 4 mm, Cut through the bottom hub')
     plane_id = call('construction.plane', {'source': {'plane': 'XZ'}, 'offset': 10,
                     'units': 'mm', 'name': 'Bore start y -10'})['planeId']
     # Creation returns planeId; evaluated construction plane records expose featureId.
@@ -102,7 +102,7 @@ def run(call, out, report, stage, stop_recording):
                              'diameterMm': 4, 'distanceMm': distance,
                              'policy': 'Disclosed Alloy transverse coordinates; source exact hole position unknown.'}
     call('view.home'); capture('original-bore-result')
-    stage('Save original editable ornament; creation movie ends before validation edits')
+    stage('Save the editable ornament')
     original_path = out/'ornament-original.alloy'
     call('document.save', {'path': str(original_path)})
     report['original'] = original
