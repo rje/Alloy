@@ -5,6 +5,11 @@ Updated 2026-10-13. This is the project handoff for a fresh session. Read the ro
 
 ## Current checkpoint — read first (2026-10-13)
 
+User requested private repository visibility on 2026-10-13. `rje/Alloy` is now
+PRIVATE, verified through GitHub CLI. Preserve private visibility unless the user
+requests otherwise; the MIT license and long-term open-source product goal are
+unchanged.
+
 The nested cubes #172, egg cup #173, toy block #146, die #147 and subsequent
 Centerline/Revolve #217 and paper-clip #225 tutorial gates are accepted and
 closed. Their receipts

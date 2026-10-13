@@ -94,7 +94,7 @@ The completed bracket can be exported as one valid STEP solid or a closed STL
 mesh. A full-size design and millimeter STEP/STL plus a labeled 0.2-scale STL
 print sample have [independent readback evidence](docs/validation/bracket-exchange.md).
 
-The public repository is [rje/Alloy](https://github.com/rje/Alloy), with the
+The private development repository is [rje/Alloy](https://github.com/rje/Alloy), with the
 [issue backlog](https://github.com/rje/Alloy/issues) and
 [Alloy project board](https://github.com/users/rje/projects/1).
 
