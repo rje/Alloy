@@ -1,9 +1,8 @@
 # Straw support: video-variant workflow gate
 
-Prepared 2026-10-12 for TUT-005 #171. This is a runner/contract, **not a passing
-receipt**. `tests/support_tutorial_api.py` has only been syntax checked here;
-root will run the integrated candidate after independent native review releases
-the desktop. No application was launched for this preparation.
+Accepted 2026-10-12 for TUT-005 #171. The complete API workflow and cumulative
+independent native evidence pass; see [the independent acceptance receipt](support-tutorial-independent.md).
+The original contract and later execution results are retained below.
 
 Public evidence comes from source `support-original-video-20261012`, creator
 Diane Burton, University of Warwick WMG Outreach. Original PDF/video, retrieval
@@ -35,7 +34,7 @@ its complete selection map remains separate and unknown.
 
 The optional text and hole chamfer shown after the core cut are explicitly
 outside this gate, mapped to remaining emboss/text coverage #101 and solid Chamfer #50. The PDF
-six-edge fillet variant remains under broader Fillet #48. Neither optional work
+six-edge fillet variant remains under broader Fillet #41. Neither optional work
 nor unknown reference internals is silently counted as implemented.
 
 ## Move convention and expected geometry

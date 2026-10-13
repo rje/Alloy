@@ -3,18 +3,6 @@
 Updated 2026-10-12. This is the project handoff for a fresh session. Read the root
 [AGENTS.md](../AGENTS.md) first; its reference restrictions apply to all work.
 
-## Bounded solid fillet candidate (2026-10-12)
-
-SOL-022 / #182 adds the video-variant two-vertical-corner 1-mm solid fillet, numeric G1
-rolling-ball controls with Tangent Chain On, shared API and provenance-based
-edge identity. Off/manipulator/broader modes remain #48; general naming remains
-DOC-012. The PDF six-edge 0.5-mm variant is separate and unclaimed. Build and
-focused prism/failure/edit/merged-lineage checks pass. The joined #176 source
-fixture passes two-seed fillet, radius/outer-height edits, original disk-cap20
-supported circle, history and reopen. Real-app/API and independent native
-acceptance remain pending the combined candidate. See
-[the candidate receipt](validation/solid-fillet.md).
-
 ## Complete support demo (2026-10-12)
 
 Requested full creation movie delivered at
@@ -78,20 +66,15 @@ using the private coherent Qt runtime. Separate support build/evidence remains
 under `build-support-integrated`. All private review editors are closed; keep
 only one open during subsequent validation and preserve any user-owned app.
 
-Active work is #176 multi-result/successive Extrude Join in isolated
-`successive-join`, and #182 bounded source-video solid-edge fillet in
-`solid-fillet`. Sol implements both; Astra verifies independently after root
-integration. Join stores explicit connected result ownership and preserves
-surviving earlier caps. Fillet uses retained generated corner/end-rim references,
-constant G1 radius, rolling-ball and tangent-chain ON; OFF/manipulator/general
-modes remain #48. Both must retain the original disk cap at z20 for the next
-face sketch. Avoid selecting the latest prong cap by mistake. No current native
-editor is required while these branches implement.
+The earlier Join/Fillet candidate work is now accepted and closed as recorded
+above. Broader Fillet options remain Todo under #41; the PDF variant remains
+separate. No implementation is active while the next milestone is discussed.
 
-#171 full support tutorial remains Todo until those slices integrate; Trim and
-five-region native evidence is already accepted. Public video two-edge1mm fillet
-and PDF six-edge0.5mm variant stay distinct. Bulk references/media remain outside
-Git. No release/tag/CI triggered. Backlog: 182 issues, 51 closed, 131 open.
+## Historical checkpoints
+
+The sections below preserve earlier evidence and decisions. Their active/pending
+status descriptions are historical; use the current accepted checkpoint above
+and the live project board for present status.
 
 ## Resumed active work (2026-10-12)
 

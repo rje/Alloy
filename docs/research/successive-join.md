@@ -59,7 +59,7 @@ canvas profile selection, signed-distance arrow, commit/cancel and E stay shared
 Preserve positive cap support for exact surviving OCCT faces or unique actual
 Modified descendants with unchanged area and unique boundary lineage, including
 the disk cap at 20 mm. Independently named new prism caps are exposed per output.
-No general edge naming rewrite is included. Future fillet naming remains #48.
+No general edge naming rewrite is included. Future fillet naming remains #41.
 
 ## Exact source fixture and acceptance
 
