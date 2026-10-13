@@ -283,6 +283,11 @@ def main():
             call('sketch.textPreview', {'text': 'DSB', 'fontId': 'dejavu-sans-2.37-bold',
                                         'heightMm': 14, 'uMm': 5, 'vMm': -20})
             assert draft() == before
+            # Frame the object and the initial rotation arm before any handle drag.
+            center = pixel(30, -15)
+            viewport = state()['viewport']
+            call('view.pan', {'x': viewport['width']/2-center['x'],
+                              'y': viewport['height']/2-center['y']})
             capture('10-text-controls-preview')
             call('capture.dialog', {'path': str(output / '10-text-dialog.png')})
             text_sketch_id = draft()['id']
