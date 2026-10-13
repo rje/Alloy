@@ -101,6 +101,7 @@ def run(call, out, report, stage, stop_recording):
     report['holeFixture'] = {'planeId': plane_id, 'frame': frame, 'centerUvMm': [0, -2.5],
                              'diameterMm': 4, 'distanceMm': distance,
                              'policy': 'Disclosed Alloy transverse coordinates; source exact hole position unknown.'}
+    call('selection.set', {'bodyId': ''})
     call('view.home'); capture('original-bore-result')
     stage('Save the editable ornament')
     original_path = out/'ornament-original.alloy'
@@ -222,18 +223,17 @@ def main():
                 nonlocal recording
                 if recording:
                     recording = False
-                    report['recording'] = raw_call('recording.stop')
-                    report['movieRecorded'] = True
-            def cleanup_recording(exc_type, exc, tb):
-                try:
-                    stop_recording()
-                except Exception as cleanup_error:
-                    report['recordingCleanupFailure'] = {
-                        'type': type(cleanup_error).__name__, 'message': str(cleanup_error)}
-                    if exc_type is None:
-                        raise
-                return False
-            cleanup.push(cleanup_recording)
+                    try:
+                        report['recording'] = raw_call('recording.stop')
+                        report['movieRecorded'] = True
+                    except Exception as recording_error:
+                        # Movie acceptance is separate from geometry/history/STL.
+                        # Preserve this failure and continue the modeling gate.
+                        report['recordingFailure'] = {
+                            'type': type(recording_error).__name__,
+                            'message': str(recording_error)}
+                        report['movieRecorded'] = False
+            cleanup.callback(stop_recording)
             raw_call('window.resize', {'width': 1400, 'height': 1000})
             assert not raw_call('document.inspect')['authored']['features']
             if movie:

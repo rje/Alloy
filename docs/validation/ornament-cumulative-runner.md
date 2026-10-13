@@ -125,3 +125,20 @@ its report and stores cleanup errors separately.
 reuses the successful validated Fuse union contract when exactly one solid is
 produced; multi-output ownership partitioning retains its existing checks.
 No full tutorial/model/STL pass is claimed from this run.
+
+## Third actual run — 2026-10-13
+
+`cumulative-03` creates and saves `ornament-original.alloy`, including the
+transverse Cut. The actual final summary is one valid closed solid, volume
+17695.726643306665 mm³. Root inspected its GPU capture: complete ribs, hub and
+visible bore entry, with the construction plane still visible. This image does
+not replace the pending through-bore classifier. Initial Join takes23.67s;
+plane creation129.86s, sketch Finish126.39s, and Cut134.50s. None of those
+commands times out in this run. The sole terminal failure is `recording.stop`
+rejecting its long frame gap, before STL/edit/reopen checks execute. The editor
+exits; the partial movie is rejected.
+
+The runner now keeps recording failure as separate evidence and continues
+geometry/history/STL validation; it never sets `movieRecorded` true on failure
+or claims full tutorial acceptance. Final body selection is cleared for a
+neutral capture. #268 owns the observed repeated-evaluation latency.

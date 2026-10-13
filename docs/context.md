@@ -48,6 +48,14 @@ under external validation/ornament-feasibility/cumulative-{02,03}-plane-cpu-samp
 Sol is comparing repeated evaluation inputs before selecting a bounded fix;
 geometry approximation and tolerance changes remain excluded.
 
+Cumulative-03 is terminal with a complete saved original ornament (one valid
+closed solid,17695.726643306665 mm³), including the bore. Initial Join23.67s;
+plane129.86s, sketch Finish126.39s, Cut134.50s. No command timed out; the sole
+terminal failure was recording.stop frame-gap refusal, before edit/reopen/STL.
+The private editor is closed. Source solves and rebuilt prefix BReps are exactly
+stable; #268 now implements independently reviewed one-feature append reuse
+through the same evaluator, guarded by exact prefix/metadata equality.
+
 ## Latest accepted checkpoint — 2026-10-13
 
 Full slots/splines/conic/ellipse lesson #257 and color follow-up #259 are accepted
