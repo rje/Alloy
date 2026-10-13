@@ -103,6 +103,11 @@ and six driving dimensions, with a complete API creation movie and editable
 sketch. Exact edit/history/reopen checks passed in a separate saved-model run.
 This source ends at Finish Sketch and does not produce a print mesh.
 
+A [named-length parameter candidate](docs/validation/named-length-parameters.md)
+binds direct Length, Width and Thickness names to driving sketch dimensions
+and Extrude distance with stable IDs, native entry controls and atomic rebuild.
+Independent review is pending; the complete plate lesson remains separate.
+
 The private development repository is [rje/Alloy](https://github.com/rje/Alloy), with the
 [issue backlog](https://github.com/rje/Alloy/issues) and
 [Alloy project board](https://github.com/users/rje/projects/1).

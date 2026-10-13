@@ -23,6 +23,8 @@ public:
     QString activateOwner(const QString& ownerId);
     static bool hasOwner(const QJsonObject& authored, const QString& ownerId);
     static QJsonObject componentCandidate(const QJsonObject& authored, const QString& name);
+    static QJsonObject lengthParameterCandidate(const QJsonObject& authored,const QJsonObject& arguments);
+    static QJsonObject resolveLengthBindings(const QJsonObject& authored);
     quint64 revision() const { return revision_; }
     QUndoStack& history() { return history_; }
     void reset();

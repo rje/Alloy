@@ -2372,3 +2372,12 @@ captures cover the unchanged active fillet branch. Future signed direction
 consumers (#248) must use oriented endpoints rather than raw curve parameter
 signs. See [contract and receipt](validation/fillet-rim-lineage.md). Independent
 review and integration remain pending; the private editor is closed.
+## Named length parameter candidate (2026-10-13)
+
+PAR-002/#244 adds a document-owned stable-ID table for direct named lengths,
+driving sketch dimension and Extrude distance bindings, one native parameter
+table and name entry in the existing dimension and Distance fields. Bounded
+core, native Qt and real-entrypoint API checks pass; independent review remains.
+See [the candidate receipt](validation/named-length-parameters.md). The full
+plate/countersink exercise and arithmetic parameter expressions remain
+separate work.

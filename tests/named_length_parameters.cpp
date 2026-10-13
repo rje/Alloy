@@ -1,0 +1,75 @@
+#include "CadDocument.h"
+#include "SketchGeometry.h"
+#include "SolidFillet.h"
+#include <QCoreApplication>
+#include <QJsonArray>
+#include <QTemporaryDir>
+#include <cmath>
+#include <iostream>
+#include <stdexcept>
+
+namespace {
+void check(bool value,const char* message){if(!value)throw std::runtime_error(message);}
+void near(double actual,double expected,const char* message){check(std::abs(actual-expected)<1e-5,message);}
+QJsonObject row(const QJsonObject& document,const QString& name){for(const auto& value:document["userParameters"].toArray())if(value.toObject()["name"]==name)return value.toObject();return {};}
+QJsonObject dimension(const QJsonObject& document,const QString& featureId,const QString& kind){
+    const auto feature=SketchGeometry::findFeature(document,featureId);
+    for(const auto& value:feature["parameters"].toObject()["dimensions"].toArray())if(value.toObject()["kind"]==kind)return value.toObject();
+    return {};
+}
+}
+
+int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
+    CadDocument document;
+    for(const auto& entry:QVector<QPair<QString,double>>{{"Length",75},{"Width",50},{"Thickness",10}})
+        check(document.commit(CadDocument::lengthParameterCandidate(document.authored(),{{"name",entry.first},{"value",entry.second},{"units","mm"}}),"Add length").isEmpty(),"create named length");
+    const auto lengthId=row(document.authored(),"Length")["id"],widthId=row(document.authored(),"Width")["id"],thicknessId=row(document.authored(),"Thickness")["id"];
+    check(document.commit(CadDocument::lengthParameterCandidate(document.authored(),{{"parameterId",widthId},{"units","in"},{"value",2}}),"Edit length units").isEmpty(),"inches accepted as explicit unit");
+    near(row(document.authored(),"Width")["valueMm"].toDouble(),50.8,"inch value stored in canonical millimeters");
+    check(document.commit(CadDocument::lengthParameterCandidate(document.authored(),{{"parameterId",widthId},{"units","mm"},{"value",50}}),"Restore length units").isEmpty(),"unit edit preserves stable ID");
+    auto sketch=SketchGeometry::newFeature(document.authored()["documentId"].toString(),"XY");
+    sketch=SketchGeometry::addRectangle(sketch,{{"u1Mm",-30},{"v1Mm",-20},{"u2Mm",30},{"v2Mm",20}});
+    const auto entities=sketch["parameters"].toObject()["entities"].toArray();
+    auto accept=[&](const SketchGeometry::SolveResult& result){check(result.ok,result.error.toUtf8().constData());sketch=result.feature;};
+    const auto points=sketch["parameters"].toObject()["points"].toArray();
+    accept(SketchGeometry::addConstraint(sketch,{{"type","fixed"},{"pointIds",QJsonArray{points[0].toObject()["id"]}}}));
+    accept(SketchGeometry::addDimension(sketch,{{"kind","horizontal"},{"entityId",entities[0].toObject()["id"]},{"valueMm",75},{"parameterId",lengthId}}));
+    accept(SketchGeometry::addDimension(sketch,{{"kind","vertical"},{"entityId",entities[1].toObject()["id"]},{"valueMm",50},{"parameterId",widthId}}));
+    const auto sketchId=sketch["id"].toString();
+    check(document.commit(SketchGeometry::replaceFeature(document.authored(),sketch),"Finish sketch").isEmpty(),"finish bound sketch");
+    const auto profiles=document.sketches().front().profiles;
+    check(profiles.size()==1,"rectangle has one region");
+    auto extrusion=CadDocument::extrusionCandidate(document.authored(),{{"sketchId",sketchId},{"profileId",profiles.front().profileId},{"distanceMm",10},{"distanceParameterId",thicknessId}});
+    check(document.commit(extrusion,"Extrude").isEmpty(),"finish bound extrude");
+    near(document.bodies().front().summary["volumeMm3"].toDouble(),37500,"initial parameter volume");
+    const auto baseline=document.authored();
+    check(document.commit(CadDocument::lengthParameterCandidate(document.authored(),{{"parameterId",lengthId},{"value",85}}),"Edit length").isEmpty(),"update bound length");
+    near(dimension(document.authored(),sketchId,"horizontal")["valueMm"].toDouble(),85,"dimension numeric cache recomputed");
+    near(document.sketches().front().summary["boundsMm"].toObject()["size"].toArray()[0].toDouble(),85,"sketch rebuilt");
+    near(document.bodies().front().summary["volumeMm3"].toDouble(),42500,"solid rebuilt");
+    check(document.commit(CadDocument::lengthParameterCandidate(document.authored(),{{"parameterId",thicknessId},{"name","Depth"},{"value",12}}),"Rename and edit length").isEmpty(),"rename and edit bound distance");
+    near(document.bodies().front().summary["volumeMm3"].toDouble(),51000,"distance rebuilt after rename");
+    check(document.authored()["features"].toArray().last().toObject()["parameters"].toObject()["distanceParameterId"]==thicknessId,"extrude retains stable binding ID");
+    const auto beforeFailure=document.authored();const auto revision=document.revision();
+    try{CadDocument::lengthParameterCandidate(document.authored(),{{"parameterId",lengthId},{"name","Width"}});check(false,"duplicate name accepted");}catch(const std::invalid_argument&){}
+    try{CadDocument::lengthParameterCandidate(document.authored(),{{"parameterId",lengthId},{"value",-1}});check(false,"invalid value accepted");}catch(const std::invalid_argument&){}
+    auto broken=document.authored();auto features=broken["features"].toArray();auto feature=features.last().toObject(),parameters=feature["parameters"].toObject();parameters["distanceParameterId"]=CadDocument::newId();feature["parameters"]=parameters;features[features.size()-1]=feature;broken["features"]=features;
+    check(!document.commit(broken,"Missing binding").isEmpty() && document.authored()==beforeFailure && document.revision()==revision,"missing binding is atomic");
+    document.history().undo();check(document.authored()["features"].toArray().last().toObject()["parameters"].toObject()["distanceMm"].toDouble()==10,"undo restores old evaluated distance");
+    document.history().redo();check(document.authored()==beforeFailure,"redo restores stable bindings");
+    QTemporaryDir temporary;check(temporary.isValid(),"temporary directory");const auto path=temporary.path()+"/lengths.alloy";
+    check(document.save(path).isEmpty(),"save bound document");CadDocument reopened;check(reopened.open(path).isEmpty() && reopened.authored()==document.authored(),"reopen retained table and IDs");
+    near(reopened.bodies().front().summary["volumeMm3"].toDouble(),51000,"reopen regenerated bound solid");
+    QJsonArray cornerIds;
+    for(const auto& value:SolidFillet::descriptors(reopened.bodies().front().solidEdges)){
+        const auto edge=value.toObject();if(edge["available"].toBool() && edge["provenance"].toObject()["role"]=="sideCorner"){
+            cornerIds.append(edge["edgeId"]);break;
+        }
+    }
+    check(cornerIds.size()==1,"retained corner available for dependent fillet");
+    check(reopened.commit(CadDocument::filletCandidate(reopened.authored(),{{"targetBodyId",reopened.bodies().front().bodyId},{"edgeIds",cornerIds},{"radiusMm",4}}),"Corner fillet").isEmpty(),"dependent fillet commits");
+    const auto beforeDownstreamFailure=reopened.authored();const auto downstreamRevision=reopened.revision();
+    check(!reopened.commit(CadDocument::lengthParameterCandidate(reopened.authored(),{{"parameterId",widthId},{"value",2}}),"Impossible dependent fillet").isEmpty(),"downstream fillet must reject narrowed width");
+    check(reopened.authored()==beforeDownstreamFailure && reopened.revision()==downstreamRevision,"downstream evaluation refusal is atomic");
+    std::cout<<"PASS: named lengths bind sketch and extrusion, rebuild atomically, undo and reopen\n";return 0;
+}catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}}

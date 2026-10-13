@@ -127,6 +127,9 @@ fail without applying the command. Error codes include `invalid_request`,
 | `capture.dialog` | Absolute `.png` path; actual active QWidget dialog or modeling dock |
 | `document.inspect` | Authored root/feature IDs, ownership, canonical units and journal state |
 | `document.units` | `units`: `mm` or `in`; display conversion preserves canonical values |
+| `document.parameterAdd` | `name`, positive `value`, `units` (`mm`/`in`); create one stable-ID user length in `document.inspect.userParameters` |
+| `document.parameterUpdate` | `parameterId`, optional `name`, `value`, `units`; atomically rename or recompute all bound dimensions and extrusions |
+| `document.parametersDialog` | Open native Change Parameters table with Add/Update controls; unavailable during an active modeling command |
 | `document.tabs` | Active stable tab ID plus open design titles, paths, dirty and sketch-draft flags; also in `app.state.documentTabs` |
 | `document.tabNew` | Create and activate an independent blank design; native plus and Cmd/Ctrl+N use this |
 | `document.tabActivate` | `tabId`: restore document, accepted sketch draft/journal, selection and camera; pending input refuses |
@@ -138,7 +141,7 @@ fail without applying the command. Error codes include `invalid_request`,
 | `solid.box` | Required `width`, `depth`, `height`; optional `x`, `y`, `z`, `units`, `name`, `featureId` |
 | `solid.cylinder` | Required `radius`, `height`; same optional placement/unit/name/edit fields |
 | `primitive.box`, `primitive.cylinder` | Open their actual shared dimension dialogs |
-| `solid.extrude` | Required `sketchId`, exclusive `profileId` or distinct `profileIds`, signed `distance`; optional `units` (`mm`/`in`), `name`, existing `featureId`, `operation` (`newBody`/`join`/`cut`), one `targetBodyIds` entry for Join/Cut; direct create/edit commit |
+| `solid.extrude` | Required `sketchId`, exclusive `profileId` or distinct `profileIds`, and either signed numeric `distance` or direct user length `distanceParameter`; optional `units` (`mm`/`in`), `name`, existing `featureId`, `operation` (`newBody`/`join`/`cut`), one `targetBodyIds` entry for Join/Cut; direct create/edit commit |
 | `solid.pressPullDialog` | Optional `sketchId`, `profileIds`; Modify/Q opens the shared extrusion session before profile selection |
 | `solid.extrudeDialog` | Optional `sketchId`, exclusive `profileId` or `profileIds`; toolbar/E opener for the shared extrusion session |
 | `solid.combine` | Required `targetBodyId`, nonempty distinct `toolBodyIds`, `operation` (`join`/`cut`/`intersect`); optional `keepTools` (default false), `name`, existing `featureId`, `operation` (`newBody`/`cut`), one `targetBodyIds` entry for Cut; direct create/edit commit |
@@ -181,7 +184,7 @@ fail without applying the command. Error codes include `invalid_request`,
 | `sketch.constructionToggle` | Toggle selected lines; mixed selection becomes construction, all-construction becomes normal; shared X/context/palette command |
 | `sketch.constraint` | `type`: `coincident`, `horizontal`, `vertical`, `parallel`, `perpendicular`, `equal` or `fixed`; optional `pointIds`, `entityIds`, `session`. Omitted targets use active sketch selection |
 | `sketch.constraintTool` | `type`: persistent constraint-first tool; repeated picks apply shared retained relations, Escape returns to Select |
-| `sketch.dimension` | `kind`: `linear`, `horizontal`, `vertical`, `radius`, `diameter`, `angle`, `arcSweep`, `pointLineDistance`, `parallelLineDistance` or `centerlineDiameter`; optional `pointIds` (two, or one with `pointLineDistance`), `entityId` (one line/curve), `entityIds` (two straight lines for line-pair kinds), `raySigns` (two values ±1 for angle), `value` (length) or `valueDeg` (angle/sweep), `units`, `driving`, `annotation`, `session`. A parallel-line distance retains both ordered line UUIDs and signed side, and drives one perpendicular separation. Parallel orientation must already be retained by sketch relations. Omitted targets use selection; `driving` defaults true |
+| `sketch.dimension` | `kind`: `linear`, `horizontal`, `vertical`, `radius`, `diameter`, `angle`, `arcSweep`, `pointLineDistance`, `parallelLineDistance` or `centerlineDiameter`; optional `pointIds` (two, or one with `pointLineDistance`), `entityId` (one line/curve), `entityIds` (two straight lines for line-pair kinds), `raySigns` (two values ±1 for angle), numeric `value` (length), direct `parameterName` (driving length), or `valueDeg` (angle/sweep), `units`, `driving`, `annotation`, `session`. A parallel-line distance retains both ordered line UUIDs and signed side, and drives one perpendicular separation. Parallel orientation must already be retained by sketch relations. Omitted targets use selection; `driving` defaults true |
 | `sketch.dimensionPreview` | `x`, `y`: logical pixels; optional `kind` (`auto` or a dimension kind above), `driving`, `session`; preview selected targets |
 | `sketch.dimensionPlace` | `x`, `y`, optional `session`; fix placement and show the actual inline numeric editor |
 | `sketch.dimensionAccept` | Optional `text` or numeric `value` (length)/`valueDeg` (sweep), `units`, `session`; text accepts mm/in for lengths or deg/° for sweep; expressions are unsupported |
@@ -191,7 +194,7 @@ fail without applying the command. Error codes include `invalid_request`,
 | `sketch.annotationPick` | `x`, `y`: logical pixels; actual projected/rotated label hit test |
 | `sketch.annotationMove` | `dimensionId`, `uMm`, `vMm`, optional `gestureId`, `session`; repeated moves with one gesture identity coalesce into one draft undo entry; move placement only, retaining exact authored points/values |
 | `sketch.annotationEndGesture` | `dimensionId`, `gestureId`; end annotation drag coalescing without authoring geometry |
-| `sketch.dimensionUpdate` | `dimensionId`, positive `value` (length) or `valueDeg` (sweep); optional `units`, `session`; edit a driving dimension by stable UUID |
+| `sketch.dimensionUpdate` | `dimensionId`, exactly one positive numeric `value` (length) or direct `parameterName`, or `valueDeg` (angle/sweep); optional `units`, `session`; edit a driving dimension by stable UUID. A numeric length edit clears a prior binding |
 | `sketch.movePoint` | `pointId`, `x`, `y`; optional `units`, `session`; seed a point's coordinates and solve the copied draft |
 | `feature.edit` | `featureId`: UUID; `parameters`: partial canonical-mm fields such as `widthMm` |
 | `feature.editDialog`, `feature.delete` | `featureId`: UUID; actual primitive/sketch/extrusion/Combine editor or one undoable deletion; invalid downstream dependencies are rejected |

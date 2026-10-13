@@ -863,7 +863,8 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
                 || !checkReferences(dimension,"pointIds",2,pointIds)) return "Invalid dimension kind or references";
             const bool driving=dimension["driving"].toBool(), placed=dimension.contains("annotation");
             const auto valueKey=kind=="arcSweep" || angle ? "valueDeg" : "valueMm";
-            if (dimension.size() != (driving ? 5 : 4)+int(placed)+int(angle && dimension.contains("raySigns"))+2*int(kind=="pointLineDistance")+int(kind=="centerlineDiameter" || kind=="parallelLineDistance") || (!driving && dimension.contains(valueKey))) return "Unexpected dimension fields";
+            if (dimension.size() != (driving ? 5 : 4)+int(placed)+int(angle && dimension.contains("raySigns"))+2*int(kind=="pointLineDistance")+int(kind=="centerlineDiameter" || kind=="parallelLineDistance")+int(dimension.contains("parameterId")) || (!driving && dimension.contains(valueKey))) return "Unexpected dimension fields";
+            if(dimension.contains("parameterId") && (!driving || angle || kind=="arcSweep" || !validId(dimension["parameterId"].toString())))return "Only driving length dimensions accept stable parameter references";
             if (placed) {
                 if (!dimension["annotation"].isObject()) return "Dimension annotation must be an object";
                 const auto annotation = dimension["annotation"].toObject();
@@ -970,7 +971,7 @@ SketchGeometry::SolveResult SketchGeometry::addConstraint(const QJsonObject& dra
 SketchGeometry::SolveResult SketchGeometry::addDimension(const QJsonObject& draft, const QJsonObject& arguments, const QJsonObject& projectionContext) {
     try {
         validateDraft(draft);
-        checkFields(arguments, {"kind", "pointIds", "entityId", "entityIds", "raySigns", "driving", "valueMm", "valueDeg", "annotation"});
+        checkFields(arguments, {"kind", "pointIds", "entityId", "entityIds", "raySigns", "driving", "valueMm", "valueDeg", "annotation", "parameterId"});
         if (arguments.contains("driving") && !arguments["driving"].isBool()) reject("Dimension driving must be Boolean");
         auto parameters = draft["parameters"].toObject();
         QJsonArray pointIds = arguments["pointIds"].toArray();
@@ -991,6 +992,10 @@ SketchGeometry::SolveResult SketchGeometry::addDimension(const QJsonObject& draf
         }
         const bool driving = arguments.value("driving").toBool(true);
         QJsonObject dimension{{"id", newId()}, {"kind", arguments["kind"]}, {"pointIds", pointIds}, {"driving", driving}};
+        if(arguments.contains("parameterId")) {
+            if(!driving || angle || kind=="arcSweep" || !validId(arguments["parameterId"].toString()))reject("Only driving length dimensions accept a stable parameter ID");
+            dimension["parameterId"]=arguments["parameterId"];
+        }
         if(curve && arguments.contains("pointIds"))reject("Curve dimensions require one entity reference");
         if(curve) {dimension.remove("pointIds"); dimension["entityId"]=arguments["entityId"];}
         if(angle) {dimension.remove("pointIds");dimension["entityIds"]=arguments["entityIds"];
@@ -1550,7 +1555,7 @@ SketchGeometry::SolveResult SketchGeometry::updateCircleOffset(const QJsonObject
 SketchGeometry::SolveResult SketchGeometry::updateDimension(const QJsonObject& draft, const QJsonObject& arguments, const QJsonObject& projectionContext) {
     try {
         validateDraft(draft);
-        checkFields(arguments, {"dimensionId", "valueMm", "valueDeg"});
+        checkFields(arguments, {"dimensionId", "valueMm", "valueDeg", "parameterId"});
         auto parameters = draft["parameters"].toObject();
         auto dimensions = parameters["dimensions"].toArray();
         bool found = false;
@@ -1562,7 +1567,12 @@ SketchGeometry::SolveResult SketchGeometry::updateDimension(const QJsonObject& d
             const auto key=angular ? "valueDeg" : "valueMm";
             coordinate(arguments,key);
             if(arguments.contains(angular ? "valueMm" : "valueDeg")) reject("Dimension value has incorrect units");
-            dimension[key] = arguments[key]; dimensions[i] = dimension; found = true; break;
+            dimension[key] = arguments[key];
+            if(arguments.contains("parameterId")) {
+                if(angular || !validId(arguments["parameterId"].toString()))reject("Only driving length dimensions accept a stable parameter ID");
+                dimension["parameterId"]=arguments["parameterId"];
+            } else dimension.remove("parameterId");
+            dimensions[i] = dimension; found = true; break;
         }
         if (!found) reject("Driving dimension does not exist");
         parameters["dimensions"] = dimensions;

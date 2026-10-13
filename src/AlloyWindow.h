@@ -62,6 +62,8 @@ private:
     QJsonObject beginSession(const QString& command, const QJsonObject& inputs);
     QJsonObject finishSession(const QString& id, bool commit);
     void showUnits();
+    QJsonObject lengthParameter(const QString& name) const;
+    void showLengthParameters();
     void showPrimitive();
     void updatePrimitive(const QJsonObject& inputs);
     QJsonObject beginExtrude(const QJsonObject& inputs);

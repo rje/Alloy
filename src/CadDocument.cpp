@@ -220,6 +220,50 @@ QJsonObject CadDocument::componentCandidate(const QJsonObject& authored,const QS
     occurrences.append(QJsonObject{{"id",newId()},{"definitionId",id},{"parentId",authored["documentId"]},{"placement","identity"}});
     candidate["components"]=components;candidate["occurrences"]=occurrences;return candidate;
 }
+QJsonObject CadDocument::lengthParameterCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
+    const QSet<QString> allowed{"parameterId","name","value","units"};
+    for(auto it=arguments.begin();it!=arguments.end();++it)if(!allowed.contains(it.key()))throw std::invalid_argument("Unknown length parameter argument");
+    auto candidate=authored;auto rows=candidate["userParameters"].toArray();
+    const auto id=arguments.value("parameterId").toString();int index=-1;
+    if(!id.isEmpty())for(int i=0;i<rows.size();++i)if(rows[i].toObject()["id"]==id){index=i;break;}
+    if(!id.isEmpty() && index<0)throw std::invalid_argument("Length parameter ID is unavailable");
+    auto row=index<0 ? QJsonObject{{"id",newId()},{"name",""},{"units","mm"},{"valueMm",0}} : rows[index].toObject();
+    if(arguments.contains("name"))row["name"]=arguments["name"];
+    if(arguments.contains("units"))row["units"]=arguments["units"];
+    if(arguments.contains("value"))row["valueMm"]=millimeters(arguments["value"].toDouble(),row["units"].toString());
+    else if(index<0)throw std::invalid_argument("Length parameter value is required");
+    if(index<0)rows.append(row);else rows[index]=row;
+    candidate["userParameters"]=rows;
+    const auto error=validateStructure(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());
+    return candidate;
+}
+QJsonObject CadDocument::resolveLengthBindings(const QJsonObject& authored) {
+    QMap<QString,double> values;
+    for(const auto& entry:authored["userParameters"].toArray()) {
+        const auto row=entry.toObject();values[row["id"].toString()]=row["valueMm"].toDouble();
+    }
+    auto result=authored;auto features=result["features"].toArray();
+    for(int i=0;i<features.size();++i) {
+        auto feature=features[i].toObject();auto p=feature["parameters"].toObject();
+        if(feature["type"]=="sketch") {
+            auto dims=p.value("dimensions").toArray();bool changed=false;
+            for(int j=0;j<dims.size();++j) {
+                auto dim=dims[j].toObject();if(!dim.contains("parameterId"))continue;
+                const auto id=dim["parameterId"].toString();
+                if(!values.contains(id))throw std::invalid_argument("Sketch dimension references a missing length parameter");
+                if(!dim["driving"].toBool() || dim["kind"]=="angle" || dim["kind"]=="arcSweep")throw std::invalid_argument("Only driving length dimensions accept length parameters");
+                dim["valueMm"]=values[id];dims[j]=dim;changed=true;
+            }
+            if(changed)p["dimensions"]=dims;
+        } else if(feature["type"]=="extrude" && p.contains("distanceParameterId")) {
+            const auto id=p["distanceParameterId"].toString();
+            if(!values.contains(id))throw std::invalid_argument("Extrude references a missing length parameter");
+            p["distanceMm"]=values[id];
+        }
+        feature["parameters"]=p;features[i]=feature;
+    }
+    result["features"]=features;return result;
+}
 QString CadDocument::newId() { return QUuid::createUuid().toString(QUuid::WithoutBraces); }
 CadDocument::CadDocument() { reset(); }
 void CadDocument::reset() {
@@ -273,15 +317,18 @@ CadDocument::CandidateEvaluation CadDocument::evaluateCandidate(const QJsonObjec
     CandidateEvaluation result;
     result.authored = candidate;
     QJsonObject structuralContext;
-    const auto structural = validateStructure(candidate,&structuralContext);
+    QJsonObject resolved;
+    try {resolved=resolveLengthBindings(candidate);}
+    catch(const std::exception& error){result.error=QString::fromUtf8(error.what());result.diagnostics={{"code","invalid_parameter_binding"},{"message",result.error}};return result;}
+    const auto structural = validateStructure(resolved,&structuralContext);
     if (!structural.isEmpty()) {
         result.error = structural; result.diagnostics = structuralContext;
         result.diagnostics["code"] = "invalid_document";result.diagnostics["message"] = structural;return result;
     }
-    const auto dependency = dependencyError(candidate);
+    const auto dependency = dependencyError(resolved);
     if (!dependency.isEmpty()) {result.diagnostics = dependency;result.error = dependency["message"].toString();return result;}
     try {
-        const auto solved = solveSketches(candidate);
+        const auto solved = solveSketches(resolved);
         auto evaluated = std::make_shared<const EvaluatedDocument>(GeometryKernel::evaluateDocument(solved));
         result.authored = solved;
         auto normalized=solved["features"].toArray();
@@ -350,7 +397,7 @@ QJsonObject CadDocument::extrusionCandidate(const QJsonObject& authored, const Q
     auto reject = [](const QString& message) {throw std::invalid_argument(message.toStdString());};
     const auto initial = validate(authored);
     if (!initial.isEmpty()) reject(initial);
-    const QSet<QString> allowed{"ownerId","sketchId","profileId","profileIds","distanceMm","name","featureId","newFeatureId","newBodyId","operation","targetBodyIds"};
+    const QSet<QString> allowed{"ownerId","sketchId","profileId","profileIds","distanceMm","distanceParameterId","name","featureId","newFeatureId","newBodyId","operation","targetBodyIds"};
     for (auto it = arguments.begin(); it != arguments.end(); ++it)
         if (!allowed.contains(it.key())) reject("Unknown extrusion argument: "+it.key());
     const bool edit = arguments.contains("featureId"), newFeature = arguments.contains("newFeatureId"), newBody = arguments.contains("newBodyId");
@@ -380,6 +427,7 @@ QJsonObject CadDocument::extrusionCandidate(const QJsonObject& authored, const Q
     if (arguments.contains("name")) feature["name"] = arguments["name"];
     if(arguments.contains("profileId")==arguments.contains("profileIds"))reject("Choose profileId or profileIds exclusively");
     auto profileParameters=QJsonObject{{"sketchId",arguments["sketchId"]},{"distanceMm",arguments["distanceMm"]}};
+    if(arguments.contains("distanceParameterId"))profileParameters["distanceParameterId"]=arguments["distanceParameterId"];
     if(cut) {
         const auto targets=arguments.contains("targetBodyIds") ? arguments["targetBodyIds"] : previousParameters["targetBodyIds"];
         if(!targets.isArray() || targets.toArray().isEmpty() || (operation!="join" && targets.toArray().size()!=1))reject("Join requires participants; Cut/Intersect require one target");
@@ -581,8 +629,11 @@ double CadDocument::millimeters(double value, const QString& units) {
     return converted;
 }
 QString CadDocument::validate(const QJsonObject& candidate) {
-    const auto structural = validateStructure(candidate);
-    return structural.isEmpty() ? dependencyError(candidate)["message"].toString() : structural;
+    try {
+        const auto resolved=resolveLengthBindings(candidate);
+        const auto structural=validateStructure(resolved);
+        return structural.isEmpty() ? dependencyError(resolved)["message"].toString() : structural;
+    } catch(const std::exception& error) {return QString::fromUtf8(error.what());}
 }
 QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject* errorContext) {
     if (errorContext) *errorContext = {};
@@ -593,6 +644,18 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
     if (units != "mm" && units != "in") return "Unsupported display units";
     if (!candidate["features"].isArray()) return "Features must be an array";
     QSet<QString> ids{root}, owners{root};
+    if(candidate.contains("userParameters") && !candidate["userParameters"].isArray())return "User parameters must be an array";
+    QSet<QString> names;
+    static const QRegularExpression parameterName("^[A-Za-z_][A-Za-z0-9_]*$");
+    for(const auto& entry:candidate["userParameters"].toArray()) {
+        const auto p=entry.toObject();const auto id=p["id"].toString(),name=p["name"].toString(),units=p["units"].toString();
+        const double value=p["valueMm"].toDouble();
+        if(!entry.isObject() || p.size()!=4 || !validId(id) || ids.contains(id) || !p["name"].isString()
+            || !parameterName.match(name).hasMatch() || names.contains(name) || (units!="mm" && units!="in")
+            || !p["valueMm"].isDouble() || !std::isfinite(value) || value<0.001 || value>100000)
+            return "User length parameters require unique IDs/names and positive finite mm/in values";
+        ids.insert(id);names.insert(name);
+    }
     if(candidate.contains("components") && !candidate["components"].isArray())return "Components must be an array";
     if(candidate.contains("occurrences") && !candidate["occurrences"].isArray())return "Occurrences must be an array";
     for(const auto& value:candidate["components"].toArray()) {
@@ -766,8 +829,9 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
         }
         if (type == "extrude") {
             if (errorContext) {(*errorContext)["sketchId"] = p["sketchId"];(*errorContext)["profileId"] = p["profileId"];}
-            if (p.size()!=(cut ? 5 : 3) || !p["sketchId"].isString() || !validId(p["sketchId"].toString())
+            if (p.size()!=(cut ? 5 : 3)+int(p.contains("distanceParameterId")) || !p["sketchId"].isString() || !validId(p["sketchId"].toString())
                 || p.contains("profileId")==p.contains("profileIds")) return "Extrusion requires sketchId and exclusive profileId or profileIds";
+            if(p.contains("distanceParameterId") && !validId(p["distanceParameterId"].toString()))return "Extrusion length binding requires a stable parameter ID";
             if(p.contains("profileIds")) {
                 if(!p["profileIds"].isArray() || p["profileIds"].toArray().isEmpty())return "Extrusion requires a nonempty profileIds array";
                 QSet<QString> chosen;
@@ -815,7 +879,7 @@ QJsonObject CadDocument::state() const {
     }
     QJsonArray evaluatedPlanes;
     for(const auto& plane:evaluation_->constructionPlanes)evaluatedPlanes.append(QJsonObject{{"ownerId",plane.ownerId},{"featureId",plane.featureId},{"name",plane.name},{"visible",plane.visible},{"frame",plane.frame}});
-    return {{"activeOwnerId",activeOwnerId()},{"components",authored_["components"].toArray()},{"occurrences",authored_["occurrences"].toArray()},{"loaded", true}, {"id", authored_["documentId"]}, {"label", path_.isEmpty() ? "Untitled" : QFileInfo(path_).completeBaseName()}, {"path",path_},
+    return {{"activeOwnerId",activeOwnerId()},{"components",authored_["components"].toArray()},{"occurrences",authored_["occurrences"].toArray()},{"userParameters",authored_["userParameters"].toArray()},{"loaded", true}, {"id", authored_["documentId"]}, {"label", path_.isEmpty() ? "Untitled" : QFileInfo(path_).completeBaseName()}, {"path",path_},
         {"units", authored_["displayUnits"]}, {"canonicalLengthUnit", "mm"},
         {"revision", static_cast<qint64>(revision_)}, {"dirty", !history_.isClean()},
         {"lastTransactionId", lastTransaction_},
