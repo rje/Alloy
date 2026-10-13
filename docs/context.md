@@ -84,14 +84,16 @@ A reviewed integration correction explicitly chooses the intended preview group.
 Control spline/curvature comb #254 is independently accepted and integrated as
 e17f0d5/c3a6638. Main builds; four slot/spline core checks pass in 1.79s.
 Native and 32-call API evidence remain separate in validation/control-point-spline.md.
-Ellipse #256 native checks pass; separate API verification is running. Root has also started conic #255 in
+Ellipse #256 candidate6cab0b3 core/native and 35-call API checks pass;
+Astra final review is underway. Sol is preparing full #257 runner, not yet run. Root has also started conic #255 in
 `../Alloy-worktrees/conic` / `feat/conic`, candidate a534335 with retained OCCT
 geometry and shared creation/Rho commands. App builds and focused core passes
 1/1 (0.42 s), including asymmetric shoulder/tangents and exact retained history.
 Astra pre-reviewed the core; two integration corrections are applied. Partial creation/Rho numeric controls are committed as 81713cf; a 39-call
 real-app preview/refusal/edit/history run passes in external conic api-attempt-04.
 Conic candidate56c2be9 adds the Rho arrow and native context OK/edit/cancel;
-focused native checks pass3/3 in2897ms. Independent final review is underway.
+focused native checks pass3/3 in2897ms. Independent conic review309d6d8 accepted; integrated through8addcb5.
+Main app builds and combined conic/control/fit/arc core4/4 pass. #255 is Done.
 Full lesson #257 remains Todo.
 Root owns `tests/center_point_arc_slot_api.py`: passed 44 calls on the reviewed
 arc candidate, with exact source model and an inspected readable capture. It checks both slots in one sketch, source radius/H/V/radial-line/
@@ -128,7 +130,7 @@ visual parity remain qualified. The external
 editable models and STL deliverables. The Revolve receipt is
 [validation/revolve-tutorial.md](validation/revolve-tutorial.md).
 
-**134 of 258 issues are closed.** Recent accepted work includes compact ribbon
+**135 of 258 issues are closed.** Recent accepted work includes compact ribbon
 icons #218, retained Extrude Intersect #219, nested profile/island diagnostics
 #165, portable local controls #220, shared-line fillets #221, typed Line length
 locks #222, retained Sweep #223 and native Sweep controls #224. Each has a scoped
