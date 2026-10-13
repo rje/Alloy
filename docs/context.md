@@ -66,7 +66,7 @@ slot center (PDF prose conflicts with pictured/official UI); centerline150/R25
 means overall200x50. Arc pathR150/endR15 with135degree radial relation yields
 upper90degree sweep. Final ellipse275x100 is horizontal/centered; inferred
 constraint steps remain explicit. External independent contract and command
-research: knowledge/tutorials/after-countersunk-plate/. No new feature accepted.
+research: knowledge/tutorials/after-countersunk-plate/. No new feature accepted. External knowledge corpus now has19 validated/indexed records, including the complete new lesson and six archived visual references. Conic mapping and spline-degree/continuity designs are under independent review before implementation.
 
 User requested private repository visibility on 2026-10-13. `rje/Alloy` is now
 PRIVATE, verified through GitHub CLI. Preserve private visibility unless the user
