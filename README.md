@@ -51,6 +51,11 @@ the complete blank-model workflow through the shared API with command overlays.
 This is not complete CAD parity.
 Annotated real-app tutorial movies can now be recorded with local commands; see
 [the video recipe and verified results](docs/validation/tutorial-video.md).
+The illustrated [Centerline and Revolve lesson](docs/validation/revolve-tutorial.md)
+also has a complete creation movie, editable source and checked STL. Its partial
+angular control and full revolution retain sketch/axis references through edits
+and storage. [Original vector ribbon icons](docs/validation/ribbon-icons.md) now
+fit the existing modeling commands at the minimum window width.
 The overnight tutorials now include independently accepted
 [nested cubes](docs/validation/nested-cubes-independent.md) and a
 [lofted egg cup](docs/validation/egg-cup-independent.md), with full creation

@@ -40,6 +40,9 @@ Source PDFs, URLs, visual references and detailed ledgers stay in external
 `knowledge/tutorials`; nested cubes, egg cup and the adapted toy block are accepted with documented API/input limits. The adapted die gate is also accepted. Next: direct center-to-edge dimension
 input #205 and curved ASCII export fix #206 are accepted. Timeline readability
 #207 is also accepted; the updated full toy recording uses actual edge dimensions.
+The subsequent Centerline/Revolve lesson #217 and native prerequisites214–216
+are accepted, as is compact original ribbon artwork #218. Next active work is
+#165: audit and complete bounded nested-profile/island handling and diagnostics.
 
 After every slice, run the smallest complete author/edit/finish/undo/reopen
 workflow it enables in a private real application instance. Record source steps

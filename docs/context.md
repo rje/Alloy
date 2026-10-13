@@ -3,6 +3,27 @@
 Updated 2026-10-13. This is the project handoff for a fresh session. Read the root
 [AGENTS.md](../AGENTS.md) first; its reference restrictions apply to all work.
 
+## Current checkpoint — read first (2026-10-13)
+
+The authorized nested-cubes #172, egg-cup #173, toy-block #146 and die #147
+workflow gates are accepted and closed, with the explicit adaptations and input
+limits in their independent receipts. The subsequent Centerline/Revolve tutorial
+#217 is also accepted: full creation movie, editable original/edited documents,
+strict STL and retained edit/history/reopen evidence. Canonical external outputs
+are `demos/2026-10-13/revolve/revolve-complete.mp4` and
+`deliverables/revolve-2026-10-13/`; receipt `validation/revolve-tutorial.md`.
+
+Native Revolve controls #216 and original compact ribbon icons #218 are accepted.
+Main's default app is rebuilt with both. Receipt `validation/ribbon-icons.md`
+records actual1040/1400 Retina layout and native input evidence. All private
+editors are closed. No release/tag or per-commit CI was triggered.
+
+96 of218 issues are closed. Next active work is #165: Sol audits existing nested
+profile/island behavior in an isolated worktree, then implements a finishable
+scope with Astra verification. Split oversized remaining scope into linked Todo
+issues. Other broad parents remain Todo. The sections below are a chronological
+record; older ownership, pending status and counts are historical.
+
 ## Overnight queue authorized (2026-10-12)
 
 User selected autonomous overnight tutorial work: nested cubes #172, egg cup
