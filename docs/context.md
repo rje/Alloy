@@ -3,6 +3,41 @@
 Updated 2026-10-12. This is the project handoff for a fresh session. Read the root
 [AGENTS.md](../AGENTS.md) first; its reference restrictions apply to all work.
 
+## Tutorial recording delivered (2026-10-12)
+
+#157 is closed and Done on the project board. Backlog snapshot: 165 total,
+39 closed, 126 open. Astra accepted the 89.8-second explicitly edited native
+highlight and final source redaction fixes f9a2d8b/3376ab5 with build evidence.
+
+Recorder and paced bracket driver are integrated from Sol commits 8b17d71 and
+eaaa4e1 (main bb386b9/e733e85). Astra independently accepted the short API smoke,
+full 6:07 API bracket movie, and raw 12:30 native circle-to-solid input evidence.
+See [tutorial-video.md](validation/tutorial-video.md) for receipts, limitations,
+and repeatable commands. Native C, origin click, diameter entry, E and distance
+entry produced a valid 20 mm diameter × 10 mm cylinder. Native toolbar AX actions
+are UI command evidence, not fabricated pointer events. The full bracket movie
+is explicitly API-driven; exact all-native tutorial parity remains #155/#154.
+
+Local media lives under `../Alloy-reference-records/demos/2026-10-12/`, outside git.
+FFmpeg is an external developer dependency installed through Homebrew, not bundled.
+Capture preserves wall-clock duration with logged repeated frames; effective
+unique capture is currently 3.7–4.9 fps in long runs, not smooth 15 fps motion.
+Desktop automation causes long idle pauses in the native raw clip. Any edited
+highlight must retain an explicit label and a raw-time edit decision list.
+Exchange #23/#44 work remains preserved in the exchange-finish worktree and Todo.
+All private recording applications were quit after saving; no human work discarded.
+No release, tag, external media upload or CI dispatch was performed.
+
+## Editor shutdown and demonstration preference (2026-10-12)
+
+At the user's request, all five remaining Alloy editor instances were closed
+through `app.quit` after checking every tab was saved and no draft/session was
+active. No discard was required. Earlier instructions below reserving running
+human windows are historical: those windows are now closed; saved models remain.
+The user clarified that "run the bracket test and show me" means watching the
+workflow progress step by step, not only seeing its final model. Future demos
+should present the actual construction sequence at a watchable pace.
+
 ## Work tracking and scope checkpoint (2026-10-12)
 
 Implementation issues must be small enough to finish and close. When a family is

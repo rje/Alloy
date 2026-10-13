@@ -576,3 +576,24 @@ targets; hiding a class clears its selection/hover. Display preferences currentl
 last for the active sketch session and are not serialized as authored CAD data.
 See [the constraint interaction receipt](validation/constraint-interaction.md)
 for native-input evidence and remaining glyph limitations.
+
+## Tutorial recording
+
+With FFmpeg on PATH, `recording.start` takes an absolute fresh `.mp4` `path` and
+optional `fps` (1–30, default 15). `recording.step` takes a caption `text` up to
+200 characters. `recording.status` reports active state, paths, frame/repeat
+counts and failures. `recording.stop` drains the encoder and returns only after
+completion or an explicit error. Existing destination/sidecar files are refused.
+Captures combine Qt chrome and the real GPU framebuffer, with caption bands,
+observed app-scoped input and command provenance. No global keyboard hook runs.
+Editor text is redacted except allowed numeric entries; native popup capture is
+not guaranteed. Qt propagation can produce non-spontaneous events in the ledger;
+these are not proof of a separate physical gesture. Recording does not change the
+authored document. Keep movies, JSONL logs and metadata outside Git.
+
+The same external-FFmpeg/app-framebuffer path is intended for Windows and Linux;
+it avoids OS desktop capture permissions. At each native platform milestone,
+install a trusted FFmpeg build with libx264 on PATH, run the short smoke recipe,
+and independently verify GPU capture, overlays, duration and completion before
+claiming that platform qualified. Only macOS is qualified today. FFmpeg is not
+bundled in published Alloy packages. See [video validation](validation/tutorial-video.md).

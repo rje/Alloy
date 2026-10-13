@@ -78,3 +78,36 @@ The recording is API-authored construction. Native held-modifier selection and
 physical platform profile toggling remain unverified, as documented in
 [the bracket receipt](illustrated-bracket.md). The validation edit/undo/reopen
 tail ran after recording stopped; it is covered by the receipt, not the MP4.
+
+## Native input evidence
+
+`sketch-to-solid-native.mp4` preserves the complete 750.777-second native run:
+11,262 frames / 750.800 seconds, 2,756 captures plus 8,506 explicit repeats,
+zero capture failures. Three short encoder delays remain in the log. Desktop
+control waits dominate this raw evidence; it is not a polished short demo.
+Astra inspected C, the origin click halo, Return with diameter 20, E opening
+Extrude, Tab with distance 10 and the final isometric cylinder. The final state
+reports a valid closed body, bounds 20 × 20 × 10 mm, volume 3141.592653589793 mm³,
+and Apple M4 hardware rendering. Geometry actions originate in the UI; API calls
+only captioned, inspected/projected coordinates and saved the result. AX button
+activation is recorded as a UI command, without inventing a mouse event. The
+saved `.alloy` and `native-final-state.json` retain the result externally.
+
+Held-modifier clicks, smooth capture and exact native tutorial parity remain
+separate qualification work. No operating-system release qualification is implied.
+
+The native edited highlight `sketch-to-solid-native-edited.mp4` is 89.8 seconds,
+with a persistent "EDITED: idle waits removed" banner. Nine normal-speed windows
+retain observed UI commands and native key/mouse presses; the external
+`.edit-map.json` maps each segment back to raw time. 661 seconds of idle waits
+are removed. The raw recording remains unchanged. This is an explicitly edited
+demonstration, not a continuous timing receipt.
+
+Post-capture source fixes f9a2d8b/3376ab5 apply focused-editor redaction to Qt
+parent propagation and accurately label allowed numeric input. The incremental
+build passes; this does not alter model behavior or the recorded geometry.
+
+Astra accepted the edited highlight: all 37 relevant observed actions remain in
+the nine segments, hashes/timing reconcile, and sampled overlays are readable.
+Final redaction source fixes were accepted with build evidence; no unchanged
+geometry rerun was required. Issue #157 is closed; #154/#155 remain open.
