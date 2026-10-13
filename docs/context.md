@@ -148,7 +148,7 @@ visual parity remain qualified. The external
 editable models and STL deliverables. The Revolve receipt is
 [validation/revolve-tutorial.md](validation/revolve-tutorial.md).
 
-**138 of 259 issues are closed.** Recent accepted work includes compact ribbon
+**138 of 264 issues are closed.** Recent accepted work includes compact ribbon
 icons #218, retained Extrude Intersect #219, nested profile/island diagnostics
 #165, portable local controls #220, shared-line fillets #221, typed Line length
 locks #222, retained Sweep #223 and native Sweep controls #224. Each has a scoped
@@ -2588,3 +2588,11 @@ axis dimension (7→8DOF), captures the underdefined control, then Cancel verifi
 exact original authoring and finished-state solved metadata/capture. Candidate
 worktree is ../Alloy-worktrees/entity-solved-colors; Sol owns implementation,
 Astra source review, root sole editor lease when binary is ready.
+
+Next complete lesson: ornament-pattern-20261013, independently audited public
+source under external knowledge/tutorials/after-slots-splines/. Four actual
+prerequisites and full gate are queued SOL-037, SKT-065, DOC-021, SOL-038, TUT-014.
+First prove FullRevolve80/5/R50 bottom-face Shell5 geometry before broader work.
+No source step is dropped; spline connector automation is unknown and explicit
+retained Line connectors are disclosed. All five issues remain Todo while #258
+finishes. No ornament runtime or implementation acceptance yet.
