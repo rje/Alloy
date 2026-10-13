@@ -1281,3 +1281,12 @@ through origin, first extrusion cap and Join cap pass with cancellation and
 save/reopen. See `validation/circle-entry.md`. Physical native evidence and
 independent review remain pending. No arbitrary face support or other global
 shortcut repairs are implied.
+
+Native Circle entry now passes C→XY/original cap/Join cap, pointer origin,
+typed26/19/6.2 and Return/Finish, with frames z3/z11 independently inspected.
+Native Escape cancels the chooser without a feature. Evidence is in the private
+circle-entry candidate's `build-circle/evidence/native-*`. API3mm extrusion and
+8mm Join connect the native circle checkpoints; this is not a full native
+tutorial run. The inherited Create dropdown could not be activated through the
+attempted CUA calls, so only its synthesized widget action is verified. Review
+is pending; the desktop is released for root's combined qualification.
