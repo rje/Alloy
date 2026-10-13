@@ -2660,3 +2660,17 @@ Cancel and accept pass with the renderer showing both curves; a separate real-ap
 API run passes closure and Intersect. See the [candidate receipt](validation/fit-spline-offset.md).
 The full eight-member ornament Join remains a separate #265 gate, and independent
 review of this ingredient is pending.
+
+## Exact-offset array Join investigation (2026-10-13)
+
+SOL-039/#265 is actively investigated in isolated `exact-offset-join` at base
+ad0e75e. Actual candidate #261 profile/GeometryKernel Intersect inputs pass OCCT
+Boolean argument checks, but two-rib/hub Fuse reports pcurve construction failure
+and acquired self-intersection; eight ribs produce invalid fifteen-solid geometry.
+Shared rigid-transform geometry and immutable forced SameParameter reconstruction
+both fail to cure it. No production geometry or tolerance policy has changed.
+A bounded 1e-6 mm library offset approximation also fails the eight-rib Join;
+no production approximation fallback is justified. Astra reviews the structural
+Boolean diagnosis before further experiments; actual retained #263 Pattern/Join reproduction remains
+required. See validation/exact-offset-join-investigation.md and external
+validation/ornament-feasibility. No editor was launched for these diagnostics.
