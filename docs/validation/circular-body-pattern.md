@@ -23,17 +23,20 @@ retains the accepted eight. Shared undo/redo and save/reopen are exact. Only ini
 harness activation sets focus; later gestures verify the focus produced by the
 command. The axis selector is explicitly adapted selection, not direct axis picking.
 
-Corrected native attempt 02 passed 3/3 in 3694 ms. Actual preview and accepted
+Corrected native attempt 05 passed 3/3 in 3370 ms. Actual preview and accepted
 captures were inspected: all eight bodies fit the viewport, the seed is blue,
 derived copies neutral, and the selected axis/count and labels are readable.
-Attempt 01 also passed its behavior checks, but its capture exposed an open axis
-popup and clipped Objects text. These are corrected using activated selection
-and concise text; its original evidence is preserved. The viewport reports Apple
+Attempts 01/02 passed earlier checks but retained an open axis popup; the first
+also clipped Objects text. Attempt 03 caught the popup with an explicit assertion,
+and attempt 04 pointer targeting failed to activate the selector. These original
+logs/captures remain preserved. The final fixture verifies actual popup focus
+ancestry and delivers keys to that focused view, then asserts the popup is closed.
+No fixture focus repair or speculative product timer remains. Objects text is concise. The viewport reports Apple
 M4, Apple OpenGL 4.1 Metal and display ratio 2, with actual GPU framebuffer captures.
 This is macOS evidence; Windows/Linux runtime qualification remains separate.
 
 Evidence is external at `validation/circular-body-pattern/`: `core-final.log`,
-`native-attempt-01.log`, preserved `attempt-01/` captures, `native-attempt-02.log`,
+`native-attempt-01.log`, preserved `attempt-01/`/`attempt-02/` captures and attempt logs, `native-attempt-05.log`,
 `native-eight-preview.png`, `native-eight-accepted.png`, preview/final state JSON,
 `source-seed.alloy` and `native-eight.alloy`. The private editor exited normally.
 App SHA256: `170384937d5687fdd6a0e2cc48f999c90e48e07d95d56133565bbd5182748d79`.
