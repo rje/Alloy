@@ -11,7 +11,7 @@ from alloyctl import request, record_endpoint
 
 
 @contextmanager
-def application(app, output):
+def application(app, output, *, command_timeout=30):
     output = Path(output)
     output.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix='alloy-case-') as directory:
@@ -30,7 +30,7 @@ def application(app, output):
                 transcript = []
                 def call(command, parameters=None, error=None):
                     started = time.monotonic()
-                    response = request(endpoint, command, parameters, transport=transport, helper=helper)
+                    response = request(endpoint, command, parameters, timeout=command_timeout, transport=transport, helper=helper)
                     transcript.append({'command': command, 'args': parameters or {}, 'response': response,
                                        'elapsedMs': round((time.monotonic()-started)*1000, 1)})
                     assert response['ok'] == (error is None), response
