@@ -1373,7 +1373,7 @@
         "priority:P1",
         "area:sol"
       ],
-      "body": "## Problem and result\nAdd mirror and rectangular/circular patterns. Deliver the bounded result below within Alloy's standalone C++20 product; the current application is only a Qt shell.\n\n## Scope\nImplement body/feature pattern and mirror subsets with counts, spacing and stable instance identity; document recompute vs copy semantics.\n\n## Acceptance criteria\n- Parameter/count edits update intended instances; invalid counts or missing references fail transactionally.\n- UI and local API share authoritative document/commands; expose arguments, selection, errors and result inspection. Undo/save coverage follows the dependencies, never a separate automation model.\n\n## Proposed verification and evidence\nPattern mounting holes 2\u00d73 and circular bosses, mirror a body, edit spacing/count and inspect counts, locations, history and file round-trip.\n\nAdd/execute `python3 tests/workflows/run.py --case SOL-009 --evidence build/evidence/SOL-009` (case not implemented yet; the runner refuses missing cases). Record actual commands, fixture hashes, dependency versions, assertions and artifacts. Keep build, API, geometry, save/reopen, export, physical input and visual evidence separate; mark non-applicable dimensions with a reason.\n\n## Public reference evidence\n- Timeline editing and suppression (reference `timeline`) \u2014 retrieved 2026-10-11.\n- Parameters and equations (reference `parameters`) \u2014 retrieved 2026-10-11.\n\nReferences describe documented product/library behavior. Scope, implementation strategy, fixture values and acceptance thresholds are Alloy proposals unless explicitly stated otherwise. Never run or inspect reference CAD application; use public documentation/screenshots only.\n\n## Limits and open questions\nOnly the stated subset is in scope; record unsupported options explicitly. This issue is planned, not implemented or verified.\n"
+      "body": "## Problem and result\nAdd mirror and rectangular/circular patterns. Deliver the bounded result below within Alloy's standalone C++20 product; the current application is only a Qt shell.\n\n## Scope\nImplement body/feature pattern and mirror subsets with counts, spacing and stable instance identity; document recompute vs copy semantics.\n\n## Acceptance criteria\n- Parameter/count edits update intended instances; invalid counts or missing references fail transactionally.\n- UI and local API share authoritative document/commands; expose arguments, selection, errors and result inspection. Undo/save coverage follows the dependencies, never a separate automation model.\n\n## Proposed verification and evidence\nPattern mounting holes 2\u00d73 and circular bosses, mirror a body, edit spacing/count and inspect counts, locations, history and file round-trip.\n\nAdd/execute `python3 tests/workflows/run.py --case SOL-009 --evidence build/evidence/SOL-009` (case not implemented yet; the runner refuses missing cases). Record actual commands, fixture hashes, dependency versions, assertions and artifacts. Keep build, API, geometry, save/reopen, export, physical input and visual evidence separate; mark non-applicable dimensions with a reason.\n\n## Public reference evidence\n- Timeline editing and suppression (reference `timeline`) \u2014 retrieved 2026-10-11.\n- Parameters and equations (reference `parameters`) \u2014 retrieved 2026-10-11.\n\nReferences describe documented product/library behavior. Scope, implementation strategy, fixture values and acceptance thresholds are Alloy proposals unless explicitly stated otherwise. Never run or inspect reference CAD application; use public documentation/screenshots only.\n\n## Limits and open questions\nOnly the stated subset is in scope; record unsupported options explicitly. This issue is planned, not implemented or verified.\n\n## Tutorial child\nSOL-025 owns one-body planar Mirror; feature and rectangular/circular patterns remain Todo here.\n"
     },
     {
       "key": "SOL-010",
@@ -3222,7 +3222,7 @@
       "depends_on": [
         "TUT-005",
         "SOL-024",
-        "SOL-009",
+        "SOL-025",
         "GEO-002",
         "SKT-030",
         "SKT-021"
@@ -3493,6 +3493,24 @@
         "area:skt"
       ],
       "body": "## Scope and acceptance\nBounded tutorial child of #159 and #24. Name extrusion base/straight side faces by authored profile lineage; retain planar frames and unique exact kernel history descendants through Shell, Mirror, Combine, Cut and Fillet. Expose supported real faces to existing selection/sketch API and UI. No index, nearest-face or bounding-box reattachment. Missing/split supports refuse atomically; full repair UX remains #159. Preserve exact upstream references through edits, undo and save/reopen.\n\n## Verification\nUse the nested-cubes source workflow: hollow25mm cube; sketches on three orthogonal outer faces with centered15mm through cuts; top face remains usable for offset plane after outside-edge fillets. Test source-frame mapping and a meaningful upstream edit plus unique/ambiguous kernel descendant behavior. Native picks and planar orientation need independent Astra review in the real app; helper tests alone do not close this slice. Retain existing disk-cap identity/coordinates.\n\n## Reference\nPublic nested-cubes PDF, retrieved2026-10-12; exact source/visual ledger external knowledge/tutorials/warwick/nested-cubes-ledger.json.\n"
+    },
+    {
+      "key": "SOL-025",
+      "title": "Mirror one retained body across a selected planar reference",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SOL-001",
+        "SKT-013"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P2",
+        "priority:P1",
+        "area:sol"
+      ],
+      "body": "## Scope and acceptance\nBounded child of #54. Implement Pattern Type Bodies with one source body and selected planar face or origin/construction plane. Create one independent mirrored result body with stable authored source/plane/result identity; do not implicitly Join. Transport named planar faces and edges with exact transform history and correct reflection orientation. Shared UI/API selection, readable preview, OK/Cancel, timeline edit, undo and storage.\n\n## Verification\nNested-cubes source: mirror 25x25x12.5 inward2 shell across its remaining top rim z12.5. Result occupies z12.5..25, two valid solids each3182mm3. Existing Combine then joins upper target/lower tool to one6364mm3 hollow cube with retained outer planar references. Source-thickness edit rebuilds both halves; missing reference refuses atomically. Independently review native source-body/plane picks and real GPU rendering before closure.\n\n## Reference and remainder\nPublic nested-cubes PDF retrieved2026-10-12; exact ledger/visual references external knowledge/tutorials/warwick/nested-cubes-ledger.json. Rectangular/circular and feature patterns remain #54 with future bounded children.\n\n## Dependency boundary\nMirror uses the already accepted body and planar-face interfaces and can be implemented against an extrusion cap independently of Shell. The complete nested-cubes gate still requires both #185 and this issue; its shell fixture must pass before full tutorial acceptance.\n"
     }
   ]
 }

@@ -16,6 +16,24 @@ file and verified STL. Native input and API evidence remain separate; do not
 close broad feature parents for bounded children. No nightly completion estimate
 or release is promised. Keep board updates tied to real active ownership.
 
+## Overnight implementation checkpoint (2026-10-12)
+
+First candidates: Shell #185 is integrated as1b9164f; named planar faces #187
+as992305c plus an outward-orientation correction. Focused Shell and planar-face
+checks pass. Astra owns the private desktop for independent Shell UI review;
+no other validation editor may open until released. Offset planes #186 remain
+in Sol's tutorial-planes worktree. Body Mirror #188 is a queued bounded child;
+its implementation waits for Shell acceptance. Root owns #187 integration.
+
+Named-face candidates use authored prism lineage and exact unique OCCT history
+through Boolean/Cut/Fillet/Join. Side/base boundary projection links are still
+absent; negative-distance end caps and full repair UX stay separate. Focused
+checks cover side frames, split refusal, source edit, retained Cut cap and reopen.
+Astra found shell-rim source-specific identification and empty-selection labeling
+need tightening; Sol is patching these in tutorial-shell. No new tutorial gate
+is closed. Research now includes complete nested-cube/egg-cup PDF ledgers and a
+toy-block video ledger with exact tube/pattern/final19-edge selections externally.
+
 ## Complete support demo (2026-10-12)
 
 Requested full creation movie delivered at

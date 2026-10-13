@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 #include "GeometryKernel.h"
 #include "SolidFillet.h"
+#include "PlanarFaces.h"
 #include <memory>
 #include <BRepGProp.hxx>
 #include <GProp_GProps.hxx>
@@ -93,25 +94,8 @@ GeometryKernel::JoinResult GeometryKernel::joinResults(const QJsonObject& featur
         if(profileIds.size()==1)body.summary["sourceProfileId"]=profileIds[0];
         body.summary["sourceEntityIds"]=array(entityIds);body.summary["sourceAreaMm2"]=sourceArea;
         body.summary["distanceMm"]=distance;body.summary["addedVolumeMm3"]=added;
-        TopTools_IndexedMapOfShape presentFaces;TopExp::MapShapes(shape,TopAbs_FACE,presentFaces);QSet<QString> capIds;
-        for(auto cap:candidates) {
-            if(!presentFaces.Contains(cap.face)) {
-                TopTools_IndexedMapOfShape descendants;
-                for(TopTools_ListIteratorOfListOfShape it(history->Modified(cap.face));it.More();it.Next())if(it.Value().ShapeType()==TopAbs_FACE && presentFaces.Contains(it.Value()))descendants.Add(it.Value());
-                if(descendants.Extent()!=1)continue;
-                GProp_GProps before,after;BRepGProp::SurfaceProperties(cap.face,before);BRepGProp::SurfaceProperties(descendants(1),after);
-                if(std::abs(before.Mass()-after.Mass())>std::max(1e-7,std::abs(before.Mass())*1e-9))continue;
-                cap.face=TopoDS::Face(descendants(1));
-                TopTools_IndexedMapOfShape presentEdges;TopExp::MapShapes(cap.face,TopAbs_EDGE,presentEdges);bool available=true;
-                for(auto& edge:cap.boundaryEdges)if(!presentEdges.Contains(edge.edge)) {
-                    TopTools_IndexedMapOfShape mapped;
-                    for(TopTools_ListIteratorOfListOfShape it(history->Modified(edge.edge));it.More();it.Next())if(it.Value().ShapeType()==TopAbs_EDGE && presentEdges.Contains(it.Value()))mapped.Add(it.Value());
-                    if(mapped.Extent()!=1){available=false;break;}edge.edge=TopoDS::Edge(mapped(1));
-                }
-                if(!available)continue;
-            }
-            if(!capIds.contains(cap.faceId)){cap.bodyId=bodyId;body.supportFaces.push_back(cap);capIds.insert(cap.faceId);}
-        }
+        body.supportFaces=PlanarFaces::transfer(*history,candidates,shape);
+        for(auto& face:body.supportFaces)face.bodyId=bodyId;
         supportSummary(body);groups.push_back({body,record});
     }
     if(!participatingAddition)reject("join_no_addition","Join must add material to at least one existing participant");

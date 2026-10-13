@@ -13,7 +13,7 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try {
     CadDocument doc;auto feature=SketchGeometry::newFeature(doc.authored()["documentId"].toString(),"XY");feature=SketchGeometry::addRectangle(feature,{{"u1Mm",29},{"v1Mm",0},{"u2Mm",32},{"v2Mm",-10}});
     const auto sketch=SketchGeometry::evaluateFeature(feature);check(sketch.profiles.size()==1,"one profile");const auto& profile=sketch.profiles[0];const auto generator=CadDocument::newId();
     auto build=[&](double height){BRepPrimAPI_MakePrism prism(profile.face,gp_Vec(0,0,height),true,true);auto edges=SolidFillet::prismEdges(prism,profile,generator);EvaluatedBody body{generator,CadDocument::newId(),"Prong",true,prism.Shape(),GeometryKernel::summarize(prism.Shape()),{},edges};return body;};
-    auto body=build(24);const auto descriptors=SolidFillet::descriptors(body.solidEdges);check(descriptors.size()==8,"four rim/four generated corners");QJsonArray selected;
+    auto body=build(24);const auto descriptors=SolidFillet::descriptors(body.solidEdges);check(descriptors.size()==12,"four top rims/four base rims/four generated corners");QJsonArray selected;
     for(const auto& value:descriptors){const auto edge=value.toObject(),p=edge["provenance"].toObject();const auto a=edge["startMm"].toArray(),b=edge["endMm"].toArray();if(std::abs(a[0].toDouble()-32)>1e-7 || std::abs(b[0].toDouble()-32)>1e-7)continue;
         if(p["role"]=="sideCorner" && (std::abs(a[1].toDouble()+10)<1e-7 || std::abs(a[1].toDouble())<1e-7))selected.append(edge["edgeId"]);
     }

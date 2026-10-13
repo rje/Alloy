@@ -3,7 +3,7 @@
 2026-10-12. Implementation candidate, not complete native tutorial acceptance.
 Extrusion now offers retained base and straight-side planes alongside its prior
 positive end cap. Names derive from authored generator/profile/boundary lineage.
-Unique OCCT Modified descendants retain source frames through Combine, Cut and
+Unique OCCT Modified descendants retain source frames through Extrude Join, Combine, Cut and
 Fillet; split or missing support cannot silently attach to a nearby face. Cut and
 Combine also transport existing named solid edges, including new base rims.
 
@@ -14,6 +14,7 @@ its old intentionally unsupported policy. Independent Astra draft review found
 and prompted duplicate-provenance rejection. Real-app native picking and the
 Shell/Mirror chain remain required before issue closure.
 
-New base/side faces currently expose no projected boundary links. General
-Extrude Join still uses its stricter prior transfer policy, and negative-distance
-end caps remain outside this increment. Broader repair UX remains #159.
+New base/side faces currently expose no projected boundary links. Negative-distance
+end caps remain outside this increment. An explicit outward-normal check exposed
+the orientation difference between prism history and the resulting solid; use
+the face orientation held in the solid. The corrected check passes. Broader repair UX remains #159.

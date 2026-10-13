@@ -57,6 +57,7 @@ std::vector<EvaluatedSupportFace> PlanarFaces::transfer(BRepBuilderAPI_MakeShape
 std::vector<EvaluatedSupportFace> PlanarFaces::prismSides(BRepPrimAPI_MakePrism& prism,
     const EvaluatedProfile& profile,const QString& generator,double distance) {
     std::vector<EvaluatedSupportFace> result;
+    TopTools_IndexedMapOfShape solidFaces;TopExp::MapShapes(prism.Shape(),TopAbs_FACE,solidFaces);
     const auto offer=[&](const QString& role,const QByteArray& signature,const TopoDS_Shape& shape,const QJsonObject& frame) {
         if(shape.IsNull() || shape.ShapeType()!=TopAbs_FACE || BRepAdaptor_Surface(TopoDS::Face(shape)).GetType()!=GeomAbs_Plane)return;
         const auto id=QUuid::createUuidV5(QUuid(generator),QByteArray("alloy-planar-face/1\n")+signature).toString(QUuid::WithoutBraces);
@@ -73,7 +74,7 @@ std::vector<EvaluatedSupportFace> PlanarFaces::prismSides(BRepPrimAPI_MakePrism&
         TopTools_IndexedMapOfShape generated;
         for(const auto& shape:prism.Generated(boundary.edge))if(shape.ShapeType()==TopAbs_FACE)generated.Add(shape);
         if(generated.Extent()!=1)continue;
-        const auto face=TopoDS::Face(generated(1));const auto plane=BRepAdaptor_Surface(face).Plane();
+        const auto face=TopoDS::Face(solidFaces(solidFaces.FindIndex(generated(1))));const auto plane=BRepAdaptor_Surface(face).Plane();
         auto normal=plane.Axis().Direction();if(face.Orientation()==TopAbs_REVERSED)normal.Reverse();
         const auto sourceNormal=profile.summary["frame"].toObject()["normal"].toArray();
         gp_Dir vertical(sourceNormal[0].toDouble(),sourceNormal[1].toDouble(),sourceNormal[2].toDouble());
