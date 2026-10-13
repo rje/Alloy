@@ -51,7 +51,8 @@ real. Before Join, all eight explicit member solids and the exact hub prism are
 recovered from retained history. Each ancestor-minus-joined Cut must execute and
 produce a valid result with adaptively integrated residual volume within
 max(1e-6 mm³, input volume*1e-8). Failed/invalid operations or failed integration
-refuse; an empty valid difference has zero material volume. Input/result BRep
+refuse; an empty valid difference has zero material volume only if no face, edge or
+vertex remains. Non-solid residual topology refuses rather than passing as zero. Input/result BRep
 hashes remain exact around these checks after baselining only OCCT's container
 Free flag, as qualified in SOL-041. No production geometry is normalized.
 
