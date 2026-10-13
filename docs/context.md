@@ -43,7 +43,7 @@ reference-span conversion is disclosed. No full tutorial replay was needed for
 the symbol-only change. The private GUI slot is free after #233 recording; keep only one private
 validation editor open at a time.
 
-**Keyring gate #233 is closed; driving fillet dimensions #235 design is active.**
+**Keyring gate #233 is closed; driving fillet dimensions #235 implementation is active.**
 Luna identified the illustrated initials-keyring lesson externally; Astra
 independently checked all six source pages. Seven bounded issues #227–233 now
 queue typed two-point Rectangle, overall fillet annotations, rounded-loop Offset,
@@ -66,9 +66,13 @@ by receipt validation/keyring-tutorial.md (59f94eb, integrated9da32a9). External
 STL and report; `demos/2026-10-13/initials-keyring` has the 63.8-second movie.
 Text clearance, same-slot edit/history and exact reopen pass. The seven-card
 gallery links all final artifacts; earlier failed runner attempts remain separate.
-Astra is reviewing public behavior and a bounded solver design for #235 before
-Sol implementation. The board marks #235 In Progress for that active design
-work. Luna is researching a self-contained wall-outlet sketch lesson externally;
+Astra completed the bounded #235 design; Sol is implementing it in isolated
+`../Alloy-worktrees/rounded-driving-intent` (`feat/rounded-driving-intent`).
+The external spec is `knowledge/specs/rounded-rectangle-driving-intent-2026-10-13.md`.
+It retains driving dimension IDs/values through tangent endpoints and explicit
+supporting-line incidence at the fixed origin, without changing existing finite
+point-on-curve semantics or migrating old driven sketches. The board marks #235
+In Progress. Astra now independently audits the next sketch-only tutorial. Luna is researching a self-contained wall-outlet sketch lesson externally;
 the sample-dependent doorstop activity was not promoted as a full gate. No new
 feature issue or implementation is claimed before that recommendation.
 Follow-up #235 tracks driving overall size/origin retention through
