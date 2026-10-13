@@ -5,6 +5,18 @@ Updated 2026-10-13. This is the project handoff for a fresh session. Read the ro
 
 ## Active ornament gate — 2026-10-13
 
+Current: cumulative-04 finished with complete API/history/reopen, both strict
+millimeter STLs and saved-model geometry oracle passing. Its85.6s recording is
+valid, but independent visual review rejects the truncated crown. Append timings
+are plane4.73s/sketchfinish4.41s/Cut10.89s (previous129.86/126.39/134.50s).
+Full open129–142s and upstream edit146.54s still rebuild as required.
+The bounded tip-fixture correction22edff7 moves only the upper free fitpoint to
+(17,89), a disclosed choice, not a public numeric specification. Exact−5/−4
+Intersect seeds preservez80; original retained Join has solid near-tip material.
+Cumulative-05 is now running with strengthened apex checks and a5fps real-time
+recording (long exact geometry waits remain visible, not time-compressed).
+Main app is unchanged; saved-model verifier rebuilt. No05 acceptance yet.
+
 Latest: #268 bounded append reuse is integrated0088e64 with independent
 source/core acceptance9d6e20a. Four focused checks pass; main app and saved-model
 geometry verifier build. Fresh cumulative-04 is running from blank with creation
