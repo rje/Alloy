@@ -66,6 +66,19 @@
     },
     {
       "id": "CP-12",
+      "title": "Centerline dimensions and illustrated Revolve lesson",
+      "issues": [
+        "SKT-038",
+        "SOL-029",
+        "SOL-030",
+        "TUT-008"
+      ],
+      "acceptance": "Distinct Centerline and true diameter dimensions, automatic profile/axis selection, Partial angular drag then Full New Body, retained history and checked STL with full creation recording.",
+      "status": "in_progress",
+      "remaining": "Centerline and shared Revolve foundations in parallel; native controls and complete gate follow. Source leaves profile dimensions to learner; label chosen values."
+    },
+    {
+      "id": "CP-12",
       "title": "Direct dimensions from circle centers to retained model edges",
       "issues": [
         "SKT-034"

@@ -113,16 +113,23 @@ Core/API and independent Qt input pass, including D, center/edge selection,
 separate placement, 3.9/Enter twice, Escape, label drag, upstream edge movement,
 Cut volumes and exact reopen. Receipt: validation/point-edge-dimensions-independent.md. The external contract is
 `knowledge/specs/point-edge-dimension-next-slice.md`. Root serializes private GUI
-access; no editor is currently running. The accepted tutorial, ASCII, point-to-edge and Timeline checkpoints through
-c328566 are pushed. The refreshed toy recording and deliverables use true edge
+access. The accepted tutorial, ASCII, point-to-edge and Timeline checkpoints through
+c328566 were pushed at that checkpoint. The refreshed toy recording and deliverables use true edge
 dimensions; earlier artifacts remain archived.
 SKT-036/#212 independently accepts side-face boss and inclined-support coverage.
 Parent#150 is Todo for native recovery#213; API/core recovery passes. Broader #43 retains history behavior beyond accepted Timeline readability;
 #83 retains performance work. RHI-003/#208 is independently accepted research (1e0d0fe); see
-dependencies/rhi-shortlist.md. No renderer is selected; #137 retains runtime
-spike and admission. SKT-035/#209 is independently accepted (b6b1f00): affected-sketch context in
-atomic support failures. See validation/multi-face-independent.md. Only the
-isolated Metal investigation#210 remains active after these bounded closures. No release,
+dependencies/rhi-shortlist.md. No replacement renderer is selected; #137 retains cross-platform qualification
+and adoption decisions. SKT-035/#209 is independently accepted (b6b1f00): affected-sketch context in
+atomic support failures. See validation/multi-face-independent.md. The isolated Metal investigation #210 is independently accepted and CLOSED
+(5b29523/916daff); production remains OpenGL. Active work is now the next
+illustrated Revolve lesson: #214 retained modeling/API and #215 distinct
+Centerline plus diameter-to-axis dimensions, in separate Sol worktrees with
+Astra verification. Native Revolve controls #216 and full tutorial gate #217
+follow these foundations. Public source steps 39–50 and visual evidence stay
+external in tutorial.next-revolve-feature-checkpoint. Centerline can form profile
+boundaries; it is not Construction. The detached lesson axis must also coexist
+with a separate closed profile. No release,
 tag or per-commit CI is triggered. Continue authorized backlog work while the user
 is asleep; do not stop just because the first three gates are complete.
 
@@ -1808,3 +1815,26 @@ full-texture picking/coarse cylinder edges remain spike limits, native GPU-in-fl
 close and physical display transitions are unqualified, and numeric GPU IDs/driver
 version remain unknown. See [the bounded receipt](validation/metal-rhi-spike.md)
 and [standalone build/runner](../research/prototypes/metal-rhi/README.md).
+
+
+## Next illustrated Revolve queue (2026-10-13)
+
+The Metal investigation #210 is closed with independent acceptance; no adoption
+or production rendering change is implied. #214 SOL-029 and #215 SKT-038 are
+actively owned by the two Sol agents, with Astra checking the source contract
+and candidates. Root granted the private GUI slot to #214 for its focused API
+run; all other GUI runs must wait. #216 native selection/Partial angular drag
+and #217 full blank-to-printable lesson remain Todo. There are 217 tracked
+issues; broad Revolve #49 and construction #144 keep their remaining scope.
+
+External lesson pages 14–18, steps 39–50: create Front/XZ sketch and origin-up
+line, convert to Centerline, make separate stepped closed profile, add diameter
+dimensions from centerline to parallel profile edge, Revolve with automatic
+sole-profile/centerline selection, drag Partial, choose Full and OK, then
+rotate/inspect. The source leaves geometry values to the learner. Screenshot
+diameters 100/165 and partial 70 degrees are observations, not mandatory numeric
+inputs. Distinct centerline intent participates in boundaries; Construction
+does not. Diameter annotations span the mirrored full diameter and retain both
+line references; they are not half-radius distance labels. Unsupported
+nonparallel pairs must refuse explicitly. Core #214 initially uses ordinary
+retained straight sketch axes; automatic Centerline discovery belongs to #216.
