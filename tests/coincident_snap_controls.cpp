@@ -76,6 +76,44 @@ private slots:
         QCOMPARE(parameters(w),before);QVERIFY(!session(w).contains("firstPoint"));
         w.hide();
     }
+    void emptySupportedFaceOriginKeepsPriority() {
+        AlloyTheme::apply(*qApp);AlloyWindow w;w.resize(1300,900);w.show();w.activateWindow();
+        QVERIFY(QTest::qWaitForWindowExposed(&w));QApplication::setActiveWindow(&w);
+        QVERIFY(view(w));call(w,"sketch.begin",{{"plane","XY"}});
+        call(w,"sketch.rectangle",{{"x1",0},{"y1",0},{"x2",20},{"y2",20},{"units","mm"}});
+        call(w,"sketch.finish");
+        auto evaluation=call(w,"document.inspect")["evaluation"].toObject();
+        const auto sketch=evaluation["sketches"].toArray().first().toObject();
+        call(w,"solid.extrude",{{"sketchId",sketch["sketchId"]},
+            {"profileId",sketch["profiles"].toArray().first().toObject()["profileId"]},
+            {"distance",2},{"units","mm"}});
+        evaluation=call(w,"document.inspect")["evaluation"].toObject();
+        const auto body=evaluation["bodies"].toArray().first().toObject();
+        QJsonObject face;for(const auto& item:body["supportFaces"].toArray())
+            if(item.toObject()["role"]=="extrude.endCap")face=item.toObject();
+        QVERIFY(!face.isEmpty());
+        QJsonObject support;for(const auto* key:{"bodyId","producerFeatureId","faceId"})support[key]=face[key];
+        call(w,"sketch.begin",{{"support",support}});
+        QCOMPARE(parameters(w)["entities"].toArray().size(),0);
+        QCOMPARE(parameters(w)["originPointId"].toString(),QString{});
+        bool projectedAtOrigin=false;
+        for(const auto& item:session(w)["projectionContext"].toObject()["lines"].toArray()) {
+            const auto line=item.toObject();
+            for(const auto* end:{"1","2"}) {
+                const QString u=QString("u%1Mm").arg(end),v=QString("v%1Mm").arg(end);
+                if(qAbs(line[u].toDouble())<1e-6 && qAbs(line[v].toDouble())<1e-6)projectedAtOrigin=true;
+            }
+        }
+        QVERIFY(projectedAtOrigin);
+        call(w,"sketch.tool",{{"tool","circle"}});
+        const auto center=pixel(w,0,0);
+        const auto preview=call(w,"sketch.pointerMove",xy(center))["snap"].toObject();
+        QCOMPARE(preview["status"].toString(),QString("acquired"));
+        QCOMPARE(preview["target"].toObject()["kind"].toString(),QString("origin"));
+        call(w,"sketch.placePoint",xy(center));
+        QCOMPARE(session(w)["firstPoint"].toObject()["target"].toObject()["kind"].toString(),QString("origin"));
+        w.hide();
+    }
 };
 QTEST_MAIN(CoincidentSnapControlsTest)
 #include "coincident_snap_controls.moc"

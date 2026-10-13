@@ -4301,14 +4301,18 @@ QJsonObject AlloyWindow::resolveSketchSnap(double x,double y,const QString& plan
             const bool sameLocation=std::hypot(candidate["uMm"].toDouble()-representative["uMm"].toDouble(),
                 candidate["vMm"].toDouble()-representative["vMm"].toDouble())<1e-6;
             if(!sameLocation)continue;
-            // An incidental line midpoint has no retained point identity. At
-            // an authored point it is a weaker inference, not another point.
+            // An incidental midpoint or projected support point at an authored
+            // point is a weaker inference, not another authored point.
             const auto candidateKind=candidate["target"].toObject()["kind"].toString();
             const auto representativeKind=representative["target"].toObject()["kind"].toString();
             const bool incidentalMidpoint=(candidateKind=="midpoint" && identities(candidate).isEmpty())
                 || (representativeKind=="midpoint" && identities(representative).isEmpty());
+            const bool projectedOverlay=(candidate.value("projected").toBool() || representative.value("projected").toBool())
+                && (candidateKind=="point" || candidateKind=="origin")
+                && (representativeKind=="point" || representativeKind=="origin");
             if(!linked(candidate,representative) && !(incidentalMidpoint
-                && candidateKind!=representativeKind && (candidateKind=="midpoint" || representativeKind=="midpoint")))continue;
+                && candidateKind!=representativeKind && (candidateKind=="midpoint" || representativeKind=="midpoint"))
+                && !projectedOverlay)continue;
             if(rank(candidate)<rank(representative))representative=candidate;
             joined=true;break;
         }

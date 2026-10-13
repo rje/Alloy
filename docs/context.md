@@ -2319,7 +2319,9 @@ review and integration are pending.
 
 SKT-055/#243 resolves origin circle placement after a rough centered rectangle
 and horizontal midpoint axis by grouping only retained Coincident point intent
-and point-named Midpoint inference. A focused real-window circle gesture and
-an unlinked equal-coordinate ambiguity control pass. The full outlet lesson
+and point-named Midpoint inference. Projected support points at the same
+location retain lower priority than the origin or an authored point. A focused
+real-window circle gesture, an unlinked equal-coordinate ambiguity control,
+and an empty supported-face origin check pass. The full outlet lesson
 still requires a separate cumulative rerun. See
 [the candidate receipt](validation/coincident-snap-clusters.md).

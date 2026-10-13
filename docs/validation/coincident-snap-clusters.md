@@ -18,6 +18,14 @@ returned `ambiguous_snap` and left the sketch unchanged. Both cases passed in
 inspection image shows the new circle at the origin; it is a focused gesture
 record, not a complete outlet lesson rerun.
 
+Independent review found a supported-face overlap: an empty sketch can have a
+projected support endpoint at its local origin without a Coincident relation.
+The picker now preserves origin/authored-point precedence over projected
+support points at the same location. A focused end-cap fixture confirms that
+the empty face sketch's projected endpoint at (0, 0) does not block origin
+preview or click. The updated Qt suite passes all five cases; no broader
+supported-face workflow was replayed.
+
 Evidence outside the repository:
 `../Alloy-reference-records/deliverables/wall-outlet-sketch-2026-10-13/coincident-snap-candidate/origin-circle.png`
 and `origin-circle-state.json`. The first failed cumulative attempt and its
