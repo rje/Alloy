@@ -116,12 +116,13 @@ Cut volumes and exact reopen. Receipt: validation/point-edge-dimensions-independ
 access; no editor is currently running. The accepted tutorial, ASCII, point-to-edge and Timeline checkpoints through
 c328566 are pushed. The refreshed toy recording and deliverables use true edge
 dimensions; earlier artifacts remain archived.
-Active #150 adds side-face boss, inclined support and preserved-state recovery
-coverage. Broader #43 retains history behavior beyond accepted Timeline readability;
+SKT-036/#212 independently accepts side-face boss and inclined-support coverage.
+Parent#150 is Todo for native recovery#213; API/core recovery passes. Broader #43 retains history behavior beyond accepted Timeline readability;
 #83 retains performance work. RHI-003/#208 is independently accepted research (1e0d0fe); see
 dependencies/rhi-shortlist.md. No renderer is selected; #137 retains runtime
-spike and admission. SKT-035/#209 fixes missing affected-sketch context in support
-failures exposed by active #150, with independent review pending. No release,
+spike and admission. SKT-035/#209 is independently accepted (b6b1f00): affected-sketch context in
+atomic support failures. See validation/multi-face-independent.md. Only the
+isolated Metal investigation#210 remains active after these bounded closures. No release,
 tag or per-commit CI is triggered. Continue authorized backlog work while the user
 is asleep; do not stop just because the first three gates are complete.
 
@@ -1779,3 +1780,16 @@ without toggling it, leaving the original valid preview. Keep #150's remaining
 visible native refusal/Cancel/correction gate; no repair UI is claimed. See
 [the evidence and limitations](validation/multi-face-gate.md). SKT035 adds the
 exact affected sketch ID while preserving originating diagnostic attribution.
+
+## Multi-face split accepted (2026-10-13)
+
+Integrated b6b1f00/8adebff/6b2f300 independently accept diagnostic#209 and
+side/inclined authoring#212. Parent#150 is Todo, requiring native support-recovery
+#213: styled checkbox input did not change the selected Combine tools in the
+bounded probe. Cause remains unresolved; preserve it rather than claiming native
+refusal/Cancel/correction from API evidence alone. The API/core cumulative chain
+and actual Qt side/inclined Join pass. Text-distance/Return input qualification
+is recorded in broader operation-edit#161; spin arrows/OK pass. No relink/repair
+UI is claimed. Immediate Qt Timeline capture layout is qualified in the receipt.
+#210 owns the private GUI slot for a bounded Metal sample run; no Alloy editor
+is left open. Main builds include the independently accepted palette fix#211.
