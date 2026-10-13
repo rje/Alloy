@@ -287,3 +287,25 @@ External evidence: `single-join-core-final.log`, `retained-single-join.cpp`,
 `retained-single-join.json`, `retained-single-join.brep`,
 `retained-single-join-containment.json`. Library contract retrieved2026-10-13:
 [OCCT Boolean operations](https://dev.opencascade.org/doc/overview/html/specification__boolean_operations.html).
+
+## Independent single-result ownership review
+
+Astra accepts candidate `518de75` for the bounded ownership optimization. Source
+review confirms only the participant/profile coverage calls are skipped when
+successful Fuse has exactly one validated closed positive-volume solid and no
+mixed output topology. Under the library union contract every explicit input
+has that unique destination. Multi-result coverage, target order, primary UUID,
+prior-union/no-addition checks, accepted ownership ledger and actual kernel
+history transfer remain unchanged. Boundary history alone is not used as proof
+of material containment.
+
+Reviewed final focused core 3/3 (1.95 s), retained actual Join (21.774 s, volume
+17818.829392961095 mm3, all eight participants and first-body ownership), and
+`retained-single-join-containment.json`: all nine original ribs/hub inputs minus
+the new result yield successful valid Cuts with no remaining faces, edges or
+vertices. This establishes the retained result after the shortcut, separately
+from the earlier coverage correction. No geometry or tolerance is changed.
+
+This is bounded source/core acceptance, not a new GUI or full cumulative pass.
+The final bore, edit/history/reopen, mesh and recording remain separate gates.
+No duplicate test or model replay was needed for independent review.
