@@ -12,6 +12,15 @@ recording, source edits/history/reopen and strict STL/oracle checks. No result i
 claimed yet. Root owns the sole private editor. See
 validation/document-prefix-append.md; upstream edits/open still fully rebuild.
 
+Cumulative-04 creation now completes with a valid85.6s recording, original
+editable model and original millimeter STL; edit/reopen/oracle checks remain live.
+Independent visual review found a material fixture mismatch: the current strip
+truncates the upper crown near z70.48, whereas the public source has a closed
+pointed apex. Full tutorial visual acceptance is blocked on source-supported
+strip placement correction; exact free spline points are unknown. Sol and Astra
+are investigating the fixture without changing kernel/tolerance policy. Preserve
+this run as useful functional evidence, not complete visual parity.
+
 Shell correction #266 is independently accepted and closed, integrated
 0499f83/d3d3fbe. Main app and saved-model geometry verifier build; generic Shell
 and full-Revolve support core2/2 pass1.50s. Real-app source/control edits,
