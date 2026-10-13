@@ -58,6 +58,16 @@ A second external probe using the actual candidate SketchRegions profile and
 GeometryKernel extrusion/Intersect reproduces invalid fifteen-solid array Join.
 Actual retained Circular Pattern/application reproduction is still required.
 
+The actual blank-document prefix now reaches the source shell, retained Section
+and closed offset strip but refuses the 60 mm Intersect with
+`boolean_empty_result`. This differs from the headless fixture and is the current
+investigation priority before array Join. Runner22d8237 and
+validation/exact-offset-join-investigation.md identify preserved46-call evidence
+and exact pre-Intersect authoring. The private editor exited; no seed or full
+tutorial pass is claimed. Shared-transform, SameParameter and bounded offset
+approximation probes all failed to cure the raw array Join; no fallback changed
+production geometry. Astra's shared-partition proposal remains diagnostic only.
+
 ## Earlier accepted checkpoints and development history
 
 The dated entries below preserve historical evidence and may describe pending
