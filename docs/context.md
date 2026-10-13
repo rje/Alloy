@@ -15,13 +15,13 @@ visual parity remain qualified. The external
 editable models and STL deliverables. The Revolve receipt is
 [validation/revolve-tutorial.md](validation/revolve-tutorial.md).
 
-**113 of 236 issues are closed.** Recent accepted work includes compact ribbon
+**114 of 236 issues are closed.** Recent accepted work includes compact ribbon
 icons #218, retained Extrude Intersect #219, nested profile/island diagnostics
 #165, portable local controls #220, shared-line fillets #221, typed Line length
 locks #222, retained Sweep #223 and native Sweep controls #224. Each has a scoped
 receipt in `docs/validation/`; broad parents remain Todo for their actual
 remaining requirements. Main's default application is rebuilt through accepted
-#227, #228, #229, #230, #231, #232 and #234:
+#227–232, #234 and #236:
 `build-tutorial-polish/alloy.app/Contents/MacOS/alloy`.
 
 **Paper-clip gate #225 and tangent-symbol correction #234 are closed.** The
@@ -35,10 +35,10 @@ links that capture alongside the full movie/model/STL. Native ingredient tests
 remain distinct from API movie evidence; no physical OS or exact pixel claim.
 The source's post-fillet dimension drivenness is unknown; Alloy's explicit
 reference-span conversion is disclosed. No full tutorial replay was needed for
-the symbol-only change. The private GUI slot is currently reserved for #236
-focused Cut-rim/Fillet checks; other agents must wait before launching an editor.
+the symbol-only change. The private GUI slot is currently reserved for #233
+full keyring workflow recording; other agents must wait before launching an editor.
 
-**Active: Cut rim edges #236; full keyring gate #233 follows.**
+**Active: full keyring gate #233.**
 Luna identified the illustrated initials-keyring lesson externally; Astra
 independently checked all six source pages. Seven bounded issues #227–233 now
 queue typed two-point Rectangle, overall fillet annotations, rounded-loop Offset,
@@ -53,9 +53,10 @@ support-resolution failure was fixed and native/API checks pass. Circle #230 is
 integrated and builds; geometry/input review passed and the settled palette
 capture is readable. Independent visual review accepted and closed #230; the earlier
 overlap was capture-before-queued-layout, requiring no production layout fix. Full gate #233
-runner preparation is committed (3d465da); execution stays Todo until prerequisites
-#236 passes (#229/#230 are accepted). Cut rim provenance #236 is actively being implemented as a discovered prerequisite for the source R1 hole
-fillet; full gate preparation exposed the missing retained edge descriptors.
+runner preparation is committed (3d465da), with bore-clear text placement fixed
+at14b789e after independent preflight. All prerequisites including Cut rim #236
+are accepted, integrated and closed. The root is running the cumulative blank-to-
+Save/movie/STL chain; no cumulative acceptance is claimed yet.
 Follow-up #235 tracks driving overall size/origin retention through
 sketch fillets; #228 permits explicit measured-span conversion, so radius edits
 can alter overall size. Text retains authored parameters and uses mature font
