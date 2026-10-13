@@ -46,7 +46,8 @@ handling and diagnostics #165 are independently accepted.
 Bounded retained-target Extrude Intersect #219 is accepted; its broader
 operation-edit parent #161 remains Todo. Native compile matrix #132 is also active,
 with one manual milestone matrix running at source d072534. The bounded Windows
-transport child #220 is active; #131 retains actual Windows desktop qualification.
+transport child #220 is accepted with actual native pipe/ACL evidence; #131
+retains actual Windows desktop qualification.
 The independently transcribed paper-clip lesson is queued as #221–225: shared-line
 fillets, typed line locks, retained Sweep, native controls and full workflow gate.
 Only Sweep foundation #223 is active initially; other prerequisites remain Todo.

@@ -20,7 +20,7 @@ Main's default app is rebuilt with both. Receipt `validation/ribbon-icons.md`
 records actual 1040/1400 Retina layout and native input evidence. All private
 editors are closed. No release/tag or per-commit CI was triggered.
 
-98 of 225 issues are closed. Retained-target Extrude Intersect #219 is accepted
+99 of 225 issues are closed. Retained-target Extrude Intersect #219 is accepted
 and integrated; the main app rebuild passes. See validation/extrude-intersect.md.
 Nested profile/island coverage and diagnostics #165 are independently accepted and
 integrated; main app rebuild passes. See validation/profile-regions.md.
@@ -29,26 +29,28 @@ current integrations and corrected native dependency options. Run 38396495940
 was manually dispatched at source d07253470a346f1b29faa87b33fcced51416ea0c;
 Linux x64 and macOS arm64 have passed; their downloaded binaries, source/dependency
 receipts, architectures and compile logs are checked under
-`build/evidence/native-matrix-38396495940/{linux-x64,macos-arm64}`. Intel Mac and
-Windows remain live/pending. Do not dispatch a duplicate.
+`build/evidence/native-matrix-38396495940/{linux-x64,macos-arm64}`.
+Windows also passed with executable/source-contract receipts checked; Intel Mac
+is the last live target. Windows text-contract hashes match CRLF checkout bytes. Do not dispatch a duplicate.
 The actual native file-sheet gate #167 remains Todo: two computer-control window
 binding attempts failed before interaction; no app defect or sheet pass claimed.
 Sol records the capability limit and closes its private editor. Windows transport
-child #220 is active after Astra architecture review; #131 retains actual Windows
+child #220 is accepted after actual Windows transport and Astra review; #131 retains actual Windows
 desktop/GPU and second-user access-denial qualification.
 Paper-clip source geometry is independently transcribed externally; #221–225 track
 shared-line fillets, typed chained-line locks, Sweep foundation/native controls and
-full tutorial. Sol owns foundation #223 in parallel with transport #220. Other
+full tutorial. Sol owns foundation #223; transport #220 is accepted. Other
 new children remain Todo. Fillet width annotations must survive via explicit span
 conversion; original post-fillet drivenness is unknown. No fabricated semicircles
 or coordinate-seeded path authoring can close the complete source gate.
-Active worktrees: `../Alloy-worktrees/local-transport` (`feat/local-transport`)
+Candidate/evidence worktrees: `../Alloy-worktrees/local-transport` (`feat/local-transport`)
 for #220 and `../Alloy-worktrees/sweep-foundation` (`feat/sweep-foundation`) for
-#223. Neither candidate is accepted yet. Astra cleared the corrected Windows ACL
-inheritance, binary streams and correlation checks in #220. Its macOS real-app
-regression passed and the private editor is closed. The manual Windows non-GUI
-gate is prepared but has not been dispatched. Wait for that result before
-acceptance; no private GUI is reserved. No tag/release
+#223. Transport is accepted/integrated as9c42f08 plus independent review9ec8ac2;
+main app/helper rebuild passes. Windows run38401749556 passed at9c42f08 and
+artifacts are under build/evidence/local-transport-windows-38401749556. Receipt
+validation/local-transport.md distinguishes native pipe/ACL evidence from untested
+Windows desktop/GPU/second-user denial. Sweep223 API gate passed and its editor
+is closed; candidate independent review is next. No private GUI is open. No tag/release
 or per-commit CI. Intersect parent #161 retains broader operation-edit and
 typed-Return qualification as Todo. Split oversized remaining scope into linked Todo issues. Other broad parents remain Todo. The sections below are a chronological
 record; older ownership, pending status and counts are historical.
