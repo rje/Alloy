@@ -86,6 +86,7 @@ try:
                 # then remove screen quantization from the deterministic volume/layout.
                 call('command.update',{'session':session['id'],'inputs':{'uMm':u,'vMm':v}})
                 preview=call('command.preview',{'session':session['id']});assert preview['geometry']['valid']
+                if placed==0:call('capture.screenshot',{'path':str(out/'sphere-cut-preview.png')})
                 call('command.commit',{'session':session['id']});placed+=1
                 current=body();assert {f['faceId'] for f in current['supportFaces']}==face_ids
                 assert abs(before-current['volumeMm3']-placed*2.25*math.pi)<1e-5

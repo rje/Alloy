@@ -44,7 +44,7 @@ public:
     void selectProfiles(const QString& sketchId, const QJsonArray& profileIds);
     QJsonObject pickFinishedProfile(double x, double y) const;
     QJsonObject pickSupportFace(double x, double y, const std::vector<EvaluatedBody>& bodies) const;
-    void selectSupportFace(const QJsonObject& support, const TopoDS_Face& face = {});
+    void selectSupportFace(const QJsonObject& support, const TopoDS_Face& face = {}, bool outline = false);
     void setEditDisplay(const QString& sourceSketchId, const QJsonArray& hiddenBodyIds);
     QJsonObject pickSketch(const QJsonObject& feature, double x, double y, const QString& filter = {}) const;
     void decorateSketch(const QJsonObject& feature, const QJsonObject& selection,

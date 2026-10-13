@@ -2305,7 +2305,8 @@
         "DOC-004",
         "PRT-001",
         "FND-010",
-        "DOC-019"
+        "DOC-019",
+        "PRT-007"
       ],
       "labels": [
         "area:tut"
@@ -3736,7 +3737,21 @@
       "labels": [
         "area:doc"
       ],
-      "body": "## Bounded scope\nComplete the existing named orthographic view set with Left and Back, exposed in Browser and shared view.orientation. Die verification needs direct inspection and placement on all six sides. Reuse real OCCT negative-X/positive-Y camera orientations; no custom renderer or full view cube. Existing Home and other views remain available.\n\n## Acceptance\nActual Browser and API routes show the correct opposite faces; the die's six face captures visibly show counts1 through6. Use the cumulative die workflow and one focused widget route, not a camera matrix sweep. Source tutorial uses view-cube rotation; named views are an explicitly tracked input adaptation, with wider navigation/view-cube parity remaining DOC-010/#22.\n"
+      "body": "## Bounded scope\nComplete the existing named orthographic view set with Left and Back, exposed in Browser and shared view.orientation. Die verification needs direct inspection and placement on all six sides. Reuse real OCCT negative-X/positive-Y camera orientations; no custom renderer or full view cube. Existing Home and other views remain available.\n\n## Acceptance\nActual Browser and API routes show the correct opposite faces; the die's six face captures visibly show counts1 through6. Use the cumulative die workflow and one focused widget route, not a camera matrix sweep. Source tutorial uses view-cube rotation; named views are an explicitly tracked input adaptation, with wider navigation/view-cube parity remaining DOC-010/#22.\n\n## Observed inspection obstruction\nThe first die recording exposed a white origin-axis arrow cone projected over the center pip in orthographic views. Confirm by toggling the existing origin visibility, then simplify origin decoration so six-face inspection remains readable without disabling modeling geometry. Preserve axis lines/colors and the existing origin visibility control.\n"
+    },
+    {
+      "key": "PRT-007",
+      "title": "Remove collapsed spherical-pole facets after STL serialization",
+      "kind": "implementation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P1",
+      "depends_on": [
+        "PRT-006"
+      ],
+      "labels": [
+        "area:prt"
+      ],
+      "body": "## Observed defect\nThe complete die model is a valid closed BRep, but its binary STL contains three zero-area facets with identical serialized vertices at spherical poles. First fullrun evidence: build-tutorial-polish/evidence/die-final/die-mm.stl,53417facets; strict unchanged independent checker fails. Existing detached pre-writer float collapse filtering did not catch these, so inspect writer vertex processing before choosing correction.\n\n## Bounded correction\nValidate/filter binary facets at the serialization boundary as needed, keeping exact CAD and mesh tolerances unchanged. Preserve atomic destination replacement, correct header triangle count and returned metadata. Do not weaken strict normals/manifold/winding checks or substitute a smoother-looking image. Keep ASCII and unrelated export behavior unchanged unless evidence demands it.\n\n## Verification\nRe-export the saved complete die, independently read finite unit normals/positive-area facets/consistent winding/closedonecomponent/20mm bounds and expected volume approximation. Add a focused pole fixture covering the discovered route; reuse existing export test as appropriate, no broad mesh-healing infrastructure. Full die finalmovie uses the corrected export. Earlier PRT-006 remains accepted for its bounded pre-writer precision case.\n"
     }
   ]
 }

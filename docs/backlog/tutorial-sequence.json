@@ -55,10 +55,13 @@
         "ASM-004",
         "SOL-028",
         "SOL-014",
+        "DOC-019",
+        "PRT-007",
         "TUT-002"
       ],
       "acceptance": "Complete source component and spherical-cut workflow, cancel/finish checks and printable STL; no cylindrical pip substitution.",
-      "status": "todo"
+      "status": "in_progress",
+      "remaining": "First full geometry run passes 21 spherical cuts. Final acceptance awaits serialized STL pole correction, origin overlay readability and final artifact/history recording."
     },
     {
       "id": "CP-06",

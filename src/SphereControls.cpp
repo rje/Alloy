@@ -41,7 +41,7 @@ QJsonObject AlloyWindow::beginSphere(const QJsonObject& overrides) {
     for(auto it=overrides.begin();it!=overrides.end();++it)inputs[it.key()]=it.value();
     if(inputs.contains("support") && (!inputs.contains("targetBodyId") || (overrides.contains("support") && !overrides.contains("targetBodyId"))) && inputs["operation"]=="cut")inputs["targetBodyId"]=inputs["support"].toObject()["bodyId"];
     session_={{"id",CadDocument::newId()},{"command","solid.sphere"},{"status","active"},{"inputs",inputs},{"newFeatureId",CadDocument::newId()},{"newBodyId",CadDocument::newId()},{"baseDocumentRevision",static_cast<qint64>(document_->revision())},{"previewed",false},{"inputSchema",findCommand("solid.sphere")->parameters},{"selectionRole",inputs.contains("support") ? "center" : "face"}};
-    view_->selectSupportFace({},{});
+    selectedFace_={};view_->selectSupportFace({},{});
     view_->setBodyStage(sphereInputDocument().bodies,"sphere-source:"+session_["id"].toString());view_->selectBody({});view_->selectProfile({},{});showSphere();previewSphere();view_->setFocus();return session_;
 }
 QJsonObject AlloyWindow::selectSphereFace(const QJsonObject& support) {
@@ -78,9 +78,18 @@ QJsonObject AlloyWindow::previewSphere() {
         const auto source=sphereInputDocument();const auto resolved=GeometryKernel::resolveSketchSupport(source,support);view_->selectSupportFace(support,resolved.face);
         const auto tool=SolidSphere::tool(source,inputs);const auto candidate=sphereCandidate(inputs);const auto evaluated=CadDocument::evaluateCandidate(candidate);if(!evaluated.ok)return reject("evaluation_failed",evaluated.error,evaluated.diagnostics);
         // Inspect full history; display disposable cutter and preserve the source stock.
-        const auto featureId=inputs.value("featureId").toString(session_["newFeatureId"].toString());QJsonArray features;for(const auto& entry:candidate["features"].toArray()){features.append(entry);if(entry.toObject()["id"]==featureId)break;}auto prefix=candidate;prefix["features"]=features;const auto stage=CadDocument::evaluateCandidate(prefix);if(!stage.ok)return reject("evaluation_failed",stage.error,stage.diagnostics);
+        const auto featureId=inputs.value("featureId").toString(session_["newFeatureId"].toString());
+        auto stage=evaluated;
+        // New or last-feature previews already evaluated exactly this prefix.
+        // Only historical edits need a second evaluation for their display stage.
+        if(candidate["features"].toArray().last().toObject()["id"]!=featureId) {
+            QJsonArray features;for(const auto& entry:candidate["features"].toArray()){features.append(entry);if(entry.toObject()["id"]==featureId)break;}
+            auto prefix=candidate;prefix["features"]=features;stage=CadDocument::evaluateCandidate(prefix);
+            if(!stage.ok)return reject("evaluation_failed",stage.error,stage.diagnostics);
+        }
         const auto resultId=inputs["operation"]=="cut" ? inputs["targetBodyId"].toString() : inputs.contains("featureId") ? [&]{for(const auto& entry:candidate["features"].toArray())if(entry.toObject()["id"]==featureId)return entry.toObject()["bodyId"].toString();return QString{};}() : session_["newBodyId"].toString();
         for(const auto& body:stage.evaluation->bodies)if(body.bodyId==resultId){session_["geometry"]=body.summary;break;}
+        view_->selectSupportFace(support,resolved.face,true);
         view_->showSpherePreview(tool,inputs["operation"]=="cut");session_["documentDraft"]=candidate;session_["previewed"]=true;session_["geometryEvaluated"]=true;
         if(sphereDock_){if(auto* label=sphereDock_->findChild<QLabel*>("sphereError"))label->clear();if(auto* box=sphereDock_->findChild<QDialogButtonBox*>())box->button(QDialogButtonBox::Ok)->setEnabled(true);}return session_;
     } catch(const GeometryKernel::EvaluationError& e){return reject("evaluation_failed",QString::fromUtf8(e.what()),e.diagnostics());}

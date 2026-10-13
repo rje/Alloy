@@ -219,6 +219,8 @@ void ReferenceView::initialize() {
         viewer_->Grid(Aspect_GT_Rectangular)->SetColors(Quantity_Color(0.77,0.81,0.84,Quantity_TOC_RGB), Quantity_Color(0.64,0.70,0.75,Quantity_TOC_RGB));
         axes_ = new AIS_Trihedron(new Geom_Axis2Placement(gp::XOY()));
         axes_->SetSize(100);
+        // End-on arrow cones obscure small planar details in orthographic views.
+        axes_->SetDrawArrows(false);
         axes_->SetDatumPartColor(Prs3d_DatumParts_XAxis, Quantity_Color(0.60,0.18,0.16,Quantity_TOC_RGB));
         axes_->SetDatumPartColor(Prs3d_DatumParts_YAxis, Quantity_Color(0.18,0.42,0.24,Quantity_TOC_RGB));
         axes_->SetDatumPartColor(Prs3d_DatumParts_ZAxis, Quantity_Color(0.18,0.33,0.62,Quantity_TOC_RGB));
@@ -528,17 +530,17 @@ QJsonObject ReferenceView::pickSupportFace(double x,double y,const std::vector<E
         return {{"producerFeatureId",face.producerFeatureId},{"bodyId",face.bodyId},{"faceId",face.faceId}};
     return {};
 }
-void ReferenceView::selectSupportFace(const QJsonObject& support,const TopoDS_Face& face) {
+void ReferenceView::selectSupportFace(const QJsonObject& support,const TopoDS_Face& face,bool outline) {
     hoverSupportFace({});
     if(!context_.IsNull() && !selectedSupportFaceOverlay_.IsNull())context_->Remove(selectedSupportFaceOverlay_,false);
     selectedSupportFaceOverlay_.Nullify();selectedSupportFace_=support;
     if(!context_.IsNull() && !face.IsNull()) {
         selectedSupportFaceOverlay_=new AIS_Shape(face);
-        selectedSupportFaceOverlay_->SetDisplayMode(AIS_Shaded);
+        selectedSupportFaceOverlay_->SetDisplayMode(outline ? AIS_WireFrame : AIS_Shaded);
         selectedSupportFaceOverlay_->SetColor(Quantity_Color(0.16,0.47,0.86,Quantity_TOC_sRGB));
-        selectedSupportFaceOverlay_->SetTransparency(0.48);
+        selectedSupportFaceOverlay_->SetTransparency(outline ? 0.0 : 0.48);
         selectedSupportFaceOverlay_->SetZLayer(Graphic3d_ZLayerId_Topmost);
-        context_->Display(selectedSupportFaceOverlay_,AIS_Shaded,-1,false);
+        context_->Display(selectedSupportFaceOverlay_,outline ? AIS_WireFrame : AIS_Shaded,-1,false);
         context_->Deactivate(selectedSupportFaceOverlay_);
         context_->UpdateCurrentViewer();
     }

@@ -77,11 +77,26 @@ history/reopen and New Body. Spheres orient their poles to the support normal;
 world-Z poles caused invalid Boolean topology on side supports. No healing or
 weakened validity checks. API/UI/Repeat and full die workflow remain outstanding.
 
-Sol die_chamfer now implements SphereAPI/UI/Repeat in isolated
-../Alloy-worktrees/face-sphere-controls frome927785. Root prepared fullrunner
-tests/die_tutorial_api.py (unrun) and Left/Back namedviews203 for all6face
-inspection. Root buildsession10446 pending; no GUI open. Astra is available for
-independent Sphere/6view/fulltutorial review. Serialize all GUI validation. Sphere declaration uses type sphere,
+SphereAPI/UI/Repeat db3e0ee integrated72afb22 plus activeowner a7e83b7;
+independent API/Qt differentfaceRepeat pass in6858187. Entercommit remains
+unverified in inactive macOS testwindow; numericReturn+actualOK passes. Review
+found purple cutter blending with blue selectedstock. Root now suppresses body
+selection duringSphere and uses a blue outline instead of filledsupport for
+validpreview; buildpasses, visual acceptance pending firstfullrunpreviewcapture.
+
+The first full die run completed all21cuts and six named views, but strict STL
+readback found3zero-area serialized pole facets. PRT007#204 is active in isolated
+stl-pole-facets worktree; removing only those3 diagnostically passes the unchanged
+strict reader (53414facets,oneclosedcomponent,20mm bounds). Complete saved model
+and first-attempt evidence remain in build-tutorial-polish/evidence/die-final.
+The movie is not accepted yet. Origin on/off captures confirm the white pip wheel
+is the origin trihedron's end-on arrow cone, not tessellation. Root disables arrow
+cones while retaining axes/labels, rebuilds and requests independent visual review.
+Sphere preview now reuses its full candidate evaluation when it is also the display
+prefix; historical edits still evaluate their required shorter prefix. No general
+cache or weakened checks.145/147/203/204 remain open pending final acceptance.
+Root serializes GUI; no test editor remains running after the first attempt.
+Sphere declaration uses type sphere,
 parameters support/uMm/vMm/diameterMm/operation and optional targetBodyId; internal
 candidate ownerId defaults root, edits preserve owner. During component integration
 inject activeOwner in its UI wrapper and include new Chamfer wrapper too.
