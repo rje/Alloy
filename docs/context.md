@@ -21,7 +21,7 @@ Older checkpoint entries below retain historical state; this paragraph supersede
 their pending or active claims for #251–257 and #259. Slot drag preview #258 is
 now independently accepted and closed (79fa11b/e805afb); main app builds.
 
-## Join lineage immutability candidate — 2026-10-13
+## Join lineage immutability accepted — 2026-10-13
 
 SOL-041/#267 changes the coverage Common probe to configure non-destructive
 execution before Build, avoiding the eager two-shape constructor. Multi-party
@@ -29,20 +29,21 @@ Join source BRep/profile/authored-state preservation and repeated ownership/
 lineage/validity checks pass with the existing successive Join regression.
 Only OCCT's documented container Free flag is baselined in the test; geometry,
 tolerances and topology remain exact. See
-[receipt](validation/join-lineage-immutable.md). Independent review/integration
-are pending; no UI or cumulative ornament policy is changed.
+[receipt](validation/join-lineage-immutable.md). Independent Astra review and main integration are complete; the main app build
+and focused two-test check pass. No UI or cumulative ornament policy is changed.
 
-## Circular Body Pattern candidate — 2026-10-13
+## Circular Body Pattern accepted — 2026-10-13
 
-#263 has a bounded implementation candidate with shared Circular Pattern controls,
+#263 is independently accepted and integrated with shared Circular Pattern controls,
 retained Origin Z, Full distribution and total quantity including seed. Original
 seed ownership is retained; generated bodies/faces/edges have deterministic UUIDs
 and exact OCCT transform lineage. Count/source edits, downstream eight-body Join,
 atomic removed-reference refusal and history/storage pass core checks; native
 selection/count/Cancel/OK/edit Escape and actual readable GPU captures pass.
 See [contract](research/circular-body-pattern.md) and
-[receipt](validation/circular-body-pattern.md). Independent review/integration are
-pending; complex ornament Join #265 and complete gate #264 remain separate.
+[receipt](validation/circular-body-pattern.md). Main app build and the focused
+Pattern/Mirror checks pass; complex ornament Join #265 and complete gate #264
+remain separate.
 
 ## Current work — ornament tutorial (2026-10-13)
 
