@@ -58,7 +58,8 @@ and must pass before the gate closes.
 The independently reviewed initials-keyring lesson follows as #227–233: typed
 two-point Rectangle, retained rounded dimensions, mixed-loop Offset, two-point
 Circle, text geometry, text placement and the full tutorial gate. Rectangle #227
-and text geometry #231 are active in parallel; the remaining children stay Todo.
+and text geometry #231 are accepted and closed. Rounded-rectangle fillets #228
+and native text placement #232 are active; the remaining children stay Todo.
 
 After every slice, run the smallest complete author/edit/finish/undo/reopen
 workflow it enables in a private real application instance. Record source steps

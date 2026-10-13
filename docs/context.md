@@ -3,14 +3,6 @@
 Updated 2026-10-13. This is the project handoff for a fresh session. Read the root
 [AGENTS.md](../AGENTS.md) first; its reference restrictions apply to all work.
 
-Two-point Rectangle typed entry SKT-042/#227 has a candidate in the isolated
-`../Alloy-worktrees/two-point-rectangle` branch. Command-first plane selection,
-actual pointer-quadrant width/height preview, two Enter transitions and retained
-driving size/origin relations pass focused injected-Qt and real-entrypoint API
-checks. See [the bounded receipt](validation/two-point-rectangle.md).
-Independent review and main integration remain pending; rounded keyring lesson
-work remains separate.
-
 ## Current checkpoint — read first (2026-10-13)
 
 The nested cubes #172, egg cup #173, toy block #146, die #147 and subsequent
@@ -22,12 +14,12 @@ visual parity remain qualified. The external
 editable models and STL deliverables. The Revolve receipt is
 [validation/revolve-tutorial.md](validation/revolve-tutorial.md).
 
-**105 of 234 issues are closed.** Recent accepted work includes compact ribbon
+**107 of 234 issues are closed.** Recent accepted work includes compact ribbon
 icons #218, retained Extrude Intersect #219, nested profile/island diagnostics
 #165, portable local controls #220, shared-line fillets #221, typed Line length
 locks #222, retained Sweep #223 and native Sweep controls #224. Each has a scoped
 receipt in `docs/validation/`; broad parents remain Todo for their actual
-remaining requirements. Main's default application is rebuilt through #226:
+remaining requirements. Main's default application is rebuilt through accepted #227 and #231:
 `build-tutorial-polish/alloy.app/Contents/MacOS/alloy`.
 
 **Active: full paper-clip gate #225.** Modeling prerequisites are accepted, including
@@ -40,8 +32,9 @@ The full source workflow passed in `paper-clip-tutorial`; runner a2aa39a is
 committed there. Astra independently confirmed movie, authored model, geometry
 and strict mesh checks, but found tangent badges are empty boxes. Small glyph
 fix #234 is active in an isolated Sol worktree; final #225 acceptance awaits it.
-No full tutorial replay is needed. Rectangle #227 owns the private GUI slot for
-its bounded palette-clipping and invalid-input/Cancel follow-up. The full movie
+No full tutorial replay is needed. The private GUI slot is reserved for the bounded
+tangent badge check. Rectangle #227 palette and invalid-input/Cancel follow-ups
+passed independent review. The full movie
 uses typed Line/Tab commands, actual paired fillets, Circle Tab/Enter and Sweep
 selectors through shared authority, with no seeded lines or substitute arcs.
 Retain this accepted functional evidence while fixing the bounded visual gap. The exact public source ledger, visual references
@@ -54,8 +47,11 @@ illustrated initials-keyring candidate externally; Astra
 independently checked all six source pages. Seven bounded issues #227–233 now
 queue typed two-point Rectangle, overall fillet annotations, rounded-loop Offset,
 two-point Circle, editable text geometry, native text placement and the full gate.
-Rectangle #227 and text geometry #231 are active in isolated Sol worktrees.
-The other children remain Todo. Text must retain authored parameters and use
+Rectangle #227 and text geometry #231 are independently accepted, integrated
+and closed; their receipts are validation/two-point-rectangle.md and
+validation/sketch-text.md. Rounded-rectangle fillets #228 and native text placement #232 are active in
+separate Sol worktrees. Rounded-loop Offset #229, two-point Circle #230 and
+full gate #233 remain Todo. Text must retain authored parameters and use
 mature font-outline facilities;
 generated glyph curves need not become individual solver entities. Detailed
 source choices and uncertainties are external in
