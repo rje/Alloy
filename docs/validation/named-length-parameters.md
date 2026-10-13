@@ -58,3 +58,41 @@ and `api/app.log`. The inspected captures show readable native controls and
 solid/profile presentation on Apple M4 OCCT OpenGL 4.1 Metal. This is a
 bounded parameter slice, not the complete countersink tutorial or a
 cross-platform runtime qualification.
+
+## Independent acceptance
+
+Accepted `56c4619d09d2660ecf07a9800a234c60f598b96d` for bounded PAR-002/#244
+following source, test, actual capture and persisted API artifact review. Stable
+parameter IDs survive name changes; resolution precedes dependent evaluation,
+and failed evaluation does not publish a partial document. The final core log
+passes in 0.46 s, including invalid downstream Fillet rollback. General
+expression arithmetic, deletion and other feature-property bindings remain
+outside this candidate.
+
+The corrected ordinary Distance control accepts a name or literal. Untouched
+bound Return preserves the ID; an explicitly typed same-value literal plus Tab
+removes it. Explicit numeric edit overrides no longer rehydrate the old binding.
+Unknown-name input disables acceptance instead of silently committing the prior
+preview. The native test source and reported successful run cover those paths.
+
+The separate new-dimension case uses shared parameter/sketch/tool setup, then
+actual Qt rough-rectangle clicks, D, side pick, pointer preview, separate label
+placement and Length/Return. It asserts the retained parameter ID and 75 mm
+value. Only initial activation is forced; subsequent focus is asserted rather
+than repaired. The other named dimension edit deliberately uses shared
+`sketch.dimensionEdit` activation and is not described as native selection.
+The inspected settled D capture clearly shows 75 and one remaining DOF with
+nonoverlapping palette text; the Distance capture clearly shows Thickness in
+its ordinary field. The finished sketch annotation displays the evaluated
+number, not the source figure's fx marker; no exact annotation styling claim
+is made. Parameter-table typing is exercised by Qt, but these inspected images
+do not establish pixel fidelity for that dialog.
+
+Independent readback of the 27-call actual-app transcript, saved model and
+`api-state.json` confirms retained Length/Width dimension bindings and Thickness
+extrusion binding, values 85/50/10 after the edit, volume
+42499.999999999985 mm3, and saved authored equality. History/reopen and the
+intentional duplicate-name refusal are recorded in that script/transcript.
+Core, Qt input, actual-process API and GPU images are distinct evidence; the
+complete parameterized countersink workflow remains #249. No extra GUI run or
+unchanged test replay was needed for this review.
