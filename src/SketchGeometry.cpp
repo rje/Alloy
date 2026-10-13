@@ -852,6 +852,20 @@ SketchGeometry::SolveResult SketchGeometry::filletCorners(const QJsonObject& dra
         auto parameters=draft["parameters"].toObject(); auto entities=parameters["entities"].toArray();
         auto points=parameters["points"].toArray(); auto constraints=parameters["constraints"].toArray();
         auto dimensions=parameters["dimensions"].toArray();
+        // This narrow repair applies only to the four-line typed rectangle and
+        // its two overall point-pair dimensions as corners are rounded in turn.
+        int boundaryLines=0,existingArcs=0,overallHorizontal=0,overallVertical=0;
+        bool rectangleOutline=true;
+        for(const auto& value:entities){const auto e=value.toObject();
+            if(e["type"]=="line" && !e.value("construction").toBool())++boundaryLines;
+            else if(e["type"]=="arc")++existingArcs;
+            else rectangleOutline=false;
+        }
+        for(const auto& value:dimensions){const auto d=value.toObject();
+            if(d["kind"]=="horizontal" && d["pointIds"].toArray().size()==2 && !d.contains("entityId"))++overallHorizontal;
+            if(d["kind"]=="vertical" && d["pointIds"].toArray().size()==2 && !d.contains("entityId"))++overallVertical;
+        }
+        rectangleOutline &= boundaryLines==4 && existingArcs<=3 && overallHorizontal==1 && overallVertical==1;
         QMap<QString,QJsonObject> pointMap; QMap<QString,QString> roots;
         for(const auto& value:points){const auto p=value.toObject();pointMap[p["id"].toString()]=p;roots[p["id"].toString()]=p["id"].toString();}
         auto root=[&](QString id){while(roots[id]!=id)id=roots[id];return id;};
@@ -863,6 +877,7 @@ SketchGeometry::SolveResult SketchGeometry::filletCorners(const QJsonObject& dra
         struct Trim {QString contact,outer;int arc;double setback;};
         QMap<QString,QMap<QString,Trim>> trims;
         QMap<QString,QJsonArray> spanEndpoints;
+        QMap<QString,QMap<QString,QString>> overallContacts;
         auto xy=[&](const QString& id){const auto p=pointMap[id];return QPointF(p["uMm"].toDouble(),p["vMm"].toDouble());};
         auto fresh=[&](const QPointF& position){const auto id=newId();const QJsonObject p{{"id",id},{"uMm",position.x()},{"vMm",position.y()}};points.append(p);pointMap[id]=p;return id;};
         for(const auto& value:arguments["corners"].toArray()) {
@@ -889,6 +904,12 @@ SketchGeometry::SolveResult SketchGeometry::filletCorners(const QJsonObject& dra
             const QPointF center=vertex+bisector*(radius/std::sin(angle/2));
             const QPointF contacts[2]={vertex+directions[0]*setback,vertex+directions[1]*setback};
             const auto centerId=fresh(center),firstId=fresh(contacts[0]),lastId=fresh(contacts[1]),arcId=newId();
+            if(rectangleOutline)for(auto it=roots.begin();it!=roots.end();++it)if(root(it.key())==cornerRoot) {
+                for(int j=0;j<2;++j){
+                    if(std::abs(contacts[j].x()-vertex.x())<1e-7)overallContacts[it.key()]["horizontal"]=j==0 ? firstId : lastId;
+                    if(std::abs(contacts[j].y()-vertex.y())<1e-7)overallContacts[it.key()]["vertical"]=j==0 ? firstId : lastId;
+                }
+            }
             const double start=std::atan2(contacts[0].y()-center.y(),contacts[0].x()-center.x())/degrees;
             const double sweep=std::remainder(std::atan2(contacts[1].y()-center.y(),contacts[1].x()-center.x())/degrees-start,360.0);
             arcs.append(QJsonObject{{"id",arcId},{"type","arc"},{"centerPointId",centerId},{"startPointId",firstId},{"endPointId",lastId},
@@ -936,11 +957,17 @@ SketchGeometry::SolveResult SketchGeometry::filletCorners(const QJsonObject& dra
         for(const auto& value:entities){const auto e=value.toObject();for(const auto& field:{"startPointId","endPointId","centerPointId"})
             if(retired.contains(e[field].toString()))reject("Fillet corner is referenced by unrelated geometry");}
         QJsonArray keptConstraints;
+        bool releasedOriginAnchor=false;
         for(const auto& value:constraints){const auto c=value.toObject();bool references=false,allRetired=true;
             for(const auto& id:c["pointIds"].toArray()){references|=retired.contains(id.toString());allRetired&=retired.contains(id.toString());}
             bool removedEntity=false;for(const auto& id:c["entityIds"].toArray())removedEntity|=removedLines.contains(id.toString());
+            if(rectangleOutline && c["type"]=="fixed" && c["pointIds"].toArray()==QJsonArray{parameters["originPointId"]}) {
+                keptConstraints.append(c);continue;
+            }
             if(removedEntity){if(c["type"]!="horizontal" && c["type"]!="vertical")reject("Exhausted fillet line has an unsupported entity constraint");removedConstraints.append(c["id"]);continue;}
-            if(references){if(c["type"]!="coincident" || !allRetired)reject("Fillet corner has an unrelated point constraint");removedConstraints.append(c["id"]);continue;}keptConstraints.append(c);}
+            if(references){if(c["type"]!="coincident" || !allRetired)reject("Fillet corner has an unrelated point constraint");
+                if(rectangleOutline && c["pointIds"].toArray().contains(parameters["originPointId"]))releasedOriginAnchor=true;
+                removedConstraints.append(c["id"]);continue;}keptConstraints.append(c);}
         QJsonArray keptDimensions;
         for(const auto& value:dimensions){const auto d=value.toObject();bool pointReference=false;for(const auto& id:d["pointIds"].toArray())pointReference|=retired.contains(id.toString());
             const bool lengthDimension=d["kind"]=="linear" || d["kind"]=="horizontal" || d["kind"]=="vertical";
@@ -963,9 +990,22 @@ SketchGeometry::SolveResult SketchGeometry::filletCorners(const QJsonObject& dra
                     reject("Exhausted fillet dimension cannot be converted to a horizontal reference span");
                 auto span=d;span.remove("entityId");span.remove("valueMm");span["kind"]="horizontal";span["pointIds"]=spanEndpoints[exhausted];span["driving"]=false;
                 keptDimensions.append(span);convertedDimensions.append(d["id"]);
+            } else if(rectangleOutline && lengthDimension && (d["kind"]=="horizontal" || d["kind"]=="vertical")
+                    && !d.contains("entityId") && pointReference) {
+                auto span=d;auto mapped=refs;
+                for(int i=0;i<mapped.size();++i)if(retired.contains(mapped[i].toString())) {
+                    const auto replacement=overallContacts[mapped[i].toString()][d["kind"].toString()];
+                    if(replacement.isEmpty())reject("Rounded rectangle overall span has no surviving outer tangent endpoint");
+                    mapped[i]=replacement;
+                }
+                if(mapped[0]==mapped[1])reject("Rounded rectangle overall span endpoints coincide");
+                span["pointIds"]=mapped;span.remove("valueMm");span["driving"]=false;
+                keptDimensions.append(span);convertedDimensions.append(d["id"]);
             } else if(affected)removedDimensions.append(d["id"]);
             else {if(pointReference)reject("Fillet corner has an unrelated point dimension");keptDimensions.append(d);}}
-        QJsonArray keptPoints;for(const auto& value:points)if(!retired.contains(value.toObject()["id"].toString()) && !discardedFresh.contains(value.toObject()["id"].toString()))keptPoints.append(value);
+        QJsonArray keptPoints;for(const auto& value:points)if((!retired.contains(value.toObject()["id"].toString()) ||
+                (rectangleOutline && value.toObject()["id"]==parameters["originPointId"]))
+                && !discardedFresh.contains(value.toObject()["id"].toString()))keptPoints.append(value);
         for(const auto& value:arcs)entities.append(value);for(const auto& value:newRelations)keptConstraints.append(value);
         const auto firstArc=arcs.first().toObject()["id"];
         keptDimensions.append(QJsonObject{{"id",newId()},{"kind","radius"},{"entityId",firstArc},{"driving",true},{"valueMm",radius}});
@@ -974,7 +1014,7 @@ SketchGeometry::SolveResult SketchGeometry::filletCorners(const QJsonObject& dra
         auto candidate=draft;candidate["parameters"]=parameters;auto result=solveDraft(candidate,projectionContext);
         if(!result.ok)return {false,draft,result.diagnostics,result.error};
         QJsonArray arcIds;for(const auto& value:arcs)arcIds.append(value.toObject()["id"]);
-        result.diagnostics["createdArcIds"]=arcIds;result.diagnostics["removedDimensionIds"]=removedDimensions;result.diagnostics["removedConstraintIds"]=removedConstraints;result.diagnostics["convertedReferenceDimensionIds"]=convertedDimensions;QJsonArray retiredLines;for(const auto& id:removedLines)retiredLines.append(id);result.diagnostics["removedEntityIds"]=retiredLines;return result;
+        result.diagnostics["createdArcIds"]=arcIds;result.diagnostics["removedDimensionIds"]=removedDimensions;result.diagnostics["removedConstraintIds"]=removedConstraints;result.diagnostics["convertedReferenceDimensionIds"]=convertedDimensions;result.diagnostics["releasedOriginCoincidence"]=releasedOriginAnchor;QJsonArray retiredLines;for(const auto& id:removedLines)retiredLines.append(id);result.diagnostics["removedEntityIds"]=retiredLines;return result;
     }catch(const std::exception& error){return invalidDraft(draft,QString::fromUtf8(error.what()));}
 }
 

@@ -1499,12 +1499,13 @@ void AlloyWindow::registerCommands() {
             if(a.contains("session") && a["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
             return previewFillet(a);
         });
-    add("sketch.filletAccept","Accept selected sketch fillets","Apply two selected corners with a common radius in one accepted sketch edit.",
+    add("sketch.filletAccept","Accept selected sketch fillets","Apply one side pair or two selected corners with a common radius in one accepted sketch edit.",
         {{"value",filletRadius},{"units",optional(units)},{"session",optionalSession}},[this](const auto& a){
-            if(session_.value("command")!="sketch.edit" || session_.value("tool")!="fillet")return failure("no_pending_fillet","Select sketch Fillet and two corners first");
+            if(session_.value("command")!="sketch.edit" || session_.value("tool")!="fillet")return failure("no_pending_fillet","Select sketch Fillet and one side pair or two corners first");
             if(a.contains("session") && a["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
             const auto corners=session_.value("pendingFillet").toObject()["corners"].toArray();
-            if(corners.size()!=2)return failure("no_pending_fillet","Select two sketch corners first");
+            if(corners.size()!=2 && !(corners.size()==1 && session_.value("pendingFillet").toObject()["sidePair"].toBool()))
+                return failure("no_pending_fillet","Select one side pair or two sketch corners first");
             const auto chosenUnits=a.value("units").toString(session_.value("inputs").toObject()["units"].toString());
             const double radiusMm=CadDocument::millimeters(a["value"].toDouble(),chosenUnits);
             const auto solved=SketchGeometry::filletCorners(session_["draftSketch"].toObject(),{{"corners",corners},{"radiusMm",radiusMm}},session_.value("projectionContext").toObject());
@@ -1592,8 +1593,33 @@ void AlloyWindow::registerCommands() {
             const auto plane=session_.value("inputs").toObject()["plane"].toString();
             const auto corner=resolveFilletCorner(a["x"].toDouble(),a["y"].toDouble(),plane);
             if(corner["status"]=="ambiguous")return failure("ambiguous_fillet_corner","Multiple sketch corners are equally close");
-            if(corner["status"]!="acquired")return failure("invalid_fillet_corner","Pick a corner shared by two normal sketch lines");
             auto pending=session_.value("pendingFillet").toObject();auto corners=pending["corners"].toArray();
+            if(pending.contains("firstSideId") || corner["status"]!="acquired") {
+                const auto hit=view_->pickSketch(session_.value("draftSketch").toObject(),a["x"].toDouble(),a["y"].toDouble(),"entity");
+                if(hit["kind"]!="entity")return failure("invalid_fillet_side","Pick a normal sketch line");
+                const auto sideId=hit["entityId"].toString();bool normal=false;
+                for(const auto& value:session_["draftSketch"].toObject()["parameters"].toObject()["entities"].toArray())
+                    if(value.toObject()["id"]==sideId && value.toObject()["type"]=="line" && !value.toObject().value("construction").toBool())normal=true;
+                if(!normal)return failure("invalid_fillet_side","Pick a normal sketch line");
+                if(!pending.contains("firstSideId")) {
+                    if(!corners.isEmpty())return failure("invalid_fillet_side","Finish or cancel the selected corners first");
+                    pending["firstSideId"]=sideId;session_["pendingFillet"]=pending;
+                    return QJsonObject{{"pendingFillet",pending},{"authoredChange",false}};
+                }
+                const auto firstId=pending["firstSideId"].toString();
+                if(sideId==firstId)return failure("duplicate_fillet_side","Pick an adjacent second side");
+                pending.remove("firstSideId");pending["sidePair"]=true;
+                pending["corners"]=QJsonArray{QJsonObject{{"entityIds",QJsonArray{firstId,sideId}}}};
+                if(!pending.contains("radiusMm"))pending["radiusMm"]=10.0;
+                session_["pendingFillet"]=pending;
+                const auto preview=previewFillet({});
+                if(preview.value("ok").isBool() && !preview.value("ok").toBool()) {
+                    pending=session_.value("pendingFillet").toObject();pending["previewError"]=preview["error"];session_["pendingFillet"]=pending;
+                    return preview;
+                }
+                if(sketchFilletRadius_){sketchFilletRadius_->setFocus();sketchFilletRadius_->selectAll();}
+                return QJsonObject{{"pendingFillet",session_.value("pendingFillet")},{"authoredChange",false}};
+            }
             if(corners.size()>=2)return failure("fillet_radius_pending","Enter or cancel the common fillet radius first");
             const auto pair=QJsonObject{{"entityIds",corner["target"].toObject()["entityIds"]}};
             for(const auto& chosen:corners)if(chosen.toObject()["entityIds"]==pair["entityIds"])
@@ -1693,7 +1719,8 @@ void AlloyWindow::registerCommands() {
         if(tool=="fillet") {
             const auto corner=resolveFilletCorner(a["x"].toDouble(),a["y"].toDouble(),plane);
             session_["snap"]=corner;
-            const auto chosen=session_.value("pendingFillet").toObject()["corners"].toArray();
+            const auto pending=session_.value("pendingFillet").toObject();const auto chosen=pending["corners"].toArray();
+            if(pending["sidePair"].toBool()) {view_->clearSketchCursor();return QJsonObject{{"snap",corner},{"authoredChange",false}};}
             if(chosen.size()==1 && corner["status"]=="acquired") {
                 const auto pair=QJsonObject{{"entityIds",corner["target"].toObject()["entityIds"]}};
                 if(chosen[0].toObject()["entityIds"]!=pair["entityIds"]) {
@@ -2856,7 +2883,10 @@ void AlloyWindow::refresh() {
         if(sketchFilletControls_)if(auto* impact=sketchFilletControls_->findChild<QLabel*>("sketch.fillet.referenceChanges")) {
             const auto changes=fillet["previewDiagnostics"].toObject();
             const int converted=changes["convertedReferenceDimensionIds"].toArray().size(),retiredDimensions=changes["removedDimensionIds"].toArray().size(),retiredConstraints=changes["removedConstraintIds"].toArray().size();
-            impact->setText(fillet.contains("previewDraft") ? QString("%1 width(s) become reference spans.\nRetire %2 dimension(s), %3 constraint(s).\nEnter accepts; Escape cancels.").arg(converted).arg(retiredDimensions).arg(retiredConstraints) : QString{});
+            QString notice=QString("%1 width(s) or height(s) become reference spans.\nRetire %2 dimension(s), %3 constraint(s).\nEnter accepts; Escape cancels.").arg(converted).arg(retiredDimensions).arg(retiredConstraints);
+            if(changes["releasedOriginCoincidence"].toBool())notice+="\nOrigin corner coincidence retires; outline loses its origin anchor.";
+            impact->setText(fillet.contains("previewDraft") ? notice : QString{});
+            impact->setMinimumHeight(fillet.contains("previewDraft") ? impact->heightForWidth(impact->width()) : 0);
         }
         if(sketchOffsetControls_)sketchOffsetControls_->setVisible(tool=="offset");
         if(sketchOffsetControls_)if(auto* accept=sketchOffsetControls_->findChild<QPushButton*>("sketch.offset.accept"))
@@ -2899,8 +2929,9 @@ void AlloyWindow::refresh() {
         else if(tool=="trim")prompt="Click the highlighted segment to remove · Escape or Enter exits";
         else if(tool=="offset")prompt=session_.value("pendingOffset").toObject()["valid"].toBool() ?
             "One Side · Set signed distance or Flip · OK accepts" : "Select one circle · Set distance · Flip changes side";
-        else if(tool=="fillet")prompt=fillet["corners"].toArray().size()==2 ? "Enter the common radius, then press Enter" :
-            fillet["corners"].toArray().size()==1 ? "Click the second corner" : "Click the first corner";
+        else if(tool=="fillet")prompt=fillet["sidePair"].toBool() || fillet["corners"].toArray().size()==2 ? "Enter the common radius, then press Enter" :
+            fillet.contains("firstSideId") ? "Click the adjacent second side" :
+            fillet["corners"].toArray().size()==1 ? "Click the second corner" : "Click the first side or corner";
         else if(tool=="centerArc")prompt=session_.contains("secondPoint") ? "Click the end · Sweep direction follows pointer" : session_.contains("firstPoint") ? "Click the start · Specify radius" : "Click the arc center";
         else if(tool=="threePointArc")prompt=session_.contains("secondPoint") ? "Click a point on the arc" : session_.contains("firstPoint") ? "Click the arc end" : "Click the arc start";
         else if(session_.contains("firstPoint"))prompt="Click the next point · Escape stops drawing";
@@ -5195,12 +5226,13 @@ void AlloyWindow::showSketch() {
         layout->addLayout(form);sketchInfo_=new QLabel;sketchInfo_->setObjectName("sketch.info");sketchInfo_->setWordWrap(true);layout->addWidget(sketchInfo_);sketchProfileInfo_=new QLabel;sketchProfileInfo_->setObjectName("sketch.profileStatus");sketchProfileInfo_->setWordWrap(true);layout->addWidget(sketchProfileInfo_);
         sketchFilletControls_=new QWidget;auto* filletForm=new QFormLayout(sketchFilletControls_);filletForm->setSizeConstraint(QLayout::SetMinimumSize);
         sketchFilletRadius_=new QLineEdit;sketchFilletRadius_->setObjectName("sketch.fillet.radius");
-        sketchFilletRadius_->setPlaceholderText("Select two corners, then enter a radius");
+        sketchFilletRadius_->setPlaceholderText("Select two sides or corners, then enter a radius");
         sketchFilletRadius_->setText(QString::number(10.0/(inputs["units"]=="in" ? 25.4 : 1.0),'g',8));
-        auto* filletImpact=new QLabel;filletImpact->setObjectName("sketch.fillet.referenceChanges");filletImpact->setWordWrap(true);filletImpact->setMinimumHeight(filletImpact->fontMetrics().lineSpacing()*3);filletForm->addRow(filletImpact);
+        auto* filletImpact=new QLabel;filletImpact->setObjectName("sketch.fillet.referenceChanges");filletImpact->setWordWrap(true);filletForm->addRow(filletImpact);
         filletForm->addRow("Fillet radius ("+inputs["units"].toString()+")",sketchFilletRadius_);layout->addWidget(sketchFilletControls_);
         connect(sketchFilletRadius_,&QLineEdit::textChanged,this,[this](const QString& text){
-            if(session_.value("tool")!="fillet" || session_.value("pendingFillet").toObject()["corners"].toArray().size()!=2)return;
+            const auto pending=session_.value("pendingFillet").toObject();
+            if(session_.value("tool")!="fillet" || (!pending["sidePair"].toBool() && pending["corners"].toArray().size()!=2))return;
             bool valid=false;const double value=text.toDouble(&valid);
             if(valid && value>0)sketchResponse(execute("sketch.filletPreview",{{"value",value}}));
             else clearFilletPreview();

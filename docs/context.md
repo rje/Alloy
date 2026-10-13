@@ -2132,3 +2132,16 @@ positive checked volumes, undo/redo and exact save/reopen. A native Apple M4
 OpenGL capture shows legible raised outlines/holes. The bounded receipt is
 [Sketch Text](validation/sketch-text.md). Independent review, native text
 placement, broader shaping and the complete keyring lesson remain open.
+
+## Rounded rectangle overall-span candidate (2026-10-13)
+
+SKT-043/#228 extends the accepted two-point Rectangle and sketch Fillet path
+to four successive R6 side-pair selections. Four original lines survive with
+four quarter arcs and one closed profile. The original 60/30 dimension IDs
+become disclosed driven overall spans, while the retired corner-origin
+coincidence leaves the fixed origin marker unanchored to the rounded contour.
+Focused core, actual Qt side-pair entry/capture and real-app API history,
+radius edit and exact storage pass. The radius edit updates the honest measured
+spans to about 59.6999 × 29.6996; preserving driving 60/30 through that edit
+is separate future work. Independent review and integration remain pending.
+See [the bounded receipt](validation/rounded-rectangle-fillets.md).
