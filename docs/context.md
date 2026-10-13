@@ -1768,3 +1768,14 @@ constraints so multi-line summary text is fully visible below Name. Main app bui
 pass; Astra reviewed actual images and source. See validation/sketch-palette-summary.md.
 The palette remains fixed312pixels; toolbar truncation and broader layout remain
 separate. No repeated full tutorial or physical OS input claim.
+
+## Multi-face candidate evidence (2026-10-13)
+
+Core and real-app API cumulative tests pass retained plate edge offsets/Cut,
+side8×3 Join4, genuine inclined support/frame edits and atomic split/deleted
+support diagnostics. Separate native side and inclined authoring workflows pass.
+Native recovery is incomplete: the bounded checkbox attempt highlighted the tool
+without toggling it, leaving the original valid preview. Keep #150's remaining
+visible native refusal/Cancel/correction gate; no repair UI is claimed. See
+[the evidence and limitations](validation/multi-face-gate.md). SKT035 adds the
+exact affected sketch ID while preserving originating diagnostic attribution.
