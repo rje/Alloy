@@ -28,6 +28,9 @@ attach to positive extrusion end caps and follow parent edits. General face supp
 curved model-edge references and broader imports/exports remain ahead. Straight
 cap-edge references support retained Parallel, native endpoint snaps and dimensions.
 Rounded cap centers now anchor fully constrained native construction guides.
+Circle centers can now use retained point-to-straight-edge driving dimensions;
+[the bounded candidate receipt](docs/validation/point-edge-dimensions.md) records
+its direct D/center/edge gesture and upstream hole-placement evidence.
 Inline diameter entry and Equal create five attached circles; native arrow-driven
 Cut produces five holes in one retained solid. Earlier sketch edits, history and
 reopen preserve that chain. See [the five-circle Cut receipt](docs/validation/five-circle-cut.md)

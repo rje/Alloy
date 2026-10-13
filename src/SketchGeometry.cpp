@@ -670,11 +670,14 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
                     if (!dimension["raySigns"].isArray() || signs.size()!=2) return "Angle raySigns requires two signs";
                     for (const auto& sign:signs) if (!sign.isDouble() || (sign.toDouble()!=1 && sign.toDouble()!=-1)) return "Angle ray signs must be +1 or -1";
                 }
+            } else if(kind=="pointLineDistance") {
+                if(!checkReferences(dimension,"pointIds",1,pointIds) || !lineIds.contains(dimension["entityId"].toString()))return "Point-edge dimension requires one point and a straight line";
+                if(!dimension["side"].isDouble() || (dimension["side"].toDouble()!=1 && dimension["side"].toDouble()!=-1))return "Point-edge dimension side must be +1 or -1";
             } else if ((kind != "linear" && kind != "horizontal" && kind != "vertical")
                 || !checkReferences(dimension,"pointIds",2,pointIds)) return "Invalid dimension kind or references";
             const bool driving=dimension["driving"].toBool(), placed=dimension.contains("annotation");
             const auto valueKey=kind=="arcSweep" || angle ? "valueDeg" : "valueMm";
-            if (dimension.size() != (driving ? 5 : 4)+int(placed)+int(angle && dimension.contains("raySigns")) || (!driving && dimension.contains(valueKey))) return "Unexpected dimension fields";
+            if (dimension.size() != (driving ? 5 : 4)+int(placed)+int(angle && dimension.contains("raySigns"))+2*int(kind=="pointLineDistance") || (!driving && dimension.contains(valueKey))) return "Unexpected dimension fields";
             if (placed) {
                 if (!dimension["annotation"].isObject()) return "Dimension annotation must be an object";
                 const auto annotation = dimension["annotation"].toObject();
@@ -754,7 +757,7 @@ SketchGeometry::SolveResult SketchGeometry::addDimension(const QJsonObject& draf
         const bool angle=kind=="angle";
         if (angle && (arguments.contains("pointIds") || arguments.contains("entityId"))) reject("Angle dimensions require two line entityIds");
         if (!angle && (arguments.contains("entityIds") || arguments.contains("raySigns"))) reject("Only line angles accept entityIds/raySigns");
-        if (arguments.contains("entityId") && !curve) {
+        if (arguments.contains("entityId") && !curve && kind!="pointLineDistance") {
             if (arguments.contains("pointIds")) reject("Choose dimension points or one line, not both");
             bool found = false;
             for (const auto& entry : expandedProjectionFeature(draft,projectionContext)["parameters"].toObject()["entities"].toArray()) {
@@ -770,6 +773,13 @@ SketchGeometry::SolveResult SketchGeometry::addDimension(const QJsonObject& draf
         if(curve) {dimension.remove("pointIds"); dimension["entityId"]=arguments["entityId"];}
         if(angle) {dimension.remove("pointIds");dimension["entityIds"]=arguments["entityIds"];
             if(arguments.contains("raySigns"))dimension["raySigns"]=arguments["raySigns"];}
+        if(kind=="pointLineDistance") {
+            if(pointIds.size()!=1 || !arguments["entityId"].isString())reject("Point-edge dimension requires one point and one line");
+            const auto expanded=expandedProjectionFeature(draft,projectionContext)["parameters"].toObject();QMap<QString,QPointF> points;for(const auto& value:expanded["points"].toArray()){const auto p=value.toObject();points[p["id"].toString()]={p["uMm"].toDouble(),p["vMm"].toDouble()};}
+            if(!points.contains(pointIds[0].toString()))reject("Point-edge point unavailable");QJsonObject line;for(const auto& value:expanded["entities"].toArray())if(value.toObject()["id"]==arguments["entityId"])line=value.toObject();
+            if(line["type"]!="line")reject("Point-edge dimensions support straight lines only");const auto a=points.value(line["startPointId"].toString()),b=points.value(line["endPointId"].toString()),q=points.value(pointIds[0].toString());const auto d=b-a;const double length=std::hypot(d.x(),d.y());if(length<minimumLength)reject("Point-edge dimension line is degenerate");const double signedDistance=(d.x()*(q.y()-a.y())-d.y()*(q.x()-a.x()))/length;if(std::abs(signedDistance)<minimumLength)reject("Use Coincident for a point on the line");
+            dimension["entityId"]=arguments["entityId"];dimension["side"]=signedDistance>0 ? 1 : -1;
+        }
         const auto valueKey=kind=="arcSweep" || angle ? "valueDeg" : "valueMm";
         if (arguments.contains("annotation")) dimension["annotation"] = arguments["annotation"];
         if (driving) dimension[valueKey] = arguments[valueKey];

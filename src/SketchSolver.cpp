@@ -32,6 +32,11 @@ QString reference(const QJsonObject& object, const char* key, int index) {
     require(index < array.size() && array[index].isString(), "Missing sketch reference");
     return array[index].toString();
 }
+double pointLineDistance(const GCS::Point& p,const GCS::Line& l) {
+    const double dx=*l.p2.x-*l.p1.x,dy=*l.p2.y-*l.p1.y,length=std::hypot(dx,dy);
+    require(length>=minimumLength,"Point-edge dimension needs a nondegenerate straight line");
+    return (dx*(*p.y-*l.p1.y)-dy*(*p.x-*l.p1.x))/length;
+}
 double separation(const QString& kind, const GCS::Point& a, const GCS::Point& b) {
     if (kind == "horizontal") return std::abs(*b.x - *a.x);
     if (kind == "vertical") return std::abs(*b.y - *a.y);
@@ -226,7 +231,7 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
             const auto kind=dimension["kind"].toString();
             const bool curve=kind=="radius" || kind=="diameter" || kind=="arcSweep";
             const bool angle=kind=="angle";
-            require(curve || angle || kind=="linear" || kind=="horizontal" || kind=="vertical", "Unsupported dimension kind");
+            require(curve || angle || kind=="pointLineDistance" || kind=="linear" || kind=="horizontal" || kind=="vertical", "Unsupported dimension kind");
             require(dimension["driving"].isBool(), "Dimension requires driving flag");
             if(angle) {require(dimension["entityIds"].isArray() && dimension["entityIds"].toArray().size()==2 && reference(dimension,"entityIds",0)!=reference(dimension,"entityIds",1),"Angle requires two distinct line IDs");signedLineAngle(dimension);}
             if(!dimension["driving"].toBool()) {ids.insert(id);continue;}
@@ -239,6 +244,10 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
                 const double rayOffset=((signs[1]<0 ? 1 : 0)-(signs[0]<0 ? 1 : 0))*std::numbers::pi;
                 const double target=std::remainder(signedTarget-rayOffset,2*std::numbers::pi);
                 solver.addConstraintL2LAngle(line(reference(dimension,"entityIds",0)),line(reference(dimension,"entityIds",1)),constant(target),t);
+            } else if(kind=="pointLineDistance") {
+                auto& p=point(reference(dimension,"pointIds",0));auto& l=line(dimension["entityId"].toString());pointLineDistance(p,l);
+                require(dimension["side"].toInt()==1 || dimension["side"].toInt()==-1,"Point-edge dimension needs retained side");
+                solver.addConstraintP2LDistance(p,l,constant(value),dimension["side"].toInt()==1,t);
             } else if(curve) {
                 const auto entityId=dimension["entityId"].toString();
                 if(arcMap.contains(entityId)) {auto& arc=arcMap.at(entityId);
@@ -374,7 +383,8 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
             else if(kind=="radius" || kind=="diameter" || kind=="arcSweep") {const auto id=d["entityId"].toString();
                 const auto& curve=arcMap.contains(id) ? static_cast<const GCS::Circle&>(arcMap.at(id)) : circleMap.at(id);
                 value=angular ? std::abs(*arcMap.at(id).endAngle-*arcMap.at(id).startAngle)/degrees : *curve.rad*(kind=="diameter" ? 2 : 1);
-            } else value=separation(kind,point(reference(d,"pointIds",0)),point(reference(d,"pointIds",1)));
+            } else if(kind=="pointLineDistance"){const auto signedValue=pointLineDistance(point(reference(d,"pointIds",0)),line(d["entityId"].toString()));value=d["driving"].toBool() ? d["side"].toInt()*signedValue : std::abs(signedValue);}
+            else value=separation(kind,point(reference(d,"pointIds",0)),point(reference(d,"pointIds",1)));
             if(d["driving"].toBool())check(value-number(d,angular ? "valueDeg" : "valueMm"),angular ? 1e-6 : lengthTolerance);
             QJsonObject measurement{{"id",d["id"]},{"kind",kind},{"driving",d["driving"]},{angular ? "valueDeg" : "valueMm",value}};
             measurements.append(measurement);

@@ -677,3 +677,16 @@ evaluated result summary and GPU `previewAppearance` diagnostics expose actual
 color/transparency. `solid.repeatSphere {support}` clears center and binds that
 new face, preserving last accepted diameter as an explicit Alloy choice.
 See [the candidate evidence limits](validation/face-sphere-controls.md).
+
+## Point-to-straight-edge dimensions
+
+`sketch.dimension` supports `kind: pointLineDistance` with one `pointIds` entry
+and `entityId` for the straight sketch/projected line, plus ordinary `value`,
+`units`, `driving` and `annotation`. Native D/center/edge selection uses the same
+IDs. `sketch.dimensionPreview` and `dimensionPlace` expose the separate annotation
+placement phase; `dimensionAccept`, `dimensionUpdate`, `dimensionEdit` and
+`annotationMove` reuse the existing draft/history authority. Authored `side`
+retains the initial driving side of the infinite supporting line. Positive
+values drive a real PlaneGCS equation; driven values measure absolute distance.
+Curved and degenerate lines and conflicting dimensions are refused atomically.
+See [the bounded evidence and explicit semantics](validation/point-edge-dimensions.md).

@@ -1670,3 +1670,18 @@ one closed oriented component and scaled 20 mm bounds. Authored/undo/revision
 stay unchanged; the app exits cleanly and the desktop is released. Astra accepts
 bounded code/artifact evidence; root integration/issue closure remain separate.
 See [the updated pole receipt](validation/stl-pole-facets.md).
+## Retained point-to-edge dimension candidate (SKT-034 #205)
+
+Isolated `point-edge-dimensions` implements circle-center→retained straight-edge
+P2L driving dimensions, native D/point/edge/separate placement/3.9/Enter and live
+perpendicular witnesses. Explicit Alloy semantics are positive supporting-line
+distance and retained side relative to canonical edge endpoints; source internals
+remain unknown. Core DOF/radius/side/conflict and40→50plate Cut/history/reopen pass.
+The real-app API runner passes center35→45 and volumes5000−45π→6250−45π.
+Qt toy gesture, Escape and annotation-only label drag pass3/3; no physical OS
+input claim. A bounded viewport-key fallback repairs delivered D/Escape when the
+outer Qt window is inactive. Both stored sides are exercised. Candidate captures
+and authored evidence live in `build-point-edge/evidence/{api,widget}`; all private
+validation processes closed and desktop released to root for Astra review.
+See `validation/point-edge-dimensions.md`. Broader SKT-017/025/026 remain separate;
+no issue closure, release or push implied by this candidate.
