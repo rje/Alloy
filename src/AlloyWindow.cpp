@@ -1511,7 +1511,13 @@ void AlloyWindow::registerCommands() {
     auto bodyId=parameter("string","Stable body UUID; empty string clears selection.");
     add("selection.set","Select body","Select a visible body through the same path as the Browser.",{{"bodyId",bodyId}},[this](const auto& a){
         const auto id=a["bodyId"].toString();bool found=id.isEmpty();
-        if(session_.value("command")=="solid.move" && !id.isEmpty()) {auto response=execute("command.update",{{"session",session_["id"]},{"inputs",QJsonObject{{"targetBodyId",id}}}});if(!response["ok"].toBool())return response;return previewMove();}
+        if(session_.value("command")=="solid.move" && !id.isEmpty()) {
+            const auto edit=session_["inputs"].toObject()["featureId"].toString();const auto available=edit.isEmpty() ? document_->bodies() : document_->evaluationBefore(edit).bodies;
+            const auto body=std::find_if(available.begin(),available.end(),[&](const auto& candidate){return candidate.bodyId==id;});if(body==available.end())return failure("stale_entity","Move body is unavailable at its history stage");
+            QJsonObject changes{{"targetBodyId",id}};
+            if(session_["inputs"].toObject()["targetBodyId"]!=id){const auto bounds=body->summary["boundsMm"].toObject();const auto low=bounds["min"].toArray(),high=bounds["max"].toArray();changes["pivotXMm"]=(low[0].toDouble()+high[0].toDouble())/2;changes["pivotYMm"]=(low[1].toDouble()+high[1].toDouble())/2;changes["pivotZMm"]=low[2];changes["steps"]=QJsonArray{};for(const auto& key:{"xMm","yMm","zMm","xDeg","yDeg","zDeg"})changes[key]=0;}
+            auto response=execute("command.update",{{"session",session_["id"]},{"inputs",changes}});if(!response["ok"].toBool())return response;return previewMove();
+        }
         if(session_.value("command")=="solid.combine") {
             for(const auto& body:combineInputBodies())found=found || body.bodyId==id;
             if(!found)return failure("stale_entity","Body is unavailable at this Combine history stage","bodyId");
