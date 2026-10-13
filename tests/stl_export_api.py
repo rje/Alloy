@@ -15,15 +15,18 @@ def inspect_stl(path, binary):
     if binary:
         count, = struct.unpack_from('<I', data, 80)
         assert len(data) == 84+50*count
-        triangles = []
+        triangles, normals = [], []
         for i in range(count):
             values = struct.unpack_from('<12fH', data, 84+50*i)
             triangles.append([values[3:6], values[6:9], values[9:12]])
+            normals.append(values[:3])
     else:
         vertices = [tuple(map(float, v)) for v in re.findall(r'vertex\s+(\S+)\s+(\S+)\s+(\S+)', data.decode('ascii'))]
         assert len(vertices) % 3 == 0
         triangles = [vertices[i:i+3] for i in range(0, len(vertices), 3)]
+        normals = [tuple(map(float, n)) for n in re.findall(r'facet normal\s+(\S+)\s+(\S+)\s+(\S+)', data.decode('ascii'))]
     assert triangles
+    assert len(normals) == len(triangles)
     points = [p for t in triangles for p in t]
     low = [min(p[i] for p in points) for i in range(3)]
     high = [max(p[i] for p in points) for i in range(3)]
@@ -31,7 +34,14 @@ def inspect_stl(path, binary):
     key = lambda p: tuple(round(x/tolerance) for x in p)
     edges = Counter()
     volume = 0
-    for a, b, c in triangles:
+    for (a, b, c), normal in zip(triangles, normals):
+        assert all(math.isfinite(x) for p in (a, b, c, normal) for x in p)
+        ab, ac = [b[i]-a[i] for i in range(3)], [c[i]-a[i] for i in range(3)]
+        cross = [ab[(i+1)%3]*ac[(i+2)%3]-ab[(i+2)%3]*ac[(i+1)%3] for i in range(3)]
+        cross_length = math.sqrt(sum(x*x for x in cross))
+        normal_length = math.sqrt(sum(x*x for x in normal))
+        assert cross_length > 0 and math.isclose(normal_length, 1, rel_tol=1e-5)
+        assert sum(cross[i]*normal[i] for i in range(3))/(cross_length*normal_length) > 0.99999, 'Facet normal disagrees with winding'
         ka, kb, kc = key(a), key(b), key(c)
         assert len({ka, kb, kc}) == 3, 'Degenerate output triangle'
         for u, v in ((ka, kb), (kb, kc), (kc, ka)):
@@ -39,7 +49,7 @@ def inspect_stl(path, binary):
         volume += sum(a[i]*(b[(i+1)%3]*c[(i+2)%3]-b[(i+2)%3]*c[(i+1)%3]) for i in range(3))/6
     assert all(count == 1 and edges[v, u] == 1 for (u, v), count in edges.items()), 'Open or inconsistently oriented mesh'
     assert volume > 0, 'Mesh winding must have positive signed volume'
-    return {'triangles': len(triangles), 'bounds': [low, high], 'signedVolume': volume}
+    return {'triangles': len(triangles), 'bounds': [low, high], 'signedVolume': volume, 'facetNormals': 'finite, unit length and aligned with winding'}
 
 
 def main():
