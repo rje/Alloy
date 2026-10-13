@@ -1343,6 +1343,14 @@
       "evidence": "Public instructions and screenshot observations; independently reviewed",
       "reference_id": "warwick-initials-keyring-20261013",
       "provenance": "External knowledge/tutorials/warwick/initials-keyring-independent-contract.md records creator, URL, pages, source discrepancies and explicit fixture choices."
+    },
+    "wall-outlet-sketch-20261013": {
+      "title": "Illustrated fully defined wall-outlet sketch activities",
+      "url": null,
+      "retrieved": "2026-10-13",
+      "evidence": "documented and observed-screenshot",
+      "reference_id": "wall-outlet-sketch-20261013",
+      "provenance": "Three public pages and five original screenshots independently reviewed; full URLs and records outside Git in knowledge/tutorials/wall-outlet-audit/."
     }
   },
   "reference_records": "../Alloy-reference-records/",

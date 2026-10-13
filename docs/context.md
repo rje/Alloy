@@ -20,7 +20,7 @@ visual parity remain qualified. The external
 editable models and STL deliverables. The Revolve receipt is
 [validation/revolve-tutorial.md](validation/revolve-tutorial.md).
 
-**115 of 236 issues are closed.** Recent accepted work includes compact ribbon
+**115 of 242 issues are closed.** Recent accepted work includes compact ribbon
 icons #218, retained Extrude Intersect #219, nested profile/island diagnostics
 #165, portable local controls #220, shared-line fillets #221, typed Line length
 locks #222, retained Sweep #223 and native Sweep controls #224. Each has a scoped
@@ -73,8 +73,10 @@ It retains driving dimension IDs/values through tangent endpoints and explicit
 supporting-line incidence at the fixed origin, without changing existing finite
 point-on-curve semantics or migrating old driven sketches. The board marks #235
 In Progress. Astra now independently audits the next sketch-only tutorial. Luna is researching a self-contained wall-outlet sketch lesson externally;
-the sample-dependent doorstop activity was not promoted as a full gate. No new
-feature issue or implementation is claimed before that recommendation.
+the sample-dependent doorstop activity was not promoted as a full gate. The independent audit is complete; #237–242 now track rough Center Rectangle,
+source constraint gestures, parallel-line dimensions, associative sketch Mirror,
+native Mirror selection and the full sketch-only gate. They remain Todo until
+assigned. No implementation or completed-workflow claim is implied.
 Follow-up #235 tracks driving overall size/origin retention through
 sketch fillets; #228 permits explicit measured-span conversion, so radius edits
 can alter overall size. Text retains authored parameters and uses mature font

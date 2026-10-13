@@ -4259,6 +4259,99 @@
         "area:sol"
       ],
       "body": "## Observed prerequisite\nPreparing TUT-010 found that Extrude Cut creates prism tools without retaining their edge provenance. Only preexisting target solidEdges are transferred. A new circular hole rim therefore lacks a stable selectable edge for the source-prescribed upper-edge R1 Fillet.\n\n## Bounded scope\nRetain the new circular hole entry rim from an analytic circle extrusion Cut using existing kernel history and profile identities. Expose it through the same edge descriptors and viewport selection used by solid Fillet. Avoid coordinate-only or transient topology-index identity. Broader arbitrary Boolean intersection edge naming stays with existing topology owners.\n\n## Acceptance\n- On a 2mm floor, author a face-supported diameter4 circle and Cut -10mm. Inspect/select the new upper hole rim and apply R1 solid Fillet through existing commands.\n- Retained edge identity survives a supported circle diameter edit, or refuses an ambiguous/invalid change atomically with attribution; verify one edit and undo.\n- Save/reopen keeps Cut, edge reference and Fillet. The broad remaining floor stays usable as a sketch support for subsequent Text.\n- One focused kernel check and one actual-app chain with readable selected rim/fillet preview are enough; reuse the full keyring gate for cumulative evidence.\n\n## Reference\nPublic source warwick-initials-keyring-20261013 page5 step18. Detailed public evidence and visuals remain outside the repository. This records a discovered prerequisite, not completed behavior.\n\n\n## Accepted evidence\nCandidate eb73905 and independent3b5b51f accepted; integrated e9c4488/bd25380 and default app rebuild passed. Stable circle Cut entry-rim descriptors reuse existing Boolean history and result-membership checks. Focused core and 62-call real-app Cut/selected R1 Fillet/floor Text support/edit/history/reopen checks pass with inspected GPU captures. See docs/validation/cut-hole-rim.md. Full keyring gate #233 now proceeds.\n"
+    },
+    {
+      "key": "SKT-050",
+      "title": "Create rough pointer Center Rectangles without implicit driving size",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-031"
+      ],
+      "labels": [
+        "area:skt"
+      ],
+      "body": "## Scope\nPointer-only center/corner placement creates origin-centered H/V rectangle geometry and construction diagonals with two free size degrees of freedom. Preserve typed/locked width and height entry as driving and preserve all existing authored documents.\n\n## Acceptance\nActual uninterrupted pointer center/corner sequence creates no hidden size drivers. D on top/right edges then types 70/114 and reaches zero DOF with truthful styling. A focused typed-input control retains its existing driving size behavior. Verify one native sequence, model inspection and undo/reopen. Do not remove dimensions from old documents or pre-pin final source coordinates.\n\n## Parent scope\nBounded extension of accepted Center Rectangle #189; broader inline and inference parent #162 remains open.\n\n## Public source and limits\nSource wall-outlet-sketch-20261013, three public illustrated activities independently reviewed 2026-10-13. Detailed numbered steps, URLs, images and uncertainty notes remain outside Git in knowledge/tutorials/wall-outlet-audit/independent-contract.md. Source ends at Finish Sketch; no solid or print operation is implied.\n"
+    },
+    {
+      "key": "SKT-051",
+      "title": "Add outlet sketch Concentric point alignment and endpoint midpoint gestures",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-003",
+        "SKT-005",
+        "SKT-006",
+        "SKT-007"
+      ],
+      "labels": [
+        "area:skt"
+      ],
+      "body": "## Scope\nImplement the source's three related retained sketch-constraint routes: Concentric for circle/arc pairs, point-pair Horizontal/Vertical, and line start/end midpoint inference. Keep explicit relation/point/entity IDs and use established solver equations.\n\n## Acceptance\n- Actual midpoint hover cue and line clicks on opposite outer-edge midpoints create retained relations; source edge edits move both endpoints. Convert the line to Construction through existing controls.\n- Constraint-first Concentric selects left then right arc; point H/V selects origin-circle center then shared arc center. The first selection is the initial reference when free; reverse order once to verify the second moves. This does not add hidden permanent Fixed constraints.\n- Reuse Equal for the opposed arcs. Display readable original constraint glyphs, meaningful selection and DOF, with preview/cancel where applicable and undo/reopen.\n- Start the focused solver fixture with the actual upper rectangle and its two outward three-point arcs. Their center heights can already coincide: investigate consistent partial redundancy without silently dropping the requested relation or weakening conflict refusal. If a broader solver policy is required, split a prerequisite rather than claiming this child complete.\n\n## Limits\nNo general new constraint family sweep. Existing finite point-on-curve semantics and unrelated input are unchanged; coordinate ownership with the driving-fillet child #235.\n\n## Public source and limits\nSource wall-outlet-sketch-20261013, three public illustrated activities independently reviewed 2026-10-13. Detailed numbered steps, URLs, images and uncertainty notes remain outside Git in knowledge/tutorials/wall-outlet-audit/independent-contract.md. Source ends at Finish Sketch; no solid or print operation is implied.\n"
+    },
+    {
+      "key": "SKT-052",
+      "title": "Dimension the perpendicular distance between two parallel sketch lines",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-004",
+        "SKT-018"
+      ],
+      "labels": [
+        "area:skt"
+      ],
+      "body": "## Scope\nD selects two parallel authored straight lines, then a separate annotation position and typed distance. The source uses bottom-cutout edge then construction axis for 11 mm, and upper/lower cutout edges for 28 mm. This is a true retained line-to-line relation, not an angle or point-to-edge substitute.\n\n## Acceptance\nRetain both line UUIDs and signed side intent, verify parallel validity and solve perpendicular distance with existing math. Do not insert a hidden parallel constraint. Preserve ordinary nonparallel angle and Centerline Diameter routing. Keep readable witnesses, editable values and existing dimension reuse without duplicates. Verify actual native D/pick/pick/place/type for 11 and 28, one edit, atomic incompatible-reference refusal and history/reopen. Keep scope to authored straight sketch lines.\n\n## Public source and limits\nSource wall-outlet-sketch-20261013, three public illustrated activities independently reviewed 2026-10-13. Detailed numbered steps, URLs, images and uncertainty notes remain outside Git in knowledge/tutorials/wall-outlet-audit/independent-contract.md. Source ends at Finish Sketch; no solid or print operation is implied.\n"
+    },
+    {
+      "key": "SKT-053",
+      "title": "Retain associative line and arc sketch Mirror geometry",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-003",
+        "SKT-006"
+      ],
+      "labels": [
+        "area:skt"
+      ],
+      "body": "## Scope\nImplement the retained sketch Mirror foundation separately from body Mirror and native collection. Keep selected six line/arc source IDs, straight mirror-axis ID, deduplicated point identities, source/result mapping and construction flags. Reflection reverses arc orientation while preserving intended sweep and endpoint correspondence.\n\n## Acceptance\nOne asymmetric upper-cutout fixture with four rectangle lines and two outward arcs reflects across its construction axis. Actual associated relationships update the lower geometry under source and axis edits; preserve IDs, meaningful DOF, preview/Cancel/OK, undo/reopen and missing-axis refusal. Do not blindly duplicate all source constraints or replace the source with hidden fixed final coordinates. State any bounded result-edit limits explicitly; research documented association rather than assuming a generated uneditable copy is equivalent.\n\n## Integration\nUse a small isolated module and coordinate shared solver/schema ownership with SKT-051 and #235. Native object collection and mirror-line controls are SKT-054. General patterns and body operations remain with their broader owners.\n\n## Public source and limits\nSource wall-outlet-sketch-20261013, three public illustrated activities independently reviewed 2026-10-13. Detailed numbered steps, URLs, images and uncertainty notes remain outside Git in knowledge/tutorials/wall-outlet-audit/independent-contract.md. Source ends at Finish Sketch; no solid or print operation is implied.\n"
+    },
+    {
+      "key": "SKT-054",
+      "title": "Select sketch Mirror objects by window and choose its axis natively",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-053"
+      ],
+      "labels": [
+        "area:skt"
+      ],
+      "body": "## Scope\nExpose real sketch Mirror object collection, explicit Mirror Line selection, disposable preview and OK/Cancel through native controls and the same shared API authority.\n\n## Acceptance\nActual drag-window collection encloses the upper rectangle and two arcs while excluding the outer frame, circle, central axis and diagonals that only cross the window. Preserve selected point versus curve identities and deduplicate endpoints. Six selected curves are visible in the public image; its reported 12 objects may include four corners and two arc centers, but that composition is inference. Do not invent twelve curves or pad counts. Report truthful object/curve counts and disclose any source count mismatch.\n\nInspect the lower mirrored preview, choose the retained straight axis, Cancel once and accept once. Verify initial-only harness activation and no focus/selection repairs between user steps. Controls, selections and geometry must be readable in an actual GPU capture; reuse core mirror identity/history evidence.\n\n## Public source and limits\nSource wall-outlet-sketch-20261013, three public illustrated activities independently reviewed 2026-10-13. Detailed numbered steps, URLs, images and uncertainty notes remain outside Git in knowledge/tutorials/wall-outlet-audit/independent-contract.md. Source ends at Finish Sketch; no solid or print operation is implied.\n"
+    },
+    {
+      "key": "TUT-011",
+      "title": "Gate: complete the illustrated fully defined wall-outlet sketch",
+      "kind": "validation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-050",
+        "SKT-051",
+        "SKT-052",
+        "SKT-053",
+        "SKT-054"
+      ],
+      "labels": [
+        "area:tut"
+      ],
+      "body": "## Source endpoint\nComplete all three illustrated activities from a blank design through Finish Sketch. This is a sketch-only lesson; do not claim solid, export or printing coverage. Save/edit/history are additional Alloy checks.\n\n## Required workflow\nRough origin Center Rectangle; line snapped to opposite side midpoints and converted to Construction; origin circle; rough upper two-point rectangle; two vertical sides converted to Construction; two outward three-point arcs; actual Mirror window collection and axis; Concentric then point Vertical then Equal; driving overall 70/114, circle diameter12, two-line distances11/28 and arc radius17; show constraints and Finish Sketch. Rough seeds and inferred object-count composition remain explicit.\n\n## Independent acceptance\nStart with nonzero DOF and end with zero DOF and black defined geometry without hidden fixed cutout coordinates. Outer bounds x\u00b135/y\u00b157; upper arc center(0,25), radius17, chord y11/39 at x\u00b1sqrt93; lower reflection center(0,-25); central radius6. Each cutout area is 2*(14*sqrt93+289*asin(14/17)). Inspect readable dimensions and relation icons, actual authored identities, one reflected upstream edit and exact undo/reopen. Deliver a complete API creation movie and editable model, reuse bounded native ingredient evidence, and keep physical OS/exact pixel claims separate. Independent reviewer must inspect actual captures and source-step coverage before closure.\n\n## Public source and limits\nSource wall-outlet-sketch-20261013, three public illustrated activities independently reviewed 2026-10-13. Detailed numbered steps, URLs, images and uncertainty notes remain outside Git in knowledge/tutorials/wall-outlet-audit/independent-contract.md. Source ends at Finish Sketch; no solid or print operation is implied.\n"
     }
   ]
 }

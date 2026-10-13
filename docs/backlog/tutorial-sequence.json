@@ -114,6 +114,21 @@
       "evidence": "docs/validation/keyring-tutorial.md"
     },
     {
+      "id": "CP-16",
+      "title": "Fully defined wall-outlet sketch with associative Mirror and constraints",
+      "issues": [
+        "SKT-050",
+        "SKT-051",
+        "SKT-052",
+        "SKT-053",
+        "SKT-054",
+        "TUT-011"
+      ],
+      "acceptance": "Complete all three source activities from blank through Finish Sketch with retained relations, truthful initial/final DOF, readable dimensions/badges, full creation movie and editable sketch. No source solid or print claim.",
+      "status": "todo",
+      "remaining": "Six bounded children published after independent source audit; implementations not yet accepted. Source details and visual references remain external."
+    },
+    {
       "id": "CP-12",
       "title": "Direct dimensions from circle centers to retained model edges",
       "issues": [
