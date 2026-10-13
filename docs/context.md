@@ -39,9 +39,17 @@ Trim, Join, corrected Fillet, original-cap circle, cutter47, local Move and Comb
 Cut, upstream edit/diameter edit, undo/reopen and closed millimeter STL. Evidence
 and deliverables are `build-tutorial-polish/evidence/support-tutorial/`; final
 32×15×24 mm, 1,550 triangles. See `validation/support-tutorial.md` for source
-values and declared transform inference. Astra is reviewing full evidence and
-remaining native path; full tutorial acceptance is still pending.
-Backlog after these closures: 182 issues, 53 closed, 129 open. No release/CI run.
+values and declared transform inference. Astra's native continuation reached the same final solid and closed STL, with
+exact Undo/Redo and save/reopen, in a labeled 366.5-second recording. It continues
+from the accepted filleted fixture; it is not a blank-document movie. Native
+right-click cutter Move and Combine cutter picking failed; #183 investigates the
+saved state. Move OK/Cancel clipped at1136×790; #184 adds bounded scrolling.
+Both are active children blocking full #171 acceptance; no full rerun is needed
+for their corrections. Astra is completing the source/media receipt.
+External recording: `../Alloy-reference-records/demos/2026-10-12/straw-support-native/`.
+Desktop ownership is serialized: #183 diagnostic first, then independent layout
+review. Do not launch another editor concurrently.
+Backlog after two bounded follow-ups: 184 issues, 53 closed, 131 open. No release/CI run.
 
 ## Current integrated checkpoint (2026-10-12)
 

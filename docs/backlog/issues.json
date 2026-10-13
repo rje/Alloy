@@ -3201,7 +3201,9 @@
         "SKT-027",
         "SOL-020",
         "SKT-029",
-        "SOL-022"
+        "SOL-022",
+        "DOC-017",
+        "SOL-023"
       ],
       "labels": [
         "kind:validation",
@@ -3403,6 +3405,41 @@
         "area:sol"
       ],
       "body": "Bounded child of #48 and the generated-edge subset of #24. Public support VIDEO variant picks two outer-prong edges and radius1mm; PDF six-edge0.5mm is distinct and not claimed. Exact source contract/provenance is external knowledge/specs/solid-fillet-support-2026-10-12.md. Implement single-target, one-set constant-radius G1 rolling-ball fillet with tangent-chain ON; OFF, radius manipulator and broader modes stay in parent #48. Use real native F/Modify, two edge seeds, readable highlights, numeric preview, OK/Cancel/Escape, editable history and the authoritative API. Persist generator/profile/contact/role edge references; transport exact unique OCCT history through Join, never bind by index/proximity. Preserve unaffected original disk cap at z20 for the next sketch. Source naming is bounded, not general topology repair. Use mature OCCT fillet implementation. Verify exact source sequence, upstream prong-height and radius edits, one impossible-radius atomic refusal, undo and reopen. Independent native/source visual review required; all footage/images stay outside Git. Coordinate multi-result Join #176 before shared kernel hooks."
+    },
+    {
+      "key": "DOC-017",
+      "title": "Qualify tall cutter viewport picking and context actions",
+      "kind": "implementation",
+      "phase": "P1 Geometry/document",
+      "priority": "P1",
+      "depends_on": [
+        "SOL-020",
+        "SOL-022"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P1",
+        "priority:P1",
+        "area:doc"
+      ],
+      "body": "Bounded defect found during #171 native support continuation: after circle-on-cap and 47 mm New Body extrusion, right-clicks inside the visible cutter reach viewport contextMenuEvent (count2) but show no menu; later Combine tool viewport click also fails while the native tool checkbox succeeds. Preserve recording and state under external demos/2026-10-12/straw-support-native. Investigate actual projected coordinates and AIS selection/display state using a saved pre-Move fixture; distinguish application picking failure from coordinate/automation error. Fix only demonstrated cause. Verify one actual cutter viewport selection/context Move and Combine tool selection with native input, preserving Cancel/authored data. Do not repeat full tutorial or broad geometry suites. Parent picking breadth remains #18; no speculative focus fix."
+    },
+    {
+      "key": "SOL-023",
+      "title": "Keep Move fields and commit controls reachable at normal window heights",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SOL-019"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P2",
+        "priority:P1",
+        "area:sol"
+      ],
+      "body": "Native #171 continuation at 1136 x 790 showed the nine-field Move form clipping OK/Cancel below the window. Resizing to 1136 x 950 was an explicitly recorded recovery. Add bounded Qt scrolling/layout behavior so translation, rotation and pivot fields remain reachable and commit/cancel remain visible at supported normal/minimum window heights. Reuse established dock controls; avoid broad redesign. Verify one actual small-window Move edit, scrolling to pivot fields, reachable OK/Cancel and exact cancel preservation; normal-height controls remain readable. Recording/evidence external demos/2026-10-12/straw-support-native. No geometry regression suite needed for layout-only change."
     }
   ]
 }
