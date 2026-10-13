@@ -4691,7 +4691,8 @@
         "SKT-065",
         "SOL-038",
         "SOL-040",
-        "SOL-041"
+        "SOL-041",
+        "SOL-042"
       ],
       "labels": [
         "area:sol"
@@ -4726,6 +4727,22 @@
         "area:sol"
       ],
       "body": "## Result\nConfigure Join lineage Common operations before their first execution so earlier evaluated inputs remain immutable. src/JoinResults.cpp covers() currently invokes the eager two-shape BRepAlgoAPI_Common constructor, then sets NonDestructive and calls Build again. The initial computation precedes the intended policy. Use the existing documented non-destructive kernel setup; preserve explicit participant ownership and numeric acceptance policy.\n\n## Verification\nA focused Join regression should serialize retained source shapes before/after evaluation, exercise real multi-participant coverage and repeat evaluation, and retain one valid connected result with unchanged source geometry and identities. Inspect that the constructor cannot execute early. Use core evidence and existing native controls; no UI replay is necessary for this kernel-only correction. Do not silently mix numerical integration or Shell repairs into this patch. Astra independently reviews. This bounded correction does not close cumulative ornament Join SOL-039 or full tutorial TUT-014.\n\n## Accepted 2026-10-13\nIntegrated b36fbac/5498152 with independent source/core review. Common now receives arguments/tools and NonDestructive before its first Build. Repeated multi-participant Join preserves serialized geometry with documented OCCT ownership-flag baseline; no geometry/tolerance normalization. Main app builds, immutability and successiveJoin core2/2 pass1.59s. Receipt docs/validation/join-lineage-immutable.md. No UI change or new editor run; Shell and full ornament remain separate.\n"
+    },
+    {
+      "key": "SOL-042",
+      "title": "Bound repeated retained Join evaluation latency",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SOL-038",
+        "SOL-040",
+        "SOL-041"
+      ],
+      "labels": [
+        "area:sol"
+      ],
+      "body": "## Observed problem\nThe retained eight-rib ornament plus hub joins successfully, but appending its transverse construction plane fully recomputes the unchanged modeling prefix. Cumulative-02 timed out180s in coverage Common. The independently accepted single-result ownership optimization removes that redundant work; cumulative-03 still spends over60s in the actual Fuse Build during the unchanged-prefix recomputation. Source geometry and all nine inputs have independent exact containment evidence.\n\n## Bounded work\nIdentify the first-versus-repeated evaluation difference using the saved retained fixture and actual app timing: distinguish unnecessary prefix recomputation, repeated sketch-solve drift, and kernel cost. Implement the smallest evidence-supported correction. Preserve authored dimensions, persistent identities, ownership, atomic failures and upstream invalidation. Do not inflate tolerances, substitute approximate geometry, skip upstream changes or introduce broad speculative caching.\n\n## Verification\nUse the real app to create the eight-rib hub Join, append the bore construction plane/sketch/Cut, and perform a meaningful upstream edit with undo/reopen. Record per-command timings and compare identical stages. Verify unchanged geometry for unchanged inputs and recomputation for changed inputs. Existing narrow Join regressions plus the cumulative saved-model containment/bore/STL oracle suffice; avoid a broad replay. Independent Astra review required. Full cumulative acceptance remains SOL-039 and TUT-014; no movie acceptance from frozen or shortened clips.\n\n## Evidence\nExternal deliverables/ornament-2026-10-13/cumulative-02 and cumulative-03; profiles recorded during actual processing. See docs/validation/exact-offset-join-investigation.md and ornament-cumulative-runner.md.\n"
     }
   ]
 }

@@ -39,6 +39,15 @@ private editor is closed. #265 numerical correction has independent acceptance
 resolve the observed recomputation cost. Primary timeout and secondary recording
 failure are preserved; runner cleanup now records them separately.
 
+Performance follow-up SOL-042/#268 is now active; #265 returns to Todo with
+that explicit dependency. The independently accepted single-result optimization
+8700806/f15b469 removes coverage Common overhead, but cumulative-03 still spends
+over60s in actual Fuse Build while appending a construction plane. This live
+run remains observed; no restart or success claim. Root profiles are archived
+under external validation/ornament-feasibility/cumulative-{02,03}-plane-cpu-sample.txt.
+Sol is comparing repeated evaluation inputs before selecting a bounded fix;
+geometry approximation and tolerance changes remain excluded.
+
 ## Latest accepted checkpoint — 2026-10-13
 
 Full slots/splines/conic/ellipse lesson #257 and color follow-up #259 are accepted
