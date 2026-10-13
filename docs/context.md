@@ -1716,3 +1716,20 @@ names. Astra source/capture review reports no blocker; final independent
 acceptance/integration remain root-owned. See
 [the bounded receipt](validation/timeline-overflow.md). No tutorial replay,
 push, release or GitHub closure was performed by this isolated candidate.
+
+## Active multi-face cumulative gate (2026-10-13)
+
+SKT-017 #150 is now pulled after a read-only implementation audit. Dependencies
+were replaced with the actual accepted bounded prerequisites (GEO-002, SKT-010,
+SKT-034, SOL-015, SOL-018, SOL-020), retaining all stated scope. Broad support
+repair, explicit projection policies and Intersect remain separate Todo tasks.
+Sol (die_chamfer) owns isolated multi-face-gate; Astra independently verifies.
+Reuse the retained edge-distance plate/Cut, add an independently dimensioned
+8x3 side rectangle and Join4 (96 mm³), plus a real inclined planar face from an
+extruded XZ trapezoid. Move clears support lineage and is not a valid fixture
+shortcut. Check actual UI creation/selection and frame mapping, upstream edits,
+Cancel, undo/reopen and visible atomic refusal/recovery when support splits.
+Recoverability means preserving accepted state and allowing Cancel/correction;
+replacement-support/relink UI is not implemented or claimed. Keep private GUI
+serialized. No new feature implementation should be invented if existing commands
+pass this full gate; split a concrete missing behavior if encountered.
