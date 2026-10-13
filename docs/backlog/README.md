@@ -24,7 +24,8 @@ that does not close the issue or waive its remaining acceptance criteria.
    its input recoveries; the PDF numeric variant remains unexecuted.
 2. Finish outstanding exact-native bracket evidence as bounded follow-ups;
    retain prior API/slicer success without relabeling it as full native parity.
-3. Straw support: profile partitions, joined heights and solid fillets (#171).
+3. Straw support: cumulative original-video modeling/export gate (#171) accepted;
+   full API chain, native continuation and bounded input fixes have independent evidence.
 4. Nested cubes: shell, mirror, multi-face sketches, offset plane and center
    rectangle (#172).
 5. Egg cup: offset circular sections, ordered loft and shell (#173).

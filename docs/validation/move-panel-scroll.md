@@ -25,3 +25,7 @@ deletion, and footer coordinates use the existing global-coordinate conversion.
 No production Cancel crash was established. Root/Astra should independently
 inspect the panel and click its actions at the originally failing height before
 closing the issue.
+
+Independent native review also passes at1136×790: scrolling exposes all pivot
+fields, fixed OK/Cancel stay readable, and physical Cancel preserves authored
+data. The sole private editor was closed afterward.

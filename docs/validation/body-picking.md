@@ -30,5 +30,6 @@ reference rebinding, proprietary application inspection or ray fallback is used.
 Application builds; the focused widget check passes (three QtTest results,
 zero failures). `circlePrismBodyPicking` checks
 an actual generated circle prism's center pick, stable body selection and
-Combine tool picking. Independent native popup,
-Move activation, whole-body cue and Combine tool selection remain pending.
+Combine tool picking. Independent native review passes exact cutter click and whole-body blue cue,
+right-click Move/Copy activation, Combine target/tool viewport selection with
+valid preview, and exact Cancel preservation. See the support follow-up receipt.

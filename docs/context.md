@@ -15,57 +15,39 @@ supported circle, history and reopen. Real-app/API and independent native
 acceptance remain pending the combined candidate. See
 [the candidate receipt](validation/solid-fillet.md).
 
-## Current support checkpoint (2026-10-12)
+## Current accepted support checkpoint (2026-10-12)
 
-#176 successive/multi-result Join and #182 bounded solid-edge Fillet are accepted
-and closed after independent Astra native/source review. See
-[the receipt](validation/support-solid-independent-review.md). The integrated
-binary is `build-tutorial-polish/alloy.app/Contents/MacOS/alloy`. Core and real-app
-checks cover source 20/4/24/22 Join, stable result ownership, retained original
-disk cap, actual edge picks, edits, preview/cancel, undo/redo and reopen.
-Native review caught and verified fixes for Fillet finish keyboard focus and
-early Join previews incorrectly displaying downstream geometry.
+The cumulative functional original-video support tutorial #171 is accepted.
+The complete shared-API run covers the dimensioned sketch, Trim, five real
+regions, successive Join20/4/24/22, two outer vertical-corner1mm fillets, original
+disk-cap circle5.2, cutter47, local MoveY-10deg/Z-31/X-2, Combine Cut, upstream
+edits, Undo/Redo, exact reopen and independently read-back closed millimeter STL.
+Final outer size32×15×24mm, one valid solid,1,550 mesh triangles. The Move frame
+composition remains declared source-informed inference; no exact internal parity.
 
-The corrected VIDEO recipe selects BOTH outer vertical corners at x32,y-10/y0,
-not a top rim. Public frames07/10/14 supersede that earlier inferred seed mapping.
-Corrected native preview/commit and saved model are under
-`build-tutorial-polish/evidence/independent-support-solid`; earlier API fillet
-captures use the superseded seed recipe and remain feature evidence only.
-The PDF six-edge0.5mm variant remains unexecuted. Broader fillet modes stay #48.
-All private review editors are closed. Continue one-editor-at-a-time validation.
+Astra independently reviewed geometry, source mapping, dimensions/captures and
+native evidence. Native continuation from the accepted filleted fixture reaches
+the exact API solid/STL. The366.5-second raw and145.6-second edited continuation
+retain provenance, visible inputs and recorded recoveries; neither is a blank
+native tutorial movie. Prior native Trim/region and Join/Fillet receipts complete
+the cumulative gate. The PDF six-edge0.5mm variant and optional text/chamfer stay
+with existing broader issues. See `validation/support-tutorial-independent.md`.
 
-#171 is active. The complete shared-API video tutorial passes through dimensioned
-Trim, Join, corrected Fillet, original-cap circle, cutter47, local Move and Combine
-Cut, upstream edit/diameter edit, undo/reopen and closed millimeter STL. Evidence
-and deliverables are `build-tutorial-polish/evidence/support-tutorial/`; final
-32×15×24 mm, 1,550 triangles. See `validation/support-tutorial.md` for source
-values and declared transform inference. Astra's native continuation reached the same final solid and closed STL, with
-exact Undo/Redo and save/reopen, in a labeled 366.5-second recording. It continues
-from the accepted filleted fixture; it is not a blank-document movie. Native
-right-click cutter Move and Combine cutter picking failed; #183 investigates the
-saved state. Move OK/Cancel clipped at1136×790; #184 adds bounded scrolling.
-Both candidate fixes are integrated and their focused widget checks pass.
-#183 uses supported OCCT face selection because mode0 sensitive-cylinder bounds
-were inverted for this circle prism; geometry and stable body identity are
-unchanged. #184 scrolls the form with fixed actions and reserves scrollbar width.
-Astra owns the sole native editor for the two bounded rechecks. Both issues and
-#171 remain active until its verdict. No full modeling rerun is needed.
-The full source/media receipt is `validation/support-tutorial-independent.md`;
-an independently reviewed 145.6-second edited continuation accompanies the raw.
-External recording: `../Alloy-reference-records/demos/2026-10-12/straw-support-native/`.
-Desktop ownership is serialized: #183 diagnostic first, then independent layout
-review. Do not launch another editor concurrently.
-Backlog after two bounded follow-ups: 184 issues, 53 closed, 131 open. No release/CI run.
+#176/#182 and the two native follow-ups #183/#184 are closed. OCCT7.9.3 whole-
+cylinder hit testing had inverted circle-prism bounds; supported face selection
+fixes actual body/context/Combine clicks while retaining stable body IDs and blue
+whole-body cues. Move now scrolls with fixed visible actions at normal/minimum
+heights. Astra rechecked the exact native failures successfully. Early Join
+history previews and Fillet post-finish focus were also fixed and verified.
 
-## Circle-prism selection candidate (2026-10-12)
-
-DOC-017 / #183 addresses a reproduced support cutter picking failure. Pinned
-OCCT whole-shape sensitive cylinder bounds invert for this circle prism;
-face selection has correct bounds. Candidate uses supported face mode for body
-hits while retaining inactive global owners for whole-body selected cues.
-Build and focused prism/body/Combine widget check pass; independent native
-acceptance is pending. See
-[the diagnostic receipt](validation/body-picking.md).
+Current binary: `build-tutorial-polish/alloy.app/Contents/MacOS/alloy`.
+API evidence: `build-tutorial-polish/evidence/support-tutorial/`.
+Deliverables: `../Alloy-reference-records/deliverables/straw-support-2026-10-12/`.
+Native media: `../Alloy-reference-records/demos/2026-10-12/straw-support-native/`.
+All private editors are closed. Preserve the one-editor-at-a-time rule.
+Backlog after closures:184 issues,56 closed,128 open. No release/tag/CI run.
+Next tutorial is nested cubes #172: research/implement its bounded prerequisites
+from the live dependency board before any complete-workflow claim.
 
 ## Current integrated checkpoint (2026-10-12)
 

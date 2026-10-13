@@ -80,6 +80,6 @@ passes on the integrated candidate: one valid closed solid, 32×15×24 mm, analy
 bore removal 431.295677 mm³ and a closed oriented 1,550-triangle STL with measured
 mesh volume 4935.951640 mm³. Actual GPU captures cover every stage; root inspected
 the final shape. Evidence is `build-tutorial-polish/evidence/support-tutorial/`.
-No slicer/print or full native parity is claimed. Astra is independently reviewing
-the full source/geometry evidence and qualifying the remaining native path.
+No slicer/print or full native parity is claimed. Independent source/geometry review and native continuation plus bounded fix
+checks are accepted in [the final receipt](support-tutorial-independent.md).
 Current commands cover this route without further feature implementation.

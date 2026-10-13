@@ -41,6 +41,10 @@ support sketch passes [independent native checks](docs/validation/support-indepe
 Successive Join and constant-radius solid-edge Fillet have
 [independent native acceptance](docs/validation/support-solid-independent-review.md),
 including stable history, readable edge selection and retained disk-cap support.
+The [support tutorial](docs/validation/support-tutorial-independent.md) now passes
+a cumulative functional video-variant gate through an angled cutter, Combine Cut
+and a closed millimeter STL. Its native movie is a labeled continuation; the
+complete blank-model workflow is verified separately through the shared API.
 This is not complete CAD parity.
 Annotated real-app tutorial movies can now be recorded with local commands; see
 [the video recipe and verified results](docs/validation/tutorial-video.md).

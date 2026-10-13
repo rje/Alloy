@@ -99,8 +99,9 @@
         "TUT-005"
       ],
       "acceptance": "Exact core source sequence with profile/edge selections and export readback.",
-      "status": "in_progress",
-      "remaining": "Trim, overlapping regions, successive Join and bounded solid-edge Fillet accepted. Complete original-video cutter/Move/Combine/export chain and full native gate #171 next; PDF variant remains separate."
+      "status": "done",
+      "remaining": "None for cumulative functional original-video gate. PDF fillet variant and optional text/chamfer remain with broader owners. Media is a labeled native continuation, with original recoveries and separate fixed-input receipts.",
+      "evidence": "docs/validation/support-tutorial-independent.md"
     },
     {
       "id": "CP-08",
