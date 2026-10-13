@@ -32,6 +32,9 @@ fifth native previews; the latter visibly includes the 44 mm · V cue and
 existing 40/14/60/11 dimensions. The final native state reports Apple M4,
 Apple OpenGL 4.1 Metal, hardware acceleration, 1664×1142 framebuffer and 4×
 MSAA. This is injected Qt input, not a physical keyboard/mouse receipt.
+The 7.68 s passing result was observed in the command output; the temporary
+CTest log was overwritten by the later failed Circle Tab probe. Its native
+captures, saved sketch and final state remain in the evidence directory.
 
 `tests/typed_line_api.py` passed against the `alloy` executable with 72 shared
 control calls. It uses projected pointer positions to choose direction, then
@@ -42,6 +45,14 @@ dimensions and fifteen relations (seven H/V, seven adjoining coincidences,
 one fixed origin); invalid zero leaves the draft unchanged. Draft undo/redo and
 exact save/reopen passed. Evidence is local under
 `build/evidence/typed-line-api/result.json` and its control transcript.
+
+Independent review found that whole-sketch Cancel left a locked length cue
+visible. The candidate now hides the cue during shared session teardown and
+tab rebinding. `cancelWholeSketchClearsCue` checks cue visibility before and
+after Cancel, empty session state and unchanged authored data; its focused
+Qt run passed in 1.865 s. The persisted log is
+`build/evidence/typed-line/cancel-cue-test.log`. This result is separate from
+the earlier seven-segment run.
 
 Compatibility status: **matched** for the bounded documented Line key/value/
 Tab/direction/click/Escape sequence and source geometry under injected Qt

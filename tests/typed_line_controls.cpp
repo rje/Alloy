@@ -6,6 +6,7 @@
 #include <QDir>
 #include <QFile>
 #include <QJsonDocument>
+#include <QLabel>
 #include <QLineEdit>
 #include <QMouseEvent>
 #include <QTemporaryDir>
@@ -23,6 +24,24 @@ class TypedLineControlsTest final : public QObject {
     QJsonObject active(AlloyWindow& w) {return w.state()["activeSession"].toObject();}
     QJsonObject draft(AlloyWindow& w) {return active(w)["draftSketch"].toObject();}
 private slots:
+    void cancelWholeSketchClearsCue() {
+        AlloyTheme::apply(*qApp);AlloyWindow w;w.resize(1100,800);w.show();w.activateWindow();
+        QVERIFY(QTest::qWaitForWindowExposed(&w));
+        ReferenceView* view=nullptr;for(auto* child:w.findChildren<QWidget*>())if(auto* candidate=dynamic_cast<ReferenceView*>(child))view=candidate;
+        QVERIFY(view);const auto baseline=call(w,"document.inspect").value("authored");
+        const auto begun=call(w,"sketch.begin",{{"plane","XY"},{"units","mm"}});
+        const auto sketchId=begun["draftSketch"]["id"];
+        auto pixel=[&](double u,double v){const auto p=call(w,"view.projectSketchPoint",{{"sketchId",sketchId},{"uMm",u},{"vMm",v}});
+            return QJsonObject{{"x",p["x"]},{"y",p["y"]}};};
+        call(w,"sketch.tool",{{"tool","line"}});call(w,"sketch.placePoint",pixel(0,0));
+        call(w,"sketch.lineLengthPreview",{{"text","12"}});call(w,"sketch.lineLengthLock");
+        call(w,"sketch.pointerMove",pixel(0,10));
+        auto* cue=w.findChild<QLabel*>("sketch.lineLockCue");QVERIFY(cue && cue->isVisible());
+        QVERIFY(cue->text().contains("12 mm"));
+        call(w,"sketch.cancel");QVERIFY(!cue->isVisible());QVERIFY(active(w).isEmpty());
+        QCOMPARE(call(w,"document.inspect").value("authored"),baseline);
+        w.close();
+    }
     void chainedTypedLengths() {
         QTemporaryDir temporary;auto output=qEnvironmentVariable("ALLOY_TYPED_LINE_EVIDENCE");
         if(output.isEmpty())output=temporary.path();QDir().mkpath(output);

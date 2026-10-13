@@ -649,6 +649,7 @@ void AlloyWindow::showActiveTab() {
     if(!active)return;
     switchingTabs_=true;
     if(dimensionEditor_)dimensionEditor_->hide();
+    if(lineLockCue_)lineLockCue_->hide();
     if(sketchDock_)sketchDock_->hide();
     view_->rebindDocument();
     document_=active->document.get();session_=active->session;
@@ -3321,6 +3322,7 @@ QJsonObject AlloyWindow::finishSession(const QString& id, bool commit) {
     session_ = {};
     if(target=="sketch.edit"){sketchHistory_.clear();sketchHistoryIndex_=-1;sketchHistoryGroup_.clear();}
     if(dimensionEditor_)dimensionEditor_->hide();
+    if(lineLockCue_)lineLockCue_->hide();
     if (target == "commands.search" && search_) search_->hide();
     if (target == "document.units" && unitsDialog_) unitsDialog_->hide();
     if(target=="solid.extrude"){if(extrudeEscape_)extrudeEscape_->setEnabled(false);if(extrudeDock_)extrudeDock_->hide();view_->clearPreview();view_->setEditDisplay({},{});view_->clearBodyStage();}
