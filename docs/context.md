@@ -26,8 +26,8 @@ now independently accepted and closed (79fa11b/e805afb); main app builds.
 The complete ornament lesson is tracked by #264, with prerequisites #260–263 and
 Boolean correction #265. #260 is accepted and closed; main app rebuild passes.
 Sol is validating retained open fit-spline Offset (#261). Section Analysis (#262)
-passes core, actual-app API and focused native lifecycle and awaits final Astra
-acceptance. Circular Body Pattern (#263) is now active in an isolated Sol lane.
+is independently accepted and closed: core, 79-call actual-app API, native3/3,
+actual GPU captures and integrated main build/core pass. Circular Body Pattern (#263) is now active in an isolated Sol lane.
 #265 remains Todo pending those inputs. Public sources/visuals stay external in
 the ornament-pattern knowledge record.
 
@@ -38,8 +38,9 @@ preview/Cancel/commit pass with inspected GPU captures. See
 validation/revolve-planar-support.md. The full ornament has not run; all source
 steps and the cumulative Join risk remain required.
 
-Section Analysis implementation is now assigned to a third isolated Sol lane in
-`../Alloy-worktrees/section-analysis`; its kernel/UI candidate is not accepted.
+Section Analysis is integrated as28fba0d/4fa3b7c/ffa489f. See
+validation/section-analysis.md for saved analyses, exact geometry reuse, UI and
+qualified native/API/GPU evidence. The default main app is rebuilt.
 The external `validation/ornament-feasibility/` kernel probe exposes an unresolved
 cumulative risk: the exact-offset strip produces a valid shell Intersect member
 and first-member/hub Join, but eight rotated members fail to unite validly under
