@@ -2304,7 +2304,8 @@
         "DOC-003",
         "DOC-004",
         "PRT-001",
-        "FND-010"
+        "FND-010",
+        "DOC-019"
       ],
       "labels": [
         "area:tut"
@@ -3722,6 +3723,20 @@
         "area:fnd"
       ],
       "body": "## Observed failure\nIndependent Pattern Qt validation exposed a real shutdown crash when the editor is destroyed with an active panel and uncommitted numeric text. Spinbox hideEvent interprets text and emits valueChanged after derived AlloyWindow members have been destroyed; panel-owned callbacks then read invalid session state. Crash receipt widget_interactions_test-2026-10-13-005419.ips.\n\n## Correction and acceptance\nQuiesce child control signals before derived window state destruction, preserving ordinary live numeric input. Closing an active numeric command must not evaluate or commit a draft during teardown. Add one focused active-Pattern/uncommitted-number destruction regression and rerun the affected actual Qt interaction case. No broad shutdown rewrite or exhaustive command matrix. Independent reviewer confirms original crash route no longer faults.\n"
+    },
+    {
+      "key": "DOC-019",
+      "title": "Expose Left and Back named views for six-sided die inspection",
+      "kind": "implementation",
+      "phase": "P1 Geometry and documents",
+      "priority": "P1",
+      "depends_on": [
+        "DOC-018"
+      ],
+      "labels": [
+        "area:doc"
+      ],
+      "body": "## Bounded scope\nComplete the existing named orthographic view set with Left and Back, exposed in Browser and shared view.orientation. Die verification needs direct inspection and placement on all six sides. Reuse real OCCT negative-X/positive-Y camera orientations; no custom renderer or full view cube. Existing Home and other views remain available.\n\n## Acceptance\nActual Browser and API routes show the correct opposite faces; the die's six face captures visibly show counts1 through6. Use the cumulative die workflow and one focused widget route, not a camera matrix sweep. Source tutorial uses view-cube rotation; named views are an explicitly tracked input adaptation, with wider navigation/view-cube parity remaining DOC-010/#22.\n"
     }
   ]
 }

@@ -66,7 +66,9 @@ All three requested gates are done; authorized overflow die#147 is now active.
 External source record knowledge/tutorials/warwick/library-die-ledger.md was
 updated with Center Rectangle189 acceptance and official public component/Sphere/
 Repeat descriptions. Root implements face-positioned Sphere Cut/Repeat#145.
-Sol die_components owns ASM004#200 in ../Alloy-worktrees/local-components;
+Components200 is independently accepted and integrated704f279/60a774c;
+actualAPI/Qtcreation/activation/grouping/scopedexportpass. Integration241b870
+checksSphere/Chamfer owners and injectsactiveownerintoChamferwrapper.
 Chamfer201 is independently accepted and integrated d3ce00d/e927785, with API
 workflow and focused Qt input passing; source window-selection is adapted to
 Select All Edges. Broader SOL005 stays Todo. Root Sphere core ea9a85c passes21
@@ -75,9 +77,11 @@ history/reopen and New Body. Spheres orient their poles to the support normal;
 world-Z poles caused invalid Boolean topology on side supports. No healing or
 weakened validity checks. API/UI/Repeat and full die workflow remain outstanding.
 
-Astra is available for independent component candidate review once Sol commits;
-root currently builds/implements Sphere but has no GUI open. Serialize all GUI
-validation. No private editor remains open. Sphere declaration uses type sphere,
+Sol die_chamfer now implements SphereAPI/UI/Repeat in isolated
+../Alloy-worktrees/face-sphere-controls frome927785. Root prepared fullrunner
+tests/die_tutorial_api.py (unrun) and Left/Back namedviews203 for all6face
+inspection. Root buildsession10446 pending; no GUI open. Astra is available for
+independent Sphere/6view/fulltutorial review. Serialize all GUI validation. Sphere declaration uses type sphere,
 parameters support/uMm/vMm/diameterMm/operation and optional targetBodyId; internal
 candidate ownerId defaults root, edits preserve owner. During component integration
 inject activeOwner in its UI wrapper and include new Chamfer wrapper too.
