@@ -89,9 +89,15 @@ def verify(sketch, diagnostics):
     assert len(dimensions) == 6 and all(d['driving'] for d in dimensions)
     assert sorted(round(d['valueMm'], 6) for d in dimensions) == [11, 12, 17, 28, 70, 114]
     assert sum(d['kind'] == 'parallelLineDistance' for d in dimensions) == 2
-    relation_types = [c['type'] for c in p['constraints']]
-    assert relation_types.count('midpoint') >= 2
-    assert 'concentric' in relation_types and 'equal' in relation_types
+    outer_side_ids = {e['id'] for e in outer if not e.get('construction')}
+    for endpoint in (axis['startPointId'], axis['endPointId']):
+        assert any(c['type'] == 'midpoint' and c.get('pointIds') == [endpoint]
+                   and len(c.get('entityIds', [])) == 1 and c['entityIds'][0] in outer_side_ids
+                   for c in p['constraints']), 'Axis endpoint lost its outer-edge midpoint relation'
+    source_arc_ids = {i for i in source_ids if entities[i]['type'] == 'arc'}
+    for relation_type in ('concentric', 'equal'):
+        assert any(c['type'] == relation_type and set(c.get('entityIds', [])) == source_arc_ids
+                   for c in p['constraints']), 'Missing retained source-arc ' + relation_type
     arc_centers = {entities[i]['centerPointId'] for i in source_ids if entities[i]['type'] == 'arc'}
     assert any(c['type'] == 'vertical' and len(c.get('pointIds', [])) == 2
                and circle['centerPointId'] in c['pointIds']
