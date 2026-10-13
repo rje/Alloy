@@ -6374,6 +6374,7 @@ void AlloyWindow::refreshSketchControls() {
             auto* item=rowForId(lineGroup,id);
             QString label=entity["type"]=="ellipse" ? QString("Ellipse %1 · full axes in Construction").arg(++index) :
                 entity["type"]=="circle" ? QString("Circle %1  ·  P%2 · R%3").arg(++index).arg(pointNumbers.value(entity["centerPointId"].toString())).arg(entity["radiusMm"].toDouble()/scale) : QString("%1 %2  ·  P%3 → P%4").arg(entity["type"]=="arc" ? "Arc" : "Line").arg(++index).arg(pointNumbers.value(entity["startPointId"].toString())).arg(pointNumbers.value(entity["endPointId"].toString()));
+            if(entity["type"]=="conic")label=QString("Conic %1 · Rho %2").arg(index).arg(entity["rho"].toDouble(),0,'g',6);
             if(entity["type"]=="fitSpline")label=QString("Fit Point Spline %1 · Degree 5").arg(index);
             if(entity["type"]=="controlSpline")label=QString("Control Point Spline %1 · Degree %2 (maximum %3)").arg(index).arg(std::min(entity["maximumDegree"].toInt(),int(entity["pointIds"].toArray().size())-1)).arg(entity["maximumDegree"].toInt());
             if(entity["construction"].toBool())label+=" · Construction";
