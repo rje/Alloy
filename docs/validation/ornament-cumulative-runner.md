@@ -108,3 +108,20 @@ mm³, exceeding the unchanged approximately0.000023 mm³ acceptance threshold.
 Sol is evaluating consistent integration and error handling; no tolerance
 increase or geometry substitution is authorized by this evidence. This raw
 geometry diagnosis is distinct from successful retained application Join.
+
+## Second actual run — 2026-10-13
+
+`cumulative-02` with integrated numerical correction passes the actual hub Join
+and captures one complete rib assembly with hub. The next `construction.plane`
+command exceeds its180-second deadline during full ordered recomputation. A
+process sample locates active CPU work in `covers()` Common edge/face Boolean
+intersection. The application was computing rather than idle. Recording cleanup
+then refuses a gap over300 frame slots; this partial movie is not accepted. The
+harness closes the private editor. The full traceback preserves the timeout
+and secondary recording failure; the runner now keeps the primary failure in
+its report and stores cleanup errors separately.
+
+#265 now includes the observed single-output coverage cost. A bounded design
+reuses the successful validated Fuse union contract when exactly one solid is
+produced; multi-output ownership partitioning retains its existing checks.
+No full tutorial/model/STL pass is claimed from this run.

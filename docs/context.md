@@ -31,6 +31,14 @@ original geometry/tolerances/topology remain, but byte identity is not claimed.
 The full `cumulative-02` run has started with a180-second command timeout and
 creation recording. Its outcome is pending; do not treat a running gate as passed.
 
+`cumulative-02` is terminal: actual hub Join passes, then construction-plane
+creation times out180s during repeated coverage Common computation. Recorder
+cleanup refuses its long frame gap; no full movie/bore/STL is accepted. The
+private editor is closed. #265 numerical correction has independent acceptance
+(c508f3a), but a narrow single-output ownership optimization is under review to
+resolve the observed recomputation cost. Primary timeout and secondary recording
+failure are preserved; runner cleanup now records them separately.
+
 ## Latest accepted checkpoint — 2026-10-13
 
 Full slots/splines/conic/ellipse lesson #257 and color follow-up #259 are accepted

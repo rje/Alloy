@@ -224,7 +224,16 @@ def main():
                     recording = False
                     report['recording'] = raw_call('recording.stop')
                     report['movieRecorded'] = True
-            cleanup.callback(stop_recording)
+            def cleanup_recording(exc_type, exc, tb):
+                try:
+                    stop_recording()
+                except Exception as cleanup_error:
+                    report['recordingCleanupFailure'] = {
+                        'type': type(cleanup_error).__name__, 'message': str(cleanup_error)}
+                    if exc_type is None:
+                        raise
+                return False
+            cleanup.push(cleanup_recording)
             raw_call('window.resize', {'width': 1400, 'height': 1000})
             assert not raw_call('document.inspect')['authored']['features']
             if movie:
