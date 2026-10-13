@@ -81,3 +81,30 @@ source fingerprints and the precise evidence boundary. Core, API and screenshot
 claims remain separate. No physical-input, matched pixel styling, standalone
 Point, Hole, subtractive Pattern, other-platform runtime, release or complete
 tutorial acceptance follows from this prerequisite.
+
+## Independent acceptance
+
+Accepted `40724dfa12caa0470946b86aa61271fc34c9ce83` for bounded DOC-020/#245
+following source, focused core log, real-app transcript, saved model and actual
+GPU capture review. Only unique present kernel-history descendants are used;
+collinearity verifies a chosen descendant and never chooses a replacement.
+Current endpoint roles are separated from original contact ancestry. Final
+planar-boundary opt-in is enabled by Fillet only; other callers retain their
+prior conservative default. The later Boolean metadata refresh has a focused
+history control. Neither control establishes arbitrary topological naming.
+
+Independent artifact readback confirms the same four support-edge IDs before
+and after width/radius edits, exact retained dimension/projection records and
+saved authored data. Measured volumes 37285.39816339745 and
+42362.65482457807 mm3 agree with the rounded-plate analytic oracle within 1e-6.
+The 59-call transcript includes the two intended atomic refusals. The final
+three-test pass and build cover the small changes after the API recording;
+there is no claim that the final source was independently rerun through GUI.
+
+The actual oblique rounded plate and reopened top-sketch image are readable:
+flat broad face, rounded vertical corners, current straight projected boundaries,
+two distinct 10 mm witnesses, R1 circle and Fully constrained status. This is
+shared-command API/GPU evidence, using a circle-center foundation; standalone
+Point, complete native source authoring and the full plate gate remain separate.
+No additional editor or unchanged test replay was needed. The oriented endpoint
+requirement for future Pattern direction consumers remains explicit in #248.
