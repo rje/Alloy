@@ -31,4 +31,21 @@ Final targeted core 2/2 passes. Evidence lives outside the repository under
 logs. No private editor was launched; UI source is unchanged, so no native/GPU
 replay is claimed or required. This bounded fix does not establish cumulative
 ornament Intersect/Join or resolve the independent Shell input validity risk.
-Independent review and main integration are pending at this implementation receipt.
+Main integration remains a separate step.
+
+
+## Independent review
+
+Astra independently reviewed candidate `f1b999b`, the production diff, focused
+fixture, final 2/2 core log (0.68 s), and preserved raw before/after BReps.
+Accepted for the bounded Join lineage immutability correction: Common now
+receives its inputs and non-destructive settings before its first Build. The
+existing coverage and ownership algorithm is preserved. The raw BRep difference
+is exactly the top solid Free flag; the fixture qualification is explicit and
+introduces no production normalization. Repeated actual three-participant Join
+checks geometry, serialized inputs, ownership and face/edge lineage, while the
+existing successive-Join fixture covers document integration. No additional
+replay was needed for this five-line kernel configuration correction.
+
+This is source/core acceptance, not new native/GPU evidence, and does not resolve
+Shell validity or establish the cumulative ornament workflow.
