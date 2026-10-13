@@ -2,7 +2,7 @@
 
 2026-10-13. Candidate implementation is complete for the bounded three-point
 creation, Rho arrow/field, context OK and editable retained curve sequence.
-Independent acceptance is still pending. Public evidence and mathematical
+Independent bounded acceptance is recorded below. Public evidence and mathematical
 qualifications are in [the contract](../research/conic.md).
 
 ## Evidence
@@ -50,3 +50,35 @@ conic relations are not claimed. The rational shoulder mapping is an explicit
 Alloy policy, not a proven reference kernel match. The source-order combined
 three-sketch movie and gate #257 remain ahead. No STL is implied by this sketch
 lesson. Cross-platform runtime and exact styling remain unqualified.
+
+## Independent acceptance
+
+Accepted candidate `56c2be9cf3a58777421d7ea32366fc8927f5e820` after independent
+source, core/API artifacts, final native test source and actual GPU capture
+review. The reviewer did not implement this candidate or launch another editor.
+The rational quadratic, asymmetric shoulder/tangent checks and retained point
+references remain coherent; the saved API document exactly equals the report's
+`sourceAuthored`. Rho contributes one honest evaluator DOF.
+
+Both review findings are resolved: context-menu dispatch owns its entity-ID
+string, and ordinary preview refresh no longer clears the active Rho drag.
+The final native test explicitly moves twice before release and checks that
+Rho changes again; invalid text disables OK and Return preserves the draft.
+Escape while held followed by release cannot revive the preview. Tool, history
+and session paths cancel pending conic input, and the exact draft-base check
+refuses stale preview acceptance. These source checks supplement, rather than
+replace, the earlier 39-call API history/reopen evidence.
+
+Native completion is reported tool-run evidence: exec session 68328, final
+chunk 4c461b, three Qt stages passed, zero failures, 2897 ms, exit 0; stdout
+was not originally persisted as a test log. A QWidgetWindow top-level warning
+was reported. The actual PNG/state are persisted and inspected: the smooth
+curve, tangent legs, shoulder arrow and unobscured Rho/OK/Cancel panel are
+readable. The preview correctly remains separate from the authored draft.
+
+This is bounded Qt-dispatched creation/drag/context-OK/invalid-input/cancel
+acceptance, with shared-command setup for existing-curve editing. It is not
+physical OS interaction evidence or a full native edit-context-menu test.
+The earlier API binary predates the native arrow additions, as recorded above.
+The source Rho mapping, numeric defaults and exact reference styling remain
+qualified; full lesson #257 and cross-platform runtime are not accepted here.
