@@ -45,4 +45,15 @@ No remote app launch, CAD workflow, GPU hardware, runtime dependency bundle or
 minimum-OS test was performed. Those flags remain false. No release/tag was made.
 CI-002, platform runtime gates and FND-012 retain the remaining scope. Existing
 local real-app evidence is reused; no unchanged GUI was relaunched for a compile
-receipt. Independent Astra artifact/claim review is pending.
+receipt. Independent Astra artifact/claim review is accepted; see below.
+
+
+## Independent Astra review
+
+Candidate a130f2d accepted 2026-10-13. Independently checked all20 recorded
+artifact hashes, exact build.json/manifest equality, selected-source solver/build
+contract digests including Windows CRLF equivalence, actual compiler/module logs,
+final executable link outputs, all four binary formats and both Mac deployment
+headers. The archived historical manifest is byte-identical to the prior record.
+Manual/tag-only workflow behavior and source/runtime qualification limits are
+accurate. No blocker; no build, GUI or duplicate CI run was performed.

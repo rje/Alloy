@@ -20,19 +20,20 @@ Main's default app is rebuilt with both. Receipt `validation/ribbon-icons.md`
 records actual 1040/1400 Retina layout and native input evidence. All private
 editors are closed. No release/tag or per-commit CI was triggered.
 
-100 of 225 issues are closed. Retained-target Extrude Intersect #219 is accepted
+102 of 225 issues are closed. Retained-target Extrude Intersect #219 is accepted
 and integrated; the main app rebuild passes. See validation/extrude-intersect.md.
 Nested profile/island coverage and diagnostics #165 are independently accepted and
 integrated; main app rebuild passes. See validation/profile-regions.md.
-Active work: root owns #132, one manual milestone compile matrix for the accepted
-current integrations and corrected native dependency options. Run 38396495940
+Native compile milestone #132 is accepted and closed after one manual matrix for
+the accepted tutorial integrations and corrected native dependency options. Run 38396495940
 was manually dispatched at source d07253470a346f1b29faa87b33fcced51416ea0c;
 All four native jobs passed. Downloaded binaries, architectures, compiler/link logs,
 required OCCT modules and source/dependency checksums are verified under
 `build/evidence/native-matrix-38396495940/<target>`. The updated native target
 manifest preserves the old record separately. Windows text-contract hashes match
-CRLF checkout bytes. Independent Astra artifact review is pending before closing
-#132; no duplicate matrix or remote runtime/GPU qualification is implied.
+CRLF checkout bytes. Astra independently accepted artifact/source/claim review;
+receipt validation/native-milestone.md. No duplicate matrix or remote runtime/GPU
+qualification is implied.
 The actual native file-sheet gate #167 remains Todo: two computer-control window
 binding attempts failed before interaction; no app defect or sheet pass claimed.
 Sol records the capability limit and closes its private editor. Windows transport
@@ -40,9 +41,9 @@ child #220 is accepted after actual Windows transport and Astra review; #131 ret
 desktop/GPU and second-user access-denial qualification.
 Paper-clip source geometry is independently transcribed externally; #221–225 track
 shared-line fillets, typed chained-line locks, Sweep foundation/native controls and
-full tutorial. Foundation #223 is accepted; Sol owns shared-line fillets #221 and native Sweep
-controls #224 in parallel. A third Sol owns typed line locks #222; full gate #225
-remains Todo until those native prerequisites pass. Fillet width annotations must survive via explicit span
+full tutorial. Foundation #223 and shared-line fillets #221 are accepted and
+integrated. Sol owns typed line locks #222 and native Sweep controls #224 in
+parallel; full gate #225 remains Todo until those native prerequisites pass. Fillet width annotations must survive via explicit span
 conversion; original post-fillet drivenness is unknown. No fabricated semicircles
 or coordinate-seeded path authoring can close the complete source gate.
 Candidate/evidence worktrees: `../Alloy-worktrees/local-transport` (`feat/local-transport`)
@@ -52,7 +53,9 @@ main app/helper rebuild passes. Windows run38401749556 passed at9c42f08 and
 artifacts are under build/evidence/local-transport-windows-38401749556. Receipt
 validation/local-transport.md distinguishes native pipe/ACL evidence from untested
 Windows desktop/GPU/second-user denial. Sweep223 is accepted and integrated as5fe11a0 plus independent reviewb500ef9;
-main app rebuild passes, and its API evidence/editor are closed. No private GUI is open. No tag/release
+main app rebuild passes. Shared-line fillets221 are integrated as06db7ab plus
+review6fced1d; combined fillet/Sweep core2/2 pass. The private GUI slot is reserved
+for222 native evidence;224 waits for release. No tag/release
 or per-commit CI. Intersect parent #161 retains broader operation-edit and
 typed-Return qualification as Todo. Split oversized remaining scope into linked Todo issues. Other broad parents remain Todo. The sections below are a chronological
 record; older ownership, pending status and counts are historical.

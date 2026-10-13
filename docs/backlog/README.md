@@ -44,15 +44,15 @@ The subsequent Centerline/Revolve lesson #217 and native prerequisites214–216
 are accepted, as is compact original ribbon artwork #218. Nested-profile/island
 handling and diagnostics #165 are independently accepted.
 Bounded retained-target Extrude Intersect #219 is accepted; its broader
-operation-edit parent #161 remains Todo. Native compile matrix #132 is also active,
-with one manual milestone matrix running at source d072534. The bounded Windows
+operation-edit parent #161 remains Todo. Native compile matrix #132 is accepted
+after all four targets passed at source d072534 and independent artifact review. The bounded Windows
 transport child #220 is accepted with actual native pipe/ACL evidence; #131
 retains actual Windows desktop qualification.
 The independently transcribed paper-clip lesson is queued as #221–225: shared-line
 fillets, typed line locks, retained Sweep, native controls and full workflow gate.
-Sweep foundation #223 is accepted. Shared-line fillets #221, typed line locks #222
-and native Sweep controls #224 are active in separate worktrees; full gate #225
-remains Todo.
+Sweep foundation #223 and shared-line fillets #221 are accepted. Typed line locks
+#222 and native Sweep controls #224 are active in separate worktrees; full gate
+#225 remains Todo.
 
 After every slice, run the smallest complete author/edit/finish/undo/reopen
 workflow it enables in a private real application instance. Record source steps
