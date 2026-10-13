@@ -28,7 +28,7 @@ target_include_directories(alloy_sketch_solver PUBLIC src)
 target_link_libraries(alloy_sketch_solver PUBLIC Qt6::Core PRIVATE alloy_planegcs)
 
 add_library(alloy_kernel STATIC
-    src/GeometryKernel.cpp src/GeometryKernel.h src/SolidFillet.cpp src/SolidFillet.h src/JoinResults.cpp
+    src/GeometryKernel.cpp src/GeometryKernel.h src/PlanarFaces.cpp src/PlanarFaces.h src/SolidFillet.cpp src/SolidFillet.h src/JoinResults.cpp
     src/MeshExport.cpp src/MeshExport.h
     src/StepExchange.cpp src/StepExchange.h
     src/SketchGeometry.cpp src/SketchTrim.cpp src/SketchGeometry.h
@@ -80,6 +80,9 @@ if(BUILD_TESTING)
     add_executable(sketch_solver_test tests/sketch_solver.cpp)
     target_link_libraries(sketch_solver_test PRIVATE alloy_sketch_solver)
     add_test(NAME sketch_solver COMMAND sketch_solver_test)
+    add_executable(planar_faces_test tests/planar_faces.cpp src/CadDocument.cpp src/CadDocument.h)
+    target_link_libraries(planar_faces_test PRIVATE Qt6::Gui alloy_kernel)
+    add_test(NAME planar_faces COMMAND planar_faces_test)
     add_executable(geometry_kernel_test tests/geometry_kernel.cpp)
     target_link_libraries(geometry_kernel_test PRIVATE alloy_kernel)
     add_test(NAME geometry_kernel COMMAND geometry_kernel_test)

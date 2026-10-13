@@ -41,13 +41,15 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try {
     check(document.history().count()==beforeCount+1,"Cut was not one history transaction");
     auto inspect=[&](double diameter,double depth,double cutDepth){const auto& body=document.bodies()[0];
         check(body.bodyId==producer["bodyId"].toString() && body.featureId==producer["id"].toString(),"Cut changed producer/body identity");
-        check(body.summary["lastModifierFeatureId"]==cutId && body.supportFaces.empty(),"Cut result retained unsupported old face naming");
+        check(body.summary["lastModifierFeatureId"]==cutId,"Cut lost modifier identity");
+        const auto retained=GeometryKernel::resolveSketchSupport(document.evaluation(),support);
+        check(retained.faceId==cap.faceId,"Cut lost unique planar cap history");
         check(body.summary["valid"].toBool() && body.summary["closed"].toBool() && body.summary["topology"].toObject()["solids"].toInt()==1,"Cut did not produce one valid closed solid");
         near(body.summary["volumeMm3"].toDouble(),1000*300*depth-5*std::numbers::pi*diameter*diameter/4*cutDepth);
         near(body.summary["removedVolumeMm3"].toDouble(),5*std::numbers::pi*diameter*diameter/4*cutDepth);
     };
     inspect(50,50,50);
-    const auto earlier=document.evaluationBefore(holes["id"].toString());check(earlier.bodies.size()==1 && earlier.bodies[0].supportFaces.size()==1,"Earlier sketch edit lost its pre-Cut support");
+    const auto earlier=document.evaluationBefore(holes["id"].toString());check(earlier.bodies.size()==1 && !earlier.bodies[0].supportFaces.empty(),"Earlier sketch edit lost its pre-Cut support");
     holes=accepted(SketchGeometry::updateDimension(holes,{{"dimensionId",diameterId},{"valueMm",60}},GeometryKernel::projectionContext(earlier,holes)));
     check(document.commit(SketchGeometry::replaceFeature(document.authored(),holes),"Resize holes").isEmpty(),"Upstream diameter edit failed after Cut");inspect(60,50,50);
     check(document.commit(CadDocument::extrusionCandidate(document.authored(),{{"featureId",producer["id"]},{"sketchId",base["id"]},{"profileId",baseProfile},{"distanceMm",60}}),"Thicken stock").isEmpty(),"Parent depth edit failed");inspect(60,60,50);

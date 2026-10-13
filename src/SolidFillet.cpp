@@ -1,3 +1,4 @@
+#include "PlanarFaces.h"
 #include "SolidFillet.h"
 #include <BRepPrimAPI_MakePrism.hxx>
 #include <BRepAlgoAPI_BooleanOperation.hxx>
@@ -30,6 +31,7 @@ std::vector<EvaluatedSolidEdge> SolidFillet::prismEdges(BRepPrimAPI_MakePrism& p
         QStringList contacts{boundary.startContact,boundary.endContact};contacts.sort();
         QJsonObject provenance{{"sourceEntityId",boundary.sourceEntityId},{"startContact",contacts[0]},{"endContact",contacts[1]}};
         offer("endRim",boundary.sourceEntityId+"\n"+contacts.join("\n"),prism.LastShape(boundary.edge),provenance);
+        offer("baseRim",boundary.sourceEntityId+"\n"+contacts.join("\n"),prism.FirstShape(boundary.edge),provenance);
         TopoDS_Vertex first,last;TopExp::Vertices(boundary.edge,first,last,true);
         for(const auto& endpoint:std::vector<std::pair<TopoDS_Vertex,QString>>{{first,boundary.startContact},{last,boundary.endContact}}) {
             if(endpoint.first.IsNull() || endpoint.second.isEmpty())continue;
@@ -99,8 +101,7 @@ void SolidFillet::evaluate(EvaluatedBody& body,const QJsonObject& parameters,con
     const auto result=builder.Shape();auto summary=GeometryKernel::summarize(result);
     if(!summary["valid"].toBool() || !summary["closed"].toBool() || summary["topology"].toObject()["solids"].toInt()!=1 || summary["volumeMm3"].toDouble()<=0)
         fail("fillet_invalid_result","Fillet must produce one valid closed solid");
-    std::vector<EvaluatedSupportFace> caps;TopTools_IndexedMapOfShape faces;TopExp::MapShapes(result,TopAbs_FACE,faces);
-    for(const auto& cap:body.supportFaces)if(faces.Contains(cap.face))caps.push_back(cap);
+    auto caps=PlanarFaces::transfer(builder,body.supportFaces,result);
     TopTools_IndexedMapOfShape edges;TopExp::MapShapes(result,TopAbs_EDGE,edges);
     for(auto& edge:body.solidEdges)if(!edge.edge.IsNull() && !edges.Contains(edge.edge)) {edge.edge.Nullify();edge.provenance["resolutionError"]="modified_by_fillet";}
     body.shape=result;body.supportFaces=caps;

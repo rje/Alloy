@@ -3079,7 +3079,7 @@
         "area:skt",
         "priority:P0"
       ],
-      "body": "## Problem and result\nFinish the explicitly deferred portion of SKT-013.\n\n## Scope\n- Intact side and inclined planar faces, reversed extrusion and supported Boolean-produced faces with stable identity.\n- Explicit reselect/redefine-support path for deleted/ambiguous support; no nearest-face reattachment.\n- Configurable normal-to-plane entry behavior.\n\n## Acceptance criteria\n- Native/UI and API side-face and inclined-face sketches map solved local coordinates/extrusion normals to correct world frames.\n- Supported source edits/reopen retain identity and do not recenter coordinates.\n- Removed/split support gives visible atomic refusal or repair state, followed by explicit reselect/redefine with history and storage.\n- UI and API share authoritative commands and state. Retain stable references, atomic failure, unit correctness, undo/redo and native save/reopen where the operation authors data. Verify the real workflow proportionately; distinguish API, native input, geometry and visuals.\n\n## Split provenance\nSplit from #142 on 2026-10-12. The original now records only the independently accepted subset; this task retains the remaining requirements. Public evidence and uncertainty remain in the external knowledge archive and existing command contracts.\n\n## Status\nTodo. This broader scope is not implemented or accepted.\n"
+      "body": "## Problem and result\nFinish the explicitly deferred portion of SKT-013.\n\n## Scope\n- Intact side and inclined planar faces, reversed extrusion and supported Boolean-produced faces with stable identity.\n- Explicit reselect/redefine-support path for deleted/ambiguous support; no nearest-face reattachment.\n- Configurable normal-to-plane entry behavior.\n\n## Acceptance criteria\n- Native/UI and API side-face and inclined-face sketches map solved local coordinates/extrusion normals to correct world frames.\n- Supported source edits/reopen retain identity and do not recenter coordinates.\n- Removed/split support gives visible atomic refusal or repair state, followed by explicit reselect/redefine with history and storage.\n- UI and API share authoritative commands and state. Retain stable references, atomic failure, unit correctness, undo/redo and native save/reopen where the operation authors data. Verify the real workflow proportionately; distinguish API, native input, geometry and visuals.\n\n## Split provenance\nSplit from #142 on 2026-10-12. The original now records only the independently accepted subset; this task retains the remaining requirements. Public evidence and uncertainty remain in the external knowledge archive and existing command contracts.\n\n## Status\nTodo. This broader scope is not implemented or accepted.\n\n## Tutorial child\nSKT-030 supplies bounded named planar faces through the nested-cubes feature chain. Explicit support repair and other remaining modes stay Todo here.\n"
     },
     {
       "key": "SKT-026",
@@ -3224,7 +3224,7 @@
         "SOL-024",
         "SOL-009",
         "GEO-002",
-        "SKT-025",
+        "SKT-030",
         "SKT-021"
       ],
       "labels": [
@@ -3475,6 +3475,24 @@
         "area:geo"
       ],
       "body": "## Scope and acceptance\nBounded child of #56. Author offset planes from origin planes, previous construction/sketch planes and supported planar faces; preserve source identity, frame and signed distance. Shared UI/API must support selection, numeric preview, commit/cancel, visible plane, creation of a sketch on it, history edits and storage. Egg-cup fixture: circle planes z0,z18,z38,z58 from chained offsets 18,20,20 mm. Nested-cube fixture later uses top-face offset -18.5 mm. Verify frame/normal and source edit propagation, one rejected missing source without silent reattachment, undo/reopen and native creation/selection. Angle/midplane/axis/point construction remains with #56. Source PDFs retrieved 2026-10-12, detailed step/visual ledger external knowledge/tutorials/warwick. Independent Astra acceptance required.\n"
+    },
+    {
+      "key": "SKT-030",
+      "title": "Retain named planar sketch faces through tutorial solid operations",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-013",
+        "SOL-022"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P2",
+        "priority:P1",
+        "area:skt"
+      ],
+      "body": "## Scope and acceptance\nBounded tutorial child of #159 and #24. Name extrusion base/straight side faces by authored profile lineage; retain planar frames and unique exact kernel history descendants through Shell, Mirror, Combine, Cut and Fillet. Expose supported real faces to existing selection/sketch API and UI. No index, nearest-face or bounding-box reattachment. Missing/split supports refuse atomically; full repair UX remains #159. Preserve exact upstream references through edits, undo and save/reopen.\n\n## Verification\nUse the nested-cubes source workflow: hollow25mm cube; sketches on three orthogonal outer faces with centered15mm through cuts; top face remains usable for offset plane after outside-edge fillets. Test source-frame mapping and a meaningful upstream edit plus unique/ambiguous kernel descendant behavior. Native picks and planar orientation need independent Astra review in the real app; helper tests alone do not close this slice. Retain existing disk-cap identity/coordinates.\n\n## Reference\nPublic nested-cubes PDF, retrieved2026-10-12; exact source/visual ledger external knowledge/tutorials/warwick/nested-cubes-ledger.json.\n"
     }
   ]
 }

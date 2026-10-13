@@ -1,3 +1,4 @@
+#include "PlanarFaces.h"
 #include "SolidFillet.h"
 #include <BRepBuilderAPI_Transform.hxx>
 #include <gp_Ax1.hxx>
@@ -69,10 +70,9 @@ EvaluatedSupportFace GeometryKernel::resolveSketchSupport(const EvaluatedDocumen
     for(const auto& field:{"producerFeatureId","bodyId","faceId"})if(!support[field].isString() || QUuid(support[field].toString()).isNull())reject("invalid_support","Support requires stable UUID references");
     const auto body=std::find_if(evaluation.bodies.begin(),evaluation.bodies.end(),[&](const auto& value){return value.bodyId==support["bodyId"].toString();});
     if(body==evaluation.bodies.end())reject("support_unavailable","The exact support producer/body is unavailable or consumed");
-    if(body->summary.contains("lastModifierFeatureId") && body->summary["operation"]!="join" && body->summary["operation"]!="fillet")reject("unsupported_modified_support","Face support on modified Boolean bodies is outside this slice");
     const EvaluatedSupportFace* found=nullptr;
     for(const auto& face:body->supportFaces)if(face.faceId==support["faceId"].toString() && face.producerFeatureId==support["producerFeatureId"].toString()){if(found)reject("ambiguous_support","More than one face matches the support reference");found=&face;}
-    if(!found)reject("support_unavailable","Only the current positive-distance extrusion end cap is supported");
+    if(!found)reject("support_unavailable","The exact named planar support has no unique surviving face");
     int matches=0;for(TopExp_Explorer face(body->shape,TopAbs_FACE);face.More();face.Next())if(face.Current().IsSame(found->face))++matches;
     if(matches!=1 || found->face.IsNull() || !BRepCheck_Analyzer(found->face).IsValid()
         || BRepAdaptor_Surface(found->face).GetType()!=GeomAbs_Plane)reject("support_unavailable","The retained support is not one real planar producer face");
@@ -187,7 +187,7 @@ EvaluatedProfile GeometryKernel::unionProfiles(const std::vector<EvaluatedProfil
     return {id,first.sketchId,first.plane,united,summary,lineage};
 }
 
-TopoDS_Shape GeometryKernel::extrusion(const EvaluatedProfile& profile, double distanceMm, EvaluatedSupportFace* endCap, std::vector<EvaluatedSolidEdge>* edges, const QString& generatorFeatureId) {
+TopoDS_Shape GeometryKernel::extrusion(const EvaluatedProfile& profile, double distanceMm, EvaluatedSupportFace* endCap, std::vector<EvaluatedSolidEdge>* edges, const QString& generatorFeatureId, std::vector<EvaluatedSupportFace>* planarFaces) {
     if (!std::isfinite(distanceMm) || std::abs(distanceMm) < 0.001 || std::abs(distanceMm) > 100000)
         throw std::invalid_argument("Extrusion distance must be signed 0.001..100000 mm; zero is unsupported");
     if (profile.face.IsNull() || !BRepCheck_Analyzer(profile.face).IsValid())
@@ -200,6 +200,7 @@ TopoDS_Shape GeometryKernel::extrusion(const EvaluatedProfile& profile, double d
     if (!prism.IsDone()) throw std::runtime_error("OCCT could not build the profile extrusion");
     const auto shape = prism.Shape();
     if(edges) *edges=SolidFillet::prismEdges(prism,profile,generatorFeatureId);
+    if(planarFaces)*planarFaces=PlanarFaces::prismSides(prism,profile,generatorFeatureId,distanceMm);
     if(endCap && distanceMm>0) {
         const auto cap=prism.LastShape();
         if(cap.IsNull() || cap.ShapeType()!=TopAbs_FACE || BRepAdaptor_Surface(TopoDS::Face(cap)).GetType()!=GeomAbs_Plane)
@@ -264,7 +265,7 @@ gp_Trsf GeometryKernel::moveTransform(const QJsonObject& parameters) {
     gp_Trsf undoPivot;undoPivot.SetTranslation(-pivot);return result*undoPivot;
 }
 TopoDS_Shape GeometryKernel::booleanOperation(const QString& operation, const TopoDS_Shape& target,
-    const std::vector<TopoDS_Shape>& tools) {
+    const std::vector<TopoDS_Shape>& tools, std::vector<EvaluatedSupportFace>* retainedFaces, std::vector<EvaluatedSolidEdge>* retainedEdges) {
     auto reject = [](const QString& code, const QString& message) {
         throw EvaluationError({{"code",code},{"message",message}});
     };
@@ -323,6 +324,8 @@ TopoDS_Shape GeometryKernel::booleanOperation(const QString& operation, const To
     const auto summary = summarize(shape);
     if (!summary["valid"].toBool() || !summary["closed"].toBool() || !summary["volumeMm3"].isDouble())
         reject("boolean_result_invalid","Boolean operation did not produce a valid closed positive-volume solid");
+    if(retainedFaces)*retainedFaces=PlanarFaces::transfer(builder,*retainedFaces,shape);
+    if(retainedEdges)*retainedEdges=SolidFillet::transferEdges(builder,*retainedEdges,shape);
     return shape;
 }
 QJsonObject GeometryKernel::summarize(const TopoDS_Shape& shape) {
@@ -439,9 +442,13 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored) 
                         throw EvaluationError(context);
                     }
                     tools.push_back(tool->shape);
+                    if(parameters["operation"]=="join") {
+                        for(auto face:tool->supportFaces){face.bodyId=targetId;target->supportFaces.push_back(face);}
+                        target->solidEdges.insert(target->solidEdges.end(),tool->solidEdges.begin(),tool->solidEdges.end());
+                    }
                 }
                 TopoDS_Shape shape;
-                try {shape = booleanOperation(parameters["operation"].toString(),target->shape,tools);}
+                try {shape = booleanOperation(parameters["operation"].toString(),target->shape,tools,&target->supportFaces,&target->solidEdges);}
                 catch (const EvaluationError& error) {
                     const auto details = error.diagnostics();
                     for (auto it = details.begin(); it != details.end(); ++it) context[it.key()] = it.value();
@@ -451,7 +458,9 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored) 
                 summary["operation"] = parameters["operation"];summary["lastModifierFeatureId"] = id;
                 summary["producerFeatureId"] = target->featureId;summary["targetBodyId"] = targetId;
                 summary["toolBodyIds"] = toolIds;summary["keepTools"] = parameters["keepTools"];
-                target->shape = shape;target->summary = summary;target->supportFaces.clear();
+                summary["supportFaces"]=PlanarFaces::descriptors(target->supportFaces);
+                summary["solidEdges"]=SolidFillet::descriptors(target->solidEdges);
+                target->shape = shape;target->summary = summary;
                 if (!parameters["keepTools"].toBool())
                     std::erase_if(evaluated.bodies,[&](const auto& body){return toolIds.contains(body.bodyId);});
             } else {
@@ -498,7 +507,7 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored) 
                             for(const auto& entity:profile.summary["sourceEntityIds"].toArray())sourceEntities.append(entity.toString());}
                         const double previousVolume=target->summary["volumeMm3"].toDouble();
                         TopoDS_Shape cutShape;
-                        try {cutShape=booleanOperation(joining ? "join" : "cut",target->shape,tools);}
+                        try {cutShape=booleanOperation(joining ? "join" : "cut",target->shape,tools,&target->supportFaces,&target->solidEdges);}
                         catch(const EvaluationError& error){const auto details=error.diagnostics();for(auto it=details.begin();it!=details.end();++it)context[it.key()]=it.value();throw EvaluationError(context);}
                         auto cutSummary=summarize(cutShape);
                         const double removed=joining ? cutSummary["volumeMm3"].toDouble()-previousVolume : previousVolume-cutSummary["volumeMm3"].toDouble();
@@ -508,7 +517,7 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored) 
                         if(plural)cutSummary["sourceProfileIds"]=profileIds;else cutSummary["sourceProfileId"]=parameters["profileId"];
                         sourceEntities.removeDuplicates();sourceEntities.sort();QJsonArray refs;for(const auto& entity:sourceEntities)refs.append(entity);
                         cutSummary["sourceEntityIds"]=refs;cutSummary["sourceAreaMm2"]=area;cutSummary[joining ? "addedVolumeMm3" : "removedVolumeMm3"]=removed;
-                        target->shape=cutShape;target->supportFaces.clear();
+                        target->shape=cutShape;
                         if(joining && joinCaps.size()==1) {
                             auto cap=joinCaps.front();
                             // Retain only the independently named positive cap when the
@@ -520,19 +529,23 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored) 
                                 cutSummary["supportFaces"]=QJsonArray{QJsonObject{{"faceId",cap.faceId},{"bodyId",cap.bodyId},{"producerFeatureId",id},{"role",cap.role},{"planar",true},{"frame",cap.frame},{"edges",supportEdgeDescriptors(cap)}}};break;
                             }
                         }
+                        cutSummary["supportFaces"]=PlanarFaces::descriptors(target->supportFaces);
+                        cutSummary["solidEdges"]=SolidFillet::descriptors(target->solidEdges);
                         target->summary=cutSummary;
                         evaluated.featureOrder.push_back(id);continue;
                     }
                     const auto united=unionProfiles(selected);const double distance=parameters["distanceMm"].toDouble();
                     EvaluatedSupportFace cap;
-                    shape=extrusion(united,distance,&cap,&solidEdges,id);summary=summarize(shape);
+                    shape=extrusion(united,distance,&cap,&solidEdges,id,&supportFaces);summary=summarize(shape);
                     summary["solidEdges"]=SolidFillet::descriptors(solidEdges);
                     if(!cap.face.IsNull()) {
                         cap.producerFeatureId=id;cap.bodyId=feature["bodyId"].toString();
                         cap.faceId=QUuid::createUuidV5(QUuid(id),QByteArray("alloy-face/extrude-end-cap/1")).toString(QUuid::WithoutBraces);
-                        supportFaces.push_back(cap);
+                        supportFaces.insert(supportFaces.begin(),cap);
                         summary["supportFaces"]=QJsonArray{QJsonObject{{"faceId",cap.faceId},{"bodyId",cap.bodyId},{"producerFeatureId",id},{"role",cap.role},{"planar",true},{"frame",cap.frame},{"edges",supportEdgeDescriptors(cap)}}};
                     }
+                    for(auto& face:supportFaces)face.bodyId=feature["bodyId"].toString();
+                    summary["supportFaces"]=PlanarFaces::descriptors(supportFaces);
                     summary["operation"]="extrude";summary["distanceMm"]=distance;summary["sourceSketchId"]=sketchId;
                     if(plural)summary["sourceProfileIds"]=profileIds;else summary["sourceProfileId"]=parameters["profileId"];
                     summary["sourceEntityIds"]=united.summary["sourceEntityIds"];summary["sourceAreaMm2"]=united.summary["areaMm2"];
