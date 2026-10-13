@@ -43,7 +43,7 @@ reference-span conversion is disclosed. No full tutorial replay was needed for
 the symbol-only change. The private GUI slot is free after #233 recording; keep only one private
 validation editor open at a time.
 
-**Keyring gate #233 is accepted and closed; next tutorial research is active.**
+**Keyring gate #233 is closed; driving fillet dimensions #235 design is active.**
 Luna identified the illustrated initials-keyring lesson externally; Astra
 independently checked all six source pages. Seven bounded issues #227–233 now
 queue typed two-point Rectangle, overall fillet annotations, rounded-loop Offset,
@@ -66,8 +66,11 @@ by receipt validation/keyring-tutorial.md (59f94eb, integrated9da32a9). External
 STL and report; `demos/2026-10-13/initials-keyring` has the 63.8-second movie.
 Text clearance, same-slot edit/history and exact reopen pass. The seven-card
 gallery links all final artifacts; earlier failed runner attempts remain separate.
-Luna is researching the next short public tutorial externally; no new feature
-issue or implementation is claimed before its concrete recommendation.
+Astra is reviewing public behavior and a bounded solver design for #235 before
+Sol implementation. The board marks #235 In Progress for that active design
+work. Luna is researching a self-contained wall-outlet sketch lesson externally;
+the sample-dependent doorstop activity was not promoted as a full gate. No new
+feature issue or implementation is claimed before that recommendation.
 Follow-up #235 tracks driving overall size/origin retention through
 sketch fillets; #228 permits explicit measured-span conversion, so radius edits
 can alter overall size. Text retains authored parameters and uses mature font
