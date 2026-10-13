@@ -38,18 +38,21 @@ reference-span conversion is disclosed. No full tutorial replay was needed for
 the symbol-only change. The private GUI slot is currently reserved for #229
 focused retained-loop Offset checks; other agents must wait before launching an editor.
 
-**Active: keyring rounded-loop Offset #229 and two-point Circle #230.**
+**Active: rounded-loop Offset #229, Circle palette correction #230 and Cut rim edges #236.**
 Luna identified the illustrated initials-keyring lesson externally; Astra
 independently checked all six source pages. Seven bounded issues #227–233 now
 queue typed two-point Rectangle, overall fillet annotations, rounded-loop Offset,
 two-point Circle, editable text geometry, native text placement and the full gate.
 Rectangle #227 and text geometry #231 are independently accepted, integrated
 and closed; their receipts are validation/two-point-rectangle.md and
-validation/sketch-text.md. The two active children have separate Sol worktrees. Native text placement #232
+validation/sketch-text.md. The active children have separate Sol worktrees. Native text placement #232
 is independently accepted and closed; see validation/sketch-text-controls.md.
 Rounded fillets #228 are independently accepted and closed; see
-validation/rounded-rectangle-fillets.md. Offset #229 now follows; full gate #233 runner preparation is active in a
-separate worktree, with execution waiting for accepted #229/#230 integration. Cut rim provenance #236 is a newly discovered prerequisite for the source R1 hole
+validation/rounded-rectangle-fillets.md. Offset #229 is fixing a live-preview support-resolution failure after core checks
+passed. Circle #230 is integrated and builds; geometry/input review passed but
+visual acceptance awaits a settled palette capture/correction. Full gate #233
+runner preparation is committed (3d465da); execution stays Todo until prerequisites
+#229/#230/#236 pass. Cut rim provenance #236 is actively being implemented as a discovered prerequisite for the source R1 hole
 fillet; full gate preparation exposed the missing retained edge descriptors.
 Follow-up #235 tracks driving overall size/origin retention through
 sketch fillets; #228 permits explicit measured-span conversion, so radius edits
