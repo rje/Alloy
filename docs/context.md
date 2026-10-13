@@ -16,6 +16,11 @@ Intersect seeds preservez80; original retained Join has solid near-tip material.
 Cumulative-05 is now running with strengthened apex checks and a5fps real-time
 recording (long exact geometry waits remain visible, not time-compressed).
 Main app is unchanged; saved-model verifier rebuilt. No05 acceptance yet.
+Issues265 and268 are independently accepted and closed;264 is the sole active
+ornament gate. Corrected05 creation has saved the original model/STL and a valid
+82.6s5fps movie with the pointed apex visible in the actual GPU capture. It is
+currently validating the upstream offset edit; final corrected geometry and
+independent visual acceptance remain pending. Earlier04 artifacts are preserved.
 
 Latest: #268 bounded append reuse is integrated0088e64 with independent
 source/core acceptance9d6e20a. Four focused checks pass; main app and saved-model
