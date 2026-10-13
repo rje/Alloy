@@ -54,7 +54,7 @@ QJsonObject MeshExport::writeStl(const std::vector<EvaluatedBody>& bodies,const 
     // Each solid keeps its world placement. No Boolean union or topology healing:
     // separate material bodies remain separate triangle components in the STL.
     BRep_Builder builder;TopoDS_Compound compound;builder.MakeCompound(compound);
-    qint64 triangles=0;int faces=0;int mesherStatus=0;
+    qint64 triangles=0, collapsedTriangles=0;int faces=0;int mesherStatus=0;
     for(const auto& body:bodies) {
         // Detach geometry and discard display triangulation before canonical-mm meshing.
         BRepBuilderAPI_Copy copy(body.shape,true,false);auto detached=copy.Shape();
@@ -66,6 +66,28 @@ QJsonObject MeshExport::writeStl(const std::vector<EvaluatedBody>& bodies,const 
             TopLoc_Location location;
             const auto mesh=BRep_Tool::Triangulation(TopoDS::Face(it.Current()),location);
             if(mesh.IsNull() || mesh->NbTriangles()==0)reject("mesh_failed","A selected solid face has no export triangles");
+            // Binary STL stores float coordinates. Tiny pole triangles can
+            // collapse only at that precision, so discard them on the detached
+            // export mesh before asking OCCT to write normals and facets.
+            if(binary) {
+                std::vector<Poly_Triangle> retained;
+                for(int index=1;index<=mesh->NbTriangles();++index) {
+                    const auto triangle=mesh->Triangle(index);int a,b,c;triangle.Get(a,b,c);
+                    const auto outputPoint=[&](int node) {
+                        auto point=mesh->Node(node).Transformed(location.Transformation());
+                        const double scale=units=="in" ? 1.0/25.4 : 1.0;
+                        return gp_Pnt(float(point.X()*scale),float(point.Y()*scale),float(point.Z()*scale));
+                    };
+                    const auto pa=outputPoint(a),pb=outputPoint(b),pc=outputPoint(c);
+                    if(gp_Vec(pa,pb).Crossed(gp_Vec(pa,pc)).SquareMagnitude()==0){++collapsedTriangles;continue;}
+                    retained.push_back(triangle);
+                }
+                if(retained.empty())reject("mesh_failed","A face collapses at binary STL coordinate precision");
+                if(int(retained.size())!=mesh->NbTriangles()) {
+                    mesh->ResizeTriangles(int(retained.size()),false);
+                    for(size_t index=0;index<retained.size();++index)mesh->SetTriangle(int(index)+1,retained[index]);
+                }
+            }
             triangles+=mesh->NbTriangles();++faces;
         }
         builder.Add(compound,detached);
@@ -97,7 +119,7 @@ QJsonObject MeshExport::writeStl(const std::vector<EvaluatedBody>& bodies,const 
     QJsonObject result{{"path",destination.absoluteFilePath()},{"format",binary ? "stlBinary" : "stlAscii"},
         {"bodyIds",bodyIds},{"bodyCount",int(bodies.size())},{"units",units},{"unitsEmbedded",false},
         {"surfaceDeviationMm",surfaceDeviationMm},{"normalDeviationDeg",normalDeviationDeg},
-        {"triangles",triangles},{"faces",faces},{"bytes",input.size()},
+        {"triangles",triangles},{"collapsedTrianglesRemoved",collapsedTriangles},{"faces",faces},{"bytes",input.size()},
         {"mesherStatus",mesherStatus},{"authoredChanged",false}};
     if(bodies.size()==1)result["bodyId"]=bodies.front().bodyId;
     return result;

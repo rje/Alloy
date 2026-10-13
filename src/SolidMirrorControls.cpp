@@ -68,6 +68,7 @@ QJsonObject AlloyWindow::previewMirror(){
         view_->showPreview(body.shape,body.bodyId,true);session_["geometry"]=body.summary;session_["bodyId"]=body.bodyId;found=true;break;
     }
     if(!found)return reject("body_unavailable","Mirrored result is unavailable");
+    view_->selectBody(inputs["sourceBodyId"].toString());
     session_["documentDraft"]=candidate;session_["previewed"]=true;session_["geometryEvaluated"]=true;
     if(mirrorDock_){if(auto* buttons=mirrorDock_->findChild<QDialogButtonBox*>())buttons->button(QDialogButtonBox::Ok)->setEnabled(true);
         if(auto* label=mirrorDock_->findChild<QLabel*>("mirrorError"))label->clear();}
@@ -77,7 +78,8 @@ void AlloyWindow::showMirror(){
     if(mirrorDock_){canvasWindow_->removeDockWidget(mirrorDock_);delete mirrorDock_;}
     mirrorDock_=new QDockWidget("Mirror",canvasWindow_);mirrorDock_->setObjectName("mirrorDock");
     mirrorDock_->setFeatures(QDockWidget::DockWidgetMovable|QDockWidget::DockWidgetFloatable);
-    auto* panel=new QWidget(mirrorDock_);mirrorDock_->setWidget(panel);auto* form=new QFormLayout(panel);
+    auto* panel=new QWidget(mirrorDock_);panel->setMinimumWidth(240);mirrorDock_->setWidget(panel);auto* form=new QFormLayout(panel);
+    form->setRowWrapPolicy(QFormLayout::WrapLongRows);
     form->addRow("Pattern Type",new QLabel("Bodies",panel));
     auto* object=new QLabel(panel);object->setObjectName("mirrorObject");form->addRow("Objects",object);
     auto* chooseObject=new QPushButton("Select Object",panel);form->addRow(chooseObject);

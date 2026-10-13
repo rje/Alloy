@@ -18,7 +18,6 @@
 #include <stdexcept>
 
 namespace {
-bool resultOwns(const QJsonObject& feature,const QJsonValue& body) {for(const auto& value:feature["bodyResults"].toArray())if(value.toObject()["bodyId"]==body)return true;return false;}
 bool validId(const QString& id) { return !QUuid(id).isNull() && QUuid(id).toString(QUuid::WithoutBraces) == id; }
 QJsonObject dependencyError(const QJsonObject& candidate) {
     const auto features = candidate["features"].toArray();
@@ -93,7 +92,10 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
             QJsonObject diagnostic{{"featureId",feature["id"]},{"featureType","sketch"},{"support",support}};
             if(!positions.contains(producer)){diagnostic["code"]="missing_dependency";diagnostic["message"]="Sketch support producer does not exist";}
             else if(positions[producer]>=i){diagnostic["code"]="forward_dependency";diagnostic["message"]="Sketch support producer must precede its sketch";}
-            else if((features[positions[producer]].toObject()["type"]!="extrude" && features[positions[producer]].toObject()["type"]!="loft") || (features[positions[producer]].toObject()["bodyId"]!=support["bodyId"] && !features[positions[producer]].toObject()["parameters"].toObject()["targetBodyIds"].toArray().contains(support["bodyId"]) && !resultOwns(features[positions[producer]].toObject(),support["bodyId"]))){diagnostic["code"]="unsupported_dependency";diagnostic["message"]="Planar support requires its exact evaluated producer/body";}
+            // Boolean descendants can carry an earlier producer's face onto
+            // a different surviving body. The evaluated support lookup below
+            // verifies the exact producer/body/face triple, never proximity.
+            else if(!bodyPositions.contains(body) || bodyPositions[body]>=i){diagnostic["code"]="unsupported_dependency";diagnostic["message"]="Planar support requires an earlier evaluated body";}
             else if(!activeBodies.contains(body)){diagnostic["code"]="consumed_dependency";diagnostic["message"]="Sketch support body was consumed earlier in history";}
             else continue;
             return diagnostic;

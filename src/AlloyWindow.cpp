@@ -2055,7 +2055,10 @@ void AlloyWindow::registerCommands() {
         if(!a.value("discard").toBool())for(const auto& tab:designTabs_)if(tabHasUnsavedWork(tab->id))
             return failure("unsaved_changes","Save or explicitly discard all open designs before quitting");
         authorizedQuit_=true;
-        QTimer::singleShot(0,qApp,&QApplication::quit);return QJsonObject{{"quitting",true}};
+        QTimer::singleShot(0,qApp,[]{
+            if(auto* modal=qobject_cast<QDialog*>(QApplication::activeModalWidget()))modal->reject();
+            QApplication::quit();
+        });return QJsonObject{{"quitting",true}};
     });
     for (const auto& pair : QList<QPair<QString, QString>>{{"solid.revolve", "Revolve"}, {"inspect.measure", "Measure"}}) {
         commands_.push_back({pair.first, pair.second, "Not implemented in the UI shell.", {}, false, {}});
