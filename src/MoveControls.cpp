@@ -2,6 +2,9 @@
 #include "ReferenceView.h"
 #include <QDockWidget>
 #include <QFormLayout>
+#include <QVBoxLayout>
+#include <QScrollArea>
+#include <QPushButton>
 #include <QComboBox>
 #include <QDoubleSpinBox>
 #include <QDialogButtonBox>
@@ -45,18 +48,27 @@ QJsonObject AlloyWindow::previewMove() {
 void AlloyWindow::showMove() {
     if(moveDock_){canvasWindow_->removeDockWidget(moveDock_);moveDock_->deleteLater();}
     moveDock_=new QDockWidget("Move/Copy",canvasWindow_);moveDock_->setFeatures(QDockWidget::DockWidgetMovable|QDockWidget::DockWidgetFloatable);
-    auto* panel=new QWidget(moveDock_);moveDock_->setWidget(panel);auto* form=new QFormLayout(panel);
-    form->addRow("Move Object",new QLabel("Bodies",panel));form->addRow("Move Type",new QLabel("Free Move",panel));
-    auto* bodies=new QComboBox(panel);bodies->setAccessibleName("Move body");bodies->addItem("Select body…",QString{});
+    moveDock_->setObjectName("moveDock");
+    auto* panel=new QWidget(moveDock_);panel->setObjectName("movePanel");moveDock_->setWidget(panel);
+    auto* layout=new QVBoxLayout(panel);layout->setContentsMargins(0,0,0,9);layout->setSpacing(9);
+    auto* scroll=new QScrollArea(panel);scroll->setObjectName("move.formScroll");scroll->setWidgetResizable(true);
+    scroll->setFrameShape(QFrame::NoFrame);scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    auto* contents=new QWidget;scroll->setWidget(contents);layout->addWidget(scroll,1);
+    auto* form=new QFormLayout(contents);
+    form->addRow("Move Object",new QLabel("Bodies",contents));form->addRow("Move Type",new QLabel("Free Move",contents));
+    auto* bodies=new QComboBox(contents);bodies->setAccessibleName("Move body");bodies->addItem("Select body…",QString{});
     auto available=document_->bodies();const auto edit=session_["inputs"].toObject()["featureId"].toString();if(!edit.isEmpty())available=document_->evaluationBefore(edit).bodies;
     for(const auto& body:available)bodies->addItem(body.name,body.bodyId);bodies->setCurrentIndex(bodies->findData(session_["inputs"].toObject()["targetBodyId"].toString()));form->addRow("Selection",bodies);
-    auto* status=new QLabel(panel);status->setWordWrap(true);
+    auto* status=new QLabel(contents);status->setWordWrap(true);
     auto update=[this,status](const QJsonObject& changes){auto response=execute("command.update",{{"session",session_["id"]},{"inputs",changes}});if(response["ok"].toBool())response=previewMove();status->setText(response["ok"].toBool(true) ? QString{} : response["error"].toObject()["message"].toString());};
     connect(bodies,&QComboBox::currentIndexChanged,panel,[this,bodies,status](int){const auto response=execute("selection.set",{{"bodyId",bodies->currentData().toString()}});status->setText(response["ok"].toBool() ? QString{} : response["error"].toObject()["message"].toString());});
     const QStringList keys{"xMm","yMm","zMm","xDeg","yDeg","zDeg","pivotXMm","pivotYMm","pivotZMm"};
     const QStringList labels{"X Distance","Y Distance","Z Distance","X Angle","Y Angle","Z Angle","Pivot X","Pivot Y","Pivot Z"};
-    for(int i=0;i<keys.size();++i){auto* field=new QDoubleSpinBox(panel);field->setObjectName(keys[i]);field->setAccessibleName(labels[i]);field->setRange(-100000,100000);field->setDecimals(3);field->setSuffix(i>=3 && i<6 ? " °" : " mm");field->setValue(session_["inputs"].toObject()[keys[i]].toDouble());form->addRow(labels[i],field);connect(field,&QDoubleSpinBox::valueChanged,panel,[update,key=keys[i]](double v){update({{key,v}});});if(i<6)connect(field,&QDoubleSpinBox::editingFinished,panel,[this]{if(session_.value("command")=="solid.move")execute("solid.moveApplyGesture");});}
-    form->addRow(status);auto* buttons=new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel,panel);form->addRow(buttons);
+    for(int i=0;i<keys.size();++i){auto* field=new QDoubleSpinBox(contents);field->setObjectName(keys[i]);field->setAccessibleName(labels[i]);field->setRange(-100000,100000);field->setDecimals(3);field->setSuffix(i>=3 && i<6 ? " °" : " mm");field->setValue(session_["inputs"].toObject()[keys[i]].toDouble());form->addRow(labels[i],field);connect(field,&QDoubleSpinBox::valueChanged,panel,[update,key=keys[i]](double v){update({{key,v}});});if(i<6)connect(field,&QDoubleSpinBox::editingFinished,panel,[this]{if(session_.value("command")=="solid.move")execute("solid.moveApplyGesture");});}
+    form->addRow(status);
+    auto* buttons=new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel,panel);
+    buttons->setContentsMargins(9,0,9,0);layout->addWidget(buttons);
+    buttons->button(QDialogButtonBox::Ok)->setObjectName("move.ok");buttons->button(QDialogButtonBox::Cancel)->setObjectName("move.cancel");
     connect(buttons,&QDialogButtonBox::accepted,panel,[this,status]{auto response=execute("command.commit",{{"session",session_["id"]}});if(!response["ok"].toBool())status->setText(response["error"].toObject()["message"].toString());});
     connect(buttons,&QDialogButtonBox::rejected,panel,[this]{execute("command.cancel",{{"session",session_["id"]}});});
     auto cancel=[this]{if(session_.value("command")=="solid.move")execute("command.cancel",{{"session",session_["id"]}});};
