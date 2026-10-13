@@ -33,12 +33,13 @@ preview striping without altering geometry. Core/API/native evidence remains
 separate; see validation/countersink-hole-controls.md and backend receipt.
 All private validation editors are closed.
 
-**Parameter dialog recording support #250 is active in parallel.**
-Root owns isolated parameter-dialog-capture. Existing movie capture already
-composes owned Qt popups; retain and reuse the parameter dialog, add bounded
-open/close and capture.dialog handling, and refresh its table after shared edits
-without overwriting pending user input. Full gate249 depends on this child for
-actual readable parameter-table evidence. No new compositor is needed.
+**Parameter dialog recording support #250 is accepted and closed.**
+Implementationf3d46af/reviewdc79583 integrated and default app rebuilt. Actual
+owned dialog open/close/reuse, live table refresh preserving pending text and
+selection, standalone capture and existing movie composition are verified.
+See validation/parameter-dialog-capture.md for separate state/API/native limits
+and the corrected first-run test-cleanup/process-overlap qualification. All
+private editors are closed. Full gate249 can record the actual three-row table.
 
 **Active work: Hole Spacing/Adjust pattern #248.** Preserve existing additive
 Extent/Identical behavior. Resolve retained seed point/frame, translate each
@@ -64,7 +65,7 @@ visual parity remain qualified. The external
 editable models and STL deliverables. The Revolve receipt is
 [validation/revolve-tutorial.md](validation/revolve-tutorial.md).
 
-**127 of 250 issues are closed.** Recent accepted work includes compact ribbon
+**128 of 250 issues are closed.** Recent accepted work includes compact ribbon
 icons #218, retained Extrude Intersect #219, nested profile/island diagnostics
 #165, portable local controls #220, shared-line fillets #221, typed Line length
 locks #222, retained Sweep #223 and native Sweep controls #224. Each has a scoped
