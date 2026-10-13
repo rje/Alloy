@@ -105,3 +105,31 @@ styling and exact pixel comparison. Full Hole, nine-occurrence Pattern, named
 parameter integration, tutorial movie, exports, other-platform runtime and
 release qualification are not established here. Existing dimension schemas were
 not rewritten; the parallel parameter-binding fields must remain during merge.
+
+## Independent acceptance
+
+Accepted the bounded #246 prerequisite at candidate
+`cf8b6cb3aafde766080b33e509da850c5e883a82` after independent source, persisted
+artifact, test-log and actual framebuffer review. No additional editor run was
+needed. The explicit point entity references its solver point; evaluation emits
+a vertex without inventing a curve or profile boundary. The two retained edge
+dimensions consume the placement DOF, and the finished selection carries both
+entity and point identities through routine refresh. Real body/profile selection
+still replaces that selection.
+
+Independent readback confirmed the 67-call API report, exact equality of the
+saved authored document and reported final authored state, one standalone point
+and no profile in the supported sketch, and unchanged dimension/projection
+references across width/radius edits. The final evaluated point is approximately
+(−32.5, 15, 10) mm. Focused core evidence and the native input source support the
+reported atomic refusals, history and persistence checks. The native sequence
+uses initial activation only, followed by actual menu, point/edge, placement and
+numeric input; no intermediate focus or selection repair masks the workflow.
+
+The actual two-edge capture has readable 10 mm witnesses, a distinct point and
+neutral point-only status. The finished capture visibly selects the same marker.
+Accept the author’s stated API-before-label-change evidence boundary and Qt-versus-
+OS limitation. This does not accept the later Hole/Pattern/full tutorial gate or
+prove matched public-source pixels. Integration must preserve the independently
+accepted named-parameter schema and controls; that combined check remains with
+the integrator.
