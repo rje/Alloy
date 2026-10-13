@@ -6,6 +6,7 @@ import json
 import math
 from pathlib import Path
 import traceback
+import subprocess
 from app_harness import application
 from ornament_source_api import create_seed
 from stl_export_api import inspect_stl
@@ -120,7 +121,11 @@ def run(call, out, report):
     edited_path = out/'ornament-offset-4.alloy'
     call('document.save', {'path': str(edited_path)})
     call('document.open', {'path': str(original_path), 'discard': True})
-    assert inspect()['authored'] == original['authored']
+    reopened_original = inspect()
+    assert reopened_original['authored'] == original['authored']
+    reopened_original_body = body(reopened_original)
+    assert reopened_original_body['bodyId'] == original_body['bodyId']
+    assert math.isclose(reopened_original_body['volumeMm3'], original_body['volumeMm3'], rel_tol=1e-9)
     call('document.open', {'path': str(edited_path), 'discard': True})
     reopened = inspect(); assert reopened['authored'] == edited['authored']
     assert body(reopened)['bodyId'] == edited_body['bodyId']
@@ -142,6 +147,13 @@ def run(call, out, report):
     assert inspect()['authored'] == edited['authored']
     report['gpu'] = call('app.state')['viewport']['gpu']
     assert report['gpu']['hardwareAccelerated']
+    report['stage'] = 'saved-model-geometry-verifier'
+    verifier = subprocess.run([report['geometryVerifier'], str(original_path), str(edited_path)],
+        capture_output=True, text=True, timeout=report['geometryVerifierTimeoutSeconds'])
+    (out/'geometry-verifier.log').write_text(verifier.stdout+verifier.stderr)
+    assert verifier.returncode == 0, verifier.stdout+verifier.stderr
+    report['geometry'] = json.loads(verifier.stdout)
+    assert report['geometry']['status'] == 'geometry-pass'
     report['stage'] = 'complete'
     report['status'] = 'cumulative-api-pass'
 
@@ -150,14 +162,20 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--app', required=True)
     parser.add_argument('--output', required=True)
+    parser.add_argument('--geometry-verifier', required=True, help='Built ornament_geometry_verify executable.')
+    parser.add_argument('--geometry-verifier-timeout', type=float, default=600)
     parser.add_argument('--command-timeout', type=float, default=30,
                         help='Local client seconds per command; use e.g.120 for known slow Join.')
     args = parser.parse_args()
+    assert math.isfinite(args.geometry_verifier_timeout) and args.geometry_verifier_timeout > 0
     assert math.isfinite(args.command_timeout) and 0 < args.command_timeout <= 2147483
     out = Path(args.output).resolve(); out.mkdir(parents=True, exist_ok=True)
     transcript = []
     report = {'status': 'incomplete', 'fullTutorialAccepted': False, 'nativeInputParityClaimed': False,
               'movieRecorded': False, 'commandTimeoutSeconds': args.command_timeout,
+              'geometryVerifier': str(Path(args.geometry_verifier).resolve()),
+              'geometryVerifierSha256': hashlib.sha256(Path(args.geometry_verifier).read_bytes()).hexdigest(),
+              'geometryVerifierTimeoutSeconds': args.geometry_verifier_timeout,
               'appSha256': hashlib.sha256(Path(args.app).read_bytes()).hexdigest()}
     try:
         with application(args.app, out, command_timeout=args.command_timeout) as (raw_call, transcript):

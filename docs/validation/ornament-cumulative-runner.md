@@ -41,3 +41,22 @@ in their supplied occurrence order and retains that order in participant ownersh
 only profile IDs are sorted. The runner asserts the authored target array as well
 as the ledger, so it does not confuse creation/evaluation identifiers or impose
 a sorted participant order. These checks remain unexecuted draft assertions.
+
+The draft now requires a built `ornament_geometry_verify` via `--geometry-verifier`.
+It independently opens both saved final models with CadDocument, requires one
+BRep/Boolean-valid closed positive solid, checks the complete transverse bore axis
+outside and eight neighboring hub wall points inside, and verifies three points
+were material before the Cut. Both bore exits and remaining hub material must be
+real. Before Join, all eight explicit member solids and the exact hub prism are
+recovered from retained history. Each ancestor-minus-joined Cut must execute and
+produce a valid result with adaptively integrated residual volume within
+max(1e-6 mm³, input volume*1e-8). Failed/invalid operations or failed integration
+refuse; an empty valid difference has zero material volume. Input/result BRep
+hashes remain exact around these checks after baselining only OCCT's container
+Free flag, as qualified in SOL-041. No production geometry is normalized.
+
+Original reopen now also checks final body validity, identity and volume, alongside
+authored equality. The verifier target builds and runner syntax checks pass;
+no saved-model verification or cumulative modeling has been executed. Its external
+process timeout is separately configurable (default 600 seconds) for repeated
+known-slow exact history evaluation; this changes no application protocol.
