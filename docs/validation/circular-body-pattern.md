@@ -59,5 +59,31 @@ Compatibility: matched documented Bodies/one seed/Full/total eight and actual
 editable ownership/history behavior. Origin Z selection, initial count 3,
 CCW phase-zero angles and first preview auto-fit are disclosed Alloy policies.
 The captured simple spoke geometry is not the source ornament; exact source
-axis-object choice, angular defaults and pixel parity remain unknown. Independent
-Astra review is pending at this implementation receipt.
+axis-object choice, angular defaults and pixel parity remain unknown.
+
+## Independent bounded acceptance
+
+2026-10-13: final candidate `1d2a336` independently reviewed without implementing
+production changes or opening another editor. Review covered generated identities,
+owner/dependency checks, mapped transform lineage, simple eight-participant Join,
+source/count edits, exact history/reopen and final rigid-placement regression.
+The source and passing logs for both final core tests were inspected. Native
+attempt05 fixture/log and actual settled preview/accepted images were inspected;
+the earlier open-popup capture was explicitly rejected before the corrected
+event-target fixture passed. Evidence reuse is bounded as described above.
+
+| Contract | Result | Evidence and limits |
+| --- | --- | --- |
+| Bodies, one seed, Full, total eight | Matched | Eight actual equal-volume solids at independently checked angular centroids; original seed is counted once. |
+| Retained ownership and transforms | Matched | Stable prefix UUIDs, exact source identities, mapped supports/edges and same-owner dependencies; final exact-offset prism rotations preserve source BRep bytes and repeated IDs. |
+| Existing multi-participant Join | Matched for simple fixture | Eight selected spoke bodies and radius6 hub become one connected solid, with exact undo/reopen. This does not prove ornament Join. |
+| Native selection, preview and cancellation | Matched for Qt fixture | Actual body pick, focused popup-key selection, typed eight, Cancel/OK and ten-preview/Escape; initial-only activation. Edit entry is shared API. |
+| Readable settled GPU presentation | Matched within scope | Attempt05 shows all eight bodies and unobscured Bodies/Objects/Origin Z/Full/Quantity8 controls. |
+| Source defaults, exact pixels and physical OS input | Unknown | Declared Alloy defaults and adapted axis selector; unmatched source geometry/viewport and injected Qt input. |
+
+Accept #263 as the bounded Circular Body Pattern ingredient. A later Join retains
+its explicit target IDs: pattern count edits do not imply automatic target-set
+expansion. Removing a referenced occurrence refuses atomically; full-gate count
+edits should be checked at the retained Pattern stage. Source edits after Join
+remain a separate cumulative rebuild gate. #265/#264 and other-platform runtime
+remain open.
