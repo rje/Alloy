@@ -59,7 +59,7 @@ See validation/countersunk-plate-tutorial.md for source adaptations, recording
 limits and separate native evidence. Issue/board Done. All private editors closed.
 The external gallery has nine creations: eight checked solid meshes and one sketch.
 **Active lesson: slots, splines, conic and ellipse (#251–257).**
-The full 31-step source gate remains Todo. Its source-order plan and geometry
+The full 31-step source gate #257 is now In Progress; its runner is being prepared. Its source-order plan and geometry
 oracles are in [validation/slots-splines-tutorial-prep.md](validation/slots-splines-tutorial-prep.md).
 The external contract/design records are under
 `knowledge/tutorials/after-countersunk-plate/`; the 19-record knowledge corpus
@@ -84,36 +84,30 @@ A reviewed integration correction explicitly chooses the intended preview group.
 Control spline/curvature comb #254 is independently accepted and integrated as
 e17f0d5/c3a6638. Main builds; four slot/spline core checks pass in 1.79s.
 Native and 32-call API evidence remain separate in validation/control-point-spline.md.
-Ellipse #256 candidate6cab0b3 core/native and 35-call API checks pass;
-Astra final review is underway. Sol is preparing full #257 runner, not yet run. Root has also started conic #255 in
-`../Alloy-worktrees/conic` / `feat/conic`, candidate a534335 with retained OCCT
-geometry and shared creation/Rho commands. App builds and focused core passes
-1/1 (0.42 s), including asymmetric shoulder/tangents and exact retained history.
-Astra pre-reviewed the core; two integration corrections are applied. Partial creation/Rho numeric controls are committed as 81713cf; a 39-call
-real-app preview/refusal/edit/history run passes in external conic api-attempt-04.
-Conic candidate56c2be9 adds the Rho arrow and native context OK/edit/cancel;
-focused native checks pass3/3 in2897ms. Independent conic review309d6d8 accepted; integrated through8addcb5.
-Main app builds and combined conic/control/fit/arc core4/4 pass. #255 is Done.
-Full lesson #257 remains Todo.
-Root owns `tests/center_point_arc_slot_api.py`: passed 44 calls on the reviewed
-arc candidate, with exact source model and an inspected readable capture. It checks both slots in one sketch, source radius/H/V/radial-line/
-135-degree constraints, two analytic regions, radius edit and exact history/
-reopen. Wait for the author candidate and the sole private-editor lease before
-running. Root also prepared `tests/control_point_spline_api.py` (syntax-only):
-mixed fit/control authoring, independent quadratic position/curvature/area oracles,
-comb presentation invariance, retained pole edit and exact history/reopen. Its
-command schema follows the independently cleared proposal and awaits runtime.
-Root owns subsequent shared-API/cumulative checks and GitHub updates;
-Sol implements and Astra independently verifies candidates.
+Conic #255 is independently accepted and integrated through 8addcb5. Its
+analytic core, 39-call API and native continuous Rho drag/context OK/edit/cancel
+have separate evidence in validation/conic.md. Ellipse #256 is independently
+accepted and integrated78a4cb7/68ddbce, with reviewed dedicated-center validation
+correction df5b98d. Its native creation/dimensions and 35-call API verify retained
+axes, full275x100 geometry, edits and exact history/reopen. Main app builds;
+combined ellipse/conic/control core3/3 passed, followed by ellipse0.42s after
+the merge correction. All private validation editors are closed.
+
+Full lesson #257 is In Progress, with all six prerequisites accepted and closed.
+Sol prepares the full source-order runner in the ellipse worktree. Root owns
+integration, single-editor execution and GitHub updates; Astra reviews the full
+gate. The runner has not yet executed and no full creation movie is accepted.
+Accepted root API ingredients include arc44calls, control32calls, conic39calls
+and ellipse35calls. Their scripts and receipts retain scope and original failure
+qualifications; do not rerun unchanged ingredients merely to duplicate evidence.
 
 The first slot starts at its center: source prose conflicts with the pictured
 command and official public UI. Full centerline 150/R25 yields 200×50 bounds.
 Arc path R150/end R15 plus the 135-degree radial relation yields an upper
 90-degree sweep. Three control points yield actual degree two under the public
 maximum-degree policy. The final ellipse is horizontal, origin-centered and
-275×100; its inferred constraining steps remain explicit. Conic Rho mapping and
-ellipse preflight records are independently reviewed proposals, not implemented
-features. No full lesson or exact visual/input parity claim is made.
+275×100; its inferred constraining steps remain explicit. Conic Rho mapping and ellipse typed-size conventions are explicit implementation
+policies with independently reviewed public-reference limits. No full lesson or exact visual/input parity claim is made.
 
 User requested private repository visibility on 2026-10-13. `rje/Alloy` is now
 PRIVATE, verified through GitHub CLI. Preserve private visibility unless the user
@@ -130,7 +124,7 @@ visual parity remain qualified. The external
 editable models and STL deliverables. The Revolve receipt is
 [validation/revolve-tutorial.md](validation/revolve-tutorial.md).
 
-**135 of 258 issues are closed.** Recent accepted work includes compact ribbon
+**136 of 258 issues are closed.** Recent accepted work includes compact ribbon
 icons #218, retained Extrude Intersect #219, nested profile/island diagnostics
 #165, portable local controls #220, shared-line fillets #221, typed Line length
 locks #222, retained Sweep #223 and native Sweep controls #224. Each has a scoped
@@ -2549,3 +2543,8 @@ DOF and area `6875π mm²`; equality/crossing edits retain authored identities.
 Focused core and native creation/dimension tests pass with inspected captures;
 the private editor is closed. See the [candidate receipt](validation/center-point-ellipse.md).
 Independent review and full sketch-lesson validation remain separate.
+
+Latest integration: ellipse #256 accepted78a4cb7/68ddbce with dedicated center
+validation merge correction. Main app builds; focused ellipse0.42s passed.
+All private editors closed. Sol prepares full #257 runner in ellipse worktree;
+no full-lesson execution or movie acceptance yet.
