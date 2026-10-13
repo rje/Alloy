@@ -3,6 +3,18 @@
 Updated 2026-10-13. This is the project handoff for a fresh session. Read the root
 [AGENTS.md](../AGENTS.md) first; its reference restrictions apply to all work.
 
+## Active ornament gate — 2026-10-13
+
+Shell correction #266 is independently accepted and closed, integrated
+0499f83/d3d3fbe. Main app and saved-model geometry verifier build; generic Shell
+and full-Revolve support core2/2 pass1.50s. Real-app source/control edits,
+history/reopen, corrected section captures and retained strip Intersect pass.
+The exact circular closed-cap policy is bounded; source topology parity remains
+unknown. #265 is now In Progress for cumulative Pattern/Join/bore/edit/STL;
+#264 full movie remains Todo. The strengthened saved-model verifier is integrated
+a919696 but has not evaluated a complete ornament yet. This current status
+supersedes earlier pending #266 descriptions below.
+
 ## Latest accepted checkpoint — 2026-10-13
 
 Full slots/splines/conic/ellipse lesson #257 and color follow-up #259 are accepted
@@ -127,14 +139,14 @@ The candidate now builds and passes explicit source/control policy, Boolean
 validity, independent volumes and edit/history/reopen core checks. Actual app
 source-prefix Intersect passes, with source/control API history/reopen and
 readable section captures. See validation/revolved-shell-closed-cap.md. Independent
-review and integration remain pending; #265 cumulative Join remains separate.
+review and integration are complete; #265 cumulative Join remains separate.
 
 The cumulative runner is prepared in `tests/ornament_cumulative_api.py`
 (3567dba/5b65cc9). It reuses the source prefix, verifies retained Pattern count
 edits, explicit eight-participant Join, framed transverse Cut, upstream Offset
 edit/history/reopen and strict millimeter STL. API schema and syntax checks pass;
-it has not launched an editor or established cumulative acceptance. #265 remains
-Todo until #266 is independently accepted. See
+it has not launched an editor or established cumulative acceptance. #265 is now
+active after independent #266 acceptance. See
 [runner scope](validation/ornament-cumulative-runner.md).
 
 ## Earlier accepted checkpoints and development history
