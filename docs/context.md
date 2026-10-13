@@ -23,17 +23,25 @@ Actual geometry/API/visual and focused Qt input evidence pass. OS mouse automati
 is unavailable (CUA native pipe startup failure), explicitly distinct from Qt
 widget event verification. Shell corrections are integrated through8167b5e.
 
-Offset planes #186 candidate18483b1 integrated as800abb3, building in
-build-tutorial-polish for real-app qualification. Sol's planes_finish owns the
-next API runtime slot after build; Astra independently reviews afterward.
-Mirror #188 is actively implemented in tutorial-mirror by Sol. Its dependency
-is the already accepted body/plane interface; full cube gate still requires Shell.
-Root owns named planar faces #187 (focused checks pass; full solid-chain/native
-acceptance awaits Mirror integration). First expanded normal test caught prism
-history orientation differing from solid orientation; corrected to actual solid
-faces, test passes. Shared unique Modified mapping now covers Extrude Join too.
+Offset planes #186 candidate18483b1 integrated as800abb3; selected-plane routing
+fix74ea9c5. Full integrated build and focused plane/shell/named-face checks pass.
+Sol's40-command real-app plane ledger passes in build-tutorial-polish/evidence/
+construction-planes, including inherited plane selection, frame edits, history,
+reopen and fitted GPU screenshot. Private PID94409 exited0. Astra now owns desktop
+for independent plane review; root must not rebuild/change application code until
+released. CUA pipe is unavailable; use clearly labeled Qt-event evidence if needed.
 
-Queued children: Center Rectangle #189, circular-section Loft #190, additive
+Mirror #188 candidate d247a88 in tutorial-mirror is READY TO CHERRY-PICK after
+plane review releases desktop. Focused reflection/Combine tests pass: two3182mm3
+halves and one6364mm3 hollow cube. No real-app Mirror acceptance yet. Sol now owns
+Center Rectangle #189 in tutorial-center-rectangle. Sol planes_finish now owns
+multi-body STL #193 in tutorial-multibody-stl. No other private app may launch.
+Root owns named planar faces #187 and Mirror integration; #187 remains open for
+complete Shell/Mirror/Combine/Cut/Fillet chain evidence. First expanded normal
+test caught prism history orientation differing from solid orientation; fixed
+to actual solid faces, test passes. Shared unique mapping covers Extrude Join.
+
+Tracked children: Center Rectangle #189, circular-section Loft #190, additive
 feature Rectangular Pattern #191, retained circle Offset #192, multi-body STL
 #193. Broader parent requirements remain Todo. All three full tutorial gates
 are open. Source/visual ledgers for nested cubes, egg cup and exact toy-block
