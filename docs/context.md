@@ -124,7 +124,7 @@ visual parity remain qualified. The external
 editable models and STL deliverables. The Revolve receipt is
 [validation/revolve-tutorial.md](validation/revolve-tutorial.md).
 
-**136 of 258 issues are closed.** Recent accepted work includes compact ribbon
+**136 of 259 issues are closed.** Recent accepted work includes compact ribbon
 icons #218, retained Extrude Intersect #219, nested profile/island diagnostics
 #165, portable local controls #220, shared-line fillets #221, typed Line length
 locks #222, retained Sweep #223 and native Sweep controls #224. Each has a scoped
@@ -2548,3 +2548,11 @@ Latest integration: ellipse #256 accepted78a4cb7/68ddbce with dedicated center
 validation merge correction. Main app builds; focused ellipse0.42s passed.
 All private editors closed. Sol prepares full #257 runner in ellipse worktree;
 no full-lesson execution or movie acceptance yet.
+
+Full #257 attempt03 passes247calls/all31steps, with64.5s creation movie, three
+editable sketches and exact history/reopen. It remains open: actual final capture
+shows the fixed ellipse blue beside a free conic because coloring uses globalDOF.
+New prerequisite #259 (SKT-064) tracks solver-grounded independent solved color.
+Sol implements a bounded fix using PlaneGCS nullspace-dependent parameter
+mapping; Astra has reviewed functional evidence but cannot accept the
+visual gate yet. Failed attempts01/02 retain offviewport fixture mistakes.

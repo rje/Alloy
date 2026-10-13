@@ -4573,7 +4573,8 @@
         "SKT-059",
         "SKT-060",
         "SKT-061",
-        "SKT-062"
+        "SKT-062",
+        "SKT-064"
       ],
       "labels": [
         "area:tut"
@@ -4593,6 +4594,21 @@
         "area:skt"
       ],
       "body": "## Problem and result\nThe bounded center-point slot implementation retains and solves slot intent on mouse release but displays only a rubber line during point dragging. Replace that visual limitation with the actual solved temporary capsule while dragging, keeping committed authoring and history unchanged until release.\n\n## Scope and verification\nReuse the existing shared solve/evaluate path with a disposable draft, not a second model or generic interaction framework. Escape, tool/history/session changes and invalid cursor candidates restore the authoritative view and prevent late-release commits. One actual native rough-slot drag should show an intermediate solved shape, leave authored state unchanged before release, commit one history step, and cancel exactly. Inspect GPU preview and maintain usable input responsiveness. Reuse accepted #251 geometry/source workflow evidence; this is a presentation follow-up, not acceptance of the full lesson.\n\n## Reference boundary\nRecorded from the Alloy candidate and the public source contract sketch-slots-splines-20261013. Exact historical reference drag presentation remains qualified; this is the required Alloy live-editing quality improvement.\n"
+    },
+    {
+      "key": "SKT-064",
+      "title": "Show fully constrained ellipse independently of free neighboring curves",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-061",
+        "SKT-062"
+      ],
+      "labels": [
+        "area:skt"
+      ],
+      "body": "## Problem and result\nFull sketch lesson #257 reaches the correct275x100 constrained ellipse beside an open conic, but whole-sketch DOF coloring leaves the ellipse blue. Public source sketch-slots-splines-20261013 shows a black defined ellipse and blue free conic. Determine solved state from genuine solver freedom of the retained center/axes and render each relevant curve accordingly. Do not infer freedom by counting dimensions or recognizing this fixture.\n\n## Scope and verification\nPreserve authoritative geometry, selected/highlight colors and GPU presentation. A focused mixed ellipse/conic capture must show the defined ellipse black and free conic blue; an underdefined ellipse remains blue. Verify semantic solved metadata and a meaningful dimension removal/edit restoring freedom. Reuse accepted geometry/history/native evidence; no broad solver rewrite or repeated full tutorial is required. If the original movie predates the correction, qualify it explicitly and supply corrected visual evidence. Independent review required before #257 closes.\n"
     }
   ]
 }
