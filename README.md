@@ -92,7 +92,8 @@ Current evidence includes [constraint tools](docs/validation/constraint-tools.md
 [multi-profile extrusion](docs/validation/multi-profile-extrusion.md).
 Native fillet history qualification uses an isolated
 [Qt accessibility patch experiment](docs/dependencies/qt-cocoa-accessibility.md);
-default deployment qualification remains open. Full tutorial gates remain open.
+default deployment qualification remains open. Exact physical-input tutorial
+parity remains separate from the accepted functional gates above.
 
 ## Project documents
 

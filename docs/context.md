@@ -118,7 +118,10 @@ c328566 are pushed. The refreshed toy recording and deliverables use true edge
 dimensions; earlier artifacts remain archived.
 Active #150 adds side-face boss, inclined support and preserved-state recovery
 coverage. Broader #43 retains history behavior beyond accepted Timeline readability;
-#83 retains performance work. Active #208 compares native graphics foundations. No release,
+#83 retains performance work. RHI-003/#208 is independently accepted research (1e0d0fe); see
+dependencies/rhi-shortlist.md. No renderer is selected; #137 retains runtime
+spike and admission. SKT-035/#209 fixes missing affected-sketch context in support
+failures exposed by active #150, with independent review pending. No release,
 tag or per-commit CI is triggered. Continue authorized backlog work while the user
 is asleep; do not stop just because the first three gates are complete.
 
