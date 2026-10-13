@@ -1,7 +1,7 @@
 # Full-Revolve planar support candidate
 
 2026-10-13, #260, isolated `feat/revolve-planar-support` from e805afb. Independent
-acceptance remains pending; scoped native input and GPU inspection pass. Source/implementation
+acceptance is recorded below; scoped native input and GPU inspection pass. Source/implementation
 contract: [revolve-planar-support.md](../research/revolve-planar-support.md).
 
 Before changing UI, the isolated OCCT proof used the actual vertical 80,
@@ -65,3 +65,23 @@ Native fixture SHA256:
 `7f0db291864a3271f08657ecaaa8c8c48024a937c6fbaf26c4cd983216ffdd63`.
 This ingredient does not accept the complete ornament-pattern workflow or broad
 generated-face naming beyond the documented full radial planar scope.
+
+## Independent bounded review
+
+2026-10-13: candidate `254ba9b` independently reviewed without implementing its
+production changes or launching another editor. The review inspected the external
+`knowledge/tutorials/after-slots-splines/independent-contract.md`, source changes,
+core and native fixtures, passing logs, authored fixture and both actual captures.
+Existing focused evidence was sufficient; no broad replay was performed.
+
+| Contract | Result | Evidence and limit |
+| --- | --- | --- |
+| Full 80/5/R50 profile and real bottom disk to Inside Shell 5 | Matched | Actual kernel Generated ancestry; one valid hollow body, opening classification and three regular normal-wall samples. |
+| Retained support and editable history | Matched | Generator-based UUID, actual outward frame, height85/R55 rebuild, missing/ambiguous refusal and exact undo/reopen. |
+| Face selection, preview, Cancel and OK | Matched | Native Qt 3/3 log and fixture use actual picking and typing with initial-only activation; selected lineage is asserted. |
+| Readable GPU presentation | Matched within scope | Bottom preview and final shell captures show legible controls and smooth geometry on Apple M4. |
+| Exact reference pixels, physical OS input and other platforms | Unknown | Reference viewport/scale is unmatched; native evidence is injected Qt on macOS. |
+
+Accept #260 as the scoped generated planar support/Shell ingredient. This does
+not establish singular-tip thickness, arbitrary generated-face coverage or the
+complete ornament lesson; its cumulative geometry and Join remain separate gates.
