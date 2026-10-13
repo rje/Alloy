@@ -53,4 +53,38 @@ Its report, transcript, authored save and settled GPU capture are at
 It verifies the 3 → 2 → 1 → 0 DOF source sequence, one analytic profile and
 275 × 100 mm bounds, an 80 × 100 mm crossing edit with stable profile/ellipse
 IDs, exact undo/redo, and save/reopen. API input is distinct from the native
-gesture test. Independent candidate review is pending.
+gesture test. Independent acceptance is recorded below.
+
+## Independent acceptance
+
+Accepted candidate `6cab0b3ce6f5b25ad34635d50c8ca876be206ab0` after source,
+focused core/native evidence, actual GPU image and real-app report/save review.
+No additional editor was launched. Five authored points, two full construction
+axes, two midpoint relations and perpendicularity provide the intended five
+geometric DOF; the origin and explicit source dimensions/orientation then
+remove the remaining three. Required axis relations and construction status
+are validated rather than replaced by hidden fixed geometry.
+
+The oblique contour formula uses both local coordinates; the core fixture
+`a=10, (x,y)=(6,4)` yields `b=5`, distinguishing it from a perpendicular-distance
+approximation. Kernel major-axis canonicalization and the circle equality case
+retain authored first/second axes. The meaningful crossing/equality edits,
+analytic profile areas and atomic underdetermined-input refusal sufficiently
+cover this bounded representation. The 35-call API save exactly matches its
+`sourceState.authored`; history/reopen and stable profile IDs are checked by
+the recorded runner.
+
+The inspected native final image contains the complete smooth filled ellipse,
+clear full-span 275/100 witnesses, and readable fully-constrained palette.
+The persisted Qt log records three stages passed in 7003 ms (CTest 7.71 s).
+Its source confirms initial-only activation, actual typed fields, rough picks,
+Horizontal selection and D/pick/place/type gestures without focus repair.
+QAction tool/constraint activation and API sketch/camera setup remain distinct
+from physical OS input.
+
+Only the center offers associative snapping; the third contour pick remains
+an unsnapped coordinate and creates no false retained fit point or association.
+Typed full-axis values initialize geometry without driving dimensions, and
+the labeled full-axis convention remains a qualified Alloy policy. This accepts
+#256's source ingredient; it does not establish the combined conic/ellipse
+lesson, general ellipse constraints, cross-platform runtime or exact styling.
