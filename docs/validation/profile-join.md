@@ -50,3 +50,10 @@ The public tutorial reference has older UI and unmatched viewport/theme/scale.
 Its cylinder construction and Join intent are matched by geometry; exact visual
 parity and uninterrupted native tutorial input are unknown. Independent review
 is pending. Other-platform runtime and packaging remain unqualified.
+
+Independent review found the inherited thin extrusion arrow hard to distinguish
+on the blue preview. The existing cue now uses a filled blue arrow with a white
+geometry border instead of relying on driver-dependent GL line width. Join
+refusal handles also retain their actual operation instead of reporting Cut.
+The rebuilt live API workflow passes in `build-join/evidence-arrow/`; the final
+focused capture is `join-preview-final.png`. Independent native review follows.

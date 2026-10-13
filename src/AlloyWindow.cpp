@@ -2185,14 +2185,14 @@ QJsonObject AlloyWindow::previewExtrude() {
         for(const auto& item:sketch.profiles)if(item.profileId==id.toString())profiles.push_back(item);
     if(profiles.size()!=static_cast<std::size_t>(profileIds.size()))return reject(failure("profile_unavailable","Selected sketch regions are unavailable at this history stage"));
     const auto distance=CadDocument::millimeters(inputs["distance"].toDouble(),inputs["units"].toString());
-    auto rejectWithHandle=[this,&profiles,&profileIds,&inputs,cut,distance](QJsonObject error){
-        view_->showExtrudeHandle(profiles.front(),profileIds,inputs["units"].toString(),cut ? "cut" : "newBody",distance);
+    auto rejectWithHandle=[this,&profiles,&profileIds,&inputs,distance](QJsonObject error){
+        view_->showExtrudeHandle(profiles.front(),profileIds,inputs["units"].toString(),inputs.value("operation").toString("newBody"),distance);
         view_->selectProfiles(inputs["sketchId"].toString(),profileIds);
         session_["previewHandle"]=true;
         return error;
     };
     if(distance==0.0) {
-        view_->showExtrudeHandle(profiles.front(),profileIds,inputs["units"].toString(),cut ? "cut" : "newBody");
+        view_->showExtrudeHandle(profiles.front(),profileIds,inputs["units"].toString(),inputs.value("operation").toString("newBody"));
         view_->selectProfiles(inputs["sketchId"].toString(),profileIds);
         session_["previewHandle"]=true;
         return failure("distance_required","Enter or drag a distance to preview the extrusion.","distance");
@@ -2202,7 +2202,7 @@ QJsonObject AlloyWindow::previewExtrude() {
         try {discovered=discoverExtrudeTargets(inputs);}
         catch(const std::exception& error){return rejectWithHandle(failure("evaluation_failed",QString::fromUtf8(error.what())));}
         if(discovered.size()!=1) {
-            view_->showExtrudeHandle(profiles.front(),profileIds,inputs["units"].toString(),"cut",distance);
+            view_->showExtrudeHandle(profiles.front(),profileIds,inputs["units"].toString(),inputs.value("operation").toString("newBody"),distance);
             session_["previewHandle"]=true;
             return failure("cut_targets_ambiguous","Join/Cut needs exactly one eligible visible body; choose the target explicitly","targetBodyIds");
         }

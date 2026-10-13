@@ -50,6 +50,7 @@
 #include <Prs3d_PointAspect.hxx>
 #include <Graphic3d_ZLayerId.hxx>
 #include <BRepBuilderAPI_MakeEdge.hxx>
+#include <BRepBuilderAPI_MakeFace.hxx>
 #include <TopoDS_Edge.hxx>
 #include <PrsDim_LengthDimension.hxx>
 #include <Prs3d_DimensionAspect.hxx>
@@ -1403,11 +1404,25 @@ void ReferenceView::refreshExtrusionCue() {
     if(alongPixels<1e-5 || sidePixels<1e-5)return;
     const double head=std::min(length*0.36,14.0/alongPixels),wing=6.0/sidePixels;
     const Quantity_Color color(0.04,0.29,0.72,Quantity_TOC_sRGB);
-    for(const auto& edge:std::vector<TopoDS_Edge>{BRepBuilderAPI_MakeEdge(start,end).Edge(),
-        BRepBuilderAPI_MakeEdge(end,end.Translated(direction*(-head)+side*wing)).Edge(),
-        BRepBuilderAPI_MakeEdge(end,end.Translated(direction*(-head)-side*wing)).Edge()}) {
-        const auto cue=sketchPresentation(edge);cue->SetColor(color);cue->SetWidth(2.5*devicePixelRatioF());cue->SetZLayer(Graphic3d_ZLayerId_Topmost);
-        context_->Display(cue,AIS_WireFrame,-1,false);context_->Deactivate(cue);extrusionCue_.push_back(cue);
+    // Filled geometry keeps the handle legible on drivers that clamp GL lines
+    // to one physical pixel. The white ring separates blue from blue preview.
+    auto arrowWire=[&](double shaft,double wings,double extension) {
+        const auto tip=end.Translated(direction*extension);
+        const auto back=end.Translated(direction*(-head));
+        BRepBuilderAPI_MakePolygon polygon;
+        for(const auto& point:std::vector<gp_Pnt>{start.Translated(side*shaft),back.Translated(side*shaft),
+            back.Translated(side*wings),tip,back.Translated(side*(-wings)),back.Translated(side*(-shaft)),start.Translated(side*(-shaft))})polygon.Add(point);
+        polygon.Close();return polygon.Wire();
+    };
+    auto inner=arrowWire(1.8/sidePixels,wing,0);
+    auto outer=arrowWire(3.0/sidePixels,wing+1.5/sidePixels,1.5/alongPixels);
+    BRepBuilderAPI_MakeFace border(outer);border.Add(TopoDS::Wire(inner.Reversed()));
+    for(const auto& item:std::vector<std::pair<TopoDS_Shape,Quantity_Color>>{
+        {border.Face(),Quantity_Color(1,1,1,Quantity_TOC_sRGB)}, {BRepBuilderAPI_MakeFace(inner).Face(),color}}) {
+        Handle(AIS_Shape) cue=new AIS_Shape(item.first);cue->SetColor(item.second);cue->SetDisplayMode(AIS_Shaded);
+        cue->Attributes()->SetShadingModel(Graphic3d_TypeOfShadingModel_Unlit,true);
+        cue->SetZLayer(Graphic3d_ZLayerId_Topmost);
+        context_->Display(cue,AIS_Shaded,-1,false);context_->Deactivate(cue);extrusionCue_.push_back(cue);
     }
     Handle(AIS_TextLabel) label=new AIS_TextLabel;
     label->SetText(TCollection_ExtendedString(extrusionCueState_.value("label").toString().toUtf8().constData(),true));
