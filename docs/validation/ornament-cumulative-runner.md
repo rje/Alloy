@@ -60,3 +60,18 @@ authored equality. The verifier target builds and runner syntax checks pass;
 no saved-model verification or cumulative modeling has been executed. Its external
 process timeout is separately configurable (default 600 seconds) for repeated
 known-slow exact history evaluation; this changes no application protocol.
+
+Optional `--record-video` uses the established application recording commands:
+blank design through the original final Cut and Save, with API captions and
+bounded pauses, then Stop before validation edits/exports. The updated shared
+prefix supplies source-stage captions, readable section framing and disclosed
+solid hiding while drawing the strip. This is shared-command creation footage,
+not native physical-input parity or automatically accepted visual evidence.
+
+A Pattern-8 checkpoint is saved during creation. After the movie stops, that
+actual pre-Join checkpoint is reopened for count 8→10 undo/redo/restore 8; the
+original final state is then reopened before the upstream offset validation.
+Thus the required count test still runs before Join in its retained source state
+without putting validation edits in the creation movie. Both the original -5
+source result and edited -4 result export independently checked millimeter STLs.
+All recording/modeling/oracle assertions remain unexecuted pending the gate lease.

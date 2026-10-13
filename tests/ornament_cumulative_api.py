@@ -7,12 +7,14 @@ import math
 from pathlib import Path
 import traceback
 import subprocess
+import time
+from contextlib import ExitStack
 from app_harness import application
 from ornament_source_api import create_seed
 from stl_export_api import inspect_stl
 
 
-def run(call, out, report):
+def run(call, out, report, stage, stop_recording):
     def inspect(): return call('document.inspect')
     def capture(name): call('capture.screenshot', {'path': str(out/(name+'.png'))})
     def body(state):
@@ -37,9 +39,10 @@ def run(call, out, report):
         return rows
 
     report['stage'] = 'source-prefix'
-    seed = create_seed(call, out)
+    seed = create_seed(call, out, stage)
     report['seed'] = seed
     report['stage'] = 'circular-pattern'
+    stage('Circular Pattern: Bodies, Origin Z, Full, total quantity 8 including seed')
     call('solid.circularPattern', {'sourceBodyId': seed['bodyId'],
          'axis': {'kind': 'originAxis', 'axis': 'Z'}, 'extent': 'full', 'quantity': 8})
     eight = inspect(); rows = occurrences(eight, 8)
@@ -47,15 +50,11 @@ def run(call, out, report):
     ids = [b['bodyId'] for b in rows]
     report['patternBodyIds'] = ids
     call('view.home'); capture('eight-retained-bodies')
-    call('solid.circularPattern', {'featureId': pattern['id'], 'sourceBodyId': seed['bodyId'],
-         'axis': {'kind': 'originAxis', 'axis': 'Z'}, 'extent': 'full', 'quantity': 10})
-    ten = inspect()
-    assert [b['bodyId'] for b in occurrences(ten, 10)][:8] == ids
-    call('history.undo'); assert inspect()['authored'] == eight['authored']
-    call('history.redo'); assert inspect()['authored'] == ten['authored']
-    call('history.undo'); assert inspect()['authored'] == eight['authored']
+    pattern_path = out/'ornament-pattern-eight.alloy'
+    call('document.save', {'path': str(pattern_path)})
 
     report['stage'] = 'eight-participant-hub-join'
+    stage('Bottom hub: XY diameter 10, Extrude -5 Join with all eight retained members')
     call('sketch.begin', {'plane': 'XY', 'name': 'Bottom hub diameter 10'})
     call('sketch.addCircle', {'centerX': 0, 'centerY': 0, 'diameter': 10, 'units': 'mm'})
     hub_id = call('app.state')['activeSession']['draftSketch']['id']
@@ -74,6 +73,7 @@ def run(call, out, report):
     call('view.home'); capture('eight-ribs-hub-join')
 
     report['stage'] = 'transverse-hole'
+    stage('Transverse diameter 4 Cut: disclosed XZ offset-plane and bore-position fixture')
     plane_id = call('construction.plane', {'source': {'plane': 'XZ'}, 'offset': 10,
                     'units': 'mm', 'name': 'Bore start y -10'})['planeId']
     # Creation returns planeId; evaluated construction plane records expose featureId.
@@ -102,9 +102,42 @@ def run(call, out, report):
                              'diameterMm': 4, 'distanceMm': distance,
                              'policy': 'Disclosed Alloy transverse coordinates; source exact hole position unknown.'}
     call('view.home'); capture('original-bore-result')
+    stage('Save original editable ornament; creation movie ends before validation edits')
     original_path = out/'ornament-original.alloy'
     call('document.save', {'path': str(original_path)})
     report['original'] = original
+    stop_recording()
+    report['stage'] = 'original-strict-mm-stl'
+    original_mesh = out/'ornament-original-mm.stl'
+    report['originalExport'] = call('document.exportStl', {'path': str(original_mesh), 'bodyId': original_body['bodyId'],
+        'units': 'mm', 'format': 'binary', 'surfaceDeviationMm': .05, 'normalDeviationDeg': 8})
+    report['originalMesh'] = inspect_stl(original_mesh, True)
+    assert len(report['originalMesh']['components']) == 1
+    assert report['originalMesh']['triangles'] == report['originalExport']['triangles']
+    assert report['originalExport']['bytes'] == original_mesh.stat().st_size
+    assert report['originalExport']['bodyIds'] == [original_body['bodyId']]
+    assert report['originalExport']['authoredChanged'] is False
+    assert math.isclose(report['originalMesh']['signedVolume'], original_body['volumeMm3'], rel_tol=.01)
+    assert inspect()['authored'] == original['authored']
+
+    report['stage'] = 'pre-join-count-history-validation'
+    call('document.open', {'path': str(pattern_path), 'discard': True})
+    assert inspect()['authored'] == eight['authored']
+    call('solid.circularPattern', {'featureId': pattern['id'], 'sourceBodyId': seed['bodyId'],
+         'axis': {'kind': 'originAxis', 'axis': 'Z'}, 'extent': 'full', 'quantity': 10})
+    ten = inspect()
+    assert [b['bodyId'] for b in occurrences(ten, 10)][:8] == ids
+    call('history.undo'); assert inspect()['authored'] == eight['authored']
+    call('history.redo'); assert inspect()['authored'] == ten['authored']
+    call('history.undo'); assert inspect()['authored'] == eight['authored']
+
+    report['patternCountHistory'] = {'quantitySequence': [8, 10, 8, 10, 8],
+        'checkedOnPreJoinCheckpointAfterCreationMovie': True}
+    call('document.open', {'path': str(original_path), 'discard': True})
+    restored_original = inspect()
+    assert restored_original['authored'] == original['authored']
+    assert body(restored_original)['bodyId'] == original_body['bodyId']
+    assert math.isclose(body(restored_original)['volumeMm3'], original_body['volumeMm3'], rel_tol=1e-9)
 
     report['stage'] = 'upstream-offset-edit'
     call('sketch.edit', {'sketchId': seed['stripSketchId']})
@@ -162,6 +195,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--app', required=True)
     parser.add_argument('--output', required=True)
+    parser.add_argument('--record-video', type=Path)
     parser.add_argument('--geometry-verifier', required=True, help='Built ornament_geometry_verify executable.')
     parser.add_argument('--geometry-verifier-timeout', type=float, default=600)
     parser.add_argument('--command-timeout', type=float, default=30,
@@ -170,7 +204,12 @@ def main():
     assert math.isfinite(args.geometry_verifier_timeout) and args.geometry_verifier_timeout > 0
     assert math.isfinite(args.command_timeout) and 0 < args.command_timeout <= 2147483
     out = Path(args.output).resolve(); out.mkdir(parents=True, exist_ok=True)
+    movie = args.record_video.resolve() if args.record_video else None
+    if movie:
+        assert not movie.is_relative_to(Path(__file__).resolve().parents[1])
+        movie.parent.mkdir(parents=True, exist_ok=True)
     transcript = []
+    recording = False
     report = {'status': 'incomplete', 'fullTutorialAccepted': False, 'nativeInputParityClaimed': False,
               'movieRecorded': False, 'commandTimeoutSeconds': args.command_timeout,
               'geometryVerifier': str(Path(args.geometry_verifier).resolve()),
@@ -178,13 +217,33 @@ def main():
               'geometryVerifierTimeoutSeconds': args.geometry_verifier_timeout,
               'appSha256': hashlib.sha256(Path(args.app).read_bytes()).hexdigest()}
     try:
-        with application(args.app, out, command_timeout=args.command_timeout) as (raw_call, transcript):
+        with application(args.app, out, command_timeout=args.command_timeout) as (raw_call, transcript), ExitStack() as cleanup:
+            def stop_recording():
+                nonlocal recording
+                if recording:
+                    recording = False
+                    report['recording'] = raw_call('recording.stop')
+                    report['movieRecorded'] = True
+            cleanup.callback(stop_recording)
+            raw_call('window.resize', {'width': 1400, 'height': 1000})
+            assert not raw_call('document.inspect')['authored']['features']
+            if movie:
+                raw_call('recording.start', {'path': str(movie), 'fps': 10})
+                recording = True
+                time.sleep(.5)
+            def stage(caption):
+                report.setdefault('creationStages', []).append(caption)
+                if recording:
+                    raw_call('recording.step', {'text': 'API | '+caption})
+                    time.sleep(.45)
             def call(command, parameters=None):
                 report['pendingCommand'] = {'command': command, 'args': parameters or {}}
                 result = raw_call(command, parameters)
                 report.pop('pendingCommand', None)
+                if recording and command.startswith(('sketch.', 'solid.', 'selection.', 'command.', 'view.', 'analysis.')):
+                    time.sleep(.2)
                 return result
-            run(call, out, report)
+            run(call, out, report, stage, stop_recording)
     except BaseException as error:
         report['status'] = 'failed'
         report['failure'] = {'type': type(error).__name__, 'message': str(error), 'traceback': traceback.format_exc()}
