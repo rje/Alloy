@@ -37,6 +37,17 @@ authored face references, native controls and
 edit/history/storage acceptance remain unverified. The tutorial itself has not
 run. All source steps, including hatched section inspection, remain required.
 
+Section Analysis implementation is now assigned to a third isolated Sol lane in
+`../Alloy-worktrees/section-analysis`; its kernel/UI candidate is not accepted.
+The external `validation/ornament-feasibility/` kernel probe exposes an unresolved
+cumulative risk: the exact-offset strip produces a valid shell Intersect member
+and first-member/hub Join, but eight rotated members fail to unite validly under
+both sequential and simultaneous Boolean strategies. This is not yet a full
+application regression: retained Circular Pattern has not been implemented.
+Do not claim #264 feasible or complete from the separate ingredient tests. The
+chosen image-like spline coordinates and failed logs are retained externally;
+Sol is reviewing Boolean robustness without replacing the source geometry.
+
 ## Earlier accepted checkpoints and development history
 
 The dated entries below preserve historical evidence and may describe pending
