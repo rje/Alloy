@@ -1,5 +1,11 @@
 # Alloy
 
+The [patterned ornament tutorial](docs/validation/ornament-tutorial-acceptance.md)
+now has independently accepted creation footage, editable source and width-edit
+models, and checked printing exports. It combines Revolve, Shell, section analysis,
+exact spline Offset, Intersect, circular body Pattern, Join and a transverse bore.
+The receipt distinguishes API workflow evidence from native-input and visual limits.
+
 Alloy is a standalone, open source, modifiable parametric CAD application.
 The long-term goal is complete functional coverage of professional CAD workflows,
 with familiar commands, keyboard controls, and layouts. Features that currently

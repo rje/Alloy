@@ -3,7 +3,23 @@
 Updated 2026-10-13. This is the project handoff for a fresh session. Read the root
 [AGENTS.md](../AGENTS.md) first; its reference restrictions apply to all work.
 
-## Active ornament gate — 2026-10-13
+## Accepted ornament gate — 2026-10-13
+
+The complete bounded ornament tutorial264 and binary normal fix269 are now
+independently accepted and closed, as are all prerequisites260–268. Receipt:
+[ornament tutorial acceptance](validation/ornament-tutorial-acceptance.md).
+Cumulative05 supplies the82.6s creation movie, editable original/offset4 models,
+count/source edits, history/reopen and accepted actual GPU captures. The separate
+geometry followup passes both saved models, allnine exact input containment,
+closed apex and through bore. Reexport01 supplies both corrected strict closed
+millimeter STLs; initial failed05report/mesh remain unchanged. Export correction
+changes only normal bytes, preserving all vertex/attribute bytes and facet counts.
+Main app builds; independent source/core/runtime reviews integrated6dc450c.
+The external gallery now contains11 complete creation videos,9 solid exports and
+2 sketch lessons. All private editors and root validation processes are closed.
+Native-input/exact pixel parity and source-free spline coordinates remain qualified.
+The checkpoints below retain historical attempts; this accepted status supersedes
+their active/pending/failure descriptions.
 
 Latest: corrected cumulative-05 is terminal. Creation visuals independently pass,
 including closed pointed apex;82.6s5fps movie is valid. Original strict STL,
