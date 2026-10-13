@@ -83,9 +83,25 @@ void validateRoundedIntent(const QJsonObject& parameters) {
         if(std::abs(dimension["kind"]=="horizontal" ? std::abs(a.x()-b.x())-w : std::abs(a.y()-b.y())-h)>tol)
             reject("Rounded rectangle overall dimension no longer spans its supports");
     }
-    int arcs=0;QSet<int> corners;
-    for(const auto& value:parameters["entities"].toArray()){const auto e=value.toObject();if(e["type"]=="line")continue;
-        if(e["type"]!="arc")reject("Rounded rectangle has an unsupported curve");++arcs;
+    // Only arcs belonging to the retained rounded boundary participate in this
+    // invariant. Other curves may be authored in the same sketch later.
+    QJsonArray cornerArcIds=intent["cornerArcIds"].toArray();
+    if(!intent.contains("cornerArcIds")){
+        // Accept the first candidate's five-field saved intent without rewriting
+        // it: its two arc-tangent references to retained side IDs identify each
+        // corner arc, independently of any subsequently authored loose curves.
+        QMap<QString,QSet<QString>> sideContacts;
+        for(const auto& value:parameters["constraints"].toArray()){
+            const auto relation=value.toObject();const auto refs=relation["entityIds"].toArray();
+            if(relation["type"]=="arcTangent" && refs.size()==2 && ids.contains(refs[1]))
+                sideContacts[refs[0].toString()].insert(refs[1].toString());
+        }
+        for(auto it=sideContacts.begin();it!=sideContacts.end();++it)if(it.value().size()==2)cornerArcIds.append(it.key());
+    }
+    if(cornerArcIds.isEmpty() || cornerArcIds.size()>4)reject("Rounded rectangle has an unsupported corner count");
+    QSet<QString> distinctArcs;QSet<int> corners;
+    for(const auto& value:cornerArcIds){const auto id=value.toString();const auto e=entities[id];
+        if(e["type"]!="arc" || distinctArcs.contains(id))reject("Rounded rectangle corner arc identity changed");distinctArcs.insert(id);
         const double r=e["radiusMm"].toDouble();const auto c=at(e["centerPointId"].toString());
         if(std::abs(std::abs(e["sweepAngleDeg"].toDouble())-90)>1e-3 || r<=minimumLength)
             reject("Rounded rectangle arc changed its quarter-circle branch");
@@ -99,7 +115,6 @@ void validateRoundedIntent(const QJsonObject& parameters) {
         if(!(onVertical(a)&&onHorizontal(b)) && !(onHorizontal(a)&&onVertical(b)))
             reject("Rounded rectangle arc contacts left their adjacent supports");
     }
-    if(arcs<1 || arcs>4)reject("Rounded rectangle has an unsupported corner count");
 }
 void validateArguments(const QJsonObject& arguments, bool line) {
     const QSet<QString> fields = line ? QSet<QString>{"u1Mm", "v1Mm", "u2Mm", "v2Mm", "startPointId", "endPointId"}
@@ -584,12 +599,15 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
         if (parameters.contains(field) && !parameters[field].isArray()) return QString(field) + " must be an array";
     if(parameters.contains("roundedRectangleIntent")){
         const auto marker=parameters["roundedRectangleIntent"].toObject();
-        if(!parameters["roundedRectangleIntent"].isObject() || marker.size()!=5 ||
+        if(!parameters["roundedRectangleIntent"].isObject() || (marker.size()!=5 && marker.size()!=6) ||
             !marker["sideIds"].isArray() || marker["sideIds"].toArray().size()!=4 ||
             !marker["sideDirections"].isArray() || marker["sideDirections"].toArray().size()!=4 ||
             !validId(marker["widthId"].toString()) || !validId(marker["heightId"].toString()) ||
             !validId(marker["originPointId"].toString()))return "Invalid rounded rectangle driving intent";
+        if(marker.size()==6 && (!marker["cornerArcIds"].isArray() || marker["cornerArcIds"].toArray().isEmpty() || marker["cornerArcIds"].toArray().size()>4))
+            return "Invalid rounded rectangle corner references";
         for(const auto& id:marker["sideIds"].toArray())if(!validId(id.toString()))return "Invalid rounded rectangle side reference";
+        for(const auto& id:marker["cornerArcIds"].toArray())if(!validId(id.toString()))return "Invalid rounded rectangle corner reference";
         for(const auto& sign:marker["sideDirections"].toArray())if(!sign.isDouble() || std::abs(sign.toInt())!=1)return "Invalid rounded rectangle side direction";
     }
     QMap<QString, QJsonObject> points;
@@ -1159,8 +1177,14 @@ SketchGeometry::SolveResult SketchGeometry::filletCorners(const QJsonObject& dra
         keptDimensions.append(QJsonObject{{"id",newId()},{"kind","radius"},{"entityId",firstArc},{"driving",true},{"valueMm",radius}});
         for(int i=1;i<arcs.size();++i)if(arcs[i].toObject()["centerPointId"]!=arcs.first().toObject()["centerPointId"])keptConstraints.append(QJsonObject{{"id",newId()},{"type","equal"},{"entityIds",QJsonArray{firstArc,arcs[i].toObject()["id"]}}});
         parameters["points"]=keptPoints;parameters["entities"]=entities;parameters["constraints"]=keptConstraints;parameters["dimensions"]=keptDimensions;
-        if(drivingRectangle && !parameters.contains("roundedRectangleIntent"))parameters["roundedRectangleIntent"]=QJsonObject{
-            {"sideIds",sideIds},{"sideDirections",sideDirections},{"widthId",widthId},{"heightId",heightId},{"originPointId",originId}};
+        if(drivingRectangle){
+            auto intent=parameters["roundedRectangleIntent"].toObject();
+            if(intent.isEmpty())intent=QJsonObject{{"sideIds",sideIds},{"sideDirections",sideDirections},
+                {"widthId",widthId},{"heightId",heightId},{"originPointId",originId}};
+            auto cornerIds=intent["cornerArcIds"].toArray();
+            for(const auto& value:arcs)cornerIds.append(value.toObject()["id"]);
+            intent["cornerArcIds"]=cornerIds;parameters["roundedRectangleIntent"]=intent;
+        }
         auto candidate=draft;candidate["parameters"]=parameters;auto result=solveDraft(candidate,projectionContext);
         if(!result.ok)return {false,draft,result.diagnostics,result.error};
         QJsonArray arcIds;for(const auto& value:arcs)arcIds.append(value.toObject()["id"]);

@@ -19,9 +19,13 @@ incidences are deliberately internal, identified as `Support line (internal)`
 in sketch point/curve inspection rather than shown as false coincidence badges.
 
 The small `roundedRectangleIntent` record contains the four side IDs and their
-original directions, width/height IDs and origin point ID. Subsequent solves
+original directions, width/height IDs, origin point ID and the four authored
+corner-arc IDs. Subsequent solves
 check axis supports, side ordering and positive residual lengths, quarter-arc
-corner contacts, and exact overall witnesses. A side folding or oversized
+corner contacts, and exact overall witnesses. Unrelated lines, circles and arcs
+in the same sketch do not enter that boundary check. Earlier five-field
+candidate records resolve corner arcs through their two side-tangency relations
+without rewriting the saved record. A side folding or oversized
 radius refuses atomically. Separately authored radius dimensions remain
 independent. This policy does not migrate earlier driven-span files; the
 accepted issue-228 fixture still loads with non-driving spans and its original
@@ -32,7 +36,9 @@ Focused evidence in `build/evidence/rounded-driving-intent/`:
 - `rounded_rectangle_fillets` core passed four R6 fillets, R5.5 with outer
   bounds still `[0,60] × [-30,0]`, then width/height 70/35 with retained
   profile/body and the exact 2 mm extrusion volume. Oversized R30 rejected;
-  undo/redo, exact save/reopen and the old driven fixture passed.
+  undo/redo, exact save/reopen and the old driven fixture passed. Appending an
+  unrelated circle and arc and solving them in that sketch also passed; corner
+  IDs remain unchanged, including with a prior five-field candidate record.
 - `rounded_driving_controls` injected Qt test passed Cancel in the real width
   editor, typed `5.5 mm` for one radius and `70 mm` for width, using the
   command-produced focus throughout. `native-edited.png` shows the accepted

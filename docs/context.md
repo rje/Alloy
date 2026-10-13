@@ -2242,6 +2242,9 @@ unchanged, while 70×35 size edits rebuild the downstream 2 mm solid with
 stable profile/body IDs. Oversized edits refuse atomically. Focused core,
 injected Qt editor and actual-app API/capture cases pass; independent review
 is pending. Existing #228 driven files are not migrated. The historical #228
+fixture and the earlier five-field candidate intent load unchanged; unrelated
+circle/arc geometry in the same sketch is outside the recorded corner check.
+The historical #228
 and #233 receipts describe their originally captured policy; the #233 runner
 has updated new-authoring assertions but was not replayed for this follow-up.
 See [the bounded receipt](validation/rounded-driving-intent.md).

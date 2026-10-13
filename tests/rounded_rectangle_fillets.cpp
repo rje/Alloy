@@ -77,6 +77,17 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
         && std::abs(span(edited.feature,dimension(edited.feature,heightId))-editedSize.second)<1e-5,
         "Edited dimensions no longer measure overall boundary bounds");
     check(std::abs(editedSize.first-60)<1e-5 && std::abs(editedSize.second-30)<1e-5,"Radius edit changed outer size");
+    const auto cornerIds=edited.feature["parameters"].toObject()["roundedRectangleIntent"].toObject()["cornerArcIds"].toArray();
+    check(cornerIds.size()==4,"Rounded boundary lost recorded corner arc identities");
+    auto withCircle=SketchGeometry::addCircle(edited.feature,{{"centerUMm",90},{"centerVMm",-15},{"diameterMm",8}});
+    auto withArc=SketchGeometry::addArc(withCircle,{{"centerUMm",100},{"centerVMm",-15},{"radiusMm",3},{"startAngleDeg",0},{"sweepAngleDeg",90}});
+    const auto mixed=SketchGeometry::solveDraft(withArc);
+    check(mixed.ok,"Unrelated circle/arc was refused in a rounded sketch: "+mixed.error);
+    check(mixed.feature["parameters"].toObject()["roundedRectangleIntent"].toObject()["cornerArcIds"].toArray()==cornerIds,
+        "Unrelated curves changed rounded-boundary identities");
+    auto oldCandidate=withCircle;auto oldParameters=oldCandidate["parameters"].toObject();auto oldIntent=oldParameters["roundedRectangleIntent"].toObject();
+    oldIntent.remove("cornerArcIds");oldParameters["roundedRectangleIntent"]=oldIntent;oldCandidate["parameters"]=oldParameters;
+    check(SketchGeometry::solveDraft(oldCandidate).ok,"Earlier five-field rounded intent stopped loading with unrelated geometry");
     int intentLines=0;
     for(const auto& value:edited.feature["parameters"].toObject()["constraints"].toArray()){
         const auto c=value.toObject();if(c["type"]=="supportLine"){
