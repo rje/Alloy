@@ -90,3 +90,30 @@ Reproduce native (serialized private editor):
 API: `python3 tests/revolve_controls_api.py --app
 build-revolve-controls/alloy.app/Contents/MacOS/alloy --output <evidence-directory>`.
 The GUI slot was released after both editors exited0.
+
+## Independent acceptance
+
+Astra accepts bounded #216 candidate `34f17ea` on 2026-10-13. Review covered the
+final implementation, focused Qt/API test sources, persisted passing logs and
+report, native saved state and actual Full/Partial/committed captures. No further
+editor launch or test replay was needed. The recorded native run passed three
+Qt phases in 4315 ms; its pointer-derived angle was 70.0432 degrees. The separate
+shared-API run passed with a 70-degree coordinate-derived gesture.
+
+The numeric pointer schema has explicit bounds. Panel callbacks capture an
+immutable QString session token, use nonmutating inactive guards and have a
+panel QObject context. Cancel disables its shortcut and clears the angular cue,
+gesture and source presentation. The recorded Cancel/fresh-begin checks exercise
+the previously failing lifecycle boundary. The projected ring basis remains fixed
+during the native drag and drives the actual kernel preview, whose analytic
+volume is checked at the measured angle. Full resets the canonical angle to 360.
+Unambiguous automatic choices and explicit profile/axis clearing and viewport
+picking are represented; the API ambiguity case refuses arbitrary inference.
+
+Controls and Partial geometry are readable. The orange ring, same-plane disabled
+Project Axis option, Partial default, and capture framing limits are explicitly
+qualified above. Setup, edit activation and history/storage calls use shared API;
+Qt toolbar, selectors, picking, extent keys, pointer drag and OK/Cancel supply
+bounded event-level evidence. This does not claim physical OS input, arbitrary
+axis projection, other Boolean operations, exact visual parity or full #217
+workflow acceptance. No blocking defect remains in the reviewed child scope.
