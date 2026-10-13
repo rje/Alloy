@@ -91,6 +91,9 @@ public:
             painter->drawEllipse(QRectF(12,4,10,6));
             painter->setBrush(Qt::NoBrush); painter->drawLine(QPointF(12,7),QPointF(4,24));
             painter->drawLine(QPointF(22,7),QPointF(28,24));
+        } else if (command_ == "solid.circularPatternDialog") {
+            for(int i=0;i<6;++i){painter->save();painter->translate(16,16);painter->rotate(i*60);painter->setBrush(i==0?blue:pale);pen(edge);painter->drawRect(QRectF(7,-3,7,6));painter->restore();}
+            painter->setBrush(accent);pen(edge);painter->drawEllipse(QRectF(14,14,4,4));
         } else if (command_ == "solid.mirrorDialog") {
             polygon({{2,10},{10,7},{10,23},{2,20}},pale);
             polygon({{22,7},{30,10},{30,20},{22,23}},blue);

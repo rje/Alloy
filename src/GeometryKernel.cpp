@@ -9,6 +9,7 @@
 #include "SolidSweep.h"
 #include "FeaturePattern.h"
 #include "SolidMirror.h"
+#include "CircularPattern.h"
 #include <BRepBuilderAPI_Transform.hxx>
 #include <gp_Ax1.hxx>
 #include <gp_Trsf.hxx>
@@ -501,6 +502,10 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored) 
                 const auto target=std::find_if(evaluated.bodies.begin(),evaluated.bodies.end(),[&](const auto& body){return body.bodyId==parameters["targetBodyId"].toString();});
                 if(target==evaluated.bodies.end())throw EvaluationError({{"code","body_unavailable"},{"featureId",id},{"message","Shell target must be active earlier in history"}});
                 SolidShell::evaluate(*target,parameters,id);
+            } else if(type=="circularPattern"){
+                auto source=std::find_if(evaluated.bodies.begin(),evaluated.bodies.end(),[&](const auto& b){return b.bodyId==parameters["sourceBodyId"].toString();});
+                if(source==evaluated.bodies.end())throw EvaluationError({{"code","pattern_body_unavailable"},{"featureId",id},{"message","Circular Pattern source must be active earlier in history"}});
+                auto occurrences=CircularPattern::evaluate(feature,*source);*source=occurrences[0];for(size_t n=1;n<occurrences.size();++n)evaluated.bodies.push_back(occurrences[n]);
             } else if(type=="mirror") {
                 const auto source=std::find_if(evaluated.bodies.begin(),evaluated.bodies.end(),[&](const auto& body){return body.bodyId==parameters["sourceBodyId"].toString();});
                 if(source==evaluated.bodies.end())throw EvaluationError({{"code","body_unavailable"},{"featureId",id},{"message","Mirror source must be active earlier in history"}});

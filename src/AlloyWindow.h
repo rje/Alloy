@@ -166,6 +166,15 @@ private:
     void showShell();
     QDockWidget* shellDock_ = nullptr;
     QShortcut* shellEscape_ = nullptr;
+    QJsonObject circularPatternCandidate(const QJsonObject& inputs) const;
+    QJsonObject beginCircularPattern(const QJsonObject& inputs = {});
+    QJsonObject previewCircularPattern();
+    QJsonObject selectCircularBody(const QString& id);
+    std::vector<EvaluatedBody> circularInputBodies() const;
+    void refreshCircularControls();
+    void showCircularPattern();
+    QDockWidget* circularDock_ = nullptr;
+    QShortcut* circularEscape_ = nullptr;
     QJsonObject beginMirror(const QJsonObject& inputs);
     QJsonObject mirrorCandidate(const QJsonObject& inputs) const;
     QJsonObject previewMirror();

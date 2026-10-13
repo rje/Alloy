@@ -1,5 +1,6 @@
 #include "SolidFillet.h"
 #include "CadDocument.h"
+#include "CircularPattern.h"
 #include "SketchGeometry.h"
 #include "StepExchange.h"
 #include <QJsonArray>
@@ -53,6 +54,7 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
             const auto sketch=value.toObject()["sketchId"].toString();
             if(!positions.contains(sketch) || positions[sketch]>=i || features[positions[sketch]].toObject()["type"]!="sketch")return {{"featureId",feature["id"]},{"featureType","loft"},{"code","loft_profile_unavailable"},{"message","Loft sections must reference earlier sketch features"}};
         }
+        if(feature["type"]=="circularPattern"){const auto p=feature["parameters"].toObject();for(int n=1;n<p["quantity"].toInt();++n)bodyPositions[CircularPattern::bodyId(feature["id"].toString(),p["sourceBodyId"].toString(),n)]=i;}
         if (feature.contains("bodyId")) bodyPositions[feature["bodyId"].toString()] = i;
         for(const auto& value:feature["bodyResults"].toArray()) {const auto record=value.toObject();if(record["participantBodyIds"].toArray().isEmpty())bodyPositions[record["bodyId"].toString()]=i;}
     }
@@ -60,6 +62,7 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
     for(const auto& value:features) {
         const auto f=value.toObject();const auto owner=f["ownerId"].toString();referencedOwners[f["id"].toString()]=owner;
         if(f.contains("bodyId"))referencedOwners[f["bodyId"].toString()]=owner;
+        if(f["type"]=="circularPattern"){const auto p=f["parameters"].toObject();for(int n=1;n<p["quantity"].toInt();++n)referencedOwners[CircularPattern::bodyId(f["id"].toString(),p["sourceBodyId"].toString(),n)]=owner;}
         for(const auto& result:f["bodyResults"].toArray()){const auto body=result.toObject()["bodyId"].toString();if(!referencedOwners.contains(body))referencedOwners[body]=owner;}
     }
     for(const auto& value:features) {
@@ -81,6 +84,11 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
             if (!bodyPositions.contains(body) || bodyPositions[body]>=i || !activeBodies.contains(body))
                 return {{"featureId",feature["id"]},{"featureType",feature["type"]},{"bodyId",body},{"code","body_unavailable"},{"message","Solid modifier requires an active earlier body"}};
             continue;
+        }
+        if(feature["type"]=="circularPattern"){
+            const auto p=feature["parameters"].toObject();const auto source=p["sourceBodyId"].toString();
+            if(!bodyPositions.contains(source)||bodyPositions[source]>=i||!activeBodies.contains(source))return {{"featureId",feature["id"]},{"code","pattern_body_unavailable"},{"message","Circular Pattern requires an active earlier body"}};
+            for(int n=1;n<p["quantity"].toInt();++n)activeBodies.insert(CircularPattern::bodyId(feature["id"].toString(),source,n));continue;
         }
         if(feature["type"]=="hole") {
             const auto p=feature["parameters"].toObject();const auto sketch=p["sourceSketchId"].toString(),body=p["targetBodyId"].toString();
@@ -632,6 +640,15 @@ QJsonObject CadDocument::shellCandidate(const QJsonObject& authored,const QJsonO
     if(index>=0)features[index]=feature;else features.append(feature);candidate["features"]=features;
     const auto error=validateStructure(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());return candidate;
 }
+QJsonObject CadDocument::circularPatternCandidate(const QJsonObject& authored,const QJsonObject& arguments){
+    const QSet<QString> allowed{"ownerId","sourceBodyId","axis","extent","quantity","name","featureId","newFeatureId"};for(auto it=arguments.begin();it!=arguments.end();++it)if(!allowed.contains(it.key()))throw std::invalid_argument("Unknown Circular Pattern argument");
+    auto candidate=authored;auto features=candidate["features"].toArray();QJsonObject feature;int index=-1;
+    if(arguments.contains("featureId")){for(int i=0;i<features.size();++i)if(features[i].toObject()["id"]==arguments["featureId"]){feature=features[i].toObject();index=i;break;}if(index<0||feature["type"]!="circularPattern")throw std::invalid_argument("Circular Pattern feature unavailable");}
+    else feature={{"id",arguments.value("newFeatureId").toString(newId())},{"ownerId",arguments.value("ownerId").toString(authored["documentId"].toString())},{"type","circularPattern"},{"name","Circular Pattern"},{"visible",true}};
+    if(arguments.contains("name"))feature["name"]=arguments["name"];
+    feature["parameters"]=QJsonObject{{"sourceBodyId",arguments["sourceBodyId"]},{"axis",arguments["axis"]},{"extent",arguments.value("extent").toString("full")},{"quantity",arguments.contains("quantity") ? arguments.value("quantity") : QJsonValue(3)}};
+    if(index<0)features.append(feature);else features[index]=feature;candidate["features"]=features;const auto error=validateStructure(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());return candidate;
+}
 QJsonObject CadDocument::mirrorCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
     const QSet<QString> allowed{"ownerId","sourceBodyId","mirrorPlane","name","featureId","newFeatureId","newBodyId"};
     for(auto it=arguments.begin();it!=arguments.end();++it)if(!allowed.contains(it.key()))throw std::invalid_argument("Unknown Mirror argument");
@@ -887,6 +904,11 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
             if(face.size()!=3 || face["bodyId"]!=p["targetBodyId"] || !validId(face["producerFeatureId"].toString()) || !validId(face["bodyId"].toString()) || !validId(face["faceId"].toString()))return "Shell requires one stable face on its target body";
             if(!p["thicknessMm"].isDouble() || !std::isfinite(p["thicknessMm"].toDouble()) || p["thicknessMm"].toDouble()<0.001 || p["thicknessMm"].toDouble()>100000)return "Shell thickness must be 0.001..100000 mm";
             continue;
+        }
+        if(type=="circularPattern"){
+            const auto axis=p["axis"].toObject();const double q=p["quantity"].toDouble();
+            if(feature.contains("bodyId")||p.size()!=4||!validId(p["sourceBodyId"].toString())||axis.size()!=2||axis["kind"]!="originAxis"||axis["axis"]!="Z"||p["extent"]!="full"||!p["quantity"].isDouble()||q!=p["quantity"].toInt()||q<2||q>128)return "Circular Pattern requires one retained body, Origin Z, Full and total quantity2..128";
+            for(int n=1;n<int(q);++n){const auto body=CircularPattern::bodyId(id,p["sourceBodyId"].toString(),n);if(ids.contains(body))return "Duplicate circular occurrence UUID";ids.insert(body);}continue;
         }
         if(type=="mirror") {
             if(!validId(feature["bodyId"].toString()) || ids.contains(feature["bodyId"].toString()) || p.size()!=2 || !validId(p["sourceBodyId"].toString()) || !p["mirrorPlane"].isObject())return "Mirror requires new body identity, one source body and a planar reference";

@@ -21,6 +21,18 @@ Older checkpoint entries below retain historical state; this paragraph supersede
 their pending or active claims for #251–257 and #259. Slot drag preview #258 is
 now independently accepted and closed (79fa11b/e805afb); main app builds.
 
+## Circular Body Pattern candidate — 2026-10-13
+
+#263 has a bounded implementation candidate with shared Circular Pattern controls,
+retained Origin Z, Full distribution and total quantity including seed. Original
+seed ownership is retained; generated bodies/faces/edges have deterministic UUIDs
+and exact OCCT transform lineage. Count/source edits, downstream eight-body Join,
+atomic removed-reference refusal and history/storage pass core checks; native
+selection/count/Cancel/OK/edit Escape and actual readable GPU captures pass.
+See [contract](research/circular-body-pattern.md) and
+[receipt](validation/circular-body-pattern.md). Independent review/integration are
+pending; complex ornament Join #265 and complete gate #264 remain separate.
+
 ## Current work — ornament tutorial (2026-10-13)
 
 The complete ornament lesson is tracked by #264, with prerequisites #260–263 and
