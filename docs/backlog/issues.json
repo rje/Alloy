@@ -4229,6 +4229,20 @@
         "area:skt"
       ],
       "body": "## Observed defect\nIndependent paper-clip review at original capture resolution found tangent and arc-tangent badges are empty square outlines. ReferenceView.cpp deliberately draws only four square strokes. This is a real readability defect, not merely unknown pixel parity.\n\n## Bounded scope and acceptance\nUse independently authored, recognizable tangent symbols (curve with touching tangent line) in the existing screen-sized badge presentation. Preserve constraint IDs, anchors, hit targets, hover/selection and origin-avoidance behavior. Make ordinary and arc tangent constraints discernible at normal display scale with readable contrast. Do not extract reference assets or change constraint solving.\n\n## Verification\nUse the existing saved paper-clip sketch or focused native badge fixture. Inspect an actual GPU capture at normal and original resolution, plus one hover/selection check with correct retained constraint identity. Compile the affected target. No full tutorial replay or unrelated modeling tests.\n\n## Evidence and limits\nExternal deliverables/paper-clip-2026-10-13/03-pair-3-preview.png and independent review identify the empty boxes. The paper-clip gate remains pending this visual fix. Symbol readability is required; exact historical pixel styling is not claimed.\n\n\n## Accepted evidence\nAccepted acb2dd0 with independent5332191; main2288e4f/567ff92. Actual saved-model GPU capture shows recognizable tangent curves and unchanged hover/pick relation identity. See docs/validation/tangent-badges.md. Combined main app rebuild passed; no full tutorial replay.\n"
+    },
+    {
+      "key": "SKT-049",
+      "title": "Retain driving rectangle size and origin intent through sketch fillets",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P2",
+      "depends_on": [
+        "SKT-043"
+      ],
+      "labels": [
+        "area:skt"
+      ],
+      "body": "## Observed limitation\nThe bounded rounded-rectangle slice SKT-043 converts original driving 60/30 dimensions into honest measured overall spans and discloses release of the corner-origin coincidence. A radius edit can then change outer size; the prototype 6 to 5.5 mm edit produced approximately 59.6999 by 29.6996 mm. This preserves measurement meaning but not original design intent.\n\n## Scope and intended result\nResearch and implement retained driving overall width/height and origin anchoring for an ordinary dimensioned rectangle with four sketch fillets. Width, height and radius remain independently editable where geometrically valid; changing radius alone keeps the authored outer size and placement. Use existing solver/constraint facilities where possible. Do not hide overconstraints or relabel driven values as driving.\n\n## Acceptance\n- Origin-based 60 by 30 rectangle with four R6 fillets retains driving 60/30 intent and stable dimension IDs; edit a radius to 5.5 without translating or shrinking the outer rectangle.\n- Supported width/height edits rebuild fillets and downstream extrusion with retained feature identity; impossible radii refuse atomically with useful attribution.\n- Explain dimensions anchored to removed sharp corners using researched, readable annotation behavior and explicit authored references. Preserve existing driven-span documents and loading behavior.\n- Preview, Cancel, undo/redo and exact save/reopen retain the same authority. Verify one focused core fixture and one real-app edit chain with readable dimension states.\n\n## Limits and provenance\nThis is follow-up parametric functionality, not a claim about undocumented source internals. Public keyring source ID warwick-initials-keyring-20261013 leaves post-fillet drivenness unknown, so its bounded tutorial gate may use explicitly disclosed reference conversion. Broader arbitrary-corner dimensions are outside this first follow-up; record any remaining scope rather than silently dropping it.\n"
     }
   ]
 }

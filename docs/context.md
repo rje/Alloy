@@ -15,7 +15,7 @@ visual parity remain qualified. The external
 editable models and STL deliverables. The Revolve receipt is
 [validation/revolve-tutorial.md](validation/revolve-tutorial.md).
 
-**109 of 234 issues are closed.** Recent accepted work includes compact ribbon
+**109 of 235 issues are closed.** Recent accepted work includes compact ribbon
 icons #218, retained Extrude Intersect #219, nested profile/island diagnostics
 #165, portable local controls #220, shared-line fillets #221, typed Line length
 locks #222, retained Sweep #223 and native Sweep controls #224. Each has a scoped
@@ -35,8 +35,8 @@ links that capture alongside the full movie/model/STL. Native ingredient tests
 remain distinct from API movie evidence; no physical OS or exact pixel claim.
 The source's post-fillet dimension drivenness is unknown; Alloy's explicit
 reference-span conversion is disclosed. No full tutorial replay was needed for
-the symbol-only change. The private GUI slot is currently reserved for #228
-focused native/API checks; other agents must wait before launching an editor.
+the symbol-only change. The private GUI slot is currently reserved for #232
+focused text-controls checks; other agents must wait before launching an editor.
 
 **Active: keyring rounded fillets #228, two-point Circle #230 and text placement #232.**
 Luna identified the illustrated initials-keyring lesson externally; Astra
@@ -46,7 +46,9 @@ two-point Circle, editable text geometry, native text placement and the full gat
 Rectangle #227 and text geometry #231 are independently accepted, integrated
 and closed; their receipts are validation/two-point-rectangle.md and
 validation/sketch-text.md. The three active children have separate Sol worktrees.
-Rounded-loop Offset #229 and full gate #233 remain Todo. Text retains authored
+Rounded-loop Offset #229 and full gate #233 remain Todo. Follow-up #235 tracks
+driving overall size/origin retention through sketch fillets; #228 permits
+explicit measured-span conversion, so radius edits can alter overall size. Text retains authored
 parameters and uses mature font-outline facilities; generated glyph curves are
 not individual solver entities. Detailed
 source choices and uncertainties are external in
