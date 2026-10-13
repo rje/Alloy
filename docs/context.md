@@ -1693,3 +1693,20 @@ to (3.9,11.9), row pattern runs -Y8; the source Bottom-view construction diagona
 retains world endpoints (3.9,3.9) and (11.9,11.9). Do not change that diagonal just
 because the seed occurrence moved. After #207 integration, run one new complete
 movie/artifact gate; preserve the original accepted evidence and its limitations.
+
+## Timeline overflow candidate (2026-10-13)
+
+HIS-005 #207 replaces compressed Timeline text with fixed 44-pixel glyph tiles,
+full name/type tooltips/accessibility names and horizontal overflow. Shared
+Show latest/showFeature navigation changes only the viewport; appended/changed
+features reveal after layout. Existing single-click edit/Pattern seed/context
+bindings and active-owner IDs remain. No marker, rollback, reorder, suppression
+or model-history Move to End is implied; HIS-003 retains those requirements.
+Focused Qt input passes first/middle/last target + exact Cancel and narrow/wide
+width checks. One actual-app run inspects all 24 saved die features and captures
+1040/1400/1800-width states; it exits cleanly and releases the desktop. Own
+before/after capture inspection confirms icon readability instead of clipped
+names. Astra source/capture review reports no blocker; final independent
+acceptance/integration remain root-owned. See
+[the bounded receipt](validation/timeline-overflow.md). No tutorial replay,
+push, release or GitHub closure was performed by this isolated candidate.

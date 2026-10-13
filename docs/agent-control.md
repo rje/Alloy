@@ -690,3 +690,13 @@ retains the initial driving side of the infinite supporting line. Positive
 values drive a real PlaneGCS equation; driven values measure absolute distance.
 Curved and degenerate lines and conflicting dimensions are refused atomically.
 See [the bounded evidence and explicit semantics](validation/point-edge-dimensions.md).
+### Timeline viewport navigation (HIS-005)
+
+`timeline.showLatest` scrolls to the latest active-component feature;
+`timeline.showFeature {featureId}` scrolls to one stable feature in that Timeline.
+Both are view-only and preserve authored data and CAD history. The visible button
+is **Show latest**, not a model-history Move to End command.
+`app.state.ui.timeline` exposes actual tile widths, bounds, complete names/types,
+tooltips/accessibility names, fully-visible flags and scrollbar position/range.
+Fixed glyph targets preserve existing single-click edit and context actions.
+See [the bounded input/capture receipt](validation/timeline-overflow.md).

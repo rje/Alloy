@@ -52,6 +52,8 @@
 #include <QTreeWidgetItemIterator>
 #include <QFormLayout>
 #include <QScrollArea>
+#include <QScrollBar>
+#include <QPointer>
 #include <QRegularExpression>
 #include <QToolButton>
 #include <QTreeWidget>
@@ -413,9 +415,19 @@ AlloyWindow::AlloyWindow() {
     nav->addWidget(gridButton); nav->addStretch(); canvas->addWidget(navigation_);
     body->addLayout(canvas, 1); layout->addLayout(body, 1);
 
-    timeline_ = new QWidget; timeline_->setFixedHeight(54);
+    timeline_ = new QWidget;timeline_->setObjectName("timeline");timeline_->setFixedHeight(60);
     timeline_->setStyleSheet("background: #f7f8f9; border-top: 1px solid #cdd5db;");
-    timelineLayout_=new QHBoxLayout(timeline_); timelineLayout_->setContentsMargins(14,6,14,6);
+    auto* timelineRow=new QHBoxLayout(timeline_);timelineRow->setContentsMargins(14,4,14,4);timelineRow->setSpacing(8);
+    timelineRow->addWidget(new QLabel("TIMELINE"));
+    timelineScroll_=new QScrollArea;timelineScroll_->setObjectName("timeline.scroll");timelineScroll_->setFrameShape(QFrame::NoFrame);
+    timelineScroll_->setWidgetResizable(true);timelineScroll_->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    timelineScroll_->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);timelineScroll_->setAccessibleName("Feature Timeline");
+    auto* timelineContent=new QWidget;timelineContent->setObjectName("timeline.features");timelineContent->setFixedHeight(34);
+    timelineLayout_=new QHBoxLayout(timelineContent);timelineLayout_->setContentsMargins(0,0,0,0);timelineLayout_->setSpacing(4);
+    timelineLayout_->setSizeConstraint(QLayout::SetMinAndMaxSize);timelineScroll_->setWidget(timelineContent);timelineRow->addWidget(timelineScroll_,1);
+    auto* latest=new QPushButton("Show latest");latest->setObjectName("timeline.showLatest");latest->setFixedWidth(88);
+    latest->setToolTip("Scroll to the latest feature; document history is unchanged.");
+    connect(latest,&QPushButton::clicked,this,[this]{execute("timeline.showLatest");});timelineRow->addWidget(latest);
     layout->addWidget(timeline_);
     status_ = new QLabel; statusBar()->addWidget(status_, 1);
     auto* shell = new QLabel("Alloy 0.1 · Primitive preview"); statusBar()->addPermanentWidget(shell);
@@ -560,6 +572,28 @@ QWidget* AlloyWindow::commandButton(const QString& id, const QString& glyph, boo
     }
     connect(button, &QToolButton::clicked, this, [this, id] { execute(id); });
     return button;
+}
+
+void AlloyWindow::showTimelineFeature(const QString& featureId) {
+    if(!timelineScroll_)return;
+    for(auto* button:timelineScroll_->findChildren<QToolButton*>())if(button->property("featureId")==featureId) {
+        timelineLayout_->activate();timelineScroll_->ensureWidgetVisible(button,4,0);
+        const QPointer<QToolButton> target=button;
+        QTimer::singleShot(0,this,[this,target]{if(target)timelineScroll_->ensureWidgetVisible(target,4,0);});return;
+    }
+}
+QJsonObject AlloyWindow::timelineState() const {
+    if(!timelineScroll_)return {};
+    QJsonArray features;const auto* viewport=timelineScroll_->viewport();
+    for(int index=0;index<timelineLayout_->count();++index)if(auto* button=qobject_cast<QToolButton*>(timelineLayout_->itemAt(index)->widget())) {
+        const QRect local(button->mapTo(viewport,QPoint{}),button->size());const auto point=button->mapTo(this,QPoint{});
+        features.append(QJsonObject{{"featureId",button->property("featureId").toString()},{"type",button->property("featureType").toString()},
+            {"name",button->property("featureName").toString()},{"tooltip",button->toolTip()},{"accessibleName",button->accessibleName()},
+            {"width",button->width()},{"height",button->height()},{"fullyVisible",viewport->rect().contains(local)},
+            {"bounds",QJsonObject{{"x",point.x()},{"y",point.y()},{"width",button->width()},{"height",button->height()}}}});
+    }
+    return {{"tileWidth",44},{"scrollPosition",timelineScroll_->horizontalScrollBar()->value()},
+        {"scrollMaximum",timelineScroll_->horizontalScrollBar()->maximum()},{"viewportWidth",viewport->width()},{"features",features}};
 }
 
 QString AlloyWindow::tabSwitchBlocker() const {
@@ -2127,7 +2161,16 @@ void AlloyWindow::registerCommands() {
         });
     const QJsonObject visible{{"visible", parameter("boolean", "Whether this region is visible.")}};
     add("layout.browser", "Show / hide Browser", "Control the left Browser region.", visible, [this](const auto& a) { browserVisible_ = a.value("visible").toBool(); return QJsonObject{}; });
-    add("layout.timeline", "Show / hide Timeline", "Control the empty feature history region.", visible, [this](const auto& a) { timelineVisible_ = a.value("visible").toBool(); return QJsonObject{}; });
+    add("timeline.showLatest","Show latest feature","Scroll the Timeline to its latest visible feature without changing history.",{},[this](const auto&){
+        if(!timelineFeatures_.isEmpty())showTimelineFeature(timelineFeatures_.last().toObject()["id"].toString());return timelineState();
+    });
+    add("timeline.showFeature","Show Timeline feature","Scroll to one feature owned by the active component without editing history.",
+        {{"featureId",parameter("string","Stable authored feature UUID.")}},[this](const auto& a){
+            bool found=false;for(const auto& value:timelineFeatures_)found=found || value.toObject()["id"]==a["featureId"];
+            if(!found)return failure("feature_unavailable","Feature is not in this component's Timeline","featureId");
+            showTimelineFeature(a["featureId"].toString());return timelineState();
+        });
+    add("layout.timeline", "Show / hide Timeline", "Control the feature history strip.", visible, [this](const auto& a) { timelineVisible_ = a.value("visible").toBool(); return QJsonObject{}; });
     add("layout.navigation", "Show / hide Navigation Bar", "Control the bottom reference-view controls.", visible, [this](const auto& a) { navigationVisible_ = a.value("visible").toBool(); return QJsonObject{}; });
     add("layout.reset", "Reset to Default Layout", "Restore Browser, navigation bar, and Timeline.", {}, [this](const auto&) { browserVisible_ = timelineVisible_ = navigationVisible_ = true; return QJsonObject{}; });
     add("view.grid", "Show / hide Grid", "Show or hide the reference grid; no model geometry is created.", visible, [this](const auto& a) { view_->grid = a.value("visible").toBool(); return QJsonObject{}; });
@@ -2345,7 +2388,7 @@ QJsonObject AlloyWindow::state() const {
             : !selectedSketch_.isEmpty() ? QJsonObject{{"kind","sketch"},{"sketchId",selectedSketch_}}
             : QJsonObject{{"kind","body"},{"bodyId",selectedBody_}}},
         {"kernel", QJsonObject{{"candidate", "Open CASCADE"}, {"discoveredVersion", ALLOY_OCCT_VERSION}, {"integrated", true}, {"visualizationIntegrated", true}, {"policy",GeometryKernel::policy()}}},
-        {"ui", QJsonObject{{"workspace", "design"}, {"tab",target=="sketch.edit" ? "sketch" : "solid"}, {"browserVisible", browserVisible_}, {"timelineVisible", timelineVisible_}, {"navigationVisible", navigationVisible_}, {"commandSearchVisible", search_ && search_->isVisible()}, {"windowWidth", width()}, {"windowHeight", height()}, {"devicePixelRatio", devicePixelRatioF()},
+        {"ui", QJsonObject{{"workspace", "design"}, {"tab",target=="sketch.edit" ? "sketch" : "solid"}, {"browserVisible", browserVisible_}, {"timelineVisible", timelineVisible_}, {"timeline",timelineState()}, {"navigationVisible", navigationVisible_}, {"commandSearchVisible", search_ && search_->isVisible()}, {"windowWidth", width()}, {"windowHeight", height()}, {"devicePixelRatio", devicePixelRatioF()},
             {"ownedPopups",popups},{"activeDialog", QJsonObject{{"command", session_.value("command")},
                 {"visible",dialogVisible},{"inputs",dialogInputs},
                 {"presentation",target.startsWith("solid.") || target.startsWith("sketch.") ? (activeDock && activeDock->isFloating() ? "floating-panel" : "docked-panel") : "dialog"},
@@ -2405,7 +2448,7 @@ void AlloyWindow::refresh() {
             auto* folder=new QTreeWidgetItem(node,{kind=="bodies" ? "Bodies" : kind=="sketches" ? "Sketches" : "Construction"});folder->setData(0,Qt::UserRole+4,kind);folder->setExpanded(true);return folder;
         };
         while(auto* item=timelineLayout_->takeAt(0)){delete item->widget();delete item;}
-        timelineLayout_->addWidget(new QLabel("TIMELINE"));
+
         bool selectedExists=false;QSet<QString> liveBodies,liveSketches,livePlanes;
         for(const auto& body:document_->bodies()) {
             liveBodies.insert(body.bodyId);
@@ -2461,16 +2504,41 @@ void AlloyWindow::refresh() {
             }
         }
         }
+        QJsonArray visibleFeatures;QString revealFeature;
+        const auto identity=document_->authored()["documentId"].toString()+":"+document_->activeOwnerId();
+        for(const auto& value:document_->authored()["features"].toArray()) {
+            const auto feature=value.toObject();if(feature["ownerId"].toString()!=document_->activeOwnerId())continue;
+            visibleFeatures.append(feature);bool unchanged=false;
+            for(const auto& before:timelineFeatures_)if(before.toObject()["id"]==feature["id"]){unchanged=before==value;break;}
+            if(!unchanged)revealFeature=feature["id"].toString();
+        }
+        if(identity!=timelineIdentity_ && !visibleFeatures.isEmpty())revealFeature=visibleFeatures.last().toObject()["id"].toString();
+        timelineIdentity_=identity;timelineFeatures_=visibleFeatures;
         // Timeline order follows retained authored feature order, independent
         // of whether evaluation produced a solid body or a sketch wire.
         for(const auto& entry:document_->authored()["features"].toArray()) {
             const auto feature=entry.toObject();if(feature["ownerId"].toString()!=document_->activeOwnerId())continue;const auto id=feature["id"].toString(),name=feature["name"].toString();
-            auto* button=new QToolButton;button->setText((feature["type"]=="sketch" ? "▧ " : "")+name);button->setToolTip("Edit "+name);button->setProperty("featureId",id);
+            const auto type=feature["type"].toString();
+            static const QMap<QString,QPair<QString,QString>> presentation{
+                {"sketch",{"▧","Sketch"}},{"box",{"▣","Box"}},{"cylinder",{"◉","Cylinder"}},
+                {"extrude",{"▣","Extrude"}},{"sphere",{"●","Sphere"}},{"fillet",{"◩","Fillet"}},
+                {"chamfer",{"◪","Chamfer"}},{"shell",{"▱","Shell"}},{"loft",{"◒","Loft"}},
+                {"mirror",{"◧","Mirror"}},{"move",{"✥","Move"}},{"boolean",{"▣","Combine"}},
+                {"constructionPlane",{"▰","Construction Plane"}},{"rectangularPattern",{"▦","Rectangular Pattern"}},
+                {"stepImport",{"▣","STEP Import"}}};
+            const auto appearance=presentation.value(type,{"▣",type});const auto fullName=name+" ("+appearance.second+")";
+            auto* button=new QToolButton;button->setObjectName("timeline.feature."+id);button->setText(appearance.first);
+            button->setFixedSize(44,34);button->setStyleSheet("QToolButton { font-size: 19px; padding: 1px 10px 1px 2px; }");
+            button->setToolTip(fullName+"\nClick to edit; use the arrow for feature actions.");button->setAccessibleName(fullName);
+            button->setProperty("featureId",id);button->setProperty("featureType",type);button->setProperty("featureName",name);
+
             connect(button,&QToolButton::clicked,this,[this,id]{if(session_.value("command")=="solid.rectangularPattern")execute("selection.featureSet",{{"featureId",id}});else execute("feature.editDialog",{{"featureId",id}});});
             auto* menu=new QMenu(button);menu->addAction("Delete",this,[this,id]{execute("feature.delete",{{"featureId",id}});});
             button->setMenu(menu);button->setPopupMode(QToolButton::MenuButtonPopup);timelineLayout_->addWidget(button);
         }
-        timelineLayout_->addStretch();bodiesNode_->setExpanded(true);
+        timelineLayout_->addStretch();timelineLayout_->activate();
+        if(!revealFeature.isEmpty())showTimelineFeature(revealFeature);
+        bodiesNode_->setExpanded(true);
         view_->setBodies(document_->bodies(),document_->revision());
         view_->setSketches(document_->sketches(),document_->revision());
         view_->setConstructionPlanes(document_->evaluation().constructionPlanes,document_->revision());

@@ -64,6 +64,46 @@ private slots:
         qApp->setPalette(dark);AlloyTheme::apply(*qApp);
         QCOMPARE(qApp->palette().color(QPalette::Window),QColor("#f7f8f9"));
     }
+    void timelineOverflowTargets() {
+        const auto fixture=qEnvironmentVariable("ALLOY_TIMELINE_FIXTURE");
+        if(fixture.isEmpty())QSKIP("Set ALLOY_TIMELINE_FIXTURE to the saved 24-feature die");
+        AlloyWindow window;window.resize(1400,900);window.show();window.activateWindow();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        QVERIFY2(run(window,"document.open",{{"path",fixture}}),error_.constData());
+        const auto authored=window.state()["document"].toObject()["authored"].toObject();
+        QVERIFY2(run(window,"component.activate",{{"definitionId",authored["components"].toArray().first().toObject()["id"]}}),error_.constData());
+        const auto features=authored["features"].toArray();QCOMPARE(features.size(),24);
+        auto* scroll=window.findChild<QScrollArea*>("timeline.scroll");QVERIFY(scroll);
+        for(const int width:{1040,1400,1800}) {
+            window.resize(width,900);QCoreApplication::processEvents();
+            for(auto* button:scroll->findChildren<QToolButton*>()) {
+                QCOMPARE(button->width(),44);QVERIFY(!button->property("featureId").toString().isEmpty());
+                QVERIFY(button->toolTip().contains(button->property("featureName").toString()));
+                QVERIFY(button->accessibleName().contains(button->property("featureName").toString()));
+            }
+            if(width==1040)QTRY_VERIFY(scroll->horizontalScrollBar()->maximum()>0);
+        }
+        window.resize(1040,900);QCoreApplication::processEvents();
+        for(const int index:{0,12,23}) {
+            const auto id=features[index].toObject()["id"].toString();
+            QVERIFY2(run(window,"timeline.showFeature",{{"featureId",id}}),error_.constData());
+            auto* button=scroll->findChild<QToolButton*>("timeline.feature."+id);QVERIFY(button);
+            QTRY_VERIFY(scroll->viewport()->rect().contains(QRect(button->mapTo(scroll->viewport(),QPoint{}),button->size())));
+            QVERIFY(button->menu());QCOMPARE(button->menu()->actions().first()->text(),QString("Delete"));
+            QTest::mouseClick(button,Qt::LeftButton,Qt::NoModifier,QPoint(10,button->height()/2));
+            const auto edit=session(window);QVERIFY(!edit.isEmpty());
+            const auto inputs=edit["inputs"].toObject();
+            const auto edited=edit["draftSketch"].toObject()["id"].toString(inputs["featureId"].toString());
+            QCOMPARE(edited,id);QCOMPARE(window.state()["document"].toObject()["authored"].toObject(),authored);
+            QVERIFY2(run(window,"command.cancel",{{"session",edit["id"]}}),error_.constData());
+            QCOMPARE(window.state()["document"].toObject()["authored"].toObject(),authored);
+        }
+        auto* latest=window.findChild<QPushButton*>("timeline.showLatest");QVERIFY(latest);
+        scroll->horizontalScrollBar()->setValue(0);QTest::mouseClick(latest,Qt::LeftButton);
+        QTRY_VERIFY(scroll->horizontalScrollBar()->value()>0);
+        QCOMPARE(window.state()["document"].toObject()["authored"].toObject(),authored);
+        window.close();
+    }
     void commandFirstCircle() {
         AlloyWindow window;window.resize(1180,760);window.show();window.activateWindow();
         QVERIFY(QTest::qWaitForWindowExposed(&window));auto* view=viewport(window);QVERIFY(view);

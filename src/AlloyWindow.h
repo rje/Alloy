@@ -206,6 +206,11 @@ private:
     ReferenceView* view_ = nullptr;
     QWidget* browser_ = nullptr;
     QWidget* timeline_ = nullptr;
+    QScrollArea* timelineScroll_ = nullptr;
+    QJsonArray timelineFeatures_;
+    QString timelineIdentity_;
+    void showTimelineFeature(const QString& featureId);
+    QJsonObject timelineState() const;
     QWidget* navigation_ = nullptr;
     QTreeWidget* tree_ = nullptr;
     QLabel* status_ = nullptr;
