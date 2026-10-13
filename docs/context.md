@@ -16,35 +16,20 @@ All private validation editors are closed. The gallery now has eight creations:
 seven solid/STL lessons and this sketch-only lesson. Both issues and their board
 items are Done. Older paragraphs below retain development history.
 
-**Named length parameters #244 are independently accepted and closed.**
-Implementationae65828 and review3b7a0fc are integrated; default app rebuild and
-integrated core1/1 (0.48s) passed. Native table/ordinary Distance/name controls,
-actual rough Rectangle/D/name creation, atomic recompute and exact history/reopen
-have scoped evidence. See validation/named-length-parameters.md. General
-expressions and broader visual parity remain PAR-001; full plate gate249 waits.
-Standalone Point246 is the active implementation and owns the sole private GUI
-slot for its final neutral point-only status capture. Hole247 remains Todo;
-read-only architecture preparation is allowed, no implementation started.
+**Plate prerequisites #244–246 are independently accepted and closed.**
+Named length bindings, current shortened rim lineage and standalone sketch Point
+are integrated. Point implementation41158eb/review526240b passed the main default
+app build and combined Point/named-length core2/2 in1.05s. Native Point creation,
+two retained edge distances and finished selection have scoped independent
+acceptance in validation/standalone-sketch-point.md. Named bindings and ordinary
+Distance controls remain intact. All private editors are closed.
 
-**Post-fillet rim lineage #245 is independently accepted and closed.**
-Implementation0ec82b8/reviewa772a53 are integrated and the default app rebuild
-passed. Real shortened boundary identities support10mm point distances through
-width/radius changes; core3/3 and59-call real-app evidence have independent
-acceptance. See validation/fillet-rim-lineage.md. Sol now implements standalone
-Point #246 in a new isolated worktree; #244 named parameters remains active.
-The #244 worker owns the sole private validation GUI slot. No full plate gate
-pass yet; #247–249 stay Todo.
-
-**Active queue: parameterized countersunk plate #244–249.** Astra independently
-verified the four-page public lesson and its embedded drawing. Five bounded
-implementation slices plus a cumulative gate preserve named dimensions,
-post-fillet edge references, real standalone sketch Point, retained All Hole,
-and 3x3 Spacing/Adjust feature pattern. Named length bindings #244 and post-fillet
-rim lineage #245 are the initial parallel Sol lanes; #246–249 remain Todo.
-External source contract: `knowledge/tutorials/next-after-outlet/independent-countersink-contract.md`.
-No new feature or full tutorial pass is implied. General arithmetic expressions,
-other Hole types and general Adjust remain broad-parent scope. Default build is
-still the accepted outlet milestone; all private editors are closed.
+**Active work: through Countersink Hole #247.** Implement a distinct retained
+point/target feature with All extent, native preview/edit controls and reusable
+occurrence evaluation. Pattern #248 and full parameterized plate #249 remain Todo.
+Public source contract is external:
+`knowledge/tutorials/next-after-outlet/independent-countersink-contract.md`.
+General parameter expressions and broader Hole modes remain parent scope.
 
 User requested private repository visibility on 2026-10-13. `rje/Alloy` is now
 PRIVATE, verified through GitHub CLI. Preserve private visibility unless the user
@@ -61,7 +46,7 @@ visual parity remain qualified. The external
 editable models and STL deliverables. The Revolve receipt is
 [validation/revolve-tutorial.md](validation/revolve-tutorial.md).
 
-**125 of 249 issues are closed.** Recent accepted work includes compact ribbon
+**126 of 249 issues are closed.** Recent accepted work includes compact ribbon
 icons #218, retained Extrude Intersect #219, nested profile/island diagnostics
 #165, portable local controls #220, shared-line fillets #221, typed Line length
 locks #222, retained Sweep #223 and native Sweep controls #224. Each has a scoped

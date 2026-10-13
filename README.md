@@ -103,11 +103,6 @@ and six driving dimensions, with a complete API creation movie and editable
 sketch. Exact edit/history/reopen checks passed in a separate saved-model run.
 This source ends at Finish Sketch and does not produce a print mesh.
 
-A [named-length parameter candidate](docs/validation/named-length-parameters.md)
-binds direct Length, Width and Thickness names to driving sketch dimensions
-and Extrude distance with stable IDs, native entry controls and atomic rebuild.
-Independent review is pending; the complete plate lesson remains separate.
-
 [Named length parameters](docs/validation/named-length-parameters.md) now bind
 sketch dimensions and Extrude distance by stable identity, with native name
 entry, atomic recompute and undo/save/reopen. This bounded slice supports direct
