@@ -15,13 +15,13 @@ visual parity remain qualified. The external
 editable models and STL deliverables. The Revolve receipt is
 [validation/revolve-tutorial.md](validation/revolve-tutorial.md).
 
-**110 of 235 issues are closed.** Recent accepted work includes compact ribbon
+**111 of 235 issues are closed.** Recent accepted work includes compact ribbon
 icons #218, retained Extrude Intersect #219, nested profile/island diagnostics
 #165, portable local controls #220, shared-line fillets #221, typed Line length
 locks #222, retained Sweep #223 and native Sweep controls #224. Each has a scoped
 receipt in `docs/validation/`; broad parents remain Todo for their actual
 remaining requirements. Main's default application is rebuilt through accepted
-#227, #228, #231 and #234:
+#227, #228, #231, #232 and #234:
 `build-tutorial-polish/alloy.app/Contents/MacOS/alloy`.
 
 **Paper-clip gate #225 and tangent-symbol correction #234 are closed.** The
@@ -35,20 +35,21 @@ links that capture alongside the full movie/model/STL. Native ingredient tests
 remain distinct from API movie evidence; no physical OS or exact pixel claim.
 The source's post-fillet dimension drivenness is unknown; Alloy's explicit
 reference-span conversion is disclosed. No full tutorial replay was needed for
-the symbol-only change. The private GUI slot is currently reserved for #232
-focused text-controls checks; other agents must wait before launching an editor.
+the symbol-only change. The private GUI slot is currently reserved for #229
+focused retained-loop Offset checks; other agents must wait before launching an editor.
 
-**Active: keyring rounded-loop Offset #229, two-point Circle #230 and text placement #232.**
+**Active: keyring rounded-loop Offset #229 and two-point Circle #230.**
 Luna identified the illustrated initials-keyring lesson externally; Astra
 independently checked all six source pages. Seven bounded issues #227–233 now
 queue typed two-point Rectangle, overall fillet annotations, rounded-loop Offset,
 two-point Circle, editable text geometry, native text placement and the full gate.
 Rectangle #227 and text geometry #231 are independently accepted, integrated
 and closed; their receipts are validation/two-point-rectangle.md and
-validation/sketch-text.md. The three active children have separate Sol worktrees.
+validation/sketch-text.md. The two active children have separate Sol worktrees. Native text placement #232
+is independently accepted and closed; see validation/sketch-text-controls.md.
 Rounded fillets #228 are independently accepted and closed; see
-validation/rounded-rectangle-fillets.md. Offset #229 now follows; full gate #233
-remains Todo. Follow-up #235 tracks driving overall size/origin retention through
+validation/rounded-rectangle-fillets.md. Offset #229 now follows; full gate #233 runner preparation is active in a
+separate worktree, with execution waiting for accepted #229/#230 integration. Follow-up #235 tracks driving overall size/origin retention through
 sketch fillets; #228 permits explicit measured-span conversion, so radius edits
 can alter overall size. Text retains authored parameters and uses mature font
 outlines; generated glyph curves are not individual solver entities. Detailed

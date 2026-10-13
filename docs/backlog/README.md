@@ -57,10 +57,10 @@ closed. The full movie predates that visual fix; the receipt and external galler
 include the corrected sketch capture.
 The independently reviewed initials-keyring lesson follows as #227–233: typed
 two-point Rectangle, retained rounded dimensions, mixed-loop Offset, two-point
-Circle, text geometry, text placement and the full tutorial gate. Rectangle #227
-text geometry #231 and rounded fillets #228 are accepted and closed. Rounded-loop
-Offset #229, two-point Circle #230 and native text placement #232 are active;
-full gate #233 stays Todo. Follow-up #235 retains driving rectangle size and
+Circle, text geometry, text placement and the full tutorial gate. Rectangle #227,
+text geometry #231, rounded fillets #228 and native text placement #232 are
+accepted and closed. Rounded-loop Offset #229 and two-point Circle #230 are active;
+full gate #233 runner preparation is active, with execution awaiting its children. Follow-up #235 retains driving rectangle size and
 origin intent through fillets; the bounded tutorial currently discloses measured
 reference spans and release of the removed corner anchor.
 

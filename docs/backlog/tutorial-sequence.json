@@ -109,7 +109,7 @@
       ],
       "acceptance": "Typed two-point Rectangle, sequential fillets, retained rounded-loop offset/rim, two-point Circle cut, hole fillet and editable placed text Join, with full creation movie and checked STL.",
       "status": "in_progress",
-      "remaining": "Seven bounded children queued; two-point Rectangle #227 and text geometry #231 accepted; rounded fillets #228 accepted; rounded-loop Offset #229, two-point Circle #230 and native text placement #232 active. Source adaptations and font provenance must remain explicit. Public source contract is external."
+      "remaining": "Seven bounded children queued; two-point Rectangle #227 and text geometry #231 accepted; rounded fillets #228 accepted; native text placement #232 accepted; rounded-loop Offset #229 and two-point Circle #230 active. Source adaptations and font provenance must remain explicit. Public source contract is external."
     },
     {
       "id": "CP-12",

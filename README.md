@@ -85,10 +85,11 @@ Typed chained Line now supports positive length entry, Tab lock, pointer H/V
 direction and click continuation with retained dimensions; the bounded
 [Line input receipt](docs/validation/typed-line-lock.md) records exact seven-segment
 native Qt and real-entrypoint API evidence.
-The bounded [Sketch Text candidate](docs/validation/sketch-text.md) retains
+The bounded [Sketch Text foundation](docs/validation/sketch-text.md) retains
 pinned-font initials on a planar face as selectable OCCT profiles. DSB and DS8
-raise through the existing Join path; native placement and independent review
-remain ahead.
+raise through the existing Join path. Independently accepted
+[native placement controls](docs/validation/sketch-text-controls.md) add pinned
+regular/bold fonts, preview/Cancel and on-canvas move/rotation handles.
 The completed bracket can be exported as one valid STEP solid or a closed STL
 mesh. A full-size design and millimeter STEP/STL plus a labeled 0.2-scale STL
 print sample have [independent readback evidence](docs/validation/bracket-exchange.md).

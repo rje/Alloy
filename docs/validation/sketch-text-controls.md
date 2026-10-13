@@ -1,7 +1,6 @@
-# Native Sketch Text controls candidate (#232)
+# Native Sketch Text controls (#232)
 
-Status: implementation candidate, 2026-10-13; independent compatibility review
-is pending. Public source contract: `warwick-initials-keyring-20261013`, page
+Status: independently accepted, 2026-10-13. Public source contract: `warwick-initials-keyring-20261013`, page
 5 steps 19–20, recorded outside the repository in
 `../Alloy-reference-records/knowledge/tutorials/warwick/initials-keyring-independent-contract.md`.
 The source demonstrates a Text dialog, editable content/font/size and on-canvas
@@ -43,7 +42,7 @@ transcript are in
 `../Alloy-reference-records/validation/sketch-text-controls-2026-10-13/`.
 The inspected OpenGL capture shows readable bold DSB glyphs and visible move
 and rotation handles; the joined capture shows the rotated raised letters.
-This is a bounded #232 candidate, not a full keyring-tutorial acceptance.
+This is bounded #232 acceptance, not a full keyring-tutorial acceptance.
 
 ## Independent review
 
