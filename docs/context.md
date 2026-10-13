@@ -122,11 +122,13 @@ Parent#150 is Todo for native recovery#213; API/core recovery passes. Broader #4
 dependencies/rhi-shortlist.md. No replacement renderer is selected; #137 retains cross-platform qualification
 and adoption decisions. SKT-035/#209 is independently accepted (b6b1f00): affected-sketch context in
 atomic support failures. See validation/multi-face-independent.md. The isolated Metal investigation #210 is independently accepted and CLOSED
-(5b29523/916daff); production remains OpenGL. Active work is now the next
-illustrated Revolve lesson: #214 retained modeling/API and #215 distinct
-Centerline plus diameter-to-axis dimensions, in separate Sol worktrees with
-Astra verification. Native Revolve controls #216 and full tutorial gate #217
-follow these foundations. Public source steps 39–50 and visual evidence stay
+(5b29523/916daff); production remains OpenGL. The next illustrated Revolve foundation #214 is independently accepted and
+CLOSED (b504efd/1d9e235); integrated application build and focused core pass.
+Active work is #215 distinct Centerline plus diameter-to-axis dimensions and
+#216 native selection/Partial angular dragging, in separate Sol worktrees.
+The #216 owner can prepare controls against the frozen Centerline contract, but
+acceptance waits for integrated #215. Astra verifies both; full tutorial #217
+remains Todo. Public source steps 39–50 and visual evidence stay
 external in tutorial.next-revolve-feature-checkpoint. Centerline can form profile
 boundaries; it is not Construction. The detached lesson axis must also coexist
 with a separate closed profile. No release,
@@ -1848,3 +1850,13 @@ intent/profile and diameter-to-axis semantics belong to SKT038/#215. Normal
 boundary-line axes are supported without construction conversion. Only exact
 partial cap provenance is named; curved support and Boolean modes remain #49.
 See [contract](research/solid-revolve.md) and [evidence/limits](validation/solid-revolve.md).
+
+
+## Revolve foundation integrated (2026-10-13)
+
+#214 is closed after b504efd/1d9e235 and targeted integrated app/core build;
+solid_revolve passes 1/1 in 0.49 seconds. Reuse the independent candidate API
+evidence; no repeated full tutorial for this unchanged integration. #215 owns
+the next private GUI slot. #216 controls preparation runs in parallel against
+its frozen Centerline contract, with acceptance blocked until #215 integration.
+#217 remains Todo. Ninety of 217 issues are closed. No release or CI run.
