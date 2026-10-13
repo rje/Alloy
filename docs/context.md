@@ -2291,3 +2291,17 @@ and a settled GPU capture. The corrected Concentric badge uses one two-ring
 glyph near the shared center. The rough sketch still has six DOF; the full
 reflected and dimensioned lesson is separate. Independent review remains. See
 [the candidate receipt](validation/outlet-constraints.md).
+
+## Native sketch Mirror controls candidate (2026-10-13)
+
+SKT-054/#241 adds Modify → Mirror with explicit Objects and Mirror Line roles,
+fully enclosed viewport drag-window collection, separate deduplicated point and
+curve identity rows, Clear, preview, Cancel and OK through the accepted sketch
+Mirror authority. A rough source with outer frame, circle and crossing diagonals
+selects exactly its four upper lines and two arcs plus six distinct related
+points; the source image's 12-object composition remains an inference. Focused
+native Qt input and shared real-app API runs pass, with readable upper selection,
+lower preview and settled palette. The sketch remains at 33 DOF; the fully
+defined lesson is a separate cumulative gate. Both validation editors exited.
+See [the scoped receipt](validation/sketch-mirror-controls.md). Independent
+review and integration are pending.

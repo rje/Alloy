@@ -18,6 +18,7 @@
 #include <QFontMetricsF>
 #include <QFont>
 #include <QLineF>
+#include <QRubberBand>
 #include <Aspect_DisplayConnection.hxx>
 #include <Aspect_Grid.hxx>
 #include <OpenGl_GraphicDriver.hxx>
@@ -764,6 +765,42 @@ QJsonObject ReferenceView::pickSketch(const QJsonObject& feature,double x,double
         if(classifier.State()==TopAbs_IN)return {{"kind","profile"},{"profileId",profile.profileId}};
     }
     return {};
+}
+QJsonObject ReferenceView::selectSketchWindow(const QJsonObject& feature,double x1,double y1,double x2,double y2,const QJsonObject& resolvedFrame) const {
+    if(view_.IsNull() || std::abs(x2-x1)<4 || std::abs(y2-y1)<4)return {};
+    const QRectF bounds(QPointF(std::min(x1,x2),std::min(y1,y2)),QPointF(std::max(x1,x2),std::max(y1,y2)));
+    const auto parameters=feature["parameters"].toObject();const auto plane=parameters["plane"].toString();
+    QMap<QString,QJsonObject> points;QJsonArray pointIds,entityIds;
+    auto project=[&](double u,double v){const auto p=projectSketchPoint(u,v,plane,resolvedFrame);return QPointF(p["x"].toDouble(),p["y"].toDouble());};
+    for(const auto& value:parameters["points"].toArray()){
+        const auto p=value.toObject();points[p["id"].toString()]=p;
+        if(bounds.contains(project(p["uMm"].toDouble(),p["vMm"].toDouble())))pointIds.append(p["id"]);
+    }
+    for(const auto& value:parameters["entities"].toArray()){
+        const auto entity=value.toObject();const auto type=entity["type"].toString();
+        if(type=="line"){
+            const auto a=points.value(entity["startPointId"].toString()),b=points.value(entity["endPointId"].toString());
+            if(bounds.contains(project(a["uMm"].toDouble(),a["vMm"].toDouble())) &&
+                bounds.contains(project(b["uMm"].toDouble(),b["vMm"].toDouble())))entityIds.append(entity["id"]);
+        }else if(type=="arc" || type=="circle"){
+            const auto c=points.value(entity["centerPointId"].toString());const double u=c["uMm"].toDouble(),v=c["vMm"].toDouble(),r=entity["radiusMm"].toDouble();
+            const QPointF center=project(u,v),a=project(u+r,v)-center,b=project(u,v+r)-center;
+            const double start=type=="circle" ? 0 : entity["startAngleDeg"].toDouble()*std::numbers::pi/180;
+            const double sweep=type=="circle" ? 2*std::numbers::pi : entity["sweepAngleDeg"].toDouble()*std::numbers::pi/180;
+            auto onSweep=[&](double angle){if(type=="circle")return true;
+                const double travel=std::remainder(angle-start,2*std::numbers::pi);
+                const double directed=sweep>=0 ? std::fmod(travel+2*std::numbers::pi,2*std::numbers::pi) : std::fmod(-travel+2*std::numbers::pi,2*std::numbers::pi);
+                return directed<=std::abs(sweep)+1e-8;};
+            auto inside=[&](double angle){return bounds.contains(center+a*std::cos(angle)+b*std::sin(angle));};
+            bool enclosed=inside(start) && inside(start+sweep);
+            for(const auto angle:{std::atan2(b.x(),a.x()),std::atan2(b.x(),a.x())+std::numbers::pi,
+                    std::atan2(b.y(),a.y()),std::atan2(b.y(),a.y())+std::numbers::pi})
+                if(onSweep(angle) && !inside(angle))enclosed=false;
+            if(enclosed)entityIds.append(entity["id"]);
+        }
+    }
+    return {{"pointIds",pointIds},{"entityIds",entityIds},{"pointCount",pointIds.size()},
+        {"curveCount",entityIds.size()},{"objectCount",pointIds.size()+entityIds.size()}};
 }
 void ReferenceView::clearSketchDecorations() {
     if(!context_.IsNull())for(const auto& decoration:sketchDecorations_)context_->Remove(decoration,false);
@@ -1910,6 +1947,11 @@ QImage ReferenceView::framebuffer() {
     return image;
 }
 void ReferenceView::mousePressEvent(QMouseEvent* e) {
+    if(e->button()==Qt::LeftButton && !e->modifiers().testFlag(Qt::AltModifier) && !sketchPlane_.isEmpty() && decorationSelection_.value("tool")=="mirror"){
+        mirrorWindowActive_=true;mirrorWindowPress_=e->position();setFocus(Qt::MouseFocusReason);
+        if(!mirrorWindowBand_)mirrorWindowBand_=new QRubberBand(QRubberBand::Rectangle,this);
+        mirrorWindowBand_->setGeometry(QRect(mirrorWindowPress_.toPoint(),QSize()));e->accept();return;
+    }
     if(e->button()==Qt::LeftButton && !sketchTextHandleState_.isEmpty()){
         const auto move=sketchTextHandleState_["move"].toObject(),rotate=sketchTextHandleState_["rotate"].toObject();
         const QPointF m(move["x"].toDouble(),move["y"].toDouble()),r(rotate["x"].toDouble(),rotate["y"].toDouble());
@@ -1983,6 +2025,10 @@ void ReferenceView::mousePressEvent(QMouseEvent* e) {
     else QWidget::mousePressEvent(e);
 }
 void ReferenceView::mouseMoveEvent(QMouseEvent* e) {
+    if(mirrorWindowActive_ && e->buttons().testFlag(Qt::LeftButton)){
+        if(QLineF(mirrorWindowPress_,e->position()).length()>=4){mirrorWindowBand_->setGeometry(QRect(mirrorWindowPress_.toPoint(),e->position().toPoint()).normalized());mirrorWindowBand_->show();}
+        e->accept();return;
+    }
     if(!sketchTextDrag_.isEmpty() && e->buttons().testFlag(Qt::LeftButton)){
         dispatch("sketch.textHandle",{{"mode",sketchTextDrag_["mode"]},{"phase","move"},
             {"startX",sketchTextDrag_["startX"]},{"startY",sketchTextDrag_["startY"]},
@@ -2027,6 +2073,14 @@ void ReferenceView::leaveEvent(QEvent* e) {
     QWidget::leaveEvent(e);
 }
 void ReferenceView::mouseReleaseEvent(QMouseEvent* e) {
+    if(e->button()==Qt::LeftButton && mirrorWindowActive_){
+        mirrorWindowActive_=false;if(mirrorWindowBand_)mirrorWindowBand_->hide();
+        if(QLineF(mirrorWindowPress_,e->position()).length()>=4)
+            dispatch("sketch.mirrorWindow",{{"x1",mirrorWindowPress_.x()},{"y1",mirrorWindowPress_.y()},
+                {"x2",e->position().x()},{"y2",e->position().y()}});
+        else dispatch("sketch.mirrorPick",{{"x",e->position().x()},{"y",e->position().y()}});
+        e->accept();return;
+    }
     if(e->button()==Qt::LeftButton && !sketchTextDrag_.isEmpty()){
         const auto drag=sketchTextDrag_;sketchTextDrag_={};dispatch("sketch.textHandle",{{"mode",drag["mode"]},{"phase","end"},
             {"startX",drag["startX"]},{"startY",drag["startY"]},{"x",e->position().x()},{"y",e->position().y()}});e->accept();return;

@@ -303,6 +303,8 @@ AlloyWindow::AlloyWindow() {
     toolAction(arc,"Center Point Arc","centerArc");toolAction(arc,"3-Point Arc","threePointArc");
     create->addSeparator();toolAction(create,"Sketch Dimension\tD","dimension");
     auto* modify=sketchMenu("Modify","modify");toolAction(modify,"Fillet","fillet");toolAction(modify,"Trim","trim");toolAction(modify,"Offset\tO","offset");
+    auto* sketchMirrorAction=modify->addAction("Mirror");sketchMirrorAction->setObjectName("sketch.action.mirror");
+    connect(sketchMirrorAction,&QAction::triggered,this,[this]{sketchResponse(execute("sketch.mirrorStart"));});
     auto* construction=modify->addAction("Normal/Construction\tX");construction->setObjectName("sketch.action.constructionToggle");
     construction->setToolTip("Toggle selected authored lines; construction does not bound profiles.");
     connect(construction,&QAction::triggered,this,[this]{sketchResponse(execute("sketch.constructionToggle"));});
@@ -487,6 +489,10 @@ AlloyWindow::AlloyWindow() {
         connect(finishTool,&QShortcut::activated,this,[this]{
             if(session_.value("command")=="solid.sphere"){if(previewSphere()["previewed"].toBool())execute("command.commit",{{"session",session_["id"]}});return;}
             if(session_.value("command")!="sketch.edit")return;
+            if(session_.value("tool")=="mirror"){
+                if(session_.contains("pendingSketchMirror"))sketchResponse(execute("sketch.mirrorAccept"));
+                return;
+            }
             if(session_.value("tool")=="offset" && session_.value("pendingLoopOffset").toObject()["valid"].toBool())execute("sketch.loopOffsetAccept");
             else if(session_.value("tool")=="offset" && session_.value("pendingOffset").toObject()["valid"].toBool())execute("sketch.offsetAccept");
             else if((session_.value("tool")=="circle" || session_.value("tool")=="twoPointCircle") && session_.value("pendingCircleDiameter").toObject().value("phase")=="locked")
@@ -510,7 +516,8 @@ AlloyWindow::AlloyWindow() {
     connect(sketchEscape_,&QShortcut::activated,this,[this]{
         if(session_.value("command")=="sketch.plane")execute("sketch.cancel");
         else if(session_.value("command").toString()=="sketch.edit") {
-            if(session_.contains("pendingCenterRectangle"))execute("sketch.centerRectangleCancel");
+            if(session_.value("tool")=="mirror")execute("sketch.mirrorExit");
+            else if(session_.contains("pendingCenterRectangle"))execute("sketch.centerRectangleCancel");
             else if(session_.contains("pendingTwoPointRectangle"))execute("sketch.twoPointRectangleCancel");
             else if(session_.contains("pendingCircleDiameter"))execute("sketch.circleDiameterCancel");
             else if(session_.value("pendingLineLength").toObject().value("phase")=="editing")execute("sketch.lineLengthCancel");
@@ -1472,7 +1479,9 @@ void AlloyWindow::registerCommands() {
         const auto pending=session_.value("pendingSketchMirror").toObject();
         if(pending.isEmpty())return failure("mirror_preview_required","Preview sketch Mirror before accepting");
         const auto solved=SketchGeometry::solveDraft(pending["draft"].toObject(),session_.value("projectionContext").toObject());
-        return publishSketchSolve(solved,"Sketch Mirror");
+        auto result=publishSketchSolve(solved,"Sketch Mirror");
+        if(!result["ok"].isBool() && session_.value("tool")=="mirror")execute("sketch.tool",{{"tool","select"}});
+        return result;
     });
     add("sketch.mirrorCancel","Cancel sketch Mirror","Discard the disposable Mirror preview and restore the current draft.",{{"session",sketchSession}},[this](const auto& a){
         if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
@@ -1480,6 +1489,81 @@ void AlloyWindow::registerCommands() {
         session_.remove("pendingSketchMirror");const auto draft=session_["draftSketch"].toObject();
         view_->showSketchDraft(SketchGeometry::evaluateFeature(draft,session_.value("resolvedFrame").toObject(),session_.value("projectionContext").toObject()));
         displayedSketchDraft_=draft;return QJsonObject{{"pending",false},{"authoredChange",false}};
+    });
+    add("sketch.mirrorStart","Mirror","Collect sketch objects and a straight Mirror Line for retained reflection.",{},[this](const auto&){
+        if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
+        const auto prior=session_.value("selection").toObject();
+        const auto tool=execute("sketch.tool",{{"tool","mirror"}});if(!tool["ok"].toBool())return tool;
+        session_["mirrorSelection"]=QJsonObject{{"role","objects"},{"sourceEntityIds",prior["entityIds"].toArray()},
+            {"pointIds",prior["pointIds"].toArray()},{"axisEntityId",""}};
+        if(sketchScroll_ && sketchMirrorControls_)sketchScroll_->ensureWidgetVisible(sketchMirrorControls_);
+        return QJsonObject{{"mirrorSelection",session_["mirrorSelection"]},{"authoredChange",false}};
+    });
+    auto sketchMirrorRole=parameter("string","Mirror selection role.");sketchMirrorRole["enum"]=QJsonArray{"objects","axis"};
+    add("sketch.mirrorRole","Mirror selection role","Choose source objects or the straight Mirror Line for the next viewport gesture.",
+        {{"role",sketchMirrorRole}},[this](const auto& a){
+            if(session_.value("tool")!="mirror")return failure("mirror_inactive","Start sketch Mirror first");
+            auto state=session_["mirrorSelection"].toObject();state["role"]=a["role"];session_["mirrorSelection"]=state;
+            return QJsonObject{{"mirrorSelection",state},{"authoredChange",false}};
+        });
+    add("sketch.mirrorClear","Clear Mirror objects","Clear the collected source curves and points, keeping the Mirror tool active.",{},[this](const auto&){
+        if(session_.value("tool")!="mirror")return failure("mirror_inactive","Start sketch Mirror first");
+        auto state=session_["mirrorSelection"].toObject();state["sourceEntityIds"]=QJsonArray{};state["pointIds"]=QJsonArray{};
+        state["axisEntityId"]="";state["role"]="objects";session_["mirrorSelection"]=state;
+        if(session_.contains("pendingSketchMirror"))execute("sketch.mirrorCancel");
+        setSketchSelection({});return QJsonObject{{"mirrorSelection",state},{"authoredChange",false}};
+    });
+    auto mirrorPixel=parameter("number","Viewport-local logical pixel coordinate.");mirrorPixel["minimum"]=0;mirrorPixel["maximum"]=10000;
+    auto mirrorWindowSchema=QJsonObject{{"x1",mirrorPixel},{"y1",mirrorPixel},{"x2",mirrorPixel},{"y2",mirrorPixel}};
+    add("sketch.mirrorWindow","Window-select Mirror objects","Fully enclosed authored lines/arcs and their distinct points; crossing curves are excluded.",
+        mirrorWindowSchema,[this](const auto& a){
+            if(session_.value("tool")!="mirror")return failure("mirror_inactive","Start sketch Mirror first");
+            auto state=session_["mirrorSelection"].toObject();if(state["role"]!="objects")return failure("mirror_role","Choose Objects before window selection");
+            const auto draft=session_["draftSketch"].toObject();const auto hit=view_->selectSketchWindow(draft,a["x1"].toDouble(),a["y1"].toDouble(),a["x2"].toDouble(),a["y2"].toDouble(),session_.value("resolvedFrame").toObject());
+            if(hit.isEmpty())return failure("invalid_window","Drag a nonzero selection window");
+            const auto parameters=draft["parameters"].toObject();QSet<QString> allowed,related;
+            for(const auto& value:parameters["entities"].toArray()){
+                const auto e=value.toObject();if(!hit["entityIds"].toArray().contains(e["id"]) || (e["type"]!="line" && e["type"]!="arc"))continue;
+                allowed.insert(e["id"].toString());for(const auto& key:{"startPointId","endPointId","centerPointId"})if(e.contains(key))related.insert(e[key].toString());
+            }
+            QJsonArray entities,points;for(const auto& id:hit["entityIds"].toArray())if(allowed.contains(id.toString()))entities.append(id);
+            for(const auto& id:hit["pointIds"].toArray())if(related.contains(id.toString()))points.append(id);
+            state["sourceEntityIds"]=entities;state["pointIds"]=points;session_["mirrorSelection"]=state;
+            if(session_.contains("pendingSketchMirror"))execute("sketch.mirrorCancel");
+            const auto selected=setSketchSelection({{"entityIds",entities},{"pointIds",points}});if(selected["ok"].isBool() && !selected["ok"].toBool())return selected;
+            return QJsonObject{{"mirrorSelection",state},{"curveCount",entities.size()},{"pointCount",points.size()},
+                {"objectCount",entities.size()+points.size()},{"authoredChange",false}};
+        });
+    add("sketch.mirrorPick","Pick Mirror object or line","Pick one authored curve/point in Objects or a straight line in Mirror Line role.",{{"x",mirrorPixel},{"y",mirrorPixel}},[this](const auto& a){
+        if(session_.value("tool")!="mirror")return failure("mirror_inactive","Start sketch Mirror first");
+        auto state=session_["mirrorSelection"].toObject();const bool axis=state["role"]=="axis";
+        const auto hit=view_->pickSketch(session_["draftSketch"].toObject(),a["x"].toDouble(),a["y"].toDouble(),axis ? "line" : QString{},session_.value("resolvedFrame").toObject());
+        if(hit.isEmpty() || hit["projected"].toBool())return failure(axis ? "mirror_axis_required" : "mirror_source_required",axis ? "Pick an authored straight Mirror Line" : "Pick an authored line, arc or related point");
+        const auto params=session_["draftSketch"].toObject()["parameters"].toObject();QString type;
+        for(const auto& v:params["entities"].toArray())if(v.toObject()["id"]==hit["entityId"]){type=v.toObject()["type"].toString();break;}
+        if(axis){if(type!="line")return failure("mirror_axis_required","Pick an authored straight Mirror Line");state["axisEntityId"]=hit["entityId"];}
+        else if(hit["kind"]=="point"){
+            auto ids=state["pointIds"].toArray();if(!ids.contains(hit["pointId"]))ids.append(hit["pointId"]);state["pointIds"]=ids;
+        }else if(type=="line" || type=="arc"){
+            auto ids=state["sourceEntityIds"].toArray();if(!ids.contains(hit["entityId"]))ids.append(hit["entityId"]);state["sourceEntityIds"]=ids;
+        }else return failure("mirror_source_required","Mirror supports authored lines and arcs");
+        session_["mirrorSelection"]=state;if(session_.contains("pendingSketchMirror"))execute("sketch.mirrorCancel");
+        auto selected=state["sourceEntityIds"].toArray();if(!state["axisEntityId"].toString().isEmpty())selected.append(state["axisEntityId"]);
+        setSketchSelection({{"entityIds",selected},{"pointIds",state["pointIds"]}});
+        return QJsonObject{{"picked",hit},{"mirrorSelection",state},{"curveCount",state["sourceEntityIds"].toArray().size()},
+            {"pointCount",state["pointIds"].toArray().size()},{"authoredChange",false}};
+    });
+    add("sketch.mirrorStagePreview","Preview selected Mirror","Preview the collected curves across the selected straight Mirror Line.",{},[this](const auto&){
+        if(session_.value("tool")!="mirror")return failure("mirror_inactive","Start sketch Mirror first");
+        const auto state=session_["mirrorSelection"].toObject();if(state["sourceEntityIds"].toArray().isEmpty())return failure("mirror_source_required","Collect source curves first");
+        if(state["axisEntityId"].toString().isEmpty())return failure("mirror_axis_required","Choose a straight Mirror Line");
+        const auto result=execute("sketch.mirrorPreview",{{"sourceEntityIds",state["sourceEntityIds"]},{"axisEntityId",state["axisEntityId"]}});
+        return result["ok"].toBool() ? result["result"].toObject() : result;
+    });
+    add("sketch.mirrorExit","Exit sketch Mirror","Cancel the disposable preview and return to Select.",{},[this](const auto&){
+        if(session_.value("tool")!="mirror")return failure("mirror_inactive","Start sketch Mirror first");
+        const auto response=execute("sketch.tool",{{"tool","select"}});
+        return response["ok"].toBool() ? QJsonObject{{"pending",false},{"authoredChange",false}} : response;
     });
     auto optionalSession=optional(parameter("string","Optional active sketch session identity."));
     auto circleValue=parameter("number","Positive circle diameter in the chosen display units.");
@@ -1531,12 +1615,13 @@ void AlloyWindow::registerCommands() {
             if(a.contains("session") && a["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
             cancelTwoPointRectangle();view_->setFocus();return QJsonObject{{"pending",false},{"authoredChange",false}};
         });
-    auto sketchTool=parameter("string","Drawing tool in the active sketch context.");sketchTool["enum"]=QJsonArray{"select","line","rectangle","centerRectangle","circle","twoPointCircle","centerArc","threePointArc","dimension","fillet","trim","offset"};
+    auto sketchTool=parameter("string","Drawing tool in the active sketch context.");sketchTool["enum"]=QJsonArray{"select","line","rectangle","centerRectangle","circle","twoPointCircle","centerArc","threePointArc","dimension","fillet","trim","offset","mirror"};
     add("sketch.tool","Sketch drawing tool","Choose a tool and clear its pending first point.",{{"tool",sketchTool}},[this](const auto& a){
         if(session_.value("command").toString()!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
         auto badgeSelection=session_.value("selection").toObject();badgeSelection.remove("constraintIds");badgeSelection.remove("dimensionId");
         session_["selection"]=badgeSelection;session_.remove("hoveredConstraintId");
         const bool leavingFillet=session_.value("tool")=="fillet";
+        const bool leavingMirror=session_.value("tool")=="mirror" && a["tool"]!="mirror";
         clearFilletPreview();session_.remove("pendingFillet");
         cancelCircleOffset();cancelLoopOffset();
         cancelDimension();
@@ -1544,6 +1629,11 @@ void AlloyWindow::registerCommands() {
         cancelLineLength();
         cancelCenterRectangle();
         cancelTwoPointRectangle();
+        if(leavingMirror){
+            if(session_.contains("pendingSketchMirror"))execute("sketch.mirrorCancel");
+            session_.remove("mirrorSelection");
+            session_["selection"]=QJsonObject{{"pointIds",QJsonArray{}},{"entityIds",QJsonArray{}},{"profileIds",QJsonArray{}}};
+        }
         if(session_.value("tool")=="constraint" || leavingFillet || a["tool"]=="fillet")
             session_["selection"]=QJsonObject{{"pointIds",QJsonArray{}},{"entityIds",QJsonArray{}},{"profileIds",QJsonArray{}}};
         session_.remove("pendingTrim");session_.remove("trimNotice");session_["tool"]=a["tool"];sketchHistoryGroup_.clear();session_.remove("constraintType");session_.remove("constraintPrompt");session_.remove("firstPoint");session_.remove("secondPoint");session_.remove("pointerPoint");session_.remove("gestureSweepDeg");session_.remove("snap");view_->clearSketchCursor();
@@ -1556,6 +1646,9 @@ void AlloyWindow::registerCommands() {
             if(selected.size()==1)previewCircleOffset({{"sourceEntityId",selected[0]}});
         }
         view_->setFocus();
+        if(leavingMirror && sketchScroll_)QTimer::singleShot(0,sketchScroll_,[this]{
+            if(sketchScroll_)sketchScroll_->verticalScrollBar()->setValue(0);
+        });
         return session_;
     });
     const QJsonObject offsetInput{{"sourceEntityId",optional(parameter("string","Authored source circle UUID."))},
@@ -3060,6 +3153,12 @@ void AlloyWindow::refresh() {
             : session_.contains("pendingLineLength") ? "Type length · Tab locks · Point sets H/V · Click places" :
                 session_.contains("firstPoint") ? "Type a length or click the next point · Escape ends chain" : "Click the line start";
         else if(tool=="trim")prompt="Click the highlighted segment to remove · Escape or Enter exits";
+        else if(tool=="mirror"){
+            const auto chosen=session_.value("mirrorSelection").toObject();
+            prompt=chosen["role"]=="axis" ? "Mirror Line · click an authored straight line" :
+                "Objects · drag a left-to-right enclosure or click source curves and points";
+            if(session_.contains("pendingSketchMirror"))prompt="Mirror preview · inspect lower reflection · OK or Cancel Mirror";
+        }
         else if(tool=="offset")prompt=inputs["plane"]=="face" && draft["parameters"].toObject()["entities"].toArray().isEmpty()
             ? session_.value("pendingLoopOffset").toObject()["valid"].toBool()
                 ? "Chain Selection checked · signed distance · OK accepts · Escape cancels"
@@ -5271,6 +5370,31 @@ void AlloyWindow::refreshSketchControls() {
     view_->decorateSketch(loopPreview["valid"].toBool() ? loopPreview["previewDraft"].toObject() : draft,
         presentationSelection,session_.value("solverDiagnostics").toObject(),units,session_.value("pendingDimension").toObject());
     if(sketchCurveEntry_){const auto tool=session_["tool"].toString();sketchCurveEntry_->setVisible(tool=="circle" || tool=="centerArc" || tool=="threePointArc");}
+    if(sketchMirrorControls_){
+        const bool active=session_.value("tool")=="mirror";sketchMirrorControls_->setVisible(active);
+        if(active){
+            const auto chosen=session_.value("mirrorSelection").toObject();const auto curves=chosen["sourceEntityIds"].toArray(),points=chosen["pointIds"].toArray();
+            const auto axisId=chosen["axisEntityId"].toString();
+            if(sketchMirrorSummary_){
+                sketchMirrorSummary_->setText(QString("%1 objects · %2 curves · %3 distinct points\nMirror Line · %4")
+                    .arg(curves.size()+points.size()).arg(curves.size()).arg(points.size()).arg(axisId.isEmpty() ? "choose a line" : axisId.left(8)));
+                sketchMirrorSummary_->setMinimumHeight(std::max(sketchMirrorSummary_->sizeHint().height(),
+                    sketchMirrorSummary_->heightForWidth(sketchMirrorSummary_->width())));
+            }
+            if(sketchMirrorRows_){
+                sketchMirrorRows_->clear();QMap<QString,QString> types;
+                for(const auto& value:draft["parameters"].toObject()["entities"].toArray()){
+                    const auto entity=value.toObject();types[entity["id"].toString()]=entity["type"].toString();
+                }
+                for(int i=0;i<curves.size();++i){const auto id=curves[i].toString();sketchMirrorRows_->addItem(QString("Curve %1 · %2 · %3").arg(i+1).arg(types.value(id)).arg(id.left(8)));}
+                for(int i=0;i<points.size();++i)sketchMirrorRows_->addItem(QString("Point %1 · %2").arg(i+1).arg(points[i].toString().left(8)));
+                sketchMirrorRows_->addItem(axisId.isEmpty() ? "Mirror Line · not selected" : "Mirror Line · "+axisId.left(8));
+            }
+            if(auto* button=sketchMirrorControls_->findChild<QPushButton*>("sketch.mirror.role.objects")){const QSignalBlocker block(button);button->setChecked(chosen["role"]!="axis");}
+            if(auto* button=sketchMirrorControls_->findChild<QPushButton*>("sketch.mirror.role.axis")){const QSignalBlocker block(button);button->setChecked(chosen["role"]=="axis");}
+            if(auto* button=sketchMirrorControls_->findChild<QPushButton*>("sketch.mirror.accept"))button->setEnabled(session_.contains("pendingSketchMirror"));
+        }
+    }
     const bool changed=draft!=sketchWidgetDraft_,selected=selection!=sketchWidgetSelection_,unitChanged=units!=sketchWidgetUnits_;
     if(!changed && !selected && !unitChanged)return;
     const auto parameters=draft["parameters"].toObject();const double scale=units=="in" ? 25.4 : 1;
@@ -5470,7 +5594,7 @@ void AlloyWindow::showCurveEntry() {
 void AlloyWindow::showSketch() {
     if(sketchDock_)delete sketchDock_;
     sketchInputs_.clear();sketchInfo_=nullptr;sketchProfileInfo_=nullptr;sketchName_=nullptr;sketchCurveEntry_=nullptr;
-    sketchSelectionTree_=nullptr;sketchFilletControls_=nullptr;sketchFilletRadius_=nullptr;sketchOffsetControls_=nullptr;sketchOffsetDistance_=nullptr;sketchDimensionKind_=nullptr;sketchDimensionValue_=nullptr;sketchDimensionDriving_=nullptr;
+    sketchSelectionTree_=nullptr;sketchFilletControls_=nullptr;sketchFilletRadius_=nullptr;sketchOffsetControls_=nullptr;sketchOffsetDistance_=nullptr;sketchMirrorControls_=nullptr;sketchMirrorSummary_=nullptr;sketchMirrorRows_=nullptr;sketchDimensionKind_=nullptr;sketchDimensionValue_=nullptr;sketchDimensionDriving_=nullptr;
     sketchShowConstraints_=nullptr;sketchShowDimensions_=nullptr;
     sketchDimensionList_=nullptr;sketchDimensionEdit_=nullptr;sketchDimensionMeasure_=nullptr;sketchWidgetDraft_={};sketchWidgetSelection_={};sketchWidgetUnits_.clear();
     sketchPanel_=new QWidget;sketchPanel_->setObjectName("sketchPanel");sketchPanel_->setFixedWidth(312);
@@ -5585,6 +5709,36 @@ void AlloyWindow::showSketch() {
         auto* offsetEscape=new QShortcut(QKeySequence(Qt::Key_Escape),sketchOffsetControls_);
         offsetEscape->setContext(Qt::WidgetWithChildrenShortcut);
         connect(offsetEscape,&QShortcut::activated,this,[this]{sketchResponse(execute("sketch.offsetCancel"));});
+        sketchMirrorControls_=new QWidget;sketchMirrorControls_->setObjectName("sketch.mirror.controls");
+        auto* mirrorLayout=new QVBoxLayout(sketchMirrorControls_);mirrorLayout->setContentsMargins(0,0,0,0);
+        auto* mirrorTitle=new QLabel("MIRROR");mirrorTitle->setStyleSheet("font-weight: 700; color: #176588;");mirrorLayout->addWidget(mirrorTitle);
+        sketchMirrorSummary_=new QLabel;sketchMirrorSummary_->setObjectName("sketch.mirror.summary");
+        sketchMirrorSummary_->setWordWrap(true);mirrorLayout->addWidget(sketchMirrorSummary_);
+        sketchMirrorRows_=new QListWidget;sketchMirrorRows_->setObjectName("sketch.mirror.rows");
+        sketchMirrorRows_->setSelectionMode(QAbstractItemView::NoSelection);sketchMirrorRows_->setMaximumHeight(115);
+        mirrorLayout->addWidget(sketchMirrorRows_);
+        auto* mirrorRoles=new QHBoxLayout;
+        auto* objects=new QPushButton("Objects");objects->setObjectName("sketch.mirror.role.objects");objects->setCheckable(true);
+        auto* axis=new QPushButton("Mirror Line");axis->setObjectName("sketch.mirror.role.axis");axis->setCheckable(true);
+        mirrorRoles->addWidget(objects);mirrorRoles->addWidget(axis);mirrorLayout->addLayout(mirrorRoles);
+        connect(objects,&QPushButton::clicked,this,[this]{sketchResponse(execute("sketch.mirrorRole",{{"role","objects"}}));view_->setFocus();});
+        connect(axis,&QPushButton::clicked,this,[this]{sketchResponse(execute("sketch.mirrorRole",{{"role","axis"}}));view_->setFocus();});
+        auto* mirrorActions=new QHBoxLayout;
+        auto* clear=new QPushButton("Clear");clear->setObjectName("sketch.mirror.clear");
+        auto* preview=new QPushButton("Preview");preview->setObjectName("sketch.mirror.preview");
+        mirrorActions->addWidget(clear);mirrorActions->addWidget(preview);mirrorLayout->addLayout(mirrorActions);
+        connect(clear,&QPushButton::clicked,this,[this]{sketchResponse(execute("sketch.mirrorClear"));});
+        connect(preview,&QPushButton::clicked,this,[this]{sketchResponse(execute("sketch.mirrorStagePreview"));});
+        auto* mirrorCommit=new QHBoxLayout;
+        auto* mirrorCancel=new QPushButton("Cancel Mirror");mirrorCancel->setObjectName("sketch.mirror.cancel");
+        auto* mirrorAccept=new QPushButton("OK");mirrorAccept->setObjectName("sketch.mirror.accept");
+        mirrorCommit->addWidget(mirrorCancel);mirrorCommit->addWidget(mirrorAccept);mirrorLayout->addLayout(mirrorCommit);
+        connect(mirrorCancel,&QPushButton::clicked,this,[this]{sketchResponse(execute("sketch.mirrorExit"));});
+        connect(mirrorAccept,&QPushButton::clicked,this,[this]{sketchResponse(execute("sketch.mirrorAccept"));});
+        auto* mirrorEscape=new QShortcut(QKeySequence(Qt::Key_Escape),sketchMirrorControls_);
+        mirrorEscape->setContext(Qt::WidgetWithChildrenShortcut);
+        connect(mirrorEscape,&QShortcut::activated,this,[this]{sketchResponse(execute("sketch.mirrorExit"));});
+        layout->addWidget(sketchMirrorControls_);sketchMirrorControls_->hide();
         auto* guidance=new QLabel("Select geometry in the canvas or below.\nShift-click adds to the selection.");guidance->setWordWrap(true);layout->addWidget(guidance);
         sketchSelectionTree_=new QTreeWidget;sketchSelectionTree_->setObjectName("sketch.selection");sketchSelectionTree_->setHeaderHidden(true);
         sketchSelectionTree_->setSelectionMode(QAbstractItemView::ExtendedSelection);sketchSelectionTree_->setMaximumHeight(145);layout->addWidget(sketchSelectionTree_);

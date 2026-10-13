@@ -310,6 +310,9 @@ private:
     QLineEdit* sketchFilletRadius_ = nullptr;
     QWidget* sketchOffsetControls_ = nullptr;
     QLineEdit* sketchOffsetDistance_ = nullptr;
+    QWidget* sketchMirrorControls_ = nullptr;
+    QLabel* sketchMirrorSummary_ = nullptr;
+    QListWidget* sketchMirrorRows_ = nullptr;
     QComboBox* sketchDimensionKind_ = nullptr;
     QDoubleSpinBox* sketchDimensionValue_ = nullptr;
     QCheckBox* sketchDimensionDriving_ = nullptr;

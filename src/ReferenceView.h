@@ -13,6 +13,7 @@
 #include <QSet>
 #include "GeometryKernel.h"
 class QContextMenuEvent;
+class QRubberBand;
 
 // GPU presentation only. Reference axes/grid are not authored document objects.
 class ReferenceView final : public QWidget {
@@ -51,6 +52,8 @@ public:
     void clearSweepPath();
     void setEditDisplay(const QString& sourceSketchId, const QJsonArray& hiddenBodyIds);
     QJsonObject pickSketch(const QJsonObject& feature, double x, double y, const QString& filter = {}, const QJsonObject& resolvedFrame = {}) const;
+    QJsonObject selectSketchWindow(const QJsonObject& feature, double x1, double y1, double x2, double y2,
+        const QJsonObject& resolvedFrame = {}) const;
     void decorateSketch(const QJsonObject& feature, const QJsonObject& selection,
         const QJsonObject& diagnostics, const QString& units, const QJsonObject& pending = {});
     QJsonObject dimensionLayout(const QJsonObject& feature, const QJsonObject& dimension,
@@ -183,6 +186,9 @@ private:
     QString annotationGestureId_;
     quint64 nextAnnotationGesture_ = 0;
     QPointF annotationPress_;
+    QPointF mirrorWindowPress_;
+    bool mirrorWindowActive_ = false;
+    QRubberBand* mirrorWindowBand_ = nullptr;
     bool annotationDragged_ = false;
     QString sketchPlane_, draftSketchId_;
     QJsonObject sketchFrame_;
