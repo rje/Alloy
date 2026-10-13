@@ -22,7 +22,7 @@ QJsonObject AlloyWindow::beginShell(const QJsonObject& overrides) {
     if(!session_.isEmpty())return shellFailure("session_busy","Complete or cancel the active command first");
     const auto error=validateArguments(*findCommand("solid.shell"),overrides);
     if(!error.isEmpty())return shellFailure("invalid_arguments",error);
-    QJsonObject inputs{{"targetBodyId",selectedFace_["bodyId"]},{"removedFace",selectedFace_},
+    QJsonObject inputs{{"targetBodyId",selectedFace_.value("bodyId")},{"removedFace",selectedFace_},
         {"thicknessMm",0.0},{"name","Shell"}};
     if(overrides.contains("featureId")){
         bool found=false;

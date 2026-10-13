@@ -10,7 +10,8 @@
         "GEO-002",
         "SKT-030",
         "SOL-025",
-        "SKT-021",
+        "SKT-031",
+        "PRT-005",
         "TUT-006"
       ],
       "acceptance": "Shell, mirror, face cuts, fillets and centered internal body retain editable references.",
@@ -20,7 +21,7 @@
       "id": "CP-09",
       "title": "Lofted and shelled egg cup",
       "issues": [
-        "SOL-012",
+        "SOL-026",
         "TUT-007"
       ],
       "acceptance": "Four ordered sections on offset planes, loft and inward shell produce a printable editable solid.",
@@ -30,6 +31,8 @@
       "id": "CP-10",
       "title": "Complete toy block with feature patterns and underside tubes",
       "issues": [
+        "SOL-027",
+        "SKT-032",
         "TUT-001"
       ],
       "acceptance": "Resolve public demonstration selections; complete shell, feature patterns, offset annulus, fillets, editable/reopened model and checked STL with full creation recording.",
