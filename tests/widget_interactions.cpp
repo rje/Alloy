@@ -89,22 +89,25 @@ private slots:
         for(const auto size:{QSize(1136,790),QSize(1040,640)}) {
             window.resize(size);
             QVERIFY2(run(window,"solid.moveDialog",{{"targetBodyId",body}}),error_.constData());
+            QCoreApplication::sendPostedEvents(nullptr,QEvent::DeferredDelete);
+            QCoreApplication::processEvents();
             auto* scroll=window.findChild<QScrollArea*>("move.formScroll");QVERIFY(scroll);
             auto* pivot=window.findChild<QDoubleSpinBox*>("pivotZMm");QVERIFY(pivot);
             auto* ok=window.findChild<QPushButton*>("move.ok");QVERIFY(ok);
             auto* cancel=window.findChild<QPushButton*>("move.cancel");QVERIFY(cancel);
-            QTRY_VERIFY(window.rect().contains(QRect(ok->mapTo(&window,QPoint()),ok->size())));
-            QVERIFY(window.rect().contains(QRect(cancel->mapTo(&window,QPoint()),cancel->size())));
-            const auto actions=QRect(cancel->mapTo(&window,QPoint()),cancel->size());
+            QTRY_VERIFY(window.rect().contains(QRect(ok->mapToGlobal(QPoint())-window.mapToGlobal(QPoint()),ok->size())));
+            QVERIFY(window.rect().contains(QRect(cancel->mapToGlobal(QPoint())-window.mapToGlobal(QPoint()),cancel->size())));
+            const auto actions=QRect(cancel->mapToGlobal(QPoint())-window.mapToGlobal(QPoint()),cancel->size());
             scroll->ensureWidgetVisible(pivot);QCoreApplication::processEvents();
             QVERIFY(scroll->viewport()->rect().contains(QRect(pivot->mapTo(scroll->viewport(),QPoint()),pivot->size())));
-            QCOMPARE(QRect(cancel->mapTo(&window,QPoint()),cancel->size()),actions);
+            QCOMPARE(QRect(cancel->mapToGlobal(QPoint())-window.mapToGlobal(QPoint()),cancel->size()),actions);
             if(size.height()==640)QVERIFY(scroll->verticalScrollBar()->maximum()>0);
             QTest::mouseClick(cancel,Qt::LeftButton);QTRY_VERIFY(session(window).isEmpty());
             QCoreApplication::sendPostedEvents(nullptr,QEvent::DeferredDelete);
             QCOMPARE(window.execute("document.inspect")["result"].toObject()["authored"].toObject(),authored);
         }
         QVERIFY2(run(window,"solid.moveDialog",{{"targetBodyId",body}}),error_.constData());
+        QCoreApplication::sendPostedEvents(nullptr,QEvent::DeferredDelete);
         QVERIFY2(run(window,"solid.moveHandle",{{"field","zMm"},{"value",2}}),error_.constData());
         auto* ok=window.findChild<QPushButton*>("move.ok");QVERIFY(ok);
         QTest::mouseClick(ok,Qt::LeftButton);QTRY_VERIFY(session(window).isEmpty());

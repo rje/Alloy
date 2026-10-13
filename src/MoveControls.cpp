@@ -4,6 +4,7 @@
 #include <QFormLayout>
 #include <QVBoxLayout>
 #include <QScrollArea>
+#include <QScrollBar>
 #include <QPushButton>
 #include <QComboBox>
 #include <QDoubleSpinBox>
@@ -75,5 +76,8 @@ void AlloyWindow::showMove() {
     auto* escape=new QShortcut(QKeySequence(Qt::Key_Escape),panel);escape->setContext(Qt::WidgetWithChildrenShortcut);connect(escape,&QShortcut::activated,panel,cancel);
     if(!moveEscape_){moveEscape_=new QShortcut(QKeySequence(Qt::Key_Escape),view_);moveEscape_->setContext(Qt::WidgetShortcut);connect(moveEscape_,&QShortcut::activated,this,cancel);}
     moveEscape_->setEnabled(true);
+    // Horizontal scrolling is disabled. Reserve the form minimum plus the
+    // vertical bar so its appearance cannot clip numeric fields at the right.
+    scroll->setMinimumWidth(contents->minimumSizeHint().width()+scroll->verticalScrollBar()->sizeHint().width());
     canvasWindow_->addDockWidget(Qt::RightDockWidgetArea,moveDock_);moveDock_->show();
 }

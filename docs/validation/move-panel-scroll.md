@@ -16,5 +16,12 @@ remain inside the window and fixed while scrolling, exercises Cancel without
 authored mutation and commits a Move using the visible OK button. This is
 synthesized QWidget evidence, separate from native input and actual captures.
 The private Qt 6.11.2 / OCCT 7.9.3 macOS arm64 app and widget test compile.
-The test is prepared but not run while another owner holds the desktop. Root/Astra should inspect the panel and
-click its actions at the originally failing height before closing the issue.
+The targeted widget run passes on the native macOS graphics session: three Qt
+passes, zero failures,1.738 s. Its first run found real horizontal clipping
+(234 px viewport, field reaching241 px) when the vertical bar appeared. The
+scroll now reserves form minimum width plus scrollbar width; viewport250 px
+fully contains the fields. Test controls are reacquired after prior dock deferred
+deletion, and footer coordinates use the existing global-coordinate conversion.
+No production Cancel crash was established. Root/Astra should independently
+inspect the panel and click its actions at the originally failing height before
+closing the issue.
