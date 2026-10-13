@@ -83,7 +83,11 @@ Root owns `tests/center_point_arc_slot_api.py`: prepared/syntax-checked only,
 not executed. It checks both slots in one sketch, source radius/H/V/radial-line/
 135-degree constraints, two analytic regions, radius edit and exact history/
 reopen. Wait for the author candidate and the sole private-editor lease before
-running. Root owns subsequent shared-API/cumulative checks and GitHub updates;
+running. Root also prepared `tests/control_point_spline_api.py` (syntax-only):
+mixed fit/control authoring, independent quadratic position/curvature/area oracles,
+comb presentation invariance, retained pole edit and exact history/reopen. Its
+command schema follows the independently cleared proposal and awaits runtime.
+Root owns subsequent shared-API/cumulative checks and GitHub updates;
 Sol implements and Astra independently verifies candidates.
 
 The first slot starts at its center: source prose conflicts with the pictured
