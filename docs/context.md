@@ -23,12 +23,13 @@ now independently accepted and closed (79fa11b/e805afb); main app builds.
 
 ## Current work — ornament tutorial (2026-10-13)
 
-The complete ornament lesson is tracked by #264, with prerequisites #260–263.
-Sol is implementing full-Revolve generated planar face support (#260) and
-retained open fit-spline Offset (#261) in isolated worktrees; Astra independently
-reviews their contracts and evidence. Root is proving Section Analysis (#262)
-in the actual GPU viewport; Circular Body Pattern (#263) remains Todo. The public source contract and archived visuals live
-outside the repository in the ornament-pattern knowledge record.
+The complete ornament lesson is tracked by #264, with prerequisites #260–263 and
+Boolean correction #265. #260 is accepted and closed; main app rebuild passes.
+Sol is validating retained open fit-spline Offset (#261). Section Analysis (#262)
+passes core, actual-app API and focused native lifecycle and awaits final Astra
+acceptance. Circular Body Pattern (#263) is now active in an isolated Sol lane.
+#265 remains Todo pending those inputs. Public sources/visuals stay external in
+the ornament-pattern knowledge record.
 
 Full-Revolve planar support #260 is independently accepted: actual 80/5/R50
 profile, generated bottom-face lineage, Inside Shell 5 mm, measured wall/opening,
