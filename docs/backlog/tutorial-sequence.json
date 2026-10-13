@@ -74,8 +74,24 @@
         "TUT-008"
       ],
       "acceptance": "Distinct Centerline and true diameter dimensions, automatic profile/axis selection, Partial angular drag then Full New Body, retained history and checked STL with full creation recording.",
+      "status": "done",
+      "remaining": "Accepted full API/artifact gate with separate bounded Qt interaction evidence. Learner-chosen profile dimensions, one reopen recovery and exact visual/physical-input limits remain explicit.",
+      "evidence": "docs/validation/revolve-tutorial.md"
+    },
+    {
+      "id": "CP-14",
+      "title": "Complete paper-clip Sweep from typed sketch lines",
+      "issues": [
+        "SKT-039",
+        "SKT-040",
+        "SOL-032",
+        "SOL-033",
+        "TUT-009"
+      ],
+      "acceptance": "Create the seven typed-length chained lines, paired fillets consuming three shared lines, front-plane diameter2 circle, retained full perpendicular Sweep and checked STL with full creation recording. Preserve visible span dimensions and distinguish native/API evidence.",
       "status": "in_progress",
-      "remaining": "Centerline and shared Revolve foundations in parallel; native controls and complete gate follow. Source leaves profile dimensions to learner; label chosen values."
+      "remaining": "Sweep foundation accepted; shared-line fillets and native Sweep active. Typed line locks and full tutorial gate remain Todo.",
+      "evidence": "docs/validation/solid-sweep.md"
     },
     {
       "id": "CP-12",
