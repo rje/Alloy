@@ -23,8 +23,10 @@ editors are closed. No release/tag or per-commit CI was triggered.
 96 of 219 issues are closed. Active work: Sol implements bounded nested
 profile/island coverage and diagnostics #165, and a second Sol implements
 retained-target Extrude Intersect #219 in separate worktrees. Astra independently
-verifies both. Intersect parent #161 retains broader operation-edit and typed-Return
-qualification as Todo. Split oversized remaining scope into linked Todo issues. Other broad parents remain Todo. The sections below are a chronological
+verifies both. Root also owns #132: repair native dependency options and run one
+manual milestone compile matrix after the current integrations. No tag/release
+or per-commit CI. Intersect parent #161 retains broader operation-edit and
+typed-Return qualification as Todo. Split oversized remaining scope into linked Todo issues. Other broad parents remain Todo. The sections below are a chronological
 record; older ownership, pending status and counts are historical.
 
 ## Overnight queue authorized (2026-10-12)
@@ -1971,3 +1973,14 @@ Final acceptance and board counts are root-owned. See
 [the source-step and visual receipt](validation/revolve-tutorial.md) and
 [runner](../tests/revolve_tutorial_api.py). No exact geometry/pixel/physical-input
 claim or broader Revolve-mode qualification follows.
+
+## Native milestone compile preflight (2026-10-13)
+
+Root patch2aac4a7 enables the six OCCT modules required by the current app,
+including ApplicationFramework/DataExchange that the older script disabled.
+Draw/DETools remain disabled. Build receipts record module choices and the pinned
+solver source/build contracts; historical native-targets.json stays unchanged.
+Astra independently source-reviewed the patch and found no blocker. Syntax and
+CMake component consistency checks pass. The actual four-target manual matrix
+will run once after current integrations; no remote compile/runtime success is
+claimed yet. #132 remains In Progress.
