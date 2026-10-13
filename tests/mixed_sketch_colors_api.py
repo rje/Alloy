@@ -55,7 +55,13 @@ def main():
             call('sketch.deleteSelection', {'dimensionId': dimension['id']})
             capture('underdefined-ellipse-free-conic', 8)
             call('sketch.cancel')
-            assert call('document.inspect')['authored'] == original
+            restored = call('document.inspect')
+            assert restored['authored'] == original
+            finished = next(s for s in restored['evaluation']['sketches'] if s['sketchId'] == sketch['id'])
+            assert finished['solver']['entityFreedom'][ellipse['id']]['fullyConstrained']
+            assert not finished['solver']['entityFreedom'][conic['id']]['fullyConstrained']
+            call('capture.screenshot', {'path': str(out/'finished-mixed-sketch.png')})
+            report['finishedSolver'] = finished['solver']
             report['status'] = 'api-pass'
     finally:
         report['callCount'] = len(transcript)
