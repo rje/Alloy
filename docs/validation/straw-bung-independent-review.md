@@ -40,3 +40,18 @@ separately in `join-independent-review.md`. Native Circle and Move controls,
 Move handle readability, and the complete uninterrupted native tutorial remain
 separate from this API gate. Historical references use unmatched viewport/theme
 and do not support an exact visual-equivalence claim.
+
+## Command-first Circle review
+
+Candidate `bf48371` was independently checked by source diff, focused widget/API
+receipt and implementing agent's physical native evidence. `sketch.circle` and C
+preserve the pending Circle tool through the disposable support chooser and
+reuse the existing authoritative circle authoring. The three native JSON states
+have tool Circle and radii13,9.5,3.1 mm; the supported frames have origins z3 and
+z11 mm. The third-circle capture visibly shows diameter6.2 and a fully
+constrained centered circle. Evidence lives in
+`../Alloy-worktrees/circle-entry/build-circle/evidence/native-*-circle.json/.png`.
+This bounded entry behavior is accepted for #175. The physical Create dropdown
+route remains unknown after unsuccessful automation attempts; its QAction route
+has focused Qt widget evidence. This review does not claim the dropdown was
+physically verified or that the entire native tutorial was replayed.
