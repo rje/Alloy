@@ -42,17 +42,21 @@ std::vector<EvaluatedSolidEdge> SolidFillet::prismEdges(BRepPrimAPI_MakePrism& p
 }
 std::vector<EvaluatedSolidEdge> SolidFillet::transferEdges(BRepAlgoAPI_BooleanOperation& operation,const std::vector<EvaluatedSolidEdge>& inputs,const TopoDS_Shape& solid) {
     TopTools_IndexedMapOfShape present;TopExp::MapShapes(solid,TopAbs_EDGE,present);
-    std::vector<EvaluatedSolidEdge> result;
+    struct Resolution {EvaluatedSolidEdge source;TopTools_IndexedMapOfShape candidates;bool ambiguous=false;};
+    QMap<QString,Resolution> groups;
     for(const auto& input:inputs) {
-        TopTools_IndexedMapOfShape candidates;
-        if(present.Contains(input.edge))candidates.Add(input.edge);
-        for(const auto& modified:operation.Modified(input.edge))if(modified.ShapeType()==TopAbs_EDGE && present.Contains(modified))candidates.Add(modified);
-        auto mapped=input;
-        if(candidates.Extent()==1){mapped.edge=TopoDS::Edge(candidates(1));mapped.provenance.remove("resolutionError");}
-        else {mapped.edge.Nullify();mapped.provenance["resolutionError"]=candidates.IsEmpty() ? "deleted" : "ambiguous_split";}
-        auto duplicate=std::find_if(result.begin(),result.end(),[&](const auto& edge){return edge.edgeId==mapped.edgeId;});
-        if(duplicate==result.end())result.push_back(mapped);
-        else if(!duplicate->edge.IsNull() && !mapped.edge.IsNull() && !duplicate->edge.IsSame(mapped.edge)){duplicate->edge.Nullify();duplicate->provenance["resolutionError"]="ambiguous_sources";}
+        auto& group=groups[input.edgeId];if(group.source.edgeId.isEmpty())group.source=input;
+        group.ambiguous|=input.provenance["resolutionError"].toString().startsWith("ambiguous");
+        if(input.edge.IsNull())continue;
+        if(present.Contains(input.edge))group.candidates.Add(input.edge);
+        for(const auto& modified:operation.Modified(input.edge))if(modified.ShapeType()==TopAbs_EDGE && present.Contains(modified))group.candidates.Add(modified);
+    }
+    std::vector<EvaluatedSolidEdge> result;
+    for(const auto& group:groups) {
+        auto mapped=group.source;
+        if(!group.ambiguous && group.candidates.Extent()==1){mapped.edge=TopoDS::Edge(group.candidates(1));mapped.provenance.remove("resolutionError");}
+        else {mapped.edge.Nullify();mapped.provenance["resolutionError"]=group.ambiguous || group.candidates.Extent()>1 ? "ambiguous_split" : "deleted";}
+        result.push_back(mapped);
     }
     return result;
 }

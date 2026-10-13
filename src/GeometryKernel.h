@@ -47,6 +47,7 @@ struct EvaluatedDocument {
     std::vector<EvaluatedBody> bodies;
     std::vector<EvaluatedSketch> sketches;
     std::vector<QString> featureOrder;
+    QJsonObject joinBodyResults;
 };
 
 // Small OCCT boundary. Authored values and presentation objects stay elsewhere.
@@ -59,13 +60,16 @@ public:
     private:
         QJsonObject diagnostics_;
     };
+    struct JoinResult {std::vector<EvaluatedBody> bodies;QJsonArray ownership;};
+    static JoinResult joinResults(const QJsonObject& feature, const std::vector<EvaluatedBody>& participants,
+        const std::vector<EvaluatedProfile>& profiles);
     static gp_Trsf moveTransform(const QJsonObject& parameters);
     static TopoDS_Shape primitive(const QString& type, const QJsonObject& parameters);
     static EvaluatedSupportFace resolveSketchSupport(const EvaluatedDocument& evaluation, const QJsonObject& support);
     static QJsonArray supportEdgeDescriptors(const EvaluatedSupportFace& support);
     static QJsonObject projectionContext(const EvaluatedDocument& evaluation, const QJsonObject& feature);
     static EvaluatedProfile unionProfiles(const std::vector<EvaluatedProfile>& profiles);
-    static TopoDS_Shape extrusion(const EvaluatedProfile& profile, double distanceMm, EvaluatedSupportFace* endCap = nullptr);
+    static TopoDS_Shape extrusion(const EvaluatedProfile& profile, double distanceMm, EvaluatedSupportFace* endCap = nullptr, std::vector<EvaluatedSolidEdge>* edges = nullptr, const QString& generatorFeatureId = {});
     static TopoDS_Shape booleanOperation(const QString& operation, const TopoDS_Shape& target,
         const std::vector<TopoDS_Shape>& tools);
     static QJsonObject summarize(const TopoDS_Shape& shape);

@@ -28,7 +28,7 @@ target_include_directories(alloy_sketch_solver PUBLIC src)
 target_link_libraries(alloy_sketch_solver PUBLIC Qt6::Core PRIVATE alloy_planegcs)
 
 add_library(alloy_kernel STATIC
-    src/GeometryKernel.cpp src/GeometryKernel.h src/SolidFillet.cpp src/SolidFillet.h
+    src/GeometryKernel.cpp src/GeometryKernel.h src/SolidFillet.cpp src/SolidFillet.h src/JoinResults.cpp
     src/MeshExport.cpp src/MeshExport.h
     src/StepExchange.cpp src/StepExchange.h
     src/SketchGeometry.cpp src/SketchTrim.cpp src/SketchGeometry.h
@@ -135,6 +135,10 @@ if(BUILD_TESTING)
     target_include_directories(overlap_regions_test PRIVATE src)
     target_link_libraries(overlap_regions_test PRIVATE Qt6::Gui alloy_kernel)
     add_test(NAME overlap_regions COMMAND overlap_regions_test)
+    add_executable(successive_join_test tests/successive_join.cpp src/CadDocument.cpp src/CadDocument.h)
+    target_include_directories(successive_join_test PRIVATE src)
+    target_link_libraries(successive_join_test PRIVATE Qt6::Gui alloy_kernel)
+    add_test(NAME successive_join COMMAND successive_join_test)
     add_executable(face_support_test tests/face_support.cpp src/CadDocument.cpp src/CadDocument.h)
     target_include_directories(face_support_test PRIVATE src)
     target_link_libraries(face_support_test PRIVATE Qt6::Gui alloy_kernel)

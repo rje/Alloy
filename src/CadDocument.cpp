@@ -17,6 +17,7 @@
 #include <stdexcept>
 
 namespace {
+bool resultOwns(const QJsonObject& feature,const QJsonValue& body) {for(const auto& value:feature["bodyResults"].toArray())if(value.toObject()["bodyId"]==body)return true;return false;}
 bool validId(const QString& id) { return !QUuid(id).isNull() && QUuid(id).toString(QUuid::WithoutBraces) == id; }
 QJsonObject dependencyError(const QJsonObject& candidate) {
     const auto features = candidate["features"].toArray();
@@ -26,6 +27,7 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
     for (int i = 0; i < features.size(); ++i) {
         const auto feature = features[i].toObject();
         if (feature.contains("bodyId")) bodyPositions[feature["bodyId"].toString()] = i;
+        for(const auto& value:feature["bodyResults"].toArray()) {const auto record=value.toObject();if(record["participantBodyIds"].toArray().isEmpty())bodyPositions[record["bodyId"].toString()]=i;}
     }
     QSet<QString> activeBodies;
     for (int i = 0; i < features.size(); ++i) {
@@ -66,17 +68,19 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
             QJsonObject diagnostic{{"featureId",feature["id"]},{"featureType","sketch"},{"support",support}};
             if(!positions.contains(producer)){diagnostic["code"]="missing_dependency";diagnostic["message"]="Sketch support producer does not exist";}
             else if(positions[producer]>=i){diagnostic["code"]="forward_dependency";diagnostic["message"]="Sketch support producer must precede its sketch";}
-            else if(features[positions[producer]].toObject()["type"]!="extrude" || (features[positions[producer]].toObject()["bodyId"]!=support["bodyId"] && !features[positions[producer]].toObject()["parameters"].toObject()["targetBodyIds"].toArray().contains(support["bodyId"]))){diagnostic["code"]="unsupported_dependency";diagnostic["message"]="Sketch support requires its exact extrusion producer/body";}
+            else if(features[positions[producer]].toObject()["type"]!="extrude" || (features[positions[producer]].toObject()["bodyId"]!=support["bodyId"] && !features[positions[producer]].toObject()["parameters"].toObject()["targetBodyIds"].toArray().contains(support["bodyId"]) && !resultOwns(features[positions[producer]].toObject(),support["bodyId"]))){diagnostic["code"]="unsupported_dependency";diagnostic["message"]="Sketch support requires its exact extrusion producer/body";}
             else if(!activeBodies.contains(body)){diagnostic["code"]="consumed_dependency";diagnostic["message"]="Sketch support body was consumed earlier in history";}
             else continue;
             return diagnostic;
         }
         if(feature["type"]=="extrude" && (feature["parameters"].toObject()["operation"]=="cut" || feature["parameters"].toObject()["operation"]=="join")) {
-            const auto target=feature["parameters"].toObject()["targetBodyIds"].toArray()[0].toString();
+            for(const auto& value:feature["parameters"].toObject()["targetBodyIds"].toArray()) {const auto target=value.toString();
             QJsonObject diagnostic{{"featureId",feature["id"]},{"featureType","extrude"},{"targetBodyId",target}};
             if(!bodyPositions.contains(target)){diagnostic["code"]="missing_dependency";diagnostic["message"]="Extrusion target body does not exist";return diagnostic;}
             if(bodyPositions.value(target)>=i){diagnostic["code"]="forward_dependency";diagnostic["message"]="Extrusion target must precede its modifier";return diagnostic;}
-            if(!activeBodies.contains(target)){diagnostic["code"]="consumed_dependency";diagnostic["message"]="Extrusion target was consumed by an earlier feature";return diagnostic;}
+            if(!activeBodies.contains(target)){diagnostic["code"]="consumed_dependency";diagnostic["message"]="Extrusion target was consumed by an earlier feature";return diagnostic;}}
+            QSet<QString> survivors;for(const auto& value:feature["bodyResults"].toArray())survivors.insert(value.toObject()["bodyId"].toString());
+            if(!survivors.isEmpty()) {for(const auto& value:feature["parameters"].toObject()["targetBodyIds"].toArray())if(!survivors.contains(value.toString()))activeBodies.remove(value.toString());activeBodies.unite(survivors);}
         }
         if (feature["type"] != "extrude") continue;
         const auto parameters = feature["parameters"].toObject();
@@ -193,7 +197,11 @@ CadDocument::CandidateEvaluation CadDocument::evaluateCandidate(const QJsonObjec
     try {
         const auto solved = solveSketches(candidate);
         auto evaluated = std::make_shared<const EvaluatedDocument>(GeometryKernel::evaluateDocument(solved));
-        result.authored = solved; result.evaluation = std::move(evaluated); result.ok = true;
+        result.authored = solved;
+        auto normalized=solved["features"].toArray();
+        for(int i=0;i<normalized.size();++i){auto feature=normalized[i].toObject();if(evaluated->joinBodyResults.contains(feature["id"].toString())){feature["bodyResults"]=evaluated->joinBodyResults[feature["id"].toString()];normalized[i]=feature;}}
+        result.authored["features"]=normalized;
+        result.evaluation = std::move(evaluated); result.ok = true;
         result.diagnostics = {{"code","evaluated"},{"recompute","full_ordered"},{"featureCount",solved["features"].toArray().size()}};
     } catch (const GeometryKernel::EvaluationError& error) {result.diagnostics = error.diagnostics();result.error = QString::fromUtf8(error.what());}
       catch (const Standard_Failure& error) {
@@ -281,13 +289,15 @@ QJsonObject CadDocument::extrusionCandidate(const QJsonObject& authored, const Q
     if(!edit) {
         feature={{"id",newFeature ? arguments["newFeatureId"] : QJsonValue(newId())},{"ownerId",authored["documentId"]},{"type","extrude"},{"name",cut ? (operation=="join" ? "Extrude Join" : "Extrude Cut") : "Extrude"},{"visible",true}};
         if(!cut)feature["bodyId"]=newBody ? arguments["newBodyId"] : QJsonValue(newId());
+        if(operation=="join")feature["bodyResults"]=QJsonArray{};
     }
     if (arguments.contains("name")) feature["name"] = arguments["name"];
     if(arguments.contains("profileId")==arguments.contains("profileIds"))reject("Choose profileId or profileIds exclusively");
     auto profileParameters=QJsonObject{{"sketchId",arguments["sketchId"]},{"distanceMm",arguments["distanceMm"]}};
     if(cut) {
         const auto targets=arguments.contains("targetBodyIds") ? arguments["targetBodyIds"] : previousParameters["targetBodyIds"];
-        if(!targets.isArray() || targets.toArray().size()!=1 || !targets.toArray()[0].isString() || !validId(targets.toArray()[0].toString()))reject("Join/Cut requires exactly one explicit stable targetBodyIds entry");
+        if(!targets.isArray() || targets.toArray().isEmpty() || (operation=="cut" && targets.toArray().size()!=1))reject("Join requires participants; Cut requires one target");
+        QSet<QString> chosen;for(const auto& value:targets.toArray()){if(!value.isString() || !validId(value.toString()) || chosen.contains(value.toString()))reject("Join/Cut targets must be distinct stable body IDs");chosen.insert(value.toString());}
         profileParameters["operation"]=operation;profileParameters["targetBodyIds"]=targets;
     }
     if(arguments.contains("profileIds")) {
@@ -439,11 +449,25 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
         const bool cut=type=="extrude" && (p["operation"]=="cut" || p["operation"]=="join");
         if(cut) {
             if(feature.contains("bodyId"))return "Extrude Join/Cut modifies a target and cannot own a new body ID";
-            if(!p["targetBodyIds"].isArray() || p["targetBodyIds"].toArray().size()!=1 || !p["targetBodyIds"].toArray()[0].isString() || !validId(p["targetBodyIds"].toArray()[0].toString()))return "Join/Cut requires exactly one stable targetBodyIds entry";
+            if(!p["targetBodyIds"].isArray() || p["targetBodyIds"].toArray().isEmpty() || ((p["operation"]=="cut" || !feature.contains("bodyResults")) && p["targetBodyIds"].toArray().size()!=1))return "Join requires participants; Cut and legacy Join require one target";
+            QSet<QString> targets;for(const auto& value:p["targetBodyIds"].toArray()){if(!value.isString() || !validId(value.toString()) || targets.contains(value.toString()))return "Join/Cut targets must be distinct stable body IDs";targets.insert(value.toString());}
         } else {
             const auto bodyId = feature["bodyId"].toString();
             if (!validId(bodyId) || ids.contains(bodyId)) return "Invalid or duplicate authored UUID";
             ids.insert(bodyId);
+        }
+        if(feature.contains("bodyResults")) {
+            if(type!="extrude" || p["operation"]!="join" || !feature["bodyResults"].isArray())return "Body-result ownership belongs to Extrude Join only";
+            QSet<QString> resultIds,participating,profiles;
+            for(const auto& value:feature["bodyResults"].toArray()) {
+                const auto record=value.toObject();const auto body=record["bodyId"].toString();
+                if(!value.isObject() || record.size()!=3 || !validId(body) || resultIds.contains(body) || !record["participantBodyIds"].isArray() || !record["profileIds"].isArray() || record["profileIds"].toArray().isEmpty())return "Invalid Join body-result ownership";
+                resultIds.insert(body);const auto participants=record["participantBodyIds"].toArray();
+                if(participants.isEmpty()){if(ids.contains(body))return "Created Join body ID must be unique";ids.insert(body);}else if(body!=participants.first().toString())return "Join result retains its first ordered participant";
+                for(const auto& participant:participants){if(!participant.isString() || !validId(participant.toString()) || participating.contains(participant.toString()))return "Invalid Join participant ownership";participating.insert(participant.toString());}
+                for(const auto& profile:record["profileIds"].toArray()){if(!profile.isString() || !validId(profile.toString()) || profiles.contains(profile.toString()))return "Invalid Join source ownership";profiles.insert(profile.toString());}
+            }
+
         }
         if (type == "extrude") {
             if (errorContext) {(*errorContext)["sketchId"] = p["sketchId"];(*errorContext)["profileId"] = p["profileId"];}
@@ -499,7 +523,7 @@ QJsonObject CadDocument::state() const {
         {"revision", static_cast<qint64>(revision_)}, {"dirty", !history_.isClean()},
         {"lastTransactionId", lastTransaction_},
         {"features", authored_["features"].toArray().size()}, {"bodies",static_cast<int>(evaluation_->bodies.size())}, {"sketches", static_cast<int>(evaluation_->sketches.size())},
-        {"evaluation",QJsonObject{{"status","current"},{"recompute","full_ordered"},{"featureOrder",order},
+        {"evaluation",QJsonObject{{"status","current"},{"recompute","full_ordered"},{"featureOrder",order},{"joinBodyResults",evaluation_->joinBodyResults},
             {"documentRevision",static_cast<qint64>(revision_)},{"bodies",evaluated},{"sketches",evaluatedSketches}}},
         {"editableHistory", true}, {"authored", authored_},
         {"undo", QJsonObject{{"canUndo", history_.canUndo()}, {"canRedo", history_.canRedo()},

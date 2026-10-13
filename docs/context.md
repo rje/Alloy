@@ -1420,3 +1420,22 @@ reached Qt during the blocked interval. Build passes; narrow capture widget and
 native menu→Move verification await the serialized desktop slot. Source-backed
 capture correction is distinct from unproved command/AX defects. No Qt patch or
 push/closure. See `validation/popup-capture.md`.
+
+
+### Successive Join candidate (SOL-020 #176)
+
+Isolated candidate contract: `research/successive-join.md`. New Extrude Join
+features author ordered participants and normalized per-connected-solid
+`bodyResults` ownership. Detached outputs reserve stable feature/source UUIDs;
+later merges retain the first participant and consume the other IDs. Legacy Join
+files, Cut, New Body and Combine retain their existing single-solid policies.
+Kernel history preserves unique unchanged earlier cap descendants, including
+original disk cap at z20. Preview/API expose all outputs through shared state;
+Browser bodies remain individually connected solids. Changed connectivity fails
+atomically instead of silently reassigning identities.
+
+Private Qt/OCCT full build and six focused core/regression checks pass, including
+source 20/4/24/22 geometry, 1/2/2/1 connected bodies, retained depth edit/history/
+reopen and consumed-reference refusal. `tests/successive_join_api.py` awaits the
+integrated real-app/native review. This is a candidate, not accepted compatibility;
+reference Browser was collapsed and its exact intermediate body count is unknown.

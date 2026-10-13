@@ -2,6 +2,7 @@
 #include <gp_Ax1.hxx>
 #include <gp_Trsf.hxx>
 #include "GeometryKernel.h"
+#include "SolidFillet.h"
 #include "SketchGeometry.h"
 #include "StepExchange.h"
 #include <BRepBndLib.hxx>
@@ -185,7 +186,7 @@ EvaluatedProfile GeometryKernel::unionProfiles(const std::vector<EvaluatedProfil
     return {id,first.sketchId,first.plane,united,summary,lineage};
 }
 
-TopoDS_Shape GeometryKernel::extrusion(const EvaluatedProfile& profile, double distanceMm, EvaluatedSupportFace* endCap) {
+TopoDS_Shape GeometryKernel::extrusion(const EvaluatedProfile& profile, double distanceMm, EvaluatedSupportFace* endCap, std::vector<EvaluatedSolidEdge>* edges, const QString& generatorFeatureId) {
     if (!std::isfinite(distanceMm) || std::abs(distanceMm) < 0.001 || std::abs(distanceMm) > 100000)
         throw std::invalid_argument("Extrusion distance must be signed 0.001..100000 mm; zero is unsupported");
     if (profile.face.IsNull() || !BRepCheck_Analyzer(profile.face).IsValid())
@@ -197,6 +198,7 @@ TopoDS_Shape GeometryKernel::extrusion(const EvaluatedProfile& profile, double d
         normal[1].toDouble()*distanceMm,normal[2].toDouble()*distanceMm),true,true);
     if (!prism.IsDone()) throw std::runtime_error("OCCT could not build the profile extrusion");
     const auto shape = prism.Shape();
+    if(edges) *edges=SolidFillet::prismEdges(prism,profile,generatorFeatureId);
     if(endCap && distanceMm>0) {
         const auto cap=prism.LastShape();
         if(cap.IsNull() || cap.ShapeType()!=TopAbs_FACE || BRepAdaptor_Surface(TopoDS::Face(cap)).GetType()!=GeomAbs_Plane)
@@ -449,7 +451,7 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored) 
                     std::erase_if(evaluated.bodies,[&](const auto& body){return toolIds.contains(body.bodyId);});
             } else {
                 TopoDS_Shape shape;
-                QJsonObject summary;std::vector<EvaluatedSupportFace> supportFaces;
+                QJsonObject summary;std::vector<EvaluatedSupportFace> supportFaces;std::vector<EvaluatedSolidEdge> solidEdges;
                 if (type == "extrude") {
                     const auto sketchId = parameters["sketchId"].toString();
                     const bool plural=parameters.contains("profileIds");
@@ -466,6 +468,20 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored) 
                         if(found==source.profiles.end()) {context["code"]="profile_unavailable";context["message"]="The referenced profile no longer exists; repair the sketch or select a current closed profile";
                             context["missingProfileId"]=requested;context["profileDiagnostics"]=source.summary["profileDiagnostics"];throw EvaluationError(context);}
                         selected.push_back(*found);}
+                    if(parameters["operation"]=="join" && feature.contains("bodyResults")) {
+                        std::vector<EvaluatedBody> participants;
+                        const auto targets=parameters["targetBodyIds"].toArray();
+                        for(const auto& targetId:targets) {
+                            const auto found=std::find_if(evaluated.bodies.begin(),evaluated.bodies.end(),[&](const auto& body){return body.bodyId==targetId.toString();});
+                            if(found==evaluated.bodies.end())reject("body_unavailable","Join requires active earlier participant bodies");
+                            participants.push_back(*found);
+                        }
+                        auto joined=joinResults(feature,participants,selected);
+                        std::erase_if(evaluated.bodies,[&](const auto& body){return targets.contains(body.bodyId);});
+                        evaluated.bodies.insert(evaluated.bodies.end(),joined.bodies.begin(),joined.bodies.end());
+                        evaluated.joinBodyResults[id]=joined.ownership;
+                        evaluated.featureOrder.push_back(id);continue;
+                    }
                     if(parameters["operation"]=="cut" || parameters["operation"]=="join") {
                         const bool joining=parameters["operation"]=="join";
                         const auto targets=parameters["targetBodyIds"].toArray();context["targetBodyIds"]=targets;context["operation"]=parameters["operation"];
@@ -504,7 +520,8 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored) 
                     }
                     const auto united=unionProfiles(selected);const double distance=parameters["distanceMm"].toDouble();
                     EvaluatedSupportFace cap;
-                    shape=extrusion(united,distance,&cap);summary=summarize(shape);
+                    shape=extrusion(united,distance,&cap,&solidEdges,id);summary=summarize(shape);
+                    summary["solidEdges"]=SolidFillet::descriptors(solidEdges);
                     if(!cap.face.IsNull()) {
                         cap.producerFeatureId=id;cap.bodyId=feature["bodyId"].toString();
                         cap.faceId=QUuid::createUuidV5(QUuid(id),QByteArray("alloy-face/extrude-end-cap/1")).toString(QUuid::WithoutBraces);
@@ -516,7 +533,7 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored) 
                     summary["sourceEntityIds"]=united.summary["sourceEntityIds"];summary["sourceAreaMm2"]=united.summary["areaMm2"];
                     summary["analyticVolumeMm3"]=united.summary["areaMm2"].toDouble()*std::abs(distance);
                 } else {shape = primitive(type,parameters);summary = summarize(shape);}
-                evaluated.bodies.push_back({id,feature["bodyId"].toString(),feature["name"].toString(),feature["visible"].toBool(),shape,summary,supportFaces});
+                evaluated.bodies.push_back({id,feature["bodyId"].toString(),feature["name"].toString(),feature["visible"].toBool(),shape,summary,supportFaces,solidEdges});
             }
             evaluated.featureOrder.push_back(id);
         } catch (const EvaluationError&) {throw;}
