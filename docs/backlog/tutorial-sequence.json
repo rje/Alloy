@@ -109,8 +109,9 @@
         "SOL-034"
       ],
       "acceptance": "Typed two-point Rectangle, sequential fillets, retained rounded-loop offset/rim, two-point Circle cut, hole fillet and editable placed text Join, with full creation movie and checked STL.",
-      "status": "in_progress",
-      "remaining": "Seven bounded children queued; two-point Rectangle #227 and text geometry #231 accepted; rounded fillets #228 accepted; native text placement #232 accepted; rounded-loop Offset #229 and two-point Circle #230 accepted; Cut rim provenance #236 active before full gate #233. Source adaptations and font provenance must remain explicit. Public source contract is external."
+      "status": "done",
+      "remaining": "None for bounded illustrated source/API/artifact gate. Reference-span conversion, font and placement choices, API movie and native child evidence limits remain explicit; driving overall fillet dimensions stay #235.",
+      "evidence": "docs/validation/keyring-tutorial.md"
     },
     {
       "id": "CP-12",

@@ -90,6 +90,9 @@ pinned-font initials on a planar face as selectable OCCT profiles. DSB and DS8
 raise through the existing Join path. Independently accepted
 [native placement controls](docs/validation/sketch-text-controls.md) add pinned
 regular/bold fonts, preview/Cancel and on-canvas move/rotation handles.
+The complete [initials keyring lesson](docs/validation/keyring-tutorial.md) now
+combines a rounded outline, retained inward Offset, raised rim, filleted bore and
+placed raised text, with a full creation movie and independently checked STL.
 The completed bracket can be exported as one valid STEP solid or a closed STL
 mesh. A full-size design and millimeter STEP/STL plus a labeled 0.2-scale STL
 print sample have [independent readback evidence](docs/validation/bracket-exchange.md).

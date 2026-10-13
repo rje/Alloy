@@ -11,16 +11,16 @@ requests otherwise; the MIT license and long-term open-source product goal are
 unchanged.
 
 The nested cubes #172, egg cup #173, toy block #146, die #147 and subsequent
-Centerline/Revolve #217 and paper-clip #225 tutorial gates are accepted and
+Centerline/Revolve #217, paper-clip #225 and initials-keyring #233 tutorial gates are accepted and
 closed. Their receipts
 separate full API creation movies/editable files/checked STL from bounded Qt
 input evidence and explicit source adaptations. Physical OS input and exact
 visual parity remain qualified. The external
-`../Alloy-reference-records/demos/2026-10-13/index.html` links all six movies,
+`../Alloy-reference-records/demos/2026-10-13/index.html` links all seven movies,
 editable models and STL deliverables. The Revolve receipt is
 [validation/revolve-tutorial.md](validation/revolve-tutorial.md).
 
-**114 of 236 issues are closed.** Recent accepted work includes compact ribbon
+**115 of 236 issues are closed.** Recent accepted work includes compact ribbon
 icons #218, retained Extrude Intersect #219, nested profile/island diagnostics
 #165, portable local controls #220, shared-line fillets #221, typed Line length
 locks #222, retained Sweep #223 and native Sweep controls #224. Each has a scoped
@@ -43,7 +43,7 @@ reference-span conversion is disclosed. No full tutorial replay was needed for
 the symbol-only change. The private GUI slot is free after #233 recording; keep only one private
 validation editor open at a time.
 
-**Active: full keyring gate #233.**
+**Keyring gate #233 is accepted and closed; next tutorial research is active.**
 Luna identified the illustrated initials-keyring lesson externally; Astra
 independently checked all six source pages. Seven bounded issues #227–233 now
 queue typed two-point Rectangle, overall fillet annotations, rounded-loop Offset,
@@ -60,13 +60,14 @@ capture is readable. Independent visual review accepted and closed #230; the ear
 overlap was capture-before-queued-layout, requiring no production layout fix. Full gate #233
 runner preparation is committed (3d465da), with bore-clear text placement fixed
 at14b789e after independent preflight. All prerequisites including Cut rim #236
-are accepted, integrated and closed. The cumulative blank-to-Save/movie/STL chain passed through the real application
-with runner a50a000; Astra independent review is pending. External deliverables
-`deliverables/initials-keyring-2026-10-13` contain the source, 26398-facet one-
-component STL and full report. The 63.8-second creation movie is in
-`demos/2026-10-13/initials-keyring`. Text clearance, same-slot edit/history and
-exact reopen passed; failed runner setup/framing attempts remain separately
-archived and are not acceptance evidence. The private editor is closed.
+are accepted, integrated and closed. The cumulative blank-to-Save/movie/STL chain is independently accepted and closed
+by receipt validation/keyring-tutorial.md (59f94eb, integrated9da32a9). External
+`deliverables/initials-keyring-2026-10-13` has the source, 26398-facet one-component
+STL and report; `demos/2026-10-13/initials-keyring` has the 63.8-second movie.
+Text clearance, same-slot edit/history and exact reopen pass. The seven-card
+gallery links all final artifacts; earlier failed runner attempts remain separate.
+Luna is researching the next short public tutorial externally; no new feature
+issue or implementation is claimed before its concrete recommendation.
 Follow-up #235 tracks driving overall size/origin retention through
 sketch fillets; #228 permits explicit measured-span conversion, so radius edits
 can alter overall size. Text retains authored parameters and uses mature font
