@@ -44,3 +44,27 @@ The authored original outer shape remains unchanged. No approximation or
 parameter/tolerance relaxation is used. Full eight-rib Join/tutorial acceptance
 remains #265/#264; this receipt accepts only its Shell prerequisite pending
 independent review.
+
+## Independent acceptance
+
+Astra independently reviewed candidate `c715ed8`, including bounded admission,
+actual revolution axis/frame, exact circle/axis roots, non-destructive Cut and
+selected disk lineage. Unsupported radius/root classification was corrected to
+fall through before this review completed. The original input BRep byte check,
+source/control oracle volumes and Boolean validity are asserted by the focused
+core fixture; the existing ordinary Shell fixture also passes (final 2/2 log).
+
+Independent review of actual API evidence confirms the source prefix now reaches
+one valid Intersect member, and source-to-85/R55 edit/history/reopen preserves
+the cap UUID and expected volumes. The disposable cavity's preserved before/after
+BRep diff changes only its root Free flag. Corrected neutral source/control GPU
+captures show the entire flat bottom cap, inner lower cusp and continuous
+hatched wall without origin or sketch obstruction. Hardware state identifies
+Apple M4. These API/capture checks are distinct from historical native controls;
+no new native input replay is claimed or needed for unchanged controls.
+
+Accepted as the disclosed bounded exact circular closed-cap Shell policy and
+prerequisite. Its section is qualitatively consistent with the archived source's
+apparent lower floor; unmatched view/scale and obscured source boundary leave
+exact topology compatibility unknown. This does not accept the eight-rib Join,
+final bore/STL or full tutorial. No additional test replay was performed.
