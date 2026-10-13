@@ -49,6 +49,16 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
                 return {{"featureId",feature["id"]},{"featureType",feature["type"]},{"bodyId",body},{"code","body_unavailable"},{"message","Solid modifier requires an active earlier body"}};
             continue;
         }
+        if(feature["type"]=="mirror") {
+            const auto parameters=feature["parameters"].toObject();const auto source=parameters["sourceBodyId"].toString();
+            const auto plane=parameters["mirrorPlane"].toObject();const auto planeBody=plane["bodyId"].toString();
+            for(const auto& body:{source,planeBody})if(!bodyPositions.contains(body) || bodyPositions[body]>=i || !activeBodies.contains(body))
+                return {{"featureId",feature["id"]},{"featureType","mirror"},{"bodyId",body},{"code","body_unavailable"},{"message","Mirror source and plane body must be active earlier in history"}};
+            const auto producer=plane["producerFeatureId"].toString();
+            if(!positions.contains(producer) || positions[producer]>=i)
+                return {{"featureId",feature["id"]},{"featureType","mirror"},{"code","plane_unavailable"},{"message","Mirror plane producer must precede this feature"}};
+            continue;
+        }
         if (feature["type"] == "boolean") {
             const auto parameters = feature["parameters"].toObject();
             const auto target = parameters["targetBodyId"].toString();
@@ -354,6 +364,21 @@ QJsonObject CadDocument::shellCandidate(const QJsonObject& authored,const QJsonO
     if(index>=0)features[index]=feature;else features.append(feature);candidate["features"]=features;
     const auto error=validateStructure(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());return candidate;
 }
+QJsonObject CadDocument::mirrorCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
+    const QSet<QString> allowed{"sourceBodyId","mirrorPlane","name","featureId","newFeatureId","newBodyId"};
+    for(auto it=arguments.begin();it!=arguments.end();++it)if(!allowed.contains(it.key()))throw std::invalid_argument("Unknown Mirror argument");
+    if(arguments.contains("featureId") && (arguments.contains("newFeatureId") || arguments.contains("newBodyId")))throw std::invalid_argument("Choose existing or new Mirror identity");
+    auto candidate=authored;auto features=candidate["features"].toArray();QJsonObject feature;int index=-1;
+    if(arguments.contains("featureId")){
+        for(int i=0;i<features.size();++i)if(features[i].toObject()["id"]==arguments["featureId"]){feature=features[i].toObject();index=i;break;}
+        if(index<0 || feature["type"]!="mirror")throw std::invalid_argument("Mirror feature unavailable");
+    }else feature={{"id",arguments.value("newFeatureId").toString(newId())},{"ownerId",authored["documentId"]},
+        {"bodyId",arguments.value("newBodyId").toString(newId())},{"type","mirror"},{"name","Mirror"},{"visible",true}};
+    if(arguments.contains("name"))feature["name"]=arguments["name"];
+    feature["parameters"]=QJsonObject{{"sourceBodyId",arguments["sourceBodyId"]},{"mirrorPlane",arguments["mirrorPlane"]}};
+    if(index>=0)features[index]=feature;else features.append(feature);candidate["features"]=features;
+    const auto error=validateStructure(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());return candidate;
+}
 QJsonObject CadDocument::moveCandidate(const QJsonObject& authored, const QJsonObject& arguments) {
     const QSet<QString> allowed{"targetBodyId","xMm","yMm","zMm","xDeg","yDeg","zDeg","pivotXMm","pivotYMm","pivotZMm","name","featureId","newFeatureId","steps"};
     for(auto it=arguments.begin();it!=arguments.end();++it)if(!allowed.contains(it.key()))throw std::invalid_argument("Unknown Move argument");
@@ -485,6 +510,13 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
             const auto face=p["removedFace"].toObject();
             if(face.size()!=3 || face["bodyId"]!=p["targetBodyId"] || !validId(face["producerFeatureId"].toString()) || !validId(face["bodyId"].toString()) || !validId(face["faceId"].toString()))return "Shell requires one stable face on its target body";
             if(!p["thicknessMm"].isDouble() || !std::isfinite(p["thicknessMm"].toDouble()) || p["thicknessMm"].toDouble()<0.001 || p["thicknessMm"].toDouble()>100000)return "Shell thickness must be 0.001..100000 mm";
+            continue;
+        }
+        if(type=="mirror") {
+            if(!validId(feature["bodyId"].toString()) || ids.contains(feature["bodyId"].toString()) || p.size()!=2 || !validId(p["sourceBodyId"].toString()) || !p["mirrorPlane"].isObject())return "Mirror requires new body identity, one source body and a planar reference";
+            ids.insert(feature["bodyId"].toString());
+            const auto plane=p["mirrorPlane"].toObject();
+            if(plane.size()!=3 || !validId(plane["producerFeatureId"].toString()) || !validId(plane["bodyId"].toString()) || !validId(plane["faceId"].toString()))return "Mirror plane needs stable face identity";
             continue;
         }
         if (type == "move") {

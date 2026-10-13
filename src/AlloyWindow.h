@@ -89,6 +89,12 @@ private:
     void showShell();
     QDockWidget* shellDock_ = nullptr;
     QShortcut* shellEscape_ = nullptr;
+    QJsonObject beginMirror(const QJsonObject& inputs);
+    QJsonObject mirrorCandidate(const QJsonObject& inputs) const;
+    QJsonObject previewMirror();
+    void showMirror();
+    QDockWidget* mirrorDock_ = nullptr;
+    QShortcut* mirrorEscape_ = nullptr;
     QJsonObject beginMove(const QJsonObject& inputs);
     QJsonObject moveCandidate(const QJsonObject& inputs) const;
     QJsonObject previewMove();

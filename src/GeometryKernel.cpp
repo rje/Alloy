@@ -1,6 +1,7 @@
 #include "PlanarFaces.h"
 #include "SolidFillet.h"
 #include "SolidShell.h"
+#include "SolidMirror.h"
 #include <BRepBuilderAPI_Transform.hxx>
 #include <gp_Ax1.hxx>
 #include <gp_Trsf.hxx>
@@ -445,6 +446,12 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored) 
                 const auto target=std::find_if(evaluated.bodies.begin(),evaluated.bodies.end(),[&](const auto& body){return body.bodyId==parameters["targetBodyId"].toString();});
                 if(target==evaluated.bodies.end())throw EvaluationError({{"code","body_unavailable"},{"featureId",id},{"message","Shell target must be active earlier in history"}});
                 SolidShell::evaluate(*target,parameters,id);
+            } else if(type=="mirror") {
+                const auto source=std::find_if(evaluated.bodies.begin(),evaluated.bodies.end(),[&](const auto& body){return body.bodyId==parameters["sourceBodyId"].toString();});
+                if(source==evaluated.bodies.end())throw EvaluationError({{"code","body_unavailable"},{"featureId",id},{"message","Mirror source must be active earlier in history"}});
+                const auto plane=resolveSketchSupport(evaluated,parameters["mirrorPlane"].toObject());
+                auto mirrored=SolidMirror::evaluate(*source,plane,id,feature["bodyId"].toString(),feature["name"].toString(),feature["visible"].toBool());
+                evaluated.bodies.push_back(mirrored);
             } else if (type == "move") {
                 const auto bodyId=parameters["targetBodyId"].toString();
                 auto body=std::find_if(evaluated.bodies.begin(),evaluated.bodies.end(),[&](const auto& item){return item.bodyId==bodyId;});
