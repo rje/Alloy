@@ -29,7 +29,7 @@ def create_stock_and_point(call, stage, capture):
     for u, v in [(0, 0), (33, 22)]:
         pixel = call('view.projectSketchPoint', {'sketchId': draft()['id'], 'uMm': u, 'vMm': v})
         call('sketch.placePoint', {'x': pixel['x'], 'y': pixel['y']})
-    edges = draft()['parameters']['entities']
+    edges = [e for e in draft()['parameters']['entities'] if not e.get('construction')]
     assert len(edges) == 4 and not draft()['parameters']['dimensions']
     for kind, edge, name, label in [
             ('horizontal', edges[0], 'Length', (0, -32)),

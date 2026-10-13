@@ -77,9 +77,20 @@ The gallery receives a new card only after independent review accepts the full
 source sequence and its required output evidence. Update issue #249 and board
 only from that evidence; no cumulative pass is implied by this preparation.
 
-Prepared source-order helper: `tests/countersunk_plate_source.py` authors the
+## Integrated prefix evidence (2026-10-13)
+
+`tests/countersunk_plate_source.py` now passes through the main real executable:
 blank parameter table, rough centered rectangle with named dimensions, bound
-Extrude, four Fillets and actual supported Point with two edge distances. Python
-syntax compilation passes; it has not been run and does not establish runtime
-or visual acceptance. Hole/Pattern and final artifact orchestration remain for
-the cumulative runner after the dependencies are accepted.
+Extrude, four Fillets and supported Point with two edge distances. External
+`deliverables/countersunk-plate-prefix-2026-10-13/attempt-02` contains the report,
+transcript, editable plate-point file and three inspected GPU captures. The
+rectangle displays readable75/50 annotations (numeric appearance, retained name
+bindings in authored state); the Point shows two readable10 witnesses and zero
+DOF. This is prefix/API evidence only, not Hole/Pattern or full-gate acceptance.
+The parameter-table visual still belongs to the outer gate/native evidence.
+
+The first run stopped on a helper assertion that counted construction diagonals
+as contour edges; its original incomplete report/transcript remain in the parent
+artifact folder. Filtering construction entities corrects that assertion without
+changing application behavior. The private editor exited after the successful
+run. No whole-source movie or STL has been produced for this gate yet.
