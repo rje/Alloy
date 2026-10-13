@@ -47,7 +47,7 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
     for (int i = 0; i < features.size(); ++i) {
         const auto feature = features[i].toObject();
         if (feature.contains("bodyId")) activeBodies.insert(feature["bodyId"].toString());
-        if (feature["type"] == "move" || feature["type"] == "fillet" || feature["type"] == "shell" || feature["type"]=="rectangularPattern") {
+        if (feature["type"] == "move" || feature["type"] == "fillet" || feature["type"] == "chamfer" || feature["type"] == "shell" || feature["type"]=="rectangularPattern") {
             const auto body = feature["parameters"].toObject()["targetBodyId"].toString();
             if (!bodyPositions.contains(body) || bodyPositions[body]>=i || !activeBodies.contains(body))
                 return {{"featureId",feature["id"]},{"featureType",feature["type"]},{"bodyId",body},{"code","body_unavailable"},{"message","Solid modifier requires an active earlier body"}};
@@ -365,6 +365,20 @@ QJsonObject CadDocument::filletCandidate(const QJsonObject& authored,const QJson
     if(index>=0)features[index]=feature;else features.append(feature);candidate["features"]=features;
     const auto error=validateStructure(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());return candidate;
 }
+QJsonObject CadDocument::chamferCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
+    const QSet<QString> allowed{"targetBodyId","edgeIds","distanceMm","name","featureId","newFeatureId"};
+    for(auto it=arguments.begin();it!=arguments.end();++it)if(!allowed.contains(it.key()))throw std::invalid_argument("Unknown Chamfer argument");
+    if(arguments.contains("featureId") && arguments.contains("newFeatureId"))throw std::invalid_argument("Choose existing or new Chamfer identity");
+    auto candidate=authored;auto features=candidate["features"].toArray();QJsonObject feature;int index=-1;
+    if(arguments.contains("featureId")) {
+        for(int i=0;i<features.size();++i)if(features[i].toObject()["id"]==arguments["featureId"]){feature=features[i].toObject();index=i;break;}
+        if(index<0 || feature["type"]!="chamfer")throw std::invalid_argument("Chamfer feature unavailable");
+    } else feature={{"id",arguments.value("newFeatureId").toString(newId())},{"ownerId",authored["documentId"]},{"type","chamfer"},{"name","Chamfer"},{"visible",true}};
+    if(arguments.contains("name"))feature["name"]=arguments["name"];
+    feature["parameters"]=QJsonObject{{"targetBodyId",arguments["targetBodyId"]},{"edgeIds",arguments["edgeIds"]},{"distanceMm",arguments["distanceMm"]}};
+    if(index>=0)features[index]=feature;else features.append(feature);candidate["features"]=features;
+    const auto error=validateStructure(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());return candidate;
+}
 QJsonObject CadDocument::patternCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
     auto candidate=authored;auto features=candidate["features"].toArray();QJsonObject feature;int index=-1;
     if(arguments.contains("featureId")){for(int i=0;i<features.size();++i)if(features[i].toObject()["id"]==arguments["featureId"]){feature=features[i].toObject();index=i;break;}if(index<0 || feature["type"]!="rectangularPattern")throw std::invalid_argument("Pattern feature unavailable");}
@@ -556,6 +570,12 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
             if(feature.contains("bodyId") || p.size()!=4 || !validId(p["targetBodyId"].toString()) || !p["edgeIds"].isArray() || p["edgeIds"].toArray().isEmpty() || p["edgeIds"].toArray().size()>100 || !p["tangentChain"].isBool() || !p["tangentChain"].toBool())return "Fillet requires one target, edge references and tangent chain enabled";
             QSet<QString> edges;for(const auto& edge:p["edgeIds"].toArray()){if(!edge.isString() || !validId(edge.toString()) || edges.contains(edge.toString()))return "Fillet edge references must be distinct stable UUIDs";edges.insert(edge.toString());}
             if(!p["radiusMm"].isDouble() || !std::isfinite(p["radiusMm"].toDouble()) || p["radiusMm"].toDouble()<0.001 || p["radiusMm"].toDouble()>100000)return "Fillet radius must be 0.001..100000 mm";
+            continue;
+        }
+        if(type=="chamfer") {
+            if(feature.contains("bodyId") || p.size()!=3 || !validId(p["targetBodyId"].toString()) || !p["edgeIds"].isArray() || p["edgeIds"].toArray().isEmpty() || p["edgeIds"].toArray().size()>100)return "Chamfer requires one target, edge references";
+            QSet<QString> edges;for(const auto& edge:p["edgeIds"].toArray()){if(!edge.isString() || !validId(edge.toString()) || edges.contains(edge.toString()))return "Chamfer edge references must be distinct stable UUIDs";edges.insert(edge.toString());}
+            if(!p["distanceMm"].isDouble() || !std::isfinite(p["distanceMm"].toDouble()) || p["distanceMm"].toDouble()<0.001 || p["distanceMm"].toDouble()>100000)return "Chamfer distance must be 0.001..100000 mm";
             continue;
         }
         if(type=="rectangularPattern") {

@@ -83,6 +83,13 @@ private:
     std::vector<EvaluatedBody> filletInputBodies() const;
     QDockWidget* filletDock_ = nullptr;
     QShortcut* filletEscape_ = nullptr;
+    QJsonObject beginChamfer(const QJsonObject& inputs);
+    QJsonObject chamferCandidate(const QJsonObject& inputs) const;
+    QJsonObject previewChamfer();
+    void showChamfer();
+    std::vector<EvaluatedBody> chamferInputBodies() const;
+    QDockWidget* chamferDock_ = nullptr;
+    QShortcut* chamferEscape_ = nullptr;
     QJsonObject beginShell(const QJsonObject& inputs);
     QJsonObject patternCandidate(const QJsonObject& inputs) const;
     QJsonObject beginPattern(const QJsonObject& overrides={});

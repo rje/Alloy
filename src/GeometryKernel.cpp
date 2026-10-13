@@ -1,5 +1,6 @@
 #include "PlanarFaces.h"
 #include "SolidFillet.h"
+#include "SolidChamfer.h"
 #include "SolidShell.h"
 #include "SolidSphere.h"
 #include "SolidLoft.h"
@@ -447,6 +448,10 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored) 
                 const auto target=std::find_if(evaluated.bodies.begin(),evaluated.bodies.end(),[&](const auto& body){return body.bodyId==parameters["targetBodyId"].toString();});
                 if(target==evaluated.bodies.end())throw EvaluationError({{"code","body_unavailable"},{"featureId",id},{"message","Fillet target must be active earlier in history"}});
                 SolidFillet::evaluate(*target,parameters,id);
+            } else if(type=="chamfer") {
+                const auto target=std::find_if(evaluated.bodies.begin(),evaluated.bodies.end(),[&](const auto& body){return body.bodyId==parameters["targetBodyId"].toString();});
+                if(target==evaluated.bodies.end())throw EvaluationError({{"code","body_unavailable"},{"featureId",id},{"message","Chamfer target must be active earlier in history"}});
+                SolidChamfer::evaluate(*target,parameters,id);
             } else if(type=="rectangularPattern") {
                 const auto target=std::find_if(evaluated.bodies.begin(),evaluated.bodies.end(),[&](const auto& body){return body.bodyId==parameters["targetBodyId"].toString();});
                 QJsonObject seed;for(const auto& value:authored["features"].toArray())if(value.toObject()["id"]==parameters["sourceFeatureId"]){seed=value.toObject();break;}

@@ -28,7 +28,7 @@ target_include_directories(alloy_sketch_solver PUBLIC src)
 target_link_libraries(alloy_sketch_solver PUBLIC Qt6::Core PRIVATE alloy_planegcs)
 
 add_library(alloy_kernel STATIC
-    src/GeometryKernel.cpp src/GeometryKernel.h src/PlanarFaces.cpp src/PlanarFaces.h src/SolidFillet.cpp src/SolidFillet.h src/SolidShell.cpp src/SolidShell.h src/SolidSphere.cpp src/SolidSphere.h src/SolidLoft.cpp src/SolidLoft.h src/FeaturePattern.cpp src/FeaturePattern.h src/SolidMirror.cpp src/SolidMirror.h src/JoinResults.cpp
+    src/GeometryKernel.cpp src/GeometryKernel.h src/PlanarFaces.cpp src/PlanarFaces.h src/SolidFillet.cpp src/SolidFillet.h src/SolidChamfer.cpp src/SolidChamfer.h src/SolidShell.cpp src/SolidShell.h src/SolidSphere.cpp src/SolidSphere.h src/SolidLoft.cpp src/SolidLoft.h src/FeaturePattern.cpp src/FeaturePattern.h src/SolidMirror.cpp src/SolidMirror.h src/JoinResults.cpp
     src/MeshExport.cpp src/MeshExport.h
     src/StepExchange.cpp src/StepExchange.h
     src/SketchGeometry.cpp src/SketchTrim.cpp src/SketchGeometry.h
@@ -40,7 +40,7 @@ target_compile_definitions(alloy_kernel PUBLIC ALLOY_OCCT_VERSION="${ALLOY_OCCT_
 
 add_library(alloy_application STATIC
     src/AlloyTheme.cpp src/AlloyTheme.h
-    src/AlloyWindow.cpp src/AlloyWindow.h src/SolidFilletControls.cpp src/SolidShellControls.cpp src/LoftControls.cpp src/PatternControls.cpp src/SolidMirrorControls.cpp src/MoveControls.cpp src/CombineControls.cpp src/ExportControls.cpp src/StepExportControls.cpp
+    src/AlloyWindow.cpp src/AlloyWindow.h src/SolidFilletControls.cpp src/SolidChamferControls.cpp src/SolidShellControls.cpp src/LoftControls.cpp src/PatternControls.cpp src/SolidMirrorControls.cpp src/MoveControls.cpp src/CombineControls.cpp src/ExportControls.cpp src/StepExportControls.cpp
     src/TutorialRecorder.cpp src/TutorialRecorder.h
     src/CadDocument.cpp src/CadDocument.h
     src/ReferenceView.cpp src/ReferenceView.h
@@ -128,6 +128,9 @@ if(BUILD_TESTING)
     target_include_directories(sketch_trim_test PRIVATE src)
     target_link_libraries(sketch_trim_test PRIVATE Qt6::Gui alloy_kernel)
     add_test(NAME sketch_trim COMMAND sketch_trim_test)
+    add_executable(solid_chamfer_test tests/solid_chamfer.cpp src/CadDocument.cpp src/CadDocument.h)
+    target_link_libraries(solid_chamfer_test PRIVATE alloy_kernel Qt6::Widgets)
+    add_test(NAME solid_chamfer COMMAND solid_chamfer_test)
     add_executable(solid_fillet_test tests/solid_fillet.cpp src/CadDocument.cpp src/CadDocument.h)
     target_link_libraries(solid_fillet_test PRIVATE alloy_kernel Qt6::Widgets)
     add_test(NAME solid_fillet COMMAND solid_fillet_test)

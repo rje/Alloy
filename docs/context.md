@@ -1550,3 +1550,14 @@ source 20/4/24/22 geometry, 1/2/2/1 connected bodies, retained depth edit/histor
 reopen and consumed-reference refusal. `tests/successive_join_api.py` awaits the
 integrated real-app/native review. This is a candidate, not accepted compatibility;
 reference Browser was collapsed and its exact intermediate body count is unknown.
+
+## Equal-distance Chamfer candidate (SOL-028 #201)
+
+Isolated `equal-chamfer` implements real OCCT equal-distance retained-edge Chamfer,
+shared `solid.chamfer`/dialog, editable feature history and a readable preview dock.
+Focused twelve-edge 20 mm cube, distance/upstream height edits, history/storage
+and atomic failure checks pass together with existing Fillet regression.
+Actual API runner `tests/solid_chamfer_api.py` is prepared but unrun; root owns
+private editor serialization and independent review. Select all edges is an
+explicit native button; source drag-window gesture remains mismatch, not parity.
+Broader variants remain SOL-005. See `validation/solid-chamfer.md`.

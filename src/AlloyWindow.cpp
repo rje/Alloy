@@ -250,7 +250,7 @@ AlloyWindow::AlloyWindow() {
         groups->addLayout(box);groups->addWidget(divider());
     };
     group("CREATE", {{"primitive.box", "▣"}, {"primitive.cylinder", "◉"}, {"sketch.create", "▧"}, {"solid.extrudeDialog", "▣"}, {"solid.loftDialog", "◒"}, {"solid.mirrorDialog", "◧"}});
-    group("MODIFY", {{"solid.pressPullDialog", "⇧"}, {"solid.combineDialog", "▣"}, {"solid.filletDialog", "◩"}, {"solid.shellDialog", "▱"}, {"solid.moveDialog", "✥"}});
+    group("MODIFY", {{"solid.pressPullDialog", "⇧"}, {"solid.combineDialog", "▣"}, {"solid.filletDialog", "◩"}, {"solid.chamferDialog", "◪"}, {"solid.shellDialog", "▱"}, {"solid.moveDialog", "✥"}});
     group("CONSTRUCT", {{"construction.plane", "▰"}});
     group("INSPECT", {{"inspect.measure", "↔"}});
     groups->addStretch();
@@ -929,6 +929,13 @@ void AlloyWindow::registerCommands() {
         const auto error=document_->commit(candidate,"Fillet");if(!error.isEmpty()){auto response=failure("evaluation_failed",error);auto details=response["error"].toObject();details["diagnostics"]=document_->lastEvaluationError();response["error"]=details;return response;}return document_->state();
     });
     add("solid.filletDialog","Fillet","Open constant-radius edge fillet controls (F).",filletSchema,[this](const auto& a){return beginFillet(a);});
+    auto solidChamferDistance=parameter("number","Constant canonical distance in mm.");solidChamferDistance["minimum"]=0;solidChamferDistance["maximum"]=100000;
+    QJsonObject chamferSchema{{"targetBodyId",optional(parameter("string","Earlier retained body UUID."))},{"edgeIds",optional(parameter("array","Stable extrusion edge UUIDs."))},{"distanceMm",optional(solidChamferDistance)},{"featureId",optional(featureId)},{"name",optional(parameter("string","Chamfer feature name."))}};
+    add("solid.chamfer","Chamfer","Create or edit equal-distance edge chamfer.",chamferSchema,[this](const auto& a){
+        QJsonObject candidate;try{candidate=chamferCandidate(a);}catch(const std::exception& e){return failure("invalid_arguments",QString::fromUtf8(e.what()));}
+        const auto error=document_->commit(candidate,"Chamfer");if(!error.isEmpty()){auto response=failure("evaluation_failed",error);auto details=response["error"].toObject();details["diagnostics"]=document_->lastEvaluationError();response["error"]=details;return response;}return document_->state();
+    });
+    add("solid.chamferDialog","Chamfer","Open constant-distance edge chamfer controls.",chamferSchema,[this](const auto& a){return beginChamfer(a);});
     QJsonObject patternSchema{{"sourceFeatureId",optional(parameter("string","Earlier additive Extrude Join feature UUID."))},{"targetBodyId",optional(parameter("string","Retained target body UUID."))},{"axes",optional(parameter("array","One/two ordered {edgeId,quantity,extentMm} axes; signed extent in canonical mm."))},{"featureId",optional(featureId)},{"name",optional(parameter("string","Pattern feature name."))}};
     add("solid.rectangularPattern","Rectangular Pattern","Pattern an additive Extrude feature by Extent along one/two retained straight axes; Identical.",patternSchema,[this](const auto& a){QJsonObject candidate;try{candidate=patternCandidate(a);}catch(const std::exception& e){return failure("invalid_arguments",QString::fromUtf8(e.what()));}const auto error=document_->commit(candidate,"Rectangular Pattern");if(!error.isEmpty()){auto r=failure("evaluation_failed",error);auto details=r["error"].toObject();details["diagnostics"]=document_->lastEvaluationError();r["error"]=details;return r;}return document_->state();});
     add("solid.rectangularPatternDialog","Rectangular Pattern","Select an additive timeline feature and one/two straight model edges.",patternSchema,[this](const auto& a){return beginPattern(a);});
@@ -1751,6 +1758,7 @@ void AlloyWindow::registerCommands() {
                 return beginSession("solid.extrude",inputs);
             }
             if(feature["type"]=="fillet") {auto inputs=p;inputs["featureId"]=feature["id"];inputs["name"]=feature["name"];return beginFillet(inputs);}
+            if(feature["type"]=="chamfer") {auto inputs=p;inputs["featureId"]=feature["id"];inputs["name"]=feature["name"];return beginChamfer(inputs);}
             if(feature["type"]=="shell") {auto inputs=p;inputs["featureId"]=feature["id"];inputs["name"]=feature["name"];return beginShell(inputs);}
             if(feature["type"]=="mirror") {auto inputs=p;inputs["featureId"]=feature["id"];inputs["name"]=feature["name"];return beginMirror(inputs);}
             if(feature["type"]=="move") {auto inputs=p;inputs["featureId"]=feature["id"];inputs["name"]=feature["name"];return beginMove(inputs);}
@@ -1863,6 +1871,12 @@ void AlloyWindow::registerCommands() {
             const auto id=hit["edgeId"];if(edges.contains(id)){for(int i=0;i<edges.size();++i)if(edges[i]==id){edges.removeAt(i);break;}}else edges.append(id);
             auto response=execute("command.update",{{"session",session_["id"]},{"inputs",QJsonObject{{"targetBodyId",target},{"edgeIds",edges}}}});if(!response["ok"].toBool())return response;previewFillet();return hit;
         }
+        if(session_.value("command")=="solid.chamfer") {
+            const auto hit=view_->pickSolidEdge(a["x"].toDouble(),a["y"].toDouble(),chamferInputBodies());if(hit.isEmpty())return failure("edge_required","Click a visible solid edge with retained provenance");
+            auto inputs=session_["inputs"].toObject();auto edges=inputs["edgeIds"].toArray();const auto target=hit["bodyId"].toString();if(inputs["targetBodyId"].toString()!=target)edges={};
+            const auto id=hit["edgeId"];if(edges.contains(id)){for(int i=0;i<edges.size();++i)if(edges[i]==id){edges.removeAt(i);break;}}else edges.append(id);
+            auto response=execute("command.update",{{"session",session_["id"]},{"inputs",QJsonObject{{"targetBodyId",target},{"edgeIds",edges}}}});if(!response["ok"].toBool())return response;previewChamfer();return hit;
+        }
         if(session_.value("command")=="solid.move") {const auto id=view_->pickBody(a["x"].toDouble(),a["y"].toDouble());return execute("selection.set",{{"bodyId",id}});}
         if(session_.value("command")=="solid.combine") {
             const auto id=view_->pickBody(a["x"].toDouble(),a["y"].toDouble());selectCombineBody(id);
@@ -1899,7 +1913,7 @@ void AlloyWindow::registerCommands() {
         return failure("stale_entity","Body does not exist");
     });
     auto sessionTarget = parameter("string", "Implemented session target; modeling targets follow alongside their features.");
-    sessionTarget["enum"] = QJsonArray{"document.units", "commands.search","solid.box","solid.cylinder","solid.extrude","solid.combine","solid.move","solid.fillet","solid.shell","solid.loft","solid.rectangularPattern","solid.mirror","sketch.create"};
+    sessionTarget["enum"] = QJsonArray{"document.units", "commands.search","solid.box","solid.cylinder","solid.extrude","solid.combine","solid.move","solid.fillet","solid.chamfer","solid.shell","solid.loft","solid.rectangularPattern","solid.mirror","sketch.create"};
     add("command.begin", "Begin command session", "Begin a real editable dialog with disposable inputs.",
         {{"command", sessionTarget}, {"inputs", parameter("object", "Initial input overrides.")}},
         [this](const auto& a) { return beginSession(a["command"].toString(), a["inputs"].toObject()); });
@@ -1928,6 +1942,10 @@ void AlloyWindow::registerCommands() {
             if(updates.contains("featureId") && updates["featureId"]!=session_["inputs"].toObject()["featureId"])return failure("invalid_arguments","Fillet edit identity cannot change");
             const auto error=validateArguments(*findCommand(target),inputs);if(!error.isEmpty())return failure("invalid_arguments",error);
             if(!inputs["tangentChain"].toBool())return failure("unsupported_option","Tangent Chain Off is outside this slice");
+        } else if(target=="solid.chamfer") {
+            if(updates.contains("featureId") && updates["featureId"]!=session_["inputs"].toObject()["featureId"])return failure("invalid_arguments","Chamfer edit identity cannot change");
+            const auto error=validateArguments(*findCommand(target),inputs);if(!error.isEmpty())return failure("invalid_arguments",error);
+
         } else if(target=="solid.rectangularPattern") {
             if(updates.contains("featureId") && updates["featureId"]!=session_["inputs"].toObject()["featureId"])return failure("invalid_arguments","Pattern edit identity cannot change");const auto error=validateArguments(*findCommand(target),inputs);if(!error.isEmpty())return failure("invalid_arguments",error);
         } else if(target=="solid.loft") {
@@ -1988,6 +2006,7 @@ void AlloyWindow::registerCommands() {
             return preview;
         }
         if(session_.value("command")=="solid.fillet")return previewFillet();
+        if(session_.value("command")=="solid.chamfer")return previewChamfer();
         if(session_.value("command")=="solid.rectangularPattern")return previewPattern();
         if(session_.value("command")=="solid.loft")return previewLoft();
         if(session_.value("command")=="solid.shell")return previewShell();
@@ -2030,7 +2049,7 @@ void AlloyWindow::registerCommands() {
     add("command.panelDock","Dock command panel","Dock or float the active modeling panel through Qt.",
         {{"docked",parameter("boolean","True docks the panel on the right; false floats it.")}},[this](const auto& a){
             const auto target=session_.value("command").toString();
-            auto* dock=target=="solid.fillet" ? filletDock_ : target=="solid.rectangularPattern" ? patternDock_ : target=="solid.loft" ? loftDock_ : target=="solid.shell" ? shellDock_ : target=="solid.mirror" ? mirrorDock_ : target=="solid.move" ? moveDock_ : target=="solid.extrude" ? extrudeDock_ : target=="solid.combine" ? combineDock_ : target.startsWith("sketch.") ? sketchDock_ : target.startsWith("solid.") ? primitiveDock_ : nullptr;
+            auto* dock=target=="solid.chamfer" ? chamferDock_ : target=="solid.fillet" ? filletDock_ : target=="solid.rectangularPattern" ? patternDock_ : target=="solid.loft" ? loftDock_ : target=="solid.shell" ? shellDock_ : target=="solid.mirror" ? mirrorDock_ : target=="solid.move" ? moveDock_ : target=="solid.extrude" ? extrudeDock_ : target=="solid.combine" ? combineDock_ : target.startsWith("sketch.") ? sketchDock_ : target.startsWith("solid.") ? primitiveDock_ : nullptr;
             if(!dock)
                 return failure("no_active_dialog","No modeling panel is active");
             dock->setFloating(!a["docked"].toBool());
@@ -2104,6 +2123,7 @@ void AlloyWindow::registerCommands() {
             : session_.value("command").toString() == "solid.rectangularPattern" ? patternDock_->widget()
             : session_.value("command").toString() == "solid.loft" ? loftDock_->widget()
             : session_.value("command").toString() == "solid.shell" ? shellDock_->widget()
+            : session_.value("command").toString() == "solid.chamfer" ? chamferDock_->widget()
             : session_.value("command").toString() == "solid.fillet" ? filletDock_->widget()
             : session_.value("command").toString() == "solid.move" ? moveDock_->widget()
             : session_.value("command").toString() == "solid.extrude" ? extrudePanel_
@@ -2198,6 +2218,7 @@ QJsonObject AlloyWindow::state() const {
     view_->sync();
     const auto target=session_.value("command").toString();
     const bool dialogVisible=target=="commands.search" ? bool(search_ && search_->isVisible())
+        : target=="solid.chamfer" ? bool(chamferDock_ && chamferDock_->isVisible())
         : target=="solid.fillet" ? bool(filletDock_ && filletDock_->isVisible())
         : target=="solid.rectangularPattern" ? bool(patternDock_ && patternDock_->isVisible())
         : target=="solid.loft" ? bool(loftDock_ && loftDock_->isVisible())
@@ -2208,11 +2229,11 @@ QJsonObject AlloyWindow::state() const {
         : target=="solid.combine" ? bool(combinePanel_ && combinePanel_->isVisible())
         : target.startsWith("solid.") ? bool(primitivePanel_ && primitivePanel_->isVisible())
         : target.startsWith("sketch.") ? bool(sketchPanel_ && sketchPanel_->isVisible()) : bool(unitsDialog_ && unitsDialog_->isVisible());
-    const auto dialogInputs=session_.isEmpty() ? QJsonObject{} : (target=="solid.fillet" || target=="solid.rectangularPattern" || target=="solid.loft" || target=="solid.shell" || target=="solid.mirror" || target=="solid.move" || target=="solid.extrude" || target=="solid.combine") ? session_.value("inputs").toObject() : target.startsWith("solid.") ? primitiveWidgetInputs()
+    const auto dialogInputs=session_.isEmpty() ? QJsonObject{} : (target=="solid.chamfer" || target=="solid.fillet" || target=="solid.rectangularPattern" || target=="solid.loft" || target=="solid.shell" || target=="solid.mirror" || target=="solid.move" || target=="solid.extrude" || target=="solid.combine") ? session_.value("inputs").toObject() : target.startsWith("solid.") ? primitiveWidgetInputs()
         : target.startsWith("sketch.") ? session_.value("inputs").toObject()
         : target=="commands.search" ? QJsonObject{{"query",searchInput_ ? searchInput_->text() : QString{}}}
         : QJsonObject{{"units",unitsInput_ ? unitsInput_->currentText() : QString{}}};
-    const auto* activeDock=target=="solid.fillet" ? filletDock_ : target=="solid.rectangularPattern" ? patternDock_ : target=="solid.loft" ? loftDock_ : target=="solid.shell" ? shellDock_ : target=="solid.mirror" ? mirrorDock_ : target=="solid.move" ? moveDock_ : target=="solid.extrude" ? extrudeDock_ : target=="solid.combine" ? combineDock_ : target.startsWith("sketch.") ? sketchDock_ : primitiveDock_;
+    const auto* activeDock=target=="solid.chamfer" ? chamferDock_ : target=="solid.fillet" ? filletDock_ : target=="solid.rectangularPattern" ? patternDock_ : target=="solid.loft" ? loftDock_ : target=="solid.shell" ? shellDock_ : target=="solid.mirror" ? mirrorDock_ : target=="solid.move" ? moveDock_ : target=="solid.extrude" ? extrudeDock_ : target=="solid.combine" ? combineDock_ : target.startsWith("sketch.") ? sketchDock_ : primitiveDock_;
     const auto panelRect=activeDock ? QRect(activeDock->mapToGlobal(QPoint())-mapToGlobal(QPoint()),activeDock->size()) : QRect{};
     QJsonArray popups;
     for(auto* popup:QApplication::topLevelWidgets()) {
@@ -2281,7 +2302,7 @@ void AlloyWindow::refresh() {
     const auto historicalSketchId=session_.value("command")=="sketch.edit"
         && session_.value("baseDocumentRevision").toInteger()==static_cast<qint64>(document_->revision())
         ? session_.value("inputs").toObject().value("sketchId").toString() : QString{};
-    if(session_.value("command")!="solid.fillet" && session_.value("command")!="solid.rectangularPattern" && session_.value("command")!="solid.loft" && session_.value("command")!="solid.shell" && session_.value("command")!="solid.mirror" && session_.value("command")!="solid.move" && session_.value("command")!="solid.combine" && !(session_.value("command")=="solid.extrude" && !session_.value("inputs").toObject().value("featureId").toString().isEmpty()) && historicalSketchId.isEmpty())view_->clearBodyStage();
+    if(session_.value("command")!="solid.chamfer" && session_.value("command")!="solid.fillet" && session_.value("command")!="solid.rectangularPattern" && session_.value("command")!="solid.loft" && session_.value("command")!="solid.shell" && session_.value("command")!="solid.mirror" && session_.value("command")!="solid.move" && session_.value("command")!="solid.combine" && !(session_.value("command")=="solid.extrude" && !session_.value("inputs").toObject().value("featureId").toString().isEmpty()) && historicalSketchId.isEmpty())view_->clearBodyStage();
     if(displayedDocumentRevision_!=document_->revision()) {
         const QSignalBlocker block(tree_);
         // Keep Browser rows keyed by their stable IDs. Removing all children on
@@ -2404,10 +2425,13 @@ void AlloyWindow::refresh() {
     if(extrudeEscape_)extrudeEscape_->setEnabled(session_.value("command")=="solid.extrude");
     if(session_.value("command")=="solid.move" && moveDock_)for(const auto& key:{"xMm","yMm","zMm","xDeg","yDeg","zDeg","pivotXMm","pivotYMm","pivotZMm"})if(auto* field=moveDock_->findChild<QDoubleSpinBox*>(key)){const QSignalBlocker blocker(field);field->setValue(session_["inputs"].toObject()[key].toDouble());}
     if(session_.value("command")=="solid.fillet" && filletDock_)if(auto* field=filletDock_->findChild<QDoubleSpinBox*>("filletRadius")){const QSignalBlocker blocker(field);field->setValue(session_["inputs"].toObject()["radiusMm"].toDouble());}
+    if(session_.value("command")=="solid.chamfer" && chamferDock_)if(auto* field=chamferDock_->findChild<QDoubleSpinBox*>("chamferDistance")){const QSignalBlocker blocker(field);field->setValue(session_["inputs"].toObject()["distanceMm"].toDouble());}
     if(session_.value("command")=="solid.fillet" && filletDock_)if(auto* box=filletDock_->findChild<QDialogButtonBox*>())box->button(QDialogButtonBox::Ok)->setEnabled(session_["previewed"].toBool() && session_["geometryEvaluated"].toBool() && session_["baseDocumentRevision"].toInteger()==static_cast<qint64>(document_->revision()));
+    if(session_.value("command")=="solid.chamfer" && chamferDock_)if(auto* box=chamferDock_->findChild<QDialogButtonBox*>())box->button(QDialogButtonBox::Ok)->setEnabled(session_["previewed"].toBool() && session_["geometryEvaluated"].toBool() && session_["baseDocumentRevision"].toInteger()==static_cast<qint64>(document_->revision()));
     if(session_.value("command")=="solid.shell" && shellDock_)if(auto* field=shellDock_->findChild<QDoubleSpinBox*>("shellThickness")){const QSignalBlocker blocker(field);field->setValue(session_["inputs"].toObject()["thicknessMm"].toDouble());}
     if(session_.value("command")=="solid.shell" && shellDock_)if(auto* box=shellDock_->findChild<QDialogButtonBox*>())box->button(QDialogButtonBox::Ok)->setEnabled(session_["previewed"].toBool() && session_["geometryEvaluated"].toBool() && session_["baseDocumentRevision"].toInteger()==static_cast<qint64>(document_->revision()));
     if(filletEscape_)filletEscape_->setEnabled(session_.value("command")=="solid.fillet");
+    if(chamferEscape_)chamferEscape_->setEnabled(session_.value("command")=="solid.chamfer");
     if(session_.value("command")=="solid.rectangularPattern" && patternDock_)if(auto* box=patternDock_->findChild<QDialogButtonBox*>())box->button(QDialogButtonBox::Ok)->setEnabled(session_["previewed"].toBool() && session_["geometryEvaluated"].toBool() && session_["baseDocumentRevision"].toInteger()==static_cast<qint64>(document_->revision()));
     if(patternEscape_)patternEscape_->setEnabled(session_.value("command")=="solid.rectangularPattern");
     if(loftEscape_)loftEscape_->setEnabled(session_.value("command")=="solid.loft");
@@ -2893,6 +2917,7 @@ void AlloyWindow::updateExtrude(const QJsonObject& inputs) {
 QJsonObject AlloyWindow::beginSession(const QString& command, const QJsonObject& inputs) {
     if(command=="solid.extrude")return beginExtrude(inputs);
     if(command=="solid.fillet")return beginFillet(inputs);
+    if(command=="solid.chamfer")return beginChamfer(inputs);
     if(command=="solid.rectangularPattern")return beginPattern(inputs);
     if(command=="solid.loft")return beginLoft(inputs);
     if(command=="solid.shell")return beginShell(inputs);
@@ -2980,6 +3005,19 @@ QJsonObject AlloyWindow::finishSession(const QString& id, bool commit) {
     else if(target=="solid.fillet") {
         if(filletEscape_)filletEscape_->setEnabled(false);
         if(filletDock_)filletDock_->hide();
+        view_->clearSolidEdgeHighlights();view_->clearPreview();view_->clearBodyStage();
+        const auto tabId=activeTabId_;
+        view_->setFocus(Qt::OtherFocusReason);
+        // Dock removal can change native keyboard activation after this callback.
+        QTimer::singleShot(0,this,[this,tabId]{
+            if(tabId!=activeTabId_ || !session_.isEmpty())return;
+            view_->setFocus(Qt::OtherFocusReason);
+            if(view_->windowHandle())view_->windowHandle()->requestActivate();
+        });
+    }
+    else if(target=="solid.chamfer") {
+        if(chamferEscape_)chamferEscape_->setEnabled(false);
+        if(chamferDock_)chamferDock_->hide();
         view_->clearSolidEdgeHighlights();view_->clearPreview();view_->clearBodyStage();
         const auto tabId=activeTabId_;
         view_->setFocus(Qt::OtherFocusReason);
