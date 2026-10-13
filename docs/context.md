@@ -94,7 +94,8 @@ is the origin trihedron's end-on arrow cone, not tessellation. Root disables arr
 cones while retaining axes/labels, rebuilds and requests independent visual review.
 Sphere preview now reuses its full candidate evaluation when it is also the display
 prefix; historical edits still evaluate their required shorter prefix. No general
-cache or weakened checks.145/147/203/204 remain open pending final acceptance.
+cache or weakened checks.Sphere145 and views203 are independently accepted/CLOSED after corrected captures
+and actual Browser Left/Back Qt routing (b30fff1);147/204 remain open.
 Root serializes GUI; no test editor remains running after the first attempt.
 Sphere declaration uses type sphere,
 parameters support/uMm/vMm/diameterMm/operation and optional targetBodyId; internal
