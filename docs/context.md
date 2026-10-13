@@ -67,9 +67,20 @@ External source record knowledge/tutorials/warwick/library-die-ledger.md was
 updated with Center Rectangle189 acceptance and official public component/Sphere/
 Repeat descriptions. Root implements face-positioned Sphere Cut/Repeat#145.
 Sol die_components owns ASM004#200 in ../Alloy-worktrees/local-components;
-Sol die_chamfer owns SOL028#201 in ../Alloy-worktrees/equal-chamfer. Astra supplies
-independent review, starting with a read-only Sphere/reference risk pass. Root
-serializes all GUI validation and integration; no private editor remains open.
+Chamfer201 is independently accepted and integrated d3ce00d/e927785, with API
+workflow and focused Qt input passing; source window-selection is adapted to
+Select All Edges. Broader SOL005 stays Todo. Root Sphere core ea9a85c passes21
+hemisphere cuts, six preserved face IDs, expected volume, upstream rounding edit,
+history/reopen and New Body. Spheres orient their poles to the support normal;
+world-Z poles caused invalid Boolean topology on side supports. No healing or
+weakened validity checks. API/UI/Repeat and full die workflow remain outstanding.
+
+Astra is available for independent component candidate review once Sol commits;
+root currently builds/implements Sphere but has no GUI open. Serialize all GUI
+validation. No private editor remains open. Sphere declaration uses type sphere,
+parameters support/uMm/vMm/diameterMm/operation and optional targetBodyId; internal
+candidate ownerId defaults root, edits preserve owner. During component integration
+inject activeOwner in its UI wrapper and include new Chamfer wrapper too.
 Components require real definition/occurrence ownership and scoped STL; no body
 name substitute. Sphere recesses must be spherical, with actual face support and
 Repeat UI. Proposed20mm cube/1mmrounding/diameter3/21pips are declared fixture
