@@ -26,12 +26,12 @@ visual parity remain qualified. The external
 editable models and STL deliverables. The Revolve receipt is
 [validation/revolve-tutorial.md](validation/revolve-tutorial.md).
 
-**115 of 242 issues are closed.** Recent accepted work includes compact ribbon
+**116 of 242 issues are closed.** Recent accepted work includes compact ribbon
 icons #218, retained Extrude Intersect #219, nested profile/island diagnostics
 #165, portable local controls #220, shared-line fillets #221, typed Line length
 locks #222, retained Sweep #223 and native Sweep controls #224. Each has a scoped
 receipt in `docs/validation/`; broad parents remain Todo for their actual
-remaining requirements. Main's default application is rebuilt through accepted
+remaining requirements. Main's default application is rebuilt with accepted #237, alongside
 #227–232, #234 and #236:
 `build-tutorial-polish/alloy.app/Contents/MacOS/alloy`.
 
@@ -84,10 +84,10 @@ point-on-curve semantics or migrating old driven sketches. The board marks #235
 In Progress. Luna researched a self-contained wall-outlet sketch lesson externally;
 the sample-dependent doorstop activity was not promoted as a full gate. The independent audit is complete; #237–242 now track rough Center Rectangle,
 source constraint gestures, parallel-line dimensions, associative sketch Mirror,
-native Mirror selection and the full sketch-only gate. Sol owners now implement #237 in `../Alloy-worktrees/rough-center-rectangle`
-and #240 in `../Alloy-worktrees/sketch-mirror`, alongside #235. The #237 candidate
-`1dbe089` passed rough pointer/D 70/114 and unchanged typed-input checks and is
-under Astra review. Mirror has a passing focused six-curve core candidate; its
+native Mirror selection and the full sketch-only gate. Sol owners now implement parallel-line dimensions #239 and Mirror #240 in
+`../Alloy-worktrees/sketch-mirror`, alongside the #235 fix. The #237 candidate is independently accepted, integrated (`0414f50`, review
+`29a5f52`) and closed: rough pointer/D 70/114, unchanged typed input and readable
+GPU captures pass. Mirror has a passing focused six-curve core candidate; its
 real-app preview/Cancel/Accept evidence is pending. Other children
 remain Todo; no completed-workflow claim is implied. Shared solver/schema
 changes must be coordinated and native GUI checks serialized.
