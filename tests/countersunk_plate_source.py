@@ -6,7 +6,7 @@ independently validate the final deliverables. Uses real shared commands only.
 import math
 
 
-def create_stock_and_point(call, stage, capture):
+def create_stock_and_point(call, stage, capture, existing_parameters=None):
     def inspect():
         return call('document.inspect')
 
@@ -17,10 +17,16 @@ def create_stock_and_point(call, stage, capture):
         return session()['draftSketch']
 
     assert not inspect()['authored']['features'], 'Creation must start blank'
-    stage('Change Parameters: Length75, Width50, Thickness10 mm')
-    for name, value in [('Length', 75), ('Width', 50), ('Thickness', 10)]:
-        call('document.parameterAdd', {'name': name, 'value': value, 'units': 'mm'})
+    if existing_parameters is None:
+        stage('Change Parameters: Length75, Width50, Thickness10 mm')
+        for name, value in [('Length', 75), ('Width', 50), ('Thickness', 10)]:
+            call('document.parameterAdd', {'name': name, 'value': value, 'units': 'mm'})
     parameters = {p['name']: p for p in inspect()['userParameters']}
+    if existing_parameters is not None:
+        assert {name: parameters[name]['id'] for name in ('Length', 'Width', 'Thickness')} == {
+            name: existing_parameters[name]['id'] for name in ('Length', 'Width', 'Thickness')}
+        assert {name: parameters[name]['valueMm'] for name in ('Length', 'Width', 'Thickness')} == {
+            'Length': 75, 'Width': 50, 'Thickness': 10}
 
     stage('XY Center Rectangle at origin; named driving dimensions')
     call('sketch.begin', {'plane': 'XY', 'name': 'Plate outline'})

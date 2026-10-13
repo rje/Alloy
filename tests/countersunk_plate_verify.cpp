@@ -46,12 +46,13 @@ int main(int argc, char** argv) {
         near(x1, 37.5); near(y1, 25); near(z1, 10);
         int openings = 0;
         for (double x : {-27.5, 0.0, 27.5}) for (double y : {15.0, 0.0, -15.0}) {
-            // A top radius just under 5, a bottom radius just over 2, and
-            // four center samples distinguish nine conical entries from
-            // painted circles, blind pockets, or a copied finite tool.
+            // Top, mid-frustum and bottom radial pairs plus center samples
+            // distinguish conical entries from painted circles or blind holes.
             require(!material(body.shape, x, y, 9.95), "Top entry is closed");
             require(!material(body.shape, x+4.8, y, 9.95), "Top Ø10 entry missing");
             require(material(body.shape, x+5.2, y, 9.95), "Top entry oversize");
+            require(!material(body.shape, x+3.3, y, 8.5), "Countersink frustum missing");
+            require(material(body.shape, x+3.7, y, 8.5), "Countersink frustum oversize");
             require(!material(body.shape, x, y, 6.5), "Upper bore is blocked");
             require(!material(body.shape, x, y, 3.5), "Middle bore is blocked");
             require(!material(body.shape, x, y, .05), "Bottom bore does not exit");

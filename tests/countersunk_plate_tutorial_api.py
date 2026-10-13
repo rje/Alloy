@@ -49,7 +49,8 @@ def pattern_axes(body):
     return result
 
 
-def check_pattern(document, target, seed, axes, expected_volume=SOURCE_VOLUME):
+def check_pattern(document, target, seed, axes, expected_volume=SOURCE_VOLUME,
+                  expected_centers=GRID):
     authored = document['authored']
     feature = authored['features'][-1]
     assert feature['type'] == 'rectangularPattern'
@@ -63,7 +64,7 @@ def check_pattern(document, target, seed, axes, expected_volume=SOURCE_VOLUME):
     assert body['valid'] and body['closed'] and body['topology']['solids'] == 1
     assert body['instanceCount'] == 9 and len(body['instances']) == 9
     centers = sorted(tuple(round(v, 6) for v in item['centerMm']) for item in body['instances'])
-    assert centers == GRID, (centers, GRID)
+    assert centers == expected_centers, (centers, expected_centers)
     near(body['volumeMm3'], expected_volume)
     return feature, body
 
@@ -140,7 +141,7 @@ def main():
             assert {name: parameters[name]['valueMm'] for name in ('Length', 'Width', 'Thickness')} == {
                 'Length': 75, 'Width': 50, 'Thickness': 10}
 
-            prefix = create_stock_and_point(call, stage, capture)
+            prefix = create_stock_and_point(call, stage, capture, existing_parameters=parameters)
             assert {name: prefix['parameters'][name]['id'] for name in parameters} == {
                 name: parameters[name]['id'] for name in parameters}
             target = prefix['targetBodyId']
@@ -207,7 +208,10 @@ def main():
                 call('document.parameterUpdate', {'parameterId': parameters[name]['id'],
                                                   'value': value, 'units': 'mm'})
                 changed = inspect()
-                _, changed_body = check_pattern(changed, target, hole['id'], axes, volume)
+                shifted_grid = sorted((x + (seed_x + 27.5), y, seed_z)
+                                      for x in (-27.5, 0, 27.5) for y in (15, 0, -15))
+                _, changed_body = check_pattern(changed, target, hole['id'], axes,
+                                                volume, shifted_grid)
                 near(changed_body['seedCenterMm'][0], seed_x, 1e-6)
                 near(changed_body['seedCenterMm'][2], seed_z, 1e-6)
                 assert changed['authored'] != before
