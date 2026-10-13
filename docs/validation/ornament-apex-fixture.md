@@ -41,3 +41,18 @@ Public reference images/provenance stay external in
 Headless evidence: `validation/ornament-feasibility/apex-strip-roots*.json`,
 `apex-retained-proof.cpp/.json`, `apex-seed-{5,4}.alloy`,
 `apex-tip-join-proof.cpp/.json` and `apex-tip-joined.brep`.
+
+## Independent bounded fixture acceptance
+
+Astra reviewed candidate `cb25c59`, exact root/profile/Intersect proof and the
+headless original-offset Pattern/Join proof. The single upper-point correction
+preserves all source dimensions and geometry policies. Updating its coincident
+connector endpoint in the retained proof matches fresh runner authoring. Both
+signed offsets retain a valid seed reaching the actual 80 mm apex; the original
+offset Join also retains material at axis height 79.9 mm. The runner height and
+saved-oracle axis-material assertions meaningfully reject cumulative-04's defect.
+
+Accepted as a bounded disclosed fixture correction and source-proof result.
+The new point is neither an observed public coordinate nor a mathematically
+minimal shift. Actual corrected final appearance, edited full geometry and mesh
+remain pending cumulative-05. This receipt does not accept the full visual gate.

@@ -63,3 +63,21 @@ This accepts the bounded evaluation change, not measured speed or complete
 workflow success on the ornament. Root's cumulative-04 actual API/GPU timing,
 recording, source edit/reopen and strict-STL evidence remain pending. No new
 native-input or broad checkpoint/cache compatibility claim is made.
+
+## Independent actual-entrypoint follow-up
+
+Astra reviewed terminal cumulative-04 report, transcript and saved-model oracle.
+The run reaches `cumulative-api-pass` and `complete`. Actual append plane,
+sketch finish and Cut take 4.7288 s, 4.4089 s and 10.8886 s, compared with the
+previous 129.86 s, 126.39 s and 134.50 s. Initial Join remains 23.7307 s; full
+reopens take 129–142 s and the upstream edit takes 146.5434 s. Those fallbacks
+are still full evaluation, not claimed accelerated.
+
+Original and edited saved models pass independent Boolean/solid validity,
+all-nine-input material preservation and bore/wall classification. Count/history,
+exact authored undo/redo/reopen and both strict one-component oriented STL
+readbacks pass. This establishes bounded functional and actual performance
+acceptance for #268. Cumulative-04's known open-crown visual mismatch separately
+blocks #264; it does not invalidate the append-evaluation result. Evidence:
+external `deliverables/ornament-2026-10-13/cumulative-04/report.json`,
+`transcript.json` and `geometry-verifier.log`. No replay was performed.
