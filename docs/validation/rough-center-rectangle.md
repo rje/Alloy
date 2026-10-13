@@ -40,3 +40,31 @@ acceleration and a 1464 × 1142 framebuffer.
 This matches the documented rough-to-dimension sequence for the bounded outer
 rectangle. Exact rough seed pixels and the rest of the wall-outlet sketch gate
 remain unverified here; no physical OS input or full tutorial claim is made.
+
+## Independent acceptance
+
+Accepted candidate `1dbe089ead6a956d6446c9179aae0a42fd908c59` on
+2026-10-13 after independent source, persisted logs, model and GPU-capture
+review. No additional editor run was necessary. The production delta supplies
+`drivingSize:false` only for completed pointer center/corner placement; omitted
+arguments and typed acceptance retain the existing driving-size default. It
+changes authoring, not loading or evaluation of existing files.
+
+The focused native log records 3/3 in 6.023 seconds and the retained typed-input
+control records 3/3 in 2.027 seconds. Test-source inspection confirms only initial
+window/view activation, then command-produced focus assertions through pointer
+placement, D, separate label placement and numeric Return. Initial sketch setup
+and action triggering use the shared application interface; subsequent drawing
+and dimension input are Qt-dispatched events, not a physical OS-pointer claim.
+Core source and the reported core pass cover 2→1→0 DOF and stored-document
+preservation. The saved native model independently contains four outline lines,
+two construction diagonals and exactly two driving dimensions, 70 and 114;
+its point bounds are x±35 and y±57.
+
+Both actual captures were inspected: the rough blue outline, dashed construction
+diagonals and two-DOF feedback are readable; the final black outline, 70/114
+witnesses and fully-constrained feedback are readable without palette overlap.
+The rough seed is an Alloy fixture choice. This accepts the bounded outer
+rectangle source step; associative cutouts, later relations and the complete
+wall-outlet lesson remain separate gates. Existing native/history evidence is
+reused without a full tutorial replay.
