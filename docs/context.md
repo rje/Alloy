@@ -39,8 +39,9 @@ child #220 is accepted after actual Windows transport and Astra review; #131 ret
 desktop/GPU and second-user access-denial qualification.
 Paper-clip source geometry is independently transcribed externally; #221–225 track
 shared-line fillets, typed chained-line locks, Sweep foundation/native controls and
-full tutorial. Sol owns foundation #223; transport #220 is accepted. Other
-new children remain Todo. Fillet width annotations must survive via explicit span
+full tutorial. Sol owns foundation #223 and shared-line fillets #221 in parallel; transport
+#220 is accepted. Typed line locks #222, native Sweep #224 and full gate #225
+remain Todo. Fillet width annotations must survive via explicit span
 conversion; original post-fillet drivenness is unknown. No fabricated semicircles
 or coordinate-seeded path authoring can close the complete source gate.
 Candidate/evidence worktrees: `../Alloy-worktrees/local-transport` (`feat/local-transport`)
