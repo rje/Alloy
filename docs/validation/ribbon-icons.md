@@ -49,3 +49,27 @@ Keyboard focus border and menu callbacks/full labels are source-reviewed;
 physical focus activation and popup rendering were not independently exercised.
 Native Windows/Linux runtime remains unqualified. Astra source/public-reference
 review reports no bounded blocker; final capture acceptance is pending.
+
+## Independent acceptance
+
+Astra accepts bounded #218 at `c8e13dd` (icon implementation `85b07ab`) on
+2026-10-13. Independent review inspected the original QPainter icon source,
+command wiring and widget inspection delta, external public overview and workflow
+specification, all eight final captures, their real widget metadata and the
+persisted 3/3 Qt result. No additional editor or modeling replay was launched.
+
+At both 1040 and 1400 logical pixels, the four captured states retain readable
+groups and a coherent icon row. Fillet/Chamfer have distinct curved/straight
+corners; Shell has an opening distinct from Box, and Measure is visibly subdued.
+All eight JSON states report DPR2, a 94-pixel ribbon and sixteen visible command
+buttons with icons, complete names/tooltips and bounds inside the ribbon. The
+actual new Revolve icon click is exercised by the reused event test, passing in
+4400 ms. Labels remain available through accessibility, tooltips and named menus;
+source routing still invokes the original authoritative commands.
+
+The public overview supports icon-only actions above named groups. The artwork
+is independently authored and the sizes/colors are Alloy choices; unmatched
+references cannot establish exact pixel parity. Focus styling and popup labels
+are source/metadata evidence, not newly exercised focus or popup-rendering proof.
+The duplicate sketch toolbar, footer scaffolding and broader #11 requirements
+remain separate. No physical OS input or other-platform runtime is claimed.
