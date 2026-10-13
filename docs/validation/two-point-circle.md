@@ -47,3 +47,33 @@ models are in the same external deliverables directory. The capture also shows
 an existing Sketch Palette status-text overlap at this viewport size; no matched
 public screenshot exists for the exact Alloy fixture. The source's exact hole
 placement and broader circle modes remain outside this bounded candidate.
+
+## Independent acceptance
+
+Accepted candidate `c61855fb` for the bounded #230 modeling/input scope on
+2026-10-13. Independent review covered the final solver/schema/input source,
+focused test source, saved models/end-state JSON and actual preview capture.
+The signed post-solve checks use the newly solved radius and enforce the center
+on the retained direction side; diameter/endpoint/center edits preserve the
+specified identities. Anchored endpoint and constant direction are explicit
+Alloy choices, not inferred snapping or free-point constraint semantics.
+
+The final test replaces temporary-object QJsonValueRef captures with owning
+QJsonValue values for comparisons. That resolves the reported test-only
+comparison crash without attributing a geometry failure to Cut. The saved Cut
+model exactly matches final authored state; its evaluated volume is
+1174.8672587712815 mm³, matching 1200 − 8π. The native passing run is author
+reported; source and persisted final artifacts were reviewed without rerunning
+the editor. Native first-point click, direction motion, typing/Return and Escape
+are distinct from shared-API face selection, command launch, edits, refusal
+request, history, reopen and Cut. The final source has initial harness focus
+setup only, with natural focus assertions before subsequent typed actions.
+
+The circle and inline value are readable. The capture also contains a concrete
+palette text overlap, not an unknown reference-styling difference. This branch
+predates the accepted #227 dynamic label-height correction; root confirmed that
+correction exists on main and must survive integration. Final #233 acceptance
+must inspect the integrated palette in the complete workflow. This scoped
+acceptance does not represent this pre-correction palette capture as visually
+finished. No physical OS input, exact unspecified source hole position, general
+snapping, or cumulative tutorial claim is made.
