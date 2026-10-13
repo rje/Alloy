@@ -1759,3 +1759,12 @@ Shader Tools is absent; any reused example shader bundles need matching source
 and license provenance. The existing app remains OpenGL. Parent#137 retains
 Vulkan-host evidence, admission, selection and migration. Root serializes GUI
 access behind the active#150 multi-face gate.
+
+## Palette summary correction accepted (2026-10-13)
+
+FND-022/#211 is independently accepted:634b67c updates sketch scroll-layout
+constraints so multi-line summary text is fully visible below Name. Main app build,
+1400/1100-window captures, longer Offset instruction and exact Cancel preservation
+pass; Astra reviewed actual images and source. See validation/sketch-palette-summary.md.
+The palette remains fixed312pixels; toolbar truncation and broader layout remain
+separate. No repeated full tutorial or physical OS input claim.
