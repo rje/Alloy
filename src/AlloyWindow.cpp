@@ -4258,25 +4258,64 @@ QJsonObject AlloyWindow::resolveSketchSnap(double x,double y,const QString& plan
         const auto idB=targetB["kind"]=="midpoint" ? targetB["entityId"].toString() : targetB["pointId"].toString();
         return idA<idB;
     });
-    // Screen projection can differ by subpixel rounding for geometrically
-    // coincident authored and support points. Prefer the authored reference at
-    // that same location before deciding whether distinct nearby targets tie.
-    auto best=candidates[0];
+    // Each inferred midpoint can name an authored point, but only through a
+    // retained midpoint relation. Distinct points join a snap cluster only
+    // through retained Coincident edges; equal coordinates alone are not intent.
+    QMap<QString,QSet<QString>> midpointPoints,coincidentPoints;
+    for(const auto& entry:parameters["constraints"].toArray()) {
+        const auto relation=entry.toObject();
+        const auto ids=relation["pointIds"].toArray();
+        if(relation["type"]=="midpoint" && ids.size()==1 && relation["entityIds"].toArray().size()==1)
+            midpointPoints[relation["entityIds"].toArray()[0].toString()].insert(ids[0].toString());
+        if(relation["type"]=="coincident" && ids.size()==2) {
+            const auto a=ids[0].toString(),b=ids[1].toString();
+            coincidentPoints[a].insert(b);coincidentPoints[b].insert(a);
+        }
+    }
+    auto identities=[&](const QJsonObject& candidate) {
+        QSet<QString> ids;const auto target=candidate["target"].toObject();
+        const auto kind=target["kind"].toString();
+        if(kind=="origin" && !parameters["originPointId"].toString().isEmpty())ids.insert(parameters["originPointId"].toString());
+        else if(kind=="point")ids.insert(target["pointId"].toString());
+        else if(kind=="midpoint") {
+            const auto names=midpointPoints.value(target["entityId"].toString());
+            if(names.size()==1)ids=names;
+        }
+        ids.remove(QString{});return ids;
+    };
+    auto linked=[&](const QJsonObject& a,const QJsonObject& b) {
+        const auto source=identities(a),target=identities(b);
+        if(source.isEmpty() || target.isEmpty())return false;
+        QSet<QString> visited=source;QList<QString> queue=source.values();
+        for(qsizetype i=0;i<queue.size();++i) {
+            const auto id=queue[i];if(target.contains(id))return true;
+            for(const auto& next:coincidentPoints.value(id))if(!visited.contains(next)){visited.insert(next);queue.append(next);}
+        }
+        return false;
+    };
+    std::vector<QJsonObject> groups;
     for(const auto& candidate:candidates) {
         if(candidate["distancePx"].toDouble()-candidates[0]["distancePx"].toDouble()>ambiguityPx)break;
-        const bool sameLocation=std::hypot(candidate["uMm"].toDouble()-candidates[0]["uMm"].toDouble(),
-            candidate["vMm"].toDouble()-candidates[0]["vMm"].toDouble())<1e-6;
-        if(sameLocation && rank(candidate)<rank(best))best=candidate;
+        bool joined=false;
+        for(auto& representative:groups) {
+            const bool sameLocation=std::hypot(candidate["uMm"].toDouble()-representative["uMm"].toDouble(),
+                candidate["vMm"].toDouble()-representative["vMm"].toDouble())<1e-6;
+            if(!sameLocation)continue;
+            // An incidental line midpoint has no retained point identity. At
+            // an authored point it is a weaker inference, not another point.
+            const auto candidateKind=candidate["target"].toObject()["kind"].toString();
+            const auto representativeKind=representative["target"].toObject()["kind"].toString();
+            const bool incidentalMidpoint=(candidateKind=="midpoint" && identities(candidate).isEmpty())
+                || (representativeKind=="midpoint" && identities(representative).isEmpty());
+            if(!linked(candidate,representative) && !(incidentalMidpoint
+                && candidateKind!=representativeKind && (candidateKind=="midpoint" || representativeKind=="midpoint")))continue;
+            if(rank(candidate)<rank(representative))representative=candidate;
+            joined=true;break;
+        }
+        if(!joined)groups.push_back(candidate);
     }
-    QJsonArray tied{best};for(const auto& candidate:candidates){if(candidate["distancePx"].toDouble()-candidates[0]["distancePx"].toDouble()>ambiguityPx)break;
-        if(candidate==best)continue;
-        const bool sameLocation=std::hypot(candidate["uMm"].toDouble()-best["uMm"].toDouble(),candidate["vMm"].toDouble()-best["vMm"].toDouble())<1e-6;
-        const auto candidateKind=candidate["target"].toObject()["kind"],bestKind=best["target"].toObject()["kind"];
-        if(sameLocation && ((candidateKind=="point" && (bestKind=="origin" || bestKind=="point"))
-            || (bestKind=="point" && candidateKind=="midpoint")))continue;
-        tied.append(candidate);
-    }
-    if(tied.size()>1){result["status"]="ambiguous";result["candidates"]=tied;return result;}
+    if(groups.size()>1){result["status"]="ambiguous";QJsonArray tied;for(const auto& group:groups)tied.append(group);result["candidates"]=tied;return result;}
+    const auto best=groups.front();
     result["status"]="acquired";result["target"]=best["target"];result["uMm"]=best["uMm"];result["vMm"]=best["vMm"];result["distancePx"]=best["distancePx"];
     if(best.value("projected").toBool())for(const auto& field:{"projected","projectionId","source","endpoint","supportPoint","retained"})
         if(best.contains(field))result[field]=best[field];

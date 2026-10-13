@@ -2314,3 +2314,12 @@ lower preview and settled palette. The sketch remains at 33 DOF; the fully
 defined lesson is a separate cumulative gate. Both validation editors exited.
 See [the scoped receipt](validation/sketch-mirror-controls.md). Independent
 review and integration are pending.
+
+## Coincident snap cluster candidate (2026-10-13)
+
+SKT-055/#243 resolves origin circle placement after a rough centered rectangle
+and horizontal midpoint axis by grouping only retained Coincident point intent
+and point-named Midpoint inference. A focused real-window circle gesture and
+an unlinked equal-coordinate ambiguity control pass. The full outlet lesson
+still requires a separate cumulative rerun. See
+[the candidate receipt](validation/coincident-snap-clusters.md).
