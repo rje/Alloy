@@ -40,8 +40,8 @@ links that capture alongside the full movie/model/STL. Native ingredient tests
 remain distinct from API movie evidence; no physical OS or exact pixel claim.
 The source's post-fillet dimension drivenness is unknown; Alloy's explicit
 reference-span conversion is disclosed. No full tutorial replay was needed for
-the symbol-only change. The private GUI slot is currently reserved for #233
-full keyring workflow recording; other agents must wait before launching an editor.
+the symbol-only change. The private GUI slot is free after #233 recording; keep only one private
+validation editor open at a time.
 
 **Active: full keyring gate #233.**
 Luna identified the illustrated initials-keyring lesson externally; Astra
@@ -60,8 +60,13 @@ capture is readable. Independent visual review accepted and closed #230; the ear
 overlap was capture-before-queued-layout, requiring no production layout fix. Full gate #233
 runner preparation is committed (3d465da), with bore-clear text placement fixed
 at14b789e after independent preflight. All prerequisites including Cut rim #236
-are accepted, integrated and closed. The root is running the cumulative blank-to-
-Save/movie/STL chain; no cumulative acceptance is claimed yet.
+are accepted, integrated and closed. The cumulative blank-to-Save/movie/STL chain passed through the real application
+with runner a50a000; Astra independent review is pending. External deliverables
+`deliverables/initials-keyring-2026-10-13` contain the source, 26398-facet one-
+component STL and full report. The 63.8-second creation movie is in
+`demos/2026-10-13/initials-keyring`. Text clearance, same-slot edit/history and
+exact reopen passed; failed runner setup/framing attempts remain separately
+archived and are not acceptance evidence. The private editor is closed.
 Follow-up #235 tracks driving overall size/origin retention through
 sketch fillets; #228 permits explicit measured-span conversion, so radius edits
 can alter overall size. Text retains authored parameters and uses mature font
