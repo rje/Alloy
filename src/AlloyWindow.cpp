@@ -21,6 +21,7 @@
 #include <QDoubleSpinBox>
 #include <QFormLayout>
 #include <QFileDialog>
+#include <QInputDialog>
 #include <QMessageBox>
 #include <QCloseEvent>
 #include <QDir>
@@ -319,11 +320,20 @@ AlloyWindow::AlloyWindow() {
     new QTreeWidgetItem(document, {"Origin"});
     bodiesNode_=new QTreeWidgetItem(document,{"Bodies"}); bodiesNode_->setExpanded(true);
     sketchesNode_=new QTreeWidgetItem(document,{"Sketches"});sketchesNode_->setExpanded(true);
+    planesNode_=new QTreeWidgetItem(document,{"Construction"});planesNode_->setExpanded(true);
     document->setExpanded(true); views->setExpanded(true);
     tree_->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(tree_,&QTreeWidget::customContextMenuRequested,this,[this](const QPoint& point){
         const auto* item=tree_->itemAt(point);
-        if(!item || item->parent()!=bodiesNode_ || item->isHidden())return;
+        if(!item || item->isHidden())return;
+        if(item->parent()==sketchesNode_ || item->parent()==planesNode_) {
+            const auto id=item->data(0,Qt::UserRole+2).toString();
+            execute(item->parent()==planesNode_ ? "selection.planeSet" : "selection.sketchSet",item->parent()==planesNode_ ? QJsonObject{{"planeId",id}} : QJsonObject{{"sketchId",id}});
+            QMenu menu(this);auto* offset=menu.addAction("Offset Plane");offset->setEnabled(session_.isEmpty());
+            if(menu.exec(tree_->viewport()->mapToGlobal(point))==offset)execute("construction.plane");
+            return;
+        }
+        if(item->parent()!=bodiesNode_)return;
         const auto bodyId=item->data(0,Qt::UserRole+1).toString();
         QMenu menu(this);menu.setObjectName("context.browserBody");auto* move=menu.addAction("Move/Copy");move->setObjectName("context.moveBody");move->setEnabled(session_.isEmpty());auto* mesh=menu.addAction("Save As Mesh…");mesh->setObjectName("context.exportMesh");mesh->setEnabled(session_.isEmpty());
         QJsonArray actions;for(const auto* action:menu.actions())actions.append(QJsonObject{{"id",action->objectName()},{"text",action->text()},{"enabled",action->isEnabled()}});
@@ -336,12 +346,14 @@ AlloyWindow::AlloyWindow() {
         const auto name=item->data(0,Qt::UserRole).toString();
         const auto body=item->data(0,Qt::UserRole+1).toString();
         const auto sketch=item->parent()==sketchesNode_ ? item->data(0,Qt::UserRole+2).toString() : QString{};
+        const auto plane=item->parent()==planesNode_ ? item->data(0,Qt::UserRole+2).toString() : QString{};
         if(!name.isEmpty())execute("view.orientation",{{"name",name}});
         else if(!body.isEmpty())execute("selection.set",{{"bodyId",body}});
         else if(!sketch.isEmpty())execute("selection.sketchSet",{{"sketchId",sketch}});
+        else if(!plane.isEmpty())execute("selection.planeSet",{{"planeId",plane}});
     });
     connect(tree_,&QTreeWidget::itemChanged,this,[this](QTreeWidgetItem* item,int column){
-        if(!item || item->isHidden() || !(item->flags()&Qt::ItemIsEnabled) || column!=0 || (item->parent()!=sketchesNode_ && item->parent()!=bodiesNode_))return;
+        if(!item || item->isHidden() || !(item->flags()&Qt::ItemIsEnabled) || column!=0 || (item->parent()!=sketchesNode_ && item->parent()!=bodiesNode_ && item->parent()!=planesNode_))return;
         const auto id=item->data(0,Qt::UserRole+2).toString();const bool visible=item->checkState(0)==Qt::Checked;
         pendingBrowserVisibility_=id;
         const auto tabId=activeTabId_,sessionId=session_.value("id").toString();
@@ -353,7 +365,7 @@ AlloyWindow::AlloyWindow() {
             const auto response=execute("feature.visibility",{{"featureId",id},{"visible",visible}});
             if(!response["ok"].toBool()) {
                 const QSignalBlocker block(tree_);
-                for(auto* parent:{bodiesNode_,sketchesNode_})for(int i=0;i<parent->childCount();++i) {
+                for(auto* parent:{bodiesNode_,sketchesNode_,planesNode_})for(int i=0;i<parent->childCount();++i) {
                     auto* current=parent->child(i);if(current->data(0,Qt::UserRole+2).toString()!=id)continue;
                     for(const auto& entry:document_->authored()["features"].toArray()) {
                         const auto feature=entry.toObject();if(feature["id"]==id)current->setCheckState(0,feature["visible"].toBool() ? Qt::Checked : Qt::Unchecked);
@@ -537,7 +549,7 @@ void AlloyWindow::saveActiveTabState() {
     for(auto& tab:designTabs_)if(tab->id==activeTabId_) {
         tab->session=session_;tab->sketchHistory=sketchHistory_;tab->sketchHistoryIndex=sketchHistoryIndex_;
         tab->sketchHistoryGroup=sketchHistoryGroup_;tab->selectedBody=selectedBody_;
-        tab->selectedSketch=selectedSketch_;tab->selectedProfile=selectedProfile_;tab->selectedProfileIds=selectedProfileIds_;tab->selectedFace=selectedFace_;
+        tab->selectedSketch=selectedSketch_;tab->selectedProfile=selectedProfile_;tab->selectedProfileIds=selectedProfileIds_;tab->selectedFace=selectedFace_;tab->selectedPlane=selectedPlane_;
         tab->camera=view_->cameraState();return;
     }
 }
@@ -552,7 +564,7 @@ void AlloyWindow::showActiveTab() {
     document_=active->document.get();session_=active->session;
     sketchHistory_=active->sketchHistory;sketchHistoryIndex_=active->sketchHistoryIndex;
     sketchHistoryGroup_=active->sketchHistoryGroup;
-    selectedBody_=active->selectedBody;selectedSketch_=active->selectedSketch;selectedProfile_=active->selectedProfile;selectedProfileIds_=active->selectedProfileIds;selectedFace_=active->selectedFace;
+    selectedBody_=active->selectedBody;selectedSketch_=active->selectedSketch;selectedProfile_=active->selectedProfile;selectedProfileIds_=active->selectedProfileIds;selectedFace_=active->selectedFace;selectedPlane_=active->selectedPlane;
     displayedDocumentRevision_=std::numeric_limits<quint64>::max();displayedSketchDraft_={};
     sketchWidgetDraft_={};sketchWidgetSelection_={};sketchWidgetUnits_.clear();pendingBrowserVisibility_.clear();
     view_->restoreCameraState(active->camera);
@@ -674,7 +686,7 @@ void AlloyWindow::registerCommands() {
         if (tabHasUnsavedWork(activeTabId_) && !a.value("discard").toBool()) return failure("unsaved_changes", "Save or explicitly discard the current document");
         if(!session_.isEmpty())finishSession(session_.value("id").toString(),false);
         document_->reset();view_->rebindDocument();displayedDocumentRevision_=std::numeric_limits<quint64>::max();
-        selectedBody_.clear();selectedFace_={};view_->selectSupportFace({},{});selectedSketch_.clear();selectedProfile_.clear();selectedProfileIds_={};view_->fit({},{});return document_->state();
+        selectedBody_.clear();selectedFace_={};selectedPlane_.clear();view_->selectSupportFace({},{});selectedSketch_.clear();selectedProfile_.clear();selectedProfileIds_={};view_->fit({},{});return document_->state();
     });
     auto optional=[](QJsonObject value) { value["required"]=false; return value; };
     auto path=parameter("string","Absolute native .alloy file path.");
@@ -752,7 +764,7 @@ void AlloyWindow::registerCommands() {
         const auto error=document_->open(a["path"].toString());
         if(error.isEmpty()){if(!session_.isEmpty())finishSession(session_.value("id").toString(),false);
             view_->rebindDocument();displayedDocumentRevision_=std::numeric_limits<quint64>::max();
-            selectedBody_.clear();selectedFace_={};view_->selectSupportFace({},{});selectedSketch_.clear();selectedProfile_.clear();selectedProfileIds_={};view_->fit(document_->bodies(),document_->sketches());}
+            selectedBody_.clear();selectedFace_={};selectedPlane_.clear();view_->selectSupportFace({},{});selectedSketch_.clear();selectedProfile_.clear();selectedProfileIds_={};view_->fit(document_->bodies(),document_->sketches());}
         return error.isEmpty() ? document_->state() : failure("open_failed",error,"path");
     });
     for(const auto& id:{"document.saveDialog","document.saveAsDialog"}) {
@@ -961,10 +973,72 @@ void AlloyWindow::registerCommands() {
     sketchPlane["enum"]=QJsonArray{"XY","XZ","YZ"};
     auto sketchId=parameter("string","Stable authored sketch feature UUID.");
     auto supportIdentity=parameter("object","Stable planar support {producerFeatureId, bodyId, faceId}.");
-    QJsonObject sketchBeginSchema{{"plane",optional(sketchPlane)},{"support",optional(supportIdentity)},{"name",name},{"units",optional(units)}};
+    auto planeId=parameter("string","Stable authored construction plane feature UUID.");
+    auto planeSource=parameter("object","One origin plane, prior plane, sketch, or supported face source.");
+    auto planeOffset=parameter("number","Signed offset in display units or supplied units.");planeOffset["minimum"]=-100000;planeOffset["maximum"]=100000;
+    add("construction.plane","Offset Plane","Create or edit an authored plane at a signed offset from a planar source.",
+        {{"source",optional(planeSource)},{"offset",optional(planeOffset)},{"units",optional(units)},{"name",optional(name)},{"featureId",optional(featureId)}},[this](const auto& a){
+        if(!session_.isEmpty())return failure("session_busy","Complete or cancel the active command first");
+        auto source=a.value("source").toObject();double offset=a.value("offset").toDouble();
+        QJsonObject editing;
+        if(a.contains("featureId"))for(const auto& entry:document_->authored()["features"].toArray())if(entry.toObject()["id"]==a["featureId"]){editing=entry.toObject();break;}
+        if(a.contains("featureId") && editing["type"]!="constructionPlane")return failure("stale_entity","Construction plane does not exist","featureId");
+        if(source.isEmpty()) {
+            if(apiExecuting_)return failure("source_required","Supply one planar source and offset","source");
+            QDialog dialog(this);dialog.setWindowTitle("Offset Plane");auto* layout=new QVBoxLayout(&dialog);
+            auto* form=new QFormLayout;auto* choices=new QComboBox(&dialog);choices->setObjectName("construction.source");
+            for(const auto& plane:QStringList{"XY","XZ","YZ"})choices->addItem(plane+" Plane",QJsonObject{{"plane",plane}});
+            const auto& sources=editing.isEmpty() ? document_->evaluation() : document_->evaluationBefore(editing["id"].toString());
+            for(const auto& candidate:sources.constructionPlanes)choices->addItem(candidate.name,QJsonObject{{"planeId",candidate.featureId}});
+            for(const auto& candidate:sources.sketches)choices->addItem(candidate.name+" (Sketch)",QJsonObject{{"sketchId",candidate.featureId}});
+            for(int i=0;i<choices->count();++i){const auto current=choices->itemData(i).toJsonObject();if((!selectedPlane_.isEmpty() && current["planeId"]==selectedPlane_) || (!selectedSketch_.isEmpty() && current["sketchId"]==selectedSketch_))choices->setCurrentIndex(i);}
+            if(!selectedFace_.isEmpty()){choices->addItem("Selected Face",QJsonObject{{"support",selectedFace_}});choices->setCurrentIndex(choices->count()-1);}
+            if(!editing.isEmpty()) {const auto saved=editing["parameters"].toObject()["source"].toObject();bool found=false;for(int i=0;i<choices->count();++i)if(choices->itemData(i).toJsonObject()==saved){choices->setCurrentIndex(i);found=true;break;}if(!found){choices->addItem("Saved Face",saved);choices->setCurrentIndex(choices->count()-1);}}
+            auto* spin=new QDoubleSpinBox(&dialog);spin->setObjectName("construction.offset");spin->setRange(-100000,100000);spin->setDecimals(3);spin->setSuffix(" "+document_->authored()["displayUnits"].toString());
+            if(!editing.isEmpty())spin->setValue(editing["parameters"].toObject()["offsetMm"].toDouble()/(document_->authored()["displayUnits"]=="in" ? 25.4 : 1));
+            form->addRow("Plane",choices);form->addRow("Offset",spin);layout->addLayout(form);
+            auto* previewError=new QLabel(&dialog);previewError->setWordWrap(true);layout->addWidget(previewError);
+            quint64 previewRevision=document_->revision()+1;
+            auto refreshPreview=[&]{
+                try {
+                    auto planes=document_->evaluation().constructionPlanes;
+                    const auto frame=GeometryKernel::offsetPlaneFrame(GeometryKernel::resolvePlaneSource(sources,choices->currentData().toJsonObject()),CadDocument::millimeters(spin->value(),document_->authored()["displayUnits"].toString()));
+                    if(!editing.isEmpty())for(auto it=planes.begin();it!=planes.end();++it)if(it->featureId==editing["id"].toString()){planes.erase(it);break;}
+                    planes.push_back({"offset-preview","Offset Preview",true,frame});
+                    view_->setConstructionPlanes(planes,previewRevision++);view_->selectConstructionPlane("offset-preview");previewError->clear();
+                } catch(const std::exception& error) {previewError->setText(QString::fromUtf8(error.what()));}
+            };
+            connect(choices,&QComboBox::currentIndexChanged,&dialog,[&]{refreshPreview();});
+            connect(spin,&QDoubleSpinBox::valueChanged,&dialog,[&]{refreshPreview();});
+            refreshPreview();
+            auto* buttons=new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel,&dialog);layout->addWidget(buttons);
+            connect(buttons,&QDialogButtonBox::accepted,&dialog,&QDialog::accept);connect(buttons,&QDialogButtonBox::rejected,&dialog,&QDialog::reject);
+            const auto accepted=dialog.exec()==QDialog::Accepted;
+            view_->setConstructionPlanes(document_->evaluation().constructionPlanes,document_->revision());view_->selectConstructionPlane(selectedPlane_);
+            if(!accepted)return QJsonObject{{"cancelled",true},{"authoredChange",false}};
+            source=choices->currentData().toJsonObject();offset=spin->value();
+        }
+        if(source.size()!=1)return failure("invalid_source","Choose exactly one planar source","source");
+        if(apiExecuting_ && !a.contains("offset"))return failure("offset_required","Supply a signed offset","offset");
+        auto candidate=document_->authored();auto features=candidate["features"].toArray();
+        QJsonObject plane;int index=-1;
+        if(a.contains("featureId"))for(int i=0;i<features.size();++i)if(features[i].toObject()["id"]==a["featureId"]){index=i;plane=features[i].toObject();break;}
+        if(a.contains("featureId") && (index<0 || plane["type"]!="constructionPlane"))return failure("stale_entity","Construction plane does not exist","featureId");
+        if(index<0)plane={{"id",CadDocument::newId()},{"ownerId",candidate["documentId"]},{"type","constructionPlane"},{"name",a.value("name").toString("Plane")},{"visible",true}};
+        else if(a.contains("name"))plane["name"]=a["name"];
+        const auto inputUnits=a.value("units").toString(candidate["displayUnits"].toString());
+        plane["parameters"]=QJsonObject{{"source",source},{"offsetMm",CadDocument::millimeters(offset,inputUnits)}};
+        if(index<0)features.append(plane);else features[index]=plane;candidate["features"]=features;
+        const auto error=document_->commit(candidate,index<0 ? "Create Offset Plane" : "Edit Offset Plane");
+        if(!error.isEmpty()){auto response=failure("evaluation_failed",error);auto details=response["error"].toObject();details["diagnostics"]=document_->lastEvaluationError();response["error"]=details;return response;}
+        return QJsonObject{{"planeId",plane["id"]},{"document",document_->state()}};
+    });
+    QJsonObject sketchBeginSchema{{"plane",optional(sketchPlane)},{"planeId",optional(planeId)},{"support",optional(supportIdentity)},{"name",name},{"units",optional(units)}};
     auto sketchCreateSchema=sketchBeginSchema;
     add("sketch.create","Create Sketch","Choose an origin plane or supported planar face, then author retained sketch geometry.",sketchCreateSchema,[this](const auto& a){
-        if(a.contains("plane") && a.contains("support"))return failure("invalid_arguments","Choose an origin plane or a face, not both");
+        if(int(a.contains("plane"))+int(a.contains("planeId"))+int(a.contains("support"))>1)return failure("invalid_arguments","Choose one sketch plane source");
+        if(a.contains("planeId"))return beginSketch("construction",a.value("name").toString("Sketch"),{},{{"planeId",a["planeId"]}});
+        if(!a.contains("plane") && !a.contains("planeId") && !a.contains("support") && !selectedPlane_.isEmpty())return beginSketch("construction",a.value("name").toString("Sketch"),{},{{"planeId",selectedPlane_}});
         if(a.contains("support") || (!a.contains("plane") && !selectedFace_.isEmpty())) {
             auto result=beginSketch("face",a.value("name").toString("Sketch"),{},a.contains("support") ? a["support"].toObject() : selectedFace_);
             if(!result["ok"].isBool() && a.contains("units")){auto inputs=session_.value("inputs").toObject();inputs["units"]=a["units"];session_["inputs"]=inputs;result=session_;}
@@ -997,8 +1071,8 @@ void AlloyWindow::registerCommands() {
         return session_;
     });
     add("sketch.begin","Choose sketch plane or face","Enter sketch editing with a disposable authored draft.",sketchBeginSchema,[this](const auto& a){
-        if(a.contains("plane")==a.contains("support"))return failure("invalid_arguments","Choose exactly one origin plane or face support");
-        auto result=beginSketch(a.contains("support") ? "face" : a["plane"].toString(),a.value("name").toString(session_.value("inputs").toObject().value("name").toString("Sketch")),{},a.value("support").toObject());
+        if(int(a.contains("plane"))+int(a.contains("planeId"))+int(a.contains("support"))!=1)return failure("invalid_arguments","Choose exactly one sketch plane source");
+        auto result=beginSketch(a.contains("support") ? "face" : a.contains("planeId") ? "construction" : a["plane"].toString(),a.value("name").toString(session_.value("inputs").toObject().value("name").toString("Sketch")),{},a.contains("planeId") ? QJsonObject{{"planeId",a["planeId"]}} : a.value("support").toObject());
         if(!result["ok"].isBool() && a.contains("units")){auto inputs=session_.value("inputs").toObject();inputs["units"]=a["units"];session_["inputs"]=inputs;result=session_;}
         return result;
     });
@@ -1528,6 +1602,9 @@ void AlloyWindow::registerCommands() {
         for(const auto& entry:document_->authored()["features"].toArray()) {const auto feature=entry.toObject();if(feature["id"]!=a["featureId"])continue;
             if(feature["type"].toString()=="sketch")return beginSketch(feature["parameters"].toObject()["plane"].toString(),feature["name"].toString(),feature["id"].toString());
             const auto p=feature["parameters"].toObject();
+            if(feature["type"]=="constructionPlane") {
+                return execute("construction.plane",{{"featureId",feature["id"]}});
+            }
             if(feature["type"]=="extrude") {
                 const auto unit=document_->authored()["displayUnits"].toString();const double scale=unit=="in" ? 25.4 : 1;
                 QJsonObject inputs{{"featureId",feature["id"]},{"sketchId",p["sketchId"]},
@@ -1574,10 +1651,18 @@ void AlloyWindow::registerCommands() {
         }
         for(const auto& body:document_->bodies()) found=found || (body.bodyId==id && body.visible);
         if(!found)return failure("stale_entity","Visible body does not exist","bodyId");
-        selectedBody_=id;selectedFace_={};view_->selectSupportFace({},{});selectedSketch_.clear();selectedProfile_.clear();selectedProfileIds_={};view_->selectProfile({},{});view_->selectBody(id);return QJsonObject{{"bodyId",id},{"kind","body"}};
+        selectedBody_=id;selectedFace_={};selectedPlane_.clear();view_->selectSupportFace({},{});selectedSketch_.clear();selectedProfile_.clear();selectedProfileIds_={};view_->selectProfile({},{});view_->selectBody(id);return QJsonObject{{"bodyId",id},{"kind","body"}};
     });
     add("selection.faceSet","Select planar face","Select a stable supported face for Create Sketch.",{{"support",supportIdentity}},[this](const auto& a){
         return selectSupportFace(a["support"].toObject());
+    });
+    add("selection.planeSet","Select construction plane","Select an authored visible plane for Create Sketch.",{{"planeId",planeId}},[this](const auto& a){
+        const auto id=a["planeId"].toString();
+        for(const auto& plane:document_->evaluation().constructionPlanes)if(plane.featureId==id && plane.visible) {
+            selectedPlane_=id;selectedBody_.clear();selectedFace_={};selectedPlane_.clear();view_->selectSupportFace({},{});selectedSketch_.clear();selectedProfile_.clear();selectedProfileIds_={};
+            view_->selectBody({});view_->selectProfile({},{});view_->selectConstructionPlane(id);return QJsonObject{{"kind","constructionPlane"},{"planeId",id},{"frame",plane.frame}};
+        }
+        return failure("plane_unavailable","Visible construction plane does not exist","planeId");
     });
     add("selection.profileSet","Select profile","Select a retained accepted region through the same path as canvas picking.",
         {{"sketchId",sketchIdentity},{"profileId",profileIdentity},{"additive",optional(parameter("boolean","Add this region to the current same-sketch selection."))},
@@ -1586,7 +1671,7 @@ void AlloyWindow::registerCommands() {
     add("selection.sketchSet","Select sketch","Select a finished sketch through the same path as the Browser.",
         {{"sketchId",sketchIdentity}},[this](const auto& a){
             const auto id=a["sketchId"].toString();for(const auto& sketch:document_->sketches())if(sketch.featureId==id) {
-                selectedBody_.clear();selectedFace_={};view_->selectSupportFace({},{});selectedSketch_=id;selectedProfile_.clear();selectedProfileIds_={};view_->selectBody({});view_->selectProfile(id,{});
+                selectedBody_.clear();selectedFace_={};selectedPlane_.clear();view_->selectSupportFace({},{});selectedSketch_=id;selectedProfile_.clear();selectedProfileIds_={};view_->selectBody({});view_->selectProfile(id,{});
                 if(session_.value("command")=="solid.extrude" && sketch.profiles.size()==1)return selectFinishedProfile(id,sketch.profiles.front().profileId);
                 return QJsonObject{{"kind","sketch"},{"sketchId",id}};
             }
@@ -1627,6 +1712,11 @@ void AlloyWindow::registerCommands() {
                 if(session_.value("command")=="sketch.plane")return beginSketch("face",session_.value("inputs").toObject().value("name").toString("Sketch"),{},support);
                 return selectSupportFace(support);
             }
+            const auto plane=view_->pickConstructionPlane(a["x"].toDouble(),a["y"].toDouble());
+            if(!plane.isEmpty()) {
+                if(session_.value("command")=="sketch.plane")return beginSketch("construction",session_.value("inputs").toObject().value("name").toString("Sketch"),{},{{"planeId",plane}});
+                return execute("selection.planeSet",{{"planeId",plane}});
+            }
             if(session_.value("command")=="sketch.plane")return failure("unsupported_face","Choose a supported planar face or an origin plane");
         }
         const auto profile=view_->pickFinishedProfile(a["x"].toDouble(),a["y"].toDouble());
@@ -1638,7 +1728,7 @@ void AlloyWindow::registerCommands() {
                 a.value("additive").toBool() || (!a.value("toggle").toBool() && collect),a.value("toggle").toBool());
         }
         if((a.value("additive").toBool() || a.value("toggle").toBool()) && !selectedProfileIds_.isEmpty())return QJsonObject{{"kind","profile"},{"sketchId",selectedSketch_},{"profileId",selectedProfile_},{"profileIds",selectedProfileIds_}};
-        selectedFace_={};view_->selectSupportFace({},{});selectedSketch_.clear();selectedProfile_.clear();selectedProfileIds_={};view_->selectProfile({},{});view_->selectBody(selectedBody_);
+        selectedFace_={};selectedPlane_.clear();view_->selectSupportFace({},{});selectedSketch_.clear();selectedProfile_.clear();selectedProfileIds_={};view_->selectProfile({},{});view_->selectBody(selectedBody_);
         return QJsonObject{{"bodyId",selectedBody_},{"kind","body"}};
     });
     add("view.projectBody","Project body center","Return actual OCCT projection for a body's center, in logical pixels.",{{"bodyId",bodyId}},[this](const auto& a){
@@ -1853,7 +1943,7 @@ void AlloyWindow::registerCommands() {
         authorizedQuit_=true;
         QTimer::singleShot(0,qApp,&QApplication::quit);return QJsonObject{{"quitting",true}};
     });
-    for (const auto& pair : QList<QPair<QString, QString>>{{"solid.revolve", "Revolve"}, {"construction.plane", "Plane"}, {"inspect.measure", "Measure"}}) {
+    for (const auto& pair : QList<QPair<QString, QString>>{{"solid.revolve", "Revolve"}, {"inspect.measure", "Measure"}}) {
         commands_.push_back({pair.first, pair.second, "Not implemented in the UI shell.", {}, false, {}});
     }
 }
@@ -1968,6 +2058,7 @@ QJsonObject AlloyWindow::state() const {
             {"pointIds",session_.value("selection").toObject()["pointIds"]},{"entityIds",session_.value("selection").toObject()["entityIds"]},
             {"profileIds",session_.value("selection").toObject().value("profileIds").toArray()},{"dimensionId",session_.value("selection").toObject().value("dimensionId")},
             {"constraintIds",session_.value("selection").toObject().value("constraintIds").toArray()}}
+            : !selectedPlane_.isEmpty() ? QJsonObject{{"kind","constructionPlane"},{"planeId",selectedPlane_}}
             : !selectedFace_.isEmpty() ? QJsonObject{{"kind","face"},{"support",selectedFace_}}
             : !selectedProfileIds_.isEmpty() ? QJsonObject{{"kind","profile"},{"sketchId",selectedSketch_},{"profileIds",selectedProfileIds_},{"profileId",selectedProfile_}}
             : !selectedSketch_.isEmpty() ? QJsonObject{{"kind","sketch"},{"sketchId",selectedSketch_}}
@@ -2017,7 +2108,7 @@ void AlloyWindow::refresh() {
         };
         while(auto* item=timelineLayout_->takeAt(0)){delete item->widget();delete item;}
         timelineLayout_->addWidget(new QLabel("TIMELINE"));
-        bool selectedExists=false;QSet<QString> liveBodies,liveSketches;
+        bool selectedExists=false;QSet<QString> liveBodies,liveSketches,livePlanes;
         for(const auto& body:document_->bodies()) {
             liveBodies.insert(body.bodyId);
             auto* item=browserRow(bodiesNode_,body.bodyId,Qt::UserRole+1);
@@ -2034,6 +2125,14 @@ void AlloyWindow::refresh() {
             item->setFlags(item->flags()|Qt::ItemIsEnabled|Qt::ItemIsSelectable|Qt::ItemIsUserCheckable);
             item->setCheckState(0,sketch.visible ? Qt::Checked : Qt::Unchecked);item->setHidden(false);
         }
+        for(const auto& plane:document_->evaluation().constructionPlanes) {
+            livePlanes.insert(plane.featureId);
+            auto* item=browserRow(planesNode_,plane.featureId,Qt::UserRole+2);
+            item->setText(0,plane.name);item->setData(0,Qt::UserRole+2,plane.featureId);
+            item->setFlags(item->flags()|Qt::ItemIsEnabled|Qt::ItemIsSelectable|Qt::ItemIsUserCheckable);
+            item->setCheckState(0,plane.visible ? Qt::Checked : Qt::Unchecked);item->setHidden(false);
+        }
+        if(!livePlanes.contains(selectedPlane_))selectedPlane_.clear();
         for(int i=0;i<bodiesNode_->childCount();++i) {
             auto* item=bodiesNode_->child(i);
             if(!liveBodies.contains(item->data(0,Qt::UserRole+1).toString())){
@@ -2044,6 +2143,13 @@ void AlloyWindow::refresh() {
         for(int i=0;i<sketchesNode_->childCount();++i) {
             auto* item=sketchesNode_->child(i);
             if(!liveSketches.contains(item->data(0,Qt::UserRole+2).toString())){
+                item->setSelected(false);if(tree_->currentItem()==item)tree_->setCurrentItem(nullptr);
+                item->setFlags(item->flags() & ~(Qt::ItemIsEnabled|Qt::ItemIsSelectable|Qt::ItemIsUserCheckable));item->setHidden(true);
+            }
+        }
+        for(int i=0;i<planesNode_->childCount();++i) {
+            auto* item=planesNode_->child(i);
+            if(!livePlanes.contains(item->data(0,Qt::UserRole+2).toString())){
                 item->setSelected(false);if(tree_->currentItem()==item)tree_->setCurrentItem(nullptr);
                 item->setFlags(item->flags() & ~(Qt::ItemIsEnabled|Qt::ItemIsSelectable|Qt::ItemIsUserCheckable));item->setHidden(true);
             }
@@ -2060,6 +2166,8 @@ void AlloyWindow::refresh() {
         timelineLayout_->addStretch();bodiesNode_->setExpanded(true);
         view_->setBodies(document_->bodies(),document_->revision());
         view_->setSketches(document_->sketches(),document_->revision());
+        view_->setConstructionPlanes(document_->evaluation().constructionPlanes,document_->revision());
+        view_->selectConstructionPlane(selectedPlane_);
         if(!selectedFace_.isEmpty()) {
             try {view_->selectSupportFace(selectedFace_,GeometryKernel::resolveSketchSupport(document_->evaluation(),selectedFace_).face);}
             catch(const std::exception&) {selectedFace_={};view_->selectSupportFace({},{});}
@@ -2072,6 +2180,7 @@ void AlloyWindow::refresh() {
         view_->selectProfiles(selectedSketch_,selectedProfileIds_);
         displayedDocumentRevision_=document_->revision();
     }
+    view_->selectConstructionPlane(selectedPlane_);
     if(!historicalSketchId.isEmpty()) {
         // Support references resolve against this same history prefix. Display
         // its actual bodies too: a downstream Cut reuses the support body ID,
@@ -2418,7 +2527,7 @@ QJsonObject AlloyWindow::selectFinishedProfile(const QString& sketchId,const QSt
     } else if(additive && selectedSketch_==sketchId) {
         if(!selectedProfileIds_.contains(profileId))selectedProfileIds_.append(profileId);
     } else selectedProfileIds_=QJsonArray{profileId};
-    selectedBody_.clear();selectedFace_={};view_->selectSupportFace({},{});selectedSketch_=sketchId;
+    selectedBody_.clear();selectedFace_={};selectedPlane_.clear();view_->selectSupportFace({},{});selectedSketch_=sketchId;
     selectedProfile_=selectedProfileIds_.isEmpty() ? QString{} : selectedProfileIds_.first().toString();
     view_->selectBody({});view_->selectProfiles(sketchId,selectedProfileIds_);
     if(session_.value("command")=="solid.extrude") {
@@ -2428,11 +2537,17 @@ QJsonObject AlloyWindow::selectFinishedProfile(const QString& sketchId,const QSt
     return {{"kind","profile"},{"sketchId",sketchId},{"profileId",selectedProfile_},{"profileIds",selectedProfileIds_}};
 }
 QJsonArray AlloyWindow::dependentBodies(const QString& sketchId) const {
-    QJsonArray result;QSet<QString> sketches{sketchId},producerFeatures;
+    QJsonArray result;QSet<QString> sketches{sketchId},producerFeatures,planes;
     // Feature order carries support descendants; hide their bodies while an
     // ancestor sketch is being edited, without changing authored visibility.
     for(const auto& entry:document_->authored()["features"].toArray()) {
         const auto feature=entry.toObject(),parameters=feature["parameters"].toObject();
+        if(feature["type"]=="constructionPlane") {
+            const auto source=parameters["source"].toObject();
+            if(sketches.contains(source["sketchId"].toString()) || planes.contains(source["planeId"].toString())
+                || producerFeatures.contains(source["support"].toObject()["producerFeatureId"].toString()))planes.insert(feature["id"].toString());
+        }
+        if(feature["type"]=="sketch" && parameters["plane"]=="construction" && planes.contains(parameters["planeId"].toString()))sketches.insert(feature["id"].toString());
         if(feature["type"]=="sketch" && parameters["plane"]=="face"
             && producerFeatures.contains(parameters["support"].toObject()["producerFeatureId"].toString()))sketches.insert(feature["id"].toString());
         if(feature["type"]=="extrude" && sketches.contains(parameters["sketchId"].toString())) {
@@ -2567,8 +2682,8 @@ QJsonObject AlloyWindow::beginSession(const QString& command, const QJsonObject&
     if(command=="sketch.create") {
         const auto error=validateArguments(*findCommand("sketch.begin"),inputs);
         if(!error.isEmpty())return failure("invalid_arguments",error);
-        if(inputs.contains("plane")==inputs.contains("support"))return failure("invalid_arguments","Choose exactly one origin plane or face support");
-        auto result=beginSketch(inputs.contains("support") ? "face" : inputs["plane"].toString(),inputs.value("name").toString("Sketch"),{},inputs.value("support").toObject());
+        if(int(inputs.contains("plane"))+int(inputs.contains("planeId"))+int(inputs.contains("support"))!=1)return failure("invalid_arguments","Choose exactly one sketch plane source");
+        auto result=beginSketch(inputs.contains("support") ? "face" : inputs.contains("planeId") ? "construction" : inputs["plane"].toString(),inputs.value("name").toString("Sketch"),{},inputs.contains("planeId") ? QJsonObject{{"planeId",inputs["planeId"]}} : inputs.value("support").toObject());
         if(!result["ok"].isBool() && inputs.contains("units")){auto values=session_.value("inputs").toObject();values["units"]=inputs["units"];session_["inputs"]=values;result=session_;}
         return result;
     }
@@ -2763,7 +2878,7 @@ QJsonObject AlloyWindow::selectSupportFace(const QJsonObject& support) {
     if(!session_.isEmpty() && session_.value("command")!="sketch.plane")return failure("session_busy","Complete or cancel the active command first");
     try {
         const auto resolved=GeometryKernel::resolveSketchSupport(document_->evaluation(),support);
-        selectedFace_={{"producerFeatureId",resolved.producerFeatureId},{"bodyId",resolved.bodyId},{"faceId",resolved.faceId}};
+        selectedFace_={{"producerFeatureId",resolved.producerFeatureId},{"bodyId",resolved.bodyId},{"faceId",resolved.faceId}};selectedPlane_.clear();
         selectedBody_.clear();selectedSketch_.clear();selectedProfile_.clear();selectedProfileIds_={};
         view_->selectBody({});view_->selectProfile({},{});view_->selectSupportFace(selectedFace_,resolved.face);
         return QJsonObject{{"kind","face"},{"support",selectedFace_},{"role",resolved.role},{"frame",resolved.frame}};
@@ -2775,7 +2890,7 @@ QJsonObject AlloyWindow::selectSupportFace(const QJsonObject& support) {
 QJsonObject AlloyWindow::beginSketch(const QString& plane,const QString& name,const QString& sketchId,const QJsonObject& selectedSupport) {
     if(!session_.isEmpty() && session_.value("command").toString()!="sketch.plane")return failure("session_busy","Complete or cancel the active command first");
     const auto existing=sketchId.isEmpty() ? QJsonObject{} : SketchGeometry::findFeature(document_->authored(),sketchId);
-    const auto support=existing.isEmpty() ? selectedSupport : existing["parameters"].toObject().value("support").toObject();
+    const auto support=existing.isEmpty() ? selectedSupport : plane=="construction" ? QJsonObject{{"planeId",existing["parameters"].toObject()["planeId"]}} : existing["parameters"].toObject().value("support").toObject();
     QJsonObject resolvedFrame;QJsonArray supportEdges;
     if(plane=="face") {
         if(support.isEmpty())return failure("support_required","Select a supported planar face before starting this sketch","support");
@@ -2790,7 +2905,14 @@ QJsonObject AlloyWindow::beginSketch(const QString& plane,const QString& name,co
             auto details=result["error"].toObject();details["diagnostics"]=error.diagnostics();result["error"]=details;return result;
         } catch(const std::exception& error) {return failure("support_unavailable",QString::fromUtf8(error.what()),"support");}
     }
+    if(plane=="construction") {
+        const auto planeId=support["planeId"].toString();
+        const auto& available=existing.isEmpty() ? document_->evaluation() : document_->evaluationBefore(sketchId);
+        for(const auto& candidate:available.constructionPlanes)if(candidate.featureId==planeId)resolvedFrame=candidate.frame;
+        if(resolvedFrame.isEmpty())return failure("plane_unavailable","Select an earlier construction plane","planeId");
+    }
     const auto seed=existing.isEmpty() ? plane=="face" ? SketchGeometry::newSupportedFeature(document_->authored()["documentId"].toString(),support,name,supportEdges)
+            : plane=="construction" ? SketchGeometry::newConstructionPlaneFeature(document_->authored()["documentId"].toString(),support["planeId"].toString(),name)
             : SketchGeometry::newFeature(document_->authored()["documentId"].toString(),plane,name)
         : existing;
     QJsonObject projectionContext;
@@ -2807,7 +2929,8 @@ QJsonObject AlloyWindow::beginSketch(const QString& plane,const QString& name,co
     const auto draft=solved.feature;
     auto inputs=QJsonObject{{"plane",plane},{"name",draft["name"]},{"units",session_.value("inputs").toObject().value("units").toString(document_->authored()["displayUnits"].toString())}};
     if(!sketchId.isEmpty())inputs["sketchId"]=sketchId;
-    if(!support.isEmpty())inputs["support"]=support;
+    if(plane=="face")inputs["support"]=support;
+    if(plane=="construction")inputs["planeId"]=support["planeId"];
     const auto entryTool=session_.value("pendingTool").toString("select");
     const auto sessionId=session_.value("id").toString(CadDocument::newId());
     session_={{"id",sessionId},{"command","sketch.edit"},{"status","active"},{"inputs",inputs},{"draftSketch",draft},
@@ -2817,7 +2940,7 @@ QJsonObject AlloyWindow::beginSketch(const QString& plane,const QString& name,co
     sketchHistory_={{draft,solved.diagnostics}};sketchHistoryIndex_=0;sketchHistoryGroup_.clear();updateSketchHistoryState();
     selectedBody_.clear();view_->clearPreview();view_->clearSketchDraft();displayedSketchDraft_={};
     selectedSketch_.clear();selectedProfile_.clear();selectedProfileIds_={};view_->selectProfile({},{});view_->setEditDisplay(draft["id"].toString(),dependentBodies(draft["id"].toString()));
-    selectedFace_={};view_->selectSupportFace({},{});
+    selectedFace_={};selectedPlane_.clear();view_->selectSupportFace({},{});
     view_->lookAtSketch(plane,resolvedFrame,sketchLookAtContent(draft,resolvedFrame,projectionContext));showSketch();view_->setFocus(Qt::OtherFocusReason);
     const auto sketchSession=session_.value("id").toString(),tabId=activeTabId_;
     // Restore focus after the plane-picker replacement and toolbar layout.
@@ -3147,6 +3270,7 @@ QJsonObject AlloyWindow::sketchCurveGesture(const QJsonObject& point,bool commit
         const auto sketchInputs=session_["inputs"].toObject();const auto plane=sketchInputs["plane"].toString();
         auto preview=plane=="face"
             ? SketchGeometry::newSupportedFeature(document_->authored()["documentId"].toString(),sketchInputs["support"].toObject(),"Curve Preview")
+            : plane=="construction" ? SketchGeometry::newConstructionPlaneFeature(document_->authored()["documentId"].toString(),sketchInputs["planeId"].toString(),"Curve Preview")
             : SketchGeometry::newFeature(document_->authored()["documentId"].toString(),plane,"Curve Preview");
         if(tool=="circle")preview=SketchGeometry::addCircle(preview,{{"centerUMm",ax},{"centerVMm",ay},{"diameterMm",inputs["diameter"]}});
         else if(tool=="centerArc")preview=SketchGeometry::addArc(preview,{{"centerUMm",ax},{"centerVMm",ay},{"radiusMm",inputs["radius"]},{"startAngleDeg",inputs["startAngleDeg"]},{"sweepAngleDeg",inputs["sweepAngleDeg"]}});
@@ -3890,6 +4014,16 @@ void AlloyWindow::showSketch() {
                 QTimer::singleShot(0,this,[this,plane,tabId,sessionId]{
                     if(tabId==activeTabId_ && session_.value("id").toString()==sessionId)
                         sketchResponse(execute("sketch.begin",{{"plane",plane}}));
+                });
+            });
+        }
+        for(const auto& candidate:document_->evaluation().constructionPlanes) {
+            auto* button=new QPushButton(candidate.name);button->setObjectName("sketch.plane."+candidate.featureId);layout->addWidget(button);
+            connect(button,&QPushButton::clicked,this,[this,id=candidate.featureId]{
+                const auto tabId=activeTabId_,sessionId=session_.value("id").toString();
+                QTimer::singleShot(0,this,[this,id,tabId,sessionId]{
+                    if(tabId==activeTabId_ && session_.value("id").toString()==sessionId)
+                        sketchResponse(execute("sketch.begin",{{"planeId",id}}));
                 });
             });
         }

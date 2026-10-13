@@ -33,6 +33,9 @@ public:
     void setBodyStage(const std::vector<EvaluatedBody>& bodies, const QString& stageKey);
     void clearBodyStage();
     void setSketches(const std::vector<EvaluatedSketch>& sketches, quint64 revision);
+    void setConstructionPlanes(const std::vector<EvaluatedConstructionPlane>& planes, quint64 revision);
+    void selectConstructionPlane(const QString& planeId);
+    QString pickConstructionPlane(double x,double y) const;
     void showSketchDraft(const EvaluatedSketch& sketch);
     void clearSketchDraft();
     void selectProfile(const QString& sketchId, const QString& profileId);
@@ -128,6 +131,10 @@ private:
     QJsonArray combineToolIds_;
     QMap<QString,Handle(AIS_Shape)> sketchModels_;
     QMap<QString,Handle(AIS_Shape)> constructionSketchModels_;
+    QMap<QString,Handle(AIS_Shape)> constructionPlaneModels_;
+    std::vector<EvaluatedConstructionPlane> constructionPlanes_;
+    QString selectedConstructionPlane_;
+    quint64 constructionPlaneRevision_ = 0;
     QMap<QString,Handle(AIS_Shape)> finishedProfileModels_;
     std::vector<EvaluatedSketch> finishedSketches_;
     QString selectedProfile_, selectedProfileSketch_, editSourceSketch_;

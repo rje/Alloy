@@ -117,6 +117,12 @@ QJsonObject SketchGeometry::newSupportedFeature(const QString& ownerId, const QJ
     feature["parameters"]=parameters;validateDraft(feature);return feature;
 }
 
+QJsonObject SketchGeometry::newConstructionPlaneFeature(const QString& ownerId,const QString& planeId,const QString& name) {
+    auto feature=newFeature(ownerId,"XY",name);auto parameters=feature["parameters"].toObject();
+    parameters["plane"]="construction";parameters["planeId"]=planeId;feature["parameters"]=parameters;
+    validateDraft(feature);return feature;
+}
+
 QString SketchGeometry::curveCenterPointId(const QString& sketchId,const QJsonObject& source) {
     QStringList signature;for(const auto& key:{"producerFeatureId","bodyId","faceId","sourceSketchId","sourceEntityId","role"})signature.append(source[key].toString());
     return QUuid::createUuidV5(QUuid(sketchId),QByteArray("alloy-support-point/1\n")+signature.join('\n').toUtf8()).toString(QUuid::WithoutBraces);
@@ -357,13 +363,15 @@ SketchGeometry::SolveResult SketchGeometry::addPointerEntity(const QJsonObject& 
 
 QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<QString>& authoredIds, const QSet<QString>& derivedPointIds) {
     const auto plane = parameters["plane"].toString();
-    if (plane != "XY" && plane != "XZ" && plane != "YZ" && plane != "face") return "Unsupported sketch plane";
+    if (plane != "XY" && plane != "XZ" && plane != "YZ" && plane != "face" && plane != "construction") return "Unsupported sketch plane";
     if(plane=="face") {
         if(!parameters["support"].isObject())return "Face sketch requires authored support references";
         const auto support=parameters["support"].toObject();
         if(support.size()!=3)return "Unexpected sketch support fields";
         for(const auto& key:{"producerFeatureId","bodyId","faceId"})if(!support[key].isString() || !validId(support[key].toString()))return "Sketch support requires stable producer, body and face UUIDs";
-    } else if(parameters.contains("support"))return "Origin-plane sketch cannot carry face support";
+    } else if(parameters.contains("support"))return "Non-face sketch cannot carry face support";
+    if(plane=="construction") {if(!validId(parameters["planeId"].toString()))return "Construction sketch requires a stable plane ID";}
+    else if(parameters.contains("planeId"))return "Only construction sketches can reference a plane feature";
     if(parameters.contains("projections") || parameters.contains("pointReferences")) {
         if(plane!="face" || (parameters.contains("projections") && !parameters["projections"].isArray()) || (parameters.contains("pointReferences") && !parameters["pointReferences"].isArray()))return "Projections require a supported face sketch and array";
         QJsonArray lines,resolvedPoints;QSet<QString> sources,referenceIds=derivedPointIds;
@@ -389,7 +397,7 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
         try {return validateParameters(expandedProjectionFeature({{"parameters",parameters}},{{"lines",lines},{"points",resolvedPoints}})["parameters"].toObject(),authoredIds,referenceIds);}
         catch(const std::exception& error){return QString::fromUtf8(error.what());}
     }
-    const QSet<QString> allowed{"plane", "points", "entities", "constraints", "dimensions", "originPointId", "support"};
+    const QSet<QString> allowed{"plane", "planeId", "points", "entities", "constraints", "dimensions", "originPointId", "support"};
     for (auto it = parameters.begin(); it != parameters.end(); ++it)
         if (!allowed.contains(it.key())) return "Unknown sketch parameter: " + it.key();
     if (!parameters["points"].isArray() || !parameters["entities"].isArray()) return "Sketch requires points and entities";
@@ -990,7 +998,7 @@ QJsonObject SketchGeometry::frame(const QString& plane) {
 }
 
 QJsonObject SketchGeometry::evaluationFrame(const QJsonObject& parameters,const QJsonObject& resolvedFrame) {
-    if(parameters["plane"]!="face")return frame(parameters["plane"].toString());
+    if(parameters["plane"]!="face" && parameters["plane"]!="construction")return frame(parameters["plane"].toString());
     if(resolvedFrame.size()!=4)reject("Face sketch requires an explicit resolved support frame");
     std::array<std::array<double,3>,4> vectors;int index=0;
     for(const auto& key:{"origin","uAxis","vAxis","normal"}){

@@ -43,9 +43,16 @@ struct EvaluatedSketch {
     QJsonObject resolvedFrame;
 };
 
+struct EvaluatedConstructionPlane {
+    QString featureId, name;
+    bool visible = true;
+    QJsonObject frame;
+};
+
 struct EvaluatedDocument {
     std::vector<EvaluatedBody> bodies;
     std::vector<EvaluatedSketch> sketches;
+    std::vector<EvaluatedConstructionPlane> constructionPlanes;
     std::vector<QString> featureOrder;
     QJsonObject joinBodyResults;
 };
@@ -66,6 +73,8 @@ public:
     static gp_Trsf moveTransform(const QJsonObject& parameters);
     static TopoDS_Shape primitive(const QString& type, const QJsonObject& parameters);
     static EvaluatedSupportFace resolveSketchSupport(const EvaluatedDocument& evaluation, const QJsonObject& support);
+    static QJsonObject resolvePlaneSource(const EvaluatedDocument& evaluation, const QJsonObject& source);
+    static QJsonObject offsetPlaneFrame(const QJsonObject& frame, double offsetMm);
     static QJsonArray supportEdgeDescriptors(const EvaluatedSupportFace& support);
     static QJsonObject projectionContext(const EvaluatedDocument& evaluation, const QJsonObject& feature);
     static EvaluatedProfile unionProfiles(const std::vector<EvaluatedProfile>& profiles);

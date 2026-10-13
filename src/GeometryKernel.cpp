@@ -81,6 +81,24 @@ EvaluatedSupportFace GeometryKernel::resolveSketchSupport(const EvaluatedDocumen
     return *found;
 }
 
+QJsonObject GeometryKernel::resolvePlaneSource(const EvaluatedDocument& evaluation,const QJsonObject& source) {
+    if(source.size()!=1)throw EvaluationError({{"code","invalid_plane_source"},{"message","Plane requires exactly one source"}});
+    if(source.contains("plane"))return SketchGeometry::frame(source["plane"].toString());
+    if(source.contains("planeId")) {
+        for(const auto& plane:evaluation.constructionPlanes)if(plane.featureId==source["planeId"].toString())return plane.frame;
+    } else if(source.contains("sketchId")) {
+        for(const auto& sketch:evaluation.sketches)if(sketch.featureId==source["sketchId"].toString())return sketch.resolvedFrame;
+    } else if(source.contains("support"))return resolveSketchSupport(evaluation,source["support"].toObject()).frame;
+    throw EvaluationError({{"code","plane_source_unavailable"},{"message","The retained plane source is unavailable"},{"source",source}});
+}
+
+QJsonObject GeometryKernel::offsetPlaneFrame(const QJsonObject& frame,double offsetMm) {
+    auto result=frame;auto origin=frame["origin"].toArray(),normal=frame["normal"].toArray();
+    if(origin.size()!=3 || normal.size()!=3 || !std::isfinite(offsetMm))throw EvaluationError({{"code","invalid_plane_frame"},{"message","Plane source frame is invalid"}});
+    for(int axis=0;axis<3;++axis)origin[axis]=origin[axis].toDouble()+offsetMm*normal[axis].toDouble();
+    result["origin"]=origin;return result;
+}
+
 QJsonArray GeometryKernel::supportEdgeDescriptors(const EvaluatedSupportFace& support) {
     QJsonArray result;
     for(const auto& edge:support.boundaryEdges) {
@@ -365,12 +383,20 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored) 
         const auto parameters = feature["parameters"].toObject();
         QJsonObject context{{"featureId",id},{"featureType",type}};
         try {
-            if (type == "sketch") {
+            if(type=="constructionPlane") {
+                const auto source=parameters["source"].toObject();
+                evaluated.constructionPlanes.push_back({id,feature["name"].toString(),feature["visible"].toBool(),
+                    offsetPlaneFrame(resolvePlaneSource(evaluated,source),parameters["offsetMm"].toDouble())});
+            } else if (type == "sketch") {
                 priorSketches[id] = evaluated.sketches.size();
                 QJsonObject resolvedFrame;
                 if(parameters["plane"]=="face") {
                     try {resolvedFrame=resolveSketchSupport(evaluated,parameters["support"].toObject()).frame;}
                     catch(const EvaluationError& error){auto diagnostic=context;const auto details=error.diagnostics();for(auto it=details.begin();it!=details.end();++it)diagnostic[it.key()]=it.value();throw EvaluationError(diagnostic);}
+                }
+                if(parameters["plane"]=="construction") {
+                    for(const auto& plane:evaluated.constructionPlanes)if(plane.featureId==parameters["planeId"].toString())resolvedFrame=plane.frame;
+                    if(resolvedFrame.isEmpty())throw EvaluationError({{"code","plane_unavailable"},{"message","Sketch construction plane is unavailable"},{"featureId",id}});
                 }
                 evaluated.sketches.push_back(SketchGeometry::evaluateFeature(feature,resolvedFrame,projectionContext(evaluated,feature)));
             } else if (type == "stepImport") {

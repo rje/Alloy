@@ -196,6 +196,7 @@ private:
     QShortcut* combineEscape_ = nullptr;
     QTreeWidgetItem* bodiesNode_ = nullptr;
     QTreeWidgetItem* sketchesNode_ = nullptr;
+    QTreeWidgetItem* planesNode_ = nullptr;
     QWidget* sketchPanel_ = nullptr;
     QDockWidget* sketchDock_ = nullptr;
     QWidget* sketchToolbar_ = nullptr;
@@ -229,6 +230,7 @@ private:
     QLabel* browserNote_ = nullptr;
     QString selectedBody_;
     QJsonObject selectedFace_;
+    QString selectedPlane_;
     QString selectedSketch_, selectedProfile_;
     QJsonArray selectedProfileIds_;
     quint64 displayedDocumentRevision_ = 0;
@@ -250,7 +252,7 @@ private:
         std::vector<SketchHistoryEntry> sketchHistory;
         int sketchHistoryIndex = -1;
         QString sketchHistoryGroup;
-        QString selectedBody, selectedSketch, selectedProfile;
+        QString selectedBody, selectedSketch, selectedProfile, selectedPlane;
         QJsonObject selectedFace;
         QJsonArray selectedProfileIds;
     };

@@ -27,6 +27,15 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
     for (int i = 0; i < features.size(); ++i) positions[features[i].toObject()["id"].toString()] = i;
     for (int i = 0; i < features.size(); ++i) {
         const auto feature = features[i].toObject();
+        if(feature["type"]=="constructionPlane" || (feature["type"]=="sketch" && feature["parameters"].toObject()["plane"]=="construction")) {
+            const auto source=feature["type"]=="constructionPlane" ? feature["parameters"].toObject()["source"].toObject() : QJsonObject{{"planeId",feature["parameters"].toObject()["planeId"]}};
+            const auto reference=source.contains("planeId") ? source["planeId"].toString() : source["sketchId"].toString();
+            if(!reference.isEmpty()) {
+                const auto expected=source.contains("planeId") ? "constructionPlane" : "sketch";
+                if(!positions.contains(reference) || positions[reference]>=i || features[positions[reference]].toObject()["type"]!=expected)
+                    return {{"featureId",feature["id"]},{"featureType",feature["type"]},{"code","plane_dependency_unavailable"},{"message","Plane source must be an earlier feature of the expected type"}};
+            }
+        }
         if (feature.contains("bodyId")) bodyPositions[feature["bodyId"].toString()] = i;
         for(const auto& value:feature["bodyResults"].toArray()) {const auto record=value.toObject();if(record["participantBodyIds"].toArray().isEmpty())bodyPositions[record["bodyId"].toString()]=i;}
     }
@@ -64,12 +73,13 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
                 for (const auto& tool : tools) activeBodies.remove(tool.toString());
             continue;
         }
-        if(feature["type"]=="sketch" && feature["parameters"].toObject()["plane"]=="face") {
-            const auto support=feature["parameters"].toObject()["support"].toObject();const auto producer=support["producerFeatureId"].toString(),body=support["bodyId"].toString();
+        if((feature["type"]=="sketch" && feature["parameters"].toObject()["plane"]=="face") ||
+            (feature["type"]=="constructionPlane" && feature["parameters"].toObject()["source"].toObject().contains("support"))) {
+            const auto support=feature["type"]=="sketch" ? feature["parameters"].toObject()["support"].toObject() : feature["parameters"].toObject()["source"].toObject()["support"].toObject();const auto producer=support["producerFeatureId"].toString(),body=support["bodyId"].toString();
             QJsonObject diagnostic{{"featureId",feature["id"]},{"featureType","sketch"},{"support",support}};
             if(!positions.contains(producer)){diagnostic["code"]="missing_dependency";diagnostic["message"]="Sketch support producer does not exist";}
             else if(positions[producer]>=i){diagnostic["code"]="forward_dependency";diagnostic["message"]="Sketch support producer must precede its sketch";}
-            else if(features[positions[producer]].toObject()["type"]!="extrude" || (features[positions[producer]].toObject()["bodyId"]!=support["bodyId"] && !features[positions[producer]].toObject()["parameters"].toObject()["targetBodyIds"].toArray().contains(support["bodyId"]) && !resultOwns(features[positions[producer]].toObject(),support["bodyId"]))){diagnostic["code"]="unsupported_dependency";diagnostic["message"]="Sketch support requires its exact extrusion producer/body";}
+            else if(features[positions[producer]].toObject()["type"]!="extrude" || (features[positions[producer]].toObject()["bodyId"]!=support["bodyId"] && !features[positions[producer]].toObject()["parameters"].toObject()["targetBodyIds"].toArray().contains(support["bodyId"]) && !resultOwns(features[positions[producer]].toObject(),support["bodyId"]))){diagnostic["code"]="unsupported_dependency";diagnostic["message"]="Planar support requires its exact extrusion producer/body";}
             else if(!activeBodies.contains(body)){diagnostic["code"]="consumed_dependency";diagnostic["message"]="Sketch support body was consumed earlier in history";}
             else continue;
             return diagnostic;
@@ -452,6 +462,18 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
             if (!error.isEmpty()) return error;
             continue;
         }
+        if(type=="constructionPlane") {
+            if(feature.contains("bodyId") || p.size()!=2 || !p["source"].isObject() || !p["offsetMm"].isDouble()
+                || !std::isfinite(p["offsetMm"].toDouble()) || std::abs(p["offsetMm"].toDouble())>100000)
+                return "Construction plane requires one source and a finite offset within 100000 mm";
+            const auto source=p["source"].toObject();
+            if(source.size()!=1)return "Construction plane requires exactly one source";
+            if(source.contains("plane")) {if(source["plane"]!="XY" && source["plane"]!="XZ" && source["plane"]!="YZ")return "Unsupported origin plane source";}
+            else if(source.contains("planeId") || source.contains("sketchId")) {const auto reference=source.begin().value();if(!reference.isString() || !validId(reference.toString()))return "Plane source requires a stable feature ID";}
+            else if(source.contains("support")) {const auto support=source["support"].toObject();if(support.size()!=3)return "Plane face source requires producer, body and face IDs";for(const auto& key:{"producerFeatureId","bodyId","faceId"})if(!validId(support[key].toString()))return "Plane face source requires stable IDs";}
+            else return "Unsupported construction plane source";
+            continue;
+        }
         if(type=="fillet") {
             if(feature.contains("bodyId") || p.size()!=4 || !validId(p["targetBodyId"].toString()) || !p["edgeIds"].isArray() || p["edgeIds"].toArray().isEmpty() || p["edgeIds"].toArray().size()>100 || !p["tangentChain"].isBool() || !p["tangentChain"].toBool())return "Fillet requires one target, edge references and tangent chain enabled";
             QSet<QString> edges;for(const auto& edge:p["edgeIds"].toArray()){if(!edge.isString() || !validId(edge.toString()) || edges.contains(edge.toString()))return "Fillet edge references must be distinct stable UUIDs";edges.insert(edge.toString());}
@@ -561,13 +583,15 @@ QJsonObject CadDocument::state() const {
         summary["name"] = sketch.name; summary["visible"] = sketch.visible;
         evaluatedSketches.append(summary);
     }
+    QJsonArray evaluatedPlanes;
+    for(const auto& plane:evaluation_->constructionPlanes)evaluatedPlanes.append(QJsonObject{{"featureId",plane.featureId},{"name",plane.name},{"visible",plane.visible},{"frame",plane.frame}});
     return {{"loaded", true}, {"id", authored_["documentId"]}, {"label", path_.isEmpty() ? "Untitled" : QFileInfo(path_).completeBaseName()}, {"path",path_},
         {"units", authored_["displayUnits"]}, {"canonicalLengthUnit", "mm"},
         {"revision", static_cast<qint64>(revision_)}, {"dirty", !history_.isClean()},
         {"lastTransactionId", lastTransaction_},
         {"features", authored_["features"].toArray().size()}, {"bodies",static_cast<int>(evaluation_->bodies.size())}, {"sketches", static_cast<int>(evaluation_->sketches.size())},
         {"evaluation",QJsonObject{{"status","current"},{"recompute","full_ordered"},{"featureOrder",order},{"joinBodyResults",evaluation_->joinBodyResults},
-            {"documentRevision",static_cast<qint64>(revision_)},{"bodies",evaluated},{"sketches",evaluatedSketches}}},
+            {"documentRevision",static_cast<qint64>(revision_)},{"bodies",evaluated},{"sketches",evaluatedSketches},{"constructionPlanes",evaluatedPlanes}}},
         {"editableHistory", true}, {"authored", authored_},
         {"undo", QJsonObject{{"canUndo", history_.canUndo()}, {"canRedo", history_.canRedo()},
             {"count", history_.count()}, {"index", history_.index()},

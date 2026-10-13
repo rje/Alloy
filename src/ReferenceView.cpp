@@ -162,9 +162,10 @@ void ReferenceView::rebindDocument() {
     for(const auto& model:models_)context_->Remove(model,false);
     for(const auto& model:sketchModels_)context_->Remove(model,false);
     for(const auto& model:constructionSketchModels_)context_->Remove(model,false);
+    for(const auto& model:constructionPlaneModels_)context_->Remove(model,false);
     for(const auto& model:finishedProfileModels_)context_->Remove(model,false);
-    models_.clear();bodyVisibility_.clear();sketchModels_.clear();constructionSketchModels_.clear();finishedProfileModels_.clear();finishedSketches_.clear();
-    modelRevision_=std::numeric_limits<quint64>::max();sketchRevision_=modelRevision_;
+    models_.clear();bodyVisibility_.clear();sketchModels_.clear();constructionSketchModels_.clear();constructionPlaneModels_.clear();constructionPlanes_.clear();finishedProfileModels_.clear();finishedSketches_.clear();
+    modelRevision_=std::numeric_limits<quint64>::max();sketchRevision_=modelRevision_;constructionPlaneRevision_=modelRevision_;
 }
 void ReferenceView::initialize() {
     if (!view_.IsNull() || !error_.isEmpty()) return;
@@ -381,6 +382,52 @@ void ReferenceView::setSketches(const std::vector<EvaluatedSketch>& sketches,qui
         }
     }
     sketchRevision_=revision;applyEditDisplay();
+}
+void ReferenceView::setConstructionPlanes(const std::vector<EvaluatedConstructionPlane>& planes,quint64 revision) {
+    if(context_.IsNull() || constructionPlaneRevision_==revision)return;
+    for(const auto& model:constructionPlaneModels_)context_->Remove(model,false);
+    constructionPlaneModels_.clear();constructionPlanes_=planes;
+    for(const auto& plane:planes) {
+        const auto frame=plane.frame;const auto origin=frame["origin"].toArray(),u=frame["uAxis"].toArray(),v=frame["vAxis"].toArray();
+        if(origin.size()!=3 || u.size()!=3 || v.size()!=3)continue;
+        auto point=[&](double x,double y){return gp_Pnt(origin[0].toDouble()+x*u[0].toDouble()+y*v[0].toDouble(),
+            origin[1].toDouble()+x*u[1].toDouble()+y*v[1].toDouble(),origin[2].toDouble()+x*u[2].toDouble()+y*v[2].toDouble());};
+        BRepBuilderAPI_MakePolygon border;border.Add(point(-30,-30));border.Add(point(30,-30));border.Add(point(30,30));border.Add(point(-30,30));border.Close();
+        Handle(AIS_Shape) model=new AIS_Shape(BRepBuilderAPI_MakeFace(border.Wire()).Face());
+        model->SetColor(Quantity_Color(0.18,0.66,0.72,Quantity_TOC_sRGB));model->SetTransparency(0.84);
+        model->Attributes()->SetFaceBoundaryDraw(true);
+        model->Attributes()->SetFaceBoundaryAspect(new Prs3d_LineAspect(Quantity_Color(0.14,0.54,0.61,Quantity_TOC_sRGB),Aspect_TOL_SOLID,1.5));
+        context_->Display(model,AIS_Shaded,plane.visible ? AIS_Shape::SelectionMode(TopAbs_FACE) : -1,false);
+        if(!plane.visible)context_->Erase(model,false);
+        constructionPlaneModels_[plane.featureId]=model;
+    }
+    constructionPlaneRevision_=revision;context_->UpdateCurrentViewer();
+}
+void ReferenceView::selectConstructionPlane(const QString& planeId) {
+    if(context_.IsNull())return;
+    for(auto it=constructionPlaneModels_.begin();it!=constructionPlaneModels_.end();++it) {
+        it.value()->SetColor(it.key()==planeId ? Quantity_Color(0.10,0.34,0.84,Quantity_TOC_sRGB) : Quantity_Color(0.18,0.66,0.72,Quantity_TOC_sRGB));
+        context_->Redisplay(it.value(),false);
+    }
+    context_->UpdateCurrentViewer();
+}
+QString ReferenceView::pickConstructionPlane(double x,double y) const {
+    if(view_.IsNull() || x<0 || y<0 || x>=width() || y>=height())return {};
+    const auto scale=windowScale();double px,py,pz,dx,dy,dz;
+    view_->ConvertWithProj(qRound(x*scale.x()),qRound(y*scale.y()),px,py,pz,dx,dy,dz);
+    const gp_Vec eye(px,py,pz),ray(dx,dy,dz);double nearest=std::numeric_limits<double>::infinity();QString hit;
+    for(const auto& plane:constructionPlanes_)if(plane.visible) {
+        const auto frame=plane.frame;const auto origin=frame["origin"].toArray(),normal=frame["normal"].toArray(),u=frame["uAxis"].toArray(),v=frame["vAxis"].toArray();
+        const gp_Vec o(origin[0].toDouble(),origin[1].toDouble(),origin[2].toDouble());
+        const gp_Vec n(normal[0].toDouble(),normal[1].toDouble(),normal[2].toDouble());
+        const auto denominator=n.Dot(ray);if(std::abs(denominator)<1e-9)continue;
+        const auto distance=n.Dot(o-eye)/denominator;if(distance<0 || distance>=nearest)continue;
+        const auto local=eye+ray*distance-o;
+        const gp_Vec xAxis(u[0].toDouble(),u[1].toDouble(),u[2].toDouble()),yAxis(v[0].toDouble(),v[1].toDouble(),v[2].toDouble());
+        if(std::abs(local.Dot(xAxis))>30 || std::abs(local.Dot(yAxis))>30)continue;
+        nearest=distance;hit=plane.featureId;
+    }
+    return hit;
 }
 void ReferenceView::applyEditDisplay(bool redraw) {
     if(context_.IsNull())return;
@@ -1136,7 +1183,7 @@ aspect->ArrowAspect()->SetLength(7*size);aspect->SetArrowTailSize(8*size);aspect
     context_->UpdateCurrentViewer();
 }
 QJsonObject ReferenceView::frameFor(const QString& plane) const {
-    if(plane=="face") {
+    if(plane=="face" || plane=="construction") {
         if(sketchFrame_.isEmpty())throw std::invalid_argument("Face sketch frame is unresolved");
         return sketchFrame_;
     }
@@ -1155,7 +1202,7 @@ void ReferenceView::setSketchPlane(const QString& plane,const QJsonObject& resol
 }
 void ReferenceView::lookAtSketch(const QString& plane,const QJsonObject& resolvedFrame,const TopoDS_Shape& content) {
     setSketchPlane(plane,resolvedFrame);
-    orientation=plane=="face" ? "face" : plane=="XY" ? "top" : plane=="XZ" ? "front" : "right";
+    orientation=(plane=="face" || plane=="construction") ? "face" : plane=="XY" ? "top" : plane=="XZ" ? "front" : "right";
     const auto o=frameFor(plane).value("origin").toArray();
     sceneCenter_=gp_Pnt(o[0].toDouble(),o[1].toDouble(),o[2].toDouble());sceneScale_=100;
     if(!content.IsNull()) {
@@ -1185,7 +1232,7 @@ QJsonObject ReferenceView::sketchPoint(double x,double y,const QString& plane) c
 QJsonObject ReferenceView::projectSketchPoint(double uMm,double vMm,const QString& plane,const QJsonObject& resolvedFrame) const {
     if(view_.IsNull())return {};
     gp_Pnt world;
-    if(plane=="face" && !resolvedFrame.isEmpty()) {
+    if((plane=="face" || plane=="construction") && !resolvedFrame.isEmpty()) {
         const auto o=resolvedFrame.value("origin").toArray(),u=resolvedFrame.value("uAxis").toArray(),v=resolvedFrame.value("vAxis").toArray();
         world=gp_Pnt(o[0].toDouble()+uMm*u[0].toDouble()+vMm*v[0].toDouble(),
             o[1].toDouble()+uMm*u[1].toDouble()+vMm*v[1].toDouble(),
