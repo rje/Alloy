@@ -63,3 +63,35 @@ and saved models; `splitBodyId-selection.json/png` records the unresolved native
 checkbox transition. These generated files are not committed. Public workflow
 contract is indexed by REF-004; reference evidence remains outside the repository.
 Broad #159/#160/#161 repair, projection policies and Intersect remain Todo.
+
+
+## Native support recovery follow-up, #213 (2026-10-13)
+
+The remaining recovery-only Qt input gate now passes against integrated
+427579f plus this test-only correction. There is no production behavior change.
+Astra's read-only diagnosis found that the previous probe used a manually
+constructed style option rather than the actual delegate's index-initialized
+option; the saved artifacts did not establish exact click coordinates. The old
+checkbox hit miss remains unexplained and is not evidence of a product defect.
+
+The corrected probe clicks the ordinary tool row, asserts the stable current
+body ID, sends Space to the QListWidget and waits for both the checked state and
+authoritative session tool IDs. It reacquires items after preview refresh. No
+check-state setter, shared-API tool mutation or substituted fixture result is
+used for the native gesture. Split and deleted support each visibly reject with
+a red error, disabled OK and affected sketch identity. Authored state, revision
+and undo history remain exact. Split is canceled; deleted support is corrected
+back to the original tool and accepted. Both recoveries preserve authored state.
+
+One recovery-only run passed 3 Qt test phases, zero failures, in 4050 ms and
+exited 0. Evidence: build-tutorial-polish/evidence/support-recovery, including
+qt-results.txt and both visible-error/recovered PNG+JSON pairs. The prior side
+and inclined authoring/API history evidence is reused; those unchanged steps
+were not repeated. Root inspected the split error capture: readable message,
+checked Split tool, disabled OK and the intact accepted model. Independent
+review is pending before parent closure. Physical OS input and indicator-click
+hit regions remain unqualified; this accepts the ordinary Qt keyboard route.
+
+The passing case is registered separately as multi_face_recovery_controls with
+ALLOY_MULTI_FACE_CASE=recovery. The regular multi_face_controls case retains
+its existing side/inclined scope. Serialized GPU execution remains required.

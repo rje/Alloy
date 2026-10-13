@@ -18,8 +18,6 @@
 #include <QScrollArea>
 #include <QLayout>
 #include <QMap>
-#include <QStyle>
-#include <QStyleOptionViewItem>
 #include <QMouseEvent>
 #include <QFile>
 #include <QDir>
@@ -51,8 +49,30 @@ private slots:
         }
         if(qEnvironmentVariable("ALLOY_MULTI_FACE_CASE")=="recovery") {
         call(w,"document.open",{{"path",fixtures+"/support-failure.alloy"}});const auto failure=metadata["failure"].toObject();const auto before=inspect(w);
-        for(auto key:{"splitBodyId","deleteBodyId"}){call(w,"feature.editDialog",{{"featureId",failure["combineFeatureId"]}});auto* tools=w.findChild<QListWidget*>("combine.toolBodies");QVERIFY(tools);auto click=[&](const QString& id){QListWidgetItem* item=nullptr;for(int i=0;i<tools->count();++i)if(tools->item(i)->data(Qt::UserRole).toString()==id)item=tools->item(i);if(!item)qFatal("Tool missing");tools->scrollToItem(item);const auto rect=tools->visualItemRect(item);QStyleOptionViewItem option;option.initFrom(tools->viewport());option.rect=rect;option.features=QStyleOptionViewItem::HasCheckIndicator|QStyleOptionViewItem::HasDisplay;option.checkState=item->checkState();const auto indicator=tools->viewport()->style()->subElementRect(QStyle::SE_ItemViewItemCheckIndicator,&option,tools->viewport()).center();QTest::mouseClick(tools->viewport(),Qt::LeftButton,Qt::NoModifier,indicator);QTest::qWait(35);};click(failure["notchBodyId"].toString());click(failure[key].toString());capture(w,evidence,QString(key)+"-selection");QTRY_COMPARE_WITH_TIMEOUT(session(w)["previewError"].toObject()["diagnostics"].toObject()["code"].toString(),QString("support_unavailable"),3000);QCOMPARE(session(w)["previewError"].toObject()["diagnostics"].toObject()["featureId"],failure["sketchId"]);auto* label=w.findChild<QLabel*>("combine.error");QVERIFY(label && label->isVisible() && !label->text().isEmpty());for(auto* area:w.findChildren<QScrollArea*>())if(area->isAncestorOf(label))area->ensureWidgetVisible(label,0,16);QCOMPARE(inspect(w)["authored"],before["authored"]);QCOMPARE(inspect(w)["revision"],before["revision"]);QCOMPARE(inspect(w)["undo"],before["undo"]);capture(w,evidence,QString(key)+"-visible-error");
-            if(QString(key)=="splitBodyId"){auto* cancel=w.findChild<QPushButton*>("combine.cancel");QVERIFY(cancel);QTest::mouseClick(cancel,Qt::LeftButton);}else{click(failure[key].toString());click(failure["notchBodyId"].toString());QTRY_VERIFY(session(w)["previewed"].toBool());auto* ok=w.findChild<QPushButton*>("combine.ok");QVERIFY(ok && ok->isEnabled());QTest::mouseClick(ok,Qt::LeftButton);}QTRY_VERIFY(session(w).isEmpty());QCOMPARE(inspect(w)["authored"],before["authored"]);call(w,"view.home");capture(w,evidence,QString(key)+"-recovered");}
+        for(auto key:{"splitBodyId","deleteBodyId"}){call(w,"feature.editDialog",{{"featureId",failure["combineFeatureId"]}});auto* tools=w.findChild<QListWidget*>("combine.toolBodies");QVERIFY(tools);auto toggle=[&](const QString& id) {
+                auto findItem=[&]() -> QListWidgetItem* {
+                    for(int i=0;i<tools->count();++i)
+                        if(tools->item(i)->data(Qt::UserRole).toString()==id)return tools->item(i);
+                    return nullptr;
+                };
+                auto* item=findItem();if(!item)return false;
+                const bool expected=item->checkState()!=Qt::Checked;
+                for(auto* area:w.findChildren<QScrollArea*>())
+                    if(area->isAncestorOf(tools))area->ensureWidgetVisible(tools);
+                tools->scrollToItem(item);QApplication::processEvents();
+                // Use the ordinary current-row/Space gesture. Hand-built style
+                // options do not establish the real delegate checkbox hit box.
+                QTest::mouseClick(tools->viewport(),Qt::LeftButton,Qt::NoModifier,tools->visualItemRect(item).center());
+                if(!tools->currentItem() || tools->currentItem()->data(Qt::UserRole).toString()!=id)return false;
+                tools->setFocus();QTest::keyClick(tools,Qt::Key_Space);
+                for(int wait=0;wait<50;++wait) {
+                    QTest::qWait(20);item=findItem(); // Preview refresh rebuilds the list.
+                    if(item && (item->checkState()==Qt::Checked)==expected &&
+                        session(w)["inputs"].toObject()["toolBodyIds"].toArray().contains(id)==expected)return true;
+                }
+                capture(w,evidence,QString(key)+"-toggle-failed");return false;
+            };QVERIFY(toggle(failure["notchBodyId"].toString()));QVERIFY(toggle(failure[key].toString()));capture(w,evidence,QString(key)+"-selection");QTRY_COMPARE_WITH_TIMEOUT(session(w)["previewError"].toObject()["diagnostics"].toObject()["code"].toString(),QString("support_unavailable"),3000);QCOMPARE(session(w)["previewError"].toObject()["diagnostics"].toObject()["featureId"],failure["sketchId"]);auto* label=w.findChild<QLabel*>("combine.error");QVERIFY(label && label->isVisible() && !label->text().isEmpty());QVERIFY(!w.findChild<QPushButton*>("combine.ok")->isEnabled());for(auto* area:w.findChildren<QScrollArea*>())if(area->isAncestorOf(label))area->ensureWidgetVisible(label,0,16);QCOMPARE(inspect(w)["authored"],before["authored"]);QCOMPARE(inspect(w)["revision"],before["revision"]);QCOMPARE(inspect(w)["undo"],before["undo"]);capture(w,evidence,QString(key)+"-visible-error");
+            if(QString(key)=="splitBodyId"){auto* cancel=w.findChild<QPushButton*>("combine.cancel");QVERIFY(cancel);QTest::mouseClick(cancel,Qt::LeftButton);}else{QVERIFY(toggle(failure[key].toString()));QVERIFY(toggle(failure["notchBodyId"].toString()));QTRY_VERIFY(session(w)["previewed"].toBool());auto* ok=w.findChild<QPushButton*>("combine.ok");QVERIFY(ok && ok->isEnabled());QTest::mouseClick(ok,Qt::LeftButton);}QTRY_VERIFY(session(w).isEmpty());QCOMPARE(inspect(w)["authored"],before["authored"]);call(w,"view.home");capture(w,evidence,QString(key)+"-recovered");}
         }
         // Reopen the already-completed native artifacts; settle deferred Timeline layout.
         for(const auto& name:QStringList{"plate40","inclined"})if(QFile::exists(evidence+"/"+name+"-native.alloy")){call(w,"document.open",{{"path",evidence+"/"+name+"-native.alloy"}});call(w,"view.home");capture(w,evidence,name+"-final-visible-timeline");}
