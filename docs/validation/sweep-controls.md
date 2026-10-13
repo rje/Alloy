@@ -58,5 +58,37 @@ ALLOY_SWEEP_CONTROLS_EVIDENCE="$PWD/build-sweep-controls/evidence/native" build-
 python3 tests/sweep_controls_api.py --app build-sweep-controls/alloy.app/Contents/MacOS/alloy --output build-sweep-controls/evidence/api
 ```
 
-Independent Astra review pending; root owns integration/acceptance. Shared
-[command and selection contract](../research/solid-sweep.md).
+## Independent acceptance
+
+Astra reviewed candidate `df914ba44e242ddaadbc668c451491a1511c0e2c` on
+2026-10-13. Source, native test and persisted log, actual full-chain/error captures,
+API report and saved document support bounded #224 acceptance. No new GUI or
+unchanged test replay was needed.
+
+Native selection resolves retained source IDs within the active owner's earlier
+sketches. Chain expansion uses authored connectivity and roundoff-scale exact
+contacts, then the existing kernel validates G1 continuity and solid geometry.
+Manual sections must begin at the profile center; toggling Chain Selection retains
+the current selection, as disclosed in its tooltip. These are explicit Alloy
+policies where source propagation behavior is unknown. Temporary visibility is
+display-only, includes eligible prefix sketches, and is cleared with overlays on
+Cancel/OK or document rebind. Session-bound callbacks guard obsolete dock actions.
+The shared commit path regenerates the candidate and preserves authoritative
+history rather than committing a display-only shape.
+
+The persisted native log records three passing Qt stages in 14.463 seconds. Test
+source establishes actual Create-menu selection, profile/path clicks, readable
+invalid-path refusal, checkbox/manual-section interaction, Cancel/OK and Timeline
+edit/reselection. Its analytic fixture and some view/history/storage operations
+use shared API setup; this does not establish native construction of the source
+sketch or physical OS input. Both normal-sign previews are covered. Independent
+inspection confirms the API saved authored JSON exactly equals the accepted
+report, retained component ownership agrees, and volume is 586.9634808525965 mm³.
+
+Actual captures show the complete smooth gray preview with a small blue profile
+and orange path, readable selection counts/fixed fields/buttons, and fully visible
+red error text with disabled OK. The relatively small model, normal fixture-name
+elision and visible geometric seams do not prevent this controls workflow. No
+matched viewport or exact reference color/spacing claim is made. Circle Tab→Enter
+#226 and cumulative tutorial #225 remain separate; broader Sweep modes stay open.
+See the [shared command contract](../research/solid-sweep.md).
