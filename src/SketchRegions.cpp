@@ -7,6 +7,7 @@
 #include <BRepAdaptor_Curve.hxx>
 #include <BRepBuilderAPI_MakeFace.hxx>
 #include <BRepCheck_Analyzer.hxx>
+#include <ShapeFix_Face.hxx>
 #include <BRepGProp.hxx>
 #include <BRepTools_WireExplorer.hxx>
 #include <BRepTools_ReShape.hxx>
@@ -192,8 +193,32 @@ SketchProfiles::RegionsResult SketchProfiles::deriveRegions(const QJsonObject& f
             }
             face=TopoDS::Face(boundaries->Apply(face));
             if(BRepTopAdaptor_FClass2d(face,1e-7).PerformInfinitePoint()!=TopAbs_OUT)continue;
-            if(!BRepCheck_Analyzer(face).IsValid())return refuse("invalid_region","OCCT constructed an invalid bounded face.");
-            GProp_GProps properties;BRepGProp::SurfaceProperties(face,properties);const double area=properties.Mass();
+            if(!BRepCheck_Analyzer(face).IsValid()){
+                bool hasExactOffset=false;
+                for(TopExp_Explorer edge(face,TopAbs_EDGE);edge.More();edge.Next()){
+                    const int index=edges.FindIndex(edge.Current());
+                    hasExactOffset|=index>0 && sourceByEdge[index]>=0 &&
+                        sources[sourceByEdge[index]].entity["type"]=="fitSplineOffset";
+                }
+                if(hasExactOffset){
+                    ShapeFix_Face repair(face);repair.Perform();
+                    const auto candidate=repair.Face();bool retainedEdges=true;
+                    for(TopExp_Explorer edge(candidate,TopAbs_EDGE);edge.More();edge.Next())
+                        retainedEdges&=edges.FindIndex(edge.Current())>0;
+                    if(retainedEdges && BRepCheck_Analyzer(candidate).IsValid())face=candidate;
+                }
+                if(!BRepCheck_Analyzer(face).IsValid())return refuse("invalid_region","OCCT constructed an invalid bounded face.");
+            }
+            bool exactOffset=false;
+            for(TopExp_Explorer edge(face,TopAbs_EDGE);edge.More();edge.Next()){
+                const int index=edges.FindIndex(edge.Current());
+                exactOffset|=index>0 && sourceByEdge[index]>=0 &&
+                    sources[sourceByEdge[index]].entity["type"]=="fitSplineOffset";
+            }
+            GProp_GProps properties;
+            if(exactOffset)BRepGProp::SurfaceProperties(face,properties,1e-9);
+            else BRepGProp::SurfaceProperties(face,properties);
+            const double area=properties.Mass();
             if(!std::isfinite(area)||area<=1e-8)return refuse("invalid_region","Bounded region has no usable positive area.");
             QStringList wires,sourceIds,pointIds;QJsonArray provenance;
             std::vector<EvaluatedBoundaryEdge> boundaryEdges;

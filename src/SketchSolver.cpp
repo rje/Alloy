@@ -154,7 +154,9 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
         QMap<int, QString> tagIds;
         QMap<QString,QString> mirrorSources;
         const auto derivedArcIds=SketchArcSlot::derivedArcIds(parameters);
-        const auto derivedPointIds=SketchArcSlot::derivedPointIds(parameters);
+        auto derivedPointIds=SketchArcSlot::derivedPointIds(parameters);
+        for(const auto& entry:entities){const auto entity=entry.toObject();if(entity["type"]!="fitSplineOffset")continue;
+            derivedPointIds.insert(entity["startPointId"].toString());derivedPointIds.insert(entity["endPointId"].toString());}
         const auto capPrimary=SketchArcSlot::capPrimaryIds(parameters);
         for(const auto& groupValue:parameters["mirrorGroups"].toArray())for(const auto& pairValue:groupValue.toObject()["entityPairs"].toArray()){
             const auto pair=pairValue.toObject();mirrorSources[pair["resultEntityId"].toString()]=pair["sourceEntityId"].toString();
@@ -179,10 +181,11 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
             const auto entity = entry.toObject();
             const auto id = entity.value("id").toString();
             const auto type=entity["type"].toString();
-            require((type=="line" || type=="circle" || type=="arc" || type=="point" || type=="fitSpline" || type=="controlSpline" || type=="conic" || type=="ellipse") && !id.isEmpty() && !ids.contains(id), "Unsupported or duplicate sketch entity");
+            require((type=="line" || type=="circle" || type=="arc" || type=="point" || type=="fitSpline" || type=="fitSplineOffset" || type=="controlSpline" || type=="conic" || type=="ellipse") && !id.isEmpty() && !ids.contains(id), "Unsupported or duplicate sketch entity");
             ids.insert(id);
             if(type=="point") {point(entity["pointId"].toString());continue;}
             if(type=="fitSpline"||type=="controlSpline" || type=="conic"){for(const auto& id:entity["pointIds"].toArray())point(id.toString());continue;}
+            if(type=="fitSplineOffset"){point(entity["startPointId"].toString());point(entity["endPointId"].toString());continue;}
             if(type=="ellipse"){point(entity["centerPointId"].toString());continue;}
             if(type=="line") {GCS::Line line;line.p1=point(entity["startPointId"].toString());line.p2=point(entity["endPointId"].toString());lineMap.emplace(id,line);}
             else {
@@ -613,7 +616,7 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
             if(type=="circle")fixed&=!freeParameters.contains(circleMap.at(id).rad);
             if(type=="arc"){const auto& arc=arcMap.at(id);fixed&=!freeParameters.contains(arc.rad)&&!freeParameters.contains(arc.startAngle)&&!freeParameters.contains(arc.endAngle);determinate&=dof==0||(!derivedArcIds.contains(id)&&!mirrorSources.contains(id));}
             // These authored shape parameters are intentionally outside PlaneGCS.
-            if(type=="fitSpline"||type=="conic")fixed=false;
+            if(type=="fitSpline"||type=="fitSplineOffset"||type=="conic")fixed=false;
             entityFreedom[id]=QJsonObject{{"determinate",determinate},{"fullyConstrained",determinate&&fixed}};
         }
         result.diagnostics["freedomSource"]="PlaneGCS solved-coordinate Jacobian nullspace";

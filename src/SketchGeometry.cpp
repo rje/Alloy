@@ -6,6 +6,7 @@
 #include "RoundedLoopOffset.h"
 #include "SketchMirror.h"
 #include "SketchArcSlot.h"
+#include "SketchSplineOffset.h"
 #include "SketchEllipse.h"
 #include <BRepBndLib.hxx>
 #include <BRepBuilderAPI_MakeEdge.hxx>
@@ -499,6 +500,7 @@ TopoDS_Edge SketchGeometry::analyticEdge(const QJsonObject& parameters, const QJ
     for (const auto& value : parameters["points"].toArray()) { const auto p=value.toObject();
         points[p["id"].toString()] = worldPoint(sketchFrame,p["uMm"].toDouble(),p["vMm"].toDouble()); }
     if(entity["type"]=="fitSpline"||entity["type"]=="controlSpline")return BRepBuilderAPI_MakeEdge(SketchSpline::evaluate(parameters,entity,evaluationFrame(parameters,resolvedFrame)).curve).Edge();
+    if(entity["type"]=="fitSplineOffset")return BRepBuilderAPI_MakeEdge(SketchSplineOffset::evaluate(parameters,entity,evaluationFrame(parameters,resolvedFrame)).curve).Edge();
     if(entity["type"]=="conic")return BRepBuilderAPI_MakeEdge(SketchConic::evaluate(parameters,entity,evaluationFrame(parameters,resolvedFrame))).Edge();
     if (entity["type"] == "line") return BRepBuilderAPI_MakeEdge(points[entity["startPointId"].toString()],points[entity["endPointId"].toString()]).Edge();
     if(entity["type"]=="ellipse"){
@@ -878,9 +880,11 @@ SketchGeometry::SolveResult SketchGeometry::addPointerEntity(const QJsonObject& 
         const auto startTarget=target("startSnapTarget",u1,v1,startMidpointLine),endTarget=target("endSnapTarget",u2,v2,endMidpointLine);
         if (tool=="line" && (std::hypot(u2-u1,v2-v1)<minimumLength || std::hypot(u2-u1,v2-v1)>maximumLength)) reject("Snapped line length out of supported range");
         if (tool=="rectangle" && (std::abs(u2-u1)<minimumLength || std::abs(v2-v1)<minimumLength)) reject("Snapped rectangle sides must be at least 0.001 mm");
-        const auto first=freshPoint(u1,v1);QString last;
+        const auto derivedOffsetPoints=SketchSplineOffset::derivedPointIds(parameters);
+        const auto first=tool=="line" && derivedOffsetPoints.contains(startTarget) ? startTarget : freshPoint(u1,v1);
+        QString last;
         auto edge=[&](const QString& a,const QString& b) {const auto id=newId();entities.append(QJsonObject{{"id",id},{"type","line"},{"startPointId",a},{"endPointId",b}});return id;};
-        if (tool=="line") {last=freshPoint(u2,v2);edge(first,last);}
+        if (tool=="line") {last=derivedOffsetPoints.contains(endTarget) ? endTarget : freshPoint(u2,v2);edge(first,last);}
         else {
             const auto second=freshPoint(u2,v1);last=freshPoint(u2,v2);const auto fourth=freshPoint(u1,v2);
             const QString corners[]{first,second,last,fourth};
@@ -892,7 +896,8 @@ SketchGeometry::SolveResult SketchGeometry::addPointerEntity(const QJsonObject& 
         auto coincide=[&](const QString& endpoint,const QString& selected) {
             if (!selected.isEmpty())constraints.append(QJsonObject{{"id",newId()},{"type","coincident"},{"pointIds",QJsonArray{endpoint,selected}}});
         };
-        coincide(first,startTarget);coincide(last,endTarget);
+        if(first!=startTarget)coincide(first,startTarget);
+        if(last!=endTarget)coincide(last,endTarget);
         if(!startMidpointLine.isEmpty())constraints.append(QJsonObject{{"id",newId()},{"type","midpoint"},{"pointIds",QJsonArray{first}},{"entityIds",QJsonArray{startMidpointLine}}});
         if(!endMidpointLine.isEmpty())constraints.append(QJsonObject{{"id",newId()},{"type","midpoint"},{"pointIds",QJsonArray{last}},{"entityIds",QJsonArray{endMidpointLine}}});
         parameters["points"]=points;parameters["entities"]=entities;parameters["constraints"]=constraints;
@@ -1007,6 +1012,12 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
             const auto type = entity["type"].toString();
             if (!claimId(entity["id"].toString())) return "Invalid or duplicate sketch entity UUID";
             if(type=="fitSpline"||type=="controlSpline"){const auto error=SketchSpline::validate(parameters,entity);if(!error.isEmpty())return error;for(const auto& id:entity["pointIds"].toArray())usedPoints.insert(id.toString());entityIds.insert(entity["id"].toString());continue;}
+            if(type=="fitSplineOffset"){
+                const auto error=SketchSplineOffset::validate(parameters,entity,false);if(!error.isEmpty())return error;
+                if(!points.contains(entity["startPointId"].toString()) || !points.contains(entity["endPointId"].toString()))return "Spline Offset endpoints must be retained sketch points";
+                usedPoints.insert(entity["startPointId"].toString());usedPoints.insert(entity["endPointId"].toString());
+                entityIds.insert(entity["id"].toString());continue;
+            }
             if(type=="conic"){const auto error=SketchConic::validate(parameters,entity);if(!error.isEmpty())return error;for(const auto& id:entity["pointIds"].toArray())usedPoints.insert(id.toString());entityIds.insert(entity["id"].toString());continue;}
             if(type=="ellipse"){
                 if(entity.size()!=5 || !points.contains(entity["centerPointId"].toString()) ||
@@ -1066,6 +1077,33 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
                 usedPoints.insert(startId); usedPoints.insert(endId);
             }
             entityIds.insert(entity["id"].toString());
+        }
+        // Offset endpoints are owned by exactly one retained evaluator. Lines
+        // may share them to close the strip, but no other authored primitive
+        // may silently take over a derived point.
+        QSet<QString> ownedOffsetEndpoints,offsetConnectorIds;
+        for(const auto& entry:parameters["entities"].toArray()){
+            const auto offset=entry.toObject();if(offset["type"]!="fitSplineOffset")continue;
+            QJsonObject source;
+            for(const auto& value:parameters["entities"].toArray())if(value.toObject()["id"]==offset["sourceEntityId"]){source=value.toObject();break;}
+            for(const auto& key:{"startPointId","endPointId"}){
+                const auto id=offset[key].toString();
+                if(id.isEmpty() || ownedOffsetEndpoints.contains(id) || id==originId || source["pointIds"].toArray().contains(id))
+                    return "Spline Offset endpoint must be exclusively derived";
+                for(const auto& value:parameters["pointReferences"].toArray())if(value.toObject()["id"]==id)
+                    return "Spline Offset cannot overwrite a retained support point";
+                ownedOffsetEndpoints.insert(id);
+            }
+        }
+        for(const auto& entry:parameters["entities"].toArray()){
+            const auto entity=entry.toObject();if(entity["type"]=="fitSplineOffset")continue;
+            bool touches=false;
+            for(const auto& key:{"pointId","centerPointId","startPointId","endPointId"})
+                touches|=ownedOffsetEndpoints.contains(entity[key].toString());
+            for(const auto& id:entity["pointIds"].toArray())touches|=ownedOffsetEndpoints.contains(id.toString());
+            if(!touches)continue;
+            if(entity["type"]!="line")return "Spline Offset endpoint cannot be shared with another primitive";
+            offsetConnectorIds.insert(entity["id"].toString());
         }
         // A midpoint relation can retain a construction center point even when
         // that point is not an endpoint of any visible edge.
@@ -1141,6 +1179,7 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
             }
         }
         const auto arcSlotDerivedPoints=SketchArcSlot::derivedPointIds(parameters);
+        const auto offsetDerivedPoints=SketchSplineOffset::derivedPointIds(parameters);
         const auto arcSlotDerivedArcs=SketchArcSlot::derivedArcIds(parameters);
         const auto arcSlotCaps=SketchArcSlot::capIds(parameters);
         for (const auto& entry : parameters["constraints"].toArray()) {
@@ -1148,6 +1187,10 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
             const auto constraint = entry.toObject();
             for(const auto& id:constraint.value("pointIds").toArray())if(arcSlotDerivedPoints.contains(id.toString()))
                 return "Arc slot tangent contacts cannot own independent constraints";
+            for(const auto& id:constraint.value("pointIds").toArray())if(offsetDerivedPoints.contains(id.toString()))
+                return "Spline Offset endpoints are derived; edit the source or signed distance";
+            for(const auto& id:constraint.value("entityIds").toArray())if(offsetConnectorIds.contains(id.toString()))
+                return "Spline Offset connector cannot own an independent relation";
             for(const auto& id:constraint.value("entityIds").toArray())if(arcSlotDerivedArcs.contains(id.toString()))
                 return "Arc slot boundary arcs cannot own independent constraints";
             if (!claimId(constraint["id"].toString())) return "Invalid or duplicate constraint UUID";
@@ -1245,6 +1288,12 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
             const auto dimension = entry.toObject();
             for(const auto& id:dimension.value("pointIds").toArray())if(arcSlotDerivedPoints.contains(id.toString()))
                 return "Arc slot tangent contacts cannot own independent dimensions";
+            for(const auto& id:dimension.value("pointIds").toArray())if(offsetDerivedPoints.contains(id.toString()))
+                return "Spline Offset endpoints cannot own independent dimensions";
+            for(const auto& id:dimension.value("entityIds").toArray())if(offsetConnectorIds.contains(id.toString()))
+                return "Spline Offset connector cannot own an independent dimension";
+            if(offsetConnectorIds.contains(dimension.value("entityId").toString()))
+                return "Spline Offset connector cannot own an independent dimension";
             const auto boundaryId=dimension.value("entityId").toString();
             if(arcSlotDerivedArcs.contains(boundaryId) && !(arcSlotCaps.contains(boundaryId) &&
                 (dimension.value("kind")=="radius" || dimension.value("kind")=="diameter")))
@@ -1322,7 +1371,12 @@ SketchGeometry::SolveResult SketchGeometry::solveDraft(const QJsonObject& draft,
         if(draft["parameters"].toObject().contains("texts"))parameters["texts"]=draft["parameters"].toObject()["texts"];
         if(draft["parameters"].toObject().contains("projections"))parameters["projections"]=draft["parameters"].toObject()["projections"];
         if(draft["parameters"].toObject().contains("pointReferences"))parameters["pointReferences"]=draft["parameters"].toObject()["pointReferences"];
+        parameters=SketchSplineOffset::refreshEndpoints(parameters);
         solved["parameters"]=parameters;validateDraft(solved);validateRoundedIntent(parameters);validateSlotGroups(parameters);validateArcSlotGroups(parameters);
+        for(const auto& value:entities)if(value.toObject()["type"]=="fitSplineOffset"){
+            const auto error=SketchSplineOffset::validate(parameters,value.toObject(),true);
+            if(!error.isEmpty())reject(error);
+        }
         for(const auto& value:entities)if(value.toObject()["type"]=="fitSpline"||value.toObject()["type"]=="controlSpline")SketchSpline::evaluate(parameters,value.toObject());
         for(const auto& value:entities)if(value.toObject()["type"]=="conic")SketchConic::evaluate(parameters,value.toObject());
         auto diagnostics=result.diagnostics;int handleDof=0;for(const auto& v:entities)if(v.toObject()["type"]=="fitSpline")handleDof+=2*v.toObject()["pointIds"].toArray().size();
@@ -2078,6 +2132,8 @@ SketchGeometry::SolveResult SketchGeometry::movePoint(const QJsonObject& draft, 
         if (arguments["pointId"]==parameters.value("originPointId") && parameters.contains("originPointId")) reject("Sketch origin reference cannot be moved");
         if(SketchArcSlot::derivedPointIds(parameters).contains(arguments["pointId"].toString()))
             reject("Arc slot tangent contact is derived; move a path endpoint instead");
+        if(SketchSplineOffset::derivedPointIds(parameters).contains(arguments["pointId"].toString()))
+            reject("Spline Offset endpoint is derived; edit its source or signed distance");
         for(const auto& groupValue:parameters.value("mirrorGroups").toArray()){
             const auto group=groupValue.toObject();
             for(const auto& pairValue:group["pointPairs"].toArray()){
@@ -2200,6 +2256,12 @@ EvaluatedSketch SketchGeometry::evaluateFeature(const QJsonObject& feature, cons
     for(const auto& value : entities) {const auto e=value.toObject(); auto detail=e;
         if(e["type"]=="line") detail["lengthMm"]=points[e["startPointId"].toString()].Distance(points[e["endPointId"].toString()]);
         else if(e["type"]=="fitSpline"){const auto spline=SketchSpline::evaluate(parameters,e);detail["degree"]=5;detail["continuity"]="C2";detail["fitParameters"]=QJsonArray::fromVariantList([&]{QVariantList list;for(double t:spline.parameters)list.append(t);return list;}());detail["tangentHandles"]=spline.handles;detail["curvatureComb"]=SketchSpline::comb(parameters,e);}
+        else if(e["type"]=="fitSplineOffset"){
+            const auto evaluated=SketchSplineOffset::evaluate(parameters,e,sketchFrame);
+            detail["startMm"]=QJsonArray{evaluated.start.X(),evaluated.start.Y(),evaluated.start.Z()};
+            detail["endMm"]=QJsonArray{evaluated.end.X(),evaluated.end.Y(),evaluated.end.Z()};
+            detail["curveType"]="analytic_offset";
+        }
         else if(e["type"]=="controlSpline"){const auto spline=SketchSpline::evaluate(parameters,e);detail["degree"]=spline.curve->Degree();detail["continuity"]=spline.curve->IsCN(2)?"C2":spline.curve->IsCN(1)?"C1":"C0";detail["curveSamples"]=SketchSpline::curveSamples(spline);QJsonArray poles;for(const auto& id:e["pointIds"].toArray())for(const auto& v:parameters["points"].toArray()){const auto p=v.toObject();if(p["id"]==id)poles.append(QJsonObject{{"pointId",id},{"uMm",p["uMm"]},{"vMm",p["vMm"]}});}detail["controlPoints"]=poles;detail["curvatureComb"]=SketchSpline::comb(parameters,e);}
         else if(e["type"]=="conic"){const auto curve=SketchConic::evaluate(parameters,e);const auto shoulder=curve->Value(0.5);detail["degree"]=2;detail["shoulderLocalMm"]=QJsonArray{shoulder.X(),shoulder.Y()};}
         else if(e["type"]=="ellipse"){

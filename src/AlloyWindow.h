@@ -222,6 +222,10 @@ private:
     void showSlotEditor(const QString& initialText = {});
     void hideSlotEditor();
     QJsonObject appendCircleOffset(const QJsonObject& inputs,bool update);
+    QJsonObject appendSplineOffset(const QJsonObject& inputs,bool update);
+    QJsonObject previewSplineOffset(const QJsonObject& inputs);
+    QJsonObject acceptSplineOffset(const QJsonObject& inputs);
+    void cancelSplineOffset();
     EvaluatedSketch evaluateSketchDraft(const QJsonObject& draft) const;
     QJsonObject previewLoopOffset(const QJsonObject& inputs);
     QJsonObject acceptLoopOffset(const QJsonObject& inputs);

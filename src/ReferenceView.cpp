@@ -62,6 +62,7 @@
 #include <BRepBuilderAPI_MakeEdge.hxx>
 #include <BRepBuilderAPI_MakeFace.hxx>
 #include <TopoDS_Edge.hxx>
+#include <TopExp_Explorer.hxx>
 #include <PrsDim_LengthDimension.hxx>
 #include <Prs3d_DimensionAspect.hxx>
 #include <Prs3d_ArrowAspect.hxx>
@@ -685,6 +686,8 @@ void ReferenceView::showSketchDraft(const EvaluatedSketch& sketch) {
     if(constructionSketchModels_.contains(draftSketchId_))context_->Erase(constructionSketchModels_.value(draftSketchId_),false);
     if(centerlineSketchModels_.contains(draftSketchId_))context_->Erase(centerlineSketchModels_.value(draftSketchId_),false);
     const auto strokes=splitSketchStrokes(sketch);
+    draftNormalEdgeCount_=0;
+    if(!strokes.normal.IsNull())for(TopExp_Explorer edge(strokes.normal,TopAbs_EDGE);edge.More();edge.Next())++draftNormalEdgeCount_;
     if(!strokes.normal.IsNull()) {
         sketchDraft_=sketchPresentation(strokes.normal);
         if(sketch.plane=="face")sketchDraft_->SetZLayer(Graphic3d_ZLayerId_Topmost);
@@ -743,7 +746,7 @@ void ReferenceView::clearSketchDraft() {
         context_->UpdateCurrentViewer();
     }
     profileModels_.clear();draftProfiles_.clear();
-    sketchDraft_.Nullify();sketchConstructionDraft_.Nullify();sketchCenterlineDraft_.Nullify();projectedDraft_.Nullify();projectedLines_={};supportPoints_={};constructionDraftLineIds_={};centerlineDraftLineIds_={};draftSketchId_.clear();clearSketchCursor();applyEditDisplay();
+    sketchDraft_.Nullify();sketchConstructionDraft_.Nullify();sketchCenterlineDraft_.Nullify();projectedDraft_.Nullify();draftNormalEdgeCount_=0;projectedLines_={};supportPoints_={};constructionDraftLineIds_={};centerlineDraftLineIds_={};draftSketchId_.clear();clearSketchCursor();applyEditDisplay();
 }
 QJsonObject ReferenceView::pickSketch(const QJsonObject& feature,double x,double y,const QString& filter,const QJsonObject& resolvedFrame) const {
     if(view_.IsNull() || x<0 || y<0 || x>=width() || y>=height())return {};
@@ -1981,6 +1984,7 @@ QJsonObject ReferenceView::diagnostics() const {
         if(!sketchModels_.contains(it.key()) && !constructionSketchModels_.contains(it.key()))++displayedSketches;
     result.insert("displayedSketches",displayedSketches);
     result.insert("draftSketchVisible",!sketchDraft_.IsNull() || !sketchConstructionDraft_.IsNull() || !sketchCenterlineDraft_.IsNull());
+    result.insert("draftNormalEdgeCount",draftNormalEdgeCount_);
     result.insert("constructionDraftVisible",!sketchConstructionDraft_.IsNull());
     result.insert("constructionDraftLineIds",constructionDraftLineIds_);
     result.insert("centerlineDraftVisible",!sketchCenterlineDraft_.IsNull());

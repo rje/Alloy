@@ -10,6 +10,7 @@
 #include "GeometryKernel.h"
 #include "SketchGeometry.h"
 #include "SketchSpline.h"
+#include "SketchSplineOffset.h"
 #include "RoundedLoopOffset.h"
 #include "SketchText.h"
 #include "TutorialRecorder.h"
@@ -558,7 +559,8 @@ AlloyWindow::AlloyWindow() {
                 return;
             }
             if(session_.value("tool")=="offset" && session_.value("pendingLoopOffset").toObject()["valid"].toBool())execute("sketch.loopOffsetAccept");
-            else if(session_.value("tool")=="offset" && session_.value("pendingOffset").toObject()["valid"].toBool())execute("sketch.offsetAccept");
+            else if(session_.value("tool")=="offset" && (session_.value("pendingOffset").toObject()["valid"].toBool() ||
+                     session_.value("pendingSplineOffset").toObject()["valid"].toBool()))execute("sketch.offsetAccept");
             else if((session_.value("tool")=="circle" || session_.value("tool")=="twoPointCircle") && session_.value("pendingCircleDiameter").toObject().value("phase")=="locked")
                 sketchResponse(execute("sketch.circleDiameterAccept"));
             else if(session_.value("tool")=="rectangle" && session_.contains("pendingTwoPointRectangle"))
@@ -1500,7 +1502,9 @@ void AlloyWindow::registerCommands() {
     auto coordinate=parameter("number","Sketch coordinate in the supplied units or the active display units.");
     coordinate["minimum"]=-100000;coordinate["maximum"]=100000;
     QJsonObject drawSchema{{"x1",coordinate},{"y1",coordinate},{"x2",coordinate},{"y2",coordinate},
-        {"units",optional(units)},{"session",optional(parameter("string","Optional active sketch session identity."))}};
+        {"units",optional(units)},{"session",optional(parameter("string","Optional active sketch session identity."))},
+        {"startSnapTarget",optional(parameter("object","Retained origin or point endpoint target."))},
+        {"endSnapTarget",optional(parameter("object","Retained origin or point endpoint target."))}};
     for(const auto& tool:QStringList{"line","rectangle"})add("sketch."+tool,tool=="line" ? "Line" : "Two-Point Rectangle",
         "Append stable authored points and edges to the active sketch draft.",drawSchema,[this,tool](const auto& a){return appendSketchEntity(tool,a);});
     auto conicPoint=parameter("object","Canonical millimeter point {uMm,vMm}, optionally retained pointId.");
@@ -1803,6 +1807,14 @@ void AlloyWindow::registerCommands() {
         {{"constraintId",parameter("string","Retained circle offset constraint UUID.")},{"distance",offsetDistance},{"units",optional(units)},
          {"session",optional(parameter("string","Optional active sketch session identity."))}},
         [this](const auto& a){return appendCircleOffset(a,true);});
+    add("sketch.splineOffset","Offset Fit Spline","Retain an exact one-side offset of an authored open fit spline.",
+        {{"sourceEntityId",parameter("string","Authored open fit spline UUID.")},{"distance",offsetDistance},{"units",optional(units)},
+         {"session",optional(parameter("string","Optional active sketch session identity."))}},
+        [this](const auto& a){return appendSplineOffset(a,false);});
+    add("sketch.splineOffsetUpdate","Edit Spline Offset","Edit retained signed distance and recompute exact derived endpoints.",
+        {{"offsetEntityId",parameter("string","Retained fit spline offset UUID.")},{"distance",offsetDistance},{"units",optional(units)},
+         {"session",optional(parameter("string","Optional active sketch session identity."))}},
+        [this](const auto& a){return appendSplineOffset(a,true);});
     auto arcMode=parameter("string","Center/radius/sweep or named start/end/through construction.");arcMode["enum"]=QJsonArray{"center","threePoint"};
     QJsonObject arcSchema{{"mode",arcMode},{"units",optional(units)},{"session",sketchSession},
         {"startAngleDeg",optional(angle)},{"sweepAngleDeg",optional(angle)}};
@@ -1998,7 +2010,7 @@ void AlloyWindow::registerCommands() {
         const bool leavingFillet=session_.value("tool")=="fillet";
         const bool leavingMirror=session_.value("tool")=="mirror" && a["tool"]!="mirror";
         clearFilletPreview();session_.remove("pendingFillet");
-        cancelCircleOffset();cancelLoopOffset();
+        cancelCircleOffset();cancelLoopOffset();cancelSplineOffset();
         cancelDimension();
         cancelCircleDiameter();
         cancelLineLength();
@@ -2019,7 +2031,13 @@ void AlloyWindow::registerCommands() {
         }
         if(a["tool"]=="offset") {
             const auto selected=session_.value("selection").toObject()["entityIds"].toArray();
-            if(selected.size()==1)previewCircleOffset({{"sourceEntityId",selected[0]}});
+            if(selected.size()==1){
+                bool spline=false;for(const auto& value:session_.value("draftSketch").toObject()["parameters"].toObject()["entities"].toArray())
+                    if(value.toObject()["id"]==selected[0] &&
+                        (value.toObject()["type"]=="fitSpline" || value.toObject()["type"]=="fitSplineOffset"))spline=true;
+                if(spline)previewSplineOffset({{"sourceEntityId",selected[0]}});
+                else previewCircleOffset({{"sourceEntityId",selected[0]}});
+            }
         }
         view_->setFocus();
         if(leavingMirror && sketchScroll_)QTimer::singleShot(0,sketchScroll_,[this]{
@@ -2030,15 +2048,26 @@ void AlloyWindow::registerCommands() {
     const QJsonObject offsetInput{{"sourceEntityId",optional(parameter("string","Authored source circle UUID."))},
         {"distance",optional(offsetDistance)},{"flip",optional(parameter("boolean","Reverse the pending one-side offset direction."))},
         {"units",optional(units)},{"session",optionalSession}};
-    add("sketch.offsetPreview","Preview Circle Offset","Show a disposable concentric circle while retaining the authored sketch.",
-        offsetInput,[this](const auto& a){return session_.contains("pendingLoopOffset") ? previewLoopOffset(a) : previewCircleOffset(a);});
-    add("sketch.offsetAccept","Accept Circle Offset","Commit the previewed retained circle offset as one sketch edit.",
-        offsetInput,[this](const auto& a){return session_.contains("pendingLoopOffset") ? acceptLoopOffset(a) : acceptCircleOffset(a);});
-    add("sketch.offsetCancel","Cancel Circle Offset","Remove disposable offset geometry and exit Offset.",
+    auto offsetPreviewDispatch=[this](const QJsonObject& a){
+        if(session_.contains("pendingLoopOffset"))return previewLoopOffset(a);
+        if(session_.contains("pendingSplineOffset"))return previewSplineOffset(a);
+        const auto picked=session_.value("selection").toObject()["entityIds"].toArray();
+        const auto selected=a.value("sourceEntityId").toString(picked.size()==1 ? picked.first().toString() : QString{});
+        for(const auto& value:session_.value("draftSketch").toObject()["parameters"].toObject()["entities"].toArray())
+            if(value.toObject()["id"]==selected && (value.toObject()["type"]=="fitSpline" ||
+                value.toObject()["type"]=="fitSplineOffset"))return previewSplineOffset(a);
+        return previewCircleOffset(a);
+    };
+    add("sketch.offsetPreview","Preview One Side Offset","Show disposable source-compatible offset geometry while retaining the authored sketch.",
+        offsetInput,[offsetPreviewDispatch](const auto& a){return offsetPreviewDispatch(a);});
+    add("sketch.offsetAccept","Accept One Side Offset","Commit the previewed retained one-side offset as one sketch edit.",
+        offsetInput,[this](const auto& a){return session_.contains("pendingLoopOffset") ? acceptLoopOffset(a) :
+            session_.contains("pendingSplineOffset") ? acceptSplineOffset(a) : acceptCircleOffset(a);});
+    add("sketch.offsetCancel","Cancel One Side Offset","Remove disposable offset geometry and exit Offset.",
         {{"session",optionalSession}},[this](const auto& a){
             if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
             if(a.contains("session") && a["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
-            cancelCircleOffset();cancelLoopOffset();session_["tool"]="select";view_->setFocus();
+            cancelCircleOffset();cancelLoopOffset();cancelSplineOffset();session_["tool"]="select";view_->setFocus();
             return QJsonObject{{"pending",false},{"authoredChange",false}};
         });
     const QJsonObject loopInput{{"outerLoopId",optional(parameter("string","Stable selected support outer-loop identity."))},
@@ -2119,7 +2148,10 @@ void AlloyWindow::registerCommands() {
         auto result=setSketchSelection({{"pointIds",a.value("pointIds").toArray()},{"entityIds",a.value("entityIds").toArray()},{"profileIds",a.value("profileIds").toArray()}});
         const auto selected=a.value("entityIds").toArray();
         if(session_.value("tool")=="offset" && selected.size()==1) {
-            return previewCircleOffset({{"sourceEntityId",selected[0]}});
+            bool spline=false;for(const auto& value:session_.value("draftSketch").toObject()["parameters"].toObject()["entities"].toArray())
+                if(value.toObject()["id"]==selected[0] &&
+                    (value.toObject()["type"]=="fitSpline" || value.toObject()["type"]=="fitSplineOffset"))spline=true;
+            return spline ? previewSplineOffset({{"sourceEntityId",selected[0]}}) : previewCircleOffset({{"sourceEntityId",selected[0]}});
         }
         return result;
     });
@@ -2175,13 +2207,14 @@ void AlloyWindow::registerCommands() {
                 } catch(const GeometryKernel::EvaluationError& error){return failure(error.diagnostics()["code"].toString(),QString::fromUtf8(error.what()));}
             }
             const auto picked=view_->pickSketch(session_.value("draftSketch").toObject(),a["x"].toDouble(),a["y"].toDouble(),"entity");
-            if(picked["kind"]!="entity")return failure("source_required","Pick one authored circle to offset");
+            if(picked["kind"]!="entity")return failure("source_required","Pick one authored circle or open fit spline to offset");
             const auto sourceId=picked["entityId"].toString();
-            bool circle=false;for(const auto& value:session_.value("draftSketch").toObject()["parameters"].toObject()["entities"].toArray())
-                if(value.toObject()["id"]==sourceId && value.toObject()["type"]=="circle")circle=true;
-            if(!circle)return failure("unsupported_offset_source","Circle Offset supports one circle");
+            QString sourceType;for(const auto& value:session_.value("draftSketch").toObject()["parameters"].toObject()["entities"].toArray())
+                if(value.toObject()["id"]==sourceId)sourceType=value.toObject()["type"].toString();
+            if(sourceType!="circle" && sourceType!="fitSpline" && sourceType!="fitSplineOffset")return failure("unsupported_offset_source","One Side Offset supports a circle or open fit spline");
             setSketchSelection({{"pointIds",QJsonArray{}},{"entityIds",QJsonArray{sourceId}},{"profileIds",QJsonArray{}}});
-            const auto response=previewCircleOffset({{"sourceEntityId",sourceId}});
+            const auto response=sourceType=="fitSpline" || sourceType=="fitSplineOffset"
+                ? previewSplineOffset({{"sourceEntityId",sourceId}}) : previewCircleOffset({{"sourceEntityId",sourceId}});
             return response;
         }
         if(tool=="trim") {const auto inputs=trimPointerInput(a);if(inputs.isEmpty())return failure("trim_target_required","Pick an authored line interval");const auto response=execute("sketch.trim",inputs);return response["ok"].toBool() ? response["result"].toObject() : response;}
@@ -3748,9 +3781,11 @@ void AlloyWindow::refresh() {
         }
         if(sketchOffsetControls_)sketchOffsetControls_->setVisible(tool=="offset");
         if(sketchOffsetControls_)if(auto* accept=sketchOffsetControls_->findChild<QPushButton*>("sketch.offset.accept"))
-            accept->setEnabled(tool=="offset" && (session_.value("pendingOffset").toObject()["valid"].toBool() || session_.value("pendingLoopOffset").toObject()["valid"].toBool()));
-        if(tool=="offset" && sketchOffsetDistance_ && (session_.contains("pendingOffset") || session_.contains("pendingLoopOffset"))) {
-            const auto pending=session_.contains("pendingLoopOffset") ? session_.value("pendingLoopOffset").toObject() : session_.value("pendingOffset").toObject();
+            accept->setEnabled(tool=="offset" && (session_.value("pendingOffset").toObject()["valid"].toBool() ||
+                session_.value("pendingLoopOffset").toObject()["valid"].toBool() || session_.value("pendingSplineOffset").toObject()["valid"].toBool()));
+        if(tool=="offset" && sketchOffsetDistance_ && (session_.contains("pendingOffset") || session_.contains("pendingLoopOffset") || session_.contains("pendingSplineOffset"))) {
+            const auto pending=session_.contains("pendingLoopOffset") ? session_.value("pendingLoopOffset").toObject() :
+                session_.contains("pendingSplineOffset") ? session_.value("pendingSplineOffset").toObject() : session_.value("pendingOffset").toObject();
             const double distance=pending["distanceMm"].toDouble();
             const double scale=inputs["units"]=="in" ? 25.4 : 1;
             bool valid=false;const double shown=sketchOffsetDistance_->text().toDouble(&valid);
@@ -3811,8 +3846,8 @@ void AlloyWindow::refresh() {
             ? session_.value("pendingLoopOffset").toObject()["valid"].toBool()
                 ? "Chain Selection checked · signed distance · OK accepts · Escape cancels"
                 : "Select a top-face boundary edge · Chain Selection offsets the whole loop"
-            : session_.value("pendingOffset").toObject()["valid"].toBool() ?
-                "One Side · Set signed distance or Flip · OK accepts" : "Select one circle · Set distance · Flip changes side";
+            : session_.value("pendingOffset").toObject()["valid"].toBool() || session_.value("pendingSplineOffset").toObject()["valid"].toBool() ?
+                "One Side · Set signed distance or Flip · OK accepts" : "Select one circle or open fit spline · Set distance · Flip changes side";
         else if(tool=="fillet")prompt=fillet["sidePair"].toBool() || fillet["corners"].toArray().size()==2 ? "Enter the common radius, then press Enter" :
             fillet.contains("firstSideId") ? "Click the adjacent second side" :
             fillet["corners"].toArray().size()==1 ? "Click the second corner" : "Click the first side or corner";
@@ -3833,7 +3868,11 @@ void AlloyWindow::refresh() {
             .arg((mirrorPreview.isEmpty() ? diagnostics : mirrorPreview["diagnostics"].toObject())["dof"].toInt(-1)==0 ? "Fully constrained" : QString("%1 degrees of freedom").arg((mirrorPreview.isEmpty() ? diagnostics : mirrorPreview["diagnostics"].toObject())["dof"].toInt())));
         // Long live-entry prompts can grow after the scroll layout has measured
         // its children. Keep their actual minimum heights in sync with the text.
-        if(sketchInfo_)sketchInfo_->setMinimumHeight(sketchInfo_->sizeHint().height());
+        if(sketchInfo_){
+            const int width=std::max(80,sketchInfo_->contentsRect().width());
+            sketchInfo_->setMinimumHeight(std::max(sketchInfo_->sizeHint().height(),sketchInfo_->heightForWidth(width)));
+            sketchInfo_->updateGeometry();
+        }
         if(sketchProfileInfo_){
             auto profileDiagnostics=session_.value("profileDiagnostics").toObject();auto profiles=session_.value("profileSummaries").toArray();
             if(profileDiagnostics.isEmpty() || session_.value("profileDiagnosticsSource")!=profileStamp){const auto evaluated=evaluateSketchDraft(draft);profileDiagnostics=evaluated.summary["profileDiagnostics"].toObject();profiles=evaluated.summary["profiles"].toArray();session_["profileDiagnostics"]=profileDiagnostics;session_["profileSummaries"]=profiles;session_["profileDiagnosticsSource"]=profileStamp;}
@@ -3850,7 +3889,10 @@ void AlloyWindow::refresh() {
             bool warning=profiles.isEmpty() && profileDiagnostics["code"]!="empty_sketch" && profileDiagnostics["code"]!="point_only_sketch";if(warning)text+="\n"+profileDiagnostics["message"].toString();
             for(const auto& notice:profileDiagnostics["notices"].toArray()){const auto n=notice.toObject();if(n["severity"]!="warning")continue;warning=true;if(n["code"]=="coincident_boundary_sources")text+=QString("\n%1 coincident sources share one boundary.").arg(n["entityIds"].toArray().size());else if(n["code"]=="ignored_open_segments")text+=QString("\n%1 source curve(s) have excluded open portions.").arg(n["entityIds"].toArray().size());else text+=QString("\n%1 open entity/curve(s) excluded from profiles.").arg(n["entityIds"].toArray().size());}
             if(!profileDiagnostics["endpointGaps"].toArray().isEmpty()){double closest=std::numeric_limits<double>::infinity();for(const auto& g:profileDiagnostics["endpointGaps"].toArray())closest=std::min(closest,g.toObject()["distanceMm"].toDouble());text+="\nNearest endpoint gap: "+QString::number(closest,'g',6)+" mm (not closed)";}
-            sketchProfileInfo_->setText(text);sketchProfileInfo_->setMinimumHeight(sketchProfileInfo_->sizeHint().height());
+            sketchProfileInfo_->setText(text);
+            const int width=std::max(80,sketchProfileInfo_->contentsRect().width());
+            sketchProfileInfo_->setMinimumHeight(std::max(sketchProfileInfo_->sizeHint().height(),sketchProfileInfo_->heightForWidth(width)));
+            sketchProfileInfo_->updateGeometry();
             sketchProfileInfo_->setStyleSheet(warning ? "color:#9a5800":"color:#53616b");sketchProfileInfo_->setToolTip(QString::fromUtf8(QJsonDocument(profileDiagnostics).toJson(QJsonDocument::Indented)));
         }
         if(!current && sketchError_)sketchError_->setText("The document changed. Cancel and restart this sketch.");
@@ -4379,6 +4421,8 @@ QJsonObject AlloyWindow::finishSession(const QString& id, bool commit) {
             return failure("pending_input_active","Accept or cancel the circle offset before finishing");
         if(session_.contains("pendingLoopOffset"))
             return failure("pending_input_active","Accept or cancel the loop offset before finishing");
+        if(session_.contains("pendingSplineOffset"))
+            return failure("pending_input_active","Accept or cancel the fit spline offset before finishing");
         if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))return failure("stale_session","The document changed; cancel and restart this sketch");
         const auto candidate=SketchGeometry::replaceFeature(document_->authored(),session_.value("draftSketch").toObject());
         const auto error=document_->commit(candidate,session_.value("inputs").toObject().contains("sketchId") ? "Edit sketch" : "Create sketch");
@@ -4898,6 +4942,95 @@ QJsonObject AlloyWindow::appendCircleOffset(const QJsonObject& inputs,bool updat
     const auto draft=session_.value("draftSketch").toObject(),context=session_.value("projectionContext").toObject();
     return publishSketchSolve(update ? SketchGeometry::updateCircleOffset(draft,canonical,context)
         : SketchGeometry::addCircleOffset(draft,canonical,context));
+}
+
+QJsonObject AlloyWindow::appendSplineOffset(const QJsonObject& inputs,bool update) {
+    if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
+    if(inputs.contains("session") && inputs["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
+    if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))
+        return failure("stale_session","The document changed; cancel and restart this sketch");
+    const auto units=inputs.value("units").toString(session_.value("inputs").toObject()["units"].toString());
+    const double distance=CadDocument::millimeters(inputs["distance"].toDouble(),units);
+    const QJsonObject canonical=update ? QJsonObject{{"offsetEntityId",inputs["offsetEntityId"]},{"signedDistanceMm",distance}}
+        : QJsonObject{{"sourceEntityId",inputs["sourceEntityId"]},{"signedDistanceMm",distance}};
+    const auto draft=session_.value("draftSketch").toObject(),context=session_.value("projectionContext").toObject();
+    return publishSketchSolve(update ? SketchSplineOffset::update(draft,canonical,context)
+        : SketchSplineOffset::add(draft,canonical,context));
+}
+
+QJsonObject AlloyWindow::previewSplineOffset(const QJsonObject& inputs) {
+    if(session_.value("command")!="sketch.edit" || session_.value("tool")!="offset")
+        return failure("no_offset_tool","Activate sketch Offset first");
+    if(inputs.contains("session") && inputs["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
+    if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))
+        return failure("stale_session","The document changed; cancel and restart this sketch");
+    const auto draft=session_.value("draftSketch").toObject(),context=session_.value("projectionContext").toObject();
+    const auto selected=session_.value("selection").toObject()["entityIds"].toArray();
+    const auto previous=session_.value("pendingSplineOffset").toObject();
+    auto sourceId=inputs.value("sourceEntityId").toString(previous.value("offsetEntityId").toString(previous.value("sourceEntityId").toString(
+        selected.size()==1 ? selected.first().toString() : QString{})));
+    QJsonObject existing;bool sourceFound=false;QString explicitOffsetId;
+    for(const auto& value:draft["parameters"].toObject()["entities"].toArray()){
+        const auto entity=value.toObject();
+        if(entity["id"]==sourceId && entity["type"]=="fitSplineOffset"){
+            existing=entity;explicitOffsetId=entity["id"].toString();sourceId=entity["sourceEntityId"].toString();
+        }
+    }
+    for(const auto& value:draft["parameters"].toObject()["entities"].toArray()){
+        const auto entity=value.toObject();
+        if(entity["id"]==sourceId && entity["type"]=="fitSpline")sourceFound=true;
+        if(entity["type"]=="fitSplineOffset" && entity["sourceEntityId"]==sourceId){
+            if(!explicitOffsetId.isEmpty())continue;
+            if(!existing.isEmpty())
+                return failure("ambiguous_offset","Select the retained offset entity to edit its distance");
+            existing=entity;
+        }
+    }
+    if(!sourceFound)return failure("source_required","Select one authored open fit spline");
+    const auto units=inputs.value("units").toString(session_.value("inputs").toObject()["units"].toString());
+    double distance=inputs.contains("distance") ? CadDocument::millimeters(inputs["distance"].toDouble(),units)
+        : previous["sourceEntityId"]==sourceId ? previous.value("distanceMm").toDouble(-5)
+        : existing.isEmpty() ? -5 : existing["signedDistanceMm"].toDouble();
+    if(inputs.value("flip").toBool())distance=-distance;
+    const auto solved=existing.isEmpty() ? SketchSplineOffset::add(draft,{{"sourceEntityId",sourceId},{"signedDistanceMm",distance}},context)
+        : SketchSplineOffset::update(draft,{{"offsetEntityId",existing["id"]},{"signedDistanceMm",distance}},context);
+    QJsonObject pending{{"sourceEntityId",sourceId},{"distanceMm",distance},{"valid",solved.ok}};
+    if(!existing.isEmpty())pending["offsetEntityId"]=existing["id"];
+    if(!solved.ok){
+        pending["error"]=solved.error;session_["pendingSplineOffset"]=pending;
+        view_->showSketchDraft(evaluateSketchDraft(draft));displayedSketchDraft_=draft;
+        return failure("invalid_spline_offset",solved.error);
+    }
+    try{
+        const auto evaluated=evaluateSketchDraft(solved.feature);
+        pending["previewDraft"]=solved.feature;session_["pendingSplineOffset"]=pending;
+        view_->showSketchDraft(evaluated);displayedSketchDraft_=draft;
+        return {{"pendingSplineOffset",pending},{"sketchGeometry",evaluated.summary},{"authoredChange",false}};
+    }catch(const std::exception& error){return failure("preview_failed",QString::fromUtf8(error.what()));}
+}
+
+QJsonObject AlloyWindow::acceptSplineOffset(const QJsonObject& inputs){
+    if(!inputs.isEmpty()){
+        const auto preview=previewSplineOffset(inputs);
+        if(preview.value("ok").isBool() && !preview["ok"].toBool())return preview;
+    }
+    const auto pending=session_.value("pendingSplineOffset").toObject();
+    if(session_.value("tool")!="offset" || !pending["valid"].toBool())
+        return failure("no_valid_offset_preview","Select a fit spline and preview a valid signed distance first");
+    const bool editing=pending.contains("offsetEntityId");
+    const auto result=appendSplineOffset(editing
+        ? QJsonObject{{"offsetEntityId",pending["offsetEntityId"]},{"distance",pending["distanceMm"]},{"units","mm"}}
+        : QJsonObject{{"sourceEntityId",pending["sourceEntityId"]},{"distance",pending["distanceMm"]},{"units","mm"}},editing);
+    if(!result.value("ok").isBool() || result["ok"].toBool()){
+        cancelSplineOffset();session_["tool"]="select";view_->setFocus();
+    }
+    return result;
+}
+
+void AlloyWindow::cancelSplineOffset(){
+    if(!session_.contains("pendingSplineOffset"))return;
+    session_.remove("pendingSplineOffset");const auto draft=session_.value("draftSketch").toObject();
+    if(!draft.isEmpty()){view_->showSketchDraft(evaluateSketchDraft(draft));displayedSketchDraft_=draft;}
 }
 
 EvaluatedSketch AlloyWindow::evaluateSketchDraft(const QJsonObject& draft) const {
@@ -6628,7 +6761,7 @@ void AlloyWindow::showSketch() {
         sketchOffsetControls_=new QWidget;sketchOffsetControls_->setObjectName("sketch.offset.controls");
         auto* offsetLayout=new QVBoxLayout(sketchOffsetControls_);offsetLayout->setContentsMargins(0,0,0,0);
         const bool faceLoop=inputs["plane"]=="face" && session_.value("draftSketch").toObject()["parameters"].toObject()["entities"].toArray().isEmpty();
-        auto* offsetTitle=new QLabel(faceLoop ? "One Side · Select top-face boundary" : "One Side · Select one circle");
+        auto* offsetTitle=new QLabel(faceLoop ? "One Side · Select top-face boundary" : "One Side · Select circle or open fit spline");
         offsetTitle->setObjectName("sketch.offset.title");offsetLayout->addWidget(offsetTitle);
         auto* chain=new QCheckBox("Chain Selection");chain->setObjectName("sketch.offset.chain");chain->setChecked(true);chain->setVisible(faceLoop);
         offsetLayout->addWidget(chain);
@@ -6643,7 +6776,7 @@ void AlloyWindow::showSketch() {
         offsetActions->addWidget(apply);offsetActions->addWidget(cancel);offsetLayout->addLayout(offsetActions);
         layout->addWidget(sketchOffsetControls_);sketchOffsetControls_->hide();
         connect(sketchOffsetDistance_,&QLineEdit::textChanged,this,[this](const QString& text){
-            if(session_.value("tool")!="offset" || (!session_.contains("pendingOffset") && !session_.contains("pendingLoopOffset")))return;
+            if(session_.value("tool")!="offset" || (!session_.contains("pendingOffset") && !session_.contains("pendingLoopOffset") && !session_.contains("pendingSplineOffset")))return;
             bool valid=false;const double distance=text.toDouble(&valid);
             if(valid)sketchResponse(execute("sketch.offsetPreview",{{"distance",distance}}));
             else {execute("sketch.offsetPreview",{{"distance",0}});if(sketchError_)sketchError_->setText("Enter a signed offset distance");}
@@ -6651,7 +6784,8 @@ void AlloyWindow::showSketch() {
         connect(sketchOffsetDistance_,&QLineEdit::returnPressed,this,[this]{sketchResponse(execute("sketch.offsetAccept"));});
         connect(flip,&QPushButton::clicked,this,[this]{
             const auto response=execute("sketch.offsetPreview",{{"flip",true}});sketchResponse(response);
-            const auto pending=session_.contains("pendingLoopOffset") ? session_.value("pendingLoopOffset").toObject() : session_.value("pendingOffset").toObject();
+            const auto pending=session_.contains("pendingLoopOffset") ? session_.value("pendingLoopOffset").toObject() :
+                session_.contains("pendingSplineOffset") ? session_.value("pendingSplineOffset").toObject() : session_.value("pendingOffset").toObject();
             if(pending.contains("distanceMm") && sketchOffsetDistance_) {
                 const QSignalBlocker block(sketchOffsetDistance_);
                 const double scale=session_.value("inputs").toObject()["units"]=="in" ? 25.4 : 1;

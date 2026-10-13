@@ -2649,3 +2649,14 @@ Focused core and 79-call real-entrypoint API evidence pass, including exact mode
 preservation, replacement undo/redo, save/reopen and document tabs. The full ornament
 lesson and independent acceptance remain separate. Final neutral hatch/plain captures and corrected panel synchronize successfully;
 native popup input remains pending qualification; see validation/section-analysis.md.
+
+## Open fit-spline Offset candidate (2026-10-13)
+
+#261 adds a retained signed exact OCCT offset of an open fit spline with stable
+derived endpoints for explicit Line closure. Focused core checks prove normal
+distance, one selectable strip profile, atomic refusals, source/distance edits,
+Intersect rebuild and history/reopen. Native selection, side/value preview,
+Cancel and accept pass with the renderer showing both curves; a separate real-app
+API run passes closure and Intersect. See the [candidate receipt](validation/fit-spline-offset.md).
+The full eight-member ornament Join remains a separate #265 gate, and independent
+review of this ingredient is pending.

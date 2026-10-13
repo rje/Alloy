@@ -29,6 +29,7 @@
 #include <BRepPrimAPI_MakeCylinder.hxx>
 #include <BRepPrimAPI_MakePrism.hxx>
 #include <BRep_Tool.hxx>
+#include <Geom_OffsetCurve.hxx>
 #include <Bnd_Box.hxx>
 #include <GProp_GProps.hxx>
 #include <TopExp.hxx>
@@ -371,7 +372,15 @@ QJsonObject GeometryKernel::summarize(const TopoDS_Shape& shape) {
     GProp_GProps area; BRepGProp::SurfaceProperties(shape,area);
     QJsonValue volume(QJsonValue::Null);
     if (valid && closed && solids>0) {
-        GProp_GProps properties; BRepGProp::VolumeProperties(shape,properties,true);
+        bool exactOffset=false;
+        for(TopExp_Explorer edge(shape,TopAbs_EDGE);edge.More() && !exactOffset;edge.Next()){
+            double first,last;
+            const auto curve=BRep_Tool::Curve(TopoDS::Edge(edge.Current()),first,last);
+            exactOffset=!Handle(Geom_OffsetCurve)::DownCast(curve).IsNull();
+        }
+        GProp_GProps properties;
+        if(exactOffset)BRepGProp::VolumePropertiesGK(shape,properties,1e-9,true);
+        else BRepGProp::VolumeProperties(shape,properties,true);
         if (std::isfinite(properties.Mass()) && properties.Mass()>0) volume=properties.Mass();
     }
     return {{"kernel","OCCT"},{"version",ALLOY_OCCT_VERSION},{"valid",valid},{"closed",closed},
