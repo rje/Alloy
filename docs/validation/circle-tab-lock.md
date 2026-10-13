@@ -54,25 +54,19 @@ paper-clip tutorial #225 remains a separate gate.
 
 ## Independent acceptance
 
-Astra independently reviewed candidate `008695b8be4a6ace5593835964d052056e70af9a`
-on 2026-10-13. Source, persisted Qt log and test, actual locked preview capture,
-API report and saved authored model support bounded #226 acceptance. No extra
-GUI run or unchanged replay was needed. The native log records three passing
-stages in 2383 ms; API saved JSON exactly matches its report and retains one
-XZ radius-1 circle and a driving diameter of 2 mm.
+Astra reviewed follow-up `6fd5c269b8e1d7ac4cc1655aeeb3a6c66333dcac` and
+the corrected persisted native log on 2026-10-13. The initial assessment was premature because its test repaired focus after
+Tab and masked the defect; that acceptance is superseded. Removing the lock-time viewport focus request preserves the
+inline field's focus. The test activates the window and establishes initial
+viewport focus before the gesture, then performs no focus changes after center
+clicks, typing, or Tab. It asserts actual viewport focus after both center clicks,
+actual inline focus after the first typed value and both locks, and sends Return
+and Escape to QApplication::focusWidget(). This now tests the previously masked
+focus transition rather than merely direct key delivery to a chosen widget.
 
-Tab is intercepted only for the active inline editing state and invokes shared
-lock authority. The locked diameter stays disposable until the existing atomic
-Circle accept path runs. Accept/Cancel and common session/tab teardown restore
-the shared field's editability; the native case explicitly checks the next Circle
-entry is editable and cancellation preserves the first circle. The actual cue
-and instructions are readable, with a visible circle preview at the disclosed
-eightfold zoom.
-
-The test directs keys to real Qt widgets and explicitly calls view setFocus before
-Return/Escape. Source also requests viewport focus when locking, but this evidence
-does not independently prove automatic OS-level focus transfer. Acceptance covers
-shared lock state and dispatched key routing, not physical keyboard focus or
-reference styling/storage parity. The prior null-focus probe remains recorded
-as failed evidence rather than being relabeled. Full #225 tutorial acceptance
-remains separate.
+The final log records three passing stages, zero failures, in 3332 ms. Existing
+geometry, Cancel preservation, next-entry editability and exact save/reopen
+assertions remain in that run. The previous shared API/storage evidence remains
+applicable; no additional full replay was needed. #226 is accepted for this
+uninterrupted Qt-dispatched source sequence. Physical OS input and reference
+pixel/storage parity remain unqualified, and full tutorial #225 remains separate.
