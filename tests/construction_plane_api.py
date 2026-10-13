@@ -21,7 +21,13 @@ with application(args.app, out) as (call, transcript):
             planes.append(plane)
             selection = call('selection.planeSet', {'planeId': plane})
             assert abs(selection['frame']['origin'][2] - z) < 1e-7
-            session = call('command.begin', {'command': 'sketch.create', 'inputs': {'planeId': plane, 'name': f'Circle {diameter}'}})
+            assert call('app.state')['selection'] == {'kind': 'constructionPlane', 'planeId': plane}
+            if index == 2:
+                session = call('command.begin', {'command': 'sketch.create', 'inputs': {'planeId': plane, 'name': f'Circle {diameter}'}})
+            else:
+                session = call('sketch.create', {'name': f'Circle {diameter}'})
+            assert session['inputs']['planeId'] == plane
+            assert session['inputs']['plane'] == 'construction'
         else:
             session = call('sketch.begin', {'plane': 'XY', 'name': 'Circle 38'})
         call('sketch.addCircle', {'centerX': 0, 'centerY': 0, 'diameter': diameter, 'units': 'mm'})
@@ -29,7 +35,7 @@ with application(args.app, out) as (call, transcript):
         source = {'sketchId': call('document.inspect')['authored']['features'][-1]['id']}
     baseline = call('document.inspect')
     assert [p['frame']['origin'][2] for p in baseline['evaluation']['constructionPlanes']] == [18, 38, 58]
-    call('view.orientation', {'name': 'isometric'})
+    call('view.home')
     call('capture.screenshot', {'path': str(out / 'stacked-circles.png')})
     call('construction.plane', {'featureId': planes[0], 'source': {'sketchId': baseline['authored']['features'][0]['id']}, 'offset': 19, 'units': 'mm'})
     edited = call('document.inspect')
@@ -43,4 +49,4 @@ with application(args.app, out) as (call, transcript):
     call('document.new', {'discard': True})
     call('document.open', {'path': str(path), 'discard': True})
     assert call('document.inspect')['authored'] == edited['authored']
-    (out / 'construction-plane-ledger.json').write_text(json.dumps({'initial': initial, 'baseline': baseline, 'edited': edited, 'transcript': transcript}, indent=2))
+(out / 'construction-plane-ledger.json').write_text(json.dumps({'initial': initial, 'baseline': baseline, 'edited': edited, 'transcript': transcript}, indent=2))

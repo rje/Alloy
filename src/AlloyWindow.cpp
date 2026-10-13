@@ -1659,7 +1659,7 @@ void AlloyWindow::registerCommands() {
     add("selection.planeSet","Select construction plane","Select an authored visible plane for Create Sketch.",{{"planeId",planeId}},[this](const auto& a){
         const auto id=a["planeId"].toString();
         for(const auto& plane:document_->evaluation().constructionPlanes)if(plane.featureId==id && plane.visible) {
-            selectedPlane_=id;selectedBody_.clear();selectedFace_={};selectedPlane_.clear();view_->selectSupportFace({},{});selectedSketch_.clear();selectedProfile_.clear();selectedProfileIds_={};
+            selectedPlane_=id;selectedBody_.clear();selectedFace_={};view_->selectSupportFace({},{});selectedSketch_.clear();selectedProfile_.clear();selectedProfileIds_={};
             view_->selectBody({});view_->selectProfile({},{});view_->selectConstructionPlane(id);return QJsonObject{{"kind","constructionPlane"},{"planeId",id},{"frame",plane.frame}};
         }
         return failure("plane_unavailable","Visible construction plane does not exist","planeId");
