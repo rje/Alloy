@@ -25,6 +25,8 @@ document-owned `analyses` array. Each record has stable ID, name, origin-plane
 identity, visibility and hatch state. Initially support XY/XZ/YZ at zero offset
 and angle. Do not display nonfunctional transform controls. Choose and disclose
 the retained half-space direction; the source does not establish its default.
+Use a documented fixed normal for each origin plane, or persist the direction;
+reopening must never choose a different half-space from the camera position.
 
 Creation/edit/visibility use the existing document undo authority and atomic
 save. Analysis actions may add undo entries, but must not add modeling timeline
@@ -33,11 +35,19 @@ state only; Cancel restores the previous presentation and exact authored state.
 Only one section is active at a time in this bounded implementation; selecting
 another must explicitly deactivate the previous one. This is an Alloy policy,
 not an observed source limitation.
+While previewing a replacement analysis, suppress the previously active section
+transiently. Cancel must restore it; accepting the replacement deactivates it in
+the same undo entry as the new analysis.
 
-Validate the new schema during document open, including duplicate IDs, valid
+Validate the new schema during document open, including document-wide duplicate IDs, valid
 origin planes, and the single-active rule. Existing files without analyses remain
 valid. Ordinary model commits must preserve analysis records. Use existing
 document transactions first; avoid a second history stack or separate save file.
+The existing candidate evaluator re-solves sketches. An analysis-only transaction
+must preserve the modeling JSON and evaluated geometry exactly: reuse the current
+evaluated state through the existing undo authority after validating the analysis
+change, or demonstrate exact preservation before using general recomputation.
+Do not let an inspection toggle normalize authored sketch coordinates.
 
 ## Acceptance evidence
 
@@ -55,3 +65,7 @@ document transactions first; avoid a second history stack or separate save file.
 
 General transformed planes, multiple simultaneous sections, measurements and
 other Inspect tools remain in DOC-014. They are not claimed by this gate.
+
+Astra reviewed this proposed contract on 2026-10-13. The atomic replacement,
+evaluation-preservation and ID rules above incorporate that review. No GPU or
+native implementation acceptance has occurred.
