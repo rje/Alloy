@@ -58,19 +58,42 @@ The 21.1-second full creation movie, editable file, independently checked closed
 See validation/countersunk-plate-tutorial.md for source adaptations, recording
 limits and separate native evidence. Issue/board Done. All private editors closed.
 The external gallery has nine creations: eight checked solid meshes and one sketch.
-Next tutorial #251–257 covers the full31-step slots/splines/conic/ellipse lesson.
-Fit Point Spline #253 is independently accepted and integrated as 375ee76/f708e11, with reviewed point-move integration correction 43e0d27. Main app builds; slot/spline core tests pass 2/2. Real curves, handles, native input, actual profiles and exact history/reopen have separate evidence in validation/fit-point-spline.md. Control spline/comb #254 is the next active isolated lane.
+**Active lesson: slots, splines, conic and ellipse (#251–257).**
+The full 31-step source gate remains Todo. Its source-order plan and geometry
+oracles are in [validation/slots-splines-tutorial-prep.md](validation/slots-splines-tutorial-prep.md).
+The external contract/design records are under
+`knowledge/tutorials/after-countersunk-plate/`; the 19-record knowledge corpus
+includes six archived visual references for this lesson.
+
 Straight slot #251 is independently accepted and integrated as e3f1843/46dbae1.
-Main app build and focused core pass; native/API/visual evidence is recorded in
-validation/center-point-slot.md. Solved geometry during dragging remains #258.
-Arc slot #252 is now active in an isolated worktree; control spline/comb #254 is now active. Other children/gate remain Todo.
-Derivative scaling and exact OCCT joins require focused evidence; the baseline
-acceleration/knot policy is an explicit Alloy choice. Firstpoint is
-slot center (PDF prose conflicts with pictured/official UI); centerline150/R25
-means overall200x50. Arc pathR150/endR15 with135degree radial relation yields
-upper90degree sweep. Final ellipse275x100 is horizontal/centered; inferred
-constraint steps remain explicit. External independent contract and command
-research: knowledge/tutorials/after-countersunk-plate/. Straight slot and fit spline are accepted ingredients. Root has prepared tests/center_point_slot_api.py and tests/fit_point_spline_api.py for real-app authority/history checks; slot API passed 37 calls and spline API passed 38 calls with exact edits/history/reopen. Slot candidate 0c5786c is independently accepted and integrated with full native input and focused Escape/late-release evidence. Spline has a passing native workflow and is completing its final drag-state guard/capture receipt. Spline acceptance and integration are complete. The root grants the sole private-editor lease. The independently reviewed full-step gate plan is validation/slots-splines-tutorial-prep.md; it is preparation, not runtime evidence. External knowledge corpus now has19 validated/indexed records, including the complete new lesson and six archived visual references. Conic mapping and spline-degree/continuity designs are under independent review before implementation.
+Its native creation/dimension/cancellation and 37-call API evidence are recorded
+in [validation/center-point-slot.md](validation/center-point-slot.md). The live
+solved-shape drag presentation remains Todo #258; current dragging shows a guide
+line and solves on release. Fit spline #253 is independently accepted and
+integrated as 375ee76/f708e11, with reviewed point-move integration fix 43e0d27.
+Main application builds and both core tests pass (2/2, 0.79 s). Native Qt, framed
+GPU capture, 38-call geometry/storage API and final stale-drag evidence remain
+separate in [validation/fit-point-spline.md](validation/fit-point-spline.md).
+The degree-five C2 evaluator is real; its baseline acceleration, knot and handle
+mapping policies are disclosed Alloy choices.
+
+Arc slot #252 and control spline/curvature comb #254 are actively implemented
+in isolated worktrees. Conic #255, ellipse #256 and full lesson #257 remain Todo.
+Root owns `tests/center_point_arc_slot_api.py`: prepared/syntax-checked only,
+not executed. It checks both slots in one sketch, source radius/H/V/radial-line/
+135-degree constraints, two analytic regions, radius edit and exact history/
+reopen. Wait for the author candidate and the sole private-editor lease before
+running. Root owns subsequent shared-API/cumulative checks and GitHub updates;
+Sol implements and Astra independently verifies candidates.
+
+The first slot starts at its center: source prose conflicts with the pictured
+command and official public UI. Full centerline 150/R25 yields 200×50 bounds.
+Arc path R150/end R15 plus the 135-degree radial relation yields an upper
+90-degree sweep. Three control points yield actual degree two under the public
+maximum-degree policy. The final ellipse is horizontal, origin-centered and
+275×100; its inferred constraining steps remain explicit. Conic Rho mapping and
+ellipse preflight records are independently reviewed proposals, not implemented
+features. No full lesson or exact visual/input parity claim is made.
 
 User requested private repository visibility on 2026-10-13. `rje/Alloy` is now
 PRIVATE, verified through GitHub CLI. Preserve private visibility unless the user
