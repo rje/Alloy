@@ -28,6 +28,7 @@ private slots:
         if(output.isEmpty())output=temporary.path();QDir().mkpath(output);
         AlloyTheme::apply(*qApp);AlloyWindow w;w.resize(1300,900);w.show();w.activateWindow();
         QVERIFY(QTest::qWaitForWindowExposed(&w));
+        QApplication::setActiveWindow(&w);
         ReferenceView* view=nullptr;for(auto* child:w.findChildren<QWidget*>())if(auto* candidate=dynamic_cast<ReferenceView*>(child))view=candidate;
         QVERIFY(view);call(w,"sketch.begin",{{"plane","XZ"},{"units","mm"}});call(w,"sketch.lookAt");
         call(w,"view.zoom",{{"factor",8}});
@@ -36,17 +37,20 @@ private slots:
             return QPoint(qRound(p["x"].toDouble()),qRound(p["y"].toDouble()));};
         view->setFocus();QTest::keyClick(view,Qt::Key_C);QCOMPARE(active(w)["tool"].toString(),QString("circle"));
         QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,pixel(0,0));QVERIFY(active(w).contains("firstPoint"));
+        QTRY_COMPARE(QApplication::focusWidget(),static_cast<QWidget*>(view));
         const auto before=draft(w);QTest::keyClick(view,Qt::Key_2);
         auto* input=w.findChild<QLineEdit*>("sketch.inlineValue");QVERIFY(input && input->isVisible());
         QCOMPARE(active(w)["pendingCircleDiameter"].toObject()["phase"].toString(),QString("editing"));
+        QTRY_COMPARE(QApplication::focusWidget(),static_cast<QWidget*>(input));
         QTest::keyClick(input,Qt::Key_Tab);
         QCOMPARE(active(w)["pendingCircleDiameter"].toObject()["phase"].toString(),QString("locked"));
+        QTRY_COMPARE(QApplication::focusWidget(),static_cast<QWidget*>(input));
         QCOMPARE(draft(w),before);QVERIFY(input->isVisible() && input->isReadOnly());
         QVERIFY(view->diagnostics()["cursorPreviewVisible"].toBool());
         QVERIFY(w.state()["inlineEditor"].toObject()["visible"].toBool());
         QApplication::processEvents();QTest::qWait(40);
         call(w,"capture.screenshot",{{"path",output+"/circle-tab-locked.png"}});
-        view->setFocus();QTest::keyClick(view,Qt::Key_Return);
+        QTest::keyClick(QApplication::focusWidget(),Qt::Key_Return);
         QVERIFY(!active(w).contains("pendingCircleDiameter"));QVERIFY(!input->isVisible());
         QCOMPARE(active(w)["tool"].toString(),QString("circle"));
         const auto placed=draft(w)["parameters"].toObject();QCOMPARE(placed["entities"].toArray().size(),1);
@@ -58,9 +62,11 @@ private slots:
         call(w,"capture.screenshot",{{"path",output+"/circle-committed.png"}});
 
         QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,pixel(5,0));QVERIFY(active(w).contains("firstPoint"));
-        view->setFocus();QTest::keyClick(view,Qt::Key_3);QVERIFY(input->isVisible() && !input->isReadOnly());QTest::keyClick(input,Qt::Key_Tab);
+        QTRY_COMPARE(QApplication::focusWidget(),static_cast<QWidget*>(view));
+        QTest::keyClick(view,Qt::Key_3);QVERIFY(input->isVisible() && !input->isReadOnly());QTest::keyClick(input,Qt::Key_Tab);
         QCOMPARE(active(w)["pendingCircleDiameter"].toObject()["phase"].toString(),QString("locked"));
-        view->setFocus();QTest::keyClick(view,Qt::Key_Escape);
+        QTRY_COMPARE(QApplication::focusWidget(),static_cast<QWidget*>(input));
+        QTest::keyClick(QApplication::focusWidget(),Qt::Key_Escape);
         QVERIFY(!active(w).contains("pendingCircleDiameter"));QVERIFY(!input->isVisible());
         QVERIFY(!input->isReadOnly());
         QCOMPARE(draft(w)["parameters"].toObject(),placed);

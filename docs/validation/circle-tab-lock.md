@@ -19,7 +19,14 @@ author a circle.
 The prior source-sequence probe after #222 failed before this fix: Tab left
 `QApplication::focusWidget()` null, so the following key targeted no widget;
 the Qt probe then failed when it attempted `QTest::keyClick` on that null
-pointer. This was a real input-path gap, not evidence that Enter accepted.
+pointer. The first #226 test also forced viewport focus after Tab, masking that
+gap. A corrected diagnostic run found null focus after Tab. Removing the lock's
+viewport focus request keeps focus in the inline field. The corrected test
+activates its window once at setup, then asserts that center clicks leave focus
+in the viewport, typing naturally focuses the inline field, and Tab leaves it
+there. Return/Escape go to the actual focused widget without intervening focus
+changes. Those earlier probes are failures, not passing evidence; the first
+corrected failure is transcribed in local `build/evidence/circle-tab/focus-diagnostic.txt`.
 
 `tests/circle_tab_controls.cpp` now passes the focused native Qt sequence
 `sourceTabEnterAndCancel`: C, origin click, 2, Tab, Enter, followed by a second
@@ -27,8 +34,9 @@ diameter 3 Tab and Escape. The locked state has no draft edit, a visible GPU
 preview, a read-only value field and readable Ø2 mm lock cue. Enter creates
 exactly one radius-1 circle and a driving 2 mm diameter; Escape leaves that
 geometry unchanged and restores editor editability. Exact authored save/reopen
-passes. The persisted log is `build/evidence/circle-tab/native.log` (3 Qt stages
-passed, 0 failed, 2383 ms); captures and saved model are in that directory.
+passes. The persisted corrected log is `build/evidence/circle-tab/native.log`
+(3 Qt stages passed, 0 failed, 3332 ms); captures and saved model are in that
+directory.
 The capture deliberately zooms the 2 mm circle eightfold so its native preview
 can be inspected. This is injected Qt key/pointer evidence, not physical OS input.
 

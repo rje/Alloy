@@ -4348,7 +4348,6 @@ QJsonObject AlloyWindow::lockCircleDiameter(const QJsonObject& args) {
     if(dimensionEditorError_)dimensionEditorError_->setText(QString::fromUtf8("Ø%1 %2 locked · Enter places · Esc cancels")
         .arg(QString::number(pending["diameterMm"].toDouble()/(units=="in" ? 25.4 : 1.0),'g',9),units));
     if(dimensionEditor_) {dimensionEditor_->adjustSize();positionDimensionEditor();dimensionEditor_->show();dimensionEditor_->raise();}
-    view_->setFocus(Qt::OtherFocusReason);
     return {{"pendingCircleDiameter",pending},{"authoredChange",false}};
 }
 
