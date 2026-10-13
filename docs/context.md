@@ -27,7 +27,10 @@ integrated; main app rebuild passes. See validation/profile-regions.md.
 Active work: root owns #132, one manual milestone compile matrix for the accepted
 current integrations and corrected native dependency options. Run 38396495940
 was manually dispatched at source d07253470a346f1b29faa87b33fcced51416ea0c;
-all four target results remain pending. Do not dispatch a duplicate.
+Linux x64 and macOS arm64 have passed; their downloaded binaries, source/dependency
+receipts, architectures and compile logs are checked under
+`build/evidence/native-matrix-38396495940/{linux-x64,macos-arm64}`. Intel Mac and
+Windows remain live/pending. Do not dispatch a duplicate.
 The actual native file-sheet gate #167 remains Todo: two computer-control window
 binding attempts failed before interaction; no app defect or sheet pass claimed.
 Sol records the capability limit and closes its private editor. Windows transport
@@ -38,7 +41,12 @@ shared-line fillets, typed chained-line locks, Sweep foundation/native controls 
 full tutorial. Sol owns foundation #223 in parallel with transport #220. Other
 new children remain Todo. Fillet width annotations must survive via explicit span
 conversion; original post-fillet drivenness is unknown. No fabricated semicircles
-or coordinate-seeded path authoring can close the complete source gate. No tag/release
+or coordinate-seeded path authoring can close the complete source gate.
+Active worktrees: `../Alloy-worktrees/local-transport` (`feat/local-transport`)
+for #220 and `../Alloy-worktrees/sweep-foundation` (`feat/sweep-foundation`) for
+#223. Neither candidate is accepted yet. Astra identified Windows ACL inheritance
+and raw stdout fixes in #220; author is addressing them before real-app/hosted
+transport qualification. No private editor is currently reserved/open. No tag/release
 or per-commit CI. Intersect parent #161 retains broader operation-edit and
 typed-Return qualification as Todo. Split oversized remaining scope into linked Todo issues. Other broad parents remain Todo. The sections below are a chronological
 record; older ownership, pending status and counts are historical.
