@@ -3,6 +3,14 @@
 Updated 2026-10-13. This is the project handoff for a fresh session. Read the root
 [AGENTS.md](../AGENTS.md) first; its reference restrictions apply to all work.
 
+Two-point Rectangle typed entry SKT-042/#227 has a candidate in the isolated
+`../Alloy-worktrees/two-point-rectangle` branch. Command-first plane selection,
+actual pointer-quadrant width/height preview, two Enter transitions and retained
+driving size/origin relations pass focused injected-Qt and real-entrypoint API
+checks. See [the bounded receipt](validation/two-point-rectangle.md).
+Independent review and main integration remain pending; rounded keyring lesson
+work remains separate.
+
 ## Current checkpoint — read first (2026-10-13)
 
 The nested cubes #172, egg cup #173, toy block #146, die #147 and subsequent

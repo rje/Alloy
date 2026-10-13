@@ -247,6 +247,9 @@ AlloyWindow::AlloyWindow() {
             if(caption=="CREATE") {
                 auto* component=menu->addAction("New Component");component->setObjectName("solid.action.component.newDialog");connect(component,&QAction::triggered,this,[this]{execute("component.newDialog");});
                 auto* pattern=menu->addAction("Rectangular Pattern");pattern->setObjectName("solid.action.solid.rectangularPatternDialog");connect(pattern,&QAction::triggered,this,[this]{execute("solid.rectangularPatternDialog");});
+                auto* rectangle=menu->addMenu("Rectangle");rectangle->setObjectName("solid.commands.rectangle");
+                auto* rectangleAction=rectangle->addAction("2-Point Rectangle\tR");rectangleAction->setObjectName("solid.action.sketch.twoPointRectangle");
+                connect(rectangleAction,&QAction::triggered,this,[this]{execute("sketch.twoPointRectangle");});
                 auto* circle=menu->addMenu("Circle");circle->setObjectName("solid.commands.circle");
                 auto* action=circle->addAction("Center Diameter Circle\tC");action->setObjectName("solid.action.sketch.circle");
                 connect(action,&QAction::triggered,this,[this]{execute("sketch.circle");});
@@ -276,7 +279,8 @@ AlloyWindow::AlloyWindow() {
     };
     auto toolAction=[this](QMenu* menu,const QString& label,const QString& tool) {
         auto* action=menu->addAction(label);action->setObjectName("sketch.tool."+tool);
-        connect(action,&QAction::triggered,this,[this,tool]{sketchResponse(tool=="circle" ? execute("sketch.circle") : execute("sketch.tool",{{"tool",tool}}));});return action;
+        connect(action,&QAction::triggered,this,[this,tool]{sketchResponse(tool=="circle" ? execute("sketch.circle") :
+            tool=="rectangle" ? execute("sketch.twoPointRectangle") : execute("sketch.tool",{{"tool",tool}}));});return action;
     };
     auto* create=sketchMenu("Create","create");
     toolAction(create,"Line\tL","line");
@@ -459,6 +463,7 @@ AlloyWindow::AlloyWindow() {
         connect(shortcut,&QShortcut::activated,this,[this,tool]{
             if(qobject_cast<QLineEdit*>(QApplication::focusWidget()))return;
             if(tool=="circle")execute("sketch.circle");
+            else if(tool=="rectangle")execute("sketch.twoPointRectangle");
             else if(session_.value("command").toString()=="sketch.edit")execute("sketch.tool",{{"tool",tool}});
         });
     }
@@ -475,6 +480,8 @@ AlloyWindow::AlloyWindow() {
             if(session_.value("tool")=="offset" && session_.value("pendingOffset").toObject()["valid"].toBool())execute("sketch.offsetAccept");
             else if(session_.value("tool")=="circle" && session_.value("pendingCircleDiameter").toObject().value("phase")=="locked")
                 sketchResponse(execute("sketch.circleDiameterAccept"));
+            else if(session_.value("tool")=="rectangle" && session_.contains("pendingTwoPointRectangle"))
+                sketchResponse(execute("sketch.twoPointRectangleAccept"));
             else if(session_.value("tool")!="select" && session_.value("tool")!="dimension" && session_.value("tool")!="fillet")execute("sketch.tool",{{"tool","select"}});
         });
     }
@@ -493,6 +500,7 @@ AlloyWindow::AlloyWindow() {
         if(session_.value("command")=="sketch.plane")execute("sketch.cancel");
         else if(session_.value("command").toString()=="sketch.edit") {
             if(session_.contains("pendingCenterRectangle"))execute("sketch.centerRectangleCancel");
+            else if(session_.contains("pendingTwoPointRectangle"))execute("sketch.twoPointRectangleCancel");
             else if(session_.contains("pendingCircleDiameter"))execute("sketch.circleDiameterCancel");
             else if(session_.value("pendingLineLength").toObject().value("phase")=="editing")execute("sketch.lineLengthCancel");
             else if(session_.contains("pendingDimension"))execute("sketch.dimensionCancel");
@@ -559,15 +567,15 @@ bool AlloyWindow::eventFilter(QObject* watched,QEvent* event) {
         if(session_["inputs"].toObject().contains("uMm") && key->text().size()==1 && ((key->text()[0]>='0' && key->text()[0]<='9') || key->text()=="."))if(auto* field=sphereDock_->findChild<QDoubleSpinBox*>("sphereDiameter")){field->setFocus();field->selectAll();QApplication::sendEvent(field,event);return true;}
     }
     if(watched==view_ && event->type()==QEvent::KeyPress && session_.value("command")=="sketch.edit"
-        && (session_.value("tool")=="circle" || session_.value("tool")=="centerRectangle" || session_.value("tool")=="line") && session_.contains("firstPoint")
-        && !session_.contains("pendingDimension") && !session_.contains("pendingCircleDiameter") && !session_.contains("pendingCenterRectangle") && !session_.contains("pendingLineLength")) {
+        && (session_.value("tool")=="circle" || session_.value("tool")=="centerRectangle" || session_.value("tool")=="line" || session_.value("tool")=="rectangle") && session_.contains("firstPoint")
+        && !session_.contains("pendingDimension") && !session_.contains("pendingCircleDiameter") && !session_.contains("pendingCenterRectangle") && !session_.contains("pendingLineLength") && !session_.contains("pendingTwoPointRectangle")) {
         const auto* key=static_cast<QKeyEvent*>(event);
         const auto modifiers=key->modifiers();const auto character=key->text();
         if(!(modifiers&(Qt::ControlModifier|Qt::MetaModifier|Qt::AltModifier)) && character.size()==1
             && ((character[0]>=QLatin1Char('0') && character[0]<=QLatin1Char('9')) || character==".")) {
             const auto response=session_.value("tool")=="circle" ? execute("sketch.circleDiameterPreview",{{"text",character}})
                 : session_.value("tool")=="line" ? execute("sketch.lineLengthPreview",{{"text",character}})
-                : execute("sketch.centerRectanglePreview",{{"widthText",character},{"heightText",""}});
+                : execute(session_.value("tool")=="rectangle" ? "sketch.twoPointRectanglePreview" : "sketch.centerRectanglePreview",{{"widthText",character},{"heightText",""}});
             sketchResponse(response);return response.value("ok").toBool();
         }
     }
@@ -637,7 +645,7 @@ QString AlloyWindow::tabSwitchBlocker() const {
     if(session_.isEmpty())return {};
     if(session_.value("command")!="sketch.edit")return "Complete or cancel the active command before switching designs";
     if(session_.value("tool")!="select" || session_.contains("firstPoint") || session_.contains("secondPoint")
-        || session_.contains("pendingDimension") || session_.contains("pendingCircleDiameter") || session_.contains("pendingLineLength") || session_.contains("pendingCenterRectangle") || session_.contains("pendingFillet"))return "Finish or cancel the current sketch input before switching designs";
+        || session_.contains("pendingDimension") || session_.contains("pendingCircleDiameter") || session_.contains("pendingLineLength") || session_.contains("pendingCenterRectangle") || session_.contains("pendingTwoPointRectangle") || session_.contains("pendingFillet"))return "Finish or cancel the current sketch input before switching designs";
     const auto* focused=QApplication::focusWidget();
     if((focused && sketchPanel_ && sketchPanel_->isAncestorOf(focused) && qobject_cast<const QLineEdit*>(focused))
         || (dimensionEditor_ && dimensionEditor_->isVisible())
@@ -1291,6 +1299,19 @@ void AlloyWindow::registerCommands() {
         }
         return session_;
     });
+    add("sketch.twoPointRectangle","Two-Point Rectangle","Start a corner rectangle before choosing an origin plane or supported planar face (R).",sketchCreateSchema,[this](const auto& a){
+        if(session_.value("command")=="sketch.edit") {
+            if(!a.isEmpty())return failure("invalid_arguments","Active rectangle entry uses the current sketch support");
+            const auto response=execute("sketch.tool",{{"tool","rectangle"}});
+            return response.value("ok").toBool() ? response.value("result").toObject() : response;
+        }
+        if(!session_.isEmpty())return failure("session_busy","Complete or cancel the active command first");
+        const auto response=execute("sketch.create",a);
+        if(!response.value("ok").toBool())return response;
+        session_[session_.value("command")=="sketch.plane" ? "pendingTool" : "tool"]="rectangle";
+        if(session_.value("command")=="sketch.plane")showSketch();
+        view_->setFocus(Qt::OtherFocusReason);return session_;
+    });
     add("sketch.begin","Choose sketch plane or face","Enter sketch editing with a disposable authored draft.",sketchBeginSchema,[this](const auto& a){
         if(int(a.contains("plane"))+int(a.contains("planeId"))+int(a.contains("support"))!=1)return failure("invalid_arguments","Choose exactly one sketch plane source");
         auto result=beginSketch(a.contains("support") ? "face" : a.contains("planeId") ? "construction" : a["plane"].toString(),a.value("name").toString(session_.value("inputs").toObject().value("name").toString("Sketch")),{},a.contains("planeId") ? QJsonObject{{"planeId",a["planeId"]}} : a.value("support").toObject());
@@ -1373,6 +1394,15 @@ void AlloyWindow::registerCommands() {
             if(a.contains("session") && a["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
             cancelCenterRectangle();view_->setFocus();return QJsonObject{{"pending",false},{"authoredChange",false}};
         });
+    add("sketch.twoPointRectanglePreview","Preview two-point rectangle dimensions","Preview typed width and height in the pointer-chosen quadrant without authored changes.",
+        centeredInput,[this](const auto& a){return previewTwoPointRectangle(a);});
+    add("sketch.twoPointRectangleAccept","Accept two-point rectangle dimensions","Create a corner rectangle with driving width and height in one edit.",
+        centeredInput,[this](const auto& a){return acceptTwoPointRectangle(a);});
+    add("sketch.twoPointRectangleCancel","Cancel two-point rectangle dimensions","Close typed values while keeping the first corner.",
+        {{"session",optionalSession}},[this](const auto& a){
+            if(a.contains("session") && a["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
+            cancelTwoPointRectangle();view_->setFocus();return QJsonObject{{"pending",false},{"authoredChange",false}};
+        });
     auto sketchTool=parameter("string","Drawing tool in the active sketch context.");sketchTool["enum"]=QJsonArray{"select","line","rectangle","centerRectangle","circle","centerArc","threePointArc","dimension","fillet","trim","offset"};
     add("sketch.tool","Sketch drawing tool","Choose a tool and clear its pending first point.",{{"tool",sketchTool}},[this](const auto& a){
         if(session_.value("command").toString()!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
@@ -1385,6 +1415,7 @@ void AlloyWindow::registerCommands() {
         cancelCircleDiameter();
         cancelLineLength();
         cancelCenterRectangle();
+        cancelTwoPointRectangle();
         if(session_.value("tool")=="constraint" || leavingFillet || a["tool"]=="fillet")
             session_["selection"]=QJsonObject{{"pointIds",QJsonArray{}},{"entityIds",QJsonArray{}},{"profileIds",QJsonArray{}}};
         session_.remove("pendingTrim");session_.remove("trimNotice");session_["tool"]=a["tool"];sketchHistoryGroup_.clear();session_.remove("constraintType");session_.remove("constraintPrompt");session_.remove("firstPoint");session_.remove("secondPoint");session_.remove("pointerPoint");session_.remove("gestureSweepDeg");session_.remove("snap");view_->clearSketchCursor();
@@ -1572,6 +1603,7 @@ void AlloyWindow::registerCommands() {
         auto point=snap.isEmpty() ? view_->sketchPoint(a["x"].toDouble(),a["y"].toDouble(),plane) : snap;
         if(tool=="circle" && session_.contains("pendingCircleDiameter") && session_.contains("firstPoint"))cancelCircleDiameter();
         if(tool=="centerRectangle" && session_.contains("pendingCenterRectangle"))cancelCenterRectangle();
+        if(tool=="rectangle" && session_.contains("pendingTwoPointRectangle"))return failure("pending_input_active","Accept or cancel the typed rectangle before clicking");
         if(tool=="circle" || tool=="centerArc" || tool=="threePointArc")return sketchCurveGesture(point,true);
         if(!session_.contains("firstPoint")){session_["firstPoint"]=point;return QJsonObject{{"placement",false},{"firstPoint",point}};}
         const bool lockedLine=tool=="line" && session_.contains("pendingLineLength");
@@ -1646,6 +1678,16 @@ void AlloyWindow::registerCommands() {
         if(!session_.contains("firstPoint"))return QJsonObject{};
         auto point=snapping ? snap : view_->sketchPoint(a["x"].toDouble(),a["y"].toDouble(),plane);
         session_["pointerPoint"]=point;
+        if(tool=="rectangle" && session_.contains("pendingTwoPointRectangle")) {
+            const auto pending=session_.value("pendingTwoPointRectangle").toObject();const auto first=session_.value("firstPoint").toObject();
+            const double du=point["uMm"].toDouble()-first["uMm"].toDouble(),dv=point["vMm"].toDouble()-first["vMm"].toDouble();
+            if(std::abs(du)>=0.001 && std::abs(dv)>=0.001) {
+                auto chosen=pending;chosen["uSign"]=du>0 ? 1 : -1;chosen["vSign"]=dv>0 ? 1 : -1;
+                session_["pendingTwoPointRectangle"]=chosen;
+                if(chosen.value("valid").toBool())point={{"uMm",first["uMm"].toDouble()+chosen["uSign"].toInt()*chosen["widthMm"].toDouble()},
+                    {"vMm",first["vMm"].toDouble()+chosen["vSign"].toInt()*chosen["heightMm"].toDouble()}};
+            }
+        }
         if(tool=="line" && session_.value("pendingLineLength").toObject().value("phase")=="locked") {
             point=lockedLinePoint(point);
             if(point.isEmpty()){view_->clearSketchCursor();if(lineLockCue_)lineLockCue_->hide();return QJsonObject{{"authoredChange",false},{"directionRequired",true}};}
@@ -2805,6 +2847,8 @@ void AlloyWindow::refresh() {
         }
         if(tool=="constraint")prompt=session_.value("constraintPrompt").toString();
         else if(tool=="select" || tool=="dimension")prompt="Click to select · Shift-click to add";
+        else if(tool=="rectangle")prompt=session_.contains("pendingTwoPointRectangle") ? "Width × height · Tab switches · Enter places · Escape cancels" :
+            session_.contains("firstPoint") ? "Move into a quadrant · Type width and height or click the opposite corner" : "Click the first rectangle corner";
         else if(tool=="centerRectangle")prompt=session_.contains("pendingCenterRectangle") ? "Enter width and height · Tab switches · Return accepts · Escape cancels" :
             session_.contains("firstPoint") ? "Click a corner or type width and height" : "Click the rectangle center";
         else if(tool=="circle")prompt=session_.value("pendingCircleDiameter").toObject().value("phase")=="locked" ?
@@ -3313,6 +3357,8 @@ QJsonObject AlloyWindow::finishSession(const QString& id, bool commit) {
             return failure("pending_input_active","Accept or cancel the typed circle diameter before finishing");
         if(session_.contains("pendingLineLength"))
             return failure("pending_input_active","Place or cancel the typed line length before finishing");
+        if(session_.contains("pendingTwoPointRectangle"))
+            return failure("pending_input_active","Accept or cancel the typed rectangle before finishing");
         if(session_.contains("pendingCenterRectangle"))
             return failure("pending_input_active","Accept or cancel the typed center rectangle before finishing");
         if(session_.contains("pendingOffset"))
@@ -3583,6 +3629,19 @@ QJsonObject AlloyWindow::appendSketchEntity(const QString& tool,const QJsonObjec
     if(inputs.contains("startSnapTarget"))canonical["startSnapTarget"]=inputs["startSnapTarget"];
     if(inputs.contains("endSnapTarget"))canonical["endSnapTarget"]=inputs["endSnapTarget"];
     const auto draft=session_.value("draftSketch").toObject();
+    if(tool=="rectangle" && inputs.contains("typedWidthMm")) {
+        const auto context=session_.value("projectionContext").toObject();
+        auto solved=SketchGeometry::addPointerEntity(draft,"rectangle",canonical,context);
+        if(!solved.ok)return publishSketchSolve(solved);
+        const auto edges=solved.feature["parameters"].toObject()["entities"].toArray();
+        const auto horizontal=edges[edges.size()-4].toObject()["id"],vertical=edges[edges.size()-3].toObject()["id"];
+        solved=SketchGeometry::addDimension(solved.feature,{{"kind","horizontal"},{"entityId",horizontal},
+            {"valueMm",inputs["typedWidthMm"]},{"driving",true}},context);
+        if(!solved.ok)return publishSketchSolve(solved);
+        solved=SketchGeometry::addDimension(solved.feature,{{"kind","vertical"},{"entityId",vertical},
+            {"valueMm",inputs["typedHeightMm"]},{"driving",true}},context);
+        return publishSketchSolve(solved);
+    }
     if(inputs.contains("lockedLengthMm")) {
         const auto context=session_.value("projectionContext").toObject();
         auto solved=SketchGeometry::addPointerEntity(draft,"line",canonical,context);
@@ -4072,7 +4131,7 @@ QJsonObject AlloyWindow::publishSketchSolve(const SketchGeometry::SolveResult& s
         auto details=response["error"].toObject();details["diagnostics"]=error.diagnostics();response["error"]=details;return response;
     }
     const auto evaluated=SketchGeometry::evaluateFeature(solved.feature,session_.value("resolvedFrame").toObject(),context);
-    cancelCircleDiameter();cancelCenterRectangle();cancelCircleOffset();
+    cancelCircleDiameter();cancelCenterRectangle();cancelTwoPointRectangle();cancelCircleOffset();
     recordSketchHistory(solved.feature,solved.diagnostics,journalGroup);
     session_["draftSketch"]=solved.feature;session_["solverDiagnostics"]=solved.diagnostics;session_["projectionContext"]=context;session_["previewed"]=false;
     auto selection=session_.value("selection").toObject();selection.remove("constraintIds");session_["selection"]=selection;session_.remove("hoveredConstraintId");
@@ -4104,6 +4163,9 @@ QJsonObject AlloyWindow::traverseSketchHistory(int direction) {
     if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))
         return failure("stale_session","The document changed; cancel and restart this sketch");
     if(direction<0) {
+        if(session_.contains("pendingTwoPointRectangle")) {
+            cancelTwoPointRectangle();view_->setFocus();return {{"action","cancelled_input"},{"changed",false},{"draftHistory",session_["draftHistory"]}};
+        }
         if(session_.contains("pendingCenterRectangle")) {
             cancelCenterRectangle();view_->setFocus();return {{"action","cancelled_input"},{"changed",false},{"draftHistory",session_["draftHistory"]}};
         }
@@ -4122,7 +4184,7 @@ QJsonObject AlloyWindow::traverseSketchHistory(int direction) {
             if(!response["ok"].toBool())return response;
             return {{"action","cancelled_tool"},{"tool",previous},{"changed",false},{"draftHistory",session_["draftHistory"]}};
         }
-    } else if(session_.value("tool")!="select" || session_.contains("pendingDimension") || session_.contains("pendingCircleDiameter") || session_.contains("pendingLineLength") || session_.contains("pendingCenterRectangle") || session_.contains("pendingFillet") || session_.contains("firstPoint"))
+    } else if(session_.value("tool")!="select" || session_.contains("pendingDimension") || session_.contains("pendingCircleDiameter") || session_.contains("pendingLineLength") || session_.contains("pendingCenterRectangle") || session_.contains("pendingTwoPointRectangle") || session_.contains("pendingFillet") || session_.contains("firstPoint"))
         return failure("pending_input_active","Complete or cancel the current sketch tool before Redo");
     const int next=sketchHistoryIndex_+direction;
     if(next<0 || next>=static_cast<int>(sketchHistory_.size()))return {{"action","none"},{"changed",false},{"draftHistory",session_["draftHistory"]}};
@@ -4403,7 +4465,7 @@ QJsonObject AlloyWindow::previewLineLength(const QJsonObject& args) {
     session_["pendingLineLength"]=pending;
     if(lineLockCue_)lineLockCue_->hide();
     if(opening) {
-        ensureSketchInlineEditor();centerRectangleHeight_->hide();dimensionEditorValue_->setReadOnly(false);
+        ensureSketchInlineEditor();twoPointWidthLabel_->hide();twoPointHeightLabel_->hide();centerRectangleHeight_->hide();dimensionEditorValue_->setReadOnly(false);
         dimensionEditorValue_->installEventFilter(this);
         {const QSignalBlocker block(dimensionEditorValue_);dimensionEditorValue_->setText(valueText);}
         dimensionEditor_->adjustSize();positionDimensionEditor();dimensionEditor_->show();dimensionEditor_->raise();dimensionEditorValue_->setFocus();
@@ -4498,7 +4560,7 @@ QJsonObject AlloyWindow::previewCenterRectangle(const QJsonObject& args) {
         {center["uMm"].toDouble(),center["vMm"].toDouble()},
         {center["uMm"].toDouble()+width/2,center["vMm"].toDouble()+height/2},true,true);
     else view_->clearSketchCursor();
-    ensureSketchInlineEditor();centerRectangleHeight_->show();
+    ensureSketchInlineEditor();twoPointWidthLabel_->hide();twoPointHeightLabel_->hide();centerRectangleHeight_->show();
     if(dimensionEditorValue_->text()!=widthText){const QSignalBlocker block(dimensionEditorValue_);dimensionEditorValue_->setText(widthText);}
     if(centerRectangleHeight_->text()!=heightText){const QSignalBlocker block(centerRectangleHeight_);centerRectangleHeight_->setText(heightText);}
     dimensionEditorValue_->setPlaceholderText("Width");centerRectangleHeight_->setPlaceholderText("Height");
@@ -4529,6 +4591,75 @@ QJsonObject AlloyWindow::acceptCenterRectangle(const QJsonObject& args) {
 void AlloyWindow::cancelCenterRectangle() {
     if(!session_.contains("pendingCenterRectangle"))return;
     session_.remove("pendingCenterRectangle");if(dimensionEditor_)dimensionEditor_->hide();view_->clearSketchCursor();
+}
+
+QJsonObject AlloyWindow::previewTwoPointRectangle(const QJsonObject& args) {
+    if(session_.value("command")!="sketch.edit" || session_.value("tool")!="rectangle" || !session_.contains("firstPoint"))
+        return failure("no_pending_rectangle","Click the first rectangle corner first");
+    if(args.contains("session") && args["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
+    if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))
+        return failure("stale_session","The document changed; cancel and restart this sketch");
+    const auto prior=session_.value("pendingTwoPointRectangle").toObject();
+    const QString widthText=args.value("widthText").toString(prior.value("widthText").toString());
+    const QString heightText=args.value("heightText").toString(prior.value("heightText").toString());
+    auto parse=[&](const QString& value)->double {
+        const QRegularExpression expression(QStringLiteral(R"(^\s*([+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?)\s*(mm|in)?\s*$)"),QRegularExpression::CaseInsensitiveOption);
+        const auto match=expression.match(value);if(!match.hasMatch())return 0;
+        bool valid=false;const double number=match.captured(1).toDouble(&valid);
+        const auto units=match.captured(2).isEmpty() ? session_.value("inputs").toObject()["units"].toString() : match.captured(2).toLower();
+        const double mm=valid ? CadDocument::millimeters(number,units) : 0;
+        return std::isfinite(mm) && mm>=0.001 && mm<=100000 ? mm : 0;
+    };
+    const double width=parse(widthText),height=parse(heightText);
+    QJsonObject pending{{"widthText",widthText},{"heightText",heightText},{"phase","editing"},{"valid",width>0 && height>0}};
+    if(width>0)pending["widthMm"]=width;if(height>0)pending["heightMm"]=height;
+    const auto first=session_.value("firstPoint").toObject(),pointer=session_.value("pointerPoint").toObject();
+    const double du=pointer.value("uMm").toDouble(first["uMm"].toDouble())-first["uMm"].toDouble();
+    const double dv=pointer.value("vMm").toDouble(first["vMm"].toDouble())-first["vMm"].toDouble();
+    if(std::abs(du)>=0.001 && std::abs(dv)>=0.001){pending["uSign"]=du>0 ? 1 : -1;pending["vSign"]=dv>0 ? 1 : -1;}
+    session_["pendingTwoPointRectangle"]=pending;
+    if(pending["valid"].toBool() && pending.contains("uSign"))view_->showSketchCursor(session_.value("inputs").toObject()["plane"].toString(),
+        {first["uMm"].toDouble(),first["vMm"].toDouble()},
+        {first["uMm"].toDouble()+pending["uSign"].toInt()*width,first["vMm"].toDouble()+pending["vSign"].toInt()*height},true,false);
+    else view_->clearSketchCursor();
+    ensureSketchInlineEditor();twoPointWidthLabel_->show();twoPointHeightLabel_->show();centerRectangleHeight_->show();
+    if(dimensionEditorValue_->text()!=widthText){const QSignalBlocker block(dimensionEditorValue_);dimensionEditorValue_->setText(widthText);}
+    if(centerRectangleHeight_->text()!=heightText){const QSignalBlocker block(centerRectangleHeight_);centerRectangleHeight_->setText(heightText);}
+    dimensionEditorValue_->setReadOnly(false);dimensionEditorValue_->setPlaceholderText("Width");centerRectangleHeight_->setPlaceholderText("Height");
+    dimensionEditorError_->setText(!pending.contains("uSign") ? "Move pointer into a quadrant · Tab switches fields" :
+        pending["valid"].toBool() ? "Width × height · Tab switches · Enter places · Esc cancels" : "Enter positive width and height");
+    dimensionEditor_->adjustSize();positionDimensionEditor();dimensionEditor_->show();dimensionEditor_->raise();
+    if(prior.isEmpty()){dimensionEditorValue_->setFocus();dimensionEditorValue_->setCursorPosition(widthText.size());}
+    return {{"pendingTwoPointRectangle",pending},{"authoredChange",false}};
+}
+
+QJsonObject AlloyWindow::acceptTwoPointRectangle(const QJsonObject& args) {
+    if(args.contains("widthText") || args.contains("heightText")) {
+        const auto preview=previewTwoPointRectangle(args);
+        if(preview.value("ok").isBool() && !preview.value("ok").toBool())return preview;
+    }
+    if(session_.value("command")!="sketch.edit" || session_.value("tool")!="rectangle" || !session_.contains("firstPoint"))
+        return failure("no_pending_rectangle","Click the first rectangle corner first");
+    const auto pending=session_.value("pendingTwoPointRectangle").toObject();
+    if(!pending.value("valid").toBool())return failure("invalid_dimensions","Enter positive width and height");
+    if(!pending.contains("uSign") || !pending.contains("vSign"))return failure("rectangle_quadrant_required","Move the pointer into the intended rectangle quadrant");
+    const auto first=session_.value("firstPoint").toObject();
+    QJsonObject input{{"x1",first["uMm"]},{"y1",first["vMm"]},
+        {"x2",first["uMm"].toDouble()+pending["uSign"].toInt()*pending["widthMm"].toDouble()},
+        {"y2",first["vMm"].toDouble()+pending["vSign"].toInt()*pending["heightMm"].toDouble()},
+        {"typedWidthMm",pending["widthMm"]},{"typedHeightMm",pending["heightMm"]},{"units","mm"}};
+    if(first["status"]=="acquired")input["startSnapTarget"]=first["target"];
+    const auto response=appendSketchEntity("rectangle",input);
+    if(!response.value("ok").isBool() || response.value("ok").toBool()) {
+        cancelTwoPointRectangle();session_.remove("firstPoint");session_.remove("pointerPoint");view_->setFocus();
+    }
+    return response;
+}
+
+void AlloyWindow::cancelTwoPointRectangle() {
+    if(!session_.contains("pendingTwoPointRectangle"))return;
+    session_.remove("pendingTwoPointRectangle");if(dimensionEditor_)dimensionEditor_->hide();
+    if(twoPointWidthLabel_)twoPointWidthLabel_->hide();if(twoPointHeightLabel_)twoPointHeightLabel_->hide();view_->clearSketchCursor();
 }
 
 void AlloyWindow::cancelDimension() {
@@ -4644,11 +4775,15 @@ void AlloyWindow::ensureSketchInlineEditor() {
         dimensionEditor_=new QFrame(view_);dimensionEditor_->setObjectName("sketchInlineEditor");dimensionEditor_->setAttribute(Qt::WA_NativeWindow);dimensionEditor_->setAutoFillBackground(true);
         dimensionEditor_->setFixedWidth(245);dimensionEditor_->setStyleSheet("#sketchInlineEditor { background: #f7f8f9; border: 1px solid #9aabb8; } QLineEdit { background: white; color: #20252a; padding: 5px; }");
         auto* layout=new QVBoxLayout(dimensionEditor_);layout->setContentsMargins(7,7,7,7);layout->setSpacing(4);
+        twoPointWidthLabel_=new QLabel("Width");twoPointWidthLabel_->setObjectName("sketch.twoPointRectangle.widthLabel");layout->addWidget(twoPointWidthLabel_);twoPointWidthLabel_->hide();
         dimensionEditorValue_=new QLineEdit;dimensionEditorValue_->setObjectName("sketch.inlineValue");layout->addWidget(dimensionEditorValue_);
+        twoPointHeightLabel_=new QLabel("Height");twoPointHeightLabel_->setObjectName("sketch.twoPointRectangle.heightLabel");layout->addWidget(twoPointHeightLabel_);twoPointHeightLabel_->hide();
         centerRectangleHeight_=new QLineEdit;centerRectangleHeight_->setObjectName("sketch.centerRectangle.height");layout->addWidget(centerRectangleHeight_);centerRectangleHeight_->hide();
         dimensionEditorError_=new QLabel;dimensionEditorError_->setWordWrap(true);dimensionEditorError_->setStyleSheet("color: #53616b; font-size: 11px; background: #f7f8f9;");layout->addWidget(dimensionEditorError_);
         connect(dimensionEditorValue_,&QLineEdit::returnPressed,this,[this]{
-            if(session_.contains("pendingCenterRectangle"))
+            if(session_.contains("pendingTwoPointRectangle"))
+                sketchResponse(execute("sketch.twoPointRectangleAccept",{{"widthText",dimensionEditorValue_->text()},{"heightText",centerRectangleHeight_->text()}}));
+            else if(session_.contains("pendingCenterRectangle"))
                 sketchResponse(execute("sketch.centerRectangleAccept",{{"widthText",dimensionEditorValue_->text()},{"heightText",centerRectangleHeight_->text()}}));
             else if(session_.contains("pendingLineLength"))sketchResponse(execute("sketch.lineLengthLock",{{"text",dimensionEditorValue_->text()}}));
             else sketchResponse(execute(session_.contains("pendingCircleDiameter") ? "sketch.circleDiameterAccept" : "sketch.dimensionAccept",
@@ -4658,16 +4793,21 @@ void AlloyWindow::ensureSketchInlineEditor() {
             if(session_.contains("pendingCircleDiameter"))sketchResponse(execute("sketch.circleDiameterPreview",{{"text",text}}));
             if(session_.value("pendingLineLength").toObject().value("phase")=="editing")sketchResponse(execute("sketch.lineLengthPreview",{{"text",text}}));
             if(session_.contains("pendingCenterRectangle"))sketchResponse(execute("sketch.centerRectanglePreview",{{"widthText",text},{"heightText",centerRectangleHeight_->text()}}));
+            if(session_.contains("pendingTwoPointRectangle"))sketchResponse(execute("sketch.twoPointRectanglePreview",{{"widthText",text},{"heightText",centerRectangleHeight_->text()}}));
         });
         connect(centerRectangleHeight_,&QLineEdit::textChanged,this,[this](const QString& text){
             if(session_.contains("pendingCenterRectangle"))sketchResponse(execute("sketch.centerRectanglePreview",{{"widthText",dimensionEditorValue_->text()},{"heightText",text}}));
+            if(session_.contains("pendingTwoPointRectangle"))sketchResponse(execute("sketch.twoPointRectanglePreview",{{"widthText",dimensionEditorValue_->text()},{"heightText",text}}));
         });
         connect(centerRectangleHeight_,&QLineEdit::returnPressed,this,[this]{
             if(session_.contains("pendingCenterRectangle"))
                 sketchResponse(execute("sketch.centerRectangleAccept",{{"widthText",dimensionEditorValue_->text()},{"heightText",centerRectangleHeight_->text()}}));
+            else if(session_.contains("pendingTwoPointRectangle"))
+                sketchResponse(execute("sketch.twoPointRectangleAccept",{{"widthText",dimensionEditorValue_->text()},{"heightText",centerRectangleHeight_->text()}}));
         });
         auto* escape=new QShortcut(QKeySequence(Qt::Key_Escape),dimensionEditor_);escape->setContext(Qt::WidgetWithChildrenShortcut);
-        connect(escape,&QShortcut::activated,this,[this]{execute(session_.contains("pendingCenterRectangle") ? "sketch.centerRectangleCancel" :
+        connect(escape,&QShortcut::activated,this,[this]{execute(session_.contains("pendingTwoPointRectangle") ? "sketch.twoPointRectangleCancel" :
+            session_.contains("pendingCenterRectangle") ? "sketch.centerRectangleCancel" :
             session_.contains("pendingCircleDiameter") ? "sketch.circleDiameterCancel" :
             session_.contains("pendingLineLength") ? "sketch.lineLengthCancel" : "sketch.dimensionCancel");});
     }
@@ -4675,7 +4815,7 @@ void AlloyWindow::ensureSketchInlineEditor() {
 void AlloyWindow::showCircleDiameterEditor(const QString& text) {
     ensureSketchInlineEditor();
     dimensionEditorValue_->installEventFilter(this);
-    centerRectangleHeight_->hide();
+    twoPointWidthLabel_->hide();twoPointHeightLabel_->hide();centerRectangleHeight_->hide();
     dimensionEditorValue_->setReadOnly(false);
     {const QSignalBlocker block(dimensionEditorValue_);dimensionEditorValue_->setText(text);}
     dimensionEditorError_->setText(session_.value("pendingCircleDiameter").toObject().value("valid").toBool()
@@ -4685,7 +4825,7 @@ void AlloyWindow::showCircleDiameterEditor(const QString& text) {
 }
 void AlloyWindow::showDimensionEditor() {
     ensureSketchInlineEditor();
-    centerRectangleHeight_->hide();
+    twoPointWidthLabel_->hide();twoPointHeightLabel_->hide();centerRectangleHeight_->hide();
     const auto pending=session_.value("pendingDimension").toObject();const auto units=session_.value("inputs").toObject().value("units").toString();const double scale=units=="in" ? 25.4 : 1;
     const bool driving=pending.value("driving").toBool();dimensionEditorValue_->setReadOnly(!driving);
     const bool angular=pending["kind"]=="arcSweep" || pending["kind"]=="angle";
@@ -4696,7 +4836,7 @@ void AlloyWindow::showDimensionEditor() {
 void AlloyWindow::positionDimensionEditor() {
     if(!dimensionEditor_)return;
     const auto circle=session_.value("pendingCircleDiameter").toObject();
-    if(circle.isEmpty() && !session_.contains("pendingCenterRectangle") && !session_.contains("pendingLineLength") && session_.value("pendingDimension").toObject().value("phase")!="editing")return;
+    if(circle.isEmpty() && !session_.contains("pendingCenterRectangle") && !session_.contains("pendingTwoPointRectangle") && !session_.contains("pendingLineLength") && session_.value("pendingDimension").toObject().value("phase")!="editing")return;
     auto point=session_.value("pendingDimension").toObject().value("annotation").toObject();
     if(!circle.isEmpty()) {
         const auto center=session_.value("firstPoint").toObject();
@@ -4706,6 +4846,11 @@ void AlloyWindow::positionDimensionEditor() {
         const auto center=session_.value("firstPoint").toObject();
         const auto pending=session_.value("pendingCenterRectangle").toObject();
         point={{"uMm",center["uMm"].toDouble()+pending.value("widthMm").toDouble(10)/2},{"vMm",center["vMm"]}};
+    }
+    if(session_.contains("pendingTwoPointRectangle")) {
+        const auto first=session_.value("firstPoint").toObject();const auto pending=session_.value("pendingTwoPointRectangle").toObject();
+        point={{"uMm",first["uMm"].toDouble()+pending.value("uSign").toInt()*pending.value("widthMm").toDouble(10)/2},
+            {"vMm",first["vMm"].toDouble()+pending.value("vSign").toInt()*pending.value("heightMm").toDouble(10)/2}};
     }
     if(session_.contains("pendingLineLength")) {
         const auto first=session_.value("firstPoint").toObject();
@@ -4718,7 +4863,7 @@ void AlloyWindow::positionDimensionEditor() {
 }
 QJsonObject AlloyWindow::inlineEditorState() const {
     if(!dimensionEditor_)return {{"visible",false}};
-    return {{"visible",dimensionEditor_->isVisible()},{"kind",session_.contains("pendingCenterRectangle") ? "centerRectangle" :
+    return {{"visible",dimensionEditor_->isVisible()},{"kind",session_.contains("pendingTwoPointRectangle") ? "twoPointRectangle" : session_.contains("pendingCenterRectangle") ? "centerRectangle" :
         session_.contains("pendingCircleDiameter") ? "circleDiameter" : session_.contains("pendingLineLength") ? "lineLength" : "dimension"},{"heightText",centerRectangleHeight_ ? centerRectangleHeight_->text() : QString{}},
         {"text",dimensionEditorValue_->text()},{"readOnly",dimensionEditorValue_->isReadOnly()},
         {"bounds",QJsonObject{{"x",dimensionEditor_->x()},{"y",dimensionEditor_->y()},{"width",dimensionEditor_->width()},{"height",dimensionEditor_->height()}}}};
@@ -4975,7 +5120,9 @@ void AlloyWindow::showSketch() {
     scroll->viewport()->setStyleSheet("#sketchScrollViewport { background: #f7f8f9; color: #323c44; }");
     scroll->setWidget(content);panelLayout->addWidget(scroll,1);
     if(choosing) {
-        auto* help=new QLabel(session_.value("pendingTool")=="circle" ? "Center Diameter Circle: choose an origin plane or click a supported planar face." : "Choose an origin plane or click a supported planar face in the viewport.");help->setWordWrap(true);layout->addWidget(help);
+        auto* help=new QLabel(session_.value("pendingTool")=="circle" ? "Center Diameter Circle: choose an origin plane or click a supported planar face." :
+            session_.value("pendingTool")=="rectangle" ? "2-Point Rectangle: choose an origin plane or click a supported planar face." :
+            "Choose an origin plane or click a supported planar face in the viewport.");help->setWordWrap(true);layout->addWidget(help);
         for(const auto& plane:QStringList{"XY","XZ","YZ"}) {
             auto* button=new QPushButton(plane+" Plane");button->setObjectName("sketch.plane."+plane);layout->addWidget(button);
             // Defer replacement of the panel until this clicked signal returns.

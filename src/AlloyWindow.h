@@ -210,6 +210,9 @@ private:
     QJsonObject previewCenterRectangle(const QJsonObject& args);
     QJsonObject acceptCenterRectangle(const QJsonObject& args);
     void cancelCenterRectangle();
+    QJsonObject previewTwoPointRectangle(const QJsonObject& args);
+    QJsonObject acceptTwoPointRectangle(const QJsonObject& args);
+    void cancelTwoPointRectangle();
     void ensureSketchInlineEditor();
     void showCircleDiameterEditor(const QString& text);
     QJsonObject editDimension(const QString& id);
@@ -306,6 +309,8 @@ private:
     QWidget* dimensionEditor_ = nullptr;
     QLineEdit* dimensionEditorValue_ = nullptr;
     QLineEdit* centerRectangleHeight_ = nullptr;
+    QLabel* twoPointWidthLabel_ = nullptr;
+    QLabel* twoPointHeightLabel_ = nullptr;
     QLabel* dimensionEditorError_ = nullptr;
     QLabel* lineLockCue_ = nullptr;
     QHBoxLayout* timelineLayout_ = nullptr;
