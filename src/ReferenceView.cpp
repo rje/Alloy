@@ -111,6 +111,13 @@ SketchStrokes splitSketchStrokes(const EvaluatedSketch& sketch) {
         else {builder.Add(normal,child.Value());++ordinaryCount;}
         child.Next();
     }
+    const auto frame=sketch.resolvedFrame;const auto origin=frame["origin"].toArray(),axisU=frame["uAxis"].toArray(),axisV=frame["vAxis"].toArray();
+    auto world=[&](double u,double v){return gp_Pnt(origin[0].toDouble()+u*axisU[0].toDouble()+v*axisV[0].toDouble(),origin[1].toDouble()+u*axisU[1].toDouble()+v*axisV[1].toDouble(),origin[2].toDouble()+u*axisU[2].toDouble()+v*axisV[2].toDouble());};
+    for(const auto& entry:entities){const auto comb=entry.toObject().value("curvatureComb").toObject();if(!comb.value("enabled").toBool())continue;bool previous=false,previousTooth=false;gp_Pnt priorTip;
+        for(const auto& value:comb["samples"].toArray()){const auto sample=value.toObject();if(!sample["defined"].toBool()){previous=false;continue;}const auto base=world(sample["uMm"].toDouble(),sample["vMm"].toDouble()),tip=world(sample["tipUMm"].toDouble(),sample["tipVMm"].toDouble());const bool tooth=base.Distance(tip)>1e-9;
+            if(tooth)builder.Add(normal,BRepBuilderAPI_MakeEdge(base,tip).Edge());if(previous&&(tooth||previousTooth)&&priorTip.Distance(tip)>1e-9)builder.Add(normal,BRepBuilderAPI_MakeEdge(priorTip,tip).Edge());priorTip=tip;previous=true;previousTooth=tooth;
+        }
+    }
     if(child.More())return {sketch.shape,{},{},0};
     return {ordinaryCount ? TopoDS_Shape(normal) : TopoDS_Shape{},
         constructionCount ? TopoDS_Shape(construction) : TopoDS_Shape{},
@@ -1522,7 +1529,14 @@ void ReferenceView::showSketchCurveCursor(const QJsonObject& feature) {
     clearSketchCursor();if(context_.IsNull())return;
     const auto parameters=feature["parameters"].toObject(),entity=parameters["entities"].toArray().first().toObject();
     sketchCursor_=sketchPresentation(SketchGeometry::analyticEdge(parameters,entity,sketchFrame_));sketchCursor_->SetColor(Quantity_Color(0.30,0.58,0.87,Quantity_TOC_RGB));
-    context_->Display(sketchCursor_,AIS_WireFrame,-1,false);context_->Deactivate(sketchCursor_);context_->UpdateCurrentViewer();
+    context_->Display(sketchCursor_,AIS_WireFrame,-1,false);context_->Deactivate(sketchCursor_);
+    if(entity["type"]=="controlSpline") {
+        QMap<QString,QJsonObject> points;for(const auto& v:parameters["points"].toArray()){const auto p=v.toObject();points[p["id"].toString()]=p;}
+        TopoDS_Compound cage;BRep_Builder builder;builder.MakeCompound(cage);const auto ids=entity["pointIds"].toArray();int legs=0;
+        for(int i=1;i<ids.size();++i){const auto a=points[ids[i-1].toString()],b=points[ids[i].toString()];const auto start=sketchWorld(parameters["plane"].toString(),a["uMm"].toDouble(),a["vMm"].toDouble()),end=sketchWorld(parameters["plane"].toString(),b["uMm"].toDouble(),b["vMm"].toDouble());if(start.Distance(end)<1e-9)continue;builder.Add(cage,BRepBuilderAPI_MakeEdge(start,end).Edge());++legs;}
+        if(legs){splineCageCursor_=new AIS_Shape(cage);const Quantity_Color color(.42,.24,.08,Quantity_TOC_RGB);Handle(Prs3d_LineAspect) dashed=new Prs3d_LineAspect(color,Aspect_TOL_DASH,1.5*devicePixelRatioF());splineCageCursor_->SetColor(color);splineCageCursor_->Attributes()->SetWireAspect(dashed);splineCageCursor_->Attributes()->SetLineAspect(dashed);splineCageCursor_->SetZLayer(Graphic3d_ZLayerId_Topmost);context_->Display(splineCageCursor_,AIS_WireFrame,-1,false);context_->Deactivate(splineCageCursor_);}
+    }
+    context_->UpdateCurrentViewer();
 }
 void ReferenceView::showSketchSlotCursor(const QJsonObject& feature,bool arcSlot) {
     clearSketchCursor();if(context_.IsNull())return;
@@ -1558,6 +1572,8 @@ void ReferenceView::cancelSlotPointDrag() {
 void ReferenceView::clearSketchCursor() {
     if(!context_.IsNull() && !sketchCursor_.IsNull())context_->Remove(sketchCursor_,false);
     if(!context_.IsNull() && !sketchSnapCue_.IsNull())context_->Remove(sketchSnapCue_,false);
+    if(!context_.IsNull() && !splineCageCursor_.IsNull())context_->Remove(splineCageCursor_,false);
+    splineCageCursor_.Nullify();
     sketchCursor_.Nullify();
     sketchSnapCue_.Nullify();sketchSnapState_={};
 }
@@ -1969,6 +1985,7 @@ QJsonObject ReferenceView::diagnostics() const {
         {"centerVMm",gridCenterV_},{"stepMm",gridStep_},{"graphicHalfWidthMm",gridWidth_},
         {"graphicHalfHeightMm",gridHeight_}});
     result.insert("cursorPreviewVisible",!sketchCursor_.IsNull());
+    result.insert("splineCagePreviewVisible",!splineCageCursor_.IsNull());
     result.insert("sketchDecorations",static_cast<int>(sketchDecorations_.size()));
     result.insert("sketchAnnotations",annotationLayouts_);
     auto snapCue=sketchSnapState_;snapCue["visible"]=!sketchSnapCue_.IsNull();
@@ -2059,7 +2076,7 @@ void ReferenceView::mousePressEvent(QMouseEvent* e) {
     }
     if(e->button()==Qt::LeftButton && !e->modifiers().testFlag(Qt::AltModifier) && decorationSelection_.value("tool")=="select"){
         QJsonObject picked;double best=9;for(const auto& value:splineHandleState_["grips"].toArray()){const auto grip=value.toObject();const double distance=QLineF(e->position(),QPointF(grip["x"].toDouble(),grip["y"].toDouble())).length();if(distance<best){best=distance;picked=grip;}}
-        if(picked.isEmpty() && !decorationFeature_.isEmpty()){const auto hit=pickSketch(decorationFeature_,e->position().x(),e->position().y(),"point",sketchFrame_);if(!hit.isEmpty())for(const auto& v:decorationFeature_["parameters"].toObject()["entities"].toArray()){const auto spline=v.toObject();if(spline["type"]=="fitSpline"&&spline["pointIds"].toArray().contains(hit["pointId"])){picked={{"kind","point"},{"entityId",spline["id"]},{"pointId",hit["pointId"]}};break;}}}
+        if(picked.isEmpty() && !decorationFeature_.isEmpty()){const auto hit=pickSketch(decorationFeature_,e->position().x(),e->position().y(),"point",sketchFrame_);if(!hit.isEmpty())for(const auto& v:decorationFeature_["parameters"].toObject()["entities"].toArray()){const auto spline=v.toObject();if((spline["type"]=="fitSpline"||spline["type"]=="controlSpline")&&spline["pointIds"].toArray().contains(hit["pointId"])){picked={{"kind","point"},{"entityId",spline["id"]},{"pointId",hit["pointId"]}};break;}}}
         if(!picked.isEmpty()){setFocus(Qt::MouseFocusReason);if(picked["kind"]=="point")dispatch("sketch.selectionPick",{{"x",e->position().x()},{"y",e->position().y()}});splineDrag_=picked;splineDrag_["pressX"]=e->position().x();splineDrag_["pressY"]=e->position().y();splineDrag_["moved"]=false;auto begin=picked;begin.remove("x");begin.remove("y");begin["phase"]="begin";dispatch("sketch.splineDrag",begin);e->accept();return;}
     }
     if(e->button()==Qt::LeftButton && !sketchTextHandleState_.isEmpty()){

@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 #include "SketchSpline.h"
 #include <GeomAPI_Interpolate.hxx>
+#include <GCPnts_AbscissaPoint.hxx>
+#include <GeomAdaptor_Curve.hxx>
 #include <TColgp_HArray1OfPnt.hxx>
 #include <TColStd_HArray1OfReal.hxx>
 #include <TColgp_Array1OfPnt.hxx>
@@ -12,6 +14,7 @@
 #include <Standard_Failure.hxx>
 #include <cmath>
 #include <array>
+#include <algorithm>
 #include <stdexcept>
 namespace {
 void require(bool b,const char* s){if(!b)throw std::invalid_argument(s);}
@@ -24,10 +27,15 @@ SketchGeometry::SolveResult finish(const QJsonObject& d,const QJsonObject& p,con
 }
 QString SketchSpline::validate(const QJsonObject& p,const QJsonObject& e){
  try{
- require(e.size()==8&&e["type"]=="fitSpline"&&e["version"]==1&&e["parameterization"]=="chordLength"&&e["pointIds"].isArray()&&e["tangentHandles"].isObject(),"Invalid fit spline intent");
+ const bool control=e["type"]=="controlSpline";const bool display=e.contains("curvatureComb");
+ require(e.size()==8+int(display)&&e["version"]==1&&e["pointIds"].isArray(),"Invalid spline intent");
+ if(control)require(e["knotPolicy"]=="clampedUniform"&&e["maximumDegree"].isDouble()&&(e["maximumDegree"].toDouble()==3||e["maximumDegree"].toDouble()==5),"Control spline maximum degree must be 3 or 5");
+ else require(e["type"]=="fitSpline"&&e["parameterization"]=="chordLength"&&e["tangentHandles"].isObject(),"Invalid fit spline intent");
+ if(display){const auto c=e["curvatureComb"].toObject();require(c.size()==3&&c["enabled"].isBool()&&c["density"].isDouble()&&c["density"].toDouble()==c["density"].toInt()&&c["density"].toInt()>=4&&c["density"].toInt()<=256&&c["scale"].isDouble()&&std::isfinite(c["scale"].toDouble())&&c["scale"].toDouble()>=0.01&&c["scale"].toDouble()<=100,"Comb requires enabled, density4..256 and relative scale0.01..100");}
  const auto ps=points(p);const auto ids=e["pointIds"].toArray();require(ids.size()>=2&&ids.size()<=128,"Fit spline requires 2..128 points");QSet<QString> used;
  for(const auto& id:ids){require(id.isString()&&ps.contains(id.toString())&&!used.contains(id.toString()),"Spline point references must be distinct existing UUIDs");used.insert(id.toString());}
  require(e["startPointId"]==ids.first()&&e["endPointId"]==ids.last(),"Spline endpoint identities must match fit order");
+ if(control){require(ps[ids.first().toString()].Distance(ps[ids.last().toString()])>=0.001,"Open control spline endpoints must be distinct");return {};}
  const auto hs=e["tangentHandles"].toObject();for(auto it=hs.begin();it!=hs.end();++it){require(used.contains(it.key())&&it.value().isObject(),"Spline handle must belong to its fit point");const auto h=it.value().toObject();require(h.size()==2&&std::hypot(number(h,"duMm"),number(h,"dvMm"))>=0.001,"Spline tangent must have nonzero direction and weight");}
  for(int i=1;i<ids.size();++i)require(ps[ids[i].toString()].Distance(ps[ids[i-1].toString()])>=0.001,"Spline consecutive fit points must be at least 0.001 mm apart");
  return {};
@@ -37,6 +45,13 @@ SketchSpline::Evaluation SketchSpline::evaluate(const QJsonObject& p,const QJson
  try {
  const auto err=validate(p,e);if(!err.isEmpty())throw std::invalid_argument(err.toStdString());
  const auto ps=points(p);const auto ids=e["pointIds"].toArray();const int count=ids.size();Evaluation result;
+ if(e["type"]=="controlSpline"){
+  const int degree=std::min(e["maximumDegree"].toInt(),count-1),knotCount=count-degree+1;
+  TColgp_Array1OfPnt poles(1,count);TColStd_Array1OfReal knots(1,knotCount);TColStd_Array1OfInteger mults(1,knotCount);
+  for(int i=0;i<count;++i)poles.SetValue(i+1,world(ps[ids[i].toString()],frame));
+  for(int i=0;i<knotCount;++i){knots.SetValue(i+1,double(i)/(knotCount-1));mults.SetValue(i+1,i==0||i==knotCount-1?degree+1:1);}
+  result.curve=new Geom_BSplineCurve(poles,knots,mults,degree,false);return result;
+ }
  Handle(TColgp_HArray1OfPnt) fit=new TColgp_HArray1OfPnt(1,count);Handle(TColStd_HArray1OfReal) ts=new TColStd_HArray1OfReal(1,count);
  double length=0;result.parameters.append(0);for(int i=1;i<count;++i){length+=ps[ids[i].toString()].Distance(ps[ids[i-1].toString()]);result.parameters.append(length);}
  for(int i=0;i<count;++i){result.parameters[i]/=length;ts->SetValue(i+1,result.parameters[i]);fit->SetValue(i+1,ps[ids[i].toString()]);}
@@ -70,4 +85,44 @@ SketchGeometry::SolveResult SketchSpline::edit(const QJsonObject& d,const QStrin
  else require(false,"Unsupported fit spline edit");
  e["pointIds"]=ids;e["startPointId"]=ids.first();e["endPointId"]=ids.last();e["tangentHandles"]=handles;es[index]=e;p["entities"]=es;p["points"]=ps;auto r=finish(d,p,c);if(r.ok&&!created.isEmpty())r.diagnostics["createdFitPointId"]=created;return r;
  }catch(const Standard_Failure& x){return failed(d,QString::fromUtf8(x.GetMessageString()));}catch(const std::exception& x){return failed(d,QString::fromUtf8(x.what()));}
+}
+
+SketchGeometry::SolveResult SketchSpline::addControl(const QJsonObject& d,const QJsonObject& in,const QJsonObject& context){
+ try{
+  require(in["points"].isArray()&&in.size()==1+int(in.contains("maximumDegree")),"Control spline requires points and optional maximumDegree");
+  const auto maximum=in.value("maximumDegree").toDouble(5);require(maximum==3||maximum==5,"Control spline maximum degree must be 3 or 5");
+  auto p=d["parameters"].toObject();auto ps=p["points"].toArray(),es=p["entities"].toArray();QJsonArray ids;
+  for(const auto& item:in["points"].toArray()){require(item.isObject(),"Control pole must be an object");const auto q=item.toObject();require(q.size()==2,"Control pole requires uMm and vMm");const auto id=uuid();ps.append(QJsonObject{{"id",id},{"uMm",number(q,"uMm")},{"vMm",number(q,"vMm")}});ids.append(id);}
+  require(ids.size()>=2&&ids.size()<=128,"Control spline requires 2..128 poles");const auto id=uuid();es.append(QJsonObject{{"id",id},{"type","controlSpline"},{"version",1},{"pointIds",ids},{"startPointId",ids.first()},{"endPointId",ids.last()},{"maximumDegree",maximum},{"knotPolicy","clampedUniform"}});p["points"]=ps;p["entities"]=es;auto result=finish(d,p,context);if(result.ok)result.diagnostics["createdSplineId"]=id;return result;
+ }catch(const std::exception& error){return failed(d,QString::fromUtf8(error.what()));}
+}
+QJsonArray SketchSpline::curveSamples(const Evaluation& evaluated,int count){
+ QJsonArray result;for(int i=0;i<count;++i){const double t=double(i)/(count-1);const auto p=evaluated.curve->Value(t);result.append(QJsonObject{{"parameter",t},{"uMm",p.X()},{"vMm",p.Y()}});}return result;
+}
+QJsonObject SketchSpline::comb(const QJsonObject& parameters,const QJsonObject& entity){
+ try{
+  const auto error=validate(parameters,entity);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());
+  const auto settings=entity.value("curvatureComb").toObject(QJsonObject{{"enabled",false},{"density",32},{"scale",1.0}});auto result=settings;
+  result["samples"]=QJsonArray{};result["undefinedCount"]=0;result["clippedCount"]=0;result["renderedToothCount"]=0;
+  if(!settings["enabled"].toBool())return result;
+  const auto curve=evaluate(parameters,entity).curve;GeomAdaptor_Curve adaptor(curve);const double length=GCPnts_AbscissaPoint::Length(adaptor,curve->FirstParameter(),curve->LastParameter(),1e-7);
+  require(std::isfinite(length)&&length>=0.001,"Comb requires a finite nonzero curve length");const double gain=length*length*settings["scale"].toDouble()/4;
+  result["lengthMm"]=length;result["gainMmSquared"]=gain;result["maximumToothLengthMm"]=length/2;QJsonArray samples;int undefined=0,clipped=0,rendered=0;
+  for(int i=0;i<settings["density"].toInt();++i){const double t=double(i)/(settings["density"].toInt()-1);gp_Pnt p;gp_Vec d,a;if(curve->Degree()==1)curve->D1(t,p,d);else curve->D2(t,p,d,a);
+   const double speed=d.Magnitude();QJsonObject sample{{"parameter",t},{"uMm",p.X()},{"vMm",p.Y()},{"defined",false},{"clipped",false}};
+   if(!std::isfinite(speed)||speed<1e-9){++undefined;sample["signedCurvaturePerMm"]=QJsonValue::Null;samples.append(sample);continue;}
+   const double k=(d.X()*a.Y()-d.Y()*a.X())/(speed*speed*speed);require(std::isfinite(k),"Curvature evaluation is not finite");const double raw=k*gain,display=std::clamp(raw,-length/2,length/2);const bool clippedSample=std::abs(raw)>length/2;
+   sample["defined"]=true;sample["signedCurvaturePerMm"]=k;sample["unclippedToothLengthMm"]=std::abs(raw);sample["clipped"]=clippedSample;sample["tipUMm"]=p.X()+d.Y()/speed*display;sample["tipVMm"]=p.Y()-d.X()/speed*display;samples.append(sample);clipped+=int(clippedSample);rendered+=int(std::abs(display)>1e-9);
+  }
+  result["samples"]=samples;result["undefinedCount"]=undefined;result["clippedCount"]=clipped;result["renderedToothCount"]=rendered;return result;
+ }catch(const Standard_Failure& failure){throw std::invalid_argument(failure.GetMessageString());}
+}
+SketchGeometry::SolveResult SketchSpline::setComb(const QJsonObject& d,const QJsonObject& in,const QJsonObject& context){
+ try{
+  for(auto it=in.begin();it!=in.end();++it)require(it.key()=="entityId"||it.key()=="enabled"||it.key()=="density"||it.key()=="scale","Unknown comb option");
+  require(in["enabled"].isBool(),"Specify Curvature Comb enabled");auto p=d["parameters"].toObject();auto es=p["entities"].toArray();bool found=false;
+  for(int i=0;i<es.size();++i){auto e=es[i].toObject();if(e["id"]!=in["entityId"])continue;require(e["type"]=="fitSpline"||e["type"]=="controlSpline","Select a spline for Curvature Comb");auto settings=e.value("curvatureComb").toObject(QJsonObject{{"enabled",false},{"density",32},{"scale",1.0}});settings["enabled"]=in["enabled"];for(const auto& key:{"density","scale"})if(in.contains(key))settings[key]=in[key];e["curvatureComb"]=settings;es[i]=e;found=true;}
+  require(found,"Spline no longer exists");p["entities"]=es;auto candidate=d;candidate["parameters"]=p;auto result=finish(d,p,context);
+  if(result.ok){for(const auto& e:es)if(e.toObject()["id"]==in["entityId"])comb(p,e.toObject());result.feature=candidate;}return result;
+ }catch(const std::exception& error){return failed(d,QString::fromUtf8(error.what()));}
 }

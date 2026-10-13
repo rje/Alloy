@@ -350,7 +350,7 @@ AlloyWindow::AlloyWindow() {
     toolAction(slot,"Center Point Arc Slot","centerPointArcSlot");
     auto* arc=create->addMenu("Arc");arc->setObjectName("sketch.commands.arc");
     toolAction(arc,"Center Point Arc","centerArc");toolAction(arc,"3-Point Arc","threePointArc");
-    auto* spline=create->addMenu("Spline");spline->setObjectName("sketch.commands.spline");toolAction(spline,"Fit Point Spline","fitSpline");
+    auto* spline=create->addMenu("Spline");spline->setObjectName("sketch.commands.spline");toolAction(spline,"Fit Point Spline","fitSpline");toolAction(spline,"Control Point Spline","controlSpline");
     create->addSeparator();toolAction(create,"Sketch Dimension\tD","dimension");
     auto* modify=sketchMenu("Modify","modify");toolAction(modify,"Fillet","fillet");toolAction(modify,"Trim","trim");toolAction(modify,"Offset\tO","offset");
     auto* sketchMirrorAction=modify->addAction("Mirror");sketchMirrorAction->setObjectName("sketch.action.mirror");
@@ -541,7 +541,7 @@ AlloyWindow::AlloyWindow() {
             if(session_.value("command")=="solid.hole"){if(previewHole()["previewed"].toBool())execute("command.commit",{{"session",session_["id"]}});return;}
             if(session_.value("command")=="solid.sphere"){if(previewSphere()["previewed"].toBool())execute("command.commit",{{"session",session_["id"]}});return;}
             if(session_.value("command")!="sketch.edit")return;
-            if(session_.value("tool")=="fitSpline"){sketchResponse(execute("sketch.splineComplete"));return;}
+            if(session_.value("tool")=="fitSpline"||session_.value("tool")=="controlSpline"){sketchResponse(execute("sketch.splineComplete"));return;}
             if(session_.value("tool")=="mirror"){
                 if(session_.contains("pendingSketchMirror"))sketchResponse(execute("sketch.mirrorAccept"));
                 return;
@@ -1500,6 +1500,16 @@ void AlloyWindow::registerCommands() {
         {{"entityId",splineEntity},{"pointId",splinePoint}},[this](const auto& a){return splineCommand("remove",a);});
     add("sketch.splineTangent","Spline Tangent Handle","Edit derivative direction and magnitude in the normalized chord parameter.",
         {{"entityId",splineEntity},{"pointId",splinePoint},{"duMm",splineScalar},{"dvMm",splineScalar}},[this](const auto& a){return splineCommand("tangent",a);});
+    auto maximumDegree=parameter("number","Maximum control spline degree; actual degree is min(maximum, pole count minus1).");maximumDegree["enum"]=QJsonArray{3,5};
+    add("sketch.controlSplineAdd","Control Point Spline","Create a real editable control-point curve from canonical millimeter poles.",
+        {{"points",parameter("array","2..128 ordered objects containing uMm and vMm.")},{"maximumDegree",optional(maximumDegree)}},[this](const auto& a){return splineCommand("addControl",a);});
+    add("sketch.splineDegree","Spline Degree","Choose degree3/5 maximum for the pending control spline.",{{"maximumDegree",maximumDegree}},[this](const auto& a){
+        if(session_.value("command")!="sketch.edit"||session_.value("tool")!="controlSpline")return failure("control_spline_inactive","Start Control Point Spline first");session_["splineMaximumDegree"]=a["maximumDegree"];return QJsonObject{{"maximumDegree",a["maximumDegree"]},{"authoredChange",false}};
+    });
+    auto combDensity=parameter("number","Number of curvature samples/teeth.");combDensity["minimum"]=4;combDensity["maximum"]=256;
+    auto combScale=parameter("number","Relative display scale; actual curvature is unchanged.");combScale["minimum"]=0.01;combScale["maximum"]=100;
+    add("sketch.curvatureComb","Curvature Comb","Retain display settings for an exact derivative-based spline comb.",
+        {{"entityId",splineEntity},{"enabled",parameter("boolean","Show or hide this curve's comb.")},{"density",optional(combDensity)},{"scale",optional(combScale)}},[this](const auto& a){return splineCommand("comb",a);});
     add("sketch.splineComplete","Complete Spline","Commit the pending fit picks as one curve; fewer than two picks leaves the tool.",{},[this](const auto& a){return splineCommand("complete",a);});
     add("sketch.splineInsertMode","Insert Spline Fit Point","Choose the selected fit spline, then click its curve.",{{"entityId",splineEntity}},[this](const auto& a){return splineCommand("insertMode",a);});
     auto splinePhase=parameter("string","Native drag preview phase.");splinePhase["enum"]=QJsonArray{"begin","move","end","cancel"};
@@ -1887,7 +1897,7 @@ void AlloyWindow::registerCommands() {
             if(a.contains("session") && a["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
             cancelTwoPointRectangle();view_->setFocus();return QJsonObject{{"pending",false},{"authoredChange",false}};
         });
-    auto sketchTool=parameter("string","Drawing tool in the active sketch context.");sketchTool["enum"]=QJsonArray{"select","point","line","rectangle","centerRectangle","centerPointSlot","centerPointArcSlot","circle","twoPointCircle","centerArc","threePointArc","dimension","fillet","trim","offset","mirror","fitSpline","insertFitPoint"};
+    auto sketchTool=parameter("string","Drawing tool in the active sketch context.");sketchTool["enum"]=QJsonArray{"select","point","line","rectangle","centerRectangle","centerPointSlot","centerPointArcSlot","circle","twoPointCircle","centerArc","threePointArc","dimension","fillet","trim","offset","mirror","fitSpline","controlSpline","insertFitPoint"};
     add("sketch.tool","Sketch drawing tool","Choose a tool and clear its pending first point.",{{"tool",sketchTool}},[this](const auto& a){
         if(session_.value("command").toString()!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
         view_->cancelSlotPointDrag();
@@ -2051,7 +2061,7 @@ void AlloyWindow::registerCommands() {
         if(session_.value("command").toString()!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
         if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))return failure("stale_session","The document changed; cancel and restart this sketch");
         const auto tool=session_.value("tool").toString();
-        if(tool=="fitSpline" || tool=="insertFitPoint")return splinePointer(a,true);
+        if(tool=="fitSpline" || tool=="controlSpline" || tool=="insertFitPoint")return splinePointer(a,true);
         if(tool=="offset") {
             if(session_.value("inputs").toObject()["plane"]=="face" && session_.value("draftSketch").toObject()["parameters"].toObject()["entities"].toArray().isEmpty()) {
                 if(auto* chain=sketchOffsetControls_ ? sketchOffsetControls_->findChild<QCheckBox*>("sketch.offset.chain") : nullptr)
@@ -2298,7 +2308,7 @@ void AlloyWindow::registerCommands() {
         if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision())){view_->clearSketchCursor();return QJsonObject{};}
         const auto plane=session_.value("inputs").toObject()["plane"].toString();
         const auto tool=session_.value("tool").toString();
-        if(tool=="fitSpline" || tool=="insertFitPoint")return splinePointer(a,false);
+        if(tool=="fitSpline" || tool=="controlSpline" || tool=="insertFitPoint")return splinePointer(a,false);
         if(((tool=="circle" || tool=="twoPointCircle") && session_.contains("pendingCircleDiameter")) || (tool=="centerRectangle" && session_.contains("pendingCenterRectangle")))
             return QJsonObject{{"authoredChange",false}};
         if(tool=="trim") {const auto inputs=trimPointerInput(a);if(inputs.isEmpty()){session_.remove("pendingTrim");view_->clearSketchCursor();return QJsonObject{{"authoredChange",false}};}return previewTrim(inputs);}
@@ -3566,7 +3576,7 @@ void AlloyWindow::refresh() {
         }
         const auto diagnostics=session_.value("solverDiagnostics").toObject();
         const auto splinePreview=session_.value("pendingSplineDrag").toObject();if(splinePreview.contains("previewDraft")){auto selected=session_.value("selection").toObject();selected["tool"]="select";view_->decorateSketch(splinePreview["previewDraft"].toObject(),selected,splinePreview["diagnostics"].toObject(),inputs["units"].toString());}
-        const auto tool=session_.value("tool").toString();if(auto* complete=findChild<QPushButton*>("sketch.spline.complete")){complete->setVisible(tool=="fitSpline");complete->setEnabled(session_.value("pendingSplinePoints").toArray().size()>=2);}
+        const auto tool=session_.value("tool").toString();if(auto* complete=findChild<QPushButton*>("sketch.spline.complete")){complete->setVisible(tool=="fitSpline"||tool=="controlSpline");complete->setEnabled(session_.value("pendingSplinePoints").toArray().size()>=2);}
         QString prompt="Click the first point";
         if(sketchFilletControls_)sketchFilletControls_->setVisible(tool=="fillet");
         if(sketchFilletControls_)if(auto* impact=sketchFilletControls_->findChild<QLabel*>("sketch.fillet.referenceChanges")) {
@@ -6104,6 +6114,7 @@ void AlloyWindow::refreshSketchControls() {
     }
     const auto draft=session_.value("draftSketch").toObject(),selection=session_.value("selection").toObject();
     const auto units=session_.value("inputs").toObject()["units"].toString();
+    refreshSplinePalette();
     const auto displayOptions=session_.value("displayOptions").toObject();
     view_->setSketchAnnotationVisibility(displayOptions.value("showConstraints").toBool(true),displayOptions.value("showDimensions").toBool(true));
     if(sketchShowConstraints_){const QSignalBlocker block(sketchShowConstraints_);sketchShowConstraints_->setChecked(displayOptions.value("showConstraints").toBool(true));}
@@ -6189,6 +6200,8 @@ void AlloyWindow::refreshSketchControls() {
             const auto id=entity["id"].toString();liveEntities.insert(id);
             auto* item=rowForId(lineGroup,id);
             QString label=entity["type"]=="circle" ? QString("Circle %1  ·  P%2 · R%3").arg(++index).arg(pointNumbers.value(entity["centerPointId"].toString())).arg(entity["radiusMm"].toDouble()/scale) : QString("%1 %2  ·  P%3 → P%4").arg(entity["type"]=="arc" ? "Arc" : "Line").arg(++index).arg(pointNumbers.value(entity["startPointId"].toString())).arg(pointNumbers.value(entity["endPointId"].toString()));
+            if(entity["type"]=="fitSpline")label=QString("Fit Point Spline %1 · Degree 5").arg(index);
+            if(entity["type"]=="controlSpline")label=QString("Control Point Spline %1 · Degree %2 (maximum %3)").arg(index).arg(std::min(entity["maximumDegree"].toInt(),int(entity["pointIds"].toArray().size())-1)).arg(entity["maximumDegree"].toInt());
             if(entity["construction"].toBool())label+=" · Construction";
             if(entity["centerline"].toBool())label+=" · Centerline";
             if(relations.contains(id))label+=" · "+relations[id].join(", ");
@@ -6339,7 +6352,7 @@ void AlloyWindow::showSketch() {
     if(sketchDock_)delete sketchDock_;
     sketchInputs_.clear();sketchInfo_=nullptr;sketchProfileInfo_=nullptr;sketchName_=nullptr;sketchCurveEntry_=nullptr;
     sketchSelectionTree_=nullptr;sketchFilletControls_=nullptr;sketchFilletRadius_=nullptr;sketchOffsetControls_=nullptr;sketchOffsetDistance_=nullptr;sketchMirrorControls_=nullptr;sketchMirrorSummary_=nullptr;sketchMirrorRows_=nullptr;sketchDimensionKind_=nullptr;sketchDimensionValue_=nullptr;sketchDimensionDriving_=nullptr;
-    sketchShowConstraints_=nullptr;sketchShowDimensions_=nullptr;
+    sketchShowConstraints_=nullptr;sketchShowDimensions_=nullptr;splineDegreeControls_=nullptr;splineCombControls_=nullptr;splineDegree_=nullptr;splineComb_=nullptr;splineCombDensity_=nullptr;splineCombScale_=nullptr;splineCombInfo_=nullptr;
     sketchDimensionList_=nullptr;sketchDimensionEdit_=nullptr;sketchDimensionMeasure_=nullptr;sketchWidgetDraft_={};sketchWidgetSelection_={};sketchWidgetUnits_.clear();
     sketchPanel_=new QWidget;sketchPanel_->setObjectName("sketchPanel");sketchPanel_->setFixedWidth(312);
     sketchPanel_->setStyleSheet("#sketchPanel { background: #f7f8f9; border-left: 1px solid #cdd3d8; }");
@@ -6391,7 +6404,7 @@ void AlloyWindow::showSketch() {
         });
         sketchCurveEntry_=new QPushButton("Enter curve values…");sketchCurveEntry_->setObjectName("sketch.curveEntry");sketchCurveEntry_->hide();layout->addWidget(sketchCurveEntry_);
         connect(sketchCurveEntry_,&QPushButton::clicked,this,[this]{showCurveEntry();});
-        layout->addLayout(form);sketchInfo_=new QLabel;sketchInfo_->setObjectName("sketch.info");sketchInfo_->setWordWrap(true);layout->addWidget(sketchInfo_);sketchProfileInfo_=new QLabel;sketchProfileInfo_->setObjectName("sketch.profileStatus");sketchProfileInfo_->setWordWrap(true);layout->addWidget(sketchProfileInfo_);
+        layout->addLayout(form);buildSplinePalette(layout);sketchInfo_=new QLabel;sketchInfo_->setObjectName("sketch.info");sketchInfo_->setWordWrap(true);layout->addWidget(sketchInfo_);sketchProfileInfo_=new QLabel;sketchProfileInfo_->setObjectName("sketch.profileStatus");sketchProfileInfo_->setWordWrap(true);layout->addWidget(sketchProfileInfo_);
         sketchFilletControls_=new QWidget;auto* filletForm=new QFormLayout(sketchFilletControls_);filletForm->setSizeConstraint(QLayout::SetMinimumSize);
         sketchFilletRadius_=new QLineEdit;sketchFilletRadius_->setObjectName("sketch.fillet.radius");
         sketchFilletRadius_->setPlaceholderText("Select two sides or corners, then enter a radius");

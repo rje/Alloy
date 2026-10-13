@@ -178,7 +178,7 @@ private:
     QString selectedProfile_, selectedProfileSketch_, editSourceSketch_;
     QJsonArray selectedProfileIds_;
     QJsonArray hiddenBodyIds_;
-    Handle(AIS_Shape) sketchDraft_, sketchConstructionDraft_, sketchCenterlineDraft_, projectedDraft_, sketchCursor_, sketchSnapCue_;
+    Handle(AIS_Shape) sketchDraft_, sketchConstructionDraft_, sketchCenterlineDraft_, projectedDraft_, sketchCursor_, sketchSnapCue_, splineCageCursor_;
     QJsonArray projectedLines_, supportPoints_;
     QJsonArray constructionDraftLineIds_, centerlineDraftLineIds_;
     int rightMousePressCount_ = 0;
