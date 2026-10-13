@@ -12,6 +12,8 @@ limits in their independent receipts. The subsequent Centerline/Revolve tutorial
 strict STL and retained edit/history/reopen evidence. Canonical external outputs
 are `demos/2026-10-13/revolve/revolve-complete.mp4` and
 `deliverables/revolve-2026-10-13/`; receipt `validation/revolve-tutorial.md`.
+The external `demos/2026-10-13/index.html` is a local gallery linking all five
+accepted full movies, editable files and STL outputs.
 
 Native Revolve controls #216 and original compact ribbon icons #218 are accepted.
 Main's default app is rebuilt with both. Receipt `validation/ribbon-icons.md`
