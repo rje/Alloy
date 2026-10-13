@@ -329,7 +329,8 @@ private slots:
             QVERIFY(mesh);QTest::mouseClick(menu,Qt::LeftButton,Qt::NoModifier,menu->actionGeometry(mesh).center());
         });
         QTest::mouseClick(file,Qt::LeftButton);
-        auto* dialog=window.findChild<QDialog*>("mesh.export.dialog");QVERIFY(dialog);QTRY_VERIFY(dialog->isVisible());
+        QTRY_VERIFY(window.findChild<QDialog*>("mesh.export.dialog"));
+        auto* dialog=window.findChild<QDialog*>("mesh.export.dialog");QTRY_VERIFY(dialog->isVisible());
         auto* scope=dialog->findChild<QComboBox*>("mesh.export.body");QVERIFY(scope);
         QCOMPARE(scope->currentData().toString(),QString("visible"));
         dialog->grab().save("build-tutorial-polish/evidence/multibody-independent/qt-all-visible.png");
@@ -339,13 +340,60 @@ private slots:
         auto* list=dialog->findChild<QListWidget*>("mesh.export.bodyIds");QVERIFY(list);QTRY_VERIFY(list->isVisible());QCOMPARE(list->count(),2);
         for(int i=0;i<list->count();++i) {
             QCOMPARE(list->item(i)->checkState(),Qt::Unchecked);
-            QTest::mouseClick(list->viewport(),Qt::LeftButton,Qt::NoModifier,checkbox(list->viewport(),list->visualItemRect(list->item(i)),Qt::Unchecked));
+            QTest::mouseClick(list->viewport(),Qt::LeftButton,Qt::NoModifier,list->visualItemRect(list->item(i)).center());
+            QTest::keyClick(list,Qt::Key_Space);
             QCOMPARE(list->item(i)->checkState(),Qt::Checked);
         }
         dialog->grab().save("build-tutorial-polish/evidence/multibody-independent/qt-selected-bodies.png");
         auto* buttons=dialog->findChild<QDialogButtonBox*>();QVERIFY(buttons);
         QTest::mouseClick(buttons->button(QDialogButtonBox::Cancel),Qt::LeftButton);
         QCOMPARE(window.execute("document.inspect")["result"].toObject()["authored"].toObject(),baseline);
+    }
+    void loftOrderedViewportProfilesCancelCommit() {
+        AlloyWindow window;window.resize(1180,760);window.show();window.activateWindow();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));auto* view=viewport(window);QVERIFY(view);
+        QJsonArray refs;QString preceding;
+        for(int i=0;i<4;++i) {
+            QJsonObject args{{"plane","XY"}};
+            if(i) {
+                const auto response=window.execute("construction.plane",{{"source",QJsonObject{{"sketchId",preceding}}},{"offset",i==1 ? 18 : 20}});
+                QVERIFY(response["ok"].toBool());args={{"planeId",response["result"].toObject()["planeId"]}};
+            }
+            QVERIFY2(run(window,"sketch.begin",args),error_.constData());
+            QVERIFY2(run(window,"sketch.addCircle",{{"centerX",0},{"centerY",0},{"diameter",QJsonArray{38,16,30,44}[i]}}),error_.constData());
+            QVERIFY2(run(window,"sketch.finish"),error_.constData());
+            const auto sketch=window.execute("document.inspect")["result"].toObject()["evaluation"].toObject()["sketches"].toArray().last().toObject();
+            preceding=sketch["sketchId"].toString();refs.append(QJsonObject{{"sketchId",preceding},{"profileId",sketch["profiles"].toArray()[0].toObject()["profileId"]}});
+        }
+        QVERIFY2(run(window,"selection.set",{{"bodyId",""}}),error_.constData());
+        QVERIFY2(run(window,"view.home"),error_.constData());
+        const auto baseline=window.execute("document.inspect")["result"].toObject()["authored"].toObject();
+        auto* loft=window.findChild<QToolButton*>("command.solid.loftDialog");QVERIFY(loft);
+        for(const bool commit:{false,true}) {
+            QTest::mouseClick(loft,Qt::LeftButton);QTRY_COMPARE(session(window)["command"].toString(),QString("solid.loft"));
+            auto* dock=window.findChild<QDockWidget*>("loftDock");QVERIFY(dock);
+            auto* buttons=dock->findChild<QDialogButtonBox*>();QVERIFY(buttons);
+            QVERIFY(!buttons->button(QDialogButtonBox::Ok)->isEnabled());
+            for(int i=0;i<refs.size();++i) {
+                const auto point=window.execute("view.projectSketchPoint",{{"sketchId",refs[i].toObject()["sketchId"]},{"uMm",0},{"vMm",0}})["result"].toObject();
+                QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,QPoint(qRound(point["x"].toDouble()),qRound(point["y"].toDouble())));
+                QTRY_COMPARE(session(window)["inputs"].toObject()["profiles"].toArray().size(),i+1);
+            }
+            QCOMPARE(session(window)["inputs"].toObject()["profiles"].toArray(),refs);
+            QVERIFY(session(window)["geometryEvaluated"].toBool());
+            QVERIFY(session(window)["geometry"].toObject()["valid"].toBool());
+            QCOMPARE(window.execute("document.inspect")["result"].toObject()["authored"].toObject(),baseline);
+            if(commit) {
+                dock->widget()->grab().save("build-tutorial-polish/evidence/loft-independent/qt-panel.png");
+                QVERIFY2(run(window,"capture.screenshot",{{"path",QDir::currentPath()+"/build-tutorial-polish/evidence/loft-independent/qt-preview.png"}}),error_.constData());
+            }
+            QTest::mouseClick(buttons->button(commit ? QDialogButtonBox::Ok : QDialogButtonBox::Cancel),Qt::LeftButton);
+            QTRY_VERIFY(session(window).isEmpty());
+            if(!commit)QCOMPARE(window.execute("document.inspect")["result"].toObject()["authored"].toObject(),baseline);
+        }
+        const auto bodies=window.execute("document.inspect")["result"].toObject()["evaluation"].toObject()["bodies"].toArray();
+        QCOMPARE(bodies.size(),1);QVERIFY(bodies[0].toObject()["valid"].toBool() && bodies[0].toObject()["closed"].toBool());
+        QVERIFY(std::abs(bodies[0].toObject()["boundsMm"].toObject()["max"].toArray()[2].toDouble()-58)<1e-5);
     }
     void moveActionsAtShortHeights() {
         AlloyWindow window;window.resize(1136,790);window.show();
