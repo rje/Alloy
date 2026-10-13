@@ -85,18 +85,23 @@ selection duringSphere and uses a blue outline instead of filledsupport for
 validpreview; buildpasses, visual acceptance pending firstfullrunpreviewcapture.
 
 The first full die run completed all21cuts and six named views, but strict STL
-readback found3zero-area serialized pole facets. PRT007#204 is active in isolated
-stl-pole-facets worktree; removing only those3 diagnostically passes the unchanged
-strict reader (53414facets,oneclosedcomponent,20mm bounds). Complete saved model
-and first-attempt evidence remain in build-tutorial-polish/evidence/die-final.
-The movie is not accepted yet. Origin on/off captures confirm the white pip wheel
-is the origin trihedron's end-on arrow cone, not tessellation. Root disables arrow
-cones while retaining axes/labels, rebuilds and requests independent visual review.
-Sphere preview now reuses its full candidate evaluation when it is also the display
-prefix; historical edits still evaluate their required shorter prefix. No general
-cache or weakened checks.Sphere145 and views203 are independently accepted/CLOSED after corrected captures
-and actual Browser Left/Back Qt routing (b30fff1);147/204 remain open.
-Root serializes GUI; no test editor remains running after the first attempt.
+readback found3zero-area serialized pole facets. PRT007#204 correction is integrated
+c942a9c and independently accepted5e60bf7. Actualsavedmodel mm/in exports pass
+unchanged strictreadback:53414facets,oneclosedcomponent,20mm bounds; retainedbytes
+are unchanged apart from3removedrecords/header. Focused regression and existing
+multibody atomic refusal pass. CurvedASCII/othermeshsettings remain unqualified.
+Sphere145 and views203 are independently accepted/CLOSED after correctedred
+captures and actual Browser Left/Back Qt routing (b30fff1). End-on origin arrow
+cones are disabled while coloredaxes/labels remain. New/lastSphere previews reuse
+fullcandidate evaluation; historicaleditspreserve requiredprefix evaluation.
+Root owns exclusive GUI for finalfullmovie session65778, evidence/die-final;
+firstattempt is archived in evidence/die-first-attempt and external movie subfolder
+first-attempt-pole-export-failure. No otherprivateeditor while thisrun is active.
+Gate147 staysopen until finalstrictSTL/history/reopen/recording review.
+The next bounded sketch child SKT034#205 is queuedTodo: direct circle-center to
+retainedstraightmodel-edge dimensions, closingtoy first-stud gesture adaptation.
+External spec knowledge/specs/point-edge-dimension-next-slice.md; broader150 keeps
+side-faceboss/inclinedsupport scope. Do notpull until currentdie gate is accepted.
 Sphere declaration uses type sphere,
 parameters support/uMm/vMm/diameterMm/operation and optional targetBodyId; internal
 candidate ownerId defaults root, edits preserve owner. During component integration
