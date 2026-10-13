@@ -270,3 +270,7 @@ editable file and independently checked STL.
 [Center Point Slot](docs/validation/center-point-slot.md) is independently accepted:
 center-first pointer/typed creation, retained analytic geometry, construction guide,
 H/V and D150/R25 constraints, edits, cancellation and history/reopen.
+
+[Fit Point Spline](docs/validation/fit-point-spline.md) now supports retained fit
+points, insertion/removal and tangent direction/weight handles, real closed profiles
+and editable storage/history, with independent bounded native/API acceptance.

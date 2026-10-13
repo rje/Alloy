@@ -59,19 +59,18 @@ See validation/countersunk-plate-tutorial.md for source adaptations, recording
 limits and separate native evidence. Issue/board Done. All private editors closed.
 The external gallery has nine creations: eight checked solid meshes and one sketch.
 Next tutorial #251–257 covers the full31-step slots/splines/conic/ellipse lesson.
-Fit Point Spline #253 now has an isolated candidate in `feat/fit-point-spline`: real degree5 C2 authored curves, point removal/insertion, tangent direction/weight, shared commands and exact closed-region support. Core, first real-app API and corrected native Qt ingredients pass; independent final acceptance remains pending. Native input checks cover source picks/Check/Escape/Delete/context insertion, no-motion selection, handle Preview/Cancel and Undo/late-release. Read [validation/fit-point-spline.md](validation/fit-point-spline.md), [research/fit-point-spline.md](research/fit-point-spline.md) and external source design before resuming. #254 remains Todo.
+Fit Point Spline #253 is independently accepted and integrated as 375ee76/f708e11, with reviewed point-move integration correction 43e0d27. Main app builds; slot/spline core tests pass 2/2. Real curves, handles, native input, actual profiles and exact history/reopen have separate evidence in validation/fit-point-spline.md. Control spline/comb #254 is the next active isolated lane.
 Straight slot #251 is independently accepted and integrated as e3f1843/46dbae1.
 Main app build and focused core pass; native/API/visual evidence is recorded in
 validation/center-point-slot.md. Solved geometry during dragging remains #258.
-Arc slot #252 is now active in an isolated worktree; fit spline #253 is finishing
-its final receipt and independent review. Other children/gate remain Todo.
+Arc slot #252 is now active in an isolated worktree; control spline/comb #254 is now active. Other children/gate remain Todo.
 Derivative scaling and exact OCCT joins require focused evidence; the baseline
 acceleration/knot policy is an explicit Alloy choice. Firstpoint is
 slot center (PDF prose conflicts with pictured/official UI); centerline150/R25
 means overall200x50. Arc pathR150/endR15 with135degree radial relation yields
 upper90degree sweep. Final ellipse275x100 is horizontal/centered; inferred
 constraint steps remain explicit. External independent contract and command
-research: knowledge/tutorials/after-countersunk-plate/. No new feature accepted. Root has prepared tests/center_point_slot_api.py and tests/fit_point_spline_api.py for real-app authority/history checks; slot API passed 37 calls and spline API passed 38 calls with exact edits/history/reopen. Slot candidate 0c5786c is independently accepted and integrated with full native input and focused Escape/late-release evidence. Spline has a passing native workflow and is completing its final drag-state guard/capture receipt. Spline acceptance and integration remain pending. The root grants the sole private-editor lease. The independently reviewed full-step gate plan is validation/slots-splines-tutorial-prep.md; it is preparation, not runtime evidence. External knowledge corpus now has19 validated/indexed records, including the complete new lesson and six archived visual references. Conic mapping and spline-degree/continuity designs are under independent review before implementation.
+research: knowledge/tutorials/after-countersunk-plate/. Straight slot and fit spline are accepted ingredients. Root has prepared tests/center_point_slot_api.py and tests/fit_point_spline_api.py for real-app authority/history checks; slot API passed 37 calls and spline API passed 38 calls with exact edits/history/reopen. Slot candidate 0c5786c is independently accepted and integrated with full native input and focused Escape/late-release evidence. Spline has a passing native workflow and is completing its final drag-state guard/capture receipt. Spline acceptance and integration are complete. The root grants the sole private-editor lease. The independently reviewed full-step gate plan is validation/slots-splines-tutorial-prep.md; it is preparation, not runtime evidence. External knowledge corpus now has19 validated/indexed records, including the complete new lesson and six archived visual references. Conic mapping and spline-degree/continuity designs are under independent review before implementation.
 
 User requested private repository visibility on 2026-10-13. `rje/Alloy` is now
 PRIVATE, verified through GitHub CLI. Preserve private visibility unless the user
@@ -88,7 +87,7 @@ visual parity remain qualified. The external
 editable models and STL deliverables. The Revolve receipt is
 [validation/revolve-tutorial.md](validation/revolve-tutorial.md).
 
-**131 of 258 issues are closed.** Recent accepted work includes compact ribbon
+**132 of 258 issues are closed.** Recent accepted work includes compact ribbon
 icons #218, retained Extrude Intersect #219, nested profile/island diagnostics
 #165, portable local controls #220, shared-line fillets #221, typed Line length
 locks #222, retained Sweep #223 and native Sweep controls #224. Each has a scoped
