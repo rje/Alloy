@@ -3,6 +3,39 @@
 Updated 2026-10-12. This is the project handoff for a fresh session. Read the root
 [AGENTS.md](../AGENTS.md) first; its reference restrictions apply to all work.
 
+## Resumed active work (2026-10-12)
+
+User requested continued autonomous work. #170 is In Progress: Astra owns the
+full native video-variant straw-bung walkthrough, recording, step ledger and
+independent comparison. #174 is In Progress in isolated `support-regions`:
+Sol implements the next tutorial's overlapping line/circle profile partitions.
+A separate Sol worktree `bung-native-fixes` is reserved for concrete issues
+found by the native walkthrough; it does not imply an extra active issue.
+Desktop ownership is serialized through Astra. Root maintains tracking and
+integrates accepted work. Previous closed slices and delivered artifacts remain
+accepted; the complete native gate is not yet closed.
+
+## Recorder responsiveness and next tutorial prerequisites (2026-10-12)
+
+#178 fixes capture timer starvation: single-shot scheduling gives native input
+an interval after GPU readback. Build passes; Astra measured recorder-on AX at
+0.35 seconds versus 67–220 seconds before, and restarted the full native #170
+walkthrough. Preserve the interrupted raw recording as failed-attempt evidence.
+Wall-clock repeats remain explicit; target 15 fps does not promise 15 unique
+captures per second. Full stopped-video acceptance is still pending.
+
+#177 adds bounded line Trim, discovered in the original support video but omitted
+from its PDF. Sol owns `sketch-trim`, while #174 proceeds in `support-regions`.
+#176 remains Todo: source step 7 requires a transient disconnected Join result;
+its scope now explicitly includes multi-result body identity. Do not substitute
+New Body or unusual composite profile selection for these source operations.
+
+The idle-edit helper `tools/trim_tutorial_idle.py` retains action neighborhoods,
+normal playback speed, an explicit EDITED banner and a raw-to-edited frame map.
+Its first real interrupted-video check retained all 45 relevant recorded actions
+in 27.27 seconds from 510.33 seconds. This is tool qualification, not a tutorial
+pass. Media and receipts remain outside Git.
+
 ## Sketch timeline research (2026-10-12)
 
 User requested a parallel architectural check. Public evidence supports one

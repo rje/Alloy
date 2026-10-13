@@ -1,6 +1,7 @@
 # Straw bung workflow gate
 
-Research contract dated 2026-10-12; execution remains pending under
+Research contract dated 2026-10-12; the API chain and bounded feature checks pass.
+The uninterrupted native walkthrough and recording are in progress under
 [TUT-004 #170](https://github.com/rje/Alloy/issues/170).
 Source ID `tutorial-straw-bung` identifies the public illustrated lesson;
 `bung-original-video-20261012` identifies its recovered original video.
@@ -43,7 +44,7 @@ Official public reference distinguishes Free Move from parameterized Translate;
 Alloy persistent editable rigid transforms are a product requirement, not proof
 that six permanent Euler parameters match the reference's history semantics.
 
-## Missing capabilities and owners
+## Required capabilities and owners
 
 - [#168](https://github.com/rje/Alloy/issues/168): retained one-target Extrude Join,
   positive result cap lineage, next face sketch, prefix-history editing and
@@ -51,9 +52,10 @@ that six permanent Euler parameters match the reference's history semantics.
 - [#169](https://github.com/rje/Alloy/issues/169): persistent body Move,
   selection and pivot, sequential translation/rotation preview and native gizmo.
   Move the evaluated body, preserving upstream sketch and dimensions.
-- [#175](https://github.com/rje/Alloy/issues/175): Circle-first plane/face entry is presently an explicit interaction gap: the
-  existing C shortcut only activates in a sketch. Separate Create Sketch first
-  is an adapted route and cannot pass exact source steps1/5/7.
+- [#175](https://github.com/rje/Alloy/issues/175): command-first C carries the Circle
+  tool through plane/face selection. This bounded path is implemented and
+  independently accepted. Separate Create Sketch first would still be an
+  adapted route rather than exact source steps1/5/7.
 - Existing Combine must consume the moved evaluated cutter, retain target ID,
   and consume tool when Keep Tools is false. Qualify this chain on the candidate.
 

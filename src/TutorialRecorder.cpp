@@ -36,7 +36,15 @@ bool belongsTo(QWidget* widget, QWidget* root) {
 TutorialRecorder::TutorialRecorder(QWidget* window,std::function<QImage()> capture)
     : QObject(window),window_(window),capture_(std::move(capture)) {
     timer_.setTimerType(Qt::PreciseTimer);
-    connect(&timer_,&QTimer::timeout,this,[this]{frame();});
+    // A GPU readback can take longer than the requested frame interval. A
+    // repeating timer then stays overdue and starves native accessibility/input
+    // between captures. Always give the UI a fresh interval after each capture;
+    // the existing slot accounting preserves wall-clock timing with repeats.
+    timer_.setSingleShot(true);
+    connect(&timer_,&QTimer::timeout,this,[this]{
+        frame();
+        if(active_&&failure_.isEmpty())timer_.start(std::max(1,1000/fps_));
+    });
 }
 TutorialRecorder::~TutorialRecorder() {
     timer_.stop();

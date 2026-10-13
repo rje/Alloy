@@ -12,9 +12,9 @@
         "TUT-004"
       ],
       "acceptance": "Follow the 14 illustrated modeling steps, then edit/undo/reopen and export a measured closed STL. Independently verify native and API evidence separately.",
-      "status": "todo",
+      "status": "in_progress",
       "evidence": "docs/validation/straw-bung.md",
-      "remaining": "All three bounded feature prerequisites are independently accepted. API/export chain passed; full uninterrupted native source-step walkthrough and annotated movie remain Todo."
+      "remaining": "Astra runs the full native source-step walkthrough and recording; accepted API/export and bounded feature evidence retained."
     },
     {
       "id": "CP-01",
@@ -98,7 +98,8 @@
         "TUT-005"
       ],
       "acceptance": "Exact core source sequence with profile/edge selections and export readback.",
-      "status": "todo"
+      "status": "in_progress",
+      "remaining": "Only overlap partition prerequisite #174 is active; successive Join and solid fillets remain Todo."
     },
     {
       "id": "CP-08",
