@@ -4,7 +4,9 @@
 #include "ReferenceView.h"
 #include <QApplication>
 #include <QDir>
+#include <QFile>
 #include <QJsonDocument>
+#include <QLabel>
 #include <QLineEdit>
 #include <QMouseEvent>
 #include <QTest>
@@ -43,7 +45,17 @@ private slots:
         QCOMPARE(dimensions[0].toObject()["valueMm"].toDouble(),11.);QCOMPARE(dimensions[1].toObject()["valueMm"].toDouble(),28.);
         const auto layouts=view->diagnostics()["sketchAnnotations"].toArray();QCOMPARE(layouts.size(),2);
         for(const auto& layout:layouts){const auto item=layout.toObject();QCOMPARE(item["kind"].toString(),QString("parallelLineDistance"));QCOMPARE(item["witnesses"].toArray().size(),2);}
-        if(!evidence.isEmpty())call(w,"capture.screenshot",{{"path",evidence+"/parallel-line-d-11-28.png"}});
+        auto* info=w.findChild<QLabel*>("sketch.info"),*profile=w.findChild<QLabel*>("sketch.profileStatus");QVERIFY(info && profile);
+        auto measure=[](QLabel* label){const auto rect=label->geometry();return QJsonObject{{"text",label->text()},{"x",rect.x()},{"y",rect.y()},{"width",rect.width()},{"height",rect.height()},
+            {"sizeHintHeight",label->sizeHint().height()},{"heightForWidth",label->heightForWidth(rect.width())},{"minimumHeight",label->minimumHeight()}};};
+        QJsonObject palette{{"beforeInfo",measure(info)},{"beforeProfile",measure(profile)}};
+        QApplication::processEvents();QTest::qWait(80);QApplication::processEvents();
+        palette["afterInfo"]=measure(info);palette["afterProfile"]=measure(profile);
+        if(!evidence.isEmpty()){
+            QFile file(evidence+"/parallel-line-palette-layout.json");QVERIFY(file.open(QIODevice::WriteOnly));file.write(QJsonDocument(palette).toJson(QJsonDocument::Indented));file.close();
+            call(w,"capture.screenshot",{{"path",evidence+"/parallel-line-d-11-28-settled.png"}});
+        }
+        QVERIFY(profile->geometry().top()>info->geometry().bottom());
         call(w,"sketch.cancel");w.close();
     }
 };
