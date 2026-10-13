@@ -72,3 +72,28 @@ python3 tests/timeline_overflow_api.py \
 Astra's bounded source/capture review reports no blocker; root owns final
 independent acceptance, integration and issue closure. No broad history or
 cross-platform native runtime acceptance follows from this presentation slice.
+
+## Independent acceptance
+
+Astra independently accepts the bounded HIS-005/#207 presentation slice on
+21845f7, integrated as 4e34866 (2026-10-13). Source review confirms fixed targets,
+stable component-scoped IDs, retained edit/Pattern/Delete callbacks, and guarded
+deferred scrolling. Integration adds the separately accepted dimension work;
+the reviewed Timeline implementation is unchanged.
+
+The reviewer inspected actual 1040 and 1800 captures and the API report: all
+24 tiles retain width44; the narrow viewport has range301 and 17 fully visible
+tiles with the latest fully visible. At widths1400/1800 all24 fit. A partial tile
+at the scroll boundary is expected clipping, not target compression. Full names
+are preserved in tooltips/accessibility; glyphs and split-arrow controls remain
+legible. First/middle/last target records and Cancel preserve authored state.
+The focused Qt test source covers real widget clicks and Show latest; the
+implementer's reported result is3passed/0failed in12.394seconds. No redundant
+editor run was performed by the independent reviewer.
+
+The public evidence supports an icon strip and hover identification; exact
+metrics and scroll defaults remain Alloy choices. Existing single-click edit
+is an explicit adaptation. History rollback/Move to End, public double-click or
+right-click parity, renaming, reorder and suppression remain outside this child.
+This is source, artifact and synthesized-Qt evidence, not physical OS input or
+cross-platform runtime acceptance. No blocking defect found.
