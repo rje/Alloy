@@ -50,8 +50,8 @@ placement and broader circle modes remain outside this bounded candidate.
 
 ## Independent acceptance
 
-Accepted candidate `c61855fb` for the bounded #230 modeling/input scope on
-2026-10-13. Independent review covered the final solver/schema/input source,
+Geometry/input review of candidate `c61855fb` completed on 2026-10-13;
+final visual acceptance remains pending the palette overlap correction. Independent review covered the final solver/schema/input source,
 focused test source, saved models/end-state JSON and actual preview capture.
 The signed post-solve checks use the newly solved radius and enforce the center
 on the retained direction side; diameter/endpoint/center edits preserve the
@@ -70,10 +70,11 @@ request, history, reopen and Cut. The final source has initial harness focus
 setup only, with natural focus assertions before subsequent typed actions.
 
 The circle and inline value are readable. The capture also contains a concrete
-palette text overlap, not an unknown reference-styling difference. This branch
-predates the accepted #227 dynamic label-height correction; root confirmed that
-correction exists on main and must survive integration. Final #233 acceptance
-must inspect the integrated palette in the complete workflow. This scoped
-acceptance does not represent this pre-correction palette capture as visually
-finished. No physical OS input, exact unspecified source hole position, general
+palette text overlap, not an unknown reference-styling difference. This branch already includes the accepted #227 dynamic label-height
+correction. The earlier pre-#227 attribution was incorrect: the actual candidate
+still overlaps despite those calls. The cause has not been established by live
+layout measurements. A bounded layout correction and readable capture are
+required before closing this visual gap; a later #233 capture must also inspect
+the integrated palette. Geometry/input evidence above remains valid, but this
+review does not accept the current palette presentation as finished. No physical OS input, exact unspecified source hole position, general
 snapping, or cumulative tutorial claim is made.
