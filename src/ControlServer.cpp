@@ -35,7 +35,7 @@ ControlServer::ControlServer(AlloyWindow& window, QObject* parent)
                             {"error", QJsonObject{{"code", "invalid_request"},
                             {"message", "Expected JSON object with command string and optional args object"}}}};
                     } else {
-                        response = window_.execute(request.value("command").toString(), request.value("args").toObject());
+                        response = window_.executeApi(request.value("command").toString(), request.value("args").toObject());
                     }
                     response.insert("id", request.value("id"));
                     socket->write(QJsonDocument(response).toJson(QJsonDocument::Compact) + '\n');

@@ -27,12 +27,16 @@ class QPushButton;
 class QScrollArea;
 class QListWidget;
 class QTabBar;
+class QImage;
+class TutorialRecorder;
 
 // UI and automation dispatch against the same authored document.
 class AlloyWindow final : public QMainWindow {
 public:
     AlloyWindow();
+    ~AlloyWindow() override;
     QJsonObject execute(const QString& command, const QJsonObject& args = {});
+    QJsonObject executeApi(const QString& command, const QJsonObject& args = {});
     QJsonObject state() const;
     QJsonArray commands() const;
     QJsonObject identity() const;
@@ -47,6 +51,7 @@ private:
         std::function<QJsonObject(const QJsonObject&)> run;
     };
     void registerCommands();
+    QImage captureImage(QImage* viewport = nullptr);
     void refresh();
     void showSearch();
     QWidget* commandButton(const QString& id, const QString& glyph, bool large = false);
@@ -126,6 +131,8 @@ private:
     void refreshTabs();
     bool tabHasUnsavedWork(const QString& tabId) const;
     std::vector<Command> commands_;
+    std::unique_ptr<TutorialRecorder> recorder_;
+    bool apiExecuting_ = false;
     ReferenceView* view_ = nullptr;
     QWidget* browser_ = nullptr;
     QWidget* timeline_ = nullptr;

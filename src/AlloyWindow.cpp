@@ -2,6 +2,7 @@
 #include "ReferenceView.h"
 #include "GeometryKernel.h"
 #include "SketchGeometry.h"
+#include "TutorialRecorder.h"
 #include <QApplication>
 #include <QAction>
 #include <QWindow>
@@ -111,6 +112,10 @@ AlloyWindow::AlloyWindow() {
         QStatusBar { background: #edf0f2; border-top: 1px solid #d6dce1; color: #67757e; }
     )");
     view_ = new ReferenceView;
+    recorder_ = std::make_unique<TutorialRecorder>(this,[this]{return captureImage();});
+    connect(qApp,&QCoreApplication::aboutToQuit,this,[this]{
+        if(recorder_&&recorder_->active())recorder_->stop(document_->revision());
+    });
     view_->installEventFilter(this);
     view_->dispatch = [this](const QString& command, const QJsonObject& args) {
         const auto response=execute(command,args);
@@ -421,6 +426,29 @@ AlloyWindow::AlloyWindow() {
         }
     });
     refresh();
+}
+
+AlloyWindow::~AlloyWindow() = default;
+
+QImage AlloyWindow::captureImage(QImage* viewport) {
+    auto pixels=grab();
+    const auto framebuffer=view_->framebuffer();
+    if(framebuffer.isNull())return {};
+    if(viewport)*viewport=framebuffer;
+    QPainter composition(&pixels);
+    composition.drawImage(view_->mapTo(this,QPoint()),framebuffer);
+    if(dimensionEditor_&&dimensionEditor_->isVisible())
+        composition.drawPixmap(dimensionEditor_->mapTo(this,QPoint()),dimensionEditor_->grab());
+    // Qt-owned popups use separate top-level surfaces. Compose those visible
+    // surfaces where Qt exposes them; native OS menus remain outside this API.
+    for(auto* popup:QApplication::topLevelWidgets()) {
+        if(popup==this||!popup->isVisible())continue;
+        bool owned=false;for(auto* parent=popup->parentWidget();parent;parent=parent->parentWidget())
+            if(parent==this){owned=true;break;}
+        if(owned)composition.drawPixmap(popup->mapTo(this,QPoint()),popup->grab());
+    }
+    composition.end();
+    return pixels.toImage();
 }
 
 bool AlloyWindow::eventFilter(QObject* watched,QEvent* event) {
@@ -1561,14 +1589,23 @@ void AlloyWindow::registerCommands() {
         }
         view_->fit(document_->bodies(),document_->sketches());return QJsonObject{};
     });
+    add("recording.start", "Start tutorial recording", "Record this Alloy window to a timed MP4 and app-local event log.",
+        {{"path",parameter("string","Absolute new .mp4 destination; parent directory must exist.")},
+         {"fps",QJsonObject{{"type","number"},{"description","Frames per second, 1–30; default 15."},{"required",false},{"minimum",1},{"maximum",30}}}},
+        [this](const auto& a){return recorder_->start(a["path"].toString(),a.value("fps").toInt(15),document_->revision());});
+    add("recording.step", "Caption tutorial step", "Show a persistent step caption and record its timestamp.",
+        {{"text",parameter("string","Visible tutorial step caption, 1–200 characters.")}},
+        [this](const auto& a){return recorder_->step(a["text"].toString());});
+    add("recording.status", "Inspect tutorial recording", "Return timing, frame, repeat and encoder status.",{},
+        [this](const auto&){return recorder_->status();});
+    add("recording.stop", "Finish tutorial recording", "Finalize MP4 and timestamped event/metadata sidecars.",{},
+        [this](const auto&){return recorder_->stop(document_->revision());});
     add("capture.screenshot", "Capture screenshot", "Save a PNG of the actual main window, excluding OS decorations and separate dialogs.", {{"path", parameter("string", "Absolute destination PNG path; parent directory must exist.")}}, [this](const auto& a) {
         const QString path = a.value("path").toString();
         if (!QDir::isAbsolutePath(path) || !path.endsWith(".png", Qt::CaseInsensitive)) return failure("invalid_arguments", "Screenshot requires an absolute .png path");
-        auto pixels = grab();
-        const auto framebuffer = view_->framebuffer();
-        if (framebuffer.isNull()) return failure("capture_failed", "OCCT framebuffer capture failed");
-        { QPainter composition(&pixels); composition.drawImage(view_->mapTo(this, QPoint(0, 0)), framebuffer);
-            if(dimensionEditor_ && dimensionEditor_->isVisible())composition.drawPixmap(dimensionEditor_->mapTo(this,QPoint()),dimensionEditor_->grab()); }
+        QImage framebuffer;
+        auto pixels = captureImage(&framebuffer);
+        if (pixels.isNull()) return failure("capture_failed", "OCCT framebuffer capture failed");
         QSaveFile file(path);
         if (!file.open(QIODevice::WriteOnly) || !pixels.save(&file, "PNG") || !file.commit()) return failure("capture_failed", "Could not write screenshot");
         return QJsonObject{{"path", path}, {"pixelWidth", pixels.width()}, {"pixelHeight", pixels.height()}, {"devicePixelRatio", pixels.devicePixelRatio()}, {"source", "QWidget chrome + OCCT OpenGL framebuffer"}, {"viewportPixelWidth", framebuffer.width()}, {"viewportPixelHeight", framebuffer.height()}, {"viewportSha256", QString::fromLatin1(QCryptographicHash::hash(QByteArrayView(reinterpret_cast<const char*>(framebuffer.constBits()), framebuffer.sizeInBytes()), QCryptographicHash::Sha256).toHex())}};
@@ -1606,12 +1643,16 @@ QJsonArray AlloyWindow::commands() const {
 }
 
 QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
+    const auto finish=[this,&id](QJsonObject response) {
+        if(recorder_)recorder_->command(id,response,apiExecuting_);
+        return response;
+    };
     const auto* command = findCommand(id);
-    if (!command) return failure("unknown_command", "No command named " + id);
-    if (!command->available) return failure("not_implemented", command->title + " is not implemented in the UI shell");
+    if (!command) return finish(failure("unknown_command", "No command named " + id));
+    if (!command->available) return finish(failure("not_implemented", command->title + " is not implemented in the UI shell"));
     QString field;
     const auto argumentError = validateArguments(*command, args, &field);
-    if (!argumentError.isEmpty()) return failure("invalid_arguments", argumentError, field);
+    if (!argumentError.isEmpty()) return finish(failure("invalid_arguments", argumentError, field));
     QJsonObject result;
     // A rejected constraint attempt can still change the active tool, pending
     // selection and retry prompt. Publish that presentation without committing
@@ -1620,14 +1661,21 @@ QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
         if(id.startsWith("sketch.") && session_.value("tool")=="constraint")refresh();
     };
     try { result=command->run(args); }
-    catch(const Standard_Failure& error) { refreshConstraintFailure(); return failure("kernel_failure",QString::fromUtf8(error.GetMessageString())); }
-    catch(const std::exception& error) { refreshConstraintFailure(); return failure("command_failed",QString::fromUtf8(error.what())); }
-    if (result.value("ok").isBool() && !result.value("ok").toBool()) { refreshConstraintFailure(); return result; }
+    catch(const Standard_Failure& error) { refreshConstraintFailure(); return finish(failure("kernel_failure",QString::fromUtf8(error.GetMessageString()))); }
+    catch(const std::exception& error) { refreshConstraintFailure(); return finish(failure("command_failed",QString::fromUtf8(error.what()))); }
+    if (result.value("ok").isBool() && !result.value("ok").toBool()) { refreshConstraintFailure(); return finish(result); }
     const bool changesState = id == "window.resize" || id.startsWith("layout.") || id.startsWith("view.") || (id == "commands.search" || id == "commands.close");
     if (changesState) ++revision_;
     refresh();
-    return {{"ok", true}, {"completion", "completed"}, {"command", id}, {"revision", static_cast<qint64>(revision_)},
-        {"documentRevision", static_cast<qint64>(document_->revision())}, {"result", result}};
+    return finish({{"ok", true}, {"completion", "completed"}, {"command", id}, {"revision", static_cast<qint64>(revision_)},
+        {"documentRevision", static_cast<qint64>(document_->revision())}, {"result", result}});
+}
+
+QJsonObject AlloyWindow::executeApi(const QString& id,const QJsonObject& args) {
+    const bool prior=apiExecuting_;apiExecuting_=true;
+    auto result=execute(id,args);
+    apiExecuting_=prior;
+    return result;
 }
 
 QString AlloyWindow::validateArguments(const Command& command, const QJsonObject& args, QString* field) const {

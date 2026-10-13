@@ -42,6 +42,7 @@ target_compile_definitions(alloy_kernel PUBLIC ALLOY_OCCT_VERSION="${ALLOY_OCCT_
 add_library(alloy_application STATIC
     src/AlloyTheme.cpp src/AlloyTheme.h
     src/AlloyWindow.cpp src/AlloyWindow.h src/CombineControls.cpp
+    src/TutorialRecorder.cpp src/TutorialRecorder.h
     src/CadDocument.cpp src/CadDocument.h
     src/ReferenceView.cpp src/ReferenceView.h
     src/ControlServer.cpp src/ControlServer.h)
