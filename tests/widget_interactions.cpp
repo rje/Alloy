@@ -11,6 +11,7 @@
 #include <QImage>
 #include <QComboBox>
 #include <QDoubleSpinBox>
+#include <QSpinBox>
 #include <QDialogButtonBox>
 #include <QDialog>
 #include <QDir>
@@ -437,6 +438,112 @@ private slots:
         const auto bodies=window.execute("document.inspect")["result"].toObject()["evaluation"].toObject()["bodies"].toArray();
         QCOMPARE(bodies.size(),1);QVERIFY(bodies[0].toObject()["valid"].toBool() && bodies[0].toObject()["closed"].toBool());
         QVERIFY(std::abs(bodies[0].toObject()["boundsMm"].toObject()["max"].toArray()[2].toDouble()-58)<1e-5);
+    }
+    void patternTimelineAxesAndRoofCenterSnaps() {
+        AlloyWindow window;window.resize(1280,900);window.show();window.activateWindow();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));auto* view=viewport(window);QVERIFY(view);
+        auto inspect=[&]{return window.execute("document.inspect")["result"].toObject();};
+        auto body=[&]{return inspect()["evaluation"].toObject()["bodies"].toArray()[0].toObject();};
+        auto support=[](const QJsonObject& f){return QJsonObject{{"bodyId",f["bodyId"]},{"producerFeatureId",f["producerFeatureId"]},{"faceId",f["faceId"]}};};
+        QVERIFY2(run(window,"sketch.begin",{{"plane","XY"}}),error_.constData());
+        QVERIFY2(run(window,"sketch.rectangle",{{"x1",0},{"y1",0},{"x2",31.8},{"y2",15.8}}),error_.constData());
+        QVERIFY2(run(window,"sketch.finish"),error_.constData());
+        auto sketch=inspect()["evaluation"].toObject()["sketches"].toArray().last().toObject();
+        QVERIFY2(run(window,"solid.extrude",{{"sketchId",sketch["sketchId"]},{"profileId",sketch["profiles"].toArray()[0].toObject()["profileId"]},{"distance",9.6}}),error_.constData());
+        const auto target=body().value("bodyId");QJsonObject cap;
+        for(const auto& value:body()["supportFaces"].toArray())if(value.toObject()["role"]=="extrude.endCap")cap=value.toObject();
+        QVERIFY(!cap.isEmpty());
+        QVERIFY2(run(window,"sketch.begin",{{"support",support(cap)}}),error_.constData());
+        QVERIFY2(run(window,"sketch.addCircle",{{"centerX",3.9},{"centerY",3.9},{"diameter",5}}),error_.constData());
+        QVERIFY2(run(window,"sketch.finish"),error_.constData());
+        sketch=inspect()["evaluation"].toObject()["sketches"].toArray().last().toObject();
+        QVERIFY2(run(window,"solid.extrude",{{"sketchId",sketch["sketchId"]},{"profileId",sketch["profiles"].toArray()[0].toObject()["profileId"]},{"distance",1.7},{"operation","join"},{"targetBodyIds",QJsonArray{target}}}),error_.constData());
+        const auto baseline=inspect()["authored"].toObject();const auto seed=baseline["features"].toArray().last().toObject().value("id");
+        QJsonArray axes;
+        for(int axis=0;axis<2;++axis) {
+            for(const auto& entry:body()["solidEdges"].toArray()) {
+                const auto edge=entry.toObject();if(!edge["available"].toBool())continue;
+                const auto start=edge["startMm"].toArray(),end=edge["endMm"].toArray();
+                double length2=0;for(int j=0;j<3;++j)length2+=std::pow(end[j].toDouble()-start[j].toDouble(),2);
+                const double delta=end[axis].toDouble()-start[axis].toDouble();
+                // Use the visible outer top rim, avoiding coincident bottom-edge projections.
+                if(std::abs(start[2].toDouble()-9.6)>1e-5 || std::abs(end[2].toDouble()-9.6)>1e-5)continue;
+                if(std::abs(delta)>1 && std::abs(delta*delta-length2)<1e-6) {
+                    axes.append(QJsonObject{{"edgeId",edge["edgeId"]},{"extent",std::copysign(axis==0 ? 24.0 : 8.0,delta)}});break;
+                }
+            }
+        }
+        QCOMPARE(axes.size(),2);QVERIFY2(run(window,"view.home"),error_.constData());
+        auto* pattern=window.findChild<QAction*>("solid.action.solid.rectangularPatternDialog");QVERIFY(pattern);
+        for(const bool commit:{false,true}) {
+            pattern->trigger();QTRY_COMPARE(session(window)["command"].toString(),QString("solid.rectangularPattern"));
+            QToolButton* timeline=nullptr;for(auto* button:window.findChildren<QToolButton*>())if(button->property("featureId").toString()==seed.toString())timeline=button;
+            QVERIFY(timeline);QTest::mouseClick(timeline,Qt::LeftButton,Qt::NoModifier,QPoint(8,timeline->height()/2));
+            QCOMPARE(session(window)["inputs"].toObject()["sourceFeatureId"],seed);
+            auto* dock=window.findChild<QDockWidget*>("patternDock");QVERIFY(dock);
+            auto* scroll=dock->findChild<QScrollArea*>();QVERIFY(scroll);
+            for(int axis=0;axis<2;++axis) {
+                auto* choose=dock->findChild<QPushButton*>("patternAxis"+QString::number(axis));QVERIFY(choose);
+                scroll->ensureWidgetVisible(choose);QTest::mouseClick(choose,Qt::LeftButton);
+                const auto point=window.execute("view.projectEdge",{{"bodyId",target},{"edgeId",axes[axis].toObject()["edgeId"]}})["result"].toObject();
+                QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,QPoint(qRound(point["x"].toDouble()),qRound(point["y"].toDouble())));
+                QTRY_COMPARE(session(window)["inputs"].toObject()["axes"].toArray().size(),axis+1);
+                auto* quantity=dock->findChild<QSpinBox*>("patternQuantity"+QString::number(axis));QVERIFY(quantity);
+                scroll->ensureWidgetVisible(quantity);quantity->setFocus();quantity->selectAll();QTest::keyClicks(quantity,axis==0 ? "4" : "2");QTest::keyClick(quantity,Qt::Key_Tab);
+                auto* extent=dock->findChild<QDoubleSpinBox*>("patternExtent"+QString::number(axis));QVERIFY(extent);
+                scroll->ensureWidgetVisible(extent);extent->setFocus();extent->selectAll();QTest::keyClicks(extent,QString::number(axes[axis].toObject()["extent"].toDouble()));QTest::keyClick(extent,Qt::Key_Return);
+            }
+            QVERIFY(session(window)["geometryEvaluated"].toBool());QCOMPARE(session(window)["geometry"].toObject()["instanceCount"].toInt(),8);
+            QCOMPARE(inspect()["authored"].toObject(),baseline);
+            auto* buttons=dock->findChild<QDialogButtonBox*>();QVERIFY(buttons);scroll->ensureWidgetVisible(buttons);
+            if(commit)QVERIFY2(run(window,"capture.screenshot",{{"path",QDir::currentPath()+"/build-tutorial-polish/evidence/toy-independent/qt-pattern.png"}}),error_.constData());
+            QTest::mouseClick(buttons->button(commit ? QDialogButtonBox::Ok : QDialogButtonBox::Cancel),Qt::LeftButton);
+            QTRY_VERIFY(session(window).isEmpty());if(!commit)QCOMPARE(inspect()["authored"].toObject(),baseline);
+        }
+        const auto patternId=inspect()["authored"].toObject()["features"].toArray().last().toObject().value("id");
+        QCOMPARE(body()["instanceCount"].toInt(),8);QJsonObject bottom;
+        for(const auto& value:body()["supportFaces"].toArray())if(value.toObject()["role"]=="extrude.base")bottom=value.toObject();
+        QVERIFY(!bottom.isEmpty());QVERIFY2(run(window,"solid.shell",{{"targetBodyId",target},{"removedFace",support(bottom)},{"thicknessMm",1.49}}),error_.constData());
+        QJsonObject roof;for(const auto& value:body()["supportFaces"].toArray()) {
+            const auto f=value.toObject();if(f["role"]=="shell-inner" && std::abs(f["frame"].toObject()["origin"].toArray()[2].toDouble()-8.11)<1e-5)roof=f;
+        }
+        QVERIFY(!roof.isEmpty());auto* tree=window.findChild<QTreeWidget*>("browser.tree");QVERIFY(tree);QTreeWidgetItem* bottomView=nullptr;
+        for(QTreeWidgetItemIterator it(tree);*it;++it)if((*it)->data(0,Qt::UserRole).toString()=="bottom")bottomView=*it;
+        QVERIFY(bottomView);tree->scrollToItem(bottomView);QTest::mouseClick(tree->viewport(),Qt::LeftButton,Qt::NoModifier,tree->visualItemRect(bottomView).center());
+        QCOMPARE(view->orientation,QString("bottom"));
+        const auto frame=roof["frame"].toObject();
+        auto roofPixel=[&](double x,double y) {
+            const QJsonArray world{x,y,8.11};double uv[2]={};const auto origin=frame["origin"].toArray();
+            for(int axis=0;axis<2;++axis){const auto direction=frame[axis==0 ? "uAxis" : "vAxis"].toArray();for(int j=0;j<3;++j)uv[axis]+=(world[j].toDouble()-origin[j].toDouble())*direction[j].toDouble();}
+            const auto point=view->projectSketchPoint(uv[0],uv[1],"face",frame);return QPoint(qRound(point["x"].toDouble()),qRound(point["y"].toDouble()));
+        };
+        QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,roofPixel(15.9,7.9));
+        auto* create=window.findChild<QToolButton*>("command.sketch.create");QVERIFY(create);QTest::mouseClick(create,Qt::LeftButton);
+        QTRY_COMPARE(session(window)["command"].toString(),QString("sketch.edit"));
+        QCOMPARE(session(window)["inputs"].toObject()["support"].toObject()["faceId"],roof["faceId"]);
+        QCOMPARE(session(window)["projectionContext"].toObject()["points"].toArray().size(),8);
+        auto* lineAction=window.findChild<QAction*>("sketch.tool.line");QVERIFY(lineAction);lineAction->trigger();QCOMPARE(session(window)["tool"].toString(),QString("line"));
+        for(const auto p:{QPointF(3.9,3.9),QPointF(11.9,11.9)}) {
+            QTest::mouseMove(view,roofPixel(p.x(),p.y()));QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,roofPixel(p.x(),p.y()));
+        }
+        auto* select=window.findChild<QPushButton*>("sketch.tool.select");QVERIFY(select);QTest::mouseClick(select,Qt::LeftButton);
+        auto parameters=session(window)["draftSketch"].toObject()["parameters"].toObject();
+        QCOMPARE(parameters["pointReferences"].toArray().size(),2);QCOMPARE(parameters["entities"].toArray().size(),1);
+        QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,roofPixel(7.9,7.9));auto* construction=window.findChild<QAction*>("sketch.action.constructionToggle");QVERIFY(construction);construction->trigger();
+        parameters=session(window)["draftSketch"].toObject()["parameters"].toObject();QVERIFY(parameters["entities"].toArray()[0].toObject()["construction"].toBool());
+        const auto guide=parameters["entities"].toArray()[0].toObject().value("id");
+        auto* circle=window.findChild<QAction*>("sketch.tool.circle");QVERIFY(circle);circle->trigger();QTest::mouseMove(view,roofPixel(7.9,7.9));QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,roofPixel(7.9,7.9));
+        QTest::keyClick(view,Qt::Key_6);auto* value=window.findChild<QLineEdit*>("sketch.inlineValue");QVERIFY(value);QTRY_VERIFY(value->isVisible());
+        QTest::keyClicks(value,".3");QTest::keyClick(value,Qt::Key_Return);
+        parameters=session(window)["draftSketch"].toObject()["parameters"].toObject();QCOMPARE(parameters["entities"].toArray().size(),2);
+        bool midpoint=false;for(const auto& c:parameters["constraints"].toArray())if(c.toObject()["type"]=="midpoint" && c.toObject()["entityIds"].toArray()==QJsonArray{guide})midpoint=true;
+        QVERIFY(midpoint);QVERIFY(!parameters["entities"].toArray()[1].toObject()["construction"].toBool());
+        QVERIFY2(run(window,"capture.screenshot",{{"path",QDir::currentPath()+"/build-tutorial-polish/evidence/toy-independent/qt-roof-midpoint.png"}}),error_.constData());
+        QVERIFY2(run(window,"sketch.cancel"),error_.constData());
+        // Pending numeric text must not call into destroyed window state during QWidget teardown.
+        QVERIFY2(run(window,"solid.rectangularPatternDialog",{{"featureId",patternId}}),error_.constData());
+        auto* pending=window.findChild<QDoubleSpinBox*>("patternExtent0");QVERIFY(pending);pending->setFocus();pending->selectAll();QTest::keyClicks(pending,"23");
+        QCOMPARE(pending->value(),axes[0].toObject()["extent"].toDouble());
     }
     void moveActionsAtShortHeights() {
         AlloyWindow window;window.resize(1136,790);window.show();
