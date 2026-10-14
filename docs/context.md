@@ -1,13 +1,13 @@
 # Continuation context
 
-## Candidate Join/Chamfer edge lineage (2026-10-13)
+## Accepted Join/Chamfer edge lineage (2026-10-13)
 
-GEO-010/#329 has a headless candidate in `feat/join-edge-lineage`. Extrude Join
+GEO-010/#329 is independently accepted and integrated as a backend prerequisite. Extrude Join
 publishes current retained prism edges, and Chamfer preserves unique OCCT
 Modified descendants. An accepted rounded-Shell/Split fixture now supports the
 source-sized Join5→three Chamfers→Fillet0.5 sequence, meaningful Join edit,
 atomic invalid edge, history and reopen. Independent review and main integration
-remain pending. See [the candidate receipt](validation/join-edge-lineage.md).
+are complete. See [the accepted receipt](validation/join-edge-lineage.md).
 
 ## Accepted retained Cut feature Mirror (2026-10-13)
 
@@ -41,9 +41,12 @@ GEO-008, SKT-071 and GEO-009 are accepted, integrated and closed.
 Current work: SKT-072/#325 construction-plane Project, SKT-073/#328 closed
 rectangle Offset and SOL-050/#326 Cut feature Mirror are independently accepted,
 integrated and closed. Sol owns TUT-021 ports/card continuation against main,
-with the sole GUI lease. A second Sol lane works headlessly on GEO-010/#329
-Join-edge history needed by the ordinary source snap Chamfers/Fillet; the later
-SOL-051/#327 mirrored group remains Todo until that proof succeeds. SOL-049
+with the sole GUI lease. A second Sol lane now implements SOL-051/#327 mirrored snap-group replay
+headlessly, after accepted GEO-010/#329 proved the ordinary five-operation chain.
+The port lane owns GEO-011/#331 current Cut-rim catalog publication, needed for
+the correctly centered card R2 fillet. An initial origin-snapped diagnostic was
+misplaced and is explicitly failed evidence; SKT-075/#332 tracks fresh face-sketch
+origin compatibility without rebasing old sketches. SOL-049
 remains Todo as parent. Astra verifies both lanes. SKT-074/#330 separately tracks
 explicit union-profile selection across topology-changing clearance edits.
 

@@ -34,3 +34,8 @@ regressions passed 3/3. External evidence is under
 qualified external fixture path as an argument; CI does not depend on that
 external research artifact. Native input and GPU presentation are not claimed
 for this geometry-lineage prerequisite. Independent source review is pending.
+
+Independent review accepts GEO-010/#329 as a backend prerequisite. The reviewer
+ran the exact five-operation post-Split proof and three focused regressions.
+Main app builds; its focused face/Chamfer integration checks pass. Full source
+placement and native/API interaction remain with the cumulative snap workflow.

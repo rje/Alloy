@@ -2733,7 +2733,8 @@
       "phase": "P2 Parametric modeling",
       "priority": "P0",
       "depends_on": [
-        "SKT-013"
+        "SKT-013",
+        "SKT-075"
       ],
       "labels": [
         "kind:implementation",
@@ -5631,7 +5632,8 @@
         "SOL-043",
         "DOC-027",
         "SKT-072",
-        "SKT-073"
+        "SKT-073",
+        "GEO-011"
       ],
       "labels": [
         "area:gate"
@@ -5743,7 +5745,7 @@
       "labels": [
         "area:geo"
       ],
-      "body": "Actual snap Join5 must expose retained edges for three Chamfers and a Fillet. Join currently omits prism tool edges from Boolean history and publishes only prior target solidEdges. Publish uniquely resolved surviving/generated Join prism edges through existing exact Boolean history, preserving source and target identities; refuse ambiguity without nearest-edge substitution. Prove ordinary source-shaped Join then finishing selection on a post-Split target, stable source edits/history/reopen, and proportionate regression for existing Cut/Join behavior. Independent review required. SOL-051 replay waits for this foundation."
+      "body": "Actual snap Join5 must expose retained edges for three Chamfers and a Fillet. Join currently omits prism tool edges from Boolean history and publishes only prior target solidEdges. Publish uniquely resolved surviving/generated Join prism edges through existing exact Boolean history, preserving source and target identities; refuse ambiguity without nearest-edge substitution. Prove ordinary source-shaped Join then finishing selection on a post-Split target, stable source edits/history/reopen, and proportionate regression for existing Cut/Join behavior. Independent review required. SOL-051 replay waits for this foundation.\n\n## Independently accepted 2026-10-13\nIndependently accepted exact Join-edge publication and unique Chamfer Modified-history transfer. Source-shaped post-Split stepped Join5/Chamfer2,1,2/Fillet0.5 passes using retained IDs, source edit, atomic refusal and history/reopen. Reviewer independently ran proof and three existing regressions; main app builds and focused face/Chamfer checks pass. Backend evidence only here; cumulative snap placement and native/API workflow remain TUT-022/SOL-051. See docs/validation/join-edge-lineage.md.\n"
     },
     {
       "key": "SKT-074",
@@ -5758,6 +5760,33 @@
         "area:skt"
       ],
       "body": "Offset1 to1.1 on overlapping connector rectangles changes bounded sketch cells, so an Extrude selecting old cell IDs safely refuses. Research and implement a separately selectable aggregate keyed by exact retained loop-group identities if appropriate, preserving ordinary cell selections and preventing aggregate-plus-child double counting. No silently expanded Cut after topology changes. Verify valid contact-topology edits preserve the explicitly selected union intent; invalid/missing-source edits remain atomic. This is deferred beyond TUT-021, whose fixed source offsets and contact-preserving edits use ordinary cells. Independent design and workflow review required."
+    },
+    {
+      "key": "GEO-011",
+      "title": "Publish retained Cut rim edges for card-opening fillets",
+      "kind": "implementation",
+      "phase": "P2 Parametric solids",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-073",
+        "SOL-050"
+      ],
+      "labels": [
+        "area:geo"
+      ],
+      "body": "Corrected TUT-021 world-centered16x12 card Cut To Object is valid. Its retained outer face already contains three live U-lip boundary edges with exactLinearCutHistory, each uniquely descended from a card-prism base rim, but these edges are absent from the solidEdges catalog used by Fillet. Promote uniquely mapped current exact-history boundary edges to selectable solidEdges, with Cut-feature/source-entity/target-face identities. No new SectionEdges inference or coordinate-nearest search is required. Verify actual centered card R2 lip Fillet, source edits/history/reopen, duplicate/ambiguous refusal and a proportionate existing Cut/finishing regression. Initial misplaced diagnostic is retained externally as failed evidence, not source-fit acceptance. Independent review required; complete port/card movie stays TUT-021."
+    },
+    {
+      "key": "SKT-075",
+      "title": "Align new face-sketch origin with projected component origin",
+      "kind": "implementation",
+      "phase": "P2 Parametric solids",
+      "priority": "P2",
+      "depends_on": [],
+      "labels": [
+        "area:skt"
+      ],
+      "body": "Public staff explanations support sketch origin projected from the owning component origin for direct planar-face sketches. Alloy currently uses the face frame origin; origin snaps can override intended local coordinates, as the misplaced initial card diagnostic demonstrated. Design a versioned fresh-sketch convention or explicit origin target that matches supported public behavior while preserving all existing authored coordinates, constraints, geometry and saved documents. Do not globally rebase old sketches. Verify new offset-face sketches, component ownership, origin snaps and roundtrip; keep offset-construction-plane origin and axis policies explicitly unknown until independently researched. TUT-021 uses disclosed local placement adaptation and is not blocked on this compatibility feature. Public URLs/dates/short quotations and uncertainties are external at knowledge/tutorials/advanced-audit-2026-10-13/face-sketch-origin-contract.md. Independent review required."
     }
   ]
 }
