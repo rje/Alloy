@@ -11,14 +11,19 @@ edit and separate downstream edit evidence are explicit in
 editable model and exports are first in the external gallery (82 links checked).
 Next: TUT-022 split/snaps/two Mirrors and HIS-006 reorder, then TUT-023 rim.
 The ports lane now owns the sole GUI lease for a bounded TUT-022 Split/undercut
-probe against this saved model; HIS-006 is implemented headlessly in parallel.
+probe against this saved model; HIS-006 has a headless candidate awaiting the actual two-Mirror fixture.
 TUT-022 remains Todo until its remaining prerequisites are accepted. The first
 accepted-model probe found new Split features incorrectly defaulting to root
 ownership; SOL-052/#335 is now independently accepted and integrated. The
 actual saved Case splits into two valid closed owned bodies with conserved
-volume, native preview/Cancel and stable edit/reopen identities. The port lane
-is probing the source-shaped closed undercut catch (4 mm guide, 6 × 3 mm
-rectangle below the seam), with horizontal placement explicitly adapted.
+volume, native preview/Cancel and stable edit/reopen identities. The source-shaped closed undercut catch (4 mm guide, 6 × 3 mm rectangle
+below the seam) and its Cut Mirror both pass on the accepted Case, removing
+63 mm³ each at adapted Y ±20. The port lane now owns GEO-012/#336: the inner
+wall Cut rim lacks exact selectable identity for the Bottom finishing Fillet.
+HIS-006 candidate is clean at 7b1ceb7 in the timeline-reorder worktree; it is
+returned to Todo while its actual two-Mirror fixture depends on GEO-012. Its
+shared reorder and one-Mirror core pass, but native/final source acceptance
+remain pending. No substitute inner edge or nearest-match identity is allowed.
 
 ## Accepted snap-group feature Mirror (2026-10-13)
 

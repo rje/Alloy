@@ -2962,7 +2962,8 @@
       "phase": "P2 Parametric modeling",
       "priority": "P1",
       "depends_on": [
-        "HIS-002"
+        "HIS-002",
+        "GEO-012"
       ],
       "labels": [
         "area:his"
@@ -5656,7 +5657,8 @@
         "SOL-028",
         "SOL-049",
         "HIS-006",
-        "SOL-052"
+        "SOL-052",
+        "GEO-012"
       ],
       "labels": [
         "area:gate"
@@ -5832,6 +5834,21 @@
         "area:solid"
       ],
       "body": "The accepted enclosure is owned by the Case component. Its same-owner retained Midplane succeeds, but new Split Body defaults the feature owner to document root and incorrectly refuses the Case body/plane as cross-component. Supply activeOwnerId to new Split candidates in the shared command and native preview path; preserve the original owner when editing an existing feature. Keep genuine cross-component refusal and stable target/plane/result identities. Verify on the accepted TUT-021 saved design: Midplane and Split create two valid closed Case-owned solids with conserved volume and useful split supports, native preview/Cancel uses the same owner, and existing root-owned Split regression still passes. Bound this to new Split ownership; do not relax component-reference rules globally. Public source contract is external under knowledge/tutorials/advanced-audit-2026-10-13/independent-spec.md; TUT-022 owns full source Split/snap/two-Mirror sequence and later reorder.\n\n## Independently accepted 2026-10-13\nIndependently accepted and integrated as 59952ad. New Split Body command and preview now inherit the active local component; editing preserves the existing owner. Actual accepted enclosure Split probe covers expected root-owner refusal, Case preview/Cancel, direct commit, edit and exact reopen. Two valid closed halves preserve total volume 59639.833991 mm3. Existing root Split core and Case-owned native controls pass; Astra reviewed source, ledger and actual captures. Main application build passes. See docs/validation/split-body-component-owner.md; later snap geometry and reorder remain TUT-022/HIS-006.\n"
+    },
+    {
+      "key": "GEO-012",
+      "title": "Retain inner To Object Cut rims for finishing and mirrored selection",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "GEO-011",
+        "SOL-050"
+      ],
+      "labels": [
+        "area:geometry"
+      ],
+      "body": "The actual split enclosure now supports its literal 4 mm guide, 6 by 3 mm closed catch Cut To Object and opposite Cut Mirror. Each removes exactly 63 mm3. Outer Cut rims have exact retained IDs, but the inner wall hole perimeter is missing from support/solid edge catalogs, blocking the source Bottom R0.5 Fillet and later addition of its mirrored opposite edge. Publish only uniquely traced current To Object end/inner rims using exact OCCT history and retained source entity/feature/target face identities; refuse ambiguity instead of nearest-coordinate recovery. Preserve existing outer/card/circular rim behavior. Verify on the accepted Case fixture that the real inner R0.5 can be authored, exact opposite mirrored inner identity is selectable after the source reorder, meaningful edit/history/reopen retain the bounded chain, and both bodies remain valid. Source geometry and public provenance are external in knowledge/tutorials/advanced-audit-2026-10-13/enclosure-port-card-contract.md and the source snap contract. HIS-006 and TUT-022 retain cumulative two-Mirror/reorder acceptance. General Boolean naming remains broader work."
     }
   ]
 }
