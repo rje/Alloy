@@ -4,6 +4,7 @@
 #include "AssemblySlider.h"
 #include "AssemblyRevolute.h"
 #include "AssemblyGraph.h"
+#include "LocalOccurrences.h"
 #include <utility>
 #include <vector>
 #include "DocumentAppend.h"
@@ -533,6 +534,7 @@ QJsonObject CadDocument::reparentOccurrenceCandidate(const QJsonObject& authored
         throw std::invalid_argument("Select component occurrences and an available destination");
     if(!authored.value("joints").toArray().isEmpty())
         throw std::invalid_argument("Component hierarchy edits require a design without joints");
+    for(const auto& v:authored["occurrences"].toArray())if(v.toObject()["placement"]!="identity" || v.toObject().contains("parentOccurrenceId"))throw std::invalid_argument("Reparenting linked placed instances is not supported in this slice");
     auto candidate=authored;auto occurrences=candidate["occurrences"].toArray();QSet<QString> selected;
     for(const auto& value:occurrenceIds) {
         const auto id=value.toString();
@@ -550,6 +552,20 @@ QJsonObject CadDocument::reparentOccurrenceCandidate(const QJsonObject& authored
     const auto error=validateStructure(candidate);
     if(!error.isEmpty())throw std::invalid_argument(error.toStdString());
     return candidate;
+}
+QJsonObject CadDocument::copyOccurrenceCandidate(const QJsonObject& authored,const QString& occurrenceId,const QJsonObject& placement) {
+    if(!authored["joints"].toArray().isEmpty())throw std::invalid_argument("Linked subtree copy requires a design without joints; joint remapping is not supported yet");
+    const auto error=LocalOccurrences::validate(authored);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());
+    LocalReference::transform(placement);auto occurrences=authored["occurrences"].toArray();QJsonObject source;
+    for(const auto& v:occurrences)if(v.toObject()["id"]==occurrenceId)source=v.toObject();
+    if(source.isEmpty())throw std::invalid_argument("Copy source occurrence is unavailable");
+    // ASM017 copy uses an absolute parent-local placement (translation*rotation),
+    // not a motion delta or captured current solved pose.
+    QSet<QString> selected{occurrenceId};bool changed=true;while(changed){changed=false;for(const auto& v:occurrences){const auto id=v.toObject()["id"].toString();if(selected.contains(LocalOccurrences::parentOccurrenceId(authored,id))&&!selected.contains(id)){selected.insert(id);changed=true;}}}
+    QJsonObject mapping;for(const auto& v:occurrences){const auto id=v.toObject()["id"].toString();if(selected.contains(id))mapping[id]=newId();}
+    const auto originals=occurrences;for(const auto& v:originals){auto r=v.toObject();const auto id=r["id"].toString();if(!selected.contains(id))continue;r["id"]=mapping[id];if(id==occurrenceId)r["placement"]=placement;else {r["parentOccurrenceId"]=mapping[LocalOccurrences::parentOccurrenceId(authored,id)];if(r["placement"]=="identity")r["placement"]=LocalReference::identityPlacement();}occurrences.append(r);}
+    auto candidate=authored;candidate["occurrences"]=occurrences;const auto validation=validateStructure(candidate);if(!validation.isEmpty())throw std::invalid_argument(validation.toStdString());
+    return {{"authored",candidate},{"occurrenceMap",mapping},{"rootOccurrenceId",mapping[occurrenceId]}};
 }
 QJsonObject CadDocument::pinOccurrenceCandidate(const QJsonObject& authored,const QString& occurrenceId) {
     if(!validId(occurrenceId))throw std::invalid_argument("Pin requires a component occurrence ID");
@@ -837,12 +853,14 @@ QString CadDocument::newId() { return QUuid::createUuid().toString(QUuid::Withou
 CadDocument::CadDocument() { reset(); }
 std::vector<EvaluatedBody> CadDocument::worldBodies(std::optional<double> transientPositionMm) const {
     const auto joints=authored_.value("joints").toArray();
+    if(joints.isEmpty())return LocalOccurrences::worldBodies(authored_,*evaluation_);
     if(AssemblyGraph::isJointGraph(authored_))
         return AssemblyRevolute::worldBodies(authored_,*evaluation_,transientPositionMm);
     return AssemblySlider::worldBodies(authored_,*evaluation_,transientPositionMm);
 }
 QJsonObject CadDocument::assemblyState(std::optional<double> transientPositionMm) const {
     const auto joints=authored_.value("joints").toArray();
+    if(joints.isEmpty())return LocalOccurrences::inspect(authored_,*evaluation_);
     if(AssemblyGraph::isJointGraph(authored_))
         return AssemblyRevolute::inspect(authored_,*evaluation_,transientPositionMm);
     return AssemblySlider::inspect(authored_,*evaluation_,transientPositionMm);
@@ -1678,23 +1696,10 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
             || !validId(id) || ids.contains(id) || !component["name"].isString() || component["name"].toString().trimmed().isEmpty())return "Invalid local component definition";
         ids.insert(id);owners.insert(id);
     }
-    QSet<QString> instantiated;QMap<QString,QString> componentParents;
-    for(const auto& value:candidate["occurrences"].toArray()) {
-        const auto occurrence=value.toObject();const auto id=occurrence["id"].toString(),definition=occurrence["definitionId"].toString();
-        const auto parent=occurrence["parentId"].toString();
-        if(occurrence.size()!=4 || !validId(id) || ids.contains(id) || definition==root || !owners.contains(definition)
-            || instantiated.contains(definition) || !owners.contains(parent) || parent==definition || occurrence["placement"]!="identity")
-            return "Each local component needs one unposed identity occurrence with an available parent";
-        ids.insert(id);instantiated.insert(definition);componentParents[definition]=parent;
-    }
-    if(instantiated.size()!=owners.size()-1)return "Each local component requires one occurrence";
-    for(auto it=componentParents.begin();it!=componentParents.end();++it) {
-        QSet<QString> visited;auto parent=it.key();
-        while(parent!=root) {
-            if(visited.contains(parent) || !componentParents.contains(parent))return "Component hierarchy must be rooted and acyclic";
-            visited.insert(parent);parent=componentParents[parent];
-        }
-    }
+    if(!candidate["joints"].toArray().isEmpty())for(const auto& v:candidate["occurrences"].toArray())if(v.toObject()["placement"]!="identity" || v.toObject().contains("parentOccurrenceId"))return "Joint graphs on linked placed occurrences require the later joint-remapping workflow";
+    const auto occurrenceError=LocalOccurrences::validate(candidate);
+    if(!occurrenceError.isEmpty())return occurrenceError;
+    for(const auto& value:candidate["occurrences"].toArray()){const auto id=value.toObject()["id"].toString();if(ids.contains(id))return "Duplicate authored occurrence UUID";ids.insert(id);}
     if(candidate.contains("objectOwners")) {
         const auto organization=candidate["objectOwners"].toObject();
         if(!candidate["objectOwners"].isObject() || organization.size()!=2
@@ -1727,8 +1732,8 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
         const auto joint=joints[0].toObject(),position=joint["position"].toObject();
         const auto first=joint["component1OccurrenceId"].toString(),second=joint["component2OccurrenceId"].toString();
         QSet<QString> occurrenceIds;for(const auto& item:candidate["occurrences"].toArray())occurrenceIds.insert(item.toObject()["id"].toString());
-        for(auto it=componentParents.begin();it!=componentParents.end();++it)
-            if(it.value()!=root)return "Slider joints require root-child components; nested motion is unavailable";
+        for(const auto& v:candidate["occurrences"].toArray())
+            if(v.toObject()["parentId"]!=root)return "Slider joints require root-child components; nested motion is unavailable";
         const double minimum=joint["minimumMm"].toDouble(),maximum=joint["maximumMm"].toDouble(),coordinate=joint["positionMm"].toDouble();
         if(!joints[0].isObject() || (joint.size()!=12 && joint.size()!=13)
             || (joint.size()==13 && !joint.contains("reverseDirection"))

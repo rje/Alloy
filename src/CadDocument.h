@@ -29,6 +29,7 @@ public:
         const QJsonArray& bodyIds);
     static QJsonObject reparentOccurrenceCandidate(const QJsonObject& authored,const QJsonArray& occurrenceIds,
         const QString& destinationId);
+    static QJsonObject copyOccurrenceCandidate(const QJsonObject& authored,const QString& occurrenceId,const QJsonObject& placement);
     static QJsonObject pinOccurrenceCandidate(const QJsonObject& authored,const QString& occurrenceId);
     static QJsonObject renameBodyCandidate(const QJsonObject& authored,const EvaluatedDocument& evaluated,
         const QString& bodyId,const QString& name);
