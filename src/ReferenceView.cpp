@@ -1927,9 +1927,7 @@ void ReferenceView::refreshJointOriginCue() {
                 context_->Display(highlight,AIS_Shaded,-1,false);context_->Deactivate(highlight);jointOriginCue_.push_back(highlight);
             }catch(const std::exception&) {}
     const gp_Dir worldX(1,0,0);
-    const bool yAxis=std::abs(axis.Y())>1-1e-8;
-    const gp_Dir x=worldX,y=yAxis ? axis : gp_Dir(gp_Vec(axis).Crossed(gp_Vec(worldX))),
-        z=yAxis ? gp_Dir(gp_Vec(x).Crossed(gp_Vec(y))) : axis;
+    const gp_Dir x=worldX,z=axis,y(gp_Vec(z).Crossed(gp_Vec(x)));
     showOriginTriad(context_,jointOriginCue_,center,x,y,z,radius);
     context_->UpdateCurrentViewer();
 }
