@@ -87,9 +87,9 @@
       "issues": [
         "RES-018",
         "TUT-017",
-        "SRF-001",
-        "SRF-002",
-        "SRF-005",
+        "SRF-012",
+        "SRF-013",
+        "SRF-014",
         "SRF-011",
         "DOC-024",
         "HIS-007",
@@ -97,7 +97,7 @@
       ],
       "acceptance": "Creation movie including declared sketch setup, editable surfaces/final solid, silhouette and handle comparisons against public images, upstream edits/history/reopen and checked solid/mesh outputs. Prepared-sketch adaptation remains labeled.",
       "status": "todo",
-      "remaining": "Source qualification and feature dependencies followed by independent complete workflow gate."
+      "remaining": "RES-018 qualifies the public source ledger and independently authored prepared-sketch topology; no source sketch dimensions or from-blank construction are documented. Next source-sized ingredients are ordered guide-rail/bridge surface Loft SRF-012, retained surface Trim SRF-013 and Two Sides open-curve surface Extrude SRF-014, followed by Boundary Fill SRF-011, local canvas DOC-024, Remove HIS-007 and full TUT-018. Broad SRF-001/002/005 remain Todo for their larger scope."
     },
     {
       "id": "CP-24",
