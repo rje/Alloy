@@ -51,8 +51,12 @@ Main application build and focused core pass. See
 [acceptance and native setup limits](validation/as-built-revolute.md). The shared
 solver backend at `59782f1` independently checks original joint frames, full Pin
 pose and signed targets. Pin follows evaluated timeline prefixes; typed joint
-metadata does not close HIS-003 broader timeline scope. ASM-015/#364 coupled
-closed-loop motion and ASM-016/#365 linked nested copy are the next dependencies.
+metadata does not close HIS-003 broader timeline scope. ASM-008/#304 is now
+active: parallel isolated authority and UI lanes add a retained Cylindrical joint
+on the nested piston leaves, sharing one explicit pose-graph authority. The next
+steps are ASM-015/#364 coupled closed-loop motion and ASM-016/#365 linked copy.
+The bounded implementation plan is external under
+`knowledge/tutorials/piston-subassemblies-2026-10-14/assembly-continuation/asm015-plan.md`.
 SRF-016/#360 preserves later surface-as-tool Trim; accepted
 SRF-013 is scoped to sketch-normal paired-spline Trim only. Exact shoehorn R12 and enclosure rim
 remain blocked Todo work; full surface-iron acceptance is still ahead.
