@@ -4,9 +4,9 @@
 
 Canvas DOC-024, retained Remove HIS-007 and Surface workspace VIS-004 are
 independently accepted and integrated at 645497f. The combined build, focused
-core checks and actual Surface Modify > Remove native route pass. SRF-012 is
-now scoped to exterior true guide-rail Loft; its kernel feasibility is active in
-`../Alloy-worktrees/surface-iron-guide-loft`. SRF-015 separately retains the
+core checks and actual Surface Modify > Remove native route pass. SRF-012 exterior endpoint-contact guide-rail Loft is independently accepted at
+`a8ed9c4`, including focused core, 37-call actual-app API and native3/3 evidence.
+SRF-013 surface Trim is the active geometry work; SRF-015 separately retains the
 three-section handle bridge after Trim. Exact shoehorn R12 and enclosure rim
 remain blocked Todo work; full surface-iron acceptance is still ahead.
 
@@ -3684,5 +3684,5 @@ rail from one solved open arc to an ordered connected two-line lower section.
 The OCCT sheet is open, two-face, zero-solid, and has source-derived face/edge
 IDs; broader rail/contact and handle-bridge modes remain separate. Focused core,
 37-call real-app API, and Qt-delivered viewport selection/Cancel checks passed.
-The independent source/compatibility review and main integration remain pending.
-See [candidate validation](validation/surface-rail-loft.md).
+Independent Astra review accepted this bounded scope; main integration build
+and rail core check pass. See [validation](validation/surface-rail-loft.md).
