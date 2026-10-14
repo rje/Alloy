@@ -24,10 +24,51 @@
 #include <QJsonDocument>
 class SectionControlsTest final:public QObject {
  Q_OBJECT
- QJsonObject call(AlloyWindow& w,const QString& command,const QJsonObject& args={}){const auto r=w.execute(command,args);if(!r["ok"].toBool())qFatal("%s",QJsonDocument(r).toJson().constData());return r["result"].toObject();}
+ QJsonObject call(AlloyWindow& w,const QString& command,const QJsonObject& args={}){const auto r=w.executeApi(command,args);if(!r["ok"].toBool())qFatal("%s",QJsonDocument(r).toJson().constData());return r["result"].toObject();}
  QJsonObject session(AlloyWindow& w){return w.state()["activeSession"].toObject();}
  void capture(AlloyWindow& w,const QString& name){const auto out=qEnvironmentVariable("ALLOY_SECTION_EVIDENCE");if(out.isEmpty())return;QDir().mkpath(out);QTest::qWait(100);call(w,"capture.screenshot",{{"path",out+"/"+name+".png"}});QFile f(out+"/"+name+".json");if(!f.open(QIODevice::WriteOnly))qFatal("evidence");f.write(QJsonDocument(w.state()).toJson());}
 private slots:
+ void sectionEditReturnsToSketch(){
+  AlloyTheme::apply(*qApp);AlloyWindow w;w.resize(1400,900);w.show();w.activateWindow();QVERIFY(QTest::qWaitForWindowExposed(&w));
+  ReferenceView* view=nullptr;for(auto* child:w.findChildren<QWidget*>())if(auto* candidate=dynamic_cast<ReferenceView*>(child))view=candidate;QVERIFY(view);
+  call(w,"solid.box",{{"width",40},{"depth",20},{"height",20}});
+  const auto body=call(w,"document.inspect")["evaluation"].toObject()["bodies"].toArray()[0].toObject();QJsonObject face;
+  for(const auto& item:body["supportFaces"].toArray())if(item.toObject()["role"]=="box.y1")face=item.toObject();QVERIFY(!face.isEmpty());
+  QJsonObject support;for(const auto& key:{"producerFeatureId","bodyId","faceId"})support[key]=face[key];
+  const QString plane=call(w,"construction.plane",{{"source",QJsonObject{{"support",support}}},{"offset",0},{"units","mm"}}).value("planeId").toString();
+  const auto section=call(w,"inspect.section",{{"plane","XZ"},{"name","Width"}})["analyses"].toArray()[0].toObject();
+  call(w,"sketch.begin",{{"planeId",plane},{"name","Project"}});call(w,"sketch.projectBegin");
+  const auto pending=session(w);QVERIFY(pending.contains("pendingProject"));
+  auto* tree=w.findChild<QTreeWidget*>();QVERIFY(tree);QTreeWidgetItem* row=nullptr;
+  for(QTreeWidgetItemIterator it(tree);*it;++it)if((*it)->data(0,Qt::UserRole+2).toString()==section.value("id").toString())row=*it;
+  QVERIFY(row);
+  // Initial activation precedes the tested Browser and dock inputs.
+#ifdef Q_OS_MACOS
+  QProcess activation;activation.start("osascript",{"-e",QString("tell application \"System Events\" to set frontmost of first application process whose unix id is %1 to true").arg(QCoreApplication::applicationPid())});QVERIFY(activation.waitForFinished(5000));QCOMPARE(activation.exitCode(),0);
+#endif
+  w.raise();w.activateWindow();w.windowHandle()->requestActivate();QApplication::setActiveWindow(&w);view->setFocus(Qt::OtherFocusReason);QTRY_VERIFY(view->hasFocus());
+  auto open=[&]{const auto point=tree->visualItemRect(row).center();
+    QTimer::singleShot(40,&w,[&]{auto* menu=qobject_cast<QMenu*>(QApplication::activePopupWidget());if(!menu)qFatal("analysis menu missing");QTest::mouseClick(menu,Qt::LeftButton,Qt::NoModifier,menu->actionGeometry(menu->actions()[0]).center());});
+    QContextMenuEvent context(QContextMenuEvent::Mouse,point,tree->viewport()->mapToGlobal(point));QApplication::sendEvent(tree->viewport(),&context);
+  };
+  open();auto* dock=w.findChild<QDockWidget*>("sectionDock");QVERIFY(dock&&dock->isVisible());QVERIFY(!w.state()["sectionEdit"].toObject().isEmpty());
+  QVERIFY(w.state()["activeSession"].toObject()["id"]==pending["id"]);
+  auto* offset=dock->findChild<QDoubleSpinBox*>("sectionOffset");QVERIFY(offset);QTRY_VERIFY(offset->hasFocus());
+  QTest::keyClick(offset,Qt::Key_A,Qt::ControlModifier);QTest::keyClicks(offset,"10");QTest::keyClick(offset,Qt::Key_Return);
+  QTRY_COMPARE(w.state()["sectionEdit"].toObject()["inputs"].toObject()["offsetMm"].toDouble(),10.0);
+  capture(w,"native-sketch-section-preview");QTest::keyClick(offset,Qt::Key_Escape);
+  QTRY_VERIFY(w.state()["sectionEdit"].toObject().isEmpty());QTRY_VERIFY(view->hasFocus());
+  QCOMPARE(session(w)["pendingProject"],pending["pendingProject"]);QCOMPARE(session(w)["draftSketch"],pending["draftSketch"]);
+  QCOMPARE(call(w,"analysis.inspect")["analyses"].toArray()[0].toObject()["offsetMm"].toDouble(),0.0);
+  open();dock=w.findChild<QDockWidget*>("sectionDock");offset=dock->findChild<QDoubleSpinBox*>("sectionOffset");QTRY_VERIFY(offset->hasFocus());
+  QTest::keyClick(offset,Qt::Key_A,Qt::ControlModifier);QTest::keyClicks(offset,"12");QTest::keyClick(offset,Qt::Key_Return);
+  QTest::mouseClick(dock->findChild<QDialogButtonBox*>()->button(QDialogButtonBox::Ok),Qt::LeftButton);
+  QTRY_VERIFY(w.state()["sectionEdit"].toObject().isEmpty());QTRY_VERIFY(view->hasFocus());
+  QCOMPARE(call(w,"analysis.inspect")["analyses"].toArray()[0].toObject()["offsetMm"].toDouble(),12.0);
+  QCOMPARE(session(w)["pendingProject"],pending["pendingProject"]);QCOMPARE(session(w)["draftSketch"],pending["draftSketch"]);
+  QCOMPARE(call(w,"sketch.projectFace",support)["added"].toInt(),4);call(w,"sketch.projectCommit");call(w,"sketch.finish");
+  capture(w,"native-sketch-section-committed");
+ }
  void selectedFaceNative(){
   AlloyTheme::apply(*qApp);AlloyWindow w;w.resize(1400,900);w.show();w.activateWindow();QVERIFY(QTest::qWaitForWindowExposed(&w));
   ReferenceView* view=nullptr;for(auto* child:w.findChildren<QWidget*>())if(auto* candidate=dynamic_cast<ReferenceView*>(child))view=candidate;QVERIFY(view);

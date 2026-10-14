@@ -95,7 +95,12 @@ void AlloyWindow::registerSectionCommands() {
     }});
 }
 QJsonObject AlloyWindow::beginSection(const QJsonObject& overrides) {
-    if(!session_.isEmpty())return sectionError("session_busy","Complete or cancel the active command first");
+    const bool duringSketch=session_.value("command")=="sketch.edit";
+    if(!sectionEdit_.isEmpty() || (!session_.isEmpty() && !duringSketch))return sectionError("session_busy","Complete or cancel the active command first");
+    if(duringSketch && !overrides.contains("analysisId"))return sectionError("analysis_required","Choose an existing Section Analysis while sketching");
+    if(duringSketch && overrides.size()!=1)return sectionError("unsupported_option","Choose the existing section first, then edit its settings in the dock");
+    if(duringSketch && session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))
+        return sectionError("stale_session","The document changed; cancel and restart this sketch");
     QJsonObject inputs{{"name","Section Analysis"},{"hatch",true},{"offsetMm",0.0},{"flip",false}};
     if(overrides.contains("analysisId")) {
         bool found=false;for(const auto& entry:document_->authored()["analyses"].toArray()){const auto row=entry.toObject();if(row["id"]==overrides["analysisId"]){inputs={{"analysisId",row["id"]},{"name",row["name"]},{"plane",row["plane"]},{"hatch",row["hatch"]},{"offsetMm",row.value("offsetMm").toDouble()},{"flip",row.value("flip").toBool()}};if(row["plane"]=="face")inputs["support"]=row["support"];found=true;break;}}
@@ -103,36 +108,79 @@ QJsonObject AlloyWindow::beginSection(const QJsonObject& overrides) {
     }
     for(auto it=overrides.begin();it!=overrides.end();++it)inputs[it.key()]=it.value();
     if(!inputs.contains("plane") && !selectedFace_.isEmpty()){inputs["plane"]="face";inputs["support"]=selectedFace_;}
-    session_={{"id",CadDocument::newId()},{"command","inspect.section"},{"status","active"},{"inputs",inputs},{"newAnalysisId",CadDocument::newId()},{"baseDocumentRevision",static_cast<qint64>(document_->revision())},{"previewed",false},{"inputSchema",sectionSchema()}};
-    selectedFace_={};
-    view_->selectSupportFace({},{});
-    showSection();previewSection();return session_;
+    QJsonObject edit{{"id",CadDocument::newId()},{"command","inspect.section"},{"status","active"},{"inputs",inputs},
+        {"newAnalysisId",CadDocument::newId()},{"baseDocumentRevision",static_cast<qint64>(document_->revision())},
+        {"previewed",false},{"inputSchema",sectionSchema()}};
+    if(duringSketch){
+        edit["sketchSessionId"]=session_.value("id");edit["tabId"]=activeTabId_;
+        sectionReturnFocus_=sketchLastFocus_ ? sketchLastFocus_ : view_;
+        sectionEdit_=edit;
+        if(sketchDock_)sketchDock_->setEnabled(false);
+    }else{
+        session_=edit;selectedFace_={};view_->selectSupportFace({},{});
+    }
+    showSection();previewSection();return duringSketch ? sectionEdit_ : session_;
 }
 QJsonObject AlloyWindow::previewSection() {
-    auto fail=[this](const QString& code,const QString& message){session_["previewed"]=false;view_->setSectionAnalysis({});if(sectionDock_){sectionDock_->findChild<QLabel*>("sectionError")->setText(message);sectionDock_->findChild<QDialogButtonBox*>()->button(QDialogButtonBox::Ok)->setEnabled(false);}return sectionError(code,message);};
-    if(session_["baseDocumentRevision"].toInteger()!=static_cast<qint64>(document_->revision()))return fail("stale_session","The document changed; cancel and restart Section Analysis");
-    const auto inputs=session_["inputs"].toObject();if(!inputs.contains("plane"))return fail("plane_required","Select a cutting plane");
-    try{auto args=inputs;args["visible"]=true;args["newAnalysisId"]=session_["newAnalysisId"];const auto candidate=CadDocument::sectionCandidate(document_->authored(),args);session_["documentDraft"]=candidate;session_["previewed"]=true;
+    auto& edit=sectionEdit_.isEmpty() ? session_ : sectionEdit_;
+    auto fail=[this,&edit](const QString& code,const QString& message){edit["previewed"]=false;edit.remove("documentDraft");refreshSection();if(sectionDock_){sectionDock_->findChild<QLabel*>("sectionError")->setText(message);sectionDock_->findChild<QDialogButtonBox*>()->button(QDialogButtonBox::Ok)->setEnabled(false);}return sectionError(code,message);};
+    if(edit["baseDocumentRevision"].toInteger()!=static_cast<qint64>(document_->revision()))return fail("stale_session","The document changed; cancel and restart Section Analysis");
+    if(!sectionEdit_.isEmpty() && (edit.value("tabId")!=activeTabId_ || edit.value("sketchSessionId")!=session_.value("id")))
+        return fail("stale_session","Return to the original sketch before editing this section");
+    const auto inputs=edit["inputs"].toObject();if(!inputs.contains("plane"))return fail("plane_required","Select a cutting plane");
+    try{auto args=inputs;args["visible"]=true;args["newAnalysisId"]=edit["newAnalysisId"];const auto candidate=CadDocument::sectionCandidate(document_->authored(),args);edit["documentDraft"]=candidate;edit["previewed"]=true;
         for(const auto& entry:candidate["analyses"].toArray())if(entry.toObject()["visible"].toBool()){
             const auto presentation=sectionPresentation(entry.toObject());if(presentation["availability"]=="unavailable")return fail("support_unavailable","Selected planar face is unavailable");view_->setSectionAnalysis(presentation);}
-        if(sectionDock_){sectionDock_->findChild<QLabel*>("sectionError")->clear();sectionDock_->findChild<QDialogButtonBox*>()->button(QDialogButtonBox::Ok)->setEnabled(true);}return session_;
+        if(sectionDock_){sectionDock_->findChild<QLabel*>("sectionError")->clear();sectionDock_->findChild<QDialogButtonBox*>()->button(QDialogButtonBox::Ok)->setEnabled(true);}return edit;
     }catch(const std::exception& error){return fail("invalid_arguments",QString::fromUtf8(error.what()));}
+}
+QJsonObject AlloyWindow::updateSectionEdit(const QJsonObject& changes) {
+    if(sectionEdit_.isEmpty())return sectionError("invalid_session","Section edit is no longer active");
+    for(auto it=changes.begin();it!=changes.end();++it)
+        if(it.key()!="name" && it.key()!="offsetMm" && it.key()!="flip" && it.key()!="hatch")
+            return sectionError("unsupported_option","The section support and identity stay fixed while sketching");
+    auto inputs=sectionEdit_.value("inputs").toObject();for(auto it=changes.begin();it!=changes.end();++it)inputs[it.key()]=it.value();
+    sectionEdit_["inputs"]=inputs;return previewSection();
+}
+QJsonObject AlloyWindow::finishSectionEdit(const QString& id,bool commit) {
+    if(sectionEdit_.isEmpty() || sectionEdit_.value("id")!=id)return sectionError("invalid_session","Section edit is no longer active");
+    if(commit){
+        if(sectionEdit_.value("tabId")!=activeTabId_ || sectionEdit_.value("sketchSessionId")!=session_.value("id")
+            || sectionEdit_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision())
+            || session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))
+            return sectionError("stale_session","The document or sketch changed; return to the sketch and retry");
+        if(!sectionEdit_.value("previewed").toBool())return sectionError("invalid_analysis","Resolve the section preview before accepting");
+        const auto error=document_->commitAnalyses(sectionEdit_.value("documentDraft").toObject().value("analyses").toArray(),"Edit Section Analysis");
+        if(!error.isEmpty())return sectionError("invalid_analysis",error);
+        session_["baseDocumentRevision"]=static_cast<qint64>(document_->revision());
+    }
+    const auto tabId=activeTabId_,sketchId=session_.value("id").toString();
+    sectionEdit_={};if(sectionDock_)sectionDock_->hide();if(sketchDock_)sketchDock_->setEnabled(true);refreshSection();
+    const QPointer<QWidget> focus=sectionReturnFocus_;sectionReturnFocus_.clear();
+    QTimer::singleShot(0,this,[this,focus,tabId,sketchId]{
+        if(focus && sectionEdit_.isEmpty() && activeTabId_==tabId && session_.value("command")=="sketch.edit"
+            && session_.value("id")==sketchId && (focus==view_ || (sketchDock_ && (focus==sketchDock_ || sketchDock_->isAncestorOf(focus)))))
+            focus->setFocus(Qt::OtherFocusReason);
+    });
+    return {{"sessionId",id},{"status",commit ? "committed" : "cancelled"},{"sketchSessionId",session_.value("id")}};
 }
 void AlloyWindow::showSection() {
     if(sectionDock_){canvasWindow_->removeDockWidget(sectionDock_);delete sectionDock_;}
+    const auto& edit=sectionEdit_.isEmpty() ? session_ : sectionEdit_;
+    const bool returningToSketch=!sectionEdit_.isEmpty();
     sectionDock_=new QDockWidget("Section Analysis",canvasWindow_);sectionDock_->setObjectName("sectionDock");sectionDock_->setFeatures(QDockWidget::DockWidgetMovable|QDockWidget::DockWidgetFloatable);
     auto* panel=new QWidget(sectionDock_);sectionDock_->setWidget(panel);panel->setMinimumWidth(240);auto* form=new QFormLayout(panel);
-    auto* plane=new QComboBox(panel);plane->setObjectName("sectionPlane");plane->addItems({"Select cutting plane…","XY","XZ","YZ","Selected Face"});plane->setCurrentIndex(session_["inputs"].toObject()["plane"]=="face" ? 4 : plane->findText(session_["inputs"].toObject()["plane"].toString()));if(plane->currentIndex()<0)plane->setCurrentIndex(0);form->addRow("Cutting Plane",plane);
-    auto* pick=new QPushButton("Select Face on Canvas",panel);pick->setObjectName("sectionSelectFace");form->addRow(pick);
+    auto* plane=new QComboBox(panel);plane->setObjectName("sectionPlane");plane->addItems({"Select cutting plane…","XY","XZ","YZ","Selected Face"});plane->setCurrentIndex(edit["inputs"].toObject()["plane"]=="face" ? 4 : plane->findText(edit["inputs"].toObject()["plane"].toString()));if(plane->currentIndex()<0)plane->setCurrentIndex(0);plane->setEnabled(!returningToSketch);form->addRow("Cutting Plane",plane);
+    auto* pick=new QPushButton("Select Face on Canvas",panel);pick->setObjectName("sectionSelectFace");pick->setVisible(!returningToSketch);form->addRow(pick);
     auto* support=new QLabel(panel);support->setObjectName("sectionSupport");support->setWordWrap(true);form->addRow(support);
-    auto* clear=new QPushButton("Clear Face",panel);clear->setObjectName("sectionClearFace");form->addRow(clear);
-    auto* name=new QLineEdit(session_["inputs"].toObject()["name"].toString(),panel);name->setObjectName("sectionName");form->addRow("Name",name);
-    auto* offset=new QDoubleSpinBox(panel);offset->setObjectName("sectionOffset");offset->setDecimals(4);offset->setKeyboardTracking(false);offset->setRange(-100000,100000);offset->setSuffix(" mm");offset->setValue(session_["inputs"].toObject()["offsetMm"].toDouble());form->addRow("Distance",offset);
-    auto* flip=new QCheckBox("Flip",panel);flip->setObjectName("sectionFlip");flip->setChecked(session_["inputs"].toObject()["flip"].toBool());form->addRow(flip);
+    auto* clear=new QPushButton("Clear Face",panel);clear->setObjectName("sectionClearFace");clear->setVisible(!returningToSketch);form->addRow(clear);
+    auto* name=new QLineEdit(edit["inputs"].toObject()["name"].toString(),panel);name->setObjectName("sectionName");form->addRow("Name",name);
+    auto* offset=new QDoubleSpinBox(panel);offset->setObjectName("sectionOffset");offset->setDecimals(4);offset->setKeyboardTracking(false);offset->setRange(-100000,100000);offset->setSuffix(" mm");offset->setValue(edit["inputs"].toObject()["offsetMm"].toDouble());form->addRow("Distance",offset);
+    auto* flip=new QCheckBox("Flip",panel);flip->setObjectName("sectionFlip");flip->setChecked(edit["inputs"].toObject()["flip"].toBool());form->addRow(flip);
     form->addRow("Section Color",new QLabel("From Component",panel));
-    auto* hatch=new QCheckBox("Show Hatching",panel);hatch->setObjectName("sectionHatch");hatch->setChecked(session_["inputs"].toObject()["hatch"].toBool());form->addRow(hatch);
+    auto* hatch=new QCheckBox("Show Hatching",panel);hatch->setObjectName("sectionHatch");hatch->setChecked(edit["inputs"].toObject()["hatch"].toBool());form->addRow(hatch);
     auto* status=new QLabel(panel);status->setObjectName("sectionError");status->setWordWrap(true);form->addRow(status);
-    auto update=[this](const QJsonObject& inputs){execute("command.update",{{"session",session_["id"]},{"inputs",inputs}});};
+    auto update=[this](const QJsonObject& inputs){execute("command.update",{{"session",sectionEdit_.isEmpty() ? session_["id"] : sectionEdit_["id"]},{"inputs",inputs}});};
     connect(plane,&QComboBox::currentIndexChanged,panel,[plane,update](int i){if(i>0 && i<4)update({{"plane",plane->currentText()}});else if(i==4)update({{"plane","face"}});else update({{"support",QJsonValue::Null}});});
     connect(pick,&QPushButton::clicked,panel,[this]{view_->setFocus();});
     connect(clear,&QPushButton::clicked,panel,[update]{update({{"support",QJsonValue::Null}});});
@@ -141,20 +189,27 @@ void AlloyWindow::showSection() {
     connect(flip,&QCheckBox::toggled,panel,[update](bool on){update({{"flip",on}});});
     connect(hatch,&QCheckBox::toggled,panel,[update](bool on){update({{"hatch",on}});});
     auto* buttons=new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel,panel);form->addRow(buttons);
-    connect(buttons,&QDialogButtonBox::accepted,panel,[this,status]{const auto result=execute("command.commit",{{"session",session_["id"]}});if(!result["ok"].toBool())status->setText(result["error"].toObject()["message"].toString());});
-    auto cancel=[this]{if(session_.value("command")=="inspect.section")execute("command.cancel",{{"session",session_["id"]}});};connect(buttons,&QDialogButtonBox::rejected,panel,cancel);auto* escape=new QShortcut(QKeySequence(Qt::Key_Escape),panel);escape->setContext(Qt::WidgetWithChildrenShortcut);connect(escape,&QShortcut::activated,panel,cancel);
+    if(returningToSketch){buttons->button(QDialogButtonBox::Ok)->setText("OK");buttons->button(QDialogButtonBox::Cancel)->setText("Cancel");
+        buttons->setToolTip("Commit or discard the section edit, then return to the active sketch");}
+    connect(buttons,&QDialogButtonBox::accepted,panel,[this,status]{const auto result=execute("command.commit",{{"session",sectionEdit_.isEmpty() ? session_["id"] : sectionEdit_["id"]}});if(!result["ok"].toBool())status->setText(result["error"].toObject()["message"].toString());});
+    auto cancel=[this]{if(!sectionEdit_.isEmpty() || session_.value("command")=="inspect.section")execute("command.cancel",{{"session",sectionEdit_.isEmpty() ? session_["id"] : sectionEdit_["id"]}});};connect(buttons,&QDialogButtonBox::rejected,panel,cancel);auto* escape=new QShortcut(QKeySequence(Qt::Key_Escape),panel);escape->setContext(Qt::WidgetWithChildrenShortcut);connect(escape,&QShortcut::activated,panel,cancel);
     canvasWindow_->addDockWidget(Qt::RightDockWidgetArea,sectionDock_);sectionDock_->show();
     // Native menu dismissal restores its previous focus after the action callback.
-    QTimer::singleShot(0,plane,[plane]{plane->setFocus(Qt::OtherFocusReason);});
+    QTimer::singleShot(0,plane,[plane,offset,returningToSketch]{(returningToSketch ? static_cast<QWidget*>(offset) : static_cast<QWidget*>(plane))->setFocus(Qt::OtherFocusReason);});
 }
 void AlloyWindow::refreshSection() {
     QJsonObject active;
-    if(session_.value("command")=="inspect.section") {
-        if(session_["previewed"].toBool())for(const auto& entry:session_["documentDraft"].toObject()["analyses"].toArray())if(entry.toObject()["visible"].toBool())active=entry.toObject();
+    const auto& edit=sectionEdit_.isEmpty() ? session_ : sectionEdit_;
+    if(edit.value("command")=="inspect.section") {
+        if(edit["previewed"].toBool()){
+            for(const auto& entry:edit["documentDraft"].toObject()["analyses"].toArray())if(entry.toObject()["visible"].toBool())active=entry.toObject();
+        }else{
+            for(const auto& entry:document_->authored()["analyses"].toArray())if(entry.toObject()["visible"].toBool())active=entry.toObject();
+        }
     }else for(const auto& entry:document_->authored()["analyses"].toArray())if(entry.toObject()["visible"].toBool())active=entry.toObject();
     view_->setSectionAnalysis(active.isEmpty() ? active : sectionPresentation(active));
-    if(session_.value("command")=="inspect.section" && sectionDock_) {
-        const auto inputs=session_.value("inputs").toObject();
+    if(edit.value("command")=="inspect.section" && sectionDock_) {
+        const auto inputs=edit.value("inputs").toObject();
         if(auto* plane=sectionDock_->findChild<QComboBox*>("sectionPlane")){const QSignalBlocker block(plane);plane->setCurrentIndex(inputs["plane"]=="face" ? 4 : qMax(0,plane->findText(inputs["plane"].toString())));}
         if(auto* support=sectionDock_->findChild<QLabel*>("sectionSupport"))support->setText(inputs["plane"]=="face" ? (inputs["support"].toObject().isEmpty() ? "Click a planar face in the canvas" : "Face: "+inputs["support"].toObject()["faceId"].toString().left(8)) : "Origin plane");
         if(auto* offset=sectionDock_->findChild<QDoubleSpinBox*>("sectionOffset")){const QSignalBlocker block(offset);offset->setValue(inputs["offsetMm"].toDouble());offset->setEnabled(inputs.contains("plane"));}

@@ -674,7 +674,7 @@ AlloyWindow::AlloyWindow() {
             if(choice==edit)execute("canvas.dialog",{{"canvasId",id}});else if(choice==calibrate)execute("canvas.calibrateDialog",{{"canvasId",id}});return;
         }
         if(item->parent()==analysesNode_) {
-            QMenu menu(this);auto* edit=menu.addAction("Edit Section Analysis");edit->setEnabled(session_.isEmpty());
+            QMenu menu(this);auto* edit=menu.addAction("Edit Section Analysis");edit->setEnabled((session_.isEmpty() || session_.value("command")=="sketch.edit") && sectionEdit_.isEmpty());
             if(menu.exec(tree_->viewport()->mapToGlobal(point))==edit)execute("inspect.sectionDialog",{{"analysisId",item->data(0,Qt::UserRole+2).toString()}});return;
         }
         if(item==jointsNode_){
@@ -918,6 +918,7 @@ AlloyWindow::AlloyWindow() {
     sketchEscape_=new QShortcut(QKeySequence(Qt::Key_Escape),view_);
     sketchEscape_->setContext(Qt::WidgetShortcut);sketchEscape_->setEnabled(false);
     connect(sketchEscape_,&QShortcut::activated,this,[this]{
+        if(!sectionEdit_.isEmpty())return;
         if(session_.value("command")=="sketch.plane")execute("sketch.cancel");
         else if(session_.value("command").toString()=="sketch.edit") {
             if(session_.value("tool")=="mirror")execute("sketch.mirrorExit");
@@ -928,6 +929,10 @@ AlloyWindow::AlloyWindow() {
             else if(session_.contains("pendingDimension"))execute("sketch.dimensionCancel");
             else execute("sketch.tool",{{"tool","select"}});
         }
+    });
+    connect(qApp,&QApplication::focusChanged,this,[this](QWidget*,QWidget* now){
+        if(session_.value("command")!="sketch.edit" || !sectionEdit_.isEmpty() || !now)return;
+        if(now==view_ || (sketchDock_ && (now==sketchDock_ || sketchDock_->isAncestorOf(now))))sketchLastFocus_=now;
     });
     refresh();
 }
@@ -995,6 +1000,7 @@ void AlloyWindow::updateTimelineDrop(const QPoint& globalPosition) {
 
 bool AlloyWindow::eventFilter(QObject* watched,QEvent* event) {
     if(componentCopyKey(watched,event))return true;
+    if(watched==view_ && !sectionEdit_.isEmpty() && event->type()==QEvent::KeyPress)return true;
     if(timelineDragging_ && event->type()==QEvent::KeyPress
         && static_cast<QKeyEvent*>(event)->key()==Qt::Key_Escape){cancelTimelineDrag(true);return true;}
     if(auto* button=qobject_cast<QToolButton*>(watched);button && !button->property("featureId").toString().isEmpty()){
@@ -4549,6 +4555,10 @@ void AlloyWindow::registerCommands() {
     const QJsonObject sessionId{{"session", parameter("string", "Unique active session ID.")}};
     auto updateSchema = sessionId; updateSchema["inputs"] = parameter("object", "Partial input changes; unknown fields are rejected.");
     add("command.update", "Update command inputs", "Validate and update the actual dialog draft without committing intent.", updateSchema, [this](const auto& a) {
+        if(!sectionEdit_.isEmpty()){
+            if(sectionEdit_.value("id")!=a.value("session"))return failure("invalid_session","Section edit is no longer active");
+            return updateSectionEdit(a.value("inputs").toObject());
+        }
         if (session_.isEmpty() || session_.value("id") != a["session"]) return failure("invalid_session", "Session is no longer active");
         if(session_.value("command")=="component.copyPlacement")return updateComponentCopy(a["inputs"].toObject());
         if(session_.value("command").toString().startsWith("canvas."))return updateCanvas(a["inputs"].toObject());
@@ -4767,6 +4777,7 @@ void AlloyWindow::registerCommands() {
         return session_;
     });
     add("command.preview", "Inspect command preview", "Inspect disposable authored draft; no evaluated geometry is implied.", sessionId, [this](const auto& a) {
+        if(!sectionEdit_.isEmpty())return sectionEdit_.value("id")==a.value("session") ? previewSection() : failure("invalid_session","Section edit is no longer active");
         if (session_.isEmpty() || session_.value("id") != a["session"]) return failure("invalid_session", "Session is no longer active");
         if(session_.value("command")=="component.copyPlacement")return previewComponentCopy();
         if(session_.value("command").toString().startsWith("canvas."))return previewCanvas();
@@ -4983,6 +4994,13 @@ QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
     };
     const auto* command = findCommand(id);
     if (!command) return finish(failure("unknown_command", "No command named " + id));
+    if(!sectionEdit_.isEmpty()){
+        const bool sectionCommand=(id=="command.update" || id=="command.preview" || id=="command.commit" || id=="command.cancel")
+            && args.value("session")==sectionEdit_.value("id");
+        const bool readOnly=id=="app.state" || id=="document.inspect" || id=="analysis.inspect" || id=="commands.list"
+            || id.startsWith("capture.") || id.startsWith("view.");
+        if(!sectionCommand && !readOnly)return finish(failure("section_edit_active","Return to the sketch before another command"));
+    }
     if(!pendingReference_.isEmpty()){
         const bool blocked=id.startsWith("solid.") || id.startsWith("surface.") || id.startsWith("primitive.") || id.startsWith("sketch.")
             || id.startsWith("construction.") || id.startsWith("feature.") || id.startsWith("body.rename") || id.startsWith("body.remove") || (id.startsWith("component.") && id!="component.inspect")
@@ -5123,7 +5141,7 @@ QJsonObject AlloyWindow::state() const {
     return {{"application", "Alloy"}, {"version", "0.1.0"}, {"stage", "sketch-authoring"},
         {"runtime", QJsonObject{{"qtVersion", qVersion()}, {"occtBuildVersion", ALLOY_OCCT_VERSION}}},
         {"revision", static_cast<qint64>(revision_)},
-        {"identity", identity()}, {"activeSession", session_}, {"pendingReferencePosition",pendingReference_}, {"assembly",presentationAssembly()}, {"documentTabs",documentTabs()},
+        {"identity", identity()}, {"activeSession", session_}, {"sectionEdit",sectionEdit_}, {"pendingReferencePosition",pendingReference_}, {"assembly",presentationAssembly()}, {"documentTabs",documentTabs()},
         {"inlineEditor",inlineEditorState()},
         {"focus",QJsonObject{{"widgetClass",QApplication::focusWidget() ? QApplication::focusWidget()->metaObject()->className() : ""},
             {"widgetName",QApplication::focusWidget() ? QApplication::focusWidget()->objectName() : QString{}},
@@ -6838,6 +6856,7 @@ void AlloyWindow::showPathPlane() {
 }
 
 QJsonObject AlloyWindow::finishSession(const QString& id, bool commit) {
+    if(!sectionEdit_.isEmpty())return finishSectionEdit(id,commit);
     if(session_.value("command")=="component.copyPlacement")return finishComponentCopy(id,commit);
     if(session_.value("command").toString().startsWith("canvas."))return finishCanvas(id,commit);
     if (session_.isEmpty() || session_.value("id").toString() != id) return failure("invalid_session", "Session is no longer active");
@@ -7383,6 +7402,7 @@ QJsonObject AlloyWindow::beginSketch(const QString& plane,const QString& name,co
     if(plane=="construction")inputs["planeId"]=support["planeId"];
     const auto entryTool=session_.value("pendingTool").toString("select");
     const auto sessionId=session_.value("id").toString(CadDocument::newId());
+    sketchLastFocus_.clear();
     session_={{"id",sessionId},{"command","sketch.edit"},{"status","active"},{"inputs",inputs},{"draftSketch",draft},
         {"tool",entryTool},{"selection",QJsonObject{{"pointIds",QJsonArray{}},{"entityIds",QJsonArray{}}}},{"solverDiagnostics",solved.diagnostics},
         {"previewed",false},{"baseDocumentRevision",static_cast<qint64>(document_->revision())},{"resolvedFrame",resolvedFrame},{"projectionContext",projectionContext},

@@ -850,6 +850,15 @@ records do not enter the modeling Timeline or change evaluated geometry. Fixed
 positive world half-spaces and bounded verification are described in
 [the Section Analysis receipt](validation/section-analysis.md).
 
+While `activeSession.command` is `sketch.edit`, `inspect.sectionDialog` accepts
+only an existing `analysisId`. The returned edit ID appears separately at
+`app.state.sectionEdit`; use that ID for `command.update`, `command.preview`,
+`command.commit` or `command.cancel`. The sketch's `activeSession` ID, draft and
+selection remain authoritative. This bounded sub-edit permits name, offset,
+Flip and hatch changes while keeping the analysis support fixed. Its Cancel
+discards the section preview; OK commits one analysis history action and returns
+to the same sketch. Other mutation commands wait until the section dock closes.
+
 The tangent-plane candidate adds `construction.tangentPlane` with a retained
 `tangent` object: `face: {producerFeatureId, bodyId, faceId}` and
 `point: {bodyId, edgeId, endpoint: 0|1}`. It creates ordinary construction-plane

@@ -126,11 +126,16 @@ private:
     void registerSectionCommands();
     QJsonObject beginSection(const QJsonObject& args);
     QJsonObject previewSection();
+    QJsonObject updateSectionEdit(const QJsonObject& changes);
+    QJsonObject finishSectionEdit(const QString& id,bool commit);
     void showSection();
     void refreshSection();
     QJsonObject sectionPresentation(const QJsonObject& analysis) const;
     QJsonArray sectionInspection() const;
     QDockWidget* sectionDock_ = nullptr;
+    QJsonObject sectionEdit_;
+    QPointer<QWidget> sketchLastFocus_;
+    QPointer<QWidget> sectionReturnFocus_;
     QDockWidget* sliderDock_ = nullptr;
     QTreeWidgetItem* jointsNode_ = nullptr;
     bool jointOriginsShown_ = false;
