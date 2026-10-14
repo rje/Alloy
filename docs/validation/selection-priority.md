@@ -33,3 +33,10 @@ the explicit Fillet edge picker while priority remains Edge, Cancel retaining
 that mode, toggle back to Auto, and unchanged authored Box data. Native and
 API runs used one private editor at a time and exited cleanly. The menu
 gesture was Qt-delivered; no OS-level pointer claim is made.
+
+A focused follow-up real-app ledger at
+`../Alloy-reference-records/deliverables/selection-priority-2026-10-13/api-transitions-01/`
+checks that a selected ordinary edge is replaced by construction-plane,
+sketch and profile selections, and does not leak through a document-tab switch.
+Those transitions clear the old edge cue; the authored geometry remains under
+the same document authority. This follow-up passed and its editor exited.

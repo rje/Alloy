@@ -827,6 +827,7 @@ void AlloyWindow::showActiveTab() {
     sketchHistory_=active->sketchHistory;sketchHistoryIndex_=active->sketchHistoryIndex;
     sketchHistoryGroup_=active->sketchHistoryGroup;
     selectedBody_=active->selectedBody;selectedSketch_=active->selectedSketch;selectedProfile_=active->selectedProfile;selectedProfileIds_=active->selectedProfileIds;selectedFace_=active->selectedFace;selectedPlane_=active->selectedPlane;
+    selectedEdge_={};view_->clearSolidEdgeHighlights();
     displayedDocumentRevision_=std::numeric_limits<quint64>::max();displayedSketchDraft_={};
     sketchWidgetDraft_={};sketchWidgetSelection_={};sketchWidgetUnits_.clear();pendingBrowserVisibility_.clear();
     view_->restoreCameraState(active->camera);
@@ -986,7 +987,7 @@ void AlloyWindow::registerCommands() {
         if (tabHasUnsavedWork(activeTabId_) && !a.value("discard").toBool()) return failure("unsaved_changes", "Save or explicitly discard the current document");
         if(!session_.isEmpty())finishSession(session_.value("id").toString(),false);
         document_->reset();view_->rebindDocument();displayedDocumentRevision_=std::numeric_limits<quint64>::max();
-        selectedBody_.clear();selectedFace_={};selectedPlane_.clear();view_->selectSupportFace({},{});selectedSketch_.clear();selectedProfile_.clear();selectedProfileIds_={};view_->fit({},{});return document_->state();
+        selectedBody_.clear();selectedFace_={};selectedEdge_={};selectedPlane_.clear();view_->selectSupportFace({},{});view_->clearSolidEdgeHighlights();selectedSketch_.clear();selectedProfile_.clear();selectedProfileIds_={};view_->fit({},{});return document_->state();
     });
     auto path=parameter("string","Absolute native .alloy file path.");
     auto discard=optional(parameter("boolean","Explicitly discard unsaved edits."));
@@ -1137,7 +1138,7 @@ void AlloyWindow::registerCommands() {
         const auto error=document_->open(a["path"].toString());
         if(error.isEmpty()){if(!session_.isEmpty())finishSession(session_.value("id").toString(),false);
             view_->rebindDocument();displayedDocumentRevision_=std::numeric_limits<quint64>::max();
-            selectedBody_.clear();selectedFace_={};selectedPlane_.clear();view_->selectSupportFace({},{});selectedSketch_.clear();selectedProfile_.clear();selectedProfileIds_={};view_->fit(presentationBodies(),nonzeroAssemblyPose() ? std::vector<EvaluatedSketch>{} : document_->sketches());}
+            selectedBody_.clear();selectedFace_={};selectedEdge_={};selectedPlane_.clear();view_->selectSupportFace({},{});view_->clearSolidEdgeHighlights();selectedSketch_.clear();selectedProfile_.clear();selectedProfileIds_={};view_->fit(presentationBodies(),nonzeroAssemblyPose() ? std::vector<EvaluatedSketch>{} : document_->sketches());}
         return error.isEmpty() ? document_->state() : failure("open_failed",error,"path");
     });
     for(const auto& id:{"document.saveDialog","document.saveAsDialog"}) {
@@ -3396,7 +3397,7 @@ void AlloyWindow::registerCommands() {
         const auto id=a["planeId"].toString();
         if(session_.value("command")=="solid.splitBody")return selectSplitPlane(id);
         for(const auto& plane:document_->evaluation().constructionPlanes)if(plane.featureId==id && plane.visible) {
-            selectedPlane_=id;selectedBody_.clear();selectedFace_={};view_->selectSupportFace({},{});selectedSketch_.clear();selectedProfile_.clear();selectedProfileIds_={};
+            selectedPlane_=id;selectedBody_.clear();selectedFace_={};selectedEdge_={};view_->clearSolidEdgeHighlights();view_->selectSupportFace({},{});selectedSketch_.clear();selectedProfile_.clear();selectedProfileIds_={};
             view_->selectBody({});view_->selectProfile({},{});view_->selectConstructionPlane(id);return QJsonObject{{"kind","constructionPlane"},{"planeId",id},{"frame",plane.frame}};
         }
         return failure("plane_unavailable","Visible construction plane does not exist","planeId");
@@ -3408,7 +3409,7 @@ void AlloyWindow::registerCommands() {
     add("selection.sketchSet","Select sketch","Select a finished sketch through the same path as the Browser.",
         {{"sketchId",sketchIdentity}},[this](const auto& a){
             const auto id=a["sketchId"].toString();for(const auto& sketch:document_->sketches())if(sketch.featureId==id) {
-                selectedBody_.clear();selectedFace_={};selectedPlane_.clear();view_->selectSupportFace({},{});selectedSketch_=id;selectedProfile_.clear();selectedProfileIds_={};view_->selectBody({});view_->selectProfile(id,{});
+                selectedBody_.clear();selectedFace_={};selectedEdge_={};view_->clearSolidEdgeHighlights();selectedPlane_.clear();view_->selectSupportFace({},{});selectedSketch_=id;selectedProfile_.clear();selectedProfileIds_={};view_->selectBody({});view_->selectProfile(id,{});
                 if((session_.value("command")=="solid.extrude" || session_.value("command")=="solid.loft") && sketch.profiles.size()==1)return selectFinishedProfile(id,sketch.profiles.front().profileId);
                 return QJsonObject{{"kind","sketch"},{"sketchId",id}};
             }
@@ -3542,7 +3543,7 @@ void AlloyWindow::registerCommands() {
             if(session_.isEmpty()) {
                 const auto point=view_->pickFinishedPoint(a["x"].toDouble(),a["y"].toDouble());
                 if(!point.isEmpty()) {
-                    selectedBody_.clear();selectedFace_={};selectedPlane_.clear();selectedSketch_=point["sketchId"].toString();selectedProfile_.clear();selectedProfileIds_={};
+                    selectedBody_.clear();selectedFace_={};selectedEdge_={};view_->clearSolidEdgeHighlights();selectedPlane_.clear();selectedSketch_=point["sketchId"].toString();selectedProfile_.clear();selectedProfileIds_={};
                     view_->selectBody({});view_->selectSupportFace({},{});view_->selectProfile({},{});view_->selectFinishedPoint(point);
                     return point;
                 }
@@ -3568,7 +3569,7 @@ void AlloyWindow::registerCommands() {
                 a.value("additive").toBool() || (!a.value("toggle").toBool() && collect),a.value("toggle").toBool());
         }
         if((a.value("additive").toBool() || a.value("toggle").toBool()) && !selectedProfileIds_.isEmpty())return QJsonObject{{"kind","profile"},{"sketchId",selectedSketch_},{"profileId",selectedProfile_},{"profileIds",selectedProfileIds_}};
-        selectedFace_={};selectedPlane_.clear();view_->selectSupportFace({},{});selectedSketch_.clear();selectedProfile_.clear();selectedProfileIds_={};view_->selectProfile({},{});view_->selectBody(selectedBody_);
+        selectedFace_={};selectedEdge_={};view_->clearSolidEdgeHighlights();selectedPlane_.clear();view_->selectSupportFace({},{});selectedSketch_.clear();selectedProfile_.clear();selectedProfileIds_={};view_->selectProfile({},{});view_->selectBody(selectedBody_);
         QJsonObject result{{"bodyId",selectedBody_},{"kind","body"}};
         if(!document_->authored().value("joints").toArray().isEmpty() ||
             std::any_of(document_->bodies().begin(),document_->bodies().end(),[&](const auto& body){return body.bodyId==selectedBody_ && !body.occurrenceId.isEmpty();}))
@@ -4948,7 +4949,7 @@ QJsonObject AlloyWindow::selectFinishedProfile(const QString& sketchId,const QSt
     } else if(additive && selectedSketch_==sketchId) {
         if(!selectedProfileIds_.contains(profileId))selectedProfileIds_.append(profileId);
     } else selectedProfileIds_=QJsonArray{profileId};
-    selectedBody_.clear();selectedFace_={};selectedPlane_.clear();view_->selectSupportFace({},{});selectedSketch_=sketchId;
+    selectedBody_.clear();selectedFace_={};selectedEdge_={};selectedPlane_.clear();view_->clearSolidEdgeHighlights();view_->selectSupportFace({},{});selectedSketch_=sketchId;
     selectedProfile_=selectedProfileIds_.isEmpty() ? QString{} : selectedProfileIds_.first().toString();
     view_->selectBody({});view_->selectProfiles(sketchId,selectedProfileIds_);
     if(session_.value("command")=="solid.extrude") {

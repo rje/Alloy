@@ -58,6 +58,31 @@ with application(args.app,out) as (call,ledger):
     auto=call('selection.pick',{'x':interior['x'],'y':interior['y']})
     assert auto['kind']=='face' and auto['support']==face_ref
     assert call('document.inspect')['authored']==initial['authored']
+    # A later Browser selection must replace an ordinary retained edge, including
+    # its viewport cue. Switching documents must not resurrect the old edge.
+    plane_id=call('construction.plane',{'source':{'support':face_ref},'offset':5,'units':'mm'})['planeId']
+    session=call('sketch.begin',{'plane':'XY','name':'Priority transition sketch'})
+    call('sketch.rectangle',{'x1':2,'y1':2,'x2':12,'y2':10,'units':'mm'})
+    draft=call('command.preview',{'session':session['id']})
+    sketch_id=draft['authoredDraft']['id']
+    profile_id=draft['sketchGeometry']['profiles'][0]['profileId']
+    call('sketch.finish')
+    def edge_then(command,inputs,kind):
+        call('selection.edgeSet',{'bodyId':body_id,'edgeId':edge['edgeId']})
+        assert call('app.state')['selection']['kind']=='edge'
+        call(command,inputs)
+        state=call('app.state')
+        assert state['selection']['kind']==kind and 'edgeId' not in state['selection'],state['selection']
+    edge_then('selection.planeSet',{'planeId':plane_id},'constructionPlane')
+    edge_then('selection.sketchSet',{'sketchId':sketch_id},'sketch')
+    edge_then('selection.profileSet',{'sketchId':sketch_id,'profileId':profile_id},'profile')
+    tab=call('document.tabs')['activeTabId']
+    call('selection.edgeSet',{'bodyId':body_id,'edgeId':edge['edgeId']})
+    call('document.tabNew')
+    assert call('app.state')['selection'].get('edgeId') is None
+    call('document.tabActivate',{'tabId':tab})
+    assert call('app.state')['selection'].get('edgeId') is None
     (out/'report.json').write_text(json.dumps({'passed':True,'bodyId':body_id,
-        'edgeId':edge['edgeId'],'face':face_ref,'priorityAfterCancel':'edge'},indent=2))
+        'edgeId':edge['edgeId'],'face':face_ref,'priorityAfterCancel':'edge',
+        'replacementSelections':['constructionPlane','sketch','profile','tab']},indent=2))
     (out/'transcript.json').write_text(json.dumps(ledger,indent=2))
