@@ -6,6 +6,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <algorithm>
+#include <numbers>
 #include <BRepAdaptor_Curve.hxx>
 
 static void check(bool okay,const char* message){if(!okay)throw std::runtime_error(message);}
@@ -42,9 +43,109 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
         const auto oldVolume=rounded.bodies()[0].summary["volumeMm3"].toDouble();
         auto error=rounded.commit(CadDocument::shellCandidate(rounded.authored(),{{"targetBodyId",f["bodyId"]},
             {"thicknessMm",3.5}}),"Closed rounded shell");
-        check(!error.isEmpty(),"collapsed mixed-radius offset remains explicit unsupported refusal (GEO-008)");
-        check(rounded.authored()["features"].toArray().size()==2 &&
-            rounded.bodies()[0].summary["volumeMm3"].toDouble()==oldVolume,"unsupported rounded cavity atomic");
+        if(!error.isEmpty())throw std::runtime_error(error.toStdString());
+        check(rounded.authored()["features"].toArray().size()==3 &&
+            rounded.bodies()[0].summary["volumeMm3"].toDouble()<oldVolume,"rounded cavity retained");
+        QSet<QString> boxInnerIds;for(const auto& face:rounded.bodies()[0].supportFaces)
+            if(face.role=="shell-inner")boxInnerIds.insert(face.faceId);
+        auto moved=rounded.authored();auto movedFeatures=moved["features"].toArray();
+        auto movedBox=movedFeatures[0].toObject();auto movedValues=movedBox["parameters"].toObject();
+        movedValues["xMm"]=10;movedValues["yMm"]=-6;movedValues["zMm"]=4;
+        movedValues["widthMm"]=52;movedValues["depthMm"]=83;movedValues["heightMm"]=41;
+        movedBox["parameters"]=movedValues;movedFeatures[0]=movedBox;moved["features"]=movedFeatures;
+        check(rounded.commit(moved,"Move and resize source").isEmpty(),"translated resized rounded Box replay");
+        QSet<QString> movedInnerIds;for(const auto& face:rounded.bodies()[0].supportFaces)
+            if(face.role=="shell-inner")movedInnerIds.insert(face.faceId);
+        check(movedInnerIds==boxInnerIds,"translated Box inner references stable");
+        rounded.history().undo();
+        CadDocument source;
+        auto center=SketchGeometry::addCenterRectangle(
+            SketchGeometry::newFeature(source.authored()["documentId"].toString(),"XY","Centered stock"),
+            {{"centerUMm",0},{"centerVMm",0},{"widthMm",93},{"heightMm",64},
+                {"centerSnapTarget",QJsonObject{{"kind","origin"}}}});
+        check(center.ok,"centered stock sketch");
+        check(source.commit(SketchGeometry::replaceFeature(source.authored(),center.feature),"Center Rectangle").isEmpty(),"source sketch commit");
+        const auto sourceProfile=source.sketches()[0].profiles[0].profileId;
+        check(source.commit(CadDocument::extrusionCandidate(source.authored(),
+            {{"sketchId",center.feature["id"]},{"profileId",sourceProfile},{"distanceMm",30}}),"Extrude").isEmpty(),"source prism");
+        QJsonArray sourceVertical,sourceRims;
+        for(const auto& edge:source.bodies()[0].solidEdges){
+            const auto role=edge.provenance["role"].toString();
+            (role=="sideCorner"?sourceVertical:sourceRims).append(edge.edgeId);
+        }
+        check(sourceVertical.size()==4 && sourceRims.size()==8,"source prism provenance");
+        const auto sourceBody=source.bodies()[0].bodyId;
+        check(source.commit(CadDocument::filletCandidate(source.authored(),{{"targetBodyId",sourceBody},
+            {"groups",QJsonArray{group(sourceVertical,5),group(sourceRims,2.5)}}}),"Grouped Fillet").isEmpty(),"source grouped blend");
+        const auto sourceOuterVolume=source.bodies()[0].summary["volumeMm3"].toDouble();
+        const auto sourceShell=source.commit(CadDocument::shellCandidate(source.authored(),
+            {{"targetBodyId",sourceBody},{"thicknessMm",3.5}}),"Closed Shell");
+        if(!sourceShell.isEmpty())throw std::runtime_error(sourceShell.toStdString());
+        const double cavity=(86*57-(4-std::numbers::pi)*1.5*1.5)*23;
+        check(std::abs(source.bodies()[0].summary["volumeMm3"].toDouble()
+            -(sourceOuterVolume-cavity))<1e-4,"source cavity volume");
+        check(std::count_if(source.bodies()[0].supportFaces.begin(),source.bodies()[0].supportFaces.end(),
+            [](const auto& face){return face.role=="shell-inner";})==6,"source six inner planes");
+        QMap<QString,TopoDS_Edge> sharedInnerEdges;int sharedCount=0;
+        for(const auto& face:source.bodies()[0].supportFaces)if(face.role=="shell-inner")
+            for(const auto& edge:face.boundaryEdges){
+                if(sharedInnerEdges.contains(edge.edgeId)){
+                    check(sharedInnerEdges.value(edge.edgeId).IsSame(edge.edge),"shared inner edge identity is one kernel edge");
+                    ++sharedCount;
+                }else sharedInnerEdges.insert(edge.edgeId,edge.edge);
+            }
+        check(sharedCount>=8,"inner planar faces share semantic edge IDs");
+        const auto shellStage=source.authored();
+        const auto shellStageId=shellStage["features"].toArray().last().toObject()["id"];
+        check(source.commit(CadDocument::shellCandidate(shellStage,
+            {{"featureId",shellStageId},{"targetBodyId",sourceBody},{"thicknessMm",4}}),
+            "Edit cavity").isEmpty(),"source cavity wall edit");
+        QSet<QString> stageEdgeIds;for(const auto& face:source.bodies()[0].supportFaces)
+            if(face.role=="shell-inner")for(const auto& edge:face.boundaryEdges)stageEdgeIds.insert(edge.edgeId);
+        check(stageEdgeIds==QSet<QString>(sharedInnerEdges.keyBegin(),sharedInnerEdges.keyEnd()),
+            "source inner edge IDs survive Shell edit");
+        source.history().undo();check(source.authored()==shellStage,"restore source wall before split");
+        auto reference=[](const EvaluatedSupportFace& face){return QJsonObject{
+            {"producerFeatureId",face.producerFeatureId},{"bodyId",face.bodyId},{"faceId",face.faceId}};};
+        QJsonObject top,bottom;for(const auto& face:source.bodies()[0].supportFaces){
+            if(face.role=="extrude.endCap")top=reference(face);
+            if(face.role=="extrude.base")bottom=reference(face);
+        }
+        check(!top.isEmpty()&&!bottom.isEmpty(),"source outer caps retained for Midplane");
+        const QJsonObject plane{{"id",CadDocument::newId()},{"ownerId",source.authored()["documentId"]},
+            {"type","constructionPlane"},{"name","Middle"},{"visible",true},
+            {"parameters",QJsonObject{{"source",QJsonObject{{"faces",QJsonArray{top,bottom}}}}}}};
+        auto withPlane=source.authored();auto sourceFeatures=withPlane["features"].toArray();
+        sourceFeatures.append(plane);withPlane["features"]=sourceFeatures;
+        check(source.commit(withPlane,"Midplane").isEmpty(),"rounded cavity Midplane");
+        check(source.commit(CadDocument::splitBodyCandidate(source.authored(),
+            {{"targetBodyId",sourceBody},{"planeId",plane["id"]}}),"Split Body").isEmpty(),"rounded cavity split");
+        check(source.bodies().size()==2 && std::abs(source.bodies()[0].summary["volumeMm3"].toDouble()
+            +source.bodies()[1].summary["volumeMm3"].toDouble()-(sourceOuterVolume-cavity))<1e-4,
+            "rounded cavity split conserves material");
+        QSet<QString> innerIds;for(const auto& face:source.bodies()[0].supportFaces)
+            if(face.role=="shell-inner")innerIds.insert(face.faceId);
+        const auto beforeWallEdit=source.authored();
+        const auto shellId=beforeWallEdit["features"].toArray()[3].toObject()["id"];
+        check(source.commit(CadDocument::shellCandidate(beforeWallEdit,
+            {{"featureId",shellId},{"targetBodyId",sourceBody},{"thicknessMm",4}}),
+            "Edit closed wall").isEmpty(),"source wall edit with downstream split");
+        QSet<QString> editedIds;for(const auto& face:source.bodies()[0].supportFaces)
+            if(face.role=="shell-inner")editedIds.insert(face.faceId);
+        check(editedIds==innerIds,"source inner face IDs survive wall edit");
+        const auto validWall=source.authored();
+        check(!source.commit(CadDocument::shellCandidate(validWall,
+            {{"featureId",shellId},{"targetBodyId",sourceBody},{"thicknessMm",2.4}}),
+            "Invalid convex wall").isEmpty() && source.authored()==validWall,
+            "thickness below rim radius refuses atomically");
+        source.history().undo();check(source.authored()==beforeWallEdit,"source wall edit undo");
+        source.history().redo();
+        QTemporaryDir sourceDir;check(sourceDir.isValid(),"source save directory");
+        const auto sourcePath=sourceDir.filePath("rounded-source.alloy");
+        check(source.save(sourcePath).isEmpty(),"save rounded source");
+        CadDocument sourceReopened;
+        check(sourceReopened.open(sourcePath).isEmpty() && sourceReopened.authored()==source.authored()
+            && sourceReopened.bodies().size()==2,"reopen rounded source and split");
     }
     CadDocument document;
     auto sketch=SketchGeometry::newFeature(document.authored()["documentId"].toString(),"XY","Cube base");

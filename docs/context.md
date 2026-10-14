@@ -8,6 +8,16 @@ build and three focused slot/section checks pass. Native and API evidence
 remain distinct; exact OS input and reference styling are not claimed.
 See [Overall Slot](validation/overall-slot.md) and
 [origin-section offsets](validation/origin-section-distance.md).
+## Closed rounded-prism Shell candidate (2026-10-13)
+
+GEO-008/#316 is implemented in an isolated candidate, pending independent
+review and integration. The corrected source-shaped centered Rectangle93×64 →
+Extrude30 → complete grouped R5/R2.5 Fillet → closed Shell3.5 passes an analytic
+26-patch convex-envelope certificate and yields a valid exact cavity, six inner
+planar references, retained Midplane Split, edit/history/reopen and two checked
+printing meshes. The earlier Box50×80×40 remains an engineering regression.
+See [the bounded candidate receipt](validation/closed-blend-shell.md). The
+cumulative enclosure tutorial is still pending.
 
 ## Retained-plane Split Body (2026-10-13)
 

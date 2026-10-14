@@ -3,6 +3,7 @@
 #include "SolidFillet.h"
 #include "SolidChamfer.h"
 #include "SolidShell.h"
+#include "ClosedBlendShell.h"
 #include "SolidSplit.h"
 #include "SolidSphere.h"
 #include "SolidHole.h"
@@ -697,7 +698,8 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
             } else if(type=="shell") {
                 const auto target=std::find_if(evaluated.bodies.begin(),evaluated.bodies.end(),[&](const auto& body){return body.bodyId==parameters["targetBodyId"].toString();});
                 if(target==evaluated.bodies.end())throw EvaluationError({{"code","body_unavailable"},{"featureId",id},{"message","Shell target must be active earlier in history"}});
-                SolidShell::evaluate(*target,parameters,id);
+                if(!ClosedBlendShell::evaluate(*target,parameters,id,features,featureIndex,evaluated))
+                    SolidShell::evaluate(*target,parameters,id);
             } else if(type=="splitBody") {
                 const auto target=std::find_if(evaluated.bodies.begin(),evaluated.bodies.end(),[&](const auto& body){return body.bodyId==parameters["targetBodyId"].toString();});
                 if(target==evaluated.bodies.end())throw EvaluationError({{"code","body_unavailable"},{"featureId",id},{"message","Split target must be active earlier in history"}});

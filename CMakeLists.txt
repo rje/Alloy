@@ -30,7 +30,7 @@ target_link_libraries(alloy_sketch_solver PUBLIC Qt6::Core PRIVATE alloy_planegc
 add_library(alloy_kernel STATIC
     src/AssemblySlider.cpp src/AssemblySlider.h
     src/DocumentAppend.cpp src/DocumentAppend.h
-    src/GeometryKernel.cpp src/GeometryKernel.h src/PrimitiveTopology.cpp src/PrimitiveTopology.h src/PlanarFaces.cpp src/PlanarFaces.h src/SolidFillet.cpp src/SolidFillet.h src/SolidChamfer.cpp src/SolidChamfer.h src/SolidShell.cpp src/SolidShell.h src/SolidSplit.cpp src/SolidSplit.h src/RevolvedShellCap.cpp src/RevolvedShellCap.h src/SolidSphere.cpp src/SolidSphere.h src/SolidHole.cpp src/SolidHole.h src/SolidLoft.cpp src/SolidLoft.h src/SolidRevolve.cpp src/SolidRevolve.h src/SolidSweep.cpp src/SolidSweep.h src/FeaturePattern.cpp src/FeaturePattern.h src/SolidMirror.cpp src/SolidTransform.cpp src/CircularPattern.cpp src/SolidMirror.h src/JoinResults.cpp
+    src/GeometryKernel.cpp src/GeometryKernel.h src/PrimitiveTopology.cpp src/PrimitiveTopology.h src/PlanarFaces.cpp src/PlanarFaces.h src/SolidFillet.cpp src/SolidFillet.h src/SolidChamfer.cpp src/SolidChamfer.h src/SolidShell.cpp src/SolidShell.h src/ClosedBlendShell.cpp src/ClosedBlendShell.h src/SolidSplit.cpp src/SolidSplit.h src/RevolvedShellCap.cpp src/RevolvedShellCap.h src/SolidSphere.cpp src/SolidSphere.h src/SolidHole.cpp src/SolidHole.h src/SolidLoft.cpp src/SolidLoft.h src/SolidRevolve.cpp src/SolidRevolve.h src/SolidSweep.cpp src/SolidSweep.h src/FeaturePattern.cpp src/FeaturePattern.h src/SolidMirror.cpp src/SolidTransform.cpp src/CircularPattern.cpp src/SolidMirror.h src/JoinResults.cpp
     src/MeshExport.cpp src/MeshExport.h
     src/StepExchange.cpp src/StepExchange.h
     src/SketchSpline.cpp src/SketchSpline.h src/SketchSplineOffset.cpp src/SketchSplineOffset.h src/SketchOpenChainOffset.cpp src/SketchOpenChainOffset.h src/SketchConic.cpp src/SketchConic.h src/SketchGeometry.cpp src/SketchTrim.cpp src/SketchGeometry.h src/SketchText.cpp src/SketchText.h src/RoundedLoopOffset.cpp src/RoundedLoopOffset.h
@@ -287,6 +287,10 @@ if(BUILD_TESTING)
     target_link_libraries(box_shell_parameters_controls_test PRIVATE alloy_application Qt6::Test)
     add_test(NAME box_shell_parameters_controls COMMAND box_shell_parameters_controls_test)
     set_tests_properties(box_shell_parameters_controls PROPERTIES TIMEOUT 45 LABELS "widget;gpu" RUN_SERIAL TRUE)
+    add_executable(closed_blend_shell_controls_test tests/closed_blend_shell_controls.cpp)
+    target_link_libraries(closed_blend_shell_controls_test PRIVATE alloy_application Qt6::Test)
+    add_test(NAME closed_blend_shell_controls COMMAND closed_blend_shell_controls_test)
+    set_tests_properties(closed_blend_shell_controls PROPERTIES TIMEOUT 45 LABELS "widget;gpu" RUN_SERIAL TRUE)
     add_executable(sketch_circle_offset_test tests/sketch_circle_offset.cpp src/CadDocument.cpp src/CadDocument.h)
     target_include_directories(sketch_circle_offset_test PRIVATE src)
     target_link_libraries(sketch_circle_offset_test PRIVATE Qt6::Gui alloy_kernel)
