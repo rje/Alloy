@@ -1757,6 +1757,11 @@
       "number": 351,
       "url": "https://github.com/rje/Alloy/issues/351",
       "state": "open"
+    },
+    "GEO-019": {
+      "number": 352,
+      "url": "https://github.com/rje/Alloy/issues/352",
+      "state": "open"
     }
   }
 }

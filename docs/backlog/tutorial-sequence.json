@@ -71,11 +71,15 @@
         "SOL-047",
         "ASM-007",
         "PRT-007",
+        "GEO-019",
+        "GEO-018",
+        "PRT-010",
+        "ASM-012",
         "TUT-017"
       ],
       "acceptance": "Full creation movie, endpoint and intermediate surface captures, editable file, meaningful path/thickness edit retaining through hole, undo/reopen and strict mesh. Source freedom and native/API differences explicit.",
       "status": "todo",
-      "remaining": "Source qualification and feature dependencies followed by independent complete workflow gate."
+      "remaining": "Guided source prefix and signed Thicken are accepted. GEO-019 must qualify exact wide-end R12 grouped corner geometry on the inferred 16 mm-bend fixture before GEO-018 can retain generated faces/endpoints and the later R1.5 perimeter round. PRT-010 still qualifies component printing with the retained hidden sheet; ASM-012 retains native Browser move. Complete TUT-017 creation, edit/history/reopen, movie and strict export remain pending."
     },
     {
       "id": "CP-23",
