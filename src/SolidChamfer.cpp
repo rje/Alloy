@@ -22,9 +22,8 @@ void SolidChamfer::evaluate(EvaluatedBody& body,const QJsonObject& parameters,co
     if(!summary["valid"].toBool() || !summary["closed"].toBool() || summary["topology"].toObject()["solids"].toInt()!=1 || summary["volumeMm3"].toDouble()<=0)
         fail("chamfer_invalid_result","Chamfer must produce one valid closed solid");
     auto caps=PlanarFaces::transfer(builder,body.supportFaces,result);
-    TopTools_IndexedMapOfShape edges;TopExp::MapShapes(result,TopAbs_EDGE,edges);
-    for(auto& edge:body.solidEdges)if(!edge.edge.IsNull() && !edges.Contains(edge.edge)) {edge.edge.Nullify();edge.provenance["resolutionError"]="modified_by_chamfer";}
-    body.shape=result;body.supportFaces=caps;
+    auto edges=SolidFillet::transferEdges(builder,body.solidEdges,result,true);
+    body.shape=result;body.supportFaces=caps;body.solidEdges=std::move(edges);
     QJsonArray capValues;for(const auto& cap:caps)capValues.append(QJsonObject{{"faceId",cap.faceId},{"bodyId",cap.bodyId},{"producerFeatureId",cap.producerFeatureId},{"role",cap.role},{"planar",true},{"frame",cap.frame},{"edges",GeometryKernel::supportEdgeDescriptors(cap)}});
     summary["supportFaces"]=capValues;summary["solidEdges"]=SolidFillet::descriptors(body.solidEdges);summary["lastModifierFeatureId"]=featureId;summary["producerFeatureId"]=body.featureId;summary["operation"]="chamfer";summary["distanceMm"]=parameters["distanceMm"];summary["selectedEdgeIds"]=parameters["edgeIds"];body.summary=summary;
 }

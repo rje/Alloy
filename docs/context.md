@@ -1,5 +1,14 @@
 # Continuation context
 
+## Candidate Join/Chamfer edge lineage (2026-10-13)
+
+GEO-010/#329 has a headless candidate in `feat/join-edge-lineage`. Extrude Join
+publishes current retained prism edges, and Chamfer preserves unique OCCT
+Modified descendants. An accepted rounded-Shell/Split fixture now supports the
+source-sized Join5→three Chamfers→Fillet0.5 sequence, meaningful Join edit,
+atomic invalid edge, history and reopen. Independent review and main integration
+remain pending. See [the candidate receipt](validation/join-edge-lineage.md).
+
 ## Accepted retained Cut feature Mirror (2026-10-13)
 
 SOL-050/#326 is independently accepted and integrated for the first

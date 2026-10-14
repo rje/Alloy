@@ -856,7 +856,8 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
                         std::vector<EvaluatedSolidEdge> cutToolEdges;
                         for(const auto& profile:selected) {EvaluatedSupportFace cap;std::vector<EvaluatedSolidEdge> toolEdges;
                             tools.push_back(extrusion(profile,distance,joining ? &cap : nullptr,
-                                (circularCut || linearCut) ? &toolEdges : nullptr,id,nullptr,start));
+                                (joining || circularCut || linearCut) ? &toolEdges : nullptr,id,nullptr,start));
+                            if(joining)cutToolEdges.insert(cutToolEdges.end(),toolEdges.begin(),toolEdges.end());
                             if(linearCut)cutToolEdges.insert(cutToolEdges.end(),toolEdges.begin(),toolEdges.end());
                             if(circularCut)for(auto& edge:toolEdges)if(edge.provenance["role"]=="baseRim")
                                 target->solidEdges.push_back(std::move(edge));
@@ -868,8 +869,12 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
                         }
                         const double previousVolume=target->summary["volumeMm3"].toDouble();
                         TopoDS_Shape cutShape;
-                        try {cutShape=booleanOperation(parameters["operation"].toString(),target->shape,tools,&target->supportFaces,&target->solidEdges,linearCut ? &cutToolEdges : nullptr,id);}
+                        std::vector<EvaluatedSolidEdge> joinedEdges;
+                        if(joining){joinedEdges=target->solidEdges;
+                            joinedEdges.insert(joinedEdges.end(),cutToolEdges.begin(),cutToolEdges.end());}
+                        try {cutShape=booleanOperation(parameters["operation"].toString(),target->shape,tools,&target->supportFaces,joining ? &joinedEdges : &target->solidEdges,linearCut ? &cutToolEdges : nullptr,id);}
                         catch(const EvaluationError& error){const auto details=error.diagnostics();for(auto it=details.begin();it!=details.end();++it)context[it.key()]=it.value();throw EvaluationError(context);}
+                        if(joining)target->solidEdges=std::move(joinedEdges);
                         auto cutSummary=summarize(cutShape);
                         const double removed=joining ? cutSummary["volumeMm3"].toDouble()-previousVolume : previousVolume-cutSummary["volumeMm3"].toDouble();
                         if(parameters["operation"]!="intersect" && removed<=std::max(1e-6,previousVolume*1e-12)){context["code"]=joining ? "join_no_addition" : "cut_no_intersection";context["message"]=joining ? "Selected profile prisms do not add positive volume to the retained target" : "Selected profile prisms do not remove positive volume from the retained target";throw EvaluationError(context);}
