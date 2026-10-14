@@ -277,8 +277,11 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
                 solver.addConstraintPerpendicular(arcMap.at(reference(constraint,"entityIds",0)).center,
                     point(reference(constraint,"pointIds",0)),line(reference(constraint,"entityIds",1)),t);
             } else if (type == "tangent") {
-                solver.addConstraintTangent(line(reference(constraint,"entityIds",1)),
-                    circleMap.at(reference(constraint,"entityIds",0)),number(constraint,"side")>0,t);
+                auto& circle=circleMap.at(reference(constraint,"entityIds",0));
+                if(constraint.contains("pointIds"))
+                    solver.addConstraintPerpendicular(circle.center,point(reference(constraint,"pointIds",0)),
+                        line(reference(constraint,"entityIds",1)),t);
+                else solver.addConstraintTangent(line(reference(constraint,"entityIds",1)),circle,number(constraint,"side")>0,t);
             } else if (type == "midpoint") {
                 const auto id=reference(constraint,"entityIds",0);
                 auto& p=point(reference(constraint,"pointIds",0));
@@ -567,10 +570,17 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
             else if(type=="tangent") {
                 const auto& circle=circleMap.at(reference(c,"entityIds",0)); const auto& target=line(reference(c,"entityIds",1));
                 const double dx=*target.p2.x-*target.p1.x,dy=*target.p2.y-*target.p1.y,length=std::hypot(dx,dy);
+                require(length>=minimumLength,"Tangent line became degenerate");
                 const double px=*circle.center.x-*target.p1.x,py=*circle.center.y-*target.p1.y;
                 check((dx*py-dy*px)/length-number(c,"side") * (*circle.rad),lengthTolerance);
                 const double foot=(px*dx+py*dy)/(length*length);
                 require(foot>=-lengthTolerance/length && foot<=1+lengthTolerance/length,"Tangent contact left the finite line");
+                if(c.contains("pointIds")) {
+                    const auto& contact=point(reference(c,"pointIds",0));
+                    const double rx=*contact.x-*circle.center.x,ry=*contact.y-*circle.center.y;
+                    check(std::hypot(rx,ry)-*circle.rad,lengthTolerance);
+                    check((dx*rx+dy*ry)/length,lengthTolerance);
+                }
             }
             else if(type=="midpoint") {
                 const auto& p=point(reference(c,"pointIds",0));const auto id=reference(c,"entityIds",0);

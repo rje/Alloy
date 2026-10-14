@@ -3277,6 +3277,7 @@ void AlloyWindow::registerCommands() {
     auto sketchPickSchema=sketchPixels;sketchPickSchema["additive"]=optional(parameter("boolean","Add or toggle a target in the current sketch selection."));
     auto sketchPlaceSchema=sketchPickSchema;
     sketchPlaceSchema["suppressInference"]=optional(parameter("boolean","Control/Command temporarily suppresses automatic Line H/V inference."));
+    sketchPlaceSchema["tangentModifier"]=optional(parameter("boolean","Shift requests a tangent Line from a captured circle contact."));
     auto ids=optional(parameter("array","Authored point or line IDs in this sketch; omitted arrays default empty."));
     add("sketch.selectionSet","Select sketch geometry","Select authored geometry, locked projected references or evaluated profiles without changing geometry.",{{"pointIds",ids},{"entityIds",ids},{"profileIds",ids}},[this](const auto& a){
         auto result=setSketchSelection({{"pointIds",a.value("pointIds").toArray()},{"entityIds",a.value("entityIds").toArray()},{"profileIds",a.value("profileIds").toArray()}});
@@ -3487,16 +3488,19 @@ void AlloyWindow::registerCommands() {
             const auto response=execute("sketch.dimensionPlace",{{"x",a["x"]},{"y",a["y"]}});return response["ok"].toBool() ? response["result"].toObject() : response;
         }
         if(tool=="select" || tool=="dimension" || tool=="constraint") {
-            auto args=a;args.remove("suppressInference");
+            auto args=a;args.remove("suppressInference");args.remove("tangentModifier");
             if(tool=="dimension" && (!session_.value("selection").toObject()["pointIds"].toArray().isEmpty() || session_.value("selection").toObject()["entityIds"].toArray().size()==1))args["additive"]=true;
             const auto response=execute("sketch.selectionPick",args);return response["ok"].toBool() ? response["result"].toObject() : response;
         }
         const auto plane=session_.value("inputs").toObject()["plane"].toString();
         const bool circleCenter=tool=="circle" && !session_.contains("firstPoint");
         const bool circleCircumference=tool=="circle" && session_.contains("firstPoint");
-        const auto snap=circleCircumference ? resolveCircleTangentSnap(a["x"].toDouble(),a["y"].toDouble(),plane)
+        auto snap=circleCircumference ? resolveCircleTangentSnap(a["x"].toDouble(),a["y"].toDouble(),plane)
             : tool=="point" || tool=="line" || tool=="rectangle" || (tool=="centerRectangle" && !session_.contains("firstPoint")) || ((tool=="centerToCenterSlot" || tool=="centerPointSlot" || tool=="overallSlot" || tool=="centerPointArcSlot" || tool=="centerPointEllipse") && !session_.contains("firstPoint")) || (tool=="centerToCenterSlot" && !session_.contains("secondPoint")) || circleCenter
                 ? resolveSketchSnap(a["x"].toDouble(),a["y"].toDouble(),plane,circleCenter || tool=="centerRectangle" || tool=="line") : QJsonObject{};
+        if(tool=="line" && snap.value("status")=="none")
+            snap=resolveLineCircleSnap(a["x"].toDouble(),a["y"].toDouble(),plane,
+                session_.value("firstPoint").toObject(),a.value("tangentModifier").toBool());
         if(!snap.isEmpty()){session_["snap"]=snap;if(snap["status"]=="ambiguous")return failure("ambiguous_snap","Multiple sketch points are equally close; move toward the intended point");}
         auto point=snap.isEmpty() ? view_->sketchPoint(a["x"].toDouble(),a["y"].toDouble(),plane) : snap;
         if(tool=="point") {
@@ -3645,7 +3649,11 @@ void AlloyWindow::registerCommands() {
         }
         const auto first=session_.value("firstPoint").toObject();
         QJsonObject inputs{{"x1",first["uMm"]},{"y1",first["vMm"]},{"x2",point["uMm"]},{"y2",point["vMm"]},{"units","mm"}};
-        if(tool=="line" && !lockedLine && !a.value("suppressInference").toBool())inputs["inferAxis"]=true;
+        const bool circleLine=tool=="line" && (first.value("target").toObject().value("kind")=="circle"
+            || point.value("target").toObject().value("kind")=="circle");
+        if(tool=="line" && !lockedLine && !circleLine && !a.value("suppressInference").toBool())inputs["inferAxis"]=true;
+        if(tool=="line" && first.value("target").toObject().value("kind")=="circle" && point.value("tangentCue").toBool())
+            inputs["inferCircleTangent"]=true;
         if(first["status"]=="acquired")inputs["startSnapTarget"]=first["target"];
         if(point["status"]=="acquired")inputs["endSnapTarget"]=point["target"];
         if(lockedLine) {inputs["lockedLengthMm"]=session_.value("pendingLineLength").toObject()["lengthMm"];
@@ -3682,6 +3690,7 @@ void AlloyWindow::registerCommands() {
     });
     auto sketchPreviewSchema=sketchPixels;
     sketchPreviewSchema["suppressInference"]=optional(parameter("boolean","Control/Command temporarily suppresses automatic Line H/V inference."));
+    sketchPreviewSchema["tangentModifier"]=optional(parameter("boolean","Shift previews a tangent Line from the starting circle."));
     add("sketch.pointerMove","Sketch pointer preview","Preview a pending line or rectangle on the GPU without authored changes.",sketchPreviewSchema,[this](const auto& a){
         if(session_.value("command")=="sketch.edit" && session_.value("tool")=="dimension") {
             if(session_.value("pendingDimension").toObject().value("phase")=="editing")return QJsonObject{};
@@ -3714,8 +3723,11 @@ void AlloyWindow::registerCommands() {
         const bool circleCenter=tool=="circle" && !session_.contains("firstPoint");
         const bool circleCircumference=tool=="circle" && session_.contains("firstPoint");
         const bool snapping=tool=="point" || tool=="line" || tool=="rectangle" || (tool=="centerRectangle" && !session_.contains("firstPoint")) || ((tool=="centerToCenterSlot" || tool=="centerPointSlot" || tool=="overallSlot" || tool=="centerPointArcSlot" || tool=="centerPointEllipse") && !session_.contains("firstPoint")) || (tool=="centerToCenterSlot" && !session_.contains("secondPoint")) || circleCenter || circleCircumference;
-        const auto snap=circleCircumference ? resolveCircleTangentSnap(a["x"].toDouble(),a["y"].toDouble(),plane)
+        auto snap=circleCircumference ? resolveCircleTangentSnap(a["x"].toDouble(),a["y"].toDouble(),plane)
             : snapping ? resolveSketchSnap(a["x"].toDouble(),a["y"].toDouble(),plane,circleCenter || tool=="centerRectangle" || tool=="line") : QJsonObject{};
+        if(tool=="line" && snap.value("status")=="none")
+            snap=resolveLineCircleSnap(a["x"].toDouble(),a["y"].toDouble(),plane,
+                session_.value("firstPoint").toObject(),a.value("tangentModifier").toBool());
         if(tool=="point") {
             const auto position=snap.isEmpty() ? view_->sketchPoint(a["x"].toDouble(),a["y"].toDouble(),plane) : snap;
             auto cue=position;cue["status"]="acquired";view_->showSketchSnap(plane,cue);
@@ -3824,7 +3836,20 @@ void AlloyWindow::registerCommands() {
                 point={{"uMm",cx+radius*std::cos(angle)},{"vMm",cy+radius*std::sin(angle)}};
             }
         }
-        if(tool=="line" && !session_.contains("pendingLineLength") && !a.value("suppressInference").toBool()) {
+        if(tool=="line" && snap.value("tangentCue").toBool()) {
+            if(!lineLockCue_) {
+                lineLockCue_=new QLabel(view_);lineLockCue_->setObjectName("sketch.lineLockCue");
+                lineLockCue_->setAttribute(Qt::WA_TransparentForMouseEvents);
+                lineLockCue_->setStyleSheet("background: #eaf5fc; color: #143f59; border: 1px solid #5b9fc6; border-radius: 3px; padding: 3px 6px; font-weight: 600;");
+            }
+            lineLockCue_->setText("Tangent");lineLockCue_->adjustSize();
+            const auto screen=view_->projectSketchPoint(point["uMm"].toDouble(),point["vMm"].toDouble(),plane);
+            lineLockCue_->move(std::clamp(qRound(screen["x"].toDouble()+15),0,std::max(0,view_->width()-lineLockCue_->width())),
+                std::clamp(qRound(screen["y"].toDouble()+15),0,std::max(0,view_->height()-lineLockCue_->height())));
+            lineLockCue_->show();lineLockCue_->raise();
+        }
+        else if(tool=="line" && !session_.contains("pendingLineLength") && !a.value("suppressInference").toBool()
+            && first.value("target").toObject().value("kind")!="circle") {
             const auto inferred=SketchGeometry::pointerLineAxis(first["uMm"].toDouble(),first["vMm"].toDouble(),
                 point["uMm"].toDouble(),point["vMm"].toDouble(),point["status"]=="acquired");
             if(!inferred.isEmpty()) {
@@ -7520,6 +7545,7 @@ QJsonObject AlloyWindow::appendSketchEntity(const QString& tool,const QJsonObjec
     if(inputs.contains("startSnapTarget"))canonical["startSnapTarget"]=inputs["startSnapTarget"];
     if(inputs.contains("endSnapTarget"))canonical["endSnapTarget"]=inputs["endSnapTarget"];
     if(tool=="line" && inputs.value("inferAxis").toBool())canonical["inferAxis"]=true;
+    if(tool=="line" && inputs.value("inferCircleTangent").toBool())canonical["inferCircleTangent"]=true;
     const auto draft=session_.value("draftSketch").toObject();
     if(tool=="rectangle" && inputs.contains("typedWidthMm")) {
         const auto context=session_.value("projectionContext").toObject();
@@ -7580,7 +7606,7 @@ QJsonObject AlloyWindow::appendSketchEntity(const QString& tool,const QJsonObjec
             {"valueMm",inputs["lockedLengthMm"]},{"driving",true}},context);
         return publishSketchSolve(solved);
     }
-    if(canonical.contains("startSnapTarget") || canonical.contains("endSnapTarget") || canonical.contains("inferAxis"))
+    if(canonical.contains("startSnapTarget") || canonical.contains("endSnapTarget") || canonical.contains("inferAxis") || canonical.contains("inferCircleTangent"))
         return publishSketchSolve(SketchGeometry::addPointerEntity(draft,tool,canonical,session_.value("projectionContext").toObject()));
     const auto updated=tool=="line" ? SketchGeometry::addLine(draft,canonical) : SketchGeometry::addRectangle(draft,canonical);
     return publishSketchSolve(SketchGeometry::solveDraft(updated,session_.value("projectionContext").toObject()));
@@ -8326,6 +8352,49 @@ QJsonObject AlloyWindow::resolveSketchSnap(double x,double y,const QString& plan
     result["status"]="acquired";result["target"]=best["target"];result["uMm"]=best["uMm"];result["vMm"]=best["vMm"];result["distancePx"]=best["distancePx"];
     if(best.value("projected").toBool())for(const auto& field:{"projected","projectionId","source","endpoint","supportPoint","retained"})
         if(best.contains(field))result[field]=best[field];
+    return result;
+}
+
+QJsonObject AlloyWindow::resolveLineCircleSnap(double x,double y,const QString& plane,const QJsonObject& first,bool shiftTangent) const {
+    const auto cursor=view_->sketchPoint(x,y,plane);
+    QJsonObject result{{"status","none"},{"uMm",cursor["uMm"]},{"vMm",cursor["vMm"]},
+        {"radiusPx",10.0},{"authoredChange",false}};
+    const auto parameters=session_.value("draftSketch").toObject().value("parameters").toObject();
+    if(!first.isEmpty() && first.value("target").toObject().value("kind")=="circle" && shiftTangent) {
+        const auto projected=SketchGeometry::pointerCircleFrom(parameters,first.value("target").toObject().value("entityId").toString(),
+            first.value("uMm").toDouble(),first.value("vMm").toDouble(),cursor["uMm"].toDouble(),cursor["vMm"].toDouble());
+        if(projected.value("status")=="ambiguous")return {{"status","ambiguous"},{"authoredChange",false}};
+        if(projected.isEmpty())return result;
+        result["uMm"]=projected["uMm"];result["vMm"]=projected["vMm"];
+        result["status"]="inferred";result["tangentCue"]=true;return result;
+    }
+    if(!first.isEmpty() && first.value("target").toObject().value("kind")=="circle")return result;
+    std::vector<QJsonObject> candidates;
+    for(const auto& value:parameters.value("entities").toArray()) {
+        const auto circle=value.toObject();if(circle.value("type")!="circle")continue;
+        const auto id=circle.value("id").toString();
+        QJsonArray contacts;
+        if(first.isEmpty()) {
+            const auto contact=SketchGeometry::pointerCircleContact(parameters,id,cursor["uMm"].toDouble(),cursor["vMm"].toDouble());
+            if(!contact.isEmpty())contacts.append(QJsonObject{{"uMm",contact["uMm"]},{"vMm",contact["vMm"]}});
+        } else contacts=SketchGeometry::pointerCircleTangents(parameters,id,first.value("uMm").toDouble(),first.value("vMm").toDouble());
+        for(const auto& value:contacts) {
+            const auto contact=value.toObject();const auto screen=view_->projectSketchPoint(contact["uMm"].toDouble(),contact["vMm"].toDouble(),plane);
+            const double distance=std::hypot(screen["x"].toDouble()-x,screen["y"].toDouble()-y);
+            if(distance>10.0)continue;
+            QJsonObject target{{"kind","circle"},{"entityId",id}};
+            if(!first.isEmpty())target["branch"]=contact["branch"];
+            candidates.push_back({{"target",target},{"uMm",contact["uMm"]},{"vMm",contact["vMm"]},
+                {"distancePx",distance},{"tangentCue",!first.isEmpty()}});
+        }
+    }
+    if(candidates.empty())return result;
+    std::sort(candidates.begin(),candidates.end(),[](const auto& a,const auto& b){return a["distancePx"].toDouble()<b["distancePx"].toDouble();});
+    if(candidates.size()>1 && candidates[1]["distancePx"].toDouble()-candidates[0]["distancePx"].toDouble()<=0.5) {
+        result["status"]="ambiguous";return result;
+    }
+    const auto chosen=candidates.front();result["status"]="acquired";
+    for(const auto& field:{"target","uMm","vMm","distancePx","tangentCue"})result[field]=chosen[field];
     return result;
 }
 

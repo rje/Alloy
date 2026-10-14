@@ -61,12 +61,20 @@ public:
         const QJsonObject& projectionContext = {});
     // Pointer creation is transactional. Optional startSnapTarget/endSnapTarget
     // are {kind:origin}, {kind:point,pointId:UUID}, or for Line endpoints
-    // {kind:midpoint,entityId:lineUUID}. Accepted snaps retain distinct
+    // {kind:midpoint,entityId:lineUUID} and {kind:circle,entityId:circleUUID}.
+    // Accepted snaps retain distinct
     // endpoint IDs and real coincidence or midpoint constraints. Explicit coordinate
     // creation above never acquires an implicit target.
     // Shared near-axis cue for pointer-created Line. Returns an ordinary H/V
     // relation and projected free endpoint, or empty when inference is unsafe.
     static QJsonObject pointerLineAxis(double u1,double v1,double u2,double v2,bool endAcquired);
+    // Analytic circle contact/tangent geometry shared by pointer preview and
+    // retained Line creation. Empty means unavailable; from-contact returns an
+    // explicit ambiguous status when no tangent direction can be chosen.
+    static QJsonObject pointerCircleContact(const QJsonObject& parameters,const QString& circleId,double u,double v);
+    static QJsonObject pointerCircleFrom(const QJsonObject& parameters,const QString& circleId,
+        double contactU,double contactV,double cursorU,double cursorV);
+    static QJsonArray pointerCircleTangents(const QJsonObject& parameters,const QString& circleId,double startU,double startV);
     static SolveResult addPointerEntity(const QJsonObject& draft, const QString& tool,
         const QJsonObject& arguments, const QJsonObject& projectionContext = {});
     // Explicit normal/construction conversion retains geometry and relation IDs.

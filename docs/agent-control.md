@@ -172,8 +172,8 @@ fail without applying the command. Error codes include `invalid_request`,
 | `sketch.tool` | `tool`: `select`, `line`, `rectangle`, `circle`, `centerArc`, `threePointArc` or `dimension`; choose the active drawing/selection tool |
 | `sketch.selectionSet` | Optional `pointIds`, `entityIds`, `profileIds`: arrays of authored/evaluated IDs in the active sketch; omitted arrays clear that selection kind |
 | `sketch.selectionPick` | `x`, `y`: logical pixels; optional `additive`: boolean. Pick an authored point, line, circle, arc or evaluated profile interior, sharing native selection state |
-| `sketch.placePoint` | `x`, `y`: logical pixels; native ray/plane drawing path, or selection when the active tool is `select`/`dimension`. Pointer-created free Line endpoints near horizontal or vertical gain a retained H/V relation. Optional `suppressInference:true` suppresses this axis inference for that point; Control/Command sends it from native input. An acquired endpoint stays exact, and conflicting inference is refused without moving earlier geometry. Direct `sketch.line` remains explicit and unchanged |
-| `sketch.pointerMove` | `x`, `y`: logical pixels; disposable drawing preview with origin/point acquisition in `snap`. Pointer Line preview uses the same H/V classifier as commit and displays an H or V cue. Optional `suppressInference:true` hides that cue and leaves axis inference off; no authored change |
+| `sketch.placePoint` | `x`, `y`: logical pixels; native ray/plane drawing path, or selection when the active tool is `select`/`dimension`. Pointer-created free Line endpoints near horizontal or vertical gain a retained H/V relation. Optional `suppressInference:true` suppresses this axis inference for that point; Control/Command sends it from native input. A Line started on a circle retains its on-circle endpoint; `tangentModifier:true` on its next click projects the free endpoint onto the tangent and retains the relation. An ordinary Line click near one uniquely selected tangent contact on a target circle retains its ending contact and tangent. An acquired endpoint stays exact, and conflicting inference is refused without moving earlier geometry. Direct `sketch.line` remains explicit and unchanged |
+| `sketch.pointerMove` | `x`, `y`: logical pixels; disposable drawing preview with origin/point acquisition in `snap`. Pointer Line preview uses the same H/V classifier as commit and displays an H or V cue. Optional `suppressInference:true` hides that cue and leaves axis inference off. `tangentModifier:true` previews a tangent from a captured starting circle; the ordinary target-circle tangent preview uses the same contact resolver as commit and displays Tangent. Neither preview authors geometry |
 | `sketch.lookAt` | View normal to the active sketch plane and fit populated draft geometry; empty sketches use the default origin view |
 | `sketch.displayOptions` | Optional `showConstraints`, `showDimensions` booleans; independent session-only visibility, no modeling history entry |
 | `sketch.constraintSelect` | `constraintId`, optional `additive`; select retained relation in Select mode |
@@ -516,7 +516,7 @@ first `sketch.placePoint` retains it in `activeSession.firstPoint`; the second
 click atomically authors the circle and `midpoint` point-to-line constraint.
 `viewport.gpu.sketchSnapCue.marker` is `midpoint-triangle`; persistent midpoint
 glyphs include point IDs and target line ID. Hover and first click do not enter
-draft history. Circumference tangent inference remains unavailable.
+draft history.
 
 ### Circle circumference tangent inference
 
@@ -528,6 +528,17 @@ center midpoint relation. No hover/first-center authored history entry is added.
 GPU diagnostics expose `sketchSnapCue.marker: "tangent-square"` and persistent
 constraint glyph identity, contact, bounds and selected state. See
 [bounded tangent validation](validation/sketch-tangent.md) for limits.
+
+Pointer-created Lines have a separate bounded circle-contact route. The first
+circle click projects onto its circumference and retains `pointOnCurve`. Shift
+on the next Line click retains a contact-point `tangent` relation. An ordinary
+click near a unique tangent contact on a target circle also retains both
+relations. The resolver uses a 10-pixel candidate radius and refuses candidates
+whose nearest distances differ by no more than 0.5 pixel; these are Alloy input
+policies. The retained contact-point tangent requires an authored Line endpoint
+and its matching on-circle relation. Existing tangent records without a contact
+point keep their prior finite-line solver behavior. See
+[pointer contact validation](validation/sketch-pointer-circle-tangent.md).
 
 ### Paired sketch fillets
 

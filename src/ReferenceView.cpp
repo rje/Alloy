@@ -1625,7 +1625,7 @@ void ReferenceView::showSketchSnap(const QString& plane,const QJsonObject& snap)
     auto segment=[&](double x1,double y1,double x2,double y2){builder.Add(compound,BRepBuilderAPI_MakeEdge(sketchWorld(plane,u+x1*size,v+y1*size),sketchWorld(plane,u+x2*size,v+y2*size)).Edge());};
     if(status=="ambiguous"){
         segment(-1,-1,1,1);segment(-1,1,1,-1);
-    } else if(snap.value("target").toObject().value("kind")=="tangent"){
+    } else if(snap.value("target").toObject().value("kind")=="tangent" || snap.value("tangentCue").toBool()){
         segment(-1,-1,1,-1);segment(1,-1,1,1);segment(1,1,-1,1);segment(-1,1,-1,-1);
     } else if(snap.value("target").toObject().value("kind")=="filletCorner"){
         segment(-1,-1,1,-1);segment(1,-1,1,1);segment(1,1,-1,1);segment(-1,1,-1,-1);
@@ -2547,6 +2547,7 @@ void ReferenceView::mousePressEvent(QMouseEvent* e) {
         QJsonObject args{{"x",e->position().x()},{"y",e->position().y()}};
         if(!sketchPlane_.isEmpty()){
             args["additive"]=e->modifiers().testFlag(Qt::ShiftModifier);
+            args["tangentModifier"]=e->modifiers().testFlag(Qt::ShiftModifier);
             args["suppressInference"]=e->modifiers().testFlag(Qt::ControlModifier) ||
                 e->modifiers().testFlag(Qt::MetaModifier);
         }
@@ -2626,6 +2627,7 @@ void ReferenceView::mouseMoveEvent(QMouseEvent* e) {
                 dispatch("sketch.constraintHover",{{"constraintId",id}});
         }
         dispatch("sketch.pointerMove",{{"x",e->position().x()},{"y",e->position().y()},
+            {"tangentModifier",e->modifiers().testFlag(Qt::ShiftModifier)},
             {"suppressInference",e->modifiers().testFlag(Qt::ControlModifier) ||
                 e->modifiers().testFlag(Qt::MetaModifier)}});e->accept();
     }

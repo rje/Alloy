@@ -1243,18 +1243,67 @@ QJsonObject SketchGeometry::pointerLineAxis(double u1,double v1,double u2,double
         {"u1Mm",u1},{"v1Mm",v1},{"u2Mm",u2},{"v2Mm",v2}};
 }
 
+namespace {
+QJsonObject pointerCircle(const QJsonObject& parameters,const QString& circleId) {
+    QJsonObject circle,center;
+    for(const auto& value:parameters.value("entities").toArray()) {
+        const auto row=value.toObject();if(row.value("id")==circleId && row.value("type")=="circle")circle=row;
+    }
+    if(circle.isEmpty())return {};
+    for(const auto& value:parameters.value("points").toArray()) {
+        const auto row=value.toObject();if(row.value("id")==circle.value("centerPointId"))center=row;
+    }
+    if(center.isEmpty() || circle.value("radiusMm").toDouble()<0.001)return {};
+    return {{"uMm",center.value("uMm")},{"vMm",center.value("vMm")},{"radiusMm",circle.value("radiusMm")}};
+}
+}
+
+QJsonObject SketchGeometry::pointerCircleContact(const QJsonObject& parameters,const QString& circleId,double u,double v) {
+    const auto circle=pointerCircle(parameters,circleId);if(circle.isEmpty())return {};
+    const double cx=circle.value("uMm").toDouble(),cy=circle.value("vMm").toDouble();
+    const double dx=u-cx,dy=v-cy,distance=std::hypot(dx,dy);
+    if(!std::isfinite(distance) || distance<1e-9)return {};
+    const double radius=circle.value("radiusMm").toDouble();
+    return {{"uMm",cx+radius*dx/distance},{"vMm",cy+radius*dy/distance}};
+}
+
+QJsonObject SketchGeometry::pointerCircleFrom(const QJsonObject& parameters,const QString& circleId,
+    double contactU,double contactV,double cursorU,double cursorV) {
+    const auto circle=pointerCircle(parameters,circleId);if(circle.isEmpty())return {};
+    const double rx=contactU-circle.value("uMm").toDouble(),ry=contactV-circle.value("vMm").toDouble();
+    const double radius=circle.value("radiusMm").toDouble();
+    if(std::abs(std::hypot(rx,ry)-radius)>1e-5)return {};
+    const double tx=-ry/radius,ty=rx/radius;
+    const double travel=(cursorU-contactU)*tx+(cursorV-contactV)*ty;
+    if(!std::isfinite(travel) || std::abs(travel)<0.001)return {{"status","ambiguous"}};
+    return {{"uMm",contactU+travel*tx},{"vMm",contactV+travel*ty}};
+}
+
+QJsonArray SketchGeometry::pointerCircleTangents(const QJsonObject& parameters,const QString& circleId,double startU,double startV) {
+    const auto circle=pointerCircle(parameters,circleId);if(circle.isEmpty())return {};
+    const double cx=circle.value("uMm").toDouble(),cy=circle.value("vMm").toDouble();
+    const double dx=startU-cx,dy=startV-cy,d2=dx*dx+dy*dy,r=circle.value("radiusMm").toDouble();
+    if(!std::isfinite(d2) || d2<=r*r+1e-6)return {};
+    const double along=r*r/d2,across=r*std::sqrt(d2-r*r)/d2;
+    return {QJsonObject{{"branch",-1},{"uMm",cx+along*dx+across*dy},{"vMm",cy+along*dy-across*dx}},
+        QJsonObject{{"branch",1},{"uMm",cx+along*dx-across*dy},{"vMm",cy+along*dy+across*dx}}};
+}
+
 SketchGeometry::SolveResult SketchGeometry::addPointerEntity(const QJsonObject& draft, const QString& tool, const QJsonObject& arguments, const QJsonObject& projectionContext) {
     try {
         validateDraft(draft);
         if (tool!="line" && tool!="rectangle") reject("Pointer authoring supports Line and Rectangle");
-        checkFields(arguments,{"u1Mm","v1Mm","u2Mm","v2Mm","startSnapTarget","endSnapTarget","inferAxis"});
+        checkFields(arguments,{"u1Mm","v1Mm","u2Mm","v2Mm","startSnapTarget","endSnapTarget","inferAxis","inferCircleTangent"});
         if(arguments.contains("inferAxis") && (tool!="line" || !arguments["inferAxis"].isBool()))
             reject("Only pointer-created Line may request axis inference");
+        if(arguments.contains("inferCircleTangent") && (tool!="line" || !arguments["inferCircleTangent"].isBool()))
+            reject("Only pointer-created Line may request circle tangency");
         double u1=coordinate(arguments,"u1Mm"),v1=coordinate(arguments,"v1Mm"),u2=coordinate(arguments,"u2Mm"),v2=coordinate(arguments,"v2Mm");
         auto parameters=draft["parameters"].toObject();auto points=parameters["points"].toArray();
         auto entities=parameters["entities"].toArray();auto constraints=parameters["constraints"].toArray();
         auto freshPoint=[&](double u,double v) {const auto id=newId();points.append(QJsonObject{{"id",id},{"uMm",u},{"vMm",v}});return id;};
-        QString startMidpointLine,endMidpointLine;
+        QString startMidpointLine,endMidpointLine,startCircle,endCircle;
+        int endCircleBranch=0;
         auto target=[&](const QString& key,double& u,double& v,QString& midpointLine) -> QString {
             if (!arguments.contains(key)) return {};
             if (!arguments[key].isObject()) reject("Snap target must be an object");
@@ -1278,6 +1327,21 @@ SketchGeometry::SolveResult SketchGeometry::addPointerEntity(const QJsonObject& 
                     midpointLine=line["id"].toString();return {};
                 }
                 reject("Midpoint snap line no longer exists");
+            } else if(kind=="circle" && tool=="line") {
+                if(!selected["entityId"].isString() || !validId(selected["entityId"].toString()))reject("Circle contact needs a retained circle ID");
+                const auto circleId=selected["entityId"].toString();
+                if(key=="startSnapTarget") {
+                    if(selected.size()!=2)reject("Starting circle contact only accepts its circle ID");
+                    const auto contact=pointerCircleContact(parameters,circleId,u,v);
+                    if(contact.isEmpty())reject("Starting circle contact is unavailable");
+                    u=contact["uMm"].toDouble();v=contact["vMm"].toDouble();startCircle=circleId;
+                } else {
+                    if(selected.size()!=3 || !selected["branch"].isDouble() ||
+                        (selected["branch"].toInt()!=-1 && selected["branch"].toInt()!=1))
+                        reject("Ending circle contact needs an explicit tangent branch");
+                    endCircle=circleId;endCircleBranch=selected["branch"].toInt();
+                }
+                return {};
             } else reject("Unsupported snap target kind");
             for (const auto& entry:points) {const auto p=entry.toObject();if(p["id"]==id){u=p["uMm"].toDouble();v=p["vMm"].toDouble();return id;}}
             for(const auto& entry:expandedProjectionFeature(QJsonObject{{"parameters",parameters}},projectionContext)["parameters"].toObject()["points"].toArray()) {
@@ -1286,7 +1350,21 @@ SketchGeometry::SolveResult SketchGeometry::addPointerEntity(const QJsonObject& 
             reject("Snap target point does not exist");
         };
         const auto startTarget=target("startSnapTarget",u1,v1,startMidpointLine),endTarget=target("endSnapTarget",u2,v2,endMidpointLine);
-        const auto inference=tool=="line" && arguments.value("inferAxis").toBool()
+        if(!startCircle.isEmpty() && !endCircle.isEmpty())reject("One pointer Line cannot infer contacts on two circles");
+        if(arguments.value("inferCircleTangent").toBool()) {
+            if(startCircle.isEmpty() || !endCircle.isEmpty() || !endTarget.isEmpty() || !endMidpointLine.isEmpty())
+                reject("Shift tangency requires a starting circle and free endpoint");
+            const auto projected=pointerCircleFrom(parameters,startCircle,u1,v1,u2,v2);
+            if(projected.isEmpty() || projected.value("status")=="ambiguous")reject("Starting circle tangent direction is ambiguous");
+            u2=projected["uMm"].toDouble();v2=projected["vMm"].toDouble();
+        }
+        if(!endCircle.isEmpty()) {
+            const auto candidates=pointerCircleTangents(parameters,endCircle,u1,v1);
+            if(candidates.size()!=2)reject("Ending circle has no tangent contact from this Line start");
+            const auto contact=candidates[endCircleBranch==1 ? 1 : 0].toObject();
+            u2=contact["uMm"].toDouble();v2=contact["vMm"].toDouble();
+        }
+        const auto inference=tool=="line" && startCircle.isEmpty() && endCircle.isEmpty() && arguments.value("inferAxis").toBool()
             ? pointerLineAxis(u1,v1,u2,v2,!endTarget.isEmpty() || !endMidpointLine.isEmpty()) : QJsonObject{};
         if(!inference.isEmpty()) {
             u1=inference["u1Mm"].toDouble();v1=inference["v1Mm"].toDouble();
@@ -1316,6 +1394,20 @@ SketchGeometry::SolveResult SketchGeometry::addPointerEntity(const QJsonObject& 
         if(last!=endTarget)coincide(last,endTarget);
         if(!startMidpointLine.isEmpty())constraints.append(QJsonObject{{"id",newId()},{"type","midpoint"},{"pointIds",QJsonArray{first}},{"entityIds",QJsonArray{startMidpointLine}}});
         if(!endMidpointLine.isEmpty())constraints.append(QJsonObject{{"id",newId()},{"type","midpoint"},{"pointIds",QJsonArray{last}},{"entityIds",QJsonArray{endMidpointLine}}});
+        auto circleRelation=[&](const QString& circleId,const QString& contactPoint,bool tangent) {
+            if(circleId.isEmpty())return;
+            constraints.append(QJsonObject{{"id",newId()},{"type","pointOnCurve"},
+                {"pointIds",QJsonArray{contactPoint}},{"entityIds",QJsonArray{circleId}}});
+            if(!tangent)return;
+            const auto circle=pointerCircle(parameters,circleId);
+            const double dx=u2-u1,dy=v2-v1,cross=dx*(circle["vMm"].toDouble()-v1)-dy*(circle["uMm"].toDouble()-u1);
+            if(std::abs(cross)<1e-9)reject("Circle tangent side is ambiguous");
+            constraints.append(QJsonObject{{"id",newId()},{"type","tangent"},
+                {"entityIds",QJsonArray{circleId,lineId}},{"pointIds",QJsonArray{contactPoint}},
+                {"side",cross>0 ? 1 : -1}});
+        };
+        circleRelation(startCircle,first,arguments.value("inferCircleTangent").toBool());
+        circleRelation(endCircle,last,true);
         if(!inference.isEmpty())constraints.append(QJsonObject{{"id",newId()},{"type",inference["type"]},
             {"entityIds",QJsonArray{lineId}}});
         parameters["points"]=points;parameters["entities"]=entities;parameters["constraints"]=constraints;
@@ -1711,7 +1803,8 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
                     if((e["id"]==refs[0] || e["id"]==refs[1]) && e["startPointId"]!=contact && e["endPointId"]!=contact)
                         return "Arc tangent contact must be a shared endpoint";}
             } else if (type == "tangent") {
-                if (constraint.size()!=4 || !checkReferences(constraint,"entityIds",2,entityIds)
+                const bool endpointContact=constraint.contains("pointIds");
+                if (constraint.size()!=(endpointContact ? 5 : 4) || !checkReferences(constraint,"entityIds",2,entityIds)
                     || !constraint["side"].isDouble() || (constraint["side"].toDouble()!=1 && constraint["side"].toDouble()!=-1))
                     return "Tangent requires one circle, one line and signed side";
                 const auto refs=constraint["entityIds"].toArray();
@@ -1719,6 +1812,19 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
                 for (const auto& entity:parameters["entities"].toArray())
                     if (entity.toObject()["id"]==refs[0] && entity.toObject()["type"]=="circle") circle=true;
                 if (!circle || !lineIds.contains(refs[1].toString())) return "Tangent references must be ordered circle then line";
+                if(endpointContact) {
+                    if(!checkReferences(constraint,"pointIds",1,pointIds))return "Tangent contact needs one retained point";
+                    const auto contact=constraint["pointIds"].toArray().first();bool lineEndpoint=false,onCircle=false;
+                    for(const auto& value:parameters["entities"].toArray()){
+                        const auto line=value.toObject();if(line["id"]==refs[1] &&
+                            (line["startPointId"]==contact || line["endPointId"]==contact))lineEndpoint=true;
+                    }
+                    for(const auto& value:parameters["constraints"].toArray()){
+                        const auto row=value.toObject();if(row["type"]=="pointOnCurve" &&
+                            row["pointIds"]==QJsonArray{contact} && row["entityIds"]==QJsonArray{refs[0]})onCircle=true;
+                    }
+                    if(!lineEndpoint || !onCircle)return "Tangent contact needs its line endpoint on the retained circle";
+                }
             } else if (type == "midpoint") {
                 QSet<QString> midpointEntities=lineIds;
                 midpointEntities.unite(arcIds);
