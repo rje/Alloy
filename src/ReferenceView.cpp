@@ -592,7 +592,11 @@ void ReferenceView::applyEditDisplay(bool redraw) {
             // Loft caps occupy the selected section planes. Keep blue section
             // outlines during preview without competing coplanar filled faces.
             context_->SetDisplayMode(fill,selectedLoftProfileIds_.contains(profile.profileId) && !preview_.IsNull() ? AIS_WireFrame : AIS_Shaded,false);
-            if(visible && !previewProfileIds_.contains(profile.profileId))context_->Display(fill,false);else context_->Erase(fill,false);
+            // An extrusion handle at zero distance has no preview solid to
+            // cover the selected cells. Keep their blue planar fill visible
+            // until a real solid preview occupies the coplanar source face.
+            const bool coveredBySolidPreview=!preview_.IsNull() && previewProfileIds_.contains(profile.profileId);
+            if(visible && !coveredBySolidPreview)context_->Display(fill,false);else context_->Erase(fill,false);
         }
     }
     for(auto i=models_.begin();i!=models_.end();++i) {

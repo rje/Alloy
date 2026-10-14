@@ -7150,7 +7150,11 @@ QJsonObject AlloyWindow::finishSession(const QString& id, bool commit) {
         if(sliderDock_)sliderDock_->hide();sliderPreviewAuthored_={};transientSliderPosition_.reset();jointGraphStage_={};
         if(sliderTimer_)sliderTimer_->stop();view_->clearSolidEdgeHighlights();displayedDocumentRevision_=std::numeric_limits<quint64>::max();
     }
-    if(target=="solid.extrude"){view_->selectSupportFace({},{});if(extrudeEscape_)extrudeEscape_->setEnabled(false);if(extrudeDock_)extrudeDock_->hide();view_->clearPreview();view_->setEditDisplay({},{});view_->clearBodyStage();}
+    if(target=="solid.extrude"){
+        view_->selectSupportFace({},{});if(extrudeEscape_)extrudeEscape_->setEnabled(false);if(extrudeDock_)extrudeDock_->hide();
+        view_->clearPreview();view_->setEditDisplay({},{});view_->clearBodyStage();
+        if(!commit){selectedSketch_.clear();selectedProfile_.clear();selectedProfileIds_={};view_->selectProfile({},{});}
+    }
     else if(target=="solid.combine") {
         if(combineEscape_)combineEscape_->setEnabled(false);if(combineDock_)combineDock_->hide();
         view_->clearPreview();view_->setEditDisplay({},{});view_->highlightCombineInputs({},{});
