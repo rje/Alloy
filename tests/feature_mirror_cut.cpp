@@ -21,7 +21,7 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
     auto box=QJsonObject{{"id",CadDocument::newId()},{"bodyId",CadDocument::newId()},{"ownerId",root},
         {"type","box"},{"name","Symmetric case"},{"visible",true},
         {"parameters",QJsonObject{{"widthMm",50},{"depthMm",80},{"heightMm",20},
-            {"xMm",0},{"yMm",-40},{"zMm",0}}}};
+            {"xMm",-25},{"yMm",-40},{"zMm",0}}}};
     auto next=document.authored();next["features"]=QJsonArray{box};commit(document,next);
     auto sketch=SketchGeometry::newFeature(root,"XY");
     sketch=SketchGeometry::addRectangle(sketch,{{"u1Mm",10},{"v1Mm",20},{"u2Mm",16},{"v2Mm",26}});
@@ -35,6 +35,10 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
     const QJsonObject mirrorArgs{{"targetBodyId",box["bodyId"]},
         {"sourceFeatureIds",QJsonArray{cut["id"]}},
         {"mirrorPlane",QJsonObject{{"kind","origin"},{"plane","XZ"}}}};
+    auto yzArgs=mirrorArgs;yzArgs["mirrorPlane"]=QJsonObject{{"kind","origin"},{"plane","YZ"}};
+    const auto yzPreview=document.prepareCandidate(CadDocument::featureMirrorCandidate(document.authored(),yzArgs));
+    check(yzPreview.ok,"Origin YZ Cut Mirror preview failed");
+    near(yzPreview.evaluation->bodies.front().summary["volumeMm3"].toDouble(),80000-360);
     commit(document,CadDocument::featureMirrorCandidate(document.authored(),mirrorArgs));
     const auto mirror=document.authored()["features"].toArray().last().toObject();
     near(volume(document),80000-360);

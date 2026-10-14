@@ -1459,8 +1459,9 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
             if(feature.contains("bodyId") || p.size()!=3 || !validId(p["targetBodyId"].toString())
                 || !p["sourceFeatureIds"].isArray() || p["sourceFeatureIds"].toArray().isEmpty()
                 || p["sourceFeatureIds"].toArray().size()>32
-                || p["mirrorPlane"].toObject()!=QJsonObject{{"kind","origin"},{"plane","XZ"}})
-                return "Feature Mirror requires one target, earlier supported feature sources and origin XZ plane";
+                || (p["mirrorPlane"].toObject()!=QJsonObject{{"kind","origin"},{"plane","XZ"}}
+                    && p["mirrorPlane"].toObject()!=QJsonObject{{"kind","origin"},{"plane","YZ"}}))
+                return "Feature Mirror requires one target, earlier supported feature sources and origin XZ or YZ plane";
             QSet<QString> sources;
             for(const auto& source:p["sourceFeatureIds"].toArray()) {
                 if(!source.isString() || !validId(source.toString()) || sources.contains(source.toString()))

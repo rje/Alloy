@@ -53,7 +53,8 @@ private slots:
         auto* plane=window.findChild<QComboBox*>("featureMirror.plane");QVERIFY(plane);
         QTest::mouseClick(plane,Qt::LeftButton);QVERIFY(plane->view()->isVisible());
         auto* popupFocus=QApplication::focusWidget();QVERIFY(popupFocus);
-        QTest::keyClick(popupFocus,Qt::Key_End);QTest::keyClick(popupFocus,Qt::Key_Return);
+        QTest::keyClick(popupFocus,Qt::Key_Home);QTest::keyClick(popupFocus,Qt::Key_Down);
+        QTest::keyClick(popupFocus,Qt::Key_Return);
         QTRY_VERIFY(window.state()["activeSession"].toObject()["previewed"].toBool());
         QCOMPARE(window.state()["activeSession"].toObject()["inputs"].toObject()["sourceFeatureIds"].toArray(),ids);
         auto* dock=window.findChild<QDockWidget*>("featureMirrorDock");QVERIFY(dock);

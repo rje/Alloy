@@ -100,7 +100,8 @@ QJsonObject AlloyWindow::previewFeatureMirror(){
             label->setText(QString("%1 selected in Timeline").arg(inputs["sourceFeatureIds"].toArray().size()));
         if(auto* combo=featureMirrorDock_->findChild<QComboBox*>("featureMirror.plane")){
             const QSignalBlocker block(combo);
-            combo->setCurrentIndex(inputs["mirrorPlane"].toObject()["plane"]=="XZ" ? 1 : 0);
+            const auto plane=inputs["mirrorPlane"].toObject()["plane"].toString();
+            combo->setCurrentIndex(plane=="XZ" ? 1 : plane=="YZ" ? 2 : 0);
         }
         if(auto* buttons=featureMirrorDock_->findChild<QDialogButtonBox*>())
             buttons->button(QDialogButtonBox::Ok)->setEnabled(false);
@@ -113,7 +114,8 @@ QJsonObject AlloyWindow::previewFeatureMirror(){
     if(session_["baseDocumentRevision"].toInteger()!=static_cast<qint64>(document_->revision()))
         return reject("stale_session","The document changed; cancel and restart Mirror");
     if(inputs["sourceFeatureIds"].toArray().isEmpty())return reject("objects_required","Select Cut features or a Join and its finishes in the Timeline");
-    if(inputs["mirrorPlane"].toObject()["plane"]!="XZ")return reject("plane_required","Select Origin XZ as Mirror Plane");
+    const auto plane=inputs["mirrorPlane"].toObject()["plane"].toString();
+    if(plane!="XZ" && plane!="YZ")return reject("plane_required","Select Origin XZ or YZ as Mirror Plane");
     auto args=inputs;if(!args.contains("featureId"))args["newFeatureId"]=session_["newFeatureId"];
     QJsonObject candidate;
     try{candidate=CadDocument::featureMirrorCandidate(document_->authored(),authoringArguments(args));}
@@ -158,11 +160,12 @@ void AlloyWindow::showFeatureMirror(){
     auto* objects=new QLabel("0 selected in Timeline",panel);objects->setObjectName("featureMirror.objects");
     objects->setWordWrap(true);form->addRow("Objects",objects);
     auto* plane=new QComboBox(panel);plane->setObjectName("featureMirror.plane");
-    plane->addItem("Select Mirror Plane");plane->addItem("Origin XZ");form->addRow("Mirror Plane",plane);
+    plane->addItem("Select Mirror Plane");plane->addItem("Origin XZ");plane->addItem("Origin YZ");form->addRow("Mirror Plane",plane);
     connect(plane,QOverload<int>::of(&QComboBox::currentIndexChanged),this,[this](int index){
         if(session_.value("command")!="solid.featureMirror")return;
         auto inputs=session_["inputs"].toObject();inputs["mirrorPlane"]=index==1
-            ? QJsonObject{{"kind","origin"},{"plane","XZ"}} : QJsonObject{};
+            ? QJsonObject{{"kind","origin"},{"plane","XZ"}} : index==2
+                ? QJsonObject{{"kind","origin"},{"plane","YZ"}} : QJsonObject{};
         session_["inputs"]=inputs;previewFeatureMirror();
     });
     auto* status=new QLabel(panel);status->setObjectName("featureMirror.status");status->setWordWrap(true);form->addRow(status);

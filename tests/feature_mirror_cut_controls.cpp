@@ -24,6 +24,8 @@ private slots:
     void timelineSelectionAndPlane() {
         const auto evidence=qEnvironmentVariable("ALLOY_FEATURE_MIRROR_EVIDENCE");
         QVERIFY(!evidence.isEmpty());QDir().mkpath(evidence);
+        const auto requestedPlane=qEnvironmentVariable("ALLOY_FEATURE_MIRROR_PLANE","XZ");
+        QVERIFY(requestedPlane=="XZ" || requestedPlane=="YZ");
         AlloyTheme::apply(*qApp);AlloyWindow window;window.resize(1440,900);window.show();window.activateWindow();
         QVERIFY(QTest::qWaitForWindowExposed(&window));
         call(window,"document.open",{{"path",evidence+"/mirror-seed.alloy"}});
@@ -31,6 +33,7 @@ private slots:
         const auto features=initial["features"].toArray();const auto cut=features.last().toObject();
         QCOMPARE(cut["type"].toString(),QString("extrude"));
         QCOMPARE(cut["parameters"].toObject()["operation"].toString(),QString("cut"));
+        call(window,"component.activate",{{"definitionId",cut["ownerId"]}});
         call(window,"view.home");call(window,"view.orientation",{{"name","bottom"}});
         auto* launch=window.findChild<QToolButton*>("command.solid.featureMirrorDialog");QVERIFY(launch);
         auto* timeline=window.findChild<QToolButton*>("timeline.feature."+cut["id"].toString());QVERIFY(timeline);
@@ -48,8 +51,12 @@ private slots:
             auto* plane=window.findChild<QComboBox*>("featureMirror.plane");QVERIFY(plane);
             QTest::mouseClick(plane,Qt::LeftButton);QVERIFY(plane->view()->isVisible());
             auto* popupFocus=QApplication::focusWidget();QVERIFY(popupFocus);
-            QTest::keyClick(popupFocus,Qt::Key_End);QTest::keyClick(popupFocus,Qt::Key_Return);
+            QTest::keyClick(popupFocus,Qt::Key_Home);
+            QTest::keyClick(popupFocus,requestedPlane=="YZ" ? Qt::Key_End : Qt::Key_Down);
+            QTest::keyClick(popupFocus,Qt::Key_Return);
             QTRY_VERIFY(window.state()["activeSession"].toObject()["previewed"].toBool());
+            QCOMPARE(window.state()["activeSession"].toObject()["inputs"].toObject()
+                ["mirrorPlane"].toObject()["plane"].toString(),requestedPlane);
             auto* dock=window.findChild<QDockWidget*>("featureMirrorDock");QVERIFY(dock);
             QVERIFY(dock->findChild<QDialogButtonBox*>()->button(QDialogButtonBox::Ok)->isEnabled());
         };
@@ -65,6 +72,8 @@ private slots:
         QVERIFY(window.state()["activeSession"].toObject().isEmpty());
         const auto accepted=call(window,"document.inspect")["authored"].toObject();
         QCOMPARE(accepted["features"].toArray().last().toObject()["type"].toString(),QString("featureMirror"));
+        QCOMPARE(accepted["features"].toArray().last().toObject()["parameters"].toObject()
+            ["mirrorPlane"].toObject()["plane"].toString(),requestedPlane);
         call(window,"capture.screenshot",{{"path",evidence+"/native-mirror-accepted.png"}});
         window.hide();
     }

@@ -151,12 +151,11 @@ void FeaturePattern::mirrorCuts(EvaluatedBody& target,const QJsonObject& feature
     const auto parameters=feature["parameters"].toObject();
     auto fail=[&](const QString& code,const QString& message){throw GeometryKernel::EvaluationError({
         {"code",code},{"message",message},{"featureId",feature["id"]},{"targetBodyId",target.bodyId}});};
-    // The source lesson selects the origin XZ plane. Its normal is +Y; the
-    // unoriented reflection is independent of that normal's sign.
     const auto plane=parameters["mirrorPlane"].toObject();
-    if(plane["kind"]!="origin" || plane["plane"]!="XZ")
-        fail("mirror_plane_unsupported","Feature Mirror currently supports the retained origin XZ plane");
-    gp_Trsf reflection;reflection.SetMirror(gp_Ax2(gp_Pnt(0,0,0),gp_Dir(0,1,0)));
+    const auto axis=plane["plane"].toString();
+    if(plane["kind"]!="origin" || (axis!="XZ" && axis!="YZ"))
+        fail("mirror_plane_unsupported","Feature Mirror requires origin XZ or YZ");
+    gp_Trsf reflection;reflection.SetMirror(gp_Ax2(gp_Pnt(0,0,0),axis=="YZ" ? gp_Dir(1,0,0) : gp_Dir(0,1,0)));
     const auto originalVolume=GeometryKernel::summarize(target.shape)["volumeMm3"].toDouble();
     QJsonArray instances;
     for(const auto& value:parameters["sourceFeatureIds"].toArray()) {
@@ -222,14 +221,16 @@ void FeaturePattern::mirrorSnapGroup(EvaluatedBody& target,const QJsonObject& fe
         throw GeometryKernel::EvaluationError({{"code",code},{"message",message},
             {"featureId",feature["id"]},{"targetBodyId",target.bodyId},{"sourceFeatureId",sourceId}});};
     const auto selected=parameters["sourceFeatureIds"].toArray();
-    if(selected.size()!=5 || parameters["mirrorPlane"].toObject()!=QJsonObject{{"kind","origin"},{"plane","XZ"}})
-        fail("mirror_group_unsupported","Snap Mirror requires five ordered features and origin XZ");
+    const auto plane=parameters["mirrorPlane"].toObject();
+    const auto axis=plane["plane"].toString();
+    if(selected.size()!=5 || plane["kind"]!="origin" || (axis!="XZ" && axis!="YZ"))
+        fail("mirror_group_unsupported","Snap Mirror requires five ordered features and origin XZ or YZ");
     QMap<QString,QJsonObject> sources;
     for(const auto& value:features)if(selected.contains(value.toObject()["id"]))sources[value.toObject()["id"].toString()]=value.toObject();
     const auto joinId=selected.first().toString();
     if(!prior.joinFeatureTools.contains(joinId) || prior.joinFeatureTools[joinId].size()!=1)
         fail("mirror_source_unavailable","Snap Join needs one retained source-stage prism",joinId);
-    gp_Trsf reflection;reflection.SetMirror(gp_Ax2(gp_Pnt(0,0,0),gp_Dir(0,1,0)));
+    gp_Trsf reflection;reflection.SetMirror(gp_Ax2(gp_Pnt(0,0,0),axis=="YZ" ? gp_Dir(1,0,0) : gp_Dir(0,1,0)));
     auto reflectEndpoints=[&](QJsonObject& provenance){
         for(const auto* key:{"startMm","endMm"}){
             const auto xyz=provenance[key].toArray();
