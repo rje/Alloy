@@ -1663,7 +1663,7 @@ SketchGeometry::SolveResult SketchGeometry::filletCorners(const QJsonObject& dra
             if(reached.size()!=degree.size())drivingRectangle=false;
         }
         drivingRectangle &= axes.size()==2 && sideIds.size()==4 && minU<maxU-minimumLength && minV<maxV-minimumLength;
-        const auto originId=parameters["originPointId"].toString();
+        const auto originId=parameters.value("originPointId").toString();
         bool originFixed=false;
         for(const auto& value:constraints){const auto c=value.toObject();if(c["type"]=="fixed" && c["pointIds"].toArray()==QJsonArray{originId}
             && std::abs(c["uMm"].toDouble())<1e-7 && std::abs(c["vMm"].toDouble())<1e-7)originFixed=true;}

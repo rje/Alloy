@@ -51,7 +51,8 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try {
     const auto regions=SketchProfiles::deriveRegions(f);check(regions.ok && regions.profiles.size()==3,regions.error);
     check(document.commit(SketchGeometry::replaceFeature(document.authored(),f),"Rounded source").isEmpty(),"Commit bracket source");
     QJsonArray profileIds;for(const auto& profile:regions.profiles)profileIds.append(profile.profileId);
-    check(document.commit(CadDocument::extrusionCandidate(document.authored(),{{"sketchId",f["id"]},{"profileIds",profileIds},{"distanceMm",50}}),"Extrude bracket").isEmpty(),"Commit bracket union");
+    const auto unionError=document.commit(CadDocument::extrusionCandidate(document.authored(),{{"sketchId",f["id"]},{"profileIds",profileIds},{"distanceMm",50}}),"Extrude bracket");
+    check(unionError.isEmpty(),"Commit bracket union: "+unionError);
     const auto producer=document.authored()["features"].toArray().last().toObject();
     const auto supportCap=document.bodies()[0].supportFaces.at(0);
     QJsonObject support{{"producerFeatureId",producer["id"]},{"bodyId",producer["bodyId"]},{"faceId",supportCap.faceId}};

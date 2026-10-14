@@ -1,8 +1,18 @@
 {
   "repository": "rje/Alloy",
   "project_url": "https://github.com/users/rje/projects/1",
-  "updated": "2026-10-14T00:12:39.152592+00:00",
+  "updated": "2026-10-14T00:33:51.150272+00:00",
   "issues": {
+    "REL-008": {
+      "number": 308,
+      "url": "https://github.com/rje/Alloy/issues/308",
+      "state": "closed"
+    },
+    "DOC-025": {
+      "number": 307,
+      "url": "https://github.com/rje/Alloy/issues/307",
+      "state": "open"
+    },
     "SKT-070": {
       "number": 306,
       "url": "https://github.com/rje/Alloy/issues/306",
@@ -161,7 +171,7 @@
     "SOL-044": {
       "number": 275,
       "url": "https://github.com/rje/Alloy/issues/275",
-      "state": "open"
+      "state": "closed"
     },
     "SOL-043": {
       "number": 274,
@@ -176,7 +186,7 @@
     "SKT-066": {
       "number": 272,
       "url": "https://github.com/rje/Alloy/issues/272",
-      "state": "open"
+      "state": "closed"
     },
     "DOC-022": {
       "number": 271,
@@ -1533,9 +1543,9 @@
       "url": "https://github.com/rje/Alloy/issues/1",
       "state": "open"
     },
-    "DOC-025": {
-      "number": 307,
-      "url": "https://github.com/rje/Alloy/issues/307",
+    "GEO-006": {
+      "number": 309,
+      "url": "https://github.com/rje/Alloy/issues/309",
       "state": "open"
     }
   }

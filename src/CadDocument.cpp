@@ -116,8 +116,6 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
                 const auto body=source["bodyId"].toString();
                 return bodyPositions.contains(body) && bodyPositions[body]<i && activeBodies.contains(body);
             };
-            if(!earlierBody(parameters["support"].toObject()))return {{"featureId",feature["id"]},
-                {"code","sketch_support_unavailable"},{"message","Face sketch support must be an earlier active body"}};
             for(const auto& key:{"projections","pointProjections"})for(const auto& item:parameters[key].toArray())
                 if(!earlierBody(item.toObject()["source"].toObject()))return {{"featureId",feature["id"]},
                     {"code","projection_unavailable"},{"message","Projected source must be an earlier active body"}};

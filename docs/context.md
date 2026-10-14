@@ -28,11 +28,19 @@ Box→Shell, source-size edits and thickness3, stable back-wall references,
 undo/redo and exact reopen with an inspected hardware GPU capture. Receipt in
 `docs/validation/box-shell-parameters.md`; artifacts external at
 `deliverables/sliding-box-2026-10-13/prefix-01`. Both issues are closed.
-Active next source features: SKT-066/#272 linked Project across root-sibling
-components (isolated linked-planar-project), and SOL-044/#275 offset-start Extrude
-(isolated extrude-offset-start). Sol implements; Astra researches/verifies. No complete lid
-workflow/movie is claimed. Root owns the sole private-editor lease; all test
-editors are closed. Source qualification for later tutorials remains explicit.
+SKT-066/#272 linked Project and SOL-044/#275 Offset-start Extrude are also
+independently accepted and integrated. The full lid workflow/movie remains open.
+Active source features are SKT-070/#306 typed Line length/angle and ASM-005/#296
+As-built Slider, each in an isolated worktree with Sol implementation and Astra
+verification. REL-008/#308 is independently source-accepted: a non-mutating optional-origin
+read repairs general sketch Fillet, and existing face-support diagnostics are
+preserved. Existing focused Fillet/Project checks pass. The larger face_support
+fixture remains intermittently blocked by separately tracked GEO-006 edge
+provenance ambiguity; no clean-suite claim is made.
+The integrated Project app builds and its focused core test passes. Root owns the
+sole private-editor lease, currently loaned to the typed-Line implementer. Later source/input
+qualification remains explicit. Five gates have 38 new prerequisite/research/gate
+tasks; two separately tracked regressions make 309 total canonical issues.
 
 ## Accepted ornament gate — 2026-10-13
 
