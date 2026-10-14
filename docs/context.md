@@ -130,7 +130,9 @@ control-acquisition loop; continue a bounded feature with Qt/native/API evidence
 SOL-016/#154 is active for one combined native Qt five-profile toggle/arrow-Cut
 check, reusing accepted geometry rather than repeating its kernel suite. SOL-058/#403
 retains physical held-modifier macOS/Windows checks; TUT-003 depends on both.
-Backlog is403 issues with acyclic dependencies. Astra independently verifies.
+Next bounded implementation: SKT-089/#404, explicit driven continuation for a
+new redundant dimension; source contract prepared, broader SKT-021 stays Todo.
+Backlog is404 issues with acyclic dependencies. Astra independently verifies.
 Only main and its existing build are used; no inactive worktrees accumulate.
 DOC-031/#348 is independently accepted at `89782cf`: unchanged-product native09
 passes modal line focus, rename commit, Browser label and unchanged geometry.
