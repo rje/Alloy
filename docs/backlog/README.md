@@ -20,8 +20,8 @@ include these five gates, three source qualification tasks and30 bounded feature
 children. Existing broad requirements are reused, not duplicated; split them
 before pulling an implementation too large for one increment. PAR-004 and DOC-022 are independently accepted and closed.
 The sliding-lid workflow and enclosure mounting prefix are accepted. The port/card and split/snap checkpoints are also accepted. Calibrated reference canvases, retained surface removal and Surface workspace
-navigation are accepted. Current work qualifies exterior guide-rail Loft, with
-Trim and the separately tracked three-section handle bridge next. Exact shoehorn corner rounding and the enclosure
+navigation and bounded exterior guide-rail Loft are accepted. Surface Trim is
+active, with the separately tracked three-section handle bridge next. Exact shoehorn corner rounding and the enclosure
 alignment rim remain blocked geometry follow-ups. Complete source operations, readable constraint and
 selection states, edit/history/reopen, full creation recordings and independently
 checked outputs remain acceptance requirements. Detailed source URLs and
