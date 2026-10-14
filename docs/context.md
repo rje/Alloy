@@ -3068,3 +3068,17 @@ Clearance rescaling with the inward Offset sign retained. Native Qt
 Expression-cell editing, invalid refusal and numeric unbinding pass. See
 [the candidate receipt](validation/model-parameter-table.md) and the external
 `advanced-audit-2026-10-13/model-parameter-table-contract.md` source record.
+
+## Sliding-lid cumulative API gate candidate (2026-10-13)
+
+TUT-015 now has one source-order real-app runner in
+`tests/sliding_lid_workflow_api.py` extending the accepted numeric dovetail
+Cut prefix through root-sibling linked Lid Project, five-edge Offset and
+closure, To Object Lid, after-authoring model bindings, 74 × 40 × 100 resize,
+midpoint 15 × 2 thumb ellipse/Offset Start Cut, and Y Slider. The 206-call
+final actual-app run passes with two separately inspected rest STL parts, a
+posed Lid STL and STEP, undo/redo and save/reopen. Its native framebuffer
+captures and exact measured geometry are in
+[the candidate receipt](validation/sliding-lid-cumulative.md). Independent
+review and a paced full-creation movie remain pending before closing the
+cumulative gate; ingredient Qt input evidence is separate from this API run.

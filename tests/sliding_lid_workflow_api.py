@@ -3,11 +3,15 @@
 import argparse
 import json
 import math
+import subprocess
+import time
 from pathlib import Path
 from app_harness import application
+from stl_export_api import inspect_stl
 
 p = argparse.ArgumentParser()
 p.add_argument('--app', required=True)
+p.add_argument('--step-tool', required=True)
 p.add_argument('--output', required=True)
 a = p.parse_args()
 out = Path(a.output).resolve()
@@ -22,9 +26,13 @@ def along_y(edge):
     xx, yy, zz = source['endMm']
     return abs(x-xx)<1e-6 and abs(z-zz)<1e-6 and abs(y-yy)>1
 
+def close(actual, expected, tolerance=1e-5):
+    assert math.isclose(actual, expected, abs_tol=tolerance), (actual, expected)
+
 with application(a.app, out) as (call, transcript):
     assert call('app.state')['viewport']['gpu']['hardwareAccelerated']
-    owner = call('component.create', {'name':'Box'})['definitionId']
+    box_component = call('component.create', {'name':'Box'})
+    owner = box_component['definitionId']
     call('component.activate', {'definitionId':owner})
     call('solid.box', {'width':50, 'depth':80, 'height':40, 'units':'mm', 'name':'Box'})
     body = call('document.inspect')['evaluation']['bodies'][0]
@@ -141,6 +149,260 @@ with application(a.app, out) as (call, transcript):
     call('document.open', {'path':str(path), 'discard':True})
     assert call('document.inspect')['authored']==cut['authored']
     call('capture.screenshot', {'path':str(out/'dovetail-cut-reopened.png')})
+    # Project the actual cut-front lineage into the root-sibling Lid sketch.
+    cut_body = call('document.inspect')['evaluation']['bodies'][0]
+    cut_front = next(f for f in cut_body['supportFaces'] if f['role']=='box.y0')
+    assert len(cut_front['edges'])==8
+    lid = call('component.create', {'name':'Lid'})
+    call('component.activate', {'definitionId':lid['definitionId']})
+    call('sketch.begin', {'support':ref(cut_front), 'name':'Lid clearance'})
+    call('sketch.lookAt')
+    call('sketch.projectBegin')
+    call('sketch.projectFace', ref(cut_front))
+    call('sketch.projectCommit')
+    lines = state()['projectionContext']['lines']
+    def chosen(predicate):
+        matches = [line for line in lines if predicate(line)]
+        assert len(matches)==1, matches
+        return matches[0]
+    shoulder_l = chosen(lambda l: abs(l['v1Mm']-40)<1e-5 and abs(l['v2Mm']-40)<1e-5
+                        and max(l['u1Mm'],l['u2Mm'])<=4.001)
+    slant_l = chosen(lambda l: abs(max(l['v1Mm'],l['v2Mm'])-40)<1e-5
+                     and 35<min(l['v1Mm'],l['v2Mm'])<40 and max(l['u1Mm'],l['u2Mm'])<25)
+    lower = chosen(lambda l: abs(l['v1Mm']-l['v2Mm'])<1e-5 and 35<l['v1Mm']<40
+                   and abs(l['u2Mm']-l['u1Mm'])>40)
+    slant_r = chosen(lambda l: abs(max(l['v1Mm'],l['v2Mm'])-40)<1e-5
+                     and 35<min(l['v1Mm'],l['v2Mm'])<40 and min(l['u1Mm'],l['u2Mm'])>25)
+    shoulder_r = chosen(lambda l: abs(l['v1Mm']-40)<1e-5 and abs(l['v2Mm']-40)<1e-5
+                        and min(l['u1Mm'],l['u2Mm'])>=45.999)
+    source_ids = [line['id'] for line in (shoulder_l,slant_l,lower,slant_r,shoulder_r)]
+    original_lid_draft=draft()
+    call('sketch.tool', {'tool':'offset'})
+    preview=call('sketch.offsetPreview', {'sourceEntityIds':source_ids,'distance':-0.25,'units':'mm'})
+    assert preview['pendingOpenChainOffset']['valid'] and draft()==original_lid_draft
+    call('capture.screenshot', {'path':str(out/'lid-offset-preview.png')})
+    call('sketch.offsetAccept')
+    offset_group=draft()['parameters']['openChainOffsets'][0]
+    assert offset_group['sourceEntityIds']==source_ids and len(offset_group['generatedEntityIds'])==5
+    hits=offset_group['topIntersectionPointIds']
+    assert len(hits)==2
+    lid_points={point['id']:point for point in draft()['parameters']['points']}
+    hit_l,hit_r=(lid_points[point_id] for point_id in hits)
+    close(hit_l['vMm'],40);close(hit_r['vMm'],40)
+    call('sketch.line', {'x1':hit_l['uMm'],'y1':hit_l['vMm'],
+                         'x2':hit_r['uMm'],'y2':hit_r['vMm'],'units':'mm',
+                         'startSnapTarget':{'kind':'point','pointId':hits[0]},
+                         'endSnapTarget':{'kind':'point','pointId':hits[1]}})
+    closure=draft()['parameters']['entities'][-1]
+    assert closure['id'] not in offset_group['generatedEntityIds']
+    lid_sketch_id=draft()['id']
+    call('sketch.finish')
+    lid_sketch=call('document.inspect')
+    lid_profiles=[profile for profile in lid_sketch['evaluation']['sketches'][-1]['profiles']
+                  if closure['id'] in profile['sourceEntityIds'] and lower['id'] not in profile['sourceEntityIds']]
+    assert len(lid_profiles)==1, lid_profiles
+    call('capture.screenshot', {'path':str(out/'lid-offset-closed.png')})
+    call('solid.extrude', {'sketchId':lid_sketch_id,'profileId':lid_profiles[0]['profileId'],
+        'extent':'toObject','endSupport':ref(back),'endOffset':0.25,'units':'mm'})
+    two_solid=call('document.inspect')
+    assert len(two_solid['evaluation']['bodies'])==2
+    lid_body=next(b for b in two_solid['evaluation']['bodies'] if b['ownerId']==lid['definitionId'])
+    box_body=next(b for b in two_solid['evaluation']['bodies'] if b['ownerId']==owner)
+    assert lid_body['valid'] and box_body['valid'] and lid_body['closed'] and box_body['closed']
+    assert two_solid['authored']['features'][-1]['parameters']['endSupport']==ref(back)
+    assert 'distanceMm' not in two_solid['authored']['features'][-1]['parameters']
+    call('view.home')
+    call('capture.screenshot', {'path':str(out/'two-solid-lid.png')})
+
+    # Only after both source solids exist, add the five user names and bind the
+    # seven existing model rows through their retained targets.
+    for name,value in (('Length',80),('Width',50),('Height',40),('Thickness',4),('Clearance',0.25)):
+        call('document.parameterAdd', {'name':name,'value':value,'units':'mm'})
+    def inspect(): return call('document.inspect')
+    parameter_ids={row['name']:row['id'] for row in inspect()['userParameters']}
+    lid_extrude_id=two_solid['authored']['features'][-1]['id']
+    def row(name,kind,feature_id=None):
+        found=[entry for entry in inspect()['modelParameters']
+               if entry['name']==name and entry['featureType']==kind and
+               (feature_id is None or entry['featureId']==feature_id)]
+        assert len(found)==1, (name,kind,feature_id,found)
+        return found[0]
+    def bind(name,kind,expression,feature_id=None):
+        target=row(name,kind,feature_id)['target']
+        call('document.modelParameterSet', {'target':target,'expression':expression})
+        current=row(name,kind,feature_id)
+        assert current['parameterId']==parameter_ids[expression]
+    assert len(inspect()['modelParameters'])>=7
+    for name,kind,source_name in (('Width','box','Width'),('Depth','box','Length'),
+                                  ('Height','box','Height'),('Thickness','shell','Thickness'),
+                                  ('linear Dimension','sketch','Thickness'),
+                                  ('Chain Offset','sketch','Clearance')):
+        bind(name,kind,source_name)
+    bind('End Offset','extrude','Clearance',lid_extrude_id)
+    table_bound=inspect()
+    call('document.parametersDialog')
+    call('capture.dialog', {'path':str(out/'model-rows.png')})
+    call('document.parametersDialog', {'visible':False})
+    for name,value in (('Length',40),('Width',74),('Height',100)):
+        call('document.parameterUpdate', {'parameterId':parameter_ids[name],'value':value})
+    resized=inspect()
+    assert len(resized['evaluation']['bodies'])==2
+    close(row('Width','box')['valueMm'],74)
+    close(row('Depth','box')['valueMm'],40)
+    close(row('Height','box')['valueMm'],100)
+    close(row('Chain Offset','sketch')['valueMm'],-0.25)
+    close(row('End Offset','extrude',lid_extrude_id)['valueMm'],0.25)
+    close(row('Thickness','shell')['valueMm'],4)
+    close(row('linear Dimension','sketch')['valueMm'],4)
+    box_resized=next(b for b in resized['evaluation']['bodies'] if b['ownerId']==owner)
+    lid_resized=next(b for b in resized['evaluation']['bodies'] if b['ownerId']==lid['definitionId'])
+    close(box_resized['boundsMm']['size'][0],74)
+    close(box_resized['boundsMm']['size'][1],40)
+    close(box_resized['boundsMm']['size'][2],100)
+    assert lid_resized['valid'] and lid_resized['closed']
+    close(lid_resized['boundsMm']['max'][1],40-4-0.25)
+    features_by_id={feature['id']:feature for feature in resized['authored']['features']}
+    retained_group=features_by_id[lid_sketch_id]['parameters']['openChainOffsets'][0]
+    assert retained_group['id']==offset_group['id']
+    for field in ('sourceEntityIds','generatedEntityIds','topIntersectionPointIds'):
+        assert retained_group[field]==offset_group[field]
+    assert features_by_id[lid_sketch_id]['parameters']['support']==ref(cut_front)
+    assert features_by_id[lid_extrude_id]['parameters']['endSupport']==ref(back)
+    assert len(next(f for f in box_resized['supportFaces'] if f['role']=='box.y0')['edges'])==8
+    assert next(s for s in resized['evaluation']['sketches'] if s['featureId']==sketch_id)['solver']['dof']==0
+    assert next(s for s in resized['evaluation']['sketches'] if s['featureId']==lid_sketch_id)['solver']['dof']==0
+    call('view.home')
+    call('capture.screenshot', {'path':str(out/'resized-pair.png')})
+    # The Lid front is a retained base cap. Project its own top edge and snap
+    # the 15 × 2 ellipse center to that stable edge's midpoint.
+    call('component.activate', {'definitionId':lid['definitionId']})
+    lid_base=next(face for face in lid_resized['supportFaces'] if face['role']=='extrude.base')
+    assert len(lid_base['edges'])==4
+    call('sketch.begin', {'support':ref(lid_base),'name':'Thumb relief'})
+    call('sketch.lookAt')
+    call('sketch.projectBegin')
+    call('sketch.projectFace', ref(lid_base))
+    thumb_project=call('sketch.projectCommit')
+    top_candidates=[line for line in thumb_project['sketchGeometry']['projectedLines']
+                    if abs(line['v1Mm']-100)<1e-5 and abs(line['v2Mm']-100)<1e-5]
+    assert len(top_candidates)==1,top_candidates
+    lid_top=top_candidates[0]
+    top_center=(lid_top['u1Mm']+lid_top['u2Mm'])/2
+    close(top_center,37)
+    call('sketch.centerPointEllipse', {'centerX':top_center,'centerY':100,
+        'firstX':top_center+7.5,'firstY':100,'contourX':top_center,'contourY':101,
+        'units':'mm','centerSnapTarget':{'kind':'midpoint','entityId':lid_top['id']}})
+    ellipse=next(e for e in draft()['parameters']['entities'] if e['type']=='ellipse')
+    call('sketch.constraint', {'type':'horizontal','entityIds':[ellipse['firstAxisId']]})
+    for axis,value in ((ellipse['firstAxisId'],15),(ellipse['secondAxisId'],2)):
+        call('sketch.dimension', {'kind':'linear','entityId':axis,'value':value,'units':'mm'})
+    assert state()['solverDiagnostics']['dof']==0
+    thumb_id=draft()['id']
+    call('capture.screenshot', {'path':str(out/'thumb-sketch.png')})
+    call('sketch.finish')
+    thumb_source=inspect()
+    thumb_geometry=next(s for s in thumb_source['evaluation']['sketches'] if s['featureId']==thumb_id)
+    actual_ellipse=next(entity for entity in thumb_geometry['entities'] if entity['id']==ellipse['id'])
+    close(actual_ellipse['centerMm'][0],37)
+    close(actual_ellipse['centerMm'][2],100)
+    assert thumb_geometry['solver']['dof']==0
+    thumb_regions=[p for p in thumb_geometry['profiles'] if ellipse['id'] in p['sourceEntityIds']
+                   and p['areaMm2']<30]
+    assert thumb_regions,thumb_geometry['profileDiagnostics']
+    before_thumb=next(b for b in thumb_source['evaluation']['bodies'] if b['ownerId']==lid['definitionId'])
+    call('solid.extrude', {'sketchId':thumb_id,'profileIds':[p['profileId'] for p in thumb_regions],
+        'start':'offset','startOffset':-10,'distance':5,'units':'mm',
+        'operation':'cut','targetBodyIds':[before_thumb['bodyId']]})
+    thumb_cut=inspect()
+    after_thumb=next(b for b in thumb_cut['evaluation']['bodies'] if b['ownerId']==lid['definitionId'])
+    close(before_thumb['volumeMm3']-after_thumb['volumeMm3'],math.pi*7.5*1*5/2,1e-3)
+    assert after_thumb['valid'] and after_thumb['closed']
+    call('view.home')
+    call('capture.screenshot', {'path':str(out/'thumb-cut.png')})
+
+    # A root Slider moves the actual Lid occurrence along the fixed Box's
+    # retained top back ledge; source modeling stays in definition/rest space.
+    call('component.activate', {'definitionId':thumb_cut['authored']['documentId']})
+    fixed=next(b for b in thumb_cut['evaluation']['bodies'] if b['ownerId']==owner)
+    ledges=[edge for edge in fixed['solidEdges'] if edge['available'] and
+            len(edge['provenance'].get('startMm',[]))==3 and
+            abs(edge['provenance']['startMm'][1]-40)<1e-5 and
+            abs(edge['provenance']['endMm'][1]-40)<1e-5 and
+            abs(edge['provenance']['startMm'][2]-100)<1e-5 and
+            abs(edge['provenance']['endMm'][2]-100)<1e-5]
+    assert len(ledges)==1,ledges
+    position={'bodyId':fixed['bodyId'],'edgeId':ledges[0]['edgeId']}
+    joint=call('joint.slider', {'component1OccurrenceId':lid['occurrenceId'],
+        'component2OccurrenceId':box_component['occurrenceId'],
+        'position':position,'axis':'Y','minimumEnabled':True,'minimumMm':0,
+        'maximumEnabled':True,'maximumMm':50,'positionMm':0})
+    joint_state=call('joint.inspect')
+    assert joint_state['joints'][0]['relativeDegreesOfFreedom']==1
+    call('joint.previewPosition', {'positionMm':50})
+    assert call('joint.inspect')['joints'][0]['transient']
+    call('capture.screenshot', {'path':str(out/'slider-open.png')})
+    call('joint.stop')
+    call('joint.animate')
+    time.sleep(.15)
+    assert call('joint.inspect')['joints'][0]['transient']
+    call('joint.stop')
+    authored_joint=inspect()['authored']
+    call('joint.positionSet', {'jointId':authored_joint['joints'][0]['id'],'positionMm':25})
+    posed=inspect()
+    moving=next(o for o in call('joint.inspect')['occurrences'] if o['occurrenceId']==lid['occurrenceId'])
+    close(moving['bodies'][0]['boundsMm']['min'][1],25)
+    call('document.parameterUpdate', {'parameterId':parameter_ids['Length'],'value':42})
+    assert len(inspect()['evaluation']['bodies'])==2
+    close(call('joint.inspect')['joints'][0]['origin']['pointMm'][1],42)
+    moving=next(o for o in call('joint.inspect')['occurrences'] if o['occurrenceId']==lid['occurrenceId'])
+    close(moving['bodies'][0]['boundsMm']['min'][1],25)
+    call('document.parameterUpdate', {'parameterId':parameter_ids['Length'],'value':40})
+    call('joint.positionSet', {'jointId':authored_joint['joints'][0]['id'],'positionMm':0})
+    final=inspect()
+    assert len(final['evaluation']['bodies'])==2
+    call('view.home')
+    call('capture.screenshot', {'path':str(out/'assembled-final.png')})
+    call('history.undo');call('history.redo')
+    assert inspect()['authored']==final['authored']
+    final_path=out/'sliding-lid-complete.alloy'
+    call('document.save', {'path':str(final_path)})
+    call('document.open', {'path':str(final_path),'discard':True})
+    assert inspect()['authored']==final['authored']
+    rest_meshes={}
+    for part,occurrence,body_id in (('box',box_component['occurrenceId'],fixed['bodyId']),
+                                    ('lid',lid['occurrenceId'],after_thumb['bodyId'])):
+        path=out/f'{part}-printable-rest.stl'
+        call('document.exportStl', {'path':str(path),'occurrenceId':occurrence,
+            'units':'mm','format':'binary','surfaceDeviationMm':0.1,'normalDeviationDeg':10})
+        rest_meshes[part]=inspect_stl(path,True)
+    for actual,expected in zip(rest_meshes['box']['bounds'][0],[0,0,0]):close(actual,expected,0.01)
+    for actual,expected in zip(rest_meshes['box']['bounds'][1],[74,40,100]):close(actual,expected,0.01)
+    for actual,expected in zip(rest_meshes['lid']['bounds'][0],
+            [lid_resized['boundsMm']['min'][0],0,lid_resized['boundsMm']['min'][2]]):close(actual,expected,0.01)
+    for actual,expected in zip(rest_meshes['lid']['bounds'][1],
+            [lid_resized['boundsMm']['max'][0],35.75,100]):close(actual,expected,0.01)
+    call('joint.positionSet', {'jointId':authored_joint['joints'][0]['id'],'positionMm':25})
+    pose_export=inspect()
+    lid_final=next(b for b in pose_export['evaluation']['bodies'] if b['ownerId']==lid['definitionId'])
+    stl=out/'lid-world-25.stl'
+    call('document.exportStl', {'path':str(stl),'occurrenceId':lid['occurrenceId'],
+        'units':'mm','format':'binary','surfaceDeviationMm':0.1,'normalDeviationDeg':10})
+    mesh=inspect_stl(stl,True)
+    close(mesh['bounds'][0][1],25,0.01)
+    close(mesh['bounds'][1][1],25+lid_final['boundsMm']['max'][1],0.01)
+    step=out/'lid-world-25.step'
+    call('document.exportStep', {'path':str(step),'bodyId':lid_final['bodyId'],'units':'mm'})
+    step_read=json.loads(subprocess.run([str(Path(a.step_tool).resolve()),'read',str(step)],
+        check=True,capture_output=True,text=True).stdout.splitlines()[-1])
+    assert step_read['valid'] and step_read['solidCount']==1
+    for actual,expected in zip(step_read['boundsMm'],
+            [mesh['bounds'][0][0],mesh['bounds'][0][1],mesh['bounds'][0][2],
+             mesh['bounds'][1][0],mesh['bounds'][1][1],mesh['bounds'][1][2]]):
+        close(actual,expected,0.01)
+    call('joint.positionSet', {'jointId':authored_joint['joints'][0]['id'],'positionMm':0})
     (out/'receipt.json').write_text(json.dumps({'source':source, 'cut':cut,
+        'twoSolid':two_solid,'tableBound':table_bound,'resized':resized,
+        'thumbSource':thumb_source,'thumbCut':thumb_cut,'posed':posed,'final':final,
+        'restMeshes':rest_meshes,'stlBounds':mesh['bounds'],'step':step_read,
         'transcript':transcript},indent=2)+'\n')
-print('PASS: source numeric Box/Shell, projected 4/55 dovetail, mirror, retained To Object Cut and reopen')
+print('PASS: cumulative source-order Box/Lid, parameter resize, thumb Cut, Slider and posed export')
