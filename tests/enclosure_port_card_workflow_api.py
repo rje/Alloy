@@ -26,6 +26,8 @@ parser.add_argument('--fixture', required=True)
 parser.add_argument('--output', required=True)
 parser.add_argument('--step-tool', required=True)
 parser.add_argument('--record-video', type=Path)
+parser.add_argument('--through-snaps', action='store_true',
+                    help='Continue the same from-blank Case through retained snap features.')
 args = parser.parse_args()
 out = Path(args.output).resolve()
 out.mkdir(parents=True, exist_ok=True)
@@ -500,6 +502,13 @@ with application(args.app, out, command_timeout=120) as (raw, ledger), ExitStack
         check=True, capture_output=True, text=True).stdout.splitlines()[-1])
     assert step_read['valid'] and step_read['solidCount'] == 1
     assert step_result['volumeMm3'] == case_final['volumeMm3']
+    snap_result = None
+    if args.through_snaps:
+        from enclosure_snap_continuation import continue_snaps
+        snap_result = continue_snaps(call=call, stage=stage, inspect=inspect, out=out,
+                       case_owner=case_owner, case_body_id=case_body_id,
+                       reference_id=reference_id,
+                       analyses=call('analysis.inspect')['analyses'])
     if recording:
         time.sleep(1.5)
         stop_recording()
@@ -514,4 +523,9 @@ with application(args.app, out, command_timeout=120) as (raw, ledger), ExitStack
         'analyses': call('analysis.inspect')['analyses'],
         'stl': stl_result, 'stlRead': mesh, 'step': step_result,
         'stepRead': step_read, 'video': video_result, 'ledger': ledger}, indent=2) + '\n')
-print('PASS: from blank through linked ports, long slot and rounded card R2')
+    if snap_result is not None:
+        (out / 'enclosure-snaps-receipt.json').write_text(json.dumps({
+            'fixtureSha256':fixture_hash,'result':snap_result,'video':video_result,
+            'ledger':ledger},indent=2) + '\n')
+print('PASS: from blank through linked ports, long slot and rounded card R2'
+      + (' and retained snaps' if args.through_snaps else ''))

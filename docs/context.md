@@ -127,8 +127,18 @@ card Cut with R2 lip. Exact authored reopen and Case-only STEP/STL readback
 pass. See [the receipt](validation/enclosure-port-card-workflow.md); the movie,
 model and exports are first in the external gallery (82 links checked).
 
-TUT-022 remains pending its full source-step runner and creation footage;
-TUT-023 alignment rim follows. Actual final seam inspection found one closed
+TUT-022 now has a candidate from-blank 23-minute creation recording and saved
+Top/Bottom model through both feature Mirrors, Bottom Fillet reorder, and two
+opposite R0.5 groups. A late undo assertion stopped the original run after
+save; the saved model passed a separate real-app geometric edit/undo/redo,
+authored reopen, individual manifold STL and STEP export tail. Actual
+Top/Bottom positive-volume overlap is zero. The original Top face-linked
+section becomes unavailable after Split, so the tail explicitly uses a
+same-position origin-plane inspection section; native typed body rename still
+belongs to DOC-031. See [the candidate receipt](validation/enclosure-snaps-workflow.md)
+and its external partial-run/tail evidence. TUT-022 awaits independent
+cumulative review and any remaining source gate; TUT-023 alignment rim follows.
+Actual final seam inspection found one closed
 U-shaped wire with18 edges, all18 now named through accepted GEO-016/#345 (`87b5ee5`),
 including12 anchored-chain identities. Source height edit/history/reopen and
 legacy Split regression pass. SKT-076/#346 remains Todo for
