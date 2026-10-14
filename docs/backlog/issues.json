@@ -3688,7 +3688,8 @@
         "GEO-004",
         "SOL-047",
         "ASM-007",
-        "PRT-007"
+        "PRT-007",
+        "ASM-012"
       ],
       "labels": [
         "area:gate"
@@ -3784,7 +3785,8 @@
         "TUT-018",
         "RES-019",
         "TUT-019",
-        "ASM-008"
+        "ASM-008",
+        "ASM-012"
       ],
       "labels": [
         "kind:validation",
@@ -5950,6 +5952,20 @@
         "area:sol"
       ],
       "body": "Publish the reflected actual wall/stem attachment root through unique current kernel ancestry and incident retained faces, then replay the selected snap finish group against that root. GEO-014 publishes only the original Join root; the reflected replay cache currently lacks the necessary base-face/root lineage. Preserve the attempted extension and kernel_failure diagnostic externally. Do not replace the attachment with a nearby free or elbow edge. Verify stable retained identity through source Join width edit, undo/redo and save/reopen, and preserve existing selected-region Mirror behavior. Qualify bounded supported finish replay independently of GEO-015 exact 2 mm size qualification. Full source-sized five-feature snap acceptance remains SOL-053 and TUT-022.\n\n## Independently accepted 2026-10-14\nIndependent Astra review accepted 56c97a7 for reflected Join-root publication and supported finish replay only. Integrated at ad23a81. Main app build and Cut Mirror regression pass. Focused source-shaped technical five-feature Mirror proves current reflected root identity through source Join edit, history/reopen; 13-call real-app inspection passes. Broad capture is occluded and is not root visual proof. Exact source-sized finishing and cumulative workflow remain GEO-015/SOL-053/TUT-022.\n"
+    },
+    {
+      "key": "ASM-012",
+      "title": "Validate real Browser pointer drags for separate body and sketch-folder moves",
+      "kind": "validation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "ASM-007"
+      ],
+      "labels": [
+        "area:asm"
+      ],
+      "body": "Complete the source tutorial gesture gate left separate from bounded component organization. In the real Alloy Browser, physically drag the finished body from root Bodies onto the destination local component, then separately drag the root Sketches folder onto it. Verify one visible destination body row and sketch row, no stale duplicate source rows, unchanged geometry and modeling references, and inspect authored object owners through the shared API. Capture the actual gesture and readable result. Qt-delivered context actions and direct drop-event route tests are useful component evidence but do not alone establish physical pointer drag. Current desktop verification blocker: computer-use getApp for the running candidate returns -10005 cgWindowNotFound; bundle-id selection is ambiguous across build paths. Qt synthetic drag started but did not deliver drop. Do not silently replace the tutorial drag with a context command or repeat inaccessible input attempts indefinitely. Keep this Todo until native input is available, then fix any actual gesture issue exposed. Public source provenance is external; TUT-017 exact workflow cannot close without this gate."
     }
   ]
 }
