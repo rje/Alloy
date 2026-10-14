@@ -31,6 +31,10 @@ but fails the final area check because of the alignment gap. Evidence stays in
 the external sketch-expression-exercise deliverable. Ingredient API setup is
 not a substitute for the full source sequence.
 [Contract](research/sketch-expression-exercise-contract.md).
+Next queued excerpt: SKT-085/#388 and SKT-086/#389 add creation-time circle
+tangent inference and connected Line-to-Arc drag; TUT-025/#390 checks the public
+Base Sketch construction steps1–5. Existing explicit Tangent and Fillet are
+reused. Archived source and reviewed detailed contracts stay external.
 Only main and its existing build are used; no inactive worktrees accumulate.
 DOC-031/#348 is independently accepted at `89782cf`: unchanged-product native09
 passes modal line focus, rename commit, Browser label and unchanged geometry.

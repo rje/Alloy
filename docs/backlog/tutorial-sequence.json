@@ -17,6 +17,18 @@
       "remaining": "Slot and same-sketch formulas accepted. Native05 exposed missing pointer Line H/V inference; SKT-084 is active before the cumulative native recording resumes. Popup toolbar opening adaptation remains qualified."
     },
     {
+      "id": "CP-26",
+      "title": "Base sketch tangent and arc construction excerpt",
+      "issues": [
+        "SKT-085",
+        "SKT-086",
+        "TUT-025"
+      ],
+      "acceptance": "From blank: rough circles, Shift tangent Line from first circle, contact onto second, R10 fillet and connected central concave Line-to-Arc drag; valid shaded bounded cells, readable cues and retained contacts, edit/history/reopen and complete creation recording.",
+      "status": "todo",
+      "remaining": "Missing creation-time circle tangent inference and connected Line-to-Arc drag. Existing explicit Tangent and Fillet are reused. Later chapter dimensions and extrusion are outside this bounded excerpt."
+    },
+    {
       "id": "CP-20",
       "title": "Parametric sliding-lid box",
       "issues": [
