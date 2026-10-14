@@ -485,7 +485,11 @@ source proof remains required before acceptance.
 GEO-011/#331 current Cut-rim catalog publication is independently accepted and
 integrated; the correctly centered card opening now supports its R2 fillet. An initial origin-snapped diagnostic was
 misplaced and is explicitly failed evidence; SKT-075/#332 tracks fresh face-sketch
-origin compatibility without rebasing old sketches. SOL-049 is now closed
+origin compatibility without rebasing old sketches. The SKT-075 candidate now
+versions fresh direct-face sketches and preserves absent-field legacy frames;
+focused core and API evidence are in [the candidate record](validation/face-sketch-origin.md).
+Native pointer-origin input and transformed-instance authoring remain outside that candidate.
+SOL-049 is now closed
 after an independent audit of the subsequently accepted source-group and
 Timeline-reorder gates. The following lane notes describe that earlier checkpoint. The first source-order TUT-021 run exposed a retained
 section update blocked during sketch authoring: DOC-028/#333 is accepted and integrated for

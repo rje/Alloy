@@ -99,6 +99,7 @@ public:
     static gp_Trsf moveTransform(const QJsonObject& parameters);
     static TopoDS_Shape primitive(const QString& type, const QJsonObject& parameters);
     static EvaluatedSupportFace resolveSketchSupport(const EvaluatedDocument& evaluation, const QJsonObject& support);
+    static QJsonObject sketchFrame(const EvaluatedDocument& evaluation, const QJsonObject& feature);
     static QJsonObject resolvePlaneSource(const EvaluatedDocument& evaluation, const QJsonObject& source);
     static QJsonObject pathEndpointPlaneFrame(const EvaluatedDocument& evaluation,
         const QJsonObject& path, const QJsonArray& authoredFeatures);

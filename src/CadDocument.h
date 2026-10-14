@@ -95,6 +95,8 @@ public:
     static QJsonObject moveCandidate(const QJsonObject& authored, const QJsonObject& arguments);
     static QJsonObject booleanCandidate(const QJsonObject& authored, const QJsonObject& arguments);
     static QString validate(const QJsonObject& candidate);
+    static QString faceSketchOriginContextError(const QJsonObject& authored,const EvaluatedDocument& evaluated,
+        const QString& ownerId,const QString& supportBodyId);
     static double millimeters(double value, const QString& units);
     static QString newId();
 private:

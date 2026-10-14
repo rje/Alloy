@@ -108,7 +108,7 @@ private slots:
         call(w,"sketch.twoPointCircle");
         QCOMPARE(active(w)["tool"].toString(),QString("twoPointCircle"));
         QCOMPARE(active(w)["inputs"].toObject()["support"].toObject(),support);
-        QCOMPARE(active(w)["resolvedFrame"].toObject(),face["frame"].toObject());
+        const auto sketchFrame=active(w)["resolvedFrame"].toObject();QCOMPARE(sketchFrame["uAxis"],face["frame"].toObject()["uAxis"]);QCOMPARE(sketchFrame["vAxis"],face["frame"].toObject()["vAxis"]);
         const auto sketchId=draft(w).value("id");
         auto pixel=[&](double u,double v){const auto p=call(w,"view.projectSketchPoint",{{"sketchId",sketchId},{"uMm",u},{"vMm",v}});
             return QPoint(qRound(p["x"].toDouble()),qRound(p["y"].toDouble()));};

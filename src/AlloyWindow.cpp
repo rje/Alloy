@@ -7309,10 +7309,21 @@ QJsonObject AlloyWindow::beginSketch(const QString& plane,const QString& name,co
         for(const auto& candidate:available.constructionPlanes)if(candidate.featureId==planeId)resolvedFrame=candidate.frame;
         if(resolvedFrame.isEmpty())return failure("plane_unavailable","Select an earlier construction plane","planeId");
     }
-    const auto seed=existing.isEmpty() ? plane=="face" ? SketchGeometry::newSupportedFeature(document_->activeOwnerId(),support,name,supportEdges)
+    auto seed=existing.isEmpty() ? plane=="face" ? SketchGeometry::newSupportedFeature(document_->activeOwnerId(),support,name,supportEdges)
             : plane=="construction" ? SketchGeometry::newConstructionPlaneFeature(document_->activeOwnerId(),support["planeId"].toString(),name)
             : SketchGeometry::newFeature(document_->activeOwnerId(),plane,name)
         : existing;
+    if(existing.isEmpty() && plane=="face") {
+        if(nonzeroAssemblyPose())return failure("unsupported_sketch_origin_context","Return the assembly to its rest pose before creating a face sketch");
+        if(const auto error=CadDocument::faceSketchOriginContextError(document_->authored(),document_->evaluation(),
+            seed["ownerId"].toString(),support["bodyId"].toString());!error.isEmpty())
+            return failure("unsupported_sketch_origin_context",error);
+        auto parameters=seed["parameters"].toObject();parameters["originConvention"]="projectedOwnerV1";seed["parameters"]=parameters;
+    }
+    if(plane=="face")try {
+        const auto& history=existing.isEmpty() ? document_->evaluation() : document_->evaluationBefore(sketchId);
+        resolvedFrame=GeometryKernel::sketchFrame(history,seed);
+    }catch(const GeometryKernel::EvaluationError& error){return failure(error.diagnostics()["code"].toString(),QString::fromUtf8(error.what()),"support");}
     QJsonObject projectionContext;
     if(plane=="face" || plane=="construction")try {
         const auto history=existing.isEmpty() ? document_->evaluation() : document_->evaluationBefore(sketchId);
@@ -8374,6 +8385,9 @@ QJsonObject AlloyWindow::sketchCurveGesture(const QJsonObject& point,bool commit
             ? SketchGeometry::newSupportedFeature(document_->activeOwnerId(),sketchInputs["support"].toObject(),"Curve Preview")
             : plane=="construction" ? SketchGeometry::newConstructionPlaneFeature(document_->activeOwnerId(),sketchInputs["planeId"].toString(),"Curve Preview")
             : SketchGeometry::newFeature(document_->activeOwnerId(),plane,"Curve Preview");
+        if(plane=="face") {auto parameters=preview["parameters"].toObject();const auto original=session_["draftSketch"].toObject()["parameters"].toObject();
+            if(original.contains("originConvention"))parameters["originConvention"]=original["originConvention"];
+            preview["parameters"]=parameters;}
         if(tool=="circle")preview=SketchGeometry::addCircle(preview,{{"centerUMm",ax},{"centerVMm",ay},{"diameterMm",inputs["diameter"]}});
         else if(tool=="twoPointCircle")preview=SketchGeometry::addCircle(preview,{{"centerUMm",(ax+x)/2},{"centerVMm",(ay+y)/2},{"diameterMm",inputs["diameter"]}});
         else if(tool=="centerArc")preview=SketchGeometry::addArc(preview,{{"centerUMm",ax},{"centerVMm",ay},{"radiusMm",inputs["radius"]},{"startAngleDeg",inputs["startAngleDeg"]},{"sweepAngleDeg",inputs["sweepAngleDeg"]}});

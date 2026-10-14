@@ -957,10 +957,57 @@ QString CadDocument::commit(const QJsonObject& candidate, const QString& label) 
     if(const auto guard=newFeatureReparentError(authored_,candidate);!guard.isEmpty()) {
         lastEvaluationError_=guard;return guard["message"].toString();
     }
+    QSet<QString> priorFeatureIds;
+    for(const auto& row:authored_["features"].toArray())priorFeatureIds.insert(row.toObject()["id"].toString());
+    for(const auto& row:candidate["features"].toArray()) {
+        const auto feature=row.toObject();
+        if(priorFeatureIds.contains(feature["id"].toString()) || feature["type"]!="sketch" ||
+            feature["parameters"].toObject()["originConvention"]!="projectedOwnerV1")continue;
+        const auto error=faceSketchOriginContextError(candidate,*evaluation_,feature["ownerId"].toString(),
+            feature["parameters"].toObject()["support"].toObject()["bodyId"].toString());
+        if(!error.isEmpty()) {lastEvaluationError_={{"code","unsupported_sketch_origin_context"},{"message",error}};return error;}
+    }
     auto prepared = prepareCandidate(candidate);
     if (!prepared.ok) {lastEvaluationError_ = prepared.diagnostics;return prepared.error;}
     if (prepared.authored == authored_) return {};
     history_.push(new DocumentEdit(*this,prepared.authored,std::move(prepared.evaluation),label));
+    return {};
+}
+
+QString CadDocument::faceSketchOriginContextError(const QJsonObject& authored,const EvaluatedDocument& evaluated,
+    const QString& ownerId,const QString& supportBodyId) {
+    const auto root=authored["documentId"].toString();
+    QString supportOwner;
+    for(const auto& body:evaluated.bodies)if(body.bodyId==supportBodyId) {
+        if(!body.occurrenceId.isEmpty())return "Imported occurrence faces need an explicit local modeling context";
+        for(const auto& entry:authored["features"].toArray())if(entry.toObject()["id"]==body.featureId)
+            supportOwner=entry.toObject()["ownerId"].toString();
+        if(supportOwner.isEmpty())supportOwner=body.ownerId;
+        supportOwner=authored.value("objectOwners").toObject().value("bodies").toObject()
+            .value(supportBodyId).toString(supportOwner);
+        break;
+    }
+    if(supportOwner.isEmpty())return "Face-sketch support body is unavailable";
+    for(const auto& definition:QSet<QString>{ownerId,supportOwner}) {
+        if(definition==root)continue;
+        QString originalOccurrence;int count=0;
+        for(const auto& value:authored["occurrences"].toArray()) {
+            const auto row=value.toObject();if(row["definitionId"]!=definition)continue;
+            ++count;
+            if(row["placement"]=="identity" && !row.contains("parentOccurrenceId"))originalOccurrence=row["id"].toString();
+        }
+        if(count!=1 || originalOccurrence.isEmpty())return "Face-sketch owner or support has ambiguous component instances";
+        QString current=originalOccurrence;QSet<QString> visited;
+        while(!current.isEmpty()) {
+            if(visited.contains(current))return "Face-sketch component hierarchy is cyclic";
+            visited.insert(current);QJsonObject row;
+            for(const auto& value:authored["occurrences"].toArray())if(value.toObject()["id"]==current){row=value.toObject();break;}
+            if(row.isEmpty() || row["placement"]!="identity")
+                return "Face-sketch origin requires an unplaced component and support context";
+            try {current=LocalOccurrences::parentOccurrenceId(authored,current);}
+            catch(const std::exception&) {return "Face-sketch component parent is unavailable";}
+        }
+    }
     return {};
 }
 QString CadDocument::save(const QString& path) {

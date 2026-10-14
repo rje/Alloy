@@ -239,8 +239,8 @@ with application(args.app, out, command_timeout=120) as (raw, ledger), ExitStack
     for circle in peg_sketch['projectedCircles']:
         close(circle['radiusMm'], 1.35)
     expected_holes = {(24.5, -39), (24.5, 19), (-24.5, -39), (-24.5, 19)}
-    actual_holes = {(round(frame_point(floor_face['frame'], c['uMm'], c['vMm'])[0], 5),
-                     round(frame_point(floor_face['frame'], c['uMm'], c['vMm'])[1], 5))
+    actual_holes = {(round(frame_point(peg_sketch['frame'], c['uMm'], c['vMm'])[0], 5),
+                     round(frame_point(peg_sketch['frame'], c['uMm'], c['vMm'])[1], 5))
                     for c in peg_sketch['projectedCircles']}
     assert actual_holes == expected_holes, actual_holes
     peg_profiles = [p['profileId'] for p in peg_sketch['profiles']

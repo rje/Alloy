@@ -144,6 +144,26 @@ EvaluatedSupportFace GeometryKernel::resolveSketchSupport(const EvaluatedDocumen
     return *found;
 }
 
+QJsonObject GeometryKernel::sketchFrame(const EvaluatedDocument& evaluation,const QJsonObject& feature) {
+    const auto parameters=feature["parameters"].toObject();
+    const auto support=resolveSketchSupport(evaluation,parameters["support"].toObject());
+    auto frame=support.frame;
+    if(!parameters.contains("originConvention"))return frame;
+    if(parameters["originConvention"]!="projectedOwnerV1")
+        throw EvaluationError({{"code","invalid_sketch_origin"},{"message","Unknown face sketch origin convention"}});
+    for(const auto& body:evaluation.bodies)if(body.bodyId==support.bodyId && !body.occurrenceId.isEmpty())
+        throw EvaluationError({{"code","unsupported_sketch_origin_context"},{"message","Imported occurrence faces need an explicit local modeling context"}});
+    // The admitted modeling context has an identity owner occurrence. Its
+    // definition-space origin is world zero; retain the exact face axes.
+    const auto origin=frame["origin"].toArray(),normal=frame["normal"].toArray();
+    double distance=0;
+    for(int i=0;i<3;++i)distance+=origin[i].toDouble()*normal[i].toDouble();
+    QJsonArray projected;
+    for(int i=0;i<3;++i)projected.append(distance*normal[i].toDouble());
+    frame["origin"]=projected;
+    return frame;
+}
+
 QJsonObject GeometryKernel::resolvePlaneSource(const EvaluatedDocument& evaluation,const QJsonObject& source) {
     if(source.size()!=1)throw EvaluationError({{"code","invalid_plane_source"},{"message","Plane requires exactly one source"}});
     if(source.contains("plane"))return SketchGeometry::frame(source["plane"].toString());
@@ -327,7 +347,7 @@ QJsonObject GeometryKernel::projectionContext(const EvaluatedDocument& evaluatio
     EvaluatedSupportFace cap;
     QJsonObject frame;
     if(plane=="face") {
-        cap=resolveSketchSupport(evaluation,parameters["support"].toObject());frame=cap.frame;
+        cap=resolveSketchSupport(evaluation,parameters["support"].toObject());frame=sketchFrame(evaluation,feature);
         for(const auto& edge:cap.boundaryEdges)if(edge.type!="line")unsupported.append(edge.edgeId);
     } else {
         const auto planeId=parameters["planeId"].toString();
@@ -799,7 +819,7 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
                 priorSketches[id] = evaluated.sketches.size();
                 QJsonObject resolvedFrame;
                 if(parameters["plane"]=="face") {
-                    try {resolvedFrame=resolveSketchSupport(evaluated,parameters["support"].toObject()).frame;}
+                    try {resolvedFrame=sketchFrame(evaluated,feature);}
                     catch(const EvaluationError& error){auto diagnostic=context;const auto details=error.diagnostics();for(auto it=details.begin();it!=details.end();++it)diagnostic[it.key()]=it.value();throw EvaluationError(diagnostic);}
                 }
                 if(parameters["plane"]=="construction") {

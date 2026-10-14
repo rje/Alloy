@@ -241,8 +241,8 @@ with application(args.app, out, command_timeout=120) as (raw, ledger), ExitStack
     for circle in peg_sketch['projectedCircles']:
         close(circle['radiusMm'], 1.35)
     expected_holes = {(24.5, -39), (24.5, 19), (-24.5, -39), (-24.5, 19)}
-    actual_holes = {(round(frame_point(floor_face['frame'], c['uMm'], c['vMm'])[0], 5),
-                     round(frame_point(floor_face['frame'], c['uMm'], c['vMm'])[1], 5))
+    actual_holes = {(round(frame_point(peg_sketch['frame'], c['uMm'], c['vMm'])[0], 5),
+                     round(frame_point(peg_sketch['frame'], c['uMm'], c['vMm'])[1], 5))
                     for c in peg_sketch['projectedCircles']}
     assert actual_holes == expected_holes, actual_holes
     peg_profiles = [p['profileId'] for p in peg_sketch['profiles']
@@ -384,8 +384,9 @@ with application(args.app, out, command_timeout=120) as (raw, ledger), ExitStack
                       and abs(f['frame']['normal'][0]) > .99)
     stage('Overall Slot on long Case wall: adapted endpoints, width 6.5 mm')
     call('sketch.begin', {'support': ref(slot_outer), 'name': 'Long connector slot'})
-    slot_first = local_point(slot_outer['frame'], (32, -39, 10.6))
-    slot_last = local_point(slot_outer['frame'], (32, 10.25, 10.6))
+    slot_frame = call('app.state')['activeSession']['resolvedFrame']
+    slot_first = local_point(slot_frame, (32, -39, 10.6))
+    slot_last = local_point(slot_frame, (32, 10.25, 10.6))
     call('sketch.overallSlot', {'firstX': slot_first[0], 'firstY': slot_first[1],
         'lastX': slot_last[0], 'lastY': slot_last[1], 'width': 6.5, 'units': 'mm'})
     slot_sketch_id = call('app.state')['activeSession']['draftSketch']['id']
@@ -413,9 +414,9 @@ with application(args.app, out, command_timeout=120) as (raw, ledger), ExitStack
                       and abs(f['frame']['normal'][1]) > .99)
     stage('Center Rectangle on opposite short wall, 16 × 12 mm')
     call('sketch.begin', {'support': ref(card_outer), 'name': 'Card opening'})
-    card_origin = local_point(card_outer['frame'], (0, -46.5, 0))
-    for actual, expected in zip(frame_point(card_outer['frame'], *card_origin),
-                                (0, -46.5, 0)):
+    card_frame = call('app.state')['activeSession']['resolvedFrame']
+    card_origin = (0, 0)
+    for actual, expected in zip(frame_point(card_frame, *card_origin), (0, -46.5, 0)):
         close(actual, expected)
     call('sketch.centerRectangle', {'centerX': card_origin[0],
         'centerY': card_origin[1], 'width': 16, 'height': 12,

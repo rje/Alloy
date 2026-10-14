@@ -1137,6 +1137,9 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
         if(support.size()!=3)return "Unexpected sketch support fields";
         for(const auto& key:{"producerFeatureId","bodyId","faceId"})if(!support[key].isString() || !validId(support[key].toString()))return "Sketch support requires stable producer, body and face UUIDs";
     } else if(parameters.contains("support"))return "Non-face sketch cannot carry face support";
+    if(parameters.contains("originConvention") &&
+        (plane!="face" || parameters["originConvention"]!="projectedOwnerV1"))
+        return "Unsupported face-sketch origin convention";
     if(plane=="construction") {if(!validId(parameters["planeId"].toString()))return "Construction sketch requires a stable plane ID";}
     else if(parameters.contains("planeId"))return "Only construction sketches can reference a plane feature";
     if(parameters.contains("projections") || parameters.contains("pointReferences") || parameters.contains("pointProjections") || parameters.contains("circleProjections")) {
@@ -1199,7 +1202,7 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
         try {return validateParameters(expandedProjectionFeature({{"parameters",parameters}},{{"lines",lines},{"circles",circles},{"points",resolvedPoints}})["parameters"].toObject(),authoredIds,referenceIds);}
         catch(const std::exception& error){return QString::fromUtf8(error.what());}
     }
-    const QSet<QString> allowed{"plane", "planeId", "points", "entities", "constraints", "dimensions", "originPointId", "support", "texts", "loopOffsets", "openChainOffsets", "closedRectOffsets", "roundedRectangleIntent", "mirrorGroups", "slotGroups", "arcSlotGroups"};
+    const QSet<QString> allowed{"plane", "planeId", "originConvention", "points", "entities", "constraints", "dimensions", "originPointId", "support", "texts", "loopOffsets", "openChainOffsets", "closedRectOffsets", "roundedRectangleIntent", "mirrorGroups", "slotGroups", "arcSlotGroups"};
     for (auto it = parameters.begin(); it != parameters.end(); ++it)
         if (!allowed.contains(it.key())) return "Unknown sketch parameter: " + it.key();
     if (!parameters["points"].isArray() || !parameters["entities"].isArray()) return "Sketch requires points and entities";

@@ -119,7 +119,8 @@ def continue_snaps(*, call, stage, inspect, out, case_owner, case_body_id,
     projected=draft(call)['parameters']['projections'];assert len(projected)==2
     seam_projection=unique([p for p in projected if p['source']['edgeId']==seam['edgeId']],'seam projection')
     core_projection=unique([p for p in projected if p['source']['edgeId']==imported['edgeId']],'imported edge projection')
-    start=local_point(outer['frame'],(-32,20,15));end=local_point(outer['frame'],(-32,20,11))
+    sketch_frame=call('app.state')['activeSession']['resolvedFrame']
+    start=local_point(sketch_frame,(-32,20,15));end=local_point(sketch_frame,(-32,20,11))
     call('sketch.line',{'x1':start[0],'y1':start[1],'x2':end[0],'y2':end[1],'units':'mm'})
     guide_entity=draft(call)['parameters']['entities'][-1];guide_id=guide_entity['id']
     call('sketch.construction',{'entityIds':[guide_id],'construction':True})
