@@ -60,7 +60,7 @@ HIS-006 reorder; TUT-023 alignment rim follows. Accepted prerequisites include
 SOL-052 owned Split, GEO-012 exact inner Cut rims, GEO-013 retained Cut side
 supports, and SOL-054 connected selected-region Join replay. SOL-054 technical
 YZ replay/edit/history/reopen is accepted at 9179015, but its technical finish
-choices do not qualify the source attachment. GEO-014/#340 has a publication candidate for the
+choices do not qualify the source attachment. GEO-014/#340 is independently accepted and integrated at `6eca141` for the
 actual wall/stem junction edge: unique OCCT Modified tool-edge history and
 incident target face can identify the current vertical root at
 X=-28.5,Y=17.5,Z15..20.5. The actual root accepts smaller chamfers but refuses
