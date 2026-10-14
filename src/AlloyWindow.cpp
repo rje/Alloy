@@ -291,9 +291,9 @@ AlloyWindow::AlloyWindow() {
     auto* tabs = new QHBoxLayout; tabs->setSpacing(18);
     for (const QString& tab : {"solid", "surface"}) {
         auto* button = new QToolButton; button->setText(tab.toUpper());
-        button->setObjectName("design.tab."+tab); button->setFixedHeight(30);
+        button->setObjectName("design.tab."+tab); button->setFixedHeight(30);button->setFocusPolicy(Qt::NoFocus);
         button->setCheckable(true);button->setChecked(tab==designTab_);
-        if(tab=="surface")button->setToolTip("Surface tools. Use Create > Extrude; E opens Solid Extrude (Alloy policy; reference dispatch unknown). Tab changes preserve active dialogs.");
+        if(tab=="surface")button->setToolTip("Use Create > Extrude. E opens Solid Extrude. Tab changes preserve active dialogs.");
         button->setStyleSheet("QToolButton { padding: 0 10px; border: none; } QToolButton:checked { font-weight: 700; border-bottom: 2px solid #2b83ae; }");
         connect(button,&QToolButton::clicked,this,[this,tab]{execute("ui.designTab",{{"tab",tab}});});
         tabs->addWidget(button);

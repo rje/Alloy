@@ -3644,6 +3644,10 @@ Solid/Surface navigation. Surface Create exposes the implemented Two Sides
 Extrude and guided surface Loft; Thicken moves to Solid Create. Explicit Alloy
 policies preserve active dialogs on tab changes and keep E as Solid Extrude;
 public parity for both is unknown. Guided surface Loft locks New Component.
-Isolated application/native-test build passes; GUI verification awaits the
-private-editor lease. See [bounded contract](validation/surface-workspace-navigation.md).
+Isolated application/native-test build and focused 4/4 Qt-delivered checks pass,
+including actual Surface Extrude preview/Cancel, tab-switch session preservation,
+and guided Loft mode locking. The actual app capture was inspected; physical OS
+input and matched screenshot parity remain unqualified. Independent Astra source
+review found no blocker and tooltip polish is applied. See
+[bounded contract](validation/surface-workspace-navigation.md).
 Surface Modify awaits Remove integration; no unimplemented tools are shown.

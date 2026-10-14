@@ -23,5 +23,17 @@ refuse mode changes. Solid Loft retains its existing broader entry point. No new
 surface geometry, commands or asset extraction is part of this increment.
 
 Validation: isolated macOS build of `alloy` and
-`surface_extrude_controls_test` passes. Focused native/API and capture evidence
-is pending the sole private validation-editor lease; no completion claim yet.
+`surface_extrude_controls_test` passes. The focused native executable passed
+4/4 checks (including setup/cleanup) on 2026-10-14. Qt-delivered clicks activate
+Surface, start Extrude, select the fixture line, type 25/30 mm and obtain a
+one-face preview. Switching Solid and back preserves the complete session;
+Escape then discards it with exact authored-document equality. No inter-step
+focus repair occurs; tab buttons preserve dialog focus. A separate check covers
+the shared Surface Loft entry point, locked Operation and refused mode update.
+The actual capture was inspected for readable controls and visible sheet.
+Evidence is external under
+`../Alloy-reference-records/deliverables/surface-workspace-2026-10-14/native-01/`.
+The source fixture is preserved in the earlier surface Extrude `native-03/`
+evidence. Physical OS input and matched screenshot parity remain unqualified.
+Independent Astra source review found no blocker; its tooltip polish is applied.
+Remove routing remains a linked integration dependency.
