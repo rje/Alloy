@@ -64,9 +64,10 @@
         "SKT-088",
         "TUT-028"
       ],
-      "status": "in_progress",
+      "status": "done",
       "acceptance": "Continue firstsolid with native cap-face sketch, retained center references, diameter10/8/8 circles, three-profile Cut/All/Flip; valid through-openings and history/reopen.",
-      "remaining": "All bounded fixes independently accepted. Native-cut-preflight10 passes geometry, edit/Cancel, source motion, diameter change and history/reopen. Final tutorial recording pending."
+      "remaining": "None for bounded published three-hole Cut gate. Recording03 independently accepted; Qt/menu/API limits and five intermediate preview refusals qualified.",
+      "evidence": "docs/validation/base-sketch-face-holes.md"
     },
     {
       "id": "CP-20",

@@ -68,7 +68,7 @@ losslessly joined1m43s from-blank-to-solid film are in the external gallery.
 The joined film contains three recorded application sessions, not one continuous
 session. Qt/menu adaptation, zero-depth preview refusals and missing taper field
 remain qualified; the broader SOL-010 and SOL-016 tasks remain open.
-TUT-028/#395 is active for final recording: native cap-face sketch, referenced
+TUT-028/#395 is independently accepted at f9620ab: native cap-face sketch, referenced
 circle centers, diameters10/8/8, then three-profile Cut/All/Flip. Sol owns the
 single build/GUI lease; Astra independently verifies. Public references stay external.
 SKT-088/#397 is accepted at1ba977e: native ingredient3/3, all three retained
@@ -82,8 +82,16 @@ through-openings, reopened preview/Cancel, idle selection then edit, source+1mm,
 Ø8→9 change, undo/redo and exact reopen. Explicit target/source overrides remain
 preserved; linked/placed target ambiguity is refused. Last different-sketch override
 guard is source/build verified. See [receipt](validation/face-supported-cut-all.md).
-No additional ingredient reruns are needed. Full recorded source gate remains open;
-next queue after acceptance is TUT-019 cumulative native piston workflow.
+Recording03 passes3/3 including both first-circle Returns with natural focus.
+Its21.133s film and editable model are in the external gallery, alongside a123.8s
+joined four-session film from blank; all165 local links resolve. Five intermediate
+preview refusals, Qt/menu adaptation and separately performed API checks remain
+qualified. See [full receipt](validation/base-sketch-face-holes.md).
+No additional ingredient reruns are needed. TUT-019/#305 is now active: recover
+the existing cumulative native piston harness and its source ledger, retaining
+accepted API/geometry/native-child evidence. Sol owns the single build/GUI lease;
+Astra verifies. Previous modal-to-main focus issue needs diagnosis, not assumed
+product defect or inter-step focus repair.
 Backlog is400 issues with acyclic dependencies. Astra independently verifies.
 Only main and its existing build are used; no inactive worktrees accumulate.
 DOC-031/#348 is independently accepted at `89782cf`: unchanged-product native09

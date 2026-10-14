@@ -7,6 +7,8 @@ and exact save/reopen. The [dimension continuation](docs/validation/base-sketch-
 now passes the eight-Tangent audit and all source dimensions with native input.
 The [first solid continuation](docs/validation/base-sketch-first-solid.md) passes
 three-region selection, 48.25 mm extrusion, Cancel, editing and save/reopen.
+The [face-hole continuation](docs/validation/base-sketch-face-holes.md) now passes
+referenced Ø10/8/8 circles and native Cut/All/Flip with three verified through-holes.
 
 The [Center to Center Slot](docs/validation/center-to-center-slot.md) now follows
 the two-cap-center creation route, with retained snaps and separately placed
