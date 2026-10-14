@@ -91,7 +91,7 @@ QJsonObject AlloyWindow::previewThicken(){
     const auto target=edit.isEmpty()?session_["newBodyId"].toString():[&]{for(const auto& row:candidate["features"].toArray())
         if(row.toObject()["id"]==edit)return row.toObject()["bodyId"].toString();return QString{};}();
     for(const auto& body:stage->bodies)if(body.bodyId==target){
-        // The committed feature consumes this sheet; hide it during preview too.
+        // The committed feature retains but hides this sheet; preview does too.
         view_->showPreview(body.shape,inputs["sourceFace"].toObject()["bodyId"].toString(),true);
         session_["geometry"]=body.summary;session_["documentDraft"]=candidate;session_["previewed"]=true;session_["geometryEvaluated"]=true;session_.remove("previewError");
         if(thickenDock_){thickenDock_->findChild<QLabel*>("thickenError")->clear();thickenDock_->findChild<QDialogButtonBox*>()->button(QDialogButtonBox::Ok)->setEnabled(true);}
