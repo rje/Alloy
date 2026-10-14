@@ -3636,3 +3636,14 @@ passed. Independent review accepted the bounded ingredient; see the current
 acceptance entry at the top of this document. The source
 outline is independently authored and downstream Trim/Boundary Fill integration
 remains separate. See [candidate validation](validation/surface-extrude-two-sides.md).
+
+## 2026-10-14 Surface navigation isolated candidate
+
+VIS-004/#358 in `feat/surface-workspace` replaces placeholder tabs with shared
+Solid/Surface navigation. Surface Create exposes the implemented Two Sides
+Extrude and guided surface Loft; Thicken moves to Solid Create. Explicit Alloy
+policies preserve active dialogs on tab changes and keep E as Solid Extrude;
+public parity for both is unknown. Guided surface Loft locks New Component.
+Isolated application/native-test build passes; GUI verification awaits the
+private-editor lease. See [bounded contract](validation/surface-workspace-navigation.md).
+Surface Modify awaits Remove integration; no unimplemented tools are shown.

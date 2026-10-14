@@ -59,6 +59,7 @@ private:
         bool available;
         std::function<QJsonObject(const QJsonObject&)> run;
     };
+    QString designTab_="solid";
     void registerCommands();
     void registerSliderCommands();
     void registerLocalReferenceCommands();

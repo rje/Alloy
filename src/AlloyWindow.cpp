@@ -289,31 +289,36 @@ AlloyWindow::AlloyWindow() {
     ribbonLayout->addWidget(workspace);
     auto* ribbonRight = new QVBoxLayout; ribbonRight->setSpacing(0);
     auto* tabs = new QHBoxLayout; tabs->setSpacing(18);
-    for (const QString& tab : {"SOLID", "SURFACE", "MESH", "SHEET METAL", "TOOLS"}) {
-        auto* label = new QLabel(tab); label->setFixedHeight(30);
-        label->setStyleSheet(tab == "SOLID" ? "font-weight: 700; border-bottom: 2px solid #2b83ae; padding: 0 10px;" : "color: #87929a; padding: 0 10px;");
-        if (tab != "SOLID") label->setToolTip("Workspace tools are not implemented yet");
-        tabs->addWidget(label);
+    for (const QString& tab : {"solid", "surface"}) {
+        auto* button = new QToolButton; button->setText(tab.toUpper());
+        button->setObjectName("design.tab."+tab); button->setFixedHeight(30);
+        button->setCheckable(true);button->setChecked(tab==designTab_);
+        if(tab=="surface")button->setToolTip("Surface tools. Use Create > Extrude; E opens Solid Extrude (Alloy policy; reference dispatch unknown). Tab changes preserve active dialogs.");
+        button->setStyleSheet("QToolButton { padding: 0 10px; border: none; } QToolButton:checked { font-weight: 700; border-bottom: 2px solid #2b83ae; }");
+        connect(button,&QToolButton::clicked,this,[this,tab]{execute("ui.designTab",{{"tab",tab}});});
+        tabs->addWidget(button);
     }
     tabs->addStretch(); ribbonRight->addLayout(tabs);
-    auto* groups = new QHBoxLayout; groups->setSpacing(14);
+    auto* solidGroups = new QWidget; solidGroups->setObjectName("design.groups.solid");
+    auto* groups = new QHBoxLayout(solidGroups); groups->setContentsMargins(0,0,0,0);groups->setSpacing(14);
+    QString groupPrefix="solid";
     auto group = [&](const QString& caption, const QList<QPair<QString, QString>>& entries) {
         auto* box = new QVBoxLayout; box->setSpacing(0);
         auto* row = new QHBoxLayout; row->setSpacing(1);
-        for (const auto& [id, glyph] : entries) row->addWidget(commandButton(id, glyph, true));
+        for (const auto& [id, glyph] : entries) { auto* tool=commandButton(id, glyph, true); if(groupPrefix=="surface")tool->setObjectName("surface.command."+id); row->addWidget(tool); }
         box->addLayout(row);
         if(caption=="CREATE" || caption=="MODIFY" || caption=="INSPECT" || caption=="ASSEMBLE") {
-            auto* button=new QToolButton;button->setText(caption);button->setObjectName("solid.menu."+caption.toLower());
+            auto* button=new QToolButton;button->setText(caption);button->setObjectName(groupPrefix+".menu."+caption.toLower());
             button->setStyleSheet("font-size: 10px; color: #53616b; padding: 0 6px;");
-            auto* menu=new QMenu(button);menu->setObjectName("solid.commands."+caption.toLower());
+            auto* menu=new QMenu(button);menu->setObjectName(groupPrefix+".commands."+caption.toLower());
             for(const auto& entry:entries) {
                 const auto* command=findCommand(entry.first);
                 if(!command || !command->available)continue;
                 auto* action=menu->addAction(command->title);
-                action->setObjectName("solid.action."+entry.first);action->setToolTip(command->description);action->setIcon(commandIcon(entry.first));
+                action->setObjectName(groupPrefix+".action."+entry.first);action->setToolTip(command->description);action->setIcon(commandIcon(entry.first));
                 connect(action,&QAction::triggered,this,[this,id=entry.first]{execute(id);});
             }
-            if(caption=="CREATE") {
+            if(caption=="CREATE" && groupPrefix=="solid") {
                 auto* hole=menu->addAction(commandIcon("solid.holeDialog"),"Hole");hole->setObjectName("solid.action.solid.holeDialog");
                 connect(hole,&QAction::triggered,this,[this]{execute("solid.holeDialog");});
                 auto* component=menu->addAction("New Component");component->setObjectName("solid.action.component.newDialog");connect(component,&QAction::triggered,this,[this]{execute("component.newDialog");});
@@ -340,8 +345,8 @@ AlloyWindow::AlloyWindow() {
         }
         groups->addLayout(box);groups->addWidget(divider());
     };
-    group("CREATE", {{"primitive.box", "▣"}, {"primitive.cylinder", "◉"}, {"solid.sphereDialog", "●"}, {"sketch.create", "▧"}, {"solid.extrudeDialog", "▣"}, {"surface.extrudeDialog", "▤"}, {"solid.revolveDialog", "◉"}, {"solid.sweepDialog", "◒"}, {"solid.loftDialog", "◒"}, {"solid.mirrorDialog", "◧"}, {"solid.featureMirrorDialog", "◧"}, {"solid.circularPatternDialog", "◌"}});
-    group("MODIFY", {{"solid.pressPullDialog", "⇧"}, {"solid.combineDialog", "▣"}, {"solid.filletDialog", "◩"}, {"solid.chamferDialog", "◪"}, {"solid.shellDialog", "▱"}, {"solid.thickenDialog", "▤"}, {"solid.splitBodyDialog", "◫"}, {"solid.moveDialog", "✥"}});
+    group("CREATE", {{"primitive.box", "▣"}, {"primitive.cylinder", "◉"}, {"solid.sphereDialog", "●"}, {"sketch.create", "▧"}, {"solid.extrudeDialog", "▣"}, {"solid.revolveDialog", "◉"}, {"solid.sweepDialog", "◒"}, {"solid.loftDialog", "◒"}, {"solid.thickenDialog", "▤"}, {"solid.mirrorDialog", "◧"}, {"solid.featureMirrorDialog", "◧"}, {"solid.circularPatternDialog", "◌"}});
+    group("MODIFY", {{"solid.pressPullDialog", "⇧"}, {"solid.combineDialog", "▣"}, {"solid.filletDialog", "◩"}, {"solid.chamferDialog", "◪"}, {"solid.shellDialog", "▱"}, {"solid.splitBodyDialog", "◫"}, {"solid.moveDialog", "✥"}});
     group("ASSEMBLE", {{"joint.sliderDialog", "⇆"}});
     group("CONSTRUCT", {{"construction.plane", "▰"}, {"construction.pathPlane", "⟂"}, {"construction.tangentPlane", "▱"}, {"construction.midplane", "◫"}});
     group("INSPECT", {{"inspect.sectionDialog", "◧"}, {"inspect.measure", "↔"}});
@@ -360,7 +365,14 @@ AlloyWindow::AlloyWindow() {
     selectMenuButton->setMenu(selectMenu);selectMenuButton->setPopupMode(QToolButton::InstantPopup);
     groups->addWidget(selectMenuButton,0,Qt::AlignVCenter);
     groups->addStretch();
-    ribbonRight->addLayout(groups); ribbonLayout->addLayout(ribbonRight, 1); layout->addWidget(ribbon);
+    ribbonRight->addWidget(solidGroups);
+    auto* surfaceGroups=new QWidget;surfaceGroups->setObjectName("design.groups.surface");
+    groups=new QHBoxLayout(surfaceGroups);groups->setContentsMargins(0,0,0,0);groups->setSpacing(14);groupPrefix="surface";
+    group("CREATE", {{"sketch.create", "▧"}, {"surface.extrudeDialog", "▤"}, {"surface.loftDialog", "◒"}});
+    group("CONSTRUCT", {{"construction.plane", "▰"}, {"construction.pathPlane", "⟂"}, {"construction.tangentPlane", "▱"}, {"construction.midplane", "◫"}});
+    group("INSPECT", {{"inspect.sectionDialog", "◧"}, {"inspect.measure", "↔"}});
+    groups->addStretch();surfaceGroups->hide();ribbonRight->addWidget(surfaceGroups);
+    ribbonLayout->addLayout(ribbonRight, 1); layout->addWidget(ribbon);
 
     sketchToolbar_=new QWidget;sketchToolbar_->setObjectName("sketchToolbar");
     sketchToolbar_->setStyleSheet("#sketchToolbar { background: #e1f2f8; border-bottom: 1px solid #9fc7db; }");
@@ -1628,7 +1640,22 @@ void AlloyWindow::registerCommands() {
         QJsonObject candidate;try{candidate=loftCandidate(a);}catch(const std::exception& e){return failure("invalid_arguments",QString::fromUtf8(e.what()));}
         const auto error=document_->commit(candidate,"Loft");if(!error.isEmpty()){auto r=failure("evaluation_failed",error);auto details=r["error"].toObject();details["diagnostics"]=document_->lastEvaluationError();r["error"]=details;return r;}return document_->state();
     });
+    add("ui.designTab","Design tab","Switch Solid/Surface command groups without changing selection or an active dialog (Alloy policy).",{{"tab",parameter("string","solid or surface")}},[this](const auto& a){
+        const auto tab=a["tab"].toString();if(tab!="solid" && tab!="surface")return failure("invalid_arguments","Expected solid or surface","tab");
+        designTab_=tab;
+        for(const QString& value:{"solid","surface"}) {
+            if(auto* panel=findChild<QWidget*>("design.groups."+value))panel->setVisible(value==tab);
+            if(auto* button=findChild<QToolButton*>("design.tab."+value))button->setChecked(value==tab);
+        }
+        return QJsonObject{{"tab",designTab_},{"activeSessionPreserved",true}};
+    });
     add("solid.loftDialog","Loft","Select ordered sections and a Centerline for a surface, or circular regions for a solid.",loftSchema,[this](const auto& a){return beginLoft(a);});
+    add("surface.loftDialog","Loft","Guided surface Loft: two endpoint sections and a Centerline; New Component only.",loftSchema,[this](const auto& a){
+        if(a.contains("operation") && a["operation"]!="newComponent")return failure("invalid_arguments","Surface Loft requires New Component","operation");
+        auto inputs=a;inputs["operation"]="newComponent";const auto result=beginLoft(inputs);if(result.contains("error"))return result;
+        if(session_["command"]=="solid.loft") {session_["surfaceOnly"]=true;showLoft();return session_;}return result;
+    });
+
     auto surfaceReach=parameter("number","Positive reach from the sketch plane in millimeters; Side 1 follows −normal, Side 2 follows +normal.");
     surfaceReach["minimum"]=.001;surfaceReach["maximum"]=100000;
     QJsonObject surfaceExtrudeSchema{{"sketchId",parameter("string","Earlier solved open-curve sketch UUID.")},
@@ -4179,6 +4206,7 @@ void AlloyWindow::registerCommands() {
             if(updates.contains("featureId") && updates["featureId"]!=session_["inputs"].toObject()["featureId"])return failure("invalid_arguments","Revolve edit identity cannot change");
             const auto error=validateArguments(*findCommand("solid.revolveDialog"),inputs);if(!error.isEmpty())return failure("invalid_arguments",error);
         } else if(target=="solid.loft") {
+            if(session_["surfaceOnly"].toBool() && inputs["operation"]!="newComponent")return failure("invalid_arguments","Surface Loft requires New Component","operation");
             if(updates.contains("featureId") && updates["featureId"]!=session_["inputs"].toObject()["featureId"])return failure("invalid_arguments","Loft edit identity cannot change");
             const auto error=validateArguments(*findCommand(target),inputs);if(!error.isEmpty())return failure("invalid_arguments",error);
         } else if(target=="surface.extrude") {
@@ -4616,7 +4644,7 @@ QJsonObject AlloyWindow::state() const {
             : !selectedSketch_.isEmpty() ? QJsonObject{{"kind","sketch"},{"sketchId",selectedSketch_}}
             : QJsonObject{{"kind","body"},{"bodyId",selectedBody_}}},
         {"kernel", QJsonObject{{"candidate", "Open CASCADE"}, {"discoveredVersion", ALLOY_OCCT_VERSION}, {"integrated", true}, {"visualizationIntegrated", true}, {"policy",GeometryKernel::policy()}}},
-        {"ui", QJsonObject{{"workspace", "design"}, {"tab",target=="sketch.edit" ? "sketch" : "solid"}, {"selectionPriority",selectionPriority_}, {"browserVisible", browserVisible_}, {"timelineVisible", timelineVisible_}, {"timeline",timelineState()}, {"ribbon",ribbonState}, {"navigationVisible", navigationVisible_}, {"commandSearchVisible", search_ && search_->isVisible()}, {"windowWidth", width()}, {"windowHeight", height()}, {"devicePixelRatio", devicePixelRatioF()},
+        {"ui", QJsonObject{{"workspace", "design"}, {"tab",target=="sketch.edit" ? QString("sketch") : designTab_}, {"selectionPriority",selectionPriority_}, {"browserVisible", browserVisible_}, {"timelineVisible", timelineVisible_}, {"timeline",timelineState()}, {"ribbon",ribbonState}, {"navigationVisible", navigationVisible_}, {"commandSearchVisible", search_ && search_->isVisible()}, {"windowWidth", width()}, {"windowHeight", height()}, {"devicePixelRatio", devicePixelRatioF()},
             {"ownedPopups",popups},{"activeDialog", QJsonObject{{"command", session_.value("command")},
                 {"visible",dialogVisible},{"inputs",dialogInputs},
                 {"presentation",target=="construction.tangentPlane" || target=="joint.slider" || target.startsWith("solid.") || target.startsWith("surface.") || target.startsWith("sketch.") ? (activeDock && activeDock->isFloating() ? "floating-panel" : "docked-panel") : "dialog"},

@@ -5,6 +5,8 @@
 #include <QApplication>
 #include <QTest>
 #include <QToolButton>
+#include <QAction>
+#include <QComboBox>
 #include <QDoubleSpinBox>
 #include <QDockWidget>
 #include <QDialogButtonBox>
@@ -21,6 +23,17 @@ class SurfaceExtrudeControlsTest final:public QObject {
  }
  QJsonObject session(AlloyWindow& window){return window.state()["activeSession"].toObject();}
 private slots:
+ void surfaceLoftRoute(){
+  AlloyWindow window;
+  call(window,"ui.designTab",{{"tab","surface"}});
+  call(window,"surface.loftDialog");
+  QCOMPARE(session(window)["inputs"].toObject()["operation"].toString(),QString("newComponent"));
+  QVERIFY(session(window)["surfaceOnly"].toBool());
+  auto* operation=window.findChild<QComboBox*>("loftOperation");QVERIFY(operation && !operation->isEnabled());
+  QVERIFY(!window.execute("surface.loftDialog")["ok"].toBool());
+  QVERIFY(!window.execute("command.update",{{"session",session(window)["id"]},{"inputs",QJsonObject{{"operation","newBody"}}}})["ok"].toBool());
+  call(window,"command.cancel",{{"session",session(window)["id"]}});
+ }
  void nativeOpenCurveTwoSidesCancel(){
   const auto fixture=qEnvironmentVariable("ALLOY_SURFACE_EXTRUDE_SOURCE");QVERIFY(!fixture.isEmpty());
   const auto output=qEnvironmentVariable("ALLOY_SURFACE_EXTRUDE_EVIDENCE");QVERIFY(!output.isEmpty());QDir().mkpath(output);
@@ -33,7 +46,11 @@ private slots:
   const auto before=call(window,"document.inspect");
   const auto source=before["authored"].toObject()["features"].toArray().last().toObject();
   const auto sketchId=source["id"].toString();QVERIFY(source["type"]=="sketch");
-  auto* start=window.findChild<QToolButton*>("command.surface.extrudeDialog");QVERIFY(start);
+  auto* tab=window.findChild<QToolButton*>("design.tab.surface");QVERIFY(tab);
+  QTest::mouseClick(tab,Qt::LeftButton);
+  QCOMPARE(window.state()["ui"].toObject()["tab"].toString(),QString("surface"));
+  QVERIFY(!window.findChild<QAction*>("solid.action.surface.extrudeDialog"));
+  auto* start=window.findChild<QToolButton*>("surface.command.surface.extrudeDialog");QVERIFY(start && start->isVisible());
   QTest::mouseClick(start,Qt::LeftButton);
   QTRY_COMPARE(session(window)["command"].toString(),QString("surface.extrude"));
   auto* dock=window.findChild<QDockWidget*>("surfaceExtrudeDock");QVERIFY(dock && dock->isVisible());
@@ -49,6 +66,10 @@ private slots:
   QCOMPARE(inputs["sideOneMm"].toDouble(),25.0);QCOMPARE(inputs["sideTwoMm"].toDouble(),30.0);
   QCOMPARE(session(window)["geometry"].toObject()["topology"].toObject()["faces"].toInt(),1);
   auto* buttons=dock->findChild<QDialogButtonBox*>();QVERIFY(buttons && buttons->button(QDialogButtonBox::Ok)->isEnabled());
+  const auto preview=session(window);
+  auto* solidTab=window.findChild<QToolButton*>("design.tab.solid");QVERIFY(solidTab);
+  QTest::mouseClick(solidTab,Qt::LeftButton);QCOMPARE(session(window),preview);
+  QTest::mouseClick(tab,Qt::LeftButton);QCOMPARE(session(window),preview);
   call(window,"capture.screenshot",{{"path",output+"/native-two-sides-preview.png"}});
   QVERIFY(QApplication::focusWidget());
   QTest::keyClick(QApplication::focusWidget(),Qt::Key_Escape);

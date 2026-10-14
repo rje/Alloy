@@ -150,7 +150,7 @@ void AlloyWindow::showLoft() {
     connect(name,&QLineEdit::editingFinished,panel,[this,name]{auto inputs=session_["inputs"].toObject();inputs["name"]=name->text();session_["inputs"]=inputs;previewLoft();});
     const bool surface=session_["inputs"].toObject().value("operation")=="newComponent";
     auto* operation=new QComboBox(panel);operation->setObjectName("loftOperation");operation->addItem("New Body","newBody");operation->addItem("New Component","newComponent");operation->setCurrentIndex(surface?1:0);
-    operation->setEnabled(!session_["inputs"].toObject().contains("featureId"));form->addRow("Operation",operation);
+    operation->setEnabled(!session_["inputs"].toObject().contains("featureId") && !session_["surfaceOnly"].toBool());form->addRow("Operation",operation);
     connect(operation,qOverload<int>(&QComboBox::currentIndexChanged),panel,[this,operation](int index){
         auto inputs=session_["inputs"].toObject();if(inputs.contains("featureId"))return;
         const auto choice=operation->itemData(index).toString();inputs["operation"]=choice;
