@@ -188,6 +188,7 @@ private:
     void updatePrimitive(const QJsonObject& inputs);
     QJsonObject beginExtrude(const QJsonObject& inputs);
     QString validateExtrudeInputs(const QJsonObject& inputs) const;
+    QJsonArray faceSupportedAllCutTarget(const QJsonObject& inputs) const;
     QJsonObject extrudeExtentParameters(const QJsonObject& inputs) const;
     QJsonObject extrusionCandidate(const QJsonObject& inputs, bool hideSource) const;
     QJsonArray discoverExtrudeTargets(const QJsonObject& inputs) const;

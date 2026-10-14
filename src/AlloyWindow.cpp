@@ -1877,6 +1877,9 @@ void AlloyWindow::registerCommands() {
         }
         if(!inputs.contains("name"))inputs["name"]="Extrude";
         if(!inputs.contains("units"))inputs["units"]=document_->authored()["displayUnits"];
+        if(!inputs.contains("targetBodyIds") || (inputs.value("targetBodyIds").isArray() && inputs.value("targetBodyIds").toArray().isEmpty())){
+            const auto target=faceSupportedAllCutTarget(inputs);if(!target.isEmpty())inputs["targetBodyIds"]=target;
+        }
         if(const auto invalid=validateExtrudeInputs(inputs);!invalid.isEmpty())return failure("invalid_arguments",invalid);
         if(!inputs.contains("profileId") && !inputs.contains("profileIds") && !inputs.contains("profileSelection"))return failure("profile_required","Select a closed sketch region or Offset loop union","profileIds");
         if(inputs.contains("profileSelection") && !inputs.contains("targetBodyIds"))return failure("target_required","Offset loop union Cut needs one explicit target body","targetBodyIds");
@@ -4513,7 +4516,7 @@ void AlloyWindow::registerCommands() {
                 edit.isEmpty() ? document_->bodies() : document_->evaluationBefore(edit).bodies);
             return hit.isEmpty() ? failure("face_required","Click a retained planar face") : selectMidplaneFace(hit);
         }
-        if(session_["command"]=="construction.tangentPlane") {
+        if(session_.value("command")=="construction.tangentPlane") {
             auto inputs=session_["inputs"].toObject();auto tangent=inputs["tangent"].toObject();const auto edit=inputs["featureId"].toString();
             const auto bodies=edit.isEmpty()?document_->bodies():document_->evaluationBefore(edit).bodies;
             if(tangent["face"].toObject().isEmpty()){
@@ -4792,6 +4795,10 @@ void AlloyWindow::registerCommands() {
         }
         for (auto it = updates.begin(); it != updates.end(); ++it) inputs[it.key()] = it.value();
         const auto target = session_.value("command").toString();
+        if(target=="solid.extrude" && (!inputs.contains("targetBodyIds")
+            || (inputs.value("targetBodyIds").isArray() && inputs.value("targetBodyIds").toArray().isEmpty()))){
+            const auto supported=faceSupportedAllCutTarget(inputs);if(!supported.isEmpty())inputs["targetBodyIds"]=supported;
+        }
         if(target=="solid.splitBody"){
             const auto previous=session_["inputs"].toObject();
             if(updates.contains("featureId") && updates["featureId"]!=previous["featureId"])
@@ -6074,6 +6081,36 @@ QJsonObject AlloyWindow::identity() const {
         {"capabilities", QJsonArray{"shell", "authored-document", "command-sessions","sketch-authoring"}}};
 }
 
+QJsonArray AlloyWindow::faceSupportedAllCutTarget(const QJsonObject& inputs) const {
+    if(inputs.value("operation")!="cut" || inputs.value("extent")!="all"
+        || !inputs.value("featureId").toString().isEmpty())return {};
+    const auto sketchId=inputs.value("sketchId").toString();
+    QJsonObject support;
+    for(const auto& row:document_->authored().value("features").toArray()){
+        const auto feature=row.toObject();
+        if(feature.value("id")==sketchId && feature.value("type")=="sketch"
+            && feature.value("parameters").toObject().value("plane")=="face")
+            support=feature.value("parameters").toObject().value("support").toObject();
+    }
+    if(support.value("bodyId").toString().isEmpty() || support.value("faceId").toString().isEmpty()
+        || support.value("producerFeatureId").toString().isEmpty())return {};
+    QJsonArray targets;
+    for(const auto& body:document_->evaluation().bodies){
+        if(!body.visible || !body.occurrenceId.isEmpty() || body.summary.value("type")!="solid"
+            || body.bodyId!=support.value("bodyId") || body.featureId!=support.value("producerFeatureId"))continue;
+        int instanceCount=0;QString instanceId;
+        for(const auto& value:document_->authored().value("occurrences").toArray())
+            if(value.toObject().value("definitionId")==body.ownerId){++instanceCount;instanceId=value.toObject().value("id").toString();}
+        if(instanceCount>1 || (body.ownerId!=document_->authored().value("documentId") && instanceCount!=1)
+            || (instanceCount==1 && LocalOccurrences::worldTransform(document_->authored(),instanceId).Form()!=gp_Identity))continue;
+        int matchingFaces=0;
+        for(const auto& face:body.supportFaces)if(face.faceId==support.value("faceId")
+            && face.producerFeatureId==support.value("producerFeatureId"))++matchingFaces;
+        if(matchingFaces==1)targets.append(body.bodyId);
+    }
+    return targets.size()==1 ? targets : QJsonArray{};
+}
+
 QString AlloyWindow::validateExtrudeInputs(const QJsonObject& inputs) const {
     auto schema=findCommand("solid.extrude")->parameters;
     schema["sketchId"]=QJsonObject{{"type","string"},{"required",false}};
@@ -6248,8 +6285,13 @@ QJsonObject AlloyWindow::beginExtrude(const QJsonObject& overrides) {
         }
         if(!overrides.contains("extent") && savedParameters.value("extent")=="all") {inputs.remove("distance");inputs["extent"]="all";inputs["flip"]=savedParameters.value("flip");}
         if(savedOperation!="newBody" && !overrides.contains("targetBodyIds"))inputs["targetBodyIds"]=savedParameters["targetBodyIds"];
-        if(!overrides.contains("profileId") && !overrides.contains("profileIds") && !overrides.contains("profileSelection")
-            && savedParameters.contains("profileSelection"))inputs["profileSelection"]=savedParameters["profileSelection"];
+        if(!overrides.contains("sketchId"))inputs["sketchId"]=savedParameters["sketchId"];
+        if((!overrides.contains("sketchId") || overrides.value("sketchId")==savedParameters.value("sketchId"))
+            && !overrides.contains("profileId") && !overrides.contains("profileIds") && !overrides.contains("profileSelection")) {
+            if(savedParameters.contains("profileSelection"))inputs["profileSelection"]=savedParameters["profileSelection"];
+            else if(savedParameters.contains("profileIds"))inputs["profileIds"]=savedParameters["profileIds"];
+            else if(savedParameters.contains("profileId"))inputs["profileId"]=savedParameters["profileId"];
+        }
     }
     if(inputs.value("start")=="offset" && !inputs.contains("startOffset"))inputs["startOffset"]=0;
     if(int(inputs.contains("profileId"))+int(inputs.contains("profileIds"))+int(inputs.contains("profileSelection"))>1)
@@ -6264,6 +6306,9 @@ QJsonObject AlloyWindow::beginExtrude(const QJsonObject& overrides) {
         for(const auto& sketch:document_->sketches())if(inputs.value("sketchId").toString().isEmpty() ? sketch.visible : sketch.featureId==inputs["sketchId"].toString())
             candidates.insert(candidates.end(),sketch.profiles.begin(),sketch.profiles.end());
         if(candidates.size()==1){inputs["sketchId"]=candidates.front().sketchId;inputs["profileId"]=candidates.front().profileId;}
+    }
+    if(!inputs.contains("targetBodyIds") || (inputs.value("targetBodyIds").isArray() && inputs.value("targetBodyIds").toArray().isEmpty())){
+        const auto target=faceSupportedAllCutTarget(inputs);if(!target.isEmpty())inputs["targetBodyIds"]=target;
     }
     const auto error=validateExtrudeInputs(inputs);if(!error.isEmpty())return failure("invalid_arguments",error);
     QJsonObject source{{"sketchId",inputs.value("sketchId")}};
