@@ -77,7 +77,8 @@ QString validate(const QJsonObject& p){
         require(p["openChainOffsets"].isArray() && p["openChainOffsets"].toArray().size()==1,
                 "One retained open-chain offset is supported per sketch");
         const auto g=group(p);const int extras=g.contains("distanceParameterId")+g.contains("sideSign");
-        require(g.size()==6+extras+int(g.contains("topEntityId")) && validId(g["id"]) && g["signedDistanceMm"].isDouble(),
+        require(g.size()==5+extras+int(g.contains("topEntityId"))+int(g.contains("topIntersectionPointIds")) &&
+                validId(g["id"]) && g["signedDistanceMm"].isDouble(),
                 "Invalid retained open-chain offset");
         const auto d=g["signedDistanceMm"].toDouble();
         require(std::isfinite(d) && std::abs(d)>=0.001 && std::abs(d)<=100000,
@@ -86,7 +87,8 @@ QString validate(const QJsonObject& p){
             && std::abs(g["sideSign"].toInt())==1,"Offset length binding is invalid");
         else require(!g.contains("sideSign"),"Offset side sign requires a length binding");
         const auto sources=ids(g,"sourceEntityIds",5),points=ids(g,"generatedPointIds",6),
-            generated=ids(g,"generatedEntityIds",5),tops=ids(g,"topIntersectionPointIds",2);
+            generated=ids(g,"generatedEntityIds",5);
+        const auto tops=g.contains("topIntersectionPointIds") ? ids(g,"topIntersectionPointIds",2) : QJsonArray{};
         if(g.contains("topEntityId"))require(validId(g["topEntityId"]),"Offset original top line is unavailable");
         QSet<QString> unique;for(const auto& list:{sources,points,generated,tops})for(const auto& value:list){
             require(!unique.contains(value.toString()),"Offset identities overlap");unique.insert(value.toString());}
@@ -151,16 +153,18 @@ QJsonObject derive(const QJsonObject& p){
         : Segment{"originalTop",source[0].b,source[3].b};
     require(std::abs(top.a.y()-top.b.y())<tolerance && length(top.b-top.a)>0.001,
             "Offset original top height is not one horizontal source level");
-    const auto left=intersection(top,output[1]),right=intersection(top,output[3]);
-    for(const auto& pair:std::initializer_list<std::pair<Segment,QPointF>>{{output[1],left},{output[3],right}}){
-        require(fraction(pair.first,pair.second)>tolerance && fraction(pair.first,pair.second)<1-tolerance,
-                "Offset slant no longer crosses the original top height");
-        require(fraction(top,pair.second)>-tolerance && fraction(top,pair.second)<1+tolerance,
-                "Offset intersection left the original top line");
-    }
-    require(length(right-left)>0.001,"Offset top intersections collapsed");
     QMap<QString,QPointF> values;for(int i=0;i<6;++i)values[pointIds[i].toString()]=derived[i];
-    const auto tops=g["topIntersectionPointIds"].toArray();values[tops[0].toString()]=left;values[tops[1].toString()]=right;
+    if(g.contains("topIntersectionPointIds")){
+        const auto left=intersection(top,output[1]),right=intersection(top,output[3]);
+        for(const auto& pair:std::initializer_list<std::pair<Segment,QPointF>>{{output[1],left},{output[3],right}}){
+            require(fraction(pair.first,pair.second)>tolerance && fraction(pair.first,pair.second)<1-tolerance,
+                    "Offset slant no longer crosses the original top height");
+            require(fraction(top,pair.second)>-tolerance && fraction(top,pair.second)<1+tolerance,
+                    "Offset intersection left the original top line");
+        }
+        require(length(right-left)>0.001,"Offset top intersections collapsed");
+        const auto tops=g["topIntersectionPointIds"].toArray();values[tops[0].toString()]=left;values[tops[1].toString()]=right;
+    }
     return setCoordinate(p,values);
 }
 QJsonObject add(const QJsonObject& draft,const QJsonObject& expanded,const QJsonObject& args){
@@ -185,7 +189,17 @@ QJsonObject add(const QJsonObject& draft,const QJsonObject& expanded,const QJson
     for(const auto& v:entities)if(entityIds.contains(v.toObject()["id"]))e.append(v);
     for(const auto& v:points)if(pointIds.contains(v.toObject()["id"])||topIds.contains(v.toObject()["id"]))pt.append(v);
     expandedCandidate["entities"]=e;expandedCandidate["points"]=pt;expandedCandidate["openChainOffsets"]=QJsonArray{g};
-    const auto derived=derive(expandedCandidate);const auto derivedPoints=pointMap(derived);
+    QJsonObject derived;
+    try{derived=derive(expandedCandidate);}catch(const std::invalid_argument&){
+        // The opposite signed side can be a valid open Offset even when its
+        // slants do not cross the original-height Line closure support.
+        g.remove("topIntersectionPointIds");p["openChainOffsets"]=QJsonArray{g};
+        for(int i=points.size()-1;i>=0;--i)if(topIds.contains(points[i].toObject()["id"]))points.removeAt(i);
+        p["points"]=points;expandedCandidate["openChainOffsets"]=QJsonArray{g};
+        for(int i=pt.size()-1;i>=0;--i)if(topIds.contains(pt[i].toObject()["id"]))pt.removeAt(i);
+        expandedCandidate["points"]=pt;topIds={};derived=derive(expandedCandidate);
+    }
+    const auto derivedPoints=pointMap(derived);
     QMap<QString,QPointF> values;for(const auto& id:pointIds)values[id.toString()]=derivedPoints[id.toString()];
     for(const auto& id:topIds)values[id.toString()]=derivedPoints[id.toString()];
     result["parameters"]=setCoordinate(p,values);return result;
@@ -197,9 +211,31 @@ QJsonObject update(const QJsonObject& draft,const QJsonObject& expanded,const QJ
     g["signedDistanceMm"]=args["signedDistanceMm"];
     if(args.contains("distanceParameterId")){g["distanceParameterId"]=args["distanceParameterId"];g["sideSign"]=args["sideSign"];}
     else {g.remove("distanceParameterId");g.remove("sideSign");}
-    groups[0]=g;p["openChainOffsets"]=groups;
+    const auto oldTopIds=g.value("topIntersectionPointIds").toArray();
+    QJsonArray topIds=oldTopIds;
+    if(topIds.isEmpty()){for(int i=0;i<2;++i)topIds.append(fresh());
+        auto points=p["points"].toArray();for(const auto& id:topIds)points.append(QJsonObject{{"id",id},{"uMm",0},{"vMm",0}});p["points"]=points;}
+    g["topIntersectionPointIds"]=topIds;groups[0]=g;p["openChainOffsets"]=groups;
     auto expandedCandidate=expanded;expandedCandidate["openChainOffsets"]=groups;
-    const auto derived=derive(expandedCandidate);const auto derivedPoints=pointMap(derived);
+    if(oldTopIds.isEmpty()){auto points=expandedCandidate["points"].toArray();
+        for(const auto& id:topIds)points.append(QJsonObject{{"id",id},{"uMm",0},{"vMm",0}});
+        expandedCandidate["points"]=points;}
+    QJsonObject derived;
+    try{derived=derive(expandedCandidate);}catch(const std::invalid_argument&){
+        if(!oldTopIds.isEmpty())for(const auto& value:p["entities"].toArray()){
+            const auto line=value.toObject();if(oldTopIds.contains(line["startPointId"]) || oldTopIds.contains(line["endPointId"]))
+                throw std::invalid_argument("Offset closure depends on original-height intersections; remove it before flipping side");}
+        g.remove("topIntersectionPointIds");groups[0]=g;p["openChainOffsets"]=groups;
+        auto points=p["points"].toArray();for(int i=points.size()-1;i>=0;--i)
+            if(topIds.contains(points[i].toObject()["id"]))points.removeAt(i);
+        p["points"]=points;
+        // Keep only resolved Project points in the expanded candidate.
+        auto resolvedPoints=expanded["points"].toArray();for(int i=resolvedPoints.size()-1;i>=0;--i)
+            if(topIds.contains(resolvedPoints[i].toObject()["id"]))resolvedPoints.removeAt(i);
+        expandedCandidate["points"]=resolvedPoints;expandedCandidate["openChainOffsets"]=groups;
+        derived=derive(expandedCandidate);
+    }
+    const auto derivedPoints=pointMap(derived);
     QMap<QString,QPointF> values;for(const auto& id:derivedPointIds(p))values[id]=derivedPoints[id];
     result["parameters"]=setCoordinate(p,values);return result;
 }

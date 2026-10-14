@@ -16,11 +16,21 @@ int main(int argc,char** argv){
         {"u2Mm",e[2]},{"v2Mm",e[3]}});
     QJsonArray source;const auto lines=sketch["parameters"].toObject()["entities"].toArray();
     for(int i=0;i<5;++i)source.append(lines[i].toObject()["id"]);
+    const auto originalSketch=sketch;
     try{sketch=SketchOpenChainOffset::add(sketch,sketch["parameters"].toObject(),
         {{"sourceEntityIds",source},{"topEntityId",lines[5].toObject()["id"]},{"signedDistanceMm",-0.25}});}
     catch(const std::exception& e){std::cerr<<"Offset add: "<<e.what()<<'\n';return 1;}
     auto solved=SketchGeometry::solveDraft(sketch);if(!solved.ok)std::cerr<<solved.error.toStdString()<<'\n';check(solved.ok,"Offset solve failed");sketch=solved.feature;
     const auto p=sketch["parameters"].toObject(),group=p["openChainOffsets"].toArray()[0].toObject();
+    auto outward=SketchOpenChainOffset::add(originalSketch,originalSketch["parameters"].toObject(),
+        {{"sourceEntityIds",source},{"topEntityId",lines[5].toObject()["id"]},{"signedDistanceMm",0.25}});
+    auto outwardGroup=outward["parameters"].toObject()["openChainOffsets"].toArray()[0].toObject();
+    check(!outwardGroup.contains("topIntersectionPointIds") &&
+        outwardGroup["generatedEntityIds"].toArray().size()==5,"Outward open Offset should not require a later closure");
+    outward=SketchOpenChainOffset::update(sketch,p,{{"offsetId",group["id"]},{"signedDistanceMm",0.25}});
+    outwardGroup=outward["parameters"].toObject()["openChainOffsets"].toArray()[0].toObject();
+    check(outwardGroup["id"]==group["id"] && !outwardGroup.contains("topIntersectionPointIds"),
+        "Flip of a retained open Offset lost its ID or required a closure");
     const auto hits=group["topIntersectionPointIds"].toArray();QJsonObject left,right;
     for(const auto& v:p["points"].toArray()){
         const auto point=v.toObject();if(point["id"]==hits[0])left=point;if(point["id"]==hits[1])right=point;}
@@ -68,6 +78,12 @@ int main(int argc,char** argv){
         {"endSnapTarget",QJsonObject{{"kind","point"},{"pointId",projectedHits[1]}}}},context);
     if(!projectionSolve.ok)std::cerr<<projectionSolve.error.toStdString()<<'\n';
     check(projectionSolve.ok,"Projected closure solve failed");projected=projectionSolve.feature;
+    bool closedFlipRejected=false;
+    try{SketchOpenChainOffset::update(projected,
+        SketchGeometry::expandedProjectionFeature(projected,context)["parameters"].toObject(),
+        {{"offsetId",projectedGroup["id"]},{"signedDistanceMm",0.25}});}
+    catch(const std::invalid_argument& error){closedFlipRejected=QString::fromUtf8(error.what()).contains("closure depends");}
+    check(closedFlipRejected,"Flipping a closed profile outward did not refuse its dependent closure");
     const auto frame=SketchGeometry::frame("XY");
     check(!SketchGeometry::evaluateFeature(projected,frame,context).profiles.empty(),
         "Projected offset closure produced no profile");

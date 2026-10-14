@@ -16,6 +16,7 @@
 #include <QDialogButtonBox>
 #include <QDialog>
 #include <QDir>
+#include <QFileInfo>
 #include <QContextMenuEvent>
 #include <QTimer>
 #include <QScrollArea>
@@ -320,6 +321,60 @@ private slots:
         QCOMPARE(groups.size(),1);QCOMPARE(groups[0].toObject()["distanceParameterId"],parameterId);
         QCOMPARE(groups[0].toObject()["signedDistanceMm"].toDouble(),-0.25);
         QVERIFY2(run(window,"sketch.cancel"),error_.constData());
+    }
+    void projectedCutFrontOffsetChainClicks() {
+        const auto fixture=qEnvironmentVariable("ALLOY_CUT_FRONT_FIXTURE");
+        if(fixture.isEmpty())QSKIP("Set ALLOY_CUT_FRONT_FIXTURE to the saved actual cut-front model");
+        QVERIFY(QFileInfo::exists(fixture));
+        AlloyWindow window;window.resize(1400,900);window.show();window.activateWindow();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));auto* view=viewport(window);QVERIFY(view);
+        QVERIFY2(run(window,"document.open",{{"path",fixture},{"discard",true}}),error_.constData());
+        auto inspected=window.execute("document.inspect",{})["result"].toObject();
+        auto bodies=inspected["evaluation"].toObject()["bodies"].toArray();QVERIFY(!bodies.isEmpty());
+        QJsonObject face;for(const auto& value:bodies[0].toObject()["supportFaces"].toArray())
+            if(value.toObject()["role"]=="box.y0")face=value.toObject();
+        QVERIFY(!face.isEmpty());QCOMPARE(face["edges"].toArray().size(),8);
+        const QJsonObject support{{"producerFeatureId",face["producerFeatureId"]},
+            {"bodyId",face["bodyId"]},{"faceId",face["faceId"]}};
+        const auto created=window.execute("component.create",{{"name","Lid native"}});
+        QVERIFY2(created["ok"].toBool(),QJsonDocument(created).toJson(QJsonDocument::Compact).constData());
+        const auto owner=created["result"].toObject()["definitionId"];
+        QVERIFY2(run(window,"component.activate",{{"definitionId",owner}}),error_.constData());
+        QVERIFY2(run(window,"sketch.begin",{{"support",support},{"name","Native clearance"}}),error_.constData());
+        QVERIFY2(run(window,"sketch.projectBegin"),error_.constData());
+        QVERIFY2(run(window,"sketch.projectFace",support),error_.constData());
+        QVERIFY2(run(window,"sketch.projectCommit"),error_.constData());
+        QVERIFY2(run(window,"sketch.lookAt"),error_.constData());
+        const auto original=session(window)["draftSketch"].toObject();
+        auto* action=window.findChild<QAction*>("sketch.tool.offset");QVERIFY(action);action->trigger();
+        QTRY_COMPARE(session(window)["tool"].toString(),QString("offset"));
+        const auto project=[&](double u,double v){const auto pixel=view->projectSketchPoint(u,v,"face",session(window)["resolvedFrame"].toObject());
+            return QPoint(qRound(pixel["x"].toDouble()),qRound(pixel["y"].toDouble()));};
+        const auto bottom=project(25,36.7234);QVERIFY(view->rect().contains(bottom));
+        QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,bottom);
+        QTRY_COMPARE(session(window)["selection"].toObject()["entityIds"].toArray().size(),3);
+        const auto left=project(2,40);QVERIFY(view->rect().contains(left));
+        QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,left);
+        QTRY_COMPARE(session(window)["selection"].toObject()["entityIds"].toArray().size(),4);
+        const auto right=project(48,40);QVERIFY(view->rect().contains(right));
+        QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,right);
+        QTRY_COMPARE(session(window)["selection"].toObject()["entityIds"].toArray().size(),5);
+        QTRY_VERIFY(session(window)["pendingOpenChainOffset"].toObject()["valid"].toBool());
+        auto* flip=window.findChild<QPushButton*>("sketch.offset.flip");QVERIFY(flip);
+        QTest::mouseClick(flip,Qt::LeftButton);
+        QTRY_VERIFY(session(window)["pendingOpenChainOffset"].toObject()["valid"].toBool());
+        QVERIFY(!session(window)["pendingOpenChainOffset"].toObject()["previewDraft"].toObject()
+            ["parameters"].toObject()["openChainOffsets"].toArray()[0].toObject().contains("topIntersectionPointIds"));
+        QTest::mouseClick(flip,Qt::LeftButton);
+        QTRY_VERIFY(session(window)["pendingOpenChainOffset"].toObject()["valid"].toBool());
+        QVERIFY(session(window)["pendingOpenChainOffset"].toObject()["previewDraft"].toObject()
+            ["parameters"].toObject()["openChainOffsets"].toArray()[0].toObject().contains("topIntersectionPointIds"));
+        const auto capture=qEnvironmentVariable("ALLOY_OFFSET_CAPTURE");
+        if(!capture.isEmpty())QVERIFY2(run(window,"capture.screenshot",{{"path",capture}}),error_.constData());
+        auto* cancel=window.findChild<QPushButton*>("sketch.offset.cancel");QVERIFY(cancel);
+        QTest::mouseClick(cancel,Qt::LeftButton);
+        QCOMPARE(session(window)["draftSketch"].toObject(),original);
+        QVERIFY(!session(window).contains("pendingOpenChainOffset"));
     }
     void shellFaceThicknessCancelCommit() {
         AlloyWindow window;window.resize(1180,760);window.show();window.activateWindow();
