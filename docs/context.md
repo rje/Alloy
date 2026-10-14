@@ -97,8 +97,10 @@ arrow movement, one Enter commit and actual-focus Escape pass. See
 ASM-022/#372 Browser organization gestures (independently accepted and integrated
 through `3436a44`, native3/3 and focused core; see
 [Browser acceptance](validation/piston-components.md)) and accepted
-ASM-023/#373 shared As-Built Type/two-occurrence selection. All bounded input
-children are accepted; TUT-019 is now connecting them in one native sequence; the direct Copy Component/circular-edge
+ASM-023/#373 shared As-Built Type/two-occurrence selection. TUT-019 is now connecting the input children in one native sequence. Its actual
+embedded component-label click exposed a gap missed by the focused test that
+targeted the underlying tree viewport. ASM-023/#373 is reopened/In Progress for
+real-child click routing and focused verification; the other children remain accepted; the direct Copy Component/circular-edge
 routes are equivalent modeling semantics, not exact source input parity.
 The cumulative API movie remains valid qualified geometry/semantic evidence.
 Its native continuation also checks a small recorder correction: delivered

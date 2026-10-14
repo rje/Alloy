@@ -109,6 +109,9 @@ These rules supersede any earlier suggestion to verify behavior in proprietary s
 - Input tests must not repair focus or selection between demonstrated user steps.
   Initial harness activation is separate; verify the actual focus/selection state
   produced by the command before delivering the next key or click.
+- Deliver Qt pointer tests to the widget that receives a real hit at that point.
+  Embedded row controls must receive their own clicks; sending to an underlying
+  tree viewport can bypass the user-facing handler and give false acceptance.
 
 ## Implementation and scope
 

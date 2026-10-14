@@ -20,7 +20,8 @@ all six instances or one selected piston subtree. The independently accepted
 [joint-origin hover locking](docs/validation/joint-origin-inference.md) are also
 accepted, along with [Paste drag and contextual Revert](docs/validation/linked-local-occurrences.md).
 [Shared As-Built Type and component picks](docs/validation/as-built-native-selection.md)
-are accepted too; the cumulative native tutorial gate is now being assembled. These are bounded
+are implemented; the cumulative gate found a component-label click routing gap
+that is being fixed before native acceptance. These are bounded
 adapted-fixture capabilities, not complete native tutorial parity.
 
 The [Surface workspace](docs/validation/surface-workspace-navigation.md) now exposes

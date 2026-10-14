@@ -1,6 +1,10 @@
 # Shared As-Built Joint selection checkpoint
 
-ASM-023/#373 is independently accepted at `de69dcc` (source `35e798f`).
+ASM-023/#373 was independently accepted at `de69dcc` (source `35e798f`),
+then reopened by the cumulative gate: the focused test targeted the tree viewport
+beneath an embedded component label, bypassing the actual child widget. That
+child currently activates rather than picking a participant. A narrow routing
+fix and real-child input check are in progress; the evidence below is qualified.
 One Assemble entrypoint opens a shared Type choice for Revolute/Cylindrical and
 Pick controls for Component 1/2. Browser and viewport routes dispatch the same
 occurrence selection command. Type changes retain both exact occurrence IDs and
