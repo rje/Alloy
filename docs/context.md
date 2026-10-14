@@ -100,6 +100,10 @@ ASM-023/#373 shared As-Built Type/two-occurrence selection. TUT-019 depends on
 these children; the direct Copy Component/circular-edge
 routes are equivalent modeling semantics, not exact source input parity.
 The cumulative API movie remains valid qualified geometry/semantic evidence.
+Its native continuation also checks a small recorder correction: delivered
+nonspontaneous Qt mouse events now move the visible pointer/ring with a `Qt input`
+label, retaining event-log provenance. Source review and main build pass; actual
+overlay alignment is pending the first cumulative capture.
 The observed blank
 command-dock band and drag latency remain REL-005/REL-010.
 The bounded implementation plan is external under

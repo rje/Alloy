@@ -89,7 +89,7 @@ QJsonObject TutorialRecorder::start(const QString& path,int fps,qint64 documentR
     if(!encoder_.waitForStarted(5000)) {log_.close();QFile::remove(logPath_);return fail("encoder_unavailable","Could not start ffmpeg");}
     elapsed_.start();frames_=drops_=delayedTicks_=captureFailures_=0;lastSlot_=-1;
     heldKeys_.clear();caption_.clear();lastCommand_.clear();lastOrigin_.clear();lastFrame_.clear();failure_.clear();
-    recentKey_.clear();recentKeyAt_=-10000;lastMotionAt_=-10000;observedCursor_=false;
+    recentKey_.clear();recentKeyAt_=-10000;lastMotionAt_=-10000;clickAt_=-10000;observedCursor_=false;
     active_=true;qApp->installEventFilter(this);
     writeEvent({{"type","start"},{"path",path_},{"fps",fps_},{"frameWidth",frameWidth_},{"frameHeight",frameHeight_},
         {"contentHeight",contentHeight_},{"contentTop",38},
@@ -109,7 +109,7 @@ QJsonObject TutorialRecorder::step(const QString& text) {
 QJsonObject TutorialRecorder::receipt() const {
     return {{"active",active_},{"path",path_},{"logPath",logPath_},{"metadataPath",metadataPath_},
         {"fps",fps_},{"pixelWidth",frameWidth_},{"pixelHeight",frameHeight_},{"contentPixelHeight",contentHeight_},
-        {"contentTop",38},{"frames",frames_},
+        {"contentTop",38},{"pointerOverlay","delivered_qt_events"},{"frames",frames_},
         {"repeatedFrames",drops_},{"delayedTicks",delayedTicks_},{"captureFailures",captureFailures_},
         {"elapsedMs",elapsed_.isValid()?elapsed_.elapsed():0},{"caption",caption_},{"failure",failure_}};
 }
@@ -188,6 +188,13 @@ void TutorialRecorder::frame() {
                 if(elapsed_.elapsed()-clickAt_<550)painter.drawEllipse(point,18,18);
                 painter.drawLine(point+QPoint(-7,0),point+QPoint(7,0));
                 painter.drawLine(point+QPoint(0,-7),point+QPoint(0,7));
+                // Both OS-delivered and automated Qt events reach this observer.
+                // Show the delivered pointer, without implying physical input.
+                QFont inputFont=painter.font();inputFont.setPixelSize(12);painter.setFont(inputFont);
+                const QRect inputLabel(std::clamp(point.x()+12,0,std::max(0,frameWidth_-66)),
+                    std::clamp(point.y()+12,38,38+std::max(0,contentHeight_-20)),66,20);
+                painter.fillRect(inputLabel,QColor(16,27,35,205));
+                painter.setPen(Qt::white);painter.drawText(inputLabel,Qt::AlignCenter,"Qt input");
             }
             if(!heldKeys_.isEmpty()) {
                 QStringList keys;for(int key:heldKeys_)keys<<keyName(key);
@@ -258,14 +265,14 @@ bool TutorialRecorder::eventFilter(QObject* watched,QEvent* event) {
     if(type==QEvent::MouseMove||type==QEvent::MouseButtonPress||type==QEvent::MouseButtonRelease) {
         const auto* mouse=static_cast<QMouseEvent*>(event);
         const auto position=window_->mapFromGlobal(mouse->globalPosition().toPoint());
-        if(event->spontaneous()){cursor_=position;observedCursor_=true;}
+        cursor_=position;observedCursor_=true;
         if(type==QEvent::MouseMove&&elapsed_.elapsed()-lastMotionAt_>=50) {
             lastMotionAt_=elapsed_.elapsed();
             writeEvent({{"type","mouse_move"},{"origin",event->spontaneous()?"native_qt":"synthetic_qt"},
                 {"x",position.x()},{"y",position.y()},{"buttons",int(mouse->buttons())},
                 {"modifiers",int(mouse->modifiers())},{"widget",widget->objectName()}});
         } else if(type!=QEvent::MouseMove) {
-            if(type==QEvent::MouseButtonPress&&event->spontaneous())clickAt_=elapsed_.elapsed();
+            if(type==QEvent::MouseButtonPress)clickAt_=elapsed_.elapsed();
             writeEvent({{"type",type==QEvent::MouseButtonPress?"mouse_press":"mouse_release"},
                 {"origin",event->spontaneous()?"native_qt":"synthetic_qt"},{"button",int(mouse->button())},
                 {"x",position.x()},{"y",position.y()},{"modifiers",int(mouse->modifiers())},
@@ -274,7 +281,7 @@ bool TutorialRecorder::eventFilter(QObject* watched,QEvent* event) {
     } else if(type==QEvent::Wheel) {
         const auto* wheel=static_cast<QWheelEvent*>(event);
         const auto position=window_->mapFromGlobal(wheel->globalPosition().toPoint());
-        if(event->spontaneous()){cursor_=position;observedCursor_=true;}
+        cursor_=position;observedCursor_=true;
         writeEvent({{"type","wheel"},{"origin",event->spontaneous()?"native_qt":"synthetic_qt"},
             {"x",position.x()},{"y",position.y()},{"angleX",wheel->angleDelta().x()},
             {"angleY",wheel->angleDelta().y()},{"modifiers",int(wheel->modifiers())}});

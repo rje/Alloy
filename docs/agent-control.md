@@ -630,7 +630,10 @@ Captures combine Qt chrome and the real GPU framebuffer, with caption bands,
 observed app-scoped input and command provenance. No global keyboard hook runs.
 Editor text is redacted except allowed numeric entries; native popup capture is
 not guaranteed. Qt propagation can produce non-spontaneous events in the ledger;
-these are not proof of a separate physical gesture. Recording does not change the
+these are not proof of a separate physical gesture. Pointer/ring overlays follow
+all delivered Qt mouse events, including automated events, and display a `Qt input`
+label. Receipts identify this policy as `pointerOverlay: delivered_qt_events`;
+the ledger retains each event's provenance. Recording does not change the
 authored document. Keep movies, JSONL logs and metadata outside Git.
 
 The same external-FFmpeg/app-framebuffer path is intended for Windows and Linux;
