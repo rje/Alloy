@@ -85,6 +85,39 @@ std::vector<EvaluatedSupportFace> innerFaces(const EvaluatedBody& body,
                 inner.boundaryEdges.push_back({id,"circle",TopoDS::Edge(candidates(i)),edge.provenance});
             }
         }
+        for(const auto& edge:source.boundaryEdges) {
+            if(edge.type!="line" || !edge.provenance.contains("boxEdge")
+                || edge.edge.IsNull() || !sourceEdges.Contains(edge.edge))continue;
+            TopTools_ListOfShape mapped;edgeImages.LastImage(edge.edge,mapped);
+            TopTools_IndexedMapOfShape candidates;
+            for(const auto& image:mapped)if(image.ShapeType()==TopAbs_EDGE && roofEdges.Contains(image)) {
+                const auto actual=TopoDS::Edge(roofEdges(roofEdges.FindIndex(image)));
+                if(BRepAdaptor_Curve(actual).GetType()==GeomAbs_Line)candidates.Add(actual);
+            }
+            // Offset history may split or remove an edge. Never assign a
+            // projected reference to a merely nearby replacement.
+            if(candidates.Extent()!=1)continue;
+            const auto actual=TopoDS::Edge(candidates(1));
+            BRepAdaptor_Curve curve(actual);
+            auto a=curve.Value(curve.FirstParameter()),b=curve.Value(curve.LastParameter());
+            const auto oldA=edge.provenance["startMm"].toArray(),oldB=edge.provenance["endMm"].toArray();
+            if(oldA.size()==3 && oldB.size()==3) {
+                const gp_Vec before(point(oldA),point(oldB)),after(a,b);
+                if(before.Magnitude()<1e-6 || after.Magnitude()<1e-6
+                    || before.Crossed(after).Magnitude()>1e-8*before.Magnitude()*after.Magnitude())continue;
+                if(before.Dot(after)<0)std::swap(a,b);
+            }
+            const auto id=QUuid::createUuidV5(QUuid(featureId),
+                QByteArray("alloy-shell-inner-straight-edge/1\n")+edge.edgeId.toUtf8())
+                .toString(QUuid::WithoutBraces);
+            auto provenance=edge.provenance;
+            provenance["sourceEdgeId"]=edge.edgeId;
+            provenance["role"]="shell.innerEdge";
+            provenance["generatorFeatureId"]=featureId;
+            provenance["endpointProvenance"]="currentKernelBoundary";
+            provenance["startMm"]=coordinates(a);provenance["endMm"]=coordinates(b);
+            inner.boundaryEdges.push_back({id,"line",actual,provenance});
+        }
         output.push_back(inner);
     }
     return output;

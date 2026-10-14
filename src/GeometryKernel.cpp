@@ -1,4 +1,5 @@
 #include "PlanarFaces.h"
+#include "PrimitiveTopology.h"
 #include "SolidFillet.h"
 #include "SolidChamfer.h"
 #include "SolidShell.h"
@@ -669,7 +670,14 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
                     if(plural)summary["sourceProfileIds"]=profileIds;else summary["sourceProfileId"]=parameters["profileId"];
                     summary["sourceEntityIds"]=united.summary["sourceEntityIds"];summary["sourceAreaMm2"]=united.summary["areaMm2"];
                     summary["analyticVolumeMm3"]=united.summary["areaMm2"].toDouble()*std::abs(distance);
-                } else {shape = primitive(type,parameters);summary = summarize(shape);}
+                } else {
+                    shape=primitive(type,parameters);summary=summarize(shape);
+                    if(type=="box") {
+                        PrimitiveTopology::box(shape,parameters,id,feature["bodyId"].toString(),supportFaces,solidEdges);
+                        summary["supportFaces"]=PlanarFaces::descriptors(supportFaces);
+                        summary["solidEdges"]=SolidFillet::descriptors(solidEdges);
+                    }
+                }
                 evaluated.bodies.push_back({id,feature["bodyId"].toString(),feature["name"].toString(),feature["visible"].toBool(),shape,summary,supportFaces,solidEdges});
             }
             evaluated.featureOrder.push_back(id);

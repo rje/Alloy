@@ -29,7 +29,7 @@ target_link_libraries(alloy_sketch_solver PUBLIC Qt6::Core PRIVATE alloy_planegc
 
 add_library(alloy_kernel STATIC
     src/DocumentAppend.cpp src/DocumentAppend.h
-    src/GeometryKernel.cpp src/GeometryKernel.h src/PlanarFaces.cpp src/PlanarFaces.h src/SolidFillet.cpp src/SolidFillet.h src/SolidChamfer.cpp src/SolidChamfer.h src/SolidShell.cpp src/SolidShell.h src/RevolvedShellCap.cpp src/RevolvedShellCap.h src/SolidSphere.cpp src/SolidSphere.h src/SolidHole.cpp src/SolidHole.h src/SolidLoft.cpp src/SolidLoft.h src/SolidRevolve.cpp src/SolidRevolve.h src/SolidSweep.cpp src/SolidSweep.h src/FeaturePattern.cpp src/FeaturePattern.h src/SolidMirror.cpp src/SolidTransform.cpp src/CircularPattern.cpp src/SolidMirror.h src/JoinResults.cpp
+    src/GeometryKernel.cpp src/GeometryKernel.h src/PrimitiveTopology.cpp src/PrimitiveTopology.h src/PlanarFaces.cpp src/PlanarFaces.h src/SolidFillet.cpp src/SolidFillet.h src/SolidChamfer.cpp src/SolidChamfer.h src/SolidShell.cpp src/SolidShell.h src/RevolvedShellCap.cpp src/RevolvedShellCap.h src/SolidSphere.cpp src/SolidSphere.h src/SolidHole.cpp src/SolidHole.h src/SolidLoft.cpp src/SolidLoft.h src/SolidRevolve.cpp src/SolidRevolve.h src/SolidSweep.cpp src/SolidSweep.h src/FeaturePattern.cpp src/FeaturePattern.h src/SolidMirror.cpp src/SolidTransform.cpp src/CircularPattern.cpp src/SolidMirror.h src/JoinResults.cpp
     src/MeshExport.cpp src/MeshExport.h
     src/StepExchange.cpp src/StepExchange.h
     src/SketchSpline.cpp src/SketchSpline.h src/SketchSplineOffset.cpp src/SketchSplineOffset.h src/SketchConic.cpp src/SketchConic.h src/SketchGeometry.cpp src/SketchTrim.cpp src/SketchGeometry.h src/SketchText.cpp src/SketchText.h src/RoundedLoopOffset.cpp src/RoundedLoopOffset.h
@@ -372,6 +372,9 @@ if(BUILD_TESTING)
     add_executable(solid_shell_test tests/solid_shell.cpp src/CadDocument.cpp src/CadDocument.h)
     target_link_libraries(solid_shell_test PRIVATE alloy_kernel Qt6::Widgets)
     add_test(NAME solid_shell COMMAND solid_shell_test)
+    add_executable(primitive_topology_test tests/primitive_topology.cpp src/CadDocument.cpp src/CadDocument.h)
+    target_link_libraries(primitive_topology_test PRIVATE alloy_kernel Qt6::Widgets)
+    add_test(NAME primitive_topology COMMAND primitive_topology_test)
     add_executable(circular_body_pattern_controls_test tests/circular_body_pattern_controls.cpp)
     target_link_libraries(circular_body_pattern_controls_test PRIVATE alloy_application Qt6::Test)
     add_test(NAME circular_body_pattern_controls COMMAND circular_body_pattern_controls_test)

@@ -1,5 +1,14 @@
 # Continuation context
 
+## Primitive Box topology candidate (2026-10-13)
+
+An isolated candidate adds six stable planar supports and twelve straight
+edges to the real primitive Box, plus uniquely mapped straight inner Shell
+boundaries. The Box50×80×40 → top-face Shell4 core gate, edits, exact
+undo/redo and reopen pass; a real-app native-pick/API runner is prepared but
+has not run. See [the bounded candidate receipt](validation/primitive-box-topology.md).
+Remote/perpendicular Project and To Object are later workflow children.
+
 Updated 2026-10-13. This is the project handoff for a fresh session. Read the root
 [AGENTS.md](../AGENTS.md) first; its reference restrictions apply to all work.
 
