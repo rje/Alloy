@@ -6,7 +6,7 @@ SOL-045/#279 independently accepted: two closed solids from an active body and
 retained construction plane, stable signed-side IDs and cap references, closed
 cavity partition, edits/history/reopen, named native selectors and separate STL
 readback. See [Split Body receipt](validation/split-body-plane.md).
-## Active local reference insertion candidate (2026-10-13)
+## Accepted local reference insertion (2026-10-13)
 
 ASM-010/#314 in `feat/local-reference-insert` extends the accepted embedded
 XDE graph with a local source locator and one outer rigid placement owned by
@@ -20,7 +20,7 @@ reusing face/edge IDs. The bounded core test and real-app workflow pass on the
 qualified twelve-solid board: moved face and edge ray picks, sibling Case
 Project following Capture, opacity, history/reopen, and source-state refusal.
 Native Qt typed Move preview/Cancel passes with inspected captures. Astra's
-independent candidate review remains pending. See
+independent review accepts the final Escape-safe candidate, now integrated. See
 [local reference candidate](validation/local-reference-insert.md).
 
 ## Accepted STEP assembly import (2026-10-13)
@@ -45,10 +45,9 @@ independently accepted, integrated and closed. Combined main app build and
 focused STEP/grouped-Fillet integration checks pass (2/2). Respective receipts
 record API/native/geometry scope and later transformed-pick/Thicken limits.
 
-Active isolated Sol lanes: ASM-010/#314 linked local insertion with placement,
-opacity and pending Capture/Revert; DOC-023
-selected-face Section Analysis with retained support and editable offset. Root
-completed SOL-048 supported closed inward Shell on main, independently
+Active Sol lanes: GEO-008 exact recognized convex closed Shell and SKT-069 true
+Overall Slot. DOC-023 selected-face Section Analysis is in final independent
+review. Root completed SOL-048 supported closed inward Shell on main, independently
 accepted at 5b1bb29 with native and 28-call API evidence. Plain Box cavity, six inner planes, edit/history/reopen and
 atomic failures pass core. Actual grouped R5/R2.5 followed by Shell3.5 fails
 OCCT offset collapse; GEO-008/#316 owns that exact geometry and blocks TUT-016.

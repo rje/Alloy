@@ -1,6 +1,6 @@
-# Local STEP reference candidate — ASM-010
+# Local STEP reference — ASM-010
 
-Candidate from `feat/local-reference-insert`, 2026-10-13. Independent review is pending.
+Independently accepted at `a9d8914` and integrated on main, 2026-10-13.
 The separately tracked ASM-006 parent remains Todo. The admitted input is the
 independently qualified twelve-solid adapted board fixture. Its original STEP
 file is left untouched; the real-app test copies it to a temporary local path.
@@ -44,3 +44,5 @@ picker and an OS-driven Browser context action have source wiring but no
 separate OS-driven input claim. The outer rotation axis is an Alloy engineering
 placement choice; the adapted fixture does not establish the tutorial's exact
 axis or physical fit. Full source-order mounting/cutouts remain ASM-006.
+
+Main application build and local-reference/Split integration checks pass with the qualified external board fixture. Without `ALLOY_ASSEMBLY_FIXTURE`, CTest explicitly skips the fixture-dependent core check; it does not claim a pass.

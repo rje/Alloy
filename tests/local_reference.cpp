@@ -16,7 +16,7 @@ gp_Pnt center(const TopoDS_Shape& shape){Bnd_Box bounds;BRepBndLib::Add(shape,bo
     bounds.Get(x0,y0,z0,x1,y1,z1);return gp_Pnt((x0+x1)/2,(y0+y1)/2,(z0+z1)/2);}
 }
 int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
-    const auto fixture=qEnvironmentVariable("ALLOY_ASSEMBLY_FIXTURE");if(fixture.isEmpty())throw std::runtime_error("fixture path required");
+    const auto fixture=qEnvironmentVariable("ALLOY_ASSEMBLY_FIXTURE");if(fixture.isEmpty()){std::cout<<"SKIP: set ALLOY_ASSEMBLY_FIXTURE to the external qualified board STEP\n";return 77;}
     CadDocument document;auto created=CadDocument::localReferenceCandidate(document.authored(),{{"path",fixture},{"name","Board Reference"}});
     need(created["components"].toArray().size()==1,"one component");need(created["features"].toArray().size()==1,"one feature");
     const auto feature=created["features"].toArray()[0].toObject();const auto id=feature["id"].toString();
