@@ -72,7 +72,10 @@ now owns the source-supported multi-region Join replay: projected references
 partition the inferred hook into three intended regions (20+7+1 mm2). Preserve
 the references and replay their connected selected union; source instructions
 explicitly select multiple profiles. Exact source corner/cell inventory remains
-uncertain. SOL-054 is active. GEO-014/#340 now tracks an exact Join-created wall/stem
+uncertain. SOL-054 candidate ca48e4f is parked Todo awaiting Astra review (intermittent
+model capacity). Its connected-union technical Mirror passes with explicitly
+non-source finish choices; it does not qualify the tutorial. GEO-014/#340 is
+now active and tracks an exact Join-created wall/stem
 intersection edge missing from retained selection; the actual vertical root
 exists at X=-28.5,Y=17.5,Z15..20.5. Do not substitute the hook elbow or free
 transverse edge. SOL-053 waits for both bounded prerequisites. The actual
