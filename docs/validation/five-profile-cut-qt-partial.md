@@ -1,0 +1,7 @@
+# Five-profile Cut Qt checkpoint (partial)
+
+The archived five-circle bracket fixture was adapted to the state before its retained Cut. Its source sketch was made visible because the accepted post-Cut file hid it. Draft harness and captures are in `../Alloy-reference-records/deliverables/sol016-five-profile-qt-2026-10-14/`.
+
+The first Qt run selected five exact profile IDs, dragged the canvas arrow to a signed depth beyond the 50 mm stock, used Qt ControlModifier to remove the fifth profile and add it back (exact 5→4→5 identities), and reached a valid one-body Cut with the expected five-hole removed volume. The intermediate four/five-selection state still used New Body and showed its expected disconnected-region warning. This is Qt-delivered input, not a physical held Command/Control key; SOL-058 retains the latter.
+
+The run's operation popup remained visible in preview and final captures. The harness clicked OK directly and did not establish that the popup had dismissed or that OK owned the hit pixel. Two focused corrections—clicking the visible Cut row, then waiting for the opening mouse-release guard before that click—still left the popup visible. Both corrected runs stopped before OK. The registered failing harness was removed; its draft is preserved externally. SOL-016 remains open for the native operation/OK route. No popup product defect is inferred from this test behavior alone.
