@@ -36,6 +36,10 @@ public:
     QJsonObject diagnostics() const;
     QJsonObject cameraState() const;
     void restoreCameraState(const QJsonObject& state);
+    void orbitFree(double deltaX,double deltaY);
+    void setFreeOrbitTool(bool active) { freeOrbitTool_=active; if(!active && orbitButton_!=Qt::NoButton){orbitButton_=Qt::NoButton;unsetCursor();} }
+    bool freeOrbitTool() const { return freeOrbitTool_; }
+    bool orbitDragging() const { return orbitButton_!=Qt::NoButton; }
     void rebindDocument();
     QImage framebuffer();
     void setSectionAnalysis(const QJsonObject& analysis);
@@ -194,6 +198,11 @@ private:
     QString error_;
     QPointF last_;
     Qt::MouseButton panButton_ = Qt::NoButton;
+    QPointF orbitLast_;
+    Qt::MouseButton orbitButton_ = Qt::NoButton;
+    bool freeOrbitTool_ = false;
+    gp_Dir customDirection_{0,0,-1};
+    gp_Dir customUp_{0,1,0};
     QJsonObject sectionAnalysis_;
     Handle(Graphic3d_ClipPlane) sectionClip_;
     QMap<QString,Handle(AIS_Shape)> models_;

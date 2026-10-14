@@ -217,6 +217,8 @@ QJsonObject ReferenceView::cameraState() const {
     return {{"orientation",orientation},{"zoom",zoom},{"panX",pan.x()},{"panY",pan.y()},
         {"grid",grid},{"origin",origin},{"sketchPlane",sketchPlane_},{"sketchFrame",sketchFrame_},
         {"centerX",sceneCenter_.X()},{"centerY",sceneCenter_.Y()},{"centerZ",sceneCenter_.Z()},
+        {"customDirection",QJsonArray{customDirection_.X(),customDirection_.Y(),customDirection_.Z()}},
+        {"customUp",QJsonArray{customUp_.X(),customUp_.Y(),customUp_.Z()}},
         {"scale",sceneScale_}};
 }
 void ReferenceView::restoreCameraState(const QJsonObject& state) {
@@ -227,7 +229,36 @@ void ReferenceView::restoreCameraState(const QJsonObject& state) {
     sketchFrame_=state.value("sketchFrame").toObject();
     sceneCenter_=gp_Pnt(state.value("centerX").toDouble(),state.value("centerY").toDouble(),state.value("centerZ").toDouble());
     sceneScale_=state.value("scale").toDouble(400);
+    if(orientation=="custom") {
+        const auto direction=state.value("customDirection").toArray(),up=state.value("customUp").toArray();
+        if(direction.size()!=3 || up.size()!=3)orientation="isometric";
+        else try {
+            const gp_Vec d(direction[0].toDouble(),direction[1].toDouble(),direction[2].toDouble());
+            const gp_Vec u(up[0].toDouble(),up[1].toDouble(),up[2].toDouble());
+            if(d.Magnitude()<1e-9 || u.Magnitude()<1e-9 || d.Crossed(u).Magnitude()<1e-9)orientation="isometric";
+            else {customDirection_=gp_Dir(d);customUp_=gp_Dir(u);}
+        } catch(const Standard_Failure&) {orientation="isometric";}
+    }
     sync();
+}
+void ReferenceView::orbitFree(double deltaX,double deltaY) {
+    if(view_.IsNull() || !std::isfinite(deltaX) || !std::isfinite(deltaY))return;
+    // Each drag rotates in the current screen frame. The fitted scene center
+    // remains the pivot; this slice does not infer a selected-object pivot.
+    constexpr double radiansPerPixel=std::numbers::pi/600;
+    gp_Vec forward(view_->Camera()->Direction()),up(view_->Camera()->Up());
+    gp_Vec right=forward.Crossed(up);
+    if(right.Magnitude()<1e-9)return;
+    right.Normalize();
+    const gp_Ax1 vertical{gp_Pnt{},gp_Dir{up}};
+    forward.Rotate(vertical,-deltaX*radiansPerPixel);
+    right.Rotate(vertical,-deltaX*radiansPerPixel);
+    const gp_Ax1 horizontal{gp_Pnt{},gp_Dir{right}};
+    forward.Rotate(horizontal,-deltaY*radiansPerPixel);
+    up.Rotate(horizontal,-deltaY*radiansPerPixel);
+    if(forward.Crossed(up).Magnitude()<1e-9)return;
+    customDirection_=gp_Dir(forward);customUp_=gp_Dir(up);
+    orientation="custom";sync();
 }
 void ReferenceView::rebindDocument() {
     setCanvases({},EvaluatedDocument{});canvasStamp_={};
@@ -334,7 +365,11 @@ void ReferenceView::sync() {
     view_->SetCamera(new Graphic3d_Camera(baseCamera_));
     // Resize after installing the camera so its aspect matches this drawable.
     view_->MustBeResized();
-    if(orientation=="face" && !sketchFrame_.isEmpty()) {
+    if(orientation=="custom") {
+        view_->Camera()->SetDirection(customDirection_);
+        view_->Camera()->SetUp(customUp_);
+        view_->Camera()->OrthogonalizeUp();
+    } else if(orientation=="face" && !sketchFrame_.isEmpty()) {
         const auto n=sketchFrame_.value("normal").toArray(),v=sketchFrame_.value("vAxis").toArray();
         view_->Camera()->SetDirection(gp_Dir(-n[0].toDouble(),-n[1].toDouble(),-n[2].toDouble()));
         view_->Camera()->SetUp(gp_Dir(v[0].toDouble(),v[1].toDouble(),v[2].toDouble()));
@@ -2437,6 +2472,15 @@ QImage ReferenceView::framebuffer() {
     return image;
 }
 void ReferenceView::mousePressEvent(QMouseEvent* e) {
+    if((e->button()==Qt::MiddleButton && e->modifiers().testFlag(Qt::ShiftModifier))
+        || (e->button()==Qt::LeftButton && freeOrbitTool_ && !e->modifiers().testFlag(Qt::AltModifier))) {
+        orbitButton_=e->button();orbitLast_=e->position();setCursor(Qt::ClosedHandCursor);
+        setFocus(Qt::MouseFocusReason);e->accept();return;
+    }
+    if(e->button()==Qt::MiddleButton || (e->button()==Qt::LeftButton && e->modifiers().testFlag(Qt::AltModifier))) {
+        panButton_=e->button();last_=e->position();setCursor(Qt::ClosedHandCursor);
+        setFocus(Qt::MouseFocusReason);e->accept();return;
+    }
     if(jointOriginPicking_ && jointOriginLocked_ && e->button()==Qt::LeftButton
         && e->modifiers().testFlag(Qt::ControlModifier)) {
         const auto glyph=jointOriginState()["glyph"].toObject();
@@ -2505,10 +2549,7 @@ void ReferenceView::mousePressEvent(QMouseEvent* e) {
         if(!picked.isEmpty()){setFocus(Qt::MouseFocusReason);moveDrag_={{"handle",picked},{"mode",mode},{"pressX",e->position().x()},{"pressY",e->position().y()},{"initialInputs",moveCueState_["inputs"]},{"handleCommand",moveCueState_["inputs"].toObject().value("handleCommand").toString("solid.moveHandle")},{"releaseCommand",moveCueState_["inputs"].toObject().value("releaseCommand").toString("solid.moveApplyGesture")}};e->accept();return;}
     }
     if(e->button()==Qt::RightButton)++rightMousePressCount_;
-    if (e->button() == Qt::MiddleButton || (e->button()==Qt::LeftButton && e->modifiers().testFlag(Qt::AltModifier))) {
-        panButton_=e->button();last_=e->position();setCursor(Qt::ClosedHandCursor);e->accept();
-    }
-    else if(e->button()==Qt::LeftButton){
+    if(e->button()==Qt::LeftButton){
         if(!sketchPlane_.isEmpty() && decorationSelection_.value("tool")=="line"
             && !decorationSelection_.value("chainLineId").toString().isEmpty()
             && !e->modifiers().testFlag(Qt::AltModifier)){
@@ -2585,6 +2626,18 @@ void ReferenceView::mousePressEvent(QMouseEvent* e) {
     else QWidget::mousePressEvent(e);
 }
 void ReferenceView::mouseMoveEvent(QMouseEvent* e) {
+    if(orbitButton_!=Qt::NoButton) {
+        if(!e->buttons().testFlag(orbitButton_)){orbitButton_=Qt::NoButton;unsetCursor();e->accept();return;}
+        const auto delta=e->position()-orbitLast_;orbitLast_=e->position();
+        if(dispatch && !delta.isNull())dispatch("view.orbit",{{"deltaX",delta.x()},{"deltaY",delta.y()}});
+        e->accept();return;
+    }
+    if(panButton_!=Qt::NoButton) {
+        if(!e->buttons().testFlag(panButton_)){panButton_=Qt::NoButton;unsetCursor();e->accept();return;}
+        const auto delta=e->position()-last_;last_=e->position();
+        if(dispatch && !delta.isNull())dispatch("view.pan",{{"x",delta.x()},{"y",delta.y()}});
+        e->accept();return;
+    }
     if(!sketchLineArcDrag_.isEmpty() && e->buttons().testFlag(Qt::LeftButton)){
         const QPointF press(sketchLineArcDrag_.value("pressX").toDouble(),sketchLineArcDrag_.value("pressY").toDouble());
         if(QLineF(press,e->position()).length()>=4)sketchLineArcDrag_["moved"]=true;
@@ -2644,9 +2697,6 @@ void ReferenceView::mouseMoveEvent(QMouseEvent* e) {
 
     if(extrusionDragActive_ && e->buttons().testFlag(Qt::LeftButton)) {
         updateExtrusionDrag(e->position(),"move");e->accept();
-    } else if (panButton_!=Qt::NoButton && e->buttons().testFlag(panButton_)) {
-        const auto delta = e->position() - last_; last_ = e->position();
-        dispatch("view.pan", {{"x",delta.x()},{"y",delta.y()}}); e->accept();
     } else if(!draggedAnnotation_.isEmpty() && e->buttons().testFlag(Qt::LeftButton)) {
         if(QLineF(annotationPress_,e->position()).length()>3)annotationDragged_=true;
         if(annotationDragged_) {const auto p=sketchPoint(std::clamp(e->position().x(),0.0,double(width()-1)),std::clamp(e->position().y(),0.0,double(height()-1)),sketchPlane_);dispatch("sketch.annotationMove",{{"dimensionId",draggedAnnotation_},{"uMm",p.value("uMm")},{"vMm",p.value("vMm")},{"gestureId",annotationGestureId_}});}
@@ -2675,6 +2725,11 @@ void ReferenceView::leaveEvent(QEvent* e) {
     QWidget::leaveEvent(e);
 }
 void ReferenceView::keyPressEvent(QKeyEvent* e) {
+    if(e->key()==Qt::Key_Escape && (freeOrbitTool_ || orbitButton_!=Qt::NoButton)) {
+        orbitButton_=Qt::NoButton;unsetCursor();
+        if(freeOrbitTool_ && dispatch)dispatch("view.orbitTool",{{"active",false}});
+        e->accept();return;
+    }
     if(jointOriginPicking_ && e->modifiers().testFlag(Qt::ControlModifier)
         && !jointOriginLocked_ && !jointOriginHover_.isEmpty()){
         jointOriginLock_=jointOriginHover_;jointOriginLocked_=true;refreshJointOriginCue();e->accept();return;
@@ -2689,6 +2744,8 @@ void ReferenceView::keyReleaseEvent(QKeyEvent* e) {
     QWidget::keyReleaseEvent(e);
 }
 void ReferenceView::mouseReleaseEvent(QMouseEvent* e) {
+    if(e->button()==orbitButton_) {orbitButton_=Qt::NoButton;unsetCursor();e->accept();return;}
+    if(e->button()==panButton_) {panButton_=Qt::NoButton;unsetCursor();e->accept();return;}
     if(e->button()==Qt::LeftButton && !sketchLineArcDrag_.isEmpty()){
         const bool moved=sketchLineArcDrag_.value("moved").toBool();sketchLineArcDrag_={};
         dispatch("sketch.lineArcDrag",moved ? QJsonObject{{"phase","end"},{"x",e->position().x()},{"y",e->position().y()}}
@@ -2738,10 +2795,10 @@ void ReferenceView::mouseReleaseEvent(QMouseEvent* e) {
         if(annotationDragged_)dispatch("sketch.annotationEndGesture",{{"dimensionId",draggedAnnotation_},{"gestureId",annotationGestureId_}});
         draggedAnnotation_.clear();annotationGestureId_.clear();annotationDragged_=false;e->accept();return;
     }
-    if(e->button()==panButton_) {panButton_=Qt::NoButton;unsetCursor();e->accept();}
-    else QWidget::mouseReleaseEvent(e);
+    QWidget::mouseReleaseEvent(e);
 }
 void ReferenceView::mouseDoubleClickEvent(QMouseEvent* e) {
+    if(freeOrbitTool_ && e->button()==Qt::LeftButton){e->accept();return;}
     if(e->button()==Qt::LeftButton && !sketchPlane_.isEmpty()) {
         const auto picked=pickAnnotation(e->position().x(),e->position().y());
         if(!picked.isEmpty()){draggedAnnotation_.clear();dispatch("sketch.dimensionEdit",{{"dimensionId",picked.value("dimensionId")}});e->accept();return;}

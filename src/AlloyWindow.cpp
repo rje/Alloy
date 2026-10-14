@@ -811,6 +811,11 @@ AlloyWindow::AlloyWindow() {
     navigation_ = new QWidget; navigation_->setStyleSheet("background: #f0f2f3;");
     auto* nav = new QHBoxLayout(navigation_); nav->setContentsMargins(8, 2, 8, 5); nav->setSpacing(2);
     nav->addStretch(); nav->addWidget(commandButton("view.home", "Home"));
+    auto* orbitButton=new QPushButton("Free Orbit");orbitButton->setObjectName("view.orbitTool");
+    orbitButton->setCheckable(true);orbitButton->setToolTip("Drag on the canvas to orbit freely; Escape exits. Shift + middle drag also orbits.");
+    orbitButton->setStyleSheet("QPushButton:checked { background: #c8e5f6; border: 1px solid #5796bc; border-radius: 4px; font-weight: 600; }");
+    connect(orbitButton,&QPushButton::clicked,this,[this,orbitButton]{execute("view.orbitTool",{{"active",orbitButton->isChecked()}});});
+    nav->addWidget(orbitButton);
     for (const QString& orientation : {"top", "front", "right"}) {
         auto* button = new QPushButton(orientation.first(1).toUpper() + orientation.sliced(1));
         connect(button, &QPushButton::clicked, this, [this, orientation] { execute("view.orientation", {{"name", orientation}}); });
@@ -1006,6 +1011,11 @@ void AlloyWindow::updateTimelineDrop(const QPoint& globalPosition) {
 
 bool AlloyWindow::eventFilter(QObject* watched,QEvent* event) {
     if(componentCopyKey(watched,event))return true;
+    if(watched==view_ && event->type()==QEvent::KeyPress
+        && static_cast<QKeyEvent*>(event)->key()==Qt::Key_Escape
+        && (view_->freeOrbitTool() || view_->orbitDragging())) {
+        execute("view.orbitTool",{{"active",false}});return true;
+    }
     if(watched==view_ && !sectionEdit_.isEmpty() && event->type()==QEvent::KeyPress)return true;
     if(timelineDragging_ && event->type()==QEvent::KeyPress
         && static_cast<QKeyEvent*>(event)->key()==Qt::Key_Escape){cancelTimelineDrag(true);return true;}
@@ -5136,6 +5146,20 @@ void AlloyWindow::registerCommands() {
     add("view.zoom", "Zoom reference view", "Scale the reference grid; mouse wheel uses this command.", {{"factor", factor}}, [this](const auto& a) { view_->zoom = std::clamp(view_->zoom * a.value("factor").toDouble(), 0.1, 10.0); return QJsonObject{}; });
     auto offset = parameter("number", "Relative pan in logical pixels; each delta limited to +/-10000."); offset.insert("minimum", -10000); offset.insert("maximum", 10000);
     add("view.pan", "Pan reference view", "Translate the grid; middle-mouse drag uses this command.", {{"x", offset}, {"y", offset}}, [this](const auto& a) { view_->pan += QPointF(a.value("x").toDouble(), a.value("y").toDouble()); return QJsonObject{}; });
+    auto orbitDelta=parameter("number","Relative free-orbit drag in logical pixels; each delta limited to +/-10000.");
+    orbitDelta.insert("minimum",-10000);orbitDelta.insert("maximum",10000);
+    add("view.orbit","Free Orbit","Rotate the actual camera about the fitted scene center without editing the design.",
+        {{"deltaX",orbitDelta},{"deltaY",orbitDelta}},[this](const auto& a){
+            view_->orbitFree(a.value("deltaX").toDouble(),a.value("deltaY").toDouble());return view_->cameraState();
+        });
+    add("view.orbitTool","Free Orbit pointer tool","Use a left canvas drag to orbit without a middle button; Escape exits.",
+        {{"active",parameter("boolean","Whether left canvas drags orbit freely.")}},[this](const auto& a){
+            const bool active=a.value("active").toBool();view_->setFreeOrbitTool(active);
+            if(auto* button=findChild<QPushButton*>("view.orbitTool")){
+                const QSignalBlocker blocked(button);button->setChecked(active);
+            }
+            return QJsonObject{{"active",active}};
+        });
     auto dimension = parameter("number", "Logical window size; width 1040..4096, height 640..4096.");
     dimension.insert("minimum", 640); dimension.insert("maximum", 4096);
     add("window.resize", "Resize window", "Resize the real native window for layout and framebuffer inspection.", {{"width", dimension}, {"height", dimension}}, [this](const auto& a) {
@@ -6119,7 +6143,7 @@ void AlloyWindow::refresh() {
     view_->sync();
     positionDimensionEditor();
     const auto gpu = view_->diagnostics();
-    status_->setText(QString("  %3 · %4 bodies · %1 · Zoom %2%    |    "+QString(editingSketch ? "L: line · R: rectangle · C: circle · D: dimension · Shift-click: add selection" : "Click: select")+" · Alt/Option + drag: pan · Wheel: zoom")
+    status_->setText(QString("  %3 · %4 bodies · %1 · Zoom %2%    |    "+QString(editingSketch ? "L: line · R: rectangle · C: circle · D: dimension · Shift-click: add selection" : "Click: select")+" · Middle/Option-drag: pan · Shift + middle: Free Orbit · Wheel: zoom")
         .arg(view_->orientation).arg(qRound(view_->zoom * 100)).arg(gpu.value("hardwareAccelerated").toBool() ? "OCCT OpenGL" : "GPU UNQUALIFIED: " + gpu.value("qualification").toString()).arg(gpu.value("displayedBodyReferences").toArray().size()));
 }
 
