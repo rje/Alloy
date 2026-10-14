@@ -1,6 +1,6 @@
 # Component printing selection
 
-PRT-010/#351 candidate, 2026-10-14. Component STL selection includes its visible
+PRT-010/#351 independently accepted, 2026-10-14. Component STL selection includes its visible
 bodies. A hidden retained source sheet no longer prevents exporting the visible
 solid in the same component. Explicit body selection is unchanged: selecting an
 open sheet still refuses strict solid-mesh export. A visible sheet in a component
@@ -19,7 +19,8 @@ survives save/reopen, and exports exactly one visible body. Independent binary S
 inspection finds one closed connected component, 2308 triangles, consistent normals
 and positive volume 17505.7868 mm³, within 0.1% of the solid. Explicit-sheet and
 visible-sheet component selections refuse with `solid_required`; undo restores the
-authored state. The inspected GPU capture shows the correct component and readable
+authored state after sheet visibility changes. Reparent undo/redo was not tested
+in this run. The inspected GPU capture shows the correct component and readable
 visible-body selection note. These API checks do not establish physical mouse input.
 
 The first run exposed a real component-move prerequisite: sketch constraint
@@ -27,4 +28,4 @@ recomputation evaluated an earlier modeling prefix with final Browser ownership
 records for a not-yet-created body. Removing those records only from the temporary
 prefix matches the existing history evaluator; final ownership validation remains
 intact. The corrected run includes reparent, save/reopen and history regression.
-Independent final evidence review is pending.
+Independent source, ledger, mesh and capture review accepts this bounded change.
