@@ -88,6 +88,12 @@
 #include <numbers>
 
 namespace {
+bool hasLinkedLocalCopies(const QJsonObject& authored){
+    QSet<QString> seen;for(const auto& value:authored["occurrences"].toArray()){
+        const auto definition=value.toObject()["definitionId"].toString();
+        if(seen.contains(definition))return true;seen.insert(definition);
+    }return false;
+}
 bool copiedBodyDefinition(const QJsonObject& authored,const EvaluatedDocument& evaluation,const QString& bodyId){
     QString owner;for(const auto& body:evaluation.bodies)if(body.bodyId==bodyId){owner=body.ownerId;break;}
     owner=authored["objectOwners"].toObject()["bodies"].toObject().value(bodyId).toString(owner);
@@ -1546,6 +1552,10 @@ void AlloyWindow::registerCommands() {
                 return failure("staged_pose","Finish or revert staged motion before exporting the committed pose");
             if(int(a.contains("bodyId"))+int(a.contains("bodyIds"))+int(a.contains("allVisible"))>1)return failure("invalid_body_selection","Choose one export selection source");
             if(a.contains("bodyId")) {bool found=false;for(const auto& body:document_->bodies())found=found || body.bodyId==a["bodyId"].toString();if(!found)return failure("stale_body","The selected solid no longer exists","bodyId");}
+            if(a.contains("bodyId")){int instances=0;for(const auto& body:presentationBodies())if(body.bodyId==a["bodyId"].toString())++instances;
+                if(instances>1)return failure("ambiguous_body","Choose an occurrence path for a linked body");}
+            if(a.contains("bodyIds") && hasLinkedLocalCopies(document_->authored()))
+                return failure("ambiguous_body","Choose an occurrence path or all visible bodies for linked copies");
             if(a.contains("bodyIds"))for(const auto& id:a["bodyIds"].toArray()) {
                 bool found=false;for(const auto& body:document_->bodies())found=found || body.bodyId==id.toString();
                 if(!id.isString() || !found)return failure("stale_body","A selected solid no longer exists","bodyIds");

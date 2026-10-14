@@ -27,7 +27,10 @@ QJsonObject AlloyWindow::showMeshExport(const QString& bodyId,const QJsonArray& 
         const auto definition=value.toObject()["definitionId"].toString();
         if(definitions.contains(definition))linked=true;definitions.insert(definition);
     }
-    if(!linked)for(const auto& body:document_->bodies())bodies->addItem(body.name,body.bodyId);
+    for(const auto& body:document_->bodies()){
+        int instances=0;for(const auto& placed:presentationBodies())if(placed.bodyId==body.bodyId)++instances;
+        if(instances==1)bodies->addItem(body.name,body.bodyId);
+    }
     if(const int index=bodies->findData(bodyId);index>=0)bodies->setCurrentIndex(index);
     const auto occurrences=LocalOccurrences::inspect(document_->authored(),document_->evaluation())["occurrences"].toArray();
     for(const auto& value:occurrences){const auto row=value.toObject();
