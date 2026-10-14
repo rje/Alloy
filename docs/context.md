@@ -134,11 +134,17 @@ rejected cumulative UI acceptance. Two bounded real-row/readiness hypotheses
 failed; external sol016-five-profile-qt-2026-10-14/native-01 preserves evidence
 and harness, with no product fix or failing CMake target retained. Stop retries.
 SOL-058/#403 retains physical held-modifier macOS/Windows checks; TUT-003 depends
-on both. SKT-089/#404 is now active: explicit driven continuation for a new
-redundant dimension, using the external source contract. Sol implements on main
-with the sole build/GUI lease; Astra reviews independently. Broader SKT-021 stays
-Todo. Keep tests proportional and continue implementation rather than repeating
-unchanged geometry or unavailable computer-control gates.
+on both. SKT-089/#404 is independently accepted at c6a87c9: numeric redundant
+new dimensions offer explicit Add Driven/Cancel; conflict41 refuses, matching40
+becomes read-only(40), driver50 updates(50), history/reopen preserve intent.
+Core/native03 pass2/2. API setup/placement and Qt typing/choice clicks stay distinct.
+Root then found the new Qt harness omitted production AlloyTheme::apply, explaining
+dark dock titles. Theme-only followup ec16303 aligns the test entrypoint;
+native04 controls pass and the actual light-title/offer capture is readable. The external SOL016 production-theme native04 still leaves its popup visible
+and stops before OK; receipt02b0726 preserves this. Theme mismatch does not
+explain the remaining popup gate. It is Todo, with no failing test target
+retained and no more retries absent concrete event diagnosis.
+Broader SKT-021 and physical403 remain Todo. Only one build/GUI lease is active.
 Backlog is404 issues with acyclic dependencies. Astra independently verifies.
 Only main and its existing build are used; no inactive worktrees accumulate.
 DOC-031/#348 is independently accepted at `89782cf`: unchanged-product native09

@@ -23,7 +23,9 @@ film. TUT-019/#305 cumulative native piston walkthrough is accepted at acc8616; 
 FND-015/#158 remains Todo: constraint activation passed, but OS AX history
 observation lost window binding. SOL-016/#154 remains Todo after an unaccepted popup-to-OK route; its geometry
 and modifier evidence remain partial. SOL-058/#403 preserves physical held-modifier
-checks. SKT-089/#404 is active for the explicit redundant-dimension driven offer.
+checks. SKT-089/#404 is independently accepted for the numeric redundant-dimension
+driven offer, with refreshed production-theme native04 captures. SOL-016 remains
+Todo after its production-theme recheck still failed popup dismissal.
 ASM-012/#343 is Todo after an inconclusive physical Browser drag recheck; its
 separate body and Sketches-folder drag gate remains unaccepted. See [the current sequence](tutorial-sequence.json)
 and [continuation context](../context.md) for accepted evidence and remaining work.
