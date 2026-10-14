@@ -1,4 +1,4 @@
-# Retained endpoint Plane Along Path candidate
+# Retained endpoint Plane Along Path acceptance
 
 GEO-003 adds a Plane Along Path command for one earlier, visible fit-point
 spline and proportional Start (0) or End (1). A construction-plane feature
@@ -43,3 +43,6 @@ check passed as a focused Qt command test; the earlier `native-05` run remains
 the native click/position-combo evidence. A later attempt to repeat that full
 gesture under the shifted fixture could not activate the macOS test window,
 before any canvas input, so it is not counted as passing native input evidence.
+
+Independent Astra review accepted `6563292` atop `20bcf5b`. Main application
+build and the focused endpoint-plane core test pass after integration.

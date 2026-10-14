@@ -1,15 +1,17 @@
 # Continuation context
 
-## Endpoint Plane Along Path candidate (2026-10-13)
+## Accepted endpoint Plane Along Path (2026-10-13)
 
-GEO-003/#281 is implemented in an isolated candidate for one retained fit
+GEO-003/#281 is independently accepted and integrated for one retained fit
 spline at proportional Start/End. It uses the evaluated, dimension-solved
 OCCT edge and ordered fit-point identities, with a deterministic perpendicular
 plane and dependent sketch support. Focused core, a 38-call real-app API
 workflow and Qt-native canvas selection/End chooser/Cancel/accept pass. See
-[the candidate receipt](validation/endpoint-path-planes.md). Independent Astra
-review and main integration remain pending; broader path extents stay with
-the construction-plane parent.
+[the receipt](validation/endpoint-path-planes.md). Main application build and
+focused endpoint core test pass. Solved-curve picking has separate shared-command
+proof; native05 covers basic gestures. Broader path extents stay with the parent.
+The second Sol lane now implements SKT-068/#282 true arc-midpoint constraints
+for the attached shoehorn profile.
 
 ## Accepted Selection Priority (2026-10-13)
 
@@ -50,7 +52,7 @@ returned to Todo while its actual two-Mirror fixture depends on SOL-053. Its
 shared reorder and one-Mirror core pass, but native/final source acceptance
 remain pending. No substitute inner edge or nearest-match identity is allowed.
 DOC-025/#307 is closed after independent review and main app build. The second
-Sol lane now owns GEO-003/#281 endpoint Plane Along Path for the shoehorn,
+Sol lane completed GEO-003/#281 endpoint Plane Along Path for the shoehorn,
 in parallel with the actual enclosure cantilever/clearance proof. GEO-013 is
 closed; SOL-053 remains open for its actual five-feature YZ fixture. SOL-054/#339
 now owns the source-supported multi-region Join replay: projected references
