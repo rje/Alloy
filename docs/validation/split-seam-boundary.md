@@ -20,3 +20,5 @@ both logs, geometry inventories and saved actual Split prefix. Run
 `split_seam_boundary_test <enclosure-model.alloy> [prefix-output.alloy]`.
 This is geometry/reference evidence, not new UI or a completed Offset/ridge
 workflow. SKT-076 and TUT-023 retain those acceptance gates.
+
+Astra independently accepted `19d0e72` (integrated `87b5ee5`) on 2026-10-14.

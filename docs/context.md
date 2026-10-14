@@ -69,8 +69,9 @@ model and exports are first in the external gallery (82 links checked).
 
 TUT-022 remains pending its full source-step runner and creation footage;
 TUT-023 alignment rim follows. Actual final seam inspection found one closed
-U-shaped wire with18 edges, only6 currently named; GEO-016/#345 is active
-for complete anchored topology publication and SKT-076/#346 follows for
+U-shaped wire with18 edges, all18 now named through accepted GEO-016/#345 (`87b5ee5`),
+including12 anchored-chain identities. Source height edit/history/reopen and
+legacy Split regression pass. SKT-076/#346 is active for
 retained inset-interior profile selection. Source-to-offset shoulder bands
 would be the wrong region. The actual port opening must remain unbridged. HIS-006 is independently accepted at `6684dac`:
 actual Bottom Fillet reorder after both Mirrors, separate opposite R0.5 group,
