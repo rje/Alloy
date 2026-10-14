@@ -9,6 +9,7 @@
 #include <TopExp.hxx>
 #include <TopoDS.hxx>
 #include <QUuid>
+#include <QMap>
 #include <QSet>
 #include <algorithm>
 #include <cmath>
@@ -195,6 +196,54 @@ std::vector<EvaluatedSupportFace> PlanarFaces::prismSides(BRepPrimAPI_MakePrism&
         offer("extrude.side",(profile.profileId+"/"+boundary.sourceEntityId+"/"+contacts.join('/')).toUtf8(),face,frame);
     }
     return result;
+}
+std::vector<EvaluatedSolidEdge> PlanarFaces::solidLinearCutRims(const std::vector<EvaluatedSupportFace>& faces,
+    const std::vector<EvaluatedSolidEdge>& toolEdges,const TopoDS_Shape& result,const QString& feature) {
+    QMap<QString,EvaluatedSolidEdge> tools;
+    for(const auto& tool:toolEdges)if(tool.provenance["role"]=="baseRim") {
+        if(tools.contains(tool.edgeId))throw std::runtime_error("Repeated linear Cut tool edge identity");
+        tools.insert(tool.edgeId,tool);
+    }
+    TopTools_IndexedMapOfShape current;TopExp::MapShapes(result,TopAbs_EDGE,current);
+    struct Candidate {EvaluatedSolidEdge edge;QString semantic;int uses=0;};
+    std::vector<Candidate> candidates;
+    QMap<QString,int> semanticUses;
+    for(const auto& face:faces) {
+        TopTools_IndexedMapOfShape faceEdges;TopExp::MapShapes(face.face,TopAbs_EDGE,faceEdges);
+        for(const auto& boundary:face.boundaryEdges) {
+            if(boundary.provenance["generatorFeatureId"]!=feature ||
+               boundary.provenance["lineage"]!="exactLinearCutHistory" ||
+               boundary.type!="line" || boundary.edge.IsNull() ||
+               !current.Contains(boundary.edge) || !faceEdges.Contains(boundary.edge))continue;
+            const auto contributors=boundary.provenance["contributors"].toArray();
+            if(contributors.size()!=1)continue; // Merged or split source roles require an explicit repair.
+            const auto reference=contributors.first().toString();
+            if(!reference.startsWith("tool/"))continue;
+            const auto toolId=reference.mid(5);
+            if(!tools.contains(toolId))continue;
+            const auto& tool=tools[toolId];
+            const auto sketchId=tool.provenance["sourceSketchId"].toString();
+            const auto entityId=tool.provenance["sourceEntityId"].toString();
+            if(QUuid(sketchId).isNull() || QUuid(entityId).isNull())continue;
+            const auto signature=face.producerFeatureId+"\n"+face.faceId+"\n"+sketchId+"\n"+entityId;
+            const auto id=QUuid::createUuidV5(QUuid(feature),QByteArray("alloy-solid-linear-cut-rim/1\n")+signature.toUtf8())
+                .toString(QUuid::WithoutBraces);
+            QJsonObject provenance{{"generatorFeatureId",feature},{"role","cutRim"},
+                {"sourceSketchId",sketchId},{"sourceEntityId",entityId},
+                {"sourceToolEdgeId",toolId},{"targetFaceId",face.faceId},
+                {"targetFaceProducerFeatureId",face.producerFeatureId},
+                {"lineage","exactLinearCutHistory"},{"endpointProvenance","currentKernelBoundary"},
+                {"startMm",boundary.provenance["startMm"]},{"endMm",boundary.provenance["endMm"]}};
+            auto prior=std::find_if(candidates.begin(),candidates.end(),[&](const auto& c){return c.edge.edge.IsSame(boundary.edge);});
+            if(prior!=candidates.end()) {++prior->uses;continue;}
+            ++semanticUses[signature];
+            candidates.push_back({{id,boundary.edge,provenance},signature,1});
+        }
+    }
+    std::vector<EvaluatedSolidEdge> named;
+    for(const auto& candidate:candidates)if(candidate.uses==1 && semanticUses[candidate.semantic]==1)
+        named.push_back(candidate.edge);
+    return named;
 }
 QJsonArray PlanarFaces::descriptors(const std::vector<EvaluatedSupportFace>& faces) {
     QJsonArray output;

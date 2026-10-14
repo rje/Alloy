@@ -553,7 +553,13 @@ TopoDS_Shape GeometryKernel::booleanOperation(const QString& operation, const To
         *retainedFaces=PlanarFaces::transfer(builder,sources,shape);
         if(cutToolEdges)PlanarFaces::retainLinearCutBoundaries(builder,sources,*cutToolEdges,*retainedFaces,cutFeatureId);
     }
-    if(retainedEdges)*retainedEdges=SolidFillet::transferEdges(builder,*retainedEdges,shape);
+    if(retainedEdges) {
+        *retainedEdges=SolidFillet::transferEdges(builder,*retainedEdges,shape);
+        if(operation=="cut" && retainedFaces && cutToolEdges && !cutFeatureId.isEmpty()) {
+            auto rims=PlanarFaces::solidLinearCutRims(*retainedFaces,*cutToolEdges,shape,cutFeatureId);
+            retainedEdges->insert(retainedEdges->end(),rims.begin(),rims.end());
+        }
+    }
     return shape;
 }
 QJsonObject GeometryKernel::summarize(const TopoDS_Shape& shape) {
