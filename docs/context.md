@@ -72,7 +72,8 @@ now the cumulative gate: one from-blank creation-through-copied-motion and
 placed-output movie finished (351.667 seconds, all four stage receipts pass,
 zero capture failures). The external gallery links it at `#piston-full-output`;
 independent artifact review accepted the semantic/API recording. Exact native
-TUT-019 remains open and returns to Todo pending its explicit input children.
+TUT-019 remains open and is now In Progress: a separate cumulative native
+harness is being prepared while the final input child finishes.
 Its broad ASM-001/002/003 dependencies were
 replaced with the accepted bounded children after independent review; broad
 parents remain Todo with their full remaining scope. A final source-flow audit
@@ -87,8 +88,11 @@ Cancel and Joints visibility; retained authority is separately accepted at
 midpoint/release mappings and input/capture limits. ASM-023/#373 is now active
 in the next UI lane: shared As-Built Type and actual component selection, plus
 compact top-aligned controls and readable origin labels.
-The full native-step ledger also preserves ASM-021/#371 paste drag and
-contextual Position/Revert (active in a third isolated implementation lane),
+ASM-021/#371 paste drag and contextual Position/Revert are independently
+accepted at `31516f5`/`e5128fc`: native06 passes 3/3, both captures were reviewed,
+and the integrated application builds. Stable copied preview identities, signed
+arrow movement, one Enter commit and actual-focus Escape pass. See
+[placement acceptance](validation/linked-local-occurrences.md). The ledger also preserves
 ASM-022/#372 Browser organization gestures (independently accepted and integrated
 through `3436a44`, native3/3 and focused core; see
 [Browser acceptance](validation/piston-components.md)) and active

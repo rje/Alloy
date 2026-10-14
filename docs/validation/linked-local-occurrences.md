@@ -64,6 +64,29 @@ Native08 passes 3/3, including Browser focus restoration without an inter-step
 harness repair, typed -180 mm placement, preservation of original joints and
 one copied internal joint. This is Qt-delivered input evidence, not OS physical
 input parity. The final test-only clipboard MIME restoration change was compiled
-and reviewed without another GUI run. Pointer drag placement remains ASM-021.
+and reviewed without another GUI run. Pointer drag placement was subsequently accepted in ASM-021 below.
 
 External evidence: `deliverables/component-clipboard-2026-10-14/receipt.md`.
+
+
+## Native drag placement and contextual Revert (2026-10-14)
+
+ASM-021/#371 is independently accepted at `31516f5`/`e5128fc`. Paste now
+opens a nonmodal placement dock with translation arrows and a blue copied
+preview. The candidate and occurrence/joint maps are allocated once; pointer
+updates change the draft root placement and reuse definition geometry. Authored
+state stays unchanged until Enter commits once. Escape cancels from actual focus.
+The contextual Position tab exposes Revert for staged assembly motion.
+
+Native06 passes 3/3 in 8.34 seconds: actual Upper Arm drag and Position/Revert,
+Browser Copy and standard Paste, signed X-arrow preview, stable candidate IDs,
+exact -180 mm numeric entry, one Enter commit, Escape cancellation and stale
+clipboard refusal. Both captures were inspected by the implementer and independent
+Astra verifier: readable blue preview/arrows, followed by the clean six-body
+committed assembly. The integrated application builds successfully.
+
+This is Qt-delivered interaction evidence, not physical OS input parity. Exact
+numeric entry is an explicit Alloy supplement to the public drag instruction;
+there is no matched-pixel or full native tutorial claim. The cumulative gate
+remains TUT-019. Evidence and exact output:
+`deliverables/linked-paste-placement-2026-10-14/native-06/receipt.json`.

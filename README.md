@@ -18,7 +18,8 @@ all six instances or one selected piston subtree. The independently accepted
 5m52s cumulative API movie includes creation, linked motion and placed exports.
 [Native Browser organization](docs/validation/piston-components.md) and
 [joint-origin hover locking](docs/validation/joint-origin-inference.md) are also
-accepted. Remaining native tutorial gestures are ASM-021/023; these are bounded
+accepted, along with [Paste drag and contextual Revert](docs/validation/linked-local-occurrences.md).
+The remaining native command increment is ASM-023, followed by the cumulative gate; these are bounded
 adapted-fixture capabilities, not complete native tutorial parity.
 
 The [Surface workspace](docs/validation/surface-workspace-navigation.md) now exposes
