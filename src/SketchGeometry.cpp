@@ -1523,6 +1523,22 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
             } else if(type=="concentric") {
                 if(constraint.size()!=3 || !checkReferences(constraint,"entityIds",2,curveIds) || constraint.contains("pointIds"))
                     return "Concentric requires two distinct circles or arcs";
+            } else if(type=="symmetry") {
+                if(constraint.size()!=4 || !checkReferences(constraint,"entityIds",3,lineIds)
+                    || !checkReferences(constraint,"pointIds",4,pointIds))return "Symmetry requires two lines, one construction axis and four endpoints";
+                const auto refs=constraint["entityIds"].toArray(),pairs=constraint["pointIds"].toArray();
+                QJsonObject first,second,axis;
+                for(const auto& value:parameters["entities"].toArray()){
+                    const auto e=value.toObject();
+                    if(e["id"]==refs[0])first=e;
+                    if(e["id"]==refs[1])second=e;
+                    if(e["id"]==refs[2])axis=e;
+                }
+                if(!axis["construction"].toBool())return "Symmetry axis must be a construction line";
+                if(pairs[0]!=first["startPointId"] || pairs[2]!=first["endPointId"]
+                    || !((pairs[1]==second["startPointId"] && pairs[3]==second["endPointId"])
+                      || (pairs[1]==second["endPointId"] && pairs[3]==second["startPointId"])))
+                    return "Symmetry endpoints must match the retained line pairing";
             } else if((type=="horizontal" || type=="vertical") && constraint.contains("pointIds")) {
                 if(constraint.size()!=3 || !checkReferences(constraint,"pointIds",2,pointIds) || constraint.contains("entityIds"))
                     return "Point alignment requires two distinct sketch points";
@@ -1726,7 +1742,42 @@ SketchGeometry::SolveResult SketchGeometry::addConstraint(const QJsonObject& dra
         checkFields(arguments, {"type", "pointIds", "entityIds", "side", "origin"});
         auto constraint = arguments;
         constraint["id"] = newId();
-        auto parameters = draft["parameters"].toObject();
+        QJsonObject current=draft;
+        if(constraint["type"]=="symmetry"){
+            if(arguments.contains("pointIds"))reject("Symmetry endpoint correspondence is derived from current solved lines");
+            const auto solved=solveDraft(draft,projectionContext);
+            if(!solved.ok)return SolveResult{false,draft,solved.diagnostics,solved.error};
+            current=solved.feature;
+        }
+        auto parameters = current["parameters"].toObject();
+        if(constraint["type"]=="symmetry"){
+            const auto ids=constraint["entityIds"].toArray();
+            if(ids.size()!=3 || ids[0]==ids[1] || ids[0]==ids[2] || ids[1]==ids[2])reject("Symmetry needs two distinct lines and one construction axis");
+            QMap<QString,QJsonObject> lines,points;
+            for(const auto& value:parameters["entities"].toArray()){
+                const auto entity=value.toObject();if(entity["type"]=="line")lines[entity["id"].toString()]=entity;
+            }
+            for(const auto& value:parameters["points"].toArray()){const auto point=value.toObject();points[point["id"].toString()]=point;}
+            for(const auto& id:ids)if(!lines.contains(id.toString()))reject("Symmetry supports three authored straight lines");
+            const auto first=lines[ids[0].toString()],second=lines[ids[1].toString()],axis=lines[ids[2].toString()];
+            if(!axis["construction"].toBool())reject("Symmetry axis must be a construction line");
+            auto xy=[&](const QJsonValue& id){const auto point=points.value(id.toString());
+                if(point.isEmpty())reject("Symmetry endpoint is unavailable");return QPointF(point["uMm"].toDouble(),point["vMm"].toDouble());};
+            const auto axisStart=xy(axis["startPointId"]),axisEnd=xy(axis["endPointId"]),delta=axisEnd-axisStart;
+            const double norm=QPointF::dotProduct(delta,delta);
+            if(norm<1e-12)reject("Symmetry axis is degenerate");
+            const auto reflect=[&](const QPointF& point){const auto foot=axisStart+delta*(QPointF::dotProduct(point-axisStart,delta)/norm);return foot*2-point;};
+            const auto a=reflect(xy(first["startPointId"])),b=reflect(xy(first["endPointId"]));
+            const auto c=xy(second["startPointId"]),d=xy(second["endPointId"]);
+            const auto square=[](const QPointF& v){return QPointF::dotProduct(v,v);};
+            const double forward=square(a-c)+square(b-d),reverse=square(a-d)+square(b-c);
+            const double lineScale=square(xy(first["endPointId"])-xy(first["startPointId"]))
+                +square(d-c);
+            if(std::abs(forward-reverse)<=1e-8*std::max({1.0,lineScale,forward,reverse}))reject("Symmetry endpoint pairing is ambiguous");
+            constraint["pointIds"]=forward<reverse
+                ? QJsonArray{first["startPointId"],second["startPointId"],first["endPointId"],second["endPointId"]}
+                : QJsonArray{first["startPointId"],second["endPointId"],first["endPointId"],second["startPointId"]};
+        }
         if(arguments.contains("origin")){
             if(constraint["type"]!="midpoint" || arguments["origin"]!=true || arguments.contains("pointIds"))
                 reject("Only Midpoint accepts the sketch origin as a point target");
@@ -1798,7 +1849,7 @@ SketchGeometry::SolveResult SketchGeometry::addConstraint(const QJsonObject& dra
                 parameters["points"]=points;parameters["entities"]=entities;break;
             }
         }
-        auto candidate = draft; candidate["parameters"] = parameters;
+        auto candidate = current; candidate["parameters"] = parameters;
         const auto pointPair=(constraint["type"]=="horizontal" || constraint["type"]=="vertical") && constraint.contains("pointIds");
         if(pointPair && constraint["pointIds"].toArray().size()!=2)reject("Point alignment requires two ordered points");
         QString first=pointPair ? constraint["pointIds"].toArray().at(0).toString() : QString{};

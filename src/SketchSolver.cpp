@@ -288,6 +288,10 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
                     require(false,"Concentric requires two circles or arcs");return point(id);
                 };
                 solver.addConstraintP2PCoincident(center(reference(constraint,"entityIds",0)),center(reference(constraint,"entityIds",1)),t);
+            } else if(type=="symmetry") {
+                auto& axis=line(reference(constraint,"entityIds",2));
+                solver.addConstraintP2PSymmetric(point(reference(constraint,"pointIds",0)),point(reference(constraint,"pointIds",1)),axis,t);
+                solver.addConstraintP2PSymmetric(point(reference(constraint,"pointIds",2)),point(reference(constraint,"pointIds",3)),axis,t);
             } else if (type == "horizontal") {
                 if(constraint.contains("pointIds"))solver.addConstraintEqual(point(reference(constraint,"pointIds",0)).y,point(reference(constraint,"pointIds",1)).y,t);
                 else solver.addConstraintHorizontal(line(reference(constraint,"entityIds",0)),t);
@@ -568,6 +572,18 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
                 };
                 const auto& a=center(reference(c,"entityIds",0));const auto& b=center(reference(c,"entityIds",1));
                 check(*a.x-*b.x,lengthTolerance);check(*a.y-*b.y,lengthTolerance);
+            }
+            else if(type=="symmetry") {
+                const auto& axis=line(reference(c,"entityIds",2));
+                const double dx=*axis.p2.x-*axis.p1.x,dy=*axis.p2.y-*axis.p1.y,norm=dx*dx+dy*dy;
+                require(norm>=minimumLength*minimumLength,"Symmetry axis collapsed");
+                for(int pair=0;pair<2;++pair){
+                    const auto& source=point(reference(c,"pointIds",2*pair));
+                    const auto& target=point(reference(c,"pointIds",2*pair+1));
+                    const double along=((*source.x-*axis.p1.x)*dx+(*source.y-*axis.p1.y)*dy)/norm;
+                    check(*target.x-(2*(*axis.p1.x+along*dx)-*source.x),lengthTolerance);
+                    check(*target.y-(2*(*axis.p1.y+along*dy)-*source.y),lengthTolerance);
+                }
             }
             else if(type=="equal") {
                 const auto a = reference(c,"entityIds",0), b = reference(c,"entityIds",1);
