@@ -81,7 +81,7 @@
       ],
       "acceptance": "Full creation movie, endpoint and intermediate surface captures, editable file, meaningful path/thickness edit retaining through hole, undo/reopen and strict mesh. Source freedom and native/API differences explicit.",
       "status": "todo",
-      "remaining": "Guided source prefix and signed Thicken are accepted. GEO-019 must qualify exact wide-end R12 grouped corner geometry on the inferred 16 mm-bend fixture before GEO-018 can retain generated faces/endpoints and the later R1.5 perimeter round. PRT-010 still qualifies component printing with the retained hidden sheet; ASM-012 retains native Browser move. Complete TUT-017 creation, edit/history/reopen, movie and strict export remain pending."
+      "remaining": "Guided source prefix and signed Thicken are accepted. GEO-019 must qualify exact wide-end R12 grouped corner geometry on the inferred 16 mm-bend fixture before GEO-018 can retain generated faces/endpoints and the later R1.5 perimeter round. PRT-010 component printing with the retained hidden sheet is accepted; ASM-012 retains native Browser move. Complete TUT-017 creation, edit/history/reopen, movie and strict export remain pending."
     },
     {
       "id": "CP-23",
@@ -95,11 +95,12 @@
         "SRF-011",
         "DOC-024",
         "HIS-007",
+        "VIS-004",
         "TUT-018"
       ],
       "acceptance": "Creation movie including declared sketch setup, editable surfaces/final solid, silhouette and handle comparisons against public images, upstream edits/history/reopen and checked solid/mesh outputs. Prepared-sketch adaptation remains labeled.",
       "status": "todo",
-      "remaining": "RES-018 qualifies the public source ledger and independently authored prepared-sketch topology; no source sketch dimensions or from-blank construction are documented. Next source-sized ingredients are ordered guide-rail/bridge surface Loft SRF-012, retained surface Trim SRF-013 and Two Sides open-curve surface Extrude SRF-014, followed by Boundary Fill SRF-011, local canvas DOC-024, Remove HIS-007 and full TUT-018. Broad SRF-001/002/005 remain Todo for their larger scope."
+      "remaining": "RES-018 public source qualification and SRF-014 Two Sides surface Extrude are accepted. Prepared sketch dimensions remain independently chosen. Active ingredients are local canvas DOC-024, retained Remove HIS-007 and Surface navigation VIS-004. Ordered guide-rail/bridge Loft SRF-012, Trim SRF-013 and Boundary Fill SRF-011 remain ahead of full TUT-018. Broad SRF-001/002/005 remain Todo for larger scope."
     },
     {
       "id": "CP-24",
