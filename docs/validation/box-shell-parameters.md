@@ -1,6 +1,6 @@
 # Box and Shell direct named lengths candidate
 
-Status: isolated PAR-004 implementation candidate, 2026-10-13. Independent review and integration remain pending. The bounded public workflow contract is recorded outside the repository at `../Alloy-reference-records/knowledge/tutorials/advanced-audit-2026-10-13/independent-spec.md`, PAR-004; its source provenance is in that record.
+Status: PAR-004 independently accepted and integrated, 2026-10-13; see acceptance below. The bounded public workflow contract is recorded outside the repository at `../Alloy-reference-records/knowledge/tutorials/advanced-audit-2026-10-13/independent-spec.md`, PAR-004; its source provenance is in that record.
 
 Primitive Box width, depth and height now accept direct names for document user lengths; the source workflow's Width, Length and Height map to those fields respectively. Sharp inward Shell thickness accepts a direct name. Both store stable `*ParameterId` fields alongside canonical millimeter caches. `CadDocument::resolveLengthBindings` refreshes those caches before structure validation, sketch solve and ordered body evaluation. A rename preserves the ID and dependency. A numeric field edit replaces its binding, including a typed literal equal to the current value. Unknown names refuse; native invalid input blocks commit until corrected or canceled. Legacy literal documents remain valid.
 

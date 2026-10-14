@@ -58,9 +58,8 @@ support sketch passes [independent native checks](docs/validation/support-indepe
 Successive Join and constant-radius solid-edge Fillet have
 [independent native acceptance](docs/validation/support-solid-independent-review.md),
 including stable history, readable edge selection and retained disk-cap support.
-An isolated [grouped Fillet candidate](docs/validation/grouped-fillet.md) adds
-independent R5/R2.5 edge sets in one feature and has bounded independent
-acceptance; main integration remains pending.
+[Grouped Fillet](docs/validation/grouped-fillet.md) adds independent R5/R2.5
+edge sets in one feature and is independently accepted and integrated.
 The [support tutorial](docs/validation/support-tutorial-independent.md) now passes
 a cumulative functional video-variant gate through an angled cutter, Combine Cut
 and a closed millimeter STL. Its native movie is a labeled continuation; a separate 78-second movie shows
@@ -124,15 +123,14 @@ This source ends at Finish Sketch and does not produce a print mesh.
 sketch dimensions and Extrude distance by stable identity, with native name
 entry, atomic recompute and undo/save/reopen. This bounded slice supports direct
 names and numeric lengths; general arithmetic expressions remain ahead.
-The [Box and Shell parameter candidate](docs/validation/box-shell-parameters.md)
-extends those stable bindings to the three Box dimensions and inward Shell
+[Box and Shell parameters](docs/validation/box-shell-parameters.md)
+extend those stable bindings to the three Box dimensions and inward Shell
 thickness, with native field entry and focused real-app validation. Independent
-review and integration remain pending.
+review and integration are complete.
 The [Extrude Offset start candidate](docs/validation/extrude-offset-start.md)
 adds a signed start displacement before the independent Distance, with native
 and API controls, direct named lengths, shifted support geometry and a focused
-front-sketch Cut validation. Bounded independent review passed; integration
-remains pending.
+front-sketch Cut validation. Bounded independent review and integration are complete.
 
 [Retained Countersink Hole](docs/validation/countersink-hole-controls.md) now
 cuts from a face-supported sketch Point with editable bore/sink diameters and
