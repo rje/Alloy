@@ -1,9 +1,10 @@
 # Alloy
 
-[Guided surface Loft](docs/validation/surface-loft.md) now creates an editable
-open sheet from arc and line sections along a fit-spline centerline. Shared API
-and native curve-selection checks pass. Thicken and the completed surface
-tutorial remain in progress.
+[Guided surface Loft](docs/validation/surface-loft.md) and
+[retained Thicken](docs/validation/surface-thicken.md) now create an editable
+solid from a dimensioned spline and endpoint sections. The original sheet stays
+available, and upstream edits, history, reopen and solid STL checks pass.
+The completed surface tutorial's finishing and hole remain in progress.
 
 The [enclosure ports and card-opening workflow](docs/validation/enclosure-port-card-workflow.md)
 now has an independently accepted full creation movie: linked board placement,

@@ -1,6 +1,7 @@
 # Tangent plane at retained endpoint candidate
 
-GEO-004/#286 foundation candidate, 2026-10-14. **Not independently accepted.**
+GEO-004/#286 API/core foundation independently accepted, 2026-10-14.
+Native input and full source endpoint acceptance remain open.
 Full source-sized rounded-handle acceptance also requires GEO-018/#350: generated
 corner-round endpoint identities through the separate perimeter Fillet.
 
@@ -42,7 +43,7 @@ Dependent sketches reuse the existing `planeId` support and ordered evaluation.
 - `git diff --check` passed.
 
 - Real-entrypoint local-server API passed preview/Cancel, direct create, attached
-  circle, undo/redo, feature-dialog source edit, atomic missing-edge refusal,
+  circle, undo/redo, feature-dialog name edit, atomic missing-edge refusal,
   save/reopen and captures. After reopen the harness explicitly activates the
   source component; cross-component authored modeling is intentionally refused.
 - Inspected actual controls show readable face/edge/endpoint labels, status and
@@ -57,7 +58,7 @@ Dependent sketches reuse the existing `planeId` support and ordered evaluation.
   user steps. An unproven deferred command-focus change was discarded.
 
 Astra source/core review accepted the bounded foundation with state/Escape
-follow-ups fixed in e57bd32. Final runtime evidence review is pending. No matched
+follow-ups fixed in e57bd32. Final runtime review accepted the bounded API/core and GPU evidence. No matched
 visual-parity claim is made. The tests use a current Loft endpoint, not the final
 back-corner Fillet endpoint; the cumulative tutorial must exercise the latter
 before GEO-004 is closed.

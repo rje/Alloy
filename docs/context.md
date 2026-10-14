@@ -1,47 +1,37 @@
 # Continuation context
 
-## Retained surface Thicken candidate (2026-10-14)
+## Accepted retained surface Thicken (2026-10-14)
 
-SRF-010 in `feat/surface-thicken` creates a signed one-side closed solid from
-the exact SRF-009 Loft sheet face. New Body belongs to the active root component
-in the sourced lesson; the sheet keeps its child-component body ID and name and
-is hidden by the authored creation transaction, recoverable by undo or a later
-visibility toggle. Six faces and twelve edges have stable source-derived IDs.
-Focused core, 34-call real-app API, Qt face-click/Flip/Cancel and from-blank
-through-Thicken checks pass; [the receipt](validation/surface-thicken.md) links
-evidence and distinguishes the chosen 3 mm dialog default. Independent final
-acceptance and main integration remain pending. Corner rounding and later
-surface finishes remain separate gates.
+SRF-010 is independently accepted and integrated through `224b98e` (plus
+comment/evidence qualifications through `8c4213c`). One signed open-sheet offset
+creates a separate solid in the active component. The source sheet remains in
+its original component and is hidden in the authored creation transaction;
+undo and later visibility changes preserve it. Six faces and twelve edges have
+stable source-derived identities. Core, 34-call real-app API, Qt face/Flip/Cancel,
+STL readback and 71-call from-blank dimensioned source through Thicken pass.
+See [the receipt](validation/surface-thicken.md). VIS-003's yellow surface,
+blue selection and gray solid distinction is independently accepted from actual
+captures; this is not exact palette parity.
 
-## Accepted guided open-surface Loft (2026-10-14)
+The [guided-sheet prefix](validation/shoehorn-guided-prefix.md) is independently
+accepted: driving130/50/16 spine, midpoint50/10/10 arc and30 line sections,
+endpoint planes, guided Loft, bend16→18 edit and history/reopen. The cumulative
+runner `tests/shoehorn_workflow_api.py` is now integrated with optional Thicken
+and grouped corner checkpoints. `--through-thicken` passed in external
+`deliverables/shoehorn-workflow-2026-10-14/thicken-01/`; `--through-corners`
+is prepared but not yet run. Full recording, finishing, hole, final organization
+and component export remain open under TUT-017.
 
-SRF-009 is independently accepted at `53043e4` + `0870d69`. It creates a root
-child component with one OCCT open sheet face from retained arc, line and
-fit-spline centerline entities. Exact builder lineage supplies one face and
-four stable boundary IDs. Focused core, 36-call real-app API and Qt-native
-source-selection/Cancel checks pass; [the receipt](validation/surface-loft.md)
-records scope and input-evidence limits. Native operation chooser remains
-unverified. SRF-010 Thicken is active and will consume the evaluated sheet
-as a distinct retained source; the complete shoehorn workflow remains open.
-Root is building the cumulative from-blank runner in
-`../Alloy-worktrees/shoehorn-workflow/tests/shoehorn_workflow_api.py`. Its first
-56-call source prefix passes driving130/50/16 spline dimensions, endpoint
-planes, midpoint sections and actual guided surface/save/reopen. External
-evidence is `deliverables/shoehorn-workflow-2026-10-14/prefix-01/`. Prefix02
-also passes the driving bend16→18 edit, stable sheet face identity, undo/redo
-and saved variant reopen. The isolated runner is committed at `a830376`;
-independent review accepted the API prefix, now integrated as `0321c9f`.
-See [the bounded receipt](validation/shoehorn-guided-prefix.md). Creation
-recording remains pending. GEO-004 tangent
-plane at a retained curved-face endpoint is active in a separate implementation
-lane. VIS-003/#349 tracks the public-reference yellow sheet material distinction;
-its two-color candidate is `3c9cc3d`, awaiting real-app capture and review.
-The runner extension `bbb769d` adds optional Thicken and grouped corner
-Fillet checkpoints; these branches have not yet run. SRF-010 candidate app
-is built and awaits the shared GUI lease. GEO-018/#350 now explicitly tracks
-exact generated Fillet endpoint/curved face retention through the two finishing
-features: existing Fillet transfer does not provide those references, so the
-source hanging-hole plane remains blocked until that prerequisite is verified.
+GEO-004 tangent-plane core/API foundation is integrated at `2431184` through
+`8dbe6a3` and independently accepted for the current curved Loft endpoint.
+Native initial focus could not be established, so native Escape/selection stays
+unverified; final source Fillet endpoint acceptance remains open. GEO-018/#350
+is active for exact generated corner/perimeter Fillet face and endpoint
+identities. PRT-010/#351 tracks component printing export with a hidden retained
+surface: current component selection incorrectly gathers that open sheet too.
+The public material/ownership and mesh-selection research stays external under
+`knowledge/tutorials/advanced-audit-2026-10-14/`. No source workflow steps are
+silently replaced by the bounded foundation claims.
 
 ## Accepted local object organization (2026-10-14)
 
@@ -3538,6 +3528,6 @@ stopped before Escape/selection; preserve this as unverified, with no inter-step
 focus repair or accepted-native claim. State reporting and viewport Escape
 shortcut were corrected in e57bd32 after independent source/core review. Runtime
 evidence is external under `validation/tangent-point-plane-2026-10-14/`; source
-final Fillet endpoint and independent runtime review remain pending. The sole
+final Fillet endpoint remains pending; independent API/core review is accepted. The sole
 GUI lease was handed back to Thicken work after all private tangent processes
 exited. See the [bounded receipt](validation/tangent-point-plane.md).
