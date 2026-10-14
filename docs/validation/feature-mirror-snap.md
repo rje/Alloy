@@ -41,7 +41,9 @@ in its disposable session, not the saved accepted model.
 
 Astra independently accepted source/core, native/API and final captures;
 the bounded slice is integrated.
-The broader SOL-049 feature Mirror family remains open.
+The later source-sized and reordered cumulative gates now close the bounded
+SOL-049 parent; see [source-sized group](source-sized-snap-group.md) and
+[Timeline reorder](timeline-reorder.md). Broader SOL-009 remains open.
 
 Main integration: app build, existing Cut Mirror core and actual five-operation
 snap fixture all passed.

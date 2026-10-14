@@ -441,7 +441,9 @@ SOL-050/#326 is independently accepted and integrated for the first
 undercut Extrude Cut feature Mirror across origin XZ. Core, real-app API and Qt
 Timeline-selection checks pass with inspected two-pocket bottom-view captures;
 independent review and main integration are complete. The later selected
-Join/Chamfer/Fillet group is SOL-051/#327, so SOL-049/#293 stays open. See
+Join/Chamfer/Fillet group is SOL-051/#327. Subsequent accepted source-size,
+reorder and cumulative gates now satisfy SOL-049/#293; the independent parent
+audit closes it without repeating those checks. See
 [the candidate receipt](validation/feature-mirror-cut.md).
 ## Accepted closed projected rectangle Offset (2026-10-13)
 
@@ -473,8 +475,9 @@ source proof remains required before acceptance.
 GEO-011/#331 current Cut-rim catalog publication is independently accepted and
 integrated; the correctly centered card opening now supports its R2 fillet. An initial origin-snapped diagnostic was
 misplaced and is explicitly failed evidence; SKT-075/#332 tracks fresh face-sketch
-origin compatibility without rebasing old sketches. SOL-049
-remains Todo as parent. Astra verifies both lanes. The first source-order TUT-021 run exposed a retained
+origin compatibility without rebasing old sketches. SOL-049 is now closed
+after an independent audit of the subsequently accepted source-group and
+Timeline-reorder gates. The following lane notes describe that earlier checkpoint. The first source-order TUT-021 run exposed a retained
 section update blocked during sketch authoring: DOC-028/#333 is accepted and integrated for
 analysis-only shared updates that preserve the sketch draft. DOC-029/#334 keeps
 the native nested-editor follow-up Todo; no native parity is claimed from API
