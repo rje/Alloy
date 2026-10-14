@@ -68,27 +68,22 @@ losslessly joined1m43s from-blank-to-solid film are in the external gallery.
 The joined film contains three recorded application sessions, not one continuous
 session. Qt/menu adaptation, zero-depth preview refusals and missing taper field
 remain qualified; the broader SOL-010 and SOL-016 tasks remain open.
-TUT-028/#395 is Todo pending active SOL-056/#398 after accepted SKT-088/#397: native cap-face sketch, referenced circle centers,
-diameters10/8/8, then three-profile Cut/All/Flip. Sol owns implementation and the
-single build/GUI lease; Astra independently verifies. Public sources, visuals
-and contracts stay external. Existing SKT-013/010 and SOL-015/047 ingredients
-must pass this native combination before acceptance.
-The native preflight confirmed that right/lower hole centers retain source references,
-but the left center coincident with the sketch origin does not. SKT-088 narrows
-the shared Circle center resolver to prefer a unique coincident face curve center;
-Astra independently accepted 1ba977e: native ingredient passes3/3, left binding
-is verified, and the right attached center follows a +1mm upstream edit with undo.
-See [receipt](validation/face-circle-center-snap.md). Full Cut/All/Flip exposed an Auto-target admission failure before Flip. SOL-056
-normalizes a unique visible face-support body into an explicit retained target
-before shared validation; kernel contract stays unchanged. Astra approved this
-bounded policy. Implementation and full Cut gate remain pending.
-DOC-033 tracks the one-line idle viewport selection lookup fix: mutable JSON
-access inserted command:null, blocking the next edit with session_busy. Source
-review passes; the native continuation verifies the corrected route.
-SOL-057/#400 restores saved sketch/profile IDs when reopening an extrusion:
-Cut/source-motion now passes, but edit preview was empty before this correction.
-The exact restoration preserves caller overrides; independent review and final
-Cancel/diameter/history/reopen evidence remain pending.
+TUT-028/#395 is active for final recording: native cap-face sketch, referenced
+circle centers, diameters10/8/8, then three-profile Cut/All/Flip. Sol owns the
+single build/GUI lease; Astra independently verifies. Public references stay external.
+SKT-088/#397 is accepted at1ba977e: native ingredient3/3, all three retained
+curve-center refs including the origin overlap, right center follows +1mm source
+edit/undo. Left binding is verified; movement exercises the right/shared replay.
+See [receipt](validation/face-circle-center-snap.md).
+SOL-056/#398, DOC-033/#399 and SOL-057/#400 are independently accepted at179b2e7
+with receipt efe7f68. Native-cut-preflight10 passes3/3: automatic unique support-body
+target, All/Flip, valid closed117581.495129mm³ body with three independently checked
+through-openings, reopened preview/Cancel, idle selection then edit, source+1mm,
+Ø8→9 change, undo/redo and exact reopen. Explicit target/source overrides remain
+preserved; linked/placed target ambiguity is refused. Last different-sketch override
+guard is source/build verified. See [receipt](validation/face-supported-cut-all.md).
+No additional ingredient reruns are needed. Full recorded source gate remains open;
+next queue after acceptance is TUT-019 cumulative native piston workflow.
 Backlog is400 issues with acyclic dependencies. Astra independently verifies.
 Only main and its existing build are used; no inactive worktrees accumulate.
 DOC-031/#348 is independently accepted at `89782cf`: unchanged-product native09

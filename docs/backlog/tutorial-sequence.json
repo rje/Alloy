@@ -66,7 +66,7 @@
       ],
       "status": "in_progress",
       "acceptance": "Continue firstsolid with native cap-face sketch, retained center references, diameter10/8/8 circles, three-profile Cut/All/Flip; valid through-openings and history/reopen.",
-      "remaining": "SKT-088 accepted. Cut/source-motion pass; SOL-057 restores saved profile IDs for edit preview/Cancel, with SOL-056 and DOC-033 awaiting final evidence review."
+      "remaining": "All bounded fixes independently accepted. Native-cut-preflight10 passes geometry, edit/Cancel, source motion, diameter change and history/reopen. Final tutorial recording pending."
     },
     {
       "id": "CP-20",
