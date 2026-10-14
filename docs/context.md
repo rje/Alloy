@@ -43,8 +43,8 @@ rectangle Offset and SOL-050/#326 Cut feature Mirror are independently accepted,
 integrated and closed. Sol owns TUT-021 ports/card continuation against main,
 with the sole GUI lease. A second Sol lane now implements SOL-051/#327 mirrored snap-group replay
 headlessly, after accepted GEO-010/#329 proved the ordinary five-operation chain.
-The port lane owns GEO-011/#331 current Cut-rim catalog publication, needed for
-the correctly centered card R2 fillet. An initial origin-snapped diagnostic was
+GEO-011/#331 current Cut-rim catalog publication is independently accepted and
+integrated; the correctly centered card opening now supports its R2 fillet. An initial origin-snapped diagnostic was
 misplaced and is explicitly failed evidence; SKT-075/#332 tracks fresh face-sketch
 origin compatibility without rebasing old sketches. SOL-049
 remains Todo as parent. Astra verifies both lanes. SKT-074/#330 separately tracks
