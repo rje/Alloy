@@ -35,7 +35,12 @@ from-blank component creation checkpoint under `#piston-components`, with
 editable model, two-body checked STL and separate native hierarchy close-up.
 ASM-014/#363 now has parallel isolated lanes for retained circular-origin
 Revolute/Pin authority and a replaceable shared mature-solver adapter. The
-headless solver probe is provisional evidence only, not integrated joint support. ASM-015/#364 coupled
+headless solver probe is provisional evidence only, not integrated joint support.
+The isolated candidates are `../Alloy-worktrees/piston-revolute` (retained
+Pin/circular-origin frontend) and `../Alloy-worktrees/assembly-solver-adapter`
+(shared POD/C ABI backend). Pin must follow evaluated timeline prefixes; the
+bounded typed joint metadata does not close HIS-003 joint timeline scope.
+Original joint-frame/Pin/target checks remain independent of solver residuals. ASM-015/#364 coupled
 closed-loop motion and ASM-016/#365 linked nested copy are Todo dependencies.
 SRF-016/#360 preserves later surface-as-tool Trim; accepted
 SRF-013 is scoped to sketch-normal paired-spline Trim only. Exact shoehorn R12 and enclosure rim

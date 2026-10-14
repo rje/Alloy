@@ -54,3 +54,6 @@ STL readback passes 2,042 oriented closed triangles in two positive-volume
 components. This is a component checkpoint, not a joint/motion tutorial gate.
 The local gallery links it under `#piston-components`; video, model, mesh and
 receipt remain outside Git.
+
+Independent Astra review also accepted the bounded recording claims and asset
+links; no new physical-input or completed-motion claim is made.
