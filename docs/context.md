@@ -18,12 +18,21 @@ ownership; SOL-052/#335 is now independently accepted and integrated. The
 actual saved Case splits into two valid closed owned bodies with conserved
 volume, native preview/Cancel and stable edit/reopen identities. The source-shaped closed undercut catch (4 mm guide, 6 × 3 mm rectangle
 below the seam) and its Cut Mirror both pass on the accepted Case, removing
-63 mm³ each at adapted Y ±20. The port lane now owns GEO-012/#336: the inner
-wall Cut rim lacks exact selectable identity for the Bottom finishing Fillet.
+63 mm³ each at adapted Y ±20. GEO-012/#336 is independently accepted and integrated: exact inner Cut rims
+now support the two-edge R0.5 and width/history/reopen chain. Its provisional
+XZ reflection produces same-wall catches and qualifies only edge lineage.
+The port lane now owns SOL-053/#337 genuine YZ Feature Mirror, explicitly
+mapping the source axes into the accepted 90-degree Z adapted frame. The
+opposed ±X catches at Y = 20 mm clear the long slot by 6.75 mm; full cantilever/GPIO
+clearance remains to be proven, and the source's 0.5 mm offset-plane support/sign remains uncertain.
 HIS-006 candidate is clean at 7b1ceb7 in the timeline-reorder worktree; it is
-returned to Todo while its actual two-Mirror fixture depends on GEO-012. Its
+returned to Todo while its actual two-Mirror fixture depends on SOL-053. Its
 shared reorder and one-Mirror core pass, but native/final source acceptance
 remain pending. No substitute inner edge or nearest-match identity is allowed.
+The second Sol lane now owns DOC-025/#307 native Body/Face/Edge Selection
+Priority, independently of the lineage fix. Public menu/toggle behavior is
+documented externally; startup auto and window-local transient persistence
+are explicit Alloy choices. Explicit active-command pick roles override it.
 
 ## Accepted snap-group feature Mirror (2026-10-13)
 

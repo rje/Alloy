@@ -2963,7 +2963,8 @@
       "priority": "P1",
       "depends_on": [
         "HIS-002",
-        "GEO-012"
+        "GEO-012",
+        "SOL-053"
       ],
       "labels": [
         "area:his"
@@ -3194,7 +3195,8 @@
         "GEO-005",
         "SOL-045",
         "SOL-050",
-        "SOL-051"
+        "SOL-051",
+        "SOL-053"
       ],
       "labels": [
         "area:sol"
@@ -5658,7 +5660,8 @@
         "SOL-049",
         "HIS-006",
         "SOL-052",
-        "GEO-012"
+        "GEO-012",
+        "SOL-053"
       ],
       "labels": [
         "area:gate"
@@ -5848,7 +5851,22 @@
       "labels": [
         "area:geometry"
       ],
-      "body": "The actual split enclosure now supports its literal 4 mm guide, 6 by 3 mm closed catch Cut To Object and opposite Cut Mirror. Each removes exactly 63 mm3. Outer Cut rims have exact retained IDs, but the inner wall hole perimeter is missing from support/solid edge catalogs, blocking the source Bottom R0.5 Fillet and later addition of its mirrored opposite edge. Publish only uniquely traced current To Object end/inner rims using exact OCCT history and retained source entity/feature/target face identities; refuse ambiguity instead of nearest-coordinate recovery. Preserve existing outer/card/circular rim behavior. Verify on the accepted Case fixture that the real inner R0.5 can be authored, exact opposite mirrored inner identity is selectable after the source reorder, meaningful edit/history/reopen retain the bounded chain, and both bodies remain valid. Source geometry and public provenance are external in knowledge/tutorials/advanced-audit-2026-10-13/enclosure-port-card-contract.md and the source snap contract. HIS-006 and TUT-022 retain cumulative two-Mirror/reorder acceptance. General Boolean naming remains broader work."
+      "body": "The actual split enclosure now supports its literal 4 mm guide, 6 by 3 mm closed catch Cut To Object and opposite Cut Mirror. Each removes exactly 63 mm3. Outer Cut rims have exact retained IDs, but the inner wall hole perimeter is missing from support/solid edge catalogs, blocking the source Bottom R0.5 Fillet and later addition of its mirrored opposite edge. Publish only uniquely traced current To Object end/inner rims using exact OCCT history and retained source entity/feature/target face identities; refuse ambiguity instead of nearest-coordinate recovery. Preserve existing outer/card/circular rim behavior. Verify on the accepted Case fixture that the real inner R0.5 can be authored, exact opposite mirrored inner identity is selectable after the source reorder, meaningful edit/history/reopen retain the bounded chain, and both bodies remain valid. Source geometry and public provenance are external in knowledge/tutorials/advanced-audit-2026-10-13/enclosure-port-card-contract.md and the source snap contract. HIS-006 and TUT-022 retain cumulative two-Mirror/reorder acceptance. General Boolean naming remains broader work.\n\n## Independently accepted 2026-10-13\nIndependently accepted and integrated as 8422594. Exact current Cut end rims have distinct stable cutEndRim identities without changing outer rim IDs. Actual source-shaped original/mirrored catch inner R0.5 selection and edit, width change through Cut/Mirror/Fillet, history/reopen pass. Main app build and open-card-rim regression pass. Astra accepted the bounded lineage ingredient. The provisional XZ proof places both catches on one wall and does not qualify opposed-wall snap placement; TUT-022 must resolve the adapted axis/plane mapping before acceptance. See docs/validation/cut-to-object-end-rim.md.\n"
+    },
+    {
+      "key": "SOL-053",
+      "title": "Mirror retained Cut and snap feature groups across origin YZ",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SOL-050",
+        "SOL-051"
+      ],
+      "labels": [
+        "area:solid"
+      ],
+      "body": "The accepted enclosure uses an explicitly adapted 90-degree Z coordinate frame. Source opposite-long-wall reflection maps to Alloy origin YZ, while current Feature Mirror only supports XZ; using XZ on this fixture incorrectly places catches on the same wall. Add genuine YZ support to retained Cut and five-operation snap-group Mirror through the existing reflected source-stage evaluator, shared command schema, validation and correctly labeled native plane control. Preserve XZ default/files and stable reference semantics. Verify the actual seed at X=-32,Y=20,Z=11 mirrors to the opposite +X wall, with the literal 6 by 3 closed catch removing 63 mm3 and lying 6.75 mm beyond the existing slot endpoint. Verify reflected current rim/cap frames and retained input IDs, source edit/history/reopen, native YZ preview/Cancel and unchanged XZ focused regression. Full cantilever/GPIO clearance and two-Mirror/reorder source acceptance remain TUT-022, not implied by this ingredient. Public evidence, rigid plane mapping and uncertainty are external in knowledge/tutorials/advanced-audit-2026-10-13/opposed-snap-axis-adaptation.md. This is explicitly adapted YZ input, not exact source-axis key/click parity."
     }
   ]
 }
