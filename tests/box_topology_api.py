@@ -30,6 +30,7 @@ with application(args.app, output) as (call, transcript):
     pixel = call('view.projectFacePoint', {'support': support(top), 'uMm': 25, 'vMm': 40})
     picked = call('selection.pick', {'x': pixel['x'], 'y': pixel['y']})
     assert picked == support(top)
+    call('command.update', {'session': session['id'], 'inputs': {'thicknessMm': 4}})
     assert call('command.preview', {'session': session['id']})['geometryEvaluated']
     call('capture.dialog', {'path': str(output / 'shell-panel.png')})
     call('command.cancel', {'session': session['id']})

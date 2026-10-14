@@ -1,7 +1,7 @@
 # Primitive Box topology candidate
 
-Status: focused core candidate, 2026-10-13. Independent real-app API and native
-visual acceptance remain pending. The external source specification is stored in
+Status: core and real-app shared-API candidate, 2026-10-13. Physical native-input
+and independent visual acceptance remain separate. The external source specification is stored in
 `../Alloy-reference-records/knowledge/tutorials/advanced-audit-2026-10-13/independent-spec.md`.
 
 The bounded source prefix is a 50 × 80 × 40 mm primitive Box from the XY origin,
@@ -25,7 +25,14 @@ The `primitive_topology` core test exercises the actual Box → top-face Shell4
 shape and volume, outer and inner face/edge counts, inner back projection,
 upstream width and Shell thickness edits, stable identities, undo/redo,
 save/reopen and atomic refusal of a missing face. Existing `solid_shell` and
-`geometry_kernel` focused tests pass. `tests/box_topology_api.py` is prepared
-for the sole editor lease: it selects the actual top face through shared-API
-viewport picking, checks preview/Cancel, commits Shell, captures GPU frames, edits Box,
-and checks history and reopen. It has not yet been run.
+`geometry_kernel` focused tests pass. `tests/box_topology_api.py` passed through
+the real app entrypoint in 28 shared-API calls. It selected the actual top face
+through viewport picking, checked preview/Cancel, committed Shell, captured
+GPU frames, edited Box to 54 × 90 × 40 mm, and checked history and reopen.
+The actual inner back face remained at y = 86 mm with four stable edges after
+the resize. Captures of the box, Shell panel and settled open box were inspected:
+the walls, opening, back and bottom are readable with no apparent missing
+faces. Evidence is external under
+`../Alloy-reference-records/validation/box-topology-2026-10-13/attempt-02`.
+The API runner closes its private editor. This does not establish physical
+mouse input or a matched public screenshot comparison.
