@@ -617,6 +617,13 @@ discover a single visible intersecting body; ambiguity refuses rather than
 selecting silently. Edits retain captured target identity, including hidden
 targets. Earlier supported-sketch edits resolve the history prefix before that
 sketch, independent of the final Boolean-modified body's available supports.
+For a fresh face-sketch `Cut` with `extent: all`, an absent or empty target array
+resolves to the unique visible, identity-placed solid carrying that sketch's
+exact retained support face. The resolved body ID is stored as `targetBodyIds`;
+explicit target values, including malformed values, follow ordinary validation.
+An existing extrusion reopened with `featureId` restores its saved sketch and
+ordinary profile IDs unless those source fields are explicitly overridden.
+An idle viewport pick does not create a command session when nothing is hit.
 
 At zero distance, `previewHandle` can be true while `previewed` is false and OK
 is disabled. An invalid intermediate distance retains the arrow for recovery.
