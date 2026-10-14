@@ -7,8 +7,8 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current publication contains **307 issues**: **228 implementation, 19 research,
-22 epics, and 38 validation gates**. Counts describe decomposition, not coverage.
+The current publication contains **332 issues**: **248 implementation, 19 research,
+22 epics, and 43 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 
 ## Active delivery order
@@ -19,7 +19,9 @@ are cumulative gates with explicit feature dependencies. Thirty-eight new tasks
 include these five gates, three source qualification tasks and30 bounded feature
 children. Existing broad requirements are reused, not duplicated; split them
 before pulling an implementation too large for one increment. PAR-004 and DOC-022 are independently accepted and closed.
-Linked Project and offset-start Extrude are the next ready source slices. Complete source operations, readable constraint and
+The sliding-lid workflow and enclosure mounting prefix are accepted. Current
+work is the enclosure port/card gate and selected snap-feature Mirror; the
+following enclosure stages cover splitting, snaps and the alignment rim. Complete source operations, readable constraint and
 selection states, edit/history/reopen, full creation recordings and independently
 checked outputs remain acceptance requirements. Detailed source URLs and
 research remain external under `knowledge/tutorials/advanced-audit-2026-10-13/`.
@@ -227,7 +229,7 @@ source pages are living documentation, not release-pinned specifications; see
 defaults. All 135 issues were published and checked through `gh`/GitHub APIs:
 unique keys, complete bodies, linked dependencies, kind/phase/priority labels,
 ten milestones, and readiness labels. See [publication.json](publication.json)
-for the dated receipt. The repository is public and MIT-licensed.
+for the dated receipt. The repository is now private; Alloy original source remains MIT-licensed.
 
 The public [project board](https://github.com/users/rje/projects/1) has a
 repository auto-add workflow. Projects access is now available through `gh`;
