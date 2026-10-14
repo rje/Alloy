@@ -695,11 +695,50 @@ Cross-component modeling dependencies are unsupported and fail explicitly.
 Native reopen activates root. `document.inspect` includes active owner and real
 evaluated ownership; authored JSON contains only persistent definitions/occurrences.
 
-`document.exportStl` also accepts `occurrenceId`, mutually exclusive with bodyId,
-bodyIds and allVisible. Scope resolves actual material bodies owned by the child
-definition and excludes root bodies regardless of visibility. Empty or dangling
-scope fails. Save As Mesh exposes these occurrence choices alongside existing
-body choices. See [contract and evidence limits](research/local-components.md).
+### Linked component placement and assembly presentation
+
+`component.copyOccurrence {occurrenceId,placement}` creates a linked subtree.
+Placement contains `axis:"Z"`, `angleDeg`, and `translationMm:[x,y,z]`, in the
+parent's coordinates. The result returns `rootOccurrenceId`, `occurrenceMap`
+and, when internal joints are copied, `jointMap`. Source definitions stay shared;
+external joints are not duplicated. `component.inspect.localInstances` reports
+occurrence-qualified world poses and bounds. Selection of shared geometry needs
+its `occurrenceId` as well as `bodyId`/`edgeId`.
+
+For the native clipboard flow, call `component.copySelection {occurrenceId}`
+then `component.pasteOccurrenceDialog {}`. The clipboard is local to the original
+design/tab; `component.clipboardInspect` resolves its current source. Paste opens
+an active `component.copyPlacement` session. Use its returned `id` with
+`command.update {session,inputs:{xMm,yMm,zMm,angleDeg}}`, then `command.commit`
+or `command.cancel`. The native arrows invoke
+`component.copyHandle {field:"xMm"|"yMm"|"zMm",value}`;
+`component.copyGestureEnd` ends a pointer gesture without committing. Preview
+keeps candidate IDs stable and authored state unchanged. Native Enter commits
+once and Escape cancels. A changed document or stale clipboard refuses the
+pending operation. Direct `component.pasteOccurrence {placement}` is also
+available without the interactive session.
+
+`joint.previewAngle {jointId,angleDeg}` stages a bounded retained mechanism pose;
+`joint.inspect` reports the solved assembly. `position.revert {}` restores the
+retained pose without a history edit, matching the contextual Position/Revert
+control. Finish or revert staged motion before copying or exporting.
+`joint.originsVisibility {visible}` toggles retained origin glyphs without
+changing authored data. See [origin contracts](validation/joint-origin-inference.md)
+and [copied mechanism limits](validation/copied-piston.md).
+
+`component.rename {definitionId,name}` updates the shared definition's label;
+`component.renameDialog {occurrenceId}` exposes the same transaction. It preserves
+occurrence identity and geometry. Browser organization routes through
+`component.createFromBodies`, `component.create` and
+`component.reparentOccurrence {occurrenceIds,destinationId}`; the latter takes a
+parent definition or root document ID. See [native Browser evidence](validation/piston-components.md).
+
+STEP/STL export accepts occurrence subtree scope and preserves placed linked
+instances. A shared `bodyId` must be qualified by `occurrenceId` when ambiguous;
+whole-visible scope uses `allVisible:true`. Export uses retained poses and refuses
+uncommitted assembly motion. Exact format arguments remain discoverable through
+command schemas. See [placed output contract](validation/linked-instance-export.md)
+for verified scope, neutral-file readback and native-dialog limits.
 
 ## Face-positioned Sphere candidate
 
