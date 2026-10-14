@@ -27,6 +27,9 @@ with application(a.app,out) as (call,ledger):
     fillet=by_id(features,a.fillet_id)
     anchor=by_id(features,a.after_feature_id)
     assert fillet['type']=='fillet' and anchor['type']=='featureMirror'
+    first=next(i for i,f in enumerate(features) if f['id']==a.fillet_id)
+    last=next(i for i,f in enumerate(features) if f['id']==a.after_feature_id)
+    assert first<last and sum(f['type']=='featureMirror' for f in features[first+1:last+1])>=2
     old_order=[f['id'] for f in features]
     moved=call('feature.reorder',{'featureId':a.fillet_id,'afterFeatureId':a.after_feature_id})
     assert moved['changed'] and moved['movedFeatureId']==a.fillet_id
