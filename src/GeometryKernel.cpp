@@ -370,7 +370,8 @@ gp_Trsf GeometryKernel::moveTransform(const QJsonObject& parameters) {
     gp_Trsf undoPivot;undoPivot.SetTranslation(-pivot);return result*undoPivot;
 }
 TopoDS_Shape GeometryKernel::booleanOperation(const QString& operation, const TopoDS_Shape& target,
-    const std::vector<TopoDS_Shape>& tools, std::vector<EvaluatedSupportFace>* retainedFaces, std::vector<EvaluatedSolidEdge>* retainedEdges) {
+    const std::vector<TopoDS_Shape>& tools, std::vector<EvaluatedSupportFace>* retainedFaces, std::vector<EvaluatedSolidEdge>* retainedEdges,
+    const std::vector<EvaluatedSolidEdge>* cutToolEdges,const QString& cutFeatureId) {
     auto reject = [](const QString& code, const QString& message) {
         throw EvaluationError({{"code",code},{"message",message}});
     };
@@ -429,7 +430,11 @@ TopoDS_Shape GeometryKernel::booleanOperation(const QString& operation, const To
     const auto summary = summarize(shape);
     if (!summary["valid"].toBool() || !summary["closed"].toBool() || !summary["volumeMm3"].isDouble())
         reject("boolean_result_invalid","Boolean operation did not produce a valid closed positive-volume solid");
-    if(retainedFaces)*retainedFaces=PlanarFaces::transfer(builder,*retainedFaces,shape);
+    if(retainedFaces) {
+        const auto sources=*retainedFaces;
+        *retainedFaces=PlanarFaces::transfer(builder,sources,shape);
+        if(cutToolEdges)PlanarFaces::retainLinearCutBoundaries(builder,sources,*cutToolEdges,*retainedFaces,cutFeatureId);
+    }
     if(retainedEdges)*retainedEdges=SolidFillet::transferEdges(builder,*retainedEdges,shape);
     return shape;
 }
@@ -688,16 +693,20 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
                         const double distance=extrusionDistance(parameters,selected.front(),evaluated),start=parameters.value("startOffsetMm").toDouble();std::vector<TopoDS_Shape> tools;std::vector<EvaluatedSupportFace> joinCaps;double area=0;QStringList sourceEntities;
                         const bool circularCut=parameters["operation"]=="cut" && selected.size()==1
                             && selected.front().boundaryEdges.size()==1 && selected.front().boundaryEdges.front().type=="circle";
+                        const bool linearCut=parameters["operation"]=="cut" && selected.size()==1
+                            && std::all_of(selected.front().boundaryEdges.begin(),selected.front().boundaryEdges.end(),[](const auto& e){return e.type=="line";});
+                        std::vector<EvaluatedSolidEdge> cutToolEdges;
                         for(const auto& profile:selected) {EvaluatedSupportFace cap;std::vector<EvaluatedSolidEdge> toolEdges;
                             tools.push_back(extrusion(profile,distance,joining ? &cap : nullptr,
-                                circularCut ? &toolEdges : nullptr,id,nullptr,start));
+                                (circularCut || linearCut) ? &toolEdges : nullptr,id,nullptr,start));
+                            if(linearCut)cutToolEdges.insert(cutToolEdges.end(),toolEdges.begin(),toolEdges.end());
                             if(circularCut)for(auto& edge:toolEdges)if(edge.provenance["role"]=="baseRim")
                                 target->solidEdges.push_back(std::move(edge));
                             if(!cap.face.IsNull())joinCaps.push_back(cap);area+=profile.summary["areaMm2"].toDouble();
                             for(const auto& entity:profile.summary["sourceEntityIds"].toArray())sourceEntities.append(entity.toString());}
                         const double previousVolume=target->summary["volumeMm3"].toDouble();
                         TopoDS_Shape cutShape;
-                        try {cutShape=booleanOperation(parameters["operation"].toString(),target->shape,tools,&target->supportFaces,&target->solidEdges);}
+                        try {cutShape=booleanOperation(parameters["operation"].toString(),target->shape,tools,&target->supportFaces,&target->solidEdges,linearCut ? &cutToolEdges : nullptr,id);}
                         catch(const EvaluationError& error){const auto details=error.diagnostics();for(auto it=details.begin();it!=details.end();++it)context[it.key()]=it.value();throw EvaluationError(context);}
                         auto cutSummary=summarize(cutShape);
                         const double removed=joining ? cutSummary["volumeMm3"].toDouble()-previousVolume : previousVolume-cutSummary["volumeMm3"].toDouble();

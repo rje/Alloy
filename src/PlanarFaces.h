@@ -14,5 +14,9 @@ std::vector<EvaluatedSupportFace> prismSides(BRepPrimAPI_MakePrism& prism,
 // boundary. The source direction fixes start/end roles even if OCCT reverses it.
 bool updateStraightBoundary(const TopoDS_Edge& source, const TopoDS_Edge& next,
     QJsonObject& provenance);
+void retainLinearCutBoundaries(BRepBuilderAPI_MakeShape& operation,
+    const std::vector<EvaluatedSupportFace>& sources,
+    const std::vector<EvaluatedSolidEdge>& toolEdges,
+    std::vector<EvaluatedSupportFace>& retained, const QString& featureId);
 QJsonArray descriptors(const std::vector<EvaluatedSupportFace>& faces);
 }

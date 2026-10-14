@@ -61,7 +61,11 @@ provenance ambiguity; no clean-suite claim is made.
 The integrated Project app builds and its focused core test passes. Root owns the
 sole private-editor lease; no private editor is currently running. Later source/input
 qualification remains explicit. Five gates have 38 new prerequisite/research/gate
-tasks; two separately tracked regressions make 309 total canonical issues.
+tasks; two separately tracked regressions and a newly exposed Cut-edge dependency make
+310 total canonical issues. GEO-007/#310 is active: the actual dovetail Cut omitted
+new slant/bottom and split shoulder references from the Project catalog. Root is
+implementing bounded exact-history straight Cut boundary naming; source review
+and saved-fixture runtime qualification are pending.
 
 ## Accepted ornament gate — 2026-10-13
 

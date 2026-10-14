@@ -3,6 +3,7 @@
 #include <BRepBuilderAPI_MakeShape.hxx>
 #include <BRepPrimAPI_MakePrism.hxx>
 #include <BRepAdaptor_Surface.hxx>
+#include <BRep_Tool.hxx>
 #include <BRepAdaptor_Curve.hxx>
 #include <TopTools_IndexedMapOfShape.hxx>
 #include <TopExp.hxx>
@@ -79,6 +80,63 @@ std::vector<EvaluatedSupportFace> PlanarFaces::transfer(BRepBuilderAPI_MakeShape
         } else {output.push_back(source);seen.insert(key);}
     }
     return output;
+}
+void PlanarFaces::retainLinearCutBoundaries(BRepBuilderAPI_MakeShape& op,
+    const std::vector<EvaluatedSupportFace>& sources,
+    const std::vector<EvaluatedSolidEdge>& tools,
+    std::vector<EvaluatedSupportFace>& retained,const QString& feature) {
+    for(auto& face:retained) {
+        TopTools_IndexedMapOfShape present;TopExp::MapShapes(face.face,TopAbs_EDGE,present);
+        struct Candidate {TopoDS_Edge edge;QStringList contributors;};
+        std::vector<Candidate> candidates;
+        const auto offer=[&](const TopoDS_Shape& shape,const QString& signature) {
+            if(shape.IsNull() || shape.ShapeType()!=TopAbs_EDGE || !present.Contains(shape)
+                || BRepAdaptor_Curve(TopoDS::Edge(shape)).GetType()!=GeomAbs_Line)return;
+            for(auto& c:candidates)if(c.edge.IsSame(shape)){c.contributors.append(signature);return;}
+            candidates.push_back({TopoDS::Edge(shape),{signature}});
+        };
+        // Tool base rims name the newly exposed cut boundary. Simplification
+        // can merge collinear inputs; the sorted contributor set names that
+        // exact resulting edge rather than choosing the first source entity.
+        for(const auto& tool:tools)if(tool.provenance["role"]=="baseRim") {
+            const auto mapped=descendant(op,tool.edge,present,TopAbs_EDGE);
+            offer(mapped,"tool/"+tool.edgeId);
+        }
+        const auto source=std::find_if(sources.begin(),sources.end(),[&](const auto& f){return f.faceId==face.faceId && f.producerFeatureId==face.producerFeatureId;});
+        if(source!=sources.end())for(const auto& edge:source->boundaryEdges) {
+            if(edge.type!="line")continue;
+            TopTools_IndexedMapOfShape children;
+            for(const auto& child:op.Modified(edge.edge))if(child.ShapeType()==TopAbs_EDGE && present.Contains(child))children.Add(child);
+            if(children.Extent()<2)continue;
+            TopoDS_Vertex first,last;TopExp::Vertices(edge.edge,first,last,true);
+            const auto start=edge.provenance["startMm"].toArray(),end=edge.provenance["endMm"].toArray();
+            if(first.IsNull() || last.IsNull() || start.size()!=3 || end.size()!=3)continue;
+            const gp_Pnt a(start[0].toDouble(),start[1].toDouble(),start[2].toDouble()),
+                b(end[0].toDouble(),end[1].toDouble(),end[2].toDouble());
+            // Coordinates verify the semantic roles of these two original
+            // vertices only; result candidates still come solely from history.
+            if(BRep_Tool::Pnt(first).Distance(a)>1e-7)std::swap(first,last);
+            if(BRep_Tool::Pnt(first).Distance(a)>1e-7 || BRep_Tool::Pnt(last).Distance(b)>1e-7)continue;
+            for(const auto& endpoint:std::vector<std::pair<TopoDS_Vertex,QString>>{{first,"start"},{last,"end"}}) {
+                if(endpoint.first.IsNull())continue;
+                TopoDS_Shape match;int matches=0;
+                for(int n=1;n<=children.Extent();++n) {
+                    TopTools_IndexedMapOfShape vertices;TopExp::MapShapes(children(n),TopAbs_VERTEX,vertices);
+                    if(!descendant(op,endpoint.first,vertices,TopAbs_VERTEX).IsNull()){match=children(n);++matches;}
+                }
+                if(matches==1)offer(match,"split/"+edge.edgeId+"/"+endpoint.second);
+            }
+        }
+        for(auto& candidate:candidates) {
+            if(std::any_of(face.boundaryEdges.begin(),face.boundaryEdges.end(),[&](const auto& e){return e.edge.IsSame(candidate.edge);}))continue;
+            candidate.contributors.removeDuplicates();candidate.contributors.sort();
+            const auto id=QUuid::createUuidV5(QUuid(feature),("alloy-cut-boundary/1\n"+candidate.contributors.join("\n")).toUtf8()).toString(QUuid::WithoutBraces);
+            BRepAdaptor_Curve curve(candidate.edge);
+            QJsonArray contributors;for(const auto& c:candidate.contributors)contributors.append(c);
+            face.boundaryEdges.push_back({id,"line",candidate.edge,{{"generatorFeatureId",feature},{"lineage","exactLinearCutHistory"},
+                {"contributors",contributors},{"startMm",point(curve.Value(curve.FirstParameter()))},{"endMm",point(curve.Value(curve.LastParameter()))}}});
+        }
+    }
 }
 std::vector<EvaluatedSupportFace> PlanarFaces::prismSides(BRepPrimAPI_MakePrism& prism,
     const EvaluatedProfile& profile,const QString& generator,double distance) {

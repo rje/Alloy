@@ -3591,7 +3591,8 @@
         "ASM-005",
         "SKT-062",
         "PRT-007",
-        "SKT-070"
+        "SKT-070",
+        "GEO-007"
       ],
       "labels": [
         "area:gate"
@@ -5412,6 +5413,22 @@
         "area:geometry"
       ],
       "body": "## Problem and evidence\nThe existing face_support fixture intermittently refuses its initial multi-region rounded bracket extrusion with Ambiguous extrusion edge provenance. Independent debugger capture identifies SolidFillet::prismEdges provenance collision; another identical binary run proceeds beyond this commit. Exact cause remains open.\n\n## Bounded scope\nReproduce and diagnose retained boundary/side-edge identity through unionProfiles. Correct deterministic unique provenance without nearest-edge guessing, hidden retries or weakening ambiguity refusal. Preserve user geometry and existing stable IDs where valid.\n\n## Verification\nUse the actual rounded fixture and a bounded repetition sufficient to demonstrate deterministic identity through source edits and reopen. Separate this geometry issue from REL-008 optional-origin correction and Project dependency diagnostics. No broad tutorial replay until geometry acceptance requires it.\n"
+    },
+    {
+      "key": "GEO-007",
+      "title": "Retain straight Cut boundary references for associative lid Project",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-066",
+        "SOL-043",
+        "SKT-070"
+      ],
+      "labels": [
+        "area:geometry"
+      ],
+      "body": "## Actual workflow blocker\nThe cumulative sliding-lid numeric Box/Shell, projected angled dovetail and To Object Cut passes. Its front support catalog omits newly cut slants and bottom and the two split top shoulders, so the next linked Project cannot select the actual five-edge open chain.\n\n## Bounded scope\nRetain stable straight boundaries from a single planar all-line Extrude Cut. Use exact OCCT history and result membership for tool rim descendants, canonical merged contributors, and split target shoulders anchored to surviving original endpoint identity. Expose resulting edges on the retained supported face and through Project. Preserve older valid identities and refuse genuinely ambiguous mappings; no nearest-edge guesses, sorted-index naming or sketch-coordinate substitutes.\n\n## Verification\nUse the actual cumulative dovetail fixture. Project both shoulders, slants and bottom into root-sibling Lid; prove source width/Thickness edits, undo and reopen preserve source identities and associated geometry. Check unique face membership and no duplicate merged-bottom identities. Independent source/evidence review required; full lid gate remains separate.\n"
     }
   ]
 }
