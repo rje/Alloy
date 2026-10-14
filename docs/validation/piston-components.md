@@ -57,3 +57,23 @@ receipt remain outside Git.
 
 Independent Astra review also accepted the bounded recording claims and asset
 links; no new physical-input or completed-motion claim is made.
+
+## Browser organization gestures (2026-10-14)
+
+ASM-022/#372 is independently accepted at `3436a44` (source `ba4f2d6`).
+Bodies-folder conversion, root New Component/Activate, component-label
+drag/drop, double-click Rename and assembly/part indicators now expose the
+existing organization authority through the documented native routes. Rename
+is shared definition metadata: every linked occurrence keeps its identity and
+receives the updated name. Reparent retains its existing identity-only limits.
+
+Native07 passes 3/3 through the actual Alloy window: conversion Cancel/commit,
+two visible label drops, outside/Escape cancellation, rename and root activation.
+The final capture shows both nested piston parts and four intact solids. Input
+is Qt-delivered, not OS pointer automation. Focused component core checks pass;
+linked reparent refusal is source/core evidence rather than a native claim.
+An earlier run reached all assertions and its final capture but hung on the
+unsaved-design close prompt; the harness now explicitly discards its private
+fixture before closing.
+
+External evidence: `deliverables/browser-organization-2026-10-14/native-07/`.

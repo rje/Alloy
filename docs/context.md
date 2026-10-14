@@ -88,7 +88,9 @@ scoped to their independently reviewed candidates. Midpoint and release behavior
 lock is documented. Add source Joints-folder Show/Hide in the UI scope.
 The full native-step ledger also preserves ASM-021/#371 paste drag and
 contextual Position/Revert (active in a third isolated implementation lane),
-ASM-022/#372 Browser organization gestures (active in parallel) and Todo
+ASM-022/#372 Browser organization gestures (independently accepted and integrated
+through `3436a44`, native3/3 and focused core; see
+[Browser acceptance](validation/piston-components.md)) and Todo
 ASM-023/#373 shared As-Built Type/two-occurrence selection. TUT-019 depends on
 these children; the direct Copy Component/circular-edge
 routes are equivalent modeling semantics, not exact source input parity.
