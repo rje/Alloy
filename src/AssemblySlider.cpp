@@ -54,6 +54,7 @@ QJsonObject origin(const QJsonObject& record,const QJsonObject& authored,const E
 }
 QJsonObject AssemblySlider::candidate(const QJsonObject& authored,const QJsonObject& arguments){
     const auto existing=joint(authored);const auto edit=arguments.value("jointId").toString();
+    require(existing.isEmpty() || existing["type"]=="asBuiltSlider","Existing joint is not a Slider");
     require(edit.isEmpty() ? existing.isEmpty() : existing["id"]==edit,"This slice supports one available as-built Slider joint");
     auto record=existing.isEmpty() ? QJsonObject{{"id",QUuid::createUuid().toString(QUuid::WithoutBraces)},{"type","asBuiltSlider"},{"name","Slider"},
         {"axis","Y"},{"reverseDirection",false},{"minimumEnabled",false},{"minimumMm",0},{"maximumEnabled",false},{"maximumMm",0},{"positionMm",0}} : existing;
@@ -64,10 +65,12 @@ QJsonObject AssemblySlider::candidate(const QJsonObject& authored,const QJsonObj
 }
 double AssemblySlider::position(const QJsonObject& authored,std::optional<double> transientPositionMm){
     const auto record=joint(authored);if(record.isEmpty())return 0;
+    require(record["type"]=="asBuiltSlider","Expected an as-built Slider joint");
     const double coordinate=transientPositionMm.value_or(record["positionMm"].toDouble());checkPosition(record,coordinate);return coordinate;
 }
 QJsonObject AssemblySlider::inspect(const QJsonObject& authored,const EvaluatedDocument& definitions,std::optional<double> transientPositionMm){
     const auto record=joint(authored);if(record.isEmpty())return {{"joints",QJsonArray{}},{"occurrences",authored.value("occurrences").toArray()}};
+    require(record["type"]=="asBuiltSlider","Expected an as-built Slider joint");
     require(record["component1OccurrenceId"]!=record["component2OccurrenceId"],"Slider requires two distinct occurrences");
     const auto moving=definitionFor(authored,record["component1OccurrenceId"].toString());
     const auto fixed=definitionFor(authored,record["component2OccurrenceId"].toString());
@@ -91,6 +94,7 @@ QJsonObject AssemblySlider::inspect(const QJsonObject& authored,const EvaluatedD
 }
 std::vector<EvaluatedBody> AssemblySlider::worldBodies(const QJsonObject& authored,const EvaluatedDocument& definitions,std::optional<double> transientPositionMm){
     auto bodies=definitions.bodies;const auto record=joint(authored);if(record.isEmpty())return bodies;
+    require(record["type"]=="asBuiltSlider","Expected an as-built Slider joint");
     const auto moving=definitionFor(authored,record["component1OccurrenceId"].toString());
     const double coordinate=position(authored,transientPositionMm);
     const double y=record["reverseDirection"].toBool() ? -coordinate : coordinate;

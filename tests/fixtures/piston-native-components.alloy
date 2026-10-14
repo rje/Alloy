@@ -1,0 +1,567 @@
+{
+    "components": [
+        {
+            "id": "bf046bee-73ea-4fe2-a873-e7010fb1426f",
+            "name": "Lower arm",
+            "opacity": 1
+        },
+        {
+            "id": "f1ae1ca5-8793-4b86-b554-d39a4df43825",
+            "name": "Upper arm",
+            "opacity": 1
+        },
+        {
+            "id": "626e785f-8903-4555-a5eb-0c05d4857aab",
+            "name": "Inner piston",
+            "opacity": 1
+        },
+        {
+            "id": "ef562c10-ef8a-4148-93d0-5241769b0d84",
+            "name": "Outer piston",
+            "opacity": 1
+        },
+        {
+            "id": "740a1389-b1da-4c11-b8fd-856cb7745fe4",
+            "name": "Piston subassembly",
+            "opacity": 1
+        }
+    ],
+    "displayUnits": "mm",
+    "documentId": "92e4da2f-9b1c-49bc-88b2-751b0f0d943b",
+    "features": [
+        {
+            "id": "3886410c-70f1-45cf-a724-11c3de7b7f51",
+            "name": "Lower shared-hinge arm",
+            "ownerId": "92e4da2f-9b1c-49bc-88b2-751b0f0d943b",
+            "parameters": {
+                "dimensions": [
+                ],
+                "entities": [
+                    {
+                        "endPointId": "bd24bd95-44f6-49ac-b972-8ee91edce881",
+                        "id": "55fcb1f7-82f4-4b53-aec1-49aca85b324d",
+                        "startPointId": "62cfa8b8-4409-4517-bf2b-aa4fafbefce3",
+                        "type": "line"
+                    },
+                    {
+                        "endPointId": "4cdbb0e3-4709-4cec-8ab4-7dc24e70bcb8",
+                        "id": "353ad802-b28e-464d-8dc9-31672203918b",
+                        "startPointId": "bd24bd95-44f6-49ac-b972-8ee91edce881",
+                        "type": "line"
+                    },
+                    {
+                        "endPointId": "d7188d59-d9b3-4341-a0b9-78950b35db45",
+                        "id": "b7250e67-0bc8-4903-9778-b990000df8bc",
+                        "startPointId": "4cdbb0e3-4709-4cec-8ab4-7dc24e70bcb8",
+                        "type": "line"
+                    },
+                    {
+                        "endPointId": "bd4f835f-4fcb-497e-9b5d-091b6d83b75e",
+                        "id": "ea7b044f-d65d-429b-9c16-7d21fdf0f68f",
+                        "startPointId": "d7188d59-d9b3-4341-a0b9-78950b35db45",
+                        "type": "line"
+                    },
+                    {
+                        "endPointId": "2abe9e37-0b38-4374-a5fd-13e030e377c9",
+                        "id": "279cc6ae-3565-45d3-b248-ad6a3aade35c",
+                        "startPointId": "bd4f835f-4fcb-497e-9b5d-091b6d83b75e",
+                        "type": "line"
+                    },
+                    {
+                        "endPointId": "74631c73-78b6-459d-ad3c-c376493494e2",
+                        "id": "d9753c00-aef0-49e4-b1de-5ff0b178394a",
+                        "startPointId": "2abe9e37-0b38-4374-a5fd-13e030e377c9",
+                        "type": "line"
+                    },
+                    {
+                        "endPointId": "7d848df7-fb78-4d47-8cf1-84970b844ed2",
+                        "id": "6eb317d1-147d-4228-ae3e-19256e15c128",
+                        "startPointId": "74631c73-78b6-459d-ad3c-c376493494e2",
+                        "type": "line"
+                    },
+                    {
+                        "endPointId": "62cfa8b8-4409-4517-bf2b-aa4fafbefce3",
+                        "id": "7876b581-5492-40d4-897c-90ab07252a42",
+                        "startPointId": "7d848df7-fb78-4d47-8cf1-84970b844ed2",
+                        "type": "line"
+                    },
+                    {
+                        "centerPointId": "8d252226-fe94-41c8-98cb-fe0ae5c6c77d",
+                        "id": "e2ec6b44-d9c1-46d7-9506-cefe96d6da91",
+                        "radiusMm": 4.5,
+                        "type": "circle"
+                    },
+                    {
+                        "centerPointId": "bf0d7c78-d8c3-42f0-add8-52334144399b",
+                        "id": "16dcec1b-167f-4b05-8ef5-53ce4faec3bc",
+                        "radiusMm": 4.5,
+                        "type": "circle"
+                    },
+                    {
+                        "centerPointId": "fb53cc79-867a-496c-af5f-89d22daba078",
+                        "id": "44896893-28b9-46c2-8798-bfcc75bc05cc",
+                        "radiusMm": 4.5,
+                        "type": "circle"
+                    }
+                ],
+                "plane": "XZ",
+                "points": [
+                    {
+                        "id": "62cfa8b8-4409-4517-bf2b-aa4fafbefce3",
+                        "uMm": -105,
+                        "vMm": -8
+                    },
+                    {
+                        "id": "bd24bd95-44f6-49ac-b972-8ee91edce881",
+                        "uMm": 105,
+                        "vMm": -8
+                    },
+                    {
+                        "id": "4cdbb0e3-4709-4cec-8ab4-7dc24e70bcb8",
+                        "uMm": 105,
+                        "vMm": 8
+                    },
+                    {
+                        "id": "d7188d59-d9b3-4341-a0b9-78950b35db45",
+                        "uMm": 10,
+                        "vMm": 8
+                    },
+                    {
+                        "id": "bd4f835f-4fcb-497e-9b5d-091b6d83b75e",
+                        "uMm": 10,
+                        "vMm": 92
+                    },
+                    {
+                        "id": "2abe9e37-0b38-4374-a5fd-13e030e377c9",
+                        "uMm": -10,
+                        "vMm": 92
+                    },
+                    {
+                        "id": "74631c73-78b6-459d-ad3c-c376493494e2",
+                        "uMm": -10,
+                        "vMm": 8
+                    },
+                    {
+                        "id": "7d848df7-fb78-4d47-8cf1-84970b844ed2",
+                        "uMm": -105,
+                        "vMm": 8
+                    },
+                    {
+                        "id": "8d252226-fe94-41c8-98cb-fe0ae5c6c77d",
+                        "uMm": -90,
+                        "vMm": 0
+                    },
+                    {
+                        "id": "bf0d7c78-d8c3-42f0-add8-52334144399b",
+                        "uMm": 90,
+                        "vMm": 0
+                    },
+                    {
+                        "id": "fb53cc79-867a-496c-af5f-89d22daba078",
+                        "uMm": 0,
+                        "vMm": 80
+                    }
+                ]
+            },
+            "type": "sketch",
+            "visible": false
+        },
+        {
+            "bodyId": "fc6b22f1-61c3-45bf-9f4d-cd623f4d2033",
+            "id": "69261e25-3cc7-40ce-adc4-48a324fe19a7",
+            "name": "Lower arm",
+            "ownerId": "92e4da2f-9b1c-49bc-88b2-751b0f0d943b",
+            "parameters": {
+                "distanceMm": 8,
+                "profileId": "232d692e-6c5f-5be6-b976-e73ab3b8024d",
+                "sketchId": "3886410c-70f1-45cf-a724-11c3de7b7f51",
+                "start": "offset",
+                "startOffsetMm": 2
+            },
+            "type": "extrude",
+            "visible": true
+        },
+        {
+            "id": "cce700e9-9c36-45e1-bc4e-dedb6cc621fb",
+            "name": "Upper shared-hinge arm",
+            "ownerId": "92e4da2f-9b1c-49bc-88b2-751b0f0d943b",
+            "parameters": {
+                "dimensions": [
+                ],
+                "entities": [
+                    {
+                        "endPointId": "32e2c266-67cd-4324-b458-b2b1974232c4",
+                        "id": "6c76b5c4-fd81-49f6-bf5d-8540b7469478",
+                        "startPointId": "1e9e8832-c720-42cd-9188-780208dd7dff",
+                        "type": "line"
+                    },
+                    {
+                        "endPointId": "3d1bbbad-0c7c-4df5-96e3-33d4039006d2",
+                        "id": "1afcb918-1039-4099-b331-de2452836936",
+                        "startPointId": "32e2c266-67cd-4324-b458-b2b1974232c4",
+                        "type": "line"
+                    },
+                    {
+                        "endPointId": "b8bf6842-352f-428d-a24f-38e112b55b09",
+                        "id": "ae864dd3-f150-40eb-a5d8-68d6d18a58a5",
+                        "startPointId": "3d1bbbad-0c7c-4df5-96e3-33d4039006d2",
+                        "type": "line"
+                    },
+                    {
+                        "endPointId": "1185399e-e8b8-4a29-b898-282c03a5a51a",
+                        "id": "67584b1b-5b6e-4cea-a4dc-a23e4488a1c5",
+                        "startPointId": "b8bf6842-352f-428d-a24f-38e112b55b09",
+                        "type": "line"
+                    },
+                    {
+                        "endPointId": "f36a17db-8b6a-4145-8328-f290dfafe53f",
+                        "id": "6cdf65e8-648d-4ba7-b573-8ee3b4a14715",
+                        "startPointId": "1185399e-e8b8-4a29-b898-282c03a5a51a",
+                        "type": "line"
+                    },
+                    {
+                        "endPointId": "c788a351-661e-42f0-9c3a-a0dada95c476",
+                        "id": "32e2bcaf-d771-4458-837a-ed21783dff87",
+                        "startPointId": "f36a17db-8b6a-4145-8328-f290dfafe53f",
+                        "type": "line"
+                    },
+                    {
+                        "endPointId": "b468c187-dce0-410f-b52c-2656ea449b57",
+                        "id": "7b3a1e84-fb67-4d68-b4d7-993d19aae794",
+                        "startPointId": "c788a351-661e-42f0-9c3a-a0dada95c476",
+                        "type": "line"
+                    },
+                    {
+                        "endPointId": "1e9e8832-c720-42cd-9188-780208dd7dff",
+                        "id": "841157db-c9ab-4fea-a2ee-c8d452be4939",
+                        "startPointId": "b468c187-dce0-410f-b52c-2656ea449b57",
+                        "type": "line"
+                    },
+                    {
+                        "centerPointId": "e61c8094-93d5-4b9d-b4cb-0a92a5034cf2",
+                        "id": "8d1cd066-c349-47c0-a030-16ff5e73eb1f",
+                        "radiusMm": 4.5,
+                        "type": "circle"
+                    },
+                    {
+                        "centerPointId": "0b5a99ed-de9a-4413-8544-6b9c8502abfb",
+                        "id": "33b1bde3-f674-4e75-b5cb-6b6877388c4d",
+                        "radiusMm": 4.5,
+                        "type": "circle"
+                    },
+                    {
+                        "centerPointId": "0da46d02-6512-430e-98a7-e31940ea92bd",
+                        "id": "cd925916-f1bf-48e4-9b3b-f43b56ef8394",
+                        "radiusMm": 4.5,
+                        "type": "circle"
+                    }
+                ],
+                "plane": "XZ",
+                "points": [
+                    {
+                        "id": "1e9e8832-c720-42cd-9188-780208dd7dff",
+                        "uMm": -105,
+                        "vMm": 172
+                    },
+                    {
+                        "id": "32e2c266-67cd-4324-b458-b2b1974232c4",
+                        "uMm": -10,
+                        "vMm": 172
+                    },
+                    {
+                        "id": "3d1bbbad-0c7c-4df5-96e3-33d4039006d2",
+                        "uMm": -10,
+                        "vMm": 72
+                    },
+                    {
+                        "id": "b8bf6842-352f-428d-a24f-38e112b55b09",
+                        "uMm": 10,
+                        "vMm": 72
+                    },
+                    {
+                        "id": "1185399e-e8b8-4a29-b898-282c03a5a51a",
+                        "uMm": 10,
+                        "vMm": 172
+                    },
+                    {
+                        "id": "f36a17db-8b6a-4145-8328-f290dfafe53f",
+                        "uMm": 105,
+                        "vMm": 172
+                    },
+                    {
+                        "id": "c788a351-661e-42f0-9c3a-a0dada95c476",
+                        "uMm": 105,
+                        "vMm": 188
+                    },
+                    {
+                        "id": "b468c187-dce0-410f-b52c-2656ea449b57",
+                        "uMm": -105,
+                        "vMm": 188
+                    },
+                    {
+                        "id": "e61c8094-93d5-4b9d-b4cb-0a92a5034cf2",
+                        "uMm": -90,
+                        "vMm": 180
+                    },
+                    {
+                        "id": "0b5a99ed-de9a-4413-8544-6b9c8502abfb",
+                        "uMm": 90,
+                        "vMm": 180
+                    },
+                    {
+                        "id": "0da46d02-6512-430e-98a7-e31940ea92bd",
+                        "uMm": 0,
+                        "vMm": 80
+                    }
+                ]
+            },
+            "type": "sketch",
+            "visible": false
+        },
+        {
+            "bodyId": "0bb3cd43-d501-412b-9f2f-e28b9577f386",
+            "id": "d9a5f020-0756-4574-bcbd-7c27fea5452e",
+            "name": "Upper arm",
+            "ownerId": "92e4da2f-9b1c-49bc-88b2-751b0f0d943b",
+            "parameters": {
+                "distanceMm": 8,
+                "profileId": "43c620bf-27d6-50a3-a0b3-920c7f7a7220",
+                "sketchId": "cce700e9-9c36-45e1-bc4e-dedb6cc621fb",
+                "start": "offset",
+                "startOffsetMm": -15
+            },
+            "type": "extrude",
+            "visible": true
+        },
+        {
+            "bodyId": "e115d298-8ecc-444b-8b47-cb4a2d63f424",
+            "id": "8951850b-9185-4b9b-9f0b-a8cdc19a66e3",
+            "name": "Inner piston",
+            "ownerId": "92e4da2f-9b1c-49bc-88b2-751b0f0d943b",
+            "parameters": {
+                "heightMm": 102,
+                "radiusMm": 4.2,
+                "xMm": 90,
+                "yMm": 0,
+                "zMm": 8
+            },
+            "type": "cylinder",
+            "visible": true
+        },
+        {
+            "id": "57097066-51e6-4c52-946f-ad393c79bee8",
+            "name": "Inner piston lower eye",
+            "ownerId": "92e4da2f-9b1c-49bc-88b2-751b0f0d943b",
+            "parameters": {
+                "dimensions": [
+                ],
+                "entities": [
+                    {
+                        "centerPointId": "5492a9bb-73c3-4d16-86f4-f7ff27cae947",
+                        "id": "29e65ca7-04c4-41d2-8083-9ce2690d7e88",
+                        "radiusMm": 10,
+                        "type": "circle"
+                    },
+                    {
+                        "centerPointId": "5492a9bb-73c3-4d16-86f4-f7ff27cae947",
+                        "id": "3205381a-d1cf-4c5d-b6f8-64e666327425",
+                        "radiusMm": 4.5,
+                        "type": "circle"
+                    }
+                ],
+                "plane": "XZ",
+                "points": [
+                    {
+                        "id": "5492a9bb-73c3-4d16-86f4-f7ff27cae947",
+                        "uMm": 90,
+                        "vMm": 0
+                    }
+                ]
+            },
+            "type": "sketch",
+            "visible": false
+        },
+        {
+            "bodyResults": [
+                {
+                    "bodyId": "e115d298-8ecc-444b-8b47-cb4a2d63f424",
+                    "participantBodyIds": [
+                        "e115d298-8ecc-444b-8b47-cb4a2d63f424"
+                    ],
+                    "profileIds": [
+                        "bfe0b42c-f9e3-503e-a71a-047574440d97"
+                    ]
+                }
+            ],
+            "id": "9d85f4d0-7ba1-4114-be5c-2e91df9d231f",
+            "name": "Extrude",
+            "ownerId": "92e4da2f-9b1c-49bc-88b2-751b0f0d943b",
+            "parameters": {
+                "distanceMm": 2,
+                "operation": "join",
+                "profileId": "bfe0b42c-f9e3-503e-a71a-047574440d97",
+                "sketchId": "57097066-51e6-4c52-946f-ad393c79bee8",
+                "start": "offset",
+                "startOffsetMm": -1,
+                "targetBodyIds": [
+                    "e115d298-8ecc-444b-8b47-cb4a2d63f424"
+                ]
+            },
+            "type": "extrude",
+            "visible": true
+        },
+        {
+            "id": "8a0ade14-45c6-4a70-87f3-0d9cf1eb69ab",
+            "name": "Outer piston sleeve annulus",
+            "ownerId": "92e4da2f-9b1c-49bc-88b2-751b0f0d943b",
+            "parameters": {
+                "dimensions": [
+                ],
+                "entities": [
+                    {
+                        "centerPointId": "3b621425-2ebc-432d-bc47-e1275afa5664",
+                        "id": "5fd82211-4ebc-4e18-93e5-2eaff08c39f4",
+                        "radiusMm": 6,
+                        "type": "circle"
+                    },
+                    {
+                        "centerPointId": "3b621425-2ebc-432d-bc47-e1275afa5664",
+                        "id": "b05957fc-7963-481b-ba37-4fda4a689265",
+                        "radiusMm": 5,
+                        "type": "circle"
+                    }
+                ],
+                "plane": "XY",
+                "points": [
+                    {
+                        "id": "3b621425-2ebc-432d-bc47-e1275afa5664",
+                        "uMm": 90,
+                        "vMm": 0
+                    }
+                ]
+            },
+            "type": "sketch",
+            "visible": false
+        },
+        {
+            "bodyId": "503551b7-d878-4ad4-a27b-9e40c9fbc07b",
+            "id": "7d5120f0-81ef-488e-b695-92f75cce904c",
+            "name": "Outer piston",
+            "ownerId": "92e4da2f-9b1c-49bc-88b2-751b0f0d943b",
+            "parameters": {
+                "distanceMm": 94,
+                "profileId": "8ea036a1-aa07-56bd-9acb-49d9e8ce4f96",
+                "sketchId": "8a0ade14-45c6-4a70-87f3-0d9cf1eb69ab",
+                "start": "offset",
+                "startOffsetMm": 80
+            },
+            "type": "extrude",
+            "visible": true
+        },
+        {
+            "id": "8e98503a-d772-4380-a63d-c4a5c26379c0",
+            "name": "Outer piston upper eye",
+            "ownerId": "92e4da2f-9b1c-49bc-88b2-751b0f0d943b",
+            "parameters": {
+                "dimensions": [
+                ],
+                "entities": [
+                    {
+                        "centerPointId": "73da71d2-2a05-4846-8c61-af026136bde6",
+                        "id": "f251c69d-cdfe-4895-83d9-1fd4cc170074",
+                        "radiusMm": 10,
+                        "type": "circle"
+                    },
+                    {
+                        "centerPointId": "73da71d2-2a05-4846-8c61-af026136bde6",
+                        "id": "4dae214b-56c3-4c7b-999e-d9e996e31485",
+                        "radiusMm": 4.5,
+                        "type": "circle"
+                    }
+                ],
+                "plane": "XZ",
+                "points": [
+                    {
+                        "id": "73da71d2-2a05-4846-8c61-af026136bde6",
+                        "uMm": 90,
+                        "vMm": 180
+                    }
+                ]
+            },
+            "type": "sketch",
+            "visible": false
+        },
+        {
+            "bodyResults": [
+                {
+                    "bodyId": "503551b7-d878-4ad4-a27b-9e40c9fbc07b",
+                    "participantBodyIds": [
+                        "503551b7-d878-4ad4-a27b-9e40c9fbc07b"
+                    ],
+                    "profileIds": [
+                        "e405982c-1e00-5ef9-b443-854579e78533"
+                    ]
+                }
+            ],
+            "id": "9c14390d-f12c-4bf0-82de-f916ab8d1abe",
+            "name": "Extrude",
+            "ownerId": "92e4da2f-9b1c-49bc-88b2-751b0f0d943b",
+            "parameters": {
+                "distanceMm": 6,
+                "operation": "join",
+                "profileId": "e405982c-1e00-5ef9-b443-854579e78533",
+                "sketchId": "8e98503a-d772-4380-a63d-c4a5c26379c0",
+                "start": "offset",
+                "startOffsetMm": -5,
+                "targetBodyIds": [
+                    "503551b7-d878-4ad4-a27b-9e40c9fbc07b"
+                ]
+            },
+            "type": "extrude",
+            "visible": true
+        }
+    ],
+    "objectOwners": {
+        "bodies": {
+            "0bb3cd43-d501-412b-9f2f-e28b9577f386": "f1ae1ca5-8793-4b86-b554-d39a4df43825",
+            "503551b7-d878-4ad4-a27b-9e40c9fbc07b": "ef562c10-ef8a-4148-93d0-5241769b0d84",
+            "e115d298-8ecc-444b-8b47-cb4a2d63f424": "626e785f-8903-4555-a5eb-0c05d4857aab",
+            "fc6b22f1-61c3-45bf-9f4d-cd623f4d2033": "bf046bee-73ea-4fe2-a873-e7010fb1426f"
+        },
+        "sketches": {
+        }
+    },
+    "occurrences": [
+        {
+            "definitionId": "bf046bee-73ea-4fe2-a873-e7010fb1426f",
+            "id": "730bdd34-d3dc-491a-a14b-40d81f7239a0",
+            "parentId": "92e4da2f-9b1c-49bc-88b2-751b0f0d943b",
+            "placement": "identity"
+        },
+        {
+            "definitionId": "f1ae1ca5-8793-4b86-b554-d39a4df43825",
+            "id": "fb4c82a0-3cd9-47a1-8446-68f179c1d3de",
+            "parentId": "92e4da2f-9b1c-49bc-88b2-751b0f0d943b",
+            "placement": "identity"
+        },
+        {
+            "definitionId": "626e785f-8903-4555-a5eb-0c05d4857aab",
+            "id": "c5748cfb-45ce-4048-b370-bb9cd699c041",
+            "parentId": "740a1389-b1da-4c11-b8fd-856cb7745fe4",
+            "placement": "identity"
+        },
+        {
+            "definitionId": "ef562c10-ef8a-4148-93d0-5241769b0d84",
+            "id": "23ac5827-f2bb-4246-94fe-dac93e841cbf",
+            "parentId": "740a1389-b1da-4c11-b8fd-856cb7745fe4",
+            "placement": "identity"
+        },
+        {
+            "definitionId": "740a1389-b1da-4c11-b8fd-856cb7745fe4",
+            "id": "7fcebc0c-4653-44f9-97f8-6cd8fa6bbe2d",
+            "parentId": "92e4da2f-9b1c-49bc-88b2-751b0f0d943b",
+            "placement": "identity"
+        }
+    ],
+    "schema": "alloy-document/1"
+}

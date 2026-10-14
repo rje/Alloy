@@ -62,6 +62,7 @@ private:
     QString designTab_="solid";
     void registerCommands();
     void registerSliderCommands();
+    void registerRevoluteCommands();
     void registerLocalReferenceCommands();
     QJsonObject showReferenceMove(const QString& featureId);
     QJsonObject pendingReference_;
@@ -70,6 +71,10 @@ private:
     QJsonObject previewSlider();
     void showSlider();
     void refreshSliderControls();
+    QJsonObject beginRevolute(const QJsonObject& args);
+    QJsonObject previewRevolute();
+    void showRevolute();
+    void refreshRevoluteControls();
     std::vector<EvaluatedBody> presentationBodies() const;
     bool nonzeroAssemblyPose() const;
     QJsonObject presentationAssembly() const;

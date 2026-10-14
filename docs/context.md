@@ -1,5 +1,16 @@
 # Continuation context
 
+## ASM-014 Revolute candidate (2026-10-14)
+
+An isolated retained as-built Revolute and root Pin candidate builds against
+the accepted replaceable assembly-solver adapter. One fixed-arm circular origin,
+signed angle drive, transient preview, actual Pin Timeline feature, authored
+history and reopen pass focused core, 29-call real-app API and Qt native
+viewport-click/typed-angle checks. Independent final review and main integration
+remain pending. The nested piston bodies remain stationary; coupled linkage and
+copy remain ASM-015/ASM-016. See
+[the bounded candidate receipt](validation/as-built-revolute.md).
+
 ## Current queue (2026-10-14)
 
 Canvas DOC-024, retained Remove HIS-007 and Surface workspace VIS-004 are

@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: MIT
 #include "AlloyWindow.h"
 #include "AssemblySlider.h"
+#include "AssemblyRevolute.h"
 #include "ReferenceView.h"
+#include <BRepAdaptor_Curve.hxx>
+#include <GeomAbs_CurveType.hxx>
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDialogButtonBox>
@@ -28,20 +31,35 @@ QJsonObject sliderSchema(){return {{"jointId",field("string",false)},{"name",fie
     {"minimumEnabled",field("boolean",false)},{"minimumMm",field("number",false)},
     {"maximumEnabled",field("boolean",false)},{"maximumMm",field("number",false)},
     {"positionMm",field("number",false)}};}
+QJsonObject revoluteSchema(){return {{"jointId",field("string",false)},{"name",field("string",false)},
+    {"component1OccurrenceId",field("string",false)},{"component2OccurrenceId",field("string",false)},
+    {"position",field("object",false)},{"angleDeg",QJsonObject{{"type","number"},{"required",false},{"minimum",-180},{"maximum",180}}}};}
 QString ownerOf(const QJsonObject& authored,const QString& occurrenceId){
     for(const auto& value:authored.value("occurrences").toArray())if(value.toObject()["id"]==occurrenceId)return value.toObject()["definitionId"].toString();return {};
 }
 }
 std::vector<EvaluatedBody> AlloyWindow::presentationBodies() const {
-    return AssemblySlider::worldBodies(sliderPreviewAuthored_.isEmpty() ? document_->authored() : sliderPreviewAuthored_,
-        pendingReferenceEvaluation_ ? *pendingReferenceEvaluation_ : document_->evaluation(),transientSliderPosition_);
+    const auto& authored=sliderPreviewAuthored_.isEmpty() ? document_->authored() : sliderPreviewAuthored_;
+    const auto& definitions=pendingReferenceEvaluation_ ? *pendingReferenceEvaluation_ : document_->evaluation();
+    const auto joints=authored.value("joints").toArray();
+    if(!joints.isEmpty() && joints[0].toObject()["type"]=="asBuiltRevolute")
+        return AssemblyRevolute::worldBodies(authored,definitions,transientSliderPosition_);
+    return AssemblySlider::worldBodies(authored,definitions,transientSliderPosition_);
 }
 QJsonObject AlloyWindow::presentationAssembly() const {
-    return AssemblySlider::inspect(sliderPreviewAuthored_.isEmpty() ? document_->authored() : sliderPreviewAuthored_,document_->evaluation(),transientSliderPosition_);
+    const auto& authored=sliderPreviewAuthored_.isEmpty() ? document_->authored() : sliderPreviewAuthored_;
+    const auto joints=authored.value("joints").toArray();
+    if(!joints.isEmpty() && joints[0].toObject()["type"]=="asBuiltRevolute")
+        return AssemblyRevolute::inspect(authored,document_->evaluation(),transientSliderPosition_);
+    return AssemblySlider::inspect(authored,document_->evaluation(),transientSliderPosition_);
 }
 bool AlloyWindow::nonzeroAssemblyPose() const {
     const auto& authored=sliderPreviewAuthored_.isEmpty() ? document_->authored() : sliderPreviewAuthored_;
-    return !authored.value("joints").toArray().isEmpty() && std::abs(AssemblySlider::position(authored,transientSliderPosition_))>1e-9;
+    const auto joints=authored.value("joints").toArray();
+    if(joints.isEmpty())return false;
+    if(joints[0].toObject()["type"]=="asBuiltRevolute")
+        return std::abs(transientSliderPosition_.value_or(joints[0].toObject()["angleDeg"].toDouble()))>1e-9;
+    return std::abs(AssemblySlider::position(authored,transientSliderPosition_))>1e-9;
 }
 void AlloyWindow::registerSliderCommands(){
     commands_.push_back({"joint.slider","As-Built Slider","Create or edit one root-sibling Slider joint without moving definition geometry.",sliderSchema(),true,[this](const QJsonObject& args){
@@ -56,7 +74,7 @@ void AlloyWindow::registerSliderCommands(){
     }});
     commands_.push_back({"joint.sliderDialog","As-Built Joint","Select two existing components, a ledge Position, Y axis and motion limits.",sliderSchema(),true,
         [this](const QJsonObject& args){return beginSlider(args);}});
-    commands_.push_back({"joint.inspect","Inspect Slider","Read authored joint, one relative DOF, current pose and occurrence world bounds.",{},true,
+    commands_.push_back({"joint.inspect","Inspect Joint","Read the retained joint, current pose and occurrence world bounds.",{},true,
         [this](const QJsonObject&){return presentationAssembly();}});
     commands_.push_back({"joint.positionSet","Set Slider position","Persist and undo a numeric Slider coordinate within its enabled limits.",
         {{"jointId",field("string")},{"positionMm",field("number")}},true,[this](const QJsonObject& args){
@@ -101,6 +119,7 @@ QJsonObject AlloyWindow::beginSlider(const QJsonObject& overrides){
     const auto existing=document_->authored().value("joints").toArray();
     if(!existing.isEmpty()){
         const auto record=existing[0].toObject();if(overrides.contains("jointId") && overrides["jointId"]!=record["id"])return fail("stale_joint","Slider joint is unavailable");
+        if(record["type"]!="asBuiltSlider")return fail("stale_joint","Existing joint is not a Slider");
         inputs=record;inputs.remove("id");inputs.remove("type");inputs["jointId"]=record["id"];
     }
     for(auto it=overrides.begin();it!=overrides.end();++it)inputs[it.key()]=it.value();
@@ -189,4 +208,138 @@ void AlloyWindow::refreshSliderControls(){
     sliderDock_->findChild<QDoubleSpinBox*>("slider.maximumMm")->setEnabled(inputs["maximumEnabled"].toBool());
     sliderDock_->findChild<QDialogButtonBox*>("slider.buttons")->button(QDialogButtonBox::Ok)->setEnabled(session_["previewed"].toBool());
     const auto choice=inputs["position"].toObject();if(!choice.isEmpty())view_->highlightSolidEdges(presentationBodies(),choice["bodyId"].toString(),QJsonArray{choice["edgeId"]});
+}
+void AlloyWindow::registerRevoluteCommands(){
+    commands_.push_back({"joint.revolute","As-Built Revolute","Retain one circular-origin Revolute between root-level leaf components.",
+        revoluteSchema(),true,[this](const QJsonObject& args){
+            if(!session_.isEmpty() && session_["command"]!="joint.revolute")return fail("session_busy","Finish or cancel the active command");
+            try {const auto candidate=AssemblyRevolute::candidate(document_->authored(),document_->evaluation(),args);
+                const auto error=document_->commit(candidate,args.contains("jointId") ? "Edit Revolute" : "As-Built Revolute");
+                if(!error.isEmpty())return fail("evaluation_failed",error);
+                sliderPreviewAuthored_={};transientSliderPosition_.reset();displayedDocumentRevision_=std::numeric_limits<quint64>::max();
+                return presentationAssembly();
+            }catch(const std::exception& e){return fail("invalid_revolute",QString::fromUtf8(e.what()));}
+        }});
+    commands_.push_back({"joint.revoluteDialog","As-Built Joint","Select two components and a retained circular Position for Revolute.",
+        revoluteSchema(),true,[this](const QJsonObject& args){return beginRevolute(args);}});
+    commands_.push_back({"joint.angleSet","Set Revolute angle","Persist an exact prescribed Revolute angle in one undoable transaction.",
+        {{"jointId",field("string")},{"angleDeg",QJsonObject{{"type","number"},{"minimum",-180},{"maximum",180}}}},true,[this](const QJsonObject& args){
+            if(!session_.isEmpty())return fail("session_busy","Finish or cancel the active command");
+            try {const auto candidate=AssemblyRevolute::candidate(document_->authored(),document_->evaluation(),args);
+                if(const auto error=document_->commit(candidate,"Drive Revolute");!error.isEmpty())return fail("evaluation_failed",error);
+                transientSliderPosition_.reset();return presentationAssembly();
+            }catch(const std::exception& e){return fail("invalid_revolute",QString::fromUtf8(e.what()));}
+        }});
+    commands_.push_back({"joint.previewAngle","Preview Revolute angle","Show a temporary exact Revolute pose without authored history.",
+        {{"angleDeg",QJsonObject{{"type","number"},{"minimum",-180},{"maximum",180}}}},true,[this](const QJsonObject& args){
+            if(!session_.isEmpty() && session_["command"]!="joint.revolute")return fail("session_busy","Finish or cancel the active command");
+            const auto& authored=sliderPreviewAuthored_.isEmpty()?document_->authored():sliderPreviewAuthored_;
+            try {const double angle=args["angleDeg"].toDouble();
+                const auto resolved=AssemblyRevolute::inspect(authored,document_->evaluation(),angle);
+                transientSliderPosition_=angle;displayedDocumentRevision_=std::numeric_limits<quint64>::max();return resolved;
+            }catch(const std::exception& e){return fail("invalid_revolute",QString::fromUtf8(e.what()));}
+        }});
+    commands_.push_back({"joint.revoluteStop","Stop Revolute preview","Restore the retained angle without an authored edit.",{},true,
+        [this](const QJsonObject&){transientSliderPosition_.reset();displayedDocumentRevision_=std::numeric_limits<quint64>::max();return presentationAssembly();}});
+    commands_.push_back({"joint.pin","Pin Component","Retain the current full root pose of one identity leaf as a Timeline feature.",
+        {{"occurrenceId",field("string")}},true,[this](const QJsonObject& args){
+            if(!session_.isEmpty())return fail("session_busy","Finish or cancel the active command");
+            try {const auto candidate=CadDocument::pinOccurrenceCandidate(document_->authored(),args["occurrenceId"].toString());
+                if(const auto error=document_->commit(candidate,"Pin Component");!error.isEmpty())return fail("evaluation_failed",error);
+                return QJsonObject{{"feature",candidate["features"].toArray().last()},{"assembly",presentationAssembly()}};
+            }catch(const std::exception& e){return fail("invalid_pin",QString::fromUtf8(e.what()));}
+        }});
+}
+QJsonObject AlloyWindow::beginRevolute(const QJsonObject& overrides){
+    if(!session_.isEmpty())return fail("session_busy","Complete or cancel the active command");
+    QJsonObject inputs{{"name","Revolute"},{"angleDeg",0}};
+    const auto old=document_->authored().value("joints").toArray();
+    if(!old.isEmpty()){
+        const auto record=old[0].toObject();
+        if(record["type"]!="asBuiltRevolute" || (overrides.contains("jointId") && overrides["jointId"]!=record["id"]))
+            return fail("stale_joint","Revolute joint is unavailable");
+        inputs=record;inputs.remove("id");inputs.remove("type");inputs.remove("movingMarkerLocal");inputs["jointId"]=record["id"];
+    }
+    for(auto it=overrides.begin();it!=overrides.end();++it)inputs[it.key()]=it.value();
+    session_={{"id",CadDocument::newId()},{"command","joint.revolute"},{"status","active"},
+        {"inputs",inputs},{"baseDocumentRevision",static_cast<qint64>(document_->revision())},
+        {"previewed",false},{"inputSchema",revoluteSchema()}};
+    showRevolute();previewRevolute();return session_;
+}
+QJsonObject AlloyWindow::previewRevolute(){
+    if(session_["command"]!="joint.revolute")return fail("invalid_session","Revolute dialog is not active");
+    if(session_["baseDocumentRevision"].toInteger()!=static_cast<qint64>(document_->revision()))
+        return fail("stale_session","Document changed; cancel and restart Revolute");
+    try {const auto candidate=AssemblyRevolute::candidate(document_->authored(),document_->evaluation(),session_["inputs"].toObject());
+        const auto prepared=document_->prepareCandidate(candidate);
+        if(!prepared.ok)throw std::invalid_argument(prepared.error.toStdString());
+        const auto assembly=AssemblyRevolute::inspect(prepared.authored,*prepared.evaluation);
+        sliderPreviewAuthored_=prepared.authored;session_["documentDraft"]=prepared.authored;
+        session_["assembly"]=assembly;session_["previewed"]=true;session_.remove("previewError");
+        displayedDocumentRevision_=std::numeric_limits<quint64>::max();refreshRevoluteControls();return session_;
+    }catch(const std::exception& e){sliderPreviewAuthored_={};session_["previewed"]=false;
+        session_["previewError"]=QString::fromUtf8(e.what());refreshRevoluteControls();return fail("invalid_revolute",QString::fromUtf8(e.what()));}
+}
+void AlloyWindow::showRevolute(){
+    if(sliderDock_)delete sliderDock_;
+    auto* dock=new QDockWidget("As-Built Joint",canvasWindow_);sliderDock_=dock;dock->setObjectName("revoluteDock");
+    auto* escape=new QShortcut(QKeySequence(Qt::Key_Escape),dock);escape->setContext(Qt::WidgetWithChildrenShortcut);
+    connect(escape,&QShortcut::activated,this,[this]{if(session_["command"]=="joint.revolute")
+        execute("command.cancel",{{"session",session_["id"]}});});
+    auto* panel=new QWidget;panel->setObjectName("revolutePanel");panel->setFixedWidth(306);dock->setWidget(panel);
+    auto* layout=new QVBoxLayout(panel);layout->setContentsMargins(14,14,14,12);layout->setSpacing(10);
+    auto* title=new QLabel("As-Built Joint · Revolute");title->setWordWrap(true);layout->addWidget(title);
+    auto* form=new QFormLayout;form->setVerticalSpacing(10);
+    auto* first=new QComboBox;first->setObjectName("revolute.component1");form->addRow("Component 1",first);
+    auto* second=new QComboBox;second->setObjectName("revolute.component2");form->addRow("Component 2",second);
+    auto* position=new QComboBox;position->setObjectName("revolute.position");form->addRow("Position",position);
+    auto* angle=new QDoubleSpinBox;angle->setObjectName("revolute.angleDeg");angle->setDecimals(3);
+    angle->setRange(-180,180);angle->setSuffix(" °");form->addRow("Angle",angle);layout->addLayout(form);
+    const bool editing=session_["inputs"].toObject().contains("jointId");
+    first->setEnabled(!editing);second->setEnabled(!editing);position->setEnabled(!editing);
+    auto* hint=new QLabel(editing ? "Edit the prescribed angle. To change components or Position, create a new as-built joint."
+        : "Choose a full circular edge on Component 2. Angle 0 retains the assembled pose.");hint->setWordWrap(true);layout->addWidget(hint);
+    auto* error=new QLabel;error->setObjectName("revolute.error");error->setWordWrap(true);layout->addWidget(error);
+    auto* buttons=new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel);buttons->setObjectName("revolute.buttons");layout->addWidget(buttons);
+    const auto update=[this](const QJsonObject& changes){execute("command.update",{{"session",session_["id"]},{"inputs",changes}});};
+    connect(first,qOverload<int>(&QComboBox::currentIndexChanged),this,[first,update](int index){if(index>=0)update({{"component1OccurrenceId",first->itemData(index).toString()}});});
+    connect(second,qOverload<int>(&QComboBox::currentIndexChanged),this,[second,update](int index){if(index>=0)update({{"component2OccurrenceId",second->itemData(index).toString()}});});
+    connect(position,qOverload<int>(&QComboBox::currentIndexChanged),this,[position,update](int index){if(index>=0)update({{"position",position->itemData(index).toJsonObject()}});});
+    connect(angle,&QDoubleSpinBox::editingFinished,this,[angle,update]{update({{"angleDeg",angle->value()}});});
+    connect(buttons,&QDialogButtonBox::accepted,this,[this,error]{const auto response=execute("command.commit",{{"session",session_["id"]}});
+        if(!response["ok"].toBool())error->setText(response["error"].toObject()["message"].toString());});
+    connect(buttons,&QDialogButtonBox::rejected,this,[this]{execute("command.cancel",{{"session",session_["id"]}});});
+    canvasWindow_->addDockWidget(Qt::RightDockWidgetArea,dock);dock->show();refreshRevoluteControls();
+}
+void AlloyWindow::refreshRevoluteControls(){
+    if(!sliderDock_ || session_["command"]!="joint.revolute")return;
+    const auto inputs=session_["inputs"].toObject();
+    auto* first=sliderDock_->findChild<QComboBox*>("revolute.component1");
+    auto* second=sliderDock_->findChild<QComboBox*>("revolute.component2");
+    auto* position=sliderDock_->findChild<QComboBox*>("revolute.position");
+    QMap<QString,QString> names;for(const auto& value:document_->authored()["components"].toArray())
+        names[value.toObject()["id"].toString()]=value.toObject()["name"].toString();
+    for(auto* combo:{first,second}){const QSignalBlocker blocked(combo);combo->clear();combo->addItem("Select component…",QString{});
+        for(const auto& value:document_->authored()["occurrences"].toArray()){
+            const auto occurrence=value.toObject();combo->addItem(names[occurrence["definitionId"].toString()],occurrence["id"].toString());
+        }
+        combo->setCurrentIndex(std::max(0,combo->findData(inputs[combo==first?"component1OccurrenceId":"component2OccurrenceId"].toString())));
+    }
+    const auto fixed=ownerOf(document_->authored(),inputs["component2OccurrenceId"].toString());
+    {const QSignalBlocker blocked(position);position->clear();position->addItem("Select circular edge…",QJsonObject{});
+        for(const auto& body:document_->bodies())if(body.ownerId==fixed)for(const auto& edge:body.solidEdges)if(!edge.edge.IsNull()){
+            const BRepAdaptor_Curve curve(edge.edge);if(curve.GetType()!=GeomAbs_Circle)continue;
+            if(std::abs(std::abs(curve.LastParameter()-curve.FirstParameter())-2*std::acos(-1.0))>1e-6)continue;
+            const auto point=curve.Circle().Location();
+            const auto label=body.name+QString(" · circle Y %1").arg(point.Y(),0,'f',1);
+            position->addItem(label,QJsonObject{{"bodyId",body.bodyId},{"edgeId",edge.edgeId}});
+            position->setItemData(position->count()-1,QString("Center (%1, %2, %3) mm")
+                .arg(point.X(),0,'f',1).arg(point.Y(),0,'f',1).arg(point.Z(),0,'f',1),Qt::ToolTipRole);
+        }
+        position->setCurrentIndex(std::max(0,position->findData(inputs["position"].toObject())));
+    }
+    {auto* angle=sliderDock_->findChild<QDoubleSpinBox*>("revolute.angleDeg");const QSignalBlocker blocked(angle);angle->setValue(inputs["angleDeg"].toDouble());}
+    sliderDock_->findChild<QLabel*>("revolute.error")->setText(session_["previewError"].toString());
+    sliderDock_->findChild<QDialogButtonBox*>("revolute.buttons")->button(QDialogButtonBox::Ok)->setEnabled(session_["previewed"].toBool());
+    const auto ref=inputs["position"].toObject();if(!ref.isEmpty())view_->highlightSolidEdges(presentationBodies(),ref["bodyId"].toString(),QJsonArray{ref["edgeId"]});
 }

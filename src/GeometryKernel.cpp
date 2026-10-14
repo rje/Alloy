@@ -779,7 +779,15 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
         const auto parameters = feature["parameters"].toObject();
         QJsonObject context{{"featureId",id},{"featureType",type}};
         try {
-            if(type=="constructionPlane") {
+            if(type=="assemblyPin") {
+                // Pin constrains occurrence presentation. Definition geometry and
+                // its authored history prefix remain unchanged.
+                const auto occurrenceId=parameters["occurrenceId"].toString();
+                bool current=false;
+                for(const auto& value:authored.value("occurrences").toArray())
+                    if(value.toObject()["id"]==occurrenceId)current=true;
+                if(!current)reject("pin_occurrence_unavailable","Pin occurrence is unavailable");
+            } else if(type=="constructionPlane") {
                 const auto source=parameters["source"].toObject();
                 auto frame=source.contains("faces") ? midplaneFrame(evaluated,source["faces"].toArray())
                     : source.contains("tangent") ? tangentPointPlaneFrame(evaluated,source["tangent"].toObject())
