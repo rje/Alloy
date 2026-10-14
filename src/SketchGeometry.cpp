@@ -1,4 +1,5 @@
 #include "SketchGeometry.h"
+#include "LengthExpression.h"
 #include "SketchSolver.h"
 #include "SketchSpline.h"
 #include "SketchConic.h"
@@ -352,6 +353,101 @@ QJsonObject parallelLinePair(const QJsonObject& parameters,const QJsonArray& ids
     return {{"entityIds",ids},{"signedOffsetMm",offset}};
 }
 }
+namespace {
+bool localLengthDimension(const QJsonObject& dimension) {
+    const auto kind=dimension.value("kind").toString();
+    return dimension.value("driving").toBool() && kind!="angle" && kind!="arcSweep" && kind!="overallSlotAngle";
+}
+double dimensionUnitScale(const QString& units) {
+    if(units=="mm")return 1;
+    if(units=="in")return 25.4;
+    reject("Sketch expression entry units must be mm or in");
+}
+QJsonObject allocateDimensionNames(QJsonObject parameters){
+    if(!parameters.contains("nextDimensionNameIndex"))return parameters;
+    auto dimensions=parameters.value("dimensions").toArray();
+    int next=parameters.value("nextDimensionNameIndex").toInt();
+    if(next<1 || next>1000000)reject("Sketch dimension name counter is invalid");
+    for(int i=0;i<dimensions.size();++i){
+        auto row=dimensions[i].toObject();
+        if(!localLengthDimension(row) || row.contains("name"))continue;
+        row["name"]="d"+QString::number(next++);dimensions[i]=row;
+    }
+    parameters["nextDimensionNameIndex"]=next;parameters["dimensions"]=dimensions;
+    return parameters;
+}
+QJsonObject bindLocalExpression(QJsonObject dimension,const QJsonArray& dimensions,
+    const QString& expression,const QString& units,const QSet<QString>& userNames){
+    const double scale=dimensionUnitScale(units);
+    if(!localLengthDimension(dimension) || dimension.contains("parameterId"))
+        reject("Only an unbound driving length accepts a local expression");
+    QJsonArray refs;
+    LengthExpression parser(expression,[&](const QString& name,int)->LengthQuantity{
+        QString match;
+        for(const auto& value:dimensions){const auto row=value.toObject();
+            if(row.value("name")!=name || !localLengthDimension(row))continue;
+            if(!match.isEmpty())reject("Duplicate local dimension name");
+            match=row.value("id").toString();
+        }
+        if(userNames.contains(name) && !match.isEmpty())reject("Ambiguous local and user length name: "+name);
+        if(match.isEmpty())reject("Local driving dimension name is unavailable: "+name);
+        refs.append(match);return {1,true};
+    },scale);
+    parser.parse();
+    dimension["expression"]=expression;dimension["expressionUnits"]=units;
+    dimension["referenceIds"]=refs;dimension["valueMm"]=1;
+    return dimension;
+}
+}
+QJsonObject SketchGeometry::resolvedDimensionFeature(const QJsonObject& feature) {
+    auto result=feature,parameters=allocateDimensionNames(feature.value("parameters").toObject());
+    auto dimensions=parameters.value("dimensions").toArray();
+    QMap<QString,QJsonObject> byId;QSet<QString> names;
+    for(const auto& value:dimensions){
+        const auto row=value.toObject();
+        const auto id=row.value("id").toString(),name=row.value("name").toString();
+        if(byId.contains(id))reject("Duplicate sketch dimension ID");
+        byId[id]=row;
+        if(name.isEmpty())continue;
+        if(!localLengthDimension(row) || names.contains(name))reject("Duplicate or invalid local dimension name");
+        names.insert(name);
+    }
+    QMap<QString,double> resolved;QSet<QString> visiting;
+    std::function<double(const QString&)> evaluate=[&](const QString& id)->double {
+        if(resolved.contains(id))return resolved[id];
+        if(!byId.contains(id))reject("Sketch expression references a missing dimension ID");
+        if(visiting.contains(id))reject("Cyclic sketch dimension expression");
+        if(visiting.size()>=64)reject("Sketch dimension dependency chain is too deep");
+        visiting.insert(id);const auto row=byId[id];double amount=row.value("valueMm").toDouble();
+        if(row.contains("expression")) {
+            if(!localLengthDimension(row) || row.contains("parameterId"))
+                reject("Only an unbound driving length can use a sketch expression");
+            const auto units=row.value("expressionUnits").toString();
+            const double scale=dimensionUnitScale(units);
+            const auto refs=row.value("referenceIds").toArray();
+            LengthExpression parser(row.value("expression").toString(),[&](const QString& name,int index)->LengthQuantity {
+                if(index>=refs.size() || !refs[index].isString())reject("Sketch expression reference count differs from tokens");
+                const auto ref=refs[index].toString();
+                if(!byId.contains(ref) || !localLengthDimension(byId[ref]) || byId[ref].value("name")!=name)
+                    reject("Sketch expression reference name or ID is unavailable");
+                return {evaluate(ref),true};
+            },scale);
+            const auto quantity=parser.parse();
+            if(static_cast<int>(parser.identifiers().size())!=refs.size())
+                reject("Sketch expression reference count differs from tokens");
+            amount=quantity.length ? quantity.value : quantity.value*scale;
+        }
+        if(row.contains("expression") && (!std::isfinite(amount) || amount<minimumLength || amount>maximumLength))
+            reject("Sketch length result must be 0.001..100000 mm");
+        visiting.remove(id);resolved[id]=amount;return amount;
+    };
+    for(int i=0;i<dimensions.size();++i){
+        auto row=dimensions[i].toObject();
+        if(row.contains("expression")){row["valueMm"]=evaluate(row.value("id").toString());dimensions[i]=row;}
+    }
+    parameters["dimensions"]=dimensions;result["parameters"]=parameters;
+    return result;
+}
 double SketchGeometry::centerlineDiameterValue(const QJsonObject& draft,const QJsonArray& ids,const QJsonObject& context) {
     return 2*std::abs(centerlinePair(expandedProjectionFeature(draft,context)["parameters"].toObject(),ids)["signedOffsetMm"].toDouble());
 }
@@ -359,7 +455,8 @@ QJsonObject SketchGeometry::newFeature(const QString& ownerId, const QString& pl
     frame(plane);
     QJsonObject feature{{"id", newId()}, {"ownerId", ownerId}, {"type", "sketch"},
         {"name", name}, {"visible", true},
-        {"parameters", QJsonObject{{"plane", plane}, {"points", QJsonArray{}}, {"entities", QJsonArray{}}}}};
+        {"parameters", QJsonObject{{"plane", plane}, {"points", QJsonArray{}}, {"entities", QJsonArray{}},
+            {"nextDimensionNameIndex",1}}}};
     validateDraft(feature);
     return feature;
 }
@@ -1271,7 +1368,7 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
         try {return validateParameters(expandedProjectionFeature({{"parameters",parameters}},{{"lines",lines},{"circles",circles},{"points",resolvedPoints}})["parameters"].toObject(),authoredIds,referenceIds);}
         catch(const std::exception& error){return QString::fromUtf8(error.what());}
     }
-    const QSet<QString> allowed{"plane", "planeId", "originConvention", "points", "entities", "constraints", "dimensions", "originPointId", "support", "texts", "loopOffsets", "openChainOffsets", "closedRectOffsets", "roundedRectangleIntent", "mirrorGroups", "slotGroups", "arcSlotGroups"};
+    const QSet<QString> allowed{"plane", "planeId", "originConvention", "points", "entities", "constraints", "dimensions", "nextDimensionNameIndex", "originPointId", "support", "texts", "loopOffsets", "openChainOffsets", "closedRectOffsets", "roundedRectangleIntent", "mirrorGroups", "slotGroups", "arcSlotGroups"};
     for (auto it = parameters.begin(); it != parameters.end(); ++it)
         if (!allowed.contains(it.key())) return "Unknown sketch parameter: " + it.key();
     if (!parameters["points"].isArray() || !parameters["entities"].isArray()) return "Sketch requires points and entities";
@@ -1290,6 +1387,11 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
     }
     for (const auto& field : {"constraints", "dimensions"})
         if (parameters.contains(field) && !parameters[field].isArray()) return QString(field) + " must be an array";
+    if(parameters.contains("nextDimensionNameIndex") &&
+        (!parameters["nextDimensionNameIndex"].isDouble() ||
+         parameters["nextDimensionNameIndex"].toInt()<1 ||
+         parameters["nextDimensionNameIndex"].toInt()>1000000))
+        return "Sketch dimension name counter is invalid";
     if(parameters.contains("roundedRectangleIntent")){
         const auto marker=parameters["roundedRectangleIntent"].toObject();
         if(!parameters["roundedRectangleIntent"].isObject() || (marker.size()!=5 && marker.size()!=6) ||
@@ -1655,6 +1757,7 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
                 if (c["type"]=="fixed" && c["pointIds"].toArray()==QJsonArray{originId} && c["uMm"].toDouble()==0 && c["vMm"].toDouble()==0) fixed=true;}
             if (!fixed) return "Sketch origin reference requires a retained fixed relation at zero";
         }
+        QSet<QString> localDimensionNames;int largestLocalName=0;
         for (const auto& entry : parameters["dimensions"].toArray()) {
             if (!entry.isObject()) return "Sketch dimension must be an object";
             const auto dimension = entry.toObject();
@@ -1704,7 +1807,21 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
                 || !checkReferences(dimension,"pointIds",2,pointIds)) return "Invalid dimension kind or references";
             const bool driving=dimension["driving"].toBool(), placed=dimension.contains("annotation");
             const auto valueKey=kind=="arcSweep" || angle ? "valueDeg" : "valueMm";
-            if (dimension.size() != (driving ? 5 : 4)+int(placed)+int(kind=="angle" && dimension.contains("raySigns"))+2*int(kind=="pointLineDistance")+int(kind=="centerlineDiameter" || kind=="parallelLineDistance" || kind=="overallSlotLength")+int(dimension.contains("parameterId")) || (!driving && dimension.contains(valueKey))) return "Unexpected dimension fields";
+            const bool named=dimension.contains("name"),formula=dimension.contains("expression");
+            if(named){
+                static const QRegularExpression localName(QStringLiteral(R"(^d([1-9]\d*)$)"));
+                const auto match=localName.match(dimension["name"].toString());
+                if(!dimension["name"].isString() || !match.hasMatch() || !localLengthDimension(dimension) ||
+                   localDimensionNames.contains(dimension["name"].toString()))return "Invalid or duplicate local dimension name";
+                localDimensionNames.insert(dimension["name"].toString());
+                largestLocalName=std::max(largestLocalName,match.captured(1).toInt());
+            }
+            if(formula && (!named || dimension.contains("parameterId") ||
+               !dimension["expression"].isString() || dimension["expression"].toString().trimmed().isEmpty() ||
+               !dimension["expressionUnits"].isString() ||
+               (dimension["expressionUnits"]!="mm" && dimension["expressionUnits"]!="in") ||
+               !dimension["referenceIds"].isArray()))return "Invalid local dimension expression";
+            if(dimension.size() != (driving ? 5 : 4)+int(placed)+int(kind=="angle" && dimension.contains("raySigns"))+2*int(kind=="pointLineDistance")+int(kind=="centerlineDiameter" || kind=="parallelLineDistance" || kind=="overallSlotLength")+int(dimension.contains("parameterId"))+int(named)+3*int(formula) || (!driving && dimension.contains(valueKey))) return "Unexpected dimension fields";
             if(dimension.contains("parameterId") && (!driving || angle || kind=="arcSweep" || !validId(dimension["parameterId"].toString())))return "Only driving length dimensions accept stable parameter references";
             if (placed) {
                 if (!dimension["annotation"].isObject()) return "Dimension annotation must be an object";
@@ -1720,12 +1837,16 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
                 if (kind!="arcSweep" && !angle && value < minimumLength) return "Driving dimension must be positive (0.001..100000 mm)";
             }
         }
+        if(parameters.contains("nextDimensionNameIndex") &&
+            parameters["nextDimensionNameIndex"].toInt()<=largestLocalName)
+            return "Sketch dimension name counter must exceed retained names";
     } catch (const std::invalid_argument& error) { return QString::fromUtf8(error.what()); }
     return {};
 }
 
-SketchGeometry::SolveResult SketchGeometry::solveDraft(const QJsonObject& draft, const QJsonObject& projectionContext, const QString& initialReferencePointId) {
+SketchGeometry::SolveResult SketchGeometry::solveDraft(const QJsonObject& sourceDraft, const QJsonObject& projectionContext, const QString& initialReferencePointId) {
     try {
+        const auto draft=resolvedDimensionFeature(sourceDraft);
         validateDraft(draft);
         const auto authored=draft["parameters"].toObject();
         for(const auto& value:authored["closedRectOffsets"].toArray()) {
@@ -1768,7 +1889,7 @@ SketchGeometry::SolveResult SketchGeometry::solveDraft(const QJsonObject& draft,
         if(!initialReferencePointId.isEmpty())lockedPoints.insert(initialReferencePointId);
         validateDraft(expanded,derivedPoints);
         const auto result=SketchSolver::solve(expanded["parameters"].toObject(),lockedPoints);
-        if(!result.accepted)return {false,draft,result.diagnostics,result.error};
+        if(!result.accepted)return {false,sourceDraft,result.diagnostics,result.error};
         auto solved=draft;auto parameters=deriveClosedRectOffsets(SketchOpenChainOffset::derive(result.parameters));
         QJsonArray points,entities,dimensions;
         for(const auto& value:parameters["points"].toArray())if(!externalLockedPoints.contains(value.toObject()["id"].toString()))points.append(value);
@@ -1793,7 +1914,7 @@ SketchGeometry::SolveResult SketchGeometry::solveDraft(const QJsonObject& draft,
         int rhoDof=0;for(const auto& value:entities)if(value.toObject()["type"]=="conic")++rhoDof;
         if(rhoDof){diagnostics["conicRhoDof"]=rhoDof;diagnostics["dof"]=diagnostics["dof"].toInt()+rhoDof;diagnostics["status"]="underconstrained";}
         return {true,solved,diagnostics,{}};
-    } catch(const std::exception& error){return invalidDraft(draft,QString::fromUtf8(error.what()));}
+    } catch(const std::exception& error){return invalidDraft(sourceDraft,QString::fromUtf8(error.what()));}
 }
 
 SketchGeometry::SolveResult SketchGeometry::mirrorEntities(const QJsonObject& draft,const QJsonObject& arguments,const QJsonObject& projectionContext){
@@ -1973,10 +2094,16 @@ SketchGeometry::SolveResult SketchGeometry::addConstraint(const QJsonObject& dra
     } catch (const std::exception& error) { return invalidDraft(draft, QString::fromUtf8(error.what())); }
 }
 
-SketchGeometry::SolveResult SketchGeometry::addDimension(const QJsonObject& draft, const QJsonObject& arguments, const QJsonObject& projectionContext) {
+SketchGeometry::SolveResult SketchGeometry::addDimension(const QJsonObject& draft, const QJsonObject& arguments,
+    const QJsonObject& projectionContext,const QSet<QString>& userLengthNames) {
     try {
         validateDraft(draft);
-        checkFields(arguments, {"kind", "pointIds", "entityId", "entityIds", "raySigns", "driving", "valueMm", "valueDeg", "annotation", "parameterId"});
+        checkFields(arguments, {"kind", "pointIds", "entityId", "entityIds", "raySigns", "driving", "valueMm", "valueDeg", "annotation", "parameterId", "expression", "expressionUnits"});
+        const bool formula=arguments.contains("expression");
+        if(formula && (arguments.contains("valueMm") || arguments.contains("valueDeg") || arguments.contains("parameterId")))
+            reject("Choose a local expression or a numeric/user-parameter dimension");
+        if(formula && (!arguments["expression"].isString() || arguments["expression"].toString().trimmed().isEmpty() ||
+            !arguments["expressionUnits"].isString()))reject("Local dimension expression and entry units are required");
         if (arguments.contains("driving") && !arguments["driving"].isBool()) reject("Dimension driving must be Boolean");
         auto parameters = draft["parameters"].toObject();
         QJsonArray pointIds = arguments["pointIds"].toArray();
@@ -2031,13 +2158,20 @@ SketchGeometry::SolveResult SketchGeometry::addDimension(const QJsonObject& draf
         }
         const auto valueKey=kind=="arcSweep" || angle ? "valueDeg" : "valueMm";
         if (arguments.contains("annotation")) dimension["annotation"] = arguments["annotation"];
-        if (driving) dimension[valueKey] = arguments[valueKey];
+        if (driving) dimension[valueKey] = formula ? QJsonValue(1.0) : arguments[valueKey];
         else if (arguments.contains("valueMm") || arguments.contains("valueDeg")) reject("Driven dimensions measure geometry; omit its value");
         if (arguments.contains(kind=="arcSweep" || angle ? "valueMm" : "valueDeg")) reject("Dimension value has incorrect units");
         auto dimensions = parameters["dimensions"].toArray();
         if(kind=="parallelLineDistance")for(const auto& existing:dimensions){const auto row=existing.toObject();const auto prior=row["entityIds"].toArray(),chosen=dimension["entityIds"].toArray();if(row["kind"]==kind && (prior==chosen || (prior.size()==2 && prior[0]==chosen[1] && prior[1]==chosen[0])))reject("These lines already have a distance dimension; edit its value");}
         dimensions.append(dimension);
         parameters["dimensions"] = dimensions;
+        if(formula){
+            if(!parameters.contains("nextDimensionNameIndex"))parameters["nextDimensionNameIndex"]=1;
+            parameters=allocateDimensionNames(parameters);dimensions=parameters["dimensions"].toArray();
+            dimension=bindLocalExpression(dimensions.last().toObject(),dimensions,
+                arguments["expression"].toString(),arguments["expressionUnits"].toString(),userLengthNames);
+            dimensions[dimensions.size()-1]=dimension;parameters["dimensions"]=dimensions;
+        }
         auto candidate = draft; candidate["parameters"] = parameters;
         const auto result = solveDraft(candidate,projectionContext);
         return result.ok ? result : SolveResult{false, draft, result.diagnostics, result.error};
@@ -2568,10 +2702,15 @@ SketchGeometry::SolveResult SketchGeometry::updateCircleOffset(const QJsonObject
     } catch(const std::exception& error){return invalidDraft(draft,QString::fromUtf8(error.what()));}
 }
 
-SketchGeometry::SolveResult SketchGeometry::updateDimension(const QJsonObject& draft, const QJsonObject& arguments, const QJsonObject& projectionContext) {
+SketchGeometry::SolveResult SketchGeometry::updateDimension(const QJsonObject& draft, const QJsonObject& arguments,
+    const QJsonObject& projectionContext,const QSet<QString>& userLengthNames) {
     try {
         validateDraft(draft);
-        checkFields(arguments, {"dimensionId", "valueMm", "valueDeg", "parameterId"});
+        checkFields(arguments, {"dimensionId", "valueMm", "valueDeg", "parameterId", "expression", "expressionUnits"});
+        const bool formula=arguments.contains("expression");
+        if(formula && (arguments.contains("valueMm") || arguments.contains("valueDeg") || arguments.contains("parameterId")))
+            reject("Choose a local expression or a numeric/user-parameter dimension");
+        if(arguments.contains("expressionUnits")!=formula)reject("Local expression and entry units must be supplied together");
         auto parameters = draft["parameters"].toObject();
         auto dimensions = parameters["dimensions"].toArray();
         bool found = false;
@@ -2581,13 +2720,32 @@ SketchGeometry::SolveResult SketchGeometry::updateDimension(const QJsonObject& d
             if (!dimension["driving"].toBool()) reject("A driven dimension cannot set geometry");
             const bool angular=dimension["kind"]=="arcSweep" || dimension["kind"]=="angle" || dimension["kind"]=="overallSlotAngle";
             const auto key=angular ? "valueDeg" : "valueMm";
-            coordinate(arguments,key);
+            if(!formula)coordinate(arguments,key);
             if(arguments.contains(angular ? "valueMm" : "valueDeg")) reject("Dimension value has incorrect units");
-            dimension[key] = arguments[key];
-            if(arguments.contains("parameterId")) {
+            if(formula){
+                if(angular || !arguments["expression"].isString() ||
+                   arguments["expression"].toString().trimmed().isEmpty() ||
+                   !arguments["expressionUnits"].isString())reject("Only driving lengths accept a local expression");
+                if(dimension.value("expression")==arguments["expression"] &&
+                   dimension.value("expressionUnits")==arguments["expressionUnits"] &&
+                   dimension.contains("referenceIds")){
+                    // Reopening the same text is not a new name binding.
+                    dimensions[i]=dimension;found=true;break;
+                }
+                dimension.remove("parameterId");dimension.remove("expression");
+                dimension.remove("expressionUnits");dimension.remove("referenceIds");
+                dimension[key]=1.0;dimensions[i]=dimension;
+                parameters["dimensions"]=dimensions;
+                if(!parameters.contains("nextDimensionNameIndex"))parameters["nextDimensionNameIndex"]=1;
+                parameters=allocateDimensionNames(parameters);dimensions=parameters["dimensions"].toArray();
+                dimension=bindLocalExpression(dimensions[i].toObject(),dimensions,
+                    arguments["expression"].toString(),arguments["expressionUnits"].toString(),userLengthNames);
+            } else if(arguments.contains("parameterId")) {
                 if(angular || !validId(arguments["parameterId"].toString()))reject("Only driving length dimensions accept a stable parameter ID");
+                dimension[key]=arguments[key];
                 dimension["parameterId"]=arguments["parameterId"];
-            } else dimension.remove("parameterId");
+            } else {dimension[key]=arguments[key];dimension.remove("parameterId");}
+            if(!formula){dimension.remove("expression");dimension.remove("expressionUnits");dimension.remove("referenceIds");}
             dimensions[i] = dimension; found = true; break;
         }
         if (!found) reject("Driving dimension does not exist");

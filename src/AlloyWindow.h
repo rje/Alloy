@@ -181,6 +181,7 @@ private:
     quint64 pathPlanePreviewRevision_ = 1;
     void showUnits();
     QJsonObject lengthParameter(const QString& name) const;
+    QSet<QString> userLengthNames() const;
     void showLengthParameters();
     void refreshLengthParameters();
     void showPrimitive();

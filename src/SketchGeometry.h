@@ -88,8 +88,13 @@ public:
     static SolveResult addConstraint(const QJsonObject& draft, const QJsonObject& arguments, const QJsonObject& projectionContext = {});
     // Line angles use kind=angle, two entityIds, optional raySigns (+1/-1),
     // and driving valueDeg. Ray choice is independent of annotation placement.
-    static SolveResult addDimension(const QJsonObject& draft, const QJsonObject& arguments, const QJsonObject& projectionContext = {});
-    static SolveResult updateDimension(const QJsonObject& draft, const QJsonObject& arguments, const QJsonObject& projectionContext = {});
+    static SolveResult addDimension(const QJsonObject& draft, const QJsonObject& arguments,
+        const QJsonObject& projectionContext = {}, const QSet<QString>& userLengthNames = {});
+    static SolveResult updateDimension(const QJsonObject& draft, const QJsonObject& arguments,
+        const QJsonObject& projectionContext = {}, const QSet<QString>& userLengthNames = {});
+    // Re-evaluate retained local formulas by stable dimension IDs for draft,
+    // document replay and inspection; absent naming metadata stays legacy.
+    static QJsonObject resolvedDimensionFeature(const QJsonObject& feature);
     // Presentation intent in canonical sketch millimeters; never changes the measurement.
     static SolveResult updateAnnotation(const QJsonObject& draft, const QJsonObject& arguments, const QJsonObject& projectionContext = {});
     static SolveResult movePoint(const QJsonObject& draft, const QJsonObject& arguments, const QJsonObject& projectionContext = {});
