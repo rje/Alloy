@@ -25,8 +25,9 @@ handle bridge, with explicit geometric evidence in SRF-017. Piston research is
 accepted; four bounded assembly children now preserve conversion/hierarchy,
 Revolute/Pin, coupled motion and linked parent copy. The native component fixture/hierarchy is independently accepted. Retained
 Revolute/Pin, retained Cylindrical and coupled motion are independently accepted.
-Linked local occurrence subtrees are active; internal joint remapping and the
-second piston loop follow as a separate child. Exact shoehorn corner rounding and the enclosure
+Linked local occurrence subtrees are independently accepted. Internal joint
+remapping and the second piston loop are active; occurrence-aware export remains
+a separate required child. Exact shoehorn corner rounding and the enclosure
 alignment rim remain blocked geometry follow-ups. Complete source operations, readable constraint and
 selection states, edit/history/reopen, full creation recordings and independently
 checked outputs remain acceptance requirements. Detailed source URLs and
