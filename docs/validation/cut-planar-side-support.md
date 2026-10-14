@@ -17,10 +17,15 @@ the accepted enclosure Cut and verifies its Y17 side can drive a retained
 
 A real-app API run opened that Case, selected the exact Y17 support, created
 the offset plane, projected three actual side boundary edges into a sketch,
-then edited the plane, undid the edit, saved and reopened. Its command ledger,
+saved and reopened, then edited the plane and undid the edit. Its command ledger,
 authored model and capture are outside the repository in
 `../Alloy-reference-records/deliverables/enclosure-snap-2026-10-13/geo013-api-01`.
 The screenshot shows the projected-edge count; the small, partly occluded
 lines are assessed by the authored projection IDs and current geometry, not
 by visual position alone. Selecting the side face through a physical canvas
 click and authoring the later stepped cantilever remain separate checks.
+
+Independent Astra review accepted candidate `d8b5430` for this bounded support
+capability, including all 25 successful real-app calls and retained projection
+identities. Physical canvas selection and readable projected geometry remain
+separate workflow checks.
