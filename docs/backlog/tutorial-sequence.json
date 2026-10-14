@@ -17,11 +17,14 @@
         "ASM-005",
         "SKT-062",
         "PRT-007",
-        "TUT-015"
+        "TUT-015",
+        "GEO-007",
+        "DOC-026",
+        "ASM-009"
       ],
       "acceptance": "Full creation movie and step ledger, readable parameter/selection states, editable assembled model, meaningful resize maintaining clearance and joint limits, history/reopen and separately checked millimeter STL for both printable parts. Final-looking geometry alone does not pass.",
-      "status": "todo",
-      "remaining": "Source qualification and feature dependencies followed by independent complete workflow gate."
+      "status": "in_progress",
+      "remaining": "Correct Slider opening direction (ASM-009), record full creation and independently accept cumulative gate; modeling and separate exports already exercised."
     },
     {
       "id": "CP-21",

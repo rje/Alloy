@@ -384,6 +384,10 @@ with application(a.app, out) as (raw, transcript), ExitStack() as cleanup:
     assert joint_state['joints'][0]['relativeDegreesOfFreedom']==1
     call('joint.previewPosition', {'positionMm':50})
     assert call('joint.inspect')['joints'][0]['transient']
+    call('selection.set', {'bodyId':''})
+    call('view.home')
+    if recording:
+        time.sleep(1.5)
     call('capture.screenshot', {'path':str(out/'slider-open.png')})
     call('joint.stop')
     call('joint.animate')
@@ -405,6 +409,7 @@ with application(a.app, out) as (raw, transcript), ExitStack() as cleanup:
     final=inspect()
     assert len(final['evaluation']['bodies'])==2
     call('view.home')
+    call('selection.set', {'bodyId':''})
     call('capture.screenshot', {'path':str(out/'assembled-final.png')})
     call('history.undo');call('history.redo')
     assert inspect()['authored']==final['authored']
