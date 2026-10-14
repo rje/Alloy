@@ -62,10 +62,10 @@ int main(int argc,char** argv){
     QJsonObject firstHit,secondHit;for(const auto& v:projected["parameters"].toObject()["points"].toArray()){
         const auto point=v.toObject();if(point["id"]==projectedHits[0])firstHit=point;
         if(point["id"]==projectedHits[1])secondHit=point;}
-    projected=SketchGeometry::addLine(projected,{{"u1Mm",firstHit["uMm"]},{"v1Mm",firstHit["vMm"]},
-        {"u2Mm",secondHit["uMm"]},{"v2Mm",secondHit["vMm"]},
-        {"startPointId",projectedHits[0]},{"endPointId",projectedHits[1]}});
-    projectionSolve=SketchGeometry::solveDraft(projected,context);
+    projectionSolve=SketchGeometry::addPointerEntity(projected,"line",{{"u1Mm",firstHit["uMm"]},
+        {"v1Mm",firstHit["vMm"]},{"u2Mm",secondHit["uMm"]},{"v2Mm",secondHit["vMm"]},
+        {"startSnapTarget",QJsonObject{{"kind","point"},{"pointId",projectedHits[0]}}},
+        {"endSnapTarget",QJsonObject{{"kind","point"},{"pointId",projectedHits[1]}}}},context);
     if(!projectionSolve.ok)std::cerr<<projectionSolve.error.toStdString()<<'\n';
     check(projectionSolve.ok,"Projected closure solve failed");projected=projectionSolve.feature;
     const auto frame=SketchGeometry::frame("XY");

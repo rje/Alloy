@@ -294,6 +294,33 @@ private slots:
         QVERIFY(std::abs(edited["entities"].toArray()[1].toObject()["radiusMm"].toDouble()-1.65)<1e-6);
         QVERIFY2(run(window,"sketch.cancel"),error_.constData());
     }
+    void openChainOffsetTypedClearance() {
+        AlloyWindow window;window.resize(1180,760);window.show();window.activateWindow();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        QVERIFY2(run(window,"document.parameterAdd",{{"name","Clearance"},{"value",0.25},{"units","mm"}}),error_.constData());
+        const auto rows=window.execute("document.inspect",{})["result"].toObject()["authored"].toObject()["userParameters"].toArray();
+        QVERIFY(!rows.isEmpty());const auto parameterId=rows.last().toObject()["id"];
+        QVERIFY2(run(window,"sketch.begin",{{"plane","XY"}}),error_.constData());
+        const double xy[][4]={{-12,10,-8,10},{-8,10,-6,0},{-6,0,6,0},{6,0,8,10},{8,10,12,10}};
+        for(const auto& e:xy)QVERIFY2(run(window,"sketch.line",{{"x1",e[0]},{"y1",e[1]},
+            {"x2",e[2]},{"y2",e[3]},{"units","mm"}}),error_.constData());
+        const auto original=session(window)["draftSketch"].toObject();
+        QJsonArray sources;for(const auto& value:original["parameters"].toObject()["entities"].toArray())
+            sources.append(value.toObject()["id"]);
+        QCOMPARE(sources.size(),5);
+        QVERIFY2(run(window,"sketch.tool",{{"tool","offset"}}),error_.constData());
+        QVERIFY2(run(window,"sketch.offsetPreview",{{"sourceEntityIds",sources},{"distance",-0.25}}),error_.constData());
+        QCOMPARE(session(window)["draftSketch"].toObject(),original);
+        auto* distance=window.findChild<QLineEdit*>("sketch.offset.distance");QVERIFY(distance);
+        distance->setFocus();distance->selectAll();QTest::keyClicks(distance,"Clearance");
+        QTRY_VERIFY(session(window)["pendingOpenChainOffset"].toObject()["valid"].toBool());
+        auto* accept=window.findChild<QPushButton*>("sketch.offset.accept");QVERIFY(accept);
+        QTest::mouseClick(accept,Qt::LeftButton);
+        const auto groups=session(window)["draftSketch"].toObject()["parameters"].toObject()["openChainOffsets"].toArray();
+        QCOMPARE(groups.size(),1);QCOMPARE(groups[0].toObject()["distanceParameterId"],parameterId);
+        QCOMPARE(groups[0].toObject()["signedDistanceMm"].toDouble(),-0.25);
+        QVERIFY2(run(window,"sketch.cancel"),error_.constData());
+    }
     void shellFaceThicknessCancelCommit() {
         AlloyWindow window;window.resize(1180,760);window.show();window.activateWindow();
         QVERIFY(QTest::qWaitForWindowExposed(&window));auto* view=viewport(window);QVERIFY(view);

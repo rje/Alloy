@@ -939,7 +939,8 @@ SketchGeometry::SolveResult SketchGeometry::addPointerEntity(const QJsonObject& 
         const auto startTarget=target("startSnapTarget",u1,v1,startMidpointLine),endTarget=target("endSnapTarget",u2,v2,endMidpointLine);
         if (tool=="line" && (std::hypot(u2-u1,v2-v1)<minimumLength || std::hypot(u2-u1,v2-v1)>maximumLength)) reject("Snapped line length out of supported range");
         if (tool=="rectangle" && (std::abs(u2-u1)<minimumLength || std::abs(v2-v1)<minimumLength)) reject("Snapped rectangle sides must be at least 0.001 mm");
-        const auto derivedOffsetPoints=SketchSplineOffset::derivedPointIds(parameters);
+        auto derivedOffsetPoints=SketchSplineOffset::derivedPointIds(parameters);
+        derivedOffsetPoints.unite(SketchOpenChainOffset::derivedPointIds(parameters));
         const auto first=tool=="line" && derivedOffsetPoints.contains(startTarget) ? startTarget : freshPoint(u1,v1);
         QString last;
         auto edge=[&](const QString& a,const QString& b) {const auto id=newId();entities.append(QJsonObject{{"id",id},{"type","line"},{"startPointId",a},{"endPointId",b}});return id;};

@@ -5589,7 +5589,8 @@ QJsonObject AlloyWindow::previewOpenChainOffset(const QJsonObject& inputs){
     if(inputs.contains("parameterName")){
         const auto row=lengthParameter(inputs["parameterName"].toString());
         if(row.isEmpty()){
-            session_["pendingOpenChainOffset"]=QJsonObject{{"valid",false},{"error","User length name is unavailable"}};
+            session_["pendingOpenChainOffset"]=QJsonObject{{"sourceEntityIds",sources},{"topEntityId",topId},
+                {"distanceMm",signedDistance},{"valid",false},{"error","User length name is unavailable"}};
             return failure("unknown_parameter","User length name is unavailable","parameterName");
         }
         parameterId=row["id"].toString();signedDistance=(signedDistance<0 ? -1 : 1)*row["valueMm"].toDouble();
