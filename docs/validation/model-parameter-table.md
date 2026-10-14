@@ -1,6 +1,6 @@
 # Model parameter table candidate (#276)
 
-Status: isolated implementation candidate, 2026-10-13. The bounded public
+Status: independently accepted and integrated, 2026-10-13. The bounded public
 workflow contract and source links are outside the repository at
 `../Alloy-reference-records/knowledge/tutorials/advanced-audit-2026-10-13/model-parameter-table-contract.md`.
 

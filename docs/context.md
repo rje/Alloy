@@ -9,16 +9,16 @@ and integrated; the combined app build and six focused core checks pass. Their r
 and [typed Line](validation/typed-line-angle.md). These are bounded ingredients;
 the cumulative sliding-lid tutorial gate remains open.
 
-## Primitive Box topology candidate (2026-10-13)
+## Accepted primitive Box topology (2026-10-13)
 
-An isolated candidate adds six stable planar supports and twelve straight
+The integrated implementation adds six stable planar supports and twelve straight
 edges to the real primitive Box, plus uniquely mapped straight inner Shell
 boundaries. The Box50×80×40 → top-face Shell4 core gate, edits, exact
 undo/redo and reopen pass. A 28-call real-app shared-API run verifies viewport
 face picking, preview/Cancel, Shell, GPU captures and edits; the private editor
 is closed. Physical native input remains unverified. See [the bounded candidate
 receipt](validation/primitive-box-topology.md).
-Remote/perpendicular Project and To Object are later workflow children.
+Linked Project and To Object are also independently accepted and integrated.
 
 Updated 2026-10-13. This is the project handoff for a fresh session. Read the root
 [AGENTS.md](../AGENTS.md) first; its reference restrictions apply to all work.
@@ -39,9 +39,10 @@ undo/redo and exact reopen with an inspected hardware GPU capture. Receipt in
 `deliverables/sliding-box-2026-10-13/prefix-01`. Both issues are closed.
 SKT-066/#272 linked Project and SOL-044/#275 Offset-start Extrude are also
 independently accepted and integrated. The full lid workflow/movie remains open.
-Active source features are SKT-067/#273 open-chain Offset and PAR-005/#276
-model parameter table, each in an isolated worktree with Sol implementation and
-Astra verification. The Offset must retain the five-segment open dovetail chain,
+SKT-067/#273 open-chain Offset and PAR-005/#276 model parameter table are
+independently accepted, integrated and closed. Sol owns the cumulative TUT-015
+runner; a second Sol lane is starting GEO-005/#278 retained Midplane for the
+next enclosure gate, with Astra independent verification. The Offset must retain the five-segment open dovetail chain,
 include top shoulders and leave the original top closure separately authored.
 The parameter table must rebind existing numeric modeling inputs, preserving
 stable parameter identity. Root integrates accepted ingredients and prepares the
@@ -70,18 +71,20 @@ and reopen. See `docs/validation/linear-cut-project.md`.
 
 ## Remaining lid gate integration (2026-10-13)
 
-GEO-007 is closed; its actual edited Cut→Project continuation passes. SKT-067
-Offset and PAR-005 model parameter table remain active isolated candidates:
-core checks pass; native/API qualification is catching interaction defects and
-no full acceptance is claimed yet. Root owns DOC-026/#311, an additional
+GEO-007 is closed; its actual edited Cut→Project continuation passes. PAR-005 model parameter table is independently accepted and integrated. SKT-067
+Offset is independently accepted and integrated, including final native palette
+layout and actual projected chain selection/Flip/Cancel. Root owns DOC-026/#311, an additional
 TUT-015 dependency exposed by the front-face thumb midpoint requirement.
 DOC-026 is independently accepted and integrated. Straight extrusion base
 boundaries have exact FirstShape lineage; signed/start-offset and stable-ID
 core checks pass. The 40-call `tests/base_cap_midpoint_api.py` verifies retained
 front top-midpoint ellipse, source width edit, profile creation and actual thumb
 Cut. Projected-profile extraction retains intrinsic ellipse axis relations.
-See `docs/validation/base-cap-midpoint.md`. PAR-005 also has independent
-acceptance; integration follows final Offset layout correction.
+See `docs/validation/base-cap-midpoint.md`. PAR-005 is integrated with the Offset candidate; four focused combined core
+checks pass. The cumulative-01 real-app run now passes actual Box/Shell/dovetail
+Cut, sibling Project/Offset/closure/Lid To Object, post-authoring seven required
+bindings and the source 74×40×100 resize. Thumb Cut, actual Lid Slider and
+final save/export checks remain in progress in the same runner.
 The full tutorial still needs the combined lid Offset/closure, late model-table
 rebinding, source resize, 15×2 thumb Cut and actual assembled Slider demonstration.
 Keep one private editor leased at a time; agents coordinate the handoff with root.

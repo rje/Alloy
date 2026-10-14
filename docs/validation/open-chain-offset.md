@@ -1,5 +1,7 @@
 # SKT-067: retained open-chain Offset
 
+Independently accepted and integrated on main, 2026-10-13.
+
 The sketch One Side Offset command accepts five ordered connected straight lines: two top shoulders, two slants, and a lower segment. Its signed distance is measured to the right of the ordered direction. The source lines remain authored or retained Project references; the five generated lines and their six endpoints keep stable IDs. Adjacent lines meet at OCCT line intersections. A collapsed or crossing result is rejected without changing the sketch.
 
 On the cut-front fixture, the original top is the horizontal support through the two projected shoulder/slant junctions. It is not a fabricated central edge. For the inward side, the generated slants cross that support, and ordinary Line snaps to two retained intersection points to close the clearance profile at the original height. Those points and the Line follow source or distance edits. A valid outward Offset is also accepted; its group has no original-height intersection points when the slants do not cross that support. Flipping an existing closed inward profile outward refuses the dependent edit cleanly. `sketch.openChainOffsetUpdate` edits numeric distance or a direct positive user-length name; the group stores the parameter UUID and signed side independently of the name. No expression parser or general curve offset is included.
