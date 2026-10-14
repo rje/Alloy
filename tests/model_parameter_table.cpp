@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 #include "CadDocument.h"
 #include "SketchGeometry.h"
+#include "SketchOpenChainOffset.h"
 #include <QCoreApplication>
 #include <QTemporaryDir>
 #include <algorithm>
@@ -92,6 +93,31 @@ int main(int argc,char** argv) {QCoreApplication app(argc,argv);try {
     document.history().redo();
     check(!named(CadDocument::modelLengthRows(document.authored()),"linear Dimension","sketch").contains("parameterId"),
         "redo restored numeric replacement");
+    auto offsetSketch=SketchGeometry::newFeature(document.activeOwnerId(),"XY","Lid clearance");
+    const double edges[][4]={{-12,10,-8,10},{-8,10,-6,0},{-6,0,6,0},{6,0,8,10},{8,10,12,10},{-8,10,8,10}};
+    for(const auto& edge:edges)offsetSketch=SketchGeometry::addLine(offsetSketch,
+        {{"u1Mm",edge[0]},{"v1Mm",edge[1]},{"u2Mm",edge[2]},{"v2Mm",edge[3]}});
+    const auto entities=offsetSketch["parameters"].toObject()["entities"].toArray();QJsonArray sourceIds;
+    for(int i=0;i<5;++i)sourceIds.append(entities[i].toObject()["id"]);
+    offsetSketch=SketchOpenChainOffset::add(offsetSketch,offsetSketch["parameters"].toObject(),
+        {{"sourceEntityIds",sourceIds},{"topEntityId",entities[5].toObject()["id"]},{"signedDistanceMm",-0.25}});
+    commit(document,SketchGeometry::replaceFeature(document.authored(),offsetSketch));
+    commit(document,CadDocument::lengthParameterCandidate(document.authored(),{{"name","Clearance"},{"value",0.25},{"units","mm"}}));
+    auto offsetRow=named(CadDocument::modelLengthRows(document.authored()),"Chain Offset","sketch");
+    const auto offsetTarget=offsetRow["target"].toObject();
+    check(offsetTarget.contains("offsetGroupId") && offsetRow["valueMm"].toDouble()==-0.25,
+        "authored Offset row identity and inward value");
+    bind(offsetTarget,"Clearance");
+    offsetRow=named(CadDocument::modelLengthRows(document.authored()),"Chain Offset","sketch");
+    check(offsetRow["parameterId"]==user(document.authored(),"Clearance")["id"] &&
+        offsetRow["valueMm"].toDouble()==-0.25,"Offset binding lost inward side");
+    commit(document,CadDocument::lengthParameterCandidate(document.authored(),
+        {{"parameterId",user(document.authored(),"Clearance")["id"]},{"value",0.4}}));
+    check(std::abs(named(CadDocument::modelLengthRows(document.authored()),"Chain Offset","sketch")["valueMm"].toDouble()+0.4)<1e-9,
+        "bound Offset did not recompute from Clearance");
+    bind(offsetTarget,"-0.4 mm");
+    check(!named(CadDocument::modelLengthRows(document.authored()),"Chain Offset","sketch").contains("parameterId"),
+        "same-value Offset literal did not unbind");
     QTemporaryDir temporary;check(temporary.isValid(),"temporary directory");
     const auto path=temporary.path()+"/model-table.alloy";check(document.save(path).isEmpty(),"save");
     CadDocument reopened;check(reopened.open(path).isEmpty() && reopened.authored()==document.authored(),"reopen");

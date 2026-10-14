@@ -47,23 +47,38 @@ with application(a.app,out) as (call,transcript):
     call('solid.extrude',{'sketchId':cutter,'profileId':profile,'extent':'toObject',
                           'endSupport':ref(back),'endOffset':0.25,'operation':'cut',
                           'targetBodyIds':[body['bodyId']]})
+    # A separately authored literal chain checks the table's nested Offset row.
+    call('sketch.begin',{'plane':'XY','name':'Lid clearance'})
+    chain=((100,10,104,10),(104,10,106,0),(106,0,118,0),
+           (118,0,120,10),(120,10,124,10),(104,10,120,10))
+    for x1,y1,x2,y2 in chain:
+        call('sketch.line',{'x1':x1,'y1':y1,'x2':x2,'y2':y2,'units':'mm'})
+    line_ids=[e['id'] for e in call('app.state')['activeSession']['draftSketch']['parameters']['entities']]
+    call('sketch.tool',{'tool':'offset'})
+    call('sketch.offsetPreview',{'sourceEntityIds':line_ids[:5],
+        'topEntityId':line_ids[5],'distance':-0.25,'units':'mm'})
+    call('sketch.offsetAccept')
+    call('sketch.finish')
     source=inspect()
     assert source['authored']['features'][0]['id']==box['id']
     assert not any('ParameterId' in key for feature in source['authored']['features']
                    for key in feature['parameters'])
-    assert 'distanceMm' not in source['authored']['features'][-1]['parameters']
-    assert len(source['modelParameters'])==6 # Box 3, Shell, slanted length, end clearance
+    extrude=next(f for f in source['authored']['features'] if f['type']=='extrude')
+    assert 'distanceMm' not in extrude['parameters']
+    assert len(source['modelParameters'])==7 # Box 3, Shell, slanted length, end and chain clearance
     for name,value in [('Length',80),('Width',50),('Height',40),('Thickness',4),('Clearance',0.25)]:
         call('document.parameterAdd',{'name':name,'value':value,'units':'mm'})
     ids={row['name']:row['id'] for row in inspect()['userParameters']}
     for label,kind,expression in [('Width','box','Width'),('Depth','box','Length'),
                                   ('Height','box','Height'),('Thickness','shell','Thickness'),
-                                  ('linear Dimension','sketch','Thickness'),('End Offset','extrude','Clearance')]:
+                                  ('linear Dimension','sketch','Thickness'),('End Offset','extrude','Clearance'),
+                                  ('Chain Offset','sketch','Clearance')]:
         row=bind(label,kind,expression)
         assert row['parameterId']==ids[expression] and row['sourceName']==expression
     bound=inspect()
     assert bound['authored']['features'][0]['id']==box['id']
     near(model('End Offset','extrude')['valueMm'],0.25)
+    near(model('Chain Offset','sketch')['valueMm'],-0.25)
     call('document.parametersDialog')
     call('capture.dialog',{'path':str(out/'bound-model-table.png')})
     call('document.parametersDialog',{'visible':False})
@@ -82,8 +97,9 @@ with application(a.app,out) as (call,transcript):
     near(model('Thickness','shell')['valueMm'],3.5)
     near(model('linear Dimension','sketch')['valueMm'],3.5)
     near(model('End Offset','extrude')['valueMm'],0.5)
+    near(model('Chain Offset','sketch')['valueMm'],-0.5)
     near(edited['evaluation']['bodies'][0]['boundsMm']['size'][0],74)
-    assert edited['authored']['features'][-1]['parameters']['endSupport']==ref(back)
+    assert next(f for f in edited['authored']['features'] if f['type']=='extrude')['parameters']['endSupport']==ref(back)
     call('history.undo');call('history.redo')
     assert inspect()['authored']==edited['authored']
     path=out/'model-table.alloy'

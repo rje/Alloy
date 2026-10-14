@@ -52,6 +52,7 @@
 #include <QSignalBlocker>
 #include <QShortcut>
 #include <QStatusBar>
+#include <QStyledItemDelegate>
 #include <QTabBar>
 #include <QTimer>
 #include <QCheckBox>
@@ -79,6 +80,14 @@
 #include <numbers>
 
 namespace {
+class ModelExpressionDelegate final : public QStyledItemDelegate {
+public:
+    using QStyledItemDelegate::QStyledItemDelegate;
+    QWidget* createEditor(QWidget* parent,const QStyleOptionViewItem& option,const QModelIndex& index) const override {
+        if(index.column()!=1 || index.data(Qt::UserRole).toJsonObject().isEmpty())return nullptr;
+        return QStyledItemDelegate::createEditor(parent,option,index);
+    }
+};
 QJsonObject failure(const QString& code, const QString& message, const QString& field = {}) {
     QJsonObject error{{"code", code}, {"message", message}};
     if (!field.isEmpty()) error["field"] = field;
@@ -5056,11 +5065,12 @@ void AlloyWindow::showLengthParameters() {
     auto* userTitle=new QLabel("User Parameters",dialog);userTitle->setStyleSheet("font-weight: 700;");layout->addWidget(userTitle);
     auto* table=new QTableWidget(0,3,dialog);table->setObjectName("parameters.table");
     table->setHorizontalHeaderLabels({"Name","Unit","Value"});table->setSelectionBehavior(QAbstractItemView::SelectRows);
-    table->setEditTriggers(QAbstractItemView::NoEditTriggers);layout->addWidget(table);
+    table->setEditTriggers(QAbstractItemView::NoEditTriggers);table->setMaximumHeight(185);layout->addWidget(table);
     auto* modelTitle=new QLabel("Model Parameters",dialog);modelTitle->setStyleSheet("font-weight: 700; margin-top: 8px;");layout->addWidget(modelTitle);
     auto* model=new QTreeWidget(dialog);model->setObjectName("parameters.modelTable");
     model->setColumnCount(4);model->setHeaderLabels({"Component / Feature / Parameter","Expression","Value","Source"});
-    model->setEditTriggers(QAbstractItemView::NoEditTriggers);layout->addWidget(model,1);
+    model->setEditTriggers(QAbstractItemView::DoubleClicked);
+    model->setItemDelegate(new ModelExpressionDelegate(model));layout->addWidget(model,1);
     auto* form=new QFormLayout;auto* name=new QLineEdit(dialog);name->setObjectName("parameters.name");form->addRow("Name",name);
     auto* unit=new QComboBox(dialog);unit->setObjectName("parameters.units");unit->addItems({"mm","in"});form->addRow("Unit",unit);
     auto* value=new QLineEdit(dialog);value->setObjectName("parameters.value");form->addRow("Value",value);layout->addLayout(form);
@@ -5083,9 +5093,6 @@ void AlloyWindow::showLengthParameters() {
     };
     connect(add,&QPushButton::clicked,dialog,[=]{submit(false);});
     connect(edit,&QPushButton::clicked,dialog,[=]{submit(true);});
-    connect(model,&QTreeWidget::itemDoubleClicked,dialog,[=](QTreeWidgetItem* item,int column){
-        if(column==1 && !item->data(1,Qt::UserRole).toJsonObject().isEmpty())model->editItem(item,1);
-    });
     connect(model,&QTreeWidget::itemChanged,dialog,[=,this](QTreeWidgetItem* item,int column){
         if(column!=1)return;
         const auto target=item->data(1,Qt::UserRole).toJsonObject();if(target.isEmpty())return;
@@ -5099,7 +5106,7 @@ void AlloyWindow::showLengthParameters() {
     });
     connect(close,&QPushButton::clicked,dialog,&QDialog::close);
     connect(dialog,&QDialog::finished,this,[this,dialog]{if(lengthParametersDialog_==dialog)lengthParametersDialog_.clear();activateWindow();});
-    dialog->resize(820,610);dialog->show();name->setFocus();
+    dialog->resize(820,850);dialog->show();name->setFocus();
 }
 
 QJsonObject AlloyWindow::primitiveCandidate(const QString& command,const QJsonObject& inputs) const {

@@ -29,6 +29,7 @@ class ModelParameterTableControlsTest final : public QObject {
         QVERIFY(item);tree->scrollToItem(item);
         const auto rect=tree->visualItemRect(item);
         const QPoint position(tree->header()->sectionViewportPosition(1)+tree->header()->sectionSize(1)/2,rect.center().y());
+        QTest::mouseClick(tree->viewport(),Qt::LeftButton,Qt::NoModifier,position);
         QTest::mouseDClick(tree->viewport(),Qt::LeftButton,Qt::NoModifier,position);
         QTRY_VERIFY(qobject_cast<QLineEdit*>(QApplication::focusWidget()));
         QTest::keyClick(QApplication::focusWidget(),Qt::Key_A,Qt::ControlModifier);
@@ -51,7 +52,6 @@ private slots:
         QTRY_VERIFY(depthItem(tree));
         QCOMPARE(depthItem(tree)->text(1),QString("80 mm"));
         const auto evidence=qEnvironmentVariable("ALLOY_MODEL_TABLE_EVIDENCE");
-        if(!evidence.isEmpty())call(window,"capture.screenshot",{{"path",evidence+"/literal-table.png"}});
         enterExpression(tree,depthItem(tree),"Length");
         QTRY_COMPARE(call(window,"document.inspect")["authored"].toObject()["features"].toArray().first().toObject()["parameters"].toObject()["depthParameterId"],user["id"]);
         QTRY_COMPARE(depthItem(tree)->text(1),QString("Length"));
@@ -63,8 +63,10 @@ private slots:
         QCOMPARE(call(window,"document.inspect")["authored"].toObject(),bound);
         QCOMPARE(depthItem(tree)->text(1),QString("Length"));
         enterExpression(tree,depthItem(tree),"80 mm");
-        QTRY_VERIFY(!call(window,"document.inspect")["authored"].toObject()["features"].toArray().first().toObject()["parameters"].toObject().contains("depthParameterId"));
-        QCOMPARE(depthItem(tree)->text(1),QString("80 mm"));
+        QTRY_COMPARE(depthItem(tree)->text(1),QString("80 mm"));
+        QTest::qWait(100); // Let the deferred model edit finish before inspecting authored state.
+        const auto numeric=call(window,"document.inspect");
+        QVERIFY(!numeric["authored"].toObject()["features"].toArray().first().toObject()["parameters"].toObject().contains("depthParameterId"));
         QCOMPARE(call(window,"document.inspect")["authored"].toObject()["features"].toArray().first().toObject()["id"],box["id"]);
         dialog->close();window.close();
     }

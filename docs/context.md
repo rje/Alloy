@@ -3051,3 +3051,17 @@ projected outer corner makes the half fully constrained. Focused solver, Qt and
 real-app checks pass. Independent final source and capture review accepted the
 bounded ingredient. Historical source-video quadrant and physical OS key input
 remain unqualified.
+
+## Model parameter table candidate (2026-10-13)
+
+PAR-005 adds a grouped Model Parameters table to Change Parameters and shared
+`document.modelParameterSet` editing for already-authored Box dimensions, Shell
+thickness, sketch driving lengths, Extrude distance/start/end offsets, and
+retained open-chain sketch Offset. Stable authored target IDs, direct user
+parameter bindings, numeric replacement, atomic evaluation, history and
+save/reopen are covered by focused tests. The seven-row real-app Box → Shell →
+slanted Line → To Object → open-chain Offset sequence passes, including
+Clearance rescaling with the inward Offset sign retained. Native Qt
+Expression-cell editing, invalid refusal and numeric unbinding pass. See
+[the candidate receipt](validation/model-parameter-table.md) and the external
+`advanced-audit-2026-10-13/model-parameter-table-contract.md` source record.
