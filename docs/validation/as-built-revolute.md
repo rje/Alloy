@@ -46,3 +46,10 @@ linkage, cylindrical joint, linked copy and motion recording remain separate
 ASM-015/ASM-016 and cumulative workflow work. No physical toolbar/dropdown
 gesture, general circular axis, changed-datum edit, nonidentity Pin, multi-joint
 graph, Windows/Linux runtime or reference visual parity is claimed.
+
+The external gallery also links a 25.7-second API checkpoint recording under
+`deliverables/piston-revolute-2026-10-14/recording-01/`. It starts from the accepted
+component fixture, shows signed preview/Cancel, commit, Pin and history/reopen,
+and explicitly leaves coupled piston motion ahead. Rest, rotated and Cancel
+frames were inspected; 385 frames, 276 repeated, zero capture failures. It is
+not full part creation or a physical click walkthrough.
