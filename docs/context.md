@@ -59,7 +59,12 @@ now owns the source-supported multi-region Join replay: projected references
 partition the inferred hook into three intended regions (20+7+1 mm2). Preserve
 the references and replay their connected selected union; source instructions
 explicitly select multiple profiles. Exact source corner/cell inventory remains
-uncertain. SOL-054 is active; SOL-053 waits for that prerequisite.
+uncertain. SOL-054 is active. GEO-014/#340 now tracks an exact Join-created wall/stem
+intersection edge missing from retained selection; the actual vertical root
+exists at X=-28.5,Y=17.5,Z15..20.5. Do not substitute the hook elbow or free
+transverse edge. SOL-053 waits for both bounded prerequisites. The actual
+three-region Join adds no measured interference; nominal fixture already has
+0.73224 mm3 overlap with SIDE-ETH-001, unchanged by the snap.
 
 ## Accepted snap-group feature Mirror (2026-10-13)
 
