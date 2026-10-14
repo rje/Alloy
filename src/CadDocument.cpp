@@ -41,6 +41,8 @@ QJsonObject newFeatureReparentError(const QJsonObject& before,const QJsonObject&
     for(const auto& value:candidate["features"].toArray()) {
         const auto feature=value.toObject();const auto featureId=feature["id"].toString(),owner=feature["ownerId"].toString();
         if(prior.contains(featureId))continue;
+        // Remove changes active history, not the moved body's modeling owner.
+        if(feature["type"]=="removeBody")continue;
         std::function<QString(const QJsonValue&)> crossOwner=[&](const QJsonValue& input)->QString {
             if(input.isString()) {
                 const auto key=input.toString();
@@ -229,6 +231,12 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
                     {"message","Thicken requires a retained identity-child Loft sheet and root or same-component output"}};
             guarded.remove("sourceFace");
         }
+        if(f["type"]=="removeBody"){
+            const auto body=guarded["bodyId"].toString();
+            if(referencedOwners.value(body)!=owner)return {{"featureId",f["id"]},
+                {"code","cross_component_dependency"},{"message","Remove history belongs to the surface producer's modeling owner"}};
+            guarded.remove("bodyId");
+        }
         if(crossOwner(guarded))return {{"featureId",f["id"]},{"code","cross_component_dependency"},{"message","Cross-component modeling references are not supported"}};
     }
     QSet<QString> activeBodies;
@@ -245,6 +253,13 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
                     {"code","projection_unavailable"},{"message","Projected source must be an earlier active body"}};
         }
         if (feature.contains("bodyId")) activeBodies.insert(feature["bodyId"].toString());
+        if(feature["type"]=="removeBody"){
+            const auto body=feature["parameters"].toObject()["bodyId"].toString();
+            if(!bodyPositions.contains(body) || bodyPositions[body]>=i || !activeBodies.contains(body))
+                return {{"featureId",feature["id"]},{"featureType","removeBody"},{"bodyId",body},
+                    {"code","remove_body_unavailable"},{"message","Remove requires an earlier active body"}};
+            activeBodies.remove(body);continue;
+        }
         if(feature["type"]=="thicken"){
             const auto ref=feature["parameters"].toObject()["sourceFace"].toObject();
             const auto body=ref["bodyId"].toString(),producer=ref["producerFeatureId"].toString();
@@ -1221,6 +1236,27 @@ QJsonObject CadDocument::surfaceExtrudeCandidate(const QJsonObject& authored,con
     return candidate;
 }
 
+QJsonObject CadDocument::removeBodyCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
+    const QSet<QString> allowed{"bodyId","featureId","newFeatureId","ownerId","name"};
+    for(auto it=arguments.begin();it!=arguments.end();++it)if(!allowed.contains(it.key()))
+        throw std::invalid_argument("Unknown Remove argument");
+    if(arguments.contains("featureId") && (arguments.contains("newFeatureId") || arguments.contains("ownerId")))
+        throw std::invalid_argument("Remove edit retains feature and owner identities");
+    auto candidate=authored;auto features=candidate["features"].toArray();QJsonObject feature;int index=-1;
+    if(arguments.contains("featureId")){
+        for(int i=0;i<features.size();++i)if(features[i].toObject()["id"]==arguments["featureId"]){feature=features[i].toObject();index=i;break;}
+        if(index<0 || feature["type"]!="removeBody")throw std::invalid_argument("Remove feature unavailable");
+    }else feature={{"id",arguments.value("newFeatureId").toString(newId())},
+        {"ownerId",arguments.value("ownerId").toString(authored["documentId"].toString())},
+        {"type","removeBody"},{"name","Remove"},{"visible",true}};
+    if(arguments.contains("name"))feature["name"]=arguments["name"];
+    if(arguments.contains("bodyId"))feature["parameters"]=QJsonObject{{"bodyId",arguments["bodyId"]}};
+    if(index<0)features.append(feature);else features[index]=feature;
+    candidate["features"]=features;
+    const auto error=validateStructure(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());
+    return candidate;
+}
+
 QJsonObject CadDocument::thickenCandidate(const QJsonObject& authored,const QJsonObject& arguments){
     const QSet<QString> allowed{"sourceFace","signedThicknessMm","featureId","newFeatureId","newBodyId","ownerId","name"};
     for(auto it=arguments.begin();it!=arguments.end();++it)if(!allowed.contains(it.key()))throw std::invalid_argument("Unknown Thicken argument");
@@ -1769,6 +1805,11 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
                     || p[key].toDouble()<.001 || p[key].toDouble()>100000)
                     return "Surface Extrude Two Sides reaches must each be 0.001..100000 mm";
             ids.insert(feature["bodyId"].toString());continue;
+        }
+        if(type=="removeBody"){
+            if(feature.contains("bodyId") || p.size()!=1 || !validId(p["bodyId"].toString()))
+                return "Remove requires one retained body ID and no result body";
+            continue;
         }
         if(type=="thicken"){
             const auto ref=p["sourceFace"].toObject();const auto amount=p["signedThicknessMm"].toDouble();

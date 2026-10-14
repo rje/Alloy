@@ -903,6 +903,15 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
                 evaluated.bodies.push_back(SolidLoft::evaluate(feature,evaluated));
             } else if(type=="surfaceExtrude") {
                 evaluated.bodies.push_back(SurfaceExtrude::evaluate(feature,evaluated));
+            } else if(type=="removeBody") {
+                const auto bodyId=parameters["bodyId"].toString();
+                const auto target=std::find_if(evaluated.bodies.begin(),evaluated.bodies.end(),
+                    [&](const auto& body){return body.bodyId==bodyId;});
+                if(target==evaluated.bodies.end())reject("remove_body_unavailable","Remove target must be active earlier in history");
+                if(!target->occurrenceId.isEmpty() || target->summary["type"]!="surface"
+                    || target->summary["topology"].toObject()["solids"].toInt()!=0)
+                    reject("remove_body_unsupported","This Remove slice accepts one local surface body");
+                evaluated.bodies.erase(target);
             } else if(type=="thicken") {
                 const auto ref=parameters["sourceFace"].toObject();
                 const auto source=std::find_if(evaluated.bodies.begin(),evaluated.bodies.end(),[&](const auto& body){return body.bodyId==ref["bodyId"].toString();});
@@ -1147,7 +1156,11 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
     const auto organization=authored.value("objectOwners").toObject();
     const auto bodyOwners=organization.value("bodies").toObject(),sketchOwners=organization.value("sketches").toObject();
     const auto bodyNames=authored.value("bodyNames").toObject();
-    QSet<QString> currentSketches,localBodies;
+    QSet<QString> currentSketches,localBodies,intentionallyRemoved;
+    for(const auto& evaluatedId:evaluated.featureOrder)for(const auto& row:features){
+        const auto feature=row.toObject();if(feature["id"]==evaluatedId && feature["type"]=="removeBody")
+            intentionallyRemoved.insert(feature["parameters"].toObject()["bodyId"].toString());
+    }
     for(auto& body:evaluated.bodies){
         if(body.occurrenceId.isEmpty() && featureTypes.value(body.featureId)!="stepImport"
             && featureTypes.value(body.featureId)!="stepAssemblyImport")localBodies.insert(body.bodyId);
@@ -1157,9 +1170,9 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
     for(auto& sketch:evaluated.sketches){
         currentSketches.insert(sketch.featureId);
         sketch.ownerId=sketchOwners.value(sketch.featureId).toString(owners[sketch.featureId]);sketch.summary["ownerId"]=sketch.ownerId;}
-    for(auto it=bodyOwners.begin();it!=bodyOwners.end();++it)if(!localBodies.contains(it.key()))
+    for(auto it=bodyOwners.begin();it!=bodyOwners.end();++it)if(!localBodies.contains(it.key()) && !intentionallyRemoved.contains(it.key()))
         reject("reparent_body_unavailable","Reparented local body is no longer active; repair or undo the upstream edit");
-    for(auto it=bodyNames.begin();it!=bodyNames.end();++it)if(!localBodies.contains(it.key()))
+    for(auto it=bodyNames.begin();it!=bodyNames.end();++it)if(!localBodies.contains(it.key()) && !intentionallyRemoved.contains(it.key()))
         reject("renamed_body_unavailable","Renamed local body is no longer active; repair or undo the upstream edit");
     for(auto it=sketchOwners.begin();it!=sketchOwners.end();++it)if(!currentSketches.contains(it.key()))
         reject("reparent_sketch_unavailable","Reparented sketch is no longer available; repair or undo the upstream edit");

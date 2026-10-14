@@ -546,10 +546,13 @@ AlloyWindow::AlloyWindow() {
         QMenu menu(this);menu.setObjectName("context.browserBody");auto* move=menu.addAction("Move/Copy");move->setObjectName("context.moveBody");move->setEnabled(session_.isEmpty());
         auto* rename=menu.addAction("Rename…");rename->setObjectName("context.renameBody");rename->setEnabled(session_.isEmpty());
         auto* reparent=menu.addAction("Move to Component…");reparent->setObjectName("context.reparentBody");reparent->setEnabled(session_.isEmpty());
+        auto* remove=menu.addAction("Remove");remove->setObjectName("context.removeBody");
+        remove->setEnabled(session_.isEmpty() && std::any_of(document_->bodies().begin(),document_->bodies().end(),
+            [&](const auto& body){return body.bodyId==bodyId && body.occurrenceId.isEmpty() && body.summary["type"]=="surface";}));
         auto* mesh=menu.addAction("Save As Mesh…");mesh->setObjectName("context.exportMesh");mesh->setEnabled(session_.isEmpty());
         QJsonArray actions;for(const auto* action:menu.actions())actions.append(QJsonObject{{"id",action->objectName()},{"text",action->text()},{"enabled",action->isEnabled()}});
         QJsonObject context{{"origin","browser"},{"bodyId",bodyId},{"phase","open"},{"actions",actions}};view_->recordContextMenu(context,true);
-        const auto* action=menu.exec(tree_->viewport()->mapToGlobal(point));context["phase"]="closed";context["result"]=action ? action->objectName() : QString("cancelled");view_->recordContextMenu(context);if(action==move)execute("solid.moveDialog",{{"targetBodyId",bodyId}});else if(action==rename)execute("body.renameDialog",{{"bodyId",bodyId}});else if(action==reparent)execute("component.reparentDialog",{{"bodyId",bodyId}});else if(action==mesh)execute("document.exportMeshDialog",{{"bodyId",bodyId}});
+        const auto* action=menu.exec(tree_->viewport()->mapToGlobal(point));context["phase"]="closed";context["result"]=action ? action->objectName() : QString("cancelled");view_->recordContextMenu(context);if(action==move)execute("solid.moveDialog",{{"targetBodyId",bodyId}});else if(action==rename)execute("body.renameDialog",{{"bodyId",bodyId}});else if(action==reparent)execute("component.reparentDialog",{{"bodyId",bodyId}});else if(action==remove)execute("body.remove",{{"bodyId",bodyId}});else if(action==mesh)execute("document.exportMeshDialog",{{"bodyId",bodyId}});
     });
     connect(tree_, &QTreeWidget::itemClicked, this, [this](QTreeWidgetItem* item, int) {
         if(!item || item->isHidden() || !(item->flags()&Qt::ItemIsEnabled))return;
@@ -1674,6 +1677,28 @@ void AlloyWindow::registerCommands() {
     add("surface.extrudeEntity","Select Surface Extrude curve","Toggle one retained source curve in the active Surface Extrude command.",
         {{"sketchId",sketchIdentity},{"entityId",parameter("string","Retained line or fit-spline entity UUID.")}},
         [this](const auto& a){return selectSurfaceExtrudeEntity(a["sketchId"].toString(),a["entityId"].toString());});
+    add("body.remove","Remove","Remove one current local surface body as a restorable Timeline feature.",
+        {{"bodyId",parameter("string","Current local surface body UUID.")},
+         {"featureId",optional(featureId)},{"name",optional(parameter("string","Remove feature name."))}},[this](const auto& a){
+        if(!session_.isEmpty() && session_["command"]!="body.remove")return failure("session_busy","Complete or cancel the active command before Remove");
+        const auto id=a["bodyId"].toString();
+        QJsonObject candidate;
+        try{candidate=removeBodyCandidate(a);}
+        catch(const std::exception& error){return failure("invalid_arguments",QString::fromUtf8(error.what()));}
+        const auto featureId=a.contains("featureId") ? a["featureId"] : candidate["features"].toArray().last().toObject()["id"];
+        const auto error=document_->commit(candidate,"Remove surface body");
+        if(!error.isEmpty()){auto result=failure("evaluation_failed",error);auto detail=result["error"].toObject();
+            detail["diagnostics"]=document_->lastEvaluationError();result["error"]=detail;return result;}
+        if(selectedBody_==id || selectedFace_.value("bodyId")==id || selectedEdge_.value("bodyId")==id){
+            selectedBody_.clear();selectedFace_={};selectedEdge_={};view_->selectBody({});
+            view_->selectSupportFace({},{});view_->clearSolidEdgeHighlights();
+        }
+        return QJsonObject{{"featureId",featureId},{"bodyId",id},{"document",document_->state()}};
+    });
+    add("body.removeDialog","Remove","Select one surface body; preview and commit or cancel a retained Remove feature.",
+        {{"bodyId",optional(parameter("string","Current local surface body UUID."))},
+         {"featureId",optional(featureId)},{"name",optional(parameter("string","Remove feature name."))}},
+        [this](const auto& a){return beginRemoveBody(a);});
     auto loftRole=parameter("string","Active native Loft selection role.");loftRole["enum"]=QJsonArray{"section1","section2","centerline"};
     add("solid.loftSelection","Select Loft input","Choose or clear a surface Loft section or Centerline picker.",
         {{"role",loftRole},{"clear",optional(parameter("boolean","Clear this retained reference."))}},[this](const auto& a){
@@ -3707,6 +3732,7 @@ void AlloyWindow::registerCommands() {
             if(feature["type"]=="revolve")return beginRevolve({{"featureId",feature["id"]}});
             if(feature["type"]=="loft")return beginLoft({{"featureId",feature["id"]}});
             if(feature["type"]=="surfaceExtrude")return beginSurfaceExtrude({{"featureId",feature["id"]}});
+            if(feature["type"]=="removeBody")return beginRemoveBody({{"featureId",feature["id"]}});
             if(feature["type"]=="thicken")return beginThicken({{"featureId",feature["id"]}});
             if(feature["type"]=="constructionPlane") {
                 const auto source=p["source"].toObject();
@@ -4214,6 +4240,11 @@ void AlloyWindow::registerCommands() {
                 return failure("invalid_arguments","Surface Extrude edit identity cannot change");
             const auto error=validateArguments(*findCommand("surface.extrudeDialog"),inputs);
             if(!error.isEmpty())return failure("invalid_arguments",error);
+        } else if(target=="body.remove") {
+            if(updates.contains("featureId") && updates["featureId"]!=session_["inputs"].toObject()["featureId"])
+                return failure("invalid_arguments","Remove edit identity cannot change");
+            const auto error=validateArguments(*findCommand("body.removeDialog"),inputs);
+            if(!error.isEmpty())return failure("invalid_arguments",error);
         } else if(target=="solid.thicken"){
             if(updates.contains("featureId") && updates["featureId"]!=session_["inputs"].toObject()["featureId"])
                 return failure("invalid_arguments","Thicken edit identity cannot change");
@@ -4280,6 +4311,7 @@ void AlloyWindow::registerCommands() {
         if(target=="construction.pathPlane")return previewPathPlane();
         if(target=="solid.splitBody")return previewSplitBody();
         if(target=="inspect.section")return previewSection();
+        if(target=="body.remove")return previewRemoveBody();
         if(target=="joint.slider")return previewSlider();
         if(target=="surface.extrude")return previewSurfaceExtrude();
         return session_;
@@ -4301,6 +4333,7 @@ void AlloyWindow::registerCommands() {
         if(session_.value("command")=="solid.revolve")return previewRevolve();
         if(session_.value("command")=="solid.loft")return previewLoft();
         if(session_.value("command")=="surface.extrude")return previewSurfaceExtrude();
+        if(session_.value("command")=="body.remove")return previewRemoveBody();
         if(session_.value("command")=="solid.thicken")return previewThicken();
         if(session_.value("command")=="solid.shell")return previewShell();
         if(session_.value("command")=="inspect.section")return previewSection();
@@ -4349,7 +4382,7 @@ void AlloyWindow::registerCommands() {
     add("command.panelDock","Dock command panel","Dock or float the active modeling panel through Qt.",
         {{"docked",parameter("boolean","True docks the panel on the right; false floats it.")}},[this](const auto& a){
             const auto target=session_.value("command").toString();
-            auto* dock=target.startsWith("canvas.") ? canvasDock_ : target=="solid.splitBody" ? splitBodyDock_ : target=="construction.midplane" ? midplaneDock_ : target=="construction.tangentPlane" ? tangentPlaneDock_ : target=="construction.pathPlane" ? pathPlaneDock_ : target=="joint.slider" ? sliderDock_ : target=="inspect.section" ? sectionDock_ : target=="solid.sweep" ? sweepDock_ : target=="solid.revolve" ? revolveDock_ : target=="solid.hole" ? holeDock_ : target=="solid.sphere" ? sphereDock_ : target=="solid.chamfer" ? chamferDock_ : target=="solid.fillet" ? filletDock_ : target=="solid.rectangularPattern" ? patternDock_ : target=="solid.loft" ? loftDock_ : target=="surface.extrude" ? surfaceExtrudeDock_ : target=="solid.thicken" ? thickenDock_ : target=="solid.shell" ? shellDock_ : target=="solid.circularPattern" ? circularDock_ : target=="solid.mirror" ? mirrorDock_ : target=="solid.featureMirror" ? featureMirrorDock_ : target=="solid.move" ? moveDock_ : target=="solid.extrude" ? extrudeDock_ : target=="solid.combine" ? combineDock_ : target.startsWith("sketch.") ? sketchDock_ : target.startsWith("solid.") ? primitiveDock_ : nullptr;
+            auto* dock=target=="body.remove" ? removeBodyDock_ : target.startsWith("canvas.") ? canvasDock_ : target=="solid.splitBody" ? splitBodyDock_ : target=="construction.midplane" ? midplaneDock_ : target=="construction.tangentPlane" ? tangentPlaneDock_ : target=="construction.pathPlane" ? pathPlaneDock_ : target=="joint.slider" ? sliderDock_ : target=="inspect.section" ? sectionDock_ : target=="solid.sweep" ? sweepDock_ : target=="solid.revolve" ? revolveDock_ : target=="solid.hole" ? holeDock_ : target=="solid.sphere" ? sphereDock_ : target=="solid.chamfer" ? chamferDock_ : target=="solid.fillet" ? filletDock_ : target=="solid.rectangularPattern" ? patternDock_ : target=="solid.loft" ? loftDock_ : target=="surface.extrude" ? surfaceExtrudeDock_ : target=="solid.thicken" ? thickenDock_ : target=="solid.shell" ? shellDock_ : target=="solid.circularPattern" ? circularDock_ : target=="solid.mirror" ? mirrorDock_ : target=="solid.featureMirror" ? featureMirrorDock_ : target=="solid.move" ? moveDock_ : target=="solid.extrude" ? extrudeDock_ : target=="solid.combine" ? combineDock_ : target.startsWith("sketch.") ? sketchDock_ : target.startsWith("solid.") ? primitiveDock_ : nullptr;
             if(!dock)
                 return failure("no_active_dialog","No modeling panel is active");
             dock->setFloating(!a["docked"].toBool());
@@ -4438,6 +4471,7 @@ void AlloyWindow::registerCommands() {
             : session_.value("command").toString() == "solid.featureMirror" ? featureMirrorDock_->widget()
             : session_.value("command").toString() == "solid.rectangularPattern" ? patternDock_->widget()
             : session_.value("command").toString() == "solid.loft" ? loftDock_->widget()
+            : session_.value("command").toString() == "body.remove" ? removeBodyDock_->widget()
             : session_.value("command").toString() == "surface.extrude" ? surfaceExtrudeDock_->widget()
             : session_.value("command").toString() == "solid.thicken" ? thickenDock_->widget()
             : session_.value("command").toString() == "solid.shell" ? shellDock_->widget()
@@ -4490,7 +4524,7 @@ QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
     if (!command) return finish(failure("unknown_command", "No command named " + id));
     if(!pendingReference_.isEmpty()){
         const bool blocked=id.startsWith("solid.") || id.startsWith("surface.") || id.startsWith("primitive.") || id.startsWith("sketch.")
-            || id.startsWith("construction.") || id.startsWith("feature.") || id.startsWith("body.rename") || (id.startsWith("component.") && id!="component.inspect")
+            || id.startsWith("construction.") || id.startsWith("feature.") || id.startsWith("body.rename") || id.startsWith("body.remove") || (id.startsWith("component.") && id!="component.inspect")
             || id.startsWith("document.save") || id.startsWith("document.export") || id.startsWith("document.open")
             || id=="document.new" || id=="document.importStep" || id.startsWith("history.")
             || id=="reference.insert" || id=="reference.insertDialog" || id=="reference.update" || id=="reference.moveDialog"
@@ -4500,7 +4534,7 @@ QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
     if(nonzeroAssemblyPose()){
         const bool modeling=id.startsWith("solid.") || id.startsWith("surface.") || id.startsWith("primitive.") || id.startsWith("sketch.")
             || id.startsWith("construction.") || id.startsWith("feature.") || id=="component.create" || id=="component.newDialog"
-            || id.startsWith("component.reparent") || id.startsWith("body.rename")
+            || id.startsWith("component.reparent") || id.startsWith("body.rename") || id.startsWith("body.remove")
             || id=="document.importStep" || (id.startsWith("reference.") && id!="reference.inspect" && id!="reference.revert")
             || (id=="command.begin" && args.value("command").toString()!="joint.slider")
             || ((id=="command.update" || id=="command.commit") && session_.value("command")!="joint.slider" && !session_.isEmpty());
@@ -4568,6 +4602,7 @@ QJsonObject AlloyWindow::state() const {
         : target=="solid.rectangularPattern" ? bool(patternDock_ && patternDock_->isVisible())
         : target=="solid.loft" ? bool(loftDock_ && loftDock_->isVisible())
         : target=="surface.extrude" ? bool(surfaceExtrudeDock_ && surfaceExtrudeDock_->isVisible())
+        : target=="body.remove" ? bool(removeBodyDock_ && removeBodyDock_->isVisible())
         : target=="solid.thicken" ? bool(thickenDock_ && thickenDock_->isVisible())
         : target=="solid.shell" ? bool(shellDock_ && shellDock_->isVisible())
         : target=="solid.circularPattern" ? bool(circularDock_ && circularDock_->isVisible())
@@ -4578,11 +4613,11 @@ QJsonObject AlloyWindow::state() const {
         : target=="solid.combine" ? bool(combinePanel_ && combinePanel_->isVisible())
         : target.startsWith("solid.") ? bool(primitivePanel_ && primitivePanel_->isVisible())
         : target.startsWith("sketch.") ? bool(sketchPanel_ && sketchPanel_->isVisible()) : bool(unitsDialog_ && unitsDialog_->isVisible());
-    const auto dialogInputs=session_.isEmpty() ? QJsonObject{} : (target=="construction.tangentPlane" || target=="solid.splitBody" || target=="joint.slider" || target=="inspect.section" || target=="solid.hole" || target=="solid.sweep" || target=="solid.revolve" || target=="solid.sphere" || target=="solid.chamfer" || target=="solid.fillet" || target=="solid.rectangularPattern" || target=="solid.loft" || target=="surface.extrude" || target=="solid.thicken" || target=="solid.shell" || target=="solid.circularPattern" || target=="solid.mirror" || target=="solid.featureMirror" || target=="solid.move" || target=="solid.extrude" || target=="solid.combine") ? session_.value("inputs").toObject() : target.startsWith("solid.") ? primitiveWidgetInputs()
+    const auto dialogInputs=session_.isEmpty() ? QJsonObject{} : (target=="construction.tangentPlane" || target=="solid.splitBody" || target=="joint.slider" || target=="inspect.section" || target=="solid.hole" || target=="solid.sweep" || target=="solid.revolve" || target=="solid.sphere" || target=="solid.chamfer" || target=="solid.fillet" || target=="solid.rectangularPattern" || target=="solid.loft" || target=="surface.extrude" || target=="body.remove" || target=="solid.thicken" || target=="solid.shell" || target=="solid.circularPattern" || target=="solid.mirror" || target=="solid.featureMirror" || target=="solid.move" || target=="solid.extrude" || target=="solid.combine") ? session_.value("inputs").toObject() : target.startsWith("solid.") ? primitiveWidgetInputs()
         : target.startsWith("sketch.") ? session_.value("inputs").toObject()
         : target=="commands.search" ? QJsonObject{{"query",searchInput_ ? searchInput_->text() : QString{}}}
         : QJsonObject{{"units",unitsInput_ ? unitsInput_->currentText() : QString{}}};
-    const auto* activeDock=target=="construction.tangentPlane" ? tangentPlaneDock_ : target=="solid.splitBody" ? splitBodyDock_ : target=="joint.slider" ? sliderDock_ : target=="inspect.section" ? sectionDock_ : target=="solid.sweep" ? sweepDock_ : target=="solid.revolve" ? revolveDock_ : target=="solid.hole" ? holeDock_ : target=="solid.sphere" ? sphereDock_ : target=="solid.chamfer" ? chamferDock_ : target=="solid.fillet" ? filletDock_ : target=="solid.rectangularPattern" ? patternDock_ : target=="solid.loft" ? loftDock_ : target=="surface.extrude" ? surfaceExtrudeDock_ : target=="solid.thicken" ? thickenDock_ : target=="solid.shell" ? shellDock_ : target=="solid.circularPattern" ? circularDock_ : target=="solid.mirror" ? mirrorDock_ : target=="solid.featureMirror" ? featureMirrorDock_ : target=="solid.move" ? moveDock_ : target=="solid.extrude" ? extrudeDock_ : target=="solid.combine" ? combineDock_ : target.startsWith("sketch.") ? sketchDock_ : primitiveDock_;
+    const auto* activeDock=target=="body.remove" ? removeBodyDock_ : target=="construction.tangentPlane" ? tangentPlaneDock_ : target=="solid.splitBody" ? splitBodyDock_ : target=="joint.slider" ? sliderDock_ : target=="inspect.section" ? sectionDock_ : target=="solid.sweep" ? sweepDock_ : target=="solid.revolve" ? revolveDock_ : target=="solid.hole" ? holeDock_ : target=="solid.sphere" ? sphereDock_ : target=="solid.chamfer" ? chamferDock_ : target=="solid.fillet" ? filletDock_ : target=="solid.rectangularPattern" ? patternDock_ : target=="solid.loft" ? loftDock_ : target=="surface.extrude" ? surfaceExtrudeDock_ : target=="solid.thicken" ? thickenDock_ : target=="solid.shell" ? shellDock_ : target=="solid.circularPattern" ? circularDock_ : target=="solid.mirror" ? mirrorDock_ : target=="solid.featureMirror" ? featureMirrorDock_ : target=="solid.move" ? moveDock_ : target=="solid.extrude" ? extrudeDock_ : target=="solid.combine" ? combineDock_ : target.startsWith("sketch.") ? sketchDock_ : primitiveDock_;
     const auto panelRect=activeDock ? QRect(activeDock->mapToGlobal(QPoint())-mapToGlobal(QPoint()),activeDock->size()) : QRect{};
     QJsonArray popups;
     for(auto* popup:QApplication::topLevelWidgets()) {
@@ -4948,6 +4983,7 @@ void AlloyWindow::refresh() {
     if(revolveEscape_)revolveEscape_->setEnabled(session_.value("command")=="solid.revolve");
     if(loftEscape_)loftEscape_->setEnabled(session_.value("command")=="solid.loft");
     if(surfaceExtrudeEscape_)surfaceExtrudeEscape_->setEnabled(session_.value("command")=="surface.extrude");
+    if(removeBodyEscape_)removeBodyEscape_->setEnabled(session_.value("command")=="body.remove");
     if(thickenEscape_)thickenEscape_->setEnabled(session_.value("command")=="solid.thicken");
     if(shellEscape_)shellEscape_->setEnabled(session_.value("command")=="solid.shell");
     if(session_.value("command")=="solid.mirror" && mirrorDock_)if(auto* box=mirrorDock_->findChild<QDialogButtonBox*>())box->button(QDialogButtonBox::Ok)->setEnabled(session_["previewed"].toBool() && session_["geometryEvaluated"].toBool() && session_["baseDocumentRevision"].toInteger()==static_cast<qint64>(document_->revision()));
@@ -5784,6 +5820,7 @@ QJsonObject AlloyWindow::beginSession(const QString& command, const QJsonObject&
     if(command=="solid.revolve")return beginRevolve(inputs);
     if(command=="solid.loft")return beginLoft(inputs);
     if(command=="surface.extrude")return beginSurfaceExtrude(inputs);
+    if(command=="body.remove")return beginRemoveBody(inputs);
     if(command=="solid.thicken")return beginThicken(inputs);
     if(command=="solid.shell")return beginShell(inputs);
     if(command=="inspect.section")return beginSection(inputs);
@@ -6285,6 +6322,7 @@ QJsonObject AlloyWindow::finishSession(const QString& id, bool commit) {
     else if(target=="solid.revolve") {if(revolveEscape_)revolveEscape_->setEnabled(false);if(revolveDock_)revolveDock_->hide();view_->clearRevolveCue(true);view_->selectProfile({},{});view_->setEditDisplay({},{});view_->clearPreview();view_->clearBodyStage();}
     else if(target=="solid.loft") {if(loftEscape_)loftEscape_->setEnabled(false);if(loftDock_)loftDock_->hide();view_->selectLoftProfiles({});view_->clearSweepPath();view_->setCommandSketches({});view_->clearPreview();view_->clearBodyStage();}
     else if(target=="surface.extrude") {if(surfaceExtrudeEscape_)surfaceExtrudeEscape_->setEnabled(false);if(surfaceExtrudeDock_)surfaceExtrudeDock_->hide();view_->setCommandSketches({});view_->clearPreview();view_->clearBodyStage();}
+    else if(target=="body.remove") {if(removeBodyEscape_)removeBodyEscape_->setEnabled(false);if(removeBodyDock_)removeBodyDock_->hide();view_->clearBodyStage();}
     else if(target=="solid.thicken") {if(thickenEscape_)thickenEscape_->setEnabled(false);if(thickenDock_)thickenDock_->hide();view_->clearPreview();view_->clearBodyStage();}
     else if(target=="solid.shell") {if(shellEscape_)shellEscape_->setEnabled(false);if(shellDock_)shellDock_->hide();view_->clearPreview();view_->clearBodyStage();}
     else if(target=="solid.circularPattern") {if(circularEscape_)circularEscape_->setEnabled(false);if(circularDock_)circularDock_->hide();view_->clearPatternAxes();view_->clearPreview();view_->clearBodyStage();}

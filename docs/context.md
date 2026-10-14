@@ -1,5 +1,16 @@
 # Continuation context
 
+## Retained surface Remove candidate (2026-10-14)
+
+HIS-007 candidate adds one-body `removeBody` history for a current local open
+sheet. Browser Remove commits directly; `body.removeDialog` selects, previews,
+commits or cancels through the same CadDocument authority. Source features,
+authored names and Browser ownership survive removal, and deleting Remove
+restores the edited source. Focused core 2/2, a 26-call real-app API run and a
+Qt-delivered Browser/dock test pass. The Modify ribbon entry is pending VIS-004;
+native Escape and multi-body Remove are unverified/out of scope. Independent
+compatibility review is pending. See [the receipt](validation/remove-surface.md).
+
 ## Local reference canvas candidate (2026-10-14)
 
 DOC-024/#294 now has a separate local-image reference authority, retained real

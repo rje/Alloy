@@ -233,6 +233,12 @@ private:
     QDockWidget* surfaceExtrudeDock_=nullptr;
     QShortcut* surfaceExtrudeEscape_=nullptr;
     QJsonObject thickenCandidate(const QJsonObject& inputs) const;
+    QJsonObject removeBodyCandidate(const QJsonObject& inputs) const;
+    QJsonObject beginRemoveBody(const QJsonObject& overrides={});
+    QJsonObject previewRemoveBody();
+    void showRemoveBody();
+    QDockWidget* removeBodyDock_=nullptr;
+    QShortcut* removeBodyEscape_=nullptr;
     QJsonObject beginThicken(const QJsonObject& overrides={});
     QJsonObject previewThicken();
     QJsonObject selectThickenFace(const QJsonObject& support);
