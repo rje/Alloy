@@ -21,7 +21,12 @@ QJsonObject sectionError(const QString& code,const QString& message) {
 QJsonObject sectionSchema(){return {{"analysisId",QJsonObject{{"type","string"},{"required",false}}},{"name",QJsonObject{{"type","string"},{"required",false}}},{"plane",QJsonObject{{"type","string"},{"enum",QJsonArray{"XY","XZ","YZ","face"}},{"required",false}}},{"support",QJsonObject{{"type","object"},{"required",false}}},{"offsetMm",QJsonObject{{"type","number"},{"minimum",-100000},{"maximum",100000},{"required",false}}},{"flip",QJsonObject{{"type","boolean"},{"required",false}}},{"hatch",QJsonObject{{"type","boolean"},{"required",false}}}};}
 }
 QJsonObject AlloyWindow::sectionPresentation(const QJsonObject& analysis) const {
-    if(analysis["plane"]!="face")return analysis;
+    if(analysis["plane"]!="face") {
+        const auto plane=analysis["plane"].toString();
+        const QJsonArray source=plane=="XY" ? QJsonArray{0,0,1} : plane=="XZ" ? QJsonArray{0,1,0} : QJsonArray{1,0,0};
+        QJsonArray origin,normal;for(int axis=0;axis<3;++axis){origin.append(analysis["offsetMm"].toDouble()*source[axis].toDouble());normal.append((analysis["flip"].toBool() ? -1.0 : 1.0)*source[axis].toDouble());}
+        auto result=analysis;result["resolvedPlane"]=QJsonObject{{"origin",origin},{"normal",normal}};result["availability"]="available";return result;
+    }
     try {
         const auto resolved=GeometryKernel::resolveSketchSupport(document_->evaluation(),analysis["support"].toObject());
         for(const auto& body:presentationBodies())if(body.bodyId==resolved.bodyId)
@@ -64,7 +69,7 @@ QJsonObject AlloyWindow::beginSection(const QJsonObject& overrides) {
     if(!session_.isEmpty())return sectionError("session_busy","Complete or cancel the active command first");
     QJsonObject inputs{{"name","Section Analysis"},{"hatch",true},{"offsetMm",0.0},{"flip",false}};
     if(overrides.contains("analysisId")) {
-        bool found=false;for(const auto& entry:document_->authored()["analyses"].toArray()){const auto row=entry.toObject();if(row["id"]==overrides["analysisId"]){inputs={{"analysisId",row["id"]},{"name",row["name"]},{"plane",row["plane"]},{"hatch",row["hatch"]}};if(row["plane"]=="face")for(const auto& key:{"support","offsetMm","flip"})inputs[key]=row[key];found=true;break;}}
+        bool found=false;for(const auto& entry:document_->authored()["analyses"].toArray()){const auto row=entry.toObject();if(row["id"]==overrides["analysisId"]){inputs={{"analysisId",row["id"]},{"name",row["name"]},{"plane",row["plane"]},{"hatch",row["hatch"]},{"offsetMm",row.value("offsetMm").toDouble()},{"flip",row.value("flip").toBool()}};if(row["plane"]=="face")inputs["support"]=row["support"];found=true;break;}}
         if(!found)return sectionError("stale_entity","Section analysis is unavailable");
     }
     for(auto it=overrides.begin();it!=overrides.end();++it)inputs[it.key()]=it.value();
@@ -123,8 +128,8 @@ void AlloyWindow::refreshSection() {
         const auto inputs=session_.value("inputs").toObject();
         if(auto* plane=sectionDock_->findChild<QComboBox*>("sectionPlane")){const QSignalBlocker block(plane);plane->setCurrentIndex(inputs["plane"]=="face" ? 4 : qMax(0,plane->findText(inputs["plane"].toString())));}
         if(auto* support=sectionDock_->findChild<QLabel*>("sectionSupport"))support->setText(inputs["plane"]=="face" ? (inputs["support"].toObject().isEmpty() ? "Click a planar face in the canvas" : "Face: "+inputs["support"].toObject()["faceId"].toString().left(8)) : "Origin plane");
-        if(auto* offset=sectionDock_->findChild<QDoubleSpinBox*>("sectionOffset")){const QSignalBlocker block(offset);offset->setValue(inputs["offsetMm"].toDouble());offset->setEnabled(inputs["plane"]=="face");}
-        if(auto* flip=sectionDock_->findChild<QCheckBox*>("sectionFlip")){const QSignalBlocker block(flip);flip->setChecked(inputs["flip"].toBool());flip->setEnabled(inputs["plane"]=="face");}
+        if(auto* offset=sectionDock_->findChild<QDoubleSpinBox*>("sectionOffset")){const QSignalBlocker block(offset);offset->setValue(inputs["offsetMm"].toDouble());offset->setEnabled(inputs.contains("plane"));}
+        if(auto* flip=sectionDock_->findChild<QCheckBox*>("sectionFlip")){const QSignalBlocker block(flip);flip->setChecked(inputs["flip"].toBool());flip->setEnabled(inputs.contains("plane"));}
         if(auto* name=sectionDock_->findChild<QLineEdit*>("sectionName")){const QSignalBlocker block(name);if(!name->hasFocus())name->setText(inputs["name"].toString());}
         if(auto* hatch=sectionDock_->findChild<QCheckBox*>("sectionHatch")){const QSignalBlocker block(hatch);hatch->setChecked(inputs["hatch"].toBool());}
     }

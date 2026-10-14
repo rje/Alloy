@@ -9,16 +9,11 @@ void ReferenceView::setSectionAnalysis(const QJsonObject& analysis) {
     sectionAnalysis_=analysis;sectionClip_.Nullify();
     if(!analysis.isEmpty() && analysis["visible"].toBool()) {
         const auto plane=analysis["plane"].toString();
-        // Positive world half-space is retained, independent of camera direction.
-        gp_Pnt origin(0,0,0);
-        gp_Dir normal=plane=="XY" ? gp_Dir(0,0,1) : plane=="XZ" ? gp_Dir(0,1,0) : gp_Dir(1,0,0);
-        if(plane=="face") {
-            const auto resolved=analysis["resolvedPlane"].toObject();
-            const auto p=resolved["origin"].toArray(),n=resolved["normal"].toArray();
-            if(p.size()!=3 || n.size()!=3)return;
-            origin=gp_Pnt(p[0].toDouble(),p[1].toDouble(),p[2].toDouble());
-            normal=gp_Dir(n[0].toDouble(),n[1].toDouble(),n[2].toDouble());
-        }
+        const auto resolved=analysis["resolvedPlane"].toObject();
+        const auto p=resolved["origin"].toArray(),n=resolved["normal"].toArray();
+        if(p.size()!=3 || n.size()!=3)return;
+        const gp_Pnt origin(p[0].toDouble(),p[1].toDouble(),p[2].toDouble());
+        const gp_Dir normal(n[0].toDouble(),n[1].toDouble(),n[2].toDouble());
         sectionClip_=new Graphic3d_ClipPlane(gp_Pln(origin,normal));
         sectionClip_->SetCapping(true);sectionClip_->SetUseObjectMaterial(true);sectionClip_->SetCappingHatchOff();
         if(analysis["hatch"].toBool()) {

@@ -3196,7 +3196,17 @@ selection, Name, Clear, preview/Cancel/OK; shared inspection reports the
 resolved plane and unavailable support. Disappearing faces disable clipping
 without blocking a modeling edit; undo recovers the retained identity.
 Focused core, 32-call real-entrypoint API, native Qt input and inspected Apple M4
-hatched GPU capture pass in isolated `doc023-face-section` at base `7037389`.
-Independent compatibility review, physical OS input and other-platform GPU
-runtime remain pending. See [the candidate receipt](validation/selected-face-section.md)
+hatched GPU capture passed; the independently accepted correction is integrated.
+Physical OS input and other-platform GPU runtime remain pending. See
+[the accepted receipt](validation/selected-face-section.md)
 and the external `advanced-audit-2026-10-13/selected-face-section-contract.md`.
+
+## Origin Section Distance and Flip candidate (2026-10-13)
+
+DOC-027/#318 adds signed Distance and Flip to XY/XZ/YZ analyses using the
+same resolved-plane renderer as selected-face sections. Legacy six-field
+origin records remain valid; edited records retain both transform fields.
+This enables the later adapted Width section at XZ/Y=32 without a substitute
+support face. Focused core, native and real-app evidence are recorded in
+[the candidate receipt](validation/origin-section-distance.md). Independent
+compatibility review and integration remain pending.

@@ -561,8 +561,9 @@ QJsonObject CadDocument::sectionCandidate(const QJsonObject& authored,const QJso
     if(!id.isEmpty() && index<0)throw std::invalid_argument("Section analysis is unavailable");
     auto row=index<0 ? QJsonObject{{"id",args.value("newAnalysisId").toString(newId())},{"type","section"},{"name","Section Analysis"},{"plane","XZ"},{"visible",true},{"hatch",true}} : rows[index].toObject();
     for(const auto& key:{"name","plane","support","offsetMm","flip","visible","hatch"})if(args.contains(key))row[key]=args[key];
-    if(args.contains("plane") && row["plane"]!="face") {row.remove("support");row.remove("offsetMm");row.remove("flip");}
+    if(args.contains("plane") && row["plane"]!="face")row.remove("support");
     if(row["plane"]=="face") {if(!row.contains("offsetMm"))row["offsetMm"]=0.0;if(!row.contains("flip"))row["flip"]=false;}
+    else if(row.contains("offsetMm") || row.contains("flip")) {if(!row.contains("offsetMm"))row["offsetMm"]=0.0;if(!row.contains("flip"))row["flip"]=false;}
     if(row["visible"].toBool())for(int i=0;i<rows.size();++i){auto prior=rows[i].toObject();prior["visible"]=false;rows[i]=prior;}
     if(index<0)rows.append(row);else rows[index]=row;
     candidate["analyses"]=rows;const auto error=validateStructure(candidate);
@@ -1117,11 +1118,12 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
     for(const auto& entry:candidate["analyses"].toArray()) {
         const auto row=entry.toObject();const auto id=row["id"].toString(),plane=row["plane"].toString();
         const bool selectedFace=plane=="face";const auto support=row["support"].toObject();
-        if(!entry.isObject() || row.size()!=(selectedFace ? 9 : 6) || !validId(id) || ids.contains(id) || row["type"]!="section"
+        const bool transformed=selectedFace || row.contains("offsetMm") || row.contains("flip");
+        if(!entry.isObject() || row.size()!=(selectedFace ? 9 : transformed ? 8 : 6) || !validId(id) || ids.contains(id) || row["type"]!="section"
             || !row["name"].isString() || row["name"].toString().trimmed().isEmpty()
             || (plane!="XY" && plane!="XZ" && plane!="YZ" && !selectedFace) || !row["visible"].isBool() || !row["hatch"].isBool()
-            || (selectedFace && (support.size()!=3 || !validId(support["producerFeatureId"].toString()) || !validId(support["bodyId"].toString()) || !validId(support["faceId"].toString())
-                || !row["offsetMm"].isDouble() || !std::isfinite(row["offsetMm"].toDouble()) || std::abs(row["offsetMm"].toDouble())>100000 || !row["flip"].isBool())))return "Invalid section analysis record";
+            || (selectedFace && (support.size()!=3 || !validId(support["producerFeatureId"].toString()) || !validId(support["bodyId"].toString()) || !validId(support["faceId"].toString())))
+            || (transformed && (!row["offsetMm"].isDouble() || !std::isfinite(row["offsetMm"].toDouble()) || std::abs(row["offsetMm"].toDouble())>100000 || !row["flip"].isBool())))return "Invalid section analysis record";
         ids.insert(id);if(row["visible"].toBool())++activeSections;
     }
     if(activeSections>1)return "Only one section analysis may be visible";

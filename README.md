@@ -167,6 +167,8 @@ The [selected-face section](docs/validation/selected-face-section.md)
 adds retained planar support, signed Distance, Flip, native face selection and
 unavailable-support recovery. Its focused real-app and native checks pass;
 independent review and integration are complete.
+The [origin-section Distance candidate](docs/validation/origin-section-distance.md)
+extends those controls to XY/XZ/YZ while preserving older origin analyses.
 
 [Circular Body Pattern](docs/validation/circular-body-pattern.md) now retains
 an origin-Z full pattern with editable total count, stable occurrence identities,

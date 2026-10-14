@@ -23,7 +23,17 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
     const auto before=doc.authored();const auto* evaluated=&doc.evaluation();const auto shape=doc.bodies()[0].shape;
     auto candidate=CadDocument::sectionCandidate(before,{{"plane","XZ"}});auto rows=candidate["analyses"].toArray();const auto id=rows[0].toObject()["id"];
     check(doc.commitAnalyses(rows,"Section").isEmpty(),"create");
+    check(doc.authored()["analyses"].toArray()[0].toObject().size()==6,"legacy origin record retained");
     check(doc.authored()["features"]==before["features"] && &doc.evaluation()==evaluated && doc.bodies()[0].shape.IsSame(shape),"inspection preserves exact authoring and evaluation");
+    const auto legacy=doc.authored();candidate=CadDocument::sectionCandidate(legacy,{{"analysisId",id},{"offsetMm",32.0},{"flip",true}});
+    const auto flipOnly=CadDocument::sectionCandidate(legacy,{{"analysisId",id},{"flip",true}})["analyses"].toArray()[0].toObject();
+    check(flipOnly["offsetMm"].toDouble()==0.0 && flipOnly["flip"].toBool(),"flip-only origin defaults zero offset");
+    check(doc.commitAnalyses(candidate["analyses"].toArray(),"Move origin section").isEmpty(),"origin offset");
+    const auto moved=doc.authored()["analyses"].toArray()[0].toObject();
+    check(moved.size()==8 && moved["plane"]=="XZ" && moved["offsetMm"].toDouble()==32.0 && moved["flip"].toBool(),"origin transform retained");
+    auto invalidOrigin=moved;invalidOrigin["flip"]="bad";check(!doc.commitAnalyses(QJsonArray{invalidOrigin},"Bad origin flip").isEmpty(),"reject malformed origin flip");
+    {QTemporaryDir roundTrip;const auto path=roundTrip.filePath("offset.alloy");check(doc.save(path).isEmpty(),"save origin offset");CadDocument reopened;check(reopened.open(path).isEmpty() && reopened.authored()["analyses"]==doc.authored()["analyses"],"reopen origin offset");}
+    doc.history().undo();check(doc.authored()==legacy,"origin offset undo");doc.history().redo();check(doc.authored()["analyses"].toArray()[0].toObject()==moved,"origin offset redo");doc.history().undo();
     const auto first=doc.authored();candidate=CadDocument::sectionCandidate(first,{{"plane","YZ"}});check(doc.commitAnalyses(candidate["analyses"].toArray(),"Replace").isEmpty(),"replace");
     check(!doc.authored()["analyses"].toArray()[0].toObject()["visible"].toBool(),"replacement hides old");const auto second=doc.authored();
     doc.history().undo();check(doc.authored()==first && &doc.evaluation()==evaluated,"undo exact");doc.history().redo();check(doc.authored()==second && &doc.evaluation()==evaluated,"redo exact");
