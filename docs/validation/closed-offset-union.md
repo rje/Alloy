@@ -30,9 +30,11 @@ preview, ordinary-profile replacement, direct aggregate-to-Clear selection
 (invalid preview and disabled OK), Cancel with unchanged authored data, then
 aggregate commit and exact undo/redo. The capture shows a readable combo label
 and blue resolved-region highlight. The first popup-row pointer-click attempt
-did not change selection, so pointer-row selection remains unverified; native02
-uses keyboard navigation with one initial application activation and no focus
-repair between demonstrated steps. The Clear row now invokes the shared
+did not change selection, so pointer-row selection remains unverified. Native03
+repeats the 3/3 pass with keyboard navigation, one initial application
+activation, and an assertion that the combo or its popup owns focus before
+each key sequence; there is no focus repair between demonstrated steps. The
+Clear row now invokes the shared
 selection update instead of leaving the aggregate active.
 TUT-021 remains accepted within its original ordinary-profile/API scope.
 

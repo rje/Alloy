@@ -55,9 +55,11 @@ private slots:
         window.raise();window.activateWindow();window.windowHandle()->requestActivate();QApplication::setActiveWindow(&window);QTRY_VERIFY(window.isActiveWindow());
         auto choose=[&](int row){
             QTest::mouseClick(combo,Qt::LeftButton);QTRY_VERIFY(combo->view()->isVisible());
-            QTest::keyClick(combo->view(),Qt::Key_Home);
-            for(int i=0;i<row;++i)QTest::keyClick(combo->view(),Qt::Key_Down);
-            QTest::keyClick(combo->view(),Qt::Key_Return);
+            auto* focused=QApplication::focusWidget();
+            QVERIFY(focused && (focused==combo || focused==combo->view() || combo->view()->window()->isAncestorOf(focused)));
+            QTest::keyClick(focused,Qt::Key_Home);
+            for(int i=0;i<row;++i)QTest::keyClick(focused,Qt::Key_Down);
+            QTest::keyClick(focused,Qt::Key_Return);
             QTRY_COMPARE(combo->currentIndex(),row);
         };
         choose(aggregate);
