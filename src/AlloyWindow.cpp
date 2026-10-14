@@ -266,6 +266,7 @@ AlloyWindow::AlloyWindow() {
     view_->installEventFilter(this);
     view_->dispatch = [this](const QString& command, const QJsonObject& args) {
         const auto response=execute(command,args);
+        if(command=="component.copyHandle" && !response["ok"].toBool())session_["handleError"]=response["error"];
         if(command=="solid.revolveDrag" && !response["ok"].toBool())session_["angularDragError"]=response["error"];
         if(command.startsWith("sketch."))sketchResponse(response);
         else if(command=="selection.pick" && !response.value("ok").toBool() && session_.value("command")=="sketch.plane")
@@ -5154,7 +5155,7 @@ void AlloyWindow::refresh() {
     const auto historicalSketchId=session_.value("command")=="sketch.edit"
         && session_.value("baseDocumentRevision").toInteger()==static_cast<qint64>(document_->revision())
         ? session_.value("inputs").toObject().value("sketchId").toString() : QString{};
-    if(session_.value("command")!="solid.splitBody" && session_.value("command")!="solid.sweep" && session_.value("command")!="solid.revolve" && session_.value("command")!="solid.sphere" && session_.value("command")!="solid.chamfer" && session_.value("command")!="solid.fillet" && session_.value("command")!="solid.rectangularPattern" && session_.value("command")!="solid.loft" && session_.value("command")!="solid.shell" && session_.value("command")!="solid.circularPattern" && session_.value("command")!="solid.mirror" && session_.value("command")!="solid.move" && session_.value("command")!="solid.combine" && !(session_.value("command")=="solid.extrude" && !session_.value("inputs").toObject().value("featureId").toString().isEmpty()) && historicalSketchId.isEmpty())view_->clearBodyStage();
+    if(session_.value("command")!="component.copyPlacement" && session_.value("command")!="solid.splitBody" && session_.value("command")!="solid.sweep" && session_.value("command")!="solid.revolve" && session_.value("command")!="solid.sphere" && session_.value("command")!="solid.chamfer" && session_.value("command")!="solid.fillet" && session_.value("command")!="solid.rectangularPattern" && session_.value("command")!="solid.loft" && session_.value("command")!="solid.shell" && session_.value("command")!="solid.circularPattern" && session_.value("command")!="solid.mirror" && session_.value("command")!="solid.move" && session_.value("command")!="solid.combine" && !(session_.value("command")=="solid.extrude" && !session_.value("inputs").toObject().value("featureId").toString().isEmpty()) && historicalSketchId.isEmpty())view_->clearBodyStage();
     if(displayedDocumentRevision_!=document_->revision()) {
         const QSignalBlocker block(tree_);
         // Keep Browser rows keyed by their stable IDs. Removing all children on

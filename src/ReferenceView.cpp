@@ -2554,6 +2554,7 @@ void ReferenceView::mouseMoveEvent(QMouseEvent* e) {
     if(jointOriginPicking_ && e->buttons()==Qt::NoButton) {
         updateJointOriginHover(e->position());e->accept();return;
     }
+    if(!moveDrag_.isEmpty()){moveDrag_["lastPointerX"]=e->position().x();moveDrag_["lastPointerY"]=e->position().y();moveDrag_["leftButton"]=e->buttons().testFlag(Qt::LeftButton);}
     if(!assemblyDrag_.isEmpty() && e->buttons().testFlag(Qt::LeftButton)){
         const QPointF press(assemblyDrag_["pressX"].toDouble(),assemblyDrag_["pressY"].toDouble());
         if(QLineF(press,e->position()).length()>=4)if(const auto angle=assemblyPointerAngle(e->position())){
@@ -2596,6 +2597,7 @@ void ReferenceView::mouseMoveEvent(QMouseEvent* e) {
         const int axis=h["axis"].toInt();const QStringList distances{"xMm","yMm","zMm"},angles{"xDeg","yDeg","zDeg"};QString key;double delta=0;
         if(moveDrag_["mode"]=="translation") {auto direction=point(h["end"].toObject())-center;auto length2=QPointF::dotProduct(direction,direction);if(length2<1e-8)return;delta=QPointF::dotProduct(e->position()-press,direction)/length2*h["mmLength"].toDouble();key=distances[axis];}
         else {const auto u=point(h["basisU"].toObject())-center,v=point(h["basisV"].toObject())-center;const auto determinant=u.x()*v.y()-u.y()*v.x();if(std::abs(determinant)<1e-8)return;auto angle=[&](const QPointF& p){auto q=p-center;return std::atan2((u.x()*q.y()-u.y()*q.x())/determinant,(q.x()*v.y()-q.y()*v.x())/determinant);};delta=std::remainder(angle(e->position())-angle(press),2*std::acos(-1.0))*180/std::acos(-1.0);key=angles[axis];}
+        moveDrag_["lastField"]=key;moveDrag_["lastValue"]=moveDrag_["initialInputs"].toObject()[key].toDouble()+delta;
         if(dispatch)dispatch(moveDrag_.value("handleCommand").toString("solid.moveHandle"),{{"field",key},{"value",moveDrag_["initialInputs"].toObject()[key].toDouble()+delta}});e->accept();return;
     }
 

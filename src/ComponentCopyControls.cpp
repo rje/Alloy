@@ -20,7 +20,7 @@
 #include <limits>
 namespace {
 QJsonObject failure(const QString& code,const QString& message){return {{"ok",false},{"completion","failed"},{"error",QJsonObject{{"code",code},{"message",message}}}};}
-QJsonObject field(const QString& type){return {{"type",type},{"required",true}};}
+QJsonObject field(const QString& type){QJsonObject result{{"type",type},{"required",true}};if(type=="number"){result["minimum"]=-100000;result["maximum"]=100000;}return result;}
 QJsonObject placement(const QJsonObject& inputs){return {{"axis","Z"},{"angleDeg",inputs["angleDeg"]},{"translationMm",QJsonArray{inputs["xMm"],inputs["yMm"],inputs["zMm"]}}};}
 }
 void AlloyWindow::registerComponentCopyCommands(){
@@ -40,6 +40,7 @@ QJsonObject AlloyWindow::beginComponentCopy(const QJsonObject& args){
     QString path;for(const auto& v:LocalOccurrences::inspect(document_->authored(),document_->evaluation())["occurrences"].toArray())if(v.toObject()["occurrenceId"]==id)path=v.toObject()["path"].toString();
     if(path.isEmpty())return failure("invalid_component_copy","Choose a current local component occurrence");
     QJsonObject result;try{result=CadDocument::copyOccurrenceCandidate(document_->authored(),id,{{"axis","Z"},{"angleDeg",0},{"translationMm",QJsonArray{0,0,0}}});}catch(const std::exception& e){return failure("invalid_component_copy",QString::fromUtf8(e.what()));}
+    view_->setAssemblyDragCue({});
     session_={{"id",CadDocument::newId()},{"command","component.copyPlacement"},{"status","active"},{"visible",true},{"sourceOccurrenceId",id},{"sourcePath",path},{"fromClipboard",clipboard},{"tabId",activeTabId_},{"baseDocumentRevision",static_cast<qint64>(document_->revision())},{"inputs",QJsonObject{{"xMm",0},{"yMm",0},{"zMm",0},{"angleDeg",0}}},{"copyResult",result},{"previewed",false}};
     if(componentCopyDock_){canvasWindow_->removeDockWidget(componentCopyDock_);componentCopyDock_->deleteLater();}
     componentCopyDock_=new QDockWidget(clipboard?"Paste Component":"Copy Component",canvasWindow_);componentCopyDock_->setObjectName("component.copy.dialog");componentCopyDock_->setFeatures(QDockWidget::DockWidgetMovable|QDockWidget::DockWidgetFloatable|QDockWidget::DockWidgetClosable);

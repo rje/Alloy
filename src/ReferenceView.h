@@ -133,7 +133,7 @@ public:
     void showMovePreview(const TopoDS_Shape& shape,const QString& bodyId);
     void showMoveCue(const QJsonObject& inputs);
     void clearMoveCue(bool resetGesture = false);
-    QJsonObject moveCueState() const { return moveCueState_; }
+    QJsonObject moveCueState() const { if(moveCueState_.isEmpty())return {};auto state=moveCueState_;state["activeDrag"]=moveDrag_;return state; }
     void clearPreview();
     QPaintEngine* paintEngine() const override { return nullptr; }
 protected:

@@ -58,7 +58,7 @@ private slots:
         QPointer<QDockWidget> dialog=window.findChild<QDockWidget*>("component.copy.dialog");QVERIFY(dialog && dialog->isVisible());
         QCOMPARE(dialog->findChild<QDoubleSpinBox*>("component.copy.x")->value(),0.0);
         const auto authored=before["authored"];
-        QTest::keyClick(dialog,Qt::Key_Escape);QTRY_VERIFY(!dialog || !dialog->isVisible());
+        QVERIFY(QApplication::focusWidget());QTest::keyClick(QApplication::focusWidget(),Qt::Key_Escape);QTRY_VERIFY(!dialog || !dialog->isVisible());
         QCOMPARE(call(window,"document.inspect")["authored"],authored);
         copyAction(window,tree,row(tree,parentId,Qt::UserRole+8));
         dialog=window.findChild<QDockWidget*>("component.copy.dialog");QVERIFY(dialog && dialog->isVisible());

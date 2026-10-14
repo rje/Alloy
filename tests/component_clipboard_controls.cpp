@@ -97,7 +97,8 @@ auto* positionTab=window.findChild<QToolButton*>("design.tab.position");QVERIFY(
         QVERIFY(dialog && dialog->isVisible());
         QVERIFY(dialog->windowTitle().contains("Paste"));
         QVERIFY(!QApplication::activeModalWidget());
-        QTest::keyClick(dialog,Qt::Key_Escape);
+        QVERIFY2(QApplication::focusWidget()==view,"Paste must leave the viewport focused for Escape and drag");
+        QTest::keyClick(QApplication::focusWidget(),Qt::Key_Escape);
         QTRY_VERIFY(!dialog || !dialog->isVisible());
         QCOMPARE(call(window,"document.inspect")["authored"].toObject(),rest);
 
@@ -106,10 +107,10 @@ auto* positionTab=window.findChild<QToolButton*>("design.tab.position");QVERIFY(
         dialog=visibleCopyDialog(window);QVERIFY(dialog && dialog->isVisible());
         auto* x=dialog->findChild<QDoubleSpinBox*>("component.copy.x");QVERIFY(x);
         QCOMPARE(x->value(),0.0);
-        const auto preview=window.state()["activeSession"].toObject();const auto ephemeral=preview["copyResult"].toObject()["rootOccurrenceId"];
+        const auto preview=window.state()["activeSession"].toObject();const auto ephemeral=preview["copyResult"].toObject().value("rootOccurrenceId");
         const auto handles=call(window,"viewport.moveHandles")["handles"].toArray();QCOMPARE(handles.size(),3);const auto handle=handles[0].toObject();QCOMPARE(handle["ring"].toArray().size(),1);
         auto point=[](const QJsonObject& p){return QPointF(p["x"].toDouble(),p["y"].toDouble());};const auto center=point(handle["start"].toObject()),end=point(handle["end"].toObject());const QPoint press=(center+(end-center)*.65).toPoint();const QPoint target=(QPointF(press)-(end-center)*.5).toPoint();QVERIFY(view->rect().contains(press)&&view->rect().contains(target));
-        QTest::mousePress(view,Qt::LeftButton,Qt::NoModifier,press);QVERIFY(view->hasFocus());QMouseEvent drag(QEvent::MouseMove,target,view->mapToGlobal(target),Qt::NoButton,Qt::LeftButton,Qt::NoModifier);QApplication::sendEvent(view,&drag);QTest::mouseRelease(view,Qt::LeftButton,Qt::NoModifier,target);QVERIFY(x->value()<-.1);QCOMPARE(window.state()["activeSession"].toObject()["copyResult"].toObject()["rootOccurrenceId"],ephemeral);QCOMPARE(window.state()["activeSession"].toObject()["copyResult"].toObject()["occurrenceMap"],preview["copyResult"].toObject()["occurrenceMap"]);QCOMPARE(call(window,"document.inspect")["authored"].toObject(),rest);
+        QTest::mousePress(view,Qt::LeftButton,Qt::NoModifier,press);QVERIFY(view->hasFocus());const auto pressedHandle=call(window,"viewport.moveHandles");qInfo().noquote()<<"Paste press"<<press<<"target"<<target<<"viewport"<<view->size()<<QJsonDocument(pressedHandle).toJson(QJsonDocument::Compact);QVERIFY2(!pressedHandle["activeDrag"].toObject().isEmpty(),"Actual arrow press must begin a manipulator gesture");QMouseEvent drag(QEvent::MouseMove,target,view->mapToGlobal(target),Qt::NoButton,Qt::LeftButton,Qt::NoModifier);QApplication::sendEvent(view,&drag);qInfo().noquote()<<"Paste move"<<QJsonDocument(call(window,"viewport.moveHandles")).toJson(QJsonDocument::Compact)<<"error"<<QJsonDocument(window.state()["activeSession"].toObject()["handleError"].toObject()).toJson(QJsonDocument::Compact);QTest::mouseRelease(view,Qt::LeftButton,Qt::NoModifier,target);QVERIFY2(x->value()<-.1,qPrintable(QJsonDocument(window.state()["activeSession"].toObject()["inputs"].toObject()).toJson(QJsonDocument::Compact)));QCOMPARE(window.state()["activeSession"].toObject()["copyResult"].toObject()["rootOccurrenceId"],ephemeral);QCOMPARE(window.state()["activeSession"].toObject()["copyResult"].toObject()["occurrenceMap"],preview["copyResult"].toObject()["occurrenceMap"]);QCOMPARE(call(window,"document.inspect")["authored"].toObject(),rest);
 
         {
             ClipboardRestore restore(QApplication::clipboard());
@@ -130,8 +131,8 @@ auto* positionTab=window.findChild<QToolButton*>("design.tab.position");QVERIFY(
             QCOMPARE(result["joints"].toArray()[i],rest["joints"].toArray()[i]);
         QCOMPARE(result["components"],rest["components"]);
         QVERIFY(window.state()["activeSession"].toObject().isEmpty());
-        const auto committedRevision=call(window,"document.inspect")["revision"];
-        QTest::keyClick(view,Qt::Key_Return);QCOMPARE(call(window,"document.inspect")["authored"].toObject(),result);
+        const auto committedRevision=call(window,"document.inspect").value("revision");
+        QTest::keyClick(view,Qt::Key_Return);QCOMPARE(call(window,"document.inspect")["authored"].toObject(),result);QCOMPARE(call(window,"document.inspect")["revision"],committedRevision);
         QCOMPARE(call(window,"component.clipboardInspect")["occurrenceId"].toString(),parentOccurrence);
         if(!evidence.isEmpty())call(window,"capture.screenshot",{{"path",evidence+"/native-pasted-piston.png"}});
 
@@ -140,7 +141,7 @@ auto* positionTab=window.findChild<QToolButton*>("design.tab.position");QVERIFY(
             QJsonObject{{"axis","Z"},{"angleDeg",0},{"translationMm",QJsonArray{0,0,0}}}}});
         QVERIFY(!stale["ok"].toBool());
         QCOMPARE(stale["error"].toObject()["code"].toString(),"clipboard_document_mismatch");
-        window.close();
+        call(window,"document.new",{{"discard",true}});window.close();
     }
 };
 QTEST_MAIN(ComponentClipboardControlsTest)
