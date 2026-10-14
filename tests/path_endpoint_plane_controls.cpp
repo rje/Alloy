@@ -22,6 +22,44 @@ class PathEndpointPlaneControlsTest final : public QObject {
         return response["result"].toObject();
     }
 private slots:
+    void solvedSplineSelectionPick(){
+        AlloyTheme::apply(*qApp);AlloyWindow window;window.resize(1400,880);window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        call(window,"sketch.begin",{{"plane","YZ"},{"name","Constrained spine"}});
+        call(window,"sketch.splineAdd",{{"points",QJsonArray{QJsonObject{{"uMm",0},{"vMm",0}},
+            QJsonObject{{"uMm",50},{"vMm",16}},QJsonObject{{"uMm",130},{"vMm",0}}}}});
+        const auto draft=window.state()["activeSession"].toObject()["draftSketch"].toObject();
+        const auto sketchId=draft["id"].toString();
+        const auto spline=draft["parameters"].toObject()["entities"].toArray()[0].toObject();
+        const auto entityId=spline["id"].toString();
+        const auto fitPoints=spline["pointIds"].toArray();
+        call(window,"sketch.constraint",{{"type","fixed"},{"pointIds",QJsonArray{fitPoints[0]}}});
+        call(window,"sketch.dimension",{{"kind","vertical"},
+            {"pointIds",QJsonArray{fitPoints[0],fitPoints[1]}},{"value",16},{"units","mm"}});
+        call(window,"sketch.finish");
+        const auto source=call(window,"document.inspect")["authored"].toObject()["features"].toArray()[0].toObject();
+        auto dimensions=source["parameters"].toObject()["dimensions"].toArray();
+        auto changed=dimensions[0].toObject();changed["valueMm"]=50;dimensions[0]=changed;
+        call(window,"feature.edit",{{"featureId",sketchId},
+            {"parameters",QJsonObject{{"dimensions",dimensions}}}});
+        ReferenceView* view=nullptr;for(auto* child:window.findChildren<QWidget*>())
+            if(auto* found=dynamic_cast<ReferenceView*>(child)){view=found;break;}
+        QVERIFY(view);
+        call(window,"construction.pathPlane");
+        call(window,"view.home");call(window,"view.orientation",{{"name","right"}});
+        const auto obsolete=call(window,"view.projectSketchPoint",{{"plane","YZ"},{"uMm",50},{"vMm",16}});
+        const auto miss=window.execute("selection.pick",{{"x",obsolete["x"]},{"y",obsolete["y"]}});
+        QVERIFY(!miss["ok"].toBool());
+        QCOMPARE(miss["error"].toObject()["code"].toString(),QString("path_required"));
+        const auto point=call(window,"view.projectSketchPoint",{{"plane","YZ"},{"uMm",50},{"vMm",50}});
+        QVERIFY(view->pickSketch(source,point["x"].toDouble(),point["y"].toDouble(),"entity").isEmpty());
+        const auto picked=call(window,"selection.pick",{{"x",point["x"]},{"y",point["y"]}});
+        Q_UNUSED(picked);
+        const auto selected=window.state()["activeSession"].toObject()["inputs"].toObject()["path"].toObject();
+        QCOMPARE(selected["sketchId"].toString(),sketchId);
+        QCOMPARE(selected["entityId"].toString(),entityId);
+        call(window,"command.cancel",{{"session",window.state()["activeSession"].toObject()["id"]}});
+    }
     void canvasSplineAndEndSelection(){
         AlloyTheme::apply(*qApp);AlloyWindow window;window.resize(1400,880);window.show();
         QVERIFY(QTest::qWaitForWindowExposed(&window));window.activateWindow();

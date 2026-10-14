@@ -3503,7 +3503,22 @@ void AlloyWindow::registerCommands() {
                 QJsonObject feature;for(const auto& row:document_->authored()["features"].toArray())
                     if(row.toObject()["id"]==sketch.featureId){feature=row.toObject();break;}
                 if(feature.isEmpty())continue;
-                const auto hit=view_->pickSketch(feature,a["x"].toDouble(),a["y"].toDouble(),"entity",sketch.resolvedFrame);
+                // Pick the solved curve displayed in this evaluated sketch.
+                // Authored point coordinates may differ after driving dimensions.
+                auto parameters=feature["parameters"].toObject();auto points=parameters["points"].toArray();
+                const auto frame=sketch.summary["frame"].toObject();
+                const auto origin=frame["origin"].toArray(),uAxis=frame["uAxis"].toArray(),vAxis=frame["vAxis"].toArray();
+                QMap<QString,QJsonArray> solved;
+                for(const auto& row:sketch.summary["worldPoints"].toArray()){
+                    const auto point=row.toObject();solved.insert(point["id"].toString(),point["positionMm"].toArray());}
+                if(origin.size()!=3 || uAxis.size()!=3 || vAxis.size()!=3)continue;
+                for(int i=0;i<points.size();++i){auto point=points[i].toObject();const auto world=solved.value(point["id"].toString());
+                    if(world.size()!=3)continue;double u=0,v=0;
+                    for(int axis=0;axis<3;++axis){const double delta=world[axis].toDouble()-origin[axis].toDouble();
+                        u+=delta*uAxis[axis].toDouble();v+=delta*vAxis[axis].toDouble();}
+                    point["uMm"]=u;point["vMm"]=v;points[i]=point;}
+                parameters["points"]=points;feature["parameters"]=parameters;
+                const auto hit=view_->pickSketch(feature,a["x"].toDouble(),a["y"].toDouble(),"entity",frame);
                 if(hit["kind"]!="entity")continue;
                 bool spline=false;for(const auto& row:feature["parameters"].toObject()["entities"].toArray())
                     if(row.toObject()["id"]==hit["entityId"] && row.toObject()["type"]=="fitSpline")spline=true;

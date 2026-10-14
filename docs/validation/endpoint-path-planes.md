@@ -33,3 +33,13 @@ controls. API source edits were run before the solved-edge refinement; the
 dimension-constrained core assertion covers that refinement. Native input is
 Qt-delivered, with no claim of OS-level pointer parity or complete surface
 tutorial acceptance.
+
+The follow-up solved-picker check edits a vertical driving dimension from
+16 to 50 mm while the authored spline fit point remains at 16 mm. The shared
+`selection.pick` command refuses that obsolete location with `path_required`
+and selects the retained spline at the evaluated 50 mm position. The native
+test also confirms its authored-curve hit test misses there. This picker
+check passed as a focused Qt command test; the earlier `native-05` run remains
+the native click/position-combo evidence. A later attempt to repeat that full
+gesture under the shifted fixture could not activate the macOS test window,
+before any canvas input, so it is not counted as passing native input evidence.
