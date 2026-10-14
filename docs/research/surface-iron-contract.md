@@ -31,6 +31,13 @@ The demonstrated feature order is:
    cell and choose Remove Tools, yielding one valid closed solid with handle
    opening.
 
+The bridge has no guide rail. Its paired-spline closed-chain state and whether
+the selected ellipse is complete remain unknown from the public transcript;
+do not assume every section is open. A declared prepared fixture must resolve
+its own topology without claiming exact source selection. Exterior guide rails
+intersect each section and extend to both end sections; they are not the
+centerline behavior used in the earlier sheet lesson.
+
 The later discussion of more guide rails, analysis and fillets is advice, not
 an additional required modeled stage. The public side/bottom photos are
 perspective silhouettes without metric dimensions or a calibrated camera;
