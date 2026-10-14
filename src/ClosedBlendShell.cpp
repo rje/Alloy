@@ -46,7 +46,7 @@ bool near(double a,double b,double e){return std::abs(a-b)<=e;}
 bool near(const gp_Pnt& a,const gp_Pnt& b,double e){return a.Distance(b)<=e;}
 bool parallel(const gp_Dir& a,const gp_Dir& b){return std::abs(a.Dot(b))>1-1e-8;}
 std::optional<BoxBlend> ancestry(const EvaluatedBody& body,const QJsonObject& shell,const QJsonArray& features,int index,
-    const QString& featureId,const EvaluatedDocument& evaluated){
+    const EvaluatedDocument& evaluated){
     if(!shell["removedFace"].toObject().isEmpty() || index<2)return {};
     const QString target=body.bodyId;
     int stockIndex=-1,filletIndex=-1;
@@ -160,7 +160,7 @@ std::optional<BoxBlend> ancestry(const EvaluatedBody& body,const QJsonObject& sh
     const double eps=std::max(20*Precision::Confusion(),scale*1e-9);
     if(eps>1e-4 || !std::isfinite(t) || !(r>eps && r+eps<R && R+eps<std::min(w,d)/2)
         || !(h>2*r+eps && t>=r && t+eps<R && h>2*t+eps && w>2*t+eps && d>2*t+eps))
-        fail(featureId,"shell_blend_domain","Rounded prism dimensions, radii and thickness are outside the certified convex domain");
+        return {}; // Outside the analytic extension; use the existing Shell authority.
     return BoxBlend{x,y,z,w,d,h,R,r,t,eps,stock["id"].toString()};
 }
 TopoDS_Shape asSolid(const TopoDS_Shape& shape,const QString& featureId){
@@ -539,7 +539,7 @@ std::vector<EvaluatedSupportFace> innerSupports(const EvaluatedBody& body,const 
 
 bool ClosedBlendShell::evaluate(EvaluatedBody& body,const QJsonObject& parameters,
     const QString& featureId,const QJsonArray& features,int shellIndex,const EvaluatedDocument& evaluated){
-    const auto recognized=ancestry(body,parameters,features,shellIndex,featureId,evaluated);
+    const auto recognized=ancestry(body,parameters,features,shellIndex,evaluated);
     if(!recognized)return false;
     const auto b=*recognized;
     try {

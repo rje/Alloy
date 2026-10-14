@@ -135,9 +135,9 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
         check(editedIds==innerIds,"source inner face IDs survive wall edit");
         const auto validWall=source.authored();
         check(!source.commit(CadDocument::shellCandidate(validWall,
-            {{"featureId",shellId},{"targetBodyId",sourceBody},{"thicknessMm",2.4}}),
-            "Invalid convex wall").isEmpty() && source.authored()==validWall,
-            "thickness below rim radius refuses atomically");
+            {{"featureId",shellId},{"targetBodyId",sourceBody},{"thicknessMm",100}}),
+            "Impossible wall").isEmpty() && source.authored()==validWall,
+            "impossible thickness refuses atomically through existing Shell authority");
         source.history().undo();check(source.authored()==beforeWallEdit,"source wall edit undo");
         source.history().redo();
         QTemporaryDir sourceDir;check(sourceDir.isValid(),"source save directory");

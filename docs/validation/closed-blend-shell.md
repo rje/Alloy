@@ -10,8 +10,8 @@ patches must bijectively match a canonical convex rounded prism by analytic
 plane/cylinder/torus support, full line/circle trims, quarter-domain pcurves,
 shared adjacency and convex corner positions. The original outer faces remain
 unchanged. For r <= wall < R in the nondegenerate domain, a rounded-prism core
-produces the exact inward cavity; other histories continue through the existing
-closed Shell evaluator. This path never substitutes a display mesh or sampled
+produces the exact inward cavity; other histories and out-of-domain values
+continue through the existing closed Shell evaluator. This path never substitutes a display mesh or sampled
 Boolean volume for the analytic boundary certificate.
 
 The corrected public source stock is a centered 93 × 64 mm rectangle extruded

@@ -58,7 +58,7 @@ private slots:
         QTest::mouseClick(tree->viewport(),Qt::LeftButton,Qt::NoModifier,rect.center());
         auto* dock=window.findChild<QDockWidget*>("shellDock");QVERIFY(dock);
         auto* thickness=dock->findChild<QDoubleSpinBox*>("shellThickness");QVERIFY(thickness);
-        QTest::mouseClick(thickness,Qt::LeftButton);thickness->selectAll();
+        QTest::mouseClick(thickness,Qt::LeftButton);QVERIFY(thickness->hasFocus());thickness->selectAll();
         QTest::keyClicks(thickness,"3.5");QTest::keyClick(thickness,Qt::Key_Tab);
         QTRY_VERIFY(window.state()["activeSession"].toObject()["geometryEvaluated"].toBool());
         QCOMPARE(window.state()["activeSession"].toObject()["geometry"].toObject()
