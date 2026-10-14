@@ -2175,7 +2175,7 @@ void AlloyWindow::registerCommands() {
         session_["tool"]="project";refreshSketchControls();view_->setFocus(Qt::OtherFocusReason);
         return QJsonObject{{"pending",true},{"selectionFilter","specifiedEntities"},{"projectionLink",true},{"selectedCount",0}};
     });
-    add("sketch.projectSelect","Select Project edge","Preview one current straight model edge by identity.",{{"bodyId",parameter("string","Source body UUID.")},{"edgeId",parameter("string","Source edge UUID.")}},[this](const auto& a){
+    add("sketch.projectSelect","Select Project edge","Preview one current straight or circular model edge by identity.",{{"bodyId",parameter("string","Source body UUID.")},{"edgeId",parameter("string","Source edge UUID.")}},[this](const auto& a){
         return selectSketchProjection({{"bodyId",a["bodyId"]},{"edgeId",a["edgeId"]}});
     });
     add("sketch.projectFace","Select Project face","Preview all current straight boundaries of one planar face.",{{"producerFeatureId",parameter("string","Face producer UUID.")},{"bodyId",parameter("string","Source body UUID.")},{"faceId",parameter("string","Face UUID.")}},[this](const auto& a){
@@ -2187,14 +2187,14 @@ void AlloyWindow::registerCommands() {
         if(!edge.isEmpty())return selectSketchProjection({{"bodyId",edge["bodyId"]},{"edgeId",edge["edgeId"]}});
         const auto face=view_->pickSupportFace(a["x"].toDouble(),a["y"].toDouble(),document_->bodies());
         if(!face.isEmpty())return selectSketchProjectionFace(face);
-        return failure("projection_source_required","Pick a visible retained straight edge or planar face");
+        return failure("projection_source_required","Pick a visible retained straight or circular edge or planar face");
     });
-    add("view.projectSupportEdge","Project supported edge midpoint","Find viewport coordinates for a current retained straight model edge.",{{"bodyId",parameter("string","Source body UUID.")},{"edgeId",parameter("string","Source edge UUID.")}},[this](const auto& a){
+    add("view.projectSupportEdge","Project supported edge midpoint","Find viewport coordinates for a current retained model edge.",{{"bodyId",parameter("string","Source body UUID.")},{"edgeId",parameter("string","Source edge UUID.")}},[this](const auto& a){
         for(const auto& body:document_->bodies())if(body.bodyId==a["bodyId"].toString())
             for(const auto& face:body.supportFaces)for(const auto& edge:face.boundaryEdges)
-                if(edge.edgeId==a["edgeId"].toString() && edge.type=="line")
+                if(edge.edgeId==a["edgeId"].toString())
                     return view_->projectSolidEdge({edge.edgeId,edge.edge,edge.provenance});
-        return failure("edge_unavailable","Retained straight edge is not current");
+        return failure("edge_unavailable","Retained edge is not current");
     });
     add("sketch.projectPreview","Inspect Project preview","Inspect session-only linked geometry and selected sources.",{},[this](const auto&){
         if(!session_.contains("pendingProject"))return failure("no_project_tool","Start Project first");

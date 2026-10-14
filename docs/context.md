@@ -3220,3 +3220,14 @@ This enables the later adapted Width section at XZ/Y=32 without a substitute
 support face. Focused core, native and real-app evidence are recorded in
 [the candidate receipt](validation/origin-section-distance.md). Independent
 compatibility review and integration remain pending.
+## Retained circular model-edge Project candidate (2026-10-13)
+
+SKT-071 extends face-sketch linked Project to true analytic circles from
+imported STEP occurrences. Stable body/edge/occurrence identities resolve the
+current center and radius after captured placement; virtual solver geometry
+stays out of authored data. The adapted PCB's four mounting holes project onto
+an identity-sibling Case floor, Offset−0.3 creates four radius1.05 peg profiles,
+and Join5 succeeds. Focused core, real-app API, and one native Qt circular-edge
+pick/preview/Escape pass; the prior straight-edge Project core test passes.
+The cumulative case-shell/analysis movie remains TUT-020. See
+[the candidate receipt](validation/linked-circular-project.md).

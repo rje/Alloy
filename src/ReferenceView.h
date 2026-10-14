@@ -193,7 +193,7 @@ private:
     QJsonArray hiddenBodyIds_;
     Handle(AIS_Shape) sketchDraft_, sketchConstructionDraft_, sketchCenterlineDraft_, projectedDraft_, sketchCursor_, sketchSnapCue_, splineCageCursor_;
     int draftNormalEdgeCount_ = 0;
-    QJsonArray projectedLines_, supportPoints_;
+    QJsonArray projectedLines_, projectedCircles_, supportPoints_;
     QJsonArray constructionDraftLineIds_, centerlineDraftLineIds_;
     int rightMousePressCount_ = 0;
     QJsonObject splineHandleState_,splineDrag_;

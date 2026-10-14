@@ -117,6 +117,7 @@ SketchStrokes splitSketchStrokes(const EvaluatedSketch& sketch) {
     const auto entities=sketch.summary.value("entities").toArray();
     QSet<QString> projectedIds;
     for(const auto& value:sketch.summary.value("projectedLines").toArray())projectedIds.insert(value.toObject()["id"].toString());
+    for(const auto& value:sketch.summary.value("projectedCircles").toArray())projectedIds.insert(value.toObject()["id"].toString());
     TopoDS_Iterator child(sketch.shape);
     TopoDS_Compound normal,construction,centerline;BRep_Builder builder;builder.MakeCompound(normal);builder.MakeCompound(construction);builder.MakeCompound(centerline);
     int ordinaryCount=0,constructionCount=0,centerlineCount=0;
@@ -691,6 +692,7 @@ void ReferenceView::showSketchDraft(const EvaluatedSketch& sketch) {
     if(draftSketchId_!=sketch.featureId && centerlineSketchModels_.contains(draftSketchId_))context_->Display(centerlineSketchModels_.value(draftSketchId_),false);
     draftSketchId_=sketch.featureId;sketchDraft_.Nullify();sketchConstructionDraft_.Nullify();sketchCenterlineDraft_.Nullify();projectedDraft_.Nullify();
     projectedLines_=sketch.summary.value("projectedLines").toArray();
+    projectedCircles_=sketch.summary.value("projectedCircles").toArray();
     supportPoints_=sketch.summary.value("availableSupportPoints").toArray();constructionDraftLineIds_={};centerlineDraftLineIds_={};
     if(sketchModels_.contains(draftSketchId_))context_->Erase(sketchModels_.value(draftSketchId_),false);
     if(constructionSketchModels_.contains(draftSketchId_))context_->Erase(constructionSketchModels_.value(draftSketchId_),false);
@@ -726,12 +728,17 @@ void ReferenceView::showSketchDraft(const EvaluatedSketch& sketch) {
                 centerlineDraftLineIds_.append(entity.value("id"));
         }
     }
-    if(!projectedLines_.isEmpty()) {
+    if(!projectedLines_.isEmpty() || !projectedCircles_.isEmpty()) {
         TopoDS_Compound compound;BRep_Builder builder;builder.MakeCompound(compound);
         for(const auto& value:projectedLines_) {
             const auto line=value.toObject();const auto a=sketchWorld(sketch.plane,line["u1Mm"].toDouble(),line["v1Mm"].toDouble());
             const auto b=sketchWorld(sketch.plane,line["u2Mm"].toDouble(),line["v2Mm"].toDouble());
             if(a.Distance(b)>1e-9)builder.Add(compound,BRepBuilderAPI_MakeEdge(a,b).Edge());
+        }
+        for(const auto& value:projectedCircles_) {
+            const auto circle=value.toObject();const auto axis=sketch.resolvedFrame["normal"].toArray();
+            const auto center=sketchWorld(sketch.plane,circle["uMm"].toDouble(),circle["vMm"].toDouble());
+            builder.Add(compound,BRepBuilderAPI_MakeEdge(gp_Circ(gp_Ax2(center,gp_Dir(axis[0].toDouble(),axis[1].toDouble(),axis[2].toDouble())),circle["radiusMm"].toDouble())).Edge());
         }
         projectedDraft_=sketchPresentation(compound);
         projectedDraft_->SetColor(Quantity_Color(0.55,0.22,0.72,Quantity_TOC_sRGB));projectedDraft_->SetWidth(2.2*devicePixelRatioF());
@@ -756,7 +763,7 @@ void ReferenceView::clearSketchDraft() {
         context_->UpdateCurrentViewer();
     }
     profileModels_.clear();draftProfiles_.clear();
-    sketchDraft_.Nullify();sketchConstructionDraft_.Nullify();sketchCenterlineDraft_.Nullify();projectedDraft_.Nullify();draftNormalEdgeCount_=0;projectedLines_={};supportPoints_={};constructionDraftLineIds_={};centerlineDraftLineIds_={};draftSketchId_.clear();clearSketchCursor();applyEditDisplay();
+    sketchDraft_.Nullify();sketchConstructionDraft_.Nullify();sketchCenterlineDraft_.Nullify();projectedDraft_.Nullify();draftNormalEdgeCount_=0;projectedLines_={};projectedCircles_={};supportPoints_={};constructionDraftLineIds_={};centerlineDraftLineIds_={};draftSketchId_.clear();clearSketchCursor();applyEditDisplay();
 }
 QJsonObject ReferenceView::pickSketch(const QJsonObject& feature,double x,double y,const QString& filter,const QJsonObject& resolvedFrame) const {
     if(view_.IsNull() || x<0 || y<0 || x>=width() || y>=height())return {};
@@ -832,6 +839,13 @@ QJsonObject ReferenceView::pickSketch(const QJsonObject& feature,double x,double
         const double t=std::clamp(((x-start.x())*delta.x()+(y-start.y())*delta.y())/length2,0.0,1.0);
         const auto nearest=start+delta*t;const double distance=std::hypot(nearest.x()-x,nearest.y()-y);
         if(distance<=best){best=distance;picked=line["id"].toString();pickedProjection=line;}
+    }
+    if(filter!="line")for(const auto& value:projectedCircles_) {
+        const auto circle=value.toObject();const auto center=projectSketchPoint(circle["uMm"].toDouble(),circle["vMm"].toDouble(),plane,resolvedFrame);
+        const auto rim=projectSketchPoint(circle["uMm"].toDouble()+circle["radiusMm"].toDouble(),circle["vMm"].toDouble(),plane,resolvedFrame);
+        const double radius=std::hypot(rim["x"].toDouble()-center["x"].toDouble(),rim["y"].toDouble()-center["y"].toDouble());
+        const double distance=std::abs(std::hypot(x-center["x"].toDouble(),y-center["y"].toDouble())-radius);
+        if(distance<=best){best=distance;picked=circle["id"].toString();pickedProjection=circle;}
     }
     if(!picked.isEmpty()){
         QJsonObject result{{"kind","entity"},{"entityId",picked},{"distancePixels",best}};
@@ -1190,6 +1204,7 @@ void ReferenceView::decorateSketch(const QJsonObject& feature,const QJsonObject&
     decorateConicHandle(feature,selection);
     QJsonArray projectedUsedIds;QSet<QString> projectedIds;
     for(const auto& value:projectedLines_)projectedIds.insert(value.toObject()["id"].toString());
+    for(const auto& value:projectedCircles_)projectedIds.insert(value.toObject()["id"].toString());
     for(const auto& entry:parameters["constraints"].toArray())
         for(const auto& id:entry.toObject()["entityIds"].toArray())projectedUsedIds.append(id);
     for(const auto& value:projectedLines_) {
@@ -1412,7 +1427,10 @@ void ReferenceView::decorateSketch(const QJsonObject& feature,const QJsonObject&
     }
     QMap<QString,QJsonObject> measurements;
     for(const auto& entry:diagnostics["dimensionValues"].toArray()){const auto value=entry.toObject();measurements[value["id"].toString()]=value;}
-    const auto layoutFeature=SketchGeometry::expandedProjectionFeature(feature,{{"lines",projectedLines_},{"points",supportPoints_}});
+    auto layoutFeature=SketchGeometry::expandedProjectionFeature(feature,{{"lines",projectedLines_},{"circles",projectedCircles_},{"points",supportPoints_}});
+    auto layoutParameters=layoutFeature["parameters"].toObject();
+    layoutParameters["dimensions"]=feature["parameters"].toObject()["dimensions"].toArray();
+    layoutFeature["parameters"]=layoutParameters;
     auto dimensions=parameters.value("dimensions").toArray();
     if(!pending.isEmpty() && !pending.contains("dimensionId")){auto preview=pending;preview["id"]="pending";dimensions.append(preview);}
     if(showDimensions_)for(const auto& entry:dimensions) {
@@ -1733,7 +1751,7 @@ QJsonObject ReferenceView::pickSupportBoundaryEdge(double x,double y,const std::
     for(auto& body:selectable) {
         body.solidEdges.clear();QSet<QString> seen;
         for(const auto& face:body.supportFaces)for(const auto& edge:face.boundaryEdges)
-            if(edge.type=="line" && !edge.edge.IsNull() && !seen.contains(edge.edgeId)) {
+            if(!edge.edge.IsNull() && !seen.contains(edge.edgeId)) {
                 body.solidEdges.push_back({edge.edgeId,edge.edge,edge.provenance});seen.insert(edge.edgeId);
             }
     }
@@ -2077,6 +2095,7 @@ QJsonObject ReferenceView::diagnostics() const {
     result.insert("projectedDraftVisible",!projectedDraft_.IsNull());
     result.insert("projectedLineIds",projectedLineIds);
     result.insert("projectedLines",projectedLines_);
+    result.insert("projectedCircles",projectedCircles_);
     result.insert("projectedPointIds",projectedPointIds);
     result.insert("selectedProjectedPointIds",selectedProjectedPointIds);
     result.insert("projectedEndpoints",projectedEndpoints);

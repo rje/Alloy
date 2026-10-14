@@ -337,7 +337,10 @@ QJsonObject SketchGeometry::linkedProjectionCandidate(const EvaluatedDocument& e
         || !validId(source["bodyId"].toString()) || !validId(source["edgeId"].toString()))
         reject("Linked Project requires a supported sketch and stable body/edge IDs");
     auto candidate=sketch,parameters=candidate["parameters"].toObject();
-    for(const auto& key:{"projections","pointProjections"}) {
+    QJsonObject retainedSource=source;
+    for(const auto& body:evaluation.bodies)if(body.bodyId==source["bodyId"].toString() && !body.occurrenceId.isEmpty())
+        retainedSource["occurrenceId"]=body.occurrenceId;
+    for(const auto& key:{"projections","pointProjections","circleProjections"}) {
         auto entries=parameters.value(key).toArray();
         for(int i=0;i<entries.size();++i) {
             auto entry=entries[i].toObject(),previous=entry["source"].toObject();
@@ -351,7 +354,14 @@ QJsonObject SketchGeometry::linkedProjectionCandidate(const EvaluatedDocument& e
     const auto id=QUuid::createUuidV5(QUuid(sketch["id"].toString()),
         QByteArray("alloy-linked-projection/1\n")+source["bodyId"].toString().toUtf8()+'\n'+source["edgeId"].toString().toUtf8())
         .toString(QUuid::WithoutBraces);
-    auto lines=parameters["projections"].toArray();lines.append(QJsonObject{{"id",id},{"source",source},{"profile",true}});
+    auto circles=parameters["circleProjections"].toArray();circles.append(QJsonObject{{"id",id},{"source",retainedSource},{"profile",true}});
+    parameters["circleProjections"]=circles;candidate["parameters"]=parameters;
+    try {GeometryKernel::projectionContext(evaluation,candidate);return candidate;}
+    catch(const GeometryKernel::EvaluationError& error) {
+        if(error.diagnostics()["code"]!="unsupported_projection")throw;
+    }
+    circles.removeLast();if(circles.isEmpty())parameters.remove("circleProjections");else parameters["circleProjections"]=circles;
+    auto lines=parameters["projections"].toArray();lines.append(QJsonObject{{"id",id},{"source",retainedSource},{"profile",true}});
     parameters["projections"]=lines;candidate["parameters"]=parameters;
     try {GeometryKernel::projectionContext(evaluation,candidate);return candidate;}
     catch(const GeometryKernel::EvaluationError& error) {
@@ -359,7 +369,7 @@ QJsonObject SketchGeometry::linkedProjectionCandidate(const EvaluatedDocument& e
     }
     lines.removeLast();parameters["projections"]=lines;
     auto pointProjections=parameters["pointProjections"].toArray();
-    pointProjections.append(QJsonObject{{"id",id},{"source",source}});
+    pointProjections.append(QJsonObject{{"id",id},{"source",retainedSource}});
     parameters["pointProjections"]=pointProjections;candidate["parameters"]=parameters;
     GeometryKernel::projectionContext(evaluation,candidate);
     return candidate;
@@ -367,7 +377,7 @@ QJsonObject SketchGeometry::linkedProjectionCandidate(const EvaluatedDocument& e
 QJsonObject SketchGeometry::expandedProjectionFeature(const QJsonObject& feature,const QJsonObject& context) {
     auto expanded=feature;auto parameters=feature["parameters"].toObject();
     const auto projections=parameters["projections"].toArray();
-    auto points=parameters["points"].toArray(),entities=parameters["entities"].toArray();
+    auto points=parameters["points"].toArray(),entities=parameters["entities"].toArray(),dimensions=parameters["dimensions"].toArray();
     for(const auto& value:projections) {
         const auto projection=value.toObject();QJsonObject line;
         for(const auto& resolved:context["lines"].toArray())if(resolved.toObject()["id"]==projection["id"]){if(!line.isEmpty())reject("Ambiguous resolved projection");line=resolved.toObject();}
@@ -377,6 +387,16 @@ QJsonObject SketchGeometry::expandedProjectionFeature(const QJsonObject& feature
         points.append(QJsonObject{{"id",end},{"uMm",coordinate(line,"u2Mm")},{"vMm",coordinate(line,"v2Mm")}});
         entities.append(QJsonObject{{"id",id},{"type","line"},{"startPointId",start},{"endPointId",end},
             {"construction",!projection["profile"].toBool()}});
+    }
+    for(const auto& value:parameters["circleProjections"].toArray()) {
+        const auto projection=value.toObject();QJsonObject circle;
+        for(const auto& resolved:context["circles"].toArray())if(resolved.toObject()["id"]==projection["id"]){if(!circle.isEmpty())reject("Ambiguous resolved circle projection");circle=resolved.toObject();}
+        if(circle.isEmpty() || circle["source"]!=projection["source"])reject("Retained circle requires current resolved support geometry");
+        const auto id=projection["id"].toString(),center=projectionPointId(id,false);const double radius=coordinate(circle,"radiusMm");
+        points.append(QJsonObject{{"id",center},{"uMm",coordinate(circle,"uMm")},{"vMm",coordinate(circle,"vMm")}});
+        entities.append(QJsonObject{{"id",id},{"type","circle"},{"centerPointId",center},{"radiusMm",radius}});
+        const auto diameterId=QUuid::createUuidV5(QUuid(id),QByteArray("alloy-projected-circle-diameter/1")).toString(QUuid::WithoutBraces);
+        dimensions.append(QJsonObject{{"id",diameterId},{"kind","diameter"},{"entityId",id},{"driving",true},{"valueMm",2*radius}});
     }
     for(const auto& value:parameters["pointReferences"].toArray()) {
         const auto reference=value.toObject();QJsonObject point;
@@ -390,7 +410,7 @@ QJsonObject SketchGeometry::expandedProjectionFeature(const QJsonObject& feature
         if(point.isEmpty())reject("Retained point projection requires current resolved source edge");
         points.append(QJsonObject{{"id",projection["id"]},{"uMm",coordinate(point,"uMm")},{"vMm",coordinate(point,"vMm")}});
     }
-    parameters.remove("pointReferences");parameters.remove("pointProjections");parameters.remove("projections");parameters["points"]=points;parameters["entities"]=entities;expanded["parameters"]=parameters;return expanded;
+    parameters.remove("pointReferences");parameters.remove("pointProjections");parameters.remove("projections");parameters.remove("circleProjections");parameters["points"]=points;parameters["entities"]=entities;parameters["dimensions"]=dimensions;expanded["parameters"]=parameters;return expanded;
 }
 
 QJsonObject SketchGeometry::findFeature(const QJsonObject& authored, const QString& sketchId) {
@@ -1013,15 +1033,16 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
     } else if(parameters.contains("support"))return "Non-face sketch cannot carry face support";
     if(plane=="construction") {if(!validId(parameters["planeId"].toString()))return "Construction sketch requires a stable plane ID";}
     else if(parameters.contains("planeId"))return "Only construction sketches can reference a plane feature";
-    if(parameters.contains("projections") || parameters.contains("pointReferences") || parameters.contains("pointProjections")) {
-        if(plane!="face" || (parameters.contains("projections") && !parameters["projections"].isArray()) || (parameters.contains("pointReferences") && !parameters["pointReferences"].isArray()) || (parameters.contains("pointProjections") && !parameters["pointProjections"].isArray()))return "Projections require a supported face sketch and array";
-        QJsonArray lines,resolvedPoints;QSet<QString> sources,referenceIds=derivedPointIds;
+    if(parameters.contains("projections") || parameters.contains("pointReferences") || parameters.contains("pointProjections") || parameters.contains("circleProjections")) {
+        if(plane!="face" || (parameters.contains("projections") && !parameters["projections"].isArray()) || (parameters.contains("pointReferences") && !parameters["pointReferences"].isArray()) || (parameters.contains("pointProjections") && !parameters["pointProjections"].isArray()) || (parameters.contains("circleProjections") && !parameters["circleProjections"].isArray()))return "Projections require a supported face sketch and array";
+        QJsonArray lines,circles,resolvedPoints;QSet<QString> sources,referenceIds=derivedPointIds;
         for(const auto& value:parameters["projections"].toArray()) {
             if(!value.isObject())return "Projection must be an object";const auto projection=value.toObject();
             if((projection.size()!=2 && !(projection.size()==3 && projection["profile"].isBool()))
                 || !validId(projection["id"].toString()) || !projection["source"].isObject())return "Invalid retained projection";
-            const auto source=projection["source"].toObject();if(source.size()!=4 && source.size()!=2)return "Invalid projection source fields";
+            const auto source=projection["source"].toObject();if(source.size()!=4 && source.size()!=2 && source.size()!=3)return "Invalid projection source fields";
             for(const auto& key:{"bodyId","edgeId"})if(!source[key].isString() || !validId(source[key].toString()))return "Projection source requires stable UUIDs";
+            if(source.size()==3 && (!source["occurrenceId"].isString() || !validId(source["occurrenceId"].toString())))return "Projection occurrence requires a stable UUID";
             if(source.size()==4) {
                 for(const auto& key:{"producerFeatureId","faceId"})if(!source[key].isString() || !validId(source[key].toString()))return "Projection source requires stable UUIDs";
                 for(const auto& key:{"producerFeatureId","bodyId","faceId"})if(source[key]!=parameters["support"].toObject()[key])return "Projection source must belong to sketch support";
@@ -1032,12 +1053,24 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
         }
         for(const auto& value:parameters["pointProjections"].toArray()) {
             if(!value.isObject())return "Point projection must be an object";const auto projection=value.toObject(),source=projection["source"].toObject();
-            if(projection.size()!=2 || !validId(projection["id"].toString()) || source.size()!=2
+            if(projection.size()!=2 || !validId(projection["id"].toString()) || (source.size()!=2 && source.size()!=3)
                 || !validId(source["bodyId"].toString()) || !validId(source["edgeId"].toString()))return "Invalid retained point projection";
+            if(source.size()==3 && !validId(source["occurrenceId"].toString()))return "Invalid point projection occurrence";
             const auto key=source["bodyId"].toString()+":"+source["edgeId"].toString();
             if(sources.contains(key))return "Duplicate projected source edge";sources.insert(key);
             referenceIds.insert(projection["id"].toString());
             resolvedPoints.append(QJsonObject{{"id",projection["id"]},{"source",source},{"uMm",0},{"vMm",0}});
+        }
+        for(const auto& value:parameters["circleProjections"].toArray()) {
+            if(!value.isObject())return "Circle projection must be an object";
+            const auto projection=value.toObject(),source=projection["source"].toObject();
+            if(projection.size()!=3 || !validId(projection["id"].toString()) || projection["profile"]!=true
+                || source.size()!=3 || !validId(source["bodyId"].toString()) || !validId(source["edgeId"].toString())
+                || !validId(source["occurrenceId"].toString()))return "Invalid retained circular projection";
+            const auto key=source["bodyId"].toString()+":"+source["edgeId"].toString();
+            if(sources.contains(key))return "Duplicate projected source edge";sources.insert(key);
+            circles.append(QJsonObject{{"id",projection["id"]},{"source",source},{"uMm",0},{"vMm",0},{"radiusMm",1}});
+            referenceIds.insert(projectionPointId(projection["id"].toString(),false));
         }
         for(const auto& value:parameters["pointReferences"].toArray()) {
             if(!value.isObject())return "Support point reference must be an object";const auto reference=value.toObject();
@@ -1053,10 +1086,10 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
             resolvedPoints.append(QJsonObject{{"id",reference["id"]},{"source",source},{"uMm",0},{"vMm",0}});
         }
         if(parameters.contains("texts")){
-            auto textOnly=parameters;textOnly.remove("projections");textOnly.remove("pointReferences");textOnly.remove("pointProjections");
+            auto textOnly=parameters;textOnly.remove("projections");textOnly.remove("pointReferences");textOnly.remove("pointProjections");textOnly.remove("circleProjections");
             return validateParameters(textOnly,authoredIds);
         }
-        try {return validateParameters(expandedProjectionFeature({{"parameters",parameters}},{{"lines",lines},{"points",resolvedPoints}})["parameters"].toObject(),authoredIds,referenceIds);}
+        try {return validateParameters(expandedProjectionFeature({{"parameters",parameters}},{{"lines",lines},{"circles",circles},{"points",resolvedPoints}})["parameters"].toObject(),authoredIds,referenceIds);}
         catch(const std::exception& error){return QString::fromUtf8(error.what());}
     }
     const QSet<QString> allowed{"plane", "planeId", "points", "entities", "constraints", "dimensions", "originPointId", "support", "texts", "loopOffsets", "openChainOffsets", "roundedRectangleIntent", "mirrorGroups", "slotGroups", "arcSlotGroups"};
@@ -1487,6 +1520,11 @@ SketchGeometry::SolveResult SketchGeometry::solveDraft(const QJsonObject& draft,
         QSet<QString> lockedPoints,virtualEntities;
         for(const auto& value:draft["parameters"].toObject()["projections"].toArray()){const auto id=value.toObject()["id"].toString();
             virtualEntities.insert(id);lockedPoints.insert(projectionPointId(id,false));lockedPoints.insert(projectionPointId(id,true));}
+        QSet<QString> virtualDimensions;
+        for(const auto& value:draft["parameters"].toObject()["circleProjections"].toArray()) {
+            const auto id=value.toObject()["id"].toString();virtualEntities.insert(id);lockedPoints.insert(projectionPointId(id,false));
+            virtualDimensions.insert(QUuid::createUuidV5(QUuid(id),QByteArray("alloy-projected-circle-diameter/1")).toString(QUuid::WithoutBraces));
+        }
         QSet<QString> derivedPoints;
         for(const auto& value:draft["parameters"].toObject()["pointReferences"].toArray()){const auto id=value.toObject()["id"].toString();lockedPoints.insert(id);derivedPoints.insert(id);}
         for(const auto& value:draft["parameters"].toObject()["pointProjections"].toArray()){const auto id=value.toObject()["id"].toString();lockedPoints.insert(id);derivedPoints.insert(id);}
@@ -1497,14 +1535,16 @@ SketchGeometry::SolveResult SketchGeometry::solveDraft(const QJsonObject& draft,
         const auto result=SketchSolver::solve(expanded["parameters"].toObject(),lockedPoints);
         if(!result.accepted)return {false,draft,result.diagnostics,result.error};
         auto solved=draft;auto parameters=SketchOpenChainOffset::derive(result.parameters);
-        QJsonArray points,entities;
+        QJsonArray points,entities,dimensions;
         for(const auto& value:parameters["points"].toArray())if(!externalLockedPoints.contains(value.toObject()["id"].toString()))points.append(value);
         for(const auto& value:parameters["entities"].toArray())if(!virtualEntities.contains(value.toObject()["id"].toString()))entities.append(value);
-        parameters["points"]=points;parameters["entities"]=entities;
+        for(const auto& value:parameters["dimensions"].toArray())if(!virtualDimensions.contains(value.toObject()["id"].toString()))dimensions.append(value);
+        parameters["points"]=points;parameters["entities"]=entities;parameters["dimensions"]=dimensions;
         if(draft["parameters"].toObject().contains("texts"))parameters["texts"]=draft["parameters"].toObject()["texts"];
         if(draft["parameters"].toObject().contains("projections"))parameters["projections"]=draft["parameters"].toObject()["projections"];
         if(draft["parameters"].toObject().contains("pointReferences"))parameters["pointReferences"]=draft["parameters"].toObject()["pointReferences"];
         if(draft["parameters"].toObject().contains("pointProjections"))parameters["pointProjections"]=draft["parameters"].toObject()["pointProjections"];
+        if(draft["parameters"].toObject().contains("circleProjections"))parameters["circleProjections"]=draft["parameters"].toObject()["circleProjections"];
         parameters=SketchSplineOffset::refreshEndpoints(parameters);
         solved["parameters"]=parameters;validateDraft(solved);validateRoundedIntent(parameters);validateSlotGroups(parameters);validateArcSlotGroups(parameters);
         for(const auto& value:entities)if(value.toObject()["type"]=="fitSplineOffset"){
@@ -2161,10 +2201,14 @@ SketchGeometry::SolveResult SketchGeometry::addCircleOffset(const QJsonObject& d
         auto points=parameters["points"].toArray(),constraints=parameters["constraints"].toArray();
         QJsonObject source,sourceCenter;
         for(const auto& value:entities)if(value.toObject()["id"]==sourceId){source=value.toObject();break;}
-        if(source["type"]!="circle")reject("Circle Offset requires one authored circle");
+        if(source.isEmpty())for(const auto& value:expandedProjectionFeature(draft,projectionContext)["parameters"].toObject()["entities"].toArray())
+            if(value.toObject()["id"]==sourceId){source=value.toObject();break;}
+        if(source["type"]!="circle")reject("Circle Offset requires one current circle");
         for(const auto& value:constraints)if(value.toObject()["type"]=="circleOffset"
             && value.toObject()["entityIds"].toArray()[1]==sourceId)reject("Offset result cannot be used as a source in this slice");
         for(const auto& value:points)if(value.toObject()["id"]==source["centerPointId"]){sourceCenter=value.toObject();break;}
+        if(sourceCenter.isEmpty())for(const auto& value:expandedProjectionFeature(draft,projectionContext)["parameters"].toObject()["points"].toArray())
+            if(value.toObject()["id"]==source["centerPointId"]){sourceCenter=value.toObject();break;}
         if(sourceCenter.isEmpty())reject("Source circle center no longer exists");
         const double radius=source["radiusMm"].toDouble()+distance;
         if(radius<minimumLength || radius>maximumLength)reject("Offset would create an invalid circle radius");
@@ -2314,7 +2358,8 @@ SketchGeometry::SolveResult SketchGeometry::movePoint(const QJsonObject& draft, 
         auto candidate = draft; candidate["parameters"] = parameters;
         // Point manipulation supplies a solver seed. ArcRules restore normalized
         // analytic intent before final validation; no inconsistent state is accepted.
-        if(parameters.value("projections").toArray().isEmpty() && parameters.value("pointReferences").toArray().isEmpty()) {
+        if(parameters.value("projections").toArray().isEmpty() && parameters.value("circleProjections").toArray().isEmpty()
+            && parameters.value("pointReferences").toArray().isEmpty()) {
             const auto result=SketchSolver::solve(parameters);
             if(!result.accepted)return {false,draft,result.diagnostics,result.error};
             candidate["parameters"]=result.parameters;
@@ -2419,7 +2464,10 @@ EvaluatedSketch SketchGeometry::evaluateFeature(const QJsonObject& feature, cons
         {"lengthUnit", "mm"}, {"plane", plane}, {"frame", sketchFrame}, {"solverIntegrated", true}, {"solver", solution.diagnostics},
         {"entities",geometry}, {"pointCount", points.size()}, {"entityCount", entities.size()}, {"worldPoints", worldPoints}, {"boundsMm", bounds}};
     auto profileFeature=solution.feature;
-    for(const auto& value:solution.feature["parameters"].toObject()["projections"].toArray())if(value.toObject()["profile"].toBool()) {
+    bool linkedProfile=false;
+    for(const auto& collection:{"projections","circleProjections"})for(const auto& value:solution.feature["parameters"].toObject()[collection].toArray())
+        linkedProfile|=value.toObject()["profile"].toBool();
+    if(linkedProfile) {
         auto profileParameters=parameters;
         // Region extraction consumes solved geometry. Constraints and retained
         // point anchors have already done their work and are not boundaries.
@@ -2450,7 +2498,7 @@ EvaluatedSketch SketchGeometry::evaluateFeature(const QJsonObject& feature, cons
         }
         profileParameters["points"]=profilePoints;profileParameters["constraints"]=structural;
         profileParameters["dimensions"]=QJsonArray{};
-        profileFeature["parameters"]=profileParameters;break;
+        profileFeature["parameters"]=profileParameters;
     }
     const auto profile = SketchProfiles::deriveRegions(profileFeature,sketchFrame);
     QJsonArray profileSummaries;
@@ -2470,6 +2518,7 @@ EvaluatedSketch SketchGeometry::evaluateFeature(const QJsonObject& feature, cons
     }
     summary["projectedPoints"]=retainedSupportPoints;summary["availableSupportPoints"]=projectionContext["points"].toArray();
     summary["projectedLines"]=projectionContext["lines"].toArray();
+    summary["projectedCircles"]=projectionContext["circles"].toArray();
     summary["unsupportedProjectedEdges"]=projectionContext["unsupportedEdges"].toArray();
     QJsonArray standalonePoints;for(const auto& item:geometry)if(item.toObject()["type"]=="point")standalonePoints.append(item);
     summary["standalonePoints"]=standalonePoints;

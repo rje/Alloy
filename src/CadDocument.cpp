@@ -108,7 +108,7 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
                 if(!permitted(support))return {{"featureId",f["id"]},{"code","cross_component_dependency"},{"message","Sketch support requires an earlier identity sibling body"}};
                 guarded.remove("support");
             }
-            for(const auto& key:{"projections","pointProjections"}) {
+            for(const auto& key:{"projections","pointProjections","circleProjections"}) {
                 bool valid=true;
                 for(const auto& item:guarded[key].toArray())valid &= permitted(item.toObject()["source"].toObject());
                 if(!valid)return {{"featureId",f["id"]},{"code","cross_component_dependency"},{"message","Linked Project requires an identity sibling source body"}};
@@ -134,7 +134,7 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
                 const auto body=source["bodyId"].toString();
                 return bodyPositions.contains(body) && bodyPositions[body]<i && activeBodies.contains(body);
             };
-            for(const auto& key:{"projections","pointProjections"})for(const auto& item:parameters[key].toArray())
+            for(const auto& key:{"projections","pointProjections","circleProjections"})for(const auto& item:parameters[key].toArray())
                 if(!earlierBody(item.toObject()["source"].toObject()))return {{"featureId",feature["id"]},
                     {"code","projection_unavailable"},{"message","Projected source must be an earlier active body"}};
         }

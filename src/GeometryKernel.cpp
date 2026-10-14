@@ -202,8 +202,8 @@ QJsonArray GeometryKernel::supportEdgeDescriptors(const EvaluatedSupportFace& su
     return result;
 }
 QJsonObject GeometryKernel::projectionContext(const EvaluatedDocument& evaluation,const QJsonObject& feature) {
-    const auto parameters=feature["parameters"].toObject();QJsonArray lines,unsupported,points;
-    if(parameters["plane"]!="face")return {{"lines",lines},{"unsupportedEdges",unsupported},{"points",points}};
+    const auto parameters=feature["parameters"].toObject();QJsonArray lines,circles,unsupported,points;
+    if(parameters["plane"]!="face")return {{"lines",lines},{"circles",circles},{"unsupportedEdges",unsupported},{"points",points}};
     const auto cap=resolveSketchSupport(evaluation,parameters["support"].toObject());
     for(const auto& edge:cap.boundaryEdges)if(edge.type!="line")unsupported.append(edge.edgeId);
     const auto origin=cap.frame["origin"].toArray(),u=cap.frame["uAxis"].toArray(),v=cap.frame["vAxis"].toArray();
@@ -246,6 +246,8 @@ QJsonObject GeometryKernel::projectionContext(const EvaluatedDocument& evaluatio
         }
         const auto body=std::find_if(evaluation.bodies.begin(),evaluation.bodies.end(),[&](const auto& b){return b.bodyId==source["bodyId"].toString();});
         if(body==evaluation.bodies.end())reject("projection_unavailable","Projected source body is no longer active");
+        if(!body->occurrenceId.isEmpty() && source["occurrenceId"]!=body->occurrenceId)
+            reject("projection_unavailable","Imported projected edge requires its current occurrence identity");
         TopTools_IndexedMapOfShape present;TopExp::MapShapes(body->shape,TopAbs_EDGE,present);
         const EvaluatedSupportEdge* found=nullptr;
         for(const auto& face:body->supportFaces)for(const auto& edge:face.boundaryEdges)if(edge.edgeId==source["edgeId"].toString()) {
@@ -279,7 +281,20 @@ QJsonObject GeometryKernel::projectionContext(const EvaluatedDocument& evaluatio
             points.append(QJsonObject{{"id",id},{"source",source},{"uMm",u1},{"vMm",v1},{"retained",true},{"kind","projectedEdgePoint"}});
         }
     }
-    return {{"lines",lines},{"unsupportedEdges",unsupported},{"points",points}};
+    for(const auto& item:parameters["circleProjections"].toArray()) {
+        const auto projection=item.toObject(),source=projection["source"].toObject();
+        const auto edge=edgeFor(source);
+        if(edge.edge.IsNull())reject("projection_unavailable","Circular source edge is unavailable");
+        const BRepAdaptor_Curve curve(edge.edge);
+        if(curve.GetType()!=GeomAbs_Circle)reject("unsupported_projection","Linked circular Project requires a true circular model edge");
+        const auto circle=curve.Circle();const auto axis=circle.Axis().Direction();
+        const double parallel=std::abs(axis.X()*normal[0].toDouble()+axis.Y()*normal[1].toDouble()+axis.Z()*normal[2].toDouble());
+        if(parallel<1-1e-6)reject("unsupported_projection","Circular source edge must be parallel to the sketch plane");
+        const auto center=circle.Location();const QJsonArray world{center.X(),center.Y(),center.Z()};
+        circles.append(QJsonObject{{"id",projection["id"]},{"source",source},{"centerPointId",SketchGeometry::projectionPointId(projection["id"].toString(),false)},
+            {"uMm",local(world,u)},{"vMm",local(world,v)},{"radiusMm",circle.Radius()}});
+    }
+    return {{"lines",lines},{"circles",circles},{"unsupportedEdges",unsupported},{"points",points}};
 }
 
 EvaluatedProfile GeometryKernel::unionProfiles(const std::vector<EvaluatedProfile>& profiles) {
