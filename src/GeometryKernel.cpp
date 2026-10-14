@@ -35,6 +35,9 @@
 #include <BRepPrimAPI_MakeCylinder.hxx>
 #include <BRepPrimAPI_MakePrism.hxx>
 #include <BRep_Tool.hxx>
+#include <GeomAPI_ProjectPointOnSurf.hxx>
+#include <BRepClass_FaceClassifier.hxx>
+#include <gp_Pnt2d.hxx>
 #include <Geom_OffsetCurve.hxx>
 #include <Bnd_Box.hxx>
 #include <GProp_GProps.hxx>
@@ -204,6 +207,59 @@ QJsonObject GeometryKernel::pathEndpointPlaneFrame(const EvaluatedDocument& eval
             {"normal",QJsonArray{tangent.X(),tangent.Y(),tangent.Z()}}};
     }catch(const EvaluationError&){throw;}
     catch(const std::exception& error){reject("path_unavailable",QString("Unable to evaluate retained spline: %1").arg(error.what()));}
+}
+
+QJsonObject GeometryKernel::tangentPointPlaneFrame(const EvaluatedDocument& evaluation,const QJsonObject& tangent) {
+    const auto reference=tangent["face"].toObject(),point=tangent["point"].toObject();
+    const EvaluatedBody* body=nullptr;
+    for(const auto& candidate:evaluation.bodies)if(candidate.bodyId==reference["bodyId"].toString())body=&candidate;
+    if(!body || point["bodyId"]!=reference["bodyId"])reject("tangent_support_unavailable","Face and endpoint must belong to the same current body");
+    const EvaluatedSupportFace* face=nullptr;
+    for(const auto& candidate:body->supportFaces)if(candidate.faceId==reference["faceId"].toString()
+        && candidate.producerFeatureId==reference["producerFeatureId"].toString()){
+        if(face)reject("tangent_support_ambiguous","The retained face is ambiguous");face=&candidate;}
+    const EvaluatedSolidEdge* edge=nullptr;
+    for(const auto& candidate:body->solidEdges)if(candidate.edgeId==point["edgeId"].toString()){
+        if(edge)reject("tangent_point_ambiguous","The retained edge is ambiguous");edge=&candidate;}
+    if(!face || !edge || face->face.IsNull() || edge->edge.IsNull())
+        reject("tangent_support_unavailable","The retained face or edge endpoint is unavailable");
+    int faceMatches=0,edgeMatches=0;
+    for(TopExp_Explorer f(body->shape,TopAbs_FACE);f.More();f.Next())if(f.Current().IsSame(face->face))++faceMatches;
+    TopTools_IndexedMapOfShape currentEdges;TopExp::MapShapes(body->shape,TopAbs_EDGE,currentEdges);
+    if(currentEdges.Contains(edge->edge))edgeMatches=1;
+    if(faceMatches!=1 || edgeMatches!=1)reject("tangent_support_unavailable","Retained references are not exact current body topology");
+    TopoDS_Vertex first,last;TopExp::Vertices(edge->edge,first,last,true);
+    if(first.IsNull() || last.IsNull() || first.IsSame(last))reject("tangent_point_unavailable","Select an edge with two distinct endpoints");
+    const auto start=edge->provenance["startMm"].toArray(),end=edge->provenance["endMm"].toArray();
+    if(start.size()!=3 || end.size()!=3 || (point["endpoint"]!=0 && point["endpoint"]!=1))
+        reject("tangent_point_unavailable","The retained edge has no oriented endpoint metadata");
+    const gp_Pnt expectedStart(start[0].toDouble(),start[1].toDouble(),start[2].toDouble()),
+        expectedEnd(end[0].toDouble(),end[1].toDouble(),end[2].toDouble());
+    const auto a=BRep_Tool::Pnt(first),b=BRep_Tool::Pnt(last);
+    const bool forward=a.Distance(expectedStart)<1e-6 && b.Distance(expectedEnd)<1e-6;
+    const bool reversed=b.Distance(expectedStart)<1e-6 && a.Distance(expectedEnd)<1e-6;
+    if(forward==reversed)reject("tangent_point_ambiguous","Current edge vertices do not uniquely match the retained oriented endpoints");
+    const auto origin=point["endpoint"].toInt()==0?expectedStart:expectedEnd;
+    TopLoc_Location location;auto surface=BRep_Tool::Surface(face->face,location);
+    const auto local=origin.Transformed(location.Transformation().Inverted());
+    GeomAPI_ProjectPointOnSurf projection(local,surface);
+    if(projection.NbPoints()<1 || projection.LowerDistance()>1e-5)
+        reject("tangent_point_off_face","The retained endpoint must lie on the selected face");
+    double uParameter,vParameter;projection.LowerDistanceParameters(uParameter,vParameter);
+    BRepClass_FaceClassifier classifier(face->face,gp_Pnt2d(uParameter,vParameter),1e-6);
+    if(classifier.State()!=TopAbs_IN && classifier.State()!=TopAbs_ON)
+        reject("tangent_point_off_face","The retained endpoint is outside the selected face boundary");
+    gp_Pnt evaluated;gp_Vec du,dv;surface->D1(uParameter,vParameter,evaluated,du,dv);
+    du.Transform(location.Transformation());dv.Transform(location.Transformation());
+    auto normal=du.Crossed(dv);
+    if(normal.Magnitude()<1e-10)reject("tangent_normal_unavailable","Surface normal is singular at this endpoint");
+    normal.Normalize();if(face->face.Orientation()==TopAbs_REVERSED)normal.Reverse();
+    gp_Vec u(1,0,0);u-=normal.Multiplied(u.Dot(normal));
+    if(u.Magnitude()<1e-7){u=gp_Vec(0,1,0);u-=normal.Multiplied(u.Dot(normal));}
+    u.Normalize();const auto v=normal.Crossed(u);
+    return {{"origin",QJsonArray{origin.X(),origin.Y(),origin.Z()}},
+        {"uAxis",QJsonArray{u.X(),u.Y(),u.Z()}},{"vAxis",QJsonArray{v.X(),v.Y(),v.Z()}},
+        {"normal",QJsonArray{normal.X(),normal.Y(),normal.Z()}}};
 }
 
 QJsonObject GeometryKernel::offsetPlaneFrame(const QJsonObject& frame,double offsetMm) {
@@ -723,6 +779,7 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
             if(type=="constructionPlane") {
                 const auto source=parameters["source"].toObject();
                 auto frame=source.contains("faces") ? midplaneFrame(evaluated,source["faces"].toArray())
+                    : source.contains("tangent") ? tangentPointPlaneFrame(evaluated,source["tangent"].toObject())
                     : source.contains("path") ? pathEndpointPlaneFrame(evaluated,source["path"].toObject(),features)
                     : offsetPlaneFrame(resolvePlaneSource(evaluated,source),parameters["offsetMm"].toDouble());
                 const auto bounds=frame.take("displayBoundsMm").toArray();

@@ -93,6 +93,7 @@ public:
     void recordContextMenu(const QJsonObject& state,bool shown = false);
     void highlightCombineInputs(const QString& targetBodyId, const QJsonArray& toolBodyIds);
     QString pickBody(double x,double y);
+    QJsonObject pickSolidEndpoint(double x,double y,const std::vector<EvaluatedBody>& bodies,const QJsonObject& face) const;
     QJsonObject pickSolidEdge(double x,double y,const std::vector<EvaluatedBody>& bodies) const;
     QJsonObject pickSupportBoundaryEdge(double x,double y,const std::vector<EvaluatedBody>& bodies) const;
     QJsonObject projectSolidEdge(const EvaluatedSolidEdge& edge) const;

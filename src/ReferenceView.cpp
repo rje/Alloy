@@ -1,4 +1,6 @@
 #include <AIS_ColoredShape.hxx>
+#include <TopExp.hxx>
+#include <TopTools_IndexedMapOfShape.hxx>
 #include <BRepAdaptor_Curve.hxx>
 #include <BRepPrimAPI_MakeCylinder.hxx>
 #include <BRepPrimAPI_MakeCone.hxx>
@@ -1725,6 +1727,34 @@ QJsonObject ReferenceView::projectSolidEdge(const EvaluatedSolidEdge& edge) cons
     BRepAdaptor_Curve curve(edge.edge);const auto p=curve.Value((curve.FirstParameter()+curve.LastParameter())/2);int x,y;view_->Convert(p.X(),p.Y(),p.Z(),x,y);const auto scale=windowScale();
     return {{"x",x/scale.x()},{"y",y/scale.y()},{"edgeId",edge.edgeId},{"viewportLocal",true}};
 }
+QJsonObject ReferenceView::pickSolidEndpoint(double x,double y,const std::vector<EvaluatedBody>& bodies,const QJsonObject& face) const {
+    if(view_.IsNull())return {};
+    const auto scale=windowScale();double best=10;QJsonObject result;gp_Pnt selected;
+    for(const auto& body:bodies)if(body.visible && body.bodyId==face["bodyId"].toString()) {
+        const EvaluatedSupportFace* support=nullptr;
+        for(const auto& f:body.supportFaces)if(f.faceId==face["faceId"].toString() && f.producerFeatureId==face["producerFeatureId"].toString())support=&f;
+        if(!support)return {};
+        TopTools_IndexedMapOfShape vertices;TopExp::MapShapes(support->face,TopAbs_VERTEX,vertices);
+        for(const auto& edge:body.solidEdges)if(!edge.edge.IsNull())for(int endpoint=0;endpoint<2;++endpoint){
+            const auto xyz=edge.provenance[endpoint==0?"startMm":"endMm"].toArray();if(xyz.size()!=3)continue;
+            const gp_Pnt point(xyz[0].toDouble(),xyz[1].toDouble(),xyz[2].toDouble());
+            bool onFace=false;for(int v=1;v<=vertices.Extent();++v)if(BRep_Tool::Pnt(TopoDS::Vertex(vertices(v))).Distance(point)<1e-6)onFace=true;
+            if(!onFace)continue;
+            int px,py;view_->Convert(point.X(),point.Y(),point.Z(),px,py);const double distance=QLineF(QPointF(x,y),QPointF(px/scale.x(),py/scale.y())).length();
+            if(distance>best+1e-5)continue;
+            // Shared vertices can be represented by more than one retained edge.
+            // Stable ID order resolves equivalent references; screen-overlapping
+            // distinct vertices are refused instead of guessing depth.
+            if(!result.isEmpty() && std::abs(distance-best)<1e-5){
+                if(selected.Distance(point)>1e-6)return {};
+                if(edge.edgeId>=result["edgeId"].toString())continue;
+            }
+            best=distance;selected=point;result={{"bodyId",body.bodyId},{"edgeId",edge.edgeId},{"endpoint",endpoint}};
+        }
+    }
+    return result;
+}
+
 QJsonObject ReferenceView::pickSolidEdge(double x,double y,const std::vector<EvaluatedBody>& bodies) const {
     if(view_.IsNull() || x<0 || y<0 || x>=width() || y>=height())return {};
     const auto scale=windowScale();double best=10;QJsonObject result;

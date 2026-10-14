@@ -795,3 +795,12 @@ undo entry. Shared command session update/preview/commit/cancel applies. Analysi
 records do not enter the modeling Timeline or change evaluated geometry. Fixed
 positive world half-spaces and bounded verification are described in
 [the Section Analysis receipt](validation/section-analysis.md).
+
+The tangent-plane candidate adds `construction.tangentPlane` with a retained
+`tangent` object: `face: {producerFeatureId, bodyId, faceId}` and
+`point: {bodyId, edgeId, endpoint: 0|1}`. It creates ordinary construction-plane
+history and returns `planeId`; sketches attach using the existing `planeId` input.
+`featureId` edits the source. `command.begin` supports this target with native
+preview/Cancel controls. The source must resolve to one current face and an exact
+oriented edge endpoint on that trimmed face. Candidate qualification is recorded
+in [the receipt](validation/tangent-point-plane.md).

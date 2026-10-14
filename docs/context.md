@@ -3500,3 +3500,17 @@ connector/card openings remain later TUT-016 work.
 ## Current isolated candidate: retained construction-plane Project
 
 An isolated candidate extends the shared linked Project path to sketches on earlier retained construction planes (SKT-072). The exact evaluated plane frame, earlier active body and imported occurrence identities remain authoritative; face-only legacy boundary references stay restricted. `linked_planar_project` core and `tests/construction_plane_project_api.py` passed with the actual imported enclosure connector face, plane edit, undo/redo and reopen. See [validation](validation/construction-plane-project.md). The accepted enclosure prefix remains the cumulative baseline; projected closed connector-loop Offset is a separate pending dependency before ports.
+
+## 2026-10-14 tangent-point plane foundation candidate
+
+GEO-004/#286 has a separate `feat/tangent-point-plane` candidate in
+`../Alloy-worktrees/tangent-point-plane`. It retains a named curved face and
+oriented current edge endpoint in ordinary construction-plane history; surface
+normal evaluation uses the endpoint, never the center. Core/build evidence passes
+for the curved Loft endpoint and attached circle with source edit/history/reopen
+and unavailable-reference refusal. Native controls/API exist but real-entrypoint,
+native/GPU captures and independent review are pending the sole private GUI lease.
+See [candidate contract](validation/tangent-point-plane.md). Do not close #286.
+GEO-018/#350 explicitly preserves the prerequisite for generated corner-Fillet
+endpoint identities through the source separate perimeter round; it is a Todo
+dependency of GEO-004 and TUT-017. The actual final source endpoint remains required.

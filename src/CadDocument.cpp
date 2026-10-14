@@ -312,6 +312,7 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
             const auto source=feature["parameters"].toObject()["source"].toObject();
             if(source.contains("support"))planeSupports.append(source["support"]);
             if(source.contains("faces"))planeSupports=source["faces"].toArray();
+            if(source.contains("tangent"))planeSupports.append(source["tangent"].toObject()["face"]);
         }
         for(const auto& value:planeSupports) {
             const auto support=value.toObject();
@@ -1525,6 +1526,18 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
                     if(!value.isObject() || support.size()!=3)return "Midplane face requires producer, body and face IDs";
                     for(const auto& key:{"producerFeatureId","bodyId","faceId"})
                         if(!validId(support[key].toString()))return "Midplane face requires stable IDs";}
+                continue;
+            }
+            if(source.contains("tangent")) {
+                const auto tangent=source["tangent"].toObject(),face=tangent["face"].toObject(),point=tangent["point"].toObject();
+                if(p.size()!=1 || tangent.size()!=2 || face.size()!=3 || point.size()!=3)
+                    return "Tangent plane requires one retained face and edge endpoint";
+                for(const auto& key:{"producerFeatureId","bodyId","faceId"})
+                    if(!validId(face[key].toString()))return "Tangent face requires stable IDs";
+                for(const auto& key:{"bodyId","edgeId"})
+                    if(!validId(point[key].toString()))return "Tangent endpoint requires stable IDs";
+                if(!point["endpoint"].isDouble() || (point["endpoint"]!=0 && point["endpoint"]!=1))
+                    return "Tangent endpoint must be 0 or 1";
                 continue;
             }
             if(source.contains("path")) {

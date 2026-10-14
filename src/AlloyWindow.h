@@ -111,6 +111,10 @@ private:
     void showMidplane();
     QDockWidget* midplaneDock_ = nullptr;
     quint64 midplanePreviewRevision_ = 1;
+    QJsonObject beginTangentPlane(const QJsonObject& inputs);
+    QJsonObject previewTangentPlane();
+    void showTangentPlane();
+    QDockWidget* tangentPlaneDock_ = nullptr;
     QJsonObject beginPathPlane(const QJsonObject& inputs);
     QJsonObject selectPathPlaneSpline(const QString& sketchId,const QString& entityId);
     QJsonObject previewPathPlane();
