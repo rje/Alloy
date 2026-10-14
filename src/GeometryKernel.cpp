@@ -702,10 +702,14 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
             } else if(type=="fillet") {
                 const auto target=std::find_if(evaluated.bodies.begin(),evaluated.bodies.end(),[&](const auto& body){return body.bodyId==parameters["targetBodyId"].toString();});
                 if(target==evaluated.bodies.end())throw EvaluationError({{"code","body_unavailable"},{"featureId",id},{"message","Fillet target must be active earlier in history"}});
+                for(const auto& value:parameters["edgeIds"].toArray())for(const auto& edge:target->solidEdges)
+                    if(edge.edgeId==value.toString() && !edge.edge.IsNull())evaluated.finishFeatureInputs[id].push_back(edge);
                 SolidFillet::evaluate(*target,parameters,id);
             } else if(type=="chamfer") {
                 const auto target=std::find_if(evaluated.bodies.begin(),evaluated.bodies.end(),[&](const auto& body){return body.bodyId==parameters["targetBodyId"].toString();});
                 if(target==evaluated.bodies.end())throw EvaluationError({{"code","body_unavailable"},{"featureId",id},{"message","Chamfer target must be active earlier in history"}});
+                for(const auto& value:parameters["edgeIds"].toArray())for(const auto& edge:target->solidEdges)
+                    if(edge.edgeId==value.toString() && !edge.edge.IsNull())evaluated.finishFeatureInputs[id].push_back(edge);
                 SolidChamfer::evaluate(*target,parameters,id);
             } else if(type=="rectangularPattern") {
                 const auto target=std::find_if(evaluated.bodies.begin(),evaluated.bodies.end(),[&](const auto& body){return body.bodyId==parameters["targetBodyId"].toString();});
@@ -721,7 +725,11 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
             } else if(type=="featureMirror") {
                 const auto target=std::find_if(evaluated.bodies.begin(),evaluated.bodies.end(),[&](const auto& body){return body.bodyId==parameters["targetBodyId"].toString();});
                 if(target==evaluated.bodies.end())reject("body_unavailable","Feature Mirror target must be active earlier in history");
-                FeaturePattern::mirrorCuts(*target,feature,evaluated);
+                const auto firstId=parameters["sourceFeatureIds"].toArray().first().toString();
+                QJsonObject firstSource;for(const auto& value:features)if(value.toObject()["id"]==firstId){firstSource=value.toObject();break;}
+                if(firstSource["parameters"].toObject()["operation"]=="join")
+                    FeaturePattern::mirrorSnapGroup(*target,feature,features,evaluated);
+                else FeaturePattern::mirrorCuts(*target,feature,evaluated);
             } else if(type=="sweep") {
                 QJsonObject source;for(const auto& entry:authored["features"].toArray())if(entry.toObject()["id"]==parameters["pathSketchId"])source=entry.toObject();
                 evaluated.bodies.push_back(SolidSweep::evaluate(feature,evaluated,source));
@@ -843,6 +851,9 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
                             participants.push_back(*found);
                         }
                         auto joined=joinResults(feature,participants,selected);
+                        if(selected.size()==1){evaluated.joinFeatureTools[id]=joined.sourceTools;
+                            evaluated.joinFeatureEdges[id]=joined.sourceEdges;
+                            evaluated.joinFeatureCaps[id]=joined.sourceCaps;}
                         std::erase_if(evaluated.bodies,[&](const auto& body){return targets.contains(body.bodyId);});
                         evaluated.bodies.insert(evaluated.bodies.end(),joined.bodies.begin(),joined.bodies.end());
                         evaluated.joinBodyResults[id]=joined.ownership;
@@ -872,6 +883,11 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
                         if(linearCut){
                             evaluated.cutFeatureTools[id]=tools;
                             evaluated.cutFeatureEdges[id]=cutToolEdges;
+                        }
+                        if(joining && selected.size()==1){
+                            evaluated.joinFeatureTools[id]=tools;
+                            evaluated.joinFeatureEdges[id]=cutToolEdges;
+                            evaluated.joinFeatureCaps[id]=joinCaps;
                         }
                         const double previousVolume=target->summary["volumeMm3"].toDouble();
                         TopoDS_Shape cutShape;

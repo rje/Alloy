@@ -79,6 +79,8 @@ GeometryKernel::JoinResult GeometryKernel::joinResults(const QJsonObject& featur
     for(const auto& item:std::vector<std::pair<TopAbs_ShapeEnum,int>>{{TopAbs_FACE,componentFaces.Extent()},{TopAbs_EDGE,componentEdges.Extent()},{TopAbs_VERTEX,componentVertices.Extent()}}){
         TopTools_IndexedMapOfShape present;TopExp::MapShapes(material,item.first,present);if(present.Extent()!=item.second)reject("join_mixed_result","Join produced geometry outside its closed result solids");}
     JoinResult result;std::vector<int> participantUses(participants.size()),profileUses(profiles.size());bool participatingAddition=false;
+    result.sourceTools=tools;result.sourceCaps=caps;
+    for(const auto& edge:edges)if(edge.provenance["generatorFeatureId"]==id)result.sourceEdges.push_back(edge);
     struct Group {EvaluatedBody body;QJsonObject record;};std::vector<Group> groups;
     for(int i=1;i<=solids.Extent();++i){const auto shape=solids(i);auto summary=summarize(shape);
         if(!summary["valid"].toBool() || !summary["closed"].toBool() || summary["volumeMm3"].toDouble()<=0)

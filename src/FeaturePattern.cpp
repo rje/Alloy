@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 #include "FeaturePattern.h"
 #include "SolidFillet.h"
+#include "SolidChamfer.h"
 #include "PlanarFaces.h"
 #include "SolidHole.h"
 #include <BRepAdaptor_Curve.hxx>
@@ -8,6 +9,7 @@
 #include <GProp_GProps.hxx>
 #include <BRepBuilderAPI_Transform.hxx>
 #include <gp_Ax2.hxx>
+#include <GeomAbs_CurveType.hxx>
 #include <TopoDS.hxx>
 #include <QUuid>
 #include <algorithm>
@@ -208,6 +210,131 @@ void FeaturePattern::mirrorCuts(EvaluatedBody& target,const QJsonObject& feature
     summary["sourceFeatureIds"]=parameters["sourceFeatureIds"];
     summary["mirrorPlane"]=plane;summary["instances"]=instances;
     summary["removedVolumeMm3"]=originalVolume-summary["volumeMm3"].toDouble();
+    summary["supportFaces"]=PlanarFaces::descriptors(target.supportFaces);
+    summary["solidEdges"]=SolidFillet::descriptors(target.solidEdges);
+    target.summary=summary;
+}
+
+void FeaturePattern::mirrorSnapGroup(EvaluatedBody& target,const QJsonObject& feature,
+    const QJsonArray& features,const EvaluatedDocument& prior) {
+    const auto parameters=feature["parameters"].toObject();
+    auto fail=[&](const QString& code,const QString& message,const QString& sourceId=QString{}){
+        throw GeometryKernel::EvaluationError({{"code",code},{"message",message},
+            {"featureId",feature["id"]},{"targetBodyId",target.bodyId},{"sourceFeatureId",sourceId}});};
+    const auto selected=parameters["sourceFeatureIds"].toArray();
+    if(selected.size()!=5 || parameters["mirrorPlane"].toObject()!=QJsonObject{{"kind","origin"},{"plane","XZ"}})
+        fail("mirror_group_unsupported","Snap Mirror requires five ordered features and origin XZ");
+    QMap<QString,QJsonObject> sources;
+    for(const auto& value:features)if(selected.contains(value.toObject()["id"]))sources[value.toObject()["id"].toString()]=value.toObject();
+    const auto joinId=selected.first().toString();
+    if(!prior.joinFeatureTools.contains(joinId) || prior.joinFeatureTools[joinId].size()!=1)
+        fail("mirror_source_unavailable","Snap Join needs one retained source-stage prism",joinId);
+    gp_Trsf reflection;reflection.SetMirror(gp_Ax2(gp_Pnt(0,0,0),gp_Dir(0,1,0)));
+    auto reflectEndpoints=[&](QJsonObject& provenance){
+        for(const auto* key:{"startMm","endMm"}){
+            const auto xyz=provenance[key].toArray();
+            if(xyz.size()!=3)continue;
+            gp_Pnt point(xyz[0].toDouble(),xyz[1].toDouble(),xyz[2].toDouble());
+            point.Transform(reflection);
+            provenance[key]=QJsonArray{point.X(),point.Y(),point.Z()};
+        }
+    };
+    BRepBuilderAPI_Transform moved(prior.joinFeatureTools[joinId].front(),reflection,true);
+    if(!moved.IsDone() || moved.Shape().IsNull())fail("mirror_transform_failed","Snap Join reflection failed",joinId);
+    auto nextFaces=target.supportFaces;
+    const auto caps=prior.joinFeatureCaps.value(joinId);
+    if(caps.size()!=1 || caps.front().face.IsNull())
+        fail("mirror_source_cap_unavailable","Snap Join has no unique end-cap reference",joinId);
+    auto cap=caps.front();
+    const auto transformedCap=moved.ModifiedShape(cap.face);
+    if(transformedCap.IsNull() || transformedCap.ShapeType()!=TopAbs_FACE)
+        fail("mirror_source_cap_unavailable","Snap Join end cap cannot be reflected",joinId);
+    cap.face=TopoDS::Face(transformedCap);cap.bodyId=target.bodyId;
+    cap.faceId=QUuid::createUuidV5(QUuid(feature["id"].toString()),
+        QByteArray("alloy-feature-mirror-snap-cap/1/")+joinId.toUtf8()).toString(QUuid::WithoutBraces);
+    cap.producerFeatureId=feature["id"].toString();cap.provenance["sourceFeatureId"]=joinId;
+    auto transformedFrame=cap.frame;
+    for(const auto* key:{"origin","uAxis","vAxis","normal"}){
+        const auto values=transformedFrame[key].toArray();
+        if(values.size()!=3)fail("mirror_source_cap_unavailable","Snap Join cap frame is incomplete",joinId);
+        if(QString(key)=="origin"){
+            gp_Pnt point(values[0].toDouble(),values[1].toDouble(),values[2].toDouble());point.Transform(reflection);
+            transformedFrame[key]=QJsonArray{point.X(),point.Y(),point.Z()};
+        }else{
+            gp_Vec axis(values[0].toDouble(),values[1].toDouble(),values[2].toDouble());axis.Transform(reflection);
+            if(QString(key)=="vAxis")axis.Reverse();
+            transformedFrame[key]=QJsonArray{axis.X(),axis.Y(),axis.Z()};
+        }
+    }
+    cap.frame=transformedFrame;
+    for(auto& edge:cap.boundaryEdges){
+        const auto mapped=moved.ModifiedShape(edge.edge);
+        if(mapped.IsNull() || mapped.ShapeType()!=TopAbs_EDGE)
+            fail("mirror_source_cap_unavailable","Snap Join cap boundary cannot be reflected",joinId);
+        edge.edge=TopoDS::Edge(mapped);
+        edge.edgeId=QUuid::createUuidV5(QUuid(feature["id"].toString()),
+            QByteArray("alloy-feature-mirror-snap-cap-edge/1/")+edge.edgeId.toUtf8()).toString(QUuid::WithoutBraces);
+        reflectEndpoints(edge.provenance);
+        edge.provenance["sourceFeatureId"]=joinId;edge.provenance["mirrorFeatureId"]=feature["id"];
+    }
+    nextFaces.push_back(std::move(cap));
+    std::vector<EvaluatedSolidEdge> nextEdges=target.solidEdges;
+    for(auto edge:prior.joinFeatureEdges.value(joinId)){
+        if(edge.edge.IsNull())continue;
+        const auto mapped=moved.ModifiedShape(edge.edge);
+        if(mapped.IsNull() || mapped.ShapeType()!=TopAbs_EDGE)continue;
+        edge.edge=TopoDS::Edge(mapped);
+        edge.edgeId=QUuid::createUuidV5(QUuid(feature["id"].toString()),
+            QByteArray("alloy-feature-mirror-snap-edge/1/")+edge.edgeId.toUtf8()).toString(QUuid::WithoutBraces);
+        reflectEndpoints(edge.provenance);
+        edge.provenance["sourceFeatureId"]=joinId;edge.provenance["mirrorFeatureId"]=feature["id"];
+        nextEdges.push_back(std::move(edge));
+    }
+    const auto before=GeometryKernel::summarize(target.shape)["volumeMm3"].toDouble();
+    target.shape=GeometryKernel::booleanOperation("join",target.shape,{moved.Shape()},
+        &nextFaces,&nextEdges);
+    target.supportFaces=std::move(nextFaces);
+    target.solidEdges=std::move(nextEdges);
+    const auto joined=GeometryKernel::summarize(target.shape)["volumeMm3"].toDouble();
+    if(joined<=before+std::max(1e-6,before*1e-12))fail("mirror_no_effect","Reflected snap adds no target material",joinId);
+    auto mirroredEdge=[&](const EvaluatedSolidEdge& source,const QString& sourceId){
+        if(source.edge.IsNull())fail("mirror_edge_unavailable","Source finish edge is unavailable",sourceId);
+        BRepAdaptor_Curve curve(source.edge);
+        if(curve.GetType()!=GeomAbs_Line)fail("mirror_edge_unsupported","Snap Mirror currently requires straight finish edges",sourceId);
+        auto first=curve.Value(curve.FirstParameter()),last=curve.Value(curve.LastParameter());
+        first.Transform(reflection);last.Transform(reflection);
+        QString found;int matches=0;
+        for(const auto& candidate:target.solidEdges){
+            if(candidate.edge.IsNull())continue;
+            BRepAdaptor_Curve current(candidate.edge);
+            if(current.GetType()!=GeomAbs_Line)continue;
+            const auto a=current.Value(current.FirstParameter()),b=current.Value(current.LastParameter());
+            if(std::abs(a.Distance(b)-first.Distance(last))>1e-6)continue;
+            if((a.Distance(first)<1e-6 && b.Distance(last)<1e-6)
+                || (a.Distance(last)<1e-6 && b.Distance(first)<1e-6)){found=candidate.edgeId;++matches;}
+        }
+        if(matches!=1)fail("mirror_edge_ambiguous","A reflected source finish edge has no unique current descendant",sourceId);
+        return found;
+    };
+    for(int index=1;index<5;++index){
+        const auto sourceId=selected[index].toString();const auto source=sources.value(sourceId);
+        const auto inputs=source["parameters"].toObject();
+        const auto cached=prior.finishFeatureInputs.value(sourceId);
+        if(cached.size()!=inputs["edgeIds"].toArray().size() || cached.empty())
+            fail("mirror_edge_unavailable","Source finish has no exact retained edge set",sourceId);
+        QJsonArray mapped;
+        for(const auto& sourceEdge:cached)mapped.append(mirroredEdge(sourceEdge,sourceId));
+        const auto replayId=QUuid::createUuidV5(QUuid(feature["id"].toString()),
+            QByteArray("alloy-feature-mirror-snap-finish/1/")+sourceId.toUtf8()).toString(QUuid::WithoutBraces);
+        if(index<4)SolidChamfer::evaluate(target,{{"targetBodyId",target.bodyId},
+            {"edgeIds",mapped},{"distanceMm",inputs["distanceMm"]}},replayId);
+        else SolidFillet::evaluate(target,{{"targetBodyId",target.bodyId},{"edgeIds",mapped},
+            {"radiusMm",inputs["radiusMm"]},{"tangentChain",true}},replayId);
+    }
+    auto summary=GeometryKernel::summarize(target.shape);
+    summary["operation"]="featureMirror";summary["lastModifierFeatureId"]=feature["id"];
+    summary["sourceFeatureIds"]=selected;summary["mirrorPlane"]=parameters["mirrorPlane"];
+    summary["addedVolumeMm3"]=summary["volumeMm3"].toDouble()-before;
     summary["supportFaces"]=PlanarFaces::descriptors(target.supportFaces);
     summary["solidEdges"]=SolidFillet::descriptors(target.solidEdges);
     target.summary=summary;

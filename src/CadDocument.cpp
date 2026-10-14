@@ -59,19 +59,44 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
         }
         if(feature["type"]=="featureMirror") {
             const auto p=feature["parameters"].toObject();
+            const auto selected=p["sourceFeatureIds"].toArray();
             int lastSourcePosition=-1;
-            for(const auto& value:p["sourceFeatureIds"].toArray()){
+            for(const auto& value:selected){
                 const auto seed=value.toString();
                 if(!positions.contains(seed) || positions[seed]>=i)
                     return {{"featureId",feature["id"]},{"code","mirror_source_unavailable"},{"message","Feature Mirror source must be earlier in history"}};
                 if(positions[seed]<=lastSourcePosition)
                     return {{"featureId",feature["id"]},{"code","mirror_source_order"},{"message","Feature Mirror sources must follow feature history order"}};
                 lastSourcePosition=positions[seed];
-                const auto source=features[positions[seed]].toObject(),inputs=source["parameters"].toObject();
-                if(source["type"]!="extrude" || inputs["operation"]!="cut"
-                    || inputs["targetBodyIds"].toArray()!=QJsonArray{p["targetBodyId"]}
-                    || source["ownerId"]!=feature["ownerId"])
-                    return {{"featureId",feature["id"]},{"code","mirror_source_unsupported"},{"message","This Feature Mirror requires earlier Cut extrusions on one owned target"}};
+            }
+            const auto first=features[positions[selected.first().toString()]].toObject();
+            const bool snapGroup=first["type"]=="extrude" && first["parameters"].toObject()["operation"]=="join";
+            if(snapGroup && selected.size()!=5)
+                return {{"featureId",feature["id"]},{"code","mirror_source_unsupported"},{"message","Snap Mirror requires Join, three Chamfers and one Fillet"}};
+            for(int n=0;n<selected.size();++n){
+                const auto source=features[positions[selected[n].toString()]].toObject(),inputs=source["parameters"].toObject();
+                const bool valid=snapGroup
+                    ? n==0 ? source["type"]=="extrude" && inputs["operation"]=="join"
+                          && inputs["targetBodyIds"].toArray()==QJsonArray{p["targetBodyId"]}
+                      : (n<4 ? source["type"]=="chamfer" : source["type"]=="fillet")
+                          && inputs["targetBodyId"]==p["targetBodyId"]
+                    : source["type"]=="extrude" && inputs["operation"]=="cut"
+                          && inputs["targetBodyIds"].toArray()==QJsonArray{p["targetBodyId"]};
+                if(!valid || source["ownerId"]!=feature["ownerId"]
+                    || (snapGroup && n==4 && (inputs.contains("groups") || inputs["edgeIds"].toArray().isEmpty())))
+                    return {{"featureId",feature["id"]},{"code","mirror_source_unsupported"},
+                        {"message",snapGroup ? "Snap Mirror requires one Join, three Chamfers and a simple Fillet on one owned target"
+                                              : "This Feature Mirror requires earlier Cut extrusions on one owned target"}};
+            }
+            if(snapGroup){
+                const auto target=p["targetBodyId"];
+                for(int position=positions[selected.first().toString()]+1;position<i;++position){
+                    const auto candidate=features[position].toObject(),inputs=candidate["parameters"].toObject();
+                    if(selected.contains(candidate["id"]))continue;
+                    if(inputs["targetBodyId"]==target || inputs["targetBodyIds"].toArray().contains(target))
+                        return {{"featureId",feature["id"]},{"code","mirror_source_gap"},
+                            {"message","An unselected feature modifies the snap target between Join and Mirror"}};
+                }
             }
         }
         if(feature["type"]=="loft")for(const auto& value:feature["parameters"].toObject()["profiles"].toArray()) {
@@ -1435,7 +1460,7 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
                 || !p["sourceFeatureIds"].isArray() || p["sourceFeatureIds"].toArray().isEmpty()
                 || p["sourceFeatureIds"].toArray().size()>32
                 || p["mirrorPlane"].toObject()!=QJsonObject{{"kind","origin"},{"plane","XZ"}})
-                return "Feature Mirror requires one target, earlier Cut features and origin XZ plane";
+                return "Feature Mirror requires one target, earlier supported feature sources and origin XZ plane";
             QSet<QString> sources;
             for(const auto& source:p["sourceFeatureIds"].toArray()) {
                 if(!source.isString() || !validId(source.toString()) || sources.contains(source.toString()))

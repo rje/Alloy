@@ -1,5 +1,15 @@
 # Continuation context
 
+## Candidate snap-group feature Mirror (2026-10-13)
+
+SOL-051/#327 has a headless candidate in `feat/snap-group-mirror` built on
+accepted GEO-010 lineage. It mirrors the source-shaped Join→three Chamfers→
+Fillet group across origin XZ through retained source-stage geometry and the
+existing finish evaluators. Focused core proof includes a source edit,
+history/reopen, same-target gap refusal and an unrelated Bottom Fillet
+interlude. Native/API checks and independent acceptance are pending. See
+[the candidate receipt](validation/feature-mirror-snap.md).
+
 ## Accepted Join/Chamfer edge lineage (2026-10-13)
 
 GEO-010/#329 is independently accepted and integrated as a backend prerequisite. Extrude Join

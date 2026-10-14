@@ -1380,10 +1380,10 @@ void AlloyWindow::registerCommands() {
     });
     add("solid.mirrorDialog","Mirror","Open body Mirror controls.",mirrorSchema,[this](const auto& a){return beginMirror(a);});
     QJsonObject featureMirrorSchema{{"targetBodyId",optional(parameter("string","Retained target body UUID."))},
-        {"sourceFeatureIds",optional(parameter("array","Earlier ordered Extrude Cut feature UUIDs."))},
+        {"sourceFeatureIds",optional(parameter("array","Earlier ordered Cut UUIDs, or a Join, three Chamfers and simple Fillet UUIDs."))},
         {"mirrorPlane",optional(parameter("object","Retained {kind:origin,plane:XZ} reference."))},
         {"featureId",optional(featureId)},{"name",optional(parameter("string","Feature Mirror name."))}};
-    add("solid.featureMirror","Mirror Features","Mirror retained Extrude Cut features across Origin XZ on the same body.",featureMirrorSchema,[this](const auto& a){
+    add("solid.featureMirror","Mirror Features","Mirror retained Cuts or one Join with three Chamfers and Fillet across Origin XZ on one body.",featureMirrorSchema,[this](const auto& a){
         QJsonObject candidate;try{candidate=CadDocument::featureMirrorCandidate(document_->authored(),authoringArguments(a));}
         catch(const std::exception& error){return failure("invalid_arguments",QString::fromUtf8(error.what()));}
         const auto error=document_->commit(candidate,"Mirror Features");
@@ -1391,8 +1391,8 @@ void AlloyWindow::registerCommands() {
             details["diagnostics"]=document_->lastEvaluationError();response["error"]=details;return response;}
         return document_->state();
     });
-    add("solid.featureMirrorDialog","Mirror Features","Select Cut features in the Timeline and an origin XZ mirror plane.",featureMirrorSchema,[this](const auto& a){return beginFeatureMirror(a);});
-    add("selection.featureMirrorSet","Select Mirror feature","Toggle one earlier Extrude Cut in the active Feature Mirror.",
+    add("solid.featureMirrorDialog","Mirror Features","Select earlier Cut features or an ordered snap group in the Timeline, then Origin XZ.",featureMirrorSchema,[this](const auto& a){return beginFeatureMirror(a);});
+    add("selection.featureMirrorSet","Select Mirror feature","Toggle an earlier supported source in the active Feature Mirror.",
         {{"featureId",featureId}},[this](const auto& a){return selectFeatureMirrorSource(a["featureId"].toString());});
     auto mirrorRole=parameter("string","Which Mirror input the next canvas click selects.");mirrorRole["enum"]=QJsonArray{"objects","mirrorPlane"};
     add("solid.mirrorRole","Choose Mirror selection","Choose object or plane before the next viewport pick.",{{"role",mirrorRole}},[this](const auto& a){

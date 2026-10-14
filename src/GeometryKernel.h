@@ -67,6 +67,10 @@ struct EvaluatedDocument {
     // These are evaluated geometry, never a second authored representation.
     QMap<QString,std::vector<TopoDS_Shape>> cutFeatureTools;
     QMap<QString,std::vector<EvaluatedSolidEdge>> cutFeatureEdges;
+    QMap<QString,std::vector<TopoDS_Shape>> joinFeatureTools;
+    QMap<QString,std::vector<EvaluatedSolidEdge>> joinFeatureEdges;
+    QMap<QString,std::vector<EvaluatedSupportFace>> joinFeatureCaps;
+    QMap<QString,std::vector<EvaluatedSolidEdge>> finishFeatureInputs;
     QString recompute = "full_ordered";
 };
 
@@ -80,7 +84,10 @@ public:
     private:
         QJsonObject diagnostics_;
     };
-    struct JoinResult {std::vector<EvaluatedBody> bodies;QJsonArray ownership;};
+    struct JoinResult {std::vector<EvaluatedBody> bodies;QJsonArray ownership;
+        std::vector<TopoDS_Shape> sourceTools;
+        std::vector<EvaluatedSolidEdge> sourceEdges;
+        std::vector<EvaluatedSupportFace> sourceCaps;};
     static JoinResult joinResults(const QJsonObject& feature, const std::vector<EvaluatedBody>& participants,
         const std::vector<EvaluatedProfile>& profiles);
     static gp_Trsf moveTransform(const QJsonObject& parameters);

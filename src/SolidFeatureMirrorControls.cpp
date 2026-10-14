@@ -54,26 +54,39 @@ QJsonObject AlloyWindow::selectFeatureMirrorSource(const QString& featureId){
     bool beforeEdit=true,eligible=false;
     QString target;
     QJsonArray selected=inputs["sourceFeatureIds"].toArray();
-    for(const auto& entry:document_->authored()["features"].toArray()){
+    const auto features=document_->authored()["features"].toArray();
+    QString mode;
+    if(!selected.isEmpty())for(const auto& entry:features)if(entry.toObject()["id"]==selected.first()){
+        const auto first=entry.toObject();
+        mode=first["parameters"].toObject()["operation"]=="join" ? "snap" : "cut";
+        break;
+    }
+    for(const auto& entry:features){
         const auto feature=entry.toObject();
         if(feature["id"]==edit)beforeEdit=false;
         if(feature["id"]!=featureId)continue;
         const auto p=feature["parameters"].toObject();const auto targets=p["targetBodyIds"].toArray();
-        eligible=beforeEdit && feature["type"]=="extrude" && p["operation"]=="cut"
-            && targets.size()==1 && feature["ownerId"]==document_->activeOwnerId();
-        if(eligible)target=targets.first().toString();
+        const bool cut=feature["type"]=="extrude" && p["operation"]=="cut" && targets.size()==1;
+        const bool join=feature["type"]=="extrude" && p["operation"]=="join" && targets.size()==1;
+        const bool finish=feature["type"]=="chamfer" || feature["type"]=="fillet";
+        eligible=beforeEdit && feature["ownerId"]==document_->activeOwnerId()
+            && ((mode=="cut" && cut) || (mode=="snap" && (join || finish))
+                || (mode.isEmpty() && (cut || join)));
+        if(eligible)target=finish ? p["targetBodyId"].toString() : targets.first().toString();
     }
-    if(!eligible)return refused("mirror_source_unsupported","Select an earlier Extrude Cut in this component's Timeline");
-    if(!inputs["targetBodyId"].toString().isEmpty() && inputs["targetBodyId"]!=target)
-        return refused("mirror_target_mismatch","Selected Cut modifies a different target body");
+    if(!eligible)return refused("mirror_source_unsupported",
+        "Select an earlier Cut, or a Join followed by its three Chamfers and Fillet in the Timeline");
+    if(!selected.isEmpty() && inputs["targetBodyId"]!=target)
+        return refused("mirror_target_mismatch","Selected feature modifies a different target body");
     if(selected.contains(featureId)){
         for(int i=0;i<selected.size();++i)if(selected[i]==featureId){selected.removeAt(i);break;}
     }
     else selected.append(featureId);
     QJsonArray ordered;
-    for(const auto& entry:document_->authored()["features"].toArray())
+    for(const auto& entry:features)
         if(selected.contains(entry.toObject()["id"]))ordered.append(entry.toObject()["id"]);
-    auto changed=inputs;changed["sourceFeatureIds"]=ordered;changed["targetBodyId"]=target;
+    auto changed=inputs;changed["sourceFeatureIds"]=ordered;
+    changed["targetBodyId"]=ordered.isEmpty() ? QJsonValue{} : QJsonValue(target);
     session_["inputs"]=changed;
     return previewFeatureMirror();
 }
@@ -99,7 +112,7 @@ QJsonObject AlloyWindow::previewFeatureMirror(){
     };
     if(session_["baseDocumentRevision"].toInteger()!=static_cast<qint64>(document_->revision()))
         return reject("stale_session","The document changed; cancel and restart Mirror");
-    if(inputs["sourceFeatureIds"].toArray().isEmpty())return reject("objects_required","Select an Extrude Cut feature in the Timeline");
+    if(inputs["sourceFeatureIds"].toArray().isEmpty())return reject("objects_required","Select Cut features or a Join and its finishes in the Timeline");
     if(inputs["mirrorPlane"].toObject()["plane"]!="XZ")return reject("plane_required","Select Origin XZ as Mirror Plane");
     auto args=inputs;if(!args.contains("featureId"))args["newFeatureId"]=session_["newFeatureId"];
     QJsonObject candidate;
@@ -127,7 +140,7 @@ QJsonObject AlloyWindow::previewFeatureMirror(){
     session_["documentDraft"]=candidate;session_["previewed"]=true;session_["geometryEvaluated"]=true;
     session_.remove("previewError");
     if(featureMirrorDock_){
-        if(auto* label=featureMirrorDock_->findChild<QLabel*>("featureMirror.status"))label->setText("Mirrored Cut preview is valid");
+        if(auto* label=featureMirrorDock_->findChild<QLabel*>("featureMirror.status"))label->setText("Mirrored feature preview is valid");
         if(auto* buttons=featureMirrorDock_->findChild<QDialogButtonBox*>())
             buttons->button(QDialogButtonBox::Ok)->setEnabled(true);
     }
