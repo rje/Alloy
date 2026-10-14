@@ -353,6 +353,9 @@ QJsonObject solveSketches(QJsonObject candidate,int firstFeature=0,const Evaluat
         QJsonObject projectionContext;
         if(feature["parameters"].toObject()["plane"]=="face" || feature["parameters"].toObject()["plane"]=="construction") {
             auto prior=candidate;QJsonArray prefix;for(int j=0;j<i;++j)prefix.append(features[j]);prior["features"]=prefix;
+            // A body display name belongs to the finished document, not a
+            // modeling prefix before the named Split result exists.
+            prior.remove("bodyNames");
             try {projectionContext=GeometryKernel::projectionContext(seed ? *seed : GeometryKernel::evaluateDocument(prior),feature);}
             catch(const GeometryKernel::EvaluationError& error) {
                 auto diagnostics=error.diagnostics();
@@ -404,6 +407,26 @@ QJsonObject CadDocument::componentCandidate(const QJsonObject& authored,const QS
     const auto id=newId();components.append(QJsonObject{{"id",id},{"name",name.trimmed()},{"opacity",1.0}});
     occurrences.append(QJsonObject{{"id",newId()},{"definitionId",id},{"parentId",authored["documentId"]},{"placement","identity"}});
     candidate["components"]=components;candidate["occurrences"]=occurrences;return candidate;
+}
+QJsonObject CadDocument::renameBodyCandidate(const QJsonObject& authored,const EvaluatedDocument& evaluated,
+    const QString& bodyId,const QString& name) {
+    const auto displayName=name.trimmed();
+    if(displayName.isEmpty() || displayName.size()>128 || displayName.contains('\n') || displayName.contains('\r'))
+        throw std::invalid_argument("Body name must be 1..128 characters on one line");
+    QString producerName;
+    for(const auto& body:evaluated.bodies)if(body.bodyId==bodyId && body.occurrenceId.isEmpty()) {
+        for(const auto& value:authored["features"].toArray()) {
+            const auto feature=value.toObject();
+            if(feature["id"]==body.featureId && feature["type"]!="stepImport" && feature["type"]!="stepAssemblyImport")
+                producerName=feature["name"].toString();
+        }
+        break;
+    }
+    if(producerName.isEmpty())throw std::invalid_argument("Body rename requires one current local body");
+    auto candidate=authored;auto names=candidate.value("bodyNames").toObject();
+    if(displayName==producerName)names.remove(bodyId);else names[bodyId]=displayName;
+    if(names.isEmpty())candidate.remove("bodyNames");else candidate["bodyNames"]=names;
+    return candidate;
 }
 QJsonObject CadDocument::reparentCandidate(const QJsonObject& authored,const EvaluatedDocument& evaluated,
     const QString& kind,const QJsonArray& objectIds,const QString& destinationId) {
@@ -825,6 +848,7 @@ EvaluatedDocument CadDocument::evaluationBefore(const QString& featureId) const 
     // A modeling prefix may precede their creation, and its source references
     // must remain in the original feature-owner context.
     prefix.remove("objectOwners");
+    prefix.remove("bodyNames");
     return GeometryKernel::evaluateDocument(prefix);
 }
 QJsonObject CadDocument::stepImportCandidate(const QJsonObject& authored, const QJsonObject& arguments) {
@@ -1342,6 +1366,16 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
             for(auto it=records.begin();it!=records.end();++it)
                 if(!validId(it.key()) || !it.value().isString() || !owners.contains(it.value().toString()))
                     return "Object ownership requires stable object and component IDs";
+        }
+    }
+    if(candidate.contains("bodyNames")) {
+        if(!candidate["bodyNames"].isObject())return "Body names must be keyed by stable body ID";
+        const auto names=candidate["bodyNames"].toObject();
+        for(auto it=names.begin();it!=names.end();++it) {
+            const auto name=it.value().toString();
+            if(!validId(it.key()) || !it.value().isString() || name.trimmed()!=name
+                || name.isEmpty() || name.size()>128 || name.contains('\n') || name.contains('\r'))
+                return "Body names require a stable body ID and a one-line display name";
         }
     }
     if(candidate.contains("joints") && !candidate["joints"].isArray())return "Joints must be an array";

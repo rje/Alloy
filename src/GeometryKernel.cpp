@@ -1079,17 +1079,21 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
     }
     const auto organization=authored.value("objectOwners").toObject();
     const auto bodyOwners=organization.value("bodies").toObject(),sketchOwners=organization.value("sketches").toObject();
+    const auto bodyNames=authored.value("bodyNames").toObject();
     QSet<QString> currentSketches,localBodies;
     for(auto& body:evaluated.bodies){
         if(body.occurrenceId.isEmpty() && featureTypes.value(body.featureId)!="stepImport"
             && featureTypes.value(body.featureId)!="stepAssemblyImport")localBodies.insert(body.bodyId);
         body.ownerId=bodyOwners.value(body.bodyId).toString(owners[body.featureId]);body.summary["ownerId"]=body.ownerId;
+        if(bodyNames.contains(body.bodyId))body.name=bodyNames[body.bodyId].toString();
         body.summary["opacity"]=opacity.value(body.ownerId,1.0);}
     for(auto& sketch:evaluated.sketches){
         currentSketches.insert(sketch.featureId);
         sketch.ownerId=sketchOwners.value(sketch.featureId).toString(owners[sketch.featureId]);sketch.summary["ownerId"]=sketch.ownerId;}
     for(auto it=bodyOwners.begin();it!=bodyOwners.end();++it)if(!localBodies.contains(it.key()))
         reject("reparent_body_unavailable","Reparented local body is no longer active; repair or undo the upstream edit");
+    for(auto it=bodyNames.begin();it!=bodyNames.end();++it)if(!localBodies.contains(it.key()))
+        reject("renamed_body_unavailable","Renamed local body is no longer active; repair or undo the upstream edit");
     for(auto it=sketchOwners.begin();it!=sketchOwners.end();++it)if(!currentSketches.contains(it.key()))
         reject("reparent_sketch_unavailable","Reparented sketch is no longer available; repair or undo the upstream edit");
     for(auto& plane:evaluated.constructionPlanes)plane.ownerId=owners[plane.featureId];

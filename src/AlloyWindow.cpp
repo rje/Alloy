@@ -517,11 +517,12 @@ AlloyWindow::AlloyWindow() {
         if(!item->parent() || item->parent()->data(0,Qt::UserRole+4)!="bodies")return;
         const auto bodyId=item->data(0,Qt::UserRole+1).toString();
         QMenu menu(this);menu.setObjectName("context.browserBody");auto* move=menu.addAction("Move/Copy");move->setObjectName("context.moveBody");move->setEnabled(session_.isEmpty());
+        auto* rename=menu.addAction("Rename…");rename->setObjectName("context.renameBody");rename->setEnabled(session_.isEmpty());
         auto* reparent=menu.addAction("Move to Component…");reparent->setObjectName("context.reparentBody");reparent->setEnabled(session_.isEmpty());
         auto* mesh=menu.addAction("Save As Mesh…");mesh->setObjectName("context.exportMesh");mesh->setEnabled(session_.isEmpty());
         QJsonArray actions;for(const auto* action:menu.actions())actions.append(QJsonObject{{"id",action->objectName()},{"text",action->text()},{"enabled",action->isEnabled()}});
         QJsonObject context{{"origin","browser"},{"bodyId",bodyId},{"phase","open"},{"actions",actions}};view_->recordContextMenu(context,true);
-        const auto* action=menu.exec(tree_->viewport()->mapToGlobal(point));context["phase"]="closed";context["result"]=action ? action->objectName() : QString("cancelled");view_->recordContextMenu(context);if(action==move)execute("solid.moveDialog",{{"targetBodyId",bodyId}});else if(action==reparent)execute("component.reparentDialog",{{"bodyId",bodyId}});else if(action==mesh)execute("document.exportMeshDialog",{{"bodyId",bodyId}});
+        const auto* action=menu.exec(tree_->viewport()->mapToGlobal(point));context["phase"]="closed";context["result"]=action ? action->objectName() : QString("cancelled");view_->recordContextMenu(context);if(action==move)execute("solid.moveDialog",{{"targetBodyId",bodyId}});else if(action==rename)execute("body.renameDialog",{{"bodyId",bodyId}});else if(action==reparent)execute("component.reparentDialog",{{"bodyId",bodyId}});else if(action==mesh)execute("document.exportMeshDialog",{{"bodyId",bodyId}});
     });
     connect(tree_, &QTreeWidget::itemClicked, this, [this](QTreeWidgetItem* item, int) {
         if(!item || item->isHidden() || !(item->flags()&Qt::ItemIsEnabled))return;
@@ -1207,6 +1208,39 @@ void AlloyWindow::registerCommands() {
             const auto error=document_->commit(candidate,"New Component");if(!error.isEmpty())return failure("invalid_document",error);
             if(a.value("activate").toBool(true))document_->activateOwner(id);
             return QJsonObject{{"definitionId",id},{"occurrenceId",candidate["occurrences"].toArray().last().toObject()["id"]},{"activeOwnerId",document_->activeOwnerId()}};
+        });
+    add("body.rename","Rename Body","Set a retained display name on one current local body without changing its feature or geometry.",
+        {{"bodyId",parameter("string","Current local body UUID.")},{"name",parameter("string","One-line display name.")}},[this](const auto& a){
+            if(!session_.isEmpty())return failure("active_command","Finish or Cancel before renaming a body");
+            QJsonObject candidate;
+            try{candidate=CadDocument::renameBodyCandidate(document_->authored(),document_->evaluation(),a["bodyId"].toString(),a["name"].toString());}
+            catch(const std::exception& e){return failure("invalid_body_rename",QString::fromUtf8(e.what()));}
+            const auto error=document_->commit(candidate,"Rename Body");
+            if(!error.isEmpty())return failure("invalid_body_rename",error);
+            return QJsonObject{{"bodyId",a["bodyId"]},{"name",a["name"].toString().trimmed()}};
+        });
+    add("body.renameDialog","Rename Body…","Rename a current local body from the Browser.",
+        {{"bodyId",parameter("string","Current local body UUID.")}},[this](const auto& a){
+            if(!session_.isEmpty())return failure("active_command","Finish or Cancel before renaming a body");
+            const auto id=a["bodyId"].toString();QString current;
+            for(const auto& body:document_->bodies())if(body.bodyId==id && body.occurrenceId.isEmpty()){current=body.name;break;}
+            if(current.isEmpty())return failure("body_unavailable","Select a current local body");
+            auto* dialog=new QDialog(this);dialog->setObjectName("body.rename.dialog");dialog->setWindowTitle("Rename Body");
+            dialog->setAttribute(Qt::WA_DeleteOnClose);dialog->setWindowModality(Qt::WindowModal);
+            auto* layout=new QVBoxLayout(dialog);auto* form=new QFormLayout;layout->addLayout(form);
+            auto* name=new QLineEdit(dialog);name->setObjectName("body.rename.name");name->setText(current);name->selectAll();form->addRow("Name",name);
+            auto* status=new QLabel(dialog);status->setObjectName("body.rename.status");status->setWordWrap(true);layout->addWidget(status);
+            auto* buttons=new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel,dialog);layout->addWidget(buttons);
+            connect(buttons,&QDialogButtonBox::rejected,dialog,&QDialog::reject);
+            const auto tabId=activeTabId_;
+            connect(buttons,&QDialogButtonBox::accepted,dialog,[=,this]{
+                if(activeTabId_!=tabId){status->setText("Return to the original design before renaming this body.");return;}
+                const auto result=execute("body.rename",{{"bodyId",id},{"name",name->text()}});
+                if(result["ok"].toBool())dialog->accept();else status->setText(result["error"].toObject()["message"].toString());
+            });
+            dialog->resize(340,155);dialog->show();
+            QTimer::singleShot(0,dialog,[name]{name->setFocus();name->selectAll();});
+            return QJsonObject{{"visible",true},{"bodyId",id},{"name",current}};
         });
     add("component.reparent","Move to Component","Move one finished body or an explicit set of sketches into a local identity component.",
         {{"destinationId",parameter("string","Destination component definition UUID, or root document UUID.")},
@@ -4245,7 +4279,7 @@ void AlloyWindow::registerCommands() {
             : session_.value("command").toString().startsWith("sketch.") ? sketchPanel_ : unitsDialog_;
         const auto* activeModal=QApplication::activeModalWidget();
         const bool planeDialog=activeModal && (activeModal->objectName()=="constructionPlaneDialog" || activeModal->objectName()=="mesh.export.dialog"
-            || activeModal->objectName()=="component.reparent.dialog" || activeModal==lengthParametersDialog_.data());
+            || activeModal->objectName()=="component.reparent.dialog" || activeModal->objectName()=="body.rename.dialog" || activeModal==lengthParametersDialog_.data());
         if(planeDialog)dialog=QApplication::activeModalWidget();
         if ((!planeDialog && session_.isEmpty()) || !dialog || !dialog->isVisible()) return failure("no_active_dialog", "No active dialog to capture");
         const auto pixels = dialog->grab(); QSaveFile file(path);
@@ -4283,7 +4317,7 @@ QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
     if (!command) return finish(failure("unknown_command", "No command named " + id));
     if(!pendingReference_.isEmpty()){
         const bool blocked=id.startsWith("solid.") || id.startsWith("primitive.") || id.startsWith("sketch.")
-            || id.startsWith("construction.") || id.startsWith("feature.") || (id.startsWith("component.") && id!="component.inspect")
+            || id.startsWith("construction.") || id.startsWith("feature.") || id.startsWith("body.rename") || (id.startsWith("component.") && id!="component.inspect")
             || id.startsWith("document.save") || id.startsWith("document.export") || id.startsWith("document.open")
             || id=="document.new" || id=="document.importStep" || id.startsWith("history.")
             || id=="reference.insert" || id=="reference.insertDialog" || id=="reference.update" || id=="reference.moveDialog"
@@ -4293,7 +4327,7 @@ QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
     if(nonzeroAssemblyPose()){
         const bool modeling=id.startsWith("solid.") || id.startsWith("primitive.") || id.startsWith("sketch.")
             || id.startsWith("construction.") || id.startsWith("feature.") || id=="component.create" || id=="component.newDialog"
-            || id.startsWith("component.reparent")
+            || id.startsWith("component.reparent") || id.startsWith("body.rename")
             || id=="document.importStep" || (id.startsWith("reference.") && id!="reference.inspect" && id!="reference.revert")
             || (id=="command.begin" && args.value("command").toString()!="joint.slider")
             || ((id=="command.update" || id=="command.commit") && session_.value("command")!="joint.slider" && !session_.isEmpty());
