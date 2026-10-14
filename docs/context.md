@@ -85,7 +85,11 @@ bounded policy. Implementation and full Cut gate remain pending.
 DOC-033 tracks the one-line idle viewport selection lookup fix: mutable JSON
 access inserted command:null, blocking the next edit with session_busy. Source
 review passes; the native continuation verifies the corrected route.
-Backlog is399 issues with acyclic dependencies. Astra independently verifies.
+SOL-057/#400 restores saved sketch/profile IDs when reopening an extrusion:
+Cut/source-motion now passes, but edit preview was empty before this correction.
+The exact restoration preserves caller overrides; independent review and final
+Cancel/diameter/history/reopen evidence remain pending.
+Backlog is400 issues with acyclic dependencies. Astra independently verifies.
 Only main and its existing build are used; no inactive worktrees accumulate.
 DOC-031/#348 is independently accepted at `89782cf`: unchanged-product native09
 passes modal line focus, rename commit, Browser label and unchanged geometry.

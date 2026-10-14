@@ -58,6 +58,7 @@
       "id": "CP-29",
       "title": "Base sketch face holes and through cut",
       "issues": [
+        "SOL-057",
         "DOC-033",
         "SOL-056",
         "SKT-088",
@@ -65,7 +66,7 @@
       ],
       "status": "in_progress",
       "acceptance": "Continue firstsolid with native cap-face sketch, retained center references, diameter10/8/8 circles, three-profile Cut/All/Flip; valid through-openings and history/reopen.",
-      "remaining": "SKT-088 accepted; SOL-056 native geometry passes pending review. DOC-033 fixes idle viewport null-session lookup found by following edit; full gate pending."
+      "remaining": "SKT-088 accepted. Cut/source-motion pass; SOL-057 restores saved profile IDs for edit preview/Cancel, with SOL-056 and DOC-033 awaiting final evidence review."
     },
     {
       "id": "CP-20",

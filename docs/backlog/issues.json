@@ -6792,7 +6792,8 @@
         "SOL-047",
         "SKT-088",
         "SOL-056",
-        "DOC-033"
+        "DOC-033",
+        "SOL-057"
       ],
       "key": "TUT-028",
       "phase": "P2 Parametric modeling",
@@ -6857,6 +6858,20 @@
         "area:doc"
       ],
       "body": "## Problem and result\nDuring TUT-028, a blank viewport selection after accepting Cut inserts command:null into the empty session through a mutable JSON lookup. A subsequent sketch edit then fails with session_busy despite no active command.\n\n## Bounded scope and acceptance\nUse non-mutating lookup for idle selection command inspection. A viewport selection while idle leaves activeSession empty, and the next sketch edit starts normally. Preserve active command selection behavior. Verify through the actual cumulative native route and its ensuing source edit, undo and reopen; no broad command sweep required. Independent review before acceptance.\n\n## Evidence\nThe concrete failure is recorded in external base-sketch-face-holes-2026-10-14 native Cut preflight evidence. This is an Alloy state-management defect, not a reference-product behavior claim. Full tutorial acceptance remains TUT-028.\n"
+    },
+    {
+      "key": "SOL-057",
+      "title": "Restore saved sketch and profile references when editing an extrusion",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SOL-047"
+      ],
+      "labels": [
+        "area:sol"
+      ],
+      "body": "## Problem and result\nTUT-028 edit/Cancel verification reopens a valid Cut All feature. beginExtrude restores operation, extent, Flip and target but omits the saved sketchId and ordinary profile IDs, leaving no geometry preview.\n\n## Bounded scope and acceptance\nRestore the saved sketch/profile source identifiers for an existing extrusion when the caller did not override them. Preserve explicit source overrides and existing mutually exclusive profile-selection routes. Reopening the accepted three-hole Cut shows its valid preview and exact retained source/target/extent; Cancel leaves authored state and history unchanged. Verify through the bounded native continuation and independent source review, without broad unrelated editing tests. Geometry evaluation remains unchanged.\n\n## Evidence\nConcrete failure found in TUT-028 native Cut continuation evidence under external base-sketch-face-holes-2026-10-14. This is an Alloy edit-state defect. Full tutorial acceptance remains TUT-028.\n"
     }
   ]
 }
