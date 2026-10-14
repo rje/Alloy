@@ -59,7 +59,10 @@ selection. Native 3/3 and actual-app API02 31 calls (three intended refusals) pa
 shared height edits update both copies, history/reopen preserve exact state.
 Main app builds and focused core1/1 passes. See
 [bounded acceptance](validation/linked-local-occurrences.md). ASM-016/#365 internal
-joint remapping/copied-piston motion is next. No generic scene or solver redesign
+joint remapping/copied-piston motion is now active in separate authority/UI lanes.
+The bounded plan clones only the internal Cylindrical row, preserves external
+Revolutes and Pin, then adds two left eye joints and checks one driver across all
+six leaves. The existing solver ABI remains. No generic scene or solver redesign
 is needed. The observed blank command-dock band is recorded in REL-005.
 ASM-018/#368
 preserves occurrence-aware STEP/STL export as a separate Todo dependency of
