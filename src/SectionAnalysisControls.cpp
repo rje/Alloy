@@ -48,20 +48,32 @@ QJsonArray AlloyWindow::sectionInspection() const {
 void AlloyWindow::registerSectionCommands() {
     commands_.push_back({"inspect.section","Section Analysis","Retain one origin-plane section outside modeling history.",sectionSchema(),true,[this](const QJsonObject& args){
         try {
+            const bool sketchActive=session_.value("command")=="sketch.edit";
+            const bool ownDialog=session_.value("command")=="inspect.section";
+            if(!session_.isEmpty() && !ownDialog && !(sketchActive && args.contains("analysisId")))
+                return sectionError("session_busy","Complete or cancel the active command first");
+            if(sketchActive && session_["baseDocumentRevision"].toInteger()!=static_cast<qint64>(document_->revision()))
+                return sectionError("stale_session","The document changed; cancel and restart this sketch");
             if(!args.contains("plane") && !args.contains("analysisId"))return sectionError("plane_required","Select a cutting plane");
             auto inputs=args;inputs["visible"]=true;if(session_.value("command")=="inspect.section" && !inputs.contains("analysisId"))inputs["newAnalysisId"]=session_["newAnalysisId"];
             const auto candidate=CadDocument::sectionCandidate(document_->authored(),inputs);
             for(const auto& entry:candidate["analyses"].toArray())if(entry.toObject()["visible"].toBool() && sectionPresentation(entry.toObject())["availability"]=="unavailable")return sectionError("support_unavailable","Selected planar face is unavailable");
             const auto error=document_->commitAnalyses(candidate["analyses"].toArray(),args.contains("analysisId") ? "Edit Section Analysis" : "Create Section Analysis");
             if(!error.isEmpty())return sectionError("invalid_analysis",error);
+            // Analyses change visual state, not evaluated sketch sources. Keep the
+            // active authored draft and its optimistic revision in sync.
+            if(sketchActive)session_["baseDocumentRevision"]=static_cast<qint64>(document_->revision());
             return QJsonObject{{"analyses",document_->authored()["analyses"]}};
         }catch(const std::exception& error){return sectionError("invalid_arguments",QString::fromUtf8(error.what()));}
     }});
     commands_.push_back({"inspect.sectionDialog","Section Analysis","Choose an origin plane and preview a retained section.",sectionSchema(),true,[this](const QJsonObject& args){return beginSection(args);}});
     commands_.push_back({"analysis.inspect","Inspect Analyses","Read retained inspection records and support availability.",{},true,[this](const QJsonObject&){return QJsonObject{{"analyses",sectionInspection()}};}});
     commands_.push_back({"analysis.visibility","Show / Hide Analysis","Only one section may be visible; showing replaces the active section atomically.",{{"analysisId",QJsonObject{{"type","string"}}},{"visible",QJsonObject{{"type","boolean"}}}},true,[this](const QJsonObject& args){
-        if(!session_.isEmpty())return sectionError("session_busy","Complete or cancel the active command first");
-        try{const auto candidate=CadDocument::sectionCandidate(document_->authored(),args);const auto error=document_->commitAnalyses(candidate["analyses"].toArray(),"Show / Hide Section Analysis");if(!error.isEmpty())return sectionError("invalid_analysis",error);return QJsonObject{{"analyses",document_->authored()["analyses"]}};}
+        const bool sketchActive=session_.value("command")=="sketch.edit";
+        if(!session_.isEmpty() && !sketchActive)return sectionError("session_busy","Complete or cancel the active command first");
+        if(sketchActive && session_["baseDocumentRevision"].toInteger()!=static_cast<qint64>(document_->revision()))
+            return sectionError("stale_session","The document changed; cancel and restart this sketch");
+        try{const auto candidate=CadDocument::sectionCandidate(document_->authored(),args);const auto error=document_->commitAnalyses(candidate["analyses"].toArray(),"Show / Hide Section Analysis");if(!error.isEmpty())return sectionError("invalid_analysis",error);if(sketchActive)session_["baseDocumentRevision"]=static_cast<qint64>(document_->revision());return QJsonObject{{"analyses",document_->authored()["analyses"]}};}
         catch(const std::exception& error){return sectionError("invalid_arguments",QString::fromUtf8(error.what()));}
     }});
 }
