@@ -77,13 +77,16 @@ Its broad ASM-001/002/003 dependencies were
 replaced with the accepted bounded children after independent review; broad
 parents remain Todo with their full remaining scope. A final source-flow audit
 identified required native gaps: ASM-019/#369 Copy then Cmd/Ctrl+V and placement
-Enter is active in a UI lane; ASM-020/#370 cylindrical-face origin inference and
+Enter is independently accepted at `0b931a3`/`ca7d1fd` with native3/3 evidence;
+see [clipboard acceptance](validation/linked-local-occurrences.md).
+ASM-020/#370 cylindrical-face origin inference and
 modifier hover locking now has a Luna contract independently reviewed and a
-bounded authority lane implementing retained two-rim cylindrical-face midpoint
-inference. Midpoint and release behavior are declared Alloy mappings; held-face
+bounded authority accepted and integrated at `3751ff5`, retaining two-rim
+cylindrical-face midpoint inference. The UI hover/lock/glyph lane is active. Midpoint and release behavior are declared Alloy mappings; held-face
 lock is documented. Add source Joints-folder Show/Hide in the UI scope.
 The full native-step ledger also preserves Todo ASM-021/#371 paste drag and
-contextual Position/Revert, ASM-022/#372 Browser organization gestures and
+contextual Position/Revert, ASM-022/#372 Browser organization gestures (now active
+in a parallel isolated UI lane) and
 ASM-023/#373 shared As-Built Type/two-occurrence selection. TUT-019 depends on
 these children; the direct Copy Component/circular-edge
 routes are equivalent modeling semantics, not exact source input parity.

@@ -50,3 +50,20 @@ refused. These limitations were subsequently addressed by the accepted bounded
 [copied piston](copied-piston.md) and [placed export](linked-instance-export.md)
 increments. Their evidence supersedes those refusals for the admitted workflows;
 the original API-02 receipt remains historical evidence for ASM-017.
+
+## Native clipboard placement (2026-10-14)
+
+ASM-019/#369 is independently accepted at `0b931a3`/`ca7d1fd`. Browser Copy
+and standard platform Copy/Paste shortcuts retain a design-local logical
+occurrence reference, resolved again at Paste and confirmation. Paste opens
+the existing placement command; typed translation and Enter commit through
+the same authority, while Escape leaves the document unchanged. Text controls
+keep ordinary text paste. Stale and cross-document references refuse.
+
+Native08 passes 3/3, including Browser focus restoration without an inter-step
+harness repair, typed -180 mm placement, preservation of original joints and
+one copied internal joint. This is Qt-delivered input evidence, not OS physical
+input parity. The final test-only clipboard MIME restoration change was compiled
+and reviewed without another GUI run. Pointer drag placement remains ASM-021.
+
+External evidence: `deliverables/component-clipboard-2026-10-14/receipt.md`.
