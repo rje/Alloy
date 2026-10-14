@@ -12,7 +12,7 @@ and advance that revision only after a successful analysis-only commit. The
 draft, selection and pending Project/Offset state remain intact. Canceling the
 sketch leaves the separately accepted section edit; finishing the sketch keeps
 it. At this #333 checkpoint, new analyses and the Section Analysis dialog
-required leaving the sketch. The later DOC-029 candidate now adds the bounded
+required leaving the sketch. The later accepted DOC-029 change adds the bounded
 existing-analysis dock path described below; new analysis creation still
 requires leaving the sketch.
 
@@ -26,7 +26,7 @@ capture `doc028-native/native-hidden-during-sketch.png`, API ledger and receipt
 are under the external enclosure port/card deliverable directory.
 
 The original #333 evidence verifies shared API and Browser visibility only.
-The DOC-029 candidate keeps `sketch.edit` active while Browser Edit opens a
+The independently accepted DOC-029 change (`eddc86e`) keeps `sketch.edit` active while Browser Edit opens a
 separate section sub-edit. Its focused 59-call actual-app continuation verifies
 preview/Cancel, one analysis history action on OK, pending Project preservation,
 four linked projected edges followed by retained Offset, Finish and later sketch

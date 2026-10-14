@@ -16,10 +16,16 @@ closed Offset and extrusion document checks pass. Real-app clearance edits,
 exact coverage, history/reopen and visual preview are accepted; native aggregate
 selection remains SKT-078/#377 Todo. The completed worktree was retired after
 preserving evidence externally. See [receipt](validation/closed-offset-union.md).
-DOC-029/#334 is now active: edit a retained section while preserving an open
-sketch draft. Implementation uses main and its existing build; no new worktree.
-Public nested-interaction mechanics are unknown, so this is an explicit Alloy
-workflow policy with native focus/draft continuity gates.
+DOC-029/#334 is implemented on main at `eddc86e`: Browser Edit can change a
+retained section without replacing the active sketch. Actual-app API04 passes
+59 calls through Project, retained Offset and Finish; native Qt Browser/type/
+Escape/OK and natural focus return pass, with readable captures. Cancel adds no
+history entry; OK adds one independent analysis action. Independent Astra review accepts this bounded scope; #334 is closed.
+Public nested-interaction mechanics remain unknown; this is an
+explicit Alloy policy. Nonempty selected-source preservation is not separately
+proved by the pending-Project fixture. See [receipt](validation/section-during-sketch.md).
+SKT-078/#377 is now active for native Offset union selection/replace/clear.
+Implementation and validation reuse main and its build; no new worktrees.
 FND-001 comparison policy is accepted in docs/compatibility.md; FND-025/#376
 retains unknown public screenshot metadata and unproven layout generations.
 
