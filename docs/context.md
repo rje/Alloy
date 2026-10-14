@@ -1,5 +1,17 @@
 # Continuation context
 
+## Accepted local object organization (2026-10-14)
+
+ASM-007 is independently accepted for separate body and sketch-folder moves
+through shared commands and Browser context actions. The object-owner map keeps
+original modeling feature ownership intact, including earlier-feature previews,
+source edits, history/reopen and destination-scoped export. Integration is at
+`55b93af`; main verification is running. Actual pointer drag remains unverified
+under ASM-012/#343: synthetic input did not deliver a drop, and the desktop
+computer-use backend could not find the running app window. This gap remains a
+dependency of the complete surface tutorial. See
+[the receipt](validation/component-reparent.md).
+
 ## Accepted retained Cut All (2026-10-14)
 
 SOL-047/#287 is independently accepted and integrated at `d9a0003`.
