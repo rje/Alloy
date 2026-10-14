@@ -68,12 +68,16 @@ losslessly joined1m43s from-blank-to-solid film are in the external gallery.
 The joined film contains three recorded application sessions, not one continuous
 session. Qt/menu adaptation, zero-depth preview refusals and missing taper field
 remain qualified; the broader SOL-010 and SOL-016 tasks remain open.
-TUT-028/#395 is active: native cap-face sketch, referenced circle centers,
+TUT-028/#395 is Todo pending active SKT-088/#397: native cap-face sketch, referenced circle centers,
 diameters10/8/8, then three-profile Cut/All/Flip. Sol owns implementation and the
 single build/GUI lease; Astra independently verifies. Public sources, visuals
 and contracts stay external. Existing SKT-013/010 and SOL-015/047 ingredients
 must pass this native combination before acceptance.
-Backlog is396 issues with acyclic dependencies. Astra independently verifies.
+The native preflight confirmed that right/lower hole centers retain source references,
+but the left center coincident with the sketch origin does not. SKT-088 narrows
+the shared Circle center resolver to prefer a unique coincident face curve center;
+Astra approved the policy, implementation and source-motion verification are pending.
+Backlog is397 issues with acyclic dependencies. Astra independently verifies.
 Only main and its existing build are used; no inactive worktrees accumulate.
 DOC-031/#348 is independently accepted at `89782cf`: unchanged-product native09
 passes modal line focus, rename commit, Browser label and unchanged geometry.

@@ -6789,7 +6789,8 @@
         "SKT-013",
         "SKT-010",
         "SOL-015",
-        "SOL-047"
+        "SOL-047",
+        "SKT-088"
       ],
       "key": "TUT-028",
       "phase": "P2 Parametric modeling",
@@ -6812,6 +6813,21 @@
         "area:vis"
       ],
       "body": "## Problem and result\nTUT-027 native04 selects three profile IDs and the dock reports three selected regions, but the viewport shows no filled selection before distance entry. The public first-solid instruction explicitly asks the user to select the three regions until the entire area is highlighted. Selection feedback must exist before a nonzero solid preview.\n\n## Bounded scope and acceptance\n- Display selected planar profile regions using existing selection material while Press Pull collects its inputs, independent of extrusion depth/preview validity.\n- Match the actual selected stable profile IDs; preserve normal unselected appearance and clear the temporary selection on Cancel or completion.\n- Keep selection visible/consistent when the real extrusion preview becomes available. No kernel or authored model change, no mock body.\n- Preserve native04 geometry/history acceptance and run only the corrected native selection/preview route with original before-depth and after-depth captures. Independent review must inspect the actual selected area, not only the dock count.\n\n## Evidence and limits\nPublic printedp28, retrieved2026-10-14; reference provenance remains external at knowledge/tutorials/after-expressions/base-sketch-first-solid-contract-2026-10-14.md. Astra and implementation agent independently confirmed the missing fill in actual native04 capture. Exact source colors/pixels are not claimed. Full three-region48.25mm workflow recording remains TUT-027, which depends on this correction.\n\n\n## Independently accepted 2026-10-14\nAccepted at ac299a6 after independent Astra source and native07 capture review. Before-depth Press Pull shows all three selected planar cells blue; Cancel clears UI and viewport selection with warm unselected restoration. Native07 passes 3/3, including exact 3-before/0-after selection assertions. Existing real extrusion preview replaces overlapping planar fill. No kernel change. Full workflow receipt docs/validation/base-sketch-first-solid.md.\n"
+    },
+    {
+      "key": "SKT-088",
+      "title": "Retain face curve-center reference when Circle center coincides with sketch origin",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-013",
+        "SKT-010"
+      ],
+      "labels": [
+        "area:skt"
+      ],
+      "body": "## Problem and result\nThe native TUT-028 route retains source curve-center references for right and lower holes, but the left hole at the face sketch origin retains no pointReference. Generic origin snap currently wins over the coincident projected boss center. The hole must remain attached to that source center when upstream geometry moves.\n\n## Bounded scope and acceptance\n- For the first Circle center pick on a supported face sketch, prefer the coincident retained projected curve center over the generic sketch origin.\n- Use the shared pointer preview and commit resolver, preserving explicit source identities and the same visible snap result.\n- Preserve ordinary origin snaps outside this coincident face-center case. Do not broadly change snap priorities or add new geometry infrastructure.\n- Inspect actual native three-center authoring and retained references. Make one reversible upstream edit moving a referenced center and verify the hole follows, with valid geometry and history/reopen covered by TUT-028.\n- Independent Astra review; use focused core coverage only where it establishes the changed priority boundary. Do not rerun unrelated workflow suites.\n\n## Source and evidence\nPublic printed pp.28-29 describe the circles as locked to the original feature centers. Detailed provenance and permitted visuals remain external at knowledge/tutorials/after-expressions/base-sketch-face-holes-cut-contract-2026-10-14.md, retrieved 2026-10-14. This is a concrete native reference-retention failure found in the cumulative gate; the source does not prescribe our internal relation schema.\n"
     }
   ]
 }

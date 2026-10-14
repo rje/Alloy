@@ -58,11 +58,12 @@
       "id": "CP-29",
       "title": "Base sketch face holes and through cut",
       "issues": [
+        "SKT-088",
         "TUT-028"
       ],
       "status": "in_progress",
       "acceptance": "Continue firstsolid with native cap-face sketch, retained center references, diameter10/8/8 circles, three-profile Cut/All/Flip; valid through-openings and history/reopen.",
-      "remaining": "Sol implementing native face/reference/three-profile All/Flip workflow; Astra independently verifying."
+      "remaining": "SKT-088 fixes confirmed coincident origin versus retained face-center snap; full native three-hole Cut gate follows."
     },
     {
       "id": "CP-20",
