@@ -334,7 +334,9 @@ EvaluatedProfile GeometryKernel::unionProfiles(const std::vector<EvaluatedProfil
     // prism so shared partitions cannot survive as separate feature bodies.
     for(size_t i=1;i<profiles.size();++i){BRepAlgoAPI_Fuse fused(shape,profiles[i].face);
         if(!fused.IsDone() || fused.HasErrors())throw std::runtime_error("OCCT could not unite the selected planar regions");
-        fused.SimplifyResult(true,true);shape=fused.Shape();
+        // Merge coplanar cells while retaining split edge contacts. Unifying
+        // collinear edges here would erase their authored endpoint ancestry.
+        fused.SimplifyResult(false,true);shape=fused.Shape();
         lineage.insert(lineage.end(),profiles[i].boundaryEdges.begin(),profiles[i].boundaryEdges.end());
         std::vector<EvaluatedBoundaryEdge> next;
         TopTools_IndexedMapOfShape present;TopExp::MapShapes(shape,TopAbs_EDGE,present);

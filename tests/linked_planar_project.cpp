@@ -66,6 +66,15 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
     auto planeContext=GeometryKernel::projectionContext(d.evaluation(),planeSketch);
     check(planeContext["lines"].toArray().size()==4 && SketchGeometry::solveDraft(planeSketch,planeContext).ok,
         "retained construction plane projects four current source edges");
+    QJsonArray rectSources;for(const auto& value:planeSketch["parameters"].toObject()["projections"].toArray())
+        rectSources.append(value.toObject()["id"]);
+    const auto offset=SketchGeometry::addClosedRectOffset(planeSketch,rectSources,1,planeContext);
+    if(!offset.ok)std::cerr<<offset.error.toStdString()<<'\n';
+    check(offset.ok,"linked closed rectangle offsets outward");planeSketch=offset.feature;
+    check(planeSketch["parameters"].toObject()["closedRectOffsets"].toArray().size()==1,
+        "closed Offset retains one source-derived group");
+    check(SketchGeometry::evaluateFeature(planeSketch,d.evaluation().constructionPlanes.back().frame,planeContext).profiles.size()==1,
+        "offset silhouette has one selectable profile");
     const auto planeLineId=planeSketch["parameters"].toObject()["projections"].toArray()[0].toObject()["id"].toString();
     append(d,planeSketch);
     auto shifted=d.authored();auto shiftFeatures=shifted["features"].toArray();

@@ -47,6 +47,67 @@ double coordinate(const QJsonObject& object, const QString& key) {
         reject("Sketch coordinate out of supported range: " + key);
     return value.toDouble();
 }
+QSet<QString> closedRectOffsetPointIds(const QJsonObject& parameters) {
+    QSet<QString> result;
+    for(const auto& value:parameters["closedRectOffsets"].toArray())
+        for(const auto& id:value.toObject()["pointIds"].toArray())result.insert(id.toString());
+    return result;
+}
+std::array<double,4> linkedRectangleBounds(const QJsonObject& parameters,const QJsonArray& sourceIds) {
+    if(sourceIds.size()!=4)reject("Closed Offset needs four linked rectangle edges");
+    QMap<QString,QPointF> points;for(const auto& value:parameters["points"].toArray()) {
+        const auto p=value.toObject();points[p["id"].toString()]={coordinate(p,"uMm"),coordinate(p,"vMm")};
+    }
+    QMap<QString,QJsonObject> lines;for(const auto& value:parameters["entities"].toArray()) {
+        const auto e=value.toObject();if(e["type"]=="line")lines[e["id"].toString()]=e;
+    }
+    QSet<QString> distinct;double x0=maximumLength,x1=-maximumLength,y0=maximumLength,y1=-maximumLength;
+    std::array<std::pair<QPointF,QPointF>,4> segments;
+    for(int i=0;i<4;++i) {
+        const auto id=sourceIds[i].toString();
+        if(!validId(id) || distinct.contains(id) || !lines.contains(id))reject("Closed Offset source edge is unavailable or repeated");
+        distinct.insert(id);const auto line=lines[id];
+        if(!points.contains(line["startPointId"].toString()) || !points.contains(line["endPointId"].toString()))
+            reject("Closed Offset source endpoint is unavailable");
+        const auto a=points[line["startPointId"].toString()],b=points[line["endPointId"].toString()];segments[i]={a,b};
+        x0=std::min({x0,a.x(),b.x()});x1=std::max({x1,a.x(),b.x()});
+        y0=std::min({y0,a.y(),b.y()});y1=std::max({y1,a.y(),b.y()});
+    }
+    if(x1-x0<minimumLength || y1-y0<minimumLength)reject("Closed Offset rectangle is degenerate");
+    QSet<int> sides;
+    const auto near=[](double a,double b){return std::abs(a-b)<1e-6;};
+    for(const auto& [a,b]:segments) {
+        int side=-1;
+        if(near(a.y(),y0) && near(b.y(),y0) && near(std::abs(a.x()-b.x()),x1-x0))side=0;
+        else if(near(a.x(),x1) && near(b.x(),x1) && near(std::abs(a.y()-b.y()),y1-y0))side=1;
+        else if(near(a.y(),y1) && near(b.y(),y1) && near(std::abs(a.x()-b.x()),x1-x0))side=2;
+        else if(near(a.x(),x0) && near(b.x(),x0) && near(std::abs(a.y()-b.y()),y1-y0))side=3;
+        if(side<0 || sides.contains(side))reject("Closed Offset requires one complete edge on each rectangle side");
+        sides.insert(side);
+    }
+    return {x0,x1,y0,y1};
+}
+QJsonObject deriveClosedRectOffsets(const QJsonObject& parameters) {
+    if(!parameters.contains("closedRectOffsets"))return parameters;
+    auto result=parameters;auto points=result["points"].toArray();
+    for(const auto& value:parameters["closedRectOffsets"].toArray()) {
+        const auto group=value.toObject();const auto bounds=linkedRectangleBounds(parameters,group["sourceEntityIds"].toArray());
+        const double d=coordinate(group,"distanceMm");
+        if(std::abs(d)<minimumLength)reject("Closed Offset distance must be nonzero");
+        const double x0=bounds[0]-d,x1=bounds[1]+d,y0=bounds[2]-d,y1=bounds[3]+d;
+        if(x1-x0<minimumLength || y1-y0<minimumLength)reject("Closed Offset collapses the rectangle");
+        const std::array<QPointF,4> corners{QPointF{x0,y0},QPointF{x1,y0},QPointF{x1,y1},QPointF{x0,y1}};
+        const auto ids=group["pointIds"].toArray();
+        if(ids.size()!=4)reject("Closed Offset lost generated corners");
+        for(int i=0;i<4;++i) {
+            bool found=false;for(int j=0;j<points.size();++j)if(points[j].toObject()["id"]==ids[i]) {
+                auto point=points[j].toObject();point["uMm"]=corners[i].x();point["vMm"]=corners[i].y();points[j]=point;found=true;break;
+            }
+            if(!found)reject("Closed Offset generated corner is unavailable");
+        }
+    }
+    result["points"]=points;return result;
+}
 void validateDraft(const QJsonObject& draft, const QSet<QString>& derivedPointIds = {}) {
     if (draft["type"].toString() != "sketch" || draft.contains("bodyId")
         || !validId(draft["id"].toString()) || !validId(draft["ownerId"].toString())
@@ -373,6 +434,51 @@ QJsonObject SketchGeometry::linkedProjectionCandidate(const EvaluatedDocument& e
     parameters["pointProjections"]=pointProjections;candidate["parameters"]=parameters;
     GeometryKernel::projectionContext(evaluation,candidate);
     return candidate;
+}
+SketchGeometry::SolveResult SketchGeometry::addClosedRectOffset(const QJsonObject& draft,const QJsonArray& sourceEntityIds,
+    double signedDistanceMm,const QJsonObject& projectionContext) {
+    try {
+        validateDraft(draft);
+        if(!std::isfinite(signedDistanceMm) || std::abs(signedDistanceMm)<minimumLength)
+            reject("Closed Offset requires a nonzero finite distance");
+        auto p=draft["parameters"].toObject();auto projections=p["projections"].toArray();
+        if(sourceEntityIds.size()!=4 || (p["plane"]!="face" && p["plane"]!="construction"))
+            reject("Select four linked projected rectangle edges");
+        QSet<QString> requested,already;
+        for(const auto& value:p["closedRectOffsets"].toArray())for(const auto& id:value.toObject()["sourceEntityIds"].toArray())already.insert(id.toString());
+        for(const auto& value:sourceEntityIds) {
+            const auto id=value.toString();bool found=false;
+            for(int i=0;i<projections.size();++i)if(projections[i].toObject()["id"]==id) {
+                found=true;auto projection=projections[i].toObject();projection["profile"]=false;projections[i]=projection;break;
+            }
+            if(!found || requested.contains(id) || already.contains(id))reject("Closed Offset needs four unused linked projected edges");
+            requested.insert(id);
+        }
+        p["projections"]=projections;
+        auto expanded=expandedProjectionFeature(QJsonObject{{"parameters",p}},projectionContext)["parameters"].toObject();
+        const auto bounds=linkedRectangleBounds(expanded,sourceEntityIds);
+        const std::array<QPointF,4> corners{QPointF{bounds[0]-signedDistanceMm,bounds[2]-signedDistanceMm},
+            QPointF{bounds[1]+signedDistanceMm,bounds[2]-signedDistanceMm},
+            QPointF{bounds[1]+signedDistanceMm,bounds[3]+signedDistanceMm},
+            QPointF{bounds[0]-signedDistanceMm,bounds[3]+signedDistanceMm}};
+        if(corners[1].x()-corners[0].x()<minimumLength || corners[2].y()-corners[1].y()<minimumLength)
+            reject("Closed Offset collapses the rectangle");
+        auto points=p["points"].toArray(),entities=p["entities"].toArray(),groups=p["closedRectOffsets"].toArray();
+        QJsonArray pointIds,entityIds;
+        for(int i=0;i<4;++i) {
+            const auto id=newId();pointIds.append(id);points.append(QJsonObject{{"id",id},{"uMm",corners[i].x()},{"vMm",corners[i].y()}});
+        }
+        for(int i=0;i<4;++i) {
+            const auto id=newId();entityIds.append(id);
+            entities.append(QJsonObject{{"id",id},{"type","line"},{"startPointId",pointIds[i]},
+                {"endPointId",pointIds[(i+1)%4]}});
+        }
+        groups.append(QJsonObject{{"id",newId()},{"sourceEntityIds",sourceEntityIds},
+            {"distanceMm",signedDistanceMm},{"pointIds",pointIds},{"entityIds",entityIds}});
+        p["points"]=points;p["entities"]=entities;p["closedRectOffsets"]=groups;
+        auto candidate=draft;candidate["parameters"]=p;
+        return solveDraft(candidate,projectionContext);
+    } catch(const std::exception& error) {return {false,draft,{},QString::fromUtf8(error.what())};}
 }
 QJsonObject SketchGeometry::expandedProjectionFeature(const QJsonObject& feature,const QJsonObject& context) {
     auto expanded=feature;auto parameters=feature["parameters"].toObject();
@@ -1093,7 +1199,7 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
         try {return validateParameters(expandedProjectionFeature({{"parameters",parameters}},{{"lines",lines},{"circles",circles},{"points",resolvedPoints}})["parameters"].toObject(),authoredIds,referenceIds);}
         catch(const std::exception& error){return QString::fromUtf8(error.what());}
     }
-    const QSet<QString> allowed{"plane", "planeId", "points", "entities", "constraints", "dimensions", "originPointId", "support", "texts", "loopOffsets", "openChainOffsets", "roundedRectangleIntent", "mirrorGroups", "slotGroups", "arcSlotGroups"};
+    const QSet<QString> allowed{"plane", "planeId", "points", "entities", "constraints", "dimensions", "originPointId", "support", "texts", "loopOffsets", "openChainOffsets", "closedRectOffsets", "roundedRectangleIntent", "mirrorGroups", "slotGroups", "arcSlotGroups"};
     for (auto it = parameters.begin(); it != parameters.end(); ++it)
         if (!allowed.contains(it.key())) return "Unknown sketch parameter: " + it.key();
     if (!parameters["points"].isArray() || !parameters["entities"].isArray()) return "Sketch requires points and entities";
@@ -1334,6 +1440,24 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
         }
         const auto openOffsetError=SketchOpenChainOffset::validate(parameters);
         if(!openOffsetError.isEmpty())return openOffsetError;
+        if(parameters.contains("closedRectOffsets")) {
+            if(!parameters["closedRectOffsets"].isArray())return "Closed offsets must be an array";
+            QSet<QString> sources;
+            for(const auto& value:parameters["closedRectOffsets"].toArray()) {
+                const auto group=value.toObject();
+                if(group.size()!=5 || !claimId(group["id"].toString()) || !group["distanceMm"].isDouble()
+                    || std::abs(group["distanceMm"].toDouble())<minimumLength
+                    || !std::isfinite(group["distanceMm"].toDouble())
+                    || group["sourceEntityIds"].toArray().size()!=4 || group["pointIds"].toArray().size()!=4
+                    || group["entityIds"].toArray().size()!=4)return "Invalid retained closed rectangle Offset";
+                for(const auto& source:group["sourceEntityIds"].toArray()) {
+                    if(!validId(source.toString()) || sources.contains(source.toString()))return "Closed Offset source identity is repeated";
+                    sources.insert(source.toString());
+                }
+                for(const auto& id:group["pointIds"].toArray())if(!validId(id.toString()))return "Closed Offset corner identity is invalid";
+                for(const auto& id:group["entityIds"].toArray())if(!validId(id.toString()))return "Closed Offset edge identity is invalid";
+            }
+        }
         for(const auto& value:parameters["openChainOffsets"].toArray())
             if(!claimId(value.toObject()["id"].toString()))return "Duplicate open-chain offset UUID";
         const auto arcSlotDerivedPoints=SketchArcSlot::derivedPointIds(parameters);
@@ -1513,11 +1637,30 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
 SketchGeometry::SolveResult SketchGeometry::solveDraft(const QJsonObject& draft, const QJsonObject& projectionContext, const QString& initialReferencePointId) {
     try {
         validateDraft(draft);
+        const auto authored=draft["parameters"].toObject();
+        for(const auto& value:authored["closedRectOffsets"].toArray()) {
+            const auto group=value.toObject();const auto sources=group["sourceEntityIds"].toArray(),pointIds=group["pointIds"].toArray(),entityIds=group["entityIds"].toArray();
+            for(const auto& source:sources) {
+                bool linked=false;
+                for(const auto& row:authored["projections"].toArray())if(row.toObject()["id"]==source && row.toObject()["profile"]==false)
+                    linked=true;
+                if(!linked)reject("Closed Offset requires its retained non-profile linked source edges");
+            }
+            for(int i=0;i<4;++i) {
+                bool found=false;for(const auto& row:authored["entities"].toArray()) {
+                    const auto entity=row.toObject();if(entity["id"]==entityIds[i] && entity["type"]=="line"
+                        && entity["startPointId"]==pointIds[i] && entity["endPointId"]==pointIds[(i+1)%4]
+                        && !entity["construction"].toBool())found=true;
+                }
+                if(!found)reject("Closed Offset generated boundary identity changed");
+            }
+        }
         if(draft["parameters"].toObject().contains("texts") || draft["parameters"].toObject().contains("loopOffsets"))
             return {true,draft,{{"solver","direct text parameters"},{"status","accepted"}}, {}};
         auto expanded=expandedProjectionFeature(draft,projectionContext);
         if(expanded["parameters"].toObject().contains("openChainOffsets"))
             expanded["parameters"]=SketchOpenChainOffset::derive(expanded["parameters"].toObject());
+        expanded["parameters"]=deriveClosedRectOffsets(expanded["parameters"].toObject());
         QSet<QString> lockedPoints,virtualEntities;
         for(const auto& value:draft["parameters"].toObject()["projections"].toArray()){const auto id=value.toObject()["id"].toString();
             virtualEntities.insert(id);lockedPoints.insert(projectionPointId(id,false));lockedPoints.insert(projectionPointId(id,true));}
@@ -1531,11 +1674,12 @@ SketchGeometry::SolveResult SketchGeometry::solveDraft(const QJsonObject& draft,
         for(const auto& value:draft["parameters"].toObject()["pointProjections"].toArray()){const auto id=value.toObject()["id"].toString();lockedPoints.insert(id);derivedPoints.insert(id);}
         const auto externalLockedPoints=lockedPoints;
         lockedPoints.unite(SketchOpenChainOffset::derivedPointIds(draft["parameters"].toObject()));
+        lockedPoints.unite(closedRectOffsetPointIds(draft["parameters"].toObject()));
         if(!initialReferencePointId.isEmpty())lockedPoints.insert(initialReferencePointId);
         validateDraft(expanded,derivedPoints);
         const auto result=SketchSolver::solve(expanded["parameters"].toObject(),lockedPoints);
         if(!result.accepted)return {false,draft,result.diagnostics,result.error};
-        auto solved=draft;auto parameters=SketchOpenChainOffset::derive(result.parameters);
+        auto solved=draft;auto parameters=deriveClosedRectOffsets(SketchOpenChainOffset::derive(result.parameters));
         QJsonArray points,entities,dimensions;
         for(const auto& value:parameters["points"].toArray())if(!externalLockedPoints.contains(value.toObject()["id"].toString()))points.append(value);
         for(const auto& value:parameters["entities"].toArray())if(!virtualEntities.contains(value.toObject()["id"].toString()))entities.append(value);
@@ -2397,8 +2541,8 @@ QJsonObject SketchGeometry::evaluationFrame(const QJsonObject& parameters,const 
 EvaluatedSketch SketchGeometry::evaluateFeature(const QJsonObject& feature, const QJsonObject& resolvedFrame, const QJsonObject& projectionContext) {
     const auto solution = solveDraft(feature,projectionContext);
     if (!solution.ok) reject(solution.error);
-    const auto parameters = SketchOpenChainOffset::derive(
-        expandedProjectionFeature(solution.feature,projectionContext)["parameters"].toObject());
+    const auto parameters = deriveClosedRectOffsets(SketchOpenChainOffset::derive(
+        expandedProjectionFeature(solution.feature,projectionContext)["parameters"].toObject()));
     const auto plane = parameters["plane"].toString();
     const auto sketchFrame=evaluationFrame(parameters,resolvedFrame);
     QMap<QString, gp_Pnt> points;

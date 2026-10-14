@@ -21,6 +21,8 @@ public:
     static QString projectionPointId(const QString& projectionId, bool end);
     static QJsonObject linkedProjectionCandidate(const EvaluatedDocument& evaluation,
         const QJsonObject& sketch, const QJsonObject& source);
+    static SolveResult addClosedRectOffset(const QJsonObject& draft,const QJsonArray& sourceEntityIds,
+        double signedDistanceMm,const QJsonObject& projectionContext);
     static QJsonObject expandedProjectionFeature(const QJsonObject& feature, const QJsonObject& projectionContext);
     static QJsonObject findFeature(const QJsonObject& authored, const QString& sketchId);
     static QJsonObject replaceFeature(const QJsonObject& authored, const QJsonObject& draft);

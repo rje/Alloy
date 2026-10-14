@@ -280,6 +280,9 @@ private:
     void cancelSplineOffset();
     QJsonObject previewOpenChainOffset(const QJsonObject& inputs);
     QJsonObject acceptOpenChainOffset(const QJsonObject& inputs);
+    QJsonObject previewClosedRectOffset(const QJsonObject& inputs);
+    QJsonObject acceptClosedRectOffset(const QJsonObject& inputs);
+    void cancelClosedRectOffset();
     void cancelOpenChainOffset();
     EvaluatedSketch evaluateSketchDraft(const QJsonObject& draft) const;
     QJsonObject previewLoopOffset(const QJsonObject& inputs);

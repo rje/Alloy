@@ -8,6 +8,17 @@ Timeline-selection checks pass with inspected two-pocket bottom-view captures;
 independent review and main integration remain pending. The later selected
 Join/Chamfer/Fillet group is SOL-051/#327, so SOL-049/#293 stays open. See
 [the candidate receipt](validation/feature-mirror-cut.md).
+## Closed projected rectangle Offset candidate (2026-10-13)
+
+SKT-073/#328 in the isolated enclosure-ports worktree has a bounded candidate:
+four retained projected rectangle edges create one stable signed Offset group.
+The three actual adapted connector faces produce four disjoint profile cells,
+exact 973.5 mm² union area, and one Cut To Object through the Case wall.
+Real-app API and native Qt evidence, retained plane edit, atomic refusal,
+history/reopen and the limitation on topology-changing individual clearance
+edits are recorded in [the candidate receipt](validation/closed-rectangle-offset.md).
+Independent review and main integration remain pending. SKT-074 separately owns
+explicit aggregate selection across changed cell contacts.
 
 ## Latest checkpoint and next work (2026-10-13)
 
