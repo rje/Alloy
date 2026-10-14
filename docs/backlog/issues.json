@@ -5684,7 +5684,8 @@
       "priority": "P1",
       "depends_on": [
         "TUT-022",
-        "SOL-021"
+        "SOL-021",
+        "SKT-076"
       ],
       "labels": [
         "area:gate"
@@ -5981,6 +5982,34 @@
         "area:doc"
       ],
       "body": "<!-- alloy-backlog:DOC-030 -->\n\n## Problem and result\n\nThe enclosure Split creates two stable bodies, but Alloy cannot give the resulting bodies the source-required Bottom and Top Browser names without changing a feature label. Add a retained body display name keyed by body identity.\n\n## Bounded scope\n\nProvide one shared body rename command and a native Browser rename action for current local solid bodies. The authored override follows stable body ID and owner organization; feature names, geometry, topology, references, and modifier history remain unchanged. Reject missing/imported/nonlocal targets and invalid names clearly.\n\n## Acceptance\n\nRename the actual post-Split Case halves Bottom and Top. Inspect Browser and API names, then edit an upstream feature, undo/redo, save/reopen, and verify unchanged body IDs and geometry. A split-source edit that invalidates a body must refuse stale name identity rather than attach it to another body. Keep this prerequisite distinct from the cumulative TUT-022 snap workflow.\n\n## Verification\n\nUse focused core and real-app API checks plus one readable Qt Browser rename interaction. Record geometry, history, save/reopen, native and visual evidence separately. Independent review precedes acceptance.\n\n## Public source and limits\n\nThe public enclosure tutorial names its two Split halves Bottom and Top; dated creator/source evidence and uncertainty are recorded outside Git under knowledge/tutorials/advanced-audit-2026-10-13/enclosure-split-snap-contract.md. This is a bounded Alloy display-name authority, not general feature rename or imported hierarchy editing.\n"
+    },
+    {
+      "key": "GEO-016",
+      "title": "Publish complete retained Split seam boundary wires",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SOL-052"
+      ],
+      "labels": [
+        "area:geo"
+      ],
+      "body": "The actual finished enclosure Bottom seam is one closed U-shaped trimmed wire with 18 edges: ten lines and eight arcs. Current Split support publishes only six straight boundary IDs; curved wall intersections and four port-end trim lines are absent. Publish complete uniquely retained boundary identities using exact current topology and retained anchors/history, never coordinates or raw traversal indexes. Preserve existing identities and refuse ambiguous or changed topology atomically. This is required for source seam Offset, not permission to reconstruct an ideal rounded rectangle. Verify the actual final two-Mirror enclosure cap, meaningful upstream edit/history/reopen, complete unique wire membership, and stable boundary references. Independent review required. Public source geometry and inferred offset recipe are external in advanced-audit-2026-10-14/enclosure-rim-handoff.md."
+    },
+    {
+      "key": "SKT-076",
+      "title": "Offset an actual trimmed seam boundary into a retained ridge profile",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "GEO-016"
+      ],
+      "labels": [
+        "area:skt"
+      ],
+      "body": "Extend the bounded generated offset sketch path to the actual retained U-shaped Split seam. Select the complete closed trimmed boundary and offset inward1.25 using mature OCCT geometry; expose the inset interior as a selectable retained profile rather than forcing the source-to-offset shoulder band. Preserve existing rounded-loop documents. Validate containment in actual source material, open cavity, positive connected profile, atomic collapse/ambiguity refusal and stable downstream Join2/Fillet references. Native controls and API share the operation; verify edit/history/reopen and readable preview/selection. Exact second reference offset is unresolved in public low-resolution frames: retain that qualification, never claim exact observed numeric parity from inference. Do not bridge the port opening or replace the seam with an ideal rectangle. TUT-023 owns full ridge/retained-tool Cut/export gate."
     }
   ]
 }
