@@ -1635,9 +1635,13 @@ void AlloyWindow::registerCommands() {
         const auto update=execute("command.update",{{"session",session_["id"]},{"inputs",QJsonObject{{"extent","partial"},{"angleDeg",drag["angleDeg"]}}}});if(!update["ok"].toBool())return update;session_.remove("angularDragError");session_["angularDrag"]=drag;return previewRevolve();
     });
     auto loftOperation=parameter("string","New Body circular solid or New Component guided open surface.");loftOperation["enum"]=QJsonArray{"newBody","newComponent"};
+    auto loftGuideType=parameter("string","Centerline follows the middle; Rail must intersect both open section endpoints.");
+    loftGuideType["enum"]=QJsonArray{"centerline","rail"};
     QJsonObject loftSchema{{"profiles",optional(parameter("array","Ordered distinct {sketchId,profileId} circular section references."))},
-        {"sections",optional(parameter("array","Ordered open {sketchId,entityId} arc then line references for a surface."))},
+        {"sections",optional(parameter("array","Ordered open section references; Rail uses one arc then two ordered lines."))},
         {"centerline",optional(parameter("object","One retained {sketchId,entityId} fit-point spline guide."))},
+        {"rail",optional(parameter("object","One retained {sketchId,entityId} fit-point spline meeting both section endpoints."))},
+        {"guideType",optional(loftGuideType)},
         {"operation",optional(loftOperation)},{"componentName",optional(parameter("string","New surface component name."))},
         {"featureId",optional(featureId)},{"name",optional(parameter("string","Loft feature name."))}};
     add("solid.loft","Loft","Circular New Body solid or open arc-to-line surface with a fit-spline Centerline and New Component.",loftSchema,[this](const auto& a){
@@ -1654,7 +1658,7 @@ void AlloyWindow::registerCommands() {
         return QJsonObject{{"tab",designTab_},{"activeSessionPreserved",true}};
     });
     add("solid.loftDialog","Loft","Select ordered sections and a Centerline for a surface, or circular regions for a solid.",loftSchema,[this](const auto& a){return beginLoft(a);});
-    add("surface.loftDialog","Loft","Guided surface Loft: two endpoint sections and a Centerline; New Component only.",loftSchema,[this](const auto& a){
+    add("surface.loftDialog","Loft","Guided surface Loft: choose Centerline or an intersecting Rail for open sections; New Component only.",loftSchema,[this](const auto& a){
         if(a.contains("operation") && a["operation"]!="newComponent")return failure("invalid_arguments","Surface Loft requires New Component","operation");
         auto inputs=a;inputs["operation"]="newComponent";const auto result=beginLoft(inputs);if(result.contains("error"))return result;
         if(session_["command"]=="solid.loft") {session_["surfaceOnly"]=true;showLoft();return session_;}return result;
@@ -1700,13 +1704,16 @@ void AlloyWindow::registerCommands() {
         {{"bodyId",optional(parameter("string","Current local surface body UUID."))},
          {"featureId",optional(featureId)},{"name",optional(parameter("string","Remove feature name."))}},
         [this](const auto& a){return beginRemoveBody(a);});
-    auto loftRole=parameter("string","Active native Loft selection role.");loftRole["enum"]=QJsonArray{"section1","section2","centerline"};
+    auto loftRole=parameter("string","Active native Loft selection role.");loftRole["enum"]=QJsonArray{"section1","section2","centerline","rail"};
     add("solid.loftSelection","Select Loft input","Choose or clear a surface Loft section or Centerline picker.",
         {{"role",loftRole},{"clear",optional(parameter("boolean","Clear this retained reference."))}},[this](const auto& a){
             if(session_.value("command")!="solid.loft" || session_.value("inputs").toObject().value("operation")!="newComponent")return failure("invalid_session","Start a surface Loft first");
             const auto role=a["role"].toString();auto inputs=session_["inputs"].toObject();
+            const auto rail=inputs.value("guideType")=="rail";
+            if((rail && role=="centerline") || (!rail && role=="rail"))
+                return failure("invalid_arguments","Select the active Loft guide type");
             if(a.value("clear").toBool()){
-                if(role=="centerline")inputs.remove("centerline");
+                if(role=="centerline" || role=="rail")inputs.remove(role);
                 else {auto sections=inputs["sections"].toArray();if(sections.size()==2)sections[role=="section1"?0:1]=QJsonObject{};inputs["sections"]=sections;}
                 session_["inputs"]=inputs;previewLoft();
             }

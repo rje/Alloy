@@ -3675,3 +3675,14 @@ review found no blocker and tooltip polish is applied. See
 [bounded contract](validation/surface-workspace-navigation.md).
 Surface Modify is integrated with retained Remove; the combined native route
 check passes. Independent Astra review accepted both source and final evidence.
+
+
+## 2026-10-14 exterior rail surface Loft candidate
+
+SRF-012/#353 has a bounded isolated candidate for an endpoint-contact fit-spline
+rail from one solved open arc to an ordered connected two-line lower section.
+The OCCT sheet is open, two-face, zero-solid, and has source-derived face/edge
+IDs; broader rail/contact and handle-bridge modes remain separate. Focused core,
+37-call real-app API, and Qt-delivered viewport selection/Cancel checks passed.
+The independent source/compatibility review and main integration remain pending.
+See [candidate validation](validation/surface-rail-loft.md).

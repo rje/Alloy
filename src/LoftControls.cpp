@@ -50,12 +50,13 @@ QJsonObject AlloyWindow::beginLoft(const QJsonObject& overrides) {
 }
 QJsonObject AlloyWindow::previewLoft() {
     const auto inputs=session_["inputs"].toObject();const bool surface=inputs.value("operation")=="newComponent";
+    const bool railMode=surface && inputs.value("guideType")=="rail";
     view_->selectLoftProfiles(surface ? QJsonArray{} : inputs["profiles"].toArray());
     view_->clearSweepPath();
     if(surface) {
         QSet<QString> visible;for(const auto& sketch:document_->sketches())if(sketch.ownerId==document_->authored()["documentId"].toString())visible.insert(sketch.featureId);
         view_->setCommandSketches(visible);
-        const auto guide=inputs["centerline"].toObject();
+        const auto guide=inputs[railMode ? "rail" : "centerline"].toObject();
         for(const auto& sketch:document_->sketches())if(sketch.featureId==guide["sketchId"])
             view_->showSweepPath(sketch,QJsonArray{guide["entityId"]});
     } else view_->setCommandSketches({});
@@ -66,19 +67,25 @@ QJsonObject AlloyWindow::previewLoft() {
             const QSignalBlocker blocker(list);list->clear();
             int index=0;for(const auto& value:inputs["profiles"].toArray()){const auto ref=value.toObject();QString name=ref["sketchId"].toString();for(const auto& s:document_->sketches())if(s.featureId==name){name=s.name;break;}list->addItem(QString::number(++index)+". "+name);}
         }
-        if(surface)for(const auto& role:QStringList{"section1","section2","centerline"})if(auto* button=loftDock_->findChild<QPushButton*>("loft."+role)){
+        if(surface)for(const auto& role:QStringList{"section1","section2",railMode ? "rail" : "centerline"})if(auto* button=loftDock_->findChild<QPushButton*>("loft."+role)){
             const auto sections=inputs["sections"].toArray();
-            const auto ref=role=="centerline" ? inputs["centerline"].toObject() : sections.size()==2 ? sections[role=="section1"?0:1].toObject() : QJsonObject{};
+            const auto ref=role=="centerline" || role=="rail" ? inputs[role].toObject() : sections.size()==2 ? sections[role=="section1"?0:1].toObject() : QJsonObject{};
             QString sketchName;
             for(const auto& sketch:document_->sketches())if(sketch.featureId==ref["sketchId"]){sketchName=sketch.name;break;}
-            button->setText(ref.isEmpty()?"Select":QString("1 selected · %1").arg(sketchName.isEmpty()?"Sketch":sketchName));
+            const auto count=ref.contains("entityIds") ? ref["entityIds"].toArray().size() : ref.isEmpty() ? 0 : 1;
+            button->setText(count==0?"Select":QString("%1 selected").arg(count));
+            button->setToolTip(sketchName.isEmpty()?QString{}:sketchName);
             button->setChecked(session_["selectionRole"]==role);
         }
         loftDock_->findChild<QDialogButtonBox*>()->button(QDialogButtonBox::Ok)->setEnabled(false);
     }
     if(session_["baseDocumentRevision"].toInteger()!=static_cast<qint64>(document_->revision()))return reject("stale_session","The document changed; cancel and restart Loft");
-    if(surface){const auto sections=inputs["sections"].toArray();if(sections.size()!=2 || sections[0].toObject().isEmpty() || sections[1].toObject().isEmpty() || inputs["centerline"].toObject().isEmpty())
-        return reject("selection_required","Select an open arc, an open line, then one fit-spline Centerline");}
+    if(surface){const auto sections=inputs["sections"].toArray();
+        if(railMode){if(sections.size()!=2 || sections[0].toObject()["entityIds"].toArray().size()!=1
+            || sections[1].toObject()["entityIds"].toArray().size()!=2 || inputs["rail"].toObject().isEmpty())
+            return reject("selection_required","Select one back arc, two ordered lower lines, then one intersecting rail");}
+        else if(sections.size()!=2 || sections[0].toObject().isEmpty() || sections[1].toObject().isEmpty() || inputs["centerline"].toObject().isEmpty())
+            return reject("selection_required","Select an open arc, an open line, then one fit-spline Centerline");}
     QJsonObject candidate;try{candidate=loftCandidate(inputs);}catch(const std::exception& error){return reject("invalid_arguments",QString::fromUtf8(error.what()));}
     const auto evaluated=CadDocument::evaluateCandidate(candidate);if(!evaluated.ok)return reject("evaluation_failed",evaluated.error,evaluated.diagnostics);
     const auto id=session_["inputs"].toObject().value("featureId").toString(session_["newFeatureId"].toString());
@@ -96,7 +103,9 @@ QJsonObject AlloyWindow::selectLoftProfile(const QString& sketchId,const QString
 }
 QJsonObject AlloyWindow::selectLoftEntity(const QString& role,const QString& sketchId,const QString& entityId) {
     if(session_.value("command")!="solid.loft" || session_.value("inputs").toObject().value("operation")!="newComponent")return failure("invalid_session","Start a surface Loft first");
-    const auto required=role=="section1" ? "arc" : role=="section2" ? "line" : role=="centerline" ? "fitSpline" : "";
+    const auto railMode=session_["inputs"].toObject().value("guideType")=="rail";
+    if((railMode && role=="centerline") || (!railMode && role=="rail"))return failure("invalid_arguments","Choose the active guide type");
+    const auto required=role=="section1" ? "arc" : role=="section2" ? "line" : role=="centerline" || role=="rail" ? "fitSpline" : "";
     if(!*required)return failure("invalid_arguments","Choose a Loft section or Centerline role");
     const auto earlier=session_["inputs"].toObject().value("featureId").toString();
     const auto stage=earlier.isEmpty() ? document_->evaluation() : document_->evaluationBefore(earlier);
@@ -106,9 +115,23 @@ QJsonObject AlloyWindow::selectLoftEntity(const QString& role,const QString& ske
             && !row.toObject()["construction"].toBool())found=true;
     if(!found)return failure("loft_source_unavailable",QString("Select an ordinary retained %1 in a visible root sketch").arg(required));
     auto inputs=session_["inputs"].toObject();const QJsonObject ref{{"sketchId",sketchId},{"entityId",entityId}};
-    if(role=="centerline")inputs["centerline"]=ref;
-    else {auto sections=inputs["sections"].toArray();if(sections.size()!=2)sections=QJsonArray{QJsonObject{},QJsonObject{}};sections[role=="section1"?0:1]=ref;inputs["sections"]=sections;}
-    session_["inputs"]=inputs;session_["selectionRole"]=role=="section1" ? "section2" : "centerline";
+    if(role=="centerline" || role=="rail")inputs[role]=ref;
+    else {auto sections=inputs["sections"].toArray();if(sections.size()!=2)sections=QJsonArray{QJsonObject{},QJsonObject{}};
+        if(railMode){
+            auto section=sections[role=="section1"?0:1].toObject();auto ids=section["entityIds"].toArray();
+            if(section["sketchId"]!=sketchId)ids={};
+            if(role=="section1")ids=QJsonArray{entityId};
+            else if(ids.contains(entityId)){for(int i=0;i<ids.size();++i)if(ids[i]==entityId){ids.removeAt(i);break;}}
+            else if(ids.size()<2)ids.append(entityId);
+            else return failure("loft_section_full","Rail Loft accepts exactly two ordered lower lines");
+            sections[role=="section1"?0:1]=QJsonObject{{"sketchId",sketchId},{"entityIds",ids}};
+        }else sections[role=="section1"?0:1]=ref;
+        inputs["sections"]=sections;}
+    session_["inputs"]=inputs;
+    if(role=="section1")session_["selectionRole"]="section2";
+    else if(role=="section2")session_["selectionRole"]=!railMode || inputs["sections"].toArray()[1].toObject()["entityIds"].toArray().size()==2
+        ? (railMode ? "rail" : "centerline") : "section2";
+    else session_["selectionRole"]=role;
     const auto preview=previewLoft();return {{"role",role},{"sketchId",sketchId},{"entityId",entityId},{"previewed",preview.value("previewed")}};
 }
 QJsonObject AlloyWindow::pickLoft(double x,double y) {
@@ -157,20 +180,35 @@ void AlloyWindow::showLoft() {
         if(choice=="newComponent"){
             inputs.remove("profiles");inputs["sections"]=QJsonArray{QJsonObject{},QJsonObject{}};inputs["componentName"]="Component";
             session_["selectionRole"]="section1";
-        } else {inputs.remove("sections");inputs.remove("centerline");inputs.remove("componentName");inputs["profiles"]=QJsonArray{};}
+        } else {inputs.remove("sections");inputs.remove("centerline");inputs.remove("rail");inputs.remove("guideType");inputs.remove("componentName");inputs["profiles"]=QJsonArray{};}
         session_["inputs"]=inputs;QTimer::singleShot(0,this,[this]{if(session_.value("command")!="solid.loft")return;showLoft();previewLoft();view_->setFocus();});
     });
     if(surface) {
+        const bool railMode=session_["inputs"].toObject().value("guideType")=="rail";
+        auto* guideType=new QComboBox(panel);guideType->setObjectName("loftGuideType");
+        guideType->addItem("Centerline","centerline");guideType->addItem("Rails","rail");
+        guideType->setCurrentIndex(railMode?1:0);
+        guideType->setEnabled(!session_["inputs"].toObject().contains("featureId"));form->addRow("Guide Type",guideType);
+        connect(guideType,qOverload<int>(&QComboBox::currentIndexChanged),panel,[this,guideType](int index){
+            auto inputs=session_["inputs"].toObject();if(inputs.contains("featureId"))return;
+            const auto choice=guideType->itemData(index).toString();
+            inputs["guideType"]=choice;inputs.remove("centerline");inputs.remove("rail");
+            inputs["sections"]=QJsonArray{QJsonObject{},QJsonObject{}};
+            session_["inputs"]=inputs;session_["selectionRole"]="section1";
+            QTimer::singleShot(0,this,[this]{if(session_.value("command")!="solid.loft")return;showLoft();previewLoft();});
+        });
         auto* component=new QLineEdit(session_["inputs"].toObject()["componentName"].toString(),panel);
         component->setObjectName("loftComponentName");component->setEnabled(!session_["inputs"].toObject().contains("featureId"));
         form->addRow("Component",component);
         connect(component,&QLineEdit::editingFinished,panel,[this,component]{auto inputs=session_["inputs"].toObject();inputs["componentName"]=component->text();session_["inputs"]=inputs;previewLoft();});
-        for(const auto& role:QStringList{"section1","section2","centerline"}) {
+        for(const auto& role:QStringList{"section1","section2",railMode ? "rail" : "centerline"}) {
             auto* button=new QPushButton("Select",panel);button->setObjectName("loft."+role);button->setCheckable(true);
-            form->addRow(role=="section1"?"Profile 1 · arc":role=="section2"?"Profile 2 · line":"Centerline",button);
+            form->addRow(role=="section1"?"Profile 1 · arc":role=="section2"?(railMode?"Profile 2 · two lines":"Profile 2 · line"):(railMode?"Rail":"Centerline"),button);
             connect(button,&QPushButton::clicked,panel,[this,role]{execute("solid.loftSelection",{{"role",role}});previewLoft();});
         }
-        auto* help=new QLabel("Click an open arc, then an open line on the endpoint planes. Select the retained fit-spline Centerline. The result is one sheet face.",panel);
+        auto* help=new QLabel(railMode
+            ? "Select the back arc, two connected lower lines from the rail contact, then the fit-spline rail. Rail endpoints must meet both free section endpoints."
+            : "Click an open arc, then an open line on the endpoint planes. Select the retained fit-spline Centerline. The result is one sheet face.",panel);
         help->setWordWrap(true);form->addRow(help);
         form->addRow("Closed",new QLabel("Off · surface",panel));
     } else {

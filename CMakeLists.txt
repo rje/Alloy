@@ -31,7 +31,7 @@ add_library(alloy_kernel STATIC
     src/ReferenceCanvas.cpp src/ReferenceCanvas.h
     src/AssemblySlider.cpp src/AssemblySlider.h
     src/DocumentAppend.cpp src/DocumentAppend.h
-    src/GeometryKernel.cpp src/GeometryKernel.h src/PrimitiveTopology.cpp src/PrimitiveTopology.h src/PlanarFaces.cpp src/PlanarFaces.h src/JoinRootEdges.cpp src/JoinRootEdges.h src/SolidFillet.cpp src/SolidFillet.h src/SolidChamfer.cpp src/SolidChamfer.h src/SolidShell.cpp src/SolidShell.h src/SolidThicken.cpp src/SolidThicken.h src/ClosedBlendShell.cpp src/ClosedBlendShell.h src/SolidSplit.cpp src/SolidSplit.h src/RevolvedShellCap.cpp src/RevolvedShellCap.h src/SolidSphere.cpp src/SolidSphere.h src/SolidHole.cpp src/SolidHole.h src/SolidLoft.cpp src/SolidLoft.h src/SurfaceExtrude.cpp src/SurfaceExtrude.h src/SolidRevolve.cpp src/SolidRevolve.h src/SolidSweep.cpp src/SolidSweep.h src/FeaturePattern.cpp src/FeaturePattern.h src/SolidMirror.cpp src/SolidTransform.cpp src/CircularPattern.cpp src/SolidMirror.h src/JoinResults.cpp
+    src/GeometryKernel.cpp src/GeometryKernel.h src/PrimitiveTopology.cpp src/PrimitiveTopology.h src/PlanarFaces.cpp src/PlanarFaces.h src/JoinRootEdges.cpp src/JoinRootEdges.h src/SolidFillet.cpp src/SolidFillet.h src/SolidChamfer.cpp src/SolidChamfer.h src/SolidShell.cpp src/SolidShell.h src/SolidThicken.cpp src/SolidThicken.h src/ClosedBlendShell.cpp src/ClosedBlendShell.h src/SolidSplit.cpp src/SolidSplit.h src/RevolvedShellCap.cpp src/RevolvedShellCap.h src/SolidSphere.cpp src/SolidSphere.h src/SolidHole.cpp src/SolidHole.h src/SolidLoft.cpp src/SolidLoft.h src/SurfaceRailLoft.cpp src/SurfaceRailLoft.h src/SurfaceExtrude.cpp src/SurfaceExtrude.h src/SolidRevolve.cpp src/SolidRevolve.h src/SolidSweep.cpp src/SolidSweep.h src/FeaturePattern.cpp src/FeaturePattern.h src/SolidMirror.cpp src/SolidTransform.cpp src/CircularPattern.cpp src/SolidMirror.h src/JoinResults.cpp
     src/MeshExport.cpp src/MeshExport.h
     src/StepExchange.cpp src/StepExchange.h
     src/SketchSpline.cpp src/SketchSpline.h src/SketchSplineOffset.cpp src/SketchSplineOffset.h src/SketchOpenChainOffset.cpp src/SketchOpenChainOffset.h src/SketchConic.cpp src/SketchConic.h src/SketchGeometry.cpp src/SketchTrim.cpp src/SketchGeometry.h src/SketchText.cpp src/SketchText.h src/RoundedLoopOffset.cpp src/RoundedLoopOffset.h
@@ -626,6 +626,14 @@ if(BUILD_TESTING)
     target_include_directories(surface_loft_test PRIVATE src)
     target_link_libraries(surface_loft_test PRIVATE Qt6::Gui alloy_kernel)
     add_test(NAME surface_loft COMMAND surface_loft_test)
+    add_executable(surface_rail_loft_test tests/surface_rail_loft.cpp src/CadDocument.cpp src/CadDocument.h)
+    target_include_directories(surface_rail_loft_test PRIVATE src)
+    target_link_libraries(surface_rail_loft_test PRIVATE Qt6::Gui alloy_kernel)
+    add_test(NAME surface_rail_loft COMMAND surface_rail_loft_test)
+    add_executable(surface_rail_loft_controls_test tests/surface_rail_loft_controls.cpp)
+    target_link_libraries(surface_rail_loft_controls_test PRIVATE alloy_application Qt6::Test)
+    add_test(NAME surface_rail_loft_controls COMMAND surface_rail_loft_controls_test)
+    set_tests_properties(surface_rail_loft_controls PROPERTIES TIMEOUT 60 LABELS "widget;gpu" RUN_SERIAL TRUE)
     add_executable(surface_extrude_test tests/surface_extrude.cpp src/CadDocument.cpp src/CadDocument.h)
     target_include_directories(surface_extrude_test PRIVATE src)
     target_link_libraries(surface_extrude_test PRIVATE Qt6::Gui alloy_kernel)

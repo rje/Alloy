@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 #include "SolidLoft.h"
+#include "SurfaceRailLoft.h"
 #include "PlanarFaces.h"
 #include <BRepOffsetAPI_ThruSections.hxx>
 #include <BRepOffsetAPI_MakePipeShell.hxx>
@@ -142,6 +143,7 @@ EvaluatedBody surfaceLoft(const QJsonObject& feature,const EvaluatedDocument& pr
 }
 
 EvaluatedBody SolidLoft::evaluate(const QJsonObject& feature,const EvaluatedDocument& prior) {
+    if(feature["parameters"].toObject().value("guideType")=="rail")return SurfaceRailLoft::evaluate(feature,prior);
     if(feature["parameters"].toObject().value("operation")=="newComponent")return surfaceLoft(feature,prior);
     auto reject=[](const QString& code,const QString& message){throw GeometryKernel::EvaluationError({{"code",code},{"message",message}});};
     const auto references=feature["parameters"].toObject()["profiles"].toArray();
