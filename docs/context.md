@@ -3235,3 +3235,20 @@ real-app API, and native Qt circular-edge Project and projected-circle Offset
 pick/typed preview/Escape pass; the prior straight-edge Project core test passes.
 The cumulative case-shell/analysis movie remains TUT-020. See
 [the candidate receipt](validation/linked-circular-project.md).
+
+## Enclosure mounting prefix candidate (2026-10-13)
+
+TUT-020 now has a from-blank real-app runner for the independently authored
+nominal v2 board assembly. It retains separate Z+90 insertion and later
+`[28, -42.5, 6]` placement/Capture, then authors the sibling centered
+64 × 93 × 30 Case, grouped R5/R2.5 Fillet, closed Shell3.5, three named
+sections, four actual linked mounting-hole Projects/Offset−0.3, and Join5
+pegs. The 110-call final run, 145.2-second paced API creation movie,
+retained edit/undo/reopen, and strict Case-only STL/STEP readback pass.
+GEO-009 corrected automatic face-sketch center enumeration so generated
+inner blend arcs do not claim authored circle-center identity; it retains
+ambiguity refusal for genuinely conflicting source circles. See
+[the cumulative candidate receipt](validation/enclosure-prefix-workflow.md).
+Independent compatibility review accepted the bounded prefix. This adapted input and
+world-axis placement do not establish creator-file identity or physical fit;
+connector/card openings remain later TUT-016 work.

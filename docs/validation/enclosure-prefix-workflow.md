@@ -40,8 +40,10 @@ the reference, clears selection, and uses Top/170% to show all four peg tops.
 Independent binary STL readback found two watertight, consistently oriented
 surface components: a positive outer surface and negative cavity surface.
 Their net mesh volume is about 64,467.487 mm³; the exact STEP export reports
-64,474.016 mm³ and reads back as one valid solid. Both have the Case's
-64 × 93 × 30 mm bounds. The runner proves a 0.25 mm shifted board edit leaves
+64,474.016 mm³ and reads back as one valid solid in millimeters. The mesh
+has the exact 64 × 93 × 30 mm outer bounds; the independent STEP reader's
+BRep bounding box is loose by about 0.412 mm, so it is not used for fit.
+The runner proves a 0.25 mm shifted board edit leaves
 0.25 mm minimum straight-side clearance, then undo restores authored intent
 before save/reopen. The uncut connector/card envelopes remain outside the fit
 claim.
@@ -51,4 +53,8 @@ Evidence is outside the repository under
 `enclosure-prefix-receipt.json`, `enclosure-prefix-creation.mp4`, stage PNGs,
 `four-pegs-top-case-only.png`, `enclosure-prefix.alloy`, and Case-only STL/STEP.
 The initial failing run and subsequent diagnostic are retained alongside it.
-Independent compatibility review remains pending.
+Independent compatibility review accepted this bounded adapted prefix, including
+the separate top peg capture, in the external `independent-review.md`. The
+isometric movie occludes several pegs; the separate peg view was captured
+after reopening and is not claimed as part of the movie. Native gesture parity
+and the later enclosure openings remain outside this cumulative gate.
