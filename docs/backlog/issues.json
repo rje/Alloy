@@ -3068,7 +3068,8 @@
       "priority": "P1",
       "depends_on": [
         "SRF-010",
-        "SOL-046"
+        "SOL-046",
+        "GEO-018"
       ],
       "labels": [
         "area:geo"
@@ -3689,7 +3690,8 @@
         "SOL-047",
         "ASM-007",
         "PRT-007",
-        "ASM-012"
+        "ASM-012",
+        "GEO-018"
       ],
       "labels": [
         "area:gate"
@@ -6054,6 +6056,24 @@
         "area:vis"
       ],
       "body": "## Problem and result\nThe accepted open sheet currently displays cyan. Public surface tutorial material describes yellow sheets versus gray solids; make the unselected surface presentation reflect that distinction with independently authored colors.\n\n## Scope and acceptance\nChange surface material and boundary color only. Preserve blue selection and existing solid material. Inspect a real guided-sheet capture, selected sheet, and solid result; no pixel-exact parity claim without matched source views. Source URL, retrieval date and public screenshots stay in the external advanced-audit-2026-10-14 shoehorn finishing record. Geometry behavior remains unchanged.\n\n## Verification\nBuild application and inspect focused actual-app captures; no redundant geometry test suite needed for a material-only change. Independent review before closure."
+    },
+    {
+      "key": "GEO-018",
+      "title": "Retain shoehorn Fillet face and generated endpoint identities",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SRF-010",
+        "SOL-046"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P2",
+        "priority:P1",
+        "area:geo"
+      ],
+      "body": "## Problem and result\nThe surface-shoehorn finishing chain currently discards modified curved face support and does not name newly generated Fillet boundaries. Plane Tangent to Face at Point therefore cannot retain the source back-corner endpoint.\n\n## Scope\nPublish exact uniquely traced curved top-face descendants and generated corner-round boundary edge/endpoint identities for the source-sized shoehorn. Cover the one grouped R12/R16 corner Fillet followed by the separate R1.5 top/bottom perimeter Fillet. Use OCCT builder history and stable source ancestry, never nearest-face/edge matching or result-list indices.\n\n## Acceptance criteria\n- Source corner selections and separate perimeter selections create one valid solid.\n- The broad curved top face and a selected endpoint of the R16 corner round are retained through the later perimeter operation, edits, undo/redo and save/reopen, or recompute refuses ambiguity atomically.\n- Endpoint roles follow retained orientation/ancestry, not arbitrary current vertex enumeration.\n- Real-entrypoint native/API selection and actual source-sized fixture evidence distinguish geometry, history and GPU captures. Independent review precedes acceptance.\n\n## Public reference evidence\nReference `surface-shoehorn`, retrieved 2026-10-14. The external finishing contract and frames under `../Alloy-reference-records/knowledge/tutorials/advanced-audit-2026-10-14/` document the grouped corner rounds, separate perimeter round and tangent top-face/fillet-endpoint selection.\n\n## Dependencies\n- [SRF-010](https://github.com/rje/Alloy/issues/284)\n- [SOL-046](https://github.com/rje/Alloy/issues/285)\n\n## Limits\nBounded to this finishing chain. General generated Fillet topology remains a wider requirement. Planned, not implemented or accepted; do not substitute a face-center tangent plane.\n"
     }
   ]
 }
