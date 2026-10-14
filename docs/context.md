@@ -82,7 +82,10 @@ See [receipt](validation/face-circle-center-snap.md). Full Cut/All/Flip exposed 
 normalizes a unique visible face-support body into an explicit retained target
 before shared validation; kernel contract stays unchanged. Astra approved this
 bounded policy. Implementation and full Cut gate remain pending.
-Backlog is398 issues with acyclic dependencies. Astra independently verifies.
+DOC-033 tracks the one-line idle viewport selection lookup fix: mutable JSON
+access inserted command:null, blocking the next edit with session_busy. Source
+review passes; the native continuation verifies the corrected route.
+Backlog is399 issues with acyclic dependencies. Astra independently verifies.
 Only main and its existing build are used; no inactive worktrees accumulate.
 DOC-031/#348 is independently accepted at `89782cf`: unchanged-product native09
 passes modal line focus, rename commit, Browser label and unchanged geometry.

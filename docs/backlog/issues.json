@@ -6791,7 +6791,8 @@
         "SOL-015",
         "SOL-047",
         "SKT-088",
-        "SOL-056"
+        "SOL-056",
+        "DOC-033"
       ],
       "key": "TUT-028",
       "phase": "P2 Parametric modeling",
@@ -6844,6 +6845,18 @@
         "area:sol"
       ],
       "body": "## Problem and result\nTUT-028 native Cut selects three face-sketch profiles, chooses Cut and then All, but All reverts to Distance with an explicit-target error despite Objects to Cut showing Auto. The published route uses Cut, All, Flip and OK without an extra target pick. Its face sketch has one unambiguous existing support body.\n\n## Bounded scope and acceptance\n- Shared command input handling may resolve the unique eligible visible retained support body of the face sketch at the feature prefix when Cut All has no explicit target. Persist the body ID before validation and preview.\n- Keep the kernel explicit retained-target contract unchanged. Preserve user-specified targets; refuse missing, ambiguous or unsupported occurrence targets rather than selecting an arbitrary body.\n- Do not infer All target from finite-distance overlap: initial depth and pre-Flip direction may not intersect the target. Validate actual cut geometry at preview/commit.\n- The exact native three-profile route must accept Cut, All, Flip with no extra target step and create one valid body with three through-openings. Retain target, profiles, extent and Flip through edit/history/reopen in TUT-028.\n- Use focused checks for target admission and refusal where material, plus the cumulative native gate. Independent Astra review; no unrelated suite repetition.\n\n## Evidence and limits\nConcrete failure is recorded in external base-sketch-face-holes-2026-10-14/native-cut-preflight-01. Public printed pp.28-29 retrieved 2026-10-14; provenance remains external at knowledge/tutorials/after-expressions/base-sketch-face-holes-cut-contract-2026-10-14.md. This bounded support-body auto-target policy does not claim general multi-body Auto Cut All support.\n"
+    },
+    {
+      "key": "DOC-033",
+      "title": "Keep idle viewport selection from creating a null command session",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [],
+      "labels": [
+        "area:doc"
+      ],
+      "body": "## Problem and result\nDuring TUT-028, a blank viewport selection after accepting Cut inserts command:null into the empty session through a mutable JSON lookup. A subsequent sketch edit then fails with session_busy despite no active command.\n\n## Bounded scope and acceptance\nUse non-mutating lookup for idle selection command inspection. A viewport selection while idle leaves activeSession empty, and the next sketch edit starts normally. Preserve active command selection behavior. Verify through the actual cumulative native route and its ensuing source edit, undo and reopen; no broad command sweep required. Independent review before acceptance.\n\n## Evidence\nThe concrete failure is recorded in external base-sketch-face-holes-2026-10-14 native Cut preflight evidence. This is an Alloy state-management defect, not a reference-product behavior claim. Full tutorial acceptance remains TUT-028.\n"
     }
   ]
 }
