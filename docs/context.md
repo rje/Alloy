@@ -1,5 +1,13 @@
 # Continuation context
 
+## Selection Priority candidate (2026-10-13)
+
+DOC-025 native Select-menu Body/Face/Edge priority is implemented in an
+isolated candidate. Public toggle behavior and the explicitly chosen transient
+Auto default are recorded in [the candidate receipt](validation/selection-priority.md).
+Focused Qt-native Box-edge selection and a 33-call real-app API ledger pass;
+independent compatibility review and main integration remain pending.
+
 ## Accepted enclosure ports and card checkpoint (2026-10-13)
 
 TUT-021/#322 is independently accepted and integrated. Its 236.2-second

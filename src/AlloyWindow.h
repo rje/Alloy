@@ -34,6 +34,7 @@ class QTabBar;
 class QImage;
 class QFrame;
 class QTimer;
+class QAction;
 class TutorialRecorder;
 
 // UI and automation dispatch against the same authored document.
@@ -103,6 +104,7 @@ private:
     QDockWidget* splitBodyDock_ = nullptr;
     QJsonObject beginMidplane(const QJsonObject& inputs);
     QJsonObject selectMidplaneFace(const QJsonObject& support);
+    QJsonObject selectSolidEdge(const QString& bodyId,const QString& edgeId);
     QJsonObject previewMidplane();
     void showMidplane();
     QDockWidget* midplaneDock_ = nullptr;
@@ -470,6 +472,9 @@ private:
     QLabel* browserNote_ = nullptr;
     QString selectedBody_;
     QJsonObject selectedFace_;
+    QJsonObject selectedEdge_;
+    QString selectionPriority_ = "auto";
+    QMap<QString,QAction*> selectionPriorityActions_;
     QString selectedPlane_;
     QString selectedSketch_, selectedProfile_;
     QJsonArray selectedProfileIds_;

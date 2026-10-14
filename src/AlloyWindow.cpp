@@ -303,6 +303,20 @@ AlloyWindow::AlloyWindow() {
     group("ASSEMBLE", {{"joint.sliderDialog", "⇆"}});
     group("CONSTRUCT", {{"construction.plane", "▰"}, {"construction.midplane", "◫"}});
     group("INSPECT", {{"inspect.sectionDialog", "◧"}, {"inspect.measure", "↔"}});
+    auto* selectMenuButton=new QToolButton;selectMenuButton->setText("SELECT");
+    selectMenuButton->setObjectName("solid.menu.select");
+    selectMenuButton->setMinimumWidth(112);
+    selectMenuButton->setStyleSheet("font-size: 10px; color: #53616b; padding: 3px 7px;");
+    auto* selectMenu=new QMenu(selectMenuButton);selectMenu->setObjectName("solid.commands.select");
+    auto* priorityMenu=selectMenu->addMenu("Selection Priority");priorityMenu->setObjectName("solid.commands.selectionPriority");
+    for(const auto& mode:QStringList{"body","face","edge"}){
+        auto* action=priorityMenu->addAction("Select "+mode.first(1).toUpper()+mode.sliced(1)+" Priority");
+        action->setObjectName("solid.action.selectionPriority."+mode);action->setCheckable(true);
+        selectionPriorityActions_[mode]=action;
+        connect(action,&QAction::triggered,this,[this,mode]{execute("selection.priority",{{"mode",mode}});});
+    }
+    selectMenuButton->setMenu(selectMenu);selectMenuButton->setPopupMode(QToolButton::InstantPopup);
+    groups->addWidget(selectMenuButton,0,Qt::AlignVCenter);
     groups->addStretch();
     ribbonRight->addLayout(groups); ribbonLayout->addLayout(ribbonRight, 1); layout->addWidget(ribbon);
 
@@ -3319,6 +3333,15 @@ void AlloyWindow::registerCommands() {
     add("geometry.inspect","Inspect geometry","Current evaluated body summaries from OCCT, keyed to authored identities.",{},[this](const auto&){
         return document_->state()["evaluation"].toObject();
     });
+    auto priorityMode=parameter("string","Unfiltered or one ordinary viewport selection priority.");
+    priorityMode["enum"]=QJsonArray{"auto","body","face","edge"};
+    add("selection.priority","Selection Priority","Filter ordinary viewport picks to one solid kind; choosing the active mode again restores Auto.",
+        {{"mode",priorityMode}},[this](const auto& a){
+            const auto requested=a["mode"].toString();
+            selectionPriority_=requested==selectionPriority_ ? QString("auto") : requested;
+            selectedEdge_={};if(session_.isEmpty())view_->clearSolidEdgeHighlights();
+            return QJsonObject{{"mode",selectionPriority_},{"authoredChange",false}};
+        });
     auto bodyId=parameter("string","Stable body UUID; empty string clears selection.");
     add("selection.set","Select body","Select a visible body through the same path as the Browser.",{{"bodyId",bodyId}},[this](const auto& a){
         const auto id=a["bodyId"].toString();bool found=id.isEmpty();
@@ -3352,7 +3375,8 @@ void AlloyWindow::registerCommands() {
                 {"inputs",QJsonObject{{"targetBodyId",id},{"removedFace",QJsonObject{}}}}});
             if(!response["ok"].toBool())return response;return previewShell();
         }
-        selectedBody_=id;selectedFace_={};selectedPlane_.clear();view_->selectSupportFace({},{});selectedSketch_.clear();selectedProfile_.clear();selectedProfileIds_={};view_->selectProfile({},{});view_->selectBody(id);
+        selectedBody_=id;selectedFace_={};selectedEdge_={};selectedPlane_.clear();view_->selectSupportFace({},{});selectedSketch_.clear();selectedProfile_.clear();selectedProfileIds_={};view_->selectProfile({},{});view_->selectBody(id);
+        if(session_.isEmpty())view_->clearSolidEdgeHighlights();
         QJsonObject result{{"bodyId",id},{"kind","body"}};
         if(!document_->authored().value("joints").toArray().isEmpty() ||
             std::any_of(document_->bodies().begin(),document_->bodies().end(),[&](const auto& body){return body.bodyId==id && !body.occurrenceId.isEmpty();}))
@@ -3399,8 +3423,28 @@ void AlloyWindow::registerCommands() {
         if(support.isEmpty())return failure("unsupported_face","No supported planar face is at that viewport point");
         return session_.value("command")=="construction.midplane" ? selectMidplaneFace(support) : selectSupportFace(support);
     });
+    add("selection.edgeSet","Select retained solid edge","Select one visible current solid edge by stable body and edge IDs.",
+        {{"bodyId",bodyId},{"edgeId",parameter("string","Stable current solid edge UUID.")}},[this](const auto& a){
+            if(!session_.isEmpty())return failure("active_command","Use the active command's own edge picker");
+            return selectSolidEdge(a["bodyId"].toString(),a["edgeId"].toString());
+        });
     add("selection.pick","Pick body or region","Pick actual OCCT geometry at viewport-local coordinates; Shift adds sketch regions.",{{"x",point},{"y",point},{"additive",optional(parameter("boolean","Add a picked region in the current same-sketch selection."))},
         {"toggle",optional(parameter("boolean","Toggle a picked region in the current same-sketch selection."))}},[this](const auto& a){
+        if(session_.isEmpty() && selectionPriority_=="edge"){
+            const auto hit=view_->pickSolidEdge(a["x"].toDouble(),a["y"].toDouble(),presentationBodies());
+            return hit.isEmpty() ? failure("edge_unavailable","No visible retained edge is at this point")
+                : selectSolidEdge(hit["bodyId"].toString(),hit["edgeId"].toString());
+        }
+        if(session_.isEmpty() && selectionPriority_=="face"){
+            const auto hit=view_->pickSupportFace(a["x"].toDouble(),a["y"].toDouble(),presentationBodies());
+            return hit.isEmpty() ? failure("unsupported_face","No supported planar face is at this point") : selectSupportFace(hit);
+        }
+        if(session_.isEmpty() && selectionPriority_=="body"){
+            const auto id=view_->pickBody(a["x"].toDouble(),a["y"].toDouble());
+            if(id.isEmpty())return failure("body_unavailable","No visible body is at this point");
+            const auto selected=execute("selection.set",{{"bodyId",id}});
+            return selected["ok"].toBool() ? selected["result"].toObject() : selected;
+        }
         if(session_.value("command")=="solid.splitBody"){
             const auto edit=session_["inputs"].toObject()["featureId"].toString();
             if(session_["selectionRole"]=="plane"){
@@ -4053,12 +4097,13 @@ QJsonObject AlloyWindow::state() const {
             {"constraintIds",session_.value("selection").toObject().value("constraintIds").toArray()}}
             : !selectedPlane_.isEmpty() ? QJsonObject{{"kind","constructionPlane"},{"planeId",selectedPlane_}}
             : !selectedFace_.isEmpty() ? QJsonObject{{"kind","face"},{"support",selectedFace_}}
+            : !selectedEdge_.isEmpty() ? selectedEdge_
             : !selectedProfileIds_.isEmpty() ? QJsonObject{{"kind","profile"},{"sketchId",selectedSketch_},{"profileIds",selectedProfileIds_},{"profileId",selectedProfile_}}
             : !view_->finishedPointSelection().isEmpty() && view_->finishedPointSelection()["sketchId"]==selectedSketch_ ? view_->finishedPointSelection()
             : !selectedSketch_.isEmpty() ? QJsonObject{{"kind","sketch"},{"sketchId",selectedSketch_}}
             : QJsonObject{{"kind","body"},{"bodyId",selectedBody_}}},
         {"kernel", QJsonObject{{"candidate", "Open CASCADE"}, {"discoveredVersion", ALLOY_OCCT_VERSION}, {"integrated", true}, {"visualizationIntegrated", true}, {"policy",GeometryKernel::policy()}}},
-        {"ui", QJsonObject{{"workspace", "design"}, {"tab",target=="sketch.edit" ? "sketch" : "solid"}, {"browserVisible", browserVisible_}, {"timelineVisible", timelineVisible_}, {"timeline",timelineState()}, {"ribbon",ribbonState}, {"navigationVisible", navigationVisible_}, {"commandSearchVisible", search_ && search_->isVisible()}, {"windowWidth", width()}, {"windowHeight", height()}, {"devicePixelRatio", devicePixelRatioF()},
+        {"ui", QJsonObject{{"workspace", "design"}, {"tab",target=="sketch.edit" ? "sketch" : "solid"}, {"selectionPriority",selectionPriority_}, {"browserVisible", browserVisible_}, {"timelineVisible", timelineVisible_}, {"timeline",timelineState()}, {"ribbon",ribbonState}, {"navigationVisible", navigationVisible_}, {"commandSearchVisible", search_ && search_->isVisible()}, {"windowWidth", width()}, {"windowHeight", height()}, {"devicePixelRatio", devicePixelRatioF()},
             {"ownedPopups",popups},{"activeDialog", QJsonObject{{"command", session_.value("command")},
                 {"visible",dialogVisible},{"inputs",dialogInputs},
                 {"presentation",target=="joint.slider" || target.startsWith("solid.") || target.startsWith("sketch.") ? (activeDock && activeDock->isFloating() ? "floating-panel" : "docked-panel") : "dialog"},
@@ -4069,6 +4114,10 @@ QJsonObject AlloyWindow::state() const {
 void AlloyWindow::refresh() {
     refreshLengthParameters();
     if (!browser_) return;
+    for(auto it=selectionPriorityActions_.begin();it!=selectionPriorityActions_.end();++it)
+        it.value()->setChecked(selectionPriority_==it.key());
+    if(auto* menu=findChild<QToolButton*>("solid.menu.select"))
+        menu->setText(selectionPriority_=="auto" ? "SELECT" : "SELECT · "+selectionPriority_.toUpper());
     refreshSection();
     browser_->setVisible(browserVisible_); timeline_->setVisible(timelineVisible_); navigation_->setVisible(navigationVisible_);
     tree_->topLevelItem(0)->child(0)->child(0)->setText(0, "Units: " + document_->authored()["displayUnits"].toString());
@@ -4294,6 +4343,16 @@ void AlloyWindow::refresh() {
     view_->selectBody((session_.value("command")=="solid.mirror" || session_.value("command")=="solid.circularPattern")
         ? session_.value("inputs").toObject()["sourceBodyId"].toString()
         : session_.value("command")=="solid.sphere" || session_.value("command")=="solid.hole" ? QString{} : selectedBody_);
+    if(session_.isEmpty()){
+        if(!selectedEdge_.isEmpty()){
+            const auto bodies=presentationBodies();bool current=false;
+            for(const auto& body:bodies)if(body.visible && body.bodyId==selectedEdge_["bodyId"])
+                for(const auto& edge:body.solidEdges)if(edge.edgeId==selectedEdge_["edgeId"] && !edge.edge.IsNull())current=true;
+            if(current)view_->highlightSolidEdges(bodies,selectedEdge_["bodyId"].toString(),QJsonArray{selectedEdge_["edgeId"]});
+            else selectedEdge_={};
+        }
+        if(selectedEdge_.isEmpty())view_->clearSolidEdgeHighlights();
+    }
     if (session_.value("command").toString() == "document.units" && unitsInput_) {
         const QSignalBlocker block(unitsInput_);
         unitsInput_->setCurrentText(session_.value("inputs").toObject()["units"].toString());
@@ -5701,6 +5760,26 @@ void AlloyWindow::updatePrimitive(const QJsonObject& inputs) {
     primitiveError_->setText(response["ok"].toBool() ? "" : response["error"].toObject()["message"].toString());
 }
 
+QJsonObject AlloyWindow::selectSolidEdge(const QString& bodyId,const QString& edgeId) {
+    if(bodyId.isEmpty() || edgeId.isEmpty())return failure("edge_unavailable","Choose a visible retained solid edge");
+    const auto bodies=presentationBodies();
+    const EvaluatedBody* selected=nullptr;int matches=0;
+    for(const auto& body:bodies)if(body.visible && body.bodyId==bodyId)
+        for(const auto& edge:body.solidEdges)if(edge.edgeId==edgeId && !edge.edge.IsNull()){
+            selected=&body;++matches;
+        }
+    if(matches!=1)return failure(matches ? "ambiguous_edge" : "edge_unavailable",
+        matches ? "Retained edge identity is ambiguous" : "Retained edge is hidden or no longer current");
+    selectedEdge_={{"kind","edge"},{"bodyId",bodyId},{"edgeId",edgeId}};
+    if(!selected->occurrenceId.isEmpty()){selectedEdge_["occurrenceId"]=selected->occurrenceId;selectedEdge_["definitionId"]=selected->definitionId;}
+    if(selected->summary.contains("outerOccurrenceId"))selectedEdge_["outerOccurrenceId"]=selected->summary["outerOccurrenceId"];
+    selectedBody_.clear();selectedFace_={};selectedPlane_.clear();selectedSketch_.clear();
+    selectedProfile_.clear();selectedProfileIds_={};
+    view_->selectBody({});view_->selectSupportFace({},{});view_->selectProfile({},{});
+    view_->highlightSolidEdges(bodies,bodyId,QJsonArray{edgeId});
+    return selectedEdge_;
+}
+
 QJsonObject AlloyWindow::selectSupportFace(const QJsonObject& support) {
     if(session_.value("command")=="inspect.section") {
         try {const auto resolved=GeometryKernel::resolveSketchSupport(document_->evaluation(),support);
@@ -5722,11 +5801,12 @@ QJsonObject AlloyWindow::selectSupportFace(const QJsonObject& support) {
     if(!session_.isEmpty() && session_.value("command")!="sketch.plane")return failure("session_busy","Complete or cancel the active command first");
     try {
         const auto resolved=GeometryKernel::resolveSketchSupport(document_->evaluation(),support);
-        selectedFace_={{"producerFeatureId",resolved.producerFeatureId},{"bodyId",resolved.bodyId},{"faceId",resolved.faceId}};selectedPlane_.clear();
+        selectedFace_={{"producerFeatureId",resolved.producerFeatureId},{"bodyId",resolved.bodyId},{"faceId",resolved.faceId}};selectedEdge_={};selectedPlane_.clear();
         selectedBody_.clear();selectedSketch_.clear();selectedProfile_.clear();selectedProfileIds_={};
         auto shape=resolved.face;auto frame=resolved.frame;
         if(nonzeroAssemblyPose())for(const auto& body:presentationBodies())if(body.bodyId==resolved.bodyId)for(const auto& worldFace:body.supportFaces)if(worldFace.faceId==resolved.faceId){shape=worldFace.face;frame=worldFace.frame;}
         view_->selectBody({});view_->selectProfile({},{});view_->selectSupportFace(selectedFace_,shape);
+        view_->clearSolidEdgeHighlights();
         QJsonObject result{{"kind","face"},{"support",selectedFace_},{"role",resolved.role},{"frame",frame}};
         if(!document_->authored().value("joints").toArray().isEmpty() ||
             std::any_of(document_->bodies().begin(),document_->bodies().end(),[&](const auto& body){return body.bodyId==resolved.bodyId && !body.occurrenceId.isEmpty();}))
