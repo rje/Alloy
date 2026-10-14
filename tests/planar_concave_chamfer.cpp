@@ -4,6 +4,7 @@
 #include <QCoreApplication>
 #include <QTemporaryDir>
 #include <BRepAlgoAPI_Cut.hxx>
+#include <BRepAlgoAPI_Common.hxx>
 #include <BRepBuilderAPI_Transform.hxx>
 #include <BRepGProp.hxx>
 #include <GProp_GProps.hxx>
@@ -28,7 +29,7 @@ int main(int argc,char**argv){QCoreApplication app(argc,argv);try {
     }
     check(!join.isEmpty(),"Source Join missing");const auto jp=join["parameters"].toObject();
     const auto target=jp["targetBodyIds"].toArray().first().toString();
-    const auto original=body(doc,target);QString root;
+    const auto sourceBodies=doc.bodies();const auto original=body(doc,target);QString root;
     for(const auto&e:original.solidEdges)if(!e.edge.IsNull() && e.provenance["role"]=="join.root"){
         check(root.isEmpty(),"Ambiguous root");root=e.edgeId;
     }
@@ -41,6 +42,11 @@ int main(int argc,char**argv){QCoreApplication app(argc,argv);try {
     check(body(doc,target).summary["chamferMethod"]=="planarConcave","Exact limit did not exercise certified construction");
     std::cout<<"Exact root accepted\n"<<std::flush;
     check(std::abs(volume(body(doc,target).shape)-volume(original.shape)-11)<1e-6,"Exact added wedge volume differs");
+    for(const auto& other:sourceBodies)if(other.bodyId!=target) {
+        BRepAlgoAPI_Common beforeCommon(original.shape,other.shape),afterCommon(body(doc,target).shape,other.shape);
+        check(beforeCommon.IsDone() && !beforeCommon.HasErrors() && afterCommon.IsDone() && !afterCommon.HasErrors(),"Assembly interference check failed");
+        check(volume(afterCommon.Shape())-volume(beforeCommon.Shape())<=1e-6,"Exact root added assembly interference");
+    }
     const auto finished=doc.authored();
     // Rigid placement invariance: the production fallback uses incident geometry,
     // never fixture coordinates or an axis-aligned special case.

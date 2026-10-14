@@ -31,7 +31,8 @@ fallback exists. Inspection reports `chamferMethod` as `native` or
 The external adapted enclosure prefix retains the first two snap finishes,
 then selects the published current wall/stem root. The focused test establishes
 exact 2 mm (+11 mm³), rigid rotation/translation invariance, oversized refusal
-without authored mutation, upstream Join 5 → 5.25, undo/redo and native-file
+without authored mutation, no added positive-volume interference with any
+other assembly body, upstream Join 5 → 5.25, undo/redo and native-file
 save/reopen. A separate diagnostic establishes zero symmetric-difference volume
 between native and constructed 1 mm results. Endpoint rejection is source
 reviewed, not independently exercised by a separate synthetic negative case.

@@ -17,6 +17,8 @@ with application(args.app,out,command_timeout=180) as (call,transcript):
     call('document.open',{'path':str(Path(args.source).resolve()),'discard':True})
     before=call('document.inspect')
     join=next(f for f in reversed(before['authored']['features']) if f['type']=='extrude' and f['parameters']['operation']=='join')
+    call('component.activate',{'definitionId':join['ownerId']})
+    before=call('document.inspect')
     target=join['parameters']['targetBodyIds'][0]
     body=lambda state: next(b for b in state['evaluation']['bodies'] if b['bodyId']==target)
     original=body(before)
