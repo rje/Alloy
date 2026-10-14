@@ -11,7 +11,11 @@ retained nested piston origin with exact rotation and slide preview. The
 through three Revolute joints, one Cylindrical joint and Pin, with bounded native
 drag/Revert evidence and a full creation recording. [Linked local copies](docs/validation/linked-local-occurrences.md)
 now share source geometry with distinct placement and selection, surviving source
-edits and reopen. Copying internal joints and moving both pistons together remain next.
+edits and reopen. [Copied piston motion](docs/validation/copied-piston.md) now
+retains the internal joint and solves both pistons through one hinge driver.
+[Placed STEP/STL export](docs/validation/linked-instance-export.md) preserves
+all six instances or one selected piston subtree. The cumulative recording is
+being assembled; these remain bounded adapted-fixture capabilities.
 
 The [Surface workspace](docs/validation/surface-workspace-navigation.md) now exposes
 Extrude, guided Loft, [paired-sketch Trim](docs/validation/surface-trim.md)

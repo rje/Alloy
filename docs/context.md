@@ -59,15 +59,20 @@ selection. Native 3/3 and actual-app API02 31 calls (three intended refusals) pa
 shared height edits update both copies, history/reopen preserve exact state.
 Main app builds and focused core1/1 passes. See
 [bounded acceptance](validation/linked-local-occurrences.md). ASM-016/#365 internal
-joint remapping/copied-piston motion is now active in separate authority/UI lanes.
-The bounded plan clones only the internal Cylindrical row, preserves external
-Revolutes and Pin, then adds two left eye joints and checks one driver across all
-six leaves. The existing solver ABI remains. No generic scene or solver redesign
-is needed. The observed blank command-dock band is recorded in REL-005.
-ASM-018/#368
-preserves occurrence-aware STEP/STL export as a separate dependency of TUT-019,
-now active in an isolated export lane; copied designs currently require explicit export refusal rather than
-losing instances or placements.
+joint remapping/copied-piston motion is independently accepted at `560ccf1`:
+one internal Cylindrical clone, original external joints/Pin retained, seven rows
+and six leaves with analytically checked opposing piston travel. Actual-app API
+36 calls, native3/3 and core pass; see [acceptance](validation/copied-piston.md).
+ASM-018/#368 is independently accepted through `20aa7a4` plus STEP dialog capture
+support in `a005a3a`: whole-six and selected-two STEP/STL geometry readback,
+committed seven-joint pose output and staged-pose refusal pass a separate36-call
+actual-app gate. See [export acceptance](validation/linked-instance-export.md).
+Main application builds and focused copied/export core2/2 passes. TUT-019/#305 is
+now the cumulative recording gate: one from-blank creation-through-copied-motion
+and placed-output session is running. Its broad ASM-001/002/003 dependencies were
+replaced with the accepted bounded children after independent review; broad
+parents remain Todo with their full remaining scope. The observed blank
+command-dock band and drag latency remain REL-005/REL-010.
 The bounded implementation plan is external under
 `knowledge/tutorials/piston-subassemblies-2026-10-14/assembly-continuation/asm015-plan.md`.
 SRF-016/#360 preserves later surface-as-tool Trim; accepted

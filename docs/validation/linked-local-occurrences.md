@@ -45,8 +45,8 @@ External evidence: `deliverables/linked-subtree-2026-10-14/`.
 Native evidence: `deliverables/piston-linked-copy-2026-10-14/native-08/`.
 The external gallery links the editable model and captures at `#piston-linked-copy`.
 
-Joint-containing copy remains unsupported until ASM-016/#365 remaps the internal
-joint and verifies the second piston loop. Occurrence-aware STEP/STL is tracked
-in ASM-018/#368; current copied-design export must explicitly refuse rather than
-silently omit copies or their placement. These follow-ups remain dependencies of
-the complete piston tutorial gate.
+At this checkpoint joint-containing copy and occurrence-aware export explicitly
+refused. These limitations were subsequently addressed by the accepted bounded
+[copied piston](copied-piston.md) and [placed export](linked-instance-export.md)
+increments. Their evidence supersedes those refusals for the admitted workflows;
+the original API-02 receipt remains historical evidence for ASM-017.
