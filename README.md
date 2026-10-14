@@ -163,10 +163,10 @@ The independently accepted [Section Analysis](docs/validation/section-analysis.m
 adds retained origin-plane GPU clipping with inherited material and hatching.
 Core, shared-API lifecycle and native Qt input pass with inspected GPU captures;
 physical OS input and Windows/Linux runtime remain separately qualified.
-The [selected-face section candidate](docs/validation/selected-face-section.md)
+The [selected-face section](docs/validation/selected-face-section.md)
 adds retained planar support, signed Distance, Flip, native face selection and
 unavailable-support recovery. Its focused real-app and native checks pass;
-independent compatibility review remains pending.
+independent review and integration are complete.
 
 [Circular Body Pattern](docs/validation/circular-body-pattern.md) now retains
 an origin-Z full pattern with editable total count, stable occurrence identities,

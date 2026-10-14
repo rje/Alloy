@@ -1,6 +1,6 @@
-# Selected-face Section Analysis candidate
+# Selected-face Section Analysis
 
-DOC-023, 2026-10-13. This bounded candidate extends the accepted origin-plane
+DOC-023 independently accepted at `87340d0` and integrated, 2026-10-13. This bounded slice extends the accepted origin-plane
 analysis without changing modeling geometry. Public workflow evidence, source
 provenance, retrieval date and the explicit unavailable-support decision are in
 the external `../Alloy-reference-records/knowledge/tutorials/advanced-audit-2026-10-13/selected-face-section-contract.md`.
@@ -51,3 +51,5 @@ parity remain unqualified. Angle transforms, manipulator dragging and custom
 section colors remain in broader inspection scope.
 
 Independent-review corrections: the origin-to-Selected Face selector now requires an actual valid face before OK. The focused native test switches modes, clicks the Distance and Name controls and asserts focus without repairing it. One initial macOS harness activation precedes all demonstrated input. The corrected focused test passes; refreshed captures are external under `deliverables/selected-face-section-review-2026-10-13`.
+
+Main app build and focused Section Analysis/local reference/Split checks pass (3/3 with the qualified external board fixture). Independent review accepted the corrected selector and input capture alongside original geometry/API evidence.

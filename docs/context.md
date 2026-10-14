@@ -46,11 +46,13 @@ focused STEP/grouped-Fillet integration checks pass (2/2). Respective receipts
 record API/native/geometry scope and later transformed-pick/Thicken limits.
 
 Active Sol lanes: GEO-008 exact recognized convex closed Shell and SKT-069 true
-Overall Slot. DOC-023 selected-face Section Analysis is in final independent
-review. Root completed SOL-048 supported closed inward Shell on main, independently
+Overall Slot. DOC-023 selected-face Section Analysis is independently accepted
+and integrated; combined app build and three focused integration checks pass. Root completed SOL-048 supported closed inward Shell on main, independently
 accepted at 5b1bb29 with native and 28-call API evidence. Plain Box cavity, six inner planes, edit/history/reopen and
 atomic failures pass core. Actual grouped R5/R2.5 followed by Shell3.5 fails
-OCCT offset collapse; GEO-008/#316 owns that exact geometry and blocks TUT-016.
+OCCT offset collapse in the engineering fixture; GEO-008/#316 owns the required
+geometry and blocks TUT-016. The actual tutorial stock is Center Rectangle93x64
+followed by Extrude30; Box50x80x40 is only a regression fixture.
 Do not replace the source with a plain/open box or reduce its thickness.
 ASM-011/#315 separately owns changed-byte reference Update correspondence;
 ASM-010 only supports unchanged-byte update/status and atomic changed refusal.
