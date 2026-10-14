@@ -66,6 +66,12 @@ incident target face can identify the current vertical root at
 X=-28.5,Y=17.5,Z15..20.5. The actual root accepts smaller chamfers but refuses
 the required 2 mm at the inferred 2 mm stem width, even on fresh Join.
 GEO-015/#341 separately owns this source-geometry/exact-size qualification.
+Its isolated candidate `81c8a55` in the planar-concave-chamfer worktree now
+passes exact 2 mm (+11 mm³), rigid-placement equivalence, oversized refusal,
+source edit/history/reopen. The fallback is restricted to certified planar
+concave corners and a native half-size witness for wall-ending transitions;
+the returned geometry retains the exact authored size. Astra source review
+is favorable; real-app proof and final acceptance remain pending.
 SOL-055/#342 owns the reflected attachment-root lineage and finish replay;
 original Join publication alone does not establish mirrored root availability.
 Do not substitute the hook elbow or a transverse
