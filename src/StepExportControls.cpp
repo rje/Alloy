@@ -28,8 +28,16 @@ QJsonObject AlloyWindow::showStepExport(const QString& bodyId) {
         bodies->addItem("Component: "+row["path"].toString()+" (visible bodies)",QJsonObject{{"occurrenceId",row["occurrenceId"]}});
     }
     bodies->addItem("All visible bodies",QJsonObject{{"allVisible",true}});
-    for(int i=0;i<bodies->count();++i)if(bodies->itemData(i).toJsonObject()["bodyId"]==bodyId){bodies->setCurrentIndex(i);break;}
+    int matchingBodies=0,selectedIndex=-1;bool exactSelected=false;
+    for(int i=0;i<bodies->count();++i){const auto row=bodies->itemData(i).toJsonObject();
+        if(row["bodyId"]!=bodyId || bodyId.isEmpty())continue;
+        ++matchingBodies;
+        if(row["occurrenceId"]==selectedOccurrence_ && selectedBody_==bodyId){selectedIndex=i;exactSelected=true;}
+        if(matchingBodies==1 && selectedIndex<0)selectedIndex=i;
+    }
     if(bodyId.isEmpty() && document_->bodies().size()>1)bodies->setCurrentIndex(bodies->count()-1);
+    else if(matchingBodies==1 || exactSelected)bodies->setCurrentIndex(selectedIndex);
+    else if(matchingBodies>1)bodies->setCurrentIndex(-1);
     form->addRow("Bodies / Component",bodies);
     auto* units=new QComboBox;units->setObjectName("step.export.units");
     units->addItem("Millimeters (mm)","mm");units->addItem("Inches (in)","in");form->addRow("Unit Type",units);
@@ -43,6 +51,7 @@ QJsonObject AlloyWindow::showStepExport(const QString& bodyId) {
     auto current=[=,this]{return activeTabId_==tabId && document_->authored().value("documentId").toString()==documentId && document_->revision()==revision && session_.isEmpty();};
     connect(buttons,&QDialogButtonBox::accepted,dialog,[=,this]{
         if(!current()){status->setText("The design changed. Close this window and restart Export STEP.");return;}
+        if(bodies->currentIndex()<0){status->setText("Choose a body instance, component, or all visible bodies.");return;}
         QString path=QFileDialog::getSaveFileName(dialog,"Export STEP",bodies->currentText()+".step","STEP solid (*.step *.stp)");
         if(path.isEmpty())return;
         if(!current()){status->setText("The design changed. Close this window and restart Export STEP.");return;}

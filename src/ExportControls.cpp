@@ -42,6 +42,7 @@ QJsonObject AlloyWindow::showMeshExport(const QString& bodyId,const QJsonArray& 
     if(allVisible || (bodyId.isEmpty() && bodyIds.isEmpty() && document_->bodies().size()>1))bodies->setCurrentIndex(bodies->findData("visible"));
     if(bodyId.isEmpty() && bodyIds.isEmpty() && !allVisible && document_->activeOwnerId()!=document_->authored()["documentId"].toString())
         for(const auto& value:document_->authored()["occurrences"].toArray()){const auto occurrence=value.toObject();if(occurrence["definitionId"]==document_->activeOwnerId())bodies->setCurrentIndex(bodies->findData("occurrence:"+occurrence["id"].toString()));}
+    if(linked && !bodyId.isEmpty() && bodies->findData(bodyId)<0)bodies->setCurrentIndex(-1);
     form->addRow("Bodies / Component",bodies);
     auto* selected=new QListWidget(dialog);selected->setObjectName("mesh.export.bodyIds");
     for(const auto& body:document_->bodies()) {
@@ -69,6 +70,7 @@ QJsonObject AlloyWindow::showMeshExport(const QString& bodyId,const QJsonArray& 
         if(document_->authored().value("documentId").toString()!=documentId || document_->revision()!=revision) {
             status->setText("The design changed. Close this window and restart Save As Mesh.");return;
         }
+        if(bodies->currentIndex()<0){status->setText("Choose a component or all visible bodies.");return;}
         QJsonObject selection;
         if(bodies->currentData()=="visible")selection["allVisible"]=true;
         else if(bodies->currentData()=="selected") {
