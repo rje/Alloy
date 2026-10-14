@@ -1,4 +1,5 @@
 #include "AlloyWindow.h"
+#include "ReferenceView.h"
 #include "AlloyTheme.h"
 #include <QTest>
 #include <QContextMenuEvent>
@@ -6,6 +7,8 @@
 #include <QToolButton>
 #include <QMenu>
 #include <QComboBox>
+#include <QDoubleSpinBox>
+#include <QLineEdit>
 #include <QAbstractItemView>
 #include <QCheckBox>
 #include <QDialogButtonBox>
@@ -25,6 +28,27 @@ class SectionControlsTest final:public QObject {
  QJsonObject session(AlloyWindow& w){return w.state()["activeSession"].toObject();}
  void capture(AlloyWindow& w,const QString& name){const auto out=qEnvironmentVariable("ALLOY_SECTION_EVIDENCE");if(out.isEmpty())return;QDir().mkpath(out);QTest::qWait(100);call(w,"capture.screenshot",{{"path",out+"/"+name+".png"}});QFile f(out+"/"+name+".json");if(!f.open(QIODevice::WriteOnly))qFatal("evidence");f.write(QJsonDocument(w.state()).toJson());}
 private slots:
+ void selectedFaceNative(){
+  AlloyTheme::apply(*qApp);AlloyWindow w;w.resize(1400,900);w.show();w.activateWindow();QVERIFY(QTest::qWaitForWindowExposed(&w));
+  ReferenceView* view=nullptr;for(auto* child:w.findChildren<QWidget*>())if(auto* candidate=dynamic_cast<ReferenceView*>(child))view=candidate;QVERIFY(view);
+  call(w,"solid.box",{{"width",40},{"depth",30},{"height",20}});call(w,"view.home");call(w,"view.orientation",{{"name","top"}});
+  const auto before=call(w,"document.inspect"),body=before["evaluation"].toObject()["bodies"].toArray()[0].toObject();QJsonObject face;
+  for(const auto& item:body["supportFaces"].toArray())if(item.toObject()["role"]=="box.z1")face=item.toObject();QVERIFY(!face.isEmpty());
+  QJsonObject support;for(const auto& key:{"producerFeatureId","bodyId","faceId"})support[key]=face[key];
+  const auto projected=call(w,"view.projectFacePoint",{{"support",support},{"uMm",20},{"vMm",15}});
+  const QPoint point(qRound(projected["x"].toDouble()),qRound(projected["y"].toDouble()));
+  call(w,"inspect.sectionDialog");auto* dock=w.findChild<QDockWidget*>("sectionDock");QVERIFY(dock && dock->isVisible());
+  QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,point);QTRY_COMPARE(session(w)["inputs"].toObject()["support"].toObject(),support);
+  auto* offset=dock->findChild<QDoubleSpinBox*>("sectionOffset");QVERIFY(offset && offset->isEnabled());offset->setFocus();QTest::keyClick(offset,Qt::Key_A,Qt::ControlModifier);QTest::keyClicks(offset,"-4");QTest::keyClick(offset,Qt::Key_Return);QTRY_COMPARE(session(w)["inputs"].toObject()["offsetMm"].toDouble(),-4.0);
+  auto* name=dock->findChild<QLineEdit*>("sectionName");QVERIFY(name);name->setFocus();QTest::keyClick(name,Qt::Key_A,Qt::ControlModifier);QTest::keyClicks(name,"Top section");QTest::keyClick(name,Qt::Key_Tab);QTRY_COMPARE(session(w)["inputs"].toObject()["name"].toString(),QString("Top section"));
+  capture(w,"native-face-preview");QTest::mouseClick(dock->findChild<QPushButton*>("sectionClearFace"),Qt::LeftButton);QVERIFY(!session(w)["inputs"].toObject().contains("plane"));QVERIFY(!dock->findChild<QDialogButtonBox*>()->button(QDialogButtonBox::Ok)->isEnabled());
+  QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,point);QTRY_COMPARE(session(w)["inputs"].toObject()["support"].toObject(),support);
+  QTest::mouseClick(dock->findChild<QDialogButtonBox*>()->button(QDialogButtonBox::Cancel),Qt::LeftButton);QCOMPARE(call(w,"document.inspect"),before);
+  call(w,"inspect.sectionDialog");dock=w.findChild<QDockWidget*>("sectionDock");QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,point);QTRY_COMPARE(session(w)["inputs"].toObject()["support"].toObject(),support);
+  offset=dock->findChild<QDoubleSpinBox*>("sectionOffset");offset->setFocus();QTest::keyClick(offset,Qt::Key_A,Qt::ControlModifier);QTest::keyClicks(offset,"-4");QTest::keyClick(offset,Qt::Key_Return);
+  QTest::mouseClick(dock->findChild<QDialogButtonBox*>()->button(QDialogButtonBox::Ok),Qt::LeftButton);QTRY_VERIFY(session(w).isEmpty());
+  QCOMPARE(call(w,"analysis.inspect")["analyses"].toArray()[0].toObject()["resolvedPlane"].toObject()["origin"].toArray(),QJsonArray({0,0,16}));capture(w,"native-face-committed");
+ }
  void nativeLifecycle(){
   AlloyTheme::apply(*qApp);AlloyWindow w;w.resize(1400,900);w.show();w.activateWindow();QVERIFY(QTest::qWaitForWindowExposed(&w));
   call(w,"sketch.begin",{{"plane","XY"}});call(w,"sketch.addCircle",{{"centerX",0},{"centerY",0},{"diameter",50},{"units","mm"}});const auto sketch=session(w)["draftSketch"].toObject();call(w,"sketch.finish");const auto profile=call(w,"document.inspect")["evaluation"].toObject()["sketches"].toArray()[0].toObject()["profiles"].toArray()[0].toObject()["profileId"];

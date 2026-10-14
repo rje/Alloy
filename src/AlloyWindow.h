@@ -74,6 +74,8 @@ private:
     QJsonObject previewSection();
     void showSection();
     void refreshSection();
+    QJsonObject sectionPresentation(const QJsonObject& analysis) const;
+    QJsonArray sectionInspection() const;
     QDockWidget* sectionDock_ = nullptr;
     QDockWidget* sliderDock_ = nullptr;
     QTreeWidgetItem* jointsNode_ = nullptr;

@@ -3173,3 +3173,16 @@ Lid is entirely beyond the front at position 50. Focused core, native Qt and
 actual-app API checks pass with save/reopen, positive coordinate limits and
 negative world STL bounds. See [the updated cumulative receipt](validation/sliding-lid-cumulative.md).
 The corrected full creation run and movie remain pending with root.
+
+## Selected-face Section Analysis candidate (2026-10-13)
+
+DOC-023 extends the accepted origin analysis with an exact current planar face
+reference, signed millimeter Distance and Flip. The native panel has canvas
+selection, Name, Clear, preview/Cancel/OK; shared inspection reports the
+resolved plane and unavailable support. Disappearing faces disable clipping
+without blocking a modeling edit; undo recovers the retained identity.
+Focused core, 32-call real-entrypoint API, native Qt input and inspected Apple M4
+hatched GPU capture pass in isolated `doc023-face-section` at base `7037389`.
+Independent compatibility review, physical OS input and other-platform GPU
+runtime remain pending. See [the candidate receipt](validation/selected-face-section.md)
+and the external `advanced-audit-2026-10-13/selected-face-section-contract.md`.

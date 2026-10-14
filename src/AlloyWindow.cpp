@@ -3293,6 +3293,7 @@ void AlloyWindow::registerCommands() {
         return result;
     });
     add("selection.faceSet","Select planar face","Select a stable supported face for Create Sketch.",{{"support",supportIdentity}},[this](const auto& a){
+        if(session_.value("command")=="inspect.section")return selectSupportFace(a["support"].toObject());
         if(session_.value("command")=="construction.midplane")return selectMidplaneFace(a["support"].toObject());
         if(session_.value("command")=="solid.mirror"){
             auto response=execute("command.update",{{"session",session_["id"]},{"inputs",QJsonObject{{"mirrorPlane",a["support"]}}}});
@@ -3539,6 +3540,7 @@ void AlloyWindow::registerCommands() {
                 if(it.key()!="targetBodyId" && it.key()!="planeId" && it.key()!="name" && it.key()!="featureId" && it.key()!="newFeatureId")
                     return failure("invalid_arguments","Unsupported Split Body edit field",it.key());
         }
+        if(target=="inspect.section" && updates.contains("support") && updates["support"].isNull()) {inputs.remove("support");inputs.remove("plane");}
         if(target=="construction.midplane" && updates.contains("featureId") &&
             updates["featureId"]!=session_["inputs"].toObject()["featureId"])
             return failure("invalid_arguments","Midplane edit identity cannot change","featureId");
@@ -5595,6 +5597,14 @@ void AlloyWindow::updatePrimitive(const QJsonObject& inputs) {
 }
 
 QJsonObject AlloyWindow::selectSupportFace(const QJsonObject& support) {
+    if(session_.value("command")=="inspect.section") {
+        try {const auto resolved=GeometryKernel::resolveSketchSupport(document_->evaluation(),support);
+            QJsonObject exact{{"producerFeatureId",resolved.producerFeatureId},{"bodyId",resolved.bodyId},{"faceId",resolved.faceId}};
+            auto result=execute("command.update",{{"session",session_["id"]},{"inputs",QJsonObject{{"plane","face"},{"support",exact}}}});
+            if(result["ok"].toBool())view_->selectSupportFace({},{});
+            return result;
+        }catch(const std::exception& error){return failure("support_unavailable",QString::fromUtf8(error.what()),"support");}
+    }
     if(session_.value("command")=="solid.extrude" && session_.value("inputs").toObject().value("extent")=="toObject") {
         const auto edit=session_.value("inputs").toObject().value("featureId").toString();
         try {

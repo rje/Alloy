@@ -12,6 +12,14 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
     sketch=SketchGeometry::addRectangle(sketch,{{"u1Mm",-20},{"v1Mm",-20},{"u2Mm",20},{"v2Mm",20}});
     check(doc.commit(SketchGeometry::replaceFeature(doc.authored(),sketch),"Sketch").isEmpty(),"sketch");
     check(doc.commit(CadDocument::extrusionCandidate(doc.authored(),{{"sketchId",sketch["id"]},{"profileId",doc.sketches()[0].profiles[0].profileId},{"distanceMm",40}}),"Solid").isEmpty(),"solid");
+    const auto end=doc.bodies()[0].supportFaces[0];
+    QJsonObject support{{"producerFeatureId",end.producerFeatureId},{"bodyId",end.bodyId},{"faceId",end.faceId}};
+    auto faceDraft=CadDocument::sectionCandidate(doc.authored(),{{"plane","face"},{"support",support},{"offsetMm",-2.5},{"flip",true},{"name","Face slice"}});
+    check(doc.commitAnalyses(faceDraft["analyses"].toArray(),"Face section").isEmpty(),"face section");
+    check(doc.authored()["analyses"].toArray()[0].toObject()["offsetMm"].toDouble()==-2.5,"signed offset retained");
+    doc.history().undo();check(doc.authored()["analyses"].toArray().isEmpty(),"face section undo");
+    auto malformed=faceDraft;auto malformedRows=malformed["analyses"].toArray();auto malformedRow=malformedRows[0].toObject();malformedRow["offsetMm"]="bad";malformedRows[0]=malformedRow;
+    check(!doc.commitAnalyses(malformedRows,"Bad face offset").isEmpty(),"reject malformed face offset");
     const auto before=doc.authored();const auto* evaluated=&doc.evaluation();const auto shape=doc.bodies()[0].shape;
     auto candidate=CadDocument::sectionCandidate(before,{{"plane","XZ"}});auto rows=candidate["analyses"].toArray();const auto id=rows[0].toObject()["id"];
     check(doc.commitAnalyses(rows,"Section").isEmpty(),"create");
