@@ -53,9 +53,11 @@ and native 3/3 evidence remain distinct. See [workflow](validation/piston-couple
 and [native qualifications](validation/piston-coupled-ui.md). The gallery now has
 a 188.5-second from-blank creation-through-coupled-motion checkpoint. A measured
 223 ms preview event is tracked separately in REL-010/#367, not a frame-rate claim.
-ASM-017/#366 splits the missing linked local occurrence/placement prerequisite
-from ASM-016/#365 copied-piston motion. Both remain Todo until pulled; no generic
-scene or solver redesign is needed.
+ASM-017/#366 is now active: separate authority/UI lanes implement linked local
+occurrence subtrees and composed rigid placement on the unjointed fixture. Shared
+definitions and occurrence-aware selection precede ASM-016/#365 internal joint
+remapping/copied-piston motion, which remains Todo. No generic scene or solver
+redesign is needed. The observed blank command-dock band is recorded in REL-005.
 The bounded implementation plan is external under
 `knowledge/tutorials/piston-subassemblies-2026-10-14/assembly-continuation/asm015-plan.md`.
 SRF-016/#360 preserves later surface-as-tool Trim; accepted
