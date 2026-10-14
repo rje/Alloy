@@ -6179,6 +6179,18 @@
         "area:doc"
       ],
       "body": "The actual enclosure Top section becomes unavailable after Midplane/Split even though the source exterior supporting plane persists on a resulting half. Resolve this exact retained-face ancestry without nearest-coordinate retargeting. Preserve section position, orientation and visibility through Split, upstream edit, undo/redo and save/reopen; reject genuinely missing or ambiguous supports. Verify actual GPU clipping and a readable retained section in the saved enclosure fixture. The independently accepted API snap workflow uses a disclosed same-position origin XY inspection plane at z=24.5 mm; that workaround is not acceptance of retained-face support. Evidence: docs/validation/enclosure-snaps-workflow.md and external enclosure-snap-workflow-2026-10-14/from-blank-01/tail-02. Full enclosure source behavior remains gated here."
+    },
+    {
+      "key": "REL-009",
+      "title": "Reuse solved prefixes within enclosure recompute",
+      "kind": "implementation",
+      "phase": "P4 Initial release",
+      "priority": "P1",
+      "depends_on": [
+        "SOL-042"
+      ],
+      "labels": [],
+      "body": "## Observed problem and bounded change\nActual final enclosure saved-model evaluation takes 12.933 seconds headless, and final grouped Fillet R0.5\u2192R0.45 takes 12.906 seconds. Six independently repeated solved-sketch-prefix evaluations consume 8.281 seconds (64.2%) of the edit. Advance one invocation-local evaluated prefix through already solved features, then perform canonical final validation/evaluation from that prefix. Preserve authored history, geometry quality, solver/OCCT tolerances, references and atomic failure; do not introduce persistent caching.\n\n## Verification\nCompare exact saved source and the same final Fillet edit before/after: authored JSON, geometry summaries, topology/reference identities and timing. Check history/undo/reopen through CadDocument authority plus focused append/prefix and organization regressions. One actual app check when the private editor lease is available; independent Astra review before integration. No broad suite or repeated tutorial movie required.\n\n## Evidence and limits\nExternal deliverables/enclosure-recompute-profile-2026-10-14/profile.md and baseline.log, retrieved/measured 2026-10-14. Current main218a6ae, Debug, macOS arm64, Qt6.11.2/OCCT7.9.3. This headless profile does not establish native-input/GPU time or explain all movie waiting. Broader performance budgets remain [REL-004](https://github.com/rje/Alloy/issues/83).\n\n## Dependencies\n- [SOL-042](https://github.com/rje/Alloy/issues/268): accepted exact prefix append foundation.\n"
     }
   ]
 }

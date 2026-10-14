@@ -382,19 +382,23 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
     // cannot form cycles and consumed bodies cannot be used as stale inputs.
     return {};
 }
-QJsonObject solveSketches(QJsonObject candidate,int firstFeature=0,const EvaluatedDocument* seed=nullptr) {
+QJsonObject solveSketches(QJsonObject candidate,int firstFeature,EvaluatedDocument& prefix) {
     auto features = candidate["features"].toArray();
     for (int i = firstFeature; i < features.size(); ++i) {
         const auto feature = features[i].toObject();
         if (feature["type"].toString() != "sketch") continue;
         QJsonObject projectionContext;
         if(feature["parameters"].toObject()["plane"]=="face" || feature["parameters"].toObject()["plane"]=="construction") {
-            auto prior=candidate;QJsonArray prefix;for(int j=0;j<i;++j)prefix.append(features[j]);prior["features"]=prefix;
+            auto prior=candidate;QJsonArray priorFeatures;for(int j=0;j<i;++j)priorFeatures.append(features[j]);prior["features"]=priorFeatures;
             // Final Browser ownership and names can reference bodies created
             // after this modeling prefix; keep original authoring context.
             prior.remove("objectOwners");
             prior.remove("bodyNames");
-            try {projectionContext=GeometryKernel::projectionContext(seed ? *seed : GeometryKernel::evaluateDocument(prior),feature);}
+            // The prefix is local to this recompute and contains only earlier,
+            // already-solved features. Advance it rather than replaying them
+            // independently for every attached sketch.
+            try {prefix=GeometryKernel::evaluateDocument(prior,prefix);
+                projectionContext=GeometryKernel::projectionContext(prefix,feature);}
             catch(const GeometryKernel::EvaluationError& error) {
                 auto diagnostics=error.diagnostics();
                 if(!diagnostics.contains("featureId"))diagnostics["featureId"]=feature["id"];
@@ -858,9 +862,13 @@ CadDocument::CandidateEvaluation CadDocument::evaluateCandidateFromPrefix(const 
     const auto dependency = dependencyError(resolved);
     if (!dependency.isEmpty()) {result.diagnostics = dependency;result.error = dependency["message"].toString();return result;}
     try {
-        const auto solved = solveSketches(resolved,firstFeature,prefix);
-        auto evaluated = std::make_shared<const EvaluatedDocument>(prefix
-            ? GeometryKernel::evaluateDocument(solved,*prefix) : GeometryKernel::evaluateDocument(solved));
+        auto solvingPrefix=prefix ? *prefix : EvaluatedDocument{};
+        const auto solved = solveSketches(resolved,firstFeature,solvingPrefix);
+        auto finalEvaluation=GeometryKernel::evaluateDocument(solved,solvingPrefix);
+        // Internal solve-prefix reuse is still a full ordered recompute when
+        // no accepted document prefix was supplied by prepareCandidate.
+        finalEvaluation.recompute=prefix ? "exact_prefix_append" : "full_ordered";
+        auto evaluated=std::make_shared<const EvaluatedDocument>(std::move(finalEvaluation));
         AssemblySlider::inspect(solved,*evaluated);
         result.authored = solved;
         auto normalized=solved["features"].toArray();
