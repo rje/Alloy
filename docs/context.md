@@ -1,5 +1,15 @@
 # Continuation context
 
+## Accepted Two Sides surface extrusion (2026-10-14)
+
+SRF-014/#355 is independently accepted and integrated. Selected open lines and
+fit splines produce real surface sheets with editable side reaches and retained
+IDs; planar outputs have valid support frames. Core, 48-call API and Qt native
+picker/typing/Escape checks pass. Output is a per-curve multi-face compound, not
+a sewn shell or completed iron fixture. VIS-004/#358 retains Surface workspace
+navigation; Trim/Boundary Fill integration stays in TUT-018. See
+[the receipt](validation/surface-extrude-two-sides.md).
+
 ## Accepted retained Split section (2026-10-14)
 
 DOC-032/#357 is independently accepted. The enclosure original Top section now

@@ -3168,7 +3168,7 @@
         "priority:P1",
         "area:srf"
       ],
-      "body": "## Result\nExtrude retained open sketch curves into real zero-volume surface sheets with independently authored distances on two sides of their sketch plane.\n\n## Bounded scope and acceptance\n- Source back/bottom sketch includes two fit splines and a notch line; Two Sides creates current sheets crossing the adjacent iron surfaces. No fabricated solid volume.\n- After the source Trim/Remove trial is reverted, edit that same sketch to add a bottom line and edit the same Extrude to include it. Stable source-derived face/edge IDs, area, bounds and downstream closure reflect the edit.\n- Shared API/native preview, Cancel, direction/side controls, upstream edit, undo/reopen, and atomic refusal of unsupported open chains or failed geometry. Numeric reach values are Alloy fixture choices; the public lesson gives none.\n\n## Dependencies and limit\nDepends on SRF-009's open-sheet body foundation. SRF-001 retains general surface Extrude/Revolve breadth. External source contract: `surface-iron-2026-10-14/source-contract.md`.\n\n## Dependencies\n- [SRF-009](https://github.com/rje/Alloy/issues/283)\n"
+      "body": "## Result\nExtrude retained open sketch curves into real zero-volume surface sheets with independently authored distances on two sides of their sketch plane.\n\n## Bounded scope and acceptance\n- Source back/bottom sketch includes two fit splines and a notch line; Two Sides creates current sheets crossing the adjacent iron surfaces. No fabricated solid volume.\n- After the source Trim/Remove trial is reverted, edit that same sketch to add a bottom line and edit the same Extrude to include it. Stable source-derived face/edge IDs, area, bounds and downstream closure reflect the edit.\n- Shared API/native preview, Cancel, direction/side controls, upstream edit, undo/reopen, and atomic refusal of unsupported open chains or failed geometry. Numeric reach values are Alloy fixture choices; the public lesson gives none.\n\n## Dependencies and limit\nDepends on SRF-009's open-sheet body foundation. SRF-001 retains general surface Extrude/Revolve breadth. External source contract: `surface-iron-2026-10-14/source-contract.md`.\n\n## Dependencies\n- [SRF-009](https://github.com/rje/Alloy/issues/283)\n\n\n## Independently accepted 2026-10-14\nIndependent review accepted the bounded Two Sides surface Extrude ingredient: source-derived face/edge IDs, upstream and same-feature selection edits, valid planar support frame, history/reopen and atomic refusal. Core3/3,48-call API, Qt picker/typed25/30/Escape and inspected captures pass; integrated app build and focused core pass. VIS-004/#358 preserves Surface workspace navigation. Per-curve multi-face compound and independently authored fixture do not establish connected topology, crossing adjacent Lofts, Trim or Boundary Fill; full TUT-018 remains open. See docs/validation/surface-extrude-two-sides.md.\n"
     },
     {
       "key": "SOL-048",
@@ -3768,7 +3768,8 @@
         "SRF-014",
         "SRF-011",
         "DOC-024",
-        "HIS-007"
+        "HIS-007",
+        "VIS-004"
       ],
       "labels": [
         "area:gate"
@@ -6191,6 +6192,21 @@
       ],
       "labels": [],
       "body": "## Observed problem and bounded change\nActual final enclosure saved-model evaluation takes 12.933 seconds headless, and final grouped Fillet R0.5\u2192R0.45 takes 12.906 seconds. Six independently repeated solved-sketch-prefix evaluations consume 8.281 seconds (64.2%) of the edit. Advance one invocation-local evaluated prefix through already solved features, then perform canonical final validation/evaluation from that prefix. Preserve authored history, geometry quality, solver/OCCT tolerances, references and atomic failure; do not introduce persistent caching.\n\n## Verification\nCompare exact saved source and the same final Fillet edit before/after: authored JSON, geometry summaries, topology/reference identities and timing. Check history/undo/reopen through CadDocument authority plus focused append/prefix and organization regressions. One actual app check when the private editor lease is available; independent Astra review before integration. No broad suite or repeated tutorial movie required.\n\n## Evidence and limits\nExternal deliverables/enclosure-recompute-profile-2026-10-14/profile.md and baseline.log, retrieved/measured 2026-10-14. Current main218a6ae, Debug, macOS arm64, Qt6.11.2/OCCT7.9.3. This headless profile does not establish native-input/GPU time or explain all movie waiting. Broader performance budgets remain [REL-004](https://github.com/rje/Alloy/issues/83).\n\n## Dependencies\n- [SOL-042](https://github.com/rje/Alloy/issues/268): accepted exact prefix append foundation.\n\n\n## Independently accepted 2026-10-14\nIndependent source, headless and actual-app review accepted invocation-local solved-prefix reuse. Exact authored/body/sketch results match baseline; headless source/edit fall from12.950/13.596s to4.701/4.706s. Actual-app 36-call saved-enclosure tail passes geometry/history/reopen/clipping and STL checks, with current opens5.1s, edit4.9s, undo/redo0.2s. No before/after GUI ratio or broad REL-004 budget claim. See docs/validation/document-recompute-prefix.md.\n"
+    },
+    {
+      "key": "VIS-004",
+      "title": "Route implemented surface commands through the Surface workspace",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SRF-009",
+        "SRF-014"
+      ],
+      "labels": [
+        "area:vis"
+      ],
+      "body": "The bounded Surface Extrude ingredient is currently reachable in shared SOLID CREATE, while the SURFACE tab remains a placeholder. Implement real Surface workspace navigation and researched command grouping for implemented surface operations, including SURFACE > CREATE > Extrude. Existing commands, preview and document history remain authoritative; do not add decorative nonfunctional controls or claim unimplemented surface tools. Research public screenshots/help before settling Loft/Thicken grouping and keyboard/context behavior. Verify native tab selection, command discoverability, readable active state, return to Solid, actual preview/Cancel and retained editing. Link actual GPU captures; this is a navigation requirement separate from accepted SRF-014 geometry/API foundation. Full TUT-018 retains this gate."
     }
   ]
 }
