@@ -9647,11 +9647,12 @@ void AlloyWindow::refreshSketchControls() {
             return new QTreeWidgetItem(group);
         };
         QSet<QString> livePoints,liveEntities;
+        const auto pointCoordinate=[scale](double mm){return QString::number((std::abs(mm)<1e-9 ? 0.0 : mm)/scale,'g',5);};
         int index=0;
         for(const auto& entry:pointEntries) {
             const auto point=entry.toObject();const auto id=point["id"].toString();points[id]=point;pointNumbers[id]=++index;livePoints.insert(id);
             auto* item=rowForId(pointGroup,id);
-            QString label=QString("P%1  (%2, %3) %4").arg(index).arg(QString::number(point["uMm"].toDouble()/scale,'g',5)).arg(QString::number(point["vMm"].toDouble()/scale,'g',5)).arg(units);
+            QString label=QString("P%1  (%2, %3) %4").arg(index).arg(pointCoordinate(point["uMm"].toDouble())).arg(pointCoordinate(point["vMm"].toDouble())).arg(units);
             if(relations.contains(id))label+=" · "+relations[id].join(", ");
             if(item->text(0)!=label){item->setText(0,label);accessibleLabelsChanged=true;}
             item->setData(0,Qt::UserRole,"point");item->setData(0,Qt::UserRole+1,id);item->setSelected(selection["pointIds"].toArray().contains(id));
