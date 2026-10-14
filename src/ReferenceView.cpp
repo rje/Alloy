@@ -13,7 +13,9 @@
 #include "SketchGeometry.h"
 #include "SketchSpline.h"
 #include "GeometryKernel.h"
+#include "JointOrigin.h"
 #include <QMouseEvent>
+#include <QKeyEvent>
 #include <QWheelEvent>
 #include <QContextMenuEvent>
 #include <QMenu>
@@ -61,6 +63,24 @@
 namespace {
 QString presentationBodyKey(const EvaluatedBody& body){
     return body.occurrenceId.isEmpty() ? body.bodyId : body.occurrenceId+"/"+body.bodyId;
+}
+void showOriginTriad(const Handle(AIS_InteractiveContext)& context,std::vector<Handle(AIS_Shape)>& cues,
+    const gp_Pnt& center,const gp_Dir& x,const gp_Dir& y,const gp_Dir& z,double radius) {
+    const auto add=[&](const TopoDS_Shape& shape,const Quantity_Color& color){
+        Handle(AIS_Shape) cue=new AIS_Shape(shape);cue->SetColor(color);
+        cue->Attributes()->SetShadingModel(Graphic3d_TOSM_UNLIT);cue->SetZLayer(Graphic3d_ZLayerId_Topmost);
+        context->Display(cue,AIS_Shaded,-1,false);context->Deactivate(cue);cues.push_back(cue);
+    };
+    add(BRepPrimAPI_MakeSphere(center,radius*.7).Shape(),Quantity_Color(.05,.77,.86,Quantity_TOC_sRGB));
+    const std::array<std::pair<gp_Dir,Quantity_Color>,4> directions{{
+        {x,Quantity_Color(.90,.13,.12,Quantity_TOC_sRGB)},
+        {y,Quantity_Color(.10,.65,.26,Quantity_TOC_sRGB)},
+        {z,Quantity_Color(.94,.97,.99,Quantity_TOC_sRGB)},
+        {z.Reversed(),Quantity_Color(.96,.50,.11,Quantity_TOC_sRGB)}}};
+    for(const auto& [axis,color]:directions){
+        add(BRepPrimAPI_MakeCylinder(gp_Ax2(center,axis),radius*.16,radius*3).Shape(),color);
+        add(BRepPrimAPI_MakeCone(gp_Ax2(center.Translated(gp_Vec(axis)*radius*3),axis),radius*.45,0,radius*.9).Shape(),color);
+    }
 }
 }
 #include <AIS_TextLabel.hxx>
@@ -213,6 +233,7 @@ void ReferenceView::rebindDocument() {
     setCanvases({},EvaluatedDocument{});canvasStamp_={};
     clearPatternAxes();
     setSliderCue({});
+    setJointOriginPicking(false);setJointOrigins({},false);
     if(context_.IsNull())return;
     clearPreview();clearSketchDraft();clearBodyStage();clearSketchCursor();
     selectSupportFace({},{});hoverSupportFace({});sketchFrame_={};
@@ -1833,6 +1854,104 @@ void ReferenceView::setSliderCue(const QJsonObject& joint) {
     mark(BRepPrimAPI_MakeCone(gp_Ax2(anchor.Translated(gp_Vec(axis)*(length-radius*2)),axis),radius*1.5,0,radius*2).Shape(),Quantity_Color(.08,.57,.18,Quantity_TOC_sRGB));
     context_->UpdateCurrentViewer();
 }
+void ReferenceView::setJointOriginPicking(bool active,const QString& occurrenceId,const QString& axis) {
+    if(jointOriginPicking_==active && jointOriginOccurrence_==occurrenceId && jointOriginAxis_==axis)return;
+    jointOriginPicking_=active;jointOriginOccurrence_=occurrenceId;jointOriginAxis_=axis;
+    jointOriginHover_={};jointOriginLock_={};jointOriginLocked_=false;
+    refreshJointOriginCue();
+}
+QJsonObject ReferenceView::jointOriginState() const {
+    const auto candidate=jointOriginLocked_ ? jointOriginLock_ : jointOriginHover_;
+    QJsonObject result{{"active",jointOriginPicking_},{"locked",jointOriginLocked_},
+        {"targetOccurrenceId",jointOriginOccurrence_},{"candidate",candidate},
+        {"lastPointer",QJsonObject{{"x",lastJointPointer_.x()},{"y",lastJointPointer_.y()}}}};
+    if(const auto center=candidate["centerMm"].toArray();center.size()==3){
+        const auto p=projectWorldPoint(center);result["glyph"]=QJsonObject{{"x",p.x()},{"y",p.y()},{"viewportLocal",true}};
+    }
+    return result;
+}
+void ReferenceView::updateJointOriginHover(const QPointF& point) {
+    lastJointPointer_=point;
+    if(!jointOriginPicking_ || jointOriginLocked_)return;
+    QJsonObject candidate;bool otherBodyInFront=false;
+    {
+        const auto scale=windowScale();double px,py,pz,dx,dy,dz;
+        view_->ConvertWithProj(qRound(point.x()*scale.x()),qRound(point.y()*scale.y()),px,py,pz,dx,dy,dz);
+        const gp_Lin ray(gp_Pnt(px,py,pz),gp_Dir(dx,dy,dz));
+        const EvaluatedBody* closest=nullptr;TopoDS_Face face;double depth=std::numeric_limits<double>::infinity();
+        try {for(const auto& body:documentBodies_)if(body.visible && !body.shape.IsNull()){
+            IntCurvesFace_ShapeIntersector intersections;intersections.Load(body.shape,1e-6);
+            intersections.PerformNearest(ray,0,1e9);
+            if(!intersections.IsDone() || intersections.NbPnt()<1 || intersections.WParameter(1)>=depth)continue;
+            depth=intersections.WParameter(1);closest=&body;face=intersections.Face(1);
+        }}catch(const Standard_Failure&) {closest=nullptr;}
+        otherBodyInFront=closest && !jointOriginOccurrence_.isEmpty()
+            && closest->occurrenceId!=jointOriginOccurrence_;
+        if(closest && (jointOriginOccurrence_.isEmpty() || closest->occurrenceId==jointOriginOccurrence_))
+            try {candidate=JointOrigin::cylindricalFaceCandidate(*closest,face);}
+            catch(const std::exception&) {}
+    }
+    if(candidate.isEmpty() && !otherBodyInFront){
+        const auto edge=pickSolidEdge(point.x(),point.y(),documentBodies_);
+        if(!edge.isEmpty() && (jointOriginOccurrence_.isEmpty() || edge["occurrenceId"]==jointOriginOccurrence_))
+            for(const auto& body:documentBodies_)if(body.bodyId==edge["bodyId"] && body.occurrenceId==edge["occurrenceId"])
+                try {candidate=JointOrigin::circleCandidate(body,edge["edgeId"].toString());}catch(const std::exception&) {}
+    }
+    if(!candidate.isEmpty()){
+        const auto axis=candidate["axis"].toArray();
+        if(axis.size()!=3 || (jointOriginAxis_=="Y" && std::abs(axis[1].toDouble())<1-1e-6)
+            || (jointOriginAxis_=="Z" && std::abs(axis[2].toDouble())<1-1e-6))candidate={};
+    }
+    if(candidate==jointOriginHover_)return;
+    jointOriginHover_=candidate;refreshJointOriginCue();
+    if(!candidate.isEmpty() && !hasFocus())setFocus(Qt::MouseFocusReason);
+}
+void ReferenceView::refreshJointOriginCue() {
+    if(context_.IsNull())return;
+    for(const auto& cue:jointOriginCue_)context_->Remove(cue,false);
+    jointOriginCue_.clear();
+    const auto candidate=jointOriginLocked_ ? jointOriginLock_ : jointOriginHover_;
+    const auto p=candidate["centerMm"].toArray(),a=candidate["axis"].toArray();
+    if(!jointOriginPicking_ || p.size()!=3 || a.size()!=3){context_->UpdateCurrentViewer();return;}
+    const gp_Pnt center(p[0].toDouble(),p[1].toDouble(),p[2].toDouble());
+    const gp_Dir axis(a[0].toDouble(),a[1].toDouble(),a[2].toDouble());
+    const double radius=std::clamp(view_->Camera()->Scale()*2.2/std::max(height(),1),0.55,2.2)
+        *(jointOriginLocked_ ? 1.25 : 1.0);
+    const auto ref=candidate["position"].toObject();
+    if(ref.contains("rimEdgeIds"))for(const auto& body:documentBodies_)
+        if(body.bodyId==ref["bodyId"] && body.occurrenceId==ref["occurrenceId"])
+            try {auto canonical=ref;canonical.remove("occurrenceId");const auto face=JointOrigin::resolve(body,canonical).face;
+                Handle(AIS_Shape) highlight=new AIS_Shape(face);
+                highlight->SetColor(Quantity_Color(.98,.49,.10,Quantity_TOC_sRGB));highlight->SetTransparency(.45);
+                highlight->SetZLayer(Graphic3d_ZLayerId_Topmost);
+                context_->Display(highlight,AIS_Shaded,-1,false);context_->Deactivate(highlight);jointOriginCue_.push_back(highlight);
+            }catch(const std::exception&) {}
+    const gp_Dir worldX(1,0,0);
+    const bool yAxis=std::abs(axis.Y())>1-1e-8;
+    const gp_Dir x=worldX,y=yAxis ? axis : gp_Dir(gp_Vec(axis).Crossed(gp_Vec(worldX))),
+        z=yAxis ? gp_Dir(gp_Vec(x).Crossed(gp_Vec(y))) : axis;
+    showOriginTriad(context_,jointOriginCue_,center,x,y,z,radius);
+    context_->UpdateCurrentViewer();
+}
+void ReferenceView::setJointOrigins(const QJsonArray& origins,bool visible) {
+    if(jointOrigins_==origins && jointOriginsVisible_==visible)return;
+    jointOrigins_=origins;jointOriginsVisible_=visible;refreshJointOriginMarkers();
+}
+void ReferenceView::refreshJointOriginMarkers() {
+    if(context_.IsNull())return;
+    for(const auto& cue:jointOriginMarkers_)context_->Remove(cue,false);
+    jointOriginMarkers_.clear();
+    if(!jointOriginsVisible_){context_->UpdateCurrentViewer();return;}
+    const double radius=std::clamp(view_->Camera()->Scale()*1.5/std::max(height(),1),0.4,1.5);
+    for(const auto& value:jointOrigins_){const auto frame=value.toObject()["originFrameWorld"].toArray();if(frame.size()!=12)continue;
+        const gp_Pnt center(frame[3].toDouble(),frame[7].toDouble(),frame[11].toDouble());
+        const gp_Dir axis(frame[2].toDouble(),frame[6].toDouble(),frame[10].toDouble());
+        const gp_Dir x(frame[0].toDouble(),frame[4].toDouble(),frame[8].toDouble());
+        const gp_Dir y(frame[1].toDouble(),frame[5].toDouble(),frame[9].toDouble());
+        showOriginTriad(context_,jointOriginMarkers_,center,x,y,axis,radius);
+    }
+    context_->UpdateCurrentViewer();
+}
 void ReferenceView::setAssemblyDragCue(const QJsonObject& cue) {
     if(cue.isEmpty() || cue["jointId"]!=assemblyDragCue_["jointId"] || cue["bodyId"]!=assemblyDragCue_["bodyId"])
         assemblyDrag_={};
@@ -2303,6 +2422,17 @@ QImage ReferenceView::framebuffer() {
     return image;
 }
 void ReferenceView::mousePressEvent(QMouseEvent* e) {
+    if(jointOriginPicking_ && jointOriginLocked_ && e->button()==Qt::LeftButton
+        && e->modifiers().testFlag(Qt::ControlModifier)) {
+        const auto glyph=jointOriginState()["glyph"].toObject();
+        if(!glyph.isEmpty() && QLineF(e->position(),QPointF(glyph["x"].toDouble(),glyph["y"].toDouble())).length()<14){
+            const auto position=jointOriginLock_["position"].toObject();
+            jointOriginLock_={};jointOriginHover_={};jointOriginLocked_=false;refreshJointOriginCue();
+            jointOriginPressHandled_=true;
+            if(dispatch)dispatch("joint.originPick",{{"position",position}});
+            setFocus(Qt::MouseFocusReason);e->accept();return;
+        }
+    }
     if(canvasPicking_ && e->button()==Qt::LeftButton && !e->modifiers().testFlag(Qt::AltModifier)){
         if(dispatch)dispatch("canvas.pick",{{"x",e->position().x()},{"y",e->position().y()}});e->accept();return;
     }
@@ -2420,6 +2550,9 @@ void ReferenceView::mousePressEvent(QMouseEvent* e) {
     else QWidget::mousePressEvent(e);
 }
 void ReferenceView::mouseMoveEvent(QMouseEvent* e) {
+    if(jointOriginPicking_ && e->buttons()==Qt::NoButton) {
+        updateJointOriginHover(e->position());e->accept();return;
+    }
     if(!assemblyDrag_.isEmpty() && e->buttons().testFlag(Qt::LeftButton)){
         const QPointF press(assemblyDrag_["pressX"].toDouble(),assemblyDrag_["pressY"].toDouble());
         if(QLineF(press,e->position()).length()>=4)if(const auto angle=assemblyPointerAngle(e->position())){
@@ -2489,11 +2622,27 @@ void ReferenceView::mouseMoveEvent(QMouseEvent* e) {
     }
 }
 void ReferenceView::leaveEvent(QEvent* e) {
+    if(jointOriginPicking_ && !jointOriginLocked_){jointOriginHover_={};refreshJointOriginCue();}
     if(!sketchPlane_.isEmpty() && !decorationSelection_.value("hoveredConstraintId").toString().isEmpty())
         dispatch("sketch.constraintHover",{{"constraintId",""}});
     QWidget::leaveEvent(e);
 }
+void ReferenceView::keyPressEvent(QKeyEvent* e) {
+    if(jointOriginPicking_ && e->modifiers().testFlag(Qt::ControlModifier)
+        && !jointOriginLocked_ && !jointOriginHover_.isEmpty()){
+        jointOriginLock_=jointOriginHover_;jointOriginLocked_=true;refreshJointOriginCue();e->accept();return;
+    }
+    QWidget::keyPressEvent(e);
+}
+void ReferenceView::keyReleaseEvent(QKeyEvent* e) {
+    if(jointOriginPicking_ && jointOriginLocked_ &&
+        (e->key()==Qt::Key_Control || e->key()==Qt::Key_Meta || !e->modifiers().testFlag(Qt::ControlModifier))){
+        jointOriginLock_={};jointOriginLocked_=false;updateJointOriginHover(lastJointPointer_);e->accept();return;
+    }
+    QWidget::keyReleaseEvent(e);
+}
 void ReferenceView::mouseReleaseEvent(QMouseEvent* e) {
+    if(e->button()==Qt::LeftButton && jointOriginPressHandled_){jointOriginPressHandled_=false;e->accept();return;}
     if(e->button()==Qt::LeftButton && !assemblyDrag_.isEmpty()){
         const bool moved=assemblyDrag_["moved"].toBool();assemblyDrag_={};
         if(!moved && dispatch)dispatch("selection.pick",{{"x",e->position().x()},{"y",e->position().y()}});

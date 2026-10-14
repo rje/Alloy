@@ -672,6 +672,13 @@ AlloyWindow::AlloyWindow() {
             QMenu menu(this);auto* edit=menu.addAction("Edit Section Analysis");edit->setEnabled(session_.isEmpty());
             if(menu.exec(tree_->viewport()->mapToGlobal(point))==edit)execute("inspect.sectionDialog",{{"analysisId",item->data(0,Qt::UserRole+2).toString()}});return;
         }
+        if(item==jointsNode_){
+            QMenu menu(this);auto* visibility=menu.addAction(jointOriginsShown_ ? "Hide Joint Origins" : "Show Joint Origins");
+            visibility->setObjectName("context.jointOriginsVisibility");
+            if(menu.exec(tree_->viewport()->mapToGlobal(point))==visibility)
+                execute("joint.originsVisibility",{{"visible",!jointOriginsShown_}});
+            return;
+        }
         if(item->parent()==jointsNode_){
             const auto jointId=item->data(0,Qt::UserRole+5).toString();QString kind;
             for(const auto& value:document_->authored().value("joints").toArray())if(value.toObject()["id"]==jointId)kind=value.toObject()["type"].toString();
@@ -5445,6 +5452,12 @@ void AlloyWindow::refresh() {
         const auto solvedAssembly=presentationAssembly();
         const auto assembly=solvedAssembly["joints"].toArray();
         view_->setSliderCue(assembly.isEmpty() || assembly[0].toObject()["type"]!="asBuiltSlider" ? QJsonObject{} : assembly[0].toObject());
+        const auto jointCommand=session_.value("command").toString();
+        const bool pickingJointOrigin=(jointCommand=="joint.revolute" || jointCommand=="joint.cylindrical")
+            && !session_.value("inputs").toObject().contains("jointId");
+        view_->setJointOriginPicking(pickingJointOrigin,pickingJointOrigin ? session_.value("inputs").toObject()["component2OccurrenceId"].toString() : QString{},
+            jointCommand=="joint.revolute" ? "Y" : jointCommand=="joint.cylindrical" ? "Z" : QString{});
+        view_->setJointOrigins(assembly,jointOriginsShown_);
         QJsonObject dragCue;
         const auto islands=solvedAssembly["islands"].toArray();
         if(session_.isEmpty() && (assembly.size()==4 || assembly.size()==7)

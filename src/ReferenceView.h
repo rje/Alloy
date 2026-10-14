@@ -15,6 +15,7 @@
 #include <QSet>
 #include "GeometryKernel.h"
 class QContextMenuEvent;
+class QKeyEvent;
 class QRubberBand;
 
 // GPU presentation only. Reference axes/grid are not authored document objects.
@@ -109,6 +110,9 @@ public:
         const QString& occurrenceId = {});
     void clearSolidEdgeHighlights();
     void setSliderCue(const QJsonObject& joint);
+    void setJointOriginPicking(bool active,const QString& occurrenceId = {},const QString& axis = {});
+    QJsonObject jointOriginState() const;
+    void setJointOrigins(const QJsonArray& origins,bool visible);
     void setAssemblyDragCue(const QJsonObject& cue);
     QJsonObject projectBody(const EvaluatedBody& body) const;
     QPointF projectWorldPoint(const QJsonArray& pointMm) const;
@@ -138,6 +142,8 @@ protected:
     void resizeEvent(QResizeEvent*) override;
     void mousePressEvent(QMouseEvent*) override;
     void mouseMoveEvent(QMouseEvent*) override;
+    void keyPressEvent(QKeyEvent*) override;
+    void keyReleaseEvent(QKeyEvent*) override;
     void leaveEvent(QEvent*) override;
     void mouseReleaseEvent(QMouseEvent*) override;
     void mouseDoubleClickEvent(QMouseEvent*) override;
@@ -150,6 +156,15 @@ private:
     bool canvasPicking_=false;
     std::vector<Handle(AIS_Shape)> solidEdgeHighlights_;
     std::vector<Handle(AIS_Shape)> sliderCue_;
+    bool jointOriginPicking_=false,jointOriginLocked_=false,jointOriginsVisible_=false,jointOriginPressHandled_=false;
+    QString jointOriginOccurrence_,jointOriginAxis_;
+    QJsonObject jointOriginHover_,jointOriginLock_;
+    QPointF lastJointPointer_;
+    QJsonArray jointOrigins_;
+    std::vector<Handle(AIS_Shape)> jointOriginCue_,jointOriginMarkers_;
+    void updateJointOriginHover(const QPointF& point);
+    void refreshJointOriginCue();
+    void refreshJointOriginMarkers();
     QJsonObject assemblyDragCue_, assemblyDrag_;
     std::optional<double> assemblyPointerAngle(const QPointF& position) const;
     gp_Pnt sketchWorld(const QString& plane,double u,double v) const;

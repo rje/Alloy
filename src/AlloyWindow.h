@@ -102,6 +102,7 @@ private:
     QDockWidget* sectionDock_ = nullptr;
     QDockWidget* sliderDock_ = nullptr;
     QTreeWidgetItem* jointsNode_ = nullptr;
+    bool jointOriginsShown_ = false;
     std::optional<double> transientSliderPosition_;
     QJsonObject sliderPreviewAuthored_;
     QJsonObject jointGraphStage_;

@@ -4,6 +4,7 @@
 #include "AssemblyRevolute.h"
 #include "AssemblyGraph.h"
 #include "LocalOccurrences.h"
+#include "JointOrigin.h"
 #include "ReferenceView.h"
 #include <BRepAdaptor_Curve.hxx>
 #include <GeomAbs_CurveType.hxx>
@@ -249,6 +250,29 @@ void AlloyWindow::refreshSliderControls(){
     const auto choice=inputs["position"].toObject();if(!choice.isEmpty())view_->highlightSolidEdges(presentationBodies(),choice["bodyId"].toString(),QJsonArray{choice["edgeId"]});
 }
 void AlloyWindow::registerRevoluteCommands(){
+    commands_.push_back({"joint.originInspect","Inspect joint-origin inference","Read the transient hovered or held exact origin candidate and glyph.",{},true,
+        [this](const QJsonObject&){auto state=view_->jointOriginState();state["originsVisible"]=jointOriginsShown_;return state;}});
+    commands_.push_back({"joint.originPick","Choose inferred joint origin","Use the exact retained circle or finite-cylinder reference shown by the joint-origin glyph.",
+        {{"position",field("object")}},true,[this](const QJsonObject& args){
+            if(session_.value("command")!="joint.revolute" && session_.value("command")!="joint.cylindrical")
+                return fail("invalid_session","Start an As-Built Revolute or Cylindrical joint first");
+            const auto position=args["position"].toObject();
+            const auto fixed=session_["inputs"].toObject()["component2OccurrenceId"].toString();
+            if(fixed.isEmpty() || position["occurrenceId"]!=fixed)
+                return fail("wrong_component","Choose an origin on Component 2");
+            auto retained=position;retained.remove("occurrenceId");
+            const auto referenceError=JointOrigin::validateReference(retained);
+            if(!referenceError.isEmpty())return fail("invalid_origin",referenceError);
+            const auto response=execute("command.update",{{"session",session_["id"]},
+                {"inputs",QJsonObject{{"position",position}}}});
+            return response["ok"].toBool() ? response["result"].toObject() : response;
+        }});
+    commands_.push_back({"joint.originsVisibility","Show/Hide Joint Origins","Show retained joint origin and axis glyphs in this viewport.",
+        {{"visible",field("boolean")}},true,[this](const QJsonObject& args){
+            jointOriginsShown_=args["visible"].toBool();
+            view_->setJointOrigins(presentationAssembly()["joints"].toArray(),jointOriginsShown_);
+            return QJsonObject{{"visible",jointOriginsShown_},{"authoredChanged",false}};
+        }});
     commands_.push_back({"joint.revolute","As-Built Revolute","Retain a circular-origin Revolute between component leaves.",
         revoluteSchema(),true,[this](const QJsonObject& args){
             if(!session_.isEmpty() && session_["command"]!="joint.revolute")return fail("session_busy","Finish or cancel the active command");
@@ -358,7 +382,7 @@ void AlloyWindow::showRevolute(){
     angle->setEnabled(!passive);
     auto* hint=new QLabel(passive ? "This joint follows the assembly driver. Its measured angle is read-only."
         : editing ? "Edit the prescribed angle. To change components or Position, create a new as-built joint."
-        : "Choose a full circular edge on Component 2. Angle 0 retains the assembled pose.");hint->setWordWrap(true);layout->addWidget(hint);
+        : "Hover a Y-axis bore or complete circular edge on Component 2, hold Ctrl/Command, then click its center marker. Angle 0 retains the assembled pose.");hint->setWordWrap(true);layout->addWidget(hint);
     auto* error=new QLabel;error->setObjectName("revolute.error");error->setWordWrap(true);layout->addWidget(error);
     auto* buttons=new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel);buttons->setObjectName("revolute.buttons");layout->addWidget(buttons);
     const auto update=[this](const QJsonObject& changes){execute("command.update",{{"session",session_["id"]},{"inputs",changes}});};
@@ -389,7 +413,8 @@ void AlloyWindow::refreshRevoluteControls(){
         combo->setCurrentIndex(std::max(0,combo->findData(inputs[combo==first?"component1OccurrenceId":"component2OccurrenceId"].toString())));
     }
     const auto fixed=inputs["component2OccurrenceId"].toString();
-    {const QSignalBlocker blocked(position);position->clear();position->addItem("Select circular edge…",QJsonObject{});
+    view_->setJointOriginPicking(!inputs.contains("jointId"),fixed,"Y");
+    {const QSignalBlocker blocked(position);position->clear();position->addItem("Select bore or circular edge…",QJsonObject{});
         for(const auto& body:presentationBodies())if(body.occurrenceId==fixed)for(const auto& edge:body.solidEdges)if(!edge.edge.IsNull()){
             const BRepAdaptor_Curve curve(edge.edge);if(curve.GetType()!=GeomAbs_Circle)continue;
             if(std::abs(std::abs(curve.LastParameter()-curve.FirstParameter())-2*std::acos(-1.0))>1e-6)continue;
@@ -399,16 +424,27 @@ void AlloyWindow::refreshRevoluteControls(){
             position->setItemData(position->count()-1,QString("Center (%1, %2, %3) mm")
                 .arg(point.X(),0,'f',1).arg(point.Y(),0,'f',1).arg(point.Z(),0,'f',1),Qt::ToolTipRole);
         }
+        for(const auto& body:presentationBodies())if(body.occurrenceId==fixed)
+            for(const auto& candidate:JointOrigin::cylindricalCandidates(body)){
+                const auto axis=candidate["axis"].toArray(),center=candidate["centerMm"].toArray();
+                if(axis.size()!=3 || std::abs(axis[1].toDouble())<1-1e-6)continue;
+                position->addItem(body.name+QString(" · bore axis midpoint Y %1").arg(center[1].toDouble(),0,'f',1),candidate["position"]);
+                position->setItemData(position->count()-1,QString("Axis center (%1, %2, %3) mm")
+                    .arg(center[0].toDouble(),0,'f',1).arg(center[1].toDouble(),0,'f',1).arg(center[2].toDouble(),0,'f',1),Qt::ToolTipRole);
+            }
         const auto current=inputs["position"].toObject();int chosen=position->findData(current);
         if(chosen<0)for(int i=1;i<position->count();++i){const auto ref=position->itemData(i).toJsonObject();
-            if(ref["bodyId"]==current["bodyId"] && ref["edgeId"]==current["edgeId"]){chosen=i;break;}}
+            if(ref["bodyId"]==current["bodyId"] && ref["edgeId"]==current["edgeId"]
+                && ref["rimEdgeIds"]==current["rimEdgeIds"]){chosen=i;break;}}
         position->setCurrentIndex(std::max(0,chosen));
     }
     {auto* angle=sliderDock_->findChild<QDoubleSpinBox*>("revolute.angleDeg");const QSignalBlocker blocked(angle);angle->setValue(inputs["angleDeg"].toDouble());}
-    sliderDock_->findChild<QLabel*>("revolute.error")->setText(session_["previewError"].toString());
+    sliderDock_->findChild<QLabel*>("revolute.error")->setText(inputs["position"].toObject().isEmpty()
+        ? QString{} : session_["previewError"].toString());
     const bool passive=passiveGraphJoint(presentationAssembly(),inputs["jointId"].toString());
     sliderDock_->findChild<QDialogButtonBox*>("revolute.buttons")->button(QDialogButtonBox::Ok)->setEnabled(session_["previewed"].toBool() && !passive);
-    const auto ref=inputs["position"].toObject();if(!ref.isEmpty())view_->highlightSolidEdges(presentationBodies(),ref["bodyId"].toString(),QJsonArray{ref["edgeId"]},fixed);
+    const auto ref=inputs["position"].toObject();if(!ref.isEmpty())view_->highlightSolidEdges(presentationBodies(),ref["bodyId"].toString(),
+        ref.contains("rimEdgeIds") ? ref["rimEdgeIds"].toArray() : QJsonArray{ref["edgeId"]},fixed);
 }
 void AlloyWindow::registerCylindricalCommands(){
     commands_.push_back({"joint.cylindrical","As-Built Cylindrical",
@@ -503,7 +539,7 @@ void AlloyWindow::showCylindrical(){
     rotation->setEnabled(!passive);slide->setEnabled(!passive);
     auto* hint=new QLabel(passive ? "This joint is driven by another joint in the connected island. Its coordinates are read-only."
         : editing ? "Edit both coordinates. To change components or Position, create a new as-built joint."
-        : "Choose a complete circular edge on Component 2. This slice uses its Z axis and retains the assembled pose.");
+        : "Hover a Z-axis tube bore or complete circular edge on Component 2, hold Ctrl/Command, then click its center marker. The assembled pose is retained.");
     hint->setObjectName("cylindrical.hint");
     hint->setWordWrap(true);layout->addWidget(hint);
     auto* error=new QLabel;error->setObjectName("cylindrical.error");error->setWordWrap(true);layout->addWidget(error);
@@ -536,7 +572,8 @@ void AlloyWindow::refreshCylindricalControls(){
         combo->setCurrentIndex(std::max(0,combo->findData(inputs[combo==first?"component1OccurrenceId":"component2OccurrenceId"].toString())));
     }
     const auto fixed=inputs["component2OccurrenceId"].toString();
-    {const QSignalBlocker blocked(position);position->clear();position->addItem("Select Z-axis circle…",QJsonObject{});
+    view_->setJointOriginPicking(!inputs.contains("jointId"),fixed,"Z");
+    {const QSignalBlocker blocked(position);position->clear();position->addItem("Select Z-axis bore or circle…",QJsonObject{});
         for(const auto& body:presentationBodies())if(body.occurrenceId==fixed)for(const auto& edge:body.solidEdges)if(!edge.edge.IsNull()){
             const BRepAdaptor_Curve curve(edge.edge);if(curve.GetType()!=GeomAbs_Circle)continue;
             if(std::abs(std::abs(curve.LastParameter()-curve.FirstParameter())-2*std::acos(-1.0))>1e-6
@@ -547,16 +584,27 @@ void AlloyWindow::refreshCylindricalControls(){
             position->setItemData(position->count()-1,QString("Center (%1, %2, %3) mm")
                 .arg(center.X(),0,'f',1).arg(center.Y(),0,'f',1).arg(center.Z(),0,'f',1),Qt::ToolTipRole);
         }
+        for(const auto& body:presentationBodies())if(body.occurrenceId==fixed)
+            for(const auto& candidate:JointOrigin::cylindricalCandidates(body)){
+                const auto axis=candidate["axis"].toArray(),center=candidate["centerMm"].toArray();
+                if(axis.size()!=3 || std::abs(axis[2].toDouble())<1-1e-6)continue;
+                position->addItem(body.name+QString(" · bore axis midpoint Z %1").arg(center[2].toDouble(),0,'f',1),candidate["position"]);
+                position->setItemData(position->count()-1,QString("Axis center (%1, %2, %3) mm")
+                    .arg(center[0].toDouble(),0,'f',1).arg(center[1].toDouble(),0,'f',1).arg(center[2].toDouble(),0,'f',1),Qt::ToolTipRole);
+            }
         const auto current=inputs["position"].toObject();int chosen=position->findData(current);
         if(chosen<0)for(int i=1;i<position->count();++i){const auto ref=position->itemData(i).toJsonObject();
-            if(ref["bodyId"]==current["bodyId"] && ref["edgeId"]==current["edgeId"]){chosen=i;break;}}
+            if(ref["bodyId"]==current["bodyId"] && ref["edgeId"]==current["edgeId"]
+                && ref["rimEdgeIds"]==current["rimEdgeIds"]){chosen=i;break;}}
         position->setCurrentIndex(std::max(0,chosen));
     }
     for(const auto& key:{"rotationDeg","slideMm"}){auto* field=sliderDock_->findChild<QDoubleSpinBox*>("cylindrical."+QString(key));
         const QSignalBlocker blocked(field);field->setValue(inputs[key].toDouble());}
-    sliderDock_->findChild<QLabel*>("cylindrical.error")->setText(session_["previewError"].toString());
+    sliderDock_->findChild<QLabel*>("cylindrical.error")->setText(inputs["position"].toObject().isEmpty()
+        ? QString{} : session_["previewError"].toString());
     const bool passive=passiveGraphJoint(presentationAssembly(),inputs["jointId"].toString());
     sliderDock_->findChild<QDialogButtonBox*>("cylindrical.buttons")->button(QDialogButtonBox::Ok)->setEnabled(session_["previewed"].toBool() && !passive);
     const auto ref=inputs["position"].toObject();if(!ref.isEmpty())
-        view_->highlightSolidEdges(presentationBodies(),ref["bodyId"].toString(),QJsonArray{ref["edgeId"]},fixed);
+        view_->highlightSolidEdges(presentationBodies(),ref["bodyId"].toString(),
+            ref.contains("rimEdgeIds") ? ref["rimEdgeIds"].toArray() : QJsonArray{ref["edgeId"]},fixed);
 }
