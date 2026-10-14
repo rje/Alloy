@@ -6,8 +6,12 @@ Continue autonomously across accepted milestones; a status report is not a stop.
 DOC-031/#348 is independently accepted at `89782cf`: unchanged-product native09
 passes modal line focus, rename commit, Browser label and unchanged geometry.
 Earlier button-focus failure remains unexplained, not claimed fixed.
-SKT-080/#380 is active for explicit shared-endpoint arc-line Tangent constraints;
-Sol implements on main, Astra verifies, reusing the existing build.
+SKT-080/#380 is independently accepted at `c730f97`. Explicit shared-endpoint
+arc-line Tangent supports either pick order, retained contact/side and visible
+badges. Core passes; API05 passes 50 calls with a rounded plate resize, atomic
+refusal, history/reopen; native02 passes actual picks/recovery/badge deletion.
+Broader tangent pairs remain SKT-022. See [receipt](validation/sketch-arc-line-tangent.md).
+Continue the queue; the next bounded constraint candidate is under public research.
 SKT-077 remains Todo after native03/04: initial activation-before-projection
 did not fix picking. Actual hit widget/frame/projected center and before/after
 captures are preserved externally in the face-origin deliverable native04.

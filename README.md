@@ -168,6 +168,11 @@ and six driving dimensions, with a complete API creation movie and editable
 sketch. Exact edit/history/reopen checks passed in a separate saved-model run.
 This source ends at Finish Sketch and does not produce a print mesh.
 
+[Explicit arc-line Tangent](docs/validation/sketch-arc-line-tangent.md) now
+constrains an arc and line sharing an endpoint, with either native pick order
+and retained badges. A rounded plate stays tangent through radius/width edits,
+solid recompute, history and reopen. Broader tangent combinations remain ahead.
+
 [Sketch line Symmetry](docs/validation/sketch-line-symmetry.md) now constrains
 two existing lines about a construction axis, with retained endpoint pairing
 and a selectable constraint badge. A plate width edit updates its symmetric
