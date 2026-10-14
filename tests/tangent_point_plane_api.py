@@ -11,6 +11,7 @@ with application(a.app,out) as (call,ledger):
     call('window.resize',{'width':1440,'height':900})
     call('document.open',{'path':str(Path(a.source).resolve()),'discard':True})
     initial=call('document.inspect');body=initial['evaluation']['bodies'][0];face=body['supportFaces'][0]
+    call('component.activate',{'definitionId':body['ownerId']})
     edge=next(e for e in body['solidEdges'] if e['available'])
     tangent={'face':{k:face[k] for k in ('producerFeatureId','bodyId','faceId')},
              'point':{'bodyId':body['bodyId'],'edgeId':edge['edgeId'],'endpoint':0}}
@@ -30,7 +31,7 @@ with application(a.app,out) as (call,ledger):
     bad=copy.deepcopy(tangent);bad['point']['edgeId']='00000000-0000-0000-0000-000000000001'
     call('construction.tangentPlane',{'featureId':created,'tangent':bad},error='evaluation_failed')
     assert call('document.inspect')['authored']==baseline
-    edit=call('feature.editDialog',{'featureId':created});assert edit['inputs']['tangent']==tangent
+    call('feature.editDialog',{'featureId':created});edit=call('app.state')['activeSession'];assert edit['inputs']['tangent']==tangent
     call('command.update',{'session':edit['id'],'inputs':{'name':'Edited endpoint tangent'}})
     call('command.commit',{'session':edit['id']})
     saved=call('document.inspect')['authored'];path=out/'tangent-endpoint.alloy';call('document.save',{'path':str(path)})

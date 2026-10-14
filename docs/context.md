@@ -3514,3 +3514,17 @@ See [candidate contract](validation/tangent-point-plane.md). Do not close #286.
 GEO-018/#350 explicitly preserves the prerequisite for generated corner-Fillet
 endpoint identities through the source separate perimeter round; it is a Todo
 dependency of GEO-004 and TUT-017. The actual final source endpoint remains required.
+
+
+### Tangent foundation actual-app follow-up
+
+After explicit GUI-lease handoff, the bounded local-server API lifecycle on the
+curved Loft endpoint passed, with inspected controls and actual Apple M4 GPU
+captures. The native Qt test could not establish initial viewport focus and
+stopped before Escape/selection; preserve this as unverified, with no inter-step
+focus repair or accepted-native claim. State reporting and viewport Escape
+shortcut were corrected in e57bd32 after independent source/core review. Runtime
+evidence is external under `validation/tangent-point-plane-2026-10-14/`; source
+final Fillet endpoint and independent runtime review remain pending. The sole
+GUI lease was handed back to Thicken work after all private tangent processes
+exited. See the [bounded receipt](validation/tangent-point-plane.md).

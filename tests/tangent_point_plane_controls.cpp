@@ -3,6 +3,7 @@
 #include "AlloyTheme.h"
 #include "ReferenceView.h"
 #include <QApplication>
+#include <QWindow>
 #include <QAbstractItemView>
 #include <QComboBox>
 #include <QDialogButtonBox>
@@ -21,11 +22,14 @@ private slots:
   const auto source=qEnvironmentVariable("ALLOY_TANGENT_SOURCE"),out=qEnvironmentVariable("ALLOY_TANGENT_EVIDENCE");QVERIFY(!source.isEmpty() && !out.isEmpty());QDir().mkpath(out);
   AlloyTheme::apply(*qApp);AlloyWindow w;w.resize(1440,900);w.show();w.activateWindow();QVERIFY(QTest::qWaitForWindowExposed(&w));
   ReferenceView* view=nullptr;for(auto* child:w.findChildren<QWidget*>())if(auto* v=dynamic_cast<ReferenceView*>(child))view=v;QVERIFY(view);
+  // Initial harness activation is separate from the demonstrated command steps.
+  w.activateWindow();view->setFocus(Qt::OtherFocusReason);if(view->windowHandle())view->windowHandle()->requestActivate();
+  QTRY_VERIFY(view->hasFocus());
   call(w,"document.open",{{"path",source},{"discard",true}});call(w,"view.home");
   const auto initial=call(w,"document.inspect");
   auto* launch=w.findChild<QToolButton*>("command.construction.tangentPlane");QVERIFY(launch);
   QTest::mouseClick(launch,Qt::LeftButton);QTRY_COMPARE(session(w)["command"].toString(),QString("construction.tangentPlane"));
-  QTRY_VERIFY(view->hasFocus());QVERIFY(w.state()["ui"].toObject()["activeDialog"].toObject()["visible"].toBool());
+  QTRY_VERIFY2(view->hasFocus(),QJsonDocument(w.state()).toJson().constData());QVERIFY(w.state()["ui"].toObject()["activeDialog"].toObject()["visible"].toBool());
   // The command itself produced this focus. No activation/focus repair before Escape.
   QTest::keyClick(QApplication::focusWidget(),Qt::Key_Escape);QTRY_VERIFY(session(w).isEmpty());
   QCOMPARE(call(w,"document.inspect")["authored"],initial["authored"]);
