@@ -600,7 +600,7 @@ AlloyWindow::AlloyWindow() {
     timelineScroll_->setWidgetResizable(true);timelineScroll_->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     timelineScroll_->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);timelineScroll_->setAccessibleName("Feature Timeline");
     auto* timelineContent=new QWidget;timelineContent->setObjectName("timeline.features");timelineContent->setFixedHeight(34);
-    timelineLayout_=new QHBoxLayout(timelineContent);timelineLayout_->setContentsMargins(0,0,0,0);timelineLayout_->setSpacing(4);
+    timelineLayout_=new QHBoxLayout(timelineContent);timelineLayout_->setContentsMargins(0,0,4,0);timelineLayout_->setSpacing(4);
     timelineLayout_->setSizeConstraint(QLayout::SetMinAndMaxSize);timelineScroll_->setWidget(timelineContent);timelineRow->addWidget(timelineScroll_,1);
     timelineDropMarker_=new QFrame(timelineScroll_->viewport());
     timelineDropMarker_->setObjectName("timeline.dropMarker");

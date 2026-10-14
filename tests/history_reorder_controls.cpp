@@ -7,6 +7,7 @@
 #include <QMouseEvent>
 #include <QTest>
 #include <QToolButton>
+#include <QScrollArea>
 
 class HistoryReorderControlsTest final : public QObject {
     Q_OBJECT
@@ -44,11 +45,20 @@ private slots:
         }
         QVERIFY(sourceIndex>=0 && mirrorIndex>sourceIndex && followingMirrors>=2);
         call(window,"component.activate",{{"definitionId",features[sourceIndex].toObject()["ownerId"].toString()}});
+        // One initial Qt harness activation before any tested input; no
+        // focus repair occurs between Cancel and the accepted drag.
+        QApplication::setActiveWindow(&window);window.setFocus();
+        QTest::qWait(100); // Settle the Browser and Timeline layout after synchronous fixture load.
+        call(window,"timeline.showLatest");
+        QTest::qWait(50);
         auto* source=window.findChild<QToolButton*>("timeline.feature."+sourceId);
         auto* anchor=window.findChild<QToolButton*>("timeline.feature."+mirrorId);
         QVERIFY(source && anchor);QTRY_VERIFY(source->isVisible() && anchor->isVisible());
         // Release on the displayed insertion marker, not on the tile's center.
         const auto drop=anchor->mapToGlobal(QPoint(anchor->width()+1,anchor->height()/2));
+        auto* scroll=window.findChild<QScrollArea*>("timeline.scroll");
+        QVERIFY(scroll);
+        QVERIFY(scroll->viewport()->rect().contains(scroll->viewport()->mapFromGlobal(drop)));
         auto gesture=[&]{
             QTest::mousePress(source,Qt::LeftButton,Qt::NoModifier,QPoint(12,12));
             movePressedTile(source,drop);
