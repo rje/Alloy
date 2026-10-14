@@ -88,16 +88,16 @@ endpoint planes, guided Loft, bend16→18 edit and history/reopen. The cumulativ
 runner `tests/shoehorn_workflow_api.py` is now integrated with optional Thicken
 and grouped corner checkpoints. `--through-thicken` passed in external
 `deliverables/shoehorn-workflow-2026-10-14/thicken-01/`; `--through-corners`
-is prepared but not yet run. Full recording, finishing, hole, final organization
+has run and remains blocked at the exact R12 corner operation described above. Full recording, finishing, hole, final organization
 and component export remain open under TUT-017.
 
 GEO-004 tangent-plane core/API foundation is integrated at `2431184` through
 `8dbe6a3` and independently accepted for the current curved Loft endpoint.
 Native initial focus could not be established, so native Escape/selection stays
 unverified; final source Fillet endpoint acceptance remains open. GEO-018/#350
-is active for exact generated corner/perimeter Fillet face and endpoint
-identities. PRT-010/#351 tracks component printing export with a hidden retained
-surface: current component selection incorrectly gathers that open sheet too.
+remains Todo for exact generated corner/perimeter Fillet face and endpoint
+identities, pending GEO-019. PRT-010/#351 is now accepted: implicit component
+printing selection excludes hidden retained sheets, as recorded above.
 The public material/ownership and mesh-selection research stays external under
 `knowledge/tutorials/advanced-audit-2026-10-14/`. No source workflow steps are
 silently replaced by the bounded foundation claims.
@@ -3619,6 +3619,7 @@ both sides of the solved sketch normal. OCCT evaluates one zero-volume sheet
 face per curve in a single surface-body compound; the faces are not sewn.
 Source sketch and feature edits, stable face/edge IDs, a planar-face attached
 sketch, undo/reopen, real-app API, and focused Qt native selection/typing/Escape
-passed. This is a bounded ingredient pending independent review. The source
+passed. Independent review accepted the bounded ingredient; see the current
+acceptance entry at the top of this document. The source
 outline is independently authored and downstream Trim/Boundary Fill integration
 remains separate. See [candidate validation](validation/surface-extrude-two-sides.md).
