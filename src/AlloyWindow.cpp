@@ -347,7 +347,7 @@ AlloyWindow::AlloyWindow() {
     };
     group("CREATE", {{"primitive.box", "▣"}, {"primitive.cylinder", "◉"}, {"solid.sphereDialog", "●"}, {"sketch.create", "▧"}, {"solid.extrudeDialog", "▣"}, {"solid.revolveDialog", "◉"}, {"solid.sweepDialog", "◒"}, {"solid.loftDialog", "◒"}, {"solid.thickenDialog", "▤"}, {"solid.mirrorDialog", "◧"}, {"solid.featureMirrorDialog", "◧"}, {"solid.circularPatternDialog", "◌"}});
     group("MODIFY", {{"solid.pressPullDialog", "⇧"}, {"solid.combineDialog", "▣"}, {"solid.filletDialog", "◩"}, {"solid.chamferDialog", "◪"}, {"solid.shellDialog", "▱"}, {"solid.splitBodyDialog", "◫"}, {"solid.moveDialog", "✥"}});
-    group("ASSEMBLE", {{"joint.sliderDialog", "⇆"},{"joint.revoluteDialog","◉"},{"joint.cylindricalDialog","◎"}});
+    group("ASSEMBLE", {{"joint.sliderDialog", "⇆"},{"joint.revoluteDialog","◉"},{"joint.cylindricalDialog","◎"},{"position.revert","↶"}});
     group("CONSTRUCT", {{"construction.plane", "▰"}, {"construction.pathPlane", "⟂"}, {"construction.tangentPlane", "▱"}, {"construction.midplane", "◫"}});
     group("INSPECT", {{"inspect.sectionDialog", "◧"}, {"inspect.measure", "↔"}});
     auto* selectMenuButton=new QToolButton;selectMenuButton->setText("SELECT");
@@ -552,17 +552,22 @@ AlloyWindow::AlloyWindow() {
             const auto jointId=item->data(0,Qt::UserRole+5).toString();QString kind;
             for(const auto& value:document_->authored().value("joints").toArray())if(value.toObject()["id"]==jointId)kind=value.toObject()["type"].toString();
             QMenu menu(this);auto* edit=menu.addAction("Edit Joint");auto* animate=menu.addAction("Animate Joint");
-            if(kind=="asBuiltRevolute")animate->setText(transientSliderPosition_.has_value() ? "Stop Motion Preview" : "Preview +15° Motion");
-            if(kind=="asBuiltCylindrical")animate->setText(cylinderStage_.isEmpty() ? "Preview +15° / +5 mm Motion" : "Stop Motion Preview");
-            edit->setEnabled(session_.isEmpty());animate->setEnabled(session_.isEmpty());
+            const bool thisJointPreview=jointGraphStage_["jointId"]==jointId;
+            if(kind=="asBuiltRevolute")animate->setText(thisJointPreview ? "Stop Motion Preview" : "Preview +15° Motion");
+            if(kind=="asBuiltCylindrical")animate->setText(thisJointPreview ? "Stop Motion Preview" : "Preview +15° / +5 mm Motion");
+            bool coordinateEditable=true;
+            if(kind=="asBuiltRevolute" || kind=="asBuiltCylindrical")
+                for(const auto& value:presentationAssembly()["joints"].toArray())
+                    if(value.toObject()["id"]==jointId)coordinateEditable=value.toObject().value("coordinateEditable").toBool(true);
+            edit->setEnabled(session_.isEmpty());animate->setEnabled(session_.isEmpty() && coordinateEditable);
             const auto* action=menu.exec(tree_->viewport()->mapToGlobal(point));
             if(action==edit)execute(kind=="asBuiltCylindrical" ? "joint.cylindricalDialog"
                 : kind=="asBuiltRevolute" ? "joint.revoluteDialog" : "joint.sliderDialog",{{"jointId",jointId}});
             if(action==animate){
-                if(kind=="asBuiltCylindrical")execute(cylinderStage_.isEmpty()?"joint.previewCylindrical":"joint.cylindricalStop",
-                    cylinderStage_.isEmpty()?QJsonObject{{"jointId",jointId},{"rotationDeg",15},{"slideMm",5}}:QJsonObject{});
-                else execute(kind=="asBuiltRevolute" ? (transientSliderPosition_ ? "joint.revoluteStop":"joint.previewAngle") : "joint.animate",
-                    kind=="asBuiltRevolute" && !transientSliderPosition_ ? QJsonObject{{"angleDeg",15}}:QJsonObject{});
+                if(kind=="asBuiltCylindrical")execute(thisJointPreview?"joint.cylindricalStop":"joint.previewCylindrical",
+                    thisJointPreview?QJsonObject{}:QJsonObject{{"jointId",jointId},{"rotationDeg",15},{"slideMm",5}});
+                else execute(kind=="asBuiltRevolute" ? (thisJointPreview ? "joint.revoluteStop":"joint.previewAngle") : "joint.animate",
+                    kind=="asBuiltRevolute" && !thisJointPreview ? QJsonObject{{"jointId",jointId},{"angleDeg",15}}:QJsonObject{});
             }return;
         }
         if(!item->parent() || item->parent()->data(0,Qt::UserRole+4)!="bodies")return;
@@ -1023,7 +1028,7 @@ void AlloyWindow::saveActiveTabState() {
 void AlloyWindow::showActiveTab() {
     DesignTab* active=nullptr;for(auto& tab:designTabs_)if(tab->id==activeTabId_){active=tab.get();break;}
     if(!active)return;
-    if(sliderTimer_)sliderTimer_->stop();transientSliderPosition_.reset();sliderPreviewAuthored_={};cylinderStage_={};
+    if(sliderTimer_)sliderTimer_->stop();transientSliderPosition_.reset();sliderPreviewAuthored_={};jointGraphStage_={};
     if(sliderDock_)sliderDock_->hide();
     switchingTabs_=true;
     if(dimensionEditor_)dimensionEditor_->hide();
@@ -4720,8 +4725,8 @@ QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
     catch(const Standard_Failure& error) { refreshConstraintFailure(); return finish(failure("kernel_failure",QString::fromUtf8(error.GetMessageString()))); }
     catch(const std::exception& error) { refreshConstraintFailure(); return finish(failure("command_failed",QString::fromUtf8(error.what()))); }
     if (result.value("ok").isBool() && !result.value("ok").toBool()) { refreshConstraintFailure(); return finish(result); }
-    if(document_->revision()!=priorDocumentRevision && (transientSliderPosition_.has_value() || !cylinderStage_.isEmpty() || (sliderTimer_ && sliderTimer_->isActive()))){
-        transientSliderPosition_.reset();cylinderStage_={};if(sliderTimer_)sliderTimer_->stop();displayedDocumentRevision_=std::numeric_limits<quint64>::max();
+    if(document_->revision()!=priorDocumentRevision && (transientSliderPosition_.has_value() || !jointGraphStage_.isEmpty() || (sliderTimer_ && sliderTimer_->isActive()))){
+        transientSliderPosition_.reset();jointGraphStage_={};if(sliderTimer_)sliderTimer_->stop();displayedDocumentRevision_=std::numeric_limits<quint64>::max();
     }
     const bool changesState = id == "window.resize" || id.startsWith("layout.") || id.startsWith("view.") || (id == "commands.search" || id == "commands.close");
     if (changesState) ++revision_;
@@ -5075,8 +5080,30 @@ void AlloyWindow::refresh() {
         bodiesNode_->setExpanded(true);
         view_->setBodies(presentationBodies(),++presentationRevision_);
         refreshCanvasPresentation();
-        const auto assembly=presentationAssembly()["joints"].toArray();
+        const auto solvedAssembly=presentationAssembly();
+        const auto assembly=solvedAssembly["joints"].toArray();
         view_->setSliderCue(assembly.isEmpty() || assembly[0].toObject()["type"]!="asBuiltSlider" ? QJsonObject{} : assembly[0].toObject());
+        QJsonObject dragCue;
+        const auto islands=solvedAssembly["islands"].toArray();
+        if(session_.isEmpty() && assembly.size()==4 && islands.size()==1 && islands[0].toObject()["pinAuthored"].toBool()){
+            const auto driver=assembly[0].toObject();int revolutes=0,cylinders=0;
+            for(const auto& value:assembly){const auto type=value.toObject()["type"].toString();
+                revolutes+=type=="asBuiltRevolute";cylinders+=type=="asBuiltCylindrical";}
+            if(revolutes==3 && cylinders==1 && driver["type"]=="asBuiltRevolute"
+                && driver["coordinateEditable"].toBool() && driver["originFrameWorld"].toArray().size()==12){
+                QString movingOwner;const auto movingOccurrence=driver["component1OccurrenceId"].toString();
+                for(const auto& value:document_->authored()["occurrences"].toArray())
+                    if(value.toObject()["id"]==movingOccurrence){movingOwner=value.toObject()["definitionId"].toString();break;}
+                QString movingBody;for(const auto& body:document_->bodies())if(body.ownerId==movingOwner && body.visible){
+                    if(!movingBody.isEmpty()){movingBody.clear();break;}movingBody=body.bodyId;}
+                if(!movingBody.isEmpty()){
+                    const auto frame=driver["originFrameWorld"].toArray();
+                    dragCue={{"jointId",driver["id"]},{"bodyId",movingBody},
+                        {"pivotMm",QJsonArray{frame[3],frame[7],frame[11]}},{"angleDeg",driver["coordinateDeg"]}};
+                }
+            }
+        }
+        view_->setAssemblyDragCue(dragCue);
         view_->setSketches(nonzeroAssemblyPose() ? std::vector<EvaluatedSketch>{} : document_->sketches(),presentationRevision_);
         view_->setConstructionPlanes(nonzeroAssemblyPose() ? std::vector<EvaluatedConstructionPlane>{} : document_->evaluation().constructionPlanes,presentationRevision_);
         view_->selectConstructionPlane(selectedPlane_);
@@ -6472,7 +6499,7 @@ QJsonObject AlloyWindow::finishSession(const QString& id, bool commit) {
         view_->selectBody(selectedBody_);view_->selectConstructionPlane(selectedPlane_);
     }
     if(target=="joint.slider" || target=="joint.revolute" || target=="joint.cylindrical"){
-        if(sliderDock_)sliderDock_->hide();sliderPreviewAuthored_={};transientSliderPosition_.reset();cylinderStage_={};
+        if(sliderDock_)sliderDock_->hide();sliderPreviewAuthored_={};transientSliderPosition_.reset();jointGraphStage_={};
         if(sliderTimer_)sliderTimer_->stop();view_->clearSolidEdgeHighlights();displayedDocumentRevision_=std::numeric_limits<quint64>::max();
     }
     if(target=="solid.extrude"){view_->selectSupportFace({},{});if(extrudeEscape_)extrudeEscape_->setEnabled(false);if(extrudeDock_)extrudeDock_->hide();view_->clearPreview();view_->setEditDisplay({},{});view_->clearBodyStage();}

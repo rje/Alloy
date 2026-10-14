@@ -104,7 +104,7 @@ private:
     QTreeWidgetItem* jointsNode_ = nullptr;
     std::optional<double> transientSliderPosition_;
     QJsonObject sliderPreviewAuthored_;
-    QJsonObject cylinderStage_;
+    QJsonObject jointGraphStage_;
     quint64 presentationRevision_ = 1;
     QTimer* sliderTimer_ = nullptr;
     int sliderAnimationFrame_ = 0;

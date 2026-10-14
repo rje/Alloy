@@ -1814,6 +1814,22 @@ void ReferenceView::setSliderCue(const QJsonObject& joint) {
     mark(BRepPrimAPI_MakeCone(gp_Ax2(anchor.Translated(gp_Vec(axis)*(length-radius*2)),axis),radius*1.5,0,radius*2).Shape(),Quantity_Color(.08,.57,.18,Quantity_TOC_sRGB));
     context_->UpdateCurrentViewer();
 }
+void ReferenceView::setAssemblyDragCue(const QJsonObject& cue) {
+    if(cue.isEmpty() || cue["jointId"]!=assemblyDragCue_["jointId"] || cue["bodyId"]!=assemblyDragCue_["bodyId"])
+        assemblyDrag_={};
+    assemblyDragCue_=cue;
+}
+std::optional<double> ReferenceView::assemblyPointerAngle(const QPointF& position) const {
+    const auto pivot=assemblyDragCue_["pivotMm"].toArray();
+    if(view_.IsNull() || pivot.size()!=3)return std::nullopt;
+    const auto scale=windowScale();double px,py,pz,dx,dy,dz;
+    view_->ConvertWithProj(qRound(position.x()*scale.x()),qRound(position.y()*scale.y()),px,py,pz,dx,dy,dz);
+    if(std::abs(dy)<1e-8)return std::nullopt;
+    const double distance=(pivot[1].toDouble()-py)/dy;
+    const double x=px+distance*dx-pivot[0].toDouble(),z=pz+distance*dz-pivot[2].toDouble();
+    if(!std::isfinite(x) || !std::isfinite(z) || std::hypot(x,z)<1e-5)return std::nullopt;
+    return std::atan2(-z,x);
+}
 void ReferenceView::clearPatternAxes() {
     if(!context_.IsNull())for(const auto& model:patternAxes_)context_->Remove(model,false);patternAxes_.clear();
 }
@@ -2260,6 +2276,14 @@ void ReferenceView::mousePressEvent(QMouseEvent* e) {
     if(canvasPicking_ && e->button()==Qt::LeftButton && !e->modifiers().testFlag(Qt::AltModifier)){
         if(dispatch)dispatch("canvas.pick",{{"x",e->position().x()},{"y",e->position().y()}});e->accept();return;
     }
+    if(e->button()==Qt::LeftButton && !e->modifiers().testFlag(Qt::AltModifier) && !assemblyDragCue_.isEmpty()
+        && pickBody(e->position().x(),e->position().y())==assemblyDragCue_["bodyId"].toString()) {
+        if(const auto angle=assemblyPointerAngle(e->position())){
+            assemblyDrag_={{"jointId",assemblyDragCue_["jointId"]},{"pressX",e->position().x()},
+                {"pressY",e->position().y()},{"startRadians",*angle},{"startDegrees",assemblyDragCue_["angleDeg"]}};
+            setFocus(Qt::MouseFocusReason);e->accept();return;
+        }
+    }
     if(e->button()==Qt::LeftButton && !e->modifiers().testFlag(Qt::AltModifier) &&
        decorationSelection_.value("tool")=="conic" && !conicHandleState_.isEmpty() &&
        QLineF(e->position(),QPointF(conicHandleState_["x"].toDouble(),conicHandleState_["y"].toDouble())).length()<12) {
@@ -2366,6 +2390,16 @@ void ReferenceView::mousePressEvent(QMouseEvent* e) {
     else QWidget::mousePressEvent(e);
 }
 void ReferenceView::mouseMoveEvent(QMouseEvent* e) {
+    if(!assemblyDrag_.isEmpty() && e->buttons().testFlag(Qt::LeftButton)){
+        const QPointF press(assemblyDrag_["pressX"].toDouble(),assemblyDrag_["pressY"].toDouble());
+        if(QLineF(press,e->position()).length()>=4)if(const auto angle=assemblyPointerAngle(e->position())){
+            const double degrees=assemblyDrag_["startDegrees"].toDouble()+
+                std::remainder(*angle-assemblyDrag_["startRadians"].toDouble(),2*std::numbers::pi)*180/std::numbers::pi;
+            if(degrees>=-180 && degrees<=180 && dispatch)
+                dispatch("joint.previewAngle",{{"jointId",assemblyDrag_["jointId"]},{"angleDeg",degrees}});
+        }
+        e->accept();return;
+    }
     if(conicDragging_ && e->buttons().testFlag(Qt::LeftButton)) {
         dispatch("sketch.conicHandleDrag",{{"x",e->position().x()},{"y",e->position().y()}});e->accept();return;
     }
@@ -2428,6 +2462,9 @@ void ReferenceView::leaveEvent(QEvent* e) {
     QWidget::leaveEvent(e);
 }
 void ReferenceView::mouseReleaseEvent(QMouseEvent* e) {
+    if(e->button()==Qt::LeftButton && !assemblyDrag_.isEmpty()){
+        assemblyDrag_={};e->accept();return;
+    }
     if(conicDragging_ && e->button()==Qt::LeftButton) {
         conicDragging_=false;
         dispatch("sketch.conicHandleDrag",{{"x",e->position().x()},{"y",e->position().y()}});e->accept();return;

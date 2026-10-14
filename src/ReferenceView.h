@@ -4,6 +4,7 @@
 #include <QJsonObject>
 #include <QJsonArray>
 #include <functional>
+#include <optional>
 #include <AIS_InteractiveContext.hxx>
 #include <AIS_Trihedron.hxx>
 #include <V3d_View.hxx>
@@ -106,6 +107,7 @@ public:
     void highlightSolidEdges(const std::vector<EvaluatedBody>& bodies,const QString& bodyId,const QJsonArray& edgeIds);
     void clearSolidEdgeHighlights();
     void setSliderCue(const QJsonObject& joint);
+    void setAssemblyDragCue(const QJsonObject& cue);
     QJsonObject projectBody(const EvaluatedBody& body) const;
     void showHolePreview(const EvaluatedBody& result, const TopoDS_Shape& removedMaterial);
     void showSpherePreview(const TopoDS_Shape& tool, bool cut);
@@ -145,6 +147,8 @@ private:
     bool canvasPicking_=false;
     std::vector<Handle(AIS_Shape)> solidEdgeHighlights_;
     std::vector<Handle(AIS_Shape)> sliderCue_;
+    QJsonObject assemblyDragCue_, assemblyDrag_;
+    std::optional<double> assemblyPointerAngle(const QPointF& position) const;
     gp_Pnt sketchWorld(const QString& plane,double u,double v) const;
     QJsonObject frameFor(const QString& plane) const;
     void initialize();
