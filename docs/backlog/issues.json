@@ -5847,7 +5847,7 @@
       "labels": [
         "area:skt"
       ],
-      "body": "Offset1 to1.1 on overlapping connector rectangles changes bounded sketch cells, so an Extrude selecting old cell IDs safely refuses. Research and implement a separately selectable aggregate keyed by exact retained loop-group identities if appropriate, preserving ordinary cell selections and preventing aggregate-plus-child double counting. No silently expanded Cut after topology changes. Verify valid contact-topology edits preserve the explicitly selected union intent; invalid/missing-source edits remain atomic. This is deferred beyond TUT-021, whose fixed source offsets and contact-preserving edits use ordinary cells. Independent design and workflow review required."
+      "body": "Offset1 to1.1 on overlapping connector rectangles changes bounded sketch cells, so an Extrude selecting old cell IDs safely refuses. Research and implement a separately selectable aggregate keyed by exact retained loop-group identities if appropriate, preserving ordinary cell selections and preventing aggregate-plus-child double counting. No silently expanded Cut after topology changes. Verify valid contact-topology edits preserve the explicitly selected union intent; invalid/missing-source edits remain atomic. This is deferred beyond TUT-021, whose fixed source offsets and contact-preserving edits use ordinary cells. Independent design and workflow review required.\n\n## Bounded review 2026-10-14\nCandidate 705591b independently accepted for core/API authority and shared-command visual preview: explicit retained groups survive the three-port 1 to 1.1 clearance edit, exact area 973.5 to 979.43 mm2, Cut change, undo/redo/reopen and atomic missing/mixed refusal. Native combo selection and clearing remain SKT-078; failed input attempts are not passing native evidence. Integrated at 8241b66; main app build and focused Offset core pass. Keep this issue open while the separate dimension-test failure is diagnosed. See docs/validation/closed-offset-union.md."
     },
     {
       "key": "GEO-011",
@@ -6488,6 +6488,21 @@
         "area:fnd"
       ],
       "body": "Split unresolved visual-source qualification from the declared FND-001 comparison policy. Two archived public layouts are visibly distinct, but their release generations and screenshot OS/theme/display scale are not established.\n\n## Acceptance\n- When adequate public evidence is available, qualify two dated layout generations using published documentation/tutorial provenance; distinguish publication date, retrieval date and actual release identification. Do not infer a release from the date alone.\n- Record source platform, theme and display scale only where public evidence establishes them. Preserve explicit unknowns otherwise and state which comparisons can be matched.\n- Update external provenance/image records and the repo-safe comparison decision with stable reference IDs. No application operation, binary inspection, asset extraction or account-gated source.\n- One bounded public-evidence audit is sufficient; do not repeat broad searches when the sources still omit metadata. Missing reference metadata does not block independently qualified Alloy functionality.\n\nStarting evidence: external knowledge/specs/fnd-001-baseline-audit-2026-10-14.md. The initial Alloy macOS/light-neutral/1280x900 logical comparison policy is a declared project choice, not a claim that the reference used these settings."
+    },
+    {
+      "key": "SKT-078",
+      "title": "Validate native explicit Offset union selection and clearing",
+      "kind": "validation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "TUT-021",
+        "SKT-074"
+      ],
+      "labels": [
+        "area:skt"
+      ],
+      "body": "Finish native input qualification for the explicit Offset-loop union Cut policy accepted in SKT-074. This is an Alloy opt-in selection policy, not an observed reference aggregate control. Reuse the accepted three-port enclosure fixture from TUT-021; do not replay its geometry or full movie.\n\n## Acceptance\n- Open the actual Extrude edit controls and select the explicit Offset union row with native pointer or keyboard input. Inspect initial and resulting focus; no inter-step focus repair or command.update substitution for this selection.\n- Verify the session retains exact group IDs, preview highlights the resolved union, and the shortened label is readable. Ordinary cell selection must replace the aggregate, and clearing selection must remove the aggregate and prevent stale preview/commit.\n- Exercise Cancel with unchanged authored state and one native commit using the shared authority. Keep geometry/edit/history/reopen evidence from SKT-074 rather than repeating its full suite.\n- Record Qt-delivered versus OS input provenance and inspect the actual GPU capture. If input is unavailable, retain Todo with the concrete blocker.\n\nSKT-074 API02 and shared-command Qt visual checks pass, but two popup clicks and a subsequent keyboard focus probe did not establish native selection. Preserve those failed observations; a selected row set through command.update is visual evidence only. This follows the accepted TUT-021 fixture and does not retroactively change that tutorial's disclosed API acceptance."
     }
   ]
 }

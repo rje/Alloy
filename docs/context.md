@@ -15,7 +15,12 @@ opt-in retained Offset-group union intent to the existing Extrude/Cut path,
 resolving only exact current cell coverage and retaining ordinary stale-cell
 refusal. The three-port 1 to 1.1 clearance edit is the bounded gate; partial or
 extra regions must refuse, not silently widen a Cut. This is an Alloy capability,
-not established reference UI behavior. No implementation acceptance yet.
+not established reference UI behavior. Candidate `705591b` is independently accepted
+for core/API and shared-command visual preview; integrated at `8241b66`, with
+main app build and focused Offset core passing. The unrelated-dimension test
+failure is being diagnosed before parent closure.
+Native aggregate selection/clear stays Todo as SKT-078/#377, following the accepted
+TUT-021 fixture. See [bounded receipt](validation/closed-offset-union.md).
 FND-001 comparison policy is accepted in docs/compatibility.md; FND-025/#376
 retains unknown public screenshot metadata and unproven layout generations.
 
