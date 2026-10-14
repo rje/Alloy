@@ -462,7 +462,7 @@ AlloyWindow::AlloyWindow() {
         item->setData(0, Qt::UserRole, name);
     }
     new QTreeWidgetItem(document, {"Origin"});
-    canvasesNode_=new QTreeWidgetItem(document,{"Canvases"});canvasesNode_->setExpanded(true);
+    canvasesNode_=new QTreeWidgetItem(document,{"Canvases"});canvasesNode_->setExpanded(true);canvasesNode_->setData(0,Qt::UserRole+4,"canvases");
     analysesNode_=new QTreeWidgetItem(document,{"Analysis"});analysesNode_->setExpanded(true);analysesNode_->setData(0,Qt::UserRole+4,"analyses");
     jointsNode_=new QTreeWidgetItem(document,{"Joints"});jointsNode_->setExpanded(true);jointsNode_->setData(0,Qt::UserRole+4,"joints");
     bodiesNode_=new QTreeWidgetItem(document,{"Bodies"}); bodiesNode_->setExpanded(true);

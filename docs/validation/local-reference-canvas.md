@@ -52,5 +52,11 @@ raster guide overlap visually; actual authored/sketch evaluation is separate
 proof, not a claim that the capture alone establishes geometry. This does not
 accept the complete surface-iron tutorial or a creation movie.
 
-Independent Astra review remains pending; candidate is not integrated or accepted.
+Independent Astra review identified a disconnected Browser visibility handler and
+stale calibration validity after an extra point. Both are corrected: Browser
+row click/Space toggles authored visibility; a completed pair refuses further
+picks without changing the session; incomplete calibration cannot commit. The
+focused native-04 run passes 3/3 phases including these assertions, without
+inter-step focus repair. The completed-pair hint explains Cancel/restart. Final
+independent acceptance and integration remain pending.
 See [the bounded source contract](../research/local-reference-canvas-contract.md).

@@ -12,6 +12,7 @@
 #include <QDialogButtonBox>
 #include <QPushButton>
 #include <QWindow>
+#include <QTreeWidget>
 #include <QProcess>
 #include <QDir>
 #include <QFile>
@@ -41,8 +42,18 @@ private slots:
     auto pixel=[&](double x,double y){auto p=call(w,"canvas.projectPixel",{{"canvasId",id},{"pixelX",x},{"pixelY",y}});return QPoint(qRound(p["x"].toDouble()),qRound(p["y"].toDouble()));};const auto first=pixel(50,100),second=pixel(350,100);
     QVERIFY(view->rect().contains(first));QVERIFY(view->rect().contains(second));QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,first);QCOMPARE(session(w)["calibrationPoints"].toArray().size(),1);QVERIFY(view->hasFocus());
     QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,second);QCOMPARE(session(w)["calibrationPoints"].toArray().size(),2);QVERIFY(view->hasFocus());
-    auto* distance=dock->findChild<QDoubleSpinBox*>("canvas.distanceMm");QVERIFY(distance);type(distance,"90");QVERIFY(session(w)["previewed"].toBool());capture(w,"02-native-calibration-preview");buttons=dock->findChild<QDialogButtonBox*>();QTest::mouseClick(buttons->button(QDialogButtonBox::Ok),Qt::LeftButton);QVERIFY(session(w).isEmpty());const auto calibrated=authored(w);const auto row=calibrated["canvases"].toArray()[0].toObject();QVERIFY(std::abs(row["widthMm"].toDouble()-120)<1);QTRY_VERIFY(view->hasFocus());
+    auto* distance=dock->findChild<QDoubleSpinBox*>("canvas.distanceMm");QVERIFY(distance);type(distance,"90");QVERIFY(session(w)["previewed"].toBool());capture(w,"02-native-calibration-preview");
+    const auto completedPair=session(w);auto extra=w.execute("canvas.pick",{{"x",first.x()},{"y",first.y()}});QVERIFY(!extra["ok"].toBool());QCOMPARE(session(w),completedPair);
+    buttons=dock->findChild<QDialogButtonBox*>();QTest::mouseClick(buttons->button(QDialogButtonBox::Ok),Qt::LeftButton);QVERIFY(session(w).isEmpty());const auto calibrated=authored(w);const auto row=calibrated["canvases"].toArray()[0].toObject();QVERIFY(std::abs(row["widthMm"].toDouble()-120)<1);QTRY_VERIFY(view->hasFocus());
     QTest::keyClick(QApplication::focusWidget(),Qt::Key_Z,Qt::ControlModifier);QCOMPARE(authored(w),inserted);QTest::keyClick(QApplication::focusWidget(),Qt::Key_Z,Qt::ControlModifier|Qt::ShiftModifier);QCOMPARE(authored(w),calibrated);capture(w,"03-native-calibrated");
+    auto* tree=w.findChild<QTreeWidget*>("browser.tree");QVERIFY(tree);
+    auto canvasItem=[&]()->QTreeWidgetItem* {for(QTreeWidgetItemIterator it(tree);*it;++it)if((*it)->data(0,Qt::UserRole+2).toString()==id && (*it)->parent() && (*it)->parent()->text(0)=="Canvases")return *it;return nullptr;};
+    QVERIFY(canvasItem());tree->scrollToItem(canvasItem());QTest::mouseClick(tree->viewport(),Qt::LeftButton,Qt::NoModifier,tree->visualItemRect(canvasItem()).center());QVERIFY(tree->hasFocus());QTest::keyClick(QApplication::focusWidget(),Qt::Key_Space);
+    QTRY_VERIFY(!authored(w)["canvases"].toArray()[0].toObject()["visible"].toBool());
+    QVERIFY(canvasItem());QTest::mouseClick(tree->viewport(),Qt::LeftButton,Qt::NoModifier,tree->visualItemRect(canvasItem()).center());QVERIFY(tree->hasFocus());QTest::keyClick(QApplication::focusWidget(),Qt::Key_Space);
+    QTRY_VERIFY(authored(w)["canvases"].toArray()[0].toObject()["visible"].toBool());
+    call(w,"canvas.calibrateDialog",{{"canvasId",id}});QVERIFY(!session(w)["previewed"].toBool());auto incomplete=w.execute("command.commit",{{"session",session(w)["id"]}});QVERIFY(!incomplete["ok"].toBool());QCOMPARE(authored(w),calibrated);call(w,"command.cancel",{{"session",session(w)["id"]}});
+    
  }
 };
 QTEST_MAIN(CanvasControlsTest)

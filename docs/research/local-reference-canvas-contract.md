@@ -40,3 +40,7 @@ options remain broader compatibility work; the source iron lesson requires
 local reference placement/calibration/visibility, not their complete command
 family. Exact native layout and viewport parity remain unknown from the unmatched
 public dialog screenshot. This reference feature does not itself create CAD.
+
+Calibration keeps its completed pair fixed while previewing a distance. To choose
+another pair, cancel and start Calibrate again. This is an explicit Alloy policy;
+reference reselection behavior is not established by the permitted evidence.
