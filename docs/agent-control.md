@@ -894,3 +894,18 @@ history and returns `planeId`; sketches attach using the existing `planeId` inpu
 preview/Cancel controls. The source must resolve to one current face and an exact
 oriented edge endpoint on that trimmed face. Candidate qualification is recorded
 in [the receipt](validation/tangent-point-plane.md).
+
+## Straight-line Extend
+
+In an active sketch, `sketch.tool {tool:"extend"}` enables the Modify > Extend
+pointer tool. `sketch.extendPreview` and `sketch.extend` both take
+`{entityId,uMm,vMm}`: the retained authored source line ID and a sketch-plane
+point nearer the endpoint to extend. Preview reports `extendedSegment` through
+`extendPreview.segment` without changing the draft or history. The accepted
+command moves that same endpoint to the nearest forward intersection with a
+finite authored straight line, preserving source line and point IDs. It adds
+Coincident for an exact target endpoint or pointOnCurve for a finite target
+interior. A tied/overlapping nearest hit, missing intersection, unsupported
+curve or incompatible existing constraint refuses atomically. The tool remains
+active after a successful click; Enter exits it. Other curve types and general
+Extend remain under SKT-011.

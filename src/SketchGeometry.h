@@ -87,6 +87,9 @@ public:
     // Pointer-only circle creation retains optional midpoint centerSnapTarget and
     // finite-line tangentSnapTarget; the signed tangent branch survives edits.
     static SolveResult trimLine(const QJsonObject& draft, const QJsonObject& arguments, const QJsonObject& projectionContext = {});
+    // Move one retained line endpoint to the nearest forward finite-line
+    // intersection. Existing constraints and identities remain authoritative.
+    static SolveResult extendLine(const QJsonObject& draft, const QJsonObject& arguments, const QJsonObject& projectionContext = {});
     static SolveResult filletCorners(const QJsonObject& draft, const QJsonObject& arguments, const QJsonObject& projectionContext = {});
     // Optional drivingDiameterMm retains the inline typed diameter in the same transaction.
     static SolveResult addPointerCircle(const QJsonObject& draft, const QJsonObject& arguments, const QJsonObject& projectionContext = {});

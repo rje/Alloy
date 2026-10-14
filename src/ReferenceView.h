@@ -85,6 +85,7 @@ public:
     QJsonObject sketchPoint(double x, double y, const QString& plane, const QJsonObject& resolvedFrame = {}) const;
     QJsonObject projectSketchPoint(double uMm, double vMm, const QString& plane, const QJsonObject& resolvedFrame = {}) const;
     void showTrimPreview(const QString& plane,const QJsonObject& segment);
+    void showExtendPreview(const QString& plane,const QJsonObject& segment);
     void showSketchCursor(const QString& plane, const QPointF& first, const QPointF& second, bool rectangle, bool centered = false);
     void showSketchSnap(const QString& plane, const QJsonObject& snap);
     void showSketchCurveCursor(const QJsonObject& feature);
