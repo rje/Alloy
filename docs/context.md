@@ -34,14 +34,19 @@ The port lane now owns SOL-053/#337 genuine YZ Feature Mirror, explicitly
 mapping the source axes into the accepted 90-degree Z adapted frame. The
 opposed ±X catches at Y = 20 mm clear the long slot by 6.75 mm; full cantilever/GPIO
 clearance remains to be proven. The opposed-wall Cut API/native proof is integrated at 62d164a after independent review; main app build and focused Cut regression pass. Five-feature YZ proof remains pending. GEO-013/#338 is independently accepted and integrated with main app/core checks: exact Cut side-face support now enables downstream planes/sketches; the inferred cantilever uses side face Y17 offset to Y17.5, with Join5 across the 6 mm opening. Exact source support/sign/corner remains uncertain; no arbitrary origin-plane substitution is accepted.
-HIS-006 candidate is clean at 7b1ceb7 in the timeline-reorder worktree; it is
+HIS-006 candidate was rebased onto current main at 5ec4b64 in the timeline-reorder worktree; its application/native target build passes, with original backup retained. It it is
 returned to Todo while its actual two-Mirror fixture depends on SOL-053. Its
 shared reorder and one-Mirror core pass, but native/final source acceptance
 remain pending. No substitute inner edge or nearest-match identity is allowed.
 DOC-025/#307 is closed after independent review and main app build. The second
 Sol lane now owns GEO-003/#281 endpoint Plane Along Path for the shoehorn,
 in parallel with the actual enclosure cantilever/clearance proof. GEO-013 is
-closed; SOL-053 remains open for its actual five-feature YZ fixture.
+closed; SOL-053 remains open for its actual five-feature YZ fixture. SOL-054/#339
+now owns the source-supported multi-region Join replay: projected references
+partition the inferred hook into three intended regions (20+7+1 mm2). Preserve
+the references and replay their connected selected union; source instructions
+explicitly select multiple profiles. Exact source corner/cell inventory remains
+uncertain. SOL-054 is active; SOL-053 waits for that prerequisite.
 
 ## Accepted snap-group feature Mirror (2026-10-13)
 

@@ -5662,7 +5662,8 @@
         "SOL-052",
         "GEO-012",
         "SOL-053",
-        "GEO-013"
+        "GEO-013",
+        "SOL-054"
       ],
       "labels": [
         "area:gate"
@@ -5863,7 +5864,8 @@
       "depends_on": [
         "SOL-050",
         "SOL-051",
-        "GEO-013"
+        "GEO-013",
+        "SOL-054"
       ],
       "labels": [
         "area:solid"
@@ -5883,6 +5885,21 @@
         "area:solid"
       ],
       "body": "The accepted enclosure closed 6 by 3 catch Cut publishes rim edges but no retained planar side-face supports at Y17 or Y23. Publish exact current planar Cut tool-side faces using kernel provenance and stable source/target identities. Reject ambiguous or absent lineage; do not substitute arbitrary origin planes or nearest geometry. Support a retained 0.5 mm offset plane from the actual Y17 cutout side face and a downstream sketch for the cantilever. Verify current support frame, actual face bounds, source width edit/recompute, undo/redo and save/reopen; missing or ambiguous support must fail atomically. Use the accepted opposed-wall enclosure fixture. Source face/sign/corner remains an explicitly recorded public-evidence inference outside the repository; the implementation must not claim exact source gesture parity. Full Join, finishing, mirrored snap and interference qualification remain TUT-022.\n\n## Independently accepted 2026-10-13\nExact current planar Cut side support independently accepted at d8b5430 and integrated c87270b; main application build and focused cut_side_support test pass. Actual Case Y17 support drives retained Offset Plane Y17.5 and three projected boundary IDs. 25 successful real-app calls cover save/reopen and subsequent plane edit/undo; source/core cover stable width-edit lineage and cavity orientation. Physical canvas face selection and readable cantilever visuals remain cumulative checks. See docs/validation/cut-planar-side-support.md.\n"
+    },
+    {
+      "key": "SOL-054",
+      "title": "Mirror a joined snap authored from adjacent selected sketch regions",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SOL-051",
+        "GEO-013"
+      ],
+      "labels": [
+        "area:solid"
+      ],
+      "body": "The actual enclosure snap outline on a retained cutout-side offset plane is partitioned by three projected references into three intended adjacent regions (20+7+1 mm2). Preserve those references and replay the authored Join selected-profile union before its Chamfer/Fillet group in Feature Mirror. Do not bypass the source geometry by turning projections into construction solely to satisfy the current one-profile restriction. Support the bounded connected planar selected-region union and reject ambiguous or disconnected inputs atomically. Verify exact 28 mm2 intended union, Join5, current finishing-edge provenance, YZ reflection on the actual enclosure, meaningful source edit, undo/redo and reopen. Public instructions explicitly select multiple profiles for Join5; exact clicked-cell inventory is unspecified. Record the inferred outline/cell inventory without claiming exact pointer parity. Actual assembled interference and full two-Mirror reorder remain TUT-022/HIS-006."
     }
   ]
 }
