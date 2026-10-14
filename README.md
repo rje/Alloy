@@ -4,7 +4,8 @@ The [Center to Center Slot](docs/validation/center-to-center-slot.md) now follow
 the two-cap-center creation route, with retained snaps and separately placed
 length/radius dimensions. [Direct dimension formulas](docs/validation/sketch-dimension-expression.md) now
 retain expressions such as `d3 + 50` through source edits and reopening.
-The complete native creation recording is in progress.
+The complete native creation gate found a missing automatic horizontal/vertical
+Line inference; that prerequisite is in progress before recording acceptance.
 
 The [piston component fixture](docs/validation/piston-components.md) now creates
 four editable native parts, converts them to components and nests the piston

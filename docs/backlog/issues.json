@@ -1428,7 +1428,8 @@
       "depends_on": [
         "SKT-005",
         "SKT-040",
-        "SKT-042"
+        "SKT-042",
+        "SKT-084"
       ],
       "labels": [
         "kind:implementation",
@@ -6632,13 +6633,28 @@
       "depends_on": [
         "RES-021",
         "SKT-083",
-        "PAR-007"
+        "PAR-007",
+        "SKT-084"
       ],
       "labels": [
         "area:tut",
         "area:skt"
       ],
       "body": "## Problem and result\nReproduce the public short sketch exercise through its actual creation and dimension-entry steps, ending after the dependent-dimension edit and before the source's unrelated delete-for-next-lesson instruction. Do not substitute Center Point/Overall Slot or a user-parameter formula while claiming source parity.\n\n## Source-step gate\nFrom blank, use Center Diameter Circle, 2-Point Rectangle and Center to Center Slot with first cap center, second cap center, then width. Apply H/V to the shown slot straight line, dimension the center span to 45 mm and one end arc to R5 mm using D's click-annotation-then-enter flow. Draw the illustrated connected closed polygon; apply Perpendicular and Equal to the shown line pairs. Dimension the vertical to 100 mm (retained d3 under the declared Alloy name policy), then the top horizontal with direct `d3 + 50`; inspect 150 mm numeric annotation. Change the vertical driver and observe the top update. Record the page's rough geometry/unspecified coordinates as chosen fixture data, not measured source values.\n\n## Acceptance and verification\nOne continuous real-Alloy from-blank source-step ledger/recording, native command and relevant constraint/dimension picks, readable badges and 100/150 annotation, one actual selectable closed polygon profile, source edit dependency, authored stable IDs/formula, undo/redo and save/reopen. Capture before the later delete step. Keep core/API/native/OS and visual claims separate; compare to the archived public page only with explicit viewport/theme/scale limits. Do not add an extrusion or claim zero DOF, since neither is in the exercise.\n\n## Public source and limits\nDated public PDF/help provenance, retrieved 2026-10-14, and printed pages 18\u201320 are recorded outside Git in knowledge/tutorials/after-expressions/ and knowledge/specs/par001-intra-sketch-dimension-expression-2026-10-14.md. Exact seed coordinates, generated name ordering in the source product beyond d3, default units outside the metric exercise, and precise visual parity remain qualified."
+    },
+    {
+      "key": "SKT-084",
+      "title": "Retain horizontal and vertical inference while drawing Lines",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-007"
+      ],
+      "labels": [
+        "area:skt"
+      ],
+      "body": "## Problem and result\nThe complete TUT-024 native run exposes a missing creation behavior: near-axis Line picks do not retain horizontal/vertical relations. Later Perpendicular, Equal and dimension edits rotate the intended vertical right and horizontal bottom/top edges. Passing numeric formula values alone does not satisfy the source workflow.\n\n## Bounded scope\nAdd pointer Line horizontal/vertical preview and retained constraint creation through shared authoritative sketch commands, using existing geometric relations. Preview and commit must agree. Preserve ordinary oblique segments and existing endpoint snap identity; conflicting endpoint/axis candidates must not silently move existing geometry. Keep tolerance and arbitration as explicit Alloy policy where public evidence is insufficient. This is a child of SKT-021; broader inference remains there.\n\n## Acceptance and verification\nA near-horizontal bottom and near-vertical right segment automatically acquire their respective retained relations during the unmodified TUT-024 Line gesture. The top becomes horizontal through the source Perpendicular step. The 100/150 and120/170 states retain orientation, source IDs and meaningful profile geometry through history/reopen. Show readable axis inference preview and committed constraint badges. Escape removes only pending input.\nUse a focused core/command check for retained constraints and non-axis preservation, then the actual tutorial Qt pointer sequence, formula edit, GPU captures and saved reopen. Reuse accepted ingredient checks; no broad suite replay. Keep geometry, Qt-delivered input, OS input and visual claims distinct.\n\n## Public evidence and observed failure\nPublic printed page20, retrieved2026-10-14 under RES-021, explicitly notes automatic constraints after the Line sequence and later refers to the vertical right and horizontal top edges. Dated source URL and archived image remain external in knowledge/tutorials/after-expressions/. Native05 captures and test log remain in deliverables/sketch-expression-exercise-2026-10-14/native-05. Independent Astra review confirms a material workflow mismatch. Exact inference tolerance, override and transient cue appearance are not established by the screenshot. Do not seed explicit H/V constraints in the fixture or relax away the orientation requirement.\n"
     }
   ]
 }

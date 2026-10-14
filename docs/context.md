@@ -17,14 +17,20 @@ delete-refusal checks pass. API02 passes 45 calls with polygon area
 12500→17400 mm²; native02 passes actual inline `d3 + 50`, driver edit100→120,
 dependent150→170 and formula reopening with readable captures. See
 [receipt](validation/sketch-dimension-expression.md).
-TUT-024/#386 is active for complete native creation and recording from blank:
-rough circle/rectangle/slot, Perpendicular/Equal closed profile, d3=100 then
-`d3 + 50`, edit/history/reopen. Sol owns the cumulative native harness and external step ledger; root
-maintains acceptance/context and Astra verifies. Native01–03 stopped at submenu
-automation before geometry creation; native03 has a preserved process sample.
-These attempts do not invalidate accepted ingredient checks or establish the
-complete native gate. Ingredient API setup is not a
-substitute for this source sequence. [Contract](research/sketch-expression-exercise-contract.md).
+SKT-084/#387 is active: native05 of TUT-024 exposed missing pointer Line
+horizontal/vertical inference. The source expects automatic alignment, but later
+dimension edits rotate the unaligned native polygon. Astra confirms this is a
+material source gap; do not inject explicit fixture constraints or weaken the
+orientation/area requirement. Sol implements retained H/V preview and commit
+through shared commands; root maintains backlog/context and Astra verifies.
+TUT-024/#386 returns to Todo pending this prerequisite. Native01–04 stalled at
+synchronous toolbar menu automation; native05 uses nonblocking real-menu popup
+opening plus Qt-delivered item/pointer/key input. That opener is a harness
+adaptation, not verified toolbar-click parity. It reaches 100/150 and120/170
+but fails the final area check because of the alignment gap. Evidence stays in
+the external sketch-expression-exercise deliverable. Ingredient API setup is
+not a substitute for the full source sequence.
+[Contract](research/sketch-expression-exercise-contract.md).
 Only main and its existing build are used; no inactive worktrees accumulate.
 DOC-031/#348 is independently accepted at `89782cf`: unchanged-product native09
 passes modal line focus, rename commit, Browser label and unchanged geometry.

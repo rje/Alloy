@@ -9,11 +9,12 @@
         "RES-021",
         "SKT-083",
         "PAR-007",
+        "SKT-084",
         "TUT-024"
       ],
       "acceptance": "Exact from-blank circle/rectangle/Center to Center Slot, D45/R5, connected profile with Perpendicular/Equal, vertical d3=100 and direct d3 + 50 horizontal dimension evaluating 150; edit driver and retain relation/history/reopen with readable source-step input and captures.",
       "status": "todo",
-      "remaining": "RES-021 public step audit and the two implementation prerequisites precede cumulative validation; no API-only substitute for source input or user-parameter formula."
+      "remaining": "Slot and same-sketch formulas accepted. Native05 exposed missing pointer Line H/V inference; SKT-084 is active before the cumulative native recording resumes. Popup toolbar opening adaptation remains qualified."
     },
     {
       "id": "CP-20",
