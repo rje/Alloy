@@ -25,16 +25,24 @@ private slots:
     void bottomFilletAfterMirror() {
         const auto fixture=qEnvironmentVariable("ALLOY_REORDER_FIXTURE");
         const auto evidence=qEnvironmentVariable("ALLOY_REORDER_EVIDENCE");
-        QVERIFY(!fixture.isEmpty() && !evidence.isEmpty());QDir().mkpath(evidence);
+        const auto sourceId=qEnvironmentVariable("ALLOY_REORDER_FILLET_ID");
+        const auto mirrorId=qEnvironmentVariable("ALLOY_REORDER_MIRROR_ID");
+        QVERIFY(!fixture.isEmpty() && !evidence.isEmpty() && !sourceId.isEmpty() && !mirrorId.isEmpty());
+        QDir().mkpath(evidence);
         AlloyTheme::apply(*qApp);AlloyWindow window;window.resize(1440,900);window.show();window.activateWindow();
         QVERIFY(QTest::qWaitForWindowExposed(&window));
         call(window,"document.open",{{"path",fixture}});
         const auto before=call(window,"document.inspect")["authored"].toObject();
-        const auto features=before["features"].toArray();QVERIFY(features.size()>=2);
-        const auto sourceId=features[features.size()-2].toObject()["id"].toString();
-        const auto mirrorId=features.last().toObject()["id"].toString();
-        QCOMPARE(features[features.size()-2].toObject()["type"].toString(),QString("fillet"));
-        QCOMPARE(features.last().toObject()["type"].toString(),QString("featureMirror"));
+        const auto features=before["features"].toArray();QVERIFY(features.size()>=3);
+        int sourceIndex=-1,mirrorIndex=-1,followingMirrors=0;
+        for(int index=0;index<features.size();++index){
+            const auto feature=features[index].toObject();
+            const auto id=feature["id"].toString();
+            if(id==sourceId){sourceIndex=index;QCOMPARE(feature["type"].toString(),QString("fillet"));}
+            if(id==mirrorId){mirrorIndex=index;QCOMPARE(feature["type"].toString(),QString("featureMirror"));}
+            if(sourceIndex>=0 && index>sourceIndex && feature["type"]=="featureMirror")++followingMirrors;
+        }
+        QVERIFY(sourceIndex>=0 && mirrorIndex>sourceIndex && followingMirrors>=2);
         auto* source=window.findChild<QToolButton*>("timeline.feature."+sourceId);
         auto* anchor=window.findChild<QToolButton*>("timeline.feature."+mirrorId);
         QVERIFY(source && anchor);QTRY_VERIFY(source->isVisible() && anchor->isVisible());
