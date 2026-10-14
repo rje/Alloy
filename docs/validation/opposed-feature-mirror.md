@@ -20,3 +20,7 @@ current Cut does not publish: the actual cut evaluation contains no retained
 support face for its Y17 or Y23 side wall. The source workflow's side-face
 offset, Join, finishes, downstream Mirror, and physical fit remain pending.
 The XZ five-feature behavior is unchanged by this extension.
+
+The bounded opposed-Cut source was independently reviewed and integrated at
+`62d164a`; the main application build and focused Cut regression pass.
+SOL-053 remains open for actual five-feature YZ snap qualification.
