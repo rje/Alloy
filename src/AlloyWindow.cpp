@@ -3236,13 +3236,13 @@ void AlloyWindow::registerCommands() {
             if(a.contains("session") && a["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
             return previewFillet(a);
         });
-    add("sketch.filletAccept","Accept selected sketch fillets","Apply one side pair or two selected corners with a common radius in one accepted sketch edit.",
+    add("sketch.filletAccept","Accept selected sketch fillets","Apply one side pair or one or two selected corners with a common radius in one accepted sketch edit.",
         {{"value",filletRadius},{"units",optional(units)},{"session",optionalSession}},[this](const auto& a){
-            if(session_.value("command")!="sketch.edit" || session_.value("tool")!="fillet")return failure("no_pending_fillet","Select sketch Fillet and one side pair or two corners first");
+            if(session_.value("command")!="sketch.edit" || session_.value("tool")!="fillet")return failure("no_pending_fillet","Select sketch Fillet and one side pair or one or two corners first");
             if(a.contains("session") && a["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
             const auto corners=session_.value("pendingFillet").toObject()["corners"].toArray();
-            if(corners.size()!=2 && !(corners.size()==1 && session_.value("pendingFillet").toObject()["sidePair"].toBool()))
-                return failure("no_pending_fillet","Select one side pair or two sketch corners first");
+            if(corners.isEmpty() || corners.size()>2)
+                return failure("no_pending_fillet","Select one side pair or one or two sketch corners first");
             const auto chosenUnits=a.value("units").toString(session_.value("inputs").toObject()["units"].toString());
             const double radiusMm=CadDocument::millimeters(a["value"].toDouble(),chosenUnits);
             const auto solved=SketchGeometry::filletCorners(session_["draftSketch"].toObject(),{{"corners",corners},{"radiusMm",radiusMm}},session_.value("projectionContext").toObject());
@@ -3471,7 +3471,7 @@ void AlloyWindow::registerCommands() {
             auto selection=session_.value("selection").toObject();auto pointIds=selection["pointIds"].toArray();
             for(const auto& id:corner["target"].toObject()["pointIds"].toArray())if(!pointIds.contains(id))pointIds.append(id);
             selection["pointIds"]=pointIds;session_["selection"]=selection;
-            if(corners.size()==2) {
+            if(!corners.isEmpty()) {
                 const auto preview=previewFillet({});
                 if(preview.value("ok").isBool() && !preview.value("ok").toBool()) {
                     pending=session_.value("pendingFillet").toObject();pending["previewError"]=preview["error"];session_["pendingFillet"]=pending;
@@ -5964,7 +5964,7 @@ void AlloyWindow::refresh() {
                 "One Side · Set signed distance or Flip · OK accepts" : "Select one circle or open fit spline · Set distance · Flip changes side";
         else if(tool=="fillet")prompt=fillet["sidePair"].toBool() || fillet["corners"].toArray().size()==2 ? "Enter the common radius, then press Enter" :
             fillet.contains("firstSideId") ? "Click the adjacent second side" :
-            fillet["corners"].toArray().size()==1 ? "Click the second corner" : "Click the first side or corner";
+            fillet["corners"].toArray().size()==1 ? "Enter radius and press Enter, or click another corner" : "Click the first side or corner";
         else if(tool=="centerArc")prompt=session_.contains("secondPoint") ? "Click the end · Sweep direction follows pointer" : session_.contains("firstPoint") ? "Click the start · Specify radius" : "Click the arc center";
         else if(tool=="threePointArc")prompt=session_.contains("secondPoint") ? "Click a point on the arc" : session_.contains("firstPoint") ? "Click the arc end" : "Click the arc start";
         else if(session_.contains("firstPoint"))prompt="Click the next point · Escape stops drawing";
@@ -10165,13 +10165,13 @@ void AlloyWindow::showSketch() {
         layout->addLayout(form);buildSplinePalette(layout);sketchInfo_=new QLabel;sketchInfo_->setObjectName("sketch.info");sketchInfo_->setWordWrap(true);layout->addWidget(sketchInfo_);sketchProfileInfo_=new QLabel;sketchProfileInfo_->setObjectName("sketch.profileStatus");sketchProfileInfo_->setWordWrap(true);layout->addWidget(sketchProfileInfo_);
         sketchFilletControls_=new QWidget;auto* filletForm=new QFormLayout(sketchFilletControls_);filletForm->setSizeConstraint(QLayout::SetMinimumSize);
         sketchFilletRadius_=new QLineEdit;sketchFilletRadius_->setObjectName("sketch.fillet.radius");
-        sketchFilletRadius_->setPlaceholderText("Select two sides or corners, then enter a radius");
+        sketchFilletRadius_->setPlaceholderText("Select a corner or two adjacent sides, then enter a radius");
         sketchFilletRadius_->setText(QString::number(10.0/(inputs["units"]=="in" ? 25.4 : 1.0),'g',8));
         auto* filletImpact=new QLabel;filletImpact->setObjectName("sketch.fillet.referenceChanges");filletImpact->setWordWrap(true);filletForm->addRow(filletImpact);
         filletForm->addRow("Fillet radius ("+inputs["units"].toString()+")",sketchFilletRadius_);layout->addWidget(sketchFilletControls_);
         connect(sketchFilletRadius_,&QLineEdit::textChanged,this,[this](const QString& text){
             const auto pending=session_.value("pendingFillet").toObject();
-            if(session_.value("tool")!="fillet" || (!pending["sidePair"].toBool() && pending["corners"].toArray().size()!=2))return;
+            if(session_.value("tool")!="fillet" || (pending["corners"].toArray().isEmpty() || pending["corners"].toArray().size()>2))return;
             bool valid=false;const double value=text.toDouble(&valid);
             if(valid && value>0)sketchResponse(execute("sketch.filletPreview",{{"value",value}}));
             else clearFilletPreview();

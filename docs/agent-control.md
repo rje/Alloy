@@ -541,10 +541,12 @@ and its matching on-circle relation. Existing tangent records without a contact
 point keep their prior finite-line solver behavior. See
 [pointer contact validation](validation/sketch-pointer-circle-tangent.md).
 
-### Paired sketch fillets
+### Sketch corner fillets
 
-`sketch.tool {tool:"fillet"}` enters corner picking; two `sketch.placePoint` calls
-resolve connected normal-line joints. `sketch.filletPreview {value,units?}` keeps a
+`sketch.tool {tool:"fillet"}` enters corner picking. One `sketch.placePoint` at a
+connected normal-line junction previews a single fillet and focuses radius entry.
+Enter accepts it; a second corner click instead collects a common-radius pair.
+Adjacent-side picking remains available. `sketch.filletPreview {value,units?}` keeps a
 disposable candidate separate from authored state. `sketch.filletAccept` commits
 one edit and reports `createdArcIds`/`removedDimensionIds`; `sketch.filletCancel`
 discards pending picks/preview. Direct `sketch.fillet {corners:[{entityIds:[a,b]}],
