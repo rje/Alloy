@@ -9,6 +9,7 @@
 #include <QDoubleSpinBox>
 #include <QJsonDocument>
 #include <QMenu>
+#include <QMimeData>
 #include <QPointer>
 #include <QTest>
 #include <QTimer>
@@ -17,6 +18,16 @@
 
 class ComponentClipboardControlsTest final : public QObject {
     Q_OBJECT
+    class ClipboardRestore final {
+        QClipboard* clipboard_;
+        QMimeData* saved_=new QMimeData;
+    public:
+        explicit ClipboardRestore(QClipboard* clipboard):clipboard_(clipboard) {
+            const auto* original=clipboard_->mimeData();
+            for(const auto& format:original->formats())saved_->setData(format,original->data(format));
+        }
+        ~ClipboardRestore() {clipboard_->setMimeData(saved_);}
+    };
     QJsonObject call(AlloyWindow& window,const QString& command,const QJsonObject& args={}) {
         const auto response=window.execute(command,args);
         if(!response["ok"].toBool())qFatal("%s: %s",qPrintable(command),QJsonDocument(response).toJson().constData());
@@ -85,12 +96,13 @@ private slots:
         dialog=visibleCopyDialog(window);QVERIFY(dialog && dialog->isVisible());
         auto* x=dialog->findChild<QDoubleSpinBox*>("component.copy.x");QVERIFY(x);
         QCOMPARE(x->value(),0.0);
-        const auto oldClipboard=QApplication::clipboard()->text();
-        QApplication::clipboard()->setText("12");
-        QTest::mouseClick(x,Qt::LeftButton);QTest::keyClick(x,Qt::Key_A,Qt::ControlModifier);
-        QTest::keyClick(x,Qt::Key_V,Qt::ControlModifier);QTest::keyClick(x,Qt::Key_Tab);
-        QCOMPARE(x->value(),12.0);
-        QApplication::clipboard()->setText(oldClipboard);
+        {
+            ClipboardRestore restore(QApplication::clipboard());
+            QApplication::clipboard()->setText("12");
+            QTest::mouseClick(x,Qt::LeftButton);QTest::keyClick(x,Qt::Key_A,Qt::ControlModifier);
+            QTest::keyClick(x,Qt::Key_V,Qt::ControlModifier);QTest::keyClick(x,Qt::Key_Tab);
+            QCOMPARE(x->value(),12.0);
+        }
         QTest::mouseClick(x,Qt::LeftButton);QTest::keyClick(x,Qt::Key_A,Qt::ControlModifier);
         QTest::keyClicks(x,"-180");QCOMPARE(x->value(),-180.0);
         const auto evidence=qEnvironmentVariable("ALLOY_ASM019_EVIDENCE");
