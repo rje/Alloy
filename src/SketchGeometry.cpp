@@ -831,7 +831,7 @@ SketchGeometry::SolveResult SketchGeometry::addCenterPointEllipse(const QJsonObj
             reject("Ellipse needs either one contour point or one full second-axis length and side");
         auto parameters=draft["parameters"].toObject();auto points=parameters["points"].toArray();
         auto entities=parameters["entities"].toArray(),constraints=parameters["constraints"].toArray();
-        QString targetId;
+        QString targetId,midpointLine;
         if(arguments.contains("centerSnapTarget")){
             if(!arguments["centerSnapTarget"].isObject())reject("Ellipse center snap must be an object");
             const auto target=arguments["centerSnapTarget"].toObject();
@@ -850,7 +850,22 @@ SketchGeometry::SolveResult SketchGeometry::addCenterPointEllipse(const QJsonObj
                     const auto p=value.toObject();if(p["id"]!=targetId)continue;cu=p["uMm"].toDouble();cv=p["vMm"].toDouble();found=true;break;
                 }
                 if(!found)reject("Ellipse center snap point is unavailable");
-            }else reject("Ellipse center accepts an origin or retained point snap");
+            }else if(target["kind"]=="midpoint" && target.size()==2 && validId(target["entityId"].toString())) {
+                const auto expanded=expandedProjectionFeature(QJsonObject{{"parameters",parameters}},projectionContext)["parameters"].toObject();
+                for(const auto& value:expanded["entities"].toArray()) {
+                    const auto line=value.toObject();if(line["id"]!=target["entityId"])continue;
+                    if(line["type"]!="line")reject("Ellipse midpoint target must be a line");
+                    QJsonObject first,last;
+                    for(const auto& item:expanded["points"].toArray()) {
+                        const auto p=item.toObject();if(p["id"]==line["startPointId"])first=p;
+                        if(p["id"]==line["endPointId"])last=p;
+                    }
+                    if(first.isEmpty() || last.isEmpty())reject("Ellipse midpoint endpoints are unavailable");
+                    cu=(first["uMm"].toDouble()+last["uMm"].toDouble())/2;
+                    cv=(first["vMm"].toDouble()+last["vMm"].toDouble())/2;midpointLine=line["id"].toString();break;
+                }
+                if(midpointLine.isEmpty())reject("Ellipse midpoint target is unavailable");
+            }else reject("Ellipse center accepts an origin, retained point or line midpoint snap");
         }
         double signedB=0;
         if(contour) signedB=SketchEllipse::secondRadiusFromContour(cu,cv,au,av,
@@ -872,6 +887,7 @@ SketchGeometry::SolveResult SketchGeometry::addCenterPointEllipse(const QJsonObj
         constraints.append(QJsonObject{{"id",newId()},{"type","midpoint"},{"pointIds",QJsonArray{center}},{"entityIds",QJsonArray{secondAxis}}});
         constraints.append(QJsonObject{{"id",newId()},{"type","perpendicular"},{"entityIds",QJsonArray{firstAxis,secondAxis}}});
         if(!targetId.isEmpty())constraints.append(QJsonObject{{"id",newId()},{"type","coincident"},{"pointIds",QJsonArray{center,targetId}}});
+        if(!midpointLine.isEmpty())constraints.append(QJsonObject{{"id",newId()},{"type","midpoint"},{"pointIds",QJsonArray{center}},{"entityIds",QJsonArray{midpointLine}}});
         parameters["points"]=points;parameters["entities"]=entities;parameters["constraints"]=constraints;
         auto candidate=draft;candidate["parameters"]=parameters;
         const auto result=solveDraft(candidate,projectionContext);

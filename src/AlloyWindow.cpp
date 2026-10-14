@@ -1608,7 +1608,7 @@ void AlloyWindow::registerCommands() {
          {"contourX",optional(coordinate)},{"contourY",optional(coordinate)},
          {"secondFullLength",optional(sizeCoordinate)},{"secondSide",optional(parameter("number","+1 or -1 side of the first axis."))},
          {"units",optional(units)},
-         {"centerSnapTarget",optional(parameter("object","Origin or retained point for ellipse center."))},
+         {"centerSnapTarget",optional(parameter("object","Origin, retained point or line midpoint for ellipse center."))},
          {"session",optional(parameter("string","Optional active sketch session identity."))}},
         [this](const auto& a){return appendCenterPointEllipse(a);});
     add("sketch.ellipseTypedInput","Ellipse full axis values","Preview first full length and angle, or a signed second full length.",

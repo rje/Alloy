@@ -62,11 +62,26 @@ The integrated Project app builds and its focused core test passes. Root owns th
 sole private-editor lease; no private editor is currently running. Later source/input
 qualification remains explicit. Five gates have 38 new prerequisite/research/gate
 tasks; two separately tracked regressions and a newly exposed Cut-edge dependency make
-310 total canonical issues. GEO-007/#310 is independently accepted and integrated: the actual dovetail Cut omitted
+311 total canonical issues. GEO-007/#310 is independently accepted and integrated: the actual dovetail Cut omitted
 new slant/bottom and split shoulder references from the Project catalog. Exact-history straight Cut boundary naming now exposes the five required notch
 edges. Its 27-call real-app continuation verifies actual sibling Project, width
 and thickness edits, semantic shoulder IDs, merged-bottom contributors, undo
 and reopen. See `docs/validation/linear-cut-project.md`.
+
+## Remaining lid gate integration (2026-10-13)
+
+GEO-007 is closed; its actual edited Cut→Project continuation passes. SKT-067
+Offset and PAR-005 model parameter table remain active isolated candidates:
+core checks pass; native/API qualification is catching interaction defects and
+no full acceptance is claimed yet. Root owns DOC-026/#311, an additional
+TUT-015 dependency exposed by the front-face thumb midpoint requirement.
+Straight extrusion base boundaries now have exact FirstShape lineage in a
+local candidate; signed/start-offset membership and stable-ID core checks pass.
+`tests/base_cap_midpoint_api.py` is prepared for the retained front top-midpoint
+ellipse and source width edit; runtime/independent acceptance are pending.
+The full tutorial still needs the combined lid Offset/closure, late model-table
+rebinding, source resize, 15×2 thumb Cut and actual assembled Slider demonstration.
+Keep one private editor leased at a time; agents coordinate the handoff with root.
 
 ## Accepted ornament gate — 2026-10-13
 

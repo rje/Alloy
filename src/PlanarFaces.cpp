@@ -153,6 +153,32 @@ std::vector<EvaluatedSupportFace> PlanarFaces::prismSides(BRepPrimAPI_MakePrism&
     auto n=base["normal"].toArray(),v=base["vAxis"].toArray();
     if(distance>0){for(int i=0;i<3;++i){n[i]=-n[i].toDouble();v[i]=-v[i].toDouble();}base["normal"]=n;base["vAxis"]=v;}
     offer("extrude.base",profile.profileId.toUtf8()+"/base",prism.FirstShape(),base);
+    if(!result.empty() && result.back().role=="extrude.base") {
+        auto& cap=result.back();TopTools_IndexedMapOfShape capEdges;TopExp::MapShapes(cap.face,TopAbs_EDGE,capEdges);
+        QSet<QString> ids;
+        for(const auto& boundary:profile.boundaryEdges) {
+            if(boundary.type!="line")continue;
+            const auto generated=prism.FirstShape(boundary.edge);
+            if(generated.IsNull() || generated.ShapeType()!=TopAbs_EDGE || !capEdges.Contains(generated))
+                throw std::runtime_error("Base boundary has no exact prism history");
+            TopoDS_Vertex first,last,originalFirst,originalLast;
+            TopExp::Vertices(TopoDS::Edge(generated),first,last,true);TopExp::Vertices(boundary.edge,originalFirst,originalLast,true);
+            auto a=BRep_Tool::Pnt(first),b=BRep_Tool::Pnt(last);
+            const auto expectedA=BRep_Tool::Pnt(originalFirst),expectedB=BRep_Tool::Pnt(originalLast);
+            if(a.Distance(expectedA)>1e-6 || b.Distance(expectedB)>1e-6)std::swap(a,b);
+            if(a.Distance(expectedA)>1e-6 || b.Distance(expectedB)>1e-6)
+                throw std::runtime_error("Base boundary endpoint lineage mismatch");
+            QStringList contacts{boundary.startContact,boundary.endContact};contacts.sort();
+            const auto signature=boundary.sourceSketchId+"/"+boundary.sourceEntityId+"/"+contacts.join('/');
+            const auto id=QUuid::createUuidV5(QUuid(generator),("alloy-base-edge/1\n"+signature).toUtf8()).toString(QUuid::WithoutBraces);
+            if(ids.contains(id) || std::any_of(cap.boundaryEdges.begin(),cap.boundaryEdges.end(),[&](const auto& e){return e.edge.IsSame(generated);}))
+                throw std::runtime_error("Ambiguous base boundary lineage");
+            ids.insert(id);if(boundary.startContact>boundary.endContact)std::swap(a,b);
+            cap.boundaryEdges.push_back({id,"line",TopoDS::Edge(generated),{{"sourceSketchId",boundary.sourceSketchId},
+                {"sourceEntityId",boundary.sourceEntityId},{"startContact",contacts[0]},{"endContact",contacts[1]},
+                {"startMm",point(a)},{"endMm",point(b)}}});
+        }
+    }
     for(const auto& boundary:profile.boundaryEdges) {
         if(boundary.type!="line")continue;
         TopTools_IndexedMapOfShape generated;

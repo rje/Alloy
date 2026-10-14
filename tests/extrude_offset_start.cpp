@@ -4,6 +4,9 @@
 #include <QJsonArray>
 #include <QTemporaryDir>
 #include <cmath>
+#include <QSet>
+#include <TopExp.hxx>
+#include <TopTools_IndexedMapOfShape.hxx>
 #include <iostream>
 #include <stdexcept>
 namespace {
@@ -25,6 +28,19 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
         {"start","offset"},{"startOffsetMm",7},{"startOffsetParameterId",startId}});
     check(offset.commit(shifted,"Offset extrusion").isEmpty(),"bound offset extrusion commits");
     const auto extrusionId=offset.authored()["features"].toArray().last().toObject()["id"].toString();
+    auto baseIds=[](const EvaluatedBody& body,double z){
+        QSet<QString> ids,endIds;
+        for(const auto& face:body.supportFaces)if(face.role=="extrude.endCap")for(const auto& e:face.boundaryEdges)endIds.insert(e.edgeId);
+        for(const auto& face:body.supportFaces)if(face.role=="extrude.base") {
+            near(face.frame["origin"].toArray()[2].toDouble(),z,"base frame follows independent start");
+            TopTools_IndexedMapOfShape actual;TopExp::MapShapes(face.face,TopAbs_EDGE,actual);
+            for(const auto& edge:face.boundaryEdges){check(actual.Contains(edge.edge),"named base boundary belongs to actual cap");
+                check(!endIds.contains(edge.edgeId),"base identity differs from end cap");ids.insert(edge.edgeId);
+                near(edge.provenance["startMm"].toArray()[2].toDouble(),z,"base endpoint follows start");}
+        }
+        check(ids.size()==4,"rectangle base exposes four unique straight boundaries");return ids;
+    };
+    const auto initialBaseIds=baseIds(offset.bodies().front(),7);
     auto zBounds=[&]{const auto bounds=offset.bodies().front().summary["boundsMm"].toObject();return bounds["min"].toArray()[2].toDouble();};
     near(zBounds(),7,"shifted extrusion starts at bound offset");
     near(offset.bodies().front().summary["boundsMm"].toObject()["max"].toArray()[2].toDouble(),17,"shifted end cap reaches offset plus distance");
@@ -34,6 +50,7 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
     }check(shiftedCap,"shifted end cap has support lineage");
     check(offset.commit(CadDocument::lengthParameterCandidate(offset.authored(),{{"parameterId",startId},{"name","RenamedGap"},{"value",9}}),"Change start length").isEmpty(),"bound start recomputes");
     near(zBounds(),9,"renamed start offset recomputes geometry");
+    check(baseIds(offset.bodies().front(),9)==initialBaseIds,"base IDs survive start edit");
     check(offset.authored()["features"].toArray().last().toObject()["parameters"].toObject()["startOffsetParameterId"]==startId,"start binding retains stable ID");
     const auto offsetStable=offset.authored();const auto offsetRevision=offset.revision();
     auto missing=offsetStable;auto missingFeatures=missing["features"].toArray();auto missingFeature=missingFeatures.last().toObject();auto missingParameters=missingFeature["parameters"].toObject();
@@ -53,6 +70,7 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
     check(reopenedOffset.commit(shifted,"Reverse extent").isEmpty(),"negative extent commits");
     near(reopenedOffset.bodies().front().summary["boundsMm"].toObject()["min"].toArray()[2].toDouble(),-15,"distance sign does not flip start offset");
     near(reopenedOffset.bodies().front().summary["boundsMm"].toObject()["max"].toArray()[2].toDouble(),-10,"reverse extent ends at same shifted start");
+    check(baseIds(reopenedOffset.bodies().front(),-10)==initialBaseIds,"base IDs survive reopen and reversed extent");
     CadDocument front;
     auto frontSource=SketchGeometry::newFeature(front.authored()["documentId"].toString(),"XZ");
     frontSource=SketchGeometry::addRectangle(frontSource,{{"u1Mm",0},{"v1Mm",0},{"u2Mm",20},{"v2Mm",10}});

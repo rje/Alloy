@@ -3592,7 +3592,8 @@
         "SKT-062",
         "PRT-007",
         "SKT-070",
-        "GEO-007"
+        "GEO-007",
+        "DOC-026"
       ],
       "labels": [
         "area:gate"
@@ -5429,6 +5430,21 @@
         "area:geometry"
       ],
       "body": "## Actual workflow blocker\nThe cumulative sliding-lid numeric Box/Shell, projected angled dovetail and To Object Cut passes. Its front support catalog omits newly cut slants and bottom and the two split top shoulders, so the next linked Project cannot select the actual five-edge open chain.\n\n## Bounded scope\nRetain stable straight boundaries from a single planar all-line Extrude Cut. Use exact OCCT history and result membership for tool rim descendants, canonical merged contributors, and split target shoulders anchored to surviving original endpoint identity. Expose resulting edges on the retained supported face and through Project. Preserve older valid identities and refuse genuinely ambiguous mappings; no nearest-edge guesses, sorted-index naming or sketch-coordinate substitutes.\n\n## Verification\nUse the actual cumulative dovetail fixture. Project both shoulders, slants and bottom into root-sibling Lid; prove source width/Thickness edits, undo and reopen preserve source identities and associated geometry. Check unique face membership and no duplicate merged-bottom identities. Independent source/evidence review required; full lid gate remains separate.\n\n\n## Independently accepted 2026-10-13\nAstra accepted bounded source/core and real-entrypoint API/capture evidence at candidate be3fac9. Integrated into main and built with focused integration checks. See docs/validation/linear-cut-project.md. The cumulative tutorial gate remains separate; receipt records unsupported scope and physical/visual limitations.\n"
+    },
+    {
+      "key": "DOC-026",
+      "title": "Expose retained extrusion base boundaries for face-sketch midpoint anchors",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-066",
+        "SOL-043"
+      ],
+      "labels": [
+        "area:geometry"
+      ],
+      "body": "## Source workflow gap\nThe sliding-lid thumb-divot step creates a sketch on the front of the Lid and centers an ellipse at its top midpoint. Extrusion base faces are supported planes but currently omit their boundary catalog, preventing linked Project and retained midpoint snapping on that face.\n\n## Bounded scope\nExpose actual straight base-cap boundaries through exact prism FirstShape history, with stable base-specific identities distinct from end-cap references. Preserve existing face identity/frame and signed/start-offset behavior. Use existing Project and midpoint constraint authority; do not substitute hardcoded center coordinates.\n\n## Verification\nPositive/negative extrusion and offset start preserve exact base boundary membership and stable identities after source edits. Real application face sketch can reference the actual top edge midpoint; source width edit moves its center. Source and runtime independent review required; complete thumb-divot and full lid workflow remain cumulative gate work.\n\nRuntime also exposed that ellipse authoring rejected a native midpoint snap. Extend its existing center-snap path to retain the shared Midpoint constraint on a real authored/projected line; unknown targets must fail atomically.\n"
     }
   ]
 }
