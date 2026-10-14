@@ -34,7 +34,14 @@ preserved externally under `deliverables/face-sketch-origin-2026-10-14/native-dr
 No native origin acceptance is claimed; accepted core/API checks are unchanged.
 Read-only review rules out required cached hover: picking ray-tests click coordinates.
 Pre-activation projection versus queued viewport sync is plausible but unproven.
-DOC-031/#348 is active for a bounded Browser rename modality/focus investigation.
+DOC-031/#348 is back in Todo: native06/07 reached the actual modal dialog
+but focus stayed on a button. The ineffective opening activation change was
+reverted; draft and evidence remain in the external body-rename deliverable.
+PAR-006/#378 is active for bounded dependency-aware user length expressions.
+Public behavior research and an independent design review are complete. Existing
+model bindings reuse evaluated parameter IDs; anonymous model-field formulas,
+functions and broader unit algebra remain in PAR-001. See the canonical issue
+contract and external `knowledge/specs/par001-length-expression-slice-2026-10-14.md`.
 Implementation and validation reuse main and its build; no new worktrees.
 FND-001 comparison policy is accepted in docs/compatibility.md; FND-025/#376
 retains unknown public screenshot metadata and unproven layout generations.
