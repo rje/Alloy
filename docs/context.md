@@ -87,12 +87,14 @@ Its21.133s film and editable model are in the external gallery, alongside a123.8
 joined four-session film from blank; all165 local links resolve. Five intermediate
 preview refusals, Qt/menu adaptation and separately performed API checks remain
 qualified. See [full receipt](validation/base-sketch-face-holes.md).
-No additional ingredient reruns are needed. TUT-019/#305 is now active: recover
+No additional ingredient reruns are needed. TUT-019/#305 waits on active FND-027/#401: recover
 the existing cumulative native piston harness and its source ledger, retaining
 accepted API/geometry/native-child evidence. Sol owns the single build/GUI lease;
-Astra verifies. Previous modal-to-main focus issue needs diagnosis, not assumed
-product defect or inter-step focus repair.
-Backlog is400 issues with acyclic dependencies. Astra independently verifies.
+Astra verifies. Native12/13 traces confirm conversion succeeds but dialog closure leaves no
+active window while ApplicationActive. FND-027 implements one guarded completion
+activation of the owning window, skipping changed app/document/window context.
+Astra approved the bounded policy; passive harness verification remains pending.
+Backlog is401 issues with acyclic dependencies. Astra independently verifies.
 Only main and its existing build are used; no inactive worktrees accumulate.
 DOC-031/#348 is independently accepted at `89782cf`: unchanged-product native09
 passes modal line focus, rename commit, Browser label and unchanged geometry.

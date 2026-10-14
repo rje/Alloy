@@ -3840,7 +3840,8 @@
         "ASM-020",
         "ASM-021",
         "ASM-022",
-        "ASM-023"
+        "ASM-023",
+        "FND-027"
       ],
       "labels": [
         "area:gate"
@@ -6872,6 +6873,20 @@
         "area:sol"
       ],
       "body": "## Problem and result\nTUT-028 edit/Cancel verification reopens a valid Cut All feature. beginExtrude restores operation, extent, Flip and target but omits the saved sketchId and ordinary profile IDs, leaving no geometry preview.\n\n## Bounded scope and acceptance\nRestore the saved sketch/profile source identifiers for an existing extrusion when the caller did not override them. Preserve explicit source overrides and existing mutually exclusive profile-selection routes. Reopening the accepted three-hole Cut shows its valid preview and exact retained source/target/extent; Cancel leaves authored state and history unchanged. Verify through the bounded native continuation and independent source review, without broad unrelated editing tests. Geometry evaluation remains unchanged.\n\n## Evidence\nConcrete failure found in TUT-028 native Cut continuation evidence under external base-sketch-face-holes-2026-10-14. This is an Alloy edit-state defect. Full tutorial acceptance remains TUT-028.\n\n\n## Independently accepted 2026-10-14\nAccepted at 179b2e7 after independent Astra review. Native-cut-preflight-10 passes 3/3, including reopening the exact All/Flip Cut with retained sketch/profile/target IDs and valid preview; Cancel leaves authored content unchanged. Explicit source overrides remain preserved and mutually exclusive. Final different-sketch override guard is source/build verified, not an extra native test claim. Receipt: docs/validation/face-supported-cut-all.md; full movie remains TUT-028.\n"
+    },
+    {
+      "key": "FND-027",
+      "title": "Restore owning window activation after component conversion dialog closes",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "ASM-008"
+      ],
+      "labels": [
+        "area:fnd"
+      ],
+      "body": "## Problem and evidence\nTUT-019 native conversion succeeds, but closing its dialog leaves no active/focused native Qt window. Initial macOS frontmost activation does not change the failure. Native12 event trace records Close, WindowDeactivate and Hide with no main WindowActivate; native13 confirms Alloy remains ApplicationActive during the unfocused interval. This is a specific conversion-dialog handback failure, not evidence for generic focus repair.\n\n## Bounded scope and acceptance\n- Use one queued completion callback for this dialog, not repeated focus timers.\n- Activate the surviving owning Alloy window only while the application remains active, the parent is visible/current, the captured tab/document context is unchanged, and no other active/modal window has taken focus. Skip on app/context switch. Do not force arbitrary child focus.\n- Keep the harness post-dialog activation check passive; no test-side restoration between source steps.\n- Verify successful native conversion then natural main-window activation and continuation to the next documented command. Preserve converted geometry and object ownership. Independent review before acceptance.\n- Reuse accepted component geometry and tutorial ingredients; do not repeat broad suites. Full native piston recording remains TUT-019.\n\n## Evidence location\nExternal deliverables/piston-native-workflow-2026-10-14/native-12 and native-13 preserve event/application-state diagnostics. Public source workflow remains documented in its external native-step-gap-ledger. No reference application was operated.\n"
     }
   ]
 }

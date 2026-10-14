@@ -176,6 +176,7 @@
       "id": "CP-24",
       "title": "Piston subassemblies",
       "issues": [
+        "FND-027",
         "RES-019",
         "TUT-015",
         "ASM-008",
@@ -194,7 +195,7 @@
       ],
       "acceptance": "Creation/assembly movie, editable model with inspectable DOFs and correct world transforms, drive mechanism through meaningful positions, copies/update/history/reopen. No kinematic claim from unrelated per-part animation.",
       "status": "in_progress",
-      "remaining": "Source qualification, adapted API creation/motion/export film and bounded native children accepted. Complete cumulative native source-order fixture and film with no inter-step focus repair; preserve adapted starting geometry and Qt/API evidence boundaries."
+      "remaining": "Accepted API/native ingredients retained. FND-027 addresses traced conversion-dialog activation handback; full cumulative native gate follows."
     },
     {
       "id": "CP-08",
