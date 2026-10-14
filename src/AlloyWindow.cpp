@@ -2353,13 +2353,18 @@ void AlloyWindow::registerCommands() {
                     {line["u2Mm"].toDouble(),line["v2Mm"].toDouble()}};}
                 if(!projected.contains(sourceId))return failure("unsupported_offset_source","Select a retained projected line in this sketch");
                 const auto near=[](const QPointF& a,const QPointF& b){return std::hypot(a.x()-b.x(),a.y()-b.y())<1e-6;};
+                double topV=-std::numeric_limits<double>::infinity();
+                for(const auto& endpoints:projected)topV=std::max({topV,endpoints.first.y(),endpoints.second.y()});
+                const auto topShoulder=[&](const QString& id){const auto endpoints=projected[id];
+                    return std::abs(endpoints.first.y()-topV)<1e-6 && std::abs(endpoints.second.y()-topV)<1e-6;};
                 QSet<QString> chosen{sourceId};bool changed=true;
                 while(changed){changed=false;
                     for(const auto& id:chosen.values())for(const auto& p:{projected[id].first,projected[id].second}){
                         QStringList incident;for(auto it=projected.begin();it!=projected.end();++it)
                             if(near(p,it.value().first)||near(p,it.value().second))incident.append(it.key());
                         if(incident.size()!=2)continue;
-                        for(const auto& neighbor:incident)if(!chosen.contains(neighbor)){chosen.insert(neighbor);changed=true;}
+                        for(const auto& neighbor:incident)if(!chosen.contains(neighbor) &&
+                            topShoulder(id)==topShoulder(neighbor)){chosen.insert(neighbor);changed=true;}
                     }}
                 auto selection=session_.value("selection").toObject();auto selected=selection["entityIds"].toArray();
                 for(const auto& id:chosen)if(!selected.contains(id))selected.append(id);
@@ -5644,7 +5649,7 @@ QJsonObject AlloyWindow::previewOpenChainOffset(const QJsonObject& inputs){
         QJsonObject args{{"sourceEntityIds",sources},{"signedDistanceMm",signedDistance}};
         if(!topId.isEmpty())args["topEntityId"]=topId;
         if(!parameterId.isEmpty()){args["distanceParameterId"]=parameterId;args["sideSign"]=signedDistance<0 ? -1 : 1;}
-        QJsonObject updateArgs{{"offsetId",existing["id"]},{"signedDistanceMm",signedDistance}};
+        QJsonObject updateArgs{{"offsetId",existing.value("id")},{"signedDistanceMm",signedDistance}};
         if(!parameterId.isEmpty()){updateArgs["distanceParameterId"]=parameterId;updateArgs["sideSign"]=signedDistance<0 ? -1 : 1;}
         auto candidate=existing.isEmpty() ? SketchOpenChainOffset::add(draft,expanded,args)
             : SketchOpenChainOffset::update(draft,expanded,updateArgs);
