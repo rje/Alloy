@@ -43,6 +43,6 @@ accepted native passes cover preview, Cancel, and Escape. Insertion's file
 picker and an OS-driven Browser context action have source wiring but no
 separate OS-driven input claim. The outer rotation axis is an Alloy engineering
 placement choice; the adapted fixture does not establish the tutorial's exact
-axis or physical fit. Full source-order mounting/cutouts remain ASM-006.
+axis or physical fit. Full source-order mounting/cutouts remain in the TUT-016 cumulative gate.
 
 Main application build and local-reference/Split integration checks pass with the qualified external board fixture. Without `ALLOY_ASSEMBLY_FIXTURE`, CTest explicitly skips the fixture-dependent core check; it does not claim a pass.
