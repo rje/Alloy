@@ -31,7 +31,7 @@ target_link_libraries(alloy_sketch_solver PUBLIC Qt6::Core PRIVATE alloy_planegc
 add_library(alloy_kernel STATIC
     src/ReferenceCanvas.cpp src/ReferenceCanvas.h
     src/AssemblySlider.cpp src/AssemblySlider.h
-    src/AssemblyRevolute.cpp src/AssemblyRevolute.h src/AssemblyGraph.cpp src/AssemblyGraph.h src/LocalOccurrences.cpp src/LocalOccurrences.h
+    src/AssemblyRevolute.cpp src/AssemblyRevolute.h src/AssemblyGraph.cpp src/AssemblyGraph.h src/LocalOccurrences.cpp src/LocalOccurrences.h src/JointOrigin.cpp src/JointOrigin.h
     src/DocumentAppend.cpp src/DocumentAppend.h
     src/GeometryKernel.cpp src/GeometryKernel.h src/PrimitiveTopology.cpp src/PrimitiveTopology.h src/PlanarFaces.cpp src/PlanarFaces.h src/JoinRootEdges.cpp src/JoinRootEdges.h src/SolidFillet.cpp src/SolidFillet.h src/SolidChamfer.cpp src/SolidChamfer.h src/SolidShell.cpp src/SolidShell.h src/SolidThicken.cpp src/SolidThicken.h src/ClosedBlendShell.cpp src/ClosedBlendShell.h src/SolidSplit.cpp src/SolidSplit.h src/RevolvedShellCap.cpp src/RevolvedShellCap.h src/SolidSphere.cpp src/SolidSphere.h src/SolidHole.cpp src/SolidHole.h src/SolidLoft.cpp src/SolidLoft.h src/SurfaceRailLoft.cpp src/SurfaceRailLoft.h src/SurfaceExtrude.cpp src/SurfaceExtrude.h src/SurfaceTrim.cpp src/SurfaceTrim.h src/SolidRevolve.cpp src/SolidRevolve.h src/SolidSweep.cpp src/SolidSweep.h src/FeaturePattern.cpp src/FeaturePattern.h src/SolidMirror.cpp src/SolidTransform.cpp src/CircularPattern.cpp src/SolidMirror.h src/JoinResults.cpp
     src/MeshExport.cpp src/MeshExport.h src/ExportScope.cpp src/ExportScope.h
@@ -769,4 +769,10 @@ if(BUILD_TESTING)
     add_executable(assembly_copied_test tests/assembly_copied.cpp src/CadDocument.cpp src/CadDocument.h)
     target_link_libraries(assembly_copied_test PRIVATE alloy_kernel Qt6::Widgets)
     add_test(NAME assembly_copied COMMAND assembly_copied_test "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/piston-native-components.alloy")
+endif()
+
+if(BUILD_TESTING)
+    add_executable(joint_origin_test tests/joint_origin.cpp src/CadDocument.cpp src/CadDocument.h)
+    target_link_libraries(joint_origin_test PRIVATE alloy_kernel Qt6::Widgets)
+    add_test(NAME joint_origin COMMAND joint_origin_test "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/piston-native-components.alloy")
 endif()
