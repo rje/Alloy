@@ -1,7 +1,8 @@
 # Coupled piston workflow checkpoint
 
-ASM-015 remains in progress: coupled authority/API evidence is independently
-accepted, while native multi-joint creation and Upper Arm drag/Revert are pending.
+ASM-015 is independently accepted and integrated at `105961e`. Coupled authority,
+analytical API and bounded native multi-joint/drag evidence pass; see
+[the native receipt](piston-coupled-ui.md) for setup and input qualifications.
 The authority increment is integrated at `118df34`; main app build and focused
 `assembly_coupled` pass (1/1, 1.27 seconds).
 

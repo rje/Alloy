@@ -1,4 +1,6 @@
-# ASM-015 coupled piston UI candidate
+# ASM-015 coupled piston UI acceptance
+
+Independently accepted and integrated at `105961e`; main app build passes.
 
 The bounded UI adds new Revolute rows through the existing As-Built Joint dock,
 stages a complete solved assembly pose from a Qt-delivered UpperArm pointer drag,
@@ -7,7 +9,7 @@ is enabled only for the source-shaped one-island, pinned 3-Revolute/1-Cylindrica
 graph with one visible moving-arm body. It sends an exact driver angle to
 `joint.previewAngle`; no body transform is authored by the gesture.
 
-The graph authority is the independently reviewed `380c62c` candidate. Its
+The graph authority is the independently reviewed `118df34` integrated increment. Its
 focused `assembly_coupled` core test passes the actual four-part fixture,
 including signed ±15° drive, coupled piston travel, full Pin, history and
 reopen. The [cumulative actual-app API evidence](../../../Alloy-reference-records/deliverables/piston-coupled-2026-10-14/api-01/)
@@ -32,4 +34,4 @@ repair focus between the demonstrated pointer steps and checks viewport focus
 after press. The component selection and Revert in that test are shared-command
 or programmatic control actions, not physical dropdown/Revert clicks. General
 assembly dragging, playback, linked piston copy, broad joint graphs, and
-Windows/Linux runtime behavior remain outside this candidate.
+Windows/Linux runtime behavior remain outside this acceptance. Drag latency is tracked in REL-010/#367.

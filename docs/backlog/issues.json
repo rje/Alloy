@@ -6308,7 +6308,7 @@
       "labels": [
         "area:asm"
       ],
-      "body": "Split from ASM-003.\n\n## Scope\nUse three Revolute plus one Cylindrical relationships on the actual four-solid fixture; solve coupled closed-loop transforms with no arbitrary per-part animation. Drag upper arm and Revert staged mechanism pose. No Motion Link, contact or broad joint family. \n\n## Acceptance\n- Pinned base and independently checked original-joint residuals stay satisfied over a meaningful bounded range of prescribed arm angles; piston extension and end-axis poses follow the coupled solve. Report available solver mobility diagnostics with their limits; do not claim active equation counts prove general Jacobian rank. A general mobility-analysis API is not a prerequisite for this tutorial.\n- Actual source circular origins, coordinate/DOF inspection, conflict refusal, bounded nonsingular drive positions and explicit unresolved singularities.\n- Staged drag/Revert returns all world transforms exactly; edit/history/save/reopen and real-app evidence.\n- Independent Astra review; proportional core, actual-app API, native interaction and GPU evidence remain distinct.\n\nPublic research provenance and screenshots stay external in knowledge/tutorials/piston-subassemblies-2026-10-14/. The exact starting sample has no established public neutral asset; this is an independently authored adapted fixture, not exact source geometry. Parent requirements remain open."
+      "body": "Split from ASM-003.\n\n## Scope\nUse three Revolute plus one Cylindrical relationships on the actual four-solid fixture; solve coupled closed-loop transforms with no arbitrary per-part animation. Drag upper arm and Revert staged mechanism pose. No Motion Link, contact or broad joint family. \n\n## Acceptance\n- Pinned base and independently checked original-joint residuals stay satisfied over a meaningful bounded range of prescribed arm angles; piston extension and end-axis poses follow the coupled solve. Report available solver mobility diagnostics with their limits; do not claim active equation counts prove general Jacobian rank. A general mobility-analysis API is not a prerequisite for this tutorial.\n- Actual source circular origins, coordinate/DOF inspection, conflict refusal, bounded nonsingular drive positions and explicit unresolved singularities.\n- Staged drag/Revert returns all world transforms exactly; edit/history/save/reopen and real-app evidence.\n- Independent Astra review; proportional core, actual-app API, native interaction and GPU evidence remain distinct.\n\nPublic research provenance and screenshots stay external in knowledge/tutorials/piston-subassemblies-2026-10-14/. The exact starting sample has no established public neutral asset; this is an independently authored adapted fixture, not exact source geometry. Parent requirements remain open.\n\n## Independently accepted 2026-10-14\nIndependently accepted and integrated at 105961e, with coupled authority 118df34. Main build and focused core pass. Analytical 32-call actual API checks source-order 3R+1C+Pin, signed mounting positions/travel, full Pin, all-part Revert/history/reopen. Native 3/3 covers additional Revolute commit and actual Qt Upper Arm drag; Revert is shared-command evidence. Complete from-blank API creation/motion movie is in the gallery. See docs/validation/piston-coupled.md and piston-coupled-ui.md. Linked occurrences/copy remain ASM-017/ASM-016; measured preview latency is REL-010. No collision-envelope, generic mobility or continuous-frame-rate claim.\n"
     },
     {
       "key": "ASM-016",
@@ -6319,12 +6319,41 @@
       "depends_on": [
         "ASM-013",
         "ASM-008",
-        "ASM-015"
+        "ASM-015",
+        "ASM-017"
       ],
       "labels": [
         "area:asm"
       ],
       "body": "Split from ASM-001.\n\n## Scope\nCopy/Paste whole parent component as linked independent occurrence tree; retain internal Cylindrical with copied child occurrence endpoints and shared part definitions. Place copy by declared -X180mm translation and attach two additional Revolutes. Preserve broader Paste New/external semantics in parent. The copied parent remains a movable assembly container; do not introduce implicit rigid grouping.\n\n## Acceptance\n- Original/copy share definition edits and have unique occurrence/world-transform/joint IDs; internal joint remaps only to copied children.\n- Copied placement180mm, two additional Revolutes, coupled six-part two-piston mechanism retains verified expected drive mobility; no source stroke synchronization assumption.\n- Upstream geometry edit propagates intended definitions, undo/redo/reopen preserve relationships; atomic unsupported-copy/conflict errors and real-app native/API/GPU evidence.\n- Independent Astra review; proportional core, actual-app API, native interaction and GPU evidence remain distinct.\n\nPublic research provenance and screenshots stay external in knowledge/tutorials/piston-subassemblies-2026-10-14/. The exact starting sample has no established public neutral asset; this is an independently authored adapted fixture, not exact source geometry. Parent requirements remain open."
+    },
+    {
+      "key": "ASM-017",
+      "title": "Retain linked local occurrence subtrees and rigid placement",
+      "kind": "implementation",
+      "phase": "P5 Assemblies/drawings",
+      "priority": "P1",
+      "depends_on": [
+        "ASM-013"
+      ],
+      "labels": [
+        "area:asm"
+      ],
+      "body": "Split prerequisite from ASM-016 after code audit found no local nested-copy API and a one-identity-occurrence-per-definition restriction.\n\n## Scope\nCopy an existing local component occurrence subtree by creating occurrence IDs while sharing component definitions and authored source features. Add explicit parent-occurrence identity and composed rigid authored placement without confusing definition ownership with instance hierarchy. Preserve legacy documents. Start with the accepted unjointed piston component fixture and a second parent translated -180 mm along X.\n\n## Acceptance\n- Two parent instances each contain distinct Inner/Outer leaf occurrence IDs but share definitions and source body/edge identities. Do not duplicate source features or make independent body copies.\n- Render and inspect both instances at their actual composed placements; distinguish body/edge selection by occurrence plus source body/edge. Names/path labels make the selected instance clear.\n- A meaningful source edit updates both instances. Copy/placement are undoable and survive reopen; invalid cyclic/ambiguous parenting refuses atomically.\n- Native/API commands share the authoritative state. Use one bounded actual-app fixture and focused native selection evidence, with independent Astra review.\n- Existing joint-containing copy may explicitly refuse until ASM-016 supplies internal-joint remapping. This prerequisite does not close copied mechanism acceptance.\n\nPublic source contract and adapted dimensions remain external under knowledge/tutorials/piston-subassemblies-2026-10-14/. No new generic scene framework or solver is required."
+    },
+    {
+      "key": "REL-010",
+      "title": "Measure and reduce coupled assembly drag latency",
+      "kind": "implementation",
+      "phase": "P4 Initial release",
+      "priority": "P2",
+      "depends_on": [
+        "ASM-015"
+      ],
+      "labels": [
+        "area:performance"
+      ],
+      "body": "Split bounded follow-up from ASM-015; preserve functional acceptance separately from interaction performance.\n\n## Observed evidence\nThe focused four-joint native test measured one preview event at 223 ms. The API creation movie also has repeated capture frames. These are observations, not a continuous input benchmark or proof of one common cause.\n\n## Scope and acceptance\n- Profile one short actual Upper Arm drag on the accepted 3R+1C fixture, separating input, authoritative solver evaluation, presentation rebuilding and capture overhead.\n- Remove measured redundant work within a preview update where found. Any cached pose must be keyed to document revision, graph inputs and exact staged coordinate; source edits, undo/reopen, tab switches and Revert must invalidate it.\n- Preserve independent original-joint/Pin checks and atomic failure. Do not relax geometric tolerances, skip relationships or replace solved motion with animation.\n- Record before/after latency for a small representative event sequence and inspect actual native responsiveness. State hardware, capture mode and remaining limitations; no generic frame-rate claim from one event.\n- Stop after a meaningful bounded improvement and focused regression evidence. Broader performance budgets remain REL-004; no unrelated renderer rewrite or benchmark project.\n\nEvidence baseline: external deliverables/piston-coupled-ui-2026-10-14/native-01/."
     }
   ]
 }

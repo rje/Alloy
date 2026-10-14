@@ -1,18 +1,5 @@
 # Continuation context
 
-## ASM-015 coupled piston UI candidate (2026-10-14)
-
-The isolated `feat/piston-coupled-ui` candidate adds a source-shaped UpperArm
-pointer drag and whole-pose Revert to the retained 3-Revolute/1-Cylindrical/Pin
-graph. New Revolute starts a new row unless an exact joint ID is requested;
-the native dock commits a third row while retaining the first two. The focused
-graph core and Qt-delivered native 3/3 test pass; three occurrence poses move
-under one staged driver and exact Revert restores them without changing authored
-history. The actual-app cumulative source-order API run is independently owned
-by the root lane. Independent UI compatibility review and main integration are
-pending. See [bounded evidence](validation/piston-coupled-ui.md). Linked piston
-copy, arbitrary drag, playback and broad solver rank remain separate.
-
 ## Current queue (2026-10-14)
 
 Canvas DOC-024, retained Remove HIS-007 and Surface workspace VIS-004 are
@@ -59,15 +46,16 @@ gauges and explicit passive-coordinate refusal. Main core checks pass 3/3;
 actual-app API 24 calls, native 1/1 and a focused wrong-type refusal check pass.
 See [acceptance and native setup limits](validation/as-built-cylindrical.md).
 The native Cylinder rim prerequisite at `04a4b7d` preserves top/bottom edge IDs
-through radius/height edits. ASM-015/#364 is now active with separate authority
-and UI owners for the complete 3R+1C+Pin linkage and staged Upper Arm drag/Revert.
-Coupled authority is independently accepted at `118df34`: the actual 3R+1C
-mechanism passes sampled signed-angle core and 32-call API evidence, including
-analytical mounting positions/travel, full Pin, all-leaf Revert and history/reopen.
-See [the checkpoint](validation/piston-coupled.md). Native multi-Revolute creation
-and pointer drag/Revert remain under implementation; this does not close ASM-015.
-The root agent owns the cumulative actual-app workflow and recording harness.
-ASM-016/#365 linked copy remains Todo.
+through radius/height edits. ASM-015/#364 is independently accepted and integrated at `105961e`: coupled
+3R+1C+Pin authority, analytical API motion, additional Revolute creation and
+bounded Qt Upper Arm drag/Revert pass. Main app builds; focused core, 32-call API
+and native 3/3 evidence remain distinct. See [workflow](validation/piston-coupled.md)
+and [native qualifications](validation/piston-coupled-ui.md). The gallery now has
+a 188.5-second from-blank creation-through-coupled-motion checkpoint. A measured
+223 ms preview event is tracked separately in REL-010/#367, not a frame-rate claim.
+ASM-017/#366 splits the missing linked local occurrence/placement prerequisite
+from ASM-016/#365 copied-piston motion. Both remain Todo until pulled; no generic
+scene or solver redesign is needed.
 The bounded implementation plan is external under
 `knowledge/tutorials/piston-subassemblies-2026-10-14/assembly-continuation/asm015-plan.md`.
 SRF-016/#360 preserves later surface-as-tool Trim; accepted

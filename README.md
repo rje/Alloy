@@ -7,7 +7,9 @@ pass. A [retained Revolute and root Pin](docs/validation/as-built-revolute.md) n
 support circular-edge selection, signed angle preview and history/reopen. The
 [Cylindrical joint](docs/validation/as-built-cylindrical.md) adds a
 retained nested piston origin with exact rotation and slide preview. The
-complete coupled piston linkage remains the next assembly step.
+[coupled piston linkage](docs/validation/piston-coupled.md) now follows the arm
+through three Revolute joints, one Cylindrical joint and Pin, with bounded native
+drag/Revert evidence and a full creation recording. Linked copies remain next.
 
 The [Surface workspace](docs/validation/surface-workspace-navigation.md) now exposes
 Extrude, guided Loft, [paired-sketch Trim](docs/validation/surface-trim.md)
