@@ -6,7 +6,7 @@ ASM-007 is independently accepted for separate body and sketch-folder moves
 through shared commands and Browser context actions. The object-owner map keeps
 original modeling feature ownership intact, including earlier-feature previews,
 source edits, history/reopen and destination-scoped export. Integration is at
-`55b93af`; main verification is running. Actual pointer drag remains unverified
+`55b93af`; main application build and focused component test pass. Actual pointer drag remains unverified
 under ASM-012/#343: synthetic input did not deliver a drop, and the desktop
 computer-use backend could not find the running app window. This gap remains a
 dependency of the complete surface tutorial. See
@@ -109,9 +109,10 @@ HIS-006 candidate is rebased at `5ec4b64` in the timeline-reorder worktree, with
 original backup retained. App/native target build and prior one-Mirror core
 pass. Final API/native checks require Bottom R0.5 before BOTH Cut and snap
 Mirrors, then move it after both and edit the opposite retained edge. Current
-technical snap diagnostics do not yet author that source order. Root owns
-this final reorder run once the actual fixture is ready; no extra one-Mirror
-rerun qualifies it. Sol lanes currently own GEO-014 and ASM-007 reparenting. Coordinate the sole GUI lease live rather than assuming a stored owner.
+technical snap diagnostics do not yet author that source order. Root is now running the actual two-Mirror API gate in the rebased
+timeline-reorder worktree. The fixture has full Top five-feature finishes,
+Bottom R0.5, Cut Mirror then snap Mirror; the final edit adds the opposite
+inner edge as a separate R0.5 group. No extra one-Mirror rerun qualifies it. Sol lanes currently own GEO-014 and ASM-007 reparenting. Coordinate the sole GUI lease live rather than assuming a stored owner.
 
 ## Accepted snap-group feature Mirror (2026-10-13)
 
