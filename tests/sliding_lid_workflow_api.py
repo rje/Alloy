@@ -173,6 +173,7 @@ with application(a.app, out) as (raw, transcript), ExitStack() as cleanup:
     assert cut['authored']['features'][-1]['parameters']['endSupport']==ref(back)
     call('history.undo'); assert call('document.inspect')['authored']==source['authored']
     call('history.redo'); assert call('document.inspect')['authored']==cut['authored']
+    stage('Verify upstream Width edit; Undo restores the source-size box')
     box_feature = next(f for f in cut['authored']['features'] if f['type']=='box')
     edit = call('feature.editDialog', {'featureId':box_feature['id']})
     call('command.update', {'session':edit['id'], 'inputs':{'width':60}})
@@ -282,6 +283,8 @@ with application(a.app, out) as (raw, transcript), ExitStack() as cleanup:
     table_bound=inspect()
     call('document.parametersDialog')
     call('capture.dialog', {'path':str(out/'model-rows.png')})
+    if recording:
+        time.sleep(2)
     call('document.parametersDialog', {'visible':False})
     stage('Resize both parts: Length 40, Width 74, Height 100 mm')
     for name,value in (('Length',40),('Width',74),('Height',100)):
@@ -391,7 +394,7 @@ with application(a.app, out) as (raw, transcript), ExitStack() as cleanup:
     call('capture.screenshot', {'path':str(out/'slider-open.png')})
     call('joint.stop')
     call('joint.animate')
-    time.sleep(.15)
+    time.sleep(2 if recording else .15)
     assert call('joint.inspect')['joints'][0]['transient']
     call('joint.stop')
     authored_joint=inspect()['authored']
