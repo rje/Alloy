@@ -59,21 +59,20 @@ edits. Ten dimensions, eight Tangents, three valid cells and observed0DOF; exact
 authored/evaluated history/reopen pass. Existing R10 is reused. The19.866s native
 continuation movie/model are alongside the construction movie in the gallery at
 `#base-sketch-dimensions`; all146 local links resolve. [Receipt](validation/base-sketch-dimensions.md).
-TUT-027/#394 native04 passes solid/history but is Todo pending VIS-005/#396.
-Sol is fixing selected-profile fill before depth entry: state reports3selected
-but native04 has no filled selection, contrary to the source instruction.
-VIS-005 is the sole active implementation; no kernel change is planned.
-The cumulative workflow is Finish Sketch, Modify > Press Pull, three regions,
-48.25mm New Body. It reuses the independently accepted typed-depth slice in
-[the multi-profile receipt](validation/multi-profile-extrusion.md). Broad SOL-016
-remains open for its unrelated five-hole arrow-drag/platform-toggle acceptance;
-this gate depends on closed SOL-001/SKT-009 foundations plus TUT-026.
-The source screenshot shows a zero-taper field missing from Alloy's panel; actual
-straight-prism zero taper is supported, exact panel parity is not claimed. The
-missing retained taper/control remains with open SOL-010. Sol owns UI/CMake/build/GUI.
-TUT-028/#395 is queued: cap-face sketch, referenced circle centers, diameters10/8/8,
-then three-profile Cut/All/Flip. Public sources/visuals/contracts stay external;
-existing SKT-013/010 and SOL-015/047 ingredients must pass this native combination.
+VIS-005/#396 and TUT-027/#394 are independently accepted at ac299a6 and
+10a9e03. Native07 passes3/3: three blue selected regions before depth, 48.25mm
+preview, Cancel clears selection without authored/history changes, and one valid
+closed solid at126221.660324mm³. Depth edit, undo/redo and exact reopen pass.
+See [receipt](validation/base-sketch-first-solid.md). The18.7s continuation and
+losslessly joined1m43s from-blank-to-solid film are in the external gallery.
+The joined film contains three recorded application sessions, not one continuous
+session. Qt/menu adaptation, zero-depth preview refusals and missing taper field
+remain qualified; the broader SOL-010 and SOL-016 tasks remain open.
+TUT-028/#395 is active: native cap-face sketch, referenced circle centers,
+diameters10/8/8, then three-profile Cut/All/Flip. Sol owns implementation and the
+single build/GUI lease; Astra independently verifies. Public sources, visuals
+and contracts stay external. Existing SKT-013/010 and SOL-015/047 ingredients
+must pass this native combination before acceptance.
 Backlog is396 issues with acyclic dependencies. Astra independently verifies.
 Only main and its existing build are used; no inactive worktrees accumulate.
 DOC-031/#348 is independently accepted at `89782cf`: unchanged-product native09
