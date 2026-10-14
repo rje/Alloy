@@ -63,7 +63,7 @@
       ],
       "status": "in_progress",
       "acceptance": "Continue firstsolid with native cap-face sketch, retained center references, diameter10/8/8 circles, three-profile Cut/All/Flip; valid through-openings and history/reopen.",
-      "remaining": "SKT-088 fixes confirmed coincident origin versus retained face-center snap; full native three-hole Cut gate follows."
+      "remaining": "SKT-088 accepted at 1ba977e; native three-circle references and source motion pass. Full Cut/All/Flip gate active."
     },
     {
       "id": "CP-20",

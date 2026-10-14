@@ -16,8 +16,8 @@ Use the live issue state for completion and readiness.
 Current checkpoint (2026-10-14): the short expression exercise and Base Sketch
 construction, dimensions and first solid are independently accepted. TUT-028/#395
 is the current cumulative gate: native face sketch, three retained center references
-and Cut All with flipped direction. SKT-088/#397 is the active fix for a confirmed
-coincident origin/source-center reference conflict; the gate waits on that child. See [the current sequence](tutorial-sequence.json)
+and Cut All with flipped direction. SKT-088/#397 is independently accepted for the
+coincident origin/source-center reference conflict; the cumulative gate is active. See [the current sequence](tutorial-sequence.json)
 and [continuation context](../context.md) for accepted evidence and remaining work.
 
 Current authorized queue (2026-10-13): **sliding-lid box → snap-fit electronics
