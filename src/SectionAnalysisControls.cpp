@@ -99,7 +99,7 @@ void AlloyWindow::showSection() {
     auto* hatch=new QCheckBox("Show Hatching",panel);hatch->setObjectName("sectionHatch");hatch->setChecked(session_["inputs"].toObject()["hatch"].toBool());form->addRow(hatch);
     auto* status=new QLabel(panel);status->setObjectName("sectionError");status->setWordWrap(true);form->addRow(status);
     auto update=[this](const QJsonObject& inputs){execute("command.update",{{"session",session_["id"]},{"inputs",inputs}});};
-    connect(plane,&QComboBox::currentIndexChanged,panel,[plane,update](int i){if(i>0 && i<4)update({{"plane",plane->currentText()}});});
+    connect(plane,&QComboBox::currentIndexChanged,panel,[plane,update](int i){if(i>0 && i<4)update({{"plane",plane->currentText()}});else if(i==4)update({{"plane","face"}});else update({{"support",QJsonValue::Null}});});
     connect(pick,&QPushButton::clicked,panel,[this]{view_->setFocus();});
     connect(clear,&QPushButton::clicked,panel,[update]{update({{"support",QJsonValue::Null}});});
     connect(name,&QLineEdit::textEdited,panel,[update](const QString& value){update({{"name",value}});});

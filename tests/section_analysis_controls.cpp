@@ -37,15 +37,23 @@ private slots:
   QJsonObject support;for(const auto& key:{"producerFeatureId","bodyId","faceId"})support[key]=face[key];
   const auto projected=call(w,"view.projectFacePoint",{{"support",support},{"uMm",20},{"vMm",15}});
   const QPoint point(qRound(projected["x"].toDouble()),qRound(projected["y"].toDouble()));
+  // One initial harness activation after API setup, before the native sequence.
+  #ifdef Q_OS_MACOS
+  QProcess activation;activation.start("osascript",{"-e",QString("tell application \"System Events\" to set frontmost of first application process whose unix id is %1 to true").arg(QCoreApplication::applicationPid())});QVERIFY(activation.waitForFinished(5000));QCOMPARE(activation.exitCode(),0);
+#endif
+  w.raise();w.activateWindow();w.windowHandle()->requestActivate();QApplication::setActiveWindow(&w);QTest::qWait(100);
   call(w,"inspect.sectionDialog");auto* dock=w.findChild<QDockWidget*>("sectionDock");QVERIFY(dock && dock->isVisible());
+  auto* plane=dock->findChild<QComboBox*>("sectionPlane");QVERIFY(plane);
+  QTest::mouseClick(plane,Qt::LeftButton);QTRY_VERIFY(plane->view()->isVisible());QTest::keyClick(plane,Qt::Key_Home);QTest::keyClick(plane,Qt::Key_Down);QTest::keyClick(plane,Qt::Key_Return);QTRY_COMPARE(session(w)["inputs"].toObject()["plane"].toString(),QString("XY"));QVERIFY(session(w)["previewed"].toBool());
+  QTest::mouseClick(plane,Qt::LeftButton);QTRY_VERIFY(plane->view()->isVisible());QTest::keyClick(plane,Qt::Key_End);QTest::keyClick(plane,Qt::Key_Return);QTRY_COMPARE(session(w)["inputs"].toObject()["plane"].toString(),QString("face"));QVERIFY(!session(w)["previewed"].toBool());QVERIFY(!dock->findChild<QDialogButtonBox*>()->button(QDialogButtonBox::Ok)->isEnabled());
   QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,point);QTRY_COMPARE(session(w)["inputs"].toObject()["support"].toObject(),support);
-  auto* offset=dock->findChild<QDoubleSpinBox*>("sectionOffset");QVERIFY(offset && offset->isEnabled());offset->setFocus();QTest::keyClick(offset,Qt::Key_A,Qt::ControlModifier);QTest::keyClicks(offset,"-4");QTest::keyClick(offset,Qt::Key_Return);QTRY_COMPARE(session(w)["inputs"].toObject()["offsetMm"].toDouble(),-4.0);
-  auto* name=dock->findChild<QLineEdit*>("sectionName");QVERIFY(name);name->setFocus();QTest::keyClick(name,Qt::Key_A,Qt::ControlModifier);QTest::keyClicks(name,"Top section");QTest::keyClick(name,Qt::Key_Tab);QTRY_COMPARE(session(w)["inputs"].toObject()["name"].toString(),QString("Top section"));
+  auto* offset=dock->findChild<QDoubleSpinBox*>("sectionOffset");QVERIFY(offset && offset->isEnabled());QTest::mouseClick(offset,Qt::LeftButton);QTRY_VERIFY(offset->hasFocus());QTest::keyClick(offset,Qt::Key_A,Qt::ControlModifier);QTest::keyClicks(offset,"-4");QTest::keyClick(offset,Qt::Key_Return);QTRY_COMPARE(session(w)["inputs"].toObject()["offsetMm"].toDouble(),-4.0);
+  auto* name=dock->findChild<QLineEdit*>("sectionName");QVERIFY(name);QTest::mouseClick(name,Qt::LeftButton);QTRY_VERIFY(name->hasFocus());QTest::keyClick(name,Qt::Key_A,Qt::ControlModifier);QTest::keyClicks(name,"Top section");QTest::keyClick(name,Qt::Key_Tab);QTRY_COMPARE(session(w)["inputs"].toObject()["name"].toString(),QString("Top section"));
   capture(w,"native-face-preview");QTest::mouseClick(dock->findChild<QPushButton*>("sectionClearFace"),Qt::LeftButton);QVERIFY(!session(w)["inputs"].toObject().contains("plane"));QVERIFY(!dock->findChild<QDialogButtonBox*>()->button(QDialogButtonBox::Ok)->isEnabled());
   QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,point);QTRY_COMPARE(session(w)["inputs"].toObject()["support"].toObject(),support);
   QTest::mouseClick(dock->findChild<QDialogButtonBox*>()->button(QDialogButtonBox::Cancel),Qt::LeftButton);QCOMPARE(call(w,"document.inspect"),before);
   call(w,"inspect.sectionDialog");dock=w.findChild<QDockWidget*>("sectionDock");QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,point);QTRY_COMPARE(session(w)["inputs"].toObject()["support"].toObject(),support);
-  offset=dock->findChild<QDoubleSpinBox*>("sectionOffset");offset->setFocus();QTest::keyClick(offset,Qt::Key_A,Qt::ControlModifier);QTest::keyClicks(offset,"-4");QTest::keyClick(offset,Qt::Key_Return);
+  offset=dock->findChild<QDoubleSpinBox*>("sectionOffset");QTest::mouseClick(offset,Qt::LeftButton);QTRY_VERIFY(offset->hasFocus());QTest::keyClick(offset,Qt::Key_A,Qt::ControlModifier);QTest::keyClicks(offset,"-4");QTest::keyClick(offset,Qt::Key_Return);
   QTest::mouseClick(dock->findChild<QDialogButtonBox*>()->button(QDialogButtonBox::Ok),Qt::LeftButton);QTRY_VERIFY(session(w).isEmpty());
   QCOMPARE(call(w,"analysis.inspect")["analyses"].toArray()[0].toObject()["resolvedPlane"].toObject()["origin"].toArray(),QJsonArray({0,0,16}));capture(w,"native-face-committed");
  }

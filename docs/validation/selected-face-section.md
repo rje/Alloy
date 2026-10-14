@@ -49,3 +49,5 @@ Its injected Qt input and two captures are separate from physical OS input,
 which remains unqualified. Windows/Linux GPU runtime and exact screenshot
 parity remain unqualified. Angle transforms, manipulator dragging and custom
 section colors remain in broader inspection scope.
+
+Independent-review corrections: the origin-to-Selected Face selector now requires an actual valid face before OK. The focused native test switches modes, clicks the Distance and Name controls and asserts focus without repairing it. One initial macOS harness activation precedes all demonstrated input. The corrected focused test passes; refreshed captures are external under `deliverables/selected-face-section-review-2026-10-13`.
