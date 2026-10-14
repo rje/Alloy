@@ -13,7 +13,7 @@ AlloyAssemblyPose pinFrame(double x=0,double z=0){return {{x,0,z},{1,0,0,0,0,1,0
 void fullPose(const AlloyAssemblyPose& a,const AlloyAssemblyPose& b){for(int i=0;i<3;++i)near(a.translationMm[i],b.translationMm[i]);for(int i=0;i<9;++i)near(a.rotation[i],b.rotation[i],1e-7);}
 void proper(const AlloyAssemblyPose& p){for(double v:p.translationMm)check(std::isfinite(v),"nonfinite translation");for(double v:p.rotation)check(std::isfinite(v),"nonfinite rotation");for(int a=0;a<3;++a)for(int b=0;b<3;++b){double d=0;for(int i=0;i<3;++i)d+=p.rotation[3*i+a]*p.rotation[3*i+b];near(d,a==b?1.:0.,1e-8);}const auto& r=p.rotation;near(r[0]*(r[4]*r[8]-r[5]*r[7])-r[1]*(r[3]*r[8]-r[5]*r[6])+r[2]*(r[3]*r[7]-r[4]*r[6]),1.,1e-8);}
 int main(){try{
- check(alloy_assembly_solver_abi_version()==1,"ABI version");
+ check(alloy_assembly_solver_abi_version()==2,"ABI version");
  // A nonidentity full root Pin and Y-axis hinge exercise world/local frames,
  // exact signed angle and mm→SI→mm conversion through the actual shared ABI.
  auto world=pose(100,-200,300);double rotateZ[9]={0,-1,0,1,0,0,0,0,1};std::copy(rotateZ,rotateZ+9,world.rotation);
@@ -44,6 +44,16 @@ int main(){try{
  auto upperExpected=pose(-80*s,0,80*(1-c));double rY[9]={c,0,s,0,1,0,-s,0,c};std::copy(rY,rY+9,upperExpected.rotation);fullPose(loopOutput[1],upperExpected);
  near(loopOutput[3].translationMm[0],90*c+100*s);near(loopOutput[3].translationMm[2],80-90*s+100*c);
  check(report.maxOriginErrorMm<1e-5&&report.maxAxisErrorRadians<1e-6&&report.maxPinErrorMm<1e-5&&report.maxPinRotationErrorRadians<1e-6,"independent original constraints");
+ // ABI2 Cylindrical coordinates use signed absolute marker separation, not
+ // a delta from the moving input. Free and explicitly zero are distinct.
+ std::array<AlloyAssemblyPart,2> cylinderParts{{{"outer",pose(),1},{"inner",pose(0,0,20),0}}};
+ AlloyAssemblyJoint cylinder{"cylinder","outer","inner",ALLOY_ASSEMBLY_CYLINDRICAL,pose(),pose()};
+ AlloyAssemblyCoordinateReport typedReport;
+ check(alloy_assembly_solver_solve_coordinates(cylinderParts.data(),2,&cylinder,1,nullptr,0,solved.data(),&typedReport)==ALLOY_ASSEMBLY_SUCCESS,typedReport.base.message);near(solved[1].translationMm[2],20);
+ for(double slide:{-5.,5.}){AlloyAssemblyCoordinate target{"cylinder",ALLOY_ASSEMBLY_SLIDE_MM,slide};check(alloy_assembly_solver_solve_coordinates(cylinderParts.data(),2,&cylinder,1,&target,1,solved.data(),&typedReport)==ALLOY_ASSEMBLY_SUCCESS,typedReport.base.message);near(solved[1].translationMm[2],slide);near(typedReport.slideErrorMm,0.,1e-5);fullPose(solved[0],cylinderParts[0].world);}
+ AlloyAssemblyCoordinate zero{"cylinder",ALLOY_ASSEMBLY_SLIDE_MM,0};check(alloy_assembly_solver_solve_coordinates(cylinderParts.data(),2,&cylinder,1,&zero,1,solved.data(),&typedReport)==ALLOY_ASSEMBLY_SUCCESS,typedReport.base.message);near(solved[1].translationMm[2],0);
+ for(double angle:{-.2,.2}){AlloyAssemblyCoordinate rotation{"cylinder",ALLOY_ASSEMBLY_ROTATION_RADIANS,angle};check(alloy_assembly_solver_solve_coordinates(cylinderParts.data(),2,&cylinder,1,&rotation,1,solved.data(),&typedReport)==ALLOY_ASSEMBLY_SUCCESS,typedReport.base.message);near(std::atan2(solved[1].rotation[3],solved[1].rotation[0]),angle,1e-6);near(solved[1].translationMm[2],20);}
+ std::array<AlloyAssemblyCoordinate,2> both{{{"cylinder",ALLOY_ASSEMBLY_ROTATION_RADIANS,-.2},{"cylinder",ALLOY_ASSEMBLY_SLIDE_MM,5}}};check(alloy_assembly_solver_solve_coordinates(cylinderParts.data(),2,&cylinder,1,both.data(),2,solved.data(),&typedReport)==ALLOY_ASSEMBLY_SUCCESS,typedReport.base.message);near(std::atan2(solved[1].rotation[3],solved[1].rotation[0]),-.2,1e-6);near(solved[1].translationMm[2],5);AlloyAssemblyDrive legacyCylinder{"cylinder",.2};check(alloy_assembly_solver_solve(cylinderParts.data(),2,&cylinder,1,&legacyCylinder,solved.data(),&report)==ALLOY_ASSEMBLY_UNSUPPORTED,"Legacy drive remains Revolute-only");
  // Invalid/unsupported/refused results cannot modify caller-owned outputs.
  std::array<AlloyAssemblyPose,2> untouched{{pose(999),pose(999)}};auto sentinel=untouched;
  auto invalid=seed;invalid[1].world.rotation[0]=2.;check(alloy_assembly_solver_solve(invalid.data(),2,&hinge,1,nullptr,untouched.data(),&report)==ALLOY_ASSEMBLY_INVALID_INPUT,"reject nonrigid input");check(std::memcmp(untouched.data(),sentinel.data(),sizeof(sentinel))==0,"invalid output mutation");

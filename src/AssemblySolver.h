@@ -37,6 +37,19 @@ typedef struct AlloyAssemblyReport {
     double maxOriginErrorMm; double maxAxisErrorRadians;
     double maxPinErrorMm; double maxPinRotationErrorRadians; double driveErrorRadians;
 } AlloyAssemblyReport;
+// ABI2 adds typed coordinates without changing ABI1 structs/functions. A single
+// driver joint may have rotation, slide, or both (both only for Cylindrical).
+// Slide is signed dot(markerJ-origin - markerI-origin, directed world ZI), in mm;
+// zero means coincident axial marker origins, not a delta from the input pose.
+// No coordinate means free; an explicit zero remains a requested equation.
+typedef enum AlloyAssemblyCoordinateKind { ALLOY_ASSEMBLY_ROTATION_RADIANS=1, ALLOY_ASSEMBLY_SLIDE_MM=2 } AlloyAssemblyCoordinateKind;
+typedef struct AlloyAssemblyCoordinate { const char* jointId; AlloyAssemblyCoordinateKind kind; double value; } AlloyAssemblyCoordinate;
+typedef struct AlloyAssemblyCoordinateReport { AlloyAssemblyReport base; double slideErrorMm; } AlloyAssemblyCoordinateReport;
+ALLOY_ASSEMBLY_API AlloyAssemblyStatus alloy_assembly_solver_solve_coordinates(
+    const AlloyAssemblyPart* parts,size_t partCount,
+    const AlloyAssemblyJoint* joints,size_t jointCount,
+    const AlloyAssemblyCoordinate* coordinates,size_t coordinateCount,
+    AlloyAssemblyPose* outputPoses,AlloyAssemblyCoordinateReport* report);
 ALLOY_ASSEMBLY_API uint32_t alloy_assembly_solver_abi_version(void);
 // Serialized fresh graph, immutable input. Exactly one pinned leaf is supported.
 // At most 64 parts/128 joints. On any failure outputPoses is untouched. No solver

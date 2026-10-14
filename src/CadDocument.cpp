@@ -3,6 +3,7 @@
 #include "ReferenceCanvas.h"
 #include "AssemblySlider.h"
 #include "AssemblyRevolute.h"
+#include "AssemblyGraph.h"
 #include <utility>
 #include <vector>
 #include "DocumentAppend.h"
@@ -553,22 +554,11 @@ QJsonObject CadDocument::reparentOccurrenceCandidate(const QJsonObject& authored
 QJsonObject CadDocument::pinOccurrenceCandidate(const QJsonObject& authored,const QString& occurrenceId) {
     if(!validId(occurrenceId))throw std::invalid_argument("Pin requires a component occurrence ID");
     const auto joints=authored.value("joints").toArray();
-    if(joints.size()!=1 || joints[0].toObject()["type"]!="asBuiltRevolute"
-        || joints[0].toObject()["component2OccurrenceId"]!=occurrenceId)
-        throw std::invalid_argument("This Pin slice requires the fixed occurrence of one Revolute joint");
+    if(!AssemblyGraph::isJointGraph(authored)||!AssemblyGraph::identityLeaf(authored,occurrenceId))throw std::invalid_argument("Pin requires a current identity leaf in a retained joint island");
+    QSet<QString> members{occurrenceId};bool changed=true;while(changed){changed=false;for(const auto& value:joints){const auto j=value.toObject();const auto x=j["component1OccurrenceId"].toString(),y=j["component2OccurrenceId"].toString();if(members.contains(x)||members.contains(y)){const auto old=members.size();members.insert(x);members.insert(y);changed|=members.size()!=old;}}}
+    QString gauge;for(const auto& value:joints)if(members.contains(value.toObject()["component1OccurrenceId"].toString())){gauge=value.toObject()["component2OccurrenceId"].toString();break;}
+    if(gauge!=occurrenceId)throw std::invalid_argument("This Pin slice retains the identity rest pose of the island's temporary gauge");
     const auto root=authored["documentId"].toString();
-    QString definition;
-    for(const auto& value:authored.value("occurrences").toArray()) {
-        const auto row=value.toObject();
-        if(row["id"]==occurrenceId && row["parentId"]==root && row["placement"]=="identity")
-            definition=row["definitionId"].toString();
-        if(row["parentId"]==definition && !definition.isEmpty())
-            throw std::invalid_argument("Pin requires a root-level leaf component");
-    }
-    if(definition.isEmpty())throw std::invalid_argument("Pin requires a root-level identity component");
-    for(const auto& value:authored.value("occurrences").toArray())
-        if(value.toObject()["parentId"]==definition)
-            throw std::invalid_argument("Pin requires a root-level leaf component");
     for(const auto& value:authored.value("features").toArray())
         if(value.toObject()["type"]=="assemblyPin")throw std::invalid_argument("This slice supports one root Pin");
     auto result=authored;auto features=result["features"].toArray();
@@ -847,13 +837,13 @@ QString CadDocument::newId() { return QUuid::createUuid().toString(QUuid::Withou
 CadDocument::CadDocument() { reset(); }
 std::vector<EvaluatedBody> CadDocument::worldBodies(std::optional<double> transientPositionMm) const {
     const auto joints=authored_.value("joints").toArray();
-    if(!joints.isEmpty() && joints[0].toObject()["type"]=="asBuiltRevolute")
+    if(AssemblyGraph::isJointGraph(authored_))
         return AssemblyRevolute::worldBodies(authored_,*evaluation_,transientPositionMm);
     return AssemblySlider::worldBodies(authored_,*evaluation_,transientPositionMm);
 }
 QJsonObject CadDocument::assemblyState(std::optional<double> transientPositionMm) const {
     const auto joints=authored_.value("joints").toArray();
-    if(!joints.isEmpty() && joints[0].toObject()["type"]=="asBuiltRevolute")
+    if(AssemblyGraph::isJointGraph(authored_))
         return AssemblyRevolute::inspect(authored_,*evaluation_,transientPositionMm);
     return AssemblySlider::inspect(authored_,*evaluation_,transientPositionMm);
 }
@@ -971,7 +961,7 @@ CadDocument::CandidateEvaluation CadDocument::prepareCandidate(const QJsonObject
         const auto error=validateStructure(candidate);
         if(!error.isEmpty()){result.error=error;result.diagnostics={{"code","invalid_document"},{"message",error}};return result;}
         try{const auto joints=candidate.value("joints").toArray();
-            if(!joints.isEmpty() && joints[0].toObject()["type"]=="asBuiltRevolute")
+            if(AssemblyGraph::isJointGraph(candidate))
                 AssemblyRevolute::inspect(candidate,*evaluation_);
             else AssemblySlider::inspect(candidate,*evaluation_);
             result.evaluation=evaluation_;result.ok=true;
@@ -1018,7 +1008,7 @@ CadDocument::CandidateEvaluation CadDocument::evaluateCandidateFromPrefix(const 
         finalEvaluation.recompute=prefix ? "exact_prefix_append" : "full_ordered";
         auto evaluated=std::make_shared<const EvaluatedDocument>(std::move(finalEvaluation));
         const auto joints=solved.value("joints").toArray();
-        if(!joints.isEmpty() && joints[0].toObject()["type"]=="asBuiltRevolute")
+        if(AssemblyGraph::isJointGraph(solved))
             AssemblyRevolute::inspect(solved,*evaluated);
         else AssemblySlider::inspect(solved,*evaluated);
         result.authored = solved;
@@ -1728,38 +1718,15 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
         }
     }
     if(candidate.contains("joints") && !candidate["joints"].isArray())return "Joints must be an array";
-    const auto joints=candidate.value("joints").toArray();if(joints.size()>1)return "This assembly slice supports one joint";
-    if(!joints.isEmpty()){
+    const auto joints=candidate.value("joints").toArray();
+    if(AssemblyGraph::isJointGraph(candidate)){
+        if(const auto error=AssemblyGraph::validateRecords(candidate);!error.isEmpty())return error;
+        for(const auto& value:joints){const auto id=value.toObject()["id"].toString();if(ids.contains(id))return "Duplicate authored joint UUID";ids.insert(id);}
+    }else if(!joints.isEmpty()){
+        if(joints.size()!=1)return "Legacy Slider supports one separate joint";
         const auto joint=joints[0].toObject(),position=joint["position"].toObject();
         const auto first=joint["component1OccurrenceId"].toString(),second=joint["component2OccurrenceId"].toString();
         QSet<QString> occurrenceIds;for(const auto& item:candidate["occurrences"].toArray())occurrenceIds.insert(item.toObject()["id"].toString());
-        if(joint["type"]=="asBuiltRevolute"){
-            const auto marker=joint["movingMarkerLocal"].toArray();
-            if(!joints[0].isObject() || joint.size()!=8 || !validId(joint["id"].toString()) || ids.contains(joint["id"].toString())
-                || !joint["name"].isString() || joint["name"].toString().trimmed().isEmpty()
-                || !occurrenceIds.contains(first) || !occurrenceIds.contains(second) || first==second
-                || position.size()!=2 || !validId(position["bodyId"].toString()) || !validId(position["edgeId"].toString())
-                || !joint["angleDeg"].isDouble() || !std::isfinite(joint["angleDeg"].toDouble())
-                || std::abs(joint["angleDeg"].toDouble())>180 || marker.size()!=12)
-                return "Invalid as-built Revolute joint or circular Position";
-            for(int i=0;i<12;++i)if(!marker[i].isDouble() || !std::isfinite(marker[i].toDouble()))
-                return "Revolute marker requires a finite rigid frame";
-            const QJsonArray rotation{1,0,0,0,0,0,1,0,0,-1,0,0};
-            for(int i=0;i<12;++i)if(i%4!=3 && std::abs(marker[i].toDouble()-rotation[i].toDouble())>1e-9)
-                return "This Revolute slice requires a Y-axis as-built marker";
-            QString firstDefinition,secondDefinition;
-            for(const auto& value:candidate["occurrences"].toArray()){
-                const auto row=value.toObject();
-                if(row["id"]==first && row["parentId"]==root)firstDefinition=row["definitionId"].toString();
-                if(row["id"]==second && row["parentId"]==root)secondDefinition=row["definitionId"].toString();
-            }
-            if(firstDefinition.isEmpty() || secondDefinition.isEmpty())return "Revolute participants must be root-level components";
-            for(const auto& value:candidate["occurrences"].toArray()){
-                const auto parent=value.toObject()["parentId"].toString();
-                if(parent==firstDefinition || parent==secondDefinition)return "Revolute participants must be leaf components";
-            }
-            ids.insert(joint["id"].toString());
-        }else{
         for(auto it=componentParents.begin();it!=componentParents.end();++it)
             if(it.value()!=root)return "Slider joints require root-child components; nested motion is unavailable";
         const double minimum=joint["minimumMm"].toDouble(),maximum=joint["maximumMm"].toDouble(),coordinate=joint["positionMm"].toDouble();
@@ -1778,7 +1745,6 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
             || (joint["minimumEnabled"].toBool() && coordinate<minimum) || (joint["maximumEnabled"].toBool() && coordinate>maximum))
             return "Invalid as-built Slider joint, Position, axis, limits or coordinate";
         ids.insert(joint["id"].toString());
-        }
     }
     QString pinnedOccurrenceId;
     for (const auto& item : candidate["features"].toArray()) {
@@ -1795,9 +1761,8 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
         if (!feature["parameters"].isObject()) return "Feature parameters must be an object";
         const auto p = feature["parameters"].toObject();
         if(type=="assemblyPin") {
-            if(joints.size()!=1 || joints[0].toObject()["type"]!="asBuiltRevolute"
-                || joints[0].toObject()["component2OccurrenceId"]!=p["occurrenceId"])
-                return "Pin requires the fixed occurrence of one Revolute joint";
+            bool participant=false;for(const auto& value:joints){const auto j=value.toObject();participant|=j["component1OccurrenceId"]==p["occurrenceId"]||j["component2OccurrenceId"]==p["occurrenceId"];}
+            if(!AssemblyGraph::isJointGraph(candidate)||!participant)return "Pin requires a leaf occurrence in this joint graph";
             if(feature.contains("bodyId") || feature["ownerId"]!=root || p.size()!=2
                 || !validId(p["occurrenceId"].toString()) || !p["worldPose"].isArray())
                 return "Pin requires one root-owned component occurrence and full world pose";
@@ -1810,10 +1775,9 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
             QString pinnedDefinition;
             for(const auto& value:candidate.value("occurrences").toArray()) {
                 const auto occurrence=value.toObject();
-                if(occurrence["id"]==p["occurrenceId"] && occurrence["parentId"]==root
-                    && occurrence["placement"]=="identity")pinnedDefinition=occurrence["definitionId"].toString();
+                if(occurrence["id"]==p["occurrenceId"] && occurrence["placement"]=="identity")pinnedDefinition=occurrence["definitionId"].toString();
             }
-            if(pinnedDefinition.isEmpty())return "Pin requires a current root-level identity occurrence";
+            if(pinnedDefinition.isEmpty())return "Pin requires a current identity leaf occurrence";
             for(const auto& value:candidate.value("occurrences").toArray())
                 if(value.toObject()["parentId"]==pinnedDefinition)
                     return "Pin requires a leaf component";
