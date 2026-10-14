@@ -68,7 +68,11 @@ pass. See [the receipt](validation/enclosure-port-card-workflow.md); the movie,
 model and exports are first in the external gallery (82 links checked).
 
 TUT-022 remains pending its full source-step runner and creation footage;
-TUT-023 alignment rim follows. HIS-006 is independently accepted at `6684dac`:
+TUT-023 alignment rim follows. Actual final seam inspection found one closed
+U-shaped wire with18 edges, only6 currently named; GEO-016/#345 is active
+for complete anchored topology publication and SKT-076/#346 follows for
+retained inset-interior profile selection. Source-to-offset shoulder bands
+would be the wrong region. The actual port opening must remain unbridged. HIS-006 is independently accepted at `6684dac`:
 actual Bottom Fillet reorder after both Mirrors, separate opposite R0.5 group,
 24-call API/history/reopen and Qt native cancellation/drop pass. The final
 Top/Bottom positive-volume intersection is zero; nominal connector overlap
