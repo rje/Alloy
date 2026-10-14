@@ -63,6 +63,10 @@ struct EvaluatedDocument {
     std::vector<EvaluatedConstructionPlane> constructionPlanes;
     std::vector<QString> featureOrder;
     QJsonObject joinBodyResults;
+    // Disposable, exact source-stage tools for retained feature replication.
+    // These are evaluated geometry, never a second authored representation.
+    QMap<QString,std::vector<TopoDS_Shape>> cutFeatureTools;
+    QMap<QString,std::vector<EvaluatedSolidEdge>> cutFeatureEdges;
     QString recompute = "full_ordered";
 };
 

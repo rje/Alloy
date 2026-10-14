@@ -7,6 +7,7 @@
 #include <BRepGProp.hxx>
 #include <GProp_GProps.hxx>
 #include <BRepBuilderAPI_Transform.hxx>
+#include <gp_Ax2.hxx>
 #include <TopoDS.hxx>
 #include <QUuid>
 #include <algorithm>
@@ -142,4 +143,72 @@ void FeaturePattern::evaluate(EvaluatedBody& target,const QJsonObject& feature,c
     target.shape=GeometryKernel::booleanOperation("join",target.shape,tools,&target.supportFaces,&target.solidEdges);auto summary=GeometryKernel::summarize(target.shape);
     if(!summary["valid"].toBool() || !summary["closed"].toBool() || summary["topology"].toObject()["solids"]!=1 || summary["volumeMm3"].toDouble()<=volumeBefore+1e-6)reject("pattern_invalid_result","Every instance must add material to one connected target solid");
     summary["operation"]="rectangularPattern";summary["seedFeatureId"]=seed["id"];summary["lastModifierFeatureId"]=id;summary["instances"]=instances;summary["instanceCount"]=q1*q2;summary["seedCenterMm"]=QJsonArray{seedCenter.X(),seedCenter.Y(),seedCenter.Z()};summary["patternAxes"]=resolvedAxes;summary["computeType"]="Identical";summary["distribution"]="Extent";summary["supportFaces"]=PlanarFaces::descriptors(target.supportFaces);summary["solidEdges"]=SolidFillet::descriptors(target.solidEdges);target.summary=summary;
+}
+
+void FeaturePattern::mirrorCuts(EvaluatedBody& target,const QJsonObject& feature,const EvaluatedDocument& prior) {
+    const auto parameters=feature["parameters"].toObject();
+    auto fail=[&](const QString& code,const QString& message){throw GeometryKernel::EvaluationError({
+        {"code",code},{"message",message},{"featureId",feature["id"]},{"targetBodyId",target.bodyId}});};
+    // The source lesson selects the origin XZ plane. Its normal is +Y; the
+    // unoriented reflection is independent of that normal's sign.
+    const auto plane=parameters["mirrorPlane"].toObject();
+    if(plane["kind"]!="origin" || plane["plane"]!="XZ")
+        fail("mirror_plane_unsupported","Feature Mirror currently supports the retained origin XZ plane");
+    gp_Trsf reflection;reflection.SetMirror(gp_Ax2(gp_Pnt(0,0,0),gp_Dir(0,1,0)));
+    const auto originalVolume=GeometryKernel::summarize(target.shape)["volumeMm3"].toDouble();
+    QJsonArray instances;
+    for(const auto& value:parameters["sourceFeatureIds"].toArray()) {
+        const auto sourceId=value.toString();
+        if(!prior.cutFeatureTools.contains(sourceId) || prior.cutFeatureTools[sourceId].empty())
+            fail("mirror_source_unavailable","The earlier Cut feature has no retained source-stage tool");
+        std::vector<TopoDS_Shape> reflected;
+        std::vector<EvaluatedSolidEdge> reflectedEdges;
+        const auto& sourceTools=prior.cutFeatureTools[sourceId];
+        const auto sourceEdges=prior.cutFeatureEdges.value(sourceId);
+        for(const auto& sourceTool:sourceTools) {
+            BRepBuilderAPI_Transform transform(sourceTool,reflection,true);
+            if(!transform.IsDone() || transform.Shape().IsNull())fail("mirror_transform_failed","Cut tool reflection failed");
+            reflected.push_back(transform.Shape());
+            for(auto edge:sourceEdges) {
+                const auto transformed=transform.ModifiedShape(edge.edge);
+                if(transformed.IsNull() || transformed.ShapeType()!=TopAbs_EDGE)continue;
+                edge.edge=TopoDS::Edge(transformed);
+                edge.edgeId=QUuid::createUuidV5(QUuid(feature["id"].toString()),
+                    QByteArray("alloy-feature-mirror-cut/1/")+sourceId.toUtf8()+'/'+edge.edgeId.toUtf8()).toString(QUuid::WithoutBraces);
+                for(const auto* key:{"startMm","endMm","centerMm"})if(edge.provenance[key].isArray()){
+                    auto coords=edge.provenance[key].toArray();
+                    if(coords.size()==3){gp_Pnt p(coords[0].toDouble(),coords[1].toDouble(),coords[2].toDouble());p.Transform(reflection);
+                        edge.provenance[key]=QJsonArray{p.X(),p.Y(),p.Z()};}
+                }
+                edge.provenance["sourceFeatureId"]=sourceId;
+                edge.provenance["mirrorFeatureId"]=feature["id"];
+                reflectedEdges.push_back(std::move(edge));
+            }
+        }
+        const auto before=GeometryKernel::summarize(target.shape)["volumeMm3"].toDouble();
+        target.shape=GeometryKernel::booleanOperation("cut",target.shape,reflected,
+            &target.supportFaces,&target.solidEdges,&reflectedEdges,feature["id"].toString());
+        // The exact Boolean history also names exposed straight boundaries on
+        // retained support faces. Publish those same current edges to solid
+        // edge selection so later edge finishes can refer to the mirrored cut.
+        for(const auto& face:target.supportFaces)for(const auto& edge:face.boundaryEdges) {
+            if(edge.provenance["generatorFeatureId"]!=feature["id"] || edge.edge.IsNull())continue;
+            const auto existing=std::find_if(target.solidEdges.begin(),target.solidEdges.end(),
+                [&](const auto& item){return !item.edge.IsNull() && item.edge.IsSame(edge.edge);});
+            if(existing==target.solidEdges.end())
+                target.solidEdges.push_back({edge.edgeId,edge.edge,edge.provenance});
+        }
+        const auto after=GeometryKernel::summarize(target.shape)["volumeMm3"].toDouble();
+        if(before-after<=std::max(1e-6,before*1e-12))
+            fail("mirror_no_effect","Mirrored Cut removes no target material");
+        instances.append(QJsonObject{{"sourceFeatureId",sourceId},{"removedVolumeMm3",before-after}});
+    }
+    auto summary=GeometryKernel::summarize(target.shape);
+    summary["operation"]="featureMirror";summary["lastModifierFeatureId"]=feature["id"];
+    summary["sourceFeatureIds"]=parameters["sourceFeatureIds"];
+    summary["mirrorPlane"]=plane;summary["instances"]=instances;
+    summary["removedVolumeMm3"]=originalVolume-summary["volumeMm3"].toDouble();
+    summary["supportFaces"]=PlanarFaces::descriptors(target.supportFaces);
+    summary["solidEdges"]=SolidFillet::descriptors(target.solidEdges);
+    target.summary=summary;
 }

@@ -1,5 +1,14 @@
 # Continuation context
 
+## Candidate retained Cut feature Mirror (2026-10-13)
+
+SOL-050/#326 has a bounded candidate in `feat/feature-group-mirror` for the first
+undercut Extrude Cut feature Mirror across origin XZ. Core, real-app API and Qt
+Timeline-selection checks pass with inspected two-pocket bottom-view captures;
+independent review and main integration remain pending. The later selected
+Join/Chamfer/Fillet group is SOL-051/#327, so SOL-049/#293 stays open. See
+[the candidate receipt](validation/feature-mirror-cut.md).
+
 ## Latest checkpoint and next work (2026-10-13)
 
 TUT-020/#320 is independently accepted and integrated: from blank, the nominal

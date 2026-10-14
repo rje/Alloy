@@ -57,6 +57,23 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
             if(source["type"]=="hole" && (source["parameters"].toObject()["targetBodyId"]!=p["targetBodyId"] || source["ownerId"]!=feature["ownerId"]))
                 return {{"featureId",feature["id"]},{"code","pattern_seed_unavailable"},{"message","Hole Pattern seed and target must share body and owner"}};
         }
+        if(feature["type"]=="featureMirror") {
+            const auto p=feature["parameters"].toObject();
+            int lastSourcePosition=-1;
+            for(const auto& value:p["sourceFeatureIds"].toArray()){
+                const auto seed=value.toString();
+                if(!positions.contains(seed) || positions[seed]>=i)
+                    return {{"featureId",feature["id"]},{"code","mirror_source_unavailable"},{"message","Feature Mirror source must be earlier in history"}};
+                if(positions[seed]<=lastSourcePosition)
+                    return {{"featureId",feature["id"]},{"code","mirror_source_order"},{"message","Feature Mirror sources must follow feature history order"}};
+                lastSourcePosition=positions[seed];
+                const auto source=features[positions[seed]].toObject(),inputs=source["parameters"].toObject();
+                if(source["type"]!="extrude" || inputs["operation"]!="cut"
+                    || inputs["targetBodyIds"].toArray()!=QJsonArray{p["targetBodyId"]}
+                    || source["ownerId"]!=feature["ownerId"])
+                    return {{"featureId",feature["id"]},{"code","mirror_source_unsupported"},{"message","This Feature Mirror requires earlier Cut extrusions on one owned target"}};
+            }
+        }
         if(feature["type"]=="loft")for(const auto& value:feature["parameters"].toObject()["profiles"].toArray()) {
             const auto sketch=value.toObject()["sketchId"].toString();
             if(!positions.contains(sketch) || positions[sketch]>=i || features[positions[sketch]].toObject()["type"]!="sketch")return {{"featureId",feature["id"]},{"featureType","loft"},{"code","loft_profile_unavailable"},{"message","Loft sections must reference earlier sketch features"}};
@@ -1037,6 +1054,23 @@ QJsonObject CadDocument::mirrorCandidate(const QJsonObject& authored,const QJson
     if(index>=0)features[index]=feature;else features.append(feature);candidate["features"]=features;
     const auto error=validateStructure(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());return candidate;
 }
+QJsonObject CadDocument::featureMirrorCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
+    const QSet<QString> allowed{"ownerId","targetBodyId","sourceFeatureIds","mirrorPlane","name","featureId","newFeatureId"};
+    for(auto it=arguments.begin();it!=arguments.end();++it)if(!allowed.contains(it.key()))throw std::invalid_argument("Unknown Feature Mirror argument");
+    if(arguments.contains("featureId") && arguments.contains("newFeatureId"))throw std::invalid_argument("Choose existing or new Feature Mirror identity");
+    auto candidate=authored;auto features=candidate["features"].toArray();QJsonObject feature;int index=-1;
+    if(arguments.contains("featureId")){
+        for(int i=0;i<features.size();++i)if(features[i].toObject()["id"]==arguments["featureId"]){feature=features[i].toObject();index=i;break;}
+        if(index<0 || feature["type"]!="featureMirror")throw std::invalid_argument("Feature Mirror unavailable");
+    }else feature={{"id",arguments.value("newFeatureId").toString(newId())},
+        {"ownerId",arguments.value("ownerId").toString(authored["documentId"].toString())},
+        {"type","featureMirror"},{"name","Mirror Features"},{"visible",true}};
+    if(arguments.contains("name"))feature["name"]=arguments["name"];
+    feature["parameters"]=QJsonObject{{"targetBodyId",arguments["targetBodyId"]},
+        {"sourceFeatureIds",arguments["sourceFeatureIds"]},{"mirrorPlane",arguments["mirrorPlane"]}};
+    if(index>=0)features[index]=feature;else features.append(feature);candidate["features"]=features;
+    const auto error=validateStructure(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());return candidate;
+}
 QJsonObject CadDocument::moveCandidate(const QJsonObject& authored, const QJsonObject& arguments) {
     const QSet<QString> allowed{"ownerId","targetBodyId","xMm","yMm","zMm","xDeg","yDeg","zDeg","pivotXMm","pivotYMm","pivotZMm","name","featureId","newFeatureId","steps"};
     for(auto it=arguments.begin();it!=arguments.end();++it)if(!allowed.contains(it.key()))throw std::invalid_argument("Unknown Move argument");
@@ -1394,6 +1428,20 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
             ids.insert(feature["bodyId"].toString());
             const auto plane=p["mirrorPlane"].toObject();
             if(plane.size()!=3 || !validId(plane["producerFeatureId"].toString()) || !validId(plane["bodyId"].toString()) || !validId(plane["faceId"].toString()))return "Mirror plane needs stable face identity";
+            continue;
+        }
+        if(type=="featureMirror") {
+            if(feature.contains("bodyId") || p.size()!=3 || !validId(p["targetBodyId"].toString())
+                || !p["sourceFeatureIds"].isArray() || p["sourceFeatureIds"].toArray().isEmpty()
+                || p["sourceFeatureIds"].toArray().size()>32
+                || p["mirrorPlane"].toObject()!=QJsonObject{{"kind","origin"},{"plane","XZ"}})
+                return "Feature Mirror requires one target, earlier Cut features and origin XZ plane";
+            QSet<QString> sources;
+            for(const auto& source:p["sourceFeatureIds"].toArray()) {
+                if(!source.isString() || !validId(source.toString()) || sources.contains(source.toString()))
+                    return "Feature Mirror source IDs must be distinct stable UUIDs";
+                sources.insert(source.toString());
+            }
             continue;
         }
         if (type == "move") {

@@ -710,6 +710,10 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
                     details["targetBodyId"]=parameters["targetBodyId"];
                     throw EvaluationError(details);
                 }
+            } else if(type=="featureMirror") {
+                const auto target=std::find_if(evaluated.bodies.begin(),evaluated.bodies.end(),[&](const auto& body){return body.bodyId==parameters["targetBodyId"].toString();});
+                if(target==evaluated.bodies.end())reject("body_unavailable","Feature Mirror target must be active earlier in history");
+                FeaturePattern::mirrorCuts(*target,feature,evaluated);
             } else if(type=="sweep") {
                 QJsonObject source;for(const auto& entry:authored["features"].toArray())if(entry.toObject()["id"]==parameters["pathSketchId"])source=entry.toObject();
                 evaluated.bodies.push_back(SolidSweep::evaluate(feature,evaluated,source));
@@ -856,6 +860,10 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
                                 target->solidEdges.push_back(std::move(edge));
                             if(!cap.face.IsNull())joinCaps.push_back(cap);area+=profile.summary["areaMm2"].toDouble();
                             for(const auto& entity:profile.summary["sourceEntityIds"].toArray())sourceEntities.append(entity.toString());}
+                        if(linearCut){
+                            evaluated.cutFeatureTools[id]=tools;
+                            evaluated.cutFeatureEdges[id]=cutToolEdges;
+                        }
                         const double previousVolume=target->summary["volumeMm3"].toDouble();
                         TopoDS_Shape cutShape;
                         try {cutShape=booleanOperation(parameters["operation"].toString(),target->shape,tools,&target->supportFaces,&target->solidEdges,linearCut ? &cutToolEdges : nullptr,id);}

@@ -73,6 +73,7 @@ public:
     static QJsonObject splitBodyCandidate(const QJsonObject& authored,const QJsonObject& arguments);
     static QJsonObject circularPatternCandidate(const QJsonObject& authored,const QJsonObject& arguments);
     static QJsonObject mirrorCandidate(const QJsonObject& authored, const QJsonObject& arguments);
+    static QJsonObject featureMirrorCandidate(const QJsonObject& authored, const QJsonObject& arguments);
     static QJsonObject moveCandidate(const QJsonObject& authored, const QJsonObject& arguments);
     static QJsonObject booleanCandidate(const QJsonObject& authored, const QJsonObject& arguments);
     static QString validate(const QJsonObject& candidate);

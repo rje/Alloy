@@ -217,6 +217,11 @@ private:
     QJsonObject previewMirror();
     void showMirror();
     QDockWidget* mirrorDock_ = nullptr;
+    QJsonObject beginFeatureMirror(const QJsonObject& inputs);
+    QJsonObject previewFeatureMirror();
+    QJsonObject selectFeatureMirrorSource(const QString& featureId);
+    void showFeatureMirror();
+    QDockWidget* featureMirrorDock_ = nullptr;
     QShortcut* mirrorEscape_ = nullptr;
     QJsonObject beginMove(const QJsonObject& inputs);
     QJsonObject moveCandidate(const QJsonObject& inputs) const;
