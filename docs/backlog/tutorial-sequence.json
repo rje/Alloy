@@ -177,16 +177,24 @@
       "title": "Piston subassemblies",
       "issues": [
         "RES-019",
-        "ASM-001",
-        "ASM-002",
-        "ASM-003",
         "TUT-015",
         "ASM-008",
+        "ASM-013",
+        "ASM-014",
+        "ASM-015",
+        "ASM-016",
+        "ASM-018",
+        "ASM-017",
+        "ASM-019",
+        "ASM-020",
+        "ASM-021",
+        "ASM-022",
+        "ASM-023",
         "TUT-019"
       ],
       "acceptance": "Creation/assembly movie, editable model with inspectable DOFs and correct world transforms, drive mechanism through meaningful positions, copies/update/history/reopen. No kinematic claim from unrelated per-part animation.",
-      "status": "todo",
-      "remaining": "Source qualification and feature dependencies followed by independent complete workflow gate."
+      "status": "in_progress",
+      "remaining": "Source qualification, adapted API creation/motion/export film and bounded native children accepted. Complete cumulative native source-order fixture and film with no inter-step focus repair; preserve adapted starting geometry and Qt/API evidence boundaries."
     },
     {
       "id": "CP-08",
