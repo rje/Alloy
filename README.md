@@ -2,8 +2,9 @@
 
 The [Center to Center Slot](docs/validation/center-to-center-slot.md) now follows
 the two-cap-center creation route, with retained snaps and separately placed
-length/radius dimensions. The short sketch expression exercise is next; its
-direct dimension formulas remain in progress.
+length/radius dimensions. [Direct dimension formulas](docs/validation/sketch-dimension-expression.md) now
+retain expressions such as `d3 + 50` through source edits and reopening.
+The complete native creation recording is in progress.
 
 The [piston component fixture](docs/validation/piston-components.md) now creates
 four editable native parts, converts them to components and nests the piston

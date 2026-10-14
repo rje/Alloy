@@ -10,13 +10,22 @@ at `e620987`: core passes, native01 passes actual three-click/H/V/D45/persistent
 R5 input, and API02 passes 28 calls through D45→D50, analytic area
 528.539816→578.539816 mm², history and reopen. The GPU capture is readable;
 typed slot input remains source-reviewed only. See [receipt](validation/center-to-center-slot.md).
-PAR-007/#384 is now active: direct same-sketch driving-length formulas with
-stable UUID dependencies and per-sketch dN names. TUT-024/#386 remains Todo until
-this prerequisite passes. Its complete rough circle/rectangle/slot and closed
-profile sequence includes Perpendicular/Equal, d3=100 and `d3 + 50`; numeric
-inputs and user-parameter formulas do not substitute for that source step.
-See [contract](research/sketch-expression-exercise-contract.md). Only main and
-its existing build are used; all private slot validation editors are closed.
+PAR-007/#384 is independently accepted at `8934749`: shared same-sketch
+expressions retain local dN names, UUID dependencies and entry units. Focused
+core plus three relevant prior core checks pass; added formula-edit/dependent
+delete-refusal checks pass. API02 passes 45 calls with polygon area
+12500→17400 mm²; native02 passes actual inline `d3 + 50`, driver edit100→120,
+dependent150→170 and formula reopening with readable captures. See
+[receipt](validation/sketch-dimension-expression.md).
+TUT-024/#386 is active for complete native creation and recording from blank:
+rough circle/rectangle/slot, Perpendicular/Equal closed profile, d3=100 then
+`d3 + 50`, edit/history/reopen. Sol owns the cumulative native harness and external step ledger; root
+maintains acceptance/context and Astra verifies. Native01–03 stopped at submenu
+automation before geometry creation; native03 has a preserved process sample.
+These attempts do not invalidate accepted ingredient checks or establish the
+complete native gate. Ingredient API setup is not a
+substitute for this source sequence. [Contract](research/sketch-expression-exercise-contract.md).
+Only main and its existing build are used; no inactive worktrees accumulate.
 DOC-031/#348 is independently accepted at `89782cf`: unchanged-product native09
 passes modal line focus, rename commit, Browser label and unchanged geometry.
 Earlier button-focus failure remains unexplained, not claimed fixed.
