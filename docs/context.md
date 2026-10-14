@@ -15,7 +15,7 @@ focused STEP/grouped-Fillet integration checks pass (2/2). Respective receipts
 record API/native/geometry scope and later transformed-pick/Thicken limits.
 
 Active isolated Sol lanes: ASM-010/#314 linked local insertion with placement,
-opacity and pending Capture/Revert; SOL-045 retained-plane Split Body; DOC-023
+opacity and pending Capture/Revert; DOC-023
 selected-face Section Analysis with retained support and editable offset. Root
 completed SOL-048 supported closed inward Shell on main, independently
 accepted at 5b1bb29 with native and 28-call API evidence. Plain Box cavity, six inner planes, edit/history/reopen and
