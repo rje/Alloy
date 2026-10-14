@@ -694,6 +694,27 @@ QJsonObject CadDocument::sectionCandidate(const QJsonObject& authored,const QJso
     candidate["analyses"]=rows;const auto error=validateStructure(candidate);
     if(!error.isEmpty())throw std::invalid_argument(error.toStdString());return candidate;
 }
+QJsonObject CadDocument::reorderCandidate(const QJsonObject& authored,const QString& featureId,const QString& afterFeatureId) {
+    if(featureId.isEmpty() || afterFeatureId.isEmpty() || featureId==afterFeatureId)
+        throw std::invalid_argument("Choose a feature and a different earlier or later anchor");
+    auto candidate=authored;auto features=candidate["features"].toArray();
+    int sourceIndex=-1,anchorIndex=-1;
+    for(int index=0;index<features.size();++index){
+        const auto id=features[index].toObject()["id"].toString();
+        if(id==featureId)sourceIndex=index;
+        if(id==afterFeatureId)anchorIndex=index;
+    }
+    if(sourceIndex<0 || anchorIndex<0)throw std::invalid_argument("Timeline feature or insertion anchor is unavailable");
+    const auto moved=features[sourceIndex].toObject(),anchor=features[anchorIndex].toObject();
+    if(moved["ownerId"]!=anchor["ownerId"])
+        throw std::invalid_argument("Timeline feature and insertion anchor must belong to one component");
+    if(sourceIndex==anchorIndex+1)return authored;
+    features.removeAt(sourceIndex);
+    if(sourceIndex<anchorIndex)--anchorIndex;
+    features.insert(anchorIndex+1,moved);
+    candidate["features"]=features;
+    return candidate;
+}
 QString CadDocument::commit(const QJsonObject& candidate, const QString& label) {
     lastEvaluationError_ = {};
     if (candidate["documentId"] != authored_["documentId"]) {

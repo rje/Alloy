@@ -38,6 +38,7 @@
 #include <QCloseEvent>
 #include <QDir>
 #include <QFileInfo>
+#include <QFrame>
 #include <QHBoxLayout>
 #include <QGridLayout>
 #include <QJsonDocument>
@@ -601,6 +602,15 @@ AlloyWindow::AlloyWindow() {
     auto* timelineContent=new QWidget;timelineContent->setObjectName("timeline.features");timelineContent->setFixedHeight(34);
     timelineLayout_=new QHBoxLayout(timelineContent);timelineLayout_->setContentsMargins(0,0,0,0);timelineLayout_->setSpacing(4);
     timelineLayout_->setSizeConstraint(QLayout::SetMinAndMaxSize);timelineScroll_->setWidget(timelineContent);timelineRow->addWidget(timelineScroll_,1);
+    timelineDropMarker_=new QFrame(timelineScroll_->viewport());
+    timelineDropMarker_->setObjectName("timeline.dropMarker");
+    timelineDropMarker_->setFixedWidth(3);
+    timelineDropMarker_->setStyleSheet("background: #1478a8; border-radius: 1px;");
+    timelineDropMarker_->setAttribute(Qt::WA_TransparentForMouseEvents);
+    timelineDropMarker_->hide();
+    auto* cancelTimeline=new QShortcut(QKeySequence(Qt::Key_Escape),timeline_);
+    cancelTimeline->setContext(Qt::WidgetWithChildrenShortcut);
+    connect(cancelTimeline,&QShortcut::activated,this,[this]{cancelTimelineDrag(true);});
     auto* latest=new QPushButton("Show latest");latest->setObjectName("timeline.showLatest");latest->setFixedWidth(88);
     latest->setToolTip("Scroll to the latest feature; document history is unchanged.");
     connect(latest,&QPushButton::clicked,this,[this]{execute("timeline.showLatest");});timelineRow->addWidget(latest);
@@ -729,7 +739,76 @@ QImage AlloyWindow::captureImage(QImage* viewport) {
     return pixels.toImage();
 }
 
+void AlloyWindow::cancelTimelineDrag(bool suppressRelease) {
+    if(suppressRelease && timelineDragging_)timelineCancelledButton_=timelineDragButton_;
+    if(timelineDragging_)qApp->removeEventFilter(this);
+    if(timelineDragButton_)timelineDragButton_->setDown(false);
+    timelineDragButton_.clear();timelineDragFeatureId_.clear();timelineDragAnchorId_.clear();
+    timelineDragging_=false;
+    if(timelineDropMarker_)timelineDropMarker_->hide();
+}
+
+void AlloyWindow::updateTimelineDrop(const QPoint& globalPosition) {
+    timelineDragAnchorId_.clear();timelineDropMarker_->hide();
+    const auto* viewport=timelineScroll_->viewport();
+    const auto point=viewport->mapFromGlobal(globalPosition);
+    if(!viewport->rect().contains(point))return;
+    for(auto* button:timelineScroll_->findChildren<QToolButton*>()){
+        const auto id=button->property("featureId").toString();
+        if(id.isEmpty() || id==timelineDragFeatureId_ || !button->isVisible())continue;
+        const QRect bounds(button->mapTo(viewport,QPoint{}),button->size());
+        if(!bounds.contains(point))continue;
+        timelineDragAnchorId_=id;
+        timelineDropMarker_->setGeometry(bounds.right()+3,bounds.top(),3,bounds.height());
+        timelineDropMarker_->raise();timelineDropMarker_->show();
+        return;
+    }
+}
+
 bool AlloyWindow::eventFilter(QObject* watched,QEvent* event) {
+    if(timelineDragging_ && event->type()==QEvent::KeyPress
+        && static_cast<QKeyEvent*>(event)->key()==Qt::Key_Escape){cancelTimelineDrag(true);return true;}
+    if(auto* button=qobject_cast<QToolButton*>(watched);button && !button->property("featureId").toString().isEmpty()){
+        if(event->type()==QEvent::MouseButtonRelease && timelineCancelledButton_==button
+            && static_cast<QMouseEvent*>(event)->button()==Qt::LeftButton){
+            timelineCancelledButton_.clear();button->setDown(false);return true;
+        }
+        if(event->type()==QEvent::MouseButtonPress){
+            const auto* mouse=static_cast<QMouseEvent*>(event);
+            if(mouse->button()==Qt::LeftButton && session_.isEmpty()
+                && mouse->position().x()<button->width()-15){
+                timelineCancelledButton_.clear();
+                cancelTimelineDrag();timelineDragButton_=button;
+                timelineDragFeatureId_=button->property("featureId").toString();
+                timelineDragStart_=mouse->globalPosition().toPoint();
+            }
+        }else if(event->type()==QEvent::MouseMove && timelineDragButton_==button){
+            const auto* mouse=static_cast<QMouseEvent*>(event);
+            if(!(mouse->buttons()&Qt::LeftButton)){cancelTimelineDrag();return false;}
+            if(!timelineDragging_ && (mouse->globalPosition().toPoint()-timelineDragStart_).manhattanLength()
+                >=QApplication::startDragDistance()){
+                timelineDragging_=true;qApp->installEventFilter(this);
+            }
+            if(timelineDragging_){updateTimelineDrop(mouse->globalPosition().toPoint());return true;}
+        }else if(event->type()==QEvent::MouseButtonRelease && !timelineDragFeatureId_.isEmpty()){
+            const auto* mouse=static_cast<QMouseEvent*>(event);
+            if(mouse->button()==Qt::LeftButton){
+                const bool dragged=timelineDragging_;
+                if(dragged)updateTimelineDrop(mouse->globalPosition().toPoint());
+                const auto source=timelineDragFeatureId_,anchor=timelineDragAnchorId_;
+                if(dragged){
+                    cancelTimelineDrag();
+                    if(!anchor.isEmpty()){
+                        const auto response=execute("feature.reorder",{{"featureId",source},{"afterFeatureId",anchor}});
+                        if(!response["ok"].toBool() && status_)
+                            status_->setText(response["error"].toObject()["message"].toString());
+                    }
+                    return true; // A completed drag must not open the feature editor.
+                }
+                timelineDragButton_.clear();timelineDragFeatureId_.clear();timelineDragAnchorId_.clear();
+            }
+        }
+    }
     // The native OCCT child can receive a key even when Cocoa has not activated
     // the outer Qt shortcut window. Handle delivered sketch dimension keys here.
     if(watched==view_ && event->type()==QEvent::KeyPress && session_.value("command")=="sketch.edit") {
@@ -847,7 +926,9 @@ QJsonObject AlloyWindow::timelineState() const {
             {"bounds",QJsonObject{{"x",point.x()},{"y",point.y()},{"width",button->width()},{"height",button->height()}}}});
     }
     return {{"tileWidth",44},{"scrollPosition",timelineScroll_->horizontalScrollBar()->value()},
-        {"scrollMaximum",timelineScroll_->horizontalScrollBar()->maximum()},{"viewportWidth",viewport->width()},{"features",features}};
+        {"scrollMaximum",timelineScroll_->horizontalScrollBar()->maximum()},{"viewportWidth",viewport->width()},
+        {"features",features},{"dragging",timelineDragging_},{"insertionAfterFeatureId",timelineDragAnchorId_},
+        {"insertionMarkerVisible",timelineDropMarker_ && timelineDropMarker_->isVisible()}};
 }
 
 QString AlloyWindow::tabSwitchBlocker() const {
@@ -3437,6 +3518,22 @@ void AlloyWindow::registerCommands() {
             candidate["features"]=features;const auto error=document_->commit(candidate,"Edit feature");
             return error.isEmpty() ? document_->state() : failure("evaluation_failed",error,"parameters");
         });
+    add("feature.reorder","Move Timeline feature","Move one retained feature immediately after another feature in the same component.",
+        {{"featureId",featureId},{"afterFeatureId",featureId}},[this](const auto& a){
+        if(!session_.isEmpty())return failure("session_busy","Complete or cancel the active command before moving history");
+        const auto source=a["featureId"].toString(),anchor=a["afterFeatureId"].toString();
+        QJsonObject candidate;
+        try{candidate=CadDocument::reorderCandidate(document_->authored(),source,anchor);}
+        catch(const std::exception& error){return failure("invalid_reorder",QString::fromUtf8(error.what()));}
+        const bool changed=candidate!=document_->authored();
+        if(changed)if(const auto error=document_->commit(candidate,"Move Timeline feature");!error.isEmpty()){
+            auto response=failure("evaluation_failed",error);
+            auto details=response["error"].toObject();details["diagnostics"]=document_->lastEvaluationError();response["error"]=details;
+            return response;
+        }
+        QJsonArray order;for(const auto& feature:document_->authored()["features"].toArray())order.append(feature.toObject()["id"]);
+        return QJsonObject{{"movedFeatureId",source},{"afterFeatureId",anchor},{"changed",changed},{"featureOrder",order}};
+    });
     add("feature.delete","Delete feature","Delete a primitive in one undoable transaction.",{{"featureId",featureId}},[this](const auto& a){
         auto candidate=document_->authored();auto features=candidate["features"].toArray();bool found=false;
         for(int i=0;i<features.size();++i) if(features[i].toObject()["id"]==a["featureId"]) {features.removeAt(i);found=true;break;}
@@ -4537,6 +4634,7 @@ void AlloyWindow::refresh() {
             button->setFixedSize(44,34);button->setStyleSheet("QToolButton { font-size: 19px; padding: 1px 10px 1px 2px; }");
             button->setToolTip(fullName+"\nClick to edit; use the arrow for feature actions.");button->setAccessibleName(fullName);
             button->setProperty("featureId",id);button->setProperty("featureType",type);button->setProperty("featureName",name);
+            button->installEventFilter(this);
 
             connect(button,&QToolButton::clicked,this,[this,id]{if(session_.value("command")=="solid.rectangularPattern")execute("selection.featureSet",{{"featureId",id}});else if(session_.value("command")=="solid.featureMirror")execute("selection.featureMirrorSet",{{"featureId",id}});else execute("feature.editDialog",{{"featureId",id}});});
             auto* menu=new QMenu(button);menu->addAction("Delete",this,[this,id]{execute("feature.delete",{{"featureId",id}});});

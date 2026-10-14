@@ -4,6 +4,7 @@
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QMap>
+#include <QPoint>
 #include <functional>
 #include <memory>
 #include <optional>
@@ -35,6 +36,7 @@ class QImage;
 class QFrame;
 class QTimer;
 class QAction;
+class QToolButton;
 class TutorialRecorder;
 
 // UI and automation dispatch against the same authored document.
@@ -368,6 +370,14 @@ private:
     QWidget* browser_ = nullptr;
     QWidget* timeline_ = nullptr;
     QScrollArea* timelineScroll_ = nullptr;
+    QFrame* timelineDropMarker_ = nullptr;
+    QPointer<QToolButton> timelineDragButton_;
+    QPointer<QToolButton> timelineCancelledButton_;
+    QPoint timelineDragStart_;
+    QString timelineDragFeatureId_,timelineDragAnchorId_;
+    bool timelineDragging_ = false;
+    void cancelTimelineDrag(bool suppressRelease=false);
+    void updateTimelineDrop(const QPoint& globalPosition);
     QJsonArray timelineFeatures_;
     QString timelineIdentity_;
     void showTimelineFeature(const QString& featureId);
