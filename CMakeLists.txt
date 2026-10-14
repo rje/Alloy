@@ -30,7 +30,7 @@ target_link_libraries(alloy_sketch_solver PUBLIC Qt6::Core PRIVATE alloy_planegc
 add_library(alloy_kernel STATIC
     src/AssemblySlider.cpp src/AssemblySlider.h
     src/DocumentAppend.cpp src/DocumentAppend.h
-    src/GeometryKernel.cpp src/GeometryKernel.h src/PrimitiveTopology.cpp src/PrimitiveTopology.h src/PlanarFaces.cpp src/PlanarFaces.h src/JoinRootEdges.cpp src/JoinRootEdges.h src/SolidFillet.cpp src/SolidFillet.h src/SolidChamfer.cpp src/SolidChamfer.h src/SolidShell.cpp src/SolidShell.h src/ClosedBlendShell.cpp src/ClosedBlendShell.h src/SolidSplit.cpp src/SolidSplit.h src/RevolvedShellCap.cpp src/RevolvedShellCap.h src/SolidSphere.cpp src/SolidSphere.h src/SolidHole.cpp src/SolidHole.h src/SolidLoft.cpp src/SolidLoft.h src/SolidRevolve.cpp src/SolidRevolve.h src/SolidSweep.cpp src/SolidSweep.h src/FeaturePattern.cpp src/FeaturePattern.h src/SolidMirror.cpp src/SolidTransform.cpp src/CircularPattern.cpp src/SolidMirror.h src/JoinResults.cpp
+    src/GeometryKernel.cpp src/GeometryKernel.h src/PrimitiveTopology.cpp src/PrimitiveTopology.h src/PlanarFaces.cpp src/PlanarFaces.h src/JoinRootEdges.cpp src/JoinRootEdges.h src/SolidFillet.cpp src/SolidFillet.h src/SolidChamfer.cpp src/SolidChamfer.h src/SolidShell.cpp src/SolidShell.h src/SolidThicken.cpp src/SolidThicken.h src/ClosedBlendShell.cpp src/ClosedBlendShell.h src/SolidSplit.cpp src/SolidSplit.h src/RevolvedShellCap.cpp src/RevolvedShellCap.h src/SolidSphere.cpp src/SolidSphere.h src/SolidHole.cpp src/SolidHole.h src/SolidLoft.cpp src/SolidLoft.h src/SolidRevolve.cpp src/SolidRevolve.h src/SolidSweep.cpp src/SolidSweep.h src/FeaturePattern.cpp src/FeaturePattern.h src/SolidMirror.cpp src/SolidTransform.cpp src/CircularPattern.cpp src/SolidMirror.h src/JoinResults.cpp
     src/MeshExport.cpp src/MeshExport.h
     src/StepExchange.cpp src/StepExchange.h
     src/SketchSpline.cpp src/SketchSpline.h src/SketchSplineOffset.cpp src/SketchSplineOffset.h src/SketchOpenChainOffset.cpp src/SketchOpenChainOffset.h src/SketchConic.cpp src/SketchConic.h src/SketchGeometry.cpp src/SketchTrim.cpp src/SketchGeometry.h src/SketchText.cpp src/SketchText.h src/RoundedLoopOffset.cpp src/RoundedLoopOffset.h
@@ -619,6 +619,10 @@ if(BUILD_TESTING)
     target_include_directories(surface_loft_test PRIVATE src)
     target_link_libraries(surface_loft_test PRIVATE Qt6::Gui alloy_kernel)
     add_test(NAME surface_loft COMMAND surface_loft_test)
+    add_executable(surface_thicken_test tests/surface_thicken.cpp src/CadDocument.cpp src/CadDocument.h)
+    target_include_directories(surface_thicken_test PRIVATE src)
+    target_link_libraries(surface_thicken_test PRIVATE Qt6::Gui alloy_kernel)
+    add_test(NAME surface_thicken COMMAND surface_thicken_test ${CMAKE_SOURCE_DIR}/tests/fixtures/shoehorn-pre-loft.alloy)
     add_executable(surface_loft_controls_test tests/surface_loft_controls.cpp)
     target_link_libraries(surface_loft_controls_test PRIVATE alloy_application Qt6::Test)
     add_test(NAME surface_loft_controls COMMAND surface_loft_controls_test)

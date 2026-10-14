@@ -1,0 +1,93 @@
+// SPDX-License-Identifier: MIT
+#include "CadDocument.h"
+#include "MeshExport.h"
+#include <QCoreApplication>
+#include <QTemporaryDir>
+#include <cmath>
+#include <iostream>
+#include <stdexcept>
+
+namespace {
+void check(bool v,const char* message){if(!v)throw std::runtime_error(message);}
+QJsonObject ref(const QJsonObject& authored,const QString& sketchName){
+    for(const auto& row:authored["features"].toArray()){
+        const auto f=row.toObject();if(f["type"]!="sketch" || f["name"]!=sketchName)continue;
+        const auto entities=f["parameters"].toObject()["entities"].toArray();
+        check(entities.size()==1,"Expected one retained source entity");
+        return {{"sketchId",f["id"]},{"entityId",entities[0].toObject()["id"]}};
+    }
+    throw std::runtime_error("Source sketch unavailable");
+}
+QJsonArray faceIds(const EvaluatedBody& body){QJsonArray ids;for(const auto& face:body.supportFaces)ids.append(face.faceId);return ids;}
+QJsonArray edgeIds(const EvaluatedBody& body){QJsonArray ids;for(const auto& edge:body.solidEdges)ids.append(edge.edgeId);return ids;}
+}
+int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
+    check(argc==2,"Pass the actual pre-Loft document path");CadDocument document;
+    check(document.open(QString::fromLocal8Bit(argv[1])).isEmpty(),"Open source sketches");
+    const auto loft=CadDocument::loftCandidate(document.authored(),{{"operation","newComponent"},{"componentName","Shoehorn"},
+        {"sections",QJsonArray{ref(document.authored(),"Arc"),ref(document.authored(),"Line")}},
+        {"centerline",ref(document.authored(),"Path")}});
+    check(document.commit(loft,"Surface Loft").isEmpty(),"Commit source sheet");
+    const auto sheet=document.bodies().back();const QJsonObject face{{"bodyId",sheet.bodyId},{"faceId",sheet.supportFaces[0].faceId},
+        {"producerFeatureId",sheet.featureId}};
+    auto candidate=CadDocument::thickenCandidate(document.authored(),{{"sourceFace",face},{"signedThicknessMm",3.0}});
+    const auto preview=CadDocument::evaluateCandidate(candidate);
+    if(!preview.ok)throw std::runtime_error(("Thicken preview: "+preview.error).toStdString());
+    check(preview.evaluation->bodies.size()==1,"Source sheet was not consumed in candidate evaluation");
+    check(document.commit(candidate,"Thicken").isEmpty(),"Commit Thicken");
+    const auto solid=document.bodies().back();
+    check(document.bodies().size()==1 && solid.summary["type"]=="solid" && solid.summary["closed"]==true
+        && solid.summary["valid"]==true && solid.summary["topology"].toObject()["solids"]==1
+        && solid.supportFaces.size()==6 && solid.solidEdges.size()==12 && solid.ownerId==sheet.ownerId,
+        "Closed solid, complete topology and component owner");
+    const auto solidId=solid.bodyId,sourceId=sheet.bodyId;
+    const auto firstFaces=faceIds(solid),firstEdges=edgeIds(solid);const double volume=solid.summary["volumeMm3"].toDouble();
+    check(volume>10000 && firstFaces.size()==6,"Thicken volume and retained faces");
+    auto edited=CadDocument::thickenCandidate(document.authored(),{{"featureId",solid.featureId},{"signedThicknessMm",-3.0}});
+    check(document.commit(edited,"Reverse Thicken").isEmpty(),"Signed side edit");
+    check(document.bodies().back().bodyId==solidId && faceIds(document.bodies().back())==firstFaces
+        && edgeIds(document.bodies().back())==firstEdges
+        && std::abs(document.bodies().back().summary["volumeMm3"].toDouble()-volume)>100,
+        "Signed side edit did not retain identity and change geometry");
+    document.history().undo();check(document.bodies().back().summary["signedThicknessMm"]==3.0,"Undo signed edit");
+    document.history().redo();check(document.bodies().back().summary["signedThicknessMm"]==-3.0,"Redo signed edit");
+    QTemporaryDir directory;const auto path=directory.filePath("thickened.alloy");check(document.save(path).isEmpty(),"Save solid");
+    CadDocument reopened;check(reopened.open(path).isEmpty() && reopened.bodies().size()==1
+        && reopened.bodies().back().bodyId==solidId && faceIds(reopened.bodies().back())==firstFaces,
+        "Reopen retained solid");
+    const auto mesh=MeshExport::writeStl(reopened.bodies().back(),directory.filePath("shoehorn-mm.stl"),"mm",true,0.1,10);
+    check(mesh["bodyCount"]==1,"Strict solid STL export");
+    const auto predecessor=reopened.evaluationBefore(solid.featureId);
+    check(predecessor.bodies.size()==1 && predecessor.bodies[0].bodyId==sourceId
+        && predecessor.bodies[0].summary["type"]=="surface","Prefix did not recover original sheet");
+    auto pathEdit=reopened.authored();auto features=pathEdit["features"].toArray();
+    for(int i=0;i<features.size();++i)if(features[i].toObject()["name"]=="Path"){
+        auto sketch=features[i].toObject();auto parameters=sketch["parameters"].toObject();auto points=parameters["points"].toArray();
+        const auto ids=parameters["entities"].toArray()[0].toObject()["pointIds"].toArray();
+        for(int j=0;j<points.size();++j)if(points[j].toObject()["id"]==ids[1]){
+            auto point=points[j].toObject();point["vMm"]=20.0;points[j]=point;
+        }
+        parameters["points"]=points;sketch["parameters"]=parameters;features[i]=sketch;
+    }
+    pathEdit["features"]=features;
+    const double beforePath=reopened.bodies().back().summary["volumeMm3"].toDouble();
+    check(reopened.commit(pathEdit,"Edit source path").isEmpty(),"Source spline edit through Thicken");
+    check(reopened.bodies().back().bodyId==solidId && faceIds(reopened.bodies().back())==firstFaces
+        && edgeIds(reopened.bodies().back())==firstEdges
+        && std::abs(reopened.bodies().back().summary["volumeMm3"].toDouble()-beforePath)>100,
+        "Thicken did not follow source path with stable solid topology IDs");
+    CadDocument named;check(named.open(QString::fromLocal8Bit(argv[1])).isEmpty(),"Open named-sheet source");
+    const auto namedLoft=CadDocument::loftCandidate(named.authored(),{{"operation","newComponent"},{"componentName","Shoehorn"},
+        {"sections",QJsonArray{ref(named.authored(),"Arc"),ref(named.authored(),"Line")}},
+        {"centerline",ref(named.authored(),"Path")}});
+    check(named.commit(namedLoft,"Surface Loft").isEmpty(),"Build named source");
+    const auto namedSheet=named.bodies().back();
+    check(named.commit(CadDocument::renameBodyCandidate(named.authored(),named.evaluation(),namedSheet.bodyId,"Named sheet"),"Name sheet").isEmpty(),"Name source sheet");
+    const auto namedBefore=named.authored();
+    const QJsonObject namedFace{{"bodyId",namedSheet.bodyId},{"faceId",namedSheet.supportFaces[0].faceId},
+        {"producerFeatureId",namedSheet.featureId}};
+    const auto namedCandidate=CadDocument::thickenCandidate(namedBefore,{{"sourceFace",namedFace},{"signedThicknessMm",3.0}});
+    check(!named.commit(namedCandidate,"Invalid named consumption").isEmpty() && named.authored()==namedBefore,
+        "Named source body was silently consumed");
+    std::cout<<"SURFACE_THICKEN_OK signed=3 volume="<<volume<<" body="<<solidId.toStdString()<<"\n";return 0;
+}catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}}

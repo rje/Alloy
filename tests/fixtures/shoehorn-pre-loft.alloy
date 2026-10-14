@@ -1,0 +1,225 @@
+{
+    "displayUnits": "mm",
+    "documentId": "139f3ee4-6917-45db-9c12-c425cfa2d271",
+    "features": [
+        {
+            "id": "9ffed48e-9434-4823-a7e4-328ecd6be426",
+            "name": "Path",
+            "ownerId": "139f3ee4-6917-45db-9c12-c425cfa2d271",
+            "parameters": {
+                "constraints": [
+                    {
+                        "id": "c6598983-7d48-41d7-af74-cb35a7c39032",
+                        "pointIds": [
+                            "b12e61fd-e2a1-492e-9a9c-7940e015bc35"
+                        ],
+                        "type": "fixed",
+                        "uMm": 0,
+                        "vMm": 0
+                    }
+                ],
+                "dimensions": [
+                ],
+                "entities": [
+                    {
+                        "endPointId": "e3fcca4b-0653-4a08-b26e-2bae7024a101",
+                        "id": "b9d3be20-1df1-4eab-943e-0ff83fd5bd41",
+                        "parameterization": "chordLength",
+                        "pointIds": [
+                            "b12e61fd-e2a1-492e-9a9c-7940e015bc35",
+                            "e604a285-e297-4eb4-bfd3-48c7909b2f0b",
+                            "e3fcca4b-0653-4a08-b26e-2bae7024a101"
+                        ],
+                        "startPointId": "b12e61fd-e2a1-492e-9a9c-7940e015bc35",
+                        "tangentHandles": {
+                        },
+                        "type": "fitSpline",
+                        "version": 1
+                    }
+                ],
+                "plane": "YZ",
+                "points": [
+                    {
+                        "id": "b12e61fd-e2a1-492e-9a9c-7940e015bc35",
+                        "uMm": 0,
+                        "vMm": 0
+                    },
+                    {
+                        "id": "e604a285-e297-4eb4-bfd3-48c7909b2f0b",
+                        "uMm": 50,
+                        "vMm": 16
+                    },
+                    {
+                        "id": "e3fcca4b-0653-4a08-b26e-2bae7024a101",
+                        "uMm": 130,
+                        "vMm": 0
+                    }
+                ]
+            },
+            "type": "sketch",
+            "visible": true
+        },
+        {
+            "id": "f3fc469a-390f-4cbd-9ba3-a0a207dfc2db",
+            "name": "Start Plane",
+            "ownerId": "139f3ee4-6917-45db-9c12-c425cfa2d271",
+            "parameters": {
+                "source": {
+                    "path": {
+                        "endpoint": 0,
+                        "entityId": "b9d3be20-1df1-4eab-943e-0ff83fd5bd41",
+                        "sketchId": "9ffed48e-9434-4823-a7e4-328ecd6be426"
+                    }
+                }
+            },
+            "type": "constructionPlane",
+            "visible": true
+        },
+        {
+            "id": "15d670e1-d193-4516-ae98-5d0cc7c0f93d",
+            "name": "End Plane",
+            "ownerId": "139f3ee4-6917-45db-9c12-c425cfa2d271",
+            "parameters": {
+                "source": {
+                    "path": {
+                        "endpoint": 1,
+                        "entityId": "b9d3be20-1df1-4eab-943e-0ff83fd5bd41",
+                        "sketchId": "9ffed48e-9434-4823-a7e4-328ecd6be426"
+                    }
+                }
+            },
+            "type": "constructionPlane",
+            "visible": true
+        },
+        {
+            "id": "8dabcc2f-8e2d-46b5-93a2-c3677578fdea",
+            "name": "Arc",
+            "ownerId": "139f3ee4-6917-45db-9c12-c425cfa2d271",
+            "parameters": {
+                "constraints": [
+                    {
+                        "id": "e6c77da5-ccfc-4619-899b-a23f9edd3229",
+                        "pointIds": [
+                            "5ec36eca-e2ae-4fa8-bf9a-e25c00f69422"
+                        ],
+                        "type": "fixed",
+                        "uMm": 0,
+                        "vMm": 0
+                    },
+                    {
+                        "entityIds": [
+                            "f95b31dd-8544-4eab-ad1b-840593073e05"
+                        ],
+                        "id": "0cab96f0-6ff3-4f6b-9aaa-9ab751f6e47c",
+                        "pointIds": [
+                            "5ec36eca-e2ae-4fa8-bf9a-e25c00f69422"
+                        ],
+                        "type": "midpoint"
+                    }
+                ],
+                "dimensions": [
+                ],
+                "entities": [
+                    {
+                        "centerPointId": "8a0a61c7-51f0-4224-94eb-0c6a0445c0f4",
+                        "endPointId": "3d9eb8a2-b9e7-4a52-a8ff-ea42bc1b7842",
+                        "id": "f95b31dd-8544-4eab-ad1b-840593073e05",
+                        "radiusMm": 36.25,
+                        "startAngleDeg": -133.60281897270363,
+                        "startPointId": "6b74bd2b-4fff-4595-9f50-a49cec600b70",
+                        "sweepAngleDeg": 87.20563794540726,
+                        "type": "arc"
+                    }
+                ],
+                "originPointId": "5ec36eca-e2ae-4fa8-bf9a-e25c00f69422",
+                "plane": "construction",
+                "planeId": "f3fc469a-390f-4cbd-9ba3-a0a207dfc2db",
+                "points": [
+                    {
+                        "id": "8a0a61c7-51f0-4224-94eb-0c6a0445c0f4",
+                        "uMm": 0,
+                        "vMm": 36.25
+                    },
+                    {
+                        "id": "6b74bd2b-4fff-4595-9f50-a49cec600b70",
+                        "uMm": -25,
+                        "vMm": 10
+                    },
+                    {
+                        "id": "3d9eb8a2-b9e7-4a52-a8ff-ea42bc1b7842",
+                        "uMm": 25,
+                        "vMm": 10
+                    },
+                    {
+                        "id": "5ec36eca-e2ae-4fa8-bf9a-e25c00f69422",
+                        "uMm": 0,
+                        "vMm": 0
+                    }
+                ]
+            },
+            "type": "sketch",
+            "visible": true
+        },
+        {
+            "id": "001d36c9-f5f7-4427-8a69-03c1bc8a4e7a",
+            "name": "Line",
+            "ownerId": "139f3ee4-6917-45db-9c12-c425cfa2d271",
+            "parameters": {
+                "constraints": [
+                    {
+                        "id": "2b6470f1-7673-4039-80bb-c652bfda1d63",
+                        "pointIds": [
+                            "53138f6f-fce7-4523-8aa0-0bf2f8154f4b"
+                        ],
+                        "type": "fixed",
+                        "uMm": 0,
+                        "vMm": 0
+                    },
+                    {
+                        "entityIds": [
+                            "0ee9896a-0cbb-49f1-b0ff-04d80b836c1f"
+                        ],
+                        "id": "6450c063-900c-4416-ab88-6286b0c003e2",
+                        "pointIds": [
+                            "53138f6f-fce7-4523-8aa0-0bf2f8154f4b"
+                        ],
+                        "type": "midpoint"
+                    }
+                ],
+                "dimensions": [
+                ],
+                "entities": [
+                    {
+                        "endPointId": "14533b34-6c7b-454a-8d32-55a2c468a644",
+                        "id": "0ee9896a-0cbb-49f1-b0ff-04d80b836c1f",
+                        "startPointId": "08e8e358-c76a-488d-bb6e-fb5b42dfd0fb",
+                        "type": "line"
+                    }
+                ],
+                "originPointId": "53138f6f-fce7-4523-8aa0-0bf2f8154f4b",
+                "plane": "construction",
+                "planeId": "15d670e1-d193-4516-ae98-5d0cc7c0f93d",
+                "points": [
+                    {
+                        "id": "08e8e358-c76a-488d-bb6e-fb5b42dfd0fb",
+                        "uMm": -15,
+                        "vMm": 0
+                    },
+                    {
+                        "id": "14533b34-6c7b-454a-8d32-55a2c468a644",
+                        "uMm": 15,
+                        "vMm": 0
+                    },
+                    {
+                        "id": "53138f6f-fce7-4523-8aa0-0bf2f8154f4b",
+                        "uMm": 0,
+                        "vMm": 0
+                    }
+                ]
+            },
+            "type": "sketch",
+            "visible": true
+        }
+    ],
+    "schema": "alloy-document/1"
+}

@@ -229,6 +229,16 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
                     {"code","projection_unavailable"},{"message","Projected source must be an earlier active body"}};
         }
         if (feature.contains("bodyId")) activeBodies.insert(feature["bodyId"].toString());
+        if(feature["type"]=="thicken"){
+            const auto ref=feature["parameters"].toObject()["sourceFace"].toObject();
+            const auto body=ref["bodyId"].toString(),producer=ref["producerFeatureId"].toString();
+            if(!bodyPositions.contains(body) || bodyPositions[body]>=i || !activeBodies.contains(body)
+                || !positions.contains(producer) || positions[producer]>=i || features[positions[producer]].toObject()["type"]!="loft"
+                || features[positions[producer]].toObject()["bodyId"]!=body
+                || features[positions[producer]].toObject()["parameters"].toObject()["operation"]!="newComponent")
+                return {{"featureId",feature["id"]},{"code","surface_unavailable"},{"message","Thicken requires an active earlier Loft sheet"}};
+            activeBodies.remove(body);continue;
+        }
         if(feature["type"]=="splitBody"){
             const auto p=feature["parameters"].toObject();const auto body=p["targetBodyId"].toString(),plane=p["planeId"].toString();
             if(!bodyPositions.contains(body) || bodyPositions[body]>=i || !activeBodies.contains(body))
@@ -1154,6 +1164,34 @@ QJsonObject CadDocument::loftCandidate(const QJsonObject& authored,const QJsonOb
     if(index<0)features.append(feature);else features[index]=feature;candidate["features"]=features;return candidate;
 }
 
+QJsonObject CadDocument::thickenCandidate(const QJsonObject& authored,const QJsonObject& arguments){
+    const QSet<QString> allowed{"sourceFace","signedThicknessMm","featureId","newFeatureId","newBodyId","ownerId","name"};
+    for(auto it=arguments.begin();it!=arguments.end();++it)if(!allowed.contains(it.key()))throw std::invalid_argument("Unknown Thicken argument");
+    if(arguments.contains("featureId") && (arguments.contains("newFeatureId") || arguments.contains("newBodyId") || arguments.contains("ownerId")))
+        throw std::invalid_argument("Thicken edit retains feature, body and owner identities");
+    auto candidate=authored;auto features=candidate["features"].toArray();QJsonObject feature;int index=-1;
+    if(arguments.contains("featureId")){
+        for(int i=0;i<features.size();++i)if(features[i].toObject()["id"]==arguments["featureId"]){feature=features[i].toObject();index=i;break;}
+        if(index<0 || feature["type"]!="thicken")throw std::invalid_argument("Thicken feature unavailable");
+    }else{
+        const auto ref=arguments["sourceFace"].toObject();QString owner;
+        for(const auto& row:features)if(row.toObject()["id"]==ref["producerFeatureId"] && row.toObject()["type"]=="loft"
+            && row.toObject()["bodyId"]==ref["bodyId"] && row.toObject()["parameters"].toObject()["operation"]=="newComponent")owner=row.toObject()["ownerId"].toString();
+        if(owner.isEmpty() || (arguments.contains("ownerId") && arguments["ownerId"]!=owner))
+            throw std::invalid_argument("Thicken requires a source Loft sheet in its output component");
+        feature={{"id",arguments.value("newFeatureId").toString(newId())},{"bodyId",arguments.value("newBodyId").toString(newId())},
+            {"ownerId",owner},{"type","thicken"},{"name","Thicken"},{"visible",true}};
+    }
+    auto p=feature["parameters"].toObject();
+    if(arguments.contains("sourceFace"))p["sourceFace"]=arguments["sourceFace"];
+    if(arguments.contains("signedThicknessMm"))p["signedThicknessMm"]=arguments["signedThicknessMm"];
+    feature["parameters"]=p;if(arguments.contains("name"))feature["name"]=arguments["name"];
+    if(index<0)features.append(feature);else features[index]=feature;
+    candidate["features"]=features;
+    const auto error=validateStructure(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());
+    return candidate;
+}
+
 QJsonObject CadDocument::sphereCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
     const QSet<QString> allowed{"support","uMm","vMm","diameterMm","operation","targetBodyId","name","featureId","newFeatureId","newBodyId","ownerId"};
     for(auto it=arguments.begin();it!=arguments.end();++it)if(!allowed.contains(it.key()))throw std::invalid_argument("Unknown Sphere argument");
@@ -1644,6 +1682,16 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
             if(p.size()!=1 || !p["profiles"].isArray() || p["profiles"].toArray().size()<2 || p["profiles"].toArray().size()>32)return "Loft requires 2–32 ordered profile references";
             for(const auto& value:p["profiles"].toArray()){const auto ref=value.toObject();const auto key=ref["sketchId"].toString()+"/"+ref["profileId"].toString();if(ref.size()!=2 || !validId(ref["sketchId"].toString()) || !validId(ref["profileId"].toString()) || profiles.contains(key))return "Loft profiles must be distinct stable sketch/profile references";profiles.insert(key);}
             continue;
+        }
+        if(type=="thicken"){
+            const auto ref=p["sourceFace"].toObject();const auto amount=p["signedThicknessMm"].toDouble();
+            if(!validId(feature["bodyId"].toString()) || ids.contains(feature["bodyId"].toString())
+                || p.size()!=2 || ref.size()!=3 || !validId(ref["bodyId"].toString())
+                || !validId(ref["faceId"].toString()) || !validId(ref["producerFeatureId"].toString())
+                || !p["signedThicknessMm"].isDouble() || !std::isfinite(amount)
+                || std::abs(amount)<0.001 || std::abs(amount)>1000)
+                return "Thicken requires one retained surface face and nonzero signed one-side thickness";
+            ids.insert(feature["bodyId"].toString());continue;
         }
         if(type=="sphere") {
             const auto support=p["support"].toObject();
