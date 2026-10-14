@@ -80,5 +80,25 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
     commit(reopened,CadDocument::lengthParameterCandidate(reopened.authored(),{{"parameterId",depthId},{"value",90}}));
     near(reopened.assemblyState()["joints"].toArray()[0].toObject()["origin"].toObject()["pointMm"].toArray()[1].toDouble(),90,"source depth moves retained ledge midpoint in rest context");
     near(yMin(reopened.worldBodies()[1]),30,"source recompute reapplies one occurrence translation");
-    std::cout<<"PASS: as-built Slider retains ledge, one DOF, definition/rest separation, limits, undo and reopen\n";return 0;
+    commit(reopened,AssemblySlider::candidate(reopened.authored(),{{"jointId",jointId},{"reverseDirection",true}}));
+    near(reopened.assemblyState()["joints"].toArray()[0].toObject()["coordinateMm"].toDouble(),30,"reverse retains positive coordinate");
+    near(yMin(reopened.worldBodies()[1]),-30,"reverse moves moving occurrence toward negative Y");
+    near(yMin(reopened.worldBodies(50)[1]),-50,"reverse preview at positive maximum clears front");
+    near(yMin(reopened.worldBodies()[0]),0,"reverse keeps fixed occurrence still");
+    near(yMin(reopened.bodies()[1]),0,"reverse keeps definition at rest");
+    auto reverseStable=reopened.authored();
+    auto badReverse=AssemblySlider::candidate(reverseStable,{{"jointId",jointId},{"reverseDirection",1}});
+    check(!reopened.commit(badReverse,"Invalid reverse flag").isEmpty() && reopened.authored()==reverseStable,"nonboolean reverse refused atomically");
+    reopened.history().undo();near(yMin(reopened.worldBodies()[1]),30,"reverse undo restores +Y");
+    reopened.history().redo();check(reopened.authored()==reverseStable,"reverse redo exact");
+    check(reopened.save(path).isEmpty(),"save reversed Slider");
+    CadDocument reverseOpen;check(reverseOpen.open(path).isEmpty() && reverseOpen.authored()==reverseStable,"reopen reverse retains authored identity");
+    near(yMin(reverseOpen.worldBodies()[1]),-30,"reopen reversed world pose");
+    auto legacy=reverseStable;auto joints=legacy["joints"].toArray();auto oldJoint=joints[0].toObject();oldJoint.remove("reverseDirection");
+    joints[0]=oldJoint;legacy["joints"]=joints;commit(reverseOpen,legacy);
+    near(yMin(reverseOpen.worldBodies()[1]),30,"legacy joint without direction retains +Y");
+    check(reverseOpen.save(path).isEmpty(),"save legacy Slider");
+    CadDocument legacyOpen;check(legacyOpen.open(path).isEmpty() && legacyOpen.authored()==legacy,"legacy saved joint reopens exactly");
+    near(yMin(legacyOpen.worldBodies()[1]),30,"legacy reopened world pose");
+    std::cout<<"PASS: as-built Slider retains ledge, one DOF, direction, definition/rest separation, limits, undo and reopen\n";return 0;
 }catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}}

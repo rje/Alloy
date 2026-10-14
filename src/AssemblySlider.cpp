@@ -56,9 +56,10 @@ QJsonObject AssemblySlider::candidate(const QJsonObject& authored,const QJsonObj
     const auto existing=joint(authored);const auto edit=arguments.value("jointId").toString();
     require(edit.isEmpty() ? existing.isEmpty() : existing["id"]==edit,"This slice supports one available as-built Slider joint");
     auto record=existing.isEmpty() ? QJsonObject{{"id",QUuid::createUuid().toString(QUuid::WithoutBraces)},{"type","asBuiltSlider"},{"name","Slider"},
-        {"axis","Y"},{"minimumEnabled",false},{"minimumMm",0},{"maximumEnabled",false},{"maximumMm",0},{"positionMm",0}} : existing;
-    const QSet<QString> allowed{"jointId","name","component1OccurrenceId","component2OccurrenceId","position","axis","minimumEnabled","minimumMm","maximumEnabled","maximumMm","positionMm"};
+        {"axis","Y"},{"reverseDirection",false},{"minimumEnabled",false},{"minimumMm",0},{"maximumEnabled",false},{"maximumMm",0},{"positionMm",0}} : existing;
+    const QSet<QString> allowed{"jointId","name","component1OccurrenceId","component2OccurrenceId","position","axis","reverseDirection","minimumEnabled","minimumMm","maximumEnabled","maximumMm","positionMm"};
     for(auto it=arguments.begin();it!=arguments.end();++it){require(allowed.contains(it.key()),"Unknown Slider argument");if(it.key()!="jointId")record[it.key()]=it.value();}
+    if(!record.contains("reverseDirection"))record["reverseDirection"]=false;
     auto result=authored;result["joints"]=QJsonArray{record};return result;
 }
 double AssemblySlider::position(const QJsonObject& authored,std::optional<double> transientPositionMm){
@@ -73,15 +74,17 @@ QJsonObject AssemblySlider::inspect(const QJsonObject& authored,const EvaluatedD
     require(!moving.isEmpty() && !fixed.isEmpty(),"Slider occurrences are unavailable");
     const auto point=origin(record,authored,definitions);
     const auto coordinate=position(authored,transientPositionMm);
+    const auto displacement=record["reverseDirection"].toBool() ? -coordinate : coordinate;
     QJsonArray world;
     for(const auto& item:authored.value("occurrences").toArray()){
-        const auto occurrence=item.toObject();const double y=occurrence["id"]==record["component1OccurrenceId"] ? coordinate : 0;
+        const auto occurrence=item.toObject();const double y=occurrence["id"]==record["component1OccurrenceId"] ? displacement : 0;
         QJsonArray bodies;for(const auto& body:definitions.bodies)if(body.ownerId==occurrence["definitionId"].toString())
             bodies.append(QJsonObject{{"bodyId",body.bodyId},{"boundsMm",boundsOf(body,y)}});
         world.append(QJsonObject{{"occurrenceId",occurrence["id"]},{"definitionId",occurrence["definitionId"]},
             {"translationMm",QJsonArray{0,y,0}},{"bodies",bodies}});
     }
     auto resolved=record;resolved["origin"]=point;resolved["coordinateMm"]=coordinate;
+    resolved["reverseDirection"]=record["reverseDirection"].toBool();
     resolved["relativeDegreesOfFreedom"]=1;resolved["gaugeOccurrenceId"]=record["component2OccurrenceId"];
     resolved["transient"]=transientPositionMm.has_value();
     return {{"joints",QJsonArray{resolved}},{"occurrences",world}};
@@ -89,7 +92,9 @@ QJsonObject AssemblySlider::inspect(const QJsonObject& authored,const EvaluatedD
 std::vector<EvaluatedBody> AssemblySlider::worldBodies(const QJsonObject& authored,const EvaluatedDocument& definitions,std::optional<double> transientPositionMm){
     auto bodies=definitions.bodies;const auto record=joint(authored);if(record.isEmpty())return bodies;
     const auto moving=definitionFor(authored,record["component1OccurrenceId"].toString());
-    const double y=position(authored,transientPositionMm);if(y==0)return bodies;
+    const double coordinate=position(authored,transientPositionMm);
+    const double y=record["reverseDirection"].toBool() ? -coordinate : coordinate;
+    if(y==0)return bodies;
     gp_Trsf shift;shift.SetTranslation(gp_Vec(0,y,0));const TopLoc_Location placement(shift);
     for(auto& body:bodies)if(body.ownerId==moving){
         body.shape=body.shape.Moved(placement);body.summary["boundsMm"]=boundsOf(body,y);

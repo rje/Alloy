@@ -24,6 +24,7 @@ QJsonObject field(const QString& type,bool required=true){QJsonObject result{{"t
 QJsonObject sliderSchema(){return {{"jointId",field("string",false)},{"name",field("string",false)},
     {"component1OccurrenceId",field("string",false)},{"component2OccurrenceId",field("string",false)},
     {"position",field("object",false)},{"axis",QJsonObject{{"type","string"},{"required",false},{"enum",QJsonArray{"Y"}}}},
+    {"reverseDirection",field("boolean",false)},
     {"minimumEnabled",field("boolean",false)},{"minimumMm",field("number",false)},
     {"maximumEnabled",field("boolean",false)},{"maximumMm",field("number",false)},
     {"positionMm",field("number",false)}};}
@@ -94,7 +95,7 @@ void AlloyWindow::registerSliderCommands(){
 }
 QJsonObject AlloyWindow::beginSlider(const QJsonObject& overrides){
     if(!session_.isEmpty())return fail("session_busy","Complete or cancel the active command first");
-    QJsonObject inputs{{"axis","Y"},{"name","Slider"},{"minimumEnabled",false},{"minimumMm",0},
+    QJsonObject inputs{{"axis","Y"},{"reverseDirection",false},{"name","Slider"},{"minimumEnabled",false},{"minimumMm",0},
         {"maximumEnabled",false},{"maximumMm",0},{"positionMm",0}};
     const auto existing=document_->authored().value("joints").toArray();
     if(!existing.isEmpty()){
@@ -132,6 +133,8 @@ void AlloyWindow::showSlider(){
     auto* position=new QComboBox;position->setObjectName("slider.position");form->addRow("Position",position);
     auto* kind=new QLabel("Slider");form->addRow("Type",kind);
     auto* axis=new QLabel("Y Axis");form->addRow("Slide",axis);
+    auto* reverse=new QCheckBox("Reverse Direction");reverse->setObjectName("slider.reverseDirection");
+    reverse->setToolTip("Positive position moves Component 1 toward negative Y.");form->addRow("",reverse);
     auto* minimumEnabled=new QCheckBox("Minimum");minimumEnabled->setObjectName("slider.minimumEnabled");
     auto* minimum=new QDoubleSpinBox;minimum->setObjectName("slider.minimumMm");minimum->setRange(-100000,100000);minimum->setDecimals(4);minimum->setSuffix(" mm");form->addRow(minimumEnabled,minimum);
     auto* maximumEnabled=new QCheckBox("Maximum");maximumEnabled->setObjectName("slider.maximumEnabled");
@@ -140,13 +143,14 @@ void AlloyWindow::showSlider(){
     layout->addLayout(form);
     auto* error=new QLabel;error->setObjectName("slider.error");error->setWordWrap(true);error->setStyleSheet("color:#a63832;");layout->addWidget(error);
     auto* animate=new QPushButton("Preview Motion");animate->setObjectName("slider.animate");layout->addWidget(animate);
-    auto* help=new QLabel("Pick a retained straight ledge edge on Component 2. Component 1 slides along Y; Component 2 is the assembly reference.");help->setWordWrap(true);layout->addWidget(help);
+    auto* help=new QLabel("Pick a retained straight ledge edge on Component 2. Component 1 slides along Y; Reverse Direction moves it toward negative Y. Component 2 is the assembly reference.");help->setWordWrap(true);layout->addWidget(help);
     layout->addStretch();auto* buttons=new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel);buttons->setObjectName("slider.buttons");layout->addWidget(buttons);
     auto update=[this,error](const QJsonObject& changes){const auto response=execute("command.update",{{"session",session_["id"]},{"inputs",changes}});
         error->setText(response["ok"].toBool() ? QString{} : response["error"].toObject()["message"].toString());};
     connect(first,qOverload<int>(&QComboBox::currentIndexChanged),this,[first,update](int i){if(i>=0)update({{"component1OccurrenceId",first->itemData(i).toString()}});});
     connect(second,qOverload<int>(&QComboBox::currentIndexChanged),this,[second,update](int i){if(i>=0)update({{"component2OccurrenceId",second->itemData(i).toString()}});});
     connect(position,qOverload<int>(&QComboBox::currentIndexChanged),this,[position,update](int i){if(i>=0)update({{"position",position->itemData(i).toJsonObject()}});});
+    connect(reverse,&QCheckBox::toggled,this,[update](bool enabled){update({{"reverseDirection",enabled}});});
     connect(minimumEnabled,&QCheckBox::toggled,this,[update](bool enabled){update({{"minimumEnabled",enabled}});});
     connect(maximumEnabled,&QCheckBox::toggled,this,[update](bool enabled){update({{"maximumEnabled",enabled}});});
     connect(minimum,&QDoubleSpinBox::editingFinished,this,[minimum,update]{update({{"minimumMm",minimum->value()}});});
@@ -178,7 +182,7 @@ void AlloyWindow::refreshSliderControls(){
         }
         position->setCurrentIndex(std::max(0,position->findData(inputs["position"].toObject())));
     }
-    for(const auto& key:{"minimumEnabled","maximumEnabled"}){auto* check=sliderDock_->findChild<QCheckBox*>("slider."+QString(key));const QSignalBlocker block(check);check->setChecked(inputs[key].toBool());}
+    for(const auto& key:{"reverseDirection","minimumEnabled","maximumEnabled"}){auto* check=sliderDock_->findChild<QCheckBox*>("slider."+QString(key));const QSignalBlocker block(check);check->setChecked(inputs[key].toBool());}
     for(const auto& key:{"minimumMm","maximumMm","positionMm"}){auto* field=sliderDock_->findChild<QDoubleSpinBox*>("slider."+QString(key));const QSignalBlocker block(field);field->setValue(inputs[key].toDouble());}
     sliderDock_->findChild<QDoubleSpinBox*>("slider.minimumMm")->setEnabled(inputs["minimumEnabled"].toBool());
     sliderDock_->findChild<QDoubleSpinBox*>("slider.maximumMm")->setEnabled(inputs["maximumEnabled"].toBool());

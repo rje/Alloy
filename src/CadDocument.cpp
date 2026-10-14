@@ -1044,7 +1044,10 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
         const auto first=joint["component1OccurrenceId"].toString(),second=joint["component2OccurrenceId"].toString();
         QSet<QString> occurrenceIds;for(const auto& item:candidate["occurrences"].toArray())occurrenceIds.insert(item.toObject()["id"].toString());
         const double minimum=joint["minimumMm"].toDouble(),maximum=joint["maximumMm"].toDouble(),coordinate=joint["positionMm"].toDouble();
-        if(!joints[0].isObject() || joint.size()!=12 || !validId(joint["id"].toString()) || ids.contains(joint["id"].toString())
+        if(!joints[0].isObject() || (joint.size()!=12 && joint.size()!=13)
+            || (joint.size()==13 && !joint.contains("reverseDirection"))
+            || (joint.contains("reverseDirection") && !joint["reverseDirection"].isBool())
+            || !validId(joint["id"].toString()) || ids.contains(joint["id"].toString())
             || joint["type"]!="asBuiltSlider" || !joint["name"].isString() || joint["name"].toString().trimmed().isEmpty()
             || !occurrenceIds.contains(first) || !occurrenceIds.contains(second) || first==second || joint["axis"]!="Y"
             || position.size()!=2 || !validId(position["bodyId"].toString()) || !validId(position["edgeId"].toString())

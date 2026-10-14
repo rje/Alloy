@@ -65,15 +65,22 @@ private slots:
         first->setCurrentIndex(first->findData(lid["occurrenceId"].toString()));
         second->setCurrentIndex(second->findData(box["occurrenceId"].toString()));ledge->setCurrentIndex(ledge->findData(QJsonObject{{"bodyId",fixedBody["bodyId"]},{"edgeId",topEdge["edgeId"]}}));
         minEnable=dock->findChild<QCheckBox*>("slider.minimumEnabled");maxEnable=dock->findChild<QCheckBox*>("slider.maximumEnabled");
+        auto* reverse=dock->findChild<QCheckBox*>("slider.reverseDirection");QVERIFY(reverse && reverse->isVisible());
+        QTest::mouseClick(reverse,Qt::LeftButton);
         maximum=dock->findChild<QDoubleSpinBox*>("slider.maximumMm");QTest::mouseClick(minEnable,Qt::LeftButton);QTest::mouseClick(maxEnable,Qt::LeftButton);
         QTest::mouseClick(maximum,Qt::LeftButton);QTest::keyClick(maximum,Qt::Key_A,Qt::ControlModifier);QTest::keyClicks(maximum,"50");QTest::keyClick(maximum,Qt::Key_Tab);
         buttons=dock->findChild<QDialogButtonBox*>("slider.buttons");QVERIFY(buttons->button(QDialogButtonBox::Ok)->isEnabled());
+        if(!evidence.isEmpty())call(window,"capture.screenshot",{{"path",evidence+"/slider-native-reverse-preview.png"}});
         QTest::mouseClick(buttons->button(QDialogButtonBox::Ok),Qt::LeftButton);
         authored=call(window,"document.inspect")["authored"].toObject();QCOMPARE(authored["joints"].toArray().size(),1);
         const auto joint=authored["joints"].toArray()[0].toObject();
         QCOMPARE(joint["component1OccurrenceId"],lid["occurrenceId"]);QCOMPARE(joint["component2OccurrenceId"],box["occurrenceId"]);
+        QCOMPARE(joint["reverseDirection"],true);
         call(window,"joint.positionSet",{{"jointId",joint["id"]},{"positionMm",20}});
         QCOMPARE(call(window,"joint.inspect")["joints"].toArray()[0].toObject()["coordinateMm"].toDouble(),20.);
+        const auto occurrences=call(window,"joint.inspect")["occurrences"].toArray();
+        for(const auto& value:occurrences)if(value.toObject()["occurrenceId"]==lid["occurrenceId"])
+            QCOMPARE(value.toObject()["bodies"].toArray()[0].toObject()["boundsMm"].toObject()["min"].toArray()[1].toDouble(),-20.);
         if(!evidence.isEmpty())call(window,"capture.screenshot",{{"path",evidence+"/slider-native-driven.png"}});
         call(window,"document.new",{{"discard",true}});window.close();
     }

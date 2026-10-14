@@ -113,8 +113,34 @@ with application(args.app,output) as (call,transcript):
     call('joint.stop')
     assert call('document.inspect')['authored']==driven['authored']
     call('capture.screenshot',{'path':str(output/'slider-reopened.png')})
+    call('joint.slider',{'jointId':joint['id'],'reverseDirection':True})
+    reversed_joint=call('document.inspect')['authored']['joints'][0]
+    assert reversed_joint['reverseDirection'] and reversed_joint['positionMm']==25
+    moving=next(o for o in call('joint.inspect')['occurrences'] if o['occurrenceId']==lid['occurrenceId'])
+    close(moving['translationMm'][1],-25)
+    close(moving['bodies'][0]['boundsMm']['min'][1],-25)
+    call('joint.previewPosition',{'positionMm':50})
+    moving=next(o for o in call('joint.inspect')['occurrences'] if o['occurrenceId']==lid['occurrenceId'])
+    close(moving['bodies'][0]['boundsMm']['max'][1],30)
+    call('joint.stop')
+    reverse_stl=output/'lid-world-reversed-25.stl'
+    call('document.exportStl',{'path':str(reverse_stl),'occurrenceId':lid['occurrenceId'],
+        'units':'mm','format':'binary','surfaceDeviationMm':0.1,'normalDeviationDeg':10})
+    reverse_mesh=inspect_stl(reverse_stl,True)
+    close(reverse_mesh['bounds'][0][1],-25,0.01)
+    close(reverse_mesh['bounds'][1][1],55,0.01)
+    call('capture.screenshot',{'path':str(output/'slider-reversed-25.png')})
+    call('history.undo')
+    assert not call('document.inspect')['authored']['joints'][0].get('reverseDirection',False)
+    call('history.redo')
+    assert call('document.inspect')['authored']['joints'][0]==reversed_joint
+    reverse_path=output/'slider-reversed.alloy'
+    call('document.save',{'path':str(reverse_path)})
+    call('document.open',{'path':str(reverse_path),'discard':True})
+    assert call('document.inspect')['authored']['joints'][0]==reversed_joint
 
 (output/'receipt.json').write_text(json.dumps({'jointId':joint['id'],'boxOccurrenceId':box['occurrenceId'],
     'lidOccurrenceId':lid['occurrenceId'],'position':position,'worldStlBounds':mesh['bounds'],
-    'worldStepBounds':step_read['boundsMm'],'callCount':len(transcript),'transcript':transcript},indent=2)+'\n')
-print('PASS: Slider dialog/Cancel, one DOF, drive/limits, world STEP/STL, undo/reopen, animation')
+    'worldStepBounds':step_read['boundsMm'],'reverseStlBounds':reverse_mesh['bounds'],
+    'callCount':len(transcript),'transcript':transcript},indent=2)+'\n')
+print('PASS: Slider dialog/Cancel, one DOF, drive/limits, both directions, world STEP/STL, undo/reopen, animation')
