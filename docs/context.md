@@ -2,6 +2,12 @@
 
 ## Current queue (2026-10-14)
 
+Continue autonomously across accepted milestones; a status report is not a stop.
+DOC-031/#348 is active for one bounded event-order diagnosis of rename dialog
+focus, reusing main/build. Earlier failed timer experiments remain evidence,
+not a reason to retry them. Sol implements, Astra verifies, and Luna researches
+the next tutorial-relevant sketch ingredient in parallel.
+
 Worktree cleanup removed 180 inactive checkouts, retaining branch refs and a
 verified external artifact archive under
 `maintenance/worktree-cleanup-2026-10-14/`. The subsequently completed `sketch-offset-union` checkout was also retired.
