@@ -280,6 +280,7 @@ void FeaturePattern::mirrorSnapGroup(EvaluatedBody& target,const QJsonObject& fe
     }
     nextFaces.push_back(std::move(cap));
     std::vector<EvaluatedSolidEdge> nextEdges=target.solidEdges;
+    std::vector<EvaluatedSolidEdge> reflectedToolEdges;
     for(auto edge:prior.joinFeatureEdges.value(joinId)){
         if(edge.edge.IsNull())continue;
         const auto mapped=moved.ModifiedShape(edge.edge);
@@ -289,11 +290,19 @@ void FeaturePattern::mirrorSnapGroup(EvaluatedBody& target,const QJsonObject& fe
             QByteArray("alloy-feature-mirror-snap-edge/1/")+edge.edgeId.toUtf8()).toString(QUuid::WithoutBraces);
         reflectEndpoints(edge.provenance);
         edge.provenance["sourceFeatureId"]=joinId;edge.provenance["mirrorFeatureId"]=feature["id"];
+        reflectedToolEdges.push_back(edge);
         nextEdges.push_back(std::move(edge));
+    }
+    std::vector<EvaluatedJoinToolBase> reflectedBases;
+    for(auto base:prior.joinFeatureBases.value(joinId)){
+        const auto mapped=moved.ModifiedShape(base.face);
+        if(mapped.IsNull() || mapped.ShapeType()!=TopAbs_FACE)
+            fail("mirror_source_base_unavailable","Snap Join base face cannot be reflected",joinId);
+        base.face=TopoDS::Face(mapped);reflectedBases.push_back(std::move(base));
     }
     const auto before=GeometryKernel::summarize(target.shape)["volumeMm3"].toDouble();
     target.shape=GeometryKernel::booleanOperation("join",target.shape,{moved.Shape()},
-        &nextFaces,&nextEdges);
+        &nextFaces,&nextEdges,&reflectedToolEdges,feature["id"].toString(),nullptr,&reflectedBases);
     target.supportFaces=std::move(nextFaces);
     target.solidEdges=std::move(nextEdges);
     const auto joined=GeometryKernel::summarize(target.shape)["volumeMm3"].toDouble();

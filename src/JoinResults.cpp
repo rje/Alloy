@@ -69,7 +69,7 @@ GeometryKernel::JoinResult GeometryKernel::joinResults(const QJsonObject& featur
     if(participants.empty() || profiles.empty())reject("join_input_invalid","Join needs earlier participants and selected profiles");
     const auto id=feature["id"].toString();const auto parameters=feature["parameters"].toObject();const double distance=parameters["distanceMm"].toDouble(),start=parameters.value("startOffsetMm").toDouble();
     std::vector<TopoDS_Shape> inputs,tools;std::vector<EvaluatedSupportFace> caps,targetFaces;std::vector<EvaluatedSolidEdge> edges;
-    std::vector<JoinRootEdges::ToolBase> toolBases;
+    std::vector<EvaluatedJoinToolBase> toolBases;
     const bool traceRoots=participants.size()==1 && !participants.front().supportFaces.empty()
         && std::all_of(profiles.begin(),profiles.end(),[](const auto& profile){
             return !profile.boundaryEdges.empty() && std::all_of(profile.boundaryEdges.begin(),profile.boundaryEdges.end(),
@@ -94,7 +94,7 @@ GeometryKernel::JoinResult GeometryKernel::joinResults(const QJsonObject& featur
     for(const auto& item:std::vector<std::pair<TopAbs_ShapeEnum,int>>{{TopAbs_FACE,componentFaces.Extent()},{TopAbs_EDGE,componentEdges.Extent()},{TopAbs_VERTEX,componentVertices.Extent()}}){
         TopTools_IndexedMapOfShape present;TopExp::MapShapes(material,item.first,present);if(present.Extent()!=item.second)reject("join_mixed_result","Join produced geometry outside its closed result solids");}
     JoinResult result;std::vector<int> participantUses(participants.size()),profileUses(profiles.size());bool participatingAddition=false;
-    result.sourceTools=tools;result.sourceCaps=caps;
+    result.sourceTools=tools;result.sourceCaps=caps;result.sourceBases=toolBases;
     for(const auto& edge:edges)if(edge.provenance["generatorFeatureId"]==id)result.sourceEdges.push_back(edge);
     struct Group {EvaluatedBody body;QJsonObject record;};std::vector<Group> groups;
     for(int i=1;i<=solids.Extent();++i){const auto shape=solids(i);auto summary=summarize(shape);
@@ -173,7 +173,9 @@ GeometryKernel::JoinResult GeometryKernel::joinResults(const QJsonObject& featur
         try {
             const auto united=unionProfiles(profiles);
             EvaluatedSupportFace cap;std::vector<EvaluatedSolidEdge> boundaries;
-            auto tool=extrusion(united,distance,&cap,&boundaries,id,nullptr,start);
+            TopoDS_Face base;
+            auto tool=extrusion(united,distance,&cap,&boundaries,id,nullptr,start,&base);
+            result.sourceBases={{united.profileId,base}};
             result.sourceTools={tool};result.sourceCaps={cap};result.sourceEdges=std::move(boundaries);
         }
         catch(const std::exception&) { /* Optional Mirror source stays unavailable; ordinary Join is unchanged. */ }

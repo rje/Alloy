@@ -20,7 +20,7 @@ bool descendant(BRepBuilderAPI_MakeShape& operation,const TopoDS_Shape& source,
 
 std::vector<EvaluatedSolidEdge> JoinRootEdges::publish(BRepBuilderAPI_MakeShape& operation,
     const std::vector<EvaluatedSupportFace>& targetFaces,
-    const std::vector<ToolBase>& toolBases,
+    const std::vector<EvaluatedJoinToolBase>& toolBases,
     const std::vector<EvaluatedSolidEdge>& toolEdges,
     const TopoDS_Shape& result,
     const std::vector<EvaluatedSupportFace>& retainedFaces,

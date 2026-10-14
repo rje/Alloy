@@ -26,6 +26,10 @@ struct EvaluatedSolidEdge {
     TopoDS_Edge edge;
     QJsonObject provenance;
 };
+struct EvaluatedJoinToolBase {
+    QString sourceProfileId;
+    TopoDS_Face face;
+};
 
 struct EvaluatedBody {
     QString featureId, bodyId, name;
@@ -70,6 +74,7 @@ struct EvaluatedDocument {
     QMap<QString,std::vector<TopoDS_Shape>> joinFeatureTools;
     QMap<QString,std::vector<EvaluatedSolidEdge>> joinFeatureEdges;
     QMap<QString,std::vector<EvaluatedSupportFace>> joinFeatureCaps;
+    QMap<QString,std::vector<EvaluatedJoinToolBase>> joinFeatureBases;
     QMap<QString,std::vector<EvaluatedSolidEdge>> finishFeatureInputs;
     QString recompute = "full_ordered";
 };
@@ -87,7 +92,8 @@ public:
     struct JoinResult {std::vector<EvaluatedBody> bodies;QJsonArray ownership;
         std::vector<TopoDS_Shape> sourceTools;
         std::vector<EvaluatedSolidEdge> sourceEdges;
-        std::vector<EvaluatedSupportFace> sourceCaps;};
+        std::vector<EvaluatedSupportFace> sourceCaps;
+        std::vector<EvaluatedJoinToolBase> sourceBases;};
     static JoinResult joinResults(const QJsonObject& feature, const std::vector<EvaluatedBody>& participants,
         const std::vector<EvaluatedProfile>& profiles);
     static gp_Trsf moveTransform(const QJsonObject& parameters);
@@ -102,11 +108,12 @@ public:
     static QJsonObject projectionContext(const EvaluatedDocument& evaluation, const QJsonObject& feature);
     static EvaluatedProfile unionProfiles(const std::vector<EvaluatedProfile>& profiles);
     static double extrusionDistance(const QJsonObject& parameters, const EvaluatedProfile& profile, const EvaluatedDocument& prior);
-    static TopoDS_Shape extrusion(const EvaluatedProfile& profile, double distanceMm, EvaluatedSupportFace* endCap = nullptr, std::vector<EvaluatedSolidEdge>* edges = nullptr, const QString& generatorFeatureId = {}, std::vector<EvaluatedSupportFace>* planarFaces = nullptr, double startOffsetMm = 0);
+    static TopoDS_Shape extrusion(const EvaluatedProfile& profile, double distanceMm, EvaluatedSupportFace* endCap = nullptr, std::vector<EvaluatedSolidEdge>* edges = nullptr, const QString& generatorFeatureId = {}, std::vector<EvaluatedSupportFace>* planarFaces = nullptr, double startOffsetMm = 0, TopoDS_Face* baseFace = nullptr);
     static TopoDS_Shape booleanOperation(const QString& operation, const TopoDS_Shape& target,
         const std::vector<TopoDS_Shape>& tools, std::vector<EvaluatedSupportFace>* retainedFaces = nullptr, std::vector<EvaluatedSolidEdge>* retainedEdges = nullptr,
         const std::vector<EvaluatedSolidEdge>* cutToolEdges = nullptr, const QString& cutFeatureId = {},
-        const std::vector<EvaluatedSupportFace>* cutToolFaces = nullptr);
+        const std::vector<EvaluatedSupportFace>* cutToolFaces = nullptr,
+        const std::vector<EvaluatedJoinToolBase>* joinToolBases = nullptr);
     static QJsonObject summarize(const TopoDS_Shape& shape);
     static std::vector<EvaluatedBody> evaluate(const QJsonObject& authored);
     static EvaluatedDocument evaluateDocument(const QJsonObject& authored);

@@ -11,6 +11,7 @@
 #include "SolidRevolve.h"
 #include "SolidSweep.h"
 #include "FeaturePattern.h"
+#include "JoinRootEdges.h"
 #include "SolidMirror.h"
 #include "CircularPattern.h"
 #include <BRepBuilderAPI_Transform.hxx>
@@ -474,7 +475,7 @@ double GeometryKernel::extrusionDistance(const QJsonObject& p,const EvaluatedPro
     return resolved;
 }
 
-TopoDS_Shape GeometryKernel::extrusion(const EvaluatedProfile& sourceProfile, double distanceMm, EvaluatedSupportFace* endCap, std::vector<EvaluatedSolidEdge>* edges, const QString& generatorFeatureId, std::vector<EvaluatedSupportFace>* planarFaces, double startOffsetMm) {
+TopoDS_Shape GeometryKernel::extrusion(const EvaluatedProfile& sourceProfile, double distanceMm, EvaluatedSupportFace* endCap, std::vector<EvaluatedSolidEdge>* edges, const QString& generatorFeatureId, std::vector<EvaluatedSupportFace>* planarFaces, double startOffsetMm, TopoDS_Face* baseFace) {
     if (!std::isfinite(distanceMm) || std::abs(distanceMm) < 0.001 || std::abs(distanceMm) > 100000)
         throw std::invalid_argument("Extrusion distance must be signed 0.001..100000 mm; zero is unsupported");
     if(!std::isfinite(startOffsetMm) || std::abs(startOffsetMm)>100000)
@@ -505,6 +506,12 @@ TopoDS_Shape GeometryKernel::extrusion(const EvaluatedProfile& sourceProfile, do
         normal[1].toDouble()*distanceMm,normal[2].toDouble()*distanceMm),true,true);
     if (!prism.IsDone()) throw std::runtime_error("OCCT could not build the profile extrusion");
     const auto shape = prism.Shape();
+    if(baseFace){const auto base=prism.FirstShape();
+        if(base.IsNull() || base.ShapeType()!=TopAbs_FACE)
+            throw std::runtime_error("Prism has no exact base face");
+        TopTools_IndexedMapOfShape currentFaces;TopExp::MapShapes(shape,TopAbs_FACE,currentFaces);
+        if(!currentFaces.Contains(base))throw std::runtime_error("Prism base face is not current");
+        *baseFace=TopoDS::Face(base);}
     if(edges) *edges=SolidFillet::prismEdges(prism,profile,generatorFeatureId);
     if(planarFaces)*planarFaces=PlanarFaces::prismSides(prism,profile,generatorFeatureId,distanceMm);
     if(endCap) {
@@ -573,7 +580,8 @@ gp_Trsf GeometryKernel::moveTransform(const QJsonObject& parameters) {
 TopoDS_Shape GeometryKernel::booleanOperation(const QString& operation, const TopoDS_Shape& target,
     const std::vector<TopoDS_Shape>& tools, std::vector<EvaluatedSupportFace>* retainedFaces, std::vector<EvaluatedSolidEdge>* retainedEdges,
     const std::vector<EvaluatedSolidEdge>* cutToolEdges,const QString& cutFeatureId,
-    const std::vector<EvaluatedSupportFace>* cutToolFaces) {
+    const std::vector<EvaluatedSupportFace>* cutToolFaces,
+    const std::vector<EvaluatedJoinToolBase>* joinToolBases) {
     auto reject = [](const QString& code, const QString& message) {
         throw EvaluationError({{"code",code},{"message",message}});
     };
@@ -632,11 +640,13 @@ TopoDS_Shape GeometryKernel::booleanOperation(const QString& operation, const To
     const auto summary = summarize(shape);
     if (!summary["valid"].toBool() || !summary["closed"].toBool() || !summary["volumeMm3"].isDouble())
         reject("boolean_result_invalid","Boolean operation did not produce a valid closed positive-volume solid");
+    std::vector<EvaluatedSupportFace> priorFaces;
     if(retainedFaces) {
-        const auto sources=*retainedFaces;
+        priorFaces=*retainedFaces;
+        const auto& sources=priorFaces;
         *retainedFaces=PlanarFaces::transfer(builder,sources,shape);
-        if(cutToolEdges)PlanarFaces::retainLinearCutBoundaries(builder,sources,*cutToolEdges,*retainedFaces,cutFeatureId);
-        if(cutToolEdges && cutToolFaces)
+        if(operation=="cut" && cutToolEdges)PlanarFaces::retainLinearCutBoundaries(builder,sources,*cutToolEdges,*retainedFaces,cutFeatureId);
+        if(operation=="cut" && cutToolEdges && cutToolFaces)
             PlanarFaces::retainLinearCutSides(builder,*cutToolFaces,*cutToolEdges,shape,*retainedFaces,cutFeatureId);
     }
     if(retainedEdges) {
@@ -644,6 +654,13 @@ TopoDS_Shape GeometryKernel::booleanOperation(const QString& operation, const To
         if(operation=="cut" && retainedFaces && cutToolEdges && !cutFeatureId.isEmpty()) {
             auto rims=PlanarFaces::solidLinearCutRims(*retainedFaces,*cutToolEdges,shape,cutFeatureId);
             retainedEdges->insert(retainedEdges->end(),rims.begin(),rims.end());
+        }
+        if(operation=="join" && retainedFaces && cutToolEdges && joinToolBases && !cutFeatureId.isEmpty()){
+            const auto roots=JoinRootEdges::publish(builder,priorFaces,*joinToolBases,*cutToolEdges,
+                shape,*retainedFaces,cutFeatureId);
+            for(const auto& root:roots)if(std::none_of(retainedEdges->begin(),retainedEdges->end(),
+                [&](const auto& item){return !item.edge.IsNull() && item.edge.IsSame(root.edge);}))
+                retainedEdges->push_back(root);
         }
     }
     return shape;
@@ -940,7 +957,8 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
                         auto joined=joinResults(feature,participants,selected);
                         if(joined.sourceTools.size()==1){evaluated.joinFeatureTools[id]=joined.sourceTools;
                             evaluated.joinFeatureEdges[id]=joined.sourceEdges;
-                            evaluated.joinFeatureCaps[id]=joined.sourceCaps;}
+                            evaluated.joinFeatureCaps[id]=joined.sourceCaps;
+                            evaluated.joinFeatureBases[id]=joined.sourceBases;}
                         std::erase_if(evaluated.bodies,[&](const auto& body){return targets.contains(body.bodyId);});
                         evaluated.bodies.insert(evaluated.bodies.end(),joined.bodies.begin(),joined.bodies.end());
                         evaluated.joinBodyResults[id]=joined.ownership;
