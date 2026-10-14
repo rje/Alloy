@@ -168,6 +168,11 @@ and six driving dimensions, with a complete API creation movie and editable
 sketch. Exact edit/history/reopen checks passed in a separate saved-model run.
 This source ends at Finish Sketch and does not produce a print mesh.
 
+[Two-line Collinear](docs/validation/sketch-line-collinear.md) now aligns
+connected or separated authored straight lines with one retained constraint and
+selectable badge. A split-edge plate preserves its profile and solid through
+dimension edits, history and reopen; focused native input passes.
+
 [Explicit arc-line Tangent](docs/validation/sketch-arc-line-tangent.md) now
 constrains an arc and line sharing an endpoint, with either native pick order
 and retained badges. A rounded plate stays tangent through radius/width edits,
