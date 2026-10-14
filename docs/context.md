@@ -109,10 +109,15 @@ observed passively before Paste. Recording04 passes3/3 in63.150s;62s movie930fra
 film/model are in external gallery #piston-native-workflow, all172 links resolve.
 Supplied-model, camera/numeric supplement, local-storage and Qt-not-OS limits stay
 explicit; no collision/global-rank/smooth-FPS claim. No ingredient reruns needed.
-Next active gate is ASM-012/#343: physical Browser body and Sketches-folder drag.
-Sol recovers fixture/normal app; root checks CUA availability and takes GUI lease
-for exact gestures; Astra verifies. Previous cgWindowNotFound access blocker must
-be rechecked once, not worked around with context actions or endless attempts.
+ASM-012/#343 returned Todo after bounded physical-control recheck. Normal app
+launch/full-path CUA now acquires AX and screenshots, but two body drags (label
+and row margin) did not change ownership. Logs show native press/release10/14ms
+apart without recorded held motion; move throttling makes this inconclusive.
+No successful QDrag/drop or product failure asserted; folder drag not attempted.
+Source review flags mutable currentItem drag source and embedded label routing
+for a future focused trace. Evidence/receipt are external under
+component-reparent-2026-10-14/asm012-prepared/. Private editor closed; no user
+model altered. Choose another ready bounded task, not repeat access attempts.
 Backlog is402 issues with acyclic dependencies. Astra independently verifies.
 Only main and its existing build are used; no inactive worktrees accumulate.
 DOC-031/#348 is independently accepted at `89782cf`: unchanged-product native09
