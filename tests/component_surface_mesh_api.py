@@ -21,6 +21,9 @@ with application(a.app, out) as (call, ledger):
     if solid['ownerId'] != sheet['ownerId']:
         call('component.reparent', {'destinationId': sheet['ownerId'], 'bodyId': solid['bodyId']})
     before = call('document.inspect')
+    call('document.save', {'path': str(out / 'organized-component.alloy')})
+    call('document.open', {'path': str(out / 'organized-component.alloy')})
+    assert call('document.inspect')['authored'] == before['authored']
     occurrence, = [o for o in before['authored']['occurrences'] if o['definitionId'] == sheet['ownerId']]
     settings = {'path': str(out / 'component-mm.stl'), 'units': 'mm', 'format': 'binary',
                 'surfaceDeviationMm': .1, 'normalDeviationDeg': 10}

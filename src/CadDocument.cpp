@@ -390,8 +390,9 @@ QJsonObject solveSketches(QJsonObject candidate,int firstFeature=0,const Evaluat
         QJsonObject projectionContext;
         if(feature["parameters"].toObject()["plane"]=="face" || feature["parameters"].toObject()["plane"]=="construction") {
             auto prior=candidate;QJsonArray prefix;for(int j=0;j<i;++j)prefix.append(features[j]);prior["features"]=prefix;
-            // A body display name belongs to the finished document, not a
-            // modeling prefix before the named Split result exists.
+            // Final Browser ownership and names can reference bodies created
+            // after this modeling prefix; keep original authoring context.
+            prior.remove("objectOwners");
             prior.remove("bodyNames");
             try {projectionContext=GeometryKernel::projectionContext(seed ? *seed : GeometryKernel::evaluateDocument(prior),feature);}
             catch(const GeometryKernel::EvaluationError& error) {
