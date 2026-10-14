@@ -1,6 +1,6 @@
 # Retained planar To Object extent candidate
 
-SOL-043, 2026-10-13. Independently accepted bounded ingredient; integration pending.
+SOL-043, 2026-10-13. Independently accepted bounded ingredient; integrated on main; combined build and focused core checks pass.
 
 The candidate authors an end-face reference and a separate signed end offset.
 GeometryKernel resolves the current earlier face and sketch frame for each

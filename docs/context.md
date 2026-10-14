@@ -1,17 +1,13 @@
 # Continuation context
 
-## As-built Slider isolated candidate (2026-10-13)
+## Accepted advanced tutorial ingredients (2026-10-13)
 
-ASM-005 is an unintegrated candidate in `feat/as-built-slider`, based on main
-`3f7650a`. Its [bounded contract and current evidence](validation/as-built-slider.md)
-cover one root-sibling Box/Lid joint, stable ledge Position, Y-axis one-DOF
-drive/limits, definition-versus-world pose, Browser/native controls, and world
-export. Focused core, existing local-component, native Qt and real-app API
-checks pass with independent bounded acceptance; integration remains pending. Evidence
-is external at `deliverables/as-built-slider-2026-10-13/candidate-01`.
-The private editor is closed and its lease was returned to root. General joint
-graphs and full tutorial completion remain
-separate work.
+ASM-005/#296 Slider is integrated and independently accepted. SOL-043/#274
+To Object and SKT-070/#306 typed Line length/angle are independently accepted
+and integrated; the combined app build and six focused core checks pass. Their receipts are
+[Slider](validation/as-built-slider.md), [To Object](validation/extrude-to-object.md)
+and [typed Line](validation/typed-line-angle.md). These are bounded ingredients;
+the cumulative sliding-lid tutorial gate remains open.
 
 ## Primitive Box topology candidate (2026-10-13)
 
@@ -43,19 +39,27 @@ undo/redo and exact reopen with an inspected hardware GPU capture. Receipt in
 `deliverables/sliding-box-2026-10-13/prefix-01`. Both issues are closed.
 SKT-066/#272 linked Project and SOL-044/#275 Offset-start Extrude are also
 independently accepted and integrated. The full lid workflow/movie remains open.
-Active source features are SKT-070/#306 typed Line length/angle and ASM-005/#296
-As-built Slider, each in an isolated worktree with Sol implementation and Astra
-verification. Root also implements SOL-043/#274 To Object in the isolated
-extrude-to-object worktree: core target/clearance/Cut/sibling/history checks pass;
-app and native controls test build, with runtime and independent acceptance pending.
-The candidate includes signed end-cap support and derives extent from current
-retained face geometry, never a frozen authored distance. REL-008/#308 is independently source-accepted: a non-mutating optional-origin
+Active source features are SKT-067/#273 open-chain Offset and PAR-005/#276
+model parameter table, each in an isolated worktree with Sol implementation and
+Astra verification. The Offset must retain the five-segment open dovetail chain,
+include top shoulders and leave the original top closure separately authored.
+The parameter table must rebind existing numeric modeling inputs, preserving
+stable parameter identity. Root integrates accepted ingredients and prepares the
+cumulative source-order gate. The new `tests/sliding_lid_workflow_api.py` passes
+the numeric Box-component/Shell prefix, projected 4 mm/55 degree dovetail,
+source-style short Midpoint axis and endpoint Horizontal constraint, Mirror,
+actual trapezoid To Object Cut, undo/redo and exact reopen. Captures/ledger are
+external at `deliverables/sliding-box-2026-10-13/dovetail-prefix-03`; independent
+prefix review accepted the source, ledger, analytic cut volume and GPU capture. It uses the mirrored left half rather than asserting
+the source right-half screen sequence. Lid, parameter-table and thumb-divot
+stages are not yet present in this cumulative runner. To Object derives extent from current retained face
+geometry, never a frozen authored distance. REL-008/#308 is independently source-accepted: a non-mutating optional-origin
 read repairs general sketch Fillet, and existing face-support diagnostics are
 preserved. Existing focused Fillet/Project checks pass. The larger face_support
 fixture remains intermittently blocked by separately tracked GEO-006 edge
 provenance ambiguity; no clean-suite claim is made.
 The integrated Project app builds and its focused core test passes. Root owns the
-sole private-editor lease, currently loaned to the Slider implementer. Later source/input
+sole private-editor lease; no private editor is currently running. Later source/input
 qualification remains explicit. Five gates have 38 new prerequisite/research/gate
 tasks; two separately tracked regressions make 309 total canonical issues.
 
