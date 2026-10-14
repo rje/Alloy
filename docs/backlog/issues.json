@@ -6460,6 +6460,20 @@
         "area:performance"
       ],
       "body": "Split the remaining native profiling gate from REL-010 so the completed implementation can close independently.\n\n## Acceptance\n- Once desktop interaction is usable, run one short actual Upper Arm drag on the accepted 3R+1C fixture, separating input, solver, presentation and capture overhead. Use the existing 223 ms event as historical context, not a controlled baseline.\n- Record a small matched before/after native event sequence if a comparable baseline is available; otherwise explicitly qualify the limitation. State build, hardware, capture state, joint count and raw timings. Inspect the visible response.\n- Confirm original-joint and Pin checks and exact Revert using established authorities. Do not repeat broad geometry/history/export tests.\n- No frame-rate claim from isolated events and no solver tolerance relaxation. One meaningful bounded measurement and reviewed native capture suffice.\n\nREL-010 API-06 proves one solve per preview command with zero additional refresh solves. Same-process core timing measures the shared evaluation path only. Neither replaces this native gate.\n\nCurrent environment limitation: desktop computer-use could not attach to Alloy (cgWindowNotFound); API checks remained functional. Keep Todo until usable input is available. Research and recordings remain external."
+    },
+    {
+      "key": "SKT-077",
+      "title": "Validate native origin snapping on a fresh displaced-face sketch",
+      "kind": "validation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-075"
+      ],
+      "labels": [
+        "area:skt"
+      ],
+      "body": "Split native input qualification from the versioned fresh face-sketch origin implementation.\n\n## Acceptance\n- When desktop input is available, create a sketch on one displaced planar face through the normal native path and use the rectangle or circle tool to snap its center to the displayed origin. No inter-step focus repair or direct coordinate injection may substitute for this input.\n- Verify the actual authored center maps to the projected owning-component origin on the support plane, and inspect readable origin/constraint annotations in a GPU capture. State Qt-delivered vs OS input provenance.\n- Finish and reopen/edit once through existing authority; keep geometry and legacy-format checks from SKT-075 rather than rerunning its entire core suite.\n- Existing face axes are retained; arbitrary placed/ambiguous support and construction-plane origin policies are not qualified by this gate.\n\nSKT-075 core/API/capture evidence alone is not native pointer-snapping proof. Current desktop-control limitation was cgWindowNotFound; keep Todo until usable input is available. Public source provenance stays in the external face-sketch-origin contract."
     }
   ]
 }

@@ -382,3 +382,4 @@ This is a publication snapshot. Use `python3 tools/backlog.py ready` for the liv
 | [#356 REL-009: Reuse solved prefixes within enclosure recompute](https://github.com/rje/Alloy/issues/356) | P4 Initial release | implementation | P1 | [#268](https://github.com/rje/Alloy/issues/268) |
 | [#367 REL-010: Reuse coupled assembly evaluation within a preview update](https://github.com/rje/Alloy/issues/367) | P4 Initial release | implementation | P2 | [#364](https://github.com/rje/Alloy/issues/364) |
 | [#374 REL-011: Validate native assembly drag responsiveness after evaluation reuse](https://github.com/rje/Alloy/issues/374) | P4 Initial release | validation | P2 | [#367](https://github.com/rje/Alloy/issues/367) |
+| [#375 SKT-077: Validate native origin snapping on a fresh displaced-face sketch](https://github.com/rje/Alloy/issues/375) | P2 Parametric modeling | validation | P1 | [#332](https://github.com/rje/Alloy/issues/332) |
