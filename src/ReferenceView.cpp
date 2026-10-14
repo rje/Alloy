@@ -403,6 +403,8 @@ void ReferenceView::displayBodies(const std::vector<EvaluatedBody>& bodies) {
         model->SetOwnDeviationCoefficient(0.0005);
         model->SetOwnDeviationAngle(0.10);
         model->SetColor(Quantity_Color(0.67,0.72,0.76,Quantity_TOC_RGB));
+        const double opacity=body.summary.value("opacity").toDouble(1.0);
+        if(opacity<1.0)model->SetTransparency(1.0-opacity);
         model->Attributes()->SetFaceBoundaryDraw(true);
         model->Attributes()->SetFaceBoundaryAspect(new Prs3d_LineAspect(Quantity_Color(0.20,0.25,0.29,Quantity_TOC_RGB),Aspect_TOL_SOLID,1));
         // OCCT 7.9.3 whole-cylinder selection can invert prism bounds.
@@ -1694,6 +1696,8 @@ QJsonObject ReferenceView::pickSolidEdge(double x,double y,const std::vector<Eva
             const double depth=gp_Vec(ray.Location(),world).Dot(gp_Vec(ray.Direction()));
             if(hit.IsDone() && hit.NbPnt()>0 && hit.WParameter(1)<depth-view_->Camera()->Scale()/std::max(height(),1)*2)continue;
             best=distance;result={{"bodyId",body.bodyId},{"edgeId",edge.edgeId},{"kind","edge"},{"distancePx",distance}};
+            if(!body.occurrenceId.isEmpty()){result["occurrenceId"]=body.occurrenceId;result["definitionId"]=body.definitionId;}
+            if(body.summary.contains("outerOccurrenceId"))result["outerOccurrenceId"]=body.summary["outerOccurrenceId"];
         }
     }
     return result;

@@ -6,6 +6,37 @@ SOL-045/#279 independently accepted: two closed solids from an active body and
 retained construction plane, stable signed-side IDs and cap references, closed
 cavity partition, edits/history/reopen, named native selectors and separate STL
 readback. See [Split Body receipt](validation/split-body-plane.md).
+## Active local reference insertion candidate (2026-10-13)
+
+ASM-010/#314 in `feat/local-reference-insert` extends the accepted embedded
+XDE graph with a local source locator and one outer rigid placement owned by
+the import feature. A new local component owns its imported bodies; component
+opacity is a separate presentation value. Move previews a pending pose;
+Capture Position commits it and Revert discards it. Modeling, save and export
+refuse while a pose is pending. An explicit Update reports missing or changed
+source; byte-identical input remains current. Changed-byte topology
+correspondence is tracked separately by ASM-011/#315, rather than silently
+reusing face/edge IDs. The bounded core test and real-app workflow pass on the
+qualified twelve-solid board: moved face and edge ray picks, sibling Case
+Project following Capture, opacity, history/reopen, and source-state refusal.
+Native Qt typed Move preview/Cancel passes with inspected captures. Astra's
+independent candidate review remains pending. See
+[local reference candidate](validation/local-reference-insert.md).
+
+## Accepted STEP assembly import (2026-10-13)
+
+XCH-009 in the isolated `feat/step-assembly-import` worktree implemented
+one retained XDE solid assembly import transaction. It embeds the source and
+source-derived graph, preserves nested/repeated identities, evaluates placed
+leaf solids for rendering/inspection/export, and exposes a read-only Browser
+hierarchy. Focused core tests pass on a synthetic nested rotated repeat and
+the external twelve-solid board fixture. A 30-call real-app API run and a
+physical Qt Browser leaf-click test pass, with inspected GPU captures;
+independent bounded review accepted the candidate and main integrated it.
+Viewport ray-picking of a moved imported occurrence is covered by ASM-010's
+candidate gate. See
+[STEP assembly candidate](validation/step-assembly-import.md). XCH-003 and
+ASM-006 retain broader exchange fidelity and editable insertion.
 
 ## Current implementation lanes (2026-10-13)
 

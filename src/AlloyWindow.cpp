@@ -3,6 +3,7 @@
 #include <QWindow>
 #include "AlloyWindow.h"
 #include "AssemblySlider.h"
+#include "LocalReference.h"
 #include "CommandIcons.h"
 #include "MeshExport.h"
 #include "StepExchange.h"
@@ -186,6 +187,7 @@ AlloyWindow::AlloyWindow() {
     fileMenu->addAction("Save",QKeySequence::Save,this,[this] { execute("document.saveDialog"); });
     fileMenu->addAction("Save As…",QKeySequence::SaveAs,this,[this] { execute("document.saveAsDialog"); });
     fileMenu->addAction("Export…",this,[this] { execute("document.exportStepDialog"); });
+    fileMenu->addAction("Insert Local Reference…",this,[this] { execute("reference.insertDialog"); });
     fileMenu->addAction("Save As Mesh…",this,[this] { execute("document.exportMeshDialog"); });
     fileMenu->addAction("Document Settings…", this, [this] { execute("document.settings"); });
     fileMenu->addSeparator();
@@ -397,6 +399,27 @@ AlloyWindow::AlloyWindow() {
     connect(tree_,&QTreeWidget::customContextMenuRequested,this,[this](const QPoint& point){
         const auto* item=tree_->itemAt(point);
         if(!item || item->isHidden())return;
+        if(const auto definition=item->data(0,Qt::UserRole+3).toString();!definition.isEmpty()){
+            QMenu menu(this);auto* opacity=menu.addAction("Opacity Control…");
+            if(menu.exec(tree_->viewport()->mapToGlobal(point))==opacity){
+                bool ok=false;const int value=QInputDialog::getInt(this,"Opacity Control","Opacity (%)",100,0,100,5,&ok);
+                if(ok)execute("component.opacitySet",{{"definitionId",definition},{"opacity",value/100.0}});
+            }return;
+        }
+        QString linkedFeature=item->data(0,Qt::UserRole+6).toString();
+        if(linkedFeature.isEmpty() && !item->data(0,Qt::UserRole+7).toString().isEmpty()){
+            auto* ancestor=item->parent();while(ancestor && linkedFeature.isEmpty()){linkedFeature=ancestor->data(0,Qt::UserRole+6).toString();ancestor=ancestor->parent();}
+        }
+        if(!linkedFeature.isEmpty())for(const auto& value:document_->authored()["features"].toArray()){
+            const auto feature=value.toObject();if(feature["id"]!=linkedFeature || !feature["parameters"].toObject().contains("reference"))continue;
+            QMenu menu(this);auto* move=menu.addAction("Move/Copy…");auto* capture=menu.addAction("Capture Position");
+            auto* revert=menu.addAction("Revert Position");auto* update=menu.addAction("Update Reference");
+            capture->setEnabled(!pendingReference_.isEmpty());revert->setEnabled(!pendingReference_.isEmpty());
+            const auto* action=menu.exec(tree_->viewport()->mapToGlobal(point));
+            if(action==move)execute("reference.moveDialog",{{"featureId",linkedFeature}});
+            if(action==capture)execute("reference.capture");if(action==revert)execute("reference.revert");
+            if(action==update)execute("reference.update",{{"featureId",linkedFeature}});return;
+        }
         if((item->parent() && item->parent()->data(0,Qt::UserRole+4)=="sketches") || (item->parent() && item->parent()->data(0,Qt::UserRole+4)=="planes")) {
             const auto id=item->data(0,Qt::UserRole+2).toString();
             execute((item->parent() && item->parent()->data(0,Qt::UserRole+4)=="planes") ? "selection.planeSet" : "selection.sketchSet",(item->parent() && item->parent()->data(0,Qt::UserRole+4)=="planes") ? QJsonObject{{"planeId",id}} : QJsonObject{{"sketchId",id}});
@@ -460,7 +483,8 @@ AlloyWindow::AlloyWindow() {
         });
     });
     connect(tree_,&QTreeWidget::itemDoubleClicked,this,[this](QTreeWidgetItem* item,int) {
-        if(!item || item->isHidden() || !(item->flags()&Qt::ItemIsEnabled))return;const auto feature=item->data(0,Qt::UserRole+2).toString();
+        if(!item || item->isHidden() || !(item->flags()&Qt::ItemIsEnabled))return;
+        const auto feature=item->data(0,Qt::UserRole+6).toString().isEmpty() ? item->data(0,Qt::UserRole+2).toString() : item->data(0,Qt::UserRole+6).toString();
         if(item->parent()==jointsNode_){execute("joint.sliderDialog",{{"jointId",item->data(0,Qt::UserRole+5).toString()}});return;}
         const auto tabId=activeTabId_;
         if(!feature.isEmpty())QTimer::singleShot(0,this,[this,feature,tabId]{if(tabId!=activeTabId_)return;
@@ -511,6 +535,8 @@ AlloyWindow::AlloyWindow() {
     auto* editMenu=menuBar()->addMenu("Edit");
     editMenu->addAction("Undo",QKeySequence::Undo,this,[this]{execute("history.undo");});
     editMenu->addAction("Redo",QKeySequence::Redo,this,[this]{execute("history.redo");});
+    editMenu->addAction("Capture Position",this,[this]{execute("reference.capture");});
+    editMenu->addAction("Revert Position",this,[this]{execute("reference.revert");});
     auto* deleteSelection=editMenu->addAction("Delete Selection");deleteSelection->setObjectName("command.deleteSelection");
     deleteSelection->setShortcuts({QKeySequence::Delete,QKeySequence(Qt::Key_Backspace)});
     connect(deleteSelection,&QAction::triggered,this,[this]{
@@ -747,6 +773,7 @@ QJsonObject AlloyWindow::timelineState() const {
 }
 
 QString AlloyWindow::tabSwitchBlocker() const {
+    if(!pendingReference_.isEmpty())return "Capture or Revert the pending reference position before switching designs";
     if(session_.isEmpty())return {};
     if(session_.value("command")=="joint.slider")return "Complete or cancel the active Slider before switching designs";
     if(session_.value("command")!="sketch.edit")return "Complete or cancel the active command before switching designs";
@@ -801,7 +828,8 @@ void AlloyWindow::showActiveTab() {
 bool AlloyWindow::tabHasUnsavedWork(const QString& tabId) const {
     for(const auto& tab:designTabs_)if(tab->id==tabId) {
         const auto session=tabId==activeTabId_ ? session_ : tab->session;
-        return !tab->document->history().isClean() || session.value("command")=="sketch.edit";
+        return !tab->document->history().isClean() || session.value("command")=="sketch.edit"
+            || (tabId==activeTabId_ && !pendingReference_.isEmpty());
     }
     return false;
 }
@@ -864,6 +892,7 @@ void AlloyWindow::registerCommands() {
     };
     registerSectionCommands();
     registerSliderCommands();
+    registerLocalReferenceCommands();
     add("app.state", "Inspect state", "Read authoritative real-window shell state.", {}, [this](const auto&) { return state(); });
     add("app.identity", "Instance identity", "Protocol, process, window and unique instance identity.", {}, [this](const auto&) { return identity(); });
     auto kernelLength=parameter("number","Primitive length in millimeters.");
@@ -1028,8 +1057,15 @@ void AlloyWindow::registerCommands() {
         QJsonArray imported;
         for(const auto& value:document_->authored()["features"].toArray()) {
             const auto feature=value.toObject();if(feature["type"]!="stepAssemblyImport")continue;
-            imported.append(QJsonObject{{"featureId",feature["id"]},{"name",feature["name"]},
-                {"readOnly",true},{"assembly",feature["parameters"].toObject()["assembly"]}});
+            const auto parameters=feature["parameters"].toObject();const auto linked=parameters["reference"].toObject();
+            QJsonObject row{{"featureId",feature["id"]},{"name",feature["name"]},
+                {"readOnly",true},{"assembly",parameters["assembly"]}};
+            if(!linked.isEmpty()){
+                row["linked"]=true;row["ownerId"]=feature["ownerId"];
+                row["outerOccurrenceId"]=LocalReference::outerOccurrenceId(feature["id"].toString());
+                row["outerPlacement"]=linked["outerPlacement"];
+            }
+            imported.append(row);
         }
         return QJsonObject{{"rootId",document_->authored()["documentId"]},{"activeOwnerId",document_->activeOwnerId()},
             {"components",document_->authored()["components"].toArray()},{"occurrences",document_->authored()["occurrences"].toArray()},
@@ -1348,6 +1384,11 @@ void AlloyWindow::registerCommands() {
     });
     add("view.projectEdge","Project named solid edge","Project the actual current provenance edge midpoint.",{{"bodyId",parameter("string","Retained body UUID.")},{"edgeId",parameter("string","Stable edge UUID.")}},[this](const auto& a){
         const auto bodies=session_.value("command")=="solid.fillet" ? filletInputBodies() : presentationBodies();for(const auto& body:bodies)if(body.bodyId==a["bodyId"].toString())for(const auto& edge:body.solidEdges)if(edge.edgeId==a["edgeId"].toString() && !edge.edge.IsNull())return view_->projectSolidEdge(edge);return failure("edge_unavailable","Named edge unavailable");
+    });
+    auto edgePixel=parameter("number","Viewport-local logical pixel coordinate.");edgePixel["minimum"]=0;edgePixel["maximum"]=10000;
+    add("selection.edgePick","Pick retained solid edge","Screen-pick a visible retained solid edge, including imported occurrence identity.",{{"x",edgePixel},{"y",edgePixel}},[this](const auto& a){
+        const auto hit=view_->pickSolidEdge(a["x"].toDouble(),a["y"].toDouble(),presentationBodies());
+        return hit.isEmpty() ? failure("edge_unavailable","No retained solid edge is at that viewport point") : hit;
     });
     QJsonObject moveSchema{{"steps",optional(parameter("array","Accumulated local rigid gesture deltas."))},{"targetBodyId",optional(parameter("string","Retained earlier body UUID."))},{"featureId",optional(featureId)},{"name",optional(parameter("string","Move feature name."))}};
     for(const auto& key:{"xMm","yMm","zMm","xDeg","yDeg","zDeg","pivotXMm","pivotYMm","pivotZMm"}){auto value=parameter("number","Local triad delta mm/degrees, or world pivot mm.");value["minimum"]=-100000;value["maximum"]=100000;moveSchema[key]=optional(value);}
@@ -3196,6 +3237,7 @@ void AlloyWindow::registerCommands() {
                 auto inputs=p;inputs["featureId"]=feature["id"];inputs["name"]=feature["name"];
                 return beginSession("solid.combine",inputs);
             }
+            if(feature["type"]=="stepAssemblyImport" && p.contains("reference"))return showReferenceMove(feature["id"].toString());
             if(feature["type"]=="stepImport" || feature["type"]=="stepAssemblyImport")
                 return failure("import_source_readonly","The imported STEP source is embedded in this feature. Edit later features or import a replacement file.","featureId");
             const auto unit=document_->authored()["displayUnits"].toString();const double scale=unit=="in" ? 25.4 : 1;
@@ -3793,10 +3835,20 @@ QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
     };
     const auto* command = findCommand(id);
     if (!command) return finish(failure("unknown_command", "No command named " + id));
+    if(!pendingReference_.isEmpty()){
+        const bool blocked=id.startsWith("solid.") || id.startsWith("primitive.") || id.startsWith("sketch.")
+            || id.startsWith("construction.") || id.startsWith("feature.") || (id.startsWith("component.") && id!="component.inspect")
+            || id.startsWith("document.save") || id.startsWith("document.export") || id.startsWith("document.open")
+            || id=="document.new" || id=="document.importStep" || id.startsWith("history.")
+            || id=="reference.insert" || id=="reference.insertDialog" || id=="reference.update" || id=="reference.moveDialog"
+            || id=="command.begin" || id=="command.update" || id=="command.commit";
+        if(blocked)return finish(failure("pending_reference_position","Capture Position or Revert the pending local reference placement first"));
+    }
     if(nonzeroAssemblyPose()){
         const bool modeling=id.startsWith("solid.") || id.startsWith("primitive.") || id.startsWith("sketch.")
             || id.startsWith("construction.") || id.startsWith("feature.") || id=="component.create" || id=="component.newDialog"
-            || id=="document.importStep" || (id=="command.begin" && args.value("command").toString()!="joint.slider")
+            || id=="document.importStep" || (id.startsWith("reference.") && id!="reference.inspect" && id!="reference.revert")
+            || (id=="command.begin" && args.value("command").toString()!="joint.slider")
             || ((id=="command.update" || id=="command.commit") && session_.value("command")!="joint.slider" && !session_.isEmpty());
         if(modeling)return finish(failure("assembly_pose_active","Return the Slider to its assembled position before modeling"));
     }
@@ -3909,7 +3961,7 @@ QJsonObject AlloyWindow::state() const {
     return {{"application", "Alloy"}, {"version", "0.1.0"}, {"stage", "sketch-authoring"},
         {"runtime", QJsonObject{{"qtVersion", qVersion()}, {"occtBuildVersion", ALLOY_OCCT_VERSION}}},
         {"revision", static_cast<qint64>(revision_)},
-        {"identity", identity()}, {"activeSession", session_}, {"assembly",presentationAssembly()}, {"documentTabs",documentTabs()},
+        {"identity", identity()}, {"activeSession", session_}, {"pendingReferencePosition",pendingReference_}, {"assembly",presentationAssembly()}, {"documentTabs",documentTabs()},
         {"inlineEditor",inlineEditorState()},
         {"focus",QJsonObject{{"widgetClass",QApplication::focusWidget() ? QApplication::focusWidget()->metaObject()->className() : ""},
             {"widgetName",QApplication::focusWidget() ? QApplication::focusWidget()->objectName() : QString{}},
@@ -4005,7 +4057,8 @@ void AlloyWindow::refresh() {
             const auto featureId=feature["id"].toString();liveImports.insert(featureId);
             auto* folder=ownerFolder(feature["ownerId"].toString(),"bodies",bodiesNode_);
             auto* root=browserRow(folder,featureId,Qt::UserRole+6);
-            root->setData(0,Qt::UserRole+6,featureId);root->setText(0,feature["name"].toString()+" (STEP Assembly)");
+            const auto linked=feature["parameters"].toObject().contains("reference");
+            root->setData(0,Qt::UserRole+6,featureId);root->setText(0,feature["name"].toString()+(linked ? " (Linked STEP)" : " (STEP Assembly)"));
             root->setToolTip(0,root->text(0));
             root->setHidden(false);root->setExpanded(true);
             root->setFlags(root->flags()|Qt::ItemIsEnabled);
@@ -5563,6 +5616,7 @@ QJsonObject AlloyWindow::selectSupportFace(const QJsonObject& support) {
         if(!document_->authored().value("joints").toArray().isEmpty() ||
             std::any_of(document_->bodies().begin(),document_->bodies().end(),[&](const auto& body){return body.bodyId==resolved.bodyId && !body.occurrenceId.isEmpty();}))
             if(const auto occurrence=occurrenceForBody(document_->authored(),document_->bodies(),resolved.bodyId);!occurrence.isEmpty())result["occurrenceId"]=occurrence;
+        for(const auto& body:document_->bodies())if(body.bodyId==resolved.bodyId && body.summary.contains("outerOccurrenceId"))result["outerOccurrenceId"]=body.summary["outerOccurrenceId"];
         return result;
     } catch(const GeometryKernel::EvaluationError& error) {
         auto result=failure("support_unavailable",QString::fromUtf8(error.what()),"support");

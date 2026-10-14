@@ -58,6 +58,10 @@ private:
     };
     void registerCommands();
     void registerSliderCommands();
+    void registerLocalReferenceCommands();
+    QJsonObject showReferenceMove(const QString& featureId);
+    QJsonObject pendingReference_;
+    std::shared_ptr<const EvaluatedDocument> pendingReferenceEvaluation_;
     QJsonObject beginSlider(const QJsonObject& args);
     QJsonObject previewSlider();
     void showSlider();

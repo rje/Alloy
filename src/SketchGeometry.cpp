@@ -338,7 +338,7 @@ QJsonObject SketchGeometry::linkedProjectionCandidate(const EvaluatedDocument& e
         reject("Linked Project requires a supported sketch and stable body/edge IDs");
     auto candidate=sketch,parameters=candidate["parameters"].toObject();
     for(const auto& key:{"projections","pointProjections"}) {
-        auto entries=parameters[key].toArray();
+        auto entries=parameters.value(key).toArray();
         for(int i=0;i<entries.size();++i) {
             auto entry=entries[i].toObject(),previous=entry["source"].toObject();
             if(previous["bodyId"]!=source["bodyId"] || previous["edgeId"]!=source["edgeId"])continue;

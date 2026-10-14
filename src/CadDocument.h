@@ -54,6 +54,9 @@ public:
     // Reads and embeds one bounded local STEP source. The caller commits the
     // returned candidate through the ordinary validated document transaction.
     static QJsonObject stepImportCandidate(const QJsonObject& authored, const QJsonObject& arguments);
+    static QJsonObject localReferenceCandidate(const QJsonObject& authored,const QJsonObject& arguments);
+    static QJsonObject localReferencePlacementCandidate(const QJsonObject& authored,const QString& featureId,const QJsonObject& placement);
+    static QJsonObject componentOpacityCandidate(const QJsonObject& authored,const QString& definitionId,double opacity);
     static QJsonObject extrusionCandidate(const QJsonObject& authored, const QJsonObject& arguments);
     // Canonical args: operation, targetBodyId, toolBodyIds, keepTools, optional
     // name; featureId edits an existing Boolean, newFeatureId reserves a create.

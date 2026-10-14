@@ -45,7 +45,7 @@ add_library(alloy_application STATIC
     src/AlloyTheme.cpp src/AlloyTheme.h
     src/AlloyWindow.cpp src/AlloyWindow.h src/SplitBodyControls.cpp src/AssemblyControls.cpp src/PointControls.cpp src/SplineControls.cpp src/SlotDragControls.cpp src/ConicControls.cpp src/SketchTextControls.cpp src/CommandIcons.cpp src/CommandIcons.h src/SolidFilletControls.cpp src/SolidChamferControls.cpp src/SphereControls.cpp src/SolidHoleControls.cpp src/SolidShellControls.cpp src/LoftControls.cpp src/RevolveCommands.cpp src/SweepCommands.cpp src/SweepSelection.cpp src/PatternControls.cpp src/CircularPatternControls.cpp src/SolidMirrorControls.cpp src/SectionAnalysisControls.cpp src/ReferenceSection.cpp src/MoveControls.cpp src/CombineControls.cpp src/ExportControls.cpp src/StepExportControls.cpp
     src/TutorialRecorder.cpp src/TutorialRecorder.h
-    src/CadDocument.cpp src/CadDocument.h
+    src/CadDocument.cpp src/CadDocument.h src/LocalReferenceControls.cpp src/LocalReference.h
     src/ReferenceView.cpp src/ReferenceView.h src/ReferenceRevolve.cpp src/ReferenceSweep.cpp src/ReferenceSketchText.cpp src/ReferenceSpline.cpp src/ReferenceConic.cpp
     src/ControlServer.cpp src/ControlServer.h)
 target_include_directories(alloy_application PUBLIC src)
@@ -224,6 +224,13 @@ if(BUILD_TESTING)
     target_link_libraries(step_assembly_controls_test PRIVATE alloy_application Qt6::Test)
     add_test(NAME step_assembly_controls COMMAND step_assembly_controls_test)
     set_tests_properties(step_assembly_controls PROPERTIES TIMEOUT 120 LABELS "widget;gpu" RUN_SERIAL TRUE)
+    add_executable(local_reference_test tests/local_reference.cpp src/CadDocument.cpp src/CadDocument.h)
+    target_link_libraries(local_reference_test PRIVATE Qt6::Gui alloy_kernel)
+    add_test(NAME local_reference COMMAND local_reference_test)
+    add_executable(local_reference_controls_test tests/local_reference_controls.cpp)
+    target_link_libraries(local_reference_controls_test PRIVATE alloy_application Qt6::Test)
+    add_test(NAME local_reference_controls COMMAND local_reference_controls_test)
+    set_tests_properties(local_reference_controls PROPERTIES TIMEOUT 120 LABELS "widget;gpu" RUN_SERIAL TRUE)
     add_executable(step_fixture tests/step_fixture.cpp)
     target_include_directories(step_fixture SYSTEM PRIVATE ${OpenCASCADE_INCLUDE_DIR})
     target_link_libraries(step_fixture PRIVATE Qt6::Core TKernel TKMath TKG3d TKBRep TKPrim TKTopAlgo TKDESTEP TKXSBase)

@@ -16,6 +16,7 @@
 #include <gp_Ax1.hxx>
 #include <gp_Trsf.hxx>
 #include "GeometryKernel.h"
+#include "LocalReference.h"
 #include "SolidFillet.h"
 #include "SketchGeometry.h"
 #include "RoundedLoopOffset.h"
@@ -640,8 +641,15 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
                         const auto assembly=StepExchange::readAssembly(decoded.decoded,id);
                         if(assembly.graph!=parameters["assembly"].toObject())
                             failStep("step_assembly_snapshot","Embedded STEP hierarchy differs from its authored snapshot");
-                        for(const auto& leaf:assembly.leaves)
+                        const auto linked=parameters.value("reference").toObject();
+                        const auto outer=linked.isEmpty() ? gp_Trsf{} : LocalReference::transform(linked["outerPlacement"].toObject());
+                        for(const auto& leaf:assembly.leaves){
                             append(leaf.shape,leaf.bodyId,leaf.name,assembly.diagnostics,leaf.occurrenceId,leaf.definitionId);
+                            if(!linked.isEmpty()){
+                                auto& body=evaluated.bodies.back();body=LocalReference::placed(body,outer);
+                                body.summary["outerOccurrenceId"]=LocalReference::outerOccurrenceId(id);
+                            }
+                        }
                     }
                 } catch(const StepExchange::Error& error) {
                     const auto details=error.diagnostics();
@@ -880,7 +888,12 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
     }
     QMap<QString,QString> owners;
     for(const auto& value:authored["features"].toArray()){const auto f=value.toObject();owners[f["id"].toString()]=f["ownerId"].toString();}
-    for(auto& body:evaluated.bodies){body.ownerId=owners[body.featureId];body.summary["ownerId"]=body.ownerId;}
+    QMap<QString,double> opacity;
+    for(const auto& value:authored["components"].toArray()){
+        const auto component=value.toObject();opacity[component["id"].toString()]=component.value("opacity").toDouble(1.0);
+    }
+    for(auto& body:evaluated.bodies){body.ownerId=owners[body.featureId];body.summary["ownerId"]=body.ownerId;
+        body.summary["opacity"]=opacity.value(body.ownerId,1.0);}
     for(auto& sketch:evaluated.sketches){sketch.ownerId=owners[sketch.featureId];sketch.summary["ownerId"]=sketch.ownerId;}
     for(auto& plane:evaluated.constructionPlanes)plane.ownerId=owners[plane.featureId];
     return evaluated;

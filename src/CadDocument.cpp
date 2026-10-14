@@ -8,6 +8,7 @@
 #include "SolidSplit.h"
 #include "SketchGeometry.h"
 #include "StepExchange.h"
+#include "LocalReference.h"
 #include <QJsonArray>
 #include <QMap>
 #include <QSet>
@@ -146,6 +147,9 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
                 return {{"featureId",feature["id"]},{"code","plane_unavailable"},{"message","Split requires an earlier retained construction plane"}};
             continue;
         }
+        if(feature["type"]=="stepAssemblyImport")
+            for(const auto& value:feature["parameters"].toObject()["assembly"].toObject()["occurrences"].toArray())
+                if(const auto body=value.toObject()["bodyId"].toString();!body.isEmpty())activeBodies.insert(body);
         if (feature["type"] == "move" || feature["type"] == "fillet" || feature["type"] == "chamfer" || feature["type"] == "shell" || feature["type"]=="rectangularPattern") {
             const auto body = feature["parameters"].toObject()["targetBodyId"].toString();
             if (!bodyPositions.contains(body) || bodyPositions[body]>=i || !activeBodies.contains(body))
@@ -324,7 +328,7 @@ QString CadDocument::activateOwner(const QString& ownerId) {
 QJsonObject CadDocument::componentCandidate(const QJsonObject& authored,const QString& name) {
     if(name.trimmed().isEmpty())throw std::invalid_argument("Component name is required");
     auto candidate=authored;auto components=candidate["components"].toArray();auto occurrences=candidate["occurrences"].toArray();
-    const auto id=newId();components.append(QJsonObject{{"id",id},{"name",name.trimmed()}});
+    const auto id=newId();components.append(QJsonObject{{"id",id},{"name",name.trimmed()},{"opacity",1.0}});
     occurrences.append(QJsonObject{{"id",newId()},{"definitionId",id},{"parentId",authored["documentId"]},{"placement","identity"}});
     candidate["components"]=components;candidate["occurrences"]=occurrences;return candidate;
 }
@@ -723,6 +727,45 @@ QJsonObject CadDocument::stepImportCandidate(const QJsonObject& authored, const 
     candidate["features"]=features;
     return candidate;
 }
+QJsonObject CadDocument::localReferenceCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
+    const QSet<QString> allowed{"path","name","placement"};
+    for(auto it=arguments.begin();it!=arguments.end();++it)if(!allowed.contains(it.key()))throw std::invalid_argument("Unknown local reference argument");
+    if(!arguments["path"].isString() || (arguments.contains("name") && !arguments["name"].isString())
+        || (arguments.contains("placement") && !arguments["placement"].isObject()))
+        throw std::invalid_argument("Local reference needs a file path, optional name and rigid placement");
+    const auto path=arguments.value("path").toString();
+    const auto name=arguments.value("name").toString(QFileInfo(path).completeBaseName()).trimmed();
+    if(name.isEmpty())throw std::invalid_argument("Reference component name is required");
+    auto candidate=componentCandidate(authored,name);
+    const auto owner=candidate["components"].toArray().last().toObject()["id"].toString();
+    auto imported=stepImportCandidate(candidate,{{"path",path},{"name",name},{"ownerId",owner}});
+    auto features=imported["features"].toArray();auto feature=features.last().toObject();
+    if(feature["type"]!="stepAssemblyImport")throw std::invalid_argument("Local reference requires a retained solid assembly STEP source");
+    auto p=feature["parameters"].toObject();
+    const auto placement=arguments.contains("placement") ? arguments["placement"].toObject() : LocalReference::identityPlacement();
+    LocalReference::transform(placement);
+    p["reference"]=QJsonObject{{"path",path},{"lastSourceSha256",p["source"].toObject()["sha256"]},{"outerPlacement",placement}};
+    feature["parameters"]=p;features[features.size()-1]=feature;imported["features"]=features;
+    return imported;
+}
+QJsonObject CadDocument::localReferencePlacementCandidate(const QJsonObject& authored,const QString& featureId,const QJsonObject& placement) {
+    LocalReference::transform(placement);
+    auto candidate=authored;auto features=candidate["features"].toArray();bool found=false;
+    for(int i=0;i<features.size();++i){auto feature=features[i].toObject();if(feature["id"]!=featureId)continue;
+        auto p=feature["parameters"].toObject();auto reference=p["reference"].toObject();
+        if(feature["type"]!="stepAssemblyImport" || reference.isEmpty())throw std::invalid_argument("Linked STEP reference is unavailable");
+        reference["outerPlacement"]=placement;p["reference"]=reference;feature["parameters"]=p;features[i]=feature;found=true;break;}
+    if(!found)throw std::invalid_argument("Linked STEP reference is unavailable");
+    candidate["features"]=features;return candidate;
+}
+QJsonObject CadDocument::componentOpacityCandidate(const QJsonObject& authored,const QString& definitionId,double opacity) {
+    if(!std::isfinite(opacity) || opacity<0 || opacity>1)throw std::invalid_argument("Component opacity must be between 0 and 1");
+    auto candidate=authored;auto components=candidate["components"].toArray();bool found=false;
+    for(int i=0;i<components.size();++i){auto component=components[i].toObject();if(component["id"]!=definitionId)continue;
+        component["opacity"]=opacity;components[i]=component;found=true;break;}
+    if(!found)throw std::invalid_argument("Component definition is unavailable");
+    candidate["components"]=components;return candidate;
+}
 QJsonObject CadDocument::extrusionCandidate(const QJsonObject& authored, const QJsonObject& arguments) {
     auto reject = [](const QString& message) {throw std::invalid_argument(message.toStdString());};
     const auto initial = validate(authored);
@@ -1093,7 +1136,8 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
     if(candidate.contains("occurrences") && !candidate["occurrences"].isArray())return "Occurrences must be an array";
     for(const auto& value:candidate["components"].toArray()) {
         const auto component=value.toObject();const auto id=component["id"].toString();
-        if(component.size()!=2 || !validId(id) || ids.contains(id) || !component["name"].isString() || component["name"].toString().trimmed().isEmpty())return "Invalid local component definition";
+        if((component.size()!=2 && component.size()!=3) || (component.size()==3 && (!component["opacity"].isDouble() || !std::isfinite(component["opacity"].toDouble()) || component["opacity"].toDouble()<0 || component["opacity"].toDouble()>1))
+            || !validId(id) || ids.contains(id) || !component["name"].isString() || component["name"].toString().trimmed().isEmpty())return "Invalid local component definition";
         ids.insert(id);owners.insert(id);
     }
     QSet<QString> instantiated;
@@ -1145,7 +1189,7 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
                 if (!validId(bodyId) || ids.contains(bodyId)) return "Invalid or duplicate imported body UUID";
                 ids.insert(bodyId);
             } else if(feature.contains("bodyId"))return "STEP assembly leaves own their body identities";
-            if (p.size()!=(type=="stepImport"?1:2) || !p["source"].isObject()) return "STEP import requires one embedded source";
+            if (p.size()!=(type=="stepImport"?1:p.contains("reference")?3:2) || !p["source"].isObject()) return "STEP import requires one embedded source";
             const auto source=p["source"].toObject();
             static const QRegularExpression shaPattern("^[0-9a-f]{64}$");
             if (source.size()!=6 || source["policy"]!="embedded" || source["format"]!="step"
@@ -1156,6 +1200,14 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
                 || !source["originalName"].isString() || source["originalName"].toString().isEmpty())
                 return "Invalid embedded STEP source metadata";
             if(type=="stepAssemblyImport") {
+                if(p.contains("reference")){
+                    const auto reference=p["reference"].toObject();
+                    if(reference.size()!=3 || !QDir::isAbsolutePath(reference["path"].toString())
+                        || reference["lastSourceSha256"]!=source["sha256"] || !reference["outerPlacement"].isObject())
+                        return "Invalid linked STEP reference metadata";
+                    try{LocalReference::transform(reference["outerPlacement"].toObject());}
+                    catch(const std::exception&){return "Invalid linked STEP reference placement";}
+                }
                 const auto graph=p["assembly"].toObject();
                 if(graph.size()!=3 || !validId(graph["rootOccurrenceId"].toString()) ||
                     !graph["definitions"].isArray() || !graph["occurrences"].isArray() ||

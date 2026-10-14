@@ -33,7 +33,8 @@ QString ownerOf(const QJsonObject& authored,const QString& occurrenceId){
 }
 }
 std::vector<EvaluatedBody> AlloyWindow::presentationBodies() const {
-    return AssemblySlider::worldBodies(sliderPreviewAuthored_.isEmpty() ? document_->authored() : sliderPreviewAuthored_,document_->evaluation(),transientSliderPosition_);
+    return AssemblySlider::worldBodies(sliderPreviewAuthored_.isEmpty() ? document_->authored() : sliderPreviewAuthored_,
+        pendingReferenceEvaluation_ ? *pendingReferenceEvaluation_ : document_->evaluation(),transientSliderPosition_);
 }
 QJsonObject AlloyWindow::presentationAssembly() const {
     return AssemblySlider::inspect(sliderPreviewAuthored_.isEmpty() ? document_->authored() : sliderPreviewAuthored_,document_->evaluation(),transientSliderPosition_);
