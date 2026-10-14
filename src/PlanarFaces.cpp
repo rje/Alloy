@@ -193,9 +193,77 @@ std::vector<EvaluatedSupportFace> PlanarFaces::prismSides(BRepPrimAPI_MakePrism&
         BRepAdaptor_Curve curve(boundary.edge);const auto origin=curve.Value(curve.FirstParameter());
         QJsonObject frame{{"origin",point(origin)},{"uAxis",axis(horizontal)},{"vAxis",axis(vertical)},{"normal",axis(normal)}};
         QStringList contacts{boundary.startContact,boundary.endContact};contacts.sort();
+        const auto before=result.size();
         offer("extrude.side",(profile.profileId+"/"+boundary.sourceEntityId+"/"+contacts.join('/')).toUtf8(),face,frame);
+        if(result.size()==before+1)result.back().provenance={{"sourceSketchId",boundary.sourceSketchId},
+            {"sourceProfileId",profile.profileId},{"sourceEntityId",boundary.sourceEntityId},
+            {"startContact",contacts[0]},{"endContact",contacts[1]}};
     }
     return result;
+}
+void PlanarFaces::retainLinearCutSides(BRepBuilderAPI_MakeShape& op,
+    const std::vector<EvaluatedSupportFace>& toolFaces,
+    const std::vector<EvaluatedSolidEdge>& toolEdges,
+    const TopoDS_Shape& result,std::vector<EvaluatedSupportFace>& retained,
+    const QString& feature) {
+    TopTools_IndexedMapOfShape present;TopExp::MapShapes(result,TopAbs_FACE,present);
+    struct Candidate {EvaluatedSupportFace face;int contributors=1;};
+    std::vector<Candidate> candidates;
+    for(auto source:toolFaces) {
+        if(source.role!="extrude.side" || source.provenance["sourceEntityId"].toString().isEmpty())continue;
+        const auto current=descendant(op,source.face,present,TopAbs_FACE);
+        if(current.IsNull() || BRepAdaptor_Surface(TopoDS::Face(current)).GetType()!=GeomAbs_Plane)continue;
+        // Boolean history identifies the face, while the result owns its
+        // orientation. A Cut commonly reverses the tool-side normal.
+        source.face=TopoDS::Face(present(present.FindIndex(current)));
+        const auto surface=BRepAdaptor_Surface(source.face).Plane();
+        const auto origin=source.frame["origin"].toArray(),oldNormal=source.frame["normal"].toArray();
+        if(origin.size()!=3 || oldNormal.size()!=3 ||
+           surface.Distance(gp_Pnt(origin[0].toDouble(),origin[1].toDouble(),origin[2].toDouble()))>1e-6)continue;
+        auto normal=surface.Axis().Direction();if(source.face.Orientation()==TopAbs_REVERSED)normal.Reverse();
+        const gp_Dir priorNormal(oldNormal[0].toDouble(),oldNormal[1].toDouble(),oldNormal[2].toDouble());
+        if(std::abs(normal.Dot(priorNormal))<1-1e-9)continue;
+        if(normal.Dot(priorNormal)<0) {
+            source.frame["normal"]=axis(normal);
+            const auto oldV=source.frame["vAxis"].toArray();
+            if(oldV.size()!=3)continue;
+            source.frame["vAxis"]=QJsonArray{-oldV[0].toDouble(),-oldV[1].toDouble(),-oldV[2].toDouble()};
+        }
+        TopTools_IndexedMapOfShape currentEdges;TopExp::MapShapes(source.face,TopAbs_EDGE,currentEdges);
+        const auto entity=source.provenance["sourceEntityId"].toString();
+        const auto start=source.provenance["startContact"].toString(),end=source.provenance["endContact"].toString();
+        for(const auto& tool:toolEdges) {
+            const auto role=tool.provenance["role"].toString();
+            if(role=="sideCorner") {
+                const auto contact=tool.provenance["contact"].toString();
+                if(contact!=start && contact!=end)continue;
+            }else if((role!="baseRim" && role!="endRim") || tool.provenance["sourceEntityId"]!=entity)continue;
+            const auto mapped=descendant(op,tool.edge,currentEdges,TopAbs_EDGE);
+            if(mapped.IsNull() || BRepAdaptor_Curve(TopoDS::Edge(mapped)).GetType()!=GeomAbs_Line)continue;
+            if(std::any_of(source.boundaryEdges.begin(),source.boundaryEdges.end(),
+                [&](const auto& edge){return edge.edge.IsSame(mapped);}))continue;
+            const auto id=QUuid::createUuidV5(QUuid(feature),
+                QByteArray("alloy-cut-side-boundary/1\n")+source.faceId.toUtf8()+'\n'+tool.edgeId.toUtf8()).toString(QUuid::WithoutBraces);
+            BRepAdaptor_Curve curve(TopoDS::Edge(mapped));
+            source.boundaryEdges.push_back({id,"line",TopoDS::Edge(mapped),
+                {{"generatorFeatureId",feature},{"role","cutSideBoundary"},
+                 {"sourceSketchId",source.provenance["sourceSketchId"]},{"sourceEntityId",entity},
+                 {"sourceToolEdgeId",tool.edgeId},{"lineage","exactLinearCutHistory"},
+                 {"startMm",point(curve.Value(curve.FirstParameter()))},
+                 {"endMm",point(curve.Value(curve.LastParameter()))}}});
+        }
+        if(source.boundaryEdges.size()!=4 || currentEdges.Extent()!=4)continue;
+        auto prior=std::find_if(candidates.begin(),candidates.end(),
+            [&](const auto& candidate){return candidate.face.face.IsSame(source.face)
+                || candidate.face.faceId==source.faceId;});
+        if(prior!=candidates.end()){++prior->contributors;continue;}
+        if(std::any_of(retained.begin(),retained.end(),
+            [&](const auto& face){return face.face.IsSame(source.face)
+                || (face.producerFeatureId==source.producerFeatureId && face.faceId==source.faceId);}))continue;
+        candidates.push_back({std::move(source),1});
+    }
+    for(auto& candidate:candidates)if(candidate.contributors==1)
+        retained.push_back(std::move(candidate.face));
 }
 std::vector<EvaluatedSolidEdge> PlanarFaces::solidLinearCutRims(const std::vector<EvaluatedSupportFace>& faces,
     const std::vector<EvaluatedSolidEdge>& toolEdges,const TopoDS_Shape& result,const QString& feature) {

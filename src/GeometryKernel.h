@@ -103,7 +103,8 @@ public:
     static TopoDS_Shape extrusion(const EvaluatedProfile& profile, double distanceMm, EvaluatedSupportFace* endCap = nullptr, std::vector<EvaluatedSolidEdge>* edges = nullptr, const QString& generatorFeatureId = {}, std::vector<EvaluatedSupportFace>* planarFaces = nullptr, double startOffsetMm = 0);
     static TopoDS_Shape booleanOperation(const QString& operation, const TopoDS_Shape& target,
         const std::vector<TopoDS_Shape>& tools, std::vector<EvaluatedSupportFace>* retainedFaces = nullptr, std::vector<EvaluatedSolidEdge>* retainedEdges = nullptr,
-        const std::vector<EvaluatedSolidEdge>* cutToolEdges = nullptr, const QString& cutFeatureId = {});
+        const std::vector<EvaluatedSolidEdge>* cutToolEdges = nullptr, const QString& cutFeatureId = {},
+        const std::vector<EvaluatedSupportFace>* cutToolFaces = nullptr);
     static QJsonObject summarize(const TopoDS_Shape& shape);
     static std::vector<EvaluatedBody> evaluate(const QJsonObject& authored);
     static EvaluatedDocument evaluateDocument(const QJsonObject& authored);

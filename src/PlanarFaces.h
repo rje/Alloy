@@ -18,6 +18,11 @@ void retainLinearCutBoundaries(BRepBuilderAPI_MakeShape& operation,
     const std::vector<EvaluatedSupportFace>& sources,
     const std::vector<EvaluatedSolidEdge>& toolEdges,
     std::vector<EvaluatedSupportFace>& retained, const QString& featureId);
+void retainLinearCutSides(BRepBuilderAPI_MakeShape& operation,
+    const std::vector<EvaluatedSupportFace>& toolFaces,
+    const std::vector<EvaluatedSolidEdge>& toolEdges,
+    const TopoDS_Shape& result,std::vector<EvaluatedSupportFace>& retained,
+    const QString& featureId);
 // Promote only uniquely traced current cut boundaries on one retained target
 // face to the solid-edge catalog used by Fillet.
 std::vector<EvaluatedSolidEdge> solidLinearCutRims(const std::vector<EvaluatedSupportFace>& faces,

@@ -489,7 +489,8 @@ gp_Trsf GeometryKernel::moveTransform(const QJsonObject& parameters) {
 }
 TopoDS_Shape GeometryKernel::booleanOperation(const QString& operation, const TopoDS_Shape& target,
     const std::vector<TopoDS_Shape>& tools, std::vector<EvaluatedSupportFace>* retainedFaces, std::vector<EvaluatedSolidEdge>* retainedEdges,
-    const std::vector<EvaluatedSolidEdge>* cutToolEdges,const QString& cutFeatureId) {
+    const std::vector<EvaluatedSolidEdge>* cutToolEdges,const QString& cutFeatureId,
+    const std::vector<EvaluatedSupportFace>* cutToolFaces) {
     auto reject = [](const QString& code, const QString& message) {
         throw EvaluationError({{"code",code},{"message",message}});
     };
@@ -552,6 +553,8 @@ TopoDS_Shape GeometryKernel::booleanOperation(const QString& operation, const To
         const auto sources=*retainedFaces;
         *retainedFaces=PlanarFaces::transfer(builder,sources,shape);
         if(cutToolEdges)PlanarFaces::retainLinearCutBoundaries(builder,sources,*cutToolEdges,*retainedFaces,cutFeatureId);
+        if(cutToolEdges && cutToolFaces)
+            PlanarFaces::retainLinearCutSides(builder,*cutToolFaces,*cutToolEdges,shape,*retainedFaces,cutFeatureId);
     }
     if(retainedEdges) {
         *retainedEdges=SolidFillet::transferEdges(builder,*retainedEdges,shape);
@@ -871,9 +874,16 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
                         const bool linearCut=parameters["operation"]=="cut" && selected.size()==1
                             && std::all_of(selected.front().boundaryEdges.begin(),selected.front().boundaryEdges.end(),[](const auto& e){return e.type=="line";});
                         std::vector<EvaluatedSolidEdge> cutToolEdges;
+                        std::vector<EvaluatedSupportFace> cutToolFaces;
                         for(const auto& profile:selected) {EvaluatedSupportFace cap;std::vector<EvaluatedSolidEdge> toolEdges;
+                            std::vector<EvaluatedSupportFace> toolFaces;
                             tools.push_back(extrusion(profile,distance,joining ? &cap : nullptr,
-                                (joining || circularCut || linearCut) ? &toolEdges : nullptr,id,nullptr,start));
+                                (joining || circularCut || linearCut) ? &toolEdges : nullptr,id,
+                                linearCut ? &toolFaces : nullptr,start));
+                            if(linearCut) {
+                                for(auto& face:toolFaces)face.bodyId=target->bodyId;
+                                cutToolFaces.insert(cutToolFaces.end(),toolFaces.begin(),toolFaces.end());
+                            }
                             if(joining)cutToolEdges.insert(cutToolEdges.end(),toolEdges.begin(),toolEdges.end());
                             if(linearCut)cutToolEdges.insert(cutToolEdges.end(),toolEdges.begin(),toolEdges.end());
                             if(circularCut)for(auto& edge:toolEdges)if(edge.provenance["role"]=="baseRim")
@@ -894,7 +904,7 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
                         std::vector<EvaluatedSolidEdge> joinedEdges;
                         if(joining){joinedEdges=target->solidEdges;
                             joinedEdges.insert(joinedEdges.end(),cutToolEdges.begin(),cutToolEdges.end());}
-                        try {cutShape=booleanOperation(parameters["operation"].toString(),target->shape,tools,&target->supportFaces,joining ? &joinedEdges : &target->solidEdges,linearCut ? &cutToolEdges : nullptr,id);}
+                        try {cutShape=booleanOperation(parameters["operation"].toString(),target->shape,tools,&target->supportFaces,joining ? &joinedEdges : &target->solidEdges,linearCut ? &cutToolEdges : nullptr,id,linearCut ? &cutToolFaces : nullptr);}
                         catch(const EvaluationError& error){const auto details=error.diagnostics();for(auto it=details.begin();it!=details.end();++it)context[it.key()]=it.value();throw EvaluationError(context);}
                         if(joining)target->solidEdges=std::move(joinedEdges);
                         auto cutSummary=summarize(cutShape);
