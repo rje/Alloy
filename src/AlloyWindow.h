@@ -333,6 +333,9 @@ private:
     QComboBox* extrudeTarget_ = nullptr;
     QLabel* extrudeTargetLabel_ = nullptr;
     QDoubleSpinBox* extrudeDistance_ = nullptr;
+    QComboBox* extrudeStart_ = nullptr;
+    QDoubleSpinBox* extrudeStartOffset_ = nullptr;
+    QLabel* extrudeStartOffsetLabel_ = nullptr;
     QLabel* extrudeError_ = nullptr;
     QPushButton* extrudeOk_ = nullptr;
     QShortcut* extrudeEscape_ = nullptr;

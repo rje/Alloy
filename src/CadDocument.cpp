@@ -1,5 +1,7 @@
 #include "SolidFillet.h"
 #include "CadDocument.h"
+#include <utility>
+#include <vector>
 #include "DocumentAppend.h"
 #include "CircularPattern.h"
 #include "SketchGeometry.h"
@@ -288,10 +290,13 @@ QJsonObject CadDocument::resolveLengthBindings(const QJsonObject& authored) {
                 dim["valueMm"]=values[id];dims[j]=dim;changed=true;
             }
             if(changed)p["dimensions"]=dims;
-        } else if(feature["type"]=="extrude" && p.contains("distanceParameterId")) {
-            const auto id=p["distanceParameterId"].toString();
-            if(!values.contains(id))throw std::invalid_argument("Extrude references a missing length parameter");
-            p["distanceMm"]=values[id];
+        } else if(feature["type"]=="extrude") {
+            for(const auto& binding:std::vector<std::pair<QString,QString>>{{"distanceParameterId","distanceMm"},{"startOffsetParameterId","startOffsetMm"}}) {
+                if(!p.contains(binding.first))continue;
+                const auto id=p[binding.first].toString();
+                if(!values.contains(id))throw std::invalid_argument("Extrude references a missing length parameter");
+                p[binding.second]=values[id];
+            }
         } else if(feature["type"]=="box" || feature["type"]=="shell") {
             const QStringList fields=feature["type"]=="box" ? QStringList{"width","depth","height"} : QStringList{"thickness"};
             for(const auto& field:fields) {
@@ -478,7 +483,7 @@ QJsonObject CadDocument::extrusionCandidate(const QJsonObject& authored, const Q
     auto reject = [](const QString& message) {throw std::invalid_argument(message.toStdString());};
     const auto initial = validate(authored);
     if (!initial.isEmpty()) reject(initial);
-    const QSet<QString> allowed{"ownerId","sketchId","profileId","profileIds","distanceMm","distanceParameterId","name","featureId","newFeatureId","newBodyId","operation","targetBodyIds"};
+    const QSet<QString> allowed{"ownerId","sketchId","profileId","profileIds","distanceMm","distanceParameterId","start","startOffsetMm","startOffsetParameterId","name","featureId","newFeatureId","newBodyId","operation","targetBodyIds"};
     for (auto it = arguments.begin(); it != arguments.end(); ++it)
         if (!allowed.contains(it.key())) reject("Unknown extrusion argument: "+it.key());
     const bool edit = arguments.contains("featureId"), newFeature = arguments.contains("newFeatureId"), newBody = arguments.contains("newBodyId");
@@ -509,6 +514,16 @@ QJsonObject CadDocument::extrusionCandidate(const QJsonObject& authored, const Q
     if(arguments.contains("profileId")==arguments.contains("profileIds"))reject("Choose profileId or profileIds exclusively");
     auto profileParameters=QJsonObject{{"sketchId",arguments["sketchId"]},{"distanceMm",arguments["distanceMm"]}};
     if(arguments.contains("distanceParameterId"))profileParameters["distanceParameterId"]=arguments["distanceParameterId"];
+    const auto start=arguments.value("start").toString(arguments.contains("startOffsetMm") || arguments.contains("startOffsetParameterId") ? "offset" : previousParameters.value("start").toString("profilePlane"));
+    if(start!="profilePlane" && start!="offset")reject("Extrusion start must be Profile Plane or Offset");
+    if(start=="profilePlane" && (arguments.contains("startOffsetMm") || arguments.contains("startOffsetParameterId")))reject("Profile Plane start cannot carry an offset");
+    if(start=="offset"){
+        const auto startOffset=arguments.contains("startOffsetMm") ? arguments["startOffsetMm"] : previousParameters.value("startOffsetMm");
+        if(startOffset.isUndefined())reject("Offset start requires a signed length");
+        profileParameters["start"]="offset";profileParameters["startOffsetMm"]=startOffset;
+        if(arguments.contains("startOffsetParameterId") || (edit && !arguments.contains("startOffsetMm") && previousParameters.contains("startOffsetParameterId")))
+            profileParameters["startOffsetParameterId"]=arguments.contains("startOffsetParameterId") ? arguments.value("startOffsetParameterId") : previousParameters.value("startOffsetParameterId");
+    }
     if(cut) {
         const auto targets=arguments.contains("targetBodyIds") ? arguments["targetBodyIds"] : previousParameters["targetBodyIds"];
         if(!targets.isArray() || targets.toArray().isEmpty() || (operation!="join" && targets.toArray().size()!=1))reject("Join requires participants; Cut/Intersect require one target");
@@ -997,9 +1012,12 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
         }
         if (type == "extrude") {
             if (errorContext) {(*errorContext)["sketchId"] = p["sketchId"];(*errorContext)["profileId"] = p["profileId"];}
-            if (p.size()!=(cut ? 5 : 3)+int(p.contains("distanceParameterId")) || !p["sketchId"].isString() || !validId(p["sketchId"].toString())
+            if (p.size()!=(cut ? 5 : 3)+int(p.contains("distanceParameterId"))+int(p.contains("start"))+int(p.contains("startOffsetMm"))+int(p.contains("startOffsetParameterId")) || !p["sketchId"].isString() || !validId(p["sketchId"].toString())
                 || p.contains("profileId")==p.contains("profileIds")) return "Extrusion requires sketchId and exclusive profileId or profileIds";
             if(p.contains("distanceParameterId") && !validId(p["distanceParameterId"].toString()))return "Extrusion length binding requires a stable parameter ID";
+            if((p.contains("start") && (p["start"]!="offset" || !p.contains("startOffsetMm"))) || (!p.contains("start") && (p.contains("startOffsetMm") || p.contains("startOffsetParameterId"))))return "Extrusion start must be Profile Plane or Offset with a signed length";
+            if(p.contains("startOffsetParameterId") && (!p.contains("startOffsetMm") || !validId(p["startOffsetParameterId"].toString())))return "Extrusion start binding requires a stable parameter ID and cached offset";
+            if(p.contains("startOffsetMm") && (!p["startOffsetMm"].isDouble() || !std::isfinite(p["startOffsetMm"].toDouble()) || std::abs(p["startOffsetMm"].toDouble())>100000))return "Extrusion start offset must be signed and within 100000 mm";
             if(p.contains("profileIds")) {
                 if(!p["profileIds"].isArray() || p["profileIds"].toArray().isEmpty())return "Extrusion requires a nonempty profileIds array";
                 QSet<QString> chosen;

@@ -2964,3 +2964,17 @@ and the hollow preview; private editors are closed. See
 `deliverables/box-shell-parameters-2026-10-13`. Independent review and
 integration remain pending. The Shell fixture uses an accepted extrusion stock;
 primitive Box face lineage and the full Box→Shell source chain are separate work.
+
+# Extrude Offset start candidate (2026-10-13)
+
+SOL-044 adds Start > Offset to the shared Extrude command. Offset is an
+independent signed displacement along the authored sketch normal before
+Distance; the original sketch/support is unchanged. Native/API create and edit,
+stable direct user-length IDs, preview/Cancel, generated face/edge support,
+pattern seed propagation and authored history/storage are covered by focused
+core, Qt and real-entrypoint checks. The source front-normal sign case evaluates
+at world Y=5..10 for Offset -10 and Distance +5, and an internal ellipse Cut
+removes exactly the expected volume. See
+[the candidate receipt](validation/extrude-offset-start.md). Independent review
+accepted the bounded ingredient; integration remains pending. To Object and
+expression parsing are separate.

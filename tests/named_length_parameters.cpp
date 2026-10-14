@@ -23,7 +23,7 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
     CadDocument document;
     for(const auto& entry:QVector<QPair<QString,double>>{{"Length",75},{"Width",50},{"Thickness",10}})
         check(document.commit(CadDocument::lengthParameterCandidate(document.authored(),{{"name",entry.first},{"value",entry.second},{"units","mm"}}),"Add length").isEmpty(),"create named length");
-    const auto lengthId=row(document.authored(),"Length")["id"],widthId=row(document.authored(),"Width")["id"],thicknessId=row(document.authored(),"Thickness")["id"];
+    const QJsonValue lengthId=row(document.authored(),"Length").value("id"),widthId=row(document.authored(),"Width").value("id"),thicknessId=row(document.authored(),"Thickness").value("id");
     check(document.commit(CadDocument::lengthParameterCandidate(document.authored(),{{"parameterId",widthId},{"units","in"},{"value",2}}),"Edit length units").isEmpty(),"inches accepted as explicit unit");
     near(row(document.authored(),"Width")["valueMm"].toDouble(),50.8,"inch value stored in canonical millimeters");
     check(document.commit(CadDocument::lengthParameterCandidate(document.authored(),{{"parameterId",widthId},{"units","mm"},{"value",50}}),"Restore length units").isEmpty(),"unit edit preserves stable ID");
@@ -82,7 +82,7 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
     authoredBox["features"]=boxFeatures;
     check(box.commit(authoredBox,"Bound Box").isEmpty(),"bound Box commits");
     near(box.bodies().front().summary["volumeMm3"].toDouble(),160000,"Box initial volume");
-    const auto boxWidthId=row(box.authored(),"BoxWidth")["id"];
+    const QJsonValue boxWidthId=row(box.authored(),"BoxWidth").value("id");
     check(box.commit(CadDocument::lengthParameterCandidate(box.authored(),{{"parameterId",boxWidthId},{"name","NewWidth"},{"value",60}}),"Resize Box").isEmpty(),"Box recomputes on rename and update");
     near(box.bodies().front().summary["volumeMm3"].toDouble(),192000,"Box updated volume");
     check(box.authored()["features"].toArray().last().toObject()["parameters"].toObject()["widthParameterId"]==boxWidthId,"Box retains stable ID");

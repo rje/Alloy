@@ -103,10 +103,10 @@ public:
     void showHolePreview(const EvaluatedBody& result, const TopoDS_Shape& removedMaterial);
     void showSpherePreview(const TopoDS_Shape& tool, bool cut);
     void showPreview(const TopoDS_Shape& shape,const QString& replacedBody = {}, bool neutral = false);
-    void showExtrudePreview(const EvaluatedBody& body, const EvaluatedProfile& profile, double distanceMm, const QJsonArray& sourceProfileIds = {}, const QString& units = "mm");
+    void showExtrudePreview(const EvaluatedBody& body, const EvaluatedProfile& profile, double distanceMm, const QJsonArray& sourceProfileIds = {}, const QString& units = "mm", double startOffsetMm = 0);
     void showCutPreview(const EvaluatedBody& body, const std::vector<EvaluatedProfile>& profiles, double distanceMm,
-        const QJsonArray& sourceProfileIds, const QString& units);
-    void showExtrudeHandle(const EvaluatedProfile& profile,const QJsonArray& sourceProfileIds,const QString& units,const QString& operation,double distanceMm = 0);
+        const QJsonArray& sourceProfileIds, const QString& units, double startOffsetMm = 0);
+    void showExtrudeHandle(const EvaluatedProfile& profile,const QJsonArray& sourceProfileIds,const QString& units,const QString& operation,double distanceMm = 0,double startOffsetMm = 0);
     void showRevolveCue(const QJsonObject& geometry,const EvaluatedProfile& profile);
     void clearRevolveCue(bool resetGesture = false);
     QJsonObject revolvePointerAngle(double x,double y,const QString& phase);
@@ -143,7 +143,7 @@ private:
     void applyEditDisplay(bool redraw = true);
     void clearPreviewPresentation();
     void refreshExtrusionCue();
-    void setExtrusionCue(const EvaluatedProfile& profile,double distanceMm,const QJsonArray& sourceProfileIds,const QString& units,const QString& operation);
+    void setExtrusionCue(const EvaluatedProfile& profile,double distanceMm,const QJsonArray& sourceProfileIds,const QString& units,const QString& operation,double startOffsetMm = 0);
     void updateExtrusionDrag(const QPointF& position,const QString& phase);
     void replacePreview(const TopoDS_Shape& shape, const QString& replacedBody, bool neutral);
     QPointF windowScale() const;

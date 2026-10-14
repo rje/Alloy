@@ -1801,22 +1801,22 @@ void ReferenceView::showPreview(const TopoDS_Shape& shape,const QString& replace
     replacePreview(shape,replacedBody,neutral);
     if(!context_.IsNull())context_->UpdateCurrentViewer();
 }
-void ReferenceView::showExtrudePreview(const EvaluatedBody& body,const EvaluatedProfile& profile,double distanceMm,const QJsonArray& sourceProfileIds,const QString& units) {
+void ReferenceView::showExtrudePreview(const EvaluatedBody& body,const EvaluatedProfile& profile,double distanceMm,const QJsonArray& sourceProfileIds,const QString& units,double startOffsetMm) {
     replacePreview(body.shape,body.bodyId,false);
     if(context_.IsNull())return;
     preview_->SetColor(Quantity_Color(0.16,0.47,0.86,Quantity_TOC_sRGB));
     preview_->SetTransparency(0.20);
     context_->Redisplay(preview_,false);
-    setExtrusionCue(profile,distanceMm,sourceProfileIds,units,body.summary["operation"]=="join" || body.summary["operation"]=="intersect" ? body.summary["operation"].toString() : QString("newBody"));
+    setExtrusionCue(profile,distanceMm,sourceProfileIds,units,body.summary["operation"]=="join" || body.summary["operation"]=="intersect" ? body.summary["operation"].toString() : QString("newBody"),startOffsetMm);
     context_->UpdateCurrentViewer();
 }
 void ReferenceView::showCutPreview(const EvaluatedBody& body,const std::vector<EvaluatedProfile>& profiles,double distanceMm,
-    const QJsonArray& sourceProfileIds,const QString& units) {
+    const QJsonArray& sourceProfileIds,const QString& units,double startOffsetMm) {
     if(profiles.empty())return;
     replacePreview(body.shape,body.bodyId,true);
     if(context_.IsNull())return;
     for(const auto& profile:profiles) {
-        Handle(AIS_Shape) tool=new AIS_Shape(GeometryKernel::extrusion(profile,distanceMm));
+        Handle(AIS_Shape) tool=new AIS_Shape(GeometryKernel::extrusion(profile,distanceMm,nullptr,nullptr,{},nullptr,startOffsetMm));
         tool->SetColor(Quantity_Color(0.91,0.24,0.27,Quantity_TOC_sRGB));tool->SetTransparency(0.62);
         tool->SetOwnDeviationCoefficient(0.0001);tool->SetOwnDeviationAngle(0.04);
         tool->Attributes()->SetFaceBoundaryDraw(true);
@@ -1835,27 +1835,27 @@ void ReferenceView::showCutPreview(const EvaluatedBody& body,const std::vector<E
         selected->SetZLayer(Graphic3d_ZLayerId_Topmost);
         context_->Display(selected,AIS_Shaded,-1,false);context_->Deactivate(selected);cutProfileOverlays_.push_back(selected);
     }
-    setExtrusionCue(profiles.front(),distanceMm,sourceProfileIds,units,"cut");
+    setExtrusionCue(profiles.front(),distanceMm,sourceProfileIds,units,"cut",startOffsetMm);
     context_->UpdateCurrentViewer();
 }
-void ReferenceView::showExtrudeHandle(const EvaluatedProfile& profile,const QJsonArray& sourceProfileIds,const QString& units,const QString& operation,double distanceMm) {
+void ReferenceView::showExtrudeHandle(const EvaluatedProfile& profile,const QJsonArray& sourceProfileIds,const QString& units,const QString& operation,double distanceMm,double startOffsetMm) {
     clearPreviewPresentation();
     if(context_.IsNull())return;
-    setExtrusionCue(profile,distanceMm,sourceProfileIds,units,operation);
+    setExtrusionCue(profile,distanceMm,sourceProfileIds,units,operation,startOffsetMm);
     context_->UpdateCurrentViewer();
 }
 void ReferenceView::setExtrusionCue(const EvaluatedProfile& profile,double distanceMm,const QJsonArray& sourceProfileIds,
-    const QString& units,const QString& operation) {
+    const QString& units,const QString& operation,double startOffsetMm) {
     previewProfile_=profile.profileId;previewProfileIds_=sourceProfileIds.isEmpty() ? QJsonArray{profile.profileId} : sourceProfileIds;
     applyEditDisplay(false);
-    GProp_GProps properties;BRepGProp::SurfaceProperties(profile.face,properties);const auto start=properties.CentreOfMass();
+    GProp_GProps properties;BRepGProp::SurfaceProperties(profile.face,properties);auto start=properties.CentreOfMass();
     const auto frame=profile.summary.value("frame").toObject().isEmpty() ? SketchGeometry::frame(profile.plane) : profile.summary.value("frame").toObject();
     const auto normal=frame.value("normal").toArray();
-    gp_Vec direction(normal[0].toDouble(),normal[1].toDouble(),normal[2].toDouble());direction*=distanceMm<0 ? -1 : 1;
+    gp_Vec direction(normal[0].toDouble(),normal[1].toDouble(),normal[2].toDouble());start.Translate(direction*startOffsetMm);direction*=distanceMm<0 ? -1 : 1;
     const auto end=start.Translated(direction*std::abs(distanceMm));
     const double displayDistance=units=="in" ? distanceMm/25.4 : distanceMm;
     const QString label=QString::number(displayDistance,'f',2)+" "+units;
-    extrusionCueState_={{"sketchId",profile.sketchId},{"profileId",profile.profileId},{"profileIds",previewProfileIds_},{"distanceMm",distanceMm},
+    extrusionCueState_={{"sketchId",profile.sketchId},{"profileId",profile.profileId},{"profileIds",previewProfileIds_},{"distanceMm",distanceMm},{"startOffsetMm",startOffsetMm},
         {"operation",operation},
         {"units",units},{"label",label},{"plane",profile.plane},{"frame",frame},
         {"startMm",QJsonArray{start.X(),start.Y(),start.Z()}},{"endMm",QJsonArray{end.X(),end.Y(),end.Z()}}};

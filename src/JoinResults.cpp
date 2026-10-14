@@ -66,12 +66,12 @@ void supportSummary(EvaluatedBody& body){QJsonArray descriptions;
 GeometryKernel::JoinResult GeometryKernel::joinResults(const QJsonObject& feature,const std::vector<EvaluatedBody>& participants,
     const std::vector<EvaluatedProfile>& profiles){
     if(participants.empty() || profiles.empty())reject("join_input_invalid","Join needs earlier participants and selected profiles");
-    const auto id=feature["id"].toString();const auto parameters=feature["parameters"].toObject();const double distance=parameters["distanceMm"].toDouble();
+    const auto id=feature["id"].toString();const auto parameters=feature["parameters"].toObject();const double distance=parameters["distanceMm"].toDouble(),start=parameters.value("startOffsetMm").toDouble();
     std::vector<TopoDS_Shape> inputs,tools;std::vector<EvaluatedSupportFace> caps;std::vector<EvaluatedSolidEdge> edges;
     for(const auto& body:participants){const auto summary=summarize(body.shape);
         if(!summary["valid"].toBool() || !summary["closed"].toBool() || summary["topology"].toObject()["solids"].toInt()!=1)
             reject("join_input_invalid","Every Join participant must be one valid closed solid");inputs.push_back(body.shape);edges.insert(edges.end(),body.solidEdges.begin(),body.solidEdges.end());}
-    for(const auto& profile:profiles){EvaluatedSupportFace cap;std::vector<EvaluatedSolidEdge> generated;auto shape=extrusion(profile,distance,&cap,&generated,id);edges.insert(edges.end(),generated.begin(),generated.end());inputs.push_back(shape);tools.push_back(shape);caps.push_back(cap);}
+    for(const auto& profile:profiles){EvaluatedSupportFace cap;std::vector<EvaluatedSolidEdge> generated;auto shape=extrusion(profile,distance,&cap,&generated,id,nullptr,start);edges.insert(edges.end(),generated.begin(),generated.end());inputs.push_back(shape);tools.push_back(shape);caps.push_back(cap);}
     std::unique_ptr<BRepAlgoAPI_BooleanOperation> history;const auto material=fuse(inputs,&history);TopTools_IndexedMapOfShape solids;TopExp::MapShapes(material,TopAbs_SOLID,solids);
     if(solids.IsEmpty())reject("join_empty_result","Join produced no connected solids");
     TopTools_IndexedMapOfShape componentFaces,componentEdges,componentVertices;

@@ -126,6 +126,11 @@ The [Box and Shell parameter candidate](docs/validation/box-shell-parameters.md)
 extends those stable bindings to the three Box dimensions and inward Shell
 thickness, with native field entry and focused real-app validation. Independent
 review and integration remain pending.
+The [Extrude Offset start candidate](docs/validation/extrude-offset-start.md)
+adds a signed start displacement before the independent Distance, with native
+and API controls, direct named lengths, shifted support geometry and a focused
+front-sketch Cut validation. Bounded independent review passed; integration
+remains pending.
 
 [Retained Countersink Hole](docs/validation/countersink-hole-controls.md) now
 cuts from a face-supported sketch Point with editable bore/sink diameters and

@@ -221,9 +221,28 @@ EvaluatedProfile GeometryKernel::unionProfiles(const std::vector<EvaluatedProfil
     return {id,first.sketchId,first.plane,united,summary,lineage};
 }
 
-TopoDS_Shape GeometryKernel::extrusion(const EvaluatedProfile& profile, double distanceMm, EvaluatedSupportFace* endCap, std::vector<EvaluatedSolidEdge>* edges, const QString& generatorFeatureId, std::vector<EvaluatedSupportFace>* planarFaces) {
+TopoDS_Shape GeometryKernel::extrusion(const EvaluatedProfile& sourceProfile, double distanceMm, EvaluatedSupportFace* endCap, std::vector<EvaluatedSolidEdge>* edges, const QString& generatorFeatureId, std::vector<EvaluatedSupportFace>* planarFaces, double startOffsetMm) {
     if (!std::isfinite(distanceMm) || std::abs(distanceMm) < 0.001 || std::abs(distanceMm) > 100000)
         throw std::invalid_argument("Extrusion distance must be signed 0.001..100000 mm; zero is unsupported");
+    if(!std::isfinite(startOffsetMm) || std::abs(startOffsetMm)>100000)
+        throw std::invalid_argument("Extrusion start offset must be signed and within 100000 mm");
+    auto profile=sourceProfile;
+    if(startOffsetMm!=0){
+        auto frame=profile.summary["frame"].toObject();auto origin=frame["origin"].toArray();const auto normal=frame["normal"].toArray();
+        if(origin.size()!=3 || normal.size()!=3)throw std::invalid_argument("Extrusion profile has no resolved frame");
+        const gp_Vec shift(normal[0].toDouble()*startOffsetMm,normal[1].toDouble()*startOffsetMm,normal[2].toDouble()*startOffsetMm);
+        gp_Trsf translation;translation.SetTranslation(shift);
+        BRepBuilderAPI_Transform moved(profile.face,translation,true);
+        if(!moved.IsDone() || moved.Shape().IsNull() || moved.Shape().ShapeType()!=TopAbs_FACE)throw std::runtime_error("OCCT could not shift the extrusion start face");
+        profile.face=TopoDS::Face(moved.Shape());
+        for(auto& boundary:profile.boundaryEdges){
+            const auto edge=moved.ModifiedShape(boundary.edge);
+            if(edge.IsNull() || edge.ShapeType()!=TopAbs_EDGE)throw std::runtime_error("Offset extrusion start lost a source boundary edge");
+            boundary.edge=TopoDS::Edge(edge);
+        }
+        for(int i=0;i<3;++i)origin[i]=origin[i].toDouble()+normal[i].toDouble()*startOffsetMm;
+        frame["origin"]=origin;profile.summary["frame"]=frame;
+    }
     if (profile.face.IsNull() || !BRepCheck_Analyzer(profile.face).IsValid())
         throw std::invalid_argument("Extrusion requires a current valid closed profile face");
     const auto sourceFrame=profile.summary["frame"].toObject();
@@ -614,12 +633,12 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
                         if(targets.size()!=1)reject("unsupported_extrude_targets","Extrude modifier requires one retained target body");
                         auto target=std::find_if(evaluated.bodies.begin(),evaluated.bodies.end(),[&](const auto& body){return body.bodyId==targets[0].toString();});
                         if(target==evaluated.bodies.end()) {context["code"]="body_unavailable";context["message"]="The exact extrusion target must be an active body earlier in feature history";throw EvaluationError(context);}
-                        const double distance=parameters["distanceMm"].toDouble();std::vector<TopoDS_Shape> tools;std::vector<EvaluatedSupportFace> joinCaps;double area=0;QStringList sourceEntities;
+                        const double distance=parameters["distanceMm"].toDouble(),start=parameters.value("startOffsetMm").toDouble();std::vector<TopoDS_Shape> tools;std::vector<EvaluatedSupportFace> joinCaps;double area=0;QStringList sourceEntities;
                         const bool circularCut=parameters["operation"]=="cut" && selected.size()==1
                             && selected.front().boundaryEdges.size()==1 && selected.front().boundaryEdges.front().type=="circle";
                         for(const auto& profile:selected) {EvaluatedSupportFace cap;std::vector<EvaluatedSolidEdge> toolEdges;
                             tools.push_back(extrusion(profile,distance,joining ? &cap : nullptr,
-                                circularCut ? &toolEdges : nullptr,id));
+                                circularCut ? &toolEdges : nullptr,id,nullptr,start));
                             if(circularCut)for(auto& edge:toolEdges)if(edge.provenance["role"]=="baseRim")
                                 target->solidEdges.push_back(std::move(edge));
                             if(!cap.face.IsNull())joinCaps.push_back(cap);area+=profile.summary["areaMm2"].toDouble();
@@ -632,7 +651,7 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
                         const double removed=joining ? cutSummary["volumeMm3"].toDouble()-previousVolume : previousVolume-cutSummary["volumeMm3"].toDouble();
                         if(parameters["operation"]!="intersect" && removed<=std::max(1e-6,previousVolume*1e-12)){context["code"]=joining ? "join_no_addition" : "cut_no_intersection";context["message"]=joining ? "Selected profile prisms do not add positive volume to the retained target" : "Selected profile prisms do not remove positive volume from the retained target";throw EvaluationError(context);}
                         cutSummary["operation"]=parameters["operation"];cutSummary["lastModifierFeatureId"]=id;cutSummary["producerFeatureId"]=target->featureId;
-                        cutSummary["targetBodyIds"]=targets;cutSummary["sourceSketchId"]=sketchId;cutSummary["distanceMm"]=distance;
+                        cutSummary["targetBodyIds"]=targets;cutSummary["sourceSketchId"]=sketchId;cutSummary["distanceMm"]=distance;cutSummary["startOffsetMm"]=start;
                         if(plural)cutSummary["sourceProfileIds"]=profileIds;else cutSummary["sourceProfileId"]=parameters["profileId"];
                         sourceEntities.removeDuplicates();sourceEntities.sort();QJsonArray refs;for(const auto& entity:sourceEntities)refs.append(entity);
                         cutSummary["sourceEntityIds"]=refs;cutSummary["sourceAreaMm2"]=area;cutSummary[joining ? "addedVolumeMm3" : "removedVolumeMm3"]=removed;
@@ -654,9 +673,9 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
                         target->summary=cutSummary;
                         evaluated.featureOrder.push_back(id);continue;
                     }
-                    const auto united=unionProfiles(selected);const double distance=parameters["distanceMm"].toDouble();
+                    const auto united=unionProfiles(selected);const double distance=parameters["distanceMm"].toDouble(),start=parameters.value("startOffsetMm").toDouble();
                     EvaluatedSupportFace cap;
-                    shape=extrusion(united,distance,&cap,&solidEdges,id,&supportFaces);summary=summarize(shape);
+                    shape=extrusion(united,distance,&cap,&solidEdges,id,&supportFaces,start);summary=summarize(shape);
                     summary["solidEdges"]=SolidFillet::descriptors(solidEdges);
                     if(!cap.face.IsNull()) {
                         cap.producerFeatureId=id;cap.bodyId=feature["bodyId"].toString();
@@ -666,7 +685,7 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
                     }
                     for(auto& face:supportFaces)face.bodyId=feature["bodyId"].toString();
                     summary["supportFaces"]=PlanarFaces::descriptors(supportFaces);
-                    summary["operation"]="extrude";summary["distanceMm"]=distance;summary["sourceSketchId"]=sketchId;
+                    summary["operation"]="extrude";summary["distanceMm"]=distance;summary["startOffsetMm"]=start;summary["sourceSketchId"]=sketchId;
                     if(plural)summary["sourceProfileIds"]=profileIds;else summary["sourceProfileId"]=parameters["profileId"];
                     summary["sourceEntityIds"]=united.summary["sourceEntityIds"];summary["sourceAreaMm2"]=united.summary["areaMm2"];
                     summary["analyticVolumeMm3"]=united.summary["areaMm2"].toDouble()*std::abs(distance);

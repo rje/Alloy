@@ -113,7 +113,7 @@ void FeaturePattern::evaluate(EvaluatedBody& target,const QJsonObject& feature,c
     if(directions.empty())reject("pattern_axis_required","Choose one or two axis edges");
     const int q1=quantities[0],q2=directions.size()==2 ? quantities[1] : 1;
     if(q1*q2>1000)reject("pattern_instance_limit","This pattern supports at most 1000 total instances");
-    GProp_GProps properties;BRepGProp::SurfaceProperties(profile->face,properties);auto seedCenter=properties.CentreOfMass();const auto normal=profile->summary["frame"].toObject()["normal"].toArray();seedCenter.Translate(gp_Vec(normal[0].toDouble(),normal[1].toDouble(),normal[2].toDouble())*(source["distanceMm"].toDouble()/2));
+    GProp_GProps properties;BRepGProp::SurfaceProperties(profile->face,properties);auto seedCenter=properties.CentreOfMass();const auto normal=profile->summary["frame"].toObject()["normal"].toArray();seedCenter.Translate(gp_Vec(normal[0].toDouble(),normal[1].toDouble(),normal[2].toDouble())*(source["startOffsetMm"].toDouble()+source["distanceMm"].toDouble()/2));
     QJsonArray resolvedAxes;const auto authoredAxes=p["axes"].toArray();for(size_t i=0;i<directions.size();++i){auto axis=authoredAxes[int(i)].toObject();axis["direction"]=QJsonArray{directions[i].X(),directions[i].Y(),directions[i].Z()};resolvedAxes.append(axis);}
     std::vector<TopoDS_Shape> tools;QJsonArray instances;const auto id=feature["id"].toString();
     const auto volumeBefore=target.summary["volumeMm3"].toDouble();
@@ -123,7 +123,7 @@ void FeaturePattern::evaluate(EvaluatedBody& target,const QJsonObject& feature,c
         instances.append(QJsonObject{{"instanceId",instanceId},{"index1",i},{"index2",j},{"translationMm",QJsonArray{translation.X(),translation.Y(),translation.Z()}},{"centerMm",QJsonArray{seedCenter.X()+translation.X(),seedCenter.Y()+translation.Y(),seedCenter.Z()+translation.Z()}},{"seed",i==0 && j==0}});
         if(i==0 && j==0)continue;
         EvaluatedSupportFace cap;std::vector<EvaluatedSolidEdge> edges;
-        const auto prism=GeometryKernel::extrusion(*profile,source["distanceMm"].toDouble(),&cap,&edges,instanceId);
+        const auto prism=GeometryKernel::extrusion(*profile,source["distanceMm"].toDouble(),&cap,&edges,instanceId,nullptr,source["startOffsetMm"].toDouble());
         gp_Trsf transform;transform.SetTranslation(translation);BRepBuilderAPI_Transform moved(prism,transform,true);
         if(!moved.IsDone())reject("pattern_transform_failed","Pattern instance translation failed");tools.push_back(moved.Shape());
         for(auto& edge:edges){const auto transformed=moved.ModifiedShape(edge.edge);if(transformed.IsNull() || transformed.ShapeType()!=TopAbs_EDGE)reject("pattern_edge_unavailable","Instance edge provenance is unavailable");edge.edge=TopoDS::Edge(transformed);edge.provenance["patternFeatureId"]=id;edge.provenance["seedFeatureId"]=seed["id"];edge.provenance["instanceId"]=instanceId;edge.provenance["occurrenceId"]=instanceId;edge.provenance["index1"]=i;edge.provenance["index2"]=j;target.solidEdges.push_back(edge);}
