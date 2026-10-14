@@ -48,26 +48,29 @@ HIS-006 reorder; TUT-023 alignment rim follows. Accepted prerequisites include
 SOL-052 owned Split, GEO-012 exact inner Cut rims, GEO-013 retained Cut side
 supports, and SOL-054 connected selected-region Join replay. SOL-054 technical
 YZ replay/edit/history/reopen is accepted at 9179015, but its technical finish
-choices do not qualify the source attachment. GEO-014/#340 is active for the
+choices do not qualify the source attachment. GEO-014/#340 has a publication candidate for the
 actual wall/stem junction edge: unique OCCT Modified tool-edge history and
 incident target face can identify the current vertical root at
-X=-28.5,Y=17.5,Z15..20.5. Do not substitute the hook elbow or a transverse
+X=-28.5,Y=17.5,Z15..20.5. The actual root accepts smaller chamfers but refuses
+the required 2 mm at the inferred 2 mm stem width, even on fresh Join.
+GEO-015/#341 separately owns this source-geometry/exact-size qualification.
+Do not substitute the hook elbow or a transverse
 free edge merely because its Chamfer succeeds. SOL-053/#337 remains Todo
 until this root and the actual finished YZ snap group pass.
 
-The accepted nominal board is rotated90 degrees about Z. Source opposite-wall
+The accepted nominal board is rotated 90 degrees about Z. Source opposite-wall
 reflection therefore maps explicitly to Alloy origin YZ, not XZ. Actual opposed
-Cut API/native proof is integrated at62d164a: each closed6x3 catch removes63mm3
-at X=+/-32,Y20 and clears the long slot by6.75mm. Earlier same-wall XZ fixtures
+Cut API/native proof is integrated at `62d164a`: each closed 6 × 3 catch removes 63 mm³
+at X=+/-32,Y20 and clears the long slot by 6.75 mm. Earlier same-wall XZ fixtures
 qualify only their bounded lineage ingredients. The inferred hook starts from
-the exact Cut side atY17, offset toY17.5; retained Project lines partition its
-outline into selected20+7+1mm2 cells and an excluded3.5mm2 cell. Public source
-instructions explicitly select multiple profiles for Join5; exact source
+the exact Cut side at Y17, offset to Y17.5; retained Project lines partition its
+outline into selected 20 + 7 + 1 mm² cells and an excluded 3.5 mm² cell. Public source
+instructions explicitly select multiple profiles for Join 5; exact source
 support/sign/corner and clicked cells remain uncertain. The actual Join adds
-no measured interference; nominal fixture already has0.73224mm3 Top overlap
+no measured interference; nominal fixture already has 0.73224 mm³ Top overlap
 with SIDE-ETH-001, unchanged by the snap. Physical fit is not certified.
 
-HIS-006 candidate is rebased at5ec4b64 in the timeline-reorder worktree, with
+HIS-006 candidate is rebased at `5ec4b64` in the timeline-reorder worktree, with
 original backup retained. App/native target build and prior one-Mirror core
 pass. Final API/native checks require Bottom R0.5 before BOTH Cut and snap
 Mirrors, then move it after both and edit the opposite retained edge. Current

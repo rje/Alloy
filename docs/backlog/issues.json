@@ -5664,7 +5664,8 @@
         "SOL-053",
         "GEO-013",
         "SOL-054",
-        "GEO-014"
+        "GEO-014",
+        "GEO-015"
       ],
       "labels": [
         "area:gate"
@@ -5867,7 +5868,8 @@
         "SOL-051",
         "GEO-013",
         "SOL-054",
-        "GEO-014"
+        "GEO-014",
+        "GEO-015"
       ],
       "labels": [
         "area:solid"
@@ -5916,7 +5918,21 @@
       "labels": [
         "area:geo"
       ],
-      "body": "The actual connected-region enclosure snap Join has a current wall/stem junction edge at X=-28.5,Y=17.5,Z15..20.5, but no retained solid-edge identity publishes it. Existing inherited tool boundaries do not cover this Boolean-created intersection. Publish exact unique current Join intersection edges using kernel history/section provenance tied to authored tool and target faces; never nearest-coordinate matching. Refuse ambiguous lineage. Verify the actual wall/stem root incidence, downstream source-sized Chamfer2 and stable source-edit/history/reopen references. If Chamfer2 is geometrically unsupported even with the correct edge, record that separate limitation without substituting the elbow or transverse free edge. Full exact source clicked-edge mapping remains publicly uncertain; root attachment intent is documented and inferred geometry choices must be disclosed. SOL-053/TUT-022 retain actual complete snap finishes/Mirror acceptance. Proportionate core and actual application proof, independent Astra review required."
+      "body": "The actual connected-region enclosure snap Join has a current wall/stem junction edge at X=-28.5,Y=17.5,Z15..20.5, but no retained solid-edge identity publishes it. Existing inherited tool boundaries do not cover this Boolean-created intersection. Publish exact unique current Join intersection edges using kernel history/section provenance tied to authored tool and target faces; never nearest-coordinate matching. Refuse ambiguous lineage. Verify the actual wall/stem root incidence, downstream source-sized Chamfer2 and stable source-edit/history/reopen references. If Chamfer2 is geometrically unsupported even with the correct edge, record that separate limitation without substituting the elbow or transverse free edge. Full exact source clicked-edge mapping remains publicly uncertain; root attachment intent is documented and inferred geometry choices must be disclosed. SOL-053/TUT-022 retain actual complete snap finishes/Mirror acceptance. Proportionate core and actual application proof, independent Astra review required.\n\n## Bounded publication and separate finish blocker\nExact current root publication is the finishable scope here. The true root is a unique Modified descendant of a retained tool baseRim, discriminated by actual target-face incidence; SectionEdges is not required. The specified2mm Chamfer still fails after publication while0.5/1/1.5 succeeds. GEO-015 owns that separate exact-size/source-geometry qualification. No smaller radius or other edge closes the parent tutorial.\n"
+    },
+    {
+      "key": "GEO-015",
+      "title": "Qualify source-sized attachment Chamfer at the adapted snap stem limit",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "GEO-014"
+      ],
+      "labels": [
+        "area:geo"
+      ],
+      "body": "The exact current vertical wall/stem root at X=-28.5,Y17.5,Z15..20.5 is now identifiable by kernel lineage. On the fresh actual adapted Join, Chamfer0.5,1.0,1.5 succeeds but the required2.0 fails with chamfer_failed; the inferred stem width is2mm. Stop arbitrary edge/radius substitutions. Investigate whether the permitted public source establishes a different attachment geometry or whether an exact-limit concave chamfer needs a bounded mature-kernel construction/fallback. Preserve specified source dimensions and actual wall attachment intent; any geometry adaptation must be explicit and cannot silently count as exact parity. Qualify correct adjacent faces, valid closed result, source-sized2mm finish, intended printing support and no added assembly interference, followed by retained references through edit/history/reopen and final Mirror. Do not infer kernel fault solely from one rejected geometry. Existing smaller-size diagnostics establish a threshold only, not acceptance. Actual source corner/edge mapping remains uncertain. SOL-053/TUT-022/HIS-006 stay open for complete actual finishes and two-Mirror workflow."
     }
   ]
 }
