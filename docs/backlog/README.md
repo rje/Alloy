@@ -31,8 +31,8 @@ creation/motion/output API recording is independently accepted. Independent sour
 ASM-019 native Copy/Paste shortcuts, ASM-020 cylindrical-face origin locking and
 Show/Hide, ASM-021 paste drag/contextual Revert, ASM-022 Browser gestures and
 ASM-023 shared As-Built Type/occurrence selection. The direct copy/edge-selection
-routes do not close these exact native steps. ASM-019 is accepted; ASM-020/022 are active and ASM-021/023
-remain Todo. The full semantic API creation/motion/export movie is recorded.
+routes do not close these exact native steps. ASM-019 is accepted; ASM-020/021/022 are active and ASM-023
+remains Todo. The full semantic API creation/motion/export movie is recorded.
 Exact shoehorn corner rounding and the enclosure
 alignment rim remain blocked geometry follow-ups. Complete source operations, readable constraint and
 selection states, edit/history/reopen, full creation recordings and independently

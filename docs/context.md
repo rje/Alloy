@@ -86,9 +86,9 @@ cylindrical-face midpoint inference. The UI hover/lock/glyph lane is active. The
 after clipboard and origin-authority integration; native and core receipts remain
 scoped to their independently reviewed candidates. Midpoint and release behavior are declared Alloy mappings; held-face
 lock is documented. Add source Joints-folder Show/Hide in the UI scope.
-The full native-step ledger also preserves Todo ASM-021/#371 paste drag and
-contextual Position/Revert, ASM-022/#372 Browser organization gestures (now active
-in a parallel isolated UI lane) and
+The full native-step ledger also preserves ASM-021/#371 paste drag and
+contextual Position/Revert (active in a third isolated implementation lane),
+ASM-022/#372 Browser organization gestures (active in parallel) and Todo
 ASM-023/#373 shared As-Built Type/two-occurrence selection. TUT-019 depends on
 these children; the direct Copy Component/circular-edge
 routes are equivalent modeling semantics, not exact source input parity.
