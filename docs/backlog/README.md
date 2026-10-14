@@ -13,6 +13,12 @@ Use the live issue state for completion and readiness.
 
 ## Active delivery order
 
+Current checkpoint (2026-10-14): the short expression exercise and Base Sketch
+construction, dimensions and first solid are independently accepted. TUT-028/#395
+is the sole active gate: native face sketch, three retained center references and
+Cut All with flipped direction. See [the current sequence](tutorial-sequence.json)
+and [continuation context](../context.md) for accepted evidence and remaining work.
+
 Current authorized queue (2026-10-13): **sliding-lid box → snap-fit electronics
 enclosure → surface shoehorn → surface iron → piston subassemblies**. TUT-015–019
 are cumulative gates with explicit feature dependencies. Thirty-eight new tasks
