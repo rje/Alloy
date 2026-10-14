@@ -10,8 +10,10 @@ workflow and Qt-native canvas selection/End chooser/Cancel/accept pass. See
 [the receipt](validation/endpoint-path-planes.md). Main application build and
 focused endpoint core test pass. Solved-curve picking has separate shared-command
 proof; native05 covers basic gestures. Broader path extents stay with the parent.
-The second Sol lane now implements SKT-068/#282 true arc-midpoint constraints
-for the attached shoehorn profile.
+SKT-068/#282 true arc-midpoint candidate e163bca is complete in isolated
+feat/arc-midpoint-endpoint, with core/API/native evidence and readable badges.
+It remains Todo awaiting independent Astra review (model capacity), not accepted.
+The second Sol lane now implements ready SOL-047/#287 Through All Cut.
 
 ## Accepted Selection Priority (2026-10-13)
 
