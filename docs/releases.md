@@ -29,8 +29,9 @@ See [GPU evidence](validation/gpu-foundation.md) and the local
 
 CI compilation does not run the existing hardware smoke on hosted machines.
 The strict GPU test remains intact. Linux Xw_Window currently requires X11/GLX;
-initial Linux operation will use Qt xcb on X11/XWayland. Windows startup/client
-still require named-pipe and access-control work. These are tracked requirements.
+initial Linux operation will use Qt xcb on X11/XWayland. The bounded Windows named-pipe/access-control transport is accepted in FND-024;
+FND-012 retains desktop and remaining platform qualification. Transport evidence
+does not establish a working packaged GPU application.
 
 ## Milestone path
 
@@ -55,8 +56,10 @@ still require named-pipe and access-control work. These are tracked requirements
 Each published milestone carries platform archives, SHA256SUMS, source and
 dependency manifests, notices/source-access materials, capability notes, and
 fresh cumulative evidence. Missing platform assets or stale/mismatched receipts
-fail the candidate. As CAD features land, repeat all previously accepted workflows
-from the packaged entrypoint on each supported OS.
+fail the candidate. For a release candidate, exercise a representative sketch-to-print workflow and
+an advanced assembly or surface fixture from the packaged entrypoint on each
+supported OS. Reuse accepted geometry evidence and rerun changed or platform-risk
+paths; do not replay every unchanged tutorial after each small edit.
 
 macOS signing/notarization, Windows runtime/signing and installer policy, Linux
 minimum distro/ABI and future AppImage/Flatpak options are open tasks. These do
@@ -79,7 +82,8 @@ for an explicit candidate/toolchain investigation. Do not start a replacement
 matrix after every small commit or issue closure.
 
 The automatic development-commit run 38199898011 was cancelled when this policy
-was accepted. No version is cut by the editor/input fix alone: the current Windows
-Qt SDK extraction failure and unbundled artifacts still prevent a supported
-cross-platform binary release. CI-001 owns that blocker. CI-003 promotes the exact
-qualified milestone archives without rebuilding them.
+was accepted. No version is cut by an editor/input fix alone. The earlier Qt extraction
+failure was resolved by the accepted native matrix. Remaining release blockers
+are runtime packaging, hardware/desktop qualification, dependency notices and
+the initial-build readiness gate. CI-003 promotes the exact qualified milestone
+archives without rebuilding them.

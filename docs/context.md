@@ -1,6 +1,22 @@
 # Continuation context
 
-## Current queue (2026-10-14)
+## Initial-build readiness priority (2026-10-14)
+
+The user reprioritized polish/quality, familiar viewport navigation and an initial
+build, while retaining advanced tutorial completion. See the actionable
+[readiness burndown](initial-build-readiness.md). Nineteen bounded children
+NAV-001–008, REL-012–018 and CI-004–007 are published as #407–425; existing
+file/physical-input/platform gates and advanced chain dependencies are reused.
+NAV-001/#407 is active: shared free orbit plus a visible no-middle-button tool,
+custom camera persistence and navigation gesture priority. Sol implements,
+Astra verifies, Luna maintains public navigation and enclosure source contracts.
+Only main/existing build and one private GUI lease; no new worktrees. Alternate
+readiness slices with concrete advanced-chain blockers. Packages can progress
+independently; no version/CI dispatch or public release has been triggered.
+Initial OpenGL preview limitations remain explicit; stable RHI requirements stay.
+The previous accepted milestone remains valid; current activity is this section.
+
+## Prior accepted queue (2026-10-14)
 
 Continue autonomously across accepted milestones; a status report is not a stop.
 RES-021/#383 source preflight is accepted: the short expression exercise uses

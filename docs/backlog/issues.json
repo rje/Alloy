@@ -265,7 +265,11 @@
       "depends_on": [
         "CI-001",
         "FND-012",
-        "FND-002"
+        "FND-002",
+        "CI-004",
+        "CI-005",
+        "CI-006",
+        "CI-007"
       ],
       "labels": [
         "kind:implementation",
@@ -273,7 +277,7 @@
         "priority:P0",
         "area:platform"
       ],
-      "body": "## Problem and result\nStage relocatable runtime bundles for all supported platforms. macOS, Windows and Linux are mandatory Alloy targets, including agent control and GPU rendering.\n\n## Scope\nAdd CMake install/deployment and runtime dependency closure for Qt plugins, OCCT/FreeType libraries/resources and local agent tools. Produce macOS .app ZIPs, Windows ZIP and Linux tar.gz initially, with checksums, component/license/source inventory and debug symbols separately. Preserve modes and symlinks by archiving before artifact upload.\n\n## Acceptance criteria\n- Packages relocate and start without development Qt/OCCT paths; driver/system dependencies and supported minimums are explicit.\n- Retain complete admitted notices/source-access materials; inspect dylib/DLL/ELF closure and runtime resource paths.\n- Package/client/server correspond to one source revision and the native control API is usable from each extracted bundle.\n\n## Proposed verification and evidence\nExtract into a separate clean-user directory or clean machine on each OS, remove SDK path variables, inspect dependencies and launch the native executable. Run shell/API/capture checks, retain package hashes and diagnose missing plugin/resource/runtime failures. Signing/notarization requirements are tracked without treating unavailable certificates as build proof.\n\nRetain exact source/dependency revisions, candidate package hashes, logs and machine/display diagnostics. Separate compilation, API, runtime dependencies, hardware rendering, physical input and cumulative CAD workflow evidence.\n\n## Public reference evidence\n- [Qt CMake deployment](https://doc.qt.io/qt-6.11/cmake-deployment.html) \u2014 retrieved 2026-10-11.\n- [Qt Linux/X11 requirements](https://doc.qt.io/qt-6.11/linux-requirements.html) \u2014 retrieved 2026-10-11.\n- [GitHub workflow artifacts](https://docs.github.com/en/actions/tutorials/store-and-share-data) \u2014 retrieved 2026-10-11.\n\n## Limits and open questions\nOnly macOS runtime is currently verified. CI scaffolding or software-rendered hosted output cannot establish hardware support. Original Alloy code remains MIT; dependency distribution terms require FND-002 evidence. This is clean-room work: never run or inspect reference CAD application. Architecture/minimum OS versions are a proposed initial support matrix, not blanket claims for every device or distro.\n\n\n## Assembly dependency packaging follow-up (2026-10-14)\nThe integrated assembly backend adds two shared libraries: the original POD/C adapter and the pinned LGPL-2.1 solver. Include both in each relocatable runtime bundle, preserve dynamic loading without developer paths, and qualify the documented replacement/relink route. Retain the exact corresponding solver source, build instructions and notices under docs/decisions/006-assembly-solver.md. The current macOS development build does not qualify a downloaded package or Windows/Linux runtime.\n"
+      "body": "## Problem and result\nStage relocatable runtime bundles for all supported platforms. macOS, Windows and Linux are mandatory Alloy targets, including agent control and GPU rendering.\n\n## Scope\nAdd CMake install/deployment and runtime dependency closure for Qt plugins, OCCT/FreeType libraries/resources and local agent tools. Produce macOS .app ZIPs, Windows ZIP and Linux tar.gz initially, with checksums, component/license/source inventory and debug symbols separately. Preserve modes and symlinks by archiving before artifact upload.\n\n## Acceptance criteria\n- Packages relocate and start without development Qt/OCCT paths; driver/system dependencies and supported minimums are explicit.\n- Retain complete admitted notices/source-access materials; inspect dylib/DLL/ELF closure and runtime resource paths.\n- Package/client/server correspond to one source revision and the native control API is usable from each extracted bundle.\n\n## Proposed verification and evidence\nExtract into a separate clean-user directory or clean machine on each OS, remove SDK path variables, inspect dependencies and launch the native executable. Run shell/API/capture checks, retain package hashes and diagnose missing plugin/resource/runtime failures. Signing/notarization requirements are tracked without treating unavailable certificates as build proof.\n\nRetain exact source/dependency revisions, candidate package hashes, logs and machine/display diagnostics. Separate compilation, API, runtime dependencies, hardware rendering, physical input and cumulative CAD workflow evidence.\n\n## Public reference evidence\n- [Qt CMake deployment](https://doc.qt.io/qt-6.11/cmake-deployment.html) \u2014 retrieved 2026-10-11.\n- [Qt Linux/X11 requirements](https://doc.qt.io/qt-6.11/linux-requirements.html) \u2014 retrieved 2026-10-11.\n- [GitHub workflow artifacts](https://docs.github.com/en/actions/tutorials/store-and-share-data) \u2014 retrieved 2026-10-11.\n\n## Limits and open questions\nOnly macOS runtime is currently verified. CI scaffolding or software-rendered hosted output cannot establish hardware support. Original Alloy code remains MIT; dependency distribution terms require FND-002 evidence. This is clean-room work: never run or inspect reference CAD application. Architecture/minimum OS versions are a proposed initial support matrix, not blanket claims for every device or distro.\n\n\n## Assembly dependency packaging follow-up (2026-10-14)\nThe integrated assembly backend adds two shared libraries: the original POD/C adapter and the pinned LGPL-2.1 solver. Include both in each relocatable runtime bundle, preserve dynamic loading without developer paths, and qualify the documented replacement/relink route. Retain the exact corresponding solver source, build instructions and notices under docs/decisions/006-assembly-solver.md. The current macOS development build does not qualify a downloaded package or Windows/Linux runtime.\n\n\n## Initial-build readiness decomposition\nBounded children: CI-004, CI-005, CI-006, CI-007. Retain the full parent scope and prior evidence; child completion does not imply unverified platform or exact-parity acceptance.\n"
     },
     {
       "key": "GATE-005",
@@ -484,7 +488,15 @@
       "priority": "P1",
       "depends_on": [
         "DOC-005",
-        "FND-007"
+        "FND-007",
+        "NAV-001",
+        "NAV-002",
+        "NAV-003",
+        "NAV-004",
+        "NAV-005",
+        "NAV-006",
+        "NAV-007",
+        "NAV-008"
       ],
       "labels": [
         "kind:implementation",
@@ -492,7 +504,7 @@
         "priority:P1",
         "area:doc"
       ],
-      "body": "## Problem and result\nImplement CAD camera navigation and named views. Deliver the bounded result below within Alloy's standalone C++20 product; the current application is only a Qt shell.\n\n## Scope\nAdd actual orbit/pan/zoom/fit and top/front/right/isometric camera state; document reference CAD application navigation preset and trackpad limits.\n\n## Acceptance criteria\n- Shift+middle-button orbit differs from pan; API camera state and saved named views reproduce framing; depth clipping and fit include visible geometry.\n- UI and local API share authoritative document/commands; expose arguments, selection, errors and result inspection. Undo/save coverage follows the dependencies, never a separate automation model.\n\n## Proposed verification and evidence\nPhysically orbit/pan a box, inspect camera through API, restore named view and compare capture; test extreme zoom and hidden-body fit.\n\nAdd/execute `python3 tests/workflows/run.py --case DOC-010 --evidence build/evidence/DOC-010` (case not implemented yet; the runner refuses missing cases). Record actual commands, fixture hashes, dependency versions, assertions and artifacts. Keep build, API, geometry, save/reopen, export, physical input and visual evidence separate; mark non-applicable dimensions with a reason.\n\n## Public reference evidence\n- reference CAD application keyboard shortcuts (reference `keys`) \u2014 retrieved 2026-10-11.\n- [OCCT visualization](https://www.occt3d.com/dev/doc/overview/html/occt_user_guides__visualization.html) \u2014 retrieved 2026-10-11.\n\nReferences describe documented product/library behavior. Scope, implementation strategy, fixture values and acceptance thresholds are Alloy proposals unless explicitly stated otherwise. Never run or inspect reference CAD application; use public documentation/screenshots only.\n\n## Limits and open questions\nOnly the stated subset is in scope; record unsupported options explicitly. This issue is planned, not implemented or verified.\n"
+      "body": "## Problem and result\nImplement CAD camera navigation and named views. Deliver the bounded result below within Alloy's standalone C++20 product; the current application is only a Qt shell.\n\n## Scope\nAdd actual orbit/pan/zoom/fit and top/front/right/isometric camera state; document reference CAD application navigation preset and trackpad limits.\n\n## Acceptance criteria\n- Shift+middle-button orbit differs from pan; API camera state and saved named views reproduce framing; depth clipping and fit include visible geometry.\n- UI and local API share authoritative document/commands; expose arguments, selection, errors and result inspection. Undo/save coverage follows the dependencies, never a separate automation model.\n\n## Proposed verification and evidence\nPhysically orbit/pan a box, inspect camera through API, restore named view and compare capture; test extreme zoom and hidden-body fit.\n\nAdd/execute `python3 tests/workflows/run.py --case DOC-010 --evidence build/evidence/DOC-010` (case not implemented yet; the runner refuses missing cases). Record actual commands, fixture hashes, dependency versions, assertions and artifacts. Keep build, API, geometry, save/reopen, export, physical input and visual evidence separate; mark non-applicable dimensions with a reason.\n\n## Public reference evidence\n- reference CAD application keyboard shortcuts (reference `keys`) \u2014 retrieved 2026-10-11.\n- [OCCT visualization](https://www.occt3d.com/dev/doc/overview/html/occt_user_guides__visualization.html) \u2014 retrieved 2026-10-11.\n\nReferences describe documented product/library behavior. Scope, implementation strategy, fixture values and acceptance thresholds are Alloy proposals unless explicitly stated otherwise. Never run or inspect reference CAD application; use public documentation/screenshots only.\n\n## Limits and open questions\nOnly the stated subset is in scope; record unsupported options explicitly. This issue is planned, not implemented or verified.\n\n\n## Initial-build readiness decomposition\nBounded children: NAV-001, NAV-002, NAV-003, NAV-004, NAV-005, NAV-006, NAV-007, NAV-008. Retain the full parent scope and prior evidence; child completion does not imply unverified platform or exact-parity acceptance.\n"
     },
     {
       "key": "DOC-011",
@@ -2535,7 +2547,8 @@
       "phase": "P4 Initial release",
       "priority": "P1",
       "depends_on": [
-        "GATE-040"
+        "GATE-040",
+        "REL-015"
       ],
       "labels": [
         "kind:implementation",
@@ -2543,7 +2556,7 @@
         "priority:P1",
         "area:rel"
       ],
-      "body": "## Problem and result\nQualify a bounded geometry and reference-failure regression corpus. Deliver the bounded result below within Alloy's standalone C++20 product; the current application is only a Qt shell.\n\n## Scope\nCollect independent edge cases from supported operations: tangent contacts, slivers, tiny/large units, near-degenerate sketches, broken projections, split/merge references and invalid offsets.\n\n## Acceptance criteria\n- Every supported failure is deterministic/actionable and preserves recoverable intent; exclusions become explicit follow-up issues with repro files.\n- UI and local API share authoritative document/commands; expose arguments, selection, errors and result inspection. Undo/save coverage follows the dependencies, never a separate automation model.\n\n## Proposed verification and evidence\nRun all cumulative fixtures plus a versioned negative corpus under sanitizer/debug tools where available; record topology validity and crash-free failure recovery.\n\nAdd/execute `python3 tests/workflows/run.py --case REL-001 --evidence build/evidence/REL-001` (case not implemented yet; the runner refuses missing cases). Record actual commands, fixture hashes, dependency versions, assertions and artifacts. Keep build, API, geometry, save/reopen, export, physical input and visual evidence separate; mark non-applicable dimensions with a reason.\n\n## Public reference evidence\n- Project geometry and repair lost links (reference `project`) \u2014 retrieved 2026-10-11.\n- Stitch surfaces into a quilt or solid (reference `stitch`) \u2014 retrieved 2026-10-11.\n- Fillet reference (reference `fillet`) \u2014 retrieved 2026-10-11.\n\nReferences describe documented product/library behavior. Scope, implementation strategy, fixture values and acceptance thresholds are Alloy proposals unless explicitly stated otherwise. Never run or inspect reference CAD application; use public documentation/screenshots only.\n\n## Limits and open questions\nOnly the stated subset is in scope; record unsupported options explicitly. This issue is planned, not implemented or verified.\n"
+      "body": "## Problem and result\nQualify a bounded geometry and reference-failure regression corpus. Deliver the bounded result below within Alloy's standalone C++20 product; the current application is only a Qt shell.\n\n## Scope\nCollect independent edge cases from supported operations: tangent contacts, slivers, tiny/large units, near-degenerate sketches, broken projections, split/merge references and invalid offsets.\n\n## Acceptance criteria\n- Every supported failure is deterministic/actionable and preserves recoverable intent; exclusions become explicit follow-up issues with repro files.\n- UI and local API share authoritative document/commands; expose arguments, selection, errors and result inspection. Undo/save coverage follows the dependencies, never a separate automation model.\n\n## Proposed verification and evidence\nRun all cumulative fixtures plus a versioned negative corpus under sanitizer/debug tools where available; record topology validity and crash-free failure recovery.\n\nAdd/execute `python3 tests/workflows/run.py --case REL-001 --evidence build/evidence/REL-001` (case not implemented yet; the runner refuses missing cases). Record actual commands, fixture hashes, dependency versions, assertions and artifacts. Keep build, API, geometry, save/reopen, export, physical input and visual evidence separate; mark non-applicable dimensions with a reason.\n\n## Public reference evidence\n- Project geometry and repair lost links (reference `project`) \u2014 retrieved 2026-10-11.\n- Stitch surfaces into a quilt or solid (reference `stitch`) \u2014 retrieved 2026-10-11.\n- Fillet reference (reference `fillet`) \u2014 retrieved 2026-10-11.\n\nReferences describe documented product/library behavior. Scope, implementation strategy, fixture values and acceptance thresholds are Alloy proposals unless explicitly stated otherwise. Never run or inspect reference CAD application; use public documentation/screenshots only.\n\n## Limits and open questions\nOnly the stated subset is in scope; record unsupported options explicitly. This issue is planned, not implemented or verified.\n\n\n## Initial-build readiness decomposition\nBounded children: REL-015. Retain the full parent scope and prior evidence; child completion does not imply unverified platform or exact-parity acceptance.\n"
     },
     {
       "key": "REL-002",
@@ -2552,7 +2565,8 @@
       "phase": "P4 Initial release",
       "priority": "P1",
       "depends_on": [
-        "GATE-040"
+        "GATE-040",
+        "REL-014"
       ],
       "labels": [
         "kind:implementation",
@@ -2560,7 +2574,7 @@
         "priority:P1",
         "area:rel"
       ],
-      "body": "## Problem and result\nAdd recovery, format migration and large-save interruption handling. Deliver the bounded result below within Alloy's standalone C++20 product; the current application is only a Qt shell.\n\n## Scope\nImplement recoverable autosave or journal, file-version migration and recovery choices without overwriting the user original.\n\n## Acceptance criteria\n- A killed process can recover latest committed authored state; older files migrate with stable IDs; unknown newer schemas fail safely.\n- UI and local API share authoritative document/commands; expose arguments, selection, errors and result inspection. Undo/save coverage follows the dependencies, never a separate automation model.\n\n## Proposed verification and evidence\nKill Alloy during staged save/recompute of fixture copies, reopen recovery candidates and compare parameters/IDs; test older schema samples and disk-full failure.\n\nAdd/execute `python3 tests/workflows/run.py --case REL-002 --evidence build/evidence/REL-002` (case not implemented yet; the runner refuses missing cases). Record actual commands, fixture hashes, dependency versions, assertions and artifacts. Keep build, API, geometry, save/reopen, export, physical input and visual evidence separate; mark non-applicable dimensions with a reason.\n\n## Public reference evidence\n- [OCCT OCAF](https://www.occt3d.com/dev/doc/overview/html/occt_user_guides__ocaf.html) \u2014 retrieved 2026-10-11.\n- [Qt Widgets](https://doc.qt.io/qt-6/qtwidgets-index.html) \u2014 retrieved 2026-10-11.\n\nReferences describe documented product/library behavior. Scope, implementation strategy, fixture values and acceptance thresholds are Alloy proposals unless explicitly stated otherwise. Never run or inspect reference CAD application; use public documentation/screenshots only.\n\n## Limits and open questions\nOnly the stated subset is in scope; record unsupported options explicitly. This issue is planned, not implemented or verified.\n"
+      "body": "## Problem and result\nAdd recovery, format migration and large-save interruption handling. Deliver the bounded result below within Alloy's standalone C++20 product; the current application is only a Qt shell.\n\n## Scope\nImplement recoverable autosave or journal, file-version migration and recovery choices without overwriting the user original.\n\n## Acceptance criteria\n- A killed process can recover latest committed authored state; older files migrate with stable IDs; unknown newer schemas fail safely.\n- UI and local API share authoritative document/commands; expose arguments, selection, errors and result inspection. Undo/save coverage follows the dependencies, never a separate automation model.\n\n## Proposed verification and evidence\nKill Alloy during staged save/recompute of fixture copies, reopen recovery candidates and compare parameters/IDs; test older schema samples and disk-full failure.\n\nAdd/execute `python3 tests/workflows/run.py --case REL-002 --evidence build/evidence/REL-002` (case not implemented yet; the runner refuses missing cases). Record actual commands, fixture hashes, dependency versions, assertions and artifacts. Keep build, API, geometry, save/reopen, export, physical input and visual evidence separate; mark non-applicable dimensions with a reason.\n\n## Public reference evidence\n- [OCCT OCAF](https://www.occt3d.com/dev/doc/overview/html/occt_user_guides__ocaf.html) \u2014 retrieved 2026-10-11.\n- [Qt Widgets](https://doc.qt.io/qt-6/qtwidgets-index.html) \u2014 retrieved 2026-10-11.\n\nReferences describe documented product/library behavior. Scope, implementation strategy, fixture values and acceptance thresholds are Alloy proposals unless explicitly stated otherwise. Never run or inspect reference CAD application; use public documentation/screenshots only.\n\n## Limits and open questions\nOnly the stated subset is in scope; record unsupported options explicitly. This issue is planned, not implemented or verified.\n\n\n## Initial-build readiness decomposition\nBounded children: REL-014. Retain the full parent scope and prior evidence; child completion does not imply unverified platform or exact-parity acceptance.\n"
     },
     {
       "key": "REL-003",
@@ -2588,7 +2602,8 @@
       "phase": "P4 Initial release",
       "priority": "P1",
       "depends_on": [
-        "GATE-040"
+        "GATE-040",
+        "REL-016"
       ],
       "labels": [
         "kind:implementation",
@@ -2596,7 +2611,7 @@
         "priority:P1",
         "area:rel"
       ],
-      "body": "## Problem and result\nSet and qualify useful performance budgets from real documents. Deliver the bounded result below within Alloy's standalone C++20 product; the current application is only a Qt shell.\n\n## Scope\nMeasure startup, selection/orbit, sketch solve, recompute, save/import and cancellation on bracket, duct, multi-body and growing-feature fixtures; set budgets before optimization.\n\n## Acceptance criteria\n- Declared hardware/data size and p50/p95 or repeatable ranges accompany budgets; a nonblocking operation remains cancelable without losing edits.\n- UI and local API share authoritative document/commands; expose arguments, selection, errors and result inspection. Undo/save coverage follows the dependencies, never a separate automation model.\n\n## Proposed verification and evidence\nBenchmark fresh/warm runs through real app API and physical orbit; profile only failed budgets, record traces and object/feature counts.\n\nAdd/execute `python3 tests/workflows/run.py --case REL-004 --evidence build/evidence/REL-004` (case not implemented yet; the runner refuses missing cases). Record actual commands, fixture hashes, dependency versions, assertions and artifacts. Keep build, API, geometry, save/reopen, export, physical input and visual evidence separate; mark non-applicable dimensions with a reason.\n\n## Public reference evidence\n- [OCCT visualization](https://www.occt3d.com/dev/doc/overview/html/occt_user_guides__visualization.html) \u2014 retrieved 2026-10-11.\n- reference CAD application public command-input descriptions (reference `inputs`) \u2014 retrieved 2026-10-11.\n\nReferences describe documented product/library behavior. Scope, implementation strategy, fixture values and acceptance thresholds are Alloy proposals unless explicitly stated otherwise. Never run or inspect reference CAD application; use public documentation/screenshots only.\n\n## Limits and open questions\nOnly the stated subset is in scope; record unsupported options explicitly. This issue is planned, not implemented or verified.\n\n\n## Concrete tutorial latency followup\nEgg-cup Loft with downstream Shell2: GPU app redo5.195s and native reopen8.242s observed2026-10-13; complete focused geometry test0.78s. Use evidence/loft-timing and full egg-cup transcript to separate kernel, tessellation, selection rebuild and redraw costs. FND-020 raises the client response deadline only; it does not resolve interactive latency. Preserve smooth visual quality and authored history while reducing repeated display work.\n\n\n## Concrete workload observed 2026-10-14\nThe actual 14-body imported enclosure cumulative snap probe reached three Chamfers and the Top Fillet, with observed finishing recomputes roughly30\u201360 seconds each. This is a development-run observation, not a controlled benchmark. Include this source-derived retained model in performance qualification; investigate redundant evaluation of unchanged feature prefixes and imported geometry while preserving exact current geometry and edit/history semantics. External evidence: deliverables/enclosure-snap-workflow-2026-10-14/probe-05/probe-result.json and ledger; prior final timeline reorder API also measured roughly62-second grouped Fillet. Do not weaken geometry acceptance to meet latency.\n"
+      "body": "## Problem and result\nSet and qualify useful performance budgets from real documents. Deliver the bounded result below within Alloy's standalone C++20 product; the current application is only a Qt shell.\n\n## Scope\nMeasure startup, selection/orbit, sketch solve, recompute, save/import and cancellation on bracket, duct, multi-body and growing-feature fixtures; set budgets before optimization.\n\n## Acceptance criteria\n- Declared hardware/data size and p50/p95 or repeatable ranges accompany budgets; a nonblocking operation remains cancelable without losing edits.\n- UI and local API share authoritative document/commands; expose arguments, selection, errors and result inspection. Undo/save coverage follows the dependencies, never a separate automation model.\n\n## Proposed verification and evidence\nBenchmark fresh/warm runs through real app API and physical orbit; profile only failed budgets, record traces and object/feature counts.\n\nAdd/execute `python3 tests/workflows/run.py --case REL-004 --evidence build/evidence/REL-004` (case not implemented yet; the runner refuses missing cases). Record actual commands, fixture hashes, dependency versions, assertions and artifacts. Keep build, API, geometry, save/reopen, export, physical input and visual evidence separate; mark non-applicable dimensions with a reason.\n\n## Public reference evidence\n- [OCCT visualization](https://www.occt3d.com/dev/doc/overview/html/occt_user_guides__visualization.html) \u2014 retrieved 2026-10-11.\n- reference CAD application public command-input descriptions (reference `inputs`) \u2014 retrieved 2026-10-11.\n\nReferences describe documented product/library behavior. Scope, implementation strategy, fixture values and acceptance thresholds are Alloy proposals unless explicitly stated otherwise. Never run or inspect reference CAD application; use public documentation/screenshots only.\n\n## Limits and open questions\nOnly the stated subset is in scope; record unsupported options explicitly. This issue is planned, not implemented or verified.\n\n\n## Concrete tutorial latency followup\nEgg-cup Loft with downstream Shell2: GPU app redo5.195s and native reopen8.242s observed2026-10-13; complete focused geometry test0.78s. Use evidence/loft-timing and full egg-cup transcript to separate kernel, tessellation, selection rebuild and redraw costs. FND-020 raises the client response deadline only; it does not resolve interactive latency. Preserve smooth visual quality and authored history while reducing repeated display work.\n\n\n## Concrete workload observed 2026-10-14\nThe actual 14-body imported enclosure cumulative snap probe reached three Chamfers and the Top Fillet, with observed finishing recomputes roughly30\u201360 seconds each. This is a development-run observation, not a controlled benchmark. Include this source-derived retained model in performance qualification; investigate redundant evaluation of unchanged feature prefixes and imported geometry while preserving exact current geometry and edit/history semantics. External evidence: deliverables/enclosure-snap-workflow-2026-10-14/probe-05/probe-result.json and ledger; prior final timeline reorder API also measured roughly62-second grouped Fillet. Do not weaken geometry acceptance to meet latency.\n\n\n## Initial-build readiness decomposition\nBounded children: REL-016. Retain the full parent scope and prior evidence; child completion does not imply unverified platform or exact-parity acceptance.\n"
     },
     {
       "key": "REL-005",
@@ -2607,7 +2622,9 @@
       "depends_on": [
         "GATE-040",
         "FND-001",
-        "FND-011"
+        "FND-011",
+        "REL-012",
+        "REL-013"
       ],
       "labels": [
         "kind:implementation",
@@ -2615,7 +2632,7 @@
         "priority:P1",
         "area:rel"
       ],
-      "body": "## Problem and result\nAudit initial workflow styling and physical interaction against public references. Deliver the bounded result below within Alloy's standalone C++20 product; the current application is only a Qt shell.\n\n## Scope\nReview toolbar, Browser, timeline, Sketch Palette, dialogs, selection, numeric inputs, focus and navigation on actual modeling states; correct documented mismatches.\n\n## Acceptance criteria\n- Independent assets, matched viewport/scale/theme where possible and qualified unmatched comparisons; a complete bracket edit can be performed with normal physical input.\n- UI and local API share authoritative document/commands; expose arguments, selection, errors and result inspection. Undo/save coverage follows the dependencies, never a separate automation model.\n\n## Proposed verification and evidence\nCapture sketch, extrude, fillet, failed feature, import and export states; perform bounded physical-input walkthrough and inspect resulting API/document state.\n\nAdd/execute `python3 tests/workflows/run.py --case REL-005 --evidence build/evidence/REL-005` (case not implemented yet; the runner refuses missing cases). Record actual commands, fixture hashes, dependency versions, assertions and artifacts. Keep build, API, geometry, save/reopen, export, physical input and visual evidence separate; mark non-applicable dimensions with a reason.\n\n## Public reference evidence\n- reference CAD application desktop interface (reference `ui`) \u2014 retrieved 2026-10-11.\n- reference CAD application keyboard shortcuts (reference `keys`) \u2014 retrieved 2026-10-11.\n- reference CAD application public command-input descriptions (reference `inputs`) \u2014 retrieved 2026-10-11.\n\nReferences describe documented product/library behavior. Scope, implementation strategy, fixture values and acceptance thresholds are Alloy proposals unless explicitly stated otherwise. Never run or inspect reference CAD application; use public documentation/screenshots only.\n\n## Limits and open questions\nOnly the stated subset is in scope; record unsupported options explicitly. This issue is planned, not implemented or verified.\n\n\n## Observed joint dock cleanup follow-up (2026-10-14)\nThe accepted coupled native capture has a blank right band after joint editing. Review found the shared joint dock is hidden without removal from the nested canvas window; retained layout space is a hypothesis, not a verified cause. Reproduce once, correct dock lifecycle if needed and verify the viewport reclaims the space and reopening the panel still works. Evidence: external deliverables/piston-coupled-ui-2026-10-14/native-01/coupled-native-drag.png. This does not invalidate accepted graph geometry.\n"
+      "body": "## Problem and result\nAudit initial workflow styling and physical interaction against public references. Deliver the bounded result below within Alloy's standalone C++20 product; the current application is only a Qt shell.\n\n## Scope\nReview toolbar, Browser, timeline, Sketch Palette, dialogs, selection, numeric inputs, focus and navigation on actual modeling states; correct documented mismatches.\n\n## Acceptance criteria\n- Independent assets, matched viewport/scale/theme where possible and qualified unmatched comparisons; a complete bracket edit can be performed with normal physical input.\n- UI and local API share authoritative document/commands; expose arguments, selection, errors and result inspection. Undo/save coverage follows the dependencies, never a separate automation model.\n\n## Proposed verification and evidence\nCapture sketch, extrude, fillet, failed feature, import and export states; perform bounded physical-input walkthrough and inspect resulting API/document state.\n\nAdd/execute `python3 tests/workflows/run.py --case REL-005 --evidence build/evidence/REL-005` (case not implemented yet; the runner refuses missing cases). Record actual commands, fixture hashes, dependency versions, assertions and artifacts. Keep build, API, geometry, save/reopen, export, physical input and visual evidence separate; mark non-applicable dimensions with a reason.\n\n## Public reference evidence\n- reference CAD application desktop interface (reference `ui`) \u2014 retrieved 2026-10-11.\n- reference CAD application keyboard shortcuts (reference `keys`) \u2014 retrieved 2026-10-11.\n- reference CAD application public command-input descriptions (reference `inputs`) \u2014 retrieved 2026-10-11.\n\nReferences describe documented product/library behavior. Scope, implementation strategy, fixture values and acceptance thresholds are Alloy proposals unless explicitly stated otherwise. Never run or inspect reference CAD application; use public documentation/screenshots only.\n\n## Limits and open questions\nOnly the stated subset is in scope; record unsupported options explicitly. This issue is planned, not implemented or verified.\n\n\n## Observed joint dock cleanup follow-up (2026-10-14)\nThe accepted coupled native capture has a blank right band after joint editing. Review found the shared joint dock is hidden without removal from the nested canvas window; retained layout space is a hypothesis, not a verified cause. Reproduce once, correct dock lifecycle if needed and verify the viewport reclaims the space and reopening the panel still works. Evidence: external deliverables/piston-coupled-ui-2026-10-14/native-01/coupled-native-drag.png. This does not invalidate accepted graph geometry.\n\n\n## Initial-build readiness decomposition\nBounded children: REL-012, REL-013. Retain the full parent scope and prior evidence; child completion does not imply unverified platform or exact-parity acceptance.\n"
     },
     {
       "key": "REL-006",
@@ -2625,7 +2642,8 @@
       "priority": "P1",
       "depends_on": [
         "GATE-040",
-        "REL-001"
+        "REL-001",
+        "REL-017"
       ],
       "labels": [
         "kind:implementation",
@@ -2633,7 +2651,7 @@
         "priority:P1",
         "area:rel"
       ],
-      "body": "## Problem and result\nPublish an honest initial capability matrix and workflow examples. Deliver the bounded result below within Alloy's standalone C++20 product; the current application is only a Qt shell.\n\n## Scope\nReconcile every initially targeted command/option/format subset with evidence; ship independently authored bracket, enclosure and duct examples plus reproducible instructions.\n\n## Acceptance criteria\n- Implemented/verified/unsupported/research statuses are distinct; missing accepted initial requirements remain blocking issues rather than hidden scope reduction.\n- UI and local API share authoritative document/commands; expose arguments, selection, errors and result inspection. Undo/save coverage follows the dependencies, never a separate automation model.\n\n## Proposed verification and evidence\nRun examples from fresh native files with installed package; check every capability row has real case/evidence links and all cloud deferrals are individually identified.\n\nAdd/execute `python3 tests/workflows/run.py --case REL-006 --evidence build/evidence/REL-006` (case not implemented yet; the runner refuses missing cases). Record actual commands, fixture hashes, dependency versions, assertions and artifacts. Keep build, API, geometry, save/reopen, export, physical input and visual evidence separate; mark non-applicable dimensions with a reason.\n\n## Public reference evidence\n- Supported file formats (reference `formats`) \u2014 retrieved 2026-10-11.\n- reference CAD application desktop interface (reference `ui`) \u2014 retrieved 2026-10-11.\n\nReferences describe documented product/library behavior. Scope, implementation strategy, fixture values and acceptance thresholds are Alloy proposals unless explicitly stated otherwise. Never run or inspect reference CAD application; use public documentation/screenshots only.\n\n## Limits and open questions\nOnly the stated subset is in scope; record unsupported options explicitly. This issue is planned, not implemented or verified.\n"
+      "body": "## Problem and result\nPublish an honest initial capability matrix and workflow examples. Deliver the bounded result below within Alloy's standalone C++20 product; the current application is only a Qt shell.\n\n## Scope\nReconcile every initially targeted command/option/format subset with evidence; ship independently authored bracket, enclosure and duct examples plus reproducible instructions.\n\n## Acceptance criteria\n- Implemented/verified/unsupported/research statuses are distinct; missing accepted initial requirements remain blocking issues rather than hidden scope reduction.\n- UI and local API share authoritative document/commands; expose arguments, selection, errors and result inspection. Undo/save coverage follows the dependencies, never a separate automation model.\n\n## Proposed verification and evidence\nRun examples from fresh native files with installed package; check every capability row has real case/evidence links and all cloud deferrals are individually identified.\n\nAdd/execute `python3 tests/workflows/run.py --case REL-006 --evidence build/evidence/REL-006` (case not implemented yet; the runner refuses missing cases). Record actual commands, fixture hashes, dependency versions, assertions and artifacts. Keep build, API, geometry, save/reopen, export, physical input and visual evidence separate; mark non-applicable dimensions with a reason.\n\n## Public reference evidence\n- Supported file formats (reference `formats`) \u2014 retrieved 2026-10-11.\n- reference CAD application desktop interface (reference `ui`) \u2014 retrieved 2026-10-11.\n\nReferences describe documented product/library behavior. Scope, implementation strategy, fixture values and acceptance thresholds are Alloy proposals unless explicitly stated otherwise. Never run or inspect reference CAD application; use public documentation/screenshots only.\n\n## Limits and open questions\nOnly the stated subset is in scope; record unsupported options explicitly. This issue is planned, not implemented or verified.\n\n\n## Initial-build readiness decomposition\nBounded children: REL-017. Retain the full parent scope and prior evidence; child completion does not imply unverified platform or exact-parity acceptance.\n"
     },
     {
       "key": "UX-001",
@@ -6959,6 +6977,275 @@
         "area:skt"
       ],
       "body": "## Scope\nBounded child of SKT-011/#47. Add Sketch Modify Extend with hover preview and click to extend a straight authored line to the next supported, unambiguous straight-line intersection. Keep the tool active after a successful click; Enter finishes and Escape cancels the uncommitted preview. Preserve retained entity/endpoint identities and explicitly handle affected constraints. Public tool behavior is recorded externally in knowledge/specs/sketch-line-extend-child-2026-10-14.md; geometric tolerances and retained-reference policy are independently authored Alloy decisions.\n\n## Acceptance\nClose a 2 mm corner gap in a 20 x 10 mm rectangle, finish the sketch and extrude 5 mm to one valid 1000 mm3 solid. Shared UI/API command and inspection, transient preview, atomic no-intersection refusal, undo/redo and save/reopen must preserve authored intent. Native actual-hit hover/click and readable preview/selection evidence are distinct from API geometry checks. One focused workflow is sufficient; reuse existing history/export machinery. Target-line interior contact is supported only through an existing authoritative point-on-line relation; otherwise explain the bounded refusal. Do not silently move unrelated constraints.\n\n## Retained remainder\nThis does not close SKT-011. Arc/spline Extend, Break, ambiguous branches and general curve modification remain there. This is a documented tool exercise, not yet a prerequisite of an established cumulative tutorial. Source URLs and reference images stay external; no proprietary runtime observation.\n\n\n## Independently accepted 2026-10-14\nAccepted at81a363e after independent Astra source and visual review. Straight-line hover/click extends to the unique nearest supported forward intersection with stable line/endpoint IDs and retained Coincident or point-on-curve. Focused core and production-theme native03 pass; a 2mm gap closes into200mm2 and the shared API creates a valid closed1000mm3 solid at5mm depth. Actual Qt hover/click/Enter are distinct from API setup, Finish, extrusion and storage. Shared draft history routing is source-reviewed; core committed-sketch and native extrusion history/reopen pass. No physical OS input or cumulative tutorial claim. Other Extend/Break scope remains SKT-011.\n"
+    },
+    {
+      "key": "NAV-001",
+      "title": "Add free orbit through mouse drag and a visible navigation tool",
+      "kind": "implementation",
+      "phase": "P4 Initial release",
+      "priority": "P0",
+      "depends_on": [],
+      "labels": [
+        "area:doc"
+      ],
+      "body": "## Initial-build readiness scope\nImplement arbitrary free camera orbit through Shift+middle drag and an explicit Free Orbit toolbar tool with ordinary left drag for users without a middle button. Shared view.orbit must preserve a custom direction/up pose through ordinary refresh and per-tab camera restoration. Plain middle/Option-left pan remains supported. Escape exits the toolbar tool; selection and authored document/history remain unchanged. Home and fixed views leave custom orientation predictably. Rotate around the current scene center in this child; selectable pivot and constrained mode belong to NAV-002. Verify one asymmetric existing solid through actual Qt drag, shared camera state, repaint, tab restore and selection afterward. Inspect a GPU capture. Physical input evidence remains separately qualified.\n\n## Delivery and evidence\nUser-prioritized 2026-10-14. Keep implementation bounded, preserve authoritative document/control commands, use proportional verification and independent review. Public reference details and images remain external. This issue is planned until its stated gate is evidenced; do not substitute compilation/API or Qt simulation for physical input or packaged GPU evidence.\n"
+    },
+    {
+      "key": "NAV-002",
+      "title": "Add constrained orbit and explicit orbit pivot control",
+      "kind": "implementation",
+      "phase": "P4 Initial release",
+      "priority": "P1",
+      "depends_on": [
+        "NAV-001"
+      ],
+      "labels": [
+        "area:doc"
+      ],
+      "body": "## Initial-build readiness scope\nAdd documented horizon-preserving constrained orbit, visible Free/Constrained choice, and explicit pivot selection/reset from supported geometry. Resolve exact pivot activation and default behavior in external public contract before implementation. Preserve the chosen center during rotation, handle empty selection clearly, and keep authoring state unchanged. Exercise an off-center asymmetric part, pole approach and reset; compare camera state and actual capture. Preserve unknown public behavior rather than guessing exact parity.\n\n## Delivery and evidence\nUser-prioritized 2026-10-14. Keep implementation bounded, preserve authoritative document/control commands, use proportional verification and independent review. Public reference details and images remain external. This issue is planned until its stated gate is evidenced; do not substitute compilation/API or Qt simulation for physical input or packaged GPU evidence.\n"
+    },
+    {
+      "key": "NAV-003",
+      "title": "Make zoom and pan usable with mouse wheels and Mac trackpads",
+      "kind": "implementation",
+      "phase": "P4 Initial release",
+      "priority": "P0",
+      "depends_on": [
+        "NAV-001"
+      ],
+      "labels": [
+        "area:doc"
+      ],
+      "body": "## Initial-build readiness scope\nImplement cursor-centered zoom (an explicit Alloy target until exact public anchoring behavior is established), smooth high-resolution wheel/pixel input, trackpad pan/pinch and modifier orbit routing where the native event system exposes them. Respect direction/preferences and prevent one physical gesture from applying twice through wheel plus gesture events. Keep visible no-middle-button navigation fallback. Verify anchoring and finite camera scale, ordinary selection after navigation and a bounded actual Mac trackpad workflow; Windows/Linux routes remain explicit platform qualification. Research current public gesture settings and platform limitations first.\n\n## Delivery and evidence\nUser-prioritized 2026-10-14. Keep implementation bounded, preserve authoritative document/control commands, use proportional verification and independent review. Public reference details and images remain external. This issue is planned until its stated gate is evidenced; do not substitute compilation/API or Qt simulation for physical input or packaged GPU evidence.\n"
+    },
+    {
+      "key": "NAV-004",
+      "title": "Add an independently drawn interactive view orientation cube",
+      "kind": "implementation",
+      "phase": "P4 Initial release",
+      "priority": "P1",
+      "depends_on": [
+        "NAV-001"
+      ],
+      "labels": [
+        "area:doc"
+      ],
+      "body": "## Initial-build readiness scope\nProvide familiar face/edge/corner orientation targets, hover/active feedback, cube drag, Home and documented adjacent-view/roll controls with original Alloy assets. Research current public layout and behavior first. Shared camera commands must retain framing and synchronize cube state after arbitrary orbit. Verify representative face, edge, corner and roll clicks at normal and high DPI, sketch and solid states; no authored mutation. Broader cube context settings may be split if needed without dropping them.\n\n## Delivery and evidence\nUser-prioritized 2026-10-14. Keep implementation bounded, preserve authoritative document/control commands, use proportional verification and independent review. Public reference details and images remain external. This issue is planned until its stated gate is evidenced; do not substitute compilation/API or Qt simulation for physical input or packaged GPU evidence.\n"
+    },
+    {
+      "key": "NAV-005",
+      "title": "Complete visible navigation tools for pan zoom fit and Look At",
+      "kind": "implementation",
+      "phase": "P4 Initial release",
+      "priority": "P1",
+      "depends_on": [
+        "NAV-001"
+      ],
+      "labels": [
+        "area:doc"
+      ],
+      "body": "## Initial-build readiness scope\nExpose discoverable Pan, Zoom, rectangular Zoom Window, Fit, selected-object framing and Look At through shared commands and accessible tooltips/shortcuts. Research exact reference controls and distinguish Fit from Home orientation. Fit visible geometry without hidden distant bodies or transient decorations distorting framing; Look At supported face/sketch planes without losing the active command. Verify one small sketch, asymmetric solid and selected assembly child. Unsupported geometry must explain the limitation.\n\n## Delivery and evidence\nUser-prioritized 2026-10-14. Keep implementation bounded, preserve authoritative document/control commands, use proportional verification and independent review. Public reference details and images remain external. This issue is planned until its stated gate is evidenced; do not substitute compilation/API or Qt simulation for physical input or packaged GPU evidence.\n"
+    },
+    {
+      "key": "NAV-006",
+      "title": "Support documented camera projection modes",
+      "kind": "implementation",
+      "phase": "P4 Initial release",
+      "priority": "P1",
+      "depends_on": [
+        "NAV-001"
+      ],
+      "labels": [
+        "area:doc"
+      ],
+      "body": "## Initial-build readiness scope\nAdd orthographic and perspective camera choices, plus documented orthographic-face/perspective-orbit behavior if public evidence establishes it. Preserve target/framing and picking when switching; expose inspectable projection state. Verify geometry pick and equivalent framing before/after mode changes, face view and orbit, at ordinary aspect ratios. Public defaults and field-of-view uncertainty must be recorded before coding.\n\n## Delivery and evidence\nUser-prioritized 2026-10-14. Keep implementation bounded, preserve authoritative document/control commands, use proportional verification and independent review. Public reference details and images remain external. This issue is planned until its stated gate is evidenced; do not substitute compilation/API or Qt simulation for physical input or packaged GPU evidence.\n"
+    },
+    {
+      "key": "NAV-007",
+      "title": "Persist named views Home orientation and navigation preferences",
+      "kind": "implementation",
+      "phase": "P4 Initial release",
+      "priority": "P1",
+      "depends_on": [
+        "NAV-002",
+        "NAV-006"
+      ],
+      "labels": [
+        "area:doc"
+      ],
+      "body": "## Initial-build readiness scope\nAdd create/rename/restore/delete of authored named camera views and documented Home/front/up conventions. Persist camera projection/pose and selected navigation preferences at the proper document/application scope, with backward-compatible files. Research preferences/presets including no-middle-button users; expose only supported mappings honestly. Verify save/reopen, tab switching, reset and one alternate supported preset. Do not overwrite geometry history for transient camera motion.\n\n## Delivery and evidence\nUser-prioritized 2026-10-14. Keep implementation bounded, preserve authoritative document/control commands, use proportional verification and independent review. Public reference details and images remain external. This issue is planned until its stated gate is evidenced; do not substitute compilation/API or Qt simulation for physical input or packaged GPU evidence.\n"
+    },
+    {
+      "key": "NAV-008",
+      "title": "Validate a complete familiar navigation workflow",
+      "kind": "validation",
+      "phase": "P4 Initial release",
+      "priority": "P1",
+      "depends_on": [
+        "NAV-002",
+        "NAV-003",
+        "NAV-004",
+        "NAV-005",
+        "NAV-006",
+        "NAV-007"
+      ],
+      "labels": [
+        "area:doc"
+      ],
+      "body": "## Initial-build readiness scope\nOne ordinary-input walkthrough on an asymmetric part and an assembly: pan, free/constrained orbit, pivot, cursor zoom, cube views, projection, Fit, Look At, named view, enter/exit sketch and select geometry afterward. Include a Mac trackpad/no-middle-button route and desktop mouse route. Observe real event delivery, camera state, GPU frames and no authored changes; preserve platform gaps as open gates. No interstep focus repair. Compare public references with qualified scale/version metadata; record a short annotated demonstration.\n\n## Delivery and evidence\nUser-prioritized 2026-10-14. Keep implementation bounded, preserve authoritative document/control commands, use proportional verification and independent review. Public reference details and images remain external. This issue is planned until its stated gate is evidenced; do not substitute compilation/API or Qt simulation for physical input or packaged GPU evidence.\n"
+    },
+    {
+      "key": "REL-012",
+      "title": "Polish the ordinary sketch-to-export input workflow",
+      "kind": "implementation",
+      "phase": "P4 Initial release",
+      "priority": "P0",
+      "depends_on": [
+        "NAV-001"
+      ],
+      "labels": [
+        "area:rel"
+      ],
+      "body": "## Initial-build readiness scope\nUse one existing bracket fixture to exercise command activation, text focus, selection, native popup dismissal, Escape/Return/Tab, modal return, timeline editing and export without interstep focus repair. Resolve concrete failures as bounded fixes; reuse FND-007, FND-015, SOL-016, SOL-058 and ASM-012 evidence and keep physical input distinct. Require an operable workflow with actionable errors, not every possible command permutation. Preserve failed-repro files and independently review final capture/input evidence.\n\n## Delivery and evidence\nUser-prioritized 2026-10-14. Keep implementation bounded, preserve authoritative document/control commands, use proportional verification and independent review. Public reference details and images remain external. This issue is planned until its stated gate is evidenced; do not substitute compilation/API or Qt simulation for physical input or packaged GPU evidence.\n"
+    },
+    {
+      "key": "REL-013",
+      "title": "Make core modeling panels and selection consistently readable",
+      "kind": "implementation",
+      "phase": "P4 Initial release",
+      "priority": "P1",
+      "depends_on": [],
+      "labels": [
+        "area:rel"
+      ],
+      "body": "## Initial-build readiness scope\nAudit representative sketch, Extrude, Combine, Fillet, failure, Browser and timeline states at normal and minimum window size plus high DPI. Fix contrast, clipped text, selection/preselection distinction, constraint icon/label visibility, dock sizing/placement and keyboard focus indicators using the production theme. Public reference images stay external. Verify corrected captures and one actual input path per materially changed control; no screenshot-only CAD claims or exhaustive screenshot matrix.\n\n## Delivery and evidence\nUser-prioritized 2026-10-14. Keep implementation bounded, preserve authoritative document/control commands, use proportional verification and independent review. Public reference details and images remain external. This issue is planned until its stated gate is evidenced; do not substitute compilation/API or Qt simulation for physical input or packaged GPU evidence.\n"
+    },
+    {
+      "key": "REL-014",
+      "title": "Recover committed document work after interruption",
+      "kind": "implementation",
+      "phase": "P4 Initial release",
+      "priority": "P0",
+      "depends_on": [],
+      "labels": [
+        "area:rel"
+      ],
+      "body": "## Initial-build readiness scope\nImplement bounded local recovery snapshots/journal for committed authored state, including unnamed documents, without overwriting the user's original. Offer recover/discard with inspectable API state and retain atomic QSaveFile behavior. Define cadence, location, cleanup and version refusal. Verify one forced process interruption after an edit, recover exact IDs/parameters into a separate document, save normally, and reject malformed/newer recovery safely. This child does not claim complete migration of all future file schemas.\n\n## Delivery and evidence\nUser-prioritized 2026-10-14. Keep implementation bounded, preserve authoritative document/control commands, use proportional verification and independent review. Public reference details and images remain external. This issue is planned until its stated gate is evidenced; do not substitute compilation/API or Qt simulation for physical input or packaged GPU evidence.\n"
+    },
+    {
+      "key": "REL-015",
+      "title": "Qualify actionable failures in supported parametric edits",
+      "kind": "validation",
+      "phase": "P4 Initial release",
+      "priority": "P1",
+      "depends_on": [],
+      "labels": [
+        "area:rel"
+      ],
+      "body": "## Initial-build readiness scope\nReuse a handful of actual fixtures: missing face/projected support, ambiguous topology, invalid downstream dimension and stale command context. Confirm atomic refusal or clearly marked unavailable features, preserved original file/authored intent, usable undo and an actionable repair path. Fix concrete current regressions; preserve broader automatic repair under HIS-002/DOC-012/SKT-025. No exhaustive kernel fuzzing or replay of every tutorial.\n\n## Delivery and evidence\nUser-prioritized 2026-10-14. Keep implementation bounded, preserve authoritative document/control commands, use proportional verification and independent review. Public reference details and images remain external. This issue is planned until its stated gate is evidenced; do not substitute compilation/API or Qt simulation for physical input or packaged GPU evidence.\n"
+    },
+    {
+      "key": "REL-016",
+      "title": "Measure and fix responsiveness on representative real models",
+      "kind": "validation",
+      "phase": "P4 Initial release",
+      "priority": "P1",
+      "depends_on": [],
+      "labels": [
+        "area:rel"
+      ],
+      "body": "## Initial-build readiness scope\nMeasure current startup, orbit/selection, sketch editing, recompute, reopen and assembly drag on the bracket, enclosure and piston with declared hardware/feature counts. Set practical interactive budgets before optimizing and profile only failed budgets. Reuse REL-011 drag scope. Long operations must visibly report progress and permit safe cancellation where supported; split asynchronous operation changes if necessary. Include continuous GPU interaction, not only isolated API timings.\n\n## Delivery and evidence\nUser-prioritized 2026-10-14. Keep implementation bounded, preserve authoritative document/control commands, use proportional verification and independent review. Public reference details and images remain external. This issue is planned until its stated gate is evidenced; do not substitute compilation/API or Qt simulation for physical input or packaged GPU evidence.\n"
+    },
+    {
+      "key": "REL-017",
+      "title": "Publish a current initial-build capability and limitation matrix",
+      "kind": "implementation",
+      "phase": "P4 Initial release",
+      "priority": "P1",
+      "depends_on": [],
+      "labels": [
+        "area:rel"
+      ],
+      "body": "## Initial-build readiness scope\nReconcile README, continuation context, release instructions and supported workflow matrix against accepted receipts and live issues. Clearly label implemented/qualified/unverified/unsupported, input route, platform/runtime, geometry/reference restrictions, renderer and package state. Include install/start instructions, local automation discovery, sample models, video gallery pointers and known defects. Remove stale historical blockers without erasing unresolved requirements. Keep detailed external research out of Git.\n\n## Delivery and evidence\nUser-prioritized 2026-10-14. Keep implementation bounded, preserve authoritative document/control commands, use proportional verification and independent review. Public reference details and images remain external. This issue is planned until its stated gate is evidenced; do not substitute compilation/API or Qt simulation for physical input or packaged GPU evidence.\n"
+    },
+    {
+      "key": "REL-018",
+      "title": "Gate an initial downloadable preview candidate",
+      "kind": "validation",
+      "phase": "P4 Initial release",
+      "priority": "P0",
+      "depends_on": [
+        "NAV-008",
+        "REL-012",
+        "REL-013",
+        "REL-014",
+        "REL-015",
+        "REL-016",
+        "REL-017",
+        "DOC-013",
+        "DOC-016",
+        "FND-015",
+        "CI-002",
+        "GATE-005"
+      ],
+      "labels": [
+        "area:rel"
+      ],
+      "body": "## Initial-build readiness scope\nAssemble one candidate revision with qualified archives, representative packaged sketch-to-print and advanced-model workflows, current capability notes and independent review. Verify clean install/launch, GPU/resize, local API, save/reopen/recovery, ordinary input and checked STEP/STL output on declared platforms. Reuse accepted feature geometry; rerun changed/platform-risk paths only. No automatic tag, full CI per commit or public promotion on issue closure. A development preview must disclose current OpenGL; stable Metal/Vulkan requirements remain RHI-001/RHI-002/GATE-045. Advanced tutorial chains remain required delivery work and must not be silently replaced by this preview gate.\n\n## Delivery and evidence\nUser-prioritized 2026-10-14. Keep implementation bounded, preserve authoritative document/control commands, use proportional verification and independent review. Public reference details and images remain external. This issue is planned until its stated gate is evidenced; do not substitute compilation/API or Qt simulation for physical input or packaged GPU evidence.\n"
+    },
+    {
+      "key": "CI-004",
+      "title": "Make the validated runtime dependency recipe reproducible",
+      "kind": "implementation",
+      "phase": "P4 Initial release",
+      "priority": "P0",
+      "depends_on": [],
+      "labels": [
+        "area:ci"
+      ],
+      "body": "## Initial-build readiness scope\nReconcile the private patched Qt runtime used in local input checks with the milestone build recipe. Pin required source/patches, OCCT, solver/assembly libraries, fonts and plugins; establish reproducible supported build instructions and complete notices/source-access materials. Inspect dependency/resource closure and record the actual runtime loaded. A locally patched SDK is not a releasable package by itself. No unnecessary version upgrades.\n\n## Delivery and evidence\nUser-prioritized 2026-10-14. Keep implementation bounded, preserve authoritative document/control commands, use proportional verification and independent review. Public reference details and images remain external. This issue is planned until its stated gate is evidenced; do not substitute compilation/API or Qt simulation for physical input or packaged GPU evidence.\n"
+    },
+    {
+      "key": "CI-005",
+      "title": "Produce a relocatable macOS preview app archive",
+      "kind": "implementation",
+      "phase": "P4 Initial release",
+      "priority": "P0",
+      "depends_on": [
+        "CI-004"
+      ],
+      "labels": [
+        "area:ci"
+      ],
+      "body": "## Initial-build readiness scope\nAdd install/deployment for the app, Qt platform/image plugins, OCCT/resources, shared solvers/fonts and local automation tools. Remove developer absolute paths; preserve symlinks and executable modes in ZIP. Launch after extraction to a distinct location with SDK environment removed, verify GPU, local API and one existing save/export workflow. Record exact archive checksum/runtime libraries. Document signing/notarization availability honestly; Intel qualification remains required where advertised.\n\n## Delivery and evidence\nUser-prioritized 2026-10-14. Keep implementation bounded, preserve authoritative document/control commands, use proportional verification and independent review. Public reference details and images remain external. This issue is planned until its stated gate is evidenced; do not substitute compilation/API or Qt simulation for physical input or packaged GPU evidence.\n"
+    },
+    {
+      "key": "CI-006",
+      "title": "Produce a relocatable Windows preview archive",
+      "kind": "implementation",
+      "phase": "P4 Initial release",
+      "priority": "P0",
+      "depends_on": [
+        "CI-004"
+      ],
+      "labels": [
+        "area:ci"
+      ],
+      "body": "## Initial-build readiness scope\nDeploy Qt, OCCT, solver DLLs/resources, runtime dependencies and named-pipe client with notices. Extract outside build tree without development PATH; qualify native startup/control and existing model workflow. Record archive checksum and DLL closure. Compile-only hosted results do not close the actual desktop/GPU gate; preserve that dependency under GATE-005/FND-012.\n\n## Delivery and evidence\nUser-prioritized 2026-10-14. Keep implementation bounded, preserve authoritative document/control commands, use proportional verification and independent review. Public reference details and images remain external. This issue is planned until its stated gate is evidenced; do not substitute compilation/API or Qt simulation for physical input or packaged GPU evidence.\n"
+    },
+    {
+      "key": "CI-007",
+      "title": "Produce a relocatable Linux preview archive",
+      "kind": "implementation",
+      "phase": "P4 Initial release",
+      "priority": "P0",
+      "depends_on": [
+        "CI-004"
+      ],
+      "labels": [
+        "area:ci"
+      ],
+      "body": "## Initial-build readiness scope\nDeploy admitted libraries/resources and automation client with a documented distro/ABI baseline and xcb/X11 or XWayland requirements. Inspect ELF/runtime paths, archive permissions and notices, then extract outside build tree and qualify native launch/control/model workflow. Distinguish system graphics-driver dependencies and actual hardware evidence from hosted software rendering.\n\n## Delivery and evidence\nUser-prioritized 2026-10-14. Keep implementation bounded, preserve authoritative document/control commands, use proportional verification and independent review. Public reference details and images remain external. This issue is planned until its stated gate is evidenced; do not substitute compilation/API or Qt simulation for physical input or packaged GPU evidence.\n"
     }
   ]
 }

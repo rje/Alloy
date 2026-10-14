@@ -1,7 +1,110 @@
 {
   "version": 1,
-  "policy": "User-authorized 2026-10-13: sliding lid box, snap-fit electronics case, surface shoehorn; then surface iron and piston assembly. Dependency closure and independent workflow verification required. Split broad requirements into finishable children before pulling; preserve source qualification blockers. Prior accepted milestones remain done.",
+  "policy": "User-prioritized 2026-10-14: initial-build polish, familiar viewport navigation, reliability and packages, interleaved with the required enclosure, shoehorn and surface-iron chains. Reuse accepted workflow evidence; split broad work; independent review and platform-specific gates remain required.",
   "checkpoints": [
+    {
+      "id": "READY-01",
+      "title": "Navigation foundation and ordinary interaction",
+      "issues": [
+        "NAV-001",
+        "REL-012"
+      ],
+      "acceptance": "Arbitrary orbit and a usable ordinary-input modeling flow with clear evidence boundaries.",
+      "status": "todo",
+      "remaining": "Readiness plan in docs/initial-build-readiness.md; live issues govern acceptance."
+    },
+    {
+      "id": "READY-02",
+      "title": "Enclosure alignment rim blocker",
+      "issues": [
+        "GEO-017",
+        "SKT-076",
+        "TUT-023",
+        "TUT-016"
+      ],
+      "acceptance": "Complete actual seam/rim geometry and final enclosure chain; no unchanged blind kernel retries.",
+      "status": "todo",
+      "remaining": "Readiness plan in docs/initial-build-readiness.md; live issues govern acceptance."
+    },
+    {
+      "id": "READY-03",
+      "title": "Navigation breadth and reproducible runtime",
+      "issues": [
+        "NAV-003",
+        "NAV-002",
+        "CI-004",
+        "NAV-004",
+        "NAV-005",
+        "NAV-006",
+        "NAV-007",
+        "NAV-008"
+      ],
+      "acceptance": "Familiar navigation controls, no-middle-button route and reproducible dependencies.",
+      "status": "todo",
+      "remaining": "Readiness plan in docs/initial-build-readiness.md; live issues govern acceptance."
+    },
+    {
+      "id": "READY-04",
+      "title": "Shoehorn finishing and retained support",
+      "issues": [
+        "GEO-019",
+        "GEO-018",
+        "GEO-004",
+        "ASM-012",
+        "TUT-017"
+      ],
+      "acceptance": "Finish exact source geometry, references and complete shoehorn workflow.",
+      "status": "todo",
+      "remaining": "Readiness plan in docs/initial-build-readiness.md; live issues govern acceptance."
+    },
+    {
+      "id": "READY-05",
+      "title": "Readable recoverable responsive modeling",
+      "issues": [
+        "REL-013",
+        "REL-014",
+        "DOC-013",
+        "REL-015",
+        "REL-016",
+        "REL-011",
+        "DOC-016",
+        "FND-015"
+      ],
+      "acceptance": "Representative workflows are readable, safe, responsive and usable.",
+      "status": "todo",
+      "remaining": "Readiness plan in docs/initial-build-readiness.md; live issues govern acceptance."
+    },
+    {
+      "id": "READY-06",
+      "title": "Surface iron closure",
+      "issues": [
+        "SRF-017",
+        "SRF-015",
+        "SRF-016",
+        "SRF-011",
+        "TUT-018"
+      ],
+      "acceptance": "Correct exterior topology and complete retained handle/solid workflow.",
+      "status": "todo",
+      "remaining": "Readiness plan in docs/initial-build-readiness.md; live issues govern acceptance."
+    },
+    {
+      "id": "READY-07",
+      "title": "Installable qualified candidate",
+      "issues": [
+        "CI-005",
+        "CI-006",
+        "CI-007",
+        "CI-002",
+        "GATE-005",
+        "REL-017",
+        "REL-018",
+        "CI-003"
+      ],
+      "acceptance": "Qualified archives and honest capability documentation from one revision, explicit promotion.",
+      "status": "todo",
+      "remaining": "Readiness plan in docs/initial-build-readiness.md; live issues govern acceptance."
+    },
     {
       "id": "CP-25",
       "title": "Short sketch dimension-expression exercise",

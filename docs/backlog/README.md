@@ -7,11 +7,19 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current publication contains **406 issues**: **309 implementation, 21 research,
-22 epics, and 54 validation gates**. Counts describe decomposition, not coverage.
+The current publication contains **425 issues**: **324 implementation, 21 research,
+22 epics, and 58 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 
 ## Active delivery order
+
+User-prioritized 2026-10-14: [initial-build readiness](../initial-build-readiness.md)
+now leads: navigation, everyday input, presentation, recovery, responsiveness and
+relocatable packages, interleaved with enclosure/shoehorn/surface-iron completion.
+Nineteen new bounded children #407–425 reuse existing broader owners and gates.
+NAV-001/#407 is active; other children remain Todo until pulled. The current
+sequence JSON takes precedence over historical delivery notes below.
+
 
 Current checkpoint (2026-10-14): the short expression exercise and Base Sketch
 construction, dimensions and first solid are independently accepted. TUT-028/#395
