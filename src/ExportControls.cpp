@@ -25,7 +25,7 @@ QJsonObject AlloyWindow::showMeshExport(const QString& bodyId,const QJsonArray& 
     for(const auto& value:document_->authored()["occurrences"].toArray()){
         const auto occurrence=value.toObject();QString name;
         for(const auto& definition:document_->authored()["components"].toArray())if(definition.toObject()["id"]==occurrence["definitionId"])name=definition.toObject()["name"].toString();
-        bodies->addItem("Component: "+name,"occurrence:"+occurrence["id"].toString());
+        bodies->addItem("Component: "+name+" (visible bodies)","occurrence:"+occurrence["id"].toString());
     }
     bodies->addItem("Selected bodies…","selected");bodies->addItem("All visible bodies","visible");
     if(!bodyIds.isEmpty())bodies->setCurrentIndex(bodies->findData("selected"));
@@ -49,7 +49,7 @@ QJsonObject AlloyWindow::showMeshExport(const QString& bodyId,const QJsonArray& 
     surface->setDecimals(3);surface->setRange(0.001,10);surface->setValue(0.1);surface->setSuffix(" mm");form->addRow("Surface Deviation",surface);
     auto* normal=new QDoubleSpinBox;normal->setObjectName("mesh.export.normalDeviation");
     normal->setRange(1,45);normal->setValue(10);normal->setSuffix("°");form->addRow("Normal Deviation",normal);
-    auto* note=new QLabel("Custom refinement · separate bodies retain their placement.\nSTL files do not store units. Use the same units when importing.");
+    auto* note=new QLabel("Custom refinement · separate bodies retain their placement.\nComponent selections include visible bodies.\nSTL files do not store units. Use the same units when importing.");
     note->setWordWrap(true);layout->addWidget(note);
     auto* status=new QLabel;status->setObjectName("mesh.export.status");status->setWordWrap(true);layout->addWidget(status);
     auto* buttons=new QDialogButtonBox(QDialogButtonBox::Save|QDialogButtonBox::Cancel);layout->addWidget(buttons);

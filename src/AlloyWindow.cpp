@@ -1341,7 +1341,7 @@ void AlloyWindow::registerCommands() {
             {"importedAssemblies",imported}};
     });
     add("document.exportStl","Export STL","Export selected committed solids preserving world placement; STL does not embed units.",
-        {{"path",parameter("string","Absolute output STL path.")},{"occurrenceId",optional(parameter("string","Local component occurrence UUID; excludes root bodies."))},{"bodyId",optional(parameter("string","Stable evaluated solid body UUID."))},
+        {{"path",parameter("string","Absolute output STL path.")},{"occurrenceId",optional(parameter("string","Local component occurrence UUID; export its visible bodies, excluding root bodies."))},{"bodyId",optional(parameter("string","Stable evaluated solid body UUID."))},
          {"bodyIds",optional(parameter("array","Distinct evaluated solid body UUIDs."))},{"allVisible",optional(parameter("boolean","Export all active visible bodies."))},
          {"units",units},{"format",meshFormat},{"surfaceDeviationMm",meshDeviation},{"normalDeviationDeg",meshAngle}},[this](const auto& a){
             if(!session_.isEmpty())return failure("active_command","Finish or Cancel the active command before exporting");
@@ -1351,7 +1351,7 @@ void AlloyWindow::registerCommands() {
             if(a.contains("occurrenceId")) {
                 QString owner;for(const auto& value:document_->authored()["occurrences"].toArray()){const auto occurrence=value.toObject();if(occurrence["id"]==a["occurrenceId"])owner=occurrence["definitionId"].toString();}
                 if(owner.isEmpty())return failure("invalid_component","Component occurrence does not exist");
-                for(const auto& body:presentationBodies())if(body.ownerId==owner)ids.append(body.bodyId);
+                for(const auto& body:presentationBodies())if(body.ownerId==owner && body.visible)ids.append(body.bodyId);
             } else if(a.contains("bodyId"))ids.append(a["bodyId"]);
             else if(a.contains("bodyIds"))ids=a["bodyIds"].toArray();
             else {if(!a["allVisible"].toBool())return failure("invalid_body_selection","allVisible must be true");
