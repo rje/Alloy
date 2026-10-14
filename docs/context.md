@@ -48,6 +48,11 @@ See [acceptance and native setup limits](validation/as-built-cylindrical.md).
 The native Cylinder rim prerequisite at `04a4b7d` preserves top/bottom edge IDs
 through radius/height edits. ASM-015/#364 is now active with separate authority
 and UI owners for the complete 3R+1C+Pin linkage and staged Upper Arm drag/Revert.
+Coupled authority is independently accepted at `118df34`: the actual 3R+1C
+mechanism passes sampled signed-angle core and 32-call API evidence, including
+analytical mounting positions/travel, full Pin, all-leaf Revert and history/reopen.
+See [the checkpoint](validation/piston-coupled.md). Native multi-Revolute creation
+and pointer drag/Revert remain under implementation; this does not close ASM-015.
 The root agent owns the cumulative actual-app workflow and recording harness.
 ASM-016/#365 linked copy remains Todo.
 The bounded implementation plan is external under
