@@ -58,6 +58,11 @@ occurrence subtrees and composed rigid placement on the unjointed fixture. Share
 definitions and occurrence-aware selection precede ASM-016/#365 internal joint
 remapping/copied-piston motion, which remains Todo. No generic scene or solver
 redesign is needed. The observed blank command-dock band is recorded in REL-005.
+The linked occurrence authority is independently accepted at `d0657f5` (source
+`d31a018`); UI and actual-app instance selection remain in progress. ASM-018/#368
+preserves occurrence-aware STEP/STL export as a separate Todo dependency of
+TUT-019; copied designs currently require explicit export refusal rather than
+losing instances or placements.
 The bounded implementation plan is external under
 `knowledge/tutorials/piston-subassemblies-2026-10-14/assembly-continuation/asm015-plan.md`.
 SRF-016/#360 preserves later surface-as-tool Trim; accepted

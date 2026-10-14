@@ -3822,7 +3822,8 @@
         "ASM-013",
         "ASM-014",
         "ASM-015",
-        "ASM-016"
+        "ASM-016",
+        "ASM-018"
       ],
       "labels": [
         "area:gate"
@@ -6354,6 +6355,20 @@
         "area:performance"
       ],
       "body": "Split bounded follow-up from ASM-015; preserve functional acceptance separately from interaction performance.\n\n## Observed evidence\nThe focused four-joint native test measured one preview event at 223 ms. The API creation movie also has repeated capture frames. These are observations, not a continuous input benchmark or proof of one common cause.\n\n## Scope and acceptance\n- Profile one short actual Upper Arm drag on the accepted 3R+1C fixture, separating input, authoritative solver evaluation, presentation rebuilding and capture overhead.\n- Remove measured redundant work within a preview update where found. Any cached pose must be keyed to document revision, graph inputs and exact staged coordinate; source edits, undo/reopen, tab switches and Revert must invalidate it.\n- Preserve independent original-joint/Pin checks and atomic failure. Do not relax geometric tolerances, skip relationships or replace solved motion with animation.\n- Record before/after latency for a small representative event sequence and inspect actual native responsiveness. State hardware, capture mode and remaining limitations; no generic frame-rate claim from one event.\n- Stop after a meaningful bounded improvement and focused regression evidence. Broader performance budgets remain REL-004; no unrelated renderer rewrite or benchmark project.\n\nEvidence baseline: external deliverables/piston-coupled-ui-2026-10-14/native-01/."
+    },
+    {
+      "key": "ASM-018",
+      "title": "Export linked local instances with occurrence-qualified scope and placement",
+      "kind": "implementation",
+      "phase": "P5 Assemblies/drawings",
+      "priority": "P1",
+      "depends_on": [
+        "ASM-017"
+      ],
+      "labels": [
+        "area:asm"
+      ],
+      "body": "Split explicit export follow-up from ASM-017. Legacy definition/body-scoped export cannot distinguish linked copies and currently refuses copied designs rather than silently losing an instance or exporting the wrong placement.\n\n## Acceptance\n- Export the whole copied local assembly and one selected parent occurrence to STEP and STL through shared native/API commands.\n- Enumerate actual occurrence ancestry, apply each composed placement exactly once, and include every intended instance even when source body IDs are shared. Source definitions/features remain unchanged.\n- Preserve existing hidden-source/visible-solid filtering. Selection of one occurrence must not pull in its sibling merely because their definition IDs match.\n- Verify actual exported geometry: both pistons at their distinct locations for whole assembly; exactly the two placed leaf bodies for a selected piston parent. Reimport STEP and inspect STL bounds/connectivity with proportionate checks.\n- Retain export units, clear scope labels, error handling and save/reopen behavior. State whether active staged motion is included or refused; never silently export a different pose.\n- One bounded actual-app fixture and independent review suffice. This does not require general occurrence-aware editing or a new scene framework.\n\nASM-017 may close with explicit copied-design export refusal; TUT-019 remains dependent on this completed output path."
     }
   ]
 }

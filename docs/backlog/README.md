@@ -7,7 +7,7 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current publication contains **365 issues**: **279 implementation, 19 research,
+The current publication contains **368 issues**: **282 implementation, 19 research,
 22 epics, and 45 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 
@@ -24,7 +24,9 @@ navigation and bounded exterior guide-rail Loft are accepted. Paired-sketch Surf
 handle bridge, with explicit geometric evidence in SRF-017. Piston research is
 accepted; four bounded assembly children now preserve conversion/hierarchy,
 Revolute/Pin, coupled motion and linked parent copy. The native component fixture/hierarchy is independently accepted. Retained
-Revolute/Pin and a bounded mature solver adapter are active parallel lanes. Exact shoehorn corner rounding and the enclosure
+Revolute/Pin, retained Cylindrical and coupled motion are independently accepted.
+Linked local occurrence subtrees are active; internal joint remapping and the
+second piston loop follow as a separate child. Exact shoehorn corner rounding and the enclosure
 alignment rim remain blocked geometry follow-ups. Complete source operations, readable constraint and
 selection states, edit/history/reopen, full creation recordings and independently
 checked outputs remain acceptance requirements. Detailed source URLs and
