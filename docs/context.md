@@ -1,5 +1,18 @@
 # Continuation context
 
+## As-built Slider isolated candidate (2026-10-13)
+
+ASM-005 is an unintegrated candidate in `feat/as-built-slider`, based on main
+`3f7650a`. Its [bounded contract and current evidence](validation/as-built-slider.md)
+cover one root-sibling Box/Lid joint, stable ledge Position, Y-axis one-DOF
+drive/limits, definition-versus-world pose, Browser/native controls, and world
+export. Focused core, existing local-component, native Qt and real-app API
+checks pass with independent bounded acceptance; integration remains pending. Evidence
+is external at `deliverables/as-built-slider-2026-10-13/candidate-01`.
+The private editor is closed and its lease was returned to root. General joint
+graphs and full tutorial completion remain
+separate work.
+
 ## Primitive Box topology candidate (2026-10-13)
 
 An isolated candidate adds six stable planar supports and twelve straight

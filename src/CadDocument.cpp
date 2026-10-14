@@ -1,5 +1,6 @@
 #include "SolidFillet.h"
 #include "CadDocument.h"
+#include "AssemblySlider.h"
 #include <utility>
 #include <vector>
 #include "DocumentAppend.h"
@@ -352,6 +353,12 @@ QJsonObject CadDocument::resolveLengthBindings(const QJsonObject& authored) {
 }
 QString CadDocument::newId() { return QUuid::createUuid().toString(QUuid::WithoutBraces); }
 CadDocument::CadDocument() { reset(); }
+std::vector<EvaluatedBody> CadDocument::worldBodies(std::optional<double> transientPositionMm) const {
+    return AssemblySlider::worldBodies(authored_,*evaluation_,transientPositionMm);
+}
+QJsonObject CadDocument::assemblyState(std::optional<double> transientPositionMm) const {
+    return AssemblySlider::inspect(authored_,*evaluation_,transientPositionMm);
+}
 void CadDocument::reset() {
     history_.clear();
     activeOwnerId_.clear();
@@ -421,6 +428,20 @@ QString CadDocument::open(const QString& path) {
     return {};
 }
 CadDocument::CandidateEvaluation CadDocument::prepareCandidate(const QJsonObject& candidate) const {
+    // A joint pose lives on occurrences. It cannot invalidate the solved
+    // definition graph, so reuse the exact evaluated definitions after
+    // validating its retained Position and limits against that graph.
+    auto oldDefinitions=authored_,newDefinitions=candidate;
+    oldDefinitions.remove("joints");newDefinitions.remove("joints");
+    if(evaluation_ && oldDefinitions==newDefinitions){
+        CandidateEvaluation result;result.authored=candidate;
+        const auto error=validateStructure(candidate);
+        if(!error.isEmpty()){result.error=error;result.diagnostics={{"code","invalid_document"},{"message",error}};return result;}
+        try{AssemblySlider::inspect(candidate,*evaluation_);result.evaluation=evaluation_;result.ok=true;
+            result.diagnostics={{"code","evaluated"},{"recompute","occurrence_only"}};
+        }catch(const std::exception& e){result.error=QString::fromUtf8(e.what());result.diagnostics={{"code","invalid_slider"},{"message",result.error}};}
+        return result;
+    }
     if(evaluation_)try {
         const auto plan=DocumentAppend::classify(authored_,candidate,resolveLengthBindings(authored_),
             resolveLengthBindings(candidate),evaluation_->featureOrder);
@@ -455,6 +476,7 @@ CadDocument::CandidateEvaluation CadDocument::evaluateCandidateFromPrefix(const 
         const auto solved = solveSketches(resolved,firstFeature,prefix);
         auto evaluated = std::make_shared<const EvaluatedDocument>(prefix
             ? GeometryKernel::evaluateDocument(solved,*prefix) : GeometryKernel::evaluateDocument(solved));
+        AssemblySlider::inspect(solved,*evaluated);
         result.authored = solved;
         auto normalized=solved["features"].toArray();
         for(int i=0;i<normalized.size();++i){auto feature=normalized[i].toObject();if(evaluated->joinBodyResults.contains(feature["id"].toString())){feature["bodyResults"]=evaluated->joinBodyResults[feature["id"].toString()];normalized[i]=feature;}}
@@ -860,6 +882,26 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
         ids.insert(id);instantiated.insert(definition);
     }
     if(instantiated.size()!=owners.size()-1)return "Each local component requires one occurrence";
+    if(candidate.contains("joints") && !candidate["joints"].isArray())return "Joints must be an array";
+    const auto joints=candidate.value("joints").toArray();if(joints.size()>1)return "This assembly slice supports one Slider joint";
+    if(!joints.isEmpty()){
+        const auto joint=joints[0].toObject(),position=joint["position"].toObject();
+        const auto first=joint["component1OccurrenceId"].toString(),second=joint["component2OccurrenceId"].toString();
+        QSet<QString> occurrenceIds;for(const auto& item:candidate["occurrences"].toArray())occurrenceIds.insert(item.toObject()["id"].toString());
+        const double minimum=joint["minimumMm"].toDouble(),maximum=joint["maximumMm"].toDouble(),coordinate=joint["positionMm"].toDouble();
+        if(!joints[0].isObject() || joint.size()!=12 || !validId(joint["id"].toString()) || ids.contains(joint["id"].toString())
+            || joint["type"]!="asBuiltSlider" || !joint["name"].isString() || joint["name"].toString().trimmed().isEmpty()
+            || !occurrenceIds.contains(first) || !occurrenceIds.contains(second) || first==second || joint["axis"]!="Y"
+            || position.size()!=2 || !validId(position["bodyId"].toString()) || !validId(position["edgeId"].toString())
+            || !joint["minimumEnabled"].isBool() || !joint["maximumEnabled"].isBool()
+            || !joint["minimumMm"].isDouble() || !joint["maximumMm"].isDouble() || !joint["positionMm"].isDouble()
+            || !std::isfinite(minimum) || !std::isfinite(maximum) || !std::isfinite(coordinate)
+            || std::abs(minimum)>100000 || std::abs(maximum)>100000 || std::abs(coordinate)>100000
+            || (joint["minimumEnabled"].toBool() && joint["maximumEnabled"].toBool() && minimum>maximum)
+            || (joint["minimumEnabled"].toBool() && coordinate<minimum) || (joint["maximumEnabled"].toBool() && coordinate>maximum))
+            return "Invalid as-built Slider joint, Position, axis, limits or coordinate";
+        ids.insert(joint["id"].toString());
+    }
     for (const auto& item : candidate["features"].toArray()) {
         if (!item.isObject()) return "Feature must be an object";
         const auto feature = item.toObject();
@@ -1109,7 +1151,7 @@ QJsonObject CadDocument::state() const {
     }
     QJsonArray evaluatedPlanes;
     for(const auto& plane:evaluation_->constructionPlanes)evaluatedPlanes.append(QJsonObject{{"ownerId",plane.ownerId},{"featureId",plane.featureId},{"name",plane.name},{"visible",plane.visible},{"frame",plane.frame}});
-    return {{"activeOwnerId",activeOwnerId()},{"components",authored_["components"].toArray()},{"occurrences",authored_["occurrences"].toArray()},{"userParameters",authored_["userParameters"].toArray()},{"loaded", true}, {"id", authored_["documentId"]}, {"label", path_.isEmpty() ? "Untitled" : QFileInfo(path_).completeBaseName()}, {"path",path_},
+    return {{"activeOwnerId",activeOwnerId()},{"components",authored_["components"].toArray()},{"occurrences",authored_["occurrences"].toArray()},{"assembly",assemblyState()},{"userParameters",authored_["userParameters"].toArray()},{"loaded", true}, {"id", authored_["documentId"]}, {"label", path_.isEmpty() ? "Untitled" : QFileInfo(path_).completeBaseName()}, {"path",path_},
         {"units", authored_["displayUnits"]}, {"canonicalLengthUnit", "mm"},
         {"revision", static_cast<qint64>(revision_)}, {"dirty", !history_.isClean()},
         {"lastTransactionId", lastTransaction_},

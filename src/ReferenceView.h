@@ -100,6 +100,7 @@ public:
     void clearPatternAxes();
     void highlightSolidEdges(const std::vector<EvaluatedBody>& bodies,const QString& bodyId,const QJsonArray& edgeIds);
     void clearSolidEdgeHighlights();
+    void setSliderCue(const QJsonObject& position);
     QJsonObject projectBody(const EvaluatedBody& body) const;
     void showHolePreview(const EvaluatedBody& result, const TopoDS_Shape& removedMaterial);
     void showSpherePreview(const TopoDS_Shape& tool, bool cut);
@@ -131,6 +132,7 @@ protected:
     void wheelEvent(QWheelEvent*) override;
 private:
     std::vector<Handle(AIS_Shape)> solidEdgeHighlights_;
+    std::vector<Handle(AIS_Shape)> sliderCue_;
     gp_Pnt sketchWorld(const QString& plane,double u,double v) const;
     QJsonObject frameFor(const QString& plane) const;
     void initialize();

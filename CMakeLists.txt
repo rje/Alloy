@@ -28,6 +28,7 @@ target_include_directories(alloy_sketch_solver PUBLIC src)
 target_link_libraries(alloy_sketch_solver PUBLIC Qt6::Core PRIVATE alloy_planegcs)
 
 add_library(alloy_kernel STATIC
+    src/AssemblySlider.cpp src/AssemblySlider.h
     src/DocumentAppend.cpp src/DocumentAppend.h
     src/GeometryKernel.cpp src/GeometryKernel.h src/PrimitiveTopology.cpp src/PrimitiveTopology.h src/PlanarFaces.cpp src/PlanarFaces.h src/SolidFillet.cpp src/SolidFillet.h src/SolidChamfer.cpp src/SolidChamfer.h src/SolidShell.cpp src/SolidShell.h src/RevolvedShellCap.cpp src/RevolvedShellCap.h src/SolidSphere.cpp src/SolidSphere.h src/SolidHole.cpp src/SolidHole.h src/SolidLoft.cpp src/SolidLoft.h src/SolidRevolve.cpp src/SolidRevolve.h src/SolidSweep.cpp src/SolidSweep.h src/FeaturePattern.cpp src/FeaturePattern.h src/SolidMirror.cpp src/SolidTransform.cpp src/CircularPattern.cpp src/SolidMirror.h src/JoinResults.cpp
     src/MeshExport.cpp src/MeshExport.h
@@ -42,7 +43,7 @@ target_compile_definitions(alloy_kernel PUBLIC ALLOY_OCCT_VERSION="${ALLOY_OCCT_
 
 add_library(alloy_application STATIC
     src/AlloyTheme.cpp src/AlloyTheme.h
-    src/AlloyWindow.cpp src/AlloyWindow.h src/PointControls.cpp src/SplineControls.cpp src/SlotDragControls.cpp src/ConicControls.cpp src/SketchTextControls.cpp src/CommandIcons.cpp src/CommandIcons.h src/SolidFilletControls.cpp src/SolidChamferControls.cpp src/SphereControls.cpp src/SolidHoleControls.cpp src/SolidShellControls.cpp src/LoftControls.cpp src/RevolveCommands.cpp src/SweepCommands.cpp src/SweepSelection.cpp src/PatternControls.cpp src/CircularPatternControls.cpp src/SolidMirrorControls.cpp src/SectionAnalysisControls.cpp src/ReferenceSection.cpp src/MoveControls.cpp src/CombineControls.cpp src/ExportControls.cpp src/StepExportControls.cpp
+    src/AlloyWindow.cpp src/AlloyWindow.h src/AssemblyControls.cpp src/PointControls.cpp src/SplineControls.cpp src/SlotDragControls.cpp src/ConicControls.cpp src/SketchTextControls.cpp src/CommandIcons.cpp src/CommandIcons.h src/SolidFilletControls.cpp src/SolidChamferControls.cpp src/SphereControls.cpp src/SolidHoleControls.cpp src/SolidShellControls.cpp src/LoftControls.cpp src/RevolveCommands.cpp src/SweepCommands.cpp src/SweepSelection.cpp src/PatternControls.cpp src/CircularPatternControls.cpp src/SolidMirrorControls.cpp src/SectionAnalysisControls.cpp src/ReferenceSection.cpp src/MoveControls.cpp src/CombineControls.cpp src/ExportControls.cpp src/StepExportControls.cpp
     src/TutorialRecorder.cpp src/TutorialRecorder.h
     src/CadDocument.cpp src/CadDocument.h
     src/ReferenceView.cpp src/ReferenceView.h src/ReferenceRevolve.cpp src/ReferenceSweep.cpp src/ReferenceSketchText.cpp src/ReferenceSpline.cpp src/ReferenceConic.cpp
@@ -235,6 +236,14 @@ if(BUILD_TESTING)
     target_include_directories(extrude_offset_start_test PRIVATE src)
     target_link_libraries(extrude_offset_start_test PRIVATE Qt6::Gui alloy_kernel)
     add_test(NAME extrude_offset_start COMMAND extrude_offset_start_test)
+    add_executable(assembly_slider_test tests/assembly_slider.cpp src/CadDocument.cpp src/CadDocument.h)
+    target_include_directories(assembly_slider_test PRIVATE src)
+    target_link_libraries(assembly_slider_test PRIVATE Qt6::Gui alloy_kernel)
+    add_test(NAME assembly_slider COMMAND assembly_slider_test)
+    add_executable(assembly_slider_controls_test tests/assembly_slider_controls.cpp)
+    target_link_libraries(assembly_slider_controls_test PRIVATE alloy_application Qt6::Test)
+    add_test(NAME assembly_slider_controls COMMAND assembly_slider_controls_test)
+    set_tests_properties(assembly_slider_controls PROPERTIES TIMEOUT 45 LABELS "widget;gpu" RUN_SERIAL TRUE)
     add_executable(extrude_offset_start_controls_test tests/extrude_offset_start_controls.cpp)
     target_link_libraries(extrude_offset_start_controls_test PRIVATE alloy_application Qt6::Test)
     add_test(NAME extrude_offset_start_controls COMMAND extrude_offset_start_controls_test)

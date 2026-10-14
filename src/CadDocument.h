@@ -3,6 +3,7 @@
 #include <QUndoStack>
 #include "GeometryKernel.h"
 #include <memory>
+#include <optional>
 
 class DocumentEdit;
 
@@ -32,6 +33,8 @@ public:
     QString open(const QString& path);
     QString path() const { return path_; }
     const std::vector<EvaluatedBody>& bodies() const { return evaluation_->bodies; }
+    std::vector<EvaluatedBody> worldBodies(std::optional<double> transientPositionMm = {}) const;
+    QJsonObject assemblyState(std::optional<double> transientPositionMm = {}) const;
     const std::vector<EvaluatedSketch>& sketches() const { return evaluation_->sketches; }
     QString commitAnalyses(const QJsonArray& analyses, const QString& label);
     static QJsonObject sectionCandidate(const QJsonObject& authored, const QJsonObject& args);

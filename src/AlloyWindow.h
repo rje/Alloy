@@ -6,6 +6,7 @@
 #include <QMap>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <vector>
 #include "CadDocument.h"
 #include "SketchGeometry.h"
@@ -32,6 +33,7 @@ class QListWidget;
 class QTabBar;
 class QImage;
 class QFrame;
+class QTimer;
 class TutorialRecorder;
 
 // UI and automation dispatch against the same authored document.
@@ -55,12 +57,27 @@ private:
         std::function<QJsonObject(const QJsonObject&)> run;
     };
     void registerCommands();
+    void registerSliderCommands();
+    QJsonObject beginSlider(const QJsonObject& args);
+    QJsonObject previewSlider();
+    void showSlider();
+    void refreshSliderControls();
+    std::vector<EvaluatedBody> presentationBodies() const;
+    bool nonzeroAssemblyPose() const;
+    QJsonObject presentationAssembly() const;
     void registerSectionCommands();
     QJsonObject beginSection(const QJsonObject& args);
     QJsonObject previewSection();
     void showSection();
     void refreshSection();
     QDockWidget* sectionDock_ = nullptr;
+    QDockWidget* sliderDock_ = nullptr;
+    QTreeWidgetItem* jointsNode_ = nullptr;
+    std::optional<double> transientSliderPosition_;
+    QJsonObject sliderPreviewAuthored_;
+    quint64 presentationRevision_ = 1;
+    QTimer* sliderTimer_ = nullptr;
+    int sliderAnimationFrame_ = 0;
     QTreeWidgetItem* analysesNode_ = nullptr;
     QImage captureImage(QImage* viewport = nullptr);
     void refresh();

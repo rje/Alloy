@@ -14,6 +14,9 @@ are independently accepted. A combined real-app check resizes a hollow box while
 preserving named parameters, inner back-wall references and editable history.
 The complete advanced tutorials remain upcoming; see the
 [delivery queue](docs/backlog/README.md).
+An isolated [as-built Slider candidate](docs/validation/as-built-slider.md)
+adds one retained Box/Lid occurrence relationship with Y-axis drive and limits;
+focused native and real-app checks are independently accepted for that ingredient.
 
 Alloy is a standalone, open source, modifiable parametric CAD application.
 The long-term goal is complete functional coverage of professional CAD workflows,
