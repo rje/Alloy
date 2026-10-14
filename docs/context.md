@@ -7,9 +7,13 @@ build, while retaining advanced tutorial completion. See the actionable
 [readiness burndown](initial-build-readiness.md). Nineteen bounded children
 NAV-001–008, REL-012–018 and CI-004–007 are published as #407–425; existing
 file/physical-input/platform gates and advanced chain dependencies are reused.
-NAV-001/#407 is active: shared free orbit plus a visible no-middle-button tool,
-custom camera persistence and navigation gesture priority. Sol implements,
-Astra verifies, Luna maintains public navigation and enclosure source contracts.
+NAV-001/#407 is independently accepted at2d1a699 and closed: real free orbit,
+visible checked no-middle-button tool, custom-camera tab restoration and navigation
+gesture priority. Focused Qt3/3 and actual GPU captures pass; physical device,
+trackpad, constrained/pivot modes remain separate. Main app relinked. See
+[receipt](validation/free-orbit-navigation.md). Next active slice GEO-017 is a
+bounded exact-BRep diagnostic around the enclosure seam lip, not another blind
+offset-sign retry. Sol investigates; Astra verifies. Public research stays external.
 Only main/existing build and one private GUI lease; no new worktrees. Alternate
 readiness slices with concrete advanced-chain blockers. Packages can progress
 independently; no version/CI dispatch or public release has been triggered.

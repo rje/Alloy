@@ -23,7 +23,11 @@ promotion follows automatically from an ordinary commit.
 ## Navigation checklist
 
 The source audit found fixed views, pan, center-based wheel zoom and sketch Look
-At; arbitrary orbit, ViewCube and projection controls were missing. Research
+At; arbitrary orbit, ViewCube and projection controls were missing at the audit.
+NAV-001 is now accepted at2d1a699: free orbit works with Shift-middle drag or
+the visible Free Orbit tool and left drag/Escape. The focused Qt/GPU evidence
+is recorded in [its receipt](validation/free-orbit-navigation.md); other navigation
+children remain open. Research
 must distinguish current public documented behavior from older screenshots and
 platform-specific gesture limitations. Detailed reference records stay external.
 
