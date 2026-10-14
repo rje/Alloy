@@ -1,0 +1,98 @@
+#!/usr/bin/env python3
+"""Author and edit a rounded plate with two explicit shared-endpoint Tangent relations."""
+import argparse
+import json
+import math
+from pathlib import Path
+
+from app_harness import application
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--app', required=True)
+    parser.add_argument('--output', required=True)
+    args = parser.parse_args()
+    output = Path(args.output).resolve()
+    with application(args.app, output) as (call, transcript):
+        session = call('sketch.begin', {'plane': 'XY', 'name': 'Rounded plate'})
+
+        def draft():
+            return call('app.state')['activeSession']['draftSketch']
+
+        def line(x1, y1, x2, y2):
+            call('sketch.line', {'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2, 'units': 'mm'})
+            return draft()['parameters']['entities'][-1]
+
+        bottom = line(0, 0, 60, 0)
+        right = line(60, 0, 60, 35)
+        call('sketch.addArc', {'mode': 'center', 'centerX': 55, 'centerY': 35,
+                              'radius': 5, 'startAngleDeg': 0, 'sweepAngleDeg': 90, 'units': 'mm'})
+        arc = draft()['parameters']['entities'][-1]
+        top = line(55, 40, 0, 40)
+        left = line(0, 40, 0, 0)
+        assert right['endPointId'] == arc['startPointId']
+        assert arc['endPointId'] == top['startPointId']
+        assert bottom['endPointId'] == right['startPointId']
+        assert top['endPointId'] == left['startPointId']
+        assert left['endPointId'] == bottom['startPointId']
+        call('sketch.constraint', {'type': 'fixed', 'pointIds': [bottom['startPointId']]})
+        for relation_type, entity in [('horizontal', bottom), ('vertical', right),
+                                      ('horizontal', top), ('vertical', left)]:
+            call('sketch.constraint', {'type': relation_type, 'entityIds': [entity['id']]})
+        first = call('sketch.constraint', {'type': 'tangent', 'entityIds': [right['id'], arc['id']]})
+        second = call('sketch.constraint', {'type': 'tangent', 'entityIds': [arc['id'], top['id']]})
+        relations = [c for c in second['draftSketch']['parameters']['constraints'] if c['type'] == 'arcTangent']
+        assert len(relations) == 2
+        assert {c['pointIds'][0] for c in relations} == {arc['startPointId'], arc['endPointId']}
+        before_bad = draft()
+        call('sketch.constraint', {'type': 'tangent', 'entityIds': [bottom['id'], arc['id']]}, 'sketch_solve_failed')
+        assert draft() == before_bad
+        radius_result = call('sketch.dimension', {'kind': 'radius', 'entityId': arc['id'], 'value': 5, 'units': 'mm'})
+        radius_id = radius_result['draftSketch']['parameters']['dimensions'][-1]['id']
+        width_result = call('sketch.dimension', {'kind': 'horizontal', 'entityId': bottom['id'], 'value': 60, 'units': 'mm'})
+        width_id = width_result['draftSketch']['parameters']['dimensions'][-1]['id']
+        call('sketch.dimension', {'kind': 'vertical', 'entityId': left['id'], 'value': 40, 'units': 'mm'})
+        preview = call('command.preview', {'session': session['id']})
+        profiles = preview['sketchGeometry']['profiles']
+        assert len(profiles) == 1, profiles
+        sketch_id = draft()['id']
+        call('capture.screenshot', {'path': str(output / 'rounded-plate-sketch.png')})
+        call('sketch.finish')
+        extrude = call('command.begin', {'command': 'solid.extrude', 'inputs':
+            {'sketchId': sketch_id, 'profileId': profiles[0]['profileId'], 'distance': 5, 'units': 'mm'}})
+        call('command.preview', {'session': extrude['id']})
+        call('command.commit', {'session': extrude['id']})
+        initial = call('document.inspect')['evaluation']['bodies'][0]['volumeMm3']
+        assert math.isclose(initial, 5 * (2400 - 25 + math.pi * 25 / 4), abs_tol=1e-3), initial
+        call('sketch.edit', {'sketchId': sketch_id})
+        call('sketch.dimensionUpdate', {'dimensionId': radius_id, 'value': 7, 'units': 'mm'})
+        call('sketch.dimensionUpdate', {'dimensionId': width_id, 'value': 70, 'units': 'mm'})
+        updated = draft()
+        assert {c['id'] for c in updated['parameters']['constraints'] if c['type'] == 'arcTangent'} == {c['id'] for c in relations}
+        assert math.isclose(next(e['radiusMm'] for e in updated['parameters']['entities'] if e['id'] == arc['id']), 7, abs_tol=1e-5)
+        call('capture.screenshot', {'path': str(output / 'rounded-plate-edited.png')})
+        call('sketch.finish')
+        final = call('document.inspect')['evaluation']['bodies'][0]['volumeMm3']
+        assert math.isclose(final, 5 * (2800 - 49 + math.pi * 49 / 4), abs_tol=1e-3), final
+        call('view.home')
+        call('capture.screenshot', {'path': str(output / 'rounded-plate-solid.png')})
+        call('history.undo')
+        assert math.isclose(call('document.inspect')['evaluation']['bodies'][0]['volumeMm3'], initial, abs_tol=1e-3)
+        call('history.redo')
+        assert math.isclose(call('document.inspect')['evaluation']['bodies'][0]['volumeMm3'], final, abs_tol=1e-3)
+        saved = output / 'rounded-plate.alloy'
+        call('document.save', {'path': str(saved)})
+        authored = call('document.inspect')['authored']
+        call('document.new', {'discard': False})
+        call('document.open', {'path': str(saved)})
+        assert call('document.inspect')['authored'] == authored
+        (output / 'result.json').write_text(json.dumps({'status': 'passed', 'calls': len(transcript),
+            'relationIds': [c['id'] for c in relations], 'radiusDimensionId': radius_id,
+            'widthDimensionId': width_id, 'initialVolumeMm3': initial, 'finalVolumeMm3': final,
+            'authored': authored, 'transcript': transcript}, indent=2) + '\n')
+    print('PASS: rounded plate arc-line Tangent, radius/width edit, history and reopen')
+
+
+if __name__ == '__main__':
+    main()

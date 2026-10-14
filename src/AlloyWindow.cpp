@@ -492,10 +492,11 @@ AlloyWindow::AlloyWindow() {
     construction->setToolTip("Toggle selected authored lines; construction does not bound profiles.");
     connect(construction,&QAction::triggered,this,[this]{sketchResponse(execute("sketch.constructionToggle"));});
     auto* constraints=sketchMenu("Constraints","constraints");
-    for(const auto& type:QStringList{"coincident","concentric","horizontalVertical","horizontal","vertical","parallel","perpendicular","equal","fixed","midpoint","symmetry"}) {
+    for(const auto& type:QStringList{"coincident","concentric","horizontalVertical","horizontal","vertical","parallel","perpendicular","equal","fixed","midpoint","symmetry","tangent"}) {
         auto* action=constraints->addAction(type=="horizontalVertical" ? "Horizontal/Vertical" : type.first(1).toUpper()+type.sliced(1));
         action->setObjectName("sketch.action.constraint."+type);
-        action->setToolTip(type=="symmetry" ? "Pick two existing lines, then a construction symmetry axis; Escape exits"
+        action->setToolTip(type=="tangent" ? "Pick an arc and a line sharing one endpoint; Escape exits"
+            : type=="symmetry" ? "Pick two existing lines, then a construction symmetry axis; Escape exits"
             : type=="midpoint" ? "Pick a line or arc, then its midpoint point or sketch origin; Escape exits"
             : type=="fixed" ? "Select one point; retain its position" : type=="coincident" ? "Select two points"
             : type=="horizontalVertical" ? "Pick one line or two points; the first point is the initial reference" : type=="horizontal" || type=="vertical" ? "Pick one line" : type=="concentric" ? "Pick two circles or arcs" : "Pick a compatible pair; repeat pairs; Escape exits");
@@ -3827,9 +3828,9 @@ void AlloyWindow::registerCommands() {
         return failure("stale_entity","Sketch does not exist","sketchId");
     });
     auto constraintType=parameter("string","Geometric relation to apply to the supplied or selected sketch geometry.");
-    constraintType["enum"]=QJsonArray{"coincident","concentric","horizontal","vertical","horizontalVertical","parallel","perpendicular","equal","fixed","midpoint","symmetry","pointOnCurve"};
+    constraintType["enum"]=QJsonArray{"coincident","concentric","horizontal","vertical","horizontalVertical","parallel","perpendicular","equal","fixed","midpoint","symmetry","tangent","pointOnCurve"};
     auto constraintToolType=constraintType;
-    constraintToolType["enum"]=QJsonArray{"coincident","concentric","horizontal","vertical","horizontalVertical","parallel","perpendicular","equal","fixed","midpoint","symmetry"};
+    constraintToolType["enum"]=QJsonArray{"coincident","concentric","horizontal","vertical","horizontalVertical","parallel","perpendicular","equal","fixed","midpoint","symmetry","tangent"};
     add("sketch.constraintTool","Activate sketch constraint","Apply compatible preselection, then repeatedly pick geometry; Escape returns to Select.",{{"type",constraintToolType},{"session",optionalSession}},[this](const auto& a){
         if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
         if(a.contains("session") && a["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
@@ -8727,6 +8728,19 @@ QJsonObject AlloyWindow::setSketchSelection(const QJsonObject& selection) {
                 return failure("invalid_constraint_target",index==2 ? "Third symmetry pick must be a construction line" : "Symmetry requires two straight lines");
         }
     }
+    if(session_.value("tool")=="constraint" && session_.value("constraintType")=="tangent"){
+        const auto targets=normalized["entityIds"].toArray();
+        if(!normalized["pointIds"].toArray().isEmpty() || targets.size()>2)
+            return failure("invalid_constraint_target","Tangent requires one arc and one straight line");
+        bool hasArc=false,hasLine=false;
+        for(const auto& target:targets){QJsonObject entity;
+            for(const auto& row:parameters["entities"].toArray())if(row.toObject()["id"]==target){entity=row.toObject();break;}
+            if(entity["type"]=="arc")hasArc=true;else if(entity["type"]=="line")hasLine=true;
+            else return failure("invalid_constraint_target","Tangent requires one arc and one straight line");
+        }
+        if(targets.size()==2 && (!hasArc || !hasLine))
+            return failure("invalid_constraint_target","Tangent requires one arc and one straight line");
+    }
     session_["selection"]=normalized;session_.remove("hoveredConstraintId");
     cancelDimension();
     if(session_.value("tool")=="constraint") {
@@ -8754,7 +8768,9 @@ QJsonObject AlloyWindow::setSketchSelection(const QJsonObject& selection) {
         const int required=type=="symmetry" ? 3 : type=="fixed" || type=="horizontal" || type=="vertical" || (type=="horizontalVertical" && field=="entityIds") ? 1 : 2;
         const auto targets=normalized[field].toArray();
         const auto label=type=="horizontalVertical" ? QString("Horizontal/Vertical") : type.first(1).toUpper()+type.sliced(1);
-        session_["constraintPrompt"]=type=="symmetry" ? (targets.size()==2 ? QString("Symmetry · Pick construction axis · Escape exits")
+        session_["constraintPrompt"]=type=="tangent" ? (targets.isEmpty() ? QString("Tangent · Pick arc or line · Escape exits")
+            : QString("Tangent · Pick matching arc or line · Escape exits"))
+            : type=="symmetry" ? (targets.size()==2 ? QString("Symmetry · Pick construction axis · Escape exits")
             : targets.isEmpty() ? QString("Symmetry · Pick first line · Escape exits") : QString("Symmetry · Pick second line · Escape exits"))
             : QString("%1 · Pick %2 %3 · Escape exits").arg(label).arg(targets.isEmpty() ? "first" : "next").arg(field=="pointIds" ? "point" : "curve");
         if(targets.size()>required)return failure("invalid_constraint_target",QString("%1 requires %2 targets").arg(label).arg(required));
@@ -8762,18 +8778,19 @@ QJsonObject AlloyWindow::setSketchSelection(const QJsonObject& selection) {
         if(field=="entityIds")for(int index=0;index<targets.size();++index)for(const auto& entry:parameters["entities"].toArray()) {
             const auto target=targets[index];
             const auto entity=entry.toObject();if(entity["id"]!=target)continue;
-            if(type!="equal" && type!="concentric" && entity["type"]!="line")return failure("invalid_constraint_target",label+" requires lines");
+            if(type!="equal" && type!="concentric" && type!="tangent" && entity["type"]!="line")return failure("invalid_constraint_target",label+" requires lines");
             if(type=="concentric" && entity["type"]!="circle" && entity["type"]!="arc")return failure("invalid_constraint_target",label+" requires circles or arcs");
             if(type=="symmetry" && index==2 && !entity["construction"].toBool())return failure("invalid_constraint_target","Third symmetry pick must be a construction line");
         }
         if(targets.size()==required) {
             const auto result=applySketchConstraint(type,{{field,targets}});
             if(result["ok"].isBool() && !result["ok"].toBool()) {
-                if(type=="symmetry"){
+                if(type=="symmetry" || type=="tangent"){
                     auto pending=normalized;auto entities=pending["entityIds"].toArray();entities.removeLast();pending["entityIds"]=entities;
                     session_["selection"]=pending;
                 }
-                session_["constraintPrompt"]=label+" · Constraint failed; pick a new set · Escape exits";return result;
+                session_["constraintPrompt"]=type=="tangent" ? QString("Tangent · Constraint failed; pick a matching arc or line · Escape exits")
+                    : label+" · Constraint failed; pick a new set · Escape exits";return result;
             }
             session_["selection"]=QJsonObject{{"pointIds",QJsonArray{}},{"entityIds",QJsonArray{}},{"profileIds",QJsonArray{}}};
             session_["constraintPrompt"]=label+" · Applied; pick next "+(field=="pointIds" ? "point" : "curve")+" · Escape exits";
@@ -9967,11 +9984,12 @@ void AlloyWindow::showSketch() {
             sketchResponse(execute("sketch.selectionSet",{{"pointIds",points},{"entityIds",entities}}));
         });
         layout->addWidget(new QLabel("CONSTRAINTS"));auto* constraints=new QGridLayout;
-        const QStringList types{"coincident","concentric","horizontalVertical","horizontal","vertical","parallel","perpendicular","equal","fixed","midpoint","symmetry"};
+        const QStringList types{"coincident","concentric","horizontalVertical","horizontal","vertical","parallel","perpendicular","equal","fixed","midpoint","symmetry","tangent"};
         for(int i=0;i<types.size();++i) {
             const auto type=types[i];auto* button=new QPushButton(type=="horizontalVertical" ? "Horizontal/Vertical" : type.first(1).toUpper()+type.sliced(1));button->setObjectName("sketch.constraint."+type);button->setCheckable(true);
             button->setStyleSheet("QPushButton:checked { background: #deedf5; border: 1px solid #2b83ae; }");
-            button->setToolTip(type=="symmetry" ? "Pick two existing lines, then a construction symmetry axis; Escape exits"
+            button->setToolTip(type=="tangent" ? "Pick an arc and a line sharing one endpoint; Escape exits"
+                : type=="symmetry" ? "Pick two existing lines, then a construction symmetry axis; Escape exits"
                 : type=="midpoint" ? "Pick a line or arc, then a point or sketch origin; Escape exits"
                 : type=="fixed" ? "Select one point; retain its position" : type=="coincident" ? "Select two points"
                 : type=="horizontalVertical" ? "Pick one line or two points; the first point is the initial reference" : type=="horizontal" || type=="vertical" ? "Pick one line" : type=="equal" ? "Pick two lines or two circles/arcs; repeat pairs; Escape exits" : type=="concentric" ? "Pick two circles or arcs; repeat pairs; Escape exits" : "Pick two lines; repeat pairs; Escape exits");

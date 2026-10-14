@@ -1743,13 +1743,48 @@ SketchGeometry::SolveResult SketchGeometry::addConstraint(const QJsonObject& dra
         auto constraint = arguments;
         constraint["id"] = newId();
         QJsonObject current=draft;
-        if(constraint["type"]=="symmetry"){
-            if(arguments.contains("pointIds"))reject("Symmetry endpoint correspondence is derived from current solved lines");
+        if(constraint["type"]=="symmetry" || constraint["type"]=="tangent"){
+            if(arguments.contains("pointIds"))reject("Constraint contact points are derived from current solved geometry");
             const auto solved=solveDraft(draft,projectionContext);
             if(!solved.ok)return SolveResult{false,draft,solved.diagnostics,solved.error};
             current=solved.feature;
         }
         auto parameters = current["parameters"].toObject();
+        if(constraint["type"]=="tangent"){
+            const auto ids=constraint["entityIds"].toArray();
+            if(ids.size()!=2 || ids[0]==ids[1])reject("Tangent needs one arc and one line");
+            QJsonObject arc,line;QMap<QString,QJsonObject> points;
+            for(const auto& value:parameters["entities"].toArray()){
+                const auto entity=value.toObject();if(entity["id"]!=ids[0] && entity["id"]!=ids[1])continue;
+                if(entity["type"]=="arc")arc=entity;else if(entity["type"]=="line")line=entity;
+            }
+            for(const auto& value:parameters["points"].toArray()){const auto point=value.toObject();points[point["id"].toString()]=point;}
+            if(arc.isEmpty() || line.isEmpty())reject("This Tangent tool needs one arc and one straight line");
+            if(arguments.contains("side"))reject("Arc-line Tangent derives its side from the current solved geometry");
+            QStringList shared;
+            for(const auto& key:{"startPointId","endPointId"})for(const auto& other:{"startPointId","endPointId"})
+                if(arc[key]==line[other])shared.append(arc[key].toString());
+            shared.removeDuplicates();
+            if(shared.size()!=1)reject("Arc and line must share exactly one authored endpoint");
+            const auto a=points.value(line["startPointId"].toString()),b=points.value(line["endPointId"].toString());
+            const auto center=points.value(arc["centerPointId"].toString());
+            if(a.isEmpty() || b.isEmpty() || center.isEmpty())reject("Tangent geometry is unavailable");
+            const double dx=b["uMm"].toDouble()-a["uMm"].toDouble(),dy=b["vMm"].toDouble()-a["vMm"].toDouble();
+            const double length=std::hypot(dx,dy);
+            if(length<minimumLength)reject("Tangent line is degenerate");
+            const double cross=dx*(center["vMm"].toDouble()-a["vMm"].toDouble())
+                -dy*(center["uMm"].toDouble()-a["uMm"].toDouble());
+            if(std::abs(cross)<1e-9*std::max(1.0,length*arc["radiusMm"].toDouble()))
+                reject("Tangent side is ambiguous");
+            for(const auto& value:parameters["constraints"].toArray()){
+                const auto relation=value.toObject();
+                const auto pair=relation["entityIds"].toArray();
+                if(relation["type"]=="arcTangent" && pair==QJsonArray{arc["id"],line["id"]})
+                    reject("Arc-line Tangent already exists for this contact");
+            }
+            constraint["type"]="arcTangent";constraint["entityIds"]=QJsonArray{arc["id"],line["id"]};
+            constraint["pointIds"]=QJsonArray{shared[0]};constraint["side"]=cross>0 ? 1 : -1;
+        }
         if(constraint["type"]=="symmetry"){
             const auto ids=constraint["entityIds"].toArray();
             if(ids.size()!=3 || ids[0]==ids[1] || ids[0]==ids[2] || ids[1]==ids[2])reject("Symmetry needs two distinct lines and one construction axis");
