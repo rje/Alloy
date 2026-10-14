@@ -4,23 +4,22 @@
 
 Worktree cleanup removed 180 inactive checkouts, retaining branch refs and a
 verified external artifact archive under
-`maintenance/worktree-cleanup-2026-10-14/`. Only main, active
-`sketch-offset-union`, and `native-exchange` / `sketch-badges` remain; the latter
-two retain untracked local files. Old worktree build paths no longer exist:
+`maintenance/worktree-cleanup-2026-10-14/`. The subsequently completed `sketch-offset-union` checkout was also retired.
+Only main and `native-exchange` / `sketch-badges` remain; the latter two retain
+untracked local files. Old worktree build paths no longer exist:
 recreate a branch checkout if needed and recover evidence using that archive
 manifest. Canonical external deliverables and the video gallery are unchanged.
 
-SKT-074/#330 is In Progress after independent design review. It adds explicit
-opt-in retained Offset-group union intent to the existing Extrude/Cut path,
-resolving only exact current cell coverage and retaining ordinary stale-cell
-refusal. The three-port 1 to 1.1 clearance edit is the bounded gate; partial or
-extra regions must refuse, not silently widen a Cut. This is an Alloy capability,
-not established reference UI behavior. Candidate `705591b` is independently accepted
-for core/API and shared-command visual preview; integrated at `8241b66`, with
-main app build and focused Offset core passing. The unrelated-dimension test
-failure is being diagnosed before parent closure.
-Native aggregate selection/clear stays Todo as SKT-078/#377, following the accepted
-TUT-021 fixture. See [bounded receipt](validation/closed-offset-union.md).
+SKT-074/#330 is independently accepted and integrated at `8241b66`, with
+owned test-ID/API provenance correction at `33ea70a`. Main application build,
+closed Offset and extrusion document checks pass. Real-app clearance edits,
+exact coverage, history/reopen and visual preview are accepted; native aggregate
+selection remains SKT-078/#377 Todo. The completed worktree was retired after
+preserving evidence externally. See [receipt](validation/closed-offset-union.md).
+DOC-029/#334 is now active: edit a retained section while preserving an open
+sketch draft. Implementation uses main and its existing build; no new worktree.
+Public nested-interaction mechanics are unknown, so this is an explicit Alloy
+workflow policy with native focus/draft continuity gates.
 FND-001 comparison policy is accepted in docs/compatibility.md; FND-025/#376
 retains unknown public screenshot metadata and unproven layout generations.
 

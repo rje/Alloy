@@ -2,8 +2,8 @@
 
 Candidate `705591b` is independently accepted for bounded core/API authority and
 shared-command visual preview. Integrated at `8241b66`; main app build and focused
-Offset core pass. SKT-074/#330 stays open while the dimension-test failure below
-is diagnosed. This is an Alloy opt-in policy, not established
+Offset core pass. Follow-up `33ea70a` fixes a dangling JSON reference in the older
+extrusion test and labels programmatic test setup with API provenance. This is an Alloy opt-in policy, not established
 reference aggregate UI behavior.
 
 The authored Cut retains sorted Offset group IDs, exclusively from ordinary
@@ -30,7 +30,7 @@ is not native row selection. SKT-078/#377 preserves native select/replace/clear,
 readability and commit/Cancel qualification, using the accepted TUT-021 fixture.
 TUT-021 remains accepted within its original ordinary-profile/API scope.
 
-The existing `extrusion_document` test reports `Driving dimension does not exist`;
-its target builds, but this run does not establish whether that failure predates
-the candidate. Ordinary stale-cell refusal evidence remains in
+The older `extrusion_document` test retained a JSON reference from a temporary
+object in unchanged parent source. An owned dimension ID fixes its Release failure;
+the corrected test passes in candidate Release and integrated main builds. Ordinary stale-cell refusal evidence remains in
 [closed rectangle Offset](closed-rectangle-offset.md), without a repeated run.
