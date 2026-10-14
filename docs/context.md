@@ -3275,3 +3275,7 @@ ambiguity refusal for genuinely conflicting source circles. See
 Independent compatibility review accepted the bounded prefix. This adapted input and
 world-axis placement do not establish creator-file identity or physical fit;
 connector/card openings remain later TUT-016 work.
+
+## Current isolated candidate: retained construction-plane Project
+
+An isolated candidate extends the shared linked Project path to sketches on earlier retained construction planes (SKT-072). The exact evaluated plane frame, earlier active body and imported occurrence identities remain authoritative; face-only legacy boundary references stay restricted. `linked_planar_project` core and `tests/construction_plane_project_api.py` passed with the actual imported enclosure connector face, plane edit, undo/redo and reopen. See [validation](validation/construction-plane-project.md). The accepted enclosure prefix remains the cumulative baseline; projected closed connector-loop Offset is a separate pending dependency before ports.

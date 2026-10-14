@@ -333,7 +333,7 @@ QString SketchGeometry::projectionPointId(const QString& id,bool end) {
 }
 QJsonObject SketchGeometry::linkedProjectionCandidate(const EvaluatedDocument& evaluation,
     const QJsonObject& sketch,const QJsonObject& source) {
-    if(sketch["parameters"].toObject()["plane"]!="face" || source.size()!=2
+    if((sketch["parameters"].toObject()["plane"]!="face" && sketch["parameters"].toObject()["plane"]!="construction") || source.size()!=2
         || !validId(source["bodyId"].toString()) || !validId(source["edgeId"].toString()))
         reject("Linked Project requires a supported sketch and stable body/edge IDs");
     auto candidate=sketch,parameters=candidate["parameters"].toObject();
@@ -1034,7 +1034,7 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
     if(plane=="construction") {if(!validId(parameters["planeId"].toString()))return "Construction sketch requires a stable plane ID";}
     else if(parameters.contains("planeId"))return "Only construction sketches can reference a plane feature";
     if(parameters.contains("projections") || parameters.contains("pointReferences") || parameters.contains("pointProjections") || parameters.contains("circleProjections")) {
-        if(plane!="face" || (parameters.contains("projections") && !parameters["projections"].isArray()) || (parameters.contains("pointReferences") && !parameters["pointReferences"].isArray()) || (parameters.contains("pointProjections") && !parameters["pointProjections"].isArray()) || (parameters.contains("circleProjections") && !parameters["circleProjections"].isArray()))return "Projections require a supported face sketch and array";
+        if((plane!="face" && plane!="construction") || (plane!="face" && parameters.contains("pointReferences")) || (parameters.contains("projections") && !parameters["projections"].isArray()) || (parameters.contains("pointReferences") && !parameters["pointReferences"].isArray()) || (parameters.contains("pointProjections") && !parameters["pointProjections"].isArray()) || (parameters.contains("circleProjections") && !parameters["circleProjections"].isArray()))return "Projections require a retained face or construction plane and valid arrays";
         QJsonArray lines,circles,resolvedPoints;QSet<QString> sources,referenceIds=derivedPointIds;
         for(const auto& value:parameters["projections"].toArray()) {
             if(!value.isObject())return "Projection must be an object";const auto projection=value.toObject();
@@ -1044,6 +1044,7 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
             for(const auto& key:{"bodyId","edgeId"})if(!source[key].isString() || !validId(source[key].toString()))return "Projection source requires stable UUIDs";
             if(source.size()==3 && (!source["occurrenceId"].isString() || !validId(source["occurrenceId"].toString())))return "Projection occurrence requires a stable UUID";
             if(source.size()==4) {
+                if(plane!="face")return "Legacy support projection requires its face sketch";
                 for(const auto& key:{"producerFeatureId","faceId"})if(!source[key].isString() || !validId(source[key].toString()))return "Projection source requires stable UUIDs";
                 for(const auto& key:{"producerFeatureId","bodyId","faceId"})if(source[key]!=parameters["support"].toObject()[key])return "Projection source must belong to sketch support";
             }

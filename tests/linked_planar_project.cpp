@@ -57,6 +57,27 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
         {{"ownerId",boxOwner},{"sketchId",sketch["id"]},{"profileId",d.sketches()[0].profiles[0].profileId},{"distanceMm",5}}));
     check(extrusion.ok && extrusion.evaluation->bodies.size()==2 && extrusion.evaluation->bodies[1].summary["valid"].toBool(),
         "projected-only profile evaluates as an ordinary extruded solid");
+    const auto planeId=CadDocument::newId();
+    append(d,{{"id",planeId},{"ownerId",boxOwner},{"type","constructionPlane"},{"name","Front offset plane"},{"visible",true},
+        {"parameters",QJsonObject{{"source",QJsonObject{{"support",support}}},{"offsetMm",0}}}});
+    auto planeSketch=SketchGeometry::newConstructionPlaneFeature(boxOwner,planeId,"Planar linked Project");
+    for(const auto& edge:front->boundaryEdges)planeSketch=SketchGeometry::linkedProjectionCandidate(d.evaluation(),planeSketch,
+        {{"bodyId",body.bodyId},{"edgeId",edge.edgeId}});
+    auto planeContext=GeometryKernel::projectionContext(d.evaluation(),planeSketch);
+    check(planeContext["lines"].toArray().size()==4 && SketchGeometry::solveDraft(planeSketch,planeContext).ok,
+        "retained construction plane projects four current source edges");
+    const auto planeLineId=planeSketch["parameters"].toObject()["projections"].toArray()[0].toObject()["id"].toString();
+    append(d,planeSketch);
+    auto shifted=d.authored();auto shiftFeatures=shifted["features"].toArray();
+    for(int i=0;i<shiftFeatures.size();++i)if(shiftFeatures[i].toObject()["id"]==planeId) {
+        auto edited=shiftFeatures[i].toObject(),values=edited["parameters"].toObject();values["offsetMm"]=.25;edited["parameters"]=values;shiftFeatures[i]=edited;break;
+    }
+    shifted["features"]=shiftFeatures;commit(d,shifted,"edit retained plane");
+    auto currentPlaneSketch=SketchGeometry::findFeature(d.authored(),planeSketch["id"].toString());
+    planeContext=GeometryKernel::projectionContext(d.evaluationBefore(planeSketch["id"].toString()),currentPlaneSketch);
+    check(planeContext["lines"].toArray().size()==4
+        && currentPlaneSketch["parameters"].toObject()["projections"].toArray()[0].toObject()["id"]==planeLineId,
+        "plane edit preserves live projected source identities");
     auto linked=CadDocument::componentCandidate(d.authored(),"Lid");commit(d,linked,"Lid component");
     const auto lidOwner=linked["components"].toArray().last().toObject()["id"].toString();
     auto lid=SketchGeometry::newSupportedFeature(lidOwner,support,"Lid front",GeometryKernel::supportEdgeDescriptors(*front));

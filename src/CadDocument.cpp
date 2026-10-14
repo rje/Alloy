@@ -94,7 +94,7 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
             return false;
         };
         auto guarded=f["parameters"].toObject();
-        if(f["type"]=="sketch" && guarded["plane"]=="face") {
+        if(f["type"]=="sketch" && (guarded["plane"]=="face" || guarded["plane"]=="construction")) {
             auto permitted=[&](const QJsonObject& source)->bool {
                 const auto body=source["bodyId"].toString(),producer=source["producerFeatureId"].toString();
                 if(!referencedOwners.contains(body))return false;
@@ -128,7 +128,7 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
     QSet<QString> activeBodies;
     for (int i = 0; i < features.size(); ++i) {
         const auto feature = features[i].toObject();
-        if(feature["type"]=="sketch" && feature["parameters"].toObject()["plane"]=="face") {
+        if(feature["type"]=="sketch" && (feature["parameters"].toObject()["plane"]=="face" || feature["parameters"].toObject()["plane"]=="construction")) {
             const auto parameters=feature["parameters"].toObject();
             auto earlierBody=[&](const QJsonObject& source) {
                 const auto body=source["bodyId"].toString();
@@ -278,7 +278,7 @@ QJsonObject solveSketches(QJsonObject candidate,int firstFeature=0,const Evaluat
         const auto feature = features[i].toObject();
         if (feature["type"].toString() != "sketch") continue;
         QJsonObject projectionContext;
-        if(feature["parameters"].toObject()["plane"]=="face") {
+        if(feature["parameters"].toObject()["plane"]=="face" || feature["parameters"].toObject()["plane"]=="construction") {
             auto prior=candidate;QJsonArray prefix;for(int j=0;j<i;++j)prefix.append(features[j]);prior["features"]=prefix;
             try {projectionContext=GeometryKernel::projectionContext(seed ? *seed : GeometryKernel::evaluateDocument(prior),feature);}
             catch(const GeometryKernel::EvaluationError& error) {

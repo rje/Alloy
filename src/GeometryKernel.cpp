@@ -204,10 +204,19 @@ QJsonArray GeometryKernel::supportEdgeDescriptors(const EvaluatedSupportFace& su
 }
 QJsonObject GeometryKernel::projectionContext(const EvaluatedDocument& evaluation,const QJsonObject& feature) {
     const auto parameters=feature["parameters"].toObject();QJsonArray lines,circles,unsupported,points;
-    if(parameters["plane"]!="face")return {{"lines",lines},{"circles",circles},{"unsupportedEdges",unsupported},{"points",points}};
-    const auto cap=resolveSketchSupport(evaluation,parameters["support"].toObject());
-    for(const auto& edge:cap.boundaryEdges)if(edge.type!="line")unsupported.append(edge.edgeId);
-    const auto origin=cap.frame["origin"].toArray(),u=cap.frame["uAxis"].toArray(),v=cap.frame["vAxis"].toArray();
+    const auto plane=parameters["plane"].toString();
+    if(plane!="face" && plane!="construction")return {{"lines",lines},{"circles",circles},{"unsupportedEdges",unsupported},{"points",points}};
+    EvaluatedSupportFace cap;
+    QJsonObject frame;
+    if(plane=="face") {
+        cap=resolveSketchSupport(evaluation,parameters["support"].toObject());frame=cap.frame;
+        for(const auto& edge:cap.boundaryEdges)if(edge.type!="line")unsupported.append(edge.edgeId);
+    } else {
+        const auto planeId=parameters["planeId"].toString();
+        for(const auto& candidate:evaluation.constructionPlanes)if(candidate.featureId==planeId)frame=candidate.frame;
+        if(frame.isEmpty())reject("plane_unavailable","Retained construction plane is unavailable for Project");
+    }
+    const auto origin=frame["origin"].toArray(),u=frame["uAxis"].toArray(),v=frame["vAxis"].toArray();
     auto local=[&](const QJsonArray& point,const QJsonArray& axis){double result=0;for(int i=0;i<3;++i)result+=(point[i].toDouble()-origin[i].toDouble())*axis[i].toDouble();return result;};
     QMap<QString,QJsonObject> centers;
     for(const auto& edge:cap.boundaryEdges) {
@@ -226,7 +235,7 @@ QJsonObject GeometryKernel::projectionContext(const EvaluatedDocument& evaluatio
         if(lineage.contains("occurrenceId"))source["occurrenceId"]=lineage["occurrenceId"];
         const QJsonArray world{center.X(),center.Y(),center.Z()};
         const double cu=local(world,u),cv=local(world,v);
-        double normalDistance=0;const auto normal=cap.frame["normal"].toArray();for(int i=0;i<3;++i)normalDistance+=(world[i].toDouble()-origin[i].toDouble())*normal[i].toDouble();
+        double normalDistance=0;const auto normal=frame["normal"].toArray();for(int i=0;i<3;++i)normalDistance+=(world[i].toDouble()-origin[i].toDouble())*normal[i].toDouble();
         if(std::abs(normalDistance)>1e-6)reject("ambiguous_projection","Circular cap center is outside the resolved support plane");
         if(centers.contains(key)) {
             const auto prior=centers[key];
@@ -245,6 +254,7 @@ QJsonObject GeometryKernel::projectionContext(const EvaluatedDocument& evaluatio
     for(auto point:centers){point.remove("radiusMm");points.append(point);}
     auto edgeFor=[&](const QJsonObject& source)->EvaluatedSupportEdge {
         if(source.size()==4) {
+            if(plane!="face")reject("projection_unavailable","Legacy support boundary requires its original face sketch");
             for(const auto& key:{"producerFeatureId","bodyId","faceId"})if(source[key]!=parameters["support"].toObject()[key])
                 reject("projection_unavailable","Legacy support projection no longer belongs to its sketch face");
             const auto found=std::find_if(cap.boundaryEdges.begin(),cap.boundaryEdges.end(),[&](const auto& edge){return edge.edgeId==source["edgeId"].toString();});
@@ -265,7 +275,7 @@ QJsonObject GeometryKernel::projectionContext(const EvaluatedDocument& evaluatio
         if(!found)reject("projection_unavailable","Projected source edge is no longer a real supported boundary");
         return *found;
     };
-    const auto normal=cap.frame["normal"].toArray();
+    const auto normal=frame["normal"].toArray();
     for(const auto& collection:{QString("projections"),QString("pointProjections")})for(const auto& item:parameters[collection].toArray()) {
         const auto projection=item.toObject(),source=projection["source"].toObject();
         const auto edge=edgeFor(source);

@@ -2165,7 +2165,7 @@ void AlloyWindow::registerCommands() {
             cancelTwoPointRectangle();view_->setFocus();return QJsonObject{{"pending",false},{"authoredChange",false}};
         });
     add("sketch.projectBegin","Project","Select retained planar face boundaries or straight model edges for linked projection.",{},[this](const auto&){
-        if(session_.value("command")!="sketch.edit" || session_.value("inputs").toObject()["plane"]!="face")
+        if(session_.value("command")!="sketch.edit" || (session_.value("inputs").toObject()["plane"]!="face" && session_.value("inputs").toObject()["plane"]!="construction"))
             return failure("unsupported_projection","Linked Project requires an active supported planar sketch");
         if(session_.contains("pendingProject"))return failure("project_active","Complete or cancel the current Project selection");
         for(const auto& key:{"firstPoint","secondPoint","pendingDimension","pendingCircleDiameter","pendingLineLength","pendingTrim","pendingFillet","pendingSketchMirror","pendingLoopOffset","pendingSplineOffset","pendingCircleOffset"})
@@ -5697,7 +5697,7 @@ QJsonObject AlloyWindow::beginSketch(const QString& plane,const QString& name,co
             : SketchGeometry::newFeature(document_->activeOwnerId(),plane,name)
         : existing;
     QJsonObject projectionContext;
-    if(plane=="face")try {
+    if(plane=="face" || plane=="construction")try {
         const auto history=existing.isEmpty() ? document_->evaluation() : document_->evaluationBefore(sketchId);
         projectionContext=GeometryKernel::projectionContext(history,seed);
     }
@@ -6771,7 +6771,7 @@ QJsonObject AlloyWindow::publishSketchSolve(const SketchGeometry::SolveResult& s
     const auto candidate=SketchGeometry::replaceFeature(document_->authored(),solved.feature);const auto error=CadDocument::validate(candidate);
     if(!error.isEmpty())return failure("invalid_sketch",error);
     auto context=session_.value("projectionContext").toObject();
-    if(solved.feature["parameters"].toObject()["plane"]=="face")try {
+    if(solved.feature["parameters"].toObject()["plane"]=="face" || solved.feature["parameters"].toObject()["plane"]=="construction")try {
         const auto editId=session_.value("inputs").toObject().value("sketchId").toString();
         const auto history=editId.isEmpty() ? document_->evaluation() : document_->evaluationBefore(editId);
         context=GeometryKernel::projectionContext(history,solved.feature);
@@ -6897,7 +6897,7 @@ QJsonObject AlloyWindow::traverseSketchHistory(int direction) {
     if(next<0 || next>=static_cast<int>(sketchHistory_.size()))return {{"action","none"},{"changed",false},{"draftHistory",session_["draftHistory"]}};
     const auto entry=sketchHistory_[next];
     auto context=session_.value("projectionContext").toObject();
-    if(entry.draft["parameters"].toObject()["plane"]=="face")try {
+    if(entry.draft["parameters"].toObject()["plane"]=="face" || entry.draft["parameters"].toObject()["plane"]=="construction")try {
         const auto editId=session_.value("inputs").toObject().value("sketchId").toString();
         const auto history=editId.isEmpty() ? document_->evaluation() : document_->evaluationBefore(editId);
         context=GeometryKernel::projectionContext(history,entry.draft);
