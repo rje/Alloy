@@ -14,8 +14,9 @@ rounded shell, mounting pegs, projected connector clearances, long slot and
 rounded card opening. Save/reopen and Case-only STEP/STL checks pass. The
 adapted nominal board is not a physical-fit certification. The [split-halves and snap checkpoint](docs/validation/enclosure-snaps-workflow.md)
 now adds mirrored catches, reordered rounding, separate closed printing meshes
-and a full creation recording. The alignment rim, retained section support and
-native naming remain separate follow-ups.
+and a full creation recording. [Retained section support](docs/validation/section-split-support.md) now follows
+the Split halves through edits. The alignment rim and native naming remain
+separate follow-ups.
 
 The [patterned ornament tutorial](docs/validation/ornament-tutorial-acceptance.md)
 now has independently accepted creation footage, editable source and width-edit

@@ -78,3 +78,8 @@ proprietary application was operated for this validation.
 The local video gallery `../Alloy-reference-records/demos/2026-10-13/index.html#enclosure-snaps`
 links the share and raw recordings, editable assembly, separate printable halves
 and corrected post-save section capture. Its local links were checked.
+
+Follow-up DOC-032 now independently restores the original retained Top section
+through unique Split ancestry, including source height edit/history/reopen. See
+[the section receipt](section-split-support.md). The historical movie remains
+unchanged; the gallery links the new actual cutaway capture separately.

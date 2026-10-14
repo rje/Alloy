@@ -16,7 +16,7 @@ halves refuses ambiguity and restores after undo. The 31-call application run
 and inspected screenshot pass at external
 `../Alloy-reference-records/deliverables/section-split-support-2026-10-14/api-01/`.
 Build and actual-app API/GPU evidence are distinct from physical input; no new
-native controls were introduced. Independent final review is pending.
+native controls were introduced. Independent source, transcript and GPU-capture review accepted the bounded change.
 
 The previous enclosure recording and its origin-plane workaround remain
 historical evidence. This follow-up fixes the original retained analysis in the

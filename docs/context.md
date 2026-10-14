@@ -1,5 +1,14 @@
 # Continuation context
 
+## Accepted retained Split section (2026-10-14)
+
+DOC-032/#357 is independently accepted. The enclosure original Top section now
+follows its exact named face into the unique Split descendant, without changing
+the authored support. Actual 30→31 mm source height edit moves the plane by1 mm;
+history/reopen and GPU clipping pass. A bisected side face refuses ambiguity.
+See [the receipt](validation/section-split-support.md). Historical movie still
+shows the old unavailable section; new separate capture records the fix.
+
 ## Accepted enclosure recompute improvement (2026-10-14)
 
 REL-009/#356 uses invocation-local solved-history prefixes to remove repeated
