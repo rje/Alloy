@@ -43,6 +43,7 @@ private slots:
             if(sourceIndex>=0 && index>sourceIndex && feature["type"]=="featureMirror")++followingMirrors;
         }
         QVERIFY(sourceIndex>=0 && mirrorIndex>sourceIndex && followingMirrors>=2);
+        call(window,"component.activate",{{"definitionId",features[sourceIndex].toObject()["ownerId"].toString()}});
         auto* source=window.findChild<QToolButton*>("timeline.feature."+sourceId);
         auto* anchor=window.findChild<QToolButton*>("timeline.feature."+mirrorId);
         QVERIFY(source && anchor);QTRY_VERIFY(source->isVisible() && anchor->isVisible());
