@@ -1,0 +1,5 @@
+# Rear Isometric view
+
+VIS-006/#402 adds a named rear isometric view using OCCT's +X,+Y,+Z axonometric projection through the shared `view.orientation` command. The existing isometric view remains +X,−Y,+Z. The Browser Named Views list exposes Rear Isometric; camera, rendering and hit testing use the same ReferenceView path as the other named views.
+
+The supplied four-solid piston fixture places its lower arm at Y −10..−2 and the inner piston eye around Y 0, so the lower arm hides the eye in the existing isometric view. `piston-native-workflow-2026-10-14/native-21/console.txt` records an exact retained inner-piston cylindrical-face hover with its two rim edge IDs and occurrence, modifier lock, center selection and valid Revolute preview in Rear Isometric. `rear-isometric-inner-bore.png` shows the unobscured selected bore and GPU-rendered view at 250% zoom. The full unrecorded native continuation passed 3/3; its separate paced movie is pending. Zoom, pan and named orientation are explicit Alloy presentation adaptations, with no picker or solver change.

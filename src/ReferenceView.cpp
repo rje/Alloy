@@ -339,7 +339,7 @@ void ReferenceView::sync() {
         view_->Camera()->SetDirection(gp_Dir(-n[0].toDouble(),-n[1].toDouble(),-n[2].toDouble()));
         view_->Camera()->SetUp(gp_Dir(v[0].toDouble(),v[1].toDouble(),v[2].toDouble()));
         view_->Camera()->OrthogonalizeUp();
-    } else view_->SetProj(orientation == "top" ? V3d_Zpos : orientation == "bottom" ? V3d_Zneg : orientation == "front" ? V3d_Yneg : orientation == "back" ? V3d_Ypos : orientation == "right" ? V3d_Xpos : orientation == "left" ? V3d_Xneg : V3d_XposYnegZpos);
+    } else view_->SetProj(orientation == "top" ? V3d_Zpos : orientation == "bottom" ? V3d_Zneg : orientation == "front" ? V3d_Yneg : orientation == "back" ? V3d_Ypos : orientation == "right" ? V3d_Xpos : orientation == "left" ? V3d_Xneg : orientation == "rearIsometric" ? V3d_XposYposZpos : V3d_XposYnegZpos);
     // Move Eye/Center together: SetCenter alone changes the view direction,
     // while SetProj preserves the origin's screen offset rather than Center.
     const auto camera=view_->Camera();

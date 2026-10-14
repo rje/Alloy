@@ -572,8 +572,8 @@ AlloyWindow::AlloyWindow() {
     auto* settings = new QTreeWidgetItem(document, {"Document Settings"});
     new QTreeWidgetItem(settings, {"Units: mm"});
     auto* views = new QTreeWidgetItem(document, {"Named Views"});
-    for (const QString& name : {"isometric", "top", "bottom", "front", "back", "right", "left"}) {
-        auto* item = new QTreeWidgetItem(views, {name.first(1).toUpper() + name.sliced(1)});
+    for (const QString& name : {"isometric", "rearIsometric", "top", "bottom", "front", "back", "right", "left"}) {
+        auto* item = new QTreeWidgetItem(views, {name=="rearIsometric" ? "Rear Isometric" : name.first(1).toUpper() + name.sliced(1)});
         item->setData(0, Qt::UserRole, name);
     }
     new QTreeWidgetItem(document, {"Origin"});
@@ -5072,7 +5072,7 @@ void AlloyWindow::registerCommands() {
     add("view.grid", "Show / hide Grid", "Show or hide the reference grid; no model geometry is created.", visible, [this](const auto& a) { view_->grid = a.value("visible").toBool(); return QJsonObject{}; });
     add("view.origin", "Show / hide Origin", "Show or hide reference axes.", visible, [this](const auto& a) { view_->origin = a.value("visible").toBool(); return QJsonObject{}; });
     auto orientation = parameter("string", "Orthographic orientation of the reference grid.");
-    orientation.insert("enum", QJsonArray{"isometric", "top", "bottom", "front", "back", "right", "left"});
+    orientation.insert("enum", QJsonArray{"isometric", "rearIsometric", "top", "bottom", "front", "back", "right", "left"});
     add("view.orientation", "Set view orientation", "Select a named view of the reference grid.", {{"name", orientation}}, [this](const auto& a) { view_->orientation = a.value("name").toString(); return QJsonObject{}; });
     auto factor = parameter("number", "Relative scale factor (0.1 to 10); resulting zoom clamps to 0.1 to 10."); factor.insert("minimum", 0.1); factor.insert("maximum", 10);
     add("view.zoom", "Zoom reference view", "Scale the reference grid; mouse wheel uses this command.", {{"factor", factor}}, [this](const auto& a) { view_->zoom = std::clamp(view_->zoom * a.value("factor").toDouble(), 0.1, 10.0); return QJsonObject{}; });
