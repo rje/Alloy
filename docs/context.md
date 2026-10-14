@@ -64,7 +64,7 @@ focused STEP/grouped-Fillet integration checks pass (2/2). Respective receipts
 record API/native/geometry scope and later transformed-pick/Thicken limits.
 
 GEO-008 exact recognized convex closed Shell is independently accepted and integrated.
-SKT-071 retained circular model-edge Project is active with Sol. RES-020
+SKT-071 retained circular model-edge Project is independently accepted and integrated. RES-020
 independently qualifies the external v2 nominal card envelope for correct
 source-side placement while preserving v1 receipts. TUT-020/#320 is now active:
 a bounded from-blank cumulative mounting-peg workflow and creation video, with
@@ -3219,7 +3219,7 @@ origin records remain valid; edited records retain both transform fields.
 This enables the later adapted Width section at XZ/Y=32 without a substitute
 support face. Focused core, native and real-app evidence are recorded in
 [the candidate receipt](validation/origin-section-distance.md). Independent
-compatibility review and integration remain pending.
+compatibility review and integration are complete.
 ## Retained circular model-edge Project candidate (2026-10-13)
 
 SKT-071 extends face-sketch linked Project to true analytic circles from

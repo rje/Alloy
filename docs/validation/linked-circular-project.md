@@ -1,7 +1,6 @@
-# Retained circular model-edge Project candidate
+# Retained circular model-edge Project
 
-SKT-071 candidate, 2026-10-13, isolated `feat/circular-model-project` from
-`fb2d315`. Public enclosure workflow and adapted fixture provenance are external
+SKT-071 independently accepted and integrated, 2026-10-13. Public enclosure workflow and adapted fixture provenance are external
 under `../Alloy-reference-records/knowledge/tutorials/advanced-audit-2026-10-13/enclosure-prefix-contract.md`
 and `../Alloy-reference-records/deliverables/enclosure-adapted-input-v2-2026-10-13/`.
 
@@ -34,3 +33,8 @@ contains the command ledger, saved Alloy file and inspected GPU captures;
 The four offset curves are small at the current full-board view scale. This
 bounded ingredient is not the full case-shell/analysis/peg creation movie;
 TUT-020 owns that cumulative gate.
+
+Independent review accepts the final full-circle domain guard, legacy straight
+reference compatibility and native circular Offset controls. Main app builds;
+linked planar and circular Project integration checks both pass with the qualified
+v2 external fixture. The full enclosure prefix remains a separate gate.
