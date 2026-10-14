@@ -5248,7 +5248,29 @@ void AlloyWindow::refresh() {
             const bool assembly=assemblyDefinitions.contains(id);
             const auto label=(assembly ? QString("▣  ") : QString("◇  "))+component["name"].toString();
             auto* radio=dynamic_cast<ComponentActivationRadio*>(tree_->itemWidget(node,0));
-            if(!radio){radio=new ComponentActivationRadio;radio->setAutoExclusive(false);radio->setObjectName("component.activate."+id);tree_->setItemWidget(node,0,radio);connect(radio,&QRadioButton::clicked,this,[this,id]{const auto result=execute("component.activate",{{"definitionId",id}});if(!result["ok"].toBool()){displayedDocumentRevision_=std::numeric_limits<quint64>::max();refresh();statusBar()->showMessage(result["error"].toObject()["message"].toString(),5000);}});}
+            if(!radio){radio=new ComponentActivationRadio;radio->setAutoExclusive(false);radio->setObjectName("component.activate."+id);tree_->setItemWidget(node,0,radio);connect(radio,&QRadioButton::clicked,this,[this,id,node]{
+                const auto command=session_.value("command").toString(),role=session_.value("selectionRole").toString();
+                const bool jointPick=(command=="joint.revolute" || command=="joint.cylindrical")
+                    && (role=="component1" || role=="component2");
+                if(jointPick){
+                    const auto occurrence=node->data(0,Qt::UserRole+8).toString();
+                    const auto tabId=activeTabId_,sessionId=session_.value("id").toString();
+                    const auto revision=document_->revision();
+                    QTimer::singleShot(0,this,[this,occurrence,tabId,sessionId,command,role,revision]{
+                        if(activeTabId_!=tabId || !document_ || document_->revision()!=revision
+                            || session_.value("id").toString()!=sessionId
+                            || session_.value("command").toString()!=command
+                            || session_.value("selectionRole").toString()!=role)return;
+                        const auto result=execute("joint.componentPick",{{"occurrenceId",occurrence},{"slot",role}});
+                        if(!result["ok"].toBool()){displayedDocumentRevision_=std::numeric_limits<quint64>::max();refresh();
+                            statusBar()->showMessage(result["error"].toObject()["message"].toString(),5000);}
+                    });
+                    return;
+                }
+                const auto result=execute("component.activate",{{"definitionId",id}});
+                if(!result["ok"].toBool()){displayedDocumentRevision_=std::numeric_limits<quint64>::max();refresh();
+                    statusBar()->showMessage(result["error"].toObject()["message"].toString(),5000);}
+            });}
             radio->renameRequested=[this,id]{
                 QString occurrence;for(const auto& value:document_->authored()["occurrences"].toArray()){
                     const auto row=value.toObject();if(row["definitionId"]==id && row["placement"]=="identity" && !row.contains("parentOccurrenceId")){occurrence=row["id"].toString();break;}}

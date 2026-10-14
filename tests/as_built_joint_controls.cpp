@@ -2,6 +2,7 @@
 #include "AlloyWindow.h"
 #include "AlloyTheme.h"
 #include <QAbstractItemView>
+#include <QAbstractButton>
 #include <QApplication>
 #include <QComboBox>
 #include <QDialogButtonBox>
@@ -31,9 +32,9 @@ class AsBuiltJointControlsTest final : public QObject {
         tree->expandAll();QApplication::processEvents();
         for(QTreeWidgetItemIterator it(tree);*it;++it)if((*it)->data(0,Qt::UserRole+8).toString()==id){
             tree->scrollToItem(*it);QApplication::processEvents();
-            const auto pixel=tree->visualItemRect(*it).center();
-            if(!tree->viewport()->rect().contains(pixel))qFatal("Component Browser row is outside viewport");
-            QTest::mouseClick(tree->viewport(),Qt::LeftButton,Qt::NoModifier,pixel);return;
+            auto* control=qobject_cast<QAbstractButton*>(tree->itemWidget(*it,0));
+            if(!control || !control->isVisible())qFatal("Original component activation control is unavailable");
+            QTest::mouseClick(control,Qt::LeftButton);return;
         }
         qFatal("Component occurrence is missing from Browser: %s",qPrintable(id));
     }
@@ -73,6 +74,7 @@ private slots:
         for(const auto& kind:{QString("revolute"),QString("cylindrical")}){
             call(window,"document.open",{{"path",source},{"discard",true}});
             const auto before=call(window,"document.inspect")["authored"].toObject();
+            const auto activeOwner=call(window,"component.inspect").value("activeOwnerId").toString();
             const auto moving=occurrence(before,kind=="revolute" ? "Upper arm" : "Inner piston");
             const auto fixed=occurrence(before,kind=="revolute" ? "Lower arm" : "Outer piston");
             QVERIFY(!moving.isEmpty() && !fixed.isEmpty());
@@ -82,7 +84,10 @@ private slots:
             auto* second=panel->findChild<QPushButton*>("asBuilt.pickComponent2");
             QVERIFY(first && second);
             QTest::mouseClick(first,Qt::LeftButton);pickBrowser(tree,moving);
+            QTRY_COMPARE(window.state()["activeSession"].toObject()["inputs"].toObject()["component1OccurrenceId"].toString(),moving);
             QTest::mouseClick(second,Qt::LeftButton);pickBrowser(tree,fixed);
+            QTRY_COMPARE(window.state()["activeSession"].toObject()["inputs"].toObject()["component2OccurrenceId"].toString(),fixed);
+            QCOMPARE(call(window,"component.inspect").value("activeOwnerId").toString(),activeOwner);
             auto session=window.state()["activeSession"].toObject();
             QCOMPARE(session["inputs"].toObject()["component1OccurrenceId"].toString(),moving);
             QCOMPARE(session["inputs"].toObject()["component2OccurrenceId"].toString(),fixed);
