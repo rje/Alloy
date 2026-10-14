@@ -381,12 +381,18 @@ with application(a.app, out) as (raw, transcript), ExitStack() as cleanup:
     stage('As-built Slider: positive 0..50 mm opens through the front')
     joint=call('joint.slider', {'component1OccurrenceId':lid['occurrenceId'],
         'component2OccurrenceId':box_component['occurrenceId'],
-        'position':position,'axis':'Y','minimumEnabled':True,'minimumMm':0,
+        'position':position,'axis':'Y','reverseDirection':True,
+        'minimumEnabled':True,'minimumMm':0,
         'maximumEnabled':True,'maximumMm':50,'positionMm':0})
     joint_state=call('joint.inspect')
     assert joint_state['joints'][0]['relativeDegreesOfFreedom']==1
     call('joint.previewPosition', {'positionMm':50})
-    assert call('joint.inspect')['joints'][0]['transient']
+    open_state=call('joint.inspect')
+    assert open_state['joints'][0]['transient'] and open_state['joints'][0]['reverseDirection']
+    opened=next(o for o in open_state['occurrences'] if o['occurrenceId']==lid['occurrenceId'])
+    close(opened['bodies'][0]['boundsMm']['min'][1],-50)
+    close(opened['bodies'][0]['boundsMm']['max'][1],-14.25)
+    assert opened['bodies'][0]['boundsMm']['max'][1]<0  # fully clear of Box's front at Y=0
     call('selection.set', {'bodyId':''})
     call('view.home')
     if recording:
@@ -401,12 +407,12 @@ with application(a.app, out) as (raw, transcript), ExitStack() as cleanup:
     call('joint.positionSet', {'jointId':authored_joint['joints'][0]['id'],'positionMm':25})
     posed=inspect()
     moving=next(o for o in call('joint.inspect')['occurrences'] if o['occurrenceId']==lid['occurrenceId'])
-    close(moving['bodies'][0]['boundsMm']['min'][1],25)
+    close(moving['bodies'][0]['boundsMm']['min'][1],-25)
     call('document.parameterUpdate', {'parameterId':parameter_ids['Length'],'value':42})
     assert len(inspect()['evaluation']['bodies'])==2
     close(call('joint.inspect')['joints'][0]['origin']['pointMm'][1],42)
     moving=next(o for o in call('joint.inspect')['occurrences'] if o['occurrenceId']==lid['occurrenceId'])
-    close(moving['bodies'][0]['boundsMm']['min'][1],25)
+    close(moving['bodies'][0]['boundsMm']['min'][1],-25)
     call('document.parameterUpdate', {'parameterId':parameter_ids['Length'],'value':40})
     call('joint.positionSet', {'jointId':authored_joint['joints'][0]['id'],'positionMm':0})
     final=inspect()
@@ -441,8 +447,8 @@ with application(a.app, out) as (raw, transcript), ExitStack() as cleanup:
     call('document.exportStl', {'path':str(stl),'occurrenceId':lid['occurrenceId'],
         'units':'mm','format':'binary','surfaceDeviationMm':0.1,'normalDeviationDeg':10})
     mesh=inspect_stl(stl,True)
-    close(mesh['bounds'][0][1],25,0.01)
-    close(mesh['bounds'][1][1],25+lid_final['boundsMm']['max'][1],0.01)
+    close(mesh['bounds'][0][1],-25,0.01)
+    close(mesh['bounds'][1][1],-25+lid_final['boundsMm']['max'][1],0.01)
     step=out/'lid-world-25.step'
     call('document.exportStep', {'path':str(step),'bodyId':lid_final['bodyId'],'units':'mm'})
     step_read=json.loads(subprocess.run([str(Path(a.step_tool).resolve()),'read',str(step)],

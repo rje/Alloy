@@ -3094,3 +3094,12 @@ captures and exact measured geometry are in
 [the candidate receipt](validation/sliding-lid-cumulative.md). Independent
 review and a paced full-creation movie remain pending before closing the
 cumulative gate; ingredient Qt input evidence is separate from this API run.
+Independent physical review of that first cumulative run found the authored
+positive-Y Slider pose crossed the Box's closed back wall. ASM-009 adds an
+explicit Reverse Direction flag to the shared Slider command and native dock;
+existing joints retain forward motion by default. The corrected cumulative
+runner uses positive coordinates 0..50 along negative world Y and asserts the
+Lid is entirely beyond the front at position 50. Focused core, native Qt and
+actual-app API checks pass with save/reopen, positive coordinate limits and
+negative world STL bounds. See [the updated cumulative receipt](validation/sliding-lid-cumulative.md).
+The corrected full creation run and movie remain pending with root.
