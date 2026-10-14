@@ -598,6 +598,10 @@ ID and source, plus the local Coincident relation, in the same transaction.
 `availableSupportPoints` includes candidates; evaluated `projectedPoints` includes
 retained centers only. These derived points are read-only. Full curve projection
 and direct dimensioning of an unretained center are not implemented.
+For a face sketch, Circle's first-center pointer snap selects a unique projected
+`curveCenter` over the generic sketch origin when both coincide. Hover and
+commit use the same candidate rule; distinct overlapping source centers return
+`ambiguous_snap`. Other tools and non-face sketches retain their origin priority.
 
 
 ## Inline diameter and five-profile Cut

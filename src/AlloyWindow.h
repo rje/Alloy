@@ -399,7 +399,8 @@ private:
     QJsonObject previewCircleOffset(const QJsonObject& inputs);
     QJsonObject acceptCircleOffset(const QJsonObject& inputs);
     void cancelCircleOffset();
-    QJsonObject resolveSketchSnap(double x, double y, const QString& plane, bool includeMidpoints = false) const;
+    QJsonObject resolveSketchSnap(double x, double y, const QString& plane, bool includeMidpoints = false,
+        bool preferFaceCurveCenterAtOrigin = false) const;
     QJsonObject resolveLineCircleSnap(double x,double y,const QString& plane,const QJsonObject& first,bool shiftTangent) const;
     QJsonObject resolveCircleTangentSnap(double x, double y, const QString& plane) const;
     QJsonObject resolveFilletCorner(double x, double y, const QString& plane) const;

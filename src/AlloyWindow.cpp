@@ -3501,7 +3501,7 @@ void AlloyWindow::registerCommands() {
         const bool circleCircumference=tool=="circle" && session_.contains("firstPoint");
         auto snap=circleCircumference ? resolveCircleTangentSnap(a["x"].toDouble(),a["y"].toDouble(),plane)
             : tool=="point" || tool=="line" || tool=="rectangle" || (tool=="centerRectangle" && !session_.contains("firstPoint")) || ((tool=="centerToCenterSlot" || tool=="centerPointSlot" || tool=="overallSlot" || tool=="centerPointArcSlot" || tool=="centerPointEllipse") && !session_.contains("firstPoint")) || (tool=="centerToCenterSlot" && !session_.contains("secondPoint")) || circleCenter
-                ? resolveSketchSnap(a["x"].toDouble(),a["y"].toDouble(),plane,circleCenter || tool=="centerRectangle" || tool=="line") : QJsonObject{};
+                ? resolveSketchSnap(a["x"].toDouble(),a["y"].toDouble(),plane,circleCenter || tool=="centerRectangle" || tool=="line",circleCenter && plane=="face") : QJsonObject{};
         if(tool=="line" && snap.value("status")=="none")
             snap=resolveLineCircleSnap(a["x"].toDouble(),a["y"].toDouble(),plane,
                 session_.value("firstPoint").toObject(),a.value("tangentModifier").toBool());
@@ -3813,7 +3813,7 @@ void AlloyWindow::registerCommands() {
         const bool circleCircumference=tool=="circle" && session_.contains("firstPoint");
         const bool snapping=tool=="point" || tool=="line" || tool=="rectangle" || (tool=="centerRectangle" && !session_.contains("firstPoint")) || ((tool=="centerToCenterSlot" || tool=="centerPointSlot" || tool=="overallSlot" || tool=="centerPointArcSlot" || tool=="centerPointEllipse") && !session_.contains("firstPoint")) || (tool=="centerToCenterSlot" && !session_.contains("secondPoint")) || circleCenter || circleCircumference;
         auto snap=circleCircumference ? resolveCircleTangentSnap(a["x"].toDouble(),a["y"].toDouble(),plane)
-            : snapping ? resolveSketchSnap(a["x"].toDouble(),a["y"].toDouble(),plane,circleCenter || tool=="centerRectangle" || tool=="line") : QJsonObject{};
+            : snapping ? resolveSketchSnap(a["x"].toDouble(),a["y"].toDouble(),plane,circleCenter || tool=="centerRectangle" || tool=="line",circleCenter && plane=="face") : QJsonObject{};
         if(tool=="line" && snap.value("status")=="none")
             snap=resolveLineCircleSnap(a["x"].toDouble(),a["y"].toDouble(),plane,
                 session_.value("firstPoint").toObject(),a.value("tangentModifier").toBool());
@@ -8306,7 +8306,8 @@ void AlloyWindow::cancelCircleOffset() {
     }
 }
 
-QJsonObject AlloyWindow::resolveSketchSnap(double x,double y,const QString& plane,bool includeMidpoints) const {
+QJsonObject AlloyWindow::resolveSketchSnap(double x,double y,const QString& plane,bool includeMidpoints,
+    bool preferFaceCurveCenterAtOrigin) const {
     auto point=view_->sketchPoint(x,y,plane);
     constexpr double radiusPx=10.0,ambiguityPx=0.5;
     QJsonObject result{{"status","none"},{"uMm",point["uMm"]},{"vMm",point["vMm"]},{"radiusPx",radiusPx},{"authoredChange",false}};
@@ -8365,7 +8366,28 @@ QJsonObject AlloyWindow::resolveSketchSnap(double x,double y,const QString& plan
             {"source",center["source"]},{"retained",center["retained"]}});
     }
     if(candidates.empty())return result;
-    auto rank=[](const QJsonObject& candidate){
+    // A face sketch can project an authored circle center exactly onto its
+    // local origin. For Circle's center click, keep the source identity instead
+    // of replacing it with the generic origin point. Ambiguous source centers
+    // still require a different explicit reference choice.
+    const double nearestDistance=std::min_element(candidates.begin(),candidates.end(),[](const auto& a,const auto& b){
+        return a.value("distancePx").toDouble()<b.value("distancePx").toDouble();
+    })->value("distancePx").toDouble();
+    QSet<QString> centersAtOrigin;QJsonArray originCenterCandidates;
+    if(preferFaceCurveCenterAtOrigin)for(const auto& candidate:candidates){
+        const auto source=candidate.value("source").toObject();
+        if(candidate.value("distancePx").toDouble()>nearestDistance+ambiguityPx
+            || !candidate.value("supportPoint").toBool() || source.value("role")!="curveCenter"
+            || std::hypot(candidate.value("uMm").toDouble(),candidate.value("vMm").toDouble())>=1e-6)continue;
+        centersAtOrigin.insert(source.value("sourceSketchId").toString()+":"+source.value("sourceEntityId").toString());
+        originCenterCandidates.append(candidate);
+    }
+    if(centersAtOrigin.size()>1){result["status"]="ambiguous";result["candidates"]=originCenterCandidates;return result;}
+    const bool preferUniqueOriginCenter=preferFaceCurveCenterAtOrigin && centersAtOrigin.size()==1;
+    auto rank=[&](const QJsonObject& candidate){
+        if(preferUniqueOriginCenter && candidate.value("supportPoint").toBool()
+            && candidate.value("source").toObject().value("role")=="curveCenter"
+            && std::hypot(candidate.value("uMm").toDouble(),candidate.value("vMm").toDouble())<1e-6)return -1;
         const auto kind=candidate["target"].toObject()["kind"];
         return kind=="origin" ? 0 : kind=="point" && !candidate.value("projected").toBool() ? 1
             : kind=="point" ? 2 : 3;
