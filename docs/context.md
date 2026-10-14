@@ -87,7 +87,7 @@ Its21.133s film and editable model are in the external gallery, alongside a123.8
 joined four-session film from blank; all165 local links resolve. Five intermediate
 preview refusals, Qt/menu adaptation and separately performed API checks remain
 qualified. See [full receipt](validation/base-sketch-face-holes.md).
-No additional ingredient reruns are needed. TUT-019/#305 waits on active VIS-006/#402 after accepted FND-027/#401: recover
+No additional ingredient reruns are needed. TUT-019/#305 is active for paced recording after accepted VIS-006/#402 and FND-027/#401: recover
 the existing cumulative native piston harness and its source ledger, retaining
 accepted API/geometry/native-child evidence. Sol owns the single build/GUI lease;
 Astra verifies. FND-027 is independently accepted at af828d8: native15 passively verifies main
@@ -98,9 +98,14 @@ overall failed cumulative run at the fourth joint's upper mounting-bore hover.
 The harness had reversed source participants and targeted arm instead of piston
 bores; source review corrected all four external Revolute rows. Native18/19
 confirm fixture occlusion from negative-Y isometric, not wrong-body picking.
-VIS-006 adds shared rearIsometric (+X,+Y,+Z) to expose Inner finite bore wall;
-this is an explicit camera adaptation, not a reference input claim. Existing
-isometric remains for Outer. Exact retained hover verification is pending.
+VIS-006 is independently accepted at55b04f4: shared rearIsometric (+X,+Y,+Z)
+and Browser entry expose the exact Inner finite bore wall at250%; actual GPU
+capture/retained occurrence+origin pass. This is a declared camera adaptation.
+Native21 full supplied-fixture Qt smoke passes3/3 in34.106s: corrected source
+participants/bore refs, seven joint rows, linked Paste−180, three/five moving leaf
+poses, full-pose Revert and exact save/reopen. Copy's queued focus completion is
+observed passively before Paste. No ingredient reruns needed; paced recording
+and independent movie/readability review remain before TUT-019 acceptance.
 Backlog is402 issues with acyclic dependencies. Astra independently verifies.
 Only main and its existing build are used; no inactive worktrees accumulate.
 DOC-031/#348 is independently accepted at `89782cf`: unchanged-product native09
