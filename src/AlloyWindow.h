@@ -396,6 +396,7 @@ private:
     QDoubleSpinBox* extrudeDistance_ = nullptr;
     QComboBox* extrudeStart_ = nullptr;
     QComboBox* extrudeExtent_ = nullptr;
+    QCheckBox* extrudeFlip_ = nullptr;
     QPushButton* extrudeEndObject_ = nullptr;
     QLineEdit* extrudeEndOffset_ = nullptr;
     QLabel* extrudeEndObjectLabel_ = nullptr;

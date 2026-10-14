@@ -52,6 +52,7 @@
 #include <Standard_Failure.hxx>
 #include <algorithm>
 #include <cmath>
+#include <limits>
 #include <numbers>
 #include <stdexcept>
 
@@ -429,6 +430,31 @@ EvaluatedProfile GeometryKernel::unionProfiles(const std::vector<EvaluatedProfil
 }
 
 double GeometryKernel::extrusionDistance(const QJsonObject& p,const EvaluatedProfile& profile,const EvaluatedDocument& prior) {
+    if(p.value("extent")=="all") {
+        const auto targets=p.value("targetBodyIds").toArray();
+        const auto reject=[](const QString& message){throw EvaluationError({{"code","invalid_extrude_extent"},{"message",message}});};
+        if(p.value("operation")!="cut" || targets.size()!=1)reject("All extent requires one retained Cut target");
+        const auto target=std::find_if(prior.bodies.begin(),prior.bodies.end(),[&](const auto& body){return body.bodyId==targets.first().toString();});
+        if(target==prior.bodies.end())reject("All extent target is unavailable at this history stage");
+        Bnd_Box bounds;BRepBndLib::AddOptimal(target->shape,bounds,false,false);
+        if(bounds.IsVoid() || bounds.IsWhole())reject("All extent target has no finite bounds");
+        double x0,y0,z0,x1,y1,z1;bounds.Get(x0,y0,z0,x1,y1,z1);
+        const auto frame=profile.summary.value("frame").toObject();
+        const auto normal=frame.value("normal").toArray(),origin=frame.value("origin").toArray();
+        if(normal.size()!=3 || origin.size()!=3)reject("All extent requires a resolved profile frame");
+        const double nx=normal[0].toDouble(),ny=normal[1].toDouble(),nz=normal[2].toDouble();
+        const double base=nx*origin[0].toDouble()+ny*origin[1].toDouble()+nz*origin[2].toDouble()+p.value("startOffsetMm").toDouble();
+        double low=std::numeric_limits<double>::infinity(),high=-low;
+        for(double x:{x0,x1})for(double y:{y0,y1})for(double z:{z0,z1}){
+            const double d=nx*x+ny*y+nz*z-base;low=std::min(low,d);high=std::max(high,d);
+        }
+        const bool flip=p.value("flip").toBool();
+        const double reach=flip ? -low : high;
+        if(!std::isfinite(reach) || reach<=0)reject("All extent target lies behind the selected direction");
+        const double distance=std::copysign(reach+std::max(0.1,(high-low)*1e-5),flip ? -1.0 : 1.0);
+        if(std::abs(distance)>100000)reject("All extent exceeds the supported extrusion length");
+        return distance;
+    }
     if(p.value("extent")!="toObject")return p.value("distanceMm").toDouble();
     const auto target=resolveSketchSupport(prior,p.value("endSupport").toObject());
     const auto frame=profile.summary.value("frame").toObject();

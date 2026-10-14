@@ -1,5 +1,15 @@
 # Continuation context
 
+## Candidate retained Cut All (2026-10-14)
+
+SOL-047/#287 has a bounded isolated candidate in `feat/extrude-cut-through-all`.
+It retains an explicit target body and All/Flip extent through the existing
+Extrude Cut authority, deriving signed reach from current OCCT target bounds on
+each rebuild. Focused core, 29-call real-app API and native Qt chooser/Flip
+checks pass; [the receipt](validation/extrude-through-all.md) distinguishes the
+single-target limitation and awaits independent review. The full shoehorn
+surface/plane/cut sequence remains separate.
+
 ## Accepted arc midpoint on attached path sections (2026-10-14)
 
 SKT-068/#282 is independently accepted and integrated, extending the existing Midpoint
@@ -11,6 +21,7 @@ Focused core, a 44-call real-app API workflow, and Qt-native arc/origin clicks
 with inspected dimension/badge captures pass. See [the receipt](validation/arc-midpoint-endpoint.md).
 Main application build and focused arc test pass; broader midpoint,
 projection and surface scope stays with their parent issues.
+
 
 ## Accepted endpoint Plane Along Path (2026-10-13)
 
