@@ -66,12 +66,14 @@ record API/native/geometry scope and later transformed-pick/Thicken limits.
 GEO-008 exact recognized convex closed Shell is independently accepted and integrated.
 SKT-071 retained circular model-edge Project is active with Sol. RES-020
 independently qualifies the external v2 nominal card envelope for correct
-source-side placement while preserving v1 receipts. DOC-023 selected-face Section Analysis is independently accepted
+source-side placement while preserving v1 receipts. TUT-020/#320 is now active:
+a bounded from-blank cumulative mounting-peg workflow and creation video, with
+ports/snaps/reorder and the remaining full enclosure stages still in TUT-016. DOC-023 selected-face Section Analysis is independently accepted
 and integrated; combined app build and three focused integration checks pass. Root completed SOL-048 supported closed inward Shell on main, independently
 accepted at 5b1bb29 with native and 28-call API evidence. Plain Box cavity, six inner planes, edit/history/reopen and
-atomic failures pass core. Actual grouped R5/R2.5 followed by Shell3.5 fails
-OCCT offset collapse in the engineering fixture; GEO-008/#316 owns the required
-geometry and blocks TUT-016. The actual tutorial stock is Center Rectangle93x64
+atomic failures pass core. The original grouped R5/R2.5 followed by Shell3.5 exposed
+OCCT offset collapse; accepted GEO-008/#316 now handles the certified convex
+case through an exact cavity construction. The actual tutorial stock is Center Rectangle93x64
 followed by Extrude30; Box50x80x40 is only a regression fixture.
 Do not replace the source with a plain/open box or reduce its thickness.
 ASM-011/#315 separately owns changed-byte reference Update correspondence;

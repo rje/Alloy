@@ -43,7 +43,7 @@ curved model-edge references and broader imports/exports remain ahead. Straight
 cap-edge references support retained Parallel, native endpoint snaps and dimensions.
 Rounded cap centers now anchor fully constrained native construction guides.
 Circle centers can now use retained point-to-straight-edge driving dimensions;
-[the bounded candidate receipt](docs/validation/point-edge-dimensions.md) records
+[the bounded receipt](docs/validation/point-edge-dimensions.md) records
 its direct D/center/edge gesture and upstream hole-placement evidence.
 Inline diameter entry and Equal create five attached circles; native arrow-driven
 Cut produces five holes in one retained solid. Earlier sketch edits, history and
@@ -167,14 +167,14 @@ The [selected-face section](docs/validation/selected-face-section.md)
 adds retained planar support, signed Distance, Flip, native face selection and
 unavailable-support recovery. Its focused real-app and native checks pass;
 independent review and integration are complete.
-The [origin-section Distance candidate](docs/validation/origin-section-distance.md)
+The [origin-section Distance controls](docs/validation/origin-section-distance.md)
 extends those controls to XY/XZ/YZ while preserving older origin analyses.
 
 [Circular Body Pattern](docs/validation/circular-body-pattern.md) now retains
 an origin-Z full pattern with editable total count, stable occurrence identities,
 and native selection/preview/Cancel controls. Exact rigid rotations preserve
 offset-curve geometry, with source edits, history and reopen verified. The full
-ornament workflow remains gated on its Shell and cumulative Join corrections.
+[ornament workflow](docs/validation/ornament-tutorial-acceptance.md) is independently accepted.
 
 ## Project documents
 
