@@ -1,7 +1,6 @@
 # Extrusion base boundaries and midpoint ellipse
 
-DOC-026/#311, 2026-10-13. Implemented and runtime-verified; final independent
-acceptance pending. This ingredient supports the source's front-Lid thumb sketch.
+DOC-026/#311, 2026-10-13. Independently accepted and integrated. This ingredient supports the source's front-Lid thumb sketch.
 
 Straight base-cap boundaries use exact prism FirstShape history and membership,
 base-specific stable identities and verified source endpoint orientation.

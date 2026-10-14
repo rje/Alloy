@@ -75,10 +75,13 @@ Offset and PAR-005 model parameter table remain active isolated candidates:
 core checks pass; native/API qualification is catching interaction defects and
 no full acceptance is claimed yet. Root owns DOC-026/#311, an additional
 TUT-015 dependency exposed by the front-face thumb midpoint requirement.
-Straight extrusion base boundaries now have exact FirstShape lineage in a
-local candidate; signed/start-offset membership and stable-ID core checks pass.
-`tests/base_cap_midpoint_api.py` is prepared for the retained front top-midpoint
-ellipse and source width edit; runtime/independent acceptance are pending.
+DOC-026 is independently accepted and integrated. Straight extrusion base
+boundaries have exact FirstShape lineage; signed/start-offset and stable-ID
+core checks pass. The 40-call `tests/base_cap_midpoint_api.py` verifies retained
+front top-midpoint ellipse, source width edit, profile creation and actual thumb
+Cut. Projected-profile extraction retains intrinsic ellipse axis relations.
+See `docs/validation/base-cap-midpoint.md`. PAR-005 also has independent
+acceptance; integration follows final Offset layout correction.
 The full tutorial still needs the combined lid Offset/closure, late model-table
 rebinding, source resize, 15×2 thumb Cut and actual assembled Slider demonstration.
 Keep one private editor leased at a time; agents coordinate the handoff with root.
