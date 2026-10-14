@@ -1310,10 +1310,10 @@ void AlloyWindow::registerCommands() {
     add("solid.loftDialog","Loft","Select ordered circular profiles for a smooth solid Loft.",loftSchema,[this](const auto& a){return beginLoft(a);});
     auto shellThickness=parameter("number","Canonical inside thickness in mm.");shellThickness["minimum"]=0;shellThickness["maximum"]=100000;
     QJsonObject shellSchema{{"targetBodyId",optional(parameter("string","Retained body UUID."))},
-        {"removedFace",optional(parameter("object","One stable planar face reference."))},
+        {"removedFace",optional(parameter("object","Stable planar removal face; empty or omitted retains all faces."))},
         {"thicknessMm",optional(shellThickness)},{"thicknessParameter",optional(parameter("string","Direct name of a user length."))},{"featureId",optional(featureId)},
         {"name",optional(parameter("string","Shell feature name."))}};
-    add("solid.shell","Shell","Create or edit one-face sharp inward shell.",shellSchema,[this](const auto& a){
+    add("solid.shell","Shell","Create or edit sharp inward Shell; select a face to remove or a body for an enclosed cavity.",shellSchema,[this](const auto& a){
         QJsonObject candidate;try{candidate=shellCandidate(a);}catch(const std::exception& e){return failure("invalid_arguments",QString::fromUtf8(e.what()));}
         const auto error=document_->commit(candidate,"Shell");if(!error.isEmpty()){
             auto response=failure("evaluation_failed",error);auto details=response["error"].toObject();
@@ -1321,7 +1321,7 @@ void AlloyWindow::registerCommands() {
         }
         return document_->state();
     });
-    add("solid.shellDialog","Shell","Open one-face sharp inward shell controls.",shellSchema,[this](const auto& a){return beginShell(a);});
+    add("solid.shellDialog","Shell","Open sharp inward Shell controls for a face or whole body.",shellSchema,[this](const auto& a){return beginShell(a);});
     auto circularQuantity=parameter("number","Total body occurrences including the original.");circularQuantity["minimum"]=2;circularQuantity["maximum"]=128;
     auto circularExtent=parameter("string","Full 360 degree distribution.");circularExtent["enum"]=QJsonArray{"full"};
     QJsonObject circularSchema{{"sourceBodyId",optional(parameter("string","Active seed body UUID."))},{"axis",optional(parameter("object","Retained {kind:originAxis,axis:Z} reference."))},{"extent",optional(circularExtent)},{"quantity",optional(circularQuantity)},{"featureId",optional(featureId)},{"name",optional(parameter("string","Pattern feature name."))}};
@@ -3216,6 +3216,12 @@ void AlloyWindow::registerCommands() {
         }
         for(const auto& body:document_->bodies()) found=found || (body.bodyId==id && body.visible);
         if(!found)return failure("stale_entity","Visible body does not exist","bodyId");
+        if(session_.value("command")=="solid.shell") {
+            selectedBody_=id;selectedFace_={};view_->selectSupportFace({},{});view_->selectBody(id);
+            auto response=execute("command.update",{{"session",session_["id"]},
+                {"inputs",QJsonObject{{"targetBodyId",id},{"removedFace",QJsonObject{}}}}});
+            if(!response["ok"].toBool())return response;return previewShell();
+        }
         selectedBody_=id;selectedFace_={};selectedPlane_.clear();view_->selectSupportFace({},{});selectedSketch_.clear();selectedProfile_.clear();selectedProfileIds_={};view_->selectProfile({},{});view_->selectBody(id);
         QJsonObject result{{"bodyId",id},{"kind","body"}};
         if(!document_->authored().value("joints").toArray().isEmpty() ||

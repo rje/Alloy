@@ -9,6 +9,9 @@
 #include <QLineEdit>
 #include <QPushButton>
 #include <QTest>
+#include <QTreeWidget>
+#include <QTreeWidgetItemIterator>
+#include <QLabel>
 
 class BoxShellParametersControlsTest final:public QObject{
     Q_OBJECT
@@ -18,6 +21,39 @@ class BoxShellParametersControlsTest final:public QObject{
         return result["result"].toObject();
     }
 private slots:
+    void closedBodySelection(){
+        AlloyTheme::apply(*qApp);AlloyWindow window;window.resize(1300,850);window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));window.activateWindow();
+        call(window,"solid.box",{{"width",50},{"depth",80},{"height",40},{"units","mm"}});
+        const auto source=call(window,"document.inspect");
+        const auto body=source["evaluation"].toObject()["bodies"].toArray()[0].toObject();
+        const auto face=body["supportFaces"].toArray()[0].toObject();
+        QJsonObject support;for(const auto& key:{"producerFeatureId","bodyId","faceId"})support[key]=face[key];
+        call(window,"selection.faceSet",{{"support",support}});
+        auto session=call(window,"solid.shellDialog",{{"thicknessMm",3.5}});
+        auto* tree=window.findChild<QTreeWidget*>("browser.tree");QVERIFY(tree);QTreeWidgetItem* item=nullptr;
+        for(QTreeWidgetItemIterator it(tree);*it;++it)if((*it)->data(0,Qt::UserRole+1).toString()==body["bodyId"].toString()){item=*it;break;}
+        QVERIFY(item);for(auto* parent=item->parent();parent;parent=parent->parent())parent->setExpanded(true);
+        tree->scrollToItem(item);QApplication::processEvents();const auto rect=tree->visualItemRect(item);
+        QVERIFY(rect.isValid() && tree->itemAt(rect.center())==item);
+        QTest::mouseClick(tree->viewport(),Qt::LeftButton,Qt::NoModifier,rect.center());
+        auto active=window.state()["activeSession"].toObject();
+        QVERIFY(active["inputs"].toObject()["removedFace"].toObject().isEmpty());
+        QCOMPARE(active["geometry"].toObject()["topology"].toObject()["shells"].toInt(),2);
+        auto* dock=window.findChild<QDockWidget*>("shellDock");QVERIFY(dock);
+        QVERIFY(dock->findChild<QLabel*>("shellSelection")->text().contains("closed cavity"));
+        auto* buttons=dock->findChild<QDialogButtonBox*>();QVERIFY(buttons->button(QDialogButtonBox::Ok)->isEnabled());
+        const auto output=qEnvironmentVariable("ALLOY_CLOSED_SHELL_EVIDENCE");
+        if(!output.isEmpty())call(window,"capture.screenshot",{{"path",output+"/closed-shell-native.png"}});
+        QTest::mouseClick(buttons->button(QDialogButtonBox::Cancel),Qt::LeftButton);
+        QCOMPARE(call(window,"document.inspect")["authored"],source["authored"]);
+        session=call(window,"solid.shellDialog",{{"thicknessMm",3.5}});
+        QVERIFY(window.state()["activeSession"].toObject()["inputs"].toObject()["removedFace"].toObject().isEmpty());
+        dock=window.findChild<QDockWidget*>("shellDock");buttons=dock->findChild<QDialogButtonBox*>();
+        QTest::mouseClick(buttons->button(QDialogButtonBox::Ok),Qt::LeftButton);
+        QCOMPARE(call(window,"document.inspect")["evaluation"].toObject()["bodies"].toArray()[0].toObject()["topology"].toObject()["shells"].toInt(),2);
+        call(window,"document.new",{{"discard",true}});window.close();
+    }
     void directNamesInExistingFields(){
         AlloyTheme::apply(*qApp);AlloyWindow window;window.resize(1300,850);window.show();
         QVERIFY(QTest::qWaitForWindowExposed(&window));QApplication::setActiveWindow(&window);

@@ -10,6 +10,42 @@
 
 static void check(bool okay,const char* message){if(!okay)throw std::runtime_error(message);}
 int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
+    {
+        CadDocument closed;
+        QJsonObject parameters{{"widthMm",50},{"depthMm",80},{"heightMm",40},{"xMm",0},{"yMm",0},{"zMm",0}};
+        auto authored=closed.authored();
+        auto f=QJsonObject{{"id",CadDocument::newId()},{"bodyId",CadDocument::newId()},
+            {"ownerId",authored["documentId"]},{"type","box"},{"name","Box"},{"visible",true},{"parameters",parameters}};
+        authored["features"]=QJsonArray{f};check(closed.commit(authored,"Box").isEmpty(),"closed source");
+        const auto result=closed.commit(CadDocument::shellCandidate(closed.authored(),
+            {{"targetBodyId",closed.bodies()[0].bodyId},{"thicknessMm",3.5}}),"Closed Shell");
+        if(!result.isEmpty())throw std::runtime_error(result.toStdString());
+        check(std::abs(closed.bodies()[0].summary["volumeMm3"].toDouble()-(50*80*40-43*73*33))<1e-4,"closed cavity volume");
+        check(closed.bodies()[0].supportFaces.size()==12,"all six closed cavity planes retained");
+        const auto stable=closed.authored();const auto id=stable["features"].toArray().last().toObject()["id"];
+        check(!closed.commit(CadDocument::shellCandidate(stable,{{"featureId",id},
+            {"targetBodyId",f["bodyId"]},{"thicknessMm",100}}),"Impossible cavity").isEmpty(),"oversized cavity refused");
+        check(closed.authored()==stable,"closed failure atomic");
+        check(closed.commit(CadDocument::shellCandidate(stable,{{"featureId",id},
+            {"targetBodyId",f["bodyId"]},{"thicknessMm",4}}),"Wall edit").isEmpty(),"closed thickness edit");
+        closed.history().undo();check(closed.authored()==stable,"closed undo");closed.history().redo();
+        QTemporaryDir temp;const auto path=temp.filePath("closed.alloy");check(closed.save(path).isEmpty(),"closed save");
+        CadDocument reopened;check(reopened.open(path).isEmpty() && reopened.authored()==closed.authored(),"closed reopen");
+        CadDocument rounded;authored=rounded.authored();f["ownerId"]=authored["documentId"];authored["features"]=QJsonArray{f};
+        check(rounded.commit(authored,"Box").isEmpty(),"rounded shell source");
+        QJsonArray vertical,rims;for(const auto& edge:rounded.bodies()[0].solidEdges)
+            (edge.provenance["boxEdge"].toString().contains("z*") ? vertical : rims).append(edge.edgeId);
+        auto group=[](const QJsonArray& edges,double r){return QJsonObject{{"id",CadDocument::newId()},
+            {"edgeIds",edges},{"radiusMm",r},{"tangentChain",true}};};
+        check(rounded.commit(CadDocument::filletCandidate(rounded.authored(),{{"targetBodyId",f["bodyId"]},
+            {"groups",QJsonArray{group(vertical,5),group(rims,2.5)}}}),"Round stock").isEmpty(),"rounded source");
+        const auto oldVolume=rounded.bodies()[0].summary["volumeMm3"].toDouble();
+        auto error=rounded.commit(CadDocument::shellCandidate(rounded.authored(),{{"targetBodyId",f["bodyId"]},
+            {"thicknessMm",3.5}}),"Closed rounded shell");
+        check(!error.isEmpty(),"collapsed mixed-radius offset remains explicit unsupported refusal (GEO-008)");
+        check(rounded.authored()["features"].toArray().size()==2 &&
+            rounded.bodies()[0].summary["volumeMm3"].toDouble()==oldVolume,"unsupported rounded cavity atomic");
+    }
     CadDocument document;
     auto sketch=SketchGeometry::newFeature(document.authored()["documentId"].toString(),"XY","Cube base");
     sketch=SketchGeometry::addRectangle(sketch,{{"u1Mm",0},{"v1Mm",0},{"u2Mm",25},{"v2Mm",25}});

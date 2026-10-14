@@ -3,6 +3,7 @@
 #include "SolidFillet.h"
 #include "PlanarFaces.h"
 #include <BRepOffsetAPI_MakeThickSolid.hxx>
+#include <BRepAlgoAPI_Cut.hxx>
 #include <BRepOffset_MakeOffset.hxx>
 #include <BRepAlgo_Image.hxx>
 #include <BRepAdaptor_Surface.hxx>
@@ -131,6 +132,46 @@ void SolidShell::evaluate(EvaluatedBody& body,const QJsonObject& parameters,cons
         throw GeometryKernel::EvaluationError({{"code",code},{"message",message},{"featureId",featureId},
             {"targetBodyId",body.bodyId},{"removedFace",support}});
     };
+    if(support.isEmpty()) {
+        const double thickness=parameters["thicknessMm"].toDouble();
+        BRepOffsetAPI_MakeThickSolid builder;
+        try {
+            builder.MakeThickSolidByJoin(body.shape,TopTools_ListOfShape{},-thickness,1e-4,
+                BRepOffset_Skin,false,false,GeomAbs_Intersection);
+        } catch(const Standard_Failure&) {
+            fail("shell_offset_failed","This body cannot be hollowed inward at this thickness");
+        }
+        if(!builder.IsDone() || builder.Shape().IsNull())fail("shell_failed","This body and thickness cannot produce a closed inward shell");
+        const auto cavity=builder.Shape();const auto cavitySummary=GeometryKernel::summarize(cavity);
+        if(!cavitySummary["valid"].toBool() || !cavitySummary["closed"].toBool()
+            || cavitySummary["topology"].toObject()["solids"].toInt()!=1
+            || cavitySummary["volumeMm3"].toDouble()<=0
+            || cavitySummary["volumeMm3"].toDouble()>=body.summary["volumeMm3"].toDouble())
+            fail("shell_invalid_cavity","Inside offset must produce a smaller valid closed cavity");
+        BRepAlgoAPI_Cut hollow(body.shape,cavity);
+        if(!hollow.IsDone())fail("shell_failed","Could not subtract the enclosed cavity");
+        const auto result=hollow.Shape();auto summary=GeometryKernel::summarize(result);
+        if(!summary["valid"].toBool() || !summary["closed"].toBool()
+            || summary["topology"].toObject()["solids"].toInt()!=1
+            || summary["topology"].toObject()["shells"].toInt()!=2)
+            fail("shell_invalid_result","Closed Shell requires one valid solid with an enclosed cavity");
+        TopTools_IndexedMapOfShape faces;TopExp::MapShapes(result,TopAbs_FACE,faces);
+        TopTools_IndexedMapOfShape outerFaces;TopExp::MapShapes(body.shape,TopAbs_FACE,outerFaces);
+        for(int i=1;i<=outerFaces.Extent();++i)if(!faces.Contains(outerFaces(i)))
+            fail("shell_outer_changed","Closed Shell must preserve every original outer face");
+        auto retained=body.supportFaces;
+        for(const auto& face:retained)if(!faces.Contains(face.face))
+            fail("shell_outer_changed","Closed Shell did not preserve the original outer faces");
+        const auto derived=innerFaces(body,EvaluatedSupportFace{},builder,result,thickness,featureId);
+        retained.insert(retained.end(),derived.begin(),derived.end());
+        body.shape=result;body.supportFaces=retained;
+        summary["supportFaces"]=PlanarFaces::descriptors(retained);
+        summary["solidEdges"]=SolidFillet::descriptors(body.solidEdges);
+        summary["lastModifierFeatureId"]=featureId;summary["producerFeatureId"]=body.featureId;
+        summary["operation"]="shell";summary["thicknessMm"]=thickness;
+        summary["removedFace"]=QJsonObject{};summary["closedCavity"]=true;
+        body.summary=summary;return;
+    }
     const auto matches=std::count_if(body.supportFaces.begin(),body.supportFaces.end(),[&](const auto& face){return face.bodyId==support["bodyId"].toString()&&face.faceId==support["faceId"].toString()&&face.producerFeatureId==support["producerFeatureId"].toString();});
     if(matches>1)fail("shell_face_ambiguous","More than one current face matches the removed-face lineage");
     const auto source=std::find_if(body.supportFaces.begin(),body.supportFaces.end(),[&](const auto& face){

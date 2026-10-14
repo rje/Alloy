@@ -923,6 +923,7 @@ QJsonObject CadDocument::holeCandidate(const QJsonObject& authored,const QJsonOb
 }
 QJsonObject CadDocument::shellCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
     const QSet<QString> allowed{"ownerId","targetBodyId","removedFace","thicknessMm","thicknessParameterId","name","featureId","newFeatureId"};
+    if(arguments.contains("removedFace") && !arguments["removedFace"].isObject())throw std::invalid_argument("Shell removal face must be an object");
     for(auto it=arguments.begin();it!=arguments.end();++it)if(!allowed.contains(it.key()))throw std::invalid_argument("Unknown Shell argument");
     if(arguments.contains("featureId") && arguments.contains("newFeatureId"))throw std::invalid_argument("Choose existing or new Shell identity");
     auto candidate=authored;auto features=candidate["features"].toArray();QJsonObject feature;int index=-1;
@@ -931,7 +932,7 @@ QJsonObject CadDocument::shellCandidate(const QJsonObject& authored,const QJsonO
         if(index<0 || feature["type"]!="shell")throw std::invalid_argument("Shell feature unavailable");
     } else feature={{"id",arguments.value("newFeatureId").toString(newId())},{"ownerId",arguments.value("ownerId").toString(authored["documentId"].toString())},{"type","shell"},{"name","Shell"},{"visible",true}};
     if(arguments.contains("name"))feature["name"]=arguments["name"];
-    QJsonObject parameters{{"targetBodyId",arguments["targetBodyId"]},{"removedFace",arguments["removedFace"]},{"thicknessMm",arguments["thicknessMm"]}};
+    QJsonObject parameters{{"targetBodyId",arguments["targetBodyId"]},{"removedFace",arguments.value("removedFace").toObject()},{"thicknessMm",arguments["thicknessMm"]}};
     if(arguments.contains("thicknessParameterId"))parameters["thicknessParameterId"]=arguments["thicknessParameterId"];
     feature["parameters"]=parameters;
     if(index>=0)features[index]=feature;else features.append(feature);candidate["features"]=features;
@@ -1284,7 +1285,7 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
             if(feature.contains("bodyId") || p.size()!=3+int(p.contains("thicknessParameterId")) || !validId(p["targetBodyId"].toString()) || !p["removedFace"].isObject())return "Shell requires one active target body and a stable face reference";
             if(p.contains("thicknessParameterId") && !validId(p["thicknessParameterId"].toString()))return "Shell thickness binding requires a stable parameter ID";
             const auto face=p["removedFace"].toObject();
-            if(face.size()!=3 || face["bodyId"]!=p["targetBodyId"] || !validId(face["producerFeatureId"].toString()) || !validId(face["bodyId"].toString()) || !validId(face["faceId"].toString()))return "Shell requires one stable face on its target body";
+            if(!face.isEmpty() && (face.size()!=3 || face["bodyId"]!=p["targetBodyId"] || !validId(face["producerFeatureId"].toString()) || !validId(face["bodyId"].toString()) || !validId(face["faceId"].toString())))return "Shell requires a stable removal face or an empty selection for a closed cavity";
             if(!p["thicknessMm"].isDouble() || !std::isfinite(p["thicknessMm"].toDouble()) || p["thicknessMm"].toDouble()<0.001 || p["thicknessMm"].toDouble()>100000)return "Shell thickness must be 0.001..100000 mm";
             continue;
         }

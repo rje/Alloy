@@ -28,7 +28,7 @@ QJsonObject AlloyWindow::beginShell(const QJsonObject& overrides) {
     if(!session_.isEmpty())return shellFailure("session_busy","Complete or cancel the active command first");
     const auto error=validateArguments(*findCommand("solid.shell"),overrides);
     if(!error.isEmpty())return shellFailure("invalid_arguments",error);
-    QJsonObject inputs{{"targetBodyId",selectedFace_.value("bodyId")},{"removedFace",selectedFace_},
+    QJsonObject inputs{{"targetBodyId",selectedFace_.isEmpty() ? QJsonValue(selectedBody_) : selectedFace_.value("bodyId")},{"removedFace",selectedFace_},
         {"thicknessMm",0.0},{"name","Shell"}};
     if(overrides.contains("featureId")){
         bool found=false;
@@ -67,8 +67,8 @@ QJsonObject AlloyWindow::previewShell() {
     if(session_["baseDocumentRevision"].toInteger()!=static_cast<qint64>(document_->revision()))return reject("stale_session","The document changed; cancel and restart Shell");
     const auto inputs=session_["inputs"].toObject();
     if(shellDock_)if(auto* label=shellDock_->findChild<QLabel*>("shellSelection"))
-        label->setText(inputs["removedFace"].toObject().isEmpty() ? "0 selected" : "1 selected");
-    if(inputs["removedFace"].toObject().isEmpty())return reject("face_required","Select a planar face to remove");
+        label->setText(inputs["targetBodyId"].toString().isEmpty() ? "0 selected" : inputs["removedFace"].toObject().isEmpty() ? "1 body selected (closed cavity)" : "1 face selected");
+    if(inputs["targetBodyId"].toString().isEmpty())return reject("body_required","Select a body in the Browser for a closed cavity, or a face to remove");
     if(inputs["thicknessMm"].toDouble()<=0)return reject("thickness_required","Enter an inside thickness");
     QJsonObject candidate;try{candidate=shellCandidate(inputs);}catch(const std::exception& error){return reject("invalid_arguments",QString::fromUtf8(error.what()));}
     const auto evaluated=CadDocument::evaluateCandidate(candidate);if(!evaluated.ok)return reject("evaluation_failed",evaluated.error,evaluated.diagnostics);
@@ -92,9 +92,10 @@ void AlloyWindow::showShell() {
     shellDock_=new QDockWidget("Shell",canvasWindow_);shellDock_->setObjectName("shellDock");
     shellDock_->setFeatures(QDockWidget::DockWidgetMovable|QDockWidget::DockWidgetFloatable);
     auto* panel=new QWidget(shellDock_);shellDock_->setWidget(panel);auto* form=new QFormLayout(panel);
-    form->addRow("Object",new QLabel("Faces",panel));
+    form->addRow("Object",new QLabel("Faces / Body",panel));
     auto* selected=new QLabel(panel);selected->setObjectName("shellSelection");
-    selected->setText(session_["inputs"].toObject()["removedFace"].toObject().isEmpty() ? "0 selected" : "1 selected");
+    selected->setWordWrap(true);
+    auto* help=new QLabel("Select a face in the canvas to remove it, or select the body in the Browser to keep every face.",panel);help->setWordWrap(true);form->addRow(help);
     form->addRow("Selection",selected);
     form->addRow("Type",new QLabel("Sharp Offset",panel));form->addRow("Direction",new QLabel("Inside",panel));
     auto* thickness=new LengthParameterSpinBox(panel);thickness->setObjectName("shellThickness");thickness->setAccessibleName("Inside Thickness");
