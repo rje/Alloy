@@ -7,6 +7,7 @@
 #include "SketchMirror.h"
 #include "SketchArcSlot.h"
 #include "SketchSplineOffset.h"
+#include "SketchOpenChainOffset.h"
 #include "SketchEllipse.h"
 #include <BRepBndLib.hxx>
 #include <BRepBuilderAPI_MakeEdge.hxx>
@@ -1022,7 +1023,7 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
         try {return validateParameters(expandedProjectionFeature({{"parameters",parameters}},{{"lines",lines},{"points",resolvedPoints}})["parameters"].toObject(),authoredIds,referenceIds);}
         catch(const std::exception& error){return QString::fromUtf8(error.what());}
     }
-    const QSet<QString> allowed{"plane", "planeId", "points", "entities", "constraints", "dimensions", "originPointId", "support", "texts", "loopOffsets", "roundedRectangleIntent", "mirrorGroups", "slotGroups", "arcSlotGroups"};
+    const QSet<QString> allowed{"plane", "planeId", "points", "entities", "constraints", "dimensions", "originPointId", "support", "texts", "loopOffsets", "openChainOffsets", "roundedRectangleIntent", "mirrorGroups", "slotGroups", "arcSlotGroups"};
     for (auto it = parameters.begin(); it != parameters.end(); ++it)
         if (!allowed.contains(it.key())) return "Unknown sketch parameter: " + it.key();
     if (!parameters["points"].isArray() || !parameters["entities"].isArray()) return "Sketch requires points and entities";
@@ -1071,6 +1072,7 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
             points.insert(id, point);
         }
         QSet<QString> usedPoints=derivedPointIds, entityIds;
+        usedPoints.unite(SketchOpenChainOffset::derivedPointIds(parameters));
         const auto originId=parameters["originPointId"].toString();
         if (parameters.contains("originPointId")) {
             if (!parameters["originPointId"].isString() || !points.contains(originId)) return "Sketch origin reference point does not exist";
@@ -1250,6 +1252,10 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
                 arcSlotOwnedIds.insert(id.toString());
             }
         }
+        const auto openOffsetError=SketchOpenChainOffset::validate(parameters);
+        if(!openOffsetError.isEmpty())return openOffsetError;
+        for(const auto& value:parameters["openChainOffsets"].toArray())
+            if(!claimId(value.toObject()["id"].toString()))return "Duplicate open-chain offset UUID";
         const auto arcSlotDerivedPoints=SketchArcSlot::derivedPointIds(parameters);
         const auto offsetDerivedPoints=SketchSplineOffset::derivedPointIds(parameters);
         const auto arcSlotDerivedArcs=SketchArcSlot::derivedArcIds(parameters);
@@ -1424,7 +1430,9 @@ SketchGeometry::SolveResult SketchGeometry::solveDraft(const QJsonObject& draft,
         validateDraft(draft);
         if(draft["parameters"].toObject().contains("texts") || draft["parameters"].toObject().contains("loopOffsets"))
             return {true,draft,{{"solver","direct text parameters"},{"status","accepted"}}, {}};
-        const auto expanded=expandedProjectionFeature(draft,projectionContext);
+        auto expanded=expandedProjectionFeature(draft,projectionContext);
+        if(expanded["parameters"].toObject().contains("openChainOffsets"))
+            expanded["parameters"]=SketchOpenChainOffset::derive(expanded["parameters"].toObject());
         QSet<QString> lockedPoints,virtualEntities;
         for(const auto& value:draft["parameters"].toObject()["projections"].toArray()){const auto id=value.toObject()["id"].toString();
             virtualEntities.insert(id);lockedPoints.insert(projectionPointId(id,false));lockedPoints.insert(projectionPointId(id,true));}
@@ -1432,11 +1440,12 @@ SketchGeometry::SolveResult SketchGeometry::solveDraft(const QJsonObject& draft,
         for(const auto& value:draft["parameters"].toObject()["pointReferences"].toArray()){const auto id=value.toObject()["id"].toString();lockedPoints.insert(id);derivedPoints.insert(id);}
         for(const auto& value:draft["parameters"].toObject()["pointProjections"].toArray()){const auto id=value.toObject()["id"].toString();lockedPoints.insert(id);derivedPoints.insert(id);}
         const auto externalLockedPoints=lockedPoints;
+        lockedPoints.unite(SketchOpenChainOffset::derivedPointIds(draft["parameters"].toObject()));
         if(!initialReferencePointId.isEmpty())lockedPoints.insert(initialReferencePointId);
         validateDraft(expanded,derivedPoints);
         const auto result=SketchSolver::solve(expanded["parameters"].toObject(),lockedPoints);
         if(!result.accepted)return {false,draft,result.diagnostics,result.error};
-        auto solved=draft;auto parameters=result.parameters;
+        auto solved=draft;auto parameters=SketchOpenChainOffset::derive(result.parameters);
         QJsonArray points,entities;
         for(const auto& value:parameters["points"].toArray())if(!externalLockedPoints.contains(value.toObject()["id"].toString()))points.append(value);
         for(const auto& value:parameters["entities"].toArray())if(!virtualEntities.contains(value.toObject()["id"].toString()))entities.append(value);
@@ -2208,6 +2217,8 @@ SketchGeometry::SolveResult SketchGeometry::movePoint(const QJsonObject& draft, 
             reject("Arc slot tangent contact is derived; move a path endpoint instead");
         if(SketchSplineOffset::derivedPointIds(parameters).contains(arguments["pointId"].toString()))
             reject("Spline Offset endpoint is derived; edit its source or signed distance");
+        if(SketchOpenChainOffset::derivedPointIds(parameters).contains(arguments["pointId"].toString()))
+            reject("Open-chain Offset point is derived; edit its source or signed distance");
         for(const auto& groupValue:parameters.value("mirrorGroups").toArray()){
             const auto group=groupValue.toObject();
             for(const auto& pairValue:group["pointPairs"].toArray()){
@@ -2289,7 +2300,8 @@ QJsonObject SketchGeometry::evaluationFrame(const QJsonObject& parameters,const 
 EvaluatedSketch SketchGeometry::evaluateFeature(const QJsonObject& feature, const QJsonObject& resolvedFrame, const QJsonObject& projectionContext) {
     const auto solution = solveDraft(feature,projectionContext);
     if (!solution.ok) reject(solution.error);
-    const auto parameters = expandedProjectionFeature(solution.feature,projectionContext)["parameters"].toObject();
+    const auto parameters = SketchOpenChainOffset::derive(
+        expandedProjectionFeature(solution.feature,projectionContext)["parameters"].toObject());
     const auto plane = parameters["plane"].toString();
     const auto sketchFrame=evaluationFrame(parameters,resolvedFrame);
     QMap<QString, gp_Pnt> points;

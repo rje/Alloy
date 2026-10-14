@@ -33,7 +33,7 @@ add_library(alloy_kernel STATIC
     src/GeometryKernel.cpp src/GeometryKernel.h src/PrimitiveTopology.cpp src/PrimitiveTopology.h src/PlanarFaces.cpp src/PlanarFaces.h src/SolidFillet.cpp src/SolidFillet.h src/SolidChamfer.cpp src/SolidChamfer.h src/SolidShell.cpp src/SolidShell.h src/RevolvedShellCap.cpp src/RevolvedShellCap.h src/SolidSphere.cpp src/SolidSphere.h src/SolidHole.cpp src/SolidHole.h src/SolidLoft.cpp src/SolidLoft.h src/SolidRevolve.cpp src/SolidRevolve.h src/SolidSweep.cpp src/SolidSweep.h src/FeaturePattern.cpp src/FeaturePattern.h src/SolidMirror.cpp src/SolidTransform.cpp src/CircularPattern.cpp src/SolidMirror.h src/JoinResults.cpp
     src/MeshExport.cpp src/MeshExport.h
     src/StepExchange.cpp src/StepExchange.h
-    src/SketchSpline.cpp src/SketchSpline.h src/SketchSplineOffset.cpp src/SketchSplineOffset.h src/SketchConic.cpp src/SketchConic.h src/SketchGeometry.cpp src/SketchTrim.cpp src/SketchGeometry.h src/SketchText.cpp src/SketchText.h src/RoundedLoopOffset.cpp src/RoundedLoopOffset.h
+    src/SketchSpline.cpp src/SketchSpline.h src/SketchSplineOffset.cpp src/SketchSplineOffset.h src/SketchOpenChainOffset.cpp src/SketchOpenChainOffset.h src/SketchConic.cpp src/SketchConic.h src/SketchGeometry.cpp src/SketchTrim.cpp src/SketchGeometry.h src/SketchText.cpp src/SketchText.h src/RoundedLoopOffset.cpp src/RoundedLoopOffset.h
     src/SketchProfiles.cpp src/SketchProfiles.h src/SketchRegions.cpp)
 target_include_directories(alloy_kernel PUBLIC src)
 target_include_directories(alloy_kernel SYSTEM PUBLIC ${OpenCASCADE_INCLUDE_DIR})
@@ -109,6 +109,9 @@ if(BUILD_TESTING)
     add_executable(fit_spline_offset_test tests/fit_spline_offset.cpp src/CadDocument.cpp src/CadDocument.h)
     target_link_libraries(fit_spline_offset_test PRIVATE alloy_kernel Qt6::Widgets)
     add_test(NAME fit_spline_offset COMMAND fit_spline_offset_test)
+    add_executable(open_chain_offset_test tests/open_chain_offset.cpp src/CadDocument.cpp src/CadDocument.h)
+    target_link_libraries(open_chain_offset_test PRIVATE alloy_kernel Qt6::Core)
+    add_test(NAME open_chain_offset COMMAND open_chain_offset_test)
     add_executable(fit_spline_offset_controls_test tests/fit_spline_offset_controls.cpp)
     target_link_libraries(fit_spline_offset_controls_test PRIVATE alloy_application Qt6::Test)
     add_test(NAME fit_spline_offset_controls COMMAND fit_spline_offset_controls_test)

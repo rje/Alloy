@@ -338,6 +338,14 @@ QJsonObject CadDocument::resolveLengthBindings(const QJsonObject& authored) {
                 dim["valueMm"]=values[id];dims[j]=dim;changed=true;
             }
             if(changed)p["dimensions"]=dims;
+            auto offsets=p.value("openChainOffsets").toArray();
+            for(int j=0;j<offsets.size();++j){
+                auto offset=offsets[j].toObject();if(!offset.contains("distanceParameterId"))continue;
+                const auto id=offset["distanceParameterId"].toString();
+                if(!values.contains(id))throw std::invalid_argument("Open-chain Offset references a missing length parameter");
+                offset["signedDistanceMm"]=offset["sideSign"].toInt()*values[id];offsets[j]=offset;
+            }
+            if(!offsets.isEmpty())p["openChainOffsets"]=offsets;
         } else if(feature["type"]=="extrude") {
             for(const auto& binding:std::vector<std::pair<QString,QString>>{{"distanceParameterId","distanceMm"},{"startOffsetParameterId","startOffsetMm"},{"endOffsetParameterId","endOffsetMm"}}) {
                 if(!p.contains(binding.first))continue;
