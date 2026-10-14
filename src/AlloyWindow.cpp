@@ -147,19 +147,22 @@ class ComponentActivationRadio final : public QRadioButton {
 public:
     using QRadioButton::QRadioButton;
     std::function<void()> renameRequested;
-    std::function<void(const QPoint&)> dropRequested;
+    std::function<void(const QPoint&)> hoverRequested,dropRequested;
 protected:
     void mousePressEvent(QMouseEvent* event) override {
-        if(event->button()==Qt::LeftButton){pressPosition_=event->pos();pressed_=true;dragging_=false;}
+        if(event->button()==Qt::LeftButton){pressPosition_=event->pos();pressed_=true;dragging_=false;cancelled_=false;}
         QRadioButton::mousePressEvent(event);
     }
     void mouseMoveEvent(QMouseEvent* event) override {
         if(pressed_ && (event->pos()-pressPosition_).manhattanLength()>=QApplication::startDragDistance()){
-            dragging_=true;setCursor(Qt::ClosedHandCursor);event->accept();return;
+            dragging_=true;setCursor(Qt::ClosedHandCursor);
+            if(hoverRequested)hoverRequested(event->globalPosition().toPoint());
+            event->accept();return;
         }
         QRadioButton::mouseMoveEvent(event);
     }
     void mouseReleaseEvent(QMouseEvent* event) override {
+        if(event->button()==Qt::LeftButton && cancelled_){cancelled_=false;event->accept();return;}
         if(event->button()==Qt::LeftButton && dragging_){
             pressed_=false;dragging_=false;unsetCursor();
             if(dropRequested)dropRequested(event->globalPosition().toPoint());
@@ -171,9 +174,13 @@ protected:
         if(renameRequested){renameRequested();event->accept();return;}
         QRadioButton::mouseDoubleClickEvent(event);
     }
+    void keyPressEvent(QKeyEvent* event) override {
+        if(event->key()==Qt::Key_Escape && dragging_){pressed_=false;dragging_=false;cancelled_=true;setDown(false);unsetCursor();event->accept();return;}
+        QRadioButton::keyPressEvent(event);
+    }
 private:
     QPoint pressPosition_;
-    bool pressed_=false,dragging_=false;
+    bool pressed_=false,dragging_=false,cancelled_=false;
 };
 class ModelExpressionDelegate final : public QStyledItemDelegate {
 public:
@@ -5248,6 +5255,10 @@ void AlloyWindow::refresh() {
             radio->dropRequested=[browserTree=dynamic_cast<BrowserTree*>(tree_),node](const QPoint& global){
                 auto* target=browserTree->itemAt(browserTree->viewport()->mapFromGlobal(global));
                 if(target && browserTree->moveRequested)browserTree->moveRequested(node,target);
+            };
+            radio->hoverRequested=[browserTree=dynamic_cast<BrowserTree*>(tree_),node](const QPoint& global){
+                auto* target=browserTree->itemAt(browserTree->viewport()->mapFromGlobal(global));
+                if(target && target!=node && !target->data(0,Qt::UserRole+3).toString().isEmpty())browserTree->setCurrentItem(target);
             };
             radio->setText(label);radio->setToolTip(assembly ? "Assembly component · Double-click to rename" : "Part component · Double-click to rename");radio->setChecked(document_->activeOwnerId()==id);
         }

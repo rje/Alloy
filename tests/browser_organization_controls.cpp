@@ -80,6 +80,17 @@ private slots:
         const auto created=call(w,"document.inspect")["authored"].toObject();
         const auto parent=created["components"].toArray().last().toObject()["id"].toString();
         QVERIFY(!parent.isEmpty());
+        {
+            auto* sourceRow=row(tree,occurrences[2].toObject()["id"].toString(),Qt::UserRole+8);QVERIFY(sourceRow);
+            auto* radio=qobject_cast<QRadioButton*>(tree->itemWidget(sourceRow,0));QVERIFY(radio);
+            const auto outside=w.mapToGlobal(w.rect().bottomRight()+QPoint(40,40));
+            QTest::mousePress(radio,Qt::LeftButton,Qt::NoModifier,radio->rect().center());
+            QMouseEvent move(QEvent::MouseMove,radio->mapFromGlobal(outside),outside,Qt::NoButton,Qt::LeftButton,Qt::NoModifier);
+            QApplication::sendEvent(radio,&move);
+            QMouseEvent release(QEvent::MouseButtonRelease,radio->mapFromGlobal(outside),outside,Qt::LeftButton,Qt::NoButton,Qt::NoModifier);
+            QApplication::sendEvent(radio,&release);
+            QCOMPARE(call(w,"document.inspect")["authored"].toObject(),created);
+        }
         // Native drag starts on each ordinary component radio label and lands on the visible parent row.
         for(int i=2;i<4;++i){
             const auto sourceId=occurrences[i].toObject()["id"].toString();
