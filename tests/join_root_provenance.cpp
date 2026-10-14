@@ -46,9 +46,9 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
     const auto p=join["parameters"].toObject();const auto bodyId=p["targetBodyIds"].toArray().first().toString();
     const auto initial=root(doc,bodyId),initialAuthored=doc.authored();
     const auto failure=CadDocument::chamferCandidate(initialAuthored,{{"ownerId",join["ownerId"]},
-        {"targetBodyId",bodyId},{"edgeIds",QJsonArray{initial["edgeId"]}},{"distanceMm",2}});
+        {"targetBodyId",bodyId},{"edgeIds",QJsonArray{initial["edgeId"]}},{"distanceMm",100}});
     const auto revision=doc.revision();
-    check(!doc.commit(failure,"Source-size root preview").isEmpty(),"Unexpected source-size Chamfer accepted");
+    check(!doc.commit(failure,"Oversized root preview").isEmpty(),"Unexpected oversized Chamfer accepted");
     check(doc.authored()==initialAuthored && doc.revision()==revision,"Failed root finish mutated authoring");
     const auto edited=CadDocument::extrusionCandidate(doc.authored(),{{"featureId",join["id"]},
         {"sketchId",p["sketchId"]},{"profileIds",p["profileIds"]},{"distanceMm",5.25}});
