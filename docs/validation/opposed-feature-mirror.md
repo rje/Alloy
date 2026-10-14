@@ -15,10 +15,10 @@ under `../Alloy-reference-records/deliverables/enclosure-snap-2026-10-13/` in
 `opposed-cut-01` and `sol053-native-01`.
 
 The five-feature YZ snap group still needs proof on the actual retained
-cantilever. Its source sketch requires a cutout side-face support that the
-current Cut does not publish: the actual cut evaluation contains no retained
-support face for its Y17 or Y23 side wall. The source workflow's side-face
-offset, Join, finishes, downstream Mirror, and physical fit remain pending.
+cantilever. GEO-013 now supplies the required exact cutout side-face support
+and retained offset plane. SOL-054 supplies the next prerequisite: replaying
+the connected selected-region Join created by the projected sketch boundaries.
+The actual finished snap, downstream Mirror, and physical fit remain pending.
 The XZ five-feature behavior is unchanged by this extension.
 
 The bounded opposed-Cut source was independently reviewed and integrated at
