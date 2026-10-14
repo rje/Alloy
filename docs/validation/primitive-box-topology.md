@@ -16,7 +16,8 @@ by Sketch and Shell; solid edges use the shared Fillet/picking path.
 Shell maps each Box face's straight offset boundaries only through unique OCCT
 offset history. The five inner planar faces include four straight support edges
 each, with current endpoints and retained source IDs. This supports same-face
-projection on the inner back wall and gives a stable face for later To Object.
+projection on the inner back wall at y = 76 mm and gives a stable face for later
+To Object. The inner bottom at z = 4 mm is a different face.
 Projection of remote or perpendicular edges onto the front face remains a
 separate workflow requirement; this candidate does not claim that interaction.
 
@@ -25,6 +26,6 @@ shape and volume, outer and inner face/edge counts, inner back projection,
 upstream width and Shell thickness edits, stable identities, undo/redo,
 save/reopen and atomic refusal of a missing face. Existing `solid_shell` and
 `geometry_kernel` focused tests pass. `tests/box_topology_api.py` is prepared
-for the sole editor lease: it selects the actual top face through viewport
-picking, checks preview/Cancel, commits Shell, captures GPU frames, edits Box,
+for the sole editor lease: it selects the actual top face through shared-API
+viewport picking, checks preview/Cancel, commits Shell, captures GPU frames, edits Box,
 and checks history and reopen. It has not yet been run.

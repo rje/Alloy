@@ -1,6 +1,7 @@
 #include "SolidShell.h"
 #include "RevolvedShellCap.h"
 #include "SolidFillet.h"
+#include "PlanarFaces.h"
 #include <BRepOffsetAPI_MakeThickSolid.hxx>
 #include <BRepOffset_MakeOffset.hxx>
 #include <BRepAlgo_Image.hxx>
@@ -180,11 +181,9 @@ void SolidShell::evaluate(EvaluatedBody& body,const QJsonObject& parameters,cons
         edge.edge.Nullify();edge.provenance["resolutionError"]="modified_by_shell";
     }
     body.shape=result;body.supportFaces=retained;
-    auto updated=summary;QJsonArray supports;
-    for(const auto& face:retained)supports.append(QJsonObject{{"faceId",face.faceId},{"bodyId",face.bodyId},
-        {"producerFeatureId",face.producerFeatureId},{"role",face.role},{"planar",true},
-        {"frame",face.frame},{"edges",GeometryKernel::supportEdgeDescriptors(face)}});
-    updated["supportFaces"]=supports;updated["solidEdges"]=SolidFillet::descriptors(body.solidEdges);
+    auto updated=summary;
+    updated["supportFaces"]=PlanarFaces::descriptors(retained);
+    updated["solidEdges"]=SolidFillet::descriptors(body.solidEdges);
     updated["lastModifierFeatureId"]=featureId;updated["producerFeatureId"]=body.featureId;
     updated["operation"]="shell";updated["thicknessMm"]=thickness;updated["removedFace"]=support;
     body.summary=updated;

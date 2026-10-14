@@ -40,18 +40,20 @@ with application(args.app, output) as (call, transcript):
     body = shelled['evaluation']['bodies'][0]
     assert body['valid'] and body['closed'] and abs(body['volumeMm3'] - (50*80*40-42*72*36)) < 1e-3
     inner = next(face for face in body['supportFaces'] if face['role'] == 'shell-inner'
-                 and abs(face['frame']['origin'][2] - 4) < 1e-5)
+                 and face['provenance']['boxFace'] == 'y1')
+    assert abs(inner['frame']['origin'][1] - 76) < 1e-5 and inner['frame']['normal'] == [0, -1, 0]
     assert len(inner['edges']) == 4 and all(edge['supported'] for edge in inner['edges'])
     inner_face_id = inner['faceId']
     inner_edge_ids = {edge['edgeId'] for edge in inner['edges']}
     call('view.home')
     call('capture.screenshot', {'path': str(output / 'box-shell.png')})
     feature = initial['authored']['features'][0]
-    call('feature.edit', {'featureId': feature['id'], 'parameters': {'widthMm': 54}})
+    call('feature.edit', {'featureId': feature['id'], 'parameters': {'widthMm': 54, 'depthMm': 90}})
     edited = call('document.inspect')
     changed = edited['evaluation']['bodies'][0]
-    assert changed['bodyId'] == box['bodyId'] and abs(changed['volumeMm3'] - (54*80*40-46*72*36)) < 1e-3
+    assert changed['bodyId'] == box['bodyId'] and abs(changed['volumeMm3'] - (54*90*40-46*82*36)) < 1e-3
     changed_inner = next(face for face in changed['supportFaces'] if face['faceId'] == inner_face_id)
+    assert abs(changed_inner['frame']['origin'][1] - 86) < 1e-5
     assert {edge['edgeId'] for edge in changed_inner['edges']} == inner_edge_ids
     call('history.undo')
     call('history.redo')
