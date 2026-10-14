@@ -3,17 +3,20 @@
 ## Current queue (2026-10-14)
 
 Continue autonomously across accepted milestones; a status report is not a stop.
-RES-021 source preflight found that the public short expression exercise uses a
-Center to Center Slot (first cap center, second cap center, then width), whereas
-Alloy's accepted Center Point Slot starts at its midpoint. SKT-083 adds the
-distinct three-click route without automatic dimensions; PAR-007 adds direct
-same-sketch driving-length expressions with retained UUID dependencies and
-per-sketch dN names. TUT-024 gates the exact rough circle/rectangle/slot,
-D45/R5, closed profile, Perpendicular/Equal, d3=100 and `d3 + 50` sequence.
-See [the lightweight contract](research/sketch-expression-exercise-contract.md);
-public page images/provenance stay in external reference records. Current
-numeric dimensions and user-parameter formulas do not yet perform this source
-step. Root and Astra review the new contracts before implementation acceptance.
+RES-021/#383 source preflight is accepted: the short expression exercise uses
+Center to Center Slot (first cap center, second cap center, width), distinct
+from the midpoint-first Center Point Slot. SKT-083/#385 is independently accepted
+at `e620987`: core passes, native01 passes actual three-click/H/V/D45/persistent-D
+R5 input, and API02 passes 28 calls through D45→D50, analytic area
+528.539816→578.539816 mm², history and reopen. The GPU capture is readable;
+typed slot input remains source-reviewed only. See [receipt](validation/center-to-center-slot.md).
+PAR-007/#384 is now active: direct same-sketch driving-length formulas with
+stable UUID dependencies and per-sketch dN names. TUT-024/#386 remains Todo until
+this prerequisite passes. Its complete rough circle/rectangle/slot and closed
+profile sequence includes Perpendicular/Equal, d3=100 and `d3 + 50`; numeric
+inputs and user-parameter formulas do not substitute for that source step.
+See [contract](research/sketch-expression-exercise-contract.md). Only main and
+its existing build are used; all private slot validation editors are closed.
 DOC-031/#348 is independently accepted at `89782cf`: unchanged-product native09
 passes modal line focus, rename commit, Browser label and unchanged geometry.
 Earlier button-focus failure remains unexplained, not claimed fixed.
@@ -31,11 +34,6 @@ SKT-082/#382 is accepted at `d436bd1`: explicit existing-circle/line Tangent
 preserves finite-contact solver/schema/badge semantics. Core/API01 (40 calls)
 and native02 (3/3) pass radius/datum edits, both pick orders and badge deletion.
 See [receipt](validation/sketch-circle-line-tangent.md).
-RES-021/#383 is active for exact source-step preflight of a short published
-dimension-expression exercise. Public pages/spec are external; Sol audits slot
-radius vs diameter and input-order prerequisites, Astra assesses bounded
-intra-sketch parameter architecture. Create the required children/gate before
-implementation; do not claim adapted setup as exact source parity. No new worktree.
 SKT-077 remains Todo after native03/04: initial activation-before-projection
 did not fix picking. Actual hit widget/frame/projected center and before/after
 captures are preserved externally in the face-origin deliverable native04.
