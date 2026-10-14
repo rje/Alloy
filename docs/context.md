@@ -35,52 +35,46 @@ Focused Qt-native Box-edge selection, shared API selection and edge replacement
 through sketch/profile/plane/tab transitions pass. Face mode remains bounded
 to retained planar supports; general curved-face coverage is not claimed.
 
-## Accepted enclosure ports and card checkpoint (2026-10-13)
+## Enclosure continuation (2026-10-14)
 
-TUT-021/#322 is independently accepted and integrated. Its 236.2-second
-from-blank API movie covers shell, mounting pegs, projected port clearances,
-long slot and centered card Cut with R2 lip. Exact authored reopen and
-Case-only STEP/STL readback pass. Source adaptations, prefix-only placement
-edit and separate downstream edit evidence are explicit in
-[the accepted receipt](validation/enclosure-port-card-workflow.md). The movie,
-editable model and exports are first in the external gallery (82 links checked).
-Next: TUT-022 split/snaps/two Mirrors and HIS-006 reorder, then TUT-023 rim.
-The ports lane now owns the sole GUI lease for a bounded TUT-022 Split/undercut
-probe against this saved model; HIS-006 has a headless candidate awaiting the actual two-Mirror fixture.
-TUT-022 remains Todo until its remaining prerequisites are accepted. The first
-accepted-model probe found new Split features incorrectly defaulting to root
-ownership; SOL-052/#335 is now independently accepted and integrated. The
-actual saved Case splits into two valid closed owned bodies with conserved
-volume, native preview/Cancel and stable edit/reopen identities. The source-shaped closed undercut catch (4 mm guide, 6 × 3 mm rectangle
-below the seam) and its Cut Mirror both pass on the accepted Case, removing
-63 mm³ each at adapted Y ±20. GEO-012/#336 is independently accepted and integrated: exact inner Cut rims
-now support the two-edge R0.5 and width/history/reopen chain. Its provisional
-XZ reflection produces same-wall catches and qualifies only edge lineage.
-The port lane now owns SOL-053/#337 genuine YZ Feature Mirror, explicitly
-mapping the source axes into the accepted 90-degree Z adapted frame. The
-opposed ±X catches at Y = 20 mm clear the long slot by 6.75 mm; full cantilever/GPIO
-clearance remains to be proven. The opposed-wall Cut API/native proof is integrated at 62d164a after independent review; main app build and focused Cut regression pass. Five-feature YZ proof remains pending. GEO-013/#338 is independently accepted and integrated with main app/core checks: exact Cut side-face support now enables downstream planes/sketches; the inferred cantilever uses side face Y17 offset to Y17.5, with Join5 across the 6 mm opening. Exact source support/sign/corner remains uncertain; no arbitrary origin-plane substitution is accepted.
-HIS-006 candidate was rebased onto current main at 5ec4b64 in the timeline-reorder worktree; its application/native target build passes, with original backup retained. It is
-returned to Todo while its actual two-Mirror fixture depends on SOL-053. Its
-shared reorder and one-Mirror core pass, but native/final source acceptance
-remain pending. No substitute inner edge or nearest-match identity is allowed.
-DOC-025/#307 is closed after independent review and main app build. The second
-Sol lane completed GEO-003/#281 endpoint Plane Along Path for the shoehorn,
-in parallel with the actual enclosure cantilever/clearance proof. GEO-013 is
-closed; SOL-053 remains open for its actual five-feature YZ fixture. SOL-054/#339
-now owns the source-supported multi-region Join replay: projected references
-partition the inferred hook into three intended regions (20+7+1 mm2). Preserve
-the references and replay their connected selected union; source instructions
-explicitly select multiple profiles. Exact source corner/cell inventory remains
-uncertain. SOL-054 candidate ca48e4f is parked Todo awaiting Astra review (intermittent
-model capacity). Its connected-union technical Mirror passes with explicitly
-non-source finish choices; it does not qualify the tutorial. GEO-014/#340 is
-now active and tracks an exact Join-created wall/stem
-intersection edge missing from retained selection; the actual vertical root
-exists at X=-28.5,Y=17.5,Z15..20.5. Do not substitute the hook elbow or free
-transverse edge. SOL-053 waits for both bounded prerequisites. The actual
-three-region Join adds no measured interference; nominal fixture already has
-0.73224 mm3 overlap with SIDE-ETH-001, unchanged by the snap.
+TUT-021/#322 is accepted and closed. Its 236.2-second from-blank movie covers
+shell, mounting pegs, projected connector clearances, long slot and centered
+card Cut with R2 lip. Exact authored reopen and Case-only STEP/STL readback
+pass. See [the receipt](validation/enclosure-port-card-workflow.md); the movie,
+model and exports are first in the external gallery (82 links checked).
+
+TUT-022 remains Todo pending the actual snap finishes, two Mirrors and
+HIS-006 reorder; TUT-023 alignment rim follows. Accepted prerequisites include
+SOL-052 owned Split, GEO-012 exact inner Cut rims, GEO-013 retained Cut side
+supports, and SOL-054 connected selected-region Join replay. SOL-054 technical
+YZ replay/edit/history/reopen is accepted at 9179015, but its technical finish
+choices do not qualify the source attachment. GEO-014/#340 is active for the
+actual wall/stem junction edge: unique OCCT Modified tool-edge history and
+incident target face can identify the current vertical root at
+X=-28.5,Y=17.5,Z15..20.5. Do not substitute the hook elbow or a transverse
+free edge merely because its Chamfer succeeds. SOL-053/#337 remains Todo
+until this root and the actual finished YZ snap group pass.
+
+The accepted nominal board is rotated90 degrees about Z. Source opposite-wall
+reflection therefore maps explicitly to Alloy origin YZ, not XZ. Actual opposed
+Cut API/native proof is integrated at62d164a: each closed6x3 catch removes63mm3
+at X=+/-32,Y20 and clears the long slot by6.75mm. Earlier same-wall XZ fixtures
+qualify only their bounded lineage ingredients. The inferred hook starts from
+the exact Cut side atY17, offset toY17.5; retained Project lines partition its
+outline into selected20+7+1mm2 cells and an excluded3.5mm2 cell. Public source
+instructions explicitly select multiple profiles for Join5; exact source
+support/sign/corner and clicked cells remain uncertain. The actual Join adds
+no measured interference; nominal fixture already has0.73224mm3 Top overlap
+with SIDE-ETH-001, unchanged by the snap. Physical fit is not certified.
+
+HIS-006 candidate is rebased at5ec4b64 in the timeline-reorder worktree, with
+original backup retained. App/native target build and prior one-Mirror core
+pass. Final API/native checks require Bottom R0.5 before BOTH Cut and snap
+Mirrors, then move it after both and edit the opposite retained edge. Current
+technical snap diagnostics do not yet author that source order. Root owns
+this final reorder run once the actual fixture is ready; no extra one-Mirror
+rerun qualifies it. Sol lanes currently own GEO-014 and SOL-047 Through All
+Cut. Coordinate the sole GUI lease live rather than assuming a stored owner.
 
 ## Accepted snap-group feature Mirror (2026-10-13)
 
