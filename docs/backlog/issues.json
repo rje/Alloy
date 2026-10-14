@@ -3691,7 +3691,8 @@
         "ASM-007",
         "PRT-007",
         "ASM-012",
-        "GEO-018"
+        "GEO-018",
+        "PRT-010"
       ],
       "labels": [
         "area:gate"
@@ -6074,6 +6075,22 @@
         "area:geo"
       ],
       "body": "## Problem and result\nThe surface-shoehorn finishing chain currently discards modified curved face support and does not name newly generated Fillet boundaries. Plane Tangent to Face at Point therefore cannot retain the source back-corner endpoint.\n\n## Scope\nPublish exact uniquely traced curved top-face descendants and generated corner-round boundary edge/endpoint identities for the source-sized shoehorn. Cover the one grouped R12/R16 corner Fillet followed by the separate R1.5 top/bottom perimeter Fillet. Use OCCT builder history and stable source ancestry, never nearest-face/edge matching or result-list indices.\n\n## Acceptance criteria\n- Source corner selections and separate perimeter selections create one valid solid.\n- The broad curved top face and a selected endpoint of the R16 corner round are retained through the later perimeter operation, edits, undo/redo and save/reopen, or recompute refuses ambiguity atomically.\n- Endpoint roles follow retained orientation/ancestry, not arbitrary current vertex enumeration.\n- Real-entrypoint native/API selection and actual source-sized fixture evidence distinguish geometry, history and GPU captures. Independent review precedes acceptance.\n\n## Public reference evidence\nReference `surface-shoehorn`, retrieved 2026-10-14. The external finishing contract and frames under `../Alloy-reference-records/knowledge/tutorials/advanced-audit-2026-10-14/` document the grouped corner rounds, separate perimeter round and tangent top-face/fillet-endpoint selection.\n\n## Dependencies\n- [SRF-010](https://github.com/rje/Alloy/issues/284)\n- [SOL-046](https://github.com/rje/Alloy/issues/285)\n\n## Limits\nBounded to this finishing chain. General generated Fillet topology remains a wider requirement. Planned, not implemented or accepted; do not substitute a face-center tangent plane.\n"
+    },
+    {
+      "key": "PRT-010",
+      "title": "Export a printable component containing a retained hidden surface",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SRF-010",
+        "ASM-007",
+        "PRT-007"
+      ],
+      "labels": [
+        "area:prt"
+      ],
+      "body": "## Problem and result\nThe source surface tutorial retains a hidden sheet and later moves the completed solid into the same component before component STL export. Current occurrenceId export gathers every component body, so the hidden open sheet causes the strict solid exporter to refuse.\n\n## Scope and acceptance\nPreserve the retained source sheet and export the final component as the intended single closed solid mesh. Research and record implicit component visibility/surface selection behavior from permitted public evidence before choosing broader semantics. Keep explicit surface-body export refusal and strict solid mesh checks; PRT-004 owns intentional non-solid export. Disclose selected solid scope in native controls/results. Do not silently omit explicitly selected unsupported geometry or weaken watertightness validation. Preserve existing multi-solid placement and component ownership behavior.\n\n## Verification\nUse actual retained sheet plus thickened/finished solid in the tutorial component; component export must produce exactly the expected solid and mm dimensions while source sheet remains authored. Inspect native selector and perform independent STL readback. Include one explicit open-sheet refusal; avoid repeating unrelated mesh tests.\n\n## Evidence\nPublic source ownership and material frames plus transcript were retrieved2026-10-14 and are external in advanced-audit-2026-10-14/shoehorn-finishing-contract.md. Code finding: document.exportStl occurrence branch currently gathers all owner-matching bodies, and MeshExport correctly rejects open sheets. Planned, not implemented."
     }
   ]
 }
