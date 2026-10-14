@@ -1,15 +1,21 @@
 # Continuation context
 
-## Candidate snap-group feature Mirror (2026-10-13)
+## Accepted snap-group feature Mirror (2026-10-13)
 
-SOL-051/#327 has a headless candidate in `feat/snap-group-mirror` built on
-accepted GEO-010 lineage. It mirrors the source-shaped Join→three Chamfers→
-Fillet group across origin XZ through retained source-stage geometry and the
-existing finish evaluators. Focused core proof includes a source edit,
-history/reopen, same-target gap refusal and an unrelated Bottom Fillet
-interlude. The real-app API and Qt Timeline-selection checks pass; independent
-final review and main integration are pending. See
-[the candidate receipt](validation/feature-mirror-snap.md).
+SOL-051/#327 is independently accepted and integrated. The retained source
+Join, three Chamfers and Fillet replay across origin XZ, including source edit,
+history/reopen and an unrelated Bottom Fillet interlude. The real-app API,
+five-Timeline-tile native selection/Cancel and clear both-snap captures pass.
+See [the bounded receipt](validation/feature-mirror-snap.md). Cumulative source
+placement, Cut Mirror interaction and Fillet reorder remain TUT-022 work.
+
+## Accepted section updates during sketch (2026-10-13)
+
+DOC-028/#333 preserves active sketch drafts through retained section visibility
+and shared numeric edits. Native Browser visibility, Project continuation,
+Finish/Cancel and atomic invalid edits are independently accepted. Native
+nested numeric section dialogs remain DOC-029/#334. See
+[the accepted receipt](validation/section-during-sketch.md).
 
 ## Accepted Join/Chamfer edge lineage (2026-10-13)
 
@@ -52,14 +58,16 @@ GEO-008, SKT-071 and GEO-009 are accepted, integrated and closed.
 Current work: SKT-072/#325 construction-plane Project, SKT-073/#328 closed
 rectangle Offset and SOL-050/#326 Cut feature Mirror are independently accepted,
 integrated and closed. Sol owns TUT-021 ports/card continuation against main,
-with the sole GUI lease. A second Sol lane now implements SOL-051/#327 mirrored snap-group replay
-headlessly, after accepted GEO-010/#329 proved the ordinary five-operation chain.
+with the sole GUI lease. SOL-051/#327 mirrored snap-group replay is accepted and integrated after
+GEO-010/#329 proved the ordinary five-operation chain. The second Sol lane is
+implementing HIS-006/#280 Timeline reorder headlessly; the actual two-Mirror
+source proof remains required before acceptance.
 GEO-011/#331 current Cut-rim catalog publication is independently accepted and
 integrated; the correctly centered card opening now supports its R2 fillet. An initial origin-snapped diagnostic was
 misplaced and is explicitly failed evidence; SKT-075/#332 tracks fresh face-sketch
 origin compatibility without rebasing old sketches. SOL-049
 remains Todo as parent. Astra verifies both lanes. The first source-order TUT-021 run exposed a retained
-section update blocked during sketch authoring: DOC-028/#333 is active for
+section update blocked during sketch authoring: DOC-028/#333 is accepted and integrated for
 analysis-only shared updates that preserve the sketch draft. DOC-029/#334 keeps
 the native nested-editor follow-up Todo; no native parity is claimed from API
 updates. SKT-074/#330 separately tracks

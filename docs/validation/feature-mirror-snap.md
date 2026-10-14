@@ -1,4 +1,4 @@
-# Retained snap-group feature Mirror candidate
+# Retained snap-group feature Mirror
 
 SOL-051/#327 mirrors the selected source group in authored history order:
 one Extrude Join, three simple Chamfers, and one simple Fillet on one target
@@ -39,5 +39,9 @@ exposed a test-harness timing issue before Qt laid out the loaded Timeline;
 no modeling change was needed. The presentation run changed visibility only
 in its disposable session, not the saved accepted model.
 
-Independent review of source/core passed; final native/API review is pending.
+Astra independently accepted source/core, native/API and final captures;
+the bounded slice is integrated.
 The broader SOL-049 feature Mirror family remains open.
+
+Main integration: app build, existing Cut Mirror core and actual five-operation
+snap fixture all passed.

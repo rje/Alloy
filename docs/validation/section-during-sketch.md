@@ -1,6 +1,6 @@
-# Retained section edit during sketch — candidate (#333)
+# Retained section edit during sketch — accepted (#333)
 
-Status: bounded candidate, 2026-10-13; independent review pending. The
+Status: independently accepted and integrated, 2026-10-13. The
 enclosure port/card source stages its zero-offset plane and sketch before
 adjusting the retained Width section. Alloy's active-sketch command guard
 previously refused that analysis-only edit with `session_busy`.
@@ -27,3 +27,5 @@ are under the external enclosure port/card deliverable directory.
 This verifies shared API and Browser visibility interaction; it does not claim
 that the numeric Width field is natively editable in a nested dialog while a
 sketch remains active. The complete enclosure port/card gate is #322.
+
+Astra independently reviewed the final guards, API ledger and native capture.
