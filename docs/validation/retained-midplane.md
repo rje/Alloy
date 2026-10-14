@@ -32,3 +32,8 @@ The broader construction geometry parent and enclosure Split Body remain
 separate work. The source's precise datum shade, extent controls and normal
 orientation are not established by the public evidence; the first-face
 orientation is an Alloy convention.
+
+
+Independent Astra review accepted the final source and readable fitted preview.
+Integrated as b2136f2; main application build and focused midplane core pass.
+GEO-005 is closed.

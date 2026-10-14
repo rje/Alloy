@@ -23,8 +23,9 @@
         "ASM-009"
       ],
       "acceptance": "Full creation movie and step ledger, readable parameter/selection states, editable assembled model, meaningful resize maintaining clearance and joint limits, history/reopen and separately checked millimeter STL for both printable parts. Final-looking geometry alone does not pass.",
-      "status": "in_progress",
-      "remaining": "Correct Slider opening direction (ASM-009), record full creation and independently accept cumulative gate; modeling and separate exports already exercised."
+      "status": "done",
+      "remaining": "None for the bounded accepted workflow; source reflection, API/native distinctions and focused thumb replay are recorded in the receipt.",
+      "evidence": "docs/validation/sliding-lid-cumulative.md"
     },
     {
       "id": "CP-21",
@@ -33,6 +34,7 @@
         "RES-017",
         "TUT-015",
         "ASM-006",
+        "XCH-009",
         "SKT-026",
         "SKT-025",
         "SOL-006",
@@ -53,7 +55,7 @@
       ],
       "acceptance": "Full source-stage ledger/movie, editable model with preserved reference geometry, two valid closed case halves with verified clearances/snaps/ports/lip, update/history/reopen and separately checked printable exports. Qualification and every feature dependency must close before this gate.",
       "status": "todo",
-      "remaining": "Source qualification and feature dependencies followed by independent complete workflow gate."
+      "remaining": "Adapted input and Midplane accepted; bounded hierarchical STEP import and grouped Fillet active. Remaining prerequisites precede full enclosure gate."
     },
     {
       "id": "CP-22",

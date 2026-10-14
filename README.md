@@ -6,17 +6,13 @@ models, and checked printing exports. It combines Revolve, Shell, section analys
 exact spline Offset, Intersect, circular body Pattern, Join and a transverse bore.
 The receipt distinguishes API workflow evidence from native-input and visual limits.
 
-The advanced tutorial queue now tracks a sliding-lid box, electronics enclosure,
-surface shoehorn, surface iron and piston assembly with explicit prerequisites.
-Its first [named Box/Shell increment](docs/validation/box-shell-parameters.md)
-and [primitive topology references](docs/validation/primitive-box-topology.md)
-are independently accepted. A combined real-app check resizes a hollow box while
-preserving named parameters, inner back-wall references and editable history.
-The complete advanced tutorials remain upcoming; see the
-[delivery queue](docs/backlog/README.md).
-An isolated [as-built Slider candidate](docs/validation/as-built-slider.md)
-adds one retained Box/Lid occurrence relationship with Y-axis drive and limits;
-focused native and real-app checks are independently accepted for that ingredient.
+The [sliding-lid tutorial](docs/validation/sliding-lid-cumulative.md) is now
+independently accepted: constrained dovetail sketches, retained projections,
+clearance Offset, To Object extrusion, named parameter resizing, thumb relief,
+and a limited Slider opening through the front. It has a full creation movie,
+a labelled close-up replay, editable assembly and separate checked printing
+files. The enclosure, surface shoehorn, surface iron and piston assembly remain
+in the [dependency-ordered delivery queue](docs/backlog/README.md).
 
 Alloy is a standalone, open source, modifiable parametric CAD application.
 The long-term goal is complete functional coverage of professional CAD workflows,
