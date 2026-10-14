@@ -35,3 +35,6 @@ physical pointer evidence.
 SRF-010 will consume this sheet as a distinct retained surface source and
 create a closed solid. Open-surface STL/STEP export is not claimed. The
 completed shoehorn workflow and physical shape remain cumulative gates.
+
+Astra independently accepted `f268d92` + `a089fb8` on2026-10-14, integrated
+as `53043e4` + `0870d69`. Native operation chooser remains unverified.

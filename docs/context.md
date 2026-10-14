@@ -1,14 +1,14 @@
 # Continuation context
 
-## Guided open-surface Loft candidate (2026-10-14)
+## Accepted guided open-surface Loft (2026-10-14)
 
-SRF-009 has an isolated candidate in `feat/surface-loft`. It creates a root
+SRF-009 is independently accepted at `53043e4` + `0870d69`. It creates a root
 child component with one OCCT open sheet face from retained arc, line and
 fit-spline centerline entities. Exact builder lineage supplies one face and
 four stable boundary IDs. Focused core, 36-call real-app API and Qt-native
-source-selection/Cancel checks pass; [the candidate receipt](validation/surface-loft.md)
-records scope and input-evidence limits. Independent acceptance and main
-integration remain pending. SRF-010 Thicken will consume the evaluated sheet
+source-selection/Cancel checks pass; [the receipt](validation/surface-loft.md)
+records scope and input-evidence limits. Native operation chooser remains
+unverified. SRF-010 Thicken is active and will consume the evaluated sheet
 as a distinct retained source; the complete shoehorn workflow remains open.
 
 ## Accepted local object organization (2026-10-14)
@@ -120,8 +120,9 @@ full source-step runner/movie; DOC-030/#344 is accepted at `cc52857` for
 retained body naming and actual Split API/history/reopen. DOC-031/#348 retains
 the unresolved native modal focus/typing gate; the context action opens and
 Escape cancels. Named body consumption currently refuses atomically. SRF-009 is active in parallel: the actual
-arc-to-line guided surface probe succeeds, and SRF-010 Thicken viability is
-confirmed on that sheet; retained application integration remains ahead.
+arc-to-line guided surface is now independently accepted and integrated.
+SRF-010 Thicken viability is confirmed on that sheet; retained solid
+application integration remains active.
 
 The accepted nominal board is rotated 90 degrees about Z. Source opposite-wall
 reflection therefore maps explicitly to Alloy origin YZ, not XZ. Actual opposed

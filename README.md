@@ -1,5 +1,10 @@
 # Alloy
 
+[Guided surface Loft](docs/validation/surface-loft.md) now creates an editable
+open sheet from arc and line sections along a fit-spline centerline. Shared API
+and native curve-selection checks pass. Thicken and the completed surface
+tutorial remain in progress.
+
 The [enclosure ports and card-opening workflow](docs/validation/enclosure-port-card-workflow.md)
 now has an independently accepted full creation movie: linked board placement,
 rounded shell, mounting pegs, projected connector clearances, long slot and
