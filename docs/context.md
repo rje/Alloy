@@ -7,9 +7,11 @@ independently accepted and integrated at 645497f. The combined build, focused
 core checks and actual Surface Modify > Remove native route pass. SRF-012 exterior endpoint-contact guide-rail Loft is independently accepted at
 `a8ed9c4`, including focused core, 37-call actual-app API and native3/3 evidence.
 SRF-013 surface Trim is the active geometry work in
-`../Alloy-worktrees/surface-iron-trim`. SRF-015 has a parallel headless handle
-bridge feasibility probe; its actual retained workflow still depends on Trim.
-Both must keep the independently chosen prepared fixture topology explicit. Exact shoehorn R12 and enclosure rim
+`../Alloy-worktrees/surface-iron-trim`. SRF-015 completed a separate headless handle-bridge feasibility probe: an
+independent closed two-spline/full-ellipse/two-spline input creates a valid
+open shell with sampled section agreement. This is not implementation acceptance;
+the issue is back in Todo pending actual curved Trim boundary inputs. Both lanes
+keep independently chosen prepared fixture topology explicit. Exact shoehorn R12 and enclosure rim
 remain blocked Todo work; full surface-iron acceptance is still ahead.
 
 ## Accepted retained surface Remove (2026-10-14)
