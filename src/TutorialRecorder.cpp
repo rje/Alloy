@@ -178,7 +178,7 @@ void TutorialRecorder::frame() {
             }
             if(!lastCommand_.isEmpty()) {
                 painter.setPen(Qt::white);QFont font=painter.font();font.setPixelSize(17);painter.setFont(font);
-                painter.drawText(QRect(margin,2,frameWidth_-2*margin,34),Qt::AlignVCenter,
+                painter.drawText(QRect(margin,2,frameWidth_-2*margin-145,34),Qt::AlignVCenter,
                     lastOrigin_+" command: "+lastCommand_);
             }
             if(observedCursor_) {
@@ -191,10 +191,11 @@ void TutorialRecorder::frame() {
                 // Both OS-delivered and automated Qt events reach this observer.
                 // Show the delivered pointer, without implying physical input.
                 QFont inputFont=painter.font();inputFont.setPixelSize(12);painter.setFont(inputFont);
-                const QRect inputLabel(std::clamp(point.x()+12,0,std::max(0,frameWidth_-66)),
-                    std::clamp(point.y()+12,38,38+std::max(0,contentHeight_-20)),66,20);
-                painter.fillRect(inputLabel,QColor(16,27,35,205));
-                painter.setPen(Qt::white);painter.drawText(inputLabel,Qt::AlignCenter,"Qt input");
+                // Keep provenance in recorder chrome: a cursor-relative label
+                // covers nearby dimension text and inference cues in the app.
+                const QRect inputLabel(frameWidth_-145,2,130,34);
+                painter.setPen(Qt::white);
+                painter.drawText(inputLabel,Qt::AlignRight|Qt::AlignVCenter,"Qt-delivered input");
             }
             if(!heldKeys_.isEmpty()) {
                 QStringList keys;for(int key:heldKeys_)keys<<keyName(key);
