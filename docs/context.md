@@ -152,13 +152,17 @@ and reopen. Production-theme native08 checks actual formula typing, preview,
 OK/edit/Cancel and readable Distance (mm). See
 [receipt](validation/extrude-distance-expression.md). Broader expressions remain
 PAR-001. Backlog is406 issues,265 closed; dependencies remain acyclic.
-SOL-016 is active again after concrete Qt source diagnosis: the native harness
-clicked inside the host 500ms release guard while assuming300ms. Sol will
-deliver actual pointer movement to the popup row before the real-hit click,
-observe closure and then click OK. One focused run; Astra verifies. No product
-patch or repeated geometry sweep is planned. Physical SOL-058 remains separate.
-SKT-090/#406 tracks the next bounded straight-line Extend feature, with its
-public tool contract stored externally. It remains Todo until SOL-016 finishes.
+SOL-016 remains Todo. Qt source explains the missing popup dismissal: the
+saved harness clicked within the runtime release guard without the pointer
+movement that clears it. Corrected native05 stopped before the workflow because
+the initial window never became active; no popup or product acceptance follows.
+Exact log and corrected harness remain external under the existing Cut delivery
+folder/native-05. No failed test target remains; no further retry planned.
+SKT-090/#406 is active next: bounded straight-line Extend to an unambiguous
+line intersection, with hover preview, retained IDs, solver-authoritative closure,
+Enter to finish and a 20 x 10 x 5 mm extrusion exercise. Sol implements; Astra
+independently verifies. Public tool contract stays external. This is not yet a
+prerequisite of an established cumulative tutorial. Physical SOL-058 remains Todo.
 Only main and its existing build are used; no inactive worktrees accumulate.
 DOC-031/#348 is independently accepted at `89782cf`: unchanged-product native09
 passes modal line focus, rename commit, Browser label and unchanged geometry.
