@@ -32,13 +32,17 @@ SKT-066/#272 linked Project and SOL-044/#275 Offset-start Extrude are also
 independently accepted and integrated. The full lid workflow/movie remains open.
 Active source features are SKT-070/#306 typed Line length/angle and ASM-005/#296
 As-built Slider, each in an isolated worktree with Sol implementation and Astra
-verification. REL-008/#308 is independently source-accepted: a non-mutating optional-origin
+verification. Root also implements SOL-043/#274 To Object in the isolated
+extrude-to-object worktree: core target/clearance/Cut/sibling/history checks pass;
+app and native controls test build, with runtime and independent acceptance pending.
+The candidate includes signed end-cap support and derives extent from current
+retained face geometry, never a frozen authored distance. REL-008/#308 is independently source-accepted: a non-mutating optional-origin
 read repairs general sketch Fillet, and existing face-support diagnostics are
 preserved. Existing focused Fillet/Project checks pass. The larger face_support
 fixture remains intermittently blocked by separately tracked GEO-006 edge
 provenance ambiguity; no clean-suite claim is made.
 The integrated Project app builds and its focused core test passes. Root owns the
-sole private-editor lease, currently loaned to the typed-Line implementer. Later source/input
+sole private-editor lease, currently loaned to the Slider implementer. Later source/input
 qualification remains explicit. Five gates have 38 new prerequisite/research/gate
 tasks; two separately tracked regressions make 309 total canonical issues.
 
