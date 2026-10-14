@@ -84,6 +84,7 @@ private:
     void showSlider();
     void refreshSliderControls();
     QJsonObject beginRevolute(const QJsonObject& args);
+    QJsonObject switchAsBuiltType(const QString& type);
     QJsonObject previewRevolute();
     void showRevolute();
     void refreshRevoluteControls();

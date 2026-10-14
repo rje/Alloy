@@ -416,7 +416,7 @@ AlloyWindow::AlloyWindow() {
     };
     group("CREATE", {{"primitive.box", "▣"}, {"primitive.cylinder", "◉"}, {"solid.sphereDialog", "●"}, {"sketch.create", "▧"}, {"solid.extrudeDialog", "▣"}, {"solid.revolveDialog", "◉"}, {"solid.sweepDialog", "◒"}, {"solid.loftDialog", "◒"}, {"solid.thickenDialog", "▤"}, {"solid.mirrorDialog", "◧"}, {"solid.featureMirrorDialog", "◧"}, {"solid.circularPatternDialog", "◌"}});
     group("MODIFY", {{"solid.pressPullDialog", "⇧"}, {"solid.combineDialog", "▣"}, {"solid.filletDialog", "◩"}, {"solid.chamferDialog", "◪"}, {"solid.shellDialog", "▱"}, {"solid.splitBodyDialog", "◫"}, {"solid.moveDialog", "✥"}});
-    group("ASSEMBLE", {{"joint.sliderDialog", "⇆"},{"joint.revoluteDialog","◉"},{"joint.cylindricalDialog","◎"},{"position.revert","↶"}});
+    group("ASSEMBLE", {{"joint.asBuiltDialog","◉"},{"joint.sliderDialog", "⇆"},{"position.revert","↶"}});
     group("CONSTRUCT", {{"construction.plane", "▰"}, {"construction.pathPlane", "⟂"}, {"construction.tangentPlane", "▱"}, {"construction.midplane", "◫"}});
     group("INSPECT", {{"inspect.sectionDialog", "◧"}, {"inspect.measure", "↔"}});
     auto* selectMenuButton=new QToolButton;selectMenuButton->setText("SELECT");
@@ -727,6 +727,17 @@ AlloyWindow::AlloyWindow() {
     connect(tree_, &QTreeWidget::itemClicked, this, [this](QTreeWidgetItem* item, int) {
         if(!item || item->isHidden() || !(item->flags()&Qt::ItemIsEnabled))return;
         if(!pendingBrowserVisibility_.isEmpty() && item->data(0,Qt::UserRole+2).toString()==pendingBrowserVisibility_)return;
+        const auto jointCommand=session_.value("command").toString();
+        const auto jointRole=session_.value("selectionRole").toString();
+        if((jointCommand=="joint.revolute" || jointCommand=="joint.cylindrical")
+            && (jointRole=="component1" || jointRole=="component2")){
+            const auto occurrence=item->data(0,Qt::UserRole+8).toString();
+            if(!occurrence.isEmpty()){
+                const auto response=execute("joint.componentPick",{{"occurrenceId",occurrence}});
+                if(!response["ok"].toBool())statusBar()->showMessage(response["error"].toObject()["message"].toString(),5000);
+                return;
+            }
+        }
         const auto name=item->data(0,Qt::UserRole).toString();
         const auto body=item->data(0,Qt::UserRole+1).toString();
         const auto sketch=(item->parent() && item->parent()->data(0,Qt::UserRole+4)=="sketches") ? item->data(0,Qt::UserRole+2).toString() : QString{};
@@ -4370,6 +4381,12 @@ void AlloyWindow::registerCommands() {
             return chosenSketch.isEmpty()?failure("path_required","Click a visible fit-point spline")
                 : selectPathPlaneSpline(chosenSketch,chosenEntity);
         }
+        if((session_.value("command")=="joint.revolute" || session_.value("command")=="joint.cylindrical")
+            && (session_.value("selectionRole")=="component1" || session_.value("selectionRole")=="component2")){
+            const auto hit=view_->pickBodyReference(a["x"].toDouble(),a["y"].toDouble());
+            if(hit["occurrenceId"].toString().isEmpty())return failure("component_required","Click one visible component occurrence");
+            return execute("joint.componentPick",{{"occurrenceId",hit["occurrenceId"]}});
+        }
         if(session_.value("command")=="joint.revolute"){
             const auto hit=view_->pickSolidEdge(a["x"].toDouble(),a["y"].toDouble(),presentationBodies());
             if(hit.isEmpty())return failure("edge_required","Pick a retained circular edge on Component 2");
@@ -5432,7 +5449,8 @@ void AlloyWindow::refresh() {
         view_->setSliderCue(assembly.isEmpty() || assembly[0].toObject()["type"]!="asBuiltSlider" ? QJsonObject{} : assembly[0].toObject());
         const auto jointCommand=session_.value("command").toString();
         const bool pickingJointOrigin=(jointCommand=="joint.revolute" || jointCommand=="joint.cylindrical")
-            && !session_.value("inputs").toObject().contains("jointId");
+            && session_.value("inputs").toObject()["jointId"].toString().isEmpty()
+            && session_.value("selectionRole")=="position";
         view_->setJointOriginPicking(pickingJointOrigin,pickingJointOrigin ? session_.value("inputs").toObject()["component2OccurrenceId"].toString() : QString{},
             jointCommand=="joint.revolute" ? "Y" : jointCommand=="joint.cylindrical" ? "Z" : QString{});
         view_->setJointOrigins(assembly,jointOriginsShown_);
