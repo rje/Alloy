@@ -147,6 +147,63 @@ QJsonObject GeometryKernel::resolvePlaneSource(const EvaluatedDocument& evaluati
     throw EvaluationError({{"code","plane_source_unavailable"},{"message","The retained plane source is unavailable"},{"source",source}});
 }
 
+QJsonObject GeometryKernel::pathEndpointPlaneFrame(const EvaluatedDocument& evaluation,
+    const QJsonObject& path,const QJsonArray& authoredFeatures) {
+    const auto sketchId=path["sketchId"].toString(),entityId=path["entityId"].toString();
+    const int endpoint=path["endpoint"].toInt(-1);
+    if(endpoint!=0 && endpoint!=1)reject("invalid_path_endpoint","Choose Start or End of the retained spline");
+    const EvaluatedSketch* evaluated=nullptr;
+    for(const auto& sketch:evaluation.sketches)if(sketch.featureId==sketchId){evaluated=&sketch;break;}
+    if(!evaluated)reject("path_unavailable","The retained source sketch is unavailable at this history position");
+    QJsonObject authored,entity;
+    for(const auto& row:authoredFeatures)if(row.toObject()["id"]==sketchId){authored=row.toObject();break;}
+    if(authored["type"]!="sketch")reject("path_unavailable","The retained path sketch no longer exists");
+    const auto parameters=authored["parameters"].toObject();
+    for(const auto& row:parameters["entities"].toArray())if(row.toObject()["id"]==entityId){entity=row.toObject();break;}
+    if(entity["type"]!="fitSpline")reject("unsupported_path","Select one retained fit-point spline");
+    const auto current=evaluated->entityEdges.value(entityId);
+    if(current.IsNull())reject("path_unavailable","The exact evaluated spline edge is unavailable");
+    const auto pointIds=entity["pointIds"].toArray();
+    if(pointIds.size()<2)reject("path_unavailable","The retained spline endpoints are unavailable");
+    QMap<QString,gp_Pnt> solvedPoints;
+    for(const auto& row:evaluated->summary["worldPoints"].toArray()){
+        const auto point=row.toObject();const auto xyz=point["positionMm"].toArray();
+        if(xyz.size()==3)solvedPoints[point["id"].toString()]=gp_Pnt(xyz[0].toDouble(),xyz[1].toDouble(),xyz[2].toDouble());
+    }
+    const auto startId=pointIds.first().toString(),endId=pointIds.last().toString();
+    if(!solvedPoints.contains(startId) || !solvedPoints.contains(endId))
+        reject("path_unavailable","The evaluated spline fit endpoints are unavailable");
+    const auto frame=evaluated->resolvedFrame;
+    try {
+        const BRepAdaptor_Curve curve(current);
+        if(curve.GetType()!=GeomAbs_BSplineCurve)reject("unsupported_path","The retained path must evaluate as a spline");
+        const auto first=curve.Value(curve.FirstParameter()),last=curve.Value(curve.LastParameter());
+        const bool forward=first.Distance(solvedPoints[startId])<1e-6 &&
+            last.Distance(solvedPoints[endId])<1e-6;
+        const bool reversed=last.Distance(solvedPoints[startId])<1e-6 &&
+            first.Distance(solvedPoints[endId])<1e-6;
+        if(forward==reversed)reject("path_unavailable","Evaluated spline endpoints do not uniquely match retained fit-point order");
+        const double parameter=(endpoint==0)==forward ? curve.FirstParameter() : curve.LastParameter();
+        gp_Pnt origin;gp_Vec tangent;curve.D1(parameter,origin,tangent);
+        if(reversed)tangent.Reverse();
+        if(!std::isfinite(tangent.Magnitude()) || tangent.Magnitude()<1e-9)
+            reject("degenerate_path_tangent","The selected spline endpoint has no usable tangent");
+        tangent.Normalize();
+        const auto axis=frame["normal"].toArray();
+        if(axis.size()!=3)reject("invalid_path_frame","The source sketch normal is unavailable");
+        gp_Vec u(axis[0].toDouble(),axis[1].toDouble(),axis[2].toDouble());
+        u-=tangent.Multiplied(u.Dot(tangent));
+        if(!std::isfinite(u.Magnitude()) || u.Magnitude()<1e-9)
+            reject("invalid_path_frame","The source sketch normal is parallel to the endpoint tangent");
+        u.Normalize();const gp_Vec v=tangent.Crossed(u);
+        return {{"origin",QJsonArray{origin.X(),origin.Y(),origin.Z()}},
+            {"uAxis",QJsonArray{u.X(),u.Y(),u.Z()}},
+            {"vAxis",QJsonArray{v.X(),v.Y(),v.Z()}},
+            {"normal",QJsonArray{tangent.X(),tangent.Y(),tangent.Z()}}};
+    }catch(const EvaluationError&){throw;}
+    catch(const std::exception& error){reject("path_unavailable",QString("Unable to evaluate retained spline: %1").arg(error.what()));}
+}
+
 QJsonObject GeometryKernel::offsetPlaneFrame(const QJsonObject& frame,double offsetMm) {
     auto result=frame;auto origin=frame["origin"].toArray(),normal=frame["normal"].toArray();
     if(origin.size()!=3 || normal.size()!=3 || !std::isfinite(offsetMm))throw EvaluationError({{"code","invalid_plane_frame"},{"message","Plane source frame is invalid"}});
@@ -623,6 +680,7 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
             if(type=="constructionPlane") {
                 const auto source=parameters["source"].toObject();
                 auto frame=source.contains("faces") ? midplaneFrame(evaluated,source["faces"].toArray())
+                    : source.contains("path") ? pathEndpointPlaneFrame(evaluated,source["path"].toObject(),features)
                     : offsetPlaneFrame(resolvePlaneSource(evaluated,source),parameters["offsetMm"].toDouble());
                 const auto bounds=frame.take("displayBoundsMm").toArray();
                 evaluated.constructionPlanes.push_back({id,feature["name"].toString(),feature["visible"].toBool(),frame,{},bounds});

@@ -109,6 +109,12 @@ private:
     void showMidplane();
     QDockWidget* midplaneDock_ = nullptr;
     quint64 midplanePreviewRevision_ = 1;
+    QJsonObject beginPathPlane(const QJsonObject& inputs);
+    QJsonObject selectPathPlaneSpline(const QString& sketchId,const QString& entityId);
+    QJsonObject previewPathPlane();
+    void showPathPlane();
+    QDockWidget* pathPlaneDock_ = nullptr;
+    quint64 pathPlanePreviewRevision_ = 1;
     void showUnits();
     QJsonObject lengthParameter(const QString& name) const;
     void showLengthParameters();

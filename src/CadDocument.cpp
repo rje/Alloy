@@ -38,7 +38,8 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
         const auto feature = features[i].toObject();
         if(feature["type"]=="constructionPlane" || (feature["type"]=="sketch" && feature["parameters"].toObject()["plane"]=="construction")) {
             const auto source=feature["type"]=="constructionPlane" ? feature["parameters"].toObject()["source"].toObject() : QJsonObject{{"planeId",feature["parameters"].toObject()["planeId"]}};
-            const auto reference=source.contains("planeId") ? source["planeId"].toString() : source["sketchId"].toString();
+            const auto reference=source.contains("planeId") ? source["planeId"].toString()
+                : source.contains("path") ? source["path"].toObject()["sketchId"].toString() : source["sketchId"].toString();
             if(!reference.isEmpty()) {
                 const auto expected=source.contains("planeId") ? "constructionPlane" : "sketch";
                 if(!positions.contains(reference) || positions[reference]>=i || features[positions[reference]].toObject()["type"]!=expected)
@@ -1328,6 +1329,15 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
                     if(!value.isObject() || support.size()!=3)return "Midplane face requires producer, body and face IDs";
                     for(const auto& key:{"producerFeatureId","bodyId","faceId"})
                         if(!validId(support[key].toString()))return "Midplane face requires stable IDs";}
+                continue;
+            }
+            if(source.contains("path")) {
+                const auto path=source["path"].toObject();
+                if(p.size()!=1 || path.size()!=3 || !validId(path["sketchId"].toString())
+                    || !validId(path["entityId"].toString()) || !path["endpoint"].isDouble()
+                    || (path["endpoint"].toInt(-1)!=0 && path["endpoint"].toInt(-1)!=1)
+                    || path["endpoint"].toDouble()!=path["endpoint"].toInt())
+                    return "Path plane requires a retained fit spline and endpoint 0 or 1";
                 continue;
             }
             if(p.size()!=2 || !p["offsetMm"].isDouble() || !std::isfinite(p["offsetMm"].toDouble())

@@ -94,6 +94,8 @@ public:
     static TopoDS_Shape primitive(const QString& type, const QJsonObject& parameters);
     static EvaluatedSupportFace resolveSketchSupport(const EvaluatedDocument& evaluation, const QJsonObject& support);
     static QJsonObject resolvePlaneSource(const EvaluatedDocument& evaluation, const QJsonObject& source);
+    static QJsonObject pathEndpointPlaneFrame(const EvaluatedDocument& evaluation,
+        const QJsonObject& path, const QJsonArray& authoredFeatures);
     static QJsonObject offsetPlaneFrame(const QJsonObject& frame, double offsetMm);
     static QJsonObject midplaneFrame(const EvaluatedDocument& evaluation, const QJsonArray& faces);
     static QJsonArray supportEdgeDescriptors(const EvaluatedSupportFace& support);

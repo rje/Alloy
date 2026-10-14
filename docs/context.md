@@ -1,5 +1,16 @@
 # Continuation context
 
+## Endpoint Plane Along Path candidate (2026-10-13)
+
+GEO-003/#281 is implemented in an isolated candidate for one retained fit
+spline at proportional Start/End. It uses the evaluated, dimension-solved
+OCCT edge and ordered fit-point identities, with a deterministic perpendicular
+plane and dependent sketch support. Focused core, a 38-call real-app API
+workflow and Qt-native canvas selection/End chooser/Cancel/accept pass. See
+[the candidate receipt](validation/endpoint-path-planes.md). Independent Astra
+review and main integration remain pending; broader path extents stay with
+the construction-plane parent.
+
 ## Accepted Selection Priority (2026-10-13)
 
 DOC-025 native Select-menu Body/Face/Edge priority and its selection-transition
