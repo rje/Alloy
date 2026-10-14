@@ -6,8 +6,10 @@ Canvas DOC-024, retained Remove HIS-007 and Surface workspace VIS-004 are
 independently accepted and integrated at 645497f. The combined build, focused
 core checks and actual Surface Modify > Remove native route pass. SRF-012 exterior endpoint-contact guide-rail Loft is independently accepted at
 `a8ed9c4`, including focused core, 37-call actual-app API and native3/3 evidence.
-SRF-013 surface Trim is the active geometry work in
-`../Alloy-worktrees/surface-iron-trim`. SRF-015 completed a separate headless handle-bridge feasibility probe: an
+SRF-013 paired-sketch surface Trim is independently accepted and integrated
+at `415550d`/`9ccfe66`. Core, 41-call actual-app API and refreshed native3/3
+evidence pass, including readable labels, Change Tools and Cancel. See
+[bounded Trim acceptance](validation/surface-trim.md). SRF-015 completed a separate headless handle-bridge feasibility probe: an
 independent closed two-spline/full-ellipse/two-spline input creates a valid
 open shell with sampled section agreement. This is not implementation acceptance;
 the issue is back in Todo pending actual curved Trim boundary inputs. Both lanes
@@ -18,10 +20,11 @@ and its current Trim gives a central seam window. Exact source rail contacts
 remain unknown. A bounded C0 probe supports bilateral Trim/bridge/closed-cell
 topology but has an unacceptable center ridge. The single G1 curtain correction
 fails endpoint tangent compatibility and unchanged geometric limits; Astra
-verified the blocker. SRF-017 is back in Todo, with an endpoint-compatible
-independent sketch fixture as its next bounded prerequisite. Do not repeat the
+verified the blocker. SRF-017 now has an explicit bounded follow-up: analytically preflight
+endpoint-compatible authored tangent handles before trying the same evaluator
+on one independently specified base/edit fixture. Do not repeat the
 failed fixture or count valid closure as visual quality. RES-019 piston public
-asset/assembly qualification is active in parallel with finishing Trim. SRF-016/#360 preserves later surface-as-tool Trim; active
+asset/assembly qualification is active in parallel with that exterior preflight. SRF-016/#360 preserves later surface-as-tool Trim; active
 SRF-013 is scoped to sketch-normal paired-spline Trim only. Exact shoehorn R12 and enclosure rim
 remain blocked Todo work; full surface-iron acceptance is still ahead.
 
