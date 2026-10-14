@@ -7,7 +7,7 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current publication contains **368 issues**: **282 implementation, 19 research,
+The current publication contains **373 issues**: **287 implementation, 19 research,
 22 epics, and 45 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 
@@ -27,7 +27,13 @@ Revolute/Pin, coupled motion and linked parent copy. The native component fixtur
 Revolute/Pin, retained Cylindrical and coupled motion are independently accepted.
 Linked local occurrence subtrees, internal joint remapping, the second piston
 loop and occurrence-aware export are independently accepted. The cumulative
-creation/motion/output recording is active. Exact shoehorn corner rounding and the enclosure
+creation/motion/output recording is active. Independent source-flow audit added
+ASM-019 native Copy/Paste shortcuts, ASM-020 cylindrical-face origin locking and
+Show/Hide, ASM-021 paste drag/contextual Revert, ASM-022 Browser gestures and
+ASM-023 shared As-Built Type/occurrence selection. The direct copy/edge-selection
+routes do not close these exact native steps. ASM-019/020 are active; the others
+remain Todo. The full semantic API creation/motion/export movie is recorded.
+Exact shoehorn corner rounding and the enclosure
 alignment rim remain blocked geometry follow-ups. Complete source operations, readable constraint and
 selection states, edit/history/reopen, full creation recordings and independently
 checked outputs remain acceptance requirements. Detailed source URLs and

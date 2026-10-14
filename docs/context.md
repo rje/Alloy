@@ -68,10 +68,27 @@ support in `a005a3a`: whole-six and selected-two STEP/STL geometry readback,
 committed seven-joint pose output and staged-pose refusal pass a separate36-call
 actual-app gate. See [export acceptance](validation/linked-instance-export.md).
 Main application builds and focused copied/export core2/2 passes. TUT-019/#305 is
-now the cumulative recording gate: one from-blank creation-through-copied-motion
-and placed-output session is running. Its broad ASM-001/002/003 dependencies were
+now the cumulative gate: one from-blank creation-through-copied-motion and
+placed-output movie finished (351.667 seconds, all four stage receipts pass,
+zero capture failures). The external gallery links it at `#piston-full-output`;
+independent artifact review accepted the semantic/API recording. Exact native
+TUT-019 remains open and returns to Todo pending its explicit input children.
+Its broad ASM-001/002/003 dependencies were
 replaced with the accepted bounded children after independent review; broad
-parents remain Todo with their full remaining scope. The observed blank
+parents remain Todo with their full remaining scope. A final source-flow audit
+identified required native gaps: ASM-019/#369 Copy then Cmd/Ctrl+V and placement
+Enter is active in a UI lane; ASM-020/#370 cylindrical-face origin inference and
+modifier hover locking now has a Luna contract independently reviewed and a
+bounded authority lane implementing retained two-rim cylindrical-face midpoint
+inference. Midpoint and release behavior are declared Alloy mappings; held-face
+lock is documented. Add source Joints-folder Show/Hide in the UI scope.
+The full native-step ledger also preserves Todo ASM-021/#371 paste drag and
+contextual Position/Revert, ASM-022/#372 Browser organization gestures and
+ASM-023/#373 shared As-Built Type/two-occurrence selection. TUT-019 depends on
+these children; the direct Copy Component/circular-edge
+routes are equivalent modeling semantics, not exact source input parity.
+The cumulative API movie remains valid qualified geometry/semantic evidence.
+The observed blank
 command-dock band and drag latency remain REL-005/REL-010.
 The bounded implementation plan is external under
 `knowledge/tutorials/piston-subassemblies-2026-10-14/assembly-continuation/asm015-plan.md`.

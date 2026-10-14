@@ -44,4 +44,16 @@ This verifies sampled kinematics of independently authored tutorial geometry.
 It does not certify collision/contact, physical fit, stroke limits, continuous
 performance, independent graph-rank analysis or exact source sample geometry.
 Per-joint relative DOFs and driver/passive coordinates remain inspectable.
-The cumulative creation recording and placed exports are separate gate evidence.
+The independently accepted cumulative API movie is external under
+`deliverables/copied-piston-2026-10-14/from-blank-01/`, linked at gallery
+`#piston-full-output`: 351.667 seconds, 1224×902 H264 at 15 fps, 5275 frames,
+4844 repeated frames and zero capture failures. One real application creates the
+parts, builds the original mechanism, copies/solves both pistons, then exports
+and reimports placed geometry. All four stage receipts pass. Raw computation
+waits remain; small sketch details are not close-ups. API command overlays are
+not physical-input evidence. The raw recorder's `inputScope` denotes capability,
+not observed input in this movie.
+
+The exact native source-step ledger preserves ASM-019–023 for Copy/Paste,
+locked origins/visibility, drag placement/contextual Revert, Browser gestures,
+and shared As-Built command selection. TUT-019 remains open until these pass.
