@@ -5595,12 +5595,27 @@
         "SOL-046",
         "GEO-008",
         "DOC-027",
-        "SKT-071"
+        "SKT-071",
+        "GEO-009"
       ],
       "labels": [
         "area:tut"
       ],
       "body": "Finishable cumulative prefix of TUT-016: from blank import the qualified v2 board, author the 90-degree placement and Move6/Capture, create Case component, centered93x64 rectangle and Extrude30, groupedR5/R2.5, closedShell3.5, three named sections, then Project actual four circular mounting-hole edges, inward0.3 Offset and Join5 mounting pegs. Use external enclosure-prefix-contract.md and fit-recipe.json; globalaxis orientation and nominal input adaptation explicit. Verify four real pegs align with transformed true holes, valid case/clearance geometry, current retained references after a useful edit, undo/reopen and separate component export. Capture paced full creation footage from blank with honest API/native overlay labels, readable projected curves and constraint icons. Independent Astra review required; neither this prefix nor its exports close the full enclosure tutorial, whose ports/snaps/mirror/reorder/rim remain TUT-016.\n"
+    },
+    {
+      "key": "GEO-009",
+      "title": "Permit inner-shell face sketches without invented arc-center ancestry",
+      "kind": "implementation",
+      "phase": "P2 Parametric solids",
+      "priority": "P1",
+      "depends_on": [
+        "GEO-008"
+      ],
+      "labels": [
+        "area:geo"
+      ],
+      "body": "The actual TUT-020 rounded closed Shell inner-floor sketch fails ambiguous_projection because generated circular boundaries with empty sketch/entity ancestry share an empty center key. Only generate automatic retained center anchors when complete source sketch/entity provenance exists. Preserve genuine same-source ambiguity checks, unsupported boundary reporting and explicit Project behavior. Verify the actual centered rectangular Extrude/grouped Fillet/Shell inner-floor sketch through the real entrypoint, retain bounded regression evidence, and obtain independent review before closing. This unblocks the existing cumulative mounting gate; no replacement fixture or weakened reference identity."
     }
   ]
 }
