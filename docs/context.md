@@ -24,7 +24,7 @@ XZ reflection produces same-wall catches and qualifies only edge lineage.
 The port lane now owns SOL-053/#337 genuine YZ Feature Mirror, explicitly
 mapping the source axes into the accepted 90-degree Z adapted frame. The
 opposed ±X catches at Y = 20 mm clear the long slot by 6.75 mm; full cantilever/GPIO
-clearance remains to be proven, and the source's 0.5 mm offset-plane support/sign remains uncertain.
+clearance remains to be proven. The opposed-wall Cut API/native proof passes in a candidate; five-feature YZ proof remains pending. GEO-013/#338 now tracks missing exact Cut side-face support: the inferred cantilever uses side face Y17 offset to Y17.5, with Join5 across the 6 mm opening. Exact source support/sign/corner remains uncertain; no arbitrary origin-plane substitution is accepted.
 HIS-006 candidate is clean at 7b1ceb7 in the timeline-reorder worktree; it is
 returned to Todo while its actual two-Mirror fixture depends on SOL-053. Its
 shared reorder and one-Mirror core pass, but native/final source acceptance

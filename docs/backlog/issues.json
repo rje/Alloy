@@ -5661,7 +5661,8 @@
         "HIS-006",
         "SOL-052",
         "GEO-012",
-        "SOL-053"
+        "SOL-053",
+        "GEO-013"
       ],
       "labels": [
         "area:gate"
@@ -5861,12 +5862,27 @@
       "priority": "P1",
       "depends_on": [
         "SOL-050",
-        "SOL-051"
+        "SOL-051",
+        "GEO-013"
       ],
       "labels": [
         "area:solid"
       ],
       "body": "The accepted enclosure uses an explicitly adapted 90-degree Z coordinate frame. Source opposite-long-wall reflection maps to Alloy origin YZ, while current Feature Mirror only supports XZ; using XZ on this fixture incorrectly places catches on the same wall. Add genuine YZ support to retained Cut and five-operation snap-group Mirror through the existing reflected source-stage evaluator, shared command schema, validation and correctly labeled native plane control. Preserve XZ default/files and stable reference semantics. Verify the actual seed at X=-32,Y=20,Z=11 mirrors to the opposite +X wall, with the literal 6 by 3 closed catch removing 63 mm3 and lying 6.75 mm beyond the existing slot endpoint. Verify reflected current rim/cap frames and retained input IDs, source edit/history/reopen, native YZ preview/Cancel and unchanged XZ focused regression. Full cantilever/GPIO clearance and two-Mirror/reorder source acceptance remain TUT-022, not implied by this ingredient. Public evidence, rigid plane mapping and uncertainty are external in knowledge/tutorials/advanced-audit-2026-10-13/opposed-snap-axis-adaptation.md. This is explicitly adapted YZ input, not exact source-axis key/click parity."
+    },
+    {
+      "key": "GEO-013",
+      "title": "Retain exact planar Cut side faces for downstream sketch and offset-plane support",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "GEO-012"
+      ],
+      "labels": [
+        "area:solid"
+      ],
+      "body": "The accepted enclosure closed 6 by 3 catch Cut publishes rim edges but no retained planar side-face supports at Y17 or Y23. Publish exact current planar Cut tool-side faces using kernel provenance and stable source/target identities. Reject ambiguous or absent lineage; do not substitute arbitrary origin planes or nearest geometry. Support a retained 0.5 mm offset plane from the actual Y17 cutout side face and a downstream sketch for the cantilever. Verify current support frame, actual face bounds, source width edit/recompute, undo/redo and save/reopen; missing or ambiguous support must fail atomically. Use the accepted opposed-wall enclosure fixture. Source face/sign/corner remains an explicitly recorded public-evidence inference outside the repository; the implementation must not claim exact source gesture parity. Full Join, finishing, mirrored snap and interference qualification remain TUT-022."
     }
   ]
 }
