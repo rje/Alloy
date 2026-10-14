@@ -41,6 +41,7 @@ public:
     static QJsonArray modelLengthRows(const QJsonObject& authored);
     static QJsonObject modelLengthCandidate(const QJsonObject& authored,const QJsonObject& arguments);
     static QJsonObject resolveLengthBindings(const QJsonObject& authored);
+    static QJsonObject bindExtrudeDistanceExpression(const QJsonObject& authored,const QString& expression,const QString& units);
     quint64 revision() const { return revision_; }
     QUndoStack& history() { return history_; }
     void reset();

@@ -62,6 +62,22 @@ QJsonArray resolvedLengthRows(const QJsonObject& authored) {
     };
     QJsonArray rows;for(const auto& entry:source){auto row=entry.toObject();row["valueMm"]=evaluate(row.value("id").toString());rows.append(row);}return rows;
 }
+double resolvedExtrudeExpression(const QJsonObject& authored,const QString& expression,const QJsonArray& references,const QString& units) {
+    QMap<QString,QJsonObject> rows;
+    for(const auto& value:resolvedLengthRows(authored)) {const auto row=value.toObject();rows[row.value("id").toString()]=row;}
+    LengthExpression parser(expression,[&](const QString& name,int index)->LengthQuantity {
+        if(index>=references.size() || !references[index].isString())throw std::invalid_argument("Extrude expression reference count differs from its text");
+        const auto id=references[index].toString();
+        if(!rows.contains(id) || rows[id].value("name").toString()!=name)throw std::invalid_argument("Extrude expression reference name or ID is unavailable");
+        return {rows[id].value("valueMm").toDouble(),true};
+    });
+    const auto quantity=parser.parse();
+    if(static_cast<int>(parser.identifiers().size())!=references.size())throw std::invalid_argument("Extrude expression reference count differs from its text");
+    const double value=quantity.length ? quantity.value : quantity.value*(units=="in" ? 25.4 : 1);
+    if(!std::isfinite(value) || std::abs(value)<0.001 || std::abs(value)>100000)
+        throw std::invalid_argument("Extrude expression distance must be signed 0.001..100000 mm; zero is unsupported");
+    return value;
+}
 QJsonObject newFeatureReparentError(const QJsonObject& before,const QJsonObject& candidate) {
     QSet<QString> prior;
     for(const auto& value:before["features"].toArray())prior.insert(value.toObject()["id"].toString());
@@ -753,10 +769,44 @@ QJsonObject CadDocument::lengthParameterCandidate(const QJsonObject& authored,co
         });parser.parse();row["referenceIds"]=refs;rows[index<0 ? rows.size()-1 : index]=row;
     }
     candidate["userParameters"]=rows;
+    if(index>=0 && oldName!=row.value("name").toString()) {
+        auto features=candidate.value("features").toArray();
+        for(int i=0;i<features.size();++i) {
+            auto feature=features[i].toObject();if(feature.value("type")!="extrude")continue;
+            auto parameters=feature.value("parameters").toObject();if(!parameters.contains("distanceExpression"))continue;
+            const auto refs=parameters.value("distanceReferenceIds").toArray();
+            const auto source=parameters.value("distanceExpression").toString();
+            LengthExpression parser(source,[&](const QString&,int occurrence)->LengthQuantity {
+                if(occurrence>=refs.size())throw std::invalid_argument("Extrude expression reference count differs from its text");
+                return {1,true};
+            });parser.parse();
+            if(static_cast<int>(parser.identifiers().size())!=refs.size())throw std::invalid_argument("Extrude expression reference count differs from its text");
+            auto rewritten=source;const auto tokens=parser.identifiers();
+            for(int n=static_cast<int>(tokens.size())-1;n>=0;--n)
+                if(refs[n].toString()==id)rewritten.replace(tokens[n].start,tokens[n].end-tokens[n].start,row.value("name").toString());
+            parameters["distanceExpression"]=rewritten;feature["parameters"]=parameters;features[i]=feature;
+        }
+        candidate["features"]=features;
+    }
     const auto error=validateStructure(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());
     return candidate;
 }
 QJsonArray CadDocument::evaluatedLengthParameters(const QJsonObject& authored){return resolvedLengthRows(authored);}
+QJsonObject CadDocument::bindExtrudeDistanceExpression(const QJsonObject& authored,const QString& expression,const QString& units) {
+    if(units!="mm" && units!="in")throw std::invalid_argument("Extrude expression units must be mm or in");
+    QMap<QString,QJsonObject> names;
+    for(const auto& entry:resolvedLengthRows(authored)) {const auto row=entry.toObject();names[row.value("name").toString()]=row;}
+    QJsonArray references;
+    LengthExpression parser(expression,[&](const QString& name,int)->LengthQuantity {
+        if(!names.contains(name))throw std::invalid_argument(("User length name is unavailable: "+name).toStdString());
+        const auto row=names[name];references.append(row.value("id"));return {row.value("valueMm").toDouble(),true};
+    });
+    const auto quantity=parser.parse();
+    const double value=quantity.length ? quantity.value : quantity.value*(units=="in" ? 25.4 : 1);
+    if(!std::isfinite(value) || std::abs(value)<0.001 || std::abs(value)>100000)
+        throw std::invalid_argument("Extrude expression distance must be signed 0.001..100000 mm; zero is unsupported");
+    return {{"distanceExpression",expression},{"distanceReferenceIds",references},{"distanceExpressionUnits",units},{"distanceMm",value}};
+}
 QJsonObject CadDocument::resolveLengthBindings(const QJsonObject& authored) {
     QMap<QString,double> values;
     for(const auto& entry:evaluatedLengthParameters(authored)) {
@@ -784,6 +834,10 @@ QJsonObject CadDocument::resolveLengthBindings(const QJsonObject& authored) {
             }
             if(!offsets.isEmpty())p["openChainOffsets"]=offsets;
         } else if(feature["type"]=="extrude") {
+            if(p.contains("distanceExpression")) {
+                p["distanceMm"]=resolvedExtrudeExpression(authored,p.value("distanceExpression").toString(),
+                    p.value("distanceReferenceIds").toArray(),p.value("distanceExpressionUnits").toString());
+            }
             for(const auto& binding:std::vector<std::pair<QString,QString>>{{"distanceParameterId","distanceMm"},{"startOffsetParameterId","startOffsetMm"},{"endOffsetParameterId","endOffsetMm"}}) {
                 if(!p.contains(binding.first))continue;
                 const auto id=p[binding.first].toString();
@@ -840,6 +894,11 @@ QJsonArray CadDocument::modelLengthRows(const QJsonObject& authored) {
                 row["editable"]=false;row["readOnly"]=true;
                 row["sourceName"]="Sketch expression";
             }
+            if(type=="extrude" && field=="distanceMm" && record.contains("distanceExpression")) {
+                row["expression"]=record.value("distanceExpression");
+                row["editable"]=false;row["readOnly"]=true;
+                row["sourceName"]="Extrude expression";
+            }
             if(!source.isEmpty()) {
                 row["parameterId"]=parameterId;row["sourceName"]=source["name"];
                 row["sourceValueMm"]=source["valueMm"];
@@ -886,7 +945,7 @@ QJsonObject CadDocument::modelLengthCandidate(const QJsonObject& authored,const 
         selected=value.toObject();
     }
     if(selected.isEmpty())throw std::invalid_argument("Model parameter target is unavailable");
-    if(selected.value("readOnly").toBool())throw std::invalid_argument("Edit this sketch expression in its dimension editor");
+    if(selected.value("readOnly").toBool())throw std::invalid_argument("Edit this feature expression in its own command editor");
     const auto expression=arguments["expression"].toString().trimmed();
     if(expression.isEmpty())throw std::invalid_argument("Model parameter expression is required");
     const QRegularExpression literal(QStringLiteral(R"(^([+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?)\s*(mm|in)?$)"),
@@ -1293,7 +1352,7 @@ QJsonObject CadDocument::extrusionCandidate(const QJsonObject& authored, const Q
     auto reject = [](const QString& message) {throw std::invalid_argument(message.toStdString());};
     const auto initial = validate(authored);
     if (!initial.isEmpty()) reject(initial);
-    const QSet<QString> allowed{"ownerId","sketchId","profileId","profileIds","profileSelection","distanceMm","distanceParameterId","start","startOffsetMm","startOffsetParameterId","extent","flip","endSupport","endOffsetMm","endOffsetParameterId","name","featureId","newFeatureId","newBodyId","operation","targetBodyIds"};
+    const QSet<QString> allowed{"ownerId","sketchId","profileId","profileIds","profileSelection","distanceMm","distanceParameterId","distanceExpression","distanceReferenceIds","distanceExpressionUnits","start","startOffsetMm","startOffsetParameterId","extent","flip","endSupport","endOffsetMm","endOffsetParameterId","name","featureId","newFeatureId","newBodyId","operation","targetBodyIds"};
     for (auto it = arguments.begin(); it != arguments.end(); ++it)
         if (!allowed.contains(it.key())) reject("Unknown extrusion argument: "+it.key());
     const bool edit = arguments.contains("featureId"), newFeature = arguments.contains("newFeatureId"), newBody = arguments.contains("newBodyId");
@@ -1329,7 +1388,7 @@ QJsonObject CadDocument::extrusionCandidate(const QJsonObject& authored, const Q
     if(extent=="toObject") {
         if(operation!="newBody" && operation!="cut")reject("To Object currently supports New Body or Cut");
         if(arguments.contains("flip"))reject("Flip applies only to All extent");
-        if(arguments.contains("distanceMm") || arguments.contains("distanceParameterId"))reject("To Object derives its extent from the retained face");
+        if(arguments.contains("distanceMm") || arguments.contains("distanceParameterId") || arguments.contains("distanceExpression"))reject("To Object derives its extent from the retained face");
         profileParameters["extent"]="toObject";
         profileParameters["endSupport"]=arguments.value("endSupport");
         profileParameters["endOffsetMm"]=(arguments.contains("endOffsetMm") ? arguments.value("endOffsetMm") : QJsonValue(0));
@@ -1337,7 +1396,7 @@ QJsonObject CadDocument::extrusionCandidate(const QJsonObject& authored, const Q
     } else if(extent=="all") {
         if(operation!="cut")reject("All extent currently requires Cut and one retained target");
         if(arguments.contains("flip") && !arguments.value("flip").isBool())reject("All extent Flip must be true or false");
-        if(arguments.contains("distanceMm") || arguments.contains("distanceParameterId") || arguments.contains("endSupport") || arguments.contains("endOffsetMm") || arguments.contains("endOffsetParameterId"))reject("All extent derives its reach from the target body");
+        if(arguments.contains("distanceMm") || arguments.contains("distanceParameterId") || arguments.contains("distanceExpression") || arguments.contains("endSupport") || arguments.contains("endOffsetMm") || arguments.contains("endOffsetParameterId"))reject("All extent derives its reach from the target body");
         profileParameters["extent"]="all";
         profileParameters["flip"]=arguments.value("flip").toBool(false);
     } else {
@@ -1345,6 +1404,12 @@ QJsonObject CadDocument::extrusionCandidate(const QJsonObject& authored, const Q
         if(extent!="distance" || arguments.contains("endSupport") || arguments.contains("endOffsetMm") || arguments.contains("endOffsetParameterId"))reject("Distance extent cannot carry To Object inputs");
         profileParameters["distanceMm"]=arguments.value("distanceMm");
         if(arguments.contains("distanceParameterId"))profileParameters["distanceParameterId"]=arguments["distanceParameterId"];
+        if(arguments.contains("distanceExpression")) {
+            if(arguments.contains("distanceParameterId"))reject("Choose an expression or direct length binding");
+            profileParameters["distanceExpression"]=arguments["distanceExpression"];
+            profileParameters["distanceReferenceIds"]=arguments.value("distanceReferenceIds");
+            profileParameters["distanceExpressionUnits"]=arguments.value("distanceExpressionUnits");
+        }
     }
     const auto start=arguments.value("start").toString(arguments.contains("startOffsetMm") || arguments.contains("startOffsetParameterId") ? "offset" : previousParameters.value("start").toString("profilePlane"));
     if(start!="profilePlane" && start!="offset")reject("Extrusion start must be Profile Plane or Offset");
@@ -2323,15 +2388,21 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
             if(toObject) {
                 const auto support=p.value("endSupport").toObject();
                 if(support.size()!=3 || !validId(support.value("bodyId").toString()) || !validId(support.value("producerFeatureId").toString()) || !validId(support.value("faceId").toString()))return "To Object requires a retained planar face reference";
-                if(p.contains("distanceMm") || p.contains("distanceParameterId") || (cut && p.value("operation")!="cut"))return "To Object supports New Body/Cut and a derived distance";
+                if(p.contains("distanceMm") || p.contains("distanceParameterId") || p.contains("distanceExpression") || (cut && p.value("operation")!="cut"))return "To Object supports New Body/Cut and a derived distance";
                 if(!p.value("endOffsetMm").isDouble() || !std::isfinite(p.value("endOffsetMm").toDouble()) || std::abs(p.value("endOffsetMm").toDouble())>100000)return "End offset must be signed and within 100000 mm";
                 if(p.contains("endOffsetParameterId") && !validId(p.value("endOffsetParameterId").toString()))return "End offset binding requires a stable parameter ID";
             } else if(all) {
-                if(p.value("operation")!="cut" || !p.value("flip").isBool() || p.contains("distanceMm") || p.contains("distanceParameterId") || p.contains("endSupport") || p.contains("endOffsetMm") || p.contains("endOffsetParameterId"))return "All extent requires Cut, a Flip flag and a derived reach";
+                if(p.value("operation")!="cut" || !p.value("flip").isBool() || p.contains("distanceMm") || p.contains("distanceParameterId") || p.contains("distanceExpression") || p.contains("endSupport") || p.contains("endOffsetMm") || p.contains("endOffsetParameterId"))return "All extent requires Cut, a Flip flag and a derived reach";
             } else if(p.contains("endSupport") || p.contains("endOffsetMm") || p.contains("endOffsetParameterId") || p.contains("flip"))return "Distance extent cannot carry retained extent inputs";
-            if (p.size()!=(cut ? 5 : 3)+(toObject ? 2 : 0)+(all ? 1 : 0)+int(p.contains("endOffsetParameterId"))+int(p.contains("distanceParameterId"))+int(p.contains("start"))+int(p.contains("startOffsetMm"))+int(p.contains("startOffsetParameterId")) || !p["sketchId"].isString() || !validId(p["sketchId"].toString())
+            if (p.size()!=(cut ? 5 : 3)+(toObject ? 2 : 0)+(all ? 1 : 0)+int(p.contains("endOffsetParameterId"))+int(p.contains("distanceParameterId"))+(p.contains("distanceExpression") ? 3 : 0)+int(p.contains("start"))+int(p.contains("startOffsetMm"))+int(p.contains("startOffsetParameterId")) || !p["sketchId"].isString() || !validId(p["sketchId"].toString())
                 || int(p.contains("profileId"))+int(p.contains("profileIds"))+int(p.contains("profileSelection"))!=1) return "Extrusion requires one exclusive profile selection";
             if(p.contains("distanceParameterId") && !validId(p["distanceParameterId"].toString()))return "Extrusion length binding requires a stable parameter ID";
+            if(p.contains("distanceExpression")) {
+                if(p.contains("distanceParameterId") || !p.value("distanceExpression").isString() || p.value("distanceExpression").toString().trimmed().isEmpty()
+                    || !p.value("distanceReferenceIds").isArray() || (p.value("distanceExpressionUnits")!="mm" && p.value("distanceExpressionUnits")!="in"))
+                    return "Extrusion expression requires text, units and exclusive stable references";
+                for(const auto& ref:p.value("distanceReferenceIds").toArray())if(!ref.isString() || !validId(ref.toString()))return "Extrusion expression references must be stable parameter IDs";
+            }
             if((p.contains("start") && (p["start"]!="offset" || !p.contains("startOffsetMm"))) || (!p.contains("start") && (p.contains("startOffsetMm") || p.contains("startOffsetParameterId"))))return "Extrusion start must be Profile Plane or Offset with a signed length";
             if(p.contains("startOffsetParameterId") && (!p.contains("startOffsetMm") || !validId(p["startOffsetParameterId"].toString())))return "Extrusion start binding requires a stable parameter ID and cached offset";
             if(p.contains("startOffsetMm") && (!p["startOffsetMm"].isDouble() || !std::isfinite(p["startOffsetMm"].toDouble()) || std::abs(p["startOffsetMm"].toDouble())>100000))return "Extrusion start offset must be signed and within 100000 mm";
