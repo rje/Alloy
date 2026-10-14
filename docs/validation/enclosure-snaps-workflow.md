@@ -35,6 +35,11 @@ reorder, and opposite Bottom Fillet group. It stopped at a late verification
 assertion: visibility changes followed the Fillet edit, so one undo reverted
 visibility instead of the Fillet. The saved model and 23-minute original movie
 are preserved, with the exact stop described in `partial-run-receipt.json`.
+The same directory contains a labeled 431-second share edit and its
+`enclosure-through-snaps-share.edit-map.json`; this trims repeated/idle frames
+from the original, without replacing the raw recording. Its final Top-section
+caption accompanies an **unavailable** face-linked section. The working
+same-position section appears only in the separate post-save tail capture.
 The runner now checks undo immediately after the Fillet edit. A separate
 36-call real-app post-save tail (`tail-02/tail-result.json`) passed a geometric
 Fillet edit, undo/redo, authored reopen, and separate Bottom/Top STL and STEP
