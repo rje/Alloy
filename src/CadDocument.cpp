@@ -498,6 +498,57 @@ QJsonObject CadDocument::componentCandidate(const QJsonObject& authored,const QS
     occurrences.append(QJsonObject{{"id",newId()},{"definitionId",id},{"parentId",authored["documentId"]},{"placement","identity"}});
     candidate["components"]=components;candidate["occurrences"]=occurrences;return candidate;
 }
+QJsonObject CadDocument::componentsFromBodiesCandidate(const QJsonObject& authored,const EvaluatedDocument& evaluated,
+    const QJsonArray& bodyIds) {
+    if(bodyIds.isEmpty())throw std::invalid_argument("Select current root bodies to create components");
+    if(!authored.value("joints").toArray().isEmpty())throw std::invalid_argument("Resolve joints before converting bodies");
+    QMap<QString,QString> types;
+    for(const auto& value:authored["features"].toArray()) {
+        const auto feature=value.toObject();types[feature["id"].toString()]=feature["type"].toString();
+    }
+    auto candidate=authored;auto owners=candidate.value("objectOwners").toObject();
+    auto bodyOwners=owners.value("bodies").toObject();QSet<QString> seen;
+    for(const auto& value:bodyIds) {
+        const auto id=value.toString();
+        if(!validId(id) || seen.contains(id) || bodyOwners.contains(id))
+            throw std::invalid_argument("Choose distinct bodies that are not already converted");
+        seen.insert(id);
+        const EvaluatedBody* current=nullptr;
+        for(const auto& body:evaluated.bodies)if(body.bodyId==id && body.occurrenceId.isEmpty()) {current=&body;break;}
+        if(!current || current->ownerId!=authored["documentId"].toString() || current->summary["type"]=="surface"
+            || types.value(current->featureId)=="stepImport" || types.value(current->featureId)=="stepAssemblyImport")
+            throw std::invalid_argument("Conversion requires current native root solid bodies");
+        candidate=componentCandidate(candidate,current->name);
+        bodyOwners[id]=candidate["components"].toArray().last().toObject()["id"];
+    }
+    owners["bodies"]=bodyOwners;owners["sketches"]=owners.value("sketches").toObject();
+    candidate["objectOwners"]=owners;
+    return candidate;
+}
+QJsonObject CadDocument::reparentOccurrenceCandidate(const QJsonObject& authored,const QJsonArray& occurrenceIds,
+    const QString& destinationId) {
+    if(occurrenceIds.isEmpty() || !hasOwner(authored,destinationId))
+        throw std::invalid_argument("Select component occurrences and an available destination");
+    if(!authored.value("joints").toArray().isEmpty())
+        throw std::invalid_argument("Component hierarchy edits require a design without joints");
+    auto candidate=authored;auto occurrences=candidate["occurrences"].toArray();QSet<QString> selected;
+    for(const auto& value:occurrenceIds) {
+        const auto id=value.toString();
+        if(!validId(id) || selected.contains(id))throw std::invalid_argument("Select distinct component occurrence IDs");
+        selected.insert(id);
+    }
+    for(int i=0;i<occurrences.size();++i) {
+        auto row=occurrences[i].toObject();if(!selected.contains(row["id"].toString()))continue;
+        if(row["placement"]!="identity" || row["definitionId"]==destinationId)
+            throw std::invalid_argument("Only unposed identity components may be moved beneath another component");
+        row["parentId"]=destinationId;occurrences[i]=row;selected.remove(row["id"].toString());
+    }
+    if(!selected.isEmpty())throw std::invalid_argument("Component occurrence is unavailable");
+    candidate["occurrences"]=occurrences;
+    const auto error=validateStructure(candidate);
+    if(!error.isEmpty())throw std::invalid_argument(error.toStdString());
+    return candidate;
+}
 QJsonObject CadDocument::renameBodyCandidate(const QJsonObject& authored,const EvaluatedDocument& evaluated,
     const QString& bodyId,const QString& name) {
     const auto displayName=name.trimmed();
@@ -526,9 +577,9 @@ QJsonObject CadDocument::reparentCandidate(const QJsonObject& authored,const Eva
         bool identity=false;
         for(const auto& value:authored["occurrences"].toArray()) {
             const auto row=value.toObject();
-            if(row["definitionId"]==destinationId && row["parentId"]==authored["documentId"] && row["placement"]=="identity")identity=true;
+            if(row["definitionId"]==destinationId && row["placement"]=="identity")identity=true;
         }
-        if(!identity)throw std::invalid_argument("Destination requires one root-child identity occurrence");
+        if(!identity)throw std::invalid_argument("Destination requires one identity occurrence");
     }
     if(objectIds.isEmpty() || (kind=="body" && objectIds.size()!=1))
         throw std::invalid_argument("Select one active body or current sketches to move");
@@ -1042,6 +1093,8 @@ QJsonObject CadDocument::localReferencePlacementCandidate(const QJsonObject& aut
 }
 QJsonObject CadDocument::componentOpacityCandidate(const QJsonObject& authored,const QString& definitionId,double opacity) {
     if(!std::isfinite(opacity) || opacity<0 || opacity>1)throw std::invalid_argument("Component opacity must be between 0 and 1");
+    for(const auto& value:authored["occurrences"].toArray())if(value.toObject()["parentId"]==definitionId)
+        throw std::invalid_argument("Parent opacity is unavailable for nested components");
     auto candidate=authored;auto components=candidate["components"].toArray();bool found=false;
     for(int i=0;i<components.size();++i){auto component=components[i].toObject();if(component["id"]!=definitionId)continue;
         component["opacity"]=opacity;components[i]=component;found=true;break;}
@@ -1591,13 +1644,23 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
             || !validId(id) || ids.contains(id) || !component["name"].isString() || component["name"].toString().trimmed().isEmpty())return "Invalid local component definition";
         ids.insert(id);owners.insert(id);
     }
-    QSet<QString> instantiated;
+    QSet<QString> instantiated;QMap<QString,QString> componentParents;
     for(const auto& value:candidate["occurrences"].toArray()) {
         const auto occurrence=value.toObject();const auto id=occurrence["id"].toString(),definition=occurrence["definitionId"].toString();
-        if(occurrence.size()!=4 || !validId(id) || ids.contains(id) || definition==root || !owners.contains(definition) || instantiated.contains(definition) || occurrence["parentId"]!=root || occurrence["placement"]!="identity")return "Only one root-child identity occurrence per local component is supported";
-        ids.insert(id);instantiated.insert(definition);
+        const auto parent=occurrence["parentId"].toString();
+        if(occurrence.size()!=4 || !validId(id) || ids.contains(id) || definition==root || !owners.contains(definition)
+            || instantiated.contains(definition) || !owners.contains(parent) || parent==definition || occurrence["placement"]!="identity")
+            return "Each local component needs one unposed identity occurrence with an available parent";
+        ids.insert(id);instantiated.insert(definition);componentParents[definition]=parent;
     }
     if(instantiated.size()!=owners.size()-1)return "Each local component requires one occurrence";
+    for(auto it=componentParents.begin();it!=componentParents.end();++it) {
+        QSet<QString> visited;auto parent=it.key();
+        while(parent!=root) {
+            if(visited.contains(parent) || !componentParents.contains(parent))return "Component hierarchy must be rooted and acyclic";
+            visited.insert(parent);parent=componentParents[parent];
+        }
+    }
     if(candidate.contains("objectOwners")) {
         const auto organization=candidate["objectOwners"].toObject();
         if(!candidate["objectOwners"].isObject() || organization.size()!=2
@@ -1622,6 +1685,8 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
     }
     if(candidate.contains("joints") && !candidate["joints"].isArray())return "Joints must be an array";
     const auto joints=candidate.value("joints").toArray();if(joints.size()>1)return "This assembly slice supports one Slider joint";
+    if(!joints.isEmpty())for(auto it=componentParents.begin();it!=componentParents.end();++it)
+        if(it.value()!=root)return "Slider joints require root-child components; nested motion is unavailable";
     if(!joints.isEmpty()){
         const auto joint=joints[0].toObject(),position=joint["position"].toObject();
         const auto first=joint["component1OccurrenceId"].toString(),second=joint["component2OccurrenceId"].toString();

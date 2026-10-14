@@ -449,6 +449,7 @@ AlloyWindow::AlloyWindow() {
     browserLayout->addWidget(browserTitle);
     auto* browserTree=new BrowserTree;tree_=browserTree;
     tree_->setObjectName("browser.tree"); tree_->setHeaderHidden(true); tree_->setIndentation(17);
+    tree_->setSelectionMode(QAbstractItemView::ExtendedSelection);
     tree_->setDragEnabled(true);tree_->setAcceptDrops(true);tree_->setDropIndicatorShown(true);
     tree_->setDragDropMode(QAbstractItemView::DragDrop);
     browserTree->moveRequested=[this](QTreeWidgetItem* source,QTreeWidgetItem* target){
@@ -490,8 +491,16 @@ AlloyWindow::AlloyWindow() {
         const auto* item=tree_->itemAt(point);
         if(!item || item->isHidden())return;
         if(const auto definition=item->data(0,Qt::UserRole+3).toString();!definition.isEmpty()){
-            QMenu menu(this);auto* opacity=menu.addAction("Opacity Control…");
-            if(menu.exec(tree_->viewport()->mapToGlobal(point))==opacity){
+            QMenu menu(this);auto* move=menu.addAction("Move to Component…");move->setObjectName("context.reparentComponent");
+            auto* opacity=menu.addAction("Opacity Control…");
+            for(const auto& value:document_->authored()["occurrences"].toArray())if(value.toObject()["parentId"]==definition){
+                opacity->setEnabled(false);opacity->setToolTip("Opacity on a nested parent is unavailable");break;
+            }
+            const auto* action=menu.exec(tree_->viewport()->mapToGlobal(point));
+            if(action==move)execute("component.reparentOccurrenceDialog",{{"occurrenceId",[&]{
+                for(const auto& value:document_->authored()["occurrences"].toArray())if(value.toObject()["definitionId"]==definition)return value.toObject()["id"].toString();
+                return QString{};}()}});
+            if(action==opacity){
                 bool ok=false;const int value=QInputDialog::getInt(this,"Opacity Control","Opacity (%)",100,0,100,5,&ok);
                 if(ok)execute("component.opacitySet",{{"definitionId",definition},{"opacity",value/100.0}});
             }return;
@@ -545,6 +554,7 @@ AlloyWindow::AlloyWindow() {
         if(!item->parent() || item->parent()->data(0,Qt::UserRole+4)!="bodies")return;
         const auto bodyId=item->data(0,Qt::UserRole+1).toString();
         QMenu menu(this);menu.setObjectName("context.browserBody");auto* move=menu.addAction("Move/Copy");move->setObjectName("context.moveBody");move->setEnabled(session_.isEmpty());
+        auto* convert=menu.addAction("Create Components from Bodies");convert->setObjectName("context.createComponentsFromBodies");convert->setEnabled(session_.isEmpty());
         auto* rename=menu.addAction("Rename…");rename->setObjectName("context.renameBody");rename->setEnabled(session_.isEmpty());
         auto* reparent=menu.addAction("Move to Component…");reparent->setObjectName("context.reparentBody");reparent->setEnabled(session_.isEmpty());
         auto* remove=menu.addAction("Remove");remove->setObjectName("context.removeBody");
@@ -553,7 +563,7 @@ AlloyWindow::AlloyWindow() {
         auto* mesh=menu.addAction("Save As Mesh…");mesh->setObjectName("context.exportMesh");mesh->setEnabled(session_.isEmpty());
         QJsonArray actions;for(const auto* action:menu.actions())actions.append(QJsonObject{{"id",action->objectName()},{"text",action->text()},{"enabled",action->isEnabled()}});
         QJsonObject context{{"origin","browser"},{"bodyId",bodyId},{"phase","open"},{"actions",actions}};view_->recordContextMenu(context,true);
-        const auto* action=menu.exec(tree_->viewport()->mapToGlobal(point));context["phase"]="closed";context["result"]=action ? action->objectName() : QString("cancelled");view_->recordContextMenu(context);if(action==move)execute("solid.moveDialog",{{"targetBodyId",bodyId}});else if(action==rename)execute("body.renameDialog",{{"bodyId",bodyId}});else if(action==reparent)execute("component.reparentDialog",{{"bodyId",bodyId}});else if(action==remove)execute("body.remove",{{"bodyId",bodyId}});else if(action==mesh)execute("document.exportMeshDialog",{{"bodyId",bodyId}});
+        const auto* action=menu.exec(tree_->viewport()->mapToGlobal(point));context["phase"]="closed";context["result"]=action ? action->objectName() : QString("cancelled");view_->recordContextMenu(context);if(action==move)execute("solid.moveDialog",{{"targetBodyId",bodyId}});else if(action==convert){QJsonArray ids;for(auto* selected:tree_->selectedItems())if(selected->parent() && selected->parent()->data(0,Qt::UserRole+4)=="bodies")ids.append(selected->data(0,Qt::UserRole+1).toString());if(ids.isEmpty())ids.append(bodyId);execute("component.createFromBodiesDialog",{{"bodyIds",ids}});}else if(action==rename)execute("body.renameDialog",{{"bodyId",bodyId}});else if(action==reparent)execute("component.reparentDialog",{{"bodyId",bodyId}});else if(action==remove)execute("body.remove",{{"bodyId",bodyId}});else if(action==mesh)execute("document.exportMeshDialog",{{"bodyId",bodyId}});
     });
     connect(tree_, &QTreeWidget::itemClicked, this, [this](QTreeWidgetItem* item, int) {
         if(!item || item->isHidden() || !(item->flags()&Qt::ItemIsEnabled))return;
@@ -563,7 +573,10 @@ AlloyWindow::AlloyWindow() {
         const auto sketch=(item->parent() && item->parent()->data(0,Qt::UserRole+4)=="sketches") ? item->data(0,Qt::UserRole+2).toString() : QString{};
         const auto plane=(item->parent() && item->parent()->data(0,Qt::UserRole+4)=="planes") ? item->data(0,Qt::UserRole+2).toString() : QString{};
         if(!name.isEmpty())execute("view.orientation",{{"name",name}});
-        else if(!body.isEmpty())execute("selection.set",{{"bodyId",body}});
+        else if(!body.isEmpty()){
+            if(tree_->selectedItems().size()<=1)
+                execute("selection.set",{{"bodyId",body}});
+        }
         else if(!sketch.isEmpty())execute("selection.sketchSet",{{"sketchId",sketch}});
         else if(!plane.isEmpty())execute("selection.planeSet",{{"planeId",plane}});
     });
@@ -1243,6 +1256,62 @@ void AlloyWindow::registerCommands() {
             if(a.value("activate").toBool(true))document_->activateOwner(id);
             return QJsonObject{{"definitionId",id},{"occurrenceId",candidate["occurrences"].toArray().last().toObject()["id"]},{"activeOwnerId",document_->activeOwnerId()}};
         });
+    add("component.createFromBodies","Create Components from Bodies","Convert selected native root solids into identity local components in one history transaction.",
+        {{"bodyIds",parameter("array","Distinct current native root body UUIDs.")}},[this](const auto& a){
+            if(!session_.isEmpty())return failure("active_command","Finish or Cancel before converting bodies");
+            QJsonObject candidate;try{candidate=CadDocument::componentsFromBodiesCandidate(document_->authored(),document_->evaluation(),a["bodyIds"].toArray());}
+            catch(const std::exception& e){return failure("invalid_conversion",QString::fromUtf8(e.what()));}
+            const auto error=document_->commit(candidate,"Create Components from Bodies");if(!error.isEmpty())return failure("invalid_conversion",error);
+            return QJsonObject{{"components",candidate["components"]},{"occurrences",candidate["occurrences"]},{"objectOwners",candidate["objectOwners"]}};
+        });
+    add("component.createFromBodiesDialog","Create Components from Bodies…","Review selected Browser bodies before one conversion transaction.",
+        {{"bodyIds",parameter("array","Selected body UUIDs.")}},[this](const auto& a){
+            if(!session_.isEmpty())return failure("active_command","Finish or Cancel before converting bodies");
+            QJsonObject preview;try{preview=CadDocument::componentsFromBodiesCandidate(document_->authored(),document_->evaluation(),a["bodyIds"].toArray());}
+            catch(const std::exception& e){return failure("invalid_conversion",QString::fromUtf8(e.what()));}
+            auto* dialog=new QDialog(this);dialog->setObjectName("component.convert.dialog");dialog->setWindowTitle("Create Components from Bodies");
+            dialog->setAttribute(Qt::WA_DeleteOnClose);dialog->setWindowModality(Qt::WindowModal);
+            auto* layout=new QVBoxLayout(dialog);auto* summary=new QLabel(dialog);summary->setWordWrap(true);
+            QStringList names;const auto oldCount=document_->authored()["components"].toArray().size();
+            const auto components=preview["components"].toArray();for(int i=oldCount;i<components.size();++i)names.append(components[i].toObject()["name"].toString());
+            summary->setText(QString("Create %1 components:\n%2").arg(names.size()).arg(names.join("\n")));layout->addWidget(summary);
+            auto* status=new QLabel(dialog);status->setWordWrap(true);layout->addWidget(status);
+            auto* buttons=new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel,dialog);layout->addWidget(buttons);
+            connect(buttons,&QDialogButtonBox::rejected,dialog,&QDialog::reject);const auto tabId=activeTabId_;const auto ids=a["bodyIds"].toArray();
+            connect(buttons,&QDialogButtonBox::accepted,dialog,[=,this]{if(activeTabId_!=tabId){status->setText("Return to the original design");return;}
+                const auto result=execute("component.createFromBodies",{{"bodyIds",ids}});if(result["ok"].toBool())dialog->accept();
+                else status->setText(result["error"].toObject()["message"].toString());});
+            dialog->resize(360,200);dialog->show();return QJsonObject{{"visible",true},{"bodyIds",ids}};
+        });
+    add("component.reparentOccurrence","Move Component","Move existing identity component occurrences beneath root or an empty/local parent without changing world geometry.",
+        {{"occurrenceIds",parameter("array","Distinct local occurrence UUIDs.")},{"destinationId",parameter("string","Parent component definition UUID or root document UUID.")}},[this](const auto& a){
+            if(!session_.isEmpty())return failure("active_command","Finish or Cancel before moving components");
+            QJsonObject candidate;try{candidate=CadDocument::reparentOccurrenceCandidate(document_->authored(),a["occurrenceIds"].toArray(),a["destinationId"].toString());}
+            catch(const std::exception& e){return failure("invalid_component_hierarchy",QString::fromUtf8(e.what()));}
+            const auto error=document_->commit(candidate,"Move Component");if(!error.isEmpty())return failure("invalid_component_hierarchy",error);
+            return QJsonObject{{"occurrences",candidate["occurrences"]}};
+        });
+    add("component.reparentOccurrenceDialog","Move Component…","Choose a parent for one existing identity component.",
+        {{"occurrenceId",parameter("string","Local occurrence UUID.")}},[this](const auto& a){
+            if(!session_.isEmpty())return failure("active_command","Finish or Cancel before moving components");
+            const auto id=a["occurrenceId"].toString();QString source,definition;
+            for(const auto& value:document_->authored()["occurrences"].toArray())if(value.toObject()["id"]==id){source=value.toObject()["parentId"].toString();definition=value.toObject()["definitionId"].toString();}
+            if(source.isEmpty())return failure("invalid_component_hierarchy","Choose a local component occurrence");
+            auto* dialog=new QDialog(this);dialog->setObjectName("component.move.dialog");dialog->setWindowTitle("Move Component");dialog->setAttribute(Qt::WA_DeleteOnClose);dialog->setWindowModality(Qt::WindowModal);
+            auto* layout=new QVBoxLayout(dialog);auto* chooser=new QComboBox(dialog);chooser->setObjectName("component.move.parent");
+            chooser->addItem("Alloy Design",document_->authored()["documentId"].toString());
+            for(const auto& value:document_->authored()["components"].toArray())if(value.toObject()["id"]!=definition)
+                chooser->addItem(value.toObject()["name"].toString(),value.toObject()["id"].toString());
+            for(int i=0;i<chooser->count();++i)if(chooser->itemData(i)==source)chooser->setCurrentIndex(i);
+            auto* form=new QFormLayout;form->addRow("Parent",chooser);layout->addLayout(form);
+            auto* status=new QLabel(dialog);status->setWordWrap(true);layout->addWidget(status);
+            auto* buttons=new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel,dialog);layout->addWidget(buttons);
+            connect(buttons,&QDialogButtonBox::rejected,dialog,&QDialog::reject);const auto tabId=activeTabId_;
+            connect(buttons,&QDialogButtonBox::accepted,dialog,[=,this]{if(activeTabId_!=tabId){status->setText("Return to the original design");return;}
+                const auto result=execute("component.reparentOccurrence",{{"occurrenceIds",QJsonArray{id}},{"destinationId",chooser->currentData().toString()}});
+                if(result["ok"].toBool())dialog->accept();else status->setText(result["error"].toObject()["message"].toString());});
+            dialog->resize(350,155);dialog->show();return QJsonObject{{"visible",true},{"occurrenceId",id}};
+        });
     add("body.rename","Rename Body","Set a retained display name on one current local body without changing its feature or geometry.",
         {{"bodyId",parameter("string","Current local body UUID.")},{"name",parameter("string","One-line display name.")}},[this](const auto& a){
             if(!session_.isEmpty())return failure("active_command","Finish or Cancel before renaming a body");
@@ -1374,9 +1443,22 @@ void AlloyWindow::registerCommands() {
                 return failure("invalid_body_selection","Choose bodyId, bodyIds, or allVisible:true");
             QJsonArray ids;
             if(a.contains("occurrenceId")) {
-                QString owner;for(const auto& value:document_->authored()["occurrences"].toArray()){const auto occurrence=value.toObject();if(occurrence["id"]==a["occurrenceId"])owner=occurrence["definitionId"].toString();}
+                QString owner;QMap<QString,QString> parents;
+                for(const auto& value:document_->authored()["occurrences"].toArray()){
+                    const auto occurrence=value.toObject();const auto definition=occurrence["definitionId"].toString();
+                    parents[definition]=occurrence["parentId"].toString();
+                    if(occurrence["id"]==a["occurrenceId"])owner=definition;
+                }
                 if(owner.isEmpty())return failure("invalid_component","Component occurrence does not exist");
-                for(const auto& body:presentationBodies())if(body.ownerId==owner && body.visible)ids.append(body.bodyId);
+                auto belongsTo=[&](QString definition){
+                    QSet<QString> visited;
+                    while(!definition.isEmpty() && !visited.contains(definition)){
+                        if(definition==owner)return true;
+                        visited.insert(definition);definition=parents.value(definition);
+                    }
+                    return false;
+                };
+                for(const auto& body:presentationBodies())if(body.visible && belongsTo(body.ownerId))ids.append(body.bodyId);
             } else if(a.contains("bodyId"))ids.append(a["bodyId"]);
             else if(a.contains("bodyIds"))ids=a["bodyIds"].toArray();
             else {if(!a["allVisible"].toBool())return failure("invalid_body_selection","allVisible must be true");
@@ -4764,10 +4846,15 @@ void AlloyWindow::refresh() {
         // every document revision invalidates native accessibility table cells;
         // an Undo that removes a selected sketch can crash inside Qt's row
         // removal notification. Hidden rows retain their identity for Redo.
-        auto browserRow=[](QTreeWidgetItem* parent,const QString& id,int role) {
+        auto browserRow=[this](QTreeWidgetItem* parent,const QString& id,int role) {
             for(int i=0;i<parent->childCount();++i) {
                 auto* item=parent->child(i);
                 if(item->data(0,role).toString()==id)return item;
+            }
+            for(QTreeWidgetItemIterator it(tree_);*it;++it)if((*it)->data(0,role).toString()==id) {
+                auto* item=*it;if(auto* previous=item->parent()) {
+                    previous->takeChild(previous->indexOfChild(item));parent->addChild(item);return item;
+                }
             }
             return new QTreeWidgetItem(parent);
         };
@@ -4781,7 +4868,20 @@ void AlloyWindow::refresh() {
             if(!radio){radio=new QRadioButton;radio->setAutoExclusive(false);radio->setObjectName("component.activate."+id);tree_->setItemWidget(node,0,radio);connect(radio,&QRadioButton::clicked,this,[this,id]{const auto result=execute("component.activate",{{"definitionId",id}});if(!result["ok"].toBool()){displayedDocumentRevision_=std::numeric_limits<quint64>::max();refresh();statusBar()->showMessage(result["error"].toObject()["message"].toString(),5000);}});}
             radio->setText(component["name"].toString());radio->setChecked(document_->activeOwnerId()==id);
         }
-        for(int i=0;i<rootNode->childCount();++i){auto* node=rootNode->child(i);const auto id=node->data(0,Qt::UserRole+3).toString();if(!id.isEmpty() && !liveOwners.contains(id))node->setHidden(true);}
+        for(const auto& value:document_->authored()["occurrences"].toArray()) {
+            const auto occurrence=value.toObject();auto* node=ownerNodes.value(occurrence["definitionId"].toString());
+            auto* parent=ownerNodes.value(occurrence["parentId"].toString());
+            if(node && parent && node->parent()!=parent){node->parent()->takeChild(node->parent()->indexOfChild(node));parent->addChild(node);node->setExpanded(true);}
+        }
+        QList<QTreeWidgetItem*> rootComponents;
+        for(const auto& value:document_->authored()["occurrences"].toArray()) {
+            const auto occurrence=value.toObject();if(occurrence["parentId"]!=document_->authored()["documentId"])continue;
+            auto* node=ownerNodes.value(occurrence["definitionId"].toString());if(!node || node->parent()!=rootNode)continue;
+            rootComponents.append(rootNode->takeChild(rootNode->indexOfChild(node)));
+        }
+        int componentPosition=rootNode->indexOfChild(bodiesNode_);
+        for(auto* node:rootComponents){rootNode->insertChild(componentPosition++,node);node->setExpanded(true);}
+        for(QTreeWidgetItemIterator it(tree_);*it;++it){auto* node=*it;const auto id=node->data(0,Qt::UserRole+3).toString();if(!id.isEmpty() && !liveOwners.contains(id))node->setHidden(true);}
         if(auto* radio=qobject_cast<QRadioButton*>(tree_->itemWidget(rootNode,0)))radio->setChecked(document_->activeOwnerId()==document_->authored()["documentId"].toString());
         auto ownerFolder=[&](const QString& owner,const QString& kind,QTreeWidgetItem* rootFolder){
             auto* node=ownerNodes.value(owner,rootNode);if(node==rootNode)return rootFolder;

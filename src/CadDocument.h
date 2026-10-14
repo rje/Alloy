@@ -25,6 +25,10 @@ public:
     QString activateOwner(const QString& ownerId);
     static bool hasOwner(const QJsonObject& authored, const QString& ownerId);
     static QJsonObject componentCandidate(const QJsonObject& authored, const QString& name);
+    static QJsonObject componentsFromBodiesCandidate(const QJsonObject& authored,const EvaluatedDocument& evaluated,
+        const QJsonArray& bodyIds);
+    static QJsonObject reparentOccurrenceCandidate(const QJsonObject& authored,const QJsonArray& occurrenceIds,
+        const QString& destinationId);
     static QJsonObject renameBodyCandidate(const QJsonObject& authored,const EvaluatedDocument& evaluated,
         const QString& bodyId,const QString& name);
     static QJsonObject reparentCandidate(const QJsonObject& authored,const EvaluatedDocument& evaluated,
