@@ -127,11 +127,18 @@ same app process and control API stayed healthy. Selected-row OS AX edit/history
 remains unverified; no application crash or complete accessibility pass asserted.
 Evidence: external fnd015-accessibility-2026-10-14/normal-launch-01. Avoid another
 control-acquisition loop; continue a bounded feature with Qt/native/API evidence.
-SOL-016/#154 is active for one combined native Qt five-profile toggle/arrow-Cut
-check, reusing accepted geometry rather than repeating its kernel suite. SOL-058/#403
-retains physical held-modifier macOS/Windows checks; TUT-003 depends on both.
-Next bounded implementation: SKT-089/#404, explicit driven continuation for a
-new redundant dimension; source contract prepared, broader SKT-021 stays Todo.
+SOL-016/#154 returned Todo: combined5-to4-to5 Qt selection and signed arrow
+produced correct one-body geometry, but the operation popup stayed visible and
+the initial direct OK delivery bypassed its actual recipient. Independent review
+rejected cumulative UI acceptance. Two bounded real-row/readiness hypotheses
+failed; external sol016-five-profile-qt-2026-10-14/native-01 preserves evidence
+and harness, with no product fix or failing CMake target retained. Stop retries.
+SOL-058/#403 retains physical held-modifier macOS/Windows checks; TUT-003 depends
+on both. SKT-089/#404 is now active: explicit driven continuation for a new
+redundant dimension, using the external source contract. Sol implements on main
+with the sole build/GUI lease; Astra reviews independently. Broader SKT-021 stays
+Todo. Keep tests proportional and continue implementation rather than repeating
+unchanged geometry or unavailable computer-control gates.
 Backlog is404 issues with acyclic dependencies. Astra independently verifies.
 Only main and its existing build are used; no inactive worktrees accumulate.
 DOC-031/#348 is independently accepted at `89782cf`: unchanged-product native09

@@ -21,8 +21,9 @@ coincident origin/source-center reference conflict. SOL-056/#398, DOC-033/#399 a
 selection and retained edit sources. TUT-028 is accepted at f9620ab with final21s continuation and a124s joined creation
 film. TUT-019/#305 cumulative native piston walkthrough is accepted at acc8616; next
 FND-015/#158 remains Todo: constraint activation passed, but OS AX history
-observation lost window binding. SOL-016/#154 now completes the bounded cumulative Qt profile-toggle/arrow-Cut
-gate. SOL-058/#403 preserves physical held-modifier checks on macOS/Windows as Todo.
+observation lost window binding. SOL-016/#154 remains Todo after an unaccepted popup-to-OK route; its geometry
+and modifier evidence remain partial. SOL-058/#403 preserves physical held-modifier
+checks. SKT-089/#404 is active for the explicit redundant-dimension driven offer.
 ASM-012/#343 is Todo after an inconclusive physical Browser drag recheck; its
 separate body and Sketches-folder drag gate remains unaccepted. See [the current sequence](tutorial-sequence.json)
 and [continuation context](../context.md) for accepted evidence and remaining work.
