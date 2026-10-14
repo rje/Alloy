@@ -1,5 +1,10 @@
 # Surface Thicken solid orientation
 
+Independently accepted and integrated on 2026-10-14. Source review and the
+focused core check passed; unchanged presentation did not require another
+full-app run. The retained test log is external at
+`../Alloy-reference-records/deliverables/shoehorn-workflow-2026-10-14/fillet-orientation-core-01/ctest.log`.
+
 The retained guided-sheet Thicken now places material orientation on its one
 shell inside a forward solid wrapper when OCCT returns negative signed volume.
 Its six faces and twelve edges remain the same current shapes with stable
