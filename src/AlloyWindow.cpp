@@ -7644,15 +7644,18 @@ void AlloyWindow::showSketch() {
         const bool faceLoop=inputs["plane"]=="face" && sketchParameters["entities"].toArray().isEmpty() && !projectedChain;
         auto* offsetTitle=new QLabel(faceLoop ? "One Side · Select top-face boundary" :
             projectedChain ? "One Side · Select projected bottom chain and shoulders" : "One Side · Select circle or open fit spline");
-        offsetTitle->setObjectName("sketch.offset.title");offsetLayout->addWidget(offsetTitle);
+        offsetTitle->setObjectName("sketch.offset.title");offsetTitle->setWordWrap(true);
+        offsetLayout->addWidget(offsetTitle);
         auto* chain=new QCheckBox("Chain Selection");chain->setObjectName("sketch.offset.chain");chain->setChecked(true);chain->setVisible(faceLoop||projectedChain);
         offsetLayout->addWidget(chain);
         connect(chain,&QCheckBox::toggled,this,[this](bool checked){if(!checked && session_.contains("pendingLoopOffset"))cancelLoopOffset();});
         auto* offsetRow=new QHBoxLayout;
         sketchOffsetDistance_=new QLineEdit(faceLoop ? "-1.5" : projectedChain ? "-0.25" : "1");sketchOffsetDistance_->setObjectName("sketch.offset.distance");
         sketchOffsetDistance_->setPlaceholderText("Distance ("+inputs["units"].toString()+")");
-        offsetRow->addWidget(sketchOffsetDistance_);
-        auto* flip=new QPushButton("Flip");flip->setObjectName("sketch.offset.flip");offsetRow->addWidget(flip);offsetLayout->addLayout(offsetRow);
+        sketchOffsetDistance_->setMinimumWidth(0);offsetRow->addWidget(sketchOffsetDistance_,1);
+        auto* flip=new QPushButton("Flip");flip->setObjectName("sketch.offset.flip");
+        flip->setSizePolicy(QSizePolicy::Fixed,QSizePolicy::Fixed);offsetRow->addWidget(flip);
+        offsetLayout->addLayout(offsetRow);
         auto* offsetActions=new QHBoxLayout;auto* apply=new QPushButton("OK");apply->setObjectName("sketch.offset.accept");
         auto* cancel=new QPushButton("Cancel Offset");cancel->setObjectName("sketch.offset.cancel");
         offsetActions->addWidget(apply);offsetActions->addWidget(cancel);offsetLayout->addLayout(offsetActions);
