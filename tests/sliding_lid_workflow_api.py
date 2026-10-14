@@ -334,6 +334,10 @@ with application(a.app, out) as (raw, transcript), ExitStack() as cleanup:
     lid_top=top_candidates[0]
     top_center=(lid_top['u1Mm']+lid_top['u2Mm'])/2
     close(top_center,37)
+    call('view.zoom',{'factor':2.5})
+    focus=call('view.projectSketchPoint',{'sketchId':draft()['id'],'uMm':top_center,'vMm':100})
+    viewport=call('app.state')['viewport']
+    call('view.pan',{'x':viewport['width']/2-focus['x'],'y':viewport['height']/2-focus['y']})
     call('sketch.centerPointEllipse', {'centerX':top_center,'centerY':100,
         'firstX':top_center+7.5,'firstY':100,'contourX':top_center,'contourY':101,
         'units':'mm','centerSnapTarget':{'kind':'midpoint','entityId':lid_top['id']}})
