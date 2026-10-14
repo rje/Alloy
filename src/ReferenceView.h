@@ -113,6 +113,8 @@ public:
     void showExtrudePreview(const EvaluatedBody& body, const EvaluatedProfile& profile, double distanceMm, const QJsonArray& sourceProfileIds = {}, const QString& units = "mm", double startOffsetMm = 0);
     void showCutPreview(const EvaluatedBody& body, const std::vector<EvaluatedProfile>& profiles, double distanceMm,
         const QJsonArray& sourceProfileIds, const QString& units, double startOffsetMm = 0);
+    void showSurfaceTrimPreview(const TopoDS_Shape& splitShape, const QString& replacedBody,
+        const std::vector<TopoDS_Face>& removedRegions);
     void clearExtrusionCue();
     void showExtrudeHandle(const EvaluatedProfile& profile,const QJsonArray& sourceProfileIds,const QString& units,const QString& operation,double distanceMm = 0,double startOffsetMm = 0);
     void showRevolveCue(const QJsonObject& geometry,const EvaluatedProfile& profile);

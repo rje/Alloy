@@ -3701,3 +3701,7 @@ IDs; broader rail/contact and handle-bridge modes remain separate. Focused core,
 37-call real-app API, and Qt-delivered viewport selection/Cancel checks passed.
 Independent Astra review accepted this bounded scope; main integration build
 and rail core check pass. See [validation](validation/surface-rail-loft.md).
+
+## 2026-10-14 paired-sketch surface Trim candidate
+
+SRF-013/#354 has an isolated `feat/surface-iron-trim` candidate: retained two-spline XZ sketch-normal through-target Trim for a current two-face open sheet. The shared API/native dock previews selected inner regions red, then removes one or both with stable source-derived face/edge IDs. Focused core, real-app API, and Qt native checks pass; independent compatibility review and integration are pending. The current authored rail-sheet fixture creates one central seam opening, so it is an ingredient rather than full bilateral iron geometry. A separate OCCT probe against the SRF-017 two-patch exterior produces two closed side loops usable by the handle bridge, but retained SRF-017/SRF-015 integration remains open. Surface-as-tool trials remain SRF-016. See [bounded validation](validation/surface-trim.md).

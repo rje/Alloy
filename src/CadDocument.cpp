@@ -154,6 +154,14 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
                 return {{"featureId",feature["id"]},{"featureType","surfaceExtrude"},
                     {"code","surface_source_unavailable"},{"message","Surface Extrude source sketch must precede the feature"}};
         }
+        if(feature["type"]=="surfaceTrim") {
+            const auto p=feature["parameters"].toObject();const auto sketch=p["toolSketchId"].toString();
+            const auto body=p["targetBodyId"].toString();
+            if(!positions.contains(sketch) || positions[sketch]>=i || features[positions[sketch]].toObject()["type"]!="sketch"
+                || !bodyPositions.contains(body) || bodyPositions[body]>=i)
+                return {{"featureId",feature["id"]},{"featureType","surfaceTrim"},
+                    {"code","trim_dependency_unavailable"},{"message","Trim tool sketch and target sheet must precede the feature"}};
+        }
         if(feature["type"]=="circularPattern"){const auto p=feature["parameters"].toObject();for(int n=1;n<p["quantity"].toInt();++n)bodyPositions[CircularPattern::bodyId(feature["id"].toString(),p["sourceBodyId"].toString(),n)]=i;}
         if(feature["type"]=="stepAssemblyImport")
             for(const auto& value:feature["parameters"].toObject()["assembly"].toObject()["occurrences"].toArray())
@@ -243,6 +251,13 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
                 {"code","cross_component_dependency"},{"message","Remove history belongs to the surface producer's modeling owner"}};
             guarded.remove("bodyId");
         }
+        if(f["type"]=="surfaceTrim"){
+            const auto body=guarded["targetBodyId"].toString(),sketch=guarded["toolSketchId"].toString();
+            if(referencedOwners.value(body)!=owner || referencedOwners.value(sketch)!=root)
+                return {{"featureId",f["id"]},{"code","cross_component_dependency"},
+                    {"message","Sketch Trim belongs to the target sheet owner and uses a root sketch tool"}};
+            guarded.remove("targetBodyId");guarded.remove("toolSketchId");
+        }
         if(crossOwner(guarded))return {{"featureId",f["id"]},{"code","cross_component_dependency"},{"message","Cross-component modeling references are not supported"}};
     }
     QSet<QString> activeBodies;
@@ -265,6 +280,11 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
                 return {{"featureId",feature["id"]},{"featureType","removeBody"},{"bodyId",body},
                     {"code","remove_body_unavailable"},{"message","Remove requires an earlier active body"}};
             activeBodies.remove(body);continue;
+        }
+        if(feature["type"]=="surfaceTrim"){
+            const auto body=feature["parameters"].toObject()["targetBodyId"].toString();
+            if(!activeBodies.contains(body))return {{"featureId",feature["id"]},{"featureType","surfaceTrim"},
+                {"code","trim_target_unavailable"},{"message","Trim target must remain active before this feature"}};
         }
         if(feature["type"]=="thicken"){
             const auto ref=feature["parameters"].toObject()["sourceFace"].toObject();
@@ -1247,6 +1267,40 @@ QJsonObject CadDocument::surfaceExtrudeCandidate(const QJsonObject& authored,con
     return candidate;
 }
 
+QJsonObject CadDocument::surfaceTrimCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
+    const QSet<QString> allowed{"targetBodyId","toolSketchId","toolEntityIds","removedRegionIds",
+        "throughMarginMm","featureId","newFeatureId","ownerId","name"};
+    for(auto it=arguments.begin();it!=arguments.end();++it)if(!allowed.contains(it.key()))
+        throw std::invalid_argument("Unknown Surface Trim argument");
+    if(arguments.contains("featureId") && (arguments.contains("newFeatureId") || arguments.contains("ownerId")))
+        throw std::invalid_argument("Surface Trim edit retains feature and owner identities");
+    auto candidate=authored;auto features=candidate["features"].toArray();QJsonObject feature;int index=-1;
+    if(arguments.contains("featureId")){
+        for(int i=0;i<features.size();++i)if(features[i].toObject()["id"]==arguments["featureId"]){feature=features[i].toObject();index=i;break;}
+        if(index<0 || feature["type"]!="surfaceTrim")throw std::invalid_argument("Surface Trim feature unavailable");
+    }else feature={{"id",arguments.value("newFeatureId").toString(newId())},
+        {"ownerId",arguments.value("ownerId").toString(authored["documentId"].toString())},
+        {"type","surfaceTrim"},{"name","Trim"},{"visible",true}};
+    auto p=feature["parameters"].toObject();
+    for(const auto& key:{"targetBodyId","toolSketchId","toolEntityIds","removedRegionIds","throughMarginMm"})
+        if(arguments.contains(key))p[key]=arguments[key];
+    if(!p.contains("throughMarginMm"))p["throughMarginMm"]=10.0;
+    p["projectionMode"]="sketchNormalThroughTarget";
+    for(const auto& value:features){const auto source=value.toObject();
+        if(source["id"]==p["toolSketchId"]){
+            if(source["type"]!="sketch" || source["parameters"].toObject()["plane"]!="XZ")
+                throw std::invalid_argument("This Trim slice requires an XZ origin sketch tool");
+            p["sourcePlane"]="XZ";p["sourceNormal"]=SketchGeometry::frame("XZ")["normal"];
+            break;
+        }
+    }
+    feature["parameters"]=p;if(arguments.contains("name"))feature["name"]=arguments["name"];
+    if(index<0)features.append(feature);else features[index]=feature;
+    candidate["features"]=features;
+    const auto error=validateStructure(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());
+    return candidate;
+}
+
 QJsonObject CadDocument::removeBodyCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
     const QSet<QString> allowed{"bodyId","featureId","newFeatureId","ownerId","name"};
     for(auto it=arguments.begin();it!=arguments.end();++it)if(!allowed.contains(it.key()))
@@ -1839,6 +1893,26 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
                     || p[key].toDouble()<.001 || p[key].toDouble()>100000)
                     return "Surface Extrude Two Sides reaches must each be 0.001..100000 mm";
             ids.insert(feature["bodyId"].toString());continue;
+        }
+        if(type=="surfaceTrim"){
+            if(feature.contains("bodyId") || p.size()!=8 || !validId(p["targetBodyId"].toString())
+                || !validId(p["toolSketchId"].toString()) || p["sourcePlane"]!="XZ"
+                || p["projectionMode"]!="sketchNormalThroughTarget"
+                || p["sourceNormal"].toArray()!=QJsonArray{0,-1,0}
+                || !p["throughMarginMm"].isDouble() || !std::isfinite(p["throughMarginMm"].toDouble())
+                || p["throughMarginMm"].toDouble()<.001 || p["throughMarginMm"].toDouble()>1000
+                || !p["toolEntityIds"].isArray() || p["toolEntityIds"].toArray().size()!=2
+                || !p["removedRegionIds"].isArray() || p["removedRegionIds"].toArray().isEmpty()
+                || p["removedRegionIds"].toArray().size()>2)
+                return "Surface Trim requires two XZ fit-spline tools, sketch-normal projection and selected inner regions";
+            QSet<QString> chosen;
+            for(const auto& value:p["toolEntityIds"].toArray()){
+                const auto valueId=value.toString();if(!validId(valueId) || chosen.contains(valueId))
+                    return "Surface Trim tool entity IDs must be distinct retained UUIDs";chosen.insert(valueId);}
+            chosen.clear();for(const auto& value:p["removedRegionIds"].toArray()){
+                const auto valueId=value.toString();if(!validId(valueId) || chosen.contains(valueId))
+                    return "Surface Trim region IDs must be distinct retained UUIDs";chosen.insert(valueId);}
+            continue;
         }
         if(type=="removeBody"){
             if(feature.contains("bodyId") || p.size()!=1 || !validId(p["bodyId"].toString()))

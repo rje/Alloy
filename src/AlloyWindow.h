@@ -232,6 +232,16 @@ private:
     void showSurfaceExtrude();
     QDockWidget* surfaceExtrudeDock_=nullptr;
     QShortcut* surfaceExtrudeEscape_=nullptr;
+    QJsonObject surfaceTrimCandidate(const QJsonObject& inputs) const;
+    QJsonObject beginSurfaceTrim(const QJsonObject& overrides={});
+    QJsonObject previewSurfaceTrim();
+    QJsonObject selectSurfaceTrimEntity(const QString& sketchId,const QString& entityId);
+    QJsonObject selectSurfaceTrimRegion(const QString& regionId);
+    QJsonObject pickSurfaceTrim(double x,double y);
+    void showSurfaceTrim();
+    QDockWidget* surfaceTrimDock_=nullptr;
+    QShortcut* surfaceTrimEscape_=nullptr;
+    std::vector<EvaluatedBody> surfaceTrimPickBodies_;
     QJsonObject thickenCandidate(const QJsonObject& inputs) const;
     QJsonObject removeBodyCandidate(const QJsonObject& inputs) const;
     QJsonObject beginRemoveBody(const QJsonObject& overrides={});

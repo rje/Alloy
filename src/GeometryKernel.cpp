@@ -9,6 +9,7 @@
 #include "SolidHole.h"
 #include "SolidLoft.h"
 #include "SurfaceExtrude.h"
+#include "SurfaceTrim.h"
 #include "SolidThicken.h"
 #include "SolidRevolve.h"
 #include "SolidSweep.h"
@@ -903,6 +904,11 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
                 evaluated.bodies.push_back(SolidLoft::evaluate(feature,evaluated));
             } else if(type=="surfaceExtrude") {
                 evaluated.bodies.push_back(SurfaceExtrude::evaluate(feature,evaluated));
+            } else if(type=="surfaceTrim") {
+                const auto target=std::find_if(evaluated.bodies.begin(),evaluated.bodies.end(),
+                    [&](const auto& body){return body.bodyId==parameters["targetBodyId"].toString();});
+                if(target==evaluated.bodies.end())reject("trim_target_unavailable","Trim target must be active earlier in history");
+                SurfaceTrim::evaluate(*target,feature,evaluated);
             } else if(type=="removeBody") {
                 const auto bodyId=parameters["bodyId"].toString();
                 const auto target=std::find_if(evaluated.bodies.begin(),evaluated.bodies.end(),

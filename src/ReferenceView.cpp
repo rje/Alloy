@@ -1961,6 +1961,24 @@ void ReferenceView::showCutPreview(const EvaluatedBody& body,const std::vector<E
     setExtrusionCue(profiles.front(),distanceMm,sourceProfileIds,units,"cut",startOffsetMm);
     context_->UpdateCurrentViewer();
 }
+void ReferenceView::showSurfaceTrimPreview(const TopoDS_Shape& splitShape,const QString& replacedBody,
+    const std::vector<TopoDS_Face>& removedRegions) {
+    replacePreview(splitShape,replacedBody,true);
+    if(context_.IsNull())return;
+    for(const auto& face:removedRegions){
+        Handle(AIS_Shape) overlay=new AIS_Shape(face);
+        overlay->SetColor(Quantity_Color(.91,.24,.27,Quantity_TOC_sRGB));
+        overlay->SetTransparency(.25);
+        overlay->SetOwnDeviationCoefficient(.0001);overlay->SetOwnDeviationAngle(.04);
+        overlay->SetPolygonOffsets(Aspect_POM_Fill,-2.f,-4.f);
+        overlay->Attributes()->SetFaceBoundaryDraw(true);
+        overlay->Attributes()->SetFaceBoundaryAspect(new Prs3d_LineAspect(
+            Quantity_Color(.80,.12,.16,Quantity_TOC_sRGB),Aspect_TOL_SOLID,2.0*devicePixelRatioF()));
+        overlay->SetZLayer(Graphic3d_ZLayerId_Topmost);
+        context_->Display(overlay,AIS_Shaded,-1,false);context_->Deactivate(overlay);cutTools_.push_back(overlay);
+    }
+    context_->UpdateCurrentViewer();
+}
 void ReferenceView::clearExtrusionCue() {
     if(!context_.IsNull())for(const auto& cue:extrusionCue_)context_->Remove(cue,false);
     extrusionCue_.clear();extrusionCueState_={};
