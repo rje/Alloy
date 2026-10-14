@@ -154,6 +154,10 @@ These rules supersede any earlier suggestion to verify behavior in proprietary s
   assurance; do not pursue exhaustive hypothetical edge cases. Once appropriate
   checks pass, move on unless a meaningful change, failure or unresolved concern
   justifies further testing. Avoid repeated full-app runs for unchanged behavior.
+- Retire inactive agent worktrees after integration and verification. Confirm no
+  agent or process needs them, preserve uncommitted work and unique evidence, then
+  remove the checkout and generated builds. Keep branch refs until their work is
+  accounted for; do not accumulate completed worktrees as an evidence archive.
 - Preserve user work. Do not publish, push, or create external services as part
   of local project setup unless requested.
 - GitHub work uses `gh` and documented APIs. Do not use browser/computer control

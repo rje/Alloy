@@ -2,6 +2,14 @@
 
 ## Current queue (2026-10-14)
 
+Worktree cleanup removed 180 inactive checkouts, retaining branch refs and a
+verified external artifact archive under
+`maintenance/worktree-cleanup-2026-10-14/`. Only main, active
+`sketch-offset-union`, and `native-exchange` / `sketch-badges` remain; the latter
+two retain untracked local files. Old worktree build paths no longer exist:
+recreate a branch checkout if needed and recover evidence using that archive
+manifest. Canonical external deliverables and the video gallery are unchanged.
+
 SKT-074/#330 is In Progress after independent design review. It adds explicit
 opt-in retained Offset-group union intent to the existing Extrude/Cut path,
 resolving only exact current cell coverage and retaining ordinary stale-cell
