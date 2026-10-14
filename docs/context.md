@@ -24,7 +24,11 @@ history entry; OK adds one independent analysis action. Independent Astra review
 Public nested-interaction mechanics remain unknown; this is an
 explicit Alloy policy. Nonempty selected-source preservation is not separately
 proved by the pending-Project fixture. See [receipt](validation/section-during-sketch.md).
-SKT-078/#377 is now active for native Offset union selection/replace/clear.
+SKT-078/#377 is independently accepted at `0c49262` + `b01084a`. Native03
+verifies focused Qt keyboard selection, ordinary replacement, aggregate Clear,
+Cancel, commit and undo/redo. Pointer-row clicking remains unverified. The Clear
+row now removes the staged aggregate and disables preview/OK correctly.
+SKT-077/#375 is active for native displaced-face origin snapping.
 Implementation and validation reuse main and its build; no new worktrees.
 FND-001 comparison policy is accepted in docs/compatibility.md; FND-025/#376
 retains unknown public screenshot metadata and unproven layout generations.
