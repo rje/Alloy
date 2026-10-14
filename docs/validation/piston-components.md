@@ -1,4 +1,4 @@
-# Piston component hierarchy candidate
+# Piston component hierarchy
 
 ASM-013 adds one retained `component.createFromBodies` transaction for selected
 current native root solids. It creates one local definition and identity
@@ -36,3 +36,7 @@ Slider joint because the current Slider evaluator does not move descendants.
 Parent opacity is disabled/refused until it has defined descendant semantics.
 No physical drag gesture is claimed; the native proof uses Qt-delivered
 selection and context actions.
+
+Independent Astra review accepts candidate `3c0e208`; main integration is
+`7bbf456`. The main application build and focused `piston_components` check
+pass (0.56 s). Acceptance is bounded to the contract and exclusions above.

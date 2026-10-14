@@ -23,8 +23,8 @@ The sliding-lid workflow and enclosure mounting prefix are accepted. The port/ca
 navigation and bounded exterior guide-rail Loft are accepted. Paired-sketch Surface Trim is accepted. Exterior quality blocks the bilateral
 handle bridge, with explicit geometric evidence in SRF-017. Piston research is
 accepted; four bounded assembly children now preserve conversion/hierarchy,
-Revolute/Pin, coupled motion and linked parent copy. Component fixture work and
-solver admission are active in parallel. Exact shoehorn corner rounding and the enclosure
+Revolute/Pin, coupled motion and linked parent copy. The native component fixture/hierarchy is independently accepted. Retained
+Revolute/Pin and a bounded mature solver adapter are active parallel lanes. Exact shoehorn corner rounding and the enclosure
 alignment rim remain blocked geometry follow-ups. Complete source operations, readable constraint and
 selection states, edit/history/reopen, full creation recordings and independently
 checked outputs remain acceptance requirements. Detailed source URLs and

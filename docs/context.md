@@ -27,8 +27,13 @@ review verified this bounded evaluator/fixture blocker. No tolerance relaxation,
 retained implementation or more kernel experiments in this increment.
 RES-019 piston public source research is accepted; exact public neutral sample
 is not established, and the independently authored adapted fixture is still
-implementation work. ASM-013/#362 component/fixture hierarchy and ASM-014/#363
-bounded mature solver admission are active parallel lanes. ASM-015/#364 coupled
+implementation work. ASM-013/#362 native fixture and identity component hierarchy are independently
+accepted and integrated at `7bbf456`: four valid solids, native conversion/nesting,
+source radius edit, history/reopen and parent STL pass. See
+[acceptance](validation/piston-components.md). Main build and focused core pass.
+ASM-014/#363 now has parallel isolated lanes for retained circular-origin
+Revolute/Pin authority and a replaceable shared mature-solver adapter. The
+headless solver probe is provisional evidence only, not integrated joint support. ASM-015/#364 coupled
 closed-loop motion and ASM-016/#365 linked nested copy are Todo dependencies.
 SRF-016/#360 preserves later surface-as-tool Trim; accepted
 SRF-013 is scoped to sketch-normal paired-spline Trim only. Exact shoehorn R12 and enclosure rim

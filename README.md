@@ -1,5 +1,10 @@
 # Alloy
 
+The [piston component fixture](docs/validation/piston-components.md) now creates
+four editable native parts, converts them to components and nests the piston
+parts beneath a parent. Source edits, history, reopen and subtree STL export
+pass. Retained joints and coupled motion remain the next assembly steps.
+
 The [Surface workspace](docs/validation/surface-workspace-navigation.md) now exposes
 Extrude, guided Loft, [paired-sketch Trim](docs/validation/surface-trim.md)
 and retained Remove through shared native/API controls.
