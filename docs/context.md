@@ -14,8 +14,13 @@ Root is building the cumulative from-blank runner in
 `../Alloy-worktrees/shoehorn-workflow/tests/shoehorn_workflow_api.py`. Its first
 56-call source prefix passes driving130/50/16 spline dimensions, endpoint
 planes, midpoint sections and actual guided surface/save/reopen. External
-evidence is `deliverables/shoehorn-workflow-2026-10-14/prefix-01/`; a new
-driving bend-dimension edit check and creation recording are pending.
+evidence is `deliverables/shoehorn-workflow-2026-10-14/prefix-01/`. Prefix02
+also passes the driving bend16→18 edit, stable sheet face identity, undo/redo
+and saved variant reopen. The isolated runner is committed at `a830376`;
+independent review and creation recording remain pending. GEO-004 tangent
+plane at a retained curved-face endpoint is active in a separate implementation
+lane. VIS-003/#349 tracks the public-reference yellow sheet material distinction;
+its two-color candidate is `3c9cc3d`, awaiting real-app capture and review.
 
 ## Accepted local object organization (2026-10-14)
 
