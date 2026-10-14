@@ -162,9 +162,9 @@ protected:
         QRadioButton::mouseMoveEvent(event);
     }
     void mouseReleaseEvent(QMouseEvent* event) override {
-        if(event->button()==Qt::LeftButton && cancelled_){cancelled_=false;event->accept();return;}
+        if(event->button()==Qt::LeftButton && cancelled_){cancelled_=false;setDown(false);event->accept();return;}
         if(event->button()==Qt::LeftButton && dragging_){
-            pressed_=false;dragging_=false;unsetCursor();
+            pressed_=false;dragging_=false;setDown(false);unsetCursor();
             if(dropRequested)dropRequested(event->globalPosition().toPoint());
             event->accept();return;
         }
@@ -5256,9 +5256,16 @@ void AlloyWindow::refresh() {
                 auto* target=browserTree->itemAt(browserTree->viewport()->mapFromGlobal(global));
                 if(target && browserTree->moveRequested)browserTree->moveRequested(node,target);
             };
-            radio->hoverRequested=[browserTree=dynamic_cast<BrowserTree*>(tree_),node](const QPoint& global){
+            radio->hoverRequested=[this,browserTree=dynamic_cast<BrowserTree*>(tree_),node](const QPoint& global){
                 auto* target=browserTree->itemAt(browserTree->viewport()->mapFromGlobal(global));
-                if(target && target!=node && !target->data(0,Qt::UserRole+3).toString().isEmpty())browserTree->setCurrentItem(target);
+                if(target && target!=node){
+                    const auto destination=target->data(0,Qt::UserRole+3).toString();
+                    if(!destination.isEmpty())try{
+                        CadDocument::reparentOccurrenceCandidate(document_->authored(),QJsonArray{node->data(0,Qt::UserRole+8).toString()},destination);
+                        browserTree->setCurrentItem(target);return;
+                    }catch(const std::exception&){}
+                }
+                browserTree->setCurrentItem(node);
             };
             radio->setText(label);radio->setToolTip(assembly ? "Assembly component · Double-click to rename" : "Part component · Double-click to rename");radio->setChecked(document_->activeOwnerId()==id);
         }

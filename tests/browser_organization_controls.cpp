@@ -30,7 +30,7 @@ class BrowserOrganizationControlsTest final:public QObject {
         return nullptr;
     }
     static void menuAction(QWidget* target,const QString& name){
-        QTimer::singleShot(40,target,[name]{auto* menu=qobject_cast<QMenu*>(QApplication::activePopupWidget());
+        QTimer::singleShot(40,qApp,[name]{auto* menu=qobject_cast<QMenu*>(QApplication::activePopupWidget());
             if(!menu)qFatal("Browser context menu unavailable");
             for(auto* action:menu->actions())if(action->objectName()==name){
                 QTest::mouseClick(menu,Qt::LeftButton,Qt::NoModifier,menu->actionGeometry(action).center());return;}
@@ -80,6 +80,9 @@ private slots:
         const auto created=call(w,"document.inspect")["authored"].toObject();
         const auto parent=created["components"].toArray().last().toObject()["id"].toString();
         QVERIFY(!parent.isEmpty());
+        tree->collapseAll();
+        tree->topLevelItem(0)->setExpanded(true);
+        QApplication::processEvents();
         {
             auto* sourceRow=row(tree,occurrences[2].toObject()["id"].toString(),Qt::UserRole+8);QVERIFY(sourceRow);
             auto* radio=qobject_cast<QRadioButton*>(tree->itemWidget(sourceRow,0));QVERIFY(radio);
@@ -90,14 +93,27 @@ private slots:
             QMouseEvent release(QEvent::MouseButtonRelease,radio->mapFromGlobal(outside),outside,Qt::LeftButton,Qt::NoButton,Qt::NoModifier);
             QApplication::sendEvent(radio,&release);
             QCOMPARE(call(w,"document.inspect")["authored"].toObject(),created);
+            QVERIFY(!radio->isDown());
+            auto* targetRow=row(tree,parent,Qt::UserRole+3);QVERIFY(targetRow);
+            const auto targetPoint=tree->viewport()->mapToGlobal(tree->visualItemRect(targetRow).center());
+            QTest::mousePress(radio,Qt::LeftButton,Qt::NoModifier,radio->rect().center());
+            QMouseEvent escapeMove(QEvent::MouseMove,radio->mapFromGlobal(targetPoint),targetPoint,Qt::NoButton,Qt::LeftButton,Qt::NoModifier);
+            QApplication::sendEvent(radio,&escapeMove);
+            QTest::keyClick(radio,Qt::Key_Escape);
+            QMouseEvent escapeRelease(QEvent::MouseButtonRelease,radio->mapFromGlobal(targetPoint),targetPoint,Qt::LeftButton,Qt::NoButton,Qt::NoModifier);
+            QApplication::sendEvent(radio,&escapeRelease);
+            QCOMPARE(call(w,"document.inspect")["authored"].toObject(),created);
+            QVERIFY(!radio->isDown());
         }
         // Native drag starts on each ordinary component radio label and lands on the visible parent row.
         for(int i=2;i<4;++i){
             const auto sourceId=occurrences[i].toObject()["id"].toString();
             auto* sourceRow=row(tree,sourceId,Qt::UserRole+8);auto* targetRow=row(tree,parent,Qt::UserRole+3);
-            QVERIFY(sourceRow&&targetRow);tree->expandAll();tree->scrollToItem(sourceRow);QApplication::processEvents();
+            QVERIFY(sourceRow&&targetRow);tree->scrollToItem(targetRow,QAbstractItemView::PositionAtCenter);QApplication::processEvents();
             auto* radio=qobject_cast<QRadioButton*>(tree->itemWidget(sourceRow,0));
             QVERIFY(radio);
+            QVERIFY(tree->viewport()->rect().contains(tree->visualItemRect(sourceRow).center()));
+            QVERIFY(tree->viewport()->rect().contains(tree->visualItemRect(targetRow).center()));
             const auto sourcePoint=radio->rect().center();const auto targetPoint=tree->viewport()->mapToGlobal(tree->visualItemRect(targetRow).center());
             QTest::mousePress(radio,Qt::LeftButton,Qt::NoModifier,sourcePoint);
             QMouseEvent move(QEvent::MouseMove,radio->mapFromGlobal(targetPoint),targetPoint,Qt::NoButton,Qt::LeftButton,Qt::NoModifier);
@@ -111,7 +127,8 @@ private slots:
         QCOMPARE(parentRow->text(0).startsWith("▣"),true);
         const auto grouped=call(w,"document.inspect")["authored"].toObject();
         QTest::mouseDClick(parentRadio,Qt::LeftButton,Qt::NoModifier,parentRadio->rect().center());
-        dialog=w.findChild<QDialog*>("component.rename.dialog");QVERIFY(dialog&&dialog->isVisible());
+        QTRY_VERIFY(w.findChild<QDialog*>("component.rename.dialog")&&w.findChild<QDialog*>("component.rename.dialog")->isVisible());
+        dialog=w.findChild<QDialog*>("component.rename.dialog");
         auto* rename=dialog->findChild<QLineEdit*>("component.rename.name");QVERIFY(rename);
         QTest::keyClick(rename,Qt::Key_A,Qt::ControlModifier);QTest::keyClicks(rename,"Piston pair");
         QTest::mouseClick(dialog->findChild<QDialogButtonBox*>()->button(QDialogButtonBox::Ok),Qt::LeftButton);
@@ -123,7 +140,7 @@ private slots:
         QCOMPARE(call(w,"document.inspect")["activeOwnerId"].toString(),baseline["documentId"].toString());
         const auto evidence=qEnvironmentVariable("ALLOY_ASM022_EVIDENCE");
         if(!evidence.isEmpty()){QVERIFY(QDir().mkpath(evidence));call(w,"capture.screenshot",{{"path",evidence+"/browser-organized.png"}});}
-        w.close();
+        call(w,"document.new",{{"discard",true}});w.close();
     }
 };
 QTEST_MAIN(BrowserOrganizationControlsTest)
