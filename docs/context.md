@@ -1,5 +1,19 @@
 # Continuation context
 
+## Active STEP assembly import candidate (2026-10-13)
+
+XCH-009 in the isolated `feat/step-assembly-import` worktree is implementing
+one retained XDE solid assembly import transaction. It embeds the source and
+source-derived graph, preserves nested/repeated identities, evaluates placed
+leaf solids for rendering/inspection/export, and exposes a read-only Browser
+hierarchy. Focused core tests pass on a synthetic nested rotated repeat and
+the external twelve-solid board fixture. A 30-call real-app API run and a
+physical Qt Browser leaf-click test pass, with inspected GPU captures;
+independent bounded review accepts the candidate. Viewport ray-picking of a
+moved imported occurrence remains for ASM-006. See
+[STEP assembly candidate](validation/step-assembly-import.md). XCH-003 and
+ASM-006 retain broader exchange fidelity and editable insertion.
+
 ## Current advanced tutorial work (2026-10-13)
 
 TUT-015 is independently accepted and closed: 228-call actual-app full creation

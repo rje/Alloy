@@ -22,6 +22,7 @@
 #include <cmath>
 #include <functional>
 #include <numbers>
+#include <optional>
 #include <stdexcept>
 
 namespace {
@@ -59,6 +60,9 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
             if(!positions.contains(sketch) || positions[sketch]>=i || features[positions[sketch]].toObject()["type"]!="sketch")return {{"featureId",feature["id"]},{"featureType","loft"},{"code","loft_profile_unavailable"},{"message","Loft sections must reference earlier sketch features"}};
         }
         if(feature["type"]=="circularPattern"){const auto p=feature["parameters"].toObject();for(int n=1;n<p["quantity"].toInt();++n)bodyPositions[CircularPattern::bodyId(feature["id"].toString(),p["sourceBodyId"].toString(),n)]=i;}
+        if(feature["type"]=="stepAssemblyImport")
+            for(const auto& value:feature["parameters"].toObject()["assembly"].toObject()["occurrences"].toArray())
+                if(const auto body=value.toObject()["bodyId"].toString();!body.isEmpty())bodyPositions[body]=i;
         if (feature.contains("bodyId")) bodyPositions[feature["bodyId"].toString()] = i;
         for(const auto& value:feature["bodyResults"].toArray()) {const auto record=value.toObject();if(record["participantBodyIds"].toArray().isEmpty())bodyPositions[record["bodyId"].toString()]=i;}
     }
@@ -66,6 +70,9 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
     for(const auto& value:features) {
         const auto f=value.toObject();const auto owner=f["ownerId"].toString();referencedOwners[f["id"].toString()]=owner;
         if(f.contains("bodyId"))referencedOwners[f["bodyId"].toString()]=owner;
+        if(f["type"]=="stepAssemblyImport")
+            for(const auto& value:f["parameters"].toObject()["assembly"].toObject()["occurrences"].toArray())
+                if(const auto body=value.toObject()["bodyId"].toString();!body.isEmpty())referencedOwners[body]=owner;
         if(f["type"]=="circularPattern"){const auto p=f["parameters"].toObject();for(int n=1;n<p["quantity"].toInt();++n)referencedOwners[CircularPattern::bodyId(f["id"].toString(),p["sourceBodyId"].toString(),n)]=owner;}
         for(const auto& result:f["bodyResults"].toArray()){const auto body=result.toObject()["bodyId"].toString();if(!referencedOwners.contains(body))referencedOwners[body]=owner;}
     }
@@ -686,9 +693,24 @@ QJsonObject CadDocument::stepImportCandidate(const QJsonObject& authored, const 
         {"byteCount",static_cast<qint64>(bytes.size())},{"originalName",info.fileName()}};
     auto candidate=authored;
     auto features=candidate.value("features").toArray();
-    features.append(QJsonObject{{"id",featureId},{"bodyId",bodyId},
-        {"ownerId",arguments.value("ownerId").toString(authored["documentId"].toString())},{"type","stepImport"},
-        {"name",name},{"visible",true},{"parameters",QJsonObject{{"source",source}}}});
+    QJsonObject imported{{"id",featureId},
+        {"ownerId",arguments.value("ownerId").toString(authored["documentId"].toString())},
+        {"name",name},{"visible",true}};
+    std::optional<StepExchange::AssemblyResult> assembly;
+    try {assembly=StepExchange::readAssembly(bytes,featureId);}
+    catch(const StepExchange::Error& error) {
+        if(error.diagnostics()["code"]!="step_assembly_root" && error.diagnostics()["code"]!="step_read_failed")throw;
+    }
+    if(assembly) {
+        if(arguments.contains("newBodyId"))
+            throw StepExchange::Error({{"code","invalid_arguments"},{"message","Assembly leaf IDs are derived from source paths; newBodyId applies only to one solid"}});
+        imported["type"]="stepAssemblyImport";
+        imported["parameters"]=QJsonObject{{"source",source},{"assembly",assembly->graph}};
+    } else {
+        imported["type"]="stepImport";imported["bodyId"]=bodyId;
+        imported["parameters"]=QJsonObject{{"source",source}};
+    }
+    features.append(imported);
     candidate["features"]=features;
     return candidate;
 }
@@ -1082,11 +1104,13 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
         const auto type = feature["type"].toString();
         if (!feature["parameters"].isObject()) return "Feature parameters must be an object";
         const auto p = feature["parameters"].toObject();
-        if (type == "stepImport") {
+        if (type == "stepImport" || type == "stepAssemblyImport") {
             const auto bodyId=feature["bodyId"].toString();
-            if (!validId(bodyId) || ids.contains(bodyId)) return "Invalid or duplicate imported body UUID";
-            ids.insert(bodyId);
-            if (p.size()!=1 || !p["source"].isObject()) return "STEP import requires one embedded source";
+            if(type=="stepImport") {
+                if (!validId(bodyId) || ids.contains(bodyId)) return "Invalid or duplicate imported body UUID";
+                ids.insert(bodyId);
+            } else if(feature.contains("bodyId"))return "STEP assembly leaves own their body identities";
+            if (p.size()!=(type=="stepImport"?1:2) || !p["source"].isObject()) return "STEP import requires one embedded source";
             const auto source=p["source"].toObject();
             static const QRegularExpression shaPattern("^[0-9a-f]{64}$");
             if (source.size()!=6 || source["policy"]!="embedded" || source["format"]!="step"
@@ -1096,6 +1120,41 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
                 || source["byteCount"].toInteger()>StepExchange::maximumSourceBytes
                 || !source["originalName"].isString() || source["originalName"].toString().isEmpty())
                 return "Invalid embedded STEP source metadata";
+            if(type=="stepAssemblyImport") {
+                const auto graph=p["assembly"].toObject();
+                if(graph.size()!=3 || !validId(graph["rootOccurrenceId"].toString()) ||
+                    !graph["definitions"].isArray() || !graph["occurrences"].isArray() ||
+                    graph["definitions"].toArray().isEmpty() || graph["occurrences"].toArray().size()<2)
+                    return "Invalid retained STEP assembly graph";
+                QSet<QString> definitions,occurrences;
+                int leaves=0;
+                for(const auto& value:graph["definitions"].toArray()) {
+                    const auto row=value.toObject();const auto key=row["id"].toString();
+                    if(row.size()!=4 || !validId(key) || ids.contains(key) || definitions.contains(key) ||
+                        !row["sourceLabel"].isString() || row["sourceLabel"].toString().isEmpty() ||
+                        !row["name"].isString() || row["name"].toString().isEmpty() ||
+                        (row["kind"]!="assembly" && row["kind"]!="solid"))return "Invalid STEP definition";
+                    definitions.insert(key);ids.insert(key);
+                }
+                for(const auto& value:graph["occurrences"].toArray()) {
+                    const auto row=value.toObject();const auto key=row["id"].toString();
+                    const bool leaf=row["kind"]=="solid";
+                    if(row.size()!=(leaf?8:7) || !validId(key) || ids.contains(key) || occurrences.contains(key) ||
+                        !definitions.contains(row["definitionId"].toString()) ||
+                        !row["sourcePath"].isString() || row["sourcePath"].toString().isEmpty() ||
+                        !row["parentId"].isString() || !row["name"].isString() || row["name"].toString().isEmpty() ||
+                        !row["localPlacement"].isArray() || row["localPlacement"].toArray().size()!=12 ||
+                        (row["kind"]!="assembly" && !leaf))return "Invalid STEP occurrence";
+                    for(const auto& coordinate:row["localPlacement"].toArray())if(!coordinate.isDouble() || !std::isfinite(coordinate.toDouble()))return "Invalid STEP placement";
+                    if(leaf) {
+                        const auto body=row["bodyId"].toString();
+                        if(!validId(body) || ids.contains(body))return "Invalid STEP leaf body identity";
+                        ids.insert(body);++leaves;
+                    }
+                    occurrences.insert(key);ids.insert(key);
+                }
+                if(leaves<1 || !occurrences.contains(graph["rootOccurrenceId"].toString()))return "STEP assembly has no rooted solid leaves";
+            }
             continue;
         }
         if (type == "sketch") {
@@ -1327,7 +1386,9 @@ QJsonObject CadDocument::state() const {
     QJsonArray evaluated;
     for(const auto& body:evaluation_->bodies) {
         auto summary=body.summary; summary["solidEdges"]=SolidFillet::descriptors(body.solidEdges); summary["featureId"]=body.featureId; summary["bodyId"]=body.bodyId;
-        summary["name"]=body.name; summary["visible"]=body.visible; evaluated.append(summary);
+        summary["name"]=body.name; summary["visible"]=body.visible;
+        if(!body.occurrenceId.isEmpty()){summary["occurrenceId"]=body.occurrenceId;summary["definitionId"]=body.definitionId;}
+        evaluated.append(summary);
     }
     QJsonArray evaluatedSketches;
     for (const auto& sketch : evaluation_->sketches) {

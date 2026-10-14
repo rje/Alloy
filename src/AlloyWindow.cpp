@@ -95,7 +95,7 @@ QJsonObject failure(const QString& code, const QString& message, const QString& 
         {"error", error}};
 }
 QString occurrenceForBody(const QJsonObject& authored,const std::vector<EvaluatedBody>& bodies,const QString& bodyId){
-    QString owner;for(const auto& body:bodies)if(body.bodyId==bodyId){owner=body.ownerId;break;}
+    QString owner;for(const auto& body:bodies)if(body.bodyId==bodyId){if(!body.occurrenceId.isEmpty())return body.occurrenceId;owner=body.ownerId;break;}
     for(const auto& value:authored.value("occurrences").toArray())if(value.toObject()["definitionId"]==owner)return value.toObject()["id"].toString();
     return {};
 }
@@ -945,7 +945,7 @@ void AlloyWindow::registerCommands() {
     });
     auto path=parameter("string","Absolute native .alloy file path.");
     auto discard=optional(parameter("boolean","Explicitly discard unsaved edits."));
-    add("document.importStep","Import STEP","Import one local solid with embedded source and one undo entry.",
+    add("document.importStep","Import STEP","Import one solid or a retained solid-only assembly with embedded source and one undo entry.",
         {{"path",parameter("string","Absolute input STEP path.")},{"name",optional(parameter("string","Imported feature name."))},
          {"newDesign",optional(parameter("boolean","Open as a separate new design; default imports into the active design."))}},[this](const auto& a){
             if(!session_.isEmpty())return failure("active_command","Finish or Cancel the active command before importing");
@@ -958,8 +958,11 @@ void AlloyWindow::registerCommands() {
                     auto result=failure("step_import_failed",error);auto details=result["error"].toObject();
                     details["diagnostics"]=target->lastEvaluationError();result["error"]=details;return result;
                 }
-            } catch(const StepExchange::Error& error){auto result=failure(error.diagnostics()["code"].toString(),
-                error.diagnostics()["message"].toString());result["error"]=error.diagnostics();return result;}
+            } catch(const StepExchange::Error& error){
+                auto details=error.diagnostics();
+                if(details["code"]=="step_assembly_root")details["code"]="step_import_failed";
+                auto result=failure(details["code"].toString(),details["message"].toString());result["error"]=details;return result;
+            }
             if(newTab) {
                 saveActiveTabState();newTab->id=CadDocument::newId();activeTabId_=newTab->id;
                 designTabs_.push_back(std::move(newTab));showActiveTab();
@@ -1021,7 +1024,17 @@ void AlloyWindow::registerCommands() {
             const auto error=document_->activateOwner(a["definitionId"].toString());if(!error.isEmpty())return failure("invalid_component",error);
             displayedDocumentRevision_=std::numeric_limits<quint64>::max();return QJsonObject{{"activeOwnerId",document_->activeOwnerId()}};
         });
-    add("component.inspect","Inspect Components","Inspect authored local definitions, occurrences and the active owner.",{},[this](const auto&){return QJsonObject{{"rootId",document_->authored()["documentId"]},{"activeOwnerId",document_->activeOwnerId()},{"components",document_->authored()["components"].toArray()},{"occurrences",document_->authored()["occurrences"].toArray()}};});
+    add("component.inspect","Inspect Components","Inspect local components and read-only imported XDE hierarchies.",{},[this](const auto&){
+        QJsonArray imported;
+        for(const auto& value:document_->authored()["features"].toArray()) {
+            const auto feature=value.toObject();if(feature["type"]!="stepAssemblyImport")continue;
+            imported.append(QJsonObject{{"featureId",feature["id"]},{"name",feature["name"]},
+                {"readOnly",true},{"assembly",feature["parameters"].toObject()["assembly"]}});
+        }
+        return QJsonObject{{"rootId",document_->authored()["documentId"]},{"activeOwnerId",document_->activeOwnerId()},
+            {"components",document_->authored()["components"].toArray()},{"occurrences",document_->authored()["occurrences"].toArray()},
+            {"importedAssemblies",imported}};
+    });
     add("document.exportStl","Export STL","Export selected committed solids preserving world placement; STL does not embed units.",
         {{"path",parameter("string","Absolute output STL path.")},{"occurrenceId",optional(parameter("string","Local component occurrence UUID; excludes root bodies."))},{"bodyId",optional(parameter("string","Stable evaluated solid body UUID."))},
          {"bodyIds",optional(parameter("array","Distinct evaluated solid body UUIDs."))},{"allVisible",optional(parameter("boolean","Export all active visible bodies."))},
@@ -1087,7 +1100,7 @@ void AlloyWindow::registerCommands() {
         });
     }
     add("document.openDialog","Open…","Choose a local design and use the shared open command.",{},[this](const auto&){
-        const auto path=QFileDialog::getOpenFileName(this,"Open From Computer",{},"Supported designs (*.alloy *.step *.stp *.ste);;Alloy Design (*.alloy);;STEP solid (*.step *.stp *.ste)");
+        const auto path=QFileDialog::getOpenFileName(this,"Open From Computer",{},"Supported designs (*.alloy *.step *.stp *.ste);;Alloy Design (*.alloy);;STEP design (*.step *.stp *.ste)");
         if(path.isEmpty())return QJsonObject{{"cancelled",true}};
         if(path.endsWith(".step",Qt::CaseInsensitive) || path.endsWith(".stp",Qt::CaseInsensitive) || path.endsWith(".ste",Qt::CaseInsensitive)) {
             const auto result=execute("document.importStep",{{"path",path},{"newDesign",true}});
@@ -3163,7 +3176,7 @@ void AlloyWindow::registerCommands() {
                 auto inputs=p;inputs["featureId"]=feature["id"];inputs["name"]=feature["name"];
                 return beginSession("solid.combine",inputs);
             }
-            if(feature["type"]=="stepImport")
+            if(feature["type"]=="stepImport" || feature["type"]=="stepAssemblyImport")
                 return failure("import_source_readonly","The imported STEP source is embedded in this feature. Edit later features or import a replacement file.","featureId");
             const auto unit=document_->authored()["displayUnits"].toString();const double scale=unit=="in" ? 25.4 : 1;
             QJsonObject inputs{{"featureId",feature["id"]},{"name",feature["name"]},{"units",unit}};
@@ -3205,7 +3218,9 @@ void AlloyWindow::registerCommands() {
         if(!found)return failure("stale_entity","Visible body does not exist","bodyId");
         selectedBody_=id;selectedFace_={};selectedPlane_.clear();view_->selectSupportFace({},{});selectedSketch_.clear();selectedProfile_.clear();selectedProfileIds_={};view_->selectProfile({},{});view_->selectBody(id);
         QJsonObject result{{"bodyId",id},{"kind","body"}};
-        if(!document_->authored().value("joints").toArray().isEmpty())if(const auto occurrence=occurrenceForBody(document_->authored(),document_->bodies(),id);!occurrence.isEmpty())result["occurrenceId"]=occurrence;
+        if(!document_->authored().value("joints").toArray().isEmpty() ||
+            std::any_of(document_->bodies().begin(),document_->bodies().end(),[&](const auto& body){return body.bodyId==id && !body.occurrenceId.isEmpty();}))
+            if(const auto occurrence=occurrenceForBody(document_->authored(),document_->bodies(),id);!occurrence.isEmpty())result["occurrenceId"]=occurrence;
         return result;
     });
     add("selection.faceSet","Select planar face","Select a stable supported face for Create Sketch.",{{"support",supportIdentity}},[this](const auto& a){
@@ -3349,7 +3364,9 @@ void AlloyWindow::registerCommands() {
         if((a.value("additive").toBool() || a.value("toggle").toBool()) && !selectedProfileIds_.isEmpty())return QJsonObject{{"kind","profile"},{"sketchId",selectedSketch_},{"profileId",selectedProfile_},{"profileIds",selectedProfileIds_}};
         selectedFace_={};selectedPlane_.clear();view_->selectSupportFace({},{});selectedSketch_.clear();selectedProfile_.clear();selectedProfileIds_={};view_->selectProfile({},{});view_->selectBody(selectedBody_);
         QJsonObject result{{"bodyId",selectedBody_},{"kind","body"}};
-        if(!document_->authored().value("joints").toArray().isEmpty())if(const auto occurrence=occurrenceForBody(document_->authored(),document_->bodies(),selectedBody_);!occurrence.isEmpty())result["occurrenceId"]=occurrence;
+        if(!document_->authored().value("joints").toArray().isEmpty() ||
+            std::any_of(document_->bodies().begin(),document_->bodies().end(),[&](const auto& body){return body.bodyId==selectedBody_ && !body.occurrenceId.isEmpty();}))
+            if(const auto occurrence=occurrenceForBody(document_->authored(),document_->bodies(),selectedBody_);!occurrence.isEmpty())result["occurrenceId"]=occurrence;
         return result;
     });
     add("view.projectBody","Project body center","Return actual OCCT projection for a body's center, in logical pixels.",{{"bodyId",bodyId}},[this](const auto& a){
@@ -3907,7 +3924,41 @@ void AlloyWindow::refresh() {
         while(auto* item=timelineLayout_->takeAt(0)){delete item->widget();delete item;}
 
         bool selectedExists=false;QSet<QString> liveBodies,liveSketches,livePlanes;
+        QSet<QString> liveImports,activeBodies;
+        for(const auto& body:document_->bodies())activeBodies.insert(body.bodyId);
+        for(const auto& value:document_->authored()["features"].toArray()) {
+            const auto feature=value.toObject();if(feature["type"]!="stepAssemblyImport")continue;
+            const auto featureId=feature["id"].toString();liveImports.insert(featureId);
+            auto* folder=ownerFolder(feature["ownerId"].toString(),"bodies",bodiesNode_);
+            auto* root=browserRow(folder,featureId,Qt::UserRole+6);
+            root->setData(0,Qt::UserRole+6,featureId);root->setText(0,feature["name"].toString()+" (STEP Assembly)");
+            root->setToolTip(0,root->text(0));
+            root->setHidden(false);root->setExpanded(true);
+            root->setFlags(root->flags()|Qt::ItemIsEnabled);
+            QMap<QString,QTreeWidgetItem*> nodes;
+            const auto graph=feature["parameters"].toObject()["assembly"].toObject();
+            for(const auto& entry:graph["occurrences"].toArray()) {
+                const auto occurrence=entry.toObject();const auto id=occurrence["id"].toString();
+                auto* parent=nodes.value(occurrence["parentId"].toString(),root);
+                auto* item=browserRow(parent,id,Qt::UserRole+7);
+                item->setData(0,Qt::UserRole+7,id);
+                item->setText(0,occurrence["name"].toString());item->setToolTip(0,item->text(0));item->setHidden(false);
+                item->setExpanded(true);item->setFlags(item->flags()|Qt::ItemIsEnabled|Qt::ItemIsSelectable);
+                if(occurrence["kind"]=="solid") {
+                    const auto bodyId=occurrence["bodyId"].toString();liveBodies.insert(bodyId);
+                    item->setData(0,Qt::UserRole+1,bodyId);item->setData(0,Qt::UserRole+2,featureId);
+                    selectedExists=selectedExists || (bodyId==selectedBody_ && activeBodies.contains(bodyId) && feature["visible"].toBool());
+                    item->setHidden(!activeBodies.contains(bodyId));
+                }
+                nodes[id]=item;
+            }
+        }
+        for(QTreeWidgetItemIterator it(tree_);*it;++it) {
+            auto* item=*it;const auto id=item->data(0,Qt::UserRole+6).toString();
+            if(!id.isEmpty() && !liveImports.contains(id)){item->setSelected(false);item->setHidden(true);}
+        }
         for(const auto& body:document_->bodies()) {
+            if(!body.occurrenceId.isEmpty())continue;
             liveBodies.insert(body.bodyId);
             auto* item=browserRow(ownerFolder(body.ownerId,"bodies",bodiesNode_),body.bodyId,Qt::UserRole+1);
             item->setText(0,body.name);item->setData(0,Qt::UserRole+1,body.bodyId);item->setData(0,Qt::UserRole+2,body.featureId);
@@ -3943,6 +3994,7 @@ void AlloyWindow::refresh() {
           auto* folder=ownerFolder(ownerNode->data(0,Qt::UserRole+3).toString(),"bodies",bodiesNode_);
           for(int i=0;i<folder->childCount();++i) {
             auto* item=folder->child(i);
+            if(!item->data(0,Qt::UserRole+6).toString().isEmpty())continue;
             if(!liveBodies.contains(item->data(0,Qt::UserRole+1).toString())){
                 item->setSelected(false);if(tree_->currentItem()==item)tree_->setCurrentItem(nullptr);
                 item->setFlags(item->flags() & ~(Qt::ItemIsEnabled|Qt::ItemIsSelectable|Qt::ItemIsUserCheckable));item->setHidden(true);
@@ -3990,7 +4042,7 @@ void AlloyWindow::refresh() {
                 {"sweep",{"◒","Sweep"}},{"revolve",{"◉","Revolve"}},{"chamfer",{"◪","Chamfer"}},{"shell",{"▱","Shell"}},{"loft",{"◒","Loft"}},
                 {"mirror",{"◧","Mirror"}},{"move",{"✥","Move"}},{"boolean",{"▣","Combine"}},
                 {"constructionPlane",{"▰","Construction Plane"}},{"rectangularPattern",{"▦","Rectangular Pattern"}},
-                {"stepImport",{"▣","STEP Import"}}};
+                {"stepImport",{"▣","STEP Import"}},{"stepAssemblyImport",{"▣","STEP Assembly"}}};
             const auto appearance=presentation.value(type,{"▣",type});const auto fullName=name+" ("+appearance.second+")";
             auto* button=new QToolButton;button->setObjectName("timeline.feature."+id);button->setText(appearance.first);
             button->setFixedSize(44,34);button->setStyleSheet("QToolButton { font-size: 19px; padding: 1px 10px 1px 2px; }");
@@ -4036,7 +4088,10 @@ void AlloyWindow::refresh() {
         // still applies. Do not suppress a retained support ID reused by Cut.
         view_->setEditDisplay(historicalSketchId,{});
     }
-    for(int i=0;i<bodiesNode_->childCount();++i)bodiesNode_->child(i)->setSelected(bodiesNode_->child(i)->data(0,Qt::UserRole+1).toString()==selectedBody_);
+    for(QTreeWidgetItemIterator it(tree_);*it;++it) {
+        auto* item=*it;const auto bodyId=item->data(0,Qt::UserRole+1).toString();
+        if(!bodyId.isEmpty())item->setSelected(bodyId==selectedBody_ && !item->isHidden());
+    }
     view_->selectBody((session_.value("command")=="solid.mirror" || session_.value("command")=="solid.circularPattern")
         ? session_.value("inputs").toObject()["sourceBodyId"].toString()
         : session_.value("command")=="solid.sphere" || session_.value("command")=="solid.hole" ? QString{} : selectedBody_);
@@ -5419,7 +5474,9 @@ QJsonObject AlloyWindow::selectSupportFace(const QJsonObject& support) {
         if(nonzeroAssemblyPose())for(const auto& body:presentationBodies())if(body.bodyId==resolved.bodyId)for(const auto& worldFace:body.supportFaces)if(worldFace.faceId==resolved.faceId){shape=worldFace.face;frame=worldFace.frame;}
         view_->selectBody({});view_->selectProfile({},{});view_->selectSupportFace(selectedFace_,shape);
         QJsonObject result{{"kind","face"},{"support",selectedFace_},{"role",resolved.role},{"frame",frame}};
-        if(!document_->authored().value("joints").toArray().isEmpty())if(const auto occurrence=occurrenceForBody(document_->authored(),document_->bodies(),resolved.bodyId);!occurrence.isEmpty())result["occurrenceId"]=occurrence;
+        if(!document_->authored().value("joints").toArray().isEmpty() ||
+            std::any_of(document_->bodies().begin(),document_->bodies().end(),[&](const auto& body){return body.bodyId==resolved.bodyId && !body.occurrenceId.isEmpty();}))
+            if(const auto occurrence=occurrenceForBody(document_->authored(),document_->bodies(),resolved.bodyId);!occurrence.isEmpty())result["occurrenceId"]=occurrence;
         return result;
     } catch(const GeometryKernel::EvaluationError& error) {
         auto result=failure("support_unavailable",QString::fromUtf8(error.what()),"support");

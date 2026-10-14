@@ -56,6 +56,45 @@ namespace {
 int count(const TopoDS_Shape& shape, TopAbs_ShapeEnum kind) {
     TopTools_IndexedMapOfShape map; TopExp::MapShapes(shape,kind,map); return map.Extent();
 }
+void importedTopology(const TopoDS_Shape& shape,const QString& featureId,const QString& bodyId,
+    const QString& occurrenceId,std::vector<EvaluatedSupportFace>& faces,std::vector<EvaluatedSolidEdge>& edges) {
+    // The embedded source hash fixes this XDE topology snapshot. IDs include the
+    // full occurrence identity, so two references to one definition never alias.
+    auto id=[&](const char* kind,int index){return QUuid::createUuidV5(QUuid(featureId),
+        QByteArray("step-xde/1:")+occurrenceId.toUtf8()+":"+kind+":"+QByteArray::number(index))
+        .toString(QUuid::WithoutBraces);};
+    auto xyz=[](const gp_Pnt& p){return QJsonArray{p.X(),p.Y(),p.Z()};};
+    auto direction=[](const gp_Dir& d){return QJsonArray{d.X(),d.Y(),d.Z()};};
+    TopTools_IndexedMapOfShape allEdges;TopExp::MapShapes(shape,TopAbs_EDGE,allEdges);
+    for(int i=1;i<=allEdges.Extent();++i) {
+        const auto edge=TopoDS::Edge(allEdges(i));
+        const BRepAdaptor_Curve curve(edge);
+        QJsonObject provenance{{"role","imported.edge"},{"occurrenceId",occurrenceId},{"sourceEdgeIndex",i}};
+        if(curve.GetType()==GeomAbs_Line){provenance["startMm"]=xyz(curve.Value(curve.FirstParameter()));provenance["endMm"]=xyz(curve.Value(curve.LastParameter()));}
+        edges.push_back({id("edge",i),edge,provenance});
+    }
+    TopTools_IndexedMapOfShape allFaces;TopExp::MapShapes(shape,TopAbs_FACE,allFaces);
+    for(int i=1;i<=allFaces.Extent();++i) {
+        const auto face=TopoDS::Face(allFaces(i));const BRepAdaptor_Surface surface(face);
+        if(surface.GetType()!=GeomAbs_Plane)continue;
+        const auto plane=surface.Plane();auto normal=plane.Axis().Direction();
+        if(face.Orientation()==TopAbs_REVERSED)normal.Reverse();
+        auto u=plane.XAxis().Direction();auto v=gp_Dir(gp_Vec(normal).Crossed(gp_Vec(u)));
+        EvaluatedSupportFace support{id("face",i),bodyId,featureId,"imported.planar",face,
+            QJsonObject{{"origin",xyz(plane.Location())},{"uAxis",direction(u)},
+                {"vAxis",direction(v)},{"normal",direction(normal)}},{},
+            QJsonObject{{"occurrenceId",occurrenceId},{"sourceFaceIndex",i}}};
+        TopTools_IndexedMapOfShape boundary;TopExp::MapShapes(face,TopAbs_EDGE,boundary);
+        for(int j=1;j<=boundary.Extent();++j) {
+            const auto edge=TopoDS::Edge(boundary(j));const auto index=allEdges.FindIndex(edge);
+            if(index<1)reject("step_topology","Imported face edge is outside its leaf solid");
+            const auto& named=edges.at(static_cast<size_t>(index-1));
+            support.boundaryEdges.push_back({named.edgeId,
+                BRepAdaptor_Curve(edge).GetType()==GeomAbs_Line?"line":"curve",edge,named.provenance});
+        }
+        faces.push_back(support);
+    }
+}
 double length(const QJsonObject& parameters, const QString& key, bool placement=false) {
     const auto value=parameters.value(key);
     if (!value.isDouble() || !std::isfinite(value.toDouble()) || std::abs(value.toDouble())>100000
@@ -553,7 +592,7 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
                 if(parameters.contains("loopOffsets"))
                     evaluated.sketches.push_back(RoundedLoopOffset::evaluate(feature,resolveSketchSupport(evaluated,parameters["support"].toObject())));
                 else evaluated.sketches.push_back(SketchGeometry::evaluateFeature(feature,resolvedFrame,projectionContext(evaluated,feature)));
-            } else if (type == "stepImport") {
+            } else if (type == "stepImport" || type == "stepAssemblyImport") {
                 const auto failStep=[&](const QString& code,const QString& message) {
                     auto details=context;details["code"]=code;details["message"]=message;
                     throw EvaluationError(details);
@@ -570,27 +609,44 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
                 const auto digest=QCryptographicHash::hash(decoded.decoded,QCryptographicHash::Sha256).toHex();
                 if (QString::fromLatin1(digest)!=source["sha256"].toString())
                     failStep("step_source_hash","Embedded STEP source hash does not match its bytes");
-                StepExchange::ReadResult imported;
-                try {imported=StepExchange::read(decoded.decoded);}
-                catch(const StepExchange::Error& error){
+                try {
+                    auto append=[&](const TopoDS_Shape& shape,const QString& bodyId,const QString& name,
+                                    const QJsonObject& diagnostics,const QString& occurrenceId={},const QString& definitionId={}) {
+                        auto summary=summarize(shape);
+                        if (!summary["valid"].toBool() || !summary["closed"].toBool()
+                            || summary["topology"].toObject()["solids"].toInt()!=1
+                            || !summary["volumeMm3"].isDouble()
+                            || !std::isfinite(summary["volumeMm3"].toDouble())
+                            || summary["volumeMm3"].toDouble()<=0)
+                            failStep("step_invalid_solid","Imported STEP leaf must be a valid closed solid with positive volume");
+                        summary["sourceFormat"]="step";summary["sourcePolicy"]="embedded";
+                        summary["sourceSha256"]=source["sha256"];
+                        summary["sourceOriginalName"]=source["originalName"];
+                        summary["sourceLengthUnits"]=diagnostics["fileLengthUnits"];
+                        summary["translator"]=diagnostics["translator"];
+                        std::vector<EvaluatedSupportFace> faces;std::vector<EvaluatedSolidEdge> edges;
+                        if(!occurrenceId.isEmpty()) {
+                            importedTopology(shape,id,bodyId,occurrenceId,faces,edges);
+                            summary["supportFaces"]=PlanarFaces::descriptors(faces);
+                        }
+                        evaluated.bodies.push_back({id,bodyId,name,feature["visible"].toBool(),shape,summary,faces,edges,
+                            feature["ownerId"].toString(),occurrenceId,definitionId});
+                    };
+                    if(type=="stepImport") {
+                        const auto imported=StepExchange::read(decoded.decoded);
+                        append(imported.shape,feature["bodyId"].toString(),feature["name"].toString(),imported.diagnostics);
+                    } else {
+                        const auto assembly=StepExchange::readAssembly(decoded.decoded,id);
+                        if(assembly.graph!=parameters["assembly"].toObject())
+                            failStep("step_assembly_snapshot","Embedded STEP hierarchy differs from its authored snapshot");
+                        for(const auto& leaf:assembly.leaves)
+                            append(leaf.shape,leaf.bodyId,leaf.name,assembly.diagnostics,leaf.occurrenceId,leaf.definitionId);
+                    }
+                } catch(const StepExchange::Error& error) {
                     const auto details=error.diagnostics();
                     for(auto it=details.begin();it!=details.end();++it)context[it.key()]=it.value();
                     throw EvaluationError(context);
                 }
-                auto summary=summarize(imported.shape);
-                if (!summary["valid"].toBool() || !summary["closed"].toBool()
-                    || summary["topology"].toObject()["solids"].toInt()!=1
-                    || !summary["volumeMm3"].isDouble()
-                    || !std::isfinite(summary["volumeMm3"].toDouble())
-                    || summary["volumeMm3"].toDouble()<=0)
-                    failStep("step_invalid_solid","Imported STEP must evaluate to one valid closed solid with positive volume");
-                summary["sourceFormat"]="step";summary["sourcePolicy"]="embedded";
-                summary["sourceSha256"]=source["sha256"];
-                summary["sourceOriginalName"]=source["originalName"];
-                summary["sourceLengthUnits"]=imported.diagnostics["fileLengthUnits"];
-                summary["translator"]="OCCT STEPControl";
-                evaluated.bodies.push_back({id,feature["bodyId"].toString(),feature["name"].toString(),
-                    feature["visible"].toBool(),imported.shape,summary,{}});
             } else if(type=="fillet") {
                 const auto target=std::find_if(evaluated.bodies.begin(),evaluated.bodies.end(),[&](const auto& body){return body.bodyId==parameters["targetBodyId"].toString();});
                 if(target==evaluated.bodies.end())throw EvaluationError({{"code","body_unavailable"},{"featureId",id},{"message","Fillet target must be active earlier in history"}});

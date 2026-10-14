@@ -35,6 +35,7 @@ struct EvaluatedBody {
     std::vector<EvaluatedSupportFace> supportFaces;
     std::vector<EvaluatedSolidEdge> solidEdges;
     QString ownerId;
+    QString occurrenceId, definitionId; // Populated only for retained imported assembly leaves.
 };
 
 struct EvaluatedSketch {
