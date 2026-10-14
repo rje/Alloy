@@ -36,3 +36,6 @@ native sequence; no focus or selection is repaired between demonstrated steps.
 The capture is Alloy runtime evidence, not matched-reference screenshot
 parity. Surface Loft and arbitrary cross-sketch point selection remain outside
 this child.
+
+Independent Astra review accepted candidate `e163bca`; main integration
+`83024c0` passes the application build and focused arc-midpoint core test.

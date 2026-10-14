@@ -1,15 +1,15 @@
 # Continuation context
 
-## Arc midpoint on attached path sections candidate (2026-10-14)
+## Accepted arc midpoint on attached path sections (2026-10-14)
 
-SKT-068/#282 now has an isolated candidate extending the existing Midpoint
+SKT-068/#282 is independently accepted and integrated, extending the existing Midpoint
 constraint to ordinary arc half-sweeps. The native tool selects the arc then
 the attached sketch origin; the same sketch/API authority retains a fixed
 origin point and rejects the antipodal branch. Source-sized front 50/10/10
 and rear 30 sections follow GEO-003 endpoint planes after a spine edit.
 Focused core, a 44-call real-app API workflow, and Qt-native arc/origin clicks
-with inspected dimension/badge captures pass. See [the candidate receipt](validation/arc-midpoint-endpoint.md).
-Independent review and main integration remain pending; broader midpoint,
+with inspected dimension/badge captures pass. See [the receipt](validation/arc-midpoint-endpoint.md).
+Main application build and focused arc test pass; broader midpoint,
 projection and surface scope stays with their parent issues.
 
 ## Accepted endpoint Plane Along Path (2026-10-13)
@@ -22,9 +22,8 @@ workflow and Qt-native canvas selection/End chooser/Cancel/accept pass. See
 [the receipt](validation/endpoint-path-planes.md). Main application build and
 focused endpoint core test pass. Solved-curve picking has separate shared-command
 proof; native05 covers basic gestures. Broader path extents stay with the parent.
-SKT-068/#282 true arc-midpoint candidate e163bca is complete in isolated
-feat/arc-midpoint-endpoint, with core/API/native evidence and readable badges.
-It remains Todo awaiting independent Astra review (model capacity), not accepted.
+SKT-068/#282 is accepted and closed after independent review, with
+core/API/native evidence and readable badges.
 The second Sol lane now implements ready SOL-047/#287 Through All Cut.
 
 ## Accepted Selection Priority (2026-10-13)
