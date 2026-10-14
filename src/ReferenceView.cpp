@@ -2545,7 +2545,11 @@ void ReferenceView::mousePressEvent(QMouseEvent* e) {
             }
         }
         QJsonObject args{{"x",e->position().x()},{"y",e->position().y()}};
-        if(!sketchPlane_.isEmpty())args["additive"]=e->modifiers().testFlag(Qt::ShiftModifier);
+        if(!sketchPlane_.isEmpty()){
+            args["additive"]=e->modifiers().testFlag(Qt::ShiftModifier);
+            args["suppressInference"]=e->modifiers().testFlag(Qt::ControlModifier) ||
+                e->modifiers().testFlag(Qt::MetaModifier);
+        }
         else {
             args["additive"]=e->modifiers().testFlag(Qt::ShiftModifier);
             args["toggle"]=e->modifiers().testFlag(Qt::ControlModifier) || e->modifiers().testFlag(Qt::MetaModifier);
@@ -2621,7 +2625,9 @@ void ReferenceView::mouseMoveEvent(QMouseEvent* e) {
             if(id!=decorationSelection_.value("hoveredConstraintId").toString())
                 dispatch("sketch.constraintHover",{{"constraintId",id}});
         }
-        dispatch("sketch.pointerMove",{{"x",e->position().x()},{"y",e->position().y()}});e->accept();
+        dispatch("sketch.pointerMove",{{"x",e->position().x()},{"y",e->position().y()},
+            {"suppressInference",e->modifiers().testFlag(Qt::ControlModifier) ||
+                e->modifiers().testFlag(Qt::MetaModifier)}});e->accept();
     }
     else {
         hoverSupportFace(pickSupportFace(e->position().x(),e->position().y(),documentBodies_));

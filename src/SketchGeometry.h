@@ -64,6 +64,9 @@ public:
     // {kind:midpoint,entityId:lineUUID}. Accepted snaps retain distinct
     // endpoint IDs and real coincidence or midpoint constraints. Explicit coordinate
     // creation above never acquires an implicit target.
+    // Shared near-axis cue for pointer-created Line. Returns an ordinary H/V
+    // relation and projected free endpoint, or empty when inference is unsafe.
+    static QJsonObject pointerLineAxis(double u1,double v1,double u2,double v2,bool endAcquired);
     static SolveResult addPointerEntity(const QJsonObject& draft, const QString& tool,
         const QJsonObject& arguments, const QJsonObject& projectionContext = {});
     // Explicit normal/construction conversion retains geometry and relation IDs.

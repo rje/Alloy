@@ -3275,6 +3275,8 @@ void AlloyWindow::registerCommands() {
     auto sketchPixel=parameter("number","Viewport-local logical pixel coordinate.");sketchPixel["minimum"]=0;sketchPixel["maximum"]=10000;
     const QJsonObject sketchPixels{{"x",sketchPixel},{"y",sketchPixel}};
     auto sketchPickSchema=sketchPixels;sketchPickSchema["additive"]=optional(parameter("boolean","Add or toggle a target in the current sketch selection."));
+    auto sketchPlaceSchema=sketchPickSchema;
+    sketchPlaceSchema["suppressInference"]=optional(parameter("boolean","Control/Command temporarily suppresses automatic Line H/V inference."));
     auto ids=optional(parameter("array","Authored point or line IDs in this sketch; omitted arrays default empty."));
     add("sketch.selectionSet","Select sketch geometry","Select authored geometry, locked projected references or evaluated profiles without changing geometry.",{{"pointIds",ids},{"entityIds",ids},{"profileIds",ids}},[this](const auto& a){
         auto result=setSketchSelection({{"pointIds",a.value("pointIds").toArray()},{"entityIds",a.value("entityIds").toArray()},{"profileIds",a.value("profileIds").toArray()}});
@@ -3330,7 +3332,7 @@ void AlloyWindow::registerCommands() {
         }
         auto result=setSketchSelection(selection);if(!result["ok"].isBool())result["picked"]=picked;return result;
     });
-    add("sketch.placePoint","Place sketch point","Resolve an actual viewport point on the active plane; Point uses one click and curve tools use their own gestures.",sketchPickSchema,[this](const auto& a){
+    add("sketch.placePoint","Place sketch point","Resolve an actual viewport point on the active plane; Point uses one click and curve tools use their own gestures.",sketchPlaceSchema,[this](const auto& a){
         if(session_.value("command").toString()!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
         if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))return failure("stale_session","The document changed; cancel and restart this sketch");
         const auto tool=session_.value("tool").toString();
@@ -3485,7 +3487,8 @@ void AlloyWindow::registerCommands() {
             const auto response=execute("sketch.dimensionPlace",{{"x",a["x"]},{"y",a["y"]}});return response["ok"].toBool() ? response["result"].toObject() : response;
         }
         if(tool=="select" || tool=="dimension" || tool=="constraint") {
-            auto args=a;if(tool=="dimension" && (!session_.value("selection").toObject()["pointIds"].toArray().isEmpty() || session_.value("selection").toObject()["entityIds"].toArray().size()==1))args["additive"]=true;
+            auto args=a;args.remove("suppressInference");
+            if(tool=="dimension" && (!session_.value("selection").toObject()["pointIds"].toArray().isEmpty() || session_.value("selection").toObject()["entityIds"].toArray().size()==1))args["additive"]=true;
             const auto response=execute("sketch.selectionPick",args);return response["ok"].toBool() ? response["result"].toObject() : response;
         }
         const auto plane=session_.value("inputs").toObject()["plane"].toString();
@@ -3642,6 +3645,7 @@ void AlloyWindow::registerCommands() {
         }
         const auto first=session_.value("firstPoint").toObject();
         QJsonObject inputs{{"x1",first["uMm"]},{"y1",first["vMm"]},{"x2",point["uMm"]},{"y2",point["vMm"]},{"units","mm"}};
+        if(tool=="line" && !lockedLine && !a.value("suppressInference").toBool())inputs["inferAxis"]=true;
         if(first["status"]=="acquired")inputs["startSnapTarget"]=first["target"];
         if(point["status"]=="acquired")inputs["endSnapTarget"]=point["target"];
         if(lockedLine) {inputs["lockedLengthMm"]=session_.value("pendingLineLength").toObject()["lengthMm"];
@@ -3662,6 +3666,7 @@ void AlloyWindow::registerCommands() {
         } else response=appendSketchEntity(tool,inputs);
         if(response["ok"].isBool() && !response["ok"].toBool())return response;
         if(tool=="line"){
+            if(lineLockCue_)lineLockCue_->hide();
             if(lockedLine)cancelLineLength();
             auto continuation=point;
             const auto entities=session_.value("draftSketch").toObject()["parameters"].toObject()["entities"].toArray();
@@ -3675,7 +3680,9 @@ void AlloyWindow::registerCommands() {
         }
         return QJsonObject{{"placement",true},{"point",point},{"draftSketch",session_.value("draftSketch")}};
     });
-    add("sketch.pointerMove","Sketch pointer preview","Preview a pending line or rectangle on the GPU without authored changes.",sketchPixels,[this](const auto& a){
+    auto sketchPreviewSchema=sketchPixels;
+    sketchPreviewSchema["suppressInference"]=optional(parameter("boolean","Control/Command temporarily suppresses automatic Line H/V inference."));
+    add("sketch.pointerMove","Sketch pointer preview","Preview a pending line or rectangle on the GPU without authored changes.",sketchPreviewSchema,[this](const auto& a){
         if(session_.value("command")=="sketch.edit" && session_.value("tool")=="dimension") {
             if(session_.value("pendingDimension").toObject().value("phase")=="editing")return QJsonObject{};
             try{return previewDimension(a);}catch(const std::invalid_argument&){return QJsonObject{};}
@@ -3817,6 +3824,26 @@ void AlloyWindow::registerCommands() {
                 point={{"uMm",cx+radius*std::cos(angle)},{"vMm",cy+radius*std::sin(angle)}};
             }
         }
+        if(tool=="line" && !session_.contains("pendingLineLength") && !a.value("suppressInference").toBool()) {
+            const auto inferred=SketchGeometry::pointerLineAxis(first["uMm"].toDouble(),first["vMm"].toDouble(),
+                point["uMm"].toDouble(),point["vMm"].toDouble(),point["status"]=="acquired");
+            if(!inferred.isEmpty()) {
+                point["uMm"]=inferred["u2Mm"];point["vMm"]=inferred["v2Mm"];
+                session_["pointerPoint"]=point;
+                if(!lineLockCue_) {
+                    lineLockCue_=new QLabel(view_);lineLockCue_->setObjectName("sketch.lineLockCue");
+                    lineLockCue_->setAttribute(Qt::WA_TransparentForMouseEvents);
+                    lineLockCue_->setStyleSheet("background: #eaf5fc; color: #143f59; border: 1px solid #5b9fc6; border-radius: 3px; padding: 3px 6px; font-weight: 600;");
+                }
+                lineLockCue_->setText(inferred["type"]=="horizontal" ? "H" : "V");lineLockCue_->adjustSize();
+                const auto screen=view_->projectSketchPoint(point["uMm"].toDouble(),point["vMm"].toDouble(),plane);
+                lineLockCue_->move(std::clamp(qRound(screen["x"].toDouble()+15),0,std::max(0,view_->width()-lineLockCue_->width())),
+                    std::clamp(qRound(screen["y"].toDouble()+15),0,std::max(0,view_->height()-lineLockCue_->height())));
+                lineLockCue_->show();lineLockCue_->raise();
+            }
+            else if(lineLockCue_)lineLockCue_->hide();
+        }
+        else if(tool=="line" && lineLockCue_ && !session_.contains("pendingLineLength"))lineLockCue_->hide();
         view_->showSketchCursor(plane,{first["uMm"].toDouble(),first["vMm"].toDouble()},{point["uMm"].toDouble(),point["vMm"].toDouble()},tool=="rectangle" || tool=="centerRectangle",tool=="centerRectangle");
         if(tool=="line" && session_.value("pendingLineLength").toObject().value("phase")=="locked")showLineLockCue(point);
         if(snapping && !(tool=="line" && session_.contains("pendingLineLength")))view_->showSketchSnap(plane,snap);
@@ -7492,6 +7519,7 @@ QJsonObject AlloyWindow::appendSketchEntity(const QString& tool,const QJsonObjec
         {"u2Mm",CadDocument::millimeters(inputs["x2"].toDouble(),units)},{"v2Mm",CadDocument::millimeters(inputs["y2"].toDouble(),units)}};
     if(inputs.contains("startSnapTarget"))canonical["startSnapTarget"]=inputs["startSnapTarget"];
     if(inputs.contains("endSnapTarget"))canonical["endSnapTarget"]=inputs["endSnapTarget"];
+    if(tool=="line" && inputs.value("inferAxis").toBool())canonical["inferAxis"]=true;
     const auto draft=session_.value("draftSketch").toObject();
     if(tool=="rectangle" && inputs.contains("typedWidthMm")) {
         const auto context=session_.value("projectionContext").toObject();
@@ -7552,7 +7580,7 @@ QJsonObject AlloyWindow::appendSketchEntity(const QString& tool,const QJsonObjec
             {"valueMm",inputs["lockedLengthMm"]},{"driving",true}},context);
         return publishSketchSolve(solved);
     }
-    if(canonical.contains("startSnapTarget") || canonical.contains("endSnapTarget"))
+    if(canonical.contains("startSnapTarget") || canonical.contains("endSnapTarget") || canonical.contains("inferAxis"))
         return publishSketchSolve(SketchGeometry::addPointerEntity(draft,tool,canonical,session_.value("projectionContext").toObject()));
     const auto updated=tool=="line" ? SketchGeometry::addLine(draft,canonical) : SketchGeometry::addRectangle(draft,canonical);
     return publishSketchSolve(SketchGeometry::solveDraft(updated,session_.value("projectionContext").toObject()));
@@ -9169,6 +9197,7 @@ QJsonObject AlloyWindow::lockLineAngle(const QJsonObject& args) {
 }
 
 void AlloyWindow::cancelLineLength() {
+    if(lineLockCue_)lineLockCue_->hide();
     if(!session_.contains("pendingLineLength"))return;
     session_.remove("pendingLineLength");if(dimensionEditor_)dimensionEditor_->hide();if(lineLockCue_)lineLockCue_->hide();view_->clearSketchCursor();
 }

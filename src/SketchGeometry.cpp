@@ -1223,11 +1223,33 @@ SketchGeometry::SolveResult SketchGeometry::addCenterPointEllipse(const QJsonObj
     }catch(const std::exception& error){return invalidDraft(draft,QString::fromUtf8(error.what()));}
 }
 
+QJsonObject SketchGeometry::pointerLineAxis(double u1,double v1,double u2,double v2,bool endAcquired) {
+    const double dx=u2-u1,dy=v2-v1,length=std::hypot(dx,dy);
+    // Alloy's bounded pointer policy: within one degree and one millimeter of
+    // an axis, for a line long enough that pointer pixels have useful direction.
+    if(!std::isfinite(length) || length<2.0)return {};
+    const double tolerance=std::min(1.0,length*std::tan(std::numbers::pi/180.0));
+    const bool horizontal=std::abs(dx)>std::abs(dy);
+    const double deviation=horizontal ? std::abs(dy) : std::abs(dx);
+    // The first click is never moved. A snapped final target also cannot be
+    // moved to an inferred axis; admit that case only when already aligned.
+    if(deviation>tolerance || (endAcquired && deviation>1e-6))return {};
+    if(horizontal) {
+        if(!endAcquired)v2=v1;
+    } else {
+        if(!endAcquired)u2=u1;
+    }
+    return {{"type",horizontal ? "horizontal" : "vertical"},
+        {"u1Mm",u1},{"v1Mm",v1},{"u2Mm",u2},{"v2Mm",v2}};
+}
+
 SketchGeometry::SolveResult SketchGeometry::addPointerEntity(const QJsonObject& draft, const QString& tool, const QJsonObject& arguments, const QJsonObject& projectionContext) {
     try {
         validateDraft(draft);
         if (tool!="line" && tool!="rectangle") reject("Pointer authoring supports Line and Rectangle");
-        checkFields(arguments,{"u1Mm","v1Mm","u2Mm","v2Mm","startSnapTarget","endSnapTarget"});
+        checkFields(arguments,{"u1Mm","v1Mm","u2Mm","v2Mm","startSnapTarget","endSnapTarget","inferAxis"});
+        if(arguments.contains("inferAxis") && (tool!="line" || !arguments["inferAxis"].isBool()))
+            reject("Only pointer-created Line may request axis inference");
         double u1=coordinate(arguments,"u1Mm"),v1=coordinate(arguments,"v1Mm"),u2=coordinate(arguments,"u2Mm"),v2=coordinate(arguments,"v2Mm");
         auto parameters=draft["parameters"].toObject();auto points=parameters["points"].toArray();
         auto entities=parameters["entities"].toArray();auto constraints=parameters["constraints"].toArray();
@@ -1264,6 +1286,12 @@ SketchGeometry::SolveResult SketchGeometry::addPointerEntity(const QJsonObject& 
             reject("Snap target point does not exist");
         };
         const auto startTarget=target("startSnapTarget",u1,v1,startMidpointLine),endTarget=target("endSnapTarget",u2,v2,endMidpointLine);
+        const auto inference=tool=="line" && arguments.value("inferAxis").toBool()
+            ? pointerLineAxis(u1,v1,u2,v2,!endTarget.isEmpty() || !endMidpointLine.isEmpty()) : QJsonObject{};
+        if(!inference.isEmpty()) {
+            u1=inference["u1Mm"].toDouble();v1=inference["v1Mm"].toDouble();
+            u2=inference["u2Mm"].toDouble();v2=inference["v2Mm"].toDouble();
+        }
         if (tool=="line" && (std::hypot(u2-u1,v2-v1)<minimumLength || std::hypot(u2-u1,v2-v1)>maximumLength)) reject("Snapped line length out of supported range");
         if (tool=="rectangle" && (std::abs(u2-u1)<minimumLength || std::abs(v2-v1)<minimumLength)) reject("Snapped rectangle sides must be at least 0.001 mm");
         auto derivedOffsetPoints=SketchSplineOffset::derivedPointIds(parameters);
@@ -1271,7 +1299,8 @@ SketchGeometry::SolveResult SketchGeometry::addPointerEntity(const QJsonObject& 
         const auto first=tool=="line" && derivedOffsetPoints.contains(startTarget) ? startTarget : freshPoint(u1,v1);
         QString last;
         auto edge=[&](const QString& a,const QString& b) {const auto id=newId();entities.append(QJsonObject{{"id",id},{"type","line"},{"startPointId",a},{"endPointId",b}});return id;};
-        if (tool=="line") {last=derivedOffsetPoints.contains(endTarget) ? endTarget : freshPoint(u2,v2);edge(first,last);}
+        QString lineId;
+        if (tool=="line") {last=derivedOffsetPoints.contains(endTarget) ? endTarget : freshPoint(u2,v2);lineId=edge(first,last);}
         else {
             const auto second=freshPoint(u2,v1);last=freshPoint(u2,v2);const auto fourth=freshPoint(u1,v2);
             const QString corners[]{first,second,last,fourth};
@@ -1287,9 +1316,20 @@ SketchGeometry::SolveResult SketchGeometry::addPointerEntity(const QJsonObject& 
         if(last!=endTarget)coincide(last,endTarget);
         if(!startMidpointLine.isEmpty())constraints.append(QJsonObject{{"id",newId()},{"type","midpoint"},{"pointIds",QJsonArray{first}},{"entityIds",QJsonArray{startMidpointLine}}});
         if(!endMidpointLine.isEmpty())constraints.append(QJsonObject{{"id",newId()},{"type","midpoint"},{"pointIds",QJsonArray{last}},{"entityIds",QJsonArray{endMidpointLine}}});
+        if(!inference.isEmpty())constraints.append(QJsonObject{{"id",newId()},{"type",inference["type"]},
+            {"entityIds",QJsonArray{lineId}}});
         parameters["points"]=points;parameters["entities"]=entities;parameters["constraints"]=constraints;
         auto candidate=draft;candidate["parameters"]=parameters;
         const auto result=solveDraft(candidate,projectionContext);
+        if(result.ok && !inference.isEmpty())for(const auto& oldValue:draft["parameters"].toObject()["points"].toArray()) {
+            const auto old=oldValue.toObject();bool same=false;
+            for(const auto& newValue:result.feature["parameters"].toObject()["points"].toArray()) {
+                const auto now=newValue.toObject();if(now["id"]!=old["id"])continue;
+                same=std::hypot(now["uMm"].toDouble()-old["uMm"].toDouble(),
+                    now["vMm"].toDouble()-old["vMm"].toDouble())<1e-5;break;
+            }
+            if(!same)return {false,draft,result.diagnostics,"Inferred axis would move existing sketch geometry"};
+        }
         return result.ok ? result : SolveResult{false,draft,result.diagnostics,result.error};
     } catch (const std::exception& error) {return invalidDraft(draft,QString::fromUtf8(error.what()));}
 }
