@@ -10,6 +10,12 @@ source-selection/Cancel checks pass; [the receipt](validation/surface-loft.md)
 records scope and input-evidence limits. Native operation chooser remains
 unverified. SRF-010 Thicken is active and will consume the evaluated sheet
 as a distinct retained source; the complete shoehorn workflow remains open.
+Root is building the cumulative from-blank runner in
+`../Alloy-worktrees/shoehorn-workflow/tests/shoehorn_workflow_api.py`. Its first
+56-call source prefix passes driving130/50/16 spline dimensions, endpoint
+planes, midpoint sections and actual guided surface/save/reopen. External
+evidence is `deliverables/shoehorn-workflow-2026-10-14/prefix-01/`; a new
+driving bend-dimension edit check and creation recording are pending.
 
 ## Accepted local object organization (2026-10-14)
 
