@@ -1,5 +1,18 @@
 # Continuation context
 
+## ASM-015 coupled piston UI candidate (2026-10-14)
+
+The isolated `feat/piston-coupled-ui` candidate adds a source-shaped UpperArm
+pointer drag and whole-pose Revert to the retained 3-Revolute/1-Cylindrical/Pin
+graph. New Revolute starts a new row unless an exact joint ID is requested;
+the native dock commits a third row while retaining the first two. The focused
+graph core and Qt-delivered native 3/3 test pass; three occurrence poses move
+under one staged driver and exact Revert restores them without changing authored
+history. The actual-app cumulative source-order API run is independently owned
+by the root lane. Independent UI compatibility review and main integration are
+pending. See [bounded evidence](validation/piston-coupled-ui.md). Linked piston
+copy, arbitrary drag, playback and broad solver rank remain separate.
+
 ## Current queue (2026-10-14)
 
 Canvas DOC-024, retained Remove HIS-007 and Surface workspace VIS-004 are

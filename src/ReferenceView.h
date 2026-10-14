@@ -109,6 +109,7 @@ public:
     void setSliderCue(const QJsonObject& joint);
     void setAssemblyDragCue(const QJsonObject& cue);
     QJsonObject projectBody(const EvaluatedBody& body) const;
+    QPointF projectWorldPoint(const QJsonArray& pointMm) const;
     void showHolePreview(const EvaluatedBody& result, const TopoDS_Shape& removedMaterial);
     void showSpherePreview(const TopoDS_Shape& tool, bool cut);
     void showPreview(const TopoDS_Shape& shape,const QString& replacedBody = {}, bool neutral = false);

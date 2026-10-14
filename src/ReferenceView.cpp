@@ -1865,6 +1865,11 @@ QJsonObject ReferenceView::projectBody(const EvaluatedBody& body) const {
     return {{"x",x/scale.x()},{"y",y/scale.y()},{"bodyId",body.bodyId},
         {"viewportLocal",true},{"units","logicalPixels"}};
 }
+QPointF ReferenceView::projectWorldPoint(const QJsonArray& pointMm) const {
+    if(view_.IsNull() || pointMm.size()!=3)return {};
+    int x,y;view_->Convert(pointMm[0].toDouble(),pointMm[1].toDouble(),pointMm[2].toDouble(),x,y);
+    const auto scale=windowScale();return {x/scale.x(),y/scale.y()};
+}
 void ReferenceView::clearMoveCue(bool resetGesture) {
     if(resetGesture)moveDrag_={};
     if(!context_.IsNull())for(const auto& cue:moveCue_)context_->Remove(cue,false);
@@ -2395,8 +2400,10 @@ void ReferenceView::mouseMoveEvent(QMouseEvent* e) {
         if(QLineF(press,e->position()).length()>=4)if(const auto angle=assemblyPointerAngle(e->position())){
             const double degrees=assemblyDrag_["startDegrees"].toDouble()+
                 std::remainder(*angle-assemblyDrag_["startRadians"].toDouble(),2*std::numbers::pi)*180/std::numbers::pi;
-            if(degrees>=-180 && degrees<=180 && dispatch)
+            if(degrees>=-180 && degrees<=180 && dispatch){
+                assemblyDrag_["moved"]=true;
                 dispatch("joint.previewAngle",{{"jointId",assemblyDrag_["jointId"]},{"angleDeg",degrees}});
+            }
         }
         e->accept();return;
     }
@@ -2463,7 +2470,9 @@ void ReferenceView::leaveEvent(QEvent* e) {
 }
 void ReferenceView::mouseReleaseEvent(QMouseEvent* e) {
     if(e->button()==Qt::LeftButton && !assemblyDrag_.isEmpty()){
-        assemblyDrag_={};e->accept();return;
+        const bool moved=assemblyDrag_["moved"].toBool();assemblyDrag_={};
+        if(!moved && dispatch)dispatch("selection.pick",{{"x",e->position().x()},{"y",e->position().y()}});
+        e->accept();return;
     }
     if(conicDragging_ && e->button()==Qt::LeftButton) {
         conicDragging_=false;
