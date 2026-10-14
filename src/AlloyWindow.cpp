@@ -757,9 +757,10 @@ void AlloyWindow::updateTimelineDrop(const QPoint& globalPosition) {
         const auto id=button->property("featureId").toString();
         if(id.isEmpty() || id==timelineDragFeatureId_ || !button->isVisible())continue;
         const QRect bounds(button->mapTo(viewport,QPoint{}),button->size());
-        if(!bounds.contains(point))continue;
+        const QRect dropZone=bounds.adjusted(0,0,3,0); // Include the visible trailing marker/gap.
+        if(!dropZone.contains(point))continue;
         timelineDragAnchorId_=id;
-        timelineDropMarker_->setGeometry(bounds.right()+3,bounds.top(),3,bounds.height());
+        timelineDropMarker_->setGeometry(bounds.right()+1,bounds.top(),3,bounds.height());
         timelineDropMarker_->raise();timelineDropMarker_->show();
         return;
     }

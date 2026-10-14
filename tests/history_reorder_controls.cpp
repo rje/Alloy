@@ -38,7 +38,8 @@ private slots:
         auto* source=window.findChild<QToolButton*>("timeline.feature."+sourceId);
         auto* anchor=window.findChild<QToolButton*>("timeline.feature."+mirrorId);
         QVERIFY(source && anchor);QTRY_VERIFY(source->isVisible() && anchor->isVisible());
-        const auto drop=anchor->mapToGlobal(QPoint(anchor->width()/2,anchor->height()/2));
+        // Release on the displayed insertion marker, not on the tile's center.
+        const auto drop=anchor->mapToGlobal(QPoint(anchor->width()+1,anchor->height()/2));
         auto gesture=[&]{
             QTest::mousePress(source,Qt::LeftButton,Qt::NoModifier,QPoint(12,12));
             movePressedTile(source,drop);
