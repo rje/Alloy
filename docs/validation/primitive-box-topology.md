@@ -36,3 +36,14 @@ faces. Evidence is external under
 `../Alloy-reference-records/validation/box-topology-2026-10-13/attempt-02`.
 The API runner closes its private editor. This does not establish physical
 mouse input or a matched public screenshot comparison.
+
+## Independent acceptance and integration
+
+Astra independently accepted the bounded ingredient on2026-10-13 after source,
+focused core, real-entrypoint ledger and actual GPU capture review. Detailed
+review is external at knowledge/tutorials/advanced-audit-2026-10-13/doc022-source-core-review.md.
+The shared main build also passes tests/sliding_box_prefix_api.py: named
+50×80×40 Box/Shell4, resize to74×40×100 with Shell3, stable inner back
+face/edge IDs, exact history and authored reopen, and inspected hardware GPU
+capture. Evidence: external deliverables/sliding-box-2026-10-13/prefix-01.
+This is the integrated box prefix; lid, dovetail and motion remain unimplemented.

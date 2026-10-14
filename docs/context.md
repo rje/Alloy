@@ -21,13 +21,17 @@ cumulative gates TUT-015–019 now track the required existing owners and bounde
 new children. Detailed public research stays external at
 `knowledge/tutorials/advanced-audit-2026-10-13/independent-spec.md`.
 
-First active implementation: PAR-004 Box/Shell direct named lengths in isolated
-`box-shell-parameters`, and DOC-022 primitive Box/straight Shell topology in
-`box-topology`. Sol implements; Astra independently audits sources and verifies
-candidates. Root owns main/backlog and the sole private-editor lease. No new
-feature acceptance or completed advanced-tutorial movie is claimed yet.
-Source qualification for enclosure inputs, iron prepared sketches and piston
-starting geometry is explicitly tracked; no proprietary application access.
+PAR-004/#270 and DOC-022/#271 are independently accepted and integrated:
+Box/Shell direct named lengths and primitive/inner-Shell face/edge references.
+Main builds; the combined `tests/sliding_box_prefix_api.py` passes real primitive
+Box→Shell, source-size edits and thickness3, stable back-wall references,
+undo/redo and exact reopen with an inspected hardware GPU capture. Receipt in
+`docs/validation/box-shell-parameters.md`; artifacts external at
+`deliverables/sliding-box-2026-10-13/prefix-01`. Both issues are closed.
+Next source feature is SKT-066 linked Project across root-sibling components;
+SOL-044 offset-start Extrude is an independent ready slice. No complete lid
+workflow/movie is claimed. Root owns the sole private-editor lease; all test
+editors are closed. Source qualification for later tutorials remains explicit.
 
 ## Accepted ornament gate — 2026-10-13
 

@@ -18,8 +18,8 @@ enclosure → surface shoehorn → surface iron → piston subassemblies**. TUT-
 are cumulative gates with explicit feature dependencies. Thirty-seven new tasks
 include these five gates, three source qualification tasks and29 bounded feature
 children. Existing broad requirements are reused, not duplicated; split them
-before pulling an implementation too large for one increment. Only PAR-004 and
-DOC-022 are initially active. Complete source operations, readable constraint and
+before pulling an implementation too large for one increment. PAR-004 and DOC-022 are independently accepted and closed.
+Linked Project and offset-start Extrude are the next ready source slices. Complete source operations, readable constraint and
 selection states, edit/history/reopen, full creation recordings and independently
 checked outputs remain acceptance requirements. Detailed source URLs and
 research remain external under `knowledge/tutorials/advanced-audit-2026-10-13/`.

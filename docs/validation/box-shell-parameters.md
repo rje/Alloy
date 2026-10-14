@@ -9,3 +9,14 @@ The shared API exposes `widthParameter`, `depthParameter`, `heightParameter` on 
 Focused `named_length_parameters_test` covers bound Box geometry, ID preservation through rename and value update, missing-ID refusal, undo/redo and save/reopen. `solid_shell_test` covers bound thickness, rename/update, impossible-thickness rollback, numeric replacement and existing Shell geometry/history. Both pass. `box_shell_parameters_controls_test` passes actual Qt typing of Box and Shell names, unknown-name attempted commit, same-value numeric replacement and edit reopening (3/3, 4.7 s). Initial window activation is harness setup; demonstrated native field steps do not repair focus or selection. `tests/box_shell_parameters_api.py` passes through the real app entrypoint: bound Box and Shell, a sketch length sharing Thickness, valid update, invalid Shell recompute, undo/redo and authored save/reopen.
 
 The inspected Apple M4 GPU captures show the three Box names in native fields, the Shell name and hollow preview, and resulting Box/Shell bodies. Evidence, saved models, API state/transcript and app log are outside the checkout at `../Alloy-reference-records/deliverables/box-shell-parameters-2026-10-13/`. The native and API runners use independent documents. Their evidence establishes this bounded ingredient; the complete advanced tutorial, actual Box→Shell chain, precise visual matching and Windows/Linux runtime remain separate gates.
+
+## Independent acceptance and integration
+
+Astra independently accepted the bounded ingredient on2026-10-13 after source,
+focused core, real-entrypoint ledger and actual GPU capture review. Detailed
+review is external at knowledge/tutorials/advanced-audit-2026-10-13/par004-independent-review.md.
+The shared main build also passes tests/sliding_box_prefix_api.py: named
+50×80×40 Box/Shell4, resize to74×40×100 with Shell3, stable inner back
+face/edge IDs, exact history and authored reopen, and inspected hardware GPU
+capture. Evidence: external deliverables/sliding-box-2026-10-13/prefix-01.
+This is the integrated box prefix; lid, dovetail and motion remain unimplemented.
