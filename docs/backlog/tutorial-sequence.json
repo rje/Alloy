@@ -13,8 +13,9 @@
         "TUT-024"
       ],
       "acceptance": "Exact from-blank circle/rectangle/Center to Center Slot, D45/R5, connected profile with Perpendicular/Equal, vertical d3=100 and direct d3 + 50 horizontal dimension evaluating 150; edit driver and retain relation/history/reopen with readable source-step input and captures.",
-      "status": "todo",
-      "remaining": "Slot and same-sketch formulas accepted. Native05 exposed missing pointer Line H/V inference; SKT-084 is active before the cumulative native recording resumes. Popup toolbar opening adaptation remains qualified."
+      "status": "done",
+      "remaining": "None for bounded source creation gate. Qt menu-opener adaptation, non-OS input, raw repeated frames and unknown reference screenshot metadata remain qualified. Full video/model are in external gallery.",
+      "evidence": "docs/validation/sketch-expression-tutorial.md"
     },
     {
       "id": "CP-26",

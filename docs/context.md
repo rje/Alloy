@@ -17,21 +17,23 @@ delete-refusal checks pass. API02 passes 45 calls with polygon area
 12500→17400 mm²; native02 passes actual inline `d3 + 50`, driver edit100→120,
 dependent150→170 and formula reopening with readable captures. See
 [receipt](validation/sketch-dimension-expression.md).
-SKT-084/#387 is active: native05 of TUT-024 exposed missing pointer Line
-horizontal/vertical inference. The source expects automatic alignment, but later
-dimension edits rotate the unaligned native polygon. Astra confirms this is a
-material source gap; do not inject explicit fixture constraints or weaken the
-orientation/area requirement. Sol implements retained H/V preview and commit
-through shared commands; root maintains backlog/context and Astra verifies.
-TUT-024/#386 returns to Todo pending this prerequisite. Native01–04 stalled at
-synchronous toolbar menu automation; native05 uses nonblocking real-menu popup
-opening plus Qt-delivered item/pointer/key input. That opener is a harness
-adaptation, not verified toolbar-click parity. It reaches 100/150 and120/170
-but fails the final area check because of the alignment gap. Evidence stays in
-the external sketch-expression-exercise deliverable. Ingredient API setup is
-not a substitute for the full source sequence.
-[Contract](research/sketch-expression-exercise-contract.md).
-Next queued excerpt: SKT-085/#388 and SKT-086/#389 add creation-time circle
+SKT-084/#387 is independently accepted at `b260850`: focused origin-snapped
+core regression and native13 full tutorial pass retained bottom Horizontal/right
+Vertical, aligned 120/170 polygon area17400, unchanged45/R5 slot and history/reopen.
+Native14 shows readable H preview. Ctrl/Command routing is source-reviewed only.
+TUT-024/#386 and FND-026/#391 are independently accepted with recording
+presentation `4d09f0b`. The full from-blank Qt workflow passes; recording02 is
+110.133s, with visible H preview (58s) and literal formula entry (97s). The fixed
+recorder provenance header avoids covering modeling controls. Video, editable
+model and receipt are in the external gallery at
+`demos/2026-10-13/index.html#sketch-expressions`; all134file links resolve.
+One transient pre-Line pointer-preview refusal, raw repeated frames, the
+nonblocking menu-opener adaptation and unknown public screenshot metadata remain
+explicitly qualified. Shared API viewport/inspection/history/storage steps are
+captioned separately. See [receipt](validation/sketch-expression-tutorial.md)
+and [contract](research/sketch-expression-exercise-contract.md).
+SKT-085/#388 is active with Sol on creation-time circle tangency; SKT-086/#389
+and TUT-025/#390 remain queued. These add circle
 tangent inference and connected Line-to-Arc drag; TUT-025/#390 checks the public
 Base Sketch construction steps1–5. Existing explicit Tangent and Fillet are
 reused. Archived source and reviewed detailed contracts stay external.
