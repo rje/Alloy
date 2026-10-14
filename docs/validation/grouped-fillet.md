@@ -1,8 +1,10 @@
 # Grouped solid Fillet candidate
 
-Status: isolated SOL-046 candidate, 2026-10-13. The public command contract and
-source provenance are external at
-`../Alloy-reference-records/knowledge/tutorials/advanced-audit-2026-10-13/grouped-fillet-contract.md`.
+Status: isolated SOL-046 candidate independently accepted on 2026-10-13;
+main integration remains pending. The public command contract, source
+provenance and independent review are external at
+`../Alloy-reference-records/knowledge/tutorials/advanced-audit-2026-10-13/grouped-fillet-contract.md`
+and `grouped-fillet-independent-review.md` beside it.
 
 One retained Fillet feature can hold independent constant-radius selection sets.
 Each set stores its own stable ID, authored seed edge IDs, radius and Tangent
@@ -43,6 +45,7 @@ they do not establish OS-level physical input. Evidence and the API ledger are
 external under `../Alloy-reference-records/validation/grouped-fillet-2026-10-13/`.
 All private editor processes were closed after the checks.
 
-Independent review is pending. This ingredient qualifies grouped Fillet on Box
-stock; retained edges after future surface Thicken remain a separate tutorial
+The independent review accepted the bounded source, core, API, native and
+capture evidence. This ingredient qualifies grouped Fillet on Box stock;
+retained edges after future surface Thicken remain a separate tutorial
 dependency.

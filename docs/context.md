@@ -21,7 +21,8 @@ Fillet feature with stable independent radius sets and current-topology tangent
 chains. The 50 × 80 × 40 mm Box fixture applies R5 to four vertical edges and
 R2.5 to eight top/bottom edges in one feature. Focused core, a 31-call real-app
 API run and native Qt selection/controls pass; candidate capture and STL are
-external. Independent review and main integration remain pending. See
+external. Astra independently accepted this bounded candidate; main
+integration remains pending. See
 [grouped Fillet candidate](validation/grouped-fillet.md). Later Thicken edge
 provenance remains with the surface tutorial prerequisites.
 

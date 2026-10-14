@@ -59,7 +59,8 @@ Successive Join and constant-radius solid-edge Fillet have
 [independent native acceptance](docs/validation/support-solid-independent-review.md),
 including stable history, readable edge selection and retained disk-cap support.
 An isolated [grouped Fillet candidate](docs/validation/grouped-fillet.md) adds
-independent R5/R2.5 edge sets in one feature; independent review is pending.
+independent R5/R2.5 edge sets in one feature and has bounded independent
+acceptance; main integration remains pending.
 The [support tutorial](docs/validation/support-tutorial-independent.md) now passes
 a cumulative functional video-variant gate through an angled cutter, Combine Cut
 and a closed millimeter STL. Its native movie is a labeled continuation; a separate 78-second movie shows
