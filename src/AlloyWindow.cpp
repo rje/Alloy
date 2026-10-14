@@ -1832,7 +1832,8 @@ void AlloyWindow::registerCommands() {
         {"endSupport",optional(parameter("object","Retained producerFeatureId/bodyId/faceId of the end face."))},
         {"endOffset",optional(extrusionStartOffset)},
         {"endOffsetParameter",optional(parameter("string","Direct user length name for end clearance."))},
-        {"sketchId",sketchIdentity},{"profileId",optional(profileIdentity)},{"profileIds",optional(profileIdentities)},{"distance",optional(extrusionDistance)},
+        {"sketchId",sketchIdentity},{"profileId",optional(profileIdentity)},{"profileIds",optional(profileIdentities)},
+        {"profileSelection",optional(parameter("object","Explicit Cut union of retained closed Offset groupIds; ordinary cell IDs are exclusive."))},{"distance",optional(extrusionDistance)},
         {"distanceParameter",optional(parameter("string","Direct name of a user length for the one-side distance."))},
         {"start",optional(extrusionStart)},{"startOffset",optional(extrusionStartOffset)},
         {"startOffsetParameter",optional(parameter("string","Direct name of a user length for a positive start offset."))},
@@ -1864,7 +1865,8 @@ void AlloyWindow::registerCommands() {
         if(!inputs.contains("name"))inputs["name"]="Extrude";
         if(!inputs.contains("units"))inputs["units"]=document_->authored()["displayUnits"];
         if(const auto invalid=validateExtrudeInputs(inputs);!invalid.isEmpty())return failure("invalid_arguments",invalid);
-        if(!inputs.contains("profileId") && !inputs.contains("profileIds"))return failure("profile_required","Select a closed sketch region to extrude","profileIds");
+        if(!inputs.contains("profileId") && !inputs.contains("profileIds") && !inputs.contains("profileSelection"))return failure("profile_required","Select a closed sketch region or Offset loop union","profileIds");
+        if(inputs.contains("profileSelection") && !inputs.contains("targetBodyIds"))return failure("target_required","Offset loop union Cut needs one explicit target body","targetBodyIds");
         if((inputs.value("operation")=="cut" || inputs.value("operation")=="join" || inputs.value("operation")=="intersect") && !inputs.contains("targetBodyIds")) {
             if(inputs.value("extent")=="all")return failure("target_required","All extent needs one explicitly selected target body","targetBodyIds");
             try {inputs["targetBodyIds"]=discoverExtrudeTargets(inputs);}catch(const std::exception& error){return failure("evaluation_failed",QString::fromUtf8(error.what()));}
@@ -4553,8 +4555,9 @@ void AlloyWindow::registerCommands() {
         auto inputs = session_.value("inputs").toObject();
         const auto updates = a["inputs"].toObject();
         if(session_.value("command")=="solid.extrude") {
-            if(updates.contains("profileIds"))inputs.remove("profileId");
-            if(updates.contains("profileId"))inputs.remove("profileIds");
+            if(updates.contains("profileIds") || updates.contains("profileId") || updates.contains("profileSelection")) {
+                inputs.remove("profileId");inputs.remove("profileIds");inputs.remove("profileSelection");
+            }
             if(updates.contains("distance") && !updates.contains("distanceParameter"))inputs.remove("distanceParameter");
             if(updates.contains("distanceParameter")) {
                 if(updates.contains("distance"))return failure("invalid_arguments","Choose numeric distance or direct length name");
@@ -4738,7 +4741,8 @@ void AlloyWindow::registerCommands() {
         if(target=="solid.shell" && session_.contains("invalidNamedInput") && (updates.contains("thicknessMm") || updates.contains("thicknessParameter")))session_.remove("invalidNamedInput");
         session_["inputs"] = inputs;if(target=="solid.extrude") {
             QJsonObject source{{"sketchId",inputs.value("sketchId")}};
-            if(inputs.contains("profileIds"))source["profileIds"]=inputs["profileIds"];
+            if(inputs.contains("profileSelection"))source["profileSelection"]=inputs["profileSelection"];
+            else if(inputs.contains("profileIds"))source["profileIds"]=inputs["profileIds"];
             else source["profileId"]=inputs.value("profileId");
             session_["source"]=source;
         }
@@ -5880,6 +5884,7 @@ QString AlloyWindow::validateExtrudeInputs(const QJsonObject& inputs) const {
     schema["sketchId"]=QJsonObject{{"type","string"},{"required",false}};
     schema["profileId"]=QJsonObject{{"type","string"},{"required",false}};
     schema["profileIds"]=QJsonObject{{"type","array"},{"required",false}};
+    schema["profileSelection"]=QJsonObject{{"type","object"},{"required",false}};
     Command command=*findCommand("solid.extrude");command.parameters=schema;
     const auto error=validateArguments(command,inputs);if(!error.isEmpty())return error;
     if(inputs.value("extent")=="toObject") {
@@ -5896,7 +5901,13 @@ QString AlloyWindow::validateExtrudeInputs(const QJsonObject& inputs) const {
     const auto start=inputs.value("start").toString("profilePlane");
     if(start=="profilePlane" && (inputs.contains("startOffsetParameter") || (inputs.contains("startOffset") && inputs["startOffset"].toDouble()!=0)))return "Profile Plane start cannot carry an offset";
     if(start=="offset" && !inputs.contains("startOffset"))return "Offset start requires a signed length";
-    if(inputs.contains("profileId") && inputs.contains("profileIds"))return "Use either profileId or profileIds";
+    if(int(inputs.contains("profileId"))+int(inputs.contains("profileIds"))+int(inputs.contains("profileSelection"))>1)return "Choose ordinary regions or Offset loop union, never both";
+    if(inputs.contains("profileSelection")) {
+        const auto selection=inputs.value("profileSelection").toObject();const auto groups=selection.value("groupIds").toArray();
+        if(inputs.value("operation")!="cut" || selection.size()!=2 || selection.value("kind")!="closedRectOffsetUnion" || groups.isEmpty())return "Offset loop union requires retained groups and Cut";
+        QSet<QString> ids;for(const auto& value:groups) {if(!value.isString() || value.toString().isEmpty() || ids.contains(value.toString()))return "Offset loop union groups must be distinct";ids.insert(value.toString());}
+        if(inputs.value("targetBodyIds").toArray().size()!=1)return "Offset loop union needs one explicit Cut target";
+    }
     QSet<QString> seen;
     for(const auto& value:inputs.value("profileIds").toArray()) {
         if(!value.isString() || value.toString().isEmpty() || seen.contains(value.toString()))return "profileIds must contain distinct nonempty IDs";
@@ -5977,7 +5988,8 @@ QJsonObject AlloyWindow::extrudeExtentParameters(const QJsonObject& inputs) cons
 }
 QJsonObject AlloyWindow::extrusionCandidate(const QJsonObject& inputs,bool hideSource) const {
     auto arguments=extrudeExtentParameters(inputs);arguments["sketchId"]=inputs.value("sketchId");
-    if(inputs.contains("profileIds"))arguments["profileIds"]=inputs["profileIds"];
+    if(inputs.contains("profileSelection"))arguments["profileSelection"]=inputs["profileSelection"];
+    else if(inputs.contains("profileIds"))arguments["profileIds"]=inputs["profileIds"];
     else arguments["profileId"]=inputs.value("profileId");
     if((inputs.value("operation")=="cut" || inputs.value("operation")=="join" || inputs.value("operation")=="intersect")){
         arguments["operation"]=inputs["operation"];arguments["targetBodyIds"]=inputs.value("targetBodyIds");
@@ -5986,7 +5998,8 @@ QJsonObject AlloyWindow::extrusionCandidate(const QJsonObject& inputs,bool hideS
     if(!inputs.value("featureId").toString().isEmpty())arguments["featureId"]=inputs.value("featureId");
     else if(session_.value("command")=="solid.extrude" && session_.value("inputs").toObject().value("sketchId")==inputs.value("sketchId")
         && session_.value("inputs").toObject().value("profileId")==inputs.value("profileId")
-        && session_.value("inputs").toObject().value("profileIds")==inputs.value("profileIds")) {
+        && session_.value("inputs").toObject().value("profileIds")==inputs.value("profileIds")
+        && session_.value("inputs").toObject().value("profileSelection")==inputs.value("profileSelection")) {
         arguments["newFeatureId"]=session_.value("newFeatureId");
         if(inputs.value("operation").toString("newBody")=="newBody")arguments["newBodyId"]=session_.value("newBodyId");
     }
@@ -6040,15 +6053,18 @@ QJsonObject AlloyWindow::beginExtrude(const QJsonObject& overrides) {
         }
         if(!overrides.contains("extent") && savedParameters.value("extent")=="all") {inputs.remove("distance");inputs["extent"]="all";inputs["flip"]=savedParameters.value("flip");}
         if(savedOperation!="newBody" && !overrides.contains("targetBodyIds"))inputs["targetBodyIds"]=savedParameters["targetBodyIds"];
+        if(!overrides.contains("profileId") && !overrides.contains("profileIds") && !overrides.contains("profileSelection")
+            && savedParameters.contains("profileSelection"))inputs["profileSelection"]=savedParameters["profileSelection"];
     }
     if(inputs.value("start")=="offset" && !inputs.contains("startOffset"))inputs["startOffset"]=0;
-    if(inputs.contains("profileId") && inputs.contains("profileIds"))return failure("invalid_arguments","Use either profileId or profileIds");
+    if(int(inputs.contains("profileId"))+int(inputs.contains("profileIds"))+int(inputs.contains("profileSelection"))>1)
+        return failure("invalid_arguments","Choose ordinary regions or Offset loop union, never both");
     if(inputs.value("sketchId").toString().isEmpty() && !selectedSketch_.isEmpty())inputs["sketchId"]=selectedSketch_;
-    if(!inputs.contains("profileId") && !inputs.contains("profileIds") && !selectedProfileIds_.isEmpty() && inputs.value("sketchId")==selectedSketch_) {
+    if(!inputs.contains("profileId") && !inputs.contains("profileIds") && !inputs.contains("profileSelection") && !selectedProfileIds_.isEmpty() && inputs.value("sketchId")==selectedSketch_) {
         if(selectedProfileIds_.size()==1)inputs["profileId"]=selectedProfileIds_.first();
         else inputs["profileIds"]=selectedProfileIds_;
     }
-    if(!inputs.contains("profileId") && !inputs.contains("profileIds")) {
+    if(!inputs.contains("profileId") && !inputs.contains("profileIds") && !inputs.contains("profileSelection")) {
         std::vector<EvaluatedProfile> candidates;
         for(const auto& sketch:document_->sketches())if(inputs.value("sketchId").toString().isEmpty() ? sketch.visible : sketch.featureId==inputs["sketchId"].toString())
             candidates.insert(candidates.end(),sketch.profiles.begin(),sketch.profiles.end());
@@ -6056,7 +6072,8 @@ QJsonObject AlloyWindow::beginExtrude(const QJsonObject& overrides) {
     }
     const auto error=validateExtrudeInputs(inputs);if(!error.isEmpty())return failure("invalid_arguments",error);
     QJsonObject source{{"sketchId",inputs.value("sketchId")}};
-    if(inputs.contains("profileIds"))source["profileIds"]=inputs["profileIds"];
+    if(inputs.contains("profileSelection"))source["profileSelection"]=inputs["profileSelection"];
+    else if(inputs.contains("profileIds"))source["profileIds"]=inputs["profileIds"];
     else source["profileId"]=inputs.value("profileId");
     session_={{"id",CadDocument::newId()},{"command","solid.extrude"},{"status","active"},{"inputs",inputs},
         {"source",source},
@@ -6072,7 +6089,7 @@ QJsonObject AlloyWindow::beginExtrude(const QJsonObject& overrides) {
     refreshExtrudeControls();return session_;
 }
 QJsonObject AlloyWindow::previewExtrude() {
-    session_["previewed"]=false;session_["previewHandle"]=false;session_["geometryEvaluated"]=false;session_.remove("geometry");session_.remove("documentDraft");
+    session_["previewed"]=false;session_["previewHandle"]=false;session_["geometryEvaluated"]=false;session_.remove("geometry");session_.remove("documentDraft");session_.remove("resolvedProfileIds");
     if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision())) {
         view_->clearPreview();view_->setEditDisplay({},{});return failure("stale_session","The document changed; cancel and restart this extrusion");
     }
@@ -6081,16 +6098,23 @@ QJsonObject AlloyWindow::previewExtrude() {
     QJsonArray hidden;
     if(!inputs.value("featureId").toString().isEmpty())for(const auto& body:document_->bodies())if(body.featureId==inputs["featureId"].toString())hidden.append(body.bodyId);
     view_->setEditDisplay(inputs.value("sketchId").toString(),hidden);
-    const auto profileIds=inputs.contains("profileIds") ? inputs["profileIds"].toArray() : inputs.value("profileId").toString().isEmpty() ? QJsonArray{} : QJsonArray{inputs["profileId"]};
-    if(inputs.value("sketchId").toString().isEmpty() || profileIds.isEmpty())return reject(failure("profile_required","Select a closed sketch region to extrude","profileIds"));
+    QJsonArray profileIds=inputs.contains("profileIds") ? inputs["profileIds"].toArray() : inputs.value("profileId").toString().isEmpty() ? QJsonArray{} : QJsonArray{inputs["profileId"]};
+    if(inputs.value("sketchId").toString().isEmpty() || (profileIds.isEmpty() && !inputs.contains("profileSelection")))return reject(failure("profile_required","Select a closed sketch region or Offset loop union","profileIds"));
     const auto featureId=inputs.value("featureId").toString(session_.value("newFeatureId").toString());
     const auto editId=inputs.value("featureId").toString();
     const auto history=editId.isEmpty() ? document_->evaluation() : document_->evaluationBefore(editId);
     if(!editId.isEmpty())view_->setBodyStage(history.bodies,"extrude-source:"+session_.value("id").toString());
     std::vector<EvaluatedProfile> profiles;
-    for(const auto& id:profileIds)for(const auto& sketch:history.sketches)if(sketch.featureId==inputs["sketchId"].toString())
+    if(inputs.contains("profileSelection")) {
+        QJsonObject sketchFeature;for(const auto& row:document_->authored().value("features").toArray())if(row.toObject().value("id")==inputs.value("sketchId")) {sketchFeature=row.toObject();break;}
+        try {for(const auto& sketch:history.sketches)if(sketch.featureId==inputs.value("sketchId")) {
+            profiles=GeometryKernel::closedRectOffsetUnionCells(sketch,sketchFeature,inputs.value("profileSelection").toObject().value("groupIds").toArray());break;}
+        }catch(const std::exception& error){return reject(failure("offset_union_unavailable",QString::fromUtf8(error.what())));}
+        for(const auto& profile:profiles)profileIds.append(profile.profileId);
+    }
+    if(!inputs.contains("profileSelection"))for(const auto& id:profileIds)for(const auto& sketch:history.sketches)if(sketch.featureId==inputs["sketchId"].toString())
         for(const auto& item:sketch.profiles)if(item.profileId==id.toString())profiles.push_back(item);
-    if(profiles.size()!=static_cast<std::size_t>(profileIds.size()))return reject(failure("profile_unavailable","Selected sketch regions are unavailable at this history stage"));
+    if(profiles.empty() || profiles.size()!=static_cast<std::size_t>(profileIds.size()))return reject(failure("profile_unavailable","Selected sketch regions are unavailable at this history stage"));
     if(session_.value("invalidEndOffset").toBool())return reject(failure("invalid_arguments","Enter a signed end offset or existing user length name"));
     double distance=0;
     try {auto extent=extrudeExtentParameters(inputs);extent["operation"]=inputs.value("operation");extent["targetBodyIds"]=inputs.value("targetBodyIds");distance=GeometryKernel::extrusionDistance(extent,profiles.front(),history);}
@@ -6151,6 +6175,7 @@ QJsonObject AlloyWindow::previewExtrude() {
         else view_->showExtrudePreview(*body,GeometryKernel::unionProfiles(profiles),distance,profileIds,inputs["units"].toString(),startOffset);
     }catch(const std::exception& error){return rejectWithHandle(failure("evaluation_failed",QString::fromUtf8(error.what())));}
     view_->selectProfiles(inputs["sketchId"].toString(),profileIds);
+    if(inputs.contains("profileSelection"))session_["resolvedProfileIds"]=profileIds;
     if(inputs.value("extent")=="toObject" || inputs.value("extent")=="all")view_->clearExtrusionCue();
     session_["previewed"]=true;session_["geometryEvaluated"]=true;session_["geometry"]=body->summary;
     session_["featureId"]=featureId;session_["bodyId"]=body->bodyId;session_["documentDraft"]=evaluated.authored;
@@ -6161,6 +6186,10 @@ QJsonObject AlloyWindow::selectFinishedProfile(const QString& sketchId,const QSt
         for(const auto& profile:sketch.profiles)found=found || profile.profileId==profileId;
     if(!found)return failure("stale_entity","Closed profile does not exist in that sketch","profileId");
     if(session_.value("command")=="solid.loft")return selectLoftProfile(sketchId,profileId);
+    if(session_.value("command")=="solid.extrude" && session_.value("inputs").toObject().contains("profileSelection")) {
+        // A cell click explicitly replaces the aggregate, including modifier clicks.
+        selectedProfileIds_={};additive=false;toggle=false;
+    }
     if((additive || toggle) && !selectedProfileIds_.isEmpty() && selectedSketch_!=sketchId)
         return failure("different_sketch_selection","Selected regions must belong to one sketch","sketchId");
     if(toggle && selectedSketch_==sketchId) {
@@ -6323,7 +6352,9 @@ void AlloyWindow::showExtrude() {
         updateExtrude({{"targetBodyIds",ids}});
     });
     connect(extrudeProfile_,qOverload<int>(&QComboBox::currentIndexChanged),this,[this](int index){
-        const auto selected=extrudeProfile_->itemData(index).toJsonObject();if(!selected.isEmpty())execute("selection.profileSet",selected);
+        const auto selected=extrudeProfile_->itemData(index).toJsonObject();
+        if(selected.contains("profileSelection"))updateExtrude(selected);
+        else if(!selected.isEmpty())execute("selection.profileSet",selected);
     });
     connect(buttons,&QDialogButtonBox::accepted,this,[this]{if(!session_.value("previewed").toBool())return;
         const auto response=execute("command.commit",{{"session",session_.value("id")}});if(!response["ok"].toBool())extrudeError_->setText(response["error"].toObject()["message"].toString());});
@@ -6339,13 +6370,23 @@ void AlloyWindow::refreshExtrudeControls() {
     if(!extrudePanel_ || session_.value("command")!="solid.extrude")return;
     const auto inputs=session_.value("inputs").toObject();
     selectedSketch_=inputs.value("sketchId").toString();
-    selectedProfileIds_=inputs.contains("profileIds") ? inputs["profileIds"].toArray() : inputs.value("profileId").toString().isEmpty() ? QJsonArray{} : QJsonArray{inputs["profileId"]};
+    selectedProfileIds_=inputs.contains("profileSelection") ? session_.value("resolvedProfileIds").toArray()
+        : inputs.contains("profileIds") ? inputs["profileIds"].toArray() : inputs.value("profileId").toString().isEmpty() ? QJsonArray{} : QJsonArray{inputs["profileId"]};
     selectedProfile_=selectedProfileIds_.isEmpty() ? QString{} : selectedProfileIds_.first().toString();
     view_->selectProfiles(selectedSketch_,selectedProfileIds_);
     {const QSignalBlocker block(extrudeProfile_);
         QVector<QPair<QString,QJsonObject>> rows;
-        rows.append({selectedProfileIds_.size()>1 ? QString("%1 selected regions").arg(selectedProfileIds_.size()) : "Select profile…",{}});
+        rows.append({inputs.contains("profileSelection") ? "Offset loop union selected" : selectedProfileIds_.size()>1 ? QString("%1 selected regions").arg(selectedProfileIds_.size()) : "Select profile…",{}});
         int selected=0;
+        if(inputs.value("operation")=="cut")for(const auto& row:document_->authored().value("features").toArray()) {
+            const auto feature=row.toObject();const auto groups=feature.value("parameters").toObject().value("closedRectOffsets").toArray();
+            if(feature.value("type")!="sketch" || groups.isEmpty())continue;
+            QStringList ordered;for(const auto& group:groups)ordered.append(group.toObject().value("id").toString());
+            ordered.sort();QJsonArray ids;for(const auto& id:ordered)ids.append(id);
+            const QJsonObject choice{{"sketchId",feature.value("id")},{"profileSelection",QJsonObject{{"kind","closedRectOffsetUnion"},{"groupIds",ids}}}};
+            rows.append({QString("Offset union · %1 loops").arg(ids.size()),choice});
+            if(inputs.value("sketchId")==feature.value("id") && inputs.value("profileSelection")==choice.value("profileSelection"))selected=rows.size()-1;
+        }
         for(const auto& sketch:document_->sketches())if(sketch.visible || sketch.featureId==selectedSketch_)for(const auto& profile:sketch.profiles) {
             rows.append({sketch.name+" · "+QString::number(profile.summary.value("areaMm2").toDouble(),'g',6)+" mm²",
                 {{"sketchId",sketch.featureId},{"profileId",profile.profileId}}});

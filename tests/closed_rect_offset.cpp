@@ -32,11 +32,18 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
     check(!result.profiles.empty(),"Overlapping offset contours must form bounded regions");
     auto united=GeometryKernel::unionProfiles(result.profiles);
     check(std::abs(united.summary["areaMm2"].toDouble()-973.5)<1e-5,"Union of touching/overlapping port clearances has exact area");
+    QJsonArray groupIds;for(const auto& row:p["closedRectOffsets"].toArray())groupIds.append(row.toObject()["id"]);
+    const auto cells=GeometryKernel::closedRectOffsetUnionCells(result,sketch,groupIds);
+    check(cells.size()==result.profiles.size(),"Explicit group union selects the original four cells");
     auto update=sketch;auto updateParameters=update["parameters"].toObject();auto updateGroups=updateParameters["closedRectOffsets"].toArray();
     auto firstGroup=updateGroups[0].toObject();firstGroup["distanceMm"]=1.1;updateGroups[0]=firstGroup;
     updateParameters["closedRectOffsets"]=updateGroups;update["parameters"]=updateParameters;
     auto updated=SketchGeometry::solveDraft(update,context);check(updated.ok,"Offset distance edit resolves");
     const auto editedRegions=SketchGeometry::evaluateFeature(updated.feature,SketchGeometry::frame("XZ"),context);
+    const auto editedCells=GeometryKernel::closedRectOffsetUnionCells(editedRegions,updated.feature,groupIds);
+    const auto editedUnion=GeometryKernel::unionProfiles(editedCells);
+    check(std::abs(editedUnion.summary["areaMm2"].toDouble()-979.43)<1e-5,
+        "Explicit group union follows the changed contact topology without double counting");
     QSet<QString> baselineIds,editedIds;for(const auto& profile:result.profiles)baselineIds.insert(profile.profileId);
     for(const auto& profile:editedRegions.profiles)editedIds.insert(profile.profileId);
     check(baselineIds!=editedIds,"Changing contact topology must change ordinary cell profile identities");

@@ -1219,7 +1219,7 @@ QJsonObject CadDocument::extrusionCandidate(const QJsonObject& authored, const Q
     auto reject = [](const QString& message) {throw std::invalid_argument(message.toStdString());};
     const auto initial = validate(authored);
     if (!initial.isEmpty()) reject(initial);
-    const QSet<QString> allowed{"ownerId","sketchId","profileId","profileIds","distanceMm","distanceParameterId","start","startOffsetMm","startOffsetParameterId","extent","flip","endSupport","endOffsetMm","endOffsetParameterId","name","featureId","newFeatureId","newBodyId","operation","targetBodyIds"};
+    const QSet<QString> allowed{"ownerId","sketchId","profileId","profileIds","profileSelection","distanceMm","distanceParameterId","start","startOffsetMm","startOffsetParameterId","extent","flip","endSupport","endOffsetMm","endOffsetParameterId","name","featureId","newFeatureId","newBodyId","operation","targetBodyIds"};
     for (auto it = arguments.begin(); it != arguments.end(); ++it)
         if (!allowed.contains(it.key())) reject("Unknown extrusion argument: "+it.key());
     const bool edit = arguments.contains("featureId"), newFeature = arguments.contains("newFeatureId"), newBody = arguments.contains("newBodyId");
@@ -1247,7 +1247,9 @@ QJsonObject CadDocument::extrusionCandidate(const QJsonObject& authored, const Q
         if(operation=="join")feature["bodyResults"]=QJsonArray{};
     }
     if (arguments.contains("name")) feature["name"] = arguments["name"];
-    if(arguments.contains("profileId")==arguments.contains("profileIds"))reject("Choose profileId or profileIds exclusively");
+    if(int(arguments.contains("profileId"))+int(arguments.contains("profileIds"))+int(arguments.contains("profileSelection"))!=1)
+        reject("Choose one profile, cell set, or Offset loop union exclusively");
+    if(arguments.contains("profileSelection") && operation!="cut")reject("Offset loop union currently supports Cut only");
     auto profileParameters=QJsonObject{{"sketchId",arguments["sketchId"]}};
     const auto extent=arguments.value("extent").toString("distance");
     if(extent=="toObject") {
@@ -1286,7 +1288,17 @@ QJsonObject CadDocument::extrusionCandidate(const QJsonObject& authored, const Q
         QSet<QString> chosen;for(const auto& value:targets.toArray()){if(!value.isString() || !validId(value.toString()) || chosen.contains(value.toString()))reject("Join/Cut/Intersect targets must be distinct stable body IDs");chosen.insert(value.toString());}
         profileParameters["operation"]=operation;profileParameters["targetBodyIds"]=targets;
     }
-    if(arguments.contains("profileIds")) {
+    if(arguments.contains("profileSelection")) {
+        const auto selection=arguments.value("profileSelection").toObject();const auto ids=selection.value("groupIds").toArray();
+        if(selection.size()!=2 || selection.value("kind")!="closedRectOffsetUnion" || ids.isEmpty())
+            reject("Choose retained closed Offset groups for the union");
+        QStringList ordered;for(const auto& id:ids) {
+            if(!id.isString() || !validId(id.toString()) || ordered.contains(id.toString()))reject("Offset union group IDs must be distinct UUIDs");
+            ordered.append(id.toString());
+        }
+        ordered.sort();QJsonArray sorted;for(const auto& id:ordered)sorted.append(id);
+        profileParameters["profileSelection"]=QJsonObject{{"kind","closedRectOffsetUnion"},{"groupIds",sorted}};
+    } else if(arguments.contains("profileIds")) {
         if(!arguments["profileIds"].isArray() || arguments["profileIds"].toArray().isEmpty())reject("Choose a nonempty profileIds array");
         QStringList ids;for(const auto& id:arguments["profileIds"].toArray()){
             if(!id.isString() || !validId(id.toString()) || ids.contains(id.toString()))reject("Profile IDs must be distinct UUIDs");ids.append(id.toString());}
@@ -2242,12 +2254,20 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
                 if(p.value("operation")!="cut" || !p.value("flip").isBool() || p.contains("distanceMm") || p.contains("distanceParameterId") || p.contains("endSupport") || p.contains("endOffsetMm") || p.contains("endOffsetParameterId"))return "All extent requires Cut, a Flip flag and a derived reach";
             } else if(p.contains("endSupport") || p.contains("endOffsetMm") || p.contains("endOffsetParameterId") || p.contains("flip"))return "Distance extent cannot carry retained extent inputs";
             if (p.size()!=(cut ? 5 : 3)+(toObject ? 2 : 0)+(all ? 1 : 0)+int(p.contains("endOffsetParameterId"))+int(p.contains("distanceParameterId"))+int(p.contains("start"))+int(p.contains("startOffsetMm"))+int(p.contains("startOffsetParameterId")) || !p["sketchId"].isString() || !validId(p["sketchId"].toString())
-                || p.contains("profileId")==p.contains("profileIds")) return "Extrusion requires sketchId and exclusive profileId or profileIds";
+                || int(p.contains("profileId"))+int(p.contains("profileIds"))+int(p.contains("profileSelection"))!=1) return "Extrusion requires one exclusive profile selection";
             if(p.contains("distanceParameterId") && !validId(p["distanceParameterId"].toString()))return "Extrusion length binding requires a stable parameter ID";
             if((p.contains("start") && (p["start"]!="offset" || !p.contains("startOffsetMm"))) || (!p.contains("start") && (p.contains("startOffsetMm") || p.contains("startOffsetParameterId"))))return "Extrusion start must be Profile Plane or Offset with a signed length";
             if(p.contains("startOffsetParameterId") && (!p.contains("startOffsetMm") || !validId(p["startOffsetParameterId"].toString())))return "Extrusion start binding requires a stable parameter ID and cached offset";
             if(p.contains("startOffsetMm") && (!p["startOffsetMm"].isDouble() || !std::isfinite(p["startOffsetMm"].toDouble()) || std::abs(p["startOffsetMm"].toDouble())>100000))return "Extrusion start offset must be signed and within 100000 mm";
-            if(p.contains("profileIds")) {
+            if(p.contains("profileSelection")) {
+                const auto selection=p.value("profileSelection").toObject();const auto groups=selection.value("groupIds").toArray();
+                if(p.value("operation")!="cut" || selection.size()!=2 || selection.value("kind")!="closedRectOffsetUnion" || groups.isEmpty())
+                    return "Offset loop union requires retained groups and Cut";
+                QSet<QString> seen;for(const auto& id:groups) {
+                    if(!id.isString() || !validId(id.toString()) || seen.contains(id.toString()))return "Offset loop union groups must be distinct UUIDs";
+                    seen.insert(id.toString());
+                }
+            } else if(p.contains("profileIds")) {
                 if(!p["profileIds"].isArray() || p["profileIds"].toArray().isEmpty())return "Extrusion requires a nonempty profileIds array";
                 QSet<QString> chosen;
                 for(const auto& id:p["profileIds"].toArray()) {

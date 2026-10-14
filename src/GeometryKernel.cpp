@@ -32,6 +32,9 @@
 #include <TopoDS_Vertex.hxx>
 #include <BRepAlgoAPI_BooleanOperation.hxx>
 #include <BRepAlgoAPI_Fuse.hxx>
+#include <BRepAlgoAPI_Common.hxx>
+#include <BRepBuilderAPI_MakeWire.hxx>
+#include <BRepBuilderAPI_MakeFace.hxx>
 #include <BRepCheck_Analyzer.hxx>
 #include <BRepGProp.hxx>
 #include <BRepPrimAPI_MakeBox.hxx>
@@ -452,6 +455,71 @@ QJsonObject GeometryKernel::projectionContext(const EvaluatedDocument& evaluatio
             {"uMm",local(world,u)},{"vMm",local(world,v)},{"radiusMm",circle.Radius()}});
     }
     return {{"lines",lines},{"circles",circles},{"unsupportedEdges",unsupported},{"points",points}};
+}
+
+std::vector<EvaluatedProfile> GeometryKernel::closedRectOffsetUnionCells(const EvaluatedSketch& sketch,
+    const QJsonObject& sketchFeature,const QJsonArray& groupIds) {
+    const auto fail=[](const char* message)->void{throw std::invalid_argument(message);};
+    if(sketch.featureId!=sketchFeature.value("id").toString() || groupIds.isEmpty())
+        fail("Offset union requires one current source sketch and retained groups");
+    const auto groups=sketchFeature.value("parameters").toObject().value("closedRectOffsets").toArray();
+    QSet<QString> requested;
+    TopoDS_Shape intended;
+    auto area=[](const TopoDS_Shape& shape){
+        if(shape.IsNull())return 0.;
+        GProp_GProps properties;BRepGProp::SurfaceProperties(shape,properties);
+        return properties.Mass();
+    };
+    const auto sameArea=[](double a,double b){return std::abs(a-b)<=std::max(1e-6,std::max(a,b)*1e-9);};
+    for(const auto& value:groupIds) {
+        const auto id=value.toString();
+        if(id.isEmpty() || requested.contains(id))fail("Offset union group identities must be distinct");
+        requested.insert(id);
+        QJsonObject group;
+        for(const auto& entry:groups)if(entry.toObject().value("id")==id) {
+            if(!group.isEmpty())fail("Offset union group identity is ambiguous");
+            group=entry.toObject();
+        }
+        if(group.isEmpty() || group.value("entityIds").toArray().size()!=4)
+            fail("Offset union group is unavailable");
+        BRepBuilderAPI_MakeWire wire;
+        for(const auto& edgeId:group.value("entityIds").toArray()) {
+            const auto current=sketch.entityEdges.constFind(edgeId.toString());
+            if(current==sketch.entityEdges.cend() || current.value().IsNull())
+                fail("Offset union source edge is unavailable at this history stage");
+            wire.Add(current.value());
+            if(!wire.IsDone())fail("Offset union source edges do not make a current loop");
+        }
+        if(!BRep_Tool::IsClosed(wire.Wire()))fail("Offset union source loop is open");
+        BRepBuilderAPI_MakeFace face(wire.Wire());
+        if(!face.IsDone() || !BRepCheck_Analyzer(face.Face()).IsValid() || area(face.Face())<=1e-8)
+            fail("Offset union source loop is not a valid planar face");
+        if(intended.IsNull())intended=face.Face();
+        else {
+            BRepAlgoAPI_Fuse fused(intended,face.Face());
+            if(!fused.IsDone() || fused.HasErrors())fail("Offset union source loops cannot be fused");
+            fused.SimplifyResult(false,true);intended=fused.Shape();
+        }
+    }
+    if(intended.IsNull() || !BRepCheck_Analyzer(intended).IsValid() || count(intended,TopAbs_FACE)!=1)
+        fail("Offset union must form one connected planar face");
+    const double intendedArea=area(intended);
+    std::vector<EvaluatedProfile> selected;
+    for(const auto& profile:sketch.profiles) {
+        BRepAlgoAPI_Common common(profile.face,intended);
+        if(!common.IsDone() || common.HasErrors())fail("Offset union cell coverage cannot be resolved");
+        const double covered=area(common.Shape()),cellArea=area(profile.face);
+        if(covered<=1e-8)continue;
+        if(!sameArea(covered,cellArea))fail("Offset union partly covers a sketch region; repair the sketch");
+        selected.push_back(profile);
+    }
+    if(selected.empty())fail("Offset union contains no current sketch regions");
+    const auto united=unionProfiles(selected);
+    BRepAlgoAPI_Common checked(united.face,intended);
+    if(!checked.IsDone() || checked.HasErrors() || !sameArea(area(checked.Shape()),intendedArea)
+        || !sameArea(area(checked.Shape()),area(united.face)))
+        fail("Offset union differs from the current selected sketch regions");
+    return selected;
 }
 
 EvaluatedProfile GeometryKernel::unionProfiles(const std::vector<EvaluatedProfile>& profiles) {
@@ -1042,8 +1110,8 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
                 QJsonObject summary;std::vector<EvaluatedSupportFace> supportFaces;std::vector<EvaluatedSolidEdge> solidEdges;
                 if (type == "extrude") {
                     const auto sketchId = parameters["sketchId"].toString();
-                    const bool plural=parameters.contains("profileIds");
-                    const QJsonArray profileIds=plural ? parameters["profileIds"].toArray() : QJsonArray{parameters["profileId"]};
+                    const bool aggregate=parameters.contains("profileSelection"),plural=parameters.contains("profileIds") || aggregate;
+                    QJsonArray profileIds=parameters.contains("profileIds") ? parameters["profileIds"].toArray() : aggregate ? QJsonArray{} : QJsonArray{parameters["profileId"]};
                     context["sketchId"] = sketchId;
                     context[plural ? "profileIds" : "profileId"] = plural ? QJsonValue(profileIds) : parameters["profileId"];
                     if (!priorSketches.contains(sketchId)) {
@@ -1052,7 +1120,15 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
                     }
                     const auto& source = evaluated.sketches[priorSketches.value(sketchId)];
                     std::vector<EvaluatedProfile> selected;
-                    for(const auto& requested:profileIds){const auto found=std::find_if(source.profiles.begin(),source.profiles.end(),[&](const auto& profile){return profile.profileId==requested.toString();});
+                    if(aggregate) {
+                        QJsonObject sketchFeature;
+                        for(const auto& row:features)if(row.toObject().value("id")==sketchId) {sketchFeature=row.toObject();break;}
+                        try {selected=closedRectOffsetUnionCells(source,sketchFeature,parameters.value("profileSelection").toObject().value("groupIds").toArray());}
+                        catch(const std::exception& error) {context["code"]="offset_union_unavailable";context["message"]=QString::fromUtf8(error.what());throw EvaluationError(context);}
+                        for(const auto& cell:selected)profileIds.append(cell.profileId);
+                        context["profileSelection"]=parameters.value("profileSelection");
+                    }
+                    if(!aggregate)for(const auto& requested:profileIds){const auto found=std::find_if(source.profiles.begin(),source.profiles.end(),[&](const auto& profile){return profile.profileId==requested.toString();});
                         if(found==source.profiles.end()) {context["code"]="profile_unavailable";context["message"]="The referenced profile no longer exists; repair the sketch or select a current closed profile";
                             context["missingProfileId"]=requested;context["profileDiagnostics"]=source.summary["profileDiagnostics"];throw EvaluationError(context);}
                         selected.push_back(*found);}
@@ -1124,7 +1200,8 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
                         if(parameters["operation"]!="intersect" && removed<=std::max(1e-6,previousVolume*1e-12)){context["code"]=joining ? "join_no_addition" : "cut_no_intersection";context["message"]=joining ? "Selected profile prisms do not add positive volume to the retained target" : "Selected profile prisms do not remove positive volume from the retained target";throw EvaluationError(context);}
                         cutSummary["operation"]=parameters["operation"];cutSummary["lastModifierFeatureId"]=id;cutSummary["producerFeatureId"]=target->featureId;
                         cutSummary["targetBodyIds"]=targets;cutSummary["sourceSketchId"]=sketchId;cutSummary["distanceMm"]=distance;cutSummary["startOffsetMm"]=start;
-                        if(plural)cutSummary["sourceProfileIds"]=profileIds;else cutSummary["sourceProfileId"]=parameters["profileId"];
+                        if(aggregate)cutSummary["sourceProfileSelection"]=parameters["profileSelection"];
+                        else if(plural)cutSummary["sourceProfileIds"]=profileIds;else cutSummary["sourceProfileId"]=parameters["profileId"];
                         sourceEntities.removeDuplicates();sourceEntities.sort();QJsonArray refs;for(const auto& entity:sourceEntities)refs.append(entity);
                         cutSummary["sourceEntityIds"]=refs;cutSummary["sourceAreaMm2"]=area;cutSummary[joining ? "addedVolumeMm3" : "removedVolumeMm3"]=removed;
                         if(parameters["operation"]=="intersect")cutSummary["overlapVolumeMm3"]=cutSummary.value("volumeMm3");
@@ -1158,7 +1235,8 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
                     for(auto& face:supportFaces)face.bodyId=feature["bodyId"].toString();
                     summary["supportFaces"]=PlanarFaces::descriptors(supportFaces);
                     summary["operation"]="extrude";summary["distanceMm"]=distance;summary["startOffsetMm"]=start;summary["sourceSketchId"]=sketchId;
-                    if(plural)summary["sourceProfileIds"]=profileIds;else summary["sourceProfileId"]=parameters["profileId"];
+                    if(aggregate)summary["sourceProfileSelection"]=parameters["profileSelection"];
+                    else if(plural)summary["sourceProfileIds"]=profileIds;else summary["sourceProfileId"]=parameters["profileId"];
                     summary["sourceEntityIds"]=united.summary["sourceEntityIds"];summary["sourceAreaMm2"]=united.summary["areaMm2"];
                     summary["analyticVolumeMm3"]=united.summary["areaMm2"].toDouble()*std::abs(distance);
                 } else {
