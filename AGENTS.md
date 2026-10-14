@@ -144,6 +144,9 @@ These rules supersede any earlier suggestion to verify behavior in proprietary s
   In Progress means actively being worked on, not merely partially implemented.
   Finish the active deliverable and its reasonable verification before pulling
   another item; a blocked or deferred remainder must not accumulate as active work.
+- When retaining a JSON lookup from a temporary Qt object, use `.value()` or
+  convert immediately to an owned value. `auto` from mutable `operator[]` can
+  retain a dangling `QJsonValueRef`; this has caused validation crashes.
 - Use unit tests where they make sense and integration tests where pragmatic.
   Test the actual change's core contracts and material risks for reasonable
   assurance; do not pursue exhaustive hypothetical edge cases. Once appropriate

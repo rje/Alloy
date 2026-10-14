@@ -85,23 +85,26 @@ independently accepted through `c177550`: native10 passes3/3 with valid preview,
 Cancel and Joints visibility; retained authority is separately accepted at
 `3751ff5`. The final local-axis triad correction is source/build verified. See
 [joint-origin acceptance](validation/joint-origin-inference.md) for deliberate
-midpoint/release mappings and input/capture limits. ASM-023/#373 is independently accepted at `de69dcc`: shared As-Built Type, actual
-Browser component picks, compact controls and readable origin labels. Native15
-passes3/3; Position setup is API-qualified in this focused test. Both captures
-were reviewed. See [shared dialog acceptance](validation/as-built-native-selection.md).
+midpoint/release mappings and input/capture limits.
 ASM-021/#371 paste drag and contextual Position/Revert are independently
 accepted at `31516f5`/`e5128fc`: native06 passes 3/3, both captures were reviewed,
 and the integrated application builds. Stable copied preview identities, signed
 arrow movement, one Enter commit and actual-focus Escape pass. See
-[placement acceptance](validation/linked-local-occurrences.md). The ledger also preserves
-ASM-022/#372 Browser organization gestures (independently accepted and integrated
-through `3436a44`, native3/3 and focused core; see
-[Browser acceptance](validation/piston-components.md)) and accepted
-ASM-023/#373 shared As-Built Type/two-occurrence selection. TUT-019 is now connecting the input children in one native sequence. Its actual
-embedded component-label click exposed a gap missed by the focused test that
-targeted the underlying tree viewport. ASM-023/#373 is reopened/In Progress for
-real-child click routing and focused verification; the other children remain accepted; the direct Copy Component/circular-edge
-routes are equivalent modeling semantics, not exact source input parity.
+[placement acceptance](validation/linked-local-occurrences.md).
+ASM-022/#372 Browser organization is independently accepted through `3436a44`,
+with native3/3 and focused core evidence; see
+[Browser acceptance](validation/piston-components.md).
+ASM-023/#373 shared As-Built Type and component picks are independently accepted
+through `16d6e9c`. Native17 passes3/3 in6.61 seconds using actual embedded label
+widgets, preserving exact occurrence IDs and the active authoring owner. It
+supersedes the earlier test that bypassed those children through tree-viewport
+clicks. Queued session-guarded routing prevents callback lifetime hazards.
+Position setup remains API-qualified in this focused check; the cumulative
+sequence uses the separately accepted viewport-origin route. The combined main
+app builds. See [shared dialog acceptance](validation/as-built-native-selection.md).
+All bounded input children are closed. TUT-019 is In Progress, connecting them
+in one source-order native sequence from the declared four-solid adaptation.
+Direct Copy Component/API routes alone are not exact native source input proof.
 The cumulative API movie remains valid qualified geometry/semantic evidence.
 Its native continuation also checks a small recorder correction: delivered
 nonspontaneous Qt mouse events now move the visible pointer/ring with a `Qt input`
