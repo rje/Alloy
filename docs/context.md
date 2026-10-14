@@ -85,9 +85,10 @@ independently accepted through `c177550`: native10 passes3/3 with valid preview,
 Cancel and Joints visibility; retained authority is separately accepted at
 `3751ff5`. The final local-axis triad correction is source/build verified. See
 [joint-origin acceptance](validation/joint-origin-inference.md) for deliberate
-midpoint/release mappings and input/capture limits. ASM-023/#373 is now active
-in the next UI lane: shared As-Built Type and actual component selection, plus
-compact top-aligned controls and readable origin labels.
+midpoint/release mappings and input/capture limits. ASM-023/#373 is independently accepted at `de69dcc`: shared As-Built Type, actual
+Browser component picks, compact controls and readable origin labels. Native15
+passes3/3; Position setup is API-qualified in this focused test. Both captures
+were reviewed. See [shared dialog acceptance](validation/as-built-native-selection.md).
 ASM-021/#371 paste drag and contextual Position/Revert are independently
 accepted at `31516f5`/`e5128fc`: native06 passes 3/3, both captures were reviewed,
 and the integrated application builds. Stable copied preview identities, signed
@@ -95,9 +96,9 @@ arrow movement, one Enter commit and actual-focus Escape pass. See
 [placement acceptance](validation/linked-local-occurrences.md). The ledger also preserves
 ASM-022/#372 Browser organization gestures (independently accepted and integrated
 through `3436a44`, native3/3 and focused core; see
-[Browser acceptance](validation/piston-components.md)) and active
-ASM-023/#373 shared As-Built Type/two-occurrence selection. TUT-019 depends on
-these children; the direct Copy Component/circular-edge
+[Browser acceptance](validation/piston-components.md)) and accepted
+ASM-023/#373 shared As-Built Type/two-occurrence selection. All bounded input
+children are accepted; TUT-019 is now connecting them in one native sequence; the direct Copy Component/circular-edge
 routes are equivalent modeling semantics, not exact source input parity.
 The cumulative API movie remains valid qualified geometry/semantic evidence.
 Its native continuation also checks a small recorder correction: delivered

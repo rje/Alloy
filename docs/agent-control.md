@@ -721,6 +721,18 @@ once and Escape cancels. A changed document or stale clipboard refuses the
 pending operation. Direct `component.pasteOccurrence {placement}` is also
 available without the interactive session.
 
+`joint.asBuiltDialog {type?,component1OccurrenceId?,component2OccurrenceId?}`
+opens the shared Revolute/Cylindrical command (`type` is `revolute` or `cylindrical`,
+default Revolute). `joint.componentRole {slot:"component1"|"component2"}` arms
+Browser/viewport picking; `joint.componentPick {occurrenceId,slot?}` fills that
+same slot. The active session advances `selectionRole` to `position` when both
+are selected. `joint.typeSet {type}` retains the session and participant IDs,
+clears Position/coordinates, and revalidates; editing an existing joint does not
+permit changing its type or participants. `joint.originPick {position}` accepts
+the exact retained reference and Component 2 occurrence shown by
+`joint.originInspect`. Generic `command.update/commit/cancel` remain authoritative.
+See [shared dialog evidence](validation/as-built-native-selection.md).
+
 `joint.previewAngle {jointId,angleDeg}` stages a bounded retained mechanism pose;
 `joint.inspect` reports the solved assembly. `position.revert {}` restores the
 retained pose without a history edit, matching the contextual Position/Revert

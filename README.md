@@ -19,7 +19,8 @@ all six instances or one selected piston subtree. The independently accepted
 [Native Browser organization](docs/validation/piston-components.md) and
 [joint-origin hover locking](docs/validation/joint-origin-inference.md) are also
 accepted, along with [Paste drag and contextual Revert](docs/validation/linked-local-occurrences.md).
-The remaining native command increment is ASM-023, followed by the cumulative gate; these are bounded
+[Shared As-Built Type and component picks](docs/validation/as-built-native-selection.md)
+are accepted too; the cumulative native tutorial gate is now being assembled. These are bounded
 adapted-fixture capabilities, not complete native tutorial parity.
 
 The [Surface workspace](docs/validation/surface-workspace-navigation.md) now exposes
