@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 #include "AlloyWindow.h"
+#include "AlloyTheme.h"
 #include <QApplication>
 #include <QDir>
 #include <QFile>
@@ -24,7 +25,7 @@ class SketchDrivenOfferControls final:public QObject {
 private slots:
     void explicitDrivenChoice(){
         const auto output=qEnvironmentVariable("ALLOY_DRIVEN_OFFER_EVIDENCE");QVERIFY(!output.isEmpty());QVERIFY(QDir().mkpath(output));
-        AlloyWindow window;window.resize(1450,900);window.show();QVERIFY(QTest::qWaitForWindowExposed(&window));
+        AlloyTheme::apply(*qApp);AlloyWindow window;window.resize(1450,900);window.show();QVERIFY(QTest::qWaitForWindowExposed(&window));
         window.raise();window.activateWindow();window.windowHandle()->requestActivate();QTRY_VERIFY(window.isActiveWindow());
         call(window,"sketch.begin",{{"plane","XY"},{"units","mm"}});
         call(window,"sketch.rectangle",{{"x1",0},{"y1",0},{"x2",40},{"y2",25},{"units","mm"}});
