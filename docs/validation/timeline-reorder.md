@@ -1,4 +1,4 @@
-# Retained Timeline reorder candidate
+# Retained Timeline reorder
 
 HIS-006/#280 adds one bounded history move: `feature.reorder` takes a retained
 feature UUID and an `afterFeatureId` UUID in the same component. It moves the
@@ -36,7 +36,8 @@ External evidence is under
 `api-two-mirrors-01/` (report, transcript, saved model and capture),
 `native-two-mirrors-04/` (test log, insertion marker and reordered captures),
 and `final-clearance.json` with preserved geometry helper and build script.
-Independent review is pending. Full from-blank tutorial creation remains TUT-022.
+Astra independently accepted candidate `6684dac` on 2026-10-14. Full
+from-blank tutorial creation remains TUT-022.
 
 The source record and exact public behavior are external at
 `../Alloy-reference-records/knowledge/tutorials/advanced-audit-2026-10-13/his006-reorder-handoff.md`.

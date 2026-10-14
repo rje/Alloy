@@ -1,7 +1,7 @@
 {
   "repository": "rje/Alloy",
   "project_url": "https://github.com/users/rje/projects/1",
-  "updated": "2026-10-14T08:24:06.819188+00:00",
+  "updated": "2026-10-14T08:39:16.311702+00:00",
   "issues": {
     "DOC-026": {
       "number": 311,
@@ -161,7 +161,7 @@
     "HIS-006": {
       "number": 280,
       "url": "https://github.com/rje/Alloy/issues/280",
-      "state": "open"
+      "state": "closed"
     },
     "SOL-045": {
       "number": 279,

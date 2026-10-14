@@ -67,8 +67,12 @@ card Cut with R2 lip. Exact authored reopen and Case-only STEP/STL readback
 pass. See [the receipt](validation/enclosure-port-card-workflow.md); the movie,
 model and exports are first in the external gallery (82 links checked).
 
-TUT-022 remains Todo pending the actual snap finishes, two Mirrors and
-HIS-006 reorder; TUT-023 alignment rim follows. Accepted prerequisites include
+TUT-022 remains pending its full source-step runner and creation footage;
+TUT-023 alignment rim follows. HIS-006 is independently accepted at `6684dac`:
+actual Bottom Fillet reorder after both Mirrors, separate opposite R0.5 group,
+24-call API/history/reopen and Qt native cancellation/drop pass. The final
+Top/Bottom positive-volume intersection is zero; nominal connector overlap
+remains qualified. See [receipt](validation/timeline-reorder.md). Accepted prerequisites include
 SOL-052 owned Split, GEO-012 exact inner Cut rims, GEO-013 retained Cut side
 supports, and SOL-054 connected selected-region Join replay. SOL-054 technical
 YZ replay/edit/history/reopen is accepted at 9179015, but its technical finish
