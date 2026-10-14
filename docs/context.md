@@ -117,7 +117,11 @@ No successful QDrag/drop or product failure asserted; folder drag not attempted.
 Source review flags mutable currentItem drag source and embedded label routing
 for a future focused trace. Evidence/receipt are external under
 component-reparent-2026-10-14/asm012-prepared/. Private editor closed; no user
-model altered. Choose another ready bounded task, not repeat access attempts.
+model altered. FND-015/#158 is active next: recover the remaining sketch
+accessibility/row-identity and default-runtime qualification, distinguishing the
+current private patched Qt runtime from portable deployment. Sol owns the sole
+build/GUI lease and Astra independently reviews; reuse existing accepted tests
+and do not repeat the inconclusive Browser access attempts.
 Backlog is402 issues with acyclic dependencies. Astra independently verifies.
 Only main and its existing build are used; no inactive worktrees accumulate.
 DOC-031/#348 is independently accepted at `89782cf`: unchanged-product native09
