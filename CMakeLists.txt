@@ -23,6 +23,7 @@ message(STATUS "OCCT ${ALLOY_OCCT_VERSION}: native OpenGL visualization")
 message(STATUS "Qt ${Qt6_VERSION}; spikes=${ALLOY_BUILD_SPIKES}; OCCT components=${ALLOY_OCCT_COMPONENTS}")
 
 include(cmake/PlaneGCS.cmake)
+include(cmake/OndselSolver.cmake)
 add_library(alloy_sketch_solver STATIC src/SketchSolver.cpp src/SketchSolver.h src/SketchMirror.cpp src/SketchMirror.h src/SketchArcSlot.cpp src/SketchArcSlot.h src/SketchEllipse.cpp src/SketchEllipse.h)
 target_include_directories(alloy_sketch_solver PUBLIC src)
 target_link_libraries(alloy_sketch_solver PUBLIC Qt6::Core PRIVATE alloy_planegcs)
@@ -38,7 +39,7 @@ add_library(alloy_kernel STATIC
     src/SketchProfiles.cpp src/SketchProfiles.h src/SketchRegions.cpp)
 target_include_directories(alloy_kernel PUBLIC src)
 target_include_directories(alloy_kernel SYSTEM PUBLIC ${OpenCASCADE_INCLUDE_DIR})
-target_link_libraries(alloy_kernel PUBLIC alloy_sketch_solver Qt6::Gui TKernel TKMath TKG3d TKBRep TKPrim TKTopAlgo TKFillet TKOffset TKBO TKBool TKGeomAlgo TKMesh TKDESTL TKDESTEP TKXSBase TKLCAF TKCAF TKCDF)
+target_link_libraries(alloy_kernel PUBLIC alloy_assembly_solver alloy_sketch_solver Qt6::Gui TKernel TKMath TKG3d TKBRep TKPrim TKTopAlgo TKFillet TKOffset TKBO TKBool TKGeomAlgo TKMesh TKDESTL TKDESTEP TKXSBase TKLCAF TKCAF TKCDF)
 qt_add_resources(alloy_kernel "alloy_text_font" PREFIX "/alloy/fonts" BASE "third_party/dejavu" FILES "third_party/dejavu/DejaVuSans.ttf" "third_party/dejavu/DejaVuSans-Bold.ttf")
 target_compile_definitions(alloy_kernel PUBLIC ALLOY_OCCT_VERSION="${ALLOY_OCCT_VERSION}")
 
@@ -712,4 +713,11 @@ if(BUILD_TESTING)
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/shell_api.py
         --app $<TARGET_FILE:alloy> --output ${CMAKE_BINARY_DIR}/evidence)
     set_tests_properties(shell_api PROPERTIES TIMEOUT 30)
+endif()
+
+if(BUILD_TESTING)
+    add_executable(assembly_solver_test tests/assembly_solver.cpp)
+    set_target_properties(assembly_solver_test PROPERTIES AUTOMOC OFF)
+    target_link_libraries(assembly_solver_test PRIVATE alloy_assembly_solver)
+    add_test(NAME assembly_solver COMMAND assembly_solver_test)
 endif()

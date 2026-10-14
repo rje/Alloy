@@ -1,0 +1,10 @@
+{
+  "repository": "https://github.com/FreeCAD/OndselSolver",
+  "revision": "4be80eef02a3486cda0d78f3ccbb308d207a9639",
+  "retrieved": "2026-10-14",
+  "archive": "https://codeload.github.com/FreeCAD/OndselSolver/tar.gz/4be80eef02a3486cda0d78f3ccbb308d207a9639",
+  "sha256": "701a5b6814114d3bd358700b4308e0c75c8fe86d24400d5accde0f3c11e3580a",
+  "license": "LGPL-2.1",
+  "licenseSha256": "299de7a97751fb7babe99f05580d6b1fe5be11d8113fe4b8f2dd2071d3931b2d",
+  "sourceChanges": "None; library subdirectory built directly as shared on every platform, avoiding upstream root Windows static default."
+}
