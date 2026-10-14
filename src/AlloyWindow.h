@@ -89,6 +89,12 @@ private:
     QString validateArguments(const Command& command, const QJsonObject& args, QString* field = nullptr) const;
     QJsonObject beginSession(const QString& command, const QJsonObject& inputs);
     QJsonObject finishSession(const QString& id, bool commit);
+    QJsonObject beginMidplane(const QJsonObject& inputs);
+    QJsonObject selectMidplaneFace(const QJsonObject& support);
+    QJsonObject previewMidplane();
+    void showMidplane();
+    QDockWidget* midplaneDock_ = nullptr;
+    quint64 midplanePreviewRevision_ = 1;
     void showUnits();
     QJsonObject lengthParameter(const QString& name) const;
     void showLengthParameters();

@@ -53,6 +53,7 @@ struct EvaluatedConstructionPlane {
     bool visible = true;
     QJsonObject frame;
     QString ownerId;
+    QJsonArray displayBoundsMm;
 };
 
 struct EvaluatedDocument {
@@ -82,6 +83,7 @@ public:
     static EvaluatedSupportFace resolveSketchSupport(const EvaluatedDocument& evaluation, const QJsonObject& support);
     static QJsonObject resolvePlaneSource(const EvaluatedDocument& evaluation, const QJsonObject& source);
     static QJsonObject offsetPlaneFrame(const QJsonObject& frame, double offsetMm);
+    static QJsonObject midplaneFrame(const EvaluatedDocument& evaluation, const QJsonArray& faces);
     static QJsonArray supportEdgeDescriptors(const EvaluatedSupportFace& support);
     static QJsonObject projectionContext(const EvaluatedDocument& evaluation, const QJsonObject& feature);
     static EvaluatedProfile unionProfiles(const std::vector<EvaluatedProfile>& profiles);

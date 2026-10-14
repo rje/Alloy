@@ -299,7 +299,7 @@ AlloyWindow::AlloyWindow() {
     group("CREATE", {{"primitive.box", "▣"}, {"primitive.cylinder", "◉"}, {"solid.sphereDialog", "●"}, {"sketch.create", "▧"}, {"solid.extrudeDialog", "▣"}, {"solid.revolveDialog", "◉"}, {"solid.sweepDialog", "◒"}, {"solid.loftDialog", "◒"}, {"solid.mirrorDialog", "◧"}, {"solid.circularPatternDialog", "◌"}});
     group("MODIFY", {{"solid.pressPullDialog", "⇧"}, {"solid.combineDialog", "▣"}, {"solid.filletDialog", "◩"}, {"solid.chamferDialog", "◪"}, {"solid.shellDialog", "▱"}, {"solid.moveDialog", "✥"}});
     group("ASSEMBLE", {{"joint.sliderDialog", "⇆"}});
-    group("CONSTRUCT", {{"construction.plane", "▰"}});
+    group("CONSTRUCT", {{"construction.plane", "▰"}, {"construction.midplane", "◫"}});
     group("INSPECT", {{"inspect.sectionDialog", "◧"}, {"inspect.measure", "↔"}});
     groups->addStretch();
     ribbonRight->addLayout(groups); ribbonLayout->addLayout(ribbonRight, 1); layout->addWidget(ribbon);
@@ -1406,7 +1406,9 @@ void AlloyWindow::registerCommands() {
         auto source=a.value("source").toObject();double offset=a.value("offset").toDouble();
         QJsonObject editing;
         if(a.contains("featureId"))for(const auto& entry:document_->authored()["features"].toArray())if(entry.toObject()["id"]==a["featureId"]){editing=entry.toObject();break;}
-        if(a.contains("featureId") && editing["type"]!="constructionPlane")return failure("stale_entity","Construction plane does not exist","featureId");
+        if(a.contains("featureId") && (editing["type"]!="constructionPlane" ||
+            editing["parameters"].toObject()["source"].toObject().contains("faces")))
+            return failure("stale_entity","Offset plane does not exist","featureId");
         if(source.isEmpty()) {
             if(apiExecuting_)return failure("source_required","Supply one planar source and offset","source");
             QDialog dialog(this);dialog.setObjectName("constructionPlaneDialog");dialog.setWindowTitle("Offset Plane");auto* layout=new QVBoxLayout(&dialog);
@@ -1428,7 +1430,7 @@ void AlloyWindow::registerCommands() {
                     auto planes=document_->evaluation().constructionPlanes;
                     const auto frame=GeometryKernel::offsetPlaneFrame(GeometryKernel::resolvePlaneSource(sources,choices->currentData().toJsonObject()),CadDocument::millimeters(spin->value(),document_->authored()["displayUnits"].toString()));
                     if(!editing.isEmpty())for(auto it=planes.begin();it!=planes.end();++it)if(it->featureId==editing["id"].toString()){planes.erase(it);break;}
-                    planes.push_back({"offset-preview","Offset Preview",true,frame,document_->activeOwnerId()});
+                    planes.push_back({"offset-preview","Offset Preview",true,frame,document_->activeOwnerId(),{}});
                     view_->setConstructionPlanes(planes,previewRevision++);view_->selectConstructionPlane("offset-preview");previewError->clear();
                 } catch(const std::exception& error) {previewError->setText(QString::fromUtf8(error.what()));}
             };
@@ -1455,6 +1457,30 @@ void AlloyWindow::registerCommands() {
         if(index<0)features.append(plane);else features[index]=plane;candidate["features"]=features;
         const auto error=document_->commit(candidate,index<0 ? "Create Offset Plane" : "Edit Offset Plane");
         if(!error.isEmpty()){auto response=failure("evaluation_failed",error);auto details=response["error"].toObject();details["diagnostics"]=document_->lastEvaluationError();response["error"]=details;return response;}
+        return QJsonObject{{"planeId",plane["id"]},{"document",document_->state()}};
+    });
+    add("construction.midplane","Midplane","Create or edit a retained plane halfway between two exact parallel planar faces.",
+        {{"faces",optional(parameter("array","Ordered exact planar face references."))},{"name",optional(name)},
+            {"featureId",optional(featureId)}},[this](const auto& a){
+        if(!a.contains("faces"))return beginMidplane(a);
+        if(!session_.isEmpty() && session_.value("command")!="construction.midplane")
+            return failure("session_busy","Complete or cancel the active command first");
+        const auto faces=a["faces"].toArray();
+        if(faces.size()!=2 || !faces[0].isObject() || !faces[1].isObject())
+            return failure("invalid_faces","Select exactly two planar faces","faces");
+        auto candidate=document_->authored();auto features=candidate["features"].toArray();
+        QJsonObject plane;int index=-1;
+        if(a.contains("featureId"))for(int i=0;i<features.size();++i)if(features[i].toObject()["id"]==a["featureId"]){index=i;plane=features[i].toObject();break;}
+        if(a.contains("featureId") && (index<0 || plane["type"]!="constructionPlane" ||
+            !plane["parameters"].toObject()["source"].toObject().contains("faces")))
+            return failure("stale_entity","Midplane does not exist","featureId");
+        if(index<0)plane={{"id",CadDocument::newId()},{"ownerId",document_->activeOwnerId()},
+            {"type","constructionPlane"},{"name",a.value("name").toString("Midplane")},{"visible",true}};
+        else if(a.contains("name"))plane["name"]=a["name"];
+        plane["parameters"]=QJsonObject{{"source",QJsonObject{{"faces",faces}}}};
+        if(index<0)features.append(plane);else features[index]=plane;candidate["features"]=features;
+        const auto error=document_->commit(candidate,index<0 ? "Create Midplane" : "Edit Midplane");
+        if(!error.isEmpty())return failure("evaluation_failed",error);
         return QJsonObject{{"planeId",plane["id"]},{"document",document_->state()}};
     });
     QJsonObject sketchBeginSchema{{"plane",optional(sketchPlane)},{"planeId",optional(planeId)},{"support",optional(supportIdentity)},{"name",name},{"units",optional(units)}};
@@ -3101,7 +3127,8 @@ void AlloyWindow::registerCommands() {
             if(feature["type"]=="revolve")return beginRevolve({{"featureId",feature["id"]}});
             if(feature["type"]=="loft")return beginLoft({{"featureId",feature["id"]}});
             if(feature["type"]=="constructionPlane") {
-                return execute("construction.plane",{{"featureId",feature["id"]}});
+                return execute(p["source"].toObject().contains("faces") ? "construction.midplane" : "construction.plane",
+                    {{"featureId",feature["id"]}});
             }
             if(feature["type"]=="extrude") {
                 const auto unit=document_->authored()["displayUnits"].toString();const double scale=unit=="in" ? 25.4 : 1;
@@ -3182,6 +3209,7 @@ void AlloyWindow::registerCommands() {
         return result;
     });
     add("selection.faceSet","Select planar face","Select a stable supported face for Create Sketch.",{{"support",supportIdentity}},[this](const auto& a){
+        if(session_.value("command")=="construction.midplane")return selectMidplaneFace(a["support"].toObject());
         if(session_.value("command")=="solid.mirror"){
             auto response=execute("command.update",{{"session",session_["id"]},{"inputs",QJsonObject{{"mirrorPlane",a["support"]}}}});
             if(!response["ok"].toBool())return response;return previewMirror();
@@ -3216,10 +3244,16 @@ void AlloyWindow::registerCommands() {
     add("selection.facePick","Pick supported face","Ray-pick a currently supported planar face by viewport coordinates.",{{"x",point},{"y",point}},[this](const auto& a){
         const auto support=view_->pickSupportFace(a["x"].toDouble(),a["y"].toDouble(),presentationBodies());
         if(support.isEmpty())return failure("unsupported_face","No supported planar face is at that viewport point");
-        return selectSupportFace(support);
+        return session_.value("command")=="construction.midplane" ? selectMidplaneFace(support) : selectSupportFace(support);
     });
     add("selection.pick","Pick body or region","Pick actual OCCT geometry at viewport-local coordinates; Shift adds sketch regions.",{{"x",point},{"y",point},{"additive",optional(parameter("boolean","Add a picked region in the current same-sketch selection."))},
         {"toggle",optional(parameter("boolean","Toggle a picked region in the current same-sketch selection."))}},[this](const auto& a){
+        if(session_.value("command")=="construction.midplane"){
+            const auto edit=session_["inputs"].toObject()["featureId"].toString();
+            const auto hit=view_->pickSupportFace(a["x"].toDouble(),a["y"].toDouble(),
+                edit.isEmpty() ? document_->bodies() : document_->evaluationBefore(edit).bodies);
+            return hit.isEmpty() ? failure("face_required","Click a retained planar face") : selectMidplaneFace(hit);
+        }
         if(session_.value("command")=="joint.slider"){
             const auto hit=view_->pickSolidEdge(a["x"].toDouble(),a["y"].toDouble(),presentationBodies());
             if(hit.isEmpty())return failure("edge_required","Pick a retained straight ledge edge on Component 2");
@@ -3323,7 +3357,7 @@ void AlloyWindow::registerCommands() {
         return failure("stale_entity","Body does not exist");
     });
     auto sessionTarget = parameter("string", "Implemented session target; modeling targets follow alongside their features.");
-    sessionTarget["enum"] = QJsonArray{"document.units", "commands.search","solid.box","solid.cylinder","solid.extrude","solid.combine","solid.move","solid.fillet","solid.chamfer","solid.sphere","solid.shell","solid.loft","solid.revolve","solid.sweep","solid.rectangularPattern","solid.circularPattern","solid.mirror","inspect.section","joint.slider","sketch.create"};
+    sessionTarget["enum"] = QJsonArray{"document.units", "commands.search","solid.box","solid.cylinder","solid.extrude","solid.combine","solid.move","solid.fillet","solid.chamfer","solid.sphere","solid.shell","solid.loft","solid.revolve","solid.sweep","solid.rectangularPattern","solid.circularPattern","solid.mirror","inspect.section","joint.slider","sketch.create","construction.midplane"};
     add("command.begin", "Begin command session", "Begin a real editable dialog with disposable inputs.",
         {{"command", sessionTarget}, {"inputs", parameter("object", "Initial input overrides.")}},
         [this](const auto& a) { return beginSession(a["command"].toString(), a["inputs"].toObject()); });
@@ -3379,6 +3413,9 @@ void AlloyWindow::registerCommands() {
         }
         for (auto it = updates.begin(); it != updates.end(); ++it) inputs[it.key()] = it.value();
         const auto target = session_.value("command").toString();
+        if(target=="construction.midplane" && updates.contains("featureId") &&
+            updates["featureId"]!=session_["inputs"].toObject()["featureId"])
+            return failure("invalid_arguments","Midplane edit identity cannot change","featureId");
         if(target=="inspect.section" && updates.contains("analysisId") && updates["analysisId"]!=session_.value("inputs").toObject()["analysisId"])return failure("invalid_arguments","Section edit identity cannot change","analysisId");
         if (target == "commands.search") {
             if (inputs.size() != 1 || !inputs["query"].isString()) return failure("invalid_arguments", "Search input requires a query string");
@@ -3472,6 +3509,7 @@ void AlloyWindow::registerCommands() {
         if(target=="solid.combine") {
             session_["geometryEvaluated"]=false;session_.remove("geometry");session_.remove("documentDraft");session_.remove("finalBodyCount");session_.remove("previewError");view_->setEditDisplay({},{});
         }
+        if(target=="construction.midplane")return previewMidplane();
         if(target=="inspect.section")return previewSection();
         if(target=="joint.slider")return previewSlider();
         return session_;
@@ -3534,7 +3572,7 @@ void AlloyWindow::registerCommands() {
     add("command.panelDock","Dock command panel","Dock or float the active modeling panel through Qt.",
         {{"docked",parameter("boolean","True docks the panel on the right; false floats it.")}},[this](const auto& a){
             const auto target=session_.value("command").toString();
-            auto* dock=target=="joint.slider" ? sliderDock_ : target=="inspect.section" ? sectionDock_ : target=="solid.sweep" ? sweepDock_ : target=="solid.revolve" ? revolveDock_ : target=="solid.hole" ? holeDock_ : target=="solid.sphere" ? sphereDock_ : target=="solid.chamfer" ? chamferDock_ : target=="solid.fillet" ? filletDock_ : target=="solid.rectangularPattern" ? patternDock_ : target=="solid.loft" ? loftDock_ : target=="solid.shell" ? shellDock_ : target=="solid.circularPattern" ? circularDock_ : target=="solid.mirror" ? mirrorDock_ : target=="solid.move" ? moveDock_ : target=="solid.extrude" ? extrudeDock_ : target=="solid.combine" ? combineDock_ : target.startsWith("sketch.") ? sketchDock_ : target.startsWith("solid.") ? primitiveDock_ : nullptr;
+            auto* dock=target=="construction.midplane" ? midplaneDock_ : target=="joint.slider" ? sliderDock_ : target=="inspect.section" ? sectionDock_ : target=="solid.sweep" ? sweepDock_ : target=="solid.revolve" ? revolveDock_ : target=="solid.hole" ? holeDock_ : target=="solid.sphere" ? sphereDock_ : target=="solid.chamfer" ? chamferDock_ : target=="solid.fillet" ? filletDock_ : target=="solid.rectangularPattern" ? patternDock_ : target=="solid.loft" ? loftDock_ : target=="solid.shell" ? shellDock_ : target=="solid.circularPattern" ? circularDock_ : target=="solid.mirror" ? mirrorDock_ : target=="solid.move" ? moveDock_ : target=="solid.extrude" ? extrudeDock_ : target=="solid.combine" ? combineDock_ : target.startsWith("sketch.") ? sketchDock_ : target.startsWith("solid.") ? primitiveDock_ : nullptr;
             if(!dock)
                 return failure("no_active_dialog","No modeling panel is active");
             dock->setFloating(!a["docked"].toBool());
@@ -3613,6 +3651,7 @@ void AlloyWindow::registerCommands() {
         const auto path = a["path"].toString();
         if (!QDir::isAbsolutePath(path) || !path.endsWith(".png", Qt::CaseInsensitive)) return failure("invalid_arguments", "Requires an absolute PNG path", "path");
         QWidget* dialog = !session_.value("pendingText").toObject().isEmpty() ? sketchTextDialog_
+            : session_.value("command")=="construction.midplane" ? (midplaneDock_ ? midplaneDock_->widget():nullptr)
             : session_.value("command")=="solid.sweep" ? (sweepDock_ ? sweepDock_->widget():nullptr) : session_.value("command").toString() == "solid.revolve" ? (revolveDock_ ? revolveDock_->widget():nullptr) : session_.value("command").toString() == "commands.search" ? search_
             : session_.value("command")=="inspect.section" ? sectionDock_->widget()
             : session_.value("command").toString() == "solid.mirror" ? mirrorDock_->widget()
@@ -4582,8 +4621,10 @@ QJsonArray AlloyWindow::dependentBodies(const QString& sketchId) const {
         const auto feature=entry.toObject(),parameters=feature["parameters"].toObject();
         if(feature["type"]=="constructionPlane") {
             const auto source=parameters["source"].toObject();
+            bool faceDependent=producerFeatures.contains(source["support"].toObject()["producerFeatureId"].toString());
+            for(const auto& ref:source["faces"].toArray())faceDependent|=producerFeatures.contains(ref.toObject()["producerFeatureId"].toString());
             if(sketches.contains(source["sketchId"].toString()) || planes.contains(source["planeId"].toString())
-                || producerFeatures.contains(source["support"].toObject()["producerFeatureId"].toString()))planes.insert(feature["id"].toString());
+                || faceDependent)planes.insert(feature["id"].toString());
         }
         if(feature["type"]=="sketch" && parameters["plane"]=="construction" && planes.contains(parameters["planeId"].toString()))sketches.insert(feature["id"].toString());
         if(feature["type"]=="sketch" && parameters["plane"]=="face"
@@ -4814,6 +4855,7 @@ void AlloyWindow::updateExtrude(const QJsonObject& inputs) {
 }
 
 QJsonObject AlloyWindow::beginSession(const QString& command, const QJsonObject& inputs) {
+    if(command=="construction.midplane")return beginMidplane(inputs);
     if(command=="solid.extrude")return beginExtrude(inputs);
     if(command=="solid.fillet")return beginFillet(inputs);
     if(command=="solid.chamfer")return beginChamfer(inputs);
@@ -4864,6 +4906,134 @@ QJsonObject AlloyWindow::beginSession(const QString& command, const QJsonObject&
     return session_;
 }
 
+QJsonObject AlloyWindow::beginMidplane(const QJsonObject& overrides) {
+    if(!session_.isEmpty())return failure("session_busy","Complete or cancel the active command first");
+    QJsonObject inputs{{"name","Midplane"},{"faces",QJsonArray{}}};
+    if(overrides.contains("featureId")){
+        bool found=false;
+        for(const auto& entry:document_->authored()["features"].toArray()){
+            const auto feature=entry.toObject();
+            if(feature["id"]!=overrides["featureId"])continue;
+            if(feature["type"]!="constructionPlane" ||
+                !feature["parameters"].toObject()["source"].toObject().contains("faces"))
+                return failure("stale_entity","Midplane does not exist","featureId");
+            inputs={{"featureId",feature["id"]},{"name",feature["name"]},
+                {"faces",feature["parameters"].toObject()["source"].toObject()["faces"]}};
+            found=true;break;
+        }
+        if(!found)return failure("stale_entity","Midplane does not exist","featureId");
+    }else if(!selectedFace_.isEmpty())inputs["faces"]=QJsonArray{selectedFace_};
+    for(auto it=overrides.begin();it!=overrides.end();++it)inputs[it.key()]=it.value();
+    if(inputs["faces"].toArray().size()>2)return failure("invalid_faces","Select at most two faces","faces");
+    session_={{"id",CadDocument::newId()},{"command","construction.midplane"},{"status","active"},
+        {"inputs",inputs},{"previewed",false},{"baseDocumentRevision",static_cast<qint64>(document_->revision())},
+        {"inputSchema",findCommand("construction.midplane")->parameters},
+        {"previousFace",selectedFace_},{"previousPlane",selectedPlane_}};
+    showMidplane();previewMidplane();return session_;
+}
+
+QJsonObject AlloyWindow::selectMidplaneFace(const QJsonObject& support) {
+    if(session_.value("command")!="construction.midplane")return failure("invalid_session","Midplane is not active");
+    const auto edit=session_["inputs"].toObject()["featureId"].toString();
+    const auto& source=edit.isEmpty() ? document_->evaluation() : document_->evaluationBefore(edit);
+    try{GeometryKernel::resolveSketchSupport(source,support);}
+    catch(const std::exception& error){return failure("support_unavailable",QString::fromUtf8(error.what()));}
+    auto inputs=session_["inputs"].toObject();auto faces=inputs["faces"].toArray();
+    if(faces.size()>=2)faces={};
+    if(faces.contains(support))return failure("invalid_faces","Select a different second face","faces");
+    faces.append(support);
+    if(faces.size()==2)try{GeometryKernel::midplaneFrame(source,faces);}
+    catch(const std::exception& error){
+        if(auto* status=midplaneDock_ ? midplaneDock_->findChild<QLabel*>("midplane.status") : nullptr)
+            status->setText(QString("1 of 2 faces selected. %1").arg(QString::fromUtf8(error.what())));
+        return failure("invalid_faces",QString::fromUtf8(error.what()),"faces");
+    }
+    inputs["faces"]=faces;session_["inputs"]=inputs;
+    selectedFace_=support;view_->selectSupportFace(support,{});
+    return previewMidplane();
+}
+
+QJsonObject AlloyWindow::previewMidplane() {
+    if(session_.value("command")!="construction.midplane")return failure("invalid_session","Midplane is not active");
+    auto* status=midplaneDock_ ? midplaneDock_->findChild<QLabel*>("midplane.status") : nullptr;
+    auto* faceLabels=midplaneDock_ ? midplaneDock_->findChild<QLabel*>("midplane.faces") : nullptr;
+    auto* buttons=midplaneDock_ ? midplaneDock_->findChild<QDialogButtonBox*>("midplane.buttons") : nullptr;
+    if(faceLabels){
+        QStringList labels;const auto inputs=session_["inputs"].toObject();
+        const auto edit=inputs["featureId"].toString();
+        const auto& source=edit.isEmpty() ? document_->evaluation() : document_->evaluationBefore(edit);
+        for(const auto& value:inputs["faces"].toArray())try{
+            const auto face=GeometryKernel::resolveSketchSupport(source,value.toObject());
+            QString bodyName;for(const auto& body:source.bodies)if(body.bodyId==face.bodyId){bodyName=body.name;break;}
+            const QMap<QString,QString> boxRoles{{"box.z1","Top"},{"box.z0","Bottom"},
+                {"box.x1","Right"},{"box.x0","Left"},{"box.y1","Back"},{"box.y0","Front"}};
+            const auto role=boxRoles.value(face.role,"Planar face");
+            labels.append(QString("Face %1: %2 — %3").arg(labels.size()+1).arg(bodyName,role));
+        }catch(const std::exception&){labels.append(QString("Face %1: unavailable").arg(labels.size()+1));}
+        faceLabels->setText(labels.join('\n'));
+    }
+    auto clear=[this,status,buttons](const QString& message){
+        session_["previewed"]=false;
+        auto planes=document_->evaluation().constructionPlanes;
+        const auto edit=session_["inputs"].toObject()["featureId"].toString();
+        for(auto it=planes.begin();it!=planes.end();++it)if(it->featureId==edit){planes.erase(it);break;}
+        view_->setConstructionPlanes(planes,++midplanePreviewRevision_);
+        if(status)status->setText(message);
+        if(buttons)buttons->button(QDialogButtonBox::Ok)->setEnabled(false);
+    };
+    if(session_["baseDocumentRevision"].toInteger()!=static_cast<qint64>(document_->revision())){
+        clear("Document changed. Cancel and restart Midplane.");
+        return failure("stale_session","Document changed; cancel and restart Midplane");
+    }
+    const auto inputs=session_["inputs"].toObject();
+    const auto faces=inputs["faces"].toArray();
+    if(faces.size()!=2){clear(QString("%1 of 2 faces selected. %2").arg(faces.size()).arg(faces.isEmpty() ? "Select the first face in the canvas." : "Select the second face in the canvas."));return session_;}
+    try{
+        const auto edit=inputs["featureId"].toString();
+        const auto& source=edit.isEmpty() ? document_->evaluation() : document_->evaluationBefore(edit);
+        auto frame=GeometryKernel::midplaneFrame(source,faces);
+        const auto bounds=frame.take("displayBoundsMm").toArray();
+        auto planes=document_->evaluation().constructionPlanes;
+        for(auto it=planes.begin();it!=planes.end();++it)if(it->featureId==edit){planes.erase(it);break;}
+        planes.push_back({"midplane-preview","Midplane Preview",true,frame,document_->activeOwnerId(),bounds});
+        view_->setConstructionPlanes(planes,++midplanePreviewRevision_);
+        view_->selectConstructionPlane("midplane-preview");
+        session_["previewed"]=true;
+        if(status)status->setText("2 of 2 faces selected. Midplane preview is ready.");
+        if(buttons)buttons->button(QDialogButtonBox::Ok)->setEnabled(true);
+        return session_;
+    }catch(const std::exception& error){
+        clear(QString::fromUtf8(error.what()));
+        return failure("invalid_faces",QString::fromUtf8(error.what()),"faces");
+    }
+}
+
+void AlloyWindow::showMidplane() {
+    if(midplaneDock_)delete midplaneDock_;
+    midplaneDock_=new QDockWidget("Midplane",canvasWindow_);midplaneDock_->setObjectName("midplaneDock");
+    midplaneDock_->setAllowedAreas(Qt::LeftDockWidgetArea|Qt::RightDockWidgetArea);
+    auto* panel=new QWidget(midplaneDock_);panel->setObjectName("midplanePanel");panel->setFixedWidth(284);
+    midplaneDock_->setWidget(panel);
+    auto* layout=new QVBoxLayout(panel);layout->setContentsMargins(14,14,14,12);layout->setSpacing(12);
+    auto* instruction=new QLabel("Select the first planar face, then the second planar face in the canvas.",panel);
+    instruction->setWordWrap(true);layout->addWidget(instruction);
+    auto* faces=new QLabel(panel);faces->setObjectName("midplane.faces");faces->setWordWrap(true);
+    faces->setMinimumHeight(48);layout->addWidget(faces);
+    auto* status=new QLabel(panel);status->setObjectName("midplane.status");status->setWordWrap(true);
+    status->setMinimumHeight(48);layout->addWidget(status);
+    layout->addStretch();
+    auto* buttons=new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel,panel);
+    buttons->setObjectName("midplane.buttons");buttons->button(QDialogButtonBox::Ok)->setEnabled(false);layout->addWidget(buttons);
+    connect(buttons,&QDialogButtonBox::accepted,this,[this,status]{const auto response=execute("command.commit",{{"session",session_["id"]}});
+        if(!response["ok"].toBool())status->setText(response["error"].toObject()["message"].toString());});
+    auto cancel=[this]{if(session_.value("command")=="construction.midplane")execute("command.cancel",{{"session",session_["id"]}});};
+    connect(buttons,&QDialogButtonBox::rejected,this,cancel);
+    auto* escape=new QShortcut(QKeySequence(Qt::Key_Escape),panel);escape->setContext(Qt::WidgetWithChildrenShortcut);
+    connect(escape,&QShortcut::activated,this,cancel);
+    canvasWindow_->addDockWidget(Qt::RightDockWidgetArea,midplaneDock_);midplaneDock_->show();
+    view_->setFocus(Qt::OtherFocusReason);
+}
+
 QJsonObject AlloyWindow::finishSession(const QString& id, bool commit) {
     if (session_.isEmpty() || session_.value("id").toString() != id) return failure("invalid_session", "Session is no longer active");
     if(commit && session_.value("invalidEndOffset").toBool())return failure("invalid_arguments","Resolve the end offset before committing");
@@ -4873,6 +5043,8 @@ QJsonObject AlloyWindow::finishSession(const QString& id, bool commit) {
     const auto target = session_.value("command").toString();
     QJsonObject result{{"sessionId", id}, {"status", commit ? "committed" : "cancelled"}};
     if(commit && target=="sketch.plane")return failure("plane_required","Choose an origin plane before finishing a sketch");
+    if(commit && target=="construction.midplane" && !session_.value("previewed").toBool())
+        return failure("faces_required","Select two valid parallel faces before committing");
     if(commit && target=="sketch.edit") {
         if(!session_.value("pendingFillet").toObject().isEmpty())
             return failure("pending_input_active","Accept or cancel the sketch fillet before finishing");
@@ -4920,6 +5092,8 @@ QJsonObject AlloyWindow::finishSession(const QString& id, bool commit) {
         result["commandResult"] = response;
     }
     if(target=="sketch.edit") { view_->clearSketchTextHandles();if(sketchTextDialog_)sketchTextDialog_->hide(); }
+    const auto midplanePreviousFace=session_.value("previousFace").toObject();
+    const auto midplanePreviousPlane=session_.value("previousPlane").toString();
     session_ = {};
     if(target=="sketch.edit"){sketchHistory_.clear();sketchHistoryIndex_=-1;sketchHistoryGroup_.clear();}
     if(dimensionEditor_)dimensionEditor_->hide();
@@ -4928,6 +5102,15 @@ QJsonObject AlloyWindow::finishSession(const QString& id, bool commit) {
     if (target == "commands.search" && search_) search_->hide();
     if (target == "document.units" && unitsDialog_) unitsDialog_->hide();
     if(target=="inspect.section" && sectionDock_)sectionDock_->hide();
+    if(target=="construction.midplane"){
+        if(midplaneDock_)midplaneDock_->hide();
+        view_->setConstructionPlanes(document_->evaluation().constructionPlanes,++midplanePreviewRevision_);
+        selectedFace_=commit ? QJsonObject{} : midplanePreviousFace;
+        selectedPlane_=commit ? result["commandResult"].toObject()["result"].toObject()["planeId"].toString() : midplanePreviousPlane;
+        view_->selectConstructionPlane(selectedPlane_);
+        if(selectedFace_.isEmpty())view_->selectSupportFace({},{});
+        else selectSupportFace(selectedFace_);
+    }
     if(target=="joint.slider"){
         if(sliderDock_)sliderDock_->hide();sliderPreviewAuthored_={};transientSliderPosition_.reset();
         if(sliderTimer_)sliderTimer_->stop();view_->clearSolidEdgeHighlights();displayedDocumentRevision_=std::numeric_limits<quint64>::max();

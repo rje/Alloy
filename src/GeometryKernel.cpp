@@ -111,6 +111,46 @@ QJsonObject GeometryKernel::offsetPlaneFrame(const QJsonObject& frame,double off
     result["origin"]=origin;return result;
 }
 
+QJsonObject GeometryKernel::midplaneFrame(const EvaluatedDocument& evaluation,const QJsonArray& faces) {
+    if(faces.size()!=2 || faces[0]==faces[1])
+        throw EvaluationError({{"code","invalid_midplane_faces"},{"message","Midplane requires two distinct planar faces"}});
+    const auto first=resolveSketchSupport(evaluation,faces[0].toObject());
+    const auto second=resolveSketchSupport(evaluation,faces[1].toObject());
+    const auto a=first.frame["origin"].toArray(),b=second.frame["origin"].toArray();
+    const auto na=first.frame["normal"].toArray(),nb=second.frame["normal"].toArray();
+    if(a.size()!=3 || b.size()!=3 || na.size()!=3 || nb.size()!=3)
+        throw EvaluationError({{"code","invalid_midplane_frames"},{"message","Midplane face frames are unavailable"}});
+    double dot=0,separation=0;
+    for(int axis=0;axis<3;++axis){dot+=na[axis].toDouble()*nb[axis].toDouble();
+        separation+=(b[axis].toDouble()-a[axis].toDouble())*na[axis].toDouble();}
+    if(std::abs(std::abs(dot)-1)>1e-6)
+        throw EvaluationError({{"code","nonparallel_midplane_faces"},{"message","Midplane faces must be parallel"}});
+    if(std::abs(separation)<1e-6)
+        throw EvaluationError({{"code","coincident_midplane_faces"},{"message","Midplane faces must have separate support planes"}});
+    auto frame=first.frame;auto origin=a;
+    for(int axis=0;axis<3;++axis)origin[axis]=a[axis].toDouble()+0.5*separation*na[axis].toDouble();
+    frame["origin"]=origin;
+    // Presentation bounds fit the selected face pair; the canonical sketch
+    // frame origin remains the midpoint of the first retained face frame.
+    const auto u=frame["uAxis"].toArray(),v=frame["vAxis"].toArray();
+    if(u.size()!=3 || v.size()!=3)
+        throw EvaluationError({{"code","invalid_midplane_frames"},{"message","Midplane face axes are unavailable"}});
+    double uMin=std::numeric_limits<double>::infinity(),uMax=-uMin,vMin=uMin,vMax=-uMin;
+    for(const auto& face:{first.face,second.face})for(TopExp_Explorer vertex(face,TopAbs_VERTEX);vertex.More();vertex.Next()){
+        const auto point=BRep_Tool::Pnt(TopoDS::Vertex(vertex.Current()));double localU=0,localV=0;
+        const double xyz[3]={point.X(),point.Y(),point.Z()};
+        for(int axis=0;axis<3;++axis){localU+=(xyz[axis]-origin[axis].toDouble())*u[axis].toDouble();
+            localV+=(xyz[axis]-origin[axis].toDouble())*v[axis].toDouble();}
+        uMin=std::min(uMin,localU);uMax=std::max(uMax,localU);
+        vMin=std::min(vMin,localV);vMax=std::max(vMax,localV);
+    }
+    if(std::isfinite(uMin) && uMax>uMin && vMax>vMin){
+        const double padU=std::max(3.0,(uMax-uMin)*0.08),padV=std::max(3.0,(vMax-vMin)*0.08);
+        frame["displayBoundsMm"]=QJsonArray{uMin-padU,uMax+padU,vMin-padV,vMax+padV};
+    }
+    return frame;
+}
+
 QJsonArray GeometryKernel::supportEdgeDescriptors(const EvaluatedSupportFace& support) {
     QJsonArray result;
     for(const auto& edge:support.boundaryEdges) {
@@ -495,8 +535,10 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
         try {
             if(type=="constructionPlane") {
                 const auto source=parameters["source"].toObject();
-                evaluated.constructionPlanes.push_back({id,feature["name"].toString(),feature["visible"].toBool(),
-                    offsetPlaneFrame(resolvePlaneSource(evaluated,source),parameters["offsetMm"].toDouble())});
+                auto frame=source.contains("faces") ? midplaneFrame(evaluated,source["faces"].toArray())
+                    : offsetPlaneFrame(resolvePlaneSource(evaluated,source),parameters["offsetMm"].toDouble());
+                const auto bounds=frame.take("displayBoundsMm").toArray();
+                evaluated.constructionPlanes.push_back({id,feature["name"].toString(),feature["visible"].toBool(),frame,{},bounds});
             } else if (type == "sketch") {
                 priorSketches[id] = evaluated.sketches.size();
                 QJsonObject resolvedFrame;

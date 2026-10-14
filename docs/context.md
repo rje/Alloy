@@ -1,16 +1,23 @@
 # Continuation context
 
-## Current cumulative gate and active work
+## Current advanced tutorial work (2026-10-13)
 
-TUT-015 now has a full 206-call actual-app runner through Box/Lid geometry,
-late parameter bindings, resize, midpoint ellipse thumb Cut, Slider and separate
-printing exports. Independent Astra review found the positive Slider world-Y
-motion opens through the closed back wall. ASM-009 adds retained reversed axis
-orientation with positive joint limits; Sol implements it in isolation. Root
-owns the optional paced full-creation movie harness and will run once the fix
-is integrated. Full gate stays open pending corrected motion and movie review.
-GEO-005 Midplane is progressing in a separate Sol lane. Only these active work
-items and TUT-015 are In Progress; other advanced prerequisites remain Todo.
+TUT-015 has a full 228-call actual-app creation run and 97-second API movie,
+through Box/Lid geometry, late parameter bindings, resize, midpoint ellipse
+thumb Cut, corrected Slider opening and separate printing exports. ASM-009
+is independently accepted: positive joint travel now opens toward negative
+world Y, with matching viewport cue. A focused thumb-creation replay supplies
+readable dimensions missing from the main movie; final cumulative acceptance
+is pending that supplement review. See the cumulative receipt.
+
+GEO-005 Midplane is independently accepted and integrated: two exact parallel
+planar face references, sequential canvas picks, preview/Cancel/edit and shared
+API. A dependent sketch follows case height edits. Core/native checks and a
+33-call real-app workflow passed; root is checking main integration. See
+[Midplane receipt](validation/retained-midplane.md). Split Body remains separate.
+RES-017 adapted board reference qualification is progressing externally; XDE
+hierarchical import and local insertion remain application prerequisites.
+
 
 ## Accepted advanced tutorial ingredients (2026-10-13)
 

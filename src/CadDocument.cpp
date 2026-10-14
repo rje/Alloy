@@ -195,17 +195,26 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
                 for (const auto& tool : tools) activeBodies.remove(tool.toString());
             continue;
         }
-        if((feature["type"]=="sketch" && feature["parameters"].toObject()["plane"]=="face") ||
-            (feature["type"]=="constructionPlane" && feature["parameters"].toObject()["source"].toObject().contains("support"))) {
-            const auto support=feature["type"]=="sketch" ? feature["parameters"].toObject()["support"].toObject() : feature["parameters"].toObject()["source"].toObject()["support"].toObject();const auto producer=support["producerFeatureId"].toString(),body=support["bodyId"].toString();
-            QJsonObject diagnostic{{"featureId",feature["id"]},{"featureType","sketch"},{"support",support}};
-            if(!positions.contains(producer)){diagnostic["code"]="missing_dependency";diagnostic["message"]="Sketch support producer does not exist";}
-            else if(positions[producer]>=i){diagnostic["code"]="forward_dependency";diagnostic["message"]="Sketch support producer must precede its sketch";}
+        QJsonArray planeSupports;
+        if(feature["type"]=="sketch" && feature["parameters"].toObject()["plane"]=="face")
+            planeSupports.append(feature["parameters"].toObject()["support"]);
+        if(feature["type"]=="constructionPlane"){
+            const auto source=feature["parameters"].toObject()["source"].toObject();
+            if(source.contains("support"))planeSupports.append(source["support"]);
+            if(source.contains("faces"))planeSupports=source["faces"].toArray();
+        }
+        for(const auto& value:planeSupports) {
+            const auto support=value.toObject();
+            const auto producer=support["producerFeatureId"].toString(),body=support["bodyId"].toString();
+            const bool sketchSupport=feature["type"]=="sketch";
+            QJsonObject diagnostic{{"featureId",feature["id"]},{"featureType",feature["type"]},{"support",support}};
+            if(!positions.contains(producer)){diagnostic["code"]="missing_dependency";diagnostic["message"]=sketchSupport ? "Sketch support producer does not exist" : "Plane support producer does not exist";}
+            else if(positions[producer]>=i){diagnostic["code"]="forward_dependency";diagnostic["message"]=sketchSupport ? "Sketch support producer must precede its sketch" : "Plane support producer must precede its plane";}
             // Boolean descendants can carry an earlier producer's face onto
             // a different surviving body. The evaluated support lookup below
             // verifies the exact producer/body/face triple, never proximity.
             else if(!bodyPositions.contains(body) || bodyPositions[body]>=i){diagnostic["code"]="unsupported_dependency";diagnostic["message"]="Planar support requires an earlier evaluated body";}
-            else if(!activeBodies.contains(body)){diagnostic["code"]="consumed_dependency";diagnostic["message"]="Sketch support body was consumed earlier in history";}
+            else if(!activeBodies.contains(body)){diagnostic["code"]="consumed_dependency";diagnostic["message"]=sketchSupport ? "Sketch support body was consumed earlier in history" : "Plane support body was consumed earlier in history";}
             else continue;
             return diagnostic;
         }
@@ -1096,11 +1105,22 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
             continue;
         }
         if(type=="constructionPlane") {
-            if(feature.contains("bodyId") || p.size()!=2 || !p["source"].isObject() || !p["offsetMm"].isDouble()
-                || !std::isfinite(p["offsetMm"].toDouble()) || std::abs(p["offsetMm"].toDouble())>100000)
-                return "Construction plane requires one source and a finite offset within 100000 mm";
+            if(feature.contains("bodyId") || !p["source"].isObject())return "Construction plane requires a retained source";
             const auto source=p["source"].toObject();
             if(source.size()!=1)return "Construction plane requires exactly one source";
+            if(source.contains("faces")) {
+                const auto faces=source["faces"].toArray();
+                if(p.size()!=1 || !source["faces"].isArray() || faces.size()!=2 || faces[0]==faces[1])
+                    return "Midplane requires two distinct retained face references";
+                for(const auto& value:faces){const auto support=value.toObject();
+                    if(!value.isObject() || support.size()!=3)return "Midplane face requires producer, body and face IDs";
+                    for(const auto& key:{"producerFeatureId","bodyId","faceId"})
+                        if(!validId(support[key].toString()))return "Midplane face requires stable IDs";}
+                continue;
+            }
+            if(p.size()!=2 || !p["offsetMm"].isDouble() || !std::isfinite(p["offsetMm"].toDouble())
+                || std::abs(p["offsetMm"].toDouble())>100000)
+                return "Construction plane requires one source and a finite offset within 100000 mm";
             if(source.contains("plane")) {if(source["plane"]!="XY" && source["plane"]!="XZ" && source["plane"]!="YZ")return "Unsupported origin plane source";}
             else if(source.contains("planeId") || source.contains("sketchId")) {const auto reference=source.begin().value();if(!reference.isString() || !validId(reference.toString()))return "Plane source requires a stable feature ID";}
             else if(source.contains("support")) {const auto support=source["support"].toObject();if(support.size()!=3)return "Plane face source requires producer, body and face IDs";for(const auto& key:{"producerFeatureId","bodyId","faceId"})if(!validId(support[key].toString()))return "Plane face source requires stable IDs";}

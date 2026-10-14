@@ -470,7 +470,10 @@ void ReferenceView::setConstructionPlanes(const std::vector<EvaluatedConstructio
         if(origin.size()!=3 || u.size()!=3 || v.size()!=3)continue;
         auto point=[&](double x,double y){return gp_Pnt(origin[0].toDouble()+x*u[0].toDouble()+y*v[0].toDouble(),
             origin[1].toDouble()+x*u[1].toDouble()+y*v[1].toDouble(),origin[2].toDouble()+x*u[2].toDouble()+y*v[2].toDouble());};
-        BRepBuilderAPI_MakePolygon border;border.Add(point(-30,-30));border.Add(point(30,-30));border.Add(point(30,30));border.Add(point(-30,30));border.Close();
+        const auto fit=plane.displayBoundsMm;
+        const double left=fit.size()==4 ? fit[0].toDouble() : -30,right=fit.size()==4 ? fit[1].toDouble() : 30;
+        const double lower=fit.size()==4 ? fit[2].toDouble() : -30,upper=fit.size()==4 ? fit[3].toDouble() : 30;
+        BRepBuilderAPI_MakePolygon border;border.Add(point(left,lower));border.Add(point(right,lower));border.Add(point(right,upper));border.Add(point(left,upper));border.Close();
         Handle(AIS_Shape) model=new AIS_Shape(BRepBuilderAPI_MakeFace(border.Wire()).Face());
         model->SetColor(Quantity_Color(0.94,0.63,0.16,Quantity_TOC_sRGB));model->SetTransparency(0.84);
         model->Attributes()->SetFaceBoundaryDraw(true);
@@ -502,7 +505,10 @@ QString ReferenceView::pickConstructionPlane(double x,double y) const {
         const auto distance=n.Dot(o-eye)/denominator;if(distance<0 || distance>=nearest)continue;
         const auto local=eye+ray*distance-o;
         const gp_Vec xAxis(u[0].toDouble(),u[1].toDouble(),u[2].toDouble()),yAxis(v[0].toDouble(),v[1].toDouble(),v[2].toDouble());
-        if(std::abs(local.Dot(xAxis))>30 || std::abs(local.Dot(yAxis))>30)continue;
+        const auto fit=plane.displayBoundsMm;
+        const double left=fit.size()==4 ? fit[0].toDouble() : -30,right=fit.size()==4 ? fit[1].toDouble() : 30;
+        const double lower=fit.size()==4 ? fit[2].toDouble() : -30,upper=fit.size()==4 ? fit[3].toDouble() : 30;
+        if(local.Dot(xAxis)<left || local.Dot(xAxis)>right || local.Dot(yAxis)<lower || local.Dot(yAxis)>upper)continue;
         nearest=distance;hit=plane.featureId;
     }
     return hit;
