@@ -26,8 +26,11 @@ private slots:
     void nativeBodyThenBrowserPlaneCancelAndCommit(){
         AlloyTheme::apply(*qApp);AlloyWindow window;window.resize(1320,850);window.show();
         QVERIFY(QTest::qWaitForWindowExposed(&window));window.activateWindow();QApplication::setActiveWindow(&window);
+        const auto caseOwner=call(window,"component.create",{{"name","Case"},{"activate",true}})["definitionId"].toString();
+        QVERIFY(!caseOwner.isEmpty());
         call(window,"solid.box",{{"width",50},{"depth",80},{"height",40},{"name","Enclosure"}});
         const auto inspected=call(window,"document.inspect");const auto body=inspected["evaluation"].toObject()["bodies"].toArray()[0].toObject();
+        QCOMPARE(body["ownerId"].toString(),caseOwner);
         QJsonObject top,bottom;for(const auto& value:body["supportFaces"].toArray()){
             const auto face=value.toObject();if(face["role"]=="box.z1")top=ref(face);if(face["role"]=="box.z0")bottom=ref(face);
         }
@@ -73,8 +76,10 @@ private slots:
         QCOMPARE(after["evaluation"].toObject()["bodies"].toArray().size(),2);
         const auto split=after["authored"].toObject()["features"].toArray().last().toObject();
         QCOMPARE(split["type"].toString(),QString("splitBody"));
+        QCOMPARE(split["ownerId"].toString(),caseOwner);
         const auto edit=call(window,"feature.editDialog",{{"featureId",split["id"]}});
         QVERIFY(edit["previewed"].toBool());
+        QCOMPARE(edit["documentDraft"].toObject()["features"].toArray().last().toObject()["ownerId"].toString(),caseOwner);
         call(window,"command.cancel",{{"session",edit["id"]}});
         QCOMPARE(call(window,"document.inspect")["authored"].toObject(),after["authored"].toObject());
         call(window,"document.new",{{"discard",true}});window.close();

@@ -1455,7 +1455,9 @@ void AlloyWindow::registerCommands() {
         {"name",optional(name)},{"featureId",optional(featureId)},
         {"newFeatureId",optional(featureId)}};
     add("solid.splitBody","Split Body","Split one local closed solid by a retained infinite construction plane into two stable bodies.",splitSchema,[this](const auto& a){
-        QJsonObject candidate;try{candidate=CadDocument::splitBodyCandidate(document_->authored(),a);}
+        auto inputs=a;
+        if(inputs.value("featureId").toString().isEmpty())inputs["ownerId"]=document_->activeOwnerId();
+        QJsonObject candidate;try{candidate=CadDocument::splitBodyCandidate(document_->authored(),inputs);}
         catch(const std::exception& error){return failure("invalid_arguments",QString::fromUtf8(error.what()));}
         const auto error=document_->commit(candidate,a.contains("featureId")?"Edit Split Body":"Split Body");
         if(!error.isEmpty()){auto response=failure("evaluation_failed",error);auto details=response["error"].toObject();details["diagnostics"]=document_->lastEvaluationError();response["error"]=details;return response;}

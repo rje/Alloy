@@ -94,7 +94,9 @@ QJsonObject AlloyWindow::previewSplitBody() {
     if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))
         return failure("stale_session","The document changed; cancel and restart Split Body");
     try {
-        const auto candidate=CadDocument::splitBodyCandidate(document_->authored(),inputs);
+        auto owned=inputs;
+        if(edit.isEmpty())owned["ownerId"]=document_->activeOwnerId();
+        const auto candidate=CadDocument::splitBodyCandidate(document_->authored(),owned);
         const auto prepared=CadDocument::evaluateCandidate(candidate);
         if(!prepared.ok)throw std::runtime_error(prepared.error.toStdString());
         const auto target=inputs["targetBodyId"].toString();QString positive;
