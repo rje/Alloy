@@ -10,7 +10,11 @@ edit and separate downstream edit evidence are explicit in
 [the accepted receipt](validation/enclosure-port-card-workflow.md). The movie,
 editable model and exports are first in the external gallery (82 links checked).
 Next: TUT-022 split/snaps/two Mirrors and HIS-006 reorder, then TUT-023 rim.
-All private editors are closed; the GUI lease is currently with root.
+The ports lane now owns the sole GUI lease for a bounded TUT-022 Split/undercut
+probe against this saved model; HIS-006 is implemented headlessly in parallel.
+TUT-022 remains Todo until its remaining prerequisites are accepted. The first
+accepted-model probe found new Split features incorrectly defaulting to root
+ownership; SOL-052/#335 is active for a bounded command/preview ownership fix.
 
 ## Accepted snap-group feature Mirror (2026-10-13)
 

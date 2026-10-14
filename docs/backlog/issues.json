@@ -5655,7 +5655,8 @@
         "SKT-036",
         "SOL-028",
         "SOL-049",
-        "HIS-006"
+        "HIS-006",
+        "SOL-052"
       ],
       "labels": [
         "area:gate"
@@ -5817,6 +5818,20 @@
         "area:doc"
       ],
       "body": "Complete the native retained-section edit workflow during an active sketch without losing its draft or requiring Finish/Cancel first. DOC-028 supplies analysis-only shared updates and Browser visibility; it does not establish nested section-editor interaction. Research permitted public workflow evidence, provide a small explicit return-to-sketch edit flow, and verify actual native controls, preview/Cancel/commit, focus, retained sketch selection, subsequent Project/Offset and sketch Finish/Cancel. Preserve independent analysis history and atomic invalid input. Source contract and provenance are external in knowledge/tutorials/advanced-audit-2026-10-13/enclosure-port-card-contract.md. Keep this native interaction gap explicit in the API-based cumulative tutorial receipt until accepted."
+    },
+    {
+      "key": "SOL-052",
+      "title": "Keep new Split Body features in the active component",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SOL-045"
+      ],
+      "labels": [
+        "area:solid"
+      ],
+      "body": "The accepted enclosure is owned by the Case component. Its same-owner retained Midplane succeeds, but new Split Body defaults the feature owner to document root and incorrectly refuses the Case body/plane as cross-component. Supply activeOwnerId to new Split candidates in the shared command and native preview path; preserve the original owner when editing an existing feature. Keep genuine cross-component refusal and stable target/plane/result identities. Verify on the accepted TUT-021 saved design: Midplane and Split create two valid closed Case-owned solids with conserved volume and useful split supports, native preview/Cancel uses the same owner, and existing root-owned Split regression still passes. Bound this to new Split ownership; do not relax component-reference rules globally. Public source contract is external under knowledge/tutorials/advanced-audit-2026-10-13/independent-spec.md; TUT-022 owns full source Split/snap/two-Mirror sequence and later reorder."
     }
   ]
 }
