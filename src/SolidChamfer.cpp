@@ -56,7 +56,9 @@ std::unique_ptr<BRepAlgoAPI_Fuse> planarConcaveFallback(
     for(int i=0;i<2;++i) {
         const auto face=TopoDS::Face(adjacent(i+1));BRepAdaptor_Surface surface(face);
         if(surface.GetType()!=GeomAbs_Plane)return {};
-        legPlanes[i]=surface.Plane();normals[i]=legPlanes[i].Axis().Direction();
+        // A reflected plane may have an indirect Ax3. Its parametric normal
+        // is U x V, not the nominal Z axis of that placement.
+        legPlanes[i]=surface.Plane();normals[i]=legPlanes[i].Position().XDirection().Crossed(legPlanes[i].Position().YDirection());
         if(face.Orientation()==TopAbs_REVERSED)normals[i].Reverse();
         else if(face.Orientation()!=TopAbs_FORWARD)return {};
         if(std::abs(normals[i].Dot(axis))>tol)return {};
@@ -88,7 +90,7 @@ std::unique_ptr<BRepAlgoAPI_Fuse> planarConcaveFallback(
         for(int i=1;i<=ends.Extent();++i) {
             const auto endFace=TopoDS::Face(ends(i));BRepAdaptor_Surface cap(endFace);
             if(cap.GetType()!=GeomAbs_Plane)return {};
-            auto normal=cap.Plane().Axis().Direction();
+            auto normal=cap.Plane().Position().XDirection().Crossed(cap.Plane().Position().YDirection());
             if(endFace.Orientation()==TopAbs_REVERSED)normal.Reverse();
             else if(endFace.Orientation()!=TopAbs_FORWARD)return {};
             if(cap.Plane().Distance(point)>tol)return {};

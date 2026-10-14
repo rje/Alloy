@@ -10,6 +10,7 @@
 #include <GProp_GProps.hxx>
 #include <TopoDS.hxx>
 #include <gp_Ax1.hxx>
+#include <gp_Ax2.hxx>
 #include <cmath>
 #include <iostream>
 #include <stdexcept>
@@ -52,11 +53,14 @@ int main(int argc,char**argv){QCoreApplication app(argc,argv);try {
     // never fixture coordinates or an axis-aligned special case.
     gp_Trsf transform;transform.SetRotation(gp_Ax1(gp_Pnt(0,0,0),gp_Dir(1,2,3)),0.63);
     transform.SetTranslationPart(gp_Vec(7,-12,4));
-    BRepBuilderAPI_Transform moved(original.shape,transform,true);
-    auto rotated=original;rotated.shape=moved.Shape();rotated.supportFaces.clear();
-    for(auto&e:rotated.solidEdges)if(!e.edge.IsNull())e.edge=TopoDS::Edge(moved.ModifiedShape(e.edge));
-    SolidChamfer::evaluate(rotated,parameters,CadDocument::newId());
-    check(std::abs(volume(rotated.shape)-volume(original.shape)-11)<1e-6,"Rotated exact root changed result volume");
+    gp_Trsf reflection;reflection.SetMirror(gp_Ax2(gp_Pnt(0,0,0),gp_Dir(1,0,0)));
+    for(const auto& placement:std::vector<gp_Trsf>{transform,reflection}) {
+        BRepBuilderAPI_Transform moved(original.shape,placement,true);
+        auto placed=original;placed.shape=moved.Shape();placed.supportFaces.clear();
+        for(auto&e:placed.solidEdges)if(!e.edge.IsNull())e.edge=TopoDS::Edge(moved.ModifiedShape(e.edge));
+        SolidChamfer::evaluate(placed,parameters,CadDocument::newId());
+        check(std::abs(volume(placed.shape)-volume(original.shape)-11)<1e-6,"Placed exact root changed result volume");
+    }
     auto invalid=parameters;invalid["distanceMm"]=4;const auto revision=doc.revision();
     check(!doc.commit(CadDocument::chamferCandidate(before,invalid),"Oversized root").isEmpty(),"Unsupported oversized root accepted");
     check(doc.authored()==finished && doc.revision()==revision,"Rejected finish changed state");

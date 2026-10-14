@@ -1,6 +1,7 @@
 # Exact planar concave attachment Chamfer
 
-GEO-015 candidate; independent acceptance and real-app evidence pending.
+GEO-015 original-side implementation independently accepted. Reflected full
+finish-group qualification remains open.
 
 Native OCCT Chamfer remains the first attempt. If it fails for one current
 straight edge, a bounded fallback constructs the exact triangular prism and
@@ -21,6 +22,9 @@ authored distance.
 The proposed exact wedge must have no positive-volume source intersection,
 no positive-area contact with other source faces, the expected added volume,
 and no removed source material. Final geometry must be one valid closed solid.
+Surface normals use the plane parameter directions U × V and current face
+orientation; reflected OCCT planes may have indirect placements whose nominal
+Z axis has the opposite sign. Material-classification guards remain unchanged.
 Support and edge references use the actual Boolean history. Unsupported
 corners retain the ordinary Chamfer refusal; no closest-edge or reduced-radius
 fallback exists. Inspection reports `chamferMethod` as `native` or
@@ -30,7 +34,7 @@ fallback exists. Inspection reports `chamferMethod` as `native` or
 
 The external adapted enclosure prefix retains the first two snap finishes,
 then selects the published current wall/stem root. The focused test establishes
-exact 2 mm (+11 mm³), rigid rotation/translation invariance, oversized refusal
+exact 2 mm (+11 mm³), rigid rotation/translation and reflection invariance, oversized refusal
 without authored mutation, no added positive-volume interference with any
 other assembly body, upstream Join 5 → 5.25, undo/redo and native-file
 save/reopen. A separate diagnostic establishes zero symmetric-difference volume
@@ -41,8 +45,11 @@ External records live under
 `Alloy-reference-records/deliverables/enclosure-snap-2026-10-14/root-chamfer-probe-01`.
 These contain the diagnostic geometry, incidence normals, finite-leg areas and
 comparison logs. The real-app runner is
-`tests/planar_concave_chamfer_api.py`; its intended gate covers preview/Cancel,
-exact commit, history/reopen and GPU captures through the shared commands.
+`tests/planar_concave_chamfer_api.py`; API02 records 23 successful calls covering
+preview/Cancel, exact commit, history/reopen and GPU captures through the shared
+commands. The Case component is explicitly activated before modeling. The dock
+shows a readable 2.000 mm value; the broad assembled capture occludes the root
+and does not establish a visible root-detail comparison.
 API captures do not establish native mouse/keyboard parity.
 
 ## Remaining workflow scope
