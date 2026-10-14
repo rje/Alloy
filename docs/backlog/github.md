@@ -356,3 +356,4 @@ This is a publication snapshot. Use `python3 tools/backlog.py ready` for the liv
 | [#308 REL-008: Fix optional origin read corrupting general sketch fillets](https://github.com/rje/Alloy/issues/308) | P2 Parametric modeling | implementation | P1 | — |
 | [#309 GEO-006: Resolve intermittent ambiguous extrusion edge provenance on rounded region union](https://github.com/rje/Alloy/issues/309) | P2 Parametric modeling | implementation | P1 | — |
 | [#330 SKT-074: Retain explicit projected-loop union selection across region changes](https://github.com/rje/Alloy/issues/330) | P2 Parametric solids | implementation | P2 | [#328](https://github.com/rje/Alloy/issues/328) |
+| [#349 VIS-003: Distinguish open surface sheets with warm yellow material](https://github.com/rje/Alloy/issues/349) | P2 Parametric modeling | implementation | P1 | [#283](https://github.com/rje/Alloy/issues/283) |

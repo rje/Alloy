@@ -6040,6 +6040,20 @@
         "area:doc"
       ],
       "body": "Finish the native interaction portion split from DOC-030 authoring authority. Open body Rename through the real Browser context menu, confirm initial selected name and usable input focus, type Bottom or Top, accept with keyboard or button, and verify readable Browser label plus unchanged geometry. Escape must cancel. Actual Split API naming works, and Qt context opening/Escape are observed, but five bounded Qt attempts could not establish line-edit focus/typed commit even after initial harness activation. Do not repair focus between demonstrated user steps or substitute setText/API rename for typing evidence. Root desktop control previously could not resolve candidate windows (-10005 cgWindowNotFound); revisit only with changed evidence or a concrete implementation/harness hypothesis. Fix a real interaction defect if found. Keep Qt delivered input, OS input and API evidence distinct. TUT-022 full source interaction gate retains this dependency."
+    },
+    {
+      "key": "VIS-003",
+      "title": "Distinguish open surface sheets with warm yellow material",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SRF-009"
+      ],
+      "labels": [
+        "area:vis"
+      ],
+      "body": "## Problem and result\nThe accepted open sheet currently displays cyan. Public surface tutorial material describes yellow sheets versus gray solids; make the unselected surface presentation reflect that distinction with independently authored colors.\n\n## Scope and acceptance\nChange surface material and boundary color only. Preserve blue selection and existing solid material. Inspect a real guided-sheet capture, selected sheet, and solid result; no pixel-exact parity claim without matched source views. Source URL, retrieval date and public screenshots stay in the external advanced-audit-2026-10-14 shoehorn finishing record. Geometry behavior remains unchanged.\n\n## Verification\nBuild application and inspect focused actual-app captures; no redundant geometry test suite needed for a material-only change. Independent review before closure."
     }
   ]
 }
