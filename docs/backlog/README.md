@@ -7,7 +7,7 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current publication contains **306 issues**: **227 implementation, 19 research,
+The current publication contains **307 issues**: **228 implementation, 19 research,
 22 epics, and 38 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 
@@ -15,8 +15,8 @@ Use the live issue state for completion and readiness.
 
 Current authorized queue (2026-10-13): **sliding-lid box → snap-fit electronics
 enclosure → surface shoehorn → surface iron → piston subassemblies**. TUT-015–019
-are cumulative gates with explicit feature dependencies. Thirty-seven new tasks
-include these five gates, three source qualification tasks and29 bounded feature
+are cumulative gates with explicit feature dependencies. Thirty-eight new tasks
+include these five gates, three source qualification tasks and30 bounded feature
 children. Existing broad requirements are reused, not duplicated; split them
 before pulling an implementation too large for one increment. PAR-004 and DOC-022 are independently accepted and closed.
 Linked Project and offset-start Extrude are the next ready source slices. Complete source operations, readable constraint and

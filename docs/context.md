@@ -28,8 +28,9 @@ Box→Shell, source-size edits and thickness3, stable back-wall references,
 undo/redo and exact reopen with an inspected hardware GPU capture. Receipt in
 `docs/validation/box-shell-parameters.md`; artifacts external at
 `deliverables/sliding-box-2026-10-13/prefix-01`. Both issues are closed.
-Next source feature is SKT-066 linked Project across root-sibling components;
-SOL-044 offset-start Extrude is an independent ready slice. No complete lid
+Active next source features: SKT-066/#272 linked Project across root-sibling
+components (isolated linked-planar-project), and SOL-044/#275 offset-start Extrude
+(isolated extrude-offset-start). Sol implements; Astra researches/verifies. No complete lid
 workflow/movie is claimed. Root owns the sole private-editor lease; all test
 editors are closed. Source qualification for later tutorials remains explicit.
 

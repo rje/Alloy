@@ -44,6 +44,8 @@
         "DOC-023",
         "SKT-069",
         "SOL-049",
+        "SOL-046",
+        "DOC-025",
         "TUT-016"
       ],
       "acceptance": "Full source-stage ledger/movie, editable model with preserved reference geometry, two valid closed case halves with verified clearances/snaps/ports/lip, update/history/reopen and separately checked printable exports. Qualification and every feature dependency must close before this gate.",
