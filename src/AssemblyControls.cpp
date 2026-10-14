@@ -377,32 +377,38 @@ void AlloyWindow::refreshRevoluteControls(){
     auto* first=sliderDock_->findChild<QComboBox*>("revolute.component1");
     auto* second=sliderDock_->findChild<QComboBox*>("revolute.component2");
     auto* position=sliderDock_->findChild<QComboBox*>("revolute.position");
-    QMap<QString,QString> names;for(const auto& value:document_->authored()["components"].toArray())
-        names[value.toObject()["id"].toString()]=value.toObject()["name"].toString();
+    QMap<QString,QString> names;for(const auto& value:LocalOccurrences::inspect(document_->authored(),document_->evaluation())["occurrences"].toArray())
+        names[value.toObject()["occurrenceId"].toString()]=value.toObject()["path"].toString();
     for(auto* combo:{first,second}){const QSignalBlocker blocked(combo);combo->clear();combo->addItem("Select component…",QString{});
         for(const auto& value:document_->authored()["occurrences"].toArray()){
-            const auto occurrence=value.toObject();combo->addItem(names[occurrence["definitionId"].toString()],occurrence["id"].toString());
+            const auto occurrence=value.toObject();
+            const auto id=occurrence["id"].toString();
+            const auto path=names[id];combo->addItem(path.section(" / ",-1),id);
+            combo->setItemData(combo->count()-1,path,Qt::ToolTipRole);
         }
         combo->setCurrentIndex(std::max(0,combo->findData(inputs[combo==first?"component1OccurrenceId":"component2OccurrenceId"].toString())));
     }
-    const auto fixed=ownerOf(document_->authored(),inputs["component2OccurrenceId"].toString());
+    const auto fixed=inputs["component2OccurrenceId"].toString();
     {const QSignalBlocker blocked(position);position->clear();position->addItem("Select circular edge…",QJsonObject{});
-        for(const auto& body:document_->bodies())if(body.ownerId==fixed)for(const auto& edge:body.solidEdges)if(!edge.edge.IsNull()){
+        for(const auto& body:presentationBodies())if(body.occurrenceId==fixed)for(const auto& edge:body.solidEdges)if(!edge.edge.IsNull()){
             const BRepAdaptor_Curve curve(edge.edge);if(curve.GetType()!=GeomAbs_Circle)continue;
             if(std::abs(std::abs(curve.LastParameter()-curve.FirstParameter())-2*std::acos(-1.0))>1e-6)continue;
             const auto point=curve.Circle().Location();
             const auto label=body.name+QString(" · circle Y %1").arg(point.Y(),0,'f',1);
-            position->addItem(label,QJsonObject{{"bodyId",body.bodyId},{"edgeId",edge.edgeId}});
+            position->addItem(label,QJsonObject{{"occurrenceId",fixed},{"bodyId",body.bodyId},{"edgeId",edge.edgeId}});
             position->setItemData(position->count()-1,QString("Center (%1, %2, %3) mm")
                 .arg(point.X(),0,'f',1).arg(point.Y(),0,'f',1).arg(point.Z(),0,'f',1),Qt::ToolTipRole);
         }
-        position->setCurrentIndex(std::max(0,position->findData(inputs["position"].toObject())));
+        const auto current=inputs["position"].toObject();int chosen=position->findData(current);
+        if(chosen<0)for(int i=1;i<position->count();++i){const auto ref=position->itemData(i).toJsonObject();
+            if(ref["bodyId"]==current["bodyId"] && ref["edgeId"]==current["edgeId"]){chosen=i;break;}}
+        position->setCurrentIndex(std::max(0,chosen));
     }
     {auto* angle=sliderDock_->findChild<QDoubleSpinBox*>("revolute.angleDeg");const QSignalBlocker blocked(angle);angle->setValue(inputs["angleDeg"].toDouble());}
     sliderDock_->findChild<QLabel*>("revolute.error")->setText(session_["previewError"].toString());
     const bool passive=passiveGraphJoint(presentationAssembly(),inputs["jointId"].toString());
     sliderDock_->findChild<QDialogButtonBox*>("revolute.buttons")->button(QDialogButtonBox::Ok)->setEnabled(session_["previewed"].toBool() && !passive);
-    const auto ref=inputs["position"].toObject();if(!ref.isEmpty())view_->highlightSolidEdges(presentationBodies(),ref["bodyId"].toString(),QJsonArray{ref["edgeId"]});
+    const auto ref=inputs["position"].toObject();if(!ref.isEmpty())view_->highlightSolidEdges(presentationBodies(),ref["bodyId"].toString(),QJsonArray{ref["edgeId"]},fixed);
 }
 void AlloyWindow::registerCylindricalCommands(){
     commands_.push_back({"joint.cylindrical","As-Built Cylindrical",
@@ -519,26 +525,32 @@ void AlloyWindow::refreshCylindricalControls(){
     auto* first=sliderDock_->findChild<QComboBox*>("cylindrical.component1");
     auto* second=sliderDock_->findChild<QComboBox*>("cylindrical.component2");
     auto* position=sliderDock_->findChild<QComboBox*>("cylindrical.position");
-    QMap<QString,QString> names;for(const auto& value:document_->authored()["components"].toArray())
-        names[value.toObject()["id"].toString()]=value.toObject()["name"].toString();
+    QMap<QString,QString> names;for(const auto& value:LocalOccurrences::inspect(document_->authored(),document_->evaluation())["occurrences"].toArray())
+        names[value.toObject()["occurrenceId"].toString()]=value.toObject()["path"].toString();
     for(auto* combo:{first,second}){const QSignalBlocker blocked(combo);combo->clear();combo->addItem("Select component…",QString{});
         for(const auto& value:document_->authored()["occurrences"].toArray()){
-            const auto occurrence=value.toObject();combo->addItem(names[occurrence["definitionId"].toString()],occurrence["id"].toString());}
+            const auto occurrence=value.toObject();
+            const auto id=occurrence["id"].toString();
+            const auto path=names[id];combo->addItem(path.section(" / ",-1),id);
+            combo->setItemData(combo->count()-1,path,Qt::ToolTipRole);}
         combo->setCurrentIndex(std::max(0,combo->findData(inputs[combo==first?"component1OccurrenceId":"component2OccurrenceId"].toString())));
     }
-    const auto fixed=ownerOf(document_->authored(),inputs["component2OccurrenceId"].toString());
+    const auto fixed=inputs["component2OccurrenceId"].toString();
     {const QSignalBlocker blocked(position);position->clear();position->addItem("Select Z-axis circle…",QJsonObject{});
-        for(const auto& body:document_->bodies())if(body.ownerId==fixed)for(const auto& edge:body.solidEdges)if(!edge.edge.IsNull()){
+        for(const auto& body:presentationBodies())if(body.occurrenceId==fixed)for(const auto& edge:body.solidEdges)if(!edge.edge.IsNull()){
             const BRepAdaptor_Curve curve(edge.edge);if(curve.GetType()!=GeomAbs_Circle)continue;
             if(std::abs(std::abs(curve.LastParameter()-curve.FirstParameter())-2*std::acos(-1.0))>1e-6
                 || std::abs(curve.Circle().Axis().Direction().Z())<1-1e-6)continue;
             const auto center=curve.Circle().Location();
             position->addItem(body.name+QString(" · circle Z %1").arg(center.Z(),0,'f',1),
-                QJsonObject{{"bodyId",body.bodyId},{"edgeId",edge.edgeId}});
+                QJsonObject{{"occurrenceId",fixed},{"bodyId",body.bodyId},{"edgeId",edge.edgeId}});
             position->setItemData(position->count()-1,QString("Center (%1, %2, %3) mm")
                 .arg(center.X(),0,'f',1).arg(center.Y(),0,'f',1).arg(center.Z(),0,'f',1),Qt::ToolTipRole);
         }
-        position->setCurrentIndex(std::max(0,position->findData(inputs["position"].toObject())));
+        const auto current=inputs["position"].toObject();int chosen=position->findData(current);
+        if(chosen<0)for(int i=1;i<position->count();++i){const auto ref=position->itemData(i).toJsonObject();
+            if(ref["bodyId"]==current["bodyId"] && ref["edgeId"]==current["edgeId"]){chosen=i;break;}}
+        position->setCurrentIndex(std::max(0,chosen));
     }
     for(const auto& key:{"rotationDeg","slideMm"}){auto* field=sliderDock_->findChild<QDoubleSpinBox*>("cylindrical."+QString(key));
         const QSignalBlocker blocked(field);field->setValue(inputs[key].toDouble());}
@@ -546,5 +558,5 @@ void AlloyWindow::refreshCylindricalControls(){
     const bool passive=passiveGraphJoint(presentationAssembly(),inputs["jointId"].toString());
     sliderDock_->findChild<QDialogButtonBox*>("cylindrical.buttons")->button(QDialogButtonBox::Ok)->setEnabled(session_["previewed"].toBool() && !passive);
     const auto ref=inputs["position"].toObject();if(!ref.isEmpty())
-        view_->highlightSolidEdges(presentationBodies(),ref["bodyId"].toString(),QJsonArray{ref["edgeId"]});
+        view_->highlightSolidEdges(presentationBodies(),ref["bodyId"].toString(),QJsonArray{ref["edgeId"]},fixed);
 }

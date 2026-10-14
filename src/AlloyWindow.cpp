@@ -1335,6 +1335,8 @@ void AlloyWindow::registerCommands() {
     add("component.copyOccurrence","Copy linked component","Copy one local occurrence subtree with shared definitions and an absolute parent-local placement.",
         {{"occurrenceId",parameter("string","Retained source occurrence UUID.")},{"placement",parameter("object","Absolute parent-local translation and Z rotation.")}},[this](const auto& a){
             if(!session_.isEmpty())return failure("active_command","Finish or Cancel before copying a component");
+            if(!jointGraphStage_.isEmpty() || transientSliderPosition_.has_value())
+                return failure("staged_pose","Revert the previewed assembly position before copying a component");
             QJsonObject result;try{result=CadDocument::copyOccurrenceCandidate(document_->authored(),a["occurrenceId"].toString(),a["placement"].toObject());}
             catch(const std::exception& e){return failure("invalid_component_copy",QString::fromUtf8(e.what()));}
             const auto error=document_->commit(result["authored"].toObject(),"Copy Component");
@@ -1344,6 +1346,8 @@ void AlloyWindow::registerCommands() {
     add("component.copyOccurrenceDialog","Copy Component…","Review an absolute parent-local placement for one linked subtree.",
         {{"occurrenceId",parameter("string","Retained source occurrence UUID.")}},[this](const auto& a){
             if(!session_.isEmpty())return failure("active_command","Finish or Cancel before copying a component");
+            if(!jointGraphStage_.isEmpty() || transientSliderPosition_.has_value())
+                return failure("staged_pose","Revert the previewed assembly position before copying a component");
             QString sourcePath;for(const auto& value:LocalOccurrences::inspect(document_->authored(),document_->evaluation())["occurrences"].toArray())
                 if(value.toObject()["occurrenceId"]==a["occurrenceId"])sourcePath=value.toObject()["path"].toString();
             if(sourcePath.isEmpty())return failure("invalid_component_copy","Choose a current local component occurrence");
@@ -4208,12 +4212,16 @@ void AlloyWindow::registerCommands() {
         if(session_.value("command")=="joint.revolute"){
             const auto hit=view_->pickSolidEdge(a["x"].toDouble(),a["y"].toDouble(),presentationBodies());
             if(hit.isEmpty())return failure("edge_required","Pick a retained circular edge on Component 2");
-            return execute("command.update",{{"session",session_["id"]},{"inputs",QJsonObject{{"position",QJsonObject{{"bodyId",hit["bodyId"]},{"edgeId",hit["edgeId"]}}}}}});
+            QJsonObject position{{"bodyId",hit["bodyId"]},{"edgeId",hit["edgeId"]}};
+            if(hit.contains("occurrenceId"))position["occurrenceId"]=hit["occurrenceId"];
+            return execute("command.update",{{"session",session_["id"]},{"inputs",QJsonObject{{"position",position}}}});
         }
         if(session_.value("command")=="joint.cylindrical"){
             const auto hit=view_->pickSolidEdge(a["x"].toDouble(),a["y"].toDouble(),presentationBodies());
             if(hit.isEmpty())return failure("edge_required","Pick a retained Z-axis circular edge on Component 2");
-            return execute("command.update",{{"session",session_["id"]},{"inputs",QJsonObject{{"position",QJsonObject{{"bodyId",hit["bodyId"]},{"edgeId",hit["edgeId"]}}}}}});
+            QJsonObject position{{"bodyId",hit["bodyId"]},{"edgeId",hit["edgeId"]}};
+            if(hit.contains("occurrenceId"))position["occurrenceId"]=hit["occurrenceId"];
+            return execute("command.update",{{"session",session_["id"]},{"inputs",QJsonObject{{"position",position}}}});
         }
         if(session_.value("command")=="joint.slider"){
             const auto hit=view_->pickSolidEdge(a["x"].toDouble(),a["y"].toDouble(),presentationBodies());
@@ -5223,11 +5231,13 @@ void AlloyWindow::refresh() {
         view_->setSliderCue(assembly.isEmpty() || assembly[0].toObject()["type"]!="asBuiltSlider" ? QJsonObject{} : assembly[0].toObject());
         QJsonObject dragCue;
         const auto islands=solvedAssembly["islands"].toArray();
-        if(session_.isEmpty() && assembly.size()==4 && islands.size()==1 && islands[0].toObject()["pinAuthored"].toBool()){
+        if(session_.isEmpty() && (assembly.size()==4 || assembly.size()==7)
+            && islands.size()==1 && islands[0].toObject()["pinAuthored"].toBool()){
             const auto driver=assembly[0].toObject();int revolutes=0,cylinders=0;
             for(const auto& value:assembly){const auto type=value.toObject()["type"].toString();
                 revolutes+=type=="asBuiltRevolute";cylinders+=type=="asBuiltCylindrical";}
-            if(revolutes==3 && cylinders==1 && driver["type"]=="asBuiltRevolute"
+            if(revolutes==(assembly.size()==7 ? 5 : 3) && cylinders==(assembly.size()==7 ? 2 : 1)
+                && driver["type"]=="asBuiltRevolute"
                 && driver["coordinateEditable"].toBool() && driver["originFrameWorld"].toArray().size()==12){
                 QString movingOwner;const auto movingOccurrence=driver["component1OccurrenceId"].toString();
                 for(const auto& value:document_->authored()["occurrences"].toArray())
