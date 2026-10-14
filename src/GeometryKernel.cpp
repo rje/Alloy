@@ -8,6 +8,7 @@
 #include "SolidSphere.h"
 #include "SolidHole.h"
 #include "SolidLoft.h"
+#include "SurfaceExtrude.h"
 #include "SolidThicken.h"
 #include "SolidRevolve.h"
 #include "SolidSweep.h"
@@ -900,6 +901,8 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
                 evaluated.bodies.push_back(SolidRevolve::evaluate(feature,evaluated,source));
             } else if(type=="loft") {
                 evaluated.bodies.push_back(SolidLoft::evaluate(feature,evaluated));
+            } else if(type=="surfaceExtrude") {
+                evaluated.bodies.push_back(SurfaceExtrude::evaluate(feature,evaluated));
             } else if(type=="thicken") {
                 const auto ref=parameters["sourceFace"].toObject();
                 const auto source=std::find_if(evaluated.bodies.begin(),evaluated.bodies.end(),[&](const auto& body){return body.bodyId==ref["bodyId"].toString();});

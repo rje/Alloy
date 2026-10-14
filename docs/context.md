@@ -3600,3 +3600,15 @@ evidence is external under `validation/tangent-point-plane-2026-10-14/`; source
 final Fillet endpoint remains pending; independent API/core review is accepted. The sole
 GUI lease was handed back to Thicken work after all private tangent processes
 exited. See the [bounded receipt](validation/tangent-point-plane.md).
+
+## 2026-10-14 Two Sides surface Extrude candidate
+
+SRF-014/#355 has an isolated `feat/surface-extrude-two-sides` candidate. It
+retains open sketch-curve IDs and independently measured positive reaches on
+both sides of the solved sketch normal. OCCT evaluates one zero-volume sheet
+face per curve in a single surface-body compound; the faces are not sewn.
+Source sketch and feature edits, stable face/edge IDs, a planar-face attached
+sketch, undo/reopen, real-app API, and focused Qt native selection/typing/Escape
+passed. This is a bounded ingredient pending independent review. The source
+outline is independently authored and downstream Trim/Boundary Fill integration
+remains separate. See [candidate validation](validation/surface-extrude-two-sides.md).

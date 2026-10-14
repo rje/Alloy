@@ -140,6 +140,12 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
             if(p.value("operation")=="newComponent" && !checkSketch(p["centerline"].toObject()["sketchId"].toString()))
                 return {{"featureId",feature["id"]},{"featureType","loft"},{"code","loft_centerline_unavailable"},{"message","Loft centerline must reference an earlier sketch feature"}};
         }
+        if(feature["type"]=="surfaceExtrude") {
+            const auto sketch=feature["parameters"].toObject()["sketchId"].toString();
+            if(!positions.contains(sketch) || positions[sketch]>=i || features[positions[sketch]].toObject()["type"]!="sketch")
+                return {{"featureId",feature["id"]},{"featureType","surfaceExtrude"},
+                    {"code","surface_source_unavailable"},{"message","Surface Extrude source sketch must precede the feature"}};
+        }
         if(feature["type"]=="circularPattern"){const auto p=feature["parameters"].toObject();for(int n=1;n<p["quantity"].toInt();++n)bodyPositions[CircularPattern::bodyId(feature["id"].toString(),p["sourceBodyId"].toString(),n)]=i;}
         if(feature["type"]=="stepAssemblyImport")
             for(const auto& value:feature["parameters"].toObject()["assembly"].toObject()["occurrences"].toArray())
@@ -1182,6 +1188,30 @@ QJsonObject CadDocument::loftCandidate(const QJsonObject& authored,const QJsonOb
     if(index<0)features.append(feature);else features[index]=feature;candidate["features"]=features;return candidate;
 }
 
+QJsonObject CadDocument::surfaceExtrudeCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
+    const QSet<QString> allowed{"sketchId","entityIds","sideOneMm","sideTwoMm","featureId",
+        "newFeatureId","newBodyId","ownerId","name"};
+    for(auto it=arguments.begin();it!=arguments.end();++it)if(!allowed.contains(it.key()))
+        throw std::invalid_argument("Unknown Surface Extrude argument");
+    if(arguments.contains("featureId") && (arguments.contains("newFeatureId") || arguments.contains("newBodyId") || arguments.contains("ownerId")))
+        throw std::invalid_argument("Surface Extrude edit retains feature, body and owner identities");
+    auto candidate=authored;auto features=candidate["features"].toArray();QJsonObject feature;int index=-1;
+    if(arguments.contains("featureId")) {
+        for(int i=0;i<features.size();++i)if(features[i].toObject()["id"]==arguments["featureId"]){feature=features[i].toObject();index=i;break;}
+        if(index<0 || feature["type"]!="surfaceExtrude")throw std::invalid_argument("Surface Extrude feature unavailable");
+    } else feature={{"id",arguments.value("newFeatureId").toString(newId())},
+        {"bodyId",arguments.value("newBodyId").toString(newId())},
+        {"ownerId",arguments.value("ownerId").toString(authored["documentId"].toString())},
+        {"type","surfaceExtrude"},{"name","Extrude"},{"visible",true}};
+    feature["parameters"]=QJsonObject{{"sketchId",arguments["sketchId"]},{"entityIds",arguments["entityIds"]},
+        {"sideOneMm",arguments["sideOneMm"]},{"sideTwoMm",arguments["sideTwoMm"]}};
+    if(arguments.contains("name"))feature["name"]=arguments["name"];
+    if(index<0)features.append(feature);else features[index]=feature;
+    candidate["features"]=features;
+    const auto error=validateStructure(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());
+    return candidate;
+}
+
 QJsonObject CadDocument::thickenCandidate(const QJsonObject& authored,const QJsonObject& arguments){
     const QSet<QString> allowed{"sourceFace","signedThicknessMm","featureId","newFeatureId","newBodyId","ownerId","name"};
     for(auto it=arguments.begin();it!=arguments.end();++it)if(!allowed.contains(it.key()))throw std::invalid_argument("Unknown Thicken argument");
@@ -1705,6 +1735,23 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
             if(p.size()!=1 || !p["profiles"].isArray() || p["profiles"].toArray().size()<2 || p["profiles"].toArray().size()>32)return "Loft requires 2–32 ordered profile references";
             for(const auto& value:p["profiles"].toArray()){const auto ref=value.toObject();const auto key=ref["sketchId"].toString()+"/"+ref["profileId"].toString();if(ref.size()!=2 || !validId(ref["sketchId"].toString()) || !validId(ref["profileId"].toString()) || profiles.contains(key))return "Loft profiles must be distinct stable sketch/profile references";profiles.insert(key);}
             continue;
+        }
+        if(type=="surfaceExtrude") {
+            if(!validId(feature["bodyId"].toString()) || ids.contains(feature["bodyId"].toString())
+                || p.size()!=4 || !validId(p["sketchId"].toString()) || !p["entityIds"].isArray()
+                || p["entityIds"].toArray().isEmpty() || p["entityIds"].toArray().size()>32)
+                return "Surface Extrude needs a distinct body, one earlier sketch and 1–32 selected open curves";
+            QSet<QString> sources;
+            for(const auto& value:p["entityIds"].toArray()) {
+                if(!value.isString() || !validId(value.toString()) || sources.contains(value.toString()))
+                    return "Surface Extrude source entity IDs must be distinct stable UUIDs";
+                sources.insert(value.toString());
+            }
+            for(const auto& key:{"sideOneMm","sideTwoMm"})
+                if(!p[key].isDouble() || !std::isfinite(p[key].toDouble())
+                    || p[key].toDouble()<.001 || p[key].toDouble()>100000)
+                    return "Surface Extrude Two Sides reaches must each be 0.001..100000 mm";
+            ids.insert(feature["bodyId"].toString());continue;
         }
         if(type=="thicken"){
             const auto ref=p["sourceFace"].toObject();const auto amount=p["signedThicknessMm"].toDouble();

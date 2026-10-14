@@ -214,6 +214,14 @@ private:
     void showLoft();
     QDockWidget* loftDock_=nullptr;
     QShortcut* loftEscape_=nullptr;
+    QJsonObject surfaceExtrudeCandidate(const QJsonObject& inputs) const;
+    QJsonObject beginSurfaceExtrude(const QJsonObject& overrides={});
+    QJsonObject previewSurfaceExtrude();
+    QJsonObject selectSurfaceExtrudeEntity(const QString& sketchId,const QString& entityId);
+    QJsonObject pickSurfaceExtrude(double x,double y);
+    void showSurfaceExtrude();
+    QDockWidget* surfaceExtrudeDock_=nullptr;
+    QShortcut* surfaceExtrudeEscape_=nullptr;
     QJsonObject thickenCandidate(const QJsonObject& inputs) const;
     QJsonObject beginThicken(const QJsonObject& overrides={});
     QJsonObject previewThicken();
