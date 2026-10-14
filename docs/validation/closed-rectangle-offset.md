@@ -1,4 +1,4 @@
-# Retained closed rectangle Offset candidate
+# Retained closed rectangle Offset
 
 SKT-073 adds a bounded One Side Offset for four linked projected straight edges
 that certify one complete axis-aligned rectangle. Each accepted group retains
@@ -27,3 +27,7 @@ retained plane edit demonstrates downstream propagation without changing cell
 selection meaning. The API capture proves modeling; the focused Qt capture
 proves the actual native Offset click, field focus and Cancel. Neither is a
 claim about a physical keyboard or a proprietary reference runtime.
+
+Independent review accepts SKT-073/#328 within this bounded scope. The app
+build and focused closed-loop/legacy multi-profile integration checks pass on
+main. The complete slot/card/fillet continuation remains TUT-021.

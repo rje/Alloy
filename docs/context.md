@@ -1,23 +1,23 @@
 # Continuation context
 
-## Candidate retained Cut feature Mirror (2026-10-13)
+## Accepted retained Cut feature Mirror (2026-10-13)
 
-SOL-050/#326 has a bounded candidate in `feat/feature-group-mirror` for the first
+SOL-050/#326 is independently accepted and integrated for the first
 undercut Extrude Cut feature Mirror across origin XZ. Core, real-app API and Qt
 Timeline-selection checks pass with inspected two-pocket bottom-view captures;
-independent review and main integration remain pending. The later selected
+independent review and main integration are complete. The later selected
 Join/Chamfer/Fillet group is SOL-051/#327, so SOL-049/#293 stays open. See
 [the candidate receipt](validation/feature-mirror-cut.md).
-## Closed projected rectangle Offset candidate (2026-10-13)
+## Accepted closed projected rectangle Offset (2026-10-13)
 
-SKT-073/#328 in the isolated enclosure-ports worktree has a bounded candidate:
+SKT-073/#328 is independently accepted and integrated:
 four retained projected rectangle edges create one stable signed Offset group.
 The three actual adapted connector faces produce four disjoint profile cells,
 exact 973.5 mm² union area, and one Cut To Object through the Case wall.
 Real-app API and native Qt evidence, retained plane edit, atomic refusal,
 history/reopen and the limitation on topology-changing individual clearance
 edits are recorded in [the candidate receipt](validation/closed-rectangle-offset.md).
-Independent review and main integration remain pending. SKT-074 separately owns
+Independent review and main integration are complete. SKT-074 separately owns
 explicit aggregate selection across changed cell contacts.
 
 ## Latest checkpoint and next work (2026-10-13)
@@ -29,12 +29,14 @@ placement edit/undo/reopen and independent Case-only STEP/STL readback.
 A separate neutral top capture shows all four pegs. See
 [the accepted prefix receipt](validation/enclosure-prefix-workflow.md).
 GEO-008, SKT-071 and GEO-009 are accepted, integrated and closed.
-Current work: SKT-072/#325 construction-plane Project is accepted and integrated.
-Sol owns TUT-021 ports and its SKT-073/#328 retained closed connector-loop Offset
-prerequisite in an isolated worktree. GUI lease is back with root until needed. A second
-Sol lane completed SOL-050/#326 first Cut feature Mirror, now independently
-accepted and integrated. The exact snap group design/proof is SOL-051/#327. SOL-049 remains Todo as parent.
-Astra researches exact public source steps and verifies both lanes.
+Current work: SKT-072/#325 construction-plane Project, SKT-073/#328 closed
+rectangle Offset and SOL-050/#326 Cut feature Mirror are independently accepted,
+integrated and closed. Sol owns TUT-021 ports/card continuation against main,
+with the sole GUI lease. A second Sol lane works headlessly on GEO-010/#329
+Join-edge history needed by the ordinary source snap Chamfers/Fillet; the later
+SOL-051/#327 mirrored group remains Todo until that proof succeeds. SOL-049
+remains Todo as parent. Astra verifies both lanes. SKT-074/#330 separately tracks
+explicit union-profile selection across topology-changing clearance edits.
 
 Next source stages are TUT-021/#322 (ports and card opening), TUT-022/#323
 (Split and mirrored snap groups, depending on SOL-049 and HIS-006), and
