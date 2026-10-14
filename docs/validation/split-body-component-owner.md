@@ -7,3 +7,6 @@ The focused real-app probe opened the accepted port/card enclosure, activated Ca
 The existing `split_body_plane` core test passed. The native `split_body_controls` test now authors its Box, Midplane and Split inside a local Case; actual body click and Browser plane click drove preview, Cancel and OK, then edit preview retained Case ownership. It passed with captures under `../Alloy-reference-records/deliverables/enclosure-snap-2026-10-13/split-native-02/`. The first capture attempt lacked its output directory and failed only at screenshot writing; the rerun with that directory present passed.
 
 This is owner routing for new local Split features. Cross-component targets remain unsupported, and this receipt does not claim the later snap geometry or timeline reorder.
+
+Astra independently accepted the final source, actual-model ledger and native
+captures. Integrated as 59952ad; the main application build passes.

@@ -14,7 +14,11 @@ The ports lane now owns the sole GUI lease for a bounded TUT-022 Split/undercut
 probe against this saved model; HIS-006 is implemented headlessly in parallel.
 TUT-022 remains Todo until its remaining prerequisites are accepted. The first
 accepted-model probe found new Split features incorrectly defaulting to root
-ownership; SOL-052/#335 is active for a bounded command/preview ownership fix.
+ownership; SOL-052/#335 is now independently accepted and integrated. The
+actual saved Case splits into two valid closed owned bodies with conserved
+volume, native preview/Cancel and stable edit/reopen identities. The port lane
+is probing the source-shaped closed undercut catch (4 mm guide, 6 × 3 mm
+rectangle below the seam), with horizontal placement explicitly adapted.
 
 ## Accepted snap-group feature Mirror (2026-10-13)
 
