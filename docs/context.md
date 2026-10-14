@@ -72,8 +72,11 @@ source edit/history/reopen. The fallback is restricted to certified planar
 concave corners and a native half-size witness for wall-ending transitions;
 the returned geometry retains the exact authored size. Astra source review
 is favorable; real-app proof and final acceptance remain pending.
-SOL-055/#342 owns the reflected attachment-root lineage and finish replay;
-original Join publication alone does not establish mirrored root availability.
+SOL-055/#342 is independently accepted and integrated at `ad23a81` for
+reflected attachment-root lineage and supported technical finish replay.
+Its core source edit/history/reopen and 13-call real-app inspection pass;
+the broad capture does not visibly expose the root. Exact-sized source finish
+and actual five-feature group remain GEO-015/SOL-053/TUT-022.
 Do not substitute the hook elbow or a transverse
 free edge merely because its Chamfer succeeds. SOL-053/#337 remains Todo
 until this root and the actual finished YZ snap group pass.
