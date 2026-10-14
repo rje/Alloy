@@ -8,8 +8,11 @@ passes modal line focus, rename commit, Browser label and unchanged geometry.
 Earlier button-focus failure remains unexplained, not claimed fixed.
 SKT-080/#380 is active for explicit shared-endpoint arc-line Tangent constraints;
 Sol implements on main, Astra verifies, reusing the existing build.
-Root is diagnosing SKT-077's initial face-pick gate with actual hit-widget,
-projection and selection evidence; no native origin acceptance yet.
+SKT-077 remains Todo after native03/04: initial activation-before-projection
+did not fix picking. Actual hit widget/frame/projected center and before/after
+captures are preserved externally in the face-origin deliverable native04.
+The click selects neither face nor body; no native origin acceptance or product
+change. A concrete picker/render diagnosis is required before another attempt.
 
 Worktree cleanup removed 180 inactive checkouts, retaining branch refs and a
 verified external artifact archive under
