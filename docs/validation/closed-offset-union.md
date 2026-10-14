@@ -24,10 +24,16 @@ External evidence is `deliverables/sketch-offset-union-2026-10-14/`:
   Cancel. Independently inspected capture shows blue resolved-region highlights.
   The shorter `Offset union · 3 loops` label has source/build evidence only.
 
-Native combo input is unverified: two popup click attempts and a subsequent
-keyboard focus probe failed to establish selection. Programmatic `command.update`
-is not native row selection. SKT-078/#377 preserves native select/replace/clear,
-readability and commit/Cancel qualification, using the accepted TUT-021 fixture.
+SKT-078/#377 adds a native Qt-delivered keyboard route through the open Profiles
+combo on the accepted TUT-021 fixture. Native02 passes aggregate selection and
+preview, ordinary-profile replacement, direct aggregate-to-Clear selection
+(invalid preview and disabled OK), Cancel with unchanged authored data, then
+aggregate commit and exact undo/redo. The capture shows a readable combo label
+and blue resolved-region highlight. The first popup-row pointer-click attempt
+did not change selection, so pointer-row selection remains unverified; native02
+uses keyboard navigation with one initial application activation and no focus
+repair between demonstrated steps. The Clear row now invokes the shared
+selection update instead of leaving the aggregate active.
 TUT-021 remains accepted within its original ordinary-profile/API scope.
 
 The older `extrusion_document` test retained a JSON reference from a temporary

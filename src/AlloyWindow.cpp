@@ -6312,7 +6312,7 @@ void AlloyWindow::showExtrude() {
     layout->addLayout(form);
     extrudeError_=new QLabel;extrudeError_->setObjectName("extrude.error");extrudeError_->setWordWrap(true);extrudeError_->setStyleSheet("color:#a63832;");layout->addWidget(extrudeError_);
     auto* hint=new QLabel("Click regions to collect them before entering a distance. Cmd/Ctrl-click toggles a region.\nDrag the canvas arrow or enter a signed distance.");hint->setObjectName("extrude.hint");hint->setWordWrap(true);hint->setStyleSheet("color:#687780;");layout->addWidget(hint);
-    layout->addStretch();auto* buttons=new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel);extrudeOk_=buttons->button(QDialogButtonBox::Ok);layout->addWidget(buttons);
+    layout->addStretch();auto* buttons=new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel);buttons->setObjectName("extrude.buttons");extrudeOk_=buttons->button(QDialogButtonBox::Ok);layout->addWidget(buttons);
     auto acceptDistance=[this]{
         auto* field=static_cast<LengthDistanceSpinBox*>(extrudeDistance_);
         const auto name=field->enteredIdentifier();
@@ -6373,6 +6373,7 @@ void AlloyWindow::showExtrude() {
         const auto selected=extrudeProfile_->itemData(index).toJsonObject();
         if(selected.contains("profileSelection"))updateExtrude(selected);
         else if(!selected.isEmpty())execute("selection.profileSet",selected);
+        else if(index==0)updateExtrude({{"profileIds",QJsonArray{}}});
     });
     connect(buttons,&QDialogButtonBox::accepted,this,[this]{if(!session_.value("previewed").toBool())return;
         const auto response=execute("command.commit",{{"session",session_.value("id")}});if(!response["ok"].toBool())extrudeError_->setText(response["error"].toObject()["message"].toString());});
@@ -6394,7 +6395,7 @@ void AlloyWindow::refreshExtrudeControls() {
     view_->selectProfiles(selectedSketch_,selectedProfileIds_);
     {const QSignalBlocker block(extrudeProfile_);
         QVector<QPair<QString,QJsonObject>> rows;
-        rows.append({inputs.contains("profileSelection") ? "Offset loop union selected" : selectedProfileIds_.size()>1 ? QString("%1 selected regions").arg(selectedProfileIds_.size()) : "Select profile…",{}});
+        rows.append({inputs.contains("profileSelection") ? "Clear selection" : selectedProfileIds_.size()>1 ? QString("%1 selected regions").arg(selectedProfileIds_.size()) : "Select profile…",{}});
         int selected=0;
         if(inputs.value("operation")=="cut")for(const auto& row:document_->authored().value("features").toArray()) {
             const auto feature=row.toObject();const auto groups=feature.value("parameters").toObject().value("closedRectOffsets").toArray();
