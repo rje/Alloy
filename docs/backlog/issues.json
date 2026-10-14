@@ -2286,7 +2286,8 @@
         "SOL-014",
         "TUT-001",
         "SKT-026",
-        "PRT-004"
+        "PRT-004",
+        "DOC-029"
       ],
       "labels": [
         "kind:validation",
@@ -5633,7 +5634,8 @@
         "DOC-027",
         "SKT-072",
         "SKT-073",
-        "GEO-011"
+        "GEO-011",
+        "DOC-028"
       ],
       "labels": [
         "area:gate"
@@ -5787,6 +5789,34 @@
         "area:skt"
       ],
       "body": "Public staff explanations support sketch origin projected from the owning component origin for direct planar-face sketches. Alloy currently uses the face frame origin; origin snaps can override intended local coordinates, as the misplaced initial card diagnostic demonstrated. Design a versioned fresh-sketch convention or explicit origin target that matches supported public behavior while preserving all existing authored coordinates, constraints, geometry and saved documents. Do not globally rebase old sketches. Verify new offset-face sketches, component ownership, origin snaps and roundtrip; keep offset-construction-plane origin and axis policies explicitly unknown until independently researched. TUT-021 uses disclosed local placement adaptation and is not blocked on this compatibility feature. Public URLs/dates/short quotations and uncertainties are external at knowledge/tutorials/advanced-audit-2026-10-13/face-sketch-origin-contract.md. Independent review required."
+    },
+    {
+      "key": "DOC-028",
+      "title": "Preserve active sketch drafts across retained section updates",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "DOC-027"
+      ],
+      "labels": [
+        "area:doc"
+      ],
+      "body": "The enclosure source opens a construction-plane sketch before showing and shifting an existing Width section to expose connector boundaries. Current visibility refuses any active session; direct section update can advance the revision and stale the sketch. Permit existing-analysis visibility and shared direct section updates during sketch.edit using the existing analysis-only transaction authority. Preserve draft, selection and retained projection context; advance only the sketch revision baseline after a successful analysis-only commit. Invalid updates must be atomic. New analysis creation and nested section dialogs remain outside this bounded child. Verify through the actual app: begin sketch, toggle and shift retained section, Project/Offset continue, Finish or Cancel preserves the intended independent analysis edits; invalid edit leaves draft/analysis unchanged. Inspect GPU clipping and readable sketch. Native nested numeric edit remains separate DOC-029. Public source contract and provenance are external in knowledge/tutorials/advanced-audit-2026-10-13/enclosure-port-card-contract.md. TUT-021 owns full adapted workflow and exports."
+    },
+    {
+      "key": "DOC-029",
+      "title": "Edit a retained section through native controls during sketch authoring",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "DOC-028"
+      ],
+      "labels": [
+        "area:doc"
+      ],
+      "body": "Complete the native retained-section edit workflow during an active sketch without losing its draft or requiring Finish/Cancel first. DOC-028 supplies analysis-only shared updates and Browser visibility; it does not establish nested section-editor interaction. Research permitted public workflow evidence, provide a small explicit return-to-sketch edit flow, and verify actual native controls, preview/Cancel/commit, focus, retained sketch selection, subsequent Project/Offset and sketch Finish/Cancel. Preserve independent analysis history and atomic invalid input. Source contract and provenance are external in knowledge/tutorials/advanced-audit-2026-10-13/enclosure-port-card-contract.md. Keep this native interaction gap explicit in the API-based cumulative tutorial receipt until accepted."
     }
   ]
 }

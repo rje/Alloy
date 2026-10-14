@@ -47,7 +47,11 @@ GEO-011/#331 current Cut-rim catalog publication is independently accepted and
 integrated; the correctly centered card opening now supports its R2 fillet. An initial origin-snapped diagnostic was
 misplaced and is explicitly failed evidence; SKT-075/#332 tracks fresh face-sketch
 origin compatibility without rebasing old sketches. SOL-049
-remains Todo as parent. Astra verifies both lanes. SKT-074/#330 separately tracks
+remains Todo as parent. Astra verifies both lanes. The first source-order TUT-021 run exposed a retained
+section update blocked during sketch authoring: DOC-028/#333 is active for
+analysis-only shared updates that preserve the sketch draft. DOC-029/#334 keeps
+the native nested-editor follow-up Todo; no native parity is claimed from API
+updates. SKT-074/#330 separately tracks
 explicit union-profile selection across topology-changing clearance edits.
 
 Next source stages are TUT-021/#322 (ports and card opening), TUT-022/#323
