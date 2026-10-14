@@ -2,6 +2,7 @@
 """Real-app retained Timeline reorder on a supplied post-Mirror enclosure prefix."""
 import argparse
 import json
+import uuid
 from pathlib import Path
 from app_harness import application
 
@@ -18,13 +19,15 @@ out=Path(a.output).resolve()
 def by_id(features,identity):
     return next(f for f in features if f['id']==identity)
 
-with application(a.app,out) as (call,ledger):
+with application(a.app,out,command_timeout=180) as (call,ledger):
     call('window.resize',{'width':1440,'height':900})
     assert call('app.state')['viewport']['gpu']['hardwareAccelerated']
     call('document.open',{'path':str(Path(a.source).resolve())})
     before=call('document.inspect')
     features=before['authored']['features']
     fillet=by_id(features,a.fillet_id)
+    call('component.activate',{'definitionId':fillet['ownerId']})
+    before=call('document.inspect')
     anchor=by_id(features,a.after_feature_id)
     assert fillet['type']=='fillet' and anchor['type']=='featureMirror'
     first=next(i for i,f in enumerate(features) if f['id']==a.fillet_id)
@@ -43,10 +46,11 @@ with application(a.app,out) as (call,ledger):
     prior_edge=fillet['parameters']['edgeIds'][0]
     body=fillet['parameters']['targetBodyId']
     assert prior_edge!=a.opposite_edge_id
-    call('solid.fillet',{'featureId':a.fillet_id,'targetBodyId':body,
-        'edgeIds':[prior_edge,a.opposite_edge_id],'radiusMm':0.5})
+    groups=[{'id':str(uuid.uuid4()),'edgeIds':[edge],'radiusMm':0.5,'tangentChain':True}
+        for edge in (prior_edge,a.opposite_edge_id)]
+    call('solid.fillet',{'featureId':a.fillet_id,'targetBodyId':body,'groups':groups})
     edited=call('document.inspect')
-    assert by_id(edited['authored']['features'],a.fillet_id)['parameters']['edgeIds']==[prior_edge,a.opposite_edge_id]
+    assert by_id(edited['authored']['features'],a.fillet_id)['parameters']['groups']==groups
     assert all(b['valid'] and b['closed'] for b in edited['evaluation']['bodies'])
     dependent=anchor['parameters']['sourceFeatureIds'][0]
     call('feature.reorder',{'featureId':dependent,'afterFeatureId':a.after_feature_id},error='evaluation_failed')
