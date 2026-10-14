@@ -2370,7 +2370,22 @@ EvaluatedSketch SketchGeometry::evaluateFeature(const QJsonObject& feature, cons
         if(parameters["originPointId"].isString())boundaryPoints.insert(parameters["originPointId"].toString());
         QJsonArray profilePoints;for(const auto& entry:parameters["points"].toArray())
             if(boundaryPoints.contains(entry.toObject()["id"].toString()))profilePoints.append(entry);
-        profileParameters["points"]=profilePoints;profileParameters["constraints"]=QJsonArray{};
+        // Ellipse axes are structural geometry: their internal midpoint and
+        // perpendicular relations are required by profile validation even
+        // though external solved anchors are not profile boundaries.
+        QJsonArray structural;
+        for(const auto& value:parameters["constraints"].toArray()) {
+            const auto relation=value.toObject();const auto ids=relation["entityIds"].toArray();bool retain=false;
+            for(const auto& item:parameters["entities"].toArray()) {
+                const auto ellipse=item.toObject();if(ellipse["type"]!="ellipse")continue;
+                const auto first=ellipse["firstAxisId"],second=ellipse["secondAxisId"];
+                retain|=relation["type"]=="midpoint" && relation["pointIds"].toArray()==QJsonArray{ellipse["centerPointId"]}
+                    && (ids==QJsonArray{first} || ids==QJsonArray{second});
+                retain|=relation["type"]=="perpendicular" && ids.size()==2 && ids.contains(first) && ids.contains(second);
+            }
+            if(retain)structural.append(relation);
+        }
+        profileParameters["points"]=profilePoints;profileParameters["constraints"]=structural;
         profileParameters["dimensions"]=QJsonArray{};
         profileFeature["parameters"]=profileParameters;break;
     }

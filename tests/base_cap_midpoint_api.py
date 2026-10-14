@@ -36,6 +36,7 @@ with application(a.app,out) as (call,ledger):
     call('sketch.dimensionUpdate',{'dimensionId':width_dimension,'value':74,'units':'mm'})
     call('sketch.finish')
     edited=inspect();geometry=edited['evaluation']['sketches'][-1]
+    assert geometry['profiles'], geometry['profileDiagnostics']
     actual=next(e for e in geometry['entities'] if e['id']==ellipse['id'])
     assert abs(actual['centerMm'][0]-37)<1e-6 and abs(actual['centerMm'][2]-40)<1e-6
     assert {e['edgeId'] for e in next(f for f in edited['evaluation']['bodies'][0]['supportFaces'] if f['role']=='extrude.base')['edges']}=={e['edgeId'] for e in base['edges']}
@@ -43,5 +44,13 @@ with application(a.app,out) as (call,ledger):
     reopened=inspect();assert reopened['authored']==edited['authored']
     assert {e['edgeId'] for e in next(f for f in reopened['evaluation']['bodies'][0]['supportFaces'] if f['role']=='extrude.base')['edges']}=={e['edgeId'] for e in base['edges']}
     call('sketch.edit',{'sketchId':thumb['id']});call('sketch.lookAt');call('capture.screenshot',{'path':str(out/'retained-base-midpoint.png')});call('sketch.finish')
+    conic_regions=[p for p in geometry['profiles'] if ellipse['id'] in p['sourceEntityIds'] and p['areaMm2']<30]
+    assert conic_regions
+    # Both ellipse halves may be selectable when the projected top divides it.
+    call('solid.extrude',{'sketchId':thumb['id'],'profileIds':[p['profileId'] for p in conic_regions],
+        'start':'offset','startOffset':-10,'distance':5,'units':'mm','operation':'cut','targetBodyIds':[body['bodyId']]})
+    cut=inspect()['evaluation']['bodies'][0]
+    assert cut['valid'] and cut['closed'] and cut['volumeMm3']<edited['evaluation']['bodies'][0]['volumeMm3']
+    call('view.home');call('capture.screenshot',{'path':str(out/'base-thumb-cut.png')})
     (out/'receipt.json').write_text(json.dumps({'baseline':baseline,'edited':edited,'transcript':ledger},indent=2)+'\n')
 print('PASS: front base Project and retained top-midpoint ellipse follows source width')
