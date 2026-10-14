@@ -86,7 +86,10 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try {
     auto forward=stable;auto ordered=forward["features"].toArray();const auto dependent=ordered.takeAt(2);ordered.insert(1,dependent);forward["features"]=ordered;
     check(!document.commit(forward,"Forward support").isEmpty() && document.lastEvaluationError()["code"]=="forward_dependency","Support dependency order was not retained");
     const auto reversed=CadDocument::extrusionCandidate(stable,{{"featureId",producer["id"]},{"sketchId",f["id"]},{"profileIds",profileIds},{"distanceMm",-60}});
-    check(!document.commit(reversed,"Unsupported negative support").isEmpty(),"Negative cap support silently flipped authored axes");
+    const auto reverseDocument=CadDocument::evaluateCandidate(reversed);check(reverseDocument.ok,"Negative cap support failed");
+    worldZ(reverseDocument.evaluation->sketches[1],-60);
+    check(reverseDocument.evaluation->sketches[1].resolvedFrame["uAxis"]==originalFrame["uAxis"]
+        && reverseDocument.evaluation->sketches[1].resolvedFrame["vAxis"]==originalFrame["vAxis"],"Negative cap changed authored sketch axes");
     check(document.authored()==stable && document.revision()==revision && document.history().count()==history,"Support failure changed accepted work");
     document.history().undo();check(document.authored()==beforeBoss,"Undo lost prior support references");document.history().redo();check(document.authored()==stable,"Redo changed local support IDs");
     QTemporaryDir directory;check(directory.isValid(),"Support storage directory");const auto path=directory.path()+"/supported-sketch.alloy";

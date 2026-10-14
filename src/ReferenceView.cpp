@@ -1868,6 +1868,11 @@ void ReferenceView::showCutPreview(const EvaluatedBody& body,const std::vector<E
     setExtrusionCue(profiles.front(),distanceMm,sourceProfileIds,units,"cut",startOffsetMm);
     context_->UpdateCurrentViewer();
 }
+void ReferenceView::clearExtrusionCue() {
+    if(!context_.IsNull())for(const auto& cue:extrusionCue_)context_->Remove(cue,false);
+    extrusionCue_.clear();extrusionCueState_={};
+    if(!context_.IsNull())context_->UpdateCurrentViewer();
+}
 void ReferenceView::showExtrudeHandle(const EvaluatedProfile& profile,const QJsonArray& sourceProfileIds,const QString& units,const QString& operation,double distanceMm,double startOffsetMm) {
     clearPreviewPresentation();
     if(context_.IsNull())return;

@@ -1109,7 +1109,13 @@ void AlloyWindow::registerCommands() {
     auto profileIdentities=parameter("array","Distinct closed-profile UUIDs from one accepted sketch.");
     auto extrudeOperation=parameter("string","One Side Distance operation with an explicit target for Join/Cut/Intersect.");
     extrudeOperation["enum"]=QJsonArray{"newBody","join","cut","intersect"};
-    QJsonObject extrudeSchema{{"sketchId",sketchIdentity},{"profileId",optional(profileIdentity)},{"profileIds",optional(profileIdentities)},{"distance",optional(extrusionDistance)},
+    auto extrusionExtent=parameter("string","Distance or retained perpendicular planar To Object extent.");
+    extrusionExtent["enum"]=QJsonArray{"distance","toObject"};
+    QJsonObject extrudeSchema{{"extent",optional(extrusionExtent)},
+        {"endSupport",optional(parameter("object","Retained producerFeatureId/bodyId/faceId of the end face."))},
+        {"endOffset",optional(extrusionStartOffset)},
+        {"endOffsetParameter",optional(parameter("string","Direct user length name for end clearance."))},
+        {"sketchId",sketchIdentity},{"profileId",optional(profileIdentity)},{"profileIds",optional(profileIdentities)},{"distance",optional(extrusionDistance)},
         {"distanceParameter",optional(parameter("string","Direct name of a user length for the one-side distance."))},
         {"start",optional(extrusionStart)},{"startOffset",optional(extrusionStartOffset)},
         {"startOffsetParameter",optional(parameter("string","Direct name of a user length for a positive start offset."))},
@@ -1117,7 +1123,9 @@ void AlloyWindow::registerCommands() {
         {"operation",optional(extrudeOperation)},{"targetBodyIds",optional(parameter("array","Ordered retained participant body UUIDs for Join; one for Cut/Intersect."))}};
     add("solid.extrude","Create or edit extrusion","Commit a one-side distance New Body, Join, Cut or Intersect extrusion of accepted profiles.",extrudeSchema,[this](const auto& a){
         auto inputs=a;
-        if(a.contains("distance")==a.contains("distanceParameter"))return failure("invalid_arguments","Supply one numeric distance or direct user length name");
+        if(a.value("extent")=="toObject" && (a.contains("distance") || a.contains("distanceParameter")))return failure("invalid_arguments","To Object derives its distance from the retained face");
+        if(a.contains("endOffset") && a.contains("endOffsetParameter"))return failure("invalid_arguments","Choose numeric end offset or direct length name");
+        if(a.value("extent")!="toObject" && a.contains("distance")==a.contains("distanceParameter"))return failure("invalid_arguments","Supply one numeric distance or direct user length name");
         if(a.contains("distanceParameter")){const auto row=lengthParameter(a["distanceParameter"].toString());if(row.isEmpty())return failure("unknown_parameter","User length name is unavailable","distanceParameter");
             inputs["distance"]=row["valueMm"].toDouble()/(a.value("units").toString(document_->authored()["displayUnits"].toString())=="in" ? 25.4 : 1);}
         if(a.contains("startOffset") && a.contains("startOffsetParameter"))return failure("invalid_arguments","Supply one numeric start offset or direct user length name");
@@ -1153,10 +1161,9 @@ void AlloyWindow::registerCommands() {
         else for(const auto& body:document_->bodies())if(body.featureId==target)selectedBody_=body.bodyId;
         return document_->state();
     });
-    add("solid.extrudeDialog","Extrude","Open a docked profile extrusion with disposable live preview (E).",
-        {{"sketchId",optional(sketchIdentity)},{"profileId",optional(profileIdentity)},{"profileIds",optional(profileIdentities)},
-            {"start",optional(extrusionStart)},{"startOffset",optional(extrusionStartOffset)},{"startOffsetParameter",optional(parameter("string","Direct user length name for a positive start offset."))},
-            {"operation",optional(extrudeOperation)},{"targetBodyIds",optional(parameter("array","Ordered Join participant UUIDs; one Cut target UUID."))}},[this](const auto& a){return beginSession("solid.extrude",a);});
+    auto extrudeDialogSchema=extrudeSchema;
+    for(auto it=extrudeDialogSchema.begin();it!=extrudeDialogSchema.end();++it){auto field=it.value().toObject();field["required"]=false;it.value()=field;}
+    add("solid.extrudeDialog","Extrude","Open a docked profile extrusion with disposable live preview (E).",extrudeDialogSchema,[this](const auto& a){return beginSession("solid.extrude",a);});
     add("solid.pressPullDialog","Press Pull","Extrude or Cut selected sketch regions with one-side Distance (Q).",
         {{"sketchId",optional(sketchIdentity)},{"profileIds",optional(profileIdentities)},
             {"operation",optional(extrudeOperation)},{"targetBodyIds",optional(parameter("array","Ordered Join participant UUIDs; one Cut target UUID."))}},[this](const auto& a){return beginSession("solid.extrude",a);});
@@ -1168,6 +1175,7 @@ void AlloyWindow::registerCommands() {
     add("solid.extrudeDrag","Drag extrusion arrow","Update the same one-side Distance preview through the native canvas manipulator.",
         {{"distanceMm",dragDistance},{"x",dragPixel},{"y",dragPixel},{"phase",optional(dragPhase)}},[this](const auto& a){
             if(session_.value("command")!="solid.extrude")return failure("no_active_extrusion","Open Extrude or Press Pull first");
+            if(session_.value("inputs").toObject().value("extent")=="toObject")return failure("retained_extent","Edit the target or end offset for To Object");
             const auto units=session_.value("inputs").toObject()["units"].toString();
             const double distanceMm=a["distanceMm"].toDouble();
             if(!std::isfinite(distanceMm))return failure("invalid_arguments","Arrow distance must be finite","distanceMm");
@@ -2988,6 +2996,11 @@ void AlloyWindow::registerCommands() {
                     {"distance",p["distanceMm"].toDouble()/scale},{"units",unit},{"name",feature["name"]}};
                 if(p.contains("distanceParameterId"))for(const auto& entry:document_->authored()["userParameters"].toArray())
                     if(entry.toObject()["id"]==p["distanceParameterId"]){inputs["distanceParameter"]=entry.toObject()["name"];break;}
+                if(p.value("extent")=="toObject") {
+                    inputs["extent"]="toObject";inputs["endSupport"]=p.value("endSupport");inputs["endOffset"]=p.value("endOffsetMm").toDouble()/scale;
+                    if(p.contains("endOffsetParameterId"))for(const auto& entry:document_->authored()["userParameters"].toArray())
+                        if(entry.toObject()["id"]==p.value("endOffsetParameterId")){inputs.remove("endOffset");inputs["endOffsetParameter"]=entry.toObject()["name"];break;}
+                }
                 if(p.value("start")=="offset"){
                     inputs["start"]="offset";inputs["startOffset"]=p["startOffsetMm"].toDouble()/scale;
                     if(p.contains("startOffsetParameterId"))for(const auto& entry:document_->authored()["userParameters"].toArray())
@@ -3101,6 +3114,12 @@ void AlloyWindow::registerCommands() {
             bool belongs=false;for(const auto& body:document_->bodies())if(body.bodyId==hit["bodyId"] && body.ownerId==fixed)belongs=true;
             if(!belongs)return failure("edge_required","Pick an edge on Component 2");
             return execute("command.update",{{"session",session_["id"]},{"inputs",QJsonObject{{"position",QJsonObject{{"bodyId",hit["bodyId"]},{"edgeId",hit["edgeId"]}}}}}});
+        }
+        if(session_.value("command")=="solid.extrude" && session_.value("selectionRole")=="endObject") {
+            const auto edit=session_.value("inputs").toObject().value("featureId").toString();
+            const auto hit=view_->pickSupportFace(a["x"].toDouble(),a["y"].toDouble(),edit.isEmpty() ? document_->bodies() : document_->evaluationBefore(edit).bodies);
+            if(hit.isEmpty())return failure("face_required","Click a retained planar end face");
+            return selectSupportFace(hit);
         }
         if(session_.value("command")=="solid.circularPattern")return selectCircularBody(view_->pickBody(a["x"].toDouble(),a["y"].toDouble()));
         if(session_.value("command")=="solid.hole")return pickHole(a["x"].toDouble(),a["y"].toDouble());
@@ -3220,6 +3239,13 @@ void AlloyWindow::registerCommands() {
             if((updates.contains("startOffset") || updates.contains("startOffsetParameter")) && !updates.contains("start"))inputs["start"]="offset";
             if(updates.value("start")=="profilePlane"){inputs.remove("startOffsetParameter");inputs["startOffset"]=0;}
             if(updates.value("start")=="offset" && !inputs.contains("startOffset"))inputs["startOffset"]=0;
+            if(updates.contains("endOffset") && !updates.contains("endOffsetParameter"))inputs.remove("endOffsetParameter");
+            if(updates.contains("endOffsetParameter") && updates.contains("endOffset"))return failure("invalid_arguments","Choose numeric end offset or direct length name");
+            if(updates.contains("endOffset") || updates.contains("endOffsetParameter"))session_.remove("invalidEndOffset");
+            if(updates.value("extent")=="toObject")inputs.remove("distanceParameter");
+            if(updates.value("extent")=="distance") {
+                inputs.remove("endSupport");inputs.remove("endOffset");inputs.remove("endOffsetParameter");session_.remove("invalidEndOffset");
+            }
             if(updates.value("operation")=="newBody")inputs.remove("targetBodyIds");
         }
         if(session_.value("command")=="solid.box")for(const auto& field:QStringList{"width","depth","height"}){
@@ -4130,6 +4156,10 @@ QString AlloyWindow::validateExtrudeInputs(const QJsonObject& inputs) const {
     schema["profileIds"]=QJsonObject{{"type","array"},{"required",false}};
     Command command=*findCommand("solid.extrude");command.parameters=schema;
     const auto error=validateArguments(command,inputs);if(!error.isEmpty())return error;
+    if(inputs.value("extent")=="toObject") {
+        if(inputs.value("operation").toString("newBody")!="newBody" && inputs.value("operation")!="cut")return "To Object currently supports New Body or Cut";
+        if(inputs.contains("endOffsetParameter") && lengthParameter(inputs.value("endOffsetParameter").toString()).isEmpty())return "User length name is unavailable";
+    }
     if(inputs.contains("distanceParameter") && lengthParameter(inputs["distanceParameter"].toString()).isEmpty())return "User length name is unavailable";
     if(inputs.contains("startOffsetParameter") && lengthParameter(inputs["startOffsetParameter"].toString()).isEmpty())return "User length name is unavailable";
     const auto start=inputs.value("start").toString("profilePlane");
@@ -4154,9 +4184,9 @@ QString AlloyWindow::validateExtrudeInputs(const QJsonObject& inputs) const {
 QJsonArray AlloyWindow::discoverExtrudeTargets(const QJsonObject& inputs) const {
     const auto sketchId=inputs.value("sketchId").toString();
     const auto ids=inputs.contains("profileIds") ? inputs["profileIds"].toArray() : QJsonArray{inputs.value("profileId")};
-    const double distance=CadDocument::millimeters(inputs.value("distance").toDouble(),inputs.value("units").toString());
+    const auto extentParameters=extrudeExtentParameters(inputs);
     const double startOffset=inputs.value("start")=="offset" ? CadDocument::millimeters(inputs.value("startOffset").toDouble(),inputs.value("units").toString()) : 0;
-    if(sketchId.isEmpty() || ids.isEmpty() || distance==0)return {};
+    if(sketchId.isEmpty() || ids.isEmpty())return {};
     const auto editId=inputs.value("featureId").toString();
     const auto history=editId.isEmpty() ? document_->evaluation() : document_->evaluationBefore(editId);
     std::vector<TopoDS_Shape> tools;
@@ -4164,6 +4194,8 @@ QJsonArray AlloyWindow::discoverExtrudeTargets(const QJsonObject& inputs) const 
         bool found=false;
         for(const auto& sketch:history.sketches)if(sketch.featureId==sketchId)
             for(const auto& profile:sketch.profiles)if(profile.profileId==id.toString()) {
+                const auto distance=GeometryKernel::extrusionDistance(extentParameters,profile,history);
+                if(distance==0)return {};
                 tools.push_back(GeometryKernel::extrusion(profile,distance,nullptr,nullptr,{},nullptr,startOffset));found=true;break;
             }
         if(!found)return {};
@@ -4182,13 +4214,23 @@ QJsonArray AlloyWindow::discoverExtrudeTargets(const QJsonObject& inputs) const 
     }
     return targets;
 }
-QJsonObject AlloyWindow::extrusionCandidate(const QJsonObject& inputs,bool hideSource) const {
-    QJsonObject arguments{{"sketchId",inputs.value("sketchId")},
-        {"distanceMm",CadDocument::millimeters(inputs.value("distance").toDouble(),inputs.value("units").toString(document_->authored()["displayUnits"].toString()))}};
-    if(inputs.contains("distanceParameter")) {
-        const auto row=lengthParameter(inputs["distanceParameter"].toString());
-        if(row.isEmpty())throw std::invalid_argument("User length name is unavailable");
-        arguments["distanceParameterId"]=row["id"];arguments["distanceMm"]=row["valueMm"];
+QJsonObject AlloyWindow::extrudeExtentParameters(const QJsonObject& inputs) const {
+    QJsonObject arguments;
+    if(inputs.value("extent")=="toObject") {
+        arguments["extent"]="toObject";arguments["endSupport"]=inputs.value("endSupport");
+        arguments["endOffsetMm"]=CadDocument::millimeters(inputs.value("endOffset").toDouble(),inputs.value("units").toString(document_->authored()["displayUnits"].toString()));
+        if(inputs.contains("endOffsetParameter")) {
+            const auto row=lengthParameter(inputs.value("endOffsetParameter").toString());
+            if(row.isEmpty())throw std::invalid_argument("User length name is unavailable");
+            arguments["endOffsetParameterId"]=row.value("id");arguments["endOffsetMm"]=row.value("valueMm");
+        }
+    } else {
+        arguments["distanceMm"]=CadDocument::millimeters(inputs.value("distance").toDouble(),inputs.value("units").toString(document_->authored()["displayUnits"].toString()));
+        if(inputs.contains("distanceParameter")) {
+            const auto row=lengthParameter(inputs.value("distanceParameter").toString());
+            if(row.isEmpty())throw std::invalid_argument("User length name is unavailable");
+            arguments["distanceParameterId"]=row.value("id");arguments["distanceMm"]=row.value("valueMm");
+        }
     }
     if(inputs.value("start")=="offset"){
         arguments["start"]="offset";
@@ -4199,6 +4241,10 @@ QJsonObject AlloyWindow::extrusionCandidate(const QJsonObject& inputs,bool hideS
             arguments["startOffsetParameterId"]=row["id"];arguments["startOffsetMm"]=row["valueMm"];
         }
     }else if(inputs.contains("start"))arguments["start"]="profilePlane";
+    return arguments;
+}
+QJsonObject AlloyWindow::extrusionCandidate(const QJsonObject& inputs,bool hideSource) const {
+    auto arguments=extrudeExtentParameters(inputs);arguments["sketchId"]=inputs.value("sketchId");
     if(inputs.contains("profileIds"))arguments["profileIds"]=inputs["profileIds"];
     else arguments["profileId"]=inputs.value("profileId");
     if((inputs.value("operation")=="cut" || inputs.value("operation")=="join" || inputs.value("operation")=="intersect")){
@@ -4254,6 +4300,11 @@ QJsonObject AlloyWindow::beginExtrude(const QJsonObject& overrides) {
             if(savedParameters.contains("startOffsetParameterId"))for(const auto& entry:document_->authored()["userParameters"].toArray())
                 if(entry.toObject()["id"]==savedParameters["startOffsetParameterId"]){inputs["startOffsetParameter"]=entry.toObject()["name"];break;}
         }
+        if(!overrides.contains("extent") && savedParameters.value("extent")=="toObject") {
+            inputs["extent"]="toObject";inputs["endSupport"]=savedParameters.value("endSupport");inputs["endOffset"]=savedParameters.value("endOffsetMm").toDouble()/(units=="in" ? 25.4 : 1);
+            if(savedParameters.contains("endOffsetParameterId"))for(const auto& entry:document_->authored()["userParameters"].toArray())
+                if(entry.toObject()["id"]==savedParameters.value("endOffsetParameterId"))inputs["endOffsetParameter"]=entry.toObject()["name"];
+        }
         if(savedOperation!="newBody" && !overrides.contains("targetBodyIds"))inputs["targetBodyIds"]=savedParameters["targetBodyIds"];
     }
     if(inputs.value("start")=="offset" && !inputs.contains("startOffset"))inputs["startOffset"]=0;
@@ -4277,6 +4328,7 @@ QJsonObject AlloyWindow::beginExtrude(const QJsonObject& overrides) {
         {"source",source},
         {"previewed",false},{"baseDocumentRevision",static_cast<qint64>(document_->revision())},
         {"inputSchema",findCommand("solid.extrude")->parameters}};
+    session_["selectionRole"]=inputs.value("extent")=="toObject" && inputs.value("endSupport").toObject().isEmpty() ? "endObject" : "profiles";
     if(id.isEmpty()){session_["newFeatureId"]=CadDocument::newId();session_["newBodyId"]=CadDocument::newId();}
     selectedBody_.clear();selectedSketch_=inputs.value("sketchId").toString();
     selectedProfileIds_=inputs.contains("profileIds") ? inputs["profileIds"].toArray() : inputs.value("profileId").toString().isEmpty() ? QJsonArray{} : QJsonArray{inputs["profileId"]};
@@ -4305,9 +4357,14 @@ QJsonObject AlloyWindow::previewExtrude() {
     for(const auto& id:profileIds)for(const auto& sketch:history.sketches)if(sketch.featureId==inputs["sketchId"].toString())
         for(const auto& item:sketch.profiles)if(item.profileId==id.toString())profiles.push_back(item);
     if(profiles.size()!=static_cast<std::size_t>(profileIds.size()))return reject(failure("profile_unavailable","Selected sketch regions are unavailable at this history stage"));
-    const auto distance=CadDocument::millimeters(inputs["distance"].toDouble(),inputs["units"].toString());
+    if(session_.value("invalidEndOffset").toBool())return reject(failure("invalid_arguments","Enter a signed end offset or existing user length name"));
+    double distance=0;
+    try {distance=GeometryKernel::extrusionDistance(extrudeExtentParameters(inputs),profiles.front(),history);}
+    catch(const std::exception& error){return reject(failure("invalid_extent",QString::fromUtf8(error.what())));}
+    session_["resolvedDistanceMm"]=distance;
     const auto startOffset=inputs.value("start")=="offset" ? CadDocument::millimeters(inputs.value("startOffset").toDouble(),inputs["units"].toString()) : 0;
     auto rejectWithHandle=[this,&profiles,&profileIds,&inputs,distance,startOffset](QJsonObject error){
+        if(inputs.value("extent")=="toObject"){view_->clearPreview();return error;}
         view_->showExtrudeHandle(profiles.front(),profileIds,inputs["units"].toString(),inputs.value("operation").toString("newBody"),distance,startOffset);
         view_->selectProfiles(inputs["sketchId"].toString(),profileIds);
         session_["previewHandle"]=true;
@@ -4360,6 +4417,7 @@ QJsonObject AlloyWindow::previewExtrude() {
         else view_->showExtrudePreview(*body,GeometryKernel::unionProfiles(profiles),distance,profileIds,inputs["units"].toString(),startOffset);
     }catch(const std::exception& error){return rejectWithHandle(failure("evaluation_failed",QString::fromUtf8(error.what())));}
     view_->selectProfiles(inputs["sketchId"].toString(),profileIds);
+    if(inputs.value("extent")=="toObject")view_->clearExtrusionCue();
     session_["previewed"]=true;session_["geometryEvaluated"]=true;session_["geometry"]=body->summary;
     session_["featureId"]=featureId;session_["bodyId"]=body->bodyId;session_["documentDraft"]=evaluated.authored;
     return session_;
@@ -4424,8 +4482,8 @@ void AlloyWindow::showExtrude() {
     extrudePanel_=new QWidget;extrudePanel_->setObjectName("extrudePanel");extrudePanel_->setFixedWidth(286);
     extrudePanel_->setStyleSheet("#extrudePanel { background:#f7f8f9; color:#323c44; border-left:1px solid #cdd3d8; }");dock->setWidget(extrudePanel_);
     dock->onClose=[this]{if(session_.value("command")=="solid.extrude")execute("command.cancel",{{"session",session_.value("id")}});};
-    auto* layout=new QVBoxLayout(extrudePanel_);layout->setContentsMargins(14,14,14,12);layout->setSpacing(12);
-    auto* form=new QFormLayout;form->setVerticalSpacing(12);
+    auto* layout=new QVBoxLayout(extrudePanel_);layout->setContentsMargins(14,14,14,12);layout->setSpacing(8);
+    auto* form=new QFormLayout;form->setVerticalSpacing(8);
     extrudeProfile_=new QComboBox;extrudeProfile_->setObjectName("extrude.profile");form->addRow("Profiles",extrudeProfile_);
     extrudeStart_=new QComboBox;extrudeStart_->setObjectName("extrude.start");
     extrudeStart_->addItem("Profile Plane","profilePlane");extrudeStart_->addItem("Offset","offset");form->addRow("Start",extrudeStart_);
@@ -4434,20 +4492,41 @@ void AlloyWindow::showExtrude() {
         return row["valueMm"].toDouble()/(session_.value("inputs").toObject().value("units").toString()=="in" ? 25.4 : 1);};
     namedOffset->setObjectName("extrude.startOffset");namedOffset->setRange(-100000,100000);namedOffset->setDecimals(6);namedOffset->setKeyboardTracking(false);
     extrudeStartOffsetLabel_=new QLabel("Offset");form->addRow(extrudeStartOffsetLabel_,namedOffset);
-    form->addRow("Direction",new QLabel("One Side"));form->addRow("Extent Type",new QLabel("Distance"));
+    form->addRow("Direction",new QLabel("One Side"));
+    extrudeExtent_=new QComboBox;extrudeExtent_->setObjectName("extrude.extent");extrudeExtent_->addItem("Distance","distance");extrudeExtent_->addItem("To Object","toObject");form->addRow("Extent Type",extrudeExtent_);
+    auto* extend=new QLabel("Extend: To Selected Face");extend->setObjectName("extrude.extend");form->addRow(extend);
+    extrudeEndObject_=new QPushButton("Select face");extrudeEndObject_->setObjectName("extrude.endObject");extrudeEndObjectLabel_=new QLabel("Object");form->addRow(extrudeEndObjectLabel_,extrudeEndObject_);
+    extrudeEndOffset_=new QLineEdit;extrudeEndOffset_->setObjectName("extrude.endOffset");extrudeEndOffsetLabel_=new QLabel("Offset");form->addRow(extrudeEndOffsetLabel_,extrudeEndOffset_);
+    connect(extrudeExtent_,qOverload<int>(&QComboBox::currentIndexChanged),this,[this](int i){
+        const auto extent=extrudeExtent_->itemData(i).toString();session_["selectionRole"]=extent=="toObject" ? "endObject" : "profiles";updateExtrude({{"extent",extent}});view_->setFocus();
+    });
+    connect(extrudeEndObject_,&QPushButton::clicked,this,[this]{session_["selectionRole"]="endObject";view_->setFocus();});
+    auto acceptEndOffset=[this]{
+        const auto text=extrudeEndOffset_->text().trimmed();bool ok=false;const double value=text.toDouble(&ok);
+        const auto current=session_.value("inputs").toObject();
+        if(ok && std::isfinite(value)) {
+            if(!session_.value("invalidEndOffset").toBool() && !current.contains("endOffsetParameter") && current.value("endOffset").isDouble() && current.value("endOffset").toDouble()==value)return;
+            updateExtrude({{"endOffset",value}});
+        } else if(!lengthParameter(text).isEmpty()) {
+            if(!session_.value("invalidEndOffset").toBool() && current.value("endOffsetParameter")==text)return;
+            updateExtrude({{"endOffsetParameter",text}});
+        } else {session_["invalidEndOffset"]=true;session_["previewed"]=false;session_["geometryEvaluated"]=false;session_.remove("geometry");view_->clearPreview();extrudeOk_->setEnabled(false);extrudeError_->setText("Enter a signed end offset or existing user length name");}
+    };
+    connect(extrudeEndOffset_,&QLineEdit::textEdited,this,[acceptEndOffset](const QString&){acceptEndOffset();});
+    connect(extrudeEndOffset_,&QLineEdit::editingFinished,this,acceptEndOffset);
     auto* namedDistance=new LengthDistanceSpinBox;extrudeDistance_=namedDistance;
     namedDistance->namedValue=[this](const QString& name)->std::optional<double>{const auto row=lengthParameter(name);if(row.isEmpty())return std::nullopt;
         return row["valueMm"].toDouble()/(session_.value("inputs").toObject().value("units").toString()=="in" ? 25.4 : 1);};
     extrudeDistance_->setObjectName("extrude.distance");extrudeDistance_->setRange(-100000,100000);
     extrudeDistance_->setDecimals(6);extrudeDistance_->setKeyboardTracking(false);extrudeDistance_->setValue(session_.value("inputs").toObject()["distance"].toDouble());
-    form->addRow("Distance",extrudeDistance_);
+    extrudeDistanceLabel_=new QLabel("Distance");form->addRow(extrudeDistanceLabel_,extrudeDistance_);
     extrudeOperation_=new QComboBox;extrudeOperation_->setObjectName("extrude.operation");
     extrudeOperation_->addItem("New Body","newBody");extrudeOperation_->addItem("Join","join");extrudeOperation_->addItem("Cut","cut");extrudeOperation_->addItem("Intersect","intersect");form->addRow("Operation",extrudeOperation_);
     extrudeTarget_=new QComboBox;extrudeTarget_->setObjectName("extrude.targetBody");
     extrudeTargetLabel_=new QLabel("Objects to Cut");form->addRow(extrudeTargetLabel_,extrudeTarget_);
     layout->addLayout(form);
     extrudeError_=new QLabel;extrudeError_->setObjectName("extrude.error");extrudeError_->setWordWrap(true);extrudeError_->setStyleSheet("color:#a63832;");layout->addWidget(extrudeError_);
-    auto* hint=new QLabel("Click regions to collect them before entering a distance. Cmd/Ctrl-click toggles a region.\nDrag the canvas arrow or enter a signed distance.");hint->setWordWrap(true);hint->setStyleSheet("color:#687780;");layout->addWidget(hint);
+    auto* hint=new QLabel("Click regions to collect them before entering a distance. Cmd/Ctrl-click toggles a region.\nDrag the canvas arrow or enter a signed distance.");hint->setObjectName("extrude.hint");hint->setWordWrap(true);hint->setStyleSheet("color:#687780;");layout->addWidget(hint);
     layout->addStretch();auto* buttons=new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel);extrudeOk_=buttons->button(QDialogButtonBox::Ok);layout->addWidget(buttons);
     auto acceptDistance=[this]{
         auto* field=static_cast<LengthDistanceSpinBox*>(extrudeDistance_);
@@ -4516,7 +4595,7 @@ void AlloyWindow::showExtrude() {
     extrudeEscape_=new QShortcut(QKeySequence(Qt::Key_Escape),view_);extrudeEscape_->setContext(Qt::WidgetShortcut);
     connect(extrudeEscape_,&QShortcut::activated,this,[this]{if(session_.value("command")=="solid.extrude")execute("command.cancel",{{"session",session_.value("id")}});});
     canvasWindow_->addDockWidget(Qt::RightDockWidgetArea,dock);dock->show();refreshExtrudeControls();
-    activateWindow();extrudeDistance_->setFocus();extrudeDistance_->selectAll();
+    activateWindow();if(session_.value("inputs").toObject().value("extent")=="toObject")extrudeEndObject_->setFocus();else {extrudeDistance_->setFocus();extrudeDistance_->selectAll();}
 }
 void AlloyWindow::refreshExtrudeControls() {
     if(!extrudePanel_ || session_.value("command")!="solid.extrude")return;
@@ -4543,6 +4622,17 @@ void AlloyWindow::refreshExtrudeControls() {
         while(extrudeProfile_->count()>rows.size())extrudeProfile_->removeItem(extrudeProfile_->count()-1);
         extrudeProfile_->setCurrentIndex(selected);
     }
+    const bool toObject=inputs.value("extent")=="toObject";
+    extrudePanel_->findChild<QLabel*>("extrude.hint")->setText(toObject
+        ? "Select an end face. Positive offset leaves clearance; negative offset extends past it."
+        : "Click regions to collect them. Cmd/Ctrl-click toggles a region. Drag the arrow or enter a signed distance.");
+    {const QSignalBlocker block(extrudeExtent_);extrudeExtent_->setCurrentIndex(toObject ? 1 : 0);}
+    extrudeDistance_->setVisible(!toObject);extrudeDistanceLabel_->setVisible(!toObject);
+    extrudeEndObject_->setVisible(toObject);extrudeEndObjectLabel_->setVisible(toObject);extrudeEndOffset_->setVisible(toObject);extrudeEndOffsetLabel_->setVisible(toObject);
+    extrudePanel_->findChild<QLabel*>("extrude.extend")->setVisible(toObject);
+    extrudeEndOffsetLabel_->setText("Offset ("+inputs.value("units").toString()+")");
+    extrudeEndObject_->setText(inputs.value("endSupport").toObject().isEmpty() ? "Select face" : "1 face selected");
+    if(!extrudeEndOffset_->hasFocus() && !session_.value("invalidEndOffset").toBool())extrudeEndOffset_->setText(inputs.contains("endOffsetParameter") ? inputs.value("endOffsetParameter").toString() : QString::number(inputs.value("endOffset").toDouble(),'g',10));
     {const QSignalBlocker block(extrudeStart_);extrudeStart_->setCurrentIndex(extrudeStart_->findData(inputs.value("start").toString("profilePlane")));}
     const bool offsetStart=inputs.value("start")=="offset";
     extrudeStartOffsetLabel_->setVisible(offsetStart);extrudeStartOffset_->setVisible(offsetStart);
@@ -4648,6 +4738,7 @@ QJsonObject AlloyWindow::beginSession(const QString& command, const QJsonObject&
 
 QJsonObject AlloyWindow::finishSession(const QString& id, bool commit) {
     if (session_.isEmpty() || session_.value("id").toString() != id) return failure("invalid_session", "Session is no longer active");
+    if(commit && session_.value("invalidEndOffset").toBool())return failure("invalid_arguments","Resolve the end offset before committing");
     if(commit && session_.contains("invalidNamedInput"))return failure("unknown_parameter","Resolve the unavailable user length name before committing");
     cancelConicInput();
     cancelSlotDrag();
@@ -4688,6 +4779,8 @@ QJsonObject AlloyWindow::finishSession(const QString& id, bool commit) {
         auto committedInputs=session_.value("inputs").toObject();
         if(target=="solid.extrude" && committedInputs.contains("distanceParameter"))committedInputs.remove("distance");
         if(target=="solid.extrude" && committedInputs.contains("startOffsetParameter"))committedInputs.remove("startOffset");
+        if(target=="solid.extrude" && committedInputs.value("extent")=="toObject"){committedInputs.remove("distance");committedInputs.remove("distanceParameter");}
+        if(target=="solid.extrude" && committedInputs.contains("endOffsetParameter"))committedInputs.remove("endOffset");
         auto response = execute(target, committedInputs);
         if (!response["ok"].toBool()) {
             if(target=="solid.combine") {
@@ -4711,7 +4804,7 @@ QJsonObject AlloyWindow::finishSession(const QString& id, bool commit) {
         if(sliderDock_)sliderDock_->hide();sliderPreviewAuthored_={};transientSliderPosition_.reset();
         if(sliderTimer_)sliderTimer_->stop();view_->clearSolidEdgeHighlights();displayedDocumentRevision_=std::numeric_limits<quint64>::max();
     }
-    if(target=="solid.extrude"){if(extrudeEscape_)extrudeEscape_->setEnabled(false);if(extrudeDock_)extrudeDock_->hide();view_->clearPreview();view_->setEditDisplay({},{});view_->clearBodyStage();}
+    if(target=="solid.extrude"){view_->selectSupportFace({},{});if(extrudeEscape_)extrudeEscape_->setEnabled(false);if(extrudeDock_)extrudeDock_->hide();view_->clearPreview();view_->setEditDisplay({},{});view_->clearBodyStage();}
     else if(target=="solid.combine") {
         if(combineEscape_)combineEscape_->setEnabled(false);if(combineDock_)combineDock_->hide();
         view_->clearPreview();view_->setEditDisplay({},{});view_->highlightCombineInputs({},{});
@@ -4951,6 +5044,14 @@ void AlloyWindow::updatePrimitive(const QJsonObject& inputs) {
 }
 
 QJsonObject AlloyWindow::selectSupportFace(const QJsonObject& support) {
+    if(session_.value("command")=="solid.extrude" && session_.value("inputs").toObject().value("extent")=="toObject") {
+        const auto edit=session_.value("inputs").toObject().value("featureId").toString();
+        try {
+            const auto face=GeometryKernel::resolveSketchSupport(edit.isEmpty() ? document_->evaluation() : document_->evaluationBefore(edit),support);
+            updateExtrude({{"endSupport",support}});session_["selectionRole"]="profiles";
+            view_->selectSupportFace(support,face.face);return {{"kind","face"},{"support",support}};
+        }catch(const std::exception& error){return failure("support_unavailable",QString::fromUtf8(error.what()));}
+    }
     if(session_.value("command")=="solid.sphere")return selectSphereFace(support);
     if(!session_.isEmpty() && session_.value("command")!="sketch.plane")return failure("session_busy","Complete or cancel the active command first");
     try {

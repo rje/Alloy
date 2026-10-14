@@ -85,6 +85,7 @@ public:
     static QJsonArray supportEdgeDescriptors(const EvaluatedSupportFace& support);
     static QJsonObject projectionContext(const EvaluatedDocument& evaluation, const QJsonObject& feature);
     static EvaluatedProfile unionProfiles(const std::vector<EvaluatedProfile>& profiles);
+    static double extrusionDistance(const QJsonObject& parameters, const EvaluatedProfile& profile, const EvaluatedDocument& prior);
     static TopoDS_Shape extrusion(const EvaluatedProfile& profile, double distanceMm, EvaluatedSupportFace* endCap = nullptr, std::vector<EvaluatedSolidEdge>* edges = nullptr, const QString& generatorFeatureId = {}, std::vector<EvaluatedSupportFace>* planarFaces = nullptr, double startOffsetMm = 0);
     static TopoDS_Shape booleanOperation(const QString& operation, const TopoDS_Shape& target,
         const std::vector<TopoDS_Shape>& tools, std::vector<EvaluatedSupportFace>* retainedFaces = nullptr, std::vector<EvaluatedSolidEdge>* retainedEdges = nullptr);

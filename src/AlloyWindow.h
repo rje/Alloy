@@ -97,6 +97,7 @@ private:
     void updatePrimitive(const QJsonObject& inputs);
     QJsonObject beginExtrude(const QJsonObject& inputs);
     QString validateExtrudeInputs(const QJsonObject& inputs) const;
+    QJsonObject extrudeExtentParameters(const QJsonObject& inputs) const;
     QJsonObject extrusionCandidate(const QJsonObject& inputs, bool hideSource) const;
     QJsonArray discoverExtrudeTargets(const QJsonObject& inputs) const;
     QJsonObject previewExtrude();
@@ -353,6 +354,12 @@ private:
     QLabel* extrudeTargetLabel_ = nullptr;
     QDoubleSpinBox* extrudeDistance_ = nullptr;
     QComboBox* extrudeStart_ = nullptr;
+    QComboBox* extrudeExtent_ = nullptr;
+    QPushButton* extrudeEndObject_ = nullptr;
+    QLineEdit* extrudeEndOffset_ = nullptr;
+    QLabel* extrudeEndObjectLabel_ = nullptr;
+    QLabel* extrudeEndOffsetLabel_ = nullptr;
+    QLabel* extrudeDistanceLabel_ = nullptr;
     QDoubleSpinBox* extrudeStartOffset_ = nullptr;
     QLabel* extrudeStartOffsetLabel_ = nullptr;
     QLabel* extrudeError_ = nullptr;

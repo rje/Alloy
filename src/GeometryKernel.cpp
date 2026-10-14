@@ -253,6 +253,26 @@ EvaluatedProfile GeometryKernel::unionProfiles(const std::vector<EvaluatedProfil
     return {id,first.sketchId,first.plane,united,summary,lineage};
 }
 
+double GeometryKernel::extrusionDistance(const QJsonObject& p,const EvaluatedProfile& profile,const EvaluatedDocument& prior) {
+    if(p.value("extent")!="toObject")return p.value("distanceMm").toDouble();
+    const auto target=resolveSketchSupport(prior,p.value("endSupport").toObject());
+    const auto frame=profile.summary.value("frame").toObject();
+    const auto n=frame.value("normal").toArray(),origin=frame.value("origin").toArray();
+    const auto tn=target.frame.value("normal").toArray(),to=target.frame.value("origin").toArray();
+    const auto reject=[](const QString& message){throw EvaluationError({{"code","invalid_extrude_extent"},{"message",message}});};
+    if(n.size()!=3 || origin.size()!=3 || tn.size()!=3 || to.size()!=3)reject("To Object requires resolved planar frames");
+    double alignment=0,distance=0;
+    for(int i=0;i<3;++i){alignment+=n[i].toDouble()*tn[i].toDouble();distance+=(to[i].toDouble()-origin[i].toDouble())*n[i].toDouble();}
+    if(std::abs(std::abs(alignment)-1)>1e-7)reject("To Object currently requires a face perpendicular to extrusion direction");
+    distance-=p.value("startOffsetMm").toDouble();
+    if(std::abs(distance)<0.001)reject("To Object target coincides with the extrusion start");
+    // Positive clearance stops short of the target in either direction.
+    const double resolved=distance-std::copysign(1.0,distance)*p.value("endOffsetMm").toDouble();
+    if(!std::isfinite(resolved) || resolved*distance<=0 || std::abs(resolved)<0.001 || std::abs(resolved)>100000)
+        reject("End offset crosses the extrusion start or exceeds the supported extent");
+    return resolved;
+}
+
 TopoDS_Shape GeometryKernel::extrusion(const EvaluatedProfile& sourceProfile, double distanceMm, EvaluatedSupportFace* endCap, std::vector<EvaluatedSolidEdge>* edges, const QString& generatorFeatureId, std::vector<EvaluatedSupportFace>* planarFaces, double startOffsetMm) {
     if (!std::isfinite(distanceMm) || std::abs(distanceMm) < 0.001 || std::abs(distanceMm) > 100000)
         throw std::invalid_argument("Extrusion distance must be signed 0.001..100000 mm; zero is unsupported");
@@ -286,7 +306,7 @@ TopoDS_Shape GeometryKernel::extrusion(const EvaluatedProfile& sourceProfile, do
     const auto shape = prism.Shape();
     if(edges) *edges=SolidFillet::prismEdges(prism,profile,generatorFeatureId);
     if(planarFaces)*planarFaces=PlanarFaces::prismSides(prism,profile,generatorFeatureId,distanceMm);
-    if(endCap && distanceMm>0) {
+    if(endCap) {
         const auto cap=prism.LastShape();
         if(cap.IsNull() || cap.ShapeType()!=TopAbs_FACE || BRepAdaptor_Surface(TopoDS::Face(cap)).GetType()!=GeomAbs_Plane)
             throw std::runtime_error("Prism has no unique planar generated end cap");
@@ -665,7 +685,7 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
                         if(targets.size()!=1)reject("unsupported_extrude_targets","Extrude modifier requires one retained target body");
                         auto target=std::find_if(evaluated.bodies.begin(),evaluated.bodies.end(),[&](const auto& body){return body.bodyId==targets[0].toString();});
                         if(target==evaluated.bodies.end()) {context["code"]="body_unavailable";context["message"]="The exact extrusion target must be an active body earlier in feature history";throw EvaluationError(context);}
-                        const double distance=parameters["distanceMm"].toDouble(),start=parameters.value("startOffsetMm").toDouble();std::vector<TopoDS_Shape> tools;std::vector<EvaluatedSupportFace> joinCaps;double area=0;QStringList sourceEntities;
+                        const double distance=extrusionDistance(parameters,selected.front(),evaluated),start=parameters.value("startOffsetMm").toDouble();std::vector<TopoDS_Shape> tools;std::vector<EvaluatedSupportFace> joinCaps;double area=0;QStringList sourceEntities;
                         const bool circularCut=parameters["operation"]=="cut" && selected.size()==1
                             && selected.front().boundaryEdges.size()==1 && selected.front().boundaryEdges.front().type=="circle";
                         for(const auto& profile:selected) {EvaluatedSupportFace cap;std::vector<EvaluatedSolidEdge> toolEdges;
@@ -705,7 +725,7 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
                         target->summary=cutSummary;
                         evaluated.featureOrder.push_back(id);continue;
                     }
-                    const auto united=unionProfiles(selected);const double distance=parameters["distanceMm"].toDouble(),start=parameters.value("startOffsetMm").toDouble();
+                    const auto united=unionProfiles(selected);const double distance=extrusionDistance(parameters,selected.front(),evaluated),start=parameters.value("startOffsetMm").toDouble();
                     EvaluatedSupportFace cap;
                     shape=extrusion(united,distance,&cap,&solidEdges,id,&supportFaces,start);summary=summarize(shape);
                     summary["solidEdges"]=SolidFillet::descriptors(solidEdges);
