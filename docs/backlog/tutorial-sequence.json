@@ -1,7 +1,108 @@
 {
   "version": 1,
-  "policy": "User-selected overnight order: nested cubes, egg cup, toy block; then die and coherent backlog work if all pass before user returns. Ranks never waive dependencies or verification. Split broad prerequisites into bounded issues and leave remainders Todo. Urgent regressions interrupt.",
+  "policy": "User-authorized 2026-10-13: sliding lid box, snap-fit electronics case, surface shoehorn; then surface iron and piston assembly. Dependency closure and independent workflow verification required. Split broad requirements into finishable children before pulling; preserve source qualification blockers. Prior accepted milestones remain done.",
   "checkpoints": [
+    {
+      "id": "CP-20",
+      "title": "Parametric sliding-lid box",
+      "issues": [
+        "PAR-004",
+        "SKT-070",
+        "PAR-005",
+        "DOC-022",
+        "SKT-066",
+        "SKT-067",
+        "SOL-043",
+        "SOL-044",
+        "ASM-005",
+        "SKT-062",
+        "PRT-007",
+        "TUT-015"
+      ],
+      "acceptance": "Full creation movie and step ledger, readable parameter/selection states, editable assembled model, meaningful resize maintaining clearance and joint limits, history/reopen and separately checked millimeter STL for both printable parts. Final-looking geometry alone does not pass.",
+      "status": "todo",
+      "remaining": "Source qualification and feature dependencies followed by independent complete workflow gate."
+    },
+    {
+      "id": "CP-21",
+      "title": "Snap-fit electronics enclosure",
+      "issues": [
+        "RES-017",
+        "TUT-015",
+        "ASM-006",
+        "SKT-026",
+        "SKT-025",
+        "SOL-006",
+        "DOC-021",
+        "GEO-005",
+        "SOL-045",
+        "SOL-009",
+        "SOL-005",
+        "SOL-003",
+        "HIS-006",
+        "SOL-048",
+        "DOC-023",
+        "SKT-069",
+        "SOL-049",
+        "TUT-016"
+      ],
+      "acceptance": "Full source-stage ledger/movie, editable model with preserved reference geometry, two valid closed case halves with verified clearances/snaps/ports/lip, update/history/reopen and separately checked printable exports. Qualification and every feature dependency must close before this gate.",
+      "status": "todo",
+      "remaining": "Source qualification and feature dependencies followed by independent complete workflow gate."
+    },
+    {
+      "id": "CP-22",
+      "title": "Surface shoehorn",
+      "issues": [
+        "GEO-003",
+        "SKT-068",
+        "SRF-009",
+        "SRF-010",
+        "SOL-046",
+        "GEO-004",
+        "SOL-047",
+        "ASM-007",
+        "PRT-007",
+        "TUT-017"
+      ],
+      "acceptance": "Full creation movie, endpoint and intermediate surface captures, editable file, meaningful path/thickness edit retaining through hole, undo/reopen and strict mesh. Source freedom and native/API differences explicit.",
+      "status": "todo",
+      "remaining": "Source qualification and feature dependencies followed by independent complete workflow gate."
+    },
+    {
+      "id": "CP-23",
+      "title": "Surface iron",
+      "issues": [
+        "RES-018",
+        "TUT-017",
+        "SRF-001",
+        "SRF-002",
+        "SRF-005",
+        "SRF-011",
+        "DOC-024",
+        "HIS-007",
+        "TUT-018"
+      ],
+      "acceptance": "Creation movie including declared sketch setup, editable surfaces/final solid, silhouette and handle comparisons against public images, upstream edits/history/reopen and checked solid/mesh outputs. Prepared-sketch adaptation remains labeled.",
+      "status": "todo",
+      "remaining": "Source qualification and feature dependencies followed by independent complete workflow gate."
+    },
+    {
+      "id": "CP-24",
+      "title": "Piston subassemblies",
+      "issues": [
+        "RES-019",
+        "ASM-001",
+        "ASM-002",
+        "ASM-003",
+        "TUT-015",
+        "ASM-008",
+        "TUT-019"
+      ],
+      "acceptance": "Creation/assembly movie, editable model with inspectable DOFs and correct world transforms, drive mechanism through meaningful positions, copies/update/history/reopen. No kinematic claim from unrelated per-part animation.",
+      "status": "todo",
+      "remaining": "Source qualification and feature dependencies followed by independent complete workflow gate."
+    },
     {
       "id": "CP-08",
       "title": "Nested cubes with multi-face sketching and construction planes",
@@ -160,8 +261,9 @@
         "TUT-013"
       ],
       "acceptance": "Full31-step public lesson: straight/arc slots, fit/control splines with demonstrated edits and combs, conic and ellipse; complete movie, editable sketches, source-stage geometry/visual checks and history/reopen. Source ends sketch-only.",
-      "status": "in_progress",
-      "remaining": "Straight slot first; remaining bounded children Todo. Full gate awaits every source stage and independent evidence."
+      "status": "done",
+      "remaining": "Accepted bounded API sketch gate; receipt qualifies native and visual evidence.",
+      "evidence": "docs/validation/slots-splines-tutorial.md"
     },
     {
       "id": "CP-12",

@@ -3,11 +3,20 @@
 Updated 2026-10-13. This is the project handoff for a fresh session. Read the root
 [AGENTS.md](../AGENTS.md) first; its reference restrictions apply to all work.
 
-The original overnight queue, die overflow and subsequent ornament increment are
-complete. The [completion audit](validation/overnight-queue-audit.md) checks the
-requested movies, editable files, strict meshes and independent receipts against
-current artifacts. The remaining product backlog stays Todo; no new feature has
-been pulled after this accepted milestone.
+The original overnight queue and ornament milestone are accepted. On2026-10-13
+user authorized the advanced tutorial queue: sliding-lid box, snap-fit electronics
+enclosure, surface shoehorn, then surface iron and piston subassemblies. Five
+cumulative gates TUT-015–019 now track the required existing owners and bounded
+new children. Detailed public research stays external at
+`knowledge/tutorials/advanced-audit-2026-10-13/independent-spec.md`.
+
+First active implementation: PAR-004 Box/Shell direct named lengths in isolated
+`box-shell-parameters`, and DOC-022 primitive Box/straight Shell topology in
+`box-topology`. Sol implements; Astra independently audits sources and verifies
+candidates. Root owns main/backlog and the sole private-editor lease. No new
+feature acceptance or completed advanced-tutorial movie is claimed yet.
+Source qualification for enclosure inputs, iron prepared sketches and piston
+starting geometry is explicitly tracked; no proprietary application access.
 
 ## Accepted ornament gate — 2026-10-13
 

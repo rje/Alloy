@@ -7,11 +7,26 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current publication contains **269 issues**: **198 implementation, 16 research,
-22 epics, and 33 validation gates**. Counts describe decomposition, not coverage.
+The current publication contains **306 issues**: **227 implementation, 19 research,
+22 epics, and 38 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 
 ## Active delivery order
+
+Current authorized queue (2026-10-13): **sliding-lid box → snap-fit electronics
+enclosure → surface shoehorn → surface iron → piston subassemblies**. TUT-015–019
+are cumulative gates with explicit feature dependencies. Thirty-seven new tasks
+include these five gates, three source qualification tasks and29 bounded feature
+children. Existing broad requirements are reused, not duplicated; split them
+before pulling an implementation too large for one increment. Only PAR-004 and
+DOC-022 are initially active. Complete source operations, readable constraint and
+selection states, edit/history/reopen, full creation recordings and independently
+checked outputs remain acceptance requirements. Detailed source URLs and
+research remain external under `knowledge/tutorials/advanced-audit-2026-10-13/`.
+
+The older overnight sequence below is completed history. Its accepted receipts
+remain valid and do not supersede the current sequence JSON.
+
 
 The [tutorial sequence](tutorial-sequence.json) takes precedence over broad roadmap
 phase order. `tools/backlog.py ready` ranks available tutorial owners first while

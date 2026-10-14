@@ -1367,6 +1367,46 @@
       "evidence": "Public thirteen-page instructions and screenshot observations; independently audited",
       "reference_id": "sketch-slots-splines-20261013",
       "provenance": "External knowledge/tutorials/after-countersunk-plate/independent-contract.md records source, pages, exact geometry and qualified direction selections."
+    },
+    "sliding-dovetail-box": {
+      "title": "Sliding Dovetail Box public tutorial",
+      "url": null,
+      "retrieved": "2026-10-13",
+      "evidence": "Public source research; qualification and exact step audit tracked separately",
+      "reference_id": "sliding-dovetail-box",
+      "provenance": "External knowledge/tutorials/advanced-candidates-2026-10-13.json and accompanying audit"
+    },
+    "snap-fit-electronics-case": {
+      "title": "Snap Fit Electronics Case public tutorial",
+      "url": null,
+      "retrieved": "2026-10-13",
+      "evidence": "Public source research; qualification and exact step audit tracked separately",
+      "reference_id": "snap-fit-electronics-case",
+      "provenance": "External knowledge/tutorials/advanced-candidates-2026-10-13.json and accompanying audit"
+    },
+    "surface-shoehorn": {
+      "title": "Surface Shoehorn public tutorial",
+      "url": null,
+      "retrieved": "2026-10-13",
+      "evidence": "Public source research; qualification and exact step audit tracked separately",
+      "reference_id": "surface-shoehorn",
+      "provenance": "External knowledge/tutorials/advanced-candidates-2026-10-13.json and accompanying audit"
+    },
+    "surface-iron": {
+      "title": "Surface Iron public tutorial",
+      "url": null,
+      "retrieved": "2026-10-13",
+      "evidence": "Public source research; qualification and exact step audit tracked separately",
+      "reference_id": "surface-iron",
+      "provenance": "External knowledge/tutorials/advanced-candidates-2026-10-13.json and accompanying audit"
+    },
+    "piston-subassemblies": {
+      "title": "Piston Subassemblies public tutorial",
+      "url": null,
+      "retrieved": "2026-10-13",
+      "evidence": "Public source research; qualification and exact step audit tracked separately",
+      "reference_id": "piston-subassemblies",
+      "provenance": "External knowledge/tutorials/advanced-candidates-2026-10-13.json and accompanying audit"
     }
   },
   "reference_records": "../Alloy-reference-records/",
