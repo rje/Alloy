@@ -63,6 +63,7 @@ private:
     void registerCommands();
     void registerSliderCommands();
     void registerRevoluteCommands();
+    void registerCylindricalCommands();
     void registerLocalReferenceCommands();
     QJsonObject showReferenceMove(const QString& featureId);
     QJsonObject pendingReference_;
@@ -75,6 +76,10 @@ private:
     QJsonObject previewRevolute();
     void showRevolute();
     void refreshRevoluteControls();
+    QJsonObject beginCylindrical(const QJsonObject& args);
+    QJsonObject previewCylindrical();
+    void showCylindrical();
+    void refreshCylindricalControls();
     std::vector<EvaluatedBody> presentationBodies() const;
     bool nonzeroAssemblyPose() const;
     QJsonObject presentationAssembly() const;
@@ -99,6 +104,7 @@ private:
     QTreeWidgetItem* jointsNode_ = nullptr;
     std::optional<double> transientSliderPosition_;
     QJsonObject sliderPreviewAuthored_;
+    QJsonObject cylinderStage_;
     quint64 presentationRevision_ = 1;
     QTimer* sliderTimer_ = nullptr;
     int sliderAnimationFrame_ = 0;

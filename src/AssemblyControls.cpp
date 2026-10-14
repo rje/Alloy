@@ -2,6 +2,7 @@
 #include "AlloyWindow.h"
 #include "AssemblySlider.h"
 #include "AssemblyRevolute.h"
+#include "AssemblyGraph.h"
 #include "ReferenceView.h"
 #include <BRepAdaptor_Curve.hxx>
 #include <GeomAbs_CurveType.hxx>
@@ -34,31 +35,60 @@ QJsonObject sliderSchema(){return {{"jointId",field("string",false)},{"name",fie
 QJsonObject revoluteSchema(){return {{"jointId",field("string",false)},{"name",field("string",false)},
     {"component1OccurrenceId",field("string",false)},{"component2OccurrenceId",field("string",false)},
     {"position",field("object",false)},{"angleDeg",QJsonObject{{"type","number"},{"required",false},{"minimum",-180},{"maximum",180}}}};}
+QJsonObject cylindricalSchema(){return {{"jointId",field("string",false)},{"name",field("string",false)},
+    {"component1OccurrenceId",field("string",false)},{"component2OccurrenceId",field("string",false)},
+    {"position",field("object",false)},
+    {"rotationDeg",QJsonObject{{"type","number"},{"required",false},{"minimum",-180},{"maximum",180}}},
+    {"slideMm",QJsonObject{{"type","number"},{"required",false},{"minimum",-100000},{"maximum",100000}}}};}
 QString ownerOf(const QJsonObject& authored,const QString& occurrenceId){
     for(const auto& value:authored.value("occurrences").toArray())if(value.toObject()["id"]==occurrenceId)return value.toObject()["definitionId"].toString();return {};
+}
+QJsonObject graphOverride(const QJsonObject& authored,const QJsonObject& cylinderStage,
+    std::optional<double> revoluteAngle){
+    if(!cylinderStage.isEmpty()){
+        auto override=cylinderStage;override.remove("documentRevision");return override;
+    }
+    if(revoluteAngle)for(const auto& value:authored.value("joints").toArray()){
+        const auto joint=value.toObject();if(joint["type"]=="asBuiltRevolute")
+            return {{"jointId",joint["id"]},{"angleDeg",*revoluteAngle}};
+    }
+    return {};
+}
+bool passiveCylinder(const QJsonObject& assembly,const QString& jointId){
+    if(jointId.isEmpty())return false;
+    for(const auto& value:assembly.value("joints").toArray()){
+        const auto joint=value.toObject();
+        if(joint["id"]==jointId)return !joint.value("coordinateEditable").toBool(true);
+    }
+    return false;
 }
 }
 std::vector<EvaluatedBody> AlloyWindow::presentationBodies() const {
     const auto& authored=sliderPreviewAuthored_.isEmpty() ? document_->authored() : sliderPreviewAuthored_;
     const auto& definitions=pendingReferenceEvaluation_ ? *pendingReferenceEvaluation_ : document_->evaluation();
     const auto joints=authored.value("joints").toArray();
-    if(!joints.isEmpty() && joints[0].toObject()["type"]=="asBuiltRevolute")
-        return AssemblyRevolute::worldBodies(authored,definitions,transientSliderPosition_);
+    if(AssemblyGraph::isJointGraph(authored))return AssemblyGraph::worldBodies(authored,definitions,
+        graphOverride(authored,cylinderStage_,transientSliderPosition_));
     return AssemblySlider::worldBodies(authored,definitions,transientSliderPosition_);
 }
 QJsonObject AlloyWindow::presentationAssembly() const {
     const auto& authored=sliderPreviewAuthored_.isEmpty() ? document_->authored() : sliderPreviewAuthored_;
     const auto joints=authored.value("joints").toArray();
-    if(!joints.isEmpty() && joints[0].toObject()["type"]=="asBuiltRevolute")
-        return AssemblyRevolute::inspect(authored,document_->evaluation(),transientSliderPosition_);
+    if(AssemblyGraph::isJointGraph(authored))return AssemblyGraph::inspect(authored,document_->evaluation(),
+        graphOverride(authored,cylinderStage_,transientSliderPosition_));
     return AssemblySlider::inspect(authored,document_->evaluation(),transientSliderPosition_);
 }
 bool AlloyWindow::nonzeroAssemblyPose() const {
     const auto& authored=sliderPreviewAuthored_.isEmpty() ? document_->authored() : sliderPreviewAuthored_;
     const auto joints=authored.value("joints").toArray();
     if(joints.isEmpty())return false;
-    if(joints[0].toObject()["type"]=="asBuiltRevolute")
-        return std::abs(transientSliderPosition_.value_or(joints[0].toObject()["angleDeg"].toDouble()))>1e-9;
+    if(AssemblyGraph::isJointGraph(authored)){
+        if(!cylinderStage_.isEmpty() || transientSliderPosition_.has_value())return true;
+        for(const auto& value:joints){const auto joint=value.toObject();
+            if(std::abs(joint["angleDeg"].toDouble())>1e-9 || std::abs(joint["rotationDeg"].toDouble())>1e-9
+                || std::abs(joint["slideMm"].toDouble())>1e-9)return true;}
+        return false;
+    }
     return std::abs(AssemblySlider::position(authored,transientSliderPosition_))>1e-9;
 }
 void AlloyWindow::registerSliderCommands(){
@@ -236,7 +266,7 @@ void AlloyWindow::registerRevoluteCommands(){
             const auto& authored=sliderPreviewAuthored_.isEmpty()?document_->authored():sliderPreviewAuthored_;
             try {const double angle=args["angleDeg"].toDouble();
                 const auto resolved=AssemblyRevolute::inspect(authored,document_->evaluation(),angle);
-                transientSliderPosition_=angle;displayedDocumentRevision_=std::numeric_limits<quint64>::max();return resolved;
+                cylinderStage_={};transientSliderPosition_=angle;displayedDocumentRevision_=std::numeric_limits<quint64>::max();return resolved;
             }catch(const std::exception& e){return fail("invalid_revolute",QString::fromUtf8(e.what()));}
         }});
     commands_.push_back({"joint.revoluteStop","Stop Revolute preview","Restore the retained angle without an authored edit.",{},true,
@@ -342,4 +372,146 @@ void AlloyWindow::refreshRevoluteControls(){
     sliderDock_->findChild<QLabel*>("revolute.error")->setText(session_["previewError"].toString());
     sliderDock_->findChild<QDialogButtonBox*>("revolute.buttons")->button(QDialogButtonBox::Ok)->setEnabled(session_["previewed"].toBool());
     const auto ref=inputs["position"].toObject();if(!ref.isEmpty())view_->highlightSolidEdges(presentationBodies(),ref["bodyId"].toString(),QJsonArray{ref["edgeId"]});
+}
+void AlloyWindow::registerCylindricalCommands(){
+    commands_.push_back({"joint.cylindrical","As-Built Cylindrical",
+        "Retain one Z-axis circular-origin Cylindrical relationship between component leaves.",
+        cylindricalSchema(),true,[this](const QJsonObject& args){
+            if(!session_.isEmpty() && session_["command"]!="joint.cylindrical")return fail("session_busy","Finish or cancel the active command");
+            try{const auto candidate=AssemblyGraph::cylindricalCandidate(document_->authored(),document_->evaluation(),args);
+                if(const auto error=document_->commit(candidate,args.contains("jointId") ? "Edit Cylindrical" : "As-Built Cylindrical");!error.isEmpty())
+                    return fail("evaluation_failed",error);
+                sliderPreviewAuthored_={};transientSliderPosition_.reset();cylinderStage_={};displayedDocumentRevision_=std::numeric_limits<quint64>::max();
+                return presentationAssembly();
+            }catch(const std::exception& e){return fail("invalid_cylindrical",QString::fromUtf8(e.what()));}
+        }});
+    commands_.push_back({"joint.cylindricalDialog","As-Built Joint",
+        "Select two components and a retained Z-axis circular Position for Cylindrical.",
+        cylindricalSchema(),true,[this](const QJsonObject& args){return beginCylindrical(args);}});
+    commands_.push_back({"joint.previewCylindrical","Preview Cylindrical coordinates",
+        "Stage exact rotation and axial slide without changing the authored joint.",
+        {{"jointId",field("string")},{"rotationDeg",QJsonObject{{"type","number"},{"minimum",-180},{"maximum",180}}},
+            {"slideMm",field("number")}},true,[this](const QJsonObject& args){
+            if(!session_.isEmpty() && session_["command"]!="joint.cylindrical")return fail("session_busy","Finish or cancel the active command");
+            const auto& authored=sliderPreviewAuthored_.isEmpty()?document_->authored():sliderPreviewAuthored_;
+            try{AssemblyGraph::inspect(authored,document_->evaluation(),args);
+                transientSliderPosition_.reset();cylinderStage_=args;cylinderStage_["documentRevision"]=static_cast<qint64>(document_->revision());
+                displayedDocumentRevision_=std::numeric_limits<quint64>::max();return presentationAssembly();
+            }catch(const std::exception& e){return fail("invalid_cylindrical",QString::fromUtf8(e.what()));}
+        }});
+    commands_.push_back({"joint.cylindricalStop","Stop Cylindrical preview",
+        "Restore all persisted occurrence poses without an authored history edit.",{},true,[this](const QJsonObject&){
+            cylinderStage_={};displayedDocumentRevision_=std::numeric_limits<quint64>::max();return presentationAssembly();
+        }});
+}
+QJsonObject AlloyWindow::beginCylindrical(const QJsonObject& overrides){
+    if(!session_.isEmpty())return fail("session_busy","Finish or cancel the active command first");
+    QJsonObject inputs{{"name","Cylindrical"},{"rotationDeg",0},{"slideMm",0}};
+    const auto edit=overrides["jointId"].toString();
+    if(!edit.isEmpty()){
+        bool found=false;for(const auto& value:document_->authored().value("joints").toArray()){
+            const auto joint=value.toObject();if(joint["id"]!=edit)continue;
+            if(joint["type"]!="asBuiltCylindrical")return fail("stale_joint","Selected joint is not Cylindrical");
+            inputs={{"jointId",edit},{"name",joint["name"]},{"component1OccurrenceId",joint["component1OccurrenceId"]},
+                {"component2OccurrenceId",joint["component2OccurrenceId"]},{"position",joint["position"]},
+                {"rotationDeg",joint["rotationDeg"]},{"slideMm",joint["slideMm"]}};
+            found=true;break;
+        }
+        if(!found)return fail("stale_joint","Cylindrical joint is unavailable");
+    }
+    for(auto it=overrides.begin();it!=overrides.end();++it)inputs[it.key()]=it.value();
+    session_={{"id",CadDocument::newId()},{"command","joint.cylindrical"},{"status","active"},
+        {"inputs",inputs},{"baseDocumentRevision",static_cast<qint64>(document_->revision())},
+        {"previewed",false},{"inputSchema",cylindricalSchema()}};
+    showCylindrical();previewCylindrical();return session_;
+}
+QJsonObject AlloyWindow::previewCylindrical(){
+    if(session_["command"]!="joint.cylindrical")return fail("invalid_session","Cylindrical dialog is not active");
+    if(session_["baseDocumentRevision"].toInteger()!=static_cast<qint64>(document_->revision()))
+        return fail("stale_session","Document changed; cancel and restart Cylindrical");
+    try{const auto candidate=AssemblyGraph::cylindricalCandidate(document_->authored(),document_->evaluation(),session_["inputs"].toObject());
+        const auto prepared=document_->prepareCandidate(candidate);
+        if(!prepared.ok)throw std::invalid_argument(prepared.error.toStdString());
+        const auto assembly=AssemblyGraph::inspect(prepared.authored,*prepared.evaluation);
+        sliderPreviewAuthored_=prepared.authored;session_["documentDraft"]=prepared.authored;
+        session_["assembly"]=assembly;session_["previewed"]=true;session_.remove("previewError");
+        displayedDocumentRevision_=std::numeric_limits<quint64>::max();refreshCylindricalControls();return session_;
+    }catch(const std::exception& e){sliderPreviewAuthored_={};session_["previewed"]=false;
+        session_["previewError"]=QString::fromUtf8(e.what());refreshCylindricalControls();
+        return fail("invalid_cylindrical",QString::fromUtf8(e.what()));}
+}
+void AlloyWindow::showCylindrical(){
+    if(sliderDock_)delete sliderDock_;
+    auto* dock=new QDockWidget("As-Built Joint",canvasWindow_);sliderDock_=dock;dock->setObjectName("cylindricalDock");
+    auto* escape=new QShortcut(QKeySequence(Qt::Key_Escape),dock);escape->setContext(Qt::WidgetWithChildrenShortcut);
+    connect(escape,&QShortcut::activated,this,[this]{if(session_["command"]=="joint.cylindrical")
+        execute("command.cancel",{{"session",session_["id"]}});});
+    auto* panel=new QWidget;panel->setObjectName("cylindricalPanel");panel->setFixedWidth(318);dock->setWidget(panel);
+    auto* layout=new QVBoxLayout(panel);layout->setContentsMargins(14,14,14,12);layout->setSpacing(10);
+    auto* title=new QLabel("As-Built Joint · Cylindrical");title->setWordWrap(true);layout->addWidget(title);
+    auto* form=new QFormLayout;form->setVerticalSpacing(10);
+    auto* first=new QComboBox;first->setObjectName("cylindrical.component1");form->addRow("Component 1",first);
+    auto* second=new QComboBox;second->setObjectName("cylindrical.component2");form->addRow("Component 2",second);
+    auto* position=new QComboBox;position->setObjectName("cylindrical.position");form->addRow("Position",position);
+    form->addRow("Type",new QLabel("Cylindrical · rotate + slide"));
+    auto* rotation=new QDoubleSpinBox;rotation->setObjectName("cylindrical.rotationDeg");rotation->setRange(-180,180);
+    rotation->setDecimals(3);rotation->setSuffix(" °");form->addRow("Rotation",rotation);
+    auto* slide=new QDoubleSpinBox;slide->setObjectName("cylindrical.slideMm");slide->setRange(-100000,100000);
+    slide->setDecimals(3);slide->setSuffix(" mm");form->addRow("Slide",slide);layout->addLayout(form);
+    const bool editing=session_["inputs"].toObject().contains("jointId");
+    first->setEnabled(!editing);second->setEnabled(!editing);position->setEnabled(!editing);
+    const bool passive=editing && passiveCylinder(presentationAssembly(),session_["inputs"].toObject()["jointId"].toString());
+    rotation->setEnabled(!passive);slide->setEnabled(!passive);
+    auto* hint=new QLabel(passive ? "This joint is driven by another joint in the connected island. Its coordinates are read-only."
+        : editing ? "Edit both coordinates. To change components or Position, create a new as-built joint."
+        : "Choose a complete circular edge on Component 2. This slice uses its Z axis and retains the assembled pose.");
+    hint->setObjectName("cylindrical.hint");
+    hint->setWordWrap(true);layout->addWidget(hint);
+    auto* error=new QLabel;error->setObjectName("cylindrical.error");error->setWordWrap(true);layout->addWidget(error);
+    auto* buttons=new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel);buttons->setObjectName("cylindrical.buttons");layout->addWidget(buttons);
+    const auto update=[this](const QJsonObject& changes){execute("command.update",{{"session",session_["id"]},{"inputs",changes}});};
+    connect(first,qOverload<int>(&QComboBox::currentIndexChanged),this,[first,update](int i){if(i>=0)update({{"component1OccurrenceId",first->itemData(i).toString()}});});
+    connect(second,qOverload<int>(&QComboBox::currentIndexChanged),this,[second,update](int i){if(i>=0)update({{"component2OccurrenceId",second->itemData(i).toString()}});});
+    connect(position,qOverload<int>(&QComboBox::currentIndexChanged),this,[position,update](int i){if(i>=0)update({{"position",position->itemData(i).toJsonObject()}});});
+    connect(rotation,&QDoubleSpinBox::editingFinished,this,[rotation,update]{update({{"rotationDeg",rotation->value()}});});
+    connect(slide,&QDoubleSpinBox::editingFinished,this,[slide,update]{update({{"slideMm",slide->value()}});});
+    connect(buttons,&QDialogButtonBox::accepted,this,[this,error]{const auto response=execute("command.commit",{{"session",session_["id"]}});
+        if(!response["ok"].toBool())error->setText(response["error"].toObject()["message"].toString());});
+    connect(buttons,&QDialogButtonBox::rejected,this,[this]{execute("command.cancel",{{"session",session_["id"]}});});
+    canvasWindow_->addDockWidget(Qt::RightDockWidgetArea,dock);dock->show();refreshCylindricalControls();
+}
+void AlloyWindow::refreshCylindricalControls(){
+    if(!sliderDock_ || session_["command"]!="joint.cylindrical")return;
+    const auto inputs=session_["inputs"].toObject();
+    auto* first=sliderDock_->findChild<QComboBox*>("cylindrical.component1");
+    auto* second=sliderDock_->findChild<QComboBox*>("cylindrical.component2");
+    auto* position=sliderDock_->findChild<QComboBox*>("cylindrical.position");
+    QMap<QString,QString> names;for(const auto& value:document_->authored()["components"].toArray())
+        names[value.toObject()["id"].toString()]=value.toObject()["name"].toString();
+    for(auto* combo:{first,second}){const QSignalBlocker blocked(combo);combo->clear();combo->addItem("Select component…",QString{});
+        for(const auto& value:document_->authored()["occurrences"].toArray()){
+            const auto occurrence=value.toObject();combo->addItem(names[occurrence["definitionId"].toString()],occurrence["id"].toString());}
+        combo->setCurrentIndex(std::max(0,combo->findData(inputs[combo==first?"component1OccurrenceId":"component2OccurrenceId"].toString())));
+    }
+    const auto fixed=ownerOf(document_->authored(),inputs["component2OccurrenceId"].toString());
+    {const QSignalBlocker blocked(position);position->clear();position->addItem("Select Z-axis circle…",QJsonObject{});
+        for(const auto& body:document_->bodies())if(body.ownerId==fixed)for(const auto& edge:body.solidEdges)if(!edge.edge.IsNull()){
+            const BRepAdaptor_Curve curve(edge.edge);if(curve.GetType()!=GeomAbs_Circle)continue;
+            if(std::abs(std::abs(curve.LastParameter()-curve.FirstParameter())-2*std::acos(-1.0))>1e-6
+                || std::abs(curve.Circle().Axis().Direction().Z())<1-1e-6)continue;
+            const auto center=curve.Circle().Location();
+            position->addItem(body.name+QString(" · circle Z %1").arg(center.Z(),0,'f',1),
+                QJsonObject{{"bodyId",body.bodyId},{"edgeId",edge.edgeId}});
+            position->setItemData(position->count()-1,QString("Center (%1, %2, %3) mm")
+                .arg(center.X(),0,'f',1).arg(center.Y(),0,'f',1).arg(center.Z(),0,'f',1),Qt::ToolTipRole);
+        }
+        position->setCurrentIndex(std::max(0,position->findData(inputs["position"].toObject())));
+    }
+    for(const auto& key:{"rotationDeg","slideMm"}){auto* field=sliderDock_->findChild<QDoubleSpinBox*>("cylindrical."+QString(key));
+        const QSignalBlocker blocked(field);field->setValue(inputs[key].toDouble());}
+    sliderDock_->findChild<QLabel*>("cylindrical.error")->setText(session_["previewError"].toString());
+    const bool passive=passiveCylinder(presentationAssembly(),inputs["jointId"].toString());
+    sliderDock_->findChild<QDialogButtonBox*>("cylindrical.buttons")->button(QDialogButtonBox::Ok)->setEnabled(session_["previewed"].toBool() && !passive);
+    const auto ref=inputs["position"].toObject();if(!ref.isEmpty())
+        view_->highlightSolidEdges(presentationBodies(),ref["bodyId"].toString(),QJsonArray{ref["edgeId"]});
 }
