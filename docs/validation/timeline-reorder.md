@@ -23,6 +23,12 @@ sequence has a preceding undercut Cut Mirror and an opposite Bottom edge
 affected by it; that actual two-Mirror reorder/edit is still required before
 HIS-006 acceptance. Native and real-app API checks are also pending.
 
+The accepted enclosure prefix now has the real undercut Cut Mirror, but its
+inner ToObject cut rim is not yet a retained solid-edge reference for the
+source Bottom R0.5 Fillet. The fixture is an input to the final gate, not a
+substitute for it. The two-Mirror native/API checks require the actual retained
+Fillet and opposite edge after that lineage prerequisite is resolved.
+
 The source record and exact public behavior are external at
 `../Alloy-reference-records/knowledge/tutorials/advanced-audit-2026-10-13/his006-reorder-handoff.md`.
 The one-Mirror input and output are external at
