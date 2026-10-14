@@ -21,6 +21,12 @@ independent review and creation recording remain pending. GEO-004 tangent
 plane at a retained curved-face endpoint is active in a separate implementation
 lane. VIS-003/#349 tracks the public-reference yellow sheet material distinction;
 its two-color candidate is `3c9cc3d`, awaiting real-app capture and review.
+The runner extension `bbb769d` adds optional Thicken and grouped corner
+Fillet checkpoints; these branches have not yet run. SRF-010 candidate app
+is built and awaits the shared GUI lease. GEO-018/#350 now explicitly tracks
+exact generated Fillet endpoint/curved face retention through the two finishing
+features: existing Fillet transfer does not provide those references, so the
+source hanging-hole plane remains blocked until that prerequisite is verified.
 
 ## Accepted local object organization (2026-10-14)
 
