@@ -9606,6 +9606,7 @@ void AlloyWindow::refreshSketchControls() {
     QMap<QString,QStringList> relations;
     for(const auto& entry:parameters["constraints"].toArray()) {
         const auto constraint=entry.toObject();const auto type=constraint["type"]=="pointOnCurve" ? QString("coincident") :
+            constraint["type"]=="arcTangent" ? QString("tangent") :
             constraint["type"]=="supportLine" ? QString("support line (internal)") : constraint["type"].toString();
         for(const auto& id:constraint["entityIds"].toArray())relations[id.toString()].append(type.first(1).toUpper()+type.sliced(1));
         for(const auto& id:constraint["pointIds"].toArray())relations[id.toString()].append(type.first(1).toUpper()+type.sliced(1));
