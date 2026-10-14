@@ -7,8 +7,8 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current publication contains **378 issues**: **288 implementation, 20 research,
-22 epics, and 48 validation gates**. Counts describe decomposition, not coverage.
+The current publication contains **386 issues**: **294 implementation, 21 research,
+22 epics, and 49 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 
 ## Active delivery order
@@ -31,7 +31,12 @@ creation/motion/output API recording is independently accepted. Independent sour
 ASM-019 native Copy/Paste shortcuts, ASM-020 cylindrical-face origin locking and
 Show/Hide, ASM-021 paste drag/contextual Revert, ASM-022 Browser gestures and
 ASM-023 shared As-Built Type/occurrence selection. The direct copy/edge-selection
-routes do not close these exact native steps. ASM-019/020/022 are accepted; ASM-021/023 are active. The full semantic API creation/motion/export movie is recorded.
+routes do not close these exact native steps. ASM-019 through ASM-023 are accepted; TUT-019 retains its cumulative native gate. The full semantic API creation/motion/export movie is recorded.
+The next short sketch-expression exercise is audited under RES-021, with
+SKT-083 for the exact Center to Center Slot input, PAR-007 for same-sketch
+driving-length formulas and TUT-024 for the source-step gate. The public images
+and full source ledger remain outside the repository; the compact contract is
+in [the exercise preflight](../research/sketch-expression-exercise-contract.md).
 Exact shoehorn corner rounding and the enclosure
 alignment rim remain blocked geometry follow-ups. Complete source operations, readable constraint and
 selection states, edit/history/reopen, full creation recordings and independently

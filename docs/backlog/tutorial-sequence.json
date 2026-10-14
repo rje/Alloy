@@ -3,6 +3,19 @@
   "policy": "User-authorized 2026-10-13: sliding lid box, snap-fit electronics case, surface shoehorn; then surface iron and piston assembly. Dependency closure and independent workflow verification required. Split broad requirements into finishable children before pulling; preserve source qualification blockers. Prior accepted milestones remain done.",
   "checkpoints": [
     {
+      "id": "CP-25",
+      "title": "Short sketch dimension-expression exercise",
+      "issues": [
+        "RES-021",
+        "SKT-083",
+        "PAR-007",
+        "TUT-024"
+      ],
+      "acceptance": "Exact from-blank circle/rectangle/Center to Center Slot, D45/R5, connected profile with Perpendicular/Equal, vertical d3=100 and direct d3 + 50 horizontal dimension evaluating 150; edit driver and retain relation/history/reopen with readable source-step input and captures.",
+      "status": "todo",
+      "remaining": "RES-021 public step audit and the two implementation prerequisites precede cumulative validation; no API-only substitute for source input or user-parameter formula."
+    },
+    {
       "id": "CP-20",
       "title": "Parametric sliding-lid box",
       "issues": [

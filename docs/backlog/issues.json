@@ -794,7 +794,8 @@
       "depends_on": [
         "DOC-002",
         "SKT-004",
-        "PAR-006"
+        "PAR-006",
+        "PAR-007"
       ],
       "labels": [
         "kind:implementation",
@@ -6591,7 +6592,53 @@
       "labels": [
         "area:res"
       ],
-      "body": "## Problem and result\nTurn the publicly illustrated short dimension-expression exercise into a source-step contract and finishable feature/gate dependencies. Public images/provenance stay external; source names/links are not repository assets.\n\n## Acceptance\nRecord exact preparatory circle/rectangle/centerline-slot steps, 45mm length/R5 radius, polygon Perpendicular/Equal, third driving dimension100, typed d3+50 and later driver edit. Distinguish documented steps, Alloy policy and unknowns. Audit current automatic slot dimensions, radius vs diameter presentation/authoring, direct-field placement/typing sequence and stable parameter naming. Do not substitute an adapted fixture while claiming exact step parity.\n\nPropose a small intra-sketch driving-length dependency architecture using stable UUID references and retained names, contextual units captured at entry, atomic failure/history/reopen, and no general feature DAG. Separate required radius/input/name/expression implementations from cumulative tutorial validation. ParentPAR001 retains broad functions/cross-feature/driven dimension expressions. Public references and archived tutorial pages are external in knowledge/specs/par001-intra-sketch-dimension-expression-2026-10-14.md and knowledge/tutorials/after-expressions/. No reference application operation.\n\nOutput is a concise source-step prerequisite matrix and dependency issues; implementation and actual tutorial acceptance are later tasks.\n"
+      "body": "## Problem and result\nTurn the publicly illustrated short dimension-expression exercise into a source-step contract and finishable feature/gate dependencies. Public images/provenance stay external; source names/links are not repository assets.\n\n## Acceptance\nRecord exact preparatory circle/rectangle/centerline-slot steps, 45mm length/R5 radius, polygon Perpendicular/Equal, third driving dimension100, typed d3+50 and later driver edit. Distinguish documented steps, Alloy policy and unknowns. Audit current automatic slot dimensions, radius vs diameter presentation/authoring, direct-field placement/typing sequence and stable parameter naming. Do not substitute an adapted fixture while claiming exact step parity.\n\nPropose a small intra-sketch driving-length dependency architecture using stable UUID references and retained names, contextual units captured at entry, atomic failure/history/reopen, and no general feature DAG. Separate required radius/input/name/expression implementations from cumulative tutorial validation. ParentPAR001 retains broad functions/cross-feature/driven dimension expressions. Public references and archived tutorial pages are external in knowledge/specs/par001-intra-sketch-dimension-expression-2026-10-14.md and knowledge/tutorials/after-expressions/. No reference application operation.\n\nOutput is a concise source-step prerequisite matrix and dependency issues; implementation and actual tutorial acceptance are later tasks.\n\n\n## Completed source audit 2026-10-14\nPublic printed pages 18-20 were checked against the authored Alloy commands. Printed page 18 explicitly selects Center to Center Slot and picks two cap centers then side width; Alloy Center Point Slot instead picks midpoint then one cap center. Printed page 19 places D45 on the slot center span and R5 on one cap separately; Overall Slot autoauthors length/diameter/angle and is not the source route. Printed page 20 creates a connected closed polygon, Perpendicular and Equal, vertical d3=100, then top-edge direct expression d3 + 50. Existing numeric dimension entry places the annotation before typing and keeps D active. SKT-083/#385, PAR-007/#384 and TUT-024/#386 retain the three bounded prerequisites and cumulative gate; the concise matrix is docs/research/sketch-expression-exercise-contract.md. Public images and provenance remain external. No proprietary application was operated.\n"
+    },
+    {
+      "key": "SKT-083",
+      "title": "Author a Center-to-Center Slot from its two cap centers",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-057"
+      ],
+      "labels": [
+        "area:skt"
+      ],
+      "body": "## Problem and result\nThe public short sketch exercise starts a slot by picking its first cap center, second cap center, then side width. Alloy's accepted Center Point Slot instead starts at the slot midpoint. Add the distinct Center-to-Center command and native three-click route without changing existing slot behavior.\n\n## Bounded scope\nExpose `sketch.centerToCenterSlot` with first and second cap-center coordinates, full width, units and optional exact snap targets, plus Sketch > Create > Slot > Center to Center Slot. Reuse the existing analytic slot group, midpoint, guide, equal arcs and tangency solver. Resolve selected first/second centers before deriving midpoint; retain each picked center and any point/origin coincidence on its corresponding cap-center endpoint ID. Never attach the first center's snap to the slot midpoint. Create no dimensions automatically. Existing Center Point and Overall Slot remain separate.\n\n## Acceptance and evidence\nA three-click native fixture forms one valid capsule with the picked centers at the guide endpoints. Apply H/V to a straight side or guide, then D45 to its center span and R5 to one cap using existing sketch dimension authority, including continuing D for the second annotation. Move one source center and check retained IDs/shape, undo/redo and save/reopen. One focused core, real-app API and native/GPU proof are sufficient; preserve input, geometry and visual evidence separately.\n\n## Public source and limits\nRES-021 and the external public printed-page-18 record document the exact named tool and three-pick order (retrieved 2026-10-14). Initial rough coordinates and snap behavior beyond the illustrated picks are unknown; snap mapping and retained group schema are bounded Alloy policies. This child does not implement direct dimension expressions or claim the full exercise."
+    },
+    {
+      "key": "PAR-007",
+      "title": "Bind same-sketch driving length dimensions with direct expressions",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "PAR-006"
+      ],
+      "labels": [
+        "area:par",
+        "area:skt"
+      ],
+      "body": "## Problem and result\nThe published short sketch exercise enters `d3 + 50` directly in a top-edge driving dimension, referring to a previously authored 100 mm vertical dimension. PAR-006 only evaluates user length parameter rows; binding an anonymous sketch field to a user parameter is not the source step. Add a narrow intra-sketch driving-length dependency.\n\n## Bounded authority\nGive each authored driving length dimension in a sketch a retained, unique per-sketch `dN` display name while its existing dimension UUID remains the reference authority. Keep a monotonic per-sketch name counter so deleting a dimension never reuses its name. Existing saved dimensions without a name retain their numeric geometry and gain names only through explicit compatible authoring normalization, never a silent read-time rebase. Slot length and radius count; angle and virtual projected dimensions do not. Persist optional expression text and ordered referenced dimension UUIDs, not a name-only dependency; a dimension formula and its existing direct user-parameter binding are exclusive. Evaluate referenced dimensions before one atomic sketch solve in active drafts and full-document replay; keep numerical solver input/annotation value and inspectable formula separate. Reuse PAR-006's small arithmetic parser through a shared helper, with contextual additive bare-number length units captured at formula entry for direct sketch fields only (`d3 + 50` is +50 mm in a metric sketch even after later display-unit changes). PAR-006 user formula rules remain unchanged. Restrict references to driving lengths in the same sketch; reject syntax, unknown names, incompatible units, cycles, invalid geometry and deletion of a referenced source dimension atomically. On new bare-name binding, refuse ambiguity if both a local dimension and user parameter have that name; existing UUID bindings never retarget on later collisions. General dimension rename and dependent token rewrite remain in PAR-001. No angles, driven measurements, cross-sketch references, functions or generic document dependency graph.\n\n## Shared input and acceptance\n`sketch.dimensionAccept` after actual annotation placement and `sketch.dimensionUpdate`/double-click editing accept a direct expression in the existing editor; formula and evaluated numeric value are visible in the editor and state/model rows; the canvas annotation shows the evaluated numeric value. Use the source sequence: two earlier slot driving lengths, then a vertical polygon dimension named d3=100 mm and a top horizontal dimension `d3 + 50` evaluating 150 mm. Edit d3 to 120 mm and require 170 mm, edit formula, refuse dependent-source deletion, undo/redo, save/reopen and validate the closed profile. One focused parser/dependency core test, real-app API edit workflow and native inline typing/capture suffice. Existing numeric and user-parameter-bound sketches must reopen unchanged.\n\n## Public source and limits\nRES-021 and external knowledge/specs/par001-intra-sketch-dimension-expression-2026-10-14.md record public help and the illustrated exercise, retrieved 2026-10-14. dN allocation, ambiguity refusal and deletion handling are explicit Alloy policies; the source does not establish these edge cases. PAR-001 retains broader units/functions/cross-feature/driven expressions."
+    },
+    {
+      "key": "TUT-024",
+      "title": "Gate the exact short sketch expression exercise",
+      "kind": "validation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "RES-021",
+        "SKT-083",
+        "PAR-007"
+      ],
+      "labels": [
+        "area:tut",
+        "area:skt"
+      ],
+      "body": "## Problem and result\nReproduce the public short sketch exercise through its actual creation and dimension-entry steps, ending after the dependent-dimension edit and before the source's unrelated delete-for-next-lesson instruction. Do not substitute Center Point/Overall Slot or a user-parameter formula while claiming source parity.\n\n## Source-step gate\nFrom blank, use Center Diameter Circle, 2-Point Rectangle and Center to Center Slot with first cap center, second cap center, then width. Apply H/V to the shown slot straight line, dimension the center span to 45 mm and one end arc to R5 mm using D's click-annotation-then-enter flow. Draw the illustrated connected closed polygon; apply Perpendicular and Equal to the shown line pairs. Dimension the vertical to 100 mm (retained d3 under the declared Alloy name policy), then the top horizontal with direct `d3 + 50`; inspect 150 mm numeric annotation. Change the vertical driver and observe the top update. Record the page's rough geometry/unspecified coordinates as chosen fixture data, not measured source values.\n\n## Acceptance and verification\nOne continuous real-Alloy from-blank source-step ledger/recording, native command and relevant constraint/dimension picks, readable badges and 100/150 annotation, one actual selectable closed polygon profile, source edit dependency, authored stable IDs/formula, undo/redo and save/reopen. Capture before the later delete step. Keep core/API/native/OS and visual claims separate; compare to the archived public page only with explicit viewport/theme/scale limits. Do not add an extrusion or claim zero DOF, since neither is in the exercise.\n\n## Public source and limits\nDated public PDF/help provenance, retrieved 2026-10-14, and printed pages 18\u201320 are recorded outside Git in knowledge/tutorials/after-expressions/ and knowledge/specs/par001-intra-sketch-dimension-expression-2026-10-14.md. Exact seed coordinates, generated name ordering in the source product beyond d3, default units outside the metric exercise, and precise visual parity remain qualified."
     }
   ]
 }

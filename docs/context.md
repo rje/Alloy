@@ -3,6 +3,17 @@
 ## Current queue (2026-10-14)
 
 Continue autonomously across accepted milestones; a status report is not a stop.
+RES-021 source preflight found that the public short expression exercise uses a
+Center to Center Slot (first cap center, second cap center, then width), whereas
+Alloy's accepted Center Point Slot starts at its midpoint. SKT-083 adds the
+distinct three-click route without automatic dimensions; PAR-007 adds direct
+same-sketch driving-length expressions with retained UUID dependencies and
+per-sketch dN names. TUT-024 gates the exact rough circle/rectangle/slot,
+D45/R5, closed profile, Perpendicular/Equal, d3=100 and `d3 + 50` sequence.
+See [the lightweight contract](research/sketch-expression-exercise-contract.md);
+public page images/provenance stay in external reference records. Current
+numeric dimensions and user-parameter formulas do not yet perform this source
+step. Root and Astra review the new contracts before implementation acceptance.
 DOC-031/#348 is independently accepted at `89782cf`: unchanged-product native09
 passes modal line focus, rename commit, Browser label and unchanged geometry.
 Earlier button-focus failure remains unexplained, not claimed fixed.
