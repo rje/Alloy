@@ -1,6 +1,6 @@
-# Origin Section Distance and Flip candidate
+# Origin Section Distance and Flip
 
-DOC-027/#318, 2026-10-13. The external
+DOC-027/#318 independently accepted at `bfd672c` and integrated, 2026-10-13. The external
 `../Alloy-reference-records/knowledge/tutorials/advanced-audit-2026-10-13/enclosure-prefix-contract.md`
 records the public creator, URL, retrieval date, observed Width-section move
 near 32 mm and the adapted local model decision. The source does not establish
@@ -37,3 +37,5 @@ Mac activation; physical OS input and other-platform GPU runtime remain separate
 This slice supplies the later port-inspection control. It does not claim the
 enclosure prefix geometry, ports, angle manipulation, or a full creator-workflow
 match.
+
+Independent Astra review accepted the geometry/core, readable native controls and separate actual API cut capture. Main app build and focused slot/section integration checks pass (3/3).

@@ -1,14 +1,13 @@
 # Continuation context
 
-## Overall Slot candidate (2026-10-13)
+## Accepted Overall Slot and origin-section offsets (2026-10-13)
 
-SKT-069 is implemented in isolated `feat/overall-slot` and awaits independent
-source review and one refreshed native capture for the final angle-label
-placement. True end-to-end length, width and angle are retained dimensions
-over analytic slot curves; the documented first/second endpoint and width
-gesture and Box Cut pass focused native/API tests. See
-[candidate receipt](validation/overall-slot.md). Main integration and issue
-closure are pending.
+SKT-069 true end-to-end slot length/width/angle and DOC-027 origin-plane
+Distance/Flip are independently accepted, integrated and closed. Main app
+build and three focused slot/section checks pass. Native and API evidence
+remain distinct; exact OS input and reference styling are not claimed.
+See [Overall Slot](validation/overall-slot.md) and
+[origin-section offsets](validation/origin-section-distance.md).
 
 ## Retained-plane Split Body (2026-10-13)
 
@@ -55,10 +54,10 @@ independently accepted, integrated and closed. Combined main app build and
 focused STEP/grouped-Fillet integration checks pass (2/2). Respective receipts
 record API/native/geometry scope and later transformed-pick/Thicken limits.
 
-Active Sol lanes: GEO-008 exact recognized convex closed Shell and DOC-027
-origin-section Distance/Flip. SKT-069 true Overall Slot is in independent review.
-RES-020 qualifies an external v2 nominal card envelope for correct source-side
-placement while preserving v1 receipts. DOC-023 selected-face Section Analysis is independently accepted
+GEO-008 exact recognized convex closed Shell is in independent review.
+SKT-071 retained circular model-edge Project is active with Sol. RES-020
+independently qualifies the external v2 nominal card envelope for correct
+source-side placement while preserving v1 receipts. DOC-023 selected-face Section Analysis is independently accepted
 and integrated; combined app build and three focused integration checks pass. Root completed SOL-048 supported closed inward Shell on main, independently
 accepted at 5b1bb29 with native and 28-call API evidence. Plain Box cavity, six inner planes, edit/history/reopen and
 atomic failures pass core. Actual grouped R5/R2.5 followed by Shell3.5 fails

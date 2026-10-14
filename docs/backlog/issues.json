@@ -3178,7 +3178,7 @@
       "labels": [
         "area:skt"
       ],
-      "body": "## Scope\nNative Overall Slot sequence and overall-length/width semantics for enclosure port; retain actual constraints and source6.5mm width. Do not substitute the Center Point Slot gesture or centerline length.\n\n## Acceptance criteria\nImplement the stated source operation using shared native/API authority with stable input/result references, editable history, preview/Cancel where applicable, atomic failure and save/reopen. Preserve the broader parent scope.\n\n## Proposed verification and evidence\nA bounded source fixture must exercise the actual operation and meaningful upstream edit, inspect geometry and authored state, then undo/redo/reopen. Inspect real GPU captures and readable native controls; independent review separates input, API, geometry and visual evidence. Unit/integration checks focus on actual contracts.\n\n## Public reference evidence\nPublic reference `snap-fit-electronics-case` independently audited 2026-10-13; external knowledge/tutorials/advanced-audit-2026-10-13/independent-spec.md holds provenance and detailed source steps.\n\n## Limits and open questions\nPlanned, not accepted. Complete the affected public command specification before implementation; source dimensions or gestures not established by public evidence remain explicit unknowns.\n"
+      "body": "## Scope\nNative Overall Slot sequence and overall-length/width semantics for enclosure port; retain actual constraints and source6.5mm width. Do not substitute the Center Point Slot gesture or centerline length.\n\n## Acceptance criteria\nImplement the stated source operation using shared native/API authority with stable input/result references, editable history, preview/Cancel where applicable, atomic failure and save/reopen. Preserve the broader parent scope.\n\n## Proposed verification and evidence\nA bounded source fixture must exercise the actual operation and meaningful upstream edit, inspect geometry and authored state, then undo/redo/reopen. Inspect real GPU captures and readable native controls; independent review separates input, API, geometry and visual evidence. Unit/integration checks focus on actual contracts.\n\n## Public reference evidence\nPublic reference `snap-fit-electronics-case` independently audited 2026-10-13; external knowledge/tutorials/advanced-audit-2026-10-13/independent-spec.md holds provenance and detailed source steps.\n\n## Limits and open questions\nPlanned, not accepted. Complete the affected public command specification before implementation; source dimensions or gestures not established by public evidence remain explicit unknowns.\n\n\n## Independently accepted 2026-10-13\nIndependently accepted at d276fe9 and integrated. True end-to-end length, angle and width retain editable constraints; native typed30/Tab20deg/6.5/repeat-Enter and29-call Cut/edit/history/reopen pass. Astra independently reran both slot cores and inspected final native-03 angle annotation capture; root refreshed native gate1/1. Main app build and slot/section integration3/3 pass. See docs/validation/overall-slot.md.\n"
     },
     {
       "key": "SOL-049",
@@ -3646,7 +3646,8 @@
         "DOC-025",
         "GEO-008",
         "RES-020",
-        "DOC-027"
+        "DOC-027",
+        "TUT-020"
       ],
       "labels": [
         "area:gate"
@@ -5565,7 +5566,7 @@
       "labels": [
         "area:doc"
       ],
-      "body": "The enclosure public transcript later edits the Width origin section to an offset near32 while making port openings. DOC-023 only exposes Distance and Flip for selected-face sections. Extend these same fields to XY/XZ/YZ origin sections, preserving the legacy zero-offset six-field record and its positive-world normals. Resolve offset before Flip so flipping side does not move the plane. Shared native/API authoring, readable typed control, preview/Cancel, edit, undo/reopen and real GPU clip required; no model geometry mutation. Source details/provenance live externally in knowledge/tutorials/advanced-audit-2026-10-13/enclosure-prefix-contract.md. This bounded child is required by TUT-016; angles/manipulators remain broader scope.\n"
+      "body": "The enclosure public transcript later edits the Width origin section to an offset near32 while making port openings. DOC-023 only exposes Distance and Flip for selected-face sections. Extend these same fields to XY/XZ/YZ origin sections, preserving the legacy zero-offset six-field record and its positive-world normals. Resolve offset before Flip so flipping side does not move the plane. Shared native/API authoring, readable typed control, preview/Cancel, edit, undo/reopen and real GPU clip required; no model geometry mutation. Source details/provenance live externally in knowledge/tutorials/advanced-audit-2026-10-13/enclosure-prefix-contract.md. This bounded child is required by TUT-016; angles/manipulators remain broader scope.\n\n\n## Independently accepted 2026-10-13\nIndependently accepted at bfd672c and integrated. Origin Distance and Flip preserve legacy records and fixed shifted plane under Flip. Focused core, native typed32/Flip/Cancel and21-call API/history/reopen pass; Back-view GPU capture shows actual Y32 hatch. Astra independently reviewed core and separate native/API visuals. Main app build and slot/section integration3/3 pass. See docs/validation/origin-section-distance.md.\n"
     },
     {
       "key": "SKT-071",
@@ -5581,6 +5582,25 @@
         "area:skt"
       ],
       "body": "Bounded child of SKT-026 for the enclosure source: Project the four true PCB mounting-hole circular edges into a parallel case-face sketch across a placed imported component. Retain exact source occurrence-qualified edge identity, projected circle center/radius and linked status; source placement/radius edits update the same derived circle. Reuse existing shared native/API Project and display projected geometry distinctly with readable link/constraint feedback. Refuse nonparallel/unsupported projections clearly; arbitrary ellipses, detached copies and full repair/relink remain SKT-026. Verify real imported hole pick, circle preview/Cancel/commit, inward0.3 Offset and five-mm Join pegs, stable placement edit propagation, atomic missing reference, undo/reopen. Also cover a source circular port outline where the same supported plane relationship applies. Source workflow/provenance: external enclosure-prefix-contract.md and independent-spec.md. Cumulative source-order geometry/footage remains TUT-016.\n"
+    },
+    {
+      "key": "TUT-020",
+      "title": "Gate: reference-driven enclosure through mounting pegs from blank",
+      "kind": "validation",
+      "phase": "P5 Assemblies/drawings",
+      "priority": "P1",
+      "depends_on": [
+        "RES-020",
+        "ASM-010",
+        "SOL-046",
+        "GEO-008",
+        "DOC-027",
+        "SKT-071"
+      ],
+      "labels": [
+        "area:tut"
+      ],
+      "body": "Finishable cumulative prefix of TUT-016: from blank import the qualified v2 board, author the 90-degree placement and Move6/Capture, create Case component, centered93x64 rectangle and Extrude30, groupedR5/R2.5, closedShell3.5, three named sections, then Project actual four circular mounting-hole edges, inward0.3 Offset and Join5 mounting pegs. Use external enclosure-prefix-contract.md and fit-recipe.json; globalaxis orientation and nominal input adaptation explicit. Verify four real pegs align with transformed true holes, valid case/clearance geometry, current retained references after a useful edit, undo/reopen and separate component export. Capture paced full creation footage from blank with honest API/native overlay labels, readable projected curves and constraint icons. Independent Astra review required; neither this prefix nor its exports close the full enclosure tutorial, whose ports/snaps/mirror/reorder/rim remain TUT-016.\n"
     }
   ]
 }

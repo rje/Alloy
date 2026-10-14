@@ -1,9 +1,9 @@
-# Overall Slot candidate — SKT-069
+# Overall Slot — SKT-069
 
-Candidate on `feat/overall-slot`, 2026-10-13. The public command sequence is
+Independently accepted at `d276fe9` and integrated, 2026-10-13. The public command sequence is
 recorded outside the repository in
 `../Alloy-reference-records/knowledge/tutorials/advanced-audit-2026-10-13/overall-slot-contract.md`.
-Independent compatibility review is pending.
+Astra accepted source/core/API evidence and the final native-03 angle-label capture.
 
 Create > Slot > Overall Slot accepts the first outer endpoint, total end-to-end
 length, Tab direction angle, second outer endpoint and full width. The tool
@@ -45,3 +45,5 @@ that adjustment; a refreshed capture remains to be inspected. Run only the
 focused native test, with `ALLOY_OVERALL_SLOT_EVIDENCE` set to a new external
 attempt folder, when the sole editor lease is available. The old capture and
 first timed-out native harness attempt are retained as separate evidence.
+
+Root refreshed the final native capture (1/1, 2.87 seconds), and main app build plus slot/section integration checks pass (3/3).
