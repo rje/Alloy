@@ -5668,7 +5668,8 @@
         "SOL-054",
         "GEO-014",
         "GEO-015",
-        "SOL-055"
+        "SOL-055",
+        "DOC-030"
       ],
       "labels": [
         "area:gate"
@@ -5966,6 +5967,20 @@
         "area:asm"
       ],
       "body": "Complete the source tutorial gesture gate left separate from bounded component organization. In the real Alloy Browser, physically drag the finished body from root Bodies onto the destination local component, then separately drag the root Sketches folder onto it. Verify one visible destination body row and sketch row, no stale duplicate source rows, unchanged geometry and modeling references, and inspect authored object owners through the shared API. Capture the actual gesture and readable result. Qt-delivered context actions and direct drop-event route tests are useful component evidence but do not alone establish physical pointer drag. Current desktop verification blocker: computer-use getApp for the running candidate returns -10005 cgWindowNotFound; bundle-id selection is ambiguous across build paths. Qt synthetic drag started but did not deliver drop. Do not silently replace the tutorial drag with a context command or repeat inaccessible input attempts indefinitely. Keep this Todo until native input is available, then fix any actual gesture issue exposed. Public source provenance is external; TUT-017 exact workflow cannot close without this gate."
+    },
+    {
+      "key": "DOC-030",
+      "title": "Retain body display names through Split and Browser rename",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "ASM-007"
+      ],
+      "labels": [
+        "area:doc"
+      ],
+      "body": "<!-- alloy-backlog:DOC-030 -->\n\n## Problem and result\n\nThe enclosure Split creates two stable bodies, but Alloy cannot give the resulting bodies the source-required Bottom and Top Browser names without changing a feature label. Add a retained body display name keyed by body identity.\n\n## Bounded scope\n\nProvide one shared body rename command and a native Browser rename action for current local solid bodies. The authored override follows stable body ID and owner organization; feature names, geometry, topology, references, and modifier history remain unchanged. Reject missing/imported/nonlocal targets and invalid names clearly.\n\n## Acceptance\n\nRename the actual post-Split Case halves Bottom and Top. Inspect Browser and API names, then edit an upstream feature, undo/redo, save/reopen, and verify unchanged body IDs and geometry. A split-source edit that invalidates a body must refuse stale name identity rather than attach it to another body. Keep this prerequisite distinct from the cumulative TUT-022 snap workflow.\n\n## Verification\n\nUse focused core and real-app API checks plus one readable Qt Browser rename interaction. Record geometry, history, save/reopen, native and visual evidence separately. Independent review precedes acceptance.\n\n## Public source and limits\n\nThe public enclosure tutorial names its two Split halves Bottom and Top; dated creator/source evidence and uncertainty are recorded outside Git under knowledge/tutorials/advanced-audit-2026-10-13/enclosure-split-snap-contract.md. This is a bounded Alloy display-name authority, not general feature rename or imported hierarchy editing.\n"
     }
   ]
 }

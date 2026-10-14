@@ -1717,6 +1717,11 @@
       "number": 343,
       "url": "https://github.com/rje/Alloy/issues/343",
       "state": "open"
+    },
+    "DOC-030": {
+      "number": 344,
+      "url": "https://github.com/rje/Alloy/issues/344",
+      "state": "open"
     }
   }
 }
