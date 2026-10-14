@@ -145,7 +145,11 @@ and stops before OK; receipt02b0726 preserves this. Theme mismatch does not
 explain the remaining popup gate. It is Todo, with no failing test target
 retained and no more retries absent concrete event diagnosis.
 Broader SKT-021 and physical403 remain Todo. Only one build/GUI lease is active.
-Backlog is404 issues with acyclic dependencies. Astra independently verifies.
+PAR-008/#405 is active next: arithmetic in One Side/Distance Extrude using
+existing user length parameters and the accepted evaluator. Sol implements;
+Luna qualifies public direct-field input evidence and Astra independently reviews.
+No additional unchanged input-gate retries.
+Backlog is405 issues with acyclic dependencies. Astra independently verifies.
 Only main and its existing build are used; no inactive worktrees accumulate.
 DOC-031/#348 is independently accepted at `89782cf`: unchanged-product native09
 passes modal line focus, rename commit, Browser label and unchanged geometry.
