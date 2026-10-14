@@ -5,6 +5,7 @@ from contextlib import ExitStack
 import json
 from pathlib import Path
 import time
+import uuid
 from app_harness import application
 
 
@@ -85,6 +86,8 @@ def main():
     p.add_argument('--app', required=True)
     p.add_argument('--output', required=True, type=Path)
     p.add_argument('--record-video', type=Path)
+    p.add_argument('--through-thicken', action='store_true')
+    p.add_argument('--through-corners', action='store_true')
     a = p.parse_args(); out = a.output.resolve(); out.mkdir(parents=True, exist_ok=True)
     with application(a.app, out, command_timeout=120) as (raw, ledger), ExitStack() as cleanup:
         recording = False
@@ -111,17 +114,51 @@ def main():
                 raw('recording.step', {'text': 'API | ' + text}); time.sleep(1)
             if capture: raw('capture.screenshot', {'path': str(out / capture)})
         result = create_sheet(call, stage)
+        evaluated = result['sheet']
+        if a.through_thicken or a.through_corners:
+            sheet = result['sheet']
+            session = call('solid.thickenDialog', {'sourceFace': {
+                'producerFeatureId': sheet['featureId'], 'bodyId': sheet['bodyId'],
+                'faceId': sheet['supportFaces'][0]['faceId']}, 'signedThicknessMm': 3})
+            call('command.preview', {'session': session['id']})
+            stage('Thicken the guided sheet: 3 mm', '06-thicken-preview.png')
+            call('command.commit', {'session': session['id']})
+            evaluated = next(b for b in call('document.inspect')['evaluation']['bodies']
+                             if b['bodyId'] != sheet['bodyId'])
+            assert evaluated['valid'] and evaluated['topology']['solids'] == 1
+            assert evaluated['closed'] and evaluated['volumeMm3'] > 0
+            result['solid'] = evaluated
+            stage('Solid shoehorn blank', '07-thickened-solid.png')
+        if a.through_corners:
+            source_edges = {e['provenance']['role']: e['edgeId'] for e in result['sheet']['solidEdges']}
+            groups = []
+            for role, radius in [('start', 12), ('end', 16)]:
+                edges = [e['edgeId'] for e in evaluated['solidEdges']
+                         if e['provenance']['role'].startswith('corner/')
+                         and source_edges[role] in e['provenance']['role'].split('/')]
+                assert len(edges) == 2
+                groups.append({'id': str(uuid.uuid4()), 'edgeIds': edges, 'radiusMm': radius, 'tangentChain': True})
+            session = call('solid.filletDialog', {'targetBodyId': evaluated['bodyId'], 'groups': groups})
+            call('command.preview', {'session': session['id']})
+            stage('One corner Fillet: front R12, rear R16', '08-corner-fillet-preview.png')
+            call('command.commit', {'session': session['id']})
+            evaluated = next(b for b in call('document.inspect')['evaluation']['bodies']
+                             if b['bodyId'] == evaluated['bodyId'])
+            assert evaluated['valid'] and evaluated['closed'] and evaluated['topology']['solids'] == 1
+            result['cornerSolid'] = evaluated
+            stage('Rounded shoehorn ends', '09-corner-fillet.png')
         before = call('document.inspect')['authored']
-        model = out / 'shoehorn-guided-sheet.alloy'
+        model = out / ('shoehorn-corners.alloy' if a.through_corners else
+                       'shoehorn-thickened.alloy' if a.through_thicken else 'shoehorn-guided-sheet.alloy')
         call('document.save', {'path': str(model)})
         stop()  # Creation footage ends at the authored model; edits are validation.
         call('sketch.edit', {'sketchId': result['pathId']})
         call('sketch.dimensionUpdate', {'dimensionId': result['bendDimensionId'], 'value': 18, 'units': 'mm'})
         call('sketch.finish')
         edited = call('document.inspect')
-        changed = next(b for b in edited['evaluation']['bodies'] if b['bodyId'] == result['sheet']['bodyId'])
-        assert abs(changed['areaMm2'] - result['sheet']['areaMm2']) > 1
-        assert changed['supportFaces'][0]['faceId'] == result['sheet']['supportFaces'][0]['faceId']
+        changed = next(b for b in edited['evaluation']['bodies'] if b['bodyId'] == evaluated['bodyId'])
+        assert abs(changed['areaMm2'] - evaluated['areaMm2']) > 1
+        assert changed['supportFaces'][0]['faceId'] == evaluated['supportFaces'][0]['faceId']
         call('history.undo'); assert call('document.inspect')['authored'] == before
         call('history.redo'); assert call('document.inspect')['authored'] == edited['authored']
         variant = out / 'shoehorn-bend-18.alloy'
@@ -129,7 +166,7 @@ def main():
         call('document.new', {'discard': True})
         call('document.open', {'path': str(variant)})
         assert call('document.inspect')['authored'] == edited['authored']
-        (out / 'report.json').write_text(json.dumps({'passed': True, 'scope': 'From blank through guided sheet; solid finishing remains pending',
+        (out / 'report.json').write_text(json.dumps({'passed': True, 'scope': ('From blank through grouped corner Fillet' if a.through_corners else 'From blank through 3 mm Thicken' if a.through_thicken else 'From blank through guided sheet') + '; solid finishing remains pending',
             'stages': stages, 'result': result, 'video': video,
             'adaptations': ['Fixed first spline endpoint at origin; endpoint horizontal alignment. Public source constraint gestures unspecified.']}, indent=2))
         (out / 'transcript.json').write_text(json.dumps(ledger, indent=2))
