@@ -1,5 +1,18 @@
 # Continuation context
 
+## Accepted component printing selection (2026-10-14)
+
+PRT-010/#351 is independently accepted and integrated. Component STL export
+selects visible bodies, so the hidden retained source sheet can coexist with its
+printable solid. Explicit or visible-sheet selections still refuse strict solid
+export. The actual source solid now moves into its sheet component and survives
+save/reopen: temporary sketch-solving prefixes exclude final Browser ownership,
+matching the history evaluator. The 17-call actual-app check and inspected dialog
+capture pass; a closed 2308-triangle STL was independently checked. Visibility
+undo is covered, not reparent undo/redo in this run. See
+[the receipt](validation/component-mesh-visibility.md). Full source finishing,
+native Browser drag and intentional open-surface export remain separate.
+
 ## Surface corner Fillet geometry blocker (2026-10-14)
 
 The accepted guided-sheet/Thicken source has a bounded positive-solid

@@ -4,7 +4,9 @@
 [retained Thicken](docs/validation/surface-thicken.md) now create an editable
 solid from a dimensioned spline and endpoint sections. The original sheet stays
 available, and upstream edits, history, reopen and solid STL checks pass.
-The completed surface tutorial's finishing and hole remain in progress.
+[Component printing](docs/validation/component-mesh-visibility.md) exports the
+visible solid while retaining its hidden source sheet. The completed surface
+tutorial's finishing and hole remain in progress.
 
 The [enclosure ports and card-opening workflow](docs/validation/enclosure-port-card-workflow.md)
 now has an independently accepted full creation movie: linked board placement,
