@@ -20,6 +20,7 @@ so this is not a complete deployed closure or a relocation test.
 | PlaneGCS, ec6852e… | LGPL-2.1-or-later | Separate shared library from thirteen pinned source files; application adapter integration added after FND-005. Runtime packaging remains pending |
 | Eigen 5.0.1 | MPL-2.0 with EIGEN_MPL2_ONLY | Solver headers; exact archive fallback and covered-source notices |
 | Boost 1.90.0 | BSL-1.0 | Solver Graph/math headers; exact archive fallback and notices |
+| OndselSolver1.0.1, 4be80eef… | LGPL-2.1 | Bounded shared assembly backend; original POD/C ABI; macOS core evidence only, packaging/platform replacement pending |
 | libslvs, ef96633… | GPL-3.0-or-later | Not admitted under current integration decisions |
 | lib3mf 2.5.0, 64bb454… | BSD-2-Clause | Candidate only; complete bundled-dependency audit before its format task |
 

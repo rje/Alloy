@@ -69,3 +69,14 @@ Copyright (C) The Qt Company Ltd.; used under BSD-3-Clause, separately from
 Alloy's MIT code. Corresponding source, full license, upstream REUSE provenance
 and SHA-256 hashes are retained in that directory. No Shader Tools/qsb compiler
 is included. This does not change Qt runtime licensing or admit a production RHI.
+
+## OndselSolver assembly candidate
+
+The bounded assembly adapter uses public FreeCAD OndselSolver1.0.1 revision
+`4be80eef02a3486cda0d78f3ccbb308d207a9639`. Its separately built replaceable
+shared library retains [LGPL2.1](third_party/ondsel/LICENSE), copyright Ondsel Inc
+and other upstream contributors. Alloy's original POD/C ABI and adapter remain
+MIT. [Exact public source/digests](third_party/ondsel/sources.json) and
+[the bounded decision](docs/decisions/006-assembly-solver.md) record the candidate.
+Corresponding source, notices, replacement/relinking and platform packaging must
+be qualified before distribution; this is not release-bundle acceptance.

@@ -17,7 +17,7 @@ outside the planned stack.
 | CAD geometry | OCCT | Established BRep solids/surfaces, modeling algorithms, CAD exchange, and visualization; robustness still needs workflow validation |
 | CAD viewport | Alloy CAD presentation on an established Metal/Vulkan RHI | Accepted destination in decision 003; QRhiWidget/bgfx shortlist is researched, native spike and migration remain open. Current prototype uses GPU OCCT AIS/V3d/OpenGL |
 | Sketch constraints | PlaneGCS via a replaceable shared-library boundary | Integrated for line/point relations and driving/driven dimensions in decision 004; portable packaging and broader constraint classes remain pending |
-| Assembly constraints | Evaluate later, including FreeCAD's OndselSolver fork | A later family; do not put assembly infrastructure in the first sketch slice |
+| Assembly constraints | Pinned OndselSolver behind an original shared POD/C ABI | Bounded macOS backend accepted; authored joint frontend, platform packaging/replacement and general DOF remain pending; see decision006 |
 | 3MF | Evaluate lib3mf | Existing read/write and validation support |
 | Automation | Local structured protocol; Python standard-library client initially | Easy agent access without embedding a scripting runtime before it is needed |
 | Build | CMake; explicitly discovered dependencies | Conventional tooling for Qt/OCCT; record actual tested versions |
@@ -221,6 +221,15 @@ Evaluate solver choices against the permissive project-license goal. Reusable
 third-party code and independently authored application code
 must retain appropriate notices. Reference screenshots belong in research
 evidence, not bundled product assets.
+
+[Decision006](decisions/006-assembly-solver.md) records the bounded macOS assembly
+backend: separate replaceable LGPL-2.1 OndselSolver plus original MIT POD/C ABI.
+The [source manifest](../third_party/ondsel/sources.json) pins public bytes and
+license; current source poses convert mm→SI once. Every original joint and full
+Pin is independently checked after solving, including relationships the kernel
+may remove as redundant. This does not establish authored joint/frontend or
+platform/runtime packaging acceptance. Release source/notices and working
+replacement/relinking gates remain required; no general DOF claim is returned.
 
 [Decision 004](decisions/004-sketch-solver.md) selects PlaneGCS through a replaceable
 shared-library boundary, with pinned dependencies and passing native fixtures.

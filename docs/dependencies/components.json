@@ -75,6 +75,17 @@
       "evidence": "tools/spikes/sketch-solver/observed.json",
       "source": "https://archives.boost.io/release/1.90.0/source/boost_1_90_0.tar.bz2",
       "source_sha256": "49551aff3b22cbc5c5a9ed3dbc92f0e23ea50a0f7325b0d198b705e8ee3fc305"
+    },
+    {
+      "name": "OndselSolver",
+      "version": "1.0.1",
+      "revision": "4be80eef02a3486cda0d78f3ccbb308d207a9639",
+      "selected_license": "LGPL-2.1",
+      "admission": "bounded shared-library assembly backend; macOS core evidence only",
+      "source": "https://github.com/FreeCAD/OndselSolver/tree/4be80eef02a3486cda0d78f3ccbb308d207a9639",
+      "source_manifest": "third_party/ondsel/sources.json",
+      "decision": "docs/decisions/006-assembly-solver.md",
+      "retrieved": "2026-10-14"
     }
   ],
   "license_texts": [
