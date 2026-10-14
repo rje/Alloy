@@ -2,6 +2,16 @@
 
 ## Current queue (2026-10-14)
 
+SKT-075/#332 is In Progress after a public-reference and independent design
+review. Fresh direct planar-face sketches will explicitly record
+`originConvention: projectedOwnerV1`; absent convention remains legacy. The
+authored sketch owner defines the projected origin, existing face axes stay
+unchanged, and preview/evaluation/projection must share the frame. Only
+unambiguous supported identity/rest authoring is in scope; later copying must
+not invalidate an existing definition sketch. Construction-plane policies stay
+unchanged. Implementation and native acceptance are not yet complete. The
+external face-sketch-origin contract records primary evidence and unknowns.
+
 Canvas DOC-024, retained Remove HIS-007 and Surface workspace VIS-004 are
 independently accepted and integrated at 645497f. The combined build, focused
 core checks and actual Surface Modify > Remove native route pass. SRF-012 exterior endpoint-contact guide-rail Loft is independently accepted at
