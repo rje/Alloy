@@ -36,7 +36,7 @@ proof; native05 covers basic gestures. Broader path extents stay with the parent
 SKT-068/#282 is accepted and closed after independent review, with
 core/API/native evidence and readable badges.
 The second Sol lane now audits ASM-007/#300 component reparenting while
-the geometry lane completes GEO-014 and then starts SRF-009 surface Loft.
+the geometry lane completes GEO-014 and SOL-055 reflected-root replay before SRF-009 surface Loft.
 
 ## Accepted Selection Priority (2026-10-13)
 
@@ -66,6 +66,8 @@ incident target face can identify the current vertical root at
 X=-28.5,Y=17.5,Z15..20.5. The actual root accepts smaller chamfers but refuses
 the required 2 mm at the inferred 2 mm stem width, even on fresh Join.
 GEO-015/#341 separately owns this source-geometry/exact-size qualification.
+SOL-055/#342 owns the reflected attachment-root lineage and finish replay;
+original Join publication alone does not establish mirrored root availability.
 Do not substitute the hook elbow or a transverse
 free edge merely because its Chamfer succeeds. SOL-053/#337 remains Todo
 until this root and the actual finished YZ snap group pass.

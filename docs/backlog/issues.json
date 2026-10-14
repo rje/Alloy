@@ -5665,7 +5665,8 @@
         "GEO-013",
         "SOL-054",
         "GEO-014",
-        "GEO-015"
+        "GEO-015",
+        "SOL-055"
       ],
       "labels": [
         "area:gate"
@@ -5869,7 +5870,8 @@
         "GEO-013",
         "SOL-054",
         "GEO-014",
-        "GEO-015"
+        "GEO-015",
+        "SOL-055"
       ],
       "labels": [
         "area:solid"
@@ -5933,6 +5935,21 @@
         "area:geo"
       ],
       "body": "The exact current vertical wall/stem root at X=-28.5,Y17.5,Z15..20.5 is now identifiable by kernel lineage. On the fresh actual adapted Join, Chamfer0.5,1.0,1.5 succeeds but the required2.0 fails with chamfer_failed; the inferred stem width is2mm. Stop arbitrary edge/radius substitutions. Investigate whether the permitted public source establishes a different attachment geometry or whether an exact-limit concave chamfer needs a bounded mature-kernel construction/fallback. Preserve specified source dimensions and actual wall attachment intent; any geometry adaptation must be explicit and cannot silently count as exact parity. Qualify correct adjacent faces, valid closed result, source-sized2mm finish, intended printing support and no added assembly interference, followed by retained references through edit/history/reopen and final Mirror. Do not infer kernel fault solely from one rejected geometry. Existing smaller-size diagnostics establish a threshold only, not acceptance. Actual source corner/edge mapping remains uncertain. SOL-053/TUT-022/HIS-006 stay open for complete actual finishes and two-Mirror workflow."
+    },
+    {
+      "key": "SOL-055",
+      "title": "Retain reflected Join attachment roots through snap finish replay",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "GEO-014",
+        "SOL-054"
+      ],
+      "labels": [
+        "area:sol"
+      ],
+      "body": "Publish the reflected actual wall/stem attachment root through unique current kernel ancestry and incident retained faces, then replay the selected snap finish group against that root. GEO-014 publishes only the original Join root; the reflected replay cache currently lacks the necessary base-face/root lineage. Preserve the attempted extension and kernel_failure diagnostic externally. Do not replace the attachment with a nearby free or elbow edge. Verify stable retained identity through source Join width edit, undo/redo and save/reopen, and preserve existing selected-region Mirror behavior. Qualify bounded supported finish replay independently of GEO-015 exact 2 mm size qualification. Full source-sized five-feature snap acceptance remains SOL-053 and TUT-022."
     }
   ]
 }
