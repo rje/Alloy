@@ -19,7 +19,25 @@ side of XZ, independently expected added volume, source Join edit, undo/redo,
 save/reopen, same-target gap refusal, and a valid unrelated Bottom Fillet
 interlude. Prior Cut Mirror, Chamfer, and Fillet focused core checks pass.
 
-Native Timeline selection, real-app API operation, captures and independent
-review are pending. The external source fixture is at
-`../Alloy-reference-records/deliverables/join-edge-lineage-2026-10-13/core-01/source-snap.alloy`.
+The real-app API run passed 22 calls on that source fixture: live preview,
+Cancel, commit, reopened edit/Cancel, undo/redo and save/reopen. The Top's
+volume changed from 32358.984 to 32515.597 mm³. Native Qt input clicked the
+five actual Timeline tiles, selected Origin XZ in the combo, observed an
+enabled OK and valid preview, then clicked Cancel; the authored document was
+unchanged. That focused run passed 3/3 in 9.2 seconds. The test waits for the
+Timeline to lay out and asserts each tile is on screen before clicking; it
+does not repair focus or selection between gestures. Input is Qt-delivered.
+
+External evidence is under
+`../Alloy-reference-records/deliverables/feature-mirror-snap-2026-10-13/`:
+`api-01/report.json`, `api-01/transcript.json`, the accepted `.alloy` model,
+and preview/accepted captures; `native-05/test.txt`, panel and preview captures;
+and `presentation-03/snap-top.png`, which shows both opposite-side snaps at
+160% after hiding the unrelated Bottom body, construction overlays and
+analysis for presentation. Native attempts 01–04 remain preserved: they
+exposed a test-harness timing issue before Qt laid out the loaded Timeline;
+no modeling change was needed. The presentation run changed visibility only
+in its disposable session, not the saved accepted model.
+
+Independent review of source/core passed; final native/API review is pending.
 The broader SOL-049 feature Mirror family remains open.

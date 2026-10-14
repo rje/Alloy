@@ -10,6 +10,8 @@
 #include <QDockWidget>
 #include <QJsonDocument>
 #include <QPushButton>
+#include <QScrollArea>
+#include <QScrollBar>
 #include <QTest>
 #include <QToolButton>
 
@@ -31,6 +33,10 @@ private slots:
         const auto authored=call(window,"document.inspect")["authored"].toObject();
         const auto features=authored["features"].toArray();QVERIFY(features.size()>=5);
         QJsonArray ids;for(int i=features.size()-5;i<features.size();++i)ids.append(features[i].toObject()["id"]);
+        auto* timelineScroll=window.findChild<QScrollArea*>("timeline.scroll");QVERIFY(timelineScroll);
+        QTRY_VERIFY(timelineScroll->isVisible());
+        // Arrange the five source tiles within the test viewport before starting the gesture.
+        timelineScroll->horizontalScrollBar()->setValue(timelineScroll->horizontalScrollBar()->maximum());
         auto* launch=window.findChild<QToolButton*>("command.solid.featureMirrorDialog");QVERIFY(launch);
         QTest::mouseClick(launch,Qt::LeftButton);
         QTRY_COMPARE(window.state()["activeSession"].toObject()["command"].toString(),QString("solid.featureMirror"));
@@ -39,7 +45,9 @@ private slots:
         QVERIFY(view && view->hasFocus());
         for(const auto& id:ids){
             auto* timeline=window.findChild<QToolButton*>("timeline.feature."+id.toString());QVERIFY(timeline);
-            QVERIFY(timeline->isVisible());
+            QTRY_VERIFY(timeline->isVisible());
+            const auto center=timeline->mapTo(timelineScroll->viewport(),timeline->rect().center());
+            QVERIFY(timelineScroll->viewport()->rect().contains(center));
             QTest::mouseClick(timeline,Qt::LeftButton,Qt::NoModifier,QPoint(12,12));
         }
         auto* plane=window.findChild<QComboBox*>("featureMirror.plane");QVERIFY(plane);
