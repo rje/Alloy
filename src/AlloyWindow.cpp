@@ -143,6 +143,38 @@ protected:
         else event->ignore();
     }
 };
+class ComponentActivationRadio final : public QRadioButton {
+public:
+    using QRadioButton::QRadioButton;
+    std::function<void()> renameRequested;
+    std::function<void(const QPoint&)> dropRequested;
+protected:
+    void mousePressEvent(QMouseEvent* event) override {
+        if(event->button()==Qt::LeftButton){pressPosition_=event->pos();pressed_=true;dragging_=false;}
+        QRadioButton::mousePressEvent(event);
+    }
+    void mouseMoveEvent(QMouseEvent* event) override {
+        if(pressed_ && (event->pos()-pressPosition_).manhattanLength()>=QApplication::startDragDistance()){
+            dragging_=true;setCursor(Qt::ClosedHandCursor);event->accept();return;
+        }
+        QRadioButton::mouseMoveEvent(event);
+    }
+    void mouseReleaseEvent(QMouseEvent* event) override {
+        if(event->button()==Qt::LeftButton && dragging_){
+            pressed_=false;dragging_=false;unsetCursor();
+            if(dropRequested)dropRequested(event->globalPosition().toPoint());
+            event->accept();return;
+        }
+        pressed_=false;QRadioButton::mouseReleaseEvent(event);
+    }
+    void mouseDoubleClickEvent(QMouseEvent* event) override {
+        if(renameRequested){renameRequested();event->accept();return;}
+        QRadioButton::mouseDoubleClickEvent(event);
+    }
+private:
+    QPoint pressPosition_;
+    bool pressed_=false,dragging_=false;
+};
 class ModelExpressionDelegate final : public QStyledItemDelegate {
 public:
     using QStyledItemDelegate::QStyledItemDelegate;
@@ -494,6 +526,22 @@ AlloyWindow::AlloyWindow() {
         if(!source || !target || !session_.isEmpty())return false;
         const auto destination=target->data(0,Qt::UserRole+3).toString();
         if(destination.isEmpty())return false;
+        const auto sourceOccurrence=source->data(0,Qt::UserRole+8).toString();
+        if(!sourceOccurrence.isEmpty() && !source->data(0,Qt::UserRole+3).toString().isEmpty()){
+            const QJsonArray ids{sourceOccurrence};
+            try{CadDocument::reparentOccurrenceCandidate(document_->authored(),ids,destination);}
+            catch(const std::exception& error){statusBar()->showMessage(QString::fromUtf8(error.what()),5000);return false;}
+            const auto tabId=activeTabId_,documentId=document_->authored()["documentId"].toString();
+            const auto revision=document_->revision();
+            QTimer::singleShot(0,this,[this,tabId,documentId,revision,ids,destination]{
+                if(tabId!=activeTabId_ || documentId!=document_->authored()["documentId"] || revision!=document_->revision()){
+                    statusBar()->showMessage("Design changed before the component drop completed",5000);return;
+                }
+                const auto result=execute("component.reparentOccurrence",{{"occurrenceIds",ids},{"destinationId",destination}});
+                if(!result["ok"].toBool())statusBar()->showMessage(result["error"].toObject()["message"].toString(),5000);
+            });
+            return true;
+        }
         const auto body=source->data(0,Qt::UserRole+1).toString();
         const bool bodyRow=source->parent() && source->parent()->data(0,Qt::UserRole+4)=="bodies";
         const bool sketchFolder=source->data(0,Qt::UserRole+4)=="sketches";
@@ -523,11 +571,32 @@ AlloyWindow::AlloyWindow() {
     bodiesNode_->setData(0,Qt::UserRole+4,"bodies");sketchesNode_->setData(0,Qt::UserRole+4,"sketches");planesNode_->setData(0,Qt::UserRole+4,"planes");
     auto* rootActivation=new QRadioButton("Alloy Design");rootActivation->setObjectName("component.activate.root");rootActivation->setAutoExclusive(false);tree_->setItemWidget(document,0,rootActivation);
     connect(rootActivation,&QRadioButton::clicked,this,[this]{const auto result=execute("component.activate",{{"definitionId",document_->authored()["documentId"]}});if(!result["ok"].toBool()){displayedDocumentRevision_=std::numeric_limits<quint64>::max();refresh();statusBar()->showMessage(result["error"].toObject()["message"].toString(),5000);}});
+    auto showRootContext=[this](const QPoint& global){
+        QMenu menu(this);auto* create=menu.addAction("New Component…");create->setObjectName("context.newComponent");
+        auto* activate=menu.addAction("Activate");activate->setObjectName("context.activateRoot");
+        create->setEnabled(session_.isEmpty());activate->setEnabled(session_.isEmpty());
+        const auto* action=menu.exec(global);
+        if(action==create)execute("component.newDialog");
+        if(action==activate)execute("component.activate",{{"definitionId",document_->authored()["documentId"]}});
+    };
+    rootActivation->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(rootActivation,&QWidget::customContextMenuRequested,this,[=](const QPoint& point){showRootContext(rootActivation->mapToGlobal(point));});
     document->setExpanded(true); views->setExpanded(true);
     tree_->setContextMenuPolicy(Qt::CustomContextMenu);
-    connect(tree_,&QTreeWidget::customContextMenuRequested,this,[this](const QPoint& point){
+    connect(tree_,&QTreeWidget::customContextMenuRequested,this,[this,showRootContext](const QPoint& point){
         auto* item=tree_->itemAt(point);
         if(!item || item->isHidden())return;
+        if(item==bodiesNode_->parent()){showRootContext(tree_->viewport()->mapToGlobal(point));return;}
+        if(item==bodiesNode_){
+            QMenu menu(this);auto* convert=menu.addAction("Create Components from Bodies");
+            convert->setObjectName("context.createComponentsFromBodiesFolder");convert->setEnabled(session_.isEmpty());
+            if(menu.exec(tree_->viewport()->mapToGlobal(point))==convert){
+                QJsonArray ids;const auto root=document_->authored()["documentId"].toString();
+                for(const auto& body:document_->bodies())if(body.ownerId==root && body.occurrenceId.isEmpty())ids.append(body.bodyId);
+                const auto result=execute("component.createFromBodiesDialog",{{"bodyIds",ids}});
+                if(!result["ok"].toBool())statusBar()->showMessage(result["error"].toObject()["message"].toString(),5000);
+            }return;
+        }
         if(const auto definition=item->data(0,Qt::UserRole+3).toString();!definition.isEmpty()){
             const auto occurrenceId=item->data(0,Qt::UserRole+8).toString();int definitionInstances=0;
             for(const auto& value:document_->authored()["occurrences"].toArray())if(value.toObject()["definitionId"]==definition)++definitionInstances;
@@ -535,6 +604,7 @@ AlloyWindow::AlloyWindow() {
             clipboardCopy->setEnabled(session_.isEmpty() && !occurrenceId.isEmpty());
             auto* copy=menu.addAction("Copy Component…");copy->setObjectName("context.copyComponent");copy->setEnabled(session_.isEmpty() && !occurrenceId.isEmpty());
             auto* move=menu.addAction("Move to Component…");move->setObjectName("context.reparentComponent");move->setEnabled(definitionInstances==1 && session_.isEmpty());
+            auto* rename=menu.addAction("Rename…");rename->setObjectName("context.renameComponent");rename->setEnabled(session_.isEmpty() && !occurrenceId.isEmpty());
             auto* pin=menu.addAction("Pin");pin->setObjectName("context.pinComponent");pin->setEnabled(definitionInstances==1 && session_.isEmpty());
             auto* opacity=menu.addAction("Opacity Control…");
             if(definitionInstances>1)opacity->setEnabled(false);
@@ -549,6 +619,7 @@ AlloyWindow::AlloyWindow() {
             }
             if(action==copy)execute("component.copyOccurrenceDialog",{{"occurrenceId",occurrenceId}});
             if(action==move)execute("component.reparentOccurrenceDialog",{{"occurrenceId",occurrenceId}});
+            if(action==rename)execute("component.renameDialog",{{"occurrenceId",occurrenceId}});
             if(action==pin)execute("joint.pin",{{"occurrenceId",occurrenceId}});
             if(action==opacity){
                 bool ok=false;const int value=QInputDialog::getInt(this,"Opacity Control","Opacity (%)",100,0,100,5,&ok);
@@ -680,6 +751,10 @@ AlloyWindow::AlloyWindow() {
     });
     connect(tree_,&QTreeWidget::itemDoubleClicked,this,[this](QTreeWidgetItem* item,int) {
         if(!item || item->isHidden() || !(item->flags()&Qt::ItemIsEnabled))return;
+        const auto occurrence=item->data(0,Qt::UserRole+8).toString();
+        if(!occurrence.isEmpty() && !item->data(0,Qt::UserRole+3).toString().isEmpty()){
+            QTimer::singleShot(0,this,[this,occurrence]{execute("component.renameDialog",{{"occurrenceId",occurrence}});});return;
+        }
         const auto feature=item->data(0,Qt::UserRole+6).toString().isEmpty() ? item->data(0,Qt::UserRole+2).toString() : item->data(0,Qt::UserRole+6).toString();
         if(item->parent()==jointsNode_){const auto id=item->data(0,Qt::UserRole+5).toString();QString kind;
             for(const auto& value:document_->authored().value("joints").toArray())if(value.toObject()["id"]==id)kind=value.toObject()["type"].toString();
@@ -1343,6 +1418,40 @@ void AlloyWindow::registerCommands() {
             const auto error=document_->commit(candidate,"New Component");if(!error.isEmpty())return failure("invalid_document",error);
             if(a.value("activate").toBool(true))document_->activateOwner(id);
             return QJsonObject{{"definitionId",id},{"occurrenceId",candidate["occurrences"].toArray().last().toObject()["id"]},{"activeOwnerId",document_->activeOwnerId()}};
+        });
+    add("component.rename","Rename Component","Rename one local component definition and all linked occurrence labels without changing identity or geometry.",
+        {{"definitionId",parameter("string","Stable local component definition UUID.")},{"name",parameter("string","One-line component name.")}},[this](const auto& a){
+            if(!session_.isEmpty())return failure("active_command","Finish or Cancel before renaming a component");
+            QJsonObject candidate;try{candidate=CadDocument::renameComponentCandidate(document_->authored(),a["definitionId"].toString(),a["name"].toString());}
+            catch(const std::exception& e){return failure("invalid_component_rename",QString::fromUtf8(e.what()));}
+            const auto error=document_->commit(candidate,"Rename Component");
+            return error.isEmpty() ? QJsonObject{{"definitionId",a["definitionId"]},{"name",a["name"].toString().trimmed()},{"authoredChanged",true}}
+                : failure("invalid_component_rename",error);
+        });
+    add("component.renameDialog","Rename Component…","Rename a Browser component through the shared authored command.",
+        {{"occurrenceId",parameter("string","Selected component occurrence UUID.")}},[this](const auto& a){
+            if(!session_.isEmpty())return failure("active_command","Finish or Cancel before renaming a component");
+            QString definition,current;const auto occurrence=a["occurrenceId"].toString();
+            for(const auto& v:document_->authored()["occurrences"].toArray())if(v.toObject()["id"]==occurrence)definition=v.toObject()["definitionId"].toString();
+            for(const auto& v:document_->authored()["components"].toArray())if(v.toObject()["id"]==definition)current=v.toObject()["name"].toString();
+            if(current.isEmpty())return failure("invalid_component","Select a current local component occurrence");
+            auto* dialog=new QDialog(this);dialog->setObjectName("component.rename.dialog");dialog->setWindowTitle("Rename Component");
+            dialog->setAttribute(Qt::WA_DeleteOnClose);dialog->setWindowModality(Qt::WindowModal);
+            auto* layout=new QVBoxLayout(dialog);auto* form=new QFormLayout;layout->addLayout(form);
+            auto* name=new QLineEdit(dialog);name->setObjectName("component.rename.name");name->setText(current);name->selectAll();form->addRow("Name",name);
+            auto* status=new QLabel(dialog);status->setObjectName("component.rename.status");status->setWordWrap(true);layout->addWidget(status);
+            auto* buttons=new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel,dialog);layout->addWidget(buttons);
+            connect(buttons,&QDialogButtonBox::rejected,dialog,&QDialog::reject);
+            const auto tabId=activeTabId_,documentId=document_->authored()["documentId"].toString();const auto revision=document_->revision();
+            connect(buttons,&QDialogButtonBox::accepted,dialog,[=,this]{
+                if(tabId!=activeTabId_ || documentId!=document_->authored()["documentId"] || revision!=document_->revision()){
+                    status->setText("The design changed. Restart Rename Component.");return;
+                }
+                const auto result=execute("component.rename",{{"definitionId",definition},{"name",name->text()}});
+                if(result["ok"].toBool())dialog->accept();else status->setText(result["error"].toObject()["message"].toString());
+            });
+            dialog->resize(340,150);dialog->show();name->setFocus();
+            return QJsonObject{{"visible",true},{"occurrenceId",occurrence},{"definitionId",definition},{"name",current}};
         });
     add("component.createFromBodies","Create Components from Bodies","Convert selected native root solids into identity local components in one history transaction.",
         {{"bodyIds",parameter("array","Distinct current native root body UUIDs.")}},[this](const auto& a){
@@ -4821,7 +4930,8 @@ void AlloyWindow::registerCommands() {
             : session_.value("command").toString().startsWith("sketch.") ? sketchPanel_ : unitsDialog_;
         const auto* activeModal=QApplication::activeModalWidget();
         const bool planeDialog=activeModal && (activeModal->objectName()=="constructionPlaneDialog" || activeModal->objectName()=="mesh.export.dialog" || activeModal->objectName()=="step.export.dialog"
-            || activeModal->objectName()=="component.reparent.dialog" || activeModal->objectName()=="body.rename.dialog" || activeModal==lengthParametersDialog_.data());
+            || activeModal->objectName()=="component.reparent.dialog" || activeModal->objectName()=="component.rename.dialog"
+            || activeModal->objectName()=="body.rename.dialog" || activeModal==lengthParametersDialog_.data());
         if(planeDialog)dialog=QApplication::activeModalWidget();
         if ((!planeDialog && session_.isEmpty()) || !dialog || !dialog->isVisible()) return failure("no_active_dialog", "No active dialog to capture");
         const auto pixels = dialog->grab(); QSaveFile file(path);
@@ -5074,13 +5184,17 @@ void AlloyWindow::refresh() {
         };
         auto* rootNode=bodiesNode_->parent();
         QMap<QString,QTreeWidgetItem*> ownerNodes;ownerNodes[document_->authored()["documentId"].toString()]=rootNode;
+        QSet<QString> assemblyDefinitions;
+        for(const auto& value:document_->authored()["occurrences"].toArray()){
+            const auto parent=value.toObject()["parentId"].toString();
+            if(parent!=document_->authored()["documentId"].toString())assemblyDefinitions.insert(parent);
+        }
         QSet<QString> liveOwners;
         for(const auto& value:document_->authored()["components"].toArray()) {
             const auto component=value.toObject();const auto id=component["id"].toString();liveOwners.insert(id);
-            auto* node=browserRow(rootNode,id,Qt::UserRole+3);node->setData(0,Qt::UserRole+3,id);node->setText(0,component["name"].toString());node->setHidden(false);node->setExpanded(true);ownerNodes[id]=node;
-            auto* radio=qobject_cast<QRadioButton*>(tree_->itemWidget(node,0));
-            if(!radio){radio=new QRadioButton;radio->setAutoExclusive(false);radio->setObjectName("component.activate."+id);tree_->setItemWidget(node,0,radio);connect(radio,&QRadioButton::clicked,this,[this,id]{const auto result=execute("component.activate",{{"definitionId",id}});if(!result["ok"].toBool()){displayedDocumentRevision_=std::numeric_limits<quint64>::max();refresh();statusBar()->showMessage(result["error"].toObject()["message"].toString(),5000);}});}
-            radio->setText(component["name"].toString());radio->setChecked(document_->activeOwnerId()==id);
+            const bool assembly=assemblyDefinitions.contains(id);
+            const auto label=(assembly ? QString("▣  ") : QString("◇  "))+component["name"].toString();
+            auto* node=browserRow(rootNode,id,Qt::UserRole+3);node->setData(0,Qt::UserRole+3,id);node->setText(0,label);node->setToolTip(0,assembly ? "Assembly component" : "Part component");node->setHidden(false);node->setExpanded(true);ownerNodes[id]=node;
         }
         for(const auto& value:document_->authored()["occurrences"].toArray()) {
             const auto occurrence=value.toObject();auto* node=ownerNodes.value(occurrence["definitionId"].toString());
@@ -5097,7 +5211,8 @@ void AlloyWindow::refresh() {
                 instanceNodes[id]=ownerNodes.value(occurrence["definitionId"].toString());
             else {
                 auto* node=browserRow(rootNode,id,Qt::UserRole+8);node->setData(0,Qt::UserRole+8,id);
-                node->setData(0,Qt::UserRole+3,occurrence["definitionId"]);node->setText(0,occurrence["path"].toString().section(" / ",-1));
+                const bool assembly=assemblyDefinitions.contains(occurrence["definitionId"].toString());
+                node->setData(0,Qt::UserRole+3,occurrence["definitionId"]);node->setText(0,(assembly ? QString("▣  ") : QString("◇  "))+occurrence["path"].toString().section(" / ",-1));
                 node->setToolTip(0,occurrence["path"].toString());node->setHidden(false);node->setExpanded(true);
                 node->setFlags(node->flags()|Qt::ItemIsEnabled|Qt::ItemIsSelectable);instanceNodes[id]=node;
             }
@@ -5118,6 +5233,24 @@ void AlloyWindow::refresh() {
         }
         int componentPosition=rootNode->indexOfChild(bodiesNode_);
         for(auto* node:rootComponents){rootNode->insertChild(componentPosition++,node);node->setExpanded(true);}
+        for(const auto& value:document_->authored()["components"].toArray()){
+            const auto component=value.toObject();const auto id=component["id"].toString();auto* node=ownerNodes.value(id);
+            if(!node)continue;
+            const bool assembly=assemblyDefinitions.contains(id);
+            const auto label=(assembly ? QString("▣  ") : QString("◇  "))+component["name"].toString();
+            auto* radio=dynamic_cast<ComponentActivationRadio*>(tree_->itemWidget(node,0));
+            if(!radio){radio=new ComponentActivationRadio;radio->setAutoExclusive(false);radio->setObjectName("component.activate."+id);tree_->setItemWidget(node,0,radio);connect(radio,&QRadioButton::clicked,this,[this,id]{const auto result=execute("component.activate",{{"definitionId",id}});if(!result["ok"].toBool()){displayedDocumentRevision_=std::numeric_limits<quint64>::max();refresh();statusBar()->showMessage(result["error"].toObject()["message"].toString(),5000);}});}
+            radio->renameRequested=[this,id]{
+                QString occurrence;for(const auto& value:document_->authored()["occurrences"].toArray()){
+                    const auto row=value.toObject();if(row["definitionId"]==id && row["placement"]=="identity" && !row.contains("parentOccurrenceId")){occurrence=row["id"].toString();break;}}
+                if(!occurrence.isEmpty())QTimer::singleShot(0,this,[this,occurrence]{execute("component.renameDialog",{{"occurrenceId",occurrence}});});
+            };
+            radio->dropRequested=[browserTree=dynamic_cast<BrowserTree*>(tree_),node](const QPoint& global){
+                auto* target=browserTree->itemAt(browserTree->viewport()->mapFromGlobal(global));
+                if(target && browserTree->moveRequested)browserTree->moveRequested(node,target);
+            };
+            radio->setText(label);radio->setToolTip(assembly ? "Assembly component · Double-click to rename" : "Part component · Double-click to rename");radio->setChecked(document_->activeOwnerId()==id);
+        }
         for(QTreeWidgetItemIterator it(tree_);*it;++it){auto* node=*it;const auto id=node->data(0,Qt::UserRole+3).toString();if(!id.isEmpty() && !liveOwners.contains(id))node->setHidden(true);}
         if(auto* radio=qobject_cast<QRadioButton*>(tree_->itemWidget(rootNode,0)))radio->setChecked(document_->activeOwnerId()==document_->authored()["documentId"].toString());
         auto ownerFolder=[&](const QString& owner,const QString& kind,QTreeWidgetItem* rootFolder){

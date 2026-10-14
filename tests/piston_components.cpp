@@ -58,5 +58,19 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
     check(document.bodies()[2].bodyId==bodies[2] && document.bodies()[2].ownerId==converted["components"].toArray()[2].toObject()["id"].toString(),"Source edit lost body identity/owner");
     QTemporaryDir dir;check(dir.isValid(),"Temp directory");check(document.save(dir.filePath("piston.alloy")).isEmpty(),"Save");
     CadDocument reopened;check(reopened.open(dir.filePath("piston.alloy")).isEmpty() && reopened.authored()==document.authored(),"Reopen hierarchy/source edit");
+    const auto originalOccurrence=reopened.authored()["occurrences"].toArray()[4].toObject()["id"].toString();
+    const QJsonObject copiedPlacement{{"axis","Z"},{"angleDeg",0},{"translationMm",QJsonArray{-180,0,0}}};
+    const auto copied=CadDocument::copyOccurrenceCandidate(reopened.authored(),originalOccurrence,copiedPlacement);
+    commit(reopened,copied["authored"].toObject());const auto linked=reopened.authored();
+    const auto renamed=CadDocument::renameComponentCandidate(linked,parent,"Piston pair");commit(reopened,renamed);
+    check(renamed["occurrences"]==linked["occurrences"] && renamed["features"]==linked["features"],"Rename changed identity or geometry");
+    bool sawName=false;for(const auto& value:renamed["components"].toArray())if(value.toObject()["id"]==parent)
+        sawName=value.toObject()["name"]=="Piston pair";check(sawName,"Renamed definition missing");
+    reopened.history().undo();check(reopened.authored()==linked,"Rename undo");reopened.history().redo();check(reopened.authored()==renamed,"Rename redo");
+    check(reopened.save(dir.filePath("renamed.alloy")).isEmpty(),"Save renamed copied hierarchy");
+    CadDocument renamedReopened;check(renamedReopened.open(dir.filePath("renamed.alloy")).isEmpty() && renamedReopened.authored()==renamed,
+        "Rename and linked IDs survive reopen");
+    bool invalidName=false;try{CadDocument::renameComponentCandidate(renamed,parent," \n ");}catch(const std::invalid_argument&){invalidName=true;}
+    check(invalidName && renamedReopened.authored()==renamed,"Invalid rename is atomic");
     std::cout<<"piston conversion/nesting/source edit/history/reopen/cycle passed\n";return 0;
 }catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}}

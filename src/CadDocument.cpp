@@ -501,6 +501,18 @@ QJsonObject CadDocument::componentCandidate(const QJsonObject& authored,const QS
     occurrences.append(QJsonObject{{"id",newId()},{"definitionId",id},{"parentId",authored["documentId"]},{"placement","identity"}});
     candidate["components"]=components;candidate["occurrences"]=occurrences;return candidate;
 }
+QJsonObject CadDocument::renameComponentCandidate(const QJsonObject& authored,const QString& definitionId,const QString& name) {
+    const auto displayName=name.trimmed();
+    if(displayName.isEmpty() || displayName.size()>128 || displayName.contains('\n') || displayName.contains('\r'))
+        throw std::invalid_argument("Component name must be 1..128 characters on one line");
+    auto candidate=authored;auto components=candidate["components"].toArray();bool found=false;
+    for(int index=0;index<components.size();++index){auto component=components[index].toObject();
+        if(component["id"]!=definitionId)continue;
+        component["name"]=displayName;components[index]=component;found=true;break;
+    }
+    if(!found)throw std::invalid_argument("Component definition does not exist");
+    candidate["components"]=components;return candidate;
+}
 QJsonObject CadDocument::componentsFromBodiesCandidate(const QJsonObject& authored,const EvaluatedDocument& evaluated,
     const QJsonArray& bodyIds) {
     if(bodyIds.isEmpty())throw std::invalid_argument("Select current root bodies to create components");
