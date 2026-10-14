@@ -71,8 +71,10 @@ TUT-022 remains pending its full source-step runner and creation footage;
 TUT-023 alignment rim follows. Actual final seam inspection found one closed
 U-shaped wire with18 edges, all18 now named through accepted GEO-016/#345 (`87b5ee5`),
 including12 anchored-chain identities. Source height edit/history/reopen and
-legacy Split regression pass. SKT-076/#346 is active for
-retained inset-interior profile selection. Source-to-offset shoulder bands
+legacy Split regression pass. SKT-076/#346 remains Todo for
+retained inset-interior profile selection, pending GEO-017/#347: both Arc and
+Intersection OCCT offset probes failed the actual inward1.25 result. No UI
+or ideal-outline substitute is accepted. Source-to-offset shoulder bands
 would be the wrong region. The actual port opening must remain unbridged. HIS-006 is independently accepted at `6684dac`:
 actual Bottom Fillet reorder after both Mirrors, separate opposite R0.5 group,
 24-call API/history/reopen and Qt native cancellation/drop pass. The final
@@ -103,8 +105,10 @@ and actual five-feature group remain GEO-015/SOL-053/TUT-022.
 Do not substitute the hook elbow or a transverse
 free edge merely because its Chamfer succeeds. SOL-053/#337 is independently
 accepted and closed for the source-sized YZ snap group. TUT-022 still owns the
-full source-step runner/movie; DOC-030/#344 adds retained body naming needed
-for the tutorial Browser labels. SRF-009 is active in parallel: the actual
+full source-step runner/movie; DOC-030/#344 is accepted at `cc52857` for
+retained body naming and actual Split API/history/reopen. DOC-031/#348 retains
+the unresolved native modal focus/typing gate; the context action opens and
+Escape cancels. Named body consumption currently refuses atomically. SRF-009 is active in parallel: the actual
 arc-to-line guided surface probe succeeds, and SRF-010 Thicken viability is
 confirmed on that sheet; retained application integration remains ahead.
 

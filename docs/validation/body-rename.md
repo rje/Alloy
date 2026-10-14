@@ -18,3 +18,8 @@ in the same external deliverable. This candidate does not claim that input gate.
 
 The public enclosure source requires naming the split halves Top and Bottom;
 dated source evidence is kept outside Git in the enclosure split/snap contract.
+
+Astra accepted bounded authoring/API and context open/Cancel scope on2026-10-14
+at `2c86584` (integrated `cc52857`). Native typing/focus remains DOC-031, an
+explicit TUT-022 dependency. Named body consumption is an atomic refusal,
+not automatic stale-name cleanup.
