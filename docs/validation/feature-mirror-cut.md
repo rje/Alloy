@@ -1,4 +1,4 @@
-# Retained Cut feature Mirror candidate
+# Retained Cut feature Mirror
 
 SOL-050/#326 implements the first bounded feature Mirror ingredient. The authored
 feature retains an ordered set of earlier Extrude Cut UUIDs, one target body UUID,
@@ -34,3 +34,8 @@ in 04 without altering modeling behavior. The simple distance-Cut fixture qualif
 the first feature Mirror mechanism; the source-specific To Object undercut and the
 later selected finish group remain cumulative acceptance work. Independent review
 is pending.
+
+Independent review accepts SOL-050 within this bounded scope. Main integration
+builds the app and passes the focused Cut-mirror check. The actual enclosure
+undercut and later edge-finishing group remain separately qualified by TUT-022
+and SOL-051; this acceptance does not close the full feature-Mirror parent.

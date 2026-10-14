@@ -21,8 +21,8 @@ GEO-008, SKT-071 and GEO-009 are accepted, integrated and closed.
 Current work: SKT-072/#325 construction-plane Project is accepted and integrated.
 Sol owns TUT-021 ports and its SKT-073/#328 retained closed connector-loop Offset
 prerequisite in an isolated worktree. GUI lease is back with root until needed. A second
-Sol lane implements SOL-050/#326 first Cut feature Mirror headlessly; the exact
-snap group is separately queued as SOL-051/#327. SOL-049 remains Todo as parent.
+Sol lane completed SOL-050/#326 first Cut feature Mirror, now independently
+accepted and integrated. The exact snap group design/proof is SOL-051/#327. SOL-049 remains Todo as parent.
 Astra researches exact public source steps and verifies both lanes.
 
 Next source stages are TUT-021/#322 (ports and card opening), TUT-022/#323
