@@ -1,4 +1,5 @@
 #pragma once
+#include <QJsonArray>
 #include <QJsonObject>
 #include <QUndoStack>
 #include "GeometryKernel.h"
@@ -25,6 +26,8 @@ public:
     static bool hasOwner(const QJsonObject& authored, const QString& ownerId);
     static QJsonObject componentCandidate(const QJsonObject& authored, const QString& name);
     static QJsonObject lengthParameterCandidate(const QJsonObject& authored,const QJsonObject& arguments);
+    static QJsonArray modelLengthRows(const QJsonObject& authored);
+    static QJsonObject modelLengthCandidate(const QJsonObject& authored,const QJsonObject& arguments);
     static QJsonObject resolveLengthBindings(const QJsonObject& authored);
     quint64 revision() const { return revision_; }
     QUndoStack& history() { return history_; }

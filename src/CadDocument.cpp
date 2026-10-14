@@ -367,6 +367,133 @@ QJsonObject CadDocument::resolveLengthBindings(const QJsonObject& authored) {
     }
     result["features"]=features;return result;
 }
+QJsonArray CadDocument::modelLengthRows(const QJsonObject& authored) {
+    const auto resolved=resolveLengthBindings(authored);
+    QMap<QString,QJsonObject> sources,owners;
+    for(const auto& value:authored.value("userParameters").toArray()) {
+        const auto row=value.toObject();sources[row["id"].toString()]=row;
+    }
+    owners[authored["documentId"].toString()]={{"name","Root"}};
+    for(const auto& value:authored.value("components").toArray()) {
+        const auto component=value.toObject();owners[component["id"].toString()]=component;
+    }
+    const QString units=authored.value("displayUnits").toString("mm");
+    const double scale=units=="in" ? 25.4 : 1.0;
+    const auto features=authored["features"].toArray(),resolvedFeatures=resolved["features"].toArray();
+    QJsonArray rows;
+    for(int i=0;i<features.size();++i) {
+        const auto feature=features[i].toObject(),p=feature["parameters"].toObject();
+        const auto effective=resolvedFeatures[i].toObject()["parameters"].toObject();
+        const auto type=feature["type"].toString(),featureId=feature["id"].toString();
+        const auto owner=owners.value(feature["ownerId"].toString()).value("name").toString("Root");
+        auto append=[&](const QString& field,const QString& label,const QJsonObject& target,
+                        const QJsonObject& record,const QJsonObject& computed,const QString& idKey) {
+            if(!record[field].isDouble() || !computed[field].isDouble())return;
+            const QString parameterId=record.value(idKey).toString();
+            const auto source=sources.value(parameterId);
+            const double value=computed[field].toDouble();
+            QJsonObject row{{"target",target},{"ownerId",feature["ownerId"]},{"ownerName",owner},
+                {"featureId",featureId},{"featureName",feature.value("name").toString(type)},
+                {"featureType",type},{"name",label},{"units",units},{"valueMm",value},
+                {"editable",true},{"expression",source.isEmpty() ?
+                    QString::number(record[field].toDouble()/scale,'g',10)+" "+units : source["name"].toString()}};
+            if(!source.isEmpty()) {
+                row["parameterId"]=parameterId;row["sourceName"]=source["name"];
+                row["sourceValueMm"]=source["valueMm"];
+            }
+            rows.append(row);
+        };
+        if(type=="box") {
+            for(const auto& entry:std::vector<std::pair<QString,QString>>{{"widthMm","Width"},{"depthMm","Depth"},{"heightMm","Height"}}) {
+                const auto field=entry.first;
+                append(field,entry.second,{{"featureId",featureId},{"field",field}},p,effective,field.chopped(2)+"ParameterId");
+            }
+        } else if(type=="shell") {
+            append("thicknessMm","Thickness",{{"featureId",featureId},{"field","thicknessMm"}},p,effective,"thicknessParameterId");
+        } else if(type=="extrude") {
+            if(p.value("extent").toString("distance")=="distance")
+                append("distanceMm","Distance",{{"featureId",featureId},{"field","distanceMm"}},p,effective,"distanceParameterId");
+            if(p.value("start").toString()=="offset")
+                append("startOffsetMm","Start Offset",{{"featureId",featureId},{"field","startOffsetMm"}},p,effective,"startOffsetParameterId");
+            if(p.value("extent").toString()=="toObject")
+                append("endOffsetMm","End Offset",{{"featureId",featureId},{"field","endOffsetMm"}},p,effective,"endOffsetParameterId");
+        } else if(type=="sketch") {
+            const auto dims=p.value("dimensions").toArray(),effectiveDims=effective.value("dimensions").toArray();
+            for(int j=0;j<dims.size();++j) {
+                const auto d=dims[j].toObject();
+                if(!d["driving"].toBool() || d["kind"]=="angle" || d["kind"]=="arcSweep")continue;
+                append("valueMm",d["kind"].toString()+" Dimension",
+                    {{"featureId",featureId},{"dimensionId",d["id"]}},d,effectiveDims[j].toObject(),"parameterId");
+            }
+            const auto groups=p.value("openChainOffsets").toArray(),effectiveGroups=effective.value("openChainOffsets").toArray();
+            for(int j=0;j<groups.size();++j)
+                append("signedDistanceMm","Chain Offset",{{"featureId",featureId},{"offsetGroupId",groups[j].toObject()["id"]}},
+                    groups[j].toObject(),effectiveGroups[j].toObject(),"distanceParameterId");
+        }
+    }
+    return rows;
+}
+QJsonObject CadDocument::modelLengthCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
+    if(arguments.size()!=2 || !arguments["target"].isObject() || !arguments["expression"].isString())
+        throw std::invalid_argument("Model parameter needs a stable target and expression");
+    const auto target=arguments["target"].toObject();
+    QJsonObject selected;
+    for(const auto& value:modelLengthRows(authored))if(value.toObject()["target"].toObject()==target) {
+        if(!selected.isEmpty())throw std::invalid_argument("Ambiguous model parameter target");
+        selected=value.toObject();
+    }
+    if(selected.isEmpty())throw std::invalid_argument("Model parameter target is unavailable");
+    const auto expression=arguments["expression"].toString().trimmed();
+    if(expression.isEmpty())throw std::invalid_argument("Model parameter expression is required");
+    const QRegularExpression literal(QStringLiteral(R"(^([+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?)\s*(mm|in)?$)"),
+        QRegularExpression::CaseInsensitiveOption);
+    const auto match=literal.match(expression);
+    QString parameterId;double value=0;
+    if(match.hasMatch()) {
+        bool valid=false;const double number=match.captured(1).toDouble(&valid);
+        const auto units=match.captured(2).isEmpty() ? authored.value("displayUnits").toString("mm") : match.captured(2).toLower();
+        if(!valid || !std::isfinite(number))throw std::invalid_argument("Model parameter needs a finite length");
+        value=millimeters(number,units);
+    } else {
+        for(const auto& entry:authored.value("userParameters").toArray())if(entry.toObject()["name"]==expression) {
+            const auto source=entry.toObject();parameterId=source["id"].toString();value=source["valueMm"].toDouble();break;
+        }
+        if(parameterId.isEmpty())throw std::invalid_argument("User length name is unavailable");
+    }
+    auto candidate=authored;auto features=candidate["features"].toArray();
+    int index=-1;for(int i=0;i<features.size();++i)if(features[i].toObject()["id"]==target["featureId"]) {index=i;break;}
+    if(index<0)throw std::invalid_argument("Model feature is unavailable");
+    auto feature=features[index].toObject(),p=feature["parameters"].toObject();
+    QString field=target.value("field").toString(),idKey;
+    QJsonObject record=p;
+    int nestedIndex=-1;QString nestedCollection;
+    if(target.contains("dimensionId") || target.contains("offsetGroupId")) {
+        nestedCollection=target.contains("dimensionId") ? "dimensions" : "openChainOffsets";
+        const auto id=target.value(target.contains("dimensionId") ? "dimensionId" : "offsetGroupId").toString();
+        const auto entries=p[nestedCollection].toArray();
+        for(int j=0;j<entries.size();++j)if(entries[j].toObject()["id"]==id) {nestedIndex=j;record=entries[j].toObject();break;}
+        if(nestedIndex<0)throw std::invalid_argument("Model sub-parameter is unavailable");
+        field=target.contains("dimensionId") ? "valueMm" : "signedDistanceMm";
+    }
+    if(target.contains("dimensionId"))idKey="parameterId";
+    else if(target.contains("offsetGroupId"))idKey="distanceParameterId";
+    else if(field.endsWith("Mm"))idKey=field.chopped(2)+"ParameterId";
+    else throw std::invalid_argument("Unsupported model length field");
+    record[field]=value;
+    if(parameterId.isEmpty())record.remove(idKey);else record[idKey]=parameterId;
+    if(target.contains("offsetGroupId")) {
+        if(parameterId.isEmpty())record.remove("sideSign");
+        else {
+            const double old=selected["valueMm"].toDouble();
+            const int side=old<0 ? -1 : 1;
+            record["sideSign"]=side;record[field]=side*value;
+        }
+    }
+    if(nestedIndex>=0) {auto entries=p[nestedCollection].toArray();entries[nestedIndex]=record;p[nestedCollection]=entries;}
+    else p=record;
+    feature["parameters"]=p;features[index]=feature;candidate["features"]=features;
+    return candidate;
+}
 QString CadDocument::newId() { return QUuid::createUuid().toString(QUuid::WithoutBraces); }
 CadDocument::CadDocument() { reset(); }
 std::vector<EvaluatedBody> CadDocument::worldBodies(std::optional<double> transientPositionMm) const {
@@ -1188,7 +1315,7 @@ QJsonObject CadDocument::state() const {
     }
     QJsonArray evaluatedPlanes;
     for(const auto& plane:evaluation_->constructionPlanes)evaluatedPlanes.append(QJsonObject{{"ownerId",plane.ownerId},{"featureId",plane.featureId},{"name",plane.name},{"visible",plane.visible},{"frame",plane.frame}});
-    return {{"activeOwnerId",activeOwnerId()},{"components",authored_["components"].toArray()},{"occurrences",authored_["occurrences"].toArray()},{"assembly",assemblyState()},{"userParameters",authored_["userParameters"].toArray()},{"loaded", true}, {"id", authored_["documentId"]}, {"label", path_.isEmpty() ? "Untitled" : QFileInfo(path_).completeBaseName()}, {"path",path_},
+    return {{"activeOwnerId",activeOwnerId()},{"components",authored_["components"].toArray()},{"occurrences",authored_["occurrences"].toArray()},{"assembly",assemblyState()},{"userParameters",authored_["userParameters"].toArray()},{"modelParameters",modelLengthRows(authored_)},{"loaded", true}, {"id", authored_["documentId"]}, {"label", path_.isEmpty() ? "Untitled" : QFileInfo(path_).completeBaseName()}, {"path",path_},
         {"units", authored_["displayUnits"]}, {"canonicalLengthUnit", "mm"},
         {"revision", static_cast<qint64>(revision_)}, {"dirty", !history_.isClean()},
         {"lastTransactionId", lastTransaction_},
