@@ -46,11 +46,12 @@
       "id": "CP-28",
       "title": "Base sketch first solid",
       "issues": [
+        "VIS-005",
         "TUT-027"
       ],
       "status": "in_progress",
       "acceptance": "Continue dimensioned sketch with native Finish, Press Pull, all three regions and48.25mm New Body; valid editable solid and history/reopen.",
-      "remaining": "Sol validating native3region48.25mm PressPull. Existing typed-depth slice accepted separately; broadSOL016 dragCut remains open. Missing taper field retained with SOL010."
+      "remaining": "Native04 solid/history passes, but selected regions lack before-depth fill. VIS-005 active fixes actual selection feedback; full source recording pending. Missing taper control remains qualified with SOL-010."
     },
     {
       "id": "CP-29",

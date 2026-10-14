@@ -59,7 +59,11 @@ edits. Ten dimensions, eight Tangents, three valid cells and observed0DOF; exact
 authored/evaluated history/reopen pass. Existing R10 is reused. The19.866s native
 continuation movie/model are alongside the construction movie in the gallery at
 `#base-sketch-dimensions`; all146 local links resolve. [Receipt](validation/base-sketch-dimensions.md).
-TUT-027/#394 is active with Sol: Finish Sketch, Modify > Press Pull, three regions,
+TUT-027/#394 native04 passes solid/history but is Todo pending VIS-005/#396.
+Sol is fixing selected-profile fill before depth entry: state reports3selected
+but native04 has no filled selection, contrary to the source instruction.
+VIS-005 is the sole active implementation; no kernel change is planned.
+The cumulative workflow is Finish Sketch, Modify > Press Pull, three regions,
 48.25mm New Body. It reuses the independently accepted typed-depth slice in
 [the multi-profile receipt](validation/multi-profile-extrusion.md). Broad SOL-016
 remains open for its unrelated five-hole arrow-drag/platform-toggle acceptance;
@@ -70,7 +74,7 @@ missing retained taper/control remains with open SOL-010. Sol owns UI/CMake/buil
 TUT-028/#395 is queued: cap-face sketch, referenced circle centers, diameters10/8/8,
 then three-profile Cut/All/Flip. Public sources/visuals/contracts stay external;
 existing SKT-013/010 and SOL-015/047 ingredients must pass this native combination.
-Backlog is395 issues with acyclic dependencies. Astra independently verifies.
+Backlog is396 issues with acyclic dependencies. Astra independently verifies.
 Only main and its existing build are used; no inactive worktrees accumulate.
 DOC-031/#348 is independently accepted at `89782cf`: unchanged-product native09
 passes modal line focus, rename commit, Browser label and unchanged geometry.

@@ -6770,7 +6770,8 @@
       "depends_on": [
         "TUT-026",
         "SOL-001",
-        "SKT-009"
+        "SKT-009",
+        "VIS-005"
       ],
       "key": "TUT-027",
       "phase": "P2 Parametric modeling",
@@ -6796,6 +6797,21 @@
         "area:tut"
       ],
       "body": "## Problem and result\nContinue the first solid with a sketch on its planar end cap, three centered hole profiles, and one Press Pull Cut All with Flip. Preserve center references to the original round features and verify three through-openings in the same retained body.\n\n## Source steps\n- Select Sketch > Create Sketch and choose the shown planar extrusion cap face.\n- Select Sketch > Circle > Center Diameter; click the center of the existing right circle feature, drag, type 10 mm and press Enter twice. The public prose says this center is locked to the original boss center; moving the annotation is optional.\n- Repeat for two circles centered on the lower arc and left circle, set both diameters to 8 mm, and select Stop Sketch. Record exact center identities and retained attachment behavior; source does not define Alloy's relation schema or tool reactivation timing.\n- Select Modify > Press Pull; select all three circle profiles; set Cut, All and Flip Direction; select OK. Do not invent a modifier key or pick order absent from the source.\n\n## Acceptance\n- From the saved/reopened TUT-027 solid, create the native cap-face sketch and three circles in public order without API-seeding the face or geometry. The \u00d810 and both \u00d88 values are authored driving dimensions.\n- Each circle center retains a stable reference to its intended existing feature center (right lobe, lower arc center, left lobe); inspect records separately and confirm a meaningful source geometry edit carries the attached centers. Do not assert a source-mandated relation type.\n- Native Press Pull selects three distinct circular profiles and previews the full Cut/All/Flip direction. Commit one retained cut feature with All extent and Flip, modifying the existing body and producing three through-openings. Preserve all three profile references and one target body identity.\n- Inspect solid validity, body count, through-hole connectivity, retained parameters, volume and history independently. Do not invent expected volume or solver tolerances from the source screenshots.\n- Preview cancellation leaves authored state unchanged; one \u00d88 edit and restore, undo/redo, and save/reopen preserve center attachment and All/Flip cut history. Compare GPU capture with printed pp.28-29 with source scale/theme/version qualified.\n\n## Verification\nOne continuous native continuation from TUT-027: cap face selection, circle center/diameter inputs, Stop Sketch, three profile picks, Cut/All/Flip and OK. Assert focus/selection readiness between inputs. Inspect the three profile IDs, retained center refs and feature parameters through shared state/API; use a focused geometry check for three through-openings and one valid body; check preview cancel, a reversible diameter edit, undo/redo and save/reopen. Reuse accepted SKT-013/010 and SOL-015/047 suites without rerunning unchanged work. Keep native, API, geometry/history and visual receipts separate.\n\n## Dependencies and limits\nThis is a source-specific continuation, not a new face sketch, circle, or Cut primitive. The current authored model accepts `profileIds` with `extent: all`; the accepted All receipt covers one profile, while this three-profile All+Flip combination remains a cumulative validation gate. If actual validation reveals a code gap, split only that concrete remainder under SOL-047 after review. Do not include later challenge geometry or modeling lesson.\n\nPublic source printedpp28\u201329, retrieved2026-10-14. Full provenance remains external at knowledge/tutorials/after-expressions/base-sketch-face-holes-cut-contract-2026-10-14.md. Planned, not accepted.\n"
+    },
+    {
+      "key": "VIS-005",
+      "title": "Highlight selected Press Pull profiles before depth entry",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SOL-001",
+        "SKT-009"
+      ],
+      "labels": [
+        "area:vis"
+      ],
+      "body": "## Problem and result\nTUT-027 native04 selects three profile IDs and the dock reports three selected regions, but the viewport shows no filled selection before distance entry. The public first-solid instruction explicitly asks the user to select the three regions until the entire area is highlighted. Selection feedback must exist before a nonzero solid preview.\n\n## Bounded scope and acceptance\n- Display selected planar profile regions using existing selection material while Press Pull collects its inputs, independent of extrusion depth/preview validity.\n- Match the actual selected stable profile IDs; preserve normal unselected appearance and clear the temporary selection on Cancel or completion.\n- Keep selection visible/consistent when the real extrusion preview becomes available. No kernel or authored model change, no mock body.\n- Preserve native04 geometry/history acceptance and run only the corrected native selection/preview route with original before-depth and after-depth captures. Independent review must inspect the actual selected area, not only the dock count.\n\n## Evidence and limits\nPublic printedp28, retrieved2026-10-14; reference provenance remains external at knowledge/tutorials/after-expressions/base-sketch-first-solid-contract-2026-10-14.md. Astra and implementation agent independently confirmed the missing fill in actual native04 capture. Exact source colors/pixels are not claimed. Full three-region48.25mm workflow recording remains TUT-027, which depends on this correction.\n"
     }
   ]
 }
