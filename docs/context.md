@@ -1,12 +1,13 @@
 # Continuation context
 
-## Enclosure recompute candidate (2026-10-14)
+## Accepted enclosure recompute improvement (2026-10-14)
 
 REL-009/#356 uses invocation-local solved-history prefixes to remove repeated
 OCCT replay inside one candidate recompute. Exact final source and R0.5→R0.45
 Fillet edit retain identical authored/body/sketch summaries and fall from
 12.950/13.596s to4.701/4.706s headless; append/organization regressions pass2/2.
-Independent review and actual-app verification remain pending. See
+Independent review and the 36-call actual-app tail pass: opens about5.1s,
+Fillet edit4.9s and undo/redo0.2s. No GUI before/after ratio is claimed. See
 [the bounded receipt](validation/document-recompute-prefix.md). REL-004 remains
 open for broader product performance budgets.
 

@@ -32,7 +32,12 @@ profiler stay outside Git in
 `../Alloy-reference-records/deliverables/enclosure-recompute-profile-2026-10-14/`.
 The original tutorial fixture stays in the enclosure workflow deliverables.
 
-Independent review and actual application verification remain pending. Headless
+Independent source, headless comparison and actual-app review accepted this
+bounded change. The 36-call saved-enclosure tail passes against the same source
+with actual Fillet edit, history/reopen, GPU clipping and individual STL checks.
+Actual app opens took 5.150/5.059 seconds, Fillet edit 4.891 seconds and undo/redo
+0.194–0.196 seconds. Evidence is in the external `app-01` subdirectory. These are
+current-app measurements, not a measured before/after GUI ratio. Headless
 wall time does not establish native-input/GPU command time, explain all movie
 waiting, or qualify broader REL-004 budgets. No geometry tolerances, radii or
 display quality policy change. This does not accept a new tutorial recording.
