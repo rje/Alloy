@@ -912,7 +912,7 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
                             participants.push_back(*found);
                         }
                         auto joined=joinResults(feature,participants,selected);
-                        if(selected.size()==1){evaluated.joinFeatureTools[id]=joined.sourceTools;
+                        if(joined.sourceTools.size()==1){evaluated.joinFeatureTools[id]=joined.sourceTools;
                             evaluated.joinFeatureEdges[id]=joined.sourceEdges;
                             evaluated.joinFeatureCaps[id]=joined.sourceCaps;}
                         std::erase_if(evaluated.bodies,[&](const auto& body){return targets.contains(body.bodyId);});

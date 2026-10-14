@@ -145,5 +145,18 @@ GeometryKernel::JoinResult GeometryKernel::joinResults(const QJsonObject& featur
     QSet<QString> surviving;for(const auto& group:groups){result.ownership.append(group.record);surviving.insert(group.body.bodyId);}
     QJsonArray consumed;for(const auto& participant:participants)if(!surviving.contains(participant.bodyId))consumed.append(participant.bodyId);
     for(auto& group:groups){group.body.summary["bodyResults"]=result.ownership;group.body.summary["consumedBodyIds"]=consumed;result.bodies.push_back(std::move(group.body));}
+    // A Mirror of a connected multi-region Join needs the one authored union
+    // prism. Keep the established Join material/ownership evaluation above;
+    // disconnected selections continue to work as ordinary Joins, but cannot
+    // be replayed as the bounded single-prism snap group.
+    if(profiles.size()>1 && participants.size()==1 && result.bodies.size()==1){
+        try {
+            const auto united=unionProfiles(profiles);
+            EvaluatedSupportFace cap;std::vector<EvaluatedSolidEdge> boundaries;
+            auto tool=extrusion(united,distance,&cap,&boundaries,id,nullptr,start);
+            result.sourceTools={tool};result.sourceCaps={cap};result.sourceEdges=std::move(boundaries);
+        }
+        catch(const std::exception&) { /* Optional Mirror source stays unavailable; ordinary Join is unchanged. */ }
+    }
     return result;
 }

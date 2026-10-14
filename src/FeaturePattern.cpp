@@ -304,9 +304,33 @@ void FeaturePattern::mirrorSnapGroup(EvaluatedBody& target,const QJsonObject& fe
         if(curve.GetType()!=GeomAbs_Line)fail("mirror_edge_unsupported","Snap Mirror currently requires straight finish edges",sourceId);
         auto first=curve.Value(curve.FirstParameter()),last=curve.Value(curve.LastParameter());
         first.Transform(reflection);last.Transform(reflection);
+        const bool selectedUnion=sources.value(joinId)["parameters"].toObject()["profileIds"].toArray().size()>1;
+        const auto sourceProvenance=source.provenance;
+        const bool corner=sourceProvenance["role"]=="sideCorner";
+        if(selectedUnion && (sourceProvenance["sourceSketchId"].toString().isEmpty()
+            || (corner ? sourceProvenance["contact"].toString().isEmpty()
+                : sourceProvenance["sourceEntityId"].toString().isEmpty()
+                    || sourceProvenance["startContact"].toString().isEmpty()
+                    || sourceProvenance["endContact"].toString().isEmpty())))
+            fail("mirror_edge_unavailable","Selected-region source finish lacks complete edge provenance",sourceId);
         QString found;int matches=0;
         for(const auto& candidate:target.solidEdges){
             if(candidate.edge.IsNull())continue;
+            if(selectedUnion){
+                const auto provenance=candidate.provenance;
+                if(provenance["mirrorFeatureId"]!=feature["id"]
+                    || provenance["sourceFeatureId"]!=joinId
+                    || provenance["sourceSketchId"]!=sourceProvenance["sourceSketchId"]
+                    || provenance["role"]!=sourceProvenance["role"])
+                    continue;
+                if(corner){if(provenance["contact"]!=sourceProvenance["contact"])continue;}
+                else {
+                    if(provenance["sourceEntityId"]!=sourceProvenance["sourceEntityId"])continue;
+                    const auto a=sourceProvenance["startContact"],b=sourceProvenance["endContact"];
+                    if(!((provenance["startContact"]==a && provenance["endContact"]==b)
+                        || (provenance["startContact"]==b && provenance["endContact"]==a)))continue;
+                }
+            }
             BRepAdaptor_Curve current(candidate.edge);
             if(current.GetType()!=GeomAbs_Line)continue;
             const auto a=current.Value(current.FirstParameter()),b=current.Value(current.LastParameter());
@@ -314,7 +338,8 @@ void FeaturePattern::mirrorSnapGroup(EvaluatedBody& target,const QJsonObject& fe
             if((a.Distance(first)<1e-6 && b.Distance(last)<1e-6)
                 || (a.Distance(last)<1e-6 && b.Distance(first)<1e-6)){found=candidate.edgeId;++matches;}
         }
-        if(matches!=1)fail("mirror_edge_ambiguous","A reflected source finish edge has no unique current descendant",sourceId);
+        if(matches!=1)fail("mirror_edge_ambiguous",
+            QString("A reflected source finish edge has %1 current matching descendants").arg(matches),sourceId);
         return found;
     };
     for(int index=1;index<5;++index){
