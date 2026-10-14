@@ -364,6 +364,8 @@ AlloyWindow::AlloyWindow() {
         connect(button,&QToolButton::clicked,this,[this,tab]{execute("ui.designTab",{{"tab",tab}});});
         tabs->addWidget(button);
     }
+    auto* positionTab=new QToolButton;positionTab->setText("POSITION");positionTab->setObjectName("design.tab.position");positionTab->setFocusPolicy(Qt::NoFocus);positionTab->setCheckable(true);positionTab->setFixedHeight(30);positionTab->setStyleSheet("QToolButton { padding: 0 10px; border: none; } QToolButton:checked { font-weight: 700; border-bottom: 2px solid #2b83ae; }");positionTab->hide();
+    connect(positionTab,&QToolButton::clicked,this,[this]{execute("ui.designTab",{{"tab","position"}});});tabs->addWidget(positionTab);
     tabs->addStretch(); ribbonRight->addLayout(tabs);
     auto* solidGroups = new QWidget; solidGroups->setObjectName("design.groups.solid");
     auto* groups = new QHBoxLayout(solidGroups); groups->setContentsMargins(0,0,0,0);groups->setSpacing(14);
@@ -432,6 +434,7 @@ AlloyWindow::AlloyWindow() {
     groups->addWidget(selectMenuButton,0,Qt::AlignVCenter);
     groups->addStretch();
     ribbonRight->addWidget(solidGroups);
+    auto* positionGroups=new QWidget;positionGroups->setObjectName("design.groups.position");auto* positionLayout=new QHBoxLayout(positionGroups);auto* revert=qobject_cast<QToolButton*>(commandButton("position.revert","↶",true));revert->setText("Revert");revert->setAccessibleName("Revert");revert->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);revert->setFixedSize(70,60);revert->setObjectName("position.command.revert");positionLayout->addWidget(revert);positionLayout->addStretch();positionGroups->hide();ribbonRight->addWidget(positionGroups);
     auto* surfaceGroups=new QWidget;surfaceGroups->setObjectName("design.groups.surface");
     groups=new QHBoxLayout(surfaceGroups);groups->setContentsMargins(0,0,0,0);groups->setSpacing(14);groupPrefix="surface";
     group("CREATE", {{"sketch.create", "▧"}, {"surface.extrudeDialog", "▤"}, {"surface.loftDialog", "◒"}});
@@ -868,6 +871,7 @@ AlloyWindow::AlloyWindow() {
     for(const auto key:{Qt::Key_Return,Qt::Key_Enter}) {
         auto* finishTool=new QShortcut(QKeySequence(key),view_);finishTool->setContext(Qt::WidgetShortcut);
         connect(finishTool,&QShortcut::activated,this,[this]{
+            if(session_.value("command")=="component.copyPlacement"){execute("command.commit",{{"session",session_["id"]}});return;}
             if(session_.value("command")=="solid.hole"){if(previewHole()["previewed"].toBool())execute("command.commit",{{"session",session_["id"]}});return;}
             if(session_.value("command")=="solid.sphere"){if(previewSphere()["previewed"].toBool())execute("command.commit",{{"session",session_["id"]}});return;}
             if(session_.value("command")!="sketch.edit")return;
@@ -977,6 +981,7 @@ void AlloyWindow::updateTimelineDrop(const QPoint& globalPosition) {
 }
 
 bool AlloyWindow::eventFilter(QObject* watched,QEvent* event) {
+    if(componentCopyKey(watched,event))return true;
     if(timelineDragging_ && event->type()==QEvent::KeyPress
         && static_cast<QKeyEvent*>(event)->key()==Qt::Key_Escape){cancelTimelineDrag(true);return true;}
     if(auto* button=qobject_cast<QToolButton*>(watched);button && !button->property("featureId").toString().isEmpty()){
@@ -1265,6 +1270,7 @@ void AlloyWindow::registerCommands() {
     };
     registerCanvasCommands();
     registerSectionCommands();
+    registerComponentCopyCommands();
     registerSliderCommands();
     registerRevoluteCommands();
     registerCylindricalCommands();
@@ -1546,42 +1552,7 @@ void AlloyWindow::registerCommands() {
             result.remove("authored");return result;
         });
     add("component.copyOccurrenceDialog","Copy Component…","Review an absolute parent-local placement for one linked subtree.",
-        {{"occurrenceId",parameter("string","Retained source occurrence UUID.")},{"fromClipboard",optional(parameter("boolean","Open from the local component clipboard."))}},[this,clipboardSource](const auto& a){
-            if(!session_.isEmpty())return failure("active_command","Finish or Cancel before copying a component");
-            if(!jointGraphStage_.isEmpty() || transientSliderPosition_.has_value())
-                return failure("staged_pose","Revert the previewed assembly position before copying a component");
-            const bool fromClipboard=a["fromClipboard"].toBool();
-            if(fromClipboard){const auto source=clipboardSource();
-                if(source.contains("ok"))return source;
-                if(source["occurrenceId"]!=a["occurrenceId"])
-                    return failure("stale_component_clipboard","The copied component changed; Copy it again");}
-            QString sourcePath;for(const auto& value:LocalOccurrences::inspect(document_->authored(),document_->evaluation())["occurrences"].toArray())
-                if(value.toObject()["occurrenceId"]==a["occurrenceId"])sourcePath=value.toObject()["path"].toString();
-            if(sourcePath.isEmpty())return failure("invalid_component_copy","Choose a current local component occurrence");
-            auto* dialog=new QDialog(this);dialog->setObjectName("component.copy.dialog");dialog->setWindowTitle("Copy Component");
-            dialog->setAttribute(Qt::WA_DeleteOnClose);dialog->setWindowModality(Qt::WindowModal);
-            auto* layout=new QVBoxLayout(dialog);auto* intro=new QLabel("Linked copy of "+sourcePath+". Placement is absolute in the parent component.",dialog);
-            intro->setWordWrap(true);layout->addWidget(intro);auto* form=new QFormLayout;layout->addLayout(form);
-            auto numeric=[&](const char* object,double initial,const char* label){auto* box=new QDoubleSpinBox(dialog);box->setObjectName(object);
-                box->setRange(-100000,100000);box->setDecimals(3);box->setSuffix(QString::fromUtf8(label).contains("Rotation")?"°":" mm");box->setValue(initial);form->addRow(label,box);return box;};
-            auto* x=numeric("component.copy.x",0,"X");auto* y=numeric("component.copy.y",0,"Y");
-            auto* z=numeric("component.copy.z",0,"Z");auto* angle=numeric("component.copy.angle",0,"Rotation Z");
-            auto* status=new QLabel(dialog);status->setWordWrap(true);layout->addWidget(status);
-            auto* buttons=new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel,dialog);layout->addWidget(buttons);
-            buttons->button(QDialogButtonBox::Ok)->setDefault(true);
-            connect(buttons,&QDialogButtonBox::rejected,dialog,&QDialog::reject);const auto tabId=activeTabId_,id=a["occurrenceId"].toString();
-            connect(buttons,&QDialogButtonBox::accepted,dialog,[=,this]{if(activeTabId_!=tabId){status->setText("Return to the original design");return;}
-                if(fromClipboard){const auto source=clipboardSource();
-                    if(source.contains("ok") || source["occurrenceId"]!=id){
-                        status->setText(source.contains("ok") ? source["error"].toObject()["message"].toString()
-                            : "The copied component changed; Copy it again");return;}}
-                const auto placement=QJsonObject{{"axis","Z"},{"angleDeg",angle->value()},
-                    {"translationMm",QJsonArray{x->value(),y->value(),z->value()}}};
-                const auto result=fromClipboard ? execute("component.pasteOccurrence",{{"placement",placement}})
-                    : execute("component.copyOccurrence",{{"occurrenceId",id},{"placement",placement}});
-                if(result["ok"].toBool())dialog->accept();else status->setText(result["error"].toObject()["message"].toString());});
-            dialog->resize(400,285);dialog->show();return QJsonObject{{"visible",true},{"sourcePath",sourcePath}};
-        });
+        {{"occurrenceId",parameter("string","Retained source occurrence UUID.")},{"fromClipboard",optional(parameter("boolean","Open from the local component clipboard."))}},[this](const auto& a){return beginComponentCopy(a);});
     add("component.reparentOccurrence","Move Component","Move existing identity component occurrences beneath root or an empty/local parent without changing world geometry.",
         {{"occurrenceIds",parameter("array","Distinct local occurrence UUIDs.")},{"destinationId",parameter("string","Parent component definition UUID or root document UUID.")}},[this](const auto& a){
             if(!session_.isEmpty())return failure("active_command","Finish or Cancel before moving components");
@@ -2009,10 +1980,11 @@ void AlloyWindow::registerCommands() {
         QJsonObject candidate;try{candidate=loftCandidate(a);}catch(const std::exception& e){return failure("invalid_arguments",QString::fromUtf8(e.what()));}
         const auto error=document_->commit(candidate,"Loft");if(!error.isEmpty()){auto r=failure("evaluation_failed",error);auto details=r["error"].toObject();details["diagnostics"]=document_->lastEvaluationError();r["error"]=details;return r;}return document_->state();
     });
-    add("ui.designTab","Design tab","Switch Solid/Surface command groups without changing selection or an active dialog (Alloy policy).",{{"tab",parameter("string","solid or surface")}},[this](const auto& a){
-        const auto tab=a["tab"].toString();if(tab!="solid" && tab!="surface")return failure("invalid_arguments","Expected solid or surface","tab");
+    add("ui.designTab","Design tab","Switch Solid/Surface or the staged assembly Position group without changing document state.",{{"tab",parameter("string","solid, surface or contextual position")}},[this](const auto& a){
+        const auto tab=a["tab"].toString();if(tab!="solid" && tab!="surface" && tab!="position")return failure("invalid_arguments","Expected solid, surface or contextual position","tab");
+        if(tab=="position" && jointGraphStage_.isEmpty()&&!transientSliderPosition_.has_value())return failure("position_unavailable","Move an assembly component before opening Position");
         designTab_=tab;
-        for(const QString& value:{"solid","surface"}) {
+        for(const QString& value:{"solid","surface","position"}) {
             if(auto* panel=findChild<QWidget*>("design.groups."+value))panel->setVisible(value==tab);
             if(auto* button=findChild<QToolButton*>("design.tab."+value))button->setChecked(value==tab);
         }
@@ -4557,6 +4529,7 @@ void AlloyWindow::registerCommands() {
     auto updateSchema = sessionId; updateSchema["inputs"] = parameter("object", "Partial input changes; unknown fields are rejected.");
     add("command.update", "Update command inputs", "Validate and update the actual dialog draft without committing intent.", updateSchema, [this](const auto& a) {
         if (session_.isEmpty() || session_.value("id") != a["session"]) return failure("invalid_session", "Session is no longer active");
+        if(session_.value("command")=="component.copyPlacement")return updateComponentCopy(a["inputs"].toObject());
         if(session_.value("command").toString().startsWith("canvas."))return updateCanvas(a["inputs"].toObject());
         auto inputs = session_.value("inputs").toObject();
         const auto updates = a["inputs"].toObject();
@@ -4772,6 +4745,7 @@ void AlloyWindow::registerCommands() {
     });
     add("command.preview", "Inspect command preview", "Inspect disposable authored draft; no evaluated geometry is implied.", sessionId, [this](const auto& a) {
         if (session_.isEmpty() || session_.value("id") != a["session"]) return failure("invalid_session", "Session is no longer active");
+        if(session_.value("command")=="component.copyPlacement")return previewComponentCopy();
         if(session_.value("command").toString().startsWith("canvas."))return previewCanvas();
         if(session_.value("command")=="solid.extrude") {
             const auto preview=previewExtrude();
@@ -4839,7 +4813,7 @@ void AlloyWindow::registerCommands() {
     add("command.panelDock","Dock command panel","Dock or float the active modeling panel through Qt.",
         {{"docked",parameter("boolean","True docks the panel on the right; false floats it.")}},[this](const auto& a){
             const auto target=session_.value("command").toString();
-            auto* dock=target=="surface.trim" ? surfaceTrimDock_ : target=="body.remove" ? removeBodyDock_ : target.startsWith("canvas.") ? canvasDock_ : target=="solid.splitBody" ? splitBodyDock_ : target=="construction.midplane" ? midplaneDock_ : target=="construction.tangentPlane" ? tangentPlaneDock_ : target=="construction.pathPlane" ? pathPlaneDock_ : target=="joint.slider" || target=="joint.revolute" || target=="joint.cylindrical" ? sliderDock_ : target=="inspect.section" ? sectionDock_ : target=="solid.sweep" ? sweepDock_ : target=="solid.revolve" ? revolveDock_ : target=="solid.hole" ? holeDock_ : target=="solid.sphere" ? sphereDock_ : target=="solid.chamfer" ? chamferDock_ : target=="solid.fillet" ? filletDock_ : target=="solid.rectangularPattern" ? patternDock_ : target=="solid.loft" ? loftDock_ : target=="surface.extrude" ? surfaceExtrudeDock_ : target=="solid.thicken" ? thickenDock_ : target=="solid.shell" ? shellDock_ : target=="solid.circularPattern" ? circularDock_ : target=="solid.mirror" ? mirrorDock_ : target=="solid.featureMirror" ? featureMirrorDock_ : target=="solid.move" ? moveDock_ : target=="solid.extrude" ? extrudeDock_ : target=="solid.combine" ? combineDock_ : target.startsWith("sketch.") ? sketchDock_ : target.startsWith("solid.") ? primitiveDock_ : nullptr;
+            auto* dock=target=="component.copyPlacement" ? componentCopyDock_ : target=="surface.trim" ? surfaceTrimDock_ : target=="body.remove" ? removeBodyDock_ : target.startsWith("canvas.") ? canvasDock_ : target=="solid.splitBody" ? splitBodyDock_ : target=="construction.midplane" ? midplaneDock_ : target=="construction.tangentPlane" ? tangentPlaneDock_ : target=="construction.pathPlane" ? pathPlaneDock_ : target=="joint.slider" || target=="joint.revolute" || target=="joint.cylindrical" ? sliderDock_ : target=="inspect.section" ? sectionDock_ : target=="solid.sweep" ? sweepDock_ : target=="solid.revolve" ? revolveDock_ : target=="solid.hole" ? holeDock_ : target=="solid.sphere" ? sphereDock_ : target=="solid.chamfer" ? chamferDock_ : target=="solid.fillet" ? filletDock_ : target=="solid.rectangularPattern" ? patternDock_ : target=="solid.loft" ? loftDock_ : target=="surface.extrude" ? surfaceExtrudeDock_ : target=="solid.thicken" ? thickenDock_ : target=="solid.shell" ? shellDock_ : target=="solid.circularPattern" ? circularDock_ : target=="solid.mirror" ? mirrorDock_ : target=="solid.featureMirror" ? featureMirrorDock_ : target=="solid.move" ? moveDock_ : target=="solid.extrude" ? extrudeDock_ : target=="solid.combine" ? combineDock_ : target.startsWith("sketch.") ? sketchDock_ : target.startsWith("solid.") ? primitiveDock_ : nullptr;
             if(!dock)
                 return failure("no_active_dialog","No modeling panel is active");
             dock->setFloating(!a["docked"].toBool());
@@ -4937,6 +4911,7 @@ void AlloyWindow::registerCommands() {
             : session_.value("command").toString() == "solid.sphere" ? sphereDock_->widget()
             : session_.value("command").toString() == "solid.chamfer" ? chamferDock_->widget()
             : session_.value("command").toString() == "solid.fillet" ? filletDock_->widget()
+            : session_.value("command")=="component.copyPlacement" ? componentCopyDock_->widget()
             : session_.value("command").toString() == "solid.move" ? moveDock_->widget()
             : session_.value("command").toString() == "solid.extrude" ? extrudePanel_
             : session_.value("command").toString() == "solid.combine" ? combinePanel_
@@ -5071,16 +5046,17 @@ QJsonObject AlloyWindow::state() const {
         : target=="solid.circularPattern" ? bool(circularDock_ && circularDock_->isVisible())
         : target=="solid.mirror" ? bool(mirrorDock_ && mirrorDock_->isVisible())
         : target=="solid.featureMirror" ? bool(featureMirrorDock_ && featureMirrorDock_->isVisible())
+        : target=="component.copyPlacement" ? bool(componentCopyDock_ && componentCopyDock_->isVisible())
         : target=="solid.move" ? bool(moveDock_ && moveDock_->isVisible())
         : target=="solid.extrude" ? bool(extrudePanel_ && extrudePanel_->isVisible())
         : target=="solid.combine" ? bool(combinePanel_ && combinePanel_->isVisible())
         : target.startsWith("solid.") ? bool(primitivePanel_ && primitivePanel_->isVisible())
         : target.startsWith("sketch.") ? bool(sketchPanel_ && sketchPanel_->isVisible()) : bool(unitsDialog_ && unitsDialog_->isVisible());
-    const auto dialogInputs=session_.isEmpty() ? QJsonObject{} : (target=="construction.tangentPlane" || target=="solid.splitBody" || target=="joint.slider" || target=="joint.revolute" || target=="joint.cylindrical" || target=="inspect.section" || target=="solid.hole" || target=="solid.sweep" || target=="solid.revolve" || target=="solid.sphere" || target=="solid.chamfer" || target=="solid.fillet" || target=="solid.rectangularPattern" || target=="solid.loft" || target=="surface.extrude" || target=="surface.trim" || target=="body.remove" || target=="solid.thicken" || target=="solid.shell" || target=="solid.circularPattern" || target=="solid.mirror" || target=="solid.featureMirror" || target=="solid.move" || target=="solid.extrude" || target=="solid.combine") ? session_.value("inputs").toObject() : target.startsWith("solid.") ? primitiveWidgetInputs()
+    const auto dialogInputs=session_.isEmpty() ? QJsonObject{} : (target=="construction.tangentPlane" || target=="solid.splitBody" || target=="joint.slider" || target=="joint.revolute" || target=="joint.cylindrical" || target=="inspect.section" || target=="solid.hole" || target=="solid.sweep" || target=="solid.revolve" || target=="solid.sphere" || target=="solid.chamfer" || target=="solid.fillet" || target=="solid.rectangularPattern" || target=="solid.loft" || target=="surface.extrude" || target=="surface.trim" || target=="body.remove" || target=="solid.thicken" || target=="solid.shell" || target=="solid.circularPattern" || target=="solid.mirror" || target=="solid.featureMirror" || target=="component.copyPlacement" || target=="solid.move" || target=="solid.extrude" || target=="solid.combine") ? session_.value("inputs").toObject() : target.startsWith("solid.") ? primitiveWidgetInputs()
         : target.startsWith("sketch.") ? session_.value("inputs").toObject()
         : target=="commands.search" ? QJsonObject{{"query",searchInput_ ? searchInput_->text() : QString{}}}
         : QJsonObject{{"units",unitsInput_ ? unitsInput_->currentText() : QString{}}};
-    const auto* activeDock=target=="surface.trim" ? surfaceTrimDock_ : target=="body.remove" ? removeBodyDock_ : target=="construction.tangentPlane" ? tangentPlaneDock_ : target=="solid.splitBody" ? splitBodyDock_ : target=="joint.slider" || target=="joint.revolute" || target=="joint.cylindrical" ? sliderDock_ : target=="inspect.section" ? sectionDock_ : target=="solid.sweep" ? sweepDock_ : target=="solid.revolve" ? revolveDock_ : target=="solid.hole" ? holeDock_ : target=="solid.sphere" ? sphereDock_ : target=="solid.chamfer" ? chamferDock_ : target=="solid.fillet" ? filletDock_ : target=="solid.rectangularPattern" ? patternDock_ : target=="solid.loft" ? loftDock_ : target=="surface.extrude" ? surfaceExtrudeDock_ : target=="solid.thicken" ? thickenDock_ : target=="solid.shell" ? shellDock_ : target=="solid.circularPattern" ? circularDock_ : target=="solid.mirror" ? mirrorDock_ : target=="solid.featureMirror" ? featureMirrorDock_ : target=="solid.move" ? moveDock_ : target=="solid.extrude" ? extrudeDock_ : target=="solid.combine" ? combineDock_ : target.startsWith("sketch.") ? sketchDock_ : primitiveDock_;
+    const auto* activeDock=target=="component.copyPlacement" ? componentCopyDock_ : target=="surface.trim" ? surfaceTrimDock_ : target=="body.remove" ? removeBodyDock_ : target=="construction.tangentPlane" ? tangentPlaneDock_ : target=="solid.splitBody" ? splitBodyDock_ : target=="joint.slider" || target=="joint.revolute" || target=="joint.cylindrical" ? sliderDock_ : target=="inspect.section" ? sectionDock_ : target=="solid.sweep" ? sweepDock_ : target=="solid.revolve" ? revolveDock_ : target=="solid.hole" ? holeDock_ : target=="solid.sphere" ? sphereDock_ : target=="solid.chamfer" ? chamferDock_ : target=="solid.fillet" ? filletDock_ : target=="solid.rectangularPattern" ? patternDock_ : target=="solid.loft" ? loftDock_ : target=="surface.extrude" ? surfaceExtrudeDock_ : target=="solid.thicken" ? thickenDock_ : target=="solid.shell" ? shellDock_ : target=="solid.circularPattern" ? circularDock_ : target=="solid.mirror" ? mirrorDock_ : target=="solid.featureMirror" ? featureMirrorDock_ : target=="solid.move" ? moveDock_ : target=="solid.extrude" ? extrudeDock_ : target=="solid.combine" ? combineDock_ : target.startsWith("sketch.") ? sketchDock_ : primitiveDock_;
     const auto panelRect=activeDock ? QRect(activeDock->mapToGlobal(QPoint())-mapToGlobal(QPoint()),activeDock->size()) : QRect{};
     QJsonArray popups;
     for(auto* popup:QApplication::topLevelWidgets()) {
@@ -5152,6 +5128,7 @@ QJsonObject AlloyWindow::state() const {
 }
 
 void AlloyWindow::refresh() {
+    refreshPositionTab();
     refreshLengthParameters();
     if (!browser_) return;
     for(auto it=selectionPriorityActions_.begin();it!=selectionPriorityActions_.end();++it)
@@ -6769,6 +6746,7 @@ void AlloyWindow::showPathPlane() {
 }
 
 QJsonObject AlloyWindow::finishSession(const QString& id, bool commit) {
+    if(session_.value("command")=="component.copyPlacement")return finishComponentCopy(id,commit);
     if(session_.value("command").toString().startsWith("canvas."))return finishCanvas(id,commit);
     if (session_.isEmpty() || session_.value("id").toString() != id) return failure("invalid_session", "Session is no longer active");
     if(commit && session_.value("invalidEndOffset").toBool())return failure("invalid_arguments","Resolve the end offset before committing");

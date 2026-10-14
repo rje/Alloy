@@ -356,6 +356,7 @@ void ReferenceView::sync() {
     const gp_Dir frameU(u[0].toDouble(),u[1].toDouble(),u[2].toDouble());
     viewer_->SetPrivilegedPlane(gp_Ax3(frameOrigin,frameNormal,frameU));
     axes_->SetComponent(new Geom_Axis2Placement(gp_Ax2(frameOrigin,frameNormal,frameU)));
+    if(!moveCueState_.isEmpty())showMoveCue(moveCueState_["inputs"].toObject());
     context_->Redisplay(axes_,false);
     // Keep the sketch grid under the whole drawable. Its graphic center moves
     // only in whole grid steps, so panning never shifts the origin lattice.
@@ -2024,7 +2025,9 @@ void ReferenceView::showMoveCue(const QJsonObject& inputs) {
     const auto scale=windowScale();auto screen=[&](const gp_Pnt& p){int x,y;view_->Convert(p.X(),p.Y(),p.Z(),x,y);return QJsonObject{{"x",x/scale.x()},{"y",y/scale.y()}};};
     // Screen-sized solid local-triad handles avoid platform GL line-width clamps.
     const double radius=view_->Camera()->Scale()*0.065;
-    const gp_Vec axes[]={gp_Vec(1,0,0),gp_Vec(0,1,0),gp_Vec(0,0,1)};
+    gp_Vec axes[]={gp_Vec(1,0,0),gp_Vec(0,1,0),gp_Vec(0,0,1)};
+    const auto frame=inputs["axisFrame"].toArray();if(frame.size()==12){gp_Trsf basis;basis.SetValues(frame[0].toDouble(),frame[1].toDouble(),frame[2].toDouble(),0,frame[4].toDouble(),frame[5].toDouble(),frame[6].toDouble(),0,frame[8].toDouble(),frame[9].toDouble(),frame[10].toDouble(),0);for(auto& axis:axes)axis.Transform(basis);}
+    const bool translationOnly=inputs.value("translationOnly").toBool();
     QJsonArray handles;
     for(int axis=0;axis<3;++axis){
         const auto a=axes[axis].Transformed(transform),u=axes[(axis+1)%3].Transformed(transform),v=axes[(axis+2)%3].Transformed(transform);
@@ -2033,9 +2036,9 @@ void ReferenceView::showMoveCue(const QJsonObject& inputs) {
         const auto end=center.Translated(a*radius*1.65);
         builder.Add(shape,BRepPrimAPI_MakeCylinder(gp_Ax2(center,gp_Dir(a)),shaftRadius,radius*1.65-arrowLength).Shape());
         builder.Add(shape,BRepPrimAPI_MakeCone(gp_Ax2(end.Translated(a*(-arrowLength)),gp_Dir(a)),radius*.12,0,arrowLength).Shape());
-        builder.Add(shape,BRepPrimAPI_MakeTorus(gp_Ax2(center,gp_Dir(a),gp_Dir(u)),radius,shaftRadius).Shape());
+        if(!translationOnly)builder.Add(shape,BRepPrimAPI_MakeTorus(gp_Ax2(center,gp_Dir(a),gp_Dir(u)),radius,shaftRadius).Shape());
         QJsonArray ring;gp_Pnt previous=center.Translated(u*radius);ring.append(screen(previous));
-        for(int i=1;i<=64;++i){const double angle=i*2*std::acos(-1.0)/64;const auto point=center.Translated(u*(radius*std::cos(angle))+v*(radius*std::sin(angle)));ring.append(screen(point));previous=point;}
+        for(int i=1;!translationOnly&&i<=64;++i){const double angle=i*2*std::acos(-1.0)/64;const auto point=center.Translated(u*(radius*std::cos(angle))+v*(radius*std::sin(angle)));ring.append(screen(point));previous=point;}
         auto cue=new AIS_Shape(shape);cue->SetZLayer(Graphic3d_ZLayerId_Topmost);cue->SetColor(axis==0 ? Quantity_Color(.88,.12,.10,Quantity_TOC_sRGB) : axis==1 ? Quantity_Color(.08,.57,.18,Quantity_TOC_sRGB) : Quantity_Color(.08,.30,.88,Quantity_TOC_sRGB));cue->Attributes()->SetShadingModel(Graphic3d_TOSM_UNLIT);cue->Attributes()->SetFaceBoundaryDraw(false);cue->SetOwnDeviationCoefficient(.0001);context_->Display(cue,AIS_Shaded,-1,false);context_->Deactivate(cue);moveCue_.push_back(cue);
         handles.append(QJsonObject{{"axis",axis},{"start",screen(center)},{"end",screen(end)},{"mmLength",radius*1.65},{"ring",ring},{"basisU",screen(center.Translated(u*radius))},{"basisV",screen(center.Translated(v*radius))}});
     }
@@ -2485,7 +2488,7 @@ void ReferenceView::mousePressEvent(QMouseEvent* e) {
             if(d<best){best=d;picked=h;mode="translation";}
             auto ring=h["ring"].toArray();for(int i=1;i<ring.size();++i){auto d=distance(e->position(),point(ring[i-1].toObject()),point(ring[i].toObject()));if(d<best){best=d;picked=h;mode="rotation";}}
         }
-        if(!picked.isEmpty()){setFocus(Qt::MouseFocusReason);moveDrag_={{"handle",picked},{"mode",mode},{"pressX",e->position().x()},{"pressY",e->position().y()},{"initialInputs",moveCueState_["inputs"]}};e->accept();return;}
+        if(!picked.isEmpty()){setFocus(Qt::MouseFocusReason);moveDrag_={{"handle",picked},{"mode",mode},{"pressX",e->position().x()},{"pressY",e->position().y()},{"initialInputs",moveCueState_["inputs"]},{"handleCommand",moveCueState_["inputs"].toObject().value("handleCommand").toString("solid.moveHandle")},{"releaseCommand",moveCueState_["inputs"].toObject().value("releaseCommand").toString("solid.moveApplyGesture")}};e->accept();return;}
     }
     if(e->button()==Qt::RightButton)++rightMousePressCount_;
     if (e->button() == Qt::MiddleButton || (e->button()==Qt::LeftButton && e->modifiers().testFlag(Qt::AltModifier))) {
@@ -2593,7 +2596,7 @@ void ReferenceView::mouseMoveEvent(QMouseEvent* e) {
         const int axis=h["axis"].toInt();const QStringList distances{"xMm","yMm","zMm"},angles{"xDeg","yDeg","zDeg"};QString key;double delta=0;
         if(moveDrag_["mode"]=="translation") {auto direction=point(h["end"].toObject())-center;auto length2=QPointF::dotProduct(direction,direction);if(length2<1e-8)return;delta=QPointF::dotProduct(e->position()-press,direction)/length2*h["mmLength"].toDouble();key=distances[axis];}
         else {const auto u=point(h["basisU"].toObject())-center,v=point(h["basisV"].toObject())-center;const auto determinant=u.x()*v.y()-u.y()*v.x();if(std::abs(determinant)<1e-8)return;auto angle=[&](const QPointF& p){auto q=p-center;return std::atan2((u.x()*q.y()-u.y()*q.x())/determinant,(q.x()*v.y()-q.y()*v.x())/determinant);};delta=std::remainder(angle(e->position())-angle(press),2*std::acos(-1.0))*180/std::acos(-1.0);key=angles[axis];}
-        if(dispatch)dispatch("solid.moveHandle",{{"field",key},{"value",moveDrag_["initialInputs"].toObject()[key].toDouble()+delta}});e->accept();return;
+        if(dispatch)dispatch(moveDrag_.value("handleCommand").toString("solid.moveHandle"),{{"field",key},{"value",moveDrag_["initialInputs"].toObject()[key].toDouble()+delta}});e->accept();return;
     }
 
     if(extrusionDragActive_ && e->buttons().testFlag(Qt::LeftButton)) {
@@ -2674,7 +2677,7 @@ void ReferenceView::mouseReleaseEvent(QMouseEvent* e) {
             {"startX",drag["startX"]},{"startY",drag["startY"]},{"x",e->position().x()},{"y",e->position().y()}});e->accept();return;
     }
     if(!revolveDrag_.isEmpty() && e->button()==Qt::LeftButton){updateRevolveDrag(e->position(),"end");revolveDrag_={};e->accept();return;}
-    if(!moveDrag_.isEmpty() && e->button()==Qt::LeftButton){moveDrag_={};if(dispatch)dispatch("solid.moveApplyGesture",{});e->accept();return;}
+    if(!moveDrag_.isEmpty() && e->button()==Qt::LeftButton){const auto command=moveDrag_.value("releaseCommand").toString("solid.moveApplyGesture");moveDrag_={};if(dispatch)dispatch(command,{});e->accept();return;}
 
     if(e->button()==Qt::LeftButton && extrusionDragActive_) {
         updateExtrusionDrag(e->position(),"end");extrusionDragActive_=false;e->accept();return;

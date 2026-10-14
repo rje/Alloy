@@ -65,6 +65,17 @@ private:
     void registerRevoluteCommands();
     void registerCylindricalCommands();
     void registerLocalReferenceCommands();
+    void registerComponentCopyCommands();
+    QJsonObject beginComponentCopy(const QJsonObject& args);
+    QJsonObject previewComponentCopy();
+    QJsonObject updateComponentCopy(const QJsonObject& changes);
+    QJsonObject finishComponentCopy(const QString& sessionId,bool commit);
+    bool componentCopyKey(QObject* object,QEvent* event);
+    void refreshPositionTab();
+    QDockWidget* componentCopyDock_=nullptr;
+    QShortcut* componentCopyEscape_=nullptr;
+    quint64 componentCopyPreviewRevision_=0;
+
     QJsonObject showReferenceMove(const QString& featureId);
     QJsonObject pendingReference_;
     std::shared_ptr<const EvaluatedDocument> pendingReferenceEvaluation_;

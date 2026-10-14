@@ -75,7 +75,7 @@ private slots:
         call(window,"position.revert");
 
         call(window,"component.copyOccurrenceDialog",{{"occurrenceId",parent}});
-        QPointer<QDialog> dialog=window.findChild<QDialog*>("component.copy.dialog");QVERIFY(dialog && dialog->isVisible());
+        QPointer<QDockWidget> dialog=window.findChild<QDockWidget*>("component.copy.dialog");QVERIFY(dialog && dialog->isVisible());
         auto* x=dialog->findChild<QDoubleSpinBox*>("component.copy.x");QVERIFY(x);
         QTest::mouseClick(x,Qt::LeftButton);QTest::keyClick(x,Qt::Key_A,Qt::ControlModifier);
         QTest::keyClicks(x,"-180");QTest::keyClick(x,Qt::Key_Tab);QCOMPARE(x->value(),-180.0);

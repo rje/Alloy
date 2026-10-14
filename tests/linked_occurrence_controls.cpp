@@ -5,6 +5,7 @@
 #include <QApplication>
 #include <QContextMenuEvent>
 #include <QDialog>
+#include <QDockWidget>
 #include <QDialogButtonBox>
 #include <QDir>
 #include <QDoubleSpinBox>
@@ -54,13 +55,13 @@ private slots:
         QVERIFY(!parentId.isEmpty() && !childId.isEmpty());
         auto* tree=window.findChild<QTreeWidget*>("browser.tree");QVERIFY(tree);tree->expandAll();
         copyAction(window,tree,row(tree,parentId,Qt::UserRole+8));
-        QPointer<QDialog> dialog=window.findChild<QDialog*>("component.copy.dialog");QVERIFY(dialog && dialog->isVisible());
+        QPointer<QDockWidget> dialog=window.findChild<QDockWidget*>("component.copy.dialog");QVERIFY(dialog && dialog->isVisible());
         QCOMPARE(dialog->findChild<QDoubleSpinBox*>("component.copy.x")->value(),0.0);
         const auto authored=before["authored"];
         QTest::keyClick(dialog,Qt::Key_Escape);QTRY_VERIFY(!dialog || !dialog->isVisible());
         QCOMPARE(call(window,"document.inspect")["authored"],authored);
         copyAction(window,tree,row(tree,parentId,Qt::UserRole+8));
-        dialog=window.findChild<QDialog*>("component.copy.dialog");QVERIFY(dialog && dialog->isVisible());
+        dialog=window.findChild<QDockWidget*>("component.copy.dialog");QVERIFY(dialog && dialog->isVisible());
         auto* x=dialog->findChild<QDoubleSpinBox*>("component.copy.x");QVERIFY(x);
         QTest::mouseClick(x,Qt::LeftButton);QTest::keyClick(x,Qt::Key_A,Qt::ControlModifier);
         QTest::keyClicks(x,"-180");QTest::keyClick(x,Qt::Key_Tab);QCOMPARE(x->value(),-180.0);

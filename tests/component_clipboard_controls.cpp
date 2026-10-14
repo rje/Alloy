@@ -4,7 +4,11 @@
 #include <QApplication>
 #include <QClipboard>
 #include <QContextMenuEvent>
-#include <QDialog>
+#include <QDockWidget>
+#include "ReferenceView.h"
+#include <QMouseEvent>
+#include <QToolButton>
+#include <cmath>
 #include <QDialogButtonBox>
 #include <QDoubleSpinBox>
 #include <QJsonDocument>
@@ -39,8 +43,8 @@ class ComponentClipboardControlsTest final : public QObject {
                 && !(*it)->data(0,Qt::UserRole+3).toString().isEmpty() && !(*it)->isHidden())return *it;
         return nullptr;
     }
-    static QDialog* visibleCopyDialog(AlloyWindow& window) {
-        for(auto* dialog:window.findChildren<QDialog*>("component.copy.dialog"))if(dialog->isVisible())return dialog;
+    static QDockWidget* visibleCopyDialog(AlloyWindow& window) {
+        for(auto* dialog:window.findChildren<QDockWidget*>("component.copy.dialog"))if(dialog->isVisible())return dialog;
         return nullptr;
     }
     static void browserCopy(QTreeWidget* tree,QTreeWidgetItem* item) {
@@ -63,7 +67,7 @@ private slots:
         const auto source=qEnvironmentVariable("ALLOY_ASM019_SOURCE");
         QVERIFY(!source.isEmpty());
         AlloyTheme::apply(*qApp);AlloyWindow window;window.resize(1510,920);window.show();
-        QVERIFY(QTest::qWaitForWindowExposed(&window));window.activateWindow();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));window.activateWindow();QApplication::setActiveWindow(&window);
         call(window,"document.open",{{"path",source},{"discard",true}});
         const auto starting=call(window,"document.inspect"),authored=starting["authored"].toObject();
         QString parentDefinition,parentOccurrence;
@@ -74,7 +78,11 @@ private slots:
         QVERIFY(!parentOccurrence.isEmpty());
         const auto driver=authored["joints"].toArray()[0].toObject()["id"].toString();
         call(window,"joint.angleSet",{{"jointId",driver},{"angleDeg",0}});
-        QApplication::setActiveWindow(&window);window.setFocus();
+
+        ReferenceView* view=nullptr;for(auto* child:window.findChildren<QWidget*>())if(auto* found=dynamic_cast<ReferenceView*>(child)){view=found;break;}QVERIFY(view);call(window,"view.orientation",{{"name","front"}});call(window,"view.home");
+        const auto assembly=window.state()["assembly"].toObject();const auto poses=assembly["occurrences"];const auto frame=assembly["joints"].toArray()[0].toObject()["originFrameWorld"].toArray();const auto pivot=view->projectWorldPoint({frame[3],frame[7],frame[11]});QString upperDefinition,upperBody;for(const auto& v:authored["components"].toArray())if(v.toObject()["name"]=="Upper arm")upperDefinition=v.toObject()["id"].toString();for(const auto& v:starting["evaluation"].toObject()["bodies"].toArray())if(v.toObject()["ownerId"]==upperDefinition)upperBody=v.toObject()["bodyId"].toString();const auto projection=call(window,"view.projectBody",{{"bodyId",upperBody}});const QPoint projected(qRound(projection["x"].toDouble()),qRound(projection["y"].toDouble()));QPoint armPress;double furthest=0;for(int x=-75;x<=75;x+=15)for(int y=-60;y<=60;y+=15){const QPoint p=projected+QPoint(x,y);if(!view->rect().contains(p)||view->pickBody(p.x(),p.y())!=upperBody)continue;const double distance=QLineF(QPointF(p),pivot).length();if(distance>furthest){furthest=distance;armPress=p;}}QVERIFY(furthest>35);const auto armRadius=QPointF(armPress)-pivot;const double radians=12*std::acos(-1.)/180;const QPoint armTarget(qRound(pivot.x()+std::cos(radians)*armRadius.x()-std::sin(radians)*armRadius.y()),qRound(pivot.y()+std::sin(radians)*armRadius.x()+std::cos(radians)*armRadius.y()));QTest::mousePress(view,Qt::LeftButton,Qt::NoModifier,armPress);QVERIFY(view->hasFocus());QMouseEvent armDrag(QEvent::MouseMove,armTarget,view->mapToGlobal(armTarget),Qt::NoButton,Qt::LeftButton,Qt::NoModifier);QApplication::sendEvent(view,&armDrag);QTest::mouseRelease(view,Qt::LeftButton,Qt::NoModifier,armTarget);QVERIFY(std::abs(window.state()["assembly"].toObject()["joints"].toArray()[0].toObject()["coordinateDeg"].toDouble())>1);
+auto* positionTab=window.findChild<QToolButton*>("design.tab.position");QVERIFY(positionTab&&positionTab->isVisible());QTest::mouseClick(positionTab,Qt::LeftButton);auto* revert=window.findChild<QToolButton*>("position.command.revert");QVERIFY(revert&&revert->isVisible());QTest::mouseClick(revert,Qt::LeftButton);QCOMPARE(window.state()["assembly"].toObject()["occurrences"],poses);QVERIFY(!positionTab->isVisible());
+
         auto* tree=window.findChild<QTreeWidget*>("browser.tree");QVERIFY(tree);tree->expandAll();
         auto* item=row(tree,parentOccurrence);QVERIFY(item);
         browserCopy(tree,item);
@@ -85,17 +93,24 @@ private slots:
         const auto rest=call(window,"document.inspect")["authored"].toObject();
 
         QTest::keyClick(tree,Qt::Key_V,Qt::ControlModifier);
-        QPointer<QDialog> dialog=visibleCopyDialog(window);
+        QPointer<QDockWidget> dialog=visibleCopyDialog(window);
         QVERIFY(dialog && dialog->isVisible());
-        QVERIFY(dialog->windowTitle().contains("Copy"));
+        QVERIFY(dialog->windowTitle().contains("Paste"));
+        QVERIFY(!QApplication::activeModalWidget());
         QTest::keyClick(dialog,Qt::Key_Escape);
         QTRY_VERIFY(!dialog || !dialog->isVisible());
         QCOMPARE(call(window,"document.inspect")["authored"].toObject(),rest);
 
-        QTest::keyClick(tree,Qt::Key_V,Qt::ControlModifier);
+        QVERIFY(view && view->hasFocus());
+        QTest::keyClick(view,Qt::Key_V,Qt::ControlModifier);
         dialog=visibleCopyDialog(window);QVERIFY(dialog && dialog->isVisible());
         auto* x=dialog->findChild<QDoubleSpinBox*>("component.copy.x");QVERIFY(x);
         QCOMPARE(x->value(),0.0);
+        const auto preview=window.state()["activeSession"].toObject();const auto ephemeral=preview["copyResult"].toObject()["rootOccurrenceId"];
+        const auto handles=call(window,"viewport.moveHandles")["handles"].toArray();QCOMPARE(handles.size(),3);const auto handle=handles[0].toObject();QCOMPARE(handle["ring"].toArray().size(),1);
+        auto point=[](const QJsonObject& p){return QPointF(p["x"].toDouble(),p["y"].toDouble());};const auto center=point(handle["start"].toObject()),end=point(handle["end"].toObject());const QPoint press=(center+(end-center)*.65).toPoint();const QPoint target=(QPointF(press)-(end-center)*.5).toPoint();QVERIFY(view->rect().contains(press)&&view->rect().contains(target));
+        QTest::mousePress(view,Qt::LeftButton,Qt::NoModifier,press);QVERIFY(view->hasFocus());QMouseEvent drag(QEvent::MouseMove,target,view->mapToGlobal(target),Qt::NoButton,Qt::LeftButton,Qt::NoModifier);QApplication::sendEvent(view,&drag);QTest::mouseRelease(view,Qt::LeftButton,Qt::NoModifier,target);QVERIFY(x->value()<-.1);QCOMPARE(window.state()["activeSession"].toObject()["copyResult"].toObject()["rootOccurrenceId"],ephemeral);QCOMPARE(window.state()["activeSession"].toObject()["copyResult"].toObject()["occurrenceMap"],preview["copyResult"].toObject()["occurrenceMap"]);QCOMPARE(call(window,"document.inspect")["authored"].toObject(),rest);
+
         {
             ClipboardRestore restore(QApplication::clipboard());
             QApplication::clipboard()->setText("12");
@@ -114,6 +129,9 @@ private slots:
         for(int i=0;i<rest["joints"].toArray().size();++i)
             QCOMPARE(result["joints"].toArray()[i],rest["joints"].toArray()[i]);
         QCOMPARE(result["components"],rest["components"]);
+        QVERIFY(window.state()["activeSession"].toObject().isEmpty());
+        const auto committedRevision=call(window,"document.inspect")["revision"];
+        QTest::keyClick(view,Qt::Key_Return);QCOMPARE(call(window,"document.inspect")["authored"].toObject(),result);
         QCOMPARE(call(window,"component.clipboardInspect")["occurrenceId"].toString(),parentOccurrence);
         if(!evidence.isEmpty())call(window,"capture.screenshot",{{"path",evidence+"/native-pasted-piston.png"}});
 
