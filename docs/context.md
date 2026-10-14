@@ -87,15 +87,15 @@ Its21.133s film and editable model are in the external gallery, alongside a123.8
 joined four-session film from blank; all165 local links resolve. Five intermediate
 preview refusals, Qt/menu adaptation and separately performed API checks remain
 qualified. See [full receipt](validation/base-sketch-face-holes.md).
-No additional ingredient reruns are needed. TUT-019/#305 waits on active FND-027/#401: recover
+No additional ingredient reruns are needed. TUT-019/#305 is active after accepted FND-027/#401: recover
 the existing cumulative native piston harness and its source ledger, retaining
 accepted API/geometry/native-child evidence. Sol owns the single build/GUI lease;
-Astra verifies. Native12/13 traces confirm conversion succeeds but dialog closure leaves no
-active window while ApplicationActive. FND-027 implements one guarded completion
-activation of the owning window, skipping changed app/document/window context.
-Native14 now passes conversion handback and exposes the same New Component
-closure defect. FND-027 covers this component-modal class with one shared guarded
-helper; Rename remains source-reviewed until exercised. Astra reviews the helper.
+Astra verifies. FND-027 is independently accepted at af828d8: native15 passively verifies main
+activation after conversion, New Component and Rename; no inter-step harness
+focus repair. Shared one-shot callback is guarded by lifetime, active app,
+current tab/document and no competing modal/popup/window. Native15 is still an
+overall failed cumulative run at the fourth joint's upper mounting-bore hover.
+Sol is diagnosing that exact camera/occlusion versus pick issue; no broad sweep.
 Backlog is401 issues with acyclic dependencies. Astra independently verifies.
 Only main and its existing build are used; no inactive worktrees accumulate.
 DOC-031/#348 is independently accepted at `89782cf`: unchanged-product native09
