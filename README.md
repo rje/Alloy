@@ -171,7 +171,10 @@ This source ends at Finish Sketch and does not produce a print mesh.
 [Named length parameters](docs/validation/named-length-parameters.md) now bind
 sketch dimensions and Extrude distance by stable identity, with native name
 entry, atomic recompute and undo/save/reopen. This bounded slice supports direct
-names and numeric lengths; general arithmetic expressions remain ahead.
+names and numeric lengths. [User length expressions](docs/validation/length-expressions.md)
+now add dependency-aware arithmetic such as `Length=Width*2`, with stable rename
+references, atomic geometry updates and focused table/API/history/reopen evidence.
+Functions, broader units and anonymous formulas in model fields remain ahead.
 [Box and Shell parameters](docs/validation/box-shell-parameters.md)
 extend those stable bindings to the three Box dimensions and inward Shell
 thickness, with native field entry and focused real-app validation. Independent

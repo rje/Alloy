@@ -5,8 +5,10 @@
 Worktree cleanup removed 180 inactive checkouts, retaining branch refs and a
 verified external artifact archive under
 `maintenance/worktree-cleanup-2026-10-14/`. The subsequently completed `sketch-offset-union` checkout was also retired.
-Only main and `native-exchange` / `sketch-badges` remain; the latter two retain
-untracked local files. Old worktree build paths no longer exist:
+Only main now remains. The final `native-exchange` and `sketch-badges` checkouts
+were retired after confirming all commits have integrated equivalents and
+archiving their ten untracked files with SHA-256 verification under the cleanup
+record's `final-two/` directory. Both branch refs remain. Old worktree build paths no longer exist:
 recreate a branch checkout if needed and recover evidence using that archive
 manifest. Canonical external deliverables and the video gallery are unchanged.
 
@@ -14,7 +16,7 @@ SKT-074/#330 is independently accepted and integrated at `8241b66`, with
 owned test-ID/API provenance correction at `33ea70a`. Main application build,
 closed Offset and extrusion document checks pass. Real-app clearance edits,
 exact coverage, history/reopen and visual preview are accepted; native aggregate
-selection remains SKT-078/#377 Todo. The completed worktree was retired after
+selection is separately accepted under SKT-078/#377 below. The completed worktree was retired after
 preserving evidence externally. See [receipt](validation/closed-offset-union.md).
 DOC-029/#334 is implemented on main at `eddc86e`: Browser Edit can change a
 retained section without replacing the active sketch. Actual-app API04 passes
@@ -37,12 +39,14 @@ Pre-activation projection versus queued viewport sync is plausible but unproven.
 DOC-031/#348 is back in Todo: native06/07 reached the actual modal dialog
 but focus stayed on a button. The ineffective opening activation change was
 reverted; draft and evidence remain in the external body-rename deliverable.
-PAR-006/#378 is active for bounded dependency-aware user length expressions.
-Public behavior research and an independent design review are complete. Existing
-model bindings reuse evaluated parameter IDs; anonymous model-field formulas,
-functions and broader unit algebra remain in PAR-001. See the canonical issue
-contract and external `knowledge/specs/par001-length-expression-slice-2026-10-14.md`.
-Implementation and validation reuse main and its build; no new worktrees.
+PAR-006/#378 is independently accepted and closed at `187f262`. User length
+formulas such as `Length=Width*2` retain reference UUIDs through rename and drive
+existing model bindings through evaluated values. Core named/model checks pass;
+API01 changes an 80×40×5 rectangle extrusion to 90×45×5 (16000→20250 mm³),
+with refusal, history and reopen checks. Native04 passes focused Qt Expression
+cell typing and synchronized form display. Functions, broader unit algebra and
+anonymous model-field formulas remain PAR-001. See [receipt](validation/length-expressions.md).
+Implementation and validation reused main and its build; no new worktrees.
 FND-001 comparison policy is accepted in docs/compatibility.md; FND-025/#376
 retains unknown public screenshot metadata and unproven layout generations.
 

@@ -44,3 +44,11 @@ through `app.quit(discard:true)`; no export file or authored edit was created.
 Result: #167 remains unqualified for native STEP Open, unit switch and nondefault
 mesh settings. Earlier native mm STEP/default STL and accepted API/independent
 reader evidence remain unchanged. No app change is justified by this result.
+
+## Evidence relocation (2026-10-14)
+
+The inactive checkout was retired after its commit was confirmed integrated.
+Its untracked evidence, including the validation bundle, is preserved in the
+external `maintenance/worktree-cleanup-2026-10-14/final-two/untracked-files.tar.gz`;
+`manifest.json` maps original paths and verified SHA-256 hashes. The branch
+`test/native-exchange` remains available. The paths above describe the original run.
