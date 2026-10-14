@@ -33,7 +33,8 @@ EvaluatedBody surfaceLoft(const QJsonObject& feature,const EvaluatedDocument& pr
     auto source=[&](const QJsonObject& ref,const QString& type)->std::pair<const EvaluatedSketch*,QJsonObject> {
         for(const auto& sketch:prior.sketches)if(sketch.featureId==ref["sketchId"].toString()) {
             if(!sketch.entityEdges.contains(ref["entityId"].toString()))break;
-            for(const auto& row:sketch.summary["entities"].toArray())if(row.toObject()["id"]==ref["entityId"] && row.toObject()["type"]==type)
+            for(const auto& row:sketch.summary["entities"].toArray())if(row.toObject()["id"]==ref["entityId"] && row.toObject()["type"]==type
+                && !row.toObject()["construction"].toBool())
                 return {&sketch,row.toObject()};
             break;
         }

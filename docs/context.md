@@ -1,5 +1,16 @@
 # Continuation context
 
+## Guided open-surface Loft candidate (2026-10-14)
+
+SRF-009 has an isolated candidate in `feat/surface-loft`. It creates a root
+child component with one OCCT open sheet face from retained arc, line and
+fit-spline centerline entities. Exact builder lineage supplies one face and
+four stable boundary IDs. Focused core, 36-call real-app API and Qt-native
+source-selection/Cancel checks pass; [the candidate receipt](validation/surface-loft.md)
+records scope and input-evidence limits. Independent acceptance and main
+integration remain pending. SRF-010 Thicken will consume the evaluated sheet
+as a distinct retained source; the complete shoehorn workflow remains open.
+
 ## Accepted local object organization (2026-10-14)
 
 ASM-007 is independently accepted for separate body and sketch-folder moves

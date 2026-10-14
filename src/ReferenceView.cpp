@@ -403,11 +403,14 @@ void ReferenceView::displayBodies(const std::vector<EvaluatedBody>& bodies) {
         // The finer legacy angular mesh stalled small multi-fillet parts.
         model->SetOwnDeviationCoefficient(0.0005);
         model->SetOwnDeviationAngle(0.10);
-        model->SetColor(Quantity_Color(0.67,0.72,0.76,Quantity_TOC_RGB));
+        const bool surface=body.summary.value("type")=="surface";
+        model->SetColor(surface ? Quantity_Color(0.29,0.59,0.70,Quantity_TOC_RGB)
+                                : Quantity_Color(0.67,0.72,0.76,Quantity_TOC_RGB));
         const double opacity=body.summary.value("opacity").toDouble(1.0);
-        if(opacity<1.0)model->SetTransparency(1.0-opacity);
+        if(surface || opacity<1.0)model->SetTransparency(std::max(surface ? 0.12 : 0.0,1.0-opacity));
         model->Attributes()->SetFaceBoundaryDraw(true);
-        model->Attributes()->SetFaceBoundaryAspect(new Prs3d_LineAspect(Quantity_Color(0.20,0.25,0.29,Quantity_TOC_RGB),Aspect_TOL_SOLID,1));
+        model->Attributes()->SetFaceBoundaryAspect(new Prs3d_LineAspect(surface ? Quantity_Color(0.06,0.30,0.42,Quantity_TOC_RGB)
+            : Quantity_Color(0.20,0.25,0.29,Quantity_TOC_RGB),Aspect_TOL_SOLID,1));
         // OCCT 7.9.3 whole-cylinder selection can invert prism bounds.
         // Face selection uses actual domains and maps to the same body ID.
         // Keep the inactive global owner for whole-body SetSelected cues.

@@ -1600,12 +1600,33 @@ void AlloyWindow::registerCommands() {
         const auto drag=view_->revolvePointerAngle(a["x"].toDouble(),a["y"].toDouble(),a["phase"].toString());if(drag.isEmpty())return failure("angular_control_unavailable","Choose a profile/axis and rotate the view until its angular ring is visible");
         const auto update=execute("command.update",{{"session",session_["id"]},{"inputs",QJsonObject{{"extent","partial"},{"angleDeg",drag["angleDeg"]}}}});if(!update["ok"].toBool())return update;session_.remove("angularDragError");session_["angularDrag"]=drag;return previewRevolve();
     });
-    QJsonObject loftSchema{{"profiles",optional(parameter("array","Ordered distinct {sketchId,profileId} circular section references."))},{"featureId",optional(featureId)},{"name",optional(parameter("string","Loft feature name."))}};
-    add("solid.loft","Loft","Smooth circular New Body Loft, Free endpoints, no rails, not closed.",loftSchema,[this](const auto& a){
+    auto loftOperation=parameter("string","New Body circular solid or New Component guided open surface.");loftOperation["enum"]=QJsonArray{"newBody","newComponent"};
+    QJsonObject loftSchema{{"profiles",optional(parameter("array","Ordered distinct {sketchId,profileId} circular section references."))},
+        {"sections",optional(parameter("array","Ordered open {sketchId,entityId} arc then line references for a surface."))},
+        {"centerline",optional(parameter("object","One retained {sketchId,entityId} fit-point spline guide."))},
+        {"operation",optional(loftOperation)},{"componentName",optional(parameter("string","New surface component name."))},
+        {"featureId",optional(featureId)},{"name",optional(parameter("string","Loft feature name."))}};
+    add("solid.loft","Loft","Circular New Body solid or open arc-to-line surface with a fit-spline Centerline and New Component.",loftSchema,[this](const auto& a){
         QJsonObject candidate;try{candidate=loftCandidate(a);}catch(const std::exception& e){return failure("invalid_arguments",QString::fromUtf8(e.what()));}
         const auto error=document_->commit(candidate,"Loft");if(!error.isEmpty()){auto r=failure("evaluation_failed",error);auto details=r["error"].toObject();details["diagnostics"]=document_->lastEvaluationError();r["error"]=details;return r;}return document_->state();
     });
-    add("solid.loftDialog","Loft","Select ordered circular profiles for a smooth solid Loft.",loftSchema,[this](const auto& a){return beginLoft(a);});
+    add("solid.loftDialog","Loft","Select ordered sections and a Centerline for a surface, or circular regions for a solid.",loftSchema,[this](const auto& a){return beginLoft(a);});
+    auto loftRole=parameter("string","Active native Loft selection role.");loftRole["enum"]=QJsonArray{"section1","section2","centerline"};
+    add("solid.loftSelection","Select Loft input","Choose or clear a surface Loft section or Centerline picker.",
+        {{"role",loftRole},{"clear",optional(parameter("boolean","Clear this retained reference."))}},[this](const auto& a){
+            if(session_.value("command")!="solid.loft" || session_.value("inputs").toObject().value("operation")!="newComponent")return failure("invalid_session","Start a surface Loft first");
+            const auto role=a["role"].toString();auto inputs=session_["inputs"].toObject();
+            if(a.value("clear").toBool()){
+                if(role=="centerline")inputs.remove("centerline");
+                else {auto sections=inputs["sections"].toArray();if(sections.size()==2)sections[role=="section1"?0:1]=QJsonObject{};inputs["sections"]=sections;}
+                session_["inputs"]=inputs;previewLoft();
+            }
+            session_["selectionRole"]=role;view_->setFocus();return session_;
+        });
+    add("solid.loftEntity","Select Loft curve","Select a retained open arc, line or fit-spline through the same native picker authority.",
+        {{"role",loftRole},{"sketchId",sketchIdentity},{"entityId",parameter("string","Retained sketch entity UUID.")}},[this](const auto& a){
+            return selectLoftEntity(a["role"].toString(),a["sketchId"].toString(),a["entityId"].toString());
+        });
     auto shellThickness=parameter("number","Canonical inside thickness in mm.");shellThickness["minimum"]=0;shellThickness["maximum"]=100000;
     QJsonObject shellSchema{{"targetBodyId",optional(parameter("string","Retained body UUID."))},
         {"removedFace",optional(parameter("object","Stable planar removal face; empty or omitted retains all faces."))},
@@ -3877,6 +3898,8 @@ void AlloyWindow::registerCommands() {
             auto response=execute("command.update",{{"session",session_["id"]},{"inputs",QJsonObject{{"targetBodyId",target},{"edgeIds",edges}}}});if(!response["ok"].toBool())return response;previewChamfer();return hit;
         }
         if(session_.value("command")=="solid.sweep")return pickSweep(a["x"].toDouble(),a["y"].toDouble());
+        if(session_.value("command")=="solid.loft" && session_.value("inputs").toObject().value("operation")=="newComponent")
+            return pickLoft(a["x"].toDouble(),a["y"].toDouble());
         if(session_.value("command")=="solid.revolve")return pickRevolve(a["x"].toDouble(),a["y"].toDouble());
         if(session_.value("command")=="solid.move") {const auto id=view_->pickBody(a["x"].toDouble(),a["y"].toDouble());return execute("selection.set",{{"bodyId",id}});}
         if(session_.value("command")=="solid.combine") {
@@ -6005,7 +6028,7 @@ QJsonObject AlloyWindow::finishSession(const QString& id, bool commit) {
     else if(target=="solid.rectangularPattern") {if(patternEscape_)patternEscape_->setEnabled(false);if(patternDock_)patternDock_->hide();view_->clearPatternAxes();view_->clearSolidEdgeHighlights();view_->clearPreview();view_->clearBodyStage();}
     else if(target=="solid.sweep") {if(sweepEscape_)sweepEscape_->setEnabled(false);if(sweepDock_)sweepDock_->hide();view_->clearSweepPath();view_->setCommandSketches({});view_->selectProfile({},{});view_->setEditDisplay({},{});view_->clearPreview();view_->clearBodyStage();}
     else if(target=="solid.revolve") {if(revolveEscape_)revolveEscape_->setEnabled(false);if(revolveDock_)revolveDock_->hide();view_->clearRevolveCue(true);view_->selectProfile({},{});view_->setEditDisplay({},{});view_->clearPreview();view_->clearBodyStage();}
-    else if(target=="solid.loft") {if(loftEscape_)loftEscape_->setEnabled(false);if(loftDock_)loftDock_->hide();view_->selectLoftProfiles({});view_->clearPreview();view_->clearBodyStage();}
+    else if(target=="solid.loft") {if(loftEscape_)loftEscape_->setEnabled(false);if(loftDock_)loftDock_->hide();view_->selectLoftProfiles({});view_->clearSweepPath();view_->setCommandSketches({});view_->clearPreview();view_->clearBodyStage();}
     else if(target=="solid.shell") {if(shellEscape_)shellEscape_->setEnabled(false);if(shellDock_)shellDock_->hide();view_->clearPreview();view_->clearBodyStage();}
     else if(target=="solid.circularPattern") {if(circularEscape_)circularEscape_->setEnabled(false);if(circularDock_)circularDock_->hide();view_->clearPatternAxes();view_->clearPreview();view_->clearBodyStage();}
     else if(target=="solid.mirror") {if(mirrorEscape_)mirrorEscape_->setEnabled(false);if(mirrorDock_)mirrorDock_->hide();view_->clearPreview();view_->clearBodyStage();}

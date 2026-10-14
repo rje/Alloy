@@ -28,6 +28,16 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
     auto candidate=CadDocument::loftCandidate(doc.authored(),args);
     auto preview=CadDocument::evaluateCandidate(candidate);
     if(!preview.ok)throw std::runtime_error((preview.error+" "+QString::fromUtf8(QJsonDocument(preview.diagnostics).toJson(QJsonDocument::Compact))).toStdString());
+    auto constructionCandidate=candidate;auto constructionFeatures=constructionCandidate["features"].toArray();
+    const auto lineRef=args["sections"].toArray()[1].toObject();
+    for(int i=0;i<constructionFeatures.size();++i)if(constructionFeatures[i].toObject()["id"]==lineRef["sketchId"]){
+        auto sketch=constructionFeatures[i].toObject();auto parameters=sketch["parameters"].toObject();auto entities=parameters["entities"].toArray();
+        for(int j=0;j<entities.size();++j)if(entities[j].toObject()["id"]==lineRef["entityId"]){auto entity=entities[j].toObject();entity["construction"]=true;entities[j]=entity;}
+        parameters["entities"]=entities;sketch["parameters"]=parameters;constructionFeatures[i]=sketch;
+    }
+    constructionCandidate["features"]=constructionFeatures;
+    const auto construction=CadDocument::evaluateCandidate(constructionCandidate);
+    check(!construction.ok && construction.diagnostics["code"]=="loft_source_unavailable","Construction line was accepted as a Loft section");
     check(doc.commit(candidate,"Loft").isEmpty(),"Loft commit");const auto body=doc.bodies().back();
     check(body.summary["type"]=="surface" && body.summary["valid"]==true && body.summary["topology"].toObject()["faces"]==1
         && body.summary["topology"].toObject()["edges"]==4 && body.summary["topology"].toObject()["solids"]==0,"Open face summary");
