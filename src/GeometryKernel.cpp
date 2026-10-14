@@ -214,7 +214,13 @@ QJsonObject GeometryKernel::projectionContext(const EvaluatedDocument& evaluatio
         if(edge.type=="line")continue;
         BRepAdaptor_Curve curve(edge.edge);if(curve.GetType()!=GeomAbs_Circle)continue;
         const auto circle=curve.Circle();const auto center=circle.Location();
-        const auto lineage=edge.provenance;const auto key=lineage["sourceSketchId"].toString()+":"+lineage["sourceEntityId"].toString()
+        const auto lineage=edge.provenance;
+        const auto sketchId=lineage["sourceSketchId"].toString(),entityId=lineage["sourceEntityId"].toString();
+        // Generated blend arcs are real face boundaries, but they have no authored
+        // sketch circle whose center can be retained as a sketch reference.
+        if(sketchId.isEmpty() && entityId.isEmpty())continue;
+        if(sketchId.isEmpty() || entityId.isEmpty())reject("ambiguous_projection","Circular support boundary has incomplete source identity");
+        const auto key=sketchId+":"+entityId
             +(lineage.contains("occurrenceId") ? ":"+lineage["occurrenceId"].toString() : QString{});
         auto source=parameters["support"].toObject();source["sourceSketchId"]=lineage["sourceSketchId"];source["sourceEntityId"]=lineage["sourceEntityId"];source["role"]="curveCenter";
         if(lineage.contains("occurrenceId"))source["occurrenceId"]=lineage["occurrenceId"];

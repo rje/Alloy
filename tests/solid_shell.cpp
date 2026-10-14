@@ -95,6 +95,34 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
                 }else sharedInnerEdges.insert(edge.edgeId,edge.edge);
             }
         check(sharedCount>=8,"inner planar faces share semantic edge IDs");
+        const auto floorIt=std::find_if(source.bodies()[0].supportFaces.begin(),source.bodies()[0].supportFaces.end(),
+            [](const auto& face){return face.role=="shell-inner" && face.frame["normal"].toArray()[2].toDouble()>.99;});
+        check(floorIt!=source.bodies()[0].supportFaces.end(),"exact inner floor support is available");
+        const auto floorFaceId=floorIt->faceId;
+        const QJsonObject floorRef{{"producerFeatureId",floorIt->producerFeatureId},
+            {"bodyId",floorIt->bodyId},{"faceId",floorIt->faceId}};
+        auto floorSketch=SketchGeometry::newSupportedFeature(source.authored()["documentId"].toString(),floorRef,
+            "Floor mounting sketch",GeometryKernel::supportEdgeDescriptors(*floorIt));
+        const auto floorProjection=GeometryKernel::projectionContext(source.evaluation(),floorSketch);
+        check(floorProjection["points"].toArray().isEmpty() && !floorProjection["unsupportedEdges"].toArray().isEmpty(),
+            "Generated inner fillet arcs became false authored circle centers");
+        check(source.commit(SketchGeometry::replaceFeature(source.authored(),floorSketch),"Sketch on inner floor").isEmpty(),
+            "actual closed rounded inner floor refused face-supported sketch");
+        source.history().undo();
+        auto conflicting=source.evaluation();
+        bool assignedFirst=false,assignedSecond=false;
+        for(auto& body:conflicting.bodies)if(body.bodyId==sourceBody)
+            for(auto& face:body.supportFaces)if(face.faceId==floorFaceId)
+                for(auto& edge:face.boundaryEdges)if(edge.type=="circle" && !assignedSecond){
+                    edge.provenance["sourceSketchId"]=center.feature["id"];
+                    edge.provenance["sourceEntityId"]=QString("11111111-1111-4111-8111-111111111111");
+                    if(assignedFirst)assignedSecond=true;else assignedFirst=true;
+                }
+        check(assignedSecond,"inner floor needs two distinct circular descendants for refusal proof");
+        bool refusedConflict=false;
+        try{GeometryKernel::projectionContext(conflicting,floorSketch);}
+        catch(const GeometryKernel::EvaluationError& error){refusedConflict=error.diagnostics()["code"]=="ambiguous_projection";}
+        check(refusedConflict,"two different circle centers with one retained source identity did not refuse");
         const auto shellStage=source.authored();
         const auto shellStageId=shellStage["features"].toArray().last().toObject()["id"];
         check(source.commit(CadDocument::shellCandidate(shellStage,
