@@ -66,20 +66,20 @@ incident target face can identify the current vertical root at
 X=-28.5,Y=17.5,Z15..20.5. The actual root accepts smaller chamfers but refuses
 the required 2 mm at the inferred 2 mm stem width, even on fresh Join.
 GEO-015/#341 separately owns this source-geometry/exact-size qualification.
-Its isolated candidate `81c8a55` in the planar-concave-chamfer worktree now
-passes exact 2 mm (+11 mm³), rigid-placement equivalence, oversized refusal,
-source edit/history/reopen. The fallback is restricted to certified planar
-concave corners and a native half-size witness for wall-ending transitions;
-the returned geometry retains the exact authored size. Astra source review
-is favorable; real-app proof and final acceptance remain pending.
+The bounded fallback is independently accepted and integrated through `1f4b4ea`.
+Focused exact-size, rigid rotation/reflection, oversized refusal, assembly
+interference, source edit/history/reopen and 23-call real-app checks pass.
+Reflected OCCT planes require parametric U × V normals; that correction is
+accepted without weakening the geometric certificate. Main application builds.
+GEO-015 stays open until the actual five-feature reflected group qualifies.
 SOL-055/#342 is independently accepted and integrated at `ad23a81` for
 reflected attachment-root lineage and supported technical finish replay.
 Its core source edit/history/reopen and 13-call real-app inspection pass;
 the broad capture does not visibly expose the root. Exact-sized source finish
 and actual five-feature group remain GEO-015/SOL-053/TUT-022.
 Do not substitute the hook elbow or a transverse
-free edge merely because its Chamfer succeeds. SOL-053/#337 remains Todo
-until this root and the actual finished YZ snap group pass.
+free edge merely because its Chamfer succeeds. SOL-053/#337 is active while the geometry lane qualifies the actual finished
+YZ snap group.
 
 The accepted nominal board is rotated 90 degrees about Z. Source opposite-wall
 reflection therefore maps explicitly to Alloy origin YZ, not XZ. Actual opposed
