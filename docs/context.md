@@ -117,12 +117,20 @@ No successful QDrag/drop or product failure asserted; folder drag not attempted.
 Source review flags mutable currentItem drag source and embedded label routing
 for a future focused trace. Evidence/receipt are external under
 component-reparent-2026-10-14/asm012-prepared/. Private editor closed; no user
-model altered. FND-015/#158 is active next: recover the remaining sketch
-accessibility/row-identity and default-runtime qualification, distinguishing the
-current private patched Qt runtime from portable deployment. Sol owns the sole
-build/GUI lease and Astra independently reviews; reuse existing accepted tests
-and do not repeat the inconclusive Browser access attempts.
-Backlog is402 issues with acyclic dependencies. Astra independently verifies.
+model altered. FND-015/#158 returned Todo after the next bounded recheck:
+normal build-tutorial-polish launch loaded coherent private Qt libraries/plugins.
+Physical Perpendicular and accessibility-index Equal activation both produced
+shared authoritative tools/relations and matching AX row labels. API-prepared
+outline and 500mm dimension remain explicitly setup, not native evidence.
+After the dimension, CUA observation/rebind failed cgWindowNotFound while the
+same app process and control API stayed healthy. Selected-row OS AX edit/history
+remains unverified; no application crash or complete accessibility pass asserted.
+Evidence: external fnd015-accessibility-2026-10-14/normal-launch-01. Avoid another
+control-acquisition loop; continue a bounded feature with Qt/native/API evidence.
+SOL-016/#154 is active for one combined native Qt five-profile toggle/arrow-Cut
+check, reusing accepted geometry rather than repeating its kernel suite. SOL-058/#403
+retains physical held-modifier macOS/Windows checks; TUT-003 depends on both.
+Backlog is403 issues with acyclic dependencies. Astra independently verifies.
 Only main and its existing build are used; no inactive worktrees accumulate.
 DOC-031/#348 is independently accepted at `89782cf`: unchanged-product native09
 passes modal line focus, rename commit, Browser label and unchanged geometry.

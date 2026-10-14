@@ -7,8 +7,8 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current publication contains **402 issues**: **306 implementation, 21 research,
-22 epics, and 53 validation gates**. Counts describe decomposition, not coverage.
+The current publication contains **403 issues**: **306 implementation, 21 research,
+22 epics, and 54 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 
 ## Active delivery order
@@ -20,7 +20,9 @@ and Cut All with flipped direction. SKT-088/#397 is independently accepted for t
 coincident origin/source-center reference conflict. SOL-056/#398, DOC-033/#399 and SOL-057/#400 are accepted for Auto targeting, idle
 selection and retained edit sources. TUT-028 is accepted at f9620ab with final21s continuation and a124s joined creation
 film. TUT-019/#305 cumulative native piston walkthrough is accepted at acc8616; next
-FND-015/#158 qualifies remaining sketch accessibility and runtime behavior.
+FND-015/#158 remains Todo: constraint activation passed, but OS AX history
+observation lost window binding. SOL-016/#154 now completes the bounded cumulative Qt profile-toggle/arrow-Cut
+gate. SOL-058/#403 preserves physical held-modifier checks on macOS/Windows as Todo.
 ASM-012/#343 is Todo after an inconclusive physical Browser drag recheck; its
 separate body and Sketches-folder drag gate remains unaccepted. See [the current sequence](tutorial-sequence.json)
 and [continuation context](../context.md) for accepted evidence and remaining work.
