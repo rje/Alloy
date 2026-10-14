@@ -32,11 +32,18 @@ nonblocking menu-opener adaptation and unknown public screenshot metadata remain
 explicitly qualified. Shared API viewport/inspection/history/storage steps are
 captioned separately. See [receipt](validation/sketch-expression-tutorial.md)
 and [contract](research/sketch-expression-exercise-contract.md).
-SKT-085/#388 is active with Sol on creation-time circle tangency; SKT-086/#389
-and TUT-025/#390 remain queued. These add circle
-tangent inference and connected Line-to-Arc drag; TUT-025/#390 checks the public
-Base Sketch construction steps1–5. Existing explicit Tangent and Fillet are
-reused. Archived source and reviewed detailed contracts stay external.
+SKT-085/#388 is independently accepted at `466eb7e`: new/legacy tangent cores
+pass2/2; native04 passes3/3 with actual Shift-from-circle and ordinary onto-circle
+clicks, visible Tangent previews, retained contacts, Finish/history/reopen. Radius
+edit and missing-contact refusal pass; acquired point/origin snaps keep priority.
+Broader Ctrl/Command inference suppression remains with SKT-021 (H/V only today).
+See [receipt](validation/sketch-pointer-circle-tangent.md).
+SKT-086/#389 is active with Sol; TUT-025/#390 remains queued. Public sources
+clarify the connected Line-to-Arc gesture: hold/drag previews an arc tangent to
+the preceding line; release commits it and resumes Line from the new endpoint.
+Outgoing line tangency is not required. TUT-025 checks Base Sketch construction
+steps1–5, reusing explicit Tangent and Fillet. Archived source and detailed
+contracts stay external. Astra reviews implementation and actual evidence.
 Only main and its existing build are used; no inactive worktrees accumulate.
 DOC-031/#348 is independently accepted at `89782cf`: unchanged-product native09
 passes modal line focus, rename commit, Browser label and unchanged geometry.
