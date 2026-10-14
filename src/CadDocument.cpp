@@ -1,5 +1,6 @@
 #include "SolidFillet.h"
 #include "CadDocument.h"
+#include "ReferenceCanvas.h"
 #include "AssemblySlider.h"
 #include <utility>
 #include <vector>
@@ -741,6 +742,14 @@ void CadDocument::apply(const QJsonObject& value, std::shared_ptr<const Evaluate
     if(!hasOwner(authored_,activeOwnerId_))activeOwnerId_=authored_["documentId"].toString();
     evaluation_=std::move(evaluation); lastTransaction_ = transaction; ++revision_;
 }
+QString CadDocument::commitCanvases(const QJsonArray& canvases,const QString& label) {
+    auto candidate=authored_;candidate["canvases"]=canvases;lastEvaluationError_={};
+    auto error=validateStructure(candidate);
+    if(error.isEmpty())try{for(const auto& entry:canvases)ReferenceCanvas::frame(entry.toObject(),*evaluation_);}catch(const std::exception& e){error=QString::fromUtf8(e.what());}
+    if(!error.isEmpty()){lastEvaluationError_={{"code","invalid_canvas"},{"message",error}};return error;}
+    if(candidate!=authored_)history_.push(new DocumentEdit(*this,candidate,evaluation_,label));
+    return {};
+}
 QString CadDocument::commitAnalyses(const QJsonArray& analyses,const QString& label) {
     auto candidate=authored_;candidate["analyses"]=analyses;
     lastEvaluationError_={};const auto error=validateStructure(candidate);
@@ -1439,6 +1448,14 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
     if (units != "mm" && units != "in") return "Unsupported display units";
     if (!candidate["features"].isArray()) return "Features must be an array";
     QSet<QString> ids{root}, owners{root};
+    if(candidate.contains("canvases") && !candidate["canvases"].isArray())return "Canvases must be an array";
+    for(const auto& entry:candidate["canvases"].toArray()){
+        if(!entry.isObject())return "Canvas record must be an object";
+        const auto row=entry.toObject();const auto error=ReferenceCanvas::validate(row);
+        if(!error.isEmpty())return error;
+        if(ids.contains(row["id"].toString()))return "Duplicate canvas identity";
+        ids.insert(row["id"].toString());
+    }
     if(candidate.contains("analyses") && !candidate["analyses"].isArray())return "Analyses must be an array";
     int activeSections=0;
     for(const auto& entry:candidate["analyses"].toArray()) {

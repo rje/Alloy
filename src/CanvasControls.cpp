@@ -1,0 +1,81 @@
+// SPDX-License-Identifier: MIT
+#include "AlloyWindow.h"
+#include "ReferenceView.h"
+#include "ReferenceCanvas.h"
+#include <QDockWidget>
+#include <QFormLayout>
+#include <QComboBox>
+#include <QCheckBox>
+#include <QDoubleSpinBox>
+#include <QLineEdit>
+#include <QLabel>
+#include <QDialogButtonBox>
+#include <QPushButton>
+#include <QFileDialog>
+#include <QTreeWidget>
+#include <QSignalBlocker>
+#include <QTimer>
+namespace {
+QJsonObject canvasError(const QString& message){return {{"ok",false},{"completion","failed"},{"error",QJsonObject{{"code","invalid_canvas"},{"message",message}}}};}
+QJsonObject schema(){QJsonObject result;for(const auto& field:QStringList{"canvasId","path","name"})result[field]=QJsonObject{{"type","string"},{"required",false}};for(const auto& field:QStringList{"centerUMm","centerVMm","angleDegrees","widthMm","opacity"})result[field]=QJsonObject{{"type","number"},{"required",false}};result["visible"]=QJsonObject{{"type","boolean"},{"required",false}};result["planeSource"]=QJsonObject{{"type","object"},{"required",false}};return result;}
+QJsonObject selected(const QJsonObject& doc,const QString& id){for(const auto& value:doc["canvases"].toArray())if(value.toObject()["id"]==id)return value.toObject();return {};}
+QJsonArray replace(const QJsonArray& rows,const QJsonObject& row){auto result=rows;for(int i=0;i<result.size();++i)if(result[i].toObject()["id"]==row["id"]){result[i]=row;return result;}result.append(row);return result;}
+}
+void AlloyWindow::registerCanvasCommands(){
+    auto add=[this](QString id,QString title,QString description,QJsonObject fields,std::function<QJsonObject(const QJsonObject&)> run){commands_.push_back({id,title,description,fields,true,std::move(run)});};
+    add("canvas.set","Canvas","Insert or edit an embedded user-local reference image; uniform aspect scale in canonical millimeters.",schema(),[this](const auto& a){if(!session_.isEmpty())return canvasError("Finish or cancel the active command first");try{const auto candidate=ReferenceCanvas::candidate(document_->authored(),a);const auto error=document_->commitCanvases(candidate["canvases"].toArray(),"Canvas");if(!error.isEmpty())return canvasError(error);refresh();return document_->state();}catch(const std::exception& e){return canvasError(QString::fromUtf8(e.what()));}});
+    add("canvas.inspect","Inspect canvases","Inspect authored placement, pixel dimensions, calibration and retained plane availability without exposing embedded image bytes.",{},[this](const auto&){QJsonArray rows;for(const auto& r:document_->authored()["canvases"].toArray())rows.append(ReferenceCanvas::inspect(r.toObject(),document_->evaluation()));return QJsonObject{{"canvases",rows},{"gpu",view_->canvasState()}};});
+    add("canvas.dialog","Canvas","Choose a local image and preview its real plane placement; OK authors it and Cancel discards it.",schema(),[this](auto a){if(!session_.isEmpty())return canvasError("Finish or cancel the active command first");if(!a.contains("path") && !a.contains("canvasId")){const auto path=QFileDialog::getOpenFileName(this,"Insert Canvas",{},"Images (*.png *.jpg *.jpeg *.bmp *.tif *.tiff)");if(path.isEmpty())return QJsonObject{{"cancelled",true},{"authoredChange",false}};a["path"]=path;}return beginCanvas(a);});
+    const QJsonObject identity{{"canvasId",QJsonObject{{"type","string"}}}};
+    auto calibration=identity;calibration["firstPixel"]=QJsonObject{{"type","array"}};calibration["secondPixel"]=QJsonObject{{"type","array"}};calibration["distanceMm"]=QJsonObject{{"type","number"}};
+    add("canvas.calibrate","Calibrate","Uniformly scale a canvas so two top-left image-pixel points have the supplied canonical distance.",calibration,[this](const auto& a){if(!session_.isEmpty())return canvasError("Finish or cancel the active command first");try{const auto row=selected(document_->authored(),a["canvasId"].toString());if(row.isEmpty())return canvasError("Canvas unavailable");const auto changed=ReferenceCanvas::calibrate(row,a["firstPixel"].toArray(),a["secondPixel"].toArray(),a["distanceMm"].toDouble());const auto error=document_->commitCanvases(replace(document_->authored()["canvases"].toArray(),changed),"Calibrate Canvas");if(!error.isEmpty())return canvasError(error);refresh();return ReferenceCanvas::inspect(changed,document_->evaluation());}catch(const std::exception& e){return canvasError(QString::fromUtf8(e.what()));}});
+    add("canvas.calibrateDialog","Calibrate","Pick two image points then enter their known distance; preview, OK and Cancel share canvas calibration authority.",identity,[this](const auto& a){return beginCanvas(a,true);});
+    const QJsonObject pointer{{"x",QJsonObject{{"type","number"}}},{"y",QJsonObject{{"type","number"}}}};
+    add("canvas.pick","Pick calibration point","Pick a point on the actual placed image plane through the native viewport.",pointer,[this](const auto& a){if(session_["command"]!="canvas.calibrate")return canvasError("No active canvas calibration");try{const auto row=session_["canvasOriginal"].toObject();const auto frame=ReferenceCanvas::frame(row,document_->evaluation());const auto p=view_->sketchPoint(a["x"].toDouble(),a["y"].toDouble(),"face",frame);const auto pixel=ReferenceCanvas::planeToPixel(row,p["uMm"].toDouble(),p["vMm"].toDouble());if(pixel.x()<0 || pixel.y()<0 || pixel.x()>row["pixelWidth"].toDouble() || pixel.y()>row["pixelHeight"].toDouble())return canvasError("Choose a point inside the image");auto points=session_["calibrationPoints"].toArray();if(points.size()==2)points={};points.append(QJsonArray{pixel.x(),pixel.y()});session_["calibrationPoints"]=points;return previewCanvas();}catch(const std::exception& e){return canvasError(QString::fromUtf8(e.what()));}});
+    auto project=identity;project["pixelX"]=QJsonObject{{"type","number"}};project["pixelY"]=QJsonObject{{"type","number"}};
+    add("canvas.projectPixel","Project canvas pixel","Map a top-left image-pixel point through its authored placement and current retained plane to viewport logical pixels.",project,[this](const auto& a){try{const auto row=selected(document_->authored(),a["canvasId"].toString());if(row.isEmpty())return canvasError("Canvas unavailable");const auto point=ReferenceCanvas::pixelToPlane(row,a["pixelX"].toDouble(),a["pixelY"].toDouble());auto result=view_->projectSketchPoint(point.x(),point.y(),"face",ReferenceCanvas::frame(row,document_->evaluation()));result["uMm"]=point.x();result["vMm"]=point.y();return result;}catch(const std::exception& e){return canvasError(QString::fromUtf8(e.what()));}});
+}
+QJsonObject AlloyWindow::beginCanvas(const QJsonObject& args,bool calibrating){
+    if(!session_.isEmpty())return canvasError("Finish or cancel the active command first");
+    try{auto a=args;if(!a.contains("canvasId") && !a.contains("planeSource")){if(!selectedFace_.isEmpty())a["planeSource"]=QJsonObject{{"support",selectedFace_}};else if(!selectedPlane_.isEmpty())a["planeSource"]=QJsonObject{{"planeId",selectedPlane_}};}
+        auto candidate=ReferenceCanvas::candidate(document_->authored(),a);const auto rows=candidate["canvases"].toArray();const auto row=a.contains("canvasId")?selected(candidate,a["canvasId"].toString()):rows.last().toObject();ReferenceCanvas::frame(row,document_->evaluation());
+        session_={{"id",CadDocument::newId()},{"command",calibrating?"canvas.calibrate":"canvas.set"},{"status","active"},{"inputs",QJsonObject{{"distanceMm",10}}},{"canvasDraft",row},{"canvasOriginal",row},{"baseDocumentRevision",qint64(document_->revision())},{"previewed",false}};
+        showCanvasControls(calibrating);view_->setCanvasPicking(calibrating);view_->lookAtSketch("face",ReferenceCanvas::frame(row,document_->evaluation()));return previewCanvas();
+    }catch(const std::exception& e){return canvasError(QString::fromUtf8(e.what()));}
+}
+QJsonObject AlloyWindow::updateCanvas(const QJsonObject& inputs){
+    if(session_["baseDocumentRevision"].toInteger()!=qint64(document_->revision()))return canvasError("The document changed; cancel and restart this edit");
+    try{if(session_["command"]=="canvas.calibrate"){if(inputs.size()!=1 || !inputs["distanceMm"].isDouble())return canvasError("Calibration accepts only distanceMm");session_["inputs"]=inputs;}
+        else{if(inputs.contains("canvasId"))return canvasError("Canvas edit identity cannot change");auto source=document_->authored();source["canvases"]=replace(source["canvases"].toArray(),session_["canvasDraft"].toObject());auto args=inputs;args["canvasId"]=session_["canvasDraft"].toObject()["id"];const auto candidate=ReferenceCanvas::candidate(source,args);const auto row=selected(candidate,args["canvasId"].toString());ReferenceCanvas::frame(row,document_->evaluation());session_["canvasDraft"]=row;}
+        return previewCanvas();
+    }catch(const std::exception& e){return canvasError(QString::fromUtf8(e.what()));}
+}
+QJsonObject AlloyWindow::previewCanvas(){
+    auto* error=canvasDock_?canvasDock_->findChild<QLabel*>("canvas.error"):nullptr;auto* buttons=canvasDock_?canvasDock_->findChild<QDialogButtonBox*>():nullptr;
+    auto fail=[&](QString message){session_["previewed"]=false;if(error)error->setText(message);if(buttons)buttons->button(QDialogButtonBox::Ok)->setEnabled(false);return canvasError(message);};
+    if(session_["baseDocumentRevision"].toInteger()!=qint64(document_->revision()))return fail("The document changed; cancel and restart this edit");
+    try{auto row=session_["canvasDraft"].toObject();if(session_["command"]=="canvas.calibrate"){const auto points=session_["calibrationPoints"].toArray();if(auto* hint=canvasDock_->findChild<QLabel*>("canvas.points"))hint->setText(QString("%1 of 2 points selected. Click two distinct points on the image.").arg(points.size()));if(points.size()!=2){if(buttons)buttons->button(QDialogButtonBox::Ok)->setEnabled(false);return session_;}row=ReferenceCanvas::calibrate(session_["canvasOriginal"].toObject(),points[0].toArray(),points[1].toArray(),session_["inputs"].toObject()["distanceMm"].toDouble());session_["canvasDraft"]=row;}
+        ReferenceCanvas::frame(row,document_->evaluation());const auto rows=replace(document_->authored()["canvases"].toArray(),row);view_->setCanvases(rows,document_->evaluation());session_["previewed"]=true;session_["canvasPreview"]=ReferenceCanvas::inspect(row,document_->evaluation());if(error)error->clear();if(buttons)buttons->button(QDialogButtonBox::Ok)->setEnabled(true);return session_;
+    }catch(const std::exception& e){return fail(QString::fromUtf8(e.what()));}
+}
+QJsonObject AlloyWindow::finishCanvas(const QString& id,bool commit){
+    if(session_.isEmpty() || session_["id"]!=id)return canvasError("Session no longer active");
+    if(commit){const auto preview=previewCanvas();if(preview.contains("ok") && !preview["ok"].toBool())return preview;if(!session_["previewed"].toBool())return canvasError("Select two calibration points first");const auto error=document_->commitCanvases(replace(document_->authored()["canvases"].toArray(),session_["canvasDraft"].toObject()),session_["command"]=="canvas.calibrate"?"Calibrate Canvas":"Canvas");if(!error.isEmpty())return canvasError(error);}
+    session_={};view_->setCanvasPicking(false);if(canvasDock_){canvasDock_->hide();canvasDock_->deleteLater();canvasDock_=nullptr;}refreshCanvasPresentation();refresh();view_->setFocus(Qt::OtherFocusReason);return QJsonObject{{"committed",commit},{"authoredChange",commit},{"documentRevision",qint64(document_->revision())}};
+}
+void AlloyWindow::refreshCanvasPresentation(){
+    if(!canvasesNode_)return;const QSignalBlocker blocker(tree_);qDeleteAll(canvasesNode_->takeChildren());
+    for(const auto& value:document_->authored()["canvases"].toArray()){const auto row=value.toObject();auto* item=new QTreeWidgetItem(canvasesNode_,{row["name"].toString()});item->setData(0,Qt::UserRole+2,row["id"]);item->setFlags(item->flags()|Qt::ItemIsUserCheckable);item->setCheckState(0,row["visible"].toBool()?Qt::Checked:Qt::Unchecked);}
+    auto rows=document_->authored()["canvases"].toArray();if(session_["command"].toString().startsWith("canvas."))rows=replace(rows,session_["canvasDraft"].toObject());view_->setCanvases(rows,document_->evaluation());
+}
+void AlloyWindow::showCanvasControls(bool calibrating){
+    canvasDock_=new QDockWidget(calibrating?"Calibrate":"Canvas",canvasWindow_);canvasDock_->setObjectName("canvasDock");auto* panel=new QWidget;auto* form=new QFormLayout(panel);const auto row=session_["canvasDraft"].toObject();
+    if(calibrating){auto* hint=new QLabel("Click two distinct points on the image, then enter their known distance.");hint->setWordWrap(true);hint->setObjectName("canvas.points");form->addRow(hint);}
+    else{auto* image=new QLabel(row["sourceName"].toString());image->setWordWrap(true);form->addRow("Image",image);auto* name=new QLineEdit(row["name"].toString());name->setObjectName("canvas.name");form->addRow("Name",name);connect(name,&QLineEdit::editingFinished,this,[this,name]{updateCanvas({{"name",name->text()}});});
+        auto* plane=new QComboBox;plane->setObjectName("canvas.plane");for(const auto& p:QStringList{"XY","XZ","YZ"})plane->addItem(p,QJsonObject{{"plane",p}});for(const auto& p:document_->evaluation().constructionPlanes)plane->addItem(p.name,QJsonObject{{"planeId",p.featureId}});if(row["planeSource"].toObject().contains("support"))plane->addItem("Selected planar face",row["planeSource"].toObject());for(int i=0;i<plane->count();++i)if(plane->itemData(i).toJsonObject()==row["planeSource"])plane->setCurrentIndex(i);form->addRow("Plane",plane);connect(plane,&QComboBox::currentIndexChanged,this,[this,plane]{updateCanvas({{"planeSource",plane->currentData().toJsonObject()}});});
+    }
+    auto spin=[&](const QString& label,const QString& field,double value,double low,double high){auto* input=new QDoubleSpinBox;input->setObjectName("canvas."+field);input->setDecimals(3);input->setRange(low,high);input->setValue(value);form->addRow(label,input);connect(input,&QDoubleSpinBox::valueChanged,this,[this,input,field]{updateCanvas({{field,input->value()}});});};
+    if(calibrating)spin("Distance (mm)","distanceMm",10,.001,100000);
+    else{spin("X Distance (mm)","centerUMm",row["centerUMm"].toDouble(),-100000,100000);spin("Y Distance (mm)","centerVMm",row["centerVMm"].toDouble(),-100000,100000);spin("Z Angle (degrees)","angleDegrees",row["angleDegrees"].toDouble(),-360,360);spin("Width (mm)","widthMm",row["widthMm"].toDouble(),.001,100000);spin("Canvas Opacity", "opacity",row["opacity"].toDouble(),0,1);}
+    auto* error=new QLabel;error->setObjectName("canvas.error");error->setWordWrap(true);error->setStyleSheet("color:#a32c27;");form->addRow(error);auto* buttons=new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel);form->addRow(buttons);connect(buttons,&QDialogButtonBox::accepted,this,[this]{execute("command.commit",{{"session",session_["id"]}});});connect(buttons,&QDialogButtonBox::rejected,this,[this]{execute("command.cancel",{{"session",session_["id"]}});});canvasDock_->setWidget(panel);canvasWindow_->addDockWidget(Qt::RightDockWidgetArea,canvasDock_);canvasDock_->show();view_->setFocus(Qt::OtherFocusReason);
+}

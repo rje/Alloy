@@ -2210,6 +2210,7 @@ QJsonObject ReferenceView::diagnostics() const {
     result.insert("documentRevision",static_cast<qint64>(modelRevision_));
     const auto camera=view_->Camera();
     auto vector=[](const auto& value) {return QJsonArray{value.X(),value.Y(),value.Z()};};
+    result.insert("canvases",canvasState_);
     result.insert("camera",QJsonObject{{"eye",vector(camera->Eye())},{"center",vector(camera->Center())},
         {"direction",vector(camera->Direction())},{"up",vector(camera->Up())},
         {"scale",camera->Scale()},{"aspect",camera->Aspect()}});
@@ -2236,6 +2237,9 @@ QImage ReferenceView::framebuffer() {
     return image;
 }
 void ReferenceView::mousePressEvent(QMouseEvent* e) {
+    if(canvasPicking_ && e->button()==Qt::LeftButton && !e->modifiers().testFlag(Qt::AltModifier)){
+        if(dispatch)dispatch("canvas.pick",{{"x",e->position().x()},{"y",e->position().y()}});e->accept();return;
+    }
     if(e->button()==Qt::LeftButton && !e->modifiers().testFlag(Qt::AltModifier) &&
        decorationSelection_.value("tool")=="conic" && !conicHandleState_.isEmpty() &&
        QLineF(e->position(),QPointF(conicHandleState_["x"].toDouble(),conicHandleState_["y"].toDouble())).length()<12) {

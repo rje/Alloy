@@ -27,6 +27,9 @@ public:
     QPointF pan;
     std::function<void(const QString&, const QJsonObject&)> dispatch;
     void sync();
+    void setCanvases(const QJsonArray& rows,const EvaluatedDocument& evaluation);
+    void setCanvasPicking(bool active) { canvasPicking_=active; }
+    QJsonArray canvasState() const { return canvasState_; }
     QJsonObject diagnostics() const;
     QJsonObject cameraState() const;
     void restoreCameraState(const QJsonObject& state);
@@ -133,6 +136,10 @@ protected:
     void contextMenuEvent(QContextMenuEvent*) override;
     void wheelEvent(QWheelEvent*) override;
 private:
+    QMap<QString,Handle(AIS_Shape)> canvasModels_;
+    QJsonArray canvasState_;
+    QJsonObject canvasStamp_;
+    bool canvasPicking_=false;
     std::vector<Handle(AIS_Shape)> solidEdgeHighlights_;
     std::vector<Handle(AIS_Shape)> sliderCue_;
     gp_Pnt sketchWorld(const QString& plane,double u,double v) const;

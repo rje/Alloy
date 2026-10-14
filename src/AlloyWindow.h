@@ -72,6 +72,15 @@ private:
     std::vector<EvaluatedBody> presentationBodies() const;
     bool nonzeroAssemblyPose() const;
     QJsonObject presentationAssembly() const;
+    void registerCanvasCommands();
+    QJsonObject beginCanvas(const QJsonObject& args,bool calibrating=false);
+    QJsonObject updateCanvas(const QJsonObject& inputs);
+    QJsonObject previewCanvas();
+    QJsonObject finishCanvas(const QString& id,bool commit);
+    void showCanvasControls(bool calibrating);
+    void refreshCanvasPresentation();
+    QDockWidget* canvasDock_=nullptr;
+    QTreeWidgetItem* canvasesNode_=nullptr;
     void registerSectionCommands();
     QJsonObject beginSection(const QJsonObject& args);
     QJsonObject previewSection();

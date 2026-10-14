@@ -234,6 +234,7 @@ AlloyWindow::AlloyWindow() {
     fileMenu->addSeparator();
     fileMenu->addAction("Quit", this, [this] { close(); });
     file->setMenu(fileMenu); top->addWidget(file);
+    auto* insert=new QPushButton("Insert");auto* insertMenu=new QMenu(insert);auto* canvasAction=insertMenu->addAction("Canvas");canvasAction->setObjectName("insert.canvas");connect(canvasAction,&QAction::triggered,this,[this]{execute("canvas.dialog");});insert->setMenu(insertMenu);top->addWidget(insert);
     top->addWidget(commandButton("document.saveDialog", "Save"));
     top->addWidget(commandButton("history.undo", "↶"));
     top->addWidget(commandButton("history.redo", "↷"));
@@ -461,6 +462,7 @@ AlloyWindow::AlloyWindow() {
         item->setData(0, Qt::UserRole, name);
     }
     new QTreeWidgetItem(document, {"Origin"});
+    canvasesNode_=new QTreeWidgetItem(document,{"Canvases"});canvasesNode_->setExpanded(true);
     analysesNode_=new QTreeWidgetItem(document,{"Analysis"});analysesNode_->setExpanded(true);analysesNode_->setData(0,Qt::UserRole+4,"analyses");
     jointsNode_=new QTreeWidgetItem(document,{"Joints"});jointsNode_->setExpanded(true);jointsNode_->setData(0,Qt::UserRole+4,"joints");
     bodiesNode_=new QTreeWidgetItem(document,{"Bodies"}); bodiesNode_->setExpanded(true);
@@ -511,6 +513,11 @@ AlloyWindow::AlloyWindow() {
             if(menu.exec(tree_->viewport()->mapToGlobal(point))==offset)execute("construction.plane");
             return;
         }
+        if(item->parent()==canvasesNode_) {
+            QMenu menu(this);auto* edit=menu.addAction("Edit Canvas");auto* calibrate=menu.addAction("Calibrate");edit->setEnabled(session_.isEmpty());calibrate->setEnabled(session_.isEmpty());
+            const auto* choice=menu.exec(tree_->viewport()->mapToGlobal(point));const auto id=item->data(0,Qt::UserRole+2).toString();
+            if(choice==edit)execute("canvas.dialog",{{"canvasId",id}});else if(choice==calibrate)execute("canvas.calibrateDialog",{{"canvasId",id}});return;
+        }
         if(item->parent()==analysesNode_) {
             QMenu menu(this);auto* edit=menu.addAction("Edit Section Analysis");edit->setEnabled(session_.isEmpty());
             if(menu.exec(tree_->viewport()->mapToGlobal(point))==edit)execute("inspect.sectionDialog",{{"analysisId",item->data(0,Qt::UserRole+2).toString()}});return;
@@ -547,6 +554,7 @@ AlloyWindow::AlloyWindow() {
     connect(tree_,&QTreeWidget::itemChanged,this,[this](QTreeWidgetItem* item,int column){
         if(!item || item->isHidden() || !(item->flags()&Qt::ItemIsEnabled) || column!=0 || (!item->parent() || item->parent()->data(0,Qt::UserRole+4).toString().isEmpty()))return;
         const auto id=item->data(0,Qt::UserRole+2).toString();const bool visible=item->checkState(0)==Qt::Checked;
+        if(item->parent()==canvasesNode_){const auto id=item->data(0,Qt::UserRole+2).toString();const bool visible=item->checkState(0)==Qt::Checked;const auto tabId=activeTabId_;QTimer::singleShot(0,this,[this,id,visible,tabId]{if(tabId==activeTabId_)execute("canvas.set",{{"canvasId",id},{"visible",visible}});});return;}
         if(item->parent()==analysesNode_){
             const auto tabId=activeTabId_;QTimer::singleShot(0,this,[this,id,visible,tabId]{if(tabId==activeTabId_)execute("analysis.visibility",{{"analysisId",id},{"visible",visible}});});return;
         }
@@ -1061,6 +1069,7 @@ void AlloyWindow::registerCommands() {
                      std::function<QJsonObject(const QJsonObject&)> run) {
         commands_.push_back({id, title, description, parameters, true, std::move(run)});
     };
+    registerCanvasCommands();
     registerSectionCommands();
     registerSliderCommands();
     registerLocalReferenceCommands();
@@ -4041,7 +4050,7 @@ void AlloyWindow::registerCommands() {
         return failure("stale_entity","Body does not exist");
     });
     auto sessionTarget = parameter("string", "Implemented session target; modeling targets follow alongside their features.");
-    sessionTarget["enum"] = QJsonArray{"document.units", "commands.search","solid.box","solid.cylinder","solid.extrude","solid.combine","solid.move","solid.fillet","solid.chamfer","solid.sphere","solid.shell","solid.loft","solid.revolve","solid.sweep","solid.rectangularPattern","solid.circularPattern","solid.mirror","inspect.section","joint.slider","sketch.create","construction.midplane","construction.pathPlane","construction.tangentPlane","solid.splitBody"};
+    sessionTarget["enum"] = QJsonArray{"canvas.set","document.units", "commands.search","solid.box","solid.cylinder","solid.extrude","solid.combine","solid.move","solid.fillet","solid.chamfer","solid.sphere","solid.shell","solid.loft","solid.revolve","solid.sweep","solid.rectangularPattern","solid.circularPattern","solid.mirror","inspect.section","joint.slider","sketch.create","construction.midplane","construction.pathPlane","construction.tangentPlane","solid.splitBody"};
     add("command.begin", "Begin command session", "Begin a real editable dialog with disposable inputs.",
         {{"command", sessionTarget}, {"inputs", parameter("object", "Initial input overrides.")}},
         [this](const auto& a) { return beginSession(a["command"].toString(), a["inputs"].toObject()); });
@@ -4049,6 +4058,7 @@ void AlloyWindow::registerCommands() {
     auto updateSchema = sessionId; updateSchema["inputs"] = parameter("object", "Partial input changes; unknown fields are rejected.");
     add("command.update", "Update command inputs", "Validate and update the actual dialog draft without committing intent.", updateSchema, [this](const auto& a) {
         if (session_.isEmpty() || session_.value("id") != a["session"]) return failure("invalid_session", "Session is no longer active");
+        if(session_.value("command").toString().startsWith("canvas."))return updateCanvas(a["inputs"].toObject());
         auto inputs = session_.value("inputs").toObject();
         const auto updates = a["inputs"].toObject();
         if(session_.value("command")=="solid.extrude") {
@@ -4248,6 +4258,7 @@ void AlloyWindow::registerCommands() {
     });
     add("command.preview", "Inspect command preview", "Inspect disposable authored draft; no evaluated geometry is implied.", sessionId, [this](const auto& a) {
         if (session_.isEmpty() || session_.value("id") != a["session"]) return failure("invalid_session", "Session is no longer active");
+        if(session_.value("command").toString().startsWith("canvas."))return previewCanvas();
         if(session_.value("command")=="solid.extrude") {
             const auto preview=previewExtrude();
             if(extrudeError_)extrudeError_->setText(preview.value("ok").toBool() ? "" : preview["error"].toObject()["message"].toString());
@@ -4310,7 +4321,7 @@ void AlloyWindow::registerCommands() {
     add("command.panelDock","Dock command panel","Dock or float the active modeling panel through Qt.",
         {{"docked",parameter("boolean","True docks the panel on the right; false floats it.")}},[this](const auto& a){
             const auto target=session_.value("command").toString();
-            auto* dock=target=="solid.splitBody" ? splitBodyDock_ : target=="construction.midplane" ? midplaneDock_ : target=="construction.tangentPlane" ? tangentPlaneDock_ : target=="construction.pathPlane" ? pathPlaneDock_ : target=="joint.slider" ? sliderDock_ : target=="inspect.section" ? sectionDock_ : target=="solid.sweep" ? sweepDock_ : target=="solid.revolve" ? revolveDock_ : target=="solid.hole" ? holeDock_ : target=="solid.sphere" ? sphereDock_ : target=="solid.chamfer" ? chamferDock_ : target=="solid.fillet" ? filletDock_ : target=="solid.rectangularPattern" ? patternDock_ : target=="solid.loft" ? loftDock_ : target=="surface.extrude" ? surfaceExtrudeDock_ : target=="solid.thicken" ? thickenDock_ : target=="solid.shell" ? shellDock_ : target=="solid.circularPattern" ? circularDock_ : target=="solid.mirror" ? mirrorDock_ : target=="solid.featureMirror" ? featureMirrorDock_ : target=="solid.move" ? moveDock_ : target=="solid.extrude" ? extrudeDock_ : target=="solid.combine" ? combineDock_ : target.startsWith("sketch.") ? sketchDock_ : target.startsWith("solid.") ? primitiveDock_ : nullptr;
+            auto* dock=target.startsWith("canvas.") ? canvasDock_ : target=="solid.splitBody" ? splitBodyDock_ : target=="construction.midplane" ? midplaneDock_ : target=="construction.tangentPlane" ? tangentPlaneDock_ : target=="construction.pathPlane" ? pathPlaneDock_ : target=="joint.slider" ? sliderDock_ : target=="inspect.section" ? sectionDock_ : target=="solid.sweep" ? sweepDock_ : target=="solid.revolve" ? revolveDock_ : target=="solid.hole" ? holeDock_ : target=="solid.sphere" ? sphereDock_ : target=="solid.chamfer" ? chamferDock_ : target=="solid.fillet" ? filletDock_ : target=="solid.rectangularPattern" ? patternDock_ : target=="solid.loft" ? loftDock_ : target=="surface.extrude" ? surfaceExtrudeDock_ : target=="solid.thicken" ? thickenDock_ : target=="solid.shell" ? shellDock_ : target=="solid.circularPattern" ? circularDock_ : target=="solid.mirror" ? mirrorDock_ : target=="solid.featureMirror" ? featureMirrorDock_ : target=="solid.move" ? moveDock_ : target=="solid.extrude" ? extrudeDock_ : target=="solid.combine" ? combineDock_ : target.startsWith("sketch.") ? sketchDock_ : target.startsWith("solid.") ? primitiveDock_ : nullptr;
             if(!dock)
                 return failure("no_active_dialog","No modeling panel is active");
             dock->setFloating(!a["docked"].toBool());
@@ -4815,6 +4826,7 @@ void AlloyWindow::refresh() {
         if(!revealFeature.isEmpty())showTimelineFeature(revealFeature);
         bodiesNode_->setExpanded(true);
         view_->setBodies(presentationBodies(),++presentationRevision_);
+        refreshCanvasPresentation();
         const auto assembly=presentationAssembly()["joints"].toArray();
         view_->setSliderCue(assembly.isEmpty() ? QJsonObject{} : assembly[0].toObject());
         view_->setSketches(nonzeroAssemblyPose() ? std::vector<EvaluatedSketch>{} : document_->sketches(),presentationRevision_);
@@ -5729,6 +5741,7 @@ void AlloyWindow::updateExtrude(const QJsonObject& inputs) {
 }
 
 QJsonObject AlloyWindow::beginSession(const QString& command, const QJsonObject& inputs) {
+    if(command=="canvas.set")return beginCanvas(inputs);
     if(command=="construction.midplane")return beginMidplane(inputs);
     if(command=="construction.tangentPlane")return beginTangentPlane(inputs);
     if(command=="construction.pathPlane")return beginPathPlane(inputs);
@@ -6094,6 +6107,7 @@ void AlloyWindow::showPathPlane() {
 }
 
 QJsonObject AlloyWindow::finishSession(const QString& id, bool commit) {
+    if(session_.value("command").toString().startsWith("canvas."))return finishCanvas(id,commit);
     if (session_.isEmpty() || session_.value("id").toString() != id) return failure("invalid_session", "Session is no longer active");
     if(commit && session_.value("invalidEndOffset").toBool())return failure("invalid_arguments","Resolve the end offset before committing");
     if(commit && session_.contains("invalidNamedInput"))return failure("unknown_parameter","Resolve the unavailable user length name before committing");
