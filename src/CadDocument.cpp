@@ -554,7 +554,7 @@ QJsonObject CadDocument::reparentOccurrenceCandidate(const QJsonObject& authored
     return candidate;
 }
 QJsonObject CadDocument::copyOccurrenceCandidate(const QJsonObject& authored,const QString& occurrenceId,const QJsonObject& placement) {
-    if(!authored["joints"].toArray().isEmpty())throw std::invalid_argument("Linked subtree copy requires a design without joints; joint remapping is not supported yet");
+    const auto joints=authored["joints"].toArray();if(!joints.isEmpty()&&!AssemblyGraph::isJointGraph(authored))throw std::invalid_argument("Copy supports only the admitted internal Cylindrical relationship");
     const auto error=LocalOccurrences::validate(authored);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());
     LocalReference::transform(placement);auto occurrences=authored["occurrences"].toArray();QJsonObject source;
     for(const auto& v:occurrences)if(v.toObject()["id"]==occurrenceId)source=v.toObject();
@@ -564,8 +564,11 @@ QJsonObject CadDocument::copyOccurrenceCandidate(const QJsonObject& authored,con
     QSet<QString> selected{occurrenceId};bool changed=true;while(changed){changed=false;for(const auto& v:occurrences){const auto id=v.toObject()["id"].toString();if(selected.contains(LocalOccurrences::parentOccurrenceId(authored,id))&&!selected.contains(id)){selected.insert(id);changed=true;}}}
     QJsonObject mapping;for(const auto& v:occurrences){const auto id=v.toObject()["id"].toString();if(selected.contains(id))mapping[id]=newId();}
     const auto originals=occurrences;for(const auto& v:originals){auto r=v.toObject();const auto id=r["id"].toString();if(!selected.contains(id))continue;r["id"]=mapping[id];if(id==occurrenceId)r["placement"]=placement;else {r["parentOccurrenceId"]=mapping[LocalOccurrences::parentOccurrenceId(authored,id)];if(r["placement"]=="identity")r["placement"]=LocalReference::identityPlacement();}occurrences.append(r);}
-    auto candidate=authored;candidate["occurrences"]=occurrences;const auto validation=validateStructure(candidate);if(!validation.isEmpty())throw std::invalid_argument(validation.toStdString());
-    return {{"authored",candidate},{"occurrenceMap",mapping},{"rootOccurrenceId",mapping[occurrenceId]}};
+    QJsonObject jointMap;auto copiedJoints=joints;int internal=0;
+    if(!joints.isEmpty())for(const auto& v:joints){auto j=v.toObject();for(const auto& key:{"angleDeg","rotationDeg","slideMm"})if(j.value(key).toDouble()!=0)throw std::invalid_argument("Revert to the reference zero pose before copying the mechanism");if(selected.contains(j["component1OccurrenceId"].toString())&&selected.contains(j["component2OccurrenceId"].toString())){if(j["type"]!="asBuiltCylindrical"||++internal>1)throw std::invalid_argument("Only one internal Cylindrical relationship may be copied");const auto old=j["id"].toString();j["id"]=newId();jointMap[old]=j["id"];j["component1OccurrenceId"]=mapping[j["component1OccurrenceId"].toString()];j["component2OccurrenceId"]=mapping[j["component2OccurrenceId"].toString()];copiedJoints.append(j);}}
+    if(!joints.isEmpty()&&internal!=1)throw std::invalid_argument("Jointed subtree copy requires its one internal Cylindrical relationship");
+    auto candidate=authored;candidate["occurrences"]=occurrences;candidate["joints"]=copiedJoints;const auto validation=validateStructure(candidate);if(!validation.isEmpty())throw std::invalid_argument(validation.toStdString());
+    return {{"authored",candidate},{"occurrenceMap",mapping},{"jointMap",jointMap},{"rootOccurrenceId",mapping[occurrenceId]}};
 }
 QJsonObject CadDocument::pinOccurrenceCandidate(const QJsonObject& authored,const QString& occurrenceId) {
     if(!validId(occurrenceId))throw std::invalid_argument("Pin requires a component occurrence ID");
@@ -1696,7 +1699,7 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
             || !validId(id) || ids.contains(id) || !component["name"].isString() || component["name"].toString().trimmed().isEmpty())return "Invalid local component definition";
         ids.insert(id);owners.insert(id);
     }
-    if(!candidate["joints"].toArray().isEmpty())for(const auto& v:candidate["occurrences"].toArray())if(v.toObject()["placement"]!="identity" || v.toObject().contains("parentOccurrenceId"))return "Joint graphs on linked placed occurrences require the later joint-remapping workflow";
+    if(!candidate["joints"].toArray().isEmpty()&&!AssemblyGraph::isJointGraph(candidate))for(const auto& v:candidate["occurrences"].toArray())if(v.toObject()["placement"]!="identity" || v.toObject().contains("parentOccurrenceId"))return "Legacy Slider cannot use linked placed occurrences";
     const auto occurrenceError=LocalOccurrences::validate(candidate);
     if(!occurrenceError.isEmpty())return occurrenceError;
     for(const auto& value:candidate["occurrences"].toArray()){const auto id=value.toObject()["id"].toString();if(ids.contains(id))return "Duplicate authored occurrence UUID";ids.insert(id);}

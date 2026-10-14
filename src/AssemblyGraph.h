@@ -9,6 +9,7 @@
 class AssemblyGraph final {
 public:
     static bool isJointGraph(const QJsonObject& authored);
+    static bool participantLeaf(const QJsonObject& authored,const QString& occurrenceId);
     static bool identityLeaf(const QJsonObject& authored,const QString& occurrenceId);
     static QString validateRecords(const QJsonObject& authored);
     static QJsonObject revoluteCandidate(const QJsonObject& authored,const EvaluatedDocument& definitions,const QJsonObject& arguments);
