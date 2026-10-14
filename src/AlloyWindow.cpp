@@ -366,10 +366,11 @@ AlloyWindow::AlloyWindow() {
     construction->setToolTip("Toggle selected authored lines; construction does not bound profiles.");
     connect(construction,&QAction::triggered,this,[this]{sketchResponse(execute("sketch.constructionToggle"));});
     auto* constraints=sketchMenu("Constraints","constraints");
-    for(const auto& type:QStringList{"coincident","concentric","horizontalVertical","horizontal","vertical","parallel","perpendicular","equal","fixed"}) {
+    for(const auto& type:QStringList{"coincident","concentric","horizontalVertical","horizontal","vertical","parallel","perpendicular","equal","fixed","midpoint"}) {
         auto* action=constraints->addAction(type=="horizontalVertical" ? "Horizontal/Vertical" : type.first(1).toUpper()+type.sliced(1));
         action->setObjectName("sketch.action.constraint."+type);
-        action->setToolTip(type=="fixed" ? "Select one point; retain its position" : type=="coincident" ? "Select two points"
+        action->setToolTip(type=="midpoint" ? "Pick a line or arc, then its midpoint point or sketch origin; Escape exits"
+            : type=="fixed" ? "Select one point; retain its position" : type=="coincident" ? "Select two points"
             : type=="horizontalVertical" ? "Pick one line or two points; the first point is the initial reference" : type=="horizontal" || type=="vertical" ? "Pick one line" : type=="concentric" ? "Pick two circles or arcs" : "Pick a compatible pair; repeat pairs; Escape exits");
         connect(action,&QAction::triggered,this,[this,type]{sketchResponse(execute("sketch.constraintTool",{{"type",type}}));});
     }
@@ -2492,9 +2493,22 @@ void AlloyWindow::registerCommands() {
         const bool constraint=session_.value("tool")=="constraint";
         const auto type=session_.value("constraintType").toString();
         const auto prior=session_.value("selection").toObject();
-        const auto field=type=="fixed" || type=="coincident" || (type=="horizontalVertical" && !prior["pointIds"].toArray().isEmpty()) ? QString("pointIds") : QString("entityIds");
-        const int required=type=="fixed" || type=="horizontal" || type=="vertical" || (type=="horizontalVertical" && field=="entityIds") ? 1 : 2;
+        const auto field=type=="fixed" || type=="coincident" || (type=="horizontalVertical" && !prior["pointIds"].toArray().isEmpty())
+            || (type=="midpoint" && prior["entityIds"].toArray().size()==1) ? QString("pointIds") : QString("entityIds");
+        const int required=type=="fixed" || type=="horizontal" || type=="vertical" || type=="midpoint"
+            || (type=="horizontalVertical" && field=="entityIds") ? 1 : 2;
         const auto hint=constraint && type=="horizontalVertical" && prior["pointIds"].toArray().isEmpty() && prior["entityIds"].toArray().isEmpty() ? QString{} : constraint ? (field=="pointIds" ? QString("point") : QString("entity")) : session_.value("tool")=="dimension" && !prior["entityIds"].toArray().isEmpty() ? QString("entity") : QString{};
+        if(constraint && type=="midpoint" && field=="pointIds"){
+            const auto draft=session_.value("draftSketch").toObject(),parameters=draft["parameters"].toObject();
+            const auto projected=view_->projectSketchPoint(0,0,parameters["plane"].toString(),session_.value("resolvedFrame").toObject());
+            if(std::hypot(projected["x"].toDouble()-a["x"].toDouble(),projected["y"].toDouble()-a["y"].toDouble())<=8){
+                const auto result=applySketchConstraint("midpoint",{{"entityIds",prior["entityIds"]},{"origin",true}});
+                if(result["ok"].isBool() && !result["ok"].toBool())return result;
+                session_["selection"]=QJsonObject{{"pointIds",QJsonArray{}},{"entityIds",QJsonArray{}},{"profileIds",QJsonArray{}}};
+                session_["constraintPrompt"]="Midpoint · Applied; pick next curve · Escape exits";
+                auto completed=result;completed["constraintApplied"]=true;completed["constraintType"]="midpoint";completed["selection"]=session_["selection"];return completed;
+            }
+        }
         const auto picked=view_->pickSketch(session_.value("draftSketch").toObject(),a["x"].toDouble(),a["y"].toDouble(),hint);
         if(constraint && picked.isEmpty())return failure("invalid_constraint_target","Pick compatible sketch geometry for the active constraint");
         const auto previousEntities=session_.value("selection").toObject()["entityIds"].toArray();
@@ -3024,7 +3038,7 @@ void AlloyWindow::registerCommands() {
     auto constraintType=parameter("string","Geometric relation to apply to the supplied or selected sketch geometry.");
     constraintType["enum"]=QJsonArray{"coincident","concentric","horizontal","vertical","horizontalVertical","parallel","perpendicular","equal","fixed","midpoint","pointOnCurve"};
     auto constraintToolType=constraintType;
-    constraintToolType["enum"]=QJsonArray{"coincident","concentric","horizontal","vertical","horizontalVertical","parallel","perpendicular","equal","fixed"};
+    constraintToolType["enum"]=QJsonArray{"coincident","concentric","horizontal","vertical","horizontalVertical","parallel","perpendicular","equal","fixed","midpoint"};
     add("sketch.constraintTool","Activate sketch constraint","Apply compatible preselection, then repeatedly pick geometry; Escape returns to Select.",{{"type",constraintToolType},{"session",optionalSession}},[this](const auto& a){
         if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
         if(a.contains("session") && a["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
@@ -3083,13 +3097,14 @@ void AlloyWindow::registerCommands() {
                 {{"entityIds",chosen},{"centerline",!allCenterline}},session_.value("projectionContext").toObject()));
         });
     add("sketch.constraint","Constrain sketch geometry","Solve a geometric relation before replacing the usable sketch draft.",
-        {{"type",constraintType},{"pointIds",ids},{"entityIds",ids},{"session",optionalSession}},[this](const auto& a){
+        {{"type",constraintType},{"pointIds",ids},{"entityIds",ids},{"origin",optional(parameter("boolean","Use the sketch origin as Midpoint's retained point."))},{"session",optionalSession}},[this](const auto& a){
             if(session_.value("command").toString()!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
             if(a.contains("session") && a["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
             QJsonObject args{{"type",a["type"]}};const auto field=a.contains("pointIds") || a["type"]=="coincident" || a["type"]=="fixed" || a["type"]=="horizontalVertical" ? "pointIds" : "entityIds";
             args[field]=a.contains(field) ? a[field] : session_.value("selection").toObject().value(field);
             if(a["type"]=="midpoint" || a["type"]=="pointOnCurve") {
-                args["pointIds"]=a.contains("pointIds") ? a["pointIds"] : session_.value("selection").toObject().value("pointIds");
+                if(a.value("origin").toBool())args["origin"]=true;
+                else args["pointIds"]=a.contains("pointIds") ? a["pointIds"] : session_.value("selection").toObject().value("pointIds");
                 args["entityIds"]=a.contains("entityIds") ? a["entityIds"] : session_.value("selection").toObject().value("entityIds");
             }
             return applySketchConstraint(a["type"].toString(),args);
@@ -7354,6 +7369,25 @@ QJsonObject AlloyWindow::setSketchSelection(const QJsonObject& selection) {
     cancelDimension();
     if(session_.value("tool")=="constraint") {
         const auto type=session_.value("constraintType").toString();
+        if(type=="midpoint"){
+            const auto curves=normalized["entityIds"].toArray(),points=normalized["pointIds"].toArray();
+            if(curves.size()>1 || points.size()>1)return failure("invalid_constraint_target","Midpoint requires one line or arc and one point");
+            if(!curves.isEmpty()){
+                bool supported=false;for(const auto& entry:parameters["entities"].toArray())if(entry.toObject()["id"]==curves[0])
+                    supported=entry.toObject()["type"]=="line" || entry.toObject()["type"]=="arc";
+                if(!supported)return failure("invalid_constraint_target","Midpoint requires a line or arc");
+            }
+            session_["constraintPrompt"]=curves.isEmpty() ? "Midpoint · Pick a line or arc · Escape exits"
+                : "Midpoint · Pick a point or sketch origin · Escape exits";
+            if(curves.size()==1 && points.size()==1){
+                const auto result=applySketchConstraint(type,{{"entityIds",curves},{"pointIds",points}});
+                if(result["ok"].isBool() && !result["ok"].toBool())return result;
+                session_["selection"]=QJsonObject{{"pointIds",QJsonArray{}},{"entityIds",QJsonArray{}},{"profileIds",QJsonArray{}}};
+                session_["constraintPrompt"]="Midpoint · Applied; pick next curve · Escape exits";
+                auto completed=result;completed["constraintApplied"]=true;completed["constraintType"]=type;completed["selection"]=session_["selection"];return completed;
+            }
+            auto result=normalized;result["selection"]=normalized;return result;
+        }
         const auto field=type=="fixed" || type=="coincident" || (type=="horizontalVertical" && !normalized["pointIds"].toArray().isEmpty()) ? QString("pointIds") : QString("entityIds");
         const int required=type=="fixed" || type=="horizontal" || type=="vertical" || (type=="horizontalVertical" && field=="entityIds") ? 1 : 2;
         const auto targets=normalized[field].toArray();
@@ -8562,11 +8596,12 @@ void AlloyWindow::showSketch() {
             sketchResponse(execute("sketch.selectionSet",{{"pointIds",points},{"entityIds",entities}}));
         });
         layout->addWidget(new QLabel("CONSTRAINTS"));auto* constraints=new QGridLayout;
-        const QStringList types{"coincident","concentric","horizontalVertical","horizontal","vertical","parallel","perpendicular","equal","fixed"};
+        const QStringList types{"coincident","concentric","horizontalVertical","horizontal","vertical","parallel","perpendicular","equal","fixed","midpoint"};
         for(int i=0;i<types.size();++i) {
             const auto type=types[i];auto* button=new QPushButton(type=="horizontalVertical" ? "Horizontal/Vertical" : type.first(1).toUpper()+type.sliced(1));button->setObjectName("sketch.constraint."+type);button->setCheckable(true);
             button->setStyleSheet("QPushButton:checked { background: #deedf5; border: 1px solid #2b83ae; }");
-            button->setToolTip(type=="fixed" ? "Select one point; retain its position" : type=="coincident" ? "Select two points"
+            button->setToolTip(type=="midpoint" ? "Pick a line or arc, then a point or sketch origin; Escape exits"
+                : type=="fixed" ? "Select one point; retain its position" : type=="coincident" ? "Select two points"
                 : type=="horizontalVertical" ? "Pick one line or two points; the first point is the initial reference" : type=="horizontal" || type=="vertical" ? "Pick one line" : type=="equal" ? "Pick two lines or two circles/arcs; repeat pairs; Escape exits" : type=="concentric" ? "Pick two circles or arcs; repeat pairs; Escape exits" : "Pick two lines; repeat pairs; Escape exits");
             constraints->addWidget(button,i/2,i%2);
             connect(button,&QPushButton::toggled,this,[this,type](bool checked){

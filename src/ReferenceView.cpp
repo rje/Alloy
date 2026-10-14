@@ -1367,7 +1367,7 @@ void ReferenceView::decorateSketch(const QJsonObject& feature,const QJsonObject&
                 u=center["uMm"].toDouble();v=center["vMm"].toDouble();
             } else if(kind=="midpoint" || kind=="pointOnCurve") {
                 const auto pointId=relation["pointIds"].toArray().at(0).toString();
-                const auto point=points.value(pointId);if((kind=="midpoint" && entity["type"]!="line") || point.isEmpty())continue;
+                const auto point=points.value(pointId);if((kind=="midpoint" && entity["type"]!="line" && entity["type"]!="arc") || point.isEmpty())continue;
                 u=point["uMm"].toDouble();v=point["vMm"].toDouble();
             } else if(entity["type"]=="line") {
                 const auto a=points.value(entity["startPointId"].toString()),b=points.value(entity["endPointId"].toString());

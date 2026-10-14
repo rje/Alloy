@@ -1,5 +1,17 @@
 # Continuation context
 
+## Arc midpoint on attached path sections candidate (2026-10-14)
+
+SKT-068/#282 now has an isolated candidate extending the existing Midpoint
+constraint to ordinary arc half-sweeps. The native tool selects the arc then
+the attached sketch origin; the same sketch/API authority retains a fixed
+origin point and rejects the antipodal branch. Source-sized front 50/10/10
+and rear 30 sections follow GEO-003 endpoint planes after a spine edit.
+Focused core, a 44-call real-app API workflow, and Qt-native arc/origin clicks
+with inspected dimension/badge captures pass. See [the candidate receipt](validation/arc-midpoint-endpoint.md).
+Independent review and main integration remain pending; broader midpoint,
+projection and surface scope stays with their parent issues.
+
 ## Accepted endpoint Plane Along Path (2026-10-13)
 
 GEO-003/#281 is independently accepted and integrated for one retained fit

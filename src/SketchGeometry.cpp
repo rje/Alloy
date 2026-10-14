@@ -1506,8 +1506,10 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
                     if (entity.toObject()["id"]==refs[0] && entity.toObject()["type"]=="circle") circle=true;
                 if (!circle || !lineIds.contains(refs[1].toString())) return "Tangent references must be ordered circle then line";
             } else if (type == "midpoint") {
+                QSet<QString> midpointEntities=lineIds;
+                midpointEntities.unite(arcIds);
                 if (constraint.size() != 4 || !checkReferences(constraint,"pointIds",1,pointIds)
-                    || !checkReferences(constraint,"entityIds",1,lineIds)) return "Midpoint requires one point and one line";
+                    || !checkReferences(constraint,"entityIds",1,midpointEntities)) return "Midpoint requires one point and one line or arc";
                 const auto refs = constraint["pointIds"].toArray();
                 for (const auto& entity : parameters["entities"].toArray()) {
                     const auto line = entity.toObject();
@@ -1718,10 +1720,22 @@ SketchGeometry::SolveResult SketchGeometry::mirrorEntities(const QJsonObject& dr
 SketchGeometry::SolveResult SketchGeometry::addConstraint(const QJsonObject& draft, const QJsonObject& arguments, const QJsonObject& projectionContext) {
     try {
         validateDraft(draft);
-        checkFields(arguments, {"type", "pointIds", "entityIds", "side"});
+        checkFields(arguments, {"type", "pointIds", "entityIds", "side", "origin"});
         auto constraint = arguments;
         constraint["id"] = newId();
         auto parameters = draft["parameters"].toObject();
+        if(arguments.contains("origin")){
+            if(constraint["type"]!="midpoint" || arguments["origin"]!=true || arguments.contains("pointIds"))
+                reject("Only Midpoint accepts the sketch origin as a point target");
+            auto origin=parameters["originPointId"].toString();
+            if(origin.isEmpty()){
+                origin=newId();parameters["originPointId"]=origin;
+                auto points=parameters["points"].toArray();points.append(QJsonObject{{"id",origin},{"uMm",0},{"vMm",0}});parameters["points"]=points;
+                auto constraints=parameters["constraints"].toArray();constraints.append(QJsonObject{{"id",newId()},{"type","fixed"},
+                    {"pointIds",QJsonArray{origin}},{"uMm",0},{"vMm",0}});parameters["constraints"]=constraints;
+            }
+            constraint.remove("origin");constraint["pointIds"]=QJsonArray{origin};
+        }
         const auto derivedPoints=SketchArcSlot::derivedPointIds(parameters),derivedArcs=SketchArcSlot::derivedArcIds(parameters);
         for(const auto& value:constraint.value("pointIds").toArray())if(derivedPoints.contains(value.toString()))
             reject("Arc slot tangent contact is derived; constrain its path endpoint instead");

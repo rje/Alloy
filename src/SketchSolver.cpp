@@ -272,8 +272,15 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
                 solver.addConstraintTangent(line(reference(constraint,"entityIds",1)),
                     circleMap.at(reference(constraint,"entityIds",0)),number(constraint,"side")>0,t);
             } else if (type == "midpoint") {
-                auto& target = line(reference(constraint,"entityIds",0));
-                solver.addConstraintP2PSymmetric(target.p1,target.p2,point(reference(constraint,"pointIds",0)),t);
+                const auto id=reference(constraint,"entityIds",0);
+                auto& p=point(reference(constraint,"pointIds",0));
+                if(lineMap.contains(id)){
+                    auto& target=line(id);solver.addConstraintP2PSymmetric(target.p1,target.p2,p,t);
+                }else{
+                    auto& arc=arcMap.at(id);
+                    solver.addConstraintPointOnArc(p,arc,t);
+                    solver.addConstraintPointOnPerpBisector(p,arc.start,arc.end,t);
+                }
             } else if(type=="concentric") {
                 auto center=[&](const QString& id) -> GCS::Point& {
                     if(auto found=circleMap.find(id);found!=circleMap.end())return found->second.center;
@@ -542,9 +549,17 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
                 require(foot>=-lengthTolerance/length && foot<=1+lengthTolerance/length,"Tangent contact left the finite line");
             }
             else if(type=="midpoint") {
-                const auto& p=point(reference(c,"pointIds",0)); const auto& target=line(reference(c,"entityIds",0));
-                check(*p.x-(*target.p1.x+*target.p2.x)/2,lengthTolerance);
-                check(*p.y-(*target.p1.y+*target.p2.y)/2,lengthTolerance);
+                const auto& p=point(reference(c,"pointIds",0));const auto id=reference(c,"entityIds",0);
+                if(lineMap.contains(id)){
+                    const auto& target=line(id);
+                    check(*p.x-(*target.p1.x+*target.p2.x)/2,lengthTolerance);
+                    check(*p.y-(*target.p1.y+*target.p2.y)/2,lengthTolerance);
+                }else{
+                    const auto& arc=arcMap.at(id);
+                    const double half=(*arc.startAngle+*arc.endAngle)/2;
+                    check(*p.x-*arc.center.x-*arc.rad*std::cos(half),lengthTolerance);
+                    check(*p.y-*arc.center.y-*arc.rad*std::sin(half),lengthTolerance);
+                }
             }
             else if(type=="concentric") {
                 auto center=[&](const QString& id) -> GCS::Point& {
