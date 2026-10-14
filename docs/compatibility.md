@@ -6,11 +6,34 @@ not a claim of completed parity.
 
 ## Reference baseline
 
-The exact reference CAD application release, platform, theme, display scale, and navigation preset
-to target remain unresolved. Public help pages can change without a product
-version marker, and screenshots can depict older interfaces. Preserve retrieval
-dates and the reference's visible context; do not merge conflicting references
-into an invented exact specification.
+Decision reviewed 2026-10-14 against source commit `afa0a5c`. This is an
+Alloy comparison policy, not a claim about an unidentified reference build:
+
+- Use macOS as the initial comparison host, with a 1280 × 900 logical main
+  window and the light/neutral Alloy presentation. Record actual viewport
+  dimensions, OS, GPU, theme and device-pixel ratio for every capture. Windows
+  and Linux remain mandatory targets with separate runtime qualification.
+- Use the documented default navigation mapping in source `keys` as the
+  behavioral baseline; identify platform-specific keys and any alternative
+  mouse/trackpad mapping in each workflow record. This decision does not imply
+  every current Alloy control already matches that mapping.
+- Use archived sources `ui`, `keys`, and `inputs` and the populated Sketch /
+  Project / Dimension / Extrude record as the initial evidence set. Provenance,
+  image hashes and source URLs stay outside Git.
+- The two archived public layouts are visibly distinct. Their release
+  generations are not established; reference screenshot OS, selected theme,
+  and display scale also remain unknown. Never treat an unmatched capture as
+  a pixel-equivalent comparison or infer those settings from appearance.
+
+External evidence map: `knowledge/specs/fnd-001-baseline-audit-2026-10-14.md`.
+The populated command record is `face-sketch-project-dimension-extrude.json`
+in the external knowledge collection; it covers preconditions, selection,
+inputs/defaults with unknowns, preview, acceptance/cancellation, history,
+keys, visual rules and verification. Its source IDs resolve through the
+external registry. FND-025 retains the missing public generation/metadata
+qualification; implementation issues retain actual behavior and styling gaps.
+Public pages can change without a version marker. Preserve retrieval dates and
+visible context, and keep conflicting observations separate.
 
 Initial research focuses on Design, Solid, Surface, and Sketch. See
 [public interface research](research/interface-reference.md) for sourced findings
@@ -83,7 +106,7 @@ actually researched. A URL alone is not a behavior specification.
 Research command groups, Browser, Timeline, dialogs, selection/preselection,
 numeric inputs, navigation, and contextual mode transitions. Typography, colors,
 spacing, icons, and proportions require inspected screenshot evidence. Author
-Alloy's assets independently. Do not bundle Autodesk branding or extracted assets.
+Alloy's assets independently. Do not bundle reference-product branding or extracted assets.
 
 Use comparable state, viewport dimensions, scale, theme, and framing for a
 comparison where possible. State differences when matching is impossible.
