@@ -65,8 +65,8 @@ Revolutes and Pin, then adds two left eye joints and checks one driver across al
 six leaves. The existing solver ABI remains. No generic scene or solver redesign
 is needed. The observed blank command-dock band is recorded in REL-005.
 ASM-018/#368
-preserves occurrence-aware STEP/STL export as a separate Todo dependency of
-TUT-019; copied designs currently require explicit export refusal rather than
+preserves occurrence-aware STEP/STL export as a separate dependency of TUT-019,
+now active in an isolated export lane; copied designs currently require explicit export refusal rather than
 losing instances or placements.
 The bounded implementation plan is external under
 `knowledge/tutorials/piston-subassemblies-2026-10-14/assembly-continuation/asm015-plan.md`.
