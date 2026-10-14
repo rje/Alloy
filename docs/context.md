@@ -3,10 +3,13 @@
 ## Current queue (2026-10-14)
 
 Continue autonomously across accepted milestones; a status report is not a stop.
-DOC-031/#348 is active for one bounded event-order diagnosis of rename dialog
-focus, reusing main/build. Earlier failed timer experiments remain evidence,
-not a reason to retry them. Sol implements, Astra verifies, and Luna researches
-the next tutorial-relevant sketch ingredient in parallel.
+DOC-031/#348 is independently accepted at `89782cf`: unchanged-product native09
+passes modal line focus, rename commit, Browser label and unchanged geometry.
+Earlier button-focus failure remains unexplained, not claimed fixed.
+SKT-080/#380 is active for explicit shared-endpoint arc-line Tangent constraints;
+Sol implements on main, Astra verifies, reusing the existing build.
+Root is diagnosing SKT-077's initial face-pick gate with actual hit-widget,
+projection and selection evidence; no native origin acceptance yet.
 
 Worktree cleanup removed 180 inactive checkouts, retaining branch refs and a
 verified external artifact archive under
@@ -42,9 +45,10 @@ preserved externally under `deliverables/face-sketch-origin-2026-10-14/native-dr
 No native origin acceptance is claimed; accepted core/API checks are unchanged.
 Read-only review rules out required cached hover: picking ray-tests click coordinates.
 Pre-activation projection versus queued viewport sync is plausible but unproven.
-DOC-031/#348 is back in Todo: native06/07 reached the actual modal dialog
-but focus stayed on a button. The ineffective opening activation change was
-reverted; draft and evidence remain in the external body-rename deliverable.
+DOC-031 earlier native06/07 reached the modal dialog but focus stayed on a
+button. The ineffective activation change was reverted; native09 now passes
+unchanged product. The regression test and qualified receipt are accepted;
+prior failure evidence remains in the external body-rename deliverable.
 PAR-006/#378 is independently accepted and closed at `187f262`. User length
 formulas such as `Length=Width*2` retain reference UUIDs through rename and drive
 existing model bindings through evaluated values. Core named/model checks pass;
