@@ -37,4 +37,5 @@ Intersection and Arc probes were unsuccessful. The concrete failing fixture
 is retained as an atomic unsupported-operation check in `solid_shell.cpp`.
 GEO-008/#316 owns the geometry requirement and blocks TUT-016. No smaller
 thickness, omitted source fillet or open-top substitute passes that gate.
-Independent final review is pending.
+Independent Astra review accepted this bounded subset at 5b1bb29.
+The actual enclosure remains blocked by GEO-008.

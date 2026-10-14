@@ -3054,7 +3054,7 @@
       "labels": [
         "area:sol"
       ],
-      "body": "## Scope\nOne Fillet feature containing distinct selected edge sets with12mm and16mm radii; subsequent1.5mm perimeter tangent-chain rounding. Retain selection provenance after Thicken and each rounding stage.\n\n## Acceptance criteria\nNative add-selection-set and radius controls match actual authored sets; inspect corner geometry and uninterrupted top/bottom rim chains through edit/history/reopen.\n- Native controls and local automation use the same authored commands, selections and evaluated geometry. Retain stable references, atomic failures, preview/Cancel where applicable, meaningful edit, undo/redo and save/reopen.\n\n## Proposed verification and evidence\nUse a focused core contract test where useful and a bounded real-entrypoint workflow. Inspect readable native controls, selections, constraint annotations and actual hardware GPU captures. Separate native input, API, geometry, history and visual evidence; independent Astra review before acceptance. Avoid repeating unchanged full workflows.\n\n## Public reference evidence\nPublic tutorial reference `surface-shoehorn` reviewed 2026-10-13; detailed source URLs, instructions, images and uncertainties remain outside Git at knowledge/tutorials/advanced-candidates-2026-10-13.json and the accompanying audit.\n\n## Limits and open questions\nThis task is planned, not accepted. Source qualification must resolve unspecified dimensions and input availability without operating the reference application. Broader parent requirements remain Todo; no silent substitution of source operations.\n\n\n## Shared enclosure requirement\nThe electronics case first Fillet contains vertical R5 and top/bottom R2.5 groups in ONE feature. Prove the multi-radius ingredient on Box stock first, then reuse for the shoehorn R12/R16 groups and later perimeter chain after Thicken. Surface provenance is qualified by TUT-017 after SRF-010; it does not block the basic grouped-feature implementation.\n"
+      "body": "## Scope\nOne Fillet feature containing distinct selected edge sets with12mm and16mm radii; subsequent1.5mm perimeter tangent-chain rounding. Retain selection provenance after Thicken and each rounding stage.\n\n## Acceptance criteria\nNative add-selection-set and radius controls match actual authored sets; inspect corner geometry and uninterrupted top/bottom rim chains through edit/history/reopen.\n- Native controls and local automation use the same authored commands, selections and evaluated geometry. Retain stable references, atomic failures, preview/Cancel where applicable, meaningful edit, undo/redo and save/reopen.\n\n## Proposed verification and evidence\nUse a focused core contract test where useful and a bounded real-entrypoint workflow. Inspect readable native controls, selections, constraint annotations and actual hardware GPU captures. Separate native input, API, geometry, history and visual evidence; independent Astra review before acceptance. Avoid repeating unchanged full workflows.\n\n## Public reference evidence\nPublic tutorial reference `surface-shoehorn` reviewed 2026-10-13; detailed source URLs, instructions, images and uncertainties remain outside Git at knowledge/tutorials/advanced-candidates-2026-10-13.json and the accompanying audit.\n\n## Limits and open questions\nThis task is planned, not accepted. Source qualification must resolve unspecified dimensions and input availability without operating the reference application. Broader parent requirements remain Todo; no silent substitution of source operations.\n\n\n## Shared enclosure requirement\nThe electronics case first Fillet contains vertical R5 and top/bottom R2.5 groups in ONE feature. Prove the multi-radius ingredient on Box stock first, then reuse for the shoehorn R12/R16 groups and later perimeter chain after Thicken. Surface provenance is qualified by TUT-017 after SRF-010; it does not block the basic grouped-feature implementation.\n\n\n## Independently accepted 2026-10-13\nAstra accepted grouped constant-radius Fillet source/core, simultaneous native radius rows and real 31-call Box workflow with resize/history/reopen and STL readback. Integrated b199bc0 and853093c; combined application build and focused core integration pass. See docs/validation/grouped-fillet.md. Future Thicken/shoehorn provenance remains its cumulative gate; ChainOff is outside the bounded slice.\n"
     },
     {
       "key": "GEO-004",
@@ -3124,7 +3124,7 @@
       "labels": [
         "area:sol"
       ],
-      "body": "## Scope\nInward Shell of enclosure stock with no removed face, producing an enclosed cavity before Split Body. Verify inner wall thickness and cavity topology, not an open-top substitute.\n\n## Acceptance criteria\nImplement the stated source operation using shared native/API authority with stable input/result references, editable history, preview/Cancel where applicable, atomic failure and save/reopen. Preserve the broader parent scope.\n\n## Proposed verification and evidence\nA bounded source fixture must exercise the actual operation and meaningful upstream edit, inspect geometry and authored state, then undo/redo/reopen. Inspect real GPU captures and readable native controls; independent review separates input, API, geometry and visual evidence. Unit/integration checks focus on actual contracts.\n\n## Public reference evidence\nPublic reference `snap-fit-electronics-case` independently audited 2026-10-13; external knowledge/tutorials/advanced-audit-2026-10-13/independent-spec.md holds provenance and detailed source steps.\n\n## Limits and open questions\nPlanned, not accepted. Complete the affected public command specification before implementation; source dimensions or gestures not established by public evidence remain explicit unknowns.\n"
+      "body": "## Scope\nInward Shell of enclosure stock with no removed face, producing an enclosed cavity before Split Body. Verify inner wall thickness and cavity topology, not an open-top substitute.\n\n## Acceptance criteria\nImplement the stated source operation using shared native/API authority with stable input/result references, editable history, preview/Cancel where applicable, atomic failure and save/reopen. Preserve the broader parent scope.\n\n## Proposed verification and evidence\nA bounded source fixture must exercise the actual operation and meaningful upstream edit, inspect geometry and authored state, then undo/redo/reopen. Inspect real GPU captures and readable native controls; independent review separates input, API, geometry and visual evidence. Unit/integration checks focus on actual contracts.\n\n## Public reference evidence\nPublic reference `snap-fit-electronics-case` independently audited 2026-10-13; external knowledge/tutorials/advanced-audit-2026-10-13/independent-spec.md holds provenance and detailed source steps.\n\n## Limits and open questions\nPlanned, not accepted. Complete the affected public command specification before implementation; source dimensions or gestures not established by public evidence remain explicit unknowns.\n\n## Finishable supported subset and source blocker\nThis issue implements closed body Shell for valid admitted-kernel inward offsets, including exact plain-Box cavity, native Browser body selection, shared API/history/reopen and atomic unsupported refusal. The actual source grouped R5/R2.5 blends at thickness3.5 collapse in the offset kernel; GEO-008 separately owns that required geometry and blocks TUT-016. Closing this operation subset does not qualify that source shape.\n\n\n## Independently accepted 2026-10-13\nAstra independently accepted supported closed inward Shell at5b1bb29: exact cavity/outer-face geometry, six retained inner supports, native Browser body route with stale-face clearing, preview/Cancel/OK and28-call real-app edit/history/reopen/section evidence. See docs/validation/closed-shell.md. Actual R5/R2.5 blends with thickness3.5 remain unsupported under GEO-008 and block TUT-016; no source substitution qualifies that gate.\n"
     },
     {
       "key": "DOC-021",
@@ -3610,7 +3610,8 @@
       "priority": "P1",
       "depends_on": [
         "ASM-004",
-        "XCH-009"
+        "ASM-010",
+        "ASM-011"
       ],
       "labels": [
         "area:asm"
@@ -3626,7 +3627,7 @@
       "depends_on": [
         "RES-017",
         "TUT-015",
-        "ASM-006",
+        "ASM-010",
         "SKT-026",
         "SKT-025",
         "SOL-006",
@@ -3642,7 +3643,8 @@
         "SKT-069",
         "SOL-049",
         "SOL-046",
-        "DOC-025"
+        "DOC-025",
+        "GEO-008"
       ],
       "labels": [
         "area:gate"
@@ -5481,7 +5483,58 @@
         "kind:implementation",
         "priority:P1"
       ],
-      "body": "## Problem and bounded result\nThe existing STEP importer accepts exactly one solid. The qualified electronics reference has named board and connector solids in a hierarchy. Import that assembly without flattening identity or losing placement, through the existing document and command authority.\n\n## Scope\nUse admitted OCCT STEPCAF/XDE. Retain embedded input, definition and occurrence identities, names, hierarchy, leaf transforms and repeated definitions for solid-only millimeter inputs. Evaluate actual separate leaf bodies for viewport display/picking and inspection. Extend the authoritative document model coherently; do not create an independent mock import tree. Keep imported references read-only in this slice. Define stable identity and changed-input behavior before implementation; independent Astra architecture review is required.\n\n## Acceptance and verification\n- Import the independently qualified RES-017 board assembly, preserving names, groups, twelve valid solids, actual placements and mounting/port geometry. Reject unsupported entities/units explicitly rather than losing them.\n- A small independently generated repeated-definition placement fixture proves the identity/transform contract beyond the identity-placement board fixture.\n- Native file import and local API share commands; one import transaction, undo/redo and save/reopen retain embedded geometry and graph. Original single-solid import remains compatible.\n- Inspect actual hardware viewport, Browser and API geometry; independent read bounds and one focused core contract plus real-entrypoint workflow suffice.\n- Imported face/edge reference availability for the later projection owner must be explicit. Unsupported operations must refuse cleanly.\n\n## Deferred scope\nExternal linked update/placement belongs to ASM-006; imported graph editing/joints, full color/material fidelity and XDE re-export remain XCH-003 or its later children. This bounded child uses the existing admitted STEP foundation; broad format-policy work stays XCH-001.\n\n## Input evidence\nExternal deliverables/enclosure-adapted-input-2026-10-13 contains the original MIT generator/STEP, dimension manifest and independent XCAF qualification. It is an explicitly adapted nominal input, not an exact original source file or physical-fit model.\n"
+      "body": "## Problem and bounded result\nThe existing STEP importer accepts exactly one solid. The qualified electronics reference has named board and connector solids in a hierarchy. Import that assembly without flattening identity or losing placement, through the existing document and command authority.\n\n## Scope\nUse admitted OCCT STEPCAF/XDE. Retain embedded input, definition and occurrence identities, names, hierarchy, leaf transforms and repeated definitions for solid-only millimeter inputs. Evaluate actual separate leaf bodies for viewport display/picking and inspection. Extend the authoritative document model coherently; do not create an independent mock import tree. Keep imported references read-only in this slice. Define stable identity and changed-input behavior before implementation; independent Astra architecture review is required.\n\n## Acceptance and verification\n- Import the independently qualified RES-017 board assembly, preserving names, groups, twelve valid solids, actual placements and mounting/port geometry. Reject unsupported entities/units explicitly rather than losing them.\n- A small independently generated repeated-definition placement fixture proves the identity/transform contract beyond the identity-placement board fixture.\n- Native file import and local API share commands; one import transaction, undo/redo and save/reopen retain embedded geometry and graph. Original single-solid import remains compatible.\n- Inspect actual hardware viewport, Browser and API geometry; independent read bounds and one focused core contract plus real-entrypoint workflow suffice.\n- Imported face/edge reference availability for the later projection owner must be explicit. Unsupported operations must refuse cleanly.\n\n## Deferred scope\nExternal linked update/placement belongs to ASM-006; imported graph editing/joints, full color/material fidelity and XDE re-export remain XCH-003 or its later children. This bounded child uses the existing admitted STEP foundation; broad format-policy work stays XCH-001.\n\n## Input evidence\nExternal deliverables/enclosure-adapted-input-2026-10-13 contains the original MIT generator/STEP, dimension manifest and independent XCAF qualification. It is an explicitly adapted nominal input, not an exact original source file or physical-fit model.\n\n\n## Independently accepted 2026-10-13\nAstra accepted source, focused core including nested repeated placements and one-leaf routing, 30-call real-app API, native Browser leaf selection, independent world STEP export and reopen. Integrated 6b39ac5; combined main application build and focused STEP/grouped-Fillet integration checks pass. See docs/validation/step-assembly-import.md. Actual moved viewport ray-picking remains ASM-010; broader exchange stays XCH-003.\n"
+    },
+    {
+      "key": "ASM-010",
+      "title": "Insert a linked local STEP reference with placement and opacity",
+      "kind": "implementation",
+      "phase": "P5 Assemblies/drawings",
+      "priority": "P1",
+      "depends_on": [
+        "ASM-004",
+        "XCH-009",
+        "RES-017"
+      ],
+      "labels": [
+        "area:asm",
+        "kind:implementation",
+        "priority:P1"
+      ],
+      "body": "## Bounded result\nLocal referenced STEP assembly insertion retains one embedded immutable assembly graph, stable identities and one outer rigid placement. Existing geometry remains available when source is missing; explicit update validates replacement atomically and reports source status. Define changed-topology reference behavior rather than silently rebinding.\n\n## Acceptance\nNative and shared-API insertion/Move/Capture Position, reference and authored-case opacity, source missing/update state, preview/Cancel, undo/redo and exact save/reopen. Use the qualified board assembly and actual moved occurrence viewport ray-picking and retained planar/edge reference resolution. No double transforms in display or export. One authoritative CadDocument feature and graph, not a separate automation or import model. Astra architecture/source review and focused real-entrypoint evidence required.\n\n## Scope boundary\nThis finishes local insertion and positioning. Actual mounting/port reference-driven sketch cutouts remain ASM-006 and the appropriate projection owners; full enclosure movie remains TUT-016. Do not close those parents from an inserted board screenshot. The adapted input and nominal-dimension limitations remain explicit.\n\n## Bounded update and positioning contract\nMove OK retains pending placement until Capture Position or Revert; dependent authoring requires resolution. Source Update accepts identical bytes, reports changed/missing source and refuses changed replacement atomically. Changed-geometry correspondence belongs to ASM-011.\n"
+    },
+    {
+      "key": "ASM-011",
+      "title": "Update changed linked STEP geometry with proven reference correspondence",
+      "kind": "implementation",
+      "phase": "P5 Assemblies/drawings",
+      "priority": "P1",
+      "depends_on": [
+        "ASM-010"
+      ],
+      "labels": [
+        "kind:implementation",
+        "priority:P1",
+        "area:asm"
+      ],
+      "body": "Implement explicit changed-byte source Update with proved correspondence or explicit affected-reference resolution. Matching XDE labels, counts or nearby geometry alone cannot establish face/edge identity. Preserve old embedded geometry on failed/missing update, report changed topology, and verify downstream sketches/cutouts and history/reopen. ASM-010 only supports source status and identical-byte Update; changed replacement is this deferred task.\n"
+    },
+    {
+      "key": "GEO-008",
+      "title": "Qualify closed inward Shell through collapsing mixed-radius blends",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SOL-048",
+        "SOL-046"
+      ],
+      "labels": [
+        "kind:implementation",
+        "priority:P1",
+        "area:geo"
+      ],
+      "body": "Required actual enclosure source: Box50x80x40, one grouped Fillet with R5 four vertical edges and R2.5 eight rim edges, then CLOSED inward Shell3.5 with no removed face. OCCT Intersection offset fails GeomEvaluator_OffsetSurface::CalculateD2 unable to calculate normal; Arc yields null shape. Plain unrounded Box offset works, so the missing capability is collapsing mixed-radius convex blends. Retain failing fixture in tests/solid_shell.cpp. Find mature-kernel or mathematically qualified geometry route; do not reduce thickness, omit source fillets or substitute an open Shell. Verify unchanged exact outer faces, valid enclosed cavity, true thickness/volume and later Midplane Split. Independent Astra geometry review required. TUT-016 remains blocked by this concrete source requirement.\n"
     }
   ]
 }

@@ -1,30 +1,23 @@
 # Continuation context
 
-## Active STEP assembly import candidate (2026-10-13)
+## Current implementation lanes (2026-10-13)
 
-XCH-009 in the isolated `feat/step-assembly-import` worktree is implementing
-one retained XDE solid assembly import transaction. It embeds the source and
-source-derived graph, preserves nested/repeated identities, evaluates placed
-leaf solids for rendering/inspection/export, and exposes a read-only Browser
-hierarchy. Focused core tests pass on a synthetic nested rotated repeat and
-the external twelve-solid board fixture. A 30-call real-app API run and a
-physical Qt Browser leaf-click test pass, with inspected GPU captures;
-independent bounded review accepts the candidate. Viewport ray-picking of a
-moved imported occurrence remains for ASM-006. See
-[STEP assembly candidate](validation/step-assembly-import.md). XCH-003 and
-ASM-006 retain broader exchange fidelity and editable insertion.
+XCH-009/#313 assembly STEP import and SOL-046/#285 grouped Fillet are
+independently accepted, integrated and closed. Combined main app build and
+focused STEP/grouped-Fillet integration checks pass (2/2). Respective receipts
+record API/native/geometry scope and later transformed-pick/Thicken limits.
 
-## Isolated grouped Fillet candidate (2026-10-13)
-
-SOL-046/#285 in `feat/multi-radius-fillet` now has a bounded candidate: one
-Fillet feature with stable independent radius sets and current-topology tangent
-chains. The 50 × 80 × 40 mm Box fixture applies R5 to four vertical edges and
-R2.5 to eight top/bottom edges in one feature. Focused core, a 31-call real-app
-API run and native Qt selection/controls pass; candidate capture and STL are
-external. Astra independently accepted this bounded candidate; main
-integration remains pending. See
-[grouped Fillet candidate](validation/grouped-fillet.md). Later Thicken edge
-provenance remains with the surface tutorial prerequisites.
+Active isolated Sol lanes: ASM-010/#314 linked local insertion with placement,
+opacity and pending Capture/Revert; SOL-045 retained-plane Split Body. Root
+completed SOL-048 supported closed inward Shell on main, independently
+accepted at 5b1bb29 with native and 28-call API evidence. Plain Box cavity, six inner planes, edit/history/reopen and
+atomic failures pass core. Actual grouped R5/R2.5 followed by Shell3.5 fails
+OCCT offset collapse; GEO-008/#316 owns that exact geometry and blocks TUT-016.
+Do not replace the source with a plain/open box or reduce its thickness.
+ASM-011/#315 separately owns changed-byte reference Update correspondence;
+ASM-010 only supports unchanged-byte update/status and atomic changed refusal.
+ASM-006 stays Todo as broader parent. The enclosure gate depends on the actual
+source-required bounded children, not optional changed-file update breadth.
 
 ## Current advanced tutorial work (2026-10-13)
 
