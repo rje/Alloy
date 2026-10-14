@@ -17,7 +17,7 @@ outside the planned stack.
 | CAD geometry | OCCT | Established BRep solids/surfaces, modeling algorithms, CAD exchange, and visualization; robustness still needs workflow validation |
 | CAD viewport | Alloy CAD presentation on an established Metal/Vulkan RHI | Accepted destination in decision 003; QRhiWidget/bgfx shortlist is researched, native spike and migration remain open. Current prototype uses GPU OCCT AIS/V3d/OpenGL |
 | Sketch constraints | PlaneGCS via a replaceable shared-library boundary | Integrated for line/point relations and driving/driven dimensions in decision 004; portable packaging and broader constraint classes remain pending |
-| Assembly constraints | Pinned OndselSolver behind an original shared POD/C ABI | Bounded macOS backend accepted; authored joint frontend, platform packaging/replacement and general DOF remain pending; see decision006 |
+| Assembly constraints | Pinned OndselSolver behind an original shared POD/C ABI | Bounded macOS shared backend and retained Revolute/Pin accepted; typed Cylindrical per-island authority core accepted, native workflow/platform packaging pending; no general DOF claim; see decision006 |
 | 3MF | Evaluate lib3mf | Existing read/write and validation support |
 | Automation | Local structured protocol; Python standard-library client initially | Easy agent access without embedding a scripting runtime before it is needed |
 | Build | CMake; explicitly discovered dependencies | Conventional tooling for Qt/OCCT; record actual tested versions |
@@ -227,8 +227,11 @@ backend: separate replaceable LGPL-2.1 OndselSolver plus original MIT POD/C ABI.
 The [source manifest](../third_party/ondsel/sources.json) pins public bytes and
 license; current source poses convert mm→SI once. Every original joint and full
 Pin is independently checked after solving, including relationships the kernel
-may remove as redundant. This does not establish authored joint/frontend or
-platform/runtime packaging acceptance. Release source/notices and working
+may remove as redundant. Typed Cylindrical rotation/slide use separate motion
+markers and canonical independent coordinate checks. Bounded retained joint
+islands have one authored or explicitly temporary gauge and their earliest joint
+as sole driver; passive coordinate writes/previews refuse. This does not establish
+Cylindrical native workflow or platform/runtime packaging acceptance. Release source/notices and working
 replacement/relinking gates remain required; no general DOF claim is returned.
 
 [Decision 004](decisions/004-sketch-solver.md) selects PlaneGCS through a replaceable

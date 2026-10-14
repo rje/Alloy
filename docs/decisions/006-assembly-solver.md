@@ -1,7 +1,8 @@
 # 006 — Bounded assembly solver candidate
 
-Date: 2026-10-14. Status: backend independently reviewed and integrated at59782f1; actual
-ASM-014 application workflow evidence pending. Original Alloy code remains MIT.
+Date: 2026-10-14. Status: bounded backend independently reviewed; ASM-014 retained
+Revolute/Pin workflow accepted. Typed Cylindrical authority core accepted; its
+UI/API/native workflow remains a separate gate. Original Alloy code remains MIT.
 
 Use the public FreeCAD OndselSolver snapshot
 `4be80eef02a3486cda0d78f3ccbb308d207a9639` (version1.0.1) as a separate
@@ -23,11 +24,17 @@ macOS-only fatal configuration check or static fallback.
 
 The adapter receives current leaf occurrence world poses, authored joint IDs,
 two local resolved origin frames, exactly one root-pinned leaf and an optional
-single exact Revolute principal angle. Rotation is row-major, proper and finite;
+single driver joint. The original solve entrypoint retains Revolute-only angle
+semantics. ABI version2 adds typed rotation-radians and slide-millimeters requests:
+zero, one or two coordinates on one joint, with slide available only for
+Cylindrical. Omitted coordinates are free; explicit zero is a prescription. Rotation is row-major, proper and finite;
 translation is canonical millimeters (each component within±1e9). Millimeters
 convert to SI once inside the adapter and convert back once on result extraction.
 Joint marker Z is the directed axis; angle is marker-J X around that common Z
 relative to marker-I X. Values outside[-pi,pi] refuse; turn count is unsupported.
+Slide is the absolute signed separation dot(pJ−pI, directed world ZI), not a delta
+from the incoming pose. Slide is bounded to±1e9mm. Both requested coordinates
+are independently checked in canonical original joint frames.
 
 The document/geometry layer must resolve persistent circular origins before
 calling the ABI. It flattens nested leaf occurrence world poses once; a parent
@@ -39,7 +46,21 @@ are written only after independent checks pass.
 Upstream `ASMTPart.isFixed` constrains absolute zero coordinates, so it does not
 preserve arbitrary current Pin pose. The adapter instead uses the library's
 mature FixedJoint between an assembly-root marker at the full current pose and
-an identity marker on the pinned leaf. No custom constraint equations are added.
+an identity marker on the pinned leaf. No custom constraint equations are added. Each prescribed coordinate uses its
+own marker pair carrying exactly the original participant/local frames. This
+avoids mutable end-frame interference between simultaneous rotation and
+translation motions; original joints and Pin retain separate canonical markers.
+
+The bounded document authority permits at most four retained Revolute/Cylindrical
+rows, separate from legacy Slider. Connected joint islands solve independently
+through the exactly-one-pin ABI: an authored Pin takes precedence, otherwise the
+earliest joint’s Component2 is a temporary gauge at its current rest pose.
+Unconnected leaves retain authored poses. Joining islands removes their redundant
+temporary gauges; parent containers remain traversal only. The earliest joint
+in each island is the sole coordinate driver. Passive coordinate edits and all
+passive previews refuse; unchanged coordinate fields may accompany metadata edits.
+Both participants retain current circular source bindings with an explicit axial
+marker offset. Missing, ambiguous or incompatible geometry refuses.
 
 ## Completion and refusal
 
@@ -47,13 +68,13 @@ Success requires every returned full rigid transform to be finite, orthonormal
 and determinant+1; every original Revolute origin to coincide and its directed
 axes to agree; every original Cylindrical axis to agree with no perpendicular
 origin separation; complete Pin pose preservation; and exact signed prescribed
-angle attainment. These checks include original relationships the library may
+angle and slide attainment. These checks include original relationships the library may
 classify/remove as redundant. Translation tolerance is1e-5mm; axis/Pin/drive
 angle tolerance1e-6rad; rotation orthonormal/determinant tolerance1e-8.
 Composed frames and every scalar metric are checked finite before comparisons.
 
 Results distinguish invalid input, unsupported operation, original-joint/Pin/
-angle conflict, kernel failure and independently checked success. On failure
+coordinate conflict, kernel failure and independently checked success. On failure
 output arrays remain unchanged. No general DOF or Jacobian-rank claim is exposed.
 Upstream weighted dragging is distinct from exact prescribed motion and is not
 an ABI operation in this increment. Preview/edit/Cancel/history/reopen remain
@@ -66,7 +87,11 @@ It checks full initial poses, nonidentity full Pin, positive/negative exact
 analytic Revolute poses, the independent source-sized four-part three-Revolute/
 one-Cylindrical seed, finite proper output rotations, and atomic invalid,
 unsupported, excessive-coordinate/turn-count and contradictory-original-joint
-refusal. It does not launch a GUI or establish application/artist acceptance.
+refusal. Typed-coordinate coverage includes signed rotation-only, slide-only and
+simultaneous Cylindrical requests. The actual nested-leaf fixture core checks
+placed BRep displacement, retained source-axis edits through Join, stale-source
+atomic refusal, undo/redo/reopen, disconnected islands and passive refusal.
+It does not launch a GUI or establish application/artist acceptance.
 
 Detailed public solver admission and earlier headless evidence are external:
 `../Alloy-reference-records/knowledge/assembly-solver-admission-2026-10-14/`.
