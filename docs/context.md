@@ -82,7 +82,9 @@ see [clipboard acceptance](validation/linked-local-occurrences.md).
 ASM-020/#370 cylindrical-face origin inference and
 modifier hover locking now has a Luna contract independently reviewed and a
 bounded authority accepted and integrated at `3751ff5`, retaining two-rim
-cylindrical-face midpoint inference. The UI hover/lock/glyph lane is active. Midpoint and release behavior are declared Alloy mappings; held-face
+cylindrical-face midpoint inference. The UI hover/lock/glyph lane is active. The combined main application builds
+after clipboard and origin-authority integration; native and core receipts remain
+scoped to their independently reviewed candidates. Midpoint and release behavior are declared Alloy mappings; held-face
 lock is documented. Add source Joints-folder Show/Hide in the UI scope.
 The full native-step ledger also preserves Todo ASM-021/#371 paste drag and
 contextual Position/Revert, ASM-022/#372 Browser organization gestures (now active
