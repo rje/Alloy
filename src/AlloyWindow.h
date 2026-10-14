@@ -119,6 +119,7 @@ private:
     QJsonObject authoringArguments(QJsonObject arguments) const { arguments["ownerId"]=document_->activeOwnerId();return arguments; }
     QJsonObject previewFillet();
     void showFillet();
+    void refreshFilletControls();
     std::vector<EvaluatedBody> filletInputBodies() const;
     QDockWidget* filletDock_ = nullptr;
     QShortcut* filletEscape_ = nullptr;

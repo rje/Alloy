@@ -14,6 +14,17 @@ moved imported occurrence remains for ASM-006. See
 [STEP assembly candidate](validation/step-assembly-import.md). XCH-003 and
 ASM-006 retain broader exchange fidelity and editable insertion.
 
+## Isolated grouped Fillet candidate (2026-10-13)
+
+SOL-046/#285 in `feat/multi-radius-fillet` now has a bounded candidate: one
+Fillet feature with stable independent radius sets and current-topology tangent
+chains. The 50 × 80 × 40 mm Box fixture applies R5 to four vertical edges and
+R2.5 to eight top/bottom edges in one feature. Focused core, a 31-call real-app
+API run and native Qt selection/controls pass; candidate capture and STL are
+external. Independent review and main integration remain pending. See
+[grouped Fillet candidate](validation/grouped-fillet.md). Later Thicken edge
+provenance remains with the surface tutorial prerequisites.
+
 ## Current advanced tutorial work (2026-10-13)
 
 TUT-015 is independently accepted and closed: 228-call actual-app full creation

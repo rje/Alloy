@@ -1235,12 +1235,12 @@ void AlloyWindow::registerCommands() {
         });
     auto operation=parameter("string","Explicit Boolean operation.");operation["enum"]=QJsonArray{"join","cut","intersect"};
     auto solidFilletRadius=parameter("number","Constant canonical radius in mm.");solidFilletRadius["minimum"]=0;solidFilletRadius["maximum"]=100000;
-    QJsonObject filletSchema{{"targetBodyId",optional(parameter("string","Earlier retained body UUID."))},{"edgeIds",optional(parameter("array","Stable extrusion edge UUIDs."))},{"radiusMm",optional(solidFilletRadius)},{"tangentChain",optional(parameter("boolean","Only true is supported by this slice."))},{"featureId",optional(featureId)},{"name",optional(parameter("string","Fillet feature name."))}};
-    add("solid.fillet","Fillet","Create or edit constant-radius G1 rolling-ball edge fillet; tangent chain On.",filletSchema,[this](const auto& a){
+    QJsonObject filletSchema{{"targetBodyId",optional(parameter("string","Earlier retained body UUID."))},{"edgeIds",optional(parameter("array","Legacy single-set stable edge UUIDs."))},{"radiusMm",optional(solidFilletRadius)},{"groups",optional(parameter("array","Retained selection sets with id, edgeIds, radiusMm and tangentChain=true."))},{"tangentChain",optional(parameter("boolean","Only true is supported by this slice."))},{"featureId",optional(featureId)},{"name",optional(parameter("string","Fillet feature name."))}};
+    add("solid.fillet","Fillet","Create or edit constant-radius G1 edge groups in one Fillet; tangent chain On.",filletSchema,[this](const auto& a){
         QJsonObject candidate;try{candidate=filletCandidate(a);}catch(const std::exception& e){return failure("invalid_arguments",QString::fromUtf8(e.what()));}
         const auto error=document_->commit(candidate,"Fillet");if(!error.isEmpty()){auto response=failure("evaluation_failed",error);auto details=response["error"].toObject();details["diagnostics"]=document_->lastEvaluationError();response["error"]=details;return response;}return document_->state();
     });
-    add("solid.filletDialog","Fillet","Open constant-radius edge fillet controls (F).",filletSchema,[this](const auto& a){return beginFillet(a);});
+    add("solid.filletDialog","Fillet","Open grouped constant-radius edge fillet controls (F).",filletSchema,[this](const auto& a){return beginFillet(a);});
     auto holeLength=parameter("number","Positive canonical length in millimeters.");holeLength["minimum"]=.001;holeLength["maximum"]=100000;
     auto holeAngle=parameter("number","Countersink included angle in degrees.");holeAngle["minimum"]=.001;holeAngle["maximum"]=179.999;
     auto holePlacement=parameter("string","One explicit standalone point from a supported sketch.");holePlacement["enum"]=QJsonArray{"fromSketch"};
@@ -3314,9 +3314,22 @@ void AlloyWindow::registerCommands() {
         }
         if(session_.value("command")=="solid.fillet") {
             const auto hit=view_->pickSolidEdge(a["x"].toDouble(),a["y"].toDouble(),filletInputBodies());if(hit.isEmpty())return failure("edge_required","Click a visible solid edge with retained provenance");
-            auto inputs=session_["inputs"].toObject();auto edges=inputs["edgeIds"].toArray();const auto target=hit["bodyId"].toString();if(inputs["targetBodyId"].toString()!=target)edges={};
-            const auto id=hit["edgeId"];if(edges.contains(id)){for(int i=0;i<edges.size();++i)if(edges[i]==id){edges.removeAt(i);break;}}else edges.append(id);
-            auto response=execute("command.update",{{"session",session_["id"]},{"inputs",QJsonObject{{"targetBodyId",target},{"edgeIds",edges}}}});if(!response["ok"].toBool())return response;previewFillet();return hit;
+            auto inputs=session_["inputs"].toObject();
+            if(!inputs.contains("groups")){
+                auto edges=inputs["edgeIds"].toArray();const auto target=hit["bodyId"].toString();if(inputs["targetBodyId"].toString()!=target)edges={};
+                const auto id=hit["edgeId"];if(edges.contains(id)){for(int i=0;i<edges.size();++i)if(edges[i]==id){edges.removeAt(i);break;}}else edges.append(id);
+                auto response=execute("command.update",{{"session",session_["id"]},{"inputs",QJsonObject{{"targetBodyId",target},{"edgeIds",edges}}}});
+                if(!response["ok"].toBool())return response;previewFillet();return hit;
+            }
+            auto groups=inputs["groups"].toArray();if(groups.isEmpty())return failure("groups_required","Add a Fillet selection set first");
+            const auto target=hit["bodyId"].toString();if(inputs["targetBodyId"].toString()!=target)for(int i=0;i<groups.size();++i){auto group=groups[i].toObject();group["edgeIds"]=QJsonArray{};groups[i]=group;}
+            const int active=std::clamp(session_["filletActiveGroupIndex"].toInt(),0,int(groups.size())-1);
+            auto group=groups[active].toObject();auto edges=group["edgeIds"].toArray();const auto id=hit["edgeId"];
+            bool removed=false;for(int i=0;i<edges.size();++i)if(edges[i]==id){edges.removeAt(i);removed=true;break;}
+            if(!removed){for(int i=0;i<groups.size();++i)if(i!=active && groups[i].toObject()["edgeIds"].toArray().contains(id))
+                return failure("edge_in_other_group","Remove this edge from its current Fillet set before adding it to another");edges.append(id);}
+            group["edgeIds"]=edges;groups[active]=group;
+            auto response=execute("command.update",{{"session",session_["id"]},{"inputs",QJsonObject{{"targetBodyId",target},{"groups",groups}}}});if(!response["ok"].toBool())return response;previewFillet();return hit;
         }
         if(session_.value("command")=="solid.chamfer") {
             const auto hit=view_->pickSolidEdge(a["x"].toDouble(),a["y"].toDouble(),chamferInputBodies());if(hit.isEmpty())return failure("edge_required","Click a visible solid edge with retained provenance");
@@ -3428,6 +3441,11 @@ void AlloyWindow::registerCommands() {
                 inputs["thicknessMm"]=row["valueMm"];
             }
         }
+        if(session_.value("command")=="solid.fillet" && updates.contains("groups")){
+            if(updates.contains("edgeIds") || updates.contains("radiusMm") || updates.contains("tangentChain"))
+                return failure("invalid_arguments","Choose grouped or single-radius Fillet inputs");
+            inputs.remove("edgeIds");inputs.remove("radiusMm");inputs.remove("tangentChain");
+        }
         for (auto it = updates.begin(); it != updates.end(); ++it) inputs[it.key()] = it.value();
         const auto target = session_.value("command").toString();
         if(target=="construction.midplane" && updates.contains("featureId") &&
@@ -3445,7 +3463,9 @@ void AlloyWindow::registerCommands() {
         } else if(target=="solid.fillet") {
             if(updates.contains("featureId") && updates["featureId"]!=session_["inputs"].toObject()["featureId"])return failure("invalid_arguments","Fillet edit identity cannot change");
             const auto error=validateArguments(*findCommand(target),inputs);if(!error.isEmpty())return failure("invalid_arguments",error);
-            if(!inputs["tangentChain"].toBool())return failure("unsupported_option","Tangent Chain Off is outside this slice");
+            if(inputs.contains("groups") && (updates.contains("edgeIds") || updates.contains("radiusMm") || updates.contains("tangentChain")))
+                return failure("invalid_arguments","Update the selected Fillet set through groups");
+            if(inputs.contains("tangentChain") && !inputs["tangentChain"].toBool())return failure("unsupported_option","Tangent Chain Off is outside this slice");
         } else if(target=="solid.hole") {
             if(updates.contains("featureId") && updates["featureId"]!=session_["inputs"].toObject()["featureId"])return failure("invalid_arguments","Hole edit identity cannot change");
             const auto error=validateArguments(*findCommand(target),inputs);if(!error.isEmpty())return failure("invalid_arguments",error);
@@ -4117,7 +4137,7 @@ void AlloyWindow::refresh() {
     sketchEscape_->setEnabled(editingSketch || session_.value("command")=="sketch.plane");
     if(extrudeEscape_)extrudeEscape_->setEnabled(session_.value("command")=="solid.extrude");
     if(session_.value("command")=="solid.move" && moveDock_)for(const auto& key:{"xMm","yMm","zMm","xDeg","yDeg","zDeg","pivotXMm","pivotYMm","pivotZMm"})if(auto* field=moveDock_->findChild<QDoubleSpinBox*>(key)){const QSignalBlocker blocker(field);field->setValue(session_["inputs"].toObject()[key].toDouble());}
-    if(session_.value("command")=="solid.fillet" && filletDock_)if(auto* field=filletDock_->findChild<QDoubleSpinBox*>("filletRadius")){const QSignalBlocker blocker(field);field->setValue(session_["inputs"].toObject()["radiusMm"].toDouble());}
+    if(session_.value("command")=="solid.fillet" && filletDock_)refreshFilletControls();
     if(session_.value("command")=="solid.sphere" && sphereDock_){if(auto* field=sphereDock_->findChild<QDoubleSpinBox*>("sphereDiameter")){const QSignalBlocker blocker(field);field->setValue(session_["inputs"].toObject()["diameterMm"].toDouble());}if(auto* field=sphereDock_->findChild<QComboBox*>("sphereOperation")){const QSignalBlocker blocker(field);field->setCurrentIndex(field->findData(session_["inputs"].toObject()["operation"].toString()));}if(auto* box=sphereDock_->findChild<QDialogButtonBox*>())box->button(QDialogButtonBox::Ok)->setEnabled(session_["previewed"].toBool());}
     if(session_.value("command")=="solid.chamfer" && chamferDock_)if(auto* field=chamferDock_->findChild<QDoubleSpinBox*>("chamferDistance")){const QSignalBlocker blocker(field);field->setValue(session_["inputs"].toObject()["distanceMm"].toDouble());}
     if(session_.value("command")=="solid.fillet" && filletDock_)if(auto* box=filletDock_->findChild<QDialogButtonBox*>())box->button(QDialogButtonBox::Ok)->setEnabled(session_["previewed"].toBool() && session_["geometryEvaluated"].toBool() && session_["baseDocumentRevision"].toInteger()==static_cast<qint64>(document_->revision()));

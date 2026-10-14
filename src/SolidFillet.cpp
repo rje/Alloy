@@ -10,6 +10,7 @@
 #include <TopTools_IndexedMapOfShape.hxx>
 #include <TopoDS.hxx>
 #include <QUuid>
+#include <QMap>
 #include <QSet>
 #include <algorithm>
 namespace {
@@ -96,21 +97,38 @@ void SolidFillet::evaluate(EvaluatedBody& body,const QJsonObject& parameters,con
     auto fail=[&](const QString& code,const QString& message,const QString& edgeId=QString{}) {
         throw GeometryKernel::EvaluationError({{"code",code},{"message",message},{"featureId",featureId},{"targetBodyId",body.bodyId},{"edgeId",edgeId}});
     };
-    BRepFilletAPI_MakeFillet builder(body.shape);QSet<QString> seeds;QJsonArray contours;
-    for(const auto& value:parameters["edgeIds"].toArray()) {
-        const auto id=value.toString();
-        const auto edge=std::find_if(body.solidEdges.begin(),body.solidEdges.end(),[&](const auto& item){return item.edgeId==id;});
-        if(edge==body.solidEdges.end())fail("fillet_edge_unavailable","Authored edge provenance is no longer present",id);
-        if(edge->edge.IsNull())fail("fillet_edge_"+edge->provenance["resolutionError"].toString("unavailable"),"Authored edge was deleted or has ambiguous descendants",id);
-        builder.Add(parameters["radiusMm"].toDouble(),edge->edge);seeds.insert(id);
+    BRepFilletAPI_MakeFillet builder(body.shape);QJsonArray contours,allSeeds,groupSummaries;
+    const auto grouped=parameters.contains("groups");
+    const auto groups=grouped ? parameters["groups"].toArray() : QJsonArray{parameters};
+    QMap<int,QString> contourOwners;QMap<int,double> contourRadii;
+    for(const auto& value:groups){
+        const auto group=value.toObject();
+        const auto groupId=grouped ? group["id"].toString() : QStringLiteral("legacy");
+        const double radius=group["radiusMm"].toDouble();QJsonArray groupContours;
+        for(const auto& seed:group["edgeIds"].toArray()){
+            const auto id=seed.toString();
+            const auto edge=std::find_if(body.solidEdges.begin(),body.solidEdges.end(),[&](const auto& item){return item.edgeId==id;});
+            if(edge==body.solidEdges.end())fail("fillet_edge_unavailable","Authored edge provenance is no longer present",id);
+            if(edge->edge.IsNull())fail("fillet_edge_"+edge->provenance["resolutionError"].toString("unavailable"),"Authored edge was deleted or has ambiguous descendants",id);
+            builder.Add(radius,edge->edge);allSeeds.append(id);
+            const int contour=builder.Contour(edge->edge);
+            if(contour==0)fail("fillet_contour_unavailable","Selected edge has no tangent contour",id);
+            if(contourOwners.contains(contour) && contourOwners[contour]!=groupId)
+                fail("fillet_group_overlap","Two radius groups select the same tangent contour",id);
+            contourOwners[contour]=groupId;contourRadii[contour]=radius;
+            if(!groupContours.contains(contour))groupContours.append(contour);
+        }
+        groupSummaries.append(QJsonObject{{"id",groupId},{"radiusMm",radius},{"seedEdgeIds",group["edgeIds"]},{"contourIndices",groupContours}});
     }
     for(int contour=1;contour<=builder.NbContours();++contour) {
+        if(!contourOwners.contains(contour))fail("fillet_contour_unavailable","Tangent contour has no radius group");
+        builder.SetRadius(contourRadii[contour],contour,1);
         QJsonArray chain;
         for(int index=1;index<=builder.NbEdges(contour);++index) {
             const auto actual=builder.Edge(contour,index);QStringList identities;
             for(const auto& edge:body.solidEdges)if(!edge.edge.IsNull() && edge.edge.IsSame(actual))identities.append(edge.edgeId);
             QJsonArray ids;for(const auto& id:identities)ids.append(id);
-            chain.append(QJsonObject{{"edgeIds",ids},{"named",!ids.isEmpty()}});
+            chain.append(QJsonObject{{"edgeIds",ids},{"named",!ids.isEmpty()},{"radiusGroupId",contourOwners[contour]}});
         }
         contours.append(chain);
     }
@@ -123,5 +141,7 @@ void SolidFillet::evaluate(EvaluatedBody& body,const QJsonObject& parameters,con
     body.solidEdges=std::move(edges);
     body.shape=result;body.supportFaces=caps;
     QJsonArray capValues;for(const auto& cap:caps)capValues.append(QJsonObject{{"faceId",cap.faceId},{"bodyId",cap.bodyId},{"producerFeatureId",cap.producerFeatureId},{"role",cap.role},{"planar",true},{"frame",cap.frame},{"edges",GeometryKernel::supportEdgeDescriptors(cap)}});
-    summary["supportFaces"]=capValues;summary["solidEdges"]=descriptors(body.solidEdges);summary["lastModifierFeatureId"]=featureId;summary["producerFeatureId"]=body.featureId;summary["operation"]="fillet";summary["radiusMm"]=parameters["radiusMm"];summary["selectedEdgeIds"]=parameters["edgeIds"];summary["tangentContours"]=contours;body.summary=summary;
+    summary["supportFaces"]=capValues;summary["solidEdges"]=descriptors(body.solidEdges);summary["lastModifierFeatureId"]=featureId;summary["producerFeatureId"]=body.featureId;summary["operation"]="fillet";
+    if(grouped)summary["radiusGroups"]=groupSummaries;else summary["radiusMm"]=parameters["radiusMm"];
+    summary["selectedEdgeIds"]=allSeeds;summary["tangentContours"]=contours;body.summary=summary;
 }

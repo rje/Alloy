@@ -792,17 +792,22 @@ QJsonObject CadDocument::extrusionCandidate(const QJsonObject& authored, const Q
     return candidate;
 }
 QJsonObject CadDocument::filletCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
-    const QSet<QString> allowed{"ownerId","targetBodyId","edgeIds","radiusMm","name","featureId","newFeatureId","tangentChain"};
+    const QSet<QString> allowed{"ownerId","targetBodyId","edgeIds","radiusMm","groups","name","featureId","newFeatureId","tangentChain"};
     for(auto it=arguments.begin();it!=arguments.end();++it)if(!allowed.contains(it.key()))throw std::invalid_argument("Unknown Fillet argument");
     if(arguments.contains("featureId") && arguments.contains("newFeatureId"))throw std::invalid_argument("Choose existing or new Fillet identity");
     if(arguments.contains("tangentChain") && (!arguments["tangentChain"].isBool() || !arguments["tangentChain"].toBool()))throw std::invalid_argument("Only Tangent Chain On is supported");
+    if(arguments.contains("groups") && (arguments.contains("edgeIds") || arguments.contains("radiusMm") || arguments.contains("tangentChain")))throw std::invalid_argument("Choose grouped or single-radius Fillet inputs");
     auto candidate=authored;auto features=candidate["features"].toArray();QJsonObject feature;int index=-1;
     if(arguments.contains("featureId")) {
         for(int i=0;i<features.size();++i)if(features[i].toObject()["id"]==arguments["featureId"]){feature=features[i].toObject();index=i;break;}
         if(index<0 || feature["type"]!="fillet")throw std::invalid_argument("Fillet feature unavailable");
     } else feature={{"id",arguments.value("newFeatureId").toString(newId())},{"ownerId",arguments.value("ownerId").toString(authored["documentId"].toString())},{"type","fillet"},{"name","Fillet"},{"visible",true}};
     if(arguments.contains("name"))feature["name"]=arguments["name"];
-    feature["parameters"]=QJsonObject{{"targetBodyId",arguments["targetBodyId"]},{"edgeIds",arguments["edgeIds"]},{"radiusMm",arguments["radiusMm"]},{"tangentChain",arguments.value("tangentChain").toBool(true)}};
+    if(arguments.contains("groups")){
+        auto groups=arguments["groups"].toArray();
+        for(int i=0;i<groups.size();++i)if(groups[i].isObject()){auto group=groups[i].toObject();if(!group.contains("id"))group["id"]=newId();groups[i]=group;}
+        feature["parameters"]=QJsonObject{{"targetBodyId",arguments["targetBodyId"]},{"groups",groups}};
+    }else feature["parameters"]=QJsonObject{{"targetBodyId",arguments["targetBodyId"]},{"edgeIds",arguments["edgeIds"]},{"radiusMm",arguments["radiusMm"]},{"tangentChain",arguments.value("tangentChain").toBool(true)}};
     if(index>=0)features[index]=feature;else features.append(feature);candidate["features"]=features;
     const auto error=validateStructure(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());return candidate;
 }
@@ -1187,9 +1192,23 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
             continue;
         }
         if(type=="fillet") {
-            if(feature.contains("bodyId") || p.size()!=4 || !validId(p["targetBodyId"].toString()) || !p["edgeIds"].isArray() || p["edgeIds"].toArray().isEmpty() || p["edgeIds"].toArray().size()>100 || !p["tangentChain"].isBool() || !p["tangentChain"].toBool())return "Fillet requires one target, edge references and tangent chain enabled";
-            QSet<QString> edges;for(const auto& edge:p["edgeIds"].toArray()){if(!edge.isString() || !validId(edge.toString()) || edges.contains(edge.toString()))return "Fillet edge references must be distinct stable UUIDs";edges.insert(edge.toString());}
-            if(!p["radiusMm"].isDouble() || !std::isfinite(p["radiusMm"].toDouble()) || p["radiusMm"].toDouble()<0.001 || p["radiusMm"].toDouble()>100000)return "Fillet radius must be 0.001..100000 mm";
+            if(feature.contains("bodyId") || !validId(p["targetBodyId"].toString()))return "Fillet requires one retained target body";
+            QJsonArray groups;
+            if(p.contains("groups")){
+                if(p.size()!=2 || !p["groups"].isArray() || p["groups"].toArray().isEmpty() || p["groups"].toArray().size()>16)return "Fillet requires 1..16 retained radius groups";
+                groups=p["groups"].toArray();
+            }else {
+                if(p.size()!=4 || !p["edgeIds"].isArray() || !p["tangentChain"].isBool() || !p["tangentChain"].toBool())return "Fillet requires edge references and Tangent Chain On";
+                groups=QJsonArray{QJsonObject{{"edgeIds",p["edgeIds"]},{"radiusMm",p["radiusMm"]},{"tangentChain",p["tangentChain"]}}};
+            }
+            QSet<QString> edges,groupIds;
+            for(const auto& value:groups){const auto group=value.toObject();const auto members=group["edgeIds"].toArray();
+                if(!value.isObject() || group.size()!=(p.contains("groups") ? 4:3) || (p.contains("groups") && (!validId(group["id"].toString()) || groupIds.contains(group["id"].toString()) || ids.contains(group["id"].toString())))
+                    || !group["edgeIds"].isArray() || members.isEmpty() || !group["tangentChain"].isBool() || !group["tangentChain"].toBool())return "Fillet groups require IDs, nonempty edge selections and Tangent Chain On";
+                if(p.contains("groups")){groupIds.insert(group["id"].toString());ids.insert(group["id"].toString());}
+                for(const auto& edge:members){if(!edge.isString() || !validId(edge.toString()) || edges.contains(edge.toString()) || edges.size()>=100)return "Fillet edge references must be distinct stable UUIDs";edges.insert(edge.toString());}
+                if(!group["radiusMm"].isDouble() || !std::isfinite(group["radiusMm"].toDouble()) || group["radiusMm"].toDouble()<0.001 || group["radiusMm"].toDouble()>100000)return "Fillet radius must be 0.001..100000 mm";
+            }
             continue;
         }
         if(type=="hole") {
