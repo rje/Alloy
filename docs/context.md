@@ -26,8 +26,8 @@ resolved tangency incompatibility but still failed positional accuracy at
 review verified this bounded evaluator/fixture blocker. No tolerance relaxation,
 retained implementation or more kernel experiments in this increment.
 RES-019 piston public source research is accepted; exact public neutral sample
-is not established, and the independently authored adapted fixture is still
-implementation work. ASM-013/#362 native fixture and identity component hierarchy are independently
+is not established; the independently authored adapted fixture is now accepted
+within its documented component scope. ASM-013/#362 native fixture and identity component hierarchy are independently
 accepted and integrated at `7bbf456`: four valid solids, native conversion/nesting,
 source radius edit, history/reopen and parent STL pass. See
 [acceptance](validation/piston-components.md). Main build and focused core pass. The external gallery now links a 69.8-second
@@ -35,7 +35,10 @@ from-blank component creation checkpoint under `#piston-components`, with
 editable model, two-body checked STL and separate native hierarchy close-up.
 ASM-014/#363 now has parallel isolated lanes for retained circular-origin
 Revolute/Pin authority and a replaceable shared mature-solver adapter. The
-headless solver probe is provisional evidence only, not integrated joint support.
+backend is independently accepted and integrated at `59782f1`; the main app
+build and focused `assembly_solver` test pass. Retained frontend API/native
+workflow verification is underway; integrated backend support alone does not
+close the joint workflow.
 The isolated candidates are `../Alloy-worktrees/piston-revolute` (retained
 Pin/circular-origin frontend) and `../Alloy-worktrees/assembly-solver-adapter`
 (shared POD/C ABI backend). Pin must follow evaluated timeline prefixes; the
