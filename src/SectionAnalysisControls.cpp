@@ -13,6 +13,7 @@
 #include <QTreeWidget>
 #include <QSignalBlocker>
 #include <QTimer>
+#include <QSet>
 
 namespace {
 QJsonObject sectionError(const QString& code,const QString& message) {
@@ -28,7 +29,23 @@ QJsonObject AlloyWindow::sectionPresentation(const QJsonObject& analysis) const 
         auto result=analysis;result["resolvedPlane"]=QJsonObject{{"origin",origin},{"normal",normal}};result["availability"]="available";return result;
     }
     try {
-        const auto resolved=GeometryKernel::resolveSketchSupport(document_->evaluation(),analysis["support"].toObject());
+        // A Split can move an unchanged named face onto its new result body.
+        // Follow only authored Split ancestry, never a nearest-plane match.
+        const auto support=analysis["support"].toObject();
+        QSet<QString> descendants{support["bodyId"].toString()};
+        for(const auto& entry:document_->authored()["features"].toArray()) {
+            const auto feature=entry.toObject();
+            if(feature["type"]=="splitBody" && descendants.contains(feature["parameters"].toObject()["targetBodyId"].toString()))
+                descendants.insert(feature["bodyId"].toString());
+        }
+        QJsonObject surviving;int matches=0;
+        for(const auto& body:document_->evaluation().bodies)if(descendants.contains(body.bodyId))
+            for(const auto& face:body.supportFaces)
+                if(face.faceId==support["faceId"].toString() && face.producerFeatureId==support["producerFeatureId"].toString()) {
+                    surviving=support;surviving["bodyId"]=body.bodyId;++matches;
+                }
+        if(matches!=1)throw std::runtime_error("Section support has no unique Split descendant");
+        const auto resolved=GeometryKernel::resolveSketchSupport(document_->evaluation(),surviving);
         for(const auto& body:presentationBodies())if(body.bodyId==resolved.bodyId)
             for(const auto& face:body.supportFaces)if(face.faceId==resolved.faceId && face.producerFeatureId==resolved.producerFeatureId){
                 auto result=analysis;result["resolvedFrame"]=face.frame;result["availability"]="available";
