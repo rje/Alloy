@@ -40,4 +40,5 @@ public:
     static ReadResult read(const QByteArray& source);
     static AssemblyResult readAssembly(const QByteArray& source, const QString& featureId);
     static WriteResult write(const TopoDS_Shape& shape, const QString& outputUnits);
+    static WriteResult write(const std::vector<TopoDS_Shape>& shapes, const QString& outputUnits);
 };

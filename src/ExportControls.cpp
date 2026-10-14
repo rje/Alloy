@@ -1,4 +1,5 @@
 #include "AlloyWindow.h"
+#include "LocalOccurrences.h"
 #include <QComboBox>
 #include <QDialog>
 #include <QDialogButtonBox>
@@ -9,6 +10,7 @@
 #include <QLabel>
 #include <QListWidget>
 #include <QPushButton>
+#include <QSet>
 #include <QVBoxLayout>
 
 QJsonObject AlloyWindow::showMeshExport(const QString& bodyId,const QJsonArray& bodyIds,bool allVisible) {
@@ -20,15 +22,20 @@ QJsonObject AlloyWindow::showMeshExport(const QString& bodyId,const QJsonArray& 
     dialog->setAttribute(Qt::WA_DeleteOnClose);dialog->setWindowModality(Qt::WindowModal);
     auto* layout=new QVBoxLayout(dialog);auto* form=new QFormLayout;layout->addLayout(form);
     auto* bodies=new QComboBox;bodies->setObjectName("mesh.export.body");
-    for(const auto& body:document_->bodies())bodies->addItem(body.name,body.bodyId);
-    if(const int index=bodies->findData(bodyId);index>=0)bodies->setCurrentIndex(index);
+    QSet<QString> definitions;bool linked=false;
     for(const auto& value:document_->authored()["occurrences"].toArray()){
-        const auto occurrence=value.toObject();QString name;
-        for(const auto& definition:document_->authored()["components"].toArray())if(definition.toObject()["id"]==occurrence["definitionId"])name=definition.toObject()["name"].toString();
-        bodies->addItem("Component: "+name+" (visible bodies)","occurrence:"+occurrence["id"].toString());
+        const auto definition=value.toObject()["definitionId"].toString();
+        if(definitions.contains(definition))linked=true;definitions.insert(definition);
     }
-    bodies->addItem("Selected bodies…","selected");bodies->addItem("All visible bodies","visible");
-    if(!bodyIds.isEmpty())bodies->setCurrentIndex(bodies->findData("selected"));
+    if(!linked)for(const auto& body:document_->bodies())bodies->addItem(body.name,body.bodyId);
+    if(const int index=bodies->findData(bodyId);index>=0)bodies->setCurrentIndex(index);
+    const auto occurrences=LocalOccurrences::inspect(document_->authored(),document_->evaluation())["occurrences"].toArray();
+    for(const auto& value:occurrences){const auto row=value.toObject();
+        bodies->addItem("Component: "+row["path"].toString()+" (visible bodies)","occurrence:"+row["occurrenceId"].toString());
+    }
+    if(!linked)bodies->addItem("Selected bodies…","selected");
+    bodies->addItem("All visible bodies","visible");
+    if(!linked && !bodyIds.isEmpty())bodies->setCurrentIndex(bodies->findData("selected"));
     if(allVisible || (bodyId.isEmpty() && bodyIds.isEmpty() && document_->bodies().size()>1))bodies->setCurrentIndex(bodies->findData("visible"));
     if(bodyId.isEmpty() && bodyIds.isEmpty() && !allVisible && document_->activeOwnerId()!=document_->authored()["documentId"].toString())
         for(const auto& value:document_->authored()["occurrences"].toArray()){const auto occurrence=value.toObject();if(occurrence["definitionId"]==document_->activeOwnerId())bodies->setCurrentIndex(bodies->findData("occurrence:"+occurrence["id"].toString()));}

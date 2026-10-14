@@ -43,10 +43,12 @@ QJsonObject MeshExport::writeStl(const std::vector<EvaluatedBody>& bodies,const 
     if(!destination.isAbsolute() || destination.fileName().isEmpty() || !destination.dir().exists())
         reject("invalid_path","Choose an absolute STL path in an existing directory");
     if(bodies.empty())reject("solid_required","Select at least one valid closed solid");
-    QSet<QString> distinct;QJsonArray bodyIds;
+    QSet<QString> distinct;QJsonArray bodyIds,instances;
     for(const auto& body:bodies) {
-        if(body.bodyId.isEmpty() || distinct.contains(body.bodyId))reject("invalid_body_selection","Select distinct stable body IDs");
-        distinct.insert(body.bodyId);bodyIds.append(body.bodyId);
+        const auto key=body.occurrenceId+":"+body.bodyId;
+        if(body.bodyId.isEmpty() || distinct.contains(key))reject("invalid_body_selection","Select distinct body instances");
+        distinct.insert(key);bodyIds.append(body.bodyId);
+        instances.append(QJsonObject{{"occurrenceId",body.occurrenceId},{"definitionId",body.definitionId},{"bodyId",body.bodyId},{"boundsMm",body.summary["boundsMm"]}});
         const auto summary=GeometryKernel::summarize(body.shape);
         if(!summary.value("valid").toBool() || !summary.value("closed").toBool()
             || summary.value("topology").toObject().value("solids").toInt()!=1
@@ -215,7 +217,7 @@ QJsonObject MeshExport::writeStl(const std::vector<EvaluatedBody>& bodies,const 
     const auto outputBytes=output.size();
     if(!output.commit())reject("export_failed",output.errorString());
     QJsonObject result{{"path",destination.absoluteFilePath()},{"format",binary ? "stlBinary" : "stlAscii"},
-        {"bodyIds",bodyIds},{"bodyCount",int(bodies.size())},{"units",units},{"unitsEmbedded",false},
+        {"bodyIds",bodyIds},{"instances",instances},{"bodyCount",int(bodies.size())},{"units",units},{"unitsEmbedded",false},
         {"surfaceDeviationMm",surfaceDeviationMm},{"normalDeviationDeg",normalDeviationDeg},
         {"triangles",triangles},{"collapsedTrianglesRemoved",collapsedTriangles},{"serializedCollapsedTrianglesRemoved",serializedCollapsed},{"faces",faces},{"bytes",outputBytes},
         {"mesherStatus",mesherStatus},{"authoredChanged",false}};

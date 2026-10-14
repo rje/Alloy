@@ -2,10 +2,15 @@
 #include "AssemblyGraph.h"
 #include "AssemblyRevolute.h"
 #include "LocalOccurrences.h"
+#include "ExportScope.h"
+#include "MeshExport.h"
+#include "StepExchange.h"
 #include "CadDocument.h"
 #include <BRepAdaptor_Curve.hxx>
 #include <QCoreApplication>
+#include <QJsonDocument>
 #include <QTemporaryDir>
+#include <algorithm>
 #include <cmath>
 #include <iostream>
 #include <stdexcept>
@@ -24,8 +29,31 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
  check(argc==2,"Pass unjointed native fixture");CadDocument d;check(d.open(QString::fromLocal8Bit(argv[1])).isEmpty(),"Open fixture");const auto a=d.authored();QString parent;for(const auto& v:a["components"].toArray())if(v.toObject()["name"]=="Piston subassembly")parent=occurrence(a,v.toObject()["id"].toString());check(!parent.isEmpty(),"Piston parent");const auto inner=definition(a,"Inner piston"),outer=definition(a,"Outer piston");const auto i=occurrence(a,inner),o=occurrence(a,outer);
  const QJsonObject placement{{"axis","Z"},{"angleDeg",0},{"translationMm",QJsonArray{-180,0,0}}};const auto result=CadDocument::copyOccurrenceCandidate(a,parent,placement),copied=result["authored"].toObject(),mapping=result["occurrenceMap"].toObject();commit(d,copied);check(copied["features"]==a["features"]&&copied["components"]==a["components"],"Linked source/features shared");check(mapping.size()==3,"Copied parent and both leaves");const auto ci=mapping[i].toString(),co=mapping[o].toString(),cp=result["rootOccurrenceId"].toString();check(ci!=i&&co!=o&&cp!=parent,"Distinct occurrence IDs");auto bodies=d.worldBodies();int inners=0;double sourceX=0,copyX=0;QString sourceBody;for(const auto& b:bodies)if(b.definitionId==inner){++inners;sourceBody=b.bodyId;if(b.occurrenceId==i)sourceX=b.summary["boundsMm"].toObject()["min"].toArray()[0].toDouble();if(b.occurrenceId==ci)copyX=b.summary["boundsMm"].toObject()["min"].toArray()[0].toDouble();}check(inners==2,"Both linked world bodies emitted");near(copyX-sourceX,-180,"Left instance actual BRep placement");near(LocalOccurrences::worldPose(copied,ci)[3].toDouble(),-180,"Child composed parent placement");
  d.history().undo();check(d.authored()==a,"Copy undo");d.history().redo();check(d.authored()==copied,"Copy redo");QTemporaryDir temp;const auto path=temp.filePath("linked.alloy");check(d.save(path).isEmpty(),"Save linked subtree");CadDocument reopened;check(reopened.open(path).isEmpty()&&reopened.authored()==copied,"Exact linked reopen");
+ const auto all=ExportScope::select(reopened.authored(),reopened.worldBodies(),{{"allVisible",true}});
+ const auto piston=ExportScope::select(reopened.authored(),reopened.worldBodies(),{{"occurrenceId",cp}});
+ check(all.bodies.size()==6 && piston.bodies.size()==2,"Whole design has six instances; copied piston has exactly two");
+ for(const auto& b:piston.bodies)check(b.occurrenceId==ci||b.occurrenceId==co,"Copied parent excludes original sibling");
+ auto hidden=reopened.worldBodies();for(auto& b:hidden)if(b.occurrenceId==ci)b.visible=false;
+ check(ExportScope::select(reopened.authored(),hidden,{{"occurrenceId",cp}}).bodies.size()==1,
+     "Component export omits hidden instance solids");
+ auto stl=MeshExport::writeStl(piston.bodies,temp.filePath("copied-piston.stl"),"mm",true,.1,10);
+ check(stl["bodyCount"]==2 && stl["instances"].toArray().size()==2,"STL retains duplicate source identities as separate instances");
+ std::vector<TopoDS_Shape> stepShapes;for(const auto& b:all.bodies)stepShapes.push_back(b.shape);
+ const auto step=StepExchange::write(stepShapes,"mm");
+ const auto imported=StepExchange::readAssembly(step.bytes,CadDocument::newId());
+ check(imported.leaves.size()==6,"STEP reimport retains six placed solids");
+ double lowestX=1e10,highestX=-1e10;for(const auto& leaf:imported.leaves){const auto bounds=GeometryKernel::summarize(leaf.shape)["boundsMm"].toObject();
+     lowestX=std::min(lowestX,bounds["min"].toArray()[0].toDouble());highestX=std::max(highestX,bounds["max"].toArray()[0].toDouble());}
+ check(lowestX<copyX+1 && highestX>sourceX,"STEP reimport retains distinct original and copied placements");
+ stepShapes.clear();for(const auto& b:piston.bodies)stepShapes.push_back(b.shape);
+ const auto parentStep=StepExchange::write(stepShapes,"mm");
+ const auto parentImported=StepExchange::readAssembly(parentStep.bytes,CadDocument::newId());
+ check(parentImported.leaves.size()==2,"Selected parent STEP contains exactly two placed solids");
+ bool ambiguous=false;try{ExportScope::select(reopened.authored(),reopened.worldBodies(),{{"bodyId",sourceBody}});}catch(const GeometryKernel::EvaluationError& e){ambiguous=e.diagnostics()["code"]=="ambiguous_body";}
+ check(ambiguous,"Unqualified shared body identity refuses");
  auto edit=copied;auto fs=edit["features"].toArray();for(int n=0;n<fs.size();++n){auto f=fs[n].toObject();if(f["name"]=="Inner piston"&&f["type"]=="cylinder"){auto p=f["parameters"].toObject();p["heightMm"]=p["heightMm"].toDouble()+7;f["parameters"]=p;fs[n]=f;}}edit["features"]=fs;commit(reopened,edit);int updated=0;for(const auto& b:reopened.worldBodies())if(b.definitionId==inner){check(b.bodyId==sourceBody,"Shared stable source body identity");near(b.summary["boundsMm"].toObject()["max"].toArray()[2].toDouble(),117,"Source height edit reaches both instances");++updated;}check(updated==2,"Both instances update");
  auto composed=copied;auto rows=composed["occurrences"].toArray();for(int n=0;n<rows.size();++n){auto r=rows[n].toObject();if(r["id"]==cp)r["placement"]=QJsonObject{{"axis","Z"},{"angleDeg",90},{"translationMm",QJsonArray{-180,0,0}}};if(r["id"]==ci)r["placement"]=QJsonObject{{"axis","X"},{"angleDeg",30},{"translationMm",QJsonArray{10,0,0}}};rows[n]=r;}composed["occurrences"]=rows;check(LocalOccurrences::validate(composed).isEmpty(),"Posed linked ancestry valid");const auto pose=LocalOccurrences::worldPose(composed,ci);near(pose[3].toDouble(),-180,"Parent-local translation order X");near(pose[7].toDouble(),10,"Parent rotation affects child offset");near(pose[2].toDouble(),.5,"Parent-child rotation composed once");
  auto bad=composed;rows=bad["occurrences"].toArray();for(int n=0;n<rows.size();++n){auto r=rows[n].toObject();if(r["id"]==cp){r["parentOccurrenceId"]=ci;r["parentId"]=inner;}rows[n]=r;}bad["occurrences"]=rows;const auto before=reopened.authored();const auto revision=reopened.revision();check(!reopened.commit(bad,"Cycle").isEmpty()&&reopened.authored()==before&&reopened.revision()==revision,"Cyclic parent atomic refusal");
  bool refused=false;auto jointed=a;jointed["joints"]=QJsonArray{QJsonObject{{"id",CadDocument::newId()}}};try{CadDocument::copyOccurrenceCandidate(jointed,parent,placement);}catch(const std::exception&){refused=true;}check(refused,"Joint-containing copy explicitly refuses");std::cout<<"LINKED_COPY_OK shareddefinitions/instances/composition/sourceedit/history/reopen/refusal\n";return 0;
- }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}
+ }catch(const StepExchange::Error& e){std::cerr<<QJsonDocument(e.diagnostics()).toJson(QJsonDocument::Compact).toStdString()<<'\n';return 1;}
+ catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}

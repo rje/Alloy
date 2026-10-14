@@ -7,6 +7,7 @@
 #include "LocalOccurrences.h"
 #include "CommandIcons.h"
 #include "MeshExport.h"
+#include "ExportScope.h"
 #include "StepExchange.h"
 #include <QSaveFile>
 #include "ReferenceView.h"
@@ -87,12 +88,6 @@
 #include <numbers>
 
 namespace {
-bool hasLinkedLocalCopies(const QJsonObject& authored){
-    QSet<QString> seen;for(const auto& value:authored["occurrences"].toArray()){
-        const auto definition=value.toObject()["definitionId"].toString();
-        if(seen.contains(definition))return true;seen.insert(definition);
-    }return false;
-}
 bool copiedBodyDefinition(const QJsonObject& authored,const EvaluatedDocument& evaluation,const QString& bodyId){
     QString owner;for(const auto& body:evaluation.bodies)if(body.bodyId==bodyId){owner=body.ownerId;break;}
     owner=authored["objectOwners"].toObject()["bodies"].toObject().value(bodyId).toString(owner);
@@ -1254,30 +1249,38 @@ void AlloyWindow::registerCommands() {
             }
             view_->fit(document_->bodies(),document_->sketches());return document_->state();
         });
-    add("document.exportStep","Export STEP","Export one committed solid with explicit STEP length units.",
-        {{"path",parameter("string","Absolute output STEP path.")},{"bodyId",parameter("string","Stable evaluated body UUID.")},{"units",units}},[this](const auto& a){
+    add("document.exportStep","Export STEP","Export one body, an occurrence subtree, or all visible solids in their committed world positions.",
+        {{"path",parameter("string","Absolute output STEP path.")},{"bodyId",optional(parameter("string","Stable evaluated body UUID."))},
+         {"occurrenceId",optional(parameter("string","Exact local occurrence UUID; alone selects its visible subtree, or qualifies bodyId."))},
+         {"allVisible",optional(parameter("boolean","Export all visible solids."))},{"units",units}},[this](const auto& a){
             if(!session_.isEmpty())return failure("active_command","Finish or Cancel the active command before exporting");
-            if(hasLinkedLocalCopies(document_->authored()))return failure("linked_export_unavailable","STEP export of linked local instances needs an occurrence-qualified route");
+            if(!sliderPreviewAuthored_.isEmpty() || !jointGraphStage_.isEmpty() || transientSliderPosition_.has_value() || pendingReferenceEvaluation_)
+                return failure("staged_pose","Finish or revert staged motion before exporting the committed pose");
             const auto path=a["path"].toString();
             if(!QFileInfo(path).isAbsolute() || !(path.endsWith(".step",Qt::CaseInsensitive) || path.endsWith(".stp",Qt::CaseInsensitive)))
                 return failure("invalid_path","Choose an absolute .step or .stp output path","path");
-            for(const auto& body:presentationBodies())if(body.bodyId==a["bodyId"].toString()) {
-                try {
-                    const auto output=StepExchange::write(body.shape,a["units"].toString());
+            try {
+                    const auto selected=ExportScope::select(document_->authored(),presentationBodies(),a);
+                    std::vector<TopoDS_Shape> shapes;for(const auto& body:selected.bodies)shapes.push_back(body.shape);
+                    const auto output=StepExchange::write(shapes,a["units"].toString());
                     QSaveFile file(path);file.setDirectWriteFallback(false);
                     if(!file.open(QIODevice::WriteOnly) || file.write(output.bytes)!=output.bytes.size() || !file.commit())return failure("export_failed",file.errorString(),"path");
-                    return QJsonObject{{"path",path},{"bodyId",body.bodyId},{"units",a["units"]},{"bytes",output.bytes.size()},
+                    QJsonObject result{{"path",path},{"scopeLabel",selected.label},{"instances",selected.instances},
+                        {"bodyCount",int(selected.bodies.size())},{"units",a["units"]},{"bytes",output.bytes.size()},
                         {"sha256",QString::fromLatin1(QCryptographicHash::hash(output.bytes,QCryptographicHash::Sha256).toHex())},
-                        {"boundsMm",body.summary["boundsMm"]},{"volumeMm3",body.summary["volumeMm3"]},
                         {"diagnostics",output.diagnostics},{"authoredChanged",false}};
-                } catch(const StepExchange::Error& error){auto result=failure(error.diagnostics()["code"].toString(),
-                    error.diagnostics()["message"].toString());result["error"]=error.diagnostics();return result;}
-            }
-            return failure("stale_body","The selected solid no longer exists","bodyId");
+                    if(selected.bodies.size()==1){result["bodyId"]=selected.bodies.front().bodyId;
+                        result["boundsMm"]=selected.bodies.front().summary["boundsMm"];
+                        result["volumeMm3"]=selected.bodies.front().summary["volumeMm3"];}
+                    return result;
+            } catch(const StepExchange::Error& error){auto result=failure(error.diagnostics()["code"].toString(),
+                error.diagnostics()["message"].toString());result["error"]=error.diagnostics();return result;}
+            catch(const GeometryKernel::EvaluationError& error){return QJsonObject{{"ok",false},{"error",error.diagnostics()}};}
         });
-    add("document.exportStepDialog","Export…","Choose one committed solid and explicit STEP output units.",
+    add("document.exportStepDialog","Export…","Choose a committed body, occurrence or whole design and explicit STEP units.",
         {{"bodyId",optional(parameter("string","Optional initially selected body UUID."))}},[this](const auto& a){
-            if(hasLinkedLocalCopies(document_->authored()))return failure("linked_export_unavailable","STEP export of linked local instances needs an occurrence-qualified route");
+            if(!sliderPreviewAuthored_.isEmpty() || !jointGraphStage_.isEmpty() || transientSliderPosition_.has_value() || pendingReferenceEvaluation_)
+                return failure("staged_pose","Finish or revert staged motion before exporting the committed pose");
             return showStepExport(a.value("bodyId").toString(selectedBody_));
         });
     auto meshDeviation=parameter("number","Surface deviation in canonical millimeters, independent of output units.");
@@ -1528,48 +1531,19 @@ void AlloyWindow::registerCommands() {
          {"bodyIds",optional(parameter("array","Distinct evaluated solid body UUIDs."))},{"allVisible",optional(parameter("boolean","Export all active visible bodies."))},
          {"units",units},{"format",meshFormat},{"surfaceDeviationMm",meshDeviation},{"normalDeviationDeg",meshAngle}},[this](const auto& a){
             if(!session_.isEmpty())return failure("active_command","Finish or Cancel the active command before exporting");
-            if(hasLinkedLocalCopies(document_->authored()))return failure("linked_export_unavailable","STL export of linked local instances needs an occurrence-qualified route");
-            if(int(a.contains("occurrenceId"))+int(a.contains("bodyId"))+int(a.contains("bodyIds"))+int(a.contains("allVisible"))!=1)
-                return failure("invalid_body_selection","Choose bodyId, bodyIds, or allVisible:true");
-            QJsonArray ids;
-            if(a.contains("occurrenceId")) {
-                QString owner;QMap<QString,QString> parents;
-                for(const auto& value:document_->authored()["occurrences"].toArray()){
-                    const auto occurrence=value.toObject();const auto definition=occurrence["definitionId"].toString();
-                    parents[definition]=occurrence["parentId"].toString();
-                    if(occurrence["id"]==a["occurrenceId"])owner=definition;
-                }
-                if(owner.isEmpty())return failure("invalid_component","Component occurrence does not exist");
-                auto belongsTo=[&](QString definition){
-                    QSet<QString> visited;
-                    while(!definition.isEmpty() && !visited.contains(definition)){
-                        if(definition==owner)return true;
-                        visited.insert(definition);definition=parents.value(definition);
-                    }
-                    return false;
-                };
-                for(const auto& body:presentationBodies())if(body.visible && belongsTo(body.ownerId))ids.append(body.bodyId);
-            } else if(a.contains("bodyId"))ids.append(a["bodyId"]);
-            else if(a.contains("bodyIds"))ids=a["bodyIds"].toArray();
-            else {if(!a["allVisible"].toBool())return failure("invalid_body_selection","allVisible must be true");
-                for(const auto& body:presentationBodies())if(body.visible)ids.append(body.bodyId);}
-            if(ids.isEmpty())return failure("solid_required","Select at least one committed solid");
-            QSet<QString> distinct;std::vector<EvaluatedBody> selected;
-            for(const auto& value:ids) {
-                if(!value.isString() || value.toString().isEmpty() || distinct.contains(value.toString()))
-                    return failure("invalid_body_selection","Body IDs must be distinct nonempty strings");
-                distinct.insert(value.toString());bool found=false;
-                for(const auto& body:presentationBodies())if(body.bodyId==value.toString()){selected.push_back(body);found=true;break;}
-                if(!found)return failure("stale_body","A selected solid no longer exists","bodyIds");
-            }
-            try{return MeshExport::writeStl(selected,a["path"].toString(),a["units"].toString(),a["format"]=="binary",a["surfaceDeviationMm"].toDouble(),a["normalDeviationDeg"].toDouble());}
+            if(!sliderPreviewAuthored_.isEmpty() || !jointGraphStage_.isEmpty() || transientSliderPosition_.has_value() || pendingReferenceEvaluation_)
+                return failure("staged_pose","Finish or revert staged motion before exporting the committed pose");
+            try{const auto selected=ExportScope::select(document_->authored(),presentationBodies(),a);
+                auto result=MeshExport::writeStl(selected.bodies,a["path"].toString(),a["units"].toString(),a["format"]=="binary",a["surfaceDeviationMm"].toDouble(),a["normalDeviationDeg"].toDouble());
+                result["scopeLabel"]=selected.label;return result;}
             catch(const GeometryKernel::EvaluationError& error){return QJsonObject{{"ok",false},{"error",error.diagnostics()}};}
 
         });
     add("document.exportMeshDialog","Save As Mesh…","Export chosen committed solids to a local STL file.",
         {{"bodyId",optional(parameter("string","Optional initially selected body UUID."))},
          {"bodyIds",optional(parameter("array","Initially checked body UUIDs."))},{"allVisible",optional(parameter("boolean","Initially choose all active visible bodies."))}},[this](const auto& a){
-            if(hasLinkedLocalCopies(document_->authored()))return failure("linked_export_unavailable","STL export of linked local instances needs an occurrence-qualified route");
+            if(!sliderPreviewAuthored_.isEmpty() || !jointGraphStage_.isEmpty() || transientSliderPosition_.has_value() || pendingReferenceEvaluation_)
+                return failure("staged_pose","Finish or revert staged motion before exporting the committed pose");
             if(int(a.contains("bodyId"))+int(a.contains("bodyIds"))+int(a.contains("allVisible"))>1)return failure("invalid_body_selection","Choose one export selection source");
             if(a.contains("bodyId")) {bool found=false;for(const auto& body:document_->bodies())found=found || body.bodyId==a["bodyId"].toString();if(!found)return failure("stale_body","The selected solid no longer exists","bodyId");}
             if(a.contains("bodyIds"))for(const auto& id:a["bodyIds"].toArray()) {

@@ -7,6 +7,7 @@
 #include <STEPControl_Reader.hxx>
 #include <STEPControl_Writer.hxx>
 #include <STEPCAFControl_Reader.hxx>
+#include <STEPCAFControl_Writer.hxx>
 #include <TCollection_ExtendedString.hxx>
 #include <TDataStd_Name.hxx>
 #include <TDF_Tool.hxx>
@@ -285,15 +286,49 @@ StepExchange::AssemblyResult StepExchange::readAssembly(const QByteArray& source
 }
 
 StepExchange::WriteResult StepExchange::write(const TopoDS_Shape& shape, const QString& outputUnits) {
+    return write(std::vector<TopoDS_Shape>{shape},outputUnits);
+}
+
+StepExchange::WriteResult StepExchange::write(const std::vector<TopoDS_Shape>& inputShapes, const QString& outputUnits) {
     if (outputUnits != "mm" && outputUnits != "in")
         reject("step_output_units", "STEP output units must be mm or in");
-    const auto solid = onlySolid(shape);
+    if(inputShapes.empty())reject("step_solid_count","Select at least one solid");
+    if(inputShapes.size()>1){
+        Handle(TDocStd_Document) document;
+        XCAFApp_Application::GetApplication()->NewDocument(TCollection_ExtendedString("BinXCAF"),document);
+        if(document.IsNull())reject("step_export_transfer_failed","OCCT could not create a STEP assembly document");
+        const auto tool=XCAFDoc_DocumentTool::ShapeTool(document->Main());
+        const auto root=tool->NewShape();TDataStd_Name::Set(root,TCollection_ExtendedString("Alloy export"));
+        for(size_t index=0;index<inputShapes.size();++index){
+            const auto solid=onlySolid(inputShapes[index]);
+            const auto definition=tool->AddShape(solid,false);
+            const auto name=QString("Solid %1").arg(index+1).toUtf8();
+            TDataStd_Name::Set(definition,TCollection_ExtendedString(name.constData()));
+            const auto instance=tool->AddComponent(root,definition,TopLoc_Location());
+            TDataStd_Name::Set(instance,TCollection_ExtendedString(name.constData()));
+        }
+        tool->UpdateAssemblies();
+        STEPCAFControl_Writer writer;writer.SetNameMode(true);
+        DESTEP_Parameters parameters;parameters.WriteUnit=outputUnits=="in" ? UnitsMethods_LengthUnit_Inch : UnitsMethods_LengthUnit_Millimeter;
+        if(!writer.Transfer(document,parameters,STEPControl_AsIs))
+            reject("step_export_transfer_failed","OCCT could not translate the solid assembly to STEP");
+        std::ostringstream stream(std::ios::binary);
+        if(writer.WriteStream(stream)!=IFSelect_RetDone)
+            reject("step_export_write_failed","OCCT could not write the STEP assembly");
+        const auto data=stream.str();
+        if(data.empty())reject("step_export_empty","OCCT wrote empty STEP data");
+        return {QByteArray(data.data(),static_cast<qsizetype>(data.size())),
+            {{"code","step_written"},{"outputLengthUnit",outputUnits},{"solidCount",int(inputShapes.size())},{"translator","OCCT STEPCAF/XDE"}}};
+    }
     STEPControl_Writer writer;
     DESTEP_Parameters parameters;
     parameters.WriteUnit = outputUnits == "in" ? UnitsMethods_LengthUnit_Inch
                                                 : UnitsMethods_LengthUnit_Millimeter;
-    if (writer.Transfer(solid, STEPControl_ManifoldSolidBrep, parameters) != IFSelect_RetDone)
-        reject("step_export_transfer_failed", "OCCT could not translate the solid to STEP");
+    for(const auto& shape:inputShapes){
+        const auto solid=onlySolid(shape);
+        if (writer.Transfer(solid, STEPControl_ManifoldSolidBrep, parameters) != IFSelect_RetDone)
+            reject("step_export_transfer_failed", "OCCT could not translate the solid to STEP");
+    }
     std::ostringstream stream(std::ios::binary);
     if (writer.WriteStream(stream) != IFSelect_RetDone)
         reject("step_export_write_failed", "OCCT could not write the STEP data");
@@ -301,5 +336,5 @@ StepExchange::WriteResult StepExchange::write(const TopoDS_Shape& shape, const Q
     if (data.empty()) reject("step_export_empty", "OCCT wrote empty STEP data");
     return {QByteArray(data.data(), static_cast<qsizetype>(data.size())),
         {{"code", "step_written"}, {"outputLengthUnit", outputUnits},
-         {"solidCount", 1}, {"translator", "OCCT STEPControl"}}};
+         {"solidCount", int(inputShapes.size())}, {"translator", "OCCT STEPControl"}}};
 }
