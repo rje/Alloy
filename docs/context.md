@@ -9,7 +9,11 @@ placement edit/undo/reopen and independent Case-only STEP/STL readback.
 A separate neutral top capture shows all four pegs. See
 [the accepted prefix receipt](validation/enclosure-prefix-workflow.md).
 GEO-008, SKT-071 and GEO-009 are accepted, integrated and closed.
-All private editors are closed; no GUI lease is outstanding.
+Current work: Sol owns TUT-021 ports and the SKT-072/#325 construction-plane
+Project prerequisite in an isolated worktree, with the sole GUI lease. A second
+Sol lane implements SOL-050/#326 first Cut feature Mirror headlessly; the exact
+snap group is separately queued as SOL-051/#327. SOL-049 remains Todo as parent.
+Astra researches exact public source steps and verifies both lanes.
 
 Next source stages are TUT-021/#322 (ports and card opening), TUT-022/#323
 (Split and mirrored snap groups, depending on SOL-049 and HIS-006), and

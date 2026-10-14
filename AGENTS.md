@@ -151,5 +151,8 @@ These rules supersede any earlier suggestion to verify behavior in proprietary s
 - GitHub work uses `gh` and documented APIs. Do not use browser/computer control
   for GitHub operations. Track implementation and cumulative validation in the
   repository issues; read the backlog instructions before pulling work.
+- When a tutorial recording is accepted, add it to the external video gallery
+  (`../Alloy-reference-records/demos/2026-10-13/index.html`) before announcing
+  completion. Include the saved model and relevant exports; verify local links.
 - Keep accepted requirements, proposed designs, unresolved decisions, and
   implemented/verified capabilities clearly distinguished in project docs.
