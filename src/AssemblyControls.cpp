@@ -3,6 +3,7 @@
 #include "AssemblySlider.h"
 #include "AssemblyRevolute.h"
 #include "AssemblyGraph.h"
+#include "LocalOccurrences.h"
 #include "ReferenceView.h"
 #include <BRepAdaptor_Curve.hxx>
 #include <GeomAbs_CurveType.hxx>
@@ -75,6 +76,7 @@ std::vector<EvaluatedBody> AlloyWindow::presentationBodies() const {
     const auto joints=authored.value("joints").toArray();
     if(AssemblyGraph::isJointGraph(authored))return AssemblyGraph::worldBodies(authored,definitions,
         graphOverride(authored,jointGraphStage_,transientSliderPosition_));
+    if(joints.isEmpty())return LocalOccurrences::worldBodies(authored,definitions);
     return AssemblySlider::worldBodies(authored,definitions,transientSliderPosition_);
 }
 QJsonObject AlloyWindow::presentationAssembly() const {
@@ -82,6 +84,7 @@ QJsonObject AlloyWindow::presentationAssembly() const {
     const auto joints=authored.value("joints").toArray();
     if(AssemblyGraph::isJointGraph(authored))return AssemblyGraph::inspect(authored,document_->evaluation(),
         graphOverride(authored,jointGraphStage_,transientSliderPosition_));
+    if(joints.isEmpty())return LocalOccurrences::inspect(authored,document_->evaluation());
     return AssemblySlider::inspect(authored,document_->evaluation(),transientSliderPosition_);
 }
 bool AlloyWindow::nonzeroAssemblyPose() const {

@@ -58,6 +58,11 @@
 #include <gp_Ax3.hxx>
 #include <gp_Vec.hxx>
 #include <AIS_Point.hxx>
+namespace {
+QString presentationBodyKey(const EvaluatedBody& body){
+    return body.occurrenceId.isEmpty() ? body.bodyId : body.occurrenceId+"/"+body.bodyId;
+}
+}
 #include <AIS_TextLabel.hxx>
 #include <Geom_CartesianPoint.hxx>
 #include <Prs3d_PointAspect.hxx>
@@ -221,7 +226,7 @@ void ReferenceView::rebindDocument() {
     for(const auto& model:finishedProfileModels_)context_->Remove(model,false);
     for(const auto& model:finishedPointModels_)context_->Remove(model,false);
     finishedPointModels_.clear();selectedFinishedPoint_={};
-    models_.clear();bodyVisibility_.clear();sketchModels_.clear();constructionSketchModels_.clear();centerlineSketchModels_.clear();constructionPlaneModels_.clear();constructionPlanes_.clear();finishedProfileModels_.clear();finishedSketches_.clear();
+    models_.clear();modelReferences_.clear();bodyVisibility_.clear();sketchModels_.clear();constructionSketchModels_.clear();centerlineSketchModels_.clear();constructionPlaneModels_.clear();constructionPlanes_.clear();finishedProfileModels_.clear();finishedSketches_.clear();
     modelRevision_=std::numeric_limits<quint64>::max();sketchRevision_=modelRevision_;constructionPlaneRevision_=modelRevision_;
 }
 void ReferenceView::initialize() {
@@ -399,7 +404,7 @@ void ReferenceView::clearBodyStage() {
 void ReferenceView::displayBodies(const std::vector<EvaluatedBody>& bodies) {
     if(context_.IsNull())return;
     for(const auto& model:models_)context_->Remove(model,false);
-    models_.clear();bodyVisibility_.clear();
+    models_.clear();modelReferences_.clear();bodyVisibility_.clear();
     for(const auto& body:bodies) {
         Handle(AIS_Shape) model=new AIS_Shape(body.shape);model->SetDisplayMode(AIS_Shaded);
         // Bound screen presentation detail separately from export accuracy.
@@ -421,7 +426,9 @@ void ReferenceView::displayBodies(const std::vector<EvaluatedBody>& bodies) {
         context_->Deactivate(model,0);
         context_->Activate(model,AIS_Shape::SelectionMode(TopAbs_FACE));
         if(!sectionClip_.IsNull())model->AddClipPlane(sectionClip_);
-        models_[body.bodyId]=model;bodyVisibility_[body.bodyId]=body.visible;
+        const auto key=presentationBodyKey(body);
+        models_[key]=model;bodyVisibility_[key]=body.visible;
+        modelReferences_[key]={{"bodyId",body.bodyId},{"occurrenceId",body.occurrenceId},{"definitionId",body.definitionId}};
     }
     applyEditDisplay();
 }
@@ -567,8 +574,9 @@ void ReferenceView::applyEditDisplay(bool redraw) {
         }
     }
     for(auto i=models_.begin();i!=models_.end();++i) {
-        const bool visible=bodyVisibility_.value(i.key()) || i.key()==combineTargetId_ || combineToolIds_.contains(i.key());
-        if(!visible || hiddenBodyIds_.contains(i.key()) || i.key()==previewReplacedBody_)context_->Erase(i.value(),false);
+        const auto bodyId=modelReferences_.value(i.key())["bodyId"].toString();
+        const bool visible=bodyVisibility_.value(i.key()) || bodyId==combineTargetId_ || combineToolIds_.contains(bodyId);
+        if(!visible || hiddenBodyIds_.contains(bodyId) || bodyId==previewReplacedBody_)context_->Erase(i.value(),false);
         else context_->Display(i.value(),AIS_Shaded,AIS_Shape::SelectionMode(TopAbs_FACE),false);
     }
     if(redraw)context_->UpdateCurrentViewer();
@@ -641,8 +649,11 @@ QJsonObject ReferenceView::pickSupportFace(double x,double y,const std::vector<E
         }
     } catch(const Standard_Failure&) {return {};}
     if(!hitBody)return {};
-    for(const auto& face:hitBody->supportFaces)if(hitFace.IsSame(face.face))
-        return {{"producerFeatureId",face.producerFeatureId},{"bodyId",face.bodyId},{"faceId",face.faceId}};
+    for(const auto& face:hitBody->supportFaces)if(hitFace.IsSame(face.face)){
+        QJsonObject result{{"producerFeatureId",face.producerFeatureId},{"bodyId",face.bodyId},{"faceId",face.faceId}};
+        if(!hitBody->occurrenceId.isEmpty())result["occurrenceId"]=hitBody->occurrenceId;
+        return result;
+    }
     return {};
 }
 void ReferenceView::selectSupportFace(const QJsonObject& support,const TopoDS_Face& face,bool outline) {
@@ -1688,13 +1699,17 @@ void ReferenceView::fit(const std::vector<EvaluatedBody>& bodies,const std::vect
     }
     zoom=1;pan={};sync();
 }
-void ReferenceView::selectBody(const QString& id) {
+void ReferenceView::selectBody(const QString& id,const QString& occurrenceId) {
     // refreshUI reapplies an empty body cue while a finished point is selected.
     // Actual clear/sketch/profile picks clear through selectProfiles instead.
     if(!id.isEmpty() && !selectedFinishedPoint_.isEmpty()){selectedFinishedPoint_={};applyEditDisplay(false);}
     if(context_.IsNull())return;
     context_->ClearSelected(false);
-    if(models_.contains(id))context_->SetSelected(models_.value(id),false);
+    QString selected;for(auto it=modelReferences_.begin();it!=modelReferences_.end();++it){
+        const auto ref=it.value();if(ref["bodyId"]!=id || (!occurrenceId.isEmpty() && ref["occurrenceId"]!=occurrenceId))continue;
+        if(!selected.isEmpty()){selected.clear();break;}selected=it.key();
+    }
+    if(!selected.isEmpty())context_->SetSelected(models_.value(selected),false);
     context_->UpdateCurrentViewer();
 }
 void ReferenceView::highlightCombineInputs(const QString& targetBodyId,const QJsonArray& toolBodyIds) {
@@ -1702,8 +1717,9 @@ void ReferenceView::highlightCombineInputs(const QString& targetBodyId,const QJs
     if(context_.IsNull())return;
     context_->ClearSelected(false);
     for(auto it=models_.begin();it!=models_.end();++it) {
-        const auto color=it.key()==targetBodyId ? Quantity_Color(0.16,0.47,0.86,Quantity_TOC_sRGB)
-            : toolBodyIds.contains(it.key()) ? Quantity_Color(0.91,0.45,0.13,Quantity_TOC_sRGB)
+        const auto bodyId=modelReferences_.value(it.key())["bodyId"].toString();
+        const auto color=bodyId==targetBodyId ? Quantity_Color(0.16,0.47,0.86,Quantity_TOC_sRGB)
+            : toolBodyIds.contains(bodyId) ? Quantity_Color(0.91,0.45,0.13,Quantity_TOC_sRGB)
             : Quantity_Color(0.67,0.72,0.76,Quantity_TOC_RGB);
         it.value()->SetColor(color);context_->Redisplay(it.value(),false);
     }
@@ -1716,13 +1732,16 @@ QPointF ReferenceView::windowScale() const {
     return {double(w)/width(),double(h)/height()};
 }
 QString ReferenceView::pickBody(double x,double y) {
+    return pickBodyReference(x,y)["bodyId"].toString();
+}
+QJsonObject ReferenceView::pickBodyReference(double x,double y) {
     if(context_.IsNull() || view_.IsNull())return {};
     if(x<0 || y<0 || x>=width() || y>=height())return {};
     sync();const auto scale=windowScale();
     context_->MoveTo(qRound(x*scale.x()),qRound(y*scale.y()),view_,true);
     if(!context_->HasDetected())return {};
     const auto detected=context_->DetectedInteractive();
-    for(auto it=models_.begin();it!=models_.end();++it)if(it.value()==detected)return it.key();
+    for(auto it=models_.begin();it!=models_.end();++it)if(it.value()==detected)return modelReferences_.value(it.key());
     return {};
 }
 QJsonObject ReferenceView::projectSolidEdge(const EvaluatedSolidEdge& edge) const {
@@ -1846,9 +1865,11 @@ void ReferenceView::showPatternAxes(const QJsonObject& summary) {
     }
     context_->UpdateCurrentViewer();
 }
-void ReferenceView::highlightSolidEdges(const std::vector<EvaluatedBody>& bodies,const QString& bodyId,const QJsonArray& ids) {
+void ReferenceView::highlightSolidEdges(const std::vector<EvaluatedBody>& bodies,const QString& bodyId,const QJsonArray& ids,
+    const QString& occurrenceId) {
     clearSolidEdgeHighlights();if(context_.IsNull())return;
-    for(const auto& body:bodies)if(body.bodyId==bodyId)for(const auto& edge:body.solidEdges)if(ids.contains(edge.edgeId) && !edge.edge.IsNull()) {
+    for(const auto& body:bodies)if(body.bodyId==bodyId && (occurrenceId.isEmpty() || body.occurrenceId==occurrenceId))
+        for(const auto& edge:body.solidEdges)if(ids.contains(edge.edgeId) && !edge.edge.IsNull()) {
         BRepAdaptor_Curve curve(edge.edge);BRep_Builder builder;TopoDS_Compound shape;builder.MakeCompound(shape);
         const int count=curve.GetType()==GeomAbs_Line ? 1 : 64;
         for(int i=0;i<count;++i){const auto a=curve.Value(curve.FirstParameter()+(curve.LastParameter()-curve.FirstParameter())*i/count),b=curve.Value(curve.FirstParameter()+(curve.LastParameter()-curve.FirstParameter())*(i+1)/count);const gp_Vec delta(a,b);if(delta.Magnitude()>1e-9)builder.Add(shape,BRepPrimAPI_MakeCylinder(gp_Ax2(a,gp_Dir(delta)),view_->Camera()->Scale()*1.6/std::max(height(),1),delta.Magnitude()).Shape());}
@@ -1907,8 +1928,10 @@ void ReferenceView::replacePreview(const TopoDS_Shape& shape,const QString& repl
     // Remove the previous presentation without exposing an intermediate empty
     // scene or the original body while the replacement is being installed.
     clearPreviewPresentation();if(context_.IsNull())return;
-    if(models_.contains(replacedBody)) {
-        previewReplacedBody_=replacedBody;context_->Erase(models_.value(replacedBody),false);
+    QString replacementKey;for(auto it=modelReferences_.begin();it!=modelReferences_.end();++it)
+        if(it.value()["bodyId"]==replacedBody){if(!replacementKey.isEmpty()){replacementKey.clear();break;}replacementKey=it.key();}
+    if(!replacementKey.isEmpty()) {
+        previewReplacedBody_=replacedBody;context_->Erase(models_.value(replacementKey),false);
     }
     preview_=new AIS_Shape(shape);preview_->SetColor(neutral ? Quantity_Color(0.67,0.72,0.76,Quantity_TOC_RGB) : Quantity_Color(0.25,0.58,0.76,Quantity_TOC_RGB));
     preview_->SetOwnDeviationCoefficient(0.0005);
@@ -2247,7 +2270,9 @@ QJsonObject ReferenceView::diagnostics() const {
     result.insert("previewProfileId",previewProfile_);
     result.insert("previewProfileIds",previewProfileIds_);
     result.insert("bodyStageKey",bodyStageKey_);
-    QJsonArray displayIds;for(auto it=models_.begin();it!=models_.end();++it)if(context_->IsDisplayed(it.value()))displayIds.append(it.key());result.insert("displayedBodyIds",displayIds);
+    QJsonArray displayIds,displayRefs;for(auto it=models_.begin();it!=models_.end();++it)if(context_->IsDisplayed(it.value())){
+        const auto ref=modelReferences_.value(it.key());displayIds.append(ref["bodyId"]);displayRefs.append(ref);
+    }result.insert("displayedBodyIds",displayIds);result.insert("displayedBodyReferences",displayRefs);
     result.insert("documentRevision",static_cast<qint64>(modelRevision_));
     const auto camera=view_->Camera();
     auto vector=[](const auto& value) {return QJsonArray{value.X(),value.Y(),value.Z()};};

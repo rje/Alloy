@@ -4,6 +4,7 @@
 #include "AlloyWindow.h"
 #include "AssemblySlider.h"
 #include "LocalReference.h"
+#include "LocalOccurrences.h"
 #include "CommandIcons.h"
 #include "MeshExport.h"
 #include "StepExchange.h"
@@ -86,6 +87,19 @@
 #include <numbers>
 
 namespace {
+bool hasLinkedLocalCopies(const QJsonObject& authored){
+    QSet<QString> seen;for(const auto& value:authored["occurrences"].toArray()){
+        const auto definition=value.toObject()["definitionId"].toString();
+        if(seen.contains(definition))return true;seen.insert(definition);
+    }return false;
+}
+bool copiedBodyDefinition(const QJsonObject& authored,const EvaluatedDocument& evaluation,const QString& bodyId){
+    QString owner;for(const auto& body:evaluation.bodies)if(body.bodyId==bodyId){owner=body.ownerId;break;}
+    owner=authored["objectOwners"].toObject()["bodies"].toObject().value(bodyId).toString(owner);
+    if(owner.isEmpty())return false;int count=0;
+    for(const auto& value:authored["occurrences"].toArray())if(value.toObject()["definitionId"]==owner)++count;
+    return count>1;
+}
 TopoDS_Face selectedSurfaceShape(const EvaluatedDocument& evaluation,const QJsonObject& ref){
     for(const auto& body:evaluation.bodies)if(body.visible && body.summary["type"]=="surface"
         && body.bodyId==ref["bodyId"].toString() && body.supportFaces.size()==1){
@@ -491,19 +505,20 @@ AlloyWindow::AlloyWindow() {
         const auto* item=tree_->itemAt(point);
         if(!item || item->isHidden())return;
         if(const auto definition=item->data(0,Qt::UserRole+3).toString();!definition.isEmpty()){
-            QMenu menu(this);auto* move=menu.addAction("Move to Component…");move->setObjectName("context.reparentComponent");
-            auto* pin=menu.addAction("Pin");pin->setObjectName("context.pinComponent");pin->setEnabled(session_.isEmpty());
+            const auto occurrenceId=item->data(0,Qt::UserRole+8).toString();int definitionInstances=0;
+            for(const auto& value:document_->authored()["occurrences"].toArray())if(value.toObject()["definitionId"]==definition)++definitionInstances;
+            QMenu menu(this);auto* copy=menu.addAction("Copy…");copy->setObjectName("context.copyComponent");copy->setEnabled(session_.isEmpty() && !occurrenceId.isEmpty());
+            auto* move=menu.addAction("Move to Component…");move->setObjectName("context.reparentComponent");move->setEnabled(definitionInstances==1 && session_.isEmpty());
+            auto* pin=menu.addAction("Pin");pin->setObjectName("context.pinComponent");pin->setEnabled(definitionInstances==1 && session_.isEmpty());
             auto* opacity=menu.addAction("Opacity Control…");
+            if(definitionInstances>1)opacity->setEnabled(false);
             for(const auto& value:document_->authored()["occurrences"].toArray())if(value.toObject()["parentId"]==definition){
                 opacity->setEnabled(false);opacity->setToolTip("Opacity on a nested parent is unavailable");break;
             }
             const auto* action=menu.exec(tree_->viewport()->mapToGlobal(point));
-            if(action==move)execute("component.reparentOccurrenceDialog",{{"occurrenceId",[&]{
-                for(const auto& value:document_->authored()["occurrences"].toArray())if(value.toObject()["definitionId"]==definition)return value.toObject()["id"].toString();
-                return QString{};}()}});
-            if(action==pin)execute("joint.pin",{{"occurrenceId",[&]{
-                for(const auto& value:document_->authored()["occurrences"].toArray())if(value.toObject()["definitionId"]==definition)return value.toObject()["id"].toString();
-                return QString{};}()}});
+            if(action==copy)execute("component.copyOccurrenceDialog",{{"occurrenceId",occurrenceId}});
+            if(action==move)execute("component.reparentOccurrenceDialog",{{"occurrenceId",occurrenceId}});
+            if(action==pin)execute("joint.pin",{{"occurrenceId",occurrenceId}});
             if(action==opacity){
                 bool ok=false;const int value=QInputDialog::getInt(this,"Opacity Control","Opacity (%)",100,0,100,5,&ok);
                 if(ok)execute("component.opacitySet",{{"definitionId",definition},{"opacity",value/100.0}});
@@ -570,6 +585,11 @@ AlloyWindow::AlloyWindow() {
                     kind=="asBuiltRevolute" && !thisJointPreview ? QJsonObject{{"jointId",jointId},{"angleDeg",15}}:QJsonObject{});
             }return;
         }
+        if(item->parent() && item->parent()->data(0,Qt::UserRole+4)=="instanceBodies"){
+            execute("selection.set",{{"bodyId",item->data(0,Qt::UserRole+1).toString()},{"occurrenceId",item->data(0,Qt::UserRole+8).toString()}});
+            QMenu menu(this);auto* info=menu.addAction("Linked instance — edit the source definition");info->setEnabled(false);
+            menu.exec(tree_->viewport()->mapToGlobal(point));return;
+        }
         if(!item->parent() || item->parent()->data(0,Qt::UserRole+4)!="bodies")return;
         const auto bodyId=item->data(0,Qt::UserRole+1).toString();
         QMenu menu(this);menu.setObjectName("context.browserBody");auto* move=menu.addAction("Move/Copy");move->setObjectName("context.moveBody");move->setEnabled(session_.isEmpty());
@@ -594,13 +614,15 @@ AlloyWindow::AlloyWindow() {
         if(!name.isEmpty())execute("view.orientation",{{"name",name}});
         else if(!body.isEmpty()){
             if(tree_->selectedItems().size()<=1)
-                execute("selection.set",{{"bodyId",body}});
+                execute("selection.set",{{"bodyId",body},{"occurrenceId",item->data(0,Qt::UserRole+8).toString()}});
         }
         else if(!sketch.isEmpty())execute("selection.sketchSet",{{"sketchId",sketch}});
         else if(!plane.isEmpty())execute("selection.planeSet",{{"planeId",plane}});
     });
     connect(tree_,&QTreeWidget::itemChanged,this,[this](QTreeWidgetItem* item,int column){
-        if(!item || item->isHidden() || !(item->flags()&Qt::ItemIsEnabled) || column!=0 || (!item->parent() || item->parent()->data(0,Qt::UserRole+4).toString().isEmpty()))return;
+        if(!item || item->isHidden() || !(item->flags()&Qt::ItemIsEnabled) || column!=0 ||
+            (!item->parent() || item->parent()->data(0,Qt::UserRole+4).toString().isEmpty()) ||
+            item->parent()->data(0,Qt::UserRole+4)=="instanceBodies")return;
         const auto id=item->data(0,Qt::UserRole+2).toString();const bool visible=item->checkState(0)==Qt::Checked;
         if(item->parent()==canvasesNode_){const auto id=item->data(0,Qt::UserRole+2).toString();const bool visible=item->checkState(0)==Qt::Checked;const auto tabId=activeTabId_;QTimer::singleShot(0,this,[this,id,visible,tabId]{if(tabId==activeTabId_)execute("canvas.set",{{"canvasId",id},{"visible",visible}});});return;}
         if(item->parent()==analysesNode_){
@@ -1019,7 +1041,7 @@ QString AlloyWindow::tabSwitchBlocker() const {
 void AlloyWindow::saveActiveTabState() {
     for(auto& tab:designTabs_)if(tab->id==activeTabId_) {
         tab->session=session_;tab->sketchHistory=sketchHistory_;tab->sketchHistoryIndex=sketchHistoryIndex_;
-        tab->sketchHistoryGroup=sketchHistoryGroup_;tab->selectedBody=selectedBody_;
+        tab->sketchHistoryGroup=sketchHistoryGroup_;tab->selectedBody=selectedBody_;tab->selectedOccurrence=selectedOccurrence_;
         tab->selectedSketch=selectedSketch_;tab->selectedProfile=selectedProfile_;tab->selectedProfileIds=selectedProfileIds_;tab->selectedFace=selectedFace_;tab->selectedPlane=selectedPlane_;
         tab->camera=view_->cameraState();return;
     }
@@ -1039,7 +1061,7 @@ void AlloyWindow::showActiveTab() {
     document_=active->document.get();session_=active->session;
     sketchHistory_=active->sketchHistory;sketchHistoryIndex_=active->sketchHistoryIndex;
     sketchHistoryGroup_=active->sketchHistoryGroup;
-    selectedBody_=active->selectedBody;selectedSketch_=active->selectedSketch;selectedProfile_=active->selectedProfile;selectedProfileIds_=active->selectedProfileIds;selectedFace_=active->selectedFace;selectedPlane_=active->selectedPlane;
+    selectedBody_=active->selectedBody;selectedOccurrence_=active->selectedOccurrence;selectedSketch_=active->selectedSketch;selectedProfile_=active->selectedProfile;selectedProfileIds_=active->selectedProfileIds;selectedFace_=active->selectedFace;selectedPlane_=active->selectedPlane;
     selectedEdge_={};view_->clearSolidEdgeHighlights();
     displayedDocumentRevision_=std::numeric_limits<quint64>::max();displayedSketchDraft_={};
     sketchWidgetDraft_={};sketchWidgetSelection_={};sketchWidgetUnits_.clear();pendingBrowserVisibility_.clear();
@@ -1204,7 +1226,7 @@ void AlloyWindow::registerCommands() {
         if (tabHasUnsavedWork(activeTabId_) && !a.value("discard").toBool()) return failure("unsaved_changes", "Save or explicitly discard the current document");
         if(!session_.isEmpty())finishSession(session_.value("id").toString(),false);
         document_->reset();view_->rebindDocument();displayedDocumentRevision_=std::numeric_limits<quint64>::max();
-        selectedBody_.clear();selectedFace_={};selectedEdge_={};selectedPlane_.clear();view_->selectSupportFace({},{});view_->clearSolidEdgeHighlights();selectedSketch_.clear();selectedProfile_.clear();selectedProfileIds_={};view_->fit({},{});return document_->state();
+        selectedBody_.clear();selectedOccurrence_.clear();selectedFace_={};selectedEdge_={};selectedPlane_.clear();view_->selectSupportFace({},{});view_->clearSolidEdgeHighlights();selectedSketch_.clear();selectedProfile_.clear();selectedProfileIds_={};view_->fit({},{});return document_->state();
     });
     auto path=parameter("string","Absolute native .alloy file path.");
     auto discard=optional(parameter("boolean","Explicitly discard unsaved edits."));
@@ -1235,6 +1257,7 @@ void AlloyWindow::registerCommands() {
     add("document.exportStep","Export STEP","Export one committed solid with explicit STEP length units.",
         {{"path",parameter("string","Absolute output STEP path.")},{"bodyId",parameter("string","Stable evaluated body UUID.")},{"units",units}},[this](const auto& a){
             if(!session_.isEmpty())return failure("active_command","Finish or Cancel the active command before exporting");
+            if(hasLinkedLocalCopies(document_->authored()))return failure("linked_export_unavailable","STEP export of linked local instances needs an occurrence-qualified route");
             const auto path=a["path"].toString();
             if(!QFileInfo(path).isAbsolute() || !(path.endsWith(".step",Qt::CaseInsensitive) || path.endsWith(".stp",Qt::CaseInsensitive)))
                 return failure("invalid_path","Choose an absolute .step or .stp output path","path");
@@ -1254,6 +1277,7 @@ void AlloyWindow::registerCommands() {
         });
     add("document.exportStepDialog","Export…","Choose one committed solid and explicit STEP output units.",
         {{"bodyId",optional(parameter("string","Optional initially selected body UUID."))}},[this](const auto& a){
+            if(hasLinkedLocalCopies(document_->authored()))return failure("linked_export_unavailable","STEP export of linked local instances needs an occurrence-qualified route");
             return showStepExport(a.value("bodyId").toString(selectedBody_));
         });
     auto meshDeviation=parameter("number","Surface deviation in canonical millimeters, independent of output units.");
@@ -1307,6 +1331,39 @@ void AlloyWindow::registerCommands() {
                 const auto result=execute("component.createFromBodies",{{"bodyIds",ids}});if(result["ok"].toBool())dialog->accept();
                 else status->setText(result["error"].toObject()["message"].toString());});
             dialog->resize(360,200);dialog->show();return QJsonObject{{"visible",true},{"bodyIds",ids}};
+        });
+    add("component.copyOccurrence","Copy linked component","Copy one local occurrence subtree with shared definitions and an absolute parent-local placement.",
+        {{"occurrenceId",parameter("string","Retained source occurrence UUID.")},{"placement",parameter("object","Absolute parent-local translation and Z rotation.")}},[this](const auto& a){
+            if(!session_.isEmpty())return failure("active_command","Finish or Cancel before copying a component");
+            QJsonObject result;try{result=CadDocument::copyOccurrenceCandidate(document_->authored(),a["occurrenceId"].toString(),a["placement"].toObject());}
+            catch(const std::exception& e){return failure("invalid_component_copy",QString::fromUtf8(e.what()));}
+            const auto error=document_->commit(result["authored"].toObject(),"Copy Component");
+            if(!error.isEmpty())return failure("invalid_component_copy",error);
+            result.remove("authored");return result;
+        });
+    add("component.copyOccurrenceDialog","Copy Component…","Review an absolute parent-local placement for one linked subtree.",
+        {{"occurrenceId",parameter("string","Retained source occurrence UUID.")}},[this](const auto& a){
+            if(!session_.isEmpty())return failure("active_command","Finish or Cancel before copying a component");
+            QString sourcePath;for(const auto& value:LocalOccurrences::inspect(document_->authored(),document_->evaluation())["occurrences"].toArray())
+                if(value.toObject()["occurrenceId"]==a["occurrenceId"])sourcePath=value.toObject()["path"].toString();
+            if(sourcePath.isEmpty())return failure("invalid_component_copy","Choose a current local component occurrence");
+            auto* dialog=new QDialog(this);dialog->setObjectName("component.copy.dialog");dialog->setWindowTitle("Copy Component");
+            dialog->setAttribute(Qt::WA_DeleteOnClose);dialog->setWindowModality(Qt::WindowModal);
+            auto* layout=new QVBoxLayout(dialog);auto* intro=new QLabel("Linked copy of "+sourcePath+". Placement is absolute in the parent component.",dialog);
+            intro->setWordWrap(true);layout->addWidget(intro);auto* form=new QFormLayout;layout->addLayout(form);
+            auto numeric=[&](const char* object,double initial,const char* label){auto* box=new QDoubleSpinBox(dialog);box->setObjectName(object);
+                box->setRange(-100000,100000);box->setDecimals(3);box->setSuffix(QString::fromUtf8(label).contains("Rotation")?"°":" mm");box->setValue(initial);form->addRow(label,box);return box;};
+            auto* x=numeric("component.copy.x",0,"X");auto* y=numeric("component.copy.y",0,"Y");
+            auto* z=numeric("component.copy.z",0,"Z");auto* angle=numeric("component.copy.angle",0,"Rotation Z");
+            auto* status=new QLabel(dialog);status->setWordWrap(true);layout->addWidget(status);
+            auto* buttons=new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel,dialog);layout->addWidget(buttons);
+            connect(buttons,&QDialogButtonBox::rejected,dialog,&QDialog::reject);const auto tabId=activeTabId_,id=a["occurrenceId"].toString();
+            connect(buttons,&QDialogButtonBox::accepted,dialog,[=,this]{if(activeTabId_!=tabId){status->setText("Return to the original design");return;}
+                const auto placement=QJsonObject{{"axis","Z"},{"angleDeg",angle->value()},
+                    {"translationMm",QJsonArray{x->value(),y->value(),z->value()}}};
+                const auto result=execute("component.copyOccurrence",{{"occurrenceId",id},{"placement",placement}});
+                if(result["ok"].toBool())dialog->accept();else status->setText(result["error"].toObject()["message"].toString());});
+            dialog->resize(400,285);dialog->show();return QJsonObject{{"visible",true},{"sourcePath",sourcePath}};
         });
     add("component.reparentOccurrence","Move Component","Move existing identity component occurrences beneath root or an empty/local parent without changing world geometry.",
         {{"occurrenceIds",parameter("array","Distinct local occurrence UUIDs.")},{"destinationId",parameter("string","Parent component definition UUID or root document UUID.")}},[this](const auto& a){
@@ -1375,6 +1432,8 @@ void AlloyWindow::registerCommands() {
          {"bodyId",optional(parameter("string","One active local body UUID."))},
          {"sketchIds",optional(parameter("array","Current sketch feature UUIDs from one Browser folder."))}},[this](const auto& a){
             if(!session_.isEmpty())return failure("active_command","Finish or Cancel before moving Browser objects");
+            if(!a.value("bodyId").toString().isEmpty() && copiedBodyDefinition(document_->authored(),document_->evaluation(),a["bodyId"].toString()))
+                return failure("linked_instance_unavailable","Move a linked component occurrence, not its shared definition body");
             const auto body=a.value("bodyId").toString();const auto sketches=a.value("sketchIds").toArray();
             if(body.isEmpty()==sketches.isEmpty())return failure("invalid_arguments","Choose one body or one or more sketches");
             QJsonObject candidate;
@@ -1456,6 +1515,7 @@ void AlloyWindow::registerCommands() {
             sketches.append(QJsonObject{{"sketchId",sketch.featureId},{"ownerId",sketch.ownerId}});
         return QJsonObject{{"rootId",document_->authored()["documentId"]},{"activeOwnerId",document_->activeOwnerId()},
             {"components",document_->authored()["components"].toArray()},{"occurrences",document_->authored()["occurrences"].toArray()},
+            {"localInstances",LocalOccurrences::inspect(document_->authored(),document_->evaluation())["occurrences"]},
             {"objectOwners",document_->authored().value("objectOwners")},{"bodies",bodies},{"sketches",sketches},
             {"importedAssemblies",imported}};
     });
@@ -1464,6 +1524,7 @@ void AlloyWindow::registerCommands() {
          {"bodyIds",optional(parameter("array","Distinct evaluated solid body UUIDs."))},{"allVisible",optional(parameter("boolean","Export all active visible bodies."))},
          {"units",units},{"format",meshFormat},{"surfaceDeviationMm",meshDeviation},{"normalDeviationDeg",meshAngle}},[this](const auto& a){
             if(!session_.isEmpty())return failure("active_command","Finish or Cancel the active command before exporting");
+            if(hasLinkedLocalCopies(document_->authored()))return failure("linked_export_unavailable","STL export of linked local instances needs an occurrence-qualified route");
             if(int(a.contains("occurrenceId"))+int(a.contains("bodyId"))+int(a.contains("bodyIds"))+int(a.contains("allVisible"))!=1)
                 return failure("invalid_body_selection","Choose bodyId, bodyIds, or allVisible:true");
             QJsonArray ids;
@@ -1504,6 +1565,7 @@ void AlloyWindow::registerCommands() {
     add("document.exportMeshDialog","Save As Mesh…","Export chosen committed solids to a local STL file.",
         {{"bodyId",optional(parameter("string","Optional initially selected body UUID."))},
          {"bodyIds",optional(parameter("array","Initially checked body UUIDs."))},{"allVisible",optional(parameter("boolean","Initially choose all active visible bodies."))}},[this](const auto& a){
+            if(hasLinkedLocalCopies(document_->authored()))return failure("linked_export_unavailable","STL export of linked local instances needs an occurrence-qualified route");
             if(int(a.contains("bodyId"))+int(a.contains("bodyIds"))+int(a.contains("allVisible"))>1)return failure("invalid_body_selection","Choose one export selection source");
             if(a.contains("bodyId")) {bool found=false;for(const auto& body:document_->bodies())found=found || body.bodyId==a["bodyId"].toString();if(!found)return failure("stale_body","The selected solid no longer exists","bodyId");}
             if(a.contains("bodyIds"))for(const auto& id:a["bodyIds"].toArray()) {
@@ -1922,8 +1984,14 @@ void AlloyWindow::registerCommands() {
         if(session_.value("command")!="solid.mirror")return failure("invalid_session","Mirror is not active");
         session_["selectionRole"]=a["role"];return session_;
     });
-    add("view.projectEdge","Project named solid edge","Project the actual current provenance edge midpoint.",{{"bodyId",parameter("string","Retained body UUID.")},{"edgeId",parameter("string","Stable edge UUID.")}},[this](const auto& a){
-        const auto bodies=session_.value("command")=="solid.fillet" ? filletInputBodies() : presentationBodies();for(const auto& body:bodies)if(body.bodyId==a["bodyId"].toString())for(const auto& edge:body.solidEdges)if(edge.edgeId==a["edgeId"].toString() && !edge.edge.IsNull())return view_->projectSolidEdge(edge);return failure("edge_unavailable","Named edge unavailable");
+    add("view.projectEdge","Project named solid edge","Project the actual current provenance edge midpoint.",{{"bodyId",parameter("string","Retained body UUID.")},{"edgeId",parameter("string","Stable edge UUID.")},{"occurrenceId",optional(parameter("string","Exact linked occurrence UUID."))}},[this](const auto& a){
+        const auto bodies=session_.value("command")=="solid.fillet" ? filletInputBodies() : presentationBodies();
+        const auto id=a["bodyId"].toString(),edgeId=a["edgeId"].toString(),occurrence=a.value("occurrenceId").toString();
+        const EvaluatedSolidEdge* match=nullptr;int count=0;
+        for(const auto& body:bodies)if(body.bodyId==id && (occurrence.isEmpty() || body.occurrenceId==occurrence))
+            for(const auto& edge:body.solidEdges)if(edge.edgeId==edgeId && !edge.edge.IsNull()){match=&edge;++count;}
+        if(count>1)return failure("ambiguous_instance","Specify occurrenceId to project one linked edge","occurrenceId");
+        return match ? view_->projectSolidEdge(*match) : failure("edge_unavailable","Named edge unavailable");
     });
     auto edgePixel=parameter("number","Viewport-local logical pixel coordinate.");edgePixel["minimum"]=0;edgePixel["maximum"]=10000;
     add("selection.edgePick","Pick retained solid edge","Screen-pick a visible retained solid edge, including imported occurrence identity.",{{"x",edgePixel},{"y",edgePixel}},[this](const auto& a){
@@ -1933,6 +2001,8 @@ void AlloyWindow::registerCommands() {
     QJsonObject moveSchema{{"steps",optional(parameter("array","Accumulated local rigid gesture deltas."))},{"targetBodyId",optional(parameter("string","Retained earlier body UUID."))},{"featureId",optional(featureId)},{"name",optional(parameter("string","Move feature name."))}};
     for(const auto& key:{"xMm","yMm","zMm","xDeg","yDeg","zDeg","pivotXMm","pivotYMm","pivotZMm"}){auto value=parameter("number","Local triad delta mm/degrees, or world pivot mm.");value["minimum"]=-100000;value["maximum"]=100000;moveSchema[key]=optional(value);}
     add("solid.move","Move/Copy","Free Move one body without copy; accumulated local rigid deltas around an explicit pivot.",moveSchema,[this](const auto& a){
+        if(copiedBodyDefinition(document_->authored(),document_->evaluation(),a["targetBodyId"].toString()))
+            return failure("linked_instance_unavailable","Use Copy Component placement; Move Body would edit the shared definition");
         QJsonObject candidate;try{candidate=moveCandidate(a);}catch(const std::exception& e){return failure("invalid_arguments",QString::fromUtf8(e.what()));}
         const auto error=document_->commit(candidate,"Move body");if(!error.isEmpty())return failure("evaluation_failed",error);return document_->state();
     });
@@ -1953,7 +2023,10 @@ void AlloyWindow::registerCommands() {
         return previewMove();
     });
     add("viewport.moveHandles","Inspect Move handles","Projected native manipulator handles for reproducible input.",{},[this](const auto&){return view_->moveCueState();});
-    add("solid.moveDialog","Move/Copy","Open Free Move body controls; copy and align are outside this slice.",moveSchema,[this](const auto& a){return beginMove(a);});
+    add("solid.moveDialog","Move/Copy","Open Free Move body controls; copy and align are outside this slice.",moveSchema,[this](const auto& a){
+        if(copiedBodyDefinition(document_->authored(),document_->evaluation(),a["targetBodyId"].toString()))
+            return failure("linked_instance_unavailable","Use Copy Component placement; Move Body would edit the shared definition");
+        return beginMove(a);});
     QJsonObject combineSchema{{"targetBodyId",parameter("string","Stable target body UUID; its identity survives the operation.")},
         {"toolBodyIds",parameter("array","Distinct explicit tool body UUIDs, excluding the target.")},
         {"operation",operation},{"keepTools",optional(parameter("boolean","Retain tool bodies after commit; default false."))},
@@ -3945,8 +4018,21 @@ void AlloyWindow::registerCommands() {
             return QJsonObject{{"mode",selectionPriority_},{"authoredChange",false}};
         });
     auto bodyId=parameter("string","Stable body UUID; empty string clears selection.");
-    add("selection.set","Select body","Select a visible body through the same path as the Browser.",{{"bodyId",bodyId}},[this](const auto& a){
-        const auto id=a["bodyId"].toString();bool found=id.isEmpty();
+    add("selection.set","Select body","Select a visible body through the same path as the Browser.",{{"bodyId",bodyId},{"occurrenceId",optional(parameter("string","Exact local occurrence UUID when a definition has multiple instances."))}},[this](const auto& a){
+        const auto id=a["bodyId"].toString(),requestedOccurrence=a.value("occurrenceId").toString();bool found=id.isEmpty();
+        QString occurrence=requestedOccurrence;
+        if(!id.isEmpty()){
+            int matches=0;
+            for(const auto& body:presentationBodies())if(body.visible && body.bodyId==id && (requestedOccurrence.isEmpty() || body.occurrenceId==requestedOccurrence)){
+                ++matches;occurrence=body.occurrenceId;
+            }
+            if(matches>1)return failure("ambiguous_instance","Specify occurrenceId to select one instance of this body","occurrenceId");
+            if(matches==0)return failure("stale_entity","Visible body instance does not exist","bodyId");
+        }
+        if(!session_.isEmpty() && !occurrence.isEmpty()){
+            int instanceCount=0;for(const auto& body:presentationBodies())if(body.bodyId==id)++instanceCount;
+            if(instanceCount>1)return failure("unsupported_instance_edit","Finish the command and select the source definition before modeling a linked instance");
+        }
         if(session_.value("command")=="solid.circularPattern")return selectCircularBody(id);
         if(session_.value("command")=="solid.splitBody")return selectSplitBody(id);
         if(session_.value("command")=="solid.mirror"){
@@ -3977,16 +4063,14 @@ void AlloyWindow::registerCommands() {
                 {"inputs",QJsonObject{{"targetBodyId",id},{"removedFace",QJsonObject{}}}}});
             if(!response["ok"].toBool())return response;return previewShell();
         }
-        selectedBody_=id;selectedFace_={};selectedEdge_={};selectedPlane_.clear();view_->selectSupportFace({},{});selectedSketch_.clear();selectedProfile_.clear();selectedProfileIds_={};view_->selectProfile({},{});view_->selectBody(id);
+        selectedBody_=id;selectedOccurrence_=occurrence;selectedFace_={};selectedEdge_={};selectedPlane_.clear();view_->selectSupportFace({},{});selectedSketch_.clear();selectedProfile_.clear();selectedProfileIds_={};view_->selectProfile({},{});view_->selectBody(id,occurrence);
         if(session_.isEmpty())view_->clearSolidEdgeHighlights();
         QJsonObject result{{"bodyId",id},{"kind","body"}};
-        if(!document_->authored().value("joints").toArray().isEmpty() ||
-            std::any_of(document_->bodies().begin(),document_->bodies().end(),[&](const auto& body){return body.bodyId==id && !body.occurrenceId.isEmpty();}))
-            if(const auto occurrence=occurrenceForBody(document_->authored(),document_->bodies(),id);!occurrence.isEmpty())result["occurrenceId"]=occurrence;
+        if(!occurrence.isEmpty())result["occurrenceId"]=occurrence;
         return result;
     });
     add("selection.faceSet","Select planar face","Select a stable supported face for Create Sketch.",{{"support",supportIdentity}},[this](const auto& a){
-        if(session_["command"]=="construction.tangentPlane"){
+        if(session_.value("command")=="construction.tangentPlane"){
             auto inputs=session_["inputs"].toObject();auto tangent=inputs["tangent"].toObject();tangent["face"]=a["support"];tangent.remove("point");inputs["tangent"]=tangent;session_["inputs"]=inputs;showTangentPlane();return previewTangentPlane();
         }
         if(session_.value("command")=="solid.thicken")return selectThickenFace(a["support"].toObject());
@@ -4030,28 +4114,31 @@ void AlloyWindow::registerCommands() {
         return session_.value("command")=="construction.midplane" ? selectMidplaneFace(support) : selectSupportFace(support);
     });
     add("selection.edgeSet","Select retained solid edge","Select one visible current solid edge by stable body and edge IDs.",
-        {{"bodyId",bodyId},{"edgeId",parameter("string","Stable current solid edge UUID.")}},[this](const auto& a){
+        {{"bodyId",bodyId},{"edgeId",parameter("string","Stable current solid edge UUID.")},{"occurrenceId",optional(parameter("string","Exact local occurrence UUID for a linked instance."))}},[this](const auto& a){
             if(!session_.isEmpty())return failure("active_command","Use the active command's own edge picker");
-            return selectSolidEdge(a["bodyId"].toString(),a["edgeId"].toString());
+            return selectSolidEdge(a["bodyId"].toString(),a["edgeId"].toString(),a.value("occurrenceId").toString());
         });
     add("selection.pick","Pick body or region","Pick actual OCCT geometry at viewport-local coordinates; Shift adds sketch regions.",{{"x",point},{"y",point},{"additive",optional(parameter("boolean","Add a picked region in the current same-sketch selection."))},
         {"toggle",optional(parameter("boolean","Toggle a picked region in the current same-sketch selection."))}},[this](const auto& a){
         if(session_.isEmpty() && selectionPriority_=="edge"){
             const auto hit=view_->pickSolidEdge(a["x"].toDouble(),a["y"].toDouble(),presentationBodies());
             return hit.isEmpty() ? failure("edge_unavailable","No visible retained edge is at this point")
-                : selectSolidEdge(hit["bodyId"].toString(),hit["edgeId"].toString());
+                : selectSolidEdge(hit["bodyId"].toString(),hit["edgeId"].toString(),hit["occurrenceId"].toString());
         }
         if(session_.isEmpty() && selectionPriority_=="face"){
             const auto hit=view_->pickSupportFace(a["x"].toDouble(),a["y"].toDouble(),presentationBodies());
             return hit.isEmpty() ? failure("unsupported_face","No supported planar face is at this point") : selectSupportFace(hit);
         }
         if(session_.isEmpty() && selectionPriority_=="body"){
-            const auto id=view_->pickBody(a["x"].toDouble(),a["y"].toDouble());
-            if(id.isEmpty())return failure("body_unavailable","No visible body is at this point");
-            const auto selected=execute("selection.set",{{"bodyId",id}});
+            const auto hit=view_->pickBodyReference(a["x"].toDouble(),a["y"].toDouble());
+            if(hit.isEmpty())return failure("body_unavailable","No visible body is at this point");
+            const auto selected=execute("selection.set",{{"bodyId",hit["bodyId"]},{"occurrenceId",hit["occurrenceId"]}});
             return selected["ok"].toBool() ? selected["result"].toObject() : selected;
         }
         if(session_.value("command")=="solid.splitBody"){
+            const auto instance=view_->pickBodyReference(a["x"].toDouble(),a["y"].toDouble());
+            if(!instance["occurrenceId"].toString().isEmpty() && copiedBodyDefinition(document_->authored(),document_->evaluation(),instance["bodyId"].toString()))
+                return failure("unsupported_instance_edit","Split Body cannot use a linked instance as its modeling target");
             const auto edit=session_["inputs"].toObject()["featureId"].toString();
             if(session_["selectionRole"]=="plane"){
                 const auto hit=view_->pickConstructionPlane(a["x"].toDouble(),a["y"].toDouble());
@@ -4142,7 +4229,12 @@ void AlloyWindow::registerCommands() {
             if(hit.isEmpty())return failure("face_required","Click a retained planar end face");
             return selectSupportFace(hit);
         }
-        if(session_.value("command")=="solid.circularPattern")return selectCircularBody(view_->pickBody(a["x"].toDouble(),a["y"].toDouble()));
+        if(session_.value("command")=="solid.circularPattern"){
+            const auto instance=view_->pickBodyReference(a["x"].toDouble(),a["y"].toDouble());
+            if(!instance["occurrenceId"].toString().isEmpty() && copiedBodyDefinition(document_->authored(),document_->evaluation(),instance["bodyId"].toString()))
+                return failure("unsupported_instance_edit","Circular Pattern cannot use a linked instance as its modeling target");
+            return selectCircularBody(instance["bodyId"].toString());
+        }
         if(session_.value("command")=="solid.hole")return pickHole(a["x"].toDouble(),a["y"].toDouble());
         if(session_.value("command")=="solid.sphere") {
             if(session_["selectionRole"]=="face" || !session_["inputs"].toObject().contains("support")){const auto support=view_->pickSupportFace(a["x"].toDouble(),a["y"].toDouble(),sphereInputDocument().bodies);if(support.isEmpty())return failure("face_required","Click an actual retained planar body face");return selectSphereFace(support);}
@@ -4209,7 +4301,8 @@ void AlloyWindow::registerCommands() {
         if(session_.value("command")=="surface.extrude")return pickSurfaceExtrude(a["x"].toDouble(),a["y"].toDouble());
         if(session_.value("command")=="surface.trim")return pickSurfaceTrim(a["x"].toDouble(),a["y"].toDouble());
         if(session_.value("command")=="solid.revolve")return pickRevolve(a["x"].toDouble(),a["y"].toDouble());
-        if(session_.value("command")=="solid.move") {const auto id=view_->pickBody(a["x"].toDouble(),a["y"].toDouble());return execute("selection.set",{{"bodyId",id}});}
+        if(session_.value("command")=="solid.move") {const auto hit=view_->pickBodyReference(a["x"].toDouble(),a["y"].toDouble());
+            return execute("selection.set",{{"bodyId",hit["bodyId"]},{"occurrenceId",hit["occurrenceId"]}});}
         if(session_.value("command")=="solid.combine") {
             const auto id=view_->pickBody(a["x"].toDouble(),a["y"].toDouble());selectCombineBody(id);
             return QJsonObject{{"bodyId",id},{"kind","body"},{"combineInputs",session_.value("inputs")}};
@@ -4237,7 +4330,8 @@ void AlloyWindow::registerCommands() {
             if(session_.value("command")=="sketch.plane")return failure("unsupported_face","Choose a supported planar face or an origin plane");
         }
         const auto profile=view_->pickFinishedProfile(a["x"].toDouble(),a["y"].toDouble());
-        selectedBody_=selectingProfile ? QString{} : view_->pickBody(a["x"].toDouble(),a["y"].toDouble());
+        const auto bodyHit=selectingProfile ? QJsonObject{} : view_->pickBodyReference(a["x"].toDouble(),a["y"].toDouble());
+        selectedBody_=bodyHit["bodyId"].toString();selectedOccurrence_=bodyHit["occurrenceId"].toString();
         if(!profile.isEmpty() && (selectingProfile || selectedBody_.isEmpty())) {
             const bool collect=selectingProfile && session_.value("inputs").toObject().value("distance").toDouble()==0.0
                 && !selectedProfileIds_.contains(profile.value("profileId"));
@@ -4245,16 +4339,18 @@ void AlloyWindow::registerCommands() {
                 a.value("additive").toBool() || (!a.value("toggle").toBool() && collect),a.value("toggle").toBool());
         }
         if((a.value("additive").toBool() || a.value("toggle").toBool()) && !selectedProfileIds_.isEmpty())return QJsonObject{{"kind","profile"},{"sketchId",selectedSketch_},{"profileId",selectedProfile_},{"profileIds",selectedProfileIds_}};
-        selectedFace_={};selectedEdge_={};view_->clearSolidEdgeHighlights();selectedPlane_.clear();view_->selectSupportFace({},{});selectedSketch_.clear();selectedProfile_.clear();selectedProfileIds_={};view_->selectProfile({},{});view_->selectBody(selectedBody_);
+        selectedFace_={};selectedEdge_={};view_->clearSolidEdgeHighlights();selectedPlane_.clear();view_->selectSupportFace({},{});selectedSketch_.clear();selectedProfile_.clear();selectedProfileIds_={};view_->selectProfile({},{});view_->selectBody(selectedBody_,selectedOccurrence_);
         QJsonObject result{{"bodyId",selectedBody_},{"kind","body"}};
-        if(!document_->authored().value("joints").toArray().isEmpty() ||
-            std::any_of(document_->bodies().begin(),document_->bodies().end(),[&](const auto& body){return body.bodyId==selectedBody_ && !body.occurrenceId.isEmpty();}))
-            if(const auto occurrence=occurrenceForBody(document_->authored(),document_->bodies(),selectedBody_);!occurrence.isEmpty())result["occurrenceId"]=occurrence;
+        if(!selectedOccurrence_.isEmpty())result["occurrenceId"]=selectedOccurrence_;
         return result;
     });
-    add("view.projectBody","Project body center","Return actual OCCT projection for a body's center, in logical pixels.",{{"bodyId",bodyId}},[this](const auto& a){
-        for(const auto& body:presentationBodies()) if(body.bodyId==a["bodyId"].toString())return view_->projectBody(body);
-        return failure("stale_entity","Body does not exist");
+    add("view.projectBody","Project body center","Return actual OCCT projection for a body's center, in logical pixels.",{{"bodyId",bodyId},{"occurrenceId",optional(parameter("string","Exact linked occurrence UUID."))}},[this](const auto& a){
+        const auto id=a["bodyId"].toString(),occurrence=a.value("occurrenceId").toString();
+        const auto bodies=presentationBodies();const EvaluatedBody* match=nullptr;int count=0;
+        for(const auto& body:bodies)if(body.visible && body.bodyId==id && (occurrence.isEmpty() || body.occurrenceId==occurrence)){match=&body;++count;}
+        if(count>1)return failure("ambiguous_instance","Specify occurrenceId to project one linked body","occurrenceId");
+        if(match){auto result=view_->projectBody(*match);result["bodyId"]=id;if(!match->occurrenceId.isEmpty())result["occurrenceId"]=match->occurrenceId;return result;}
+        return failure("stale_entity","Body instance does not exist");
     });
     auto sessionTarget = parameter("string", "Implemented session target; modeling targets follow alongside their features.");
     sessionTarget["enum"] = QJsonArray{"canvas.set","document.units", "commands.search","solid.box","solid.cylinder","solid.extrude","solid.combine","solid.move","solid.fillet","solid.chamfer","solid.sphere","solid.shell","solid.loft","solid.revolve","solid.sweep","solid.rectangularPattern","solid.circularPattern","solid.mirror","inspect.section","joint.slider","joint.revolute","joint.cylindrical","sketch.create","construction.midplane","construction.pathPlane","construction.tangentPlane","solid.splitBody"};
@@ -4847,7 +4943,8 @@ QJsonObject AlloyWindow::state() const {
             : !selectedProfileIds_.isEmpty() ? QJsonObject{{"kind","profile"},{"sketchId",selectedSketch_},{"profileIds",selectedProfileIds_},{"profileId",selectedProfile_}}
             : !view_->finishedPointSelection().isEmpty() && view_->finishedPointSelection()["sketchId"]==selectedSketch_ ? view_->finishedPointSelection()
             : !selectedSketch_.isEmpty() ? QJsonObject{{"kind","sketch"},{"sketchId",selectedSketch_}}
-            : QJsonObject{{"kind","body"},{"bodyId",selectedBody_}}},
+            : [&]{QJsonObject selected{{"kind","body"},{"bodyId",selectedBody_}};
+                if(!selectedOccurrence_.isEmpty())selected["occurrenceId"]=selectedOccurrence_;return selected;}()},
         {"kernel", QJsonObject{{"candidate", "Open CASCADE"}, {"discoveredVersion", ALLOY_OCCT_VERSION}, {"integrated", true}, {"visualizationIntegrated", true}, {"policy",GeometryKernel::policy()}}},
         {"ui", QJsonObject{{"workspace", "design"}, {"tab",target=="sketch.edit" ? QString("sketch") : designTab_}, {"selectionPriority",selectionPriority_}, {"browserVisible", browserVisible_}, {"timelineVisible", timelineVisible_}, {"timeline",timelineState()}, {"ribbon",ribbonState}, {"navigationVisible", navigationVisible_}, {"commandSearchVisible", search_ && search_->isVisible()}, {"windowWidth", width()}, {"windowHeight", height()}, {"devicePixelRatio", devicePixelRatioF()},
             {"ownedPopups",popups},{"activeDialog", QJsonObject{{"command", session_.value("command")},
@@ -4916,7 +5013,30 @@ void AlloyWindow::refresh() {
             const auto occurrence=value.toObject();auto* node=ownerNodes.value(occurrence["definitionId"].toString());
             auto* parent=ownerNodes.value(occurrence["parentId"].toString());
             if(node && parent && node->parent()!=parent){node->parent()->takeChild(node->parent()->indexOfChild(node));parent->addChild(node);node->setExpanded(true);}
+            if(node && occurrence["placement"]=="identity" && !occurrence.contains("parentOccurrenceId"))node->setData(0,Qt::UserRole+8,occurrence["id"]);
         }
+        // Copied rows represent authoritative occurrences. Their source definitions
+        // remain shared; Browser identity is the occurrence path, never a new body.
+        QMap<QString,QTreeWidgetItem*> instanceNodes;
+        const auto instanceInfo=LocalOccurrences::inspect(document_->authored(),document_->evaluation())["occurrences"].toArray();
+        for(const auto& value:instanceInfo){const auto occurrence=value.toObject();const auto id=occurrence["id"].toString();
+            if(occurrence["placement"]=="identity" && !occurrence.contains("parentOccurrenceId"))
+                instanceNodes[id]=ownerNodes.value(occurrence["definitionId"].toString());
+            else {
+                auto* node=browserRow(rootNode,id,Qt::UserRole+8);node->setData(0,Qt::UserRole+8,id);
+                node->setData(0,Qt::UserRole+3,occurrence["definitionId"]);node->setText(0,occurrence["path"].toString().section(" / ",-1));
+                node->setToolTip(0,occurrence["path"].toString());node->setHidden(false);node->setExpanded(true);
+                node->setFlags(node->flags()|Qt::ItemIsEnabled|Qt::ItemIsSelectable);instanceNodes[id]=node;
+            }
+        }
+        for(const auto& value:instanceInfo){const auto occurrence=value.toObject();const auto id=occurrence["id"].toString();
+            if(occurrence["placement"]=="identity" && !occurrence.contains("parentOccurrenceId"))continue;
+            auto* node=instanceNodes.value(id);auto* parent=instanceNodes.value(LocalOccurrences::parentOccurrenceId(document_->authored(),id),rootNode);
+            if(node && parent && node->parent()!=parent){node->parent()->takeChild(node->parent()->indexOfChild(node));parent->addChild(node);}
+        }
+        QSet<QString> currentInstances;for(const auto& value:instanceInfo)currentInstances.insert(value.toObject()["id"].toString());
+        for(QTreeWidgetItemIterator it(tree_);*it;++it){auto* node=*it;const auto id=node->data(0,Qt::UserRole+8).toString();
+            if(!id.isEmpty() && !currentInstances.contains(id)){node->setSelected(false);node->setHidden(true);}}
         QList<QTreeWidgetItem*> rootComponents;
         for(const auto& value:document_->authored()["occurrences"].toArray()) {
             const auto occurrence=value.toObject();if(occurrence["parentId"]!=document_->authored()["documentId"])continue;
@@ -4975,9 +5095,27 @@ void AlloyWindow::refresh() {
             liveBodies.insert(body.bodyId);currentBodyOwners[body.bodyId]=body.ownerId;
             auto* item=browserRow(ownerFolder(body.ownerId,"bodies",bodiesNode_),body.bodyId,Qt::UserRole+1);
             item->setText(0,body.name);item->setData(0,Qt::UserRole+1,body.bodyId);item->setData(0,Qt::UserRole+2,body.featureId);
+            item->setData(0,Qt::UserRole+8,ownerNodes.value(body.ownerId) ? ownerNodes.value(body.ownerId)->data(0,Qt::UserRole+8) : QVariant{});
             item->setFlags(item->flags()|Qt::ItemIsEnabled|Qt::ItemIsSelectable|Qt::ItemIsUserCheckable);
             item->setCheckState(0,body.visible ? Qt::Checked : Qt::Unchecked);item->setHidden(false);
-            selectedExists=selectedExists || (body.bodyId==selectedBody_ && body.visible);
+            const auto originalOccurrence=ownerNodes.value(body.ownerId) ? ownerNodes.value(body.ownerId)->data(0,Qt::UserRole+8).toString() : QString{};
+            selectedExists=selectedExists || (body.bodyId==selectedBody_ && body.visible && (selectedOccurrence_.isEmpty() || selectedOccurrence_==originalOccurrence));
+        }
+        for(const auto& body:presentationBodies())if(body.visible && !body.occurrenceId.isEmpty()){
+            auto* node=instanceNodes.value(body.occurrenceId);if(!node || node==ownerNodes.value(body.ownerId))continue;
+            QTreeWidgetItem* folder=nullptr;for(int i=0;i<node->childCount();++i)
+                if(node->child(i)->data(0,Qt::UserRole+4)=="instanceBodies")folder=node->child(i);
+            if(!folder){folder=new QTreeWidgetItem(node,{"Bodies"});folder->setData(0,Qt::UserRole+4,"instanceBodies");folder->setExpanded(true);}
+            QTreeWidgetItem* item=nullptr;for(int i=0;i<folder->childCount();++i)
+                if(folder->child(i)->data(0,Qt::UserRole+1)==body.bodyId && folder->child(i)->data(0,Qt::UserRole+8)==body.occurrenceId)
+                    item=folder->child(i);
+            if(!item)item=new QTreeWidgetItem(folder);
+            item->setText(0,body.name);
+            item->setData(0,Qt::UserRole+1,body.bodyId);item->setData(0,Qt::UserRole+8,body.occurrenceId);
+            item->setToolTip(0,node->toolTip(0)+" / "+body.name);item->setHidden(false);
+            item->setFlags(Qt::ItemIsEnabled|Qt::ItemIsSelectable);
+            item->setData(0,Qt::CheckStateRole,QVariant{});
+            selectedExists=selectedExists || (body.bodyId==selectedBody_ && body.occurrenceId==selectedOccurrence_);
         }
         if(!selectedExists)selectedBody_.clear();
         for(const auto& sketch:document_->sketches()) {
@@ -5110,7 +5248,9 @@ void AlloyWindow::refresh() {
         if(!selectedFace_.isEmpty()) {
             try {auto shape=selectedSurfaceShape(document_->evaluation(),selectedFace_);
                 if(shape.IsNull())shape=GeometryKernel::resolveSketchSupport(document_->evaluation(),selectedFace_).face;
-                if(nonzeroAssemblyPose())for(const auto& body:presentationBodies())if(body.bodyId==selectedFace_["bodyId"].toString())for(const auto& worldFace:body.supportFaces)if(worldFace.faceId==selectedFace_["faceId"].toString())shape=worldFace.face;
+                if(nonzeroAssemblyPose() || !selectedFace_["occurrenceId"].toString().isEmpty())for(const auto& body:presentationBodies())
+                    if(body.bodyId==selectedFace_["bodyId"].toString() && (selectedFace_["occurrenceId"].toString().isEmpty() || body.occurrenceId==selectedFace_["occurrenceId"].toString()))
+                        for(const auto& worldFace:body.supportFaces)if(worldFace.faceId==selectedFace_["faceId"].toString())shape=worldFace.face;
                 view_->selectSupportFace(selectedFace_,shape);}
             catch(const std::exception&) {selectedFace_={};view_->selectSupportFace({},{});}
         }
@@ -5136,17 +5276,19 @@ void AlloyWindow::refresh() {
     }
     for(QTreeWidgetItemIterator it(tree_);*it;++it) {
         auto* item=*it;const auto bodyId=item->data(0,Qt::UserRole+1).toString();
-        if(!bodyId.isEmpty())item->setSelected(bodyId==selectedBody_ && !item->isHidden());
+        if(!bodyId.isEmpty())item->setSelected(bodyId==selectedBody_ &&
+            (selectedOccurrence_.isEmpty() || item->data(0,Qt::UserRole+8)==selectedOccurrence_) && !item->isHidden());
     }
     view_->selectBody((session_.value("command")=="solid.mirror" || session_.value("command")=="solid.circularPattern")
         ? session_.value("inputs").toObject()["sourceBodyId"].toString()
-        : session_.value("command")=="solid.sphere" || session_.value("command")=="solid.hole" ? QString{} : selectedBody_);
+        : session_.value("command")=="solid.sphere" || session_.value("command")=="solid.hole" ? QString{} : selectedBody_,selectedOccurrence_);
     if(session_.isEmpty()){
         if(!selectedEdge_.isEmpty()){
             const auto bodies=presentationBodies();bool current=false;
-            for(const auto& body:bodies)if(body.visible && body.bodyId==selectedEdge_["bodyId"])
+            for(const auto& body:bodies)if(body.visible && body.bodyId==selectedEdge_["bodyId"] &&
+                (!selectedEdge_.contains("occurrenceId") || body.occurrenceId==selectedEdge_["occurrenceId"]))
                 for(const auto& edge:body.solidEdges)if(edge.edgeId==selectedEdge_["edgeId"] && !edge.edge.IsNull())current=true;
-            if(current)view_->highlightSolidEdges(bodies,selectedEdge_["bodyId"].toString(),QJsonArray{selectedEdge_["edgeId"]});
+            if(current)view_->highlightSolidEdges(bodies,selectedEdge_["bodyId"].toString(),QJsonArray{selectedEdge_["edgeId"]},selectedEdge_["occurrenceId"].toString());
             else selectedEdge_={};
         }
         if(selectedEdge_.isEmpty())view_->clearSolidEdgeHighlights();
@@ -5425,7 +5567,7 @@ void AlloyWindow::refresh() {
     positionDimensionEditor();
     const auto gpu = view_->diagnostics();
     status_->setText(QString("  %3 · %4 bodies · %1 · Zoom %2%    |    "+QString(editingSketch ? "L: line · R: rectangle · C: circle · D: dimension · Shift-click: add selection" : "Click: select")+" · Alt/Option + drag: pan · Wheel: zoom")
-        .arg(view_->orientation).arg(qRound(view_->zoom * 100)).arg(gpu.value("hardwareAccelerated").toBool() ? "OCCT OpenGL" : "GPU UNQUALIFIED: " + gpu.value("qualification").toString()).arg(document_->bodies().size()));
+        .arg(view_->orientation).arg(qRound(view_->zoom * 100)).arg(gpu.value("hardwareAccelerated").toBool() ? "OCCT OpenGL" : "GPU UNQUALIFIED: " + gpu.value("qualification").toString()).arg(gpu.value("displayedBodyReferences").toArray().size()));
 }
 
 void AlloyWindow::showSearch() {
@@ -6792,11 +6934,11 @@ void AlloyWindow::updatePrimitive(const QJsonObject& inputs) {
     primitiveError_->setText(response["ok"].toBool() ? "" : response["error"].toObject()["message"].toString());
 }
 
-QJsonObject AlloyWindow::selectSolidEdge(const QString& bodyId,const QString& edgeId) {
+QJsonObject AlloyWindow::selectSolidEdge(const QString& bodyId,const QString& edgeId,const QString& occurrenceId) {
     if(bodyId.isEmpty() || edgeId.isEmpty())return failure("edge_unavailable","Choose a visible retained solid edge");
     const auto bodies=presentationBodies();
     const EvaluatedBody* selected=nullptr;int matches=0;
-    for(const auto& body:bodies)if(body.visible && body.bodyId==bodyId)
+    for(const auto& body:bodies)if(body.visible && body.bodyId==bodyId && (occurrenceId.isEmpty() || body.occurrenceId==occurrenceId))
         for(const auto& edge:body.solidEdges)if(edge.edgeId==edgeId && !edge.edge.IsNull()){
             selected=&body;++matches;
         }
@@ -6805,14 +6947,25 @@ QJsonObject AlloyWindow::selectSolidEdge(const QString& bodyId,const QString& ed
     selectedEdge_={{"kind","edge"},{"bodyId",bodyId},{"edgeId",edgeId}};
     if(!selected->occurrenceId.isEmpty()){selectedEdge_["occurrenceId"]=selected->occurrenceId;selectedEdge_["definitionId"]=selected->definitionId;}
     if(selected->summary.contains("outerOccurrenceId"))selectedEdge_["outerOccurrenceId"]=selected->summary["outerOccurrenceId"];
-    selectedBody_.clear();selectedFace_={};selectedPlane_.clear();selectedSketch_.clear();
+    selectedBody_.clear();selectedOccurrence_.clear();selectedFace_={};selectedPlane_.clear();selectedSketch_.clear();
     selectedProfile_.clear();selectedProfileIds_={};
     view_->selectBody({});view_->selectSupportFace({},{});view_->selectProfile({},{});
-    view_->highlightSolidEdges(bodies,bodyId,QJsonArray{edgeId});
+    view_->highlightSolidEdges(bodies,bodyId,QJsonArray{edgeId},selected->occurrenceId);
     return selectedEdge_;
 }
 
 QJsonObject AlloyWindow::selectSupportFace(const QJsonObject& support) {
+    const auto occurrence=support.value("occurrenceId").toString();
+    if(!occurrence.isEmpty() && copiedBodyDefinition(document_->authored(),document_->evaluation(),support["bodyId"].toString())){
+        if(!session_.isEmpty())return failure("unsupported_instance_edit","Modeling from a linked instance face is unavailable; select its source definition");
+        for(const auto& body:presentationBodies())if(body.visible && body.bodyId==support["bodyId"] && body.occurrenceId==occurrence)
+            for(const auto& face:body.supportFaces)if(face.faceId==support["faceId"]){
+                selectedFace_=support;selectedBody_.clear();selectedOccurrence_.clear();selectedEdge_={};selectedSketch_.clear();selectedProfile_.clear();selectedProfileIds_={};
+                view_->selectBody({});view_->selectProfile({},{});view_->clearSolidEdgeHighlights();view_->selectSupportFace(support,face.face);
+                return {{"kind","face"},{"support",support},{"occurrenceId",occurrence},{"role",face.role},{"frame",face.frame},{"readOnly",true}};
+            }
+        return failure("support_unavailable","Linked instance face is no longer current");
+    }
     if(session_.value("command")=="inspect.section") {
         try {const auto resolved=GeometryKernel::resolveSketchSupport(document_->evaluation(),support);
             QJsonObject exact{{"producerFeatureId",resolved.producerFeatureId},{"bodyId",resolved.bodyId},{"faceId",resolved.faceId}};
@@ -6865,6 +7018,9 @@ QJsonObject AlloyWindow::beginSketch(const QString& plane,const QString& name,co
     if(!session_.isEmpty() && session_.value("command").toString()!="sketch.plane")return failure("session_busy","Complete or cancel the active command first");
     const auto existing=sketchId.isEmpty() ? QJsonObject{} : SketchGeometry::findFeature(document_->authored(),sketchId);
     const auto support=existing.isEmpty() ? selectedSupport : plane=="construction" ? QJsonObject{{"planeId",existing["parameters"].toObject()["planeId"]}} : existing["parameters"].toObject().value("support").toObject();
+    if(!support.value("occurrenceId").toString().isEmpty() &&
+        copiedBodyDefinition(document_->authored(),document_->evaluation(),support["bodyId"].toString()))
+        return failure("unsupported_instance_edit","A sketch on a linked instance would edit the shared definition; choose the source face");
     QJsonObject resolvedFrame;QJsonArray supportEdges;
     if(plane=="face") {
         if(support.isEmpty())return failure("support_required","Select a supported planar face before starting this sketch","support");

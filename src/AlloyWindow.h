@@ -127,7 +127,7 @@ private:
     QDockWidget* splitBodyDock_ = nullptr;
     QJsonObject beginMidplane(const QJsonObject& inputs);
     QJsonObject selectMidplaneFace(const QJsonObject& support);
-    QJsonObject selectSolidEdge(const QString& bodyId,const QString& edgeId);
+    QJsonObject selectSolidEdge(const QString& bodyId,const QString& edgeId,const QString& occurrenceId={});
     QJsonObject previewMidplane();
     void showMidplane();
     QDockWidget* midplaneDock_ = nullptr;
@@ -546,6 +546,7 @@ private:
     QTabBar* documentTabBar_ = nullptr;
     QLabel* browserNote_ = nullptr;
     QString selectedBody_;
+    QString selectedOccurrence_;
     QJsonObject selectedFace_;
     QJsonObject selectedEdge_;
     QString selectionPriority_ = "auto";
@@ -572,7 +573,7 @@ private:
         std::vector<SketchHistoryEntry> sketchHistory;
         int sketchHistoryIndex = -1;
         QString sketchHistoryGroup;
-        QString selectedBody, selectedSketch, selectedProfile, selectedPlane;
+        QString selectedBody, selectedOccurrence, selectedSketch, selectedProfile, selectedPlane;
         QJsonObject selectedFace;
         QJsonArray selectedProfileIds;
     };

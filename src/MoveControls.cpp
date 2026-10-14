@@ -12,12 +12,23 @@
 #include <QLabel>
 #include <QShortcut>
 #include <QTimer>
+#include <QSet>
+#include <stdexcept>
 
 namespace {
 QJsonObject moveFailure(const QString& message){return {{"ok",false},{"completion","failed"},{"error",QJsonObject{{"code","evaluation_failed"},{"message",message}}}};}
+bool linkedBody(const QJsonObject& authored,const EvaluatedDocument& evaluated,const QString& bodyId){
+    QString owner;for(const auto& body:evaluated.bodies)if(body.bodyId==bodyId){owner=body.ownerId;break;}
+    owner=authored["objectOwners"].toObject()["bodies"].toObject().value(bodyId).toString(owner);
+    int instances=0;for(const auto& value:authored["occurrences"].toArray())
+        if(value.toObject()["definitionId"]==owner)++instances;
+    return !owner.isEmpty() && instances>1;
+}
 }
 QJsonObject AlloyWindow::moveCandidate(const QJsonObject& inputs) const {
     auto args=inputs;
+    if(linkedBody(document_->authored(),document_->evaluation(),args["targetBodyId"].toString()))
+        throw std::invalid_argument("Move Body would edit every linked instance; use Copy Component placement");
     if(!args.contains("featureId") && session_.value("command")=="solid.move")args["newFeatureId"]=session_["newFeatureId"];
     return CadDocument::moveCandidate(document_->authored(),authoringArguments(args));
 }
@@ -27,6 +38,8 @@ QJsonObject AlloyWindow::beginMove(const QJsonObject& overrides) {
     QJsonObject inputs{{"targetBodyId",selectedBody_},{"name","Move"}};
     for(const auto& key:{"xMm","yMm","zMm","xDeg","yDeg","zDeg","pivotXMm","pivotYMm","pivotZMm"})inputs[key]=0;
     for(auto it=overrides.begin();it!=overrides.end();++it)inputs[it.key()]=it.value();
+    if(linkedBody(document_->authored(),document_->evaluation(),inputs["targetBodyId"].toString()))
+        return moveFailure("Move Body would edit every linked instance; use Copy Component placement");
     if(!overrides.contains("pivotXMm") && !overrides.contains("featureId"))for(const auto& body:document_->bodies())if(body.bodyId==inputs["targetBodyId"].toString()){
         auto bounds=body.summary["boundsMm"].toObject();auto low=bounds["min"].toArray(),high=bounds["max"].toArray();inputs["pivotXMm"]=(low[0].toDouble()+high[0].toDouble())/2;inputs["pivotYMm"]=(low[1].toDouble()+high[1].toDouble())/2;inputs["pivotZMm"]=low[2];}
     session_={{"id",CadDocument::newId()},{"command","solid.move"},{"status","active"},{"inputs",inputs},{"newFeatureId",CadDocument::newId()},

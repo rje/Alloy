@@ -94,17 +94,19 @@ public:
     void showSketchTextHandles(const QJsonObject& text,const QString& plane,const QJsonObject& frame);
     void clearSketchTextHandles();
     void fit(const std::vector<EvaluatedBody>& bodies, const std::vector<EvaluatedSketch>& sketches = {});
-    void selectBody(const QString& id);
+    void selectBody(const QString& id,const QString& occurrenceId = {});
     void recordContextMenu(const QJsonObject& state,bool shown = false);
     void highlightCombineInputs(const QString& targetBodyId, const QJsonArray& toolBodyIds);
     QString pickBody(double x,double y);
+    QJsonObject pickBodyReference(double x,double y);
     QJsonObject pickSolidEndpoint(double x,double y,const std::vector<EvaluatedBody>& bodies,const QJsonObject& face) const;
     QJsonObject pickSolidEdge(double x,double y,const std::vector<EvaluatedBody>& bodies) const;
     QJsonObject pickSupportBoundaryEdge(double x,double y,const std::vector<EvaluatedBody>& bodies) const;
     QJsonObject projectSolidEdge(const EvaluatedSolidEdge& edge) const;
     void showPatternAxes(const QJsonObject& summary);
     void clearPatternAxes();
-    void highlightSolidEdges(const std::vector<EvaluatedBody>& bodies,const QString& bodyId,const QJsonArray& edgeIds);
+    void highlightSolidEdges(const std::vector<EvaluatedBody>& bodies,const QString& bodyId,const QJsonArray& edgeIds,
+        const QString& occurrenceId = {});
     void clearSolidEdgeHighlights();
     void setSliderCue(const QJsonObject& joint);
     void setAssemblyDragCue(const QJsonObject& cue);
@@ -178,6 +180,7 @@ private:
     QJsonObject sectionAnalysis_;
     Handle(Graphic3d_ClipPlane) sectionClip_;
     QMap<QString,Handle(AIS_Shape)> models_;
+    QMap<QString,QJsonObject> modelReferences_;
     QMap<QString,bool> bodyVisibility_;
     QString combineTargetId_;
     QJsonObject selectedSupportFace_;
