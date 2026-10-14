@@ -7,3 +7,10 @@ The focused source fixture is external `../Alloy-reference-records/deliverables/
 At this intermediate source order, the Top inner-elbow Fillet intersects the still-sharp Bottom catch by 0.268252 mm³ on the seed side. The mirrored side adds the same 0.268252 mm³; no other body gains positive-volume overlap. The common occupies the two inner elbows at Z12.5–13. The public workflow subsequently adds Bottom inner-cutout Fillet 0.5 mm, then reorders that feature after both Mirrors and adds the opposite edge. Therefore this intermediate file is **not** final physical-fit acceptance. The final zero-added-interference gate belongs to the reordered Bottom finish and cumulative workflow.
 
 GEO-015's strict concavity check originally refused the reflected 2 mm root because OCCT represented one reflected plane with an indirect parameter frame. Using the oriented U×V surface normal preserves the original classifier and all endpoint/leg/volume guards; the corrected source-sized five-feature Mirror passes. The earlier technical smaller-finish root-identity gate remains distinct from this source-size result.
+
+Astra independently accepted this bounded ingredient on 2026-10-14 at
+`b92db08`. The durable focused output is external
+`enclosure-snap-2026-10-14/source-group-final/focused-core-pass.log`, ending
+`MIRROR_COMMITTED 28 exactSourceRoot=1`. The subsequent accepted
+[Timeline reorder gate](timeline-reorder.md) verifies both separate Bottom
+R0.5 groups and zero final Top/Bottom positive-volume intersection.

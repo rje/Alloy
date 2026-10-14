@@ -87,15 +87,21 @@ Focused exact-size, rigid rotation/reflection, oversized refusal, assembly
 interference, source edit/history/reopen and 23-call real-app checks pass.
 Reflected OCCT planes require parametric U × V normals; that correction is
 accepted without weakening the geometric certificate. Main application builds.
-GEO-015 stays open until the actual five-feature reflected group qualifies.
+The actual five-feature reflected group is independently accepted at `b92db08`;
+GEO-015 is closed. Source-sized Mirror edit/history/reopen passes with the
+exact 2 mm root, and final paired Bottom fillets resolve intermediate overlap.
 SOL-055/#342 is independently accepted and integrated at `ad23a81` for
 reflected attachment-root lineage and supported technical finish replay.
 Its core source edit/history/reopen and 13-call real-app inspection pass;
 the broad capture does not visibly expose the root. Exact-sized source finish
 and actual five-feature group remain GEO-015/SOL-053/TUT-022.
 Do not substitute the hook elbow or a transverse
-free edge merely because its Chamfer succeeds. SOL-053/#337 is active while the geometry lane qualifies the actual finished
-YZ snap group.
+free edge merely because its Chamfer succeeds. SOL-053/#337 is independently
+accepted and closed for the source-sized YZ snap group. TUT-022 still owns the
+full source-step runner/movie; DOC-030/#344 adds retained body naming needed
+for the tutorial Browser labels. SRF-009 is active in parallel: the actual
+arc-to-line guided surface probe succeeds, and SRF-010 Thicken viability is
+confirmed on that sheet; retained application integration remains ahead.
 
 The accepted nominal board is rotated 90 degrees about Z. Source opposite-wall
 reflection therefore maps explicitly to Alloy origin YZ, not XZ. Actual opposed
