@@ -1,5 +1,15 @@
 # Continuation context
 
+## Current queue (2026-10-14)
+
+Canvas DOC-024, retained Remove HIS-007 and Surface workspace VIS-004 are
+independently accepted and integrated at 645497f. The combined build, focused
+core checks and actual Surface Modify > Remove native route pass. SRF-012 is
+now scoped to exterior true guide-rail Loft; its kernel feasibility is active in
+`../Alloy-worktrees/surface-iron-guide-loft`. SRF-015 separately retains the
+three-section handle bridge after Trim. Exact shoehorn R12 and enclosure rim
+remain blocked Todo work; full surface-iron acceptance is still ahead.
+
 ## Accepted retained surface Remove (2026-10-14)
 
 HIS-007 adds one-body `removeBody` history for a current local open
@@ -7,7 +17,7 @@ sheet. Browser Remove commits directly; `body.removeDialog` selects, previews,
 commits or cancels through the same CadDocument authority. Source features,
 authored names and Browser ownership survive removal, and deleting Remove
 restores the edited source. Focused core 2/2, a 26-call real-app API run and a
-Qt-delivered Browser/dock test pass. The Modify ribbon entry is pending VIS-004;
+Qt-delivered Browser/dock test pass. The Modify ribbon entry is integrated through VIS-004;
 native Escape and multi-body Remove are unverified/out of scope. Independent
 compatibility review accepted the bounded ingredient. Main Surface Modify
 routing and native selection/Cancel/Browser check pass. See [the receipt](validation/remove-surface.md).
@@ -32,7 +42,7 @@ SRF-014/#355 is independently accepted and integrated. Selected open lines and
 fit splines produce real surface sheets with editable side reaches and retained
 IDs; planar outputs have valid support frames. Core, 48-call API and Qt native
 picker/typing/Escape checks pass. Output is a per-curve multi-face compound, not
-a sewn shell or completed iron fixture. VIS-004/#358 retains Surface workspace
+a sewn shell or completed iron fixture. VIS-004/#358 separately accepts Surface workspace
 navigation; Trim/Boundary Fill integration stays in TUT-018. See
 [the receipt](validation/surface-extrude-two-sides.md).
 

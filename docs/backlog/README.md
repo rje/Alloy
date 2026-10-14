@@ -7,7 +7,7 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current publication contains **358 issues**: **272 implementation, 19 research,
+The current publication contains **359 issues**: **273 implementation, 19 research,
 22 epics, and 45 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 
@@ -19,9 +19,9 @@ are cumulative gates with explicit feature dependencies. Thirty-eight new tasks
 include these five gates, three source qualification tasks and30 bounded feature
 children. Existing broad requirements are reused, not duplicated; split them
 before pulling an implementation too large for one increment. PAR-004 and DOC-022 are independently accepted and closed.
-The sliding-lid workflow and enclosure mounting prefix are accepted. The port/card and split/snap checkpoints are also accepted. Current work adds
-calibrated reference canvases, retained surface removal and Surface workspace
-navigation for the surface iron. Exact shoehorn corner rounding and the enclosure
+The sliding-lid workflow and enclosure mounting prefix are accepted. The port/card and split/snap checkpoints are also accepted. Calibrated reference canvases, retained surface removal and Surface workspace
+navigation are accepted. Current work qualifies exterior guide-rail Loft, with
+Trim and the separately tracked three-section handle bridge next. Exact shoehorn corner rounding and the enclosure
 alignment rim remain blocked geometry follow-ups. Complete source operations, readable constraint and
 selection states, edit/history/reopen, full creation recordings and independently
 checked outputs remain acceptance requirements. Detailed source URLs and

@@ -1,5 +1,11 @@
 # Alloy
 
+The [Surface workspace](docs/validation/surface-workspace-navigation.md) now exposes
+Extrude, guided Loft and retained Remove through shared native/API controls.
+[Local image canvases](docs/validation/local-reference-canvas.md) support placement,
+two-point calibration and portable embedded saving for sketch reference. These
+are accepted ingredients; the complete surface iron workflow remains ahead.
+
 [Guided surface Loft](docs/validation/surface-loft.md) and
 [retained Thicken](docs/validation/surface-thicken.md) now create an editable
 solid from a dimensioned spline and endpoint sections. The original sheet stays

@@ -3111,7 +3111,8 @@
       "depends_on": [
         "SRF-012",
         "SRF-013",
-        "SRF-014"
+        "SRF-014",
+        "SRF-015"
       ],
       "labels": [
         "area:srf"
@@ -3120,7 +3121,7 @@
     },
     {
       "key": "SRF-012",
-      "title": "Loft ordered open surface sections with a guide rail",
+      "title": "Loft retained exterior surface sections with a true guide rail",
       "kind": "implementation",
       "phase": "P3 Shape/import/print breadth",
       "priority": "P1",
@@ -3134,7 +3135,7 @@
         "priority:P1",
         "area:srf"
       ],
-      "body": "## Result\nCreate retained open-sheet Lofts from ordered multi-entity sketch sections with a true intersecting guide rail. Reuse the accepted one-face guided-sheet foundation; do not substitute a centerline or copy section coordinates.\n\n## Bounded scope and acceptance\n- Exterior: back open arc to mirrored two-entity lower chain, with one selected rail intersecting both sections at exact retained contacts. Produce a valid open sheet with source-derived face/boundary IDs.\n- Handle bridge: one separate three-section open Loft from one spline chain through an ellipse to the opposite spline chain, with no rail. Retain order and chain identities.\n- Shared API/native preview, Cancel, feature edit, upstream section/rail edit, undo/reopen and atomic refusal of disconnected/ambiguous sections. Test both shapes on independently authored prepared sketches, with no source-exact dimension claim.\n\n## Dependencies and limit\nDepends on SRF-009 and SKT-066. SRF-002 keeps general sweep, continuity and other Loft modes. The external `surface-iron-2026-10-14/source-contract.md` contains dated public evidence and the qualified sketch recipe; source images and product URLs stay external.\n\n## Dependencies\n- [SRF-009](https://github.com/rje/Alloy/issues/283)\n- [SKT-066](https://github.com/rje/Alloy/issues/272)\n\n\nPublic-source clarification 2026-10-14: the three-profile handle bridge has no rail. Its paired-spline closed-chain state and full-versus-partial ellipse selection are not resolved by the public transcript; do not silently assume all sections are open. Declare and validate the prepared fixture topology, and seek permitted operation-frame evidence before an exact source-selection claim. The exterior uses a true guide rail, not a centerline: rail contacts must intersect every section, reach the end sections and retain tangent continuity. The external source-iron contract records documented versus inferred findings."
+      "body": "## Result\nCreate retained open-sheet Lofts from ordered multi-entity sketch sections with a true intersecting guide rail. Reuse the accepted one-face guided-sheet foundation; do not substitute a centerline or copy section coordinates.\n\n## Bounded scope and acceptance\n- Exterior: back open arc to mirrored two-entity lower chain, with one selected rail intersecting both sections at exact retained contacts. Produce a valid open sheet with source-derived face/boundary IDs.\n- Handle bridge is split into SRF-015; it remains required for the full tutorial and Boundary Fill.\n- Shared API/native preview, Cancel, feature edit, upstream section/rail edit, undo/reopen and atomic refusal of disconnected/ambiguous sections. Test the exterior on independently authored prepared sketches, with no source-exact dimension claim.\n\n## Dependencies and limit\nDepends on SRF-009 and SKT-066. SRF-002 keeps general sweep, continuity and other Loft modes. The external `surface-iron-2026-10-14/source-contract.md` contains dated public evidence and the qualified sketch recipe; source images and product URLs stay external.\n\n## Dependencies\n- [SRF-009](https://github.com/rje/Alloy/issues/283)\n- [SKT-066](https://github.com/rje/Alloy/issues/272)\n\n\nPublic-source clarification 2026-10-14: the three-profile handle bridge has no rail. Its paired-spline closed-chain state and full-versus-partial ellipse selection are not resolved by the public transcript; do not silently assume all sections are open. Declare and validate the prepared fixture topology, and seek permitted operation-frame evidence before an exact source-selection claim. The exterior uses a true guide rail, not a centerline: rail contacts must intersect every section, reach the end sections and retain tangent continuity. The external source-iron contract records documented versus inferred findings.\n\nScope split 2026-10-14: SRF-015 preserves the separate three-section handle bridge and its unresolved topology. SRF-012 now owns only exterior true guide-rail Loft, including its retained contacts and controls. The kernel must preserve actual section curves and the complete rail; using a rail as a transport spine alone does not establish equivalence.\n"
     },
     {
       "key": "SRF-013",
@@ -3267,7 +3268,7 @@
       "labels": [
         "area:doc"
       ],
-      "body": "## Scope\nUser-provided local image canvas with plane placement, opacity/visibility and dimension calibration for independently authored traced sketches. Referenced tutorial images stay external and are not shipped assets.\n\n## Acceptance criteria\nImplement the stated source operation using shared native/API authority with stable input/result references, editable history, preview/Cancel where applicable, atomic failure and save/reopen. Preserve the broader parent scope.\n\n## Proposed verification and evidence\nA bounded source fixture must exercise the actual operation and meaningful upstream edit, inspect geometry and authored state, then undo/redo/reopen. Inspect real GPU captures and readable native controls; independent review separates input, API, geometry and visual evidence. Unit/integration checks focus on actual contracts.\n\n## Public reference evidence\nPublic reference `surface-iron` independently audited 2026-10-13; external knowledge/tutorials/advanced-audit-2026-10-13/independent-spec.md holds provenance and detailed source steps.\n\n## Limits and open questions\nPlanned, not accepted. Complete the affected public command specification before implementation; source dimensions or gestures not established by public evidence remain explicit unknowns.\n"
+      "body": "## Scope\nUser-provided local image canvas with plane placement, opacity/visibility and dimension calibration for independently authored traced sketches. Referenced tutorial images stay external and are not shipped assets.\n\n## Acceptance criteria\nImplement the stated source operation using shared native/API authority with stable input/result references, editable history, preview/Cancel where applicable, atomic failure and save/reopen. Preserve the broader parent scope.\n\n## Proposed verification and evidence\nA bounded source fixture must exercise the actual operation and meaningful upstream edit, inspect geometry and authored state, then undo/redo/reopen. Inspect real GPU captures and readable native controls; independent review separates input, API, geometry and visual evidence. Unit/integration checks focus on actual contracts.\n\n## Public reference evidence\nPublic reference `surface-iron` independently audited 2026-10-13; external knowledge/tutorials/advanced-audit-2026-10-13/independent-spec.md holds provenance and detailed source steps.\n\n## Limits and open questions\nPlanned, not accepted. Complete the affected public command specification before implementation; source dimensions or gestures not established by public evidence remain explicit unknowns.\n\n\n## Independently accepted 2026-10-14\nIntegrated and independently accepted at 645497f after Astra caught and reviewed fixes for Browser visibility and completed-pair calibration. Retained plane/core, 46-call actual-app API, portable embedded reopen and corrected native-04 3/3 pass. Main core regression passes. See docs/validation/local-reference-canvas.md; exact styling, OS chooser and wider canvas controls remain outside this bounded ingredient.\n"
     },
     {
       "key": "HIS-007",
@@ -3281,7 +3282,7 @@
       "labels": [
         "area:his"
       ],
-      "body": "## Scope\nExplicit Remove on selected surface bodies and undo/revert as demonstrated by iron lesson. Preserve earlier authored construction and downstream dependency diagnostics. Visibility-only hide is not Remove.\n\n## Acceptance criteria\nImplement the stated source operation using shared native/API authority with stable input/result references, editable history, preview/Cancel where applicable, atomic failure and save/reopen. Preserve the broader parent scope.\n\n## Proposed verification and evidence\nA bounded source fixture must exercise the actual operation and meaningful upstream edit, inspect geometry and authored state, then undo/redo/reopen. Inspect real GPU captures and readable native controls; independent review separates input, API, geometry and visual evidence. Unit/integration checks focus on actual contracts.\n\n## Public reference evidence\nPublic reference `surface-iron` independently audited 2026-10-13; external knowledge/tutorials/advanced-audit-2026-10-13/independent-spec.md holds provenance and detailed source steps.\n\n## Limits and open questions\nPlanned, not accepted. Complete the affected public command specification before implementation; source dimensions or gestures not established by public evidence remain explicit unknowns.\n"
+      "body": "## Scope\nExplicit Remove on selected surface bodies and undo/revert as demonstrated by iron lesson. Preserve earlier authored construction and downstream dependency diagnostics. Visibility-only hide is not Remove.\n\n## Acceptance criteria\nImplement the stated source operation using shared native/API authority with stable input/result references, editable history, preview/Cancel where applicable, atomic failure and save/reopen. Preserve the broader parent scope.\n\n## Proposed verification and evidence\nA bounded source fixture must exercise the actual operation and meaningful upstream edit, inspect geometry and authored state, then undo/redo/reopen. Inspect real GPU captures and readable native controls; independent review separates input, API, geometry and visual evidence. Unit/integration checks focus on actual contracts.\n\n## Public reference evidence\nPublic reference `surface-iron` independently audited 2026-10-13; external knowledge/tutorials/advanced-audit-2026-10-13/independent-spec.md holds provenance and detailed source steps.\n\n## Limits and open questions\nPlanned, not accepted. Complete the affected public command specification before implementation; source dimensions or gestures not established by public evidence remain explicit unknowns.\n\n\n## Independently accepted 2026-10-14\nIntegrated and independently accepted at 645497f. One retained local surface Remove preserves source history, names and owner; core edit/history/reopen/refusal checks, 26-call actual-app API and native integrated Surface Modify route/Cancel/Browser Remove pass. See docs/validation/remove-surface.md. Solids/imports/multibody remain broader HIS-003; native Escape and physical OS gesture are not established.\n"
     },
     {
       "key": "DOC-025",
@@ -3769,7 +3770,8 @@
         "SRF-011",
         "DOC-024",
         "HIS-007",
-        "VIS-004"
+        "VIS-004",
+        "SRF-015"
       ],
       "labels": [
         "area:gate"
@@ -6206,7 +6208,22 @@
       "labels": [
         "area:vis"
       ],
-      "body": "The bounded Surface Extrude ingredient is currently reachable in shared SOLID CREATE, while the SURFACE tab remains a placeholder. Implement real Surface workspace navigation and researched command grouping for implemented surface operations, including SURFACE > CREATE > Extrude. Existing commands, preview and document history remain authoritative; do not add decorative nonfunctional controls or claim unimplemented surface tools. Research public screenshots/help before settling Loft/Thicken grouping and keyboard/context behavior. Verify native tab selection, command discoverability, readable active state, return to Solid, actual preview/Cancel and retained editing. Link actual GPU captures; this is a navigation requirement separate from accepted SRF-014 geometry/API foundation. Full TUT-018 retains this gate."
+      "body": "The bounded Surface Extrude ingredient is currently reachable in shared SOLID CREATE, while the SURFACE tab remains a placeholder. Implement real Surface workspace navigation and researched command grouping for implemented surface operations, including SURFACE > CREATE > Extrude. Existing commands, preview and document history remain authoritative; do not add decorative nonfunctional controls or claim unimplemented surface tools. Research public screenshots/help before settling Loft/Thicken grouping and keyboard/context behavior. Verify native tab selection, command discoverability, readable active state, return to Solid, actual preview/Cancel and retained editing. Link actual GPU captures; this is a navigation requirement separate from accepted SRF-014 geometry/API foundation. Full TUT-018 retains this gate.\n\n## Independently accepted 2026-10-14\nIntegrated and independently accepted at 645497f. Real Solid/Surface tabs expose shared authoritative routes; Surface Extrude and guided Loft, Solid Create Thicken, and integrated Surface Modify Remove. Native tab/pick/typing/session preservation/Escape4/4 plus Remove route3/3 pass with inspected GPU captures. E remains Solid Extrude and tab switching preserves dialogs as documented Alloy choices, not exact reference parity. See docs/validation/surface-workspace-navigation.md.\n"
+    },
+    {
+      "key": "SRF-015",
+      "title": "Loft the retained three-section surface handle bridge",
+      "kind": "implementation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P1",
+      "depends_on": [
+        "SRF-012",
+        "SRF-013"
+      ],
+      "labels": [
+        "area:srf"
+      ],
+      "body": "Split from SRF-012 to keep exterior guide-rail Loft independently finishable. Retain the separate handle bridge from an ordered spline chain through an ellipse to the opposite spline chain, without a rail. Public transcript does not resolve full versus partial ellipse or paired-spline closed-chain topology; declare independently authored prepared topology, research permitted operation frames before any exact source-selection claim. Preserve source chain/order identities, valid sheet geometry, meaningful source edit, preview/Cancel, feature edit, undo/reopen and atomic refusal of disconnected or ambiguous sections. Native/API must use shared document authority; inspect actual GPU capture and geometry separately. The cumulative iron fixture must connect this bridge with the trimmed exterior and later sheets for Boundary Fill, with no silently changed source sequence. External surface-iron-2026-10-14/source-contract.md holds provenance and unknowns. Broader Loft modes remain SRF-002. No completed tutorial claim from an isolated bridge."
     }
   ]
 }

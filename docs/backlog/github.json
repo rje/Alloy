@@ -1,7 +1,7 @@
 {
   "repository": "rje/Alloy",
   "project_url": "https://github.com/users/rje/projects/1",
-  "updated": "2026-10-14T10:44:00.001539+00:00",
+  "updated": "2026-10-14T11:00:21.636928+00:00",
   "issues": {
     "DOC-026": {
       "number": 311,
@@ -86,12 +86,12 @@
     "HIS-007": {
       "number": 295,
       "url": "https://github.com/rje/Alloy/issues/295",
-      "state": "open"
+      "state": "closed"
     },
     "DOC-024": {
       "number": 294,
       "url": "https://github.com/rje/Alloy/issues/294",
-      "state": "open"
+      "state": "closed"
     },
     "SOL-049": {
       "number": 293,
@@ -1791,6 +1791,11 @@
     "VIS-004": {
       "number": 358,
       "url": "https://github.com/rje/Alloy/issues/358",
+      "state": "closed"
+    },
+    "SRF-015": {
+      "number": 359,
+      "url": "https://github.com/rje/Alloy/issues/359",
       "state": "open"
     }
   }
