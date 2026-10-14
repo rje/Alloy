@@ -15,7 +15,13 @@ keep independently chosen prepared fixture topology explicit. SRF-017/#361 now
 retains the missing exterior topology for two side boundaries: public source
 describes mirrored lower splines, whereas accepted SRF-012 uses straight lines
 and its current Trim gives a central seam window. Exact source rail contacts
-remain unknown. SRF-016/#360 preserves later surface-as-tool Trim; active
+remain unknown. A bounded C0 probe supports bilateral Trim/bridge/closed-cell
+topology but has an unacceptable center ridge. The single G1 curtain correction
+fails endpoint tangent compatibility and unchanged geometric limits; Astra
+verified the blocker. SRF-017 is back in Todo, with an endpoint-compatible
+independent sketch fixture as its next bounded prerequisite. Do not repeat the
+failed fixture or count valid closure as visual quality. RES-019 piston public
+asset/assembly qualification is active in parallel with finishing Trim. SRF-016/#360 preserves later surface-as-tool Trim; active
 SRF-013 is scoped to sketch-normal paired-spline Trim only. Exact shoehorn R12 and enclosure rim
 remain blocked Todo work; full surface-iron acceptance is still ahead.
 
