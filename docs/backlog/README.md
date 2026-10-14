@@ -26,7 +26,8 @@ and modifier evidence remain partial. SOL-058/#403 preserves physical held-modif
 checks. SKT-089/#404 is independently accepted for the numeric redundant-dimension
 driven offer, with refreshed production-theme native04 captures. SOL-016 remains
 Todo after its production-theme recheck still failed popup dismissal.
-PAR-008/#405 is active for arithmetic typed into One Side/Distance Extrude.
+PAR-008/#405 is independently accepted at137bd16 for retained arithmetic in
+One Side/Distance Extrude, with parameter updates, units, history and reopen.
 ASM-012/#343 is Todo after an inconclusive physical Browser drag recheck; its
 separate body and Sketches-folder drag gate remains unaccepted. See [the current sequence](tutorial-sequence.json)
 and [continuation context](../context.md) for accepted evidence and remaining work.

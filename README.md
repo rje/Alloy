@@ -1,5 +1,9 @@
 # Alloy
 
+[Extrude Distance formulas](docs/validation/extrude-distance-expression.md) now
+retain arithmetic such as `Width*2` through parameter edits, undo and reopening.
+The native field supports formula preview and editing with explicit length units.
+
 The [tangent-arc construction walkthrough](docs/validation/base-sketch-construction.md)
 now passes from blank through circle contacts, one-junction R10 Fillet and a
 hold-drag tangent Arc. Its 64-second Qt-input movie includes a circle-size edit
