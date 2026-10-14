@@ -24,6 +24,44 @@ class TypedLineControlsTest final : public QObject {
     QJsonObject active(AlloyWindow& w) {return w.state()["activeSession"].toObject();}
     QJsonObject draft(AlloyWindow& w) {return active(w)["draftSketch"].toObject();}
 private slots:
+    void angledLineRetainsHelperAndTabFocus() {
+        AlloyTheme::apply(*qApp);AlloyWindow w;w.resize(1250,850);w.show();w.activateWindow();
+        QVERIFY(QTest::qWaitForWindowExposed(&w));
+        ReferenceView* view=nullptr;for(auto* child:w.findChildren<QWidget*>())if(auto* candidate=dynamic_cast<ReferenceView*>(child))view=candidate;
+        QVERIFY(view);call(w,"sketch.begin",{{"plane","XY"},{"units","mm"}});call(w,"sketch.lookAt");
+        const auto sketchId=draft(w)["id"];
+        auto pixel=[&](double u,double v){const auto p=call(w,"view.projectSketchPoint",{{"sketchId",sketchId},{"uMm",u},{"vMm",v}});
+            return QPoint(qRound(p["x"].toDouble()),qRound(p["y"].toDouble()));};
+        // Establish the private test window once; subsequent focus must follow
+        // the user's key sequence without harness repair between steps.
+        QApplication::setActiveWindow(&w);view->setFocus();QTRY_COMPARE(QApplication::focusWidget(),static_cast<QWidget*>(view));
+        QTest::keyClick(QApplication::focusWidget(),Qt::Key_L);QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,pixel(0,0));
+        const auto baseline=draft(w);QTest::keyClick(view,Qt::Key_4);
+        auto* length=w.findChild<QLineEdit*>("sketch.inlineValue");auto* angle=w.findChild<QLineEdit*>("sketch.lineAngleValue");
+        QVERIFY(length);QVERIFY(angle);QVERIFY(length->isVisible());
+        QCOMPARE(QApplication::focusWidget(),static_cast<QWidget*>(length));
+        QTest::keyClick(QApplication::focusWidget(),Qt::Key_Tab);
+        QCOMPARE(active(w)["pendingLineLength"].toObject()["phase"].toString(),QString("locked"));
+        QVERIFY(angle->isVisible());QCOMPARE(QApplication::focusWidget(),static_cast<QWidget*>(angle));QCOMPARE(draft(w),baseline);
+        QTest::keyClicks(QApplication::focusWidget(),"55");QCOMPARE(active(w)["pendingLineLength"].toObject()["angleDeg"].toDouble(),55.0);
+        QTest::keyClick(QApplication::focusWidget(),Qt::Key_Tab);QVERIFY(active(w)["pendingLineLength"].toObject()["angleLocked"].toBool());QCOMPARE(draft(w),baseline);
+        QCOMPARE(QApplication::focusWidget(),static_cast<QWidget*>(view));
+        const QPoint upperRight=pixel(3,3);QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,upperRight);
+        const auto p=draft(w)["parameters"].toObject();QCOMPARE(p["entities"].toArray().size(),2);
+        const auto helper=p["entities"].toArray().first().toObject(),edge=p["entities"].toArray().last().toObject();
+        QVERIFY(helper["construction"].toBool());QCOMPARE(helper["startPointId"],edge["startPointId"]);
+        const auto dimensions=p["dimensions"].toArray();QCOMPARE(dimensions.size(),2);
+        QCOMPARE(dimensions[0].toObject()["kind"].toString(),QString("linear"));QCOMPARE(dimensions[0].toObject()["valueMm"].toDouble(),4.0);
+        QCOMPARE(dimensions[1].toObject()["kind"].toString(),QString("angle"));QCOMPARE(dimensions[1].toObject()["valueDeg"].toDouble(),55.0);
+        QJsonObject start,end;for(const auto& row:p["points"].toArray()){
+            if(row.toObject()["id"]==edge["startPointId"])start=row.toObject();
+            if(row.toObject()["id"]==edge["endPointId"])end=row.toObject();}
+        QVERIFY(std::abs(std::hypot(end["uMm"].toDouble()-start["uMm"].toDouble(),end["vMm"].toDouble()-start["vMm"].toDouble())-4)<1e-6);
+        QCOMPARE(active(w)["firstPoint"].toObject()["target"].toObject()["pointId"],edge["endPointId"]);
+        call(w,"sketch.tool",{{"tool","select"}});call(w,"history.undo");
+        QCOMPARE(draft(w),baseline);call(w,"history.redo");QCOMPARE(draft(w)["parameters"],p);
+        call(w,"sketch.cancel");w.close();
+    }
     void cancelWholeSketchClearsCue() {
         AlloyTheme::apply(*qApp);AlloyWindow w;w.resize(1100,800);w.show();w.activateWindow();
         QVERIFY(QTest::qWaitForWindowExposed(&w));

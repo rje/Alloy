@@ -30,6 +30,8 @@ QString validate(const QJsonObject& parameters){
             !group["entityPairs"].isArray() || !group["pointPairs"].isArray())return "Invalid Mirror group";
         groupIds.insert(group["id"].toString());const auto axis=entities.value(group["axisEntityId"].toString());
         if(axis["type"]!="line")return "Mirror axis line is missing";
+        const auto axisStart=position(points.value(axis["startPointId"].toString()));
+        const auto axisEnd=position(points.value(axis["endPointId"].toString()));
         if(group["entityPairs"].toArray().isEmpty() || group["entityPairs"].toArray().size()>64)return "Mirror requires 1..64 source entities";
         QMap<QString,QString> pointMap;QSet<QString> sourceIds;
         for(const auto& pairValue:group["pointPairs"].toArray()){
@@ -46,7 +48,18 @@ QString validate(const QJsonObject& parameters){
                 (source["type"]!="line" && source["type"]!="arc") || source["construction"]!=result["construction"] || source["centerline"]!=result["centerline"])
                 return "Invalid Mirror entity mapping";
             sourceIds.insert(sourceId);resultIds.insert(resultId);
-            for(const auto& key:pointKeys(source))if(pointMap.value(source[key].toString())!=result[key].toString())return "Mirror entity point mapping is incomplete";
+            for(const auto& key:pointKeys(source)) {
+                const auto sourcePointId=source[key].toString();
+                if(pointMap.contains(sourcePointId)){
+                    if(pointMap.value(sourcePointId)!=result[key].toString())return "Mirror entity point mapping is incomplete";
+                } else {
+                    const auto sourcePoint=points.value(sourcePointId);
+                    if(result[key]!=source[key] || sourcePoint.isEmpty() ||
+                        std::hypot(reflected(position(sourcePoint),axisStart,axisEnd).x()-sourcePoint["uMm"].toDouble(),
+                                   reflected(position(sourcePoint),axisStart,axisEnd).y()-sourcePoint["vMm"].toDouble())>1e-6)
+                        return "Mirror shared point must remain on the axis";
+                }
+            }
         }
         if(pointMap.size()!=group["pointPairs"].toArray().size())return "Duplicate Mirror point mapping";
     }
@@ -117,7 +130,9 @@ QJsonObject create(const QJsonObject& parameters,const QJsonObject& arguments){
             if(!pointMap.contains(sourcePointId)){
                 const auto sourcePoint=pointById.value(sourcePointId);require(!sourcePoint.isEmpty(),"Mirror source point is missing");
                 auto targetPoint=sourcePoint;targetPoint["id"]=id();const auto p=reflected(position(sourcePoint),a,b);
-                require(std::hypot(p.x()-sourcePoint["uMm"].toDouble(),p.y()-sourcePoint["vMm"].toDouble())>1e-6,"Mirror source touches the axis; overlapping point identity is unsupported");
+                if(std::hypot(p.x()-sourcePoint["uMm"].toDouble(),p.y()-sourcePoint["vMm"].toDouble())<=1e-6){
+                    pointMap[sourcePointId]=sourcePointId;continue;
+                }
                 targetPoint["uMm"]=p.x();targetPoint["vMm"]=p.y();points.append(targetPoint);
                 pointMap[sourcePointId]=targetPoint["id"].toString();pointPairs.append(QJsonObject{{"sourcePointId",sourcePointId},{"resultPointId",targetPoint["id"]}});
             }

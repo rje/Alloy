@@ -666,6 +666,13 @@ bool AlloyWindow::eventFilter(QObject* watched,QEvent* event) {
             sketchResponse(response);return response.value("ok").toBool();
         }
     }
+    if(watched==lineAngleValue_ && event->type()==QEvent::KeyPress
+        && session_.value("pendingLineLength").toObject().value("phase")=="locked") {
+        const auto* key=static_cast<QKeyEvent*>(event);
+        if(key->key()==Qt::Key_Tab || key->key()==Qt::Key_Return || key->key()==Qt::Key_Enter) {
+            sketchResponse(execute("sketch.lineAngleLock",{{"text",lineAngleValue_->text()}}));return true;
+        }
+    }
     if(watched==dimensionEditorValue_ && event->type()==QEvent::KeyPress
         && (session_.value("pendingLineLength").toObject().value("phase")=="editing"
             || session_.value("pendingCircleDiameter").toObject().value("phase")=="editing")) {
@@ -1997,6 +2004,12 @@ void AlloyWindow::registerCommands() {
         lineLengthInput,[this](const auto& a){return previewLineLength(a);});
     add("sketch.lineLengthLock","Lock typed line length","Lock the pending length for pointer direction and click placement in this sketch session.",
         lineLengthInput,[this](const auto& a){return lockLineLength(a);});
+    add("sketch.lineAnglePreview","Preview typed line angle","Edit a disposable angle relative to a horizontal construction reference.",
+        {{"text",optional(parameter("string","Angle in degrees, optionally suffixed deg or °."))},{"valueDeg",optional(angle)},{"session",optionalSession}},
+        [this](const auto& a){return previewLineAngle(a);});
+    add("sketch.lineAngleLock","Lock typed line angle","Retain the angle preview for click placement and a driving dimension.",
+        {{"text",optional(parameter("string","Angle in degrees, optionally suffixed deg or °."))},{"valueDeg",optional(angle)},{"session",optionalSession}},
+        [this](const auto& a){return lockLineAngle(a);});
     add("sketch.lineLengthCancel","Cancel typed line length","Clear only the pending line length, retaining the current chain start.",
         {{"session",optionalSession}},[this](const auto& a){
             if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
@@ -2504,15 +2517,22 @@ void AlloyWindow::registerCommands() {
             const auto pending=session_.value("pendingLineLength").toObject();
             if(pending.value("phase")!="locked" || !pending.value("valid").toBool())
                 return failure("line_length_pending","Enter a valid length and press Tab before placing the line");
+            if(pending.contains("angleText") && !pending.value("angleValid").toBool())
+                return failure("invalid_line_angle","Enter a valid angle before placing the line");
             point=lockedLinePoint(point);
-            if(point.isEmpty())return failure("line_direction_required","Move the pointer away from the chain start to choose a horizontal or vertical direction");
+            if(point.isEmpty())return failure("line_direction_required","Move the pointer away from the chain start to choose the line direction");
         }
         const auto first=session_.value("firstPoint").toObject();
         QJsonObject inputs{{"x1",first["uMm"]},{"y1",first["vMm"]},{"x2",point["uMm"]},{"y2",point["vMm"]},{"units","mm"}};
         if(first["status"]=="acquired")inputs["startSnapTarget"]=first["target"];
         if(point["status"]=="acquired")inputs["endSnapTarget"]=point["target"];
         if(lockedLine) {inputs["lockedLengthMm"]=session_.value("pendingLineLength").toObject()["lengthMm"];
-            inputs["lockedDirection"]=point["direction"];}
+            inputs["lockedDirection"]=point["direction"];
+            const auto pending=session_.value("pendingLineLength").toObject();
+            if(pending.value("angleValid").toBool()){
+                inputs["lockedAngleDeg"]=pending["angleDeg"];
+                inputs["referenceDirection"]=point["referenceDirection"];
+            }}
         QJsonObject response;
         if(tool=="centerRectangle") {
             QJsonObject centered{{"centerX",first["uMm"]},{"centerY",first["vMm"]},
@@ -2704,8 +2724,9 @@ void AlloyWindow::registerCommands() {
         return failure("stale_entity","Sketch does not exist","sketchId");
     });
     auto constraintType=parameter("string","Geometric relation to apply to the supplied or selected sketch geometry.");
-    constraintType["enum"]=QJsonArray{"coincident","concentric","horizontal","vertical","horizontalVertical","parallel","perpendicular","equal","fixed"};
+    constraintType["enum"]=QJsonArray{"coincident","concentric","horizontal","vertical","horizontalVertical","parallel","perpendicular","equal","fixed","midpoint","pointOnCurve"};
     auto constraintToolType=constraintType;
+    constraintToolType["enum"]=QJsonArray{"coincident","concentric","horizontal","vertical","horizontalVertical","parallel","perpendicular","equal","fixed"};
     add("sketch.constraintTool","Activate sketch constraint","Apply compatible preselection, then repeatedly pick geometry; Escape returns to Select.",{{"type",constraintToolType},{"session",optionalSession}},[this](const auto& a){
         if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
         if(a.contains("session") && a["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
@@ -2769,6 +2790,10 @@ void AlloyWindow::registerCommands() {
             if(a.contains("session") && a["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
             QJsonObject args{{"type",a["type"]}};const auto field=a.contains("pointIds") || a["type"]=="coincident" || a["type"]=="fixed" || a["type"]=="horizontalVertical" ? "pointIds" : "entityIds";
             args[field]=a.contains(field) ? a[field] : session_.value("selection").toObject().value(field);
+            if(a["type"]=="midpoint" || a["type"]=="pointOnCurve") {
+                args["pointIds"]=a.contains("pointIds") ? a["pointIds"] : session_.value("selection").toObject().value("pointIds");
+                args["entityIds"]=a.contains("entityIds") ? a["entityIds"] : session_.value("selection").toObject().value("entityIds");
+            }
             return applySketchConstraint(a["type"].toString(),args);
         });
     auto kind=parameter("string","Dimension measurement kind.");kind["enum"]=QJsonArray{"linear","horizontal","vertical","angle","radius","diameter","arcSweep","pointLineDistance","parallelLineDistance","centerlineDiameter"};
@@ -4023,9 +4048,14 @@ void AlloyWindow::refresh() {
             "Click a point on the ellipse contour · Escape ends Ellipse" : session_.contains("firstPoint") ?
             "Click first axis endpoint · Type full length, Tab angle" : "Click ellipse center · Origin snap adds Coincident";
         else if(tool=="line")prompt=session_.value("pendingLineLength").toObject().value("phase")=="locked"
-            ? QString("%1 %2 locked · Point sets %3 · Click places · Escape ends chain").arg(
-                QString::number(session_.value("pendingLineLength").toObject()["lengthMm"].toDouble()/(inputs["units"]=="in" ? 25.4 : 1),'g',9),
-                inputs["units"].toString(),session_.value("pointerPoint").toObject().value("direction").toString("H/V"))
+            ? (session_.value("pendingLineLength").toObject().contains("angleText")
+                ? QString("%1 %2 · %3 · Click places · Escape ends chain").arg(
+                    QString::number(session_.value("pendingLineLength").toObject()["lengthMm"].toDouble()/(inputs["units"]=="in" ? 25.4 : 1),'g',9),
+                    inputs["units"].toString(),session_.value("pendingLineLength").toObject().value("angleValid").toBool()
+                        ? QString::number(session_.value("pendingLineLength").toObject()["angleDeg"].toDouble(),'g',9)+"°" : "invalid angle")
+                : QString("%1 %2 locked · Point sets %3 · Click places · Escape ends chain").arg(
+                    QString::number(session_.value("pendingLineLength").toObject()["lengthMm"].toDouble()/(inputs["units"]=="in" ? 25.4 : 1),'g',9),
+                    inputs["units"].toString(),session_.value("pointerPoint").toObject().value("direction").toString("H/V")))
             : session_.contains("pendingLineLength") ? "Type length · Tab locks · Point sets H/V · Click places" :
                 session_.contains("firstPoint") ? "Type a length or click the next point · Escape ends chain" : "Click the line start";
         else if(tool=="trim")prompt="Click the highlighted segment to remove · Escape or Enter exits";
@@ -5166,6 +5196,39 @@ QJsonObject AlloyWindow::appendSketchEntity(const QString& tool,const QJsonObjec
         auto solved=SketchGeometry::addPointerEntity(draft,"line",canonical,context);
         if(!solved.ok)return publishSketchSolve(solved);
         const auto edge=solved.feature["parameters"].toObject()["entities"].toArray().last().toObject();
+        if(inputs.contains("lockedAngleDeg")) {
+            const double angle=inputs["lockedAngleDeg"].toDouble();
+            const auto reference=inputs["referenceDirection"].toString();
+            if(!std::isfinite(angle) || angle<=0 || angle>=180 || (reference!="positive" && reference!="negative"))
+                return failure("invalid_line_angle","Angle needs a valid horizontal reference and a value between 0 and 180 degrees");
+            auto feature=solved.feature;auto parameters=feature["parameters"].toObject();
+            auto points=parameters["points"].toArray(),entities=parameters["entities"].toArray();
+            auto constraints=parameters["constraints"].toArray(),dimensions=parameters["dimensions"].toArray();
+            QJsonObject start,end;
+            for(const auto& value:points) {
+                if(value.toObject()["id"]==edge["startPointId"])start=value.toObject();
+                if(value.toObject()["id"]==edge["endPointId"])end=value.toObject();
+            }
+            if(start.isEmpty() || end.isEmpty())return failure("stale_entity","Typed line endpoints are unavailable");
+            const auto helperEnd=CadDocument::newId(),helperId=CadDocument::newId();
+            // Seed the helper at the line endpoint's horizontal projection.
+            // This is only a starting value; its authored length remains free.
+            const double helperLength=std::max(1.0,std::abs(end["uMm"].toDouble()-start["uMm"].toDouble()));
+            points.append(QJsonObject{{"id",helperEnd},{"uMm",start["uMm"].toDouble()+(reference=="negative" ? -helperLength : helperLength)},
+                {"vMm",start["vMm"]}});
+            // The horizontal reference shares the typed line's start. Its free
+            // endpoint retains one length DOF for a later corner Coincident.
+            entities.insert(entities.size()-1,QJsonObject{{"id",helperId},{"type","line"},
+                {"startPointId",edge["startPointId"]},{"endPointId",helperEnd},{"construction",true}});
+            constraints.append(QJsonObject{{"id",CadDocument::newId()},{"type","horizontal"},{"entityIds",QJsonArray{helperId}}});
+            dimensions.append(QJsonObject{{"id",CadDocument::newId()},{"kind","linear"},{"pointIds",QJsonArray{edge["startPointId"],edge["endPointId"]}},
+                {"driving",true},{"valueMm",inputs["lockedLengthMm"]}});
+            dimensions.append(QJsonObject{{"id",CadDocument::newId()},{"kind","angle"},{"entityIds",QJsonArray{helperId,edge["id"]}},
+                {"driving",true},{"valueDeg",angle}});
+            parameters["points"]=points;parameters["entities"]=entities;parameters["constraints"]=constraints;parameters["dimensions"]=dimensions;
+            feature["parameters"]=parameters;
+            return publishSketchSolve(SketchGeometry::solveDraft(feature,context));
+        }
         const auto direction=inputs["lockedDirection"].toString();
         if(direction!="horizontal" && direction!="vertical")return failure("invalid_line_direction","Choose a horizontal or vertical pointer direction");
         solved=SketchGeometry::addConstraint(solved.feature,{{"type",direction},{"entityIds",QJsonArray{edge["id"]}}},context);
@@ -6418,18 +6481,23 @@ QJsonObject AlloyWindow::previewLineLength(const QJsonObject& args) {
         valid=numberValid && std::isfinite(lengthMm) && lengthMm>=0.001 && lengthMm<=100000;
     }
     const bool opening=!session_.contains("pendingLineLength");
+    const auto previous=session_.value("pendingLineLength").toObject();
     QJsonObject pending{{"phase","editing"},{"text",valueText},{"valid",valid}};
+    if(previous.contains("angleText")){pending["angleText"]=previous["angleText"];pending["angleValid"]=previous["angleValid"];
+        if(previous.contains("angleDeg"))pending["angleDeg"]=previous["angleDeg"];}
     if(valid)pending["lengthMm"]=lengthMm;
     session_["pendingLineLength"]=pending;
     if(lineLockCue_)lineLockCue_->hide();
     if(opening) {
-        ensureSketchInlineEditor();twoPointWidthLabel_->hide();twoPointHeightLabel_->hide();centerRectangleHeight_->hide();dimensionEditorValue_->setReadOnly(false);
+        ensureSketchInlineEditor();twoPointWidthLabel_->hide();twoPointHeightLabel_->hide();centerRectangleHeight_->hide();
+        lineLengthLabel_->show();
+        lineAngleLabel_->show();lineAngleValue_->show();lineAngleValue_->clear();dimensionEditorValue_->setReadOnly(false);
         dimensionEditorValue_->installEventFilter(this);
         {const QSignalBlocker block(dimensionEditorValue_);dimensionEditorValue_->setText(valueText);}
         dimensionEditor_->adjustSize();positionDimensionEditor();dimensionEditor_->show();dimensionEditor_->raise();dimensionEditorValue_->setFocus();
         dimensionEditorValue_->setCursorPosition(valueText.size());
     }
-    if(dimensionEditorError_)dimensionEditorError_->setText(valid ? "Tab locks length · Point chooses direction · Click places" : "Enter a length from 0.001 to 100000 mm");
+    if(dimensionEditorError_)dimensionEditorError_->setText(valid ? "Tab locks length and opens Angle · Click places" : "Enter a length from 0.001 to 100000 mm");
     if(valid) {
         auto pointer=session_.value("pointerPoint").toObject();
         if(!pointer.isEmpty()) {
@@ -6453,9 +6521,57 @@ QJsonObject AlloyWindow::lockLineLength(const QJsonObject& args) {
     auto pending=session_.value("pendingLineLength").toObject();
     if(!pending.value("valid").toBool())return failure("invalid_line_length","Enter a length from 0.001 to 100000 mm");
     pending["phase"]="locked";session_["pendingLineLength"]=pending;
-    if(dimensionEditor_)dimensionEditor_->hide();view_->setFocus();
+    ensureSketchInlineEditor();dimensionEditorValue_->setReadOnly(true);
+    lineAngleLabel_->show();lineAngleValue_->show();
+    dimensionEditor_->adjustSize();positionDimensionEditor();dimensionEditor_->show();dimensionEditor_->raise();
+    lineAngleValue_->setFocus();lineAngleValue_->selectAll();
     const auto point=lockedLinePoint(session_.value("pointerPoint").toObject());
     if(!point.isEmpty())showLineLockCue(point);
+    return {{"pendingLineLength",pending},{"authoredChange",false}};
+}
+
+QJsonObject AlloyWindow::previewLineAngle(const QJsonObject& args) {
+    if(session_.value("command")!="sketch.edit" || session_.value("tool")!="line" ||
+        session_.value("pendingLineLength").toObject().value("phase")!="locked")
+        return failure("line_length_required","Lock a valid line length before entering an angle");
+    if(args.contains("session") && args["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
+    if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))
+        return failure("stale_session","The document changed; cancel and restart this sketch");
+    if(args.contains("text")==args.contains("valueDeg"))return failure("invalid_arguments","Supply text or a numeric angle");
+    const auto valueText=args.contains("text") ? args["text"].toString() : QString::number(args["valueDeg"].toDouble(),'g',10);
+    const QRegularExpression expression(QStringLiteral(R"(^\s*([+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?)\s*(?:deg|°)?\s*$)"),QRegularExpression::CaseInsensitiveOption);
+    const auto match=expression.match(valueText);bool numeric=false;const double angle=match.hasMatch() ? match.captured(1).toDouble(&numeric) : 0;
+    const bool valid=numeric && std::isfinite(angle) && angle>0 && angle<180;
+    auto pending=session_.value("pendingLineLength").toObject();pending["angleText"]=valueText;pending["angleValid"]=valid;
+    if(valid)pending["angleDeg"]=angle;else pending.remove("angleDeg");
+    session_["pendingLineLength"]=pending;
+    if(lineAngleValue_ && lineAngleValue_->text()!=valueText){const QSignalBlocker block(lineAngleValue_);lineAngleValue_->setText(valueText);}
+    if(dimensionEditorError_)dimensionEditorError_->setText(valid ? "Tab locks angle · Move to choose ray · Click places" : "Enter an angle between 0 and 180°");
+    const auto pointer=session_.value("pointerPoint").toObject();
+    const auto point=lockedLinePoint(pointer);
+    if(!point.isEmpty()){
+        const auto first=session_.value("firstPoint").toObject();
+        view_->showSketchCursor(session_.value("inputs").toObject()["plane"].toString(),
+            {first["uMm"].toDouble(),first["vMm"].toDouble()},{point["uMm"].toDouble(),point["vMm"].toDouble()},false);
+        if(lineLockCue_)lineLockCue_->hide();
+    } else {view_->clearSketchCursor();if(lineLockCue_)lineLockCue_->hide();}
+    return {{"pendingLineLength",pending},{"authoredChange",false}};
+}
+
+QJsonObject AlloyWindow::lockLineAngle(const QJsonObject& args) {
+    if(args.contains("session") && args["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
+    if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))
+        return failure("stale_session","The document changed; cancel and restart this sketch");
+    if(args.contains("text") || args.contains("valueDeg")) {
+        const auto preview=previewLineAngle(args);
+        if(preview.value("ok").isBool() && !preview.value("ok").toBool())return preview;
+    }
+    auto pending=session_.value("pendingLineLength").toObject();
+    if(pending.value("phase")!="locked")return failure("line_length_required","Lock a line length first");
+    if(!pending.value("angleValid").toBool())return failure("invalid_line_angle","Enter an angle between 0 and 180°");
+    pending["angleLocked"]=true;session_["pendingLineLength"]=pending;
+    if(dimensionEditor_)dimensionEditor_->hide();view_->setFocus();
+    const auto point=lockedLinePoint(session_.value("pointerPoint").toObject());if(!point.isEmpty())showLineLockCue(point);
     return {{"pendingLineLength",pending},{"authoredChange",false}};
 }
 
@@ -6465,13 +6581,17 @@ void AlloyWindow::cancelLineLength() {
 }
 
 void AlloyWindow::showLineLockCue(const QJsonObject& point) {
+    if(dimensionEditor_ && dimensionEditor_->isVisible() && session_.value("pendingLineLength").toObject().contains("angleText")){
+        if(lineLockCue_)lineLockCue_->hide();return;
+    }
     if(!lineLockCue_) {
         lineLockCue_=new QLabel(view_);lineLockCue_->setObjectName("sketch.lineLockCue");
         lineLockCue_->setAttribute(Qt::WA_TransparentForMouseEvents);
         lineLockCue_->setStyleSheet("background: #eaf5fc; color: #143f59; border: 1px solid #5b9fc6; border-radius: 3px; padding: 3px 6px; font-weight: 600;");
     }
     const auto units=session_.value("inputs").toObject().value("units").toString("mm");
-    const auto direction=point["direction"]=="horizontal" ? "H" : "V";
+    const auto direction=point["direction"]=="angled" ? QString::number(session_.value("pendingLineLength").toObject()["angleDeg"].toDouble(),'g',9)+"°"
+        : point["direction"]=="horizontal" ? "H" : "V";
     const double scale=units=="in" ? 25.4 : 1.0;
     lineLockCue_->setText(QString("%1 %2  ·  %3").arg(QString::number(session_.value("pendingLineLength").toObject()["lengthMm"].toDouble()/scale,'g',9),units,direction));
     lineLockCue_->adjustSize();
@@ -6487,6 +6607,14 @@ QJsonObject AlloyWindow::lockedLinePoint(const QJsonObject& pointer) const {
     const double du=pointer["uMm"].toDouble()-first["uMm"].toDouble(),dv=pointer["vMm"].toDouble()-first["vMm"].toDouble();
     if(std::max(std::abs(du),std::abs(dv))<0.001)return {};
     const double length=pending["lengthMm"].toDouble();const bool horizontal=std::abs(du)>std::abs(dv);
+    if(pending.contains("angleText")) {
+        if(!pending.value("angleValid").toBool())return {};
+        const double radians=pending["angleDeg"].toDouble()*std::numbers::pi/180.0;
+        const double sx=(du<0 ? -1 : 1)*(std::cos(radians)<0 ? -1 : 1),sy=dv<0 ? -1 : 1;
+        return {{"uMm",first["uMm"].toDouble()+sx*length*std::cos(radians)},
+            {"vMm",first["vMm"].toDouble()+sy*length*std::sin(radians)},
+            {"direction","angled"},{"referenceDirection",sx<0 ? "negative" : "positive"}};
+    }
     return {{"uMm",first["uMm"].toDouble()+(horizontal ? std::copysign(length,du) : 0)},
         {"vMm",first["vMm"].toDouble()+(horizontal ? 0 : std::copysign(length,dv))},
         {"direction",horizontal ? "horizontal" : "vertical"}};
@@ -6518,7 +6646,7 @@ QJsonObject AlloyWindow::previewCenterRectangle(const QJsonObject& args) {
         {center["uMm"].toDouble(),center["vMm"].toDouble()},
         {center["uMm"].toDouble()+width/2,center["vMm"].toDouble()+height/2},true,true);
     else view_->clearSketchCursor();
-    ensureSketchInlineEditor();twoPointWidthLabel_->hide();twoPointHeightLabel_->hide();centerRectangleHeight_->show();
+    ensureSketchInlineEditor();lineLengthLabel_->hide();lineAngleLabel_->hide();lineAngleValue_->hide();twoPointWidthLabel_->hide();twoPointHeightLabel_->hide();centerRectangleHeight_->show();
     if(dimensionEditorValue_->text()!=widthText){const QSignalBlocker block(dimensionEditorValue_);dimensionEditorValue_->setText(widthText);}
     if(centerRectangleHeight_->text()!=heightText){const QSignalBlocker block(centerRectangleHeight_);centerRectangleHeight_->setText(heightText);}
     dimensionEditorValue_->setPlaceholderText("Width");centerRectangleHeight_->setPlaceholderText("Height");
@@ -6580,7 +6708,7 @@ QJsonObject AlloyWindow::previewTwoPointRectangle(const QJsonObject& args) {
         {first["uMm"].toDouble(),first["vMm"].toDouble()},
         {first["uMm"].toDouble()+pending["uSign"].toInt()*width,first["vMm"].toDouble()+pending["vSign"].toInt()*height},true,false);
     else view_->clearSketchCursor();
-    ensureSketchInlineEditor();twoPointWidthLabel_->show();twoPointHeightLabel_->show();centerRectangleHeight_->show();
+    ensureSketchInlineEditor();lineLengthLabel_->hide();lineAngleLabel_->hide();lineAngleValue_->hide();twoPointWidthLabel_->show();twoPointHeightLabel_->show();centerRectangleHeight_->show();
     if(dimensionEditorValue_->text()!=widthText){const QSignalBlocker block(dimensionEditorValue_);dimensionEditorValue_->setText(widthText);}
     if(centerRectangleHeight_->text()!=heightText){const QSignalBlocker block(centerRectangleHeight_);centerRectangleHeight_->setText(heightText);}
     dimensionEditorValue_->setReadOnly(false);dimensionEditorValue_->setPlaceholderText("Width");centerRectangleHeight_->setPlaceholderText("Height");
@@ -6755,7 +6883,10 @@ void AlloyWindow::ensureSketchInlineEditor() {
         dimensionEditor_->setFixedWidth(245);dimensionEditor_->setStyleSheet("#sketchInlineEditor { background: #f7f8f9; border: 1px solid #9aabb8; } QLineEdit { background: white; color: #20252a; padding: 5px; }");
         auto* layout=new QVBoxLayout(dimensionEditor_);layout->setContentsMargins(7,7,7,7);layout->setSpacing(4);
         twoPointWidthLabel_=new QLabel("Width");twoPointWidthLabel_->setObjectName("sketch.twoPointRectangle.widthLabel");layout->addWidget(twoPointWidthLabel_);twoPointWidthLabel_->hide();
+        lineLengthLabel_=new QLabel("Length");lineLengthLabel_->setObjectName("sketch.lineLengthLabel");layout->addWidget(lineLengthLabel_);lineLengthLabel_->hide();
         dimensionEditorValue_=new QLineEdit;dimensionEditorValue_->setObjectName("sketch.inlineValue");layout->addWidget(dimensionEditorValue_);
+        lineAngleLabel_=new QLabel("Angle");lineAngleLabel_->setObjectName("sketch.lineAngleLabel");layout->addWidget(lineAngleLabel_);lineAngleLabel_->hide();
+        lineAngleValue_=new QLineEdit;lineAngleValue_->setObjectName("sketch.lineAngleValue");lineAngleValue_->setPlaceholderText("Angle (deg)");layout->addWidget(lineAngleValue_);lineAngleValue_->installEventFilter(this);lineAngleValue_->hide();
         twoPointHeightLabel_=new QLabel("Height");twoPointHeightLabel_->setObjectName("sketch.twoPointRectangle.heightLabel");layout->addWidget(twoPointHeightLabel_);twoPointHeightLabel_->hide();
         centerRectangleHeight_=new QLineEdit;centerRectangleHeight_->setObjectName("sketch.centerRectangle.height");layout->addWidget(centerRectangleHeight_);centerRectangleHeight_->hide();
         dimensionEditorError_=new QLabel;dimensionEditorError_->setWordWrap(true);dimensionEditorError_->setStyleSheet("color: #53616b; font-size: 11px; background: #f7f8f9;");layout->addWidget(dimensionEditorError_);
@@ -6773,6 +6904,14 @@ void AlloyWindow::ensureSketchInlineEditor() {
             if(session_.value("pendingLineLength").toObject().value("phase")=="editing")sketchResponse(execute("sketch.lineLengthPreview",{{"text",text}}));
             if(session_.contains("pendingCenterRectangle"))sketchResponse(execute("sketch.centerRectanglePreview",{{"widthText",text},{"heightText",centerRectangleHeight_->text()}}));
             if(session_.contains("pendingTwoPointRectangle"))sketchResponse(execute("sketch.twoPointRectanglePreview",{{"widthText",text},{"heightText",centerRectangleHeight_->text()}}));
+        });
+        connect(lineAngleValue_,&QLineEdit::textChanged,this,[this](const QString& text){
+            if(session_.value("pendingLineLength").toObject().value("phase")=="locked")
+                sketchResponse(execute("sketch.lineAnglePreview",{{"text",text}}));
+        });
+        connect(lineAngleValue_,&QLineEdit::returnPressed,this,[this]{
+            if(session_.value("pendingLineLength").toObject().value("phase")=="locked")
+                sketchResponse(execute("sketch.lineAngleLock",{{"text",lineAngleValue_->text()}}));
         });
         connect(centerRectangleHeight_,&QLineEdit::textChanged,this,[this](const QString& text){
             if(session_.contains("pendingCenterRectangle"))sketchResponse(execute("sketch.centerRectanglePreview",{{"widthText",dimensionEditorValue_->text()},{"heightText",text}}));
@@ -6795,6 +6934,7 @@ void AlloyWindow::showCircleDiameterEditor(const QString& text) {
     ensureSketchInlineEditor();
     dimensionEditorValue_->installEventFilter(this);
     twoPointWidthLabel_->hide();twoPointHeightLabel_->hide();centerRectangleHeight_->hide();
+    lineLengthLabel_->hide();lineAngleLabel_->hide();lineAngleValue_->hide();
     dimensionEditorValue_->setReadOnly(false);
     {const QSignalBlocker block(dimensionEditorValue_);dimensionEditorValue_->setText(text);}
     dimensionEditorError_->setText(session_.value("pendingCircleDiameter").toObject().value("valid").toBool()
@@ -6805,6 +6945,7 @@ void AlloyWindow::showCircleDiameterEditor(const QString& text) {
 void AlloyWindow::showDimensionEditor() {
     ensureSketchInlineEditor();
     twoPointWidthLabel_->hide();twoPointHeightLabel_->hide();centerRectangleHeight_->hide();
+    lineLengthLabel_->hide();lineAngleLabel_->hide();lineAngleValue_->hide();
     const auto pending=session_.value("pendingDimension").toObject();const auto units=session_.value("inputs").toObject().value("units").toString();const double scale=units=="in" ? 25.4 : 1;
     const bool driving=pending.value("driving").toBool();dimensionEditorValue_->setReadOnly(!driving);
     const bool angular=pending["kind"]=="arcSweep" || pending["kind"]=="angle";
@@ -6842,14 +6983,24 @@ void AlloyWindow::positionDimensionEditor() {
     }
     const auto plane=session_.value("inputs").toObject().value("plane").toString();
     const auto p=view_->projectSketchPoint(point.value("uMm").toDouble(),point.value("vMm").toDouble(),plane);
-    dimensionEditor_->move(std::clamp(qRound(p.value("x").toDouble()+12),0,std::max(0,view_->width()-dimensionEditor_->width())),
+    int editorX=qRound(p.value("x").toDouble()+12);
+    if(session_.contains("pendingLineLength")){
+        const auto pointer=session_.value("pointerPoint").toObject();
+        const auto hovered=pointer.isEmpty() ? QJsonObject{} : view_->projectSketchPoint(pointer.value("uMm").toDouble(),pointer.value("vMm").toDouble(),plane);
+        const bool lineHeadsRight=hovered.isEmpty() || hovered.value("x").toDouble()>=p.value("x").toDouble();
+        const int opposite=qRound(p.value("x").toDouble())-(lineHeadsRight ? dimensionEditor_->width()+16 : -16);
+        if(opposite>=0 && opposite+dimensionEditor_->width()<=view_->width())editorX=opposite;
+    }
+    dimensionEditor_->move(std::clamp(editorX,0,std::max(0,view_->width()-dimensionEditor_->width())),
         std::clamp(qRound(p.value("y").toDouble()+12),0,std::max(0,view_->height()-dimensionEditor_->height())));
 }
 QJsonObject AlloyWindow::inlineEditorState() const {
     if(!dimensionEditor_)return {{"visible",false}};
     return {{"visible",dimensionEditor_->isVisible()},{"kind",session_.contains("pendingTwoPointRectangle") ? "twoPointRectangle" : session_.contains("pendingCenterRectangle") ? "centerRectangle" :
         session_.contains("pendingCircleDiameter") ? (session_.value("tool")=="twoPointCircle" ? "twoPointCircleDiameter" : "circleDiameter") : session_.contains("pendingLineLength") ? "lineLength" : "dimension"},{"heightText",centerRectangleHeight_ ? centerRectangleHeight_->text() : QString{}},
-        {"text",dimensionEditorValue_->text()},{"readOnly",dimensionEditorValue_->isReadOnly()},
+        {"text",dimensionEditorValue_->text()},{"angleText",lineAngleValue_ ? lineAngleValue_->text() : QString{}},
+        {"angleVisible",lineAngleValue_ && lineAngleValue_->isVisible()},{"focusedField",lineAngleValue_ && lineAngleValue_->hasFocus() ? "angle" : dimensionEditorValue_->hasFocus() ? "length" : "none"},
+        {"readOnly",dimensionEditorValue_->isReadOnly()},
         {"bounds",QJsonObject{{"x",dimensionEditor_->x()},{"y",dimensionEditor_->y()},{"width",dimensionEditor_->width()},{"height",dimensionEditor_->height()}}}};
 }
 

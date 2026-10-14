@@ -1510,7 +1510,9 @@ void ReferenceView::showSketchCursor(const QString& plane,const QPointF& first,c
     } else polygon.Add(sketchWorld(plane,second.x(),second.y()));
     if(!polygon.IsDone())return;
     sketchCursor_=sketchPresentation(polygon.Wire());
-    sketchCursor_->SetColor(Quantity_Color(0.30,0.58,0.87,Quantity_TOC_RGB));
+    sketchCursor_->SetColor(Quantity_Color(0.13,0.42,0.72,Quantity_TOC_sRGB));
+    sketchCursor_->SetWidth(2*devicePixelRatioF());
+    sketchCursor_->SetZLayer(Graphic3d_ZLayerId_Topmost);
     context_->Display(sketchCursor_,AIS_WireFrame,-1,false);context_->Deactivate(sketchCursor_);context_->UpdateCurrentViewer();
 }
 void ReferenceView::showSketchSnap(const QString& plane,const QJsonObject& snap) {

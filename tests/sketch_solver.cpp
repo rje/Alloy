@@ -56,6 +56,33 @@ int main() {
         if(!otherSolved.accepted)throw std::runtime_error("anchored line-equations fixture: "+otherSolved.error.toStdString());
         check(otherSolved.diagnostics["dof"].toInt()>0,"free sketch must remain underconstrained");
         check(otherSolved.diagnostics["maxResidual"].toDouble()<1e-6,"independent equation residual too high");
+        // An angled Line's horizontal construction reference shares the line
+        // start. Its free endpoint needs one corner Coincident, although the
+        // helper and two projected points already imply the vertical equation.
+        QJsonObject typed{{"plane","XY"},
+            {"points",QJsonArray{point("inner",4,40),point("corner",0,40),point("start",4,40),
+                point("helperEnd",2,40),point("end",1.705694255,36.723391822)}},
+            {"entities",QJsonArray{QJsonObject{{"id","helper"},{"type","line"},{"startPointId","start"},
+                {"endPointId","helperEnd"},{"construction",true}},line("edge","start","end")}},
+            {"constraints",QJsonArray{QJsonObject{{"id","anchorStart"},{"type","coincident"},{"pointIds",QJsonArray{"start","inner"}}},
+                constraint("referenceHorizontal","horizontal","helper")}},
+            {"dimensions",QJsonArray{dimension("length","linear","start","end",4),
+                QJsonObject{{"id","angle"},{"kind","angle"},{"entityIds",QJsonArray{"helper","edge"}},
+                    {"driving",true},{"valueDeg",55}}}}};
+        const QSet<QString> projected{"inner","corner"};
+        const auto freeHelper=SketchSolver::solve(typed,projected);
+        check(freeHelper.accepted && freeHelper.diagnostics["dof"].toInt()==1,"typed reference should have one free length");
+        auto typedConstraints=typed["constraints"].toArray();
+        typedConstraints.append(QJsonObject{{"id","cornerJoin"},{"type","coincident"},
+            {"pointIds",QJsonArray{"helperEnd","corner"}}});typed["constraints"]=typedConstraints;
+        const auto joined=SketchSolver::solve(typed,projected);
+        check(joined.accepted && joined.diagnostics["dof"].toInt()==0,qPrintable(joined.error));
+        check(joined.diagnostics["acceptedReferenceCoincidenceId"]=="cornerJoin","dependent corner equation not classified");
+        const auto joinedPoints=joined.parameters["points"].toArray();
+        check(std::abs(joinedPoints[3].toObject()["uMm"].toDouble())<1e-6,"helper did not meet projected corner");
+        auto wrongCorner=typed;auto wrongPoints=wrongCorner["points"].toArray();
+        auto moved=wrongPoints[1].toObject();moved["vMm"]=41;wrongPoints[1]=moved;wrongCorner["points"]=wrongPoints;
+        check(!SketchSolver::solve(wrongCorner,projected).accepted,"dependent coincidence accepted a displaced corner");
         auto legacy=source;legacy.remove("constraints");legacy.remove("dimensions");
         auto unchanged=SketchSolver::solve(legacy);check(unchanged.accepted && unchanged.parameters==legacy,"legacy sketch schema changed");
         std::cout<<"PASS: real PlaneGCS constraints, driving/driven dimensions, edits, conflicts, redundancy, positive direction and copy isolation\n";

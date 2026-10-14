@@ -393,13 +393,61 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
                 scopedConcentricRedundancy=baseline.accepted;
             }
             if(scopedConcentricRedundancy)result.diagnostics["acceptedConcentricDependentRedundancyIds"]=mapped(redundant);
+            bool scopedReferenceCoincidence=false;
+            QString referenceCoincidenceId;
+            if(!redundant.empty() && conflicts.empty() && status==GCS::SolveStatus::Success) {
+                int referenceCoincidenceCandidates=0;
+                QSet<QString> horizontalIds,angleReferenceIds,anchoredIds=lockedPointIds;
+                for(const auto& value:constraints) {
+                    const auto c=value.toObject();
+                    if(c["type"]=="horizontal" && c["entityIds"].isArray())horizontalIds.insert(reference(c,"entityIds",0));
+                    if(c["type"]=="coincident") {
+                        const auto a=reference(c,"pointIds",0),b=reference(c,"pointIds",1);
+                        if(lockedPointIds.contains(a))anchoredIds.insert(b);
+                        if(lockedPointIds.contains(b))anchoredIds.insert(a);
+                    }
+                }
+                for(const auto& value:dimensions) {
+                    const auto d=value.toObject();
+                    if(d["kind"]=="angle" && d["driving"].toBool())
+                        angleReferenceIds.insert(reference(d,"entityIds",0));
+                }
+                for(const auto& value:constraints) {
+                    const auto c=value.toObject();if(c["type"]!="coincident")continue;
+                    const auto a=reference(c,"pointIds",0),b=reference(c,"pointIds",1);
+                    for(const auto& entityValue:entities) {
+                        const auto e=entityValue.toObject();const auto id=e["id"].toString();
+                        if(e["type"]!="line" || !e["construction"].toBool() ||
+                           !horizontalIds.contains(id) || !angleReferenceIds.contains(id))continue;
+                        const auto start=e["startPointId"].toString(),end=e["endPointId"].toString();
+                        if(!anchoredIds.contains(start) || lockedPointIds.contains(end))continue;
+                        if(!((a==end && lockedPointIds.contains(b)) || (b==end && lockedPointIds.contains(a))))continue;
+                        ++referenceCoincidenceCandidates;
+                        referenceCoincidenceId=c["id"].toString();
+                    }
+                }
+                if(referenceCoincidenceCandidates==1 && !referenceCoincidenceId.isEmpty()) {
+                    auto base=parameters;QJsonArray kept;
+                    for(const auto& value:constraints)if(value.toObject()["id"]!=referenceCoincidenceId)kept.append(value);
+                    base["constraints"]=kept;
+                    const auto baseline=SketchSolver::solve(base,lockedPointIds);
+                    // The horizontal helper already supplies the vertical
+                    // component of this corner coincidence. Accept that single
+                    // dependent equation only if the corner removes exactly one
+                    // free DOF; the full coincidence residual is checked below.
+                    scopedReferenceCoincidence=baseline.accepted &&
+                        baseline.diagnostics["dof"].toInt()==solver.dofsNumber()+1;
+                }
+            }
+            if(scopedReferenceCoincidence)
+                result.diagnostics["acceptedReferenceCoincidenceId"]=referenceCoincidenceId;
             result.diagnostics["conflictingConstraintIds"] = mapped(conflicts);
             result.diagnostics["redundantConstraintIds"] = mapped(redundant);
             result.diagnostics["conflictingEntityIds"] = mapped(conflicts,true);
             result.diagnostics["redundantEntityIds"] = mapped(redundant,true);
             result.diagnostics["solverStatus"] = static_cast<int>(status);
             dof = solver.dofsNumber(); result.diagnostics["dof"] = dof;
-            if (!conflicts.empty() || (!redundant.empty() && !scopedConcentricRedundancy) || status != GCS::SolveStatus::Success) {
+            if (!conflicts.empty() || (!redundant.empty() && !scopedConcentricRedundancy && !scopedReferenceCoincidence) || status != GCS::SolveStatus::Success) {
                 result.diagnostics["status"] = !conflicts.empty() ? "conflicting" : !redundant.empty() ? "redundant" : "failed";
                 result.error = "Sketch solve rejected: " + result.diagnostics.value("status").toString(); return result;
             }

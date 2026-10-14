@@ -243,7 +243,7 @@ void checkFields(const QJsonObject& arguments, const QSet<QString>& allowed) {
         if (!allowed.contains(it.key())) reject("Unknown sketch argument: " + it.key());
 }
 void retainSupportPoint(QJsonObject& parameters,const QJsonObject& context,const QString& id) {
-    for(const auto& value:parameters["pointProjections"].toArray())
+    for(const auto& value:parameters.value("pointProjections").toArray())
         if(value.toObject()["id"]==id)return; // Already retained by Project, with its own edge provenance.
     for(const auto& value:context["points"].toArray()) {
         const auto available=value.toObject();if(available["id"]!=id)continue;

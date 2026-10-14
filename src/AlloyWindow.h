@@ -294,6 +294,8 @@ private:
     void cancelCircleDiameter();
     QJsonObject previewLineLength(const QJsonObject& args);
     QJsonObject lockLineLength(const QJsonObject& args);
+    QJsonObject previewLineAngle(const QJsonObject& args);
+    QJsonObject lockLineAngle(const QJsonObject& args);
     void cancelLineLength();
     QJsonObject lockedLinePoint(const QJsonObject& pointer) const;
     void showLineLockCue(const QJsonObject& point);
@@ -418,6 +420,9 @@ private:
     QScrollArea* sketchScroll_ = nullptr;
     QWidget* dimensionEditor_ = nullptr;
     QLineEdit* dimensionEditorValue_ = nullptr;
+    QLabel* lineLengthLabel_ = nullptr;
+    QLineEdit* lineAngleValue_ = nullptr;
+    QLabel* lineAngleLabel_ = nullptr;
     QLineEdit* centerRectangleHeight_ = nullptr;
     QFrame* slotEditor_ = nullptr;
     QLineEdit* slotDistance_ = nullptr;

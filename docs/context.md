@@ -3007,3 +3007,20 @@ expression parsing are separate.
 ## Linked planar Project candidate (2026-10-13)
 
 SKT-066 adds explicit linked Project of real straight face boundaries and normal-to-plane edges (as points), plus root-sibling identity sketch support and sources. The candidate is in `../Alloy-worktrees/linked-planar-project`, branch `feat/linked-planar-project`. Its bounded core, real-entrypoint API and native Qt input tests pass the Box → Shell source, actual visible inner-edge pick, retained constraint anchor, projected-profile extrusion, Box resize, sibling Lid support, preview/Cancel/commit and reopen. See [the candidate receipt](validation/linked-planar-project.md). Broader silhouettes, curves, detached copies and occurrence transforms are outside this ingredient. Independent source/capture review accepts the bounded ingredient; integrated on main. The neighboring `face_support_test` fails with the same origin-reference error on main `3f7650a` and this branch, separate from Project.
+
+## Typed Line angle candidate (2026-10-13)
+
+SKT-070 adds separate Length/Angle Line fields, retained Euclidean length and
+angle dimensions, and an authored horizontal construction reference for a later
+Coincident correction. The Box → Shell → Project source ingredient, Midpoint
+axis, Horizontal connector, Mirror, named Thickness edit and save/reopen run
+through the real application. The existing length-only chained Line remains
+supported. See [the bounded receipt](validation/typed-line-angle.md). Physical
+OS input remains unqualified; the revised preview layout and final constrained
+half were captured through the real application at
+`/tmp/alloy-skt070-angle-api-final-cursor/`. The horizontal helper shares the angled
+line start, leaving exactly one free endpoint length until Coincident to the
+projected outer corner makes the half fully constrained. Focused solver, Qt and
+real-app checks pass. Independent final source and capture review accepted the
+bounded ingredient. Historical source-video quadrant and physical OS key input
+remain unqualified.
