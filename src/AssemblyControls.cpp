@@ -87,20 +87,40 @@ QJsonObject positionData(const QVariant& value){
     return value.metaType().id()==QMetaType::QJsonValue ? value.toJsonValue().toObject() : value.toJsonObject();
 }
 }
+std::shared_ptr<const AssemblyGraph::Evaluation> AlloyWindow::graphEvaluation(
+    const QJsonObject& authored,const EvaluatedDocument& definitions,const QJsonObject& coordinateOverride) const {
+    // A pending reference move has different definition inputs for bodies and
+    // inspection. Keep those reads independent until that workflow is unified.
+    // Only the document-owned canonical evaluation has a guaranteed lifetime
+    // through this scope. Prepared noncanonical evaluations may be released and
+    // their addresses reused before another nested command reads the cache.
+    const bool scoped=graphEvaluationScopeDepth_>0 && !pendingReferenceEvaluation_
+        && &definitions==&document_->evaluation();
+    if(scoped && graphEvaluationCache_ && graphEvaluationCache_->tabId==activeTabId_
+        && graphEvaluationCache_->documentRevision==document_->revision()
+        && graphEvaluationCache_->definitions==&definitions
+        && graphEvaluationCache_->authored==authored
+        && graphEvaluationCache_->coordinateOverride==coordinateOverride)
+        return graphEvaluationCache_->result;
+    auto result=std::make_shared<const AssemblyGraph::Evaluation>(AssemblyGraph::evaluate(authored,definitions,coordinateOverride));
+    if(scoped)graphEvaluationCache_=GraphEvaluationCache{activeTabId_,document_->revision(),&definitions,
+        authored,coordinateOverride,result};
+    return result;
+}
 std::vector<EvaluatedBody> AlloyWindow::presentationBodies() const {
     const auto& authored=sliderPreviewAuthored_.isEmpty() ? document_->authored() : sliderPreviewAuthored_;
     const auto& definitions=pendingReferenceEvaluation_ ? *pendingReferenceEvaluation_ : document_->evaluation();
     const auto joints=authored.value("joints").toArray();
-    if(AssemblyGraph::isJointGraph(authored))return AssemblyGraph::worldBodies(authored,definitions,
-        graphOverride(authored,jointGraphStage_,transientSliderPosition_));
+    if(AssemblyGraph::isJointGraph(authored))return graphEvaluation(authored,definitions,
+        graphOverride(authored,jointGraphStage_,transientSliderPosition_))->worldBodies;
     if(joints.isEmpty())return LocalOccurrences::worldBodies(authored,definitions);
     return AssemblySlider::worldBodies(authored,definitions,transientSliderPosition_);
 }
 QJsonObject AlloyWindow::presentationAssembly() const {
     const auto& authored=sliderPreviewAuthored_.isEmpty() ? document_->authored() : sliderPreviewAuthored_;
     const auto joints=authored.value("joints").toArray();
-    if(AssemblyGraph::isJointGraph(authored))return AssemblyGraph::inspect(authored,document_->evaluation(),
-        graphOverride(authored,jointGraphStage_,transientSliderPosition_));
+    if(AssemblyGraph::isJointGraph(authored))return graphEvaluation(authored,document_->evaluation(),
+        graphOverride(authored,jointGraphStage_,transientSliderPosition_))->inspection;
     if(joints.isEmpty())return LocalOccurrences::inspect(authored,document_->evaluation());
     return AssemblySlider::inspect(authored,document_->evaluation(),transientSliderPosition_);
 }
@@ -379,7 +399,7 @@ void AlloyWindow::registerRevoluteCommands(){
                     if(value.toObject()["type"]=="asBuiltRevolute"){target=value.toObject()["id"].toString();break;}
                 if(jointType(authored,target)!="asBuiltRevolute")return fail("invalid_revolute","Preview requires a retained Revolute joint ID");
                 const QJsonObject override{{"jointId",target},{"angleDeg",angle}};
-                const auto resolved=AssemblyGraph::inspect(authored,document_->evaluation(),override);
+                const auto resolved=graphEvaluation(authored,document_->evaluation(),override)->inspection;
                 transientSliderPosition_.reset();jointGraphStage_=override;
                 jointGraphStage_["documentRevision"]=static_cast<qint64>(document_->revision());
                 displayedDocumentRevision_=std::numeric_limits<quint64>::max();return resolved;
@@ -458,7 +478,7 @@ QJsonObject AlloyWindow::previewRevolute(){
     try {const auto candidate=AssemblyRevolute::candidate(document_->authored(),document_->evaluation(),session_["inputs"].toObject());
         const auto prepared=document_->prepareCandidate(candidate);
         if(!prepared.ok)throw std::invalid_argument(prepared.error.toStdString());
-        const auto assembly=AssemblyRevolute::inspect(prepared.authored,*prepared.evaluation);
+        const auto assembly=graphEvaluation(prepared.authored,*prepared.evaluation,{})->inspection;
         sliderPreviewAuthored_=prepared.authored;session_["documentDraft"]=prepared.authored;
         session_["assembly"]=assembly;session_["previewed"]=true;session_.remove("previewError");
         displayedDocumentRevision_=std::numeric_limits<quint64>::max();refreshRevoluteControls();return session_;
@@ -601,7 +621,7 @@ void AlloyWindow::registerCylindricalCommands(){
             const auto& authored=sliderPreviewAuthored_.isEmpty()?document_->authored():sliderPreviewAuthored_;
             if(jointType(authored,args["jointId"].toString())!="asBuiltCylindrical")
                 return fail("invalid_cylindrical","Preview requires a retained Cylindrical joint ID");
-            try{AssemblyGraph::inspect(authored,document_->evaluation(),args);
+            try{graphEvaluation(authored,document_->evaluation(),args);
                 transientSliderPosition_.reset();jointGraphStage_=args;jointGraphStage_["documentRevision"]=static_cast<qint64>(document_->revision());
                 displayedDocumentRevision_=std::numeric_limits<quint64>::max();return presentationAssembly();
             }catch(const std::exception& e){return fail("invalid_cylindrical",QString::fromUtf8(e.what()));}
@@ -642,7 +662,7 @@ QJsonObject AlloyWindow::previewCylindrical(){
     try{const auto candidate=AssemblyGraph::cylindricalCandidate(document_->authored(),document_->evaluation(),session_["inputs"].toObject());
         const auto prepared=document_->prepareCandidate(candidate);
         if(!prepared.ok)throw std::invalid_argument(prepared.error.toStdString());
-        const auto assembly=AssemblyGraph::inspect(prepared.authored,*prepared.evaluation);
+        const auto assembly=graphEvaluation(prepared.authored,*prepared.evaluation,{})->inspection;
         sliderPreviewAuthored_=prepared.authored;session_["documentDraft"]=prepared.authored;
         session_["assembly"]=assembly;session_["previewed"]=true;session_.remove("previewError");
         displayedDocumentRevision_=std::numeric_limits<quint64>::max();refreshCylindricalControls();return session_;

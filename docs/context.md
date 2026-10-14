@@ -53,6 +53,11 @@ and native 3/3 evidence remain distinct. See [workflow](validation/piston-couple
 and [native qualifications](validation/piston-coupled-ui.md). The gallery now has
 a 188.5-second from-blank creation-through-coupled-motion checkpoint. A measured
 223 ms preview event is tracked separately in REL-010/#367, not a frame-rate claim.
+A bounded REL-010 candidate now shares one coupled solve across inspection and
+placed bodies during one preview/refresh, while leaving the solver checks intact.
+The [candidate receipt](validation/assembly-preview-reuse.md) records counted
+core and actual-app API evidence; independent review and native pointer-drag
+latency remain pending.
 ASM-017/#366 is independently accepted at `de30222`: linked local occurrence
 subtrees share source definitions and retain composed placement, paths and exact
 selection. Native 3/3 and actual-app API02 31 calls (three intended refusals) pass;

@@ -24,6 +24,7 @@
 #include <QAction>
 #include <QWindow>
 #include <QCryptographicHash>
+#include <QDebug>
 #include <QDialog>
 #include <QDialogButtonBox>
 #include <QDrag>
@@ -1228,7 +1229,7 @@ QJsonObject AlloyWindow::documentTabs() const {
     QJsonArray tabs;
     for(const auto& tab:designTabs_) {
         const auto session=tab->id==activeTabId_ ? session_ : tab->session;
-        tabs.append(QJsonObject{{"tabId",tab->id},{"title",tab->document->state()["label"]},
+        tabs.append(QJsonObject{{"tabId",tab->id},{"title",tab->document->label()},
             {"path",tab->document->path()},{"dirty",tabHasUnsavedWork(tab->id)},
             {"hasSketchDraft",session.value("command")=="sketch.edit"}});
     }
@@ -1246,7 +1247,7 @@ void AlloyWindow::refreshTabs() {
     }
     for(int i=0;i<documentTabBar_->count();++i) {
         const auto& tab=designTabs_[i];
-        const auto label=tab->document->state()["label"].toString();
+        const auto label=tab->document->label();
         documentTabBar_->setTabText(i,label+(tabHasUnsavedWork(tab->id) ? " *" : ""));
         if(tab->id==activeTabId_)documentTabBar_->setCurrentIndex(i);
     }
@@ -4968,6 +4969,10 @@ QJsonArray AlloyWindow::commands() const {
 }
 
 QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
+    GraphEvaluationScope graphScope(*this);
+    const bool traceGraphSolves=qEnvironmentVariableIsSet("ALLOY_TRACE_ASSEMBLY_SOLVES")
+        && (id=="joint.previewAngle" || id=="joint.previewCylindrical");
+    const auto initialGraphSolves=traceGraphSolves?AssemblyGraph::solveCount():0;
     const auto finish=[this,&id](QJsonObject response) {
         if(recorder_)recorder_->command(id,response,apiExecuting_);
         return response;
@@ -5011,12 +5016,16 @@ QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
     catch(const Standard_Failure& error) { refreshConstraintFailure(); return finish(failure("kernel_failure",QString::fromUtf8(error.GetMessageString()))); }
     catch(const std::exception& error) { refreshConstraintFailure(); return finish(failure("command_failed",QString::fromUtf8(error.what()))); }
     if (result.value("ok").isBool() && !result.value("ok").toBool()) { refreshConstraintFailure(); return finish(result); }
+    const auto afterCommandSolves=traceGraphSolves?AssemblyGraph::solveCount():0;
     if(document_->revision()!=priorDocumentRevision && (transientSliderPosition_.has_value() || !jointGraphStage_.isEmpty() || (sliderTimer_ && sliderTimer_->isActive()))){
         transientSliderPosition_.reset();jointGraphStage_={};if(sliderTimer_)sliderTimer_->stop();displayedDocumentRevision_=std::numeric_limits<quint64>::max();
     }
     const bool changesState = id == "window.resize" || id.startsWith("layout.") || id.startsWith("view.") || (id == "commands.search" || id == "commands.close");
     if (changesState) ++revision_;
     refresh();
+    if(traceGraphSolves)qInfo().noquote()<<"assembly_preview_solves"<<id
+        <<QString("command=%1").arg(afterCommandSolves-initialGraphSolves)
+        <<QString("refresh=%1").arg(AssemblyGraph::solveCount()-afterCommandSolves);
     return finish({{"ok", true}, {"completion", "completed"}, {"command", id}, {"revision", static_cast<qint64>(revision_)},
         {"documentRevision", static_cast<qint64>(document_->revision())}, {"result", result}});
 }
@@ -5146,6 +5155,7 @@ QJsonObject AlloyWindow::state() const {
 }
 
 void AlloyWindow::refresh() {
+    GraphEvaluationScope graphScope(*this);
     refreshPositionTab();
     refreshLengthParameters();
     if (!browser_) return;
@@ -5156,7 +5166,7 @@ void AlloyWindow::refresh() {
     refreshSection();
     browser_->setVisible(browserVisible_); timeline_->setVisible(timelineVisible_); navigation_->setVisible(navigationVisible_);
     tree_->topLevelItem(0)->child(0)->child(0)->setText(0, "Units: " + document_->authored()["displayUnits"].toString());
-    const auto label=document_->state()["label"].toString();
+    const auto label=document_->label();
     const auto title=label+(tabHasUnsavedWork(activeTabId_) ? " *" : "");
     setWindowTitle(title+" — Alloy");documentTitle_->setText("◇   "+title);tree_->topLevelItem(0)->setText(0,"◇  "+label);
     refreshTabs();

@@ -10,10 +10,12 @@
 #include <QSet>
 #include <gp_Trsf.hxx>
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 #include <map>
 #include <stdexcept>
 namespace {
+std::atomic<quint64> graphSolveCount{0};
 constexpr double pi=3.14159265358979323846;
 void require(bool value,const char* text){if(!value)throw std::invalid_argument(text);}
 bool uuid(const QString& s){return !QUuid(s).isNull();}
@@ -46,6 +48,7 @@ QJsonArray movingFrame(const QJsonObject& a,const EvaluatedDocument& d,const QJs
 QString driverFor(const QJsonArray& rows,const QString& jointId){QString start;for(const auto& v:rows)if(v.toObject()["id"]==jointId)start=v.toObject()["component1OccurrenceId"].toString();QSet<QString> members{start};bool changed=true;while(changed){changed=false;for(const auto& v:rows){const auto j=v.toObject();const auto x=j["component1OccurrenceId"].toString(),y=j["component2OccurrenceId"].toString();if(members.contains(x)||members.contains(y)){const auto old=members.size();members.insert(x);members.insert(y);changed|=members.size()!=old;}}}for(const auto& v:rows)if(members.contains(v.toObject()["component1OccurrenceId"].toString()))return v.toObject()["id"].toString();return {};}
 struct Result {QMap<QString,AlloyAssemblyPose> poses;QJsonArray joints,islands;};
 Result solve(const QJsonObject& a,const EvaluatedDocument& d,const QJsonObject& override){
+ ++graphSolveCount;
  const auto error=AssemblyGraph::validateRecords(a);require(error.isEmpty(),qPrintable(error));const auto rows=a["joints"].toArray();Result result;
  for(const auto& v:a["occurrences"].toArray())result.poses[v.toObject()["id"].toString()]=pose(LocalOccurrences::worldPose(a,v.toObject()["id"].toString()));
  if(rows.isEmpty())return result;
@@ -102,5 +105,50 @@ QString AssemblyGraph::validateRecords(const QJsonObject& a){try{
  return {};}catch(const std::exception& e){return QString::fromUtf8(e.what());}}
 QJsonObject AssemblyGraph::revoluteCandidate(const QJsonObject& a,const EvaluatedDocument& d,const QJsonObject& args){return candidate(a,d,args,false);}
 QJsonObject AssemblyGraph::cylindricalCandidate(const QJsonObject& a,const EvaluatedDocument& d,const QJsonObject& args){return candidate(a,d,args,true);}
-std::vector<EvaluatedBody> AssemblyGraph::worldBodies(const QJsonObject& a,const EvaluatedDocument& d,const QJsonObject& o){if(a["joints"].toArray().isEmpty())return LocalOccurrences::worldBodies(a,d);const auto solved=solve(a,d,o);std::vector<EvaluatedBody> bodies;for(const auto& b:d.bodies){bool instanced=false;for(const auto& v:a["occurrences"].toArray()){const auto r=v.toObject();if(r["definitionId"].toString()!=owner(a,b))continue;const auto occurrence=r["id"].toString();auto placed=atRest(solved.poses[occurrence])?b:LocalReference::placed(b,trsf(solved.poses[occurrence]));placed.occurrenceId=occurrence;placed.definitionId=r["definitionId"].toString();bodies.push_back(std::move(placed));instanced=true;}if(!instanced)bodies.push_back(b);}return bodies;}
-QJsonObject AssemblyGraph::inspect(const QJsonObject& a,const EvaluatedDocument& d,const QJsonObject& o){if(a["joints"].toArray().isEmpty())return LocalOccurrences::inspect(a,d);const auto solved=solve(a,d,o);QJsonArray occurrences;for(const auto& v:a["occurrences"].toArray()){const auto r=v.toObject();QJsonArray bodies;for(const auto& b:d.bodies)if(owner(a,b)==r["definitionId"].toString()){auto placed=LocalReference::placed(b,trsf(solved.poses[r["id"].toString()]));bodies.append(QJsonObject{{"bodyId",b.bodyId},{"boundsMm",placed.summary["boundsMm"]}});}occurrences.append(QJsonObject{{"occurrenceId",r["id"]},{"definitionId",r["definitionId"]},{"bodies",bodies},{"worldPose",array(solved.poses[r["id"].toString()])}});}return {{"joints",solved.joints},{"occurrences",occurrences},{"islands",solved.islands},{"graphMobility","unqualified"}};}
+AssemblyGraph::Evaluation AssemblyGraph::evaluate(const QJsonObject& a,const EvaluatedDocument& d,const QJsonObject& o){
+ if(a["joints"].toArray().isEmpty())return {LocalOccurrences::inspect(a,d),LocalOccurrences::worldBodies(a,d)};
+ const auto solved=solve(a,d,o);Evaluation result;QMap<QString,QJsonArray> summaries;
+ for(const auto& b:d.bodies){bool instanced=false;for(const auto& v:a["occurrences"].toArray()){
+  const auto r=v.toObject();if(r["definitionId"].toString()!=owner(a,b))continue;
+  const auto occurrence=r["id"].toString();const auto rest=atRest(solved.poses[occurrence]);
+  auto placed=rest?b:LocalReference::placed(b,trsf(solved.poses[occurrence]));
+  // The legacy inspection path always transforms, even for poses treated as
+  // rest by the body presenter. Preserve its exact bounds in that case.
+  QJsonValue bounds=placed.summary.value("boundsMm");
+  if(rest){const auto inspected=LocalReference::placed(b,trsf(solved.poses[occurrence]));
+   bounds=inspected.summary.value("boundsMm");}
+  summaries[occurrence].append(QJsonObject{{"bodyId",b.bodyId},{"boundsMm",bounds}});
+  placed.occurrenceId=occurrence;placed.definitionId=r["definitionId"].toString();result.worldBodies.push_back(std::move(placed));instanced=true;
+ }if(!instanced)result.worldBodies.push_back(b);}
+ QJsonArray occurrences;for(const auto& v:a["occurrences"].toArray()){
+  const auto r=v.toObject();const auto id=r["id"].toString();
+  occurrences.append(QJsonObject{{"occurrenceId",id},{"definitionId",r["definitionId"]},
+   {"bodies",summaries.value(id)},{"worldPose",array(solved.poses[id])}});
+ }
+ result.inspection={{"joints",solved.joints},{"occurrences",occurrences},{"islands",solved.islands},{"graphMobility","unqualified"}};
+ return result;
+}
+quint64 AssemblyGraph::solveCount(){return graphSolveCount.load();}
+std::vector<EvaluatedBody> AssemblyGraph::worldBodies(const QJsonObject& a,const EvaluatedDocument& d,const QJsonObject& o){
+ if(a["joints"].toArray().isEmpty())return LocalOccurrences::worldBodies(a,d);
+ const auto solved=solve(a,d,o);std::vector<EvaluatedBody> bodies;
+ for(const auto& b:d.bodies){bool instanced=false;for(const auto& v:a["occurrences"].toArray()){
+  const auto r=v.toObject();if(r["definitionId"].toString()!=owner(a,b))continue;
+  const auto occurrence=r["id"].toString();auto placed=atRest(solved.poses[occurrence])?b:LocalReference::placed(b,trsf(solved.poses[occurrence]));
+  placed.occurrenceId=occurrence;placed.definitionId=r["definitionId"].toString();bodies.push_back(std::move(placed));instanced=true;
+ }if(!instanced)bodies.push_back(b);}return bodies;
+}
+QJsonObject AssemblyGraph::inspect(const QJsonObject& a,const EvaluatedDocument& d,const QJsonObject& o){
+ if(a["joints"].toArray().isEmpty())return LocalOccurrences::inspect(a,d);
+ const auto solved=solve(a,d,o);QJsonArray occurrences;
+ for(const auto& v:a["occurrences"].toArray()){
+  const auto r=v.toObject();QJsonArray bodies;
+  for(const auto& b:d.bodies)if(owner(a,b)==r["definitionId"].toString()){
+   auto placed=LocalReference::placed(b,trsf(solved.poses[r["id"].toString()]));
+   bodies.append(QJsonObject{{"bodyId",b.bodyId},{"boundsMm",placed.summary["boundsMm"]}});
+  }
+  occurrences.append(QJsonObject{{"occurrenceId",r["id"]},{"definitionId",r["definitionId"]},
+   {"bodies",bodies},{"worldPose",array(solved.poses[r["id"].toString()])}});
+ }
+ return {{"joints",solved.joints},{"occurrences",occurrences},{"islands",solved.islands},{"graphMobility","unqualified"}};
+}

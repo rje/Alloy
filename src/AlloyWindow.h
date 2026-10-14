@@ -10,6 +10,7 @@
 #include <optional>
 #include <vector>
 #include "CadDocument.h"
+#include "AssemblyGraph.h"
 #include "SketchGeometry.h"
 
 class QLabel;
@@ -95,6 +96,24 @@ private:
     std::vector<EvaluatedBody> presentationBodies() const;
     bool nonzeroAssemblyPose() const;
     QJsonObject presentationAssembly() const;
+    std::shared_ptr<const AssemblyGraph::Evaluation> graphEvaluation(const QJsonObject& authored,
+        const EvaluatedDocument& definitions,const QJsonObject& coordinateOverride) const;
+    struct GraphEvaluationCache {
+        QString tabId;
+        quint64 documentRevision=0;
+        const EvaluatedDocument* definitions=nullptr;
+        QJsonObject authored,coordinateOverride;
+        std::shared_ptr<const AssemblyGraph::Evaluation> result;
+    };
+    mutable std::optional<GraphEvaluationCache> graphEvaluationCache_;
+    int graphEvaluationScopeDepth_=0;
+    struct GraphEvaluationScope {
+        AlloyWindow& owner;
+        explicit GraphEvaluationScope(AlloyWindow& window):owner(window){
+            if(owner.graphEvaluationScopeDepth_++==0)owner.graphEvaluationCache_.reset();
+        }
+        ~GraphEvaluationScope(){if(--owner.graphEvaluationScopeDepth_==0)owner.graphEvaluationCache_.reset();}
+    };
     void registerCanvasCommands();
     QJsonObject beginCanvas(const QJsonObject& args,bool calibrating=false);
     QJsonObject updateCanvas(const QJsonObject& inputs);

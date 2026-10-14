@@ -46,6 +46,7 @@ public:
     QString save(const QString& path);
     QString open(const QString& path);
     QString path() const { return path_; }
+    QString label() const;
     const std::vector<EvaluatedBody>& bodies() const { return evaluation_->bodies; }
     std::vector<EvaluatedBody> worldBodies(std::optional<double> transientPositionMm = {}) const;
     QJsonObject assemblyState(std::optional<double> transientPositionMm = {}) const;
