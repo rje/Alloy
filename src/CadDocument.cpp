@@ -130,9 +130,15 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
                 }
             }
         }
-        if(feature["type"]=="loft")for(const auto& value:feature["parameters"].toObject()["profiles"].toArray()) {
-            const auto sketch=value.toObject()["sketchId"].toString();
-            if(!positions.contains(sketch) || positions[sketch]>=i || features[positions[sketch]].toObject()["type"]!="sketch")return {{"featureId",feature["id"]},{"featureType","loft"},{"code","loft_profile_unavailable"},{"message","Loft sections must reference earlier sketch features"}};
+        if(feature["type"]=="loft") {
+            const auto p=feature["parameters"].toObject();
+            auto checkSketch=[&](const QString& sketch) {
+                return positions.contains(sketch) && positions[sketch]<i && features[positions[sketch]].toObject()["type"]=="sketch";
+            };
+            for(const auto& value:p.value("operation")=="newComponent" ? p["sections"].toArray() : p["profiles"].toArray())
+                if(!checkSketch(value.toObject()["sketchId"].toString()))return {{"featureId",feature["id"]},{"featureType","loft"},{"code","loft_profile_unavailable"},{"message","Loft sections must reference earlier sketch features"}};
+            if(p.value("operation")=="newComponent" && !checkSketch(p["centerline"].toObject()["sketchId"].toString()))
+                return {{"featureId",feature["id"]},{"featureType","loft"},{"code","loft_centerline_unavailable"},{"message","Loft centerline must reference an earlier sketch feature"}};
         }
         if(feature["type"]=="circularPattern"){const auto p=feature["parameters"].toObject();for(int n=1;n<p["quantity"].toInt();++n)bodyPositions[CircularPattern::bodyId(feature["id"].toString(),p["sourceBodyId"].toString(),n)]=i;}
         if(feature["type"]=="stepAssemblyImport")
@@ -195,6 +201,17 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
                 || referencedOwners.value(source.value("producerFeatureId").toString())!=sourceOwner))
                 return {{"featureId",f["id"]},{"code","cross_component_dependency"},{"message","To Object requires an identity sibling target"}};
             guarded.remove("endSupport");
+        }
+        if(f["type"]=="loft" && guarded.value("operation")=="newComponent") {
+            // The source sketches precede the newly authored root-child component.
+            // This allowance is restricted to the exact retained Loft inputs.
+            if(!identityChildren.contains(owner))return {{"featureId",f["id"]},{"code","cross_component_dependency"},{"message","Surface Loft requires a root-child identity component"}};
+            for(const auto& value:guarded["sections"].toArray())
+                if(referencedOwners.value(value.toObject()["sketchId"].toString())!=root)
+                    return {{"featureId",f["id"]},{"code","cross_component_dependency"},{"message","Surface Loft sections must come from root sketches"}};
+            if(referencedOwners.value(guarded["centerline"].toObject()["sketchId"].toString())!=root)
+                return {{"featureId",f["id"]},{"code","cross_component_dependency"},{"message","Surface Loft centerline must come from a root sketch"}};
+            guarded.remove("sections");guarded.remove("centerline");
         }
         if(crossOwner(guarded))return {{"featureId",f["id"]},{"code","cross_component_dependency"},{"message","Cross-component modeling references are not supported"}};
     }
@@ -1116,7 +1133,22 @@ QJsonObject CadDocument::loftCandidate(const QJsonObject& authored,const QJsonOb
         for(int i=0;i<features.size();++i)if(features[i].toObject()["id"]==arguments["featureId"]){feature=features[i].toObject();index=i;break;}
         if(index<0 || feature["type"]!="loft")throw std::invalid_argument("Loft feature unavailable");
     } else feature={{"id",arguments.value("newFeatureId").toString(newId())},{"bodyId",arguments.value("newBodyId").toString(newId())},{"ownerId",arguments.value("ownerId").toString(authored["documentId"].toString())},{"type","loft"},{"name","Loft"},{"visible",true}};
-    feature["parameters"]=QJsonObject{{"profiles",arguments["profiles"]}};
+    const auto surface=arguments.value("operation").toString()=="newComponent";
+    if(index>=0 && (feature["parameters"].toObject().value("operation")=="newComponent")!=surface)
+        throw std::invalid_argument("Loft operation cannot change during edit");
+    if(surface) {
+        if(index<0) {
+            const auto componentId=arguments.value("newComponentId").toString(newId());
+            const auto occurrenceId=arguments.value("newOccurrenceId").toString(newId());
+            const auto componentName=arguments.value("componentName").toString("Component").trimmed();
+            if(componentName.isEmpty())throw std::invalid_argument("Surface Loft component name is required");
+            auto components=candidate["components"].toArray(),occurrences=candidate["occurrences"].toArray();
+            components.append(QJsonObject{{"id",componentId},{"name",componentName},{"opacity",1.0}});
+            occurrences.append(QJsonObject{{"id",occurrenceId},{"definitionId",componentId},{"parentId",authored["documentId"]},{"placement","identity"}});
+            candidate["components"]=components;candidate["occurrences"]=occurrences;feature["ownerId"]=componentId;
+        }
+        feature["parameters"]=QJsonObject{{"operation","newComponent"},{"sections",arguments["sections"]},{"centerline",arguments["centerline"]}};
+    } else feature["parameters"]=QJsonObject{{"profiles",arguments["profiles"]}};
     if(arguments.contains("name"))feature["name"]=arguments["name"];
     if(index<0)features.append(feature);else features[index]=feature;candidate["features"]=features;return candidate;
 }
@@ -1583,8 +1615,20 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
             ids.insert(feature["bodyId"].toString());const auto angle=p["angleDeg"].toDouble();if(!p["angleDeg"].isDouble() || !std::isfinite(angle) || (p["extent"]!="full" && p["extent"]!="partial") || (p["extent"]=="full" ? angle!=360 : angle<.001 || angle>=360))return "Revolve requires Full360 or Partial angle0.001..<360 degrees";continue;
         }
         if(type=="loft") {
-            if(!validId(feature["bodyId"].toString()) || ids.contains(feature["bodyId"].toString()) || p.size()!=1 || !p["profiles"].isArray() || p["profiles"].toArray().size()<2 || p["profiles"].toArray().size()>32)return "Loft requires a distinct body ID and 2–32 ordered profile references";
+            if(!validId(feature["bodyId"].toString()) || ids.contains(feature["bodyId"].toString()))return "Loft requires a distinct body ID";
             ids.insert(feature["bodyId"].toString());QSet<QString> profiles;
+            if(p.value("operation")=="newComponent") {
+                if(p.size()!=3 || p["sections"].toArray().size()!=2 || !p["sections"].isArray())return "Surface Loft requires exactly two open sections";
+                for(const auto& value:p["sections"].toArray()) {
+                    const auto ref=value.toObject();const auto sketch=ref["sketchId"].toString(),entity=ref["entityId"].toString();
+                    if(ref.size()!=2 || !validId(sketch) || !validId(entity) || profiles.contains(sketch+"/"+entity))return "Surface Loft requires distinct retained section entities";
+                    profiles.insert(sketch+"/"+entity);
+                }
+                const auto guide=p["centerline"].toObject();
+                if(guide.size()!=2 || !validId(guide["sketchId"].toString()) || !validId(guide["entityId"].toString()))return "Surface Loft requires one retained fit-spline centerline";
+                continue;
+            }
+            if(p.size()!=1 || !p["profiles"].isArray() || p["profiles"].toArray().size()<2 || p["profiles"].toArray().size()>32)return "Loft requires 2–32 ordered profile references";
             for(const auto& value:p["profiles"].toArray()){const auto ref=value.toObject();const auto key=ref["sketchId"].toString()+"/"+ref["profileId"].toString();if(ref.size()!=2 || !validId(ref["sketchId"].toString()) || !validId(ref["profileId"].toString()) || profiles.contains(key))return "Loft profiles must be distinct stable sketch/profile references";profiles.insert(key);}
             continue;
         }

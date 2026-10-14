@@ -317,6 +317,6 @@ std::vector<EvaluatedSolidEdge> PlanarFaces::solidLinearCutRims(const std::vecto
 }
 QJsonArray PlanarFaces::descriptors(const std::vector<EvaluatedSupportFace>& faces) {
     QJsonArray output;
-    for(const auto& f:faces){QJsonObject descriptor{{"faceId",f.faceId},{"bodyId",f.bodyId},{"producerFeatureId",f.producerFeatureId},{"role",f.role},{"planar",true},{"frame",f.frame},{"edges",GeometryKernel::supportEdgeDescriptors(f)}};if(!f.provenance.isEmpty())descriptor["provenance"]=f.provenance;output.append(descriptor);}
+    for(const auto& f:faces){QJsonObject descriptor{{"faceId",f.faceId},{"bodyId",f.bodyId},{"producerFeatureId",f.producerFeatureId},{"role",f.role},{"planar",BRepAdaptor_Surface(f.face).GetType()==GeomAbs_Plane},{"frame",f.frame},{"edges",GeometryKernel::supportEdgeDescriptors(f)}};if(!f.provenance.isEmpty())descriptor["provenance"]=f.provenance;output.append(descriptor);}
     return output;
 }
