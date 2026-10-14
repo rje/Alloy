@@ -16,9 +16,15 @@ at `d9fb3a2`. Core passes; API01 passes the 12000→13000 mm³ split-top plate
 edit/history/reopen/refusal workflow; native02 passes focused picks/badge deletion.
 See [receipt](validation/sketch-line-collinear.md). Separate Coincident rank
 refusal and exact OS/visual parity remain qualified.
-SKT-082/#382 is active for explicit existing-circle/line Tangent through the
-existing solver, record and native button. Sol implements/Astra verifies on
-main with the shared build and sole GUI lease; no new worktree.
+SKT-082/#382 is accepted at `d436bd1`: explicit existing-circle/line Tangent
+preserves finite-contact solver/schema/badge semantics. Core/API01 (40 calls)
+and native02 (3/3) pass radius/datum edits, both pick orders and badge deletion.
+See [receipt](validation/sketch-circle-line-tangent.md).
+RES-021/#383 is active for exact source-step preflight of a short published
+dimension-expression exercise. Public pages/spec are external; Sol audits slot
+radius vs diameter and input-order prerequisites, Astra assesses bounded
+intra-sketch parameter architecture. Create the required children/gate before
+implementation; do not claim adapted setup as exact source parity. No new worktree.
 SKT-077 remains Todo after native03/04: initial activation-before-projection
 did not fix picking. Actual hit widget/frame/projected center and before/after
 captures are preserved externally in the face-origin deliverable native04.

@@ -390,3 +390,4 @@ This is a publication snapshot. Use `python3 tools/backlog.py ready` for the liv
 | [#375 SKT-077: Validate native origin snapping on a fresh displaced-face sketch](https://github.com/rje/Alloy/issues/375) | P2 Parametric modeling | validation | P1 | [#332](https://github.com/rje/Alloy/issues/332) |
 | [#376 FND-025: Qualify public visual-reference generations and comparison metadata](https://github.com/rje/Alloy/issues/376) | P0 Foundation | research | P2 | [#1](https://github.com/rje/Alloy/issues/1) |
 | [#377 SKT-078: Validate native explicit Offset union selection and clearing](https://github.com/rje/Alloy/issues/377) | P2 Parametric modeling | validation | P1 | [#322](https://github.com/rje/Alloy/issues/322), [#330](https://github.com/rje/Alloy/issues/330) |
+| [#383 RES-021: Audit exact short sketch expression lesson and prerequisite contracts](https://github.com/rje/Alloy/issues/383) | P2 Parametric modeling | research | P1 | — |

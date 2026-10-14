@@ -173,6 +173,10 @@ connected or separated authored straight lines with one retained constraint and
 selectable badge. A split-edge plate preserves its profile and solid through
 dimension edits, history and reopen; focused native input passes.
 
+[Existing-circle Tangent](docs/validation/sketch-circle-line-tangent.md) now
+adds either-order circle/line picks and retained finite contact through radius
+and datum edits, history and reopen.
+
 [Explicit arc-line Tangent](docs/validation/sketch-arc-line-tangent.md) now
 constrains an arc and line sharing an endpoint, with either native pick order
 and retained badges. A rounded plate stays tangent through radius/width edits,
