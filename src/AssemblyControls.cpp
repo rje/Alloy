@@ -54,6 +54,12 @@ QJsonObject graphOverride(const QJsonObject& authored,const QJsonObject& cylinde
     }
     return {};
 }
+QString jointType(const QJsonObject& authored,const QString& jointId){
+    for(const auto& value:authored.value("joints").toArray()){
+        const auto joint=value.toObject();if(joint["id"]==jointId)return joint["type"].toString();
+    }
+    return {};
+}
 bool passiveCylinder(const QJsonObject& assembly,const QString& jointId){
     if(jointId.isEmpty())return false;
     for(const auto& value:assembly.value("joints").toArray()){
@@ -265,6 +271,9 @@ void AlloyWindow::registerRevoluteCommands(){
             if(!session_.isEmpty() && session_["command"]!="joint.revolute")return fail("session_busy","Finish or cancel the active command");
             const auto& authored=sliderPreviewAuthored_.isEmpty()?document_->authored():sliderPreviewAuthored_;
             try {const double angle=args["angleDeg"].toDouble();
+                bool hasRevolute=false;for(const auto& value:authored.value("joints").toArray())
+                    hasRevolute|=value.toObject()["type"]=="asBuiltRevolute";
+                if(!hasRevolute)return fail("invalid_revolute","No retained Revolute joint is available for angular preview");
                 const auto resolved=AssemblyRevolute::inspect(authored,document_->evaluation(),angle);
                 cylinderStage_={};transientSliderPosition_=angle;displayedDocumentRevision_=std::numeric_limits<quint64>::max();return resolved;
             }catch(const std::exception& e){return fail("invalid_revolute",QString::fromUtf8(e.what()));}
@@ -394,6 +403,8 @@ void AlloyWindow::registerCylindricalCommands(){
             {"slideMm",field("number")}},true,[this](const QJsonObject& args){
             if(!session_.isEmpty() && session_["command"]!="joint.cylindrical")return fail("session_busy","Finish or cancel the active command");
             const auto& authored=sliderPreviewAuthored_.isEmpty()?document_->authored():sliderPreviewAuthored_;
+            if(jointType(authored,args["jointId"].toString())!="asBuiltCylindrical")
+                return fail("invalid_cylindrical","Preview requires a retained Cylindrical joint ID");
             try{AssemblyGraph::inspect(authored,document_->evaluation(),args);
                 transientSliderPosition_.reset();cylinderStage_=args;cylinderStage_["documentRevision"]=static_cast<qint64>(document_->revision());
                 displayedDocumentRevision_=std::numeric_limits<quint64>::max();return presentationAssembly();

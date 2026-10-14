@@ -5,6 +5,8 @@ four editable native parts, converts them to components and nests the piston
 parts beneath a parent. Source edits, history, reopen and subtree STL export
 pass. A [retained Revolute and root Pin](docs/validation/as-built-revolute.md) now
 support circular-edge selection, signed angle preview and history/reopen. The
+[Cylindrical joint candidate](docs/validation/as-built-cylindrical.md) adds a
+retained nested piston origin with exact rotation and slide preview. The
 complete coupled piston linkage remains the next assembly step.
 
 The [Surface workspace](docs/validation/surface-workspace-navigation.md) now exposes

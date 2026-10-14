@@ -44,7 +44,10 @@ with application(args.app, out, command_timeout=90) as (call, ledger):
         'component2OccurrenceId':occurrences[outer], 'position':zcircle,
         'rotationDeg':0, 'slideMm':0})
     cyl = next(j for j in created['joints'] if j['type']=='asBuiltCylindrical')
+    arm_joint = next(j for j in created['joints'] if j['type']=='asBuiltRevolute')
     joint_id = cyl['id']
+    call('joint.previewCylindrical', {'jointId':arm_joint['id'],
+        'rotationDeg':15, 'slideMm':5}, error='invalid_cylindrical')
     assert cyl['relativeDegreesOfFreedom']==2
     assert abs(cyl['coordinateDeg'])<1e-7 and abs(cyl['coordinateMm'])<1e-7
     def inner_z(assembly):

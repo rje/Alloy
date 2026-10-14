@@ -1,5 +1,19 @@
 # Continuation context
 
+## ASM-008 Cylindrical candidate (2026-10-14)
+
+An isolated retained Cylindrical assembly candidate builds and passes focused
+core, a 24-call real-app API run and one Qt native control check. It keeps the
+Inner/Outer piston as a separate graph island while the Arm Revolute is another;
+each island has an inspected temporary gauge before Pin. The piston pair
+retains a complete Outer Z-circle, previews +15° rotation and +5 mm world-Z
+travel, and survives Cancel, undo/redo and reopen. Passive joint coordinates
+become read-only after a graph merge. The dock shows readable names and both
+typed fields; its actual viewport circular click is checked. See the
+[bounded receipt](validation/as-built-cylindrical.md). Independent final review
+and main integration are pending. The coupled 3R+1C loop, Upper Arm drag/Revert
+and copied piston remain separate work.
+
 ## ASM-014 Revolute candidate (2026-10-14)
 
 An isolated retained as-built Revolute and root Pin candidate builds against
