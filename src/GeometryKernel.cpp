@@ -903,9 +903,9 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
             } else if(type=="thicken") {
                 const auto ref=parameters["sourceFace"].toObject();
                 const auto source=std::find_if(evaluated.bodies.begin(),evaluated.bodies.end(),[&](const auto& body){return body.bodyId==ref["bodyId"].toString();});
-                if(source==evaluated.bodies.end())reject("surface_unavailable","Thicken source must be an active earlier sheet");
+                if(source==evaluated.bodies.end())reject("surface_unavailable","Thicken source must be an earlier retained sheet");
                 auto solid=SolidThicken::evaluate(feature,*source);
-                evaluated.bodies.erase(source);evaluated.bodies.push_back(std::move(solid));
+                evaluated.bodies.push_back(std::move(solid));
             } else if(type=="sphere") {
                 SolidSphere::evaluate(evaluated,feature);
             } else if(type=="hole") {

@@ -32,8 +32,8 @@ separate programmatic combo change checks its handler; the mouse operation
 chooser is not claimed as verified native input. Qt-delivered clicks are not
 physical pointer evidence.
 
-SRF-010 will consume this sheet as a distinct retained surface source and
-create a closed solid. Open-surface STL/STEP export is not claimed. The
+SRF-010 uses this sheet as a distinct retained surface source and
+creates a separate closed solid while hiding the original sheet. Open-surface STL/STEP export is not claimed. The
 completed shoehorn workflow and physical shape remain cumulative gates.
 
 Astra independently accepted `f268d92` + `a089fb8` on2026-10-14, integrated

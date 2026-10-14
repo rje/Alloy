@@ -214,6 +214,13 @@ private:
     void showLoft();
     QDockWidget* loftDock_=nullptr;
     QShortcut* loftEscape_=nullptr;
+    QJsonObject thickenCandidate(const QJsonObject& inputs) const;
+    QJsonObject beginThicken(const QJsonObject& overrides={});
+    QJsonObject previewThicken();
+    QJsonObject selectThickenFace(const QJsonObject& support);
+    void showThicken();
+    QDockWidget* thickenDock_=nullptr;
+    QShortcut* thickenEscape_=nullptr;
     QJsonObject shellCandidate(const QJsonObject& inputs) const;
     QJsonObject previewShell();
     void showShell();

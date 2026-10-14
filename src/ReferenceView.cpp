@@ -652,7 +652,8 @@ void ReferenceView::selectSupportFace(const QJsonObject& support,const TopoDS_Fa
         selectedSupportFaceOverlay_=new AIS_Shape(face);
         selectedSupportFaceOverlay_->SetDisplayMode(outline ? AIS_WireFrame : AIS_Shaded);
         selectedSupportFaceOverlay_->SetColor(Quantity_Color(0.16,0.47,0.86,Quantity_TOC_sRGB));
-        selectedSupportFaceOverlay_->SetTransparency(outline ? 0.0 : 0.48);
+        const bool curved=BRepAdaptor_Surface(face).GetType()!=GeomAbs_Plane;
+        selectedSupportFaceOverlay_->SetTransparency(outline ? 0.0 : curved ? 0.12 : 0.48);
         selectedSupportFaceOverlay_->SetZLayer(Graphic3d_ZLayerId_Topmost);
         context_->Display(selectedSupportFaceOverlay_,outline ? AIS_WireFrame : AIS_Shaded,-1,false);
         context_->Deactivate(selectedSupportFaceOverlay_);

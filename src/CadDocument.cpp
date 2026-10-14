@@ -213,6 +213,15 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
                 return {{"featureId",f["id"]},{"code","cross_component_dependency"},{"message","Surface Loft centerline must come from a root sketch"}};
             guarded.remove("sections");guarded.remove("centerline");
         }
+        if(f["type"]=="thicken") {
+            const auto ref=guarded["sourceFace"].toObject();
+            const auto sourceOwner=referencedOwners.value(ref["bodyId"].toString());
+            if(!identityChildren.contains(sourceOwner) || referencedOwners.value(ref["producerFeatureId"].toString())!=sourceOwner
+                || (owner!=root && owner!=sourceOwner))
+                return {{"featureId",f["id"]},{"code","cross_component_dependency"},
+                    {"message","Thicken requires a retained identity-child Loft sheet and root or same-component output"}};
+            guarded.remove("sourceFace");
+        }
         if(crossOwner(guarded))return {{"featureId",f["id"]},{"code","cross_component_dependency"},{"message","Cross-component modeling references are not supported"}};
     }
     QSet<QString> activeBodies;
@@ -237,7 +246,7 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
                 || features[positions[producer]].toObject()["bodyId"]!=body
                 || features[positions[producer]].toObject()["parameters"].toObject()["operation"]!="newComponent")
                 return {{"featureId",feature["id"]},{"code","surface_unavailable"},{"message","Thicken requires an active earlier Loft sheet"}};
-            activeBodies.remove(body);continue;
+            continue;
         }
         if(feature["type"]=="splitBody"){
             const auto p=feature["parameters"].toObject();const auto body=p["targetBodyId"].toString(),plane=p["planeId"].toString();
@@ -1174,11 +1183,12 @@ QJsonObject CadDocument::thickenCandidate(const QJsonObject& authored,const QJso
         for(int i=0;i<features.size();++i)if(features[i].toObject()["id"]==arguments["featureId"]){feature=features[i].toObject();index=i;break;}
         if(index<0 || feature["type"]!="thicken")throw std::invalid_argument("Thicken feature unavailable");
     }else{
-        const auto ref=arguments["sourceFace"].toObject();QString owner;
+        const auto ref=arguments["sourceFace"].toObject();QString sourceOwner;
         for(const auto& row:features)if(row.toObject()["id"]==ref["producerFeatureId"] && row.toObject()["type"]=="loft"
-            && row.toObject()["bodyId"]==ref["bodyId"] && row.toObject()["parameters"].toObject()["operation"]=="newComponent")owner=row.toObject()["ownerId"].toString();
-        if(owner.isEmpty() || (arguments.contains("ownerId") && arguments["ownerId"]!=owner))
-            throw std::invalid_argument("Thicken requires a source Loft sheet in its output component");
+            && row.toObject()["bodyId"]==ref["bodyId"] && row.toObject()["parameters"].toObject()["operation"]=="newComponent")sourceOwner=row.toObject()["ownerId"].toString();
+        const auto owner=arguments.value("ownerId").toString(authored["documentId"].toString());
+        if(sourceOwner.isEmpty() || (owner!=authored["documentId"].toString() && owner!=sourceOwner))
+            throw std::invalid_argument("Thicken New Body requires a retained Loft sheet and root or same-component output");
         feature={{"id",arguments.value("newFeatureId").toString(newId())},{"bodyId",arguments.value("newBodyId").toString(newId())},
             {"ownerId",owner},{"type","thicken"},{"name","Thicken"},{"visible",true}};
     }
@@ -1186,7 +1196,11 @@ QJsonObject CadDocument::thickenCandidate(const QJsonObject& authored,const QJso
     if(arguments.contains("sourceFace"))p["sourceFace"]=arguments["sourceFace"];
     if(arguments.contains("signedThicknessMm"))p["signedThicknessMm"]=arguments["signedThicknessMm"];
     feature["parameters"]=p;if(arguments.contains("name"))feature["name"]=arguments["name"];
-    if(index<0)features.append(feature);else features[index]=feature;
+    if(index<0){
+        const auto sourceId=p["sourceFace"].toObject()["producerFeatureId"].toString();
+        for(int i=0;i<features.size();++i)if(features[i].toObject()["id"]==sourceId){auto loft=features[i].toObject();loft["visible"]=false;features[i]=loft;break;}
+        features.append(feature);
+    }else features[index]=feature;
     candidate["features"]=features;
     const auto error=validateStructure(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());
     return candidate;

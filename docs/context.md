@@ -1,5 +1,18 @@
 # Continuation context
 
+## Retained surface Thicken candidate (2026-10-14)
+
+SRF-010 in `feat/surface-thicken` creates a signed one-side closed solid from
+the exact SRF-009 Loft sheet face. New Body belongs to the active root component
+in the sourced lesson; the sheet keeps its child-component body ID and name and
+is hidden by the authored creation transaction, recoverable by undo or a later
+visibility toggle. Six faces and twelve edges have stable source-derived IDs.
+Focused core, 34-call real-app API, Qt face-click/Flip/Cancel and from-blank
+through-Thicken checks pass; [the receipt](validation/surface-thicken.md) links
+evidence and distinguishes the chosen 3 mm dialog default. Independent final
+acceptance and main integration remain pending. Corner rounding and later
+surface finishes remain separate gates.
+
 ## Accepted guided open-surface Loft (2026-10-14)
 
 SRF-009 is independently accepted at `53043e4` + `0870d69`. It creates a root

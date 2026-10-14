@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 #include "CadDocument.h"
 #include "MeshExport.h"
+#include <BRepAdaptor_Surface.hxx>
 #include <QCoreApplication>
 #include <QTemporaryDir>
 #include <cmath>
@@ -33,16 +34,35 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
     auto candidate=CadDocument::thickenCandidate(document.authored(),{{"sourceFace",face},{"signedThicknessMm",3.0}});
     const auto preview=CadDocument::evaluateCandidate(candidate);
     if(!preview.ok)throw std::runtime_error(("Thicken preview: "+preview.error).toStdString());
-    check(preview.evaluation->bodies.size()==1,"Source sheet was not consumed in candidate evaluation");
+    check(preview.evaluation->bodies.size()==2 && !preview.evaluation->bodies.front().visible,
+        "New Body retains but hides its source sheet");
     check(document.commit(candidate,"Thicken").isEmpty(),"Commit Thicken");
     const auto solid=document.bodies().back();
-    check(document.bodies().size()==1 && solid.summary["type"]=="solid" && solid.summary["closed"]==true
+    check(document.bodies().size()==2 && document.bodies().front().bodyId==sheet.bodyId
+        && !document.bodies().front().visible && solid.ownerId==document.authored()["documentId"]
+        && solid.summary["type"]=="solid" && solid.summary["closed"]==true
         && solid.summary["valid"]==true && solid.summary["topology"].toObject()["solids"]==1
-        && solid.supportFaces.size()==6 && solid.solidEdges.size()==12 && solid.ownerId==sheet.ownerId,
-        "Closed solid, complete topology and component owner");
+        && solid.supportFaces.size()==6 && solid.solidEdges.size()==12,
+        "Closed root solid, complete topology and retained hidden component sheet");
+    document.history().undo();check(document.bodies().size()==1 && document.bodies().front().visible,
+        "Undo New Body restores visible Loft sheet");document.history().redo();
+    auto shown=document.authored();auto shownFeatures=shown["features"].toArray();
+    for(int i=0;i<shownFeatures.size();++i)if(shownFeatures[i].toObject()["id"]==sheet.featureId){
+        auto loftFeature=shownFeatures[i].toObject();loftFeature["visible"]=true;shownFeatures[i]=loftFeature;
+    }
+    shown["features"]=shownFeatures;
+    check(document.commit(shown,"Show retained sheet").isEmpty() && document.bodies().front().visible,
+        "Retained source sheet could not be shown again");
+    document.history().undo();check(!document.bodies().front().visible,"Undo visibility must restore hidden sheet");
     const auto solidId=solid.bodyId,sourceId=sheet.bodyId;
     const auto firstFaces=faceIds(solid),firstEdges=edgeIds(solid);const double volume=solid.summary["volumeMm3"].toDouble();
     check(volume>10000 && firstFaces.size()==6,"Thicken volume and retained faces");
+    for(const auto& support:solid.supportFaces)if(support.role.startsWith("side/")){
+        if(BRepAdaptor_Surface(support.face).GetType()!=GeomAbs_Plane)continue;
+        check(support.frame.contains("origin") && support.frame.contains("uAxis")
+            && support.frame.contains("vAxis") && support.frame.contains("normal"),
+            "Planar side has a truthful attachment frame");
+    }
     auto edited=CadDocument::thickenCandidate(document.authored(),{{"featureId",solid.featureId},{"signedThicknessMm",-3.0}});
     check(document.commit(edited,"Reverse Thicken").isEmpty(),"Signed side edit");
     check(document.bodies().back().bodyId==solidId && faceIds(document.bodies().back())==firstFaces
@@ -52,7 +72,8 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
     document.history().undo();check(document.bodies().back().summary["signedThicknessMm"]==3.0,"Undo signed edit");
     document.history().redo();check(document.bodies().back().summary["signedThicknessMm"]==-3.0,"Redo signed edit");
     QTemporaryDir directory;const auto path=directory.filePath("thickened.alloy");check(document.save(path).isEmpty(),"Save solid");
-    CadDocument reopened;check(reopened.open(path).isEmpty() && reopened.bodies().size()==1
+    CadDocument reopened;check(reopened.open(path).isEmpty() && reopened.bodies().size()==2
+        && !reopened.bodies().front().visible
         && reopened.bodies().back().bodyId==solidId && faceIds(reopened.bodies().back())==firstFaces,
         "Reopen retained solid");
     const auto mesh=MeshExport::writeStl(reopened.bodies().back(),directory.filePath("shoehorn-mm.stl"),"mm",true,0.1,10);
@@ -83,11 +104,11 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
     check(named.commit(namedLoft,"Surface Loft").isEmpty(),"Build named source");
     const auto namedSheet=named.bodies().back();
     check(named.commit(CadDocument::renameBodyCandidate(named.authored(),named.evaluation(),namedSheet.bodyId,"Named sheet"),"Name sheet").isEmpty(),"Name source sheet");
-    const auto namedBefore=named.authored();
     const QJsonObject namedFace{{"bodyId",namedSheet.bodyId},{"faceId",namedSheet.supportFaces[0].faceId},
         {"producerFeatureId",namedSheet.featureId}};
-    const auto namedCandidate=CadDocument::thickenCandidate(namedBefore,{{"sourceFace",namedFace},{"signedThicknessMm",3.0}});
-    check(!named.commit(namedCandidate,"Invalid named consumption").isEmpty() && named.authored()==namedBefore,
-        "Named source body was silently consumed");
+    const auto namedCandidate=CadDocument::thickenCandidate(named.authored(),{{"sourceFace",namedFace},{"signedThicknessMm",3.0}});
+    check(named.commit(namedCandidate,"Thicken named sheet").isEmpty() && named.bodies().size()==2
+        && !named.bodies().front().visible && named.bodies().front().name=="Named sheet",
+        "Named source sheet was not retained with its stable name");
     std::cout<<"SURFACE_THICKEN_OK signed=3 volume="<<volume<<" body="<<solidId.toStdString()<<"\n";return 0;
 }catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}}

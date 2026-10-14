@@ -22,6 +22,7 @@ QString id(const QString& feature,const QByteArray& role){
     return QUuid::createUuidV5(QUuid(feature),QByteArray("alloy-thicken/1/")+role).toString(QUuid::WithoutBraces);
 }
 QJsonArray point(const gp_Pnt& p){return {p.X(),p.Y(),p.Z()};}
+QJsonArray axis(const gp_Dir& d){return {d.X(),d.Y(),d.Z()};}
 }
 
 EvaluatedBody SolidThicken::evaluate(const QJsonObject& feature,const EvaluatedBody& source){
@@ -81,7 +82,7 @@ EvaluatedBody SolidThicken::evaluate(const QJsonObject& feature,const EvaluatedB
     if(uniqueOffsetEdges.size()!=4)
         reject("thicken_lineage_unavailable","Offset rims are not distinct");
     // The offset direction is checked against the selected face's oriented normal.
-    const auto current=TopoDS::Face(faces(sourceIndex)),offset=TopoDS::Face(faces(offsetIndex));
+    const auto offset=TopoDS::Face(faces(offsetIndex));
     BRepAdaptor_Surface surface(sourceFace),offsetSurface(offset);
     const double u=(surface.FirstUParameter()+surface.LastUParameter())*.5,
         v=(surface.FirstVParameter()+surface.LastVParameter())*.5;
@@ -95,6 +96,15 @@ EvaluatedBody SolidThicken::evaluate(const QJsonObject& feature,const EvaluatedB
     body.ownerId=feature["ownerId"].toString();body.name=feature["name"].toString();body.visible=feature["visible"].toBool();body.shape=shape;
     auto publishFace=[&](int index,const QByteArray& role,const QString& sourceEdge=QString{}){
         EvaluatedSupportFace f{id(body.featureId,QByteArray("face/")+role),body.bodyId,body.featureId,QString::fromLatin1(role),TopoDS::Face(faces(index)),{}, {}};
+        const BRepAdaptor_Surface surface(f.face);
+        if(surface.GetType()==GeomAbs_Plane){
+            const auto plane=surface.Plane();
+            const auto u=plane.Position().XDirection();
+            auto v=plane.Position().YDirection();
+            auto n=u.Crossed(v);
+            if(f.face.Orientation()==TopAbs_REVERSED){v.Reverse();n.Reverse();}
+            f.frame={{"origin",point(plane.Location())},{"uAxis",axis(u)},{"vAxis",axis(v)},{"normal",axis(n)}};
+        }
         f.provenance={{"sourceBodyId",source.bodyId},{"sourceFaceId",ref["faceId"]},{"sourceEdgeId",sourceEdge}};
         body.supportFaces.push_back(f);
     };
