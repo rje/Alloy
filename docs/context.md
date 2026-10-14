@@ -151,9 +151,14 @@ API07 checks fixed-profile depth80→90, signed values, atomic refusal, history
 and reopen. Production-theme native08 checks actual formula typing, preview,
 OK/edit/Cancel and readable Distance (mm). See
 [receipt](validation/extrude-distance-expression.md). Broader expressions remain
-PAR-001. Backlog is405 issues,265 closed; dependencies remain acyclic.
-Next selection is a bounded tutorial-enabling sketch capability; source diagnosis
-of the deferred SOL-016 popup route may proceed without further blind retries.
+PAR-001. Backlog is406 issues,265 closed; dependencies remain acyclic.
+SOL-016 is active again after concrete Qt source diagnosis: the native harness
+clicked inside the host 500ms release guard while assuming300ms. Sol will
+deliver actual pointer movement to the popup row before the real-hit click,
+observe closure and then click OK. One focused run; Astra verifies. No product
+patch or repeated geometry sweep is planned. Physical SOL-058 remains separate.
+SKT-090/#406 tracks the next bounded straight-line Extend feature, with its
+public tool contract stored externally. It remains Todo until SOL-016 finishes.
 Only main and its existing build are used; no inactive worktrees accumulate.
 DOC-031/#348 is independently accepted at `89782cf`: unchanged-product native09
 passes modal line focus, rename commit, Browser label and unchanged geometry.

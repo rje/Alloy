@@ -7,7 +7,7 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current publication contains **405 issues**: **308 implementation, 21 research,
+The current publication contains **406 issues**: **309 implementation, 21 research,
 22 epics, and 54 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 
@@ -26,6 +26,7 @@ and modifier evidence remain partial. SOL-058/#403 preserves physical held-modif
 checks. SKT-089/#404 is independently accepted for the numeric redundant-dimension
 driven offer, with refreshed production-theme native04 captures. SOL-016 remains
 Todo after its production-theme recheck still failed popup dismissal.
+SKT-090/#406 is Todo for bounded straight-line Extend after the current Cut gate.
 PAR-008/#405 is independently accepted at137bd16 for retained arithmetic in
 One Side/Distance Extrude, with parameter updates, units, history and reopen.
 ASM-012/#343 is Todo after an inconclusive physical Browser drag recheck; its
