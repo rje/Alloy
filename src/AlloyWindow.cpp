@@ -3919,6 +3919,8 @@ QJsonObject AlloyWindow::state() const {
             {"viewportWindow",QGuiApplication::focusWindow()==view_->windowHandle()}}},
         {"document", document_->state()},
         {"selection",target=="solid.rectangularPattern" ? QJsonObject{{"kind","featurePattern"},{"sourceFeatureId",session_["inputs"].toObject()["sourceFeatureId"]},{"targetBodyId",session_["inputs"].toObject()["targetBodyId"]},{"axes",session_["inputs"].toObject()["axes"]},{"activeAxis",session_["activeAxis"]}}
+            : target=="solid.splitBody" ? QJsonObject{{"kind","splitBody"},{"role",session_.value("selectionRole")},
+                {"targetBodyId",session_.value("inputs").toObject()["targetBodyId"]},{"planeId",session_.value("inputs").toObject()["planeId"]}}
             : target=="solid.combine" ? QJsonObject{{"kind","combine"},{"role",session_.value("selectionRole")},
             {"targetBodyId",session_.value("inputs").toObject()["targetBodyId"]},{"toolBodyIds",session_.value("inputs").toObject()["toolBodyIds"]}}
             : target=="sketch.edit" ? QJsonObject{{"kind","sketch"},{"sketchId",session_.value("draftSketch").toObject()["id"]},

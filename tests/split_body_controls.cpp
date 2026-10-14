@@ -25,7 +25,7 @@ class SplitBodyControlsTest final:public QObject {
 private slots:
     void nativeBodyThenBrowserPlaneCancelAndCommit(){
         AlloyTheme::apply(*qApp);AlloyWindow window;window.resize(1320,850);window.show();
-        QVERIFY(QTest::qWaitForWindowExposed(&window));window.activateWindow();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));window.activateWindow();QApplication::setActiveWindow(&window);
         call(window,"solid.box",{{"width",50},{"depth",80},{"height",40},{"name","Enclosure"}});
         const auto inspected=call(window,"document.inspect");const auto body=inspected["evaluation"].toObject()["bodies"].toArray()[0].toObject();
         QJsonObject top,bottom;for(const auto& value:body["supportFaces"].toArray()){

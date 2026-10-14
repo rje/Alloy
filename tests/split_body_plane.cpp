@@ -105,6 +105,19 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
     const auto firstSplit=CadDocument::splitBodyCandidate(retarget.authored(),{{"targetBodyId",first["bodyId"]},{"planeId",secondPlane["id"]}});
     check(retarget.commit(firstSplit,"Split first").isEmpty(),"initial split target");
     const auto firstSplitFeature=firstSplit["features"].toArray().last().toObject();
+    const auto positiveCap=cap(retarget.bodies().back());check(!positiveCap.faceId.isEmpty(),"downstream split cap available");
+    const QJsonObject dependent{{"id",CadDocument::newId()},{"ownerId",retarget.authored()["documentId"]},
+        {"type","constructionPlane"},{"name","On split cap"},{"visible",true},
+        {"parameters",QJsonObject{{"source",QJsonObject{{"support",source(positiveCap)}}},{"offsetMm",5}}}};
+    auto withDependent=retarget.authored();auto dependentFeatures=withDependent["features"].toArray();
+    dependentFeatures.append(dependent);withDependent["features"]=dependentFeatures;
+    check(retarget.commit(withDependent,"Dependent plane").isEmpty(),"positive cap supports downstream plane");
+    const auto withDependentStable=retarget.authored();const auto withDependentRevision=retarget.revision();
+    bool blockedRetarget=false;try{CadDocument::splitBodyCandidate(retarget.authored(),{{"featureId",firstSplitFeature["id"]},
+        {"targetBodyId",second["bodyId"]},{"planeId",secondPlane["id"]}});}catch(const std::exception&){blockedRetarget=true;}
+    check(blockedRetarget && retarget.authored()==withDependentStable && retarget.revision()==withDependentRevision,
+        "retarget refuses stale downstream cap reference atomically");
+    retarget.history().undo();check(retarget.authored()==firstSplit,"undo dependent before retarget");
     const auto swapped=CadDocument::splitBodyCandidate(retarget.authored(),{{"featureId",firstSplitFeature["id"]},
         {"targetBodyId",second["bodyId"]},{"planeId",secondPlane["id"]}});
     const auto swappedFeature=swapped["features"].toArray().last().toObject();
