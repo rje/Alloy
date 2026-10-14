@@ -87,7 +87,7 @@ Its21.133s film and editable model are in the external gallery, alongside a123.8
 joined four-session film from blank; all165 local links resolve. Five intermediate
 preview refusals, Qt/menu adaptation and separately performed API checks remain
 qualified. See [full receipt](validation/base-sketch-face-holes.md).
-No additional ingredient reruns are needed. TUT-019/#305 is active after accepted FND-027/#401: recover
+No additional ingredient reruns are needed. TUT-019/#305 waits on active VIS-006/#402 after accepted FND-027/#401: recover
 the existing cumulative native piston harness and its source ledger, retaining
 accepted API/geometry/native-child evidence. Sol owns the single build/GUI lease;
 Astra verifies. FND-027 is independently accepted at af828d8: native15 passively verifies main
@@ -95,8 +95,13 @@ activation after conversion, New Component and Rename; no inter-step harness
 focus repair. Shared one-shot callback is guarded by lifetime, active app,
 current tab/document and no competing modal/popup/window. Native15 is still an
 overall failed cumulative run at the fourth joint's upper mounting-bore hover.
-Sol is diagnosing that exact camera/occlusion versus pick issue; no broad sweep.
-Backlog is401 issues with acyclic dependencies. Astra independently verifies.
+The harness had reversed source participants and targeted arm instead of piston
+bores; source review corrected all four external Revolute rows. Native18/19
+confirm fixture occlusion from negative-Y isometric, not wrong-body picking.
+VIS-006 adds shared rearIsometric (+X,+Y,+Z) to expose Inner finite bore wall;
+this is an explicit camera adaptation, not a reference input claim. Existing
+isometric remains for Outer. Exact retained hover verification is pending.
+Backlog is402 issues with acyclic dependencies. Astra independently verifies.
 Only main and its existing build are used; no inactive worktrees accumulate.
 DOC-031/#348 is independently accepted at `89782cf`: unchanged-product native09
 passes modal line focus, rename commit, Browser label and unchanged geometry.

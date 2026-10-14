@@ -3841,7 +3841,8 @@
         "ASM-021",
         "ASM-022",
         "ASM-023",
-        "FND-027"
+        "FND-027",
+        "VIS-006"
       ],
       "labels": [
         "area:gate"
@@ -6887,6 +6888,18 @@
         "area:fnd"
       ],
       "body": "## Problem and evidence\nTUT-019 native conversion succeeds, but closing its dialog leaves no active/focused native Qt window. Initial macOS frontmost activation does not change the failure. Native12 event trace records Close, WindowDeactivate and Hide with no main WindowActivate; native13 confirms Alloy remains ApplicationActive during the unfocused interval. Native14 verifies conversion handback and then reproduces the same failure after New Component. This is the component-modal handback class, not evidence for generic focus repair.\n\n## Bounded scope and acceptance\n- Use one queued completion callback shared by the affected component dialogs, not repeated focus timers.\n- Activate the surviving owning Alloy window only while the application remains active, the parent is visible/current, the captured tab/document context is unchanged, and no other active/modal window has taken focus. Skip on app/context switch. Do not force arbitrary child focus.\n- Keep the harness post-dialog activation check passive; no test-side restoration between source steps.\n- Verify native conversion and New Component closure then natural main-window activation and continuation. If the same helper is used by Rename, distinguish source review from actual continuation evidence. Preserve converted geometry and object ownership. Independent review before acceptance.\n- Reuse accepted component geometry and tutorial ingredients; do not repeat broad suites. Full native piston recording remains TUT-019.\n\n## Evidence location\nExternal deliverables/piston-native-workflow-2026-10-14/native-12 and native-13 preserve event/application-state diagnostics. Public source workflow remains documented in its external native-step-gap-ledger. No reference application was operated.\n\n\n## Independently accepted 2026-10-14\nAccepted at af828d8 after independent Astra source/native review. Native15 passive active:true follows conversion, New Component and Rename with no inter-step test focus repair. One lifetime-safe queued callback retains application/window/document/modal/popup guards and does not force child focus. Cumulative native15 later fails at upper-bore hover, so TUT-019 remains open; this closes only the reproduced component-dialog handback defect.\n"
+    },
+    {
+      "key": "VIS-006",
+      "title": "Expose named rear-isometric camera view through shared viewport control",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [],
+      "labels": [
+        "area:vis"
+      ],
+      "body": "## Problem and result\nThe native piston gate must hover the Inner piston cylindrical bore wall. Actual fixture layers show the arm obscures it in the existing negative-Y isometric view; axial front/back views project the wall edge-on. Diagnostics identify occlusion, not a picker failure.\n\n## Bounded scope and acceptance\nExpose rearIsometric through shared view.orientation using the existing OCCT positive-X/positive-Y/positive-Z axonometric projection. Preserve existing isometric and other orientations. Keep GPU rendering and the same authoritative camera state; do not modify picking, geometry or assembly solving. Document the named view in command discovery/control documentation.\nVerify actual camera direction and use the new view to hover the exact retained Inner piston finite bore surface, preserving required occurrence identity and source face-selection semantics. One bounded native continuation and independent source/visual review are sufficient.\n\n## Source boundary\nThe public assembly source specifies the piston cylindrical surface but does not prescribe camera controls. This named camera view is an Alloy presentation adaptation, not a reference keyboard/UI parity claim. External native18/19 evidence records projected candidate results and fixture occlusion; TUT-019 remains the cumulative gate.\n"
     }
   ]
 }

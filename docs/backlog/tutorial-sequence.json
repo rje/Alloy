@@ -176,6 +176,7 @@
       "id": "CP-24",
       "title": "Piston subassemblies",
       "issues": [
+        "VIS-006",
         "FND-027",
         "RES-019",
         "TUT-015",
@@ -195,7 +196,7 @@
       ],
       "acceptance": "Creation/assembly movie, editable model with inspectable DOFs and correct world transforms, drive mechanism through meaningful positions, copies/update/history/reopen. No kinematic claim from unrelated per-part animation.",
       "status": "in_progress",
-      "remaining": "FND-027 independently accepted at af828d8: native15 passes all three component dialog handbacks, then fails fourth-joint upper-bore hover. Diagnose exact camera/pick route; cumulative movie/history/reopen remain pending, accepted ingredients preserved."
+      "remaining": "FND-027 accepted. VIS-006 supplies declared rear-oblique camera adaptation for exact Inner bore wall selection; cumulative native gate remains pending."
     },
     {
       "id": "CP-08",
