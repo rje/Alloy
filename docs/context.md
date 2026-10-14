@@ -46,8 +46,10 @@ gauges and explicit passive-coordinate refusal. Main core checks pass 3/3;
 actual-app API 24 calls, native 1/1 and a focused wrong-type refusal check pass.
 See [acceptance and native setup limits](validation/as-built-cylindrical.md).
 The native Cylinder rim prerequisite at `04a4b7d` preserves top/bottom edge IDs
-through radius/height edits. The next steps are ASM-015/#364 coupled closed-loop
-motion and ASM-016/#365 linked copy.
+through radius/height edits. ASM-015/#364 is now active with separate authority
+and UI owners for the complete 3R+1C+Pin linkage and staged Upper Arm drag/Revert.
+The root agent owns the cumulative actual-app workflow and recording harness.
+ASM-016/#365 linked copy remains Todo.
 The bounded implementation plan is external under
 `knowledge/tutorials/piston-subassemblies-2026-10-14/assembly-continuation/asm015-plan.md`.
 SRF-016/#360 preserves later surface-as-tool Trim; accepted
