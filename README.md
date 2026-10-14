@@ -1,10 +1,11 @@
 # Alloy
 
-The [enclosure mounting workflow](docs/validation/enclosure-prefix-workflow.md)
-now has an independently accepted from-blank creation movie: linked board
-placement, a rounded closed shell, three cutaways and four reference-driven
-mounting pegs. Edits, reopening and Case-only printing exports pass. Port
-openings, snap closures and the alignment rim remain in the full enclosure gate.
+The [enclosure ports and card-opening workflow](docs/validation/enclosure-port-card-workflow.md)
+now has an independently accepted full creation movie: linked board placement,
+rounded shell, mounting pegs, projected connector clearances, long slot and
+rounded card opening. Save/reopen and Case-only STEP/STL checks pass. The
+adapted nominal board is not a physical-fit certification. Split case halves,
+snap closures and the alignment rim remain in the next enclosure stages.
 
 The [patterned ornament tutorial](docs/validation/ornament-tutorial-acceptance.md)
 now has independently accepted creation footage, editable source and width-edit

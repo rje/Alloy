@@ -56,7 +56,7 @@
       ],
       "acceptance": "Full source-stage ledger/movie, editable model with preserved reference geometry, two valid closed case halves with verified clearances/snaps/ports/lip, update/history/reopen and separately checked printable exports. Qualification and every feature dependency must close before this gate.",
       "status": "todo",
-      "remaining": "Mounting prefix TUT-020 independently accepted, integrated and closed with full creation movie. Next TUT-021 ports/card openings; then TUT-022 split/snaps with SOL-049 feature Mirror and HIS-006 reorder; TUT-023 alignment rim. Full TUT-016 remains open. Broad family issues remain Todo outside this bounded gate."
+      "remaining": "Mounting prefix TUT-020 and port/card TUT-021 independently accepted, integrated and closed with from-blank movies. Next TUT-022 split/snaps/two Mirrors with HIS-006 reorder, then TUT-023 alignment rim. SOL-050 and SOL-051 mirror ingredients accepted; cumulative source placement remains TUT-022. Full TUT-016 stays open; native nested section editor and origin compatibility remain explicit follow-ups."
     },
     {
       "id": "CP-22",

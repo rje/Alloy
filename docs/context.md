@@ -1,5 +1,17 @@
 # Continuation context
 
+## Accepted enclosure ports and card checkpoint (2026-10-13)
+
+TUT-021/#322 is independently accepted and integrated. Its 236.2-second
+from-blank API movie covers shell, mounting pegs, projected port clearances,
+long slot and centered card Cut with R2 lip. Exact authored reopen and
+Case-only STEP/STL readback pass. Source adaptations, prefix-only placement
+edit and separate downstream edit evidence are explicit in
+[the accepted receipt](validation/enclosure-port-card-workflow.md). The movie,
+editable model and exports are first in the external gallery (82 links checked).
+Next: TUT-022 split/snaps/two Mirrors and HIS-006 reorder, then TUT-023 rim.
+All private editors are closed; the GUI lease is currently with root.
+
 ## Accepted snap-group feature Mirror (2026-10-13)
 
 SOL-051/#327 is independently accepted and integrated. The retained source
@@ -57,8 +69,7 @@ A separate neutral top capture shows all four pegs. See
 GEO-008, SKT-071 and GEO-009 are accepted, integrated and closed.
 Current work: SKT-072/#325 construction-plane Project, SKT-073/#328 closed
 rectangle Offset and SOL-050/#326 Cut feature Mirror are independently accepted,
-integrated and closed. Sol owns TUT-021 ports/card continuation against main,
-with the sole GUI lease. SOL-051/#327 mirrored snap-group replay is accepted and integrated after
+integrated and closed. TUT-021 is now accepted; Sol is preparing TUT-022 from its saved model. SOL-051/#327 mirrored snap-group replay is accepted and integrated after
 GEO-010/#329 proved the ordinary five-operation chain. The second Sol lane is
 implementing HIS-006/#280 Timeline reorder headlessly; the actual two-Mirror
 source proof remains required before acceptance.

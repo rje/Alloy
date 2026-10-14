@@ -1,7 +1,6 @@
-# Enclosure connector and card openings — candidate (#322)
+# Enclosure connector and card openings — accepted (#322)
 
-Status: recorded candidate, 2026-10-13; independent compatibility review
-pending. `tests/enclosure_port_card_workflow_api.py` extends the accepted
+Status: independently accepted and integrated, 2026-10-13. `tests/enclosure_port_card_workflow_api.py` extends the accepted
 mounting prefix from a blank document through the connector, long-slot and
 rounded card openings. The public sequence and uncertainty are recorded under
 the external `enclosure-port-card-contract.md`. The independently authored
@@ -51,3 +50,11 @@ External deliverables are under
 `enclosure-port-card.alloy`, the Case-only STL/STEP and stage captures. The
 earlier `diagnostic-01` stopped at DOC-028's `session_busy` gap, now fixed;
 the separate off-center card diagnostic is excluded from accepted evidence.
+
+Astra independently reviewed the source-order runner, final receipt, seven
+movie samples and final captures, and strict-read the STL without cavity
+allowance. The accepted movie, model and exports are linked as the first
+entry in the external video gallery; all 82 local gallery links exist.
+The port sketch sits near the palette edge in the movie; final close-ups
+are centered. This is a bounded functional checkpoint, not complete visual
+or native-input parity.
