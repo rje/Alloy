@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-"""Cumulative sliding-lid tutorial prefix; extended as prerequisites are accepted."""
+"""Cumulative sliding-lid workflow with optional paced shared-API creation movie."""
 import argparse
+from contextlib import ExitStack
 import json
 import math
 import subprocess
@@ -13,6 +14,7 @@ p = argparse.ArgumentParser()
 p.add_argument('--app', required=True)
 p.add_argument('--step-tool', required=True)
 p.add_argument('--output', required=True)
+p.add_argument('--record-video', type=Path)
 a = p.parse_args()
 out = Path(a.output).resolve()
 out.mkdir(parents=True, exist_ok=True)
@@ -29,7 +31,37 @@ def along_y(edge):
 def close(actual, expected, tolerance=1e-5):
     assert math.isclose(actual, expected, abs_tol=tolerance), (actual, expected)
 
-with application(a.app, out) as (call, transcript):
+with application(a.app, out) as (raw, transcript), ExitStack() as cleanup:
+    recording = False
+    recording_result = {}
+    stages = []
+    def stop_recording():
+        global recording
+        if recording:
+            recording = False
+            recording_result.update(raw('recording.stop'))
+    cleanup.callback(stop_recording)
+    raw('window.resize', {'width':1400, 'height':1000})
+    if a.record_video:
+        movie = a.record_video.resolve()
+        assert not movie.is_relative_to(Path(__file__).resolve().parents[1])
+        movie.parent.mkdir(parents=True, exist_ok=True)
+        raw('recording.start', {'path':str(movie), 'fps':5})
+        recording = True
+    def call(command, args=None):
+        result = raw(command, args)
+        if recording and command.startswith(('sketch.', 'solid.', 'component.',
+                'command.', 'feature.', 'history.', 'document.parameter',
+                'document.modelParameter', 'joint.', 'view.')) and command not in (
+                'view.projectSketchPoint', 'joint.inspect'):
+            time.sleep(.35)
+        return result
+    def stage(name):
+        stages.append(name)
+        if recording:
+            raw('recording.step', {'text':'API | ' + name})
+            time.sleep(.8)
+    stage('Create Box component: 50 x 80 x 40 mm; top Shell 4 mm')
     assert call('app.state')['viewport']['gpu']['hardwareAccelerated']
     box_component = call('component.create', {'name':'Box'})
     owner = box_component['definitionId']
@@ -43,6 +75,7 @@ with application(a.app, out) as (call, transcript):
     front = next(f for f in body['supportFaces'] if f['role']=='box.y0')
     inner = next(e for f in body['supportFaces'] if f['role']=='shell-inner'
                  for e in f['edges'] if along_y(e) and abs(e.get('provenance',e)['startMm'][0]-4)<1e-6)
+    stage('Front sketch: project face and inner edge reference')
     call('sketch.begin', {'support':ref(front), 'name':'Dovetail front'})
     call('sketch.lookAt')
     call('sketch.projectBegin')
@@ -61,6 +94,7 @@ with application(a.app, out) as (call, transcript):
         return {'x':p['x'], 'y':p['y']}
     def state(): return call('app.state')['activeSession']
     def draft(): return state()['draftSketch']
+    stage('Type 4 mm / 55 degrees; constrain the dovetail side')
     call('sketch.tool', {'tool':'line'})
     call('sketch.placePoint', pixel(4,40))
     baseline = draft()
@@ -91,6 +125,7 @@ with application(a.app, out) as (call, transcript):
     top_edge = next(l for l in geometry['projectedLines'] if
                     abs(l['v1Mm']-40)<1e-6 and abs(l['v2Mm']-40)<1e-6 and
                     abs(l['u2Mm']-l['u1Mm'])>40)
+    stage('Midpoint construction axis; connector and Mirror')
     call('sketch.addPoint', {'x':25, 'y':40, 'units':'mm'})
     center = draft()['parameters']['points'][-1]['id']
     call('sketch.constraint', {'type':'midpoint', 'pointIds':[center], 'entityIds':[top_edge['id']]})
@@ -124,6 +159,7 @@ with application(a.app, out) as (call, transcript):
                 abs(f['frame']['origin'][1]-76)<1e-6)
     inputs = {'sketchId':sketch_id, 'profileId':cutter['profileId'], 'extent':'toObject',
               'endSupport':ref(back), 'operation':'cut', 'targetBodyIds':[body['bodyId']]}
+    stage('Cut the dovetail To Object: retained inner back face')
     session = call('solid.extrudeDialog', inputs)
     preview = call('command.preview', {'session':session['id']})
     assert abs(preview['resolvedDistanceMm']+76)<1e-6
@@ -153,6 +189,7 @@ with application(a.app, out) as (call, transcript):
     cut_body = call('document.inspect')['evaluation']['bodies'][0]
     cut_front = next(f for f in cut_body['supportFaces'] if f['role']=='box.y0')
     assert len(cut_front['edges'])==8
+    stage('Create Lid component; project the actual cut front')
     lid = call('component.create', {'name':'Lid'})
     call('component.activate', {'definitionId':lid['definitionId']})
     call('sketch.begin', {'support':ref(cut_front), 'name':'Lid clearance'})
@@ -176,6 +213,7 @@ with application(a.app, out) as (call, transcript):
     shoulder_r = chosen(lambda l: abs(l['v1Mm']-40)<1e-5 and abs(l['v2Mm']-40)<1e-5
                         and min(l['u1Mm'],l['u2Mm'])>=45.999)
     source_ids = [line['id'] for line in (shoulder_l,slant_l,lower,slant_r,shoulder_r)]
+    stage('Offset five-edge chain inward 0.25 mm; close at original top')
     original_lid_draft=draft()
     call('sketch.tool', {'tool':'offset'})
     preview=call('sketch.offsetPreview', {'sourceEntityIds':source_ids,'distance':-0.25,'units':'mm'})
@@ -202,6 +240,7 @@ with application(a.app, out) as (call, transcript):
                   if closure['id'] in profile['sourceEntityIds'] and lower['id'] not in profile['sourceEntityIds']]
     assert len(lid_profiles)==1, lid_profiles
     call('capture.screenshot', {'path':str(out/'lid-offset-closed.png')})
+    stage('Extrude Lid To Object with 0.25 mm end clearance')
     call('solid.extrude', {'sketchId':lid_sketch_id,'profileId':lid_profiles[0]['profileId'],
         'extent':'toObject','endSupport':ref(back),'endOffset':0.25,'units':'mm'})
     two_solid=call('document.inspect')
@@ -216,6 +255,7 @@ with application(a.app, out) as (call, transcript):
 
     # Only after both source solids exist, add the five user names and bind the
     # seven existing model rows through their retained targets.
+    stage('Add named parameters and bind seven existing model fields')
     for name,value in (('Length',80),('Width',50),('Height',40),('Thickness',4),('Clearance',0.25)):
         call('document.parameterAdd', {'name':name,'value':value,'units':'mm'})
     def inspect(): return call('document.inspect')
@@ -243,6 +283,7 @@ with application(a.app, out) as (call, transcript):
     call('document.parametersDialog')
     call('capture.dialog', {'path':str(out/'model-rows.png')})
     call('document.parametersDialog', {'visible':False})
+    stage('Resize both parts: Length 40, Width 74, Height 100 mm')
     for name,value in (('Length',40),('Width',74),('Height',100)):
         call('document.parameterUpdate', {'parameterId':parameter_ids[name],'value':value})
     resized=inspect()
@@ -275,6 +316,7 @@ with application(a.app, out) as (call, transcript):
     call('capture.screenshot', {'path':str(out/'resized-pair.png')})
     # The Lid front is a retained base cap. Project its own top edge and snap
     # the 15 × 2 ellipse center to that stable edge's midpoint.
+    stage('Thumb relief: midpoint ellipse, 15 x 2 mm')
     call('component.activate', {'definitionId':lid['definitionId']})
     lid_base=next(face for face in lid_resized['supportFaces'] if face['role']=='extrude.base')
     assert len(lid_base['edges'])==4
@@ -310,6 +352,7 @@ with application(a.app, out) as (call, transcript):
                    and p['areaMm2']<30]
     assert thumb_regions,thumb_geometry['profileDiagnostics']
     before_thumb=next(b for b in thumb_source['evaluation']['bodies'] if b['ownerId']==lid['definitionId'])
+    stage('Cut thumb relief: Start Offset -10 mm; Distance 5 mm')
     call('solid.extrude', {'sketchId':thumb_id,'profileIds':[p['profileId'] for p in thumb_regions],
         'start':'offset','startOffset':-10,'distance':5,'units':'mm',
         'operation':'cut','targetBodyIds':[before_thumb['bodyId']]})
@@ -332,6 +375,7 @@ with application(a.app, out) as (call, transcript):
             abs(edge['provenance']['endMm'][2]-100)<1e-5]
     assert len(ledges)==1,ledges
     position={'bodyId':fixed['bodyId'],'edgeId':ledges[0]['edgeId']}
+    stage('As-built Slider: positive 0..50 mm opens through the front')
     joint=call('joint.slider', {'component1OccurrenceId':lid['occurrenceId'],
         'component2OccurrenceId':box_component['occurrenceId'],
         'position':position,'axis':'Y','minimumEnabled':True,'minimumMm':0,
@@ -364,6 +408,7 @@ with application(a.app, out) as (call, transcript):
     call('capture.screenshot', {'path':str(out/'assembled-final.png')})
     call('history.undo');call('history.redo')
     assert inspect()['authored']==final['authored']
+    stage('Save and reopen the editable assembly; export each printable part')
     final_path=out/'sliding-lid-complete.alloy'
     call('document.save', {'path':str(final_path)})
     call('document.open', {'path':str(final_path),'discard':True})
@@ -400,9 +445,14 @@ with application(a.app, out) as (call, transcript):
              mesh['bounds'][1][0],mesh['bounds'][1][1],mesh['bounds'][1][2]]):
         close(actual,expected,0.01)
     call('joint.positionSet', {'jointId':authored_joint['joints'][0]['id'],'positionMm':0})
+    stage('Complete: separate Box and Lid printing files; editable assembly')
+    if recording:
+        time.sleep(2)
+    stop_recording()
     (out/'receipt.json').write_text(json.dumps({'source':source, 'cut':cut,
         'twoSolid':two_solid,'tableBound':table_bound,'resized':resized,
         'thumbSource':thumb_source,'thumbCut':thumb_cut,'posed':posed,'final':final,
+        'recording':recording_result, 'stages':stages,
         'restMeshes':rest_meshes,'stlBounds':mesh['bounds'],'step':step_read,
         'transcript':transcript},indent=2)+'\n')
 print('PASS: cumulative source-order Box/Lid, parameter resize, thumb Cut, Slider and posed export')

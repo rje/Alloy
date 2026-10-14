@@ -1,5 +1,17 @@
 # Continuation context
 
+## Current cumulative gate and active work
+
+TUT-015 now has a full 206-call actual-app runner through Box/Lid geometry,
+late parameter bindings, resize, midpoint ellipse thumb Cut, Slider and separate
+printing exports. Independent Astra review found the positive Slider world-Y
+motion opens through the closed back wall. ASM-009 adds retained reversed axis
+orientation with positive joint limits; Sol implements it in isolation. Root
+owns the optional paced full-creation movie harness and will run once the fix
+is integrated. Full gate stays open pending corrected motion and movie review.
+GEO-005 Midplane is progressing in a separate Sol lane. Only these active work
+items and TUT-015 are In Progress; other advanced prerequisites remain Todo.
+
 ## Accepted advanced tutorial ingredients (2026-10-13)
 
 ASM-005/#296 Slider is integrated and independently accepted. SOL-043/#274
@@ -53,7 +65,7 @@ actual trapezoid To Object Cut, undo/redo and exact reopen. Captures/ledger are
 external at `deliverables/sliding-box-2026-10-13/dovetail-prefix-03`; independent
 prefix review accepted the source, ledger, analytic cut volume and GPU capture. It uses the mirrored left half rather than asserting
 the source right-half screen sequence. Lid, parameter-table and thumb-divot
-stages are not yet present in this cumulative runner. To Object derives extent from current retained face
+stages are now present; see the current cumulative status above. To Object derives extent from current retained face
 geometry, never a frozen authored distance. REL-008/#308 is independently source-accepted: a non-mutating optional-origin
 read repairs general sketch Fillet, and existing face-support diagnostics are
 preserved. Existing focused Fillet/Project checks pass. The larger face_support

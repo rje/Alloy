@@ -1,6 +1,9 @@
 # Sliding-lid cumulative runner candidate (#297)
 
-Status: source-order real-app API and geometry gate passed, 2026-10-13. The
+Status: modeling and export assertions passed, 2026-10-13; cumulative acceptance
+blocked by independently identified Slider direction error (ASM-009) and pending
+creation movie. Positive travel must open toward negative world Y. The prior
+positive-Y poses below record the failed physical behavior, not acceptance. The
 public-source checklist and provenance are held outside the repository at
 `../Alloy-reference-records/knowledge/tutorials/advanced-audit-2026-10-13/tut015-cumulative-checklist.md`.
 The bounded runner is `tests/sliding_lid_workflow_api.py`. Its earlier numeric

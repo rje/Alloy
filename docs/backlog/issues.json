@@ -3593,7 +3593,8 @@
         "PRT-007",
         "SKT-070",
         "GEO-007",
-        "DOC-026"
+        "DOC-026",
+        "ASM-009"
       ],
       "labels": [
         "area:gate"
@@ -5445,6 +5446,23 @@
         "area:geometry"
       ],
       "body": "## Source workflow gap\nThe sliding-lid thumb-divot step creates a sketch on the front of the Lid and centers an ellipse at its top midpoint. Extrusion base faces are supported planes but currently omit their boundary catalog, preventing linked Project and retained midpoint snapping on that face.\n\n## Bounded scope\nExpose actual straight base-cap boundaries through exact prism FirstShape history, with stable base-specific identities distinct from end-cap references. Preserve existing face identity/frame and signed/start-offset behavior. Use existing Project and midpoint constraint authority; do not substitute hardcoded center coordinates.\n\n## Verification\nPositive/negative extrusion and offset start preserve exact base boundary membership and stable identities after source edits. Real application face sketch can reference the actual top edge midpoint; source width edit moves its center. Source and runtime independent review required; complete thumb-divot and full lid workflow remain cumulative gate work.\n\nRuntime also exposed that ellipse authoring rejected a native midpoint snap. Extend its existing center-snap path to retain the shared Midpoint constraint on a real authored/projected line; unknown targets must fail atomically.\n\n\n## Independently accepted 2026-10-13\nAstra accepted bounded source/core and real-entrypoint API/capture evidence at candidate a1a950a. Integrated into main and built with focused integration checks. See docs/validation/base-cap-midpoint.md. The cumulative tutorial gate remains separate; receipt records unsupported scope and physical/visual limitations.\n"
+    },
+    {
+      "key": "ASM-009",
+      "title": "Retain reversed Slider direction and open the lid away from the closed back",
+      "kind": "implementation",
+      "phase": "P5 Assemblies and drawings",
+      "priority": "P0",
+      "depends_on": [
+        "ASM-005"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P5",
+        "priority:P0",
+        "area:asm"
+      ],
+      "body": "## Problem and result\nIndependent cumulative review found that positive Y travel sends the tutorial Lid through the closed back wall. Retain an explicit reversed Slider axis direction so the existing positive 0..50 joint coordinate opens toward world negative Y.\n\n## Scope and acceptance\n- Default false preserves existing saved joints; a retained reverseDirection flag consistently drives preview, animation, committed pose, inspection and exports.\n- Expose the direction in the native Slider controls and shared authoritative command. Keep limits expressed in joint coordinates.\n- Verify core transforms, history/reopen and a focused real-app native/API fixture. For the cumulative actual Lid, rest Y0..35.75 becomes Y-25..10.75 at positive joint position25; positive50 clears the front opening.\n- Independent Astra review is required. The complete tutorial and movie remain TUT-015.\n\n## Evidence boundary\nDirection is derived from the actual permitted tutorial geometry and collision-free opening, not asserted as a documented reference-world-axis convention. No proprietary application operation is permitted.\n"
     }
   ]
 }
