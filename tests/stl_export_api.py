@@ -10,7 +10,7 @@ import struct
 from app_harness import application
 
 
-def inspect_stl(path, binary):
+def inspect_stl(path, binary, *, allow_cavities=False):
     data = Path(path).read_bytes()
     if binary:
         count, = struct.unpack_from('<I', data, 80)
@@ -65,7 +65,7 @@ def inspect_stl(path, binary):
                         remaining.remove(adjacent); pending.append(adjacent)
         points_in_component = [p for i in component for p in triangles[i]]
         signed_volume = sum(triangle_volumes[i] for i in component)
-        assert signed_volume > 0, "Each component must have positive signed volume"
+        assert signed_volume > 0 or allow_cavities, "Each component must have positive signed volume"
         components.append({"triangles": len(component), "bounds": [[min(p[i] for p in points_in_component) for i in range(3)], [max(p[i] for p in points_in_component) for i in range(3)]], "signedVolume": signed_volume})
     assert all(count == 1 and edges[v, u] == 1 for (u, v), count in edges.items()), 'Open or inconsistently oriented mesh'
     assert volume > 0, 'Mesh winding must have positive signed volume'

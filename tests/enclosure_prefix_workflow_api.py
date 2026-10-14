@@ -257,7 +257,11 @@ with application(args.app, out, command_timeout=120) as (raw, ledger), ExitStack
           4 * math.pi * 1.05**2 * 5, 1e-4)
     close(floor_face['frame']['origin'][2] + 5, 8.5)
     call('view.home')
-    stage('Retained four-peg enclosure', 'four-pegs.png')
+    stage('Retained four-peg enclosure with board in place', 'four-pegs-assembled.png')
+    call('feature.visibility', {'featureId': reference_id, 'visible': False})
+    stage('Case-only view: four joined mounting pegs', 'four-pegs-case-only.png')
+    call('feature.visibility', {'featureId': reference_id, 'visible': True})
+    pegged = inspect()
 
     # A captured source placement edit changes every linked circle and Join;
     # undo restores the exact authored state and original nominal alignment.
@@ -301,8 +305,11 @@ with application(args.app, out, command_timeout=120) as (raw, ledger), ExitStack
     stl_result = call('document.exportStl', {'path': str(stl_path),
         'occurrenceId': case['occurrenceId'], 'units': 'mm', 'format': 'binary',
         'surfaceDeviationMm': .1, 'normalDeviationDeg': 10})
-    mesh = inspect_stl(stl_path, True)
-    assert len(mesh['components']) == 1
+    mesh = inspect_stl(stl_path, True, allow_cavities=True)
+    assert len(mesh['components']) == 2
+    assert sum(c['signedVolume'] > 0 for c in mesh['components']) == 1
+    assert sum(c['signedVolume'] < 0 for c in mesh['components']) == 1
+    close(mesh['signedVolume'], case_final['volumeMm3'], .01 * case_final['volumeMm3'])
     for actual, expected in zip(mesh['bounds'][0], [-32, -46.5, 0]):
         close(actual, expected, .02)
     for actual, expected in zip(mesh['bounds'][1], [32, 46.5, 30]):
