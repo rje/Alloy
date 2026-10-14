@@ -1,4 +1,4 @@
-# Local reference canvas candidate
+# Local reference canvas
 
 DOC-024/#294 implements user-local reference images with retained plane placement,
 opacity/visibility, two-point distance calibration, editable document history
@@ -58,5 +58,6 @@ row click/Space toggles authored visibility; a completed pair refuses further
 picks without changing the session; incomplete calibration cannot commit. The
 focused native-04 run passes 3/3 phases including these assertions, without
 inter-step focus repair. The completed-pair hint explains Cancel/restart. Final
-independent acceptance and integration remain pending.
+independent review accepted the corrected candidate. Integrated main build and
+focused core regression pass.
 See [the bounded source contract](../research/local-reference-canvas-contract.md).

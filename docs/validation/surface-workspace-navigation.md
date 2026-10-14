@@ -1,12 +1,11 @@
-# VIS-004: Solid and Surface navigation candidate
+# VIS-004: Solid and Surface navigation
 
 The Design ribbon has real Solid and Surface tab buttons. UI clicks and local
 `ui.designTab {"tab":"solid"|"surface"}` share one authority; `app.state.ui.tab`
 reports the selected group (or the active Sketch environment). Surface Create
 contains Create Sketch, Extrude and the bounded guided Loft. Thicken is in
 Solid Create. Construction planes and Inspect remain available on both tabs.
-Only implemented controls are exposed; Surface Modify awaits retained Remove
-integration. Surface button and menu object names are distinct from Solid.
+Only implemented controls are exposed; Surface Modify exposes retained Remove. Surface button and menu object names are distinct from Solid.
 
 The evidence contract is external:
 `../Alloy-reference-records/knowledge/tutorials/advanced-audit-2026-10-14/surface-workspace-navigation.md`.
@@ -35,5 +34,7 @@ Evidence is external under
 `../Alloy-reference-records/deliverables/surface-workspace-2026-10-14/native-01/`.
 The source fixture is preserved in the earlier surface Extrude `native-03/`
 evidence. Physical OS input and matched screenshot parity remain unqualified.
-Independent Astra source review found no blocker; its tooltip polish is applied.
-Remove routing remains a linked integration dependency.
+Independent Astra source and native-evidence review accepted this bounded
+increment; its tooltip polish is applied. Main integration build passes. The
+additional Surface Modify > Remove route passes actual Qt tab/menu selection,
+preview/Cancel and Browser Remove in the integrated Remove native check.

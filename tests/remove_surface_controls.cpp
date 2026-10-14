@@ -12,6 +12,7 @@
 #include <QPushButton>
 #include <QTest>
 #include <QTimer>
+#include <QToolButton>
 #include <QTreeWidget>
 #include <QTreeWidgetItemIterator>
 
@@ -36,7 +37,17 @@ private slots:
   QApplication::setActiveWindow(&window);window.setFocus();
   const auto before=call(window,"document.inspect"),body=before["evaluation"].toObject()["bodies"].toArray()[0].toObject();
   const auto id=body["bodyId"].toString();auto* tree=window.findChild<QTreeWidget*>("browser.tree");QVERIFY(tree);tree->expandAll();
-  const auto started=call(window,"body.removeDialog");QCOMPARE(started["command"].toString(),QString("body.remove"));
+  auto* surface=window.findChild<QToolButton*>("design.tab.surface");QVERIFY(surface);QTest::mouseClick(surface,Qt::LeftButton);
+  auto* modify=window.findChild<QToolButton*>("surface.menu.modify");QVERIFY(modify && modify->isVisible());
+  QTimer::singleShot(40,&window,[]{
+   auto* menu=qobject_cast<QMenu*>(QApplication::activePopupWidget());if(!menu)qFatal("Surface Modify menu unavailable");
+   for(auto* action:menu->actions())if(action->objectName()=="surface.action.body.removeDialog"){
+    QTest::mouseClick(menu,Qt::LeftButton,Qt::NoModifier,menu->actionGeometry(action).center());return;
+   }
+   qFatal("Surface Remove action unavailable");
+  });
+  QTest::mouseClick(modify,Qt::LeftButton);
+  QCOMPARE(window.state()["activeSession"].toObject()["command"].toString(),QString("body.remove"));
   auto* dock=window.findChild<QDockWidget*>("removeBodyDock");QVERIFY(dock && dock->isVisible());
   auto* chooser=dock->findChild<QComboBox*>("removeBody.selector");QVERIFY(chooser);
   QCOMPARE(chooser->currentData().toString(),QString{});

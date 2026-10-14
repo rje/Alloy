@@ -1,24 +1,26 @@
 # Continuation context
 
-## Retained surface Remove candidate (2026-10-14)
+## Accepted retained surface Remove (2026-10-14)
 
-HIS-007 candidate adds one-body `removeBody` history for a current local open
+HIS-007 adds one-body `removeBody` history for a current local open
 sheet. Browser Remove commits directly; `body.removeDialog` selects, previews,
 commits or cancels through the same CadDocument authority. Source features,
 authored names and Browser ownership survive removal, and deleting Remove
 restores the edited source. Focused core 2/2, a 26-call real-app API run and a
 Qt-delivered Browser/dock test pass. The Modify ribbon entry is pending VIS-004;
 native Escape and multi-body Remove are unverified/out of scope. Independent
-compatibility review is pending. See [the receipt](validation/remove-surface.md).
+compatibility review accepted the bounded ingredient. Main Surface Modify
+routing and native selection/Cancel/Browser check pass. See [the receipt](validation/remove-surface.md).
 
-## Local reference canvas candidate (2026-10-14)
+## Accepted local reference canvas (2026-10-14)
 
 DOC-024/#294 now has a separate local-image reference authority, retained real
 plane GPU texture, position/angle/uniform-width/opacity controls, Browser
 visibility and two-point dimension calibration. Core retained-plane edit and
 portable embedded reopen,46-call real-entrypoint API and bounded native
-placement/calibration/history checks pass. Independent Astra review remains
-pending; no acceptance/integration claim yet. See
+placement/calibration/history checks pass. Independent Astra review accepted
+the corrected Browser visibility and completed-pair calibration guards; focused
+native regression passes. Integrated into main. See
 [the receipt](validation/local-reference-canvas.md) and
 [the source contract](research/local-reference-canvas-contract.md). Public
 flags/flips/nonuniform controls and exact manipulator/layout parity stay explicit

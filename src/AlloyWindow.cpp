@@ -369,6 +369,7 @@ AlloyWindow::AlloyWindow() {
     auto* surfaceGroups=new QWidget;surfaceGroups->setObjectName("design.groups.surface");
     groups=new QHBoxLayout(surfaceGroups);groups->setContentsMargins(0,0,0,0);groups->setSpacing(14);groupPrefix="surface";
     group("CREATE", {{"sketch.create", "▧"}, {"surface.extrudeDialog", "▤"}, {"surface.loftDialog", "◒"}});
+    group("MODIFY", {{"body.removeDialog", "⊖"}});
     group("CONSTRUCT", {{"construction.plane", "▰"}, {"construction.pathPlane", "⟂"}, {"construction.tangentPlane", "▱"}, {"construction.midplane", "◫"}});
     group("INSPECT", {{"inspect.sectionDialog", "◧"}, {"inspect.measure", "↔"}});
     groups->addStretch();surfaceGroups->hide();ribbonRight->addWidget(surfaceGroups);
