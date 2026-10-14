@@ -93,7 +93,9 @@ accepted API/geometry/native-child evidence. Sol owns the single build/GUI lease
 Astra verifies. Native12/13 traces confirm conversion succeeds but dialog closure leaves no
 active window while ApplicationActive. FND-027 implements one guarded completion
 activation of the owning window, skipping changed app/document/window context.
-Astra approved the bounded policy; passive harness verification remains pending.
+Native14 now passes conversion handback and exposes the same New Component
+closure defect. FND-027 covers this component-modal class with one shared guarded
+helper; Rename remains source-reviewed until exercised. Astra reviews the helper.
 Backlog is401 issues with acyclic dependencies. Astra independently verifies.
 Only main and its existing build are used; no inactive worktrees accumulate.
 DOC-031/#348 is independently accepted at `89782cf`: unchanged-product native09
