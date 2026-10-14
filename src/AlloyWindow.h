@@ -62,6 +62,7 @@ private:
     };
     QString designTab_="solid";
     void registerCommands();
+    void restoreComponentDialogActivation(QDialog* dialog);
     void registerSliderCommands();
     void registerRevoluteCommands();
     void registerCylindricalCommands();

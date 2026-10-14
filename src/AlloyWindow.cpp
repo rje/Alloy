@@ -1287,6 +1287,24 @@ QJsonObject AlloyWindow::closeTab(const QString& tabId,bool discard) {
     refreshTabs();return documentTabs();
 }
 
+void AlloyWindow::restoreComponentDialogActivation(QDialog* dialog) {
+    const auto tabId=activeTabId_;
+    const auto documentId=document_->authored().value("documentId");
+    const QPointer<AlloyWindow> owner(this);
+    connect(dialog,&QDialog::finished,dialog,[owner,tabId,documentId]{
+        if(!owner)return;
+        QTimer::singleShot(0,owner.data(),[owner,tabId,documentId]{
+            if(!owner || !owner->isVisible() || owner->activeTabId_!=tabId
+                || owner->document_->authored().value("documentId")!=documentId
+                || QGuiApplication::applicationState()!=Qt::ApplicationActive
+                || QApplication::activeModalWidget()
+                || QApplication::activePopupWidget()
+                || (QApplication::activeWindow() && QApplication::activeWindow()!=owner.data()))return;
+            owner->activateWindow();
+        });
+    });
+}
+
 void AlloyWindow::registerCommands() {
     auto add = [this](QString id, QString title, QString description, QJsonObject parameters,
                      std::function<QJsonObject(const QJsonObject&)> run) {
@@ -1454,6 +1472,7 @@ void AlloyWindow::registerCommands() {
         connect(buttons,&QDialogButtonBox::rejected,dialog,&QDialog::reject);
         const auto tabId=activeTabId_;
         connect(buttons,&QDialogButtonBox::accepted,dialog,[=,this]{if(activeTabId_!=tabId){status->setText("Return to the original design before creating this component.");return;}const auto result=execute("component.create",{{"name",name->text()},{"activate",activate->isChecked()}});if(!result["ok"].toBool()){status->setText(result["error"].toObject()["message"].toString());return;}dialog->accept();});
+        restoreComponentDialogActivation(dialog);
         dialog->resize(330,160);dialog->show();name->setFocus();return QJsonObject{{"visible",true}};
     });
     add("component.create","New Component","Create one named local component with an identity occurrence.",
@@ -1496,6 +1515,7 @@ void AlloyWindow::registerCommands() {
                 const auto result=execute("component.rename",{{"definitionId",definition},{"name",name->text()}});
                 if(result["ok"].toBool())dialog->accept();else status->setText(result["error"].toObject()["message"].toString());
             });
+            restoreComponentDialogActivation(dialog);
             dialog->resize(340,150);dialog->show();name->setFocus();
             return QJsonObject{{"visible",true},{"occurrenceId",occurrence},{"definitionId",definition},{"name",current}};
         });
@@ -1524,6 +1544,7 @@ void AlloyWindow::registerCommands() {
             connect(buttons,&QDialogButtonBox::accepted,dialog,[=,this]{if(activeTabId_!=tabId){status->setText("Return to the original design");return;}
                 const auto result=execute("component.createFromBodies",{{"bodyIds",ids}});if(result["ok"].toBool())dialog->accept();
                 else status->setText(result["error"].toObject()["message"].toString());});
+            restoreComponentDialogActivation(dialog);
             dialog->resize(360,200);dialog->show();return QJsonObject{{"visible",true},{"bodyIds",ids}};
         });
     const auto clipboardSource=[this]() -> QJsonObject {
