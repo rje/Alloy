@@ -71,5 +71,28 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
     const auto beforeDownstreamFailure=reopened.authored();const auto downstreamRevision=reopened.revision();
     check(!reopened.commit(CadDocument::lengthParameterCandidate(reopened.authored(),{{"parameterId",widthId},{"value",2}}),"Impossible dependent fillet").isEmpty(),"downstream fillet must reject narrowed width");
     check(reopened.authored()==beforeDownstreamFailure && reopened.revision()==downstreamRevision,"downstream evaluation refusal is atomic");
+    CadDocument box;
+    for(const auto& entry:QVector<QPair<QString,double>>{{"BoxWidth",50},{"BoxLength",80},{"BoxHeight",40}})
+        check(box.commit(CadDocument::lengthParameterCandidate(box.authored(),{{"name",entry.first},{"value",entry.second},{"units","mm"}}),"Box parameter").isEmpty(),"box parameter created");
+    QJsonObject boxParameters{{"widthMm",50},{"depthMm",80},{"heightMm",40},{"xMm",0},{"yMm",0},{"zMm",0},
+        {"widthParameterId",row(box.authored(),"BoxWidth")["id"]},{"depthParameterId",row(box.authored(),"BoxLength")["id"]},{"heightParameterId",row(box.authored(),"BoxHeight")["id"]}};
+    auto authoredBox=box.authored();auto boxFeatures=authoredBox["features"].toArray();
+    boxFeatures.append(QJsonObject{{"id",CadDocument::newId()},{"bodyId",CadDocument::newId()},{"ownerId",authoredBox["documentId"]},
+        {"type","box"},{"name","Box"},{"visible",true},{"parameters",boxParameters}});
+    authoredBox["features"]=boxFeatures;
+    check(box.commit(authoredBox,"Bound Box").isEmpty(),"bound Box commits");
+    near(box.bodies().front().summary["volumeMm3"].toDouble(),160000,"Box initial volume");
+    const auto boxWidthId=row(box.authored(),"BoxWidth")["id"];
+    check(box.commit(CadDocument::lengthParameterCandidate(box.authored(),{{"parameterId",boxWidthId},{"name","NewWidth"},{"value",60}}),"Resize Box").isEmpty(),"Box recomputes on rename and update");
+    near(box.bodies().front().summary["volumeMm3"].toDouble(),192000,"Box updated volume");
+    check(box.authored()["features"].toArray().last().toObject()["parameters"].toObject()["widthParameterId"]==boxWidthId,"Box retains stable ID");
+    const auto boxStable=box.authored();const auto boxRevision=box.revision();
+    auto brokenBox=box.authored();auto brokenFeatures=brokenBox["features"].toArray();auto brokenFeature=brokenFeatures.last().toObject();auto brokenParameters=brokenFeature["parameters"].toObject();
+    brokenParameters["widthParameterId"]=CadDocument::newId();brokenFeature["parameters"]=brokenParameters;brokenFeatures[brokenFeatures.size()-1]=brokenFeature;brokenBox["features"]=brokenFeatures;
+    check(!box.commit(brokenBox,"Missing Box binding").isEmpty() && box.authored()!=brokenBox,"missing Box binding rejected");
+    box.history().undo();box.history().redo();
+    check(box.authored()==boxStable && box.revision()>boxRevision,"Box undo/redo restores binding");
+    const auto boxPath=temporary.path()+"/box-lengths.alloy";check(box.save(boxPath).isEmpty(),"save bound Box");
+    CadDocument reopenedBox;check(reopenedBox.open(boxPath).isEmpty() && reopenedBox.authored()==box.authored(),"reopen bound Box");
     std::cout<<"PASS: named lengths bind sketch and extrusion, rebuild atomically, undo and reopen\n";return 0;
 }catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}}

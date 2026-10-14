@@ -292,6 +292,15 @@ QJsonObject CadDocument::resolveLengthBindings(const QJsonObject& authored) {
             const auto id=p["distanceParameterId"].toString();
             if(!values.contains(id))throw std::invalid_argument("Extrude references a missing length parameter");
             p["distanceMm"]=values[id];
+        } else if(feature["type"]=="box" || feature["type"]=="shell") {
+            const QStringList fields=feature["type"]=="box" ? QStringList{"width","depth","height"} : QStringList{"thickness"};
+            for(const auto& field:fields) {
+                const auto idKey=field+"ParameterId";
+                if(!p.contains(idKey))continue;
+                const auto id=p[idKey].toString();
+                if(!values.contains(id))throw std::invalid_argument((feature["type"].toString()+" references a missing length parameter").toStdString());
+                p[field+"Mm"]=values[id];
+            }
         }
         feature["parameters"]=p;features[i]=feature;
     }
@@ -646,7 +655,7 @@ QJsonObject CadDocument::holeCandidate(const QJsonObject& authored,const QJsonOb
     const auto error=validate(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());return candidate;
 }
 QJsonObject CadDocument::shellCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
-    const QSet<QString> allowed{"ownerId","targetBodyId","removedFace","thicknessMm","name","featureId","newFeatureId"};
+    const QSet<QString> allowed{"ownerId","targetBodyId","removedFace","thicknessMm","thicknessParameterId","name","featureId","newFeatureId"};
     for(auto it=arguments.begin();it!=arguments.end();++it)if(!allowed.contains(it.key()))throw std::invalid_argument("Unknown Shell argument");
     if(arguments.contains("featureId") && arguments.contains("newFeatureId"))throw std::invalid_argument("Choose existing or new Shell identity");
     auto candidate=authored;auto features=candidate["features"].toArray();QJsonObject feature;int index=-1;
@@ -655,7 +664,9 @@ QJsonObject CadDocument::shellCandidate(const QJsonObject& authored,const QJsonO
         if(index<0 || feature["type"]!="shell")throw std::invalid_argument("Shell feature unavailable");
     } else feature={{"id",arguments.value("newFeatureId").toString(newId())},{"ownerId",arguments.value("ownerId").toString(authored["documentId"].toString())},{"type","shell"},{"name","Shell"},{"visible",true}};
     if(arguments.contains("name"))feature["name"]=arguments["name"];
-    feature["parameters"]=QJsonObject{{"targetBodyId",arguments["targetBodyId"]},{"removedFace",arguments["removedFace"]},{"thicknessMm",arguments["thicknessMm"]}};
+    QJsonObject parameters{{"targetBodyId",arguments["targetBodyId"]},{"removedFace",arguments["removedFace"]},{"thicknessMm",arguments["thicknessMm"]}};
+    if(arguments.contains("thicknessParameterId"))parameters["thicknessParameterId"]=arguments["thicknessParameterId"];
+    feature["parameters"]=parameters;
     if(index>=0)features[index]=feature;else features.append(feature);candidate["features"]=features;
     const auto error=validateStructure(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());return candidate;
 }
@@ -918,7 +929,8 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
             continue;
         }
         if(type=="shell") {
-            if(feature.contains("bodyId") || p.size()!=3 || !validId(p["targetBodyId"].toString()) || !p["removedFace"].isObject())return "Shell requires one active target body and a stable face reference";
+            if(feature.contains("bodyId") || p.size()!=3+int(p.contains("thicknessParameterId")) || !validId(p["targetBodyId"].toString()) || !p["removedFace"].isObject())return "Shell requires one active target body and a stable face reference";
+            if(p.contains("thicknessParameterId") && !validId(p["thicknessParameterId"].toString()))return "Shell thickness binding requires a stable parameter ID";
             const auto face=p["removedFace"].toObject();
             if(face.size()!=3 || face["bodyId"]!=p["targetBodyId"] || !validId(face["producerFeatureId"].toString()) || !validId(face["bodyId"].toString()) || !validId(face["faceId"].toString()))return "Shell requires one stable face on its target body";
             if(!p["thicknessMm"].isDouble() || !std::isfinite(p["thicknessMm"].toDouble()) || p["thicknessMm"].toDouble()<0.001 || p["thicknessMm"].toDouble()>100000)return "Shell thickness must be 0.001..100000 mm";
@@ -1013,7 +1025,12 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
             if (!p[field].isDouble() || !std::isfinite(p[field].toDouble()) || std::abs(p[field].toDouble()) > 100000)
                 return "Placement out of supported range: " + QString(field);
         }
-        if (p.size() != dimensions.size() + 3) return "Unknown feature parameter";
+        int bindings=0;
+        if(type=="box")for(const auto& field:QStringList{"width","depth","height"})if(p.contains(field+"ParameterId")) {
+            if(!validId(p[field+"ParameterId"].toString()))return "Box dimension binding requires a stable parameter ID";
+            ++bindings;
+        }
+        if (p.size() != dimensions.size() + 3 + bindings) return "Unknown feature parameter";
     }
     if (errorContext) *errorContext = {};
     return {};

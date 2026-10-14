@@ -2935,3 +2935,16 @@ rigid rotation passes with shared locations and fails under deep copy; #263 owns
 that bounded transform correction and retained validation. No partition/8-member
 expansion or production geometry policy changed. See the updated investigation
 receipt; Shell and Join-lineage concerns need separate bounded decisions.
+# Box and Shell named-length candidate (2026-10-13)
+
+PAR-004 extends the accepted stable-ID direct length binding authority to
+primitive Box width/depth/height and inward Shell thickness. Native fields and
+shared API accept direct names, preserve binding on edit/reopen and replace it
+on numeric input. Focused Box/Shell core, native Qt input and real-entrypoint API
+checks pass, including a shared sketch/Shell Thickness, impossible Shell update
+rollback and authored save/reopen. The inspected GPU captures show named fields
+and the hollow preview; private editors are closed. See
+[the bounded candidate receipt](validation/box-shell-parameters.md) and external
+`deliverables/box-shell-parameters-2026-10-13`. Independent review and
+integration remain pending. The Shell fixture uses an accepted extrusion stock;
+primitive Box face lineage and the full Box→Shell source chain are separate work.

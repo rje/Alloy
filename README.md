@@ -113,6 +113,10 @@ This source ends at Finish Sketch and does not produce a print mesh.
 sketch dimensions and Extrude distance by stable identity, with native name
 entry, atomic recompute and undo/save/reopen. This bounded slice supports direct
 names and numeric lengths; general arithmetic expressions remain ahead.
+The [Box and Shell parameter candidate](docs/validation/box-shell-parameters.md)
+extends those stable bindings to the three Box dimensions and inward Shell
+thickness, with native field entry and focused real-app validation. Independent
+review and integration remain pending.
 
 [Retained Countersink Hole](docs/validation/countersink-hole-controls.md) now
 cuts from a face-supported sketch Point with editable bore/sink diameters and

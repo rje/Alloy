@@ -67,6 +67,7 @@
 #include <QVector>
 #include <QVBoxLayout>
 #include <QWheelEvent>
+#include "LengthParameterSpinBox.h"
 #include <Standard_Failure.hxx>
 #include <algorithm>
 #include <cmath>
@@ -85,41 +86,7 @@ QJsonObject failure(const QString& code, const QString& message, const QString& 
 QJsonObject parameter(const QString& type, const QString& description) {
     return {{"type", type}, {"description", description}, {"required", true}};
 }
-class LengthDistanceSpinBox final:public QDoubleSpinBox {
-public:
-    LengthDistanceSpinBox(){connect(lineEdit(),&QLineEdit::textEdited,this,[this](const QString& input){
-        const auto name=namePart(input);const bool identifier=!name.isEmpty() && (name.front().isLetter() || name.front()=='_');
-        editedIdentifier_=identifier ? name : QString{};editedLiteral_=!identifier;
-        typedName_=identifier && namedValue && namedValue(name).has_value() ? name : QString{};
-    });}
-    std::function<std::optional<double>(const QString&)> namedValue;
-    QString activeName() const {return typedName_;}
-    QString enteredIdentifier() const {return editedIdentifier_;}
-    bool literalEdited() const {return editedLiteral_;}
-    void showBinding(const QString& name){boundName_=name;typedName_=name;editedIdentifier_.clear();editedLiteral_=false;if(!name.isEmpty())lineEdit()->setText(name);}
-protected:
-    void stepBy(int steps) override {boundName_.clear();typedName_.clear();editedIdentifier_.clear();editedLiteral_=true;QDoubleSpinBox::stepBy(steps);}
-    QValidator::State validate(QString& input,int& cursor) const override {
-        const auto name=namePart(input);
-        if(!name.isEmpty() && (name.front().isLetter() || name.front()=='_')) {
-            static const QRegularExpression identifier("^[A-Za-z_][A-Za-z0-9_]*$");
-            if(!identifier.match(name).hasMatch())return QValidator::Invalid;
-            return namedValue && namedValue(name).has_value() ? QValidator::Acceptable : QValidator::Intermediate;
-        }
-        return QDoubleSpinBox::validate(input,cursor);
-    }
-    double valueFromText(const QString& input) const override {
-        if(namedValue)if(const auto named=namedValue(namePart(input)))return *named;
-        return QDoubleSpinBox::valueFromText(input);
-    }
-    QString textFromValue(double value) const override {return boundName_.isEmpty() ? QDoubleSpinBox::textFromValue(value) : boundName_;}
-private:
-    QString namePart(QString text) const {if(!suffix().isEmpty() && text.endsWith(suffix()))text.chop(suffix().size());return text.trimmed();}
-    QString boundName_;
-    QString typedName_;
-    QString editedIdentifier_;
-    bool editedLiteral_=false;
-};
+using LengthDistanceSpinBox=LengthParameterSpinBox;
 TopoDS_Shape sketchLookAtContent(const QJsonObject& draft,const QJsonObject& frame,const QJsonObject& projections) {
     if(draft.value("parameters").toObject().value("entities").toArray().isEmpty())return {};
     return SketchGeometry::evaluateFeature(draft,frame,projections).shape;
@@ -1090,7 +1057,9 @@ void AlloyWindow::registerCommands() {
     for(const QString& type:{"box","cylinder"}) {
         QJsonObject schema{{"height",length},{"x",position},{"y",position},{"z",position},
             {"units",optional(units)},{"name",name},{"featureId",optional(featureId)}};
-        if(type=="box") {schema["width"]=length;schema["depth"]=length;} else schema["radius"]=length;
+        if(type=="box") {for(const auto& field:QStringList{"width","depth","height"}){
+            schema[field]=optional(length);schema[field+"Parameter"]=optional(parameter("string","Direct name of a user length."));
+        }} else schema["radius"]=length;
         const auto id="solid."+type;
         add(id,type=="box" ? "Box" : "Cylinder","Create or edit a real primitive as a New Body.",schema,[this,id](const auto& a){
             const auto candidate=primitiveCandidate(id,a);
@@ -1253,7 +1222,7 @@ void AlloyWindow::registerCommands() {
     auto shellThickness=parameter("number","Canonical inside thickness in mm.");shellThickness["minimum"]=0;shellThickness["maximum"]=100000;
     QJsonObject shellSchema{{"targetBodyId",optional(parameter("string","Retained body UUID."))},
         {"removedFace",optional(parameter("object","One stable planar face reference."))},
-        {"thicknessMm",optional(shellThickness)},{"featureId",optional(featureId)},
+        {"thicknessMm",optional(shellThickness)},{"thicknessParameter",optional(parameter("string","Direct name of a user length."))},{"featureId",optional(featureId)},
         {"name",optional(parameter("string","Shell feature name."))}};
     add("solid.shell","Shell","Create or edit one-face sharp inward shell.",shellSchema,[this](const auto& a){
         QJsonObject candidate;try{candidate=shellCandidate(a);}catch(const std::exception& e){return failure("invalid_arguments",QString::fromUtf8(e.what()));}
@@ -2930,7 +2899,7 @@ void AlloyWindow::registerCommands() {
             if(feature["type"]=="fillet") {auto inputs=p;inputs["featureId"]=feature["id"];inputs["name"]=feature["name"];return beginFillet(inputs);}
             if(feature["type"]=="chamfer") {auto inputs=p;inputs["featureId"]=feature["id"];inputs["name"]=feature["name"];return beginChamfer(inputs);}
             if(feature["type"]=="sphere") {auto inputs=p;inputs["featureId"]=feature["id"];inputs["name"]=feature["name"];return beginSphere(inputs);}
-            if(feature["type"]=="shell") {auto inputs=p;inputs["featureId"]=feature["id"];inputs["name"]=feature["name"];return beginShell(inputs);}
+            if(feature["type"]=="shell")return beginShell({{"featureId",feature["id"]}});
             if(feature["type"]=="circularPattern") {auto inputs=p;inputs["featureId"]=feature["id"];inputs["name"]=feature["name"];return beginCircularPattern(inputs);}
             if(feature["type"]=="mirror") {auto inputs=p;inputs["featureId"]=feature["id"];inputs["name"]=feature["name"];return beginMirror(inputs);}
             if(feature["type"]=="move") {auto inputs=p;inputs["featureId"]=feature["id"];inputs["name"]=feature["name"];return beginMove(inputs);}
@@ -2943,7 +2912,9 @@ void AlloyWindow::registerCommands() {
                 return failure("import_source_readonly","The imported STEP source is embedded in this feature. Edit later features or import a replacement file.","featureId");
             const auto unit=document_->authored()["displayUnits"].toString();const double scale=unit=="in" ? 25.4 : 1;
             QJsonObject inputs{{"featureId",feature["id"]},{"name",feature["name"]},{"units",unit}};
-            for(auto it=p.begin();it!=p.end();++it) inputs[it.key().chopped(2)]=it.value().toDouble()/scale;
+            for(auto it=p.begin();it!=p.end();++it)if(it.key().endsWith("Mm"))inputs[it.key().chopped(2)]=it.value().toDouble()/scale;
+            if(feature["type"]=="box")for(const auto& field:QStringList{"width","depth","height"})if(p.contains(field+"ParameterId"))
+                for(const auto& row:document_->authored()["userParameters"].toArray())if(row.toObject()["id"]==p[field+"ParameterId"]){inputs[field+"Parameter"]=row.toObject()["name"];break;}
             return beginSession("solid."+feature["type"].toString(),inputs);
         }
         return failure("stale_entity","Feature does not exist","featureId");
@@ -3124,6 +3095,22 @@ void AlloyWindow::registerCommands() {
             }
             if(updates.value("operation")=="newBody")inputs.remove("targetBodyIds");
         }
+        if(session_.value("command")=="solid.box")for(const auto& field:QStringList{"width","depth","height"}){
+            if(updates.contains(field) && !updates.contains(field+"Parameter"))inputs.remove(field+"Parameter");
+            if(updates.contains(field+"Parameter")){
+                if(updates.contains(field))return failure("invalid_arguments","Choose numeric dimension or direct length name",field);
+                const auto row=lengthParameter(updates[field+"Parameter"].toString());if(row.isEmpty())return failure("unknown_parameter","User length name is unavailable",field+"Parameter");
+                inputs[field]=row["valueMm"].toDouble()/(inputs.value("units").toString()=="in" ? 25.4 : 1);
+            }
+        }
+        if(session_.value("command")=="solid.shell"){
+            if(updates.contains("thicknessMm") && !updates.contains("thicknessParameter"))inputs.remove("thicknessParameter");
+            if(updates.contains("thicknessParameter")){
+                if(updates.contains("thicknessMm"))return failure("invalid_arguments","Choose numeric thickness or direct length name");
+                const auto row=lengthParameter(updates["thicknessParameter"].toString());if(row.isEmpty())return failure("unknown_parameter","User length name is unavailable","thicknessParameter");
+                inputs["thicknessMm"]=row["valueMm"];
+            }
+        }
         for (auto it = updates.begin(); it != updates.end(); ++it) inputs[it.key()] = it.value();
         const auto target = session_.value("command").toString();
         if(target=="inspect.section" && updates.contains("analysisId") && updates["analysisId"]!=session_.value("inputs").toObject()["analysisId"])return failure("invalid_arguments","Section edit identity cannot change","analysisId");
@@ -3199,6 +3186,11 @@ void AlloyWindow::registerCommands() {
             const auto error = validateArguments(*findCommand(target), inputs, &field);
             if (!error.isEmpty()) return failure("invalid_arguments", error, field);
         }
+        if(target=="solid.box" && session_.contains("invalidNamedInput")){
+            const auto field=session_["invalidNamedInput"].toString();
+            if(updates.contains(field) || updates.contains(field+"Parameter"))session_.remove("invalidNamedInput");
+        }
+        if(target=="solid.shell" && session_.contains("invalidNamedInput") && (updates.contains("thicknessMm") || updates.contains("thicknessParameter")))session_.remove("invalidNamedInput");
         session_["inputs"] = inputs;if(target=="solid.extrude") {
             QJsonObject source{{"sketchId",inputs.value("sketchId")}};
             if(inputs.contains("profileIds"))source["profileIds"]=inputs["profileIds"];
@@ -3727,7 +3719,10 @@ void AlloyWindow::refresh() {
     else if(session_.value("command").toString()=="solid.combine")refreshCombineControls();
     else if(session_.value("command").toString().startsWith("solid.") && primitivePanel_) {
         const auto inputs=session_.value("inputs").toObject();
-        for(auto it=primitiveInputs_.begin();it!=primitiveInputs_.end();++it){const QSignalBlocker block(it.value());it.value()->setValue(inputs[it.key()].toDouble());it.value()->setSuffix(" "+inputs["units"].toString());}
+        for(auto it=primitiveInputs_.begin();it!=primitiveInputs_.end();++it){const QSignalBlocker block(it.value());
+            if(auto* named=dynamic_cast<LengthDistanceSpinBox*>(it.value()))named->showBinding({});
+            it.value()->setValue(inputs[it.key()].toDouble());it.value()->setSuffix(" "+inputs["units"].toString());
+            if(auto* named=dynamic_cast<LengthDistanceSpinBox*>(it.value()))named->showBinding(inputs.value(it.key()+"Parameter").toString());}
         const QSignalBlocker block(primitiveName_);primitiveName_->setText(inputs["name"].toString());
     }
     const bool editingSketch=session_.value("command").toString()=="sketch.edit";
@@ -3740,7 +3735,7 @@ void AlloyWindow::refresh() {
     if(session_.value("command")=="solid.chamfer" && chamferDock_)if(auto* field=chamferDock_->findChild<QDoubleSpinBox*>("chamferDistance")){const QSignalBlocker blocker(field);field->setValue(session_["inputs"].toObject()["distanceMm"].toDouble());}
     if(session_.value("command")=="solid.fillet" && filletDock_)if(auto* box=filletDock_->findChild<QDialogButtonBox*>())box->button(QDialogButtonBox::Ok)->setEnabled(session_["previewed"].toBool() && session_["geometryEvaluated"].toBool() && session_["baseDocumentRevision"].toInteger()==static_cast<qint64>(document_->revision()));
     if(session_.value("command")=="solid.chamfer" && chamferDock_)if(auto* box=chamferDock_->findChild<QDialogButtonBox*>())box->button(QDialogButtonBox::Ok)->setEnabled(session_["previewed"].toBool() && session_["geometryEvaluated"].toBool() && session_["baseDocumentRevision"].toInteger()==static_cast<qint64>(document_->revision()));
-    if(session_.value("command")=="solid.shell" && shellDock_)if(auto* field=shellDock_->findChild<QDoubleSpinBox*>("shellThickness")){const QSignalBlocker blocker(field);field->setValue(session_["inputs"].toObject()["thicknessMm"].toDouble());}
+    if(session_.value("command")=="solid.shell" && shellDock_)if(auto* field=dynamic_cast<LengthParameterSpinBox*>(shellDock_->findChild<QDoubleSpinBox*>("shellThickness"))){const QSignalBlocker blocker(field);field->showBinding({});field->setValue(session_["inputs"].toObject()["thicknessMm"].toDouble());field->showBinding(session_["inputs"].toObject()["thicknessParameter"].toString());}
     if(session_.value("command")=="solid.shell" && shellDock_)if(auto* box=shellDock_->findChild<QDialogButtonBox*>())box->button(QDialogButtonBox::Ok)->setEnabled(session_["previewed"].toBool() && session_["geometryEvaluated"].toBool() && session_["baseDocumentRevision"].toInteger()==static_cast<qint64>(document_->revision()));
     if(filletEscape_)filletEscape_->setEnabled(session_.value("command")=="solid.fillet");
     if(chamferEscape_)chamferEscape_->setEnabled(session_.value("command")=="solid.chamfer");
@@ -4405,6 +4400,10 @@ QJsonObject AlloyWindow::beginSession(const QString& command, const QJsonObject&
         if(command=="solid.box"){values["width"]=20/scale;values["depth"]=30/scale;} else values["radius"]=5/scale;
     }
     for (auto it = inputs.begin(); it != inputs.end(); ++it) values[it.key()] = it.value();
+    if(command=="solid.box")for(const auto& field:QStringList{"width","depth","height"})if(values.contains(field+"Parameter")){
+        const auto row=lengthParameter(values[field+"Parameter"].toString());if(row.isEmpty())return failure("unknown_parameter","User length name is unavailable",field+"Parameter");
+        values[field]=row["valueMm"].toDouble()/(values["units"]=="in" ? 25.4 : 1);
+    }
     if (command == "commands.search") {
         if (values.size() != 1 || !values["query"].isString()) return failure("invalid_arguments", "Search requires a query string");
     } else {
@@ -4420,6 +4419,7 @@ QJsonObject AlloyWindow::beginSession(const QString& command, const QJsonObject&
 
 QJsonObject AlloyWindow::finishSession(const QString& id, bool commit) {
     if (session_.isEmpty() || session_.value("id").toString() != id) return failure("invalid_session", "Session is no longer active");
+    if(commit && session_.contains("invalidNamedInput"))return failure("unknown_parameter","Resolve the unavailable user length name before committing");
     cancelConicInput();
     cancelSlotDrag();
     const auto target = session_.value("command").toString();
@@ -4620,7 +4620,15 @@ QJsonObject AlloyWindow::primitiveCandidate(const QString& command,const QJsonOb
     const auto units=inputs.value("units").toString(candidate["displayUnits"].toString());
     QJsonObject parameters;
     const QStringList dimensions=type=="box" ? QStringList{"width","depth","height"} : QStringList{"radius","height"};
-    for(const auto& name:dimensions)parameters[name+"Mm"]=CadDocument::millimeters(inputs.value(name).toDouble(),units);
+    for(const auto& name:dimensions){
+        const auto binding=name+"Parameter";
+        if(type=="box" && inputs.contains(binding)){
+            const auto row=lengthParameter(inputs[binding].toString());
+            if(row.isEmpty())throw std::invalid_argument("User length name is unavailable: "+binding.toStdString());
+            parameters[name+"ParameterId"]=row["id"];
+            parameters[name+"Mm"]=row["valueMm"];
+        }else parameters[name+"Mm"]=CadDocument::millimeters(inputs.value(name).toDouble(),units);
+    }
     for(const auto& name:{"x","y","z"})parameters[QString(name)+"Mm"]=CadDocument::millimeters(inputs.value(name).toDouble(),units);
     feature["parameters"]=parameters;feature["name"]=inputs.value("name").toString(type=="box" ? "Box" : "Cylinder");
     if(index>=0)features[index]=feature;else features.append(feature);
@@ -4630,8 +4638,11 @@ QJsonObject AlloyWindow::primitiveCandidate(const QString& command,const QJsonOb
 }
 
 QJsonObject AlloyWindow::primitiveWidgetInputs() const {
-    QJsonObject inputs;
-    for(auto it=primitiveInputs_.begin();it!=primitiveInputs_.end();++it)inputs[it.key()]=it.value()->value();
+    QJsonObject inputs=session_.value("inputs").toObject();
+    for(auto it=primitiveInputs_.begin();it!=primitiveInputs_.end();++it){
+        inputs[it.key()]=it.value()->value();
+        if(auto* named=dynamic_cast<LengthDistanceSpinBox*>(it.value());named && !named->activeName().isEmpty())inputs[it.key()+"Parameter"]=named->activeName();
+    }
     if(primitiveName_)inputs["name"]=primitiveName_->text();
     inputs["units"]=session_.value("inputs").toObject()["units"];
     return inputs;
@@ -4653,10 +4664,28 @@ void AlloyWindow::showPrimitive() {
     const QStringList fields=command=="solid.box" ? QStringList{"width","depth","height","x","y","z"}
         : QStringList{"radius","height","x","y","z"};
     for(const auto& field:fields) {
-        auto* input=new QDoubleSpinBox;input->setKeyboardTracking(false);input->setDecimals(6);input->setRange(field.size()==1 ? -100000 : 0.000001,100000);
+        const bool named=command=="solid.box" && (field=="width" || field=="depth" || field=="height");
+        auto* input=named ? static_cast<QDoubleSpinBox*>(new LengthDistanceSpinBox) : new QDoubleSpinBox;
+        input->setKeyboardTracking(false);input->setDecimals(6);input->setRange(field.size()==1 ? -100000 : 0.000001,100000);
         input->setSuffix(" "+inputs["units"].toString());input->setValue(inputs[field].toDouble());input->setObjectName("primitive."+field);
+        if(named){auto* fieldInput=static_cast<LengthDistanceSpinBox*>(input);
+            fieldInput->namedValue=[this,inputs](const QString& name)->std::optional<double>{const auto row=lengthParameter(name);if(row.isEmpty())return {};return row["valueMm"].toDouble()/(inputs["units"]=="in" ? 25.4 : 1);};
+            fieldInput->showBinding(inputs.value(field+"Parameter").toString());
+            connect(fieldInput,&QDoubleSpinBox::editingFinished,this,[this,field,fieldInput]{
+                if(session_.value("command")!="solid.box")return;
+                const auto typed=fieldInput->enteredIdentifier();
+                if(!typed.isEmpty() && lengthParameter(typed).isEmpty()){
+                    session_["invalidNamedInput"]=field;session_["previewed"]=false;view_->clearPreview();
+                    primitiveError_->setText("User length name is unavailable");return;
+                }
+                if(session_.value("invalidNamedInput")==field && (!typed.isEmpty() || fieldInput->literalEdited()))session_.remove("invalidNamedInput");
+                if(!typed.isEmpty())updatePrimitive({{field+"Parameter",typed}});
+                else if(fieldInput->literalEdited())updatePrimitive({{field,fieldInput->value()}});
+            });
+        }
         primitiveInputs_[field]=input;form->addRow(field.first(1).toUpper()+field.sliced(1),input);
-        connect(input,qOverload<double>(&QDoubleSpinBox::valueChanged),this,[this,field](double value){
+        connect(input,qOverload<double>(&QDoubleSpinBox::valueChanged),this,[this,field,input](double value){
+            if(auto* named=dynamic_cast<LengthDistanceSpinBox*>(input);named && !named->enteredIdentifier().isEmpty())return;
             updatePrimitive({{field,value}});
         });
     }

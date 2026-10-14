@@ -1,5 +1,6 @@
 #include "AlloyWindow.h"
 #include "ReferenceView.h"
+#include "LengthParameterSpinBox.h"
 #include <QDockWidget>
 #include <QFormLayout>
 #include <QDoubleSpinBox>
@@ -16,6 +17,11 @@ QJsonObject shellFailure(const QString& code,const QString& message,const QJsonO
 QJsonObject AlloyWindow::shellCandidate(const QJsonObject& inputs) const {
     auto args=inputs;
     if(!args.contains("featureId") && session_.value("command")=="solid.shell")args["newFeatureId"]=session_["newFeatureId"];
+    if(args.contains("thicknessParameter")){
+        const auto row=lengthParameter(args["thicknessParameter"].toString());
+        if(row.isEmpty())throw std::invalid_argument("User length name is unavailable");
+        args["thicknessParameterId"]=row["id"];args["thicknessMm"]=row["valueMm"];args.remove("thicknessParameter");
+    }
     return CadDocument::shellCandidate(document_->authored(),authoringArguments(args));
 }
 QJsonObject AlloyWindow::beginShell(const QJsonObject& overrides) {
@@ -32,7 +38,16 @@ QJsonObject AlloyWindow::beginShell(const QJsonObject& overrides) {
         }
         if(!found)return shellFailure("stale_entity","Shell feature unavailable");
     }
+    if(inputs.contains("thicknessParameterId")){
+        for(const auto& entry:document_->authored()["userParameters"].toArray())if(entry.toObject()["id"]==inputs["thicknessParameterId"]){inputs["thicknessParameter"]=entry.toObject()["name"];break;}
+        inputs.remove("thicknessParameterId");
+    }
     for(auto it=overrides.begin();it!=overrides.end();++it)inputs[it.key()]=it.value();
+    if(inputs.contains("thicknessParameter")){
+        const auto row=lengthParameter(inputs["thicknessParameter"].toString());
+        if(row.isEmpty())return shellFailure("unknown_parameter","User length name is unavailable");
+        inputs["thicknessMm"]=row["valueMm"];
+    }
     session_={{"id",CadDocument::newId()},{"command","solid.shell"},{"status","active"},
         {"inputs",inputs},{"newFeatureId",CadDocument::newId()},
         {"baseDocumentRevision",static_cast<qint64>(document_->revision())},
@@ -82,16 +97,31 @@ void AlloyWindow::showShell() {
     selected->setText(session_["inputs"].toObject()["removedFace"].toObject().isEmpty() ? "0 selected" : "1 selected");
     form->addRow("Selection",selected);
     form->addRow("Type",new QLabel("Sharp Offset",panel));form->addRow("Direction",new QLabel("Inside",panel));
-    auto* thickness=new QDoubleSpinBox(panel);thickness->setObjectName("shellThickness");thickness->setAccessibleName("Inside Thickness");
+    auto* thickness=new LengthParameterSpinBox(panel);thickness->setObjectName("shellThickness");thickness->setAccessibleName("Inside Thickness");
     thickness->setKeyboardTracking(false);thickness->setDecimals(3);thickness->setRange(0,100000);thickness->setSuffix(" mm");
-    thickness->setValue(session_["inputs"].toObject()["thicknessMm"].toDouble());form->addRow("Inside Thickness",thickness);
+    thickness->namedValue=[this](const QString& name)->std::optional<double>{const auto row=lengthParameter(name);if(row.isEmpty())return {};return row["valueMm"].toDouble();};
+    thickness->setValue(session_["inputs"].toObject()["thicknessMm"].toDouble());thickness->showBinding(session_["inputs"].toObject()["thicknessParameter"].toString());form->addRow("Inside Thickness",thickness);
     auto* status=new QLabel(panel);status->setObjectName("shellError");status->setWordWrap(true);form->addRow(status);
-    connect(thickness,&QDoubleSpinBox::valueChanged,panel,[this](double value){
+    auto* buttons=new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel,panel);form->addRow(buttons);
+    buttons->button(QDialogButtonBox::Ok)->setEnabled(false);
+    connect(thickness,&QDoubleSpinBox::valueChanged,panel,[this,thickness](double value){
+        if(!thickness->enteredIdentifier().isEmpty())return;
         const auto response=execute("command.update",{{"session",session_["id"]},{"inputs",QJsonObject{{"thicknessMm",value}}}});
         if(response["ok"].toBool())previewShell();
     });
-    auto* buttons=new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel,panel);form->addRow(buttons);
-    buttons->button(QDialogButtonBox::Ok)->setEnabled(false);
+    connect(thickness,&QDoubleSpinBox::editingFinished,panel,[this,thickness,status,buttons]{
+        const auto typed=thickness->enteredIdentifier();
+        if(!typed.isEmpty() && lengthParameter(typed).isEmpty()){
+            session_["invalidNamedInput"]=typed;session_["previewed"]=false;session_["geometryEvaluated"]=false;
+            view_->clearPreview();buttons->button(QDialogButtonBox::Ok)->setEnabled(false);
+            status->setText("User length name is unavailable");return;
+        }
+        if(typed.isEmpty() && !thickness->literalEdited())return;
+        session_.remove("invalidNamedInput");
+        const auto update=typed.isEmpty() ? QJsonObject{{"thicknessMm",thickness->value()}} : QJsonObject{{"thicknessParameter",typed}};
+        const auto response=execute("command.update",{{"session",session_["id"]},{"inputs",update}});
+        if(response["ok"].toBool()){thickness->showBinding(typed);previewShell();}else status->setText(response["error"].toObject()["message"].toString());
+    });
     connect(buttons,&QDialogButtonBox::accepted,panel,[this,status]{const auto response=execute("command.commit",{{"session",session_["id"]}});
         if(!response["ok"].toBool())status->setText(response["error"].toObject()["message"].toString());});
     connect(buttons,&QDialogButtonBox::rejected,panel,[this]{execute("command.cancel",{{"session",session_["id"]}});});

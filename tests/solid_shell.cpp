@@ -20,8 +20,10 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
     const auto bodyId=document.bodies()[0].bodyId;
     const auto cap=document.bodies()[0].supportFaces[0];
     QJsonObject support{{"producerFeatureId",cap.producerFeatureId},{"bodyId",cap.bodyId},{"faceId",cap.faceId}};
+    check(document.commit(CadDocument::lengthParameterCandidate(document.authored(),{{"name","Wall"},{"value",2},{"units","mm"}}),"Add Wall").isEmpty(),"Wall parameter created");
+    const auto wallId=document.authored()["userParameters"].toArray()[0].toObject()["id"];
     const auto before=document.authored();
-    QJsonObject arguments{{"targetBodyId",bodyId},{"removedFace",support},{"thicknessMm",2}};
+    QJsonObject arguments{{"targetBodyId",bodyId},{"removedFace",support},{"thicknessMm",2},{"thicknessParameterId",wallId}};
     const auto candidate=CadDocument::shellCandidate(before,arguments);
     check(document.commit(candidate,"Shell").isEmpty(),"shell commit");
     check(document.bodies().size()==1 && document.bodies()[0].bodyId==bodyId,"body identity");
@@ -33,9 +35,17 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
     for(const auto& face:document.bodies()[0].supportFaces)
         if(face.role=="shell-inner" && std::abs(face.frame["origin"].toArray()[2].toDouble()-2)<1e-5)innerBase=true;
     check(innerBase,"kernel-mapped inner base support");
+    check(document.authored()["features"].toArray().last().toObject()["parameters"].toObject()["thicknessParameterId"]==wallId,"Shell retains Wall ID");
+    check(document.commit(CadDocument::lengthParameterCandidate(document.authored(),{{"parameterId",wallId},{"name","WallSize"},{"value",2.5}}),"Edit Wall").isEmpty(),"bound Shell rebuilds after rename/value edit");
+    check(document.authored()["features"].toArray().last().toObject()["parameters"].toObject()["thicknessParameterId"]==wallId,"Shell binding survives rename");
+    const auto boundStable=document.authored();const auto boundRevision=document.revision();
+    check(!document.commit(CadDocument::lengthParameterCandidate(document.authored(),{{"parameterId",wallId},{"value",20}}),"Impossible bound Shell").isEmpty(),"bound Shell refuses impossible thickness");
+    check(document.authored()==boundStable && document.revision()==boundRevision,"failed bound recompute atomic");
+    document.history().undo();check(document.authored()==candidate,"undo Wall edit restores Shell cache");
     const auto shellFeature=document.authored()["features"].toArray().last().toObject();
-    arguments["featureId"]=shellFeature["id"];arguments["thicknessMm"]=1.5;
+    arguments["featureId"]=shellFeature["id"];arguments["thicknessMm"]=1.5;arguments.remove("thicknessParameterId");
     check(document.commit(CadDocument::shellCandidate(document.authored(),arguments),"Edit Shell").isEmpty(),"shell edit");
+    check(!document.authored()["features"].toArray().last().toObject()["parameters"].toObject().contains("thicknessParameterId"),"numeric Shell edit replaces binding");
     check(std::abs(document.bodies()[0].summary["volumeMm3"].toDouble()-(7812.5-22*22*11))<1e-3,"edited thickness volume");
     const auto extrude=document.authored()["features"].toArray()[1].toObject();
     check(document.commit(CadDocument::extrusionCandidate(document.authored(),{{"featureId",extrude["id"]},
