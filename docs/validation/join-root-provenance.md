@@ -1,0 +1,7 @@
+# GEO-014: exact Join attachment-root identity
+
+The retained wall/stem attachment edge on the adapted Case Join is now selectable through the ordinary solid-edge catalog. The producer is the uniquely modified source prism base rim; the result edge must be current and incident to one uniquely retained target face and the corresponding Join tool base face. The edge ID derives from the Join feature, source tool edge, and retained target face. Disconnected or ambiguous ancestry is not guessed by coordinates.
+
+The focused source-shaped fixture is `../Alloy-reference-records/deliverables/enclosure-snap-2026-10-13/geo013-api-01/actual-union-join.alloy`. `join_root_provenance_test` verified the actual vertical wall/stem edge X−28.5, Y17.5, Z15–20.5; stable ID `18cd7bb9-74a0-538e-bd36-b3169a90e036`; current edge/target face membership; Join depth 5→5.25; undo/redo; and save/reopen. A source-size Chamfer2 on that correct edge still refuses atomically, and belongs to GEO-015. `join_lineage_immutable` passed 1/1.
+
+This change publishes the original Join root only. The reflected five-feature Snap Mirror does not yet publish its matching root; SOL-055 tracks its distinct replay lineage. The exact-size finish and cumulative snap workflow remain open. The public source does not fix the adapted hook corner placement, so these world coordinates are a qualified fixture choice, not a reference-app observation.

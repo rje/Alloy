@@ -2,6 +2,7 @@
 #include "GeometryKernel.h"
 #include "SolidFillet.h"
 #include "PlanarFaces.h"
+#include "JoinRootEdges.h"
 #include <memory>
 #include <BRepGProp.hxx>
 #include <GProp_GProps.hxx>
@@ -67,11 +68,25 @@ GeometryKernel::JoinResult GeometryKernel::joinResults(const QJsonObject& featur
     const std::vector<EvaluatedProfile>& profiles){
     if(participants.empty() || profiles.empty())reject("join_input_invalid","Join needs earlier participants and selected profiles");
     const auto id=feature["id"].toString();const auto parameters=feature["parameters"].toObject();const double distance=parameters["distanceMm"].toDouble(),start=parameters.value("startOffsetMm").toDouble();
-    std::vector<TopoDS_Shape> inputs,tools;std::vector<EvaluatedSupportFace> caps;std::vector<EvaluatedSolidEdge> edges;
+    std::vector<TopoDS_Shape> inputs,tools;std::vector<EvaluatedSupportFace> caps,targetFaces;std::vector<EvaluatedSolidEdge> edges;
+    std::vector<JoinRootEdges::ToolBase> toolBases;
+    const bool traceRoots=participants.size()==1 && !participants.front().supportFaces.empty()
+        && std::all_of(profiles.begin(),profiles.end(),[](const auto& profile){
+            return !profile.boundaryEdges.empty() && std::all_of(profile.boundaryEdges.begin(),profile.boundaryEdges.end(),
+                [](const auto& edge){return edge.type=="line";});});
     for(const auto& body:participants){const auto summary=summarize(body.shape);
         if(!summary["valid"].toBool() || !summary["closed"].toBool() || summary["topology"].toObject()["solids"].toInt()!=1)
-            reject("join_input_invalid","Every Join participant must be one valid closed solid");inputs.push_back(body.shape);edges.insert(edges.end(),body.solidEdges.begin(),body.solidEdges.end());}
-    for(const auto& profile:profiles){EvaluatedSupportFace cap;std::vector<EvaluatedSolidEdge> generated;auto shape=extrusion(profile,distance,&cap,&generated,id,nullptr,start);edges.insert(edges.end(),generated.begin(),generated.end());inputs.push_back(shape);tools.push_back(shape);caps.push_back(cap);}
+            reject("join_input_invalid","Every Join participant must be one valid closed solid");inputs.push_back(body.shape);edges.insert(edges.end(),body.solidEdges.begin(),body.solidEdges.end());targetFaces.insert(targetFaces.end(),body.supportFaces.begin(),body.supportFaces.end());}
+    for(const auto& profile:profiles){EvaluatedSupportFace cap;std::vector<EvaluatedSolidEdge> generated;std::vector<EvaluatedSupportFace> toolFaces;
+        TopoDS_Shape shape;
+        if(traceRoots){
+            try {shape=extrusion(profile,distance,&cap,&generated,id,&toolFaces,start);}
+            catch(const std::exception&) { // Optional side ancestry must not invalidate an ordinary Join.
+                toolFaces.clear();shape=extrusion(profile,distance,&cap,&generated,id,nullptr,start);
+            }
+        }else shape=extrusion(profile,distance,&cap,&generated,id,nullptr,start);
+        for(const auto& face:toolFaces)if(face.role=="extrude.base")toolBases.push_back({profile.profileId,face.face});
+        edges.insert(edges.end(),generated.begin(),generated.end());inputs.push_back(shape);tools.push_back(shape);caps.push_back(cap);}
     std::unique_ptr<BRepAlgoAPI_BooleanOperation> history;const auto material=fuse(inputs,&history);TopTools_IndexedMapOfShape solids;TopExp::MapShapes(material,TopAbs_SOLID,solids);
     if(solids.IsEmpty())reject("join_empty_result","Join produced no connected solids");
     TopTools_IndexedMapOfShape componentFaces,componentEdges,componentVertices;
@@ -110,7 +125,7 @@ GeometryKernel::JoinResult GeometryKernel::joinResults(const QJsonObject& featur
         QJsonObject record{{"bodyId",bodyId},{"participantBodyIds",array(targets)},{"profileIds",array(profileIds)}};
         EvaluatedBody body=primary ? *primary : EvaluatedBody{id,bodyId,feature["name"].toString()+" · detached",feature["visible"].toBool(),{},{},{}};
         body.shape=shape;body.supportFaces.clear();body.summary=summary;
-        body.solidEdges=SolidFillet::transferEdges(*history,edges,shape);body.summary["solidEdges"]=SolidFillet::descriptors(body.solidEdges);
+        body.solidEdges=SolidFillet::transferEdges(*history,edges,shape);
         body.summary["operation"]="join";body.summary["lastModifierFeatureId"]=id;body.summary["producerFeatureId"]=body.featureId;
         body.summary["targetBodyIds"]=parameters["targetBodyIds"];body.summary["participantBodyIds"]=array(targets);
         body.summary["sourceSketchId"]=parameters["sketchId"];body.summary["sourceProfileIds"]=array(profileIds);
@@ -119,6 +134,11 @@ GeometryKernel::JoinResult GeometryKernel::joinResults(const QJsonObject& featur
         body.summary["distanceMm"]=distance;body.summary["addedVolumeMm3"]=added;
         body.supportFaces=PlanarFaces::transfer(*history,candidates,shape);
         for(auto& face:body.supportFaces)face.bodyId=bodyId;
+        auto roots=JoinRootEdges::publish(*history,targetFaces,toolBases,result.sourceEdges,shape,body.supportFaces,id);
+        for(auto& root:roots)if(std::none_of(body.solidEdges.begin(),body.solidEdges.end(),
+            [&](const auto& prior){return !prior.edge.IsNull() && prior.edge.IsSame(root.edge);}))
+            body.solidEdges.push_back(std::move(root));
+        body.summary["solidEdges"]=SolidFillet::descriptors(body.solidEdges);
         supportSummary(body);groups.push_back({body,record});
     }
     if(!participatingAddition)reject("join_no_addition","Join must add material to at least one existing participant");
