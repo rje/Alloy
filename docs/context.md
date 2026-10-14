@@ -1,5 +1,24 @@
 # Continuation context
 
+## Latest checkpoint and next work (2026-10-13)
+
+TUT-020/#320 is independently accepted and integrated: from blank, the nominal
+board reference, rounded closed case, three named sections and four linked
+mounting pegs pass 110 real-app API calls, a 145.2-second creation movie,
+placement edit/undo/reopen and independent Case-only STEP/STL readback.
+A separate neutral top capture shows all four pegs. See
+[the accepted prefix receipt](validation/enclosure-prefix-workflow.md).
+GEO-008, SKT-071 and GEO-009 are accepted, integrated and closed.
+All private editors are closed; no GUI lease is outstanding.
+
+Next source stages are TUT-021/#322 (ports and card opening), TUT-022/#323
+(Split and mirrored snap groups, depending on SOL-049 and HIS-006), and
+TUT-023/#324 (alignment rim and Keep Tools). TUT-016 remains the full enclosure
+gate. Broad sketch support, Shell, Fillet, Chamfer and pattern family issues
+remain open; accepted bounded foundations and these source stages now carry
+the enclosure dependencies. External evidence remains under
+`../Alloy-reference-records/deliverables/enclosure-prefix-2026-10-13/final/`.
+
 ## Accepted Overall Slot and origin-section offsets (2026-10-13)
 
 SKT-069 true end-to-end slot length/width/angle and DOC-027 origin-plane
@@ -67,7 +86,7 @@ GEO-008 exact recognized convex closed Shell is independently accepted and integ
 SKT-071 retained circular model-edge Project is independently accepted and integrated.
 GEO-009/#321 fixes automatic center ancestry for generated shell arcs; the actual
 cumulative inner-floor sketch/Project/Offset/Join/edit/reopen/export sequence passes.
-TUT-020 final full-creation movie and independent cumulative review are underway. RES-020
+TUT-020 full-creation movie and independent cumulative review are accepted. RES-020
 independently qualifies the external v2 nominal card envelope for correct
 source-side placement while preserving v1 receipts. TUT-020/#320 is now active:
 a bounded from-blank cumulative mounting-peg workflow and creation video, with

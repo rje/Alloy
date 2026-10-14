@@ -1,5 +1,11 @@
 # Alloy
 
+The [enclosure mounting workflow](docs/validation/enclosure-prefix-workflow.md)
+now has an independently accepted from-blank creation movie: linked board
+placement, a rounded closed shell, three cutaways and four reference-driven
+mounting pegs. Edits, reopening and Case-only printing exports pass. Port
+openings, snap closures and the alignment rim remain in the full enclosure gate.
+
 The [patterned ornament tutorial](docs/validation/ornament-tutorial-acceptance.md)
 now has independently accepted creation footage, editable source and width-edit
 models, and checked printing exports. It combines Revolve, Shell, section analysis,

@@ -3629,14 +3629,9 @@
         "TUT-015",
         "ASM-010",
         "SKT-071",
-        "SKT-025",
-        "SOL-006",
         "DOC-021",
         "GEO-005",
         "SOL-045",
-        "SOL-009",
-        "SOL-005",
-        "SOL-003",
         "HIS-006",
         "SOL-048",
         "DOC-023",
@@ -3647,12 +3642,15 @@
         "GEO-008",
         "RES-020",
         "DOC-027",
-        "TUT-020"
+        "TUT-020",
+        "TUT-021",
+        "TUT-022",
+        "TUT-023"
       ],
       "labels": [
         "area:gate"
       ],
-      "body": "## Scope\nComplete case source: local STEP reference, placement, shell/fillets, opacity and three named sections, projected port offsets and To Object cuts, Midplane/Split, snaps, feature Mirror, fillet reorder, alignment lip and Combine Cut Keep Tools. Reuse accepted operations; split broad remaining dependencies into finishable children before pulling them.\n\n## Acceptance criteria\nFull source-stage ledger/movie, editable model with preserved reference geometry, two valid closed case halves with verified clearances/snaps/ports/lip, update/history/reopen and separately checked printable exports. Qualification and every feature dependency must close before this gate.\n- Native controls and local automation use the same authored commands, selections and evaluated geometry. Retain stable references, atomic failures, preview/Cancel where applicable, meaningful edit, undo/redo and save/reopen.\n\n## Proposed verification and evidence\nUse a focused core contract test where useful and a bounded real-entrypoint workflow. Inspect readable native controls, selections, constraint annotations and actual hardware GPU captures. Separate native input, API, geometry, history and visual evidence; independent Astra review before acceptance. Avoid repeating unchanged full workflows.\n\n## Public reference evidence\nPublic tutorial reference `snap-fit-electronics-case` reviewed 2026-10-13; detailed source URLs, instructions, images and uncertainties remain outside Git at knowledge/tutorials/advanced-candidates-2026-10-13.json and the accompanying audit.\n\n## Limits and open questions\nThis task is planned, not accepted. Source qualification must resolve unspecified dimensions and input availability without operating the reference application. Broader parent requirements remain Todo; no silent substitution of source operations.\n\nInclude closed-body Shell, mounting-hole projection and offset pegs, actual Overall Slot, three movable named sections and explicit feature Mirror. These are mandatory source steps.\n"
+      "body": "## Scope\nComplete case source: local STEP reference, placement, shell/fillets, opacity and three named sections, projected port offsets and To Object cuts, Midplane/Split, snaps, feature Mirror, fillet reorder, alignment lip and Combine Cut Keep Tools. Reuse accepted operations; split broad remaining dependencies into finishable children before pulling them.\n\n## Acceptance criteria\nFull source-stage ledger/movie, editable model with preserved reference geometry, two valid closed case halves with verified clearances/snaps/ports/lip, update/history/reopen and separately checked printable exports. Qualification and every feature dependency must close before this gate.\n- Native controls and local automation use the same authored commands, selections and evaluated geometry. Retain stable references, atomic failures, preview/Cancel where applicable, meaningful edit, undo/redo and save/reopen.\n\n## Proposed verification and evidence\nUse a focused core contract test where useful and a bounded real-entrypoint workflow. Inspect readable native controls, selections, constraint annotations and actual hardware GPU captures. Separate native input, API, geometry, history and visual evidence; independent Astra review before acceptance. Avoid repeating unchanged full workflows.\n\n## Public reference evidence\nPublic tutorial reference `snap-fit-electronics-case` reviewed 2026-10-13; detailed source URLs, instructions, images and uncertainties remain outside Git at knowledge/tutorials/advanced-candidates-2026-10-13.json and the accompanying audit.\n\n## Limits and open questions\nThis task is planned, not accepted. Source qualification must resolve unspecified dimensions and input availability without operating the reference application. Broader parent requirements remain Todo; no silent substitution of source operations.\n\nInclude closed-body Shell, mounting-hole projection and offset pegs, actual Overall Slot, three movable named sections and explicit feature Mirror. These are mandatory source steps.\n\nBroad feature-family parents remain open; accepted bounded foundations and the three source-specific cumulative stages now carry enclosure dependencies.\n"
     },
     {
       "key": "ASM-007",
@@ -5601,7 +5599,7 @@
       "labels": [
         "area:tut"
       ],
-      "body": "Finishable cumulative prefix of TUT-016: from blank import the qualified v2 board, author the 90-degree placement and Move6/Capture, create Case component, centered93x64 rectangle and Extrude30, groupedR5/R2.5, closedShell3.5, three named sections, then Project actual four circular mounting-hole edges, inward0.3 Offset and Join5 mounting pegs. Use external enclosure-prefix-contract.md and fit-recipe.json; globalaxis orientation and nominal input adaptation explicit. Verify four real pegs align with transformed true holes, valid case/clearance geometry, current retained references after a useful edit, undo/reopen and separate component export. Capture paced full creation footage from blank with honest API/native overlay labels, readable projected curves and constraint icons. Independent Astra review required; neither this prefix nor its exports close the full enclosure tutorial, whose ports/snaps/mirror/reorder/rim remain TUT-016.\n"
+      "body": "Finishable cumulative prefix of TUT-016: from blank import the qualified v2 board, author the 90-degree placement and Move6/Capture, create Case component, centered93x64 rectangle and Extrude30, groupedR5/R2.5, closedShell3.5, three named sections, then Project actual four circular mounting-hole edges, inward0.3 Offset and Join5 mounting pegs. Use external enclosure-prefix-contract.md and fit-recipe.json; globalaxis orientation and nominal input adaptation explicit. Verify four real pegs align with transformed true holes, valid case/clearance geometry, current retained references after a useful edit, undo/reopen and separate component export. Capture paced full creation footage from blank with honest API/native overlay labels, readable projected curves and constraint icons. Independent Astra review required; neither this prefix nor its exports close the full enclosure tutorial, whose ports/snaps/mirror/reorder/rim remain TUT-016.\n\n\n## Independently accepted 2026-10-13\nIndependently accepted full adapted mounting prefix from blank: 110 successful real-app API calls, 145.2-second creation movie, named sections, four retained projected/offset joined pegs, useful placement edit/undo/reopen and independently checked Case-only STL/STEP. Separate neutral top capture shows all four pegs. Source nominal geometry/axis adaptation, API versus native evidence and physical-fit limits explicit. Integrated runner/receipt in docs/validation/enclosure-prefix-workflow.md. Full enclosure continues through TUT-021/022/023 and remains open.\n"
     },
     {
       "key": "GEO-009",
@@ -5616,6 +5614,60 @@
         "area:geo"
       ],
       "body": "The actual TUT-020 rounded closed Shell inner-floor sketch fails ambiguous_projection because generated circular boundaries with empty sketch/entity ancestry share an empty center key. Only generate automatic retained center anchors when complete source sketch/entity provenance exists. Preserve genuine same-source ambiguity checks, unsupported boundary reporting and explicit Project behavior. Verify the actual centered rectangular Extrude/grouped Fillet/Shell inner-floor sketch through the real entrypoint, retain bounded regression evidence, and obtain independent review before closing. This unblocks the existing cumulative mounting gate; no replacement fixture or weakened reference identity.\n\n## Independently accepted 2026-10-13\nIndependently accepted bounded automatic-center ancestry guard, preserving incomplete/genuine-conflict refusals and explicit Project. Focused core and main app build pass. The cumulative actual-app 79-call diagnostic now commits the closed-shell inner-floor sketch, four projected holes and joined pegs through save/reopen/export. TUT-020 retains movie/whole-prefix acceptance. Evidence: external enclosure-prefix-2026-10-13/api-diagnostic-02.\n"
+    },
+    {
+      "key": "TUT-021",
+      "title": "Gate: enclosure projected port and card openings",
+      "kind": "validation",
+      "phase": "P5 Assemblies/drawings",
+      "priority": "P1",
+      "depends_on": [
+        "TUT-020",
+        "SKT-066",
+        "SKT-071",
+        "SKT-069",
+        "SOL-043",
+        "DOC-027"
+      ],
+      "labels": [
+        "area:gate"
+      ],
+      "body": "Continue the accepted actual enclosure model with retained imported connector boundaries, source inward/outward clearance offsets and To Object cuts; use Width origin section at adapted Y32, actual Overall Slot width6.5, and opposite-side16x12 card opening. Follow the external source contract; do not replace source projection with coordinate copies. Verify each intended port-wall intersection is removed, retained identities survive a useful edit/undo/reopen, valid exact case and checked export, readable projections/offsets and creation footage. Preserve nominal fixture/source-axis adaptation and physical-fit limits.\n\nUse public source evidence stored outside Git in knowledge/tutorials/advanced-audit-2026-10-13. Independent Astra review required. UI and local automation use the same authoritative commands; proportionate verification through the real app. Keep API, native input, geometry and visual evidence distinct."
+    },
+    {
+      "key": "TUT-022",
+      "title": "Gate: enclosure Split and mirrored snap feature groups",
+      "kind": "validation",
+      "phase": "P5 Assemblies/drawings",
+      "priority": "P1",
+      "depends_on": [
+        "TUT-021",
+        "SOL-045",
+        "GEO-005",
+        "SKT-036",
+        "SOL-028",
+        "SOL-049",
+        "HIS-006"
+      ],
+      "labels": [
+        "area:gate"
+      ],
+      "body": "Continue actual ported case through retained top/bottom Midplane and Split. Follow source snap construction:4mm guide,6x3 cutout,0.5 offset plane, stepped8/2/10/6/2 outline, Join5, equal-distance Chamfers2/1/2 and R0.5 fillet; mirror retained cut and snap groups separately, reorder inner fillet after Mirror and select opposite edge. Exact reference geometry and operations must remain authored and editable. Verify real post-Split face/edge support, two valid case halves, intended snap and cut clearances, edits/history/reopen, visible source-stage workflow and native controls where changed. If unsupported topology is exposed, split a bounded implementation blocker before claiming completion. No broad sketch-repair, chamfer or fillet family closure.\n\nUse public source evidence stored outside Git in knowledge/tutorials/advanced-audit-2026-10-13. Independent Astra review required. UI and local automation use the same authoritative commands; proportionate verification through the real app. Keep API, native input, geometry and visual evidence distinct."
+    },
+    {
+      "key": "TUT-023",
+      "title": "Gate: enclosure alignment rim and retained-tool fit",
+      "kind": "validation",
+      "phase": "P5 Assemblies/drawings",
+      "priority": "P1",
+      "depends_on": [
+        "TUT-022",
+        "SOL-021"
+      ],
+      "labels": [
+        "area:gate"
+      ],
+      "body": "Continue actual split snap case with source rim Offset\u22121.25, Join2, R0.5 rounding, and Combine Cut retaining the tool. Verify both halves remain valid closed printable solids with intended alignment/clearance and retained tool ownership; upstream edit, undo/reopen and independent separate export readback must preserve the assembly. Record full stage footage and readable rim/tool-selection captures. Source adaptation and physical snap/fit remain qualified; TUT-016 owns final full-source cumulative movie and acceptance.\n\nUse public source evidence stored outside Git in knowledge/tutorials/advanced-audit-2026-10-13. Independent Astra review required. UI and local automation use the same authoritative commands; proportionate verification through the real app. Keep API, native input, geometry and visual evidence distinct."
     }
   ]
 }
