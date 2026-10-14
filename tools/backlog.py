@@ -236,7 +236,11 @@ def ready(issues, github, apply=False):
         save_manifest(github.repo, records)
     sequence = json.loads((ROOT / "docs/backlog/tutorial-sequence.json").read_text())
     ranked = [key for checkpoint in sequence["checkpoints"] for key in checkpoint["issues"]]
-    ranks = {key: index for index, key in enumerate(ranked)}
+    # A current priority may reference a task also listed in an older checkpoint.
+    # Preserve its first (highest-priority) occurrence.
+    ranks = {}
+    for index, key in enumerate(ranked):
+        ranks.setdefault(key, index)
     for issue in sorted(pullable, key=lambda row: (ranks.get(row["key"], len(ranks)), number_rank(row["priority"]), number_rank(row["phase"]), row["key"])):
         record = records[issue["key"]]
         print(f"#{record['number']} {issue['key']} [{issue['priority']} / {issue['phase']} / {issue['kind']}] {issue['title']}\n  {record['html_url']}")
