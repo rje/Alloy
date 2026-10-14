@@ -4,6 +4,7 @@ import argparse
 import json
 from pathlib import Path
 from app_harness import application
+from stl_export_api import inspect_stl
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--app', required=True)
@@ -50,6 +51,15 @@ with application(args.app, out) as (call, transcript):
     assert right['bodyId'] != body_id and abs(right['volumeMm3'] - 80000) < 1e-5
     assert left['splitSide'] == 'negative' and right['splitSide'] == 'positive'
     assert all(any(f['role'].startswith('split.') for f in body['supportFaces']) for body in (left, right))
+    exports = []
+    for label, solid in [('negative', left), ('positive', right)]:
+        path = out / f'split-{label}.stl'
+        result = call('document.exportStl', {'path': str(path), 'bodyId': solid['bodyId'],
+            'units': 'mm', 'format': 'binary', 'surfaceDeviationMm': .1, 'normalDeviationDeg': 10})
+        mesh = inspect_stl(path, True)
+        assert result['bodyIds'] == [solid['bodyId']] and len(mesh['components']) == 1
+        assert abs(mesh['signedVolume'] - solid['volumeMm3']) < 100
+        exports.append({'result': result, 'mesh': mesh})
     call('capture.screenshot', {'path': str(out / 'split-committed.png')})
     split_feature = split['authored']['features'][-1]
     assert split_feature['bodyId'] == right['bodyId']
@@ -77,6 +87,6 @@ with application(args.app, out) as (call, transcript):
     assert reopened['evaluation']['bodies'][1]['bodyId'] == right['bodyId']
     call('view.home')
     call('capture.screenshot', {'path': str(out / 'split-reopened.png')})
-(out / 'split-body-api-ledger.json').write_text(json.dumps({'gpu': gpu, 'split': split, 'moved': moved,
+(out / 'split-body-api-ledger.json').write_text(json.dumps({'gpu': gpu, 'split': split, 'exports': exports, 'moved': moved,
     'reopened': reopened, 'transcript': transcript}, indent=2))
 print('PASS: real Split Body preview/cancel, two closed volumes, history, edits and reopen')

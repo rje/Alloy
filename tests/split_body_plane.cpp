@@ -70,5 +70,47 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
     QTemporaryDir temp;const auto path=temp.filePath("split.alloy");check(doc.save(path).isEmpty(),"save split");
     CadDocument reopened;check(reopened.open(path).isEmpty() && reopened.authored()==stable,"exact authored reopen");
     check(reopened.bodies().size()==2 && reopened.bodies()[1].bodyId==positive,"reopen retains both output IDs");
+    CadDocument enclosed;const auto stock2=box(enclosed);const auto original=enclosed.bodies()[0];
+    const auto shellCandidate=CadDocument::shellCandidate(enclosed.authored(),{{"targetBodyId",original.bodyId},{"thicknessMm",3.5}});
+    check(enclosed.commit(shellCandidate,"Closed Shell").isEmpty(),"closed cavity shell commit");
+    const auto cavity=enclosed.bodies()[0];check(cavity.summary["topology"].toObject()["shells"].toInt()==2,"source is a closed cavity");
+    QJsonObject cavityTop,cavityBottom;for(const auto& face:cavity.supportFaces){
+        if(face.role=="box.z1")cavityTop=source(face);if(face.role=="box.z0")cavityBottom=source(face);
+    }
+    check(!cavityTop.isEmpty()&&!cavityBottom.isEmpty(),"closed cavity keeps outer planar supports");
+    const QJsonObject cavityMid{{"id",CadDocument::newId()},{"ownerId",enclosed.authored()["documentId"]},
+        {"type","constructionPlane"},{"name","Cavity Midplane"},{"visible",true},
+        {"parameters",QJsonObject{{"source",QJsonObject{{"faces",QJsonArray{cavityTop,cavityBottom}}}}}}};
+    auto cavityCandidate=enclosed.authored();auto cavityFeatures=cavityCandidate["features"].toArray();cavityFeatures.append(cavityMid);
+    cavityCandidate["features"]=cavityFeatures;check(enclosed.commit(cavityCandidate,"Cavity Midplane").isEmpty(),"closed cavity Midplane");
+    cavityCandidate=CadDocument::splitBodyCandidate(enclosed.authored(),{{"targetBodyId",cavity.bodyId},{"planeId",cavityMid["id"]}});
+    check(enclosed.commit(cavityCandidate,"Split closed cavity").isEmpty(),qPrintable(enclosed.lastEvaluationError()["message"].toString()));
+    check(enclosed.bodies().size()==2,"closed cavity produces two solids");
+    const double originalVolume=cavity.summary["volumeMm3"].toDouble();
+    check(std::abs(enclosed.bodies()[0].summary["volumeMm3"].toDouble()+enclosed.bodies()[1].summary["volumeMm3"].toDouble()-originalVolume)<1e-5,
+        "closed cavity halves conserve material volume");
+    check(cap(enclosed.bodies()[0]).boundaryEdges.size()==8 && cap(enclosed.bodies()[1]).boundaryEdges.size()==8,
+        "closed cavity annular split caps retain outer and inner boundaries");
+    CadDocument retarget;const auto first=box(retarget);auto two=retarget.authored();auto twoFeatures=two["features"].toArray();
+    auto second=first;second["id"]=CadDocument::newId();second["bodyId"]=CadDocument::newId();second["name"]="Second case";
+    auto secondParameters=second["parameters"].toObject();secondParameters["xMm"]=70;second["parameters"]=secondParameters;
+    twoFeatures.append(second);two["features"]=twoFeatures;check(retarget.commit(two,"Add second case").isEmpty(),"second candidate target");
+    QJsonObject firstTop,firstBottom;for(const auto& face:retarget.bodies()[0].supportFaces){
+        if(face.role=="box.z1")firstTop=source(face);if(face.role=="box.z0")firstBottom=source(face);
+    }
+    auto secondPlane=mid;secondPlane["id"]=CadDocument::newId();secondPlane["ownerId"]=retarget.authored()["documentId"];
+    secondPlane["parameters"]=QJsonObject{{"source",QJsonObject{{"faces",QJsonArray{firstTop,firstBottom}}}}};
+    two=retarget.authored();twoFeatures=two["features"].toArray();twoFeatures.append(secondPlane);two["features"]=twoFeatures;
+    check(retarget.commit(two,"Midplane for both").isEmpty(),qPrintable(retarget.lastEvaluationError()["message"].toString()));
+    const auto firstSplit=CadDocument::splitBodyCandidate(retarget.authored(),{{"targetBodyId",first["bodyId"]},{"planeId",secondPlane["id"]}});
+    check(retarget.commit(firstSplit,"Split first").isEmpty(),"initial split target");
+    const auto firstSplitFeature=firstSplit["features"].toArray().last().toObject();
+    const auto swapped=CadDocument::splitBodyCandidate(retarget.authored(),{{"featureId",firstSplitFeature["id"]},
+        {"targetBodyId",second["bodyId"]},{"planeId",secondPlane["id"]}});
+    const auto swappedFeature=swapped["features"].toArray().last().toObject();
+    check(swappedFeature["id"]==firstSplitFeature["id"] && swappedFeature["bodyId"]!=firstSplitFeature["bodyId"]
+        && swappedFeature["bodyId"]==SolidSplit::positiveBodyId(swappedFeature["id"].toString(),second["bodyId"].toString()),
+        "changing target recomputes source-derived output identity");
+    check(retarget.commit(swapped,"Retarget split").isEmpty() && retarget.bodies().size()==3,"retargeted split evaluates both outputs");
     std::cout<<"PASS: retained Midplane yields two closed halves, exact volumes, caps, edit/history/reopen\n";return 0;
 }catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}}

@@ -7,6 +7,7 @@
 #include <QDialogButtonBox>
 #include <QDockWidget>
 #include <QJsonDocument>
+#include <QLabel>
 #include <QPushButton>
 #include <QTest>
 #include <QTreeWidget>
@@ -56,6 +57,12 @@ private slots:
             pickPlane();QTRY_VERIFY(buttons->button(QDialogButtonBox::Ok)->isEnabled());
             session=window.state()["activeSession"].toObject();
             QCOMPARE(session["inputs"].toObject()["planeId"].toString(),plane);QVERIFY(session["previewed"].toBool());
+            QCOMPARE(dock->findChild<QLabel*>("split.body")->text(),QString("Body to Split: Enclosure"));
+            QCOMPARE(dock->findChild<QLabel*>("split.plane")->text(),QString("Splitting Tool: Case Midplane"));
+            auto* clearPlane=dock->findChild<QPushButton*>("split.clearPlane");QVERIFY(clearPlane);
+            QTest::mouseClick(clearPlane,Qt::LeftButton);QVERIFY(!buttons->button(QDialogButtonBox::Ok)->isEnabled());
+            QCOMPARE(window.state()["activeSession"].toObject()["inputs"].toObject()["planeId"].toString(),QString());
+            pickPlane();QTRY_VERIFY(buttons->button(QDialogButtonBox::Ok)->isEnabled());
             const auto evidence=qEnvironmentVariable("ALLOY_SPLIT_BODY_EVIDENCE");
             if(!evidence.isEmpty())call(window,"capture.screenshot",{{"path",evidence+(accept?"/split-native-commit-preview.png":"/split-native-cancel-preview.png")}});
             QTest::mouseClick(buttons->button(accept?QDialogButtonBox::Ok:QDialogButtonBox::Cancel),Qt::LeftButton);
@@ -64,7 +71,12 @@ private slots:
         run(false);QCOMPARE(call(window,"document.inspect")["authored"].toObject(),before);
         run(true);const auto after=call(window,"document.inspect");
         QCOMPARE(after["evaluation"].toObject()["bodies"].toArray().size(),2);
-        QCOMPARE(after["authored"].toObject()["features"].toArray().last().toObject()["type"].toString(),QString("splitBody"));
+        const auto split=after["authored"].toObject()["features"].toArray().last().toObject();
+        QCOMPARE(split["type"].toString(),QString("splitBody"));
+        const auto edit=call(window,"feature.editDialog",{{"featureId",split["id"]}});
+        QVERIFY(edit["previewed"].toBool());
+        call(window,"command.cancel",{{"session",edit["id"]}});
+        QCOMPARE(call(window,"document.inspect")["authored"].toObject(),after["authored"].toObject());
         call(window,"document.new",{{"discard",true}});window.close();
     }
 };

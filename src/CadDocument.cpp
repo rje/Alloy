@@ -962,6 +962,7 @@ QJsonObject CadDocument::splitBodyCandidate(const QJsonObject& authored,const QJ
             {"type","splitBody"},{"name","Split Body"},{"visible",true}};
     }
     if(arguments.contains("name"))feature["name"]=arguments["name"];
+    feature["bodyId"]=SolidSplit::positiveBodyId(feature["id"].toString(),arguments["targetBodyId"].toString());
     feature["parameters"]=QJsonObject{{"targetBodyId",arguments["targetBodyId"]},{"planeId",arguments["planeId"]}};
     if(index>=0)features[index]=feature;else features.append(feature);candidate["features"]=features;
     const auto error=validate(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());return candidate;

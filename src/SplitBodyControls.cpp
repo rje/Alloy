@@ -55,7 +55,7 @@ QJsonObject AlloyWindow::selectSplitBody(const QString& id) {
     if(!response["ok"].toBool()){
         const auto error=response["error"].toObject();return failure(error["code"].toString(),error["message"].toString());
     }
-    session_["selectionRole"]="plane";return session_;
+    view_->selectBody(id);session_["selectionRole"]="plane";return session_;
 }
 
 QJsonObject AlloyWindow::selectSplitPlane(const QString& id) {
@@ -69,7 +69,7 @@ QJsonObject AlloyWindow::selectSplitPlane(const QString& id) {
     if(!response["ok"].toBool()){
         const auto error=response["error"].toObject();return failure(error["code"].toString(),error["message"].toString());
     }
-    return session_;
+    view_->selectConstructionPlane(id);return session_;
 }
 
 QJsonObject AlloyWindow::previewSplitBody() {
@@ -79,8 +79,13 @@ QJsonObject AlloyWindow::previewSplitBody() {
     auto* status=splitBodyDock_?splitBodyDock_->findChild<QLabel*>("split.status"):nullptr;
     auto* buttons=splitBodyDock_?splitBodyDock_->findChild<QDialogButtonBox*>("split.buttons"):nullptr;
     const auto inputs=session_["inputs"].toObject();
-    if(bodyLabel)bodyLabel->setText(QString("Body to Split: ")+(inputs["targetBodyId"].toString().isEmpty()?"Select a body":"Selected"));
-    if(planeLabel)planeLabel->setText(QString("Splitting Tool: ")+(inputs["planeId"].toString().isEmpty()?"Select a construction plane":"Selected"));
+    const auto edit=inputs["featureId"].toString();
+    const auto available=edit.isEmpty()?document_->evaluation():document_->evaluationBefore(edit);
+    QString bodyName,planeName;
+    for(const auto& body:available.bodies)if(body.bodyId==inputs["targetBodyId"].toString())bodyName=body.name;
+    for(const auto& plane:available.constructionPlanes)if(plane.featureId==inputs["planeId"].toString())planeName=plane.name;
+    if(bodyLabel)bodyLabel->setText("Body to Split: "+(bodyName.isEmpty()?QString("Select a body"):bodyName));
+    if(planeLabel)planeLabel->setText("Splitting Tool: "+(planeName.isEmpty()?QString("Select a construction plane"):planeName));
     session_["previewed"]=false;session_["geometryEvaluated"]=false;session_.remove("documentDraft");session_.remove("geometry");view_->clearPreview();
     if(buttons)buttons->button(QDialogButtonBox::Ok)->setEnabled(false);
     if(inputs["targetBodyId"].toString().isEmpty() || inputs["planeId"].toString().isEmpty()) {
@@ -128,10 +133,12 @@ void AlloyWindow::showSplitBody() {
     connect(chooseBody,&QPushButton::clicked,this,[this]{session_["selectionRole"]="body";view_->setFocus(Qt::OtherFocusReason);});
     connect(choosePlane,&QPushButton::clicked,this,[this]{session_["selectionRole"]="plane";view_->setFocus(Qt::OtherFocusReason);});
     connect(clearBody,&QPushButton::clicked,this,[this]{
-        execute("command.update",{{"session",session_["id"]},{"inputs",QJsonObject{{"targetBodyId",""}}}});session_["selectionRole"]="body";view_->setFocus(Qt::OtherFocusReason);
+        execute("command.update",{{"session",session_["id"]},{"inputs",QJsonObject{{"targetBodyId",""}}}});
+        session_["selectionRole"]="body";view_->selectBody({});view_->setFocus(Qt::OtherFocusReason);
     });
     connect(clearPlane,&QPushButton::clicked,this,[this]{
-        execute("command.update",{{"session",session_["id"]},{"inputs",QJsonObject{{"planeId",""}}}});session_["selectionRole"]="plane";view_->setFocus(Qt::OtherFocusReason);
+        execute("command.update",{{"session",session_["id"]},{"inputs",QJsonObject{{"planeId",""}}}});
+        session_["selectionRole"]="plane";view_->selectConstructionPlane({});view_->setFocus(Qt::OtherFocusReason);
     });
     auto* status=new QLabel(panel);status->setObjectName("split.status");status->setWordWrap(true);status->setMinimumHeight(48);layout->addWidget(status);
     layout->addStretch();
