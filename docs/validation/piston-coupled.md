@@ -27,3 +27,12 @@ External evidence is in
 capture shows all four named joints and a visibly tilted, telescoping piston.
 Public source provenance and declared adapted dimensions remain in the external
 piston tutorial knowledge directory. Copied nested components remain ASM-016.
+
+A complete API creation recording is in external `from-blank-01/` and linked
+from the gallery's `#piston-coupled` entry. One real application creates the four
+parts, converts/nests them, edits shaft radius from 4 to 4.2 mm, reopens that same
+model, creates the joints in order and runs the coupled assertions. Both chained
+workflow receipts pass. The 188.5-second recording has 2,827 frames, 2,536 repeats
+and zero capture failures; creation, moving and reopened frames were inspected.
+It preserves computation delays and qualifies small sketch details; it is not
+physical pointer evidence, a frame-rate benchmark or the copied-piston gate.
