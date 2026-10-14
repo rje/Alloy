@@ -878,6 +878,75 @@ SketchGeometry::SolveResult SketchGeometry::addCenterPointSlot(const QJsonObject
     }catch(const std::exception& error){return invalidDraft(draft,QString::fromUtf8(error.what()));}
 }
 
+SketchGeometry::SolveResult SketchGeometry::addCenterToCenterSlot(const QJsonObject& draft,
+    const QJsonObject& arguments,const QJsonObject& projectionContext) {
+    try {
+        validateDraft(draft);
+        checkFields(arguments,{"firstUMm","firstVMm","secondUMm","secondVMm","widthMm",
+            "firstSnapTarget","secondSnapTarget"});
+        double firstU=coordinate(arguments,"firstUMm"),firstV=coordinate(arguments,"firstVMm");
+        double secondU=coordinate(arguments,"secondUMm"),secondV=coordinate(arguments,"secondVMm");
+        const double width=coordinate(arguments,"widthMm");
+        auto prepared=draft,parameters=draft["parameters"].toObject();
+        auto points=parameters["points"].toArray(),constraints=parameters["constraints"].toArray();
+        auto resolveSnap=[&](const char* key,double& u,double& v)->QString {
+            if(!arguments.contains(key))return {};
+            if(!arguments[key].isObject())reject("Slot cap-center snap target must be an object");
+            const auto target=arguments[key].toObject();
+            QString id;
+            if(target["kind"]=="origin" && target.size()==1) {
+                id=parameters["originPointId"].toString();
+                if(id.isEmpty()) {
+                    id=newId();parameters["originPointId"]=id;
+                    points.append(QJsonObject{{"id",id},{"uMm",0},{"vMm",0}});
+                    constraints.append(QJsonObject{{"id",newId()},{"type","fixed"},
+                        {"pointIds",QJsonArray{id}},{"uMm",0},{"vMm",0}});
+                }
+                u=0;v=0;
+                return id;
+            }
+            if(target["kind"]!="point" || target.size()!=2 || !validId(target["pointId"].toString()))
+                reject("Slot cap center accepts an origin or retained point snap");
+            id=target["pointId"].toString();
+            parameters["points"]=points;parameters["constraints"]=constraints;
+            retainSupportPoint(parameters,projectionContext,id);
+            bool found=false;
+            for(const auto& value:expandedProjectionFeature(QJsonObject{{"parameters",parameters}},projectionContext)
+                    ["parameters"].toObject()["points"].toArray()) {
+                const auto point=value.toObject();if(point["id"]!=id)continue;
+                u=coordinate(point,"uMm");v=coordinate(point,"vMm");found=true;break;
+            }
+            if(!found)reject("Slot cap-center snap point is unavailable");
+            return id;
+        };
+        const auto firstId=resolveSnap("firstSnapTarget",firstU,firstV);
+        const auto secondId=resolveSnap("secondSnapTarget",secondU,secondV);
+        if(!firstId.isEmpty() && firstId==secondId)reject("Slot cap centers need distinct snap points");
+        const double distance=std::hypot(secondU-firstU,secondV-firstV);
+        if(distance<2*minimumLength || width<2*minimumLength || distance+width>maximumLength)
+            reject("Center to Center Slot needs distinct cap centers and a positive width within range");
+        parameters["points"]=points;parameters["constraints"]=constraints;prepared["parameters"]=parameters;
+        const auto base=addCenterPointSlot(prepared,{{"centerUMm",(firstU+secondU)/2},
+            {"centerVMm",(firstV+secondV)/2},{"endUMm",secondU},{"endVMm",secondV},
+            {"widthMm",width}},projectionContext);
+        if(!base.ok)return invalidDraft(draft,base.error);
+        auto candidate=base.feature;parameters=candidate["parameters"].toObject();
+        const auto group=parameters["slotGroups"].toArray().last().toObject();
+        QJsonObject guide;
+        for(const auto& value:parameters["entities"].toArray())
+            if(value.toObject()["id"]==group["centerlineId"]){guide=value.toObject();break;}
+        if(guide.isEmpty())reject("Slot guide is unavailable");
+        constraints=parameters["constraints"].toArray();
+        if(!firstId.isEmpty())constraints.append(QJsonObject{{"id",newId()},{"type","coincident"},
+            {"pointIds",QJsonArray{guide["startPointId"],firstId}}});
+        if(!secondId.isEmpty())constraints.append(QJsonObject{{"id",newId()},{"type","coincident"},
+            {"pointIds",QJsonArray{guide["endPointId"],secondId}}});
+        parameters["constraints"]=constraints;candidate["parameters"]=parameters;
+        const auto solved=solveDraft(candidate,projectionContext);
+        return solved.ok ? solved : SolveResult{false,draft,solved.diagnostics,solved.error};
+    }catch(const std::exception& error){return invalidDraft(draft,QString::fromUtf8(error.what()));}
+}
+
 SketchGeometry::SolveResult SketchGeometry::addOverallSlot(const QJsonObject& draft,const QJsonObject& arguments,
     const QJsonObject& projectionContext) {
     try {

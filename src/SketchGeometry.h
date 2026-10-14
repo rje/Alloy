@@ -45,6 +45,10 @@ public:
     // construction geometry; the four outer analytic edges form one profile.
     static SolveResult addCenterPointSlot(const QJsonObject& draft, const QJsonObject& arguments,
         const QJsonObject& projectionContext = {});
+    // Two picked cap centers and full width. Optional snaps attach to the
+    // corresponding guide endpoints, never to the slot midpoint.
+    static SolveResult addCenterToCenterSlot(const QJsonObject& draft, const QJsonObject& arguments,
+        const QJsonObject& projectionContext = {});
     // Two outer arc endpoints and a full width; total length drives center
     // separation as length minus width, with retained analytic slot edges.
     static SolveResult addOverallSlot(const QJsonObject& draft,const QJsonObject& arguments,

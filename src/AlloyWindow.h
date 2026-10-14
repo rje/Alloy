@@ -373,6 +373,7 @@ private:
     QJsonObject appendSketchEntity(const QString& tool, const QJsonObject& inputs);
     QJsonObject appendCenterRectangle(const QJsonObject& inputs);
     QJsonObject appendCenterPointSlot(const QJsonObject& inputs);
+    QJsonObject appendCenterToCenterSlot(const QJsonObject& inputs);
     QJsonObject appendOverallSlot(const QJsonObject& inputs);
     QJsonObject appendCenterPointArcSlot(const QJsonObject& inputs);
     QJsonObject appendCenterPointEllipse(const QJsonObject& inputs);
