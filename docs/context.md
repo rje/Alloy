@@ -2,15 +2,16 @@
 
 ## Current queue (2026-10-14)
 
-SKT-075/#332 is In Progress after a public-reference and independent design
-review. Fresh direct planar-face sketches will explicitly record
-`originConvention: projectedOwnerV1`; absent convention remains legacy. The
-authored sketch owner defines the projected origin, existing face axes stay
-unchanged, and preview/evaluation/projection must share the frame. Only
-unambiguous supported identity/rest authoring is in scope; later copying must
-not invalidate an existing definition sketch. Construction-plane policies stay
-unchanged. Implementation and native acceptance are not yet complete. The
-external face-sketch-origin contract records primary evidence and unknowns.
+SKT-075/#332 is independently accepted and integrated at `62b97d7`. Fresh
+supported planar-face sketches record `originConvention: projectedOwnerV1`
+and project the authored owning-component origin onto the face, retaining its
+axes. Legacy saved sketches without the marker retain their original frames.
+Main application build and focused fresh-origin/legacy-face core checks pass;
+actual-app API03 passes 11 calls with a reviewed GPU capture. Later copying
+preserves existing sketches; new ambiguous support authoring refuses atomically.
+Known enclosure coordinate adaptations use resolved sketch frames now; the full
+enclosure sequence was not replayed. Native pointer-origin snapping remains
+SKT-077/#375 Todo. See [acceptance](validation/face-sketch-origin.md).
 
 Canvas DOC-024, retained Remove HIS-007 and Surface workspace VIS-004 are
 independently accepted and integrated at 645497f. The combined build, focused
@@ -485,10 +486,10 @@ source proof remains required before acceptance.
 GEO-011/#331 current Cut-rim catalog publication is independently accepted and
 integrated; the correctly centered card opening now supports its R2 fillet. An initial origin-snapped diagnostic was
 misplaced and is explicitly failed evidence; SKT-075/#332 tracks fresh face-sketch
-origin compatibility without rebasing old sketches. The SKT-075 candidate now
+origin compatibility without rebasing old sketches. The accepted SKT-075 implementation now
 versions fresh direct-face sketches and preserves absent-field legacy frames;
-focused core and API evidence are in [the candidate record](validation/face-sketch-origin.md).
-Native pointer-origin input and transformed-instance authoring remain outside that candidate.
+focused core and API evidence are in [the accepted record](validation/face-sketch-origin.md).
+Native pointer-origin input remains SKT-077; transformed-instance authoring remains outside this bounded implementation.
 SOL-049 is now closed
 after an independent audit of the subsequently accepted source-group and
 Timeline-reorder gates. The following lane notes describe that earlier checkpoint. The first source-order TUT-021 run exposed a retained

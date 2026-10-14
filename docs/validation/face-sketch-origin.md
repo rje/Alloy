@@ -24,3 +24,5 @@ API run in `../Alloy-reference-records/deliverables/face-sketch-origin-2026-10-1
 checks fresh creation, a snapped center rectangle and save/reopen. Its screenshot
 shows the origin and rectangle on the displaced face. Native pointer snapping
 is not qualified by these checks and remains a separate input gate.
+
+Independent Astra review accepted `7c29a61`, integrated at `62b97d7`. Main application build and both focused core checks pass. Native pointer-origin snapping is separately tracked in SKT-077/#375; complete enclosure replay after script updates remains unperformed.
