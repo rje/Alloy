@@ -38,20 +38,29 @@ clicks, visible Tangent previews, retained contacts, Finish/history/reopen. Radi
 edit and missing-contact refusal pass; acquired point/origin snaps keep priority.
 Broader Ctrl/Command inference suppression remains with SKT-021 (H/V only today).
 See [receipt](validation/sketch-pointer-circle-tangent.md).
-SKT-086/#389 is active with Sol; TUT-025/#390 remains queued. Public sources
-clarify the connected Line-to-Arc gesture: hold/drag previews an arc tangent to
-the preceding line; release commits it and resumes Line from the new endpoint.
-Outgoing line tangency is not required. TUT-025 checks Base Sketch construction
-steps1–5, reusing explicit Tangent and Fillet. Archived source and detailed
-contracts stay external. Astra reviews implementation and actual evidence.
-TUT-025 source preflight found SKT-087/#392: Fillet currently refuses one picked
-junction, although its core supports it. Native preview/focus/Enter must allow
-one corner while preserving two-corner and side-pair workflows. This is Todo
-until SKT-086 releases shared UI ownership. Root is preparing the from-blank
-`tests/base_sketch_tutorial.cpp` fixture; it is not yet built or accepted.
-TUT-026/#393 is queued for the subsequent eight-Tangent-symbol audit and ordered
-circle/arc/center-distance dimensions from the archived later pages; no full
-constraint or solid claim. Backlog is393issues with acyclic dependencies.
+SKT-086/#389 is independently accepted at `96060ef`: focused core1/1 and
+native05 3/3 cover held tangent-Arc preview, no-drag/Escape cancellation, release
+commit and continued Line, history/reopen. See [receipt](validation/sketch-line-tangent-arc.md).
+SKT-087/#392 and TUT-025/#390 are accepted at `1d476bc`. Single-junction Fillet
+now previews/focuses/acceptsR10 while two-corner batching remains native-verified.
+The full from-blank construction recording01 passes3/3 (65.103s): source-order
+circles, tangent chains, R10 and held-drag arc create three valid cells including
+the central bridge. Small circle edit preserves valid bridge and all retained
+constraint records; undo restores the undimensioned source checkpoint for exact
+save/reopen. Astra independently reviewed source, code, original visuals, movie
+and authored geometry. [Receipt](validation/base-sketch-construction.md).
+The64.133s movie/model are in the external gallery at
+`demos/2026-10-13/index.html#base-sketch-construction`; all139 local links resolve.
+Menu opener adaptation/Qt-not-OS input, rough proportions, raw repeated frames
+and two transient pre-Line pointer-preview refusals remain qualified.
+TUT-026/#393 is active with Sol: subsequent eight-Tangent-symbol audit and ordered
+circle/arc/center-distance dimensions from the archived later pages. Finalinput
+is external `deliverables/base-sketch-construction-2026-10-14/recording-01/base-sketch-construction.alloy`.
+Seven Tangents already exist; the outgoing upper-arc/Line contact needs the audit.
+R10 is already retained and visible from Fillet; do not add a duplicate dimension.
+No full-constraint or solid claim. Sol owns UI/CMake/build/GUI lease; new fixture
+`tests/base_sketch_dimensions_tutorial.cpp` is in preparation. Astra verifies.
+Backlog is393 issues with acyclic dependencies.
 Only main and its existing build are used; no inactive worktrees accumulate.
 DOC-031/#348 is independently accepted at `89782cf`: unchanged-product native09
 passes modal line focus, rename commit, Browser label and unchanged geometry.

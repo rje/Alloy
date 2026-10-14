@@ -27,8 +27,9 @@
         "TUT-025"
       ],
       "acceptance": "From blank: rough circles, Shift tangent Line from first circle, contact onto second, R10 fillet and connected central concave Line-to-Arc drag; valid shaded bounded cells, readable cues and retained contacts, edit/history/reopen and complete creation recording.",
-      "status": "in_progress",
-      "remaining": "Creation-time circle tangent inference is independently accepted at 466eb7e. Connected Line-to-Arc drag is active: hold/drag previews tangent arc; release commits and resumes Line. Full from-blank TUT-025 construction gate remains. Existing explicit Tangent and Fillet are reused; later chapter dimensions and extrusion are outside this excerpt. Single-junction native Fillet acceptance is tracked by SKT-087."
+      "status": "done",
+      "remaining": "None for bounded steps1\u20135. Source proportions and Qt/menu adaptation qualified; later tangent-symbol audit/dimensions remain CP-27.",
+      "evidence": "docs/validation/base-sketch-construction.md"
     },
     {
       "id": "CP-27",
@@ -36,9 +37,9 @@
       "issues": [
         "TUT-026"
       ],
-      "status": "todo",
+      "status": "in_progress",
       "acceptance": "Continue accepted construction; ensure eight visible Tangent relations, dimension circles/arcs and center distances in public order, inspect residuals/profiles and preserve history/reopen.",
-      "remaining": "Requires accepted TUT-025. Existing dimension/constraint primitives must pass actual curved and center-pair native picks; split concrete gaps if found. No full constraint or solid claim."
+      "remaining": "Sol implementing actual native continuation from accepted saved construction; existing R10 is reused, missing outgoing tangent audited before dimensions. Split concrete input gaps if discovered."
     },
     {
       "id": "CP-20",
