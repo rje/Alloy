@@ -195,8 +195,9 @@
         "TUT-019"
       ],
       "acceptance": "Creation/assembly movie, editable model with inspectable DOFs and correct world transforms, drive mechanism through meaningful positions, copies/update/history/reopen. No kinematic claim from unrelated per-part animation.",
-      "status": "in_progress",
-      "remaining": "FND-027 and VIS-006 independently accepted. Native21 full supplied-fixture source-order smoke passes3/3, seven joint rows, linked Paste, 3/5-leaf motion, Revert/history/reopen. Paced movie/readability review pending."
+      "status": "done",
+      "remaining": "None for qualified adapted source gate. Native recording04 accepted at acc8616; prior API creation/export evidence preserved. Supplied-model, camera/numeric/local-storage and Qt-input limitations remain explicit.",
+      "evidence": "docs/validation/piston-native-workflow.md"
     },
     {
       "id": "CP-08",

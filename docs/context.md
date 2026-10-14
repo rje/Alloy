@@ -87,7 +87,7 @@ Its21.133s film and editable model are in the external gallery, alongside a123.8
 joined four-session film from blank; all165 local links resolve. Five intermediate
 preview refusals, Qt/menu adaptation and separately performed API checks remain
 qualified. See [full receipt](validation/base-sketch-face-holes.md).
-No additional ingredient reruns are needed. TUT-019/#305 is active for paced recording after accepted VIS-006/#402 and FND-027/#401: recover
+No additional ingredient reruns are needed. TUT-019/#305 is independently accepted at acc8616 after VIS-006/#402 and FND-027/#401: recover
 the existing cumulative native piston harness and its source ledger, retaining
 accepted API/geometry/native-child evidence. Sol owns the single build/GUI lease;
 Astra verifies. FND-027 is independently accepted at af828d8: native15 passively verifies main
@@ -104,8 +104,15 @@ capture/retained occurrence+origin pass. This is a declared camera adaptation.
 Native21 full supplied-fixture Qt smoke passes3/3 in34.106s: corrected source
 participants/bore refs, seven joint rows, linked Paste−180, three/five moving leaf
 poses, full-pose Revert and exact save/reopen. Copy's queued focus completion is
-observed passively before Paste. No ingredient reruns needed; paced recording
-and independent movie/readability review remain before TUT-019 acceptance.
+observed passively before Paste. Recording04 passes3/3 in63.150s;62s movie930frames801repeats0capturefailures,
+207commands with no failures. Astra reviewed source, geometry and movie. Native
+film/model are in external gallery #piston-native-workflow, all172 links resolve.
+Supplied-model, camera/numeric supplement, local-storage and Qt-not-OS limits stay
+explicit; no collision/global-rank/smooth-FPS claim. No ingredient reruns needed.
+Next active gate is ASM-012/#343: physical Browser body and Sketches-folder drag.
+Sol recovers fixture/normal app; root checks CUA availability and takes GUI lease
+for exact gestures; Astra verifies. Previous cgWindowNotFound access blocker must
+be rechecked once, not worked around with context actions or endless attempts.
 Backlog is402 issues with acyclic dependencies. Astra independently verifies.
 Only main and its existing build are used; no inactive worktrees accumulate.
 DOC-031/#348 is independently accepted at `89782cf`: unchanged-product native09

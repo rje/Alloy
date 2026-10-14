@@ -19,7 +19,8 @@ is the current cumulative gate: native face sketch, three retained center refere
 and Cut All with flipped direction. SKT-088/#397 is independently accepted for the
 coincident origin/source-center reference conflict. SOL-056/#398, DOC-033/#399 and SOL-057/#400 are accepted for Auto targeting, idle
 selection and retained edit sources. TUT-028 is accepted at f9620ab with final21s continuation and a124s joined creation
-film. TUT-019/#305 cumulative native piston walkthrough is now active. See [the current sequence](tutorial-sequence.json)
+film. TUT-019/#305 cumulative native piston walkthrough is accepted at acc8616; next
+ASM-012/#343 checks actual Browser body and Sketches-folder drags. See [the current sequence](tutorial-sequence.json)
 and [continuation context](../context.md) for accepted evidence and remaining work.
 
 Current authorized queue (2026-10-13): **sliding-lid box → snap-fit electronics
