@@ -7,7 +7,7 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current publication contains **397 issues**: **301 implementation, 21 research,
+The current publication contains **398 issues**: **302 implementation, 21 research,
 22 epics, and 53 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 
@@ -17,7 +17,8 @@ Current checkpoint (2026-10-14): the short expression exercise and Base Sketch
 construction, dimensions and first solid are independently accepted. TUT-028/#395
 is the current cumulative gate: native face sketch, three retained center references
 and Cut All with flipped direction. SKT-088/#397 is independently accepted for the
-coincident origin/source-center reference conflict; the cumulative gate is active. See [the current sequence](tutorial-sequence.json)
+coincident origin/source-center reference conflict. Active SOL-056/#398 addresses
+the unique support-body Auto target for Cut All; the cumulative gate waits on it. See [the current sequence](tutorial-sequence.json)
 and [continuation context](../context.md) for accepted evidence and remaining work.
 
 Current authorized queue (2026-10-13): **sliding-lid box → snap-fit electronics

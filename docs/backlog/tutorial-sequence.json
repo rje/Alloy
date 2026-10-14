@@ -58,12 +58,13 @@
       "id": "CP-29",
       "title": "Base sketch face holes and through cut",
       "issues": [
+        "SOL-056",
         "SKT-088",
         "TUT-028"
       ],
       "status": "in_progress",
       "acceptance": "Continue firstsolid with native cap-face sketch, retained center references, diameter10/8/8 circles, three-profile Cut/All/Flip; valid through-openings and history/reopen.",
-      "remaining": "SKT-088 accepted at 1ba977e; native three-circle references and source motion pass. Full Cut/All/Flip gate active."
+      "remaining": "SKT-088 accepted. SOL-056 fixes unique support-body target admission for native Cut All; cumulative gate follows."
     },
     {
       "id": "CP-20",

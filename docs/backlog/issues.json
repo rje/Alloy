@@ -6790,7 +6790,8 @@
         "SKT-010",
         "SOL-015",
         "SOL-047",
-        "SKT-088"
+        "SKT-088",
+        "SOL-056"
       ],
       "key": "TUT-028",
       "phase": "P2 Parametric modeling",
@@ -6828,6 +6829,21 @@
         "area:skt"
       ],
       "body": "## Problem and result\nThe native TUT-028 route retains source curve-center references for right and lower holes, but the left hole at the face sketch origin retains no pointReference. Generic origin snap currently wins over the coincident projected boss center. The hole must remain attached to that source center when upstream geometry moves.\n\n## Bounded scope and acceptance\n- For the first Circle center pick on a supported face sketch, prefer the coincident retained projected curve center over the generic sketch origin.\n- Use the shared pointer preview and commit resolver, preserving explicit source identities and the same visible snap result.\n- Preserve ordinary origin snaps outside this coincident face-center case. Do not broadly change snap priorities or add new geometry infrastructure.\n- Inspect actual native three-center authoring and retained references. Make one reversible upstream edit moving a referenced center and verify the hole follows, with valid geometry and history/reopen covered by TUT-028.\n- Independent Astra review; use focused core coverage only where it establishes the changed priority boundary. Do not rerun unrelated workflow suites.\n\n## Source and evidence\nPublic printed pp.28-29 describe the circles as locked to the original feature centers. Detailed provenance and permitted visuals remain external at knowledge/tutorials/after-expressions/base-sketch-face-holes-cut-contract-2026-10-14.md, retrieved 2026-10-14. This is a concrete native reference-retention failure found in the cumulative gate; the source does not prescribe our internal relation schema.\n\n\n## Independently accepted 2026-10-14\nAccepted at 1ba977e after independent Astra review. Native ingredient passes 3/3: exact face-sketch route and \u00d810/8/8 inputs; all three retained curve-center references including left center at origin. Right-center source edit moves attached hole +1 mm and undo restores. Left binding is verified; source-motion evidence exercises the right reference/shared replay. Unique coincident-center preference is limited to face-sketch Circle first pick; ambiguity stays within the nearest candidate group. See docs/validation/face-circle-center-snap.md. Full Cut gate remains TUT-028.\n"
+    },
+    {
+      "key": "SOL-056",
+      "title": "Resolve retained support-body target for automatic face-sketch Cut All",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SOL-047",
+        "SKT-013"
+      ],
+      "labels": [
+        "area:sol"
+      ],
+      "body": "## Problem and result\nTUT-028 native Cut selects three face-sketch profiles, chooses Cut and then All, but All reverts to Distance with an explicit-target error despite Objects to Cut showing Auto. The published route uses Cut, All, Flip and OK without an extra target pick. Its face sketch has one unambiguous existing support body.\n\n## Bounded scope and acceptance\n- Shared command input handling may resolve the unique eligible visible retained support body of the face sketch at the feature prefix when Cut All has no explicit target. Persist the body ID before validation and preview.\n- Keep the kernel explicit retained-target contract unchanged. Preserve user-specified targets; refuse missing, ambiguous or unsupported occurrence targets rather than selecting an arbitrary body.\n- Do not infer All target from finite-distance overlap: initial depth and pre-Flip direction may not intersect the target. Validate actual cut geometry at preview/commit.\n- The exact native three-profile route must accept Cut, All, Flip with no extra target step and create one valid body with three through-openings. Retain target, profiles, extent and Flip through edit/history/reopen in TUT-028.\n- Use focused checks for target admission and refusal where material, plus the cumulative native gate. Independent Astra review; no unrelated suite repetition.\n\n## Evidence and limits\nConcrete failure is recorded in external base-sketch-face-holes-2026-10-14/native-cut-preflight-01. Public printed pp.28-29 retrieved 2026-10-14; provenance remains external at knowledge/tutorials/after-expressions/base-sketch-face-holes-cut-contract-2026-10-14.md. This bounded support-body auto-target policy does not claim general multi-body Auto Cut All support.\n"
     }
   ]
 }
