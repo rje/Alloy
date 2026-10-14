@@ -28,6 +28,7 @@
 #include <QUuid>
 #include <cmath>
 #include <algorithm>
+#include <limits>
 #include <array>
 #include <tuple>
 #include <stdexcept>
@@ -2390,6 +2391,40 @@ SketchGeometry::SolveResult SketchGeometry::addDimension(const QJsonObject& draf
         const auto result = solveDraft(candidate,projectionContext);
         return result.ok ? result : SolveResult{false, draft, result.diagnostics, result.error};
     } catch (const std::exception& error) { return invalidDraft(draft, QString::fromUtf8(error.what())); }
+}
+
+std::optional<SketchGeometry::SolveResult> SketchGeometry::drivenAlternative(const QJsonObject& draft,
+    const QJsonObject& arguments,const SolveResult& failed,const QJsonObject& projectionContext,
+    const QSet<QString>& userLengthNames) {
+    if(failed.ok || !arguments.value("driving").toBool(true) ||
+       arguments.contains("expression") || arguments.contains("parameterId"))return std::nullopt;
+    const bool angular=arguments.value("kind")=="angle" || arguments.value("kind")=="arcSweep";
+    const auto key=angular ? "valueDeg" : "valueMm";
+    if(!arguments.value(key).isDouble())return std::nullopt;
+    const auto diagnostics=failed.diagnostics;
+    if(diagnostics.value("status")!="redundant" ||
+       !diagnostics.value("conflictingConstraintIds").toArray().isEmpty() ||
+       !diagnostics.value("conflictingEntityIds").toArray().isEmpty() ||
+       (diagnostics.value("redundantConstraintIds").toArray().isEmpty() &&
+        diagnostics.value("redundantEntityIds").toArray().isEmpty()))return std::nullopt;
+    const auto baseline=solveDraft(draft,projectionContext);
+    if(!baseline.ok || diagnostics.value("solverStatus")!=baseline.diagnostics.value("solverStatus"))return std::nullopt;
+    auto measuredArguments=arguments;
+    measuredArguments["driving"]=false;
+    measuredArguments.remove("valueMm");measuredArguments.remove("valueDeg");
+    const auto measured=addDimension(draft,measuredArguments,projectionContext,userLengthNames);
+    if(!measured.ok)return std::nullopt;
+    const auto oldIds=draft.value("parameters").toObject().value("dimensions").toArray();
+    const auto newIds=measured.feature.value("parameters").toObject().value("dimensions").toArray();
+    if(newIds.size()!=oldIds.size()+1)return std::nullopt;
+    const auto id=newIds.last().toObject().value("id");
+    double current=std::numeric_limits<double>::quiet_NaN();
+    for(const auto& item:measured.diagnostics.value("dimensionValues").toArray())
+        if(item.toObject().value("id")==id)current=item.toObject().value(key).toDouble();
+    const double requested=arguments.value(key).toDouble();
+    if(!std::isfinite(current) || !std::isfinite(requested) ||
+       std::abs(current-requested)>1e-6*std::max(1.0,std::abs(current)))return std::nullopt;
+    return measured;
 }
 
 SketchGeometry::SolveResult SketchGeometry::filletCorners(const QJsonObject& draft, const QJsonObject& arguments, const QJsonObject& projectionContext) {

@@ -417,6 +417,7 @@ private:
     void cancelSlotDrag();
     QJsonObject slotDrag(const QJsonObject& args);
     QJsonObject publishSketchSolve(const SketchGeometry::SolveResult& solved, const QString& journalGroup = {});
+    QJsonObject publishNewDimension(const QJsonObject& draft,const QJsonObject& arguments);
     QJsonObject selectSketchProjection(const QJsonObject& source);
     QJsonObject selectSketchProjectionFace(const QJsonObject& support);
     QJsonObject traverseSketchHistory(int direction);

@@ -191,7 +191,8 @@ fail without applying the command. Error codes include `invalid_request`,
 | `sketch.dimensionPreview` | `x`, `y`: logical pixels; optional `kind` (`auto` or a dimension kind above), `driving`, `session`; preview selected targets |
 | `sketch.dimensionPlace` | `x`, `y`, optional `session`; fix placement and show the actual inline numeric editor |
 | `sketch.dimensionAccept` | Optional `text` or numeric `value` (length)/`valueDeg` (sweep), `units`, `session`; placed length text accepts numeric mm/in, a direct user length name, or a same-sketch expression. Angle text accepts deg/°; formulas exclude angles |
-| `sketch.dimensionCancel` | Optional `session`; abandon pending dimension placement/editing |
+| `sketch.dimensionCancel` | Optional `session`; abandon pending dimension placement/editing or a Driven offer |
+| `sketch.dimensionOfferAccept` / `sketch.dimensionOfferCancel` | Required `offerId`, optional `session`; accept or discard a pending redundant new numeric dimension as a read-only Driven measurement. `sketch.dimension` and placed `sketch.dimensionAccept` return `pending: true` with stable `offerId` and `dimensionId` when eligible; `app.state.activeSession.pendingDrivenOffer` exposes the same offer. Accept rechecks the original draft, tab, session, document revision and draft-history position; Cancel changes neither draft nor history. Expressions, direct user bindings, existing-dimension edits and pre-solver duplicate-kind refusals do not offer conversion in this slice |
 | `sketch.dimensionEdit` | `dimensionId`, optional `session`; open a driving editor or read-only driven measurement |
 | `sketch.annotationSelect` | `dimensionId`; select a retained label |
 | `sketch.annotationPick` | `x`, `y`: logical pixels; actual projected/rotated label hit test |

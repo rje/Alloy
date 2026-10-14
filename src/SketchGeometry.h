@@ -3,6 +3,7 @@
 #include <QSet>
 #include <QJsonArray>
 #include <TopoDS_Edge.hxx>
+#include <optional>
 
 // Authored 2D geometry and its OCCT evaluation. A sketch is not a solid body.
 class SketchGeometry final {
@@ -106,6 +107,12 @@ public:
     // and driving valueDeg. Ray choice is independent of annotation placement.
     static SolveResult addDimension(const QJsonObject& draft, const QJsonObject& arguments,
         const QJsonObject& projectionContext = {}, const QSet<QString>& userLengthNames = {});
+    // A failed new numeric driver may be retained as an independently solved
+    // read-only measurement only when the unchanged draft is sound and its
+    // requested value agrees with the geometry. Never changes existing intent.
+    static std::optional<SolveResult> drivenAlternative(const QJsonObject& draft,
+        const QJsonObject& arguments,const SolveResult& failed,
+        const QJsonObject& projectionContext = {},const QSet<QString>& userLengthNames = {});
     static SolveResult updateDimension(const QJsonObject& draft, const QJsonObject& arguments,
         const QJsonObject& projectionContext = {}, const QSet<QString>& userLengthNames = {});
     // Re-evaluate retained local formulas by stable dimension IDs for draft,

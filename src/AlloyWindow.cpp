@@ -930,6 +930,8 @@ AlloyWindow::AlloyWindow() {
             else if(session_.contains("pendingTwoPointRectangle"))execute("sketch.twoPointRectangleCancel");
             else if(session_.contains("pendingCircleDiameter"))execute("sketch.circleDiameterCancel");
             else if(session_.value("pendingLineLength").toObject().value("phase")=="editing")execute("sketch.lineLengthCancel");
+            else if(session_.contains("pendingDrivenOffer"))execute("sketch.dimensionOfferCancel",
+                {{"offerId",session_.value("pendingDrivenOffer").toObject().value("id")}});
             else if(session_.contains("pendingDimension"))execute("sketch.dimensionCancel");
             else execute("sketch.tool",{{"tool","select"}});
         }
@@ -1178,7 +1180,7 @@ QString AlloyWindow::tabSwitchBlocker() const {
         || session_.value("command")=="joint.cylindrical")return "Complete or cancel the active joint before switching designs";
     if(session_.value("command")!="sketch.edit")return "Complete or cancel the active command before switching designs";
     if(session_.value("tool")!="select" || session_.contains("firstPoint") || session_.contains("secondPoint")
-        || session_.contains("pendingDimension") || session_.contains("pendingCircleDiameter") || session_.contains("pendingLineLength") || session_.contains("pendingCenterRectangle") || session_.contains("pendingTwoPointRectangle") || session_.contains("pendingFillet"))return "Finish or cancel the current sketch input before switching designs";
+        || session_.contains("pendingDimension") || session_.contains("pendingDrivenOffer") || session_.contains("pendingCircleDiameter") || session_.contains("pendingLineLength") || session_.contains("pendingCenterRectangle") || session_.contains("pendingTwoPointRectangle") || session_.contains("pendingFillet"))return "Finish or cancel the current sketch input before switching designs";
     const auto* focused=QApplication::focusWidget();
     if((focused && sketchPanel_ && sketchPanel_->isAncestorOf(focused) && qobject_cast<const QLineEdit*>(focused))
         || (dimensionEditor_ && dimensionEditor_->isVisible())
@@ -1820,10 +1822,12 @@ void AlloyWindow::registerCommands() {
         return response["ok"].toBool() ? response["result"].toObject() : response;
     });
     add("history.undo","Undo","Undo an accepted sketch edit in an active sketch, otherwise one committed document edit.",{},[this](const auto&){
+        if(session_.contains("pendingDrivenOffer"))return failure("pending_dimension_offer","Choose Add Driven or Cancel before Undo");
         if(session_.value("command")=="sketch.edit")return traverseSketchHistory(-1);
         document_->history().undo();return document_->state();
     });
     add("history.redo","Redo","Redo an accepted sketch edit in an active sketch, otherwise one committed document edit.",{},[this](const auto&){
+        if(session_.contains("pendingDrivenOffer"))return failure("pending_dimension_offer","Choose Add Driven or Cancel before Redo");
         if(session_.value("command")=="sketch.edit")return traverseSketchHistory(1);
         document_->history().redo();return document_->state();
     });
@@ -3128,6 +3132,7 @@ void AlloyWindow::registerCommands() {
         clearFilletPreview();session_.remove("pendingFillet");
         cancelCircleOffset();cancelLoopOffset();cancelSplineOffset();cancelOpenChainOffset();cancelClosedRectOffset();
         cancelDimension();
+        session_.remove("pendingDrivenOffer");
         cancelCircleDiameter();
         cancelLineLength();
         cancelCenterRectangle();
@@ -3996,6 +4001,7 @@ void AlloyWindow::registerCommands() {
     });
     add("sketch.finish","Finish Sketch","Commit the active sketch draft through the shared undo authority.",{},[this](const auto&){
         if(!session_.value("command").toString().startsWith("sketch."))return failure("no_active_sketch","Enter a sketch first");
+        if(session_.contains("pendingDrivenOffer"))return failure("pending_dimension_offer","Choose Add Driven or Cancel before finishing the sketch");
         if(session_.contains("pendingProject"))return failure("pending_project","Accept or cancel Project before finishing the sketch");
         hideSlotEditor();
         return finishSession(session_.value("id").toString(),true);
@@ -4116,7 +4122,7 @@ void AlloyWindow::registerCommands() {
                     : a.contains("value") ? CadDocument::millimeters(a["value"].toDouble(),a.value("units").toString(session_.value("inputs").toObject()["units"].toString()))
                     : sketchDimensionMeasure(args,a["kind"].toString());
             } else if(a.contains("value") || a.contains("valueDeg"))return failure("invalid_arguments","Driven dimensions measure geometry; omit a value");
-            return publishSketchSolve(SketchGeometry::addDimension(session_.value("draftSketch").toObject(),args,session_.value("projectionContext").toObject(),userLengthNames()));
+            return publishNewDimension(session_.value("draftSketch").toObject(),args);
         });
     add("sketch.dimensionUpdate","Edit driving dimension","Solve the new dimension value before replacing the usable draft.",
         {{"dimensionId",parameter("string","Stable authored dimension UUID.")},{"value",optional(dimValue)},{"valueDeg",optional(angle)},{"parameterName",optional(parameter("string","Direct name of a user length."))},{"expression",optional(parameter("string","Same-sketch driving length expression, such as d3 + 50."))},{"units",optional(units)},{"session",optionalSession}},[this](const auto& a){
@@ -4149,8 +4155,35 @@ void AlloyWindow::registerCommands() {
     add("sketch.dimensionCancel","Cancel pending dimension","Discard unaccepted placement or editing, retaining the active dimension tool.",{{"session",optionalSession}},[this](const auto& a){
         if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
         if(a.contains("session") && a["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
-        cancelDimension();view_->setFocus();return QJsonObject{{"pending",false},{"authoredChange",false}};
+        session_.remove("pendingDrivenOffer");cancelDimension();refreshSketchControls();view_->setFocus();
+        return QJsonObject{{"pending",false},{"authoredChange",false}};
     });
+    add("sketch.dimensionOfferAccept","Add redundant dimension as Driven","Accept the pending read-only measurement without changing sketch geometry.",
+        {{"offerId",parameter("string","Stable pending offer identity.")},{"session",optionalSession}},[this](const auto& a){
+            if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
+            if(a.contains("session") && a["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
+            const auto offer=session_.value("pendingDrivenOffer").toObject();
+            if(offer.isEmpty() || offer.value("id")!=a.value("offerId"))return failure("stale_offer","The driven-dimension offer is no longer active");
+            if(offer.value("sessionId")!=session_.value("id") || offer.value("tabId")!=activeTabId_ ||
+               offer.value("documentRevision").toInteger()!=static_cast<qint64>(document_->revision()) ||
+               offer.value("historyIndex").toInt()!=sketchHistoryIndex_ ||
+               offer.value("draftSketch").toObject()!=session_.value("draftSketch").toObject())
+                return failure("stale_offer","The sketch changed; cancel this offer and select the dimension again");
+            const SketchGeometry::SolveResult measured{true,offer.value("feature").toObject(),offer.value("diagnostics").toObject(),{}};
+            const auto result=publishSketchSolve(measured);
+            if(result.value("ok").isBool() && !result.value("ok").toBool())return result;
+            cancelDimension();session_["selection"]=QJsonObject{{"pointIds",QJsonArray{}},{"entityIds",QJsonArray{}}};
+            view_->setFocus();return result;
+        });
+    add("sketch.dimensionOfferCancel","Cancel Driven offer","Discard the redundant-dimension choice without changing sketch geometry or draft history.",
+        {{"offerId",parameter("string","Stable pending offer identity.")},{"session",optionalSession}},[this](const auto& a){
+            if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
+            if(a.contains("session") && a["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
+            const auto offer=session_.value("pendingDrivenOffer").toObject();
+            if(offer.isEmpty() || offer.value("id")!=a.value("offerId"))return failure("stale_offer","The driven-dimension offer is no longer active");
+            session_.remove("pendingDrivenOffer");cancelDimension();refreshSketchControls();view_->setFocus();
+            return QJsonObject{{"pending",false},{"authoredChange",false}};
+        });
     const auto dimensionId=parameter("string","Stable authored dimension UUID.");
     add("sketch.annotationPick","Pick dimension annotation","Resolve a rotated logical-pixel label hit to the same stable dimension selection.",sketchPixels,[this](const auto& a){
         if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
@@ -8876,12 +8909,40 @@ QJsonObject AlloyWindow::publishSketchSolve(const SketchGeometry::SolveResult& s
     const auto evaluated=solved.feature["parameters"].toObject().contains("loopOffsets") ? evaluateSketchDraft(solved.feature)
         : SketchGeometry::evaluateFeature(solved.feature,session_.value("resolvedFrame").toObject(),context);
     cancelCircleDiameter();cancelCenterRectangle();cancelTwoPointRectangle();cancelCircleOffset();session_.remove("pendingSketchMirror");
+    session_.remove("pendingDrivenOffer");
     recordSketchHistory(solved.feature,solved.diagnostics,journalGroup);
     session_["draftSketch"]=solved.feature;session_["solverDiagnostics"]=solved.diagnostics;session_["projectionContext"]=context;session_["previewed"]=false;
     auto selection=session_.value("selection").toObject();selection.remove("constraintIds");session_["selection"]=selection;session_.remove("hoveredConstraintId");
     session_.remove("lastSolveFailure");session_.remove("firstPoint");session_.remove("secondPoint");session_.remove("pointerPoint");session_.remove("gestureSweepDeg");session_.remove("snap");
     view_->clearSketchCursor();view_->showSketchDraft(evaluated);displayedSketchDraft_=solved.feature;
     return {{"sessionId",session_.value("id")},{"draftSketch",solved.feature},{"sketchGeometry",evaluated.summary},{"diagnostics",solved.diagnostics},{"authoredCommitted",false}};
+}
+
+QJsonObject AlloyWindow::publishNewDimension(const QJsonObject& draft,const QJsonObject& arguments) {
+    if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))
+        return failure("stale_session","The document changed; cancel and restart this sketch");
+    if(session_.contains("pendingDrivenOffer"))return failure("pending_dimension_offer","Choose Add Driven or Cancel before adding another dimension");
+    const auto context=session_.value("projectionContext").toObject();
+    const auto names=userLengthNames();
+    const auto driving=SketchGeometry::addDimension(draft,arguments,context,names);
+    if(driving.ok)return publishSketchSolve(driving);
+    const auto alternative=SketchGeometry::drivenAlternative(draft,arguments,driving,context,names);
+    if(!alternative)return publishSketchSolve(driving);
+    const auto dimensions=alternative->feature.value("parameters").toObject().value("dimensions").toArray();
+    const auto dimension=dimensions.last().toObject();
+    const QString offerId=CadDocument::newId();
+    const auto offer=QJsonObject{{"id",offerId},{"dimensionId",dimension.value("id")},
+        {"kind",dimension.value("kind")},{"draftSketch",draft},{"feature",alternative->feature},
+        {"diagnostics",alternative->diagnostics},{"sessionId",session_.value("id")},
+        {"tabId",activeTabId_},{"documentRevision",static_cast<qint64>(document_->revision())},
+        {"historyIndex",sketchHistoryIndex_}};
+    session_["pendingDrivenOffer"]=offer;
+    if(dimensionEditor_)dimensionEditor_->hide();
+    refreshSketchControls();
+    if(auto* choice=sketchPanel_ ? sketchPanel_->findChild<QPushButton*>("sketch.dimension.offerAccept") : nullptr)
+        choice->setFocus(Qt::OtherFocusReason);
+    return {{"pending",true},{"offerId",offerId},{"dimensionId",dimension.value("id")},
+        {"kind",dimension.value("kind")},{"message","This dimension is redundant. Add it as a read-only Driven measurement?"}};
 }
 
 QJsonObject AlloyWindow::selectSketchProjection(const QJsonObject& source) {
@@ -9751,8 +9812,9 @@ QJsonObject AlloyWindow::acceptDimension(const QJsonObject& args) {
         if(driving)mutation[angular ? "valueDeg" : "valueMm"]=valueMm;
         if(!bound.isEmpty())mutation["parameterId"]=bound["id"];
         if(!formula.isEmpty()){mutation.remove("valueMm");for(auto it=formula.begin();it!=formula.end();++it)mutation[it.key()]=it.value();}
-        result=publishSketchSolve(SketchGeometry::addDimension(draft,mutation,session_.value("projectionContext").toObject(),userLengthNames()));
+        result=publishNewDimension(draft,mutation);
     }
+    if(result.value("pending").toBool())return result;
     if(result.value("ok").isBool() && !result.value("ok").toBool())return result;
     cancelDimension();session_["selection"]=QJsonObject{{"pointIds",QJsonArray{}},{"entityIds",QJsonArray{}}};view_->setFocus();return result;
 }
@@ -9924,6 +9986,8 @@ void AlloyWindow::dimensionSelectionChanged() {
 
 void AlloyWindow::refreshSketchControls() {
     if(!sketchSelectionTree_ || session_.value("command")!="sketch.edit")return;
+    if(auto* offer=sketchPanel_->findChild<QWidget*>("sketch.dimension.offer"))
+        offer->setVisible(session_.contains("pendingDrivenOffer"));
     if(auto* project=sketchPanel_->findChild<QWidget*>("sketch.projectControls")) {
         const bool active=session_.contains("pendingProject");project->setVisible(active);
         if(active)if(auto* count=project->findChild<QLabel*>("sketch.projectCount"))
@@ -10234,6 +10298,23 @@ void AlloyWindow::showSketch() {
         }
     } else {
         const auto inputs=session_.value("inputs").toObject();
+        auto* drivenOffer=new QWidget;drivenOffer->setObjectName("sketch.dimension.offer");
+        drivenOffer->setStyleSheet("background: #e8f3f8; border: 1px solid #8eb8cc; border-radius: 4px;");
+        auto* offerLayout=new QVBoxLayout(drivenOffer);offerLayout->setContentsMargins(8,8,8,8);
+        auto* offerText=new QLabel("This dimension is redundant.\nAdd it as a read-only Driven measurement?");
+        offerText->setObjectName("sketch.dimension.offerText");offerText->setWordWrap(true);offerLayout->addWidget(offerText);
+        auto* offerButtons=new QHBoxLayout;
+        auto* offerAccept=new QPushButton("Add Driven");offerAccept->setObjectName("sketch.dimension.offerAccept");offerButtons->addWidget(offerAccept);
+        auto* offerCancel=new QPushButton("Cancel");offerCancel->setObjectName("sketch.dimension.offerCancel");offerButtons->addWidget(offerCancel);
+        offerLayout->addLayout(offerButtons);layout->addWidget(drivenOffer);drivenOffer->hide();
+        connect(offerAccept,&QPushButton::clicked,this,[this]{
+            const auto id=session_.value("pendingDrivenOffer").toObject().value("id").toString();
+            if(!id.isEmpty())sketchResponse(execute("sketch.dimensionOfferAccept",{{"offerId",id}}));
+        });
+        connect(offerCancel,&QPushButton::clicked,this,[this]{
+            const auto id=session_.value("pendingDrivenOffer").toObject().value("id").toString();
+            if(!id.isEmpty())sketchResponse(execute("sketch.dimensionOfferCancel",{{"offerId",id}}));
+        });
         auto* projectControls=new QWidget;projectControls->setObjectName("sketch.projectControls");
         auto* projectLayout=new QVBoxLayout(projectControls);projectLayout->setContentsMargins(4,6,4,6);
         auto* projectTitle=new QLabel("Project");projectTitle->setStyleSheet("font-weight: 700; color: #176588;");projectLayout->addWidget(projectTitle);
