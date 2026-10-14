@@ -72,7 +72,7 @@ now the cumulative gate: one from-blank creation-through-copied-motion and
 placed-output movie finished (351.667 seconds, all four stage receipts pass,
 zero capture failures). The external gallery links it at `#piston-full-output`;
 independent artifact review accepted the semantic/API recording. Exact native
-TUT-019 remains open and is now In Progress: a separate cumulative native
+TUT-019 remains open: a separate cumulative native
 harness now contains the bounded source operations; cumulative native acceptance is still pending.
 Its broad ASM-001/002/003 dependencies were
 replaced with the accepted bounded children after independent review; broad
@@ -102,8 +102,9 @@ clicks. Queued session-guarded routing prevents callback lifetime hazards.
 Position setup remains API-qualified in this focused check; the cumulative
 sequence uses the separately accepted viewport-origin route. The combined main
 app builds. See [shared dialog acceptance](validation/as-built-native-selection.md).
-All bounded input children are closed. TUT-019 is In Progress, connecting them
-in one source-order native sequence from the declared four-solid adaptation.
+All bounded input children are closed. TUT-019 returns to Todo while its
+cumulative native gate awaits usable desktop input. The preserved harness
+connects them in source order from the declared four-solid adaptation.
 The cumulative native10 attempt stops after body-conversion OK: the dialog
 becomes active, but the main window does not regain activation. No inter-step
 focus repair was introduced. An OS-click check in the actual bundled app was
