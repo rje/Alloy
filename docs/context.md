@@ -8,10 +8,9 @@ build and three focused slot/section checks pass. Native and API evidence
 remain distinct; exact OS input and reference styling are not claimed.
 See [Overall Slot](validation/overall-slot.md) and
 [origin-section offsets](validation/origin-section-distance.md).
-## Closed rounded-prism Shell candidate (2026-10-13)
+## Accepted closed rounded-prism Shell (2026-10-13)
 
-GEO-008/#316 is implemented in an isolated candidate, pending independent
-review and integration. The corrected source-shaped centered Rectangle93×64 →
+GEO-008/#316 is independently accepted and integrated. The corrected source-shaped centered Rectangle93×64 →
 Extrude30 → complete grouped R5/R2.5 Fillet → closed Shell3.5 passes an analytic
 26-patch convex-envelope certificate and yields a valid exact cavity, six inner
 planar references, retained Midplane Split, edit/history/reopen and two checked
@@ -64,7 +63,7 @@ independently accepted, integrated and closed. Combined main app build and
 focused STEP/grouped-Fillet integration checks pass (2/2). Respective receipts
 record API/native/geometry scope and later transformed-pick/Thicken limits.
 
-GEO-008 exact recognized convex closed Shell is in independent review.
+GEO-008 exact recognized convex closed Shell is independently accepted and integrated.
 SKT-071 retained circular model-edge Project is active with Sol. RES-020
 independently qualifies the external v2 nominal card envelope for correct
 source-side placement while preserving v1 receipts. DOC-023 selected-face Section Analysis is independently accepted

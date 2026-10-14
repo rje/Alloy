@@ -1,6 +1,6 @@
 # Closed Shell through a complete rounded rectangular prism
 
-GEO-008/#316 candidate, 2026-10-13. Independent review and integration remain pending.
+GEO-008/#316 independently accepted and integrated, 2026-10-13.
 
 The bounded geometry path recognizes either an authored Box or an XY rectangular
 sketch followed by positive New Body Extrude, then exactly one grouped Fillet of
@@ -21,7 +21,7 @@ cavity volume is 112701.57741982327 mm³ and material volume is
 64404.74388444808 mm³. Six inner planar faces and shared inner edge identities
 remain selectable. A dependent retained Midplane splits it into two valid
 solids of 32202.371942224 mm³ each. Thickness editing, undo/redo, save/reopen,
-invalid-domain atomic refusal and translated/resized Box replay pass the focused
+impossible-thickness atomic refusal and translated/resized Box replay pass the focused
 core test. The Box50 × 80 × 40 fixture is an engineering regression, not source
 stock.
 
@@ -37,3 +37,8 @@ The source research and mathematical gate are recorded outside Git under
 `../Alloy-reference-records/knowledge/tutorials/advanced-audit-2026-10-13/`.
 Exact creator asset, physical fit, and broader arbitrary blended-shell offsets
 are outside this candidate. TUT-016 owns the later cumulative enclosure gate.
+
+Independent review accepts the final analytic certificate and domain fallthrough.
+The reviewer independently reran the focused core and checked both exported STL
+parts. Native typing asserts real click-produced focus; Qt input remains distinct
+from physical OS input. Main app builds and its focused Shell integration check passes.
