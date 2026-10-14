@@ -38,7 +38,8 @@ with application(a.app, out) as (call, ledger):
     call('history.undo')
     assert call('document.inspect')['authored'] == before['authored']
     call('component.activate', {'definitionId': sheet['ownerId']})
-    call('document.exportMeshDialog')
+    dialog = call('document.exportMeshDialog')
+    assert dialog['occurrenceId'] == occurrence['id']
     call('capture.screenshot', {'path': str(out / 'component-selection.png')})
     (out / 'report.json').write_text(json.dumps({'passed': True, 'export': result, 'mesh': mesh}, indent=2))
     (out / 'transcript.json').write_text(json.dumps(ledger, indent=2))
