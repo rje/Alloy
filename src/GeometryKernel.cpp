@@ -3,6 +3,7 @@
 #include "SolidFillet.h"
 #include "SolidChamfer.h"
 #include "SolidShell.h"
+#include "SolidSplit.h"
 #include "SolidSphere.h"
 #include "SolidHole.h"
 #include "SolidLoft.h"
@@ -689,6 +690,15 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
                 const auto target=std::find_if(evaluated.bodies.begin(),evaluated.bodies.end(),[&](const auto& body){return body.bodyId==parameters["targetBodyId"].toString();});
                 if(target==evaluated.bodies.end())throw EvaluationError({{"code","body_unavailable"},{"featureId",id},{"message","Shell target must be active earlier in history"}});
                 SolidShell::evaluate(*target,parameters,id);
+            } else if(type=="splitBody") {
+                const auto target=std::find_if(evaluated.bodies.begin(),evaluated.bodies.end(),[&](const auto& body){return body.bodyId==parameters["targetBodyId"].toString();});
+                if(target==evaluated.bodies.end())throw EvaluationError({{"code","body_unavailable"},{"featureId",id},{"message","Split target must be active earlier in history"}});
+                const auto plane=std::find_if(evaluated.constructionPlanes.begin(),evaluated.constructionPlanes.end(),[&](const auto& value){return value.featureId==parameters["planeId"].toString();});
+                if(plane==evaluated.constructionPlanes.end())throw EvaluationError({{"code","plane_unavailable"},{"featureId",id},{"message","Splitting plane must be retained earlier in history"}});
+                const auto index=static_cast<size_t>(target-evaluated.bodies.begin());
+                auto halves=SolidSplit::evaluate(*target,plane->frame,id,feature["bodyId"].toString(),feature["name"].toString());
+                halves.second.visible=feature["visible"].toBool(true);
+                evaluated.bodies[index]=std::move(halves.first);evaluated.bodies.push_back(std::move(halves.second));
             } else if(type=="circularPattern"){
                 auto source=std::find_if(evaluated.bodies.begin(),evaluated.bodies.end(),[&](const auto& b){return b.bodyId==parameters["sourceBodyId"].toString();});
                 if(source==evaluated.bodies.end())throw EvaluationError({{"code","pattern_body_unavailable"},{"featureId",id},{"message","Circular Pattern source must be active earlier in history"}});

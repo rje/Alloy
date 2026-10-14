@@ -5,6 +5,7 @@
 #include <vector>
 #include "DocumentAppend.h"
 #include "CircularPattern.h"
+#include "SolidSplit.h"
 #include "SketchGeometry.h"
 #include "StepExchange.h"
 #include <QJsonArray>
@@ -137,6 +138,14 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
                     {"code","projection_unavailable"},{"message","Projected source must be an earlier active body"}};
         }
         if (feature.contains("bodyId")) activeBodies.insert(feature["bodyId"].toString());
+        if(feature["type"]=="splitBody"){
+            const auto p=feature["parameters"].toObject();const auto body=p["targetBodyId"].toString(),plane=p["planeId"].toString();
+            if(!bodyPositions.contains(body) || bodyPositions[body]>=i || !activeBodies.contains(body))
+                return {{"featureId",feature["id"]},{"code","body_unavailable"},{"message","Split requires an active earlier target body"}};
+            if(!positions.contains(plane) || positions[plane]>=i || features[positions[plane]].toObject()["type"]!="constructionPlane")
+                return {{"featureId",feature["id"]},{"code","plane_unavailable"},{"message","Split requires an earlier retained construction plane"}};
+            continue;
+        }
         if (feature["type"] == "move" || feature["type"] == "fillet" || feature["type"] == "chamfer" || feature["type"] == "shell" || feature["type"]=="rectangularPattern") {
             const auto body = feature["parameters"].toObject()["targetBodyId"].toString();
             if (!bodyPositions.contains(body) || bodyPositions[body]>=i || !activeBodies.contains(body))
@@ -938,6 +947,25 @@ QJsonObject CadDocument::shellCandidate(const QJsonObject& authored,const QJsonO
     if(index>=0)features[index]=feature;else features.append(feature);candidate["features"]=features;
     const auto error=validateStructure(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());return candidate;
 }
+QJsonObject CadDocument::splitBodyCandidate(const QJsonObject& authored,const QJsonObject& arguments){
+    const QSet<QString> allowed{"ownerId","targetBodyId","planeId","name","featureId","newFeatureId"};
+    for(auto it=arguments.begin();it!=arguments.end();++it)if(!allowed.contains(it.key()))throw std::invalid_argument("Unknown Split Body argument");
+    if(arguments.contains("featureId") && arguments.contains("newFeatureId"))throw std::invalid_argument("Choose existing or new Split Body identity");
+    auto candidate=authored;auto features=candidate["features"].toArray();QJsonObject feature;int index=-1;
+    if(arguments.contains("featureId")){
+        for(int i=0;i<features.size();++i)if(features[i].toObject()["id"]==arguments["featureId"]){feature=features[i].toObject();index=i;break;}
+        if(index<0 || feature["type"]!="splitBody")throw std::invalid_argument("Split Body feature unavailable");
+    }else{
+        const auto id=arguments.value("newFeatureId").toString(newId());
+        feature={{"id",id},{"bodyId",SolidSplit::positiveBodyId(id,arguments["targetBodyId"].toString())},
+            {"ownerId",arguments.value("ownerId").toString(authored["documentId"].toString())},
+            {"type","splitBody"},{"name","Split Body"},{"visible",true}};
+    }
+    if(arguments.contains("name"))feature["name"]=arguments["name"];
+    feature["parameters"]=QJsonObject{{"targetBodyId",arguments["targetBodyId"]},{"planeId",arguments["planeId"]}};
+    if(index>=0)features[index]=feature;else features.append(feature);candidate["features"]=features;
+    const auto error=validate(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());return candidate;
+}
 QJsonObject CadDocument::circularPatternCandidate(const QJsonObject& authored,const QJsonObject& arguments){
     const QSet<QString> allowed{"ownerId","sourceBodyId","axis","extent","quantity","name","featureId","newFeatureId"};for(auto it=arguments.begin();it!=arguments.end();++it)if(!allowed.contains(it.key()))throw std::invalid_argument("Unknown Circular Pattern argument");
     auto candidate=authored;auto features=candidate["features"].toArray();QJsonObject feature;int index=-1;
@@ -1288,6 +1316,13 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
             if(!face.isEmpty() && (face.size()!=3 || face["bodyId"]!=p["targetBodyId"] || !validId(face["producerFeatureId"].toString()) || !validId(face["bodyId"].toString()) || !validId(face["faceId"].toString())))return "Shell requires a stable removal face or an empty selection for a closed cavity";
             if(!p["thicknessMm"].isDouble() || !std::isfinite(p["thicknessMm"].toDouble()) || p["thicknessMm"].toDouble()<0.001 || p["thicknessMm"].toDouble()>100000)return "Shell thickness must be 0.001..100000 mm";
             continue;
+        }
+        if(type=="splitBody"){
+            const auto body=feature["bodyId"].toString();
+            if(p.size()!=2 || !validId(p["targetBodyId"].toString()) || !validId(p["planeId"].toString())
+                || body!=SolidSplit::positiveBodyId(id,p["targetBodyId"].toString()) || ids.contains(body))
+                return "Split Body requires one target, one retained plane and a source-derived output ID";
+            ids.insert(body);continue;
         }
         if(type=="circularPattern"){
             const auto axis=p["axis"].toObject();const double q=p["quantity"].toDouble();

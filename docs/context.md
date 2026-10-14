@@ -1,5 +1,12 @@
 # Continuation context
 
+## Retained-plane Split Body (2026-10-13)
+
+SOL-045/#279 independently accepted: two closed solids from an active body and
+retained construction plane, stable signed-side IDs and cap references, closed
+cavity partition, edits/history/reopen, named native selectors and separate STL
+readback. See [Split Body receipt](validation/split-body-plane.md).
+
 ## Current implementation lanes (2026-10-13)
 
 XCH-009/#313 assembly STEP import and SOL-046/#285 grouped Fillet are

@@ -89,6 +89,12 @@ private:
     QString validateArguments(const Command& command, const QJsonObject& args, QString* field = nullptr) const;
     QJsonObject beginSession(const QString& command, const QJsonObject& inputs);
     QJsonObject finishSession(const QString& id, bool commit);
+    QJsonObject beginSplitBody(const QJsonObject& inputs);
+    QJsonObject previewSplitBody();
+    QJsonObject selectSplitBody(const QString& id);
+    QJsonObject selectSplitPlane(const QString& id);
+    void showSplitBody();
+    QDockWidget* splitBodyDock_ = nullptr;
     QJsonObject beginMidplane(const QJsonObject& inputs);
     QJsonObject selectMidplaneFace(const QJsonObject& support);
     QJsonObject previewMidplane();

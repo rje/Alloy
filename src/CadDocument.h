@@ -67,6 +67,7 @@ public:
     static QJsonObject sphereCandidate(const QJsonObject& authored, const QJsonObject& arguments);
     static QJsonObject holeCandidate(const QJsonObject& authored, const QJsonObject& arguments);
     static QJsonObject shellCandidate(const QJsonObject& authored, const QJsonObject& arguments);
+    static QJsonObject splitBodyCandidate(const QJsonObject& authored,const QJsonObject& arguments);
     static QJsonObject circularPatternCandidate(const QJsonObject& authored,const QJsonObject& arguments);
     static QJsonObject mirrorCandidate(const QJsonObject& authored, const QJsonObject& arguments);
     static QJsonObject moveCandidate(const QJsonObject& authored, const QJsonObject& arguments);
