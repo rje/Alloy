@@ -10,7 +10,7 @@
 class ClosedRectUnionControls final:public QObject {
     Q_OBJECT
     QJsonObject call(AlloyWindow& window,const QString& command,const QJsonObject& args={}) {
-        const auto response=window.execute(command,args);
+        const auto response=window.executeApi(command,args);
         if(!response.value("ok").toBool())qFatal("%s: %s",qPrintable(command),QJsonDocument(response).toJson().constData());
         return response.value("result").toObject();
     }

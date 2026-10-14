@@ -72,7 +72,7 @@ int main(int argc, char** argv) {
         const auto entities = sketch["parameters"].toObject()["entities"].toArray();
         sketch = solved(SketchGeometry::addConstraint(sketch,{{"type","fixed"},{"pointIds",QJsonArray{points[0].toObject()["id"]}}}));
         sketch = solved(SketchGeometry::addDimension(sketch,{{"kind","horizontal"},{"entityId",entities[0].toObject()["id"]},{"valueMm",40}}));
-        const auto widthId = sketch["parameters"].toObject()["dimensions"].toArray().last().toObject()["id"];
+        const QString widthId = sketch["parameters"].toObject()["dimensions"].toArray().last().toObject().value("id").toString();
         sketch = solved(SketchGeometry::addDimension(sketch,{{"kind","vertical"},{"entityId",entities[1].toObject()["id"]},{"valueMm",25}}));
         check(document.commit(SketchGeometry::replaceFeature(document.authored(),sketch),"Create sketch").isEmpty(),"authored profile source commits");
         const auto baseline = document.authored();
