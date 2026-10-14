@@ -53,11 +53,13 @@ and native 3/3 evidence remain distinct. See [workflow](validation/piston-couple
 and [native qualifications](validation/piston-coupled-ui.md). The gallery now has
 a 188.5-second from-blank creation-through-coupled-motion checkpoint. A measured
 223 ms preview event is tracked separately in REL-010/#367, not a frame-rate claim.
-A bounded REL-010 candidate now shares one coupled solve across inspection and
-placed bodies during one preview/refresh, while leaving the solver checks intact.
-The [candidate receipt](validation/assembly-preview-reuse.md) records counted
-core and actual-app API evidence; independent review and native pointer-drag
-latency remain pending.
+REL-010 is independently accepted and integrated at `00b0990`: one coupled
+solve supplies inspection and placed bodies within a preview/refresh, with
+unchanged solver checks. Main application build and coupled core pass. The
+[acceptance receipt](validation/assembly-preview-reuse.md) records same-process
+core parity and actual-app seven-joint API counts: one solve per preview, zero
+additional refresh solves. Remaining native drag profiling is REL-011/#374 Todo;
+API evidence does not establish continuous interactive responsiveness.
 ASM-017/#366 is independently accepted at `de30222`: linked local occurrence
 subtrees share source definitions and retain composed placement, paths and exact
 selection. Native 3/3 and actual-app API02 31 calls (three intended refusals) pass;
@@ -117,9 +119,10 @@ blocked before input by desktop control reporting `cgWindowNotFound`; the API
 remained responsive with no focused window. This does not establish a product
 focus defect. Evidence remains external under
 `deliverables/piston-native-workflow-2026-10-14/modal-os-check-01/`.
-REL-010/#367 is now being implemented separately: command-scoped reuse of one
-authoritative assembly evaluation, with exact effective-input matching and
-independent review. No performance improvement is accepted yet.
+REL-010/#367 command-scoped evaluation reuse is independently accepted;
+REL-011/#374 preserves the remaining native drag profiling and responsiveness
+gate in Todo. The original broader requirement was split rather than silently
+closed with API-only evidence.
 Direct Copy Component/API routes alone are not exact native source input proof.
 The cumulative API movie remains valid qualified geometry/semantic evidence.
 Its native continuation also checks a small recorder correction: delivered
@@ -127,7 +130,7 @@ nonspontaneous Qt mouse events now move the visible pointer/ring with a `Qt inpu
 label, retaining event-log provenance. Source review and main build pass; actual
 overlay alignment is pending the first cumulative capture.
 The observed blank
-command-dock band and drag latency remain REL-005/REL-010.
+command-dock band and native drag latency remain REL-005/REL-011.
 The bounded implementation plan is external under
 `knowledge/tutorials/piston-subassemblies-2026-10-14/assembly-continuation/asm015-plan.md`.
 SRF-016/#360 preserves later surface-as-tool Trim; accepted

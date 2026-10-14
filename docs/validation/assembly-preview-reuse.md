@@ -5,3 +5,5 @@ REL-010 reduces repeated coupled-joint solving during one preview command and re
 The focused actual 3R+1C/Pin core test checks signed motion, original relationships, history/reopen and unchanged inspection/body summaries. It counts one graph solve for a combined read versus two for separate reads. The local seven-joint API run checks ±15° preview, Revert and invalid-angle refusal; each preview used one solve in the command and none in refresh. Raw timings and limitations are in the external `../Alloy-reference-records/deliverables/assembly-preview-reuse-2026-10-14/receipt.md`.
 
 This does not establish continuous native drag frame rate. The desktop input gate could not attach to the Alloy window, so pointer responsiveness remains a separate validation requirement. Candidate validation outside the scoped UI presentation may still perform its own solve.
+
+Independent Astra review accepted `bd71bc0`, integrated at `00b0990`. The main application build and focused coupled core pass. REL-010 closes only this implementation slice; REL-011/#374 retains native drag profiling and visual responsiveness validation.

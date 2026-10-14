@@ -380,4 +380,5 @@ This is a publication snapshot. Use `python3 tools/backlog.py ready` for the liv
 | [#330 SKT-074: Retain explicit projected-loop union selection across region changes](https://github.com/rje/Alloy/issues/330) | P2 Parametric solids | implementation | P2 | [#328](https://github.com/rje/Alloy/issues/328) |
 | [#349 VIS-003: Distinguish open surface sheets with warm yellow material](https://github.com/rje/Alloy/issues/349) | P2 Parametric modeling | implementation | P1 | [#283](https://github.com/rje/Alloy/issues/283) |
 | [#356 REL-009: Reuse solved prefixes within enclosure recompute](https://github.com/rje/Alloy/issues/356) | P4 Initial release | implementation | P1 | [#268](https://github.com/rje/Alloy/issues/268) |
-| [#367 REL-010: Measure and reduce coupled assembly drag latency](https://github.com/rje/Alloy/issues/367) | P4 Initial release | implementation | P2 | [#364](https://github.com/rje/Alloy/issues/364) |
+| [#367 REL-010: Reuse coupled assembly evaluation within a preview update](https://github.com/rje/Alloy/issues/367) | P4 Initial release | implementation | P2 | [#364](https://github.com/rje/Alloy/issues/364) |
+| [#374 REL-011: Validate native assembly drag responsiveness after evaluation reuse](https://github.com/rje/Alloy/issues/374) | P4 Initial release | validation | P2 | [#367](https://github.com/rje/Alloy/issues/367) |
