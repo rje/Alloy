@@ -40,3 +40,17 @@ selection and context actions.
 Independent Astra review accepts candidate `3c0e208`; main integration is
 `7bbf456`. The main application build and focused `piston_components` check
 pass (0.56 s). Acceptance is bounded to the contract and exclusions above.
+
+## Full creation checkpoint recording
+
+The external `creation-recording-01/piston-components-from-blank.mp4` records
+69.8 seconds from an empty document through all four native parts, conversion,
+nesting, radius edit, history, reopen and subtree export. The wrapper adds
+API command captions and dwell time to the accepted workflow. Four sampled
+frames were inspected and no capture failures were reported. Small sketch
+details and the nested Browser subtree are not close-ups in the film; the
+separate native hierarchy image supplies the latter evidence. Independent
+STL readback passes 2,042 oriented closed triangles in two positive-volume
+components. This is a component checkpoint, not a joint/motion tutorial gate.
+The local gallery links it under `#piston-components`; video, model, mesh and
+receipt remain outside Git.

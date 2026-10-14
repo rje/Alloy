@@ -30,7 +30,9 @@ is not established, and the independently authored adapted fixture is still
 implementation work. ASM-013/#362 native fixture and identity component hierarchy are independently
 accepted and integrated at `7bbf456`: four valid solids, native conversion/nesting,
 source radius edit, history/reopen and parent STL pass. See
-[acceptance](validation/piston-components.md). Main build and focused core pass.
+[acceptance](validation/piston-components.md). Main build and focused core pass. The external gallery now links a 69.8-second
+from-blank component creation checkpoint under `#piston-components`, with
+editable model, two-body checked STL and separate native hierarchy close-up.
 ASM-014/#363 now has parallel isolated lanes for retained circular-origin
 Revolute/Pin authority and a replaceable shared mature-solver adapter. The
 headless solver probe is provisional evidence only, not integrated joint support. ASM-015/#364 coupled
