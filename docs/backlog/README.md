@@ -26,7 +26,7 @@ and modifier evidence remain partial. SOL-058/#403 preserves physical held-modif
 checks. SKT-089/#404 is independently accepted for the numeric redundant-dimension
 driven offer, with refreshed production-theme native04 captures. SOL-016 remains
 Todo after its production-theme recheck still failed popup dismissal.
-SKT-090/#406 is active for bounded straight-line Extend. The source-grounded
+SKT-090/#406 is independently accepted at81a363e for straight-line Extend. The source-grounded
 SOL-016 popup harness correction stopped at initial activation in native05,
 before exercising the workflow; that gate remains Todo.
 PAR-008/#405 is independently accepted at137bd16 for retained arithmetic in

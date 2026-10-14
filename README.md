@@ -1,5 +1,9 @@
 # Alloy
 
+[Straight-line Extend](docs/validation/sketch-line-extend.md) now previews and
+closes sketch gaps while preserving endpoint identity and constraints. Its
+focused workflow closes a rectangle and creates a verified solid.
+
 [Extrude Distance formulas](docs/validation/extrude-distance-expression.md) now
 retain arithmetic such as `Width*2` through parameter edits, undo and reopening.
 The native field supports formula preview and editing with explicit length units.

@@ -151,18 +151,23 @@ API07 checks fixed-profile depth80→90, signed values, atomic refusal, history
 and reopen. Production-theme native08 checks actual formula typing, preview,
 OK/edit/Cancel and readable Distance (mm). See
 [receipt](validation/extrude-distance-expression.md). Broader expressions remain
-PAR-001. Backlog is406 issues,265 closed; dependencies remain acyclic.
+PAR-001. Backlog is406 issues,266 closed; dependencies remain acyclic.
 SOL-016 remains Todo. Qt source explains the missing popup dismissal: the
 saved harness clicked within the runtime release guard without the pointer
 movement that clears it. Corrected native05 stopped before the workflow because
 the initial window never became active; no popup or product acceptance follows.
 Exact log and corrected harness remain external under the existing Cut delivery
 folder/native-05. No failed test target remains; no further retry planned.
-SKT-090/#406 is active next: bounded straight-line Extend to an unambiguous
-line intersection, with hover preview, retained IDs, solver-authoritative closure,
-Enter to finish and a 20 x 10 x 5 mm extrusion exercise. Sol implements; Astra
-independently verifies. Public tool contract stays external. This is not yet a
-prerequisite of an established cumulative tutorial. Physical SOL-058 remains Todo.
+SKT-090/#406 is independently accepted at81a363e and closed. Straight-line
+Extend previews the nearest supported intersection in green, preserves endpoint
+IDs and publishes one solved edit. Core/native03 cover the 2mm corner gap,
+200mm² profile and shared-command5mm extrusion to a valid1000mm³ solid.
+Actual Qt hover/click/Enter, API setup/Finish/Extrude and committed history/reopen
+are distinguished in [receipt](validation/sketch-line-extend.md). Draft-level
+history routing is source-reviewed. Broader curve tools remain SKT-011; physical
+SOL-058 remains Todo. No private editor or active candidate remains at this
+accepted milestone. Pull the next bounded tutorial-enabling child from the live
+queue; do not repeat unchanged physical/startup gates without new evidence.
 Only main and its existing build are used; no inactive worktrees accumulate.
 DOC-031/#348 is independently accepted at `89782cf`: unchanged-product native09
 passes modal line focus, rename commit, Browser label and unchanged geometry.
