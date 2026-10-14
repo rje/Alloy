@@ -3227,7 +3227,8 @@ imported STEP occurrences. Stable body/edge/occurrence identities resolve the
 current center and radius after captured placement; virtual solver geometry
 stays out of authored data. The adapted PCB's four mounting holes project onto
 an identity-sibling Case floor, Offset−0.3 creates four radius1.05 peg profiles,
-and Join5 succeeds. Focused core, real-app API, and one native Qt circular-edge
-pick/preview/Escape pass; the prior straight-edge Project core test passes.
+and Join5 succeeds. Partial arcs refuse full-circle projection. Focused core,
+real-app API, and native Qt circular-edge Project and projected-circle Offset
+pick/typed preview/Escape pass; the prior straight-edge Project core test passes.
 The cumulative case-shell/analysis movie remains TUT-020. See
 [the candidate receipt](validation/linked-circular-project.md).

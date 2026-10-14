@@ -6,6 +6,7 @@
 #include <QTest>
 #include <QJsonDocument>
 #include <QDir>
+#include <QLineEdit>
 
 class LinkedCircularProjectControls final:public QObject {
     Q_OBJECT
@@ -19,7 +20,7 @@ private slots:
     void nativeHolePickPreviewCancel(){
         const auto fixture=qEnvironmentVariable("ALLOY_ADAPTED_BOARD_FIXTURE");if(fixture.isEmpty())QSKIP("External qualified board fixture unavailable");
         AlloyTheme::apply(*qApp);AlloyWindow window;window.resize(1500,950);window.show();window.activateWindow();
-        QVERIFY(QTest::qWaitForWindowExposed(&window));ReferenceView* view=nullptr;
+        QVERIFY(QTest::qWaitForWindowExposed(&window));QApplication::setActiveWindow(&window);QTRY_VERIFY(window.isActiveWindow());ReferenceView* view=nullptr;
         for(auto* widget:window.findChildren<QWidget*>())if(auto* candidate=dynamic_cast<ReferenceView*>(widget))view=candidate;
         QVERIFY(view);
         const auto imported=call(window,"reference.insert",{{"path",fixture},{"name","Board Reference"}});
@@ -36,19 +37,39 @@ private slots:
         call(window,"view.orientation",{{"name","top"}});call(window,"view.home");
         call(window,"sketch.begin",{{"support",ref(top)},{"name","Mounting Circles"}});
         const QJsonObject original=window.state()["activeSession"].toObject()["draftSketch"].toObject();
-        view->setFocus(Qt::OtherFocusReason);QTest::keyClick(view,Qt::Key_P);
+        QTRY_VERIFY_WITH_TIMEOUT(view->hasFocus(),1000);QTest::keyClick(view,Qt::Key_P);
         QTRY_COMPARE(window.state()["activeSession"].toObject()["tool"].toString(),QString("project"));
         const auto pixel=call(window,"view.projectSupportEdge",{{"bodyId",pcb["bodyId"]},{"edgeId",edge["edgeId"]}});
         const QPoint target(qRound(pixel["x"].toDouble()),qRound(pixel["y"].toDouble()));QVERIFY(view->rect().contains(target));
         QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,target);
         auto session=window.state()["activeSession"].toObject();QVERIFY(session.contains("pendingProject"));
         QCOMPARE(session["pendingProject"].toObject()["previewDraft"].toObject()["parameters"].toObject()["circleProjections"].toArray().size(),1);
+        QVERIFY2(view->hasFocus(),"Canvas Project pick must leave viewport focus for Escape");
         const auto evidence=qEnvironmentVariable("ALLOY_CIRCULAR_PROJECT_EVIDENCE");if(!evidence.isEmpty()){
             QDir().mkpath(evidence);call(window,"capture.screenshot",{{"path",evidence+"/native-hole-project-preview.png"}});
             call(window,"capture.dialog",{{"path",evidence+"/native-project-panel.png"}});
         }
         QTest::keyClick(view,Qt::Key_Escape);QTRY_VERIFY(!window.state()["activeSession"].toObject().contains("pendingProject"));
         QCOMPARE(window.state()["activeSession"].toObject()["draftSketch"],original);
+        call(window,"sketch.projectBegin");call(window,"sketch.projectSelect",{{"bodyId",pcb["bodyId"]},{"edgeId",edge["edgeId"]}});
+        call(window,"sketch.projectCommit");
+        const auto committed=window.state()["activeSession"].toObject()["draftSketch"].toObject();
+        const auto circle=window.state()["activeSession"].toObject()["projectionContext"].toObject()["circles"].toArray().first().toObject();
+        const auto rim=call(window,"view.projectSketchPoint",{{"sketchId",committed["id"]},
+            {"uMm",circle["uMm"].toDouble()+circle["radiusMm"].toDouble()},{"vMm",circle["vMm"]}});
+        const QPoint rimPick(qRound(rim["x"].toDouble()),qRound(rim["y"].toDouble()));QVERIFY(view->rect().contains(rimPick));
+        call(window,"sketch.tool",{{"tool","offset"}});QVERIFY(view->hasFocus());
+        QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,rimPick);
+        QTRY_VERIFY(window.state()["activeSession"].toObject()["pendingOffset"].toObject()["valid"].toBool());
+        auto* distance=window.findChild<QLineEdit*>("sketch.offset.distance");QVERIFY(distance && distance->isVisible());
+        QTest::mouseClick(distance,Qt::LeftButton);QCOMPARE(QApplication::focusWidget(),static_cast<QWidget*>(distance));
+        QTest::keyClick(QApplication::focusWidget(),Qt::Key_A,Qt::ControlModifier);
+        QTest::keyClicks(QApplication::focusWidget(),"-0.3");
+        QTRY_COMPARE(window.state()["activeSession"].toObject()["pendingOffset"].toObject()["distanceMm"].toDouble(),-0.3);
+        if(!evidence.isEmpty())call(window,"capture.screenshot",{{"path",evidence+"/native-circle-offset-preview.png"}});
+        QTest::keyClick(QApplication::focusWidget(),Qt::Key_Escape);
+        QTRY_VERIFY(!window.state()["activeSession"].toObject().contains("pendingOffset"));
+        QCOMPARE(window.state()["activeSession"].toObject()["draftSketch"].toObject(),committed);
         call(window,"document.new",{{"discard",true}});window.close();
     }
 };

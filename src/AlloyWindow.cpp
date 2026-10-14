@@ -2440,7 +2440,8 @@ void AlloyWindow::registerCommands() {
         if(tool=="fitSpline" || tool=="controlSpline" || tool=="insertFitPoint")return splinePointer(a,true);
         if(tool=="offset") {
             if(session_.value("inputs").toObject()["plane"]=="face" && session_.value("draftSketch").toObject()["parameters"].toObject()["entities"].toArray().isEmpty() &&
-               session_.value("draftSketch").toObject()["parameters"].toObject()["projections"].toArray().isEmpty()) {
+               session_.value("draftSketch").toObject()["parameters"].toObject()["projections"].toArray().isEmpty() &&
+               session_.value("draftSketch").toObject()["parameters"].toObject()["circleProjections"].toArray().isEmpty()) {
                 if(auto* chain=sketchOffsetControls_ ? sketchOffsetControls_->findChild<QCheckBox*>("sketch.offset.chain") : nullptr)
                     if(!chain->isChecked())return failure("chain_required","Check Chain Selection to offset the whole rounded boundary");
                 const auto support=session_.value("inputs").toObject()["support"].toObject();
@@ -2460,7 +2461,7 @@ void AlloyWindow::registerCommands() {
                 } catch(const GeometryKernel::EvaluationError& error){return failure(error.diagnostics()["code"].toString(),QString::fromUtf8(error.what()));}
             }
             const auto picked=view_->pickSketch(session_.value("draftSketch").toObject(),a["x"].toDouble(),a["y"].toDouble(),"entity");
-            if(picked["kind"]!="entity")return failure("source_required","Pick a sketch curve or projected line to offset");
+            if(picked["kind"]!="entity")return failure("source_required","Pick a sketch curve or projected edge to offset");
             const auto sourceId=picked["entityId"].toString();
             QString sourceType;for(const auto& value:SketchGeometry::expandedProjectionFeature(session_.value("draftSketch").toObject(),
                     session_.value("projectionContext").toObject())["parameters"].toObject()["entities"].toArray())
@@ -4321,6 +4322,19 @@ void AlloyWindow::refresh() {
             impact->setMinimumHeight(fillet.contains("previewDraft") ? impact->heightForWidth(impact->width()) : 0);
         }
         if(sketchOffsetControls_)sketchOffsetControls_->setVisible(tool=="offset");
+        if(tool=="offset" && sketchOffsetControls_){
+            const auto current= draft["parameters"].toObject();
+            const bool linkedCircles=!current["circleProjections"].toArray().isEmpty();
+            const bool projectedChain=!linkedCircles && !current["projections"].toArray().isEmpty();
+            const bool faceLoop=!linkedCircles && !projectedChain && inputs["plane"]=="face" && current["entities"].toArray().isEmpty();
+            if(auto* title=sketchOffsetControls_->findChild<QLabel*>("sketch.offset.title"))
+                title->setText(linkedCircles ? "One Side · Select projected circle" : faceLoop ? "One Side · Select top-face boundary" :
+                    projectedChain ? "One Side · Select projected bottom chain and shoulders" : "One Side · Select circle or open fit spline");
+            if(auto* chain=sketchOffsetControls_->findChild<QCheckBox*>("sketch.offset.chain"))chain->setVisible(faceLoop||projectedChain);
+            if(linkedCircles && sketchOffsetDistance_ && !session_.contains("pendingOffset") && sketchOffsetDistance_->text()=="-0.25"){
+                const QSignalBlocker block(sketchOffsetDistance_);sketchOffsetDistance_->setText("1");
+            }
+        }
         if(sketchOffsetControls_)if(auto* accept=sketchOffsetControls_->findChild<QPushButton*>("sketch.offset.accept"))
             accept->setEnabled(tool=="offset" && (session_.value("pendingOffset").toObject()["valid"].toBool() ||
                 session_.value("pendingLoopOffset").toObject()["valid"].toBool() || session_.value("pendingSplineOffset").toObject()["valid"].toBool() ||
@@ -4398,6 +4412,9 @@ void AlloyWindow::refresh() {
                 "Objects · drag a left-to-right enclosure or click source curves and points";
             if(session_.contains("pendingSketchMirror"))prompt="Mirror preview · inspect lower reflection · OK or Cancel Mirror";
         }
+        else if(tool=="offset" && !draft["parameters"].toObject()["circleProjections"].toArray().isEmpty())
+            prompt=session_.value("pendingOffset").toObject()["valid"].toBool() ?
+                "Linked circle · signed distance or Flip · OK accepts" : "Select one projected circle · Set clearance distance";
         else if(tool=="offset" && !draft["parameters"].toObject()["projections"].toArray().isEmpty())
             prompt=session_.value("pendingOpenChainOffset").toObject()["valid"].toBool() ?
                 "Five-line open chain · signed distance or Clearance name · OK accepts" :
@@ -4422,7 +4439,9 @@ void AlloyWindow::refresh() {
             if(e.toObject()["type"]=="point")++standaloneCount;else ++curveCount;
         }
         if(sketchInfo_)sketchInfo_->setText(QString("%1 plane · %2\n%3\n%4")
-            .arg(inputs["plane"].toString()).arg(draft["parameters"].toObject().contains("loopOffsets") || session_.value("pendingLoopOffset").toObject()["valid"].toBool() ? QString("generated closed loop")
+            .arg(inputs["plane"].toString()).arg(!draft["parameters"].toObject()["circleProjections"].toArray().isEmpty()
+                ? QString("%1 linked circle(s) · %2 authored edge(s)").arg(draft["parameters"].toObject()["circleProjections"].toArray().size()).arg(curveCount)
+                : draft["parameters"].toObject().contains("loopOffsets") || session_.value("pendingLoopOffset").toObject()["valid"].toBool() ? QString("generated closed loop")
                 : standaloneCount ? QString("%1 curves · %2 standalone points").arg(curveCount).arg(standaloneCount) : QString("%1 edges").arg(curveCount))
             .arg(prompt)
             .arg((mirrorPreview.isEmpty() ? diagnostics : mirrorPreview["diagnostics"].toObject())["dof"].toInt(-1)==0 ? "Fully constrained" : QString("%1 degrees of freedom").arg((mirrorPreview.isEmpty() ? diagnostics : mirrorPreview["diagnostics"].toObject())["dof"].toInt())));
@@ -8061,8 +8080,9 @@ void AlloyWindow::showSketch() {
         sketchOffsetControls_=new QWidget;sketchOffsetControls_->setObjectName("sketch.offset.controls");
         auto* offsetLayout=new QVBoxLayout(sketchOffsetControls_);offsetLayout->setContentsMargins(0,0,0,0);
         const auto sketchParameters=session_.value("draftSketch").toObject()["parameters"].toObject();
-        const bool projectedChain=!sketchParameters["projections"].toArray().isEmpty();
-        const bool faceLoop=inputs["plane"]=="face" && sketchParameters["entities"].toArray().isEmpty() && !projectedChain;
+        const bool projectedChain=!sketchParameters["projections"].toArray().isEmpty() && sketchParameters["circleProjections"].toArray().isEmpty();
+        const bool faceLoop=inputs["plane"]=="face" && sketchParameters["entities"].toArray().isEmpty() && !projectedChain
+            && sketchParameters["circleProjections"].toArray().isEmpty();
         auto* offsetTitle=new QLabel(faceLoop ? "One Side · Select top-face boundary" :
             projectedChain ? "One Side · Select projected bottom chain and shoulders" : "One Side · Select circle or open fit spline");
         offsetTitle->setObjectName("sketch.offset.title");offsetTitle->setWordWrap(true);

@@ -2,6 +2,9 @@
 #include "CadDocument.h"
 #include "SketchGeometry.h"
 #include <BRepAdaptor_Curve.hxx>
+#include <BRepBuilderAPI_MakeEdge.hxx>
+#include <BRep_Builder.hxx>
+#include <TopoDS_Compound.hxx>
 #include <QCoreApplication>
 #include <QTemporaryDir>
 #include <cmath>
@@ -47,6 +50,18 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try {
     for(const auto& face:floor.supportFaces)if(face.role=="box.z1")top=&face;
     need(top,"case floor top support");
     auto sketch=SketchGeometry::newSupportedFeature(owner,ref(*top),"Mounting Circles",GeometryKernel::supportEdgeDescriptors(*top));
+    {
+        auto simulation=doc.evaluation();EvaluatedBody arcBody;
+        arcBody.bodyId=CadDocument::newId();arcBody.occurrenceId=CadDocument::newId();
+        const auto arcId=CadDocument::newId();
+        const auto arc=BRepBuilderAPI_MakeEdge(gp_Circ(gp_Ax2(gp_Pnt(0,0,7.6),gp_Dir(0,0,1)),1.35),0,std::numbers::pi).Edge();
+        BRep_Builder builder;TopoDS_Compound compound;builder.MakeCompound(compound);builder.Add(compound,arc);arcBody.shape=compound;
+        EvaluatedSupportFace source;source.boundaryEdges.push_back({arcId,"curve",arc,{{"occurrenceId",arcBody.occurrenceId}}});
+        arcBody.supportFaces.push_back(source);simulation.bodies.push_back(arcBody);
+        bool refused=false;try{SketchGeometry::linkedProjectionCandidate(simulation,sketch,{{"bodyId",arcBody.bodyId},{"edgeId",arcId}});}
+        catch(const GeometryKernel::EvaluationError& error){refused=error.diagnostics()["code"]=="unsupported_projection";}
+        need(refused,"partial circular arc refuses full-circle projection");
+    }
     for(const auto& [bodyId,edgeId]:sources)sketch=SketchGeometry::linkedProjectionCandidate(doc.evaluation(),sketch,{{"bodyId",bodyId},{"edgeId",edgeId}});
     need(sketch["parameters"].toObject()["circleProjections"].toArray().size()==4,"four retained circle refs");
     auto context=GeometryKernel::projectionContext(doc.evaluation(),sketch);

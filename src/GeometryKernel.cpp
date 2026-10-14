@@ -52,6 +52,7 @@
 #include <Standard_Failure.hxx>
 #include <algorithm>
 #include <cmath>
+#include <numbers>
 #include <stdexcept>
 
 namespace {
@@ -246,7 +247,7 @@ QJsonObject GeometryKernel::projectionContext(const EvaluatedDocument& evaluatio
         }
         const auto body=std::find_if(evaluation.bodies.begin(),evaluation.bodies.end(),[&](const auto& b){return b.bodyId==source["bodyId"].toString();});
         if(body==evaluation.bodies.end())reject("projection_unavailable","Projected source body is no longer active");
-        if(!body->occurrenceId.isEmpty() && source["occurrenceId"]!=body->occurrenceId)
+        if(source.contains("occurrenceId") && source["occurrenceId"]!=body->occurrenceId)
             reject("projection_unavailable","Imported projected edge requires its current occurrence identity");
         TopTools_IndexedMapOfShape present;TopExp::MapShapes(body->shape,TopAbs_EDGE,present);
         const EvaluatedSupportEdge* found=nullptr;
@@ -287,6 +288,8 @@ QJsonObject GeometryKernel::projectionContext(const EvaluatedDocument& evaluatio
         if(edge.edge.IsNull())reject("projection_unavailable","Circular source edge is unavailable");
         const BRepAdaptor_Curve curve(edge.edge);
         if(curve.GetType()!=GeomAbs_Circle)reject("unsupported_projection","Linked circular Project requires a true circular model edge");
+        if(std::abs(std::abs(curve.LastParameter()-curve.FirstParameter())-2*std::numbers::pi)>1e-6)
+            reject("unsupported_projection","Partial circular arcs cannot be projected as full circles");
         const auto circle=curve.Circle();const auto axis=circle.Axis().Direction();
         const double parallel=std::abs(axis.X()*normal[0].toDouble()+axis.Y()*normal[1].toDouble()+axis.Z()*normal[2].toDouble());
         if(parallel<1-1e-6)reject("unsupported_projection","Circular source edge must be parallel to the sketch plane");

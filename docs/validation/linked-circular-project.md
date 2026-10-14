@@ -11,23 +11,26 @@ stores only the edge and occurrence identity. Evaluation recomputes the center
 and radius from the current OCCT edge after the captured outer placement;
 solver-locked virtual geometry is removed from the authored sketch. A purple,
 read-only projected circle can bound a profile and drive an ordinary retained
-Circle Offset. Ellipses, nonparallel circular edges and unavailable sources
+Circle Offset. Partial arcs, ellipses, nonparallel circular edges and unavailable sources
 are refused; general curved Project and relink/repair remain in SKT-026.
 
 The focused core test uses the qualified v2 PCB fixture, four distinct top
 mounting edges, an identity-sibling Case face at z3.5, four projected radius1.35
 circles, four Offset−0.3 results of radius1.05, and Join5 pegs. It checks exact
-transformed centers, captured placement following, undo, save/reopen, and atomic
-missing-source refusal. The previous straight-edge linked Project test also
+transformed centers, captured placement following, undo, save/reopen, atomic
+missing-source refusal, and an explicit partial-arc rejection. The previous straight-edge linked Project test also
 passes. The 43-call real-app API run repeats four holes, offsets, Join, capture update,
 undo and reopen through the public control API. A native Qt viewport click
 picked one actual PCB circular edge after `P`, showed a linked preview, and
-Escape restored the unchanged sketch. Input was Qt-delivered; no OS physical
+Escape restored the unchanged sketch. The same native test then selected the
+projected circle for Offset, typed −0.3 and canceled the preview. It asserts
+the viewport has focus after sketch entry and Project selection without
+repairing focus between user steps. Input was Qt-delivered; no OS physical
 pointer or source-product runtime was used.
 
 Evidence: external `../Alloy-reference-records/deliverables/linked-circular-project-2026-10-13/api-02/`
 contains the command ledger, saved Alloy file and inspected GPU captures;
-`native-04/` contains the passed native Project preview and panel captures.
+`native-09/` contains the passed native Project and Circle Offset preview captures.
 The four offset curves are small at the current full-board view scale. This
 bounded ingredient is not the full case-shell/analysis/peg creation movie;
 TUT-020 owns that cumulative gate.
