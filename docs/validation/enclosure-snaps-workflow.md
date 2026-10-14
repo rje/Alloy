@@ -1,5 +1,8 @@
 # Retained enclosure snap workflow
 
+Independently accepted on 2026-10-14 as the bounded adapted API modeling
+checkpoint. The full source workflow remains TUT-016.
+
 `tests/enclosure_port_card_workflow_api.py --through-snaps` continues the
 accepted from-blank imported-board and ported-Case workflow in the same real
 application document. The prefix path without that flag remains unchanged.
@@ -62,11 +65,16 @@ Cut span and two uprights to form four selectable regions. That edge choice,
 the YZ mirror plane, and the catch's horizontal placement are adaptations to
 the independently authored board and Case rather than exact observed source
 gestures. Native typed body rename remains a separate DOC-031 gate. This
-receipt does not claim complete source parity or an independently accepted
-cumulative tutorial gate.
+receipt does not claim complete source parity. DOC-031 and DOC-032 preserve
+native naming and the original retained-section requirements in the full parent
+gate. STEP export passed; independent STEP readback was not performed here.
 
 Public source evidence and documented versus inferred steps are kept outside
 the repository at
 `../Alloy-reference-records/knowledge/tutorials/advanced-audit-2026-10-13/enclosure-split-snap-contract.md`
 and `enclosure-final-order-clarification.md` in the same directory. No
 proprietary application was operated for this validation.
+
+The local video gallery `../Alloy-reference-records/demos/2026-10-13/index.html#enclosure-snaps`
+links the share and raw recordings, editable assembly, separate printable halves
+and corrected post-save section capture. Its local links were checked.

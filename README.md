@@ -12,8 +12,10 @@ The [enclosure ports and card-opening workflow](docs/validation/enclosure-port-c
 now has an independently accepted full creation movie: linked board placement,
 rounded shell, mounting pegs, projected connector clearances, long slot and
 rounded card opening. Save/reopen and Case-only STEP/STL checks pass. The
-adapted nominal board is not a physical-fit certification. Split case halves,
-snap closures and the alignment rim remain in the next enclosure stages.
+adapted nominal board is not a physical-fit certification. The [split-halves and snap checkpoint](docs/validation/enclosure-snaps-workflow.md)
+now adds mirrored catches, reordered rounding, separate closed printing meshes
+and a full creation recording. The alignment rim, retained section support and
+native naming remain separate follow-ups.
 
 The [patterned ornament tutorial](docs/validation/ornament-tutorial-acceptance.md)
 now has independently accepted creation footage, editable source and width-edit

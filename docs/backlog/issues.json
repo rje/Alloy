@@ -3706,7 +3706,9 @@
         "TUT-020",
         "TUT-021",
         "TUT-022",
-        "TUT-023"
+        "TUT-023",
+        "DOC-031",
+        "DOC-032"
       ],
       "labels": [
         "area:gate"
@@ -5725,13 +5727,12 @@
         "GEO-014",
         "GEO-015",
         "SOL-055",
-        "DOC-030",
-        "DOC-031"
+        "DOC-030"
       ],
       "labels": [
         "area:gate"
       ],
-      "body": "Continue actual ported case through retained top/bottom Midplane and Split. Follow source snap construction:4mm guide,6x3 cutout,0.5 offset plane, stepped8/2/10/6/2 outline, Join5, equal-distance Chamfers2/1/2 and R0.5 fillet; mirror retained cut and snap groups separately, reorder inner fillet after Mirror and select opposite edge. Exact reference geometry and operations must remain authored and editable. Verify real post-Split face/edge support, two valid case halves, intended snap and cut clearances, edits/history/reopen, visible source-stage workflow and native controls where changed. If unsupported topology is exposed, split a bounded implementation blocker before claiming completion. No broad sketch-repair, chamfer or fillet family closure.\n\nUse public source evidence stored outside Git in knowledge/tutorials/advanced-audit-2026-10-13. Independent Astra review required. UI and local automation use the same authoritative commands; proportionate verification through the real app. Keep API, native input, geometry and visual evidence distinct."
+      "body": "Continue actual ported case through retained top/bottom Midplane and Split. Follow source snap construction:4mm guide,6x3 cutout,0.5 offset plane, stepped8/2/10/6/2 outline, Join5, equal-distance Chamfers2/1/2 and R0.5 fillet; mirror retained cut and snap groups separately, reorder inner fillet after Mirror and select opposite edge. Exact reference geometry and operations must remain authored and editable. Verify real post-Split face/edge support, two valid case halves, intended snap and cut clearances, edits/history/reopen, visible source-stage workflow and native controls where changed. If unsupported topology is exposed, split a bounded implementation blocker before claiming completion. No broad sketch-repair, chamfer or fillet family closure.\n\nUse public source evidence stored outside Git in knowledge/tutorials/advanced-audit-2026-10-13. Independent Astra review required. UI and local automation use the same authoritative commands; proportionate verification through the real app. Keep API, native input, geometry and visual evidence distinct.\n\nScope split 2026-10-14: this gate accepts the adapted cumulative API modeling workflow with its recorded source differences. Native typed Rename remains DOC-031; original face-linked section preservation remains DOC-032. Both remain dependencies of the full TUT-016 parent. The aligned rim remains TUT-023. Do not claim full source interaction parity from this bounded closure.\n\n## Independently accepted 2026-10-14\nIndependent review accepts the bounded adapted API snap workflow: final two-group reorder, actual edit/history/reopen, separate closed STL halves and STEP export, and zero Top/Bottom overlap. Full creation movie saved the model before a late verification assertion; separate tail-02 completed validation. Gallery links share/raw media, saved model and printable halves. DOC-031, DOC-032 and TUT-023 remain in full TUT-016. See docs/validation/enclosure-snaps-workflow.md for source adaptations, unavailable original section and known nominal-board collision.\n"
     },
     {
       "key": "TUT-023",
@@ -6095,7 +6096,7 @@
       "labels": [
         "area:doc"
       ],
-      "body": "Finish the native interaction portion split from DOC-030 authoring authority. Open body Rename through the real Browser context menu, confirm initial selected name and usable input focus, type Bottom or Top, accept with keyboard or button, and verify readable Browser label plus unchanged geometry. Escape must cancel. Actual Split API naming works, and Qt context opening/Escape are observed, but five bounded Qt attempts could not establish line-edit focus/typed commit even after initial harness activation. Do not repair focus between demonstrated user steps or substitute setText/API rename for typing evidence. Root desktop control previously could not resolve candidate windows (-10005 cgWindowNotFound); revisit only with changed evidence or a concrete implementation/harness hypothesis. Fix a real interaction defect if found. Keep Qt delivered input, OS input and API evidence distinct. TUT-022 full source interaction gate retains this dependency."
+      "body": "Finish the native interaction portion split from DOC-030 authoring authority. Open body Rename through the real Browser context menu, confirm initial selected name and usable input focus, type Bottom or Top, accept with keyboard or button, and verify readable Browser label plus unchanged geometry. Escape must cancel. Actual Split API naming works, and Qt context opening/Escape are observed, but five bounded Qt attempts could not establish line-edit focus/typed commit even after initial harness activation. Do not repair focus between demonstrated user steps or substitute setText/API rename for typing evidence. Root desktop control previously could not resolve candidate windows (-10005 cgWindowNotFound); revisit only with changed evidence or a concrete implementation/harness hypothesis. Fix a real interaction defect if found. Keep Qt delivered input, OS input and API evidence distinct. The full TUT-016 source interaction gate retains this dependency; bounded TUT-022 API modeling acceptance does not satisfy it."
     },
     {
       "key": "VIS-003",
@@ -6163,6 +6164,21 @@
         "area:prt"
       ],
       "body": "## Problem and result\nThe source surface tutorial retains a hidden sheet and later moves the completed solid into the same component before component STL export. Current occurrenceId export gathers every component body, so the hidden open sheet causes the strict solid exporter to refuse.\n\n## Scope and acceptance\nPreserve the retained source sheet and export the final component as the intended single closed solid mesh. Research and record implicit component visibility/surface selection behavior from permitted public evidence before choosing broader semantics. Keep explicit surface-body export refusal and strict solid mesh checks; PRT-004 owns intentional non-solid export. Disclose selected solid scope in native controls/results. Do not silently omit explicitly selected unsupported geometry or weaken watertightness validation. Preserve existing multi-solid placement and component ownership behavior.\n\n## Verification\nUse actual retained sheet plus thickened/finished solid in the tutorial component; component export must produce exactly the expected solid and mm dimensions while source sheet remains authored. Inspect native selector and perform independent STL readback. Include one explicit open-sheet refusal; avoid repeating unrelated mesh tests.\n\n## Evidence\nPublic source ownership and material frames plus transcript were retrieved2026-10-14 and are external in advanced-audit-2026-10-14/shoehorn-finishing-contract.md. Code finding: document.exportStl occurrence branch currently gathers all owner-matching bodies, and MeshExport correctly rejects open sheets. Planned, not implemented.\n\n## Independently accepted 2026-10-14\nComponent-visible printing and the modeling-prefix ownership prerequisite are independently accepted. Actual retained Loft/Thicken solid reparent, save/reopen, 2308-triangle positive closed STL, explicit and visible open-sheet refusals, visibility undo and readable component dialog pass. See docs/validation/component-mesh-visibility.md. Physical Browser drag, nested components and intentional open-surface export remain separate.\n"
+    },
+    {
+      "key": "DOC-032",
+      "title": "Preserve a face-linked section through retained body Split",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "DOC-023",
+        "SOL-045"
+      ],
+      "labels": [
+        "area:doc"
+      ],
+      "body": "The actual enclosure Top section becomes unavailable after Midplane/Split even though the source exterior supporting plane persists on a resulting half. Resolve this exact retained-face ancestry without nearest-coordinate retargeting. Preserve section position, orientation and visibility through Split, upstream edit, undo/redo and save/reopen; reject genuinely missing or ambiguous supports. Verify actual GPU clipping and a readable retained section in the saved enclosure fixture. The independently accepted API snap workflow uses a disclosed same-position origin XY inspection plane at z=24.5 mm; that workaround is not acceptance of retained-face support. Evidence: docs/validation/enclosure-snaps-workflow.md and external enclosure-snap-workflow-2026-10-14/from-blank-01/tail-02. Full enclosure source behavior remains gated here."
     }
   ]
 }

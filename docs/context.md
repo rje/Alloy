@@ -1,5 +1,17 @@
 # Continuation context
 
+## Accepted enclosure snap checkpoint (2026-10-14)
+
+TUT-022 has independently accepted adapted API workflow evidence through both
+Mirrors and the reordered Bottom Fillet groups. The 23-minute creation recording
+saved the final model before a late undo-order assertion; separate tail-02 passes
+36 calls covering actual edit/history/reopen, adapted section clipping, separate
+closed STL meshes and STEP export. Actual Top/Bottom overlap is zero; the known
+0.73224 mm³ nominal-board connector collision remains. The gallery now links the
+431-second idle-trimmed creation movie, raw trace and separate post-save section.
+Full TUT-016 retains DOC-031 native naming, DOC-032 face-linked section support,
+and TUT-023 alignment rim. See [the receipt](validation/enclosure-snaps-workflow.md).
+
 ## Accepted component printing selection (2026-10-14)
 
 PRT-010/#351 is independently accepted and integrated. Component STL export
