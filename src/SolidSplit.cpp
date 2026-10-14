@@ -8,10 +8,13 @@
 #include <BRepPrimAPI_MakeHalfSpace.hxx>
 #include <BRepAdaptor_Surface.hxx>
 #include <BRepAdaptor_Curve.hxx>
+#include <BRepTools_WireExplorer.hxx>
+#include <algorithm>
 #include <Bnd_Box.hxx>
 #include <TopExp.hxx>
 #include <TopExp_Explorer.hxx>
 #include <TopoDS.hxx>
+#include <TopoDS_Wire.hxx>
 #include <TopTools_IndexedMapOfShape.hxx>
 #include <TopTools_IndexedDataMapOfShapeListOfShape.hxx>
 #include <QUuid>
@@ -25,6 +28,52 @@ QJsonArray coordinates(const gp_Pnt& p){return {p.X(),p.Y(),p.Z()};}
 QJsonArray coordinates(const gp_Dir& d){return {d.X(),d.Y(),d.Z()};}
 QString identity(const QString& feature,const QByteArray& role){
     return QUuid::createUuidV5(QUuid(feature),role).toString(QUuid::WithoutBraces);
+}
+// Complete a single analytic wire only when its unknown edges lie on unique
+// topological paths between at least three retained edge anchors. This is a
+// topology-stability convention, not a claim of Boolean-generated history.
+void completeCapBoundary(EvaluatedSupportFace& support, EvaluatedBody& body) {
+    TopoDS_Wire wire; int wires=0;
+    for(TopExp_Explorer it(support.face,TopAbs_WIRE);it.More();it.Next()){wire=TopoDS::Wire(it.Current());++wires;}
+    if(wires!=1 || !wire.Closed())return;
+    std::vector<TopoDS_Edge> edges;
+    for(BRepTools_WireExplorer it(wire,support.face);it.More();it.Next())edges.push_back(it.Current());
+    TopTools_IndexedMapOfShape all;TopExp::MapShapes(wire,TopAbs_EDGE,all);
+    if(int(edges.size())!=all.Extent())return;
+    std::vector<QString> anchors(edges.size());QSet<QString> used;int count=0;
+    for(size_t i=0;i<edges.size();++i){
+        const auto kind=BRepAdaptor_Curve(edges[i]).GetType();
+        if(kind!=GeomAbs_Line && kind!=GeomAbs_Circle)return;
+        for(const auto& retained:support.boundaryEdges)if(retained.edge.IsSame(edges[i])){
+            if(!anchors[i].isEmpty() || used.contains(retained.edgeId))return;
+            anchors[i]=retained.edgeId;used.insert(retained.edgeId);++count;
+        }
+        if(i && TopExp::LastVertex(edges[i-1],true).IsSame(TopExp::FirstVertex(edges[i],true))==false)return;
+    }
+    if(count<3 || !TopExp::LastVertex(edges.back(),true).IsSame(TopExp::FirstVertex(edges.front(),true)))return;
+    std::vector<EvaluatedSupportEdge> additions;QSet<QString> paths;
+    for(size_t begin=0;begin<edges.size();++begin)if(!anchors[begin].isEmpty()){
+        size_t end=(begin+1)%edges.size();std::vector<size_t> gap;
+        while(anchors[end].isEmpty()){gap.push_back(end);end=(end+1)%edges.size();}
+        if(gap.empty())continue;
+        QString first=anchors[begin],last=anchors[end];
+        if(first>last){std::swap(first,last);std::reverse(gap.begin(),gap.end());}
+        QStringList kinds;for(auto index:gap)kinds.append(BRepAdaptor_Curve(edges[index]).GetType()==GeomAbs_Line?"line":"arc");
+        const auto path=first+"/"+last+"/"+kinds.join(",");
+        if(paths.contains(path))return;paths.insert(path);
+        for(size_t position=0;position<gap.size();++position){
+            const auto& edge=edges[gap[position]];const BRepAdaptor_Curve curve(edge);
+            const auto id=identity(support.faceId,"alloy-split-anchored-boundary/1\n"+path.toUtf8()+"\n"+QByteArray::number(position));
+            if(used.contains(id))return;used.insert(id);
+            QJsonObject provenance{{"role","splitCapAnchoredChain"},{"lineage","topological_anchor_chain"},
+                {"firstAnchorId",first},{"lastAnchorId",last},{"pathKinds",kinds.join(",")},
+                {"pathPosition",int(position)},{"pathLength",int(gap.size())},
+                {"startMm",coordinates(curve.Value(curve.FirstParameter()))},
+                {"endMm",coordinates(curve.Value(curve.LastParameter()))}};
+            additions.push_back({id,kinds[int(position)],edge,provenance});
+        }
+    }
+    for(const auto& edge:additions){support.boundaryEdges.push_back(edge);body.solidEdges.push_back({edge.edgeId,edge.edge,edge.provenance});}
 }
 }
 QString SolidSplit::positiveBodyId(const QString& featureId,const QString& sourceBodyId){
@@ -103,6 +152,7 @@ std::pair<EvaluatedBody,EvaluatedBody> SolidSplit::evaluate(const EvaluatedBody&
             support.boundaryEdges.push_back({edgeId,curve.GetType()==GeomAbs_Line?"line":"circle",edge,provenance});
             body.solidEdges.push_back({edgeId,edge,provenance});
         }
+        completeCapBoundary(support,body);
         body.supportFaces.push_back(support);
         body.summary["supportFaces"]=PlanarFaces::descriptors(body.supportFaces);
         body.summary["solidEdges"]=SolidFillet::descriptors(body.solidEdges);
