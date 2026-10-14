@@ -1,5 +1,15 @@
 # Continuation context
 
+## Overall Slot candidate (2026-10-13)
+
+SKT-069 is implemented in isolated `feat/overall-slot` and awaits independent
+source review and one refreshed native capture for the final angle-label
+placement. True end-to-end length, width and angle are retained dimensions
+over analytic slot curves; the documented first/second endpoint and width
+gesture and Box Cut pass focused native/API tests. See
+[candidate receipt](validation/overall-slot.md). Main integration and issue
+closure are pending.
+
 ## Retained-plane Split Body (2026-10-13)
 
 SOL-045/#279 independently accepted: two closed solids from an active body and

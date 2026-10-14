@@ -893,6 +893,32 @@ QJsonObject ReferenceView::dimensionLayout(const QJsonObject& feature,const QJso
     if(view_.IsNull())return {};
     const auto parameters=feature.value("parameters").toObject();const auto plane=parameters.value("plane").toString();
     if(dimension["kind"]=="angle")return angleDimensionLayout(feature,dimension,valueMm);
+    if(dimension["kind"]=="overallSlotAngle") {
+        auto derived=feature,pp=parameters;const auto ids=dimension["pointIds"].toArray();if(ids.size()!=2)return {};
+        QJsonObject start,end;for(const auto& row:pp["points"].toArray()){const auto p=row.toObject();if(p["id"]==ids[0])start=p;if(p["id"]==ids[1])end=p;}
+        if(start.isEmpty() || end.isEmpty())return {};
+        auto points=pp["points"].toArray(),entities=pp["entities"].toArray();
+        const double span=std::hypot(end["uMm"].toDouble()-start["uMm"].toDouble(),end["vMm"].toDouble()-start["vMm"].toDouble());
+        points.append(QJsonObject{{"id","overall-angle-axis-end"},{"uMm",start["uMm"].toDouble()+span},{"vMm",start["vMm"]}});
+        entities.append(QJsonObject{{"id","overall-angle-axis"},{"type","line"},{"startPointId",ids[0]},{"endPointId","overall-angle-axis-end"}});
+        entities.append(QJsonObject{{"id","overall-angle-guide"},{"type","line"},{"startPointId",ids[0]},{"endPointId",ids[1]}});
+        pp["points"]=points;pp["entities"]=entities;derived["parameters"]=pp;
+        auto angle=dimension;angle["kind"]="angle";angle.remove("pointIds");angle["entityIds"]=QJsonArray{"overall-angle-axis","overall-angle-guide"};
+        auto layout=angleDimensionLayout(derived,angle,valueMm);layout["kind"]="overallSlotAngle";return layout;
+    }
+    if(dimension["kind"]=="overallSlotLength") {
+        const auto ids=dimension["pointIds"].toArray();if(ids.size()!=2)return {};
+        QJsonObject first,last,arc;for(const auto& row:parameters["points"].toArray()){const auto p=row.toObject();if(p["id"]==ids[0])first=p;if(p["id"]==ids[1])last=p;}
+        for(const auto& row:parameters["entities"].toArray())if(row.toObject()["id"]==dimension["entityId"]){arc=row.toObject();break;}
+        if(first.isEmpty() || last.isEmpty() || arc.isEmpty())return {};
+        const double dx=last["uMm"].toDouble()-first["uMm"].toDouble(),dy=last["vMm"].toDouble()-first["vMm"].toDouble();
+        const double length=std::hypot(dx,dy),radius=arc["radiusMm"].toDouble();if(length<1e-6)return {};
+        auto derived=feature,pp=parameters;auto rows=pp["points"].toArray();
+        rows.append(QJsonObject{{"id","overall-first-witness"},{"uMm",first["uMm"].toDouble()-radius*dx/length},{"vMm",first["vMm"].toDouble()-radius*dy/length}});
+        rows.append(QJsonObject{{"id","overall-last-witness"},{"uMm",last["uMm"].toDouble()+radius*dx/length},{"vMm",last["vMm"].toDouble()+radius*dy/length}});
+        pp["points"]=rows;derived["parameters"]=pp;auto span=dimension;span["kind"]="linear";span.remove("entityId");span["pointIds"]=QJsonArray{"overall-first-witness","overall-last-witness"};
+        auto layout=dimensionLayout(derived,span,valueMm,units);layout["kind"]="overallSlotLength";return layout;
+    }
     if(dimension["kind"]=="radius" || dimension["kind"]=="diameter" || dimension["kind"]=="arcSweep")return curveDimensionLayout(feature,dimension,valueMm,units);
     if(dimension["kind"]=="centerlineDiameter") {
         const auto ids=dimension["entityIds"].toArray();if(ids.size()!=2)return {};
@@ -1391,7 +1417,7 @@ void ReferenceView::decorateSketch(const QJsonObject& feature,const QJsonObject&
     if(!pending.isEmpty() && !pending.contains("dimensionId")){auto preview=pending;preview["id"]="pending";dimensions.append(preview);}
     if(showDimensions_)for(const auto& entry:dimensions) {
         const auto dimension=entry.toObject();const auto measured=measurements.value(dimension.value("id").toString());
-        const bool angular=dimension["kind"]=="arcSweep" || dimension["kind"]=="angle";const auto valueKey=angular ? "valueDeg" : "valueMm";
+        const bool angular=dimension["kind"]=="arcSweep" || dimension["kind"]=="angle" || dimension["kind"]=="overallSlotAngle";const auto valueKey=angular ? "valueDeg" : "valueMm";
         const double value=dimension.value("id")=="pending" ? pending.value(angular ? "measuredValueDeg" : "measuredValueMm").toDouble() : measured.value(valueKey).toDouble(dimension.value(valueKey).toDouble());
         const auto layout=dimensionLayout(layoutFeature,dimension,value,units);if(layout.isEmpty())continue;annotationLayouts_.append(layout);
         const bool selected=selection.value("dimensionId")==dimension.value("id");
@@ -1399,7 +1425,7 @@ void ReferenceView::decorateSketch(const QJsonObject& feature,const QJsonObject&
         const auto line=layout.value("line").toArray();auto world=[&](const QJsonValue& v){const auto p=v.toObject();return sketchWorld(plane,p.value("uMm").toDouble(),p.value("vMm").toDouble());};
         const auto frame=frameFor(plane);const auto n=frame.value("normal").toArray(),u=frame.value("uAxis").toArray(),origin=frame.value("origin").toArray();
         const double size=layout.value("mmPerPixel").toDouble();
-        if(layout["kind"]!="radius" && layout["kind"]!="arcSweep" && layout["kind"]!="angle") {
+        if(layout["kind"]!="radius" && layout["kind"]!="arcSweep" && layout["kind"]!="angle" && layout["kind"]!="overallSlotAngle") {
         Handle(PrsDim_LengthDimension) graphic=new PrsDim_LengthDimension(world(line[0]),world(line[1]),gp_Pln(gp_Ax3(gp_Pnt(origin[0].toDouble(),origin[1].toDouble(),origin[2].toDouble()),gp_Dir(n[0].toDouble(),n[1].toDouble(),n[2].toDouble()),gp_Dir(u[0].toDouble(),u[1].toDouble(),u[2].toDouble()))));
         Handle(Prs3d_DimensionAspect) aspect=new Prs3d_DimensionAspect;aspect->SetCommonColor(color);aspect->MakeText3d(false);aspect->MakeArrows3d(false);aspect->MakeUnitsDisplayed(false);
         aspect->LineAspect()->SetWidth(devicePixelRatioF());
@@ -1413,7 +1439,7 @@ aspect->ArrowAspect()->SetLength(7*size);aspect->SetArrowTailSize(8*size);aspect
             auto arrow=[&](const gp_Pnt& tip,gp_Vec along){if(along.Magnitude()<1e-9)return;along.Normalize();const auto side=normal.Crossed(along);const auto back=tip.Translated(along*(7*size));segment(tip,back.Translated(side*(2.5*size)));segment(tip,back.Translated(side*(-2.5*size)));};
             if(layout["kind"]=="radius") {const auto leader=layout["leader"].toArray();const auto a=world(leader[0]),b=world(leader[1]);segment(a,b);arrow(a,gp_Vec(a,b));}
             else {
-                for(const auto& value:layout["arcSegments"].toArray()){const auto arc=value.toObject();const auto centerId=layout["kind"]=="angle" ? QJsonValue("dimension-center") : dimension["entityId"];
+                for(const auto& value:layout["arcSegments"].toArray()){const auto arc=value.toObject();const auto centerId=layout["kind"]=="angle" || layout["kind"]=="overallSlotAngle" ? QJsonValue("dimension-center") : dimension["entityId"];
                     QJsonObject e{{"type","arc"},{"centerPointId",centerId},{"radiusMm",layout["arcRadiusMm"]},{"startAngleDeg",arc["startAngleDeg"]},{"sweepAngleDeg",arc["sweepAngleDeg"]}};
                     auto p=parameters;const auto center=layout["center"].toObject();p["points"]=QJsonArray{QJsonObject{{"id",centerId},{"uMm",center["uMm"]},{"vMm",center["vMm"]}}};builder.Add(compound,SketchGeometry::analyticEdge(p,e,sketchFrame_));}
                 const double start=layout["startAngleDeg"].toDouble()*std::numbers::pi/180,sweep=layout["sweepAngleDeg"].toDouble()*std::numbers::pi/180;

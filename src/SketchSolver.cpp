@@ -317,20 +317,27 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
             require(!id.isEmpty() && !ids.contains(id), "Duplicate or empty dimension ID");
             const auto kind=dimension["kind"].toString();
             const bool curve=kind=="radius" || kind=="diameter" || kind=="arcSweep";
-            const bool angle=kind=="angle";
-            require(curve || angle || kind=="centerlineDiameter" || kind=="parallelLineDistance" || kind=="pointLineDistance" || kind=="linear" || kind=="horizontal" || kind=="vertical", "Unsupported dimension kind");
+            const bool angle=kind=="angle" || kind=="overallSlotAngle";
+            require(curve || angle || kind=="overallSlotLength" || kind=="centerlineDiameter" || kind=="parallelLineDistance" || kind=="pointLineDistance" || kind=="linear" || kind=="horizontal" || kind=="vertical", "Unsupported dimension kind");
             require(dimension["driving"].isBool(), "Dimension requires driving flag");
-            if(angle) {require(dimension["entityIds"].isArray() && dimension["entityIds"].toArray().size()==2 && reference(dimension,"entityIds",0)!=reference(dimension,"entityIds",1),"Angle requires two distinct line IDs");signedLineAngle(dimension);}
+            if(kind=="angle") {require(dimension["entityIds"].isArray() && dimension["entityIds"].toArray().size()==2 && reference(dimension,"entityIds",0)!=reference(dimension,"entityIds",1),"Angle requires two distinct line IDs");signedLineAngle(dimension);}
             if(!dimension["driving"].toBool()) {ids.insert(id);continue;}
             const double value=number(dimension,kind=="arcSweep" || angle ? "valueDeg" : "valueMm");
-            require(kind=="arcSweep" ? value>=1e-6 && value<360 : angle ? value>=1e-6 && value<180 : value>=minimumLength && value<=maximumCoordinate, "Driving dimension outside supported range");
+            require(kind=="arcSweep" ? value>=1e-6 && value<360 : kind=="overallSlotAngle" ? std::abs(value)<=360 : angle ? value>=1e-6 && value<180 : value>=minimumLength && value<=maximumCoordinate, "Driving dimension outside supported range");
             const int t=tag(dimension);
-            if(angle) {
+            if(kind=="overallSlotAngle") {
+                solver.addConstraintP2PAngle(point(reference(dimension,"pointIds",0)),point(reference(dimension,"pointIds",1)),constant(value*degrees),t);
+            } else if(kind=="angle") {
                 const auto signs=raySigns(dimension);
                 const double signedTarget=(signedLineAngle(dimension)<0 ? -1 : 1)*value*degrees;
                 const double rayOffset=((signs[1]<0 ? 1 : 0)-(signs[0]<0 ? 1 : 0))*std::numbers::pi;
                 const double target=std::remainder(signedTarget-rayOffset,2*std::numbers::pi);
                 solver.addConstraintL2LAngle(line(reference(dimension,"entityIds",0)),line(reference(dimension,"entityIds",1)),constant(target),t);
+            } else if(kind=="overallSlotLength") {
+                const auto arcId=dimension["entityId"].toString();double width=0;
+                for(const auto& row:dimensions){const auto d=row.toObject();if(d["kind"]=="diameter" && d["entityId"]==arcId && d["driving"].toBool()){width=number(d,"valueMm");break;}}
+                require(width>=minimumLength && value-width>=minimumLength,"Overall Slot length must exceed its width");
+                solver.addConstraintP2PDistance(point(reference(dimension,"pointIds",0)),point(reference(dimension,"pointIds",1)),constant(value-width),t);
             } else if(kind=="centerlineDiameter") {
                 auto& axis=line(reference(dimension,"entityIds",0));auto& edge=line(reference(dimension,"entityIds",1));
                 require(dimension["side"].toInt()==1 || dimension["side"].toInt()==-1,"Centerline diameter requires retained side");
@@ -605,9 +612,11 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
         }
         QJsonArray measurements;
         for(const auto& entry:dimensions) {
-            const auto d=entry.toObject();const auto kind=d["kind"].toString();const bool angular=kind=="arcSweep" || kind=="angle";
+            const auto d=entry.toObject();const auto kind=d["kind"].toString();const bool angular=kind=="arcSweep" || kind=="angle" || kind=="overallSlotAngle";
             double value;
             if(kind=="angle")value=std::abs(signedLineAngle(d))/degrees;
+            else if(kind=="overallSlotAngle") {const auto& a=point(reference(d,"pointIds",0));const auto& b=point(reference(d,"pointIds",1));value=std::atan2(*b.y-*a.y,*b.x-*a.x)/degrees;}
+            else if(kind=="overallSlotLength") {const auto& a=point(reference(d,"pointIds",0));const auto& b=point(reference(d,"pointIds",1));value=separation("linear",a,b)+2*(*arcMap.at(d["entityId"].toString()).rad);}
             else if(kind=="radius" || kind=="diameter" || kind=="arcSweep") {const auto id=d["entityId"].toString();
                 const auto& curve=arcMap.contains(id) ? static_cast<const GCS::Circle&>(arcMap.at(id)) : circleMap.at(id);
                 value=angular ? std::abs(*arcMap.at(id).endAngle-*arcMap.at(id).startAngle)/degrees : *curve.rad*(kind=="diameter" ? 2 : 1);

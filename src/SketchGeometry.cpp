@@ -752,6 +752,41 @@ SketchGeometry::SolveResult SketchGeometry::addCenterPointSlot(const QJsonObject
     }catch(const std::exception& error){return invalidDraft(draft,QString::fromUtf8(error.what()));}
 }
 
+SketchGeometry::SolveResult SketchGeometry::addOverallSlot(const QJsonObject& draft,const QJsonObject& arguments,
+    const QJsonObject& projectionContext) {
+    try {
+        validateDraft(draft);
+        checkFields(arguments,{"firstUMm","firstVMm","lastUMm","lastVMm","widthMm"});
+        const double x=coordinate(arguments,"firstUMm"),y=coordinate(arguments,"firstVMm");
+        const double lastX=coordinate(arguments,"lastUMm"),lastY=coordinate(arguments,"lastVMm");
+        const double width=coordinate(arguments,"widthMm"),length=std::hypot(lastX-x,lastY-y);
+        if(width<minimumLength || length-width<minimumLength || length>maximumLength)
+            reject("Overall Slot needs a positive width smaller than its total end-to-end length");
+        const double dx=(lastX-x)/length,dy=(lastY-y)/length;
+        const double middleX=(x+lastX)/2,middleY=(y+lastY)/2,half=(length-width)/2;
+        const auto base=addCenterPointSlot(draft,{{"centerUMm",middleX},{"centerVMm",middleY},
+            {"endUMm",middleX+half*dx},{"endVMm",middleY+half*dy},{"widthMm",width}},projectionContext);
+        if(!base.ok)return base;
+        auto feature=base.feature,parameters=feature["parameters"].toObject();
+        auto groups=parameters["slotGroups"].toArray();auto group=groups.last().toObject();group["mode"]="overall";groups[groups.size()-1]=group;
+        parameters["slotGroups"]=groups;
+        QJsonObject guide;for(const auto& value:parameters["entities"].toArray())if(value.toObject()["id"]==group["centerlineId"]){guide=value.toObject();break;}
+        const QJsonArray endpoints{guide["startPointId"],guide["endPointId"]};
+        const auto arc=group["arcIds"].toArray().first();
+        auto dimensions=parameters["dimensions"].toArray();
+        dimensions.append(QJsonObject{{"id",newId()},{"kind","overallSlotLength"},{"pointIds",endpoints},
+            {"entityId",arc},{"driving",true},{"valueMm",length}});
+        dimensions.append(QJsonObject{{"id",newId()},{"kind","diameter"},{"entityId",arc},
+            {"driving",true},{"valueMm",width}});
+        dimensions.append(QJsonObject{{"id",newId()},{"kind","overallSlotAngle"},{"pointIds",endpoints},
+            {"driving",true},{"valueDeg",std::atan2(dy,dx)/degrees},
+            {"annotation",QJsonObject{{"uMm",x+width*dx/2+10*dy},{"vMm",y+width*dy/2-10*dx}}}});
+        parameters["dimensions"]=dimensions;feature["parameters"]=parameters;
+        const auto solved=solveDraft(feature,projectionContext);
+        return solved.ok ? solved : SolveResult{false,draft,solved.diagnostics,solved.error};
+    }catch(const std::exception& error){return invalidDraft(draft,QString::fromUtf8(error.what()));}
+}
+
 SketchGeometry::SolveResult SketchGeometry::addCenterPointArcSlot(const QJsonObject& draft,const QJsonObject& arguments,
     const QJsonObject& projectionContext) {
     try {
@@ -1226,7 +1261,7 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
         for(const auto& value:parameters["slotGroups"].toArray()) {
             if(!value.isObject())return "Slot group must be an object";
             const auto group=value.toObject();
-            if(group.size()!=5 || !claimId(group["id"].toString()) ||
+            if((group.size()!=5 && !(group.size()==6 && group["mode"]=="overall")) || !claimId(group["id"].toString()) ||
                 !points.contains(group["centerPointId"].toString()) || !lineIds.contains(group["centerlineId"].toString()) ||
                 !checkReferences(group,"sideIds",2,lineIds) || !checkReferences(group,"arcIds",2,arcIds))
                 return "Invalid Center Point Slot references";
@@ -1236,6 +1271,16 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
             for(const auto& entry:parameters["entities"].toArray())if(entry.toObject()["id"]==centerlineId)
                 construction=entry.toObject()["construction"].toBool();
             if(!construction)return "Slot centerline must remain construction geometry";
+            if(group["mode"]=="overall") {
+                QJsonObject guide;for(const auto& entry:parameters["entities"].toArray())if(entry.toObject()["id"]==centerlineId){guide=entry.toObject();break;}
+                const QJsonArray ends{guide["startPointId"],guide["endPointId"]};const auto arc=group["arcIds"].toArray().first();
+                int lengths=0,widths=0,angles=0;for(const auto& entry:parameters["dimensions"].toArray()){
+                    const auto d=entry.toObject();if(d["kind"]=="overallSlotLength" && d["pointIds"]==ends && d["entityId"]==arc && d["driving"].toBool())++lengths;
+                    if(d["kind"]=="diameter" && d["entityId"]==arc && d["driving"].toBool())++widths;
+                    if(d["kind"]=="overallSlotAngle" && d["pointIds"]==ends && d["driving"].toBool())++angles;
+                }
+                if(lengths!=1 || widths!=1 || angles!=1)return "Overall Slot needs one retained total length, width and angle dimension";
+            }
         }
         if(parameters.contains("arcSlotGroups") && !parameters["arcSlotGroups"].isArray())return "Arc slot groups must be an array";
         QSet<QString> arcSlotOwnedIds;
@@ -1380,10 +1425,14 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
             if (!claimId(dimension["id"].toString())) return "Invalid or duplicate dimension UUID";
             const auto kind = dimension["kind"].toString();
             const bool curve = kind == "radius" || kind == "diameter" || kind == "arcSweep";
-            const bool angle = kind == "angle";
+            const bool angle = kind == "angle" || kind == "overallSlotAngle";
             if (!dimension["driving"].isBool()) return "Dimension requires driving flag";
             if (curve) {
                 if (!(kind=="arcSweep" ? arcIds : curveIds).contains(dimension["entityId"].toString())) return "Invalid curve dimension reference";
+            } else if (kind=="overallSlotLength") {
+                if(!checkReferences(dimension,"pointIds",2,pointIds) || !arcIds.contains(dimension["entityId"].toString()))return "Overall length needs two guide endpoints and one slot arc";
+            } else if (kind=="overallSlotAngle") {
+                if(!checkReferences(dimension,"pointIds",2,pointIds))return "Overall angle needs two guide endpoints";
             } else if (angle) {
                 if (!checkReferences(dimension,"entityIds",2,lineIds)) return "Angle requires two distinct lines";
                 if (dimension.contains("raySigns")) {
@@ -1407,7 +1456,7 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
                 || !checkReferences(dimension,"pointIds",2,pointIds)) return "Invalid dimension kind or references";
             const bool driving=dimension["driving"].toBool(), placed=dimension.contains("annotation");
             const auto valueKey=kind=="arcSweep" || angle ? "valueDeg" : "valueMm";
-            if (dimension.size() != (driving ? 5 : 4)+int(placed)+int(angle && dimension.contains("raySigns"))+2*int(kind=="pointLineDistance")+int(kind=="centerlineDiameter" || kind=="parallelLineDistance")+int(dimension.contains("parameterId")) || (!driving && dimension.contains(valueKey))) return "Unexpected dimension fields";
+            if (dimension.size() != (driving ? 5 : 4)+int(placed)+int(kind=="angle" && dimension.contains("raySigns"))+2*int(kind=="pointLineDistance")+int(kind=="centerlineDiameter" || kind=="parallelLineDistance" || kind=="overallSlotLength")+int(dimension.contains("parameterId")) || (!driving && dimension.contains(valueKey))) return "Unexpected dimension fields";
             if(dimension.contains("parameterId") && (!driving || angle || kind=="arcSweep" || !validId(dimension["parameterId"].toString())))return "Only driving length dimensions accept stable parameter references";
             if (placed) {
                 if (!dimension["annotation"].isObject()) return "Dimension annotation must be an object";
@@ -1418,7 +1467,8 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
             if (driving) {
                 const double value = coordinate(dimension, valueKey);
                 if (kind=="arcSweep" && (value < 1e-6 || value >= 360)) return "Angular dimension must be between zero and 360 degrees";
-                if (angle && (value < 1e-6 || value >= 180)) return "Line angle must be between zero and 180 degrees";
+                if (kind=="angle" && (value < 1e-6 || value >= 180)) return "Line angle must be between zero and 180 degrees";
+                if (kind=="overallSlotAngle" && std::abs(value)>360) return "Overall Slot angle must be within 360 degrees";
                 if (kind!="arcSweep" && !angle && value < minimumLength) return "Driving dimension must be positive (0.001..100000 mm)";
             }
         }
@@ -2163,7 +2213,7 @@ SketchGeometry::SolveResult SketchGeometry::updateDimension(const QJsonObject& d
             auto dimension = dimensions[i].toObject();
             if (dimension["id"] != arguments["dimensionId"]) continue;
             if (!dimension["driving"].toBool()) reject("A driven dimension cannot set geometry");
-            const bool angular=dimension["kind"]=="arcSweep" || dimension["kind"]=="angle";
+            const bool angular=dimension["kind"]=="arcSweep" || dimension["kind"]=="angle" || dimension["kind"]=="overallSlotAngle";
             const auto key=angular ? "valueDeg" : "valueMm";
             coordinate(arguments,key);
             if(arguments.contains(angular ? "valueMm" : "valueDeg")) reject("Dimension value has incorrect units");
