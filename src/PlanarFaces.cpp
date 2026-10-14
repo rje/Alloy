@@ -96,12 +96,12 @@ void PlanarFaces::retainLinearCutBoundaries(BRepBuilderAPI_MakeShape& op,
             for(auto& c:candidates)if(c.edge.IsSame(shape)){c.contributors.append(signature);return;}
             candidates.push_back({TopoDS::Edge(shape),{signature}});
         };
-        // Tool base rims name the newly exposed cut boundary. Simplification
+        // Tool base/end rims name the newly exposed cut boundary. Simplification
         // can merge collinear inputs; the sorted contributor set names that
         // exact resulting edge rather than choosing the first source entity.
-        for(const auto& tool:tools)if(tool.provenance["role"]=="baseRim") {
+        for(const auto& tool:tools)if(tool.provenance["role"]=="baseRim" || tool.provenance["role"]=="endRim") {
             const auto mapped=descendant(op,tool.edge,present,TopAbs_EDGE);
-            offer(mapped,"tool/"+tool.edgeId);
+            offer(mapped,tool.provenance["role"]=="endRim" ? "tool/end/"+tool.edgeId : "tool/"+tool.edgeId);
         }
         const auto source=std::find_if(sources.begin(),sources.end(),[&](const auto& f){return f.faceId==face.faceId && f.producerFeatureId==face.producerFeatureId;});
         if(source!=sources.end())for(const auto& edge:source->boundaryEdges) {
@@ -200,7 +200,7 @@ std::vector<EvaluatedSupportFace> PlanarFaces::prismSides(BRepPrimAPI_MakePrism&
 std::vector<EvaluatedSolidEdge> PlanarFaces::solidLinearCutRims(const std::vector<EvaluatedSupportFace>& faces,
     const std::vector<EvaluatedSolidEdge>& toolEdges,const TopoDS_Shape& result,const QString& feature) {
     QMap<QString,EvaluatedSolidEdge> tools;
-    for(const auto& tool:toolEdges)if(tool.provenance["role"]=="baseRim") {
+    for(const auto& tool:toolEdges)if(tool.provenance["role"]=="baseRim" || tool.provenance["role"]=="endRim") {
         if(tools.contains(tool.edgeId))throw std::runtime_error("Repeated linear Cut tool edge identity");
         tools.insert(tool.edgeId,tool);
     }
@@ -218,17 +218,19 @@ std::vector<EvaluatedSolidEdge> PlanarFaces::solidLinearCutRims(const std::vecto
             const auto contributors=boundary.provenance["contributors"].toArray();
             if(contributors.size()!=1)continue; // Merged or split source roles require an explicit repair.
             const auto reference=contributors.first().toString();
-            if(!reference.startsWith("tool/"))continue;
-            const auto toolId=reference.mid(5);
+            const bool endRim=reference.startsWith("tool/end/");
+            if(!endRim && !reference.startsWith("tool/"))continue;
+            const auto toolId=reference.mid(endRim ? 9 : 5);
             if(!tools.contains(toolId))continue;
             const auto& tool=tools[toolId];
+            if(tool.provenance["role"]!=(endRim ? "endRim" : "baseRim"))continue;
             const auto sketchId=tool.provenance["sourceSketchId"].toString();
             const auto entityId=tool.provenance["sourceEntityId"].toString();
             if(QUuid(sketchId).isNull() || QUuid(entityId).isNull())continue;
-            const auto signature=face.producerFeatureId+"\n"+face.faceId+"\n"+sketchId+"\n"+entityId;
-            const auto id=QUuid::createUuidV5(QUuid(feature),QByteArray("alloy-solid-linear-cut-rim/1\n")+signature.toUtf8())
+            const auto signature=face.producerFeatureId+"\n"+face.faceId+"\n"+sketchId+"\n"+entityId+(endRim ? "\nend" : "");
+            const auto id=QUuid::createUuidV5(QUuid(feature),QByteArray(endRim ? "alloy-solid-linear-cut-end-rim/1\n" : "alloy-solid-linear-cut-rim/1\n")+signature.toUtf8())
                 .toString(QUuid::WithoutBraces);
-            QJsonObject provenance{{"generatorFeatureId",feature},{"role","cutRim"},
+            QJsonObject provenance{{"generatorFeatureId",feature},{"role",endRim ? "cutEndRim" : "cutRim"},
                 {"sourceSketchId",sketchId},{"sourceEntityId",entityId},
                 {"sourceToolEdgeId",toolId},{"targetFaceId",face.faceId},
                 {"targetFaceProducerFeatureId",face.producerFeatureId},
