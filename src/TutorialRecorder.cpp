@@ -250,7 +250,9 @@ void TutorialRecorder::command(const QString& id,const QJsonObject& result,bool 
     if(!active_||id.startsWith("recording."))return;
     if(!id.startsWith("app.")&&!id.startsWith("capture.")&&!id.startsWith("document.inspect")
         &&!id.startsWith("document.state")&&!id.startsWith("geometry.inspect")
-        &&!id.startsWith("commands.list")&&!id.startsWith("view.state")) {
+        &&!id.startsWith("commands.list")&&!id.startsWith("view.state")
+        &&!id.endsWith(".inspect")&&!id.endsWith("Inspect")
+        &&!id.startsWith("view.project")&&id!="viewport.moveHandles") {
         lastCommand_=id;lastOrigin_=api?"API":"Alloy UI";
     }
     writeEvent({{"type","command"},{"id",id},{"origin",api?"api":"qt_ui"},
