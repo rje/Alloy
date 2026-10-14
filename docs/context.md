@@ -53,13 +53,15 @@ and native 3/3 evidence remain distinct. See [workflow](validation/piston-couple
 and [native qualifications](validation/piston-coupled-ui.md). The gallery now has
 a 188.5-second from-blank creation-through-coupled-motion checkpoint. A measured
 223 ms preview event is tracked separately in REL-010/#367, not a frame-rate claim.
-ASM-017/#366 is now active: separate authority/UI lanes implement linked local
-occurrence subtrees and composed rigid placement on the unjointed fixture. Shared
-definitions and occurrence-aware selection precede ASM-016/#365 internal joint
-remapping/copied-piston motion, which remains Todo. No generic scene or solver
-redesign is needed. The observed blank command-dock band is recorded in REL-005.
-The linked occurrence authority is independently accepted at `d0657f5` (source
-`d31a018`); UI and actual-app instance selection remain in progress. ASM-018/#368
+ASM-017/#366 is independently accepted at `de30222`: linked local occurrence
+subtrees share source definitions and retain composed placement, paths and exact
+selection. Native 3/3 and actual-app API02 31 calls (three intended refusals) pass;
+shared height edits update both copies, history/reopen preserve exact state.
+Main app builds and focused core1/1 passes. See
+[bounded acceptance](validation/linked-local-occurrences.md). ASM-016/#365 internal
+joint remapping/copied-piston motion is next. No generic scene or solver redesign
+is needed. The observed blank command-dock band is recorded in REL-005.
+ASM-018/#368
 preserves occurrence-aware STEP/STL export as a separate Todo dependency of
 TUT-019; copied designs currently require explicit export refusal rather than
 losing instances or placements.

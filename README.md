@@ -9,7 +9,9 @@ support circular-edge selection, signed angle preview and history/reopen. The
 retained nested piston origin with exact rotation and slide preview. The
 [coupled piston linkage](docs/validation/piston-coupled.md) now follows the arm
 through three Revolute joints, one Cylindrical joint and Pin, with bounded native
-drag/Revert evidence and a full creation recording. Linked copies remain next.
+drag/Revert evidence and a full creation recording. [Linked local copies](docs/validation/linked-local-occurrences.md)
+now share source geometry with distinct placement and selection, surviving source
+edits and reopen. Copying internal joints and moving both pistons together remain next.
 
 The [Surface workspace](docs/validation/surface-workspace-navigation.md) now exposes
 Extrude, guided Loft, [paired-sketch Trim](docs/validation/surface-trim.md)

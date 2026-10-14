@@ -52,7 +52,8 @@ with application(args.app, out, command_timeout=90) as (call, ledger):
     body_id = rows[inner]['bodies'][0]['bodyId']
     call('selection.set', {'bodyId': body_id}, error='ambiguous_instance')
     call('document.exportStl', {'occurrenceId': parent, 'path': str(out/'refused.stl'),
-                               'units': 'mm', 'format': 'binary'}, error='linked_export_unavailable')
+                               'units': 'mm', 'format': 'binary', 'surfaceDeviationMm': 0.1,
+                               'normalDeviationDeg': 10}, error='linked_export_unavailable')
     assert not (out/'refused.stl').exists()
     for occurrence in (inner, mapping[inner]):
         call('selection.set', {'bodyId': body_id, 'occurrenceId': occurrence})

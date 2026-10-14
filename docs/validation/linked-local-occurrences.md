@@ -1,7 +1,7 @@
 # Linked local occurrence subtree checkpoint
 
-ASM-017/#366 is in progress. Authority is independently accepted; native/UI and
-actual-app evidence are pending. This is an unjointed component checkpoint,
+ASM-017/#366 is independently accepted at `de30222` (UI source `70cfd2e`).
+This is an unjointed component checkpoint,
 not acceptance of copied assembly motion.
 
 `component.copyOccurrence` takes a source `occurrenceId` and absolute parent-local
@@ -17,20 +17,33 @@ edge selection/projection require an occurrence ID when a source body is shared.
 The native Copy Component dialog exposes placement; its default translation is
 zero. The piston gate explicitly enters -180 mm X.
 
-## Evidence and remaining acceptance
+## Evidence
 
 - Authority source `d31a018`, integrated as `d0657f5`, passed independent Astra
   review. Focused core evidence checks shared definitions, actual placed BRep
   bounds, a source-height edit reaching both copies, history/reopen and
   noncommuting transform composition. Cyclic parenting refuses atomically.
-- Native Browser rows, exact instance clicks and visible highlight are pending
-  final acceptance. Independent review found legacy modeling entrypoint bypasses;
-  these must refuse ambiguous instance edits before closure.
+- Native test passes 3/3: Browser Copy, typed -180 mm, Cancel/OK, original and
+  copied Browser rows, exact Qt viewport body clicks, Move and copied-face Sketch
+  refusal. Initial harness activation and direct document setup are separate from
+  these Qt inputs. This is not physical OS input parity. The GPU capture shows
+  both pistons and the copied Outer body highlighted blue.
+- Independent review found and verified fixes for resolved Move defaults,
+  selected-face Sketch creation and active Split/Pattern picks losing occurrence
+  identity. Split/Pattern guards are source-reviewed only. The final removal of
+  copied-row checkboxes is source/build verified, not separately visually tested.
 - `tests/linked_subtree_api.py` is the real-app workflow gate for shared source,
   placement, selection immutability, edit/history/reopen and explicit export
-  refusal. It is not yet a passing receipt.
+  refusal. API-02 passes 31 calls including three intended refusals. API-01 stopped
+  because the test omitted required export refinement arguments; corrected inputs
+  exercise the intended copied-design refusal. Final reopened geometry was
+  visually inspected; Browser copy rows are below the visible scroll region.
+- Integrated main application builds and focused linked-subtree core passes 1/1
+  in 0.85 seconds. No broader compatibility claim is implied.
 
 External evidence: `deliverables/linked-subtree-2026-10-14/`.
+Native evidence: `deliverables/piston-linked-copy-2026-10-14/native-08/`.
+The external gallery links the editable model and captures at `#piston-linked-copy`.
 
 Joint-containing copy remains unsupported until ASM-016/#365 remaps the internal
 joint and verifies the second piston loop. Occurrence-aware STEP/STL is tracked
