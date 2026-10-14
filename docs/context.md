@@ -11,7 +11,10 @@ arc-line Tangent supports either pick order, retained contact/side and visible
 badges. Core passes; API05 passes 50 calls with a rounded plate resize, atomic
 refusal, history/reopen; native02 passes actual picks/recovery/badge deletion.
 Broader tangent pairs remain SKT-022. See [receipt](validation/sketch-arc-line-tangent.md).
-Continue the queue; the next bounded constraint candidate is under public research.
+SKT-081/#381 is active for two authored-line Collinear, connected or separated.
+Sol implements and Astra verifies on main with the existing build/sole GUI lease.
+The five-edge plate resize/extrusion is its focused workflow. Existing solver
+rank refusal for additional separate Coincident combinations remains qualified.
 SKT-077 remains Todo after native03/04: initial activation-before-projection
 did not fix picking. Actual hit widget/frame/projected center and before/after
 captures are preserved externally in the face-origin deliverable native04.
