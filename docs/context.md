@@ -62,10 +62,11 @@ The integrated Project app builds and its focused core test passes. Root owns th
 sole private-editor lease; no private editor is currently running. Later source/input
 qualification remains explicit. Five gates have 38 new prerequisite/research/gate
 tasks; two separately tracked regressions and a newly exposed Cut-edge dependency make
-310 total canonical issues. GEO-007/#310 is active: the actual dovetail Cut omitted
-new slant/bottom and split shoulder references from the Project catalog. Root is
-implementing bounded exact-history straight Cut boundary naming; source review
-and saved-fixture runtime qualification are pending.
+310 total canonical issues. GEO-007/#310 is independently accepted and integrated: the actual dovetail Cut omitted
+new slant/bottom and split shoulder references from the Project catalog. Exact-history straight Cut boundary naming now exposes the five required notch
+edges. Its 27-call real-app continuation verifies actual sibling Project, width
+and thickness edits, semantic shoulder IDs, merged-bottom contributors, undo
+and reopen. See `docs/validation/linear-cut-project.md`.
 
 ## Accepted ornament gate — 2026-10-13
 
