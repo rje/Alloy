@@ -127,10 +127,10 @@ fail without applying the command. Error codes include `invalid_request`,
 | `capture.dialog` | Absolute `.png` path; actual active QWidget dialog or modeling dock |
 | `document.inspect` | Authored root/feature IDs, ownership, canonical units and journal state |
 | `document.units` | `units`: `mm` or `in`; display conversion preserves canonical values |
-| `document.parameterAdd` | `name`, positive `value`, `units` (`mm`/`in`); create one stable-ID user length in `document.inspect.userParameters` |
-| `document.parameterUpdate` | `parameterId`, optional `name`, `value`, `units`; atomically rename or recompute all bound dimensions and extrusions |
+| `document.parameterAdd` | `name`, `units` (`mm`/`in`), and exactly one of positive numeric `value` or typed user-length `expression`; create one stable-ID user length in `document.inspect.userParameters` |
+| `document.parameterUpdate` | `parameterId`, optional `name`, `units`, and at most one of `value` or `expression`; atomically rename or recompute all bound dimensions and extrusions. Formulas retain `referenceIds` by identifier occurrence; `document.inspect.userParameters` adds evaluated `valueMm` without changing authored formulas. |
 | `document.modelParameterSet` | `target` copied from `document.inspect.modelParameters[]`, `expression` as an existing user length name or numeric `mm`/`in` literal; atomically rebind an already-authored Box, Shell, driving sketch length, Extrude length/start/end offset or retained open-chain offset. A numeric literal removes its binding even at the same value. |
-| `document.parametersDialog` | Open native Change Parameters with User Parameters and component/feature-grouped Model Parameters; double-click a model Expression to edit it. Unavailable during an active modeling command. |
+| `document.parametersDialog` | Open native Change Parameters with separate user Expression/Value columns and component/feature-grouped Model Parameters; double-click an Expression cell to edit it. Unavailable during an active modeling command. |
 | `document.tabs` | Active stable tab ID plus open design titles, paths, dirty and sketch-draft flags; also in `app.state.documentTabs` |
 | `document.tabNew` | Create and activate an independent blank design; native plus and Cmd/Ctrl+N use this |
 | `document.tabActivate` | `tabId`: restore document, accepted sketch draft/journal, selection and camera; pending input refuses |

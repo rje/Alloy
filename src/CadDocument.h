@@ -37,6 +37,7 @@ public:
     static QJsonObject reparentCandidate(const QJsonObject& authored,const EvaluatedDocument& evaluated,
         const QString& kind,const QJsonArray& objectIds,const QString& destinationId);
     static QJsonObject lengthParameterCandidate(const QJsonObject& authored,const QJsonObject& arguments);
+    static QJsonArray evaluatedLengthParameters(const QJsonObject& authored);
     static QJsonArray modelLengthRows(const QJsonObject& authored);
     static QJsonObject modelLengthCandidate(const QJsonObject& authored,const QJsonObject& arguments);
     static QJsonObject resolveLengthBindings(const QJsonObject& authored);

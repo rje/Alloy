@@ -33,6 +33,98 @@
 
 namespace {
 bool validId(const QString& id) { return !QUuid(id).isNull() && QUuid(id).toString(QUuid::WithoutBraces) == id; }
+struct LengthQuantity { double value=0; bool length=false; };
+struct LengthIdentifier { QString name; int start=0; int end=0; };
+class LengthExpression {
+public:
+    using Resolver=std::function<LengthQuantity(const QString&,int)>;
+    LengthExpression(QString source,Resolver resolver):source_(std::move(source)),resolver_(std::move(resolver)) {}
+    LengthQuantity parse() {
+        if(source_.size()>4096)fail("Length expression exceeds 4096 characters");
+        const auto result=sum();space();
+        if(position_!=source_.size())fail("Unexpected expression token");
+        if(!std::isfinite(result.value))fail("Nonfinite length expression");
+        return result;
+    }
+    const std::vector<LengthIdentifier>& identifiers() const {return identifiers_;}
+private:
+    [[noreturn]] static void fail(const char* message) {throw std::invalid_argument(message);}
+    void space(){while(position_<source_.size() && source_[position_].isSpace())++position_;}
+    bool take(QChar c){space();if(position_<source_.size() && source_[position_]==c){++position_;return true;}return false;}
+    LengthQuantity sum(){
+        auto left=product();
+        while(true){const bool add=take('+');const bool subtract=!add && take('-');if(!add && !subtract)break;
+            const auto right=product();if(left.length!=right.length)fail("Addition needs matching length units");
+            left.value+=add ? right.value : -right.value;
+        }return left;
+    }
+    LengthQuantity product(){
+        auto left=unary();
+        while(true){const bool multiply=take('*');const bool divide=!multiply && take('/');if(!multiply && !divide)break;
+            const auto right=unary();
+            if(multiply){if(left.length && right.length)fail("Length multiplied by length is unsupported");
+                left={left.value*right.value,left.length || right.length};
+            }else{if(right.length)fail("Dividing by a length is unsupported");
+                if(right.value==0)fail("Division by zero");left.value/=right.value;
+            }
+            if(!std::isfinite(left.value))fail("Nonfinite length expression");
+        }return left;
+    }
+    LengthQuantity unary(){
+        struct Guard {int& depth;explicit Guard(int& value):depth(value){if(++depth>64)throw std::invalid_argument("Length expression is too deeply nested");}~Guard(){--depth;}} guard(depth_);
+        if(take('+'))return unary();if(take('-')){auto result=unary();result.value=-result.value;return result;}return primary();
+    }
+    LengthQuantity primary(){
+        space();if(take('(')){const auto result=sum();if(!take(')'))fail("Missing closing parenthesis");return result;}
+        if(position_>=source_.size())fail("Incomplete length expression");
+        if(source_[position_].isLetter() || source_[position_]=='_'){
+            const int start=position_++;while(position_<source_.size() && (source_[position_].isLetterOrNumber() || source_[position_]=='_'))++position_;
+            const auto name=source_.mid(start,position_-start);const int index=static_cast<int>(identifiers_.size());
+            identifiers_.push_back({name,start,position_});return resolver_(name,index);
+        }
+        const auto tail=source_.mid(position_);
+        static const QRegularExpression number(QStringLiteral(R"(^(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?)"));
+        const auto match=number.match(tail);if(!match.hasMatch())fail("Expected number, name or parenthesis");
+        bool ok=false;const double value=match.captured().toDouble(&ok);if(!ok || !std::isfinite(value))fail("Nonfinite length expression");
+        position_+=match.capturedLength();space();
+        if(position_<source_.size() && source_[position_].isLetter()){
+            const int start=position_;while(position_<source_.size() && source_[position_].isLetter())++position_;
+            const auto unit=source_.mid(start,position_-start).toLower();
+            if(unit!="mm" && unit!="in")fail("Unknown length unit");
+            return {value*(unit=="in" ? 25.4 : 1),true};
+        }
+        return {value,false};
+    }
+    QString source_;Resolver resolver_;int position_=0,depth_=0;std::vector<LengthIdentifier> identifiers_;
+};
+QJsonArray resolvedLengthRows(const QJsonObject& authored) {
+    const auto source=authored.value("userParameters").toArray();
+    QMap<QString,QJsonObject> byId;
+    for(const auto& value:source){const auto row=value.toObject();byId[row.value("id").toString()]=row;}
+    QMap<QString,double> evaluated;QSet<QString> visiting;
+    std::function<double(const QString&)> evaluate=[&](const QString& id)->double {
+        if(evaluated.contains(id))return evaluated[id];
+        if(!byId.contains(id))throw std::invalid_argument("Length expression references a missing parameter ID");
+        if(visiting.contains(id))throw std::invalid_argument("Cyclic length parameter reference");
+        if(visiting.size()>=64)throw std::invalid_argument("Length dependency chain is too deep");
+        visiting.insert(id);const auto row=byId[id];double value=0;
+        if(row.contains("expression")){
+            const auto refs=row.value("referenceIds").toArray();
+            LengthExpression parser(row.value("expression").toString(),[&](const QString& name,int index)->LengthQuantity {
+                if(index>=refs.size() || !refs[index].isString())throw std::invalid_argument("Length reference binding count differs from expression");
+                const auto ref=refs[index].toString();
+                if(!byId.contains(ref) || byId[ref].value("name").toString()!=name)throw std::invalid_argument("Length reference name or ID is unavailable");
+                return {evaluate(ref),true};
+            });
+            const auto result=parser.parse();
+            if(static_cast<int>(parser.identifiers().size())!=refs.size())throw std::invalid_argument("Length reference binding count differs from expression");
+            value=result.length ? result.value : result.value*(row.value("units")=="in" ? 25.4 : 1);
+        }else value=row.value("valueMm").toDouble();
+        if(!std::isfinite(value) || value<0.001 || value>100000)throw std::invalid_argument("User length result must be between 0.001 and 100000 mm");
+        visiting.remove(id);evaluated[id]=value;return value;
+    };
+    QJsonArray rows;for(const auto& entry:source){auto row=entry.toObject();row["valueMm"]=evaluate(row.value("id").toString());rows.append(row);}return rows;
+}
 QJsonObject newFeatureReparentError(const QJsonObject& before,const QJsonObject& candidate) {
     QSet<QString> prior;
     for(const auto& value:before["features"].toArray())prior.insert(value.toObject()["id"].toString());
@@ -674,25 +766,63 @@ QJsonObject CadDocument::reparentCandidate(const QJsonObject& authored,const Eva
     return candidate;
 }
 QJsonObject CadDocument::lengthParameterCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
-    const QSet<QString> allowed{"parameterId","name","value","units"};
+    const QSet<QString> allowed{"parameterId","name","value","units","expression"};
     for(auto it=arguments.begin();it!=arguments.end();++it)if(!allowed.contains(it.key()))throw std::invalid_argument("Unknown length parameter argument");
+    if(arguments.contains("value") && arguments.contains("expression"))throw std::invalid_argument("Choose a value or an expression");
     auto candidate=authored;auto rows=candidate["userParameters"].toArray();
     const auto id=arguments.value("parameterId").toString();int index=-1;
     if(!id.isEmpty())for(int i=0;i<rows.size();++i)if(rows[i].toObject()["id"]==id){index=i;break;}
     if(!id.isEmpty() && index<0)throw std::invalid_argument("Length parameter ID is unavailable");
-    auto row=index<0 ? QJsonObject{{"id",newId()},{"name",""},{"units","mm"},{"valueMm",0}} : rows[index].toObject();
+    auto row=index<0 ? QJsonObject{{"id",newId()},{"name",""},{"units","mm"}} : rows[index].toObject();
+    const auto oldName=row.value("name").toString();
     if(arguments.contains("name"))row["name"]=arguments["name"];
     if(arguments.contains("units"))row["units"]=arguments["units"];
-    if(arguments.contains("value"))row["valueMm"]=millimeters(arguments["value"].toDouble(),row["units"].toString());
-    else if(index<0)throw std::invalid_argument("Length parameter value is required");
+    if(arguments.contains("value")){
+        row["valueMm"]=millimeters(arguments["value"].toDouble(),row["units"].toString());
+        row.remove("expression");row.remove("referenceIds");
+    }else if(arguments.contains("expression")){
+        row["expression"]=arguments["expression"];
+        row.remove("valueMm");row["referenceIds"]=QJsonArray{};
+    }else if(index<0)throw std::invalid_argument("Length parameter value or expression is required");
     if(index<0)rows.append(row);else rows[index]=row;
+    if(index>=0 && oldName!=row.value("name").toString()){
+        const auto oldRows=authored.value("userParameters").toArray();
+        QMap<QString,QJsonObject> prior;for(const auto& entry:oldRows){const auto source=entry.toObject();prior[source.value("id").toString()]=source;}
+        for(int i=0;i<rows.size();++i){
+            if(i==index && arguments.contains("expression"))continue;
+            auto dependent=rows[i].toObject();if(!dependent.contains("expression"))continue;
+            const auto source=oldRows[i].toObject();const auto refs=source.value("referenceIds").toArray();
+            if(!source.contains("expression"))continue;
+            LengthExpression parser(source.value("expression").toString(),[&](const QString& name,int occurrence)->LengthQuantity{
+                if(occurrence>=refs.size())throw std::invalid_argument("Length reference binding count differs from expression");
+                const auto ref=refs[occurrence].toString();
+                if(!prior.contains(ref) || prior[ref].value("name").toString()!=name)throw std::invalid_argument("Length reference name or ID is unavailable");
+                return {1,true};
+            });parser.parse();
+            auto expression=source.value("expression").toString();
+            const auto identifiers=parser.identifiers();
+            if(static_cast<int>(identifiers.size())!=refs.size())throw std::invalid_argument("Length reference binding count differs from expression");
+            for(int n=static_cast<int>(identifiers.size())-1;n>=0;--n){const auto& token=identifiers[n];
+                if(refs[n].toString()==id)expression.replace(token.start,token.end-token.start,row.value("name").toString());}
+            dependent["expression"]=expression;rows[i]=dependent;
+        }
+    }
+    if(arguments.contains("expression")){
+        QMap<QString,QString> names;for(const auto& entry:rows){const auto item=entry.toObject();names[item.value("name").toString()]=item.value("id").toString();}
+        QJsonArray refs;
+        LengthExpression parser(row.value("expression").toString(),[&](const QString& name,int)->LengthQuantity{
+            if(!names.contains(name))throw std::invalid_argument("User length name is unavailable: "+name.toStdString());
+            refs.append(names[name]);return {1,true};
+        });parser.parse();row["referenceIds"]=refs;rows[index<0 ? rows.size()-1 : index]=row;
+    }
     candidate["userParameters"]=rows;
     const auto error=validateStructure(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());
     return candidate;
 }
+QJsonArray CadDocument::evaluatedLengthParameters(const QJsonObject& authored){return resolvedLengthRows(authored);}
 QJsonObject CadDocument::resolveLengthBindings(const QJsonObject& authored) {
     QMap<QString,double> values;
-    for(const auto& entry:authored["userParameters"].toArray()) {
+    for(const auto& entry:evaluatedLengthParameters(authored)) {
         const auto row=entry.toObject();values[row["id"].toString()]=row["valueMm"].toDouble();
     }
     auto result=authored;auto features=result["features"].toArray();
@@ -740,7 +870,7 @@ QJsonObject CadDocument::resolveLengthBindings(const QJsonObject& authored) {
 QJsonArray CadDocument::modelLengthRows(const QJsonObject& authored) {
     const auto resolved=resolveLengthBindings(authored);
     QMap<QString,QJsonObject> sources,owners;
-    for(const auto& value:authored.value("userParameters").toArray()) {
+    for(const auto& value:evaluatedLengthParameters(authored)) {
         const auto row=value.toObject();sources[row["id"].toString()]=row;
     }
     owners[authored["documentId"].toString()]={{"name","Root"}};
@@ -825,7 +955,7 @@ QJsonObject CadDocument::modelLengthCandidate(const QJsonObject& authored,const 
         if(!valid || !std::isfinite(number))throw std::invalid_argument("Model parameter needs a finite length");
         value=millimeters(number,units);
     } else {
-        for(const auto& entry:authored.value("userParameters").toArray())if(entry.toObject()["name"]==expression) {
+        for(const auto& entry:evaluatedLengthParameters(authored))if(entry.toObject()["name"]==expression) {
             const auto source=entry.toObject();parameterId=source["id"].toString();value=source["valueMm"].toDouble();break;
         }
         if(parameterId.isEmpty())throw std::invalid_argument("User length name is unavailable");
@@ -1755,13 +1885,15 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
     static const QRegularExpression parameterName("^[A-Za-z_][A-Za-z0-9_]*$");
     for(const auto& entry:candidate["userParameters"].toArray()) {
         const auto p=entry.toObject();const auto id=p["id"].toString(),name=p["name"].toString(),units=p["units"].toString();
-        const double value=p["valueMm"].toDouble();
-        if(!entry.isObject() || p.size()!=4 || !validId(id) || ids.contains(id) || !p["name"].isString()
+        const bool formula=p.contains("expression");const double value=p["valueMm"].toDouble();
+        if(!entry.isObject() || p.size()!=(formula ? 5 : 4) || !validId(id) || ids.contains(id) || !p["name"].isString()
             || !parameterName.match(name).hasMatch() || names.contains(name) || (units!="mm" && units!="in")
-            || !p["valueMm"].isDouble() || !std::isfinite(value) || value<0.001 || value>100000)
+            || (formula ? (!p["expression"].isString() || p["expression"].toString().trimmed().isEmpty() || !p["referenceIds"].isArray())
+                        : (!p["valueMm"].isDouble() || !std::isfinite(value) || value<0.001 || value>100000)))
             return "User length parameters require unique IDs/names and positive finite mm/in values";
         ids.insert(id);names.insert(name);
     }
+    try{evaluatedLengthParameters(candidate);}catch(const std::exception& error){return QString::fromUtf8(error.what());}
     if(candidate.contains("components") && !candidate["components"].isArray())return "Components must be an array";
     if(candidate.contains("occurrences") && !candidate["occurrences"].isArray())return "Occurrences must be an array";
     for(const auto& value:candidate["components"].toArray()) {
@@ -2322,7 +2454,7 @@ QJsonObject CadDocument::state() const {
     }
     QJsonArray evaluatedPlanes;
     for(const auto& plane:evaluation_->constructionPlanes)evaluatedPlanes.append(QJsonObject{{"ownerId",plane.ownerId},{"featureId",plane.featureId},{"name",plane.name},{"visible",plane.visible},{"frame",plane.frame}});
-    return {{"activeOwnerId",activeOwnerId()},{"components",authored_["components"].toArray()},{"occurrences",authored_["occurrences"].toArray()},{"assembly",assemblyState()},{"userParameters",authored_["userParameters"].toArray()},{"modelParameters",modelLengthRows(authored_)},{"loaded", true}, {"id", authored_["documentId"]}, {"label", label()}, {"path",path_},
+    return {{"activeOwnerId",activeOwnerId()},{"components",authored_["components"].toArray()},{"occurrences",authored_["occurrences"].toArray()},{"assembly",assemblyState()},{"userParameters",evaluatedLengthParameters(authored_)},{"modelParameters",modelLengthRows(authored_)},{"loaded", true}, {"id", authored_["documentId"]}, {"label", label()}, {"path",path_},
         {"units", authored_["displayUnits"]}, {"canonicalLengthUnit", "mm"},
         {"revision", static_cast<qint64>(revision_)}, {"dirty", !history_.isClean()},
         {"lastTransactionId", lastTransaction_},

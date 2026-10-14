@@ -22,7 +22,7 @@
 class NamedLengthParametersControlsTest final:public QObject{
     Q_OBJECT
     QJsonObject call(AlloyWindow& window,const QString& command,const QJsonObject& args={}){
-        const auto result=window.execute(command,args);if(!result["ok"].toBool())qFatal("%s: %s",qPrintable(command),QJsonDocument(result).toJson().constData());return result["result"].toObject();
+        const auto result=window.executeApi(command,args);if(!result["ok"].toBool())qFatal("%s: %s",qPrintable(command),QJsonDocument(result).toJson().constData());return result["result"].toObject();
     }
 private slots:
     void ownedDialogCaptureAndPendingEdits() {
@@ -165,6 +165,32 @@ private slots:
         QVERIFY(!literal["authored"].toObject()["features"].toArray().last().toObject()["parameters"].toObject().contains("distanceParameterId"));
         QVERIFY(std::abs(literal["evaluation"].toObject()["bodies"].toArray()[0].toObject()["volumeMm3"].toDouble()-45600)<1e-5);
         call(window,"document.new",{{"discard",true}});window.close();
+    }
+    void nativeFormulaCell(){
+        AlloyTheme::apply(*qApp);AlloyWindow window;window.resize(1280,820);window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        call(window,"document.parameterAdd",{{"name","Width"},{"value",40},{"units","mm"}});
+        call(window,"document.parameterAdd",{{"name","Length"},{"value",80},{"units","mm"}});
+        call(window,"document.parametersDialog");
+        auto* dialog=window.findChild<QDialog*>("parameters.dialog");QVERIFY(dialog && dialog->isVisible());
+        auto* table=dialog->findChild<QTableWidget*>("parameters.table");QVERIFY(table);
+        QApplication::setActiveWindow(dialog);QTRY_VERIFY(dialog->isActiveWindow());
+        auto* expression=table->item(1,3);QVERIFY(expression);
+        table->scrollToItem(expression);
+        const auto cell=table->visualItemRect(expression).center();
+        QTest::mouseClick(table->viewport(),Qt::LeftButton,Qt::NoModifier,cell);
+        QTest::mouseDClick(table->viewport(),Qt::LeftButton,Qt::NoModifier,cell);
+        QTRY_VERIFY(qobject_cast<QLineEdit*>(QApplication::focusWidget()));
+        QTest::keyClick(QApplication::focusWidget(),Qt::Key_A,Qt::ControlModifier);
+        QTest::keyClicks(QApplication::focusWidget(),"Width*2");
+        QTest::keyClick(QApplication::focusWidget(),Qt::Key_Return);
+        QTRY_COMPARE(table->item(1,3)->text(),QString("Width*2"));
+        QCOMPARE(table->item(1,2)->text(),QString("80"));
+        const auto state=call(window,"document.inspect");
+        QCOMPARE(state["userParameters"].toArray()[1].toObject()["expression"],QJsonValue("Width*2"));
+        const auto evidence=qEnvironmentVariable("ALLOY_EXPRESSION_EVIDENCE");
+        if(!evidence.isEmpty())call(window,"capture.dialog",{{"path",evidence+"/native-formula-cell.png"}});
+        dialog->close();call(window,"document.new",{{"discard",true}});window.close();
     }
 };
 QTEST_MAIN(NamedLengthParametersControlsTest)

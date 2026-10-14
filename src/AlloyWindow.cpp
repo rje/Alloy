@@ -1323,15 +1323,17 @@ void AlloyWindow::registerCommands() {
     });
     add("document.inspect", "Inspect document", "Read authoritative authored IDs, units and ownership.", {}, [this](const auto&) { return document_->state(); });
     auto userLength=parameter("number","Positive length in supplied units.");userLength["minimum"]=0.000001;userLength["maximum"]=100000;
-    add("document.parameterAdd","Add user length","Add one document-owned positive length with a stable identity.",
-        {{"name",parameter("string","Unique direct-reference name.")},{"value",userLength},{"units",units}},[this](const auto& a){
+    add("document.parameterAdd","Add user length","Add one document-owned length or expression with a stable identity.",
+        {{"name",parameter("string","Unique direct-reference name.")},{"value",optional(userLength)},
+         {"expression",optional(parameter("string","Typed user-length arithmetic expression."))},{"units",units}},[this](const auto& a){
             if(!session_.isEmpty())return failure("active_command","Finish or Cancel the active command first");
             QJsonObject candidate;try{candidate=CadDocument::lengthParameterCandidate(document_->authored(),a);}catch(const std::exception& e){return failure("invalid_parameter",QString::fromUtf8(e.what()));}
             const auto error=document_->commit(candidate,"Add user length");return error.isEmpty() ? document_->state() : failure("parameter_evaluation_failed",error);
         });
     add("document.parameterUpdate","Edit user length","Edit one retained name, unit or value and rebuild dependent geometry atomically.",
         {{"parameterId",parameter("string","Retained user parameter UUID.")},{"name",optional(parameter("string","Unique direct-reference name."))},
-         {"value",optional(userLength)},{"units",optional(units)}},[this](const auto& a){
+         {"value",optional(userLength)},{"expression",optional(parameter("string","Typed user-length arithmetic expression."))},
+         {"units",optional(units)}},[this](const auto& a){
             if(!session_.isEmpty())return failure("active_command","Finish or Cancel the active command first");
             QJsonObject candidate;try{candidate=CadDocument::lengthParameterCandidate(document_->authored(),a);}catch(const std::exception& e){return failure("invalid_parameter",QString::fromUtf8(e.what()));}
             const auto error=document_->commit(candidate,"Edit user length");return error.isEmpty() ? document_->state() : failure("parameter_evaluation_failed",error);
@@ -1352,7 +1354,7 @@ void AlloyWindow::registerCommands() {
             return QJsonObject{{"visible",false}};
         }
         if(!session_.isEmpty())return failure("active_command","Finish or Cancel the active command first");
-        showLengthParameters();return QJsonObject{{"visible",true},{"userParameters",document_->authored()["userParameters"]},
+        showLengthParameters();return QJsonObject{{"visible",true},{"userParameters",CadDocument::evaluatedLengthParameters(document_->authored())},
             {"modelParameters",CadDocument::modelLengthRows(document_->authored())}};
     });
     add("document.settings", "Document Settings", "Open a shared display-unit editing session.", {}, [this](const auto&) { return beginSession("document.units", {}); });
@@ -6057,7 +6059,7 @@ QJsonObject AlloyWindow::beginExtrude(const QJsonObject& overrides) {
         if(overrides.contains("operation") && inputs["operation"]!=savedOperation)return failure("invalid_arguments","Changing an existing extrusion operation is unavailable","operation");
         inputs["operation"]=savedOperation;
         if(savedParameters.contains("distanceParameterId") && !overrides.contains("distanceParameter") && !overrides.contains("distance"))
-            for(const auto& entry:document_->authored()["userParameters"].toArray())if(entry.toObject()["id"]==savedParameters["distanceParameterId"])
+            for(const auto& entry:CadDocument::evaluatedLengthParameters(document_->authored()))if(entry.toObject()["id"]==savedParameters["distanceParameterId"])
                 {inputs["distanceParameter"]=entry.toObject()["name"];inputs["distance"]=entry.toObject()["valueMm"].toDouble()/(units=="in" ? 25.4 : 1);break;}
         if(!overrides.contains("start") && !overrides.contains("startOffset") && !overrides.contains("startOffsetParameter") && savedParameters.value("start")=="offset"){
             inputs["start"]="offset";inputs["startOffset"]=savedParameters["startOffsetMm"].toDouble()/(units=="in" ? 25.4 : 1);
@@ -7047,7 +7049,7 @@ void AlloyWindow::showUnits() {
 }
 
 QJsonObject AlloyWindow::lengthParameter(const QString& name) const {
-    for(const auto& entry:document_->authored()["userParameters"].toArray())if(entry.toObject()["name"]==name)return entry.toObject();
+    for(const auto& entry:CadDocument::evaluatedLengthParameters(document_->authored()))if(entry.toObject()["name"]==name)return entry.toObject();
     return {};
 }
 
@@ -7056,7 +7058,7 @@ void AlloyWindow::refreshLengthParameters() {
     auto* table=lengthParametersDialog_->findChild<QTableWidget*>("parameters.table");
     auto* model=lengthParametersDialog_->findChild<QTreeWidget*>("parameters.modelTable");
     if(!table || !model)return;
-    const auto rows=document_->authored()["userParameters"].toArray();
+    const auto rows=CadDocument::evaluatedLengthParameters(document_->authored());
     const auto modelRows=CadDocument::modelLengthRows(document_->authored());
     const auto encoded=QJsonDocument(QJsonObject{{"user",rows},{"model",modelRows}}).toJson(QJsonDocument::Compact);
     if(table->property("parameterRows").toByteArray()==encoded)return;
@@ -7067,8 +7069,11 @@ void AlloyWindow::refreshLengthParameters() {
         const QSignalBlocker block(table);table->setRowCount(rows.size());
         for(int i=0;i<rows.size();++i) {
             const auto row=rows[i].toObject();const double scale=row["units"]=="in" ? 25.4 : 1;
-            const QStringList cells{row["name"].toString(),row["units"].toString(),QString::number(row["valueMm"].toDouble()/scale,'g',10)};
-            for(int j=0;j<3;++j){auto* item=new QTableWidgetItem(cells[j]);item->setData(Qt::UserRole,row["id"]);table->setItem(i,j,item);}
+            const QStringList cells{row["name"].toString(),row["units"].toString(),QString::number(row["valueMm"].toDouble()/scale,'g',10),
+                row.contains("expression") ? row["expression"].toString() : QString::number(row["valueMm"].toDouble()/scale,'g',10)+" "+row["units"].toString()};
+            for(int j=0;j<4;++j){auto* item=new QTableWidgetItem(cells[j]);item->setData(Qt::UserRole,row["id"]);
+                if(j!=3)item->setFlags(item->flags() & ~Qt::ItemIsEditable);
+                table->setItem(i,j,item);}
             if(row["id"].toString()==selectedId)table->setCurrentCell(i,0);
         }
     }
@@ -7109,9 +7114,9 @@ void AlloyWindow::showLengthParameters() {
     dialog->setWindowTitle("Change Parameters");dialog->setWindowModality(Qt::WindowModal);
     auto* layout=new QVBoxLayout(dialog);
     auto* userTitle=new QLabel("User Parameters",dialog);userTitle->setStyleSheet("font-weight: 700;");layout->addWidget(userTitle);
-    auto* table=new QTableWidget(0,3,dialog);table->setObjectName("parameters.table");
-    table->setHorizontalHeaderLabels({"Name","Unit","Value"});table->setSelectionBehavior(QAbstractItemView::SelectRows);
-    table->setEditTriggers(QAbstractItemView::NoEditTriggers);table->setMaximumHeight(185);layout->addWidget(table);
+    auto* table=new QTableWidget(0,4,dialog);table->setObjectName("parameters.table");
+    table->setHorizontalHeaderLabels({"Name","Unit","Value","Expression"});table->setSelectionBehavior(QAbstractItemView::SelectRows);
+    table->setEditTriggers(QAbstractItemView::DoubleClicked);table->setMaximumHeight(185);layout->addWidget(table);
     auto* modelTitle=new QLabel("Model Parameters",dialog);modelTitle->setStyleSheet("font-weight: 700; margin-top: 8px;");layout->addWidget(modelTitle);
     auto* model=new QTreeWidget(dialog);model->setObjectName("parameters.modelTable");
     model->setColumnCount(4);model->setHeaderLabels({"Component / Feature / Parameter","Expression","Value","Source"});
@@ -7119,18 +7124,19 @@ void AlloyWindow::showLengthParameters() {
     model->setItemDelegate(new ModelExpressionDelegate(model));layout->addWidget(model,1);
     auto* form=new QFormLayout;auto* name=new QLineEdit(dialog);name->setObjectName("parameters.name");form->addRow("Name",name);
     auto* unit=new QComboBox(dialog);unit->setObjectName("parameters.units");unit->addItems({"mm","in"});form->addRow("Unit",unit);
-    auto* value=new QLineEdit(dialog);value->setObjectName("parameters.value");form->addRow("Value",value);layout->addLayout(form);
+    auto* value=new QLineEdit(dialog);value->setObjectName("parameters.value");form->addRow("Expression",value);layout->addLayout(form);
     auto* status=new QLabel(dialog);status->setObjectName("parameters.status");status->setWordWrap(true);layout->addWidget(status);
     auto* actions=new QHBoxLayout;auto* add=new QPushButton("Add",dialog);add->setObjectName("parameters.add");actions->addWidget(add);
     auto* edit=new QPushButton("Update",dialog);edit->setObjectName("parameters.update");actions->addWidget(edit);
     auto* close=new QPushButton("Close",dialog);actions->addWidget(close);layout->addLayout(actions);
     refreshLengthParameters();
-    connect(table,&QTableWidget::cellClicked,dialog,[=,this](int row,int){const auto rows=document_->authored()["userParameters"].toArray();if(row<0 || row>=rows.size())return;
+    connect(table,&QTableWidget::cellClicked,dialog,[=,this](int row,int){const auto rows=CadDocument::evaluatedLengthParameters(document_->authored());if(row<0 || row>=rows.size())return;
         const auto entry=rows[row].toObject();name->setText(entry["name"].toString());unit->setCurrentText(entry["units"].toString());
-        value->setText(QString::number(entry["valueMm"].toDouble()/(entry["units"]=="in" ? 25.4 : 1),'g',10));});
-    auto submit=[=,this](bool updating){bool ok=false;const double number=value->text().toDouble(&ok);
-        if(!ok){status->setText("Enter a numeric length.");return;}
-        QJsonObject args{{"name",name->text()},{"units",unit->currentText()},{"value",number}};
+        value->setText(entry.contains("expression") ? entry["expression"].toString() :
+            QString::number(entry["valueMm"].toDouble()/(entry["units"]=="in" ? 25.4 : 1),'g',10));});
+    auto submit=[=,this](bool updating){bool numeric=false;const double number=value->text().trimmed().toDouble(&numeric);
+        QJsonObject args{{"name",name->text()},{"units",unit->currentText()}};
+        if(numeric)args["value"]=number;else args["expression"]=value->text().trimmed();
         if(updating){auto* selected=table->item(table->currentRow(),0);if(!selected){status->setText("Select a parameter row to update.");return;}
             args["parameterId"]=selected->data(Qt::UserRole).toString();}
         const auto result=execute(updating ? "document.parameterUpdate" : "document.parameterAdd",args);
@@ -7139,6 +7145,16 @@ void AlloyWindow::showLengthParameters() {
     };
     connect(add,&QPushButton::clicked,dialog,[=]{submit(false);});
     connect(edit,&QPushButton::clicked,dialog,[=]{submit(true);});
+    connect(table,&QTableWidget::itemChanged,dialog,[=,this](QTableWidgetItem* item){
+        if(!item || item->column()!=3)return;
+        const auto expression=item->text().trimmed();const int row=item->row();bool numeric=false;const double number=expression.toDouble(&numeric);
+        QJsonObject args{{"parameterId",item->data(Qt::UserRole).toString()}};
+        if(numeric)args["value"]=number;else args["expression"]=expression;
+        const auto result=execute("document.parameterUpdate",args);
+        if(!result["ok"].toBool())status->setText(result["error"].toObject()["message"].toString());
+        else {status->clear();if(table->currentRow()==row)value->setText(expression);}
+        refreshLengthParameters();
+    });
     connect(model,&QTreeWidget::itemChanged,dialog,[=,this](QTreeWidgetItem* item,int column){
         if(column!=1)return;
         const auto target=item->data(1,Qt::UserRole).toJsonObject();if(target.isEmpty())return;

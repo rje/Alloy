@@ -94,5 +94,36 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
     check(box.authored()==boxStable && box.revision()>boxRevision,"Box undo/redo restores binding");
     const auto boxPath=temporary.path()+"/box-lengths.alloy";check(box.save(boxPath).isEmpty(),"save bound Box");
     CadDocument reopenedBox;check(reopenedBox.open(boxPath).isEmpty() && reopenedBox.authored()==box.authored(),"reopen bound Box");
+    const QString boxLengthId=row(box.authored(),"BoxLength").value("id").toString();
+    const QString spanId=row(box.authored(),"NewWidth").value("id").toString();
+    check(box.commit(CadDocument::lengthParameterCandidate(box.authored(),{{"parameterId",boxLengthId},{"expression","NewWidth*2"}}),"Length expression").isEmpty(),"formula commits");
+    check(!row(box.authored(),"BoxLength").contains("valueMm"),"formula result is not a second authored value");
+    near(row(box.state(),"BoxLength")["valueMm"].toDouble(),120,"formula evaluates in shared state");
+    near(box.bodies().front().summary["volumeMm3"].toDouble(),288000,"formula drives bound Box");
+    const auto originalExpression=box.authored();const auto originalRevision=box.revision();
+    for(const auto& expression:QStringList{"NewWidth+5","NewWidth*NewWidth","NewWidth/0","Missing*2","NewWidth/2 mm"}){
+        try{CadDocument::lengthParameterCandidate(box.authored(),{{"parameterId",boxLengthId},{"expression",expression}});
+            check(false,"invalid length expression accepted");}catch(const std::invalid_argument&){}
+    }
+    try{CadDocument::lengthParameterCandidate(box.authored(),{{"parameterId",boxLengthId},
+        {"expression",QString(70,'(')+"NewWidth"+QString(70,')')}});
+        check(false,"excessive expression depth accepted");}catch(const std::invalid_argument&){}
+    check(box.authored()==originalExpression && box.revision()==originalRevision,"invalid formulas leave authored state unchanged");
+    try{CadDocument::lengthParameterCandidate(box.authored(),{{"parameterId",spanId},{"expression","BoxLength/2"}});
+        check(false,"cycle accepted");}catch(const std::invalid_argument&){}
+    check(box.commit(CadDocument::lengthParameterCandidate(box.authored(),{{"parameterId",spanId},{"name","Span"},{"value",65}}),"Rename formula source").isEmpty(),"rename and source edit commit");
+    check(row(box.authored(),"BoxLength")["expression"]=="Span*2"
+        && row(box.authored(),"BoxLength")["referenceIds"].toArray().first()==spanId,"rename rewrites tokens but retains source UUID");
+    near(row(box.state(),"BoxLength")["valueMm"].toDouble(),130,"rename retains evaluated ID dependency");
+    near(box.bodies().front().summary["volumeMm3"].toDouble(),338000,"renamed source recomputes geometry");
+    check(box.commit(CadDocument::lengthParameterCandidate(box.authored(),{{"parameterId",boxLengthId},{"expression","Span+Span"}}),"Repeated reference").isEmpty(),"repeated identifiers commit");
+    check(row(box.authored(),"BoxLength")["referenceIds"].toArray()==QJsonArray{spanId,spanId},"each repeated occurrence retains an ID");
+    near(row(box.state(),"BoxLength")["valueMm"].toDouble(),130,"repeated references evaluate");
+    check(box.commit(CadDocument::lengthParameterCandidate(box.authored(),{{"parameterId",boxLengthId},{"expression","Span+5 mm"},{"units","in"}}),"Explicit mm expression").isEmpty(),"explicit length ignores row unit");
+    near(row(box.state(),"BoxLength")["valueMm"].toDouble(),70,"explicit mm in inch row");
+    box.history().undo();near(row(box.state(),"BoxLength")["valueMm"].toDouble(),130,"undo restores renamed formula");box.history().redo();
+    const auto formulaPath=temporary.path()+"/formulas.alloy";check(box.save(formulaPath).isEmpty(),"save formula");
+    CadDocument formulaReopened;check(formulaReopened.open(formulaPath).isEmpty(),"reopen formula");
+    near(row(formulaReopened.state(),"BoxLength")["valueMm"].toDouble(),70,"reopened formula evaluated");
     std::cout<<"PASS: named lengths bind sketch and extrusion, rebuild atomically, undo and reopen\n";return 0;
 }catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}}
