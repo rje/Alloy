@@ -1147,6 +1147,9 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
                         PrimitiveTopology::box(shape,parameters,id,feature["bodyId"].toString(),supportFaces,solidEdges);
                         summary["supportFaces"]=PlanarFaces::descriptors(supportFaces);
                         summary["solidEdges"]=SolidFillet::descriptors(solidEdges);
+                    } else if(type=="cylinder") {
+                        PrimitiveTopology::cylinderRims(shape,parameters,id,solidEdges);
+                        summary["solidEdges"]=SolidFillet::descriptors(solidEdges);
                     }
                 }
                 evaluated.bodies.push_back({id,feature["bodyId"].toString(),feature["name"].toString(),feature["visible"].toBool(),shape,summary,supportFaces,solidEdges});

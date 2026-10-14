@@ -6,6 +6,8 @@
 #include <cmath>
 #include <iostream>
 #include <stdexcept>
+#include <BRepAdaptor_Curve.hxx>
+#include <gp_Circ.hxx>
 
 static void check(bool okay,const char* message){if(!okay)throw std::runtime_error(message);}
 static QJsonObject ref(const EvaluatedSupportFace& face) {
@@ -14,6 +16,29 @@ static QJsonObject ref(const EvaluatedSupportFace& face) {
 int main(int argc,char** argv) {
     QCoreApplication app(argc,argv);
     try {
+        CadDocument cylinderDocument;
+        QJsonObject cylinder{{"id",CadDocument::newId()},{"bodyId",CadDocument::newId()},
+            {"ownerId",cylinderDocument.authored()["documentId"]},{"type","cylinder"},
+            {"name","Shaft"},{"visible",true},{"parameters",QJsonObject{
+                {"xMm",90},{"yMm",0},{"zMm",8},{"radiusMm",4},{"heightMm",102}}}};
+        auto cylinderCandidate=cylinderDocument.authored();cylinderCandidate["features"]=QJsonArray{cylinder};
+        check(cylinderDocument.commit(cylinderCandidate,"Cylinder").isEmpty(),"cylinder commit");
+        const auto originalRims=cylinderDocument.bodies().at(0).solidEdges;
+        check(originalRims.size()==2,"two retained cylinder rims");
+        auto cylinderParameters=cylinder["parameters"].toObject();
+        cylinderParameters["radiusMm"]=4.2;cylinderParameters["heightMm"]=105;
+        cylinder["parameters"]=cylinderParameters;cylinderCandidate["features"]=QJsonArray{cylinder};
+        check(cylinderDocument.commit(cylinderCandidate,"Edit shaft").isEmpty(),"cylinder edit");
+        const auto revisedRims=cylinderDocument.bodies().at(0).solidEdges;
+        check(revisedRims.size()==2,"edited cylinder rims");
+        for(const auto& rim:revisedRims) {
+            const auto found=std::find_if(originalRims.begin(),originalRims.end(),[&](const auto& old){return old.edgeId==rim.edgeId;});
+            check(found!=originalRims.end(),"cylinder semantic rim identity survives edit");
+            const auto circle=BRepAdaptor_Curve(rim.edge).Circle();
+            check(std::abs(circle.Radius()-4.2)<1e-8,"rim follows radius edit");
+            check(std::abs(circle.Location().Z()-(rim.provenance["cylinderRim"]=="top" ? 113 : 8))<1e-8,
+                "semantic top follows height edit and bottom stays fixed");
+        }
         CadDocument document;
         auto box=QJsonObject{{"id",CadDocument::newId()},{"bodyId",CadDocument::newId()},
             {"ownerId",document.authored()["documentId"]},{"type","box"},{"name","Box"},{"visible",true},

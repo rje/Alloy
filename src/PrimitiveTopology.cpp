@@ -9,6 +9,7 @@
 #include <TopExp_Explorer.hxx>
 #include <TopTools_IndexedMapOfShape.hxx>
 #include <TopoDS.hxx>
+#include <gp_Circ.hxx>
 #include <array>
 #include <cmath>
 
@@ -28,6 +29,35 @@ int side(double value,double low,double high) {
     if(std::abs(value-high)<1e-6)return 1;
     return -1;
 }
+}
+
+void PrimitiveTopology::cylinderRims(const TopoDS_Shape& shape,const QJsonObject& p,
+    const QString& featureId,std::vector<EvaluatedSolidEdge>& edges) {
+    const gp_Pnt bottom(p["xMm"].toDouble(),p["yMm"].toDouble(),p["zMm"].toDouble());
+    const double height=p["heightMm"].toDouble(),radius=p["radiusMm"].toDouble();
+    const auto fail=[] {throw GeometryKernel::EvaluationError({
+        {"code","primitive_topology_ambiguous"},
+        {"message","Cylinder kernel did not produce unique complete bottom/top rims"}});};
+    QMap<QString,EvaluatedSolidEdge> rims;
+    TopTools_IndexedMapOfShape actual;TopExp::MapShapes(shape,TopAbs_EDGE,actual);
+    for(int i=1;i<=actual.Extent();++i) {
+        const auto edge=TopoDS::Edge(actual(i));const BRepAdaptor_Curve curve(edge);
+        if(curve.GetType()!=GeomAbs_Circle)continue;
+        const auto circle=curve.Circle();const auto center=circle.Location();
+        if(std::abs(curve.LastParameter()-curve.FirstParameter()-2*std::acos(-1.0))>1e-8
+            || std::abs(circle.Radius()-radius)>1e-6
+            || std::abs(center.X()-bottom.X())>1e-6 || std::abs(center.Y()-bottom.Y())>1e-6
+            || std::abs(circle.Axis().Direction().Dot(gp::DZ()))<1-1e-9)fail();
+        const int end=side(center.Z(),bottom.Z(),bottom.Z()+height);
+        if(end<0)fail();const QString semantic=end ? "top" : "bottom";
+        if(rims.contains(semantic))fail();
+        const auto edgeId=QUuid::createUuidV5(QUuid(featureId),
+            "alloy-cylinder/1\nrim\n"+semantic.toUtf8()).toString(QUuid::WithoutBraces);
+        rims.insert(semantic,{edgeId,edge,{{"role","cylinder.rim"},{"cylinderRim",semantic},
+            {"generatorFeatureId",featureId},{"endpointProvenance","currentKernelBoundary"}}});
+    }
+    if(rims.size()!=2)fail();
+    for(const auto& rim:rims)edges.push_back(rim);
 }
 
 void PrimitiveTopology::box(const TopoDS_Shape& shape,const QJsonObject& p,
