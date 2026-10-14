@@ -30,11 +30,12 @@ with application(a.app,out,command_timeout=90) as (call,ledger):
     case_body=next(b for b in call('document.inspect')['evaluation']['bodies'] if b['ownerId']==case['definitionId'])
     case_top=next(f for f in case_body['supportFaces'] if f['role']=='box.z1')
     placement={'axis':'Z','angleDeg':90,'translationMm':[10,20,15]}
+    before_pending=call('document.inspect')['authored']
     call('reference.move',{'featureId':feature_id,'placement':placement})
     pending=call('app.state')['pendingReferencePosition'];assert pending['featureId']==feature_id
     call('solid.box',{'width':1,'depth':1,'height':1,'units':'mm'},error='pending_reference_position')
     call('document.save',{'path':str(out/'refused-pending.alloy')},error='pending_reference_position')
-    assert call('document.inspect')['authored']==call('document.inspect')['authored']
+    assert call('document.inspect')['authored']==before_pending
     call('reference.revert');assert not call('app.state')['pendingReferencePosition']
     call('reference.move',{'featureId':feature_id,'placement':placement})
     call('reference.capture')

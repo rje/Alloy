@@ -39,10 +39,9 @@ private slots:
         QTRY_VERIFY(!window.state()["pendingReferencePosition"].toObject().isEmpty());
         QCOMPARE(call(window,"document.inspect")["authored"].toObject(),before);
         const auto evidence=qEnvironmentVariable("ALLOY_REFERENCE_EVIDENCE");
-        if(!evidence.isEmpty()){call(window,"capture.screenshot",{{"path",evidence+"/reference-native-preview.png"}});
-            QVERIFY(dialog->grab().save(evidence+"/reference-native-dialog.png"));}
-        auto* buttons=dialog->findChild<QDialogButtonBox*>();QVERIFY(buttons);
-        QTest::mouseClick(buttons->button(QDialogButtonBox::Cancel),Qt::LeftButton);
+        if(!evidence.isEmpty())QVERIFY(dialog->grab().save(evidence+"/reference-native-dialog.png"));
+        QTest::keyClick(dialog,Qt::Key_Escape);
+        QTRY_VERIFY(!dialog->isVisible());
         QTRY_VERIFY(window.state()["pendingReferencePosition"].toObject().isEmpty());
         QCOMPARE(call(window,"document.inspect")["authored"].toObject(),before);
         call(window,"document.new",{{"discard",true}});

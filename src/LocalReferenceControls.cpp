@@ -123,6 +123,7 @@ QJsonObject AlloyWindow::showReferenceMove(const QString& featureId){
     connect(axis,&QComboBox::currentTextChanged,dialog,[=](const QString&){preview();});
     for(auto* control:{angle,x,y,z})connect(control,qOverload<double>(&QDoubleSpinBox::valueChanged),dialog,[=](double){preview();});
     connect(buttons,&QDialogButtonBox::accepted,dialog,[=,this]{preview();if(!pendingReference_.isEmpty())dialog->accept();});
-    connect(buttons,&QDialogButtonBox::rejected,dialog,[=,this]{execute("reference.revert");dialog->reject();});
+    connect(buttons,&QDialogButtonBox::rejected,dialog,&QDialog::reject);
+    connect(dialog,&QDialog::rejected,dialog,[this]{execute("reference.revert");});
     dialog->resize(340,280);dialog->show();return {{"visible",true},{"featureId",featureId}};
 }
