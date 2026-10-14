@@ -1569,7 +1569,8 @@
         "SKT-024",
         "SOL-017",
         "TUT-025",
-        "FND-026"
+        "FND-026",
+        "TUT-026"
       ],
       "labels": [
         "kind:validation",
@@ -6700,7 +6701,8 @@
         "SKT-082",
         "SKT-084",
         "SKT-085",
-        "SKT-086"
+        "SKT-086",
+        "SKT-087"
       ],
       "key": "TUT-025",
       "title": "Gate Base Sketch source construction steps 1-5",
@@ -6723,6 +6725,41 @@
         "area:fnd"
       ],
       "body": "## Problem and result\nThe tutorial recorder places its Qt-input label 12 pixels down/right from the pointer, covering the nearby inline dimension editor and H/V inference cue. In the accepted short sketch recording, the formula field appears blank because this label obscures its text. Move provenance into the recording header while preserving actual cursor/click overlays.\n\n## Bounded scope and acceptance\nKeep the recorded Qt-input qualification continuously readable in fixed recorder chrome, separate from modeling controls and key overlays. Preserve the actual input crosshair/click ring and step captions. Do not alter the CAD model or claim OS-delivered input.\nVerify a fresh short sketch tutorial recording has readable inline formula entry and H/V cue, correct source progression and identical final constraints/profile values. Inspect actual frames and metadata; do not replay unrelated modeling suites. Prior raw footage remains unchanged. Geometry acceptance is already recorded under SKT-084 and TUT-024.\n\n## Evidence\nObserved 2026-10-14 in external deliverables/sketch-expression-exercise-2026-10-14/recording-01 and root-review/formula-entered.png at95.4s. The recorder label and editor/cue use overlapping cursor-relative offsets. This is an Alloy recording presentation issue, independent of public reference software behavior.\n\n\n## Independently accepted 2026-10-14\nAccepted at4d09f0b after independent Astra review. Recorded input provenance now occupies reserved header chrome; cursor/click overlays remain. Recording02 passes110.133s with0capture failures, and actual frames clearly show the H preview at58s and d3 + 50 editor text at97s. See docs/validation/sketch-expression-tutorial.md; no modeling suite replay or geometry changes.\n"
+    },
+    {
+      "key": "SKT-087",
+      "title": "Accept a single picked sketch junction in Fillet",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-019",
+        "SKT-085"
+      ],
+      "labels": [
+        "area:skt"
+      ],
+      "body": "## Problem and result\nThe public Base Sketch step4 selects one line intersection, types10 and presses Enter. Current Fillet UI requires two corners or an adjacent side pair; one junction never previews or focuses the radius, and acceptance refuses it. Existing core and preview already support one corner.\n\n## Scope and acceptance\n- One unambiguous junction click starts the existing disposable preview and naturally focuses radius entry; type10 then Enter commits one retained tangent fillet.\n- Radius edits update that preview. Escape leaves the authored prefix unchanged.\n- Preserve collection of a second junction for the existing common-radius batch and preserve adjacent-side selection. Do not replace the source's one-junction pick with two side picks.\n- Keep the shared command authority and input discovery descriptions aligned; reuse existing core geometry and retained references.\n\n## Proportionate verification\nActual Qt single-junction click, naturally focused radius typing and Enter, visible preview, retained radius/tangent geometry and one cancel check. Reuse an existing two-corner route check for the changed guards. Full construction/history/reopen belongs to TUT-025; do not duplicate an unchanged geometry suite.\n\n## Evidence and limits\nPublic printed p23 Step4 in the external knowledge/tutorials/after-expressions/base-sketch-steps-1-5-contract-2026-10-14.md, retrieved2026-10-14. Root code audit and independent Astra review confirmed the UI guard gap. References remain external. This is planned, not accepted.\n"
+    },
+    {
+      "title": "Gate Base Sketch tangent audit and dimensions",
+      "kind": "validation",
+      "priority": "P1",
+      "depends_on": [
+        "TUT-025",
+        "SKT-004",
+        "SKT-005",
+        "SKT-006",
+        "SKT-048",
+        "SKT-080",
+        "SKT-082"
+      ],
+      "key": "TUT-026",
+      "phase": "P2 Parametric modeling",
+      "labels": [
+        "area:tut"
+      ],
+      "body": "## Problem and result\nContinue the published Base Sketch workflow after steps 1-5: audit and ensure eight visible Tangent symbols, then dimension the two circles/arcs and center locations in source order. The public source does not assert that all eight relations are inferred or that the final sketch is fully constrained.\n\n## Source steps\n- Open Constraints and select Tangent. Add relations at the illustrated contacts only if missing; inspect the authored relation list and ensure eight visible Tangent symbols. Do not assume the previous construction inferred all eight.\n- Close Constraints. Use Sketch Dimension: left circle \u00d831; right circle \u00d820; upper connector arc R30; lower line-chain fillet R10. The R10 fillet value is entered in the prior step; add/show its dimension here.\n- Create a vertical point-to-point dimension between the left-circle center and lower-arc center by placing it to the left. Leave its initial value unchanged. Create a second dimension for the same points placed below to select horizontal distance; leave it unchanged.\n- Repeat both placements (vertical then horizontal) for the upper-arc center and left-circle center. Add vertical and horizontal dimensions between the left-circle and right-circle centers. Leave all initial values unchanged.\n- Double-click and edit values in printed p.27 balloon order: 1 vertical circle-center separation 3.82; 2 vertical left-circle/upper-arc-center separation 29.101; 3 vertical left-circle/lower-arc-center separation 20.181; 4 horizontal left-circle/upper-arc-center separation 40.357; 5 horizontal circle-center separation 71.699; 6 horizontal left-circle/lower-arc-center separation 48.12.\n\n## Acceptance\n- From the saved/reopened end state of TUT-025, perform the public native workflow without reseeding geometry or substituting API-created dimensions.\n- Record which of the eight Tangent relations already existed and each relation added during the audit. End with exactly eight retained tangent relations and readable, pickable tangent glyphs at the illustrated locations; reject redundant/conflicting additions without partial mutation.\n- Author/edit the dimensions in the published order with stable curve and point references. Final values match the source illustration: \u00d831, \u00d820, R30, R10, 3.82, 29.101, 20.181, 40.357, 71.699, 48.12. Preserve units and show placed annotations without obscuring the source-shaped profile.\n- Inspect solver residuals, remaining DOF, bounded cells/profile silhouette and authored identities separately. Do not require zero DOF or exactly one cell; report whatever the actual authored result establishes.\n- Undo/redo and save/reopen preserve all accepted dimensions, tangent records, glyphs and valid profile geometry. A focused dimension edit demonstrates dependency recompute and readable label edit behavior.\n\n## Verification\nOne continuous native continuation from accepted TUT-025 state; native Constraint/Tangent picks only for missing relations; native D curve and point-pair selections, placements, edits and focus assertions; API/state inspection for records and residuals; focused geometry/profile validity; undo/redo/save/reopen; GPU capture compared with archived printed pp.24-27. Keep native, API, geometry and visual evidence distinct. Do not rerun unchanged TUT-025 or primitive test suites.\n\n## Dependencies and limits\nThis is a cumulative continuation after TUT-025, not a new dimension or constraint primitive. The page says to ensure eight tangent symbols but does not establish that steps1-5 auto-create them all. It describes dimensional order because simultaneous solving may produce conflicts. Underlying initial center distances vary with rough seed. The source does not state final DOF, full constraint, precise pair list in text, or an exact dimension-label collision policy. Extrude and leaving sketch mode are outside this gate.\n\nPublic sources retrieved2026-10-14; contract and archived illustrations remain external at knowledge/tutorials/after-expressions/base-sketch-steps-6-8-contract-2026-10-14.md. Planned, not verified.\n"
     }
   ]
 }

@@ -23,11 +23,22 @@
       "issues": [
         "SKT-085",
         "SKT-086",
+        "SKT-087",
         "TUT-025"
       ],
       "acceptance": "From blank: rough circles, Shift tangent Line from first circle, contact onto second, R10 fillet and connected central concave Line-to-Arc drag; valid shaded bounded cells, readable cues and retained contacts, edit/history/reopen and complete creation recording.",
+      "status": "in_progress",
+      "remaining": "Creation-time circle tangent inference is independently accepted at 466eb7e. Connected Line-to-Arc drag is active: hold/drag previews tangent arc; release commits and resumes Line. Full from-blank TUT-025 construction gate remains. Existing explicit Tangent and Fillet are reused; later chapter dimensions and extrusion are outside this excerpt. Single-junction native Fillet acceptance is tracked by SKT-087."
+    },
+    {
+      "id": "CP-27",
+      "title": "Base sketch tangent audit and dimensions",
+      "issues": [
+        "TUT-026"
+      ],
       "status": "todo",
-      "remaining": "Missing creation-time circle tangent inference and connected Line-to-Arc drag. Existing explicit Tangent and Fillet are reused. Later chapter dimensions and extrusion are outside this bounded excerpt."
+      "acceptance": "Continue accepted construction; ensure eight visible Tangent relations, dimension circles/arcs and center distances in public order, inspect residuals/profiles and preserve history/reopen.",
+      "remaining": "Requires accepted TUT-025. Existing dimension/constraint primitives must pass actual curved and center-pair native picks; split concrete gaps if found. No full constraint or solid claim."
     },
     {
       "id": "CP-20",

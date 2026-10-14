@@ -44,6 +44,14 @@ the preceding line; release commits it and resumes Line from the new endpoint.
 Outgoing line tangency is not required. TUT-025 checks Base Sketch construction
 steps1–5, reusing explicit Tangent and Fillet. Archived source and detailed
 contracts stay external. Astra reviews implementation and actual evidence.
+TUT-025 source preflight found SKT-087/#392: Fillet currently refuses one picked
+junction, although its core supports it. Native preview/focus/Enter must allow
+one corner while preserving two-corner and side-pair workflows. This is Todo
+until SKT-086 releases shared UI ownership. Root is preparing the from-blank
+`tests/base_sketch_tutorial.cpp` fixture; it is not yet built or accepted.
+TUT-026/#393 is queued for the subsequent eight-Tangent-symbol audit and ordered
+circle/arc/center-distance dimensions from the archived later pages; no full
+constraint or solid claim. Backlog is393issues with acyclic dependencies.
 Only main and its existing build are used; no inactive worktrees accumulate.
 DOC-031/#348 is independently accepted at `89782cf`: unchanged-product native09
 passes modal line focus, rename commit, Browser label and unchanged geometry.
