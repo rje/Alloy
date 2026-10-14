@@ -40,6 +40,14 @@ double pointLineDistance(const GCS::Point& p,const GCS::Line& l) {
     require(length>=minimumLength,"Point-edge dimension needs a nondegenerate straight line");
     return (dx*(*p.y-*l.p1.y)-dy*(*p.x-*l.p1.x))/length;
 }
+bool sharesEndpointId(const QJsonArray& entities,const QString& first,const QString& second) {
+    QJsonObject a,b;
+    for(const auto& value:entities){const auto entity=value.toObject();
+        if(entity["id"]==first)a=entity;else if(entity["id"]==second)b=entity;}
+    require(!a.isEmpty() && !b.isEmpty(),"Collinear line references are unavailable");
+    return a["startPointId"]==b["startPointId"] || a["startPointId"]==b["endPointId"]
+        || a["endPointId"]==b["startPointId"] || a["endPointId"]==b["endPointId"];
+}
 double separation(const QString& kind, const GCS::Point& a, const GCS::Point& b) {
     if (kind == "horizontal") return std::abs(*b.x - *a.x);
     if (kind == "vertical") return std::abs(*b.y - *a.y);
@@ -300,6 +308,10 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
                 else solver.addConstraintVertical(line(reference(constraint,"entityIds",0)),t);
             } else if (type == "parallel") {
                 solver.addConstraintParallel(line(reference(constraint,"entityIds",0)),line(reference(constraint,"entityIds",1)),t);
+            } else if (type == "collinear") {
+                const auto first=reference(constraint,"entityIds",0),second=reference(constraint,"entityIds",1);
+                solver.addConstraintParallel(line(first),line(second),t);
+                if(!sharesEndpointId(entities,first,second))solver.addConstraintPointOnLine(line(second).p1,line(first),t);
             } else if (type == "perpendicular") {
                 solver.addConstraintPerpendicular(line(reference(constraint,"entityIds",0)),line(reference(constraint,"entityIds",1)),t);
             } else if (type == "equal") {
@@ -543,6 +555,14 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
                 const double dx=*target.p2.x-*target.p1.x,dy=*target.p2.y-*target.p1.y,length=std::hypot(dx,dy);
                 check((dx*(*arc.center.y-*target.p1.y)-dy*(*arc.center.x-*target.p1.x))/length-number(c,"side")*(*arc.rad),lengthTolerance);
                 check((dx*(*contact.x-*arc.center.x)+dy*(*contact.y-*arc.center.y))/length,lengthTolerance);
+            }
+            else if(type=="collinear") {
+                const auto& a=line(reference(c,"entityIds",0));const auto& b=line(reference(c,"entityIds",1));
+                const double ax=*a.p2.x-*a.p1.x,ay=*a.p2.y-*a.p1.y,bx=*b.p2.x-*b.p1.x,by=*b.p2.y-*b.p1.y;
+                const double al=std::hypot(ax,ay),bl=std::hypot(bx,by);
+                require(al>=minimumLength && bl>=minimumLength,"Collinear lines became degenerate");
+                check((ax*by-ay*bx)/(al*bl),angularTolerance);
+                check((ax*(*b.p1.y-*a.p1.y)-ay*(*b.p1.x-*a.p1.x))/al,lengthTolerance);
             }
             else if(type=="tangent") {
                 const auto& circle=circleMap.at(reference(c,"entityIds",0)); const auto& target=line(reference(c,"entityIds",1));

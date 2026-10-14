@@ -1570,9 +1570,9 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
                 if(std::abs(distance)<minimumLength || std::abs(distance)>maximumLength)return "Invalid circle offset distance";
                 for(const auto& other:parameters["constraints"].toArray())if(other.toObject()["type"]=="circleOffset"
                     && other.toObject()["entityIds"].toArray()[1]==refs[0])return "Offset result cannot be used as a source in this slice";
-            } else if (type == "horizontal" || type == "vertical" || type == "parallel" || type == "perpendicular") {
+            } else if (type == "horizontal" || type == "vertical" || type == "parallel" || type == "perpendicular" || type == "collinear") {
                 if (constraint.size() != 3 || constraint.contains("pointIds")
-                    || !checkReferences(constraint, "entityIds", (type == "parallel" || type == "perpendicular") ? 2 : 1, lineIds))
+                    || !checkReferences(constraint, "entityIds", (type == "parallel" || type == "perpendicular" || type == "collinear") ? 2 : 1, lineIds))
                     return "Invalid line constraint references";
             } else return "Unsupported sketch constraint type";
         }
@@ -1849,10 +1849,11 @@ SketchGeometry::SolveResult SketchGeometry::addConstraint(const QJsonObject& dra
             if (!found) reject("Fixed point does not exist");
         }
         auto constraints = parameters["constraints"].toArray();
-        if(constraint["type"]=="concentric")for(const auto& value:constraints) {
-            const auto prior=value.toObject();if(prior["type"]!="concentric")continue;
+        if(constraint["type"]=="concentric" || constraint["type"]=="collinear")for(const auto& value:constraints) {
+            const auto prior=value.toObject();if(prior["type"]!=constraint["type"])continue;
             const auto a=prior["entityIds"].toArray(),b=constraint["entityIds"].toArray();
-            if(a.size()==2 && b.size()==2 && ((a[0]==b[0] && a[1]==b[1]) || (a[0]==b[1] && a[1]==b[0])))reject("Concentric relation already exists for this pair");
+            if(a.size()==2 && b.size()==2 && ((a[0]==b[0] && a[1]==b[1]) || (a[0]==b[1] && a[1]==b[0])))
+                reject(constraint["type"]=="collinear" ? "Collinear relation already exists for this pair" : "Concentric relation already exists for this pair");
         }
         constraints.append(constraint);
         parameters["constraints"] = constraints;
