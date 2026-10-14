@@ -2,6 +2,7 @@
 #include "SolidThicken.h"
 #include "PlanarFaces.h"
 #include <BRepOffsetAPI_MakeThickSolid.hxx>
+#include <BRep_Builder.hxx>
 #include <BRepCheck_Analyzer.hxx>
 #include <BRepGProp.hxx>
 #include <BRepAdaptor_Surface.hxx>
@@ -12,6 +13,9 @@
 #include <TopExp_Explorer.hxx>
 #include <TopTools_IndexedMapOfShape.hxx>
 #include <TopoDS.hxx>
+#include <TopoDS_Iterator.hxx>
+#include <TopoDS_Shell.hxx>
+#include <TopoDS_Solid.hxx>
 #include <QUuid>
 #include <QSet>
 #include <algorithm>
@@ -46,7 +50,22 @@ EvaluatedBody SolidThicken::evaluate(const QJsonObject& feature,const EvaluatedB
         reject("thicken_failed","Thicken did not produce one valid closed solid");
     GProp_GProps mass;BRepGProp::VolumeProperties(shape,mass,true);
     if(!std::isfinite(mass.Mass()) || std::abs(mass.Mass())<1e-6)reject("thicken_failed","Thicken has no positive physical volume");
-    if(mass.Mass()<0){shape.Reverse();BRepGProp::VolumeProperties(shape,mass,true);}
+    if(mass.Mass()<0){
+        // The offset builder can return a forward solid whose single shell has
+        // inward material orientation. Put that orientation on the shell,
+        // leaving the solid wrapper forward for downstream OCCT modifiers.
+        TopoDS_Iterator child(shape);
+        if(!child.More() || child.Value().ShapeType()!=TopAbs_SHELL)
+            reject("thicken_failed","Thicken has no uniquely orientable outer shell");
+        auto shell=TopoDS::Shell(child.Value());child.Next();
+        if(child.More())reject("thicken_failed","Thicken has multiple shells outside this surface slice");
+        shell.Reverse();
+        BRep_Builder assembly;TopoDS_Solid normalized;
+        assembly.MakeSolid(normalized);assembly.Add(normalized,shell);
+        if(!BRepCheck_Analyzer(normalized).IsValid())
+            reject("thicken_failed","Thicken shell orientation is invalid");
+        shape=normalized;BRepGProp::VolumeProperties(shape,mass,true);
+    }
     if(mass.Mass()<=0)reject("thicken_failed","Solid orientation could not be normalized");
     TopTools_IndexedMapOfShape faces,edges,vertices;
     TopExp::MapShapes(shape,TopAbs_FACE,faces);TopExp::MapShapes(shape,TopAbs_EDGE,edges);TopExp::MapShapes(shape,TopAbs_VERTEX,vertices);

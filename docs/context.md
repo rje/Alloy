@@ -1,5 +1,19 @@
 # Continuation context
 
+## Surface corner Fillet geometry blocker (2026-10-14)
+
+The accepted guided-sheet/Thicken source has a bounded positive-solid
+orientation correction independently accepted and integrated, with the focused
+core receipt in [shoehorn-thicken-orientation.md](validation/shoehorn-thicken-orientation.md).
+It preserves material and retained IDs but does not enable the exact wide-end
+R12 corner result: the actual 16 mm-bend fixture still returns an invalid OCCT
+shell even from an equivalent-material forward solid. GEO-019/#352 now owns
+that exact geometry qualification; GEO-018/#350 remains Todo for generated
+curved-face/endpoint identities and the later R1.5 perimeter round. The
+external `shoehorn-fillet-radius-diagnostic.md` records source uncertainty,
+fixture hash, selected edges and status detail. The complete TUT-017 workflow
+remains open.
+
 ## Accepted retained surface Thicken (2026-10-14)
 
 SRF-010 is independently accepted and integrated through `224b98e` (plus
