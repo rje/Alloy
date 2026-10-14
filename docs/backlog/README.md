@@ -7,7 +7,7 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current publication contains **361 issues**: **275 implementation, 19 research,
+The current publication contains **365 issues**: **279 implementation, 19 research,
 22 epics, and 45 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 
@@ -20,8 +20,11 @@ include these five gates, three source qualification tasks and30 bounded feature
 children. Existing broad requirements are reused, not duplicated; split them
 before pulling an implementation too large for one increment. PAR-004 and DOC-022 are independently accepted and closed.
 The sliding-lid workflow and enclosure mounting prefix are accepted. The port/card and split/snap checkpoints are also accepted. Calibrated reference canvases, retained surface removal and Surface workspace
-navigation and bounded exterior guide-rail Loft are accepted. Surface Trim is
-active, with the separately tracked three-section handle bridge next. Exact shoehorn corner rounding and the enclosure
+navigation and bounded exterior guide-rail Loft are accepted. Paired-sketch Surface Trim is accepted. Exterior quality blocks the bilateral
+handle bridge, with explicit geometric evidence in SRF-017. Piston research is
+accepted; four bounded assembly children now preserve conversion/hierarchy,
+Revolute/Pin, coupled motion and linked parent copy. Component fixture work and
+solver admission are active in parallel. Exact shoehorn corner rounding and the enclosure
 alignment rim remain blocked geometry follow-ups. Complete source operations, readable constraint and
 selection states, edit/history/reopen, full creation recordings and independently
 checked outputs remain acceptance requirements. Detailed source URLs and

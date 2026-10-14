@@ -20,11 +20,17 @@ and its current Trim gives a central seam window. Exact source rail contacts
 remain unknown. A bounded C0 probe supports bilateral Trim/bridge/closed-cell
 topology but has an unacceptable center ridge. The single G1 curtain correction
 fails endpoint tangent compatibility and unchanged geometric limits; Astra
-verified the blocker. SRF-017 now has an explicit bounded follow-up: analytically preflight
-endpoint-compatible authored tangent handles before trying the same evaluator
-on one independently specified base/edit fixture. Do not repeat the
-failed fixture or count valid closure as visual quality. RES-019 piston public
-asset/assembly qualification is active in parallel with that exterior preflight. SRF-016/#360 preserves later surface-as-tool Trim; active
+verified the blocker. SRF-017 remains Todo: a single endpoint-compatible tangent-handle follow-up
+resolved tangency incompatibility but still failed positional accuracy at
+0.002358/0.002609 mm against the unchanged 0.0003 mm ceiling. Independent Astra
+review verified this bounded evaluator/fixture blocker. No tolerance relaxation,
+retained implementation or more kernel experiments in this increment.
+RES-019 piston public source research is accepted; exact public neutral sample
+is not established, and the independently authored adapted fixture is still
+implementation work. ASM-013/#362 component/fixture hierarchy and ASM-014/#363
+bounded mature solver admission are active parallel lanes. ASM-015/#364 coupled
+closed-loop motion and ASM-016/#365 linked nested copy are Todo dependencies.
+SRF-016/#360 preserves later surface-as-tool Trim; accepted
 SRF-013 is scoped to sketch-normal paired-spline Trim only. Exact shoehorn R12 and enclosure rim
 remain blocked Todo work; full surface-iron acceptance is still ahead.
 
