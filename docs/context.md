@@ -79,18 +79,19 @@ parents remain Todo with their full remaining scope. A final source-flow audit
 identified required native gaps: ASM-019/#369 Copy then Cmd/Ctrl+V and placement
 Enter is independently accepted at `0b931a3`/`ca7d1fd` with native3/3 evidence;
 see [clipboard acceptance](validation/linked-local-occurrences.md).
-ASM-020/#370 cylindrical-face origin inference and
-modifier hover locking now has a Luna contract independently reviewed and a
-bounded authority accepted and integrated at `3751ff5`, retaining two-rim
-cylindrical-face midpoint inference. The UI hover/lock/glyph lane is active. The combined main application builds
-after clipboard and origin-authority integration; native and core receipts remain
-scoped to their independently reviewed candidates. Midpoint and release behavior are declared Alloy mappings; held-face
-lock is documented. Add source Joints-folder Show/Hide in the UI scope.
+ASM-020/#370 cylindrical-face origin inference and modifier hover locking are
+independently accepted through `c177550`: native10 passes3/3 with valid preview,
+Cancel and Joints visibility; retained authority is separately accepted at
+`3751ff5`. The final local-axis triad correction is source/build verified. See
+[joint-origin acceptance](validation/joint-origin-inference.md) for deliberate
+midpoint/release mappings and input/capture limits. ASM-023/#373 is now active
+in the next UI lane: shared As-Built Type and actual component selection, plus
+compact top-aligned controls and readable origin labels.
 The full native-step ledger also preserves ASM-021/#371 paste drag and
 contextual Position/Revert (active in a third isolated implementation lane),
 ASM-022/#372 Browser organization gestures (independently accepted and integrated
 through `3436a44`, native3/3 and focused core; see
-[Browser acceptance](validation/piston-components.md)) and Todo
+[Browser acceptance](validation/piston-components.md)) and active
 ASM-023/#373 shared As-Built Type/two-occurrence selection. TUT-019 depends on
 these children; the direct Copy Component/circular-edge
 routes are equivalent modeling semantics, not exact source input parity.

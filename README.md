@@ -16,7 +16,9 @@ retains the internal joint and solves both pistons through one hinge driver.
 [Placed STEP/STL export](docs/validation/linked-instance-export.md) preserves
 all six instances or one selected piston subtree. The independently accepted
 5m52s cumulative API movie includes creation, linked motion and placed exports.
-Exact native tutorial gestures remain tracked in ASM-019–023; these are bounded
+[Native Browser organization](docs/validation/piston-components.md) and
+[joint-origin hover locking](docs/validation/joint-origin-inference.md) are also
+accepted. Remaining native tutorial gestures are ASM-021/023; these are bounded
 adapted-fixture capabilities, not complete native tutorial parity.
 
 The [Surface workspace](docs/validation/surface-workspace-navigation.md) now exposes
