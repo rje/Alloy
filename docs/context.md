@@ -3660,7 +3660,7 @@ acceptance entry at the top of this document. The source
 outline is independently authored and downstream Trim/Boundary Fill integration
 remains separate. See [candidate validation](validation/surface-extrude-two-sides.md).
 
-## 2026-10-14 Surface navigation isolated candidate
+## 2026-10-14 accepted Surface navigation
 
 VIS-004/#358 in `feat/surface-workspace` replaces placeholder tabs with shared
 Solid/Surface navigation. Surface Create exposes the implemented Two Sides
@@ -3673,4 +3673,5 @@ and guided Loft mode locking. The actual app capture was inspected; physical OS
 input and matched screenshot parity remain unqualified. Independent Astra source
 review found no blocker and tooltip polish is applied. See
 [bounded contract](validation/surface-workspace-navigation.md).
-Surface Modify awaits Remove integration; no unimplemented tools are shown.
+Surface Modify is integrated with retained Remove; the combined native route
+check passes. Independent Astra review accepted both source and final evidence.
