@@ -205,6 +205,7 @@ void ReferenceView::restoreCameraState(const QJsonObject& state) {
     sync();
 }
 void ReferenceView::rebindDocument() {
+    setCanvases({},EvaluatedDocument{});canvasStamp_={};
     clearPatternAxes();
     setSliderCue({});
     if(context_.IsNull())return;
@@ -1676,6 +1677,7 @@ void ReferenceView::clearSketchCursor() {
 }
 void ReferenceView::fit(const std::vector<EvaluatedBody>& bodies,const std::vector<EvaluatedSketch>& sketches) {
     Bnd_Box bounds;
+    for(const auto& canvas:canvasModels_)if(context_->IsDisplayed(canvas))BRepBndLib::AddOptimal(canvas->Shape(),bounds,false,false);
     for(const auto& body:bodies)if(body.visible)BRepBndLib::AddOptimal(body.shape,bounds,false,false);
     for(const auto& sketch:sketches)if(sketch.visible && !sketch.shape.IsNull())BRepBndLib::AddOptimal(sketch.shape,bounds,false,false);
     if(bounds.IsVoid()){sceneScale_=400;sceneCenter_=gp_Pnt();}

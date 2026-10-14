@@ -1398,7 +1398,7 @@ void AlloyWindow::registerCommands() {
         if(tabHasUnsavedWork(activeTabId_) && !a.value("discard").toBool()) return failure("unsaved_changes","Save or explicitly discard the current document");
         const auto error=document_->open(a["path"].toString());
         if(error.isEmpty()){if(!session_.isEmpty())finishSession(session_.value("id").toString(),false);
-            view_->rebindDocument();displayedDocumentRevision_=std::numeric_limits<quint64>::max();
+            view_->rebindDocument();refreshCanvasPresentation();displayedDocumentRevision_=std::numeric_limits<quint64>::max();
             selectedBody_.clear();selectedFace_={};selectedEdge_={};selectedPlane_.clear();view_->selectSupportFace({},{});view_->clearSolidEdgeHighlights();selectedSketch_.clear();selectedProfile_.clear();selectedProfileIds_={};view_->fit(presentationBodies(),nonzeroAssemblyPose() ? std::vector<EvaluatedSketch>{} : document_->sketches());}
         return error.isEmpty() ? document_->state() : failure("open_failed",error,"path");
     });
@@ -4532,7 +4532,7 @@ QJsonObject AlloyWindow::state() const {
     // Report the current native drawable, not a previous offscreen capture FBO.
     view_->sync();
     const auto target=session_.value("command").toString();
-    const bool dialogVisible=target=="construction.tangentPlane" ? bool(tangentPlaneDock_ && tangentPlaneDock_->isVisible()) : target=="solid.splitBody" ? bool(splitBodyDock_ && splitBodyDock_->isVisible()) : target=="joint.slider" ? bool(sliderDock_ && sliderDock_->isVisible()) : target=="inspect.section" ? bool(sectionDock_ && sectionDock_->isVisible()) : target=="solid.sweep" ? bool(sweepDock_ && sweepDock_->isVisible()) : target=="solid.revolve" ? bool(revolveDock_ && revolveDock_->isVisible()) : target=="commands.search" ? bool(search_ && search_->isVisible())
+    const bool dialogVisible=target.startsWith("canvas.") ? bool(canvasDock_ && canvasDock_->isVisible()) : target=="construction.tangentPlane" ? bool(tangentPlaneDock_ && tangentPlaneDock_->isVisible()) : target=="solid.splitBody" ? bool(splitBodyDock_ && splitBodyDock_->isVisible()) : target=="joint.slider" ? bool(sliderDock_ && sliderDock_->isVisible()) : target=="inspect.section" ? bool(sectionDock_ && sectionDock_->isVisible()) : target=="solid.sweep" ? bool(sweepDock_ && sweepDock_->isVisible()) : target=="solid.revolve" ? bool(revolveDock_ && revolveDock_->isVisible()) : target=="commands.search" ? bool(search_ && search_->isVisible())
         : target=="solid.hole" ? bool(holeDock_ && holeDock_->isVisible())
         : target=="solid.sphere" ? bool(sphereDock_ && sphereDock_->isVisible())
         : target=="solid.chamfer" ? bool(chamferDock_ && chamferDock_->isVisible())

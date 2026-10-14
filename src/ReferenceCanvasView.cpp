@@ -24,7 +24,7 @@ void ReferenceView::setCanvases(const QJsonArray& rows,const EvaluatedDocument& 
         Handle(Image_PixMap) texture=new Image_PixMap;texture->InitTrash(Image_Format_RGBA,pixels.width(),pixels.height());texture->SetTopDown(true);
         for(int y=0;y<pixels.height();++y)std::memcpy(texture->ChangeRow(y),pixels.constScanLine(y),pixels.width()*4);
         model->SetTexturePixMap(texture);model->SetTextureMapOn();model->SetTextureRepeat(false);model->DisableTextureModulate();model->SetColor(Quantity_NOC_WHITE);model->SetTransparency(1-row["opacity"].toDouble());
-        context_->Display(model,3,-1,false);context_->Deactivate(model);canvasModels_[row["id"].toString()]=model;
+        context_->Display(model,3,-1,false);context_->Deactivate(model);canvasModels_[row["id"].toString()]=model;auto displayed=canvasState_[i].toObject();displayed["textureDisplayed"]=true;canvasState_[i]=displayed;
     }
     view_->Redraw();
 }

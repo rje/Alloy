@@ -30,6 +30,7 @@ public:
     void setCanvases(const QJsonArray& rows,const EvaluatedDocument& evaluation);
     void setCanvasPicking(bool active) { canvasPicking_=active; }
     QJsonArray canvasState() const { return canvasState_; }
+    TopoDS_Shape canvasShape(const QString& id) const { return canvasModels_.contains(id) ? canvasModels_[id]->Shape() : TopoDS_Shape{}; }
     QJsonObject diagnostics() const;
     QJsonObject cameraState() const;
     void restoreCameraState(const QJsonObject& state);

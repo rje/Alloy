@@ -1,5 +1,18 @@
 # Continuation context
 
+## Local reference canvas candidate (2026-10-14)
+
+DOC-024/#294 now has a separate local-image reference authority, retained real
+plane GPU texture, position/angle/uniform-width/opacity controls, Browser
+visibility and two-point dimension calibration. Core retained-plane edit and
+portable embedded reopen,46-call real-entrypoint API and bounded native
+placement/calibration/history checks pass. Independent Astra review remains
+pending; no acceptance/integration claim yet. See
+[the receipt](validation/local-reference-canvas.md) and
+[the source contract](research/local-reference-canvas-contract.md). Public
+flags/flips/nonuniform controls and exact manipulator/layout parity stay explicit
+broader compatibility work. No reference images are bundled as app assets.
+
 ## Accepted Two Sides surface extrusion (2026-10-14)
 
 SRF-014/#355 is independently accepted and integrated. Selected open lines and
