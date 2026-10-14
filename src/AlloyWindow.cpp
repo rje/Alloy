@@ -3967,7 +3967,7 @@ void AlloyWindow::refresh() {
         bodiesNode_->setExpanded(true);
         view_->setBodies(presentationBodies(),++presentationRevision_);
         const auto assembly=presentationAssembly()["joints"].toArray();
-        view_->setSliderCue(assembly.isEmpty() ? QJsonObject{} : assembly[0].toObject()["origin"].toObject());
+        view_->setSliderCue(assembly.isEmpty() ? QJsonObject{} : assembly[0].toObject());
         view_->setSketches(nonzeroAssemblyPose() ? std::vector<EvaluatedSketch>{} : document_->sketches(),presentationRevision_);
         view_->setConstructionPlanes(nonzeroAssemblyPose() ? std::vector<EvaluatedConstructionPlane>{} : document_->evaluation().constructionPlanes,presentationRevision_);
         view_->selectConstructionPlane(selectedPlane_);

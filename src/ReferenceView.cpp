@@ -1706,10 +1706,10 @@ QJsonObject ReferenceView::pickSupportBoundaryEdge(double x,double y,const std::
 void ReferenceView::clearSolidEdgeHighlights() {
     if(!context_.IsNull())for(const auto& shape:solidEdgeHighlights_)context_->Remove(shape,false);solidEdgeHighlights_.clear();
 }
-void ReferenceView::setSliderCue(const QJsonObject& position) {
+void ReferenceView::setSliderCue(const QJsonObject& joint) {
     if(!context_.IsNull())for(const auto& cue:sliderCue_)context_->Remove(cue,false);sliderCue_.clear();
     if(context_.IsNull())return;
-    const auto coordinates=position["pointMm"].toArray();if(coordinates.size()!=3){context_->UpdateCurrentViewer();return;}
+    const auto coordinates=joint["origin"].toObject()["pointMm"].toArray();if(coordinates.size()!=3){context_->UpdateCurrentViewer();return;}
     const gp_Pnt anchor(coordinates[0].toDouble(),coordinates[1].toDouble(),coordinates[2].toDouble());
     const double radius=std::clamp(view_->Camera()->Scale()*2/std::max(height(),1),0.5,2.5);
     const auto mark=[this](const TopoDS_Shape& shape,const Quantity_Color& color){
@@ -1718,7 +1718,8 @@ void ReferenceView::setSliderCue(const QJsonObject& position) {
         context_->Display(cue,AIS_Shaded,-1,false);context_->Deactivate(cue);sliderCue_.push_back(cue);
     };
     mark(BRepPrimAPI_MakeSphere(anchor,radius*1.35).Shape(),Quantity_Color(.96,.48,.12,Quantity_TOC_sRGB));
-    const gp_Dir axis(0,1,0);const double length=std::clamp(view_->Camera()->Scale()*.08,12.0,40.0);
+    const gp_Dir axis(0,joint["reverseDirection"].toBool() ? -1 : 1,0);
+    const double length=std::clamp(view_->Camera()->Scale()*.08,12.0,40.0);
     mark(BRepPrimAPI_MakeCylinder(gp_Ax2(anchor,axis),radius*.42,length-radius*2).Shape(),Quantity_Color(.08,.57,.18,Quantity_TOC_sRGB));
     mark(BRepPrimAPI_MakeCone(gp_Ax2(anchor.Translated(gp_Vec(axis)*(length-radius*2)),axis),radius*1.5,0,radius*2).Shape(),Quantity_Color(.08,.57,.18,Quantity_TOC_sRGB));
     context_->UpdateCurrentViewer();

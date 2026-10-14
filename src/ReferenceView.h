@@ -100,7 +100,7 @@ public:
     void clearPatternAxes();
     void highlightSolidEdges(const std::vector<EvaluatedBody>& bodies,const QString& bodyId,const QJsonArray& edgeIds);
     void clearSolidEdgeHighlights();
-    void setSliderCue(const QJsonObject& position);
+    void setSliderCue(const QJsonObject& joint);
     QJsonObject projectBody(const EvaluatedBody& body) const;
     void showHolePreview(const EvaluatedBody& result, const TopoDS_Shape& removedMaterial);
     void showSpherePreview(const TopoDS_Shape& tool, bool cut);
