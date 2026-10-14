@@ -51,10 +51,10 @@ with application(args.app, out, command_timeout=90) as (call, ledger):
     call('capture.screenshot', {'path': str(out/'two-linked-pistons.png')})
     body_id = rows[inner]['bodies'][0]['bodyId']
     call('selection.set', {'bodyId': body_id}, error='ambiguous_instance')
-    call('document.exportStl', {'occurrenceId': parent, 'path': str(out/'refused.stl'),
+    exported = call('document.exportStl', {'occurrenceId': parent, 'path': str(out/'parent.stl'),
                                'units': 'mm', 'format': 'binary', 'surfaceDeviationMm': 0.1,
-                               'normalDeviationDeg': 10}, error='linked_export_unavailable')
-    assert not (out/'refused.stl').exists()
+                               'normalDeviationDeg': 10})
+    assert exported['bodyCount'] == 2
     for occurrence in (inner, mapping[inner]):
         call('selection.set', {'bodyId': body_id, 'occurrenceId': occurrence})
         call('capture.screenshot', {'path': str(out/f'selected-{occurrence}.png')})

@@ -4739,7 +4739,7 @@ void AlloyWindow::registerCommands() {
             : session_.value("command").toString().startsWith("solid.") ? primitivePanel_
             : session_.value("command").toString().startsWith("sketch.") ? sketchPanel_ : unitsDialog_;
         const auto* activeModal=QApplication::activeModalWidget();
-        const bool planeDialog=activeModal && (activeModal->objectName()=="constructionPlaneDialog" || activeModal->objectName()=="mesh.export.dialog"
+        const bool planeDialog=activeModal && (activeModal->objectName()=="constructionPlaneDialog" || activeModal->objectName()=="mesh.export.dialog" || activeModal->objectName()=="step.export.dialog"
             || activeModal->objectName()=="component.reparent.dialog" || activeModal->objectName()=="body.rename.dialog" || activeModal==lengthParametersDialog_.data());
         if(planeDialog)dialog=QApplication::activeModalWidget();
         if ((!planeDialog && session_.isEmpty()) || !dialog || !dialog->isVisible()) return failure("no_active_dialog", "No active dialog to capture");
