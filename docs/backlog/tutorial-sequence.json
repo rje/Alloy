@@ -37,9 +37,30 @@
       "issues": [
         "TUT-026"
       ],
-      "status": "in_progress",
+      "status": "done",
       "acceptance": "Continue accepted construction; ensure eight visible Tangent relations, dimension circles/arcs and center distances in public order, inspect residuals/profiles and preserve history/reopen.",
-      "remaining": "Sol implementing actual native continuation from accepted saved construction; existing R10 is reused, missing outgoing tangent audited before dimensions. Split concrete input gaps if discovered."
+      "remaining": "None for bounded native continuation. Existing R10 reused; zeroDOF is observed, not a source requirement. Qt/menu adaptation and source viewport differences qualified.",
+      "evidence": "docs/validation/base-sketch-dimensions.md"
+    },
+    {
+      "id": "CP-28",
+      "title": "Base sketch first solid",
+      "issues": [
+        "TUT-027"
+      ],
+      "status": "in_progress",
+      "acceptance": "Continue dimensioned sketch with native Finish, Press Pull, all three regions and48.25mm New Body; valid editable solid and history/reopen.",
+      "remaining": "Sol validating native3region48.25mm PressPull. Existing typed-depth slice accepted separately; broadSOL016 dragCut remains open. Missing taper field retained with SOL010."
+    },
+    {
+      "id": "CP-29",
+      "title": "Base sketch face holes and through cut",
+      "issues": [
+        "TUT-028"
+      ],
+      "status": "todo",
+      "acceptance": "Continue firstsolid with native cap-face sketch, retained center references, diameter10/8/8 circles, three-profile Cut/All/Flip; valid through-openings and history/reopen.",
+      "remaining": "Requires TUT-027; existing face/reference/Cut ingredients are reused, exact native three-profile All/Flip combination remains cumulative gate."
     },
     {
       "id": "CP-20",

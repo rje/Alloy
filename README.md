@@ -1,5 +1,11 @@
 # Alloy
 
+The [tangent-arc construction walkthrough](docs/validation/base-sketch-construction.md)
+now passes from blank through circle contacts, one-junction R10 Fillet and a
+hold-drag tangent Arc. Its 64-second Qt-input movie includes a circle-size edit
+and exact save/reopen. The [dimension continuation](docs/validation/base-sketch-dimensions.md)
+now passes the eight-Tangent audit and all source dimensions with native input.
+
 The [Center to Center Slot](docs/validation/center-to-center-slot.md) now follows
 the two-cap-center creation route, with retained snaps and separately placed
 length/radius dimensions. [Direct dimension formulas](docs/validation/sketch-dimension-expression.md) now

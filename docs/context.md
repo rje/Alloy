@@ -53,14 +53,24 @@ The64.133s movie/model are in the external gallery at
 `demos/2026-10-13/index.html#base-sketch-construction`; all139 local links resolve.
 Menu opener adaptation/Qt-not-OS input, rough proportions, raw repeated frames
 and two transient pre-Line pointer-preview refusals remain qualified.
-TUT-026/#393 is active with Sol: subsequent eight-Tangent-symbol audit and ordered
-circle/arc/center-distance dimensions from the archived later pages. Finalinput
-is external `deliverables/base-sketch-construction-2026-10-14/recording-01/base-sketch-construction.alloy`.
-Seven Tangents already exist; the outgoing upper-arc/Line contact needs the audit.
-R10 is already retained and visible from Fillet; do not add a duplicate dimension.
-No full-constraint or solid claim. Sol owns UI/CMake/build/GUI lease; new fixture
-`tests/base_sketch_dimensions_tutorial.cpp` is in preparation. Astra verifies.
-Backlog is393 issues with acyclic dependencies.
+TUT-026/#393 is independently accepted at `40db961`: native02 passes3/3
+through the eighth visible Tangent, circle/arc dimensions and six ordered center
+edits. Ten dimensions, eight Tangents, three valid cells and observed0DOF; exact
+authored/evaluated history/reopen pass. Existing R10 is reused. The19.866s native
+continuation movie/model are alongside the construction movie in the gallery at
+`#base-sketch-dimensions`; all146 local links resolve. [Receipt](validation/base-sketch-dimensions.md).
+TUT-027/#394 is active with Sol: Finish Sketch, Modify > Press Pull, three regions,
+48.25mm New Body. It reuses the independently accepted typed-depth slice in
+[the multi-profile receipt](validation/multi-profile-extrusion.md). Broad SOL-016
+remains open for its unrelated five-hole arrow-drag/platform-toggle acceptance;
+this gate depends on closed SOL-001/SKT-009 foundations plus TUT-026.
+The source screenshot shows a zero-taper field missing from Alloy's panel; actual
+straight-prism zero taper is supported, exact panel parity is not claimed. The
+missing retained taper/control remains with open SOL-010. Sol owns UI/CMake/build/GUI.
+TUT-028/#395 is queued: cap-face sketch, referenced circle centers, diameters10/8/8,
+then three-profile Cut/All/Flip. Public sources/visuals/contracts stay external;
+existing SKT-013/010 and SOL-015/047 ingredients must pass this native combination.
+Backlog is395 issues with acyclic dependencies. Astra independently verifies.
 Only main and its existing build are used; no inactive worktrees accumulate.
 DOC-031/#348 is independently accepted at `89782cf`: unchanged-product native09
 passes modal line focus, rename commit, Browser label and unchanged geometry.
