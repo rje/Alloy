@@ -73,7 +73,7 @@ placed-output movie finished (351.667 seconds, all four stage receipts pass,
 zero capture failures). The external gallery links it at `#piston-full-output`;
 independent artifact review accepted the semantic/API recording. Exact native
 TUT-019 remains open and is now In Progress: a separate cumulative native
-harness is being prepared while the final input child finishes.
+harness now contains the bounded source operations; cumulative native acceptance is still pending.
 Its broad ASM-001/002/003 dependencies were
 replaced with the accepted bounded children after independent review; broad
 parents remain Todo with their full remaining scope. A final source-flow audit
@@ -104,6 +104,16 @@ sequence uses the separately accepted viewport-origin route. The combined main
 app builds. See [shared dialog acceptance](validation/as-built-native-selection.md).
 All bounded input children are closed. TUT-019 is In Progress, connecting them
 in one source-order native sequence from the declared four-solid adaptation.
+The cumulative native10 attempt stops after body-conversion OK: the dialog
+becomes active, but the main window does not regain activation. No inter-step
+focus repair was introduced. An OS-click check in the actual bundled app was
+blocked before input by desktop control reporting `cgWindowNotFound`; the API
+remained responsive with no focused window. This does not establish a product
+focus defect. Evidence remains external under
+`deliverables/piston-native-workflow-2026-10-14/modal-os-check-01/`.
+REL-010/#367 is now being implemented separately: command-scoped reuse of one
+authoritative assembly evaluation, with exact effective-input matching and
+independent review. No performance improvement is accepted yet.
 Direct Copy Component/API routes alone are not exact native source input proof.
 The cumulative API movie remains valid qualified geometry/semantic evidence.
 Its native continuation also checks a small recorder correction: delivered
