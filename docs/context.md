@@ -28,7 +28,13 @@ SKT-078/#377 is independently accepted at `0c49262` + `b01084a`. Native03
 verifies focused Qt keyboard selection, ordinary replacement, aggregate Clear,
 Cancel, commit and undo/redo. Pointer-row clicking remains unverified. The Clear
 row now removes the staged aggregate and disables preview/OK correctly.
-SKT-077/#375 is active for native displaced-face origin snapping.
+SKT-077/#375 is back in Todo: initial activation then a face-pick failure
+stopped the focused native gate before sketch creation. Draft and logs are
+preserved externally under `deliverables/face-sketch-origin-2026-10-14/native-draft/`.
+No native origin acceptance is claimed; accepted core/API checks are unchanged.
+Read-only review rules out required cached hover: picking ray-tests click coordinates.
+Pre-activation projection versus queued viewport sync is plausible but unproven.
+DOC-031/#348 is active for a bounded Browser rename modality/focus investigation.
 Implementation and validation reuse main and its build; no new worktrees.
 FND-001 comparison policy is accepted in docs/compatibility.md; FND-025/#376
 retains unknown public screenshot metadata and unproven layout generations.
