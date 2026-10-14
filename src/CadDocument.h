@@ -25,6 +25,8 @@ public:
     QString activateOwner(const QString& ownerId);
     static bool hasOwner(const QJsonObject& authored, const QString& ownerId);
     static QJsonObject componentCandidate(const QJsonObject& authored, const QString& name);
+    static QJsonObject reparentCandidate(const QJsonObject& authored,const EvaluatedDocument& evaluated,
+        const QString& kind,const QJsonArray& objectIds,const QString& destinationId);
     static QJsonObject lengthParameterCandidate(const QJsonObject& authored,const QJsonObject& arguments);
     static QJsonArray modelLengthRows(const QJsonObject& authored);
     static QJsonObject modelLengthCandidate(const QJsonObject& authored,const QJsonObject& arguments);

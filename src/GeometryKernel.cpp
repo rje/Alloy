@@ -1071,15 +1071,27 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
             throw EvaluationError(context);
         }
     }
-    QMap<QString,QString> owners;
-    for(const auto& value:authored["features"].toArray()){const auto f=value.toObject();owners[f["id"].toString()]=f["ownerId"].toString();}
+    QMap<QString,QString> owners,featureTypes;
+    for(const auto& value:authored["features"].toArray()){const auto f=value.toObject();owners[f["id"].toString()]=f["ownerId"].toString();featureTypes[f["id"].toString()]=f["type"].toString();}
     QMap<QString,double> opacity;
     for(const auto& value:authored["components"].toArray()){
         const auto component=value.toObject();opacity[component["id"].toString()]=component.value("opacity").toDouble(1.0);
     }
-    for(auto& body:evaluated.bodies){body.ownerId=owners[body.featureId];body.summary["ownerId"]=body.ownerId;
+    const auto organization=authored.value("objectOwners").toObject();
+    const auto bodyOwners=organization.value("bodies").toObject(),sketchOwners=organization.value("sketches").toObject();
+    QSet<QString> currentSketches,localBodies;
+    for(auto& body:evaluated.bodies){
+        if(body.occurrenceId.isEmpty() && featureTypes.value(body.featureId)!="stepImport"
+            && featureTypes.value(body.featureId)!="stepAssemblyImport")localBodies.insert(body.bodyId);
+        body.ownerId=bodyOwners.value(body.bodyId).toString(owners[body.featureId]);body.summary["ownerId"]=body.ownerId;
         body.summary["opacity"]=opacity.value(body.ownerId,1.0);}
-    for(auto& sketch:evaluated.sketches){sketch.ownerId=owners[sketch.featureId];sketch.summary["ownerId"]=sketch.ownerId;}
+    for(auto& sketch:evaluated.sketches){
+        currentSketches.insert(sketch.featureId);
+        sketch.ownerId=sketchOwners.value(sketch.featureId).toString(owners[sketch.featureId]);sketch.summary["ownerId"]=sketch.ownerId;}
+    for(auto it=bodyOwners.begin();it!=bodyOwners.end();++it)if(!localBodies.contains(it.key()))
+        reject("reparent_body_unavailable","Reparented local body is no longer active; repair or undo the upstream edit");
+    for(auto it=sketchOwners.begin();it!=sketchOwners.end();++it)if(!currentSketches.contains(it.key()))
+        reject("reparent_sketch_unavailable","Reparented sketch is no longer available; repair or undo the upstream edit");
     for(auto& plane:evaluated.constructionPlanes)plane.ownerId=owners[plane.featureId];
     return evaluated;
 }

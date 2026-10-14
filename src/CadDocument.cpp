@@ -29,6 +29,36 @@
 
 namespace {
 bool validId(const QString& id) { return !QUuid(id).isNull() && QUuid(id).toString(QUuid::WithoutBraces) == id; }
+QJsonObject newFeatureReparentError(const QJsonObject& before,const QJsonObject& candidate) {
+    QSet<QString> prior;
+    for(const auto& value:before["features"].toArray())prior.insert(value.toObject()["id"].toString());
+    const auto organization=candidate.value("objectOwners").toObject();
+    auto moved=organization.value("bodies").toObject();
+    const auto sketches=organization.value("sketches").toObject();
+    for(auto it=sketches.begin();it!=sketches.end();++it)moved[it.key()]=it.value();
+    if(moved.isEmpty())return {};
+    for(const auto& value:candidate["features"].toArray()) {
+        const auto feature=value.toObject();const auto featureId=feature["id"].toString(),owner=feature["ownerId"].toString();
+        if(prior.contains(featureId))continue;
+        std::function<QString(const QJsonValue&)> crossOwner=[&](const QJsonValue& input)->QString {
+            if(input.isString()) {
+                const auto key=input.toString();
+                if(moved.contains(key) && moved[key].toString()!=owner)return key;
+            } else if(input.isArray()) {
+                for(const auto& child:input.toArray())if(const auto id=crossOwner(child);!id.isEmpty())return id;
+            } else if(input.isObject()) {
+                const auto object=input.toObject();
+                for(auto it=object.begin();it!=object.end();++it)
+                    if(const auto id=crossOwner(it.value());!id.isEmpty())return id;
+            }
+            return {};
+        };
+        const auto id=crossOwner(feature["parameters"]);
+        if(!id.isEmpty())return {{"code","reparent_cross_owner_new_feature"},{"featureId",featureId},{"objectId",id},
+            {"message","New cross-component modeling on a moved object is unsupported; move the object back before authoring this feature"}};
+    }
+    return {};
+}
 QJsonObject dependencyError(const QJsonObject& candidate) {
     const auto features = candidate["features"].toArray();
     QMap<QString,int> positions;
@@ -375,6 +405,58 @@ QJsonObject CadDocument::componentCandidate(const QJsonObject& authored,const QS
     occurrences.append(QJsonObject{{"id",newId()},{"definitionId",id},{"parentId",authored["documentId"]},{"placement","identity"}});
     candidate["components"]=components;candidate["occurrences"]=occurrences;return candidate;
 }
+QJsonObject CadDocument::reparentCandidate(const QJsonObject& authored,const EvaluatedDocument& evaluated,
+    const QString& kind,const QJsonArray& objectIds,const QString& destinationId) {
+    if(kind!="body" && kind!="sketches")throw std::invalid_argument("Reparent kind must be body or sketches");
+    if(!hasOwner(authored,destinationId))throw std::invalid_argument("Destination component is unavailable");
+    if(destinationId!=authored["documentId"].toString()) {
+        bool identity=false;
+        for(const auto& value:authored["occurrences"].toArray()) {
+            const auto row=value.toObject();
+            if(row["definitionId"]==destinationId && row["parentId"]==authored["documentId"] && row["placement"]=="identity")identity=true;
+        }
+        if(!identity)throw std::invalid_argument("Destination requires one root-child identity occurrence");
+    }
+    if(objectIds.isEmpty() || (kind=="body" && objectIds.size()!=1))
+        throw std::invalid_argument("Select one active body or current sketches to move");
+    QMap<QString,QString> featureOwners,featureTypes;
+    for(const auto& value:authored["features"].toArray()) {
+        const auto feature=value.toObject();featureOwners[feature["id"].toString()]=feature["ownerId"].toString();
+        featureTypes[feature["id"].toString()]=feature["type"].toString();
+    }
+    auto candidate=authored;auto ownership=candidate.value("objectOwners").toObject();
+    auto records=ownership.value(kind=="body" ? "bodies" : "sketches").toObject();
+    QSet<QString> seen;QString folderOwner;
+    for(const auto& value:objectIds) {
+        const auto id=value.toString();
+        if(!validId(id) || seen.contains(id))throw std::invalid_argument("Reparent requires distinct stable object IDs");
+        seen.insert(id);
+        QString sourceFeature;
+        if(kind=="body")for(const auto& body:evaluated.bodies)
+            if(body.bodyId==id && body.occurrenceId.isEmpty())sourceFeature=body.featureId;
+        if(kind=="sketches")for(const auto& sketch:evaluated.sketches)
+            if(sketch.featureId==id) {
+                sourceFeature=sketch.featureId;
+                if(folderOwner.isEmpty())folderOwner=sketch.ownerId;
+                else if(folderOwner!=sketch.ownerId)throw std::invalid_argument("Selected sketches must be from one Browser folder");
+            }
+        if(sourceFeature.isEmpty() || !featureOwners.contains(sourceFeature)
+            || featureTypes[sourceFeature]=="stepImport" || featureTypes[sourceFeature]=="stepAssemblyImport")
+            throw std::invalid_argument("Reparent object is not an active local body or sketch");
+        if(kind=="sketches" && featureTypes[sourceFeature]!="sketch")
+            throw std::invalid_argument("Reparent sketch ID is unavailable");
+        const auto inherited=featureOwners[sourceFeature];
+        if(destinationId==inherited)records.remove(id);
+        else records[id]=destinationId;
+    }
+    ownership[kind=="body" ? "bodies" : "sketches"]=records;
+    if(!ownership.value("bodies").toObject().isEmpty() || !ownership.value("sketches").toObject().isEmpty()) {
+        if(!ownership.contains("bodies"))ownership["bodies"]=QJsonObject{};
+        if(!ownership.contains("sketches"))ownership["sketches"]=QJsonObject{};
+        candidate["objectOwners"]=ownership;
+    } else candidate.remove("objectOwners");
+    return candidate;
+}
 QJsonObject CadDocument::lengthParameterCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
     const QSet<QString> allowed{"parameterId","name","value","units"};
     for(auto it=arguments.begin();it!=arguments.end();++it)if(!allowed.contains(it.key()))throw std::invalid_argument("Unknown length parameter argument");
@@ -619,6 +701,9 @@ QString CadDocument::commit(const QJsonObject& candidate, const QString& label) 
         lastEvaluationError_ = {{"code","invalid_document"},{"message",error}}; return error;
     }
     if (candidate == authored_) return {};
+    if(const auto guard=newFeatureReparentError(authored_,candidate);!guard.isEmpty()) {
+        lastEvaluationError_=guard;return guard["message"].toString();
+    }
     auto prepared = prepareCandidate(candidate);
     if (!prepared.ok) {lastEvaluationError_ = prepared.diagnostics;return prepared.error;}
     if (prepared.authored == authored_) return {};
@@ -715,6 +800,10 @@ EvaluatedDocument CadDocument::evaluationBefore(const QString& featureId) const 
     auto prefix=authored_;QJsonArray features;bool found=false;
     for(const auto& value:authored_["features"].toArray()){if(value.toObject()["id"]==featureId){found=true;break;}features.append(value);}
     if(!found)throw std::invalid_argument("History input feature is unavailable");prefix["features"]=features;
+    // Browser organization is a final-document placement of finished objects.
+    // A modeling prefix may precede their creation, and its source references
+    // must remain in the original feature-owner context.
+    prefix.remove("objectOwners");
     return GeometryKernel::evaluateDocument(prefix);
 }
 QJsonObject CadDocument::stepImportCandidate(const QJsonObject& authored, const QJsonObject& arguments) {
@@ -1222,6 +1311,18 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
         ids.insert(id);instantiated.insert(definition);
     }
     if(instantiated.size()!=owners.size()-1)return "Each local component requires one occurrence";
+    if(candidate.contains("objectOwners")) {
+        const auto organization=candidate["objectOwners"].toObject();
+        if(!candidate["objectOwners"].isObject() || organization.size()!=2
+            || !organization["bodies"].isObject() || !organization["sketches"].isObject())
+            return "Object ownership requires body and sketch maps";
+        for(const auto& kind:{"bodies","sketches"}) {
+            const auto records=organization[kind].toObject();
+            for(auto it=records.begin();it!=records.end();++it)
+                if(!validId(it.key()) || !it.value().isString() || !owners.contains(it.value().toString()))
+                    return "Object ownership requires stable object and component IDs";
+        }
+    }
     if(candidate.contains("joints") && !candidate["joints"].isArray())return "Joints must be an array";
     const auto joints=candidate.value("joints").toArray();if(joints.size()>1)return "This assembly slice supports one Slider joint";
     if(!joints.isEmpty()){

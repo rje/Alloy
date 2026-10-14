@@ -24,6 +24,10 @@
 #include <QCryptographicHash>
 #include <QDialog>
 #include <QDialogButtonBox>
+#include <QDrag>
+#include <QDragEnterEvent>
+#include <QDropEvent>
+#include <QMimeData>
 #include <QDockWidget>
 #include <QComboBox>
 #include <QDoubleSpinBox>
@@ -81,6 +85,34 @@
 #include <numbers>
 
 namespace {
+class BrowserTree final : public QTreeWidget {
+public:
+    using QTreeWidget::QTreeWidget;
+    std::function<bool(QTreeWidgetItem*,QTreeWidgetItem*)> moveRequested;
+protected:
+    void startDrag(Qt::DropActions) override {
+        if(!currentItem())return;
+        auto* drag=new QDrag(this);auto* mime=new QMimeData;
+        mime->setData("application/x-alloy-browser-object",QByteArray("move"));drag->setMimeData(mime);
+        drag->exec(Qt::MoveAction);
+    }
+    void dragEnterEvent(QDragEnterEvent* event) override {
+        if(event->source()==this && event->mimeData()->hasFormat("application/x-alloy-browser-object"))event->acceptProposedAction();
+        else event->ignore();
+    }
+    void dragMoveEvent(QDragMoveEvent* event) override {
+        auto* target=itemAt(event->position().toPoint());
+        if(event->source()==this && event->mimeData()->hasFormat("application/x-alloy-browser-object")
+            && target && !target->data(0,Qt::UserRole+3).toString().isEmpty())event->acceptProposedAction();
+        else event->ignore();
+    }
+    void dropEvent(QDropEvent* event) override {
+        auto* target=itemAt(event->position().toPoint());
+        if(event->source()==this && event->mimeData()->hasFormat("application/x-alloy-browser-object")
+            && target && currentItem() && moveRequested && moveRequested(currentItem(),target))event->acceptProposedAction();
+        else event->ignore();
+    }
+};
 class ModelExpressionDelegate final : public QStyledItemDelegate {
 public:
     using QStyledItemDelegate::QStyledItemDelegate;
@@ -392,7 +424,25 @@ AlloyWindow::AlloyWindow() {
     auto* browserTitle = new QLabel("BROWSER"); browserTitle->setFixedHeight(33);
     browserTitle->setStyleSheet("font-size: 11px; letter-spacing: 1px; border-right: 0; border-bottom: 1px solid #d7dde1;");
     browserLayout->addWidget(browserTitle);
-    tree_ = new QTreeWidget; tree_->setObjectName("browser.tree"); tree_->setHeaderHidden(true); tree_->setIndentation(17);
+    auto* browserTree=new BrowserTree;tree_=browserTree;
+    tree_->setObjectName("browser.tree"); tree_->setHeaderHidden(true); tree_->setIndentation(17);
+    tree_->setDragEnabled(true);tree_->setAcceptDrops(true);tree_->setDropIndicatorShown(true);
+    tree_->setDragDropMode(QAbstractItemView::DragDrop);
+    browserTree->moveRequested=[this](QTreeWidgetItem* source,QTreeWidgetItem* target){
+        if(!source || !target || !session_.isEmpty())return false;
+        const auto destination=target->data(0,Qt::UserRole+3).toString();
+        if(destination.isEmpty())return false;
+        const auto body=source->data(0,Qt::UserRole+1).toString();
+        const bool bodyRow=source->parent() && source->parent()->data(0,Qt::UserRole+4)=="bodies";
+        const bool sketchFolder=source->data(0,Qt::UserRole+4)=="sketches";
+        if(!bodyRow && !sketchFolder)return false;
+        QJsonObject args;
+        if(bodyRow)args["bodyId"]=body;
+        else args["sourceOwnerId"]=source==sketchesNode_ ? document_->authored()["documentId"].toString()
+            : source->parent()->data(0,Qt::UserRole+3).toString();
+        QTimer::singleShot(0,this,[this,args]{execute("component.reparentDialog",args);});
+        return true;
+    };
     auto* document = new QTreeWidgetItem(tree_, {"◇  Untitled"});
     auto* settings = new QTreeWidgetItem(document, {"Document Settings"});
     new QTreeWidgetItem(settings, {"Units: mm"});
@@ -436,6 +486,15 @@ AlloyWindow::AlloyWindow() {
             if(action==capture)execute("reference.capture");if(action==revert)execute("reference.revert");
             if(action==update)execute("reference.update",{{"featureId",linkedFeature}});return;
         }
+        if(item->data(0,Qt::UserRole+4)=="sketches"){
+            const auto source=item==sketchesNode_ ? document_->authored()["documentId"].toString()
+                : item->parent()->data(0,Qt::UserRole+3).toString();
+            QMenu menu(this);auto* move=menu.addAction("Move Sketches to Component…");
+            move->setObjectName("context.reparentSketches");move->setEnabled(session_.isEmpty());
+            if(menu.exec(tree_->viewport()->mapToGlobal(point))==move)
+                execute("component.reparentDialog",{{"sourceOwnerId",source}});
+            return;
+        }
         if((item->parent() && item->parent()->data(0,Qt::UserRole+4)=="sketches") || (item->parent() && item->parent()->data(0,Qt::UserRole+4)=="planes")) {
             const auto id=item->data(0,Qt::UserRole+2).toString();
             execute((item->parent() && item->parent()->data(0,Qt::UserRole+4)=="planes") ? "selection.planeSet" : "selection.sketchSet",(item->parent() && item->parent()->data(0,Qt::UserRole+4)=="planes") ? QJsonObject{{"planeId",id}} : QJsonObject{{"sketchId",id}});
@@ -454,12 +513,14 @@ AlloyWindow::AlloyWindow() {
             if(action==edit)execute("joint.sliderDialog",{{"jointId",item->data(0,Qt::UserRole+5).toString()}});
             if(action==animate)execute("joint.animate");return;
         }
-        if(item->parent()!=bodiesNode_)return;
+        if(!item->parent() || item->parent()->data(0,Qt::UserRole+4)!="bodies")return;
         const auto bodyId=item->data(0,Qt::UserRole+1).toString();
-        QMenu menu(this);menu.setObjectName("context.browserBody");auto* move=menu.addAction("Move/Copy");move->setObjectName("context.moveBody");move->setEnabled(session_.isEmpty());auto* mesh=menu.addAction("Save As Mesh…");mesh->setObjectName("context.exportMesh");mesh->setEnabled(session_.isEmpty());
+        QMenu menu(this);menu.setObjectName("context.browserBody");auto* move=menu.addAction("Move/Copy");move->setObjectName("context.moveBody");move->setEnabled(session_.isEmpty());
+        auto* reparent=menu.addAction("Move to Component…");reparent->setObjectName("context.reparentBody");reparent->setEnabled(session_.isEmpty());
+        auto* mesh=menu.addAction("Save As Mesh…");mesh->setObjectName("context.exportMesh");mesh->setEnabled(session_.isEmpty());
         QJsonArray actions;for(const auto* action:menu.actions())actions.append(QJsonObject{{"id",action->objectName()},{"text",action->text()},{"enabled",action->isEnabled()}});
         QJsonObject context{{"origin","browser"},{"bodyId",bodyId},{"phase","open"},{"actions",actions}};view_->recordContextMenu(context,true);
-        const auto* action=menu.exec(tree_->viewport()->mapToGlobal(point));context["phase"]="closed";context["result"]=action ? action->objectName() : QString("cancelled");view_->recordContextMenu(context);if(action==move)execute("solid.moveDialog",{{"targetBodyId",bodyId}});else if(action==mesh)execute("document.exportMeshDialog",{{"bodyId",bodyId}});
+        const auto* action=menu.exec(tree_->viewport()->mapToGlobal(point));context["phase"]="closed";context["result"]=action ? action->objectName() : QString("cancelled");view_->recordContextMenu(context);if(action==move)execute("solid.moveDialog",{{"targetBodyId",bodyId}});else if(action==reparent)execute("component.reparentDialog",{{"bodyId",bodyId}});else if(action==mesh)execute("document.exportMeshDialog",{{"bodyId",bodyId}});
     });
     connect(tree_, &QTreeWidget::itemClicked, this, [this](QTreeWidgetItem* item, int) {
         if(!item || item->isHidden() || !(item->flags()&Qt::ItemIsEnabled))return;
@@ -1065,6 +1126,65 @@ void AlloyWindow::registerCommands() {
             if(a.value("activate").toBool(true))document_->activateOwner(id);
             return QJsonObject{{"definitionId",id},{"occurrenceId",candidate["occurrences"].toArray().last().toObject()["id"]},{"activeOwnerId",document_->activeOwnerId()}};
         });
+    add("component.reparent","Move to Component","Move one finished body or an explicit set of sketches into a local identity component.",
+        {{"destinationId",parameter("string","Destination component definition UUID, or root document UUID.")},
+         {"bodyId",optional(parameter("string","One active local body UUID."))},
+         {"sketchIds",optional(parameter("array","Current sketch feature UUIDs from one Browser folder."))}},[this](const auto& a){
+            if(!session_.isEmpty())return failure("active_command","Finish or Cancel before moving Browser objects");
+            const auto body=a.value("bodyId").toString();const auto sketches=a.value("sketchIds").toArray();
+            if(body.isEmpty()==sketches.isEmpty())return failure("invalid_arguments","Choose one body or one or more sketches");
+            QJsonObject candidate;
+            try{candidate=CadDocument::reparentCandidate(document_->authored(),document_->evaluation(),
+                body.isEmpty() ? "sketches" : "body",body.isEmpty() ? sketches : QJsonArray{body},a["destinationId"].toString());}
+            catch(const std::exception& e){return failure("invalid_reparent",QString::fromUtf8(e.what()));}
+            const auto error=document_->commit(candidate,body.isEmpty() ? "Move Sketches to Component" : "Move Body to Component");
+            if(!error.isEmpty())return failure("invalid_reparent",error);
+            return QJsonObject{{"destinationId",a["destinationId"]},{"bodyId",body},{"sketchIds",sketches},
+                {"objectOwners",document_->authored()["objectOwners"]}};
+        });
+    add("component.reparentDialog","Move to Component…","Review a Browser body or Sketches folder move before committing it.",
+        {{"bodyId",optional(parameter("string","Selected active body UUID."))},
+         {"sourceOwnerId",optional(parameter("string","Sketches folder component definition UUID."))}},[this](const auto& a){
+            if(!session_.isEmpty())return failure("active_command","Finish or Cancel before moving Browser objects");
+            const auto bodyId=a.value("bodyId").toString(),sourceOwner=a.value("sourceOwnerId").toString();
+            if(bodyId.isEmpty()==sourceOwner.isEmpty())return failure("invalid_arguments","Select one body or a Sketches folder");
+            QJsonArray sketches;QString source,description;
+            if(!bodyId.isEmpty()){
+                for(const auto& body:document_->bodies())if(body.bodyId==bodyId && body.occurrenceId.isEmpty()){
+                    source=body.ownerId;description="Body: "+body.name;break;
+                }
+                if(source.isEmpty())return failure("body_unavailable","Choose an active local body");
+            }else{
+                source=sourceOwner;
+                for(const auto& sketch:document_->sketches())if(sketch.ownerId==sourceOwner)sketches.append(sketch.featureId);
+                if(sketches.isEmpty())return failure("sketches_unavailable","The selected Sketches folder is empty");
+                description=QString("Sketches folder: %1 current sketches").arg(sketches.size());
+            }
+            auto* dialog=new QDialog(this);dialog->setObjectName("component.reparent.dialog");
+            dialog->setWindowTitle("Move to Component");dialog->setAttribute(Qt::WA_DeleteOnClose);
+            dialog->setWindowModality(Qt::WindowModal);
+            auto* layout=new QVBoxLayout(dialog);auto* summary=new QLabel(description,dialog);summary->setWordWrap(true);layout->addWidget(summary);
+            auto* chooser=new QComboBox(dialog);chooser->setObjectName("component.reparent.destination");
+            chooser->addItem("Alloy Design",document_->authored()["documentId"].toString());
+            for(const auto& value:document_->authored()["components"].toArray()){
+                const auto component=value.toObject();chooser->addItem(component["name"].toString(),component["id"].toString());
+            }
+            for(int i=0;i<chooser->count();++i)if(chooser->itemData(i).toString()!=source){chooser->setCurrentIndex(i);break;}
+            auto* form=new QFormLayout;form->addRow("Destination",chooser);layout->addLayout(form);
+            auto* status=new QLabel(dialog);status->setObjectName("component.reparent.status");status->setWordWrap(true);layout->addWidget(status);
+            auto* buttons=new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel,dialog);layout->addWidget(buttons);
+            connect(buttons,&QDialogButtonBox::rejected,dialog,&QDialog::reject);
+            const auto tabId=activeTabId_;
+            connect(buttons,&QDialogButtonBox::accepted,dialog,[=,this]{
+                if(activeTabId_!=tabId){status->setText("Return to the original design before moving objects");return;}
+                QJsonObject args{{"destinationId",chooser->currentData().toString()}};
+                if(bodyId.isEmpty())args["sketchIds"]=sketches;else args["bodyId"]=bodyId;
+                const auto result=execute("component.reparent",args);
+                if(!result["ok"].toBool()){status->setText(result["error"].toObject()["message"].toString());return;}
+                dialog->accept();
+            });
+            dialog->resize(360,180);dialog->show();return QJsonObject{{"visible",true},{"bodyId",bodyId},{"sketchIds",sketches}};
+        });
     add("component.activate","Activate Component","Set this design tab's authoring owner without a modeling transaction.",
         {{"definitionId",parameter("string","Root document or local component definition UUID.")}},[this](const auto& a){
             if(!session_.isEmpty())return failure("active_command","Finish or Cancel before activating a component");
@@ -1085,8 +1205,14 @@ void AlloyWindow::registerCommands() {
             }
             imported.append(row);
         }
+        QJsonArray bodies,sketches;
+        for(const auto& body:document_->bodies())if(body.occurrenceId.isEmpty())
+            bodies.append(QJsonObject{{"bodyId",body.bodyId},{"ownerId",body.ownerId},{"featureId",body.featureId}});
+        for(const auto& sketch:document_->sketches())
+            sketches.append(QJsonObject{{"sketchId",sketch.featureId},{"ownerId",sketch.ownerId}});
         return QJsonObject{{"rootId",document_->authored()["documentId"]},{"activeOwnerId",document_->activeOwnerId()},
             {"components",document_->authored()["components"].toArray()},{"occurrences",document_->authored()["occurrences"].toArray()},
+            {"objectOwners",document_->authored().value("objectOwners")},{"bodies",bodies},{"sketches",sketches},
             {"importedAssemblies",imported}};
     });
     add("document.exportStl","Export STL","Export selected committed solids preserving world placement; STL does not embed units.",
@@ -4020,7 +4146,8 @@ void AlloyWindow::registerCommands() {
             : session_.value("command").toString().startsWith("solid.") ? primitivePanel_
             : session_.value("command").toString().startsWith("sketch.") ? sketchPanel_ : unitsDialog_;
         const auto* activeModal=QApplication::activeModalWidget();
-        const bool planeDialog=activeModal && (activeModal->objectName()=="constructionPlaneDialog" || activeModal->objectName()=="mesh.export.dialog" || activeModal==lengthParametersDialog_.data());
+        const bool planeDialog=activeModal && (activeModal->objectName()=="constructionPlaneDialog" || activeModal->objectName()=="mesh.export.dialog"
+            || activeModal->objectName()=="component.reparent.dialog" || activeModal==lengthParametersDialog_.data());
         if(planeDialog)dialog=QApplication::activeModalWidget();
         if ((!planeDialog && session_.isEmpty()) || !dialog || !dialog->isVisible()) return failure("no_active_dialog", "No active dialog to capture");
         const auto pixels = dialog->grab(); QSaveFile file(path);
@@ -4068,6 +4195,7 @@ QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
     if(nonzeroAssemblyPose()){
         const bool modeling=id.startsWith("solid.") || id.startsWith("primitive.") || id.startsWith("sketch.")
             || id.startsWith("construction.") || id.startsWith("feature.") || id=="component.create" || id=="component.newDialog"
+            || id.startsWith("component.reparent")
             || id=="document.importStep" || (id.startsWith("reference.") && id!="reference.inspect" && id!="reference.revert")
             || (id=="command.begin" && args.value("command").toString()!="joint.slider")
             || ((id=="command.update" || id=="command.commit") && session_.value("command")!="joint.slider" && !session_.isEmpty());
@@ -4277,6 +4405,7 @@ void AlloyWindow::refresh() {
         while(auto* item=timelineLayout_->takeAt(0)){delete item->widget();delete item;}
 
         bool selectedExists=false;QSet<QString> liveBodies,liveSketches,livePlanes;
+        QMap<QString,QString> currentBodyOwners,currentSketchOwners;
         QSet<QString> liveImports,activeBodies;
         for(const auto& body:document_->bodies())activeBodies.insert(body.bodyId);
         for(const auto& value:document_->authored()["features"].toArray()) {
@@ -4313,7 +4442,7 @@ void AlloyWindow::refresh() {
         }
         for(const auto& body:document_->bodies()) {
             if(!body.occurrenceId.isEmpty())continue;
-            liveBodies.insert(body.bodyId);
+            liveBodies.insert(body.bodyId);currentBodyOwners[body.bodyId]=body.ownerId;
             auto* item=browserRow(ownerFolder(body.ownerId,"bodies",bodiesNode_),body.bodyId,Qt::UserRole+1);
             item->setText(0,body.name);item->setData(0,Qt::UserRole+1,body.bodyId);item->setData(0,Qt::UserRole+2,body.featureId);
             item->setFlags(item->flags()|Qt::ItemIsEnabled|Qt::ItemIsSelectable|Qt::ItemIsUserCheckable);
@@ -4322,7 +4451,7 @@ void AlloyWindow::refresh() {
         }
         if(!selectedExists)selectedBody_.clear();
         for(const auto& sketch:document_->sketches()) {
-            liveSketches.insert(sketch.featureId);
+            liveSketches.insert(sketch.featureId);currentSketchOwners[sketch.featureId]=sketch.ownerId;
             auto* item=browserRow(ownerFolder(sketch.ownerId,"sketches",sketchesNode_),sketch.featureId,Qt::UserRole+2);
             item->setText(0,sketch.name);item->setData(0,Qt::UserRole+2,sketch.featureId);
             item->setFlags(item->flags()|Qt::ItemIsEnabled|Qt::ItemIsSelectable|Qt::ItemIsUserCheckable);
@@ -4345,21 +4474,27 @@ void AlloyWindow::refresh() {
         }
         for(int i=0;i<jointsNode_->childCount();++i)if(!liveJoints.contains(jointsNode_->child(i)->data(0,Qt::UserRole+5).toString()))jointsNode_->child(i)->setHidden(true);
         for(auto* ownerNode:ownerNodes) {
+          const auto folderOwner=ownerNode==rootNode ? document_->authored()["documentId"].toString()
+              : ownerNode->data(0,Qt::UserRole+3).toString();
           auto* folder=ownerFolder(ownerNode->data(0,Qt::UserRole+3).toString(),"bodies",bodiesNode_);
           for(int i=0;i<folder->childCount();++i) {
             auto* item=folder->child(i);
             if(!item->data(0,Qt::UserRole+6).toString().isEmpty())continue;
-            if(!liveBodies.contains(item->data(0,Qt::UserRole+1).toString())){
+            const auto id=item->data(0,Qt::UserRole+1).toString();
+            if(!liveBodies.contains(id) || currentBodyOwners.value(id)!=folderOwner){
                 item->setSelected(false);if(tree_->currentItem()==item)tree_->setCurrentItem(nullptr);
                 item->setFlags(item->flags() & ~(Qt::ItemIsEnabled|Qt::ItemIsSelectable|Qt::ItemIsUserCheckable));item->setHidden(true);
             }
         }
         }
         for(auto* ownerNode:ownerNodes) {
+          const auto folderOwner=ownerNode==rootNode ? document_->authored()["documentId"].toString()
+              : ownerNode->data(0,Qt::UserRole+3).toString();
           auto* folder=ownerFolder(ownerNode->data(0,Qt::UserRole+3).toString(),"sketches",sketchesNode_);
           for(int i=0;i<folder->childCount();++i) {
             auto* item=folder->child(i);
-            if(!liveSketches.contains(item->data(0,Qt::UserRole+2).toString())){
+            const auto id=item->data(0,Qt::UserRole+2).toString();
+            if(!liveSketches.contains(id) || currentSketchOwners.value(id)!=folderOwner){
                 item->setSelected(false);if(tree_->currentItem()==item)tree_->setCurrentItem(nullptr);
                 item->setFlags(item->flags() & ~(Qt::ItemIsEnabled|Qt::ItemIsSelectable|Qt::ItemIsUserCheckable));item->setHidden(true);
             }
