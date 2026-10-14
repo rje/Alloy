@@ -11,3 +11,6 @@ Focused verification on macOS arm64, Qt 6.11.2 and OCCT 7.9.3:
 - [Native Qt evidence](../../../Alloy-reference-records/deliverables/extrude-through-all-2026-10-14/native-06/) passed. A delivered Extent Type key chooses All; an indicator click flips direction, displays the full target-behind-direction error and disables OK; Cancel preserves the authored document. Captures were inspected after layout settled. The native check does not claim an OS mouse gesture.
 
 The fixture is a focused ingredient, not the source tangent-plane shoehorn model. It establishes the retained All option and its edit behavior before that cumulative workflow.
+
+Independent Astra review accepted `42a654e`; main integration `d9a0003` passes
+the application build and focused Through All core regression.

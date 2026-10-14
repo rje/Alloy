@@ -1,13 +1,13 @@
 # Continuation context
 
-## Candidate retained Cut All (2026-10-14)
+## Accepted retained Cut All (2026-10-14)
 
-SOL-047/#287 has a bounded isolated candidate in `feat/extrude-cut-through-all`.
+SOL-047/#287 is independently accepted and integrated at `d9a0003`.
 It retains an explicit target body and All/Flip extent through the existing
 Extrude Cut authority, deriving signed reach from current OCCT target bounds on
 each rebuild. Focused core, 29-call real-app API and native Qt chooser/Flip
 checks pass; [the receipt](validation/extrude-through-all.md) distinguishes the
-single-target limitation and awaits independent review. The full shoehorn
+single-target limitation. Main app and focused core checks pass. The full shoehorn
 surface/plane/cut sequence remains separate.
 
 ## Accepted arc midpoint on attached path sections (2026-10-14)
@@ -35,7 +35,8 @@ focused endpoint core test pass. Solved-curve picking has separate shared-comman
 proof; native05 covers basic gestures. Broader path extents stay with the parent.
 SKT-068/#282 is accepted and closed after independent review, with
 core/API/native evidence and readable badges.
-The second Sol lane now implements ready SOL-047/#287 Through All Cut.
+The second Sol lane now audits ASM-007/#300 component reparenting while
+the geometry lane completes GEO-014 and then starts SRF-009 surface Loft.
 
 ## Accepted Selection Priority (2026-10-13)
 
@@ -87,8 +88,7 @@ pass. Final API/native checks require Bottom R0.5 before BOTH Cut and snap
 Mirrors, then move it after both and edit the opposite retained edge. Current
 technical snap diagnostics do not yet author that source order. Root owns
 this final reorder run once the actual fixture is ready; no extra one-Mirror
-rerun qualifies it. Sol lanes currently own GEO-014 and SOL-047 Through All
-Cut. Coordinate the sole GUI lease live rather than assuming a stored owner.
+rerun qualifies it. Sol lanes currently own GEO-014 and ASM-007 reparenting. Coordinate the sole GUI lease live rather than assuming a stored owner.
 
 ## Accepted snap-group feature Mirror (2026-10-13)
 
