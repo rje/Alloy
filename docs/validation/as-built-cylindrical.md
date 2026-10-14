@@ -1,4 +1,6 @@
-# Retained Cylindrical joint candidate
+# Retained Cylindrical joint
+
+Independently accepted and integrated at `bcc5493`.
 
 ASM-008 adds one retained as-built Cylindrical relationship between identity
 component leaves. The selected Position is a current complete circular edge on
@@ -39,8 +41,8 @@ and `../Alloy-reference-records/deliverables/piston-cylindrical-2026-10-14/nativ
 The public operation contract and independently declared fixture dimensions
 remain in `../Alloy-reference-records/knowledge/tutorials/piston-subassemblies-2026-10-14/`.
 
-This bounded candidate does not claim the coupled three-Revolute/one-Cylindrical
+This bounded acceptance does not claim the coupled three-Revolute/one-Cylindrical
 loop, Upper Arm drag, copied piston, stroke limits, arbitrary joint axes, or
 general assembly mobility. The piston and arms are intentionally separate
 islands in this check. Source face-center selection is adapted to one complete
-retained circular edge. Independent final compatibility review is pending.
+retained circular edge. Independent compatibility review accepted the stated scope.

@@ -1,30 +1,5 @@
 # Continuation context
 
-## ASM-008 Cylindrical candidate (2026-10-14)
-
-An isolated retained Cylindrical assembly candidate builds and passes focused
-core, a 24-call real-app API run and one Qt native control check. It keeps the
-Inner/Outer piston as a separate graph island while the Arm Revolute is another;
-each island has an inspected temporary gauge before Pin. The piston pair
-retains a complete Outer Z-circle, previews +15° rotation and +5 mm world-Z
-travel, and survives Cancel, undo/redo and reopen. Passive joint coordinates
-become read-only after a graph merge. The dock shows readable names and both
-typed fields; its actual viewport circular click is checked. See the
-[bounded receipt](validation/as-built-cylindrical.md). Independent final review
-and main integration are pending. The coupled 3R+1C loop, Upper Arm drag/Revert
-and copied piston remain separate work.
-
-## ASM-014 Revolute candidate (2026-10-14)
-
-An isolated retained as-built Revolute and root Pin candidate builds against
-the accepted replaceable assembly-solver adapter. One fixed-arm circular origin,
-signed angle drive, transient preview, actual Pin Timeline feature, authored
-history and reopen pass focused core, 29-call real-app API and Qt native
-viewport-click/typed-angle checks. Independent final review and main integration
-remain pending. The nested piston bodies remain stationary; coupled linkage and
-copy remain ASM-015/ASM-016. See
-[the bounded candidate receipt](validation/as-built-revolute.md).
-
 ## Current queue (2026-10-14)
 
 Canvas DOC-024, retained Remove HIS-007 and Surface workspace VIS-004 are
@@ -65,13 +40,14 @@ Main application build and focused core pass. See
 [acceptance and native setup limits](validation/as-built-revolute.md). The shared
 solver backend at `59782f1` independently checks original joint frames, full Pin
 pose and signed targets. Pin follows evaluated timeline prefixes; typed joint
-metadata does not close HIS-003 broader timeline scope. ASM-008/#304 is now
-active: parallel isolated authority and UI lanes add a retained Cylindrical joint
-on the nested piston leaves, sharing one explicit pose-graph authority. The
-required native Cylinder rim naming is independently accepted at `04a4b7d`: stable
-bottom/top edge IDs follow radius/height edits; main build and focused primitive
-topology/Revolute checks pass. Post-Join Cylindrical workflow remains in validation. The next
-steps are ASM-015/#364 coupled closed-loop motion and ASM-016/#365 linked copy.
+metadata does not close HIS-003 broader timeline scope. ASM-008/#304 is independently accepted and integrated at `bcc5493`, with
+retained circular source references, exact simultaneous rotation/slide, per-island
+gauges and explicit passive-coordinate refusal. Main core checks pass 3/3;
+actual-app API 24 calls, native 1/1 and a focused wrong-type refusal check pass.
+See [acceptance and native setup limits](validation/as-built-cylindrical.md).
+The native Cylinder rim prerequisite at `04a4b7d` preserves top/bottom edge IDs
+through radius/height edits. The next steps are ASM-015/#364 coupled closed-loop
+motion and ASM-016/#365 linked copy.
 The bounded implementation plan is external under
 `knowledge/tutorials/piston-subassemblies-2026-10-14/assembly-continuation/asm015-plan.md`.
 SRF-016/#360 preserves later surface-as-tool Trim; accepted
