@@ -154,16 +154,48 @@ QJsonObject GeometryKernel::projectionContext(const EvaluatedDocument& evaluatio
         if(!found)throw EvaluationError({{"code","projection_unavailable"},{"pointReferenceId",reference["id"]},{"source",reference["source"]},{"message","Retained circular support center is no longer uniquely available"}});
     }
     for(auto point:centers){point.remove("radiusMm");points.append(point);}
-    for(const auto& item:parameters["projections"].toArray()) {
+    auto edgeFor=[&](const QJsonObject& source)->EvaluatedSupportEdge {
+        if(source.size()==4) {
+            for(const auto& key:{"producerFeatureId","bodyId","faceId"})if(source[key]!=parameters["support"].toObject()[key])
+                reject("projection_unavailable","Legacy support projection no longer belongs to its sketch face");
+            const auto found=std::find_if(cap.boundaryEdges.begin(),cap.boundaryEdges.end(),[&](const auto& edge){return edge.edgeId==source["edgeId"].toString();});
+            if(found==cap.boundaryEdges.end())reject("projection_unavailable","Retained support boundary edge is no longer available");
+            return *found;
+        }
+        const auto body=std::find_if(evaluation.bodies.begin(),evaluation.bodies.end(),[&](const auto& b){return b.bodyId==source["bodyId"].toString();});
+        if(body==evaluation.bodies.end())reject("projection_unavailable","Projected source body is no longer active");
+        TopTools_IndexedMapOfShape present;TopExp::MapShapes(body->shape,TopAbs_EDGE,present);
+        const EvaluatedSupportEdge* found=nullptr;
+        for(const auto& face:body->supportFaces)for(const auto& edge:face.boundaryEdges)if(edge.edgeId==source["edgeId"].toString()) {
+            if(edge.edge.IsNull() || !present.Contains(edge.edge))continue;
+            if(found && !found->edge.IsSame(edge.edge))reject("ambiguous_projection","Projected edge has multiple current descendants");
+            found=&edge;
+        }
+        if(!found)reject("projection_unavailable","Projected source edge is no longer a real supported boundary");
+        return *found;
+    };
+    const auto normal=cap.frame["normal"].toArray();
+    for(const auto& collection:{QString("projections"),QString("pointProjections")})for(const auto& item:parameters[collection].toArray()) {
         const auto projection=item.toObject(),source=projection["source"].toObject();
-        for(const auto& key:{"producerFeatureId","bodyId","faceId"})if(source[key]!=parameters["support"].toObject()[key])
-            reject("projection_unavailable","Projected edge must belong to the retained sketch support");
-        const auto found=std::find_if(cap.boundaryEdges.begin(),cap.boundaryEdges.end(),[&](const auto& edge){return edge.edgeId==source["edgeId"].toString();});
-        if(found==cap.boundaryEdges.end())throw EvaluationError({{"code","projection_unavailable"},{"projectionId",projection["id"]},{"source",source},{"message","Retained support boundary edge is no longer available"}});
-        if(found->type!="line")reject("unsupported_projection","This projection slice supports straight cap edges only");
-        const auto id=projection["id"].toString();const auto a=found->provenance["startMm"].toArray(),b=found->provenance["endMm"].toArray();
-        lines.append(QJsonObject{{"id",id},{"startPointId",SketchGeometry::projectionPointId(id,false)},{"endPointId",SketchGeometry::projectionPointId(id,true)},
-            {"u1Mm",local(a,u)},{"v1Mm",local(a,v)},{"u2Mm",local(b,u)},{"v2Mm",local(b,v)},{"source",source}});
+        const auto edge=edgeFor(source);
+        if(edge.type!="line")reject("unsupported_projection","Linked Project accepts straight model edges only");
+        const auto a=edge.provenance["startMm"].toArray(),b=edge.provenance["endMm"].toArray();
+        if(a.size()!=3 || b.size()!=3)reject("projection_unavailable","Straight source edge lacks current endpoints");
+        double normalSpan=0,worldSpan=0;
+        for(int i=0;i<3;++i){const double delta=b[i].toDouble()-a[i].toDouble();normalSpan+=delta*normal[i].toDouble();worldSpan+=delta*delta;}
+        const double u1=local(a,u),v1=local(a,v),u2=local(b,u),v2=local(b,v);
+        const double projectedSpan=std::hypot(u2-u1,v2-v1);
+        if(worldSpan<1e-12 || (projectedSpan>1e-6 && std::abs(normalSpan)>1e-6))
+            reject("unsupported_projection","This bounded Project supports edges parallel or perpendicular to the sketch plane");
+        const auto id=projection["id"].toString();
+        if(collection=="projections") {
+            if(projectedSpan<=1e-6)reject("projection_dimension_changed","Linked line source now projects to a point");
+            lines.append(QJsonObject{{"id",id},{"startPointId",SketchGeometry::projectionPointId(id,false)},{"endPointId",SketchGeometry::projectionPointId(id,true)},
+                {"u1Mm",u1},{"v1Mm",v1},{"u2Mm",u2},{"v2Mm",v2},{"source",source}});
+        } else {
+            if(projectedSpan>1e-6)reject("projection_dimension_changed","Linked point source now projects to a line");
+            points.append(QJsonObject{{"id",id},{"source",source},{"uMm",u1},{"vMm",v1},{"retained",true},{"kind","projectedEdgePoint"}});
+        }
     }
     return {{"lines",lines},{"unsupportedEdges",unsupported},{"points",points}};
 }

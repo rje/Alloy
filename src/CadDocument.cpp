@@ -68,6 +68,13 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
         if(f["type"]=="circularPattern"){const auto p=f["parameters"].toObject();for(int n=1;n<p["quantity"].toInt();++n)referencedOwners[CircularPattern::bodyId(f["id"].toString(),p["sourceBodyId"].toString(),n)]=owner;}
         for(const auto& result:f["bodyResults"].toArray()){const auto body=result.toObject()["bodyId"].toString();if(!referencedOwners.contains(body))referencedOwners[body]=owner;}
     }
+    QSet<QString> identityChildren;
+    const auto root=candidate["documentId"].toString();
+    for(const auto& value:candidate["occurrences"].toArray()) {
+        const auto occurrence=value.toObject();
+        if(occurrence["parentId"]==root && occurrence["placement"]=="identity")
+            identityChildren.insert(occurrence["definitionId"].toString());
+    }
     for(const auto& value:features) {
         const auto f=value.toObject();const auto owner=f["ownerId"].toString();
         std::function<bool(const QJsonValue&)> crossOwner=[&](const QJsonValue& v) {
@@ -76,11 +83,45 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
             if(v.isObject())for(const auto& child:v.toObject())if(crossOwner(child))return true;
             return false;
         };
-        if(crossOwner(f["parameters"]))return {{"featureId",f["id"]},{"code","cross_component_dependency"},{"message","Cross-component modeling references are not supported"}};
+        auto guarded=f["parameters"].toObject();
+        if(f["type"]=="sketch" && guarded["plane"]=="face") {
+            auto permitted=[&](const QJsonObject& source)->bool {
+                const auto body=source["bodyId"].toString(),producer=source["producerFeatureId"].toString();
+                if(!referencedOwners.contains(body))return false;
+                const auto sourceOwner=referencedOwners[body];
+                if(sourceOwner==owner)return true;
+                if(!identityChildren.contains(owner) || !identityChildren.contains(sourceOwner))return false;
+                return producer.isEmpty() || (referencedOwners.value(producer)==sourceOwner);
+            };
+            const auto support=guarded["support"].toObject();
+            if(!support.isEmpty()) {
+                if(!permitted(support))return {{"featureId",f["id"]},{"code","cross_component_dependency"},{"message","Sketch support requires an earlier identity sibling body"}};
+                guarded.remove("support");
+            }
+            for(const auto& key:{"projections","pointProjections"}) {
+                bool valid=true;
+                for(const auto& item:guarded[key].toArray())valid &= permitted(item.toObject()["source"].toObject());
+                if(!valid)return {{"featureId",f["id"]},{"code","cross_component_dependency"},{"message","Linked Project requires an identity sibling source body"}};
+                guarded.remove(key);
+            }
+        }
+        if(crossOwner(guarded))return {{"featureId",f["id"]},{"code","cross_component_dependency"},{"message","Cross-component modeling references are not supported"}};
     }
     QSet<QString> activeBodies;
     for (int i = 0; i < features.size(); ++i) {
         const auto feature = features[i].toObject();
+        if(feature["type"]=="sketch" && feature["parameters"].toObject()["plane"]=="face") {
+            const auto parameters=feature["parameters"].toObject();
+            auto earlierBody=[&](const QJsonObject& source) {
+                const auto body=source["bodyId"].toString();
+                return bodyPositions.contains(body) && bodyPositions[body]<i && activeBodies.contains(body);
+            };
+            if(!earlierBody(parameters["support"].toObject()))return {{"featureId",feature["id"]},
+                {"code","sketch_support_unavailable"},{"message","Face sketch support must be an earlier active body"}};
+            for(const auto& key:{"projections","pointProjections"})for(const auto& item:parameters[key].toArray())
+                if(!earlierBody(item.toObject()["source"].toObject()))return {{"featureId",feature["id"]},
+                    {"code","projection_unavailable"},{"message","Projected source must be an earlier active body"}};
+        }
         if (feature.contains("bodyId")) activeBodies.insert(feature["bodyId"].toString());
         if (feature["type"] == "move" || feature["type"] == "fillet" || feature["type"] == "chamfer" || feature["type"] == "shell" || feature["type"]=="rectangularPattern") {
             const auto body = feature["parameters"].toObject()["targetBodyId"].toString();

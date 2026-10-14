@@ -321,6 +321,9 @@ AlloyWindow::AlloyWindow() {
     toolAction(arc,"Center Point Arc","centerArc");toolAction(arc,"3-Point Arc","threePointArc");
     auto* spline=create->addMenu("Spline");spline->setObjectName("sketch.commands.spline");toolAction(spline,"Fit Point Spline","fitSpline");toolAction(spline,"Control Point Spline","controlSpline");
     toolAction(create,"Conic Curve","conic");
+    auto* projectMenu=create->addMenu("Project/Include");projectMenu->setObjectName("sketch.commands.projectInclude");
+    auto* projectAction=projectMenu->addAction("Project\tP");projectAction->setObjectName("sketch.action.project");
+    connect(projectAction,&QAction::triggered,this,[this]{sketchResponse(execute("sketch.projectBegin"));});
     create->addSeparator();toolAction(create,"Sketch Dimension\tD","dimension");
     auto* modify=sketchMenu("Modify","modify");toolAction(modify,"Fillet","fillet");toolAction(modify,"Trim","trim");toolAction(modify,"Offset\tO","offset");
     auto* sketchMirrorAction=modify->addAction("Mirror");sketchMirrorAction->setObjectName("sketch.action.mirror");
@@ -600,6 +603,12 @@ bool AlloyWindow::eventFilter(QObject* watched,QEvent* event) {
     // the outer Qt shortcut window. Handle delivered sketch dimension keys here.
     if(watched==view_ && event->type()==QEvent::KeyPress && session_.value("command")=="sketch.edit") {
         const auto* key=static_cast<QKeyEvent*>(event);if(!(key->modifiers()&(Qt::ControlModifier|Qt::MetaModifier|Qt::AltModifier)) && key->key()==Qt::Key_D){sketchResponse(execute("sketch.tool",{{"tool","dimension"}}));return true;}
+        if(session_.contains("pendingProject") && (key->key()==Qt::Key_Return || key->key()==Qt::Key_Enter || key->key()==Qt::Key_Escape)) {
+            sketchResponse(execute(key->key()==Qt::Key_Escape ? "sketch.projectCancel" : "sketch.projectCommit"));return true;
+        }
+        if(!(key->modifiers()&(Qt::ControlModifier|Qt::MetaModifier|Qt::AltModifier)) && key->key()==Qt::Key_P && !session_.contains("pendingProject")) {
+            sketchResponse(execute("sketch.projectBegin"));return true;
+        }
         if((session_.value("tool")=="centerPointSlot" || session_.value("tool")=="centerPointArcSlot" || session_.value("tool")=="centerPointEllipse") && session_.contains("firstPoint") &&
             !(key->modifiers()&(Qt::ControlModifier|Qt::MetaModifier|Qt::AltModifier)) && key->text().size()==1 &&
             ((key->text()[0]>=QLatin1Char('0') && key->text()[0]<=QLatin1Char('9')) || key->text()==".")) {
@@ -1987,9 +1996,65 @@ void AlloyWindow::registerCommands() {
             if(a.contains("session") && a["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
             cancelTwoPointRectangle();view_->setFocus();return QJsonObject{{"pending",false},{"authoredChange",false}};
         });
+    add("sketch.projectBegin","Project","Select retained planar face boundaries or straight model edges for linked projection.",{},[this](const auto&){
+        if(session_.value("command")!="sketch.edit" || session_.value("inputs").toObject()["plane"]!="face")
+            return failure("unsupported_projection","Linked Project requires an active supported planar sketch");
+        if(session_.contains("pendingProject"))return failure("project_active","Complete or cancel the current Project selection");
+        for(const auto& key:{"firstPoint","secondPoint","pendingDimension","pendingCircleDiameter","pendingLineLength","pendingTrim","pendingFillet","pendingSketchMirror","pendingLoopOffset","pendingSplineOffset","pendingCircleOffset"})
+            if(session_.contains(key))return failure("pending_input_active","Complete or cancel the current sketch input before Project");
+        session_["pendingProject"]=QJsonObject{{"originalDraft",session_["draftSketch"]},{"originalSelection",session_["selection"]},
+            {"originalTool",session_["tool"]},{"sources",QJsonArray{}},{"previewDraft",session_["draftSketch"]}};
+        session_["tool"]="project";refreshSketchControls();view_->setFocus(Qt::OtherFocusReason);
+        return QJsonObject{{"pending",true},{"selectionFilter","specifiedEntities"},{"projectionLink",true},{"selectedCount",0}};
+    });
+    add("sketch.projectSelect","Select Project edge","Preview one current straight model edge by identity.",{{"bodyId",parameter("string","Source body UUID.")},{"edgeId",parameter("string","Source edge UUID.")}},[this](const auto& a){
+        return selectSketchProjection({{"bodyId",a["bodyId"]},{"edgeId",a["edgeId"]}});
+    });
+    add("sketch.projectFace","Select Project face","Preview all current straight boundaries of one planar face.",{{"producerFeatureId",parameter("string","Face producer UUID.")},{"bodyId",parameter("string","Source body UUID.")},{"faceId",parameter("string","Face UUID.")}},[this](const auto& a){
+        return selectSketchProjectionFace({{"producerFeatureId",a["producerFeatureId"]},{"bodyId",a["bodyId"]},{"faceId",a["faceId"]}});
+    });
+    add("sketch.projectPick","Pick Project geometry","Pick a visible model edge or face in the native viewport.",{{"x",coordinate},{"y",coordinate}},[this](const auto& a){
+        if(!session_.contains("pendingProject"))return failure("no_project_tool","Start Project first");
+        const auto edge=view_->pickSupportBoundaryEdge(a["x"].toDouble(),a["y"].toDouble(),document_->bodies());
+        if(!edge.isEmpty())return selectSketchProjection({{"bodyId",edge["bodyId"]},{"edgeId",edge["edgeId"]}});
+        const auto face=view_->pickSupportFace(a["x"].toDouble(),a["y"].toDouble(),document_->bodies());
+        if(!face.isEmpty())return selectSketchProjectionFace(face);
+        return failure("projection_source_required","Pick a visible retained straight edge or planar face");
+    });
+    add("view.projectSupportEdge","Project supported edge midpoint","Find viewport coordinates for a current retained straight model edge.",{{"bodyId",parameter("string","Source body UUID.")},{"edgeId",parameter("string","Source edge UUID.")}},[this](const auto& a){
+        for(const auto& body:document_->bodies())if(body.bodyId==a["bodyId"].toString())
+            for(const auto& face:body.supportFaces)for(const auto& edge:face.boundaryEdges)
+                if(edge.edgeId==a["edgeId"].toString() && edge.type=="line")
+                    return view_->projectSolidEdge({edge.edgeId,edge.edge,edge.provenance});
+        return failure("edge_unavailable","Retained straight edge is not current");
+    });
+    add("sketch.projectPreview","Inspect Project preview","Inspect session-only linked geometry and selected sources.",{},[this](const auto&){
+        if(!session_.contains("pendingProject"))return failure("no_project_tool","Start Project first");
+        const auto pending=session_["pendingProject"].toObject();return QJsonObject{{"pending",true},{"sources",pending["sources"]},
+            {"previewDraft",pending["previewDraft"]},{"projectionLink",true},{"selectionFilter","specifiedEntities"}};
+    });
+    add("sketch.projectCommit","Accept Project","Publish all selected linked projections as one sketch draft edit.",{},[this](const auto&){
+        if(!session_.contains("pendingProject"))return failure("no_project_tool","Start Project first");
+        const auto pending=session_["pendingProject"].toObject(),draft=pending["previewDraft"].toObject();
+        if(pending["sources"].toArray().isEmpty())return failure("projection_source_required","Select a source before accepting Project");
+        const auto history=session_.value("inputs").toObject().value("sketchId").toString().isEmpty()
+            ? document_->evaluation() : document_->evaluationBefore(session_.value("inputs").toObject()["sketchId"].toString());
+        QJsonObject context;try{context=GeometryKernel::projectionContext(history,draft);}catch(const GeometryKernel::EvaluationError& error){return failure(error.diagnostics()["code"].toString(),QString::fromUtf8(error.what()));}
+        auto result=publishSketchSolve(SketchGeometry::solveDraft(draft,context));
+        if(result.contains("error"))return result;
+        session_.remove("pendingProject");session_["tool"]="select";refreshSketchControls();view_->setFocus(Qt::OtherFocusReason);return result;
+    });
+    add("sketch.projectCancel","Cancel Project","Discard session-only projection preview and restore prior draft/selection.",{},[this](const auto&){
+        if(!session_.contains("pendingProject"))return failure("no_project_tool","Start Project first");
+        const auto pending=session_["pendingProject"].toObject();session_["draftSketch"]=pending["originalDraft"];
+        session_["selection"]=pending["originalSelection"];session_["tool"]=pending["originalTool"];session_.remove("pendingProject");
+        const auto draft=session_["draftSketch"].toObject();view_->showSketchDraft(evaluateSketchDraft(draft));displayedSketchDraft_=draft;
+        refreshSketchControls();view_->setFocus(Qt::OtherFocusReason);return QJsonObject{{"pending",false},{"authoredChange",false}};
+    });
     auto sketchTool=parameter("string","Drawing tool in the active sketch context.");sketchTool["enum"]=QJsonArray{"select","point","line","rectangle","centerRectangle","centerPointSlot","centerPointArcSlot","centerPointEllipse","circle","twoPointCircle","centerArc","threePointArc","dimension","fillet","trim","offset","mirror","fitSpline","controlSpline","insertFitPoint","conic"};
     add("sketch.tool","Sketch drawing tool","Choose a tool and clear its pending first point.",{{"tool",sketchTool}},[this](const auto& a){
         if(session_.value("command").toString()!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
+        if(session_.contains("pendingProject"))execute("sketch.projectCancel");
         cancelConicInput();
         cancelSlotDrag();
         if(session_.contains("pendingSplineDrag"))splineCommand("drag",{{"phase","cancel"}});
@@ -2591,6 +2656,7 @@ void AlloyWindow::registerCommands() {
     });
     add("sketch.finish","Finish Sketch","Commit the active sketch draft through the shared undo authority.",{},[this](const auto&){
         if(!session_.value("command").toString().startsWith("sketch."))return failure("no_active_sketch","Enter a sketch first");
+        if(session_.contains("pendingProject"))return failure("pending_project","Accept or cancel Project before finishing the sketch");
         hideSlotEditor();
         return finishSession(session_.value("id").toString(),true);
     });
@@ -3788,7 +3854,7 @@ void AlloyWindow::refresh() {
         const bool current=session_.value("baseDocumentRevision").toInteger()==static_cast<qint64>(document_->revision());
         const auto profileSource=QJsonObject{{"draft",draft},{"frame",session_.value("resolvedFrame")},{"projection",session_.value("projectionContext")}};
         const auto profileStamp=QString::fromLatin1(QCryptographicHash::hash(QJsonDocument(profileSource).toJson(QJsonDocument::Compact),QCryptographicHash::Sha256).toHex());
-        if(current && draft!=displayedSketchDraft_){const auto evaluated=evaluateSketchDraft(draft);view_->showSketchDraft(evaluated);session_["profileDiagnostics"]=evaluated.summary["profileDiagnostics"];session_["profileSummaries"]=evaluated.summary["profiles"];session_["profileDiagnosticsSource"]=profileStamp;displayedSketchDraft_=draft;}
+        if(current && !session_.contains("pendingProject") && draft!=displayedSketchDraft_){const auto evaluated=evaluateSketchDraft(draft);view_->showSketchDraft(evaluated);session_["profileDiagnostics"]=evaluated.summary["profileDiagnostics"];session_["profileSummaries"]=evaluated.summary["profiles"];session_["profileDiagnosticsSource"]=profileStamp;displayedSketchDraft_=draft;}
         if(current)refreshSketchControls();
         const auto fillet=session_.value("pendingFillet").toObject();
         if(current && session_.value("tool")=="fillet" && fillet.contains("previewDraft")) {
@@ -3907,6 +3973,8 @@ void AlloyWindow::refresh() {
                 : standaloneCount ? QString("%1 curves · %2 standalone points").arg(curveCount).arg(standaloneCount) : QString("%1 edges").arg(curveCount))
             .arg(prompt)
             .arg((mirrorPreview.isEmpty() ? diagnostics : mirrorPreview["diagnostics"].toObject())["dof"].toInt(-1)==0 ? "Fully constrained" : QString("%1 degrees of freedom").arg((mirrorPreview.isEmpty() ? diagnostics : mirrorPreview["diagnostics"].toObject())["dof"].toInt())));
+        if(tool=="project" && sketchInfo_)sketchInfo_->setText(QString("Linked Project · %1 selected\nPick a visible edge or planar face\nEnter accepts · Escape cancels")
+            .arg(session_["pendingProject"].toObject()["sources"].toArray().size()));
         // Long live-entry prompts can grow after the scroll layout has measured
         // its children. Keep their actual minimum heights in sync with the text.
         if(sketchInfo_){
@@ -3931,6 +3999,10 @@ void AlloyWindow::refresh() {
             for(const auto& notice:profileDiagnostics["notices"].toArray()){const auto n=notice.toObject();if(n["severity"]!="warning")continue;warning=true;if(n["code"]=="coincident_boundary_sources")text+=QString("\n%1 coincident sources share one boundary.").arg(n["entityIds"].toArray().size());else if(n["code"]=="ignored_open_segments")text+=QString("\n%1 source curve(s) have excluded open portions.").arg(n["entityIds"].toArray().size());else text+=QString("\n%1 open entity/curve(s) excluded from profiles.").arg(n["entityIds"].toArray().size());}
             if(!profileDiagnostics["endpointGaps"].toArray().isEmpty()){double closest=std::numeric_limits<double>::infinity();for(const auto& g:profileDiagnostics["endpointGaps"].toArray())closest=std::min(closest,g.toObject()["distanceMm"].toDouble());text+="\nNearest endpoint gap: "+QString::number(closest,'g',6)+" mm (not closed)";}
             sketchProfileInfo_->setText(text);
+            if(tool=="project") {
+                const auto preview=session_["pendingProject"].toObject()["previewGeometry"].toObject();
+                sketchProfileInfo_->setText(QString("%1 projected region(s) · preview only").arg(preview["profiles"].toArray().size()));
+            }
             const int width=std::max(80,sketchProfileInfo_->contentsRect().width());
             sketchProfileInfo_->setMinimumHeight(std::max(sketchProfileInfo_->sizeHint().height(),sketchProfileInfo_->heightForWidth(width)));
             sketchProfileInfo_->updateGeometry();
@@ -5764,7 +5836,8 @@ QJsonObject AlloyWindow::publishSketchSolve(const SketchGeometry::SolveResult& s
         auto response=failure("projection_unavailable",QString::fromUtf8(error.what()));
         auto details=response["error"].toObject();details["diagnostics"]=error.diagnostics();response["error"]=details;return response;
     }
-    const auto evaluated=evaluateSketchDraft(solved.feature);
+    const auto evaluated=solved.feature["parameters"].toObject().contains("loopOffsets") ? evaluateSketchDraft(solved.feature)
+        : SketchGeometry::evaluateFeature(solved.feature,session_.value("resolvedFrame").toObject(),context);
     cancelCircleDiameter();cancelCenterRectangle();cancelTwoPointRectangle();cancelCircleOffset();session_.remove("pendingSketchMirror");
     recordSketchHistory(solved.feature,solved.diagnostics,journalGroup);
     session_["draftSketch"]=solved.feature;session_["solverDiagnostics"]=solved.diagnostics;session_["projectionContext"]=context;session_["previewed"]=false;
@@ -5772,6 +5845,55 @@ QJsonObject AlloyWindow::publishSketchSolve(const SketchGeometry::SolveResult& s
     session_.remove("lastSolveFailure");session_.remove("firstPoint");session_.remove("secondPoint");session_.remove("pointerPoint");session_.remove("gestureSweepDeg");session_.remove("snap");
     view_->clearSketchCursor();view_->showSketchDraft(evaluated);displayedSketchDraft_=solved.feature;
     return {{"sessionId",session_.value("id")},{"draftSketch",solved.feature},{"sketchGeometry",evaluated.summary},{"diagnostics",solved.diagnostics},{"authoredCommitted",false}};
+}
+
+QJsonObject AlloyWindow::selectSketchProjection(const QJsonObject& source) {
+    if(!session_.contains("pendingProject"))return failure("no_project_tool","Start Project first");
+    if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))return failure("stale_session","Document changed during Project");
+    auto pending=session_["pendingProject"].toObject();
+    const auto editId=session_.value("inputs").toObject().value("sketchId").toString();
+    const auto history=editId.isEmpty() ? document_->evaluation() : document_->evaluationBefore(editId);
+    auto selected=pending["sources"].toArray();
+    if(selected.contains(source))return QJsonObject{{"pending",true},{"selectedCount",selected.size()},{"duplicate",true}};
+    QJsonObject candidate,context;try {
+        candidate=SketchGeometry::linkedProjectionCandidate(history,pending["previewDraft"].toObject(),source);
+        context=GeometryKernel::projectionContext(history,candidate);
+    } catch(const GeometryKernel::EvaluationError& error) {
+        return failure(error.diagnostics()["code"].toString(),QString::fromUtf8(error.what()));
+    } catch(const std::exception& error) {return failure("invalid_projection",QString::fromUtf8(error.what()));}
+    const auto solved=SketchGeometry::solveDraft(candidate,context);
+    if(!solved.ok)return failure("sketch_solve_failed",solved.error);
+    EvaluatedSketch evaluated;try {
+        evaluated=SketchGeometry::evaluateFeature(solved.feature,session_["resolvedFrame"].toObject(),context);
+    } catch(const std::exception& error) {return failure("projection_preview_failed",QString::fromUtf8(error.what()));}
+    selected.append(source);pending["sources"]=selected;pending["previewDraft"]=solved.feature;pending["previewGeometry"]=evaluated.summary;session_["pendingProject"]=pending;
+    view_->showSketchDraft(evaluated);displayedSketchDraft_=solved.feature;
+    try {refreshSketchControls();}catch(const std::exception& error){return failure("projection_controls_failed",QString::fromUtf8(error.what()));}
+    return QJsonObject{{"pending",true},{"selectedCount",selected.size()},{"source",source},{"previewDraft",solved.feature},
+        {"sketchGeometry",evaluated.summary}};
+}
+
+QJsonObject AlloyWindow::selectSketchProjectionFace(const QJsonObject& support) {
+    if(!session_.contains("pendingProject"))return failure("no_project_tool","Start Project first");
+    const auto editId=session_.value("inputs").toObject().value("sketchId").toString();
+    const auto history=editId.isEmpty() ? document_->evaluation() : document_->evaluationBefore(editId);
+    EvaluatedSupportFace face;try{face=GeometryKernel::resolveSketchSupport(history,support);}
+    catch(const GeometryKernel::EvaluationError& error){return failure(error.diagnostics()["code"].toString(),QString::fromUtf8(error.what()));}
+    for(const auto& edge:face.boundaryEdges)if(edge.type!="line")
+        return failure("unsupported_projection","This Project accepts faces with straight boundaries only");
+    const auto before=session_["pendingProject"].toObject();
+    int added=0;for(const auto& edge:face.boundaryEdges) {
+        const auto result=selectSketchProjection({{"bodyId",support["bodyId"]},{"edgeId",edge.edgeId}});
+        if(result.contains("error")) {
+            session_["pendingProject"]=before;
+            const auto draft=before["previewDraft"].toObject();const auto context=GeometryKernel::projectionContext(history,draft);
+            view_->showSketchDraft(SketchGeometry::evaluateFeature(draft,session_["resolvedFrame"].toObject(),context));displayedSketchDraft_=draft;
+            refreshSketchControls();return result;
+        }
+        if(!result["duplicate"].toBool())++added;
+    }
+    return QJsonObject{{"pending",true},{"selectedCount",session_["pendingProject"].toObject()["sources"].toArray().size()},
+        {"added",added},{"face",support}};
 }
 
 void AlloyWindow::updateSketchHistoryState() {
@@ -6582,6 +6704,11 @@ void AlloyWindow::dimensionSelectionChanged() {
 
 void AlloyWindow::refreshSketchControls() {
     if(!sketchSelectionTree_ || session_.value("command")!="sketch.edit")return;
+    if(auto* project=sketchPanel_->findChild<QWidget*>("sketch.projectControls")) {
+        const bool active=session_.contains("pendingProject");project->setVisible(active);
+        if(active)if(auto* count=project->findChild<QLabel*>("sketch.projectCount"))
+            count->setText(QString("Geometry · %1 selected").arg(session_["pendingProject"].toObject()["sources"].toArray().size()));
+    }
     for(auto* button:sketchPanel_->findChildren<QPushButton*>())if(button->objectName().startsWith("sketch.constraint.")) {
         const QSignalBlocker block(button);
         button->setChecked(session_.value("tool")=="constraint" && button->objectName()=="sketch.constraint."+session_.value("constraintType").toString());
@@ -6595,7 +6722,9 @@ void AlloyWindow::refreshSketchControls() {
     if(sketchShowDimensions_){const QSignalBlocker block(sketchShowDimensions_);sketchShowDimensions_->setChecked(displayOptions.value("showDimensions").toBool(true));}
     auto presentationSelection=selection;presentationSelection["tool"]=session_.value("tool");presentationSelection["hoveredConstraintId"]=session_.value("hoveredConstraintId");
     const auto loopPreview=session_.value("pendingLoopOffset").toObject();
-    view_->decorateSketch(loopPreview["valid"].toBool() ? loopPreview["previewDraft"].toObject() : draft,
+    const auto projectPreview=session_.value("pendingProject").toObject();
+    view_->decorateSketch(!projectPreview.isEmpty() ? projectPreview["previewDraft"].toObject()
+            : loopPreview["valid"].toBool() ? loopPreview["previewDraft"].toObject() : draft,
         presentationSelection,session_.value("solverDiagnostics").toObject(),units,session_.value("pendingDimension").toObject());
     if(sketchCurveEntry_){const auto tool=session_["tool"].toString();sketchCurveEntry_->setVisible(tool=="circle" || tool=="centerArc" || tool=="threePointArc");}
     if(sketchMirrorControls_){
@@ -6873,6 +7002,19 @@ void AlloyWindow::showSketch() {
         }
     } else {
         const auto inputs=session_.value("inputs").toObject();
+        auto* projectControls=new QWidget;projectControls->setObjectName("sketch.projectControls");
+        auto* projectLayout=new QVBoxLayout(projectControls);projectLayout->setContentsMargins(4,6,4,6);
+        auto* projectTitle=new QLabel("Project");projectTitle->setStyleSheet("font-weight: 700; color: #176588;");projectLayout->addWidget(projectTitle);
+        auto* projectCount=new QLabel("Geometry · 0 selected");projectCount->setObjectName("sketch.projectCount");projectLayout->addWidget(projectCount);
+        projectLayout->addWidget(new QLabel("Selection Filter · Specified Entities"));
+        auto* linked=new QCheckBox("Projection Link");linked->setChecked(true);linked->setEnabled(false);
+        linked->setToolTip("Independent-copy projection is not available yet.");projectLayout->addWidget(linked);
+        auto* projectButtons=new QHBoxLayout;auto* projectOk=new QPushButton("OK");projectOk->setObjectName("sketch.projectOK");
+        auto* projectCancel=new QPushButton("Cancel");projectCancel->setObjectName("sketch.projectCancel");
+        projectButtons->addWidget(projectOk);projectButtons->addWidget(projectCancel);projectLayout->addLayout(projectButtons);
+        connect(projectOk,&QPushButton::clicked,this,[this]{sketchResponse(execute("sketch.projectCommit"));});
+        connect(projectCancel,&QPushButton::clicked,this,[this]{sketchResponse(execute("sketch.projectCancel"));});
+        projectControls->setVisible(session_.contains("pendingProject"));layout->addWidget(projectControls);
         auto* form=new QFormLayout;
         sketchName_=new QLineEdit(inputs["name"].toString());sketchName_->setObjectName("sketch.name");form->addRow("Name",sketchName_);
         connect(sketchName_,&QLineEdit::editingFinished,this,[this]{

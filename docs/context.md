@@ -2976,5 +2976,9 @@ core, Qt and real-entrypoint checks. The source front-normal sign case evaluates
 at world Y=5..10 for Offset -10 and Distance +5, and an internal ellipse Cut
 removes exactly the expected volume. See
 [the candidate receipt](validation/extrude-offset-start.md). Independent review
-accepted the bounded ingredient; integration remains pending. To Object and
+accepted the bounded ingredient; integrated on main. To Object and
 expression parsing are separate.
+
+## Linked planar Project candidate (2026-10-13)
+
+SKT-066 adds explicit linked Project of real straight face boundaries and normal-to-plane edges (as points), plus root-sibling identity sketch support and sources. The candidate is in `../Alloy-worktrees/linked-planar-project`, branch `feat/linked-planar-project`. Its bounded core, real-entrypoint API and native Qt input tests pass the Box → Shell source, actual visible inner-edge pick, retained constraint anchor, projected-profile extrusion, Box resize, sibling Lid support, preview/Cancel/commit and reopen. See [the candidate receipt](validation/linked-planar-project.md). Broader silhouettes, curves, detached copies and occurrence transforms are outside this ingredient. Independent source/capture review accepts the bounded ingredient; integrated on main. The neighboring `face_support_test` fails with the same origin-reference error on main `3f7650a` and this branch, separate from Project.

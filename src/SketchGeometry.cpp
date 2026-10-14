@@ -243,6 +243,8 @@ void checkFields(const QJsonObject& arguments, const QSet<QString>& allowed) {
         if (!allowed.contains(it.key())) reject("Unknown sketch argument: " + it.key());
 }
 void retainSupportPoint(QJsonObject& parameters,const QJsonObject& context,const QString& id) {
+    for(const auto& value:parameters["pointProjections"].toArray())
+        if(value.toObject()["id"]==id)return; // Already retained by Project, with its own edge provenance.
     for(const auto& value:context["points"].toArray()) {
         const auto available=value.toObject();if(available["id"]!=id)continue;
         auto references=parameters["pointReferences"].toArray();
@@ -328,6 +330,39 @@ QString SketchGeometry::curveCenterPointId(const QString& sketchId,const QJsonOb
 QString SketchGeometry::projectionPointId(const QString& id,bool end) {
     return QUuid::createUuidV5(QUuid(id),end ? QByteArray("end") : QByteArray("start")).toString(QUuid::WithoutBraces);
 }
+QJsonObject SketchGeometry::linkedProjectionCandidate(const EvaluatedDocument& evaluation,
+    const QJsonObject& sketch,const QJsonObject& source) {
+    if(sketch["parameters"].toObject()["plane"]!="face" || source.size()!=2
+        || !validId(source["bodyId"].toString()) || !validId(source["edgeId"].toString()))
+        reject("Linked Project requires a supported sketch and stable body/edge IDs");
+    auto candidate=sketch,parameters=candidate["parameters"].toObject();
+    for(const auto& key:{"projections","pointProjections"}) {
+        auto entries=parameters[key].toArray();
+        for(int i=0;i<entries.size();++i) {
+            auto entry=entries[i].toObject(),previous=entry["source"].toObject();
+            if(previous["bodyId"]!=source["bodyId"] || previous["edgeId"]!=source["edgeId"])continue;
+            if(QString(key)=="projections" && !entry["profile"].toBool()) {
+                entry["profile"]=true;entries[i]=entry;parameters[key]=entries;candidate["parameters"]=parameters;
+            }
+            return candidate;
+        }
+    }
+    const auto id=QUuid::createUuidV5(QUuid(sketch["id"].toString()),
+        QByteArray("alloy-linked-projection/1\n")+source["bodyId"].toString().toUtf8()+'\n'+source["edgeId"].toString().toUtf8())
+        .toString(QUuid::WithoutBraces);
+    auto lines=parameters["projections"].toArray();lines.append(QJsonObject{{"id",id},{"source",source},{"profile",true}});
+    parameters["projections"]=lines;candidate["parameters"]=parameters;
+    try {GeometryKernel::projectionContext(evaluation,candidate);return candidate;}
+    catch(const GeometryKernel::EvaluationError& error) {
+        if(error.diagnostics()["code"]!="projection_dimension_changed")throw;
+    }
+    lines.removeLast();parameters["projections"]=lines;
+    auto pointProjections=parameters["pointProjections"].toArray();
+    pointProjections.append(QJsonObject{{"id",id},{"source",source}});
+    parameters["pointProjections"]=pointProjections;candidate["parameters"]=parameters;
+    GeometryKernel::projectionContext(evaluation,candidate);
+    return candidate;
+}
 QJsonObject SketchGeometry::expandedProjectionFeature(const QJsonObject& feature,const QJsonObject& context) {
     auto expanded=feature;auto parameters=feature["parameters"].toObject();
     const auto projections=parameters["projections"].toArray();
@@ -339,7 +374,8 @@ QJsonObject SketchGeometry::expandedProjectionFeature(const QJsonObject& feature
         const auto id=projection["id"].toString();const auto start=projectionPointId(id,false),end=projectionPointId(id,true);
         points.append(QJsonObject{{"id",start},{"uMm",coordinate(line,"u1Mm")},{"vMm",coordinate(line,"v1Mm")}});
         points.append(QJsonObject{{"id",end},{"uMm",coordinate(line,"u2Mm")},{"vMm",coordinate(line,"v2Mm")}});
-        entities.append(QJsonObject{{"id",id},{"type","line"},{"startPointId",start},{"endPointId",end},{"construction",true}});
+        entities.append(QJsonObject{{"id",id},{"type","line"},{"startPointId",start},{"endPointId",end},
+            {"construction",!projection["profile"].toBool()}});
     }
     for(const auto& value:parameters["pointReferences"].toArray()) {
         const auto reference=value.toObject();QJsonObject point;
@@ -347,7 +383,13 @@ QJsonObject SketchGeometry::expandedProjectionFeature(const QJsonObject& feature
         if(point.isEmpty())reject("Retained support point requires current resolved source geometry");
         points.append(QJsonObject{{"id",reference["id"]},{"uMm",coordinate(point,"uMm")},{"vMm",coordinate(point,"vMm")}});
     }
-    parameters.remove("pointReferences");parameters.remove("projections");parameters["points"]=points;parameters["entities"]=entities;expanded["parameters"]=parameters;return expanded;
+    for(const auto& value:parameters["pointProjections"].toArray()) {
+        const auto projection=value.toObject();QJsonObject point;
+        for(const auto& available:context["points"].toArray())if(available.toObject()["id"]==projection["id"] && available.toObject()["source"]==projection["source"]){if(!point.isEmpty())reject("Ambiguous resolved projected point");point=available.toObject();}
+        if(point.isEmpty())reject("Retained point projection requires current resolved source edge");
+        points.append(QJsonObject{{"id",projection["id"]},{"uMm",coordinate(point,"uMm")},{"vMm",coordinate(point,"vMm")}});
+    }
+    parameters.remove("pointReferences");parameters.remove("pointProjections");parameters.remove("projections");parameters["points"]=points;parameters["entities"]=entities;expanded["parameters"]=parameters;return expanded;
 }
 
 QJsonObject SketchGeometry::findFeature(const QJsonObject& authored, const QString& sketchId) {
@@ -918,17 +960,31 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
     } else if(parameters.contains("support"))return "Non-face sketch cannot carry face support";
     if(plane=="construction") {if(!validId(parameters["planeId"].toString()))return "Construction sketch requires a stable plane ID";}
     else if(parameters.contains("planeId"))return "Only construction sketches can reference a plane feature";
-    if(parameters.contains("projections") || parameters.contains("pointReferences")) {
-        if(plane!="face" || (parameters.contains("projections") && !parameters["projections"].isArray()) || (parameters.contains("pointReferences") && !parameters["pointReferences"].isArray()))return "Projections require a supported face sketch and array";
+    if(parameters.contains("projections") || parameters.contains("pointReferences") || parameters.contains("pointProjections")) {
+        if(plane!="face" || (parameters.contains("projections") && !parameters["projections"].isArray()) || (parameters.contains("pointReferences") && !parameters["pointReferences"].isArray()) || (parameters.contains("pointProjections") && !parameters["pointProjections"].isArray()))return "Projections require a supported face sketch and array";
         QJsonArray lines,resolvedPoints;QSet<QString> sources,referenceIds=derivedPointIds;
         for(const auto& value:parameters["projections"].toArray()) {
             if(!value.isObject())return "Projection must be an object";const auto projection=value.toObject();
-            if(projection.size()!=2 || !validId(projection["id"].toString()) || !projection["source"].isObject())return "Invalid retained projection";
-            const auto source=projection["source"].toObject();if(source.size()!=4)return "Invalid projection source fields";
-            for(const auto& key:{"producerFeatureId","bodyId","faceId","edgeId"})if(!source[key].isString() || !validId(source[key].toString()))return "Projection source requires stable UUIDs";
-            for(const auto& key:{"producerFeatureId","bodyId","faceId"})if(source[key]!=parameters["support"].toObject()[key])return "Projection source must belong to sketch support";
-            if(sources.contains(source["edgeId"].toString()))return "Duplicate projected source edge";sources.insert(source["edgeId"].toString());
+            if((projection.size()!=2 && !(projection.size()==3 && projection["profile"].isBool()))
+                || !validId(projection["id"].toString()) || !projection["source"].isObject())return "Invalid retained projection";
+            const auto source=projection["source"].toObject();if(source.size()!=4 && source.size()!=2)return "Invalid projection source fields";
+            for(const auto& key:{"bodyId","edgeId"})if(!source[key].isString() || !validId(source[key].toString()))return "Projection source requires stable UUIDs";
+            if(source.size()==4) {
+                for(const auto& key:{"producerFeatureId","faceId"})if(!source[key].isString() || !validId(source[key].toString()))return "Projection source requires stable UUIDs";
+                for(const auto& key:{"producerFeatureId","bodyId","faceId"})if(source[key]!=parameters["support"].toObject()[key])return "Projection source must belong to sketch support";
+            }
+            const auto key=source["bodyId"].toString()+":"+source["edgeId"].toString();
+            if(sources.contains(key))return "Duplicate projected source edge";sources.insert(key);
             lines.append(QJsonObject{{"id",projection["id"]},{"source",source},{"u1Mm",0},{"v1Mm",0},{"u2Mm",1},{"v2Mm",0}});
+        }
+        for(const auto& value:parameters["pointProjections"].toArray()) {
+            if(!value.isObject())return "Point projection must be an object";const auto projection=value.toObject(),source=projection["source"].toObject();
+            if(projection.size()!=2 || !validId(projection["id"].toString()) || source.size()!=2
+                || !validId(source["bodyId"].toString()) || !validId(source["edgeId"].toString()))return "Invalid retained point projection";
+            const auto key=source["bodyId"].toString()+":"+source["edgeId"].toString();
+            if(sources.contains(key))return "Duplicate projected source edge";sources.insert(key);
+            referenceIds.insert(projection["id"].toString());
+            resolvedPoints.append(QJsonObject{{"id",projection["id"]},{"source",source},{"uMm",0},{"vMm",0}});
         }
         for(const auto& value:parameters["pointReferences"].toArray()) {
             if(!value.isObject())return "Support point reference must be an object";const auto reference=value.toObject();
@@ -944,7 +1000,7 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
             resolvedPoints.append(QJsonObject{{"id",reference["id"]},{"source",source},{"uMm",0},{"vMm",0}});
         }
         if(parameters.contains("texts")){
-            auto textOnly=parameters;textOnly.remove("projections");textOnly.remove("pointReferences");
+            auto textOnly=parameters;textOnly.remove("projections");textOnly.remove("pointReferences");textOnly.remove("pointProjections");
             return validateParameters(textOnly,authoredIds);
         }
         try {return validateParameters(expandedProjectionFeature({{"parameters",parameters}},{{"lines",lines},{"points",resolvedPoints}})["parameters"].toObject(),authoredIds,referenceIds);}
@@ -1358,6 +1414,7 @@ SketchGeometry::SolveResult SketchGeometry::solveDraft(const QJsonObject& draft,
             virtualEntities.insert(id);lockedPoints.insert(projectionPointId(id,false));lockedPoints.insert(projectionPointId(id,true));}
         QSet<QString> derivedPoints;
         for(const auto& value:draft["parameters"].toObject()["pointReferences"].toArray()){const auto id=value.toObject()["id"].toString();lockedPoints.insert(id);derivedPoints.insert(id);}
+        for(const auto& value:draft["parameters"].toObject()["pointProjections"].toArray()){const auto id=value.toObject()["id"].toString();lockedPoints.insert(id);derivedPoints.insert(id);}
         const auto externalLockedPoints=lockedPoints;
         if(!initialReferencePointId.isEmpty())lockedPoints.insert(initialReferencePointId);
         validateDraft(expanded,derivedPoints);
@@ -1371,6 +1428,7 @@ SketchGeometry::SolveResult SketchGeometry::solveDraft(const QJsonObject& draft,
         if(draft["parameters"].toObject().contains("texts"))parameters["texts"]=draft["parameters"].toObject()["texts"];
         if(draft["parameters"].toObject().contains("projections"))parameters["projections"]=draft["parameters"].toObject()["projections"];
         if(draft["parameters"].toObject().contains("pointReferences"))parameters["pointReferences"]=draft["parameters"].toObject()["pointReferences"];
+        if(draft["parameters"].toObject().contains("pointProjections"))parameters["pointProjections"]=draft["parameters"].toObject()["pointProjections"];
         parameters=SketchSplineOffset::refreshEndpoints(parameters);
         solved["parameters"]=parameters;validateDraft(solved);validateRoundedIntent(parameters);validateSlotGroups(parameters);validateArcSlotGroups(parameters);
         for(const auto& value:entities)if(value.toObject()["type"]=="fitSplineOffset"){
@@ -2281,7 +2339,26 @@ EvaluatedSketch SketchGeometry::evaluateFeature(const QJsonObject& feature, cons
     QJsonObject summary{{"kernel", "OCCT"}, {"version", ALLOY_OCCT_VERSION}, {"type", "sketch"}, {"valid", true},
         {"lengthUnit", "mm"}, {"plane", plane}, {"frame", sketchFrame}, {"solverIntegrated", true}, {"solver", solution.diagnostics},
         {"entities",geometry}, {"pointCount", points.size()}, {"entityCount", entities.size()}, {"worldPoints", worldPoints}, {"boundsMm", bounds}};
-    const auto profile = SketchProfiles::deriveRegions(solution.feature,sketchFrame);
+    auto profileFeature=solution.feature;
+    for(const auto& value:solution.feature["parameters"].toObject()["projections"].toArray())if(value.toObject()["profile"].toBool()) {
+        auto profileParameters=parameters;
+        // Region extraction consumes solved geometry. Constraints and retained
+        // point anchors have already done their work and are not boundaries.
+        QSet<QString> boundaryPoints;
+        for(const auto& entry:parameters["entities"].toArray()) {
+            const auto entity=entry.toObject();
+            for(const auto& key:{"pointId","centerPointId","startPointId","endPointId"})
+                if(entity[key].isString())boundaryPoints.insert(entity[key].toString());
+            for(const auto& id:entity["pointIds"].toArray())boundaryPoints.insert(id.toString());
+        }
+        if(parameters["originPointId"].isString())boundaryPoints.insert(parameters["originPointId"].toString());
+        QJsonArray profilePoints;for(const auto& entry:parameters["points"].toArray())
+            if(boundaryPoints.contains(entry.toObject()["id"].toString()))profilePoints.append(entry);
+        profileParameters["points"]=profilePoints;profileParameters["constraints"]=QJsonArray{};
+        profileParameters["dimensions"]=QJsonArray{};
+        profileFeature["parameters"]=profileParameters;break;
+    }
+    const auto profile = SketchProfiles::deriveRegions(profileFeature,sketchFrame);
     QJsonArray profileSummaries;
     std::vector<EvaluatedProfile> profiles;
     if (profile.ok) {
@@ -2294,7 +2371,9 @@ EvaluatedSketch SketchGeometry::evaluateFeature(const QJsonObject& feature, cons
         summary["texts"]=QJsonArray{generated.summary};summary["boundsMm"]=GeometryKernel::summarize(shape)["boundsMm"];
         summary["solverIntegrated"]=false;
     }
-    QJsonArray retainedSupportPoints;for(const auto& point:projectionContext["points"].toArray())for(const auto& reference:solution.feature["parameters"].toObject()["pointReferences"].toArray())if(point.toObject()["id"]==reference.toObject()["id"]){auto retained=point.toObject();retained["retained"]=true;retainedSupportPoints.append(retained);}
+    QJsonArray retainedSupportPoints;for(const auto& point:projectionContext["points"].toArray()) {
+        for(const auto& collection:{"pointReferences","pointProjections"})for(const auto& reference:solution.feature["parameters"].toObject()[collection].toArray())if(point.toObject()["id"]==reference.toObject()["id"]){auto retained=point.toObject();retained["retained"]=true;retainedSupportPoints.append(retained);}
+    }
     summary["projectedPoints"]=retainedSupportPoints;summary["availableSupportPoints"]=projectionContext["points"].toArray();
     summary["projectedLines"]=projectionContext["lines"].toArray();
     summary["unsupportedProjectedEdges"]=projectionContext["unsupportedEdges"].toArray();

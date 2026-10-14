@@ -1688,6 +1688,17 @@ QJsonObject ReferenceView::pickSolidEdge(double x,double y,const std::vector<Eva
     }
     return result;
 }
+QJsonObject ReferenceView::pickSupportBoundaryEdge(double x,double y,const std::vector<EvaluatedBody>& bodies) const {
+    auto selectable=bodies;
+    for(auto& body:selectable) {
+        body.solidEdges.clear();QSet<QString> seen;
+        for(const auto& face:body.supportFaces)for(const auto& edge:face.boundaryEdges)
+            if(edge.type=="line" && !edge.edge.IsNull() && !seen.contains(edge.edgeId)) {
+                body.solidEdges.push_back({edge.edgeId,edge.edge,edge.provenance});seen.insert(edge.edgeId);
+            }
+    }
+    return pickSolidEdge(x,y,selectable);
+}
 void ReferenceView::clearSolidEdgeHighlights() {
     if(!context_.IsNull())for(const auto& shape:solidEdgeHighlights_)context_->Remove(shape,false);solidEdgeHighlights_.clear();
 }
@@ -2159,6 +2170,10 @@ void ReferenceView::mousePressEvent(QMouseEvent* e) {
         panButton_=e->button();last_=e->position();setCursor(Qt::ClosedHandCursor);e->accept();
     }
     else if(e->button()==Qt::LeftButton){
+        if(!sketchPlane_.isEmpty() && decorationSelection_.value("tool")=="project") {
+            dispatch("sketch.projectPick",{{"x",e->position().x()},{"y",e->position().y()}});
+            e->accept();return;
+        }
         if(sketchPlane_.isEmpty() && !extrusionCueState_.isEmpty()) {
             const auto start=extrusionCueState_.value("startScreen").toObject(),end=extrusionCueState_.value("endScreen").toObject();
             const QPointF a(start["x"].toDouble(),start["y"].toDouble()),b(end["x"].toDouble(),end["y"].toDouble());

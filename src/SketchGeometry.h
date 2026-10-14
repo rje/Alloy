@@ -19,6 +19,8 @@ public:
     static QJsonObject newConstructionPlaneFeature(const QString& ownerId,const QString& planeId,const QString& name = "Sketch");
     static QString curveCenterPointId(const QString& sketchId, const QJsonObject& source);
     static QString projectionPointId(const QString& projectionId, bool end);
+    static QJsonObject linkedProjectionCandidate(const EvaluatedDocument& evaluation,
+        const QJsonObject& sketch, const QJsonObject& source);
     static QJsonObject expandedProjectionFeature(const QJsonObject& feature, const QJsonObject& projectionContext);
     static QJsonObject findFeature(const QJsonObject& authored, const QString& sketchId);
     static QJsonObject replaceFeature(const QJsonObject& authored, const QJsonObject& draft);

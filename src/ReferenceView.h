@@ -94,6 +94,7 @@ public:
     void highlightCombineInputs(const QString& targetBodyId, const QJsonArray& toolBodyIds);
     QString pickBody(double x,double y);
     QJsonObject pickSolidEdge(double x,double y,const std::vector<EvaluatedBody>& bodies) const;
+    QJsonObject pickSupportBoundaryEdge(double x,double y,const std::vector<EvaluatedBody>& bodies) const;
     QJsonObject projectSolidEdge(const EvaluatedSolidEdge& edge) const;
     void showPatternAxes(const QJsonObject& summary);
     void clearPatternAxes();

@@ -257,6 +257,8 @@ private:
     void cancelSlotDrag();
     QJsonObject slotDrag(const QJsonObject& args);
     QJsonObject publishSketchSolve(const SketchGeometry::SolveResult& solved, const QString& journalGroup = {});
+    QJsonObject selectSketchProjection(const QJsonObject& source);
+    QJsonObject selectSketchProjectionFace(const QJsonObject& support);
     QJsonObject traverseSketchHistory(int direction);
     void recordSketchHistory(const QJsonObject& draft, const QJsonObject& diagnostics, const QString& group = {});
     void updateSketchHistoryState();
