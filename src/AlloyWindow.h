@@ -557,6 +557,7 @@ private:
     quint64 displayedDocumentRevision_ = 0;
     bool authorizedQuit_ = false;
     QJsonObject session_;
+    QJsonObject componentClipboard_;
     struct SketchHistoryEntry { QJsonObject draft, diagnostics; };
     std::vector<SketchHistoryEntry> sketchHistory_;
     int sketchHistoryIndex_ = -1;

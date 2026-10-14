@@ -113,7 +113,13 @@ class BrowserTree final : public QTreeWidget {
 public:
     using QTreeWidget::QTreeWidget;
     std::function<bool(QTreeWidgetItem*,QTreeWidgetItem*)> moveRequested;
+    std::function<void()> copyRequested,pasteRequested;
 protected:
+    void keyPressEvent(QKeyEvent* event) override {
+        if(event->matches(QKeySequence::Copy) && copyRequested){copyRequested();event->accept();return;}
+        if(event->matches(QKeySequence::Paste) && pasteRequested){pasteRequested();event->accept();return;}
+        QTreeWidget::keyPressEvent(event);
+    }
     void startDrag(Qt::DropActions) override {
         if(!currentItem())return;
         auto* drag=new QDrag(this);auto* mime=new QMimeData;
@@ -208,6 +214,12 @@ AlloyWindow::AlloyWindow() {
         QStatusBar { background: #edf0f2; border-top: 1px solid #d6dce1; color: #67757e; }
     )");
     view_ = new ReferenceView;
+    auto* pasteComponentShortcut=new QShortcut(QKeySequence::Paste,view_);
+    pasteComponentShortcut->setContext(Qt::WidgetShortcut);
+    connect(pasteComponentShortcut,&QShortcut::activated,this,[this]{
+        const auto response=execute("component.pasteOccurrenceDialog");
+        if(!response["ok"].toBool())statusBar()->showMessage(response["error"].toObject()["message"].toString(),5000);
+    });
     recorder_ = std::make_unique<TutorialRecorder>(this,[this]{return captureImage();});
     connect(qApp,&QCoreApplication::aboutToQuit,this,[this]{
         if(recorder_&&recorder_->active())recorder_->stop(document_->revision());
@@ -463,6 +475,17 @@ AlloyWindow::AlloyWindow() {
     browserTitle->setStyleSheet("font-size: 11px; letter-spacing: 1px; border-right: 0; border-bottom: 1px solid #d7dde1;");
     browserLayout->addWidget(browserTitle);
     auto* browserTree=new BrowserTree;tree_=browserTree;
+    browserTree->copyRequested=[this]{
+        const auto* item=tree_->currentItem();
+        const auto occurrenceId=item ? item->data(0,Qt::UserRole+8).toString() : QString{};
+        const auto definition=item ? item->data(0,Qt::UserRole+3).toString() : QString{};
+        const auto response=execute("component.copySelection",{{"occurrenceId",definition.isEmpty()?QString{}:occurrenceId}});
+        if(!response["ok"].toBool())statusBar()->showMessage(response["error"].toObject()["message"].toString(),5000);
+    };
+    browserTree->pasteRequested=[this]{
+        const auto response=execute("component.pasteOccurrenceDialog");
+        if(!response["ok"].toBool())statusBar()->showMessage(response["error"].toObject()["message"].toString(),5000);
+    };
     tree_->setObjectName("browser.tree"); tree_->setHeaderHidden(true); tree_->setIndentation(17);
     tree_->setSelectionMode(QAbstractItemView::ExtendedSelection);
     tree_->setDragEnabled(true);tree_->setAcceptDrops(true);tree_->setDropIndicatorShown(true);
@@ -503,12 +526,14 @@ AlloyWindow::AlloyWindow() {
     document->setExpanded(true); views->setExpanded(true);
     tree_->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(tree_,&QTreeWidget::customContextMenuRequested,this,[this](const QPoint& point){
-        const auto* item=tree_->itemAt(point);
+        auto* item=tree_->itemAt(point);
         if(!item || item->isHidden())return;
         if(const auto definition=item->data(0,Qt::UserRole+3).toString();!definition.isEmpty()){
             const auto occurrenceId=item->data(0,Qt::UserRole+8).toString();int definitionInstances=0;
             for(const auto& value:document_->authored()["occurrences"].toArray())if(value.toObject()["definitionId"]==definition)++definitionInstances;
-            QMenu menu(this);auto* copy=menu.addAction("Copy…");copy->setObjectName("context.copyComponent");copy->setEnabled(session_.isEmpty() && !occurrenceId.isEmpty());
+            QMenu menu(this);auto* clipboardCopy=menu.addAction("Copy");clipboardCopy->setObjectName("context.copyOccurrence");
+            clipboardCopy->setEnabled(session_.isEmpty() && !occurrenceId.isEmpty());
+            auto* copy=menu.addAction("Copy Component…");copy->setObjectName("context.copyComponent");copy->setEnabled(session_.isEmpty() && !occurrenceId.isEmpty());
             auto* move=menu.addAction("Move to Component…");move->setObjectName("context.reparentComponent");move->setEnabled(definitionInstances==1 && session_.isEmpty());
             auto* pin=menu.addAction("Pin");pin->setObjectName("context.pinComponent");pin->setEnabled(definitionInstances==1 && session_.isEmpty());
             auto* opacity=menu.addAction("Opacity Control…");
@@ -517,6 +542,11 @@ AlloyWindow::AlloyWindow() {
                 opacity->setEnabled(false);opacity->setToolTip("Opacity on a nested parent is unavailable");break;
             }
             const auto* action=menu.exec(tree_->viewport()->mapToGlobal(point));
+            if(action==clipboardCopy){
+                tree_->setCurrentItem(item);
+                execute("component.copySelection",{{"occurrenceId",occurrenceId}});
+                QTimer::singleShot(0,tree_,[this]{tree_->setFocus(Qt::ShortcutFocusReason);});
+            }
             if(action==copy)execute("component.copyOccurrenceDialog",{{"occurrenceId",occurrenceId}});
             if(action==move)execute("component.reparentOccurrenceDialog",{{"occurrenceId",occurrenceId}});
             if(action==pin)execute("joint.pin",{{"occurrenceId",occurrenceId}});
@@ -1341,6 +1371,46 @@ void AlloyWindow::registerCommands() {
                 else status->setText(result["error"].toObject()["message"].toString());});
             dialog->resize(360,200);dialog->show();return QJsonObject{{"visible",true},{"bodyIds",ids}};
         });
+    const auto clipboardSource=[this]() -> QJsonObject {
+        if(componentClipboard_.isEmpty())return failure("empty_component_clipboard","Copy a component in the Browser first");
+        if(componentClipboard_["tabId"]!=activeTabId_
+            || componentClipboard_["documentId"]!=document_->authored()["documentId"])
+            return failure("clipboard_document_mismatch","Return to the design where the component was copied");
+        const auto id=componentClipboard_["occurrenceId"].toString();
+        for(const auto& value:LocalOccurrences::inspect(document_->authored(),document_->evaluation())["occurrences"].toArray())
+            if(value.toObject()["occurrenceId"]==id)
+                return {{"occurrenceId",id},{"sourcePath",value.toObject()["path"]}};
+        return failure("stale_component_clipboard","The copied component occurrence is no longer available");
+    };
+    add("component.copySelection","Copy Component","Keep one current local component occurrence for linked Paste in this design.",
+        {{"occurrenceId",parameter("string","Selected Browser component occurrence ID.")}},[this](const auto& a){
+            if(!session_.isEmpty())return failure("active_command","Finish or Cancel before copying a component");
+            if(!jointGraphStage_.isEmpty() || transientSliderPosition_.has_value())
+                return failure("staged_pose","Revert the previewed assembly position before copying a component");
+            const auto id=a["occurrenceId"].toString();
+            QString path;for(const auto& value:LocalOccurrences::inspect(document_->authored(),document_->evaluation())["occurrences"].toArray())
+                if(value.toObject()["occurrenceId"]==id)path=value.toObject()["path"].toString();
+            if(path.isEmpty())return failure("invalid_component_copy","Select a current local component occurrence in the Browser");
+            try{CadDocument::copyOccurrenceCandidate(document_->authored(),id,
+                {{"axis","Z"},{"angleDeg",0},{"translationMm",QJsonArray{0,0,0}}});}
+            catch(const std::exception& e){return failure("invalid_component_copy",QString::fromUtf8(e.what()));}
+            componentClipboard_={{"tabId",activeTabId_},{"documentId",document_->authored()["documentId"]},{"occurrenceId",id}};
+            return QJsonObject{{"occurrenceId",id},{"sourcePath",path},{"linked",true}};
+        });
+    add("component.clipboardInspect","Inspect copied component","Report the local linked component awaiting Paste.",{},
+        [clipboardSource](const auto&){return clipboardSource();});
+    add("component.pasteOccurrence","Paste linked component","Commit the copied occurrence at an absolute parent-local placement.",
+        {{"placement",parameter("object","Absolute parent-local translation and Z rotation.")}},[this,clipboardSource](const auto& a){
+            const auto source=clipboardSource();if(source.contains("ok"))return source;
+            const auto response=execute("component.copyOccurrence",{{"occurrenceId",source["occurrenceId"]},{"placement",a["placement"]}});
+            return response["ok"].toBool() ? response["result"].toObject() : response;
+        });
+    add("component.pasteOccurrenceDialog","Paste Component","Place the copied linked component in this design.",{},
+        [this,clipboardSource](const auto&){
+            const auto source=clipboardSource();if(source.contains("ok"))return source;
+            const auto response=execute("component.copyOccurrenceDialog",{{"occurrenceId",source["occurrenceId"]},{"fromClipboard",true}});
+            return response["ok"].toBool() ? response["result"].toObject() : response;
+        });
     add("component.copyOccurrence","Copy linked component","Copy one local occurrence subtree with shared definitions and an absolute parent-local placement.",
         {{"occurrenceId",parameter("string","Retained source occurrence UUID.")},{"placement",parameter("object","Absolute parent-local translation and Z rotation.")}},[this](const auto& a){
             if(!session_.isEmpty())return failure("active_command","Finish or Cancel before copying a component");
@@ -1353,10 +1423,15 @@ void AlloyWindow::registerCommands() {
             result.remove("authored");return result;
         });
     add("component.copyOccurrenceDialog","Copy Component…","Review an absolute parent-local placement for one linked subtree.",
-        {{"occurrenceId",parameter("string","Retained source occurrence UUID.")}},[this](const auto& a){
+        {{"occurrenceId",parameter("string","Retained source occurrence UUID.")},{"fromClipboard",optional(parameter("boolean","Open from the local component clipboard."))}},[this,clipboardSource](const auto& a){
             if(!session_.isEmpty())return failure("active_command","Finish or Cancel before copying a component");
             if(!jointGraphStage_.isEmpty() || transientSliderPosition_.has_value())
                 return failure("staged_pose","Revert the previewed assembly position before copying a component");
+            const bool fromClipboard=a["fromClipboard"].toBool();
+            if(fromClipboard){const auto source=clipboardSource();
+                if(source.contains("ok"))return source;
+                if(source["occurrenceId"]!=a["occurrenceId"])
+                    return failure("stale_component_clipboard","The copied component changed; Copy it again");}
             QString sourcePath;for(const auto& value:LocalOccurrences::inspect(document_->authored(),document_->evaluation())["occurrences"].toArray())
                 if(value.toObject()["occurrenceId"]==a["occurrenceId"])sourcePath=value.toObject()["path"].toString();
             if(sourcePath.isEmpty())return failure("invalid_component_copy","Choose a current local component occurrence");
@@ -1370,11 +1445,17 @@ void AlloyWindow::registerCommands() {
             auto* z=numeric("component.copy.z",0,"Z");auto* angle=numeric("component.copy.angle",0,"Rotation Z");
             auto* status=new QLabel(dialog);status->setWordWrap(true);layout->addWidget(status);
             auto* buttons=new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel,dialog);layout->addWidget(buttons);
+            buttons->button(QDialogButtonBox::Ok)->setDefault(true);
             connect(buttons,&QDialogButtonBox::rejected,dialog,&QDialog::reject);const auto tabId=activeTabId_,id=a["occurrenceId"].toString();
             connect(buttons,&QDialogButtonBox::accepted,dialog,[=,this]{if(activeTabId_!=tabId){status->setText("Return to the original design");return;}
+                if(fromClipboard){const auto source=clipboardSource();
+                    if(source.contains("ok") || source["occurrenceId"]!=id){
+                        status->setText(source.contains("ok") ? source["error"].toObject()["message"].toString()
+                            : "The copied component changed; Copy it again");return;}}
                 const auto placement=QJsonObject{{"axis","Z"},{"angleDeg",angle->value()},
                     {"translationMm",QJsonArray{x->value(),y->value(),z->value()}}};
-                const auto result=execute("component.copyOccurrence",{{"occurrenceId",id},{"placement",placement}});
+                const auto result=fromClipboard ? execute("component.pasteOccurrence",{{"placement",placement}})
+                    : execute("component.copyOccurrence",{{"occurrenceId",id},{"placement",placement}});
                 if(result["ok"].toBool())dialog->accept();else status->setText(result["error"].toObject()["message"].toString());});
             dialog->resize(400,285);dialog->show();return QJsonObject{{"visible",true},{"sourcePath",sourcePath}};
         });
