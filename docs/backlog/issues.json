@@ -2232,7 +2232,7 @@
         "area:skt",
         "priority:P0"
       ],
-      "body": "## Problem and result\nFinish the explicitly deferred portion of SKT-010.\n\n## Scope\n- Explicit associative-linked versus independent-copy projection choice, preference controls and supported analytic curve/vertex scope beyond accepted cap line/center references.\n- Relink, break-link and deletion repair commands with visible link status and source IDs.\n- Dimension to actual projected model edge and dependent solid recompute, cooperating with point-to-edge distance owner.\n\n## Acceptance criteria\n- Project line/analytic curve/vertex targets with retained provenance or explicit independent copies.\n- Resize source: retained perpendicular dimension and downstream geometry follow correctly.\n- Remove/ambiguous source then exercise explicit relink, break and delete with undo/save/reopen; no fallback, stale success or silent unlink.\n- UI and API share authoritative commands and state. Retain stable references, atomic failure, unit correctness, undo/redo and native save/reopen where the operation authors data. Verify the real workflow proportionately; distinguish API, native input, geometry and visuals.\n\n## Split provenance\nSplit from #46 on 2026-10-12. The original now records only the independently accepted subset; this task retains the remaining requirements. Public evidence and uncertainty remain in the external knowledge archive and existing command contracts.\n\n## Status\nTodo. This broader scope is not implemented or accepted.\n\n\n## Advanced tutorial child\nSKT-066 owns the bounded project linked planar edges and vertices across local components slice. This parent retains all remaining scope and stays Todo.\n"
+      "body": "## Problem and result\nFinish the explicitly deferred portion of SKT-010.\n\n## Scope\n- Explicit associative-linked versus independent-copy projection choice, preference controls and supported analytic curve/vertex scope beyond accepted cap line/center references.\n- Relink, break-link and deletion repair commands with visible link status and source IDs.\n- Dimension to actual projected model edge and dependent solid recompute, cooperating with point-to-edge distance owner.\n\n## Acceptance criteria\n- Project line/analytic curve/vertex targets with retained provenance or explicit independent copies.\n- Resize source: retained perpendicular dimension and downstream geometry follow correctly.\n- Remove/ambiguous source then exercise explicit relink, break and delete with undo/save/reopen; no fallback, stale success or silent unlink.\n- UI and API share authoritative commands and state. Retain stable references, atomic failure, unit correctness, undo/redo and native save/reopen where the operation authors data. Verify the real workflow proportionately; distinguish API, native input, geometry and visuals.\n\n## Split provenance\nSplit from #46 on 2026-10-12. The original now records only the independently accepted subset; this task retains the remaining requirements. Public evidence and uncertainty remain in the external knowledge archive and existing command contracts.\n\n## Status\nTodo. This broader scope is not implemented or accepted.\n\n\n## Advanced tutorial child\nSKT-066 owns the bounded project linked planar edges and vertices across local components slice. This parent retains all remaining scope and stays Todo.\n\nSKT-071 owns retained circular model-edge projection for enclosure mounting pegs/ports. Broad arbitrary projection and repair remain here.\n"
     },
     {
       "key": "PRT-004",
@@ -3628,7 +3628,7 @@
         "RES-017",
         "TUT-015",
         "ASM-010",
-        "SKT-026",
+        "SKT-071",
         "SKT-025",
         "SOL-006",
         "DOC-021",
@@ -3644,7 +3644,9 @@
         "SOL-049",
         "SOL-046",
         "DOC-025",
-        "GEO-008"
+        "GEO-008",
+        "RES-020",
+        "DOC-027"
       ],
       "labels": [
         "area:gate"
@@ -5535,6 +5537,50 @@
         "area:geo"
       ],
       "body": "Required actual enclosure source: origin-centered Center Rectangle93x64 followed by Extrude30, one grouped Fillet with R5 four vertical edges and R2.5 eight rim edges, then CLOSED inward Shell3.5 with no removed face. The existing Box50x80x40 engineering regression fixture has the same radii/thickness; OCCT Intersection offset fails GeomEvaluator_OffsetSurface::CalculateD2 unable to calculate normal; Arc yields null shape. Plain unrounded Box offset works, so the missing capability is collapsing mixed-radius convex blends. Retain failing fixture in tests/solid_shell.cpp. Find mature-kernel or mathematically qualified geometry route; do not reduce thickness, omit source fillets or substitute an open Shell. Verify unchanged exact outer faces, valid enclosed cavity, true thickness/volume and later Midplane Split. Independent Astra geometry review required. TUT-016 remains blocked by this concrete source requirement.\n\nPublic transcript re-audit corrected the stock operation/dimensions on 2026-10-13. Preserve the actual sketch/extrude authoring sequence; primitive Box remains an engineering fixture only. The proposed convex-core route requires full analytic oriented surface/trim correspondence, not merely a matching volume or sampled distance. External closed-shell-convex-review.md records the independent mathematical gate.\n"
+    },
+    {
+      "key": "RES-020",
+      "title": "Qualify revised enclosure card envelope and source-order placement",
+      "kind": "validation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "RES-017",
+        "ASM-010"
+      ],
+      "labels": [
+        "area:res"
+      ],
+      "body": "Create an externally versioned adapted board fixture with nominal card envelope on the public-photo-supported opposite short side to Ethernet/USB. Preserve the original fixture and existing receipts. Proposed nominal card bounds [-4,20,-2.5]..[8,36,0] mm restore the source below-origin datum while allowing documented Move6. Record public-source URL/date and distinguish observed side from nominal dimensions. Verify twelve named solids, hierarchy, unchanged eleven parts, card bounds and STEP roundtrip. Establish source-order centered 93x64 sketch and Extrude30 plus rotation90/Move6 fit; source world axis is not established and adapted orientation must be disclosed. Independent Astra review before v2 use in TUT-016. Keep original external source/fixture licenses.\n\n\n## Independently accepted 2026-10-13\nAstra independently accepted external versioned fixture v2: exact generator diff only CARD, twelve valid named solids and five groups on STEP readback, mm/bores/bounds, original artifact hash unchanged and new hash recorded. Main local-reference core admits v2 and retains placement/history/storage. Public photo supports card side; dimensions remain nominal with source-datum attribution. External enclosure-adapted-input-v2-2026-10-13/independent-review.md records qualifications; full source tutorial and physical fit are separate.\n"
+    },
+    {
+      "key": "DOC-027",
+      "title": "Edit Distance and Flip on retained origin-plane sections",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "DOC-023"
+      ],
+      "labels": [
+        "area:doc"
+      ],
+      "body": "The enclosure public transcript later edits the Width origin section to an offset near32 while making port openings. DOC-023 only exposes Distance and Flip for selected-face sections. Extend these same fields to XY/XZ/YZ origin sections, preserving the legacy zero-offset six-field record and its positive-world normals. Resolve offset before Flip so flipping side does not move the plane. Shared native/API authoring, readable typed control, preview/Cancel, edit, undo/reopen and real GPU clip required; no model geometry mutation. Source details/provenance live externally in knowledge/tutorials/advanced-audit-2026-10-13/enclosure-prefix-contract.md. This bounded child is required by TUT-016; angles/manipulators remain broader scope.\n"
+    },
+    {
+      "key": "SKT-071",
+      "title": "Project retained circular model edges for mounting pegs and port openings",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-066",
+        "ASM-010"
+      ],
+      "labels": [
+        "area:skt"
+      ],
+      "body": "Bounded child of SKT-026 for the enclosure source: Project the four true PCB mounting-hole circular edges into a parallel case-face sketch across a placed imported component. Retain exact source occurrence-qualified edge identity, projected circle center/radius and linked status; source placement/radius edits update the same derived circle. Reuse existing shared native/API Project and display projected geometry distinctly with readable link/constraint feedback. Refuse nonparallel/unsupported projections clearly; arbitrary ellipses, detached copies and full repair/relink remain SKT-026. Verify real imported hole pick, circle preview/Cancel/commit, inward0.3 Offset and five-mm Join pegs, stable placement edit propagation, atomic missing reference, undo/reopen. Also cover a source circular port outline where the same supported plane relationship applies. Source workflow/provenance: external enclosure-prefix-contract.md and independent-spec.md. Cumulative source-order geometry/footage remains TUT-016.\n"
     }
   ]
 }

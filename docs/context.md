@@ -45,8 +45,10 @@ independently accepted, integrated and closed. Combined main app build and
 focused STEP/grouped-Fillet integration checks pass (2/2). Respective receipts
 record API/native/geometry scope and later transformed-pick/Thicken limits.
 
-Active Sol lanes: GEO-008 exact recognized convex closed Shell and SKT-069 true
-Overall Slot. DOC-023 selected-face Section Analysis is independently accepted
+Active Sol lanes: GEO-008 exact recognized convex closed Shell and DOC-027
+origin-section Distance/Flip. SKT-069 true Overall Slot is in independent review.
+RES-020 qualifies an external v2 nominal card envelope for correct source-side
+placement while preserving v1 receipts. DOC-023 selected-face Section Analysis is independently accepted
 and integrated; combined app build and three focused integration checks pass. Root completed SOL-048 supported closed inward Shell on main, independently
 accepted at 5b1bb29 with native and 28-call API evidence. Plain Box cavity, six inner planes, edit/history/reopen and
 atomic failures pass core. Actual grouped R5/R2.5 followed by Shell3.5 fails
