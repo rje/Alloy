@@ -64,7 +64,10 @@ focused STEP/grouped-Fillet integration checks pass (2/2). Respective receipts
 record API/native/geometry scope and later transformed-pick/Thicken limits.
 
 GEO-008 exact recognized convex closed Shell is independently accepted and integrated.
-SKT-071 retained circular model-edge Project is independently accepted and integrated. RES-020
+SKT-071 retained circular model-edge Project is independently accepted and integrated.
+GEO-009/#321 fixes automatic center ancestry for generated shell arcs; the actual
+cumulative inner-floor sketch/Project/Offset/Join/edit/reopen/export sequence passes.
+TUT-020 final full-creation movie and independent cumulative review are underway. RES-020
 independently qualifies the external v2 nominal card envelope for correct
 source-side placement while preserving v1 receipts. TUT-020/#320 is now active:
 a bounded from-blank cumulative mounting-peg workflow and creation video, with
