@@ -165,8 +165,10 @@ SurfaceTrimSplit SurfaceTrim::split(const QJsonObject& feature,const EvaluatedBo
     // curve parameter if a boundary splits. New boundaries are certified by
     // their full intersection with exactly one selected cutter sheet.
     std::vector<NamedEdge> named;
-    auto offer=[&](const NamedEdge& edge){for(const auto& existing:named)if(existing.edge.IsSame(edge.edge)){
+    auto offer=[&](const NamedEdge& edge){for(const auto& existing:named){
+        if(existing.edge.IsSame(edge.edge)){
             if(existing.id!=edge.id)reject("trim_lineage_ambiguous","A current edge has competing source identities");return;}
+        if(existing.id==edge.id)reject("trim_lineage_ambiguous","One retained edge ID resolves to multiple current edges");}
         named.push_back(edge);};
     for(const auto& original:target.solidEdges){
         if(original.edge.IsNull())continue;

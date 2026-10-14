@@ -84,7 +84,18 @@ QJsonObject AlloyWindow::previewSurfaceTrim(){
     if(surfaceTrimDock_){
         if(auto* list=surfaceTrimDock_->findChild<QListWidget*>("surfaceTrim.tools")){
             const QSignalBlocker block(list);list->clear();
-            for(const auto& value:inputs["toolEntityIds"].toArray())list->addItem(value.toString().left(8));
+            QJsonObject source;
+            for(const auto& row:document_->authored()["features"].toArray())
+                if(row.toObject()["id"]==inputs["toolSketchId"]) {source=row.toObject();break;}
+            const auto entities=source["parameters"].toObject()["entities"].toArray();
+            int selectedIndex=0;
+            for(const auto& value:inputs["toolEntityIds"].toArray()){
+                ++selectedIndex;int curveIndex=0;
+                for(int i=0;i<entities.size();++i)if(entities[i].toObject()["id"]==value){curveIndex=i+1;break;}
+                list->addItem(QString("Tool %1 · %2 · spline %3").arg(selectedIndex)
+                    .arg(source["name"].toString("Sketch")).arg(curveIndex));
+                list->item(list->count()-1)->setToolTip(value.toString());
+            }
         }
         if(auto* list=surfaceTrimDock_->findChild<QListWidget*>("surfaceTrim.regions")){
             const QSignalBlocker block(list);list->clear();
@@ -116,10 +127,15 @@ QJsonObject AlloyWindow::previewSurfaceTrim(){
         surfaceTrimPickBodies_.push_back(std::move(staged));
         const auto regionRows=SurfaceTrim::descriptors(split);session_["regions"]=regionRows;
         if(surfaceTrimDock_)if(auto* list=surfaceTrimDock_->findChild<QListWidget*>("surfaceTrim.regions")){
+            int regionIndex=0;
             for(const auto& row:regionRows){const auto item=row.toObject();
-                if(item["inside"].toBool())list->addItem(QString("%1 · %2 mm² · %3").arg(
-                    item["sourceFaceId"].toString().left(8)).arg(item["areaMm2"].toDouble(),0,'f',2)
-                    .arg(inputs["removedRegionIds"].toArray().contains(item["regionId"])?"remove":"keep"));
+                if(item["inside"].toBool()){
+                    ++regionIndex;
+                    list->addItem(QString("Inner region %1 · %2 mm² · %3").arg(regionIndex)
+                        .arg(item["areaMm2"].toDouble(),0,'f',2)
+                        .arg(inputs["removedRegionIds"].toArray().contains(item["regionId"])?"remove":"keep"));
+                    list->item(list->count()-1)->setToolTip(item["regionId"].toString());
+                }
             }
         }
         const auto selected=inputs["removedRegionIds"].toArray();
@@ -211,12 +227,12 @@ void AlloyWindow::showSurfaceTrim(){
     surfaceTrimDock_=new QDockWidget("Trim",canvasWindow_);surfaceTrimDock_->setObjectName("surfaceTrimDock");
     auto* panel=new QWidget(surfaceTrimDock_);surfaceTrimDock_->setWidget(panel);
     auto* form=new QFormLayout(panel);form->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
-    auto* hint=new QLabel("Select both fit splines as the tool, then click the left and right inner surface regions. The sketch-normal cutter passes through the sheet in both directions.",panel);
+    auto* hint=new QLabel("Select both fit splines as the tool, then click the inner surface regions to remove. The sketch-normal cutter passes through the sheet in both directions.",panel);
     hint->setWordWrap(true);form->addRow(hint);
     auto* tools=new QListWidget(panel);tools->setObjectName("surfaceTrim.tools");tools->setMinimumHeight(72);form->addRow("Tools",tools);
     auto* regions=new QListWidget(panel);regions->setObjectName("surfaceTrim.regions");regions->setMinimumHeight(80);form->addRow("Regions",regions);
     auto* change=new QPushButton("Change Tools",panel);form->addRow(change);
-    connect(change,&QPushButton::clicked,panel,[this]{auto inputs=session_["inputs"].toObject();inputs["toolEntityIds"]=QJsonArray{};
+    connect(change,&QPushButton::clicked,panel,[this]{auto inputs=session_["inputs"].toObject();inputs.remove("toolSketchId");inputs["toolEntityIds"]=QJsonArray{};
         inputs["removedRegionIds"]=QJsonArray{};session_["inputs"]=inputs;session_["selectionRole"]="tool";previewSurfaceTrim();view_->setFocus(Qt::OtherFocusReason);});
     auto* error=new QLabel(panel);error->setObjectName("surfaceTrim.error");error->setWordWrap(true);form->addRow(error);
     auto* buttons=new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel,panel);form->addRow(buttons);

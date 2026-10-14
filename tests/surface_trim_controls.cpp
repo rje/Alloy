@@ -29,9 +29,15 @@ private slots:
   QVERIFY(view);
   call(window,"document.open",{{"path",source},{"discard",true}});call(window,"view.home");
   QApplication::setActiveWindow(&window);window.setFocus();
-  const auto before=call(window,"document.inspect");QString sketchId;
-  for(const auto& value:before["authored"].toObject()["features"].toArray())if(value.toObject()["name"]=="Paired handle splines")sketchId=value.toObject()["id"].toString();
-  QVERIFY(!sketchId.isEmpty());
+  const auto before=call(window,"document.inspect");QString sketchId,otherSketchId,otherEntityId;
+  for(const auto& value:before["authored"].toObject()["features"].toArray()){
+   const auto feature=value.toObject();
+   if(feature["name"]=="Paired handle splines")sketchId=feature["id"].toString();
+   if(feature["name"]=="Exterior guide rail"){
+    otherSketchId=feature["id"].toString();otherEntityId=feature["parameters"].toObject()["entities"].toArray()[0].toObject()["id"].toString();
+   }
+  }
+  QVERIFY(!sketchId.isEmpty() && !otherSketchId.isEmpty() && !otherEntityId.isEmpty());
   auto* tab=window.findChild<QToolButton*>("design.tab.surface");QVERIFY(tab);QTest::mouseClick(tab,Qt::LeftButton);
   auto* start=window.findChild<QToolButton*>("surface.command.surface.trimDialog");QVERIFY(start && start->isVisible());
   QTest::mouseClick(start,Qt::LeftButton);QTRY_COMPARE(session(window)["command"].toString(),QString("surface.trim"));
@@ -55,6 +61,12 @@ private slots:
   auto* buttons=dock->findChild<QDialogButtonBox*>();QVERIFY(buttons && buttons->button(QDialogButtonBox::Ok)->isEnabled());
   call(window,"view.orientation",{{"name","isometric"}});
   call(window,"capture.screenshot",{{"path",out+"/native-trim-red-preview.png"}});
+  auto* change=dock->findChild<QPushButton*>();QVERIFY(change && change->text()=="Change Tools");
+  QTest::mouseClick(change,Qt::LeftButton);
+  QVERIFY(session(window)["inputs"].toObject()["toolSketchId"].toString().isEmpty());
+  QCOMPARE(session(window)["selectionRole"].toString(),QString("tool"));
+  call(window,"surface.trimEntity",{{"sketchId",otherSketchId},{"entityId",otherEntityId}});
+  QCOMPARE(session(window)["inputs"].toObject()["toolSketchId"].toString(),otherSketchId);
   QVERIFY(view->hasFocus());
   QTest::mouseClick(buttons->button(QDialogButtonBox::Cancel),Qt::LeftButton);
   QTRY_VERIFY(session(window).isEmpty());
