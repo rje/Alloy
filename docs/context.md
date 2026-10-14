@@ -47,12 +47,15 @@ with refusal, history and reopen checks. Native04 passes focused Qt Expression
 cell typing and synchronized form display. Functions, broader unit algebra and
 anonymous model-field formulas remain PAR-001. See [receipt](validation/length-expressions.md).
 Implementation and validation reused main and its build; no new worktrees.
-SKT-079/#379 is active: a bounded retained Symmetry constraint on two existing
-lines about a construction axis. Sol owns implementation on main using the
-existing build; Astra independently reviews the design and evidence. The
-60×30→70×30 reflected plate/extrusion is the focused acceptance workflow.
-Public references remain external; general curve symmetry and other families
-remain SKT-022. No additional worktree is needed.
+SKT-079/#379 is independently accepted and closed at `d4195da` plus receipt
+clarification `5c0ad5a`. Symmetry constrains two existing straight lines about a
+construction axis, retaining endpoint correspondence and one selectable/deletable
+badge. Core passes; API11 passes 42 calls through a 60×30×5→70×30×5 plate
+(9000→10500 mm³), conflict refusal, history and reopen. Native03 passes actual
+Qt button/three picks/wrong-axis recovery/badge deletion with focus assertions.
+Broader symmetry families remain SKT-022; exact OS and visual parity are not
+claimed. See [receipt](validation/sketch-line-symmetry.md). All private validation
+editors are closed; only main remains and no additional worktree was created.
 FND-001 comparison policy is accepted in docs/compatibility.md; FND-025/#376
 retains unknown public screenshot metadata and unproven layout generations.
 

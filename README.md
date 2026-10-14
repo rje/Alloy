@@ -168,6 +168,12 @@ and six driving dimensions, with a complete API creation movie and editable
 sketch. Exact edit/history/reopen checks passed in a separate saved-model run.
 This source ends at Finish Sketch and does not produce a print mesh.
 
+[Sketch line Symmetry](docs/validation/sketch-line-symmetry.md) now constrains
+two existing lines about a construction axis, with retained endpoint pairing
+and a selectable constraint badge. A plate width edit updates its symmetric
+profile and extrusion; focused native selection, conflict refusal, history and
+reopen checks pass. Broader curve symmetry remains ahead.
+
 [Named length parameters](docs/validation/named-length-parameters.md) now bind
 sketch dimensions and Extrude distance by stable identity, with native name
 entry, atomic recompute and undo/save/reopen. This bounded slice supports direct
