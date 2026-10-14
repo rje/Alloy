@@ -2,6 +2,15 @@
 
 ## Current queue (2026-10-14)
 
+SKT-074/#330 is In Progress after independent design review. It adds explicit
+opt-in retained Offset-group union intent to the existing Extrude/Cut path,
+resolving only exact current cell coverage and retaining ordinary stale-cell
+refusal. The three-port 1 to 1.1 clearance edit is the bounded gate; partial or
+extra regions must refuse, not silently widen a Cut. This is an Alloy capability,
+not established reference UI behavior. No implementation acceptance yet.
+FND-001 comparison policy is accepted in docs/compatibility.md; FND-025/#376
+retains unknown public screenshot metadata and unproven layout generations.
+
 SKT-075/#332 is independently accepted and integrated at `62b97d7`. Fresh
 supported planar-face sketches record `originConvention: projectedOwnerV1`
 and project the authored owning-component origin onto the face, retaining its
