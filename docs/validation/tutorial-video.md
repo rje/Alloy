@@ -116,8 +116,9 @@ geometry rerun was required. Issue #157 is closed; #154/#155 remain open.
 
 `tools/trim_tutorial_idle.py` produces a separate edited demonstration from a
 cleanly stopped raw clip and its recorder event log. It retains normal-speed
-windows around recorded input, captions and visible commands, adds a persistent
-EDITED banner, and emits an explicit frame mapping with provenance. It never
+windows around recorded input, captions and visible commands, and emits an
+explicit frame mapping with provenance. Editing details stay in the sidecar;
+user-facing progress videos have no added EDITED banner. It never
 replaces the raw video. Example:
 
 ```sh

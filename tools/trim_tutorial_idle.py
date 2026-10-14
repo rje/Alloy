@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Remove idle gaps from a completed Alloy recording, retaining an explicit edit map.
 
-Requires ffmpeg, ffprobe and Pillow. Raw media and events are never modified.
+Requires ffmpeg and ffprobe. Raw media and events are never modified.
 This creates an edited demonstration, not an uninterrupted verification receipt.
 """
 import argparse
@@ -11,8 +11,6 @@ import json
 import math
 from pathlib import Path
 import subprocess
-
-from PIL import Image, ImageDraw, ImageFont
 
 
 def probe(path):
@@ -81,19 +79,10 @@ def main():
         assert any(start <= frame < end for start, end in windows), 'An action would be omitted'
 
     output.parent.mkdir(parents=True, exist_ok=True)
-    banner_path = output.with_suffix('.banner.png')
-    width = int(info['width'])
-    height = max(28, round(width * 0.022))
-    banner = Image.new('RGB', (width, height), '#17252e')
-    ImageDraw.Draw(banner).text((10, 4), 'EDITED: idle waits removed | Original recording retained',
-        font=ImageFont.load_default(size=max(16, round(height * 0.65))), fill='white')
-    banner.save(banner_path)
     selection = '+'.join(f'between(n,{start},{end-1})' for start, end in windows)
-    filters = (f"[0:v]select='{selection}',setpts=N/({rate}*TB)[cut];"
-               '[cut][1:v]overlay=0:0:shortest=1[out]')
+    filters = f"[0:v]select='{selection}',setpts=N/({rate}*TB)[out]"
     with output.with_suffix('.ffmpeg.log').open('w') as log:
-        subprocess.run(['ffmpeg', '-hide_banner', '-n', '-i', str(raw), '-loop', '1',
-            '-i', str(banner_path), '-filter_complex', filters, '-map', '[out]', '-an',
+        subprocess.run(['ffmpeg', '-hide_banner', '-n', '-i', str(raw), '-filter_complex', filters, '-map', '[out]', '-an',
             '-r', str(rate), '-c:v', 'libx264', '-preset', 'fast', '-crf', '20',
             '-pix_fmt', 'yuv420p', '-movflags', '+faststart', str(output)],
             stdout=log, stderr=subprocess.STDOUT, check=True)
@@ -109,7 +98,7 @@ def main():
                        'observedEventIndexes': [i for i, e in observed
                            if start <= min(count-1, math.floor(e['elapsedMs']*fps/1000)) < end]})
         cursor += end-start
-    receipt = {'edited': True, 'policy': 'Normal-speed hard cuts remove idle gaps only; persistent edit banner.',
+    receipt = {'edited': True, 'policy': 'Normal-speed hard cuts remove idle gaps only; editing provenance retained in this sidecar.',
                'rawVideo': str(raw), 'rawSha256': digest(raw), 'rawEventLog': str(events_path),
                'rawEventLogSha256': digest(events_path), 'editedVideo': str(output),
                'editedSha256': digest(output), 'fps': str(rate),
