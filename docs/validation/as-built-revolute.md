@@ -1,7 +1,7 @@
-# As-built Revolute and root Pin candidate
+# As-built Revolute and root Pin
 
-Status: isolated ASM-014/#363 candidate awaiting independent final review and
-integration. Public behavior and the bounded selection policy are recorded
+Status: independently accepted and integrated at `96c032c`. Main application
+build and focused `assembly_revolute` check pass (1/1, 1.04 seconds). Public behavior and the bounded selection policy are recorded
 outside the repository in
 `../Alloy-reference-records/knowledge/tutorials/piston-subassemblies-2026-10-14/source-contract.md`
 and `asm014-retained-contract.md` beside it.
