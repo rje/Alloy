@@ -784,3 +784,9 @@ if(BUILD_TESTING)
     target_link_libraries(joint_origin_test PRIVATE alloy_kernel Qt6::Widgets)
     add_test(NAME joint_origin COMMAND joint_origin_test "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/piston-native-components.alloy")
 endif()
+
+if(BUILD_TESTING)
+    # Explicit GUI lease + supplied-fixture environment; never automatic CTest.
+    add_executable(piston_native_workflow_test tests/piston_native_workflow.cpp)
+    target_link_libraries(piston_native_workflow_test PRIVATE alloy_application Qt6::Test)
+endif()
