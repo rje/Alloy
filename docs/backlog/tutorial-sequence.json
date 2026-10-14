@@ -97,11 +97,13 @@
         "DOC-024",
         "HIS-007",
         "VIS-004",
+        "SRF-017",
+        "SRF-016",
         "TUT-018"
       ],
       "acceptance": "Creation movie including declared sketch setup, editable surfaces/final solid, silhouette and handle comparisons against public images, upstream edits/history/reopen and checked solid/mesh outputs. Prepared-sketch adaptation remains labeled.",
       "status": "todo",
-      "remaining": "RES-018 source qualification, SRF-014 Two Sides surface Extrude, DOC-024 canvas, HIS-007 retained Remove and VIS-004 Surface navigation are accepted. Prepared sketch dimensions remain independently chosen. SRF-012 exterior endpoint-contact guide-rail Loft is accepted. SRF-013 Trim is active; separate SRF-015 three-section handle bridge and SRF-011 Boundary Fill remain ahead of full TUT-018. Broader modes remain Todo."
+      "remaining": "RES-018 source qualification, SRF-014 Two Sides surface Extrude, DOC-024 canvas, HIS-007 retained Remove and VIS-004 Surface navigation are accepted. Prepared sketch dimensions remain independently chosen. SRF-012 exterior endpoint-contact guide-rail Loft is accepted. SRF-013 Trim is active; separate SRF-015 three-section handle bridge and SRF-011 Boundary Fill remain ahead of full TUT-018. Broader modes remain Todo. SRF-017 explicitly retains exterior topology for two handle side sections; accepted endpoint/straight-line Loft alone does not establish that workflow. SRF-013 now covers sketch-tool Trim only; SRF-016 retains sheet-tool Trim and reverted trials."
     },
     {
       "id": "CP-24",
