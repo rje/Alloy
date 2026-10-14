@@ -1,4 +1,4 @@
-# Native Selection Priority candidate
+# Native Selection Priority acceptance
 
 DOC-025 adds a Select > Selection Priority submenu for Body, Face and Edge.
 Exactly one mode is active; choosing it again returns to Auto. The same
@@ -40,3 +40,7 @@ checks that a selected ordinary edge is replaced by construction-plane,
 sketch and profile selections, and does not leak through a document-tab switch.
 Those transitions clear the old edge cue; the authored geometry remains under
 the same document authority. This follow-up passed and its editor exited.
+
+Independent Astra review accepted the bounded implementation and transition fix
+at candidate `dce2bcb` atop `95a20af`. Face priority currently selects retained
+planar supports; general curved-face coverage remains outside this child.

@@ -1,12 +1,13 @@
 # Continuation context
 
-## Selection Priority candidate (2026-10-13)
+## Accepted Selection Priority (2026-10-13)
 
-DOC-025 native Select-menu Body/Face/Edge priority is implemented in an
-isolated candidate. Public toggle behavior and the explicitly chosen transient
-Auto default are recorded in [the candidate receipt](validation/selection-priority.md).
-Focused Qt-native Box-edge selection and a 33-call real-app API ledger pass;
-independent compatibility review and main integration remain pending.
+DOC-025 native Select-menu Body/Face/Edge priority and its selection-transition
+fix are independently accepted and integrated. Public toggle behavior and the
+explicitly chosen transient Auto default are recorded in [the receipt](validation/selection-priority.md).
+Focused Qt-native Box-edge selection, shared API selection and edge replacement
+through sketch/profile/plane/tab transitions pass. Face mode remains bounded
+to retained planar supports; general curved-face coverage is not claimed.
 
 ## Accepted enclosure ports and card checkpoint (2026-10-13)
 
@@ -37,10 +38,10 @@ HIS-006 candidate is clean at 7b1ceb7 in the timeline-reorder worktree; it is
 returned to Todo while its actual two-Mirror fixture depends on SOL-053. Its
 shared reorder and one-Mirror core pass, but native/final source acceptance
 remain pending. No substitute inner edge or nearest-match identity is allowed.
-The second Sol lane now owns DOC-025/#307 native Body/Face/Edge Selection
-Priority, independently of the lineage fix. Public menu/toggle behavior is
-documented externally; startup auto and window-local transient persistence
-are explicit Alloy choices. Explicit active-command pick roles override it.
+DOC-025/#307 is closed after independent review and main app build. The second
+Sol lane now owns GEO-003/#281 endpoint Plane Along Path for the shoehorn,
+in parallel with GEO-013 enclosure Cut side-face lineage. SOL-053 stays Todo
+until its actual five-feature YZ fixture is qualified.
 
 ## Accepted snap-group feature Mirror (2026-10-13)
 
