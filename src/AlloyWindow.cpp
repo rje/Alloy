@@ -924,7 +924,8 @@ AlloyWindow::AlloyWindow() {
         if(!sectionEdit_.isEmpty())return;
         if(session_.value("command")=="sketch.plane")execute("sketch.cancel");
         else if(session_.value("command").toString()=="sketch.edit") {
-            if(session_.value("tool")=="mirror")execute("sketch.mirrorExit");
+            if(session_.contains("pendingLineArc"))execute("sketch.lineArcDrag",{{"phase","cancel"}});
+            else if(session_.value("tool")=="mirror")execute("sketch.mirrorExit");
             else if(session_.contains("pendingCenterRectangle"))execute("sketch.centerRectangleCancel");
             else if(session_.contains("pendingTwoPointRectangle"))execute("sketch.twoPointRectangleCancel");
             else if(session_.contains("pendingCircleDiameter"))execute("sketch.circleDiameterCancel");
@@ -1074,7 +1075,8 @@ bool AlloyWindow::eventFilter(QObject* watched,QEvent* event) {
             sketchResponse(execute("sketch.tool",{{"tool","select"}}));return true;
         }
         if(key->key()==Qt::Key_Escape && session_.value("tool")=="line") {
-            if(session_.value("pendingLineLength").toObject().value("phase")=="editing")execute("sketch.lineLengthCancel");
+            if(session_.contains("pendingLineArc"))execute("sketch.lineArcDrag",{{"phase","cancel"}});
+            else if(session_.value("pendingLineLength").toObject().value("phase")=="editing")execute("sketch.lineLengthCancel");
             else sketchResponse(execute("sketch.tool",{{"tool","select"}}));
             return true;
         }
@@ -3092,6 +3094,7 @@ void AlloyWindow::registerCommands() {
         if(session_.value("command").toString()!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
         if(session_.contains("pendingProject"))execute("sketch.projectCancel");
         cancelConicInput();
+        session_.remove("pendingLineArc");view_->clearSketchLineArcDrag();if(lineLockCue_)lineLockCue_->hide();
         cancelSlotDrag();
         if(session_.contains("pendingSplineDrag"))splineCommand("drag",{{"phase","cancel"}});
         auto badgeSelection=session_.value("selection").toObject();badgeSelection.remove("constraintIds");badgeSelection.remove("dimensionId");
@@ -3335,6 +3338,7 @@ void AlloyWindow::registerCommands() {
     });
     add("sketch.placePoint","Place sketch point","Resolve an actual viewport point on the active plane; Point uses one click and curve tools use their own gestures.",sketchPlaceSchema,[this](const auto& a){
         if(session_.value("command").toString()!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
+        if(session_.contains("pendingLineArc"))return failure("arc_drag_active","Release or cancel the tangent Arc drag first");
         if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))return failure("stale_session","The document changed; cancel and restart this sketch");
         const auto tool=session_.value("tool").toString();
         if(tool=="conic")return conicPointer(a,true);
@@ -3687,6 +3691,91 @@ void AlloyWindow::registerCommands() {
             session_["firstPoint"]=continuation;
         }
         return QJsonObject{{"placement",true},{"point",point},{"draftSketch",session_.value("draftSketch")}};
+    });
+    auto tangentArcPhase=parameter("string","Begin, move, end or cancel a tangent Arc drag from the current Line endpoint.");
+    tangentArcPhase["enum"]=QJsonArray{"begin","move","end","cancel"};
+    add("sketch.lineArcDrag","Line tangent Arc drag","Preview an incoming-line tangent Arc while held; release commits it and resumes straight Line.",
+        {{"phase",tangentArcPhase},{"x",optional(sketchPixel)},
+            {"y",optional(sketchPixel)}},[this](const auto& a){
+        if(session_.value("command")!="sketch.edit" || session_.value("tool")!="line")
+            return failure("no_line_chain","Enter an active sketch Line chain first");
+        const auto phase=a.value("phase").toString();
+        if(phase=="cancel"){
+            session_.remove("pendingLineArc");view_->clearSketchLineArcDrag();view_->clearSketchCursor();
+            if(lineLockCue_)lineLockCue_->hide();
+            return QJsonObject{{"authoredChange",false},{"previewed",false}};
+        }
+        if(!a.value("x").isDouble() || !a.value("y").isDouble())return failure("invalid_arguments","Arc drag needs viewport coordinates");
+        if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))
+            return failure("stale_session","The document changed; restart the sketch");
+        const auto draft=session_.value("draftSketch").toObject(),parameters=draft.value("parameters").toObject();
+        const auto entities=parameters.value("entities").toArray();
+        if(phase=="begin"){
+            const auto first=session_.value("firstPoint").toObject();
+            if(entities.isEmpty() || entities.last().toObject().value("type")!="line"
+                || first.value("target").toObject().value("kind")!="point"
+                || first.value("target").toObject().value("pointId")!=entities.last().toObject().value("endPointId"))
+                return failure("no_line_chain","Drag from the latest committed Line endpoint");
+            const auto endId=entities.last().toObject().value("endPointId");QJsonObject end;
+            for(const auto& value:parameters.value("points").toArray())if(value.toObject().value("id")==endId){end=value.toObject();break;}
+            if(end.isEmpty())return failure("stale_line_endpoint","The Line endpoint is unavailable");
+            const auto screen=view_->projectSketchPoint(end.value("uMm").toDouble(),end.value("vMm").toDouble(),
+                session_.value("inputs").toObject().value("plane").toString());
+            if(std::hypot(screen.value("x").toDouble()-a.value("x").toDouble(),
+                screen.value("y").toDouble()-a.value("y").toDouble())>10)
+                return failure("line_endpoint_miss","Press the latest Line endpoint to begin a tangent Arc drag");
+            session_["pendingLineArc"]=QJsonObject{{"lineId",entities.last().toObject().value("id")},
+                {"pointId",endId},{"sessionId",session_.value("id")},{"draftSketch",draft},
+                {"valid",false}};
+            return QJsonObject{{"authoredChange",false},{"dragging",true}};
+        }
+        const auto pending=session_.value("pendingLineArc").toObject();
+        if(pending.isEmpty() || pending.value("sessionId")!=session_.value("id") || pending.value("draftSketch")!=draft)
+            return failure("stale_arc_drag","The pending Arc drag is no longer active");
+        const auto point=view_->sketchPoint(a.value("x").toDouble(),a.value("y").toDouble(),
+            session_.value("inputs").toObject().value("plane").toString());
+        const auto geometry=SketchGeometry::pointerTangentArc(parameters,pending.value("lineId").toString(),
+            point.value("uMm").toDouble(),point.value("vMm").toDouble());
+        if(phase=="move"){
+            auto next=pending;next["valid"]=!geometry.isEmpty();session_["pendingLineArc"]=next;
+            if(geometry.isEmpty()){
+                view_->clearSketchCursor();if(lineLockCue_)lineLockCue_->hide();
+                return QJsonObject{{"authoredChange",false},{"previewed",false}};
+            }
+            try {
+                auto preview=SketchGeometry::addArc(draft,{{"centerUMm",geometry.value("centerUMm")},
+                    {"centerVMm",geometry.value("centerVMm")},{"radiusMm",geometry.value("radiusMm")},
+                    {"startAngleDeg",geometry.value("startAngleDeg")},{"sweepAngleDeg",geometry.value("sweepAngleDeg")},
+                    {"startPointId",geometry.value("startPointId")}});
+                auto previewParameters=preview.value("parameters").toObject();
+                previewParameters["entities"]=QJsonArray{previewParameters.value("entities").toArray().last()};
+                preview["parameters"]=previewParameters;view_->showSketchCurveCursor(preview);
+            }catch(const std::exception&){view_->clearSketchCursor();return QJsonObject{{"authoredChange",false},{"previewed",false}};}
+            if(!lineLockCue_){
+                lineLockCue_=new QLabel(view_);lineLockCue_->setObjectName("sketch.lineLockCue");
+                lineLockCue_->setAttribute(Qt::WA_TransparentForMouseEvents);
+                lineLockCue_->setStyleSheet("background: #eaf5fc; color: #143f59; border: 1px solid #5b9fc6; border-radius: 3px; padding: 3px 6px; font-weight: 600;");
+            }
+            lineLockCue_->setText("Tangent Arc");lineLockCue_->adjustSize();
+            lineLockCue_->move(std::clamp(qRound(a.value("x").toDouble()+15),0,std::max(0,view_->width()-lineLockCue_->width())),
+                std::clamp(qRound(a.value("y").toDouble()+15),0,std::max(0,view_->height()-lineLockCue_->height())));
+            lineLockCue_->show();lineLockCue_->raise();
+            return QJsonObject{{"authoredChange",false},{"previewed",true},{"arc",geometry}};
+        }
+        if(phase!="end")return failure("invalid_arguments","Unknown Arc drag phase");
+        session_.remove("pendingLineArc");view_->clearSketchCursor();if(lineLockCue_)lineLockCue_->hide();
+        if(geometry.isEmpty())return failure("invalid_arc_drag","Release at a usable tangent Arc endpoint");
+        const auto result=publishSketchSolve(SketchGeometry::addPointerTangentArc(draft,pending.value("lineId").toString(),
+            point.value("uMm").toDouble(),point.value("vMm").toDouble(),session_.value("projectionContext").toObject()));
+        if(result.value("ok").isBool() && !result.value("ok").toBool())return result;
+        const auto latest=session_.value("draftSketch").toObject().value("parameters").toObject().value("entities").toArray().last().toObject();
+        const auto endpoint=latest.value("endPointId");QJsonObject end;
+        for(const auto& value:session_.value("draftSketch").toObject().value("parameters").toObject().value("points").toArray())
+            if(value.toObject().value("id")==endpoint){end=value.toObject();break;}
+        if(end.isEmpty())return failure("stale_arc_endpoint","The committed Arc endpoint is unavailable");
+        end["status"]="acquired";end["target"]=QJsonObject{{"kind","point"},{"pointId",endpoint}};
+        session_["firstPoint"]=end;
+        return QJsonObject{{"authoredChange",true},{"arc",latest},{"nextTool","line"}};
     });
     auto sketchPreviewSchema=sketchPixels;
     sketchPreviewSchema["suppressInference"]=optional(parameter("boolean","Control/Command temporarily suppresses automatic Line H/V inference."));
@@ -9760,6 +9849,16 @@ void AlloyWindow::refreshSketchControls() {
     if(sketchShowConstraints_){const QSignalBlocker block(sketchShowConstraints_);sketchShowConstraints_->setChecked(displayOptions.value("showConstraints").toBool(true));}
     if(sketchShowDimensions_){const QSignalBlocker block(sketchShowDimensions_);sketchShowDimensions_->setChecked(displayOptions.value("showDimensions").toBool(true));}
     auto presentationSelection=selection;presentationSelection["tool"]=session_.value("tool");presentationSelection["hoveredConstraintId"]=session_.value("hoveredConstraintId");
+    if(session_.value("tool")=="line"){
+        const auto first=session_.value("firstPoint").toObject();
+        const auto entities=draft.value("parameters").toObject().value("entities").toArray();
+        if(!entities.isEmpty() && entities.last().toObject().value("type")=="line"
+            && first.value("target").toObject().value("kind")=="point"
+            && first.value("target").toObject().value("pointId")==entities.last().toObject().value("endPointId")){
+            presentationSelection["chainLineId"]=entities.last().toObject().value("id");
+            presentationSelection["chainPointId"]=entities.last().toObject().value("endPointId");
+        }
+    }
     const auto loopPreview=session_.value("pendingLoopOffset").toObject();
     const auto projectPreview=session_.value("pendingProject").toObject();
     view_->decorateSketch(!projectPreview.isEmpty() ? projectPreview["previewDraft"].toObject()

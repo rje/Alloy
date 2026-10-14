@@ -74,6 +74,7 @@ public:
     QJsonObject conicHandle() const { return conicHandleState_; }
     void decorateSplineHandles(const QJsonObject& feature,const QJsonObject& selection);
     void clearSplineDrag() { splineDrag_={}; }
+    void clearSketchLineArcDrag() { sketchLineArcDrag_={}; }
     QJsonObject splineHandles() const { return splineHandleState_; }
     QJsonObject pickAnnotation(double x, double y) const;
     QJsonObject pickConstraint(double x, double y) const;
@@ -206,7 +207,7 @@ private:
     QMap<QString,Handle(AIS_Shape)> sketchModels_;
     std::vector<Handle(AIS_Shape)> sketchTextHandles_;
     QJsonObject sketchTextHandleState_, sketchTextDrag_;
-    QJsonObject slotPointDrag_;
+    QJsonObject slotPointDrag_,sketchLineArcDrag_;
     QMap<QString,Handle(AIS_Shape)> constructionSketchModels_, centerlineSketchModels_;
     QMap<QString,Handle(AIS_Shape)> constructionPlaneModels_;
     std::vector<EvaluatedConstructionPlane> constructionPlanes_;

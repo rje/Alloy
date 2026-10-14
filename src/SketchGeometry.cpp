@@ -1289,6 +1289,71 @@ QJsonArray SketchGeometry::pointerCircleTangents(const QJsonObject& parameters,c
         QJsonObject{{"branch",1},{"uMm",cx+along*dx-across*dy},{"vMm",cy+along*dy+across*dx}}};
 }
 
+QJsonObject SketchGeometry::pointerTangentArc(const QJsonObject& parameters,const QString& lineId,double endU,double endV) {
+    if(!std::isfinite(endU) || !std::isfinite(endV) || std::abs(endU)>maximumLength || std::abs(endV)>maximumLength)return {};
+    QJsonObject line,start,previous;
+    for(const auto& value:parameters.value("entities").toArray()){
+        const auto row=value.toObject();if(row.value("id")==lineId && row.value("type")=="line")line=row;
+    }
+    if(line.isEmpty())return {};
+    for(const auto& value:parameters.value("points").toArray()){
+        const auto row=value.toObject();if(row.value("id")==line.value("startPointId"))previous=row;
+        if(row.value("id")==line.value("endPointId"))start=row;
+    }
+    if(start.isEmpty() || previous.isEmpty())return {};
+    const double px=start.value("uMm").toDouble(),py=start.value("vMm").toDouble();
+    const double dx=px-previous.value("uMm").toDouble(),dy=py-previous.value("vMm").toDouble();
+    const double lineLength=std::hypot(dx,dy),ex=endU-px,ey=endV-py;
+    if(lineLength<minimumLength || std::hypot(ex,ey)<minimumLength)return {};
+    const double tx=dx/lineLength,ty=dy/lineLength,nx=-ty,ny=tx;
+    const double normalTravel=nx*ex+ny*ey;
+    if(std::abs(normalTravel)<1e-6*std::max(1.0,std::hypot(ex,ey)))return {};
+    const double signedRadius=(ex*ex+ey*ey)/(2*normalTravel),radius=std::abs(signedRadius);
+    if(!std::isfinite(radius) || radius<minimumLength || radius>maximumLength)return {};
+    const double cx=px+signedRadius*nx,cy=py+signedRadius*ny;
+    const double startAngle=std::atan2(py-cy,px-cx)/degrees;
+    const double endAngle=std::atan2(endV-cy,endU-cx)/degrees;
+    auto positive=[](double angle){angle=std::fmod(angle,360.0);return angle<0 ? angle+360.0 : angle;};
+    const double sweep=signedRadius>0 ? positive(endAngle-startAngle) : -positive(startAngle-endAngle);
+    if(std::abs(sweep)<1e-6 || std::abs(sweep)>=360 || radius*std::abs(sweep)*degrees<minimumLength)return {};
+    return {{"centerUMm",cx},{"centerVMm",cy},{"radiusMm",radius},
+        {"startAngleDeg",std::remainder(startAngle,360.0)},{"sweepAngleDeg",sweep},
+        {"startPointId",line.value("endPointId")},{"endUMm",endU},{"endVMm",endV},
+        {"side",signedRadius>0 ? 1 : -1}};
+}
+
+SketchGeometry::SolveResult SketchGeometry::addPointerTangentArc(const QJsonObject& draft,const QString& lineId,
+    double endU,double endV,const QJsonObject& projectionContext) {
+    try {
+        validateDraft(draft);
+        const auto parameters=draft.value("parameters").toObject();
+        const auto entities=parameters.value("entities").toArray();
+        if(entities.isEmpty() || entities.last().toObject().value("id")!=lineId || entities.last().toObject().value("type")!="line")
+            reject("Tangent Arc drag needs the most recently authored Line");
+        const auto geometry=pointerTangentArc(parameters,lineId,endU,endV);
+        if(geometry.isEmpty())reject("Tangent Arc drag needs a nondegenerate finite circular sweep");
+        auto candidate=addArc(draft,{{"centerUMm",geometry.value("centerUMm")},{"centerVMm",geometry.value("centerVMm")},
+            {"radiusMm",geometry.value("radiusMm")},{"startAngleDeg",geometry.value("startAngleDeg")},
+            {"sweepAngleDeg",geometry.value("sweepAngleDeg")},{"startPointId",geometry.value("startPointId")}});
+        auto updated=candidate.value("parameters").toObject();auto relations=updated.value("constraints").toArray();
+        const auto arc=updated.value("entities").toArray().last().toObject();
+        relations.append(QJsonObject{{"id",newId()},{"type","arcTangent"},
+            {"entityIds",QJsonArray{arc.value("id"),lineId}},
+            {"pointIds",QJsonArray{geometry.value("startPointId")}},{"side",geometry.value("side")}});
+        updated["constraints"]=relations;candidate["parameters"]=updated;
+        const auto solved=solveDraft(candidate,projectionContext);
+        if(!solved.ok)return {false,draft,solved.diagnostics,solved.error};
+        const auto after=solved.feature.value("parameters").toObject();
+        const auto beforePoints=parameters.value("points").toArray(),afterPoints=after.value("points").toArray();
+        QMap<QString,QJsonObject> resolved;for(const auto& value:afterPoints){const auto point=value.toObject();resolved[point.value("id").toString()]=point;}
+        for(const auto& value:beforePoints){const auto point=value.toObject(),newPoint=resolved.value(point.value("id").toString());
+            if(newPoint.isEmpty() || std::hypot(newPoint.value("uMm").toDouble()-point.value("uMm").toDouble(),
+                newPoint.value("vMm").toDouble()-point.value("vMm").toDouble())>1e-6)
+                reject("Tangent Arc would move existing sketch geometry");}
+        return solved;
+    }catch(const std::exception& error){return invalidDraft(draft,QString::fromUtf8(error.what()));}
+}
+
 SketchGeometry::SolveResult SketchGeometry::addPointerEntity(const QJsonObject& draft, const QString& tool, const QJsonObject& arguments, const QJsonObject& projectionContext) {
     try {
         validateDraft(draft);
@@ -1374,7 +1439,10 @@ SketchGeometry::SolveResult SketchGeometry::addPointerEntity(const QJsonObject& 
         if (tool=="rectangle" && (std::abs(u2-u1)<minimumLength || std::abs(v2-v1)<minimumLength)) reject("Snapped rectangle sides must be at least 0.001 mm");
         auto derivedOffsetPoints=SketchSplineOffset::derivedPointIds(parameters);
         derivedOffsetPoints.unite(SketchOpenChainOffset::derivedPointIds(parameters));
-        const auto first=tool=="line" && derivedOffsetPoints.contains(startTarget) ? startTarget : freshPoint(u1,v1);
+        const bool fromLatestArc=tool=="line" && !entities.isEmpty() && entities.last().toObject().value("type")=="arc"
+            && !startTarget.isEmpty() && entities.last().toObject().value("endPointId")==startTarget;
+        const auto first=tool=="line" && (derivedOffsetPoints.contains(startTarget) || fromLatestArc)
+            ? startTarget : freshPoint(u1,v1);
         QString last;
         auto edge=[&](const QString& a,const QString& b) {const auto id=newId();entities.append(QJsonObject{{"id",id},{"type","line"},{"startPointId",a},{"endPointId",b}});return id;};
         QString lineId;

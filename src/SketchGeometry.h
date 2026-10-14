@@ -75,6 +75,11 @@ public:
     static QJsonObject pointerCircleFrom(const QJsonObject& parameters,const QString& circleId,
         double contactU,double contactV,double cursorU,double cursorV);
     static QJsonArray pointerCircleTangents(const QJsonObject& parameters,const QString& circleId,double startU,double startV);
+    // A drag from the last authored Line endpoint chooses the unique analytic
+    // arc tangent to that Line at its shared endpoint. Empty means degenerate.
+    static QJsonObject pointerTangentArc(const QJsonObject& parameters,const QString& lineId,double endU,double endV);
+    static SolveResult addPointerTangentArc(const QJsonObject& draft,const QString& lineId,double endU,double endV,
+        const QJsonObject& projectionContext = {});
     static SolveResult addPointerEntity(const QJsonObject& draft, const QString& tool,
         const QJsonObject& arguments, const QJsonObject& projectionContext = {});
     // Explicit normal/construction conversion retains geometry and relation IDs.

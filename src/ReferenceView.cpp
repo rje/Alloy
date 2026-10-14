@@ -2499,6 +2499,21 @@ void ReferenceView::mousePressEvent(QMouseEvent* e) {
         panButton_=e->button();last_=e->position();setCursor(Qt::ClosedHandCursor);e->accept();
     }
     else if(e->button()==Qt::LeftButton){
+        if(!sketchPlane_.isEmpty() && decorationSelection_.value("tool")=="line"
+            && !decorationSelection_.value("chainLineId").toString().isEmpty()
+            && !e->modifiers().testFlag(Qt::AltModifier)){
+            const auto pointId=decorationSelection_.value("chainPointId");
+            for(const auto& value:decorationFeature_.value("parameters").toObject().value("points").toArray()){
+                const auto point=value.toObject();if(point.value("id")!=pointId)continue;
+                const auto screen=projectSketchPoint(point.value("uMm").toDouble(),point.value("vMm").toDouble(),sketchPlane_);
+                if(QLineF(e->position(),QPointF(screen.value("x").toDouble(),screen.value("y").toDouble())).length()<=10){
+                    sketchLineArcDrag_={{"pressX",e->position().x()},{"pressY",e->position().y()},{"moved",false}};
+                    dispatch("sketch.lineArcDrag",{{"phase","begin"},{"x",e->position().x()},{"y",e->position().y()}});
+                    setFocus(Qt::MouseFocusReason);e->accept();return;
+                }
+                break;
+            }
+        }
         if(!sketchPlane_.isEmpty() && decorationSelection_.value("tool")=="project") {
             dispatch("sketch.projectPick",{{"x",e->position().x()},{"y",e->position().y()}});
             e->accept();return;
@@ -2560,6 +2575,13 @@ void ReferenceView::mousePressEvent(QMouseEvent* e) {
     else QWidget::mousePressEvent(e);
 }
 void ReferenceView::mouseMoveEvent(QMouseEvent* e) {
+    if(!sketchLineArcDrag_.isEmpty() && e->buttons().testFlag(Qt::LeftButton)){
+        const QPointF press(sketchLineArcDrag_.value("pressX").toDouble(),sketchLineArcDrag_.value("pressY").toDouble());
+        if(QLineF(press,e->position()).length()>=4)sketchLineArcDrag_["moved"]=true;
+        if(sketchLineArcDrag_.value("moved").toBool())
+            dispatch("sketch.lineArcDrag",{{"phase","move"},{"x",e->position().x()},{"y",e->position().y()}});
+        e->accept();return;
+    }
     if(jointOriginPicking_ && e->buttons()==Qt::NoButton) {
         updateJointOriginHover(e->position());e->accept();return;
     }
@@ -2657,6 +2679,12 @@ void ReferenceView::keyReleaseEvent(QKeyEvent* e) {
     QWidget::keyReleaseEvent(e);
 }
 void ReferenceView::mouseReleaseEvent(QMouseEvent* e) {
+    if(e->button()==Qt::LeftButton && !sketchLineArcDrag_.isEmpty()){
+        const bool moved=sketchLineArcDrag_.value("moved").toBool();sketchLineArcDrag_={};
+        dispatch("sketch.lineArcDrag",moved ? QJsonObject{{"phase","end"},{"x",e->position().x()},{"y",e->position().y()}}
+            : QJsonObject{{"phase","cancel"}});
+        e->accept();return;
+    }
     if(e->button()==Qt::LeftButton && jointOriginPressHandled_){jointOriginPressHandled_=false;e->accept();return;}
     if(e->button()==Qt::LeftButton && !assemblyDrag_.isEmpty()){
         const bool moved=assemblyDrag_["moved"].toBool();assemblyDrag_={};
