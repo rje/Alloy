@@ -7,24 +7,32 @@ build, while retaining advanced tutorial completion. See the actionable
 [readiness burndown](initial-build-readiness.md). Twenty-one bounded children
 NAV-001–008, REL-012–018 and CI-004–009 are published as #407–427; existing
 file/physical-input/platform gates and advanced chain dependencies are reused.
-NAV-001/#407 is independently accepted at2d1a699 and closed: real free orbit,
-visible checked no-middle-button tool, custom-camera tab restoration and navigation
-gesture priority. Focused Qt3/3 and actual GPU captures pass; physical device,
-trackpad, constrained/pivot modes remain separate. Main app relinked. See
-[receipt](validation/free-orbit-navigation.md). GEO-017/#347 is independently accepted at6d9b8dc: an exact analytic planar
-inset helper produces the actual17-edge U contour with stable owning-feature /
-source-edge / incident-vertex ancestry. Upstream stock64→65 changes area
-233.8577→236.289mm² with stable IDs through source history/reopen. This is a
-kernel ingredient; authored inset/UI remains SKT-076, now unblocked. See
-[receipt](validation/enclosure-inset-diagnostic.md). CI-008/#426 is active for the bounded clean macOS Qt recipe and provenance,
-with one clean local build authorized (no CI dispatch). Existing used SDK remains
-untouched. CI-009 retains Windows/Linux alignment; parentCI-004 stays Todo.
-External handoff: `knowledge/specs/runtime-reproducibility-2026-10-14.md`.
-Only main/existing build and one private GUI lease; no new worktrees. Alternate
-readiness slices with concrete advanced-chain blockers. Packages can progress
-independently; no version/CI dispatch or public release has been triggered.
-Initial OpenGL preview limitations remain explicit; stable RHI requirements stay.
-The previous accepted milestone remains valid; current activity is this section.
+NAV-001/#407 is independently accepted at `2d1a699` and closed: free orbit,
+a visible checked tool for users without a middle mouse button, custom-camera
+tab restoration and navigation gesture priority. Focused Qt tests passed 3/3,
+and actual GPU captures were inspected. Physical devices, trackpads and
+constrained/pivot modes remain separate. The main app was relinked. See
+[the receipt](validation/free-orbit-navigation.md).
+
+GEO-017/#347 is independently accepted at `6d9b8dc`: an exact analytic planar
+inset helper produces the actual 17-edge U contour with identities derived from
+the owning feature, source edges and incident vertices. Changing upstream stock
+width from 64 to 65 mm changes area from 233.8577 to 236.289 mm² while preserving
+IDs through source history and reopen. This is a kernel ingredient; authored
+inset/UI remains SKT-076, now unblocked. See
+[the receipt](validation/enclosure-inset-diagnostic.md).
+
+CI-008/#426 is active for the bounded macOS Qt recipe and provenance, with one
+clean local build authorized (no CI dispatch). The existing SDK used by the app
+remains untouched. CI-009 retains Windows/Linux alignment; parent CI-004 stays
+Todo. External handoff: `knowledge/specs/runtime-reproducibility-2026-10-14.md`.
+
+Use only the main checkout and one private GUI lease; no new worktrees are
+needed. Alternate readiness slices with concrete advanced-chain blockers.
+Packages can progress independently. No version, CI dispatch or release has
+been triggered. Initial OpenGL preview limitations remain explicit; stable RHI
+requirements stay. Earlier accepted milestones remain valid; this section
+records the current priority.
 
 ## Prior accepted queue (2026-10-14)
 

@@ -24,7 +24,7 @@ promotion follows automatically from an ordinary commit.
 
 The source audit found fixed views, pan, center-based wheel zoom and sketch Look
 At; arbitrary orbit, ViewCube and projection controls were missing at the audit.
-NAV-001 is now accepted at2d1a699: free orbit works with Shift-middle drag or
+NAV-001 is now accepted at `2d1a699`: free orbit works with Shift-middle drag or
 the visible Free Orbit tool and left drag/Escape. The focused Qt/GPU evidence
 is recorded in [its receipt](validation/free-orbit-navigation.md); other navigation
 children remain open. Research
@@ -82,7 +82,7 @@ notarization and minimum supported OS details must be explicit before distributi
 
 ## Advanced tutorial chains remain required work
 
-1. **Electronics enclosure:** GEO-017 is now accepted at6d9b8dc for the exact
+1. **Electronics enclosure:** GEO-017 is now accepted at `6d9b8dc` for the exact
    inset kernel and source-derived identities. Finish authored trimmed-seam
    Offset and alignment
    rim ([GEO-017](https://github.com/rje/Alloy/issues/347) → [SKT-076](https://github.com/rje/Alloy/issues/346) → [TUT-023](https://github.com/rje/Alloy/issues/324)), then complete [TUT-016](https://github.com/rje/Alloy/issues/299) with both printable
@@ -106,8 +106,10 @@ first. A successful ingredient does not close the cumulative tutorial.
 ## Delivery and verification policy
 
 Alternate a bounded readiness improvement with a concrete tutorial blocker.
-Begin with [NAV-001](https://github.com/rje/Alloy/issues/407), then a source-backed enclosure-offset investigation while
-navigation and packaging follow-ups are prepared. Reassess after each accepted
+The first two slices, [free orbit](https://github.com/rje/Alloy/issues/407) and
+[exact enclosure inset geometry](https://github.com/rje/Alloy/issues/347), are
+accepted. Reproducible macOS runtime inputs are active next; authored enclosure
+Offset and constrained-orbit behavior are being prepared. Reassess after each accepted
 slice; never repeat an unchanged failing kernel/input probe without a new
 hypothesis. Keep one private validation editor and retire completed worktrees.
 
