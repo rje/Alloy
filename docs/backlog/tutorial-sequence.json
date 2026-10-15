@@ -93,7 +93,7 @@
       ],
       "acceptance": "Representative workflows are readable, safe, responsive and usable.",
       "status": "todo",
-      "remaining": "Recovery, preview guidance and compact ribbon/navigation accepted. REL-022 short primitive dock controls active; status-strip and remaining panel audit, performance budget and broader reliability remain open."
+      "remaining": "Recovery, preview guidance and compact ribbon/navigation accepted. REL-022 short primitive dock controls accepted; REL-023 status-strip active and remaining panel audit, performance budget and broader reliability remain open."
     },
     {
       "id": "READY-06",
