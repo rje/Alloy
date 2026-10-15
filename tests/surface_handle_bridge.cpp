@@ -89,6 +89,7 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
         {"sections",sections},{"rail",QJsonObject{{"sketchId",rail["id"]},{"entityId",railEntity["id"]}}}};
     const auto candidate=CadDocument::loftCandidate(document.authored(),args);
     const auto error=document.commit(candidate,"Bilateral Rail Loft");check(error.isEmpty(),error+" / "+document.lastEvaluationError()["code"].toString());
+    const auto source=document.bodies().back();
     auto tool=SketchGeometry::newFeature(root,"XZ","Handle lens");
     tool=addSpline(tool,QJsonArray{QJsonObject{{"uMm",30},{"vMm",15}},QJsonObject{{"uMm",60},{"vMm",30}},QJsonObject{{"uMm",90},{"vMm",15}}});
     tool=addSpline(tool,QJsonArray{QJsonObject{{"uMm",30},{"vMm",15}},QJsonObject{{"uMm",60},{"vMm",10}},QJsonObject{{"uMm",90},{"vMm",15}}});append(document,tool);

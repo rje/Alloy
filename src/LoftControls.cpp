@@ -21,6 +21,13 @@
 namespace {
 bool surfaceInputs(const QJsonObject& inputs){return inputs.value("operation")=="newComponent"
     || (inputs.value("operation")=="newBody" && inputs.value("guideType")=="none");}
+bool sketchOwnerForLoft(const QString& owner,const CadDocument& document,const QJsonObject& inputs){
+    const auto root=document.authored()["documentId"].toString();if(owner==root)return true;
+    if(inputs.value("operation")!="newBody" || inputs.value("guideType")!="none")return false;
+    auto active=document.activeOwnerId();
+    for(const auto& value:document.authored()["features"].toArray())if(value.toObject()["id"]==inputs.value("featureId"))active=value.toObject()["ownerId"].toString();
+    return owner==active;
+}
 QJsonObject failure(const QString& code,const QString& message){return {{"ok",false},{"error",QJsonObject{{"code",code},{"message",message}}}};}
 }
 
@@ -63,7 +70,7 @@ QJsonObject AlloyWindow::previewLoft() {
     view_->selectLoftProfiles(surface ? QJsonArray{} : inputs["profiles"].toArray());
     view_->clearSweepPath();
     if(surface) {
-        QSet<QString> visible;for(const auto& sketch:document_->sketches())if(sketch.ownerId==document_->authored()["documentId"].toString())visible.insert(sketch.featureId);
+        QSet<QString> visible;for(const auto& sketch:document_->sketches())if(sketchOwnerForLoft(sketch.ownerId,*document_,inputs))visible.insert(sketch.featureId);
         view_->setCommandSketches(visible);
         if(!closedMode) {
             const auto guide=inputs[railMode ? "rail" : "centerline"].toObject();
@@ -134,10 +141,10 @@ QJsonObject AlloyWindow::selectLoftEntity(const QString& role,const QString& ske
     const auto earlier=session_["inputs"].toObject().value("featureId").toString();
     const auto stage=earlier.isEmpty() ? document_->evaluation() : document_->evaluationBefore(earlier);
     bool found=false;for(const auto& sketch:stage.sketches)if(sketch.featureId==sketchId && sketch.visible
-        && sketch.ownerId==document_->authored()["documentId"].toString() && sketch.entityEdges.contains(entityId))
+        && sketchOwnerForLoft(sketch.ownerId,*document_,session_["inputs"].toObject()) && sketch.entityEdges.contains(entityId))
         for(const auto& row:sketch.summary["entities"].toArray())if(row.toObject()["id"]==entityId && (row.toObject()["type"]==required || (railMode && role=="section2" && row.toObject()["type"]=="fitSpline"))
             && !row.toObject()["construction"].toBool())found=true;
-    if(!found)return failure("loft_source_unavailable",QString("Select an ordinary retained %1 in a visible root sketch").arg(required));
+    if(!found)return failure("loft_source_unavailable",QString("Select an ordinary retained %1 in a visible permitted sketch").arg(required));
     auto inputs=session_["inputs"].toObject();const QJsonObject ref{{"sketchId",sketchId},{"entityId",entityId}};
     if(role=="centerline" || role=="rail")inputs[role]=ref;
     else {auto sections=inputs["sections"].toArray();
@@ -204,7 +211,7 @@ QJsonObject AlloyWindow::pickLoft(double x,double y) {
         }
     }
     QString sketchId,entityId;double nearest=7;bool ambiguous=false;
-    for(const auto& sketch:stage.sketches)if(sketch.visible && sketch.ownerId==document_->authored()["documentId"].toString()) {
+    for(const auto& sketch:stage.sketches)if(sketch.visible && sketchOwnerForLoft(sketch.ownerId,*document_,session_["inputs"].toObject())) {
         auto source=SketchGeometry::findFeature(document_->authored(),sketch.featureId);
         auto parameters=source["parameters"].toObject();auto points=parameters["points"].toArray();
         const auto frame=sketch.resolvedFrame;const auto origin=frame["origin"].toArray(),u=frame["uAxis"].toArray(),v=frame["vAxis"].toArray();

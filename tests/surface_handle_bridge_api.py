@@ -12,6 +12,7 @@ a=p.parse_args();out=a.output.resolve()
 with application(a.app,out,command_timeout=120) as (call,ledger):
     call('window.resize',{'width':1500,'height':950});call('document.open',{'path':str(Path(a.source).resolve()),'discard':True})
     before=call('document.inspect');authored=before['authored'];source=before['evaluation']['bodies'][0]
+    call('component.activate',{'definitionId':source['ownerId']})
     middle=next(f for f in authored['features'] if f['name']=='Handle middle ellipse')
     ellipse=next(e for e in middle['parameters']['entities'] if e['type']=='ellipse')
     selected=[]
@@ -39,7 +40,7 @@ with application(a.app,out,command_timeout=120) as (call,ledger):
     assert len(initial['evaluation']['bodies'])==2 and bridge['type']=='surface' and bridge['valid']
     assert bridge['topology']['faces']==2 and bridge['topology']['solids']==0 and len(bridge['solidEdges'])==6
     assert initial['authored']['features'][-1]['parameters']=={'operation':'newBody','guideType':'none','sections':sections}
-    assert initial['authored']['components']==authored['components']
+    assert initial['authored']['components']==authored['components'] and bridge['ownerId']==source['ownerId']
     face_ids=[f['faceId'] for f in bridge['supportFaces']];edge_ids=[e['edgeId'] for e in bridge['solidEdges']]
     call('view.home');call('capture.screenshot',{'path':str(out/'bridge-committed.png')})
     params=copy.deepcopy(middle['parameters']);axis=next(e for e in params['entities'] if e['id']==ellipse['secondAxisId'])
@@ -63,6 +64,6 @@ with application(a.app,out,command_timeout=120) as (call,ledger):
     call('view.orientation',{'name':'rearIsometric'});call('view.fit');call('capture.screenshot',{'path':str(out/'bridge-rear.png')})
     state=call('app.state')
     (out/'result.json').write_text(json.dumps({'passed':True,'calls':len(ledger),'sections':sections,'originalBridge':bridge,'editedBridge':current,
-        'gpu':state['viewport']['gpu'],'scope':'Shared API chain picks/preview/Cancel/New Body commit, ellipse edit/history/reopen; actual supports and source edits separately verified by core.'},indent=2))
+        'gpu':state['viewport']['gpu'],'scope':'Shared API chain picks/preview/Cancel/New Body commit into activated source component, ellipse edit/history/reopen; actual supports and source edits separately verified by core.'},indent=2))
     (out/'transcript.json').write_text(json.dumps(ledger,indent=2))
 print('PASS retained handle bridge API')
