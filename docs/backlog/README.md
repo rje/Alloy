@@ -7,7 +7,7 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current publication contains **455 issues**: **350 implementation, 22 research,
+The current publication contains **456 issues**: **351 implementation, 22 research,
 22 epics, and 61 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 
