@@ -4,8 +4,8 @@
 
 The user reprioritized polish/quality, familiar viewport navigation and an initial
 build, while retaining advanced tutorial completion. See the actionable
-[readiness burndown](initial-build-readiness.md). Nineteen bounded children
-NAV-001–008, REL-012–018 and CI-004–007 are published as #407–425; existing
+[readiness burndown](initial-build-readiness.md). Twenty-one bounded children
+NAV-001–008, REL-012–018 and CI-004–009 are published as #407–427; existing
 file/physical-input/platform gates and advanced chain dependencies are reused.
 NAV-001/#407 is independently accepted at2d1a699 and closed: real free orbit,
 visible checked no-middle-button tool, custom-camera tab restoration and navigation
@@ -16,9 +16,10 @@ inset helper produces the actual17-edge U contour with stable owning-feature /
 source-edge / incident-vertex ancestry. Upstream stock64→65 changes area
 233.8577→236.289mm² with stable IDs through source history/reopen. This is a
 kernel ingredient; authored inset/UI remains SKT-076, now unblocked. See
-[receipt](validation/enclosure-inset-diagnostic.md). Next readiness slice CI-004
-aligns validated local Qt with reproducible CI runtime inputs. Its external
-handoff is `knowledge/specs/runtime-reproducibility-2026-10-14.md`.
+[receipt](validation/enclosure-inset-diagnostic.md). CI-008/#426 is active for the bounded clean macOS Qt recipe and provenance,
+with one clean local build authorized (no CI dispatch). Existing used SDK remains
+untouched. CI-009 retains Windows/Linux alignment; parentCI-004 stays Todo.
+External handoff: `knowledge/specs/runtime-reproducibility-2026-10-14.md`.
 Only main/existing build and one private GUI lease; no new worktrees. Alternate
 readiness slices with concrete advanced-chain blockers. Packages can progress
 independently; no version/CI dispatch or public release has been triggered.

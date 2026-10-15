@@ -7199,11 +7199,14 @@
       "kind": "implementation",
       "phase": "P4 Initial release",
       "priority": "P0",
-      "depends_on": [],
+      "depends_on": [
+        "CI-008",
+        "CI-009"
+      ],
       "labels": [
         "area:ci"
       ],
-      "body": "## Initial-build readiness scope\nReconcile the private patched Qt runtime used in local input checks with the milestone build recipe. Pin required source/patches, OCCT, solver/assembly libraries, fonts and plugins; establish reproducible supported build instructions and complete notices/source-access materials. Inspect dependency/resource closure and record the actual runtime loaded. A locally patched SDK is not a releasable package by itself. No unnecessary version upgrades.\n\n## Delivery and evidence\nUser-prioritized 2026-10-14. Keep implementation bounded, preserve authoritative document/control commands, use proportional verification and independent review. Public reference details and images remain external. This issue is planned until its stated gate is evidenced; do not substitute compilation/API or Qt simulation for physical input or packaged GPU evidence.\n\n\n## Prepared source audit\nThe validated macOS editor loads coherent patchedQt6.11.2, while tools/ci/build.py downloads stockQt6.11.2. Extend the coherent build-private-qt.sh recipe (not the old standalone plugin recipe): pinned retrieval, verified cache/config identity and effective compiler/SDK/architecture/features manifest. Record both accessibility patch hashes and assembly solver provenance. Required runtime inventory includes alloy_planegcs, alloy_assembly_solver and OndselSolver plus Qt/OCCT/FreeType; regular/bold fonts are already embedded and need notices. Private absolute qt.conf/Homebrew relocation belongs CI-005. External handoff: knowledge/specs/runtime-reproducibility-2026-10-14.md. This is source preparation, not build/runtime acceptance.\n"
+      "body": "## Initial-build readiness scope\nReconcile the private patched Qt runtime used in local input checks with the milestone build recipe. Pin required source/patches, OCCT, solver/assembly libraries, fonts and plugins; establish reproducible supported build instructions and complete notices/source-access materials. Inspect dependency/resource closure and record the actual runtime loaded. A locally patched SDK is not a releasable package by itself. No unnecessary version upgrades.\n\n## Delivery and evidence\nUser-prioritized 2026-10-14. Keep implementation bounded, preserve authoritative document/control commands, use proportional verification and independent review. Public reference details and images remain external. This issue is planned until its stated gate is evidenced; do not substitute compilation/API or Qt simulation for physical input or packaged GPU evidence.\n\n\n## Prepared source audit\nThe validated macOS editor loads coherent patchedQt6.11.2, while tools/ci/build.py downloads stockQt6.11.2. Extend the coherent build-private-qt.sh recipe (not the old standalone plugin recipe): pinned retrieval, verified cache/config identity and effective compiler/SDK/architecture/features manifest. Record both accessibility patch hashes and assembly solver provenance. Required runtime inventory includes alloy_planegcs, alloy_assembly_solver and OndselSolver plus Qt/OCCT/FreeType; regular/bold fonts are already embedded and need notices. Private absolute qt.conf/Homebrew relocation belongs CI-005. External handoff: knowledge/specs/runtime-reproducibility-2026-10-14.md. This is source preparation, not build/runtime acceptance.\n\n\n## Finishable runtime children\nCI-008 owns the first clean reproducible patched macOS SDK/CI input and provenance slice. CI-009 retains Windows/Linux input alignment. Parent stays Todo until both and the full inventory contract are qualified; no cross-platform claim from the macOS child.\n"
     },
     {
       "key": "CI-005",
@@ -7246,6 +7249,32 @@
         "area:ci"
       ],
       "body": "## Initial-build readiness scope\nDeploy admitted libraries/resources and automation client with a documented distro/ABI baseline and xcb/X11 or XWayland requirements. Inspect ELF/runtime paths, archive permissions and notices, then extract outside build tree and qualify native launch/control/model workflow. Distinguish system graphics-driver dependencies and actual hardware evidence from hosted software rendering.\n\n## Delivery and evidence\nUser-prioritized 2026-10-14. Keep implementation bounded, preserve authoritative document/control commands, use proportional verification and independent review. Public reference details and images remain external. This issue is planned until its stated gate is evidenced; do not substitute compilation/API or Qt simulation for physical input or packaged GPU evidence.\n"
+    },
+    {
+      "key": "CI-008",
+      "title": "Reproduce the patched macOS Qt SDK and record effective build provenance",
+      "kind": "implementation",
+      "phase": "P4 Initial release",
+      "priority": "P0",
+      "depends_on": [],
+      "labels": [
+        "area:ci"
+      ],
+      "body": "## Bounded runtime readiness scope\nBounded child of CI-004. Extend the coherent private Qt recipe with hash-checked retrieval, fingerprinted source/build/install cache admission and an effective compiler/SDK/architecture/deployment/Qt-feature manifest. Include archive, both patches and recipe implementation identity. Refuse unmanifested legacy or mismatched caches without deleting them. Write a success manifest only after install and the existing offscreen cache regression passes. macOS CI uses this same recipe; its app receipt records Qt/OCCT/FreeType and PlaneGCS/assembly-adapter/Ondsel source and link provenance. Record enabled plugins/fonts/notices inputs honestly. Validate one clean local SDK build plus focused existing regression and manifest/link inspection; no whole tutorial replay or CI matrix per commit. This is reproducible SDK/compile input, not package relocation, loaded Alloy runtime, accessibility or GPU qualification. Windows/Linux alignment remains CI-009; packaging remains CI-005\u2013007.\n\nDetailed source handoff remains external at knowledge/specs/runtime-reproducibility-2026-10-14.md. Independent Astra review and proportional verification required.\n"
+    },
+    {
+      "key": "CI-009",
+      "title": "Align Windows and Linux SDK inputs with the admitted runtime patch policy",
+      "kind": "implementation",
+      "phase": "P4 Initial release",
+      "priority": "P0",
+      "depends_on": [
+        "CI-008"
+      ],
+      "labels": [
+        "area:ci"
+      ],
+      "body": "## Bounded runtime readiness scope\nRetain the remaining CI-004 cross-platform scope explicitly. Resolve applicability of the admitted Qt item-view patch and platform-specific Cocoa patch; use verified source/patch/config recipes and effective compiler/feature manifests on Windows/Linux rather than silently assuming stock archives match validated behavior. Keep exact solver/OCCT/font/plugin provenance. Verify native candidate builds at a deliberate matrix milestone and targeted applicable regression; no per-commit runs. Distinguish platform-specific patch admission, compilation, packaged launch and actual GPU/input evidence. Packaging remains CI-006/007 and GATE-005.\n\nDetailed source handoff remains external at knowledge/specs/runtime-reproducibility-2026-10-14.md. Independent Astra review and proportional verification required.\n"
     }
   ]
 }

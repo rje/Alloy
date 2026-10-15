@@ -68,7 +68,7 @@ reason to rerun every tutorial whenever an unrelated UI field changes.
 
 | Work | Owner | Evidence |
 | --- | --- | --- |
-| Reproduce the actual validated dependency runtime | [CI-004](https://github.com/rje/Alloy/issues/422) | Required Qt patches, OCCT, assembly/solver libraries, plugins/fonts and notices pinned; no unexplained private SDK dependency |
+| Reproduce the actual validated dependency runtime | [CI-004](https://github.com/rje/Alloy/issues/422), [macOS recipe CI-008](https://github.com/rje/Alloy/issues/426), [Windows/Linux CI-009](https://github.com/rje/Alloy/issues/427) | Required Qt patches, OCCT, assembly/solver libraries, plugins/fonts and notices pinned; no unexplained private SDK dependency |
 | Relocatable macOS archive | [CI-005](https://github.com/rje/Alloy/issues/423) | Extract elsewhere, remove developer environment, inspect loaded libraries, launch GPU/API/model workflow; advertised architectures qualified |
 | Relocatable Windows archive | [CI-006](https://github.com/rje/Alloy/issues/424) | DLL/resources/control client closure and native launch; transport evidence separate from desktop/GPU |
 | Relocatable Linux archive | [CI-007](https://github.com/rje/Alloy/issues/425) | ELF paths, distro/ABI and display requirements, permissions and native launch |
