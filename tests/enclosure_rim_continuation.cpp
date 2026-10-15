@@ -5,11 +5,14 @@
 #include <BRepAdaptor_Curve.hxx>
 #include <BRepAdaptor_Surface.hxx>
 #include <BRepAlgoAPI_Common.hxx>
+#include <BRepAlgoAPI_BooleanOperation.hxx>
 #include <BRepAlgoAPI_Cut.hxx>
 #include <BRepAlgoAPI_Section.hxx>
 #include <BRepBndLib.hxx>
 #include <BRepExtrema_DistShapeShape.hxx>
 #include <BRepBuilderAPI_MakeVertex.hxx>
+#include <BRepGProp.hxx>
+#include <GProp_GProps.hxx>
 #include <BRepLProp_SLProps.hxx>
 #include <Geom2d_Curve.hxx>
 #include <TopTools_IndexedDataMapOfShapeListOfShape.hxx>
@@ -227,6 +230,50 @@ int main(int argc,char** argv) {
         if(argc==4 && QString::fromUtf8(argv[3])=="inspect")return inspectSaved(QString::fromUtf8(argv[1]),QString::fromUtf8(argv[2]));
         CadDocument document;
         if(!document.open(argv[1]).isEmpty())throw std::runtime_error("source did not reopen");
+        if(argc==4 && QString::fromUtf8(argv[3])=="cut") {
+            QJsonObject split;
+            for(const auto& value:document.authored().value("features").toArray())if(value.toObject().value("type")=="splitBody")split=value.toObject();
+            TopoDS_Shape target,tool;
+            for(const auto& body:document.bodies()) {
+                if(body.bodyId==split.value("bodyId").toString())target=body.shape;
+                if(body.bodyId==split.value("parameters").toObject().value("targetBodyId").toString())tool=body.shape;
+            }
+            if(target.IsNull() || tool.IsNull())throw std::runtime_error("cut operands missing");
+            BRepAlgoAPI_BooleanOperation operation;TopTools_ListOfShape objects,tools;objects.Append(target);tools.Append(tool);
+            operation.SetArguments(objects);operation.SetTools(tools);operation.SetOperation(BOPAlgo_CUT);
+            operation.SetNonDestructive(true);operation.SetRunParallel(false);operation.SetFuzzyValue(0.0);operation.Build();
+            const QString prefix=QString::fromUtf8(argv[2]);QJsonObject result{{"source",argv[1]},
+                {"isDone",operation.IsDone()},{"hasErrors",operation.HasErrors()}};
+            if(operation.IsDone() && !operation.HasErrors()) {
+                result["raw"]=GeometryKernel::summarize(operation.Shape());
+                result["rawWritten"]=BRepTools::Write(operation.Shape(),(prefix+"-raw.brep").toUtf8().constData());
+                operation.SimplifyResult(true,true,1e-12);
+                result["simplified"]=GeometryKernel::summarize(operation.Shape());
+                result["simplifiedWritten"]=BRepTools::Write(operation.Shape(),(prefix+"-simplified.brep").toUtf8().constData());
+            }
+            QFile output(argv[2]);if(!output.open(QIODevice::WriteOnly))throw std::runtime_error("cut diagnostic output unavailable");
+            output.write(QJsonDocument(result).toJson(QJsonDocument::Indented));return 0;
+        }
+        if(argc==4 && QString::fromUtf8(argv[3])=="fit") {
+            const auto features=document.authored().value("features").toArray();
+            const auto last=features.last().toObject();const auto parameters=last.value("parameters").toObject();
+            if(last.value("type")!="boolean" || parameters.value("operation")!="cut" || !parameters.value("keepTools").toBool()
+                || parameters.value("toolBodyIds").toArray().size()!=1)throw std::runtime_error("expected final retained-tool Cut");
+            TopoDS_Shape target,tool;
+            for(const auto& body:document.bodies()) {
+                if(body.bodyId==parameters.value("targetBodyId").toString())target=body.shape;
+                if(body.bodyId==parameters.value("toolBodyIds").toArray().first().toString())tool=body.shape;
+            }
+            if(target.IsNull() || tool.IsNull())throw std::runtime_error("retained halves unavailable");
+            BRepAlgoAPI_Common intersection(target,tool);if(!intersection.IsDone())throw std::runtime_error("mating intersection failed");
+            GProp_GProps mass;BRepGProp::VolumeProperties(intersection.Shape(),mass);
+            QJsonObject result{{"source",argv[1]},{"target",GeometryKernel::summarize(target)},
+                {"tool",GeometryKernel::summarize(tool)},{"intersectionVolumeMm3",mass.Mass()},
+                {"intersectionHasSolids",TopExp_Explorer(intersection.Shape(),TopAbs_SOLID).More()},
+                {"physicalClearance","not established"}};
+            QFile output(argv[2]);if(!output.open(QIODevice::WriteOnly))throw std::runtime_error("fit output unavailable");
+            output.write(QJsonDocument(result).toJson(QJsonDocument::Indented));return std::abs(mass.Mass())<1e-7 ? 0:2;
+        }
         const auto sourceFeatureCount=document.authored().value("features").toArray().size();
         const auto support=cap(document);
         QString owner;

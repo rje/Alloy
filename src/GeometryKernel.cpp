@@ -18,6 +18,7 @@
 #include "SolidMirror.h"
 #include "CircularPattern.h"
 #include <BRepBuilderAPI_Transform.hxx>
+#include <BRepBuilderAPI_Copy.hxx>
 #include <gp_Ax1.hxx>
 #include <gp_Trsf.hxx>
 #include "GeometryKernel.h"
@@ -36,6 +37,7 @@
 #include <BRepBuilderAPI_MakeWire.hxx>
 #include <BRepBuilderAPI_MakeFace.hxx>
 #include <BRepCheck_Analyzer.hxx>
+#include <ShapeUpgrade_UnifySameDomain.hxx>
 #include <BRepGProp.hxx>
 #include <BRepPrimAPI_MakeBox.hxx>
 #include <BRepPrimAPI_MakeCylinder.hxx>
@@ -55,6 +57,8 @@
 #include <gp_Vec.hxx>
 #include <gp_Circ.hxx>
 #include <QJsonArray>
+#include <QJsonDocument>
+#include <QDebug>
 #include <QCryptographicHash>
 #include <QMap>
 #include <QSet>
@@ -67,6 +71,37 @@
 #include <stdexcept>
 
 namespace {
+class ValidatedBoolean final : public BRepAlgoAPI_BooleanOperation {
+public:
+    QJsonObject simplificationStatus;
+    void simplifyKeepingValid() {
+        // Cleanup may invalidate an otherwise valid Boolean. Test it on an
+        // isolated copy first; vetoing cleanup preserves raw topology and its
+        // original history, including unchanged retained boundary identities.
+        const auto rawShape=Shape();
+        const bool rawValid=!rawShape.IsNull() && BRepCheck_Analyzer(rawShape).IsValid();
+        simplificationStatus["rawValidBefore"]=rawValid;
+        if(rawValid) {
+            BRepBuilderAPI_Copy copier(rawShape,true,false);
+            // Match OCCT 7.9 SimplifyResult's unifier configuration, including
+            // spline concatenation. This is a validity veto, not equivalence proof.
+            ShapeUpgrade_UnifySameDomain preflight(copier.Shape(),true,true,true);
+            preflight.SetLinearTolerance(myFuzzyValue);
+            preflight.SetAngularTolerance(1e-12);
+            preflight.SetSafeInputMode(myNonDestructive);
+            preflight.AllowInternalEdges(false);
+            preflight.Build();
+            const bool preflightValid=!preflight.Shape().IsNull()
+                && BRepCheck_Analyzer(preflight.Shape()).IsValid();
+            simplificationStatus["preflightValid"]=preflightValid;
+            simplificationStatus["cleanupVetoed"]=!preflightValid;
+            if(!preflightValid)return;
+        }
+        // Preserve the ordinary successful cleanup and its native history.
+        // If its outcome differs from the preflight, final validity still refuses it.
+        SimplifyResult(true,true,1e-12);
+    }
+};
 [[noreturn]] void reject(const QString& code,const QString& message) {throw GeometryKernel::EvaluationError({{"code",code},{"message",message}});}
 int count(const TopoDS_Shape& shape, TopAbs_ShapeEnum kind) {
     TopTools_IndexedMapOfShape map; TopExp::MapShapes(shape,kind,map); return map.Extent();
@@ -755,23 +790,25 @@ TopoDS_Shape GeometryKernel::booleanOperation(const QString& operation, const To
         // so Intersect means overlap with their union, with no split artifacts.
         TopTools_ListOfShape groupObjects,groupTools;groupObjects.Append(tools.front());
         for (size_t i = 1; i < tools.size(); ++i) groupTools.Append(tools[i]);
-        BRepAlgoAPI_BooleanOperation group;
+        ValidatedBoolean group;
         group.SetArguments(groupObjects);group.SetTools(groupTools);group.SetOperation(BOPAlgo_FUSE);
         group.SetNonDestructive(true);group.SetRunParallel(false);group.SetFuzzyValue(0.0);group.Build();
         if (!group.IsDone() || group.HasErrors()) reject("boolean_kernel_failed","OCCT could not unite the Boolean tool group");
-        group.SimplifyResult(true,true,1e-12);
+        group.simplifyKeepingValid();
         if (group.Shape().IsNull() || !BRepCheck_Analyzer(group.Shape()).IsValid())
             reject("boolean_input_invalid","Boolean tool group did not produce valid topology");
         operands.Clear();operands.Append(group.Shape());
     }
-    BRepAlgoAPI_BooleanOperation builder;
+    ValidatedBoolean builder;
     builder.SetArguments(objects);builder.SetTools(operands);builder.SetOperation(kind);
     // Candidate and undo snapshots share input shapes. Never let the algorithm
     // modify their topology/tolerances while evaluating a disposable candidate.
     builder.SetNonDestructive(true);builder.SetRunParallel(false);builder.SetFuzzyValue(0.0);
     builder.Build();
     if (!builder.IsDone() || builder.HasErrors()) reject("boolean_kernel_failed","OCCT could not complete the Boolean operation");
-    builder.SimplifyResult(true,true,1e-12);
+    builder.simplifyKeepingValid();
+    if(qEnvironmentVariableIsSet("ALLOY_BOOLEAN_DIAGNOSTICS"))
+        qInfo().noquote()<<"Boolean simplification"<<QJsonDocument(builder.simplificationStatus).toJson(QJsonDocument::Compact);
     const auto shape = builder.Shape();
     if (shape.IsNull() || count(shape,TopAbs_SOLID) == 0)
         reject("boolean_empty_result","Boolean result is empty or has no solid volume; the target was preserved");
@@ -786,7 +823,8 @@ TopoDS_Shape GeometryKernel::booleanOperation(const QString& operation, const To
             reject("boolean_mixed_result","Boolean result contains geometry outside its single solid");
     const auto summary = summarize(shape);
     if (!summary["valid"].toBool() || !summary["closed"].toBool() || !summary["volumeMm3"].isDouble())
-        reject("boolean_result_invalid","Boolean operation did not produce a valid closed positive-volume solid");
+        throw EvaluationError({{"code","boolean_result_invalid"},{"message","Boolean operation did not produce a valid closed positive-volume solid"},
+            {"simplification",builder.simplificationStatus}});
     std::vector<EvaluatedSupportFace> priorFaces;
     if(retainedFaces) {
         priorFaces=*retainedFaces;
