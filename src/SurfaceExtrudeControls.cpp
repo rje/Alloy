@@ -214,7 +214,10 @@ void AlloyWindow::showSurfaceExtrude(){
     surfaceExtrudeDock_=new QDockWidget("Extrude",canvasWindow_);surfaceExtrudeDock_->setObjectName("surfaceExtrudeDock");
     auto* panel=new QWidget(surfaceExtrudeDock_);surfaceExtrudeDock_->setWidget(panel);
     auto* form=new QFormLayout(panel);form->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
-    auto* hint=new QLabel("Select open profiles to create separate surface bodies. Chaining follows retained endpoint contacts. Two Sides measures independently from the sketch plane.",panel);
+    const bool perProfile=session_["inputs"].toObject()["resultMode"]=="perProfile";
+    auto* hint=new QLabel(perProfile
+        ? "Select open profiles to create separate surface bodies. Chaining follows retained endpoint contacts. Two Sides measures independently from the sketch plane."
+        : "Select open sketch curves to create one compound surface body. Two Sides measures independently from the sketch plane.",panel);
     hint->setWordWrap(true);form->addRow(hint);
     auto* name=new QLineEdit(session_["inputs"].toObject()["name"].toString(),panel);name->setObjectName("surfaceExtrude.name");form->addRow("Name",name);
     connect(name,&QLineEdit::editingFinished,panel,[this,name]{auto inputs=session_["inputs"].toObject();inputs["name"]=name->text();session_["inputs"]=inputs;previewSurfaceExtrude();});
