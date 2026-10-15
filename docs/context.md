@@ -6,7 +6,11 @@ CI-005/#423 local macOS arm64 relocation is accepted at `3c88127`: extracted
 archive, 43 observed bundled non-system libraries/zero external, Apple M4 GPU
 and API/save/STL evidence. See [receipt](validation/macos-relocatable-preview.md).
 The pinned archive predates GEO-020 and is a local preview, not a public release.
-NAV-014/#434 explicit Pan/Zoom/Zoom Window is the next active UI slice;
+NAV-014/#434 explicit Pan/Zoom/Zoom Window is accepted at `73a578c`, with
+actual Qt controls/drag/Escape/post-tool selection and GPU captures. Final signed
+rectangle schema is included in the next coordinated app relink. See
+[receipt](validation/navigation-pan-zoom-window.md). NAV-015/#435 selected framing
+and planar Look At is the next active UI slice;
 Windows/Linux CI-009 and external GPU/input gates remain separate. No CI dispatch,
 version tag or release was triggered. The user has not yet tried physical Mac
 trackpad input; keep that qualification pending.

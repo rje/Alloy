@@ -131,7 +131,8 @@ Qt trackpad routing is accepted with physical-device qualification preserved in
 NAV-008. GEO-020 now has bounded production/source-edit/history/GPU acceptance. NAV-010 cube presentation and orientation picks are
 accepted, as are NAV-011 drag, NAV-013 Fit/Home and NAV-012 cube accessories.
 CI-005 local macOS arm64 relocation is accepted; public-release/platform gates
-remain open. NAV-014 explicit Pan/Zoom/Zoom Window is the active UI slice. NAV-004 stays
+remain open. NAV-014 explicit Pan/Zoom/Zoom Window is accepted; NAV-015
+selected framing and planar Look At is the active UI slice. NAV-004 stays
 open until its complete scope is evidenced. Reassess after each accepted
 slice; never repeat an unchanged failing kernel/input probe without a new
 hypothesis. Keep one private validation editor and retire completed worktrees.

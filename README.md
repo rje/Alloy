@@ -16,7 +16,8 @@ and [orientation-cube clicks](docs/validation/orientation-cube-regions.md) and
 [cube accessories](docs/validation/orientation-cube-accessories.md), plus distinct
 [Fit and Home](docs/validation/navigation-fit.md) controls. These have bounded Qt/GPU
 validation; physical trackpad and broader platform input remain open gates.
-The visible Orbit tool supports users without a middle mouse button.
+Visible [Pan, Zoom and Zoom Window](docs/validation/navigation-pan-zoom-window.md)
+and Orbit tools support users without a middle mouse button.
 
 The [retained enclosure inset](docs/validation/trimmed-seam-inset.md) preserves
 its profile and downstream Join/Fillet references through source edits and
