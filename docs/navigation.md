@@ -33,9 +33,17 @@ saved Home view. Four adjacent-view and two face-roll controls appear beside the
 cube when the camera is on a principal face; these turn to a neighboring face or
 rotate the face view.
 
-The navigation bar also has **Top**, **Front** and **Right** buttons. Alloy
-currently uses Z-up, with Top along +Z and Front along −Y. Configurable axis and
-face remapping is still pending.
+The navigation bar also has **Top**, **Front** and **Right** buttons. In the
+Browser's **Document Settings**, right-click **Up** to select canonical Z-up or
+Y-up for this document. In **Named Views**, right-click **Front** or **Top** to
+make the current camera view that cube face, or reset the coherent Front/Top
+frame. The small **UP Z**, **UP Y**, or **UP CUSTOM** label beside the cube shows
+the actual cube-up direction. All six standard views, cube regions and
+Constrained Orbit follow this frame; model coordinates, sketch planes and
+saved Home/custom camera poses stay in world coordinates. This immediately
+applied document setting and whole-frame reset are Alloy policies. The public
+preference describes an application-level up choice that requires restart;
+its exact face-remapping algorithm is not documented.
 
 ## Fit, selection and Home
 

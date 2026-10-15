@@ -28,6 +28,7 @@
 #include <Standard_Failure.hxx>
 #include <cmath>
 #include <functional>
+#include <array>
 #include <numbers>
 #include <optional>
 #include <stdexcept>
@@ -56,6 +57,27 @@ bool validNamedViewCamera(const QJsonObject& camera) {
     const double ux=up[0].toDouble(),uy=up[1].toDouble(),uz=up[2].toDouble();
     const double dn=dx*dx+dy*dy+dz*dz,un=ux*ux+uy*uy+uz*uz,dot=dx*ux+dy*uy+dz*uz;
     return dn>0.5 && dn<1.5 && un>0.5 && un<1.5 && dn*un-dot*dot>0.25;
+}
+bool validViewConvention(const QJsonObject& convention) {
+    if(convention.size()!=4 || (convention.value("defaultUp")!="Z" && convention.value("defaultUp")!="Y"))return false;
+    std::array<std::array<double,3>,3> axes{};
+    for(int i=0;i<3;++i){
+        const auto key=i==0 ? "right" : i==1 ? "back" : "up";
+        const auto values=convention.value(key).toArray();if(values.size()!=3)return false;
+        for(int j=0;j<3;++j){
+            if(!values[j].isDouble() || !std::isfinite(values[j].toDouble()) || std::abs(values[j].toDouble())>1)return false;
+            axes[i][j]=values[j].toDouble();
+        }
+    }
+    const auto dot=[](const auto& a,const auto& b){return a[0]*b[0]+a[1]*b[1]+a[2]*b[2];};
+    for(int i=0;i<3;++i){
+        if(std::abs(dot(axes[i],axes[i])-1)>1e-6)return false;
+        for(int j=i+1;j<3;++j)if(std::abs(dot(axes[i],axes[j]))>1e-6)return false;
+    }
+    const auto& r=axes[0];const auto& b=axes[1];const auto& u=axes[2];
+    return std::abs(r[0]-(b[1]*u[2]-b[2]*u[1]))<1e-6 &&
+        std::abs(r[1]-(b[2]*u[0]-b[0]*u[2]))<1e-6 &&
+        std::abs(r[2]-(b[0]*u[1]-b[1]*u[0]))<1e-6;
 }
 QJsonArray resolvedLengthRows(const QJsonObject& authored) {
     const auto source=authored.value("userParameters").toArray();
@@ -1072,6 +1094,13 @@ QString CadDocument::commitHomeCamera(std::optional<QJsonObject> camera,const QS
     if(candidate!=authored_)history_.push(new DocumentEdit(*this,candidate,evaluation_,label));
     return {};
 }
+QString CadDocument::commitViewConvention(const QJsonObject& convention,const QString& label) {
+    auto candidate=authored_;candidate["viewConvention"]=convention;lastEvaluationError_={};
+    const auto error=validateStructure(candidate);
+    if(!error.isEmpty()){lastEvaluationError_={{"code","invalid_view_convention"},{"message",error}};return error;}
+    if(candidate!=authored_)history_.push(new DocumentEdit(*this,candidate,evaluation_,label));
+    return {};
+}
 QString CadDocument::commitAnalyses(const QJsonArray& analyses,const QString& label) {
     auto candidate=authored_;candidate["analyses"]=analyses;
     lastEvaluationError_={};const auto error=validateStructure(candidate);
@@ -1927,6 +1956,9 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
     if(candidate.contains("homeCamera") && (!candidate["homeCamera"].isObject() ||
         !validNamedViewCamera(candidate["homeCamera"].toObject())))
         return "Home requires a finite saved camera pose";
+    if(candidate.contains("viewConvention") && (!candidate.value("viewConvention").isObject() ||
+        !validViewConvention(candidate.value("viewConvention").toObject())))
+        return "View convention requires a finite right-handed orthonormal basis";
     if(candidate.contains("analyses") && !candidate["analyses"].isArray())return "Analyses must be an array";
     int activeSections=0;
     for(const auto& entry:candidate["analyses"].toArray()) {
@@ -2521,7 +2553,7 @@ QJsonObject CadDocument::state() const {
     }
     QJsonArray evaluatedPlanes;
     for(const auto& plane:evaluation_->constructionPlanes)evaluatedPlanes.append(QJsonObject{{"ownerId",plane.ownerId},{"featureId",plane.featureId},{"name",plane.name},{"visible",plane.visible},{"frame",plane.frame}});
-    return {{"activeOwnerId",activeOwnerId()},{"components",authored_["components"].toArray()},{"occurrences",authored_["occurrences"].toArray()},{"namedViews",authored_["namedViews"].toArray()},{"homeCamera",authored_["homeCamera"].toObject()},{"assembly",assemblyState()},{"userParameters",evaluatedLengthParameters(authored_)},{"modelParameters",modelLengthRows(authored_)},{"loaded", true}, {"id", authored_["documentId"]}, {"label", label()}, {"path",path_},
+    return {{"activeOwnerId",activeOwnerId()},{"components",authored_["components"].toArray()},{"occurrences",authored_["occurrences"].toArray()},{"namedViews",authored_["namedViews"].toArray()},{"homeCamera",authored_["homeCamera"].toObject()},{"viewConvention",authored_.value("viewConvention").toObject()},{"assembly",assemblyState()},{"userParameters",evaluatedLengthParameters(authored_)},{"modelParameters",modelLengthRows(authored_)},{"loaded", true}, {"id", authored_["documentId"]}, {"label", label()}, {"path",path_},
         {"units", authored_["displayUnits"]}, {"canonicalLengthUnit", "mm"},
         {"revision", static_cast<qint64>(revision_)}, {"dirty", !history_.isClean()},
         {"lastTransactionId", lastTransaction_},

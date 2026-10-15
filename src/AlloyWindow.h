@@ -128,6 +128,7 @@ private:
     QTreeWidgetItem* canvasesNode_=nullptr;
     QTreeWidgetItem* namedViewsNode_=nullptr;
     QTreeWidgetItem* homeViewNode_=nullptr;
+    QTreeWidgetItem* upAxisNode_=nullptr;
     void registerSectionCommands();
     QJsonObject beginSection(const QJsonObject& args);
     QJsonObject previewSection();

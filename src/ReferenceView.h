@@ -22,6 +22,7 @@ class QContextMenuEvent;
 class QKeyEvent;
 class QRubberBand;
 class QToolButton;
+class QLabel;
 
 // GPU presentation only. Reference axes/grid are not authored document objects.
 class ReferenceView final : public QWidget {
@@ -40,6 +41,10 @@ public:
     TopoDS_Shape canvasShape(const QString& id) const { return canvasModels_.contains(id) ? canvasModels_[id]->Shape() : TopoDS_Shape{}; }
     QJsonObject diagnostics() const;
     QJsonObject cameraState() const;
+    QJsonObject viewConvention() const;
+    void setViewConvention(const QJsonObject& convention,bool preserveCamera=true);
+    void freezeWorldCamera();
+    QJsonObject conventionFromCurrentView(const QString& face) const;
     void restoreCameraState(const QJsonObject& state);
     void setProjectionPolicy(const QString& policy);
     QString projectionPolicy() const { return projectionPolicy_; }
@@ -368,4 +373,8 @@ private:
     void refreshRevolveCue();
     void updateRevolveDrag(const QPointF& position,const QString& phase);
     gp_Pnt sceneCenter_;
+    gp_Dir conventionRight_{1,0,0},conventionBack_{0,1,0},conventionUp_{0,0,1};
+    QString conventionDefaultUp_="Z";
+    QLabel* cubeUpLabel_=nullptr;
+    gp_Dir conventionDirection(const gp_Dir& local) const;
 };

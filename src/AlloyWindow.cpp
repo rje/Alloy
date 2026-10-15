@@ -590,6 +590,7 @@ AlloyWindow::AlloyWindow() {
     auto* document = new QTreeWidgetItem(tree_, {"◇  Untitled"});
     auto* settings = new QTreeWidgetItem(document, {"Document Settings"});
     new QTreeWidgetItem(settings, {"Units: mm"});
+    upAxisNode_=new QTreeWidgetItem(settings,{"Up: Z"});upAxisNode_->setData(0,Qt::UserRole+4,"viewUp");
     auto* views = new QTreeWidgetItem(document, {"Named Views"});namedViewsNode_=views;
     views->setData(0,Qt::UserRole+4,"namedViews");
     homeViewNode_=new QTreeWidgetItem(views,{"Home"});homeViewNode_->setData(0,Qt::UserRole,"home");
@@ -640,17 +641,36 @@ AlloyWindow::AlloyWindow() {
     connect(tree_,&QTreeWidget::customContextMenuRequested,this,[this,showRootContext,wireNamedViewReturn](const QPoint& point){
         auto* item=tree_->itemAt(point);
         if(!item || item->isHidden())return;
+        if(item==upAxisNode_){
+            const auto tabId=activeTabId_,documentId=document_->authored().value("documentId").toString();
+            QMenu menu(this);auto* z=menu.addAction("Z Up");z->setObjectName("context.viewUpZ");
+            auto* y=menu.addAction("Y Up");y->setObjectName("context.viewUpY");
+            z->setEnabled(session_.isEmpty());y->setEnabled(session_.isEmpty());
+            const auto* action=menu.exec(tree_->viewport()->mapToGlobal(point));
+            if(tabId!=activeTabId_ || documentId!=document_->authored().value("documentId").toString() || !session_.isEmpty())return;
+            if(action==z || action==y)execute("view.conventionUp",{{"axis",action==z ? "Z" : "Y"}});
+            return;
+        }
         if(item==namedViewsNode_ || item->parent()==namedViewsNode_) {
             const auto id=item->data(0,Qt::UserRole+9).toString();
             const auto tabId=activeTabId_,documentId=document_->authored()["documentId"].toString();
             QMenu menu(this);auto* create=menu.addAction("New Named View");create->setObjectName("context.namedViewCreate");
             create->setEnabled(session_.isEmpty());QAction* rename=nullptr;QAction* remove=nullptr;
             QAction* saveHome=nullptr;QAction* resetHome=nullptr;
+            QAction* setFace=nullptr;QAction* resetFace=nullptr;
             if(item==homeViewNode_) {
                 menu.addSeparator();saveHome=menu.addAction("Set Current View as Home");saveHome->setObjectName("context.homeSet");
                 resetHome=menu.addAction("Reset Home");resetHome->setObjectName("context.homeReset");
                 saveHome->setEnabled(session_.isEmpty());
                 resetHome->setEnabled(session_.isEmpty() && document_->authored()["homeCamera"].isObject());
+            }
+            const auto face=item->data(0,Qt::UserRole).toString();
+            if(face=="front" || face=="top"){
+                menu.addSeparator();
+                const QString title=face=="front" ? "Front" : "Top";
+                setFace=menu.addAction("Set Current View as "+title);setFace->setObjectName("context.conventionSet"+title);
+                resetFace=menu.addAction("Reset Cube Front/Top Convention");resetFace->setObjectName("context.conventionReset"+title);
+                setFace->setEnabled(session_.isEmpty());resetFace->setEnabled(session_.isEmpty());
             }
             if(!id.isEmpty()) {
                 rename=menu.addAction("Rename");rename->setObjectName("context.namedViewRename");rename->setEnabled(session_.isEmpty());
@@ -663,6 +683,8 @@ AlloyWindow::AlloyWindow() {
             else if(action==remove)execute("view.namedDelete",{{"viewId",id}});
             else if(action==saveHome)execute("view.homeSet");
             else if(action==resetHome)execute("view.homeReset");
+            else if(action==setFace)execute("view.conventionSet",{{"face",face}});
+            else if(action==resetFace)execute("view.conventionReset");
             return;
         }
         if(item==bodiesNode_->parent()){showRootContext(tree_->viewport()->mapToGlobal(point));return;}
@@ -1091,6 +1113,8 @@ QImage AlloyWindow::captureImage(QImage* viewport) {
     if(auto* cubeControls=view_->findChild<QWidget*>("cube.accessories");
        cubeControls&&cubeControls->isVisible())
         composition.drawPixmap(cubeControls->mapTo(this,QPoint()),cubeControls->grab());
+    if(auto* upLabel=view_->findChild<QLabel*>("cube.upAxis");upLabel&&upLabel->isVisible())
+        composition.drawPixmap(upLabel->mapTo(this,QPoint()),upLabel->grab());
     if(auto* band=view_->findChild<QWidget*>("view.zoomWindowBand");band&&band->isVisible())
         composition.drawPixmap(band->mapTo(this,QPoint()),band->grab());
     if(dimensionEditor_&&dimensionEditor_->isVisible())
@@ -1385,6 +1409,7 @@ void AlloyWindow::showActiveTab() {
     if(sketchDock_)sketchDock_->hide();
     view_->rebindDocument();
     document_=active->document.get();session_=active->session;
+    view_->setViewConvention(document_->authored().value("viewConvention").toObject(),false);
     sketchHistory_=active->sketchHistory;sketchHistoryIndex_=active->sketchHistoryIndex;
     sketchHistoryGroup_=active->sketchHistoryGroup;
     selectedBody_=active->selectedBody;selectedOccurrence_=active->selectedOccurrence;selectedSketch_=active->selectedSketch;selectedProfile_=active->selectedProfile;selectedProfileIds_=active->selectedProfileIds;selectedFace_=active->selectedFace;selectedPlane_=active->selectedPlane;
@@ -5331,6 +5356,43 @@ void AlloyWindow::registerCommands() {
     auto orientation = parameter("string", "Named camera orientation.");
     orientation.insert("enum", QJsonArray{"isometric", "rearIsometric", "top", "bottom", "front", "back", "right", "left"});
     add("view.orientation", "Set view orientation", "Select a named view of the reference grid.", {{"name", orientation}}, [this](const auto& a) { view_->orientation = a.value("name").toString(); view_->centerNamedView(); return QJsonObject{}; });
+    const auto canonicalConvention=[](const QString& up){
+        return up=="Y" ? QJsonObject{{"defaultUp","Y"},{"right",QJsonArray{1,0,0}},
+            {"back",QJsonArray{0,0,-1}},{"up",QJsonArray{0,1,0}}} :
+            QJsonObject{{"defaultUp","Z"},{"right",QJsonArray{1,0,0}},
+            {"back",QJsonArray{0,1,0}},{"up",QJsonArray{0,0,1}}};
+    };
+    add("view.conventionInspect","Inspect cube convention","Inspect this document's Front/Top/up orientation frame.",{},
+        [this](const auto&){return view_->viewConvention();});
+    auto upAxis=parameter("string","Document default world up axis; changes cube and named face convention, not geometry.");
+    upAxis.insert("enum",QJsonArray{"Z","Y"});
+    add("view.conventionUp","Set document up axis","Use canonical Z-up or Y-up cube and named view directions in this document.",
+        {{"axis",upAxis}},[this,canonicalConvention](const auto& a){
+            if(!session_.isEmpty())return failure("active_command","Finish or cancel the active command before changing the view convention");
+            const auto frame=canonicalConvention(a.value("axis").toString());
+            const auto error=document_->commitViewConvention(frame,"Change view up axis");
+            if(!error.isEmpty())return failure("invalid_view_convention",error);
+            view_->setViewConvention(frame);return frame;
+        });
+    auto conventionFace=parameter("string","Named face to make equal to the current camera pose.");
+    conventionFace.insert("enum",QJsonArray{"front","top"});
+    add("view.conventionSet","Set current view as face","Make the current world camera view Front or Top by rotating this document's coherent cube frame.",
+        {{"face",conventionFace}},[this](const auto& a){
+            if(!session_.isEmpty())return failure("active_command","Finish or cancel the active command before changing the view convention");
+            const auto frame=view_->conventionFromCurrentView(a.value("face").toString());
+            if(frame.isEmpty())return failure("camera_unavailable","A live camera is required");
+            const auto error=document_->commitViewConvention(frame,"Set current view as "+a.value("face").toString());
+            if(!error.isEmpty())return failure("invalid_view_convention",error);
+            view_->setViewConvention(frame);return frame;
+        });
+    add("view.conventionReset","Reset cube convention","Restore a coherent canonical Front/Top frame for this document's selected Z/Y default up axis.",{},
+        [this,canonicalConvention](const auto&){
+            if(!session_.isEmpty())return failure("active_command","Finish or cancel the active command before resetting the view convention");
+            const auto frame=canonicalConvention(view_->viewConvention().value("defaultUp").toString("Z"));
+            const auto error=document_->commitViewConvention(frame,"Reset view convention");
+            if(!error.isEmpty())return failure("invalid_view_convention",error);
+            view_->setViewConvention(frame);return frame;
+        });
     auto projectionMode=parameter("string","Camera projection policy; hybrid uses orthographic near a principal face and perspective otherwise.");
     projectionMode.insert("enum",QJsonArray{"orthographic","perspective","hybrid"});
     add("view.projection","Camera projection","Choose Orthographic, Perspective, or Perspective with Ortho Faces without changing document history.",
@@ -5954,6 +6016,11 @@ QJsonObject AlloyWindow::state() const {
 
 void AlloyWindow::refresh() {
     GraphEvaluationScope graphScope(*this);
+    const auto storedConvention=document_->authored().value("viewConvention").toObject();
+    const auto effectiveConvention=storedConvention.isEmpty() ? QJsonObject{{"defaultUp","Z"},
+        {"right",QJsonArray{1,0,0}},{"back",QJsonArray{0,1,0}},{"up",QJsonArray{0,0,1}}} : storedConvention;
+    if(view_->viewConvention()!=effectiveConvention)view_->setViewConvention(storedConvention);
+    if(upAxisNode_)upAxisNode_->setText(0,"Up: "+effectiveConvention.value("defaultUp").toString("Z"));
     refreshPositionTab();
     refreshLengthParameters();
     if (!browser_) return;

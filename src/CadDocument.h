@@ -56,6 +56,7 @@ public:
     QString commitCanvases(const QJsonArray& canvases,const QString& label);
     QString commitNamedViews(const QJsonArray& views,const QString& label);
     QString commitHomeCamera(std::optional<QJsonObject> camera,const QString& label);
+    QString commitViewConvention(const QJsonObject& convention,const QString& label);
     QString commitAnalyses(const QJsonArray& analyses, const QString& label);
     static QJsonObject sectionCandidate(const QJsonObject& authored, const QJsonObject& args);
     QString commit(const QJsonObject& candidate, const QString& label);

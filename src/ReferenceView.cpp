@@ -65,6 +65,8 @@
 #include <gp_Ax3.hxx>
 #include <gp_Vec.hxx>
 #include <AIS_Point.hxx>
+#include <QLabel>
+#include <gp_Trsf.hxx>
 namespace {
 const QMap<QString,V3d_TypeOfOrientation>& cubeOrientations() {
     static const QMap<QString,V3d_TypeOfOrientation> rows{
@@ -261,6 +263,10 @@ ReferenceView::ReferenceView(QWidget* parent) : QWidget(parent) {
     button("adjacentDown","↓","Adjacent view below",2,1,"view.cubeAdjacent",{{"side","down"}},true);
     button("adjacentRight","→","Adjacent view right",2,2,"view.cubeAdjacent",{{"side","right"}},true);
     cubeControls_->setFixedSize(85,85);cubeControls_->move(width()-185,38);cubeControls_->show();cubeControls_->raise();
+    cubeUpLabel_=new QLabel("UP Z",this);cubeUpLabel_->setObjectName("cube.upAxis");
+    cubeUpLabel_->setFixedSize(85,18);cubeUpLabel_->setAlignment(Qt::AlignCenter);
+    cubeUpLabel_->setStyleSheet("background: rgba(247,250,252,225); color: #315369; border: 1px solid #afc3d0; border-radius: 3px; font-size: 10px; font-weight: 600;");
+    cubeUpLabel_->move(width()-185,125);cubeUpLabel_->show();cubeUpLabel_->raise();
     updateCubeControls();
 }
 ReferenceView::~ReferenceView() {
@@ -285,6 +291,55 @@ QJsonObject ReferenceView::cameraState() const {
         const auto scale=windowScale();state["pivotScreen"]=QJsonObject{{"x",x/scale.x()},{"y",y/scale.y()}};
     }
     return state;
+}
+QJsonObject ReferenceView::viewConvention() const {
+    const auto array=[](const gp_Dir& d){return QJsonArray{d.X(),d.Y(),d.Z()};};
+    return {{"defaultUp",conventionDefaultUp_},{"right",array(conventionRight_)},
+        {"back",array(conventionBack_)},{"up",array(conventionUp_)}};
+}
+void ReferenceView::freezeWorldCamera() {
+    if(view_.IsNull())return;
+    customDirection_=view_->Camera()->Direction();customUp_=view_->Camera()->Up();orientation="custom";
+}
+gp_Dir ReferenceView::conventionDirection(const gp_Dir& local) const {
+    const gp_Vec world=gp_Vec(conventionRight_)*local.X()+gp_Vec(conventionBack_)*local.Y()+
+        gp_Vec(conventionUp_)*local.Z();
+    return gp_Dir(world);
+}
+void ReferenceView::setViewConvention(const QJsonObject& convention,bool preserveCamera) {
+    if(preserveCamera)freezeWorldCamera();
+    const auto effective=convention.isEmpty() ? QJsonObject{{"defaultUp","Z"},
+        {"right",QJsonArray{1,0,0}},{"back",QJsonArray{0,1,0}},{"up",QJsonArray{0,0,1}}} : convention;
+    const auto read=[&](const char* key){const auto a=effective.value(key).toArray();
+        return gp_Dir(a[0].toDouble(),a[1].toDouble(),a[2].toDouble());};
+    conventionRight_=read("right");conventionBack_=read("back");conventionUp_=read("up");
+    conventionDefaultUp_=effective.value("defaultUp").toString("Z");
+    if(cubeUpLabel_){
+        const gp_Vec up(conventionUp_);
+        const QString axis=(up-gp_Vec(0,0,1)).Magnitude()<1e-7 ? "Z" :
+            (up-gp_Vec(0,1,0)).Magnitude()<1e-7 ? "Y" : "CUSTOM";
+        cubeUpLabel_->setText("UP "+axis);
+        cubeUpLabel_->setToolTip("Cube up direction; document default is "+conventionDefaultUp_+"-up");
+    }
+    if(!viewCube_.IsNull()){
+        gp_Trsf transform;
+        transform.SetValues(conventionRight_.X(),conventionBack_.X(),conventionUp_.X(),0,
+            conventionRight_.Y(),conventionBack_.Y(),conventionUp_.Y(),0,
+            conventionRight_.Z(),conventionBack_.Z(),conventionUp_.Z(),0);
+        viewCube_->SetLocalTransformation(transform);
+        context_->Redisplay(viewCube_,false);
+    }
+    sync();
+}
+QJsonObject ReferenceView::conventionFromCurrentView(const QString& face) const {
+    if(view_.IsNull() || (face!="front" && face!="top"))return {};
+    const gp_Dir direction=view_->Camera()->Direction(),cameraUp=view_->Camera()->Up();
+    const gp_Dir back=face=="front" ? direction : cameraUp;
+    const gp_Dir up=face=="front" ? cameraUp : gp_Dir(-direction.X(),-direction.Y(),-direction.Z());
+    const gp_Dir right(gp_Vec(back).Crossed(gp_Vec(up)));
+    const auto array=[](const gp_Dir& d){return QJsonArray{d.X(),d.Y(),d.Z()};};
+    return {{"defaultUp",conventionDefaultUp_},{"right",array(right)},
+        {"back",array(back)},{"up",array(up)}};
 }
 void ReferenceView::restoreCameraState(const QJsonObject& state) {
     orientation=state.value("orientation").toString("isometric");
@@ -349,7 +404,7 @@ void ReferenceView::orbitConstrained(double deltaX,double deltaY,bool useCustomP
     if(view_.IsNull() || !std::isfinite(deltaX) || !std::isfinite(deltaY))return;
     constexpr double radiansPerPixel=std::numbers::pi/600;
     constexpr double poleMargin=std::numbers::pi/36; // Alloy policy: 5° from either pole.
-    const gp_Vec worldUp(0,0,1);
+    const gp_Vec worldUp(conventionUp_);
     const auto pivot=useCustomPivot ? customOrbitCenter_.value_or(sceneCenter_) : viewCenter_;
     gp_Vec centerOffset(pivot,viewCenter_),forward(view_->Camera()->Direction());
     const gp_Ax1 yaw(gp_Pnt{},gp_Dir(worldUp));
@@ -454,7 +509,7 @@ bool ReferenceView::setCubeOrientation(const QString& region) {
     // direction/up, framing, pan and zoom; never run AIS cube animation.
     const Handle(Graphic3d_Camera) previous=new Graphic3d_Camera(view_->Camera());
     view_->SetProj(cubeOrientations().value(region));
-    const auto direction=view_->Camera()->Direction(),up=view_->Camera()->Up();
+    const auto direction=conventionDirection(view_->Camera()->Direction()),up=conventionDirection(view_->Camera()->Up());
     view_->SetCamera(previous);
     customDirection_=direction;customUp_=up;orientation="custom";
     sync();return true;
@@ -462,8 +517,10 @@ bool ReferenceView::setCubeOrientation(const QString& region) {
 QJsonObject ReferenceView::cubeFaceState() const {
     if(view_.IsNull())return {{"enabled",false}};
     const gp_Vec direction(view_->Camera()->Direction()),up(view_->Camera()->Up());
-    const std::array<double,3> d{direction.X(),direction.Y(),direction.Z()};
-    const std::array<double,3> u{up.X(),up.Y(),up.Z()};
+    const std::array<double,3> d{direction.Dot(gp_Vec(conventionRight_)),
+        direction.Dot(gp_Vec(conventionBack_)),direction.Dot(gp_Vec(conventionUp_))};
+    const std::array<double,3> u{up.Dot(gp_Vec(conventionRight_)),
+        up.Dot(gp_Vec(conventionBack_)),up.Dot(gp_Vec(conventionUp_))};
     int normalAxis=-1,upAxis=-1;
     for(int i=0;i<3;++i) {
         if(std::abs(std::abs(d[i])-1)<1e-7)normalAxis=i;
@@ -514,7 +571,8 @@ void ReferenceView::setOrbitMode(const QString& mode) {
     // the chosen pivot as well, so switching modes does not move that pivot on
     // screen even when the camera was panned before the switch.
     const gp_Vec forward(view_->Camera()->Direction()),oldUp(view_->Camera()->Up());
-    gp_Vec levelUp=gp_Vec(0,0,1)-forward*forward.Z();
+    const gp_Vec worldUp(conventionUp_);
+    gp_Vec levelUp=worldUp-forward*forward.Dot(worldUp);
     if(levelUp.Magnitude()>1e-9) {
         levelUp.Normalize();
         const double roll=std::atan2(forward.Dot(oldUp.Crossed(levelUp)),oldUp.Dot(levelUp));
@@ -709,6 +767,7 @@ void ReferenceView::paintEvent(QPaintEvent*) { if (!view_.IsNull()) { view_->Mus
 void ReferenceView::resizeEvent(QResizeEvent* e) {
     QWidget::resizeEvent(e);
     if(cubeControls_){cubeControls_->move(width()-185,38);cubeControls_->raise();}
+    if(cubeUpLabel_){cubeUpLabel_->move(width()-185,125);cubeUpLabel_->raise();}
     if (!view_.IsNull()) { sync(); QTimer::singleShot(0, this, [this] { sync(); }); }
 }
 void ReferenceView::sync() {
@@ -717,6 +776,7 @@ void ReferenceView::sync() {
     view_->SetCamera(new Graphic3d_Camera(baseCamera_));
     // Resize after installing the camera so its aspect matches this drawable.
     view_->MustBeResized();
+    const auto camera=view_->Camera();
     if(orientation=="custom") {
         view_->Camera()->SetDirection(customDirection_);
         view_->Camera()->SetUp(customUp_);
@@ -726,14 +786,19 @@ void ReferenceView::sync() {
         view_->Camera()->SetDirection(gp_Dir(-n[0].toDouble(),-n[1].toDouble(),-n[2].toDouble()));
         view_->Camera()->SetUp(gp_Dir(v[0].toDouble(),v[1].toDouble(),v[2].toDouble()));
         view_->Camera()->OrthogonalizeUp();
-    } else view_->SetProj(orientation == "top" ? V3d_Zpos : orientation == "bottom" ? V3d_Zneg : orientation == "front" ? V3d_Yneg : orientation == "back" ? V3d_Ypos : orientation == "right" ? V3d_Xpos : orientation == "left" ? V3d_Xneg : orientation == "rearIsometric" ? V3d_XposYposZpos : V3d_XposYnegZpos);
+    } else {
+        view_->SetProj(orientation == "top" ? V3d_Zpos : orientation == "bottom" ? V3d_Zneg : orientation == "front" ? V3d_Yneg : orientation == "back" ? V3d_Ypos : orientation == "right" ? V3d_Xpos : orientation == "left" ? V3d_Xneg : orientation == "rearIsometric" ? V3d_XposYposZpos : V3d_XposYnegZpos);
+        camera->SetDirection(conventionDirection(camera->Direction()));
+        camera->SetUp(conventionDirection(camera->Up()));
+        camera->OrthogonalizeUp();
+    }
     // Move Eye/Center together: SetCenter alone changes the view direction,
     // while SetProj preserves the origin's screen offset rather than Center.
-    const auto camera=view_->Camera();
     // The hybrid mode is orthographic only when the actual view direction is
     // within 0.5 degrees of a principal face, including rolled/custom poses.
     const auto direction=camera->Direction();
-    const double faceAlignment=std::max({std::abs(direction.X()),std::abs(direction.Y()),std::abs(direction.Z())});
+    const double faceAlignment=std::max({std::abs(direction.Dot(conventionRight_)),
+        std::abs(direction.Dot(conventionBack_)),std::abs(direction.Dot(conventionUp_))});
     const bool faceView=faceAlignment>=std::cos(0.5*std::numbers::pi/180.0);
     const bool perspective=projectionPolicy_=="perspective" || (projectionPolicy_=="hybrid" && !faceView);
     camera->SetProjectionType(perspective ? Graphic3d_Camera::Projection_Perspective : Graphic3d_Camera::Projection_Orthographic);
