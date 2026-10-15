@@ -1190,6 +1190,9 @@ AlloyWindow::AlloyWindow() {
 }
 
 AlloyWindow::~AlloyWindow() {
+    // QApplication can emit focusChanged while QWidget's base destructor
+    // hides children, after our session/document members have been destroyed.
+    disconnect(qApp,nullptr,this,nullptr);
     // QWidget teardown can interpret pending spinbox text while hiding children.
     // Quiesce their callbacks before our document/session members are destroyed.
     for (auto* child : findChildren<QObject*>()) child->blockSignals(true);

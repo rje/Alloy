@@ -72,8 +72,13 @@ private slots:
   const auto targetChanged=window.execute("command.update",{{"session",replacement["id"]},
       {"inputs",QJsonObject{{"targetBodyId",toolId},{"toolBodyId",targetId}}}});
   QVERIFY(!targetChanged["ok"].toBool());
-  QCOMPARE(targetChanged["error"].toObject()["code"].toString(),QString("trim_region_required"));
+  QCOMPARE(targetChanged["error"].toObject()["code"].toString(),QString("trim_region_ambiguous"));
   QCOMPARE(session(window)["partitionBuildCount"].toInteger(),qint64(2));
+  const auto restored=window.execute("command.update",{{"session",replacement["id"]},
+      {"inputs",QJsonObject{{"targetBodyId",targetId},{"toolBodyId",toolId}}}});
+  QVERIFY(!restored["ok"].toBool());
+  QCOMPARE(restored["error"].toObject()["code"].toString(),QString("trim_region_required"));
+  QCOMPARE(session(window)["partitionBuildCount"].toInteger(),qint64(3));
   const auto staleRegion=session(window)["regions"].toArray()[0].toObject()["regionId"].toString();
   const auto feature=before["authored"].toObject()["features"].toArray()[0].toObject();
   call(window,"feature.visibility",{{"featureId",feature["id"]},{"visible",!feature["visible"].toBool()}});
@@ -85,6 +90,10 @@ private slots:
   QVERIFY(!refused["ok"].toBool());QCOMPARE(refused["error"].toObject()["code"].toString(),QString("stale_session"));
   call(window,"command.cancel",{{"session",replacement["id"]}});
   QCOMPARE(call(window,"document.inspect")["authored"],changed);
+  // Leave the replacement command active when this native window is destroyed.
+  // Its final focusChanged signal must not access destroyed session members.
+  call(window,"surface.trimDialog",{{"targetBodyId",targetId},{"toolBodyId",toolId}});
+  QVERIFY(!session(window).isEmpty());QVERIFY(view->hasFocus());
  }
  void toolFirstRegionPreviewCancel(){
   const auto source=qEnvironmentVariable("ALLOY_SURFACE_TRIM_SOURCE"),out=qEnvironmentVariable("ALLOY_SURFACE_TRIM_EVIDENCE");
