@@ -91,7 +91,7 @@ notarization and minimum supported OS details must be explicit before distributi
 1. **Electronics enclosure:** GEO-017 is now accepted at `6d9b8dc` for the exact
    inset kernel and source-derived identities. SKT-076 is accepted at `c625649`
    for the authored inset and exact Join2/selected R0.5 lineage checks. Complete
-   the cumulative alignment rim ([GEO-017](https://github.com/rje/Alloy/issues/347) → [SKT-076](https://github.com/rje/Alloy/issues/346) → [TUT-023](https://github.com/rje/Alloy/issues/324)), then complete [TUT-016](https://github.com/rje/Alloy/issues/299) with both printable
+   the cumulative alignment rim ([GEO-017](https://github.com/rje/Alloy/issues/347) → [SKT-076](https://github.com/rje/Alloy/issues/346) → [GEO-020](https://github.com/rje/Alloy/issues/429) → [TUT-023](https://github.com/rje/Alloy/issues/324)), then complete [TUT-016](https://github.com/rje/Alloy/issues/299) with both printable
    halves, retained fit/tool relationships and full source-stage evidence. Reuse
    the accepted board, ports and snaps checkpoints.
 2. **Surface shoehorn:** finish exact R12 corner geometry ([GEO-019](https://github.com/rje/Alloy/issues/352)), generated
@@ -118,7 +118,9 @@ accepted. The [macOS runtime recipe](validation/mac-runtime-recipe.md) is also
 accepted, as is [authored enclosure inset](validation/trimmed-seam-inset.md).
 Constrained orbit and pivot controls have accepted source/API/GPU evidence;
 [NAV-009](https://github.com/rje/Alloy/issues/428) preserves the blocked native
-route. The cumulative enclosure rim/Cut/export gate is next. Reassess after each accepted
+route. The exact paired enclosure R0.5 refusal is isolated in GEO-020; the
+cumulative rim/Cut/export gate remains Todo behind it. NAV-003 smooth zoom and
+trackpad routing is the active readiness slice. Reassess after each accepted
 slice; never repeat an unchanged failing kernel/input probe without a new
 hypothesis. Keep one private validation editor and retire completed worktrees.
 

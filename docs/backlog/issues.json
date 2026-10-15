@@ -5791,12 +5791,13 @@
       "depends_on": [
         "TUT-022",
         "SOL-021",
-        "SKT-076"
+        "SKT-076",
+        "GEO-020"
       ],
       "labels": [
         "area:gate"
       ],
-      "body": "Continue actual split snap case with source rim Offset\u22121.25, Join2, R0.5 rounding, and Combine Cut retaining the tool. Verify both halves remain valid closed printable solids with intended alignment/clearance and retained tool ownership; upstream edit, undo/reopen and independent separate export readback must preserve the assembly. Record full stage footage and readable rim/tool-selection captures. Source adaptation and physical snap/fit remain qualified; TUT-016 owns final full-source cumulative movie and acceptance.\n\nUse public source evidence stored outside Git in knowledge/tutorials/advanced-audit-2026-10-13. Independent Astra review required. UI and local automation use the same authoritative commands; proportionate verification through the real app. Keep API, native input, geometry and visual evidence distinct."
+      "body": "Continue actual split snap case with source rim Offset\u22121.25, Join2, R0.5 rounding, and Combine Cut retaining the tool. Verify both halves remain valid closed printable solids with intended alignment/clearance and retained tool ownership; upstream edit, undo/reopen and independent separate export readback must preserve the assembly. Record full stage footage and readable rim/tool-selection captures. Source adaptation and physical snap/fit remain qualified; TUT-016 owns final full-source cumulative movie and acceptance.\n\nUse public source evidence stored outside Git in knowledge/tutorials/advanced-audit-2026-10-13. Independent Astra review required. UI and local automation use the same authoritative commands; proportionate verification through the real app. Keep API, native input, geometry and visual evidence distinct.\n\n## Current blocker, 2026-10-14\nThe exact paired R0.5 check on the final snap fixture refused atomically. GEO-020 owns the bounded geometry blocker; this cumulative gate remains open and returns to Todo. Public source selection/clearance uncertainties remain explicit.\n"
     },
     {
       "key": "SKT-072",
@@ -7290,6 +7291,20 @@
         "area:doc"
       ],
       "body": "## Preserved native acceptance scope\nComplete the ordinary-input portion of NAV-002 that could not run because the desktop validation environment would not activate/bind Alloy's window. Qt native01/02 stopped at initial activation; CUA full-path binding returned cgWindowNotFound before any navigation input. Shared-command/GPU evidence does not close this gate.\n\nUse one isolated editor and an off-center asymmetric part. Through actual visible controls choose Free/Constrained, set the center from the blank-canvas context menu and a visible model point, confirm the green marker, orbit with the visible left-drag tool, Escape from a pending pick, and reset from the context menu. Verify level horizon, no pivot jump, natural focus/menu closure, mode/pivot restoration across tabs and unchanged authored/history/selection state. Include a readable capture. Preserve existing API geometry/camera evidence; do not rerun it without a material change.\n\nInitial harness activation is allowed; do not repair focus between demonstrated actions. Keep Qt, OS input and physical device evidence separate. NAV-008 still owns the cumulative mouse/trackpad navigation workflow. Resume this gate after concrete foreground/binding availability changes, not repeated unchanged activation retries. Independent Astra review required."
+    },
+    {
+      "key": "GEO-020",
+      "title": "Resolve exact paired R0.5 rounding on the enclosure alignment rim",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-076"
+      ],
+      "labels": [
+        "area:geo"
+      ],
+      "body": "## Concrete failure\nThe final 29-feature split snap enclosure accepts its retained inward 1.25 mm inset and 2 mm Join. Applying R0.5 together to opposing upper rear rails of that same 1 mm rim refuses atomically with fillet_failed. Both straight rails overlap for 54 mm at z=17 and have distinct retained endRim ancestry. The exact pair is an explicitly disclosed adaptation: public evidence has not resolved the original two-edge identities or tangent-chain extent.\n\n## Bounded scope and acceptance\nDiagnose this saved fixture using kernel contour/result diagnostics. Produce a valid exact paired R0.5 result through a mature analytic/kernel construction, or document a concrete unresolved kernel limitation. Do not replace the radius with 0.499, silently round one edge, sweep arbitrary pairs or change the authored source shape to obtain success.\n\nVerify retained selections, valid closed positive-volume output, actual rounded extent, source-width edit, undo and reopen through the authoritative application commands. An inspected GPU capture must show the affected ridge; two selected rails do not prove full-perimeter rounding. Independent Astra review is required. Preserve atomic failure behavior for unsupported inputs.\n\nTUT-023 retains the later Top-target/Bottom-tool Cut with Keep Tools, separate printable exports and cumulative footage. Zero overlap alone is not a measured mating clearance or a physical-fit claim. Diagnostic fixture/logs remain external under deliverables/enclosure-rim-2026-10-14/tut023-preflight-01/."
     }
   ]
 }

@@ -48,14 +48,20 @@ window (`cgWindowNotFound`). The root-owned empty app was closed through its API
 and blocks cumulative NAV-008. Do not repeat activation attempts without changed
 foreground/binding evidence. See [receipt](validation/constrained-orbit-pivot.md).
 
-TUT-023/#324 is active: complete the enclosure alignment rim/retained-tool Cut and
-export gate using the accepted inset. Its prerequisites are all closed. Current preflight resolves an explicitly
-adapted inner/outer upper-rail pair on the same U-band cross-section; the public
-source does not resolve exact two-edge identities, second offset or numerical
-clearance. Zero overlap cannot establish fit clearance. Broader
-TUT-016 still owns the complete source tutorial. NAV-003's event-routing contract
-is prepared in the external navigation compatibility spec for the next readiness
-slice; Mac physical gestures remain pending real device evidence.
+TUT-023/#324 returned to Todo after the exact paired R0.5 operation refused
+atomically on the final 29-feature snap fixture. The opposed rear rails span
+54 mm across a 1 mm ridge at z=17; this remains an explicit source-selection
+adaptation. [GEO-020/#429](https://github.com/rje/Alloy/issues/429) now owns the
+bounded paired-rounding blocker and is a dependency of the cumulative gate.
+No reduced radius, alternate pair sweep or single-edge substitute was accepted.
+Broader TUT-016 retains the complete source tutorial; zero overlap cannot
+establish numerical clearance or physical fit.
+
+NAV-003/#409 is active next: use the prepared external event-routing contract for
+smooth wheel/pixel input, trackpad pan/pinch and cursor-centered zoom. Mac physical
+gestures remain pending real device evidence. The public full-resolution enclosure
+video exists, but exact source Fillet selections and the second Offset remain
+unresolved until permitted high-resolution frames can be inspected.
 
 Current CUA documentation (refreshed 2026-10-14) now advertises held modifiers
 for macOS coordinate clicks via `click(point, {key: "super"})`. The older
