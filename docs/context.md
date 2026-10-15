@@ -19,11 +19,18 @@ REL-020 returns to Todo with diagnostics preserved. REL-013/#416 visual/control
 audit found severe ribbon/navigation clipping at 1040×640; bounded REL-021/#447
 responsive controls is accepted at `c562c85`: readable representative icons and
 complete menus, active-tool labeling and actual Qt menu/Pan/Escape checks pass.
-See [receipt](validation/responsive-controls.md). Parent REL-013 retains lower
-dock-height/status-strip clipping and other panel/readability checks. REL-022/#448 is accepted at `e8bc743`: shared Box/Cylinder scrolling fields and persistent actions pass keyboard/Qt button and visual review; pointer scrolling remains unqualified. See [receipt](validation/primitive-dock-height.md). REL-023/#449 concise status and persistent warnings are accepted: normal/minimum captures, genuine recovery-init failure metadata and startup GPU-state consistency pass focused Qt/Astra review. See [receipt](validation/status-strip-readability.md). REL-013 now audits the remaining Extrude/Fillet/Combine and selection/constraint states. The old blank viewport band is consistent with dock allocation; actual
-Qt/native/framebuffer dimensions agree in the current audit. Use `build-preview-release` for optimized interactive
-previews and `build-tutorial-polish` for Debug checks; both use the coherent
-private Qt SDK. Older packaged archives predate these source changes.
+See [receipt](validation/responsive-controls.md). REL-022/#448 is accepted at
+`e8bc743`: shared Box/Cylinder scrolling fields and persistent actions pass
+keyboard/Qt button and visual review; pointer scrolling remains unqualified.
+See [receipt](validation/primitive-dock-height.md). REL-023/#449 is accepted at
+`3055456`: concise status and persistent warnings, normal/minimum captures,
+genuine recovery-init failure metadata and startup GPU-state consistency pass
+focused Qt/Astra review. See [receipt](validation/status-strip-readability.md).
+REL-013 now audits remaining Extrude/Fillet/Combine and selection/constraint
+states. The old blank viewport band matches dock allocation; actual Qt/native/
+framebuffer dimensions agree in the current audit. Use `build-preview-release`
+for optimized interactive previews and `build-tutorial-polish` for Debug checks;
+both use the coherent private Qt SDK. Older packaged archives predate these changes.
 
 REL-019/#440 adds pre-painted synchronous geometry-busy feedback and reliable
 cursor/status cleanup, including initial solid previews. A cheap real-app Box /
