@@ -14,9 +14,11 @@ Use the live issue state for completion and readiness.
 ## Active delivery order
 
 User-prioritized 2026-10-15: finish the complete shoehorn TUT-017, then pursue
-TUT-018 surface iron. GEO-019 exact grouped corners is independently accepted; GEO-022 owns the
-remaining perimeter construction. Final hole, organization and full workflow
-evidence remain required. The broader 2026-10-14 priority follows: [initial-build readiness](../initial-build-readiness.md)
+TUT-018 surface iron. TUT-017's complete functional/API chain is independently
+accepted, including exact corner/perimeter rounds, retained hole, organization,
+movie and checked STL. ASM-012 retains separate physical Browser gesture
+qualification. SRF-017 exterior quality is the next critical geometry gate.
+The broader 2026-10-14 priority follows: [initial-build readiness](../initial-build-readiness.md)
 now leads: navigation, everyday input, presentation, recovery, responsiveness and
 relocatable packages, interleaved with enclosure/shoehorn/surface-iron completion.
 Twenty-two new bounded children #407–428 reuse existing broader owners and gates.

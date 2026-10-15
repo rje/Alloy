@@ -82,6 +82,88 @@ def create_sheet(call, stage):
             'frontId': front['id'], 'rearId': rear['id'], 'sheet': sheet}
 
 
+def finish_hole_and_export(call, stage, result, body, out):
+    """Retained rear corner -> tangent sketch -> Cut All -> component print."""
+    from stl_export_api import inspect_stl
+    import math
+    meta = lambda row: row.get('provenance', row)
+    source_edges = {meta(e)['role']: e['edgeId'] for e in result['sheet']['solidEdges']}
+    walls = {f['role']: f for f in result['cornerSolid']['supportFaces']}
+    rear_wall = walls['side/' + source_edges['end']]['faceId']
+    side_wall = walls['side/' + source_edges['sideA']]['faceId']
+    corner, = [f for f in result['cornerSolid']['supportFaces']
+        if f['role'] == 'fillet.round'
+        and set(meta(f)['sourceWallFaceIds']) == {rear_wall, side_wall}]
+    pipes = {meta(f)['sourceWallFaceId']: f for f in body['supportFaces']
+             if f['role'] == 'fillet.perimeter'}
+    corner_pipe, rear_pipe = pipes[corner['faceId']], pipes[rear_wall]
+    broad, = [f for f in body['supportFaces'] if f['role'] == 'offset']
+    edge, = [e for e in body['solidEdges']
+        if set(meta(e).get('adjacentFaceIds', [])) == {broad['faceId'], corner_pipe['faceId']}]
+    p = meta(edge)
+    assert rear_pipe['faceId'] in (p['startAdjacentFaceId'], p['endAdjacentFaceId'])
+    endpoint = 0 if p['startAdjacentFaceId'] == rear_pipe['faceId'] else 1
+    tangent = {'face': {k: broad[k] for k in ('producerFeatureId', 'bodyId', 'faceId')},
+               'point': {'bodyId': body['bodyId'], 'edgeId': edge['edgeId'], 'endpoint': endpoint}}
+    plane_id = call('construction.tangentPlane', {'tangent': tangent, 'name': 'Hanging hole plane'})['planeId']
+    plane_frame = next(p['frame'] for p in call('document.inspect')['evaluation']['constructionPlanes']
+                       if p['featureId'] == plane_id)
+    stage('Tangent plane on the broad face at its rear round endpoint', '12-tangent-plane.png')
+    call('sketch.begin', {'planeId': plane_id, 'name': 'Hanging hole'})
+    sketch_id = call('app.state')['activeSession']['draftSketch']['id']
+    call('sketch.lookAt')
+    # The path's rear is +Y; local -V on the outward upper face points inward.
+    call('sketch.addCircle', {'centerX': 0, 'centerY': -10, 'diameter': 5, 'units': 'mm'})
+    draft = call('app.state')['activeSession']['draftSketch']
+    circle, = [e for e in draft['parameters']['entities'] if e['type'] == 'circle']
+    call('sketch.tool', {'tool': 'dimension'})
+    origin_pixel = call('view.projectSketchPoint', {'sketchId': sketch_id, 'uMm': 0, 'vMm': 0})
+    call('sketch.selectionPick', {'x': origin_pixel['x'], 'y': origin_pixel['y']})
+    origin_id = call('app.state')['activeSession']['draftSketch']['parameters']['originPointId']
+    call('sketch.tool', {'tool': 'select'})
+    call('sketch.constraint', {'type': 'vertical', 'pointIds': [origin_id, circle['centerPointId']]})
+    call('sketch.dimension', {'kind': 'diameter', 'entityId': circle['id'], 'value': 5, 'units': 'mm',
+                             'annotation': {'uMm': 5, 'vMm': -13}})
+    call('sketch.dimension', {'kind': 'vertical', 'pointIds': [origin_id, circle['centerPointId']],
+                             'value': 10, 'units': 'mm', 'annotation': {'uMm': -6, 'vMm': -5}})
+    stage('Driving diameter 5 mm and endpoint distance 10 mm', '13-hole-dimensions.png')
+    call('sketch.finish')
+    inspection = call('document.inspect')
+    sketch, = [s for s in inspection['evaluation']['sketches'] if s['sketchId'] == sketch_id]
+    profile, = sketch['profiles']
+    session = call('solid.extrudeDialog', {'sketchId': sketch_id, 'profileId': profile['profileId'],
+        'operation': 'cut', 'extent': 'all', 'flip': True, 'targetBodyIds': [body['bodyId']]})
+    call('command.preview', {'session': session['id']})
+    stage('Extrude the hole: Cut, All, explicit shoehorn target', '14-hole-cut-preview.png')
+    call('command.commit', {'session': session['id']})
+    call('feature.visibility', {'featureId': plane_id, 'visible': False})
+    call('view.home')
+    final, = [b for b in call('document.inspect')['evaluation']['bodies'] if b['bodyId'] == body['bodyId']]
+    assert final['valid'] and final['closed'] and final['topology']['solids'] == 1
+    assert 0 < final['volumeMm3'] < body['volumeMm3']
+    owner = result['sheet']['ownerId']
+    call('component.reparent', {'destinationId': owner, 'bodyId': body['bodyId']})
+    stage('Move finished body into the source component', '15-body-organized.png')
+    call('component.reparent', {'destinationId': owner,
+        'sketchIds': [result['pathId'], result['frontId'], result['rearId'], sketch_id]})
+    organized = call('document.inspect')
+    final = next(b for b in organized['evaluation']['bodies'] if b['bodyId'] == body['bodyId'])
+    occurrence, = [o for o in organized['authored']['occurrences'] if o['definitionId'] == owner]
+    call('component.activate', {'definitionId': owner})
+    stage('Move the Sketches folder; hidden original sheet retained', '16-organized.png')
+    settings = {'occurrenceId': occurrence['id'], 'path': str(out / 'shoehorn-mm.stl'),
+                'units': 'mm', 'format': 'binary', 'surfaceDeviationMm': .05, 'normalDeviationDeg': 8}
+    exported = call('document.exportStl', settings)
+    assert exported['bodyIds'] == [body['bodyId']]
+    mesh = inspect_stl(settings['path'], True)
+    assert len(mesh['components']) == 1
+    assert math.isclose(mesh['signedVolume'], final['volumeMm3'], rel_tol=.01)
+    stage('Export the component as one closed millimeter printing mesh', '17-printable-shoehorn.png')
+    result.update({'holePlaneId': plane_id, 'holeSketchId': sketch_id, 'holeTangent': tangent, 'holePlaneFrame': plane_frame,
+                   'finishedSolid': final, 'export': exported, 'mesh': mesh})
+    return final
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--app', required=True)
@@ -90,8 +172,10 @@ def main():
     p.add_argument('--through-thicken', action='store_true')
     p.add_argument('--through-corners', action='store_true')
     p.add_argument('--through-perimeter', action='store_true')
+    p.add_argument('--complete', action='store_true')
     a = p.parse_args(); out = a.output.resolve(); out.mkdir(parents=True, exist_ok=True)
-    corners = a.through_corners or a.through_perimeter
+    perimeter = a.through_perimeter or a.complete
+    corners = a.through_corners or perimeter
     with application(a.app, out, command_timeout=120) as (raw, ledger), ExitStack() as cleanup:
         recording = False
         video = {}
@@ -150,7 +234,7 @@ def main():
             assert evaluated['valid'] and evaluated['closed'] and evaluated['topology']['solids'] == 1
             result['cornerSolid'] = evaluated
             stage('Rounded shoehorn ends', '09-corner-fillet.png')
-        if a.through_perimeter:
+        if perimeter:
             seeds = []
             for role in ('source', 'offset'):
                 candidates = [e for e in evaluated['solidEdges']
@@ -174,8 +258,11 @@ def main():
             assert 0 < evaluated['volumeMm3'] < result['cornerSolid']['volumeMm3']
             result['perimeterSolid'] = evaluated
             stage('Rounded perimeter; retained broad faces', '11-perimeter.png')
+        if a.complete:
+            evaluated = finish_hole_and_export(call, stage, result, evaluated, out)
         before = call('document.inspect')['authored']
-        model = out / ('shoehorn-perimeter.alloy' if a.through_perimeter else
+        model = out / ('shoehorn-finished.alloy' if a.complete else
+                       'shoehorn-perimeter.alloy' if perimeter else
                        'shoehorn-corners.alloy' if corners else
                        'shoehorn-thickened.alloy' if a.through_thicken else 'shoehorn-guided-sheet.alloy')
         call('document.save', {'path': str(model)})
@@ -189,8 +276,13 @@ def main():
         changed = next(b for b in edited['evaluation']['bodies'] if b['bodyId'] == evaluated['bodyId'])
         assert abs(changed['areaMm2'] - evaluated['areaMm2']) > 1
         assert changed['valid'] and (not corners or changed['closed'])
-        assert changed['supportFaces'][0]['faceId'] == evaluated['supportFaces'][0]['faceId']
-        if a.through_perimeter:
+        if not a.complete:
+            assert changed['supportFaces'][0]['faceId'] == evaluated['supportFaces'][0]['faceId']
+        if a.complete:
+            edited_plane = next(p['frame'] for p in edited['evaluation']['constructionPlanes']
+                                if p['featureId'] == result['holePlaneId'])
+            assert sum((x-y)**2 for x,y in zip(edited_plane['origin'], result['holePlaneFrame']['origin'])) > 1
+        if perimeter and not a.complete:
             assert {f['faceId'] for f in changed['supportFaces']} == {f['faceId'] for f in evaluated['supportFaces']}
         call('history.undo'); assert call('document.inspect')['authored'] == before
         call('history.redo'); assert call('document.inspect')['authored'] == edited['authored']
@@ -199,7 +291,7 @@ def main():
         call('document.new', {'discard': True})
         call('document.open', {'path': str(variant)})
         assert call('document.inspect')['authored'] == edited['authored']
-        (out / 'report.json').write_text(json.dumps({'passed': True, 'scope': ('From blank through R1.5 perimeter Fillet' if a.through_perimeter else 'From blank through grouped corner Fillet' if corners else 'From blank through 3 mm Thicken' if a.through_thicken else 'From blank through guided sheet') + '; solid finishing remains pending',
+        (out / 'report.json').write_text(json.dumps({'passed': True, 'scope': ('From blank through hole, component organization and checked STL' if a.complete else 'From blank through R1.5 perimeter Fillet' if perimeter else 'From blank through grouped corner Fillet' if corners else 'From blank through 3 mm Thicken' if a.through_thicken else 'From blank through guided sheet') + ('; native gesture parity remains qualified' if a.complete else '; solid finishing remains pending'),
             'stages': stages, 'result': result, 'video': video,
             'sourceEdit': {'dimensionId': edit_dimension, 'valueMm': edit_value},
             'adaptations': ['Fixed first spline endpoint at origin; endpoint horizontal alignment. Public source constraint gestures unspecified.']}, indent=2))

@@ -2,41 +2,33 @@
 
 ## Active user order (2026-10-15)
 
-Finish the complete shoehorn TUT-017 first, then pursue TUT-018 surface iron.
-GEO-019 is independently accepted for exact grouped corners. GEO-022 owns
-the remaining perimeter geometry; Sol implements and Astra verifies. Preserve source
-radii and authored geometry; no repeated unchanged healer/radius sweeps. The public dimension-placement gestures support the existing horizontal50 /
-vertical16 recipe; an external Euclidean-distance inference was corrected.
-SKT-091/#455 is independently accepted: native Dimension can use sketch origin
-for the driving10 mm circle location without an extra Point entity. See
-[receipt](validation/sketch-origin-dimension.md). Actual rounded support/hole
-integration still depends on GEO-019/GEO-018. Complete the
-full recording, editable model and checked export before closing TUT-017.
+Finish TUT-017 shoehorn, then pursue TUT-018 surface iron. The complete shoehorn
+is now independently accepted; see [receipt](validation/shoehorn-complete.md).
+GEO-019 exact R12/R16 corners and GEO-022 exact R1.5 perimeter are integrated at
+`b51fc5f` and `498b165`. GEO-018 retained final endpoints and GEO-004 tangent
+plane now pass the actual final constrained hole/Cut chain. Source length130→140,
+exact history, reopening and strict component STL pass. Full177-second API
+creation movie/model/STL are linked in the external gallery. Native creation
+through Thicken remains TUT-031; physical body/Sketches Browser drag remains
+ASM-012 and is explicitly separate from functional cumulative acceptance.
 
-### Exact corner construction accepted
+The complete creation run succeeded through export/recording. A later test-only
+support-face assertion failed after Cut; a corrected bounded17-call saved-model
+replay passes edit/history/reopen. Both evidence histories are preserved under
+external `shoehorn-workflow-2026-10-15/complete-01`. No repeated full recording
+was needed. Final runner guard is corrected. The source dimension-placement
+contract uses horizontal50/vertical16; exact public spline interpolation remains
+unknown. Bend16→18 still refuses atomically in the bounded corner construction.
 
-GEO-019/#352 is independently accepted: all four R12/R16 corners, retained
-curved broad supports and generated boundary chains; meaningful length130→140,
-history/reopen and a stable terminal tangent reference pass. Exact topology split
-references refuse rather than silently rebind; bend16→18 remains an atomic refusal.
-Operation order is input-topology based, independent of UUIDs. Equivalent fixtures
-have identical round supports and adaptive volume17033.693449192317 mm³.
-The final21-call real-app replay, core receipt and Apple M4 captures are under
-external `shoehorn-workflow-2026-10-15/geo019-product-api-01/ordered-api/` and its
-parent. See [receipt](validation/shoehorn-ruled-corners.md). Original77-call run
-predates the ordering correction; final existing-model replay covers the change.
-No full tutorial, new native-input or matched-reference visual acceptance claimed.
-
-GEO-022/#456 now owns the separate perimeter geometry critical path; GEO-018
-returns to Todo for downstream reference acceptance: ordinary R1.5
-and independent-branch Common both fail. A genuinely dispatched, isolated
-TKFillet build with upstream PR1293 also fails; no SDK dependency change follows.
-Exact coincident-support normalization also failed and is preserved. A new
-representative centerline on the exact mid-offset and inward side support has
-well-conditioned intersection evidence. Eight finite semicircle sectors and broad
-interiors now assemble into a valid external prototype; material certification,
-edit replay and production integration remain pending. No radius reduction or generic healing. See the updated
-diagnostic receipt and external geo018-mid-offset-01.
+TUT-018 now leads. SRF-017/#361 exterior quality is the critical prerequisite:
+previous C0 patches gave about40° seam mismatch; the endpoint-compatible G1
+plate attempt still missed0.0003 mm G0 limits. Do not repeat unchanged sweeps or
+relax tolerances. Astra is evaluating one materially different mature OCCT
+boundary/tangent construction in an external diagnostic directory before Sol
+retained implementation. Existing Trim/bridge feasibility is not acceptance.
+Root integrates and tracks issues; only one private GUI lease. The completed
+shoehorn validation editor is closed. Native Windows/Linux package testers and
+broader release-readiness gates remain separate.
 
 ## Timeline visual polish (2026-10-15)
 

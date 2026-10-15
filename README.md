@@ -4,11 +4,11 @@ Current priority: [initial-build readiness](docs/initial-build-readiness.md)—
 familiar navigation, reliable everyday controls, recovery and installable packages,
 alongside completion of the advanced modeling tutorials.
 
-The [native shoehorn creation checkpoint](docs/validation/shoehorn-native-prefix.md)
-now records the complete blank-document workflow through a 3 mm solid, with an
-editable model. [Exact grouped corner rounds](docs/validation/shoehorn-ruled-corners.md)
-now pass retained edits and reopening. The separate perimeter round, hanging hole
-and full printable lesson remain open.
+The [complete surface shoehorn](docs/validation/shoehorn-complete.md) now has
+an independently accepted full creation movie, editable model and checked STL:
+guided surface, exact corner/perimeter rounds and retained hanging hole. Source
+length edits, history and reopening pass. Physical Browser gestures remain a
+separate gate. TUT-018 surface iron is the next advanced tutorial.
 
 The [development preview guide](docs/development-preview.md) lists supported
 workflows, local package/start instructions, example models and current limits.
@@ -113,8 +113,7 @@ accepted ingredients; the complete surface iron workflow remains ahead.
 solid from a dimensioned spline and endpoint sections. The original sheet stays
 available, and upstream edits, history, reopen and solid STL checks pass.
 [Component printing](docs/validation/component-mesh-visibility.md) exports the
-visible solid while retaining its hidden source sheet. The completed surface
-tutorial's finishing and hole remain in progress.
+visible solid while retaining its hidden source sheet. The complete shoehorn's finishing, retained hole and checked export are accepted.
 
 The [enclosure ports and card-opening workflow](docs/validation/enclosure-port-card-workflow.md)
 now has an independently accepted full creation movie: linked board placement,
