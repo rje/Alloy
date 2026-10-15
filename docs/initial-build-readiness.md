@@ -27,7 +27,8 @@ At; arbitrary orbit, ViewCube and projection controls were missing at the audit.
 NAV-001 is now accepted at `2d1a699`: free orbit works with Shift-middle drag or
 the visible Free Orbit tool and left drag/Escape. The focused Qt/GPU evidence
 is recorded in [its receipt](validation/free-orbit-navigation.md); other navigation
-children remain open. Research
+children remain open except NAV-002, whose source/API/GPU camera evidence is
+accepted with its native route retained in NAV-009. Research
 must distinguish current public documented behavior from older screenshots and
 platform-specific gesture limitations. Detailed reference records stay external.
 
@@ -40,6 +41,7 @@ platform-specific gesture limitations. Detailed reference records stay external.
 | Discoverable Pan/Zoom/Zoom Window/Fit/Look At controls | [NAV-005](https://github.com/rje/Alloy/issues/411) | Fit differs from Home; visible/selected geometry framing; face/sketch alignment preserves command |
 | Projection modes | [NAV-006](https://github.com/rje/Alloy/issues/412) | Orthographic/perspective and documented hybrid behavior; picking and framing remain correct |
 | Named views and navigation preferences | [NAV-007](https://github.com/rje/Alloy/issues/413) | Create/restore/rename/delete, Home/front/up conventions, proper document/application persistence |
+| Native constrained-orbit and pivot controls | [NAV-009](https://github.com/rje/Alloy/issues/428) | Visible mode/context/pick/drag/Escape/Reset with natural focus; pending desktop activation/window binding |
 | Complete mouse and no-middle-button workflow | [NAV-008](https://github.com/rje/Alloy/issues/414) | Navigate, enter/exit sketch, return to view and select; ordinary input with no focus repair; short annotated demonstration |
 
 Publicly documented primary Mac gestures need actual runtime qualification; a
@@ -114,7 +116,9 @@ The first two slices, [free orbit](https://github.com/rje/Alloy/issues/407) and
 [exact enclosure inset geometry](https://github.com/rje/Alloy/issues/347), are
 accepted. The [macOS runtime recipe](validation/mac-runtime-recipe.md) is also
 accepted, as is [authored enclosure inset](validation/trimmed-seam-inset.md).
-Constrained orbit and pivot controls are active next. Reassess after each accepted
+Constrained orbit and pivot controls have accepted source/API/GPU evidence;
+[NAV-009](https://github.com/rje/Alloy/issues/428) preserves the blocked native
+route. The cumulative enclosure rim/Cut/export gate is next. Reassess after each accepted
 slice; never repeat an unchanged failing kernel/input probe without a new
 hypothesis. Keep one private validation editor and retire completed worktrees.
 

@@ -7,8 +7,8 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current publication contains **427 issues**: **326 implementation, 21 research,
-22 epics, and 58 validation gates**. Counts describe decomposition, not coverage.
+The current publication contains **428 issues**: **326 implementation, 21 research,
+22 epics, and 59 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 
 ## Active delivery order
@@ -16,12 +16,13 @@ Use the live issue state for completion and readiness.
 User-prioritized 2026-10-14: [initial-build readiness](../initial-build-readiness.md)
 now leads: navigation, everyday input, presentation, recovery, responsiveness and
 relocatable packages, interleaved with enclosure/shoehorn/surface-iron completion.
-Twenty-one new bounded children #407–427 reuse existing broader owners and gates.
+Twenty-two new bounded children #407–428 reuse existing broader owners and gates.
 NAV-001/#407 is independently accepted at2d1a699. GEO-017/#347 is independently accepted at6d9b8dc for exact inset geometry
 and derived source lineage, unblocking SKT-076 authoring. CI-008/#426 is independently accepted at `098e485` for the macOS runtime recipe;
 CI-009 retains Windows/Linux alignment and CI-004 stays Todo. SKT-076/#346 is
 accepted at `c625649` for retained inset and exact Join2/selected R0.5 downstream
-lineage. NAV-002/#408 is active next for constrained orbit and pivot controls. The current
+lineage. NAV-002/#408 is accepted for source/API/GPU camera behavior; NAV-009/#428 retains
+the blocked native-input route. TUT-023/#324 is next for the cumulative rim/Cut/export gate. The current
 sequence JSON takes precedence over historical delivery notes below.
 
 
@@ -177,7 +178,7 @@ require macOS/Windows/Linux qualification; CI remains tag/manual only.
 | P1 Geometry/document | 20 | Real hardware-backed OCCT viewport, authored primitive document, selection, undo/save and STEP |
 | P2 Parametric modeling | 219 | Constrained sketches, parameters, editable extrusion/fillet chain and broader basic solid tools |
 | P3 Shape/import/print breadth | 45 | Solids/surfaces, common interchange and qualified printing export |
-| P4 Initial release | 33 | Robustness, recovery, packaging, performance, physical/visual workflow evidence |
+| P4 Initial release | 34 | Robustness, recovery, packaging, performance, physical/visual workflow evidence |
 | P5 Assemblies/drawings | 41 | Components/joints, configurations and associative drawings |
 | P6 Advanced design | 11 | Sheet metal, direct/mesh/Form, advanced modeling, plastic rules and local presentation |
 | P7 Manufacturing | 9 | Setups, toolpaths, verification/posts, additive, nesting and metrology |

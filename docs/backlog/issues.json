@@ -7002,7 +7002,7 @@
       "labels": [
         "area:doc"
       ],
-      "body": "## Initial-build readiness scope\nAdd documented horizon-preserving constrained orbit, visible Free/Constrained choice, and explicit pivot selection/reset from supported geometry. Resolve exact pivot activation and default behavior in external public contract before implementation. Preserve the chosen center during rotation, handle empty selection clearly, and keep authoring state unchanged. Exercise an off-center asymmetric part, pole approach and reset; compare camera state and actual capture. Preserve unknown public behavior rather than guessing exact parity.\n\n## Delivery and evidence\nUser-prioritized 2026-10-14. Keep implementation bounded, preserve authoritative document/control commands, use proportional verification and independent review. Public reference details and images remain external. This issue is planned until its stated gate is evidenced; do not substitute compilation/API or Qt simulation for physical input or packaged GPU evidence.\n\n## Researched implementation handoff\nExternal `knowledge/specs/viewport-navigation-compatibility-2026-10-14.md` records the permitted source evidence. Constrained orbit keeps the configured vertical axis/horizon; retain Free mode. Set Orbit Center is a blank-canvas context action followed by a model-point pick, with a visible green marker and Reset Orbit Center. Keep pivot separate from framing center and preserve per-tab camera state. The documented custom pivot does not affect orientation-cube movement. Initial mode, angular sensitivity, vertical-drag details and entity snapping filters are not established by the sources; record chosen Alloy policies rather than exact-parity claims.\n"
+      "body": "## Initial-build readiness scope\nAdd documented horizon-preserving constrained orbit, visible Free/Constrained choice, and explicit pivot selection/reset from supported geometry. Resolve exact pivot activation and default behavior in external public contract before implementation. Preserve the chosen center during rotation, handle empty selection clearly, and keep authoring state unchanged. Exercise an off-center asymmetric part, pole approach and reset; compare camera state and actual capture. Preserve unknown public behavior rather than guessing exact parity.\n\n## Delivery and evidence\nUser-prioritized 2026-10-14. Keep implementation bounded, preserve authoritative document/control commands, use proportional verification and independent review. Public reference details and images remain external. This issue is planned until its stated gate is evidenced; do not substitute compilation/API or Qt simulation for physical input or packaged GPU evidence.\n\n## Researched implementation handoff\nExternal `knowledge/specs/viewport-navigation-compatibility-2026-10-14.md` records the permitted source evidence. Constrained orbit keeps the configured vertical axis/horizon; retain Free mode. Set Orbit Center is a blank-canvas context action followed by a model-point pick, with a visible green marker and Reset Orbit Center. Keep pivot separate from framing center and preserve per-tab camera state. The documented custom pivot does not affect orientation-cube movement. Initial mode, angular sensitivity, vertical-drag details and entity snapping filters are not established by the sources; record chosen Alloy policies rather than exact-parity claims.\n\n## Explicit validation split\nImplementation and shared-command/GPU camera acceptance remain here. The blocked ordinary-input mode/context/pivot/drag/cancel/reset route is preserved in NAV-009, a required dependency of cumulative NAV-008. Neither API success nor source inspection counts as that native pass.\n\n\n## Independently accepted 2026-10-14\nImplementation accepted at b6237b5 with receipt ee66d96 after independent Astra review. Shared-command API05 Qt3/3 and actual GPU capture verify constrained horizon/poles, exact visible surface pivot, prior-pan screen stationarity through Free-to-Constrained leveling and orbit, fixed-view framing/reset, per-tab restoration and unchanged authored/history state. See docs/validation/constrained-orbit-pivot.md. Native controls are explicitly NOT accepted: two Qt attempts stopped at initial activation and CUA could not bind the live window before input. NAV-009/#428 preserves that gate and blocks cumulative NAV-008. Trackpad, ViewCube and cross-platform evidence remain separate.\n"
     },
     {
       "key": "NAV-003",
@@ -7087,7 +7087,8 @@
         "NAV-004",
         "NAV-005",
         "NAV-006",
-        "NAV-007"
+        "NAV-007",
+        "NAV-009"
       ],
       "labels": [
         "area:doc"
@@ -7275,6 +7276,20 @@
         "area:ci"
       ],
       "body": "## Bounded runtime readiness scope\nRetain the remaining CI-004 cross-platform scope explicitly. Resolve applicability of the admitted Qt item-view patch and platform-specific Cocoa patch; use verified source/patch/config recipes and effective compiler/feature manifests on Windows/Linux rather than silently assuming stock archives match validated behavior. Keep exact solver/OCCT/font/plugin provenance. Verify native candidate builds at a deliberate matrix milestone and targeted applicable regression; no per-commit runs. Distinguish platform-specific patch admission, compilation, packaged launch and actual GPU/input evidence. Packaging remains CI-006/007 and GATE-005.\n\nDetailed source handoff remains external at knowledge/specs/runtime-reproducibility-2026-10-14.md. Independent Astra review and proportional verification required.\n"
+    },
+    {
+      "key": "NAV-009",
+      "title": "Gate: native constrained orbit and set/reset pivot controls",
+      "kind": "validation",
+      "phase": "P4 Initial release",
+      "priority": "P1",
+      "depends_on": [
+        "NAV-002"
+      ],
+      "labels": [
+        "area:doc"
+      ],
+      "body": "## Preserved native acceptance scope\nComplete the ordinary-input portion of NAV-002 that could not run because the desktop validation environment would not activate/bind Alloy's window. Qt native01/02 stopped at initial activation; CUA full-path binding returned cgWindowNotFound before any navigation input. Shared-command/GPU evidence does not close this gate.\n\nUse one isolated editor and an off-center asymmetric part. Through actual visible controls choose Free/Constrained, set the center from the blank-canvas context menu and a visible model point, confirm the green marker, orbit with the visible left-drag tool, Escape from a pending pick, and reset from the context menu. Verify level horizon, no pivot jump, natural focus/menu closure, mode/pivot restoration across tabs and unchanged authored/history/selection state. Include a readable capture. Preserve existing API geometry/camera evidence; do not rerun it without a material change.\n\nInitial harness activation is allowed; do not repair focus between demonstrated actions. Keep Qt, OS input and physical device evidence separate. NAV-008 still owns the cumulative mouse/trackpad navigation workflow. Resume this gate after concrete foreground/binding availability changes, not repeated unchanged activation retries. Independent Astra review required."
     }
   ]
 }

@@ -4,8 +4,8 @@
 
 The user reprioritized polish/quality, familiar viewport navigation and an initial
 build, while retaining advanced tutorial completion. See the actionable
-[readiness burndown](initial-build-readiness.md). Twenty-one bounded children
-NAV-001–008, REL-012–018 and CI-004–009 are published as #407–427; existing
+[readiness burndown](initial-build-readiness.md). Twenty-two bounded children
+NAV-001–009, REL-012–018 and CI-004–009 are published as #407–428; existing
 file/physical-input/platform gates and advanced chain dependencies are reused.
 NAV-001/#407 is independently accepted at `2d1a699` and closed: free orbit,
 a visible checked tool for users without a middle mouse button, custom-camera
@@ -38,10 +38,21 @@ preview. See [receipt](validation/trimmed-seam-inset.md). The approximately 30 s
 collapse refusal is tracked in REL-016. TUT-023 still owns the full ridge,
 retained-tool Cut and exports; this ingredient does not close the tutorial.
 
-NAV-002/#408 is active next for constrained orbit and pivot controls. Its public
-behavior contract is in external
-`knowledge/specs/viewport-navigation-compatibility-2026-10-14.md`. Preserve free
-orbit, separate pivot from framing center and qualify unspecified defaults.
+NAV-002/#408 is accepted at `b6237b5` / `ee66d96` for constrained orbit,
+custom pivot, panned pivot stationarity, fixed-view reset, per-tab camera state
+and unchanged authored/history state. API05 passed 3/3 and actual GPU captures
+were reviewed. Native input remains explicitly unverified: Qt native01/02 stopped
+at initial activation; root's bundled-app CUA route could not bind the live
+window (`cgWindowNotFound`). The root-owned empty app was closed through its API.
+[NAV-009/#428](https://github.com/rje/Alloy/issues/428) preserves that native gate
+and blocks cumulative NAV-008. Do not repeat activation attempts without changed
+foreground/binding evidence. See [receipt](validation/constrained-orbit-pivot.md).
+
+TUT-023/#324 is next: complete the enclosure alignment rim/retained-tool Cut and
+export gate using the accepted inset. Its prerequisites are all closed. Broader
+TUT-016 still owns the complete source tutorial. NAV-003's event-routing contract
+is prepared in the external navigation compatibility spec for the next readiness
+slice; Mac physical gestures remain pending real device evidence.
 
 Current CUA documentation (refreshed 2026-10-14) now advertises held modifiers
 for macOS coordinate clicks via `click(point, {key: "super"})`. The older

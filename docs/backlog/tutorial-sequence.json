@@ -39,6 +39,7 @@
         "NAV-005",
         "NAV-006",
         "NAV-007",
+        "NAV-009",
         "NAV-008"
       ],
       "acceptance": "Familiar navigation controls, no-middle-button route and reproducible dependencies.",
