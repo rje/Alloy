@@ -25,7 +25,8 @@ lineage. NAV-002/#408 is accepted for source/API/GPU camera behavior; NAV-009/#4
 the blocked native-input route. TUT-023/#324 final-stage rim/Cut/export gate is accepted. NAV-018/#439
 application navigation presets and NAV-019/#443 orientation conventions are
 accepted. SRF-018/#445 planar crossing-sheet Trim is accepted at `1017d0a`;
-REL-014/#417 crash recovery is active. GEO-019/#352 remains Todo with preserved geometry failure evidence;
+REL-014/#417 committed-work recovery is accepted; REL-011/#374 native assembly
+drag profiling is active. GEO-019/#352 remains Todo with preserved geometry failure evidence;
 TUT-030/#442 preserves unresolved nominal connector clearance. The current
 sequence JSON takes precedence over historical delivery notes below.
 

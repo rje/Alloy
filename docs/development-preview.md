@@ -10,7 +10,7 @@ any reference product.
 | Area | Demonstrated capability | Evidence and boundary |
 | --- | --- | --- |
 | Sketches and solids | Constrained line, arc and circle sketches; dimensions and formulas; retained references; selectable profiles; editable extrusion, Join/Cut/Intersect, Shell, Fillet, Revolve, Sweep and Loft workflows | [Primitive workflow](validation/primitives.md), [support tutorial](validation/support-tutorial-independent.md), [sketch expression tutorial](validation/sketch-expression-tutorial.md), [surface Loft and Thicken](validation/surface-thicken.md). Individual receipts cover specific routes and fixtures. |
-| History and documents | Feature editing, undo/redo, native save/reopen and parameter-driven recompute are accepted in bounded workflows | See the receipts above and [sliding-lid cumulative workflow](validation/sliding-lid-cumulative.md). Crash/interruption recovery is still active work under REL-014; ordinary save/reopen evidence is not recovery evidence. |
+| History and documents | Feature editing, undo/redo, native save/reopen and parameter-driven recompute are accepted in bounded workflows | See the receipts above and [sliding-lid cumulative workflow](validation/sliding-lid-cumulative.md). [Committed-state crash recovery](validation/document-recovery.md) now passes forced-interruption recovery of named and unnamed documents; active drafts are excluded. |
 | Assemblies | Components, nested organization, linked copies, retained Revolute/Cylindrical/Slider motion and selected-instance export are demonstrated on bounded piston and box assemblies | [Piston native workflow](validation/piston-native-workflow.md) and [sliding-lid cumulative workflow](validation/sliding-lid-cumulative.md). These do not establish unrestricted assembly or collision coverage. |
 | Surfaces | Surface workspace navigation, Extrude, guided Loft, paired-sketch and planar crossing-sheet Trim, Remove and Thicken are available; a bounded Loft/Thicken chain creates an editable solid | [Surface workspace](validation/surface-workspace-navigation.md), [sketch-tool Trim](validation/surface-trim.md), [planar sheet-tool Trim](validation/surface-planar-sheet-trim.md), [surface Thicken](validation/surface-thicken.md). The complete surface-iron tutorial remains unfinished. |
 | Navigation | Free and constrained orbit, Pan, Zoom, Zoom Window, Fit, Look At, projection modes, orientation cube, saved Home and named views have bounded Qt/API/GPU receipts | [Navigation receipts](initial-build-readiness.md#navigation-checklist). Physical trackpad and broader OS input qualification remain open. |
@@ -24,7 +24,7 @@ Mac only**. Open the [local preview archive](../../Alloy-reference-records/deliv
 and compare it with the [package receipt](validation/macos-relocatable-preview.md)
 (SHA-256 `c5eedaabacf504c845cf42973f536afa0af21c6bf97e909b5cc2130122ca2fa9`).
 This archive contains accepted sources through `a355c50`; later source changes,
-including planar sheet-tool Trim, require a newer build and are not in that ZIP.
+including planar sheet-tool Trim and crash recovery, require a newer build and are not in that ZIP.
 Extract the ZIP, then launch `Alloy.app` from the extracted folder. For terminal
 launch with a control endpoint ready file:
 
@@ -90,6 +90,6 @@ read as fully accepted beyond the workflow and evidence named by its receipt.
 
 Alloy does not yet claim comprehensive import/export coverage, unrestricted
 surface/assembly workflows, asynchronous or cancellable geometry evaluation,
-crash recovery, physical-input parity, or feature-for-feature replacement
+draft-interaction recovery, physical-input parity, or feature-for-feature replacement
 coverage. Continue with the [initial-build readiness queue](initial-build-readiness.md)
 and the [release gates](releases.md) for current work and qualification status.

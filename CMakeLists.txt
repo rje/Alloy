@@ -49,6 +49,7 @@ add_library(alloy_application STATIC
     src/AlloyWindow.cpp src/AlloyWindow.h src/SplitBodyControls.cpp src/AssemblyControls.cpp src/PointControls.cpp src/SplineControls.cpp src/SlotDragControls.cpp src/ConicControls.cpp src/SketchTextControls.cpp src/CommandIcons.cpp src/CommandIcons.h src/SolidFilletControls.cpp src/SolidChamferControls.cpp src/SphereControls.cpp src/SolidHoleControls.cpp src/SolidShellControls.cpp src/LoftControls.cpp src/SurfaceExtrudeControls.cpp src/SurfaceTrimControls.cpp src/RemoveBodyControls.cpp src/ThickenControls.cpp src/RevolveCommands.cpp src/SweepCommands.cpp src/SweepSelection.cpp src/PatternControls.cpp src/CircularPatternControls.cpp src/SolidMirrorControls.cpp src/SolidFeatureMirrorControls.cpp src/CanvasControls.cpp src/ReferenceCanvasView.cpp src/SectionAnalysisControls.cpp src/ReferenceSection.cpp src/MoveControls.cpp src/ComponentCopyControls.cpp src/CombineControls.cpp src/ExportControls.cpp src/StepExportControls.cpp
     src/TutorialRecorder.cpp src/TutorialRecorder.h
     src/CadDocument.cpp src/CadDocument.h src/LocalReferenceControls.cpp src/LocalReference.h
+    src/RecoveryStore.cpp src/RecoveryStore.h
     src/ReferenceView.cpp src/ReferenceView.h src/ReferenceRevolve.cpp src/ReferenceSweep.cpp src/ReferenceSketchText.cpp src/ReferenceSpline.cpp src/ReferenceConic.cpp
     src/ControlServer.cpp src/ControlServer.h)
 target_include_directories(alloy_application PUBLIC src)
@@ -57,6 +58,7 @@ target_link_libraries(alloy_application PUBLIC alloy_kernel Qt6::Widgets Qt6::Ne
 target_compile_definitions(alloy_application PUBLIC ALLOY_OCCT_VERSION="${ALLOY_OCCT_VERSION}")
 include(CTest)
 add_subdirectory(tools/local-control)
+target_link_libraries(alloy_application PUBLIC alloy_local_security)
 qt_add_executable(alloy MACOSX_BUNDLE src/main.cpp)
 target_link_libraries(alloy PRIVATE alloy_application alloy_local_security)
 set_target_properties(alloy PROPERTIES
@@ -80,6 +82,14 @@ if(ALLOY_BUILD_SPIKES)
         TKernel TKMath TKBRep TKPrim TKTopAlgo TKLCAF TKCAF TKBin TKBinL TKCDF)
 endif()
 if(BUILD_TESTING)
+    add_executable(recovery_store_test tests/recovery_store.cpp src/RecoveryStore.cpp src/RecoveryStore.h)
+    target_include_directories(recovery_store_test PRIVATE src)
+    target_link_libraries(recovery_store_test PRIVATE Qt6::Core alloy_local_security)
+    add_test(NAME recovery_store COMMAND recovery_store_test)
+    add_executable(recovery_controls_test tests/recovery_controls.cpp)
+    target_link_libraries(recovery_controls_test PRIVATE alloy_application Qt6::Test)
+    add_test(NAME recovery_controls COMMAND recovery_controls_test)
+    set_tests_properties(recovery_controls PROPERTIES TIMEOUT 60 LABELS "widget;recovery" RUN_SERIAL TRUE)
     add_executable(reference_canvas_controls_test tests/reference_canvas_controls.cpp)
     target_link_libraries(reference_canvas_controls_test PRIVATE alloy_application Qt6::Test)
     add_test(NAME reference_canvas_controls COMMAND reference_canvas_controls_test)

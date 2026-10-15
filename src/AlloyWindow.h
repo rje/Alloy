@@ -6,6 +6,7 @@
 #include <QMap>
 #include <QPoint>
 #include <functional>
+#include <limits>
 #include <memory>
 #include <optional>
 #include <vector>
@@ -39,6 +40,7 @@ class QTimer;
 class QAction;
 class QToolButton;
 class TutorialRecorder;
+class RecoveryStore;
 
 // UI and automation dispatch against the same authored document.
 class AlloyWindow final : public QMainWindow {
@@ -472,8 +474,14 @@ private:
     void showActiveTab();
     void refreshTabs();
     bool tabHasUnsavedWork(const QString& tabId) const;
+    QJsonObject recoveryState() const;
+    QString syncRecovery();
+    QJsonObject showRecoveryDialog();
     std::vector<Command> commands_;
     std::unique_ptr<TutorialRecorder> recorder_;
+    std::unique_ptr<RecoveryStore> recovery_;
+    QString recoveryWarning_;
+    bool orderlyRecoveryClose_ = false;
     bool apiExecuting_ = false;
     ReferenceView* view_ = nullptr;
     QWidget* browser_ = nullptr;
@@ -624,6 +632,8 @@ private:
     struct DesignTab {
         QString id;
         std::unique_ptr<CadDocument> document = std::make_unique<CadDocument>();
+        QString lastRecoveryDocumentId;
+        quint64 lastRecoveryRevision = std::numeric_limits<quint64>::max();
         QJsonObject session, camera;
         std::vector<SketchHistoryEntry> sketchHistory;
         int sketchHistoryIndex = -1;

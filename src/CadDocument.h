@@ -47,6 +47,8 @@ public:
     void reset();
     QString save(const QString& path);
     QString open(const QString& path);
+    QString recover(const QJsonObject& authored);
+    bool isDirty() const { return recoveredDirty_ || !history_.isClean(); }
     QString path() const { return path_; }
     QString label() const;
     const std::vector<EvaluatedBody>& bodies() const { return evaluation_->bodies; }
@@ -115,6 +117,7 @@ private:
     quint64 revision_ = 0;
     QString lastTransaction_;
     QString path_;
+    bool recoveredDirty_ = false;
     QString activeOwnerId_;
     QJsonObject lastEvaluationError_;
     std::shared_ptr<const EvaluatedDocument> evaluation_ = std::make_shared<const EvaluatedDocument>();

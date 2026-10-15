@@ -20,6 +20,7 @@
 #include "SketchOpenChainOffset.h"
 #include "SketchText.h"
 #include "TutorialRecorder.h"
+#include "RecoveryStore.h"
 #include <QApplication>
 #include <QAccessible>
 #include <QAction>
@@ -28,6 +29,7 @@
 #include <QDebug>
 #include <QDialog>
 #include <QDialogButtonBox>
+#include <QDateTime>
 #include <QDrag>
 #include <QDragEnterEvent>
 #include <QDropEvent>
@@ -52,6 +54,7 @@
 #include <QTextEdit>
 #include <QPlainTextEdit>
 #include <QListWidget>
+#include <QLocale>
 #include <QMenu>
 #include <QMenuBar>
 #include <QMouseEvent>
@@ -234,6 +237,8 @@ protected:
 AlloyWindow::AlloyWindow() {
     auto firstTab=std::make_unique<DesignTab>();firstTab->id=CadDocument::newId();
     activeTabId_=firstTab->id;document_=firstTab->document.get();designTabs_.push_back(std::move(firstTab));
+    recovery_=std::make_unique<RecoveryStore>(qEnvironmentVariable("ALLOY_RECOVERY_DIR"));
+    recoveryWarning_=recovery_->error();
     setWindowTitle("Untitled — Alloy");
     resize(1440, 900);
     setMinimumSize(1040, 640);
@@ -256,6 +261,11 @@ AlloyWindow::AlloyWindow() {
         QListWidget { background: white; border: 1px solid #d4dade; } QListWidget::item { padding: 8px; }
         QStatusBar { background: #edf0f2; border-top: 1px solid #d6dce1; color: #67757e; }
     )");
+    auto* recoveryNotice=new QLabel(this);recoveryNotice->setObjectName("document.recovery.warning");
+    recoveryNotice->setStyleSheet("color: #a63832; font-weight: 600; padding: 2px 8px;");
+    recoveryNotice->setText("Recovery unavailable: "+recoveryWarning_);
+    statusBar()->addPermanentWidget(recoveryNotice);
+    recoveryNotice->setVisible(!recoveryWarning_.isEmpty());
     view_ = new ReferenceView;
     const auto savedInputPreset=QSettings().value("navigation/inputPreset","default").toString();
     view_->setInputPreset(savedInputPreset=="shiftAlt" ? savedInputPreset : "default");
@@ -268,6 +278,8 @@ AlloyWindow::AlloyWindow() {
     recorder_ = std::make_unique<TutorialRecorder>(this,[this]{return captureImage();});
     connect(qApp,&QCoreApplication::aboutToQuit,this,[this]{
         if(recorder_&&recorder_->active())recorder_->stop(document_->revision());
+        if(orderlyRecoveryClose_ || authorizedQuit_)if(const auto error=recovery_->removeAllOwned();!error.isEmpty())
+            qWarning().noquote()<<"Cannot remove orderly recovery snapshots:"<<error;
     });
     view_->installEventFilter(this);
     view_->dispatch = [this](const QString& command, const QJsonObject& args) {
@@ -300,6 +312,8 @@ AlloyWindow::AlloyWindow() {
     fileMenu->addAction("Open…",QKeySequence::Open,this,[this] { execute("document.openDialog"); });
     fileMenu->addAction("Save",QKeySequence::Save,this,[this] { execute("document.saveDialog"); });
     fileMenu->addAction("Save As…",QKeySequence::SaveAs,this,[this] { execute("document.saveAsDialog"); });
+    auto* recoverAction=fileMenu->addAction("Recover Work…",this,[this] { execute("document.recoveryDialog"); });
+    recoverAction->setObjectName("document.recoveryDialog");
     fileMenu->addAction("Export…",this,[this] { execute("document.exportStepDialog"); });
     fileMenu->addAction("Insert Local Reference…",this,[this] { execute("reference.insertDialog"); });
     fileMenu->addAction("Save As Mesh…",this,[this] { execute("document.exportMeshDialog"); });
@@ -1095,6 +1109,12 @@ AlloyWindow::AlloyWindow() {
         if(now==view_ || (sketchDock_ && (now==sketchDock_ || sketchDock_->isAncestorOf(now))))sketchLastFocus_=now;
     });
     refresh();
+    QTimer::singleShot(0,this,[this]{
+        const auto count=recovery_->list().size();
+        if(count)statusBar()->showMessage(QString("%1 saved recovery %2 available — File > Recover Work…")
+            .arg(count).arg(count==1 ? "snapshot" : "snapshots"),15000);
+        else if(!recoveryWarning_.isEmpty())statusBar()->showMessage("Recovery unavailable: "+recoveryWarning_,15000);
+    });
 }
 
 AlloyWindow::~AlloyWindow() {
@@ -1434,7 +1454,7 @@ void AlloyWindow::showActiveTab() {
 bool AlloyWindow::tabHasUnsavedWork(const QString& tabId) const {
     for(const auto& tab:designTabs_)if(tab->id==tabId) {
         const auto session=tabId==activeTabId_ ? session_ : tab->session;
-        return !tab->document->history().isClean() || session.value("command")=="sketch.edit"
+        return tab->document->isDirty() || session.value("command")=="sketch.edit"
             || (tabId==activeTabId_ && !pendingReference_.isEmpty());
     }
     return false;
@@ -1449,6 +1469,101 @@ QJsonObject AlloyWindow::documentTabs() const {
             {"hasSketchDraft",session.value("command")=="sketch.edit"}});
     }
     return {{"activeTabId",activeTabId_},{"tabs",tabs},{"count",tabs.size()}};
+}
+
+QJsonObject AlloyWindow::recoveryState() const {
+    const auto rows=recovery_->list();
+    return {{"available",recovery_->error().isEmpty()},{"warning",recoveryWarning_},
+        {"sessionId",recovery_->sessionId()},{"candidates",rows},{"count",rows.size()},
+        {"scope","committed authored document state only; sketch drafts and transient previews are excluded"}};
+}
+
+QString AlloyWindow::syncRecovery() {
+    auto publish=[this](const QString& warning){
+        recoveryWarning_=warning;
+        if(auto* notice=findChild<QLabel*>("document.recovery.warning")) {
+            notice->setText("Recovery unavailable: "+warning);notice->setVisible(!warning.isEmpty());
+        }
+        return warning;
+    };
+    if(!recovery_->error().isEmpty())return publish(recovery_->error());
+    QSet<QString> openTabs;
+    const auto ownedList=recovery_->ownedTabIds();
+    const QSet<QString> owned(ownedList.begin(),ownedList.end());
+    for(auto& tab:designTabs_) {
+        openTabs.insert(tab->id);
+        const auto documentId=tab->document->authored().value("documentId").toString();
+        if(tab->document->isDirty()) {
+            if(tab->lastRecoveryDocumentId==documentId && tab->lastRecoveryRevision==tab->document->revision()
+                && owned.contains(tab->id))continue;
+            if(const auto error=recovery_->write(tab->id,tab->document->authored(),tab->document->path());!error.isEmpty())
+                return publish(error);
+            tab->lastRecoveryDocumentId=documentId;
+            tab->lastRecoveryRevision=tab->document->revision();
+        }else if(owned.contains(tab->id)) {
+            if(const auto error=recovery_->removeOwned(tab->id);!error.isEmpty())return publish(error);
+            tab->lastRecoveryDocumentId.clear();
+            tab->lastRecoveryRevision=std::numeric_limits<quint64>::max();
+        }
+    }
+    for(const auto& id:owned)if(!openTabs.contains(id))
+        if(const auto error=recovery_->removeOwned(id);!error.isEmpty())return publish(error);
+    publish({});
+    return {};
+}
+
+QJsonObject AlloyWindow::showRecoveryDialog() {
+    QDialog dialog(this);dialog.setObjectName("document.recovery.dialog");
+    dialog.setWindowTitle("Recover Work");dialog.setMinimumWidth(680);
+    auto* layout=new QVBoxLayout(&dialog);
+    auto* explanation=new QLabel("Committed work from an interrupted editor can open in a new unsaved tab. The original file stays unchanged.");
+    explanation->setWordWrap(true);layout->addWidget(explanation);
+    auto* list=new QListWidget;list->setObjectName("document.recovery.candidates");layout->addWidget(list);
+    auto* status=new QLabel;status->setWordWrap(true);layout->addWidget(status);
+    auto* actions=new QHBoxLayout;
+    auto* recover=new QPushButton("Recover in New Tab");recover->setObjectName("document.recovery.recover");
+    auto* discard=new QPushButton("Discard Snapshot");discard->setObjectName("document.recovery.discard");
+    auto* close=new QPushButton("Close");actions->addWidget(recover);actions->addWidget(discard);actions->addStretch();actions->addWidget(close);
+    layout->addLayout(actions);connect(close,&QPushButton::clicked,&dialog,&QDialog::reject);
+    auto reload=[&]{
+        list->clear();const auto rows=recovery_->list();
+        for(const auto& value:rows) {
+            const auto row=value.toObject();
+            const auto path=row.value("originalPath").toString();
+            const auto source=path.isEmpty() ? "Untitled design" : QFileInfo(path).fileName();
+            const auto count=row.value("featureCount").toInt();
+            const auto captured=QDateTime::fromString(row.value("capturedAtUtc").toString(),Qt::ISODateWithMs).toLocalTime();
+            const auto when=captured.isValid() ? QLocale().toString(captured,QLocale::ShortFormat)
+                : row.value("capturedAtUtc").toString();
+            auto* item=new QListWidgetItem(QString("%1  ·  %2  ·  %3  ·  %4 %5")
+                .arg(source,when,row.value("status").toString()).arg(count)
+                .arg(count==1 ? "feature" : "features"),list);
+            item->setData(Qt::UserRole,row.value("id").toString());
+            item->setData(Qt::UserRole+1,row.value("status").toString());
+            item->setToolTip(path.isEmpty() ? "Original was never saved" : path);
+        }
+        if(list->count())list->setCurrentRow(0);
+        else status->setText(recovery_->error().isEmpty() ? "No interrupted work is available." : recovery_->error());
+    };
+    connect(list,&QListWidget::currentItemChanged,&dialog,[=](QListWidgetItem* item){
+        const auto kind=item ? item->data(Qt::UserRole+1).toString() : QString{};
+        recover->setEnabled(kind=="ready");discard->setEnabled(item);
+        if(item)status->setText(kind=="ready" ? "Recovery opens a separate unsaved tab. Use Save As to keep it."
+            : "This snapshot cannot be opened. You may discard it explicitly.");
+    });
+    connect(recover,&QPushButton::clicked,&dialog,[&]{
+        auto* item=list->currentItem();if(!item)return;
+        const auto response=execute("document.recover",{{"id",item->data(Qt::UserRole).toString()}});
+        if(response.value("ok").toBool())dialog.accept();
+        else status->setText(response.value("error").toObject().value("message").toString());
+    });
+    connect(discard,&QPushButton::clicked,&dialog,[&]{
+        auto* item=list->currentItem();if(!item)return;
+        const auto response=execute("document.recoveryDiscard",{{"id",item->data(Qt::UserRole).toString()}});
+        if(response.value("ok").toBool())reload();
+        else status->setText(response.value("error").toObject().value("message").toString());
+    });
+    reload();dialog.exec();return recoveryState();
 }
 
 void AlloyWindow::refreshTabs() {
@@ -1586,6 +1701,34 @@ void AlloyWindow::registerCommands() {
     });
     add("document.settings", "Document Settings", "Open a shared display-unit editing session.", {}, [this](const auto&) { return beginSession("document.units", {}); });
     add("document.tabs","List design tabs","Inspect open local designs and the active tab.",{},[this](const auto&){return documentTabs();});
+    add("document.recoveryList","List recoverable work","Inspect stale committed-state snapshots, including malformed or newer records.",{},
+        [this](const auto&){return recoveryState();});
+    add("document.recover","Recover committed work","Open a stale snapshot in a separate dirty, pathless design tab; never write its original file.",
+        {{"id",parameter("string","Opaque stale recovery ID from document.recoveryList.")}},[this](const auto& a){
+            if(const auto blocker=tabSwitchBlocker();!blocker.isEmpty())return failure("pending_input_active",blocker);
+            std::unique_ptr<DesignTab> recovered;
+            QString originalPath;
+            const auto error=recovery_->transfer(a.value("id").toString(),[&](const RecoveryStore::Record& record){
+                auto candidate=std::make_unique<DesignTab>();candidate->id=CadDocument::newId();
+                if(const auto validation=candidate->document->recover(record.authored);!validation.isEmpty())return validation;
+                if(const auto durable=recovery_->write(candidate->id,candidate->document->authored(),{});!durable.isEmpty())return durable;
+                candidate->lastRecoveryDocumentId=candidate->document->authored().value("documentId").toString();
+                candidate->lastRecoveryRevision=candidate->document->revision();
+                originalPath=record.originalPath;recovered=std::move(candidate);return QString{};
+            });
+            if(!error.isEmpty())return failure("recovery_failed",error,"id");
+            saveActiveTabState();activeTabId_=recovered->id;designTabs_.push_back(std::move(recovered));showActiveTab();
+            auto result=document_->state();result["originalPath"]=originalPath;result["recoveredIntoNewTab"]=true;
+            return result;
+        });
+    add("document.recoveryDiscard","Discard recovery","Explicitly remove one stale snapshot; never touch an open design or original file.",
+        {{"id",parameter("string","Opaque stale recovery ID from document.recoveryList.")}},[this](const auto& a){
+            if(const auto error=recovery_->discard(a.value("id").toString());!error.isEmpty())
+                return failure("recovery_discard_failed",error,"id");
+            return recoveryState();
+        });
+    add("document.recoveryDialog","Recover Work…","Inspect, recover or discard stale committed work through the native File menu.",{},
+        [this](const auto&){return showRecoveryDialog();});
     add("document.tabNew","New design tab","Open and activate an independent empty local design.",{},[this](const auto&){
         if(const auto blocker=tabSwitchBlocker();!blocker.isEmpty())return failure("pending_input_active",blocker);
         saveActiveTabState();auto tab=std::make_unique<DesignTab>();tab->id=CadDocument::newId();
@@ -5880,12 +6023,15 @@ QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
     const bool changesState = id == "window.resize" || id.startsWith("layout.") || id.startsWith("view.") || (id == "commands.search" || id == "commands.close");
     if (changesState) ++revision_;
     refresh();
+    const auto recoveryError=syncRecovery();
     if(traceGraphSolves)qInfo().noquote()<<"assembly_preview_solves"<<id
         <<QString("command=%1").arg(afterCommandSolves-initialGraphSolves)
         <<QString("refresh=%1").arg(AssemblyGraph::solveCount()-afterCommandSolves);
     workSucceeded=true;
     return finish({{"ok", true}, {"completion", "completed"}, {"command", id}, {"revision", static_cast<qint64>(revision_)},
-        {"documentRevision", static_cast<qint64>(document_->revision())}, {"result", result}});
+        {"documentRevision", static_cast<qint64>(document_->revision())}, {"result", result},
+        {"recovery",QJsonObject{{"durable",recoveryError.isEmpty()},{"warning",recoveryError},
+            {"scope","committed authored state only"}}}});
 }
 
 QJsonObject AlloyWindow::executeApi(const QString& id,const QJsonObject& args) {
@@ -5978,6 +6124,8 @@ QJsonObject AlloyWindow::state() const {
         {"runtime", QJsonObject{{"qtVersion", qVersion()}, {"occtBuildVersion", ALLOY_OCCT_VERSION}}},
         {"revision", static_cast<qint64>(revision_)},
         {"identity", identity()}, {"activeSession", session_}, {"sectionEdit",sectionEdit_}, {"pendingReferencePosition",pendingReference_}, {"assembly",presentationAssembly()}, {"documentTabs",documentTabs()},
+        {"recovery",QJsonObject{{"available",recovery_->error().isEmpty()},{"warning",recoveryWarning_},
+            {"staleCount",recovery_->list().size()},{"scope","committed authored state only"}}},
         {"inlineEditor",inlineEditorState()},
         {"geometryWork",QJsonObject{{"active",geometryBusyActive_},{"cancellable",false},{"last",lastGeometryWork_}}},
         {"focus",QJsonObject{{"widgetClass",QApplication::focusWidget() ? QApplication::focusWidget()->metaObject()->className() : ""},
@@ -11309,7 +11457,7 @@ bool AlloyWindow::confirmDiscard() {
     if(session_.value("command")=="sketch.edit") {
         QMessageBox::information(this,"Finish Sketch","Finish or Cancel the sketch before saving this design.");return false;
     }
-    execute("document.saveDialog");return document_->history().isClean();
+    execute("document.saveDialog");return !document_->isDirty();
 }
 bool AlloyWindow::confirmAllDiscard() {
     bool dirty=false;for(const auto& tab:designTabs_)dirty|=tabHasUnsavedWork(tab->id);
@@ -11334,10 +11482,15 @@ bool AlloyWindow::confirmAllDiscard() {
         if(session_.value("command")=="sketch.edit") {
             QMessageBox::information(this,"Finish Sketch","Finish or Cancel the sketch before saving this design.");return false;
         }
-        execute("document.saveDialog");if(!document_->history().isClean())return false;
+        execute("document.saveDialog");if(document_->isDirty())return false;
     }
     activateTab(previous);refresh();return true;
 }
 void AlloyWindow::closeEvent(QCloseEvent* event) {
-    if(authorizedQuit_ || confirmAllDiscard())event->accept();else event->ignore();
+    if(authorizedQuit_ || confirmAllDiscard()) {
+        orderlyRecoveryClose_=true;
+        if(const auto error=recovery_->removeAllOwned();!error.isEmpty())
+            qWarning().noquote()<<"Cannot remove orderly recovery snapshots:"<<error;
+        event->accept();
+    }else event->ignore();
 }

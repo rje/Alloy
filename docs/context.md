@@ -4,7 +4,12 @@
 
 REL-017/#420 is independently reviewed in [the preview guide](development-preview.md):
 current capabilities, local package/start instructions, examples and explicit
-input/platform/tutorial limits. Recovery REL-014 remains active.
+input/platform/tutorial limits. REL-014/#417 committed-state recovery is now
+independently accepted: per-tab durable snapshots, real forced-kill recovery,
+exact authored identity and safe save/close guards. See
+[receipt](validation/document-recovery.md); active drafts and native macOS
+file-panel cancellation remain outside the evidence. REL-011/#374 bounded
+assembly drag profiling is active next.
 
 REL-019/#440 adds pre-painted synchronous geometry-busy feedback and reliable
 cursor/status cleanup, including initial solid previews. A cheap real-app Box /
@@ -25,7 +30,7 @@ checks; interruption fixes are source-reviewed and compiled. See
 [receipt](validation/navigation-input-presets.md). NAV-019/#443 configurable
 Front/Top/up conventions is accepted at `a355c50`; parent NAV-007/#413
 is closed after independent cumulative receipt review. Physical NAV-008 remains
-open. REL-014/#417 crash-recovery design is the next reliability slice. NAV-020/#444 is accepted at `53507a1`: the
+open. REL-014/#417 committed-work crash recovery is accepted. NAV-020/#444 is accepted at `53507a1`: the
 cube remains orthographic under perspective model projection; matched GPU
 captures and actual cube picking pass. See
 [receipt](validation/navigation-cube-projection.md). The normal app is relinked.

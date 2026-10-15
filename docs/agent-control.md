@@ -1,5 +1,26 @@
 # Local agent control
 
+## Interrupted work
+
+Committed dirty authored state is atomically snapshotted per open tab under the
+local user data directory. A live instance holds a session lock, so another
+instance cannot list, recover, or discard its work. `document.recoveryList`
+returns stale candidates with opaque IDs and `ready`, `malformed`, or
+`unsupported_version` status. `document.recover {"id":"…"}` validates a ready
+candidate and opens it in a new, pathless, dirty tab; it durably snapshots that
+new tab before retiring the stale record. It never overwrites the original path.
+`document.recoveryDiscard {"id":"…"}` explicitly removes one stale record.
+File → Recover Work… or `document.recoveryDialog` exposes the same commands.
+
+Only committed document state is covered. An active sketch or other uncommitted
+draft is not a recovery snapshot. A successful Save or explicit discard removes
+the corresponding owned snapshot; failed/cancelled Save retains it. Orderly quit
+cleans owned snapshots, while an interrupted process leaves them available.
+`app.state.recovery` and command responses expose durable-write errors; a
+persistent status-bar warning also alerts the user when snapshots cannot be
+written. The recovery format is versioned and malformed/newer records are
+refused without changing the open document.
+
 Alloy's running native application provides a small local control API from its
 first shell build. It is an Alloy protocol. Authored document inspection, units,
 real box/cylinder and constrained origin-plane sketch creation and editing,

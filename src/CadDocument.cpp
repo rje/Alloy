@@ -1067,6 +1067,7 @@ void CadDocument::reset() {
     history_.clear();
     activeOwnerId_.clear();
     path_.clear();
+    recoveredDirty_ = false;
     lastEvaluationError_ = {};
     apply({{"schema", "alloy-document/1"}, {"documentId", newId()},
         {"displayUnits", "mm"}, {"features", QJsonArray{}}},std::make_shared<const EvaluatedDocument>());
@@ -1220,7 +1221,7 @@ QString CadDocument::save(const QString& path) {
     if (!file.open(QIODevice::WriteOnly)) return file.errorString();
     const auto bytes=QJsonDocument(authored_).toJson();
     if (file.write(bytes)!=bytes.size() || !file.commit()) return file.errorString();
-    path_=path; history_.setClean(); return {};
+    path_=path; recoveredDirty_=false; history_.setClean(); return {};
 }
 QString CadDocument::open(const QString& path) {
     lastEvaluationError_ = {};
@@ -1231,7 +1232,16 @@ QString CadDocument::open(const QString& path) {
     auto prepared = evaluateCandidate(data.object());
     if (!prepared.ok) {lastEvaluationError_ = prepared.diagnostics;return prepared.error;}
     activeOwnerId_.clear();
-    history_.clear(); apply(prepared.authored,std::move(prepared.evaluation)); path_=path; history_.setClean();
+    history_.clear(); apply(prepared.authored,std::move(prepared.evaluation)); path_=path; recoveredDirty_=false; history_.setClean();
+    return {};
+}
+QString CadDocument::recover(const QJsonObject& authored) {
+    lastEvaluationError_={};
+    auto prepared=evaluateCandidate(authored);
+    if(!prepared.ok) {lastEvaluationError_=prepared.diagnostics;return prepared.error;}
+    activeOwnerId_.clear();history_.clear();
+    apply(prepared.authored,std::move(prepared.evaluation));
+    path_.clear();recoveredDirty_=true;
     return {};
 }
 CadDocument::CandidateEvaluation CadDocument::prepareCandidate(const QJsonObject& candidate) const {
@@ -2576,7 +2586,7 @@ QJsonObject CadDocument::state() const {
     for(const auto& plane:evaluation_->constructionPlanes)evaluatedPlanes.append(QJsonObject{{"ownerId",plane.ownerId},{"featureId",plane.featureId},{"name",plane.name},{"visible",plane.visible},{"frame",plane.frame}});
     return {{"activeOwnerId",activeOwnerId()},{"components",authored_["components"].toArray()},{"occurrences",authored_["occurrences"].toArray()},{"namedViews",authored_["namedViews"].toArray()},{"homeCamera",authored_["homeCamera"].toObject()},{"viewConvention",authored_.value("viewConvention").toObject()},{"assembly",assemblyState()},{"userParameters",evaluatedLengthParameters(authored_)},{"modelParameters",modelLengthRows(authored_)},{"loaded", true}, {"id", authored_["documentId"]}, {"label", label()}, {"path",path_},
         {"units", authored_["displayUnits"]}, {"canonicalLengthUnit", "mm"},
-        {"revision", static_cast<qint64>(revision_)}, {"dirty", !history_.isClean()},
+        {"revision", static_cast<qint64>(revision_)}, {"dirty", isDirty()},
         {"lastTransactionId", lastTransaction_},
         {"features", authored_["features"].toArray().size()}, {"bodies",static_cast<int>(evaluation_->bodies.size())}, {"sketches", static_cast<int>(evaluation_->sketches.size())},
         {"evaluation",QJsonObject{{"status","current"},{"recompute",evaluation_->recompute},{"featureOrder",order},{"joinBodyResults",evaluation_->joinBodyResults},
