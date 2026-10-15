@@ -8,7 +8,10 @@ cap repair was ruled out; Astra owns the architecture investigation, Sol audits
 the downstream retained supports/hole/organization/export. Preserve source
 radii and authored geometry; no repeated unchanged healer/radius sweeps. The public dimension-placement gestures support the existing horizontal50 /
 vertical16 recipe; an external Euclidean-distance inference was corrected.
-SKT-091 owns origin-referenced driving hole placement without extra visible points. Complete the
+SKT-091/#455 is independently accepted: native Dimension can use sketch origin
+for the driving10 mm circle location without an extra Point entity. See
+[receipt](validation/sketch-origin-dimension.md). Actual rounded support/hole
+integration still depends on GEO-019/GEO-018. Complete the
 full recording, editable model and checked export before closing TUT-017.
 
 ## Timeline visual polish (2026-10-15)
