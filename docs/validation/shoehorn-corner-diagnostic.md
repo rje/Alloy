@@ -89,3 +89,16 @@ fails with one faulty contour and no partial result. The saved boundaries includ
 small trim fragments; causality is not established. Evidence is external under
 `geo018-perimeter-01/`. An independent top/bottom construction is being evaluated;
 no radius reduction or generic healing is accepted.
+
+
+### Perimeter investigation boundary
+
+The independent top/bottom R1.5 branches each produce valid solids, but their
+Common fails. Reloaded saved-branch inspection also rejects an invalid result
+with missing pcurves and unoriented faces; no perimeter solid is accepted.
+An isolated OCCT 7.9.3 TKFillet rebuild with the narrow upstream PR1293 fix was
+compiled and actually dispatched the changed helper. The same grouped operation
+still failed. This does not justify changing the product dependency. External
+`geo018-pr1293-01/` retains pinned sources, build/link/load evidence and the
+negative result. Current investigation addresses exact coincident-support
+representation and near-tangential branch intersections, without changing radii.

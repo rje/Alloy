@@ -27,6 +27,11 @@ feasibility, not an accepted product feature. Root reviewed the certification
 source/log; Sol is integrating a topology/provenance-bound fallback and retained
 identities. No fixture radii or transient face indices belong in product admission.
 GEO-019 remains active; perimeter, generated support/hole and final output remain.
+GEO-018 is also active for the separate perimeter critical path: ordinary R1.5
+and independent-branch Common both fail. A genuinely dispatched, isolated
+TKFillet build with upstream PR1293 also fails; no SDK dependency change follows.
+Saved branch diagnostics motivate exact coincident-support normalization, not
+radius reduction or generic healing. See the updated diagnostic receipt.
 
 ## Timeline visual polish (2026-10-15)
 
