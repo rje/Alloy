@@ -11,13 +11,15 @@ editable model to the external gallery; do not omit the main shape creation.
 The full TUT-017 gate retains grouped corner/perimeter finishing, hole support,
 organization and output. Existing core geometry evidence is reused.
 
-Astra is separately investigating one new saved-result finite-cap hypothesis
-for GEO-019/#352: explain exact UV/pcurve and shell orientation before any
-bounded exact-cap reconstruction. No repeated radius/mode/healer sweep or
-production fallback is authorized by this investigation. The result remains
-unqualified. Current public source recheck confirms three spine points and
-130/50/16 dimensions but does not resolve interpolation/tangent conditions;
-see external advanced-audit-2026-10-15/shoehorn-spine-curvature-qualification.md.
+Astra's bounded saved-result finite-cap investigation is complete. Boundary
+mismatch up to 0.355 mm and sampled points outside the original solid rule out
+claiming a same-surface/wire orientation repair as exact recovery. No new
+Fillet run or product fallback followed. GEO-019/#352 returns to Todo pending
+a materially different kernel/input strategy; see the
+[diagnostic receipt](validation/shoehorn-corner-diagnostic.md).
+Current public source recheck confirms three spine points and 130/50/16
+dimensions but does not resolve interpolation/tangent conditions; see external
+advanced-audit-2026-10-15/shoehorn-spine-curvature-qualification.md.
 
 
 ## Initial-build readiness priority (2026-10-14)

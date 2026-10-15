@@ -43,3 +43,21 @@ patches and shared-shell orientation from saved evidence, or qualify the
 inferred source curvature against additional public evidence. Another radius,
 mode or repair sweep is not justified. GEO-018 generated references and the
 later perimeter round remain blocked; the complete tutorial is not accepted.
+
+## Finite-cap investigation, 2026-10-15
+
+Independent saved-result inspection found cap pcurve/surface points depart
+shared 3D edges by up to 0.355 mm, within inflated stored tolerances near
+0.36 mm. Current edge usages oppose their neighboring faces; reversing a
+wire alone breaks that relationship. Of 26 sampled points inside each sampled
+UV polygon, five lie outside the original valid solid, up to 0.390 mm away.
+Polygon membership is sampled, not a formal finite-domain proof.
+
+Reconstructing a face from the same surface and wire cannot establish exact
+boundary agreement or material preservation. No reconstruction, new Fillet run,
+product fallback or geometry acceptance followed. This diagnoses the inferred
+Alloy fixture and failed kernel output, not the public lesson's exact geometry.
+The external `shoehorn-workflow-2026-10-15/geo019-finite-cap-01/` directory
+retains the probe, report and manifest. Root reviewed the probe and Astra's
+stopping decision. GEO-019 returns to Todo pending a materially different
+kernel/input strategy; generated support and full tutorial finishing remain open.
