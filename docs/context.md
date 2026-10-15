@@ -48,8 +48,11 @@ window (`cgWindowNotFound`). The root-owned empty app was closed through its API
 and blocks cumulative NAV-008. Do not repeat activation attempts without changed
 foreground/binding evidence. See [receipt](validation/constrained-orbit-pivot.md).
 
-TUT-023/#324 is next: complete the enclosure alignment rim/retained-tool Cut and
-export gate using the accepted inset. Its prerequisites are all closed. Broader
+TUT-023/#324 is active: complete the enclosure alignment rim/retained-tool Cut and
+export gate using the accepted inset. Its prerequisites are all closed. Current preflight resolves an explicitly
+adapted inner/outer upper-rail pair on the same U-band cross-section; the public
+source does not resolve exact two-edge identities, second offset or numerical
+clearance. Zero overlap cannot establish fit clearance. Broader
 TUT-016 still owns the complete source tutorial. NAV-003's event-routing contract
 is prepared in the external navigation compatibility spec for the next readiness
 slice; Mac physical gestures remain pending real device evidence.
