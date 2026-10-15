@@ -2,6 +2,11 @@
 
 ## Active user order (2026-10-15)
 
+The actual iron fixture found an on-axis shared spline endpoint omission in
+Mirror creation. The focused correction `c205138` is independently accepted:
+ordered shared IDs, reflected curve, actual iron fixture and22-call API/reopen
+pass. SKT-092 is reaccepted; earlier native controls are unchanged.
+
 Finish TUT-017 shoehorn, then pursue TUT-018 surface iron. The complete shoehorn
 is now independently accepted; see [receipt](validation/shoehorn-complete.md).
 GEO-019 exact R12/R16 corners and GEO-022 exact R1.5 perimeter are integrated at

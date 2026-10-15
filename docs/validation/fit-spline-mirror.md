@@ -29,3 +29,13 @@ The public workflow contract is independently researched in the external
 knowledge records, with source URLs/provenance kept outside Git. Point allocation
 and handle serialization are Alloy choices. This supplies the mirrored-outline
 authoring prerequisite for TUT-018; the full iron tutorial remains open.
+
+## Actual iron shared-tip correction
+
+The first actual iron fixture exposed an on-axis endpoint omission in Mirror's
+spline point array. SKT-092 was reopened; correction `c205138` preserves reused
+point IDs while still appending every point in order. Both on-axis endpoints,
+reflected handles/curve, exact reopen, the actual iron core fixture and a focused
+22-call API run now pass. Astra independently accepted the correction. Evidence
+is `core-shared-endpoints.log` and `api-shared-endpoints/` beside the earlier
+receipts. Native controls were unchanged; their accepted evidence was reused.
