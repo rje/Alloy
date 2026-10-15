@@ -2,9 +2,12 @@
 
 ## Initial-build readiness priority (2026-10-14)
 
-CI-005/#423 macOS arm64 relocatable packaging is the next active implementation
-slice. Its prerequisites are accepted CI-008 plus dependency admission; Windows/
-Linux CI-009 and external GPU/input gates remain separate. No CI dispatch,
+CI-005/#423 local macOS arm64 relocation is accepted at `3c88127`: extracted
+archive, 43 observed bundled non-system libraries/zero external, Apple M4 GPU
+and API/save/STL evidence. See [receipt](validation/macos-relocatable-preview.md).
+The pinned archive predates GEO-020 and is a local preview, not a public release.
+NAV-014/#434 explicit Pan/Zoom/Zoom Window is the next active UI slice;
+Windows/Linux CI-009 and external GPU/input gates remain separate. No CI dispatch,
 version tag or release was triggered. The user has not yet tried physical Mac
 trackpad input; keep that qualification pending.
 
@@ -73,19 +76,15 @@ viewport click after navigation; GPU output was inspected. See
 input qualification remain NAV-008; preferences remain NAV-007. Final nonfinite
 anchor guard is source/build reviewed; no unchanged rerun was needed.
 
-GEO-020/#429 remains active. Diagnostic `8346959` preserves computed stripe
-surfaces and full vertex incidence: all four contour endpoints have valence
-three; the terminal supports have compatible torus geometry, but finite mouth
-patches remain unresolved. One changed algorithm experiment formed independent
-R0.5 single-chain fillets from the same Join solid, then their Boolean Common.
-Both branches and Common are valid closed solids. Subsequent subset diagnostics
-hit an empty-bounds handling error; subsequent inspection of saved BReps
-confirms no material outside the original and an exact local rear R0.5 semicircle.
-Independent review accepted that viability evidence. A subsequent bounded
-saved-candidate check passes sampled tangent joins and terminal trims; thin
-production integration is next, with geometric admission and retained-history
-validation. This does not yet establish authored-operation or tutorial acceptance. See
-[receipt](validation/enclosure-rim-two-rail-blocker.md).
+GEO-020/#429 is independently accepted and closed at `82b0d7c`. The existing
+Fillet builder remains first; a geometrically bounded paired-ridge composition
+handles the diagnosed full-round case with finite-chain/terminal guards and
+conservative composed kernel history. Three existing fillet regressions pass.
+The exact authored R0.5 gate and real-app width64→65, same Fillet/seed IDs,
+undo/redo and exact reopen pass; Apple M4 GPU captures were independently reviewed.
+See [receipt](validation/paired-ridge-fillet.md). TUT-023/#324 is now active for
+retained-tool Cut, separate export/readback and stage footage. Physical fit and
+full-source cumulative TUT-016 remain separate.
 NAV-010/#430 is accepted at `75695f7`: GPU cube, readable blue hover and
 face/edge/corner picks through authoritative camera state. Qt06 proves 26 API
 orientations and three representative Qt clicks; physical/DPI/sketch routes

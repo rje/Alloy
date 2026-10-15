@@ -1,5 +1,9 @@
 # Alignment rim two-rail diagnostic (TUT-023)
 
+Historical diagnostic record. The bounded production correction is now accepted
+in [paired-ridge Fillet](paired-ridge-fillet.md) at `82b0d7c`; TUT-023 Cut/export
+remains a separate gate.
+
 The public rim sequence and the remaining source uncertainties are recorded
 outside this repository at
 `../Alloy-reference-records/knowledge/tutorials/advanced-audit-2026-10-14/enclosure-rim-handoff.md`.

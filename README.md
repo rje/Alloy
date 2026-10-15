@@ -4,6 +4,10 @@ Current priority: [initial-build readiness](docs/initial-build-readiness.md)—
 familiar navigation, reliable everyday controls, recovery and installable packages,
 alongside completion of the advanced modeling tutorials.
 
+The [local macOS arm64 package](docs/validation/macos-relocatable-preview.md)
+passes distinct-path extraction, bundled runtime and GPU/API checks on the
+development Mac. Clean-host and other-platform qualification remain open.
+
 Navigation now includes [free orbit](docs/validation/free-orbit-navigation.md),
 [constrained orbit and pivots](docs/validation/constrained-orbit-pivot.md),
 [cursor-anchored zoom and gesture routing](docs/validation/trackpad-navigation.md),
@@ -16,9 +20,9 @@ The visible Orbit tool supports users without a middle mouse button.
 
 The [retained enclosure inset](docs/validation/trimmed-seam-inset.md) preserves
 its profile and downstream Join/Fillet references through source edits and
-reopening. The full enclosure remains blocked on paired rim rounding; its
-[diagnostic](docs/validation/enclosure-rim-two-rail-blocker.md) records the exact
-failure and next investigation without substituting a smaller radius.
+reopening. Exact paired R0.5 [rim rounding](docs/validation/paired-ridge-fillet.md)
+now survives source edits, history and reopen. The enclosure continuation is
+working through the retained-tool Cut and separate printable exports.
 
 [Straight-line Extend](docs/validation/sketch-line-extend.md) now previews and
 closes sketch gaps while preserving endpoint identity and constraints. Its

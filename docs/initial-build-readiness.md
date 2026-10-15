@@ -124,13 +124,13 @@ accepted. The [macOS runtime recipe](validation/mac-runtime-recipe.md) is also
 accepted, as is [authored enclosure inset](validation/trimmed-seam-inset.md).
 Constrained orbit and pivot controls have accepted source/API/GPU evidence;
 [NAV-009](https://github.com/rje/Alloy/issues/428) preserves the blocked native
-route. The exact paired enclosure R0.5 refusal is isolated in GEO-020; the
-cumulative rim/Cut/export gate remains Todo behind it. NAV-003 smooth zoom and
+route. The exact paired enclosure R0.5 operation is accepted in GEO-020; the
+cumulative TUT-023 Cut/export gate is now active. NAV-003 smooth zoom and
 Qt trackpad routing is accepted with physical-device qualification preserved in
-NAV-008. GEO-020's diagnostic narrows its unresolved failure to U-mouth corner
-completion; saved candidate inspection is active. NAV-010 cube presentation and orientation picks are
+NAV-008. GEO-020 now has bounded production/source-edit/history/GPU acceptance. NAV-010 cube presentation and orientation picks are
 accepted, as are NAV-011 drag, NAV-013 Fit/Home and NAV-012 cube accessories.
-CI-005 macOS relocation is the next active implementation slice. NAV-004 stays
+CI-005 local macOS arm64 relocation is accepted; public-release/platform gates
+remain open. NAV-014 explicit Pan/Zoom/Zoom Window is the active UI slice. NAV-004 stays
 open until its complete scope is evidenced. Reassess after each accepted
 slice; never repeat an unchanged failing kernel/input probe without a new
 hypothesis. Keep one private validation editor and retire completed worktrees.
