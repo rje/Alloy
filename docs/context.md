@@ -56,16 +56,24 @@ verified. Clean GPU views show an open passage and smooth surfaces. See
 [receipt](validation/surface-handle-bridge.md). Cold operations take about14s;
 edit opening41s is tracked separately as REL-028/#460. No responsiveness claim.
 
-Active: SRF-016 curved crossing-sheet Trim trials/Remove/revert source-frame
-research is resolving which sheets are tools versus targets before kernel edits.
+Active: SRF-020/#461 is the newly confirmed prerequisite for one Surface
+Extrude feature creating separate profile bodies. Public operation frames show
+2 selected profiles/Chaining/Two Sides/New Body, then2 separate Browser bodies
+used as upper/lower Trim tools against existing iron sheets. Existing compound
+output is insufficient. Exact chain grouping and target-face count remain
+qualified. Preserve old saved features with absent output mode; use explicit
+per-profile mode and stable source-derived output identity for new workflows.
+Astra's external multi-body extrusion plan guides the isolated Sol candidate.
+
 REL-028 runs independently in `loft-edit-prefix-reuse`: remove duplicate history
 evaluation on the accepted final Loft edit path, preserving full commit checks.
-Next after trials: SRF-011 Boundary Fill. Same active exteriorcomponent owns bridge and later sheets.
-External `surface-iron-2026-10-15-public-frames/closure-contract.md` records public
-sequence/unknowns; `srf016-curved-trim-implementation-plan.md` is a bounded plan,
-not implementation. The existing sheet Trim only handles planar single-line
-Extrudes; the curved actual tutorial still needs this extension. TUT-018 remains
-open. No new package/CI run; Windows/Linux runtime testing remains external.
+Same-fixture baseline edit opening is40.319s, recorded before candidate work.
+SRF-016 is returned to Todo behind SRF-020; then SRF-011 Boundary Fill follows.
+Same active exteriorcomponent owns bridge and later sheets. External public
+frames and closure contract now include observed two tool bodies and explicit
+Boundary Fill New Body/Remove Tools toggle. The earlier curved Trim plan's
+compound-as-target assumption is marked superseded. TUT-018 remains open.
+No new package/CI run; Windows/Linux runtime testing remains external.
 
 ## Timeline visual polish (2026-10-15)
 

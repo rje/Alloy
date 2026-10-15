@@ -6290,12 +6290,13 @@
         "SRF-013",
         "SRF-014",
         "SRF-015",
-        "SRF-018"
+        "SRF-018",
+        "SRF-020"
       ],
       "labels": [
         "area:srf"
       ],
-      "body": "Split from SRF-013. Preserve the surface-iron later trial operations: choose upper surface as tool, remove excess region of crossing sheet, repeat with lower surface, optionally Remove tool bodies, then undo/revert those trial operations before the final Boundary Fill branch. Use exact current surface-surface intersection with retained source/tool/region identities; no sketch-prism substitute for sheet tools. Tool-first native/API selection, pickable portions, red removal preview, preview/Cancel, commit, feature/source edit, undo/reopen and atomic ambiguity refusal remain required. Retain source history and tool dependencies; surface tools are not destructively deleted. Validate on compatible later crossing sheets from the cumulative fixture and inspect actual GPU captures. Broader multi-target/multi-tool Trim stays outside this bounded child. External surface-iron-2026-10-14/surface-trim-contract.md contains public help, transcript and visual provenance. Exact default/shortcut/styling unknowns remain qualified. SRF-013 now owns sketch-normal paired-spline Trim only; full TUT-018 retains both tool classes.\nSRF-018 owns the independently authored crossing-sheet implementation ingredient; this parent retains the source-specific upper/lower trial, revert and downstream fill acceptance.\n"
+      "body": "Split from SRF-013. Preserve the surface-iron later trial operations: choose upper surface as tool, remove excess region of crossing sheet, repeat with lower surface, optionally Remove tool bodies, then undo/revert those trial operations before the final Boundary Fill branch. Use exact current surface-surface intersection with retained source/tool/region identities; no sketch-prism substitute for sheet tools. Tool-first native/API selection, pickable portions, red removal preview, preview/Cancel, commit, feature/source edit, undo/reopen and atomic ambiguity refusal remain required. Retain source history and tool dependencies; surface tools are not destructively deleted. Validate on compatible later crossing sheets from the cumulative fixture and inspect actual GPU captures. Broader multi-target/multi-tool Trim stays outside this bounded child. External surface-iron-2026-10-14/surface-trim-contract.md contains public help, transcript and visual provenance. Exact default/shortcut/styling unknowns remain qualified. SRF-013 now owns sketch-normal paired-spline Trim only; full TUT-018 retains both tool classes.\nSRF-018 owns the independently authored crossing-sheet implementation ingredient; this parent retains the source-specific upper/lower trial, revert and downstream fill acceptance.\n\n\n## Public-frame clarification 2026-10-15\nSRF-020 retains one-feature separate extrusion tool bodies. Public frames establish upper/lower new sheets as tools and existing iron sheets as targets; exact target face count remains qualified. Do not treat the whole extruded compound as the target as in the earlier provisional plan.\n"
     },
     {
       "key": "SRF-017",
@@ -7782,6 +7783,20 @@
         "area:rel"
       ],
       "body": "## Observed problem\nThe actual retained iron handle bridge API run takes 41.1 seconds to open feature.editDialog, compared with approximately 14 seconds for one full commit/reopen. Evidence is external under surface-iron-continuation-2026-10-15/retained-bridge-01/api. This is measured latency, not a claim about every document.\n\n## Bounded scope\nProfile this one edit-opening path and remove redundant evaluation of unchanged prefixes within the command/session. Reuse existing evaluation interfaces where possible; do not add a general asynchronous evaluator or broad cache framework. Keep exact document revision, edited feature, inputs and owner invalidation; preserve authoritative commit/downstream validation.\n\n## Acceptance\nOn the same saved bridge document, opening edit evaluates each necessary unchanged prefix at most once, preserving initial preview/selection and Cancel. Record before/after wall time and evaluation counts, one input/source invalidation, commit and exact undo/reopen. Inspect readable actual controls and GPU preview. Independent review required. Do not claim cold geometry is fast merely because duplicate work is removed; broad cold recompute remains REL-016.\n"
+    },
+    {
+      "key": "SRF-020",
+      "title": "Retain separate sheet bodies from multi-profile surface Extrude",
+      "kind": "implementation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P1",
+      "depends_on": [
+        "SRF-014"
+      ],
+      "labels": [
+        "area:srf"
+      ],
+      "body": "## Public workflow gap\nAdditional permitted public operation frames for the surface-iron source show two selected profiles in one Two Sides / New Body Surface Extrude, followed by two separate new Browser bodies. These are independently selected upper/lower tools in later Trim trials. Current SurfaceExtrude emits one compound body for all selected curves and does not satisfy that behavior. Frame timestamps/provenance and grouping unknowns remain outside Git in knowledge/tutorials/surface-iron-2026-10-15-public-frames/closure-contract.md.\n\n## Bounded scope\nOne retained Surface Extrude feature must produce independently selectable sheet bodies for the supported independent profiles/chains, with stable source-derived result identity, common authored Two Sides reaches and active-owner behavior. Preserve earlier saved one-body features explicitly; do not silently regroup their references. Reuse existing multi-result document infrastructure. Confirm source grouping before choosing per-curve versus per-chain output. Do not substitute multiple unrelated Extrude features for this demonstrated operation.\n\n## Acceptance\nActual later iron sketch selects the two intended profiles in one native/API operation and exposes two independent tool bodies. Edit the same sketch and Extrude to add the later bottom line without losing existing output IDs. Check meaningful curve/reach edits, invalid/ambiguous grouping refusal, owner/history/reopen and tool-body selection independently. Keep affected prior single-result behavior. Inspect actual GPU/native controls; independent review. The curved Trim trials and Boundary Fill remain separate parents; do not claim completed tutorial.\n"
     }
   ]
 }
