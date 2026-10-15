@@ -27,5 +27,9 @@ and no unchanged geometry suite was repeated.
 Astra independently reviewed source, receipts and smooth actual Apple M4 GPU
 captures. Evidence and the original saved input are external under
 `../Alloy-reference-records/deliverables/loft-edit-prefix-reuse-2026-10-15/`.
+Post-review `3af41a1` also clears stale geometry inspection metadata when Loft
+inputs change. The focused contract check passes 3/3; no unchanged API/geometry
+workflow was repeated for this one-line invalidation correction.
+
 Remaining cold source-prefix cost and broader responsiveness stay outside this
 acceptance. No Windows/Linux GPU or physical-device input claim is made.

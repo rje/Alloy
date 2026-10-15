@@ -63,9 +63,11 @@ used as upper/lower Trim tools against existing iron sheets. Existing compound
 output is insufficient. Exact chain grouping and target-face count remain
 qualified. Preserve old saved features with absent output mode; use explicit
 per-profile mode and stable source-derived output identity for new workflows.
-Astra's external multi-body extrusion plan guides the isolated Sol candidate.
+The candidate is integrated at `e690833` plus legacy-hint correction `6e0be0c`;
+Astra source review is provisional. Sol owns the accepted build/GUI lease for
+actual core/native/API validation. Do not claim accepted separate-body support yet.
 
-REL-028/#460 is independently accepted at `91add7c` (test correction `c3a6f1e`):
+REL-028/#460 is independently accepted at `91add7c` (test correction `c3a6f1e`, metadata correction `3af41a1`):
 exact source/session reuse avoids duplicate final Loft evaluation while retaining
 non-tail downstream validation and authoritative commit. Same-fixture edit
 opening40.319→5.226s; another owner-context session8.481s, repeated previews
