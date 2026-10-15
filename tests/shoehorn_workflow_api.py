@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""From-blank source-shaped shoehorn workflow; current gate ends at guided sheet."""
+"""From-blank source-shaped shoehorn workflow; supports the accepted sheet/thickness and corner checkpoints."""
 import argparse
 from contextlib import ExitStack
 import json
@@ -77,7 +77,8 @@ def create_sheet(call, stage):
     sheet = next(b for b in inspection['evaluation']['bodies'] if b['bodyId'] == preview['bodyId'])
     assert sheet['valid'] and sheet['topology']['faces'] == 1 and sheet['topology']['solids'] == 0
     return {'pathId': path['id'], 'splineId': spline['id'],
-            'bendDimensionId': path['parameters']['dimensions'][2]['id'], 'planeIds': planes,
+            'bendDimensionId': path['parameters']['dimensions'][2]['id'],
+            'lengthDimensionId': path['parameters']['dimensions'][0]['id'], 'planeIds': planes,
             'frontId': front['id'], 'rearId': rear['id'], 'sheet': sheet}
 
 
@@ -153,7 +154,9 @@ def main():
         call('document.save', {'path': str(model)})
         stop()  # Creation footage ends at the authored model; edits are validation.
         call('sketch.edit', {'sketchId': result['pathId']})
-        call('sketch.dimensionUpdate', {'dimensionId': result['bendDimensionId'], 'value': 18, 'units': 'mm'})
+        edit_dimension = result['lengthDimensionId'] if a.through_corners else result['bendDimensionId']
+        edit_value = 140 if a.through_corners else 18
+        call('sketch.dimensionUpdate', {'dimensionId': edit_dimension, 'value': edit_value, 'units': 'mm'})
         call('sketch.finish')
         edited = call('document.inspect')
         changed = next(b for b in edited['evaluation']['bodies'] if b['bodyId'] == evaluated['bodyId'])
@@ -161,13 +164,14 @@ def main():
         assert changed['supportFaces'][0]['faceId'] == evaluated['supportFaces'][0]['faceId']
         call('history.undo'); assert call('document.inspect')['authored'] == before
         call('history.redo'); assert call('document.inspect')['authored'] == edited['authored']
-        variant = out / 'shoehorn-bend-18.alloy'
+        variant = out / ('shoehorn-length-140.alloy' if a.through_corners else 'shoehorn-bend-18.alloy')
         call('document.save', {'path': str(variant)})
         call('document.new', {'discard': True})
         call('document.open', {'path': str(variant)})
         assert call('document.inspect')['authored'] == edited['authored']
         (out / 'report.json').write_text(json.dumps({'passed': True, 'scope': ('From blank through grouped corner Fillet' if a.through_corners else 'From blank through 3 mm Thicken' if a.through_thicken else 'From blank through guided sheet') + '; solid finishing remains pending',
             'stages': stages, 'result': result, 'video': video,
+            'sourceEdit': {'dimensionId': edit_dimension, 'valueMm': edit_value},
             'adaptations': ['Fixed first spline endpoint at origin; endpoint horizontal alignment. Public source constraint gestures unspecified.']}, indent=2))
         (out / 'transcript.json').write_text(json.dumps(ledger, indent=2))
     print('PASS: from-blank dimensioned spine, endpoint sections and guided surface')
