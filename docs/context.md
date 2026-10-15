@@ -9,12 +9,19 @@ independent kernel-agent review. See [receipt](validation/geometry-busy-feedback
 honest wait feedback, not asynchronous evaluation or cancellation; REL-016 remains
 open for responsiveness.
 
-Active bounded work: NAV-016/#437 persisted named views (NAV-017/#438 Home and
-NAV-018/#439 preferences remain Todo); REL-019/#440 honest synchronous-geometry
-busy feedback; TUT-029/#441 final case-versus-imported-component clearance.
-The earlier 0.73224 mm³ connector collision was measured before the final rim/Cut;
-final clearance is not yet measured. Physical fit remains unclaimed. NAV-007,
-REL-016 and TUT-016 stay open until their full scopes pass.
+NAV-016/#437 is accepted at `7d95732`: retained custom named views, Browser
+create/rename/restore, metadata history, save/reopen and atomic malformed-file
+refusal pass focused Qt checks and Astra review. See
+[receipt](validation/navigation-named-views.md). NAV-017/#438 Home controls are
+active; NAV-018/#439 preferences remain Todo pending public binding research.
+REL-019/#440 is accepted at `6ad76be`; REL-016 remains open.
+
+TUT-029/#441 diagnostic completed at `636c8b5`: final case/reference intersection
+checks found Top 0.732240293455 mm³ and Bottom 0.888291503536 mm³ overlap with
+SIDE-ETH-001; the remaining 22 pairs are zero-volume. See
+[receipt](validation/enclosure-reference-clearance.md). TUT-030/#442 owns source
+qualification and explicit correction, blocking full TUT-016. Do not silently
+change stock, shell, radius or imported reference. Physical fit remains unclaimed.
 
 CI-005/#423 local macOS arm64 relocation is accepted at `3c88127`: extracted
 archive, 43 observed bundled non-system libraries/zero external, Apple M4 GPU

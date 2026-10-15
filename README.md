@@ -22,6 +22,8 @@ and Orbit tools support users without a middle mouse button.
 frame bodies, supported faces and visible sketch geometry.
 The [Camera menu](docs/validation/navigation-projection.md) provides orthographic,
 perspective and hybrid projection, with per-tab restoration.
+[Custom named views](docs/validation/navigation-named-views.md) can be saved,
+renamed and restored from the Browser and survive document save/reopen.
 
 The [retained enclosure inset](docs/validation/trimmed-seam-inset.md) preserves
 its profile and downstream Join/Fillet references through source edits and
@@ -29,6 +31,8 @@ reopening. Exact paired R0.5 [rim rounding](docs/validation/paired-ridge-fillet.
 now survives source edits, history and reopen. The
 [final-stage enclosure recording](docs/validation/enclosure-rim-fit-stage.md)
 and both halves’ separate STL/STEP exports have passed independent review.
+[Reference-clearance inspection](docs/validation/enclosure-reference-clearance.md)
+found a small connector collision in both halves; whole-board fit remains open.
 
 [Straight-line Extend](docs/validation/sketch-line-extend.md) now previews and
 closes sketch gaps while preserving endpoint identity and constraints. Its

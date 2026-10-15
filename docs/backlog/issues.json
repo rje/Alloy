@@ -3743,7 +3743,8 @@
         "TUT-023",
         "DOC-031",
         "DOC-032",
-        "TUT-029"
+        "TUT-029",
+        "TUT-030"
       ],
       "labels": [
         "area:gate"
@@ -7433,7 +7434,7 @@
       "labels": [
         "area:doc"
       ],
-      "body": "## Bounded scope\nCreate, rename, restore and delete custom named camera views from visible Browser controls and the shared control API. Store stable IDs, full camera pose and projection in backward-compatible document metadata. Restore is transient camera motion; metadata changes use existing dirty/undo conventions without geometry recomputation. Verify a focused create/rename/restore/delete workflow, save/reopen, tab isolation and malformed-file atomic refusal; inspect actual GPU result. Independent Astra review required.\n\nSplit from NAV-007 so unfinished parent scope stays Todo.\n"
+      "body": "## Bounded scope\nCreate, rename, restore and delete custom named camera views from visible Browser controls and the shared control API. Store stable IDs, full camera pose and projection in backward-compatible document metadata. Restore is transient camera motion; metadata changes use existing dirty/undo conventions without geometry recomputation. Verify a focused create/rename/restore/delete workflow, save/reopen, tab isolation and malformed-file atomic refusal; inspect actual GPU result. Independent Astra review required.\n\nSplit from NAV-007 so unfinished parent scope stays Todo.\n\n\n## Independently accepted 2026-10-14\nAccepted at 7d95732 with independent Astra review. Retained custom named camera views support Browser create, both rename routes, restore and delete; focused Qt11 passed 3/3 including metadata history, save/reopen and malformed-file refusal. Actual GPU capture is clean. See docs/validation/navigation-named-views.md. Physical input and Home/preferences remain separate.\n"
     },
     {
       "key": "NAV-017",
@@ -7474,7 +7475,7 @@
       "labels": [
         "area:rel"
       ],
-      "body": "## Bounded scope\nBefore synchronous geometry work, paint explicit computing status and wait cursor; restore chrome on success, refusal and exception with nested-command guard. Report elapsed time. Do not pump unrestricted events or imply working progress percentages/cancellation. UI/API remain blocked during geometry: parent responsiveness stays open. Use one bounded actual operation and focused lifecycle checks; independent review. Genuine isolated asynchronous evaluation is separate work.\n"
+      "body": "## Bounded scope\nBefore synchronous geometry work, paint explicit computing status and wait cursor; restore chrome on success, refusal and exception with nested-command guard. Report elapsed time. Do not pump unrestricted events or imply working progress percentages/cancellation. UI/API remain blocked during geometry: parent responsiveness stays open. Use one bounded actual operation and focused lifecycle checks; independent review. Genuine isolated asynchronous evaluation is separate work.\n\n\n## Independently accepted 2026-10-14\nAccepted at 6ad76be with independent Astra review. Explicit pre-painted computing status and wait cursor cover synchronous commands and initial solid previews, with reliable nested lifecycle cleanup and elapsed result reporting. Focused real-app checks pass. See docs/validation/geometry-busy-feedback.md. This does not make the GUI asynchronous or add cancellation; REL-016 stays open.\n"
     },
     {
       "key": "TUT-029",
@@ -7488,7 +7489,21 @@
       "labels": [
         "area:gate"
       ],
-      "body": "## Bounded scope\nInspect the accepted saved final Top and Bottom against all twelve imported board solids without rebuilding the unchanged tutorial. Record overlap and implicated components, distinguish numerical nominal-input clearance from physical fit. Prior pre-rim Top/SIDE-ETH intersection was 0.732240293 cubic mm; final Cut may alter it, so do not claim a current collision without measuring. If overlap remains, record a separate source-supported correction dependency; do not silently change tutorial dimensions. Combine this result with existing source-stage coverage ledger and independent review; reuse accepted exports/history evidence.\n"
+      "body": "## Bounded scope\nInspect the accepted saved final Top and Bottom against all twelve imported board solids without rebuilding the unchanged tutorial. Record overlap and implicated components, distinguish numerical nominal-input clearance from physical fit. Prior pre-rim Top/SIDE-ETH intersection was 0.732240293 cubic mm; final Cut may alter it, so do not claim a current collision without measuring. If overlap remains, record a separate source-supported correction dependency; do not silently change tutorial dimensions. Combine this result with existing source-stage coverage ledger and independent review; reuse accepted exports/history evidence.\n\n\n## Independently accepted 2026-10-14\nDiagnostic scope completed at 636c8b5 and independently accepted as blocker evidence, not passing fit. All 24 pairs inspected: two positive SIDE-ETH intersections, Top 0.732240293455 and Bottom 0.888291503536 cubic mm, other 22 zero. Preserved exact source/reference and overlap BReps; see docs/validation/enclosure-reference-clearance.md. TUT-030 owns source qualification/correction and blocks full TUT-016. Physical fit remains unclaimed.\n"
+    },
+    {
+      "key": "TUT-030",
+      "title": "Qualify enclosure connector-clearance correction against public source",
+      "kind": "research",
+      "phase": "P5 Assemblies/drawings",
+      "priority": "P1",
+      "depends_on": [
+        "TUT-029"
+      ],
+      "labels": [
+        "area:gate"
+      ],
+      "body": "## Bounded scope\nThe final saved case has verified positive intersections with nominal SIDE-ETH-001: Top 0.732240293455 mm\u00b3 and Bottom 0.888291503536 mm\u00b3. Remaining 22 half/reference pairs are zero-volume. See docs/validation/enclosure-reference-clearance.md.\n\nResearch permitted public tutorial evidence and imported fixture provenance to resolve whether a better source-qualified reference or explicit enclosure adaptation is justified. Record exact evidence, remaining unknowns and chosen correction before changing dimensions. Do not silently trim the reference, change shell/radius/stock, or infer physical fit. If implementation is needed, create a bounded dependent correction issue with affected authored references, history/reopen and separate export acceptance. Full TUT-016 remains open until numerical nominal-reference fit and cumulative scope pass.\n\nDetailed public reference material remains outside the codebase. Independent review required.\n"
     }
   ]
 }
