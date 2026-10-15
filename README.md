@@ -20,12 +20,15 @@ Visible [Pan, Zoom and Zoom Window](docs/validation/navigation-pan-zoom-window.m
 and Orbit tools support users without a middle mouse button.
 [Fit Selection and planar Look At](docs/validation/navigation-selection-look-at.md)
 frame bodies, supported faces and visible sketch geometry.
+The [Camera menu](docs/validation/navigation-projection.md) provides orthographic,
+perspective and hybrid projection, with per-tab restoration.
 
 The [retained enclosure inset](docs/validation/trimmed-seam-inset.md) preserves
 its profile and downstream Join/Fillet references through source edits and
 reopening. Exact paired R0.5 [rim rounding](docs/validation/paired-ridge-fillet.md)
-now survives source edits, history and reopen. The enclosure continuation is
-recording its final stage after the [retained-tool Cut and separate exports](docs/validation/boolean-cleanup-veto.md) passed.
+now survives source edits, history and reopen. The
+[final-stage enclosure recording](docs/validation/enclosure-rim-fit-stage.md)
+and both halves’ separate STL/STEP exports have passed independent review.
 
 [Straight-line Extend](docs/validation/sketch-line-extend.md) now previews and
 closes sketch gaps while preserving endpoint identity and constraints. Its

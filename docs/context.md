@@ -13,7 +13,10 @@ rectangle schema is included in the next coordinated app relink. See
 and planar Look At is accepted at `140f8a7`; visible sketch strokes now determine
 framing, with center/scale and GPU evidence. See
 [receipt](validation/navigation-selection-look-at.md). NAV-006/#412 projection
-modes is the next active UI slice;
+modes is accepted at `fee6a19`: actual GPU projection, hybrid face resolution,
+projected picking and per-tab restoration pass focused Qt validation and Astra
+review. See [receipt](validation/navigation-projection.md). Named views and
+navigation preferences NAV-007 are the next UI slice;
 Windows/Linux CI-009 and external GPU/input gates remain separate. No CI dispatch,
 version tag or release was triggered. The user has not yet tried physical Mac
 trackpad input; keep that qualification pending.
@@ -94,8 +97,11 @@ and closed at `95d4e56`: an isolated cleanup preflight vetoes invalid simplifica
 without shipping copied topology. Exact retained-tool Cut, width edit, history,
 reopen, retained-support use and separate STL/STEP readbacks pass. New genuinely
 split edge references remain unavailable; no ambiguous rebinding is allowed.
-See [receipt](validation/boolean-cleanup-veto.md). TUT-023/#324 is active for its
-full-stage movie and rim/tool-selection captures; geometry evidence is reused.
+See [receipt](validation/boolean-cleanup-veto.md). TUT-023/#324 is accepted at
+`1e87919`: the 267-second final-stage API movie, rim/tool captures and both halves’
+actual STL/STEP readbacks pass independent review. The external gallery links
+this continuation to earlier creation footage. See
+[receipt](validation/enclosure-rim-fit-stage.md).
 Physical clearance and full-source cumulative TUT-016 remain separate.
 NAV-010/#430 is accepted at `75695f7`: GPU cube, readable blue hover and
 face/edge/corner picks through authoritative camera state. Qt06 proves 26 API
