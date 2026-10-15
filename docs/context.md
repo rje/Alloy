@@ -65,9 +65,12 @@ qualified. Preserve old saved features with absent output mode; use explicit
 per-profile mode and stable source-derived output identity for new workflows.
 Astra's external multi-body extrusion plan guides the isolated Sol candidate.
 
-REL-028 runs independently in `loft-edit-prefix-reuse`: remove duplicate history
-evaluation on the accepted final Loft edit path, preserving full commit checks.
-Same-fixture baseline edit opening is40.319s, recorded before candidate work.
+REL-028/#460 is independently accepted at `91add7c` (test correction `c3a6f1e`):
+exact source/session reuse avoids duplicate final Loft evaluation while retaining
+non-tail downstream validation and authoritative commit. Same-fixture edit
+opening40.319→5.226s; another owner-context session8.481s, repeated previews
+118–247ms. Native tail/non-tail/source-stale checks and25-call API pass. See
+[receipt](validation/loft-edit-prefix-reuse.md). Remaining cold cost is explicit.
 SRF-016 is returned to Todo behind SRF-020; then SRF-011 Boundary Fill follows.
 Same active exteriorcomponent owns bridge and later sheets. External public
 frames and closure contract now include observed two tool bodies and explicit
