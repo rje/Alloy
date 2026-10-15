@@ -970,7 +970,9 @@ void ReferenceView::displayBodies(const std::vector<EvaluatedBody>& bodies) {
         model->SetColor(surface ? Quantity_Color(0.90,0.70,0.24,Quantity_TOC_RGB)
                                 : Quantity_Color(0.67,0.72,0.76,Quantity_TOC_RGB));
         const double opacity=body.summary.value("opacity").toDouble(1.0);
-        if(surface || opacity<1.0)model->SetTransparency(std::max(surface ? 0.12 : 0.0,1.0-opacity));
+        // Honor authored opacity. Forced surface alpha produces triangle-order
+        // artifacts on curved sheets even when their mesh normals are correct.
+        if(opacity<1.0)model->SetTransparency(1.0-opacity);
         model->Attributes()->SetFaceBoundaryDraw(true);
         model->Attributes()->SetFaceBoundaryAspect(new Prs3d_LineAspect(surface ? Quantity_Color(0.39,0.27,0.07,Quantity_TOC_RGB)
             : Quantity_Color(0.20,0.25,0.29,Quantity_TOC_RGB),Aspect_TOL_SOLID,1));

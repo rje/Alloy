@@ -2,7 +2,8 @@
 #pragma once
 #include "GeometryKernel.h"
 
-// Endpoint-contact, arc-to-two-line open-sheet Loft with one actual boundary rail.
+// Retained endpoint-contact arc/two-line Loft and bounded symmetric
+// arc/Mirror-spline-pair Loft with an actual interior rail.
 class SurfaceRailLoft final {
 public:
     static EvaluatedBody evaluate(const QJsonObject& feature,const EvaluatedDocument& prior);

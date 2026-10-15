@@ -97,7 +97,7 @@ QJsonObject AlloyWindow::previewLoft() {
             return reject("selection_required","Select two closed-chain fit splines, one full ellipse, then two closed-chain fit splines");}
         else if(railMode){if(sections.size()!=2 || sections[0].toObject()["entityIds"].toArray().size()!=1
             || sections[1].toObject()["entityIds"].toArray().size()!=2 || inputs["rail"].toObject().isEmpty())
-            return reject("selection_required","Select one back arc, two ordered lower lines, then one intersecting rail");}
+            return reject("selection_required","Select one back arc, two lower lines or a mirrored fit-spline pair, then one rail");}
         else if(sections.size()!=2 || sections[0].toObject().isEmpty() || sections[1].toObject().isEmpty() || inputs["centerline"].toObject().isEmpty())
             return reject("selection_required","Select an open arc, an open line, then one fit-spline Centerline");}
     QJsonObject candidate;try{candidate=loftCandidate(inputs);}catch(const std::exception& error){return reject("invalid_arguments",QString::fromUtf8(error.what()));}
@@ -105,7 +105,7 @@ QJsonObject AlloyWindow::previewLoft() {
     const auto id=session_["inputs"].toObject().value("featureId").toString(session_["newFeatureId"].toString());
     auto stage=evaluated.evaluation;
     if(session_["inputs"].toObject().contains("featureId")){QJsonArray fs;for(const auto& f:candidate["features"].toArray()){fs.append(f);if(f.toObject()["id"]==id)break;}auto prefix=candidate;prefix["features"]=fs;const auto early=CadDocument::evaluateCandidate(prefix);if(!early.ok)return reject("evaluation_failed",early.error,early.diagnostics);stage=early.evaluation;}
-    for(const auto& body:stage->bodies)if(body.featureId==id){view_->showPreview(body.shape,session_["inputs"].toObject().contains("featureId") ? body.bodyId : QString{},!surface);session_["geometry"]=body.summary;session_["featureId"]=body.featureId;session_["bodyId"]=body.bodyId;break;}
+    for(const auto& body:stage->bodies)if(body.featureId==id){view_->showPreview(body.shape,session_["inputs"].toObject().contains("featureId") ? body.bodyId : QString{},true);session_["geometry"]=body.summary;session_["featureId"]=body.featureId;session_["bodyId"]=body.bodyId;break;}
     session_["documentDraft"]=candidate;session_["previewed"]=true;session_["geometryEvaluated"]=true;session_.remove("previewError");
     if(loftDock_){loftDock_->findChild<QLabel*>("loftError")->clear();loftDock_->findChild<QDialogButtonBox*>()->button(QDialogButtonBox::Ok)->setEnabled(true);}
     return session_;
@@ -130,7 +130,7 @@ QJsonObject AlloyWindow::selectLoftEntity(const QString& role,const QString& ske
     const auto stage=earlier.isEmpty() ? document_->evaluation() : document_->evaluationBefore(earlier);
     bool found=false;for(const auto& sketch:stage.sketches)if(sketch.featureId==sketchId && sketch.visible
         && sketch.ownerId==document_->authored()["documentId"].toString() && sketch.entityEdges.contains(entityId))
-        for(const auto& row:sketch.summary["entities"].toArray())if(row.toObject()["id"]==entityId && row.toObject()["type"]==required
+        for(const auto& row:sketch.summary["entities"].toArray())if(row.toObject()["id"]==entityId && (row.toObject()["type"]==required || (railMode && role=="section2" && row.toObject()["type"]=="fitSpline"))
             && !row.toObject()["construction"].toBool())found=true;
     if(!found)return failure("loft_source_unavailable",QString("Select an ordinary retained %1 in a visible root sketch").arg(required));
     auto inputs=session_["inputs"].toObject();const QJsonObject ref{{"sketchId",sketchId},{"entityId",entityId}};
@@ -152,7 +152,7 @@ QJsonObject AlloyWindow::selectLoftEntity(const QString& role,const QString& ske
             if(role=="section1")ids=QJsonArray{entityId};
             else if(ids.contains(entityId)){for(int i=0;i<ids.size();++i)if(ids[i]==entityId){ids.removeAt(i);break;}}
             else if(ids.size()<2)ids.append(entityId);
-            else return failure("loft_section_full","Rail Loft accepts exactly two ordered lower lines");
+            else return failure("loft_section_full","Rail Loft accepts two lower lines or a mirrored fit-spline pair");
             sections[role=="section1"?0:1]=QJsonObject{{"sketchId",sketchId},{"entityIds",ids}};
         }else sections[role=="section1"?0:1]=ref;
         inputs["sections"]=sections;}
@@ -171,6 +171,7 @@ QJsonObject AlloyWindow::selectLoftEntity(const QString& role,const QString& ske
 QJsonObject AlloyWindow::pickLoft(double x,double y) {
     const auto role=session_.value("selectionRole").toString("section1");
     const bool closedMode=session_["inputs"].toObject().value("guideType")=="none";
+    const bool railMode=session_["inputs"].toObject().value("guideType")=="rail";
     const auto required=closedMode ? (role=="section2" ? "ellipse" : "fitSpline")
         : role=="section1" ? "arc" : role=="section2" ? "line" : "fitSpline";
     const auto earlier=session_["inputs"].toObject().value("featureId").toString();
@@ -189,7 +190,7 @@ QJsonObject AlloyWindow::pickLoft(double x,double y) {
         const auto hit=view_->pickSketch(source,x,y,"entity",frame);
         if(hit["kind"]!="entity" || hit["projected"].toBool())continue;
         bool rightType=false;for(const auto& row:sketch.summary["entities"].toArray())
-            if(row.toObject()["id"]==hit["entityId"] && row.toObject()["type"]==required
+            if(row.toObject()["id"]==hit["entityId"] && (row.toObject()["type"]==required || (railMode && role=="section2" && row.toObject()["type"]=="fitSpline"))
                 && !row.toObject()["construction"].toBool())rightType=true;
         if(!rightType)continue;
         const auto distance=hit["distancePixels"].toDouble();
@@ -254,14 +255,14 @@ void AlloyWindow::showLoft() {
             form->addRow(closedMode ? (role=="section1" ? "Section 1"
                 : role=="section2" ? "Section 2" : "Section 3")
                 : role=="section1" ? "Profile 1 · arc"
-                : role=="section2" ? (railMode?"Profile 2 · two lines":"Profile 2 · line")
+                : role=="section2" ? (railMode?"Profile 2 · two curves":"Profile 2 · line")
                 : (railMode?"Rail":"Centerline"),button);
             connect(button,&QPushButton::clicked,panel,[this,role]{execute("solid.loftSelection",{{"role",role}});previewLoft();});
         }
         auto* help=new QLabel(closedMode
             ? "Select two fit splines that close the first section, one full ellipse, then two fit splines that close the last section. The three sketches produce one open sheet without a rail."
             : railMode
-            ? "Select the back arc, two connected lower lines from the rail contact, then the fit-spline rail. Rail endpoints must meet both free section endpoints."
+            ? "Select the back arc, then two lower lines or a retained mirrored fit-spline pair, and the rail. Lines use endpoint contacts; mirrored splines use an interior back contact and common tip."
             : "Click an open arc, then an open line on the endpoint planes. Select the retained fit-spline Centerline. The result is one sheet face.",panel);
         help->setWordWrap(true);form->addRow(help);
         form->addRow("Closed",new QLabel("Off · surface",panel));

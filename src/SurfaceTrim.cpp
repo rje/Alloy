@@ -314,6 +314,7 @@ SurfaceTrimSplit SurfaceTrim::split(const QJsonObject& feature,const EvaluatedBo
             offer({edgeId,ordered[i].second,provenance});}
     }
     for(int i=1;i<=currentEdges.Extent();++i){const auto edge=TopoDS::Edge(currentEdges(i));
+        if(BRep_Tool::Degenerated(edge))continue; // Collapsed tips remain topology, never selectable curves.
         if(std::any_of(named.begin(),named.end(),[&](const auto& value){return value.edge.IsSame(edge);}))continue;
         const auto edgeLength=length(edge);if(edgeLength<mmTolerance)reject("trim_lineage_ambiguous","Degenerate trim boundary");
         int tool=-1;for(int k=0;k<2;++k){BRepAlgoAPI_Common overlap(edge,tools[k]);overlap.Build();
@@ -340,8 +341,10 @@ SurfaceTrimSplit SurfaceTrim::split(const QJsonObject& feature,const EvaluatedBo
             const BRepAdaptor_Curve curve(edge.edge);
             support.boundaryEdges.push_back({edge.id,curve.GetType()==GeomAbs_Line?"line":"curve",edge.edge,edge.provenance});}
         TopTools_IndexedMapOfShape boundaries;TopExp::MapShapes(region.face,TopAbs_EDGE,boundaries);
-        if(boundaries.Extent()!=int(support.boundaryEdges.size()))
-            reject("trim_lineage_ambiguous","A region boundary has no unique retained ID");
+        int ordinaryBoundaries=0;for(int i=1;i<=boundaries.Extent();++i)
+            if(!BRep_Tool::Degenerated(TopoDS::Edge(boundaries(i))))++ordinaryBoundaries;
+        if(ordinaryBoundaries!=int(support.boundaryEdges.size()))
+            reject("trim_lineage_ambiguous","An ordinary region boundary has no unique retained ID");
         result.faces.push_back(std::move(support));
     }
     for(const auto& edge:named)result.edges.push_back({edge.id,edge.edge,edge.provenance});

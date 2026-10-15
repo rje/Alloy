@@ -2333,7 +2333,7 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
                         const auto sketch=section["sketchId"].toString();
                         const auto entities=section["entityIds"].toArray();
                         if(section.size()!=2 || !validId(sketch) || !section["entityIds"].isArray() || entities.size()!=i+1)
-                            return "Rail Loft requires one arc followed by an ordered two-line chain";
+                            return "Rail Loft requires one arc followed by two lower lines or a mirrored fit-spline pair";
                         for(const auto& value:entities){
                             const auto id=value.toString(),key=sketch+"/"+id;
                             if(!value.isString() || !validId(id) || profiles.contains(key))
