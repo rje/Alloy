@@ -36,6 +36,13 @@ initial Linux operation will use Qt xcb on X11/XWayland. The bounded Windows nam
 FND-012 retains desktop and remaining platform qualification. Transport evidence
 does not establish a working packaged GPU application.
 
+A bounded local macOS arm64 relocation now exists under CI-005: the
+[preview archive receipt](validation/macos-relocatable-preview.md) records the
+exact ZIP, extracted loaded libraries, Apple M4 GPU, local control and one
+save/STL workflow. This is an ad-hoc signed host-local preview, not a public
+release or clean-host/Intel qualification. The full CI-002 and hardware gates
+remain open.
+
 ## Milestone path
 
 1. **Native candidates:** build every declared target from the same commit,
