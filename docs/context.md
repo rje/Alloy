@@ -82,9 +82,13 @@ handles the diagnosed full-round case with finite-chain/terminal guards and
 conservative composed kernel history. Three existing fillet regressions pass.
 The exact authored R0.5 gate and real-app width64→65, same Fillet/seed IDs,
 undo/redo and exact reopen pass; Apple M4 GPU captures were independently reviewed.
-See [receipt](validation/paired-ridge-fillet.md). TUT-023/#324 is now active for
-retained-tool Cut, separate export/readback and stage footage. Physical fit and
-full-source cumulative TUT-016 remain separate.
+See [receipt](validation/paired-ridge-fillet.md). TUT-023/#324 returned to Todo
+after its exact retained-tool Cut failed result validation. GEO-021/#436 is active:
+the raw Boolean is a valid closed solid, but subsequent same-domain simplification
+makes it invalid. A bounded shape-and-history-preserving correction is being
+implemented; no altered geometry/radius/tolerance is needed. TUT-023 retains
+separate export/readback and stage footage. Physical fit and full-source
+cumulative TUT-016 remain separate.
 NAV-010/#430 is accepted at `75695f7`: GPU cube, readable blue hover and
 face/edge/corner picks through authoritative camera state. Qt06 proves 26 API
 orientations and three representative Qt clicks; physical/DPI/sketch routes

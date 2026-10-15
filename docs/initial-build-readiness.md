@@ -125,7 +125,8 @@ accepted, as is [authored enclosure inset](validation/trimmed-seam-inset.md).
 Constrained orbit and pivot controls have accepted source/API/GPU evidence;
 [NAV-009](https://github.com/rje/Alloy/issues/428) preserves the blocked native
 route. The exact paired enclosure R0.5 operation is accepted in GEO-020; the
-cumulative TUT-023 Cut/export gate is now active. NAV-003 smooth zoom and
+cumulative TUT-023 Cut/export gate is Todo behind GEO-021, whose raw Cut is
+valid but whose same-domain simplification invalidates the result. NAV-003 smooth zoom and
 Qt trackpad routing is accepted with physical-device qualification preserved in
 NAV-008. GEO-020 now has bounded production/source-edit/history/GPU acceptance. NAV-010 cube presentation and orientation picks are
 accepted, as are NAV-011 drag, NAV-013 Fit/Home and NAV-012 cube accessories.

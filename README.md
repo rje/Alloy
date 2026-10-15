@@ -22,7 +22,7 @@ The [retained enclosure inset](docs/validation/trimmed-seam-inset.md) preserves
 its profile and downstream Join/Fillet references through source edits and
 reopening. Exact paired R0.5 [rim rounding](docs/validation/paired-ridge-fillet.md)
 now survives source edits, history and reopen. The enclosure continuation is
-working through the retained-tool Cut and separate printable exports.
+working through a retained-tool Cut simplification failure before separate printable exports.
 
 [Straight-line Extend](docs/validation/sketch-line-extend.md) now previews and
 closes sketch gaps while preserving endpoint identity and constraints. Its

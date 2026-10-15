@@ -5792,12 +5792,13 @@
         "TUT-022",
         "SOL-021",
         "SKT-076",
-        "GEO-020"
+        "GEO-020",
+        "GEO-021"
       ],
       "labels": [
         "area:gate"
       ],
-      "body": "Continue actual split snap case with source rim Offset\u22121.25, Join2, R0.5 rounding, and Combine Cut retaining the tool. Verify both halves remain valid closed printable solids with intended alignment/clearance and retained tool ownership; upstream edit, undo/reopen and independent separate export readback must preserve the assembly. Record full stage footage and readable rim/tool-selection captures. Source adaptation and physical snap/fit remain qualified; TUT-016 owns final full-source cumulative movie and acceptance.\n\nUse public source evidence stored outside Git in knowledge/tutorials/advanced-audit-2026-10-13. Independent Astra review required. UI and local automation use the same authoritative commands; proportionate verification through the real app. Keep API, native input, geometry and visual evidence distinct.\n\n## Current blocker, 2026-10-14\nThe exact paired R0.5 check on the final snap fixture refused atomically. GEO-020 owns the bounded geometry blocker; this cumulative gate remains open and returns to Todo. Public source selection/clearance uncertainties remain explicit.\n\n\n## Stronger public frame evidence, 2026-10-14\nA newly archived public 1080p frame shows two tangent chains, 14 selected edges total, Tangent Chain enabled and a typed 0.5 radius. This resolves chain versus isolated-edge selection, not exact Alloy topology or per-chain counts. Inspect actual expanded contours and OCCT failure status on the retained fixture before selecting a fix. Source frames/provenance remain external. Other Offset value and physical clearance remain unknown.\n"
+      "body": "Continue actual split snap case with source rim Offset\u22121.25, Join2, R0.5 rounding, and Combine Cut retaining the tool. Verify both halves remain valid closed printable solids with intended alignment/clearance and retained tool ownership; upstream edit, undo/reopen and independent separate export readback must preserve the assembly. Record full stage footage and readable rim/tool-selection captures. Source adaptation and physical snap/fit remain qualified; TUT-016 owns final full-source cumulative movie and acceptance.\n\nUse public source evidence stored outside Git in knowledge/tutorials/advanced-audit-2026-10-13. Independent Astra review required. UI and local automation use the same authoritative commands; proportionate verification through the real app. Keep API, native input, geometry and visual evidence distinct.\n\n## Current blocker, 2026-10-14\nThe exact paired R0.5 check on the final snap fixture refused atomically. GEO-020 owns the bounded geometry blocker; this cumulative gate remains open and returns to Todo. Public source selection/clearance uncertainties remain explicit.\n\n\n## Stronger public frame evidence, 2026-10-14\nA newly archived public 1080p frame shows two tangent chains, 14 selected edges total, Tangent Chain enabled and a typed 0.5 radius. This resolves chain versus isolated-edge selection, not exact Alloy topology or per-chain counts. Inspect actual expanded contours and OCCT failure status on the retained fixture before selecting a fix. Source frames/provenance remain external. Other Offset value and physical clearance remain unknown.\n\n\n## Follow-up after accepted paired rounding\nGEO-020 is closed at 82b0d7c. The next exact Top/Bottom retained-tool Cut refused boolean_result_invalid; GEO-021 owns this bounded blocker. TUT-023 returns to Todo, preserving export/readback and footage scope.\n"
     },
     {
       "key": "SKT-072",
@@ -7399,6 +7400,20 @@
         "area:doc"
       ],
       "body": "## Finishable navigation-control scope\nAdd selected-object framing and supported planar face/sketch Look At through shared commands with visible controls. Use evaluated visible world placement and retained body/face/sketch identity, including instances where supported; refuse stale or unsupported targets clearly. Distinguish orientation/alignment from Fit and document unresolved framing policy. Preserve active modeling context, custom-pivot policy, authored state and camera restoration. Verify representative body fit plus an off-origin planar face/sketch alignment through the real app and inspect readable GPU output. Record broader edge/nonplanar/physical routes explicitly rather than claiming full target parity. Independent Astra review required."
+    },
+    {
+      "key": "GEO-021",
+      "title": "Resolve retained-tool enclosure Cut after paired rim rounding",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "GEO-020"
+      ],
+      "labels": [
+        "area:geo"
+      ],
+      "body": "## Concrete failure\nThe accepted paired R0.5 enclosure model refuses the exact Top-target/Bottom-tool Combine Cut with Keep Tools: boolean_result_invalid, reporting no valid closed positive-volume result. Real-app transcript is external under deliverables/enclosure-rim-2026-10-14/tut023-cut-preflight-01/. No successful Cut, export or continuation footage is claimed.\n\n## Bounded scope\nDiagnose this same saved input once to distinguish invalid topology, multiple solids, empty output or application admission/identity defects. Use mature kernel operations and preserve intended authored shape and exact parameters. Do not sweep tolerances, radii or seed choices to force acceptance. Implement a source-justified bounded fix if possible; otherwise preserve concrete failure evidence and remaining contract.\n\n## Verification\nThrough authoritative commands, verify one valid closed positive-volume Top result, unchanged retained Bottom tool ownership and shape, deterministic references, atomic unsupported-input refusal, and one meaningful source-edit/history/reopen path. Inspect actual GPU output. Independent Astra review required. TUT-023 owns final separate export/readback and complete stage footage; physical clearance/full tutorial remain separate."
     }
   ]
 }
