@@ -28,6 +28,7 @@
 #include <QListWidget>
 #include <QPushButton>
 #include <QStyle>
+#include <QStyleOptionToolButton>
 #include <QStyleOptionViewItem>
 #include <QTest>
 #include <QTreeWidget>
@@ -124,6 +125,35 @@ private slots:
             auto* button=scroll->findChild<QToolButton*>("timeline.feature."+id);QVERIFY(button);
             QTRY_VERIFY(scroll->viewport()->rect().contains(QRect(button->mapTo(scroll->viewport(),QPoint{}),button->size())));
             QVERIFY(button->menu());QCOMPARE(button->menu()->actions().first()->text(),QString("Delete"));
+            QVERIFY(!button->icon().isNull());QVERIFY(button->text().isEmpty());
+            if(index==12){
+                auto menuRect=[button]{
+                    QStyleOptionToolButton option;option.initFrom(button);option.rect=button->rect();
+                    option.features=QStyleOptionToolButton::HasMenu|QStyleOptionToolButton::MenuButtonPopup;
+                    option.icon=button->icon();option.iconSize=button->iconSize();
+                    option.toolButtonStyle=button->toolButtonStyle();
+                    return button->style()->subControlRect(QStyle::CC_ToolButton,&option,QStyle::SC_ToolButtonMenu,button);
+                };
+                const auto idleMenu=menuRect();QVERIFY(idleMenu.contains(QPoint(button->width()-7,button->height()/2)));
+                QVERIFY(idleMenu.left()>=button->width()-15);
+                button->setFocus(Qt::TabFocusReason);QTRY_VERIFY(button->hasFocus());
+                const auto focusMenu=menuRect();QVERIFY(focusMenu.contains(QPoint(button->width()-7,button->height()/2)));
+                QVERIFY(focusMenu.left()>=button->width()-15);
+                const QPoint arrowPoint(button->width()-7,button->height()/2);
+                QCOMPARE(QApplication::widgetAt(button->mapToGlobal(arrowPoint)),button);
+                bool popupActivated=false,watchdogClosed=false;
+                QTimer::singleShot(80,button->menu(),[menu=button->menu(),&popupActivated]{
+                    popupActivated=QApplication::activePopupWidget()==menu;
+                    if(popupActivated)QTest::keyClick(menu,Qt::Key_Escape);
+                });
+                QTimer watchdog;watchdog.setSingleShot(true);
+                connect(&watchdog,&QTimer::timeout,button->menu(),[menu=button->menu(),&watchdogClosed]{watchdogClosed=true;menu->close();});
+                watchdog.start(2000);
+                QTest::mouseClick(button,Qt::LeftButton,Qt::NoModifier,arrowPoint);
+                watchdog.stop();QVERIFY(popupActivated);QVERIFY(!watchdogClosed);
+                QTRY_VERIFY(!QApplication::activePopupWidget());
+                QCOMPARE(window.state()["document"].toObject()["authored"].toObject(),authored);
+            }
             QTest::mouseClick(button,Qt::LeftButton,Qt::NoModifier,QPoint(10,button->height()/2));
             const auto edit=session(window);QVERIFY(!edit.isEmpty());
             const auto inputs=edit["inputs"].toObject();

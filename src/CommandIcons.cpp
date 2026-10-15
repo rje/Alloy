@@ -78,6 +78,11 @@ public:
         } else if (command_ == "solid.extrudeDialog") {
             painter->save(); painter->translate(-2,3); painter->scale(.88,.88); cube(); painter->restore();
             arrow({27,21},{27,2},edge);
+        } else if (command_ == "solid.thickenDialog") {
+            QPainterPath sheet;sheet.moveTo(3,19);sheet.cubicTo(10,8,21,9,29,17);
+            pen(edge,1.2);painter->setBrush(Qt::NoBrush);painter->drawPath(sheet);
+            painter->save();painter->translate(0,5);pen(side,2.2);painter->drawPath(sheet);painter->restore();
+            pen(blue,2.5);painter->drawPath(sheet);arrow({16,25},{16,15},accent);
         } else if (command_ == "solid.revolveDialog") {
             painter->setPen(QPen(edge,1.1,Qt::DashDotLine)); painter->drawLine(QPointF(8,3),QPointF(8,28));
             polygon({{11,7},{17,7},{17,12},{21,12},{21,24},{11,24}},blue);
@@ -94,6 +99,19 @@ public:
         } else if (command_ == "solid.circularPatternDialog") {
             for(int i=0;i<6;++i){painter->save();painter->translate(16,16);painter->rotate(i*60);painter->setBrush(i==0?blue:pale);pen(edge);painter->drawRect(QRectF(7,-3,7,6));painter->restore();}
             painter->setBrush(accent);pen(edge);painter->drawEllipse(QRectF(14,14,4,4));
+        } else if (command_ == "solid.rectangularPatternDialog") {
+            for(int row=0;row<2;++row)for(int col=0;col<3;++col){
+                painter->setBrush(row==0&&col==0?blue:pale);pen(edge);
+                painter->drawRect(QRectF(4+col*9,6+row*11,6,7));
+            }
+        } else if (command_ == "file.stepImport") {
+            polygon({{5,4},{20,4},{27,11},{27,28},{5,28}},pale);
+            pen(edge);painter->drawLine(QPointF(20,4),QPointF(20,11));painter->drawLine(QPointF(20,11),QPointF(27,11));
+            arrow({1,18},{18,18},blue);
+        } else if (command_ == "assembly.pin") {
+            polygon({{11,5},{21,5},{24,15},{8,15}},blue);
+            pen(edge,1.5);painter->drawLine(QPointF(16,15),QPointF(16,28));
+            painter->setBrush(accent);painter->drawEllipse(QRectF(13,25,6,5));
         } else if (command_ == "solid.mirrorDialog") {
             polygon({{2,10},{10,7},{10,23},{2,20}},pale);
             polygon({{22,7},{30,10},{30,20},{22,23}},blue);

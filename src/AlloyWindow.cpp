@@ -1052,11 +1052,14 @@ AlloyWindow::AlloyWindow() {
     body->addLayout(canvas, 1); layout->addLayout(body, 1);
 
     timeline_ = new QWidget;timeline_->setObjectName("timeline");timeline_->setFixedHeight(60);
-    timeline_->setStyleSheet("background: #f7f8f9; border-top: 1px solid #cdd5db;");
+    timeline_->setStyleSheet("QWidget#timeline { background: #f7f8f9; border-top: 1px solid #cdd5db; }");
     auto* timelineRow=new QHBoxLayout(timeline_);timelineRow->setContentsMargins(14,4,14,4);timelineRow->setSpacing(8);
-    timelineRow->addWidget(new QLabel("TIMELINE"));
+    auto* timelineLabel=new QLabel("TIMELINE");timelineLabel->setObjectName("timelineLabel");
+    timelineLabel->setStyleSheet("QLabel#timelineLabel { color: #526875; font-size: 10px; font-weight: 600; }");
+    timelineRow->addWidget(timelineLabel);
     timelineScroll_=new QScrollArea;timelineScroll_->setObjectName("timeline.scroll");timelineScroll_->setFrameShape(QFrame::NoFrame);
     timelineScroll_->setWidgetResizable(true);timelineScroll_->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    timelineScroll_->setAlignment(Qt::AlignLeft|Qt::AlignVCenter);
     timelineScroll_->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);timelineScroll_->setAccessibleName("Feature Timeline");
     auto* timelineContent=new QWidget;timelineContent->setObjectName("timeline.features");timelineContent->setFixedHeight(34);
     timelineLayout_=new QHBoxLayout(timelineContent);timelineLayout_->setContentsMargins(0,0,4,0);timelineLayout_->setSpacing(4);
@@ -6603,16 +6606,26 @@ void AlloyWindow::refresh() {
             const auto feature=entry.toObject();if(feature["ownerId"].toString()!=document_->activeOwnerId())continue;const auto id=feature["id"].toString(),name=feature["name"].toString();
             const auto type=feature["type"].toString();
             static const QMap<QString,QPair<QString,QString>> presentation{
-                {"sketch",{"▧","Sketch"}},{"box",{"▣","Box"}},{"cylinder",{"◉","Cylinder"}},
-                {"extrude",{"▣","Extrude"}},{"sphere",{"●","Sphere"}},{"fillet",{"◩","Fillet"}},
-                {"sweep",{"◒","Sweep"}},{"revolve",{"◉","Revolve"}},{"chamfer",{"◪","Chamfer"}},{"shell",{"▱","Shell"}},{"loft",{"◒","Loft"}},{"thicken",{"▤","Thicken"}},
-                {"mirror",{"◧","Mirror"}},{"featureMirror",{"◧","Mirror Features"}},{"move",{"✥","Move"}},{"boolean",{"▣","Combine"}},
-                {"constructionPlane",{"▰","Construction Plane"}},{"rectangularPattern",{"▦","Rectangular Pattern"}},
-                {"stepImport",{"▣","STEP Import"}},{"stepAssemblyImport",{"▣","STEP Assembly"}},
-                {"assemblyPin",{"▣","Pin"}}};
-            const auto appearance=presentation.value(type,{"▣",type});const auto fullName=name+" ("+appearance.second+")";
-            auto* button=new QToolButton;button->setObjectName("timeline.feature."+id);button->setText(appearance.first);
-            button->setFixedSize(44,34);button->setStyleSheet("QToolButton { font-size: 19px; padding: 1px 10px 1px 2px; }");
+                {"sketch",{"sketch.create","Sketch"}},{"box",{"primitive.box","Box"}},{"cylinder",{"primitive.cylinder","Cylinder"}},
+                {"extrude",{"solid.extrudeDialog","Extrude"}},{"sphere",{"solid.sphereDialog","Sphere"}},{"fillet",{"solid.filletDialog","Fillet"}},
+                {"sweep",{"solid.sweepDialog","Sweep"}},{"revolve",{"solid.revolveDialog","Revolve"}},{"chamfer",{"solid.chamferDialog","Chamfer"}},
+                {"shell",{"solid.shellDialog","Shell"}},{"loft",{"solid.loftDialog","Loft"}},{"thicken",{"solid.thickenDialog","Thicken"}},
+                {"mirror",{"solid.mirrorDialog","Mirror"}},{"featureMirror",{"solid.mirrorDialog","Mirror Features"}},{"move",{"solid.moveDialog","Move"}},
+                {"boolean",{"solid.combineDialog","Combine"}},{"constructionPlane",{"construction.plane","Construction Plane"}},
+                {"rectangularPattern",{"solid.rectangularPatternDialog","Rectangular Pattern"}},
+                {"stepImport",{"file.stepImport","STEP Import"}},{"stepAssemblyImport",{"file.stepImport","STEP Assembly"}},
+                {"assemblyPin",{"assembly.pin","Pin"}}};
+            const auto appearance=presentation.value(type,{"feature.generic",type});const auto fullName=name+" ("+appearance.second+")";
+            auto* button=new QToolButton;button->setObjectName("timeline.feature."+id);
+            button->setIcon(commandIcon(appearance.first));button->setIconSize(QSize(21,21));button->setToolButtonStyle(Qt::ToolButtonIconOnly);
+            button->setFixedSize(44,34);
+            button->setStyleSheet("QToolButton { background: #fff; border: 1px solid #d7e0e5; border-radius: 4px; padding: 1px 14px 1px 2px; }"
+                "QToolButton:hover { background: #eaf4f9; border-color: #78abc4; }"
+                "QToolButton:focus { background: #edf6fa; border: 2px solid #1478a8; }"
+                "QToolButton:pressed { background: #d9ecf5; }"
+                "QToolButton::menu-button { width: 14px; border: 0; background: transparent; }"
+                "QToolButton::menu-button:hover { background: #dcecf4; }"
+                "QToolButton::menu-arrow { width: 10px; height: 7px; }");
             button->setToolTip(fullName+"\nClick to edit; use the arrow for feature actions.");button->setAccessibleName(fullName);
             button->setProperty("featureId",id);button->setProperty("featureType",type);button->setProperty("featureName",name);
             button->installEventFilter(this);
