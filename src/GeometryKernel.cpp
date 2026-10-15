@@ -294,6 +294,11 @@ QJsonObject GeometryKernel::tangentPointPlaneFrame(const EvaluatedDocument& eval
     const auto start=edge->provenance["startMm"].toArray(),end=edge->provenance["endMm"].toArray();
     if(start.size()!=3 || end.size()!=3 || (point["endpoint"]!=0 && point["endpoint"]!=1))
         reject("tangent_point_unavailable","The retained edge has no oriented endpoint metadata");
+    if(edge->provenance.value("role")=="roundBoundary"){
+        const auto key=point["endpoint"].toInt()==0 ? "startWallFaceId" : "endWallFaceId";
+        if(edge->provenance.value(key).toString().isEmpty())
+            reject("tangent_point_unavailable","The round boundary endpoint is an unstable interior split vertex");
+    }
     const gp_Pnt expectedStart(start[0].toDouble(),start[1].toDouble(),start[2].toDouble()),
         expectedEnd(end[0].toDouble(),end[1].toDouble(),end[2].toDouble());
     const auto a=BRep_Tool::Pnt(first),b=BRep_Tool::Pnt(last);

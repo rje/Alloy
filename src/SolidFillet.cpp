@@ -1,5 +1,6 @@
 #include "PlanarFaces.h"
 #include "SolidFillet.h"
+#include "RuledCornerFillet.h"
 #include <BRepPrimAPI_MakePrism.hxx>
 #include <BRepAlgoAPI_BooleanOperation.hxx>
 #include <BRepAlgoAPI_Common.hxx>
@@ -273,7 +274,7 @@ void SolidFillet::evaluate(EvaluatedBody& body,const QJsonObject& parameters,con
     BRepFilletAPI_MakeFillet builder(body.shape);QJsonArray contours,allSeeds,groupSummaries;
     const auto grouped=parameters.contains("groups");
     const auto groups=grouped ? parameters["groups"].toArray() : QJsonArray{parameters};
-    QMap<int,QString> contourOwners;QMap<int,double> contourRadii;
+    QMap<int,QString> contourOwners;QMap<int,double> contourRadii;QMap<QString,double> seedRadii;
     for(const auto& value:groups){
         const auto group=value.toObject();
         const auto groupId=grouped ? group["id"].toString() : QStringLiteral("legacy");
@@ -284,6 +285,7 @@ void SolidFillet::evaluate(EvaluatedBody& body,const QJsonObject& parameters,con
             if(edge==body.solidEdges.end())fail("fillet_edge_unavailable","Authored edge provenance is no longer present",id);
             if(edge->edge.IsNull())fail("fillet_edge_"+edge->provenance["resolutionError"].toString("unavailable"),"Authored edge was deleted or has ambiguous descendants",id);
             builder.Add(radius,edge->edge);allSeeds.append(id);
+            seedRadii[id]=radius;
             const int contour=builder.Contour(edge->edge);
             if(contour==0)fail("fillet_contour_unavailable","Selected edge has no tangent contour",id);
             if(contourOwners.contains(contour) && contourOwners[contour]!=groupId)
@@ -305,21 +307,23 @@ void SolidFillet::evaluate(EvaluatedBody& body,const QJsonObject& parameters,con
         }
         contours.append(chain);
     }
-    builder.Build();std::optional<FilletResult> paired;
-    if(!builder.IsDone()) {
+    builder.Build();std::optional<FilletResult> paired;std::optional<RuledCornerFillet::Result> ruled;
+    const bool ordinaryValid=builder.IsDone() && validSolid(builder.Shape());
+    if(!ordinaryValid && !builder.IsDone()) {
         paired=pairedRidge(body,builder,contourRadii);
-        if(!paired)fail("fillet_failed","The selected edges cannot be filleted at this radius");
     }
-    const auto result=paired ? paired->shape : builder.Shape();auto summary=GeometryKernel::summarize(result);
+    if(!ordinaryValid && !paired)ruled=RuledCornerFillet::evaluate(body,seedRadii,featureId);
+    if(!ordinaryValid && !paired && !ruled)fail("fillet_failed","The selected edges cannot be filleted at this radius");
+    const auto result=paired ? paired->shape : ruled ? ruled->shape : builder.Shape();auto summary=GeometryKernel::summarize(result);
     if(!summary["valid"].toBool() || !summary["closed"].toBool() || summary["topology"].toObject()["solids"].toInt()!=1 || summary["volumeMm3"].toDouble()<=0)
         fail("fillet_invalid_result","Fillet must produce one valid closed solid");
-    auto caps=paired ? std::move(paired->caps) : PlanarFaces::transfer(builder,body.supportFaces,result,true);
-    auto edges=paired ? std::move(paired->edges) : transferEdges(builder,body.solidEdges,result,true);
+    auto caps=paired ? std::move(paired->caps) : ruled ? std::move(ruled->supportFaces) : PlanarFaces::transfer(builder,body.supportFaces,result,true);
+    auto edges=paired ? std::move(paired->edges) : ruled ? std::move(ruled->solidEdges) : transferEdges(builder,body.solidEdges,result,true);
     body.solidEdges=std::move(edges);
     body.shape=result;body.supportFaces=caps;
-    QJsonArray capValues;for(const auto& cap:caps)capValues.append(QJsonObject{{"faceId",cap.faceId},{"bodyId",cap.bodyId},{"producerFeatureId",cap.producerFeatureId},{"role",cap.role},{"planar",true},{"frame",cap.frame},{"edges",GeometryKernel::supportEdgeDescriptors(cap)}});
-    summary["supportFaces"]=capValues;summary["solidEdges"]=descriptors(body.solidEdges);summary["lastModifierFeatureId"]=featureId;summary["producerFeatureId"]=body.featureId;summary["operation"]="fillet";
+    summary["supportFaces"]=PlanarFaces::descriptors(caps);summary["solidEdges"]=descriptors(body.solidEdges);summary["lastModifierFeatureId"]=featureId;summary["producerFeatureId"]=body.featureId;summary["operation"]="fillet";
     if(paired)summary["construction"]="pairedFullRoundCommon";
+    if(ruled)summary["construction"]="ruledCornerCut";
     if(grouped)summary["radiusGroups"]=groupSummaries;else summary["radiusMm"]=parameters["radiusMm"];
     summary["selectedEdgeIds"]=allSeeds;summary["tangentContours"]=contours;body.summary=summary;
 }
