@@ -133,6 +133,25 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
     QJsonArray removed;double removedArea=0;
     for(const auto& region:split.regions)if(region.inside){removed.append(region.regionId);removedArea+=region.areaMm2;}
     check(removed.size()==2 && removedArea>1000,"Expected two visible inner regions");
+    // One immutable partition supports changing selections without repeating
+    // intersections/classification or modifying its original source/regions.
+    const auto partitionRegions=SurfaceTrim::descriptors(split);
+    auto selectedFeature=feature;auto selectedParameters=feature["parameters"].toObject();
+    selectedParameters["removedRegionIds"]=QJsonArray{removed[0]};selectedFeature["parameters"]=selectedParameters;
+    auto oneRemoved=source;SurfaceTrim::applySelection(oneRemoved,selectedFeature,split);
+    check(oneRemoved.summary["valid"].toBool() && oneRemoved.supportFaces.size()==3,
+        "Prepared partition could not remove one inner region");
+    selectedParameters["removedRegionIds"]=removed;selectedFeature["parameters"]=selectedParameters;
+    auto bothRemoved=source;SurfaceTrim::applySelection(bothRemoved,selectedFeature,split);
+    check(bothRemoved.summary["valid"].toBool() && bothRemoved.supportFaces.size()==2,
+        "Prepared partition could not remove both inner regions");
+    check(source.shape.IsSame(document.bodies().back().shape) && source.supportFaces.size()==2
+        && SurfaceTrim::descriptors(split)==partitionRegions,"Selection mutated the source or partition");
+    auto invalid=selectedParameters;invalid["removedRegionIds"]=QJsonArray{CadDocument::newId()};
+    selectedFeature["parameters"]=invalid;auto refused=source;bool rejected=false;
+    try{SurfaceTrim::applySelection(refused,selectedFeature,split);}catch(const GeometryKernel::EvaluationError& e){
+        rejected=e.diagnostics()["code"]=="trim_region_unavailable";}
+    check(rejected && refused.shape.IsSame(source.shape),"Unknown region must refuse without changing the source");
     auto args=QJsonObject{{"newFeatureId",featureId},{"ownerId",source.ownerId},{"targetBodyId",source.bodyId},
         {"toolSketchId",tool["id"]},{"toolEntityIds",toolIds},{"removedRegionIds",removed}};
     if(argc>1)check(document.save(QString::fromLocal8Bit(argv[1])).isEmpty(),"Save pre-Trim fixture");
@@ -140,6 +159,14 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
     if(const auto error=document.commit(candidate,"Trim two inner regions");!error.isEmpty())
         throw std::runtime_error((error+" / "+document.lastEvaluationError()["code"].toString()).toStdString());
     const auto trimmed=document.bodies().back();const auto accepted=document.authored();
+    check(trimmed.summary["topology"]==bothRemoved.summary["topology"]
+        && std::abs(trimmed.summary["areaMm2"].toDouble()-bothRemoved.summary["areaMm2"].toDouble())<1e-6,
+        "Shared selection application disagrees with authoritative committed geometry");
+    for(size_t i=0;i<trimmed.supportFaces.size();++i)
+        check(trimmed.supportFaces[i].faceId==bothRemoved.supportFaces[i].faceId,"Prepared selection changed retained face identity");
+    check(trimmed.solidEdges.size()==bothRemoved.solidEdges.size(),"Prepared selection changed named edge count");
+    for(size_t i=0;i<trimmed.solidEdges.size();++i)
+        check(trimmed.solidEdges[i].edgeId==bothRemoved.solidEdges[i].edgeId,"Prepared selection changed retained edge identity");
     check(trimmed.bodyId==source.bodyId && trimmed.summary["topology"].toObject()["faces"]==2
         && trimmed.summary["topology"].toObject()["solids"]==0 && trimmed.summary["valid"].toBool(),
         "Trim must leave the same valid open sheet body");

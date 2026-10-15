@@ -252,7 +252,7 @@ SurfaceTrimSplit SurfaceTrim::split(const QJsonObject& feature,const EvaluatedBo
         reject("trim_projection_failed","Sketch-normal removal prism is invalid");
     BRepAlgoAPI_Splitter splitter;TopTools_ListOfShape arguments,cutters;
     arguments.Append(target.shape);for(const auto& tool:tools)cutters.Append(tool);
-    splitter.SetArguments(arguments);splitter.SetTools(cutters);splitter.Build();
+    splitter.SetArguments(arguments);splitter.SetTools(cutters);splitter.SetNonDestructive(true);splitter.Build();
     if(!splitter.IsDone() || splitter.HasErrors() || !BRepCheck_Analyzer(splitter.Shape()).IsValid())
         reject("trim_split_failed","OCCT could not split the surface with these tool splines");
     TopTools_IndexedMapOfShape currentFaces,currentEdges;
@@ -269,7 +269,8 @@ SurfaceTrimSplit SurfaceTrim::split(const QJsonObject& feature,const EvaluatedBo
         int inner=0,outer=0;
         for(int index=1;index<=descendants.Extent();++index){
             const auto face=TopoDS::Face(descendants(index));const auto faceArea=area(face);
-            BRepAlgoAPI_Common overlap(face,regionPrism.Shape());overlap.Build();
+            BRepAlgoAPI_Common overlap;overlap.SetNonDestructive(true);TopTools_ListOfShape a,b;
+            a.Append(face);b.Append(regionPrism.Shape());overlap.SetArguments(a);overlap.SetTools(b);overlap.Build();
             if(!overlap.IsDone() || overlap.HasErrors() || faceArea<mmTolerance)
                 reject("trim_region_ambiguous","A split region could not be classified");
             const auto commonArea=area(overlap.Shape());
@@ -317,7 +318,8 @@ SurfaceTrimSplit SurfaceTrim::split(const QJsonObject& feature,const EvaluatedBo
         if(BRep_Tool::Degenerated(edge))continue; // Collapsed tips remain topology, never selectable curves.
         if(std::any_of(named.begin(),named.end(),[&](const auto& value){return value.edge.IsSame(edge);}))continue;
         const auto edgeLength=length(edge);if(edgeLength<mmTolerance)reject("trim_lineage_ambiguous","Degenerate trim boundary");
-        int tool=-1;for(int k=0;k<2;++k){BRepAlgoAPI_Common overlap(edge,tools[k]);overlap.Build();
+        int tool=-1;for(int k=0;k<2;++k){BRepAlgoAPI_Common overlap;overlap.SetNonDestructive(true);TopTools_ListOfShape a,b;
+            a.Append(edge);b.Append(tools[k]);overlap.SetArguments(a);overlap.SetTools(b);overlap.Build();
             if(!overlap.IsDone() || overlap.HasErrors())reject("trim_lineage_ambiguous","Cannot resolve cutter boundary");
             if(std::abs(length(overlap.Shape())-edgeLength)<std::max(mmTolerance,edgeLength*1e-6)){
                 if(tool>=0)reject("trim_lineage_ambiguous","New edge belongs to two tool splines");tool=k;}}
@@ -352,7 +354,12 @@ SurfaceTrimSplit SurfaceTrim::split(const QJsonObject& feature,const EvaluatedBo
 }
 
 void SurfaceTrim::evaluate(EvaluatedBody& target,const QJsonObject& feature,const EvaluatedDocument& prior){
-    const auto splitResult=split(feature,target,prior);const auto parameters=feature["parameters"].toObject();
+    const auto partition=split(feature,target,prior);
+    applySelection(target,feature,partition);
+}
+
+void SurfaceTrim::applySelection(EvaluatedBody& target,const QJsonObject& feature,const SurfaceTrimSplit& splitResult){
+    const auto parameters=feature["parameters"].toObject();
     const auto removed=parameters["removedRegionIds"].toArray();
     if(removed.isEmpty() || removed.size()>(parameters.contains("toolBodyId")?1:2))throw GeometryKernel::EvaluationError({
         {"featureId",feature["id"]},{"code","trim_region_required"},

@@ -18,6 +18,30 @@ namespace {
 QJsonObject failure(const QString& code,const QString& message){return {{"ok",false},{"error",QJsonObject{{"code",code},{"message",message}}}};}
 }
 
+struct AlloyWindow::SurfaceTrimPreviewSource {
+    QJsonObject key;
+    EvaluatedDocument stage;
+};
+
+struct AlloyWindow::SurfaceTrimPreviewPartition {
+    QJsonObject key;
+    SurfaceTrimSplit split;
+};
+
+const EvaluatedDocument& AlloyWindow::surfaceTrimSourceStage(){
+    const QJsonObject key{{"sessionId",session_.value("id")},
+        {"documentId",document_->authored().value("documentId")},
+        {"revision",static_cast<qint64>(document_->revision())},
+        {"featureId",session_.value("inputs").toObject().value("featureId")}};
+    if(!surfaceTrimSource_ || surfaceTrimSource_->key!=key){
+        surfaceTrimSource_.reset();surfaceTrimPartition_.reset();
+        const auto edit=key.value("featureId").toString();
+        surfaceTrimSource_=std::make_shared<const SurfaceTrimPreviewSource>(SurfaceTrimPreviewSource{
+            key,edit.isEmpty()?document_->evaluation():document_->evaluationBefore(edit)});
+    }
+    return surfaceTrimSource_->stage;
+}
+
 QJsonObject AlloyWindow::surfaceTrimCandidate(const QJsonObject& inputs) const {
     auto args=inputs;
     args.remove("sourcePlane");args.remove("sourceNormal");args.remove("projectionMode");
@@ -36,6 +60,7 @@ QJsonObject AlloyWindow::surfaceTrimCandidate(const QJsonObject& inputs) const {
 
 QJsonObject AlloyWindow::beginSurfaceTrim(const QJsonObject& overrides){
     if(!session_.isEmpty())return failure("session_busy","Complete or cancel the active command first");
+    surfaceTrimSource_.reset();surfaceTrimPartition_.reset();
     QJsonObject inputs{{"toolEntityIds",QJsonArray{}},{"removedRegionIds",QJsonArray{}},
         {"throughMarginMm",10.0},{"name","Trim"}};
     if(overrides.contains("featureId")){
@@ -78,6 +103,7 @@ QJsonObject AlloyWindow::previewSurfaceTrim(){
     const auto inputs=session_["inputs"].toObject();
     session_["previewed"]=false;session_["geometryEvaluated"]=false;
     session_.remove("geometry");session_.remove("documentDraft");session_.remove("regions");surfaceTrimPickBodies_.clear();
+    session_["partitionReused"]=false;
     view_->clearPreview();
     auto reject=[&](const QString& code,const QString& message,const QJsonObject& details=QJsonObject{}){
         auto response=failure(code,message);auto error=response["error"].toObject();error["diagnostics"]=details;
@@ -109,10 +135,19 @@ QJsonObject AlloyWindow::previewSurfaceTrim(){
         }
         if(auto* buttons=surfaceTrimDock_->findChild<QDialogButtonBox*>())buttons->button(QDialogButtonBox::Ok)->setEnabled(false);
     }
-    if(session_["baseDocumentRevision"].toInteger()!=static_cast<qint64>(document_->revision()))
+    if(session_["baseDocumentRevision"].toInteger()!=static_cast<qint64>(document_->revision())){
+        surfaceTrimSource_.reset();surfaceTrimPartition_.reset();
         return reject("stale_session","The document changed; cancel and restart Trim");
+    }
     const auto edit=inputs["featureId"].toString();
-    const auto stage=edit.isEmpty()?document_->evaluation():document_->evaluationBefore(edit);
+    const auto& stage=surfaceTrimSourceStage();
+    // Selection and the display name cannot alter a partition. Everything
+    // else is compared exactly, including ordered tool references and margin.
+    auto geometryInputs=inputs;geometryInputs.remove("removedRegionIds");geometryInputs.remove("name");
+    auto partitionKey=surfaceTrimSource_->key;
+    partitionKey["featureId"]=edit.isEmpty()?session_.value("newFeatureId"):QJsonValue(edit);
+    partitionKey["inputs"]=geometryInputs;
+    if(surfaceTrimPartition_ && surfaceTrimPartition_->key!=partitionKey)surfaceTrimPartition_.reset();
     QSet<QString> visible;for(const auto& sketch:stage.sketches)if(sketch.visible)visible.insert(sketch.featureId);
     view_->setCommandSketches(visible);
     if(!edit.isEmpty())view_->setBodyStage(stage.bodies,"surface-trim-source:"+session_["id"].toString());
@@ -130,7 +165,14 @@ QJsonObject AlloyWindow::previewSurfaceTrim(){
     for(const auto& body:stage.bodies)if(body.bodyId==bodyId){target=&body;break;}
     if(!target)return reject("trim_target_required","Select one current two-face surface body");
     try{
-        const auto split=SurfaceTrim::split(feature,*target,stage);
+        const bool reused=bool(surfaceTrimPartition_);
+        if(!reused){
+            session_["partitionBuildCount"]=session_.value("partitionBuildCount").toInteger()+1;
+            surfaceTrimPartition_=std::make_shared<const SurfaceTrimPreviewPartition>(SurfaceTrimPreviewPartition{
+                partitionKey,SurfaceTrim::split(feature,*target,stage)});
+        }
+        session_["partitionReused"]=reused;
+        const auto& split=surfaceTrimPartition_->split;
         auto staged=*target;staged.shape=split.splitShape;staged.supportFaces=split.faces;
         surfaceTrimPickBodies_.push_back(std::move(staged));
         const auto regionRows=SurfaceTrim::descriptors(split);session_["regions"]=regionRows;
@@ -157,8 +199,13 @@ QJsonObject AlloyWindow::previewSurfaceTrim(){
         session_["geometryEvaluated"]=true;
         if(selected.isEmpty())return reject("trim_region_required","Pick a removable region; selected regions preview red");
         candidate=surfaceTrimCandidate(inputs);
-        const auto evaluated=document_->prepareCandidate(candidate);
-        if(!evaluated.ok)return reject("evaluation_failed",evaluated.error,evaluated.diagnostics);
+        for(const auto& row:candidate["features"].toArray())if(row.toObject()["id"]==featureId){feature=row.toObject();break;}
+        auto selectedBody=*target;
+        SurfaceTrim::applySelection(selectedBody,feature,split);
+        // Preview validates this Trim's actual selected geometry. The ordinary
+        // document transaction validates all downstream features once on OK.
+        session_["geometry"]=QJsonObject{{"regions",regionRows},{"projection",split.projection},
+            {"result",selectedBody.summary}};
         session_["documentDraft"]=candidate;session_["previewed"]=true;session_.remove("previewError");
         if(surfaceTrimDock_){surfaceTrimDock_->findChild<QLabel*>("surfaceTrim.error")->clear();
             surfaceTrimDock_->findChild<QDialogButtonBox*>()->button(QDialogButtonBox::Ok)->setEnabled(true);}
@@ -170,8 +217,9 @@ QJsonObject AlloyWindow::previewSurfaceTrim(){
 
 QJsonObject AlloyWindow::selectSurfaceTrimEntity(const QString& sketchId,const QString& entityId){
     if(session_["command"]!="surface.trim")return failure("invalid_session","Start Trim first");
-    auto inputs=session_["inputs"].toObject();const auto edit=inputs.value("featureId").toString();
-    const auto stage=edit.isEmpty()?document_->evaluation():document_->evaluationBefore(edit);
+    if(session_["baseDocumentRevision"].toInteger()!=static_cast<qint64>(document_->revision()))return previewSurfaceTrim();
+    auto inputs=session_["inputs"].toObject();
+    const auto& stage=surfaceTrimSourceStage();
     bool found=false;for(const auto& sketch:stage.sketches)if(sketch.featureId==sketchId && sketch.visible && sketch.entityEdges.contains(entityId))
         for(const auto& value:sketch.summary["entities"].toArray())if(value.toObject()["id"]==entityId &&
             value.toObject()["type"]=="fitSpline" && !value.toObject()["construction"].toBool())found=true;
@@ -190,8 +238,9 @@ QJsonObject AlloyWindow::selectSurfaceTrimEntity(const QString& sketchId,const Q
 
 QJsonObject AlloyWindow::selectSurfaceTrimBody(const QString& bodyId){
     if(session_["command"]!="surface.trim")return failure("invalid_session","Start Trim first");
-    auto inputs=session_["inputs"].toObject();const auto edit=inputs.value("featureId").toString();
-    const auto stage=edit.isEmpty()?document_->evaluation():document_->evaluationBefore(edit);
+    if(session_["baseDocumentRevision"].toInteger()!=static_cast<qint64>(document_->revision()))return previewSurfaceTrim();
+    auto inputs=session_["inputs"].toObject();
+    const auto& stage=surfaceTrimSourceStage();
     bool found=false;for(const auto& body:stage.bodies)if(body.bodyId==bodyId && body.visible
         && body.occurrenceId.isEmpty() && bodyId!=inputs["targetBodyId"].toString()
         && body.supportFaces.size()==1 && body.summary["type"]=="surface")found=true;
@@ -203,6 +252,7 @@ QJsonObject AlloyWindow::selectSurfaceTrimBody(const QString& bodyId){
 
 QJsonObject AlloyWindow::selectSurfaceTrimRegion(const QString& id){
     if(session_["command"]!="surface.trim")return failure("invalid_session","Start Trim first");
+    if(session_["baseDocumentRevision"].toInteger()!=static_cast<qint64>(document_->revision()))return previewSurfaceTrim();
     bool found=false;for(const auto& value:session_["regions"].toArray())if(value.toObject()["regionId"]==id && value.toObject()["removable"].toBool())found=true;
     if(!found)return failure("trim_region_unavailable","Pick a current removable region of the split sheet");
     auto inputs=session_["inputs"].toObject();auto ids=inputs["removedRegionIds"].toArray();
@@ -213,13 +263,14 @@ QJsonObject AlloyWindow::selectSurfaceTrimRegion(const QString& id){
 }
 
 QJsonObject AlloyWindow::pickSurfaceTrim(double x,double y){
+    if(session_["baseDocumentRevision"].toInteger()!=static_cast<qint64>(document_->revision()))return previewSurfaceTrim();
     if(session_["selectionRole"]=="region"){
         const auto hit=view_->pickSupportFace(x,y,surfaceTrimPickBodies_);
         if(hit.isEmpty())return failure("trim_region_required","Click an inner split-surface region");
         return selectSurfaceTrimRegion(hit["faceId"].toString());
     }
-    const auto inputs=session_["inputs"].toObject();const auto edit=inputs.value("featureId").toString();
-    const auto stage=edit.isEmpty()?document_->evaluation():document_->evaluationBefore(edit);
+    const auto inputs=session_["inputs"].toObject();
+    const auto& stage=surfaceTrimSourceStage();
     QString sketchId,entityId;double nearest=7;bool ambiguous=false;
     for(const auto& sketch:stage.sketches)if(sketch.visible && (inputs["toolSketchId"].toString().isEmpty() || inputs["toolSketchId"]==sketch.featureId)){
         auto source=SketchGeometry::findFeature(document_->authored(),sketch.featureId);

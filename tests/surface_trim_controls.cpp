@@ -48,10 +48,43 @@ private slots:
   QCOMPARE(session(window)["regions"].toArray().size(),2);QCOMPARE(session(window)["selectionRole"].toString(),QString("region"));
   QVERIFY(view->hasFocus());QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,pixel(0,0,5));
   QTRY_VERIFY(session(window)["previewed"].toBool());QCOMPARE(session(window)["inputs"].toObject()["removedRegionIds"].toArray().size(),1);
+  QCOMPARE(session(window)["partitionBuildCount"].toInteger(),qint64(1));QVERIFY(session(window)["partitionReused"].toBool());
+  const auto sessionId=session(window)["id"].toString();
+  call(window,"command.preview",{{"session",sessionId}});
+  call(window,"command.update",{{"session",sessionId},{"inputs",QJsonObject{{"name","Named Trim preview"}}}});
+  QCOMPARE(session(window)["partitionBuildCount"].toInteger(),qint64(1));QVERIFY(session(window)["partitionReused"].toBool());
+  const auto region=session(window)["inputs"].toObject()["removedRegionIds"].toArray()[0].toString();
+  call(window,"surface.trimRegion",{{"regionId",region}});
+  QVERIFY(!session(window)["previewed"].toBool());
+  QCOMPARE(session(window)["previewError"].toObject()["code"].toString(),QString("trim_region_required"));
+  QCOMPARE(session(window)["partitionBuildCount"].toInteger(),qint64(1));
+  call(window,"surface.trimRegion",{{"regionId",region}});
+  call(window,"command.update",{{"session",sessionId},{"inputs",QJsonObject{{"throughMarginMm",11.0}}}});
+  QCOMPARE(session(window)["partitionBuildCount"].toInteger(),qint64(2));QVERIFY(!session(window)["partitionReused"].toBool());
   call(window,"capture.screenshot",{{"path",out+"/native-planar-sheet-red-preview.png"}});
   auto* buttons=dock->findChild<QDialogButtonBox*>();QVERIFY(buttons && buttons->button(QDialogButtonBox::Ok)->isEnabled());
   QTest::mouseClick(buttons->button(QDialogButtonBox::Cancel),Qt::LeftButton);QTRY_VERIFY(session(window).isEmpty());
   QCOMPARE(call(window,"document.inspect")["authored"],before["authored"]);
+  // A replacement session must build its own partition. A document revision
+  // change invalidates it before another region can use its old identity.
+  const auto replacement=call(window,"surface.trimDialog",{{"targetBodyId",targetId},{"toolBodyId",toolId}});
+  QCOMPARE(replacement["partitionBuildCount"].toInteger(),qint64(1));QVERIFY(!replacement["partitionReused"].toBool());
+  const auto targetChanged=window.execute("command.update",{{"session",replacement["id"]},
+      {"inputs",QJsonObject{{"targetBodyId",toolId},{"toolBodyId",targetId}}}});
+  QVERIFY(!targetChanged["ok"].toBool());
+  QCOMPARE(targetChanged["error"].toObject()["code"].toString(),QString("trim_region_required"));
+  QCOMPARE(session(window)["partitionBuildCount"].toInteger(),qint64(2));
+  const auto staleRegion=session(window)["regions"].toArray()[0].toObject()["regionId"].toString();
+  const auto feature=before["authored"].toObject()["features"].toArray()[0].toObject();
+  call(window,"feature.visibility",{{"featureId",feature["id"]},{"visible",!feature["visible"].toBool()}});
+  const auto changed=call(window,"document.inspect").value("authored");
+  const auto stale=window.execute("surface.trimRegion",{{"regionId",staleRegion}});
+  QVERIFY(!stale["ok"].toBool());QCOMPARE(stale["error"].toObject()["code"].toString(),QString("stale_session"));
+  QVERIFY(session(window)["regions"].toArray().isEmpty());
+  const auto refused=window.execute("command.commit",{{"session",replacement["id"]}});
+  QVERIFY(!refused["ok"].toBool());QCOMPARE(refused["error"].toObject()["code"].toString(),QString("stale_session"));
+  call(window,"command.cancel",{{"session",replacement["id"]}});
+  QCOMPARE(call(window,"document.inspect")["authored"],changed);
  }
  void toolFirstRegionPreviewCancel(){
   const auto source=qEnvironmentVariable("ALLOY_SURFACE_TRIM_SOURCE"),out=qEnvironmentVariable("ALLOY_SURFACE_TRIM_EVIDENCE");
@@ -91,6 +124,11 @@ private slots:
   for(const auto& value:regions)if(value.toObject()["inside"].toBool() && value.toObject()["regionId"]!=chosen)other=value.toObject()["regionId"].toString();
   QVERIFY(!other.isEmpty());call(window,"surface.trimRegion",{{"regionId",other}});
   QTRY_VERIFY(session(window)["previewed"].toBool());
+  QCOMPARE(session(window)["partitionBuildCount"].toInteger(),qint64(1));QVERIFY(session(window)["partitionReused"].toBool());
+  const auto reversed=session(window)["inputs"].toObject()["toolEntityIds"].toArray();
+  call(window,"command.update",{{"session",session(window)["id"]},
+      {"inputs",QJsonObject{{"toolEntityIds",QJsonArray{reversed[1],reversed[0]}}}}});
+  QCOMPARE(session(window)["partitionBuildCount"].toInteger(),qint64(2));QVERIFY(!session(window)["partitionReused"].toBool());
   auto* buttons=dock->findChild<QDialogButtonBox*>();QVERIFY(buttons && buttons->button(QDialogButtonBox::Ok)->isEnabled());
   call(window,"view.orientation",{{"name","isometric"}});
   call(window,"capture.screenshot",{{"path",out+"/native-trim-red-preview.png"}});

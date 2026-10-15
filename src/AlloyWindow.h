@@ -304,6 +304,11 @@ private:
     QDockWidget* surfaceTrimDock_=nullptr;
     QShortcut* surfaceTrimEscape_=nullptr;
     std::vector<EvaluatedBody> surfaceTrimPickBodies_;
+    struct SurfaceTrimPreviewSource;
+    struct SurfaceTrimPreviewPartition;
+    std::shared_ptr<const SurfaceTrimPreviewSource> surfaceTrimSource_;
+    std::shared_ptr<const SurfaceTrimPreviewPartition> surfaceTrimPartition_;
+    const EvaluatedDocument& surfaceTrimSourceStage();
     QJsonObject thickenCandidate(const QJsonObject& inputs) const;
     QJsonObject removeBodyCandidate(const QJsonObject& inputs) const;
     QJsonObject beginRemoveBody(const QJsonObject& overrides={});

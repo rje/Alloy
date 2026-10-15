@@ -24,5 +24,10 @@ public:
     static SurfaceTrimSplit split(const QJsonObject& feature,const EvaluatedBody& target,
         const EvaluatedDocument& prior);
     static void evaluate(EvaluatedBody& target,const QJsonObject& feature,const EvaluatedDocument& prior);
+    // Apply region selection to one immutable partition. No intersections or
+    // Boolean classification are repeated; authoritative evaluation uses this
+    // same operation after constructing a fresh partition.
+    static void applySelection(EvaluatedBody& target,const QJsonObject& feature,
+        const SurfaceTrimSplit& partition);
     static QJsonArray descriptors(const SurfaceTrimSplit& split);
 };
