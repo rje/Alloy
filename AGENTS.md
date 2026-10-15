@@ -187,7 +187,9 @@ that meets the task's quality bar using actual results.
   for the task. Do not inherit maximum effort without a reason.
 - Delegate one clear deliverable with relevant context, owned files, acceptance
   evidence and a stop condition. Avoid overlapping edits or duplicate probes;
-  coordinate the single build/GUI lease. The root integrates and tracks issues.
+  coordinate the single build/GUI lease. Give workers the exact accepted build
+  directory and SDK; inspect its cache before building rather than assuming
+  `build` is current. The root integrates and tracks issues.
 - Escalate when ambiguity or failed attempts exceed the worker's bounded task;
   preserve its findings. Compare review corrections, completion time and rework
   on ordinary tasks rather than creating an elaborate model benchmark.
