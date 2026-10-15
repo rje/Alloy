@@ -380,10 +380,11 @@ AlloyWindow::AlloyWindow() {
     });
     layout->addWidget(documentTabRow);
 
-    auto* ribbon = new QWidget;
+    auto* ribbon = new QWidget;modelingRibbon_=ribbon;
     ribbon->setObjectName("modelingRibbon");
     ribbon->setFixedHeight(94);
     ribbon->setStyleSheet("background: #f7f8f9;");
+    ribbon->installEventFilter(this);
     auto* ribbonLayout = new QHBoxLayout(ribbon); ribbonLayout->setContentsMargins(14, 0, 12, 6);
     auto* workspace = new QLabel("DESIGN"); workspace->setAlignment(Qt::AlignCenter); workspace->setFixedWidth(86);
     workspace->setStyleSheet("font-weight: 600; font-size: 13px; border: 1px solid #c7cfd5; border-radius: 4px; padding: 16px 6px;");
@@ -407,10 +408,20 @@ AlloyWindow::AlloyWindow() {
     QString groupPrefix="solid";
     auto group = [&](const QString& caption, const QList<QPair<QString, QString>>& entries) {
         auto* box = new QVBoxLayout; box->setSpacing(0);
-        auto* row = new QHBoxLayout; row->setSpacing(1);
-        for (const auto& [id, glyph] : entries) { auto* tool=commandButton(id, glyph, true); if(groupPrefix=="surface")tool->setObjectName("surface.command."+id); row->addWidget(tool); }
-        box->addLayout(row);
-        if(caption=="CREATE" || caption=="MODIFY" || caption=="INSPECT" || caption=="ASSEMBLE") {
+        auto* rowWidget=new QWidget;rowWidget->setObjectName(groupPrefix+".icons."+caption.toLower());
+        auto* row = new QHBoxLayout(rowWidget);row->setSpacing(1);row->setContentsMargins(0,0,0,0);
+        QStringList featured;
+        if(caption=="CREATE")featured=groupPrefix=="solid" ? QStringList{"sketch.create","solid.extrudeDialog"}
+            : QStringList{"sketch.create","surface.extrudeDialog"};
+        else if(caption=="MODIFY")featured=groupPrefix=="solid" ? QStringList{"solid.combineDialog","solid.filletDialog"}
+            : QStringList{"surface.trimDialog","body.removeDialog"};
+        else for(int i=0;i<entries.size() && i<2;++i)featured.append(entries[i].first);
+        for (const auto& [id, glyph] : entries) {
+            auto* tool=commandButton(id, glyph, true); if(groupPrefix=="surface")tool->setObjectName("surface.command."+id);
+            row->addWidget(tool);if(!featured.contains(id))ribbonCompactHiddenIcons_.append(tool);
+        }
+        box->addWidget(rowWidget);
+        if(caption=="CREATE" || caption=="MODIFY" || caption=="INSPECT" || caption=="ASSEMBLE" || caption=="CONSTRUCT") {
             auto* button=new QToolButton;button->setText(caption);button->setObjectName(groupPrefix+".menu."+caption.toLower());
             button->setStyleSheet("font-size: 10px; color: #53616b; padding: 0 6px;");
             auto* menu=new QMenu(button);menu->setObjectName(groupPrefix+".commands."+caption.toLower());
@@ -478,6 +489,7 @@ AlloyWindow::AlloyWindow() {
     group("INSPECT", {{"inspect.sectionDialog", "◧"}, {"inspect.measure", "↔"}});
     groups->addStretch();surfaceGroups->hide();ribbonRight->addWidget(surfaceGroups);
     ribbonLayout->addLayout(ribbonRight, 1); layout->addWidget(ribbon);
+    fullRibbonWidth_=ribbon->sizeHint().width();
 
     sketchToolbar_=new QWidget;sketchToolbar_->setObjectName("sketchToolbar");
     sketchToolbar_->setStyleSheet("#sketchToolbar { background: #e1f2f8; border-bottom: 1px solid #9fc7db; }");
@@ -931,11 +943,13 @@ AlloyWindow::AlloyWindow() {
     canvasWindow_=new QMainWindow;canvasWindow_->setWindowFlags(Qt::Widget);
     canvasWindow_->setCentralWidget(view_);canvas->addWidget(canvasWindow_,1);
     navigation_ = new QWidget; navigation_->setStyleSheet("background: #f0f2f3;");
+    navigation_->installEventFilter(this);
     auto* nav = new QHBoxLayout(navigation_); nav->setContentsMargins(8, 2, 8, 5); nav->setSpacing(2);
+    auto addWideNavigation=[&](QWidget* button){nav->addWidget(button);fullNavigationButtons_.append(button);};
     nav->addStretch(); nav->addWidget(commandButton("view.home", "Home"));
     nav->addWidget(commandButton("view.fit", "Fit"));
-    nav->addWidget(commandButton("view.fitSelection", "Fit Selection"));
-    nav->addWidget(commandButton("view.lookAt", "Look At"));
+    addWideNavigation(commandButton("view.fitSelection", "Fit Selection"));
+    addWideNavigation(commandButton("view.lookAt", "Look At"));
     auto* cameraMenuButton=new QToolButton;cameraMenuButton->setObjectName("view.projection.menuButton");
     cameraMenuButton->setText("Camera");cameraMenuButton->setToolTip("Choose Orthographic, Perspective, or Perspective with Ortho Faces");
     cameraMenuButton->setPopupMode(QToolButton::InstantPopup);
@@ -958,14 +972,14 @@ AlloyWindow::AlloyWindow() {
         button->setStyleSheet("QPushButton:checked { background: #c8e5f6; border: 1px solid #5796bc; border-radius: 4px; font-weight: 600; }");
         const QString mode=item.first;
         connect(button,&QPushButton::clicked,this,[this,button,mode]{execute("view.navigationTool",{{"mode",button->isChecked() ? mode : "select"}});});
-        nav->addWidget(button);
+        addWideNavigation(button);
     }
     auto* orbitButton=new QPushButton("Free Orbit");orbitButton->setObjectName("view.orbitTool");
     orbitButton->setMinimumWidth(orbitButton->fontMetrics().horizontalAdvance("Constrained Orbit")+28);
     orbitButton->setCheckable(true);orbitButton->setToolTip("Drag on the canvas to orbit freely; Escape exits. Shift + middle drag also orbits.");
     orbitButton->setStyleSheet("QPushButton:checked { background: #c8e5f6; border: 1px solid #5796bc; border-radius: 4px; font-weight: 600; }");
     connect(orbitButton,&QPushButton::clicked,this,[this,orbitButton]{execute("view.orbitTool",{{"active",orbitButton->isChecked()}});});
-    nav->addWidget(orbitButton);
+    addWideNavigation(orbitButton);
     auto* orbitModes=new QToolButton;orbitModes->setObjectName("view.orbitMode");
     orbitModes->setFixedWidth(24);
     orbitModes->setToolTip("Choose Free or Constrained Orbit");orbitModes->setPopupMode(QToolButton::InstantPopup);
@@ -974,15 +988,64 @@ AlloyWindow::AlloyWindow() {
     auto* constrainedMode=orbitMenu->addAction("Constrained Orbit");constrainedMode->setObjectName("view.orbitMode.constrained");constrainedMode->setCheckable(true);
     connect(freeMode,&QAction::triggered,this,[this]{execute("view.orbitMode",{{"mode","free"}});});
     connect(constrainedMode,&QAction::triggered,this,[this]{execute("view.orbitMode",{{"mode","constrained"}});});
-    orbitModes->setMenu(orbitMenu);nav->addWidget(orbitModes);
+    orbitModes->setMenu(orbitMenu);addWideNavigation(orbitModes);
     for (const QString& orientation : {"top", "front", "right"}) {
         auto* button = new QPushButton(orientation.first(1).toUpper() + orientation.sliced(1));
+        button->setObjectName("view.orientation."+orientation);
         connect(button, &QPushButton::clicked, this, [this, orientation] { execute("view.orientation", {{"name", orientation}}); });
-        nav->addWidget(button);
+        addWideNavigation(button);
     }
-    auto* gridButton = new QPushButton("Grid");
+    auto* gridButton = new QPushButton("Grid");gridButton->setObjectName("view.grid.button");
     connect(gridButton, &QPushButton::clicked, this, [this] { execute("view.grid", {{"visible", !view_->grid}}); });
-    nav->addWidget(gridButton); nav->addStretch(); canvas->addWidget(navigation_);
+    addWideNavigation(gridButton);
+    fullNavigationWidth_=nav->sizeHint().width();
+    compactNavigationButton_=new QToolButton;compactNavigationButton_->setObjectName("view.compact.navigation");
+    compactNavigationButton_->setText("Navigation");compactNavigationButton_->setPopupMode(QToolButton::InstantPopup);
+    compactNavigationButton_->setToolTip("Pan, Zoom, Zoom Window and Orbit controls");
+    auto* navigationMenu=new QMenu(compactNavigationButton_);navigationMenu->setObjectName("view.compact.navigationMenu");
+    for(const auto& item:{std::pair{"pan","Pan"},std::pair{"zoom","Zoom"},std::pair{"zoomWindow","Zoom Window"}}) {
+        const QString mode=item.first;
+        auto* action=navigationMenu->addAction(item.second);action->setObjectName("view.compact."+mode);action->setCheckable(true);
+        connect(action,&QAction::triggered,this,[this,mode]{execute("view.navigationTool",{{"mode",view_->navigationTool()==mode ? "select" : mode}});});
+    }
+    navigationMenu->addSeparator();
+    auto* orbitAction=navigationMenu->addAction("Orbit");orbitAction->setObjectName("view.compact.orbit");orbitAction->setCheckable(true);
+    connect(orbitAction,&QAction::triggered,this,[this]{execute("view.orbitTool",{{"active",!view_->freeOrbitTool()}});});
+    auto* compactOrbitModes=navigationMenu->addMenu("Orbit Mode");
+    for(const auto& item:{std::pair{"free","Free"},std::pair{"constrained","Constrained"}}) {
+        const QString mode=item.first;
+        auto* action=compactOrbitModes->addAction(item.second);action->setObjectName("view.compact.orbitMode."+mode);action->setCheckable(true);
+        connect(action,&QAction::triggered,this,[this,mode]{execute("view.orbitMode",{{"mode",mode}});});
+    }
+    connect(navigationMenu,&QMenu::aboutToShow,this,[this,navigationMenu]{
+        for(auto* action:navigationMenu->actions()) {
+            const auto id=action->objectName();
+            if(id=="view.compact.orbit")action->setChecked(view_->freeOrbitTool());
+            else if(id.startsWith("view.compact."))action->setChecked(view_->navigationTool()==id.mid(QString("view.compact.").size()));
+        }
+        for(auto* action:navigationMenu->findChildren<QAction*>())if(action->objectName().startsWith("view.compact.orbitMode."))
+            action->setChecked(view_->orbitMode()==action->objectName().mid(QString("view.compact.orbitMode.").size()));
+    });
+    compactNavigationButton_->setMenu(navigationMenu);nav->addWidget(compactNavigationButton_);compactNavigationButton_->hide();
+    compactViewButton_=new QToolButton;compactViewButton_->setObjectName("view.compact.view");
+    compactViewButton_->setText("View");compactViewButton_->setPopupMode(QToolButton::InstantPopup);
+    compactViewButton_->setToolTip("Fit Selection, Look At, named directions and Grid");
+    auto* compactViewMenu=new QMenu(compactViewButton_);compactViewMenu->setObjectName("view.compact.viewMenu");
+    for(const auto& item:{std::pair{"view.fitSelection","Fit Selection"},std::pair{"view.lookAt","Look At"}}) {
+        const QString command=item.first;auto* action=compactViewMenu->addAction(item.second);action->setObjectName("view.compact.action."+command);
+        connect(action,&QAction::triggered,this,[this,command]{execute(command);});
+    }
+    compactViewMenu->addSeparator();
+    for(const QString orientation:{"top","front","right"}) {
+        auto* action=compactViewMenu->addAction(orientation.first(1).toUpper()+orientation.sliced(1));
+        action->setObjectName("view.compact.orientation."+orientation);
+        connect(action,&QAction::triggered,this,[this,orientation]{execute("view.orientation",{{"name",orientation}});});
+    }
+    auto* compactGrid=compactViewMenu->addAction("Grid");compactGrid->setObjectName("view.compact.grid");compactGrid->setCheckable(true);
+    connect(compactGrid,&QAction::triggered,this,[this]{execute("view.grid",{{"visible",!view_->grid}});});
+    connect(compactViewMenu,&QMenu::aboutToShow,this,[this,compactGrid]{compactGrid->setChecked(view_->grid);});
+    compactViewButton_->setMenu(compactViewMenu);nav->addWidget(compactViewButton_);compactViewButton_->hide();
+    nav->addStretch(); canvas->addWidget(navigation_);
     body->addLayout(canvas, 1); layout->addLayout(body, 1);
 
     timeline_ = new QWidget;timeline_->setObjectName("timeline");timeline_->setFixedHeight(60);
@@ -1186,6 +1249,8 @@ void AlloyWindow::updateTimelineDrop(const QPoint& globalPosition) {
 }
 
 bool AlloyWindow::eventFilter(QObject* watched,QEvent* event) {
+    if((watched==modelingRibbon_ || watched==navigation_) && event->type()==QEvent::Resize)
+        QTimer::singleShot(0,this,[this]{updateCompactControls();});
     if(componentCopyKey(watched,event))return true;
     if(watched==view_ && event->type()==QEvent::KeyPress
         && static_cast<QKeyEvent*>(event)->key()==Qt::Key_Escape && view_->inputGestureActive()) {
@@ -1409,12 +1474,39 @@ void AlloyWindow::refreshOrbitModeControls() {
     }
     if(auto* free=findChild<QAction*>("view.orbitMode.free"))free->setChecked(!constrained);
     if(auto* level=findChild<QAction*>("view.orbitMode.constrained"))level->setChecked(constrained);
+    updateCompactControls();
 }
 void AlloyWindow::refreshNavigationToolControls() {
     for(const QString mode: {"pan","zoom","zoomWindow"})
         if(auto* button=findChild<QPushButton*>("view.navigationTool."+mode)) {
             const QSignalBlocker blocked(button);button->setChecked(view_->navigationTool()==mode);
         }
+    updateCompactControls();
+}
+
+void AlloyWindow::updateCompactControls() {
+    if(modelingRibbon_ && fullRibbonWidth_>0 && modelingRibbon_->width()>0) {
+        const bool compact=modelingRibbon_->width()<fullRibbonWidth_;
+        if(compact!=ribbonCompact_) {
+            ribbonCompact_=compact;
+            for(auto* icon:ribbonCompactHiddenIcons_)icon->setVisible(!compact);
+        }
+    }
+    if(!navigation_ || !compactNavigationButton_ || !compactViewButton_)return;
+    const auto mode=view_->navigationTool();
+    QString active="Navigation";
+    if(mode=="pan")active="Pan";
+    else if(mode=="zoom")active="Zoom";
+    else if(mode=="zoomWindow")active="Zoom Window";
+    else if(view_->freeOrbitTool())active=view_->orbitMode()=="constrained" ? "Constrained Orbit" : "Free Orbit";
+    compactNavigationButton_->setText(active);
+    if(fullNavigationWidth_<=0 || navigation_->width()<=0)return;
+    const bool compact=navigation_->width()<fullNavigationWidth_;
+    if(compact==navigationCompact_)return;
+    navigationCompact_=compact;
+    for(auto* button:fullNavigationButtons_)button->setVisible(!compact);
+    compactNavigationButton_->setVisible(compact);
+    compactViewButton_->setVisible(compact);
 }
 
 void AlloyWindow::showActiveTab() {
@@ -2395,6 +2487,7 @@ void AlloyWindow::registerCommands() {
             if(auto* panel=findChild<QWidget*>("design.groups."+value))panel->setVisible(value==tab);
             if(auto* button=findChild<QToolButton*>("design.tab."+value))button->setChecked(value==tab);
         }
+        updateCompactControls();
         return QJsonObject{{"tab",designTab_},{"activeSessionPreserved",true}};
     });
     add("solid.loftDialog","Loft","Select ordered sections and a Centerline for a surface, or circular regions for a solid.",loftSchema,[this](const auto& a){return beginLoft(a);});

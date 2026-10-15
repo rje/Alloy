@@ -4,6 +4,7 @@
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QMap>
+#include <QList>
 #include <QPoint>
 #include <functional>
 #include <limits>
@@ -66,6 +67,7 @@ private:
     void registerCommands();
     void refreshOrbitModeControls();
     void refreshNavigationToolControls();
+    void updateCompactControls();
     void restoreComponentDialogActivation(QDialog* dialog);
     void registerSliderCommands();
     void registerRevoluteCommands();
@@ -500,6 +502,15 @@ private:
     void showTimelineFeature(const QString& featureId);
     QJsonObject timelineState() const;
     QWidget* navigation_ = nullptr;
+    QWidget* modelingRibbon_ = nullptr;
+    QToolButton* compactNavigationButton_ = nullptr;
+    QToolButton* compactViewButton_ = nullptr;
+    QList<QWidget*> ribbonCompactHiddenIcons_;
+    QList<QWidget*> fullNavigationButtons_;
+    int fullRibbonWidth_ = 0;
+    int fullNavigationWidth_ = 0;
+    bool ribbonCompact_ = false;
+    bool navigationCompact_ = false;
     QTreeWidget* tree_ = nullptr;
     QLabel* status_ = nullptr;
     bool geometryBusyActive_ = false;
