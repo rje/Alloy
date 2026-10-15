@@ -65,7 +65,14 @@ viewport click after navigation; GPU output was inspected. See
 input qualification remain NAV-008; preferences remain NAV-007. Final nonfinite
 anchor guard is source/build reviewed; no unchanged rerun was needed.
 
-GEO-020/#429 is active for one exact-fixture contour/failure diagnostic. Newly
+GEO-020/#429 returned to Todo after the diagnostic at `4110bf0`: two distinct
+seven-edge contours resolve, both report Ok, but corner completion fails at a
+reported U-mouth junction. Fault vertices varied; no unique cause or correction
+is established. See [receipt](validation/enclosure-rim-two-rail-blocker.md).
+NAV-010/#430 is active for the first orientation-cube slice: GPU cube, hover
+and face/edge/corner picks through authoritative camera state. NAV-011/#431
+retains drag; NAV-012/#432 retains Home/adjacent/roll controls. Parent NAV-004
+stays Todo behind those children; existing projection/DPI/physical gates remain. Newly
 archived public 1080p tutorial frames show two tangent chains, 14 edges total,
 Tangent Chain enabled and a typed 0.5 radius. This supersedes the former unknown
 about chain versus individual-edge selection, but does not establish our adapted

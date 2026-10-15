@@ -74,3 +74,11 @@ failure; it does not establish a single numerical cause or prove R0.5 impossible
 The public 14-edge count corroborates only the chain-selection form, not exact
 topology or geometry parity. No alternate radius, seed pair, kernel algorithm,
 Cut or export was attempted. GEO-020 and TUT-023 remain open.
+
+The next source-backed diagnostic is recorded externally in
+`knowledge/specs/geo020-occt-mouth-corner-diagnostic-2026-10-14.md`: inspect the
+fillet/limiting-face intersection at the reported endpoint against the trimmed
+face boundary and identify the applicable corner path. Containment and the exact
+cause remain unknown. The observed three-edge junction does not establish a
+four-or-more-edge kernel limitation. No additional kernel replay was made for
+that research.

@@ -7026,12 +7026,15 @@
       "phase": "P4 Initial release",
       "priority": "P1",
       "depends_on": [
-        "NAV-001"
+        "NAV-001",
+        "NAV-010",
+        "NAV-011",
+        "NAV-012"
       ],
       "labels": [
         "area:doc"
       ],
-      "body": "## Initial-build readiness scope\nProvide familiar face/edge/corner orientation targets, hover/active feedback, cube drag, Home and documented adjacent-view/roll controls with original Alloy assets. Research current public layout and behavior first. Shared camera commands must retain framing and synchronize cube state after arbitrary orbit. Verify representative face, edge, corner and roll clicks at normal and high DPI, sketch and solid states; no authored mutation. Broader cube context settings may be split if needed without dropping them.\n\n## Delivery and evidence\nUser-prioritized 2026-10-14. Keep implementation bounded, preserve authoritative document/control commands, use proportional verification and independent review. Public reference details and images remain external. This issue is planned until its stated gate is evidenced; do not substitute compilation/API or Qt simulation for physical input or packaged GPU evidence.\n"
+      "body": "## Initial-build readiness scope\nProvide familiar face/edge/corner orientation targets, hover/active feedback, cube drag, Home and documented adjacent-view/roll controls with original Alloy assets. Research current public layout and behavior first. Shared camera commands must retain framing and synchronize cube state after arbitrary orbit. Verify representative face, edge, corner and roll clicks at normal and high DPI, sketch and solid states; no authored mutation. Broader cube context settings may be split if needed without dropping them.\n\n## Delivery and evidence\nUser-prioritized 2026-10-14. Keep implementation bounded, preserve authoritative document/control commands, use proportional verification and independent review. Public reference details and images remain external. This issue is planned until its stated gate is evidenced; do not substitute compilation/API or Qt simulation for physical input or packaged GPU evidence.\n\n\n## Finishable children\nNAV-010 owns visible cube and face/edge/corner orientation picks; NAV-011 owns drag; NAV-012 owns Home/adjacent/roll accessories. Keep this parent Todo until these and its full contract pass. Reuse existing NAV-006 projection, REL-013 DPI/readability and NAV-008 physical input gates without duplicate issues.\n"
     },
     {
       "key": "NAV-005",
@@ -7304,7 +7307,51 @@
       "labels": [
         "area:geo"
       ],
-      "body": "## Concrete failure\nThe final 29-feature split snap enclosure accepts its retained inward 1.25 mm inset and 2 mm Join. Applying R0.5 together to opposing upper rear rails of that same 1 mm rim refuses atomically with fillet_failed. Both straight rails overlap for 54 mm at z=17 and have distinct retained endRim ancestry. The exact pair is an explicitly disclosed adaptation: public evidence has not resolved the original two-edge identities or tangent-chain extent.\n\n## Bounded scope and acceptance\nDiagnose this saved fixture using kernel contour/result diagnostics. Produce a valid exact paired R0.5 result through a mature analytic/kernel construction, or document a concrete unresolved kernel limitation. Do not replace the radius with 0.499, silently round one edge, sweep arbitrary pairs or change the authored source shape to obtain success.\n\nVerify retained selections, valid closed positive-volume output, actual rounded extent, source-width edit, undo and reopen through the authoritative application commands. An inspected GPU capture must show the affected ridge; two selected rails do not prove full-perimeter rounding. Independent Astra review is required. Preserve atomic failure behavior for unsupported inputs.\n\nTUT-023 retains the later Top-target/Bottom-tool Cut with Keep Tools, separate printable exports and cumulative footage. Zero overlap alone is not a measured mating clearance or a physical-fit claim. Diagnostic fixture/logs remain external under deliverables/enclosure-rim-2026-10-14/tut023-preflight-01/.\n\n## Stronger public frame evidence, 2026-10-14\nA newly archived public 1080p frame shows two tangent chains, 14 selected edges total, Tangent Chain enabled and a typed 0.5 radius. This resolves chain versus isolated-edge selection, not exact Alloy topology or per-chain counts. Inspect actual expanded contours and OCCT failure status on the retained fixture before selecting a fix. Source frames/provenance remain external. Other Offset value and physical clearance remain unknown.\n"
+      "body": "## Concrete failure\nThe final 29-feature split snap enclosure accepts its retained inward 1.25 mm inset and 2 mm Join. Applying R0.5 together to opposing upper rear rails of that same 1 mm rim refuses atomically with fillet_failed. Both straight rails overlap for 54 mm at z=17 and have distinct retained endRim ancestry. The exact pair is an explicitly disclosed adaptation: public evidence has not resolved the original two-edge identities or tangent-chain extent.\n\n## Bounded scope and acceptance\nDiagnose this saved fixture using kernel contour/result diagnostics. Produce a valid exact paired R0.5 result through a mature analytic/kernel construction, or document a concrete unresolved kernel limitation. Do not replace the radius with 0.499, silently round one edge, sweep arbitrary pairs or change the authored source shape to obtain success.\n\nVerify retained selections, valid closed positive-volume output, actual rounded extent, source-width edit, undo and reopen through the authoritative application commands. An inspected GPU capture must show the affected ridge; two selected rails do not prove full-perimeter rounding. Independent Astra review is required. Preserve atomic failure behavior for unsupported inputs.\n\nTUT-023 retains the later Top-target/Bottom-tool Cut with Keep Tools, separate printable exports and cumulative footage. Zero overlap alone is not a measured mating clearance or a physical-fit claim. Diagnostic fixture/logs remain external under deliverables/enclosure-rim-2026-10-14/tut023-preflight-01/.\n\n## Stronger public frame evidence, 2026-10-14\nA newly archived public 1080p frame shows two tangent chains, 14 selected edges total, Tangent Chain enabled and a typed 0.5 radius. This resolves chain versus isolated-edge selection, not exact Alloy topology or per-chain counts. Inspect actual expanded contours and OCCT failure status on the retained fixture before selecting a fix. Source frames/provenance remain external. Other Offset value and physical clearance remain unknown.\n\n\n## Bounded diagnostic accepted; implementation remains open\nAt 4110bf0, the exact fixture forms two distinct seven-edge retained endRim contours. Both report Ok with no faulty contour, but Build has no result and reports a U-mouth vertex incident on two endRim edges and a sideCorner. Fault reports varied between observations, so this narrows the next investigation to corner termination without proving a unique cause. See docs/validation/enclosure-rim-two-rail-blocker.md and its retained evidence/hashes. No geometry correction or radius/pair/tolerance sweep was accepted. Return this issue to Todo while navigation proceeds.\n"
+    },
+    {
+      "key": "NAV-010",
+      "title": "Add an interactive orientation cube with face, edge and corner picks",
+      "kind": "implementation",
+      "phase": "P4 Initial release",
+      "priority": "P1",
+      "depends_on": [
+        "NAV-001",
+        "NAV-002"
+      ],
+      "labels": [
+        "area:doc"
+      ],
+      "body": "## Finishable orientation-cube scope\nUse OCCT AIS_ViewCube for original Alloy-styled GPU presentation, hover and 26 face/edge/corner hit regions. Disable its unmanaged camera animation/default camera mutation; route picks through a shared authoritative orientation command and camera state. Keep document/history/selection unchanged, preserve saved custom pivot without using it as the cube orientation center, and explicitly document pan/zoom/view-target policy. Match publicly evidenced controls with independently authored styling/assets; detailed source evidence remains external.\n\nQualify representative face/edge/corner hits and the complete orientation mapping with proportional focused checks and inspected actual GPU output. Verify ordinary model selection still works outside cube regions, tab/camera refresh retains the chosen view, and invalid picks do not mutate documents. Distinguish synthetic Qt/API evidence from physical input. Independent Astra review required. This child does not claim cube drag, Home/roll/adjacent accessories, projection-mode or all-DPI parity; those remain linked scope."
+    },
+    {
+      "key": "NAV-011",
+      "title": "Route orientation cube dragging through shared orbit state",
+      "kind": "implementation",
+      "phase": "P4 Initial release",
+      "priority": "P1",
+      "depends_on": [
+        "NAV-010"
+      ],
+      "labels": [
+        "area:doc"
+      ],
+      "body": "## Finishable orientation-cube scope\nImplement cube drag as ordinary orbit through authoritative camera commands, with deliberate gesture acquisition, release/cancel, click-versus-drag separation and no geometry selection leak. Preserve the selected orbit convention and separate pivot policy as supported by public evidence; unresolved behavior is an explicit Alloy policy. Confirm meaningful camera motion, no jump on release/refresh/tab restoration and unchanged authored/history state. Inspect GPU feedback and actual Qt pointer route; physical device qualification remains NAV-008. Disable unmanaged AIS camera mutation. Independent Astra review required."
+    },
+    {
+      "key": "NAV-012",
+      "title": "Complete orientation cube Home, adjacent views and roll controls",
+      "kind": "implementation",
+      "phase": "P4 Initial release",
+      "priority": "P1",
+      "depends_on": [
+        "NAV-010",
+        "NAV-005"
+      ],
+      "labels": [
+        "area:doc"
+      ],
+      "body": "## Finishable orientation-cube scope\nImplement discoverable cube Home, adjacent-view and 90-degree roll controls through shared camera state. Reuse the distinct Fit/Home policy from NAV-005; do not silently equate these actions. Preserve named orientation/current highlight, appropriate enabled states and ordinary model input outside accessory hit regions. Research remains external: related-product evidence alone does not prove exact target-product parity, so mark unknown styling/behavior explicitly. Verify representative click/roll/Home sequences with readable GPU capture, camera refresh and unchanged authored state. Projection integration, DPI/readability matrix and physical input remain NAV-006, REL-013 and NAV-008. Independent Astra review required."
     }
   ]
 }
