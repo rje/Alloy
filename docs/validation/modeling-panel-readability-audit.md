@@ -50,3 +50,8 @@ each action itself as the hit owner. At minimum height, palette sections below
 the first 221 px are outside the current viewport and require vertical
 scrolling; the captures do not show horizontal clipping. After API cancellation,
 authored data and undo state matched the pre-edit snapshot.
+
+The minimum selected-state capture also shows always-visible cube accessory
+buttons and the UP label overlapping the upper-right sketch and dimension
+witness/endpoint area. Visible dimension text does not mean all annotations
+are unobscured. NAV-021/#452 owns this observed occlusion; REL-013 remains open.
