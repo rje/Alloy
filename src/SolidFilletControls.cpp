@@ -83,7 +83,7 @@ void AlloyWindow::showFillet() {
     form->addRow("Tangent Chain",new QLabel("On",panel));form->addRow("Continuity",new QLabel("Tangent (G1)",panel));form->addRow("Corner Type",new QLabel("Rolling Ball",panel));
     auto* status=new QLabel(panel);status->setObjectName("filletError");status->setWordWrap(true);form->addRow(status);
     auto updateGroups=[this,status](const QJsonArray& values){const auto response=execute("command.update",{{"session",session_["id"]},{"inputs",QJsonObject{{"groups",values}}}});
-        if(response["ok"].toBool())previewFillet();else status->setText(response["error"].toObject()["message"].toString());};
+        if(response["ok"].toBool())execute("command.preview",{{"session",session_.value("id")}});else status->setText(response["error"].toObject()["message"].toString());};
     connect(groups,&QListWidget::currentRowChanged,panel,[this](int index){if(index<0)return;session_["filletActiveGroupIndex"]=index;refreshFilletControls();});
     connect(add,&QPushButton::clicked,panel,[this,updateGroups]{auto values=filletGroups(session_["inputs"].toObject());
         if(values[0].toObject()["id"]=="legacy"){auto first=values[0].toObject();first["id"]=CadDocument::newId();values[0]=first;}
@@ -94,13 +94,13 @@ void AlloyWindow::showFillet() {
         values.removeAt(index);session_["filletActiveGroupIndex"]=std::min(index,int(values.size())-1);updateGroups(values);});
     connect(clear,&QPushButton::clicked,panel,[this,updateGroups]{if(!session_["inputs"].toObject().contains("groups")){
             const auto response=execute("command.update",{{"session",session_["id"]},{"inputs",QJsonObject{{"edgeIds",QJsonArray{}}}}});
-            if(response["ok"].toBool())previewFillet();return;}
+            if(response["ok"].toBool())execute("command.preview",{{"session",session_.value("id")}});return;}
         auto values=filletGroups(session_["inputs"].toObject());
         if(values.isEmpty())return;const int index=std::clamp(session_["filletActiveGroupIndex"].toInt(),0,int(values.size())-1);
         auto group=values[index].toObject();group["edgeIds"]=QJsonArray{};values[index]=group;updateGroups(values);});
     connect(radius,&QDoubleSpinBox::valueChanged,panel,[this,updateGroups](double value){if(!session_["inputs"].toObject().contains("groups")){
             const auto response=execute("command.update",{{"session",session_["id"]},{"inputs",QJsonObject{{"radiusMm",value}}}});
-            if(response["ok"].toBool())previewFillet();return;}
+            if(response["ok"].toBool())execute("command.preview",{{"session",session_.value("id")}});return;}
         auto values=filletGroups(session_["inputs"].toObject());
         if(values.isEmpty())return;const int index=std::clamp(session_["filletActiveGroupIndex"].toInt(),0,int(values.size())-1);
         auto group=values[index].toObject();group["radiusMm"]=value;values[index]=group;updateGroups(values);});

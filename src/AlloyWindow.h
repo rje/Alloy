@@ -490,6 +490,9 @@ private:
     QWidget* navigation_ = nullptr;
     QTreeWidget* tree_ = nullptr;
     QLabel* status_ = nullptr;
+    bool geometryBusyActive_ = false;
+    QJsonObject lastGeometryWork_;
+    QString geometryWorkLabel(const QString& command,const QJsonObject& args) const;
     QDialog* search_ = nullptr;
     QDialog* unitsDialog_ = nullptr;
     QPointer<QDialog> lengthParametersDialog_;

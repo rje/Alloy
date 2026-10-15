@@ -8,6 +8,11 @@ Combine Join/Cut/Intersect, ordered recompute,
 geometry inspection, undo/redo and native save/open use the same authoritative
 path as the UI.
 
+Selected synchronous geometry commands show [busy feedback](validation/geometry-busy-feedback.md).
+`app.state.geometryWork.last` records the command, elapsed milliseconds and success
+after completion. The GUI thread and API remain blocked during evaluation;
+`active` is not a remotely pollable progress feed and `cancellable` is false.
+
 ## Launch and discover
 
 ```sh

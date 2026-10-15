@@ -2,6 +2,13 @@
 
 ## Initial-build readiness priority (2026-10-14)
 
+REL-019/#440 adds pre-painted synchronous geometry-busy feedback and reliable
+cursor/status cleanup, including initial solid previews. A cheap real-app Box /
+Fillet-preview / refused-edit fixture passes 1/1; source and evidence passed
+independent kernel-agent review. See [receipt](validation/geometry-busy-feedback.md). This is
+honest wait feedback, not asynchronous evaluation or cancellation; REL-016 remains
+open for responsiveness.
+
 Active bounded work: NAV-016/#437 persisted named views (NAV-017/#438 Home and
 NAV-018/#439 preferences remain Todo); REL-019/#440 honest synchronous-geometry
 busy feedback; TUT-029/#441 final case-versus-imported-component clearance.

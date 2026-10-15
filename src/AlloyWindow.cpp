@@ -64,6 +64,8 @@
 #include <QStyledItemDelegate>
 #include <QTabBar>
 #include <QTimer>
+#include <QElapsedTimer>
+#include <QScopeGuard>
 #include <QCheckBox>
 #include <QRadioButton>
 #include <QTreeWidgetItemIterator>
@@ -5529,6 +5531,27 @@ QJsonArray AlloyWindow::commands() const {
     return result;
 }
 
+QString AlloyWindow::geometryWorkLabel(const QString& id,const QJsonObject& args) const {
+    // Synchronous evaluation and the three modeless launchers that immediately
+    // evaluate previews. Nested commands share their outer busy indication.
+    QString operation=id;
+    if(id=="solid.extrudeDialog" || id=="solid.combineDialog" || id=="solid.filletDialog")operation.chop(6);
+    else if(id=="command.begin" || id=="command.preview" || id=="command.update" || id=="command.commit"
+        || (id=="selection.pick" && session_.value("command")=="solid.fillet")) {
+        operation=id=="command.begin" ? args.value("command").toString() : session_.value("command").toString();
+        if(operation!="solid.extrude" && operation!="solid.combine" && operation!="solid.fillet")return {};
+    } else if(id!="solid.box" && id!="solid.extrude" && id!="solid.combine" && id!="solid.fillet"
+        && id!="feature.edit" && id!="feature.reorder" && id!="feature.delete"
+        && id!="sketch.finish" && id!="history.undo" && id!="history.redo" && id!="document.open")return {};
+    const auto* command=findCommand(operation);
+    QString label=command ? command->title : operation;
+    if(operation=="solid.extrude" || operation=="solid.combine") {
+        const auto kind=session_.value("inputs").toObject().value("operation").toString();
+        if(!kind.isEmpty())label+=" ("+kind+")";
+    }
+    return label;
+}
+
 QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
     GraphEvaluationScope graphScope(*this);
     const bool traceGraphSolves=qEnvironmentVariableIsSet("ALLOY_TRACE_ASSEMBLY_SOLVES")
@@ -5572,6 +5595,27 @@ QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
     QString field;
     const auto argumentError = validateArguments(*command, args, &field);
     if (!argumentError.isEmpty()) {if(id=="sketch.slotDrag")cancelSlotDrag();return finish(failure("invalid_arguments", argumentError, field));}
+    const auto busyLabel=geometryBusyActive_ ? QString{} : geometryWorkLabel(id,args);
+    const bool ownsBusy=!busyLabel.isEmpty();
+    QElapsedTimer busyTimer;
+    bool workSucceeded=false;
+    if(ownsBusy) {
+        geometryBusyActive_=true;busyTimer.start();
+        QApplication::setOverrideCursor(Qt::WaitCursor);
+        statusBar()->showMessage(QString("Computing %1… Input resumes when finished. Cancellation unavailable.").arg(busyLabel));
+        // Paint this small piece of chrome now. Do not pump events: queued
+        // modeling input and socket requests must not reenter evaluation.
+        statusBar()->repaint();
+    }
+    const auto busyCleanup=qScopeGuard([&] {
+        if(!ownsBusy)return;
+        const auto elapsed=busyTimer.elapsed();
+        geometryBusyActive_=false;
+        lastGeometryWork_={{"command",id},{"label",busyLabel},{"elapsedMs",elapsed},{"succeeded",workSucceeded}};
+        QApplication::restoreOverrideCursor();
+        statusBar()->showMessage(QString("%1 %2 in %3 s").arg(busyLabel,
+            workSucceeded ? "finished" : "did not complete").arg(elapsed/1000.0,0,'f',1),4000);
+    });
     QJsonObject result;
     const auto priorDocumentRevision=document_->revision();
     // A rejected constraint attempt can still change the active tool, pending
@@ -5594,6 +5638,7 @@ QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
     if(traceGraphSolves)qInfo().noquote()<<"assembly_preview_solves"<<id
         <<QString("command=%1").arg(afterCommandSolves-initialGraphSolves)
         <<QString("refresh=%1").arg(AssemblyGraph::solveCount()-afterCommandSolves);
+    workSucceeded=true;
     return finish({{"ok", true}, {"completion", "completed"}, {"command", id}, {"revision", static_cast<qint64>(revision_)},
         {"documentRevision", static_cast<qint64>(document_->revision())}, {"result", result}});
 }
@@ -5689,6 +5734,7 @@ QJsonObject AlloyWindow::state() const {
         {"revision", static_cast<qint64>(revision_)},
         {"identity", identity()}, {"activeSession", session_}, {"sectionEdit",sectionEdit_}, {"pendingReferencePosition",pendingReference_}, {"assembly",presentationAssembly()}, {"documentTabs",documentTabs()},
         {"inlineEditor",inlineEditorState()},
+        {"geometryWork",QJsonObject{{"active",geometryBusyActive_},{"cancellable",false},{"last",lastGeometryWork_}}},
         {"focus",QJsonObject{{"widgetClass",QApplication::focusWidget() ? QApplication::focusWidget()->metaObject()->className() : ""},
             {"widgetName",QApplication::focusWidget() ? QApplication::focusWidget()->objectName() : QString{}},
             {"viewport",QApplication::focusWidget()==view_},
