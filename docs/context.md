@@ -15,10 +15,14 @@ refusal pass focused Qt checks and Astra review. See
 [receipt](validation/navigation-named-views.md). NAV-017/#438 saved/reset Home
 is accepted at `6e38eb6` with metadata history, save/reopen and focused Qt/GPU
 evidence. See [receipt](validation/navigation-home-saved.md). NAV-018/#439
-application navigation preferences is active; NAV-019/#443 retains configurable
-Front/Top/up conventions. NAV-020/#444 addresses the user-reported cube
-perspective skew using per-object orthographic persistence; model projection
-and cube orientation/picking must remain correct.
+application navigation preferences is accepted at `049b0d5`: all three alternate
+mouse chords, isolated settings restart/reset and unchanged history pass Qt
+checks; interruption fixes are source-reviewed and compiled. See
+[receipt](validation/navigation-input-presets.md). NAV-019/#443 configurable
+Front/Top/up conventions is next. NAV-020/#444 is accepted at `53507a1`: the
+cube remains orthographic under perspective model projection; matched GPU
+captures and actual cube picking pass. See
+[receipt](validation/navigation-cube-projection.md). The normal app is relinked.
 REL-019/#440 is accepted at `6ad76be`; REL-016 remains open.
 
 TUT-029/#441 diagnostic completed at `636c8b5`: final case/reference intersection

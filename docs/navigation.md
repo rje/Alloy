@@ -26,6 +26,7 @@ menu to return it to the visible-scene center.
 
 ## Orientation cube and standard views
 
+The cube stays orthographic even when the model uses perspective.
 Click a labeled face to look squarely at that side; click an edge or corner for an
 angled view. Drag the cube to orbit. The cube's **Home** control restores the
 saved Home view. Four adjacent-view and two face-roll controls appear beside the
@@ -74,8 +75,12 @@ changes; restoring a view changes only the live camera.
 The visible tools provide pan, zoom and orbit routes for people without a middle
 mouse button. Physical Mac trackpad gestures, other platform input and broader
 native-device delivery remain unqualified. Application navigation preferences
-are the upcoming NAV-018 work; this guide does not describe alternate mouse
-presets.
+are available under **File → Navigation Controls**. The **Shift+Alt** preset
+uses Shift+Alt with right-drag to zoom, middle-drag to pan, and left-drag to
+orbit. On macOS Alt is Option. This preset still needs a middle button for pan;
+use the visible tools if you do not have one. **Reset Navigation Controls**
+restores the default bindings. The preference is saved for the application,
+independently of documents and their undo history.
 
 These controls have focused Qt/GPU evidence in the [navigation receipts](validation/free-orbit-navigation.md),
 [projection receipt](validation/navigation-projection.md),

@@ -59,7 +59,7 @@
       ],
       "acceptance": "Familiar navigation controls, no-middle-button route and reproducible dependencies.",
       "status": "todo",
-      "remaining": "Projection, named views and saved Home accepted. NAV-018 application presets active; NAV-019 configurable conventions, platform input and runtime gates remain open."
+      "remaining": "Projection, orthographic cube, named views, saved Home and application presets accepted. NAV-019 configurable conventions active; platform input and runtime gates remain open."
     },
     {
       "id": "READY-04",
