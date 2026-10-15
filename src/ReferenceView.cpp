@@ -686,7 +686,10 @@ void ReferenceView::initialize() {
         viewCube_->SetBoxSideLabel(V3d_Ypos,"BACK");
         viewCube_->SetBoxSideLabel(V3d_Zpos,"TOP");
         viewCube_->SetBoxSideLabel(V3d_Zneg,"BOTTOM");
-        viewCube_->SetTransformPersistence(new Graphic3d_TransformPers(Graphic3d_TMF_TriedronPers,
+        // Keep the cube fixed to the viewport and orthographic even when the
+        // model camera uses perspective projection.
+        viewCube_->SetTransformPersistence(new Graphic3d_TransformPers(
+            Graphic3d_TMF_TriedronPers | Graphic3d_TMF_OrthoPers,
             Aspect_TOTP_RIGHT_UPPER,Graphic3d_Vec2i(85,85)));
         viewCube_->SetZLayer(Graphic3d_ZLayerId_Topmost);
         context_->Display(viewCube_,false);

@@ -8,6 +8,7 @@
 #include <QMenu>
 #include <QTest>
 #include <QToolButton>
+#include <algorithm>
 #include <cmath>
 
 class NavigationProjectionControls final : public QObject {
@@ -19,6 +20,10 @@ class NavigationProjectionControls final : public QObject {
     }
     static QJsonObject camera(AlloyWindow& window) {
         return window.state().value("viewport").toObject().value("navigation").toObject();
+    }
+    static QJsonObject gpuCamera(AlloyWindow& window) {
+        return window.state().value("viewport").toObject().value("gpu").toObject()
+            .value("camera").toObject();
     }
     static QJsonValue actualProjection(AlloyWindow& window) {
         return window.state().value("viewport").toObject().value("gpu").toObject()
@@ -33,6 +38,10 @@ private slots:
         auto* menuButton=window.findChild<QToolButton*>("view.projection.menuButton");
         auto* menu=window.findChild<QMenu*>("view.projection.menu");
         QVERIFY(menuButton && menu && menuButton->isVisible());
+        ReferenceView* viewport=nullptr;
+        for(auto* child:window.findChildren<QWidget*>())
+            if(auto* candidate=dynamic_cast<ReferenceView*>(child))viewport=candidate;
+        QVERIFY(viewport);
         call(window,"solid.box",{{"width",40},{"depth",27},{"height",19},{"units","mm"}});
         const auto body=call(window,"document.inspect").value("evaluation").toObject().value("bodies").toArray().first().toObject();
         const auto bodyId=body.value("bodyId").toString();QVERIFY(!bodyId.isEmpty());
@@ -48,9 +57,18 @@ private slots:
         const auto authored=call(window,"document.inspect").value("authored");
         const auto undo=call(window,"document.inspect").value("undo");
         const auto original=camera(window);
+        const auto originalGpu=gpuCamera(window);
         QCOMPARE(original.value("projectionPolicy"),QJsonValue("orthographic"));
         QCOMPARE(original.value("resolvedProjection"),QJsonValue("orthographic"));
         QCOMPARE(actualProjection(window),QJsonValue("orthographic"));
+        QPoint cubeFacePoint(-1,-1);QString cubeFaceRegion;
+        for(int y=2;y<std::min(viewport->height(),180)&&cubeFacePoint.x()<0;y+=3)
+            for(int x=std::max(0,viewport->width()-180);x<viewport->width()&&cubeFacePoint.x()<0;x+=3) {
+                const auto hit=viewport->cubeHit(x,y);
+                if(hit.value("kind")=="face") {cubeFacePoint=QPoint(x,y);cubeFaceRegion=hit.value("region").toString();}
+            }
+        QVERIFY(cubeFacePoint.x()>=0);QVERIFY(!cubeFaceRegion.isEmpty());
+        call(window,"capture.screenshot",{{"path",output+"/cube-orthographic.png"}});
         const auto pointBefore=call(window,"view.projectFacePoint",{{"support",support},{"uMm",8},{"vMm",7}});
 
         menu->popup(menuButton->mapToGlobal(QPoint(0,menuButton->height())));
@@ -75,6 +93,17 @@ private slots:
         QVERIFY(!picked.isEmpty());
         QCOMPARE(window.state().value("selection").toObject().value("support").toObject().value("bodyId"),QJsonValue(bodyId));
         QCOMPARE(window.state().value("selection").toObject().value("support").toObject().value("faceId"),top.value("faceId"));
+        QVERIFY(!originalGpu.value("direction").toArray().isEmpty());
+        QCOMPARE(gpuCamera(window).value("direction"),originalGpu.value("direction"));
+        QCOMPARE(gpuCamera(window).value("up"),originalGpu.value("up"));
+        QCOMPARE(viewport->cubeHit(cubeFacePoint.x(),cubeFacePoint.y()).value("region"),QJsonValue(cubeFaceRegion));
+        call(window,"capture.screenshot",{{"path",output+"/cube-perspective.png"}});
+        const auto perspectiveDirection=gpuCamera(window).value("direction");
+        const auto globalCubeFace=viewport->mapToGlobal(cubeFacePoint);
+        QCOMPARE(QApplication::widgetAt(globalCubeFace),static_cast<QWidget*>(viewport));
+        QTest::mouseClick(viewport,Qt::LeftButton,Qt::NoModifier,cubeFacePoint);
+        QVERIFY(gpuCamera(window).value("direction")!=perspectiveDirection);
+        call(window,"view.orientation",{{"name","isometric"}});
         call(window,"capture.screenshot",{{"path",output+"/perspective.png"}});
         call(window,"view.projection",{{"mode","hybrid"}});
         QCOMPARE(camera(window).value("resolvedProjection"),QJsonValue("perspective"));
