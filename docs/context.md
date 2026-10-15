@@ -14,6 +14,20 @@ for the driving10 mm circle location without an extra Point entity. See
 integration still depends on GEO-019/GEO-018. Complete the
 full recording, editable model and checked export before closing TUT-017.
 
+### Exact corner construction candidate
+
+Astra's external `geo019-strategy-01` now produces a valid one-solid candidate
+with all four exact R12/R16 round supports, no auxiliary cap supports and no
+material outside an equivalent normalized source. It constructs independent
+rolling-ball strips on exact extended ruled sidewalls, closes disposable corner
+cutters outside the original material, then uses a shared-support representation
+to avoid a demonstrated Boolean coincidence misclassification. Original trimmed
+geometry and volume are unchanged by that representation. This is saved-console
+feasibility, not an accepted product feature. Root reviewed the certification
+source/log; Sol is integrating a topology/provenance-bound fallback and retained
+identities. No fixture radii or transient face indices belong in product admission.
+GEO-019 remains active; perimeter, generated support/hole and final output remain.
+
 ## Timeline visual polish (2026-10-15)
 
 User-requested REL-025/#454 is independently accepted. The timeline now uses
@@ -49,8 +63,8 @@ do not repeat the unchanged failed fillet or iron boundary investigations.
 Astra's bounded saved-result finite-cap investigation is complete. Boundary
 mismatch up to 0.355 mm and sampled points outside the original solid rule out
 claiming a same-surface/wire orientation repair as exact recovery. No new
-Fillet run or product fallback followed. GEO-019/#352 returns to Todo pending
-a materially different kernel/input strategy; see the
+Fillet run or product fallback followed. That earlier investigation returned GEO-019/#352 to Todo; the new active
+construction candidate above supersedes that status. See the
 [diagnostic receipt](validation/shoehorn-corner-diagnostic.md).
 Current public source recheck confirms three spine points and 130/50/16
 dimensions but does not resolve interpolation/tangent conditions; see external
