@@ -1,4 +1,5 @@
 #include "RoundedLoopOffset.h"
+#include "PlanarBoundaryInset.h"
 #include <BRepOffsetAPI_MakeOffset.hxx>
 #include <BRepAlgoAPI_Common.hxx>
 #include <BRepBuilderAPI_MakeFace.hxx>
@@ -6,12 +7,14 @@
 #include <BRepGProp.hxx>
 #include <BRepBndLib.hxx>
 #include <BRepTools.hxx>
+#include <BRepTools_WireExplorer.hxx>
 #include <BRep_Builder.hxx>
 #include <BRepAdaptor_Curve.hxx>
 #include <GProp_GProps.hxx>
 #include <TopExp_Explorer.hxx>
 #include <TopoDS.hxx>
 #include <TopoDS_Compound.hxx>
+#include <TopExp.hxx>
 #include <QCryptographicHash>
 #include <QSet>
 #include <QUuid>
@@ -56,6 +59,23 @@ QString RoundedLoopOffset::outerLoopId(const EvaluatedSupportFace& support) {
     return QUuid::createUuidV5(QUuid(support.faceId),QByteArray("alloy-rounded-outer-loop/1\n")+names.join("\n").toUtf8()).toString(QUuid::WithoutBraces);
 }
 
+QString RoundedLoopOffset::insetLoopId(const EvaluatedSupportFace& support) {
+    if(support.face.IsNull() || QUuid(support.faceId).isNull() || count(support.face,TopAbs_WIRE)!=1)
+        fail("unsupported_inset_boundary","Select one retained planar face with a closed boundary");
+    const auto wire=BRepTools::OuterWire(support.face);
+    if(wire.IsNull() || !wire.Closed() || support.boundaryEdges.size()!=size_t(count(wire,TopAbs_EDGE)))
+        fail("ambiguous_inset_lineage","Inset source boundary does not have complete retained edges");
+    QSet<QString> identities;
+    for(const auto& edge:support.boundaryEdges) {
+        if(QUuid(edge.edgeId).isNull() || identities.contains(edge.edgeId))
+            fail("ambiguous_inset_lineage","Inset source edge identities are missing or repeated");
+        identities.insert(edge.edgeId);
+    }
+    auto names=identities.values();names.sort();
+    return QUuid::createUuidV5(QUuid(support.faceId),
+        QByteArray("alloy-planar-inset-loop/1\n")+names.join("\n").toUtf8()).toString(QUuid::WithoutBraces);
+}
+
 QString RoundedLoopOffset::validate(const QJsonObject& parameters) {
     if(!parameters.contains("loopOffsets"))return {};
     if(parameters["plane"]!="face" || !parameters["loopOffsets"].isArray() || parameters["loopOffsets"].toArray().size()!=1)
@@ -63,20 +83,85 @@ QString RoundedLoopOffset::validate(const QJsonObject& parameters) {
     for(const auto& key:{"points","entities","constraints","dimensions","texts","projections","pointReferences"})
         if(!parameters.value(key).toArray().isEmpty())return "Retained loop offset requires its own generated-only sketch";
     const auto object=parameters["loopOffsets"].toArray().first().toObject();
-    if(object.size()!=4 || QUuid(object["id"].toString()).isNull() || QUuid(object["outerLoopId"].toString()).isNull()
+    const bool inset=object.value("kind")=="planarInsetV1";
+    if(object.size()!=(inset?5:4) || (object.contains("kind") && !inset)
+        || QUuid(object["id"].toString()).isNull() || QUuid(object["outerLoopId"].toString()).isNull()
         || object["chain"]!=true || !object["distanceMm"].isDouble()
         || !std::isfinite(object["distanceMm"].toDouble()) || std::abs(object["distanceMm"].toDouble())<0.001
-        || std::abs(object["distanceMm"].toDouble())>100000)
+        || std::abs(object["distanceMm"].toDouble())>100000 || (inset && object["distanceMm"].toDouble()>0))
         return "Invalid retained closed-loop offset";
     return {};
 }
 
-EvaluatedSketch RoundedLoopOffset::evaluate(const QJsonObject& feature,const EvaluatedSupportFace& support) {
+EvaluatedSketch RoundedLoopOffset::evaluate(const QJsonObject& feature,const EvaluatedSupportFace& support,
+    const QJsonObject& resolvedFrame) {
     const auto p=feature["parameters"].toObject();const auto error=validate(p);
     if(!error.isEmpty())fail("invalid_loop_offset",error);
     if(p["support"].toObject()!=QJsonObject{{"producerFeatureId",support.producerFeatureId},{"bodyId",support.bodyId},{"faceId",support.faceId}})
         fail("support_unavailable","Loop offset support identity changed");
     const auto object=p["loopOffsets"].toArray().first().toObject();const auto id=object["id"].toString();
+    if(object.value("kind")=="planarInsetV1") {
+        if(object["outerLoopId"]!=insetLoopId(support))
+            fail("offset_lineage_unavailable","The retained inset source boundary changed");
+        if(resolvedFrame.isEmpty())fail("support_unavailable","Inset requires the current resolved sketch frame");
+        const auto inset=PlanarBoundaryInset::evaluate(support,-object["distanceMm"].toDouble(),id);
+        const auto wire=BRepTools::OuterWire(inset.face);
+        struct NamedEdge {TopoDS_Edge edge;QString id,type;QJsonObject ancestry;};
+        std::vector<NamedEdge> ordered;QSet<QString> matched;
+        for(BRepTools_WireExplorer it(wire,inset.face);it.More();it.Next()) {
+            const auto edge=TopoDS::Edge(it.Current());
+            const EvaluatedSupportEdge* found=nullptr;
+            for(const auto& derived:inset.boundaryEdges)if(derived.edge.IsSame(edge)) {
+                if(found)fail("ambiguous_inset_lineage","One inset edge has multiple retained identities");
+                found=&derived;
+            }
+            if(!found || matched.contains(found->edgeId))
+                fail("ambiguous_inset_lineage","Inset wire lost a unique generated edge identity");
+            matched.insert(found->edgeId);ordered.push_back({edge,found->edgeId,found->type,found->provenance});
+        }
+        if(ordered.size()<3 || ordered.size()!=inset.boundaryEdges.size())
+            fail("ambiguous_inset_lineage","Inset edge registry and closed wire differ");
+        std::vector<QString> contacts;contacts.reserve(ordered.size());
+        for(size_t i=0;i<ordered.size();++i) {
+            const auto& previous=ordered[(i+ordered.size()-1)%ordered.size()];
+            const auto& current=ordered[i];
+            if(!TopExp::LastVertex(previous.edge,true).IsSame(TopExp::FirstVertex(current.edge,true)))
+                fail("ambiguous_inset_lineage","Inset wire has a disconnected generated contact");
+            QStringList pair{previous.id,current.id};pair.sort();
+            contacts.push_back(QUuid::createUuidV5(QUuid(id),
+                QByteArray("alloy-planar-inset-contact/1\n")+pair.join("\n").toUtf8()).toString(QUuid::WithoutBraces));
+        }
+        const auto profileId=QUuid::createUuidV5(QUuid(id),"alloy-inset-interior/1").toString(QUuid::WithoutBraces);
+        EvaluatedProfile profile{profileId,feature["id"].toString(),"face",inset.face,{}, {}};
+        QJsonArray edges;
+        for(size_t i=0;i<ordered.size();++i) {
+            const auto& entry=ordered[i];const auto end=contacts[(i+1)%ordered.size()];
+            profile.boundaryEdges.push_back({feature["id"].toString(),entry.id,contacts[i],end,entry.type,entry.edge});
+            edges.append(QJsonObject{{"edgeId",entry.id},{"type",entry.type},{"startContact",contacts[i]},
+                {"endContact",end},{"ancestry",entry.ancestry}});
+        }
+        auto profileSummary=inset.summary;
+        profileSummary["profileId"]=profileId;profileSummary["sketchId"]=feature["id"];
+        profileSummary["plane"]="face";profileSummary["frame"]=resolvedFrame;
+        profileSummary["innerLoopCount"]=0;profileSummary["sourceLoopId"]=object["outerLoopId"];
+        profileSummary["offsetId"]=id;profileSummary["signedDistanceMm"]=object["distanceMm"];
+        profileSummary["boundaryEdges"]=edges;profile.summary=profileSummary;
+        TopoDS_Compound strokes;BRep_Builder builder;builder.MakeCompound(strokes);
+        builder.Add(strokes,BRepTools::OuterWire(support.face));builder.Add(strokes,wire);
+        Bnd_Box box;BRepBndLib::AddOptimal(strokes,box,false,false);
+        double x0,y0,z0,x1,y1,z1;box.Get(x0,y0,z0,x1,y1,z1);
+        QJsonObject summary{{"kernel","OCCT"},{"version",ALLOY_OCCT_VERSION},{"type","sketch"},{"valid",true},
+            {"plane","face"},{"frame",resolvedFrame},{"solverIntegrated",false},
+            {"solver",QJsonObject{{"status","retained generated inset"},{"dof",0}}},
+            {"entities",QJsonArray{}},{"entityCount",0},{"pointCount",0},
+            {"profiles",QJsonArray{profileSummary}},
+            {"profileDiagnostics",QJsonObject{{"code","closed_loop_inset"},{"profileCount",1}}},
+            {"loopOffsets",p["loopOffsets"]},
+            {"boundsMm",QJsonObject{{"min",QJsonArray{x0,y0,z0}},
+                {"max",QJsonArray{x1,y1,z1}},{"size",QJsonArray{x1-x0,y1-y0,z1-z0}}}}};
+        return {feature["id"].toString(),feature["name"].toString(),"face",feature["visible"].toBool(),
+            strokes,summary,{profile},resolvedFrame,feature["ownerId"].toString(),{}};
+    }
     if(object["outerLoopId"]!=outerLoopId(support))fail("offset_lineage_unavailable","The retained source outer loop changed");
     const auto sourceWire=BRepTools::OuterWire(support.face);
     if(sourceWire.IsNull() || count(support.face,TopAbs_WIRE)!=1 || count(sourceWire,TopAbs_EDGE)!=8)

@@ -895,7 +895,8 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
                     if(resolvedFrame.isEmpty())throw EvaluationError({{"code","plane_unavailable"},{"message","Sketch construction plane is unavailable"},{"featureId",id}});
                 }
                 if(parameters.contains("loopOffsets"))
-                    evaluated.sketches.push_back(RoundedLoopOffset::evaluate(feature,resolveSketchSupport(evaluated,parameters["support"].toObject())));
+                    evaluated.sketches.push_back(RoundedLoopOffset::evaluate(feature,
+                        resolveSketchSupport(evaluated,parameters["support"].toObject()),resolvedFrame));
                 else evaluated.sketches.push_back(SketchGeometry::evaluateFeature(feature,resolvedFrame,projectionContext(evaluated,feature)));
             } else if (type == "stepImport" || type == "stepAssemblyImport") {
                 const auto failStep=[&](const QString& code,const QString& message) {

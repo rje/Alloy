@@ -753,13 +753,16 @@ void ReferenceView::hoverSupportFace(const QJsonObject& support) {
 void ReferenceView::showSketchDraft(const EvaluatedSketch& sketch) {
     cancelSlotPointDrag();
     if(context_.IsNull())return;
+    const bool insetPresentation=sketch.summary.value("loopOffsets").toArray().size()==1
+        && sketch.summary.value("loopOffsets").toArray().first().toObject().value("kind")=="planarInsetV1";
     for(const auto& model:profileModels_)context_->Remove(model,false);profileModels_.clear();draftProfiles_=sketch.profiles;
     for(const auto& profile:sketch.profiles) {
         BRepMesh_IncrementalMesh mesh(profile.face,0.005,false,0.1,false);
         Handle(AIS_Shape) fill=new AIS_Shape(profile.face);fill->SetDisplayMode(AIS_Shaded);fill->Attributes()->SetAutoTriangulation(false);
         fill->Attributes()->SetShadingModel(Graphic3d_TypeOfShadingModel_Unlit,true);
         if(sketch.plane=="face")fill->SetZLayer(Graphic3d_ZLayerId_Topmost);
-        fill->SetColor(unselectedSketchProfileColor());fill->SetTransparency(0.58);
+        fill->SetColor(insetPresentation ? Quantity_Color(0.30,0.66,0.94,Quantity_TOC_sRGB)
+            : unselectedSketchProfileColor());fill->SetTransparency(insetPresentation ? 0.48 : 0.58);
         context_->Display(fill,AIS_Shaded,-1,false);context_->Deactivate(fill);profileModels_[profile.profileId]=fill;
     }
     if(!sketchDraft_.IsNull())context_->Remove(sketchDraft_,false);
@@ -782,7 +785,8 @@ void ReferenceView::showSketchDraft(const EvaluatedSketch& sketch) {
     if(!strokes.normal.IsNull()) {
         sketchDraft_=sketchPresentation(strokes.normal);
         if(sketch.plane=="face")sketchDraft_->SetZLayer(Graphic3d_ZLayerId_Topmost);
-        if(sketch.summary["solver"].toObject()["dof"].toInt(-1)==0)sketchDraft_->SetColor(Quantity_Color(0.12,0.14,0.16,Quantity_TOC_sRGB));
+        if(insetPresentation){sketchDraft_->SetColor(Quantity_Color(0.08,0.35,0.86,Quantity_TOC_sRGB));sketchDraft_->SetWidth(3.2*devicePixelRatioF());}
+        else if(sketch.summary["solver"].toObject()["dof"].toInt(-1)==0)sketchDraft_->SetColor(Quantity_Color(0.12,0.14,0.16,Quantity_TOC_sRGB));
         context_->Display(sketchDraft_,AIS_WireFrame,-1,false);context_->Deactivate(sketchDraft_);
     }
     if(!strokes.construction.IsNull()) {
@@ -1218,13 +1222,18 @@ void ReferenceView::setSketchAnnotationVisibility(bool showConstraints,bool show
 void ReferenceView::decorateSketch(const QJsonObject& feature,const QJsonObject& selection,const QJsonObject& diagnostics,const QString& units,const QJsonObject& pending) {
     decorationFeature_=feature;decorationSelection_=selection;decorationDiagnostics_=diagnostics;decorationUnits_=units;decorationPending_=pending;
     clearSketchDecorations();if(context_.IsNull())return;
+    const bool insetPresentation=std::any_of(draftProfiles_.begin(),draftProfiles_.end(),[](const auto& profile){
+        return profile.summary.contains("signedDistanceMm") && profile.summary.contains("sourceLoopId");});
     for(auto i=profileModels_.begin();i!=profileModels_.end();++i) {
-        i.value()->SetColor(selection.value("profileIds").toArray().contains(i.key()) ? Quantity_Color(0.17,0.48,0.90,Quantity_TOC_sRGB) : unselectedSketchProfileColor());
+        i.value()->SetColor(selection.value("profileIds").toArray().contains(i.key()) ? Quantity_Color(0.17,0.48,0.90,Quantity_TOC_sRGB)
+            : insetPresentation ? Quantity_Color(0.30,0.66,0.94,Quantity_TOC_sRGB) : unselectedSketchProfileColor());
         context_->Redisplay(i.value(),false);
     }
     const auto parameters=feature["parameters"].toObject();const auto plane=parameters["plane"].toString();
     const bool fullyConstrained=diagnostics["dof"].toInt(-1)==0;
-    if(!sketchDraft_.IsNull()){sketchDraft_->SetColor(fullyConstrained ? Quantity_Color(0.12,0.14,0.16,Quantity_TOC_sRGB) : Quantity_Color(0.10,0.34,0.84,Quantity_TOC_RGB));colorSolvedEntities(sketchDraft_,parameters["entities"].toArray(),diagnostics,0,projectedLines_);context_->Redisplay(sketchDraft_,false);}
+    if(!sketchDraft_.IsNull()){sketchDraft_->SetColor(insetPresentation ? Quantity_Color(0.08,0.35,0.86,Quantity_TOC_sRGB)
+        : fullyConstrained ? Quantity_Color(0.12,0.14,0.16,Quantity_TOC_sRGB) : Quantity_Color(0.10,0.34,0.84,Quantity_TOC_RGB));
+        colorSolvedEntities(sketchDraft_,parameters["entities"].toArray(),diagnostics,0,projectedLines_);context_->Redisplay(sketchDraft_,false);}
     if(!sketchConstructionDraft_.IsNull()){
         styleConstruction(sketchConstructionDraft_,false,fullyConstrained);
         colorSolvedEntities(sketchConstructionDraft_,parameters["entities"].toArray(),diagnostics,1,projectedLines_);context_->Redisplay(sketchConstructionDraft_,false);

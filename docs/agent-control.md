@@ -917,3 +917,16 @@ interior. A tied/overlapping nearest hit, missing intersection, unsupported
 curve or incompatible existing constraint refuses atomically. The tool remains
 active after a successful click; Enter exits it. Other curve types and general
 Extend remain under SKT-011.
+
+## Retained trimmed-face inset
+
+In a fresh sketch on a supported planar face, `sketch.tool {tool:"offset"}` and
+an actual support-boundary click enter the shared closed-loop preview. The
+same authority is available through `sketch.loopOffsetPreview` with the exact
+`outerLoopId`, `kind:"planarInsetV1"`, `chain:true`, and an inward negative
+`distance` in session units; `sketch.loopOffsetAccept` commits the valid
+preview, and `sketch.offsetCancel` or Escape discards it. This explicit kind
+produces one interior profile with retained edge/contact ancestry. A positive
+side refuses and clears any previous valid pending preview. Saved loop offsets
+without `kind` retain the earlier rounded-annulus meaning. See
+[the bounded cap receipt](validation/trimmed-seam-inset.md).

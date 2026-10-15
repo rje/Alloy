@@ -3251,10 +3251,11 @@ void AlloyWindow::registerCommands() {
             return publishSketchSolve(SketchGeometry::solveDraft(draft,session_.value("projectionContext").toObject()));
         });
     const QJsonObject loopInput{{"outerLoopId",optional(parameter("string","Stable selected support outer-loop identity."))},
+        {"kind",optional(parameter("string","Explicit retained inset variant for a trimmed support boundary."))},
         {"distance",optional(offsetDistance)},{"flip",optional(parameter("boolean","Reverse the signed side."))},
         {"chain",optional(parameter("boolean","Whole-loop Chain Selection must be checked."))},
         {"units",optional(units)},{"session",optionalSession}};
-    add("sketch.loopOffsetPreview","Preview Loop Offset","Preview one generated annulus from the actual named face outer boundary.",
+    add("sketch.loopOffsetPreview","Preview Loop Offset","Preview one retained annulus or trimmed-face interior inset.",
         loopInput,[this](const auto& a){return previewLoopOffset(a);});
     add("sketch.loopOffsetAccept","Accept Loop Offset","Commit the checked Chain Selection and signed offset as one sketch edit.",
         loopInput,[this](const auto& a){return acceptLoopOffset(a);});
@@ -3397,25 +3398,46 @@ void AlloyWindow::registerCommands() {
         if(tool=="conic")return conicPointer(a,true);
         if(tool=="fitSpline" || tool=="controlSpline" || tool=="insertFitPoint")return splinePointer(a,true);
         if(tool=="offset") {
-            if(session_.value("inputs").toObject()["plane"]=="face" && session_.value("draftSketch").toObject()["parameters"].toObject()["entities"].toArray().isEmpty() &&
-               session_.value("draftSketch").toObject()["parameters"].toObject()["projections"].toArray().isEmpty() &&
-               session_.value("draftSketch").toObject()["parameters"].toObject()["circleProjections"].toArray().isEmpty()) {
-                if(auto* chain=sketchOffsetControls_ ? sketchOffsetControls_->findChild<QCheckBox*>("sketch.offset.chain") : nullptr)
-                    if(!chain->isChecked())return failure("chain_required","Check Chain Selection to offset the whole rounded boundary");
+            const auto offsetDraft=session_.value("draftSketch").toObject();
+            const auto offsetParameters=offsetDraft.value("parameters").toObject();
+            if(session_.value("inputs").toObject()["plane"]=="face"
+                && offsetParameters.value("entities").toArray().isEmpty()
+                && offsetParameters.value("circleProjections").toArray().isEmpty()) {
                 const auto support=session_.value("inputs").toObject()["support"].toObject();
-                const auto hit=view_->pickSolidEdge(a["x"].toDouble(),a["y"].toDouble(),document_->bodies());
-                if(hit.isEmpty() || hit["bodyId"]!=support["bodyId"])
-                    return failure("source_required","Pick an actual edge of the named support face outer loop");
                 try {
                     const auto editId=session_.value("inputs").toObject().value("sketchId").toString();
                     const auto history=editId.isEmpty() ? document_->evaluation() : document_->evaluationBefore(editId);
                     const auto resolved=GeometryKernel::resolveSketchSupport(history,support);
+                    QJsonArray defaults;
+                    for(const auto& value:GeometryKernel::supportEdgeDescriptors(resolved)) {
+                        const auto edge=value.toObject();if(!edge.value("supported").toBool())continue;
+                        auto source=support;source["edgeId"]=edge.value("edgeId");
+                        const auto id=QUuid::createUuidV5(QUuid(offsetDraft.value("id").toString()),
+                            QByteArray("alloy-projection/1\n")+edge.value("edgeId").toString().toUtf8())
+                            .toString(QUuid::WithoutBraces);
+                        defaults.append(QJsonObject{{"id",id},{"source",source}});
+                    }
+                    if(offsetParameters.value("projections").toArray().isEmpty()
+                        || offsetParameters.value("projections").toArray()==defaults) {
+                    if(auto* chain=sketchOffsetControls_ ? sketchOffsetControls_->findChild<QCheckBox*>("sketch.offset.chain") : nullptr)
+                        if(!chain->isChecked())return failure("chain_required","Check Chain Selection to offset the whole support boundary");
+                    const auto hit=view_->pickSolidEdge(a["x"].toDouble(),a["y"].toDouble(),document_->bodies());
+                    if(hit.isEmpty() || hit["bodyId"]!=support["bodyId"])
+                        return failure("source_required","Pick an actual edge of the named support face outer loop");
                     bool onBoundary=false;
                     for(const auto& body:document_->bodies())if(body.bodyId==hit["bodyId"])
                         for(const auto& edge:body.solidEdges)if(edge.edgeId==hit["edgeId"])
                             for(const auto& boundary:resolved.boundaryEdges)if(edge.edge.IsSame(boundary.edge))onBoundary=true;
                     if(!onBoundary)return failure("source_required","Selected solid edge is not on the named top-face outer loop");
-                    return previewLoopOffset({{"outerLoopId",RoundedLoopOffset::outerLoopId(resolved)}});
+                    QString kind,loop;
+                    try {loop=RoundedLoopOffset::outerLoopId(resolved);}
+                    catch(const GeometryKernel::EvaluationError& error) {
+                        if(error.diagnostics().value("code")!="unsupported_offset_boundary")throw;
+                        kind="planarInsetV1";loop=RoundedLoopOffset::insetLoopId(resolved);
+                    }
+                    QJsonObject request{{"outerLoopId",loop}};if(!kind.isEmpty())request["kind"]=kind;
+                    return previewLoopOffset(request);
+                    }
                 } catch(const GeometryKernel::EvaluationError& error){return failure(error.diagnostics()["code"].toString(),QString::fromUtf8(error.what()));}
             }
             const auto picked=view_->pickSketch(session_.value("draftSketch").toObject(),a["x"].toDouble(),a["y"].toDouble(),"entity");
@@ -5958,17 +5980,23 @@ void AlloyWindow::refresh() {
             impact->setMinimumHeight(fillet.contains("previewDraft") ? impact->heightForWidth(impact->width()) : 0);
         }
         if(sketchOffsetControls_)sketchOffsetControls_->setVisible(tool=="offset");
+        const auto offsetParameters=draft["parameters"].toObject();
+        const auto offsetProjections=offsetParameters["projections"].toArray();
+        const bool faceBoundaryLoop=inputs["plane"]=="face" && offsetParameters["entities"].toArray().isEmpty()
+            && offsetParameters["circleProjections"].toArray().isEmpty()
+            && (offsetProjections.isEmpty() || (!session_.value("faceSupportAutoProjections").toArray().isEmpty()
+                && offsetProjections==session_.value("faceSupportAutoProjections").toArray()));
+        const bool insetPreview=session_.value("pendingLoopOffset").toObject().value("kind")=="planarInsetV1";
         if(tool=="offset" && sketchOffsetControls_){
-            const auto current= draft["parameters"].toObject();
-            const bool linkedCircles=!current["circleProjections"].toArray().isEmpty();
-            const bool projectedChain=!linkedCircles && !current["projections"].toArray().isEmpty();
-            const bool faceLoop=!linkedCircles && !projectedChain && inputs["plane"]=="face" && current["entities"].toArray().isEmpty();
+            const bool linkedCircles=!offsetParameters["circleProjections"].toArray().isEmpty();
+            const bool projectedChain=!linkedCircles && !faceBoundaryLoop && !offsetProjections.isEmpty();
             if(auto* title=sketchOffsetControls_->findChild<QLabel*>("sketch.offset.title"))
-                title->setText(linkedCircles ? "One Side · Select projected circle" : faceLoop ? "One Side · Select top-face boundary" :
+                title->setText(linkedCircles ? "One Side · Select projected circle" : insetPreview ? "One Side · Interior inset" :
+                    faceBoundaryLoop ? "One Side · Select support boundary" :
                     session_.value("pendingClosedRectOffset").toObject()["valid"].toBool() ? "One Side · Projected rectangle preview" :
                     projectedChain && inputs["plane"]=="construction" ? "One Side · Select projected rectangle" :
                     projectedChain ? "One Side · Select projected bottom chain and shoulders" : "One Side · Select circle or open fit spline");
-            if(auto* chain=sketchOffsetControls_->findChild<QCheckBox*>("sketch.offset.chain"))chain->setVisible(faceLoop||projectedChain);
+            if(auto* chain=sketchOffsetControls_->findChild<QCheckBox*>("sketch.offset.chain"))chain->setVisible(faceBoundaryLoop||projectedChain);
             if(linkedCircles && sketchOffsetDistance_ && !session_.contains("pendingOffset") && sketchOffsetDistance_->text()=="-0.25"){
                 const QSignalBlocker block(sketchOffsetDistance_);sketchOffsetDistance_->setText("1");
             }
@@ -6060,6 +6088,11 @@ void AlloyWindow::refresh() {
         else if(tool=="offset" && !draft["parameters"].toObject()["circleProjections"].toArray().isEmpty())
             prompt=session_.value("pendingOffset").toObject()["valid"].toBool() ?
                 "Linked circle · signed distance or Flip · OK accepts" : "Select one projected circle · Set clearance distance";
+        else if(tool=="offset" && faceBoundaryLoop)
+            prompt=session_.value("pendingLoopOffset").toObject()["valid"].toBool()
+                ? insetPreview ? "Interior inset preview · Signed distance · OK accepts · Escape cancels"
+                    : "Closed loop preview · Signed distance · OK accepts · Escape cancels"
+                : "Pick a support-face boundary edge · Chain Selection offsets the whole loop";
         else if(tool=="offset" && !draft["parameters"].toObject()["projections"].toArray().isEmpty())
             prompt=session_.value("pendingClosedRectOffset").toObject()["valid"].toBool() ?
                 "Projected rectangle · signed distance or Flip · OK accepts" :
@@ -6067,11 +6100,7 @@ void AlloyWindow::refresh() {
                 session_.value("pendingOpenChainOffset").toObject()["valid"].toBool() ?
                 "Five-line open chain · signed distance or Clearance name · OK accepts" :
                 "Pick lower projected chain, then both shoulders · leave original top unselected";
-        else if(tool=="offset")prompt=inputs["plane"]=="face" && draft["parameters"].toObject()["entities"].toArray().isEmpty()
-            ? session_.value("pendingLoopOffset").toObject()["valid"].toBool()
-                ? "Chain Selection checked · signed distance · OK accepts · Escape cancels"
-                : "Select a top-face boundary edge · Chain Selection offsets the whole loop"
-            : session_.value("pendingOffset").toObject()["valid"].toBool() || session_.value("pendingSplineOffset").toObject()["valid"].toBool() ?
+        else if(tool=="offset")prompt=session_.value("pendingOffset").toObject()["valid"].toBool() || session_.value("pendingSplineOffset").toObject()["valid"].toBool() ?
                 "One Side · Set signed distance or Flip · OK accepts" : "Select one circle or open fit spline · Set distance · Flip changes side";
         else if(tool=="fillet")prompt=fillet["sidePair"].toBool() || fillet["corners"].toArray().size()==2 ? "Enter the common radius, then press Enter" :
             fillet.contains("firstSideId") ? "Click the adjacent second side" :
@@ -7810,6 +7839,8 @@ QJsonObject AlloyWindow::beginSketch(const QString& plane,const QString& name,co
         {"tool",entryTool},{"selection",QJsonObject{{"pointIds",QJsonArray{}},{"entityIds",QJsonArray{}}}},{"solverDiagnostics",solved.diagnostics},
         {"previewed",false},{"baseDocumentRevision",static_cast<qint64>(document_->revision())},{"resolvedFrame",resolvedFrame},{"projectionContext",projectionContext},
         {"displayOptions",QJsonObject{{"showConstraints",true},{"showDimensions",true}}}};
+    if(plane=="face" && existing.isEmpty())
+        session_["faceSupportAutoProjections"]=draft["parameters"].toObject()["projections"].toArray();
     sketchHistory_={{draft,solved.diagnostics}};sketchHistoryIndex_=0;sketchHistoryGroup_.clear();updateSketchHistoryState();
     selectedBody_.clear();view_->clearPreview();view_->clearSketchDraft();displayedSketchDraft_={};
     selectedSketch_.clear();selectedProfile_.clear();selectedProfileIds_={};view_->selectProfile({},{});view_->setEditDisplay(draft["id"].toString(),dependentBodies(draft["id"].toString()));
@@ -8360,7 +8391,9 @@ EvaluatedSketch AlloyWindow::evaluateSketchDraft(const QJsonObject& draft) const
         return SketchGeometry::evaluateFeature(draft,session_.value("resolvedFrame").toObject(),session_.value("projectionContext").toObject());
     const auto editId=session_.value("inputs").toObject().value("sketchId").toString();
     const auto history=editId.isEmpty() ? document_->evaluation() : document_->evaluationBefore(editId);
-    return RoundedLoopOffset::evaluate(draft,GeometryKernel::resolveSketchSupport(history,draft["parameters"].toObject()["support"].toObject()));
+    return RoundedLoopOffset::evaluate(draft,
+        GeometryKernel::resolveSketchSupport(history,draft["parameters"].toObject()["support"].toObject()),
+        GeometryKernel::sketchFrame(history,draft));
 }
 
 QJsonObject AlloyWindow::previewLoopOffset(const QJsonObject& inputs) {
@@ -8369,30 +8402,54 @@ QJsonObject AlloyWindow::previewLoopOffset(const QJsonObject& inputs) {
     if(inputs.contains("session") && inputs["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
     if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))return failure("stale_session","Document changed; restart the sketch");
     const auto original=session_.value("draftSketch").toObject(),p=original["parameters"].toObject();
-    if(inputs.contains("chain") && !inputs["chain"].toBool())return failure("chain_required","Check Chain Selection for the whole closed boundary");
+    const auto rejectPending=[&](const QString& code,const QString& message) {
+        if(session_.contains("pendingLoopOffset")) {
+            session_.remove("pendingLoopOffset");
+            view_->showSketchDraft(evaluateSketchDraft(original));displayedSketchDraft_=original;
+        }
+        return failure(code,message);
+    };
+    if(inputs.contains("chain") && !inputs["chain"].toBool())
+        return rejectPending("chain_required","Check Chain Selection for the whole closed boundary");
     if(!p["entities"].toArray().isEmpty() || !p["points"].toArray().isEmpty() || !p["loopOffsets"].toArray().isEmpty())
-        return failure("unsupported_offset_sketch","Use an empty face sketch for one retained rounded-loop offset");
+        return rejectPending("unsupported_offset_sketch","Use an empty face sketch for one retained generated loop offset");
     auto pending=session_.value("pendingLoopOffset").toObject();
     const auto support=p["support"].toObject();
     try {
         const auto editId=session_.value("inputs").toObject().value("sketchId").toString();
         const auto history=editId.isEmpty() ? document_->evaluation() : document_->evaluationBefore(editId);
         const auto resolved=GeometryKernel::resolveSketchSupport(history,support);
-        const auto loop=RoundedLoopOffset::outerLoopId(resolved);
+        QString kind=inputs.value("kind").toString(pending.value("kind").toString());
+        QString loop;
+        if(kind.isEmpty() && !inputs.contains("kind")) {
+            try {loop=RoundedLoopOffset::outerLoopId(resolved);}
+            catch(const GeometryKernel::EvaluationError& error) {
+                if(error.diagnostics().value("code")!="unsupported_offset_boundary")throw;
+                kind="planarInsetV1";loop=RoundedLoopOffset::insetLoopId(resolved);
+            }
+        } else if(kind=="planarInsetV1")loop=RoundedLoopOffset::insetLoopId(resolved);
+        else return rejectPending("unsupported_offset_kind","Unknown retained loop offset variant");
         if(inputs.contains("outerLoopId") && inputs["outerLoopId"].toString()!=loop)
-            return failure("offset_lineage_unavailable","Selected boundary is not the retained outer loop");
-        if(!pending.isEmpty() && pending["outerLoopId"]!=loop)return failure("offset_lineage_unavailable","Selected loop changed during preview");
+            return rejectPending("offset_lineage_unavailable","Selected boundary is not the retained outer loop");
+        if(!pending.isEmpty() && (pending["outerLoopId"]!=loop || pending.value("kind").toString()!=kind))
+            return rejectPending("offset_lineage_unavailable","Selected loop or inset variant changed during preview");
         const auto units=inputs.value("units").toString(session_.value("inputs").toObject()["units"].toString());
         const double distance=inputs.contains("distance") ? CadDocument::millimeters(inputs["distance"].toDouble(),units)
-            : pending.value("distanceMm").toDouble(-1.5);
+            : pending.value("distanceMm").toDouble(kind=="planarInsetV1" ? -1.25 : -1.5);
         const double signedDistance=inputs.value("flip").toBool() ? -distance : distance;
+        if(kind=="planarInsetV1" && signedDistance>0)
+            return rejectPending("unsupported_inset_side","Trimmed planar inset requires an inward signed distance");
         pending={{"id",pending.value("id").toString(CadDocument::newId())},{"outerLoopId",loop},{"distanceMm",signedDistance},{"chain",true},{"valid",false}};
+        if(!kind.isEmpty())pending["kind"]=kind;
         auto candidate=original,parameters=p;parameters.remove("projections");parameters.remove("pointReferences");
-        parameters["loopOffsets"]=QJsonArray{QJsonObject{{"id",pending["id"]},{"outerLoopId",loop},{"distanceMm",signedDistance},{"chain",true}}};
+        QJsonObject authored{{"id",pending["id"]},{"outerLoopId",loop},{"distanceMm",signedDistance},{"chain",true}};
+        if(!kind.isEmpty())authored["kind"]=kind;
+        parameters["loopOffsets"]=QJsonArray{authored};
         candidate["parameters"]=parameters;
         const auto solved=SketchGeometry::solveDraft(candidate);
         if(!solved.ok)throw GeometryKernel::EvaluationError({{"code","invalid_loop_offset"},{"message",solved.error}});
-        const auto evaluated=RoundedLoopOffset::evaluate(solved.feature,resolved);
+        const auto evaluated=RoundedLoopOffset::evaluate(solved.feature,resolved,
+            GeometryKernel::sketchFrame(history,solved.feature));
         pending["valid"]=true;pending["previewDraft"]=solved.feature;pending["previewGeometry"]=evaluated.summary;
         session_["pendingLoopOffset"]=pending;view_->showSketchDraft(evaluated);displayedSketchDraft_=original;
         return {{"pendingLoopOffset",pending},{"sketchGeometry",evaluated.summary},{"authoredChange",false}};
@@ -8400,7 +8457,9 @@ QJsonObject AlloyWindow::previewLoopOffset(const QJsonObject& inputs) {
         pending["valid"]=false;pending["error"]=error.diagnostics();session_["pendingLoopOffset"]=pending;
         view_->showSketchDraft(evaluateSketchDraft(original));displayedSketchDraft_=original;
         return failure(error.diagnostics()["code"].toString(),QString::fromUtf8(error.what()));
-    } catch(const std::exception& error) {return failure("invalid_loop_offset",QString::fromUtf8(error.what()));}
+    } catch(const std::exception& error) {
+        return rejectPending("invalid_loop_offset",QString::fromUtf8(error.what()));
+    }
 }
 
 QJsonObject AlloyWindow::acceptLoopOffset(const QJsonObject& inputs) {
@@ -10474,10 +10533,13 @@ void AlloyWindow::showSketch() {
         sketchOffsetControls_=new QWidget;sketchOffsetControls_->setObjectName("sketch.offset.controls");
         auto* offsetLayout=new QVBoxLayout(sketchOffsetControls_);offsetLayout->setContentsMargins(0,0,0,0);
         const auto sketchParameters=session_.value("draftSketch").toObject()["parameters"].toObject();
-        const bool projectedChain=!sketchParameters["projections"].toArray().isEmpty() && sketchParameters["circleProjections"].toArray().isEmpty();
-        const bool faceLoop=inputs["plane"]=="face" && sketchParameters["entities"].toArray().isEmpty() && !projectedChain
-            && sketchParameters["circleProjections"].toArray().isEmpty();
-        auto* offsetTitle=new QLabel(faceLoop ? "One Side · Select top-face boundary" :
+        const auto initialProjections=sketchParameters["projections"].toArray();
+        const bool faceLoop=inputs["plane"]=="face" && sketchParameters["entities"].toArray().isEmpty()
+            && sketchParameters["circleProjections"].toArray().isEmpty()
+            && (initialProjections.isEmpty() || (!session_.value("faceSupportAutoProjections").toArray().isEmpty()
+                && initialProjections==session_.value("faceSupportAutoProjections").toArray()));
+        const bool projectedChain=!faceLoop && !initialProjections.isEmpty() && sketchParameters["circleProjections"].toArray().isEmpty();
+        auto* offsetTitle=new QLabel(faceLoop ? "One Side · Select support boundary" :
             projectedChain ? "One Side · Select projected bottom chain and shoulders" : "One Side · Select circle or open fit spline");
         offsetTitle->setObjectName("sketch.offset.title");offsetTitle->setWordWrap(true);
         offsetLayout->addWidget(offsetTitle);

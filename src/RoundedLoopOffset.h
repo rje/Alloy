@@ -6,6 +6,8 @@
 class RoundedLoopOffset final {
 public:
     static QString outerLoopId(const EvaluatedSupportFace& support);
+    static QString insetLoopId(const EvaluatedSupportFace& support);
     static QString validate(const QJsonObject& parameters);
-    static EvaluatedSketch evaluate(const QJsonObject& feature, const EvaluatedSupportFace& support);
+    static EvaluatedSketch evaluate(const QJsonObject& feature, const EvaluatedSupportFace& support,
+        const QJsonObject& resolvedFrame = {});
 };
