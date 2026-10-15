@@ -11,6 +11,9 @@
 #include <BRepGProp.hxx>
 #include <GProp_GProps.hxx>
 #include <BRep_Tool.hxx>
+#include <BRepTools.hxx>
+#include <GeomAPI_ProjectPointOnSurf.hxx>
+#include <Geom_Surface.hxx>
 #include <TopExp.hxx>
 #include <TopExp_Explorer.hxx>
 #include <TopTools_IndexedMapOfShape.hxx>
@@ -71,7 +74,85 @@ struct Section {
     std::vector<TopoDS_Edge> edges;
     TopoDS_Wire wire;
     gp_Pnt firstAuthoredStart,firstAuthoredEnd;
+    QString sourceBodyId,sourceProducerId,sourceFaceId,startPointId,endPointId;
+    std::vector<QJsonObject> edgeProvenance;
 };
+[[noreturn]] void boundaryReject(const QString& message){
+    throw GeometryKernel::EvaluationError({{"featureType","loft"},{"code","loft_boundary_unavailable"},{"message",message}});
+}
+const EvaluatedBody& boundaryBody(const EvaluatedDocument& prior,const QString& bodyId){
+    for(const auto& body:prior.bodies)if(body.bodyId==bodyId){
+        if(body.summary["type"]!="surface" || body.summary["topology"].toObject()["solids"].toInt()!=0 || !body.occurrenceId.isEmpty())
+            boundaryReject("Select an earlier local trimmed surface body");return body;
+    }boundaryReject("The selected surface body is no longer available");
+}
+QJsonObject boundaryReference(const EvaluatedDocument& prior,const QString& bodyId,const QString& edgeId){
+    const auto& body=boundaryBody(prior,bodyId);QJsonObject result;int matches=0;
+    for(const auto& face:body.supportFaces){
+        if(face.role!="surfaceTrim.outer" || face.provenance["region"]!="outside")continue;
+        const auto outer=BRepTools::OuterWire(face.face);
+        for(TopExp_Explorer it(face.face,TopAbs_WIRE);it.More();it.Next()){
+            if(it.Current().IsSame(outer))continue;
+            TopTools_IndexedMapOfShape edges;TopExp::MapShapes(it.Current(),TopAbs_EDGE,edges);
+            if(edges.Extent()!=2 || !it.Current().Closed() || !BRepCheck_Analyzer(it.Current()).IsValid())continue;
+            QJsonArray ids;bool selected=false;QString toolSketch,sourceFace;QSet<QString> tools;bool eligible=true;
+            for(int i=1;i<=edges.Extent();++i){const EvaluatedSolidEdge* named=nullptr;
+                for(const auto& edge:body.solidEdges)if(edge.edge.IsSame(edges(i))){if(named)boundaryReject("An inner edge has ambiguous retained identity");named=&edge;}
+                if(!named || named->provenance["role"]!="trimBoundary"
+                    || named->provenance["lineage"]!="splitterCutterIntersection"
+                    || named->provenance["generatorFeatureId"]!=face.producerFeatureId){eligible=false;break;}
+                const auto sketch=named->provenance["sourceSketchId"].toString(),ancestor=named->provenance["sourceFaceId"].toString();
+                if((!toolSketch.isEmpty() && toolSketch!=sketch) || (!sourceFace.isEmpty() && sourceFace!=ancestor)){eligible=false;break;}
+                toolSketch=sketch;sourceFace=ancestor;tools.insert(named->provenance["sourceEntityId"].toString());
+                if(named->edgeId==edgeId)selected=true;else ids.append(named->edgeId);
+            }
+            if(!selected || !eligible || tools.size()!=2 || ids.size()!=1 || toolSketch.isEmpty()
+                || sourceFace!=face.provenance["sourceFaceId"].toString())continue;
+            ids.prepend(edgeId);result={{"bodyId",bodyId},{"producerFeatureId",face.producerFeatureId},{"faceId",face.faceId},{"edgeIds",ids}};++matches;
+        }
+    }
+    if(matches!=1)boundaryReject("Select one ordinary edge of a unique retained two-edge inner Trim loop");return result;
+}
+Section boundarySection(const EvaluatedDocument& prior,const QJsonObject& reference){
+    const auto ids=reference["edgeIds"].toArray();
+    if(ids.size()!=2 || ids[0]==ids[1] || reference!=boundaryReference(prior,reference["bodyId"].toString(),ids[0].toString()))
+        boundaryReject("The retained Trim face or ordered inner-loop edges no longer resolve uniquely");
+    const auto& body=boundaryBody(prior,reference["bodyId"].toString());Section section;
+    section.sourceBodyId=body.bodyId;section.sourceProducerId=reference["producerFeatureId"].toString();
+    section.sourceFaceId=reference["faceId"].toString();
+    for(const auto& value:ids){const EvaluatedSolidEdge* named=nullptr;
+        for(const auto& edge:body.solidEdges)if(edge.edgeId==value.toString()){if(named)boundaryReject("Duplicate retained Trim edge ID");named=&edge;}
+        if(!named || BRep_Tool::Degenerated(named->edge))boundaryReject("A retained ordinary Trim boundary is unavailable");
+        const auto sketchId=named->provenance["sourceSketchId"].toString(),entityId=named->provenance["sourceEntityId"].toString();
+        const EvaluatedSketch* sketch=nullptr;for(const auto& candidate:prior.sketches)if(candidate.featureId==sketchId)sketch=&candidate;
+        QJsonObject entity;if(sketch)for(const auto& candidate:sketch->summary["entities"].toArray())if(candidate.toObject()["id"]==entityId)entity=candidate.toObject();
+        const auto pointIds=entity["pointIds"].toArray();
+        if(!sketch || entity["type"]!="fitSpline" || pointIds.size()<2 || entity["construction"].toBool())
+            boundaryReject("Trim loop requires retained fit-spline cutter endpoint ancestry");
+        auto point=[&](const QJsonValue& id){for(const auto& row:sketch->summary["worldPoints"].toArray()){
+            const auto p=row.toObject();const auto xyz=p["positionMm"].toArray();if(p["id"]==id && xyz.size()==3)return gp_Pnt(xyz[0].toDouble(),xyz[1].toDouble(),xyz[2].toDouble());
+        }boundaryReject("A retained cutter endpoint is unavailable");return gp_Pnt{};};
+        const auto normalValues=sketch->resolvedFrame["normal"].toArray();if(normalValues.size()!=3)boundaryReject("Cutter sketch normal unavailable");
+        gp_Vec normal(normalValues[0].toDouble(),normalValues[1].toDouble(),normalValues[2].toDouble());
+        if(normal.Magnitude()<1e-8)boundaryReject("Cutter sketch normal is degenerate");normal.Normalize();
+        auto projects=[&](const gp_Pnt& actual,const gp_Pnt& source){const gp_Vec d(source,actual);return (d-normal*d.Dot(normal)).Magnitude()<1e-6;};
+        auto edge=TopoDS::Edge(BRepBuilderAPI_Copy(named->edge,false,false).Shape());
+        const auto a=point(pointIds.first()),b=point(pointIds.last());
+        const bool direct=projects(startPoint(edge),a)&&projects(endPoint(edge),b);
+        const bool reversed=projects(endPoint(edge),a)&&projects(startPoint(edge),b);
+        if(direct==reversed)boundaryReject("Trim boundary endpoints need unique retained cutter projection contacts");
+        if(reversed)edge.Reverse();
+        section.sourceIds.append(named->edgeId);section.edges.push_back(edge);
+        section.edgeProvenance.push_back(named->provenance);
+        if(section.edges.size()==1){section.firstAuthoredStart=startPoint(edge);section.firstAuthoredEnd=endPoint(edge);
+            section.startPointId=pointIds.first().toString();section.endPointId=pointIds.last().toString();}
+    }
+    return section;
+}
+}
+
+QJsonObject SurfaceClosedLoft::boundaryReference(const EvaluatedDocument& prior,const QString& bodyId,const QString& edgeId){
+    return ::boundaryReference(prior,bodyId,edgeId);
 }
 
 EvaluatedBody SurfaceClosedLoft::evaluate(const QJsonObject& feature,const EvaluatedDocument& prior) {
@@ -86,6 +167,11 @@ EvaluatedBody SurfaceClosedLoft::evaluate(const QJsonObject& feature,const Evalu
     QSet<QString> sourceSketches;
     for(int index=0;index<3;++index) {
         auto& section=sections[index];const auto reference=references[index].toObject();
+        if(reference.contains("bodyId")){
+            if(index==1)reject("loft_section_unsupported","The middle section must be one full sketch ellipse");
+            try{section=boundarySection(prior,reference);}
+            catch(const GeometryKernel::EvaluationError& error){auto diagnostics=error.diagnostics();diagnostics["featureId"]=feature["id"];throw GeometryKernel::EvaluationError(diagnostics);}
+        } else {
         const auto sketchId=reference["sketchId"].toString();
         const auto ids=reference["entityIds"].toArray();
         if(sourceSketches.contains(sketchId))
@@ -110,7 +196,11 @@ EvaluatedBody SurfaceClosedLoft::evaluate(const QJsonObject& feature,const Evalu
             if(index==1 ? curve.GetType()!=GeomAbs_Ellipse || !curve.IsClosed()
                         : curve.GetType()!=GeomAbs_BSplineCurve || curve.IsClosed())
                 reject("loft_section_unsupported","The selected section curve has changed its required analytic type");
+            if(section.edges.empty() && index!=1){const auto pointIds=section.sketch->summary["entities"].toArray();
+                for(const auto& row:pointIds)if(row.toObject()["id"]==id){const auto points=row.toObject()["pointIds"].toArray();
+                    if(points.size()>=2){section.startPointId=points.first().toString();section.endPointId=points.last().toString();}break;}}
             section.sourceIds.append(id);section.edges.push_back(edge);
+        }
         }
         BRepBuilderAPI_MakeWire assembled;
         section.firstAuthoredStart=startPoint(section.edges[0]);
@@ -129,7 +219,7 @@ EvaluatedBody SurfaceClosedLoft::evaluate(const QJsonObject& feature,const Evalu
             reject("loft_wire_failed","OCCT could not assemble a valid closed section wire");
         section.wire=assembled.Wire();
         TopTools_IndexedMapOfShape assembledEdges;TopExp::MapShapes(section.wire,TopAbs_EDGE,assembledEdges);
-        if(assembledEdges.Extent()!=ids.size())reject("loft_wire_failed","Section wire edge count changed during assembly");
+        if(assembledEdges.Extent()!=int(section.edges.size()))reject("loft_wire_failed","Section wire edge count changed during assembly");
         // MakeWire may replace edge vertices. Rebind authored identities to the
         // assembled edges that ThruSections actually receives, never to copies.
         std::vector<TopoDS_Edge> rebound(section.edges.size());
@@ -145,6 +235,11 @@ EvaluatedBody SurfaceClosedLoft::evaluate(const QJsonObject& feature,const Evalu
             rebound[match]=current;
         }
         section.edges=std::move(rebound);
+    }
+    if(!sections[0].sourceBodyId.isEmpty() || !sections[2].sourceBodyId.isEmpty()){
+        if(sections[0].sourceBodyId.isEmpty() || sections[0].sourceBodyId!=sections[2].sourceBodyId
+            || sections[0].sourceProducerId!=sections[2].sourceProducerId || sections[0].sourceFaceId==sections[2].sourceFaceId)
+            reject("loft_section_unsupported","Use opposite retained inner loops from one Trim result");
     }
     BRepOffsetAPI_ThruSections loft(false,false,1e-6);
     loft.SetMutableInput(false);loft.CheckCompatibility(true);
@@ -168,10 +263,14 @@ EvaluatedBody SurfaceClosedLoft::evaluate(const QJsonObject& feature,const Evalu
         BRepAdaptor_Curve curve(edge);
         for(int sample=0;sample<=32;++sample) {
             const auto t=curve.FirstParameter()+(curve.LastParameter()-curve.FirstParameter())*sample/32.;
-            BRepExtrema_DistShapeShape distance(BRepBuilderAPI_MakeVertex(curve.Value(t)),body.shape);
-            distance.Perform();
-            if(!distance.IsDone())reject("loft_section_unresolved","OCCT could not verify a retained section on the result");
-            maxSectionDistance=std::max(maxSectionDistance,distance.Value());
+            double distance=std::numeric_limits<double>::infinity();
+            for(int face=1;face<=resultFaces.Extent();++face){
+                const auto support=TopoDS::Face(resultFaces(face));double u0,u1,v0,v1;BRepTools::UVBounds(support,u0,u1,v0,v1);
+                GeomAPI_ProjectPointOnSurf projected(curve.Value(t),BRep_Tool::Surface(support),u0,u1,v0,v1,1e-8);
+                if(projected.NbPoints()>0)distance=std::min(distance,projected.LowerDistance());
+            }
+            if(!std::isfinite(distance))reject("loft_section_unresolved","Cannot verify retained section against actual output supports");
+            maxSectionDistance=std::max(maxSectionDistance,distance);
         }
     }
     if(maxSectionDistance>1e-4)reject("loft_section_unresolved","A selected section no longer lies on the resulting surface");
@@ -185,6 +284,12 @@ EvaluatedBody SurfaceClosedLoft::evaluate(const QJsonObject& feature,const Evalu
     // Match exterior result edges by builder/curve identity when retained, or
     // unique bidirectional sampled correspondence after OCCT replacement. The
     // middle ellipse is intentionally not assigned a boundary identity.
+    auto sourceProvenance=[&](const Section& section,int source){
+        if(section.sketch)return QJsonObject{{"sourceSketchId",section.sketch->featureId},{"sourceEntityId",section.sourceIds[source]}};
+        return QJsonObject{{"sourceBodyId",section.sourceBodyId},{"sourceProducerFeatureId",section.sourceProducerId},
+            {"sourceFaceId",section.sourceFaceId},{"sourceEdgeId",section.sourceIds[source]},
+            {"trimAncestry",section.edgeProvenance[source]}};
+    };
     std::vector<QString> edgeIds(resultEdges.Extent()+1);
     std::vector<QJsonObject> edgeProvenance(resultEdges.Extent()+1);
     for(int sectionIndex:{0,2})for(int source=0;source<2;++source) {
@@ -200,8 +305,9 @@ EvaluatedBody SurfaceClosedLoft::evaluate(const QJsonObject& feature,const Evalu
         if(!match || !edgeIds[match].isEmpty())reject("loft_lineage_ambiguous","A source boundary lacks a unique result edge");
         const auto role=sectionIndex==0 ? "start" : "end";
         edgeIds[match]=stableId(body.featureId,QByteArray("edge/")+role+'/'+section.sourceIds[source].toUtf8());
-        edgeProvenance[match]={{"generatorFeatureId",body.featureId},{"sourceSketchId",section.sketch->featureId},
-            {"sourceEntityId",section.sourceIds[source]},{"role",role},{"lineage","assembledThruSections"}};
+        edgeProvenance[match]=sourceProvenance(section,source);
+        edgeProvenance[match]["generatorFeatureId"]=body.featureId;edgeProvenance[match]["role"]=role;
+        edgeProvenance[match]["lineage"]="assembledThruSections";
     }
     // The two remaining boundary seams correspond to the stable start/end of
     // the first authored spline. Refuse any topology requiring arbitrary edge
@@ -220,8 +326,10 @@ EvaluatedBody SurfaceClosedLoft::evaluate(const QJsonObject& feature,const Evalu
         if(!match)reject("loft_lineage_ambiguous","A section endpoint has no unique generated seam");
         const auto label=side==0 ? "start" : "end";
         edgeIds[match]=stableId(body.featureId,QByteArray("edge/seam/")+label+'/'+sections[0].sourceIds[0].toUtf8());
-        edgeProvenance[match]={{"generatorFeatureId",body.featureId},{"sourceSketchId",sections[0].sketch->featureId},
-            {"sourceEntityId",sections[0].sourceIds[0]},{"role",QString("seam.")+label},{"lineage","assembledThruSections"}};
+        edgeProvenance[match]=sourceProvenance(sections[0],0);
+        edgeProvenance[match]["generatorFeatureId"]=body.featureId;edgeProvenance[match]["role"]=QString("seam.")+label;
+        edgeProvenance[match]["sourcePointId"]=side==0 ? sections[0].startPointId : sections[0].endPointId;
+        edgeProvenance[match]["lineage"]="assembledThruSections";
     }
     for(int edgeIndex=1;edgeIndex<=resultEdges.Extent();++edgeIndex) {
         if(edgeIds[edgeIndex].isEmpty())reject("loft_lineage_ambiguous","A surface edge lacks retained source lineage");
@@ -230,9 +338,9 @@ EvaluatedBody SurfaceClosedLoft::evaluate(const QJsonObject& feature,const Evalu
     for(int source=0;source<2;++source) {
         EvaluatedSupportFace face{stableId(body.featureId,QByteArray("face/")+sections[0].sourceIds[source].toUtf8()),
             body.bodyId,body.featureId,"loft.closedSection",TopoDS::Face(resultFaces(faceIndices[source])),{}, {}};
-        face.provenance={{"generatorFeatureId",body.featureId},{"sourceSketchId",sections[0].sketch->featureId},
-            {"sourceEntityId",sections[0].sourceIds[source]},{"orderedSections",references},
-            {"lineage","assembledThruSections"}};
+        face.provenance=sourceProvenance(sections[0],source);
+        face.provenance["generatorFeatureId"]=body.featureId;face.provenance["orderedSections"]=references;
+        face.provenance["lineage"]="assembledThruSections";
         for(TopExp_Explorer edge(face.face,TopAbs_EDGE);edge.More();edge.Next()) {
             const auto resultIndex=resultEdges.FindIndex(edge.Current());
             if(resultIndex<1 || edgeIds[resultIndex].isEmpty())
@@ -242,8 +350,9 @@ EvaluatedBody SurfaceClosedLoft::evaluate(const QJsonObject& feature,const Evalu
         body.supportFaces.push_back(std::move(face));
     }
     body.summary["supportFaces"]=PlanarFaces::descriptors(body.supportFaces);
-    body.summary["operation"]="newComponent";body.summary["guideType"]="none";
+    body.summary["operation"]=parameters["operation"];body.summary["guideType"]="none";
     body.summary["sections"]=references;body.summary["maxSectionDistanceMm"]=maxSectionDistance;
+    body.summary["sectionContactCheck"]="33 samples per source against actual bounded output support surfaces";
     body.summary["interpolation"]=QJsonObject{{"kernel","OCCT ThruSections"},{"ruled",false},
         {"closed",false},{"compatibility",true},{"mutableInput",false}};
     return body;

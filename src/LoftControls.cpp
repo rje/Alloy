@@ -2,6 +2,7 @@
 #include "AlloyWindow.h"
 #include "ReferenceView.h"
 #include "SketchGeometry.h"
+#include "SurfaceClosedLoft.h"
 #include <QDockWidget>
 #include <QFormLayout>
 #include <QScrollArea>
@@ -18,6 +19,8 @@
 #include <QMap>
 #include <limits>
 namespace {
+bool surfaceInputs(const QJsonObject& inputs){return inputs.value("operation")=="newComponent"
+    || (inputs.value("operation")=="newBody" && inputs.value("guideType")=="none");}
 QJsonObject failure(const QString& code,const QString& message){return {{"ok",false},{"error",QJsonObject{{"code",code},{"message",message}}}};}
 }
 
@@ -38,7 +41,8 @@ QJsonObject AlloyWindow::beginLoft(const QJsonObject& overrides) {
         if(!found)return failure("stale_entity","Loft feature unavailable");
     } else if(!selectedProfile_.isEmpty())inputs["profiles"]=QJsonArray{QJsonObject{{"sketchId",selectedSketch_},{"profileId",selectedProfile_}}};
     for(auto it=overrides.begin();it!=overrides.end();++it)inputs[it.key()]=it.value();
-    if(inputs.value("operation")=="newComponent"){
+    if(surfaceInputs(inputs)){
+        inputs.remove("profiles");
         if(!inputs.contains("sections"))inputs["sections"]=inputs.value("guideType")=="none"
             ? QJsonArray{QJsonObject{},QJsonObject{},QJsonObject{}}
             : QJsonArray{QJsonObject{},QJsonObject{}};
@@ -53,7 +57,7 @@ QJsonObject AlloyWindow::beginLoft(const QJsonObject& overrides) {
     showLoft();previewLoft();view_->setFocus();return session_;
 }
 QJsonObject AlloyWindow::previewLoft() {
-    const auto inputs=session_["inputs"].toObject();const bool surface=inputs.value("operation")=="newComponent";
+    const auto inputs=session_["inputs"].toObject();const bool surface=surfaceInputs(inputs);
     const bool railMode=surface && inputs.value("guideType")=="rail";
     const bool closedMode=surface && inputs.value("guideType")=="none";
     view_->selectLoftProfiles(surface ? QJsonArray{} : inputs["profiles"].toArray());
@@ -82,7 +86,8 @@ QJsonObject AlloyWindow::previewLoft() {
                 : sections.size()>sectionIndex ? sections[sectionIndex].toObject() : QJsonObject{};
             QString sketchName;
             for(const auto& sketch:document_->sketches())if(sketch.featureId==ref["sketchId"]){sketchName=sketch.name;break;}
-            const auto count=ref.contains("entityIds") ? ref["entityIds"].toArray().size() : ref.isEmpty() ? 0 : 1;
+            const auto count=ref.contains("edgeIds") ? ref["edgeIds"].toArray().size()
+                : ref.contains("entityIds") ? ref["entityIds"].toArray().size() : ref.isEmpty() ? 0 : 1;
             button->setText(count==0?"Select":QString("%1 selected").arg(count));
             button->setToolTip(sketchName.isEmpty()?QString{}:sketchName);
             button->setChecked(session_["selectionRole"]==role);
@@ -91,10 +96,10 @@ QJsonObject AlloyWindow::previewLoft() {
     }
     if(session_["baseDocumentRevision"].toInteger()!=static_cast<qint64>(document_->revision()))return reject("stale_session","The document changed; cancel and restart Loft");
     if(surface){const auto sections=inputs["sections"].toArray();
-        if(closedMode){if(sections.size()!=3 || sections[0].toObject()["entityIds"].toArray().size()!=2
+        if(closedMode){if(sections.size()!=3 || (sections[0].toObject()["entityIds"].toArray().size()!=2 && sections[0].toObject()["edgeIds"].toArray().size()!=2)
             || sections[1].toObject()["entityIds"].toArray().size()!=1
-            || sections[2].toObject()["entityIds"].toArray().size()!=2)
-            return reject("selection_required","Select two closed-chain fit splines, one full ellipse, then two closed-chain fit splines");}
+            || (sections[2].toObject()["entityIds"].toArray().size()!=2 && sections[2].toObject()["edgeIds"].toArray().size()!=2))
+            return reject("selection_required","Select a closed two-curve section or inner Trim chain, one full ellipse, then the opposite section");}
         else if(railMode){if(sections.size()!=2 || sections[0].toObject()["entityIds"].toArray().size()!=1
             || sections[1].toObject()["entityIds"].toArray().size()!=2 || inputs["rail"].toObject().isEmpty())
             return reject("selection_required","Select one back arc, two lower lines or a mirrored fit-spline pair, then one rail");}
@@ -116,7 +121,7 @@ QJsonObject AlloyWindow::selectLoftProfile(const QString& sketchId,const QString
     if(!removed)next.append(QJsonObject{{"sketchId",sketchId},{"profileId",profileId}});inputs["profiles"]=next;session_["inputs"]=inputs;previewLoft();return {{"kind","profile"},{"sketchId",sketchId},{"profileId",profileId},{"profiles",next}};
 }
 QJsonObject AlloyWindow::selectLoftEntity(const QString& role,const QString& sketchId,const QString& entityId) {
-    if(session_.value("command")!="solid.loft" || session_.value("inputs").toObject().value("operation")!="newComponent")return failure("invalid_session","Start a surface Loft first");
+    if(session_.value("command")!="solid.loft" || !surfaceInputs(session_.value("inputs").toObject()))return failure("invalid_session","Start a surface Loft first");
     const auto guideType=session_["inputs"].toObject().value("guideType").toString("centerline");
     const auto railMode=guideType=="rail",closedMode=guideType=="none";
     if((closedMode && role!="section1" && role!="section2" && role!="section3")
@@ -168,6 +173,21 @@ QJsonObject AlloyWindow::selectLoftEntity(const QString& role,const QString& ske
     else session_["selectionRole"]=role;
     const auto preview=previewLoft();return {{"role",role},{"sketchId",sketchId},{"entityId",entityId},{"previewed",preview.value("previewed")}};
 }
+QJsonObject AlloyWindow::selectLoftBoundary(const QString& role,const QString& bodyId,const QString& edgeId){
+    const auto inputs=session_["inputs"].toObject();
+    if(session_.value("command")!="solid.loft" || !surfaceInputs(inputs) || inputs.value("guideType")!="none"
+        || (role!="section1" && role!="section3"))return failure("invalid_session","Choose an outer no-guide surface Loft section first");
+    const auto earlier=inputs.value("featureId").toString();
+    const auto stage=earlier.isEmpty() ? document_->evaluation() : document_->evaluationBefore(earlier);
+    QJsonObject ref;try{ref=SurfaceClosedLoft::boundaryReference(stage,bodyId,edgeId);}
+    catch(const GeometryKernel::EvaluationError& error){return failure("loft_boundary_unavailable",QString::fromUtf8(error.what()));}
+    bool visible=false;for(const auto& body:stage.bodies)if(body.bodyId==bodyId && body.visible)visible=true;
+    if(!visible)return failure("loft_boundary_unavailable","Select an ordinary edge of a visible earlier Trim body");
+    auto next=inputs;auto sections=next["sections"].toArray();if(sections.size()!=3)sections={QJsonObject{},QJsonObject{},QJsonObject{}};
+    sections[role=="section1" ? 0 : 2]=ref;next["sections"]=sections;session_["inputs"]=next;
+    session_["selectionRole"]=role=="section1" ? "section2" : "section3";
+    const auto preview=previewLoft();return {{"role",role},{"boundary",ref},{"previewed",preview.value("previewed")}};
+}
 QJsonObject AlloyWindow::pickLoft(double x,double y) {
     const auto role=session_.value("selectionRole").toString("section1");
     const bool closedMode=session_["inputs"].toObject().value("guideType")=="none";
@@ -176,6 +196,13 @@ QJsonObject AlloyWindow::pickLoft(double x,double y) {
         : role=="section1" ? "arc" : role=="section2" ? "line" : "fitSpline";
     const auto earlier=session_["inputs"].toObject().value("featureId").toString();
     const auto stage=earlier.isEmpty() ? document_->evaluation() : document_->evaluationBefore(earlier);
+    if(closedMode && role!="section2"){
+        const auto hit=view_->pickSolidEdge(x,y,stage.bodies);
+        if(!hit.isEmpty()){
+            if(hit.contains("occurrenceId"))return failure("loft_boundary_unavailable","Placed occurrence boundary references are outside this Loft mode");
+            return selectLoftBoundary(role,hit["bodyId"].toString(),hit["edgeId"].toString());
+        }
+    }
     QString sketchId,entityId;double nearest=7;bool ambiguous=false;
     for(const auto& sketch:stage.sketches)if(sketch.visible && sketch.ownerId==document_->authored()["documentId"].toString()) {
         auto source=SketchGeometry::findFeature(document_->authored(),sketch.featureId);
@@ -216,13 +243,16 @@ void AlloyWindow::showLoft() {
     form->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
     auto* name=new QLineEdit(session_["inputs"].toObject()["name"].toString(),panel);name->setObjectName("loftName");form->addRow("Name",name);
     connect(name,&QLineEdit::editingFinished,panel,[this,name]{auto inputs=session_["inputs"].toObject();inputs["name"]=name->text();session_["inputs"]=inputs;previewLoft();});
-    const bool surface=session_["inputs"].toObject().value("operation")=="newComponent";
-    auto* operation=new QComboBox(panel);operation->setObjectName("loftOperation");operation->addItem("New Body","newBody");operation->addItem("New Component","newComponent");operation->setCurrentIndex(surface?1:0);
-    operation->setEnabled(!session_["inputs"].toObject().contains("featureId") && !session_["surfaceOnly"].toBool());form->addRow("Operation",operation);
+    const bool surface=surfaceInputs(session_["inputs"].toObject());
+    auto* operation=new QComboBox(panel);operation->setObjectName("loftOperation");operation->addItem("New Body","newBody");operation->addItem("New Component","newComponent");operation->setCurrentIndex(session_["inputs"].toObject().value("operation")=="newComponent"?1:0);
+    operation->setEnabled(!session_["inputs"].toObject().contains("featureId")
+        && (!session_["surfaceOnly"].toBool() || session_["inputs"].toObject().value("guideType")=="none"));form->addRow("Operation",operation);
     connect(operation,qOverload<int>(&QComboBox::currentIndexChanged),panel,[this,operation](int index){
         auto inputs=session_["inputs"].toObject();if(inputs.contains("featureId"))return;
         const auto choice=operation->itemData(index).toString();inputs["operation"]=choice;
-        if(choice=="newComponent"){
+        if(inputs.value("guideType")=="none" && surfaceInputs(session_["inputs"].toObject())){
+            inputs.remove("profiles");if(!inputs.contains("componentName"))inputs["componentName"]="Component";
+        } else if(choice=="newComponent"){
             inputs.remove("profiles");inputs["sections"]=QJsonArray{QJsonObject{},QJsonObject{}};inputs["componentName"]="Component";
             session_["selectionRole"]="section1";
         } else {inputs.remove("sections");inputs.remove("centerline");inputs.remove("rail");inputs.remove("guideType");inputs.remove("componentName");inputs["profiles"]=QJsonArray{};}
@@ -240,6 +270,7 @@ void AlloyWindow::showLoft() {
             auto inputs=session_["inputs"].toObject();if(inputs.contains("featureId"))return;
             const auto choice=guideType->itemData(index).toString();
             inputs["guideType"]=choice;inputs.remove("centerline");inputs.remove("rail");
+            if(choice!="none" && inputs.value("operation")=="newBody")inputs["operation"]="newComponent";
             inputs["sections"]=choice=="none" ? QJsonArray{QJsonObject{},QJsonObject{},QJsonObject{}}
                 : QJsonArray{QJsonObject{},QJsonObject{}};
             session_["inputs"]=inputs;session_["selectionRole"]="section1";
@@ -247,7 +278,8 @@ void AlloyWindow::showLoft() {
         });
         auto* component=new QLineEdit(session_["inputs"].toObject()["componentName"].toString(),panel);
         component->setObjectName("loftComponentName");component->setEnabled(!session_["inputs"].toObject().contains("featureId"));
-        form->addRow("Component",component);
+        if(session_["inputs"].toObject().value("operation")=="newComponent")form->addRow("Component",component);
+        else component->hide();
         connect(component,&QLineEdit::editingFinished,panel,[this,component]{auto inputs=session_["inputs"].toObject();inputs["componentName"]=component->text();session_["inputs"]=inputs;previewLoft();});
         for(const auto& role:(closedMode ? QStringList{"section1","section2","section3"}
             : QStringList{"section1","section2",railMode ? "rail" : "centerline"})) {
@@ -260,11 +292,12 @@ void AlloyWindow::showLoft() {
             connect(button,&QPushButton::clicked,panel,[this,role]{execute("solid.loftSelection",{{"role",role}});previewLoft();});
         }
         auto* help=new QLabel(closedMode
-            ? "Select two fit splines that close the first section, one full ellipse, then two fit splines that close the last section. The three sketches produce one open sheet without a rail."
+            ? "Select a closed two-spline section or an inner Trim boundary chain, one full sketch ellipse, then the opposite section. Chain Selection collects both inner edges. No rails; the Loft sequence stays open."
             : railMode
             ? "Select the back arc, then two lower lines or a retained mirrored fit-spline pair, and the rail. Lines use endpoint contacts; mirrored splines use an interior back contact and common tip."
             : "Click an open arc, then an open line on the endpoint planes. Select the retained fit-spline Centerline. The result is one sheet face.",panel);
         help->setWordWrap(true);form->addRow(help);
+        if(closedMode)form->addRow("Chain Selection",new QLabel("On · inner boundary loop",panel));
         form->addRow("Closed",new QLabel("Off · surface",panel));
     } else {
         auto* list=new QListWidget(panel);list->setObjectName("loftProfiles");list->setMinimumHeight(100);form->addRow("Profiles",list);

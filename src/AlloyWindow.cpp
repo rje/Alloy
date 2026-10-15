@@ -2484,17 +2484,17 @@ void AlloyWindow::registerCommands() {
         const auto drag=view_->revolvePointerAngle(a["x"].toDouble(),a["y"].toDouble(),a["phase"].toString());if(drag.isEmpty())return failure("angular_control_unavailable","Choose a profile/axis and rotate the view until its angular ring is visible");
         const auto update=execute("command.update",{{"session",session_["id"]},{"inputs",QJsonObject{{"extent","partial"},{"angleDeg",drag["angleDeg"]}}}});if(!update["ok"].toBool())return update;session_.remove("angularDragError");session_["angularDrag"]=drag;return previewRevolve();
     });
-    auto loftOperation=parameter("string","New Body circular solid or New Component guided open surface.");loftOperation["enum"]=QJsonArray{"newBody","newComponent"};
+    auto loftOperation=parameter("string","New Body circular solid or no-guide surface; New Component surface.");loftOperation["enum"]=QJsonArray{"newBody","newComponent"};
     auto loftGuideType=parameter("string","Centerline or Rail for guided open sections; None for the bounded three closed-section surface.");
     loftGuideType["enum"]=QJsonArray{"centerline","rail","none"};
     QJsonObject loftSchema{{"profiles",optional(parameter("array","Ordered distinct {sketchId,profileId} circular section references."))},
-        {"sections",optional(parameter("array","Ordered retained section references. None uses separate two-fit-spline, full-ellipse, two-fit-spline sketches."))},
+        {"sections",optional(parameter("array","Ordered retained section references. None: closed two-spline sketch or {bodyId,producerFeatureId,faceId,edgeIds:[two Trim edges]}, middle full sketch ellipse, opposite section."))},
         {"centerline",optional(parameter("object","One retained {sketchId,entityId} fit-point spline guide."))},
         {"rail",optional(parameter("object","One retained {sketchId,entityId} fit-point spline meeting both section endpoints."))},
         {"guideType",optional(loftGuideType)},
         {"operation",optional(loftOperation)},{"componentName",optional(parameter("string","New surface component name."))},
         {"featureId",optional(featureId)},{"name",optional(parameter("string","Loft feature name."))}};
-    add("solid.loft","Loft","Circular New Body solid; guided open surfaces; or the bounded three-closed-section no-rail New Component sheet.",loftSchema,[this](const auto& a){
+    add("solid.loft","Loft","Circular New Body solid; guided surfaces; or the bounded three-section no-rail New Body/New Component sheet.",loftSchema,[this](const auto& a){
         QJsonObject candidate;try{candidate=loftCandidate(a);}catch(const std::exception& e){return failure("invalid_arguments",QString::fromUtf8(e.what()));}
         const auto error=document_->commit(candidate,"Loft");if(!error.isEmpty()){auto r=failure("evaluation_failed",error);auto details=r["error"].toObject();details["diagnostics"]=document_->lastEvaluationError();r["error"]=details;return r;}return document_->state();
     });
@@ -2510,9 +2510,12 @@ void AlloyWindow::registerCommands() {
         return QJsonObject{{"tab",designTab_},{"activeSessionPreserved",true}};
     });
     add("solid.loftDialog","Loft","Select ordered sections and a Centerline for a surface, or circular regions for a solid.",loftSchema,[this](const auto& a){return beginLoft(a);});
-    add("surface.loftDialog","Loft","Choose a guided open-section sheet or a no-rail two-spline/ellipse/two-spline sheet; New Component only.",loftSchema,[this](const auto& a){
-        if(a.contains("operation") && a["operation"]!="newComponent")return failure("invalid_arguments","Surface Loft requires New Component","operation");
-        auto inputs=a;inputs["operation"]="newComponent";const auto result=beginLoft(inputs);if(result.contains("error"))return result;
+    add("surface.loftDialog","Loft","Guided New Component sheet, or no-guide three-section New Body/New Component sheet with sketch or inner Trim boundary sections.",loftSchema,[this](const auto& a){
+        auto inputs=a;if(!inputs.contains("operation"))inputs["operation"]="newComponent";
+        if(inputs["operation"]=="newBody" && !inputs.contains("guideType"))inputs["guideType"]="none";
+        if(inputs["operation"]!="newComponent" && !(inputs["operation"]=="newBody" && inputs["guideType"]=="none"))
+            return failure("invalid_arguments","Surface New Body requires three sections and no guide","operation");
+        const auto result=beginLoft(inputs);if(result.contains("error"))return result;
         if(session_["command"]=="solid.loft") {session_["surfaceOnly"]=true;showLoft();return session_;}return result;
     });
 
@@ -2588,7 +2591,8 @@ void AlloyWindow::registerCommands() {
     auto loftRole=parameter("string","Active native Loft selection role.");loftRole["enum"]=QJsonArray{"section1","section2","section3","centerline","rail"};
     add("solid.loftSelection","Select Loft input","Choose or clear a surface Loft section or Centerline picker.",
         {{"role",loftRole},{"clear",optional(parameter("boolean","Clear this retained reference."))}},[this](const auto& a){
-            if(session_.value("command")!="solid.loft" || session_.value("inputs").toObject().value("operation")!="newComponent")return failure("invalid_session","Start a surface Loft first");
+            if(session_.value("command")!="solid.loft" || (session_.value("inputs").toObject().value("operation")!="newComponent"
+                && session_.value("inputs").toObject().value("guideType")!="none"))return failure("invalid_session","Start a surface Loft first");
             const auto role=a["role"].toString();auto inputs=session_["inputs"].toObject();
             const auto mode=inputs.value("guideType").toString("centerline");
             const auto rail=mode=="rail",closed=mode=="none";
@@ -2607,6 +2611,11 @@ void AlloyWindow::registerCommands() {
     add("solid.loftEntity","Select Loft curve","Select a retained section arc, line, fit spline or ellipse through the same native picker authority.",
         {{"role",loftRole},{"sketchId",sketchIdentity},{"entityId",parameter("string","Retained sketch entity UUID.")}},[this](const auto& a){
             return selectLoftEntity(a["role"].toString(),a["sketchId"].toString(),a["entityId"].toString());
+        });
+    add("solid.loftBoundary","Select Loft boundary chain","Select one named inner Trim edge; Chain Selection retains its exact two-edge closed loop.",
+        {{"role",loftRole},{"bodyId",parameter("string","Earlier local trimmed surface body UUID.")},
+         {"edgeId",parameter("string","One ordinary retained inner Trim edge UUID.")}},[this](const auto& a){
+            return selectLoftBoundary(a["role"].toString(),a["bodyId"].toString(),a["edgeId"].toString());
         });
     auto thickAmount=parameter("number","Signed one-side thickness in millimeters, 0.001..1000 in magnitude.");
     thickAmount["minimum"]=-1000;thickAmount["maximum"]=1000;
@@ -5240,7 +5249,8 @@ void AlloyWindow::registerCommands() {
             auto response=execute("command.update",{{"session",session_["id"]},{"inputs",QJsonObject{{"targetBodyId",target},{"edgeIds",edges}}}});if(!response["ok"].toBool())return response;previewChamfer();return hit;
         }
         if(session_.value("command")=="solid.sweep")return pickSweep(a["x"].toDouble(),a["y"].toDouble());
-        if(session_.value("command")=="solid.loft" && session_.value("inputs").toObject().value("operation")=="newComponent")
+        if(session_.value("command")=="solid.loft" && (session_.value("inputs").toObject().value("operation")=="newComponent"
+            || session_.value("inputs").toObject().value("guideType")=="none"))
             return pickLoft(a["x"].toDouble(),a["y"].toDouble());
         if(session_.value("command")=="surface.extrude")return pickSurfaceExtrude(a["x"].toDouble(),a["y"].toDouble());
         if(session_.value("command")=="surface.trim")return pickSurfaceTrim(a["x"].toDouble(),a["y"].toDouble());
@@ -5444,7 +5454,8 @@ void AlloyWindow::registerCommands() {
             if(updates.contains("featureId") && updates["featureId"]!=session_["inputs"].toObject()["featureId"])return failure("invalid_arguments","Revolve edit identity cannot change");
             const auto error=validateArguments(*findCommand("solid.revolveDialog"),inputs);if(!error.isEmpty())return failure("invalid_arguments",error);
         } else if(target=="solid.loft") {
-            if(session_["surfaceOnly"].toBool() && inputs["operation"]!="newComponent")return failure("invalid_arguments","Surface Loft requires New Component","operation");
+            if(session_["surfaceOnly"].toBool() && inputs["operation"]!="newComponent"
+                && !(inputs["operation"]=="newBody" && inputs["guideType"]=="none"))return failure("invalid_arguments","Surface New Body requires no guide","operation");
             if(updates.contains("featureId") && updates["featureId"]!=session_["inputs"].toObject()["featureId"])return failure("invalid_arguments","Loft edit identity cannot change");
             const auto error=validateArguments(*findCommand(target),inputs);if(!error.isEmpty())return failure("invalid_arguments",error);
         } else if(target=="surface.extrude") {

@@ -281,6 +281,7 @@ private:
     QJsonObject previewLoft();
     QJsonObject selectLoftProfile(const QString& sketchId,const QString& profileId);
     QJsonObject selectLoftEntity(const QString& role,const QString& sketchId,const QString& entityId);
+    QJsonObject selectLoftBoundary(const QString& role,const QString& bodyId,const QString& edgeId);
     QJsonObject pickLoft(double x,double y);
     void showLoft();
     QDockWidget* loftDock_=nullptr;
