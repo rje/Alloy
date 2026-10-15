@@ -1,7 +1,7 @@
 {
   "repository": "rje/Alloy",
   "project_url": "https://github.com/users/rje/projects/1",
-  "updated": "2026-10-15T04:28:11.110897+00:00",
+  "updated": "2026-10-15T04:37:07.100019+00:00",
   "issues": {
     "NAV-012": {
       "number": 432,
@@ -2226,7 +2226,7 @@
     "SRF-018": {
       "number": 445,
       "url": "https://github.com/rje/Alloy/issues/445",
-      "state": "open"
+      "state": "closed"
     }
   }
 }
