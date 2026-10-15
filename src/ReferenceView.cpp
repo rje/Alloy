@@ -17,6 +17,8 @@
 #include <QMouseEvent>
 #include <QKeyEvent>
 #include <QWheelEvent>
+#include <QInputDevice>
+#include <QNativeGestureEvent>
 #include <QContextMenuEvent>
 #include <QMenu>
 #include <QApplication>
@@ -225,6 +227,7 @@ QJsonObject ReferenceView::cameraState() const {
     const auto pivot=customOrbitCenter_.value_or(sceneCenter_);
     state["orbitPivot"]=QJsonArray{pivot.X(),pivot.Y(),pivot.Z()};
     state["customOrbitCenter"]=customOrbitCenter_.has_value();
+    state["lastInput"]=lastNavigationInput_;
     if(customOrbitCenter_ && !view_.IsNull()) {
         int x,y;view_->Convert(pivot.X(),pivot.Y(),pivot.Z(),x,y);
         const auto scale=windowScale();state["pivotScreen"]=QJsonObject{{"x",x/scale.x()},{"y",y/scale.y()}};
@@ -241,6 +244,7 @@ void ReferenceView::restoreCameraState(const QJsonObject& state) {
     const auto viewCenter=state.value("viewCenter").toArray();
     viewCenter_=viewCenter.size()==3 ? gp_Pnt(viewCenter[0].toDouble(),viewCenter[1].toDouble(),viewCenter[2].toDouble()) : sceneCenter_;
     orbitMode_=state.value("orbitMode")=="constrained" ? "constrained" : "free";
+    lastNavigationInput_=state.value("lastInput").toObject();nativeGestureActive_=false;
     const auto pivot=state.value("orbitPivot").toArray();
     customOrbitCenter_=state.value("customOrbitCenter").toBool() && pivot.size()==3
         ? std::optional<gp_Pnt>(gp_Pnt(pivot[0].toDouble(),pivot[1].toDouble(),pivot[2].toDouble())) : std::nullopt;
@@ -311,6 +315,22 @@ void ReferenceView::orbitConstrained(double deltaX,double deltaY) {
 void ReferenceView::orbitByMode(double deltaX,double deltaY) {
     if(orbitMode_=="constrained")orbitConstrained(deltaX,deltaY);
     else orbitFree(deltaX,deltaY);
+}
+bool ReferenceView::zoomAt(double factor,std::optional<QPointF> cursor) {
+    if(!std::isfinite(factor) || factor<=0)return false;
+    if(cursor && (!std::isfinite(cursor->x()) || !std::isfinite(cursor->y()) ||
+        cursor->x()<0 || cursor->y()<0 || cursor->x()>=width() || cursor->y()>=height()))return false;
+    const auto previous=zoom;
+    zoom=std::clamp(zoom*factor,0.1,10.0);
+    const auto effective=zoom/previous;
+    if(cursor && effective!=1) {
+        // Orthographic camera policy: magnify about the pointer rather than
+        // the canvas center. Use the effective clamped factor so zooming at a
+        // bound cannot move the model without a scale change.
+        const QPointF offset=*cursor-QPointF(width()/2.0,height()/2.0);
+        pan=pan*effective+offset*(1-effective);
+    }
+    return true;
 }
 void ReferenceView::setOrbitMode(const QString& mode) {
     const QString next=mode=="constrained" ? "constrained" : "free";
@@ -391,6 +411,7 @@ void ReferenceView::resetOrbitCenter() {
 }
 void ReferenceView::rebindDocument() {
     cancelOrbitCenterPick();
+    nativeGestureActive_=false;
     if(!context_.IsNull() && !orbitCenterMarker_.IsNull())context_->Remove(orbitCenterMarker_,false);
     orbitCenterMarker_.Nullify();customOrbitCenter_.reset();
     setCanvases({},EvaluatedDocument{});canvasStamp_={};
@@ -3059,5 +3080,74 @@ void ReferenceView::contextMenuEvent(QContextMenuEvent* e) {
     QWidget::contextMenuEvent(e);
 }
 void ReferenceView::wheelEvent(QWheelEvent* e) {
-    dispatch("view.zoom", {{"factor",std::clamp(std::pow(1.0015,e->angleDelta().y()),0.1,10.0)}}); e->accept();
+    const auto pixel=e->pixelDelta(),angle=e->angleDelta();
+    const bool touchpad=e->device() && e->device()->type()==QInputDevice::DeviceType::TouchPad;
+    QString route="none";
+    if(nativeGestureActive_ && touchpad) {
+        // Native gesture Begin/End owns this physical stream while it is
+        // active. Do not also pan/zoom from an interleaved wheel event.
+        route="nativeGestureOwnsStream";
+    } else if(dispatch && touchpad && !pixel.isNull()) {
+        // A Mac two-finger swipe is normally a pixel wheel. The angle channel
+        // on the same event is deliberately ignored, so one event pans or
+        // orbits once and cannot also zoom.
+        if(e->modifiers().testFlag(Qt::ShiftModifier)) {
+            route="touchpadOrbit";
+            dispatch("view.orbit",{{"deltaX",pixel.x()},{"deltaY",pixel.y()}});
+        } else {
+            route="touchpadPan";
+            dispatch("view.pan",{{"x",pixel.x()},{"y",pixel.y()}});
+        }
+    } else if(dispatch && (angle.y()!=0 || (!touchpad && pixel.y()!=0))) {
+        route="wheelZoom";
+        const auto position=e->position();
+        // Unidentified pixel-only wheels remain usable as zoom. When an
+        // angle channel exists it wins and the pixel channel is not replayed.
+        const double motion=angle.y()!=0 ? angle.y() : pixel.y();
+        dispatch("view.zoom",{{"factor",std::clamp(std::pow(1.0015,motion),0.1,10.0)},
+            {"x",std::clamp(position.x(),0.0,double(width()-1))},
+            {"y",std::clamp(position.y(),0.0,double(height()-1))}});
+    } else if(dispatch && !touchpad && pixel.x()!=0) {
+        route="horizontalPixelPan";
+        dispatch("view.pan",{{"x",pixel.x()},{"y",0}});
+    }
+    lastNavigationInput_={{"event","wheel"},{"route",route},{"deviceType",touchpad ? "touchpad" : "other"},
+        {"pixelDelta",QJsonArray{pixel.x(),pixel.y()}},{"angleDelta",QJsonArray{angle.x(),angle.y()}},
+        {"phase",static_cast<int>(e->phase())},{"modifiers",static_cast<int>(e->modifiers())},
+        {"inverted",e->inverted()}};
+    e->accept();
+}
+bool ReferenceView::event(QEvent* e) {
+    if(e->type()==QEvent::WindowDeactivate || e->type()==QEvent::Hide || e->type()==QEvent::FocusOut)
+        nativeGestureActive_=false;
+    if(e->type()!=QEvent::NativeGesture)return QWidget::event(e);
+    auto* gesture=static_cast<QNativeGestureEvent*>(e);
+    QString route="none";
+    if(gesture->gestureType()==Qt::BeginNativeGesture) {
+        nativeGestureActive_=true;route="begin";
+    } else if(gesture->gestureType()==Qt::EndNativeGesture) {
+        nativeGestureActive_=false;route="end";
+    } else if(dispatch && gesture->gestureType()==Qt::ZoomNativeGesture && std::isfinite(gesture->value())) {
+        const double factor=1+gesture->value();
+        const auto position=gesture->position();
+        if(factor>0 && std::isfinite(position.x()) && std::isfinite(position.y())) {
+            route="pinchZoom";
+            dispatch("view.zoom",{{"factor",std::clamp(factor,0.1,10.0)},
+                {"x",std::clamp(position.x(),0.0,double(width()-1))},
+                {"y",std::clamp(position.y(),0.0,double(height()-1))}});
+        } else route="invalidPinch";
+    } else if(dispatch && gesture->gestureType()==Qt::PanNativeGesture) {
+        const auto delta=gesture->delta();
+        if(std::isfinite(delta.x()) && std::isfinite(delta.y()) && (delta.x()!=0 || delta.y()!=0)) {
+            const bool orbit=gesture->modifiers().testFlag(Qt::ShiftModifier);
+            route=orbit ? "nativeOrbit" : "nativePan";
+            dispatch(orbit ? "view.orbit" : "view.pan",{{orbit ? "deltaX" : "x",std::clamp(delta.x(),-10000.0,10000.0)},
+                {orbit ? "deltaY" : "y",std::clamp(delta.y(),-10000.0,10000.0)}});
+        }
+    }
+    lastNavigationInput_={{"event","nativeGesture"},{"route",route},
+        {"gestureType",static_cast<int>(gesture->gestureType())},{"value",gesture->value()},
+        {"delta",QJsonArray{gesture->delta().x(),gesture->delta().y()}},
+        {"modifiers",static_cast<int>(gesture->modifiers())}};
+    e->accept();return true;
 }

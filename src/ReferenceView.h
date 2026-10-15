@@ -40,9 +40,11 @@ public:
     void orbitFree(double deltaX,double deltaY);
     void orbitConstrained(double deltaX,double deltaY);
     void orbitByMode(double deltaX,double deltaY);
+    bool zoomAt(double factor,std::optional<QPointF> cursor=std::nullopt);
     void setOrbitMode(const QString& mode);
     void centerNamedView() { viewCenter_=sceneCenter_; }
     QString orbitMode() const { return orbitMode_; }
+    QJsonObject lastNavigationInput() const { return lastNavigationInput_; }
     void beginOrbitCenterPick();
     void cancelOrbitCenterPick();
     bool orbitCenterPicking() const { return orbitCenterPicking_; }
@@ -168,6 +170,7 @@ protected:
     void mouseDoubleClickEvent(QMouseEvent*) override;
     void contextMenuEvent(QContextMenuEvent*) override;
     void wheelEvent(QWheelEvent*) override;
+    bool event(QEvent*) override;
 private:
     QMap<QString,Handle(AIS_Shape)> canvasModels_;
     QJsonArray canvasState_;
@@ -215,6 +218,8 @@ private:
     Qt::MouseButton orbitButton_ = Qt::NoButton;
     bool freeOrbitTool_ = false;
     QString orbitMode_ = "free";
+    QJsonObject lastNavigationInput_;
+    bool nativeGestureActive_=false;
     bool orbitCenterPicking_ = false;
     bool orbitCenterPressHandled_ = false;
     std::optional<gp_Pnt> customOrbitCenter_;

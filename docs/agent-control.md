@@ -214,7 +214,7 @@ fail without applying the command. Error codes include `invalid_request`,
 | `layout.reset` | Restore those three regions |
 | `view.grid`, `view.origin` | `visible`: boolean |
 | `view.orientation` | `name`: `isometric`, `rearIsometric`, `top`, `bottom`, `front`, `back`, `right`, or `left`; recenter a named fixed view on the fitted scene |
-| `view.zoom` | `factor`: 0.1–10; resulting scale clamps to 0.1–10 |
+| `view.zoom` | `factor`: 0.1–10; resulting scale clamps to 0.1–10. Optional viewport-local logical `x` and `y` must be supplied together to keep that screen point fixed. Omitting them preserves the existing pan and zooms about the camera target |
 | `view.pan` | `x`, `y`: relative logical-pixel deltas, each within ±10000 |
 | `view.orbit` | `deltaX`, `deltaY`: relative logical-pixel deltas, each within ±10000; orbit the real camera around the active scene/custom pivot in the selected mode |
 | `view.orbitMode` | `mode`: `free` or `constrained`; the visible Orbit menu retains the selected mode. Constrained uses world Z up and a level horizon |
@@ -514,8 +514,14 @@ picked pivot; named views recenter on the fitted scene. A blank-canvas context
 menu starts an exact visible-body surface pick or resets the pivot. Its green
 marker remains separate from model selection. The initial pivot is the fitted
 scene center; constrained Z-up, the five-degree pole margin and Home pivot
-retention are explicit Alloy policies. Trackpad gestures, configurable up axis,
-ViewCube and an automatic orbit-center policy remain separate navigation work. Plain left click uses
+retention are explicit Alloy policies. Physical trackpad and platform delivery,
+configurable up axis, ViewCube and an automatic orbit-center policy remain separate
+navigation work. Qt-delivered
+touchpad pixel-wheel input pans, or orbits with Shift, while wheel angle input zooms
+at its cursor. Native pinch zooms at its cursor; native pan uses the same Pan or
+Shift-Orbit commands. A native Begin/End stream owns interleaved touchpad wheel
+events, and deactivation clears that transient ownership. Physical trackpad
+delivery remains a separate acceptance gate. Plain left click uses
 `selection.pick` outside sketch editing. Active-sketch clicks use the current
 drawing/selection tool; Shift-click adds/toggles sketch selection. Selected bodies
 are visibly blue; clearing selection restores normal appearance without changing

@@ -5190,8 +5190,16 @@ void AlloyWindow::registerCommands() {
     auto orientation = parameter("string", "Orthographic orientation of the reference grid.");
     orientation.insert("enum", QJsonArray{"isometric", "rearIsometric", "top", "bottom", "front", "back", "right", "left"});
     add("view.orientation", "Set view orientation", "Select a named view of the reference grid.", {{"name", orientation}}, [this](const auto& a) { view_->orientation = a.value("name").toString(); view_->centerNamedView(); return QJsonObject{}; });
-    auto factor = parameter("number", "Relative scale factor (0.1 to 10); resulting zoom clamps to 0.1 to 10."); factor.insert("minimum", 0.1); factor.insert("maximum", 10);
-    add("view.zoom", "Zoom reference view", "Scale the reference grid; mouse wheel uses this command.", {{"factor", factor}}, [this](const auto& a) { view_->zoom = std::clamp(view_->zoom * a.value("factor").toDouble(), 0.1, 10.0); return QJsonObject{}; });
+    auto factor = parameter("number", "Relative real-camera scale factor (0.1 to 10); resulting zoom clamps to 0.1 to 10."); factor.insert("minimum", 0.1); factor.insert("maximum", 10);
+    auto zoomPixel=parameter("number","Optional viewport-local logical coordinate; supply x and y together to hold that screen point fixed.");
+    zoomPixel["minimum"]=0;zoomPixel["maximum"]=100000;
+    add("view.zoom", "Zoom camera", "Magnify the real camera about optional cursor x/y; without them preserve the existing pan and zoom about the camera target.",
+        {{"factor",factor},{"x",optional(zoomPixel)},{"y",optional(zoomPixel)}},[this](const auto& a) {
+            if(a.contains("x")!=a.contains("y"))return failure("invalid_arguments","Supply both x and y for cursor-anchored zoom","x");
+            const auto cursor=a.contains("x") ? std::optional<QPointF>(QPointF(a.value("x").toDouble(),a.value("y").toDouble())) : std::nullopt;
+            if(!view_->zoomAt(a.value("factor").toDouble(),cursor))return failure("invalid_arguments","Zoom position must lie inside the viewport","x");
+            return view_->cameraState();
+        });
     auto offset = parameter("number", "Relative pan in logical pixels; each delta limited to +/-10000."); offset.insert("minimum", -10000); offset.insert("maximum", 10000);
     add("view.pan", "Pan reference view", "Translate the grid; middle-mouse drag uses this command.", {{"x", offset}, {"y", offset}}, [this](const auto& a) { view_->pan += QPointF(a.value("x").toDouble(), a.value("y").toDouble()); return QJsonObject{}; });
     auto orbitDelta=parameter("number","Relative free-orbit drag in logical pixels; each delta limited to +/-10000.");
