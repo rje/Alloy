@@ -34,6 +34,6 @@ bundled-app desktop-control attempt then failed to bind the owned window with
 `cgWindowNotFound` before any navigation input. Its binding receipt is under
 `../Alloy-reference-records/deliverables/viewport-navigation-2026-10-14/nav002-cua-01/`.
 Neither failure establishes a product input defect. Actual menu, pointer-pick,
-Escape and Reset input behavior remains the separate NAV-009 native gate. The API
+Escape and Reset input behavior remains the separate [NAV-009 native gate](https://github.com/rje/Alloy/issues/428). The API
 test does not prove OS-device, trackpad, ViewCube, configurable up-axis or
 cross-platform behavior.
