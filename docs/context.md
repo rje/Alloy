@@ -10,9 +10,15 @@ exact authored identity and safe save/close guards. See
 [receipt](validation/document-recovery.md); active drafts and native macOS
 file-panel cancellation remain outside the evidence. REL-011/#374 bounded
 assembly drag profiling is accepted at `c1d9395`, but all six moves exceed the
-100 ms target (median159.925 ms). REL-020/#446 owns the failed performance budget;
+100 ms target (median 159.925 ms). REL-020/#446 owns the failed performance budget;
 see [measurement](validation/assembly-native-drag-profile.md). The measured
-build is Debug; qualify optimized-build behavior before speculative tuning.
+build is Debug. A matched Release configuration improves median dispatch to
+140.571 ms but still misses the target. Phase probes identify refresh/presentation
+as the dominant cost; a bounded pose-refresh experiment failed and was reverted.
+REL-020 returns to Todo with diagnostics preserved. REL-013/#416 visual/control
+quality audit is active. Use `build-preview-release` for optimized interactive
+previews and `build-tutorial-polish` for Debug checks; both use the coherent
+private Qt SDK. Older packaged archives predate these source changes.
 
 REL-019/#440 adds pre-painted synchronous geometry-busy feedback and reliable
 cursor/status cleanup, including initial solid previews. A cheap real-app Box /
