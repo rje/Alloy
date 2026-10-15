@@ -2,8 +2,10 @@
 
 Public navigation evidence is indexed at
 `../Alloy-reference-records/knowledge/specs/viewport-navigation-compatibility-2026-10-14.md`.
-It documents cube Home, adjacent-face and roll controls. The exact button layout,
-turn sign and enabled-state details are not established by that evidence. Alloy
+The target-product evidence documents cube Home. Related public cube guidance
+corroborates adjacent-face and roll controls, without establishing their exact
+behavior in the target product. The exact button layout, turn sign and
+enabled-state details remain unknown. Alloy
 places seven accessible Qt buttons beside its existing GPU cube. Home invokes
 the existing `view.home` isometric fit. Four adjacent and two roll buttons use
 the shared `view.cubeAdjacent` and `view.cubeRoll` commands. The latter six are
