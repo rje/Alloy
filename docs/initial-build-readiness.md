@@ -78,7 +78,8 @@ reason to rerun every tutorial whenever an unrelated UI field changes.
 
 Windows/Linux desktop and GPU qualification will use external testers, as chosen
 by the user on 2026-10-14. Supply candidate archives and a short repeatable test
-checklist; record OS/GPU, package revision, results and logs. Keep qualification
+[checklist](validation/external-package-checklist.md); record OS/GPU, package
+revision, results and logs. Keep qualification
 pending until returned evidence supports the advertised platform. Hosted software
 rendering does not substitute for these checks. Signing,
 notarization and minimum supported OS details must be explicit before distribution.
