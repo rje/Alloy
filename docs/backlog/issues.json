@@ -6499,7 +6499,7 @@
       "labels": [
         "area:performance"
       ],
-      "body": "Split the remaining native profiling gate from REL-010 so the completed implementation can close independently.\n\n## Acceptance\n- Once desktop interaction is usable, run one short actual Upper Arm drag on the accepted 3R+1C fixture, separating input, solver, presentation and capture overhead. Use the existing 223 ms event as historical context, not a controlled baseline.\n- Record a small matched before/after native event sequence if a comparable baseline is available; otherwise explicitly qualify the limitation. State build, hardware, capture state, joint count and raw timings. Inspect the visible response.\n- Confirm original-joint and Pin checks and exact Revert using established authorities. Do not repeat broad geometry/history/export tests.\n- No frame-rate claim from isolated events and no solver tolerance relaxation. One meaningful bounded measurement and reviewed native capture suffice.\n\nREL-010 API-06 proves one solve per preview command with zero additional refresh solves. Same-process core timing measures the shared evaluation path only. Neither replaces this native gate.\n\nCurrent environment limitation: desktop computer-use could not attach to Alloy (cgWindowNotFound); API checks remained functional. Keep Todo until usable input is available. Research and recordings remain external."
+      "body": "Split the remaining native profiling gate from REL-010 so the completed implementation can close independently.\n\n## Acceptance\n- Once desktop interaction is usable, run one short actual Upper Arm drag on the accepted 3R+1C fixture, separating input, solver, presentation and capture overhead. Use the existing 223 ms event as historical context, not a controlled baseline.\n- Record a small matched before/after native event sequence if a comparable baseline is available; otherwise explicitly qualify the limitation. State build, hardware, capture state, joint count and raw timings. Inspect the visible response.\n- Confirm original-joint and Pin checks and exact Revert using established authorities. Do not repeat broad geometry/history/export tests.\n- No frame-rate claim from isolated events and no solver tolerance relaxation. One meaningful bounded measurement and reviewed native capture suffice.\n\nREL-010 API-06 proves one solve per preview command with zero additional refresh solves. Same-process core timing measures the shared evaluation path only. Neither replaces this native gate.\n\nCurrent environment limitation: desktop computer-use could not attach to Alloy (cgWindowNotFound); API checks remained functional. Keep Todo until usable input is available. Research and recordings remain external.\n\n## Independently accepted 2026-10-14\nMeasurement accepted at c1d9395 after independent Astra review. One exact saved-fixture Qt drag sequence passed joint/Pin/authored/Revert checks and separate capture/solve-count accounting; six145.252\u2013170.737 ms dispatches (median159.925 ms) all miss declared100 ms budget. This closes profiling only, not responsiveness. REL-020/#446 owns measured latency improvement; parent REL-016 remains open. Receipt: docs/validation/assembly-native-drag-profile.md.\n"
     },
     {
       "key": "SKT-077",
@@ -7168,7 +7168,8 @@
       "phase": "P4 Initial release",
       "priority": "P1",
       "depends_on": [
-        "REL-019"
+        "REL-019",
+        "REL-020"
       ],
       "labels": [
         "area:rel"
@@ -7551,6 +7552,20 @@
         "area:srf"
       ],
       "body": "## Bounded implementation slice\nSplit actionable sheet-tool capability from SRF-016 while full iron trial/revert scope remains blocked by its handle/exterior dependencies. On a declared independently authored crossing-sheet fixture, support one local target surface and one earlier retained sheet tool, exact OCCT surface-surface intersection, and two unambiguous pickable portions. Reuse mature Splitter, preserving source/tool/region identity and atomic ambiguity refusal. Do not substitute a sketch-prism tool or claim source-exact iron geometry.\n\n## Acceptance\nTool-first shared UI/API selection, readable red removal preview, Cancel and commit, meaningful source/tool edit, undo/reopen and actual GPU evidence. Preserve tool body and dependencies; no destructive deletion. Verify the finite intended region and stable retained references using a focused core test plus one real-app workflow, with independent Astra review. Keep supported target topology explicit; do not generalize multi-target/multi-tool Trim.\n\nThe full SRF-016 upper/lower surface-iron trial/revert gate and TUT-018 remain open.\n\n## Accepted architecture boundary\nUse a dedicated one-face planar, straight-convex-boundary branch with non-destructive Splitter. Require exactly two signed regions and one shared generated intersection edge; derive stable IDs from source/tool provenance and oriented tool normal. Arbitrary curved/multiface sheets remain unsupported here; preserve the accepted sketch-tool branch. Independent Astra preflight accepted this bounded ingredient.\n\n\n## Independently accepted 2026-10-14\nAccepted at 1017d0a after independent Astra source/evidence review. Finite retained planar-sheet intersection, stable signed region and boundary identities, source translation, commit/edit/Cancel/history/reopen pass core and 37-call API checks; native ribbon/tool/region/Cancel passes with inspected GPU red preview. Receipt: docs/validation/surface-planar-sheet-trim.md. Native commit is not claimed by the Qt route. Curved/multiface/occurrence support and full SRF-016/TUT-018 remain open.\n"
+    },
+    {
+      "key": "REL-020",
+      "title": "Reduce measured piston drag dispatch latency",
+      "kind": "implementation",
+      "phase": "P4 Initial release",
+      "priority": "P1",
+      "depends_on": [
+        "REL-011"
+      ],
+      "labels": [
+        "area:rel"
+      ],
+      "body": "## Measured problem\nREL-011 records six actual Qt Upper Arm move dispatches on the accepted pinned 3R+1C piston fixture: 145.252\u2013170.737 ms, median159.925 ms, each with one graph solve. All exceed the predeclared100 ms development-preview dispatch budget. Capture is outside timing; correctness, Pin and exact Revert pass. This is not a physical-input or frame-rate measurement.\n\n## Bounded next step\nLocate the dominant cost with a small targeted phase probe or profiler capture, then make one evidence-backed change in solve/presentation/input work. Reuse the exact saved fixture and native sequence. Do not weaken geometric tolerances, skip authoritative solves, relax constraints, or fabricate asynchronous completion. Preserve preview identity, original relations, Pin, authored data and exact Revert. Avoid speculative architecture or unchanged repeated runs; if two concrete hypotheses fail, preserve findings and split the remaining architecture requirement.\n\n## Acceptance\nIndependent Astra review plus one matched before/after sequence on the same host/build recipe with capture inactive, all raw durations and honest phase limits. Target every measured dispatch at most100 ms; if the target remains unmet, keep this issue open and report partial improvement. No smooth60Hz or physical-input claim. Parent REL-016 retains other model/startup/reopen/sketch budgets and general responsiveness."
     }
   ]
 }

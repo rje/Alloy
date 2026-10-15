@@ -9,7 +9,10 @@ independently accepted: per-tab durable snapshots, real forced-kill recovery,
 exact authored identity and safe save/close guards. See
 [receipt](validation/document-recovery.md); active drafts and native macOS
 file-panel cancellation remain outside the evidence. REL-011/#374 bounded
-assembly drag profiling is active next.
+assembly drag profiling is accepted at `c1d9395`, but all six moves exceed the
+100 ms target (median159.925 ms). REL-020/#446 owns the failed performance budget;
+see [measurement](validation/assembly-native-drag-profile.md). The measured
+build is Debug; qualify optimized-build behavior before speculative tuning.
 
 REL-019/#440 adds pre-painted synchronous geometry-busy feedback and reliable
 cursor/status cleanup, including initial solid previews. A cheap real-app Box /
