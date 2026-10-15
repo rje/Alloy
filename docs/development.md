@@ -1,31 +1,43 @@
 # Development and observed evidence
 
-Alloy now creates and edits real OCCT boxes, cylinders and constrained origin-plane
-line sketches and profile-based extrusion in a hardware-accelerated native
-viewport. Shared UI/API commands
-provide disposable previews, body and sketch point/line/profile picking, driving/driven
-dimensions, geometry inspection, undo/redo and atomic native save/open. C++20, Qt 6.11.2
-Widgets/Network and OCCT 7.9.3 are required; CMake pins those package versions.
-Ordered full recompute updates dependent extrusion bodies after sketch edits.
-Broader sketch classes, modeling modes, import and export remain ahead.
+Alloy is a C++20, Qt 6.11.2 and OCCT 7.9.3 application with shared UI/API
+commands and a hardware-accelerated native viewport. See the
+[development preview guide](development-preview.md) for current modeling,
+assembly, surface and interchange capabilities and their evidence limits.
+Authored sketches and features remain separate from evaluated geometry.
 
 ## Build and run
 
-On Apple silicon macOS with Homebrew:
+Use an optimized build for interactive previews and performance measurements.
+Keep Debug builds for debugging; their timings do not represent the optimized
+application or its in-tree assembly solver.
+
+On the development Mac, use the coherent patched Qt SDK rather than mixing
+Homebrew Qt libraries with a separately built Cocoa plugin. The SDK at
+`../Alloy-dependencies/qt-private-runtime/install` is used by the accepted local
+workflows. The [private Qt recipe](../tools/dependencies/build-private-qt.sh)
+and [recipe evidence](validation/mac-runtime-recipe.md) describe reproduction
+and its pinned public dependencies. Preserve the SDK when rebuilding Alloy.
 
 ```sh
-brew install cmake ninja qtbase opencascade eigen boost
-cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH=/opt/homebrew
-cmake --build build
-./build/alloy.app/Contents/MacOS/alloy --ready-file /tmp/alloy-ready.json
+ALLOY_QT_PREFIX="$PWD/../Alloy-dependencies/qt-private-runtime/install"
+cmake -S . -B build-preview-release -G Ninja \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_PREFIX_PATH="$ALLOY_QT_PREFIX;/opt/homebrew" \
+  -DQt6_DIR="$ALLOY_QT_PREFIX/lib/cmake/Qt6"
+cmake --build build-preview-release --target alloy
+./build-preview-release/alloy.app/Contents/MacOS/alloy --ready-file /tmp/alloy-ready.json
 ```
 
-For private macOS candidates using Qt 6.11.2 accessibility automation, see the
-[isolated Cocoa patch recipe](dependencies/qt-cocoa-accessibility.md). The qualified
-local layout places the exact patched `libqcocoa.dylib` in the candidate bundle's
-`Contents/PlugIns/platforms` directory, without `qt.conf` or plugin-path environment
-overrides. Never replace the globally installed plugin or rebuild a human test
-candidate. This local workaround does not qualify release packaging.
+CMake requires the exact Qt/OCCT versions and matching solver headers described
+below; install prerequisites before configuring. The existing
+`build-tutorial-polish` is the Debug validation tree using the same patched SDK.
+Use its focused tests when debugging and identify the build configuration in
+receipts. Do not assume a directory named `build` contains the accepted SDK.
+The [accessibility investigation](dependencies/qt-cocoa-accessibility.md) retains
+earlier plugin experiments as history; the current path uses a coherent private
+Qt build. Neither a source build nor a patched plugin is a relocatable package;
+see the [package receipt](validation/macos-relocatable-preview.md).
 
 Use File → Open for `examples/gauge-block.alloy`. Click a Timeline feature to
 edit its dimensions, or Box/Cylinder to create another body. See
@@ -81,7 +93,7 @@ and [releases](releases.md) for pins, packaging and remaining qualification.
 - `src/ReferenceView.{h,cpp}`: native AIS/V3d/OpenGL view, real document BReps,
   disposable preview, body picking, named cameras and driver diagnostics.
 - `src/ControlServer.{h,cpp}` and `tools/alloyctl.py`: local JSON transport and
-  stdlib client; Windows transport adaptation remains open.
+  stdlib client; Unix sockets and bounded Windows named-pipe transport.
 - `tests/primitives_api.py`: real create/edit/pick/undo/save/reopen workflow.
 - `tests/sketch_api.py`, `tests/sketch_document.cpp`: sketch drawing, identity,
   solved mutations, failure preservation, history and storage contracts.
@@ -106,14 +118,17 @@ treated as the editable document.
 Use focused core tests and one growing real-entrypoint regression:
 
 ```sh
-ctest --test-dir build -R '^(document_model|geometry_kernel|sketch_document|sketch_solver|sketch_profiles|extrusion_document)$' --output-on-failure
-python3 tests/workflows/run.py --case sketch-extrude --evidence build/evidence/sketch-extrude
+ctest --test-dir build-tutorial-polish -R '^(document_model|geometry_kernel|sketch_document|sketch_solver|sketch_profiles|extrusion_document)$' --output-on-failure
+python3 tests/workflows/run.py --case sketch-extrude \
+  --app build-tutorial-polish/alloy.app/Contents/MacOS/alloy \
+  --evidence ../Alloy-reference-records/deliverables/sketch-extrude-current
 ```
 
 A desktop session is required. The runner launches fresh native apps and invokes
 their shared commands; it never substitutes an independent automation model.
-`--build` also builds the known configured app target. Without it, compilation
-is marked unperformed and the tested prebuilt binary is identified separately.
+Build the intended target explicitly before running. The runner’s legacy
+`--build` option targets `build/`, so omit it for the named build trees above;
+the runner records the prebuilt binary separately from compilation evidence.
 
 Earlier primitive candidate observations, recorded 2026-10-11 on macOS 26.5.1
 arm64, Apple Clang 17.0.0, Python 3.14.5,

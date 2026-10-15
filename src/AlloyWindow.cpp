@@ -6012,18 +6012,25 @@ QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
     const auto refreshConstraintFailure=[this,&id] {
         if(id.startsWith("sketch.") && session_.value("tool")=="constraint")refresh();
     };
+    QElapsedTimer phaseTimer;if(traceGraphSolves)phaseTimer.start();
     try { result=command->run(args); }
+    // Timings are inclusive nested scopes, not additive solver/render buckets.
     catch(const Standard_Failure& error) { refreshConstraintFailure(); return finish(failure("kernel_failure",QString::fromUtf8(error.GetMessageString()))); }
     catch(const std::exception& error) { refreshConstraintFailure(); return finish(failure("command_failed",QString::fromUtf8(error.what()))); }
     if (result.value("ok").isBool() && !result.value("ok").toBool()) { refreshConstraintFailure(); return finish(result); }
     const auto afterCommandSolves=traceGraphSolves?AssemblyGraph::solveCount():0;
+    const double commandPhaseMs=traceGraphSolves?phaseTimer.nsecsElapsed()/1e6:0;
     if(document_->revision()!=priorDocumentRevision && (transientSliderPosition_.has_value() || !jointGraphStage_.isEmpty() || (sliderTimer_ && sliderTimer_->isActive()))){
         transientSliderPosition_.reset();jointGraphStage_={};if(sliderTimer_)sliderTimer_->stop();displayedDocumentRevision_=std::numeric_limits<quint64>::max();
     }
     const bool changesState = id == "window.resize" || id.startsWith("layout.") || id.startsWith("view.") || (id == "commands.search" || id == "commands.close");
     if (changesState) ++revision_;
+    if(traceGraphSolves)phaseTimer.restart();
     refresh();
+    const double refreshPhaseMs=traceGraphSolves?phaseTimer.nsecsElapsed()/1e6:0;
     const auto recoveryError=syncRecovery();
+    if(traceGraphSolves)qInfo().noquote()<<"assembly_phase_ms"<<id
+        <<"commandHandler_inclusive"<<commandPhaseMs<<"refresh_inclusive"<<refreshPhaseMs;
     if(traceGraphSolves)qInfo().noquote()<<"assembly_preview_solves"<<id
         <<QString("command=%1").arg(afterCommandSolves-initialGraphSolves)
         <<QString("refresh=%1").arg(AssemblyGraph::solveCount()-afterCommandSolves);

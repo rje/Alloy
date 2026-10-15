@@ -20,6 +20,9 @@
 #include <QSignalBlocker>
 #include <QShortcut>
 #include <QTimer>
+#include <QElapsedTimer>
+#include <QDebug>
+#include <QJsonDocument>
 #include <QVBoxLayout>
 #include <cmath>
 #include <limits>
@@ -102,7 +105,12 @@ std::shared_ptr<const AssemblyGraph::Evaluation> AlloyWindow::graphEvaluation(
         && graphEvaluationCache_->authored==authored
         && graphEvaluationCache_->coordinateOverride==coordinateOverride)
         return graphEvaluationCache_->result;
+    const bool trace=qEnvironmentVariableIsSet("ALLOY_TRACE_ASSEMBLY_SOLVES");
+    QElapsedTimer timer;if(trace)timer.start();
     auto result=std::make_shared<const AssemblyGraph::Evaluation>(AssemblyGraph::evaluate(authored,definitions,coordinateOverride));
+    if(trace)qInfo().noquote()<<"assembly_phase_ms graphEvaluation_inclusive"<<timer.nsecsElapsed()/1e6
+        <<"override"<<QJsonDocument(coordinateOverride).toJson(QJsonDocument::Compact);
+
     if(scoped)graphEvaluationCache_=GraphEvaluationCache{activeTabId_,document_->revision(),&definitions,
         authored,coordinateOverride,result};
     return result;

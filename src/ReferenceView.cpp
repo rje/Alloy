@@ -23,6 +23,8 @@
 #include <QMenu>
 #include <QApplication>
 #include <QTimer>
+#include <QElapsedTimer>
+#include <QDebug>
 #include <QJsonArray>
 #include <QFontMetricsF>
 #include <QFont>
@@ -886,6 +888,8 @@ void ReferenceView::clearBodyStage() {
 }
 void ReferenceView::displayBodies(const std::vector<EvaluatedBody>& bodies) {
     if(context_.IsNull())return;
+    const bool trace=qEnvironmentVariableIsSet("ALLOY_TRACE_ASSEMBLY_SOLVES");
+    QElapsedTimer timer;if(trace)timer.start();
     for(const auto& model:models_)context_->Remove(model,false);
     models_.clear();modelReferences_.clear();bodyVisibility_.clear();
     for(const auto& body:bodies) {
@@ -914,6 +918,8 @@ void ReferenceView::displayBodies(const std::vector<EvaluatedBody>& bodies) {
         modelReferences_[key]={{"bodyId",body.bodyId},{"occurrenceId",body.occurrenceId},{"definitionId",body.definitionId}};
     }
     applyEditDisplay();
+    if(trace)qInfo().noquote()<<"assembly_phase_ms displayBodies_inclusive"<<timer.nsecsElapsed()/1e6
+        <<"bodies"<<bodies.size();
 }
 void ReferenceView::setSketches(const std::vector<EvaluatedSketch>& sketches,quint64 revision) {
     if(context_.IsNull() || sketchRevision_==revision)return;

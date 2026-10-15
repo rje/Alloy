@@ -8,6 +8,8 @@
 #include <GeomAbs_CurveType.hxx>
 #include <QUuid>
 #include <QSet>
+#include <QElapsedTimer>
+#include <QDebug>
 #include <gp_Trsf.hxx>
 #include <algorithm>
 #include <atomic>
@@ -107,7 +109,9 @@ QJsonObject AssemblyGraph::revoluteCandidate(const QJsonObject& a,const Evaluate
 QJsonObject AssemblyGraph::cylindricalCandidate(const QJsonObject& a,const EvaluatedDocument& d,const QJsonObject& args){return candidate(a,d,args,true);}
 AssemblyGraph::Evaluation AssemblyGraph::evaluate(const QJsonObject& a,const EvaluatedDocument& d,const QJsonObject& o){
  if(a["joints"].toArray().isEmpty())return {LocalOccurrences::inspect(a,d),LocalOccurrences::worldBodies(a,d)};
- const auto solved=solve(a,d,o);Evaluation result;QMap<QString,QJsonArray> summaries;
+ const bool trace=qEnvironmentVariableIsSet("ALLOY_TRACE_ASSEMBLY_SOLVES");QElapsedTimer timer;if(trace)timer.start();
+ const auto solved=solve(a,d,o);const double solveMs=trace?timer.nsecsElapsed()/1e6:0;
+ if(trace)timer.restart();Evaluation result;QMap<QString,QJsonArray> summaries;
  for(const auto& b:d.bodies){bool instanced=false;for(const auto& v:a["occurrences"].toArray()){
   const auto r=v.toObject();if(r["definitionId"].toString()!=owner(a,b))continue;
   const auto occurrence=r["id"].toString();const auto rest=atRest(solved.poses[occurrence]);
@@ -126,6 +130,8 @@ AssemblyGraph::Evaluation AssemblyGraph::evaluate(const QJsonObject& a,const Eva
    {"bodies",summaries.value(id)},{"worldPose",array(solved.poses[id])}});
  }
  result.inspection={{"joints",solved.joints},{"occurrences",occurrences},{"islands",solved.islands},{"graphMobility","unqualified"}};
+ if(trace)qInfo().noquote()<<"assembly_phase_ms graphInternal"<<"solveAndOriginalChecks"<<solveMs
+     <<"placedBodiesAndInspection"<<timer.nsecsElapsed()/1e6;
  return result;
 }
 quint64 AssemblyGraph::solveCount(){return graphSolveCount.load();}

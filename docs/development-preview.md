@@ -81,6 +81,11 @@ included in the application archive.
 | GPU/framebuffer | Receipts that explicitly identify the actual renderer, vendor/device, version and capture | Current production viewport is OCCT AIS/V3d over hardware-accelerated OpenGL. Native Metal on macOS and Vulkan on Windows/Linux are future renderer destinations; the isolated Metal investigation did not migrate production. |
 | Packaged runtime | The extracted macOS arm64 archive described above on one development host | Intel Mac, clean host, Windows, Linux, broader display scaling/resize, signing/notarization and public distribution remain unqualified. |
 
+[Measured piston dragging](validation/assembly-native-drag-profile.md) remains
+above the 100 ms development-preview target: the optimized Release run measured
+129–150 ms per move. This bounded fixture does not establish general frame rate;
+responsiveness work remains open.
+
 The full enclosure tutorial is unfinished. Accepted stages and the final-stage
 recording do not establish the complete cumulative tutorial: a clearance check
 found two small connector intersections, and whole-reference clearance and
