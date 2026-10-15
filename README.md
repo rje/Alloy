@@ -4,6 +4,9 @@ Current priority: [initial-build readiness](docs/initial-build-readiness.md)—
 familiar navigation, reliable everyday controls, recovery and installable packages,
 alongside completion of the advanced modeling tutorials.
 
+See the [navigation guide](docs/navigation.md) for mouse controls, no-middle-button
+tools, projection, saved Home and custom views.
+
 The [local macOS arm64 package](docs/validation/macos-relocatable-preview.md)
 passes distinct-path extraction, bundled runtime and GPU/API checks on the
 development Mac. Clean-host and other-platform qualification remain open.

@@ -7,8 +7,8 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current publication contains **428 issues**: **326 implementation, 21 research,
-22 epics, and 59 validation gates**. Counts describe decomposition, not coverage.
+The current publication contains **443 issues**: **339 implementation, 22 research,
+22 epics, and 60 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 
 ## Active delivery order
@@ -22,7 +22,10 @@ and derived source lineage, unblocking SKT-076 authoring. CI-008/#426 is indepen
 CI-009 retains Windows/Linux alignment and CI-004 stays Todo. SKT-076/#346 is
 accepted at `c625649` for retained inset and exact Join2/selected R0.5 downstream
 lineage. NAV-002/#408 is accepted for source/API/GPU camera behavior; NAV-009/#428 retains
-the blocked native-input route. TUT-023/#324 is next for the cumulative rim/Cut/export gate. The current
+the blocked native-input route. TUT-023/#324 final-stage rim/Cut/export gate is accepted. NAV-018/#439
+application navigation presets and GEO-019/#352 exact shoehorn diagnosis are
+active. TUT-030/#442 preserves unresolved nominal connector clearance;
+NAV-019/#443 retains configurable orientation conventions. The current
 sequence JSON takes precedence over historical delivery notes below.
 
 

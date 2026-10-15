@@ -22,11 +22,13 @@
         "GEO-020",
         "GEO-021",
         "TUT-023",
+        "TUT-029",
+        "TUT-030",
         "TUT-016"
       ],
       "acceptance": "Complete actual seam/rim geometry and final enclosure chain; no unchanged blind kernel retries.",
       "status": "todo",
-      "remaining": "Readiness plan in docs/initial-build-readiness.md; live issues govern acceptance."
+      "remaining": "Rim/Cut and separate exports accepted. Final nominal connector collision measured in both halves; TUT-030 awaits qualified dimensions or explicit design adaptation. Preserve evidence; do not repeat unchanged geometry."
     },
     {
       "id": "READY-03",
@@ -46,13 +48,17 @@
         "NAV-015",
         "NAV-005",
         "NAV-006",
+        "NAV-016",
+        "NAV-017",
+        "NAV-018",
+        "NAV-019",
         "NAV-007",
         "NAV-009",
         "NAV-008"
       ],
       "acceptance": "Familiar navigation controls, no-middle-button route and reproducible dependencies.",
       "status": "todo",
-      "remaining": "Readiness plan in docs/initial-build-readiness.md; live issues govern acceptance."
+      "remaining": "Projection, named views and saved Home accepted. NAV-018 application presets active; NAV-019 configurable conventions, platform input and runtime gates remain open."
     },
     {
       "id": "READY-04",
