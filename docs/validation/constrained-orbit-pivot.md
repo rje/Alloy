@@ -27,6 +27,9 @@ checks projected-Z up, per-tab camera restoration, named-view recenter, Reset, u
 undo journal, and saves an editable model. The production-theme capture
 `nav002-api-05/api-constrained-pivot.png` shows a readable Constrained Orbit
 control, solid GPU presentation and green pivot marker.
+An affected-control capture from the saved model at
+`nav002-indicator-01/single-mode-indicator.png` verifies one dropdown arrow
+after removing the duplicate literal glyph; no geometry workflow was repeated.
 
 The separate native Qt control fixture stopped at the initial macOS
 `isActiveWindow()` check twice, before delivering any navigation gesture. A

@@ -817,7 +817,7 @@ AlloyWindow::AlloyWindow() {
     orbitButton->setStyleSheet("QPushButton:checked { background: #c8e5f6; border: 1px solid #5796bc; border-radius: 4px; font-weight: 600; }");
     connect(orbitButton,&QPushButton::clicked,this,[this,orbitButton]{execute("view.orbitTool",{{"active",orbitButton->isChecked()}});});
     nav->addWidget(orbitButton);
-    auto* orbitModes=new QToolButton;orbitModes->setObjectName("view.orbitMode");orbitModes->setText("▾");
+    auto* orbitModes=new QToolButton;orbitModes->setObjectName("view.orbitMode");
     orbitModes->setFixedWidth(24);
     orbitModes->setToolTip("Choose Free or Constrained Orbit");orbitModes->setPopupMode(QToolButton::InstantPopup);
     auto* orbitMenu=new QMenu(orbitModes);orbitMenu->setObjectName("view.orbitMode.menu");

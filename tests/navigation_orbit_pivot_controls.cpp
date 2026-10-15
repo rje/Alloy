@@ -69,6 +69,17 @@ class NavigationOrbitPivotControls final : public QObject {
         if(separation(u,expected)>1e-4)qFatal("constrained camera up is not projected world Z");
     }
 private slots:
+    void captureSingleModeIndicator() {
+        const auto out=qEnvironmentVariable("ALLOY_NAV_PIVOT_EVIDENCE");
+        const auto source=qEnvironmentVariable("ALLOY_NAV_PIVOT_SOURCE");
+        QVERIFY(!out.isEmpty() && !source.isEmpty());QVERIFY(QDir().mkpath(out));
+        AlloyTheme::apply(*qApp);AlloyWindow window;window.resize(1300,820);window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        call(window,"document.open",{{"path",source}});
+        call(window,"view.orbitMode",{{"mode","constrained"}});
+        call(window,"capture.screenshot",{{"path",out+"/single-mode-indicator.png"}});
+        window.close();
+    }
     void sharedCameraCommandsWithoutDesktopFocus() {
         AlloyTheme::apply(*qApp);AlloyWindow window;window.resize(1300,820);window.show();
         QVERIFY(QTest::qWaitForWindowExposed(&window));
