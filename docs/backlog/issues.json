@@ -7043,12 +7043,15 @@
       "phase": "P4 Initial release",
       "priority": "P1",
       "depends_on": [
-        "NAV-001"
+        "NAV-001",
+        "NAV-013",
+        "NAV-014",
+        "NAV-015"
       ],
       "labels": [
         "area:doc"
       ],
-      "body": "## Initial-build readiness scope\nExpose discoverable Pan, Zoom, rectangular Zoom Window, Fit, selected-object framing and Look At through shared commands and accessible tooltips/shortcuts. Research exact reference controls and distinguish Fit from Home orientation. Fit visible geometry without hidden distant bodies or transient decorations distorting framing; Look At supported face/sketch planes without losing the active command. Verify one small sketch, asymmetric solid and selected assembly child. Unsupported geometry must explain the limitation.\n\n## Delivery and evidence\nUser-prioritized 2026-10-14. Keep implementation bounded, preserve authoritative document/control commands, use proportional verification and independent review. Public reference details and images remain external. This issue is planned until its stated gate is evidenced; do not substitute compilation/API or Qt simulation for physical input or packaged GPU evidence.\n"
+      "body": "## Initial-build readiness scope\nExpose discoverable Pan, Zoom, rectangular Zoom Window, Fit, selected-object framing and Look At through shared commands and accessible tooltips/shortcuts. Research exact reference controls and distinguish Fit from Home orientation. Fit visible geometry without hidden distant bodies or transient decorations distorting framing; Look At supported face/sketch planes without losing the active command. Verify one small sketch, asymmetric solid and selected assembly child. Unsupported geometry must explain the limitation.\n\n## Delivery and evidence\nUser-prioritized 2026-10-14. Keep implementation bounded, preserve authoritative document/control commands, use proportional verification and independent review. Public reference details and images remain external. This issue is planned until its stated gate is evidenced; do not substitute compilation/API or Qt simulation for physical input or packaged GPU evidence.\n\n\n## Finishable dependency update\nFit/Home, explicit pan/zoom/window tools and selected planar Look At are finishable children NAV-013/014/015. Parent stays Todo until its full scope is accepted.\n"
     },
     {
       "key": "NAV-006",
@@ -7123,7 +7126,7 @@
       "labels": [
         "area:rel"
       ],
-      "body": "## Initial-build readiness scope\nAudit representative sketch, Extrude, Combine, Fillet, failure, Browser and timeline states at normal and minimum window size plus high DPI. Fix contrast, clipped text, selection/preselection distinction, constraint icon/label visibility, dock sizing/placement and keyboard focus indicators using the production theme. Public reference images stay external. Verify corrected captures and one actual input path per materially changed control; no screenshot-only CAD claims or exhaustive screenshot matrix.\n\n## Delivery and evidence\nUser-prioritized 2026-10-14. Keep implementation bounded, preserve authoritative document/control commands, use proportional verification and independent review. Public reference details and images remain external. This issue is planned until its stated gate is evidenced; do not substitute compilation/API or Qt simulation for physical input or packaged GPU evidence.\n"
+      "body": "## Initial-build readiness scope\nAudit representative sketch, Extrude, Combine, Fillet, failure, Browser and timeline states at normal and minimum window size plus high DPI. Fix contrast, clipped text, selection/preselection distinction, constraint icon/label visibility, dock sizing/placement and keyboard focus indicators using the production theme. Public reference images stay external. Verify corrected captures and one actual input path per materially changed control; no screenshot-only CAD claims or exhaustive screenshot matrix.\n\n## Delivery and evidence\nUser-prioritized 2026-10-14. Keep implementation bounded, preserve authoritative document/control commands, use proportional verification and independent review. Public reference details and images remain external. This issue is planned until its stated gate is evidenced; do not substitute compilation/API or Qt simulation for physical input or packaged GPU evidence.\n\n\n## Current capture observation\nThe NAV-010 Qt06 whole-window capture has a broad blank band to the right of the rendered viewport, with cube at the rendered region edge. Check whether this is intended inactive dock allocation, layout-settling timing or capture/native surface sizing before prescribing a fix. Record actual Qt viewport geometry and native drawable size during an already-needed run; do not infer a renderer defect from the composite screenshot alone.\n"
     },
     {
       "key": "REL-014",
@@ -7322,7 +7325,7 @@
       "labels": [
         "area:doc"
       ],
-      "body": "## Finishable orientation-cube scope\nUse OCCT AIS_ViewCube for original Alloy-styled GPU presentation, hover and 26 face/edge/corner hit regions. Disable its unmanaged camera animation/default camera mutation; route picks through a shared authoritative orientation command and camera state. Keep document/history/selection unchanged, preserve saved custom pivot without using it as the cube orientation center, and explicitly document pan/zoom/view-target policy. Match publicly evidenced controls with independently authored styling/assets; detailed source evidence remains external.\n\nQualify representative face/edge/corner hits and the complete orientation mapping with proportional focused checks and inspected actual GPU output. Verify ordinary model selection still works outside cube regions, tab/camera refresh retains the chosen view, and invalid picks do not mutate documents. Distinguish synthetic Qt/API evidence from physical input. Independent Astra review required. This child does not claim cube drag, Home/roll/adjacent accessories, projection-mode or all-DPI parity; those remain linked scope."
+      "body": "## Finishable orientation-cube scope\nUse OCCT AIS_ViewCube for original Alloy-styled GPU presentation, hover and 26 face/edge/corner hit regions. Disable its unmanaged camera animation/default camera mutation; route picks through a shared authoritative orientation command and camera state. Keep document/history/selection unchanged, preserve saved custom pivot without using it as the cube orientation center, and explicitly document pan/zoom/view-target policy. Match publicly evidenced controls with independently authored styling/assets; detailed source evidence remains external.\n\nQualify representative face/edge/corner hits and the complete orientation mapping with proportional focused checks and inspected actual GPU output. Verify ordinary model selection still works outside cube regions, tab/camera refresh retains the chosen view, and invalid picks do not mutate documents. Distinguish synthetic Qt/API evidence from physical input. Independent Astra review required. This child does not claim cube drag, Home/roll/adjacent accessories, projection-mode or all-DPI parity; those remain linked scope.\n\n## Independently accepted 2026-10-14\nAccepted at 75695f7 after independent Astra review. Focused Qt06 passes with 26 unique shared-command camera orientations and representative face/edge/corner pointer clicks, readable blue hover, preserved framing/pivot/selection/authored state, finite-hit and held-move guards. Normal app relinked. See docs/validation/orientation-cube-regions.md. Physical input, wider DPI/resize and sketch-state routes remain separate gates; NAV-011 and NAV-012 retain drag/accessories, so parent NAV-004 remains open.\n"
     },
     {
       "key": "NAV-011",
@@ -7336,7 +7339,7 @@
       "labels": [
         "area:doc"
       ],
-      "body": "## Finishable orientation-cube scope\nImplement cube drag as ordinary orbit through authoritative camera commands, with deliberate gesture acquisition, release/cancel, click-versus-drag separation and no geometry selection leak. Preserve the selected orbit convention and separate pivot policy as supported by public evidence; unresolved behavior is an explicit Alloy policy. Confirm meaningful camera motion, no jump on release/refresh/tab restoration and unchanged authored/history state. Inspect GPU feedback and actual Qt pointer route; physical device qualification remains NAV-008. Disable unmanaged AIS camera mutation. Independent Astra review required."
+      "body": "## Finishable orientation-cube scope\nImplement cube drag as ordinary orbit through authoritative camera commands, with deliberate gesture acquisition, release/cancel, click-versus-drag separation and no geometry selection leak. Preserve the selected orbit convention and separate pivot policy as supported by public evidence; unresolved behavior is an explicit Alloy policy. Confirm meaningful camera motion, no jump on release/refresh/tab restoration and unchanged authored/history state. Inspect GPU feedback and actual Qt pointer route; physical device qualification remains NAV-008. Disable unmanaged AIS camera mutation. Independent Astra review required.\n\n## Independently accepted 2026-10-14\nAccepted at 66d38cd after independent Astra review. Qt03 click/drag, no release snap, viewCenter cube pivot versus retained custom pivot, tab refresh and unchanged selection/authored/history evidence pass; actual GPU capture inspected. Final Escape/interruption/double-click guards were source-reviewed and relinked. See docs/validation/orientation-cube-drag.md. Naturally focused Escape could not be observed in the test environment and remains NAV-008; physical and broader display/layout qualification remain open. Parent NAV-004 retains accessories through NAV-012.\n"
     },
     {
       "key": "NAV-012",
@@ -7346,12 +7349,55 @@
       "priority": "P1",
       "depends_on": [
         "NAV-010",
-        "NAV-005"
+        "NAV-013"
       ],
       "labels": [
         "area:doc"
       ],
-      "body": "## Finishable orientation-cube scope\nImplement discoverable cube Home, adjacent-view and 90-degree roll controls through shared camera state. Reuse the distinct Fit/Home policy from NAV-005; do not silently equate these actions. Preserve named orientation/current highlight, appropriate enabled states and ordinary model input outside accessory hit regions. Research remains external: related-product evidence alone does not prove exact target-product parity, so mark unknown styling/behavior explicitly. Verify representative click/roll/Home sequences with readable GPU capture, camera refresh and unchanged authored state. Projection integration, DPI/readability matrix and physical input remain NAV-006, REL-013 and NAV-008. Independent Astra review required."
+      "body": "## Finishable orientation-cube scope\nImplement discoverable cube Home, adjacent-view and 90-degree roll controls through shared camera state. Reuse the distinct Fit/Home policy from NAV-005; do not silently equate these actions. Preserve named orientation/current highlight, appropriate enabled states and ordinary model input outside accessory hit regions. Research remains external: related-product evidence alone does not prove exact target-product parity, so mark unknown styling/behavior explicitly. Verify representative click/roll/Home sequences with readable GPU capture, camera refresh and unchanged authored state. Projection integration, DPI/readability matrix and physical input remain NAV-006, REL-013 and NAV-008. Independent Astra review required.\n\n## Finishable dependency update\nHome accessory depends specifically on NAV-013 Fit/Home, without unnecessarily waiting for other NAV-005 controls.\n"
+    },
+    {
+      "key": "NAV-013",
+      "title": "Separate Fit from Home and expose Fit with F6",
+      "kind": "implementation",
+      "phase": "P4 Initial release",
+      "priority": "P1",
+      "depends_on": [
+        "NAV-001"
+      ],
+      "labels": [
+        "area:doc"
+      ],
+      "body": "## Finishable navigation-control scope\nAdd visible Fit and F6 through a shared view.fit command. Fit frames currently displayed geometry while preserving camera orientation; Home retains its explicit isometric-plus-fit default until configurable Home is delivered. Reuse preview-aware bodies for active modeling previews, including current Extrude/Combine candidates, visible sketches and canvases rather than stale authored geometry. Keep pan/zoom/target behavior documented and custom pivot state separate.\n\nUse one focused real-app fixture for orientation preservation, meaningful reframing, preview-aware choice, unchanged authored/history and the visible button. Inspect GPU output. Natural-focus F6 and physical input remain required under NAV-008 if the desktop environment cannot supply them; do not repair focus between steps or equate API activation with keyboard evidence. Independent Astra review required.\n\n## Independently accepted 2026-10-14\nAccepted at 057026b after independent Astra review: visible Fit and shared view.fit preserve orientation, Home restores isometric, and current valid preview geometry participates in framing. Focused Qt checks pass 3/3 with actual Fit/Home button clicks and GPU captures. F6 binding is inspected; natural keyboard and physical-device delivery remain NAV-008/NAV-009. See docs/validation/navigation-fit.md. Parent NAV-005 remains open for its other children.\n"
+    },
+    {
+      "key": "NAV-014",
+      "title": "Expose Pan, Zoom and rectangular Zoom Window tools",
+      "kind": "implementation",
+      "phase": "P4 Initial release",
+      "priority": "P1",
+      "depends_on": [
+        "NAV-003",
+        "NAV-013"
+      ],
+      "labels": [
+        "area:doc"
+      ],
+      "body": "## Finishable navigation-control scope\nProvide discoverable navigation commands and checked tool/cursor states for Pan, Zoom and Zoom Window without requiring a middle button. Route drag and rectangle completion through authoritative camera commands; handle click-versus-drag, Escape, interruption and ordinary selection afterward. Preserve active modeling command/document state. Keep direction/sensitivity and orthographic versus future perspective policy explicit from public evidence. Verify one coherent pointer workflow and inspected GPU camera output; no focus repair. Full physical/platform qualification remains NAV-008. Independent Astra review required."
+    },
+    {
+      "key": "NAV-015",
+      "title": "Frame selected geometry and Look At planar faces or sketches",
+      "kind": "implementation",
+      "phase": "P4 Initial release",
+      "priority": "P1",
+      "depends_on": [
+        "NAV-013"
+      ],
+      "labels": [
+        "area:doc"
+      ],
+      "body": "## Finishable navigation-control scope\nAdd selected-object framing and supported planar face/sketch Look At through shared commands with visible controls. Use evaluated visible world placement and retained body/face/sketch identity, including instances where supported; refuse stale or unsupported targets clearly. Distinguish orientation/alignment from Fit and document unresolved framing policy. Preserve active modeling context, custom-pivot policy, authored state and camera restoration. Verify representative body fit plus an off-origin planar face/sketch alignment through the real app and inspect readable GPU output. Record broader edge/nonplanar/physical routes explicitly rather than claiming full target parity. Independent Astra review required."
     }
   ]
 }

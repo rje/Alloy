@@ -79,6 +79,43 @@ The next source-backed diagnostic is recorded externally in
 `knowledge/specs/geo020-occt-mouth-corner-diagnostic-2026-10-14.md`: inspect the
 fillet/limiting-face intersection at the reported endpoint against the trimmed
 face boundary and identify the applicable corner path. Containment and the exact
-cause remain unknown. The observed three-edge junction does not establish a
-four-or-more-edge kernel limitation. No additional kernel replay was made for
+cause remain unknown. The three named incident edges do not establish full topological valence,
+nor prove or exclude a four-or-more-edge kernel limitation. No additional kernel replay was made for
 that research.
+
+The independent follow-up is in external
+`knowledge/specs/geo020-astra-source-review-2026-10-14.md`. It corrects the tagged
+OCCT source paths and identifies available computed stripe surfaces even without
+a partial result. Preserve the input BRep, enumerate full TopExp incidence and
+classify the finite terminal intersection against the actual limiting-face trim
+in the next bounded diagnostic. No source-backed correction is established.
+
+
+## Computed surfaces and bounded composition candidate
+
+Diagnostic `8346959` records full vertex incidence and computed support surfaces
+in external `geo020-surfaces-01/`. The four contour endpoints have valence three.
+The two terminal supports share compatible torus geometry (major radius 3.25,
+minor radius 0.5), but support geometry alone does not establish trimmed-patch
+containment or mouth completion. Saved `.geom` directions have six significant
+digits; use the preserved BReps for numerical inspection.
+
+The single changed hypothesis in external `geo020-common-01/` forms each exact
+R0.5 chain independently from the same original Join solid, then intersects the
+two successful results. Both branches and their Common are valid closed solids.
+Volumes are respectively 29495.302746, 29495.036294 and 29482.618945 mm³, against
+original 29507.720095 mm³. The probe then stopped on an empty-bounds diagnostic
+error before subset, rear-section and mouth checks completed. The saved candidate
+is being inspected without reconstructing those operations. Validity is candidate
+viability only: profile, finite mouth patches, tangency, persistent references,
+source edits and downstream Cut/export remain unqualified. This is not a shipped
+Fillet correction or tutorial completion.
+
+The subsequent `geo020-common-inspect-01/` inspection loads those saved BReps
+without reconstructing Fillets or Common. It reopens one valid closed solid with
+the same volume; each branch and Common minus the original returns a successful
+empty Cut. The rear x=0 crown comprises two exact R0.5 quarter-circle arcs sharing
+center (0,-44.75,16.5), meeting at z=17 and spanning the intended 1 mm width.
+This establishes the local rear semicircle and absence of outside material.
+Mouth artifacts are preserved for independent review; global tangency, mouth
+shape and production/history integration remain unqualified.

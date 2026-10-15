@@ -1,17 +1,22 @@
 {
   "repository": "rje/Alloy",
   "project_url": "https://github.com/users/rje/projects/1",
-  "updated": "2026-10-15T01:38:26.734010+00:00",
+  "updated": "2026-10-15T02:04:27.238203+00:00",
   "issues": {
+    "NAV-012": {
+      "number": 432,
+      "url": "https://github.com/rje/Alloy/issues/432",
+      "state": "open"
+    },
     "NAV-011": {
       "number": 431,
       "url": "https://github.com/rje/Alloy/issues/431",
-      "state": "open"
+      "state": "closed"
     },
     "NAV-010": {
       "number": 430,
       "url": "https://github.com/rje/Alloy/issues/430",
-      "state": "open"
+      "state": "closed"
     },
     "GEO-020": {
       "number": 429,
@@ -2158,9 +2163,19 @@
       "url": "https://github.com/rje/Alloy/issues/1",
       "state": "closed"
     },
-    "NAV-012": {
-      "number": 432,
-      "url": "https://github.com/rje/Alloy/issues/432",
+    "NAV-013": {
+      "number": 433,
+      "url": "https://github.com/rje/Alloy/issues/433",
+      "state": "closed"
+    },
+    "NAV-014": {
+      "number": 434,
+      "url": "https://github.com/rje/Alloy/issues/434",
+      "state": "open"
+    },
+    "NAV-015": {
+      "number": 435,
+      "url": "https://github.com/rje/Alloy/issues/435",
       "state": "open"
     }
   }

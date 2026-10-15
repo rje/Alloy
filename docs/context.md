@@ -7,6 +7,8 @@ build, while retaining advanced tutorial completion. See the actionable
 [readiness burndown](initial-build-readiness.md). Twenty-two bounded children
 NAV-001–009, REL-012–018 and CI-004–009 are published as #407–428; existing
 file/physical-input/platform gates and advanced chain dependencies are reused.
+Orientation-cube and navigation-control scope is further split into finishable
+NAV-010–015 children (#430–435), without closing the parent scopes.
 NAV-001/#407 is independently accepted at `2d1a699` and closed: free orbit,
 a visible checked tool for users without a middle mouse button, custom-camera
 tab restoration and navigation gesture priority. Focused Qt tests passed 3/3,
@@ -65,13 +67,30 @@ viewport click after navigation; GPU output was inspected. See
 input qualification remain NAV-008; preferences remain NAV-007. Final nonfinite
 anchor guard is source/build reviewed; no unchanged rerun was needed.
 
-GEO-020/#429 returned to Todo after the diagnostic at `4110bf0`: two distinct
-seven-edge contours resolve, both report Ok, but corner completion fails at a
-reported U-mouth junction. Fault vertices varied; no unique cause or correction
-is established. See [receipt](validation/enclosure-rim-two-rail-blocker.md).
-NAV-010/#430 is active for the first orientation-cube slice: GPU cube, hover
-and face/edge/corner picks through authoritative camera state. NAV-011/#431
-retains drag; NAV-012/#432 retains Home/adjacent/roll controls. Parent NAV-004
+GEO-020/#429 remains active. Diagnostic `8346959` preserves computed stripe
+surfaces and full vertex incidence: all four contour endpoints have valence
+three; the terminal supports have compatible torus geometry, but finite mouth
+patches remain unresolved. One changed algorithm experiment formed independent
+R0.5 single-chain fillets from the same Join solid, then their Boolean Common.
+Both branches and Common are valid closed solids. Subsequent subset diagnostics
+hit an empty-bounds handling error; subsequent inspection of saved BReps
+confirms no material outside the original and an exact local rear R0.5 semicircle.
+Independent review is pending. This establishes viability and local shape only,
+not global mouth/tangency, history or tutorial acceptance. See
+[receipt](validation/enclosure-rim-two-rail-blocker.md).
+NAV-010/#430 is accepted at `75695f7`: GPU cube, readable blue hover and
+face/edge/corner picks through authoritative camera state. Qt06 proves 26 API
+orientations and three representative Qt clicks; physical/DPI/sketch routes
+remain unqualified. See [receipt](validation/orientation-cube-regions.md).
+NAV-011/#431 is accepted at `66d38cd` for Qt cube dragging around the view target
+while retaining the custom pivot for ordinary orbit; natural-focus Escape remains
+NAV-008. [Receipt](validation/orientation-cube-drag.md). NAV-012/#432 retains
+Home/adjacent/roll controls and is the next active UI slice. NAV-013/#433 is
+accepted at `057026b`: visible Fit preserves orientation while Home resets it;
+current valid preview geometry participates in framing. Focused Qt checks pass
+3/3 with GPU captures; F6 binding is inspected, natural key delivery remains
+unverified. See [receipt](validation/navigation-fit.md). NAV-014/#434 and NAV-015/#435
+retain explicit pan/zoom/window tools and selected framing/planar Look At. Parent NAV-004
 stays Todo behind those children; existing projection/DPI/physical gates remain. Newly
 archived public 1080p tutorial frames show two tangent chains, 14 edges total,
 Tangent Chain enabled and a typed 0.5 radius. This supersedes the former unknown

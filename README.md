@@ -4,11 +4,20 @@ Current priority: [initial-build readiness](docs/initial-build-readiness.md)—
 familiar navigation, reliable everyday controls, recovery and installable packages,
 alongside completion of the advanced modeling tutorials.
 
-[Free orbit](docs/validation/free-orbit-navigation.md) supports Shift-middle drag
-and a visible tool for users without a middle mouse button. The
-[retained enclosure inset](docs/validation/trimmed-seam-inset.md) now preserves
+Navigation now includes [free orbit](docs/validation/free-orbit-navigation.md),
+[constrained orbit and pivots](docs/validation/constrained-orbit-pivot.md),
+[cursor-anchored zoom and gesture routing](docs/validation/trackpad-navigation.md),
+and [orientation-cube clicks](docs/validation/orientation-cube-regions.md) and
+[dragging](docs/validation/orientation-cube-drag.md), plus distinct
+[Fit and Home](docs/validation/navigation-fit.md) controls. These have bounded Qt/GPU
+validation; physical trackpad and broader platform input remain open gates.
+The visible Orbit tool supports users without a middle mouse button.
+
+The [retained enclosure inset](docs/validation/trimmed-seam-inset.md) preserves
 its profile and downstream Join/Fillet references through source edits and
-reopening; the complete enclosure workflow remains in progress.
+reopening. The full enclosure remains blocked on paired rim rounding; its
+[diagnostic](docs/validation/enclosure-rim-two-rail-blocker.md) records the exact
+failure and next investigation without substituting a smaller radius.
 
 [Straight-line Extend](docs/validation/sketch-line-extend.md) now previews and
 closes sketch gaps while preserving endpoint identity and constraints. Its

@@ -39,7 +39,7 @@ platform-specific gesture limitations. Detailed reference records stay external.
 | Constrained orbit and pivot choice/reset | [NAV-002](https://github.com/rje/Alloy/issues/408) | Level horizon, deliberate rotation center, supported selection and reset |
 | Smooth cursor-centered zoom and trackpad navigation | [NAV-003](https://github.com/rje/Alloy/issues/409) | Pixel/wheel/pinch routing, pan/modifier orbit, no duplicate gestures, documented direction settings |
 | Familiar orientation cube | [NAV-004](https://github.com/rje/Alloy/issues/410) | [NAV-010](https://github.com/rje/Alloy/issues/430): face/edge/corner picks and hover; [NAV-011](https://github.com/rje/Alloy/issues/431): drag; [NAV-012](https://github.com/rje/Alloy/issues/432): Home/adjacent/roll. Shared camera state and original styling |
-| Discoverable Pan/Zoom/Zoom Window/Fit/Look At controls | [NAV-005](https://github.com/rje/Alloy/issues/411) | Fit differs from Home; visible/selected geometry framing; face/sketch alignment preserves command |
+| Discoverable Pan/Zoom/Zoom Window/Fit/Look At controls | [NAV-005](https://github.com/rje/Alloy/issues/411) | [NAV-013](https://github.com/rje/Alloy/issues/433): Fit/Home; [NAV-014](https://github.com/rje/Alloy/issues/434): Pan/Zoom/Window; [NAV-015](https://github.com/rje/Alloy/issues/435): selected framing/planar Look At |
 | Projection modes | [NAV-006](https://github.com/rje/Alloy/issues/412) | Orthographic/perspective and documented hybrid behavior; picking and framing remain correct |
 | Named views and navigation preferences | [NAV-007](https://github.com/rje/Alloy/issues/413) | Create/restore/rename/delete, Home/front/up conventions, proper document/application persistence |
 | Native constrained-orbit and pivot controls | [NAV-009](https://github.com/rje/Alloy/issues/428) | Visible mode/context/pick/drag/Escape/Reset with natural focus; pending desktop activation/window binding |
@@ -123,8 +123,10 @@ route. The exact paired enclosure R0.5 refusal is isolated in GEO-020; the
 cumulative rim/Cut/export gate remains Todo behind it. NAV-003 smooth zoom and
 Qt trackpad routing is accepted with physical-device qualification preserved in
 NAV-008. GEO-020's diagnostic narrows its unresolved failure to U-mouth corner
-completion; it remains Todo. NAV-010 cube presentation and orientation picks are
-active; drag/accessories remain separate children of NAV-004. Reassess after each accepted
+completion; saved candidate inspection is active. NAV-010 cube presentation and orientation picks are
+accepted, as are NAV-011 drag and NAV-013 Fit/Home. NAV-012 cube accessories
+are the next active UI slice. NAV-004 stays
+open until its complete scope is evidenced. Reassess after each accepted
 slice; never repeat an unchanged failing kernel/input probe without a new
 hypothesis. Keep one private validation editor and retire completed worktrees.
 
