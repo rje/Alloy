@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 #include "CadDocument.h"
 #include "SketchGeometry.h"
+#include "SketchSpline.h"
 #include <QCoreApplication>
 #include <QJsonDocument>
 #include <QTemporaryDir>
@@ -15,9 +16,54 @@ static QJsonObject lookup(const QJsonObject& sketch,const char* field,const QStr
 }
 static void near(double a,double b,const char* reason){check(std::abs(a-b)<1e-5,reason);}
 
+static void splineMirror(){
+    CadDocument document;auto sketch=SketchGeometry::newFeature(document.authored()["documentId"].toString(),"XY");
+    sketch=SketchGeometry::addLine(sketch,{{"u1Mm",-10},{"v1Mm",0},{"u2Mm",80},{"v2Mm",0}});
+    const auto axis=sketch["parameters"].toObject()["entities"].toArray().first().toObject();
+    const auto construction=SketchGeometry::setConstruction(sketch,{{"entityIds",QJsonArray{axis["id"]}},{"construction",true}});check(construction.ok,construction.error);sketch=construction.feature;
+    auto added=SketchSpline::add(sketch,{{"points",QJsonArray{QJsonObject{{"uMm",10},{"vMm",5}},QJsonObject{{"uMm",25},{"vMm",18}},QJsonObject{{"uMm",42},{"vMm",12}},QJsonObject{{"uMm",60},{"vMm",4}}}}});
+    check(added.ok,added.error);sketch=added.feature;
+    const auto source=sketch["parameters"].toObject()["entities"].toArray().last().toObject();
+    const auto sourceIds=source["pointIds"].toArray();
+    for(const auto& args:QJsonArray{QJsonObject{{"pointId",sourceIds.first()},{"duMm",70},{"dvMm",15}},QJsonObject{{"pointId",sourceIds.last()},{"duMm",20},{"dvMm",-25}}}){
+        auto input=args.toObject();input["entityId"]=source["id"];const auto edit=SketchSpline::edit(sketch,"tangent",input);check(edit.ok,edit.error);sketch=edit.feature;
+    }
+    const auto before=SketchGeometry::solveDraft(sketch);check(before.ok,before.error);
+    auto mirror=SketchGeometry::mirrorEntities(sketch,{{"sourceEntityIds",QJsonArray{source["id"]}},{"axisEntityId",axis["id"]}});
+    check(mirror.ok,mirror.error);sketch=mirror.feature;
+    check(mirror.diagnostics["dof"]==before.diagnostics["dof"],"Mirror adds no independent spline handle DOF");
+    const auto group=sketch["parameters"].toObject()["mirrorGroups"].toArray().first().toObject();
+    check(group["pointPairs"].toArray().size()==4,"Every fit point has retained reflection identity");
+    const auto resultId=group["entityPairs"].toArray().first().toObject()["resultEntityId"].toString();
+    auto verify=[&](const QJsonObject& current){
+        check(current["parameters"].toObject()["mirrorGroups"].toArray().first().toObject()==group,"Mirror identities changed");
+        const auto parameters=current["parameters"].toObject(),a=lookup(current,"points",axis["startPointId"].toString()),b=lookup(current,"points",axis["endPointId"].toString());
+        const gp_Pnt origin(a["uMm"].toDouble(),a["vMm"].toDouble(),0);const gp_Vec direction(origin,gp_Pnt(b["uMm"].toDouble(),b["vMm"].toDouble(),0));
+        const auto sourceCurve=SketchSpline::evaluate(parameters,lookup(current,"entities",source["id"].toString())).curve;
+        const auto resultCurve=SketchSpline::evaluate(parameters,lookup(current,"entities",resultId)).curve;
+        for(int i=0;i<=40;++i){const auto p=sourceCurve->Value(i/40.);const gp_Vec delta(origin,p);
+            const auto reflected=origin.Translated(2*direction*(delta.Dot(direction)/direction.SquareMagnitude())-delta);
+            check(reflected.Distance(resultCurve->Value(i/40.))<1e-6,"Evaluated fit spline is not a reflected curve");}
+    };
+    verify(sketch);
+    auto edit=SketchGeometry::movePoint(sketch,{{"pointId",sourceIds[1]},{"uMm",29},{"vMm",23}});check(edit.ok,edit.error);sketch=edit.feature;verify(sketch);
+    edit=SketchGeometry::movePoint(sketch,{{"pointId",axis["endPointId"]},{"uMm",75},{"vMm",30}});check(edit.ok,edit.error);sketch=edit.feature;verify(sketch);
+    edit=SketchSpline::edit(sketch,"tangent",{{"entityId",source["id"]},{"pointId",sourceIds.first()},{"duMm",30},{"dvMm",-12}});check(edit.ok,edit.error);sketch=edit.feature;verify(sketch);
+    const auto result=lookup(sketch,"entities",resultId);
+    const auto refused=SketchSpline::edit(sketch,"tangent",{{"entityId",resultId},{"pointId",result["pointIds"].toArray().first()},{"duMm",1},{"dvMm",2}});
+    check(!refused.ok && refused.feature==sketch,"Derived spline tangent edit is atomic");
+    check(document.commit(SketchGeometry::replaceFeature(document.authored(),sketch),"Spline Mirror").isEmpty(),"Commit fit-spline Mirror");
+    check(document.sketches().front().summary.value("mirrorGroups").toArray().first().toObject()==group,"Evaluated sketch exposes retained Mirror ancestry");
+    const auto authored=document.authored();document.history().undo();document.history().redo();check(document.authored()==authored,"Spline Mirror history");
+    QTemporaryDir dir;const auto path=dir.filePath("spline-mirror.alloy");check(document.save(path).isEmpty(),"Save spline Mirror");CadDocument reopened;
+    check(reopened.open(path).isEmpty() && reopened.authored()==authored,"Reopen spline Mirror");verify(reopened.authored()["features"].toArray().first().toObject());
+    std::cout<<"FIT_SPLINE_MIRROR_OK all-fit-points handles source axis history reopen\n";
+}
+
 int main(int argc,char** argv){
     QCoreApplication app(argc,argv);
     try{
+        splineMirror();
         CadDocument document;auto sketch=SketchGeometry::newFeature(document.authored()["documentId"].toString(),"XY");
         auto parameters=sketch["parameters"].toObject();QJsonArray points,entities;
         auto addPoint=[&](double x,double y){const auto id=CadDocument::newId();points.append(QJsonObject{{"id",id},{"uMm",x},{"vMm",y}});return id;};

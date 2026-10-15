@@ -14,6 +14,7 @@
 #include "ReferenceView.h"
 #include "GeometryKernel.h"
 #include "SketchGeometry.h"
+#include "SketchMirror.h"
 #include "SketchSpline.h"
 #include "SketchSplineOffset.h"
 #include "RoundedLoopOffset.h"
@@ -3345,10 +3346,10 @@ void AlloyWindow::registerCommands() {
     for(const auto& field:QStringList{"centerX","centerY","radius","startX","startY","endX","endY","throughX","throughY"})arcSchema[field]=optional(coordinate);
     add("sketch.addArc","Create analytic arc","Append an exact center/radius/sweep or three-point arc; through point follows start/end.",arcSchema,
         [this](const auto& a){return appendSketchCurve(a["mode"]=="center" ? "centerArc" : "threePointArc",a);});
-    const QJsonObject sketchMirrorSchema{{"sourceEntityIds",parameter("array","Distinct authored line/arc UUIDs to reflect.")},
+    const QJsonObject sketchMirrorSchema{{"sourceEntityIds",parameter("array","Distinct authored line, arc or open fit-spline UUIDs to reflect.")},
         {"axisEntityId",parameter("string","Authored straight line UUID used as Mirror Line.")},
         {"session",sketchSession}};
-    add("sketch.mirrorPreview","Preview sketch Mirror","Preview retained line/arc symmetry without changing authored geometry.",sketchMirrorSchema,[this](const auto& a){
+    add("sketch.mirrorPreview","Preview sketch Mirror","Preview retained curve symmetry without changing authored geometry.",sketchMirrorSchema,[this](const auto& a){
         if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
         if(a.contains("session") && a["session"]!=session_["id"])return failure("invalid_session","Session is no longer active");
         const auto inputs=QJsonObject{{"sourceEntityIds",a["sourceEntityIds"]},{"axisEntityId",a["axisEntityId"]}};
@@ -3380,8 +3381,8 @@ void AlloyWindow::registerCommands() {
     const auto mirrorRelatedPoints=[](const QJsonObject& draft,const QJsonArray& sourceIds){
         QSet<QString> related;
         for(const auto& value:draft["parameters"].toObject()["entities"].toArray()){
-            const auto entity=value.toObject();if(!sourceIds.contains(entity["id"]) || (entity["type"]!="line" && entity["type"]!="arc"))continue;
-            for(const auto& key:{"startPointId","endPointId","centerPointId"})if(entity.contains(key))related.insert(entity[key].toString());
+            const auto entity=value.toObject();if(!sourceIds.contains(entity["id"]) || !SketchMirror::supportedSource(entity))continue;
+            for(const auto& id:SketchMirror::pointIds(entity))related.insert(id);
         }
         return related;
     };
@@ -3394,7 +3395,7 @@ void AlloyWindow::registerCommands() {
         }
         QJsonArray sources,points;
         for(const auto& id:prior["entityIds"].toArray()){
-            const auto entity=entities.value(id.toString());if(entity["type"]=="line" || entity["type"]=="arc")sources.append(id);
+            const auto entity=entities.value(id.toString());if(SketchMirror::supportedSource(entity))sources.append(id);
         }
         const auto related=mirrorRelatedPoints(draft,sources);
         for(const auto& id:prior["pointIds"].toArray())if(related.contains(id.toString()))points.append(id);
@@ -3421,7 +3422,7 @@ void AlloyWindow::registerCommands() {
     });
     auto mirrorPixel=parameter("number","Viewport-local logical pixel coordinate.");mirrorPixel["minimum"]=0;mirrorPixel["maximum"]=10000;
     auto mirrorWindowSchema=QJsonObject{{"x1",mirrorPixel},{"y1",mirrorPixel},{"x2",mirrorPixel},{"y2",mirrorPixel}};
-    add("sketch.mirrorWindow","Window-select Mirror objects","Fully enclosed authored lines/arcs and their distinct points; crossing curves are excluded.",
+    add("sketch.mirrorWindow","Window-select Mirror objects","Fully enclosed authored lines, arcs and fit splines with their distinct points; crossing curves are excluded.",
         mirrorWindowSchema,[this](const auto& a){
             if(session_.value("tool")!="mirror")return failure("mirror_inactive","Start sketch Mirror first");
             auto state=session_["mirrorSelection"].toObject();if(state["role"]!="objects")return failure("mirror_role","Choose Objects before window selection");
@@ -3429,8 +3430,8 @@ void AlloyWindow::registerCommands() {
             if(hit.isEmpty())return failure("invalid_window","Drag a nonzero selection window");
             const auto parameters=draft["parameters"].toObject();QSet<QString> allowed,related;
             for(const auto& value:parameters["entities"].toArray()){
-                const auto e=value.toObject();if(!hit["entityIds"].toArray().contains(e["id"]) || (e["type"]!="line" && e["type"]!="arc"))continue;
-                allowed.insert(e["id"].toString());for(const auto& key:{"startPointId","endPointId","centerPointId"})if(e.contains(key))related.insert(e[key].toString());
+                const auto e=value.toObject();if(!hit["entityIds"].toArray().contains(e["id"]) || !SketchMirror::supportedSource(e))continue;
+                allowed.insert(e["id"].toString());for(const auto& id:SketchMirror::pointIds(e))related.insert(id);
             }
             QJsonArray entities,points;for(const auto& id:hit["entityIds"].toArray())if(allowed.contains(id.toString()))entities.append(id);
             for(const auto& id:hit["pointIds"].toArray())if(related.contains(id.toString()))points.append(id);
@@ -3444,17 +3445,17 @@ void AlloyWindow::registerCommands() {
         if(session_.value("tool")!="mirror")return failure("mirror_inactive","Start sketch Mirror first");
         auto state=session_["mirrorSelection"].toObject();const bool axis=state["role"]=="axis";
         const auto hit=view_->pickSketch(session_["draftSketch"].toObject(),a["x"].toDouble(),a["y"].toDouble(),axis ? "line" : QString{},session_.value("resolvedFrame").toObject());
-        if(hit.isEmpty() || hit["projected"].toBool())return failure(axis ? "mirror_axis_required" : "mirror_source_required",axis ? "Pick an authored straight Mirror Line" : "Pick an authored line, arc or related point");
+        if(hit.isEmpty() || hit["projected"].toBool())return failure(axis ? "mirror_axis_required" : "mirror_source_required",axis ? "Pick an authored straight Mirror Line" : "Pick an authored line, arc, fit spline or related point");
         const auto params=session_["draftSketch"].toObject()["parameters"].toObject();QString type;
         for(const auto& v:params["entities"].toArray())if(v.toObject()["id"]==hit["entityId"]){type=v.toObject()["type"].toString();break;}
         if(axis){if(type!="line")return failure("mirror_axis_required","Pick an authored straight Mirror Line");state["axisEntityId"]=hit["entityId"];}
         else if(hit["kind"]=="point"){
             if(!mirrorRelatedPoints(session_["draftSketch"].toObject(),state["sourceEntityIds"].toArray()).contains(hit["pointId"].toString()))
-                return failure("mirror_point_requires_curve","Select the point's source line or arc before adding that point");
+                return failure("mirror_point_requires_curve","Select the point's source curve before adding that point");
             auto ids=state["pointIds"].toArray();if(!ids.contains(hit["pointId"]))ids.append(hit["pointId"]);state["pointIds"]=ids;
-        }else if(type=="line" || type=="arc"){
+        }else if(type=="line" || type=="arc" || type=="fitSpline"){
             auto ids=state["sourceEntityIds"].toArray();if(!ids.contains(hit["entityId"]))ids.append(hit["entityId"]);state["sourceEntityIds"]=ids;
-        }else return failure("mirror_source_required","Mirror supports authored lines and arcs");
+        }else return failure("mirror_source_required","Mirror supports authored lines, arcs and open fit splines");
         session_["mirrorSelection"]=state;if(session_.contains("pendingSketchMirror"))execute("sketch.mirrorCancel");
         auto selected=state["sourceEntityIds"].toArray();if(!state["axisEntityId"].toString().isEmpty())selected.append(state["axisEntityId"]);
         setSketchSelection({{"entityIds",selected},{"pointIds",state["pointIds"]}});

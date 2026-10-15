@@ -19,6 +19,39 @@ QPointF reflected(QPointF p,QPointF a,QPointF b){const auto d=b-a;const double n
 QStringList pointKeys(const QJsonObject& entity){return entity["type"]=="arc" ? QStringList{"startPointId","endPointId","centerPointId"} : QStringList{"startPointId","endPointId"};}
 }
 namespace SketchMirror {
+bool supportedSource(const QJsonObject& entity){return entity["type"]=="line" || entity["type"]=="arc" || entity["type"]=="fitSpline";}
+QStringList pointIds(const QJsonObject& entity){
+    QStringList ids;
+    if(entity["type"]=="fitSpline")for(const auto& value:entity["pointIds"].toArray())ids.append(value.toString());
+    else for(const auto& key:pointKeys(entity))ids.append(entity[key].toString());
+    return ids;
+}
+QJsonObject refreshSplineHandles(const QJsonObject& parameters){
+    auto result=parameters;auto entities=parameters["entities"].toArray();auto entityById=objects(entities);
+    const auto points=objects(parameters["points"].toArray());
+    for(const auto& groupValue:parameters["mirrorGroups"].toArray()){
+        const auto group=groupValue.toObject(),axis=entityById.value(group["axisEntityId"].toString());
+        const auto direction=position(points.value(axis["endPointId"].toString()))-position(points.value(axis["startPointId"].toString()));
+        const double norm=QPointF::dotProduct(direction,direction);require(norm>1e-6,"Mirror axis is degenerate");
+        for(const auto& pairValue:group["entityPairs"].toArray()){
+            const auto pair=pairValue.toObject(),source=entityById.value(pair["sourceEntityId"].toString());
+            if(source["type"]!="fitSpline")continue;
+            auto target=entityById.value(pair["resultEntityId"].toString());QJsonObject handles;
+            const auto sourceIds=source["pointIds"].toArray(),targetIds=target["pointIds"].toArray();
+            require(sourceIds.size()==targetIds.size(),"Mirror spline fit-point mapping is incomplete");
+            const auto sourceHandles=source["tangentHandles"].toObject();
+            for(int i=0;i<sourceIds.size();++i)if(sourceHandles.contains(sourceIds[i].toString())){
+                const auto handle=sourceHandles.value(sourceIds[i].toString()).toObject();
+                const QPointF vector(handle["duMm"].toDouble(),handle["dvMm"].toDouble());
+                const auto reflected=2*direction*(QPointF::dotProduct(vector,direction)/norm)-vector;
+                handles[targetIds[i].toString()]=QJsonObject{{"duMm",reflected.x()},{"dvMm",reflected.y()}};
+            }
+            target["tangentHandles"]=handles;entityById[target["id"].toString()]=target;
+        }
+    }
+    for(int i=0;i<entities.size();++i)entities[i]=entityById.value(entities[i].toObject()["id"].toString());
+    result["entities"]=entities;return result;
+}
 QString validate(const QJsonObject& parameters){
     if(!parameters.contains("mirrorGroups"))return {};
     if(!parameters["mirrorGroups"].isArray())return "Mirror groups must be an array";
@@ -45,16 +78,23 @@ QString validate(const QJsonObject& parameters){
             const auto source=entities.value(sourceId),result=entities.value(resultId);
             if(pair.size()!=2 || source.isEmpty() || result.isEmpty() || sourceId==resultId || sourceId==group["axisEntityId"] ||
                 sourceIds.contains(sourceId) || resultIds.contains(resultId) || source["type"]!=result["type"] ||
-                (source["type"]!="line" && source["type"]!="arc") || source["construction"]!=result["construction"] || source["centerline"]!=result["centerline"])
+                !supportedSource(source) || source["construction"]!=result["construction"] || source["centerline"]!=result["centerline"])
                 return "Invalid Mirror entity mapping";
             sourceIds.insert(sourceId);resultIds.insert(resultId);
-            for(const auto& key:pointKeys(source)) {
-                const auto sourcePointId=source[key].toString();
+            const auto sourcePointIds=pointIds(source),resultPointIds=pointIds(result);
+            if(sourcePointIds.size()!=resultPointIds.size())return "Mirror spline fit-point mapping is incomplete";
+            if(source["type"]=="fitSpline"){
+                if(sourcePointIds.size()<2)return "Mirror spline fit-point mapping is incomplete";
+                const auto span=position(points.value(sourcePointIds.first()))-position(points.value(sourcePointIds.last()));
+                if(std::hypot(span.x(),span.y())<.001)return "Mirror supports open fit splines";
+            }
+            for(int pointIndex=0;pointIndex<sourcePointIds.size();++pointIndex) {
+                const auto sourcePointId=sourcePointIds[pointIndex],resultPointId=resultPointIds[pointIndex];
                 if(pointMap.contains(sourcePointId)){
-                    if(pointMap.value(sourcePointId)!=result[key].toString())return "Mirror entity point mapping is incomplete";
+                    if(pointMap.value(sourcePointId)!=resultPointId)return "Mirror entity point mapping is incomplete";
                 } else {
                     const auto sourcePoint=points.value(sourcePointId);
-                    if(result[key]!=source[key] || sourcePoint.isEmpty() ||
+                    if(resultPointId!=sourcePointId || sourcePoint.isEmpty() ||
                         std::hypot(reflected(position(sourcePoint),axisStart,axisEnd).x()-sourcePoint["uMm"].toDouble(),
                                    reflected(position(sourcePoint),axisStart,axisEnd).y()-sourcePoint["vMm"].toDouble())>1e-6)
                         return "Mirror shared point must remain on the axis";
@@ -109,7 +149,7 @@ QJsonObject seed(const QJsonObject& parameters){
     }
     for(int i=0;i<points.size();++i)points[i]=pointById.value(points[i].toObject()["id"].toString());
     for(int i=0;i<entities.size();++i)entities[i]=entityById.value(entities[i].toObject()["id"].toString());
-    out["points"]=points;out["entities"]=entities;return out;
+    out["points"]=points;out["entities"]=entities;return refreshSplineHandles(out);
 }
 QJsonObject create(const QJsonObject& parameters,const QJsonObject& arguments){
     const auto ids=arguments["sourceEntityIds"].toArray();const auto axisId=arguments["axisEntityId"].toString();
@@ -123,10 +163,10 @@ QJsonObject create(const QJsonObject& parameters,const QJsonObject& arguments){
     QSet<QString> selected;QMap<QString,QString> pointMap;QJsonArray entityPairs,pointPairs;
     for(const auto& value:ids){
         require(value.isString(),"Mirror source IDs must be strings");const auto sourceId=value.toString();const auto source=entityById.value(sourceId);
-        require(!selected.contains(sourceId) && sourceId!=axisId && (source["type"]=="line" || source["type"]=="arc"),"Mirror requires distinct line or arc sources separate from its axis");
+        require(!selected.contains(sourceId) && sourceId!=axisId && supportedSource(source),"Mirror requires distinct line, arc or open fit-spline sources separate from its axis");
         selected.insert(sourceId);auto result=source;result["id"]=id();
-        for(const auto& key:pointKeys(source)){
-            const auto sourcePointId=source[key].toString();
+        QJsonArray splinePoints;
+        for(const auto& sourcePointId:pointIds(source)){
             if(!pointMap.contains(sourcePointId)){
                 const auto sourcePoint=pointById.value(sourcePointId);require(!sourcePoint.isEmpty(),"Mirror source point is missing");
                 auto targetPoint=sourcePoint;targetPoint["id"]=id();const auto p=reflected(position(sourcePoint),a,b);
@@ -136,7 +176,14 @@ QJsonObject create(const QJsonObject& parameters,const QJsonObject& arguments){
                 targetPoint["uMm"]=p.x();targetPoint["vMm"]=p.y();points.append(targetPoint);
                 pointMap[sourcePointId]=targetPoint["id"].toString();pointPairs.append(QJsonObject{{"sourcePointId",sourcePointId},{"resultPointId",targetPoint["id"]}});
             }
-            result[key]=pointMap.value(sourcePointId);
+            if(source["type"]=="fitSpline")splinePoints.append(pointMap.value(sourcePointId));
+            else for(const auto& key:pointKeys(source))if(source[key]==sourcePointId)result[key]=pointMap.value(sourcePointId);
+        }
+        if(source["type"]=="fitSpline"){
+            result["pointIds"]=splinePoints;result["startPointId"]=splinePoints.first();result["endPointId"]=splinePoints.last();
+            QJsonObject handles;const auto sourceHandles=source["tangentHandles"].toObject();
+            for(auto handle=sourceHandles.begin();handle!=sourceHandles.end();++handle)handles[pointMap.value(handle.key())]=handle.value();
+            result["tangentHandles"]=handles;
         }
         if(source["type"]=="arc"){
             result["startAngleDeg"]=std::remainder(2*axisAngle-source["startAngleDeg"].toDouble(),360.0);
@@ -146,6 +193,6 @@ QJsonObject create(const QJsonObject& parameters,const QJsonObject& arguments){
     }
     groups.append(QJsonObject{{"id",id()},{"axisEntityId",axisId},{"entityPairs",entityPairs},{"pointPairs",pointPairs}});
     out["points"]=points;out["entities"]=entities;out["mirrorGroups"]=groups;
-    const auto error=validate(out);require(error.isEmpty(),"Invalid retained Mirror mapping");return out;
+    const auto error=validate(out);require(error.isEmpty(),error.toUtf8().constData());return refreshSplineHandles(out);
 }
 }

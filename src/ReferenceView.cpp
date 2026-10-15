@@ -1460,6 +1460,17 @@ QJsonObject ReferenceView::selectSketchWindow(const QJsonObject& feature,double 
             const auto a=points.value(entity["startPointId"].toString()),b=points.value(entity["endPointId"].toString());
             if(bounds.contains(project(a["uMm"].toDouble(),a["vMm"].toDouble())) &&
                 bounds.contains(project(b["uMm"].toDouble(),b["vMm"].toDouble())))entityIds.append(entity["id"]);
+        }else if(type=="fitSpline"){
+            // Use the evaluated curve's kernel bounds, including handle
+            // overshoot; enclosing only its fit points can select a crossing.
+            try {
+                const auto curve=SketchSpline::evaluate(parameters,entity).curve;
+                Bnd_Box curveBounds;BRepBndLib::AddOptimal(BRepBuilderAPI_MakeEdge(curve).Edge(),curveBounds,false,false);
+                if(curveBounds.IsVoid())continue;
+                double xmin,ymin,zmin,xmax,ymax,zmax;curveBounds.Get(xmin,ymin,zmin,xmax,ymax,zmax);
+                bool enclosed=true;for(double u:{xmin,xmax})for(double v:{ymin,ymax})if(!bounds.contains(project(u,v)))enclosed=false;
+                if(enclosed)entityIds.append(entity["id"]);
+            } catch(const Standard_Failure&) {} catch(const std::exception&) {}
         }else if(type=="arc" || type=="circle"){
             const auto c=points.value(entity["centerPointId"].toString());const double u=c["uMm"].toDouble(),v=c["vMm"].toDouble(),r=entity["radiusMm"].toDouble();
             const QPointF center=project(u,v),a=project(u+r,v)-center,b=project(u,v+r)-center;

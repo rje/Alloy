@@ -2136,7 +2136,8 @@ SketchGeometry::SolveResult SketchGeometry::solveDraft(const QJsonObject& source
         }
         for(const auto& value:entities)if(value.toObject()["type"]=="fitSpline"||value.toObject()["type"]=="controlSpline")SketchSpline::evaluate(parameters,value.toObject());
         for(const auto& value:entities)if(value.toObject()["type"]=="conic")SketchConic::evaluate(parameters,value.toObject());
-        auto diagnostics=result.diagnostics;int handleDof=0;for(const auto& v:entities)if(v.toObject()["type"]=="fitSpline")handleDof+=2*v.toObject()["pointIds"].toArray().size();
+        QSet<QString> mirroredSplines;for(const auto& group:parameters.value("mirrorGroups").toArray())for(const auto& pair:group.toObject()["entityPairs"].toArray())mirroredSplines.insert(pair.toObject()["resultEntityId"].toString());
+        auto diagnostics=result.diagnostics;int handleDof=0;for(const auto& v:entities)if(v.toObject()["type"]=="fitSpline" && !mirroredSplines.contains(v.toObject()["id"].toString()))handleDof+=2*v.toObject()["pointIds"].toArray().size();
         if(handleDof){diagnostics["pointSolverDof"]=diagnostics["dof"];diagnostics["splineHandleDof"]=handleDof;diagnostics["dof"]=diagnostics["dof"].toInt()+handleDof;diagnostics["splineSolverScope"]="Fit-point constraints only; tangent vectors are editable evaluator parameters";diagnostics["status"]="underconstrained";}
         int rhoDof=0;for(const auto& value:entities)if(value.toObject()["type"]=="conic")++rhoDof;
         if(rhoDof){diagnostics["conicRhoDof"]=rhoDof;diagnostics["dof"]=diagnostics["dof"].toInt()+rhoDof;diagnostics["status"]="underconstrained";}
@@ -3204,6 +3205,7 @@ EvaluatedSketch SketchGeometry::evaluateFeature(const QJsonObject& feature, cons
     QJsonObject summary{{"kernel", "OCCT"}, {"version", ALLOY_OCCT_VERSION}, {"type", "sketch"}, {"valid", true},
         {"lengthUnit", "mm"}, {"plane", plane}, {"frame", sketchFrame}, {"solverIntegrated", true}, {"solver", solution.diagnostics},
         {"entities",geometry}, {"pointCount", points.size()}, {"entityCount", entities.size()}, {"worldPoints", worldPoints}, {"boundsMm", bounds}};
+    if(parameters.contains("mirrorGroups"))summary["mirrorGroups"]=parameters.value("mirrorGroups");
     auto profileFeature=solution.feature;
     bool linkedProfile=false;
     for(const auto& collection:{"projections","circleProjections"})for(const auto& value:solution.feature["parameters"].toObject()[collection].toArray())

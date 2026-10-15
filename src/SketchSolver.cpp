@@ -709,6 +709,9 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
         QJsonArray solvedPoints;
         for (qsizetype i=0;i<points.size();++i) {auto p=points[i].toObject();p["uMm"]=coordinates[2*i];p["vMm"]=coordinates[2*i+1];solvedPoints.append(p);}
         result.parameters["points"] = solvedPoints;
+        // Tangent handles are evaluator vectors, outside PlaneGCS's fit-point
+        // equations. Derive their reflection using the final solved axis.
+        if(parameters.contains("mirrorGroups"))result.parameters=SketchMirror::refreshSplineHandles(result.parameters);
         // PlaneGCS returns every parameter participating in a Jacobian nullspace
         // direction, including parameters coupled to the independent pivots.
         // Diagnose at the accepted coordinates, rather than the initial guess.
