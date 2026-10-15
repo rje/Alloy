@@ -233,7 +233,7 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
             };
             for(const auto& value:p.value("operation")=="newComponent" ? p["sections"].toArray() : p["profiles"].toArray())
                 if(!checkSketch(value.toObject()["sketchId"].toString()))return {{"featureId",feature["id"]},{"featureType","loft"},{"code","loft_profile_unavailable"},{"message","Loft sections must reference earlier sketch features"}};
-            if(p.value("operation")=="newComponent"){
+            if(p.value("operation")=="newComponent" && p.value("guideType")!="none"){
                 const auto guide=p.contains("rail") ? p["rail"].toObject() : p["centerline"].toObject();
                 if(!checkSketch(guide["sketchId"].toString()))
                     return {{"featureId",feature["id"]},{"featureType","loft"},
@@ -325,9 +325,11 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
             for(const auto& value:guarded["sections"].toArray())
                 if(referencedOwners.value(value.toObject()["sketchId"].toString())!=root)
                     return {{"featureId",f["id"]},{"code","cross_component_dependency"},{"message","Surface Loft sections must come from root sketches"}};
-            const auto guide=guarded.contains("rail") ? guarded["rail"].toObject() : guarded["centerline"].toObject();
-            if(referencedOwners.value(guide["sketchId"].toString())!=root)
-                return {{"featureId",f["id"]},{"code","cross_component_dependency"},{"message","Surface Loft guide must come from a root sketch"}};
+            if(guarded.value("guideType")!="none") {
+                const auto guide=guarded.contains("rail") ? guarded["rail"].toObject() : guarded["centerline"].toObject();
+                if(referencedOwners.value(guide["sketchId"].toString())!=root)
+                    return {{"featureId",f["id"]},{"code","cross_component_dependency"},{"message","Surface Loft guide must come from a root sketch"}};
+            }
             guarded.remove("sections");guarded.remove("centerline");guarded.remove("rail");
         }
         if(f["type"]=="thicken") {
@@ -1620,8 +1622,12 @@ QJsonObject CadDocument::loftCandidate(const QJsonObject& authored,const QJsonOb
     const auto surface=arguments.value("operation").toString()=="newComponent";
     if(index>=0 && (feature["parameters"].toObject().value("operation")=="newComponent")!=surface)
         throw std::invalid_argument("Loft operation cannot change during edit");
-    const auto rail=surface && arguments.value("guideType")=="rail";
-    if(index>=0 && surface && feature["parameters"].toObject().contains("rail")!=rail)
+    const auto guideType=arguments.value("guideType").toString("centerline");
+    if(surface && arguments.contains("guideType")
+        && (!arguments["guideType"].isString() || (guideType!="none" && guideType!="rail" && guideType!="centerline")))
+        throw std::invalid_argument("Unknown Surface Loft guide type");
+    const auto rail=surface && guideType=="rail",noGuide=surface && guideType=="none";
+    if(index>=0 && surface && feature["parameters"].toObject().value("guideType").toString("centerline")!=guideType)
         throw std::invalid_argument("Loft guide type cannot change during edit");
     if(surface) {
         if(index<0) {
@@ -1634,9 +1640,10 @@ QJsonObject CadDocument::loftCandidate(const QJsonObject& authored,const QJsonOb
             occurrences.append(QJsonObject{{"id",occurrenceId},{"definitionId",componentId},{"parentId",authored["documentId"]},{"placement","identity"}});
             candidate["components"]=components;candidate["occurrences"]=occurrences;feature["ownerId"]=componentId;
         }
-        feature["parameters"]=rail
-            ? QJsonObject{{"operation","newComponent"},{"guideType","rail"},{"sections",arguments["sections"]},{"rail",arguments["rail"]}}
-            : QJsonObject{{"operation","newComponent"},{"sections",arguments["sections"]},{"centerline",arguments["centerline"]}};
+        feature["parameters"]=noGuide
+            ? QJsonObject{{"operation","newComponent"},{"guideType","none"},{"sections",arguments["sections"]}}
+            : rail ? QJsonObject{{"operation","newComponent"},{"guideType","rail"},{"sections",arguments["sections"]},{"rail",arguments["rail"]}}
+                   : QJsonObject{{"operation","newComponent"},{"sections",arguments["sections"]},{"centerline",arguments["centerline"]}};
     } else feature["parameters"]=QJsonObject{{"profiles",arguments["profiles"]}};
     if(arguments.contains("name"))feature["name"]=arguments["name"];
     if(index<0)features.append(feature);else features[index]=feature;candidate["features"]=features;return candidate;
@@ -2296,6 +2303,27 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
             if(!validId(feature["bodyId"].toString()) || ids.contains(feature["bodyId"].toString()))return "Loft requires a distinct body ID";
             ids.insert(feature["bodyId"].toString());QSet<QString> profiles;
             if(p.value("operation")=="newComponent") {
+                if(p.value("guideType")=="none") {
+                    if(p.size()!=3 || !p["sections"].isArray()
+                        || p["sections"].toArray().size()<2 || p["sections"].toArray().size()>32)
+                        return "No-guide Surface Loft requires 2–32 ordered retained sections";
+                    const auto sections=p["sections"].toArray();
+                    for(int i=0;i<sections.size();++i) {
+                        const auto section=sections[i].toObject();
+                        const auto sketch=section["sketchId"].toString();
+                        const auto entities=section["entityIds"].toArray();
+                        if(section.size()!=2 || !validId(sketch) || !section["entityIds"].isArray()
+                            || entities.isEmpty() || entities.size()>32)
+                            return "No-guide Surface Loft sections require retained sketch and entity IDs";
+                        for(const auto& value:entities) {
+                            const auto id=value.toString(),key=sketch+"/"+id;
+                            if(!value.isString() || !validId(id) || profiles.contains(key))
+                                return "No-guide Surface Loft section entity IDs must be distinct stable UUIDs";
+                            profiles.insert(key);
+                        }
+                    }
+                    continue;
+                }
                 if(p.value("guideType")=="rail"){
                     if(p.size()!=4 || !p["sections"].isArray() || p["sections"].toArray().size()!=2)
                         return "Rail Loft requires exactly two ordered open section chains";

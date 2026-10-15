@@ -995,6 +995,26 @@ side refuses and clears any previous valid pending preview. Saved loop offsets
 without `kind` retain the earlier rounded-annulus meaning. See
 [the bounded cap receipt](validation/trimmed-seam-inset.md).
 
+### Bounded no-rail closed-section surface Loft
+
+`surface.loftDialog {guideType:"none",componentName?,name?,sections?}` opens the
+shared Loft picker in New Component mode. The current evaluator admits exactly
+three distinct earlier root sketches: two ordinary fit-spline entities forming
+a closed first chain, one full ellipse, and two ordinary fit splines forming a
+closed last chain. Each ordered section is `{sketchId,entityIds:[...]}`; the
+selected entity UUIDs remain authored. `solid.loftSelection` chooses
+`section1`, `section2` or `section3`, and `solid.loftEntity` accepts the same
+`role`, `sketchId`, and `entityId` as a native viewport click. The first and
+last roles each accept two curves; the middle accepts one ellipse. Preview,
+commit and cancel use the ordinary `command.preview`, `command.commit`, and
+`command.cancel` session commands. Direct `solid.loft` accepts the same
+`operation:"newComponent"`, `guideType:"none"` and ordered `sections`.
+`feature.editDialog` restores those exact references. The serialized ordered
+section form allows future variants, but this bounded evaluator refuses other
+counts/types. Existing saved guided Lofts without `guideType` remain Centerline;
+`rail` remains a separate guided variant. This independent closed-section
+ingredient does not claim source Trim-boundary contact or a full tutorial.
+
 Surface Trim uses `surface.trimDialog` for the shared native/API selection
 session, `surface.trimEntity` for retained paired XZ sketch splines, or
 `surface.trimBody` with `bodyId` for one retained planar crossing-sheet tool.
