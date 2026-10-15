@@ -75,7 +75,7 @@
       ],
       "acceptance": "Finish exact source geometry, references and complete shoehorn workflow.",
       "status": "todo",
-      "remaining": "TUT-031 native creation through3mm Thicken accepted. Finish exact grouped R12/R16, perimeter R1.5, generated supports, tangent-plane hole, organization and export. GEO-019 active materially new architecture investigation; no unchanged repair/radius sweeps."
+      "remaining": "TUT-031 native creation through3mm Thicken accepted. Finish exact grouped R12/R16, perimeter R1.5, generated supports, tangent-plane hole, organization and export. GEO-019 exact corners accepted; GEO-022 perimeter active, then GEO-018 generated references and final hole. No unchanged repair/radius sweeps."
     },
     {
       "id": "READY-05",

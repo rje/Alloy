@@ -14,9 +14,9 @@ Use the live issue state for completion and readiness.
 ## Active delivery order
 
 User-prioritized 2026-10-15: finish the complete shoehorn TUT-017, then pursue
-TUT-018 surface iron. The exact corner construction has a valid external candidate
-and GEO-019 is active for product integration; finishing and full workflow evidence
-remain required. The broader 2026-10-14 priority follows: [initial-build readiness](../initial-build-readiness.md)
+TUT-018 surface iron. GEO-019 exact grouped corners is independently accepted; GEO-022 owns the
+remaining perimeter construction. Final hole, organization and full workflow
+evidence remain required. The broader 2026-10-14 priority follows: [initial-build readiness](../initial-build-readiness.md)
 now leads: navigation, everyday input, presentation, recovery, responsiveness and
 relocatable packages, interleaved with enclosure/shoehorn/surface-iron completion.
 Twenty-two new bounded children #407–428 reuse existing broader owners and gates.
@@ -32,7 +32,7 @@ REL-014/#417 committed-work recovery is accepted; REL-011/#374 native assembly
 drag profiling is complete with a failed 100 ms budget; REL-020/#446 remains
 Todo after bounded diagnosis and a reverted experiment. REL-013/#416 visual
 audit split observed minimum-size ribbon/navigation clipping into accepted
-REL-021/#447 (`c562c85`); remaining visual-quality scope stays open. GEO-019/#352 is active with a new exact corner construction candidate;
+REL-021/#447 (`c562c85`); remaining visual-quality scope stays open. GEO-019/#352 is accepted for the exact corner construction;
 TUT-030/#442 preserves unresolved nominal connector clearance. The current
 sequence JSON takes precedence over historical delivery notes below.
 SRF-019/#451 three-section no-rail Loft and NAV-021/#452 cube accessory disclosure

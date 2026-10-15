@@ -6,7 +6,9 @@ alongside completion of the advanced modeling tutorials.
 
 The [native shoehorn creation checkpoint](docs/validation/shoehorn-native-prefix.md)
 now records the complete blank-document workflow through a 3 mm solid, with an
-editable model. Exact corner finishing and the full printable lesson remain open.
+editable model. [Exact grouped corner rounds](docs/validation/shoehorn-ruled-corners.md)
+now pass retained edits and reopening. The separate perimeter round, hanging hole
+and full printable lesson remain open.
 
 The [development preview guide](docs/development-preview.md) lists supported
 workflows, local package/start instructions, example models and current limits.

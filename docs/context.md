@@ -3,9 +3,8 @@
 ## Active user order (2026-10-15)
 
 Finish the complete shoehorn TUT-017 first, then pursue TUT-018 surface iron.
-GEO-019 is active for a materially new exact geometry strategy after the prior
-cap repair was ruled out; Astra owns the architecture investigation, Sol audits
-the downstream retained supports/hole/organization/export. Preserve source
+GEO-019 is independently accepted for exact grouped corners. GEO-022 owns
+the remaining perimeter geometry; Sol implements and Astra verifies. Preserve source
 radii and authored geometry; no repeated unchanged healer/radius sweeps. The public dimension-placement gestures support the existing horizontal50 /
 vertical16 recipe; an external Euclidean-distance inference was corrected.
 SKT-091/#455 is independently accepted: native Dimension can use sketch origin
@@ -14,24 +13,30 @@ for the driving10 mm circle location without an extra Point entity. See
 integration still depends on GEO-019/GEO-018. Complete the
 full recording, editable model and checked export before closing TUT-017.
 
-### Exact corner construction candidate
+### Exact corner construction accepted
 
-Astra's external `geo019-strategy-01` now produces a valid one-solid candidate
-with all four exact R12/R16 round supports, no auxiliary cap supports and no
-material outside an equivalent normalized source. It constructs independent
-rolling-ball strips on exact extended ruled sidewalls, closes disposable corner
-cutters outside the original material, then uses a shared-support representation
-to avoid a demonstrated Boolean coincidence misclassification. Original trimmed
-geometry and volume are unchanged by that representation. This is saved-console
-feasibility, not an accepted product feature. Root reviewed the certification
-source/log; Sol is integrating a topology/provenance-bound fallback and retained
-identities. No fixture radii or transient face indices belong in product admission.
-GEO-019 remains active; perimeter, generated support/hole and final output remain.
-GEO-018 is also active for the separate perimeter critical path: ordinary R1.5
+GEO-019/#352 is independently accepted: all four R12/R16 corners, retained
+curved broad supports and generated boundary chains; meaningful length130→140,
+history/reopen and a stable terminal tangent reference pass. Exact topology split
+references refuse rather than silently rebind; bend16→18 remains an atomic refusal.
+Operation order is input-topology based, independent of UUIDs. Equivalent fixtures
+have identical round supports and adaptive volume17033.693449192317 mm³.
+The final21-call real-app replay, core receipt and Apple M4 captures are under
+external `shoehorn-workflow-2026-10-15/geo019-product-api-01/ordered-api/` and its
+parent. See [receipt](validation/shoehorn-ruled-corners.md). Original77-call run
+predates the ordering correction; final existing-model replay covers the change.
+No full tutorial, new native-input or matched-reference visual acceptance claimed.
+
+GEO-022/#456 now owns the separate perimeter geometry critical path; GEO-018
+returns to Todo for downstream reference acceptance: ordinary R1.5
 and independent-branch Common both fail. A genuinely dispatched, isolated
 TKFillet build with upstream PR1293 also fails; no SDK dependency change follows.
-Saved branch diagnostics motivate exact coincident-support normalization, not
-radius reduction or generic healing. See the updated diagnostic receipt.
+Exact coincident-support normalization also failed and is preserved. A new
+representative centerline on the exact mid-offset and inward side support has
+well-conditioned intersection evidence. Eight finite semicircle sectors and broad
+interiors now assemble into a valid external prototype; material certification,
+edit replay and production integration remain pending. No radius reduction or generic healing. See the updated
+diagnostic receipt and external geo018-mid-offset-01.
 
 ## Timeline visual polish (2026-10-15)
 
