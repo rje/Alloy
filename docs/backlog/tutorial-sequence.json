@@ -59,7 +59,7 @@
       ],
       "acceptance": "Familiar navigation controls, no-middle-button route and reproducible dependencies.",
       "status": "todo",
-      "remaining": "Projection, orthographic cube, named views, saved Home and application presets accepted. NAV-019 configurable conventions active; platform input and runtime gates remain open."
+      "remaining": "Projection, orthographic cube, named views, saved Home, application presets and configurable conventions accepted. Physical/platform input and runtime gates remain open."
     },
     {
       "id": "READY-04",
@@ -80,6 +80,8 @@
       "title": "Readable recoverable responsive modeling",
       "issues": [
         "REL-013",
+        "REL-021",
+        "REL-022",
         "REL-014",
         "DOC-013",
         "REL-015",
@@ -91,7 +93,7 @@
       ],
       "acceptance": "Representative workflows are readable, safe, responsive and usable.",
       "status": "todo",
-      "remaining": "Readiness plan in docs/initial-build-readiness.md; live issues govern acceptance."
+      "remaining": "Recovery, preview guidance and compact ribbon/navigation accepted. REL-022 short primitive dock controls active; status-strip and remaining panel audit, performance budget and broader reliability remain open."
     },
     {
       "id": "READY-06",
