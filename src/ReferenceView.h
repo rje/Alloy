@@ -20,6 +20,7 @@
 class QContextMenuEvent;
 class QKeyEvent;
 class QRubberBand;
+class QToolButton;
 
 // GPU presentation only. Reference axes/grid are not authored document objects.
 class ReferenceView final : public QWidget {
@@ -50,6 +51,9 @@ public:
     QJsonObject cubeHit(double x,double y);
     bool setCubeOrientation(const QString& region);
     static QStringList cubeRegions();
+    QJsonObject cubeFaceState() const;
+    bool cubeAdjacent(const QString& side);
+    bool cubeRoll(const QString& side);
     bool cubeGestureActive() const { return cubePressHandled_; }
     void cancelCubeGesture(bool suppressRelease=false);
     void beginOrbitCenterPick();
@@ -228,6 +232,9 @@ private:
     QJsonObject lastNavigationInput_;
     bool nativeGestureActive_=false;
     Handle(AIS_ViewCube) viewCube_;
+    QWidget* cubeControls_=nullptr;
+    std::vector<QToolButton*> cubeFaceControls_;
+    void updateCubeControls();
     bool cubePressHandled_=false;
     bool cubeSuppressRelease_=false;
     bool cubeDragging_=false;

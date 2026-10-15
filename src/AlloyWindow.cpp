@@ -976,6 +976,9 @@ QImage AlloyWindow::captureImage(QImage* viewport) {
     if(viewport)*viewport=framebuffer;
     QPainter composition(&pixels);
     composition.drawImage(view_->mapTo(this,QPoint()),framebuffer);
+    if(auto* cubeControls=view_->findChild<QWidget*>("cube.accessories");
+       cubeControls&&cubeControls->isVisible())
+        composition.drawPixmap(cubeControls->mapTo(this,QPoint()),cubeControls->grab());
     if(dimensionEditor_&&dimensionEditor_->isVisible())
         composition.drawPixmap(dimensionEditor_->mapTo(this,QPoint()),dimensionEditor_->grab());
     if(conicEditor_&&conicEditor_->isVisible())
@@ -5211,6 +5214,20 @@ void AlloyWindow::registerCommands() {
         {{"x",point},{"y",point}},[this](const auto& a) {
             return view_->cubeHit(a.value("x").toDouble(),a.value("y").toDouble());
         });
+    add("view.cubeFaceState","Cube face controls","Inspect whether adjacent-view and roll controls are available for the current face orientation.",{},[this](const auto&){
+        return view_->cubeFaceState();
+    });
+    auto cubeSide=parameter("string","Adjacent side: up, down, left or right.");
+    cubeSide.insert("enum",QJsonArray{"up","down","left","right"});
+    add("view.cubeAdjacent","Adjacent cube view","Turn 90 degrees toward a screen-adjacent face from an exact cube face view.",{{"side",cubeSide}},[this](const auto& a){
+        if(!view_->cubeAdjacent(a.value("side").toString()))return failure("unsupported_view","Choose an exact cube face view before using adjacent controls");
+        return view_->cameraState();
+    });
+    auto rollSide=parameter("string","Roll direction: left or right.");rollSide.insert("enum",QJsonArray{"left","right"});
+    add("view.cubeRoll","Roll cube view","Roll an exact cube face view by 90 degrees while retaining its viewing direction.",{{"side",rollSide}},[this](const auto& a){
+        if(!view_->cubeRoll(a.value("side").toString()))return failure("unsupported_view","Choose an exact cube face view before rolling");
+        return view_->cameraState();
+    });
     auto factor = parameter("number", "Relative real-camera scale factor (0.1 to 10); resulting zoom clamps to 0.1 to 10."); factor.insert("minimum", 0.1); factor.insert("maximum", 10);
     auto zoomPixel=parameter("number","Optional viewport-local logical coordinate; supply x and y together to hold that screen point fixed.");
     zoomPixel["minimum"]=0;zoomPixel["maximum"]=100000;

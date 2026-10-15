@@ -28,6 +28,8 @@
 #include <QFont>
 #include <QLineF>
 #include <QRubberBand>
+#include <QGridLayout>
+#include <QToolButton>
 #include <Aspect_DisplayConnection.hxx>
 #include <Aspect_Grid.hxx>
 #include <OpenGl_GraphicDriver.hxx>
@@ -228,6 +230,30 @@ ReferenceView::ReferenceView(QWidget* parent) : QWidget(parent) {
     setAttribute(Qt::WA_NativeWindow);
     setAttribute(Qt::WA_PaintOnScreen);
     setAttribute(Qt::WA_NoSystemBackground);
+    cubeControls_=new QWidget(this);cubeControls_->setObjectName("cube.accessories");
+    cubeControls_->setStyleSheet("QToolButton { background: rgba(247,250,252,235); color: #315369; border: 1px solid #afc3d0; border-radius: 4px; font-size: 13px; }"
+        "QToolButton:hover { background: #d9eaf5; border-color: #4587b7; }"
+        "QToolButton:pressed { background: #b5d7ee; }"
+        "QToolButton:disabled { color: #a5b0b8; background: rgba(246,248,249,180); border-color: #d8e0e4; }");
+    auto* grid=new QGridLayout(cubeControls_);grid->setContentsMargins(0,0,0,0);grid->setSpacing(2);
+    const auto button=[this,grid](const QString& name,const QString& glyph,const QString& title,int row,int col,
+        const QString& command,const QJsonObject& args,bool faceOnly){
+        auto* control=new QToolButton(cubeControls_);control->setObjectName("cube."+name);
+        control->setText(glyph);control->setToolTip(title);control->setAccessibleName(title);
+        control->setFixedSize(27,27);grid->addWidget(control,row,col);
+        connect(control,&QToolButton::clicked,this,[this,command,args]{if(dispatch)dispatch(command,args);});
+        if(faceOnly)cubeFaceControls_.push_back(control);
+        return control;
+    };
+    button("rollLeft","↶","Roll view left 90°",0,0,"view.cubeRoll",{{"side","left"}},true);
+    button("home","⌂","Home view",0,1,"view.home",{},false);
+    button("rollRight","↷","Roll view right 90°",0,2,"view.cubeRoll",{{"side","right"}},true);
+    button("adjacentUp","↑","Adjacent view above",1,1,"view.cubeAdjacent",{{"side","up"}},true);
+    button("adjacentLeft","←","Adjacent view left",2,0,"view.cubeAdjacent",{{"side","left"}},true);
+    button("adjacentDown","↓","Adjacent view below",2,1,"view.cubeAdjacent",{{"side","down"}},true);
+    button("adjacentRight","→","Adjacent view right",2,2,"view.cubeAdjacent",{{"side","right"}},true);
+    cubeControls_->setFixedSize(85,85);cubeControls_->move(width()-185,38);cubeControls_->show();cubeControls_->raise();
+    updateCubeControls();
 }
 ReferenceView::~ReferenceView() {
     if (!view_.IsNull()) view_->Remove();
@@ -379,6 +405,46 @@ bool ReferenceView::setCubeOrientation(const QString& region) {
     view_->SetCamera(previous);
     customDirection_=direction;customUp_=up;orientation="custom";
     sync();return true;
+}
+QJsonObject ReferenceView::cubeFaceState() const {
+    if(view_.IsNull())return {{"enabled",false}};
+    const gp_Vec direction(view_->Camera()->Direction()),up(view_->Camera()->Up());
+    const std::array<double,3> d{direction.X(),direction.Y(),direction.Z()};
+    const std::array<double,3> u{up.X(),up.Y(),up.Z()};
+    int normalAxis=-1,upAxis=-1;
+    for(int i=0;i<3;++i) {
+        if(std::abs(std::abs(d[i])-1)<1e-7)normalAxis=i;
+        if(std::abs(std::abs(u[i])-1)<1e-7)upAxis=i;
+    }
+    if(normalAxis<0 || upAxis<0 || normalAxis==upAxis)return {{"enabled",false}};
+    for(int i=0;i<3;++i)if((i!=normalAxis && std::abs(d[i])>1e-7) || (i!=upAxis && std::abs(u[i])>1e-7))
+        return {{"enabled",false}};
+    const QString face=normalAxis==0 ? (d[0]<0 ? "right" : "left") :
+        normalAxis==1 ? (d[1]>0 ? "front" : "back") : (d[2]<0 ? "top" : "bottom");
+    return {{"enabled",true},{"face",face}};
+}
+void ReferenceView::updateCubeControls() {
+    const bool enabled=cubeFaceState().value("enabled").toBool();
+    for(auto* control:cubeFaceControls_)control->setEnabled(enabled);
+}
+bool ReferenceView::cubeAdjacent(const QString& side) {
+    if(!cubeFaceState().value("enabled").toBool())return false;
+    if(side!="up" && side!="down" && side!="left" && side!="right")return false;
+    gp_Vec direction(view_->Camera()->Direction()),up(view_->Camera()->Up());
+    gp_Vec right=direction.Crossed(up);if(right.Magnitude()<1e-9)return false;
+    right.Normalize();
+    const bool vertical=side=="up" || side=="down";
+    const gp_Ax1 axis(gp_Pnt{},gp_Dir(vertical ? right : up));
+    const double angle=(side=="up" || side=="right" ? 1 : -1)*std::numbers::pi/2;
+    direction.Rotate(axis,angle);up.Rotate(axis,angle);
+    customDirection_=gp_Dir(direction);customUp_=gp_Dir(up);orientation="custom";sync();return true;
+}
+bool ReferenceView::cubeRoll(const QString& side) {
+    if(!cubeFaceState().value("enabled").toBool() || (side!="left" && side!="right"))return false;
+    const gp_Vec direction(view_->Camera()->Direction());
+    gp_Vec up(view_->Camera()->Up());
+    up.Rotate(gp_Ax1(gp_Pnt{},gp_Dir(direction)),(side=="left" ? 1 : -1)*std::numbers::pi/2);
+    customDirection_=gp_Dir(direction);customUp_=gp_Dir(up);orientation="custom";sync();return true;
 }
 void ReferenceView::cancelCubeGesture(bool suppressRelease) {
     cubePressHandled_=false;cubeDragging_=false;cubePressedRegion_.clear();
@@ -585,6 +651,7 @@ void ReferenceView::showEvent(QShowEvent* e) {
 void ReferenceView::paintEvent(QPaintEvent*) { if (!view_.IsNull()) { view_->MustBeResized(); view_->Redraw(); } }
 void ReferenceView::resizeEvent(QResizeEvent* e) {
     QWidget::resizeEvent(e);
+    if(cubeControls_){cubeControls_->move(width()-185,38);cubeControls_->raise();}
     if (!view_.IsNull()) { sync(); QTimer::singleShot(0, this, [this] { sync(); }); }
 }
 void ReferenceView::sync() {
@@ -671,6 +738,7 @@ void ReferenceView::sync() {
     if(!decorationFeature_.isEmpty())decorateSketch(decorationFeature_,decorationSelection_,decorationDiagnostics_,decorationUnits_,decorationPending_);
     if(!extrusionCueState_.isEmpty())refreshExtrusionCue();
     if(!revolveCueState_.isEmpty())refreshRevolveCue();
+    updateCubeControls();
     view_->Redraw();
 }
 void ReferenceView::setBodies(const std::vector<EvaluatedBody>& bodies,quint64 revision) {

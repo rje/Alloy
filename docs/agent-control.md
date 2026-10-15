@@ -216,6 +216,9 @@ fail without applying the command. Error codes include `invalid_request`,
 | `view.orientation` | `name`: `isometric`, `rearIsometric`, `top`, `bottom`, `front`, `back`, `right`, or `left`; recenter a named fixed view on the fitted scene |
 | `view.cubeOrient` | `region`: one of 26 stable face, edge or corner names reported by command discovery; set the matching camera direction/up while retaining zoom, pan, view target and stored orbit pivot |
 | `view.cubeHit` | viewport-local logical `x`, `y`; inspect the detected orientation-cube `region` and `kind` (`face`, `edge`, `corner`) without selecting document geometry |
+| `view.cubeFaceState` | Report whether adjacent-view and roll controls are available for the current principal face |
+| `view.cubeAdjacent` | `side`: `up`, `down`, `left`, or `right`; turn 90° from a principal face view while retaining framing and orbit pivot |
+| `view.cubeRoll` | `side`: `left` or `right`; roll a principal face view 90° while retaining viewing direction and framing |
 | `view.zoom` | `factor`: 0.1–10; resulting scale clamps to 0.1–10. Optional viewport-local logical `x` and `y` must be supplied together to keep that screen point fixed. Omitting them preserves the existing pan and zooms about the camera target |
 | `view.pan` | `x`, `y`: relative logical-pixel deltas, each within ±10000 |
 | `view.orbit` | `deltaX`, `deltaY`: relative logical-pixel deltas, each within ±10000; orbit the real camera in the selected mode. Optional `pivot` is `orbitCenter` (default, using stored custom center or scene center) or `viewCenter` (orientation-cube drag, ignoring but retaining the stored custom center) |
@@ -522,8 +525,10 @@ configurable up axis and an automatic orbit-center policy remain separate
 navigation work. The visible Alloy orientation cube handles hover, face/edge/corner
 clicks through `view.cubeOrient` and thresholded drags through `view.orbit` with
 `pivot: "viewCenter"`. Cube navigation retains the custom pivot for later
-Shift-Orbit while rotating around the ordinary view target. Distinct Home and
-adjacent/roll controls, plus broader physical-input validation, remain separate.
+Shift-Orbit while rotating around the ordinary view target. Seven adjacent
+Qt controls provide Home, four adjacent turns and left/right roll. Adjacent
+and roll controls require an exact principal face view; their turn directions
+are Alloy policy. Broader physical-input validation remains separate.
 Qt-delivered
 touchpad pixel-wheel input pans, or orbits with Shift, while wheel angle input zooms
 at its cursor. Native pinch zooms at its cursor; native pan uses the same Pan or
