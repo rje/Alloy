@@ -82,6 +82,8 @@
         "REL-013",
         "REL-021",
         "REL-022",
+        "REL-023",
+        "REL-024",
         "REL-014",
         "DOC-013",
         "REL-015",
@@ -93,7 +95,7 @@
       ],
       "acceptance": "Representative workflows are readable, safe, responsive and usable.",
       "status": "todo",
-      "remaining": "Recovery, preview guidance and compact ribbon/navigation accepted. REL-022 short primitive dock controls accepted; REL-023 status-strip accepted; remaining panel audit, performance budget and broader reliability remain open."
+      "remaining": "Recovery, preview guidance, compact ribbon/navigation, primitive dock actions and concise status accepted. REL-024 Extrude controls accepted; remaining panel audit, performance budget and broader reliability remain open."
     },
     {
       "id": "READY-06",

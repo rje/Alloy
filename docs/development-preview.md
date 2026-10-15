@@ -19,7 +19,7 @@ any reference product.
 
 [Responsive ribbon and navigation controls](validation/responsive-controls.md)
 remain readable at the supported 1040×640 minimum window size, with complete
-command menus and a visible active tool. [Box/Cylinder docks](validation/primitive-dock-height.md) keep actions visible beneath scrolling fields, and the [status strip](validation/status-strip-readability.md) keeps concise state and persistent warnings readable. Other modeling panels and pointer-scroll qualification remain in the audit.
+command menus and a visible active tool. [Box/Cylinder docks](validation/primitive-dock-height.md) keep actions visible beneath scrolling fields, and the [status strip](validation/status-strip-readability.md) keeps concise state and persistent warnings readable. [Extrude](validation/extrude-dock-height.md) also keeps its actions reachable and gives clear missing-face guidance. Remaining modeling panels and pointer-scroll qualification stay in the audit.
 
 ## Package and start
 
