@@ -168,3 +168,26 @@ These rules supersede any earlier suggestion to verify behavior in proprietary s
   completion. Include the saved model and relevant exports; verify local links.
 - Keep accepted requirements, proposed designs, unresolved decisions, and
   implemented/verified capabilities clearly distinguished in project docs.
+
+## Model selection and delegation
+
+Apply the [official OpenAI model guidance](https://developers.openai.com/api/docs/guides/model-selection)
+and [subagent guidance](https://learn.chatgpt.com/docs/agent-configuration/subagents)
+(reviewed 2026-10-14). These are starting points; keep the lightest configuration
+that meets the task's quality bar using actual results.
+
+- Use Luna for narrow research extraction, triage, mechanical edits, and small
+  implementation tasks with clear contracts. It is not restricted to research.
+- Use GPT-6.1 Sol for broader implementation and multi-step technical work.
+- Use Astra for difficult architecture/geometry and independent feature
+  verification, as requested by the user. Do not use it automatically for routine
+  implementation or bookkeeping.
+- Select reasoning effort deliberately: start Luna at high for agent work and
+  Astra at low, raising effort for difficult analysis/review; choose Sol effort
+  for the task. Do not inherit maximum effort without a reason.
+- Delegate one clear deliverable with relevant context, owned files, acceptance
+  evidence and a stop condition. Avoid overlapping edits or duplicate probes;
+  coordinate the single build/GUI lease. The root integrates and tracks issues.
+- Escalate when ambiguity or failed attempts exceed the worker's bounded task;
+  preserve its findings. Compare review corrections, completion time and rework
+  on ordinary tasks rather than creating an elaborate model benchmark.
