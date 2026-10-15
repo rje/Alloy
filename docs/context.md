@@ -15,8 +15,13 @@ trackpad, constrained/pivot modes remain separate. Main app relinked. See
 bounded exact-BRep contour investigation around the enclosure seam lip. The
 [feasibility diagnostic](validation/enclosure-inset-diagnostic.md) is independently
 accepted: connected interior is possible but the short lip must vanish in the
-correct inset topology. A complete contour and retained source behavior remain
-unproven. Sol investigates; Astra verifies. Public research stays external.
+correct inset topology. The exact boundary-neighborhood Boolean prototype now
+passes one valid17-edge face, area233.8576963mm², containment and1.25mm clearance;
+Astra independently accepted its scoped geometry proof. Sol is implementing the
+production kernel ingredient with explicit admission, deterministic edge/vertex
+provenance and one upstream edit/history/reopen. UI remains SKT-076. Public
+research and bulk prototype artifacts stay external. CI-004 runtime handoff is
+prepared externally for the next readiness slice.
 Only main/existing build and one private GUI lease; no new worktrees. Alternate
 readiness slices with concrete advanced-chain blockers. Packages can progress
 independently; no version/CI dispatch or public release has been triggered.
