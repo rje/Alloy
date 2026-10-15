@@ -129,8 +129,8 @@ cumulative rim/Cut/export gate remains Todo behind it. NAV-003 smooth zoom and
 Qt trackpad routing is accepted with physical-device qualification preserved in
 NAV-008. GEO-020's diagnostic narrows its unresolved failure to U-mouth corner
 completion; saved candidate inspection is active. NAV-010 cube presentation and orientation picks are
-accepted, as are NAV-011 drag and NAV-013 Fit/Home. NAV-012 cube accessories
-are the next active UI slice. NAV-004 stays
+accepted, as are NAV-011 drag, NAV-013 Fit/Home and NAV-012 cube accessories.
+CI-005 macOS relocation is the next active implementation slice. NAV-004 stays
 open until its complete scope is evidenced. Reassess after each accepted
 slice; never repeat an unchanged failing kernel/input probe without a new
 hypothesis. Keep one private validation editor and retire completed worktrees.

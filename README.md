@@ -8,7 +8,8 @@ Navigation now includes [free orbit](docs/validation/free-orbit-navigation.md),
 [constrained orbit and pivots](docs/validation/constrained-orbit-pivot.md),
 [cursor-anchored zoom and gesture routing](docs/validation/trackpad-navigation.md),
 and [orientation-cube clicks](docs/validation/orientation-cube-regions.md) and
-[dragging](docs/validation/orientation-cube-drag.md), plus distinct
+[dragging](docs/validation/orientation-cube-drag.md),
+[cube accessories](docs/validation/orientation-cube-accessories.md), plus distinct
 [Fit and Home](docs/validation/navigation-fit.md) controls. These have bounded Qt/GPU
 validation; physical trackpad and broader platform input remain open gates.
 The visible Orbit tool supports users without a middle mouse button.

@@ -2,6 +2,12 @@
 
 ## Initial-build readiness priority (2026-10-14)
 
+CI-005/#423 macOS arm64 relocatable packaging is the next active implementation
+slice. Its prerequisites are accepted CI-008 plus dependency admission; Windows/
+Linux CI-009 and external GPU/input gates remain separate. No CI dispatch,
+version tag or release was triggered. The user has not yet tried physical Mac
+trackpad input; keep that qualification pending.
+
 The user reprioritized polish/quality, familiar viewport navigation and an initial
 build, while retaining advanced tutorial completion. See the actionable
 [readiness burndown](initial-build-readiness.md). Twenty-two bounded children
@@ -84,8 +90,10 @@ orientations and three representative Qt clicks; physical/DPI/sketch routes
 remain unqualified. See [receipt](validation/orientation-cube-regions.md).
 NAV-011/#431 is accepted at `66d38cd` for Qt cube dragging around the view target
 while retaining the custom pivot for ordinary orbit; natural-focus Escape remains
-NAV-008. [Receipt](validation/orientation-cube-drag.md). NAV-012/#432 retains
-Home/adjacent/roll controls and is the next active UI slice. NAV-013/#433 is
+NAV-008. [Receipt](validation/orientation-cube-drag.md). NAV-012/#432 is accepted at `a1b3e88` / `82beb1c`: Home/adjacent/roll
+controls, live-widget capture composition and Qt03 3/3 with readable GPU output.
+Adjacent/roll source support is related-product guidance, not established exact
+target behavior. See [receipt](validation/orientation-cube-accessories.md). NAV-013/#433 is
 accepted at `057026b`: visible Fit preserves orientation while Home resets it;
 current valid preview geometry participates in framing. Focused Qt checks pass
 3/3 with GPU captures; F6 binding is inspected, natural key delivery remains
