@@ -17,7 +17,7 @@ For a mouse with a middle button, drag it to pan and hold **Shift** while draggi
 to orbit. **Option/Alt + left-drag** also pans. To orbit without a middle button,
 select **Free Orbit** and left-drag the canvas; press **Escape** to exit. The
 adjacent mode menu offers **Free Orbit** and **Constrained Orbit**. Constrained
-Orbit keeps the horizon level against Alloy's current Z-up frame.
+Orbit keeps the horizon level against the current view convention's up axis.
 
 To choose an orbit pivot, open the blank-canvas context menu and choose **Set
 Orbit Center**, then click a visible point on the model. The green marker shows

@@ -61,3 +61,30 @@ Linux, physical inputs, accessibility history, signing/notarization, full
 source-access compliance, or a publishable release. CI-002/GATE-005 and the
 platform issues retain those gates. Ad-hoc signing is local, not a trusted
 Developer ID signature.
+
+## Navigation milestone refresh (2026-10-14)
+
+A second local preview incorporates accepted application sources through
+`a355c50` (including the orthographic cube correction, saved views/Home, mouse
+presets and configurable view conventions). This supplements the earlier
+archive evidence; it does not replace the unresolved platform/release gates.
+
+Archive: `../Alloy-reference-records/deliverables/mac-package-2026-10-14/navigation-candidate-01/Alloy-macos-arm64-preview.zip`
+
+SHA-256: `c5eedaabacf504c845cf42973f536afa0af21c6bf97e909b5cc2130122ca2fa9`.
+The packaging recipe audited 55 Mach-O files. Extraction to the separate
+`navigation-relocated-01` directory passed strict deep ad-hoc signature checks.
+With Qt/SDK/dyld overrides removed, actual loaded-path logging found 43
+non-system images, all inside the extracted app, including Cocoa.
+
+The extracted real app created a 40×30×10 mm box, enabled perspective, saved
+a named view/Home, changed the document convention to Y-up, and saved/reopened
+identical authored metadata. Binary millimeter STL export produced 684 bytes.
+The packaged Python control client queried the app successfully. The actual
+hardware GPU capture was inspected. This is a bounded API/package check;
+feature-level Qt input evidence remains in the navigation receipts.
+
+Exact commands, transcript/state, capture, saved model, STL, loaded paths and
+check script are in the external `navigation-relocated-01` directory. No
+version tag, CI dispatch, external tester contact or release promotion occurred.
+The unchanged clean-host, physical-input and signing limitations above apply.

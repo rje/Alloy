@@ -53,8 +53,11 @@ is accepted for Browser create/rename/restore/delete, metadata history,
 save/reopen and malformed-file refusal
 ([receipt](validation/navigation-named-views.md)). The
 broader NAV-007 parent remains open: [saved/reset Home](validation/navigation-home-saved.md)
-is also accepted under NAV-017; configurable orientation NAV-019 and application
-navigation preferences NAV-018 remain separate work.
+is also accepted under NAV-017, and [application navigation presets](validation/navigation-input-presets.md)
+are accepted under NAV-018. Configurable orientation NAV-019 is accepted too; NAV-007 is closed after
+cumulative receipt review. Physical NAV-008 remains open.
+The [orthographic cube correction](validation/navigation-cube-projection.md)
+is accepted under NAV-020, preserving model perspective and cube picking.
 
 ## Interaction, presentation and data quality
 
@@ -152,8 +155,9 @@ accepted, as are NAV-011 drag, NAV-013 Fit/Home and NAV-012 cube accessories.
 CI-005 local macOS arm64 relocation is accepted; public-release/platform gates
 remain open. NAV-014 explicit Pan/Zoom/Zoom Window is accepted; NAV-015
 selected framing and planar Look At is accepted. NAV-016 custom named views is
-accepted, as is NAV-017 saved/reset Home. NAV-007 remains open for configurable
-orientation and navigation preferences.
+accepted, as are NAV-017 saved/reset Home, NAV-018 application presets and
+NAV-020 orthographic cube presentation. NAV-019 configurable orientation and cumulative NAV-007 are accepted.
+Physical-device qualification remains separate.
 NAV-004 stays
 open until its complete scope is evidenced. Reassess after each accepted
 slice; never repeat an unchanged failing kernel/input probe without a new

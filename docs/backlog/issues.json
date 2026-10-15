@@ -6284,12 +6284,13 @@
       "depends_on": [
         "SRF-013",
         "SRF-014",
-        "SRF-015"
+        "SRF-015",
+        "SRF-018"
       ],
       "labels": [
         "area:srf"
       ],
-      "body": "Split from SRF-013. Preserve the surface-iron later trial operations: choose upper surface as tool, remove excess region of crossing sheet, repeat with lower surface, optionally Remove tool bodies, then undo/revert those trial operations before the final Boundary Fill branch. Use exact current surface-surface intersection with retained source/tool/region identities; no sketch-prism substitute for sheet tools. Tool-first native/API selection, pickable portions, red removal preview, preview/Cancel, commit, feature/source edit, undo/reopen and atomic ambiguity refusal remain required. Retain source history and tool dependencies; surface tools are not destructively deleted. Validate on compatible later crossing sheets from the cumulative fixture and inspect actual GPU captures. Broader multi-target/multi-tool Trim stays outside this bounded child. External surface-iron-2026-10-14/surface-trim-contract.md contains public help, transcript and visual provenance. Exact default/shortcut/styling unknowns remain qualified. SRF-013 now owns sketch-normal paired-spline Trim only; full TUT-018 retains both tool classes."
+      "body": "Split from SRF-013. Preserve the surface-iron later trial operations: choose upper surface as tool, remove excess region of crossing sheet, repeat with lower surface, optionally Remove tool bodies, then undo/revert those trial operations before the final Boundary Fill branch. Use exact current surface-surface intersection with retained source/tool/region identities; no sketch-prism substitute for sheet tools. Tool-first native/API selection, pickable portions, red removal preview, preview/Cancel, commit, feature/source edit, undo/reopen and atomic ambiguity refusal remain required. Retain source history and tool dependencies; surface tools are not destructively deleted. Validate on compatible later crossing sheets from the cumulative fixture and inspect actual GPU captures. Broader multi-target/multi-tool Trim stays outside this bounded child. External surface-iron-2026-10-14/surface-trim-contract.md contains public help, transcript and visual provenance. Exact default/shortcut/styling unknowns remain qualified. SRF-013 now owns sketch-normal paired-spline Trim only; full TUT-018 retains both tool classes.\nSRF-018 owns the independently authored crossing-sheet implementation ingredient; this parent retains the source-specific upper/lower trial, revert and downstream fill acceptance.\n"
     },
     {
       "key": "SRF-017",
@@ -7088,7 +7089,7 @@
       "labels": [
         "area:doc"
       ],
-      "body": "## Initial-build readiness scope\nAdd create/rename/restore/delete of authored named camera views and documented Home/front/up conventions. Persist camera projection/pose and selected navigation preferences at the proper document/application scope, with backward-compatible files. Research preferences/presets including no-middle-button users; expose only supported mappings honestly. Verify save/reopen, tab switching, reset and one alternate supported preset. Do not overwrite geometry history for transient camera motion.\n\n## Delivery and evidence\nUser-prioritized 2026-10-14. Keep implementation bounded, preserve authoritative document/control commands, use proportional verification and independent review. Public reference details and images remain external. This issue is planned until its stated gate is evidenced; do not substitute compilation/API or Qt simulation for physical input or packaged GPU evidence.\n\nBounded delivery: NAV-016 named views, NAV-017 Home/orientation, NAV-018 application preferences. Parent stays Todo until all pass.\n"
+      "body": "## Initial-build readiness scope\nAdd create/rename/restore/delete of authored named camera views and documented Home/front/up conventions. Persist camera projection/pose and selected navigation preferences at the proper document/application scope, with backward-compatible files. Research preferences/presets including no-middle-button users; expose only supported mappings honestly. Verify save/reopen, tab switching, reset and one alternate supported preset. Do not overwrite geometry history for transient camera motion.\n\n## Delivery and evidence\nUser-prioritized 2026-10-14. Keep implementation bounded, preserve authoritative document/control commands, use proportional verification and independent review. Public reference details and images remain external. This issue is planned until its stated gate is evidenced; do not substitute compilation/API or Qt simulation for physical input or packaged GPU evidence.\n\nBounded delivery: NAV-016 named views, NAV-017 Home/orientation, NAV-018 application preferences and NAV-019 coherent configurable view conventions. Parent stays Todo until all pass.\n\n\n## Independently accepted 2026-10-14\nCumulative implementation accepted after independent Astra receipt review: NAV-016 named views, NAV-017 saved/reset Home, NAV-018 app-scoped mouse presets and NAV-019 coherent Front/Top/up conventions cover the parent. Save/reopen/tab/reset/history and alternate binding evidence reused without unchanged reruns. Immediate document convention/remap and whole-frame reset are explicit Alloy policy rather than exact public app-preference parity. Physical navigation remains NAV-008; package/release qualification remains separate.\n"
     },
     {
       "key": "NAV-008",
@@ -7519,7 +7520,7 @@
       "labels": [
         "area:doc"
       ],
-      "body": "## Bounded orientation scope\nSplit from NAV-017: research and implement configurable Front/Top/up conventions, coordinating standard camera transforms with cube labels and hit mappings. Camera-only overrides that mislabel the cube are not acceptable. Preserve authored geometry and define document versus application scope from public evidence. Verify an asymmetric model across convention change, standard face/cube navigation, save/reopen and reset; record unknowns and retain physical input qualification separately. Independent Astra review required.\n"
+      "body": "## Bounded orientation scope\nSplit from NAV-017: research and implement configurable Front/Top/up conventions, coordinating standard camera transforms with cube labels and hit mappings. Camera-only overrides that mislabel the cube are not acceptable. Preserve authored geometry and define document versus application scope from public evidence. Verify an asymmetric model across convention change, standard face/cube navigation, save/reopen and reset; record unknowns and retain physical input qualification separately. Independent Astra review required.\n\n\n## Independently accepted 2026-10-14\nAccepted at a355c50 after independent Astra architecture/source/GPU review. Coherent document Front/Top/up frame transforms cube labels/picking and standard views while preserving world geometry and saved absolute Home/named cameras. Focused Qt04 passed1/1; six face visits/hybrid checks plus explicit Front/Top direction assertions, history/reopen and malformed-frame refusal. Normal app relinked. Immediate document scope and coherent reset are explicit Alloy policies. See docs/validation/navigation-view-convention.md.\n"
     },
     {
       "key": "NAV-020",
@@ -7535,6 +7536,21 @@
         "area:doc"
       ],
       "body": "## User-reported visual defect\nThe corner navigation cube skews when the model camera uses perspective. Render the orientation indicator orthographically while retaining its current orientation, corner anchoring, size, hover and hit detection; preserve the model camera projection. Use OCCT per-object orthographic transform persistence rather than another renderer.\n\n## Acceptance\nAt a matched oblique orientation, inspect actual GPU captures with orthographic and perspective model modes and verify the cube stays undistorted. Verify representative cube picking still resolves its displayed region. Reuse a focused existing navigation fixture; independent Astra review before closure. Physical-device gates remain separate.\n\n\n## Independently accepted 2026-10-14\nAccepted after independent Astra and root review. Per-object orthographic cube persistence preserves model perspective, cube pose/position and picking. Paired actual GPU captures inspected; existing projection fixture confirms unchanged live camera direction/up and same cube-face hit plus actual Qt click. Final qualified CTest1/1, normal app relinked. See docs/validation/navigation-cube-projection.md.\n"
+    },
+    {
+      "key": "SRF-018",
+      "title": "Trim one planar surface using a retained crossing sheet",
+      "kind": "implementation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P1",
+      "depends_on": [
+        "SRF-013",
+        "SRF-014"
+      ],
+      "labels": [
+        "area:srf"
+      ],
+      "body": "## Bounded implementation slice\nSplit actionable sheet-tool capability from SRF-016 while full iron trial/revert scope remains blocked by its handle/exterior dependencies. On a declared independently authored crossing-sheet fixture, support one local target surface and one earlier retained sheet tool, exact OCCT surface-surface intersection, and two unambiguous pickable portions. Reuse mature Splitter, preserving source/tool/region identity and atomic ambiguity refusal. Do not substitute a sketch-prism tool or claim source-exact iron geometry.\n\n## Acceptance\nTool-first shared UI/API selection, readable red removal preview, Cancel and commit, meaningful source/tool edit, undo/reopen and actual GPU evidence. Preserve tool body and dependencies; no destructive deletion. Verify the finite intended region and stable retained references using a focused core test plus one real-app workflow, with independent Astra review. Keep supported target topology explicit; do not generalize multi-target/multi-tool Trim.\n\nThe full SRF-016 upper/lower surface-iron trial/revert gate and TUT-018 remain open.\n\n## Accepted architecture boundary\nUse a dedicated one-face planar, straight-convex-boundary branch with non-destructive Splitter. Require exactly two signed regions and one shared generated intersection edge; derive stable IDs from source/tool provenance and oriented tool normal. Arbitrary curved/multiface sheets remain unsupported here; preserve the accepted sketch-tool branch. Independent Astra preflight accepted this bounded ingredient.\n"
     }
   ]
 }

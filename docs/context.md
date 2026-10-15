@@ -19,7 +19,9 @@ application navigation preferences is accepted at `049b0d5`: all three alternate
 mouse chords, isolated settings restart/reset and unchanged history pass Qt
 checks; interruption fixes are source-reviewed and compiled. See
 [receipt](validation/navigation-input-presets.md). NAV-019/#443 configurable
-Front/Top/up conventions is next. NAV-020/#444 is accepted at `53507a1`: the
+Front/Top/up conventions is accepted at `a355c50`; parent NAV-007/#413
+is closed after independent cumulative receipt review. Physical NAV-008 remains
+open. REL-014/#417 crash-recovery design is the next reliability slice. NAV-020/#444 is accepted at `53507a1`: the
 cube remains orthographic under perspective model projection; matched GPU
 captures and actual cube picking pass. See
 [receipt](validation/navigation-cube-projection.md). The normal app is relinked.
@@ -37,13 +39,21 @@ fixture. Physical fit remains unclaimed. GEO-019 exact grouped shoehorn diagnost
 accepted as blocker evidence at `db0bc01`; orientation-only saved repair remains
 invalid and material preservation unproved. See
 [receipt](validation/shoehorn-corner-diagnostic.md). The issue returns to Todo;
-no generic healer or unchanged retry. Surface-iron SRF-017 is under read-only
-review for a materially different next step.
+no generic healer or unchanged retry. Surface-iron SRF-017 lacks a separate
+authored main spine for auxiliary-guide contact; no unsupported one is invented.
+SRF-018/#445 is the active independent ingredient: one planar convex target
+sheet trimmed by one retained crossing sheet using actual surface intersection.
+Full SRF-016 iron trial/revert and TUT-018 remain open.
 
 CI-005/#423 local macOS arm64 relocation is accepted at `3c88127`: extracted
 archive, 43 observed bundled non-system libraries/zero external, Apple M4 GPU
 and API/save/STL evidence. See [receipt](validation/macos-relocatable-preview.md).
-The pinned archive predates GEO-020 and is a local preview, not a public release.
+The older archive predates GEO-020. A refreshed local navigation candidate now
+contains accepted sources through `a355c50`; its extracted app passed bundled
+runtime, GPU, new view metadata save/reopen, STL and packaged-client checks.
+Archive `navigation-candidate-01/Alloy-macos-arm64-preview.zip` SHA-256
+`c5eedaabacf504c845cf42973f536afa0af21c6bf97e909b5cc2130122ca2fa9`
+is independently reviewed local evidence, not a public release.
 NAV-014/#434 explicit Pan/Zoom/Zoom Window is accepted at `73a578c`, with
 actual Qt controls/drag/Escape/post-tool selection and GPU captures. Final signed
 rectangle schema is included in the next coordinated app relink. See
