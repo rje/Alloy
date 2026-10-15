@@ -22,6 +22,7 @@
 #include <QContextMenuEvent>
 #include <QMenu>
 #include <QApplication>
+#include <QCursor>
 #include <QTimer>
 #include <QElapsedTimer>
 #include <QDebug>
@@ -242,6 +243,18 @@ ReferenceView::ReferenceView(QWidget* parent) : QWidget(parent) {
     setAttribute(Qt::WA_NativeWindow);
     setAttribute(Qt::WA_PaintOnScreen);
     setAttribute(Qt::WA_NoSystemBackground);
+    cubeAccessoryToggle_=new QToolButton(this);cubeAccessoryToggle_->setObjectName("cube.accessories.toggle");
+    cubeAccessoryToggle_->setText("⋯");cubeAccessoryToggle_->setToolTip("Show Home, adjacent-view and roll controls");
+    cubeAccessoryToggle_->setAccessibleName("Show orientation controls");cubeAccessoryToggle_->setFixedSize(27,27);
+    cubeAccessoryToggle_->setFocusPolicy(Qt::StrongFocus);
+    cubeAccessoryToggle_->setStyleSheet("QToolButton { background: rgba(247,250,252,235); color: #315369; border: 1px solid #afc3d0; border-radius: 4px; font-size: 14px; }"
+        "QToolButton:hover, QToolButton:focus { background: #d9eaf5; border-color: #4587b7; }");
+    cubeAccessoryToggle_->installEventFilter(this);
+    connect(cubeAccessoryToggle_,&QToolButton::clicked,this,[this]{
+        cubeAccessoriesDismissed_=false;updateCubeAccessoryVisibility();
+        for(auto* control:cubeControls_->findChildren<QToolButton*>())
+            if(control->isEnabled()){control->setFocus(Qt::OtherFocusReason);break;}
+    });
     cubeControls_=new QWidget(this);cubeControls_->setObjectName("cube.accessories");
     cubeControls_->setStyleSheet("QToolButton { background: rgba(247,250,252,235); color: #315369; border: 1px solid #afc3d0; border-radius: 4px; font-size: 13px; }"
         "QToolButton:hover { background: #d9eaf5; border-color: #4587b7; }"
@@ -252,7 +265,7 @@ ReferenceView::ReferenceView(QWidget* parent) : QWidget(parent) {
         const QString& command,const QJsonObject& args,bool faceOnly){
         auto* control=new QToolButton(cubeControls_);control->setObjectName("cube."+name);
         control->setText(glyph);control->setToolTip(title);control->setAccessibleName(title);
-        control->setFixedSize(27,27);grid->addWidget(control,row,col);
+        control->setFixedSize(27,27);control->setFocusPolicy(Qt::StrongFocus);grid->addWidget(control,row,col);
         connect(control,&QToolButton::clicked,this,[this,command,args]{if(dispatch)dispatch(command,args);});
         if(faceOnly)cubeFaceControls_.push_back(control);
         return control;
@@ -264,11 +277,14 @@ ReferenceView::ReferenceView(QWidget* parent) : QWidget(parent) {
     button("adjacentLeft","←","Adjacent view left",2,0,"view.cubeAdjacent",{{"side","left"}},true);
     button("adjacentDown","↓","Adjacent view below",2,1,"view.cubeAdjacent",{{"side","down"}},true);
     button("adjacentRight","→","Adjacent view right",2,2,"view.cubeAdjacent",{{"side","right"}},true);
-    cubeControls_->setFixedSize(85,85);cubeControls_->move(width()-185,38);cubeControls_->show();cubeControls_->raise();
+    cubeControls_->setFixedSize(85,85);cubeControls_->move(width()-185,38);cubeControls_->hide();
+    cubeControls_->installEventFilter(this);
+    for(auto* control:cubeControls_->findChildren<QToolButton*>())control->installEventFilter(this);
     cubeUpLabel_=new QLabel("UP Z",this);cubeUpLabel_->setObjectName("cube.upAxis");
     cubeUpLabel_->setFixedSize(85,18);cubeUpLabel_->setAlignment(Qt::AlignCenter);
     cubeUpLabel_->setStyleSheet("background: rgba(247,250,252,225); color: #315369; border: 1px solid #afc3d0; border-radius: 3px; font-size: 10px; font-weight: 600;");
-    cubeUpLabel_->move(width()-185,125);cubeUpLabel_->show();cubeUpLabel_->raise();
+    cubeUpLabel_->move(width()-185,125);cubeUpLabel_->hide();
+    cubeAccessoryToggle_->move(width()-105,6);cubeAccessoryToggle_->raise();
     updateCubeControls();
 }
 ReferenceView::~ReferenceView() {
@@ -539,6 +555,57 @@ void ReferenceView::updateCubeControls() {
     const bool enabled=cubeFaceState().value("enabled").toBool();
     for(auto* control:cubeFaceControls_)control->setEnabled(enabled);
 }
+void ReferenceView::updateCubeAccessoryVisibility() {
+    if(!cubeControls_ || !cubeAccessoryToggle_)return;
+    const auto* hovered=QApplication::widgetAt(QCursor::pos());
+    const auto belongsTo=[](const QWidget* widget,const QWidget* root) {
+        for(auto* current=widget;current;current=current->parentWidget())if(current==root)return true;
+        return false;
+    };
+    const bool pointerOnToggle=belongsTo(hovered,cubeAccessoryToggle_);
+    const bool pointerOnAccessories=cubeControls_->isVisible() && belongsTo(hovered,cubeControls_);
+    const QPoint cursorLocal=mapFromGlobal(QCursor::pos());
+    const QRect controlsRect=cubeControls_->geometry();
+    const QRect cubeNeighborhood(width()-85,0,85,125);
+    const QRect openZone=controlsRect.united(cubeNeighborhood).united(cubeUpLabel_->geometry());
+    const bool pointerWithinCubeNeighborhood=hovered==this && cubeNeighborhood.contains(cursorLocal);
+    const bool cubeHoverAtPointer=cubeHoverActive_ && pointerWithinCubeNeighborhood;
+    const bool pointerInOpenZone=cubeControls_->isVisible() && openZone.contains(cursorLocal);
+    const auto* focused=QApplication::focusWidget();
+    const bool focusOnToggle=belongsTo(focused,cubeAccessoryToggle_);
+    const bool focusOnAccessories=belongsTo(focused,cubeControls_);
+    if(cubeAccessoriesDismissed_ && !cubeHoverAtPointer && !pointerOnToggle && !pointerOnAccessories &&
+       !pointerInOpenZone &&
+       !focusOnToggle && !focusOnAccessories)cubeAccessoriesDismissed_=false;
+    const bool visible=!cubeAccessoriesDismissed_ &&
+        (cubeHoverAtPointer || pointerOnToggle || pointerOnAccessories || pointerInOpenZone ||
+         focusOnToggle || focusOnAccessories);
+    cubeControls_->setVisible(visible);
+    cubeUpLabel_->setVisible(visible);
+    cubeAccessoryToggle_->setAccessibleDescription(visible ?
+        "Orientation controls are visible. Escape closes them." :
+        "Activate or focus to open orientation controls; they also appear while pointing at the view cube.");
+    cubeAccessoryToggle_->raise();
+    if(visible){cubeControls_->raise();cubeUpLabel_->raise();cubeAccessoryToggle_->raise();}
+}
+bool ReferenceView::eventFilter(QObject* watched,QEvent* e) {
+    if(watched==cubeAccessoryToggle_ || watched==cubeControls_ ||
+       (cubeControls_ && cubeControls_->isAncestorOf(qobject_cast<QWidget*>(watched)))) {
+        if(e->type()==QEvent::ShortcutOverride && static_cast<QKeyEvent*>(e)->key()==Qt::Key_Escape) {
+            static_cast<QKeyEvent*>(e)->accept();return true;
+        }
+        if(e->type()==QEvent::KeyPress && static_cast<QKeyEvent*>(e)->key()==Qt::Key_Escape) {
+            cubeAccessoriesDismissed_=true;cubeControls_->hide();cubeUpLabel_->hide();
+            cubeAccessoryToggle_->setFocus(Qt::OtherFocusReason);
+            static_cast<QKeyEvent*>(e)->accept();return true;
+        }
+        if(e->type()==QEvent::Enter || e->type()==QEvent::Leave ||
+           e->type()==QEvent::FocusIn || e->type()==QEvent::FocusOut) {
+            QTimer::singleShot(0,this,[this]{updateCubeAccessoryVisibility();});
+        }
+    }
+    return QWidget::eventFilter(watched,e);
+}
 bool ReferenceView::cubeAdjacent(const QString& side) {
     if(!cubeFaceState().value("enabled").toBool())return false;
     if(side!="up" && side!="down" && side!="left" && side!="right")return false;
@@ -770,6 +837,7 @@ void ReferenceView::resizeEvent(QResizeEvent* e) {
     QWidget::resizeEvent(e);
     if(cubeControls_){cubeControls_->move(width()-185,38);cubeControls_->raise();}
     if(cubeUpLabel_){cubeUpLabel_->move(width()-185,125);cubeUpLabel_->raise();}
+    if(cubeAccessoryToggle_){cubeAccessoryToggle_->move(width()-105,6);cubeAccessoryToggle_->raise();}
     if (!view_.IsNull()) { sync(); QTimer::singleShot(0, this, [this] { sync(); }); }
 }
 void ReferenceView::sync() {
@@ -3196,8 +3264,9 @@ void ReferenceView::mouseMoveEvent(QMouseEvent* e) {
     if(e->buttons()==Qt::NoButton) {
         const bool overCube=e->position().x()>=width()-180 && e->position().y()<=180 &&
             !cubeHit(e->position().x(),e->position().y()).isEmpty();
-        if(overCube){cubeHoverActive_=true;setCursor(Qt::PointingHandCursor);e->accept();return;}
+        if(overCube){cubeHoverActive_=true;setCursor(Qt::PointingHandCursor);updateCubeAccessoryVisibility();e->accept();return;}
         if(cubeHoverActive_){cubeHoverActive_=false;unsetCursor();context_->ClearDetected(true);}
+        updateCubeAccessoryVisibility();
     }
     if(!sketchLineArcDrag_.isEmpty() && e->buttons().testFlag(Qt::LeftButton)){
         const QPointF press(sketchLineArcDrag_.value("pressX").toDouble(),sketchLineArcDrag_.value("pressY").toDouble());
@@ -3281,6 +3350,7 @@ void ReferenceView::mouseMoveEvent(QMouseEvent* e) {
 }
 void ReferenceView::leaveEvent(QEvent* e) {
     if(cubeHoverActive_){cubeHoverActive_=false;unsetCursor();if(!context_.IsNull())context_->ClearDetected(true);}
+    QTimer::singleShot(0,this,[this]{updateCubeAccessoryVisibility();});
     if(jointOriginPicking_ && !jointOriginLocked_){jointOriginHover_={};refreshJointOriginCue();}
     if(!sketchPlane_.isEmpty() && !decorationSelection_.value("hoveredConstraintId").toString().isEmpty())
         dispatch("sketch.constraintHover",{{"constraintId",""}});

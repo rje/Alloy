@@ -203,6 +203,7 @@ protected:
     void contextMenuEvent(QContextMenuEvent*) override;
     void wheelEvent(QWheelEvent*) override;
     bool event(QEvent*) override;
+    bool eventFilter(QObject*,QEvent*) override;
 private:
     QMap<QString,Handle(AIS_Shape)> canvasModels_;
     QJsonArray canvasState_;
@@ -265,8 +266,11 @@ private:
     bool nativeGestureActive_=false;
     Handle(AIS_ViewCube) viewCube_;
     QWidget* cubeControls_=nullptr;
+    QToolButton* cubeAccessoryToggle_=nullptr;
     std::vector<QToolButton*> cubeFaceControls_;
     void updateCubeControls();
+    void updateCubeAccessoryVisibility();
+    bool cubeAccessoriesDismissed_=false;
     bool cubePressHandled_=false;
     bool cubeSuppressRelease_=false;
     bool cubeDragging_=false;

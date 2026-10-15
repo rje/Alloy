@@ -4,7 +4,9 @@
 #include "ReferenceView.h"
 #include <QApplication>
 #include <QDir>
+#include <QFileInfo>
 #include <QJsonDocument>
+#include <QLabel>
 #include <QTest>
 #include <QToolButton>
 
@@ -30,7 +32,9 @@ private slots:
         auto* home=window.findChild<QToolButton*>("cube.home");
         auto* roll=window.findChild<QToolButton*>("cube.rollLeft");
         auto* adjacent=window.findChild<QToolButton*>("cube.adjacentRight");
-        QVERIFY(home && roll && adjacent);
+        auto* toggle=window.findChild<QToolButton*>("cube.accessories.toggle");
+        QVERIFY(home && roll && adjacent && toggle);
+        QVERIFY(!home->isVisible());QTest::mouseClick(toggle,Qt::LeftButton);
         QVERIFY(home->isVisible());
         QCOMPARE(QApplication::widgetAt(home->mapToGlobal(home->rect().center())),static_cast<QWidget*>(home));
         call(window,"solid.box",{{"width",46},{"depth",27},{"height",13},{"units","mm"}});
@@ -76,6 +80,68 @@ private slots:
         QCOMPARE(selectedBody,body.value("bodyId"));
         call(window,"capture.screenshot",{{"path",output+"/cube-home-selection.png"}});
         call(window,"document.save",{{"path",output+"/cube-accessories.alloy"}});window.close();
+    }
+    void accessoryDisclosureSmallSketch() {
+        const auto output=qEnvironmentVariable("ALLOY_CUBE_ACCESSORY_DISCLOSURE_EVIDENCE");
+        QVERIFY(!output.isEmpty());QVERIFY(QDir().mkpath(output));
+        const auto source=QFileInfo(QDir(QCoreApplication::applicationDirPath()).absoluteFilePath("../examples/dimensioned-rectangle.alloy")).canonicalFilePath();
+        QVERIFY(!source.isEmpty());AlloyTheme::apply(*qApp);AlloyWindow window;window.resize(1360,850);window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));window.activateWindow();QVERIFY(QTest::qWaitForWindowActive(&window));
+        call(window,"document.open",{{"path",source},{"discard",true}});
+        const auto before=call(window,"document.inspect");
+        const auto features=before.value("authored").toObject().value("features").toArray();QCOMPARE(features.size(),1);
+        const auto sketchId=features.first().toObject().value("id").toString();QVERIFY(!sketchId.isEmpty());
+        call(window,"sketch.edit",{{"sketchId",sketchId}});call(window,"sketch.lookAt");
+        const auto activeSketch=window.state().value("activeSession").toObject();
+        QCOMPARE(activeSketch.value("command"),QJsonValue("sketch.edit"));
+        ReferenceView* view=nullptr;for(auto* child:window.findChildren<QWidget*>())
+            if(auto* found=dynamic_cast<ReferenceView*>(child))view=found;
+        QVERIFY(view);
+        auto* toggle=window.findChild<QToolButton*>("cube.accessories.toggle");
+        auto* accessories=window.findChild<QWidget*>("cube.accessories");
+        auto* home=window.findChild<QToolButton*>("cube.home");
+        auto* up=window.findChild<QLabel*>("cube.upAxis");
+        QVERIFY(toggle && accessories && home && up);QVERIFY(toggle->isVisible());
+        auto capture=[&](const QString& name){return call(window,"capture.screenshot",{{"path",output+"/"+name+".png"}});};
+        auto movePointer=[&](const QPoint& local)->QWidget* {
+            const QPoint global=view->mapToGlobal(local);auto* receiver=QApplication::widgetAt(global);
+            if(!receiver)return nullptr;
+            QTest::mouseMove(receiver,receiver->mapFromGlobal(global));QApplication::processEvents();return receiver;
+        };
+        QTRY_VERIFY(!accessories->isVisible());QVERIFY(!up->isVisible());capture("collapsed-1360x850");
+        window.resize(1040,640);QTRY_COMPARE(window.size(),QSize(1040,640));
+        QTRY_VERIFY(!accessories->isVisible());QVERIFY(!up->isVisible());capture("collapsed-1040x640");
+        const QPoint formerGrid(view->width()-142,80);
+        QCOMPARE(movePointer(formerGrid),static_cast<QWidget*>(view));QTRY_VERIFY(!accessories->isVisible());
+        QCOMPARE(movePointer(QPoint(view->width()-40,40)),static_cast<QWidget*>(view));QTRY_VERIFY(accessories->isVisible());
+        QCOMPARE(movePointer(QPoint(view->width()-92,60)),static_cast<QWidget*>(view));QTRY_VERIFY(accessories->isVisible());
+        const QPoint homePoint=home->mapTo(view,home->rect().center());
+        QCOMPARE(movePointer(homePoint),static_cast<QWidget*>(home));QTRY_VERIFY(accessories->isVisible());
+        QCOMPARE(movePointer(QPoint(30,view->height()-30)),static_cast<QWidget*>(view));QTRY_VERIFY(!accessories->isVisible());
+        QCOMPARE(movePointer(formerGrid),static_cast<QWidget*>(view));QTRY_VERIFY(!accessories->isVisible());
+        const auto toggleCenter=toggle->mapToGlobal(toggle->rect().center());
+        QCOMPARE(QApplication::widgetAt(toggleCenter),static_cast<QWidget*>(toggle));
+        QTest::mouseClick(toggle,Qt::LeftButton);QTRY_VERIFY(accessories->isVisible());
+        const auto homeCenter=home->mapToGlobal(home->rect().center());
+        QCOMPARE(QApplication::widgetAt(homeCenter),static_cast<QWidget*>(home));
+        const auto cameraBefore=camera(window);QTest::mouseClick(home,Qt::LeftButton);
+        QVERIFY(camera(window).value("orientation")!=cameraBefore.value("orientation"));
+        auto* focused=QApplication::focusWidget();QCOMPARE(focused,static_cast<QWidget*>(home));
+        QTest::keyClick(focused,Qt::Key_Tab,Qt::ShiftModifier);focused=QApplication::focusWidget();
+        QCOMPARE(focused,static_cast<QWidget*>(toggle));QTest::keyClick(toggle,Qt::Key_Space);
+        QTRY_VERIFY(accessories->isVisible());
+        focused=QApplication::focusWidget();QVERIFY(accessories->isAncestorOf(focused));
+        QTest::keyClick(focused,Qt::Key_Escape);QTRY_VERIFY(!accessories->isVisible());
+        QCOMPARE(QApplication::focusWidget(),static_cast<QWidget*>(toggle));
+        const auto after=call(window,"document.inspect");
+        QCOMPARE(after.value("authored"),before.value("authored"));
+        QCOMPARE(after.value("undo"),before.value("undo"));
+        QCOMPARE(window.state().value("activeSession").toObject().value("id"),activeSketch.value("id"));
+        QCOMPARE(window.state().value("activeSession").toObject().value("command"),QJsonValue("sketch.edit"));
+        call(window,"command.cancel",{{"session",window.state().value("activeSession").toObject().value("id")}});
+        const auto afterCancel=call(window,"document.inspect");
+        QCOMPARE(afterCancel.value("authored"),before.value("authored"));
+        QCOMPARE(afterCancel.value("undo"),before.value("undo"));window.close();
     }
 };
 QTEST_MAIN(NavigationCubeAccessoriesControls)
