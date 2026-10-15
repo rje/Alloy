@@ -3,15 +3,23 @@
 #include "RoundedLoopOffset.h"
 #include "SketchGeometry.h"
 #include <BRepAdaptor_Curve.hxx>
+#include <BRepAdaptor_Surface.hxx>
 #include <BRepFilletAPI_MakeFillet.hxx>
+#include <BRepTools.hxx>
 #include <BRep_Tool.hxx>
+#include <GeomTools.hxx>
+#include <Geom_Surface.hxx>
 #include <TopExp.hxx>
+#include <TopExp_Explorer.hxx>
+#include <TopTools_IndexedMapOfShape.hxx>
+#include <TopoDS.hxx>
 #include <QCoreApplication>
 #include <QFile>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <algorithm>
 #include <cmath>
+#include <fstream>
 #include <stdexcept>
 
 namespace {
@@ -22,6 +30,52 @@ EvaluatedSupportFace cap(const CadDocument& document) {
 }
 QJsonArray point(const gp_Pnt& value) {return {value.X(),value.Y(),value.Z()};}
 struct Rail {QString id;gp_Pnt a,b;gp_Vec direction;double length;QJsonObject provenance;};
+
+// Full kernel incidence, independent of the subset with authored edge names.
+QJsonObject vertexTopology(const EvaluatedBody& body,const TopoDS_Vertex& vertex,
+                           const TopTools_IndexedMapOfShape& edges,
+                           const TopTools_IndexedMapOfShape& faces,const QString& prefix) {
+    QJsonArray incidentEdges,incidentFaces;
+    for(int i=1;i<=edges.Extent();++i) {
+        const auto edge=TopoDS::Edge(edges(i));bool incident=false;
+        for(TopExp_Explorer ex(edge,TopAbs_VERTEX);ex.More();ex.Next())
+            if(ex.Current().IsSame(vertex))incident=true;
+        if(!incident)continue;
+        QJsonArray names;
+        for(const auto& named:body.solidEdges)if(!named.edge.IsNull() && named.edge.IsSame(edge))names.append(named.edgeId);
+        incidentEdges.append(QJsonObject{{"shapeEdgeIndex",i},{"namedEdgeIds",names},
+            {"degenerate",BRep_Tool::Degenerated(edge)},{"tolerance",BRep_Tool::Tolerance(edge)}});
+    }
+    for(int i=1;i<=faces.Extent();++i) {
+        const auto face=TopoDS::Face(faces(i));bool incident=false;
+        for(TopExp_Explorer ex(face,TopAbs_VERTEX);ex.More();ex.Next())
+            if(ex.Current().IsSame(vertex))incident=true;
+        if(!incident)continue;
+        QJsonArray wires;
+        for(TopExp_Explorer wire(face,TopAbs_WIRE);wire.More();wire.Next()) {
+            QJsonArray boundary;
+            for(TopExp_Explorer ex(wire.Current(),TopAbs_EDGE);ex.More();ex.Next()) {
+                const auto edge=TopoDS::Edge(ex.Current());TopoDS_Vertex first,last;
+                TopExp::Vertices(edge,first,last,true);
+                QJsonObject item{{"shapeEdgeIndex",edges.FindIndex(edge)},
+                    {"orientation",static_cast<int>(edge.Orientation())}};
+                if(!first.IsNull())item["start"]=point(BRep_Tool::Pnt(first));
+                if(!last.IsNull())item["end"]=point(BRep_Tool::Pnt(last));
+                boundary.append(item);
+            }
+            wires.append(QJsonObject{{"orientation",static_cast<int>(wire.Current().Orientation())},
+                {"edges",boundary}});
+        }
+        const QString path=prefix+QString("-face-%1.brep").arg(i);
+        const bool written=BRepTools::Write(face,path.toUtf8().constData());
+        const BRepAdaptor_Surface surface(face);
+        incidentFaces.append(QJsonObject{{"shapeFaceIndex",i},{"surfaceType",static_cast<int>(surface.GetType())},
+            {"orientation",static_cast<int>(face.Orientation())},{"wires",wires},
+            {"trimmedFaceBrep",path},{"written",written}});
+    }
+    return {{"position",point(BRep_Tool::Pnt(vertex))},{"edges",incidentEdges},
+        {"edgeCount",incidentEdges.size()},{"faces",incidentFaces}};
+}
 }
 
 int main(int argc,char** argv) {
@@ -93,6 +147,13 @@ int main(int argc,char** argv) {
             result["attemptedRadiusMm"]=0.5;
             if(mode=="contour") {
                 for(const auto& body:document.bodies())if(body.bodyId==support.bodyId) {
+                    const QString evidencePrefix=QString::fromUtf8(argv[2]);
+                    const QString inputPath=evidencePrefix+"-input.brep";
+                    result["inputBrep"]=inputPath;
+                    result["inputBrepWritten"]=BRepTools::Write(body.shape,inputPath.toUtf8().constData());
+                    TopTools_IndexedMapOfShape shapeEdges,shapeFaces;
+                    TopExp::MapShapes(body.shape,TopAbs_EDGE,shapeEdges);
+                    TopExp::MapShapes(body.shape,TopAbs_FACE,shapeFaces);
                     BRepFilletAPI_MakeFillet builder(body.shape);
                     QJsonArray seedContours;
                     for(const auto& id:selected)for(const auto& edge:body.solidEdges)if(edge.edgeId==id) {
@@ -115,7 +176,11 @@ int main(int argc,char** argv) {
                                 {"identities",identities}});
                             ++expandedCount;
                         }
-                        contours.append(QJsonObject{{"index",index},{"edges",chain}});
+                        QJsonObject contour{{"index",index},{"edges",chain}};
+                        const auto first=builder.FirstVertex(index),last=builder.LastVertex(index);
+                        if(!first.IsNull())contour["firstVertexTopology"]=vertexTopology(body,first,shapeEdges,shapeFaces,evidencePrefix);
+                        if(!last.IsNull())contour["lastVertexTopology"]=vertexTopology(body,last,shapeEdges,shapeFaces,evidencePrefix);
+                        contours.append(contour);
                     }
                     result["contours"]=contours;result["expandedEdgeCount"]=expandedCount;
                     try {builder.Build();result["buildThrew"]=false;}
@@ -123,6 +188,33 @@ int main(int argc,char** argv) {
                         result["buildThrew"]=true;result["kernelException"]=QString::fromUtf8(error.GetMessageString());
                     }
                     result["isDone"]=builder.IsDone();result["hasPartialResult"]=builder.HasResult();
+                    QJsonArray computed;
+                    for(int index=1;index<=builder.NbContours();++index) {
+                        QJsonObject entry{{"contour",index}};QJsonArray surfaces;
+                        try {
+                            const int count=builder.NbComputedSurfaces(index);entry["count"]=count;
+                            for(int n=1;n<=count;++n) {
+                                const auto surface=builder.ComputedSurface(index,n);
+                                QJsonObject item{{"index",n},{"null",surface.IsNull()}};
+                                if(!surface.IsNull()) {
+                                    const QString path=evidencePrefix+QString("-contour-%1-surface-%2.geom").arg(index).arg(n);
+                                    std::ofstream stream(path.toStdString());stream.precision(17);
+                                    GeomTools::Write(surface,stream);stream.flush();
+                                    item["surfaceFile"]=path;item["written"]=stream.good();
+                                    double u0,u1,v0,v1;surface->Bounds(u0,u1,v0,v1);
+                                    const auto bound=[](double v)->QJsonValue {
+                                        return std::isfinite(v) ? QJsonValue(v) : QJsonValue(QString::number(v));
+                                    };
+                                    item["parameterBounds"]=QJsonArray{bound(u0),bound(u1),bound(v0),bound(v1)};
+                                }
+                                surfaces.append(item);
+                            }
+                        } catch(const Standard_Failure& error) {entry["error"]=QString::fromUtf8(error.GetMessageString());}
+                        entry["surfaces"]=surfaces;computed.append(entry);
+                    }
+                    result["computedStripeSurfaces"]=computed;
+                    result["terminalContainment"]=QJsonObject{{"status","unknown"},
+                        {"reason","Computed support surfaces do not identify the finite terminal intersection interval or the kernel-selected limiting face. Trimmed incident faces and contour endpoints are preserved for inspection; unrestricted surface intersection is not containment evidence."}};
                     QJsonArray statuses,faultyContours;
                     for(int index=1;index<=builder.NbContours();++index)
                         statuses.append(QJsonObject{{"index",index},{"stripeStatus",static_cast<int>(builder.StripeStatus(index))}});
@@ -141,6 +233,7 @@ int main(int argc,char** argv) {
                         }
                         faultyVertices.append(QJsonObject{{"position",point(BRep_Tool::Pnt(vertex))},
                             {"tolerance",BRep_Tool::Tolerance(vertex)},
+                            {"fullTopology",vertexTopology(body,vertex,shapeEdges,shapeFaces,evidencePrefix)},
                             {"incidentEdgeIds",incidentEdgeIds},{"incidentEdges",incidentEdges}});
                     }
                     result["faultyVertices"]=faultyVertices;
