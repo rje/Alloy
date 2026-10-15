@@ -10,12 +10,15 @@ x64. Minimum OS versions and additional architectures need explicit qualificatio
 The [Native builds workflow](../.github/workflows/native-build.yml) runs native
 Release compilation on `macos-15`, `macos-15-intel`, `windows-2022`, and
 `ubuntu-24.04`. It runs only for `v*` version tags or explicit manual dispatch. Ordinary branch
-commits and pull-request updates do not start the native matrix. [tools/ci/build.py](../tools/ci/build.py)
-downloads Qt 6.11.2 using a reviewed pinned aqt revision and builds exact OCCT
-7.9.3 and FreeType 2.13.3 source revisions. CMake and Ninja/action versions are
-pinned. FND-009 records tested compiler/image baselines and pins downloader
-dependencies; see [native development baseline](dependencies/native-builds.md).
-Hosted OS images/system headers remain rolling, with compiler drift guards.
+commits and pull-request updates do not start the native matrix. On macOS,
+[tools/ci/build.py](../tools/ci/build.py) builds the pinned Qt 6.11.2 source with
+the validated accessibility patches and records the effective SDK recipe and
+linked dependencies. Windows and Linux still use pinned `aqt` retrieval; CI-009
+tracks their patched-runtime alignment. All targets build exact OCCT 7.9.3 and
+FreeType 2.13.3 source revisions. CMake and Ninja/action versions are pinned.
+FND-009 records tested compiler/image baselines and downloader dependencies;
+see [native development baseline](dependencies/native-builds.md). Hosted OS
+images and system headers remain rolling, with compiler drift guards.
 
 The corrected [matrix run](https://github.com/rje/Alloy/actions/runs/38192218283)
 compiled all four targets at source 12fe534; FND-009 completed the independently

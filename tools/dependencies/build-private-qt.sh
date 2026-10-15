@@ -10,6 +10,24 @@ work_root=${ALLOY_PRIVATE_QT_WORK:-$dependency_root/qt-private-runtime}
 source_dir=$work_root/source
 build_dir=$work_root/build
 prefix=$work_root/install
+arch=$(uname -m)
+sdk=$(xcrun --sdk macosx --show-sdk-path)
+c_compiler=$(xcrun -f clang)
+cxx_compiler=$(xcrun -f clang++)
+cmake_args=(
+    -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$prefix"
+    -DCMAKE_OSX_ARCHITECTURES="$arch" -DCMAKE_OSX_DEPLOYMENT_TARGET=14.0
+    -DCMAKE_OSX_SYSROOT="$sdk" -DCMAKE_C_COMPILER="$c_compiler"
+    -DCMAKE_CXX_COMPILER="$cxx_compiler"
+    -DQT_BUILD_TESTS=OFF -DQT_BUILD_EXAMPLES=OFF
+    -DQT_BUILD_BENCHMARKS=OFF -DFEATURE_sql=OFF -DFEATURE_printsupport=OFF
+)
+recipe_args=()
+for arg in "${cmake_args[@]}"; do recipe_args+=("--cmake-arg=$arg"); done
+python3 "$script_dir/private_qt_recipe.py" prepare --archive "$archive" --work "$work_root" "${recipe_args[@]}"
+# Incomplete runs cannot retain a prior success stamp. The next invocation
+# refuses their nonempty cache until the caller chooses a clean work root.
+rm -f "$work_root/private-qt-build.json"
 check_hash() {
     [[ $(shasum -a 256 "$1" | awk '{print $1}') == "$2" ]] || {
         echo "Pinned source hash mismatch: $1" >&2; exit 1;
@@ -27,16 +45,13 @@ for patch_file in "$script_dir/qt-cocoa-accessibility/765434.patch" "$script_dir
 done
 check_hash "$source_dir/src/plugins/platforms/cocoa/qcocoaaccessibilityelement.mm" 0878955b0b6243eff703895be673528f8cb25300cea70aefdd0da548a7ddd81f
 check_hash "$source_dir/src/widgets/accessible/itemviews.cpp" 1c1b20c1c4d4c0a73c22036ca656466558b015ec8eb226fd59534e82d0eba7c5
-cmake -S "$source_dir" -B "$build_dir" -G Ninja \
-    -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$prefix" \
-    -DCMAKE_OSX_DEPLOYMENT_TARGET=14.0 -DQT_BUILD_TESTS=OFF \
-    -DQT_BUILD_EXAMPLES=OFF -DQT_BUILD_BENCHMARKS=OFF \
-    -DFEATURE_sql=OFF -DFEATURE_printsupport=OFF
+cmake -S "$source_dir" -B "$build_dir" -G Ninja "${cmake_args[@]}"
 cmake --build "$build_dir" --parallel "${ALLOY_BUILD_JOBS:-6}"
 cmake --install "$build_dir"
 cmake -S "$script_dir/qt-itemview-cache" -B "$work_root/cache-test" -G Ninja \
     -DCMAKE_PREFIX_PATH="$prefix" -DQt6_DIR="$prefix/lib/cmake/Qt6"
 cmake --build "$work_root/cache-test" --parallel 2
 QT_QPA_PLATFORM=offscreen "$work_root/cache-test/itemview_cache_test"
+python3 "$script_dir/private_qt_recipe.py" complete --work "$work_root"
 echo "Private Qt runtime: $prefix"
 echo 'Native Alloy interaction and loaded-library verification are separate qualification steps.'

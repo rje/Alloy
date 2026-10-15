@@ -82,3 +82,28 @@ Qt frameworks and Cocoa/style plugins load from the private installation, and
 Apple M4 hardware acceleration remains active. Some AX row labels still become
 inconsistent after history changes; FND-015 remains open. This is a bounded
 local runtime qualification, not complete accessibility or release acceptance.
+
+## Reproducible macOS recipe input and CI provenance
+
+CI-008 pins the Qt 6.11.2 archive and both patches in
+[`private_qt_recipe.py`](../../tools/dependencies/private_qt_recipe.py). The
+coherent [build script](../../tools/dependencies/build-private-qt.sh) retrieves
+the archive when absent, checks its SHA-256, builds Qt libraries and plugins
+together, installs them, and runs the offscreen item-view cache regression.
+On macOS [native CI](../../tools/ci/build.py) uses this recipe in place of stock
+`aqt`; Windows and Linux still use `aqt` pending CI-009. A clean candidate can
+be built without changing the currently used SDK by setting
+`ALLOY_PRIVATE_QT_WORK` to a fresh directory outside this checkout. The script
+accepts `ALLOY_QTBASE_ARCHIVE` for a local copy of the pinned archive.
+
+The success manifest `private-qt-build.json` is written only after the install
+and regression pass. Reuse verifies the complete patched source tree, required
+installed frameworks and recorded plugins, test binary, recipe inputs,
+compiler and SDK path; a missing
+or mismatched manifest refuses a nonempty work root. It records effective Qt
+features and license inputs. The native CI receipt additionally inventories
+linked Qt, OCCT, FreeType and solver binaries. This is build/link provenance,
+not proof of loaded Alloy libraries, package relocation, GPU operation or
+bit-for-bit reproducibility across hosts. CI-002 and the hardware gates retain
+those checks. The local clean-build and cache evidence is recorded in
+[the CI-008 receipt](../validation/mac-runtime-recipe.md).

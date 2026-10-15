@@ -40,7 +40,7 @@ def main():
     work.mkdir(parents=True, exist_ok=True)
     log_number = 0
 
-    def run(*command, cwd=ROOT):
+    def run(*command, cwd=ROOT, env=None):
         nonlocal log_number
         log_number += 1
         command = list(map(str, command))
@@ -49,7 +49,7 @@ def main():
         with log_path.open('w', encoding='utf-8') as log:
             log.write(json.dumps(command) + '\n')
             log.flush()
-            result = subprocess.run(command, cwd=cwd, stdout=log, stderr=subprocess.STDOUT)
+            result = subprocess.run(command, cwd=cwd, env=env, stdout=log, stderr=subprocess.STDOUT)
         if result.returncode:
             print(log_path.read_text(encoding='utf-8', errors='replace')[-16000:])
             raise RuntimeError(f'Command failed ({result.returncode}); see {log_path}')
@@ -74,13 +74,65 @@ def main():
         run('cmake', '--build', directory, '--config', 'Release', '--parallel', '3')
         run('cmake', '--install', directory, '--config', 'Release')
 
+    def mac_link_inventory(executable, directory, qt, occt, ft):
+        """Read linked development outputs; this does not prove loaded runtime closure."""
+        def one(folder, pattern):
+            matches = sorted({path.resolve() for path in folder.rglob(pattern) if path.is_file()})
+            if len(matches) != 1:
+                raise RuntimeError(f'Expected one {pattern} under {folder}, found {matches}')
+            return matches[0]
+        files = {
+            'alloy': executable,
+            'alloy_planegcs': one(directory, 'liballoy_planegcs.0.dylib'),
+            'alloy_assembly_solver': one(directory, 'liballoy_assembly_solver.0.dylib'),
+            'OndselSolver': one(directory, 'libOndselSolver.1.dylib'),
+            'QtCore': qt / 'lib/QtCore.framework/Versions/A/QtCore',
+            'QtGui': qt / 'lib/QtGui.framework/Versions/A/QtGui',
+            'QtWidgets': qt / 'lib/QtWidgets.framework/Versions/A/QtWidgets',
+            'QtNetwork': qt / 'lib/QtNetwork.framework/Versions/A/QtNetwork',
+            'Cocoa_platform_plugin': qt / 'plugins/platforms/libqcocoa.dylib',
+            'OCCT_TKernel': one(occt / 'lib', 'libTKernel*.dylib'),
+            'OCCT_TKService': one(occt / 'lib', 'libTKService*.dylib'),
+            'FreeType': one(ft / 'lib', 'libfreetype*.dylib'),
+        }
+        inventory = {}
+        for name, path in files.items():
+            if not path.is_file():
+                raise RuntimeError(f'Missing linked dependency {name}: {path}')
+            inventory[name] = {'path': str(path.resolve()),
+                               'sha256': hashlib.sha256(path.read_bytes()).hexdigest(),
+                               'otool_L': subprocess.check_output(['otool', '-L', str(path)], text=True)}
+        if 'liballoy_assembly_solver' not in inventory['alloy']['otool_L'] or \
+           'liballoy_planegcs' not in inventory['alloy']['otool_L'] or \
+           'QtWidgets' not in inventory['alloy']['otool_L'] or \
+           'libTK' not in inventory['alloy']['otool_L'] or \
+           'OndselSolver' not in inventory['alloy_assembly_solver']['otool_L'] or \
+           'freetype' not in inventory['OCCT_TKService']['otool_L'].lower():
+            raise RuntimeError('Expected app/solver/OCCT/FreeType links not found')
+        return inventory
+
     try:
-        run(sys.executable, '-m', 'aqt', 'install-qt', host, 'desktop', QT_VERSION,
-            qt_arch, '--outputdir', work / 'Qt')
-        configs = list((work / 'Qt').rglob('Qt6Config.cmake'))
-        if len(configs) != 1:
-            raise RuntimeError(f'Expected one native Qt config, found {configs}')
-        qt = configs[0].parents[3]
+        qt_manifest = None
+        if sys.platform == 'darwin':
+            qt_work = work / 'qt-private-runtime'
+            qt_archive = work / 'qtbase-v6.11.2.tar.gz'
+            qt_env = os.environ.copy()
+            qt_env.update(ALLOY_PRIVATE_QT_WORK=str(qt_work), ALLOY_QTBASE_ARCHIVE=str(qt_archive))
+            run('bash', ROOT / 'tools/dependencies/build-private-qt.sh', env=qt_env)
+            qt = qt_work / 'install'
+            qt_manifest = qt_work / 'private-qt-build.json'
+            if not qt_manifest.is_file():
+                raise RuntimeError('Coherent private Qt build has no success manifest')
+            shutil.copy2(qt_manifest, artifact / 'private-qt-build.json')
+        else:
+            # CI-009 retains cross-platform source-patch parity. Stock aqt is
+            # compilation evidence only and is not the validated macOS runtime.
+            run(sys.executable, '-m', 'aqt', 'install-qt', host, 'desktop', QT_VERSION,
+                qt_arch, '--outputdir', work / 'Qt')
+            configs = list((work / 'Qt').rglob('Qt6Config.cmake'))
+            if len(configs) != 1:
+                raise RuntimeError(f'Expected one native Qt config, found {configs}')
+            qt = configs[0].parents[3]
         ft = work / 'freetype-install'
         ft_source = source('freetype', 'https://github.com/freetype/freetype.git', FREETYPE)
         build(ft_source, 'freetype', ft, ['-DBUILD_SHARED_LIBS=ON',
@@ -111,8 +163,14 @@ def main():
         helper = directory / ('Release/alloy-local-client.exe' if sys.platform == 'win32' else 'alloy-local-client')
         shutil.copy2(helper, artifact / helper.name)
         shutil.copy2(ROOT / 'tools/alloyctl.py', artifact / 'alloyctl.py')
+        link_inventory = None
+        if sys.platform == 'darwin':
+            link_inventory = mac_link_inventory(executable, directory, qt, occt, ft)
+            (artifact / 'linked-dependencies.json').write_text(json.dumps(link_inventory, indent=2) + '\n')
         receipt = {'result':'compiled', 'target':args.target, 'observed_at':datetime.now(timezone.utc).isoformat(),
                    'source_commit':os.environ.get('GITHUB_SHA'), 'qt':QT_VERSION,
+                   'qt_source': 'patched-source-macos' if qt_manifest else 'stock-aqt-unqualified',
+                   'qt_build_manifest_sha256': hashlib.sha256(qt_manifest.read_bytes()).hexdigest() if qt_manifest else None,
                    'local_client_sha256':hashlib.sha256(helper.read_bytes()).hexdigest(),
                    'occt_commit':OCCT, 'freetype_commit':FREETYPE,
                    'occt_required_modules':list(OCCT_REQUIRED_MODULES),
@@ -121,6 +179,15 @@ def main():
                        (ROOT / 'third_party/planegcs/sources.json').read_bytes()).hexdigest(),
                    'solver_build_contract_sha256':hashlib.sha256(
                        (ROOT / 'cmake/PlaneGCS.cmake').read_bytes()).hexdigest(),
+                   'assembly_adapter_source_sha256':hashlib.sha256(
+                       (ROOT / 'src/AssemblySolver.cpp').read_bytes()).hexdigest(),
+                   'assembly_solver_build_contract_sha256':hashlib.sha256(
+                       (ROOT / 'cmake/OndselSolver.cmake').read_bytes()).hexdigest(),
+                   'assembly_solver_sources_manifest_sha256':hashlib.sha256(
+                       (ROOT / 'third_party/ondsel/sources.json').read_bytes()).hexdigest(),
+                   'ondsel_solver_commit':'4be80eef02a3486cda0d78f3ccbb308d207a9639',
+                   'ondsel_solver_archive_sha256':'701a5b6814114d3bd358700b4308e0c75c8fe86d24400d5accde0f3c11e3580a',
+                   'link_inventory_sha256':hashlib.sha256((artifact / 'linked-dependencies.json').read_bytes()).hexdigest() if link_inventory else None,
                    'compiler_baseline': {key:baseline[key] for key in ('compiler_id','compiler_version')},
                    'host':platform.platform(), 'python':platform.python_version(),
                    'runner_image':os.environ.get('ImageOS'), 'runner_image_version':os.environ.get('ImageVersion'),
