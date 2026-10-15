@@ -8,6 +8,12 @@
 #include <BRepAlgoAPI_Cut.hxx>
 #include <BRepAlgoAPI_Section.hxx>
 #include <BRepBndLib.hxx>
+#include <BRepExtrema_DistShapeShape.hxx>
+#include <BRepBuilderAPI_MakeVertex.hxx>
+#include <BRepLProp_SLProps.hxx>
+#include <Geom2d_Curve.hxx>
+#include <TopTools_IndexedDataMapOfShapeListOfShape.hxx>
+#include <TopTools_ListIteratorOfListOfShape.hxx>
 #include <Bnd_Box.hxx>
 #include <BRepFilletAPI_MakeFillet.hxx>
 #include <BRepTools.hxx>
@@ -17,6 +23,8 @@
 #include <Geom_Surface.hxx>
 #include <gp_Pln.hxx>
 #include <gp_Circ.hxx>
+#include <gp_Cylinder.hxx>
+#include <gp_Torus.hxx>
 #include <TopExp.hxx>
 #include <TopExp_Explorer.hxx>
 #include <TopTools_IndexedMapOfShape.hxx>
@@ -84,6 +92,76 @@ QJsonObject vertexTopology(const EvaluatedBody& body,const TopoDS_Vertex& vertex
     return {{"position",point(BRep_Tool::Pnt(vertex))},{"edges",incidentEdges},
         {"edgeCount",incidentEdges.size()},{"faces",incidentFaces}};
 }
+int certifySaved(const QString& savedPrefix,const QString& output) {
+    QFile file(output);if(!file.open(QIODevice::WriteOnly))throw std::runtime_error("certification output unavailable");
+    QJsonObject result{{"savedPrefix",savedPrefix},{"operation","sample existing blend seams and original terminal faces"}};
+    try {
+        BRep_Builder reader;TopoDS_Shape shape,original;
+        if(!BRepTools::Read(shape,(savedPrefix+"-common.brep").toUtf8().constData(),reader)
+            || !BRepTools::Read(original,(savedPrefix+"-input.brep").toUtf8().constData(),reader))throw std::runtime_error("saved shapes unavailable");
+        TopTools_IndexedMapOfShape faces,originalFaces;TopExp::MapShapes(shape,TopAbs_FACE,faces);TopExp::MapShapes(original,TopAbs_FACE,originalFaces);
+        TopTools_IndexedDataMapOfShapeListOfShape adjacency;TopExp::MapShapesAndAncestors(shape,TopAbs_EDGE,TopAbs_FACE,adjacency);
+        const auto blend=[](const TopoDS_Face& face) {
+            const BRepAdaptor_Surface surface(face);
+            if(surface.GetType()==GeomAbs_Torus)return std::abs(surface.Torus().MinorRadius()-0.5)<1e-7 && std::abs(surface.Torus().Location().Z()-16.5)<1e-7;
+            if(surface.GetType()==GeomAbs_Cylinder)return std::abs(surface.Cylinder().Radius()-0.5)<1e-7 && std::abs(surface.Cylinder().Location().Z()-16.5)<1e-7;
+            return false;
+        };
+        QJsonArray blendFaces,seams;int failed=0,unknown=0,tangent=0,terminal=0;
+        for(int i=1;i<=faces.Extent();++i)if(blend(TopoDS::Face(faces(i))))blendFaces.append(i);
+        for(int i=1;i<=adjacency.Extent();++i) {
+            const auto edge=TopoDS::Edge(adjacency.FindKey(i));std::vector<TopoDS_Face> incident;
+            for(TopTools_ListIteratorOfListOfShape it(adjacency(i));it.More();it.Next()) {
+                const auto face=TopoDS::Face(it.Value());
+                if(std::none_of(incident.begin(),incident.end(),[&](const auto& old){return old.IsSame(face);}))incident.push_back(face);
+            }
+            const int count=std::count_if(incident.begin(),incident.end(),blend);if(!count)continue;
+            QJsonObject record{{"edgeIndex",i},{"incidentFaceCount",static_cast<int>(incident.size())},{"blendFaceCount",count}};QJsonArray ids;
+            for(const auto& face:incident)ids.append(faces.FindIndex(face));record["faceIndices"]=ids;
+            if(incident.size()!=2 || BRep_Tool::Degenerated(edge)) {record["status"]="unknown topology";++unknown;seams.append(record);continue;}
+            const BRepAdaptor_Curve curve(edge);const double first=curve.FirstParameter(),last=curve.LastParameter();
+            std::vector<gp_Pnt> points;QJsonArray samples;double worst=0;bool normals=true,base=true;
+            for(double fraction:{0.1,0.3,0.5,0.7,0.9}) {
+                const double parameter=first+(last-first)*fraction;const auto position=curve.Value(parameter);points.push_back(position);base&=std::abs(position.Z()-16.5)<1e-6;
+                gp_Dir normal[2];bool defined=true;
+                for(int side=0;side<2;++side) {
+                    double a,b;const auto pc=BRep_Tool::CurveOnSurface(edge,incident[side],a,b);
+                    if(pc.IsNull()) {defined=false;continue;}
+                    const auto uv=pc->Value(parameter);const BRepAdaptor_Surface surface(incident[side]);
+                    BRepLProp_SLProps props(surface,uv.X(),uv.Y(),1,1e-9);
+                    if(!props.IsNormalDefined())defined=false;else normal[side]=props.Normal();
+                }
+                QJsonObject sample{{"fraction",fraction},{"position",point(position)},{"normalsDefined",defined}};
+                if(defined) {const double angle=std::acos(std::clamp(std::abs(normal[0].Dot(normal[1])),0.0,1.0));sample["tangentPlaneAngleRadians"]=angle;worst=std::max(worst,angle);}
+                normals&=defined;samples.append(sample);
+            }
+            record["samples"]=samples;record["maxTangentPlaneAngleRadians"]=worst;
+            if(count==2 || base) {
+                record["expected"]="tangent blend join";++tangent;
+                const bool pass=normals && worst<1e-5;record["sampledTangentPass"]=pass;if(!pass)++failed;
+            } else {
+                record["expected"]="sharp terminal trim (requires original-face containment)";++terminal;QJsonArray containing;
+                for(int f=1;f<=originalFaces.Extent();++f) {
+                    const auto face=TopoDS::Face(originalFaces(f));bool all=true;
+                    for(const auto& p:points) {
+                        BRepExtrema_DistShapeShape distance(BRepBuilderAPI_MakeVertex(p).Vertex(),face);
+                        if(!distance.IsDone() || distance.Value()>1e-6) {all=false;break;}
+                    }
+                    if(all)containing.append(f);
+                }
+                record["originalTrimmedFacesWithin1eMinus6Mm"]=containing;
+                record["sampledTerminalContainmentPass"]=!containing.isEmpty();
+                if(containing.isEmpty())++unknown;
+            }
+            seams.append(record);
+        }
+        result["blendFaceIndices"]=blendFaces;result["seams"]=seams;result["expectedTangentSeams"]=tangent;result["terminalTrimSeams"]=terminal;result["failedTangentSeams"]=failed;result["unknownSeams"]=unknown;
+        result["certification"]="bounded seam samples; not an exhaustive surface proof";
+    } catch(const Standard_Failure& error) {result["kernelException"]=QString::fromUtf8(error.GetMessageString());}
+      catch(const std::exception& error) {result["error"]=QString::fromUtf8(error.what());}
+    file.write(QJsonDocument(result).toJson(QJsonDocument::Indented));return result.contains("error") || result.contains("kernelException") ? 2 : 0;
+}
+
 int inspectSaved(const QString& savedPrefix,const QString& output) {
     QFile file(output);if(!file.open(QIODevice::WriteOnly))throw std::runtime_error("inspection output unavailable");
     QJsonObject result{{"savedPrefix",savedPrefix},{"operation","inspect preserved BReps; no fillet or Common reconstruction"}};
@@ -145,6 +223,7 @@ int main(int argc,char** argv) {
     QCoreApplication app(argc,argv);
     try {
         if(argc!=3 && argc!=4)throw std::runtime_error("usage: enclosure_rim_continuation_test source.alloy output.json [fillet|contour|common]");
+        if(argc==4 && QString::fromUtf8(argv[3])=="certify")return certifySaved(QString::fromUtf8(argv[1]),QString::fromUtf8(argv[2]));
         if(argc==4 && QString::fromUtf8(argv[3])=="inspect")return inspectSaved(QString::fromUtf8(argv[1]),QString::fromUtf8(argv[2]));
         CadDocument document;
         if(!document.open(argv[1]).isEmpty())throw std::runtime_error("source did not reopen");
