@@ -21,7 +21,8 @@ Astra independently accepted its scoped geometry proof. Sol is implementing the
 production kernel ingredient with explicit admission, deterministic edge/vertex
 provenance and one upstream edit/history/reopen. UI remains SKT-076. Public
 research and bulk prototype artifacts stay external. CI-004 runtime handoff is
-prepared externally for the next readiness slice.
+prepared at external `knowledge/specs/runtime-reproducibility-2026-10-14.md`
+for the next readiness slice.
 Only main/existing build and one private GUI lease; no new worktrees. Alternate
 readiness slices with concrete advanced-chain blockers. Packages can progress
 independently; no version/CI dispatch or public release has been triggered.
