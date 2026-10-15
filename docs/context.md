@@ -56,8 +56,11 @@ verified. Clean GPU views show an open passage and smooth surfaces. See
 [receipt](validation/surface-handle-bridge.md). Cold operations take about14s;
 edit opening41s is tracked separately as REL-028/#460. No responsiveness claim.
 
-Next: SRF-016 curved crossing-sheet Trim trials/Remove/revert, then SRF-011
-Boundary Fill. Same active exteriorcomponent owns bridge and later sheets.
+Active: SRF-016 curved crossing-sheet Trim trials/Remove/revert source-frame
+research is resolving which sheets are tools versus targets before kernel edits.
+REL-028 runs independently in `loft-edit-prefix-reuse`: remove duplicate history
+evaluation on the accepted final Loft edit path, preserving full commit checks.
+Next after trials: SRF-011 Boundary Fill. Same active exteriorcomponent owns bridge and later sheets.
 External `surface-iron-2026-10-15-public-frames/closure-contract.md` records public
 sequence/unknowns; `srf016-curved-trim-implementation-plan.md` is a bounded plan,
 not implementation. The existing sheet Trim only handles planar single-line
