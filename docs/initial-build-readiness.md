@@ -112,8 +112,9 @@ first. A successful ingredient does not close the cumulative tutorial.
 Alternate a bounded readiness improvement with a concrete tutorial blocker.
 The first two slices, [free orbit](https://github.com/rje/Alloy/issues/407) and
 [exact enclosure inset geometry](https://github.com/rje/Alloy/issues/347), are
-accepted. Reproducible macOS runtime inputs are active next; authored enclosure
-Offset and constrained-orbit behavior are being prepared. Reassess after each accepted
+accepted. The [macOS runtime recipe](validation/mac-runtime-recipe.md) is also
+accepted. Authored enclosure Offset is active next; constrained-orbit behavior
+has a researched implementation contract. Reassess after each accepted
 slice; never repeat an unchanged failing kernel/input probe without a new
 hypothesis. Keep one private validation editor and retire completed worktrees.
 

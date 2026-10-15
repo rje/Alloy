@@ -22,12 +22,18 @@ IDs through source history and reopen. This is a kernel ingredient; authored
 inset/UI remains SKT-076, now unblocked. See
 [the receipt](validation/enclosure-inset-diagnostic.md).
 
-CI-008/#426 is active for the bounded macOS Qt recipe and provenance, with one
-clean local build authorized (no CI dispatch). The existing SDK used by the app
-remains untouched. CI-009 retains Windows/Linux alignment; parent CI-004 stays
-Todo. The user chose external Windows/Linux testers for packaged desktop/GPU
-qualification; prepare a concise test checklist and keep qualification pending
-until results are returned. External handoff: `knowledge/specs/runtime-reproducibility-2026-10-14.md`.
+CI-008/#426 is independently accepted at `098e485`: clean patched Qt build,
+5/5 offscreen regression, cache reuse/refusal, Alloy build and static dependency
+inventory. See [receipt](validation/mac-runtime-recipe.md). This does not qualify
+loaded runtime, relocation or packages. The existing SDK remains intact; CI-009
+retains Windows/Linux alignment and parent CI-004 stays Todo. The user chose
+external Windows/Linux testers; the [checklist](validation/external-package-checklist.md)
+keeps qualification pending until results arrive.
+
+SKT-076/#346 is active next for authored trimmed-seam inset profiles, preserving
+legacy rounded annuli and downstream Join/Fillet lineage. External handoff:
+`knowledge/specs/trimmed-seam-offset-integration-2026-10-14.md`. NAV-002's constrained
+orbit and pivot contract is prepared in the external navigation compatibility spec.
 
 Use only the main checkout and one private GUI lease; no new worktrees are
 needed. Alternate readiness slices with concrete advanced-chain blockers.
