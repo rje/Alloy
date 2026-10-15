@@ -20,7 +20,7 @@ int main(int argc, char** argv) {
     app.setOrganizationName("Alloy");
     AlloyTheme::apply(app);
     QCommandLineParser parser;
-    parser.setApplicationDescription("Alloy native CAD shell — modeling is not implemented yet.");
+    parser.setApplicationDescription("Alloy parametric CAD with local agent control.");
     parser.addHelpOption();
     parser.addVersionOption();
     parser.addOption({"control-socket", "Unix socket path in an existing private directory; Windows generates UUID pipes.", "path"});
