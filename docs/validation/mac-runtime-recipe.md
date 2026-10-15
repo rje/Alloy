@@ -43,3 +43,8 @@ directories are disposable after the manifest and evidence are archived; keep
 the candidate `install` if comparing the CI recipe against a later package.
 CI-002 still owns bundling, notices, loaded-library verification and clean-host
 relocation. Hardware operation remains a separate gate.
+
+After acceptance, the obsolete isolated `alloy-ci008-build` directory was
+removed on 2026-10-14 (107 MB). Its logs and link inventory remain external;
+the two SDKs, candidate source cache and current development build remain intact.
+The historical candidate binary is no longer available at its recorded path.
