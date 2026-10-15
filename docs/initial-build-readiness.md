@@ -87,6 +87,11 @@ pending until returned evidence supports the advertised platform. Hosted softwar
 rendering does not substitute for these checks. Signing,
 notarization and minimum supported OS details must be explicit before distribution.
 
+The macOS arm64 archive can proceed after accepted CI-008 and dependency
+admission, independently of Windows/Linux CI-009. Its distinct-path extraction,
+loaded-library and GPU/workflow evidence qualifies only that local platform;
+external tester and whole-release gates remain open.
+
 ## Advanced tutorial chains remain required work
 
 1. **Electronics enclosure:** GEO-017 is now accepted at `6d9b8dc` for the exact

@@ -7223,12 +7223,13 @@
       "phase": "P4 Initial release",
       "priority": "P0",
       "depends_on": [
-        "CI-004"
+        "CI-008",
+        "FND-002"
       ],
       "labels": [
         "area:ci"
       ],
-      "body": "## Initial-build readiness scope\nAdd install/deployment for the app, Qt platform/image plugins, OCCT/resources, shared solvers/fonts and local automation tools. Remove developer absolute paths; preserve symlinks and executable modes in ZIP. Launch after extraction to a distinct location with SDK environment removed, verify GPU, local API and one existing save/export workflow. Record exact archive checksum/runtime libraries. Document signing/notarization availability honestly; Intel qualification remains required where advertised.\n\n## Delivery and evidence\nUser-prioritized 2026-10-14. Keep implementation bounded, preserve authoritative document/control commands, use proportional verification and independent review. Public reference details and images remain external. This issue is planned until its stated gate is evidenced; do not substitute compilation/API or Qt simulation for physical input or packaged GPU evidence.\n"
+      "body": "## Initial-build readiness scope\nAdd install/deployment for the app, Qt platform/image plugins, OCCT/resources, shared solvers/fonts and local automation tools. Remove developer absolute paths; preserve symlinks and executable modes in ZIP. Launch after extraction to a distinct location with SDK environment removed, verify GPU, local API and one existing save/export workflow. Record exact archive checksum/runtime libraries. Document signing/notarization availability honestly; Intel qualification remains required where advertised.\n\n## Delivery and evidence\nUser-prioritized 2026-10-14. Keep implementation bounded, preserve authoritative document/control commands, use proportional verification and independent review. Public reference details and images remain external. This issue is planned until its stated gate is evidenced; do not substitute compilation/API or Qt simulation for physical input or packaged GPU evidence.\n\n\n## Platform-local sequencing\nIndependent readiness review allows the macOS arm64 archive to proceed after CI-008 and dependency admission, without waiting for unrelated Windows/Linux CI-009. Keep CI-004 and all whole-release/platform gates open. Current copying leaves deployment closure unresolved: bundle matching patched Qt runtime/tools, non-system transitive dylibs/plugins, solvers/resources/notices, relative qt.conf and rewritten loader paths. Preserve modes and symlinks. Verify one extracted archive elsewhere with SDK environment removed, inspect loaded paths, GPU/API/save/STL. This establishes local macOS arm64 relocation only, not clean-host, Intel, signing/notarization or public release acceptance.\n"
     },
     {
       "key": "CI-006",
