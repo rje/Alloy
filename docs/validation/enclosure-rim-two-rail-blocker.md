@@ -119,3 +119,13 @@ center (0,-44.75,16.5), meeting at z=17 and spanning the intended 1 mm width.
 This establishes the local rear semicircle and absence of outside material.
 Mouth artifacts are preserved for independent review; global tangency, mouth
 shape and production/history integration remain unqualified.
+
+
+The targeted saved-candidate check in `geo020-common-certify-01/` identifies 14
+R0.5 crown faces. Thirty-three expected tangent seams pass five interior samples
+each (maximum tangent-plane angle approximately 2.11e-8 radians). Five terminal
+trim seams lie within 1e-6 mm of original trimmed faces at their sampled points.
+This is bounded sampled evidence for the diagnosed candidate, not an exhaustive
+surface proof. Thin production integration is now planned with geometric
+admission, explicit ambiguity refusal and one source-edit/history/reopen gate.
+No production acceptance follows from this diagnostic alone.

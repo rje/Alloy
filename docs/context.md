@@ -81,8 +81,10 @@ R0.5 single-chain fillets from the same Join solid, then their Boolean Common.
 Both branches and Common are valid closed solids. Subsequent subset diagnostics
 hit an empty-bounds handling error; subsequent inspection of saved BReps
 confirms no material outside the original and an exact local rear R0.5 semicircle.
-Independent review is pending. This establishes viability and local shape only,
-not global mouth/tangency, history or tutorial acceptance. See
+Independent review accepted that viability evidence. A subsequent bounded
+saved-candidate check passes sampled tangent joins and terminal trims; thin
+production integration is next, with geometric admission and retained-history
+validation. This does not yet establish authored-operation or tutorial acceptance. See
 [receipt](validation/enclosure-rim-two-rail-blocker.md).
 NAV-010/#430 is accepted at `75695f7`: GPU cube, readable blue hover and
 face/edge/corner picks through authoritative camera state. Qt06 proves 26 API
