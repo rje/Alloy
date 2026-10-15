@@ -4,6 +4,10 @@ Current priority: [initial-build readiness](docs/initial-build-readiness.md)—
 familiar navigation, reliable everyday controls, recovery and installable packages,
 alongside completion of the advanced modeling tutorials.
 
+The [native shoehorn creation checkpoint](docs/validation/shoehorn-native-prefix.md)
+now records the complete blank-document workflow through a 3 mm solid, with an
+editable model. Exact corner finishing and the full printable lesson remain open.
+
 The [development preview guide](docs/development-preview.md) lists supported
 workflows, local package/start instructions, example models and current limits.
 

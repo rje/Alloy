@@ -2,14 +2,22 @@
 
 ## Tutorial continuation (2026-10-15)
 
-The user asked to continue tutorials. TUT-031/#453 is active: record the native
-shoehorn creation from a blank document through dimensioned spline, endpoint
-planes, section profiles, guided Loft and 3 mm Thicken. Sol owns the workflow;
-Astra independently reviews it. Camera/projection/inspection/save API use must
-be distinguished from native geometry authoring. Add accepted footage and the
-editable model to the external gallery; do not omit the main shape creation.
-The full TUT-017 gate retains grouped corner/perimeter finishing, hole support,
-organization and output. Existing core geometry evidence is reused.
+TUT-031/#453 is independently accepted: native shoehorn creation from a blank
+document through the dimensioned spline, endpoint planes, section profiles,
+guided Loft and signed +3 mm Thicken. The complete 76-second creation video,
+eight stage captures and editable model are in external
+`deliverables/shoehorn-native-prefix-2026-10-15/native-08/` and linked first in
+`demos/2026-10-13/index.html#shoehorn-native-prefix`. The cumulative Qt input test
+passes, with actual native dimension/thickness entry, preview/Cancel/commit,
+source-face identity and correct retained-sheet/root-solid ownership. Astra
+reviewed source, saved state and film samples; root reviewed captures and linked
+artifacts. API camera/visibility/save and assisted menu opening remain explicit
+adaptations. See [receipt](validation/shoehorn-native-prefix.md).
+The full TUT-017 gate retains exact grouped corner/perimeter finishing, hole
+support, organization and output. Existing core geometry/history evidence was
+reused; no broad test suite or new package/CI build was run. Further tutorial
+work needs a materially new GEO-019 strategy or a separate finishable chain;
+do not repeat the unchanged failed fillet or iron boundary investigations.
 
 Astra's bounded saved-result finite-cap investigation is complete. Boundary
 mismatch up to 0.355 mm and sampled points outside the original solid rule out
