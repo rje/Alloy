@@ -36,7 +36,7 @@ add_library(alloy_kernel STATIC
     src/GeometryKernel.cpp src/GeometryKernel.h src/PrimitiveTopology.cpp src/PrimitiveTopology.h src/PlanarFaces.cpp src/PlanarFaces.h src/JoinRootEdges.cpp src/JoinRootEdges.h src/SolidFillet.cpp src/SolidFillet.h src/SolidChamfer.cpp src/SolidChamfer.h src/SolidShell.cpp src/SolidShell.h src/SolidThicken.cpp src/SolidThicken.h src/ClosedBlendShell.cpp src/ClosedBlendShell.h src/SolidSplit.cpp src/SolidSplit.h src/RevolvedShellCap.cpp src/RevolvedShellCap.h src/SolidSphere.cpp src/SolidSphere.h src/SolidHole.cpp src/SolidHole.h src/SolidLoft.cpp src/SolidLoft.h src/SurfaceRailLoft.cpp src/SurfaceRailLoft.h src/SurfaceExtrude.cpp src/SurfaceExtrude.h src/SurfaceTrim.cpp src/SurfaceTrim.h src/SolidRevolve.cpp src/SolidRevolve.h src/SolidSweep.cpp src/SolidSweep.h src/FeaturePattern.cpp src/FeaturePattern.h src/SolidMirror.cpp src/SolidTransform.cpp src/CircularPattern.cpp src/SolidMirror.h src/JoinResults.cpp
     src/MeshExport.cpp src/MeshExport.h src/ExportScope.cpp src/ExportScope.h
     src/StepExchange.cpp src/StepExchange.h
-    src/SketchSpline.cpp src/SketchSpline.h src/SketchSplineOffset.cpp src/SketchSplineOffset.h src/SketchOpenChainOffset.cpp src/SketchOpenChainOffset.h src/SketchConic.cpp src/SketchConic.h src/SketchGeometry.cpp src/SketchTrim.cpp src/SketchExtend.cpp src/SketchGeometry.h src/SketchText.cpp src/SketchText.h src/RoundedLoopOffset.cpp src/RoundedLoopOffset.h
+    src/SketchSpline.cpp src/SketchSpline.h src/SketchSplineOffset.cpp src/SketchSplineOffset.h src/SketchOpenChainOffset.cpp src/SketchOpenChainOffset.h src/SketchConic.cpp src/SketchConic.h src/SketchGeometry.cpp src/SketchTrim.cpp src/SketchExtend.cpp src/SketchGeometry.h src/SketchText.cpp src/SketchText.h src/RoundedLoopOffset.cpp src/RoundedLoopOffset.h src/PlanarBoundaryInset.cpp src/PlanarBoundaryInset.h
     src/SketchProfiles.cpp src/SketchProfiles.h src/SketchRegions.cpp)
 target_include_directories(alloy_kernel PUBLIC src)
 target_include_directories(alloy_kernel SYSTEM PUBLIC ${OpenCASCADE_INCLUDE_DIR})
@@ -136,6 +136,8 @@ if(BUILD_TESTING)
     add_executable(rounded_loop_offset_test tests/rounded_loop_offset.cpp src/CadDocument.cpp src/CadDocument.h)
     target_link_libraries(rounded_loop_offset_test PRIVATE alloy_kernel Qt6::Widgets)
     add_test(NAME rounded_loop_offset COMMAND rounded_loop_offset_test)
+    add_executable(planar_boundary_inset_test tests/planar_boundary_inset.cpp src/CadDocument.cpp src/CadDocument.h)
+    target_link_libraries(planar_boundary_inset_test PRIVATE alloy_kernel Qt6::Widgets)
     add_executable(rounded_loop_offset_controls_test tests/rounded_loop_offset_controls.cpp)
     target_link_libraries(rounded_loop_offset_controls_test PRIVATE alloy_application Qt6::Test)
     add_test(NAME rounded_loop_offset_controls COMMAND rounded_loop_offset_controls_test)

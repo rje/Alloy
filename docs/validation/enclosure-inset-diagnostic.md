@@ -40,8 +40,39 @@ final descendants. This is a legitimate geometry-driven topology change.
 
 The prototype is XY/single-wire and its endpoint-disk labels are not yet stable
 vertex identifiers. Raw per-step IsDeleted on old originals is not sufficient
-lineage evidence. Production admission, deterministic edge/vertex references and
-a meaningful source edit/history/reopen remain GEO-017 work; authoring controls
-remain SKT-076. Exact source/log/BREP and qualifications are in the same external
-folder's `exact-boundary-erosion-result.md`. No further unchanged prototype run
-is needed.
+lineage evidence. Exact source/log/BREP and qualifications are in the same
+external folder's `exact-boundary-erosion-result.md`.
+
+## Reusable kernel ingredient
+
+`PlanarBoundaryInset::evaluate` now admits one valid planar support face with
+one closed outer wire, a complete unique retained edge-ID registry, only finite
+straight/circular edges, circular radii greater than the positive inset, and a
+stable owning feature ID. Line strips and endpoint disks use the actual support
+plane; circular cutters retain the source curve's finite span and plane. Each
+Boolean step must keep one valid face. The final face must have one wire,
+positive area, source containment and the requested boundary clearance. Any
+unsupported/ambiguous input refuses with a structured evaluation error.
+
+Final output edge IDs are derived from the owning feature ID, support face ID,
+and propagated stable source-edge or sorted incident-edge vertex ancestry.
+Duplicate/unmapped output ancestry refuses. The two short source lip IDs are
+reported as vanished from final ancestry rather than inferred from late
+Boolean `IsDeleted` calls. Owning-feature namespacing prevents two inset
+features on the same support from sharing output IDs; it does not implement
+the future authored inset feature itself.
+
+The focused `planar_boundary_inset_test` executable was built and run manually
+against the external saved post-Split model. It produced one valid 17-edge
+233.8576963 mm² inset. An **upstream authored stock-width edit** from64 to65mm
+changed the recomputed inset area to about236.289mm² while retaining all17
+output IDs and both vanished-lip IDs. Source undo/redo and exact save/reopen
+recomputed the same result. This saves and reopens the **source model**, not an
+authored inset feature. The actual fixture exercises XY; arbitrary planar
+orientation is source-reviewed in the helper and awaits a dedicated workflow.
+The test target is intentionally not a default CTest because its saved fixture
+is held outside the repository. Exact command output and before/after BReps are
+external under `../Alloy-reference-records/deliverables/enclosure-rim-2026-10-14/production-inset-01/`
+with log `production-inset-01.log` beside it. Astra independently accepted the
+bounded kernel source and focused evidence. Sketch authoring and visual input
+remain SKT-076.
