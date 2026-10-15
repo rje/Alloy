@@ -3,9 +3,16 @@
 #include "AlloyWindow.h"
 #include "ReferenceView.h"
 #include <QApplication>
+#include <QDialogButtonBox>
 #include <QDir>
+#include <QDockWidget>
+#include <QDoubleSpinBox>
 #include <QJsonDocument>
+#include <QLineEdit>
 #include <QMenu>
+#include <QPushButton>
+#include <QScrollArea>
+#include <QScrollBar>
 #include <QTest>
 #include <QTimer>
 #include <QToolButton>
@@ -80,6 +87,91 @@ private slots:
         call(window,"capture.screenshot",{{"path",out+"/minimum-box-dock.png"}});
         call(window,"command.cancel",{{"session",window.state().value("activeSession").toObject().value("id")}});
         window.close();
+    }
+    void primitiveDockActionsStayReachable() {
+        const auto out=qEnvironmentVariable("ALLOY_PRIMITIVE_DOCK_EVIDENCE");QVERIFY(!out.isEmpty());QVERIFY(QDir().mkpath(out));
+        AlloyTheme::apply(*qApp);AlloyWindow window;window.resize(1360,850);window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        call(window,"primitive.box");
+        auto* dock=window.findChild<QDockWidget*>("primitiveDock");QVERIFY(dock);
+        auto* panel=dock->findChild<QWidget*>("primitivePanel");QVERIFY(panel);
+        auto* scroll=panel->findChild<QScrollArea*>("primitive.formScroll");QVERIFY(scroll);
+        auto* buttons=panel->findChild<QDialogButtonBox*>();QVERIFY(buttons);
+        auto* ok=buttons->button(QDialogButtonBox::Ok),*cancel=buttons->button(QDialogButtonBox::Cancel);
+        QPushButton* preview=nullptr;for(auto* button:buttons->buttons())if(button->text()=="Preview")preview=qobject_cast<QPushButton*>(button);
+        QVERIFY(ok && cancel && preview);
+        int lastContentWidth=-1,lastViewportWidth=-1;
+        auto fieldsFit=[&]()->bool{
+            auto* contents=scroll->widget();if(!contents)return false;
+            if(contents->width()!=lastContentWidth || scroll->viewport()->width()!=lastViewportWidth){
+                lastContentWidth=contents->width();lastViewportWidth=scroll->viewport()->width();
+                qInfo("primitive form widths: contents=%d viewport=%d panel=%d window=%d",
+                    lastContentWidth,lastViewportWidth,panel->width(),window.width());
+            }
+            if(contents->width()>scroll->viewport()->width())return false;
+            for(auto* field:contents->findChildren<QDoubleSpinBox*>()){
+                const QRect bounds(field->mapTo(scroll->viewport(),QPoint{}),field->size());
+                if(bounds.left()<0 || bounds.right()>=scroll->viewport()->width())return false;
+            }
+            return true;
+        };
+        QTRY_VERIFY(fieldsFit());
+        for(auto* button:{preview,ok,cancel}){
+            QVERIFY(button->isVisible());
+            QCOMPARE(QApplication::widgetAt(button->mapToGlobal(button->rect().center())),static_cast<QWidget*>(button));
+        }
+        call(window,"capture.screenshot",{{"path",out+"/normal-box.png"}});
+        window.resize(1040,640);
+        QTRY_VERIFY(window.findChild<QToolButton*>("view.compact.navigation")->isVisible());
+        QTRY_VERIFY(scroll->verticalScrollBar()->maximum()>0);
+        QTRY_VERIFY(fieldsFit());
+        auto* z=panel->findChild<QDoubleSpinBox*>("primitive.z");QVERIFY(z);
+        auto* name=panel->findChild<QLineEdit*>("primitive.name");QVERIFY(name);
+        QCOMPARE(QApplication::widgetAt(name->mapToGlobal(name->rect().center())),static_cast<QWidget*>(name));
+        QTest::mouseClick(name,Qt::LeftButton);QVERIFY(name->hasFocus());
+        auto* editor=z->findChild<QLineEdit*>();QVERIFY(editor);
+        for(int i=0;i<10 && !editor->hasFocus();++i){
+            auto* focused=QApplication::focusWidget();QVERIFY(focused);
+            QTest::keyClick(focused,Qt::Key_Tab);
+        }
+        QVERIFY(editor->hasFocus());
+        QVERIFY(scroll->verticalScrollBar()->value()>0);
+        const QRect visibleZ(z->mapTo(scroll->viewport(),QPoint{}),z->size());
+        QVERIFY(scroll->viewport()->rect().contains(visibleZ));
+        for(auto* button:{preview,ok,cancel}){
+            QVERIFY(button->isVisible());
+            QCOMPARE(QApplication::widgetAt(button->mapToGlobal(button->rect().center())),static_cast<QWidget*>(button));
+        }
+        call(window,"capture.screenshot",{{"path",out+"/minimum-box-scrolled.png"}});
+        QCOMPARE(QApplication::widgetAt(editor->mapToGlobal(editor->rect().center())),static_cast<QWidget*>(editor));
+        QTest::mouseClick(editor,Qt::LeftButton);QVERIFY(editor->hasFocus());
+        QTest::keyClick(editor,Qt::Key_A,Qt::ControlModifier);QTest::keyClicks(editor,"5");QTest::keyClick(editor,Qt::Key_Tab);
+        QCOMPARE(window.state().value("activeSession").toObject().value("inputs").toObject().value("z"),QJsonValue(5));
+        QTest::mouseClick(preview,Qt::LeftButton);
+        QVERIFY(window.state().value("activeSession").toObject().value("previewed").toBool());
+        QCOMPARE(call(window,"document.inspect").value("authored").toObject().value("features").toArray().size(),0);
+        QTest::mouseClick(ok,Qt::LeftButton);
+        QTRY_VERIFY(window.state().value("activeSession").toObject().isEmpty());
+        const auto committed=call(window,"document.inspect");
+        const auto features=committed.value("authored").toObject().value("features").toArray();QCOMPARE(features.size(),1);
+        QCOMPARE(features.first().toObject().value("parameters").toObject().value("zMm"),QJsonValue(5));
+        QCOMPARE(committed.value("evaluation").toObject().value("bodies").toArray().first().toObject().value("volumeMm3"),QJsonValue(6000));
+        call(window,"history.undo");
+        QCOMPARE(call(window,"document.inspect").value("authored").toObject().value("features").toArray().size(),0);
+        const auto beforeCylinder=call(window,"document.inspect");
+        call(window,"primitive.cylinder");
+        dock=window.findChild<QDockWidget*>("primitiveDock");QVERIFY(dock);
+        panel=dock->findChild<QWidget*>("primitivePanel");QVERIFY(panel);
+        buttons=panel->findChild<QDialogButtonBox*>();QVERIFY(buttons);
+        cancel=buttons->button(QDialogButtonBox::Cancel);QVERIFY(cancel && cancel->isVisible());
+        QCOMPARE(QApplication::widgetAt(cancel->mapToGlobal(cancel->rect().center())),static_cast<QWidget*>(cancel));
+        call(window,"capture.screenshot",{{"path",out+"/minimum-cylinder.png"}});
+        QTest::mouseClick(cancel,Qt::LeftButton);
+        QTRY_VERIFY(window.state().value("activeSession").toObject().isEmpty());
+        const auto afterCylinder=call(window,"document.inspect");
+        QCOMPARE(afterCylinder.value("authored"),beforeCylinder.value("authored"));
+        QCOMPARE(afterCylinder.value("undo"),beforeCylinder.value("undo"));
+        call(window,"document.save",{{"path",out+"/empty-after-undo.alloy"}});window.close();
     }
 };
 QTEST_MAIN(ResponsiveControls)

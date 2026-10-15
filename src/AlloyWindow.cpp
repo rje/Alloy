@@ -8450,14 +8450,18 @@ void AlloyWindow::showPrimitive() {
     dock->setAllowedAreas(Qt::LeftDockWidgetArea|Qt::RightDockWidgetArea);dock->setWidget(primitivePanel_);
     dock->onClose=[this]{if(session_.value("command").toString().startsWith("solid."))execute("command.cancel",{{"session",session_.value("id")}});};
     primitivePanel_->setWindowTitle(command=="solid.box" ? "Box" : "Cylinder");
-    auto* layout=new QVBoxLayout(primitivePanel_);auto* form=new QFormLayout;
-    auto* plane=new QLabel(inputs.value("featureId").toString().isEmpty() ? "XY plane · New Body" : "XY plane · Edit Body");layout->addWidget(plane);
-    primitiveName_=new QLineEdit(inputs["name"].toString());primitiveName_->setObjectName("primitive.name");form->addRow("Name",primitiveName_);
+    auto* layout=new QVBoxLayout(primitivePanel_);layout->setContentsMargins(0,0,0,9);layout->setSpacing(8);
+    auto* scroll=new QScrollArea(primitivePanel_);scroll->setObjectName("primitive.formScroll");scroll->setWidgetResizable(true);
+    scroll->setFrameShape(QFrame::NoFrame);scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    auto* contents=new QWidget;contents->setObjectName("primitive.formContents");contents->setStyleSheet("QWidget[objectName=\"primitive.formContents\"] { background: #f7f8f9; color: #323c44; }");
+    auto* form=new QFormLayout(contents);form->setRowWrapPolicy(QFormLayout::WrapLongRows);
+    auto* plane=new QLabel(inputs.value("featureId").toString().isEmpty() ? "XY plane · New Body" : "XY plane · Edit Body",contents);form->addRow(plane);
+    primitiveName_=new QLineEdit(inputs["name"].toString(),contents);primitiveName_->setObjectName("primitive.name");form->addRow("Name",primitiveName_);
     const QStringList fields=command=="solid.box" ? QStringList{"width","depth","height","x","y","z"}
         : QStringList{"radius","height","x","y","z"};
     for(const auto& field:fields) {
         const bool named=command=="solid.box" && (field=="width" || field=="depth" || field=="height");
-        auto* input=named ? static_cast<QDoubleSpinBox*>(new LengthDistanceSpinBox) : new QDoubleSpinBox;
+        auto* input=named ? static_cast<QDoubleSpinBox*>(new LengthDistanceSpinBox(contents)) : new QDoubleSpinBox(contents);
         input->setKeyboardTracking(false);input->setDecimals(6);input->setRange(field.size()==1 ? -100000 : 0.000001,100000);
         input->setSuffix(" "+inputs["units"].toString());input->setValue(inputs[field].toDouble());input->setObjectName("primitive."+field);
         if(named){auto* fieldInput=static_cast<LengthDistanceSpinBox*>(input);
@@ -8484,9 +8488,10 @@ void AlloyWindow::showPrimitive() {
     connect(primitiveName_,&QLineEdit::editingFinished,this,[this]{
         if(session_.value("command").toString().startsWith("solid."))updatePrimitive({{"name",primitiveName_->text()}});
     });
-    layout->addLayout(form);primitiveError_=new QLabel;primitiveError_->setWordWrap(true);primitiveError_->setMaximumWidth(400);
+    scroll->setWidget(contents);layout->addWidget(scroll,1);
+    primitiveError_=new QLabel;primitiveError_->setWordWrap(true);primitiveError_->setMaximumWidth(400);
     primitiveError_->setStyleSheet("color: #a63832;");layout->addWidget(primitiveError_);
-    auto* buttons=new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel);
+    auto* buttons=new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel,primitivePanel_);
     auto* preview=buttons->addButton("Preview",QDialogButtonBox::ActionRole);
     connect(preview,&QPushButton::clicked,this,[this]{
         const auto response=execute("command.preview",{{"session",session_.value("id")}});
@@ -8499,7 +8504,7 @@ void AlloyWindow::showPrimitive() {
     connect(buttons,&QDialogButtonBox::rejected,this,[this]{execute("command.cancel",{{"session",session_.value("id")}});});
     auto* escape=new QShortcut(QKeySequence(Qt::Key_Escape),primitivePanel_);
     connect(escape,&QShortcut::activated,this,[this]{execute("command.cancel",{{"session",session_.value("id")}});});
-    layout->addWidget(buttons);layout->addStretch();canvasWindow_->addDockWidget(Qt::RightDockWidgetArea,dock);
+    layout->addWidget(buttons);canvasWindow_->addDockWidget(Qt::RightDockWidgetArea,dock);
     dock->show();
 }
 void AlloyWindow::updatePrimitive(const QJsonObject& inputs) {
