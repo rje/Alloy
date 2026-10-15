@@ -55,3 +55,12 @@ The minimum selected-state capture also shows always-visible cube accessory
 buttons and the UP label overlapping the upper-right sketch and dimension
 witness/endpoint area. Visible dimension text does not mean all annotations
 are unobscured. NAV-021/#452 owns this observed occlusion; REL-013 remains open.
+
+## Accessory follow-up
+
+NAV-021 is accepted at `da11b31`; [disclosure evidence](cube-accessory-disclosure.md)
+shows the minimum sketch dimensions clear of the idle accessory grid. Its
+independent review also records clipped wide navigation labels in the minimum
+capture and overlapping sketch-summary text in the normal capture. REL-013
+remains open to distinguish transient layout from persistent defects and finish
+the wider audit. These are not whole-window polish acceptance captures.

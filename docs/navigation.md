@@ -27,6 +27,10 @@ menu to return it to the visible-scene center.
 ## Orientation cube and standard views
 
 The cube stays orthographic even when the model uses perspective.
+Its accessory controls stay collapsed at rest. Hover over the cube, or activate
+the small disclosure beside it, to show them. The disclosure is keyboard
+reachable; Space opens it and Escape closes the controls without cancelling
+an active sketch. [Disclosure receipt](validation/cube-accessory-disclosure.md).
 Click a labeled face to look squarely at that side; click an edge or corner for an
 angled view. Drag the cube to orbit. The cube's **Home** control restores the
 saved Home view. Four adjacent-view and two face-roll controls appear beside the

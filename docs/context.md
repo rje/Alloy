@@ -31,10 +31,14 @@ and clear missing-end-face guidance pass Qt footer/Cancel/valid-commit and
 normal/minimum visual review. See [receipt](validation/extrude-dock-height.md).
 REL-013 has current Fillet empty-edge and Combine empty-tool captures without
 a demonstrated clipping defect. The dimensioned sketch palette and actions are
-readable, but always-visible cube accessories overlap upper-right sketch
-annotations at minimum size. NAV-021/#452 owns this observed occlusion; public
-reference research is active and the parent audit remains open. The old blank viewport band matches dock allocation; actual Qt/native/
-framebuffer dimensions agree in the current audit. Use `build-preview-release`
+readable. NAV-021/#452 is accepted at `da11b31`: hover/keyboard disclosure
+clears the accessory footprint while preserving the active sketch and cube
+controls. See [receipt](validation/cube-accessory-disclosure.md). Exact reference
+disclosure remains unknown; this is explicit Alloy policy. The parent audit
+remains open: final captures also show clipped wide navigation labels and sketch
+summary overlap requiring a settled-layout check. The old blank viewport band
+matches dock allocation; actual Qt/native/framebuffer dimensions agree.
+Use `build-preview-release`
 for optimized interactive previews and `build-tutorial-polish` for Debug checks;
 both use the coherent private Qt SDK. Older packaged archives predate these changes.
 
@@ -83,12 +87,17 @@ API and native ribbon/tool/region/Cancel checks pass; source edits preserve
 retained identities through history and reopen. See
 [receipt](validation/surface-planar-sheet-trim.md).
 Full SRF-016 iron trial/revert and TUT-018 remain open.
-SRF-019/#451 is active as a bounded retained no-rail Loft across three closed
-sketch sections, split from SRF-015. The existing independent two-spline/ellipse/
-two-spline probe is the fixture; source-exact topology is unknown. Sol is
-inspecting architecture with Astra review before implementation. SRF-015 retains
-actual bilateral Trim-boundary integration and SRF-017 exterior quality; no
-implicit transport spine or retry of the failed exterior evaluator is planned.
+SRF-019/#451 is independently accepted at `e0ef76e`: retained no-rail Loft
+across three closed sketch sections, split from SRF-015. The supported fixture
+uses two fit splines, a full ellipse, then two fit splines; other arrangements
+refuse explicitly. Generic ordered references leave room for future expansion.
+Core, real-app API and actual Qt section picks/Cancel/OK at 1040×640 pass, with
+source edits, hidden-source replay, stable references and history/reopen. The
+Loft form scrolls above fixed actions. See [receipt](validation/surface-closed-loft.md).
+The numerical fixture is independently authored; source-exact topology remains
+unknown. SRF-015 retains actual bilateral Trim-boundary integration and SRF-017
+exterior quality. No implicit transport spine or unchanged failed exterior retry
+is planned; full TUT-018 remains open.
 
 CI-005/#423 local macOS arm64 relocation is accepted at `3c88127`: extracted
 archive, 43 observed bundled non-system libraries/zero external, Apple M4 GPU

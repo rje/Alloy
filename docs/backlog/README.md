@@ -32,6 +32,9 @@ audit split observed minimum-size ribbon/navigation clipping into accepted
 REL-021/#447 (`c562c85`); remaining visual-quality scope stays open. GEO-019/#352 remains Todo with preserved geometry failure evidence;
 TUT-030/#442 preserves unresolved nominal connector clearance. The current
 sequence JSON takes precedence over historical delivery notes below.
+SRF-019/#451 three-section no-rail Loft and NAV-021/#452 cube accessory disclosure
+are independently accepted. The full surface-iron chain and REL-013 wider
+visual audit retain their remaining scope.
 
 
 Current checkpoint (2026-10-14): the short expression exercise and Base Sketch

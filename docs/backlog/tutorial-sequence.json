@@ -80,6 +80,7 @@
       "title": "Readable recoverable responsive modeling",
       "issues": [
         "REL-013",
+        "NAV-021",
         "REL-021",
         "REL-022",
         "REL-023",
@@ -95,7 +96,7 @@
       ],
       "acceptance": "Representative workflows are readable, safe, responsive and usable.",
       "status": "todo",
-      "remaining": "Recovery, preview guidance, compact ribbon/navigation, primitive dock actions and concise status accepted. REL-024 Extrude controls accepted; remaining panel audit, performance budget and broader reliability remain open."
+      "remaining": "Recovery, preview guidance, compact ribbon/navigation, primitive/Extrude dock actions, concise status and cube accessory disclosure accepted. REL-013 retains remaining layout observations; performance budget and broader reliability remain open."
     },
     {
       "id": "READY-06",
@@ -110,7 +111,7 @@
       ],
       "acceptance": "Correct exterior topology and complete retained handle/solid workflow.",
       "status": "todo",
-      "remaining": "SRF-019 retained three-section no-rail surface Loft ingredient active. SRF-017 exterior quality and actual trimmed-boundary bridge integration remain open; no full iron claim."
+      "remaining": "SRF-019 retained three-section no-rail surface Loft ingredient accepted with core/API/native evidence. SRF-017 exterior quality and actual trimmed-boundary bridge integration remain open; no full iron claim."
     },
     {
       "id": "READY-07",
