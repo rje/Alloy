@@ -1,7 +1,7 @@
 {
   "repository": "rje/Alloy",
   "project_url": "https://github.com/users/rje/projects/1",
-  "updated": "2026-10-15T03:01:37.522481+00:00",
+  "updated": "2026-10-15T03:03:57.700073+00:00",
   "issues": {
     "NAV-012": {
       "number": 432,
@@ -2182,6 +2182,31 @@
       "number": 436,
       "url": "https://github.com/rje/Alloy/issues/436",
       "state": "closed"
+    },
+    "NAV-016": {
+      "number": 437,
+      "url": "https://github.com/rje/Alloy/issues/437",
+      "state": "open"
+    },
+    "NAV-017": {
+      "number": 438,
+      "url": "https://github.com/rje/Alloy/issues/438",
+      "state": "open"
+    },
+    "NAV-018": {
+      "number": 439,
+      "url": "https://github.com/rje/Alloy/issues/439",
+      "state": "open"
+    },
+    "REL-019": {
+      "number": 440,
+      "url": "https://github.com/rje/Alloy/issues/440",
+      "state": "open"
+    },
+    "TUT-029": {
+      "number": 441,
+      "url": "https://github.com/rje/Alloy/issues/441",
+      "state": "open"
     }
   }
 }

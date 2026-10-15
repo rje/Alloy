@@ -3742,7 +3742,8 @@
         "TUT-022",
         "TUT-023",
         "DOC-031",
-        "DOC-032"
+        "DOC-032",
+        "TUT-029"
       ],
       "labels": [
         "area:gate"
@@ -7076,12 +7077,15 @@
       "priority": "P1",
       "depends_on": [
         "NAV-002",
-        "NAV-006"
+        "NAV-006",
+        "NAV-016",
+        "NAV-017",
+        "NAV-018"
       ],
       "labels": [
         "area:doc"
       ],
-      "body": "## Initial-build readiness scope\nAdd create/rename/restore/delete of authored named camera views and documented Home/front/up conventions. Persist camera projection/pose and selected navigation preferences at the proper document/application scope, with backward-compatible files. Research preferences/presets including no-middle-button users; expose only supported mappings honestly. Verify save/reopen, tab switching, reset and one alternate supported preset. Do not overwrite geometry history for transient camera motion.\n\n## Delivery and evidence\nUser-prioritized 2026-10-14. Keep implementation bounded, preserve authoritative document/control commands, use proportional verification and independent review. Public reference details and images remain external. This issue is planned until its stated gate is evidenced; do not substitute compilation/API or Qt simulation for physical input or packaged GPU evidence.\n"
+      "body": "## Initial-build readiness scope\nAdd create/rename/restore/delete of authored named camera views and documented Home/front/up conventions. Persist camera projection/pose and selected navigation preferences at the proper document/application scope, with backward-compatible files. Research preferences/presets including no-middle-button users; expose only supported mappings honestly. Verify save/reopen, tab switching, reset and one alternate supported preset. Do not overwrite geometry history for transient camera motion.\n\n## Delivery and evidence\nUser-prioritized 2026-10-14. Keep implementation bounded, preserve authoritative document/control commands, use proportional verification and independent review. Public reference details and images remain external. This issue is planned until its stated gate is evidenced; do not substitute compilation/API or Qt simulation for physical input or packaged GPU evidence.\n\nBounded delivery: NAV-016 named views, NAV-017 Home/orientation, NAV-018 application preferences. Parent stays Todo until all pass.\n"
     },
     {
       "key": "NAV-008",
@@ -7159,7 +7163,9 @@
       "kind": "validation",
       "phase": "P4 Initial release",
       "priority": "P1",
-      "depends_on": [],
+      "depends_on": [
+        "REL-019"
+      ],
       "labels": [
         "area:rel"
       ],
@@ -7414,6 +7420,75 @@
         "area:geo"
       ],
       "body": "## Concrete failure\nThe accepted paired R0.5 enclosure model refuses the exact Top-target/Bottom-tool Combine Cut with Keep Tools: boolean_result_invalid, reporting no valid closed positive-volume result. Real-app transcript is external under deliverables/enclosure-rim-2026-10-14/tut023-cut-preflight-01/. No successful Cut, export or continuation footage is claimed.\n\n## Bounded scope\nDiagnose this same saved input once to distinguish invalid topology, multiple solids, empty output or application admission/identity defects. Use mature kernel operations and preserve intended authored shape and exact parameters. Do not sweep tolerances, radii or seed choices to force acceptance. Implement a source-justified bounded fix if possible; otherwise preserve concrete failure evidence and remaining contract.\n\n## Verification\nThrough authoritative commands, verify one valid closed positive-volume Top result, unchanged retained Bottom tool ownership and shape, deterministic references, atomic unsupported-input refusal, and one meaningful source-edit/history/reopen path. Inspect actual GPU output. Independent Astra review required. TUT-023 owns final separate export/readback and complete stage footage; physical clearance/full tutorial remain separate.\n\n## Independently accepted 2026-10-14\nAccepted at 95d4e56 after independent Astra source/API/geometry/GPU review. Isolated same-domain cleanup preflight vetoes invalid cleanup while preserving original result/history; normal valid cleanup path stays intact. Exact Top Cut KeepTools passes, retained Bottom unchanged, width64\u219265/undo/redo/reopen and retained-support sketch use pass. Both STL connected-component and STEP valid-solid/volume readbacks pass. Four newly split old edge references are correctly unavailable (baseline8\u219212), not ambiguously rebound. Actual groove capture reviewed. See docs/validation/boolean-cleanup-veto.md. TUT-023 stage footage and cumulative gate remain separate; zero intersection does not claim physical clearance.\n"
+    },
+    {
+      "key": "NAV-016",
+      "title": "Persist custom named camera views",
+      "kind": "implementation",
+      "phase": "P4 Initial release",
+      "priority": "P1",
+      "depends_on": [
+        "NAV-006"
+      ],
+      "labels": [
+        "area:doc"
+      ],
+      "body": "## Bounded scope\nCreate, rename, restore and delete custom named camera views from visible Browser controls and the shared control API. Store stable IDs, full camera pose and projection in backward-compatible document metadata. Restore is transient camera motion; metadata changes use existing dirty/undo conventions without geometry recomputation. Verify a focused create/rename/restore/delete workflow, save/reopen, tab isolation and malformed-file atomic refusal; inspect actual GPU result. Independent Astra review required.\n\nSplit from NAV-007 so unfinished parent scope stays Todo.\n"
+    },
+    {
+      "key": "NAV-017",
+      "title": "Save and reset Home and orientation conventions",
+      "kind": "implementation",
+      "phase": "P4 Initial release",
+      "priority": "P1",
+      "depends_on": [
+        "NAV-016"
+      ],
+      "labels": [
+        "area:doc"
+      ],
+      "body": "## Bounded scope\nExpose saved/reset Home plus explicit Front/Top/up conventions using permitted public evidence. Define document versus application scope and preserve authored geometry. Verify one asymmetric model through convention change, Home/reset and save/reopen, using shared API and visible controls. Record unknown reference behavior and independently review.\n\nSplit from NAV-007 so unfinished parent scope stays Todo.\n"
+    },
+    {
+      "key": "NAV-018",
+      "title": "Persist supported navigation preferences",
+      "kind": "implementation",
+      "phase": "P4 Initial release",
+      "priority": "P1",
+      "depends_on": [
+        "NAV-003",
+        "NAV-006"
+      ],
+      "labels": [
+        "area:doc"
+      ],
+      "body": "## Bounded scope\nResearch and expose supported application-level navigation preferences, including one alternate supported mouse preset and no-middle-button controls. Persist preferences at application scope; document mappings honestly and define reset behavior. Treat animation preference only if actual transitions are implemented; do not ship inert controls. Verify targeted event routing and preference persistence, retain physical-device gate separately. Independent Astra review required.\n\nSplit from NAV-007 so unfinished parent scope stays Todo.\n"
+    },
+    {
+      "key": "REL-019",
+      "title": "Show honest busy feedback for synchronous geometry commands",
+      "kind": "implementation",
+      "phase": "P4 Initial release",
+      "priority": "P1",
+      "depends_on": [],
+      "labels": [
+        "area:rel"
+      ],
+      "body": "## Bounded scope\nBefore synchronous geometry work, paint explicit computing status and wait cursor; restore chrome on success, refusal and exception with nested-command guard. Report elapsed time. Do not pump unrestricted events or imply working progress percentages/cancellation. UI/API remain blocked during geometry: parent responsiveness stays open. Use one bounded actual operation and focused lifecycle checks; independent review. Genuine isolated asynchronous evaluation is separate work.\n"
+    },
+    {
+      "key": "TUT-029",
+      "title": "Verify final enclosure clearance against imported components",
+      "kind": "validation",
+      "phase": "P5 Assemblies/drawings",
+      "priority": "P1",
+      "depends_on": [
+        "TUT-023"
+      ],
+      "labels": [
+        "area:gate"
+      ],
+      "body": "## Bounded scope\nInspect the accepted saved final Top and Bottom against all twelve imported board solids without rebuilding the unchanged tutorial. Record overlap and implicated components, distinguish numerical nominal-input clearance from physical fit. Prior pre-rim Top/SIDE-ETH intersection was 0.732240293 cubic mm; final Cut may alter it, so do not claim a current collision without measuring. If overlap remains, record a separate source-supported correction dependency; do not silently change tutorial dimensions. Combine this result with existing source-stage coverage ledger and independent review; reuse accepted exports/history evidence.\n"
     }
   ]
 }

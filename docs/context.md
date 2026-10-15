@@ -2,6 +2,13 @@
 
 ## Initial-build readiness priority (2026-10-14)
 
+Active bounded work: NAV-016/#437 persisted named views (NAV-017/#438 Home and
+NAV-018/#439 preferences remain Todo); REL-019/#440 honest synchronous-geometry
+busy feedback; TUT-029/#441 final case-versus-imported-component clearance.
+The earlier 0.73224 mm³ connector collision was measured before the final rim/Cut;
+final clearance is not yet measured. Physical fit remains unclaimed. NAV-007,
+REL-016 and TUT-016 stay open until their full scopes pass.
+
 CI-005/#423 local macOS arm64 relocation is accepted at `3c88127`: extracted
 archive, 43 observed bundled non-system libraries/zero external, Apple M4 GPU
 and API/save/STL evidence. See [receipt](validation/macos-relocatable-preview.md).
