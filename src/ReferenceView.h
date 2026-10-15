@@ -1,6 +1,7 @@
 #pragma once
 #include <QWidget>
 #include <QImage>
+#include <QRectF>
 #include <QJsonObject>
 #include <QJsonArray>
 #include <functional>
@@ -44,6 +45,11 @@ public:
     void orbitConstrained(double deltaX,double deltaY,bool useCustomPivot=true);
     void orbitByMode(double deltaX,double deltaY,bool useCustomPivot=true);
     bool zoomAt(double factor,std::optional<QPointF> cursor=std::nullopt);
+    bool zoomWindow(const QRectF& rectangle);
+    void setNavigationTool(const QString& mode);
+    QString navigationTool() const { return navigationTool_; }
+    bool navigationDragging() const { return navigationPressActive_; }
+    void cancelNavigationGesture(bool suppressRelease=false);
     void setOrbitMode(const QString& mode);
     void centerNamedView() { viewCenter_=sceneCenter_; }
     QString orbitMode() const { return orbitMode_; }
@@ -228,6 +234,12 @@ private:
     QPointF orbitLast_;
     Qt::MouseButton orbitButton_ = Qt::NoButton;
     bool freeOrbitTool_ = false;
+    QString navigationTool_ = "select";
+    bool navigationPressActive_ = false;
+    bool navigationSuppressRelease_ = false;
+    bool navigationMoved_ = false;
+    QPointF navigationPress_, navigationLast_;
+    QRubberBand* navigationWindowBand_ = nullptr;
     QString orbitMode_ = "free";
     QJsonObject lastNavigationInput_;
     bool nativeGestureActive_=false;

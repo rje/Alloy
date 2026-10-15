@@ -221,6 +221,8 @@ fail without applying the command. Error codes include `invalid_request`,
 | `view.cubeRoll` | `side`: `left` or `right`; roll a principal face view 90° while retaining viewing direction and framing |
 | `view.zoom` | `factor`: 0.1–10; resulting scale clamps to 0.1–10. Optional viewport-local logical `x` and `y` must be supplied together to keep that screen point fixed. Omitting them preserves the existing pan and zooms about the camera target |
 | `view.pan` | `x`, `y`: relative logical-pixel deltas, each within ±10000 |
+| `view.zoomWindow` | `x1`, `y1`, `x2`, `y2`: opposite viewport-local logical rectangle corners; at least 8 × 8 pixels after clipping. Orthographic camera centers and fits the rectangle with the effective clamped zoom factor |
+| `view.navigationTool` | `mode`: `select`, `pan`, `zoom`, or `zoomWindow`; the three checked navigation buttons route left drags through `view.pan`, cursor-anchored `view.zoom`, or `view.zoomWindow`. Escape returns to ordinary selection without editing the document |
 | `view.orbit` | `deltaX`, `deltaY`: relative logical-pixel deltas, each within ±10000; orbit the real camera in the selected mode. Optional `pivot` is `orbitCenter` (default, using stored custom center or scene center) or `viewCenter` (orientation-cube drag, ignoring but retaining the stored custom center) |
 | `view.orbitMode` | `mode`: `free` or `constrained`; the visible Orbit menu retains the selected mode. Constrained uses world Z up and a level horizon |
 | `view.orbitTool` | `active`: boolean; visible Orbit control lets a left canvas drag use the selected mode; Escape exits |

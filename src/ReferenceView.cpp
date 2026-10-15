@@ -263,7 +263,7 @@ QJsonObject ReferenceView::cameraState() const {
         {"grid",grid},{"origin",origin},{"sketchPlane",sketchPlane_},{"sketchFrame",sketchFrame_},
         {"centerX",sceneCenter_.X()},{"centerY",sceneCenter_.Y()},{"centerZ",sceneCenter_.Z()},
         {"viewCenter",QJsonArray{viewCenter_.X(),viewCenter_.Y(),viewCenter_.Z()}},
-        {"orbitMode",orbitMode_},
+        {"orbitMode",orbitMode_},{"navigationTool",navigationTool_},
         {"customDirection",QJsonArray{customDirection_.X(),customDirection_.Y(),customDirection_.Z()}},
         {"customUp",QJsonArray{customUp_.X(),customUp_.Y(),customUp_.Z()}},
         {"scale",sceneScale_}};
@@ -287,6 +287,7 @@ void ReferenceView::restoreCameraState(const QJsonObject& state) {
     const auto viewCenter=state.value("viewCenter").toArray();
     viewCenter_=viewCenter.size()==3 ? gp_Pnt(viewCenter[0].toDouble(),viewCenter[1].toDouble(),viewCenter[2].toDouble()) : sceneCenter_;
     orbitMode_=state.value("orbitMode")=="constrained" ? "constrained" : "free";
+    setNavigationTool(state.value("navigationTool").toString("select"));
     lastNavigationInput_=state.value("lastInput").toObject();nativeGestureActive_=false;
     const auto pivot=state.value("orbitPivot").toArray();
     customOrbitCenter_=state.value("customOrbitCenter").toBool() && pivot.size()==3
@@ -374,6 +375,32 @@ bool ReferenceView::zoomAt(double factor,std::optional<QPointF> cursor) {
         pan=pan*effective+offset*(1-effective);
     }
     return true;
+}
+bool ReferenceView::zoomWindow(const QRectF& input) {
+    if(!std::isfinite(input.left()) || !std::isfinite(input.top()) ||
+        !std::isfinite(input.right()) || !std::isfinite(input.bottom()) || width()<=0 || height()<=0)return false;
+    const QRectF rectangle=input.normalized().intersected(QRectF(0,0,width(),height()));
+    if(rectangle.width()<8 || rectangle.height()<8)return false;
+    const double factor=std::min(double(width())/rectangle.width(),double(height())/rectangle.height());
+    if(!std::isfinite(factor) || factor<=0)return false;
+    const double oldZoom=zoom;
+    const double nextZoom=std::clamp(zoom*factor,0.1,10.0);
+    const double effective=nextZoom/oldZoom;
+    const QPointF center(width()/2.0,height()/2.0);
+    pan=effective*(pan+center-rectangle.center());
+    zoom=nextZoom;
+    return true;
+}
+void ReferenceView::cancelNavigationGesture(bool suppressRelease) {
+    if(suppressRelease && navigationPressActive_)navigationSuppressRelease_=true;
+    navigationPressActive_=false;navigationMoved_=false;
+    if(navigationWindowBand_)navigationWindowBand_->hide();
+}
+void ReferenceView::setNavigationTool(const QString& mode) {
+    cancelNavigationGesture(navigationPressActive_);
+    navigationTool_=mode;
+    if(mode=="select")unsetCursor();
+    else setCursor(mode=="zoomWindow" ? Qt::CrossCursor : Qt::OpenHandCursor);
 }
 QStringList ReferenceView::cubeRegions() { return cubeOrientations().keys(); }
 QJsonObject ReferenceView::cubeHit(double x,double y) {
@@ -529,6 +556,7 @@ void ReferenceView::resetOrbitCenter() {
     customOrbitCenter_.reset();cancelOrbitCenterPick();refreshOrbitCenterMarker();
 }
 void ReferenceView::rebindDocument() {
+    cancelNavigationGesture(navigationPressActive_);
     cancelOrbitCenterPick();
     nativeGestureActive_=false;
     if(!context_.IsNull() && !orbitCenterMarker_.IsNull())context_->Remove(orbitCenterMarker_,false);
@@ -2786,6 +2814,18 @@ void ReferenceView::mousePressEvent(QMouseEvent* e) {
             setFocus(Qt::MouseFocusReason);e->accept();return;
         }
     }
+    if(e->button()==Qt::LeftButton && navigationTool_!="select") {
+        navigationSuppressRelease_=false;navigationPressActive_=true;navigationMoved_=false;
+        navigationPress_=navigationLast_=e->position();
+        if(navigationTool_=="zoomWindow") {
+            if(!navigationWindowBand_){navigationWindowBand_=new QRubberBand(QRubberBand::Rectangle,this);
+                navigationWindowBand_->setObjectName("view.zoomWindowBand");
+                navigationWindowBand_->setAttribute(Qt::WA_TransparentForMouseEvents);}
+            navigationWindowBand_->setGeometry(QRect(e->position().toPoint(),QSize()));
+            navigationWindowBand_->show();navigationWindowBand_->raise();
+        } else setCursor(Qt::ClosedHandCursor);
+        setFocus(Qt::MouseFocusReason);e->accept();return;
+    }
     if(orbitCenterPicking_ && e->button()==Qt::LeftButton) {
         orbitCenterPressHandled_=true;
         if(dispatch)dispatch("view.orbitCenterPick",{{"x",e->position().x()},{"y",e->position().y()}});
@@ -2957,6 +2997,23 @@ void ReferenceView::mouseMoveEvent(QMouseEvent* e) {
         }
         e->accept();return;
     }
+    if(navigationPressActive_) {
+        if(!e->buttons().testFlag(Qt::LeftButton)){cancelNavigationGesture(true);e->accept();return;}
+        if(!navigationMoved_ && QLineF(navigationPress_,e->position()).length()>=QApplication::startDragDistance())navigationMoved_=true;
+        if(navigationMoved_ && navigationTool_=="pan") {
+            const auto delta=e->position()-navigationLast_;
+            if(dispatch && !delta.isNull())dispatch("view.pan",{{"x",delta.x()},{"y",delta.y()}});
+        } else if(navigationMoved_ && navigationTool_=="zoom") {
+            const auto delta=e->position()-navigationLast_;
+            const double factor=std::exp(-delta.y()*0.012);
+            if(dispatch && std::isfinite(factor) && factor>0 && delta.y()!=0)
+                dispatch("view.zoom",{{"factor",std::clamp(factor,0.1,10.0)},
+                    {"x",navigationPress_.x()},{"y",navigationPress_.y()}});
+        } else if(navigationTool_=="zoomWindow" && navigationWindowBand_) {
+            navigationWindowBand_->setGeometry(QRect(navigationPress_.toPoint(),e->position().toPoint()).normalized());
+        }
+        navigationLast_=e->position();e->accept();return;
+    }
     if(orbitCenterPicking_){e->accept();return;}
     if(orbitButton_!=Qt::NoButton) {
         if(!e->buttons().testFlag(orbitButton_)){orbitButton_=Qt::NoButton;unsetCursor();e->accept();return;}
@@ -3065,6 +3122,9 @@ void ReferenceView::leaveEvent(QEvent* e) {
 }
 void ReferenceView::keyPressEvent(QKeyEvent* e) {
     if(e->key()==Qt::Key_Escape && cubePressHandled_) {cancelCubeGesture(true);e->accept();return;}
+    if(e->key()==Qt::Key_Escape && navigationTool_!="select") {
+        if(dispatch)dispatch("view.navigationTool",{{"mode","select"}});e->accept();return;
+    }
     if(e->key()==Qt::Key_Escape && (freeOrbitTool_ || orbitButton_!=Qt::NoButton)) {
         orbitButton_=Qt::NoButton;unsetCursor();
         if(freeOrbitTool_ && dispatch)dispatch("view.orbitTool",{{"active",false}});
@@ -3090,6 +3150,16 @@ void ReferenceView::mouseReleaseEvent(QMouseEvent* e) {
         const bool click=!cubeDragging_;
         cancelCubeGesture(false);
         if(click && !region.isEmpty() && dispatch)dispatch("view.cubeOrient",{{"region",region}});
+        e->accept();return;
+    }
+    if(navigationSuppressRelease_ && e->button()==Qt::LeftButton){navigationSuppressRelease_=false;e->accept();return;}
+    if(navigationPressActive_ && e->button()==Qt::LeftButton) {
+        const bool window=navigationTool_=="zoomWindow" && navigationMoved_;
+        const auto press=navigationPress_;
+        cancelNavigationGesture(false);
+        if(window && dispatch)dispatch("view.zoomWindow",{{"x1",press.x()},{"y1",press.y()},
+            {"x2",e->position().x()},{"y2",e->position().y()}});
+        if(navigationTool_!="zoomWindow")setCursor(Qt::OpenHandCursor);
         e->accept();return;
     }
     if(orbitCenterPressHandled_ && e->button()==Qt::LeftButton){orbitCenterPressHandled_=false;e->accept();return;}
@@ -3152,6 +3222,11 @@ void ReferenceView::mouseDoubleClickEvent(QMouseEvent* e) {
             !cubeHit(e->position().x(),e->position().y()).isEmpty()))) {
         cubePressHandled_=true;cubeDragging_=true;cubePressedRegion_.clear();
         cubePress_=cubeLast_=e->position();e->accept();return;
+    }
+    if(navigationTool_!="select" && e->button()==Qt::LeftButton) {
+        cancelNavigationGesture(true);
+        navigationSuppressRelease_=true; // Qt delivers one more release after double-click.
+        e->accept();return;
     }
     if((freeOrbitTool_ || orbitCenterPicking_) && e->button()==Qt::LeftButton){e->accept();return;}
     if(e->button()==Qt::LeftButton && !sketchPlane_.isEmpty()) {
@@ -3307,6 +3382,7 @@ bool ReferenceView::event(QEvent* e) {
     if(e->type()==QEvent::WindowDeactivate || e->type()==QEvent::Hide || e->type()==QEvent::FocusOut) {
         nativeGestureActive_=false;
         cancelCubeGesture(cubePressHandled_);
+        cancelNavigationGesture(navigationPressActive_);
     }
     if(e->type()!=QEvent::NativeGesture)return QWidget::event(e);
     auto* gesture=static_cast<QNativeGestureEvent*>(e);

@@ -63,6 +63,7 @@ private:
     QString designTab_="solid";
     void registerCommands();
     void refreshOrbitModeControls();
+    void refreshNavigationToolControls();
     void restoreComponentDialogActivation(QDialog* dialog);
     void registerSliderCommands();
     void registerRevoluteCommands();
