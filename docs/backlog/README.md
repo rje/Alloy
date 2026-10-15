@@ -7,7 +7,7 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current publication contains **446 issues**: **342 implementation, 22 research,
+The current publication contains **447 issues**: **343 implementation, 22 research,
 22 epics, and 60 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 
@@ -28,7 +28,8 @@ accepted. SRF-018/#445 planar crossing-sheet Trim is accepted at `1017d0a`;
 REL-014/#417 committed-work recovery is accepted; REL-011/#374 native assembly
 drag profiling is complete with a failed 100 ms budget; REL-020/#446 remains
 Todo after bounded diagnosis and a reverted experiment. REL-013/#416 visual
-quality audit is active. GEO-019/#352 remains Todo with preserved geometry failure evidence;
+audit split observed minimum-size ribbon/navigation clipping into active
+REL-021/#447; remaining visual-quality scope stays open. GEO-019/#352 remains Todo with preserved geometry failure evidence;
 TUT-030/#442 preserves unresolved nominal connector clearance. The current
 sequence JSON takes precedence over historical delivery notes below.
 

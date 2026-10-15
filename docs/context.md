@@ -16,7 +16,10 @@ build is Debug. A matched Release configuration improves median dispatch to
 140.571 ms but still misses the target. Phase probes identify refresh/presentation
 as the dominant cost; a bounded pose-refresh experiment failed and was reverted.
 REL-020 returns to Todo with diagnostics preserved. REL-013/#416 visual/control
-quality audit is active. Use `build-preview-release` for optimized interactive
+audit found severe ribbon/navigation clipping at 1040×640; bounded REL-021/#447
+responsive controls is active. Parent REL-013 retains other panel/readability
+checks. The old blank viewport band is consistent with dock allocation; actual
+Qt/native/framebuffer dimensions agree in the current audit. Use `build-preview-release` for optimized interactive
 previews and `build-tutorial-polish` for Debug checks; both use the coherent
 private Qt SDK. Older packaged archives predate these source changes.
 
