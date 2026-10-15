@@ -16,6 +16,32 @@ static QJsonObject lookup(const QJsonObject& sketch,const char* field,const QStr
 }
 static void near(double a,double b,const char* reason){check(std::abs(a-b)<1e-5,reason);}
 
+static void sharedSplineEndpoints(){
+    CadDocument doc;auto sketch=SketchGeometry::newFeature(doc.authored()["documentId"].toString(),"XY");
+    sketch=SketchGeometry::addLine(sketch,{{"u1Mm",-10},{"v1Mm",0},{"u2Mm",50},{"v2Mm",0}});
+    const auto axis=sketch["parameters"].toObject()["entities"].toArray().first().toObject();
+    const auto added=SketchSpline::add(sketch,{{"points",QJsonArray{QJsonObject{{"uMm",0},{"vMm",0}},QJsonObject{{"uMm",10},{"vMm",20}},QJsonObject{{"uMm",30},{"vMm",12}},QJsonObject{{"uMm",40},{"vMm",0}}}}});
+    check(added.ok,added.error);sketch=added.feature;const auto source=sketch["parameters"].toObject()["entities"].toArray().last().toObject();
+    const auto sourceIds=source["pointIds"].toArray();
+    const auto tangent=SketchSpline::edit(sketch,"tangent",{{"entityId",source["id"]},{"pointId",sourceIds.last()},{"duMm",0},{"dvMm",-60}});
+    check(tangent.ok,tangent.error);sketch=tangent.feature;
+    const auto mirrored=SketchGeometry::mirrorEntities(sketch,{{"sourceEntityIds",QJsonArray{source["id"]}},{"axisEntityId",axis["id"]}});
+    check(mirrored.ok,mirrored.error);sketch=mirrored.feature;
+    const auto group=sketch["parameters"].toObject()["mirrorGroups"].toArray().first().toObject();
+    const auto result=lookup(sketch,"entities",group["entityPairs"].toArray().first().toObject()["resultEntityId"].toString());
+    const auto resultIds=result["pointIds"].toArray();
+    check(resultIds.size()==4 && resultIds.first()==sourceIds.first() && resultIds.last()==sourceIds.last(),"On-axis spline endpoints keep ordered shared identities");
+    check(group["pointPairs"].toArray().size()==2,"Only off-axis fit points receive new identities");
+    const auto parameters=sketch["parameters"].toObject();
+    const auto sourceCurve=SketchSpline::evaluate(parameters,lookup(sketch,"entities",source["id"].toString())).curve;
+    const auto targetCurve=SketchSpline::evaluate(parameters,result).curve;
+    for(int i=0;i<=40;++i){const auto p=sourceCurve->Value(i/40.);check(targetCurve->Value(i/40.).Distance(gp_Pnt(p.X(),-p.Y(),p.Z()))<1e-6,"Shared-endpoint spline curve reflection");}
+    check(doc.commit(SketchGeometry::replaceFeature(doc.authored(),sketch),"Shared spline tips").isEmpty(),"Commit shared spline endpoints");
+    QTemporaryDir dir;const auto path=dir.filePath("shared-spline-mirror.alloy");check(doc.save(path).isEmpty(),"Save shared spline endpoints");CadDocument opened;
+    check(opened.open(path).isEmpty() && opened.authored()==doc.authored(),"Reopen shared spline endpoints");
+    std::cout<<"FIT_SPLINE_MIRROR_SHARED_ENDPOINTS_OK\n";
+}
+
 static void splineMirror(){
     CadDocument document;auto sketch=SketchGeometry::newFeature(document.authored()["documentId"].toString(),"XY");
     sketch=SketchGeometry::addLine(sketch,{{"u1Mm",-10},{"v1Mm",0},{"u2Mm",80},{"v2Mm",0}});
@@ -63,6 +89,7 @@ static void splineMirror(){
 int main(int argc,char** argv){
     QCoreApplication app(argc,argv);
     try{
+        sharedSplineEndpoints();
         splineMirror();
         CadDocument document;auto sketch=SketchGeometry::newFeature(document.authored()["documentId"].toString(),"XY");
         auto parameters=sketch["parameters"].toObject();QJsonArray points,entities;

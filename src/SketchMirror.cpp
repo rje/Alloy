@@ -171,10 +171,11 @@ QJsonObject create(const QJsonObject& parameters,const QJsonObject& arguments){
                 const auto sourcePoint=pointById.value(sourcePointId);require(!sourcePoint.isEmpty(),"Mirror source point is missing");
                 auto targetPoint=sourcePoint;targetPoint["id"]=id();const auto p=reflected(position(sourcePoint),a,b);
                 if(std::hypot(p.x()-sourcePoint["uMm"].toDouble(),p.y()-sourcePoint["vMm"].toDouble())<=1e-6){
-                    pointMap[sourcePointId]=sourcePointId;continue;
+                    pointMap[sourcePointId]=sourcePointId;
+                } else {
+                    targetPoint["uMm"]=p.x();targetPoint["vMm"]=p.y();points.append(targetPoint);
+                    pointMap[sourcePointId]=targetPoint["id"].toString();pointPairs.append(QJsonObject{{"sourcePointId",sourcePointId},{"resultPointId",targetPoint["id"]}});
                 }
-                targetPoint["uMm"]=p.x();targetPoint["vMm"]=p.y();points.append(targetPoint);
-                pointMap[sourcePointId]=targetPoint["id"].toString();pointPairs.append(QJsonObject{{"sourcePointId",sourcePointId},{"resultPointId",targetPoint["id"]}});
             }
             if(source["type"]=="fitSpline")splinePoints.append(pointMap.value(sourcePointId));
             else for(const auto& key:pointKeys(source))if(source[key]==sourcePointId)result[key]=pointMap.value(sourcePointId);
