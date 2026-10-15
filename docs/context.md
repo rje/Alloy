@@ -42,16 +42,19 @@ Chain Selection/noRails/NewBody. Exact curve classes/contacts remain qualified.
 External knowledge is `surface-iron-2026-10-15-public-frames/`, including the
 read-only retained bridge implementation map.
 
-Next active work: REL-026/#458 removes repeated unchanged Trim splits per region
-pick (measured27.5s; dialog12.7s, commit/source edit/reopen15–16s). Sol works in a
-small isolated checkout with no duplicate build; integrate with `fc3ba9c` before
-sole accepted-build validation. Keep immutable session partition, exact revision/
-input invalidation and full authoritative commit checks. This does not promise
-faster cold geometry. SRF-015 next supplies actual trimmed-boundary→middle ellipse
-→opposite-boundary surface bridge with New Body, then SRF-016 sheet trials and
-SRF-011 Boundary Fill. TUT-018 remains open. All private editors are closed after
-SRF-017; coordinate the sole build/GUI lease and prune temporary worktrees once
-integrated. No new package/CI run; Windows/Linux runtime testing remains external.
+REL-026/#458 is independently accepted at `499d580` plus teardown correction
+`e90e1a4`. Immutable session partition reuse gives194–566ms warm region/preview/
+name actions in the actual40-call iron workflow; exact input/revision invalidation,
+geometry/IDs, history, reopening and native teardown pass. Cold splitting/commit
+remain about11–12s. See [receipt](validation/trim-session-reuse.md).
+
+SRF-015 is active in the small `retained-handle-bridge` checkout: actual trimmed
+boundary→middle ellipse→opposite boundary surface bridge with New Body. Integrate
+the coherent candidate before handing over the sole accepted-build/GUI lease.
+Then pursue SRF-016 sheet trials and SRF-011 Boundary Fill. TUT-018 remains open.
+All private editors are closed after REL-026. Prune temporary worktrees after
+integration/acceptance. No new package/CI run; Windows/Linux runtime testing
+remains external.
 
 ## Timeline visual polish (2026-10-15)
 
