@@ -6339,6 +6339,12 @@ void AlloyWindow::refresh() {
     if(!session_.isEmpty() && session_.value("command").toString()!="commands.search"
         && session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision())) {
         view_->clearPreview();view_->clearMoveCue(true);view_->clearSketchDraft();view_->setEditDisplay({},{});displayedSketchDraft_={};session_["previewed"]=false;
+        if(session_.value("command")=="solid.loft"){
+            loftSource_.reset();loftPreview_.reset();
+            view_->clearBodyStage();view_->setCommandSketches({});
+            session_["geometryEvaluated"]=false;session_.remove("geometry");session_.remove("documentDraft");
+            session_["previewError"]=QJsonObject{{"code","stale_session"},{"message","The document changed; cancel and restart Loft"}};
+        }
         if(session_.value("command")=="surface.trim"){
             surfaceTrimSource_.reset();surfaceTrimPartition_.reset();surfaceTrimPickBodies_.clear();
             session_["geometryEvaluated"]=false;session_.remove("geometry");session_.remove("documentDraft");session_.remove("regions");
@@ -8221,6 +8227,7 @@ QJsonObject AlloyWindow::finishSession(const QString& id, bool commit) {
         result["document"]=document_->state();
     } else if (commit && target != "commands.search") {
         if (session_.value("baseDocumentRevision").toInteger() != static_cast<qint64>(document_->revision())) {
+            if(target=="solid.loft"){loftSource_.reset();loftPreview_.reset();}
             if(target=="surface.trim"){surfaceTrimSource_.reset();surfaceTrimPartition_.reset();surfaceTrimPickBodies_.clear();}
             if(target=="solid.combine") {
                 session_["previewed"]=false;session_["geometryEvaluated"]=false;session_.remove("geometry");session_.remove("documentDraft");session_.remove("finalBodyCount");
@@ -8251,6 +8258,7 @@ QJsonObject AlloyWindow::finishSession(const QString& id, bool commit) {
     const auto midplanePreviousFace=session_.value("previousFace").toObject();
     const auto midplanePreviousPlane=session_.value("previousPlane").toString();
     surfaceTrimSource_.reset();surfaceTrimPartition_.reset();
+    loftSource_.reset();loftPreview_.reset();
     session_ = {};
     if(target=="sketch.edit"){sketchHistory_.clear();sketchHistoryIndex_=-1;sketchHistoryGroup_.clear();}
     if(dimensionEditor_)dimensionEditor_->hide();

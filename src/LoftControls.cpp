@@ -31,6 +31,33 @@ bool sketchOwnerForLoft(const QString& owner,const CadDocument& document,const Q
 QJsonObject failure(const QString& code,const QString& message){return {{"ok",false},{"error",QJsonObject{{"code",code},{"message",message}}}};}
 }
 
+struct AlloyWindow::LoftPreviewSource {
+    QJsonObject key;
+    EvaluatedDocument stage;
+};
+struct AlloyWindow::LoftPreviewEvaluation {
+    QJsonObject key;
+    std::shared_ptr<const EvaluatedDocument> stage;
+};
+
+const EvaluatedDocument& AlloyWindow::loftSourceStage(){
+    const auto edit=session_.value("inputs").toObject().value("featureId").toString();
+    auto owner=document_->activeOwnerId();
+    for(const auto& value:document_->authored()["features"].toArray())if(value.toObject()["id"]==edit)
+        owner=value.toObject()["ownerId"].toString();
+    const QJsonObject key{{"sessionId",session_.value("id")},
+        {"documentId",document_->authored().value("documentId")},
+        {"revision",static_cast<qint64>(document_->revision())},{"featureId",edit},
+        {"activeOwnerId",document_->activeOwnerId()},{"featureOwnerId",owner}};
+    if(!loftSource_ || loftSource_->key!=key){
+        loftSource_.reset();loftPreview_.reset();
+        if(!edit.isEmpty())session_["sourcePrefixEvaluationCount"]=session_.value("sourcePrefixEvaluationCount").toInteger()+1;
+        loftSource_=std::make_shared<const LoftPreviewSource>(LoftPreviewSource{
+            key,edit.isEmpty()?document_->evaluation():document_->evaluationBefore(edit)});
+    }
+    return loftSource_->stage;
+}
+
 QJsonObject AlloyWindow::loftCandidate(const QJsonObject& inputs) const {
     auto args=inputs;if(!args.contains("featureId") && session_.value("command")=="solid.loft") {
         args["newFeatureId"]=session_["newFeatureId"];args["newBodyId"]=session_["newBodyId"];
@@ -42,6 +69,7 @@ QJsonObject AlloyWindow::loftCandidate(const QJsonObject& inputs) const {
 }
 QJsonObject AlloyWindow::beginLoft(const QJsonObject& overrides) {
     if(!session_.isEmpty())return failure("session_busy","Complete or cancel the active command first");
+    loftSource_.reset();loftPreview_.reset();
     auto inputs=QJsonObject{{"profiles",QJsonArray{}},{"operation","newBody"},{"name","Loft"}};
     if(overrides.contains("featureId")) {
         bool found=false;for(const auto& entry:document_->authored()["features"].toArray()) {const auto f=entry.toObject();if(f["id"]!=overrides["featureId"])continue;if(f["type"]!="loft")return failure("stale_entity","Loft feature unavailable");inputs=f["parameters"].toObject();inputs["name"]=f["name"];inputs["featureId"]=f["id"];if(inputs.value("operation")=="newComponent")for(const auto& component:document_->authored()["components"].toArray())if(component.toObject()["id"]==f["ownerId"])inputs["componentName"]=component.toObject()["name"];found=true;}
@@ -60,7 +88,7 @@ QJsonObject AlloyWindow::beginLoft(const QJsonObject& overrides) {
         {"newFeatureId",CadDocument::newId()},{"newBodyId",CadDocument::newId()},
         {"newComponentId",CadDocument::newId()},{"newOccurrenceId",CadDocument::newId()},
         {"selectionRole","section1"},{"baseDocumentRevision",static_cast<qint64>(document_->revision())},{"previewed",false},{"geometryEvaluated",false},{"inputSchema",findCommand("solid.loft")->parameters}};
-    if(inputs.contains("featureId"))view_->setBodyStage(document_->evaluationBefore(inputs["featureId"].toString()).bodies,"loft-source:"+session_["id"].toString());
+    if(inputs.contains("featureId"))view_->setBodyStage(loftSourceStage().bodies,"loft-source:"+session_["id"].toString());
     showLoft();previewLoft();view_->setFocus();return session_;
 }
 QJsonObject AlloyWindow::previewLoft() {
@@ -78,7 +106,8 @@ QJsonObject AlloyWindow::previewLoft() {
                 view_->showSweepPath(sketch,QJsonArray{guide["entityId"]});
         }
     } else view_->setCommandSketches({});
-    session_["previewed"]=false;session_["geometryEvaluated"]=false;session_.remove("geometry");session_.remove("documentDraft");view_->clearPreview();
+    session_["previewed"]=false;session_["geometryEvaluated"]=false;session_["previewEvaluationReused"]=false;
+    session_.remove("geometry");session_.remove("documentDraft");view_->clearPreview();
     auto reject=[this](const QString& code,const QString& message,const QJsonObject& diagnostics=QJsonObject{}){auto r=failure(code,message);auto e=r["error"].toObject();e["diagnostics"]=diagnostics;r["error"]=e;session_["previewError"]=e;if(loftDock_)if(auto* label=loftDock_->findChild<QLabel*>("loftError"))label->setText(message);return r;};
     if(loftDock_) {
         if(auto* list=loftDock_->findChild<QListWidget*>("loftProfiles")){
@@ -101,7 +130,12 @@ QJsonObject AlloyWindow::previewLoft() {
         }
         loftDock_->findChild<QDialogButtonBox*>()->button(QDialogButtonBox::Ok)->setEnabled(false);
     }
-    if(session_["baseDocumentRevision"].toInteger()!=static_cast<qint64>(document_->revision()))return reject("stale_session","The document changed; cancel and restart Loft");
+    if(session_["baseDocumentRevision"].toInteger()!=static_cast<qint64>(document_->revision())){
+        loftSource_.reset();loftPreview_.reset();
+        view_->clearBodyStage();view_->setCommandSketches({});
+        return reject("stale_session","The document changed; cancel and restart Loft");
+    }
+    loftSourceStage();
     if(surface){const auto sections=inputs["sections"].toArray();
         if(closedMode){if(sections.size()!=3 || (sections[0].toObject()["entityIds"].toArray().size()!=2 && sections[0].toObject()["edgeIds"].toArray().size()!=2)
             || sections[1].toObject()["entityIds"].toArray().size()!=1
@@ -113,10 +147,37 @@ QJsonObject AlloyWindow::previewLoft() {
         else if(sections.size()!=2 || sections[0].toObject().isEmpty() || sections[1].toObject().isEmpty() || inputs["centerline"].toObject().isEmpty())
             return reject("selection_required","Select an open arc, an open line, then one fit-spline Centerline");}
     QJsonObject candidate;try{candidate=loftCandidate(inputs);}catch(const std::exception& error){return reject("invalid_arguments",QString::fromUtf8(error.what()));}
-    const auto evaluated=CadDocument::evaluateCandidate(candidate);if(!evaluated.ok)return reject("evaluation_failed",evaluated.error,evaluated.diagnostics);
     const auto id=session_["inputs"].toObject().value("featureId").toString(session_["newFeatureId"].toString());
-    auto stage=evaluated.evaluation;
-    if(session_["inputs"].toObject().contains("featureId")){QJsonArray fs;for(const auto& f:candidate["features"].toArray()){fs.append(f);if(f.toObject()["id"]==id)break;}auto prefix=candidate;prefix["features"]=fs;const auto early=CadDocument::evaluateCandidate(prefix);if(!early.ok)return reject("evaluation_failed",early.error,early.diagnostics);stage=early.evaluation;}
+    auto key=loftSource_->key;key["inputs"]=inputs;key["candidate"]=candidate;
+    if(loftPreview_ && loftPreview_->key!=key)loftPreview_.reset();
+    if(!loftPreview_){
+        const auto features=candidate["features"].toArray();
+        const bool editing=inputs.contains("featureId");
+        const bool tail=editing && !features.isEmpty() && features.last().toObject()["id"]==id;
+        std::shared_ptr<const EvaluatedDocument> stage;
+        if(tail && candidate==document_->authored()){
+            // The complete accepted evaluation is also the exact through-feature
+            // stage only for the unchanged final feature. Earlier edits may have
+            // downstream modifiers, so retain their ordinary evaluation path.
+            stage=std::make_shared<const EvaluatedDocument>(document_->evaluation());
+            session_["previewEvaluationSource"]="accepted_tail";
+        }else{
+            session_["candidateEvaluationCount"]=session_.value("candidateEvaluationCount").toInteger()+1;
+            const auto evaluated=CadDocument::evaluateCandidate(candidate);
+            if(!evaluated.ok)return reject("evaluation_failed",evaluated.error,evaluated.diagnostics);
+            stage=evaluated.evaluation;session_["previewEvaluationSource"]="candidate";
+            if(editing && !tail){
+                QJsonArray rows;for(const auto& row:features){rows.append(row);if(row.toObject()["id"]==id)break;}
+                auto prefix=candidate;prefix["features"]=rows;
+                session_["featurePrefixEvaluationCount"]=session_.value("featurePrefixEvaluationCount").toInteger()+1;
+                const auto early=CadDocument::evaluateCandidate(prefix);
+                if(!early.ok)return reject("evaluation_failed",early.error,early.diagnostics);
+                stage=early.evaluation;
+            }
+        }
+        loftPreview_=std::make_shared<const LoftPreviewEvaluation>(LoftPreviewEvaluation{key,std::move(stage)});
+    }else session_["previewEvaluationReused"]=true;
+    const auto& stage=loftPreview_->stage;
     for(const auto& body:stage->bodies)if(body.featureId==id){view_->showPreview(body.shape,session_["inputs"].toObject().contains("featureId") ? body.bodyId : QString{},true);session_["geometry"]=body.summary;session_["featureId"]=body.featureId;session_["bodyId"]=body.bodyId;break;}
     session_["documentDraft"]=candidate;session_["previewed"]=true;session_["geometryEvaluated"]=true;session_.remove("previewError");
     if(loftDock_){loftDock_->findChild<QLabel*>("loftError")->clear();loftDock_->findChild<QDialogButtonBox*>()->button(QDialogButtonBox::Ok)->setEnabled(true);}
@@ -129,6 +190,7 @@ QJsonObject AlloyWindow::selectLoftProfile(const QString& sketchId,const QString
 }
 QJsonObject AlloyWindow::selectLoftEntity(const QString& role,const QString& sketchId,const QString& entityId) {
     if(session_.value("command")!="solid.loft" || !surfaceInputs(session_.value("inputs").toObject()))return failure("invalid_session","Start a surface Loft first");
+    if(session_["baseDocumentRevision"].toInteger()!=static_cast<qint64>(document_->revision()))return previewLoft();
     const auto guideType=session_["inputs"].toObject().value("guideType").toString("centerline");
     const auto railMode=guideType=="rail",closedMode=guideType=="none";
     if((closedMode && role!="section1" && role!="section2" && role!="section3")
@@ -138,8 +200,7 @@ QJsonObject AlloyWindow::selectLoftEntity(const QString& role,const QString& ske
     const auto required=closedMode ? (role=="section2" ? "ellipse" : "fitSpline")
         : role=="section1" ? "arc" : role=="section2" ? "line" : role=="centerline" || role=="rail" ? "fitSpline" : "";
     if(!*required)return failure("invalid_arguments","Choose a Loft section or Centerline role");
-    const auto earlier=session_["inputs"].toObject().value("featureId").toString();
-    const auto stage=earlier.isEmpty() ? document_->evaluation() : document_->evaluationBefore(earlier);
+    const auto& stage=loftSourceStage();
     bool found=false;for(const auto& sketch:stage.sketches)if(sketch.featureId==sketchId && sketch.visible
         && sketchOwnerForLoft(sketch.ownerId,*document_,session_["inputs"].toObject()) && sketch.entityEdges.contains(entityId))
         for(const auto& row:sketch.summary["entities"].toArray())if(row.toObject()["id"]==entityId && (row.toObject()["type"]==required || (railMode && role=="section2" && row.toObject()["type"]=="fitSpline"))
@@ -184,8 +245,8 @@ QJsonObject AlloyWindow::selectLoftBoundary(const QString& role,const QString& b
     const auto inputs=session_["inputs"].toObject();
     if(session_.value("command")!="solid.loft" || !surfaceInputs(inputs) || inputs.value("guideType")!="none"
         || (role!="section1" && role!="section3"))return failure("invalid_session","Choose an outer no-guide surface Loft section first");
-    const auto earlier=inputs.value("featureId").toString();
-    const auto stage=earlier.isEmpty() ? document_->evaluation() : document_->evaluationBefore(earlier);
+    if(session_["baseDocumentRevision"].toInteger()!=static_cast<qint64>(document_->revision()))return previewLoft();
+    const auto& stage=loftSourceStage();
     QJsonObject ref;try{ref=SurfaceClosedLoft::boundaryReference(stage,bodyId,edgeId);}
     catch(const GeometryKernel::EvaluationError& error){return failure("loft_boundary_unavailable",QString::fromUtf8(error.what()));}
     bool visible=false;for(const auto& body:stage.bodies)if(body.bodyId==bodyId && body.visible)visible=true;
@@ -196,13 +257,13 @@ QJsonObject AlloyWindow::selectLoftBoundary(const QString& role,const QString& b
     const auto preview=previewLoft();return {{"role",role},{"boundary",ref},{"previewed",preview.value("previewed")}};
 }
 QJsonObject AlloyWindow::pickLoft(double x,double y) {
+    if(session_["baseDocumentRevision"].toInteger()!=static_cast<qint64>(document_->revision()))return previewLoft();
     const auto role=session_.value("selectionRole").toString("section1");
     const bool closedMode=session_["inputs"].toObject().value("guideType")=="none";
     const bool railMode=session_["inputs"].toObject().value("guideType")=="rail";
     const auto required=closedMode ? (role=="section2" ? "ellipse" : "fitSpline")
         : role=="section1" ? "arc" : role=="section2" ? "line" : "fitSpline";
-    const auto earlier=session_["inputs"].toObject().value("featureId").toString();
-    const auto stage=earlier.isEmpty() ? document_->evaluation() : document_->evaluationBefore(earlier);
+    const auto& stage=loftSourceStage();
     if(closedMode && role!="section2"){
         const auto hit=view_->pickSolidEdge(x,y,stage.bodies);
         if(!hit.isEmpty()){

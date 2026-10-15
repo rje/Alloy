@@ -37,6 +37,38 @@ class SurfaceHandleBridgeControlsTest final:public QObject {
  }
 
 private slots:
+ void unchangedTailEditPreviewAndCancel(){
+  const auto source=qEnvironmentVariable("ALLOY_HANDLE_BRIDGE_EDIT_SOURCE"),out=qEnvironmentVariable("ALLOY_HANDLE_BRIDGE_EVIDENCE");
+  if(source.isEmpty())QSKIP("No retained final bridge edit fixture supplied");
+  QVERIFY(!out.isEmpty());QDir().mkpath(out);AlloyTheme::apply(*qApp);
+  AlloyWindow window;window.resize(1440,900);window.show();window.activateWindow();QVERIFY(QTest::qWaitForWindowExposed(&window));
+  ReferenceView* view=nullptr;for(auto* child:window.findChildren<QWidget*>())if(auto* candidate=dynamic_cast<ReferenceView*>(child))view=candidate;QVERIFY(view);
+  call(window,"document.open",{{"path",source},{"discard",true}});call(window,"view.home");
+  QApplication::setActiveWindow(&window);window.setFocus(); // Initial harness activation only.
+  const auto before=call(window,"document.inspect");const auto feature=before["authored"].toObject()["features"].toArray().last().toObject();
+  QCOMPARE(feature["type"].toString(),QString("loft"));
+  const auto opened=call(window,"feature.editDialog",{{"featureId",feature["id"]}});
+  QVERIFY(opened["previewed"].toBool());QVERIFY(view->hasFocus());
+  QCOMPARE(opened["sourcePrefixEvaluationCount"].toInteger(),qint64(1));
+  QCOMPARE(opened["candidateEvaluationCount"].toInteger(),qint64(0));
+  QCOMPARE(opened["featurePrefixEvaluationCount"].toInteger(),qint64(0));
+  QCOMPARE(opened["previewEvaluationSource"].toString(),QString("accepted_tail"));
+  auto* dock=window.findChild<QDockWidget*>("loftDock");QVERIFY(dock && dock->isVisible());
+  auto* section=dock->findChild<QPushButton*>("loft.section2");QVERIFY(section);
+  QVERIFY(QApplication::widgetAt(section->mapToGlobal(section->rect().center()))==section);
+  QTest::mouseClick(section,Qt::LeftButton);
+  QCOMPARE(session(window)["selectionRole"].toString(),QString("section2"));
+  QVERIFY(session(window)["previewed"].toBool());QVERIFY(session(window)["previewEvaluationReused"].toBool());
+  QCOMPARE(session(window)["sourcePrefixEvaluationCount"].toInteger(),qint64(1));
+  QCOMPARE(session(window)["candidateEvaluationCount"].toInteger(),qint64(0));
+  QCOMPARE(session(window)["featurePrefixEvaluationCount"].toInteger(),qint64(0));
+  auto* operation=dock->findChild<QComboBox*>("loftOperation");QVERIFY(operation && !operation->isEnabled());
+  QCOMPARE(operation->currentData().toString(),QString("newBody"));
+  call(window,"capture.screenshot",{{"path",out+"/native-edit-reused-preview.png"}});
+  auto* buttons=dock->findChild<QDialogButtonBox*>();QVERIFY(buttons && buttons->button(QDialogButtonBox::Ok)->isEnabled());
+  QTest::mouseClick(buttons->button(QDialogButtonBox::Cancel),Qt::LeftButton);QTRY_VERIFY(session(window).isEmpty());
+  QCOMPARE(call(window,"document.inspect")["authored"],before["authored"]);
+ }
  void actualBoundaryChainsEllipseAndNewBody(){
   const auto source=qEnvironmentVariable("ALLOY_HANDLE_BRIDGE_SOURCE"),out=qEnvironmentVariable("ALLOY_HANDLE_BRIDGE_EVIDENCE");
   QVERIFY(!source.isEmpty() && !out.isEmpty());QDir().mkpath(out);

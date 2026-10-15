@@ -286,6 +286,11 @@ private:
     void showLoft();
     QDockWidget* loftDock_=nullptr;
     QShortcut* loftEscape_=nullptr;
+    struct LoftPreviewSource;
+    struct LoftPreviewEvaluation;
+    std::shared_ptr<const LoftPreviewSource> loftSource_;
+    std::shared_ptr<const LoftPreviewEvaluation> loftPreview_;
+    const EvaluatedDocument& loftSourceStage();
     QJsonObject surfaceExtrudeCandidate(const QJsonObject& inputs) const;
     QJsonObject beginSurfaceExtrude(const QJsonObject& overrides={});
     QJsonObject previewSurfaceExtrude();

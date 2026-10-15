@@ -25,6 +25,55 @@ class SurfaceClosedLoftControlsTest final:public QObject {
  }
  QJsonObject session(AlloyWindow& window){return window.state()["activeSession"].toObject();}
 private slots:
+ void nonTailPreviewAndSourceInvalidation(){
+  const auto source=qEnvironmentVariable("ALLOY_CLOSED_LOFT_SOURCE");
+  if(source.isEmpty())QSKIP("No prepared closed-section fixture supplied");
+  AlloyTheme::apply(*qApp);AlloyWindow window;
+  call(window,"document.open",{{"path",source},{"discard",true}});
+  const auto initial=call(window,"document.inspect");QJsonObject first,middle,last;
+  for(const auto& value:initial["authored"].toObject()["features"].toArray()){
+   const auto feature=value.toObject();if(feature["name"]=="First closed spline section")first=feature;
+   if(feature["name"]=="Middle full ellipse")middle=feature;
+   if(feature["name"]=="Last closed spline section")last=feature;
+  }QVERIFY(!first.isEmpty() && !middle.isEmpty() && !last.isEmpty());
+  auto reference=[](const QJsonObject& sketch,const QString& type){QJsonArray ids;
+   for(const auto& value:sketch["parameters"].toObject()["entities"].toArray())
+    if(value.toObject()["type"]==type)ids.append(value.toObject()["id"]);
+   return QJsonObject{{"sketchId",sketch["id"]},{"entityIds",ids}};
+  };
+  auto created=call(window,"surface.loftDialog",{{"operation","newComponent"},{"guideType","none"},
+      {"sections",QJsonArray{reference(first,"fitSpline"),reference(middle,"ellipse"),reference(last,"fitSpline")}}});
+  QVERIFY(created["previewed"].toBool());call(window,"command.commit",{{"session",created["id"]}});
+  const auto feature=call(window,"document.inspect")["authored"].toObject()["features"].toArray().last().toObject();
+  call(window,"body.remove",{{"bodyId",feature["bodyId"]}});
+  const auto before=call(window,"document.inspect");QVERIFY(before["evaluation"].toObject()["bodies"].toArray().isEmpty());
+  const auto opened=call(window,"feature.editDialog",{{"featureId",feature["id"]}});
+  // The final accepted document has no body after Remove. The edited earlier
+  // Loft still needs its actual through-feature preview and downstream checks.
+  QVERIFY(opened["previewed"].toBool());QVERIFY(opened["geometry"].toObject()["valid"].toBool());
+  QCOMPARE(opened["geometry"].toObject()["topology"].toObject()["faces"].toInt(),2);
+  QCOMPARE(opened["sourcePrefixEvaluationCount"].toInteger(),qint64(1));
+  QCOMPARE(opened["candidateEvaluationCount"].toInteger(),qint64(1));
+  QCOMPARE(opened["featurePrefixEvaluationCount"].toInteger(),qint64(1));
+  const auto repeated=call(window,"command.preview",{{"session",opened["id"]}});
+  QVERIFY(repeated["previewEvaluationReused"].toBool());
+  QCOMPARE(repeated["sourcePrefixEvaluationCount"].toInteger(),qint64(1));
+  QCOMPARE(repeated["candidateEvaluationCount"].toInteger(),qint64(1));
+  QCOMPARE(repeated["featurePrefixEvaluationCount"].toInteger(),qint64(1));
+  auto parameters=first["parameters"].toObject();auto points=parameters["points"].toArray();
+  const auto sourcePoint=parameters["entities"].toArray()[0].toObject()["pointIds"].toArray()[1].toString();bool moved=false;
+  for(int i=0;i<points.size();++i)if(points[i].toObject()["id"]==sourcePoint){
+   auto point=points[i].toObject();point["vMm"]=point["vMm"].toDouble()+1;points[i]=point;moved=true;break;
+  }QVERIFY(moved);parameters["points"]=points;
+  call(window,"feature.edit",{{"featureId",first["id"]},{"parameters",parameters}});
+  const auto changed=call(window,"document.inspect").value("authored");
+  const auto refused=window.execute("command.preview",{{"session",opened["id"]}});
+  QVERIFY(!refused["ok"].toBool());QCOMPARE(refused["error"].toObject()["code"].toString(),QString("stale_session"));
+  QVERIFY(!session(window)["previewed"].toBool());QVERIFY(!session(window).contains("geometry"));
+  const auto commit=window.execute("command.commit",{{"session",opened["id"]}});
+  QVERIFY(!commit["ok"].toBool());QCOMPARE(commit["error"].toObject()["code"].toString(),QString("stale_session"));
+  call(window,"command.cancel",{{"session",opened["id"]}});QCOMPARE(call(window,"document.inspect")["authored"],changed);
+ }
  void nativeThreeSectionsCancelAndCommit(){
   const auto source=qEnvironmentVariable("ALLOY_CLOSED_LOFT_SOURCE");
   const auto out=qEnvironmentVariable("ALLOY_CLOSED_LOFT_EVIDENCE");
