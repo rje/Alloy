@@ -229,6 +229,8 @@ fail without applying the command. Error codes include `invalid_request`,
 | `view.orbitCenterBegin` / `view.orbitCenterPick` | Start a one-shot visible-surface pivot pick, then provide viewport-local logical `x`, `y`; the result includes the exact body surface hit and camera state. A staged body preview refuses a pivot pick |
 | `view.orbitCenterCancel` / `view.orbitCenterReset` | Cancel the one-shot pick or restore the fitted-scene pivot; neither edits the document |
 | `view.fit` | Frame visible bodies/sketches and a valid extrusion/Combine preview while retaining the current camera orientation; reset zoom/pan. Visible Fit control and F6 shortcut |
+| `view.fitSelection` | Frame one current visible selected body, planar face or finished sketch without changing orientation; uses the exact displayed occurrence for linked bodies/faces. An active sketch uses its current draft geometry; staged body previews and undisplayed assembly sketches refuse |
+| `view.lookAt` | Align to a selected retained planar face in its displayed world placement, an active sketch via `sketch.lookAt`, or a visible finished sketch plane. Body, edge, nonplanar and stale selections return structured errors; orientation/target/scale change without authored edits |
 | `view.home` | Return to the isometric home orientation and frame the same visible geometry; reset zoom/pan |
 | `window.resize` | Logical width 1040–4096 and height 640–4096 |
 | `capture.screenshot` | Absolute `.png` path; returns dimensions, device scale, source |

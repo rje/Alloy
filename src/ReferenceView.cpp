@@ -190,6 +190,14 @@ SketchStrokes splitSketchStrokes(const EvaluatedSketch& sketch) {
         constructionCount ? TopoDS_Shape(construction) : TopoDS_Shape{},
         centerlineCount ? TopoDS_Shape(centerline) : TopoDS_Shape{},constructionCount};
 }
+TopoDS_Shape visibleFinishedSketchShape(const EvaluatedSketch& sketch) {
+    const auto strokes=splitSketchStrokes(sketch);
+    TopoDS_Compound visible;BRep_Builder builder;builder.MakeCompound(visible);
+    bool hasStrokes=false;
+    for(const auto& shape:{strokes.normal,strokes.construction,strokes.centerline})
+        if(!shape.IsNull()){builder.Add(visible,shape);hasStrokes=true;}
+    return hasStrokes ? TopoDS_Shape(visible) : TopoDS_Shape{};
+}
 void styleConstruction(Handle(AIS_Shape) presentation,bool selected,bool fullyConstrained) {
     const Quantity_Color color=selected ? Quantity_Color(0.98,0.43,0.08,Quantity_TOC_RGB)
         : fullyConstrained ? Quantity_Color(0.12,0.14,0.16,Quantity_TOC_sRGB)
@@ -1932,6 +1940,46 @@ void ReferenceView::lookAtSketch(const QString& plane,const QJsonObject& resolve
         }
     }
     viewCenter_=sceneCenter_;pan={};zoom=1;sync();
+}
+bool ReferenceView::fitSelection(const TopoDS_Shape& shape) {
+    if(shape.IsNull())return false;
+    Bnd_Box bounds;BRepBndLib::AddOptimal(shape,bounds,false,false);
+    if(bounds.IsVoid())return false;
+    double x0,y0,z0,x1,y1,z1;bounds.Get(x0,y0,z0,x1,y1,z1);
+    if(!std::isfinite(x0)||!std::isfinite(y0)||!std::isfinite(z0)||
+        !std::isfinite(x1)||!std::isfinite(y1)||!std::isfinite(z1))return false;
+    sceneCenter_=gp_Pnt((x0+x1)/2,(y0+y1)/2,(z0+z1)/2);
+    sceneScale_=std::max({x1-x0,y1-y0,z1-z0,1.0})*1.7;
+    viewCenter_=sceneCenter_;pan={};zoom=1;sync();return true;
+}
+bool ReferenceView::fitFinishedSketch(const EvaluatedSketch& sketch) {
+    return fitSelection(visibleFinishedSketchShape(sketch));
+}
+bool ReferenceView::lookAtPlane(const QJsonObject& frame,const TopoDS_Shape& shape) {
+    const auto normal=frame.value("normal").toArray(),up=frame.value("vAxis").toArray();
+    if(normal.size()!=3 || up.size()!=3 || shape.IsNull())return false;
+    for(const auto& value:normal)if(!value.isDouble() || !std::isfinite(value.toDouble()))return false;
+    for(const auto& value:up)if(!value.isDouble() || !std::isfinite(value.toDouble()))return false;
+    const gp_Vec n(normal[0].toDouble(),normal[1].toDouble(),normal[2].toDouble());
+    const gp_Vec v(up[0].toDouble(),up[1].toDouble(),up[2].toDouble());
+    if(n.Magnitude()<1e-9 || v.Magnitude()<1e-9 || n.Crossed(v).Magnitude()<1e-9)return false;
+    const gp_Vec levelUp=v-n*(v.Dot(n)/n.SquareMagnitude());
+    if(levelUp.Magnitude()<1e-9)return false;
+    Bnd_Box bounds;BRepBndLib::AddOptimal(shape,bounds,false,false);
+    if(bounds.IsVoid())return false;
+    double x0,y0,z0,x1,y1,z1;bounds.Get(x0,y0,z0,x1,y1,z1);
+    if(!std::isfinite(x0)||!std::isfinite(y0)||!std::isfinite(z0)||
+        !std::isfinite(x1)||!std::isfinite(y1)||!std::isfinite(z1))return false;
+    customDirection_=gp_Dir(-n);customUp_=gp_Dir(levelUp);
+    orientation="custom";
+    sceneCenter_=gp_Pnt((x0+x1)/2,(y0+y1)/2,(z0+z1)/2);
+    sceneScale_=std::max({x1-x0,y1-y0,z1-z0,1.0})*1.7;
+    viewCenter_=sceneCenter_;pan={};zoom=1;sync();return true;
+}
+bool ReferenceView::lookAtFinishedSketch(const EvaluatedSketch& sketch) {
+    if(sketch.plane!="XY" && sketch.plane!="XZ" && sketch.plane!="YZ" && sketch.plane!="face" && sketch.plane!="construction")return false;
+    return lookAtPlane((sketch.plane=="face" || sketch.plane=="construction") ? sketch.resolvedFrame : frameFor(sketch.plane),
+        visibleFinishedSketchShape(sketch));
 }
 QJsonObject ReferenceView::sketchPoint(double x,double y,const QString& plane,const QJsonObject& resolvedFrame) const {
     if(view_.IsNull() || x<0 || y<0 || x>=width() || y>=height())throw std::invalid_argument("Point is outside the initialized viewport");

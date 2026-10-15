@@ -812,6 +812,8 @@ AlloyWindow::AlloyWindow() {
     auto* nav = new QHBoxLayout(navigation_); nav->setContentsMargins(8, 2, 8, 5); nav->setSpacing(2);
     nav->addStretch(); nav->addWidget(commandButton("view.home", "Home"));
     nav->addWidget(commandButton("view.fit", "Fit"));
+    nav->addWidget(commandButton("view.fitSelection", "Fit Selection"));
+    nav->addWidget(commandButton("view.lookAt", "Look At"));
     for(const auto& item: {std::pair{"pan","Pan"},std::pair{"zoom","Zoom"},std::pair{"zoomWindow","Zoom Window"}}) {
         auto* button=new QPushButton(item.second);button->setObjectName(QString("view.navigationTool.%1").arg(item.first));
         button->setCheckable(true);
@@ -5354,6 +5356,74 @@ void AlloyWindow::registerCommands() {
     };
     add("view.fit", "Fit", "Frame visible geometry without changing the current camera orientation (F6).", {}, [fitPresented](const auto&) {
         fitPresented();return QJsonObject{};
+    });
+    add("view.fitSelection","Fit Selection","Frame one currently selected visible body, planar face or finished sketch without rotating the camera.",{},[this](const auto&){
+        if(session_.value("command")=="sketch.edit") {
+            const auto content=sketchLookAtContent(session_.value("draftSketch").toObject(),
+                session_.value("resolvedFrame").toObject(),session_.value("projectionContext").toObject());
+            if(!view_->fitSelection(content))return failure("unsupported_selection","Active sketch has no frameable geometry");
+            return view_->cameraState();
+        }
+        if(view_->bodyStageActive())return failure("preview_active","Finish or cancel the staged body preview before framing its selection");
+        if(!selectedFace_.isEmpty() || !selectedBody_.isEmpty()) {
+            const bool face=!selectedFace_.isEmpty();
+            const auto bodyId=face ? selectedFace_.value("bodyId").toString() : selectedBody_;
+            const auto occurrence=face ? selectedFace_.value("occurrenceId").toString() : selectedOccurrence_;
+            TopoDS_Shape shape;int matches=0;
+            for(const auto& body:presentationBodies())if(body.visible && body.bodyId==bodyId &&
+                (occurrence.isEmpty() || body.occurrenceId==occurrence)) {
+                if(!face){shape=body.shape;++matches;continue;}
+                for(const auto& support:body.supportFaces)if(support.faceId==selectedFace_.value("faceId") &&
+                    support.producerFeatureId==selectedFace_.value("producerFeatureId")){
+                    shape=support.face;++matches;
+                }
+            }
+            if(matches!=1)return failure(matches ? "ambiguous_instance" : "stale_entity",
+                matches ? "Select one exact body occurrence before framing" : "Selected visible geometry is no longer current");
+            if(!view_->fitSelection(shape))return failure("unsupported_selection","Selected geometry has no finite frameable bounds");
+            return view_->cameraState();
+        }
+        if(!selectedSketch_.isEmpty() && selectedProfileIds_.isEmpty()) {
+            if(nonzeroAssemblyPose())return failure("unsupported_selection","Finished sketch is not displayed in the active assembly pose");
+            for(const auto& sketch:document_->sketches())if(sketch.featureId==selectedSketch_ && sketch.visible){
+                if(!view_->fitFinishedSketch(sketch))return failure("unsupported_selection","Selected sketch has no visible frameable strokes");
+                return view_->cameraState();
+            }
+            return failure("stale_entity","Selected visible sketch is no longer current");
+        }
+        return failure("selection_required","Select a visible body, face or finished sketch to frame");
+    });
+    add("view.lookAt","Look At","Align the camera to a selected planar face or the active/selected sketch plane.",{},[this](const auto&){
+        if(session_.value("command")=="sketch.edit"){
+            const auto result=execute("sketch.lookAt");
+            return result.value("ok").toBool() ? view_->cameraState() : result;
+        }
+        if(view_->bodyStageActive())return failure("preview_active","Finish or cancel the staged body preview before Look At");
+        if(!selectedFace_.isEmpty()){
+            const auto bodyId=selectedFace_.value("bodyId").toString();
+            const auto occurrence=selectedFace_.value("occurrenceId").toString();
+            EvaluatedSupportFace face;int matches=0;
+            for(const auto& body:presentationBodies())if(body.visible && body.bodyId==bodyId &&
+                (occurrence.isEmpty() || body.occurrenceId==occurrence))
+                for(const auto& support:body.supportFaces)if(support.faceId==selectedFace_.value("faceId") &&
+                    support.producerFeatureId==selectedFace_.value("producerFeatureId")) {face=support;++matches;}
+            if(matches!=1)return failure(matches ? "ambiguous_instance" : "stale_entity",
+                matches ? "Select one exact face occurrence for Look At" : "Selected visible face is no longer current");
+            try {GeometryKernel::resolveSketchSupport(document_->evaluation(),selectedFace_);}
+            catch(const std::exception&) {return failure("unsupported_face","Look At requires a planar selected face");}
+            if(!view_->lookAtPlane(face.frame,face.face))return failure("unsupported_face","Selected planar face has no usable world frame");
+            return view_->cameraState();
+        }
+        if(!selectedSketch_.isEmpty() && selectedProfileIds_.isEmpty()){
+            if(nonzeroAssemblyPose())return failure("unsupported_selection","Finished sketch is not displayed in the active assembly pose");
+            for(const auto& sketch:document_->sketches())if(sketch.featureId==selectedSketch_ && sketch.visible){
+                if(!view_->lookAtFinishedSketch(sketch))
+                    return failure("unsupported_selection","Selected sketch has no usable plane or visible geometry");
+                return view_->cameraState();
+            }
+            return failure("stale_entity","Selected visible sketch is no longer current");
+        }
+        return failure("unsupported_selection","Select a planar face or sketch for Look At; body, edge and curved face alignment is unavailable");
     });
     add("view.home", "Home view", "Fit visible bodies and sketches in the isometric home view.", {}, [this,fitPresented](const auto&) {
         view_->orientation="isometric";fitPresented();return QJsonObject{};

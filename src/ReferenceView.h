@@ -118,6 +118,10 @@ public:
     QJsonArray annotations() const { return annotationLayouts_; }
     void setSketchPlane(const QString& plane, const QJsonObject& resolvedFrame = {});
     void lookAtSketch(const QString& plane, const QJsonObject& resolvedFrame = {}, const TopoDS_Shape& content = {});
+    bool fitSelection(const TopoDS_Shape& shape);
+    bool fitFinishedSketch(const EvaluatedSketch& sketch);
+    bool lookAtPlane(const QJsonObject& frame,const TopoDS_Shape& shape);
+    bool lookAtFinishedSketch(const EvaluatedSketch& sketch);
     QJsonObject sketchPoint(double x, double y, const QString& plane, const QJsonObject& resolvedFrame = {}) const;
     QJsonObject projectSketchPoint(double uMm, double vMm, const QString& plane, const QJsonObject& resolvedFrame = {}) const;
     void showTrimPreview(const QString& plane,const QJsonObject& segment);
