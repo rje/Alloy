@@ -43,6 +43,11 @@ behavior contract is in external
 `knowledge/specs/viewport-navigation-compatibility-2026-10-14.md`. Preserve free
 orbit, separate pivot from framing center and qualify unspecified defaults.
 
+Current CUA documentation (refreshed 2026-10-14) now advertises held modifiers
+for macOS coordinate clicks via `click(point, {key: "super"})`. The older
+SOL-058 limitation may therefore be testable; this is tool capability evidence,
+not a passed physical-input gate. Try it only in an isolated validation editor.
+
 Use only the main checkout and one private GUI lease; no new worktrees are
 needed. Alternate readiness slices with concrete advanced-chain blockers.
 Packages can progress independently. No version, CI dispatch or release has
