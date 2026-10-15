@@ -7,7 +7,7 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current publication contains **457 issues**: **352 implementation, 22 research,
+The current publication contains **459 issues**: **354 implementation, 22 research,
 22 epics, and 61 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 
@@ -17,7 +17,8 @@ User-prioritized 2026-10-15: finish the complete shoehorn TUT-017, then pursue
 TUT-018 surface iron. TUT-017's complete functional/API chain is independently
 accepted, including exact corner/perimeter rounds, retained hole, organization,
 movie and checked STL. ASM-012 retains separate physical Browser gesture
-qualification. SRF-017 exterior quality is the next critical geometry gate.
+qualification. SRF-017 exterior and bilateral Trim are independently accepted. SRF-015 retained
+handle bridge and REL-026 Trim responsiveness are now active; full closure stays open.
 The broader 2026-10-14 priority follows: [initial-build readiness](../initial-build-readiness.md)
 now leads: navigation, everyday input, presentation, recovery, responsiveness and
 relocatable packages, interleaved with enclosure/shoehorn/surface-iron completion.

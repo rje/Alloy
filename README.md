@@ -10,6 +10,10 @@ guided surface, exact corner/perimeter rounds and retained hanging hole. Source
 length edits, history and reopening pass. Physical Browser gestures remain a
 separate gate. TUT-018 surface iron is the next advanced tutorial.
 
+The [bilateral surface exterior](docs/validation/surface-bilateral-rail-loft.md)
+now supports the iron tutorial's retained mirrored outline, guide rail and two
+trimmed handle openings. The handle bridge and final solid closure remain next.
+
 [Open fit-spline Mirror](docs/validation/fit-spline-mirror.md) now retains
 reflected points and tangent handles through source/axis edits and reopening.
 Native controls and the shared API are independently verified.

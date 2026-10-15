@@ -25,29 +25,33 @@ was needed. Final runner guard is corrected. The source dimension-placement
 contract uses horizontal50/vertical16; exact public spline interpolation remains
 unknown. Bend16→18 still refuses atomically in the bounded corner construction.
 
-TUT-018 now leads. SRF-017/#361 exterior quality is the critical prerequisite:
-previous C0 patches gave about40° seam mismatch; the endpoint-compatible G1
-plate attempt still missed0.0003 mm G0 limits. Do not repeat unchanged sweeps or
-relax tolerances. Astra is evaluating one materially different mature OCCT
-boundary/tangent construction in an external diagnostic directory before Sol
-retained implementation. Existing Trim/bridge feasibility is not acceptance.
-SKT-092/#457 associative open fit-spline Mirror is independently accepted at
-`53ec4e6`: source/axis/tangent edits, native controls,39-call API/history/reopen
-and GPU captures pass. See [receipt](validation/fit-spline-mirror.md). Root integrates and tracks issues. Astra's distinct constrained Coons
-attempt also misses unchanged G0 bounds; no product port follows. Its subsequent exact tensor BSpline prototype is independently approved for
-bounded integration: unchanged compatible source curves, exact restrictions below
-1e-13 mm, shared smooth support, sampled regularity and two separate valid Trim
-loops on base and rail edit. This is external geometry evidence, not app acceptance.
-See external `surface-iron-continuation-2026-10-15/exact-tensor-01/README.md` for
-strict admission, algebra, naming and collapsed-tip exclusions. Sol iron_exterior
-ports the bounded retained Loft on real solved entities; no generic network claim.
-Mirror validation is complete and its private editor closed; Sol iron_exterior now
-holds the sole build/GUI lease for retained exterior integration.
-Luna recovered public operation observations at5:07–5:19 confirming2profiles and
-1rail; exact contacts/planes remain unknown. Public evidence remains external in
-`knowledge/tutorials/surface-iron-2026-10-15-public-frames/`. Only one private GUI lease. The completed
-shoehorn validation editor is closed. Native Windows/Linux package testers and
-broader release-readiness gates remain separate.
+TUT-018 now leads. SRF-017/#361 is independently accepted at `fc3ba9c`:
+actual mirrored solved sketches→bilateral rail Loft→paired Trim gives2validclosed
+side openings, stable source edits/history/reopen and rigid-frame invariance.
+The exact source-local tensor uses real curves, with narrow symmetry/contact
+admission; boundary naming is unique sampled correspondence against exact
+restrictions, not builder history. See [receipt](validation/surface-bilateral-rail-loft.md).
+The default-opacity GPU artifact was forced surface alpha, not geometry;
+committed surfaces now honor authored opacity and Loft preview is opaque.
+Final native/GPU captures are smooth. Explicit transparency remains REL-027/#459.
+
+SKT-092/#457 is accepted through its actual shared-tip correction `c205138`;
+see [Mirror receipt](validation/fit-spline-mirror.md). Public operation video
+observations now confirm first Loft2profiles/1rail and handle Loft3profiles,
+Chain Selection/noRails/NewBody. Exact curve classes/contacts remain qualified.
+External knowledge is `surface-iron-2026-10-15-public-frames/`, including the
+read-only retained bridge implementation map.
+
+Next active work: REL-026/#458 removes repeated unchanged Trim splits per region
+pick (measured27.5s; dialog12.7s, commit/source edit/reopen15–16s). Sol works in a
+small isolated checkout with no duplicate build; integrate with `fc3ba9c` before
+sole accepted-build validation. Keep immutable session partition, exact revision/
+input invalidation and full authoritative commit checks. This does not promise
+faster cold geometry. SRF-015 next supplies actual trimmed-boundary→middle ellipse
+→opposite-boundary surface bridge with New Body, then SRF-016 sheet trials and
+SRF-011 Boundary Fill. TUT-018 remains open. All private editors are closed after
+SRF-017; coordinate the sole build/GUI lease and prune temporary worktrees once
+integrated. No new package/CI run; Windows/Linux runtime testing remains external.
 
 ## Timeline visual polish (2026-10-15)
 
