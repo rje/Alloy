@@ -3,15 +3,18 @@
 #include "AlloyWindow.h"
 #include "ReferenceView.h"
 #include <QApplication>
+#include <QCheckBox>
 #include <QComboBox>
 #include <QDialogButtonBox>
 #include <QDir>
 #include <QDockWidget>
 #include <QDoubleSpinBox>
 #include <QFile>
+#include <QFileInfo>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QLabel>
+#include <QListWidget>
 #include <QLineEdit>
 #include <QMenu>
 #include <QPushButton>
@@ -253,6 +256,196 @@ private slots:
         call(window,"view.orientation",{{"name","isometric"}});
         call(window,"capture.screenshot",{{"path",out+"/committed-solid.png"}});
         call(window,"document.save",{{"path",out+"/extrude-dock-model.alloy"}});window.close();
+    }
+    void filletCombineSmallWindowAudit() {
+        const auto out=qEnvironmentVariable("ALLOY_REL013_FILLET_COMBINE_EVIDENCE");QVERIFY(!out.isEmpty());QVERIFY(QDir().mkpath(out));
+        const auto source=QFileInfo(QDir(QCoreApplication::applicationDirPath()).absoluteFilePath("../examples/gauge-block.alloy")).canonicalFilePath();
+        QVERIFY(!source.isEmpty());
+        AlloyTheme::apply(*qApp);AlloyWindow window;window.resize(1360,850);window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        call(window,"document.open",{{"path",source},{"discard",true}});
+        call(window,"view.home");
+        const auto before=call(window,"document.inspect");
+        QString boxId;
+        for(const auto& value:before.value("authored").toObject().value("features").toArray()) {
+            const auto feature=value.toObject();if(feature.value("type")=="box" && feature.value("name")=="Gauge block")boxId=feature.value("bodyId").toString();
+        }
+        QVERIFY(!boxId.isEmpty());
+        auto writeCapture=[&](const QString& name,QDockWidget* dock,QDialogButtonBox* buttons,
+                              const QString& errorObjectName)->bool {
+            if(!dock || !buttons || !dock->isVisible())return false;
+            QApplication::processEvents();
+            const auto windowGlobal=window.mapToGlobal(QPoint{}),dockGlobal=dock->mapToGlobal(QPoint{});
+            QJsonObject snapshot{{"fixture",source},{"windowSize",QJsonArray{window.width(),window.height()}},
+                {"windowGlobal",QJsonArray{windowGlobal.x(),windowGlobal.y()}},
+                {"dockGeometryGlobal",QJsonArray{dockGlobal.x(),dockGlobal.y(),dock->width(),dock->height()}}};
+            auto* panel=dock->widget();
+            if(panel)snapshot["panelGeometry"]=QJsonArray{panel->x(),panel->y(),panel->width(),panel->height()};
+            auto* error=dock->findChild<QLabel*>(errorObjectName);
+            auto* ok=buttons->button(QDialogButtonBox::Ok);auto* cancel=buttons->button(QDialogButtonBox::Cancel);
+            const auto session=window.state().value("activeSession").toObject();
+            const auto previewError=session.value("previewError").toObject();
+            snapshot["failureState"]=QJsonObject{{"label",error ? error->text() : QString{}},
+                {"code",previewError.value("code").toString()},{"message",previewError.value("message").toString()},
+                {"okEnabled",ok && ok->isEnabled()}};
+            QJsonArray widgets;
+            auto addWidget=[&](const QString& controlName,QWidget* widget){
+                if(!widget){widgets.append(QJsonObject{{"name",controlName},{"present",false}});return;}
+                const auto topLeft=widget->mapToGlobal(QPoint{});const QRect bounds(topLeft,widget->size());
+                auto* owner=QApplication::widgetAt(bounds.center());
+                QStringList ownerPath;for(auto* item=owner;item;item=item->parentWidget()){
+                    ownerPath.append(QString::fromLatin1(item->metaObject()->className())+":"+item->objectName());
+                    if(item==widget)break;
+                }
+                widgets.append(QJsonObject{{"name",controlName},{"class",widget->metaObject()->className()},
+                    {"visible",widget->isVisible()},{"enabled",widget->isEnabled()},
+                    {"geometryGlobal",QJsonArray{bounds.x(),bounds.y(),bounds.width(),bounds.height()}},
+                    {"hitOwner",owner ? QString::fromLatin1(owner->metaObject()->className())+":"+owner->objectName() : QString("none")},
+                    {"hitOwnerPath",QJsonArray::fromStringList(ownerPath)},
+                    {"hitBelongsToTarget",owner && (owner==widget || widget->isAncestorOf(owner))}});
+            };
+            addWidget("dock",dock);addWidget("panel",panel);addWidget("buttons",buttons);
+            addWidget("ok",ok);addWidget("cancel",cancel);addWidget("error",error);
+            if(dock->objectName()=="filletDock") {
+                addWidget("fillet.groups",dock->findChild<QListWidget*>("fillet.groups"));
+                addWidget("fillet.addGroup",dock->findChild<QPushButton*>("fillet.addGroup"));
+                addWidget("fillet.removeGroup",dock->findChild<QPushButton*>("fillet.removeGroup"));
+                addWidget("filletSelection",dock->findChild<QLabel*>("filletSelection"));
+                addWidget("fillet.clearGroup",dock->findChild<QPushButton*>("fillet.clearGroup"));
+                addWidget("filletRadius",dock->findChild<QDoubleSpinBox*>("filletRadius"));
+            } else {
+                auto* scroll=dock->findChild<QScrollArea*>();
+                addWidget("combine.scroll",scroll);addWidget("combine.targetBody",dock->findChild<QComboBox*>("combine.targetBody"));
+                addWidget("combine.pickTarget",dock->findChild<QPushButton*>("combine.pickTarget"));
+                addWidget("combine.toolBodies",dock->findChild<QListWidget*>("combine.toolBodies"));
+                addWidget("combine.pickTools",dock->findChild<QPushButton*>("combine.pickTools"));
+                addWidget("combine.operation",dock->findChild<QComboBox*>("combine.operation"));
+                addWidget("combine.keepTools",dock->findChild<QCheckBox*>("combine.keepTools"));
+                snapshot["errorReveal"]="Programmatic QScrollArea::ensureWidgetVisible(combine.error)";
+                if(scroll)snapshot["scrollState"]=QJsonObject{{"viewport",QJsonArray{scroll->viewport()->width(),scroll->viewport()->height()}},
+                    {"verticalValue",scroll->verticalScrollBar()->value()},{"verticalMaximum",scroll->verticalScrollBar()->maximum()}};
+            }
+            snapshot["widgets"]=widgets;
+            const auto response=window.executeApi("capture.screenshot",{{"path",out+"/"+name+".png"}});
+            if(!response.value("ok").toBool())return false;
+            QFile file(out+"/"+name+"-geometry.json");if(!file.open(QIODevice::WriteOnly))return false;
+            const auto bytes=QJsonDocument(snapshot).toJson(QJsonDocument::Indented);const bool written=file.write(bytes)==bytes.size();file.close();
+            if(!written)return false;
+            qInfo().noquote()<<name<<QJsonDocument(snapshot).toJson(QJsonDocument::Compact);
+            return true;
+        };
+        const auto fillet=call(window,"solid.filletDialog",{{"targetBodyId",boxId}});
+        QCOMPARE(fillet.value("inputs").toObject().value("edgeIds").toArray().size(),0);
+        QCOMPARE(window.state().value("activeSession").toObject().value("previewError").toObject().value("code"),QJsonValue("edges_required"));
+        auto* filletDock=window.findChild<QDockWidget*>("filletDock");QVERIFY(filletDock);
+        auto* filletButtons=filletDock->findChild<QDialogButtonBox*>();QVERIFY(filletButtons);
+        QVERIFY(writeCapture("fillet-normal-1360x850",filletDock,filletButtons,"filletError"));
+        window.resize(1040,640);QTRY_COMPARE(window.size(),QSize(1040,640));QApplication::processEvents();
+        QVERIFY(writeCapture("fillet-minimum-1040x640",filletDock,filletButtons,"filletError"));
+        call(window,"command.cancel",{{"session",window.state().value("activeSession").toObject().value("id")}});
+        QTRY_VERIFY(window.state().value("activeSession").toObject().isEmpty());
+        const auto afterFilletCancel=call(window,"document.inspect");
+        QCOMPARE(afterFilletCancel.value("authored"),before.value("authored"));
+        QCOMPARE(afterFilletCancel.value("undo"),before.value("undo"));
+        call(window,"solid.combineDialog",{{"targetBodyId",boxId},{"toolBodyIds",QJsonArray{}}});
+        QCOMPARE(window.state().value("activeSession").toObject().value("previewError").toObject().value("code"),QJsonValue("tools_required"));
+        auto* combineDock=window.findChild<QDockWidget*>("combineDock");QVERIFY(combineDock);
+        auto* combineButtons=combineDock->findChild<QDialogButtonBox*>();QVERIFY(combineButtons);
+        auto* combineError=combineDock->findChild<QLabel*>("combine.error");QVERIFY(combineError);
+        if(auto* scroll=combineDock->findChild<QScrollArea*>())scroll->ensureWidgetVisible(combineError,0,16);
+        QApplication::processEvents();
+        QVERIFY(writeCapture("combine-minimum-1040x640",combineDock,combineButtons,"combine.error"));
+        call(window,"command.cancel",{{"session",window.state().value("activeSession").toObject().value("id")}});
+        QTRY_VERIFY(window.state().value("activeSession").toObject().isEmpty());
+        const auto afterCombineCancel=call(window,"document.inspect");
+        QCOMPARE(afterCombineCancel.value("authored"),before.value("authored"));
+        QCOMPARE(afterCombineCancel.value("undo"),before.value("undo"));
+        window.close();
+    }
+    void dimensionedSketchPaletteReadabilityAudit() {
+        const auto out=qEnvironmentVariable("ALLOY_REL013_SKETCH_PALETTE_EVIDENCE");QVERIFY(!out.isEmpty());QVERIFY(QDir().mkpath(out));
+        const auto source=QFileInfo(QDir(QCoreApplication::applicationDirPath()).absoluteFilePath("../examples/dimensioned-rectangle.alloy")).canonicalFilePath();
+        QVERIFY(!source.isEmpty());
+        AlloyTheme::apply(*qApp);AlloyWindow window;window.resize(1360,850);window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        call(window,"document.open",{{"path",source},{"discard",true}});
+        const auto before=call(window,"document.inspect");
+        const auto features=before.value("authored").toObject().value("features").toArray();QCOMPARE(features.size(),1);
+        const auto sketch=features.first().toObject();QCOMPARE(sketch.value("type"),QJsonValue("sketch"));
+        const auto sketchId=sketch.value("id").toString();QVERIFY(!sketchId.isEmpty());
+        const auto parameters=sketch.value("parameters").toObject();
+        QCOMPARE(parameters.value("dimensions").toArray().size(),3);
+        QCOMPARE(parameters.value("constraints").toArray().size(),5);
+        QCOMPARE(parameters.value("entities").toArray().size(),4);
+        const auto lineId=parameters.value("entities").toArray().first().toObject().value("id").toString();QVERIFY(!lineId.isEmpty());
+        call(window,"sketch.edit",{{"sketchId",sketchId}});
+        QCOMPARE(window.state().value("activeSession").toObject().value("command"),QJsonValue("sketch.edit"));
+        call(window,"sketch.lookAt");
+        auto* dock=window.findChild<QDockWidget*>("sketchDock");QVERIFY(dock);
+        auto* panel=window.findChild<QWidget*>("sketchPanel");QVERIFY(panel);
+        auto* scroll=panel->findChild<QScrollArea*>();QVERIFY(scroll);
+        auto* content=scroll->widget();QVERIFY(content);
+        auto* finish=window.findChild<QPushButton*>("sketch.finish");auto* cancel=window.findChild<QPushButton*>("sketch.cancel");
+        QVERIFY(finish && cancel);
+        auto* paletteFinish=panel->findChild<QPushButton*>("sketch.palette.finish");
+        auto* paletteCancel=panel->findChild<QPushButton*>("sketch.cancel");QVERIFY(paletteFinish && paletteCancel);
+        ReferenceView* canvas=nullptr;for(auto* child:window.findChildren<QWidget*>())if(auto* candidate=dynamic_cast<ReferenceView*>(child))canvas=candidate;
+        QVERIFY(canvas);
+        auto writeCapture=[&](const QString& name)->bool {
+            QApplication::processEvents();
+            QJsonObject snapshot{{"fixture",source},{"sketchId",sketchId},{"selectedLineId",lineId},
+                {"windowSize",QJsonArray{window.width(),window.height()}},
+                {"canvasGeometry",QJsonArray{canvas->x(),canvas->y(),canvas->width(),canvas->height()}},
+                {"dockGeometry",QJsonArray{dock->x(),dock->y(),dock->width(),dock->height()}},
+                {"paletteGeometry",QJsonArray{panel->x(),panel->y(),panel->width(),panel->height()}},
+                {"scrollContentWidth",content->width()},
+                {"scrollViewport",QJsonArray{scroll->viewport()->width(),scroll->viewport()->height()}},
+                {"verticalScroll",QJsonArray{scroll->verticalScrollBar()->value(),scroll->verticalScrollBar()->maximum()}},
+                {"authoredDimensions",parameters.value("dimensions").toArray().size()},
+                {"authoredConstraints",parameters.value("constraints").toArray().size()}};
+            QJsonArray toolbarActions,paletteActions;
+            auto addAction=[&](QJsonArray& actions,QWidget* action) {
+                if(!action)return;
+                const QPoint top=action->mapToGlobal(QPoint{});const QRect global(top,action->size());
+                auto* hit=QApplication::widgetAt(global.center());
+                actions.append(QJsonObject{{"objectName",action->objectName()},{"text",qobject_cast<QAbstractButton*>(action)->text()},
+                    {"visible",action->isVisible()},{"enabled",action->isEnabled()},
+                    {"geometryGlobal",QJsonArray{global.x(),global.y(),global.width(),global.height()}},
+                    {"hitOwner",hit ? QString("%1:%2").arg(QString::fromLatin1(hit->metaObject()->className()),hit->objectName()) : QString("none")}});
+            };
+            addAction(toolbarActions,finish);addAction(toolbarActions,cancel);
+            addAction(paletteActions,paletteFinish);addAction(paletteActions,paletteCancel);
+            QJsonArray labels;
+            const QRect viewportRect=scroll->viewport()->rect();
+            for(auto* label:panel->findChildren<QLabel*>()) {
+                if(!scroll->viewport()->isAncestorOf(label))continue;
+                const QPoint origin=label->mapTo(scroll->viewport(),QPoint{});const QRect bounds(origin,label->size());
+                const QRect clipped=bounds.intersected(viewportRect);
+                labels.append(QJsonObject{{"text",label->text()},{"visible",label->isVisible()},
+                    {"boundsInScrollViewport",QJsonArray{bounds.x(),bounds.y(),bounds.width(),bounds.height()}},
+                    {"intersectionInScrollViewport",QJsonArray{clipped.x(),clipped.y(),clipped.width(),clipped.height()}},
+                    {"fullyInsideViewport",!label->isVisible() || viewportRect.contains(bounds)}});
+            }
+            snapshot["toolbarActions"] = toolbarActions;snapshot["paletteActions"] = paletteActions;snapshot["paletteLabels"] = labels;
+            const auto response=window.executeApi("capture.screenshot",{{"path",out+"/"+name+".png"}});
+            if(!response.value("ok").toBool())return false;
+            QFile file(out+"/"+name+"-geometry.json");if(!file.open(QIODevice::WriteOnly))return false;
+            const auto bytes=QJsonDocument(snapshot).toJson(QJsonDocument::Indented);const bool written=file.write(bytes)==bytes.size();file.close();
+            if(written)qInfo().noquote()<<name<<QJsonDocument(snapshot).toJson(QJsonDocument::Compact);
+            return written;
+        };
+        QTRY_VERIFY(dock->isVisible() && finish->isVisible() && cancel->isVisible());
+        QVERIFY(writeCapture("normal-1360x850"));
+        window.resize(1040,640);QTRY_COMPARE(window.size(),QSize(1040,640));QApplication::processEvents();
+        QVERIFY(writeCapture("minimum-1040x640"));
+        call(window,"sketch.selectionSet",{{"entityIds",QJsonArray{lineId}}});
+        QCOMPARE(window.state().value("activeSession").toObject().value("selection").toObject().value("entityIds").toArray(),QJsonArray{lineId});
+        QVERIFY(writeCapture("minimum-selected-1040x640"));
+        call(window,"sketch.cancel");QTRY_VERIFY(window.state().value("activeSession").toObject().isEmpty());
+        const auto after=call(window,"document.inspect");
+        QCOMPARE(after.value("authored"),before.value("authored"));
+        QCOMPARE(after.value("undo"),before.value("undo"));
+        window.close();
     }
 };
 QTEST_MAIN(ResponsiveControls)

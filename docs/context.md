@@ -29,7 +29,11 @@ focused Qt/Astra review. See [receipt](validation/status-strip-readability.md).
 REL-024/#450 is independently accepted: scrolling Extrude form, fixed actions
 and clear missing-end-face guidance pass Qt footer/Cancel/valid-commit and
 normal/minimum visual review. See [receipt](validation/extrude-dock-height.md).
-REL-013 retains Fillet/Combine and selection/constraint states. The old blank viewport band matches dock allocation; actual Qt/native/
+REL-013 has current Fillet empty-edge and Combine empty-tool captures without
+a demonstrated clipping defect. The dimensioned sketch palette and actions are
+readable, but always-visible cube accessories overlap upper-right sketch
+annotations at minimum size. NAV-021/#452 owns this observed occlusion; public
+reference research is active and the parent audit remains open. The old blank viewport band matches dock allocation; actual Qt/native/
 framebuffer dimensions agree in the current audit. Use `build-preview-release`
 for optimized interactive previews and `build-tutorial-polish` for Debug checks;
 both use the coherent private Qt SDK. Older packaged archives predate these changes.
