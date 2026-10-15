@@ -12,8 +12,11 @@ open for responsiveness.
 NAV-016/#437 is accepted at `7d95732`: retained custom named views, Browser
 create/rename/restore, metadata history, save/reopen and atomic malformed-file
 refusal pass focused Qt checks and Astra review. See
-[receipt](validation/navigation-named-views.md). NAV-017/#438 Home controls are
-active; NAV-018/#439 preferences remain Todo pending public binding research.
+[receipt](validation/navigation-named-views.md). NAV-017/#438 saved/reset Home
+is accepted at `6e38eb6` with metadata history, save/reopen and focused Qt/GPU
+evidence. See [receipt](validation/navigation-home-saved.md). NAV-018/#439
+application navigation preferences is active; NAV-019/#443 retains configurable
+Front/Top/up conventions.
 REL-019/#440 is accepted at `6ad76be`; REL-016 remains open.
 
 TUT-029/#441 diagnostic completed at `636c8b5`: final case/reference intersection
@@ -21,7 +24,11 @@ checks found Top 0.732240293455 mm³ and Bottom 0.888291503536 mm³ overlap with
 SIDE-ETH-001; the remaining 22 pairs are zero-volume. See
 [receipt](validation/enclosure-reference-clearance.md). TUT-030/#442 owns source
 qualification and explicit correction, blocking full TUT-016. Do not silently
-change stock, shell, radius or imported reference. Physical fit remains unclaimed.
+change stock, shell, radius or imported reference. Public-source qualification
+confirmed the connector width/depth are unspecified; TUT-030 returns to Todo
+until qualified input or an explicit design adaptation resolves the nominal
+fixture. Physical fit remains unclaimed. GEO-019 exact grouped shoehorn diagnostic
+is the active advanced-geometry slice; no radius/mode sweep is authorized.
 
 CI-005/#423 local macOS arm64 relocation is accepted at `3c88127`: extracted
 archive, 43 observed bundled non-system libraries/zero external, Apple M4 GPU

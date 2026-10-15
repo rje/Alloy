@@ -48,6 +48,13 @@ platform-specific gesture limitations. Detailed reference records stay external.
 Publicly documented primary Mac gestures need actual runtime qualification; a
 support article or a synthetic Qt event is not evidence that a physical
 trackpad behaves correctly. Keep usable explicit navigation tools as a fallback.
+The custom named-view child [NAV-016](https://github.com/rje/Alloy/issues/437)
+is accepted for Browser create/rename/restore/delete, metadata history,
+save/reopen and malformed-file refusal
+([receipt](validation/navigation-named-views.md)). The
+broader NAV-007 parent remains open: [saved/reset Home](validation/navigation-home-saved.md)
+is also accepted under NAV-017; configurable orientation NAV-019 and application
+navigation preferences NAV-018 remain separate work.
 
 ## Interaction, presentation and data quality
 
@@ -61,6 +68,7 @@ trackpad behaves correctly. Keep usable explicit navigation tools as a fallback.
 | Reference and failed-edit handling | [REL-015](https://github.com/rje/Alloy/issues/418) under [REL-001](https://github.com/rje/Alloy/issues/80) | Missing support, ambiguous topology, invalid downstream value and stale command preserve recoverable intent with actionable diagnostics |
 | Import/export file interaction | [DOC-016](https://github.com/rje/Alloy/issues/167) | Native paths/dialogs, units, mesh settings and Cancel; retain independently checked STEP/STL results |
 | Responsiveness | [REL-016](https://github.com/rje/Alloy/issues/419), [REL-011](https://github.com/rje/Alloy/issues/374) | Measured current startup/navigation/selection/solve/recompute/reopen/drag on representative existing models; optimize failed budgets only |
+| Synchronous geometry busy feedback | [REL-019](https://github.com/rje/Alloy/issues/440), under [REL-016](https://github.com/rje/Alloy/issues/419) | Pre-painted wait status/cursor, elapsed result, and cleanup on success/refusal; feedback is synchronous and does not establish responsiveness or cancellation ([receipt](validation/geometry-busy-feedback.md)) |
 | Capability and known-limit documentation | [REL-017](https://github.com/rje/Alloy/issues/420) under [REL-006](https://github.com/rje/Alloy/issues/85) | Current supported commands/options/platforms, sample models, install/control instructions and evidence links; remove stale blocker claims |
 
 Existing atomic QSaveFile saving and evaluate-before-open are foundations, not
@@ -96,10 +104,20 @@ external tester and whole-release gates remain open.
 
 1. **Electronics enclosure:** GEO-017 is now accepted at `6d9b8dc` for the exact
    inset kernel and source-derived identities. SKT-076 is accepted at `c625649`
-   for the authored inset and exact Join2/selected R0.5 lineage checks. Complete
-   the cumulative alignment rim ([GEO-017](https://github.com/rje/Alloy/issues/347) → [SKT-076](https://github.com/rje/Alloy/issues/346) → [GEO-020](https://github.com/rje/Alloy/issues/429) → [TUT-023](https://github.com/rje/Alloy/issues/324)), then complete [TUT-016](https://github.com/rje/Alloy/issues/299) with both printable
-   halves, retained fit/tool relationships and full source-stage evidence. Reuse
-   the accepted board, ports and snaps checkpoints.
+   for the authored inset and exact Join2/selected R0.5 lineage checks. GEO-020
+   and GEO-021 are accepted, and [TUT-023](https://github.com/rje/Alloy/issues/324)
+   is accepted for its final-stage API recording, retained-tool Cut, separate
+   STL/STEP readbacks and rim/tool captures ([receipt](validation/enclosure-rim-fit-stage.md)).
+   The distinct full-source [TUT-016](https://github.com/rje/Alloy/issues/299)
+   gate remains open for the cumulative tutorial and its source/native workflow.
+   [TUT-029](https://github.com/rje/Alloy/issues/441) measured Top and Bottom
+   overlap volumes of 0.732240293455 mm³ and 0.888291503536 mm³ with
+   SIDE-ETH-001; the other 22 pairs have zero intersection
+   ([receipt](validation/enclosure-reference-clearance.md)).
+   [TUT-030](https://github.com/rje/Alloy/issues/442) owns source qualification
+   and an explicit supported correction before whole-reference clearance can
+   pass. Physical fit remains unclaimed. Reuse the accepted board, ports and
+   snaps checkpoints.
 2. **Surface shoehorn:** finish exact R12 corner geometry ([GEO-019](https://github.com/rje/Alloy/issues/352)), generated
    Fillet endpoint references ([GEO-018](https://github.com/rje/Alloy/issues/350)), tangent-plane/hole support ([GEO-004](https://github.com/rje/Alloy/issues/286)),
    Browser organization ([ASM-012](https://github.com/rje/Alloy/issues/343)) and [TUT-017](https://github.com/rje/Alloy/issues/301). Do not replace the specified
@@ -125,15 +143,18 @@ accepted, as is [authored enclosure inset](validation/trimmed-seam-inset.md).
 Constrained orbit and pivot controls have accepted source/API/GPU evidence;
 [NAV-009](https://github.com/rje/Alloy/issues/428) preserves the blocked native
 route. The exact paired enclosure R0.5 operation is accepted in GEO-020; the
-GEO-021 retained-tool Cut/export is also accepted. TUT-023 is active for
-full-stage footage and clear rim/tool-selection captures. NAV-003 smooth zoom and
+GEO-021 retained-tool Cut/export and TUT-023 final-stage footage/captures are
+accepted. TUT-029 records two measured connector intersections; TUT-030 source
+qualification and correction, plus full-source TUT-016, remain open. NAV-003 smooth zoom and
 Qt trackpad routing is accepted with physical-device qualification preserved in
 NAV-008. GEO-020 now has bounded production/source-edit/history/GPU acceptance. NAV-010 cube presentation and orientation picks are
 accepted, as are NAV-011 drag, NAV-013 Fit/Home and NAV-012 cube accessories.
 CI-005 local macOS arm64 relocation is accepted; public-release/platform gates
 remain open. NAV-014 explicit Pan/Zoom/Zoom Window is accepted; NAV-015
-selected framing and planar Look At is accepted. NAV-006 projection modes is
-the active UI slice. NAV-004 stays
+selected framing and planar Look At is accepted. NAV-016 custom named views is
+accepted, as is NAV-017 saved/reset Home. NAV-007 remains open for configurable
+orientation and navigation preferences.
+NAV-004 stays
 open until its complete scope is evidenced. Reassess after each accepted
 slice; never repeat an unchanged failing kernel/input probe without a new
 hypothesis. Keep one private validation editor and retire completed worktrees.

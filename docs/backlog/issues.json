@@ -7081,7 +7081,8 @@
         "NAV-006",
         "NAV-016",
         "NAV-017",
-        "NAV-018"
+        "NAV-018",
+        "NAV-019"
       ],
       "labels": [
         "area:doc"
@@ -7438,7 +7439,7 @@
     },
     {
       "key": "NAV-017",
-      "title": "Save and reset Home and orientation conventions",
+      "title": "Save and reset custom Home camera",
       "kind": "implementation",
       "phase": "P4 Initial release",
       "priority": "P1",
@@ -7448,7 +7449,7 @@
       "labels": [
         "area:doc"
       ],
-      "body": "## Bounded scope\nExpose saved/reset Home plus explicit Front/Top/up conventions using permitted public evidence. Define document versus application scope and preserve authored geometry. Verify one asymmetric model through convention change, Home/reset and save/reopen, using shared API and visible controls. Record unknown reference behavior and independently review.\n\nSplit from NAV-007 so unfinished parent scope stays Todo.\n"
+      "body": "## Bounded Home scope\nExpose saved/reset Home using retained validated camera metadata and shared API/visible controls. Preserve authored geometry, support metadata history and backward-compatible document save/reopen; restore camera without geometry recomputation. Disclose current fixed Z-up, Front -Y and Top +Z conventions. Configurable Front/Top/up remapping is retained in NAV-019, not silently claimed by custom Home. Focused asymmetric-model workflow, actual GPU capture and independent Astra review.\n\n\n## Independently accepted 2026-10-14\nAccepted at 6e38eb6 with independent Astra review. Saved/reset per-document Home uses metadata history and backward-compatible save/reopen, visible Browser context controls and Home button. Focused Qt01 passed 3/3; normal app relinked. See docs/validation/navigation-home-saved.md. Configurable Front/Top/up conventions remain NAV-019.\n"
     },
     {
       "key": "NAV-018",
@@ -7503,7 +7504,21 @@
       "labels": [
         "area:gate"
       ],
-      "body": "## Bounded scope\nThe final saved case has verified positive intersections with nominal SIDE-ETH-001: Top 0.732240293455 mm\u00b3 and Bottom 0.888291503536 mm\u00b3. Remaining 22 half/reference pairs are zero-volume. See docs/validation/enclosure-reference-clearance.md.\n\nResearch permitted public tutorial evidence and imported fixture provenance to resolve whether a better source-qualified reference or explicit enclosure adaptation is justified. Record exact evidence, remaining unknowns and chosen correction before changing dimensions. Do not silently trim the reference, change shell/radius/stock, or infer physical fit. If implementation is needed, create a bounded dependent correction issue with affected authored references, history/reopen and separate export acceptance. Full TUT-016 remains open until numerical nominal-reference fit and cumulative scope pass.\n\nDetailed public reference material remains outside the codebase. Independent review required.\n"
+      "body": "## Bounded scope\nThe final saved case has verified positive intersections with nominal SIDE-ETH-001: Top 0.732240293455 mm\u00b3 and Bottom 0.888291503536 mm\u00b3. Remaining 22 half/reference pairs are zero-volume. See docs/validation/enclosure-reference-clearance.md.\n\nResearch permitted public tutorial evidence and imported fixture provenance to resolve whether a better source-qualified reference or explicit enclosure adaptation is justified. Record exact evidence, remaining unknowns and chosen correction before changing dimensions. Do not silently trim the reference, change shell/radius/stock, or infer physical fit. If implementation is needed, create a bounded dependent correction issue with affected authored references, history/reopen and separate export acceptance. Full TUT-016 remains open until numerical nominal-reference fit and cumulative scope pass.\n\nDetailed public reference material remains outside the codebase. Independent review required.\n\n## Qualification blocker, 2026-10-14\nPublic mechanical drawing and tutorial research independently reviewed: connector width/depth remain undimensioned; the imported 20.5 by 18 mm envelope is explicitly nominal. No source-supported numeric correction is established. Preserve measured overlaps and original inputs. Await qualified footprint/STEP or an explicit design-adaptation requirement; do not rerun geometry variants. External evidence: knowledge/specs/tut030-connector-qualification-2026-10-14/qualification.md. This item returns to Todo; full TUT-016 stays open.\n"
+    },
+    {
+      "key": "NAV-019",
+      "title": "Configure Front Top and up-axis conventions consistently with cube",
+      "kind": "implementation",
+      "phase": "P4 Initial release",
+      "priority": "P1",
+      "depends_on": [
+        "NAV-017"
+      ],
+      "labels": [
+        "area:doc"
+      ],
+      "body": "## Bounded orientation scope\nSplit from NAV-017: research and implement configurable Front/Top/up conventions, coordinating standard camera transforms with cube labels and hit mappings. Camera-only overrides that mislabel the cube are not acceptable. Preserve authored geometry and define document versus application scope from public evidence. Verify an asymmetric model across convention change, standard face/cube navigation, save/reopen and reset; record unknowns and retain physical input qualification separately. Independent Astra review required.\n"
     }
   ]
 }
