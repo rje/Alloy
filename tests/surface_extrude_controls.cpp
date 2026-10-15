@@ -7,6 +7,7 @@
 #include <QToolButton>
 #include <QAction>
 #include <QComboBox>
+#include <QCheckBox>
 #include <QDoubleSpinBox>
 #include <QDockWidget>
 #include <QDialogButtonBox>
@@ -54,9 +55,10 @@ private slots:
   QTest::mouseClick(start,Qt::LeftButton);
   QTRY_COMPARE(session(window)["command"].toString(),QString("surface.extrude"));
   auto* dock=window.findChild<QDockWidget*>("surfaceExtrudeDock");QVERIFY(dock && dock->isVisible());
+  auto* chaining=dock->findChild<QCheckBox*>("surfaceExtrude.chaining");QVERIFY(chaining && chaining->isChecked());QTest::mouseClick(chaining,Qt::LeftButton);
   const auto mapped=call(window,"view.projectSketchPoint",{{"sketchId",sketchId},{"uMm",25},{"vMm",7}});
   QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,QPoint(qRound(mapped["x"].toDouble()),qRound(mapped["y"].toDouble())));
-  QTRY_COMPARE(session(window)["inputs"].toObject()["entityIds"].toArray().size(),1);
+  QTRY_COMPARE(session(window)["inputs"].toObject()["profiles"].toArray().size(),1);
   auto* side1=dock->findChild<QDoubleSpinBox*>("sideOneMm");auto* side2=dock->findChild<QDoubleSpinBox*>("sideTwoMm");
   QVERIFY(side1 && side2);
   QTest::mouseClick(side1,Qt::LeftButton);QTest::keyClick(side1,Qt::Key_A,Qt::ControlModifier);QTest::keyClicks(side1,"25");QTest::keyClick(side1,Qt::Key_Tab);
@@ -64,7 +66,7 @@ private slots:
   QTRY_VERIFY(session(window)["previewed"].toBool());
   const auto inputs=session(window)["inputs"].toObject();
   QCOMPARE(inputs["sideOneMm"].toDouble(),25.0);QCOMPARE(inputs["sideTwoMm"].toDouble(),30.0);
-  QCOMPARE(session(window)["geometry"].toObject()["topology"].toObject()["faces"].toInt(),1);
+  QCOMPARE(session(window)["resultBodies"].toArray().first().toObject()["geometry"].toObject()["topology"].toObject()["faces"].toInt(),1);
   auto* buttons=dock->findChild<QDialogButtonBox*>();QVERIFY(buttons && buttons->button(QDialogButtonBox::Ok)->isEnabled());
   const auto preview=session(window);
   auto* solidTab=window.findChild<QToolButton*>("design.tab.solid");QVERIFY(solidTab);

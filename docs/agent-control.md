@@ -1028,3 +1028,30 @@ variants are exclusive. A sheet-tool preview reports `projection.mode` as
 false for those sides. Sheet tools are retained; each target/tool must be a
 local same-owner single-line planar Surface Extrude, and the finite tool must
 produce exactly two regions. See [the bounded contract](validation/surface-planar-sheet-trim.md).
+
+### Per-profile Two Sides surface Extrude
+
+New `surface.extrudeDialog` sessions explicitly author `resultMode:"perProfile"`
+and `profiles:[{entityIds:[...]}]` in one earlier sketch. Each record is one
+connected nonbranching open line/fit-spline chain, resolved by retained endpoint
+IDs and extruded as an exact OCCT wire prism. The native Chaining checkbox is on;
+`surface.extrudeEntity {sketchId,entityId}` resolves that maximal chain, while
+`surface.extrudeProfile {sketchId,entityIds}` toggles exact explicit membership.
+Existing selected groups are retained through edits; ambiguous branches and
+overlapping/disconnected groups refuse instead of regrouping them.
+
+`surface.extrude` accepts the same explicit mode and profile records, with
+`sideOneMm` and `sideTwoMm` measuring independently along the resolved sketch
+normal. Each profile produces its own stable body UUID derived from the feature,
+sketch and canonical member set. The one retained feature has no primary
+`bodyId`. Preview returns `resultBodyIds` and `resultBodies:[{bodyId,geometry}]`
+and displays every result; the display compound is not a modeling result.
+Adding a profile adds one body and preserves unchanged bodies/faces/edges.
+Source/reach edits, Remove, ownership, history and save/reopen use ordinary
+shared commands. Local root/identity-child placement is required.
+
+Legacy saved features and API arguments with `entityIds` and absent result mode
+retain the original single compound `bodyId` and `geometry` response. Editing
+retains the existing mode; no automatic conversion occurs. These separate
+outputs can be addressed as later Trim tools, but curved iron Trim targets and
+final closure remain separate capability gates.

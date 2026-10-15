@@ -2522,7 +2522,9 @@ void AlloyWindow::registerCommands() {
     auto surfaceReach=parameter("number","Positive reach from the sketch plane in millimeters; Side 1 follows −normal, Side 2 follows +normal.");
     surfaceReach["minimum"]=.001;surfaceReach["maximum"]=100000;
     QJsonObject surfaceExtrudeSchema{{"sketchId",parameter("string","Earlier solved open-curve sketch UUID.")},
-        {"entityIds",parameter("array","Ordered distinct ordinary open line or fit-spline entity UUIDs in one sketch.")},
+        {"entityIds",optional(parameter("array","Legacy compound mode: distinct ordinary open curve UUIDs."))},
+        {"resultMode",optional(parameter("string","Explicit perProfile creates separately addressable profile bodies; absent preserves legacy compound mode."))},
+        {"profiles",optional(parameter("array","Per-profile records {entityIds:[...]} of explicitly retained connected open chains."))},
         {"sideOneMm",surfaceReach},{"sideTwoMm",surfaceReach},
         {"featureId",optional(featureId)},{"name",optional(parameter("string","Surface Extrude name."))}};
     add("surface.extrude","Extrude","Create or edit real zero-volume open-curve sheets with independent Two Sides reaches.",surfaceExtrudeSchema,[this](const auto& a){
@@ -2537,6 +2539,9 @@ void AlloyWindow::registerCommands() {
     add("surface.extrudeEntity","Select Surface Extrude curve","Toggle one retained source curve in the active Surface Extrude command.",
         {{"sketchId",sketchIdentity},{"entityId",parameter("string","Retained line or fit-spline entity UUID.")}},
         [this](const auto& a){return selectSurfaceExtrudeEntity(a["sketchId"].toString(),a["entityId"].toString());});
+    add("surface.extrudeProfile","Select Surface Extrude profile","Toggle one explicit retained open profile in the active per-profile Surface Extrude command.",
+        {{"sketchId",sketchIdentity},{"entityIds",parameter("array","Exact nonbranching open profile entity membership.")}},
+        [this](const auto& a){return selectSurfaceExtrudeProfile(a["sketchId"].toString(),a["entityIds"].toArray());});
     auto trimMargin=parameter("number","Positive margin past projected target bounds, millimeters; default 10.");
     trimMargin["minimum"]=.001;trimMargin["maximum"]=1000;
     QJsonObject surfaceTrimSchema{{"targetBodyId",parameter("string","Current local two-face rail sheet or single-line planar sheet body UUID.")},
@@ -7547,6 +7552,10 @@ QJsonArray AlloyWindow::dependentBodies(const QString& sketchId) const {
         if(feature["type"]=="loft")for(const auto& value:parameters["profiles"].toArray())if(sketches.contains(value.toObject()["sketchId"].toString())) {
             producerFeatures.insert(feature["id"].toString());if(!result.contains(feature["bodyId"]))result.append(feature["bodyId"]);break;
         }
+        if(feature["type"]=="surfaceExtrude" && sketches.contains(parameters["sketchId"].toString())){
+            producerFeatures.insert(feature["id"].toString());
+            for(const auto& body:document_->bodies())if(body.featureId==feature["id"] && !result.contains(body.bodyId))result.append(body.bodyId);
+        }
         if((feature["type"]=="extrude" || feature["type"]=="revolve") && sketches.contains(parameters["sketchId"].toString())) {
             producerFeatures.insert(feature["id"].toString());
             if((parameters["operation"]=="cut" || parameters["operation"]=="join" || parameters["operation"]=="intersect")) {
@@ -8340,9 +8349,9 @@ QJsonObject AlloyWindow::finishSession(const QString& id, bool commit) {
     else if(target=="solid.rectangularPattern") {if(patternEscape_)patternEscape_->setEnabled(false);if(patternDock_)patternDock_->hide();view_->clearPatternAxes();view_->clearSolidEdgeHighlights();view_->clearPreview();view_->clearBodyStage();}
     else if(target=="solid.sweep") {if(sweepEscape_)sweepEscape_->setEnabled(false);if(sweepDock_)sweepDock_->hide();view_->clearSweepPath();view_->setCommandSketches({});view_->selectProfile({},{});view_->setEditDisplay({},{});view_->clearPreview();view_->clearBodyStage();}
     else if(target=="solid.revolve") {if(revolveEscape_)revolveEscape_->setEnabled(false);if(revolveDock_)revolveDock_->hide();view_->clearRevolveCue(true);view_->selectProfile({},{});view_->setEditDisplay({},{});view_->clearPreview();view_->clearBodyStage();}
-    else if(target=="solid.loft") {if(loftEscape_)loftEscape_->setEnabled(false);if(loftDock_)loftDock_->hide();view_->selectLoftProfiles({});view_->clearSweepPath();view_->setCommandSketches({});view_->clearPreview();view_->clearBodyStage();}
+    else if(target=="solid.loft") {if(loftEscape_)loftEscape_->setEnabled(false);if(loftDock_)loftDock_->hide();view_->selectLoftProfiles({});view_->clearSweepPath();view_->setCommandSketches({});view_->setEditDisplay({},{});view_->clearPreview();view_->clearBodyStage();}
     else if(target=="surface.trim") {if(surfaceTrimEscape_)surfaceTrimEscape_->setEnabled(false);if(surfaceTrimDock_)surfaceTrimDock_->hide();surfaceTrimPickBodies_.clear();view_->setCommandSketches({});view_->clearPreview();view_->clearBodyStage();}
-    else if(target=="surface.extrude") {if(surfaceExtrudeEscape_)surfaceExtrudeEscape_->setEnabled(false);if(surfaceExtrudeDock_)surfaceExtrudeDock_->hide();view_->setCommandSketches({});view_->clearPreview();view_->clearBodyStage();}
+    else if(target=="surface.extrude") {if(surfaceExtrudeEscape_)surfaceExtrudeEscape_->setEnabled(false);if(surfaceExtrudeDock_)surfaceExtrudeDock_->hide();view_->setCommandSketches({});view_->setEditDisplay({},{});view_->clearPreview();view_->clearBodyStage();}
     else if(target=="body.remove") {if(removeBodyEscape_)removeBodyEscape_->setEnabled(false);if(removeBodyDock_)removeBodyDock_->hide();view_->clearBodyStage();}
     else if(target=="solid.thicken") {if(thickenEscape_)thickenEscape_->setEnabled(false);if(thickenDock_)thickenDock_->hide();view_->clearPreview();view_->clearBodyStage();}
     else if(target=="solid.shell") {if(shellEscape_)shellEscape_->setEnabled(false);if(shellDock_)shellDock_->hide();view_->clearPreview();view_->clearBodyStage();}

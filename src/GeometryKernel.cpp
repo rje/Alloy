@@ -1043,7 +1043,8 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
             } else if(type=="loft") {
                 evaluated.bodies.push_back(SolidLoft::evaluate(feature,evaluated));
             } else if(type=="surfaceExtrude") {
-                evaluated.bodies.push_back(SurfaceExtrude::evaluate(feature,evaluated));
+                const auto results=SurfaceExtrude::evaluateResults(feature,evaluated);
+                evaluated.bodies.insert(evaluated.bodies.end(),results.begin(),results.end());
             } else if(type=="surfaceTrim") {
                 const auto target=std::find_if(evaluated.bodies.begin(),evaluated.bodies.end(),
                     [&](const auto& body){return body.bodyId==parameters["targetBodyId"].toString();});

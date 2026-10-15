@@ -294,6 +294,7 @@ private:
     QJsonObject surfaceExtrudeCandidate(const QJsonObject& inputs) const;
     QJsonObject beginSurfaceExtrude(const QJsonObject& overrides={});
     QJsonObject previewSurfaceExtrude();
+    QJsonObject selectSurfaceExtrudeProfile(const QString& sketchId,const QJsonArray& entityIds);
     QJsonObject selectSurfaceExtrudeEntity(const QString& sketchId,const QString& entityId);
     QJsonObject pickSurfaceExtrude(double x,double y);
     void showSurfaceExtrude();

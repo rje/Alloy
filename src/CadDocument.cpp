@@ -1,5 +1,6 @@
 #include "SolidFillet.h"
 #include "CadDocument.h"
+#include "SurfaceExtrude.h"
 #include "ReferenceCanvas.h"
 #include "AssemblySlider.h"
 #include "AssemblyRevolute.h"
@@ -268,12 +269,14 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
         if(feature["type"]=="stepAssemblyImport")
             for(const auto& value:feature["parameters"].toObject()["assembly"].toObject()["occurrences"].toArray())
                 if(const auto body=value.toObject()["bodyId"].toString();!body.isEmpty())bodyPositions[body]=i;
+        if(feature["type"]=="surfaceExtrude")for(const auto& id:SurfaceExtrude::resultBodyIds(feature))bodyPositions[id]=i;
         if (feature.contains("bodyId")) bodyPositions[feature["bodyId"].toString()] = i;
         for(const auto& value:feature["bodyResults"].toArray()) {const auto record=value.toObject();if(record["participantBodyIds"].toArray().isEmpty())bodyPositions[record["bodyId"].toString()]=i;}
     }
     QMap<QString,QString> referencedOwners;
     for(const auto& value:features) {
         const auto f=value.toObject();const auto owner=f["ownerId"].toString();referencedOwners[f["id"].toString()]=owner;
+        if(f["type"]=="surfaceExtrude")for(const auto& id:SurfaceExtrude::resultBodyIds(f))referencedOwners[id]=owner;
         if(f.contains("bodyId"))referencedOwners[f["bodyId"].toString()]=owner;
         if(f["type"]=="stepAssemblyImport")
             for(const auto& value:f["parameters"].toObject()["assembly"].toObject()["occurrences"].toArray())
@@ -374,6 +377,13 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
                 {"code","cross_component_dependency"},{"message","Remove history belongs to the surface producer's modeling owner"}};
             guarded.remove("bodyId");
         }
+        if(f["type"]=="surfaceExtrude" && guarded["resultMode"]=="perProfile"){
+            auto localIdentity=[&](const QString& definition){if(definition==root)return true;int count=0;bool identity=false;
+                for(const auto& value:candidate["occurrences"].toArray())if(value.toObject()["definitionId"]==definition){++count;identity=value.toObject()["parentId"]==root && value.toObject()["placement"]=="identity";}
+                return count==1 && identity;};
+            if(!localIdentity(owner) || !localIdentity(referencedOwners.value(guarded["sketchId"].toString())))
+                return {{"featureId",f["id"]},{"code","surface_source_placement_unsupported"},{"message","Per-profile Surface Extrude requires local root or one identity-child source and owner"}};
+        }
         if(f["type"]=="surfaceTrim"){
             const auto body=guarded["targetBodyId"].toString(),sketch=guarded["toolSketchId"].toString();
             if(referencedOwners.value(body)!=owner || (guarded.contains("toolBodyId")
@@ -397,6 +407,7 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
                 if(!earlierBody(item.toObject()["source"].toObject()))return {{"featureId",feature["id"]},
                     {"code","projection_unavailable"},{"message","Projected source must be an earlier active body"}};
         }
+        if(feature["type"]=="surfaceExtrude")for(const auto& id:SurfaceExtrude::resultBodyIds(feature))activeBodies.insert(id);
         if (feature.contains("bodyId")) activeBodies.insert(feature["bodyId"].toString());
         if(feature["type"]=="removeBody"){
             const auto body=feature["parameters"].toObject()["bodyId"].toString();
@@ -1274,6 +1285,15 @@ QString CadDocument::recover(const QJsonObject& authored) {
     return {};
 }
 CadDocument::CandidateEvaluation CadDocument::prepareCandidate(const QJsonObject& candidate) const {
+    QMap<QString,QJsonObject> oldFeatures;for(const auto& row:authored_["features"].toArray())oldFeatures[row.toObject()["id"].toString()]=row.toObject();
+    for(const auto& row:candidate["features"].toArray()){
+        const auto feature=row.toObject(),old=oldFeatures.value(feature["id"].toString());
+        if(feature["type"]=="surfaceExtrude" && old["type"]=="surfaceExtrude"
+            && old["parameters"].toObject().value("resultMode")!=feature["parameters"].toObject().value("resultMode")){
+            CandidateEvaluation result;result.error="Surface Extrude edit retains its result mode";
+            result.diagnostics={{"featureId",feature["id"]},{"code","surface_result_mode_changed"},{"message",result.error}};return result;
+        }
+    }
     // A joint pose lives on occurrences. It cannot invalidate the solved
     // definition graph, so reuse the exact evaluated definitions after
     // validating its retained Position and limits against that graph.
@@ -1678,7 +1698,7 @@ QJsonObject CadDocument::loftCandidate(const QJsonObject& authored,const QJsonOb
 }
 
 QJsonObject CadDocument::surfaceExtrudeCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
-    const QSet<QString> allowed{"sketchId","entityIds","sideOneMm","sideTwoMm","featureId",
+    const QSet<QString> allowed{"sketchId","entityIds","resultMode","profiles","sideOneMm","sideTwoMm","featureId",
         "newFeatureId","newBodyId","ownerId","name"};
     for(auto it=arguments.begin();it!=arguments.end();++it)if(!allowed.contains(it.key()))
         throw std::invalid_argument("Unknown Surface Extrude argument");
@@ -1692,8 +1712,18 @@ QJsonObject CadDocument::surfaceExtrudeCandidate(const QJsonObject& authored,con
         {"bodyId",arguments.value("newBodyId").toString(newId())},
         {"ownerId",arguments.value("ownerId").toString(authored["documentId"].toString())},
         {"type","surfaceExtrude"},{"name","Extrude"},{"visible",true}};
-    feature["parameters"]=QJsonObject{{"sketchId",arguments["sketchId"]},{"entityIds",arguments["entityIds"]},
-        {"sideOneMm",arguments["sideOneMm"]},{"sideTwoMm",arguments["sideTwoMm"]}};
+    const auto old=feature["parameters"].toObject();
+    const auto mode=arguments.value("resultMode").toString(old.value("resultMode").toString());
+    if(index>=0 && mode!=old.value("resultMode").toString())throw std::invalid_argument("Surface Extrude edit retains its result mode");
+    if(mode=="perProfile"){
+        if(arguments.contains("entityIds") || arguments.contains("newBodyId"))throw std::invalid_argument("Per-profile Surface Extrude uses profile records and derived body IDs");
+        feature.remove("bodyId");feature["parameters"]=QJsonObject{{"resultMode",mode},{"sketchId",arguments["sketchId"]},
+            {"profiles",arguments["profiles"]},{"sideOneMm",arguments["sideOneMm"]},{"sideTwoMm",arguments["sideTwoMm"]}};
+    }else{
+        if(!mode.isEmpty() || arguments.contains("profiles"))throw std::invalid_argument("Unsupported Surface Extrude result mode");
+        feature["parameters"]=QJsonObject{{"sketchId",arguments["sketchId"]},{"entityIds",arguments["entityIds"]},
+            {"sideOneMm",arguments["sideOneMm"]},{"sideTwoMm",arguments["sideTwoMm"]}};
+    }
     if(arguments.contains("name"))feature["name"]=arguments["name"];
     if(index<0)features.append(feature);else features[index]=feature;
     candidate["features"]=features;
@@ -2402,21 +2432,27 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
             continue;
         }
         if(type=="surfaceExtrude") {
-            if(!validId(feature["bodyId"].toString()) || ids.contains(feature["bodyId"].toString())
-                || p.size()!=4 || !validId(p["sketchId"].toString()) || !p["entityIds"].isArray()
-                || p["entityIds"].toArray().isEmpty() || p["entityIds"].toArray().size()>32)
-                return "Surface Extrude needs a distinct body, one earlier sketch and 1–32 selected open curves";
-            QSet<QString> sources;
-            for(const auto& value:p["entityIds"].toArray()) {
-                if(!value.isString() || !validId(value.toString()) || sources.contains(value.toString()))
-                    return "Surface Extrude source entity IDs must be distinct stable UUIDs";
-                sources.insert(value.toString());
+            const bool plural=p["resultMode"]=="perProfile";QJsonArray groups;
+            if(plural){
+                if(feature.contains("bodyId") || p.size()!=5 || !p["profiles"].isArray() || p["profiles"].toArray().isEmpty() || p["profiles"].toArray().size()>32)
+                    return "Per-profile Surface Extrude needs 1–32 explicit open profile records and no primary body";
+                groups=p["profiles"].toArray();
+            }else{
+                if(!validId(feature["bodyId"].toString()) || ids.contains(feature["bodyId"].toString()) || p.size()!=4)
+                    return "Legacy Surface Extrude needs a distinct compound body and four retained parameters";
+                groups.append(QJsonObject{{"entityIds",p["entityIds"]}});
             }
-            for(const auto& key:{"sideOneMm","sideTwoMm"})
-                if(!p[key].isDouble() || !std::isfinite(p[key].toDouble())
-                    || p[key].toDouble()<.001 || p[key].toDouble()>100000)
-                    return "Surface Extrude Two Sides reaches must each be 0.001..100000 mm";
-            ids.insert(feature["bodyId"].toString());continue;
+            if(!validId(p["sketchId"].toString()))return "Surface Extrude needs a retained source sketch UUID";
+            QSet<QString> sources;
+            for(const auto& group:groups){const auto profile=group.toObject();const auto members=profile["entityIds"].toArray();
+                if(!group.isObject() || profile.size()!=1 || !profile["entityIds"].isArray() || members.isEmpty() || members.size()>32)
+                    return "Each Surface Extrude profile needs 1–32 explicit entity UUIDs";
+                for(const auto& value:members){if(!value.isString() || !validId(value.toString()) || sources.contains(value.toString()))
+                    return "Surface Extrude profile members must be distinct nonoverlapping retained entity UUIDs";sources.insert(value.toString());}
+            }
+            for(const auto& key:{"sideOneMm","sideTwoMm"})if(!p[key].isDouble() || !std::isfinite(p[key].toDouble()) || p[key].toDouble()<.001 || p[key].toDouble()>100000)
+                return "Surface Extrude Two Sides reaches must each be 0.001..100000 mm";
+            for(const auto& id:SurfaceExtrude::resultBodyIds(feature)){if(!validId(id) || ids.contains(id))return "Duplicate Surface Extrude result UUID";ids.insert(id);}continue;
         }
         if(type=="surfaceTrim"){
             if(p.contains("toolBodyId")){
