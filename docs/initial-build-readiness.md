@@ -28,7 +28,8 @@ NAV-001 is now accepted at `2d1a699`: free orbit works with Shift-middle drag or
 the visible Free Orbit tool and left drag/Escape. The focused Qt/GPU evidence
 is recorded in [its receipt](validation/free-orbit-navigation.md); other navigation
 children remain open except NAV-002, whose source/API/GPU camera evidence is
-accepted with its native route retained in NAV-009. Research
+accepted with its native route retained in NAV-009. NAV-003 now has accepted
+Qt/GPU event-routing evidence; physical trackpad delivery stays in NAV-008. Research
 must distinguish current public documented behavior from older screenshots and
 platform-specific gesture limitations. Detailed reference records stay external.
 
@@ -120,7 +121,9 @@ Constrained orbit and pivot controls have accepted source/API/GPU evidence;
 [NAV-009](https://github.com/rje/Alloy/issues/428) preserves the blocked native
 route. The exact paired enclosure R0.5 refusal is isolated in GEO-020; the
 cumulative rim/Cut/export gate remains Todo behind it. NAV-003 smooth zoom and
-trackpad routing is the active readiness slice. Reassess after each accepted
+Qt trackpad routing is accepted with physical-device qualification preserved in
+NAV-008. GEO-020 is the active bounded diagnostic, now informed by readable
+public two-chain selection evidence. Reassess after each accepted
 slice; never repeat an unchanged failing kernel/input probe without a new
 hypothesis. Keep one private validation editor and retire completed worktrees.
 

@@ -57,11 +57,23 @@ No reduced radius, alternate pair sweep or single-edge substitute was accepted.
 Broader TUT-016 retains the complete source tutorial; zero overlap cannot
 establish numerical clearance or physical fit.
 
-NAV-003/#409 is active next: use the prepared external event-routing contract for
-smooth wheel/pixel input, trackpad pan/pinch and cursor-centered zoom. Mac physical
-gestures remain pending real device evidence. The public full-resolution enclosure
-video exists, but exact source Fillet selections and the second Offset remain
-unresolved until permitted high-resolution frames can be inspected.
+NAV-003/#409 is independently accepted at `794613a`: cursor-anchored zoom,
+separate wheel/pixel/native gesture routes, Shift-native-pan orbit and interrupted
+stream reset. Qt05 passed the focused checks including an actual Body-priority
+viewport click after navigation; GPU output was inspected. See
+[receipt](validation/trackpad-navigation.md). Physical Mac trackpad and platform
+input qualification remain NAV-008; preferences remain NAV-007. Final nonfinite
+anchor guard is source/build reviewed; no unchanged rerun was needed.
+
+GEO-020/#429 is active for one exact-fixture contour/failure diagnostic. Newly
+archived public 1080p tutorial frames show two tangent chains, 14 edges total,
+Tangent Chain enabled and a typed 0.5 radius. This supersedes the former unknown
+about chain versus individual-edge selection, but does not establish our adapted
+edge IDs, exact source topology, per-chain counts or the second Offset value.
+Keep source images outside Git. Diagnostic commit `b4c9f35` preserves inputs and
+exceptions in JSON; it was rebuilt without repeating the unchanged failing
+geometry. The original refusal evidence remains source/log/rail enumeration,
+not the then-empty two-rear-rails JSON or an explicit atomic snapshot assertion.
 
 Current CUA documentation (refreshed 2026-10-14) now advertises held modifiers
 for macOS coordinate clicks via `click(point, {key: "super"})`. The older

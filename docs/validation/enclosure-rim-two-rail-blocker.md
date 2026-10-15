@@ -32,3 +32,17 @@ impossibility. The reproducible source target is
 are at `../Alloy-reference-records/deliverables/enclosure-rim-2026-10-14/tut023-preflight-01/`.
 TUT-023 remains pending GEO-020, the bounded two-rail Fillet child, and subsequent
 retained-tool Cut/export workflow.
+
+A later public 1080p frame audit resolves the chain-selection uncertainty:
+the source UI shows two tangent chains and 14 edges total, Tangent Chain enabled,
+and a typed 0.5 radius. This supersedes the earlier low-resolution limitation;
+it does not identify Alloy edge UUIDs, establish per-chain counts or resolve the
+other Offset value. GEO-020 must inspect actual tangent expansion, not merely
+count its two seed IDs. Reference frames and provenance remain external.
+
+The first refusal occurred during candidate construction, before commit. Its
+`two-rear-rails.json` was empty; use `final-snap-rails.json`, the source and the
+refusal log as evidence. The diagnostic now preserves inputs and caught errors
+before returning, but that source change was only rebuilt, not rerun against the
+unchanged failing case. Atomicity follows the throw-before-commit path; this run
+did not assert before/after document snapshots.
