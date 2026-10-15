@@ -1,5 +1,18 @@
 # Continuation context
 
+## Timeline visual polish (2026-10-15)
+
+User-requested REL-025/#454 is independently accepted. The timeline now uses
+original vector feature icons, scoped container borders, vertically centered
+fixed-size tiles and restrained menu arrows with clear hover/focus states.
+The focused Qt check passes existing edit/Cancel/overflow/Show latest and actual
+split-arrow popup/Escape; idle/focus menu hit geometry preserves the drag exclusion.
+Astra reviewed source and final normal/minimum app captures. No new playback,
+rollback or selection semantics were introduced. See
+[receipt](validation/timeline-visual-polish.md); external before/final captures are
+in `deliverables/timeline-polish-2026-10-15/`. `build-preview-release/alloy.app`
+contains the update; previously packaged archives and tutorial videos predate it.
+
 ## Tutorial continuation (2026-10-15)
 
 TUT-031/#453 is independently accepted: native shoehorn creation from a blank
