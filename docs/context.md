@@ -33,8 +33,12 @@ qualification and explicit correction, blocking full TUT-016. Do not silently
 change stock, shell, radius or imported reference. Public-source qualification
 confirmed the connector width/depth are unspecified; TUT-030 returns to Todo
 until qualified input or an explicit design adaptation resolves the nominal
-fixture. Physical fit remains unclaimed. GEO-019 exact grouped shoehorn diagnostic
-is the active advanced-geometry slice; no radius/mode sweep is authorized.
+fixture. Physical fit remains unclaimed. GEO-019 exact grouped shoehorn diagnostics are
+accepted as blocker evidence at `db0bc01`; orientation-only saved repair remains
+invalid and material preservation unproved. See
+[receipt](validation/shoehorn-corner-diagnostic.md). The issue returns to Todo;
+no generic healer or unchanged retry. Surface-iron SRF-017 is under read-only
+review for a materially different next step.
 
 CI-005/#423 local macOS arm64 relocation is accepted at `3c88127`: extracted
 archive, 43 observed bundled non-system libraries/zero external, Apple M4 GPU
