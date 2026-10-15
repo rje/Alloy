@@ -22,6 +22,8 @@ remain outside the repository under the dated surface tutorial contract.
 This receipt excludes native creation gestures, movie acceptance, Thicken,
 corner/perimeter finishing, tangent-plane hole placement, final organization
 and printing export. TUT-017 remains open. GEO-018 preserves the generated
-Fillet face/endpoint references required by the eventual hole support. The
-current Thicken candidate's source consumption and component ownership are
-an explicit adaptation until public evidence resolves the final body-move step.
+Fillet face/endpoint references required by the eventual hole support. The later [accepted Thicken receipt](surface-thicken.md) supersedes the original
+ownership uncertainty: the hidden source sheet remains in its component and
+New Body creates the solid at root. Later body/sketch moves belong after the
+unfinished hole stage. TUT-031 owns the native creation recording through
+Thicken; it does not close the full TUT-017 gate.

@@ -65,6 +65,7 @@
       "id": "READY-04",
       "title": "Shoehorn finishing and retained support",
       "issues": [
+        "TUT-031",
         "GEO-019",
         "GEO-018",
         "GEO-004",
@@ -73,7 +74,7 @@
       ],
       "acceptance": "Finish exact source geometry, references and complete shoehorn workflow.",
       "status": "todo",
-      "remaining": "Readiness plan in docs/initial-build-readiness.md; live issues govern acceptance."
+      "remaining": "TUT-031 active: native from-blank creation movie through accepted3mm Thicken. GEO-019 one new saved-result finite-cap investigation is separate; no repeated radius/healer sweep. Exact finishing, support/hole, organization and full TUT-017 remain open."
     },
     {
       "id": "READY-05",

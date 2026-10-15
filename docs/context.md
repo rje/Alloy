@@ -1,5 +1,25 @@
 # Continuation context
 
+## Tutorial continuation (2026-10-15)
+
+The user asked to continue tutorials. TUT-031/#453 is active: record the native
+shoehorn creation from a blank document through dimensioned spline, endpoint
+planes, section profiles, guided Loft and 3 mm Thicken. Sol owns the workflow;
+Astra independently reviews it. Camera/projection/inspection/save API use must
+be distinguished from native geometry authoring. Add accepted footage and the
+editable model to the external gallery; do not omit the main shape creation.
+The full TUT-017 gate retains grouped corner/perimeter finishing, hole support,
+organization and output. Existing core geometry evidence is reused.
+
+Astra is separately investigating one new saved-result finite-cap hypothesis
+for GEO-019/#352: explain exact UV/pcurve and shell orientation before any
+bounded exact-cap reconstruction. No repeated radius/mode/healer sweep or
+production fallback is authorized by this investigation. The result remains
+unqualified. Current public source recheck confirms three spine points and
+130/50/16 dimensions but does not resolve interpolation/tangent conditions;
+see external advanced-audit-2026-10-15/shoehorn-spine-curvature-qualification.md.
+
+
 ## Initial-build readiness priority (2026-10-14)
 
 REL-017/#420 is independently reviewed in [the preview guide](development-preview.md):
