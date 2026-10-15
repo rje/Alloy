@@ -48,13 +48,21 @@ name actions in the actual40-call iron workflow; exact input/revision invalidati
 geometry/IDs, history, reopening and native teardown pass. Cold splitting/commit
 remain about11–12s. See [receipt](validation/trim-session-reuse.md).
 
-SRF-015 is active in the small `retained-handle-bridge` checkout: actual trimmed
-boundary→middle ellipse→opposite boundary surface bridge with New Body. Integrate
-the coherent candidate before handing over the sole accepted-build/GUI lease.
-Then pursue SRF-016 sheet trials and SRF-011 Boundary Fill. TUT-018 remains open.
-All private editors are closed after REL-026. Prune temporary worktrees after
-integration/acceptance. No new package/CI run; Windows/Linux runtime testing
-remains external.
+SRF-015/#359 is independently accepted: actual retained Trim chain→ellipse→
+opposite chain New Body bridge passes core,43-call API and3/3 native controls,
+source/ellipse edits, stable IDs, history/reopen and sampled support contact.
+The intended active-component owner and component-owned native ellipse are
+verified. Clean GPU views show an open passage and smooth surfaces. See
+[receipt](validation/surface-handle-bridge.md). Cold operations take about14s;
+edit opening41s is tracked separately as REL-028/#460. No responsiveness claim.
+
+Next: SRF-016 curved crossing-sheet Trim trials/Remove/revert, then SRF-011
+Boundary Fill. Same active exteriorcomponent owns bridge and later sheets.
+External `surface-iron-2026-10-15-public-frames/closure-contract.md` records public
+sequence/unknowns; `srf016-curved-trim-implementation-plan.md` is a bounded plan,
+not implementation. The existing sheet Trim only handles planar single-line
+Extrudes; the curved actual tutorial still needs this extension. TUT-018 remains
+open. No new package/CI run; Windows/Linux runtime testing remains external.
 
 ## Timeline visual polish (2026-10-15)
 

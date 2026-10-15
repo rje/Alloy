@@ -18,7 +18,8 @@ TUT-018 surface iron. TUT-017's complete functional/API chain is independently
 accepted, including exact corner/perimeter rounds, retained hole, organization,
 movie and checked STL. ASM-012 retains separate physical Browser gesture
 qualification. SRF-017 exterior and bilateral Trim are independently accepted. SRF-015 retained
-handle bridge is active; REL-026 warm Trim responsiveness is accepted. Full closure stays open.
+handle bridge and REL-026 warm Trim responsiveness are accepted. SRF-016 curved
+sheet trials are next; full closure stays open.
 The broader 2026-10-14 priority follows: [initial-build readiness](../initial-build-readiness.md)
 now leads: navigation, everyday input, presentation, recovery, responsiveness and
 relocatable packages, interleaved with enclosure/shoehorn/surface-iron completion.
