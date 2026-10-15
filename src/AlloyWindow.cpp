@@ -10,6 +10,7 @@
 #include "ExportScope.h"
 #include "StepExchange.h"
 #include <QSaveFile>
+#include <QSettings>
 #include "ReferenceView.h"
 #include "GeometryKernel.h"
 #include "SketchGeometry.h"
@@ -256,6 +257,8 @@ AlloyWindow::AlloyWindow() {
         QStatusBar { background: #edf0f2; border-top: 1px solid #d6dce1; color: #67757e; }
     )");
     view_ = new ReferenceView;
+    const auto savedInputPreset=QSettings().value("navigation/inputPreset","default").toString();
+    view_->setInputPreset(savedInputPreset=="shiftAlt" ? savedInputPreset : "default");
     auto* pasteComponentShortcut=new QShortcut(QKeySequence::Paste,view_);
     pasteComponentShortcut->setContext(Qt::WidgetShortcut);
     connect(pasteComponentShortcut,&QShortcut::activated,this,[this]{
@@ -301,6 +304,20 @@ AlloyWindow::AlloyWindow() {
     fileMenu->addAction("Insert Local Reference…",this,[this] { execute("reference.insertDialog"); });
     fileMenu->addAction("Save As Mesh…",this,[this] { execute("document.exportMeshDialog"); });
     fileMenu->addAction("Document Settings…", this, [this] { execute("document.settings"); });
+    auto* inputMenu=fileMenu->addMenu("Navigation Controls");
+    auto* defaultInput=inputMenu->addAction("Default — wheel zoom · middle drag pan · Shift+middle drag orbit");
+    defaultInput->setObjectName("view.inputPreset.default");defaultInput->setCheckable(true);
+    connect(defaultInput,&QAction::triggered,this,[this]{execute("view.inputPreset",{{"preset","default"}});});
+    auto* alternateInput=inputMenu->addAction("Shift+Alt — right drag zoom · middle drag pan · left drag orbit");
+    alternateInput->setObjectName("view.inputPreset.shiftAlt");alternateInput->setCheckable(true);
+    connect(alternateInput,&QAction::triggered,this,[this]{execute("view.inputPreset",{{"preset","shiftAlt"}});});
+    inputMenu->addSeparator();
+    auto* resetInput=inputMenu->addAction("Reset Navigation Controls");resetInput->setObjectName("view.inputPreset.reset");
+    connect(resetInput,&QAction::triggered,this,[this]{execute("view.inputPresetReset");});
+    connect(inputMenu,&QMenu::aboutToShow,this,[this,defaultInput,alternateInput]{
+        defaultInput->setChecked(view_->inputPreset()=="default");
+        alternateInput->setChecked(view_->inputPreset()=="shiftAlt");
+    });
     fileMenu->addSeparator();
     fileMenu->addAction("Quit", this, [this] { close(); });
     file->setMenu(fileMenu); top->addWidget(file);
@@ -1126,6 +1143,10 @@ void AlloyWindow::updateTimelineDrop(const QPoint& globalPosition) {
 
 bool AlloyWindow::eventFilter(QObject* watched,QEvent* event) {
     if(componentCopyKey(watched,event))return true;
+    if(watched==view_ && event->type()==QEvent::KeyPress
+        && static_cast<QKeyEvent*>(event)->key()==Qt::Key_Escape && view_->inputGestureActive()) {
+        view_->cancelInputGesture();return true;
+    }
     if(watched==view_ && event->type()==QEvent::KeyPress
         && static_cast<QKeyEvent*>(event)->key()==Qt::Key_Escape && view_->cubeGestureActive()) {
         view_->cancelCubeGesture(true);return true;
@@ -5441,6 +5462,24 @@ void AlloyWindow::registerCommands() {
             }
             view_->setNavigationTool(mode);refreshNavigationToolControls();return view_->cameraState();
         });
+    auto inputPreset=parameter("string","App-wide mouse navigation binding preset.");
+    inputPreset.insert("enum",QJsonArray{"default","shiftAlt"});
+    add("view.inputPreset","Navigation controls","Set the app-wide mouse binding preset without editing the design.",
+        {{"preset",inputPreset}},[this](const auto& a){
+            const auto preset=a.value("preset").toString();
+            view_->setInputPreset(preset);
+            QSettings().setValue("navigation/inputPreset",preset);
+            return QJsonObject{{"preset",preset}};
+        });
+    add("view.inputPresetReset","Reset navigation controls","Restore default app-wide mouse bindings without editing the design.",{},
+        [this](const auto&){
+            view_->setInputPreset("default");QSettings().remove("navigation/inputPreset");
+            return QJsonObject{{"preset","default"}};
+        });
+    add("view.inputPresetInspect","Inspect navigation controls","Read the app-wide mouse binding preset and its documented chords.",{},
+        [this](const auto&){return QJsonObject{{"preset",view_->inputPreset()},
+            {"default","wheel zoom; middle drag pan; Shift+middle drag orbit"},
+            {"shiftAlt","Shift+Alt+right drag zoom; Shift+Alt+middle drag pan; Shift+Alt+left drag orbit"}};});
     auto orbitDelta=parameter("number","Relative free-orbit drag in logical pixels; each delta limited to +/-10000.");
     orbitDelta.insert("minimum",-10000);orbitDelta.insert("maximum",10000);
     auto orbitPivot=parameter("string","Optional pivot policy: orbitCenter (default) or viewCenter for cube dragging.");
@@ -5905,6 +5944,7 @@ QJsonObject AlloyWindow::state() const {
                 {"visible",dialogVisible},{"inputs",dialogInputs},
                 {"presentation",target=="construction.tangentPlane" || target=="joint.slider" || target=="joint.revolute" || target=="joint.cylindrical" || target.startsWith("solid.") || target.startsWith("surface.") || target.startsWith("sketch.") ? (activeDock && activeDock->isFloating() ? "floating-panel" : "docked-panel") : "dialog"},
                 {"bounds",QJsonObject{{"x",panelRect.x()},{"y",panelRect.y()},{"width",panelRect.width()},{"height",panelRect.height()}}}}}}},
+        {"navigationPreferences",QJsonObject{{"preset",view_->inputPreset()} }},
         {"viewport", QJsonObject{{"renderer", "OCCT OpenGL"}, {"gpu", view_->diagnostics()}, {"navigation",view_->cameraState()},
             {"orbitCenterPickPending",view_->orbitCenterPicking()}, {"editDisplay",view_->diagnostics().value("editDisplay")},
             {"sketchAnnotations",view_->annotations()}, {"orientation", view_->orientation}, {"gridVisible", view_->grid},
@@ -6624,7 +6664,10 @@ void AlloyWindow::refresh() {
         view_->navigationTool()=="zoom" ? QString("Left-drag: Zoom · Escape: Select") :
         view_->navigationTool()=="zoomWindow" ? QString("Draw rectangle: Zoom Window · Escape: Select") :
         QString(editingSketch ? "L: line · R: rectangle · C: circle · D: dimension · Shift-click: add selection" : "Click: select");
-    status_->setText(QString("  %3 · %4 bodies · %1 · Zoom %2%    |    "+navigationHint+" · Middle/Option-drag: pan · Shift + middle: "+(view_->orbitMode()=="constrained" ? "Constrained Orbit" : "Free Orbit")+" · Wheel: zoom")
+    const auto chordHint=view_->inputPreset()=="shiftAlt" ? QString("Shift+Alt drag: right zoom · middle pan · left %1")
+        .arg(view_->orbitMode()=="constrained" ? "Constrained Orbit" : "Free Orbit") :
+        QString("Middle/Option-drag: pan · Shift + middle: ")+(view_->orbitMode()=="constrained" ? "Constrained Orbit" : "Free Orbit")+" · Wheel: zoom";
+    status_->setText(QString("  %3 · %4 bodies · %1 · Zoom %2%    |    "+navigationHint+" · "+chordHint)
         .arg(view_->orientation).arg(qRound(view_->zoom * 100)).arg(gpu.value("hardwareAccelerated").toBool() ? "OCCT OpenGL" : "GPU UNQUALIFIED: " + gpu.value("qualification").toString()).arg(gpu.value("displayedBodyReferences").toArray().size()));
 }
 

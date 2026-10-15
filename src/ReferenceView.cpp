@@ -417,6 +417,17 @@ void ReferenceView::setNavigationTool(const QString& mode) {
     if(mode=="select")unsetCursor();
     else setCursor(mode=="zoomWindow" ? Qt::CrossCursor : Qt::OpenHandCursor);
 }
+void ReferenceView::setInputPreset(const QString& preset) {
+    if(inputPreset_==preset)return;
+    cancelInputGesture();
+    inputPreset_=preset=="shiftAlt" ? "shiftAlt" : "default";
+}
+void ReferenceView::cancelInputGesture() {
+    if(orbitButton_==Qt::LeftButton || panButton_==Qt::LeftButton)alternateOrbitSuppressRelease_=true;
+    if(zoomButton_==Qt::RightButton)alternateRightContextSuppressed_=true;
+    orbitButton_=Qt::NoButton;panButton_=Qt::NoButton;zoomButton_=Qt::NoButton;
+    if(navigationTool_=="select" && !freeOrbitTool_)unsetCursor();
+}
 QStringList ReferenceView::cubeRegions() { return cubeOrientations().keys(); }
 QJsonObject ReferenceView::cubeHit(double x,double y) {
     if(view_.IsNull() || viewCube_.IsNull() || !std::isfinite(x) || !std::isfinite(y) ||
@@ -2869,6 +2880,9 @@ QImage ReferenceView::framebuffer() {
     return image;
 }
 void ReferenceView::mousePressEvent(QMouseEvent* e) {
+    const bool alternate=inputPreset_=="shiftAlt";
+    const bool chord=e->modifiers()==(Qt::ShiftModifier|Qt::AltModifier);
+    if(e->button()==Qt::RightButton)alternateRightContextSuppressed_=false;
     if(e->button()==Qt::LeftButton && e->position().x()>=width()-180 && e->position().y()<=180) {
         const auto hit=cubeHit(e->position().x(),e->position().y());
         if(!hit.isEmpty()) {
@@ -2895,12 +2909,18 @@ void ReferenceView::mousePressEvent(QMouseEvent* e) {
         if(dispatch)dispatch("view.orbitCenterPick",{{"x",e->position().x()},{"y",e->position().y()}});
         setFocus(Qt::MouseFocusReason);e->accept();return;
     }
-    if((e->button()==Qt::MiddleButton && e->modifiers().testFlag(Qt::ShiftModifier))
+    if(alternate && chord && e->button()==Qt::RightButton) {
+        zoomButton_=Qt::RightButton;zoomAnchor_=zoomLast_=e->position();alternateRightContextSuppressed_=true;
+        setCursor(Qt::ClosedHandCursor);setFocus(Qt::MouseFocusReason);e->accept();return;
+    }
+    if((alternate && chord && e->button()==Qt::LeftButton)
+        || (!alternate && e->button()==Qt::MiddleButton && e->modifiers().testFlag(Qt::ShiftModifier))
         || (e->button()==Qt::LeftButton && freeOrbitTool_ && !e->modifiers().testFlag(Qt::AltModifier))) {
         orbitButton_=e->button();orbitLast_=e->position();setCursor(Qt::ClosedHandCursor);
         setFocus(Qt::MouseFocusReason);e->accept();return;
     }
-    if(e->button()==Qt::MiddleButton || (e->button()==Qt::LeftButton && e->modifiers().testFlag(Qt::AltModifier))) {
+    if((alternate && chord && e->button()==Qt::MiddleButton) ||
+       (!alternate && (e->button()==Qt::MiddleButton || (e->button()==Qt::LeftButton && e->modifiers().testFlag(Qt::AltModifier))))) {
         panButton_=e->button();last_=e->position();setCursor(Qt::ClosedHandCursor);
         setFocus(Qt::MouseFocusReason);e->accept();return;
     }
@@ -3085,6 +3105,14 @@ void ReferenceView::mouseMoveEvent(QMouseEvent* e) {
         if(dispatch && !delta.isNull())dispatch("view.orbit",{{"deltaX",delta.x()},{"deltaY",delta.y()}});
         e->accept();return;
     }
+    if(zoomButton_!=Qt::NoButton) {
+        if(!e->buttons().testFlag(zoomButton_)){zoomButton_=Qt::NoButton;unsetCursor();e->accept();return;}
+        const auto delta=e->position()-zoomLast_;zoomLast_=e->position();
+        const double factor=std::exp(-delta.y()*0.012);
+        if(dispatch && std::isfinite(factor) && factor>0 && delta.y()!=0)
+            dispatch("view.zoom",{{"factor",std::clamp(factor,0.1,10.0)},{"x",zoomAnchor_.x()},{"y",zoomAnchor_.y()}});
+        e->accept();return;
+    }
     if(panButton_!=Qt::NoButton) {
         if(!e->buttons().testFlag(panButton_)){panButton_=Qt::NoButton;unsetCursor();e->accept();return;}
         const auto delta=e->position()-last_;last_=e->position();
@@ -3186,6 +3214,7 @@ void ReferenceView::leaveEvent(QEvent* e) {
 }
 void ReferenceView::keyPressEvent(QKeyEvent* e) {
     if(e->key()==Qt::Key_Escape && cubePressHandled_) {cancelCubeGesture(true);e->accept();return;}
+    if(e->key()==Qt::Key_Escape && inputGestureActive()) {cancelInputGesture();e->accept();return;}
     if(e->key()==Qt::Key_Escape && navigationTool_!="select") {
         if(dispatch)dispatch("view.navigationTool",{{"mode","select"}});e->accept();return;
     }
@@ -3208,6 +3237,7 @@ void ReferenceView::keyReleaseEvent(QKeyEvent* e) {
     QWidget::keyReleaseEvent(e);
 }
 void ReferenceView::mouseReleaseEvent(QMouseEvent* e) {
+    if(alternateOrbitSuppressRelease_ && e->button()==Qt::LeftButton){alternateOrbitSuppressRelease_=false;e->accept();return;}
     if(cubeSuppressRelease_ && e->button()==Qt::LeftButton){cubeSuppressRelease_=false;e->accept();return;}
     if(cubePressHandled_ && e->button()==Qt::LeftButton){
         const auto region=cubePressedRegion_;
@@ -3229,6 +3259,7 @@ void ReferenceView::mouseReleaseEvent(QMouseEvent* e) {
     if(orbitCenterPressHandled_ && e->button()==Qt::LeftButton){orbitCenterPressHandled_=false;e->accept();return;}
     if(e->button()==orbitButton_) {orbitButton_=Qt::NoButton;unsetCursor();e->accept();return;}
     if(e->button()==panButton_) {panButton_=Qt::NoButton;unsetCursor();e->accept();return;}
+    if(e->button()==zoomButton_) {zoomButton_=Qt::NoButton;unsetCursor();e->accept();return;}
     if(e->button()==Qt::LeftButton && !sketchLineArcDrag_.isEmpty()){
         const bool moved=sketchLineArcDrag_.value("moved").toBool();sketchLineArcDrag_={};
         dispatch("sketch.lineArcDrag",moved ? QJsonObject{{"phase","end"},{"x",e->position().x()},{"y",e->position().y()}}
@@ -3281,6 +3312,10 @@ void ReferenceView::mouseReleaseEvent(QMouseEvent* e) {
     QWidget::mouseReleaseEvent(e);
 }
 void ReferenceView::mouseDoubleClickEvent(QMouseEvent* e) {
+    if(inputPreset_=="shiftAlt" && e->button()==Qt::LeftButton &&
+       e->modifiers()==(Qt::ShiftModifier|Qt::AltModifier)){
+        cancelInputGesture();alternateOrbitSuppressRelease_=true;e->accept();return;
+    }
     if(e->button()==Qt::LeftButton &&
         (cubePressHandled_ || (e->position().x()>=width()-180 && e->position().y()<=180 &&
             !cubeHit(e->position().x(),e->position().y()).isEmpty()))) {
@@ -3303,6 +3338,7 @@ void ReferenceView::recordContextMenu(const QJsonObject& state,bool shown) {
     lastContextMenu_=state;if(shown)++contextMenuShownCount_;
 }
 void ReferenceView::contextMenuEvent(QContextMenuEvent* e) {
+    if(alternateRightContextSuppressed_){alternateRightContextSuppressed_=false;e->accept();return;}
     ++contextMenuEventCount_;
     const bool sketchActive=!sketchPlane_.isEmpty();
     const bool selectTool=decorationSelection_.value("tool")=="select";
@@ -3445,6 +3481,7 @@ void ReferenceView::wheelEvent(QWheelEvent* e) {
 bool ReferenceView::event(QEvent* e) {
     if(e->type()==QEvent::WindowDeactivate || e->type()==QEvent::Hide || e->type()==QEvent::FocusOut) {
         nativeGestureActive_=false;
+        cancelInputGesture();
         cancelCubeGesture(cubePressHandled_);
         cancelNavigationGesture(navigationPressActive_);
     }

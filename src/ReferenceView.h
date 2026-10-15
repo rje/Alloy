@@ -50,6 +50,10 @@ public:
     bool zoomWindow(const QRectF& rectangle);
     void setNavigationTool(const QString& mode);
     QString navigationTool() const { return navigationTool_; }
+    void setInputPreset(const QString& preset);
+    QString inputPreset() const { return inputPreset_; }
+    bool inputGestureActive() const { return panButton_!=Qt::NoButton || orbitButton_!=Qt::NoButton || zoomButton_!=Qt::NoButton; }
+    void cancelInputGesture();
     bool navigationDragging() const { return navigationPressActive_; }
     void cancelNavigationGesture(bool suppressRelease=false);
     void setOrbitMode(const QString& mode);
@@ -236,9 +240,14 @@ private:
     Handle(Graphic3d_Camera) baseCamera_;
     QString error_;
     QPointF last_;
+    QString inputPreset_ = "default";
     Qt::MouseButton panButton_ = Qt::NoButton;
     QPointF orbitLast_;
     Qt::MouseButton orbitButton_ = Qt::NoButton;
+    QPointF zoomLast_,zoomAnchor_;
+    Qt::MouseButton zoomButton_ = Qt::NoButton;
+    bool alternateRightContextSuppressed_ = false;
+    bool alternateOrbitSuppressRelease_ = false;
     bool freeOrbitTool_ = false;
     QString navigationTool_ = "select";
     bool navigationPressActive_ = false;
