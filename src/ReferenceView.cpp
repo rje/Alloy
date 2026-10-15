@@ -279,13 +279,13 @@ void ReferenceView::restoreCameraState(const QJsonObject& state) {
     }
     sync();refreshOrbitCenterMarker();
 }
-void ReferenceView::orbitFree(double deltaX,double deltaY) {
+void ReferenceView::orbitFree(double deltaX,double deltaY,bool useCustomPivot) {
     if(view_.IsNull() || !std::isfinite(deltaX) || !std::isfinite(deltaY))return;
     // Rotate the camera basis and the persistent view-center offset together.
     // This leaves the chosen pivot at the same screen position even after pan.
     constexpr double radiansPerPixel=std::numbers::pi/600;
     gp_Vec forward(view_->Camera()->Direction()),up(view_->Camera()->Up());
-    const auto pivot=customOrbitCenter_.value_or(sceneCenter_);
+    const auto pivot=useCustomPivot ? customOrbitCenter_.value_or(sceneCenter_) : viewCenter_;
     gp_Vec centerOffset(pivot,viewCenter_);
     gp_Vec right=forward.Crossed(up);
     if(right.Magnitude()<1e-9)return;
@@ -303,12 +303,12 @@ void ReferenceView::orbitFree(double deltaX,double deltaY) {
     customDirection_=gp_Dir(forward);customUp_=gp_Dir(up);
     orientation="custom";sync();
 }
-void ReferenceView::orbitConstrained(double deltaX,double deltaY) {
+void ReferenceView::orbitConstrained(double deltaX,double deltaY,bool useCustomPivot) {
     if(view_.IsNull() || !std::isfinite(deltaX) || !std::isfinite(deltaY))return;
     constexpr double radiansPerPixel=std::numbers::pi/600;
     constexpr double poleMargin=std::numbers::pi/36; // Alloy policy: 5° from either pole.
     const gp_Vec worldUp(0,0,1);
-    const auto pivot=customOrbitCenter_.value_or(sceneCenter_);
+    const auto pivot=useCustomPivot ? customOrbitCenter_.value_or(sceneCenter_) : viewCenter_;
     gp_Vec centerOffset(pivot,viewCenter_),forward(view_->Camera()->Direction());
     const gp_Ax1 yaw(gp_Pnt{},gp_Dir(worldUp));
     forward.Rotate(yaw,-deltaX*radiansPerPixel);
@@ -329,9 +329,9 @@ void ReferenceView::orbitConstrained(double deltaX,double deltaY) {
     customDirection_=gp_Dir(forward);customUp_=gp_Dir(levelUp);
     orientation="custom";sync();
 }
-void ReferenceView::orbitByMode(double deltaX,double deltaY) {
-    if(orbitMode_=="constrained")orbitConstrained(deltaX,deltaY);
-    else orbitFree(deltaX,deltaY);
+void ReferenceView::orbitByMode(double deltaX,double deltaY,bool useCustomPivot) {
+    if(orbitMode_=="constrained")orbitConstrained(deltaX,deltaY,useCustomPivot);
+    else orbitFree(deltaX,deltaY,useCustomPivot);
 }
 bool ReferenceView::zoomAt(double factor,std::optional<QPointF> cursor) {
     if(!std::isfinite(factor) || factor<=0)return false;
@@ -379,6 +379,11 @@ bool ReferenceView::setCubeOrientation(const QString& region) {
     view_->SetCamera(previous);
     customDirection_=direction;customUp_=up;orientation="custom";
     sync();return true;
+}
+void ReferenceView::cancelCubeGesture(bool suppressRelease) {
+    cubePressHandled_=false;cubeDragging_=false;cubePressedRegion_.clear();
+    cubeSuppressRelease_=cubeSuppressRelease_ || suppressRelease;
+    if(!cubeHoverActive_)unsetCursor();
 }
 void ReferenceView::setOrbitMode(const QString& mode) {
     const QString next=mode=="constrained" ? "constrained" : "free";
@@ -2707,8 +2712,9 @@ void ReferenceView::mousePressEvent(QMouseEvent* e) {
     if(e->button()==Qt::LeftButton && e->position().x()>=width()-180 && e->position().y()<=180) {
         const auto hit=cubeHit(e->position().x(),e->position().y());
         if(!hit.isEmpty()) {
-            cubePressHandled_=true;
-            if(dispatch)dispatch("view.cubeOrient",{{"region",hit.value("region")}});
+            cubeSuppressRelease_=false;
+            cubePressHandled_=true;cubeDragging_=false;
+            cubePress_=cubeLast_=e->position();cubePressedRegion_=hit.value("region").toString();
             setFocus(Qt::MouseFocusReason);e->accept();return;
         }
     }
@@ -2872,8 +2878,16 @@ void ReferenceView::mousePressEvent(QMouseEvent* e) {
 }
 void ReferenceView::mouseMoveEvent(QMouseEvent* e) {
     if(cubePressHandled_) {
-        if(!e->buttons().testFlag(Qt::LeftButton))cubePressHandled_=false;
-        else {e->accept();return;}
+        if(!e->buttons().testFlag(Qt::LeftButton)){cancelCubeGesture();e->accept();return;}
+        if(!cubeDragging_ && QLineF(cubePress_,e->position()).length()>=QApplication::startDragDistance()) {
+            cubeDragging_=true;cubeHoverActive_=false;setCursor(Qt::ClosedHandCursor);
+        }
+        if(cubeDragging_) {
+            const auto delta=e->position()-cubeLast_;
+            if(dispatch && !delta.isNull())dispatch("view.orbit",{{"deltaX",delta.x()},{"deltaY",delta.y()},{"pivot","viewCenter"}});
+            cubeLast_=e->position();
+        }
+        e->accept();return;
     }
     if(orbitCenterPicking_){e->accept();return;}
     if(orbitButton_!=Qt::NoButton) {
@@ -2982,6 +2996,7 @@ void ReferenceView::leaveEvent(QEvent* e) {
     QWidget::leaveEvent(e);
 }
 void ReferenceView::keyPressEvent(QKeyEvent* e) {
+    if(e->key()==Qt::Key_Escape && cubePressHandled_) {cancelCubeGesture(true);e->accept();return;}
     if(e->key()==Qt::Key_Escape && (freeOrbitTool_ || orbitButton_!=Qt::NoButton)) {
         orbitButton_=Qt::NoButton;unsetCursor();
         if(freeOrbitTool_ && dispatch)dispatch("view.orbitTool",{{"active",false}});
@@ -3001,7 +3016,14 @@ void ReferenceView::keyReleaseEvent(QKeyEvent* e) {
     QWidget::keyReleaseEvent(e);
 }
 void ReferenceView::mouseReleaseEvent(QMouseEvent* e) {
-    if(cubePressHandled_ && e->button()==Qt::LeftButton){cubePressHandled_=false;e->accept();return;}
+    if(cubeSuppressRelease_ && e->button()==Qt::LeftButton){cubeSuppressRelease_=false;e->accept();return;}
+    if(cubePressHandled_ && e->button()==Qt::LeftButton){
+        const auto region=cubePressedRegion_;
+        const bool click=!cubeDragging_;
+        cancelCubeGesture(false);
+        if(click && !region.isEmpty() && dispatch)dispatch("view.cubeOrient",{{"region",region}});
+        e->accept();return;
+    }
     if(orbitCenterPressHandled_ && e->button()==Qt::LeftButton){orbitCenterPressHandled_=false;e->accept();return;}
     if(e->button()==orbitButton_) {orbitButton_=Qt::NoButton;unsetCursor();e->accept();return;}
     if(e->button()==panButton_) {panButton_=Qt::NoButton;unsetCursor();e->accept();return;}
@@ -3059,7 +3081,10 @@ void ReferenceView::mouseReleaseEvent(QMouseEvent* e) {
 void ReferenceView::mouseDoubleClickEvent(QMouseEvent* e) {
     if(e->button()==Qt::LeftButton &&
         (cubePressHandled_ || (e->position().x()>=width()-180 && e->position().y()<=180 &&
-            !cubeHit(e->position().x(),e->position().y()).isEmpty()))) {e->accept();return;}
+            !cubeHit(e->position().x(),e->position().y()).isEmpty()))) {
+        cubePressHandled_=true;cubeDragging_=true;cubePressedRegion_.clear();
+        cubePress_=cubeLast_=e->position();e->accept();return;
+    }
     if((freeOrbitTool_ || orbitCenterPicking_) && e->button()==Qt::LeftButton){e->accept();return;}
     if(e->button()==Qt::LeftButton && !sketchPlane_.isEmpty()) {
         const auto picked=pickAnnotation(e->position().x(),e->position().y());
@@ -3213,7 +3238,7 @@ void ReferenceView::wheelEvent(QWheelEvent* e) {
 bool ReferenceView::event(QEvent* e) {
     if(e->type()==QEvent::WindowDeactivate || e->type()==QEvent::Hide || e->type()==QEvent::FocusOut) {
         nativeGestureActive_=false;
-        cubePressHandled_=false;
+        cancelCubeGesture(cubePressHandled_);
     }
     if(e->type()!=QEvent::NativeGesture)return QWidget::event(e);
     auto* gesture=static_cast<QNativeGestureEvent*>(e);

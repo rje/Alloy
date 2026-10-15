@@ -39,9 +39,9 @@ public:
     QJsonObject diagnostics() const;
     QJsonObject cameraState() const;
     void restoreCameraState(const QJsonObject& state);
-    void orbitFree(double deltaX,double deltaY);
-    void orbitConstrained(double deltaX,double deltaY);
-    void orbitByMode(double deltaX,double deltaY);
+    void orbitFree(double deltaX,double deltaY,bool useCustomPivot=true);
+    void orbitConstrained(double deltaX,double deltaY,bool useCustomPivot=true);
+    void orbitByMode(double deltaX,double deltaY,bool useCustomPivot=true);
     bool zoomAt(double factor,std::optional<QPointF> cursor=std::nullopt);
     void setOrbitMode(const QString& mode);
     void centerNamedView() { viewCenter_=sceneCenter_; }
@@ -50,6 +50,8 @@ public:
     QJsonObject cubeHit(double x,double y);
     bool setCubeOrientation(const QString& region);
     static QStringList cubeRegions();
+    bool cubeGestureActive() const { return cubePressHandled_; }
+    void cancelCubeGesture(bool suppressRelease=false);
     void beginOrbitCenterPick();
     void cancelOrbitCenterPick();
     bool orbitCenterPicking() const { return orbitCenterPicking_; }
@@ -227,6 +229,10 @@ private:
     bool nativeGestureActive_=false;
     Handle(AIS_ViewCube) viewCube_;
     bool cubePressHandled_=false;
+    bool cubeSuppressRelease_=false;
+    bool cubeDragging_=false;
+    QPointF cubePress_,cubeLast_;
+    QString cubePressedRegion_;
     bool cubeHoverActive_=false;
     bool orbitCenterPicking_ = false;
     bool orbitCenterPressHandled_ = false;

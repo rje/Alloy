@@ -218,7 +218,7 @@ fail without applying the command. Error codes include `invalid_request`,
 | `view.cubeHit` | viewport-local logical `x`, `y`; inspect the detected orientation-cube `region` and `kind` (`face`, `edge`, `corner`) without selecting document geometry |
 | `view.zoom` | `factor`: 0.1–10; resulting scale clamps to 0.1–10. Optional viewport-local logical `x` and `y` must be supplied together to keep that screen point fixed. Omitting them preserves the existing pan and zooms about the camera target |
 | `view.pan` | `x`, `y`: relative logical-pixel deltas, each within ±10000 |
-| `view.orbit` | `deltaX`, `deltaY`: relative logical-pixel deltas, each within ±10000; orbit the real camera around the active scene/custom pivot in the selected mode |
+| `view.orbit` | `deltaX`, `deltaY`: relative logical-pixel deltas, each within ±10000; orbit the real camera in the selected mode. Optional `pivot` is `orbitCenter` (default, using stored custom center or scene center) or `viewCenter` (orientation-cube drag, ignoring but retaining the stored custom center) |
 | `view.orbitMode` | `mode`: `free` or `constrained`; the visible Orbit menu retains the selected mode. Constrained uses world Z up and a level horizon |
 | `view.orbitTool` | `active`: boolean; visible Orbit control lets a left canvas drag use the selected mode; Escape exits |
 | `view.orbitCenterBegin` / `view.orbitCenterPick` | Start a one-shot visible-surface pivot pick, then provide viewport-local logical `x`, `y`; the result includes the exact body surface hit and camera state. A staged body preview refuses a pivot pick |
@@ -518,11 +518,12 @@ marker remains separate from model selection. The initial pivot is the fitted
 scene center; constrained Z-up, the five-degree pole margin and Home pivot
 retention are explicit Alloy policies. Physical trackpad and platform delivery,
 configurable up axis and an automatic orbit-center policy remain separate
-navigation work. The visible Alloy orientation cube now handles hover and
-face/edge/corner clicks through `view.cubeOrient`; its drag, distinct Home,
-adjacent/roll controls and broader physical-input validation remain separate.
-Cube clicks retain a custom pivot for later Shift-Orbit but rotate around the
-ordinary view target. Qt-delivered
+navigation work. The visible Alloy orientation cube handles hover, face/edge/corner
+clicks through `view.cubeOrient` and thresholded drags through `view.orbit` with
+`pivot: "viewCenter"`. Cube navigation retains the custom pivot for later
+Shift-Orbit while rotating around the ordinary view target. Distinct Home and
+adjacent/roll controls, plus broader physical-input validation, remain separate.
+Qt-delivered
 touchpad pixel-wheel input pans, or orbits with Shift, while wheel angle input zooms
 at its cursor. Native pinch zooms at its cursor; native pan uses the same Pan or
 Shift-Orbit commands. A native Begin/End stream owns interleaved touchpad wheel

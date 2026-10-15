@@ -4,10 +4,12 @@
 #include "ReferenceView.h"
 #include <QApplication>
 #include <QDir>
+#include <QFile>
 #include <QJsonDocument>
 #include <QMouseEvent>
 #include <QSet>
 #include <QTest>
+#include <QWindow>
 #include <algorithm>
 #include <cmath>
 
@@ -107,6 +109,51 @@ private slots:
         QCOMPARE(call(window,"document.inspect").value("revision"),before.value("revision"));
         QCOMPARE(window.state().value("selection"),selection);
         call(window,"capture.screenshot",{{"path",output+"/cube-after-corner.png"}});
+        // A cube press becomes an orientation click only on release. Once the
+        // pointer crosses Qt's drag threshold it uses the shared orbit command
+        // about the ordinary view target, leaving Set Orbit Center stored.
+        const auto face=hitFor("face");QVERIFY(face.x()>=0);
+        const auto beforeDrag=nav(window);
+        const auto beforeDirection=direction(window);
+        const auto center=beforeDrag.value("viewCenter").toArray();
+        const auto storedPivot=beforeDrag.value("orbitPivot").toArray();
+        QVERIFY(center.size()==3 && storedPivot.size()==3);
+        double pivotSeparation=0;
+        for(int i=0;i<3;++i)pivotSeparation+=std::pow(center[i].toDouble()-storedPivot[i].toDouble(),2);
+        QVERIFY(pivotSeparation>1);
+        QTest::mousePress(view,Qt::LeftButton,Qt::NoModifier,face);
+        QVERIFY(view->cubeGestureActive());
+        QCOMPARE(direction(window),beforeDirection);
+        auto dragMove=[&](QPoint local){
+            QMouseEvent move(QEvent::MouseMove,QPointF(local),view->mapToGlobal(local),
+                Qt::NoButton,Qt::LeftButton,Qt::NoModifier);
+            QApplication::sendEvent(view,&move);
+        };
+        dragMove(face+QPoint(27,15));dragMove(face+QPoint(49,29));
+        const auto dragged=direction(window);QVERIFY(dragged!=beforeDirection);
+        QCOMPARE(nav(window).value("viewCenter"),QJsonValue(center));
+        QCOMPARE(nav(window).value("orbitPivot"),QJsonValue(storedPivot));
+        QTest::mouseRelease(view,Qt::LeftButton,Qt::NoModifier,face+QPoint(49,29));
+        QVERIFY(!view->cubeGestureActive());QCOMPARE(direction(window),dragged);
+        view->sync();QCOMPARE(direction(window),dragged);
+        const auto tab=call(window,"document.tabs").value("activeTabId").toString();QVERIFY(!tab.isEmpty());
+        call(window,"document.tabNew");call(window,"document.tabActivate",{{"tabId",tab}});
+        QCOMPARE(direction(window),dragged);
+        QCOMPARE(nav(window).value("orbitPivot"),QJsonValue(storedPivot));
+        call(window,"capture.screenshot",{{"path",output+"/cube-dragged.png"}});
+        const QJsonObject geometry{{"viewWidth",view->width()},{"viewHeight",view->height()},
+            {"viewDevicePixelRatio",view->devicePixelRatioF()},
+            {"nativeWidth",view->windowHandle() ? view->windowHandle()->width() : 0},
+            {"nativeHeight",view->windowHandle() ? view->windowHandle()->height() : 0},
+            {"windowWidth",window.width()},{"windowHeight",window.height()}};
+        QFile geometryFile(output+"/viewport-geometry.json");QVERIFY(geometryFile.open(QIODevice::WriteOnly));
+        geometryFile.write(QJsonDocument(geometry).toJson(QJsonDocument::Indented));geometryFile.close();
+        call(window,"view.orbit",{{"deltaX",17},{"deltaY",8}});
+        QVERIFY(nav(window).value("viewCenter")!=QJsonValue(center));
+        QCOMPARE(nav(window).value("orbitPivot"),QJsonValue(storedPivot));
+        QCOMPARE(call(window,"document.inspect").value("authored"),before.value("authored"));
+        QCOMPARE(call(window,"document.inspect").value("undo"),before.value("undo"));
+        QCOMPARE(window.state().value("selection"),selection);
         call(window,"document.save",{{"path",output+"/view-cube.alloy"}});window.close();
     }
 };

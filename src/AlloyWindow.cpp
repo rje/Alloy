@@ -1022,6 +1022,10 @@ void AlloyWindow::updateTimelineDrop(const QPoint& globalPosition) {
 bool AlloyWindow::eventFilter(QObject* watched,QEvent* event) {
     if(componentCopyKey(watched,event))return true;
     if(watched==view_ && event->type()==QEvent::KeyPress
+        && static_cast<QKeyEvent*>(event)->key()==Qt::Key_Escape && view_->cubeGestureActive()) {
+        view_->cancelCubeGesture(true);return true;
+    }
+    if(watched==view_ && event->type()==QEvent::KeyPress
         && static_cast<QKeyEvent*>(event)->key()==Qt::Key_Escape && view_->orbitCenterPicking()) {
         execute("view.orbitCenterCancel");return true;
     }
@@ -5216,9 +5220,12 @@ void AlloyWindow::registerCommands() {
     add("view.pan", "Pan reference view", "Translate the grid; middle-mouse drag uses this command.", {{"x", offset}, {"y", offset}}, [this](const auto& a) { view_->pan += QPointF(a.value("x").toDouble(), a.value("y").toDouble()); return QJsonObject{}; });
     auto orbitDelta=parameter("number","Relative free-orbit drag in logical pixels; each delta limited to +/-10000.");
     orbitDelta.insert("minimum",-10000);orbitDelta.insert("maximum",10000);
+    auto orbitPivot=parameter("string","Optional pivot policy: orbitCenter (default) or viewCenter for cube dragging.");
+    orbitPivot.insert("enum",QJsonArray{"orbitCenter","viewCenter"});
     add("view.orbit","Orbit","Rotate the actual camera in the selected Free or Constrained mode without editing the design.",
-        {{"deltaX",orbitDelta},{"deltaY",orbitDelta}},[this](const auto& a){
-            view_->orbitByMode(a.value("deltaX").toDouble(),a.value("deltaY").toDouble());return view_->cameraState();
+        {{"deltaX",orbitDelta},{"deltaY",orbitDelta},{"pivot",optional(orbitPivot)}},[this](const auto& a){
+            view_->orbitByMode(a.value("deltaX").toDouble(),a.value("deltaY").toDouble(),
+                a.value("pivot").toString()!="viewCenter");return view_->cameraState();
         });
     auto orbitMode=parameter("string","Free or horizon-level Constrained Orbit mode.");
     orbitMode.insert("enum",QJsonArray{"free","constrained"});
