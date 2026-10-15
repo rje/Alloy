@@ -54,6 +54,7 @@ public:
     QJsonObject assemblyState(std::optional<double> transientPositionMm = {}) const;
     const std::vector<EvaluatedSketch>& sketches() const { return evaluation_->sketches; }
     QString commitCanvases(const QJsonArray& canvases,const QString& label);
+    QString commitNamedViews(const QJsonArray& views,const QString& label);
     QString commitAnalyses(const QJsonArray& analyses, const QString& label);
     static QJsonObject sectionCandidate(const QJsonObject& authored, const QJsonObject& args);
     QString commit(const QJsonObject& candidate, const QString& label);

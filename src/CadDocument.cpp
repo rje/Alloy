@@ -34,6 +34,29 @@
 
 namespace {
 bool validId(const QString& id) { return !QUuid(id).isNull() && QUuid(id).toString(QUuid::WithoutBraces) == id; }
+bool validNamedViewCamera(const QJsonObject& camera) {
+    static const QSet<QString> fields{"orientation","customDirection","customUp","centerX","centerY","centerZ",
+        "viewCenter","scale","zoom","panX","panY","projectionPolicy"};
+    if(camera.size()!=fields.size() || camera.value("orientation")!="custom")return false;
+    for(auto it=camera.begin();it!=camera.end();++it)if(!fields.contains(it.key()))return false;
+    auto number=[&](const QString& key,double limit){return camera.value(key).isDouble()
+        && std::isfinite(camera.value(key).toDouble()) && std::abs(camera.value(key).toDouble())<=limit;};
+    for(const auto& key:{"centerX","centerY","centerZ","panX","panY"})if(!number(key,1e9))return false;
+    if(!number("scale",1e9) || camera.value("scale").toDouble()<1e-6 ||
+       !number("zoom",10) || camera.value("zoom").toDouble()<0.1)return false;
+    const auto policy=camera.value("projectionPolicy").toString();
+    if(policy!="orthographic" && policy!="perspective" && policy!="hybrid")return false;
+    auto vector=[&](const QString& key){const auto values=camera.value(key).toArray();
+        if(values.size()!=3)return false;
+        for(const auto& value:values)if(!value.isDouble() || !std::isfinite(value.toDouble()) || std::abs(value.toDouble())>1e9)return false;
+        return true;};
+    if(!vector("viewCenter") || !vector("customDirection") || !vector("customUp"))return false;
+    const auto direction=camera.value("customDirection").toArray(),up=camera.value("customUp").toArray();
+    const double dx=direction[0].toDouble(),dy=direction[1].toDouble(),dz=direction[2].toDouble();
+    const double ux=up[0].toDouble(),uy=up[1].toDouble(),uz=up[2].toDouble();
+    const double dn=dx*dx+dy*dy+dz*dz,un=ux*ux+uy*uy+uz*uz,dot=dx*ux+dy*uy+dz*uz;
+    return dn>0.5 && dn<1.5 && un>0.5 && un<1.5 && dn*un-dot*dot>0.25;
+}
 QJsonArray resolvedLengthRows(const QJsonObject& authored) {
     const auto source=authored.value("userParameters").toArray();
     QMap<QString,QJsonObject> byId;
@@ -1035,6 +1058,13 @@ QString CadDocument::commitCanvases(const QJsonArray& canvases,const QString& la
     if(candidate!=authored_)history_.push(new DocumentEdit(*this,candidate,evaluation_,label));
     return {};
 }
+QString CadDocument::commitNamedViews(const QJsonArray& views,const QString& label) {
+    auto candidate=authored_;candidate["namedViews"]=views;lastEvaluationError_={};
+    const auto error=validateStructure(candidate);
+    if(!error.isEmpty()){lastEvaluationError_={{"code","invalid_named_view"},{"message",error}};return error;}
+    if(candidate!=authored_)history_.push(new DocumentEdit(*this,candidate,evaluation_,label));
+    return {};
+}
 QString CadDocument::commitAnalyses(const QJsonArray& analyses,const QString& label) {
     auto candidate=authored_;candidate["analyses"]=analyses;
     lastEvaluationError_={};const auto error=validateStructure(candidate);
@@ -1875,6 +1905,18 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
         if(ids.contains(row["id"].toString()))return "Duplicate canvas identity";
         ids.insert(row["id"].toString());
     }
+    if(candidate.contains("namedViews") && !candidate["namedViews"].isArray())return "Named views must be an array";
+    QSet<QString> viewNames{"isometric","rear isometric","top","bottom","front","back","right","left","home"};
+    for(const auto& entry:candidate["namedViews"].toArray()) {
+        const auto row=entry.toObject();
+        const auto id=row.value("id").toString(),name=row.value("name").toString();
+        if(!entry.isObject() || row.size()!=3 || !validId(id) || ids.contains(id) ||
+            !row.value("name").isString() || name.isEmpty() || name.trimmed()!=name || name.size()>64 ||
+            name.contains('\n') || name.contains('\r') || viewNames.contains(name.toCaseFolded()) ||
+            !row.value("camera").isObject() || !validNamedViewCamera(row.value("camera").toObject()))
+            return "Named view requires a unique ID/name and a finite camera pose";
+        ids.insert(id);viewNames.insert(name.toCaseFolded());
+    }
     if(candidate.contains("analyses") && !candidate["analyses"].isArray())return "Analyses must be an array";
     int activeSections=0;
     for(const auto& entry:candidate["analyses"].toArray()) {
@@ -2469,7 +2511,7 @@ QJsonObject CadDocument::state() const {
     }
     QJsonArray evaluatedPlanes;
     for(const auto& plane:evaluation_->constructionPlanes)evaluatedPlanes.append(QJsonObject{{"ownerId",plane.ownerId},{"featureId",plane.featureId},{"name",plane.name},{"visible",plane.visible},{"frame",plane.frame}});
-    return {{"activeOwnerId",activeOwnerId()},{"components",authored_["components"].toArray()},{"occurrences",authored_["occurrences"].toArray()},{"assembly",assemblyState()},{"userParameters",evaluatedLengthParameters(authored_)},{"modelParameters",modelLengthRows(authored_)},{"loaded", true}, {"id", authored_["documentId"]}, {"label", label()}, {"path",path_},
+    return {{"activeOwnerId",activeOwnerId()},{"components",authored_["components"].toArray()},{"occurrences",authored_["occurrences"].toArray()},{"namedViews",authored_["namedViews"].toArray()},{"assembly",assemblyState()},{"userParameters",evaluatedLengthParameters(authored_)},{"modelParameters",modelLengthRows(authored_)},{"loaded", true}, {"id", authored_["documentId"]}, {"label", label()}, {"path",path_},
         {"units", authored_["displayUnits"]}, {"canonicalLengthUnit", "mm"},
         {"revision", static_cast<qint64>(revision_)}, {"dirty", !history_.isClean()},
         {"lastTransactionId", lastTransaction_},

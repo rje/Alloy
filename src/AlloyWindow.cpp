@@ -573,7 +573,8 @@ AlloyWindow::AlloyWindow() {
     auto* document = new QTreeWidgetItem(tree_, {"◇  Untitled"});
     auto* settings = new QTreeWidgetItem(document, {"Document Settings"});
     new QTreeWidgetItem(settings, {"Units: mm"});
-    auto* views = new QTreeWidgetItem(document, {"Named Views"});
+    auto* views = new QTreeWidgetItem(document, {"Named Views"});namedViewsNode_=views;
+    views->setData(0,Qt::UserRole+4,"namedViews");
     for (const QString& name : {"isometric", "rearIsometric", "top", "bottom", "front", "back", "right", "left"}) {
         auto* item = new QTreeWidgetItem(views, {name=="rearIsometric" ? "Rear Isometric" : name.first(1).toUpper() + name.sliced(1)});
         item->setData(0, Qt::UserRole, name);
@@ -600,9 +601,43 @@ AlloyWindow::AlloyWindow() {
     connect(rootActivation,&QWidget::customContextMenuRequested,this,[=](const QPoint& point){showRootContext(rootActivation->mapToGlobal(point));});
     document->setExpanded(true); views->setExpanded(true);
     tree_->setContextMenuPolicy(Qt::CustomContextMenu);
-    connect(tree_,&QTreeWidget::customContextMenuRequested,this,[this,showRootContext](const QPoint& point){
+    auto wireNamedViewReturn=[this](QTreeWidgetItem* item,bool openEditor){
+        if(!item || item->parent()!=namedViewsNode_ || session_.size())return;
+        const auto id=item->data(0,Qt::UserRole+9).toString();if(id.isEmpty())return;
+        const auto tabId=activeTabId_,documentId=document_->authored()["documentId"].toString();
+        if(openEditor)tree_->editItem(item,0);
+        QTimer::singleShot(0,this,[this,id,tabId,documentId]{
+            if(tabId!=activeTabId_ || documentId!=document_->authored()["documentId"])return;
+            auto* editor=qobject_cast<QLineEdit*>(QApplication::focusWidget());
+            if(!editor || !tree_->isAncestorOf(editor))return;
+            connect(editor,&QLineEdit::returnPressed,this,[this,id,tabId,documentId,editor]{
+                const auto name=editor->text();
+                QTimer::singleShot(0,this,[this,id,tabId,documentId,name]{
+                    if(tabId==activeTabId_ && documentId==document_->authored()["documentId"])
+                        execute("view.namedRename",{{"viewId",id},{"name",name}});
+                });
+            });
+        });
+    };
+    connect(tree_,&QTreeWidget::customContextMenuRequested,this,[this,showRootContext,wireNamedViewReturn](const QPoint& point){
         auto* item=tree_->itemAt(point);
         if(!item || item->isHidden())return;
+        if(item==namedViewsNode_ || item->parent()==namedViewsNode_) {
+            const auto id=item->data(0,Qt::UserRole+9).toString();
+            const auto tabId=activeTabId_,documentId=document_->authored()["documentId"].toString();
+            QMenu menu(this);auto* create=menu.addAction("New Named View");create->setObjectName("context.namedViewCreate");
+            create->setEnabled(session_.isEmpty());QAction* rename=nullptr;QAction* remove=nullptr;
+            if(!id.isEmpty()) {
+                rename=menu.addAction("Rename");rename->setObjectName("context.namedViewRename");rename->setEnabled(session_.isEmpty());
+                remove=menu.addAction("Delete");remove->setObjectName("context.namedViewDelete");remove->setEnabled(session_.isEmpty());
+            }
+            const auto* action=menu.exec(tree_->viewport()->mapToGlobal(point));
+            if(tabId!=activeTabId_ || documentId!=document_->authored()["documentId"] || !session_.isEmpty())return;
+            if(action==create)execute("view.namedCreate");
+            else if(action==rename)wireNamedViewReturn(item,true);
+            else if(action==remove)execute("view.namedDelete",{{"viewId",id}});
+            return;
+        }
         if(item==bodiesNode_->parent()){showRootContext(tree_->viewport()->mapToGlobal(point));return;}
         if(item==bodiesNode_){
             QMenu menu(this);auto* convert=menu.addAction("Create Components from Bodies");
@@ -745,10 +780,12 @@ AlloyWindow::AlloyWindow() {
             }
         }
         const auto name=item->data(0,Qt::UserRole).toString();
+        const auto namedView=item->data(0,Qt::UserRole+9).toString();
         const auto body=item->data(0,Qt::UserRole+1).toString();
         const auto sketch=(item->parent() && item->parent()->data(0,Qt::UserRole+4)=="sketches") ? item->data(0,Qt::UserRole+2).toString() : QString{};
         const auto plane=(item->parent() && item->parent()->data(0,Qt::UserRole+4)=="planes") ? item->data(0,Qt::UserRole+2).toString() : QString{};
-        if(!name.isEmpty())execute("view.orientation",{{"name",name}});
+        if(!namedView.isEmpty())execute("view.namedRestore",{{"viewId",namedView}});
+        else if(!name.isEmpty())execute("view.orientation",{{"name",name}});
         else if(!body.isEmpty()){
             if(tree_->selectedItems().size()<=1)
                 execute("selection.set",{{"bodyId",body},{"occurrenceId",item->data(0,Qt::UserRole+8).toString()}});
@@ -757,6 +794,21 @@ AlloyWindow::AlloyWindow() {
         else if(!plane.isEmpty())execute("selection.planeSet",{{"planeId",plane}});
     });
     connect(tree_,&QTreeWidget::itemChanged,this,[this](QTreeWidgetItem* item,int column){
+        if(item && column==0 && item->parent()==namedViewsNode_ && !item->data(0,Qt::UserRole+9).toString().isEmpty()) {
+            const auto id=item->data(0,Qt::UserRole+9).toString();
+            const auto tabId=activeTabId_,documentId=document_->authored()["documentId"].toString();
+            if(item->data(0,Qt::UserRole+10)!=documentId)return;
+            const auto response=execute("view.namedRename",{{"viewId",id},{"name",item->text(0)}});
+            if(!response.value("ok").toBool()) {
+                if(tabId==activeTabId_ && documentId==document_->authored()["documentId"]) {
+                    const QSignalBlocker block(tree_);
+                    for(const auto& row:document_->authored()["namedViews"].toArray())if(row.toObject()["id"]==id)
+                        item->setText(0,row.toObject()["name"].toString());
+                }
+                statusBar()->showMessage(response.value("error").toObject().value("message").toString(),5000);
+            }
+            return;
+        }
         if(!item || item->isHidden() || !(item->flags()&Qt::ItemIsEnabled) || column!=0 ||
             (!item->parent() || item->parent()->data(0,Qt::UserRole+4).toString().isEmpty()) ||
             item->parent()->data(0,Qt::UserRole+4)=="instanceBodies")return;
@@ -784,8 +836,12 @@ AlloyWindow::AlloyWindow() {
             }
         });
     });
-    connect(tree_,&QTreeWidget::itemDoubleClicked,this,[this](QTreeWidgetItem* item,int) {
+    connect(tree_,&QTreeWidget::itemDoubleClicked,this,[this,wireNamedViewReturn](QTreeWidgetItem* item,int) {
         if(!item || item->isHidden() || !(item->flags()&Qt::ItemIsEnabled))return;
+        if(item->parent()==namedViewsNode_ && !item->data(0,Qt::UserRole+9).toString().isEmpty()) {
+            wireNamedViewReturn(item,false);
+            return;
+        }
         const auto occurrence=item->data(0,Qt::UserRole+8).toString();
         if(!occurrence.isEmpty() && !item->data(0,Qt::UserRole+3).toString().isEmpty()){
             QTimer::singleShot(0,this,[this,occurrence]{execute("component.renameDialog",{{"occurrenceId",occurrence}});});return;
@@ -5247,6 +5303,61 @@ void AlloyWindow::registerCommands() {
     projectionMode.insert("enum",QJsonArray{"orthographic","perspective","hybrid"});
     add("view.projection","Camera projection","Choose Orthographic, Perspective, or Perspective with Ortho Faces without changing document history.",
         {{"mode",projectionMode}},[this](const auto& a){view_->setProjectionPolicy(a.value("mode").toString());return view_->cameraState();});
+    auto namedViewCamera=[this] {
+        const auto current=view_->cameraState();
+        const auto live=view_->diagnostics().value("camera").toObject();
+        QJsonObject saved{{"orientation","custom"},{"customDirection",live.value("direction")},
+            {"customUp",live.value("up")},{"projectionPolicy",current.value("projectionPolicy")}};
+        for(const auto& key:{"centerX","centerY","centerZ","viewCenter","scale","zoom","panX","panY"})
+            saved[key]=current.value(key);
+        return saved;
+    };
+    const auto namedId=parameter("string","Stable saved named-view UUID.");
+    add("view.namedCreate","New Named View","Save the current camera pose and projection in this document; one metadata undo entry.",
+        {{"name",optional(parameter("string","Optional unique one-line name; defaults to View N."))}},[this,namedViewCamera](const auto& a){
+            if(!session_.isEmpty())return failure("active_command","Finish or cancel the active command before saving a named view");
+            auto rows=document_->authored().value("namedViews").toArray();
+            QString name=a.value("name").toString();
+            if(name.isEmpty()) {
+                QSet<QString> used;for(const auto& entry:rows)used.insert(entry.toObject().value("name").toString().toCaseFolded());
+                for(int index=1;index<=rows.size()+1;++index)if(!used.contains(QString("view %1").arg(index))) {
+                    name=QString("View %1").arg(index);break;
+                }
+            }
+            const QJsonObject record{{"id",CadDocument::newId()},{"name",name},{"camera",namedViewCamera()}};
+            rows.append(record);const auto error=document_->commitNamedViews(rows,"Create named view");
+            return error.isEmpty() ? record : failure("invalid_named_view",error);
+        });
+    add("view.namedRename","Rename Named View","Rename one retained view without changing its stable ID or camera.",
+        {{"viewId",namedId},{"name",parameter("string","Unique one-line view name.")}},[this](const auto& a){
+            if(!session_.isEmpty())return failure("active_command","Finish or cancel the active command before renaming a named view");
+            auto rows=document_->authored().value("namedViews").toArray();int index=-1;
+            for(int i=0;i<rows.size();++i)if(rows[i].toObject().value("id")==a.value("viewId")){index=i;break;}
+            if(index<0)return failure("stale_named_view","Named view is unavailable","viewId");
+            auto row=rows[index].toObject();row["name"]=a.value("name");rows[index]=row;
+            const auto error=document_->commitNamedViews(rows,"Rename named view");
+            return error.isEmpty() ? row : failure("invalid_named_view",error,"name");
+        });
+    add("view.namedRestore","Restore Named View","Restore one document view's pose and projection without editing document history.",
+        {{"viewId",namedId}},[this](const auto& a){
+            for(const auto& entry:document_->authored().value("namedViews").toArray()) {
+                const auto row=entry.toObject();if(row.value("id")!=a.value("viewId"))continue;
+                auto state=view_->cameraState();const auto saved=row.value("camera").toObject();
+                for(auto it=saved.begin();it!=saved.end();++it)state[it.key()]=it.value();
+                view_->restoreCameraState(state);return view_->cameraState();
+            }
+            return failure("stale_named_view","Named view is unavailable","viewId");
+        });
+    add("view.namedDelete","Delete Named View","Remove one saved document view with one metadata undo entry.",
+        {{"viewId",namedId}},[this](const auto& a){
+            if(!session_.isEmpty())return failure("active_command","Finish or cancel the active command before deleting a named view");
+            auto rows=document_->authored().value("namedViews").toArray();int index=-1;
+            for(int i=0;i<rows.size();++i)if(rows[i].toObject().value("id")==a.value("viewId")){index=i;break;}
+            if(index<0)return failure("stale_named_view","Named view is unavailable","viewId");
+            rows.removeAt(index);const auto error=document_->commitNamedViews(rows,"Delete named view");
+            return error.isEmpty() ? QJsonObject{{"viewId",a.value("viewId")},{"deleted",true}}
+                : failure("invalid_named_view",error);
+        });
     auto cubeRegion=parameter("string","One of the 26 detected Alloy orientation-cube face, edge or corner regions.");
     QJsonArray cubeNames;for(const auto& name:ReferenceView::cubeRegions())cubeNames.append(name);
     cubeRegion.insert("enum",cubeNames);
@@ -5819,6 +5930,21 @@ void AlloyWindow::refresh() {
             }
             return new QTreeWidgetItem(parent);
         };
+        QSet<QString> visibleNamedViews;
+        for(const auto& value:document_->authored()["namedViews"].toArray()) {
+            const auto row=value.toObject();
+            const auto id=row.value("id").toString();visibleNamedViews.insert(id);
+            auto* item=browserRow(namedViewsNode_,id,Qt::UserRole+9);
+            item->setData(0,Qt::UserRole+9,id);
+            item->setData(0,Qt::UserRole+10,document_->authored()["documentId"]);
+            item->setText(0,row.value("name").toString());item->setToolTip(0,"Saved camera pose and projection");
+            item->setFlags(item->flags()|Qt::ItemIsEditable|Qt::ItemIsEnabled|Qt::ItemIsSelectable);
+            item->setHidden(false);
+        }
+        for(int index=0;index<namedViewsNode_->childCount();++index) {
+            auto* item=namedViewsNode_->child(index);const auto id=item->data(0,Qt::UserRole+9).toString();
+            if(!id.isEmpty() && !visibleNamedViews.contains(id)){item->setSelected(false);item->setHidden(true);}
+        }
         auto* rootNode=bodiesNode_->parent();
         QMap<QString,QTreeWidgetItem*> ownerNodes;ownerNodes[document_->authored()["documentId"].toString()]=rootNode;
         QSet<QString> assemblyDefinitions;

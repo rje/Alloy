@@ -126,6 +126,7 @@ private:
     void refreshCanvasPresentation();
     QDockWidget* canvasDock_=nullptr;
     QTreeWidgetItem* canvasesNode_=nullptr;
+    QTreeWidgetItem* namedViewsNode_=nullptr;
     void registerSectionCommands();
     QJsonObject beginSection(const QJsonObject& args);
     QJsonObject previewSection();
