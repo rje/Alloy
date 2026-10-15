@@ -3,6 +3,13 @@
 #include "RoundedLoopOffset.h"
 #include "SketchGeometry.h"
 #include <BRepAdaptor_Curve.hxx>
+#include <BRepCheck_Analyzer.hxx>
+#include <BRepCheck_Result.hxx>
+#include <BRepCheck_Face.hxx>
+#include <ShapeFix_Face.hxx>
+#include <ShapeBuild_ReShape.hxx>
+#include <BRepCheck_Wire.hxx>
+#include <BRepCheck_ListIteratorOfListOfStatus.hxx>
 #include <BRepAdaptor_Surface.hxx>
 #include <BRepAlgoAPI_Common.hxx>
 #include <BRepAlgoAPI_BooleanOperation.hxx>
@@ -36,6 +43,7 @@
 #include <QFile>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QMap>
 #include <algorithm>
 #include <cmath>
 #include <fstream>
@@ -220,6 +228,159 @@ int inspectSaved(const QString& savedPrefix,const QString& output) {
     return finish(2);
 }
 
+
+int repairShoehornOrientation(const QString& path,const QString& output) {
+    BRep_Builder reader;TopoDS_Shape shape;
+    if(!BRepTools::Read(shape,path.toUtf8().constData(),reader))throw std::runtime_error("saved result unavailable");
+    Handle(ShapeBuild_ReShape) replacements=new ShapeBuild_ReShape;
+    QJsonArray repairs;TopTools_IndexedMapOfShape oldEdges;TopExp::MapShapes(shape,TopAbs_EDGE,oldEdges);
+    for(TopExp_Explorer ex(shape,TopAbs_FACE);ex.More();ex.Next()) {
+        const auto face=TopoDS::Face(ex.Current());BRepCheck_Face check(face);
+        if(check.OrientationOfWires()!=BRepCheck_BadOrientationOfSubshape)continue;
+        ShapeFix_Face fixer(face);const bool changed=fixer.FixOrientation();const auto fixed=fixer.Face();
+        replacements->Replace(face,fixed);
+        TopLoc_Location oldLoc,newLoc;const auto oldSurface=BRep_Tool::Surface(face,oldLoc),newSurface=BRep_Tool::Surface(fixed,newLoc);
+        repairs.append(QJsonObject{{"changed",changed},{"sameSupportSurface",oldSurface==newSurface && oldLoc==newLoc},
+            {"oldOrientation",static_cast<int>(face.Orientation())},{"newOrientation",static_cast<int>(fixed.Orientation())}});
+    }
+    const auto result=replacements->Apply(shape);const auto summary=GeometryKernel::summarize(result);
+    const auto resultPath=output+"-orientation-only.brep";if(!BRepTools::Write(result,resultPath.toUtf8().constData()))throw std::runtime_error("repair save failed");
+    TopTools_IndexedMapOfShape newEdges;TopExp::MapShapes(result,TopAbs_EDGE,newEdges);int retained=0;
+    for(int i=1;i<=oldEdges.Extent();++i)if(newEdges.Contains(oldEdges(i)))++retained;
+    BRepCheck_Analyzer analyzer(result,true,false,true);QJsonArray errors;
+    TopTools_IndexedMapOfShape all;TopExp::MapShapes(result,all);
+    for(int i=1;i<=all.Extent();++i) {const auto check=analyzer.Result(all(i));if(check.IsNull())continue;
+        for(BRepCheck_ListIteratorOfListOfStatus it(check->Status());it.More();it.Next())if(it.Value()!=BRepCheck_NoError)
+            errors.append(QJsonObject{{"shapeIndex",i},{"shapeType",static_cast<int>(all(i).ShapeType())},{"status",static_cast<int>(it.Value())}});
+    }
+    QJsonObject report{{"sourceBrep",path},{"operation","ShapeFix_Face FixOrientation only; replacements applied to saved shape"},
+        {"repairs",repairs},{"oldEdgeCount",oldEdges.Extent()},{"newEdgeCount",newEdges.Extent()},{"retainedSameEdges",retained},
+        {"exactAnalyzerValid",analyzer.IsValid()},{"summary",summary},{"ownStatusErrors",errors},{"resultBrep",resultPath},
+        {"materialAndAuthoredHistoryCertified",false}};
+    QFile file(output);if(!file.open(QIODevice::WriteOnly))throw std::runtime_error("repair report unavailable");
+    file.write(QJsonDocument(report).toJson(QJsonDocument::Indented));return analyzer.IsValid()?0:2;
+}
+
+// Readback only: independently invoke mature face/wire checks without changing topology.
+int inspectShoehorn(const QString& path,const QString& output) {
+    BRep_Builder reader;TopoDS_Shape shape;
+    if(!BRepTools::Read(shape,path.toUtf8().constData(),reader))throw std::runtime_error("saved result unavailable");
+    BRepCheck_Analyzer analyzer(shape,true,false,true);TopTools_IndexedMapOfShape subshapes;TopExp::MapShapes(shape,subshapes);
+    QJsonArray records;
+    for(TopExp_Explorer ex(shape,TopAbs_FACE);ex.More();ex.Next()) {
+        const auto face=TopoDS::Face(ex.Current());BRepCheck_Face check(face);QJsonArray wires;
+        for(TopExp_Explorer wx(face,TopAbs_WIRE);wx.More();wx.Next()) {
+            const auto wire=TopoDS::Wire(wx.Current());BRepCheck_Wire wc(wire);TopoDS_Edge e1,e2;QJsonArray edges;
+            const auto self=wc.SelfIntersect(face,e1,e2);
+            for(TopExp_Explorer ee(wire,TopAbs_EDGE);ee.More();ee.Next()) {
+                const auto edge=TopoDS::Edge(ee.Current());double first,last;const auto curve=BRep_Tool::CurveOnSurface(edge,face,first,last);
+                QJsonObject item{{"shapeIndex",subshapes.FindIndex(edge)},{"orientation",static_cast<int>(edge.Orientation())},
+                    {"sameParameter",BRep_Tool::SameParameter(edge)},{"sameRange",BRep_Tool::SameRange(edge)},
+                    {"tolerance",BRep_Tool::Tolerance(edge)},{"hasPcurve",!curve.IsNull()}};
+                if(!curve.IsNull()) {const auto a=curve->Value(first),b=curve->Value(last);item["uvStart"]=QJsonArray{a.X(),a.Y()};item["uvEnd"]=QJsonArray{b.X(),b.Y()};}
+                edges.append(item);
+            }
+            wires.append(QJsonObject{{"shapeIndex",subshapes.FindIndex(wire)},{"orientation",static_cast<int>(wire.Orientation())},
+                {"closedStatus",static_cast<int>(wc.Closed())},{"closed2dStatus",static_cast<int>(wc.Closed2d(face))},
+                {"orientationStatus",static_cast<int>(wc.Orientation(face))},{"selfIntersectionStatus",static_cast<int>(self)},
+                {"intersectingEdge1",e1.IsNull()?0:subshapes.FindIndex(e1)},{"intersectingEdge2",e2.IsNull()?0:subshapes.FindIndex(e2)},
+                {"edges",edges}});
+        }
+        records.append(QJsonObject{{"shapeIndex",subshapes.FindIndex(face)},{"orientation",static_cast<int>(face.Orientation())},
+            {"surfaceType",static_cast<int>(BRepAdaptor_Surface(face).GetType())},
+            {"exactAnalyzerValid",analyzer.IsValid(face)},{"intersectWiresStatus",static_cast<int>(check.IntersectWires())},
+            {"classifyWiresStatus",static_cast<int>(check.ClassifyWires())},{"orientationOfWiresStatus",static_cast<int>(check.OrientationOfWires())},
+            {"wires",wires}});
+    }
+    QFile file(output);if(!file.open(QIODevice::WriteOnly))throw std::runtime_error("inspection output unavailable");
+    file.write(QJsonDocument(QJsonObject{{"sourceBrep",path},{"operation","saved result face and wire checks; no geometry reconstruction or repair"},
+        {"exactAnalyzerValid",analyzer.IsValid()},{"faces",records}}).toJson(QJsonDocument::Indented));
+    return 0;
+}
+
+// One fixed saved-fixture diagnostic; no production fallback or parameter sweep.
+int shoehornDiagnostic(const CadDocument& document,const QString& output) {
+    const QStringList ids{"3c195c62-9e43-530c-b50e-7279ceb40127","540a3de0-6956-561e-9937-131eb386bff0",
+        "287083bc-809d-56dd-88b1-ea6ffa6d8cbb","9ca2891e-1a8b-513d-9b6c-60ecd16c6b19"};
+    QJsonObject record{{"operation","exact saved shoehorn grouped R12/R16 diagnostic"},
+        {"authored",document.authored()},{"terminalContainment","unknown; incidence alone is not finite containment proof"}};
+    QFile file(output);if(!file.open(QIODevice::WriteOnly))throw std::runtime_error("diagnostic output unavailable");
+    auto finish=[&](int status){file.write(QJsonDocument(record).toJson(QJsonDocument::Indented));return status;};
+    try {
+        const EvaluatedBody* input=nullptr;
+        for(const auto& body:document.bodies())for(const auto& edge:body.solidEdges)
+            if(edge.edgeId==ids.front())input=&body;
+        if(!input)throw std::runtime_error("exact retained shoehorn edge unavailable");
+        const auto& body=*input;const auto summary=GeometryKernel::summarize(body.shape);
+        record["inputSummary"]=summary;record["inputOrientation"]=static_cast<int>(body.shape.Orientation());
+        if(!summary.value("valid").toBool() || !summary.value("closed").toBool()
+           || summary.value("topology").toObject().value("solids").toInt()!=1
+           || summary.value("volumeMm3").toDouble()<=0)throw std::runtime_error("input is not valid positive closed solid");
+        const auto inputPath=output+"-input.brep";
+        if(!BRepTools::Write(body.shape,inputPath.toUtf8().constData()))throw std::runtime_error("input save failed");
+        record["inputBrep"]=inputPath;
+        TopTools_IndexedMapOfShape edges,faces;TopExp::MapShapes(body.shape,TopAbs_EDGE,edges);TopExp::MapShapes(body.shape,TopAbs_FACE,faces);
+        BRepFilletAPI_MakeFillet builder(body.shape);QJsonArray seeds;QMap<int,double> radii;
+        for(int i=0;i<ids.size();++i) {
+            const auto found=std::find_if(body.solidEdges.begin(),body.solidEdges.end(),[&](const auto& edge){return edge.edgeId==ids[i];});
+            if(found==body.solidEdges.end() || found->edge.IsNull())throw std::runtime_error("retained source corner unavailable");
+            if(!found->provenance.value("role").toString().startsWith("corner/"))throw std::runtime_error("expected retained Thicken corner provenance");
+            const double radius=i<2?12:16;builder.Add(radius,found->edge);const int contour=builder.Contour(found->edge);
+            if(contour==0 || (radii.contains(contour) && radii[contour]!=radius))throw std::runtime_error("invalid grouped contour ownership");
+            radii[contour]=radius;seeds.append(QJsonObject{{"edgeId",ids[i]},{"radiusMm",radius},{"contour",contour},{"provenance",found->provenance}});
+        }
+        record["seeds"]=seeds;QJsonArray contours;
+        for(int i=1;i<=builder.NbContours();++i) {
+            if(!radii.contains(i))throw std::runtime_error("unowned contour");
+            builder.SetRadius(radii[i],i,1);QJsonArray chain;
+            for(int n=1;n<=builder.NbEdges(i);++n)chain.append(edges.FindIndex(builder.Edge(i,n)));
+            QJsonObject item{{"index",i},{"radiusMm",radii[i]},{"shapeEdgeIndices",chain}};
+            const auto first=builder.FirstVertex(i),last=builder.LastVertex(i);
+            if(!first.IsNull())item["firstVertex"]=vertexTopology(body,first,edges,faces,output);
+            if(!last.IsNull())item["lastVertex"]=vertexTopology(body,last,edges,faces,output);
+            contours.append(item);
+        }
+        record["contours"]=contours;
+        try {builder.Build();record["buildThrew"]=false;}
+        catch(const Standard_Failure& error){record["buildThrew"]=true;record["buildException"]=QString::fromUtf8(error.GetMessageString());}
+        record["isDone"]=builder.IsDone();record["hasPartialResult"]=builder.HasResult();
+        QJsonArray statuses,faultyContours,faultyVertices;
+        for(int i=1;i<=builder.NbContours();++i)statuses.append(QJsonObject{{"contour",i},{"stripeStatus",static_cast<int>(builder.StripeStatus(i))}});
+        for(int i=1;i<=builder.NbFaultyContours();++i)faultyContours.append(builder.FaultyContour(i));
+        for(int i=1;i<=builder.NbFaultyVertices();++i)faultyVertices.append(vertexTopology(body,builder.FaultyVertex(i),edges,faces,output));
+        record["stripeStatuses"]=statuses;record["faultyContours"]=faultyContours;record["faultyVertices"]=faultyVertices;
+        TopoDS_Shape result;
+        if(builder.IsDone())result=builder.Shape();else if(builder.HasResult())result=builder.BadShape();
+        if(result.IsNull()){record["resultAvailable"]=false;return finish(2);}
+        record["resultAvailable"]=true;const auto resultPath=output+"-result.brep";
+        if(!BRepTools::Write(result,resultPath.toUtf8().constData()))throw std::runtime_error("result save failed");
+        record["resultBrep"]=resultPath;const auto resultSummary=GeometryKernel::summarize(result);record["resultSummary"]=resultSummary;
+        BRepCheck_Analyzer analyzer(result);TopTools_IndexedMapOfShape subshapes;TopExp::MapShapes(result,subshapes);
+        QJsonArray checks;
+        auto codes=[](const BRepCheck_ListOfStatus& list){QJsonArray values;for(BRepCheck_ListIteratorOfListOfStatus it(list);it.More();it.Next())values.append(static_cast<int>(it.Value()));return values;};
+        for(int i=1;i<=subshapes.Extent();++i) {
+            const auto& shape=subshapes(i);const auto check=analyzer.Result(shape);if(check.IsNull())continue;
+            QJsonArray contexts;bool failed=false;
+            auto own=codes(check->Status());for(const auto& v:own)if(v.toInt()!=0)failed=true;
+            for(check->InitContextIterator();check->MoreShapeInContext();check->NextShapeInContext()) {
+                const auto status=codes(check->StatusOnShape());for(const auto& v:status)if(v.toInt()!=0)failed=true;
+                contexts.append(QJsonObject{{"shapeIndex",subshapes.FindIndex(check->ContextualShape())},{"statuses",status}});
+            }
+            if(!failed)continue;
+            const auto path=output+QString("-invalid-subshape-%1.brep").arg(i);
+            const bool written=BRepTools::Write(shape,path.toUtf8().constData());
+            checks.append(QJsonObject{{"shapeIndex",i},{"shapeType",static_cast<int>(shape.ShapeType())},
+                {"orientation",static_cast<int>(shape.Orientation())},{"statuses",own},{"contexts",contexts},{"brep",path},{"written",written}});
+        }
+        record["invalidSubshapes"]=checks;
+        const bool accepted=builder.IsDone() && analyzer.IsValid() && resultSummary.value("closed").toBool()
+            && resultSummary.value("topology").toObject().value("solids").toInt()==1 && resultSummary.value("volumeMm3").toDouble()>0;
+        record["acceptedGeometry"]=accepted;return finish(accepted?0:2);
+    } catch(const Standard_Failure& error){record["kernelException"]=QString::fromUtf8(error.GetMessageString());}
+      catch(const std::exception& error){record["error"]=QString::fromUtf8(error.what());}
+    return finish(2);
+}
+
 }
 
 int main(int argc,char** argv) {
@@ -228,9 +389,12 @@ int main(int argc,char** argv) {
         if(argc!=3 && argc!=4)throw std::runtime_error("usage: enclosure_rim_continuation_test source.alloy output.json [fillet|contour|common]");
         if(argc==4 && QString::fromUtf8(argv[3])=="certify")return certifySaved(QString::fromUtf8(argv[1]),QString::fromUtf8(argv[2]));
         if(argc==4 && QString::fromUtf8(argv[3])=="inspect")return inspectSaved(QString::fromUtf8(argv[1]),QString::fromUtf8(argv[2]));
+        if(argc==4 && QString::fromUtf8(argv[3])=="shoehorn-repair")return repairShoehornOrientation(QString::fromUtf8(argv[1]),QString::fromUtf8(argv[2]));
+        if(argc==4 && QString::fromUtf8(argv[3])=="shoehorn-inspect")return inspectShoehorn(QString::fromUtf8(argv[1]),QString::fromUtf8(argv[2]));
         CadDocument document;
         const auto openError=document.open(argv[1]);
         if(!openError.isEmpty())throw std::runtime_error(("source did not reopen: "+openError).toStdString());
+        if(argc==4 && QString::fromUtf8(argv[3])=="shoehorn")return shoehornDiagnostic(document,QString::fromUtf8(argv[2]));
         if(argc==4 && QString::fromUtf8(argv[3])=="clearance") {
             QJsonObject split;
             for(const auto& value:document.authored().value("features").toArray())
