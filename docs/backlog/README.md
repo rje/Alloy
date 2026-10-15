@@ -28,8 +28,8 @@ accepted. SRF-018/#445 planar crossing-sheet Trim is accepted at `1017d0a`;
 REL-014/#417 committed-work recovery is accepted; REL-011/#374 native assembly
 drag profiling is complete with a failed 100 ms budget; REL-020/#446 remains
 Todo after bounded diagnosis and a reverted experiment. REL-013/#416 visual
-audit split observed minimum-size ribbon/navigation clipping into active
-REL-021/#447; remaining visual-quality scope stays open. GEO-019/#352 remains Todo with preserved geometry failure evidence;
+audit split observed minimum-size ribbon/navigation clipping into accepted
+REL-021/#447 (`c562c85`); remaining visual-quality scope stays open. GEO-019/#352 remains Todo with preserved geometry failure evidence;
 TUT-030/#442 preserves unresolved nominal connector clearance. The current
 sequence JSON takes precedence over historical delivery notes below.
 

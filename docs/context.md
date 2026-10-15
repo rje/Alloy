@@ -17,8 +17,10 @@ build is Debug. A matched Release configuration improves median dispatch to
 as the dominant cost; a bounded pose-refresh experiment failed and was reverted.
 REL-020 returns to Todo with diagnostics preserved. REL-013/#416 visual/control
 audit found severe ribbon/navigation clipping at 1040×640; bounded REL-021/#447
-responsive controls is active. Parent REL-013 retains other panel/readability
-checks. The old blank viewport band is consistent with dock allocation; actual
+responsive controls is accepted at `c562c85`: readable representative icons and
+complete menus, active-tool labeling and actual Qt menu/Pan/Escape checks pass.
+See [receipt](validation/responsive-controls.md). Parent REL-013 retains lower
+dock-height/status-strip clipping and other panel/readability checks. The old blank viewport band is consistent with dock allocation; actual
 Qt/native/framebuffer dimensions agree in the current audit. Use `build-preview-release` for optimized interactive
 previews and `build-tutorial-polish` for Debug checks; both use the coherent
 private Qt SDK. Older packaged archives predate these source changes.

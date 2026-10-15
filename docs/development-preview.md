@@ -17,6 +17,11 @@ any reference product.
 | Import and export | Native Alloy documents and bounded STEP/STL workflows are demonstrated, including millimeter STL readback and selected-component export | [STEP exchange](validation/step-exchange.md), [bracket exchange](validation/bracket-exchange.md), [linked-instance export](validation/linked-instance-export.md). Format and workflow coverage is not exhaustive. |
 | Local automation | The local control API discovers and executes Alloy commands, reports application/document state and captures screenshots. UI and API use the same application command and document state. | [Agent control API and client](agent-control.md). Geometry evaluation is synchronous and cannot be cancelled; [busy feedback receipt](validation/geometry-busy-feedback.md) records this boundary. |
 
+[Responsive ribbon and navigation controls](validation/responsive-controls.md)
+remain readable at the supported 1040×640 minimum window size, with complete
+command menus and a visible active tool. Lower modeling-dock and status-strip
+clipping still require work.
+
 ## Package and start
 
 The currently qualified installable package is **macOS arm64 on the development
