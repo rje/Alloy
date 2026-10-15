@@ -3,6 +3,9 @@
 #include "RoundedLoopOffset.h"
 #include "SketchGeometry.h"
 #include <BRepAdaptor_Curve.hxx>
+#include <BRepFilletAPI_MakeFillet.hxx>
+#include <BRep_Tool.hxx>
+#include <TopExp.hxx>
 #include <QCoreApplication>
 #include <QFile>
 #include <QJsonDocument>
@@ -24,7 +27,7 @@ struct Rail {QString id;gp_Pnt a,b;gp_Vec direction;double length;QJsonObject pr
 int main(int argc,char** argv) {
     QCoreApplication app(argc,argv);
     try {
-        if(argc!=3 && argc!=4)throw std::runtime_error("usage: enclosure_rim_continuation_test source.alloy output.json [fillet]");
+        if(argc!=3 && argc!=4)throw std::runtime_error("usage: enclosure_rim_continuation_test source.alloy output.json [fillet|contour]");
         CadDocument document;
         if(!document.open(argv[1]).isEmpty())throw std::runtime_error("source did not reopen");
         const auto sourceFeatureCount=document.authored().value("features").toArray().size();
@@ -77,7 +80,8 @@ int main(int argc,char** argv) {
         QJsonObject result{{"source",argv[1]},{"sourceFeatureCount",sourceFeatureCount},{"supportFaceId",support.faceId},
             {"profileId",profile.profileId},{"rails",rows},{"parallelPairs",pairs}};
         if(argc==4) {
-            if(QString::fromUtf8(argv[3])!="fillet")throw std::runtime_error("unsupported diagnostic mode");
+            const auto mode=QString::fromUtf8(argv[3]);
+            if(mode!="fillet" && mode!="contour")throw std::runtime_error("unsupported diagnostic mode");
             QStringList selected;
             for(const auto& rail:rails) {
                 const bool rear=std::abs(rail.length-54)<1e-7 &&
@@ -87,6 +91,63 @@ int main(int argc,char** argv) {
             if(selected.size()!=2)throw std::runtime_error("rear opposing 54mm rail pair unavailable");
             result["selectedRearPair"]=QJsonArray{selected[0],selected[1]};
             result["attemptedRadiusMm"]=0.5;
+            if(mode=="contour") {
+                for(const auto& body:document.bodies())if(body.bodyId==support.bodyId) {
+                    BRepFilletAPI_MakeFillet builder(body.shape);
+                    QJsonArray seedContours;
+                    for(const auto& id:selected)for(const auto& edge:body.solidEdges)if(edge.edgeId==id) {
+                        builder.Add(0.5,edge.edge);
+                        seedContours.append(QJsonObject{{"edgeId",id},{"contour",builder.Contour(edge.edge)}});
+                    }
+                    result["seedContours"]=seedContours;
+                    QJsonArray contours;int expandedCount=0;
+                    for(int index=1;index<=builder.NbContours();++index) {
+                        builder.SetRadius(0.5,index,1);
+                        QJsonArray chain;
+                        for(int edgeIndex=1;edgeIndex<=builder.NbEdges(index);++edgeIndex) {
+                            const auto actual=builder.Edge(index,edgeIndex);
+                            const BRepAdaptor_Curve curve(actual);
+                            const auto start=curve.Value(curve.FirstParameter()),end=curve.Value(curve.LastParameter());
+                            QJsonArray identities;
+                            for(const auto& edge:body.solidEdges)if(!edge.edge.IsNull() && edge.edge.IsSame(actual))
+                                identities.append(QJsonObject{{"edgeId",edge.edgeId},{"provenance",edge.provenance}});
+                            chain.append(QJsonObject{{"index",edgeIndex},{"start",point(start)},{"end",point(end)},
+                                {"identities",identities}});
+                            ++expandedCount;
+                        }
+                        contours.append(QJsonObject{{"index",index},{"edges",chain}});
+                    }
+                    result["contours"]=contours;result["expandedEdgeCount"]=expandedCount;
+                    try {builder.Build();result["buildThrew"]=false;}
+                    catch(const Standard_Failure& error) {
+                        result["buildThrew"]=true;result["kernelException"]=QString::fromUtf8(error.GetMessageString());
+                    }
+                    result["isDone"]=builder.IsDone();result["hasPartialResult"]=builder.HasResult();
+                    QJsonArray statuses,faultyContours;
+                    for(int index=1;index<=builder.NbContours();++index)
+                        statuses.append(QJsonObject{{"index",index},{"stripeStatus",static_cast<int>(builder.StripeStatus(index))}});
+                    for(int index=1;index<=builder.NbFaultyContours();++index)faultyContours.append(builder.FaultyContour(index));
+                    result["statuses"]=statuses;result["faultyContours"]=faultyContours;
+                    result["faultyVertexCount"]=builder.NbFaultyVertices();
+                    QJsonArray faultyVertices;
+                    for(int index=1;index<=builder.NbFaultyVertices();++index) {
+                        const auto vertex=builder.FaultyVertex(index);
+                        QJsonArray incidentEdges,incidentEdgeIds;
+                        for(const auto& edge:body.solidEdges)if(!edge.edge.IsNull()) {
+                            TopoDS_Vertex first,last;TopExp::Vertices(edge.edge,first,last);
+                            if((!first.IsNull() && first.IsSame(vertex)) || (!last.IsNull() && last.IsSame(vertex)))
+                                {incidentEdgeIds.append(edge.edgeId);
+                                 incidentEdges.append(QJsonObject{{"edgeId",edge.edgeId},{"provenance",edge.provenance}});}
+                        }
+                        faultyVertices.append(QJsonObject{{"position",point(BRep_Tool::Pnt(vertex))},
+                            {"tolerance",BRep_Tool::Tolerance(vertex)},
+                            {"incidentEdgeIds",incidentEdgeIds},{"incidentEdges",incidentEdges}});
+                    }
+                    result["faultyVertices"]=faultyVertices;
+                }
+                file.write(QJsonDocument(result).toJson(QJsonDocument::Indented));
+                return result.value("isDone").toBool() ? 0 : 2;
+            }
             try {
                 const auto candidate=CadDocument::filletCandidate(document.authored(),
                     {{"ownerId",owner},{"targetBodyId",support.bodyId},

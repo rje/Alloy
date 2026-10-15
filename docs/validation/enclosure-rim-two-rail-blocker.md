@@ -4,8 +4,8 @@ The public rim sequence and the remaining source uncertainties are recorded
 outside this repository at
 `../Alloy-reference-records/knowledge/tutorials/advanced-audit-2026-10-14/enclosure-rim-handoff.md`.
 The source calls for an inward 1.25 mm offset, Join 2 mm, R0.5 rounding on two
-edges, then a retained-tool Cut. The source does not identify those two edges
-at the available storyboard resolution. Alloy's accepted trimmed cap has one
+tangent chains, then a retained-tool Cut. The public frame does not identify
+the selected source curves. Alloy's accepted trimmed cap has one
 ported U boundary, so its single retained interior inset is a disclosed
 adaptation, not a claim of exact source topology.
 
@@ -46,3 +46,31 @@ refusal log as evidence. The diagnostic now preserves inputs and caught errors
 before returning, but that source change was only rebuilt, not rerun against the
 unchanged failing case. Atomicity follows the throw-before-commit path; this run
 did not assert before/after document snapshots.
+
+## Exact contour localization (GEO-020)
+
+The one bounded OCCT contour probe uses the same saved 29-feature source,
+`-1.25 mm` inset, Join `+2 mm`, adapted rear pair and `R0.5 mm`. The source
+model SHA-256 is `cab0d6254ad9ec6067237bfb1df009cf315a222fe33668c8f1caa0a85a615e86`.
+The diagnostic source SHA-256 is
+`8940cd8787e67d72db934340a13db178fffefac61c7cf11f721d2c3228154628`.
+Its exact result and log are under
+`../Alloy-reference-records/deliverables/enclosure-rim-2026-10-14/geo020-contour-01/`.
+The result JSON SHA-256 is
+`3bae851b35ea762848d8bd58b932e1bd156a109e4988dcacd9d110052c3d2b2c`.
+An initial relative-path invocation refused to open the source; the recorded
+result uses an absolute source path.
+
+OCCT forms **two different tangent contours**, seven named upper `endRim`
+edges in each (14 total in this Alloy model). Both contour stripe statuses are
+`Ok`, with zero faulty contours. `Build()` returns no completed or partial
+solid and reports a faulty vertex at approximately
+`(29.25, 44.50, 17) mm`, incident on two `endRim` edges and one `sideCorner`
+at the U/port-mouth termination. A preceding observation of the same geometry
+reported two faulty inner mouth vertices instead; its JSON was overwritten by
+the provenance-enriched result, so those coordinates are not preserved as a
+separate reproducible artifact. The retained result localizes a corner/junction
+failure; it does not establish a single numerical cause or prove R0.5 impossible.
+The public 14-edge count corroborates only the chain-selection form, not exact
+topology or geometry parity. No alternate radius, seed pair, kernel algorithm,
+Cut or export was attempted. GEO-020 and TUT-023 remain open.
