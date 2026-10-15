@@ -26,9 +26,9 @@ plate attempt still missed0.0003 mm G0 limits. Do not repeat unchanged sweeps or
 relax tolerances. Astra is evaluating one materially different mature OCCT
 boundary/tangent construction in an external diagnostic directory before Sol
 retained implementation. Existing Trim/bridge feasibility is not acceptance.
-SKT-092 owns associative fit-spline Mirror, newly found missing in the source
-prepared-sketch workflow. Sol has the sole build/GUI lease for this independent
-feature; root integrates and tracks issues. Astra's distinct constrained Coons
+SKT-092/#457 associative open fit-spline Mirror is independently accepted at
+`53ec4e6`: source/axis/tangent edits, native controls,39-call API/history/reopen
+and GPU captures pass. See [receipt](validation/fit-spline-mirror.md). Root integrates and tracks issues. Astra's distinct constrained Coons
 attempt also misses unchanged G0 bounds; no product port follows. Its subsequent exact tensor BSpline prototype is independently approved for
 bounded integration: unchanged compatible source curves, exact restrictions below
 1e-13 mm, shared smooth support, sampled regularity and two separate valid Trim
@@ -36,7 +36,8 @@ loops on base and rail edit. This is external geometry evidence, not app accepta
 See external `surface-iron-continuation-2026-10-15/exact-tensor-01/README.md` for
 strict admission, algebra, naming and collapsed-tip exclusions. Sol iron_exterior
 ports the bounded retained Loft on real solved entities; no generic network claim.
-Sol corner_finish retains the build/GUI lease until Mirror verification completes.
+Mirror validation is complete and its private editor closed; Sol iron_exterior now
+holds the sole build/GUI lease for retained exterior integration.
 Luna recovered public operation observations at5:07–5:19 confirming2profiles and
 1rail; exact contacts/planes remain unknown. Public evidence remains external in
 `knowledge/tutorials/surface-iron-2026-10-15-public-frames/`. Only one private GUI lease. The completed
