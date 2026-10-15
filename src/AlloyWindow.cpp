@@ -861,7 +861,7 @@ AlloyWindow::AlloyWindow() {
     connect(latest,&QPushButton::clicked,this,[this]{execute("timeline.showLatest");});timelineRow->addWidget(latest);
     layout->addWidget(timeline_);
     status_ = new QLabel; statusBar()->addWidget(status_, 1);
-    auto* shell = new QLabel("Alloy 0.1 · Primitive preview"); statusBar()->addPermanentWidget(shell);
+    auto* shell = new QLabel("Alloy 0.1 · Development preview"); statusBar()->addPermanentWidget(shell);
 
     auto* viewMenu = menuBar()->addMenu("View");
     auto* editMenu=menuBar()->addMenu("Edit");
