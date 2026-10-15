@@ -30,10 +30,18 @@ retains Windows/Linux alignment and parent CI-004 stays Todo. The user chose
 external Windows/Linux testers; the [checklist](validation/external-package-checklist.md)
 keeps qualification pending until results arrive.
 
-SKT-076/#346 is active next for authored trimmed-seam inset profiles, preserving
-legacy rounded annuli and downstream Join/Fillet lineage. External handoff:
-`knowledge/specs/trimmed-seam-offset-integration-2026-10-14.md`. NAV-002's constrained
-orbit and pivot contract is prepared in the external navigation compatibility spec.
+SKT-076/#346 is independently accepted at `c625649`: retained trimmed-seam
+inset, legacy annulus compatibility, stable profile/edge/contact IDs, exact Join
+2 mm and selected end-rim Fillet R0.5 through width edits/history/reopen. Native09
+passes actual edge/field/Escape/Return with corrected instructions and visible U
+preview. See [receipt](validation/trimmed-seam-inset.md). The approximately 30 s
+collapse refusal is tracked in REL-016. TUT-023 still owns the full ridge,
+retained-tool Cut and exports; this ingredient does not close the tutorial.
+
+NAV-002/#408 is active next for constrained orbit and pivot controls. Its public
+behavior contract is in external
+`knowledge/specs/viewport-navigation-compatibility-2026-10-14.md`. Preserve free
+orbit, separate pivot from framing center and qualify unspecified defaults.
 
 Use only the main checkout and one private GUI lease; no new worktrees are
 needed. Alternate readiness slices with concrete advanced-chain blockers.

@@ -20,7 +20,8 @@ Twenty-one new bounded children #407–427 reuse existing broader owners and gat
 NAV-001/#407 is independently accepted at2d1a699. GEO-017/#347 is independently accepted at6d9b8dc for exact inset geometry
 and derived source lineage, unblocking SKT-076 authoring. CI-008/#426 is independently accepted at `098e485` for the macOS runtime recipe;
 CI-009 retains Windows/Linux alignment and CI-004 stays Todo. SKT-076/#346 is
-active next for authored trimmed-seam inset and downstream profile lineage. The current
+accepted at `c625649` for retained inset and exact Join2/selected R0.5 downstream
+lineage. NAV-002/#408 is active next for constrained orbit and pivot controls. The current
 sequence JSON takes precedence over historical delivery notes below.
 
 
