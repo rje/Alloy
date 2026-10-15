@@ -7181,7 +7181,8 @@
       "priority": "P1",
       "depends_on": [
         "REL-019",
-        "REL-020"
+        "REL-020",
+        "REL-028"
       ],
       "labels": [
         "area:rel"
@@ -7767,6 +7768,20 @@
         "area:rel"
       ],
       "body": "## Observed visual defect\nThe actual iron exterior displays sawtooth crown slivers and broad angular bands under AIS alpha blending. Source overlays and stale preview were ruled out; regular mesh normals match exact surface normals within4.3e-8rad. Identical geometry/mesh renders smoothly opaque. Source evidence external surface-iron-continuation-2026-10-15/retained-01 including mesh-diagnostic.\n\n## Scope\nSRF-017 removes the forced12percent committed-surface transparency and uses an opaque surface-Loft preview; this issue preserves remaining intentional opacity<1 and other translucent preview quality. Research documented OCCT transparency ordering support and qualify the smallest robust hardware path, with explicit fallback. Preserve authored opacity values and selection/preview semantics. Do not change BRep geometry, mesh tolerances or silently force all user transparency opaque.\n\n## Acceptance\nCompare matched opaque/translucent actual-app exterior captures and a representative overlapping preview; no erroneous triangle holes/bands from primitive draw order, readable selections and correct authored opacity/history. Record graphics capabilities and unsupported-platform limitations; cross-platform GPU qualification stays in existing gates. Independent review before acceptance. No broad renderer rewrite or new RHI migration scope.\n"
+    },
+    {
+      "key": "REL-028",
+      "title": "Avoid repeated unchanged history evaluation when opening surface Loft edit",
+      "kind": "implementation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P1",
+      "depends_on": [
+        "SRF-015"
+      ],
+      "labels": [
+        "area:rel"
+      ],
+      "body": "## Observed problem\nThe actual retained iron handle bridge API run takes 41.1 seconds to open feature.editDialog, compared with approximately 14 seconds for one full commit/reopen. Evidence is external under surface-iron-continuation-2026-10-15/retained-bridge-01/api. This is measured latency, not a claim about every document.\n\n## Bounded scope\nProfile this one edit-opening path and remove redundant evaluation of unchanged prefixes within the command/session. Reuse existing evaluation interfaces where possible; do not add a general asynchronous evaluator or broad cache framework. Keep exact document revision, edited feature, inputs and owner invalidation; preserve authoritative commit/downstream validation.\n\n## Acceptance\nOn the same saved bridge document, opening edit evaluates each necessary unchanged prefix at most once, preserving initial preview/selection and Cancel. Record before/after wall time and evaluation counts, one input/source invalidation, commit and exact undo/reopen. Inspect readable actual controls and GPU preview. Independent review required. Do not claim cold geometry is fast merely because duplicate work is removed; broad cold recompute remains REL-016.\n"
     }
   ]
 }
