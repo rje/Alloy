@@ -811,6 +811,7 @@ AlloyWindow::AlloyWindow() {
     navigation_ = new QWidget; navigation_->setStyleSheet("background: #f0f2f3;");
     auto* nav = new QHBoxLayout(navigation_); nav->setContentsMargins(8, 2, 8, 5); nav->setSpacing(2);
     nav->addStretch(); nav->addWidget(commandButton("view.home", "Home"));
+    nav->addWidget(commandButton("view.fit", "Fit"));
     auto* orbitButton=new QPushButton("Free Orbit");orbitButton->setObjectName("view.orbitTool");
     orbitButton->setMinimumWidth(orbitButton->fontMetrics().horizontalAdvance("Constrained Orbit")+28);
     orbitButton->setCheckable(true);orbitButton->setToolTip("Drag on the canvas to orbit freely; Escape exits. Shift + middle drag also orbits.");
@@ -885,6 +886,10 @@ AlloyWindow::AlloyWindow() {
     connect(searchShortcut, &QShortcut::activated, this, [this] {
         if (!qobject_cast<QLineEdit*>(QApplication::focusWidget())) execute("commands.search");
     });
+    auto* fitShortcut=new QShortcut(QKeySequence(Qt::Key_F6),this);
+    fitShortcut->setObjectName("view.fit.shortcut");
+    fitShortcut->setContext(Qt::WindowShortcut);
+    connect(fitShortcut,&QShortcut::activated,this,[this]{execute("view.fit");});
     for(const auto& tool:QStringList{"line","rectangle","circle","dimension","trim","offset"}) {
         auto* shortcut=new QShortcut(QKeySequence(tool=="line" ? "L" : tool=="rectangle" ? "R" : tool=="circle" ? "C" : tool=="trim" ? "T" : tool=="offset" ? "O" : "D"),this);
         connect(shortcut,&QShortcut::activated,this,[this,tool]{
@@ -5267,8 +5272,7 @@ void AlloyWindow::registerCommands() {
         if (a.value("width").toInt() < 1040) return failure("invalid_arguments", "Minimum width is 1040");
         resize(a.value("width").toInt(), a.value("height").toInt()); return QJsonObject{};
     });
-    add("view.home", "Home view", "Fit visible bodies and sketches in the isometric view.", {}, [this](const auto&) {
-        view_->orientation="isometric";
+    const auto fitPresented=[this] {
         if((session_.value("command")=="solid.extrude" || session_.value("command")=="solid.combine") && session_.value("previewed").toBool()) {
             auto draft=session_.value("documentDraft").toObject();
             const auto inputs=session_.value("inputs").toObject();
@@ -5281,9 +5285,15 @@ void AlloyWindow::registerCommands() {
             if(candidate.ok){auto bodies=candidate.evaluation->bodies;
                 if(session_.value("command")=="solid.combine")for(auto& body:bodies)
                     body.visible=body.bodyId==inputs["targetBodyId"].toString() || (body.visible && !inputs["toolBodyIds"].toArray().contains(body.bodyId));
-                view_->fit(bodies,candidate.evaluation->sketches);return QJsonObject{};}
+                view_->fit(bodies,candidate.evaluation->sketches);return;}
         }
-        view_->fit(presentationBodies(),nonzeroAssemblyPose() ? std::vector<EvaluatedSketch>{} : document_->sketches());return QJsonObject{};
+        view_->fit(presentationBodies(),nonzeroAssemblyPose() ? std::vector<EvaluatedSketch>{} : document_->sketches());
+    };
+    add("view.fit", "Fit", "Frame visible geometry without changing the current camera orientation (F6).", {}, [fitPresented](const auto&) {
+        fitPresented();return QJsonObject{};
+    });
+    add("view.home", "Home view", "Fit visible bodies and sketches in the isometric home view.", {}, [this,fitPresented](const auto&) {
+        view_->orientation="isometric";fitPresented();return QJsonObject{};
     });
     add("recording.start", "Start tutorial recording", "Record this Alloy window to a timed MP4 and app-local event log.",
         {{"path",parameter("string","Absolute new .mp4 destination; parent directory must exist.")},
