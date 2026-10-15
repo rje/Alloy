@@ -26,7 +26,13 @@ plate attempt still missed0.0003 mm G0 limits. Do not repeat unchanged sweeps or
 relax tolerances. Astra is evaluating one materially different mature OCCT
 boundary/tangent construction in an external diagnostic directory before Sol
 retained implementation. Existing Trim/bridge feasibility is not acceptance.
-Root integrates and tracks issues; only one private GUI lease. The completed
+SKT-092 owns associative fit-spline Mirror, newly found missing in the source
+prepared-sketch workflow. Sol has the sole build/GUI lease for this independent
+feature; root integrates and tracks issues. Astra's distinct constrained Coons
+attempt also misses unchanged G0 bounds; no product port follows. Its next bounded
+proposal uses exact tensor BSpline construction from the actual compatible source
+curves, with no fitting, changed fit points or tolerance relaxation. Public
+operation-frame recovery runs separately with Luna. Only one private GUI lease. The completed
 shoehorn validation editor is closed. Native Windows/Linux package testers and
 broader release-readiness gates remain separate.
 
