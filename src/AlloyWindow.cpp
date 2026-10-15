@@ -263,7 +263,10 @@ AlloyWindow::AlloyWindow() {
     )");
     auto* recoveryNotice=new QLabel(this);recoveryNotice->setObjectName("document.recovery.warning");
     recoveryNotice->setStyleSheet("color: #a63832; font-weight: 600; padding: 2px 8px;");
-    recoveryNotice->setText("Recovery unavailable: "+recoveryWarning_);
+    recoveryNotice->setAccessibleName("Recovery status");
+    recoveryNotice->setText("Recovery unavailable");
+    const auto recoveryDetails=recoveryWarning_.isEmpty() ? QString{} : "Recovery unavailable: "+recoveryWarning_;
+    recoveryNotice->setToolTip(recoveryDetails);recoveryNotice->setAccessibleDescription(recoveryDetails);
     statusBar()->addPermanentWidget(recoveryNotice);
     recoveryNotice->setVisible(!recoveryWarning_.isEmpty());
     view_ = new ReferenceView;
@@ -1071,8 +1074,10 @@ AlloyWindow::AlloyWindow() {
     latest->setToolTip("Scroll to the latest feature; document history is unchanged.");
     connect(latest,&QPushButton::clicked,this,[this]{execute("timeline.showLatest");});timelineRow->addWidget(latest);
     layout->addWidget(timeline_);
-    status_ = new QLabel; statusBar()->addWidget(status_, 1);
-    auto* shell = new QLabel("Alloy 0.1 · Development preview"); statusBar()->addPermanentWidget(shell);
+    status_ = new QLabel;status_->setObjectName("application.status");status_->setAccessibleName("Application status");statusBar()->addWidget(status_,1);
+    auto* gpuNotice=new QLabel("GPU UNQUALIFIED",this);gpuNotice->setObjectName("application.gpu.warning");
+    gpuNotice->setAccessibleName("GPU qualification warning");gpuNotice->setStyleSheet("color: #9a5800; font-weight: 600; padding: 2px 8px;");
+    statusBar()->addPermanentWidget(gpuNotice);gpuNotice->hide();
 
     auto* viewMenu = menuBar()->addMenu("View");
     auto* editMenu=menuBar()->addMenu("Edit");
@@ -1249,6 +1254,8 @@ void AlloyWindow::updateTimelineDrop(const QPoint& globalPosition) {
 }
 
 bool AlloyWindow::eventFilter(QObject* watched,QEvent* event) {
+    if(watched==view_ && event->type()==QEvent::Show)
+        QTimer::singleShot(0,this,[this]{if(isVisible() && view_ && view_->isVisible())refresh();});
     if((watched==modelingRibbon_ || watched==navigation_) && event->type()==QEvent::Resize)
         QTimer::singleShot(0,this,[this]{updateCompactControls();});
     if(componentCopyKey(watched,event))return true;
@@ -1574,7 +1581,9 @@ QString AlloyWindow::syncRecovery() {
     auto publish=[this](const QString& warning){
         recoveryWarning_=warning;
         if(auto* notice=findChild<QLabel*>("document.recovery.warning")) {
-            notice->setText("Recovery unavailable: "+warning);notice->setVisible(!warning.isEmpty());
+            const auto details=warning.isEmpty() ? QString{} : "Recovery unavailable: "+warning;
+            notice->setText("Recovery unavailable");notice->setToolTip(details);notice->setAccessibleDescription(details);
+            notice->setVisible(!warning.isEmpty());
         }
         return warning;
     };
@@ -6986,8 +6995,31 @@ void AlloyWindow::refresh() {
     const auto chordHint=view_->inputPreset()=="shiftAlt" ? QString("Shift+Alt drag: right zoom · middle pan · left %1")
         .arg(view_->orbitMode()=="constrained" ? "Constrained Orbit" : "Free Orbit") :
         QString("Middle/Option-drag: pan · Shift + middle: ")+(view_->orbitMode()=="constrained" ? "Constrained Orbit" : "Free Orbit")+" · Wheel: zoom";
-    status_->setText(QString("  %3 · %4 bodies · %1 · Zoom %2%    |    "+navigationHint+" · "+chordHint)
-        .arg(view_->orientation).arg(qRound(view_->zoom * 100)).arg(gpu.value("hardwareAccelerated").toBool() ? "OCCT OpenGL" : "GPU UNQUALIFIED: " + gpu.value("qualification").toString()).arg(gpu.value("displayedBodyReferences").toArray().size()));
+    const bool hardwareAccelerated=gpu.value("hardwareAccelerated").toBool();
+    const auto gpuDetails=hardwareAccelerated ? QString("Hardware accelerated · OCCT OpenGL · %1").arg(gpu.value("qualification").toString())
+        : QString("GPU UNQUALIFIED: ")+gpu.value("qualification").toString();
+    if(auto* notice=findChild<QLabel*>("application.gpu.warning")) {
+        notice->setText("GPU UNQUALIFIED");notice->setToolTip(gpuDetails);notice->setAccessibleDescription(gpuDetails);
+        notice->setVisible(!hardwareAccelerated);
+    }
+    QString activeTool;
+    if(view_->navigationTool()=="pan")activeTool="Pan";
+    else if(view_->navigationTool()=="zoom")activeTool="Zoom";
+    else if(view_->navigationTool()=="zoomWindow")activeTool="Zoom Window";
+    else if(view_->freeOrbitTool())activeTool=view_->orbitMode()=="constrained" ? "Constrained Orbit" : "Free Orbit";
+    else if(editingSketch) {
+        const auto tool=session_.value("tool").toString();
+        activeTool=tool.isEmpty() ? "Sketch" : tool.left(1).toUpper()+tool.mid(1);
+    } else if(!session_.isEmpty()) {
+        if(const auto* command=findCommand(session_.value("command").toString()))activeTool=command->title;
+    }
+    if(activeTool.isEmpty())activeTool="Select";
+    const auto completeStatus=QString("  %3 · %4 bodies · %1 · Zoom %2%    |    "+navigationHint+" · "+chordHint)
+        .arg(view_->orientation).arg(qRound(view_->zoom * 100)).arg(hardwareAccelerated ? "OCCT OpenGL" : "GPU UNQUALIFIED: " + gpu.value("qualification").toString()).arg(gpu.value("displayedBodyReferences").toArray().size());
+    status_->setText(QString("%1 · %2 bodies · %3 · Zoom %4% · %5")
+        .arg(hardwareAccelerated ? "OCCT OpenGL" : "GPU UNQUALIFIED")
+        .arg(gpu.value("displayedBodyReferences").toArray().size()).arg(view_->orientation).arg(qRound(view_->zoom * 100)).arg(activeTool));
+    status_->setToolTip(completeStatus);status_->setAccessibleDescription(completeStatus);
 }
 
 void AlloyWindow::showSearch() {
