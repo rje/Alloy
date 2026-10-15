@@ -60,6 +60,9 @@ private slots:
   QCOMPARE(repeated["sourcePrefixEvaluationCount"].toInteger(),qint64(1));
   QCOMPARE(repeated["candidateEvaluationCount"].toInteger(),qint64(1));
   QCOMPARE(repeated["featurePrefixEvaluationCount"].toInteger(),qint64(1));
+  const auto pending=call(window,"command.update",{{"session",opened["id"]},{"inputs",QJsonObject{{"name","Pending earlier Loft"}}}});
+  QVERIFY(!pending["previewed"].toBool());QVERIFY(!pending["geometryEvaluated"].toBool());
+  QVERIFY(!pending.contains("geometry"));QVERIFY(!pending.contains("documentDraft"));
   auto parameters=first["parameters"].toObject();auto points=parameters["points"].toArray();
   const auto sourcePoint=parameters["entities"].toArray()[0].toObject()["pointIds"].toArray()[1].toString();bool moved=false;
   for(int i=0;i<points.size();++i)if(points[i].toObject()["id"]==sourcePoint){

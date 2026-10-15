@@ -5529,7 +5529,7 @@ void AlloyWindow::registerCommands() {
             session_["source"]=source;
         }
         session_["previewed"] = false;if(target!="solid.extrude" || !updatingExtrudePreview_)view_->clearPreview();
-        if(target=="inspect.section" || target=="solid.hole" || target=="solid.sweep" || target=="solid.revolve") {session_["geometryEvaluated"]=false;session_.remove("geometry");session_.remove("documentDraft");session_.remove("previewError");}
+        if(target=="inspect.section" || target=="solid.hole" || target=="solid.sweep" || target=="solid.revolve" || target=="solid.loft") {session_["geometryEvaluated"]=false;session_.remove("geometry");session_.remove("documentDraft");session_.remove("previewError");}
         if(target=="solid.circularPattern") {session_["geometryEvaluated"]=false;session_.remove("geometry");session_.remove("documentDraft");session_.remove("previewError");view_->clearPatternAxes();refreshCircularControls();}
         if(target=="solid.rectangularPattern") {session_["geometryEvaluated"]=false;session_.remove("geometry");session_.remove("documentDraft");view_->clearPatternAxes();}
         if(target=="solid.combine") {
