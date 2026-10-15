@@ -16,7 +16,9 @@ refusal pass focused Qt checks and Astra review. See
 is accepted at `6e38eb6` with metadata history, save/reopen and focused Qt/GPU
 evidence. See [receipt](validation/navigation-home-saved.md). NAV-018/#439
 application navigation preferences is active; NAV-019/#443 retains configurable
-Front/Top/up conventions.
+Front/Top/up conventions. NAV-020/#444 addresses the user-reported cube
+perspective skew using per-object orthographic persistence; model projection
+and cube orientation/picking must remain correct.
 REL-019/#440 is accepted at `6ad76be`; REL-016 remains open.
 
 TUT-029/#441 diagnostic completed at `636c8b5`: final case/reference intersection

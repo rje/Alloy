@@ -7032,7 +7032,8 @@
         "NAV-001",
         "NAV-010",
         "NAV-011",
-        "NAV-012"
+        "NAV-012",
+        "NAV-020"
       ],
       "labels": [
         "area:doc"
@@ -7183,7 +7184,7 @@
       "labels": [
         "area:rel"
       ],
-      "body": "## Initial-build readiness scope\nReconcile README, continuation context, release instructions and supported workflow matrix against accepted receipts and live issues. Clearly label implemented/qualified/unverified/unsupported, input route, platform/runtime, geometry/reference restrictions, renderer and package state. Include install/start instructions, local automation discovery, sample models, video gallery pointers and known defects. Remove stale historical blockers without erasing unresolved requirements. Keep detailed external research out of Git.\n\n## Delivery and evidence\nUser-prioritized 2026-10-14. Keep implementation bounded, preserve authoritative document/control commands, use proportional verification and independent review. Public reference details and images remain external. This issue is planned until its stated gate is evidenced; do not substitute compilation/API or Qt simulation for physical input or packaged GPU evidence.\n\n\n## Concrete copy audit item\nThe main status bar still labels the product \"Alloy 0.1 \u00b7 Primitive preview\" (AlloyWindow.cpp), despite the accepted sketch/feature/assembly workflows. Replace stale capability text with an accurate development-preview label during the capability-copy pass; do not imply release qualification.\n\n\n## Small completed wording correction\nCommit 9e6bc38 changes the stale status label from Primitive preview to Development preview. This is a one-line source-reviewed wording fix; remaining capability/install/sample and known-limit documentation scope stays Todo. Its display will be observed in the next already-required application capture rather than a separate test run.\n"
+      "body": "## Initial-build readiness scope\nReconcile README, continuation context, release instructions and supported workflow matrix against accepted receipts and live issues. Clearly label implemented/qualified/unverified/unsupported, input route, platform/runtime, geometry/reference restrictions, renderer and package state. Include install/start instructions, local automation discovery, sample models, video gallery pointers and known defects. Remove stale historical blockers without erasing unresolved requirements. Keep detailed external research out of Git.\n\n## Delivery and evidence\nUser-prioritized 2026-10-14. Keep implementation bounded, preserve authoritative document/control commands, use proportional verification and independent review. Public reference details and images remain external. This issue is planned until its stated gate is evidenced; do not substitute compilation/API or Qt simulation for physical input or packaged GPU evidence.\n\n\n## Concrete copy audit item\nThe main status bar still labels the product \"Alloy 0.1 \u00b7 Primitive preview\" (AlloyWindow.cpp), despite the accepted sketch/feature/assembly workflows. Replace stale capability text with an accurate development-preview label during the capability-copy pass; do not imply release qualification.\n\n\n## Small completed wording correction\nCommit 9e6bc38 changes the stale status label from Primitive preview to Development preview. This is a one-line source-reviewed wording fix; remaining capability/install/sample and known-limit documentation scope stays Todo. Its display will be observed in the next already-required application capture rather than a separate test run.\n\n## Bounded documentation progress, 2026-10-14\nNavigation guide added at docs/navigation.md and linked from README (ffc6a4d), covering accepted mouse/visible tools, projection, named views and saved Home with explicit physical-input limits. Luna drafted; root reviewed against implementation/receipts. Remaining whole-application capability, install and sample scope stays open.\n"
     },
     {
       "key": "REL-018",
@@ -7519,6 +7520,21 @@
         "area:doc"
       ],
       "body": "## Bounded orientation scope\nSplit from NAV-017: research and implement configurable Front/Top/up conventions, coordinating standard camera transforms with cube labels and hit mappings. Camera-only overrides that mislabel the cube are not acceptable. Preserve authored geometry and define document versus application scope from public evidence. Verify an asymmetric model across convention change, standard face/cube navigation, save/reopen and reset; record unknowns and retain physical input qualification separately. Independent Astra review required.\n"
+    },
+    {
+      "key": "NAV-020",
+      "title": "Keep orientation cube orthographic under perspective model camera",
+      "kind": "implementation",
+      "phase": "P4 Initial release",
+      "priority": "P1",
+      "depends_on": [
+        "NAV-006",
+        "NAV-010"
+      ],
+      "labels": [
+        "area:doc"
+      ],
+      "body": "## User-reported visual defect\nThe corner navigation cube skews when the model camera uses perspective. Render the orientation indicator orthographically while retaining its current orientation, corner anchoring, size, hover and hit detection; preserve the model camera projection. Use OCCT per-object orthographic transform persistence rather than another renderer.\n\n## Acceptance\nAt a matched oblique orientation, inspect actual GPU captures with orthographic and perspective model modes and verify the cube stays undistorted. Verify representative cube picking still resolves its displayed region. Reuse a focused existing navigation fixture; independent Astra review before closure. Physical-device gates remain separate.\n"
     }
   ]
 }
