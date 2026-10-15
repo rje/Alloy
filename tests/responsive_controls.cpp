@@ -3,11 +3,15 @@
 #include "AlloyWindow.h"
 #include "ReferenceView.h"
 #include <QApplication>
+#include <QComboBox>
 #include <QDialogButtonBox>
 #include <QDir>
 #include <QDockWidget>
 #include <QDoubleSpinBox>
+#include <QFile>
+#include <QJsonArray>
 #include <QJsonDocument>
+#include <QLabel>
 #include <QLineEdit>
 #include <QMenu>
 #include <QPushButton>
@@ -16,6 +20,7 @@
 #include <QTest>
 #include <QTimer>
 #include <QToolButton>
+#include <cmath>
 
 class ResponsiveControls final : public QObject {
     Q_OBJECT
@@ -172,6 +177,82 @@ private slots:
         QCOMPARE(afterCylinder.value("authored"),beforeCylinder.value("authored"));
         QCOMPARE(afterCylinder.value("undo"),beforeCylinder.value("undo"));
         call(window,"document.save",{{"path",out+"/empty-after-undo.alloy"}});window.close();
+    }
+    void extrudeDockSmallWindowAudit() {
+        const auto out=qEnvironmentVariable("ALLOY_REL024_EXTRUDE_EVIDENCE");QVERIFY(!out.isEmpty());QVERIFY(QDir().mkpath(out));
+        AlloyTheme::apply(*qApp);AlloyWindow window;window.resize(1360,850);window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        const auto sketch=call(window,"sketch.begin",{{"plane","XY"}}).value("draftSketch").toObject();
+        call(window,"sketch.rectangle",{{"x1",0},{"y1",0},{"x2",20},{"y2",12},{"units","mm"}});
+        call(window,"sketch.finish");
+        const auto evaluated=call(window,"document.inspect").value("evaluation").toObject();
+        const auto sketchRow=evaluated.value("sketches").toArray().first().toObject();
+        const auto profile=sketchRow.value("profiles").toArray().first().toObject();
+        const auto before=call(window,"document.inspect");
+        // The incomplete To Object variant exposes the longest form and must give user guidance.
+        call(window,"solid.extrudeDialog",{{"sketchId",sketch.value("id")},{"profileId",profile.value("profileId")},{"extent","toObject"}});
+        QCOMPARE(window.state().value("activeSession").toObject().value("inputs").toObject().value("extent"),QJsonValue("toObject"));
+        auto* dock=window.findChild<QDockWidget*>("extrudeDock");QVERIFY(dock);
+        auto* scroll=dock->findChild<QScrollArea*>("extrude.formScroll");QVERIFY(scroll);
+        auto* buttons=dock->findChild<QDialogButtonBox*>("extrude.buttons");QVERIFY(buttons);
+        auto* ok=buttons->button(QDialogButtonBox::Ok),*cancel=buttons->button(QDialogButtonBox::Cancel);
+        QVERIFY(ok && cancel);
+        auto* error=dock->findChild<QLabel*>("extrude.error");QVERIFY(error);
+        auto* endObject=dock->findChild<QPushButton*>("extrude.endObject");QVERIFY(endObject);
+        auto fieldsFit=[&]()->bool{
+            if(!dock->isVisible() || !scroll->widget() || scroll->widget()->width()>scroll->viewport()->width())return false;
+            for(auto* field:scroll->widget()->findChildren<QWidget*>()){
+                if(!field->isVisible() || field->parentWidget()!=scroll->widget())continue;
+                const QRect bounds(field->mapTo(scroll->viewport(),QPoint{}),field->size());
+                if(bounds.left()<0 || bounds.right()>=scroll->viewport()->width())return false;
+            }
+            return true;
+        };
+        auto footerHit=[&]()->bool{
+            for(auto* button:{ok,cancel}){
+                if(!button->isVisible() || QApplication::widgetAt(button->mapToGlobal(button->rect().center()))!=button)return false;
+            }
+            return true;
+        };
+        QTRY_VERIFY(fieldsFit() && footerHit());
+        QCOMPARE(error->text(),QString("Select an end face for the extrusion."));
+        QVERIFY(!ok->isEnabled());
+        QVERIFY(endObject->isVisible());
+        scroll->ensureWidgetVisible(error);
+        call(window,"capture.screenshot",{{"path",out+"/normal-to-object.png"}});
+        window.resize(1040,640);
+        QTRY_VERIFY(window.findChild<QToolButton*>("view.compact.navigation")->isVisible());
+        QTRY_VERIFY(fieldsFit() && footerHit());
+        QVERIFY(scroll->verticalScrollBar()->maximum()>0);
+        scroll->ensureWidgetVisible(error);
+        QTRY_VERIFY(scroll->viewport()->rect().contains(QRect(error->mapTo(scroll->viewport(),QPoint{}),error->size())));
+        qInfo("extrude form: content=%d viewport=%d panel=%d minimum-window=%d",scroll->widget()->width(),scroll->viewport()->width(),
+            dock->findChild<QWidget*>("extrudePanel")->width(),window.width());
+        call(window,"capture.screenshot",{{"path",out+"/minimum-to-object.png"}});
+        QTest::mouseClick(cancel,Qt::LeftButton);
+        QTRY_VERIFY(window.state().value("activeSession").toObject().isEmpty());
+        const auto afterCancel=call(window,"document.inspect");
+        QCOMPARE(afterCancel.value("authored"),before.value("authored"));
+        QCOMPARE(afterCancel.value("undo"),before.value("undo"));
+        call(window,"solid.extrudeDialog",{{"sketchId",sketch.value("id")},{"profileId",profile.value("profileId")},
+            {"extent","distance"},{"distance",8}});
+        dock=window.findChild<QDockWidget*>("extrudeDock");QVERIFY(dock);
+        scroll=dock->findChild<QScrollArea*>("extrude.formScroll");QVERIFY(scroll);
+        buttons=dock->findChild<QDialogButtonBox*>("extrude.buttons");QVERIFY(buttons);
+        ok=buttons->button(QDialogButtonBox::Ok);cancel=buttons->button(QDialogButtonBox::Cancel);QVERIFY(ok && cancel);
+        QTRY_VERIFY(fieldsFit() && footerHit() && ok->isEnabled());
+        QCOMPARE(window.state().value("activeSession").toObject().value("inputs").toObject().value("extent"),QJsonValue("distance"));
+        call(window,"capture.screenshot",{{"path",out+"/minimum-distance-ready.png"}});
+        QTest::mouseClick(ok,Qt::LeftButton);
+        QTRY_VERIFY(window.state().value("activeSession").toObject().isEmpty());
+        const auto committed=call(window,"document.inspect");
+        const auto features=committed.value("authored").toObject().value("features").toArray();
+        QCOMPARE(features.size(),before.value("authored").toObject().value("features").toArray().size()+1);
+        QCOMPARE(features.last().toObject().value("type"),QJsonValue("extrude"));
+        QVERIFY(std::abs(committed.value("evaluation").toObject().value("bodies").toArray().first().toObject().value("volumeMm3").toDouble()-1920.0)<1e-6);
+        call(window,"view.orientation",{{"name","isometric"}});
+        call(window,"capture.screenshot",{{"path",out+"/committed-solid.png"}});
+        call(window,"document.save",{{"path",out+"/extrude-dock-model.alloy"}});window.close();
     }
 };
 QTEST_MAIN(ResponsiveControls)

@@ -7369,6 +7369,10 @@ QJsonObject AlloyWindow::previewExtrude() {
         for(const auto& item:sketch.profiles)if(item.profileId==id.toString())profiles.push_back(item);
     if(profiles.empty() || profiles.size()!=static_cast<std::size_t>(profileIds.size()))return reject(failure("profile_unavailable","Selected sketch regions are unavailable at this history stage"));
     if(session_.value("invalidEndOffset").toBool())return reject(failure("invalid_arguments","Enter a signed end offset or existing user length name"));
+    const auto endSupport=inputs.value("endSupport");
+    if(inputs.value("extent")=="toObject" && (!inputs.contains("endSupport") || endSupport.isNull()
+        || (endSupport.isObject() && endSupport.toObject().isEmpty())))
+        return reject(failure("invalid_extent","Select an end face for the extrusion.","endSupport"));
     double distance=0;
     try {auto extent=extrudeExtentParameters(inputs);extent["operation"]=inputs.value("operation");extent["targetBodyIds"]=inputs.value("targetBodyIds");distance=GeometryKernel::extrusionDistance(extent,profiles.front(),history);}
     catch(const std::exception& error){return reject(failure("invalid_extent",QString::fromUtf8(error.what())));}
@@ -7500,8 +7504,12 @@ void AlloyWindow::showExtrude() {
     extrudePanel_=new QWidget;extrudePanel_->setObjectName("extrudePanel");extrudePanel_->setFixedWidth(286);
     extrudePanel_->setStyleSheet("#extrudePanel { background:#f7f8f9; color:#323c44; border-left:1px solid #cdd3d8; }");dock->setWidget(extrudePanel_);
     dock->onClose=[this]{if(session_.value("command")=="solid.extrude")execute("command.cancel",{{"session",session_.value("id")}});};
-    auto* layout=new QVBoxLayout(extrudePanel_);layout->setContentsMargins(14,14,14,12);layout->setSpacing(8);
-    auto* form=new QFormLayout;form->setVerticalSpacing(8);
+    auto* panelLayout=new QVBoxLayout(extrudePanel_);panelLayout->setContentsMargins(0,0,0,12);panelLayout->setSpacing(8);
+    auto* scroll=new QScrollArea;scroll->setObjectName("extrude.formScroll");scroll->setWidgetResizable(true);scroll->setFrameShape(QFrame::NoFrame);
+    scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    auto* contents=new QWidget;scroll->setWidget(contents);panelLayout->addWidget(scroll,1);
+    auto* layout=new QVBoxLayout(contents);layout->setContentsMargins(14,14,14,0);layout->setSpacing(8);
+    auto* form=new QFormLayout;form->setVerticalSpacing(8);form->setRowWrapPolicy(QFormLayout::WrapLongRows);
     extrudeProfile_=new QComboBox;extrudeProfile_->setObjectName("extrude.profile");form->addRow("Profiles",extrudeProfile_);
     extrudeStart_=new QComboBox;extrudeStart_->setObjectName("extrude.start");
     extrudeStart_->addItem("Profile Plane","profilePlane");extrudeStart_->addItem("Offset","offset");form->addRow("Start",extrudeStart_);
@@ -7554,7 +7562,8 @@ void AlloyWindow::showExtrude() {
     layout->addLayout(form);
     extrudeError_=new QLabel;extrudeError_->setObjectName("extrude.error");extrudeError_->setWordWrap(true);extrudeError_->setStyleSheet("color:#a63832;");layout->addWidget(extrudeError_);
     auto* hint=new QLabel("Click regions to collect them before entering a distance. Cmd/Ctrl-click toggles a region.\nDrag the canvas arrow or enter a signed distance.");hint->setObjectName("extrude.hint");hint->setWordWrap(true);hint->setStyleSheet("color:#687780;");layout->addWidget(hint);
-    layout->addStretch();auto* buttons=new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel);buttons->setObjectName("extrude.buttons");extrudeOk_=buttons->button(QDialogButtonBox::Ok);layout->addWidget(buttons);
+    layout->addStretch();auto* buttons=new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel);buttons->setObjectName("extrude.buttons");extrudeOk_=buttons->button(QDialogButtonBox::Ok);
+    buttons->setContentsMargins(14,0,14,0);panelLayout->addWidget(buttons);
     auto acceptDistance=[this]{
         auto* field=static_cast<LengthDistanceSpinBox*>(extrudeDistance_);
         const auto expression=field->enteredExpression();
