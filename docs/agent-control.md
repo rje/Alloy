@@ -239,7 +239,8 @@ fail without applying the command. Error codes include `invalid_request`,
 | `view.fit` | Frame visible bodies/sketches and a valid extrusion/Combine preview while retaining the current camera orientation; reset zoom/pan. Visible Fit control and F6 shortcut |
 | `view.fitSelection` | Frame one current visible selected body, planar face or finished sketch without changing orientation; uses the exact displayed occurrence for linked bodies/faces. An active sketch uses its current draft geometry; staged body previews and undisplayed assembly sketches refuse |
 | `view.lookAt` | Align to a selected retained planar face in its displayed world placement, an active sketch via `sketch.lookAt`, or a visible finished sketch plane. Body, edge, nonplanar and stale selections return structured errors; orientation/target/scale change without authored edits |
-| `view.home` | Return to the isometric home orientation and frame the same visible geometry; reset zoom/pan |
+| `view.homeSet` / `view.homeReset` | Save the current camera pose and projection as this document's Home, or remove that saved pose. Each metadata edit is undoable and does not reevaluate geometry |
+| `view.home` | Restore the document's saved Home pose and projection if present; otherwise return to the default isometric fit of visible geometry. Camera motion does not edit the document |
 | `window.resize` | Logical width 1040–4096 and height 640–4096 |
 | `capture.screenshot` | Absolute `.png` path; returns dimensions, device scale, source |
 | `app.quit` | Optional `discard`: boolean, default false; dirty refusal unless acknowledged, then exit after reply |

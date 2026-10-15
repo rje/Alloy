@@ -575,6 +575,7 @@ AlloyWindow::AlloyWindow() {
     new QTreeWidgetItem(settings, {"Units: mm"});
     auto* views = new QTreeWidgetItem(document, {"Named Views"});namedViewsNode_=views;
     views->setData(0,Qt::UserRole+4,"namedViews");
+    homeViewNode_=new QTreeWidgetItem(views,{"Home"});homeViewNode_->setData(0,Qt::UserRole,"home");
     for (const QString& name : {"isometric", "rearIsometric", "top", "bottom", "front", "back", "right", "left"}) {
         auto* item = new QTreeWidgetItem(views, {name=="rearIsometric" ? "Rear Isometric" : name.first(1).toUpper() + name.sliced(1)});
         item->setData(0, Qt::UserRole, name);
@@ -627,6 +628,13 @@ AlloyWindow::AlloyWindow() {
             const auto tabId=activeTabId_,documentId=document_->authored()["documentId"].toString();
             QMenu menu(this);auto* create=menu.addAction("New Named View");create->setObjectName("context.namedViewCreate");
             create->setEnabled(session_.isEmpty());QAction* rename=nullptr;QAction* remove=nullptr;
+            QAction* saveHome=nullptr;QAction* resetHome=nullptr;
+            if(item==homeViewNode_) {
+                menu.addSeparator();saveHome=menu.addAction("Set Current View as Home");saveHome->setObjectName("context.homeSet");
+                resetHome=menu.addAction("Reset Home");resetHome->setObjectName("context.homeReset");
+                saveHome->setEnabled(session_.isEmpty());
+                resetHome->setEnabled(session_.isEmpty() && document_->authored()["homeCamera"].isObject());
+            }
             if(!id.isEmpty()) {
                 rename=menu.addAction("Rename");rename->setObjectName("context.namedViewRename");rename->setEnabled(session_.isEmpty());
                 remove=menu.addAction("Delete");remove->setObjectName("context.namedViewDelete");remove->setEnabled(session_.isEmpty());
@@ -636,6 +644,8 @@ AlloyWindow::AlloyWindow() {
             if(action==create)execute("view.namedCreate");
             else if(action==rename)wireNamedViewReturn(item,true);
             else if(action==remove)execute("view.namedDelete",{{"viewId",id}});
+            else if(action==saveHome)execute("view.homeSet");
+            else if(action==resetHome)execute("view.homeReset");
             return;
         }
         if(item==bodiesNode_->parent()){showRootContext(tree_->viewport()->mapToGlobal(point));return;}
@@ -784,7 +794,8 @@ AlloyWindow::AlloyWindow() {
         const auto body=item->data(0,Qt::UserRole+1).toString();
         const auto sketch=(item->parent() && item->parent()->data(0,Qt::UserRole+4)=="sketches") ? item->data(0,Qt::UserRole+2).toString() : QString{};
         const auto plane=(item->parent() && item->parent()->data(0,Qt::UserRole+4)=="planes") ? item->data(0,Qt::UserRole+2).toString() : QString{};
-        if(!namedView.isEmpty())execute("view.namedRestore",{{"viewId",namedView}});
+        if(name=="home")execute("view.home");
+        else if(!namedView.isEmpty())execute("view.namedRestore",{{"viewId",namedView}});
         else if(!name.isEmpty())execute("view.orientation",{{"name",name}});
         else if(!body.isEmpty()){
             if(tree_->selectedItems().size()<=1)
@@ -5358,6 +5369,19 @@ void AlloyWindow::registerCommands() {
             return error.isEmpty() ? QJsonObject{{"viewId",a.value("viewId")},{"deleted",true}}
                 : failure("invalid_named_view",error);
         });
+    add("view.homeSet","Set Current View as Home","Save the current pose and projection as this document's Home view.",{},
+        [this,namedViewCamera](const auto&){
+            if(!session_.isEmpty())return failure("active_command","Finish or cancel the active command before saving Home");
+            const auto camera=namedViewCamera();
+            const auto error=document_->commitHomeCamera(camera,"Set Home view");
+            return error.isEmpty() ? camera : failure("invalid_home_view",error);
+        });
+    add("view.homeReset","Reset Home","Remove this document's saved Home; the default isometric fit returns.",{},
+        [this](const auto&){
+            if(!session_.isEmpty())return failure("active_command","Finish or cancel the active command before resetting Home");
+            const auto error=document_->commitHomeCamera(std::nullopt,"Reset Home view");
+            return error.isEmpty() ? QJsonObject{{"saved",false}} : failure("invalid_home_view",error);
+        });
     auto cubeRegion=parameter("string","One of the 26 detected Alloy orientation-cube face, edge or corner regions.");
     QJsonArray cubeNames;for(const auto& name:ReferenceView::cubeRegions())cubeNames.append(name);
     cubeRegion.insert("enum",cubeNames);
@@ -5557,8 +5581,13 @@ void AlloyWindow::registerCommands() {
         }
         return failure("unsupported_selection","Select a planar face or sketch for Look At; body, edge and curved face alignment is unavailable");
     });
-    add("view.home", "Home view", "Fit visible bodies and sketches in the isometric home view.", {}, [this,fitPresented](const auto&) {
-        view_->orientation="isometric";fitPresented();return QJsonObject{};
+    add("view.home", "Home view", "Restore this document's saved Home camera, or fit visible geometry isometrically by default.", {}, [this,fitPresented](const auto&) {
+        if(document_->authored()["homeCamera"].isObject()) {
+            auto state=view_->cameraState();const auto saved=document_->authored()["homeCamera"].toObject();
+            for(auto it=saved.begin();it!=saved.end();++it)state[it.key()]=it.value();
+            view_->restoreCameraState(state);return view_->cameraState();
+        }
+        view_->orientation="isometric";fitPresented();return view_->cameraState();
     });
     add("recording.start", "Start tutorial recording", "Record this Alloy window to a timed MP4 and app-local event log.",
         {{"path",parameter("string","Absolute new .mp4 destination; parent directory must exist.")},
@@ -5941,6 +5970,8 @@ void AlloyWindow::refresh() {
             item->setFlags(item->flags()|Qt::ItemIsEditable|Qt::ItemIsEnabled|Qt::ItemIsSelectable);
             item->setHidden(false);
         }
+        homeViewNode_->setToolTip(0,document_->authored()["homeCamera"].isObject()
+            ? "Saved Home camera; right-click to change or reset" : "Default isometric fit; right-click to save this camera as Home");
         for(int index=0;index<namedViewsNode_->childCount();++index) {
             auto* item=namedViewsNode_->child(index);const auto id=item->data(0,Qt::UserRole+9).toString();
             if(!id.isEmpty() && !visibleNamedViews.contains(id)){item->setSelected(false);item->setHidden(true);}

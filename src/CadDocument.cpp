@@ -1065,6 +1065,13 @@ QString CadDocument::commitNamedViews(const QJsonArray& views,const QString& lab
     if(candidate!=authored_)history_.push(new DocumentEdit(*this,candidate,evaluation_,label));
     return {};
 }
+QString CadDocument::commitHomeCamera(std::optional<QJsonObject> camera,const QString& label) {
+    auto candidate=authored_;if(camera)candidate["homeCamera"]=*camera;else candidate.remove("homeCamera");
+    lastEvaluationError_={};const auto error=validateStructure(candidate);
+    if(!error.isEmpty()){lastEvaluationError_={{"code","invalid_home_view"},{"message",error}};return error;}
+    if(candidate!=authored_)history_.push(new DocumentEdit(*this,candidate,evaluation_,label));
+    return {};
+}
 QString CadDocument::commitAnalyses(const QJsonArray& analyses,const QString& label) {
     auto candidate=authored_;candidate["analyses"]=analyses;
     lastEvaluationError_={};const auto error=validateStructure(candidate);
@@ -1917,6 +1924,9 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
             return "Named view requires a unique ID/name and a finite camera pose";
         ids.insert(id);viewNames.insert(name.toCaseFolded());
     }
+    if(candidate.contains("homeCamera") && (!candidate["homeCamera"].isObject() ||
+        !validNamedViewCamera(candidate["homeCamera"].toObject())))
+        return "Home requires a finite saved camera pose";
     if(candidate.contains("analyses") && !candidate["analyses"].isArray())return "Analyses must be an array";
     int activeSections=0;
     for(const auto& entry:candidate["analyses"].toArray()) {
@@ -2511,7 +2521,7 @@ QJsonObject CadDocument::state() const {
     }
     QJsonArray evaluatedPlanes;
     for(const auto& plane:evaluation_->constructionPlanes)evaluatedPlanes.append(QJsonObject{{"ownerId",plane.ownerId},{"featureId",plane.featureId},{"name",plane.name},{"visible",plane.visible},{"frame",plane.frame}});
-    return {{"activeOwnerId",activeOwnerId()},{"components",authored_["components"].toArray()},{"occurrences",authored_["occurrences"].toArray()},{"namedViews",authored_["namedViews"].toArray()},{"assembly",assemblyState()},{"userParameters",evaluatedLengthParameters(authored_)},{"modelParameters",modelLengthRows(authored_)},{"loaded", true}, {"id", authored_["documentId"]}, {"label", label()}, {"path",path_},
+    return {{"activeOwnerId",activeOwnerId()},{"components",authored_["components"].toArray()},{"occurrences",authored_["occurrences"].toArray()},{"namedViews",authored_["namedViews"].toArray()},{"homeCamera",authored_["homeCamera"].toObject()},{"assembly",assemblyState()},{"userParameters",evaluatedLengthParameters(authored_)},{"modelParameters",modelLengthRows(authored_)},{"loaded", true}, {"id", authored_["documentId"]}, {"label", label()}, {"path",path_},
         {"units", authored_["displayUnits"]}, {"canonicalLengthUnit", "mm"},
         {"revision", static_cast<qint64>(revision_)}, {"dirty", !history_.isClean()},
         {"lastTransactionId", lastTransaction_},
