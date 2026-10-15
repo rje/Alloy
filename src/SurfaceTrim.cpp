@@ -13,6 +13,8 @@
 #include <BRepGProp.hxx>
 #include <BRepPrimAPI_MakePrism.hxx>
 #include <BRepAdaptor_Curve.hxx>
+#include <BRepAdaptor_Surface.hxx>
+#include <gp_Pln.hxx>
 #include <BRep_Builder.hxx>
 #include <BRep_Tool.hxx>
 #include <Bnd_Box.hxx>
@@ -46,12 +48,130 @@ double length(const TopoDS_Shape& shape){
     if(shape.IsNull())return 0;GProp_GProps result;BRepGProp::LinearProperties(shape,result);return result.Mass();
 }
 struct NamedEdge {QString id;TopoDS_Edge edge;QJsonObject provenance;};
+
+SurfaceTrimSplit splitPlanarSheet(const QJsonObject& feature,const EvaluatedBody& target,
+    const EvaluatedDocument& prior){
+    const auto p=feature["parameters"].toObject();const auto id=feature["id"].toString();
+    auto reject=[&](const QString& code,const QString& message){throw GeometryKernel::EvaluationError({
+        {"featureId",id},{"featureType","surfaceTrim"},{"code",code},{"message",message}});};
+    const EvaluatedBody* tool=nullptr;
+    for(const auto& body:prior.bodies)if(body.bodyId==p["toolBodyId"])tool=&body;
+    if(!tool || tool->bodyId==target.bodyId)
+        reject("trim_tool_unavailable","Select a distinct earlier retained planar sheet tool");
+    // This ingredient accepts the exact parallelograms produced by a single
+    // straight sketch line's Surface Extrude. No arbitrary planar-face claim.
+    auto qualify=[&](const EvaluatedBody& body){
+        if(body.shape.IsNull() || body.summary["type"]!="surface" || body.supportFaces.size()!=1
+            || body.solidEdges.size()!=4 || !body.occurrenceId.isEmpty()
+            || body.summary["topology"].toObject()["solids"].toInt()!=0
+            || body.supportFaces[0].role!="surfaceExtrude.sheet")
+            reject("trim_sheet_unsupported","Sheet tools require two local single-line planar Surface Extrudes");
+        const auto& face=body.supportFaces[0];
+        if(BRepAdaptor_Surface(face.face).GetType()!=GeomAbs_Plane || face.boundaryEdges.size()!=4)
+            reject("trim_sheet_unsupported","Each crossing sheet must be a planar four-line extrusion");
+        for(const auto& edge:face.boundaryEdges)
+            if(BRepAdaptor_Curve(edge.edge).GetType()!=GeomAbs_Line || edge.provenance["lineage"]!="surfacePrismBuilder")
+                reject("trim_sheet_unsupported","Curved or modified sheet boundaries are outside this Trim ingredient");
+    };
+    qualify(target);qualify(*tool);
+    const auto& source=target.supportFaces[0];const auto& cutter=tool->supportFaces[0];
+    auto plane=BRepAdaptor_Surface(cutter.face).Plane();auto normal=plane.Axis().Direction();
+    if(cutter.face.Orientation()==TopAbs_REVERSED)normal.Reverse();
+    if(cutter.face.Orientation()!=TopAbs_FORWARD && cutter.face.Orientation()!=TopAbs_REVERSED)
+        reject("trim_tool_unsupported","Tool face orientation is unavailable");
+    BRepAlgoAPI_Splitter splitter;TopTools_ListOfShape arguments,tools;
+    arguments.Append(target.shape);tools.Append(tool->shape);
+    splitter.SetArguments(arguments);splitter.SetTools(tools);splitter.SetNonDestructive(true);splitter.Build();
+    if(!splitter.IsDone() || splitter.HasErrors() || !BRepCheck_Analyzer(splitter.Shape()).IsValid())
+        reject("trim_split_failed","OCCT could not split these finite crossing sheets");
+    TopTools_IndexedMapOfShape faces,edges,descendants;
+    TopExp::MapShapes(splitter.Shape(),TopAbs_FACE,faces);TopExp::MapShapes(splitter.Shape(),TopAbs_EDGE,edges);
+    for(const auto& shape:splitter.Modified(source.face))
+        if(shape.ShapeType()==TopAbs_FACE && faces.Contains(shape))descendants.Add(shape);
+    if(faces.Extent()!=2 || descendants.Extent()!=2)
+        reject("trim_region_ambiguous","The finite sheet tool must divide the target into exactly two regions");
+    SurfaceTrimSplit result;result.splitShape=splitter.Shape();
+    result.projection={{"mode","surfaceIntersection"},{"toolBodyId",tool->bodyId},
+        {"toolFaceId",cutter.faceId},{"normal",QJsonArray{normal.X(),normal.Y(),normal.Z()}}};
+    QSet<QString> sides;
+    for(int i=1;i<=descendants.Extent();++i){
+        const auto face=TopoDS::Face(descendants(i));GProp_GProps mass;BRepGProp::SurfaceProperties(face,mass);
+        const auto distance=gp_Vec(plane.Location(),mass.CentreOfMass()).Dot(gp_Vec(normal));
+        if(mass.Mass()<mmTolerance || std::abs(distance)<mmTolerance)
+            reject("trim_region_ambiguous","A region has no unambiguous tool-plane side");
+        const auto side=distance<0?QString("negative"):QString("positive");
+        for(TopExp_Explorer walk(face,TopAbs_EDGE);walk.More();walk.Next())
+            if(BRepAdaptor_Curve(TopoDS::Edge(walk.Current())).GetType()!=GeomAbs_Line)
+                reject("trim_region_ambiguous","Split regions must remain straight-edged convex polygons");
+        for(TopExp_Explorer walk(face,TopAbs_VERTEX);walk.More();walk.Next()){
+            const auto d=gp_Vec(plane.Location(),BRep_Tool::Pnt(TopoDS::Vertex(walk.Current()))).Dot(gp_Vec(normal));
+            if((distance<0 && d>mmTolerance) || (distance>0 && d< -mmTolerance))
+                reject("trim_region_ambiguous","A split region crosses both tool-plane sides");
+        }
+        if(sides.contains(side))reject("trim_region_ambiguous","Expected one region on each tool-plane side");
+        sides.insert(side);
+        result.regions.push_back({stableId(id,(source.faceId+"/sheet/"+cutter.faceId+"/"+side).toUtf8()),
+            source.faceId,false,face,mass.Mass(),side});
+    }
+    std::vector<NamedEdge> named;
+    auto offer=[&](const NamedEdge& edge){for(const auto& current:named)
+        if(current.edge.IsSame(edge.edge) || current.id==edge.id)
+            reject("trim_lineage_ambiguous","A split boundary has competing retained identities");
+        named.push_back(edge);};
+    for(const auto& original:target.solidEdges){
+        TopTools_IndexedMapOfShape modified;
+        for(const auto& shape:splitter.Modified(original.edge))
+            if(shape.ShapeType()==TopAbs_EDGE && edges.Contains(shape))modified.Add(shape);
+        if(modified.IsEmpty() && edges.Contains(original.edge))modified.Add(original.edge);
+        std::vector<std::pair<double,TopoDS_Edge>> ordered;
+        Standard_Real first,last;const auto curve=BRep_Tool::Curve(original.edge,first,last);
+        for(int i=1;i<=modified.Extent();++i){const auto edge=TopoDS::Edge(modified(i));BRepAdaptor_Curve c(edge);
+            GeomAPI_ProjectPointOnCurve projection(c.Value((c.FirstParameter()+c.LastParameter())/2),curve,first,last);
+            if(projection.NbPoints()!=1 || projection.LowerDistance()>mmTolerance)
+                reject("trim_lineage_ambiguous","A source boundary moved off its retained curve");
+            ordered.emplace_back(projection.LowerDistanceParameter(),edge);
+        }
+        std::sort(ordered.begin(),ordered.end(),[](const auto& a,const auto& b){return a.first<b.first;});
+        for(int i=0;i<int(ordered.size());++i){auto provenance=original.provenance;provenance["trimModifierFeatureId"]=id;
+            offer({ordered.size()==1?original.edgeId:stableId(id,(original.edgeId+"/segment/"+QString::number(i)).toUtf8()),
+                ordered[i].second,provenance});}
+    }
+    int intersections=0;
+    for(int i=1;i<=edges.Extent();++i){const auto edge=TopoDS::Edge(edges(i));
+        if(std::any_of(named.begin(),named.end(),[&](const auto& current){return current.edge.IsSame(edge);}))continue;
+        if(!contains(result.regions[0].face,edge) || !contains(result.regions[1].face,edge) || length(edge)<mmTolerance)
+            reject("trim_lineage_ambiguous","Expected a nondegenerate shared intersection boundary");
+        BRepAlgoAPI_Common common;common.SetNonDestructive(true);TopTools_ListOfShape a,b;
+        a.Append(edge);b.Append(tool->shape);common.SetArguments(a);common.SetTools(b);common.Build();
+        if(!common.IsDone() || common.HasErrors() || std::abs(length(common.Shape())-length(edge))>mmTolerance)
+            reject("trim_lineage_ambiguous","New boundary does not match the actual finite tool sheet");
+        ++intersections;
+        offer({stableId(id,(source.faceId+"/intersection/"+cutter.faceId).toUtf8()),edge,
+            {{"generatorFeatureId",id},{"sourceFaceId",source.faceId},{"toolBodyId",tool->bodyId},
+             {"toolFaceId",cutter.faceId},{"role","trimBoundary"},{"lineage","splitterSurfaceIntersection"}}});
+    }
+    if(intersections!=1)reject("trim_region_ambiguous","Expected exactly one shared surface intersection edge");
+    for(const auto& region:result.regions){
+        EvaluatedSupportFace support{region.regionId,target.bodyId,id,"surfaceTrim."+region.side,
+            region.face,source.frame,{},{{"sourceFaceId",source.faceId},{"toolBodyId",tool->bodyId},
+                {"toolFaceId",cutter.faceId},{"side",region.side}}};
+        for(const auto& edge:named)if(contains(region.face,edge.edge))
+            support.boundaryEdges.push_back({edge.id,"line",edge.edge,edge.provenance});
+        TopTools_IndexedMapOfShape boundaries;TopExp::MapShapes(region.face,TopAbs_EDGE,boundaries);
+        if(boundaries.Extent()!=int(support.boundaryEdges.size()))
+            reject("trim_lineage_ambiguous","A split boundary lacks a unique retained ID");
+        result.faces.push_back(std::move(support));
+    }
+    for(const auto& edge:named)result.edges.push_back({edge.id,edge.edge,edge.provenance});
+    return result;
+}
 }
 
 QJsonArray SurfaceTrim::descriptors(const SurfaceTrimSplit& split){
     QJsonArray result;
     for(const auto& region:split.regions)result.append(QJsonObject{{"regionId",region.regionId},
-        {"sourceFaceId",region.sourceFaceId},{"inside",region.inside},{"areaMm2",region.areaMm2}});
+        {"sourceFaceId",region.sourceFaceId},{"inside",region.inside},{"removable",region.removable()},
+        {"side",region.side},{"areaMm2",region.areaMm2}});
     return result;
 }
 
@@ -61,6 +181,7 @@ SurfaceTrimSplit SurfaceTrim::split(const QJsonObject& feature,const EvaluatedBo
     auto reject=[&](const QString& code,const QString& message){throw GeometryKernel::EvaluationError({
         {"featureId",featureId},{"featureType","surfaceTrim"},{"targetBodyId",target.bodyId},
         {"code",code},{"message",message}});};
+    if(p.contains("toolBodyId"))return splitPlanarSheet(feature,target,prior);
     if(target.shape.IsNull() || target.summary["type"]!="surface" ||
         target.summary["topology"].toObject()["solids"].toInt()!=0 || target.supportFaces.size()!=2 ||
         !target.occurrenceId.isEmpty())reject("trim_target_unsupported","Select one local two-face open rail sheet");
@@ -230,7 +351,7 @@ SurfaceTrimSplit SurfaceTrim::split(const QJsonObject& feature,const EvaluatedBo
 void SurfaceTrim::evaluate(EvaluatedBody& target,const QJsonObject& feature,const EvaluatedDocument& prior){
     const auto splitResult=split(feature,target,prior);const auto parameters=feature["parameters"].toObject();
     const auto removed=parameters["removedRegionIds"].toArray();
-    if(removed.isEmpty() || removed.size()>2)throw GeometryKernel::EvaluationError({
+    if(removed.isEmpty() || removed.size()>(parameters.contains("toolBodyId")?1:2))throw GeometryKernel::EvaluationError({
         {"featureId",feature["id"]},{"code","trim_region_required"},
         {"message","Select one or two inner regions to remove"}});
     QSet<QString> chosen;for(const auto& value:removed)chosen.insert(value.toString());
@@ -240,7 +361,7 @@ void SurfaceTrim::evaluate(EvaluatedBody& target,const QJsonObject& feature,cons
     std::vector<EvaluatedSupportFace> supports;
     for(size_t i=0;i<splitResult.regions.size();++i){const auto& region=splitResult.regions[i];
         if(chosen.contains(region.regionId)){
-            if(!region.inside)throw GeometryKernel::EvaluationError({{"featureId",feature["id"]},
+            if(!region.removable())throw GeometryKernel::EvaluationError({{"featureId",feature["id"]},
                 {"code","trim_region_unsupported"},{"message","This bounded Trim removes inner regions only"}});
             chosen.remove(region.regionId);continue;}
         builder.Add(kept,region.face);supports.push_back(splitResult.faces[i]);

@@ -250,7 +250,8 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
         if(feature["type"]=="surfaceTrim") {
             const auto p=feature["parameters"].toObject();const auto sketch=p["toolSketchId"].toString();
             const auto body=p["targetBodyId"].toString();
-            if(!positions.contains(sketch) || positions[sketch]>=i || features[positions[sketch]].toObject()["type"]!="sketch"
+            if((p.contains("toolBodyId") ? (!bodyPositions.contains(p["toolBodyId"].toString()) || bodyPositions[p["toolBodyId"].toString()]>=i)
+                : (!positions.contains(sketch) || positions[sketch]>=i || features[positions[sketch]].toObject()["type"]!="sketch"))
                 || !bodyPositions.contains(body) || bodyPositions[body]>=i)
                 return {{"featureId",feature["id"]},{"featureType","surfaceTrim"},
                     {"code","trim_dependency_unavailable"},{"message","Trim tool sketch and target sheet must precede the feature"}};
@@ -346,10 +347,11 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
         }
         if(f["type"]=="surfaceTrim"){
             const auto body=guarded["targetBodyId"].toString(),sketch=guarded["toolSketchId"].toString();
-            if(referencedOwners.value(body)!=owner || referencedOwners.value(sketch)!=root)
+            if(referencedOwners.value(body)!=owner || (guarded.contains("toolBodyId")
+                    ? referencedOwners.value(guarded["toolBodyId"].toString())!=owner : referencedOwners.value(sketch)!=root))
                 return {{"featureId",f["id"]},{"code","cross_component_dependency"},
-                    {"message","Sketch Trim belongs to the target sheet owner and uses a root sketch tool"}};
-            guarded.remove("targetBodyId");guarded.remove("toolSketchId");
+                    {"message","Trim belongs to the target owner and uses a same-owner sheet or root sketch"}};
+            guarded.remove("targetBodyId");guarded.remove("toolSketchId");guarded.remove("toolBodyId");
         }
         if(crossOwner(guarded))return {{"featureId",f["id"]},{"code","cross_component_dependency"},{"message","Cross-component modeling references are not supported"}};
     }
@@ -376,6 +378,9 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
         }
         if(feature["type"]=="surfaceTrim"){
             const auto body=feature["parameters"].toObject()["targetBodyId"].toString();
+            const auto tool=feature["parameters"].toObject()["toolBodyId"].toString();
+            if(!tool.isEmpty() && !activeBodies.contains(tool))return {{"featureId",feature["id"]},
+                {"code","trim_tool_unavailable"},{"message","Trim tool sheet must remain active before this feature"}};
             if(!activeBodies.contains(body))return {{"featureId",feature["id"]},{"featureType","surfaceTrim"},
                 {"code","trim_target_unavailable"},{"message","Trim target must remain active before this feature"}};
         }
@@ -1652,7 +1657,7 @@ QJsonObject CadDocument::surfaceExtrudeCandidate(const QJsonObject& authored,con
 }
 
 QJsonObject CadDocument::surfaceTrimCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
-    const QSet<QString> allowed{"targetBodyId","toolSketchId","toolEntityIds","removedRegionIds",
+    const QSet<QString> allowed{"targetBodyId","toolBodyId","toolSketchId","toolEntityIds","removedRegionIds",
         "throughMarginMm","featureId","newFeatureId","ownerId","name"};
     for(auto it=arguments.begin();it!=arguments.end();++it)if(!allowed.contains(it.key()))
         throw std::invalid_argument("Unknown Surface Trim argument");
@@ -1666,8 +1671,15 @@ QJsonObject CadDocument::surfaceTrimCandidate(const QJsonObject& authored,const 
         {"ownerId",arguments.value("ownerId").toString(authored["documentId"].toString())},
         {"type","surfaceTrim"},{"name","Trim"},{"visible",true}};
     auto p=feature["parameters"].toObject();
-    for(const auto& key:{"targetBodyId","toolSketchId","toolEntityIds","removedRegionIds","throughMarginMm"})
+    for(const auto& key:{"targetBodyId","toolBodyId","toolSketchId","toolEntityIds","removedRegionIds","throughMarginMm"})
         if(arguments.contains(key))p[key]=arguments[key];
+    if(arguments.contains("toolSketchId") && !arguments.contains("toolBodyId"))p.remove("toolBodyId");
+    if(p.contains("toolBodyId")){
+        if(arguments.contains("toolSketchId") || !arguments.value("toolEntityIds").toArray().isEmpty())
+            throw std::invalid_argument("Choose one sheet tool or paired sketch tools");
+        for(const auto& key:{"toolSketchId","toolEntityIds","throughMarginMm","sourcePlane","sourceNormal"})p.remove(key);
+        p["projectionMode"]="surfaceIntersection";
+    }else{
     if(!p.contains("throughMarginMm"))p["throughMarginMm"]=10.0;
     p["projectionMode"]="sketchNormalThroughTarget";
     for(const auto& value:features){const auto source=value.toObject();
@@ -1677,6 +1689,7 @@ QJsonObject CadDocument::surfaceTrimCandidate(const QJsonObject& authored,const 
             p["sourcePlane"]="XZ";p["sourceNormal"]=SketchGeometry::frame("XZ")["normal"];
             break;
         }
+    }
     }
     feature["parameters"]=p;if(arguments.contains("name"))feature["name"]=arguments["name"];
     if(index<0)features.append(feature);else features[index]=feature;
@@ -2328,6 +2341,14 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
             ids.insert(feature["bodyId"].toString());continue;
         }
         if(type=="surfaceTrim"){
+            if(p.contains("toolBodyId")){
+                if(feature.contains("bodyId") || p.size()!=4 || !validId(p["targetBodyId"].toString())
+                    || !validId(p["toolBodyId"].toString()) || p["toolBodyId"]==p["targetBodyId"]
+                    || p["projectionMode"]!="surfaceIntersection" || !p["removedRegionIds"].isArray()
+                    || p["removedRegionIds"].toArray().size()!=1 || !validId(p["removedRegionIds"].toArray()[0].toString()))
+                    return "Planar crossing-sheet Trim requires distinct target/tool body IDs and one removed region";
+                continue;
+            }
             if(feature.contains("bodyId") || p.size()!=8 || !validId(p["targetBodyId"].toString())
                 || !validId(p["toolSketchId"].toString()) || p["sourcePlane"]!="XZ"
                 || p["projectionMode"]!="sketchNormalThroughTarget"

@@ -2281,13 +2281,14 @@ void AlloyWindow::registerCommands() {
         [this](const auto& a){return selectSurfaceExtrudeEntity(a["sketchId"].toString(),a["entityId"].toString());});
     auto trimMargin=parameter("number","Positive margin past projected target bounds, millimeters; default 10.");
     trimMargin["minimum"]=.001;trimMargin["maximum"]=1000;
-    QJsonObject surfaceTrimSchema{{"targetBodyId",parameter("string","Current local two-face open sheet body UUID.")},
-        {"toolSketchId",parameter("string","Earlier solved XZ sketch UUID.")},
-        {"toolEntityIds",parameter("array","Two connected ordinary fit-spline entity UUIDs.")},
-        {"removedRegionIds",parameter("array","One or two stable inner split-region UUIDs.")},
+    QJsonObject surfaceTrimSchema{{"targetBodyId",parameter("string","Current local two-face rail sheet or single-line planar sheet body UUID.")},
+        {"toolBodyId",optional(parameter("string","Earlier retained single-line planar sheet body UUID; alternative to sketch tools."))},
+        {"toolSketchId",optional(parameter("string","Earlier solved XZ sketch UUID."))},
+        {"toolEntityIds",optional(parameter("array","Two connected ordinary fit-spline entity UUIDs."))},
+        {"removedRegionIds",parameter("array","One planar-sheet side region, or one or two sketch-tool inner region UUIDs.")},
         {"throughMarginMm",optional(trimMargin)},
         {"featureId",optional(featureId)},{"name",optional(parameter("string","Surface Trim feature name."))}};
-    add("surface.trim","Trim","Split a two-face sheet with paired XZ sketch splines projected through the sheet and remove selected inner regions.",surfaceTrimSchema,[this](const auto& a){
+    add("surface.trim","Trim","Split with a retained planar crossing sheet or paired XZ sketch splines; remove the selected regions.",surfaceTrimSchema,[this](const auto& a){
         QJsonObject candidate;try{candidate=surfaceTrimCandidate(a);}catch(const std::exception& e){return failure("invalid_arguments",QString::fromUtf8(e.what()));}
         const auto error=document_->commit(candidate,"Surface Trim");
         if(!error.isEmpty()){auto response=failure("evaluation_failed",error);auto detail=response["error"].toObject();
@@ -2296,13 +2297,16 @@ void AlloyWindow::registerCommands() {
     });
     auto trimDialogSchema=surfaceTrimSchema;
     for(auto it=trimDialogSchema.begin();it!=trimDialogSchema.end();++it)it.value()=optional(it.value().toObject());
-    add("surface.trimDialog","Trim","Select paired sketch splines as tool, then pick split inner regions and preview removed surface in red.",
+    add("surface.trimDialog","Trim","Select sketch splines or a planar sheet tool, then pick removable regions and preview removal in red.",
         trimDialogSchema,[this](const auto& a){return beginSurfaceTrim(a);});
     add("surface.trimEntity","Select Trim spline","Toggle one retained ordinary fit spline in the active Trim tool.",
         {{"sketchId",sketchIdentity},{"entityId",parameter("string","Retained fit-spline entity UUID.")}},
         [this](const auto& a){return selectSurfaceTrimEntity(a["sketchId"].toString(),a["entityId"].toString());});
-    add("surface.trimRegion","Select Trim region","Toggle one current inner split-surface region.",
-        {{"regionId",parameter("string","Stable inner region UUID returned by preview.")}},
+    add("surface.trimBody","Select Trim sheet tool","Select one earlier retained planar crossing sheet tool.",
+        {{"bodyId",parameter("string","Stable local surface body UUID.")}},
+        [this](const auto& a){return selectSurfaceTrimBody(a["bodyId"].toString());});
+    add("surface.trimRegion","Select Trim region","Toggle one current removable split-surface region.",
+        {{"regionId",parameter("string","Stable removable region UUID returned by preview.")}},
         [this](const auto& a){return selectSurfaceTrimRegion(a["regionId"].toString());});
     add("body.remove","Remove","Remove one current local surface body as a restorable Timeline feature.",
         {{"bodyId",parameter("string","Current local surface body UUID.")},

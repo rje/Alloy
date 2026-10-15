@@ -41,8 +41,11 @@ invalid and material preservation unproved. See
 [receipt](validation/shoehorn-corner-diagnostic.md). The issue returns to Todo;
 no generic healer or unchanged retry. Surface-iron SRF-017 lacks a separate
 authored main spine for auxiliary-guide contact; no unsupported one is invented.
-SRF-018/#445 is the active independent ingredient: one planar convex target
-sheet trimmed by one retained crossing sheet using actual surface intersection.
+SRF-018/#445 is independently accepted: one planar convex target sheet trimmed
+by one retained crossing sheet using actual surface intersection. Core, 37-call
+API and native ribbon/tool/region/Cancel checks pass; source edits preserve
+retained identities through history and reopen. See
+[receipt](validation/surface-planar-sheet-trim.md).
 Full SRF-016 iron trial/revert and TUT-018 remain open.
 
 CI-005/#423 local macOS arm64 relocation is accepted at `3c88127`: extracted

@@ -7,6 +7,8 @@ struct SurfaceTrimRegion {
     bool inside = false;
     TopoDS_Face face;
     double areaMm2 = 0;
+    QString side; // Sheet-tool classification; never presented as sketch inside/outside.
+    bool removable() const { return inside || !side.isEmpty(); }
 };
 
 struct SurfaceTrimSplit {

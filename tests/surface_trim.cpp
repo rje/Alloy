@@ -26,7 +26,65 @@ QJsonObject editPoint(const QJsonObject& authored,const QString& sketchId,const 
     candidate["features"]=rows;return candidate;
 }
 }
+
+void crossingSheetCheck(const QString& fixturePath){
+    CadDocument doc;const auto owner=doc.authored()["documentId"].toString();
+    auto makeSheet=[&](const QString& plane,double u1,double v1,double u2,double v2,double reach,const QString& name){
+        auto sketch=SketchGeometry::newFeature(owner,plane,name+" source");
+        sketch=SketchGeometry::addLine(sketch,{{"u1Mm",u1},{"v1Mm",v1},{"u2Mm",u2},{"v2Mm",v2}});append(doc,sketch);
+        const auto entity=sketch["parameters"].toObject()["entities"].toArray()[0].toObject()["id"];
+        const auto candidate=CadDocument::surfaceExtrudeCandidate(doc.authored(),{{"sketchId",sketch["id"]},
+            {"entityIds",QJsonArray{entity}},{"sideOneMm",reach},{"sideTwoMm",reach},{"name",name}});
+        check(doc.commit(candidate,"Crossing sheet").isEmpty(),"Crossing-sheet fixture failed");return sketch;
+    };
+    const auto targetSketch=makeSheet("XY",-20,0,20,0,10,"Target sheet");const auto target=doc.bodies().back();
+    const auto toolSketch=makeSheet("XZ",-30,0,30,0,20,"Tool sheet");const auto tool=doc.bodies().back();
+    const auto before=doc.authored();const auto toolArea=tool.summary["areaMm2"].toDouble();
+    if(!fixturePath.isEmpty())check(doc.save(fixturePath).isEmpty(),"Save crossing-sheet source fixture");
+    const auto id=CadDocument::newId();const QJsonObject p{{"targetBodyId",target.bodyId},{"toolBodyId",tool.bodyId},
+        {"projectionMode","surfaceIntersection"},{"removedRegionIds",QJsonArray{}}};
+    const QJsonObject feature{{"id",id},{"type","surfaceTrim"},{"parameters",p}};
+    const auto split=SurfaceTrim::split(feature,target,doc.evaluation());
+    check(split.regions.size()==2 && split.regions[0].side!=split.regions[1].side,"Two signed sheet regions unavailable");
+    QSet<QString> regionIds,edgeIds;for(const auto& row:split.regions){regionIds.insert(row.regionId);
+        check(!row.inside && row.removable() && std::abs(row.areaMm2-400)<1e-4,"Sheet region semantics/area");}
+    for(const auto& edge:split.edges)edgeIds.insert(edge.edgeId);
+    for(const auto& region:split.regions){
+        auto candidate=CadDocument::surfaceTrimCandidate(before,{{"newFeatureId",id},{"targetBodyId",target.bodyId},
+            {"toolBodyId",tool.bodyId},{"removedRegionIds",QJsonArray{region.regionId}}});
+        const auto evaluation=CadDocument::evaluateCandidate(candidate);check(evaluation.ok,"Either sheet side must be removable");
+    }
+    const auto chosen=split.regions[0].regionId;
+    auto candidate=CadDocument::surfaceTrimCandidate(before,{{"newFeatureId",id},{"targetBodyId",target.bodyId},
+        {"toolBodyId",tool.bodyId},{"removedRegionIds",QJsonArray{chosen}}});
+    check(doc.commit(candidate,"Trim planar sheet").isEmpty(),"Retained sheet-tool Trim commit");
+    const auto trimmed=doc.authored();check(doc.bodies().size()==2,"Trim consumed tool");
+    auto find=[&](const CadDocument& document,const QString& bodyId)->const EvaluatedBody&{
+        for(const auto& body:document.bodies())if(body.bodyId==bodyId)return body;throw std::runtime_error("Body unavailable");};
+    check(std::abs(find(doc,target.bodyId).summary["areaMm2"].toDouble()-400)<1e-4,"Trim kept wrong area");
+    check(find(doc,tool.bodyId).supportFaces[0].faceId==tool.supportFaces[0].faceId
+        && std::abs(find(doc,tool.bodyId).summary["areaMm2"].toDouble()-toolArea)<1e-6,"Tool changed");
+    // Translate both retained tool-line endpoints in its sketch plane: stable
+    // signed identities persist while the exact intersection moves by 2 mm.
+    auto changed=doc.authored();const auto pointRows=toolSketch["parameters"].toObject()["points"].toArray();
+    for(const auto& point:pointRows)changed=editPoint(changed,toolSketch["id"].toString(),point.toObject()["id"].toString(),2);
+    check(doc.commit(changed,"Translate tool line").isEmpty(),"Tool translation edit failed");
+    const auto edited=doc.authored();const auto keptId=find(doc,target.bodyId).supportFaces[0].faceId;
+    check(regionIds.contains(keptId) && std::abs(find(doc,target.bodyId).summary["areaMm2"].toDouble()-400)>10,"Stable side under translation");
+    for(const auto& edge:find(doc,target.bodyId).solidEdges)check(edgeIds.contains(edge.edgeId),"Stable boundary under translation");
+    doc.history().undo();check(doc.authored()==trimmed,"Undo tool translation");
+    doc.history().redo();check(doc.authored()==edited,"Redo tool translation");
+    QTemporaryDir temporary;const auto path=temporary.filePath("sheet-trim.alloy");check(doc.save(path).isEmpty(),"Save sheet Trim");
+    CadDocument reopened;check(reopened.open(path).isEmpty() && reopened.authored()==edited
+        && find(reopened,target.bodyId).supportFaces[0].faceId==keptId,"Reopen retained sheet Trim");
+    auto broken=edited;for(const auto& point:pointRows)broken=editPoint(broken,toolSketch["id"].toString(),point.toObject()["id"].toString(),30);
+    check(!doc.commit(broken,"Move tool beyond target").isEmpty() && doc.authored()==edited,"No crossing must refuse atomically");
+    doc.history().undo();doc.history().undo();check(doc.authored()==before,"Undo returns pre-trim branch");
+    std::cout<<"SURFACE_SHEET_TRIM_OK kept=400 tool="<<toolArea<<'\n';
+}
+
 int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
+    crossingSheetCheck(argc>3?QString::fromLocal8Bit(argv[3]):QString{});
     CadDocument document;const auto root=document.authored()["documentId"].toString();
     auto back=SketchGeometry::newFeature(root,"XZ","Back open arc");
     back=SketchGeometry::addArc(back,{{"startUMm",-25},{"startVMm",0},{"throughUMm",0},{"throughVMm",10},

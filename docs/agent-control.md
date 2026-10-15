@@ -973,3 +973,17 @@ produces one interior profile with retained edge/contact ancestry. A positive
 side refuses and clears any previous valid pending preview. Saved loop offsets
 without `kind` retain the earlier rounded-annulus meaning. See
 [the bounded cap receipt](validation/trimmed-seam-inset.md).
+
+Surface Trim uses `surface.trimDialog` for the shared native/API selection
+session, `surface.trimEntity` for retained paired XZ sketch splines, or
+`surface.trimBody` with `bodyId` for one retained planar crossing-sheet tool.
+`surface.trimRegion` toggles a preview-returned `regionId`; `command.preview`,
+`command.commit` and `command.cancel` use the same candidate and geometry as
+the native dock. Direct `surface.trim` accepts `targetBodyId`, `toolBodyId`
+and one `removedRegionIds` entry for sheet tools, or `toolSketchId`, two
+`toolEntityIds` and one or two inner region IDs for sketch tools. These tool
+variants are exclusive. A sheet-tool preview reports `projection.mode` as
+`surfaceIntersection` and two regions with `side`/`removable`; `inside` remains
+false for those sides. Sheet tools are retained; each target/tool must be a
+local same-owner single-line planar Surface Extrude, and the finite tool must
+produce exactly two regions. See [the bounded contract](validation/surface-planar-sheet-trim.md).

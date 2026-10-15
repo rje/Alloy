@@ -294,6 +294,7 @@ private:
     QJsonObject previewSurfaceTrim();
     QJsonObject selectSurfaceTrimEntity(const QString& sketchId,const QString& entityId);
     QJsonObject selectSurfaceTrimRegion(const QString& regionId);
+    QJsonObject selectSurfaceTrimBody(const QString& bodyId);
     QJsonObject pickSurfaceTrim(double x,double y);
     void showSurfaceTrim();
     QDockWidget* surfaceTrimDock_=nullptr;

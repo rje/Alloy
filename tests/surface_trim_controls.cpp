@@ -20,6 +20,39 @@ class SurfaceTrimControlsTest final:public QObject {
  }
  QJsonObject session(AlloyWindow& window){return window.state()["activeSession"].toObject();}
 private slots:
+ void planarSheetToolRegionCancel(){
+  const auto source=qEnvironmentVariable("ALLOY_SURFACE_SHEET_TRIM_SOURCE"),out=qEnvironmentVariable("ALLOY_SURFACE_TRIM_EVIDENCE");
+  if(source.isEmpty())QSKIP("No planar crossing-sheet fixture supplied");
+  QDir().mkpath(out);AlloyTheme::apply(*qApp);AlloyWindow window;window.resize(1440,900);window.show();window.activateWindow();
+  QVERIFY(QTest::qWaitForWindowExposed(&window));
+  ReferenceView* view=nullptr;for(auto* child:window.findChildren<QWidget*>())if(auto* candidate=dynamic_cast<ReferenceView*>(child))view=candidate;
+  QVERIFY(view);call(window,"document.open",{{"path",source},{"discard",true}});call(window,"view.home");
+  QApplication::setActiveWindow(&window);window.setFocus(); // Initial harness activation only.
+  const auto before=call(window,"document.inspect");QString targetId,toolId;
+  for(const auto& value:before["evaluation"].toObject()["bodies"].toArray()){
+   const auto body=value.toObject();if(body["name"]=="Target sheet")targetId=body["bodyId"].toString();
+   if(body["name"]=="Tool sheet")toolId=body["bodyId"].toString();
+  }
+  QVERIFY(!targetId.isEmpty() && !toolId.isEmpty());
+  auto pixel=[&](double x,double y,double z){return view->projectWorldPoint({x,y,z}).toPoint();};
+  QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,pixel(0,0,5));
+  const auto selected=window.state()["selection"].toObject();
+  QCOMPARE(selected["bodyId"].toString().isEmpty()?selected["support"].toObject()["bodyId"].toString():selected["bodyId"].toString(),targetId);
+  auto* tab=window.findChild<QToolButton*>("design.tab.surface");QVERIFY(tab);QTest::mouseClick(tab,Qt::LeftButton);
+  auto* start=window.findChild<QToolButton*>("surface.command.surface.trimDialog");QVERIFY(start);QTest::mouseClick(start,Qt::LeftButton);
+  QTRY_COMPARE(session(window)["inputs"].toObject()["targetBodyId"].toString(),targetId);
+  auto* dock=window.findChild<QDockWidget*>("surfaceTrimDock");QVERIFY(dock && dock->isVisible());
+  QCOMPARE(session(window)["selectionRole"].toString(),QString("tool"));
+  QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,pixel(0,10,0));
+  QTRY_COMPARE(session(window)["inputs"].toObject()["toolBodyId"].toString(),toolId);
+  QCOMPARE(session(window)["regions"].toArray().size(),2);QCOMPARE(session(window)["selectionRole"].toString(),QString("region"));
+  QVERIFY(view->hasFocus());QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,pixel(0,0,5));
+  QTRY_VERIFY(session(window)["previewed"].toBool());QCOMPARE(session(window)["inputs"].toObject()["removedRegionIds"].toArray().size(),1);
+  call(window,"capture.screenshot",{{"path",out+"/native-planar-sheet-red-preview.png"}});
+  auto* buttons=dock->findChild<QDialogButtonBox*>();QVERIFY(buttons && buttons->button(QDialogButtonBox::Ok)->isEnabled());
+  QTest::mouseClick(buttons->button(QDialogButtonBox::Cancel),Qt::LeftButton);QTRY_VERIFY(session(window).isEmpty());
+  QCOMPARE(call(window,"document.inspect")["authored"],before["authored"]);
+ }
  void toolFirstRegionPreviewCancel(){
   const auto source=qEnvironmentVariable("ALLOY_SURFACE_TRIM_SOURCE"),out=qEnvironmentVariable("ALLOY_SURFACE_TRIM_EVIDENCE");
   QVERIFY(!source.isEmpty() && !out.isEmpty());QDir().mkpath(out);

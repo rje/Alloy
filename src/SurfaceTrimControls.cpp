@@ -50,7 +50,11 @@ QJsonObject AlloyWindow::beginSurfaceTrim(const QJsonObject& overrides){
     }
     for(auto it=overrides.begin();it!=overrides.end();++it)inputs[it.key()]=it.value();
     inputs.remove("sourcePlane");inputs.remove("sourceNormal");inputs.remove("projectionMode");
-    if(inputs["targetBodyId"].toString().isEmpty()){
+    if(!overrides.contains("featureId") && !overrides.contains("targetBodyId")){
+        const auto selected=selectedBody_.isEmpty()?selectedFace_.value("bodyId").toString():selectedBody_;
+        if(!selected.isEmpty())inputs["targetBodyId"]=selected;
+    }
+    if(inputs.value("targetBodyId").toString().isEmpty()){
         QString unique;
         for(const auto& body:document_->bodies())if(body.summary["type"]=="surface" &&
             body.summary["topology"].toObject()["solids"].toInt()==0 && body.supportFaces.size()==2 && body.occurrenceId.isEmpty()){
@@ -65,7 +69,7 @@ QJsonObject AlloyWindow::beginSurfaceTrim(const QJsonObject& overrides){
     session_={{"id",CadDocument::newId()},{"command","surface.trim"},{"status","active"},
         {"inputs",inputs},{"newFeatureId",CadDocument::newId()},
         {"baseDocumentRevision",static_cast<qint64>(document_->revision())},{"previewed",false},
-        {"selectionRole",inputs["toolEntityIds"].toArray().size()==2?"region":"tool"},
+        {"selectionRole",(inputs.value("toolEntityIds").toArray().size()==2 || !inputs.value("toolBodyId").toString().isEmpty())?"region":"tool"},
         {"inputSchema",findCommand("surface.trim")->parameters}};
     showSurfaceTrim();previewSurfaceTrim();view_->setFocus(Qt::OtherFocusReason);return session_;
 }
@@ -88,6 +92,9 @@ QJsonObject AlloyWindow::previewSurfaceTrim(){
             for(const auto& row:document_->authored()["features"].toArray())
                 if(row.toObject()["id"]==inputs["toolSketchId"]) {source=row.toObject();break;}
             const auto entities=source["parameters"].toObject()["entities"].toArray();
+            if(!inputs["toolBodyId"].toString().isEmpty())
+                for(const auto& body:document_->bodies())if(body.bodyId==inputs["toolBodyId"]){
+                    list->addItem(body.name);list->item(0)->setToolTip(body.bodyId);break;}
             int selectedIndex=0;
             for(const auto& value:inputs["toolEntityIds"].toArray()){
                 ++selectedIndex;int curveIndex=0;
@@ -109,8 +116,9 @@ QJsonObject AlloyWindow::previewSurfaceTrim(){
     QSet<QString> visible;for(const auto& sketch:stage.sketches)if(sketch.visible)visible.insert(sketch.featureId);
     view_->setCommandSketches(visible);
     if(!edit.isEmpty())view_->setBodyStage(stage.bodies,"surface-trim-source:"+session_["id"].toString());
-    if(inputs["toolEntityIds"].toArray().size()!=2 || inputs["toolSketchId"].toString().isEmpty())
-        return reject("trim_tool_required","Select two connected fit splines, then pick left and right inner regions");
+    if(inputs.contains("toolBodyId") ? inputs["toolBodyId"].toString().isEmpty()
+        : (inputs["toolEntityIds"].toArray().size()!=2 || inputs["toolSketchId"].toString().isEmpty()))
+        return reject("trim_tool_required","Select one crossing planar sheet tool or two connected fit splines, then pick regions");
     QJsonObject candidate;try{
         auto args=inputs;args["removedRegionIds"]=QJsonArray{CadDocument::newId()};
         candidate=surfaceTrimCandidate(args);
@@ -129,9 +137,9 @@ QJsonObject AlloyWindow::previewSurfaceTrim(){
         if(surfaceTrimDock_)if(auto* list=surfaceTrimDock_->findChild<QListWidget*>("surfaceTrim.regions")){
             int regionIndex=0;
             for(const auto& row:regionRows){const auto item=row.toObject();
-                if(item["inside"].toBool()){
+                if(item["removable"].toBool()){
                     ++regionIndex;
-                    list->addItem(QString("Inner region %1 · %2 mm² · %3").arg(regionIndex)
+                    list->addItem(QString("%1 region · %2 mm² · %3").arg(item["side"].toString().isEmpty()?QString("Inner %1").arg(regionIndex):item["side"].toString())
                         .arg(item["areaMm2"].toDouble(),0,'f',2)
                         .arg(inputs["removedRegionIds"].toArray().contains(item["regionId"])?"remove":"keep"));
                     list->item(list->count()-1)->setToolTip(item["regionId"].toString());
@@ -141,13 +149,13 @@ QJsonObject AlloyWindow::previewSurfaceTrim(){
         const auto selected=inputs["removedRegionIds"].toArray();
         std::vector<TopoDS_Face> removed;
         for(const auto& region:split.regions)if(selected.contains(region.regionId)){
-            if(!region.inside)return reject("trim_region_unsupported","Only inner regions can be removed");
+            if(!region.removable())return reject("trim_region_unsupported","Only inner regions can be removed");
             removed.push_back(region.face);
         }
         view_->showSurfaceTrimPreview(split.splitShape,bodyId,removed);
         session_["geometry"]=QJsonObject{{"regions",regionRows},{"projection",split.projection}};
         session_["geometryEvaluated"]=true;
-        if(selected.isEmpty())return reject("trim_region_required","Pick an inner region to remove; selected regions preview red");
+        if(selected.isEmpty())return reject("trim_region_required","Pick a removable region; selected regions preview red");
         candidate=surfaceTrimCandidate(inputs);
         const auto evaluated=document_->prepareCandidate(candidate);
         if(!evaluated.ok)return reject("evaluation_failed",evaluated.error,evaluated.diagnostics);
@@ -173,19 +181,33 @@ QJsonObject AlloyWindow::selectSurfaceTrimEntity(const QString& sketchId,const Q
     auto ids=inputs["toolEntityIds"].toArray();
     if(ids.contains(entityId)){for(int i=0;i<ids.size();++i)if(ids[i]==entityId){ids.removeAt(i);break;}}
     else {if(ids.size()==2)return failure("trim_tool_limit","Select exactly two connected fit splines");ids.append(entityId);}
+    inputs.remove("toolBodyId");
     inputs["toolSketchId"]=sketchId;inputs["toolEntityIds"]=ids;inputs["removedRegionIds"]=QJsonArray{};
     session_["inputs"]=inputs;session_["selectionRole"]=ids.size()==2?"region":"tool";
     previewSurfaceTrim();return QJsonObject{{"toolSketchId",sketchId},{"toolEntityIds",ids},
         {"selectionRole",session_["selectionRole"]},{"previewError",session_.value("previewError")}};
 }
 
+QJsonObject AlloyWindow::selectSurfaceTrimBody(const QString& bodyId){
+    if(session_["command"]!="surface.trim")return failure("invalid_session","Start Trim first");
+    auto inputs=session_["inputs"].toObject();const auto edit=inputs.value("featureId").toString();
+    const auto stage=edit.isEmpty()?document_->evaluation():document_->evaluationBefore(edit);
+    bool found=false;for(const auto& body:stage.bodies)if(body.bodyId==bodyId && body.visible
+        && body.occurrenceId.isEmpty() && bodyId!=inputs["targetBodyId"].toString()
+        && body.supportFaces.size()==1 && body.summary["type"]=="surface")found=true;
+    if(!found)return failure("trim_tool_unavailable","Select a distinct visible earlier planar sheet tool");
+    inputs.remove("toolSketchId");inputs["toolEntityIds"]=QJsonArray{};inputs["toolBodyId"]=bodyId;
+    inputs["removedRegionIds"]=QJsonArray{};session_["inputs"]=inputs;session_["selectionRole"]="region";
+    previewSurfaceTrim();return session_;
+}
+
 QJsonObject AlloyWindow::selectSurfaceTrimRegion(const QString& id){
     if(session_["command"]!="surface.trim")return failure("invalid_session","Start Trim first");
-    bool found=false;for(const auto& value:session_["regions"].toArray())if(value.toObject()["regionId"]==id && value.toObject()["inside"].toBool())found=true;
-    if(!found)return failure("trim_region_unavailable","Pick a current inner region of the split sheet");
+    bool found=false;for(const auto& value:session_["regions"].toArray())if(value.toObject()["regionId"]==id && value.toObject()["removable"].toBool())found=true;
+    if(!found)return failure("trim_region_unavailable","Pick a current removable region of the split sheet");
     auto inputs=session_["inputs"].toObject();auto ids=inputs["removedRegionIds"].toArray();
     if(ids.contains(id)){for(int i=0;i<ids.size();++i)if(ids[i]==id){ids.removeAt(i);break;}}
-    else ids.append(id);inputs["removedRegionIds"]=ids;session_["inputs"]=inputs;
+    else {if(inputs.contains("toolBodyId"))ids=QJsonArray{};ids.append(id);}inputs["removedRegionIds"]=ids;session_["inputs"]=inputs;
     previewSurfaceTrim();return QJsonObject{{"removedRegionIds",ids},{"previewed",session_["previewed"]},
         {"previewError",session_.value("previewError")}};
 }
@@ -196,7 +218,7 @@ QJsonObject AlloyWindow::pickSurfaceTrim(double x,double y){
         if(hit.isEmpty())return failure("trim_region_required","Click an inner split-surface region");
         return selectSurfaceTrimRegion(hit["faceId"].toString());
     }
-    const auto inputs=session_["inputs"].toObject();const auto edit=inputs["featureId"].toString();
+    const auto inputs=session_["inputs"].toObject();const auto edit=inputs.value("featureId").toString();
     const auto stage=edit.isEmpty()?document_->evaluation():document_->evaluationBefore(edit);
     QString sketchId,entityId;double nearest=7;bool ambiguous=false;
     for(const auto& sketch:stage.sketches)if(sketch.visible && (inputs["toolSketchId"].toString().isEmpty() || inputs["toolSketchId"]==sketch.featureId)){
@@ -218,7 +240,13 @@ QJsonObject AlloyWindow::pickSurfaceTrim(double x,double y){
         else if(std::abs(distance-nearest)<1e-6)ambiguous=true;
     }
     if(ambiguous)return failure("ambiguous_trim_tool","More than one spline is under this point");
-    if(sketchId.isEmpty())return failure("trim_tool_required","Click a visible ordinary fit spline");
+    if(sketchId.isEmpty()){
+        std::vector<EvaluatedBody> candidates;
+        for(const auto& body:stage.bodies)if(body.visible && body.bodyId!=inputs["targetBodyId"] && body.occurrenceId.isEmpty())candidates.push_back(body);
+        const auto hit=view_->pickSupportFace(x,y,candidates);
+        if(hit.isEmpty())return failure("trim_tool_required","Click a visible fit spline or crossing planar sheet tool");
+        return selectSurfaceTrimBody(hit["bodyId"].toString());
+    }
     return selectSurfaceTrimEntity(sketchId,entityId);
 }
 
@@ -227,12 +255,13 @@ void AlloyWindow::showSurfaceTrim(){
     surfaceTrimDock_=new QDockWidget("Trim",canvasWindow_);surfaceTrimDock_->setObjectName("surfaceTrimDock");
     auto* panel=new QWidget(surfaceTrimDock_);surfaceTrimDock_->setWidget(panel);
     auto* form=new QFormLayout(panel);form->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
-    auto* hint=new QLabel("Select both fit splines as the tool, then click the inner surface regions to remove. The sketch-normal cutter passes through the sheet in both directions.",panel);
+    auto* hint=new QLabel("Select the tool, then click the target region to remove. For sheet tools, select one crossing planar surface body.",panel);
     hint->setWordWrap(true);form->addRow(hint);
     auto* tools=new QListWidget(panel);tools->setObjectName("surfaceTrim.tools");tools->setMinimumHeight(72);form->addRow("Tools",tools);
     auto* regions=new QListWidget(panel);regions->setObjectName("surfaceTrim.regions");regions->setMinimumHeight(80);form->addRow("Regions",regions);
     auto* change=new QPushButton("Change Tools",panel);form->addRow(change);
     connect(change,&QPushButton::clicked,panel,[this]{auto inputs=session_["inputs"].toObject();inputs.remove("toolSketchId");inputs["toolEntityIds"]=QJsonArray{};
+        inputs.remove("toolBodyId");
         inputs["removedRegionIds"]=QJsonArray{};session_["inputs"]=inputs;session_["selectionRole"]="tool";previewSurfaceTrim();view_->setFocus(Qt::OtherFocusReason);});
     auto* error=new QLabel(panel);error->setObjectName("surfaceTrim.error");error->setWordWrap(true);form->addRow(error);
     auto* buttons=new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel,panel);form->addRow(buttons);
