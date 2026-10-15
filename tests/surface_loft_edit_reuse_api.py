@@ -48,7 +48,9 @@ with application(a.app, out, command_timeout=120) as (call, ledger):
             session = call('feature.editDialog', {'featureId': feature['id']})
             assert session['sourcePrefixEvaluationCount'] == 1
             assert session.get('candidateEvaluationCount', 0) == 0
-            changed = call('command.update', {'session': session['id'], 'inputs': {'name': 'Checked retained bridge'}})
+            updated = call('command.update', {'session': session['id'], 'inputs': {'name': 'Checked retained bridge'}})
+            assert not updated['previewed']
+            changed = call('command.preview', {'session': session['id']})
             assert changed['previewed'] and changed['sourcePrefixEvaluationCount'] == 1
             assert changed['candidateEvaluationCount'] == 1
             assert changed.get('featurePrefixEvaluationCount', 0) == 0
