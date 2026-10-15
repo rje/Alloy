@@ -170,12 +170,12 @@ require macOS/Windows/Linux qualification; CI remains tag/manual only.
 
 | Phase | Count | Result |
 | --- | ---: | --- |
-| P0 Foundation | 30 | Public baseline, MIT dependency audit, document/naming/solver decisions, portable controls, native CI/packages/releases and hardware evidence |
+| P0 Foundation | 35 | Public baseline, MIT dependency audit, document/naming/solver decisions, portable controls, native CI/packages/releases and hardware evidence |
 | P1 Geometry/document | 20 | Real hardware-backed OCCT viewport, authored primitive document, selection, undo/save and STEP |
-| P2 Parametric modeling | 114 | Constrained sketches, parameters, editable extrusion/fillet chain and broader basic solid tools |
-| P3 Shape/import/print breadth | 34 | Solids/surfaces, common interchange and qualified printing export |
-| P4 Initial release | 9 | Robustness, recovery, packaging, performance, physical/visual workflow evidence |
-| P5 Assemblies/drawings | 11 | Components/joints, configurations and associative drawings |
+| P2 Parametric modeling | 219 | Constrained sketches, parameters, editable extrusion/fillet chain and broader basic solid tools |
+| P3 Shape/import/print breadth | 45 | Solids/surfaces, common interchange and qualified printing export |
+| P4 Initial release | 31 | Robustness, recovery, packaging, performance, physical/visual workflow evidence |
+| P5 Assemblies/drawings | 41 | Components/joints, configurations and associative drawings |
 | P6 Advanced design | 11 | Sheet metal, direct/mesh/Form, advanced modeling, plastic rules and local presentation |
 | P7 Manufacturing | 9 | Setups, toolpaths, verification/posts, additive, nesting and metrology |
 | P8 Analysis/electronics | 10 | Traceable study/result data, local ECAD/MCAD and fabrication |

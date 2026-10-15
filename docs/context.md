@@ -12,8 +12,11 @@ visible checked no-middle-button tool, custom-camera tab restoration and navigat
 gesture priority. Focused Qt3/3 and actual GPU captures pass; physical device,
 trackpad, constrained/pivot modes remain separate. Main app relinked. See
 [receipt](validation/free-orbit-navigation.md). Next active slice GEO-017 is a
-bounded exact-BRep diagnostic around the enclosure seam lip, not another blind
-offset-sign retry. Sol investigates; Astra verifies. Public research stays external.
+bounded exact-BRep contour investigation around the enclosure seam lip. The
+[feasibility diagnostic](validation/enclosure-inset-diagnostic.md) is independently
+accepted: connected interior is possible but the short lip must vanish in the
+correct inset topology. A complete contour and retained source behavior remain
+unproven. Sol investigates; Astra verifies. Public research stays external.
 Only main/existing build and one private GUI lease; no new worktrees. Alternate
 readiness slices with concrete advanced-chain blockers. Packages can progress
 independently; no version/CI dispatch or public release has been triggered.
