@@ -10,7 +10,10 @@ NAV-014/#434 explicit Pan/Zoom/Zoom Window is accepted at `73a578c`, with
 actual Qt controls/drag/Escape/post-tool selection and GPU captures. Final signed
 rectangle schema is included in the next coordinated app relink. See
 [receipt](validation/navigation-pan-zoom-window.md). NAV-015/#435 selected framing
-and planar Look At is the next active UI slice;
+and planar Look At is accepted at `140f8a7`; visible sketch strokes now determine
+framing, with center/scale and GPU evidence. See
+[receipt](validation/navigation-selection-look-at.md). NAV-006/#412 projection
+modes is the next active UI slice;
 Windows/Linux CI-009 and external GPU/input gates remain separate. No CI dispatch,
 version tag or release was triggered. The user has not yet tried physical Mac
 trackpad input; keep that qualification pending.
@@ -86,13 +89,14 @@ handles the diagnosed full-round case with finite-chain/terminal guards and
 conservative composed kernel history. Three existing fillet regressions pass.
 The exact authored R0.5 gate and real-app width64→65, same Fillet/seed IDs,
 undo/redo and exact reopen pass; Apple M4 GPU captures were independently reviewed.
-See [receipt](validation/paired-ridge-fillet.md). TUT-023/#324 returned to Todo
-after its exact retained-tool Cut failed result validation. GEO-021/#436 is active:
-the raw Boolean is a valid closed solid, but subsequent same-domain simplification
-makes it invalid. A bounded shape-and-history-preserving correction is being
-implemented; no altered geometry/radius/tolerance is needed. TUT-023 retains
-separate export/readback and stage footage. Physical fit and full-source
-cumulative TUT-016 remain separate.
+See [receipt](validation/paired-ridge-fillet.md). GEO-021/#436 is also accepted
+and closed at `95d4e56`: an isolated cleanup preflight vetoes invalid simplification
+without shipping copied topology. Exact retained-tool Cut, width edit, history,
+reopen, retained-support use and separate STL/STEP readbacks pass. New genuinely
+split edge references remain unavailable; no ambiguous rebinding is allowed.
+See [receipt](validation/boolean-cleanup-veto.md). TUT-023/#324 is active for its
+full-stage movie and rim/tool-selection captures; geometry evidence is reused.
+Physical clearance and full-source cumulative TUT-016 remain separate.
 NAV-010/#430 is accepted at `75695f7`: GPU cube, readable blue hover and
 face/edge/corner picks through authoritative camera state. Qt06 proves 26 API
 orientations and three representative Qt clicks; physical/DPI/sketch routes
