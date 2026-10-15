@@ -229,7 +229,59 @@ int main(int argc,char** argv) {
         if(argc==4 && QString::fromUtf8(argv[3])=="certify")return certifySaved(QString::fromUtf8(argv[1]),QString::fromUtf8(argv[2]));
         if(argc==4 && QString::fromUtf8(argv[3])=="inspect")return inspectSaved(QString::fromUtf8(argv[1]),QString::fromUtf8(argv[2]));
         CadDocument document;
-        if(!document.open(argv[1]).isEmpty())throw std::runtime_error("source did not reopen");
+        const auto openError=document.open(argv[1]);
+        if(!openError.isEmpty())throw std::runtime_error(("source did not reopen: "+openError).toStdString());
+        if(argc==4 && QString::fromUtf8(argv[3])=="clearance") {
+            QJsonObject split;
+            for(const auto& value:document.authored().value("features").toArray())
+                if(value.toObject().value("type")=="splitBody")split=value.toObject();
+            const QString top=split.value("bodyId").toString();
+            const QString bottom=split.value("parameters").toObject().value("targetBodyId").toString();
+            std::vector<const EvaluatedBody*> halves,imports;
+            for(const auto& body:document.bodies()) {
+                if(body.bodyId==top || body.bodyId==bottom)halves.push_back(&body);
+                else if(!body.definitionId.isEmpty())imports.push_back(&body);
+            }
+            if(halves.size()!=2 || imports.size()!=12)throw std::runtime_error("expected two halves and twelve reference solids");
+            const QString prefix=QString::fromUtf8(argv[2]);
+            QJsonArray pairs,inputs;int positive=0,index=0;
+            for(const auto* half:halves) {
+                const auto summary=GeometryKernel::summarize(half->shape);
+                if(!summary.value("valid").toBool() || !summary.value("closed").toBool()
+                    || summary.value("topology").toObject().value("solids").toInt()!=1)
+                    throw std::runtime_error("invalid saved half");
+                const auto halfPath=prefix+"-"+(half->bodyId==top ? "top" : "bottom")+".brep";
+                if(!BRepTools::Write(half->shape,halfPath.toUtf8().constData()))throw std::runtime_error("half BRep write failed");
+                inputs.append(QJsonObject{{"bodyId",half->bodyId},{"name",half->name},{"summary",summary},{"brep",halfPath}});
+                for(const auto* reference:imports) {
+                    BRepAlgoAPI_Common common;TopTools_ListOfShape objects,tools;
+                    objects.Append(half->shape);tools.Append(reference->shape);
+                    common.SetArguments(objects);common.SetTools(tools);
+                    common.SetNonDestructive(true);common.SetRunParallel(false);common.SetFuzzyValue(0.0);common.Build();
+                    if(!common.IsDone() || common.HasErrors())throw std::runtime_error("reference intersection failed");
+                    const auto intersection=common.Shape();
+                    const bool solids=!intersection.IsNull() && TopExp_Explorer(intersection,TopAbs_SOLID).More();
+                    GProp_GProps mass;if(solids)BRepGProp::VolumeProperties(intersection,mass);
+                    QJsonObject row{{"halfBodyId",half->bodyId},{"half",half->bodyId==top ? "Top" : "Bottom"},
+                        {"referenceBodyId",reference->bodyId},{"referenceName",reference->name},
+                        {"hasSolids",solids},{"intersectionVolumeMm3",mass.Mass()}};
+                    if(solids && std::abs(mass.Mass())>1e-7) {
+                        ++positive;const auto path=prefix+QString("-intersection-%1.brep").arg(index);
+                        if(!BRepTools::Write(intersection,path.toUtf8().constData()))throw std::runtime_error("intersection BRep write failed");
+                        row["intersectionBrep"]=path;row["summary"]=GeometryKernel::summarize(intersection);
+                        const auto refPath=prefix+QString("-reference-%1.brep").arg(index);
+                        if(!BRepTools::Write(reference->shape,refPath.toUtf8().constData()))throw std::runtime_error("reference BRep write failed");
+                        row["referenceBrep"]=refPath;
+                    }
+                    pairs.append(row);++index;
+                }
+            }
+            QJsonObject result{{"source",argv[1]},{"authored",document.authored()},
+                {"halves",inputs},{"pairs",pairs},{"positiveIntersectionCount",positive},
+                {"physicalClearance","not established; zero volume does not prove positive distance"}};
+            QFile output(argv[2]);if(!output.open(QIODevice::WriteOnly))throw std::runtime_error("clearance output unavailable");
+            output.write(QJsonDocument(result).toJson(QJsonDocument::Indented));return positive ? 2 : 0;
+        }
         if(argc==4 && QString::fromUtf8(argv[3])=="cut") {
             QJsonObject split;
             for(const auto& value:document.authored().value("features").toArray())if(value.toObject().value("type")=="splitBody")split=value.toObject();
