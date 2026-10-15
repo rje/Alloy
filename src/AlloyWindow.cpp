@@ -3824,6 +3824,21 @@ void AlloyWindow::registerCommands() {
                 auto completed=result;completed["constraintApplied"]=true;completed["constraintType"]="midpoint";completed["selection"]=session_["selection"];return completed;
             }
         }
+        // The sketch origin is a real fixed solver point once a dimension
+        // selects it. Keep untouched sketches unchanged and add no Point entity.
+        if(session_.value("tool")=="dimension"
+            && !session_.value("draftSketch").toObject()["parameters"].toObject().contains("originPointId")) {
+            const auto draft=session_.value("draftSketch").toObject();
+            const auto plane=draft["parameters"].toObject()["plane"].toString();
+            const auto frame=session_.value("resolvedFrame").toObject();
+            const auto origin=view_->projectSketchPoint(0,0,plane,frame);
+            if(std::hypot(origin["x"].toDouble()-a["x"].toDouble(),origin["y"].toDouble()-a["y"].toDouble())<=8
+                && view_->pickSketch(draft,a["x"].toDouble(),a["y"].toDouble(),"point",frame).isEmpty()) {
+                const auto candidate=SketchGeometry::withOriginReference(draft);
+                const auto result=publishSketchSolve(SketchGeometry::solveDraft(candidate,session_.value("projectionContext").toObject()));
+                if(result["ok"].isBool() && !result["ok"].toBool())return result;
+            }
+        }
         const auto picked=view_->pickSketch(session_.value("draftSketch").toObject(),a["x"].toDouble(),a["y"].toDouble(),hint);
         if(constraint && picked.isEmpty())return failure("invalid_constraint_target","Pick compatible sketch geometry for the active constraint");
         const auto previousEntities=session_.value("selection").toObject()["entityIds"].toArray();

@@ -35,7 +35,18 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
     for(int i=0;i<3;++i)check(std::abs(origin[i].toDouble()-expected[i].toDouble())<1e-7,"Plane missed retained endpoint");
     auto dot=[](const QJsonArray& a,const QJsonArray& b){double d=0;for(int i=0;i<3;++i)d+=a[i].toDouble()*b[i].toDouble();return d;};
     check(std::abs(dot(normal,normal)-1)<1e-8 && std::abs(dot(normal,frame["uAxis"].toArray()))<1e-8 && std::abs(dot(normal,frame["vAxis"].toArray()))<1e-8,"Nonorthonormal tangent frame");
-    auto sketch=SketchGeometry::newConstructionPlaneFeature(body.ownerId,id,"Hole sketch");sketch=SketchGeometry::addCircle(sketch,{{"centerUMm",0},{"centerVMm",10},{"diameterMm",5}});append(doc,sketch);
+    auto sketch=SketchGeometry::newConstructionPlaneFeature(body.ownerId,id,"Hole sketch");
+    sketch=SketchGeometry::withOriginReference(sketch);
+    const auto originId=sketch["parameters"].toObject()["originPointId"].toString();
+    check(!originId.isEmpty() && sketch["parameters"].toObject()["entities"].toArray().isEmpty(),"Origin witness authored geometry");
+    sketch=SketchGeometry::addCircle(sketch,{{"centerUMm",0},{"centerVMm",10},{"diameterMm",5}});
+    const auto circle=sketch["parameters"].toObject()["entities"].toArray().last().toObject();
+    auto located=SketchGeometry::addConstraint(sketch,{{"type","horizontalVertical"},
+        {"pointIds",QJsonArray{originId,circle["centerPointId"]}}});check(located.ok,"Y-axis alignment");sketch=located.feature;
+    located=SketchGeometry::addDimension(sketch,{{"kind","vertical"},{"pointIds",QJsonArray{originId,circle["centerPointId"]}},
+        {"driving",true},{"valueMm",10}});check(located.ok,"Driving endpoint distance");sketch=located.feature;
+    check(sketch["parameters"].toObject()["dimensions"].toArray().last().toObject()["valueMm"].toDouble()==10,"10 mm dimension unavailable");
+    append(doc,sketch);
     const auto stable=doc.authored();doc.history().undo();doc.history().redo();check(doc.authored()==stable,"Undo/redo changed tangent support");
     QTemporaryDir dir;const auto filename=dir.filePath("tangent.alloy");check(doc.save(filename).isEmpty(),"Save tangent");CadDocument opened;check(opened.open(filename).isEmpty() && opened.authored()==stable,"Reopen tangent");
     auto candidate=stable;auto rows=candidate["features"].toArray();auto path=rows[0].toObject();auto p=path["parameters"].toObject();auto points=p["points"].toArray();

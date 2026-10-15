@@ -18,6 +18,9 @@ public:
         const QString& name = "Sketch");
     static QJsonObject newSupportedFeature(const QString& ownerId, const QJsonObject& support, const QString& name = "Sketch", const QJsonArray& supportEdges = {});
     static QJsonObject newConstructionPlaneFeature(const QString& ownerId,const QString& planeId,const QString& name = "Sketch");
+    // An invisible, fixed sketch-origin witness for dimensions and constraints.
+    // It is a solver point, not an authored Point entity or profile boundary.
+    static QJsonObject withOriginReference(const QJsonObject& feature);
     static QString curveCenterPointId(const QString& sketchId, const QJsonObject& source);
     static QString projectionPointId(const QString& projectionId, bool end);
     static QJsonObject linkedProjectionCandidate(const EvaluatedDocument& evaluation,

@@ -481,6 +481,18 @@ QJsonObject SketchGeometry::newConstructionPlaneFeature(const QString& ownerId,c
     validateDraft(feature);return feature;
 }
 
+QJsonObject SketchGeometry::withOriginReference(const QJsonObject& feature) {
+    validateDraft(feature);
+    auto result=feature,parameters=result["parameters"].toObject();
+    if(parameters.contains("originPointId"))return result;
+    const auto id=newId();
+    auto points=parameters["points"].toArray();points.append(QJsonObject{{"id",id},{"uMm",0},{"vMm",0}});
+    auto constraints=parameters["constraints"].toArray();constraints.append(QJsonObject{{"id",newId()},{"type","fixed"},
+        {"pointIds",QJsonArray{id}},{"uMm",0},{"vMm",0}});
+    parameters["originPointId"]=id;parameters["points"]=points;parameters["constraints"]=constraints;
+    result["parameters"]=parameters;validateDraft(result);return result;
+}
+
 QString SketchGeometry::curveCenterPointId(const QString& sketchId,const QJsonObject& source) {
     QStringList signature;for(const auto& key:{"producerFeatureId","bodyId","faceId","sourceSketchId","sourceEntityId","role"})signature.append(source[key].toString());
     // Keep legacy center UUIDs unchanged when no feature occurrence exists.
