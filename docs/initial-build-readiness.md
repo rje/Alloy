@@ -52,7 +52,7 @@ The custom named-view child [NAV-016](https://github.com/rje/Alloy/issues/437)
 is accepted for Browser create/rename/restore/delete, metadata history,
 save/reopen and malformed-file refusal
 ([receipt](validation/navigation-named-views.md)). The
-broader NAV-007 parent remains open: [saved/reset Home](validation/navigation-home-saved.md)
+[saved/reset Home](validation/navigation-home-saved.md)
 is also accepted under NAV-017, and [application navigation presets](validation/navigation-input-presets.md)
 are accepted under NAV-018. Configurable orientation NAV-019 is accepted too; NAV-007 is closed after
 cumulative receipt review. Physical NAV-008 remains open.

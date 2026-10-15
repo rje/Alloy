@@ -236,7 +236,7 @@ fail without applying the command. Error codes include `invalid_request`,
 | `view.navigationTool` | `mode`: `select`, `pan`, `zoom`, or `zoomWindow`; the three checked navigation buttons route left drags through `view.pan`, cursor-anchored `view.zoom`, or `view.zoomWindow`. Escape returns to ordinary selection without editing the document |
 | `view.inputPreset` / `view.inputPresetReset` / `view.inputPresetInspect` | Set, reset, or inspect the app-wide mouse navigation binding. `default`: wheel zoom, middle drag pan, Shift+middle drag orbit; Alloy also keeps Option+left drag pan. `shiftAlt`: Shift+Alt+right drag zoom, Shift+Alt+middle drag pan, Shift+Alt+left drag orbit. The File → Navigation Controls menu uses the same commands. The preset is saved in app settings, outside document/camera/history; wheel zoom and visible navigation tools remain available. Qt Alt represents Mac Option. Drag sensitivity is Alloy policy; physical-device delivery is a separate gate |
 | `view.orbit` | `deltaX`, `deltaY`: relative logical-pixel deltas, each within ±10000; orbit the real camera in the selected mode. Optional `pivot` is `orbitCenter` (default, using stored custom center or scene center) or `viewCenter` (orientation-cube drag, ignoring but retaining the stored custom center) |
-| `view.orbitMode` | `mode`: `free` or `constrained`; the visible Orbit menu retains the selected mode. Constrained uses world Z up and a level horizon |
+| `view.orbitMode` | `mode`: `free` or `constrained`; the visible Orbit menu retains the selected mode. Constrained uses the current document convention’s up axis and a level horizon |
 | `view.orbitTool` | `active`: boolean; visible Orbit control lets a left canvas drag use the selected mode; Escape exits |
 | `view.orbitCenterBegin` / `view.orbitCenterPick` | Start a one-shot visible-surface pivot pick, then provide viewport-local logical `x`, `y`; the result includes the exact body surface hit and camera state. A staged body preview refuses a pivot pick |
 | `view.orbitCenterCancel` / `view.orbitCenterReset` | Cancel the one-shot pick or restore the fitted-scene pivot; neither edits the document |
@@ -536,10 +536,10 @@ refresh and design-tab switching. Home fits the scene and retains an explicitly
 picked pivot; named views recenter on the fitted scene. A blank-canvas context
 menu starts an exact visible-body surface pick or resets the pivot. Its green
 marker remains separate from model selection. The initial pivot is the fitted
-scene center; constrained Z-up, the five-degree pole margin and Home pivot
-retention are explicit Alloy policies. Physical trackpad and platform delivery,
-configurable up axis and an automatic orbit-center policy remain separate
-navigation work. The visible Alloy orientation cube handles hover, face/edge/corner
+scene center; constrained orbit follows the document view convention’s up axis.
+The five-degree pole margin and Home pivot retention are explicit Alloy policies.
+Physical trackpad and platform delivery and an automatic orbit-center policy
+remain separate navigation work. The visible Alloy orientation cube handles hover, face/edge/corner
 clicks through `view.cubeOrient` and thresholded drags through `view.orbit` with
 `pivot: "viewCenter"`. Cube navigation retains the custom pivot for later
 Shift-Orbit while rotating around the ordinary view target. Seven adjacent

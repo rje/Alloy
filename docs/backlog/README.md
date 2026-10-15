@@ -23,9 +23,10 @@ CI-009 retains Windows/Linux alignment and CI-004 stays Todo. SKT-076/#346 is
 accepted at `c625649` for retained inset and exact Join2/selected R0.5 downstream
 lineage. NAV-002/#408 is accepted for source/API/GPU camera behavior; NAV-009/#428 retains
 the blocked native-input route. TUT-023/#324 final-stage rim/Cut/export gate is accepted. NAV-018/#439
-application navigation presets and GEO-019/#352 exact shoehorn diagnosis are
-active. TUT-030/#442 preserves unresolved nominal connector clearance;
-NAV-019/#443 retains configurable orientation conventions. The current
+application navigation presets and NAV-019/#443 orientation conventions are
+accepted. SRF-018/#445 planar crossing-sheet Trim and REL-014/#417 crash recovery
+are active. GEO-019/#352 remains Todo with preserved geometry failure evidence;
+TUT-030/#442 preserves unresolved nominal connector clearance. The current
 sequence JSON takes precedence over historical delivery notes below.
 
 

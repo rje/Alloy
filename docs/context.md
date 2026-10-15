@@ -64,7 +64,7 @@ framing, with center/scale and GPU evidence. See
 modes is accepted at `fee6a19`: actual GPU projection, hybrid face resolution,
 projected picking and per-tab restoration pass focused Qt validation and Astra
 review. See [receipt](validation/navigation-projection.md). Named views and
-navigation preferences NAV-007 are the next UI slice;
+navigation preferences NAV-007 are now accepted;
 Windows/Linux CI-009 and external GPU/input gates remain separate. No CI dispatch,
 version tag or release was triggered. The user has not yet tried physical Mac
 trackpad input; keep that qualification pending.
