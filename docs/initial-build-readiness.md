@@ -82,7 +82,9 @@ notarization and minimum supported OS details must be explicit before distributi
 
 ## Advanced tutorial chains remain required work
 
-1. **Electronics enclosure:** finish actual trimmed-seam Offset and alignment
+1. **Electronics enclosure:** GEO-017 is now accepted at6d9b8dc for the exact
+   inset kernel and source-derived identities. Finish authored trimmed-seam
+   Offset and alignment
    rim ([GEO-017](https://github.com/rje/Alloy/issues/347) → [SKT-076](https://github.com/rje/Alloy/issues/346) → [TUT-023](https://github.com/rje/Alloy/issues/324)), then complete [TUT-016](https://github.com/rje/Alloy/issues/299) with both printable
    halves, retained fit/tool relationships and full source-stage evidence. Reuse
    the accepted board, ports and snaps checkpoints.

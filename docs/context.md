@@ -11,18 +11,14 @@ NAV-001/#407 is independently accepted at2d1a699 and closed: real free orbit,
 visible checked no-middle-button tool, custom-camera tab restoration and navigation
 gesture priority. Focused Qt3/3 and actual GPU captures pass; physical device,
 trackpad, constrained/pivot modes remain separate. Main app relinked. See
-[receipt](validation/free-orbit-navigation.md). Next active slice GEO-017 is a
-bounded exact-BRep contour investigation around the enclosure seam lip. The
-[feasibility diagnostic](validation/enclosure-inset-diagnostic.md) is independently
-accepted: connected interior is possible but the short lip must vanish in the
-correct inset topology. The exact boundary-neighborhood Boolean prototype now
-passes one valid17-edge face, area233.8576963mm², containment and1.25mm clearance;
-Astra independently accepted its scoped geometry proof. Sol is implementing the
-production kernel ingredient with explicit admission, deterministic edge/vertex
-provenance and one upstream edit/history/reopen. UI remains SKT-076. Public
-research and bulk prototype artifacts stay external. CI-004 runtime handoff is
-prepared at external `knowledge/specs/runtime-reproducibility-2026-10-14.md`
-for the next readiness slice.
+[receipt](validation/free-orbit-navigation.md). GEO-017/#347 is independently accepted at6d9b8dc: an exact analytic planar
+inset helper produces the actual17-edge U contour with stable owning-feature /
+source-edge / incident-vertex ancestry. Upstream stock64→65 changes area
+233.8577→236.289mm² with stable IDs through source history/reopen. This is a
+kernel ingredient; authored inset/UI remains SKT-076, now unblocked. See
+[receipt](validation/enclosure-inset-diagnostic.md). Next readiness slice CI-004
+aligns validated local Qt with reproducible CI runtime inputs. Its external
+handoff is `knowledge/specs/runtime-reproducibility-2026-10-14.md`.
 Only main/existing build and one private GUI lease; no new worktrees. Alternate
 readiness slices with concrete advanced-chain blockers. Packages can progress
 independently; no version/CI dispatch or public release has been triggered.

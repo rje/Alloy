@@ -17,8 +17,9 @@ User-prioritized 2026-10-14: [initial-build readiness](../initial-build-readines
 now leads: navigation, everyday input, presentation, recovery, responsiveness and
 relocatable packages, interleaved with enclosure/shoehorn/surface-iron completion.
 Nineteen new bounded children #407–425 reuse existing broader owners and gates.
-NAV-001/#407 is independently accepted at2d1a699. GEO-017 now owns the
-next bounded enclosure-seam topology diagnostic; other children remain Todo. The current
+NAV-001/#407 is independently accepted at2d1a699. GEO-017/#347 is independently accepted at6d9b8dc for exact inset geometry
+and derived source lineage, unblocking SKT-076 authoring. CI-004 is the next
+readiness slice; other children remain Todo until pulled. The current
 sequence JSON takes precedence over historical delivery notes below.
 
 
