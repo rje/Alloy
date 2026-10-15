@@ -1,6 +1,7 @@
 #include "PlanarFaces.h"
 #include "SolidFillet.h"
 #include "RuledCornerFillet.h"
+#include "HalfThicknessFillet.h"
 #include <BRepPrimAPI_MakePrism.hxx>
 #include <BRepAlgoAPI_BooleanOperation.hxx>
 #include <BRepAlgoAPI_Common.hxx>
@@ -307,23 +308,25 @@ void SolidFillet::evaluate(EvaluatedBody& body,const QJsonObject& parameters,con
         }
         contours.append(chain);
     }
-    builder.Build();std::optional<FilletResult> paired;std::optional<RuledCornerFillet::Result> ruled;
+    builder.Build();std::optional<FilletResult> paired;std::optional<RuledCornerFillet::Result> ruled,perimeter;
     const bool ordinaryValid=builder.IsDone() && validSolid(builder.Shape());
     if(!ordinaryValid && !builder.IsDone()) {
         paired=pairedRidge(body,builder,contourRadii);
     }
     if(!ordinaryValid && !paired)ruled=RuledCornerFillet::evaluate(body,seedRadii,featureId);
-    if(!ordinaryValid && !paired && !ruled)fail("fillet_failed","The selected edges cannot be filleted at this radius");
-    const auto result=paired ? paired->shape : ruled ? ruled->shape : builder.Shape();auto summary=GeometryKernel::summarize(result);
+    if(!ordinaryValid && !paired && !ruled)perimeter=HalfThicknessFillet::evaluate(body,builder,contourRadii,featureId);
+    if(!ordinaryValid && !paired && !ruled && !perimeter)fail("fillet_failed","The selected edges cannot be filleted at this radius");
+    const auto result=paired ? paired->shape : ruled ? ruled->shape : perimeter ? perimeter->shape : builder.Shape();auto summary=GeometryKernel::summarize(result);
     if(!summary["valid"].toBool() || !summary["closed"].toBool() || summary["topology"].toObject()["solids"].toInt()!=1 || summary["volumeMm3"].toDouble()<=0)
         fail("fillet_invalid_result","Fillet must produce one valid closed solid");
-    auto caps=paired ? std::move(paired->caps) : ruled ? std::move(ruled->supportFaces) : PlanarFaces::transfer(builder,body.supportFaces,result,true);
-    auto edges=paired ? std::move(paired->edges) : ruled ? std::move(ruled->solidEdges) : transferEdges(builder,body.solidEdges,result,true);
+    auto caps=paired ? std::move(paired->caps) : ruled ? std::move(ruled->supportFaces) : perimeter ? std::move(perimeter->supportFaces) : PlanarFaces::transfer(builder,body.supportFaces,result,true);
+    auto edges=paired ? std::move(paired->edges) : ruled ? std::move(ruled->solidEdges) : perimeter ? std::move(perimeter->solidEdges) : transferEdges(builder,body.solidEdges,result,true);
     body.solidEdges=std::move(edges);
     body.shape=result;body.supportFaces=caps;
     summary["supportFaces"]=PlanarFaces::descriptors(caps);summary["solidEdges"]=descriptors(body.solidEdges);summary["lastModifierFeatureId"]=featureId;summary["producerFeatureId"]=body.featureId;summary["operation"]="fillet";
     if(paired)summary["construction"]="pairedFullRoundCommon";
     if(ruled)summary["construction"]="ruledCornerCut";
+    if(perimeter)summary["construction"]="halfThicknessPerimeter";
     if(grouped)summary["radiusGroups"]=groupSummaries;else summary["radiusMm"]=parameters["radiusMm"];
     summary["selectedEdgeIds"]=allSeeds;summary["tangentContours"]=contours;body.summary=summary;
 }
