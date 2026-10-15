@@ -79,6 +79,12 @@ API and native ribbon/tool/region/Cancel checks pass; source edits preserve
 retained identities through history and reopen. See
 [receipt](validation/surface-planar-sheet-trim.md).
 Full SRF-016 iron trial/revert and TUT-018 remain open.
+SRF-019/#451 is active as a bounded retained no-rail Loft across three closed
+sketch sections, split from SRF-015. The existing independent two-spline/ellipse/
+two-spline probe is the fixture; source-exact topology is unknown. Sol is
+inspecting architecture with Astra review before implementation. SRF-015 retains
+actual bilateral Trim-boundary integration and SRF-017 exterior quality; no
+implicit transport spine or retry of the failed exterior evaluator is planned.
 
 CI-005/#423 local macOS arm64 relocation is accepted at `3c88127`: extracted
 archive, 43 observed bundled non-system libraries/zero external, Apple M4 GPU
