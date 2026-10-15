@@ -3102,7 +3102,8 @@
       "depends_on": [
         "SRF-010",
         "SOL-046",
-        "GEO-018"
+        "GEO-018",
+        "SKT-091"
       ],
       "labels": [
         "area:geo"
@@ -6078,7 +6079,7 @@
       "labels": [
         "area:asm"
       ],
-      "body": "Complete the source tutorial gesture gate left separate from bounded component organization. In the real Alloy Browser, physically drag the finished body from root Bodies onto the destination local component, then separately drag the root Sketches folder onto it. Verify one visible destination body row and sketch row, no stale duplicate source rows, unchanged geometry and modeling references, and inspect authored object owners through the shared API. Capture the actual gesture and readable result. Qt-delivered context actions and direct drop-event route tests are useful component evidence but do not alone establish physical pointer drag. Current desktop verification blocker: computer-use getApp for the running candidate returns -10005 cgWindowNotFound; bundle-id selection is ambiguous across build paths. Qt synthetic drag started but did not deliver drop. Do not silently replace the tutorial drag with a context command or repeat inaccessible input attempts indefinitely. Keep this Todo until native input is available, then fix any actual gesture issue exposed. Public source provenance is external; TUT-017 exact workflow cannot close without this gate.\n\n## Physical-control recheck 2026-10-14\nNormal application launch plus full-path CUA binding now acquires AX and screenshot. Two bounded body drags (component label and viewport row margin) leave authored ownership/geometry unchanged. Native logs show press/release10/14ms apart without recorded held motion; recorder throttling means this does not prove missing OS motion. No successful QDrag/drop established, so no product failure is asserted. Source review flags mutable currentItem drop-source identity and embedded-label event routing for a future focused trace. Root Sketches-folder drag not attempted because first move was unproved. Evidence remains external under component-reparent-2026-10-14/asm012-prepared/physical-drag-receipt.json. Return Todo; no context-command substitution or repeated access attempts.\n"
+      "body": "Complete the source tutorial gesture gate left separate from bounded component organization. In the real Alloy Browser, physically drag the finished body from root Bodies onto the destination local component, then separately drag the root Sketches folder onto it. Verify one visible destination body row and sketch row, no stale duplicate source rows, unchanged geometry and modeling references, and inspect authored object owners through the shared API. Capture the actual gesture and readable result. Qt-delivered context actions and direct drop-event route tests are useful component evidence but do not alone establish physical pointer drag. Current desktop verification blocker: computer-use getApp for the running candidate returns -10005 cgWindowNotFound; bundle-id selection is ambiguous across build paths. Qt synthetic drag started but did not deliver drop. Do not silently replace the tutorial drag with a context command or repeat inaccessible input attempts indefinitely. Keep this Todo until native input is available, then fix any actual gesture issue exposed. Public source provenance is external; TUT-017 exact workflow cannot close without this gate.\n\n## Physical-control recheck 2026-10-14\nNormal application launch plus full-path CUA binding now acquires AX and screenshot. Two bounded body drags (component label and viewport row margin) leave authored ownership/geometry unchanged. Native logs show press/release10/14ms apart without recorded held motion; recorder throttling means this does not prove missing OS motion. No successful QDrag/drop established, so no product failure is asserted. Source review flags mutable currentItem drop-source identity and embedded-label event routing for a future focused trace. Root Sketches-folder drag not attempted because first move was unproved. Evidence remains external under component-reparent-2026-10-14/asm012-prepared/physical-drag-receipt.json. Return Todo; no context-command substitution or repeated access attempts.\n\n\n## Physical delivery recheck 2026-10-15\nOne current-build full-path CUA drag again leaves authored state unchanged. Recorder shows correct Browser coordinates but press/release 1 ms apart and no recorded held move; throttling limits inference. No product defect or physical acceptance asserted, no repeated attempts. Evidence external component-reparent-2026-10-15/physical-01. Existing commands remain independently supported; physical gesture stays open.\n"
     },
     {
       "key": "DOC-030",
@@ -7685,6 +7686,24 @@
         "area:rel"
       ],
       "body": "## User-facing result\nMake the feature timeline feel like a deliberate compact CAD history strip: independently authored vector feature icons, consistent spacing, restrained container chrome, legible hover/focus/action affordances. Replace placeholder font glyphs and inherited border clutter. Preserve existing edit, feature-action, reorder and overflow behavior.\n\n## Bounded acceptance\n- Consult existing external timeline evidence and record unknowns; do not claim exact visual parity from unmatched references.\n- Inspect actual app captures at normal and minimum window sizes, including a multi-feature tutorial and overflow where practical.\n- Feature types have recognizable, consistently scaled vector icons. Names remain available to tooltips/accessibility; keyboard focus and menu access remain clear.\n- A focused existing interaction check verifies editing/cancel and overflow reachability. No broad geometry regression suite for presentation changes.\n- Astra independently reviews implementation and final captures. Keep bulk evidence outside Git and update continuation context.\n\n## Scope boundary\nPresentation only. Timeline playback, rollback semantics, grouping and changing click-to-edit behavior are separate tasks. REL-013 retains the wider visual audit. Source records remain external under knowledge/records/feature-timeline-readability.json and knowledge/visuals/timeline-readability.\n\n\n## Independently accepted 2026-10-15\nOriginal vector feature icons replace Unicode placeholders; scoped parent borders, centered fixed targets and restrained arrows improve timeline presentation. Existing interaction gate passes3/3 including exact edit/Cancel/overflow/Show latest, style menu geometry and actual popup/Escape. Astra independently accepted final normal/minimum captures and source. See docs/validation/timeline-visual-polish.md. No new history semantics or physical input/parity claim; wider REL-013 audit remains open.\n"
+    },
+    {
+      "key": "SKT-091",
+      "title": "Dimension a circle center to the retained sketch origin",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-006",
+        "SKT-008"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P2",
+        "priority:P1",
+        "area:skt"
+      ],
+      "body": "## Required shoehorn step\nThe hanging-hole sketch uses a 5 mm circle on the tangent plane Y axis, located 10 mm from the selected corner endpoint. The plane origin is already that exact retained endpoint, so reuse sketch origin as the dimension witness instead of adding a separate curved-edge projection system.\n\n## Bounded acceptance\nNative D selection can use the visible sketch origin and circle center to author a driving 10 mm dimension without drawing an extra Point entity. Preserve origin identity/fixed position and center-axis alignment through the shared authored commands. Reuse existing origin helpers before introducing infrastructure. On a supported retained tangent plane, an upstream support edit must move the frame and preserve circle diameter/location; undo/reopen reuse existing contracts where unchanged. One focused native check shows readable 5/10 dimensions, real picks and edit behavior. Independent review before closure.\n\n## Boundary\nThis child does not qualify the actual generated corner references or complete the shoehorn. GEO-019/GEO-018 retain exact rounds/generated support and GEO-004/TUT-017 retain the cumulative actual support/hole gate. References and public source records stay external under advanced-audit-2026-10-14/shoehorn-finishing-contract.md. No extra visible geometry or silently fixed numeric circle placement substitutes for a driving dimension.\n"
     }
   ]
 }

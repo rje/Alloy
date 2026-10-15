@@ -1,5 +1,16 @@
 # Continuation context
 
+## Active user order (2026-10-15)
+
+Finish the complete shoehorn TUT-017 first, then pursue TUT-018 surface iron.
+GEO-019 is active for a materially new exact geometry strategy after the prior
+cap repair was ruled out; Astra owns the architecture investigation, Sol audits
+the downstream retained supports/hole/organization/export. Preserve source
+radii and authored geometry; no repeated unchanged healer/radius sweeps. The public dimension-placement gestures support the existing horizontal50 /
+vertical16 recipe; an external Euclidean-distance inference was corrected.
+SKT-091 owns origin-referenced driving hole placement without extra visible points. Complete the
+full recording, editable model and checked export before closing TUT-017.
+
 ## Timeline visual polish (2026-10-15)
 
 User-requested REL-025/#454 is independently accepted. The timeline now uses
@@ -29,7 +40,7 @@ adaptations. See [receipt](validation/shoehorn-native-prefix.md).
 The full TUT-017 gate retains exact grouped corner/perimeter finishing, hole
 support, organization and output. Existing core geometry/history evidence was
 reused; no broad test suite or new package/CI build was run. Further tutorial
-work needs a materially new GEO-019 strategy or a separate finishable chain;
+work now prioritizes a materially new GEO-019 strategy to finish this chain;
 do not repeat the unchanged failed fillet or iron boundary investigations.
 
 Astra's bounded saved-result finite-cap investigation is complete. Boundary
