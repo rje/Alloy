@@ -214,6 +214,7 @@ fail without applying the command. Error codes include `invalid_request`,
 | `layout.reset` | Restore those three regions |
 | `view.grid`, `view.origin` | `visible`: boolean |
 | `view.orientation` | `name`: `isometric`, `rearIsometric`, `top`, `bottom`, `front`, `back`, `right`, or `left`; recenter a named fixed view on the fitted scene |
+| `view.projection` | `mode`: `orthographic`, `perspective`, or `hybrid` (Perspective with Ortho Faces). The camera result reports both stored `projectionPolicy` and actual `resolvedProjection`; hybrid resolves orthographic within 0.5° of any principal face direction, including rolled/custom views. FOV 45° and that angle threshold are Alloy policies. The visible Camera menu invokes the same command; no authored history change |
 | `view.cubeOrient` | `region`: one of 26 stable face, edge or corner names reported by command discovery; set the matching camera direction/up while retaining zoom, pan, view target and stored orbit pivot |
 | `view.cubeHit` | viewport-local logical `x`, `y`; inspect the detected orientation-cube `region` and `kind` (`face`, `edge`, `corner`) without selecting document geometry |
 | `view.cubeFaceState` | Report whether adjacent-view and roll controls are available for the current principal face |

@@ -274,7 +274,8 @@ QJsonObject ReferenceView::cameraState() const {
         {"orbitMode",orbitMode_},{"navigationTool",navigationTool_},
         {"customDirection",QJsonArray{customDirection_.X(),customDirection_.Y(),customDirection_.Z()}},
         {"customUp",QJsonArray{customUp_.X(),customUp_.Y(),customUp_.Z()}},
-        {"scale",sceneScale_}};
+        {"scale",sceneScale_},{"projectionPolicy",projectionPolicy_},
+        {"resolvedProjection",view_.IsNull() || view_->Camera()->IsOrthographic() ? "orthographic" : "perspective"}};
     const auto pivot=customOrbitCenter_.value_or(sceneCenter_);
     state["orbitPivot"]=QJsonArray{pivot.X(),pivot.Y(),pivot.Z()};
     state["customOrbitCenter"]=customOrbitCenter_.has_value();
@@ -287,6 +288,8 @@ QJsonObject ReferenceView::cameraState() const {
 }
 void ReferenceView::restoreCameraState(const QJsonObject& state) {
     orientation=state.value("orientation").toString("isometric");
+    const auto policy=state.value("projectionPolicy").toString("orthographic");
+    projectionPolicy_=policy=="perspective" || policy=="hybrid" ? policy : "orthographic";
     zoom=state.value("zoom").toDouble(1);pan={state.value("panX").toDouble(),state.value("panY").toDouble()};
     grid=state.value("grid").toBool(true);origin=state.value("origin").toBool(true);
     sketchPlane_=state.value("sketchPlane").toString();
@@ -313,6 +316,10 @@ void ReferenceView::restoreCameraState(const QJsonObject& state) {
         } catch(const Standard_Failure&) {orientation="isometric";}
     }
     sync();refreshOrbitCenterMarker();
+}
+void ReferenceView::setProjectionPolicy(const QString& policy) {
+    if(policy!="orthographic" && policy!="perspective" && policy!="hybrid")return;
+    projectionPolicy_=policy;sync();
 }
 void ReferenceView::orbitFree(double deltaX,double deltaY,bool useCustomPivot) {
     if(view_.IsNull() || !std::isfinite(deltaX) || !std::isfinite(deltaY))return;
@@ -709,6 +716,14 @@ void ReferenceView::sync() {
     // Move Eye/Center together: SetCenter alone changes the view direction,
     // while SetProj preserves the origin's screen offset rather than Center.
     const auto camera=view_->Camera();
+    // The hybrid mode is orthographic only when the actual view direction is
+    // within 0.5 degrees of a principal face, including rolled/custom poses.
+    const auto direction=camera->Direction();
+    const double faceAlignment=std::max({std::abs(direction.X()),std::abs(direction.Y()),std::abs(direction.Z())});
+    const bool faceView=faceAlignment>=std::cos(0.5*std::numbers::pi/180.0);
+    const bool perspective=projectionPolicy_=="perspective" || (projectionPolicy_=="hybrid" && !faceView);
+    camera->SetProjectionType(perspective ? Graphic3d_Camera::Projection_Perspective : Graphic3d_Camera::Projection_Orthographic);
+    if(perspective)camera->SetFOVy(45.0);
     camera->MoveEyeTo(gp_Pnt(viewCenter_.XYZ()-camera->Direction().XYZ()*camera->Distance()));
     // Fit uses the smaller viewport dimension; V3d::SetSize treats its input
     // as horizontal on a wide window and can crop a tall model vertically.
@@ -2829,7 +2844,8 @@ QJsonObject ReferenceView::diagnostics() const {
     result.insert("canvases",canvasState_);
     result.insert("camera",QJsonObject{{"eye",vector(camera->Eye())},{"center",vector(camera->Center())},
         {"direction",vector(camera->Direction())},{"up",vector(camera->Up())},
-        {"scale",camera->Scale()},{"aspect",camera->Aspect()}});
+        {"scale",camera->Scale()},{"aspect",camera->Aspect()},
+        {"projection",camera->IsOrthographic() ? "orthographic" : "perspective"},{"fovY",camera->FOVy()}});
     return result;
 }
 QImage ReferenceView::framebuffer() {

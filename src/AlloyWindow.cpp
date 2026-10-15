@@ -814,6 +814,21 @@ AlloyWindow::AlloyWindow() {
     nav->addWidget(commandButton("view.fit", "Fit"));
     nav->addWidget(commandButton("view.fitSelection", "Fit Selection"));
     nav->addWidget(commandButton("view.lookAt", "Look At"));
+    auto* cameraMenuButton=new QToolButton;cameraMenuButton->setObjectName("view.projection.menuButton");
+    cameraMenuButton->setText("Camera");cameraMenuButton->setToolTip("Choose Orthographic, Perspective, or Perspective with Ortho Faces");
+    cameraMenuButton->setPopupMode(QToolButton::InstantPopup);
+    auto* cameraMenu=new QMenu(cameraMenuButton);cameraMenu->setObjectName("view.projection.menu");
+    for(const auto& item:{std::pair{"orthographic","Orthographic"},std::pair{"perspective","Perspective"},
+            std::pair{"hybrid","Perspective with Ortho Faces"}}) {
+        auto* action=cameraMenu->addAction(item.second);action->setObjectName(QString("view.projection.%1").arg(item.first));
+        action->setCheckable(true);const QString policy=item.first;
+        connect(action,&QAction::triggered,this,[this,policy]{execute("view.projection",{{"mode",policy}});});
+    }
+    connect(cameraMenu,&QMenu::aboutToShow,this,[this,cameraMenu]{
+        const auto policy=view_->projectionPolicy();
+        for(auto* action:cameraMenu->actions())action->setChecked(action->objectName()==QString("view.projection.%1").arg(policy));
+    });
+    cameraMenuButton->setMenu(cameraMenu);nav->addWidget(cameraMenuButton);
     for(const auto& item: {std::pair{"pan","Pan"},std::pair{"zoom","Zoom"},std::pair{"zoomWindow","Zoom Window"}}) {
         auto* button=new QPushButton(item.second);button->setObjectName(QString("view.navigationTool.%1").arg(item.first));
         button->setCheckable(true);
@@ -5223,9 +5238,13 @@ void AlloyWindow::registerCommands() {
     add("layout.reset", "Reset to Default Layout", "Restore Browser, navigation bar, and Timeline.", {}, [this](const auto&) { browserVisible_ = timelineVisible_ = navigationVisible_ = true; return QJsonObject{}; });
     add("view.grid", "Show / hide Grid", "Show or hide the reference grid; no model geometry is created.", visible, [this](const auto& a) { view_->grid = a.value("visible").toBool(); return QJsonObject{}; });
     add("view.origin", "Show / hide Origin", "Show or hide reference axes.", visible, [this](const auto& a) { view_->origin = a.value("visible").toBool(); return QJsonObject{}; });
-    auto orientation = parameter("string", "Orthographic orientation of the reference grid.");
+    auto orientation = parameter("string", "Named camera orientation.");
     orientation.insert("enum", QJsonArray{"isometric", "rearIsometric", "top", "bottom", "front", "back", "right", "left"});
     add("view.orientation", "Set view orientation", "Select a named view of the reference grid.", {{"name", orientation}}, [this](const auto& a) { view_->orientation = a.value("name").toString(); view_->centerNamedView(); return QJsonObject{}; });
+    auto projectionMode=parameter("string","Camera projection policy; hybrid uses orthographic near a principal face and perspective otherwise.");
+    projectionMode.insert("enum",QJsonArray{"orthographic","perspective","hybrid"});
+    add("view.projection","Camera projection","Choose Orthographic, Perspective, or Perspective with Ortho Faces without changing document history.",
+        {{"mode",projectionMode}},[this](const auto& a){view_->setProjectionPolicy(a.value("mode").toString());return view_->cameraState();});
     auto cubeRegion=parameter("string","One of the 26 detected Alloy orientation-cube face, edge or corner regions.");
     QJsonArray cubeNames;for(const auto& name:ReferenceView::cubeRegions())cubeNames.append(name);
     cubeRegion.insert("enum",cubeNames);

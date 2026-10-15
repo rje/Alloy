@@ -41,6 +41,8 @@ public:
     QJsonObject diagnostics() const;
     QJsonObject cameraState() const;
     void restoreCameraState(const QJsonObject& state);
+    void setProjectionPolicy(const QString& policy);
+    QString projectionPolicy() const { return projectionPolicy_; }
     void orbitFree(double deltaX,double deltaY,bool useCustomPivot=true);
     void orbitConstrained(double deltaX,double deltaY,bool useCustomPivot=true);
     void orbitByMode(double deltaX,double deltaY,bool useCustomPivot=true);
@@ -346,6 +348,7 @@ private:
     double gridWidth_ = 200, gridHeight_ = 200;
     bool adaptiveGrid_ = false;
     double sceneScale_ = 400;
+    QString projectionPolicy_ = "orthographic";
     int msaaRequested_ = 4, msaaEnabled_ = 0, msaaMaximum_ = 0;
     bool msaaTextures_ = false;
     std::vector<Handle(AIS_Shape)> moveCue_;
