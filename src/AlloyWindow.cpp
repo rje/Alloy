@@ -812,10 +812,20 @@ AlloyWindow::AlloyWindow() {
     auto* nav = new QHBoxLayout(navigation_); nav->setContentsMargins(8, 2, 8, 5); nav->setSpacing(2);
     nav->addStretch(); nav->addWidget(commandButton("view.home", "Home"));
     auto* orbitButton=new QPushButton("Free Orbit");orbitButton->setObjectName("view.orbitTool");
+    orbitButton->setMinimumWidth(orbitButton->fontMetrics().horizontalAdvance("Constrained Orbit")+28);
     orbitButton->setCheckable(true);orbitButton->setToolTip("Drag on the canvas to orbit freely; Escape exits. Shift + middle drag also orbits.");
     orbitButton->setStyleSheet("QPushButton:checked { background: #c8e5f6; border: 1px solid #5796bc; border-radius: 4px; font-weight: 600; }");
     connect(orbitButton,&QPushButton::clicked,this,[this,orbitButton]{execute("view.orbitTool",{{"active",orbitButton->isChecked()}});});
     nav->addWidget(orbitButton);
+    auto* orbitModes=new QToolButton;orbitModes->setObjectName("view.orbitMode");orbitModes->setText("▾");
+    orbitModes->setFixedWidth(24);
+    orbitModes->setToolTip("Choose Free or Constrained Orbit");orbitModes->setPopupMode(QToolButton::InstantPopup);
+    auto* orbitMenu=new QMenu(orbitModes);orbitMenu->setObjectName("view.orbitMode.menu");
+    auto* freeMode=orbitMenu->addAction("Free Orbit");freeMode->setObjectName("view.orbitMode.free");freeMode->setCheckable(true);freeMode->setChecked(true);
+    auto* constrainedMode=orbitMenu->addAction("Constrained Orbit");constrainedMode->setObjectName("view.orbitMode.constrained");constrainedMode->setCheckable(true);
+    connect(freeMode,&QAction::triggered,this,[this]{execute("view.orbitMode",{{"mode","free"}});});
+    connect(constrainedMode,&QAction::triggered,this,[this]{execute("view.orbitMode",{{"mode","constrained"}});});
+    orbitModes->setMenu(orbitMenu);nav->addWidget(orbitModes);
     for (const QString& orientation : {"top", "front", "right"}) {
         auto* button = new QPushButton(orientation.first(1).toUpper() + orientation.sliced(1));
         connect(button, &QPushButton::clicked, this, [this, orientation] { execute("view.orientation", {{"name", orientation}}); });
@@ -1011,6 +1021,10 @@ void AlloyWindow::updateTimelineDrop(const QPoint& globalPosition) {
 
 bool AlloyWindow::eventFilter(QObject* watched,QEvent* event) {
     if(componentCopyKey(watched,event))return true;
+    if(watched==view_ && event->type()==QEvent::KeyPress
+        && static_cast<QKeyEvent*>(event)->key()==Qt::Key_Escape && view_->orbitCenterPicking()) {
+        execute("view.orbitCenterCancel");return true;
+    }
     if(watched==view_ && event->type()==QEvent::KeyPress
         && static_cast<QKeyEvent*>(event)->key()==Qt::Key_Escape
         && (view_->freeOrbitTool() || view_->orbitDragging())) {
@@ -1208,6 +1222,17 @@ void AlloyWindow::saveActiveTabState() {
     }
 }
 
+void AlloyWindow::refreshOrbitModeControls() {
+    const bool constrained=view_->orbitMode()=="constrained";
+    if(auto* button=findChild<QPushButton*>("view.orbitTool")) {
+        button->setText(constrained ? "Constrained Orbit" : "Free Orbit");
+        button->setToolTip(constrained ? "Drag to orbit with a level horizon; Escape exits. Shift + middle drag also orbits."
+            : "Drag on the canvas to orbit freely; Escape exits. Shift + middle drag also orbits.");
+    }
+    if(auto* free=findChild<QAction*>("view.orbitMode.free"))free->setChecked(!constrained);
+    if(auto* level=findChild<QAction*>("view.orbitMode.constrained"))level->setChecked(constrained);
+}
+
 void AlloyWindow::showActiveTab() {
     DesignTab* active=nullptr;for(auto& tab:designTabs_)if(tab->id==activeTabId_){active=tab.get();break;}
     if(!active)return;
@@ -1227,6 +1252,7 @@ void AlloyWindow::showActiveTab() {
     displayedDocumentRevision_=std::numeric_limits<quint64>::max();displayedSketchDraft_={};
     sketchWidgetDraft_={};sketchWidgetSelection_={};sketchWidgetUnits_.clear();pendingBrowserVisibility_.clear();
     view_->restoreCameraState(active->camera);
+    refreshOrbitModeControls();
     if(!selectedFace_.isEmpty()) {
         try {auto surface=selectedSurfaceShape(document_->evaluation(),selectedFace_);
             view_->selectSupportFace(selectedFace_,surface.IsNull() ? GeometryKernel::resolveSketchSupport(document_->evaluation(),selectedFace_).face : surface);}
@@ -5163,25 +5189,51 @@ void AlloyWindow::registerCommands() {
     add("view.origin", "Show / hide Origin", "Show or hide reference axes.", visible, [this](const auto& a) { view_->origin = a.value("visible").toBool(); return QJsonObject{}; });
     auto orientation = parameter("string", "Orthographic orientation of the reference grid.");
     orientation.insert("enum", QJsonArray{"isometric", "rearIsometric", "top", "bottom", "front", "back", "right", "left"});
-    add("view.orientation", "Set view orientation", "Select a named view of the reference grid.", {{"name", orientation}}, [this](const auto& a) { view_->orientation = a.value("name").toString(); return QJsonObject{}; });
+    add("view.orientation", "Set view orientation", "Select a named view of the reference grid.", {{"name", orientation}}, [this](const auto& a) { view_->orientation = a.value("name").toString(); view_->centerNamedView(); return QJsonObject{}; });
     auto factor = parameter("number", "Relative scale factor (0.1 to 10); resulting zoom clamps to 0.1 to 10."); factor.insert("minimum", 0.1); factor.insert("maximum", 10);
     add("view.zoom", "Zoom reference view", "Scale the reference grid; mouse wheel uses this command.", {{"factor", factor}}, [this](const auto& a) { view_->zoom = std::clamp(view_->zoom * a.value("factor").toDouble(), 0.1, 10.0); return QJsonObject{}; });
     auto offset = parameter("number", "Relative pan in logical pixels; each delta limited to +/-10000."); offset.insert("minimum", -10000); offset.insert("maximum", 10000);
     add("view.pan", "Pan reference view", "Translate the grid; middle-mouse drag uses this command.", {{"x", offset}, {"y", offset}}, [this](const auto& a) { view_->pan += QPointF(a.value("x").toDouble(), a.value("y").toDouble()); return QJsonObject{}; });
     auto orbitDelta=parameter("number","Relative free-orbit drag in logical pixels; each delta limited to +/-10000.");
     orbitDelta.insert("minimum",-10000);orbitDelta.insert("maximum",10000);
-    add("view.orbit","Free Orbit","Rotate the actual camera about the fitted scene center without editing the design.",
+    add("view.orbit","Orbit","Rotate the actual camera in the selected Free or Constrained mode without editing the design.",
         {{"deltaX",orbitDelta},{"deltaY",orbitDelta}},[this](const auto& a){
-            view_->orbitFree(a.value("deltaX").toDouble(),a.value("deltaY").toDouble());return view_->cameraState();
+            view_->orbitByMode(a.value("deltaX").toDouble(),a.value("deltaY").toDouble());return view_->cameraState();
         });
-    add("view.orbitTool","Free Orbit pointer tool","Use a left canvas drag to orbit without a middle button; Escape exits.",
-        {{"active",parameter("boolean","Whether left canvas drags orbit freely.")}},[this](const auto& a){
+    auto orbitMode=parameter("string","Free or horizon-level Constrained Orbit mode.");
+    orbitMode.insert("enum",QJsonArray{"free","constrained"});
+    add("view.orbitMode","Orbit mode","Choose Free or Constrained Orbit; the visible Orbit tool retains the last selection.",
+        {{"mode",orbitMode}},[this](const auto& a){
+            view_->setOrbitMode(a.value("mode").toString());refreshOrbitModeControls();return view_->cameraState();
+        });
+    add("view.orbitTool","Orbit pointer tool","Use a left canvas drag to orbit without a middle button; Escape exits.",
+        {{"active",parameter("boolean","Whether left canvas drags use the selected orbit mode.")}},[this](const auto& a){
             const bool active=a.value("active").toBool();view_->setFreeOrbitTool(active);
             if(auto* button=findChild<QPushButton*>("view.orbitTool")){
                 const QSignalBlocker blocked(button);button->setChecked(active);
             }
             return QJsonObject{{"active",active}};
         });
+    add("view.orbitCenterBegin","Set Orbit Center","After the blank-canvas context action, pick a visible model surface point.",{},[this](const auto&){
+        if(view_->bodyStageActive())return failure("orbit_center_stage_unavailable","Finish or cancel the staged body preview before setting its orbit center");
+        execute("view.orbitTool",{{"active",false}});view_->beginOrbitCenterPick();return QJsonObject{{"pending",true}};
+    });
+    auto orbitPickPixel=parameter("number","Viewport coordinate in logical pixels.");
+    orbitPickPixel["minimum"]=0;orbitPickPixel["maximum"]=100000;
+    add("view.orbitCenterPick","Pick Orbit Center","Ray-pick the nearest visible model surface and retain its world point as orbit pivot.",
+        {{"x",orbitPickPixel},{"y",orbitPickPixel}},[this](const auto& a){
+            if(!view_->orbitCenterPicking())return failure("no_orbit_center_pick","Choose Set Orbit Center from blank canvas first");
+            if(view_->bodyStageActive())return failure("orbit_center_stage_unavailable","Finish or cancel the staged body preview before setting its orbit center");
+            const auto hit=view_->pickOrbitCenter(a.value("x").toDouble(),a.value("y").toDouble());
+            if(hit.isEmpty())return failure("orbit_center_target_required","Click a visible model surface to set the orbit center");
+            view_->setOrbitCenter(hit);return QJsonObject{{"hit",hit},{"camera",view_->cameraState()}};
+        });
+    add("view.orbitCenterCancel","Cancel Orbit Center","Exit one-shot pivot selection without changing the camera or document.",{},[this](const auto&){
+        view_->cancelOrbitCenterPick();return QJsonObject{{"pending",false}};
+    });
+    add("view.orbitCenterReset","Reset Orbit Center","Return the orbit pivot to the current visible-scene bounds center.",{},[this](const auto&){
+        view_->resetOrbitCenter();return view_->cameraState();
+    });
     auto dimension = parameter("number", "Logical window size; width 1040..4096, height 640..4096.");
     dimension.insert("minimum", 640); dimension.insert("maximum", 4096);
     add("window.resize", "Resize window", "Resize the real native window for layout and framebuffer inspection.", {{"width", dimension}, {"height", dimension}}, [this](const auto& a) {
@@ -5478,7 +5530,11 @@ QJsonObject AlloyWindow::state() const {
                 {"visible",dialogVisible},{"inputs",dialogInputs},
                 {"presentation",target=="construction.tangentPlane" || target=="joint.slider" || target=="joint.revolute" || target=="joint.cylindrical" || target.startsWith("solid.") || target.startsWith("surface.") || target.startsWith("sketch.") ? (activeDock && activeDock->isFloating() ? "floating-panel" : "docked-panel") : "dialog"},
                 {"bounds",QJsonObject{{"x",panelRect.x()},{"y",panelRect.y()},{"width",panelRect.width()},{"height",panelRect.height()}}}}}}},
-        {"viewport", QJsonObject{{"renderer", "OCCT OpenGL"}, {"gpu", view_->diagnostics()}, {"editDisplay",view_->diagnostics().value("editDisplay")}, {"sketchAnnotations",view_->annotations()}, {"orientation", view_->orientation}, {"gridVisible", view_->grid}, {"originVisible", view_->origin}, {"zoom", view_->zoom}, {"pan", QJsonObject{{"x", view_->pan.x()}, {"y", view_->pan.y()}}}, {"x",viewPosition.x()},{"y",viewPosition.y()},{"width", view_->width()}, {"height", view_->height()}}}};
+        {"viewport", QJsonObject{{"renderer", "OCCT OpenGL"}, {"gpu", view_->diagnostics()}, {"navigation",view_->cameraState()},
+            {"orbitCenterPickPending",view_->orbitCenterPicking()}, {"editDisplay",view_->diagnostics().value("editDisplay")},
+            {"sketchAnnotations",view_->annotations()}, {"orientation", view_->orientation}, {"gridVisible", view_->grid},
+            {"originVisible", view_->origin}, {"zoom", view_->zoom}, {"pan", QJsonObject{{"x", view_->pan.x()}, {"y", view_->pan.y()}}},
+            {"x",viewPosition.x()},{"y",viewPosition.y()},{"width", view_->width()},{"height", view_->height()}}}};
 }
 
 void AlloyWindow::refresh() {
@@ -6172,7 +6228,7 @@ void AlloyWindow::refresh() {
     view_->sync();
     positionDimensionEditor();
     const auto gpu = view_->diagnostics();
-    status_->setText(QString("  %3 · %4 bodies · %1 · Zoom %2%    |    "+QString(editingSketch ? "L: line · R: rectangle · C: circle · D: dimension · Shift-click: add selection" : "Click: select")+" · Middle/Option-drag: pan · Shift + middle: Free Orbit · Wheel: zoom")
+    status_->setText(QString("  %3 · %4 bodies · %1 · Zoom %2%    |    "+QString(editingSketch ? "L: line · R: rectangle · C: circle · D: dimension · Shift-click: add selection" : "Click: select")+" · Middle/Option-drag: pan · Shift + middle: "+(view_->orbitMode()=="constrained" ? "Constrained Orbit" : "Free Orbit")+" · Wheel: zoom")
         .arg(view_->orientation).arg(qRound(view_->zoom * 100)).arg(gpu.value("hardwareAccelerated").toBool() ? "OCCT OpenGL" : "GPU UNQUALIFIED: " + gpu.value("qualification").toString()).arg(gpu.value("displayedBodyReferences").toArray().size()));
 }
 

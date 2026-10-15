@@ -213,11 +213,14 @@ fail without applying the command. Error codes include `invalid_request`,
 | `layout.browser`, `layout.timeline`, `layout.navigation` | `visible`: boolean |
 | `layout.reset` | Restore those three regions |
 | `view.grid`, `view.origin` | `visible`: boolean |
-| `view.orientation` | `name`: `isometric`, `rearIsometric`, `top`, `bottom`, `front`, `back`, `right`, or `left` |
+| `view.orientation` | `name`: `isometric`, `rearIsometric`, `top`, `bottom`, `front`, `back`, `right`, or `left`; recenter a named fixed view on the fitted scene |
 | `view.zoom` | `factor`: 0.1–10; resulting scale clamps to 0.1–10 |
 | `view.pan` | `x`, `y`: relative logical-pixel deltas, each within ±10000 |
-| `view.orbit` | `deltaX`, `deltaY`: relative logical-pixel deltas, each within ±10000; free orbit about the current fitted scene center, returning custom camera state |
-| `view.orbitTool` | `active`: boolean; visible Free Orbit control lets a left canvas drag use the same camera command; Escape exits |
+| `view.orbit` | `deltaX`, `deltaY`: relative logical-pixel deltas, each within ±10000; orbit the real camera around the active scene/custom pivot in the selected mode |
+| `view.orbitMode` | `mode`: `free` or `constrained`; the visible Orbit menu retains the selected mode. Constrained uses world Z up and a level horizon |
+| `view.orbitTool` | `active`: boolean; visible Orbit control lets a left canvas drag use the selected mode; Escape exits |
+| `view.orbitCenterBegin` / `view.orbitCenterPick` | Start a one-shot visible-surface pivot pick, then provide viewport-local logical `x`, `y`; the result includes the exact body surface hit and camera state. A staged body preview refuses a pivot pick |
+| `view.orbitCenterCancel` / `view.orbitCenterReset` | Cancel the one-shot pick or restore the fitted-scene pivot; neither edits the document |
 | `view.home` | Fit visible bodies/sketches and a valid extrusion preview in isometric view; reset zoom/pan |
 | `window.resize` | Logical width 1040–4096 and height 640–4096 |
 | `capture.screenshot` | Absolute `.png` path; returns dimensions, device scale, source |
@@ -503,12 +506,16 @@ Cancel route through the shared cancellation command.
 
 Viewport picking retains fractional logical coordinates until native rounding.
 Option/Alt-left drag and middle drag use shared `view.pan`; Shift-middle drag
-and the checked Free Orbit control's left drag use `view.orbit`. These gestures
+and the checked Orbit control's left drag use `view.orbit` in the selected mode. These gestures
 are handled before modeling picks and leave authored state and selection unchanged.
-The custom camera direction/up survive refresh and design-tab switching;
-Home and named views restore a fixed direction. The initial orbit pivot is
-the fitted scene center, an explicit Alloy policy. Constrained orbit, selected
-pivot, trackpad gestures and ViewCube remain separate navigation work. Plain left click uses
+The custom camera direction/up, orbit mode, view center and custom pivot survive
+refresh and design-tab switching. Home fits the scene and retains an explicitly
+picked pivot; named views recenter on the fitted scene. A blank-canvas context
+menu starts an exact visible-body surface pick or resets the pivot. Its green
+marker remains separate from model selection. The initial pivot is the fitted
+scene center; constrained Z-up, the five-degree pole margin and Home pivot
+retention are explicit Alloy policies. Trackpad gestures, configurable up axis,
+ViewCube and an automatic orbit-center policy remain separate navigation work. Plain left click uses
 `selection.pick` outside sketch editing. Active-sketch clicks use the current
 drawing/selection tool; Shift-click adds/toggles sketch selection. Selected bodies
 are visibly blue; clearing selection restores normal appearance without changing

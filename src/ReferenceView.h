@@ -10,6 +10,7 @@
 #include <V3d_View.hxx>
 #include <V3d_Viewer.hxx>
 #include <AIS_Shape.hxx>
+#include <AIS_Point.hxx>
 #include <Graphic3d_ClipPlane.hxx>
 #include <QMap>
 #include <QSet>
@@ -37,6 +38,18 @@ public:
     QJsonObject cameraState() const;
     void restoreCameraState(const QJsonObject& state);
     void orbitFree(double deltaX,double deltaY);
+    void orbitConstrained(double deltaX,double deltaY);
+    void orbitByMode(double deltaX,double deltaY);
+    void setOrbitMode(const QString& mode);
+    void centerNamedView() { viewCenter_=sceneCenter_; }
+    QString orbitMode() const { return orbitMode_; }
+    void beginOrbitCenterPick();
+    void cancelOrbitCenterPick();
+    bool orbitCenterPicking() const { return orbitCenterPicking_; }
+    bool bodyStageActive() const { return !bodyStageKey_.isEmpty(); }
+    QJsonObject pickOrbitCenter(double x,double y) const;
+    void setOrbitCenter(const QJsonObject& hit);
+    void resetOrbitCenter();
     void setFreeOrbitTool(bool active) { freeOrbitTool_=active; if(!active && orbitButton_!=Qt::NoButton){orbitButton_=Qt::NoButton;unsetCursor();} }
     bool freeOrbitTool() const { return freeOrbitTool_; }
     bool orbitDragging() const { return orbitButton_!=Qt::NoButton; }
@@ -201,6 +214,13 @@ private:
     QPointF orbitLast_;
     Qt::MouseButton orbitButton_ = Qt::NoButton;
     bool freeOrbitTool_ = false;
+    QString orbitMode_ = "free";
+    bool orbitCenterPicking_ = false;
+    bool orbitCenterPressHandled_ = false;
+    std::optional<gp_Pnt> customOrbitCenter_;
+    gp_Pnt viewCenter_;
+    Handle(AIS_Point) orbitCenterMarker_;
+    void refreshOrbitCenterMarker();
     gp_Dir customDirection_{0,0,-1};
     gp_Dir customUp_{0,1,0};
     QJsonObject sectionAnalysis_;

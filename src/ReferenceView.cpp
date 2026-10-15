@@ -214,12 +214,22 @@ ReferenceView::~ReferenceView() {
     if (!view_.IsNull()) view_->Remove();
 }
 QJsonObject ReferenceView::cameraState() const {
-    return {{"orientation",orientation},{"zoom",zoom},{"panX",pan.x()},{"panY",pan.y()},
+    QJsonObject state{{"orientation",orientation},{"zoom",zoom},{"panX",pan.x()},{"panY",pan.y()},
         {"grid",grid},{"origin",origin},{"sketchPlane",sketchPlane_},{"sketchFrame",sketchFrame_},
         {"centerX",sceneCenter_.X()},{"centerY",sceneCenter_.Y()},{"centerZ",sceneCenter_.Z()},
+        {"viewCenter",QJsonArray{viewCenter_.X(),viewCenter_.Y(),viewCenter_.Z()}},
+        {"orbitMode",orbitMode_},
         {"customDirection",QJsonArray{customDirection_.X(),customDirection_.Y(),customDirection_.Z()}},
         {"customUp",QJsonArray{customUp_.X(),customUp_.Y(),customUp_.Z()}},
         {"scale",sceneScale_}};
+    const auto pivot=customOrbitCenter_.value_or(sceneCenter_);
+    state["orbitPivot"]=QJsonArray{pivot.X(),pivot.Y(),pivot.Z()};
+    state["customOrbitCenter"]=customOrbitCenter_.has_value();
+    if(customOrbitCenter_ && !view_.IsNull()) {
+        int x,y;view_->Convert(pivot.X(),pivot.Y(),pivot.Z(),x,y);
+        const auto scale=windowScale();state["pivotScreen"]=QJsonObject{{"x",x/scale.x()},{"y",y/scale.y()}};
+    }
+    return state;
 }
 void ReferenceView::restoreCameraState(const QJsonObject& state) {
     orientation=state.value("orientation").toString("isometric");
@@ -228,6 +238,13 @@ void ReferenceView::restoreCameraState(const QJsonObject& state) {
     sketchPlane_=state.value("sketchPlane").toString();
     sketchFrame_=state.value("sketchFrame").toObject();
     sceneCenter_=gp_Pnt(state.value("centerX").toDouble(),state.value("centerY").toDouble(),state.value("centerZ").toDouble());
+    const auto viewCenter=state.value("viewCenter").toArray();
+    viewCenter_=viewCenter.size()==3 ? gp_Pnt(viewCenter[0].toDouble(),viewCenter[1].toDouble(),viewCenter[2].toDouble()) : sceneCenter_;
+    orbitMode_=state.value("orbitMode")=="constrained" ? "constrained" : "free";
+    const auto pivot=state.value("orbitPivot").toArray();
+    customOrbitCenter_=state.value("customOrbitCenter").toBool() && pivot.size()==3
+        ? std::optional<gp_Pnt>(gp_Pnt(pivot[0].toDouble(),pivot[1].toDouble(),pivot[2].toDouble())) : std::nullopt;
+    orbitCenterPicking_=false;
     sceneScale_=state.value("scale").toDouble(400);
     if(orientation=="custom") {
         const auto direction=state.value("customDirection").toArray(),up=state.value("customUp").toArray();
@@ -239,28 +256,143 @@ void ReferenceView::restoreCameraState(const QJsonObject& state) {
             else {customDirection_=gp_Dir(d);customUp_=gp_Dir(u);}
         } catch(const Standard_Failure&) {orientation="isometric";}
     }
-    sync();
+    sync();refreshOrbitCenterMarker();
 }
 void ReferenceView::orbitFree(double deltaX,double deltaY) {
     if(view_.IsNull() || !std::isfinite(deltaX) || !std::isfinite(deltaY))return;
-    // Each drag rotates in the current screen frame. The fitted scene center
-    // remains the pivot; this slice does not infer a selected-object pivot.
+    // Rotate the camera basis and the persistent view-center offset together.
+    // This leaves the chosen pivot at the same screen position even after pan.
     constexpr double radiansPerPixel=std::numbers::pi/600;
     gp_Vec forward(view_->Camera()->Direction()),up(view_->Camera()->Up());
+    const auto pivot=customOrbitCenter_.value_or(sceneCenter_);
+    gp_Vec centerOffset(pivot,viewCenter_);
     gp_Vec right=forward.Crossed(up);
     if(right.Magnitude()<1e-9)return;
     right.Normalize();
     const gp_Ax1 vertical{gp_Pnt{},gp_Dir{up}};
     forward.Rotate(vertical,-deltaX*radiansPerPixel);
     right.Rotate(vertical,-deltaX*radiansPerPixel);
+    centerOffset.Rotate(vertical,-deltaX*radiansPerPixel);
     const gp_Ax1 horizontal{gp_Pnt{},gp_Dir{right}};
     forward.Rotate(horizontal,-deltaY*radiansPerPixel);
     up.Rotate(horizontal,-deltaY*radiansPerPixel);
+    centerOffset.Rotate(horizontal,-deltaY*radiansPerPixel);
     if(forward.Crossed(up).Magnitude()<1e-9)return;
+    viewCenter_=pivot.Translated(centerOffset);
     customDirection_=gp_Dir(forward);customUp_=gp_Dir(up);
     orientation="custom";sync();
 }
+void ReferenceView::orbitConstrained(double deltaX,double deltaY) {
+    if(view_.IsNull() || !std::isfinite(deltaX) || !std::isfinite(deltaY))return;
+    constexpr double radiansPerPixel=std::numbers::pi/600;
+    constexpr double poleMargin=std::numbers::pi/36; // Alloy policy: 5° from either pole.
+    const gp_Vec worldUp(0,0,1);
+    const auto pivot=customOrbitCenter_.value_or(sceneCenter_);
+    gp_Vec centerOffset(pivot,viewCenter_),forward(view_->Camera()->Direction());
+    const gp_Ax1 yaw(gp_Pnt{},gp_Dir(worldUp));
+    forward.Rotate(yaw,-deltaX*radiansPerPixel);
+    centerOffset.Rotate(yaw,-deltaX*radiansPerPixel);
+    gp_Vec right=forward.Crossed(worldUp);
+    if(right.Magnitude()<1e-9)right=gp_Vec(view_->Camera()->Direction()).Crossed(gp_Vec(view_->Camera()->Up()));
+    if(right.Magnitude()<1e-9)return;
+    right.Normalize();
+    const double current=std::acos(std::clamp(forward.Dot(worldUp),-1.0,1.0));
+    const double desired=std::clamp(current+deltaY*radiansPerPixel,poleMargin,std::numbers::pi-poleMargin);
+    const gp_Ax1 pitch(gp_Pnt{},gp_Dir(right));
+    forward.Rotate(pitch,current-desired);
+    centerOffset.Rotate(pitch,current-desired);
+    gp_Vec levelUp=worldUp-forward*forward.Dot(worldUp);
+    if(levelUp.Magnitude()<1e-9)return;
+    levelUp.Normalize();
+    viewCenter_=pivot.Translated(centerOffset);
+    customDirection_=gp_Dir(forward);customUp_=gp_Dir(levelUp);
+    orientation="custom";sync();
+}
+void ReferenceView::orbitByMode(double deltaX,double deltaY) {
+    if(orbitMode_=="constrained")orbitConstrained(deltaX,deltaY);
+    else orbitFree(deltaX,deltaY);
+}
+void ReferenceView::setOrbitMode(const QString& mode) {
+    const QString next=mode=="constrained" ? "constrained" : "free";
+    cancelOrbitCenterPick();
+    if(next==orbitMode_)return;
+    orbitMode_=next;
+    if(next!="constrained" || view_.IsNull())return;
+    // Level a rolled Free view about its forward axis. Rotate the offset from
+    // the chosen pivot as well, so switching modes does not move that pivot on
+    // screen even when the camera was panned before the switch.
+    const gp_Vec forward(view_->Camera()->Direction()),oldUp(view_->Camera()->Up());
+    gp_Vec levelUp=gp_Vec(0,0,1)-forward*forward.Z();
+    if(levelUp.Magnitude()>1e-9) {
+        levelUp.Normalize();
+        const double roll=std::atan2(forward.Dot(oldUp.Crossed(levelUp)),oldUp.Dot(levelUp));
+        const auto pivot=customOrbitCenter_.value_or(sceneCenter_);
+        gp_Vec offset(pivot,viewCenter_);
+        offset.Rotate(gp_Ax1(gp_Pnt{},gp_Dir(forward)),roll);
+        viewCenter_=pivot.Translated(offset);
+    }
+    orbitConstrained(0,0);
+}
+void ReferenceView::beginOrbitCenterPick() {
+    orbitCenterPicking_=true;setCursor(Qt::CrossCursor);
+}
+void ReferenceView::cancelOrbitCenterPick() {
+    if(!orbitCenterPicking_)return;
+    orbitCenterPicking_=false;unsetCursor();
+}
+QJsonObject ReferenceView::pickOrbitCenter(double x,double y) const {
+    // A transient body stage can replace the displayed shapes. This first
+    // pivot slice admits only the retained, visibly displayed body set.
+    if(view_.IsNull() || !bodyStageKey_.isEmpty() || x<0 || y<0 || x>=width() || y>=height())return {};
+    const auto scale=windowScale();double px,py,pz,dx,dy,dz;
+    view_->ConvertWithProj(qRound(x*scale.x()),qRound(y*scale.y()),px,py,pz,dx,dy,dz);
+    const gp_Vec direction(dx,dy,dz);
+    if(direction.Magnitude()<1e-9)return {};
+    const auto rayDirection=gp_Dir(direction);
+    const gp_Pnt projected(px,py,pz);
+    // ConvertWithProj lies on the projection plane. Start toward the eye so
+    // the nearest hit includes visible surfaces in front of that plane.
+    const gp_Pnt origin=projected.Translated(-gp_Vec(rayDirection)*(view_->Camera()->Distance()+sceneScale_*2));
+    const gp_Lin ray(origin,rayDirection);
+    double nearest=std::numeric_limits<double>::infinity();QJsonObject hit;
+    try {
+        for(const auto& body:documentBodies_)if(body.visible && !body.shape.IsNull()) {
+            IntCurvesFace_ShapeIntersector intersections;intersections.Load(body.shape,1e-6);
+            intersections.PerformNearest(ray,0,1e9);
+            if(!intersections.IsDone() || intersections.NbPnt()<1 || intersections.WParameter(1)>=nearest)continue;
+            nearest=intersections.WParameter(1);
+            const auto point=intersections.Pnt(1);
+            hit={{"bodyId",body.bodyId},{"point",QJsonArray{point.X(),point.Y(),point.Z()}}};
+            if(!body.occurrenceId.isEmpty())hit["occurrenceId"]=body.occurrenceId;
+        }
+    } catch(const Standard_Failure&) {return {};}
+    return hit;
+}
+void ReferenceView::refreshOrbitCenterMarker() {
+    if(context_.IsNull())return;
+    if(!orbitCenterMarker_.IsNull())context_->Remove(orbitCenterMarker_,false);
+    orbitCenterMarker_.Nullify();
+    if(!customOrbitCenter_) {context_->UpdateCurrentViewer();return;}
+    orbitCenterMarker_=new AIS_Point(new Geom_CartesianPoint(*customOrbitCenter_));
+    orbitCenterMarker_->Attributes()->SetPointAspect(new Prs3d_PointAspect(Aspect_TOM_O_POINT,
+        Quantity_Color(0.07,0.78,0.22,Quantity_TOC_sRGB),11*devicePixelRatioF()));
+    orbitCenterMarker_->SetZLayer(Graphic3d_ZLayerId_Topmost);
+    context_->Display(orbitCenterMarker_,false);context_->Deactivate(orbitCenterMarker_);
+    context_->UpdateCurrentViewer();
+}
+void ReferenceView::setOrbitCenter(const QJsonObject& hit) {
+    const auto point=hit.value("point").toArray();
+    if(point.size()!=3)return;
+    customOrbitCenter_=gp_Pnt(point[0].toDouble(),point[1].toDouble(),point[2].toDouble());
+    cancelOrbitCenterPick();refreshOrbitCenterMarker();
+}
+void ReferenceView::resetOrbitCenter() {
+    customOrbitCenter_.reset();cancelOrbitCenterPick();refreshOrbitCenterMarker();
+}
 void ReferenceView::rebindDocument() {
+    cancelOrbitCenterPick();
+    if(!context_.IsNull() && !orbitCenterMarker_.IsNull())context_->Remove(orbitCenterMarker_,false);
+    orbitCenterMarker_.Nullify();customOrbitCenter_.reset();
     setCanvases({},EvaluatedDocument{});canvasStamp_={};
     clearPatternAxes();
     setSliderCue({});
@@ -378,7 +510,7 @@ void ReferenceView::sync() {
     // Move Eye/Center together: SetCenter alone changes the view direction,
     // while SetProj preserves the origin's screen offset rather than Center.
     const auto camera=view_->Camera();
-    camera->MoveEyeTo(gp_Pnt(sceneCenter_.XYZ()-camera->Direction().XYZ()*camera->Distance()));
+    camera->MoveEyeTo(gp_Pnt(viewCenter_.XYZ()-camera->Direction().XYZ()*camera->Distance()));
     // Fit uses the smaller viewport dimension; V3d::SetSize treats its input
     // as horizontal on a wide window and can crop a tall model vertically.
     camera->SetScale(sceneScale_ / (zoom * std::min(camera->Aspect(), 1.0)));
@@ -1607,7 +1739,7 @@ void ReferenceView::lookAtSketch(const QString& plane,const QJsonObject& resolve
             sceneScale_=std::max({x1-x0,y1-y0,z1-z0,1.0})*1.7;
         }
     }
-    pan={};zoom=1;sync();
+    viewCenter_=sceneCenter_;pan={};zoom=1;sync();
 }
 QJsonObject ReferenceView::sketchPoint(double x,double y,const QString& plane,const QJsonObject& resolvedFrame) const {
     if(view_.IsNull() || x<0 || y<0 || x>=width() || y>=height())throw std::invalid_argument("Point is outside the initialized viewport");
@@ -1777,7 +1909,7 @@ void ReferenceView::fit(const std::vector<EvaluatedBody>& bodies,const std::vect
         sceneCenter_=gp_Pnt((x0+x1)/2,(y0+y1)/2,(z0+z1)/2);
         sceneScale_=std::max({x1-x0,y1-y0,z1-z0,1.0})*1.7;
     }
-    zoom=1;pan={};sync();
+    viewCenter_=sceneCenter_;zoom=1;pan={};sync();
 }
 void ReferenceView::selectBody(const QString& id,const QString& occurrenceId) {
     // refreshUI reapplies an empty body cue while a finished point is selected.
@@ -2481,6 +2613,11 @@ QImage ReferenceView::framebuffer() {
     return image;
 }
 void ReferenceView::mousePressEvent(QMouseEvent* e) {
+    if(orbitCenterPicking_ && e->button()==Qt::LeftButton) {
+        orbitCenterPressHandled_=true;
+        if(dispatch)dispatch("view.orbitCenterPick",{{"x",e->position().x()},{"y",e->position().y()}});
+        setFocus(Qt::MouseFocusReason);e->accept();return;
+    }
     if((e->button()==Qt::MiddleButton && e->modifiers().testFlag(Qt::ShiftModifier))
         || (e->button()==Qt::LeftButton && freeOrbitTool_ && !e->modifiers().testFlag(Qt::AltModifier))) {
         orbitButton_=e->button();orbitLast_=e->position();setCursor(Qt::ClosedHandCursor);
@@ -2635,6 +2772,7 @@ void ReferenceView::mousePressEvent(QMouseEvent* e) {
     else QWidget::mousePressEvent(e);
 }
 void ReferenceView::mouseMoveEvent(QMouseEvent* e) {
+    if(orbitCenterPicking_){e->accept();return;}
     if(orbitButton_!=Qt::NoButton) {
         if(!e->buttons().testFlag(orbitButton_)){orbitButton_=Qt::NoButton;unsetCursor();e->accept();return;}
         const auto delta=e->position()-orbitLast_;orbitLast_=e->position();
@@ -2753,6 +2891,7 @@ void ReferenceView::keyReleaseEvent(QKeyEvent* e) {
     QWidget::keyReleaseEvent(e);
 }
 void ReferenceView::mouseReleaseEvent(QMouseEvent* e) {
+    if(orbitCenterPressHandled_ && e->button()==Qt::LeftButton){orbitCenterPressHandled_=false;e->accept();return;}
     if(e->button()==orbitButton_) {orbitButton_=Qt::NoButton;unsetCursor();e->accept();return;}
     if(e->button()==panButton_) {panButton_=Qt::NoButton;unsetCursor();e->accept();return;}
     if(e->button()==Qt::LeftButton && !sketchLineArcDrag_.isEmpty()){
@@ -2807,7 +2946,7 @@ void ReferenceView::mouseReleaseEvent(QMouseEvent* e) {
     QWidget::mouseReleaseEvent(e);
 }
 void ReferenceView::mouseDoubleClickEvent(QMouseEvent* e) {
-    if(freeOrbitTool_ && e->button()==Qt::LeftButton){e->accept();return;}
+    if((freeOrbitTool_ || orbitCenterPicking_) && e->button()==Qt::LeftButton){e->accept();return;}
     if(e->button()==Qt::LeftButton && !sketchPlane_.isEmpty()) {
         const auto picked=pickAnnotation(e->position().x(),e->position().y());
         if(!picked.isEmpty()){draggedAnnotation_.clear();dispatch("sketch.dimensionEdit",{{"dimensionId",picked.value("dimensionId")}});e->accept();return;}
@@ -2896,6 +3035,25 @@ void ReferenceView::contextMenuEvent(QContextMenuEvent* e) {
             else if(action==move)dispatch("solid.moveDialog",{{"targetBodyId",menuBody}});
         });
         connect(menu,&QMenu::aboutToHide,this,[this]{lastContextMenu_["phase"]="closed";if(!lastContextMenu_.contains("result"))lastContextMenu_["result"]="cancelled";});
+        menu->popup(e->globalPos());e->accept();return;
+    }
+    if(!sketchActive) {
+        auto* menu=new QMenu(this);menu->setObjectName("context.orbitCenter");menu->setAttribute(Qt::WA_DeleteOnClose);
+        auto* set=menu->addAction("Set Orbit Center");set->setObjectName("context.orbitCenter.set");
+        set->setEnabled(bodyStageKey_.isEmpty() && std::any_of(documentBodies_.begin(),documentBodies_.end(),[](const auto& body){return body.visible && !body.shape.IsNull();}));
+        auto* reset=menu->addAction("Reset Orbit Center");reset->setObjectName("context.orbitCenter.reset");
+        reset->setEnabled(customOrbitCenter_.has_value());
+        lastContextMenu_["origin"]="blankCanvas";
+        lastContextMenu_["actions"]=QJsonArray{QJsonObject{{"id",set->objectName()},{"text",set->text()},{"enabled",set->isEnabled()}},
+            QJsonObject{{"id",reset->objectName()},{"text",reset->text()},{"enabled",reset->isEnabled()}}};
+        lastContextMenu_["phase"]="open";++contextMenuShownCount_;
+        connect(menu,&QMenu::triggered,this,[this,set,reset](QAction* action){
+            lastContextMenu_["result"]=action->objectName();
+            if(action==set)dispatch("view.orbitCenterBegin",{});
+            else if(action==reset)dispatch("view.orbitCenterReset",{});
+        });
+        connect(menu,&QMenu::aboutToHide,this,[this]{lastContextMenu_["phase"]="closed";
+            if(!lastContextMenu_.contains("result"))lastContextMenu_["result"]="cancelled";});
         menu->popup(e->globalPos());e->accept();return;
     }
     QWidget::contextMenuEvent(e);
