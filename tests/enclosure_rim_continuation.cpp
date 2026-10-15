@@ -87,14 +87,16 @@ int main(int argc,char** argv) {
             if(selected.size()!=2)throw std::runtime_error("rear opposing 54mm rail pair unavailable");
             result["selectedRearPair"]=QJsonArray{selected[0],selected[1]};
             result["attemptedRadiusMm"]=0.5;
-            const auto candidate=CadDocument::filletCandidate(document.authored(),
-                {{"ownerId",owner},{"targetBodyId",support.bodyId},
-                 {"edgeIds",QJsonArray{selected[0],selected[1]}},{"radiusMm",0.5}});
-            const auto error=document.commit(candidate,"Two upper rim rails R0.5");
-            if(!error.isEmpty()) {
-                result["filletAccepted"]=false;result["filletError"]=error;
+            try {
+                const auto candidate=CadDocument::filletCandidate(document.authored(),
+                    {{"ownerId",owner},{"targetBodyId",support.bodyId},
+                     {"edgeIds",QJsonArray{selected[0],selected[1]}},{"radiusMm",0.5}});
+                const auto error=document.commit(candidate,"Two upper rim rails R0.5");
+                if(!error.isEmpty())throw std::runtime_error(error.toStdString());
+            } catch(const std::exception& error) {
+                result["filletAccepted"]=false;result["filletError"]=QString::fromUtf8(error.what());
                 file.write(QJsonDocument(result).toJson(QJsonDocument::Indented));
-                qCritical("two-edge R0.5 refused: %s",qPrintable(error));return 2;
+                qCritical("two-edge R0.5 refused: %s",error.what());return 2;
             }
             result["filletAccepted"]=true;
             for(const auto& body:document.bodies())if(body.bodyId==support.bodyId) {
