@@ -4,11 +4,19 @@
 #include "SketchGeometry.h"
 #include <BRepAdaptor_Curve.hxx>
 #include <BRepAdaptor_Surface.hxx>
+#include <BRepAlgoAPI_Common.hxx>
+#include <BRepAlgoAPI_Cut.hxx>
+#include <BRepAlgoAPI_Section.hxx>
+#include <BRepBndLib.hxx>
+#include <Bnd_Box.hxx>
 #include <BRepFilletAPI_MakeFillet.hxx>
 #include <BRepTools.hxx>
+#include <BRep_Builder.hxx>
 #include <BRep_Tool.hxx>
 #include <GeomTools.hxx>
 #include <Geom_Surface.hxx>
+#include <gp_Pln.hxx>
+#include <gp_Circ.hxx>
 #include <TopExp.hxx>
 #include <TopExp_Explorer.hxx>
 #include <TopTools_IndexedMapOfShape.hxx>
@@ -76,12 +84,68 @@ QJsonObject vertexTopology(const EvaluatedBody& body,const TopoDS_Vertex& vertex
     return {{"position",point(BRep_Tool::Pnt(vertex))},{"edges",incidentEdges},
         {"edgeCount",incidentEdges.size()},{"faces",incidentFaces}};
 }
+int inspectSaved(const QString& savedPrefix,const QString& output) {
+    QFile file(output);if(!file.open(QIODevice::WriteOnly))throw std::runtime_error("inspection output unavailable");
+    QJsonObject result{{"savedPrefix",savedPrefix},{"operation","inspect preserved BReps; no fillet or Common reconstruction"}};
+    const QString prefix=output;
+    const auto finish=[&](int status) {file.write(QJsonDocument(result).toJson(QJsonDocument::Indented));return status;};
+    try {
+        BRep_Builder reader;TopoDS_Shape original,shape,branches[2];
+        const auto read=[&](TopoDS_Shape& target,const QString& suffix) {
+            if(!BRepTools::Read(target,(savedPrefix+suffix).toUtf8().constData(),reader))throw std::runtime_error("saved BRep read failed");
+        };
+        read(original,"-input.brep");read(shape,"-common.brep");
+        read(branches[0],"-branch-1.brep");read(branches[1],"-branch-2.brep");
+        result["savedCommonSummary"]=GeometryKernel::summarize(shape);
+                        QJsonArray subsets;
+                        for(const auto& candidate:std::vector<TopoDS_Shape>{branches[0],branches[1],shape}) {
+                            BRepAlgoAPI_Cut outside(candidate,original);QJsonObject check{{"cutIsDone",outside.IsDone()}};
+                            if(outside.IsDone()) {
+                                const auto remainderShape=outside.Shape();
+                                check["noOutsideSolids"]=!TopExp_Explorer(remainderShape,TopAbs_SOLID).More();
+                                Bnd_Box remainderBounds;BRepBndLib::Add(remainderShape,remainderBounds);
+                                check["outsideBoundsVoid"]=remainderBounds.IsVoid();
+                                if(!remainderBounds.IsVoid())check["outsideSummary"]=GeometryKernel::summarize(remainderShape);
+                            }
+                            subsets.append(check);
+                            result["subsetChecksBranch1Branch2Common"]=subsets;
+                        }
+                        result["subsetChecksBranch1Branch2Common"]=subsets;
+                        BRepAlgoAPI_Section section(shape,gp_Pln(gp_Pnt(0,0,0),gp_Dir(1,0,0)));
+                        result["rearSectionIsDone"]=section.IsDone();QJsonArray arcs;
+                        if(section.IsDone()) {
+                            result["sectionBrepWritten"]=BRepTools::Write(section.Shape(),(prefix+"-section-x0.brep").toUtf8().constData());
+                            for(TopExp_Explorer ex(section.Shape(),TopAbs_EDGE);ex.More();ex.Next()) {
+                                const BRepAdaptor_Curve curve(TopoDS::Edge(ex.Current()));const double a=curve.FirstParameter(),b=curve.LastParameter();const auto mid=curve.Value((a+b)/2);
+                                if(mid.Y()>-43 || mid.Z()<16.49)continue;
+                                QJsonObject edge{{"curveType",static_cast<int>(curve.GetType())},{"start",point(curve.Value(a))},{"end",point(curve.Value(b))},{"mid",point(mid)}};
+                                if(curve.GetType()==GeomAbs_Circle) {const auto circle=curve.Circle();edge["radiusMm"]=circle.Radius();edge["center"]=point(circle.Location());edge["parameterSpanRadians"]=b-a;}
+                                arcs.append(edge);
+                            }
+                        }
+                        result["rearCrownSectionEdges"]=arcs;QJsonArray mouthFaces;int faceIndex=0;
+                        for(TopExp_Explorer ex(shape,TopAbs_FACE);ex.More();ex.Next()) {
+                            ++faceIndex;Bnd_Box bounds;BRepBndLib::Add(ex.Current(),bounds);if(bounds.IsVoid())continue;
+                            double x0,y0,z0,x1,y1,z1;bounds.Get(x0,y0,z0,x1,y1,z1);
+                            if(x1<28 || x0>31 || y1<41 || y0>45 || z1<15)continue;
+                            const QString path=prefix+QString("-right-mouth-face-%1.brep").arg(faceIndex);
+                            mouthFaces.append(QJsonObject{{"faceIndex",faceIndex},{"path",path},{"written",BRepTools::Write(ex.Current(),path.toUtf8().constData())}});
+                        }
+                        result["rightMouthFaceArtifacts"]=mouthFaces;
+                        result["g1AndMouthCertification"]="unknown; independent inspection required";
+                        return finish(0);
+    } catch(const Standard_Failure& error) {result["kernelException"]=QString::fromUtf8(error.GetMessageString());}
+      catch(const std::exception& error) {result["error"]=QString::fromUtf8(error.what());}
+    return finish(2);
+}
+
 }
 
 int main(int argc,char** argv) {
     QCoreApplication app(argc,argv);
     try {
-        if(argc!=3 && argc!=4)throw std::runtime_error("usage: enclosure_rim_continuation_test source.alloy output.json [fillet|contour]");
+        if(argc!=3 && argc!=4)throw std::runtime_error("usage: enclosure_rim_continuation_test source.alloy output.json [fillet|contour|common]");
+        if(argc==4 && QString::fromUtf8(argv[3])=="inspect")return inspectSaved(QString::fromUtf8(argv[1]),QString::fromUtf8(argv[2]));
         CadDocument document;
         if(!document.open(argv[1]).isEmpty())throw std::runtime_error("source did not reopen");
         const auto sourceFeatureCount=document.authored().value("features").toArray().size();
@@ -135,7 +199,7 @@ int main(int argc,char** argv) {
             {"profileId",profile.profileId},{"rails",rows},{"parallelPairs",pairs}};
         if(argc==4) {
             const auto mode=QString::fromUtf8(argv[3]);
-            if(mode!="fillet" && mode!="contour")throw std::runtime_error("unsupported diagnostic mode");
+            if(mode!="fillet" && mode!="contour" && mode!="common")throw std::runtime_error("unsupported diagnostic mode");
             QStringList selected;
             for(const auto& rail:rails) {
                 const bool rear=std::abs(rail.length-54)<1e-7 &&
@@ -145,6 +209,83 @@ int main(int argc,char** argv) {
             if(selected.size()!=2)throw std::runtime_error("rear opposing 54mm rail pair unavailable");
             result["selectedRearPair"]=QJsonArray{selected[0],selected[1]};
             result["attemptedRadiusMm"]=0.5;
+            if(mode=="common") {
+                result["experiment"]="Common of two independent original-base single-chain R0.5 fillets";
+                result["semanticEquivalence"]="unverified";
+                const QString prefix=QString::fromUtf8(argv[2]);
+                const auto finish=[&](int status) {file.write(QJsonDocument(result).toJson(QJsonDocument::Indented));return status;};
+                const auto solidValid=[](const QJsonObject& s) {
+                    return s.value("valid").toBool() && s.value("closed").toBool()
+                        && s.value("topology").toObject().value("solids").toInt()==1
+                        && s.value("volumeMm3").toDouble()>0;
+                };
+                try {
+                    for(const auto& body:document.bodies())if(body.bodyId==support.bodyId) {
+                        result["inputSummary"]=GeometryKernel::summarize(body.shape);
+                        result["inputBrepWritten"]=BRepTools::Write(body.shape,(prefix+"-input.brep").toUtf8().constData());
+                        TopoDS_Shape branches[2];QJsonArray branchRecords;
+                        for(int branch=0;branch<2;++branch) {
+                            BRepFilletAPI_MakeFillet builder(body.shape);
+                            for(const auto& edge:body.solidEdges)if(edge.edgeId==selected[branch])builder.Add(0.5,edge.edge);
+                            QJsonObject record{{"seed",selected[branch]},{"contourCount",builder.NbContours()}};
+                            if(builder.NbContours()!=1) {record["error"]="Expected one original tangent chain";branchRecords.append(record);result["branches"]=branchRecords;return finish(2);}
+                            record["expandedEdgeCount"]=builder.NbEdges(1);builder.SetRadius(0.5,1,1);
+                            builder.Build();record["isDone"]=builder.IsDone();record["stripeStatus"]=static_cast<int>(builder.StripeStatus(1));
+                            record["faultyVertexCount"]=builder.NbFaultyVertices();
+                            if(!builder.IsDone()) {branchRecords.append(record);result["branches"]=branchRecords;return finish(2);}
+                            branches[branch]=builder.Shape();const auto summary=GeometryKernel::summarize(branches[branch]);record["summary"]=summary;
+                            record["brepWritten"]=BRepTools::Write(branches[branch],(prefix+QString("-branch-%1.brep").arg(branch+1)).toUtf8().constData());
+                            branchRecords.append(record);result["branches"]=branchRecords;
+                            if(!solidValid(summary))return finish(2);
+                        }
+                        BRepAlgoAPI_Common common(branches[0],branches[1]);result["commonIsDone"]=common.IsDone();
+                        if(!common.IsDone())return finish(2);
+                        const auto shape=common.Shape();const auto summary=GeometryKernel::summarize(shape);result["commonSummary"]=summary;
+                        result["commonBrepWritten"]=BRepTools::Write(shape,(prefix+"-common.brep").toUtf8().constData());
+                        if(!solidValid(summary))return finish(2);
+                        QJsonArray subsets;
+                        for(const auto& candidate:std::vector<TopoDS_Shape>{branches[0],branches[1],shape}) {
+                            BRepAlgoAPI_Cut outside(candidate,body.shape);QJsonObject check{{"cutIsDone",outside.IsDone()}};
+                            if(outside.IsDone()) {
+                                const auto remainderShape=outside.Shape();
+                                check["noOutsideSolids"]=!TopExp_Explorer(remainderShape,TopAbs_SOLID).More();
+                                Bnd_Box remainderBounds;BRepBndLib::Add(remainderShape,remainderBounds);
+                                check["outsideBoundsVoid"]=remainderBounds.IsVoid();
+                                if(!remainderBounds.IsVoid())check["outsideSummary"]=GeometryKernel::summarize(remainderShape);
+                            }
+                            subsets.append(check);
+                            result["subsetChecksBranch1Branch2Common"]=subsets;
+                        }
+                        result["subsetChecksBranch1Branch2Common"]=subsets;
+                        BRepAlgoAPI_Section section(shape,gp_Pln(gp_Pnt(0,0,0),gp_Dir(1,0,0)));
+                        result["rearSectionIsDone"]=section.IsDone();QJsonArray arcs;
+                        if(section.IsDone()) {
+                            result["sectionBrepWritten"]=BRepTools::Write(section.Shape(),(prefix+"-section-x0.brep").toUtf8().constData());
+                            for(TopExp_Explorer ex(section.Shape(),TopAbs_EDGE);ex.More();ex.Next()) {
+                                const BRepAdaptor_Curve curve(TopoDS::Edge(ex.Current()));const double a=curve.FirstParameter(),b=curve.LastParameter();const auto mid=curve.Value((a+b)/2);
+                                if(mid.Y()>-43 || mid.Z()<16.49)continue;
+                                QJsonObject edge{{"curveType",static_cast<int>(curve.GetType())},{"start",point(curve.Value(a))},{"end",point(curve.Value(b))},{"mid",point(mid)}};
+                                if(curve.GetType()==GeomAbs_Circle) {const auto circle=curve.Circle();edge["radiusMm"]=circle.Radius();edge["center"]=point(circle.Location());edge["parameterSpanRadians"]=b-a;}
+                                arcs.append(edge);
+                            }
+                        }
+                        result["rearCrownSectionEdges"]=arcs;QJsonArray mouthFaces;int faceIndex=0;
+                        for(TopExp_Explorer ex(shape,TopAbs_FACE);ex.More();ex.Next()) {
+                            ++faceIndex;Bnd_Box bounds;BRepBndLib::Add(ex.Current(),bounds);if(bounds.IsVoid())continue;
+                            double x0,y0,z0,x1,y1,z1;bounds.Get(x0,y0,z0,x1,y1,z1);
+                            if(x1<28 || x0>31 || y1<41 || y0>45 || z1<15)continue;
+                            const QString path=prefix+QString("-right-mouth-face-%1.brep").arg(faceIndex);
+                            mouthFaces.append(QJsonObject{{"faceIndex",faceIndex},{"path",path},{"written",BRepTools::Write(ex.Current(),path.toUtf8().constData())}});
+                        }
+                        result["rightMouthFaceArtifacts"]=mouthFaces;
+                        result["g1AndMouthCertification"]="unknown; independent inspection required";
+                        return finish(0);
+                    }
+                    result["error"]="Target body missing";
+                } catch(const Standard_Failure& error) {result["kernelException"]=QString::fromUtf8(error.GetMessageString());}
+                  catch(const std::exception& error) {result["error"]=QString::fromUtf8(error.what());}
+                return finish(2);
+            }
             if(mode=="contour") {
                 for(const auto& body:document.bodies())if(body.bodyId==support.bodyId) {
                     const QString evidencePrefix=QString::fromUtf8(argv[2]);
