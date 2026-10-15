@@ -4,6 +4,9 @@ Current priority: [initial-build readiness](docs/initial-build-readiness.md)—
 familiar navigation, reliable everyday controls, recovery and installable packages,
 alongside completion of the advanced modeling tutorials.
 
+The [development preview guide](docs/development-preview.md) lists supported
+workflows, local package/start instructions, example models and current limits.
+
 See the [navigation guide](docs/navigation.md) for mouse controls, no-middle-button
 tools, projection, saved Home and custom views.
 

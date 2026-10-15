@@ -2,6 +2,10 @@
 
 ## Initial-build readiness priority (2026-10-14)
 
+REL-017/#420 is independently reviewed in [the preview guide](development-preview.md):
+current capabilities, local package/start instructions, examples and explicit
+input/platform/tutorial limits. Recovery REL-014 remains active.
+
 REL-019/#440 adds pre-painted synchronous geometry-busy feedback and reliable
 cursor/status cleanup, including initial solid previews. A cheap real-app Box /
 Fillet-preview / refused-edit fixture passes 1/1; source and evidence passed

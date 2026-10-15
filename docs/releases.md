@@ -7,6 +7,9 @@ x64. Minimum OS versions and additional architectures need explicit qualificatio
 
 ## Current implementation and limits
 
+See the [development preview guide](development-preview.md) for the existing
+host-local macOS arm64 archive, start instructions and bounded capabilities.
+
 The [Native builds workflow](../.github/workflows/native-build.yml) runs native
 Release compilation on `macos-15`, `macos-15-intel`, `windows-2022`, and
 `ubuntu-24.04`. It runs only for `v*` version tags or explicit manual dispatch. Ordinary branch
