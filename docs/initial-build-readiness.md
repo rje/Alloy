@@ -76,8 +76,11 @@ reason to rerun every tutorial whenever an unrelated UI field changes.
 | Candidate review | [REL-018](https://github.com/rje/Alloy/issues/421) | Same revision/archives, representative packaged workflows, recovery, readable controls, honest limitations and independent review |
 | Explicit release promotion | [CI-003](https://github.com/rje/Alloy/issues/135), [REL-003](https://github.com/rje/Alloy/issues/82) | Promote the exact qualified bytes with checksums, notices and capability notes; version/manual CI only |
 
-Unavailable Windows/Linux desktop hardware is a remaining qualification need,
-not an invitation to claim hosted software rendering as equivalent. Signing,
+Windows/Linux desktop and GPU qualification will use external testers, as chosen
+by the user on 2026-10-14. Supply candidate archives and a short repeatable test
+checklist; record OS/GPU, package revision, results and logs. Keep qualification
+pending until returned evidence supports the advertised platform. Hosted software
+rendering does not substitute for these checks. Signing,
 notarization and minimum supported OS details must be explicit before distribution.
 
 ## Advanced tutorial chains remain required work

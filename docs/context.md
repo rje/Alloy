@@ -25,7 +25,9 @@ inset/UI remains SKT-076, now unblocked. See
 CI-008/#426 is active for the bounded macOS Qt recipe and provenance, with one
 clean local build authorized (no CI dispatch). The existing SDK used by the app
 remains untouched. CI-009 retains Windows/Linux alignment; parent CI-004 stays
-Todo. External handoff: `knowledge/specs/runtime-reproducibility-2026-10-14.md`.
+Todo. The user chose external Windows/Linux testers for packaged desktop/GPU
+qualification; prepare a concise test checklist and keep qualification pending
+until results are returned. External handoff: `knowledge/specs/runtime-reproducibility-2026-10-14.md`.
 
 Use only the main checkout and one private GUI lease; no new worktrees are
 needed. Alternate readiness slices with concrete advanced-chain blockers.
