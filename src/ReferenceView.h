@@ -7,6 +7,7 @@
 #include <optional>
 #include <AIS_InteractiveContext.hxx>
 #include <AIS_Trihedron.hxx>
+#include <AIS_ViewCube.hxx>
 #include <V3d_View.hxx>
 #include <V3d_Viewer.hxx>
 #include <AIS_Shape.hxx>
@@ -14,6 +15,7 @@
 #include <Graphic3d_ClipPlane.hxx>
 #include <QMap>
 #include <QSet>
+#include <QStringList>
 #include "GeometryKernel.h"
 class QContextMenuEvent;
 class QKeyEvent;
@@ -45,6 +47,9 @@ public:
     void centerNamedView() { viewCenter_=sceneCenter_; }
     QString orbitMode() const { return orbitMode_; }
     QJsonObject lastNavigationInput() const { return lastNavigationInput_; }
+    QJsonObject cubeHit(double x,double y);
+    bool setCubeOrientation(const QString& region);
+    static QStringList cubeRegions();
     void beginOrbitCenterPick();
     void cancelOrbitCenterPick();
     bool orbitCenterPicking() const { return orbitCenterPicking_; }
@@ -220,6 +225,9 @@ private:
     QString orbitMode_ = "free";
     QJsonObject lastNavigationInput_;
     bool nativeGestureActive_=false;
+    Handle(AIS_ViewCube) viewCube_;
+    bool cubePressHandled_=false;
+    bool cubeHoverActive_=false;
     bool orbitCenterPicking_ = false;
     bool orbitCenterPressHandled_ = false;
     std::optional<gp_Pnt> customOrbitCenter_;

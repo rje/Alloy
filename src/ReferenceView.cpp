@@ -37,6 +37,7 @@
 #include <V3d_AmbientLight.hxx>
 #include <Geom_Axis2Placement.hxx>
 #include <Graphic3d_DiagnosticInfo.hxx>
+#include <Graphic3d_TransformPers.hxx>
 #include <Image_PixMap.hxx>
 #include <Standard_Failure.hxx>
 #include <TColStd_IndexedDataMapOfStringString.hxx>
@@ -63,6 +64,22 @@
 #include <gp_Vec.hxx>
 #include <AIS_Point.hxx>
 namespace {
+const QMap<QString,V3d_TypeOfOrientation>& cubeOrientations() {
+    static const QMap<QString,V3d_TypeOfOrientation> rows{
+        {"right",V3d_Xpos},{"left",V3d_Xneg},{"back",V3d_Ypos},{"front",V3d_Yneg},
+        {"top",V3d_Zpos},{"bottom",V3d_Zneg},
+        {"rightBack",V3d_XposYpos},{"rightFront",V3d_XposYneg},
+        {"leftBack",V3d_XnegYpos},{"leftFront",V3d_XnegYneg},
+        {"rightTop",V3d_XposZpos},{"rightBottom",V3d_XposZneg},
+        {"leftTop",V3d_XnegZpos},{"leftBottom",V3d_XnegZneg},
+        {"backTop",V3d_YposZpos},{"backBottom",V3d_YposZneg},
+        {"frontTop",V3d_YnegZpos},{"frontBottom",V3d_YnegZneg},
+        {"rightBackTop",V3d_XposYposZpos},{"rightBackBottom",V3d_XposYposZneg},
+        {"rightFrontTop",V3d_XposYnegZpos},{"rightFrontBottom",V3d_XposYnegZneg},
+        {"leftBackTop",V3d_XnegYposZpos},{"leftBackBottom",V3d_XnegYposZneg},
+        {"leftFrontTop",V3d_XnegYnegZpos},{"leftFrontBottom",V3d_XnegYnegZneg}};
+    return rows;
+}
 QString presentationBodyKey(const EvaluatedBody& body){
     return body.occurrenceId.isEmpty() ? body.bodyId : body.occurrenceId+"/"+body.bodyId;
 }
@@ -332,6 +349,37 @@ bool ReferenceView::zoomAt(double factor,std::optional<QPointF> cursor) {
     }
     return true;
 }
+QStringList ReferenceView::cubeRegions() { return cubeOrientations().keys(); }
+QJsonObject ReferenceView::cubeHit(double x,double y) {
+    if(view_.IsNull() || viewCube_.IsNull() || !std::isfinite(x) || !std::isfinite(y) ||
+        x<0 || y<0 || x>=width() || y>=height())return {};
+    const auto scale=windowScale();
+    context_->MoveTo(qRound(x*scale.x()),qRound(y*scale.y()),view_,true);
+    if(!context_->HasDetected())return {};
+    const auto owner=Handle(AIS_ViewCubeOwner)::DownCast(context_->DetectedOwner());
+    if(owner.IsNull() || owner->Selectable()!=viewCube_)return {};
+    const auto orientation=owner->MainOrientation();
+    for(auto it=cubeOrientations().cbegin();it!=cubeOrientations().cend();++it)if(it.value()==orientation) {
+        const auto kind=AIS_ViewCube::IsBoxSide(orientation) ? "face" :
+            AIS_ViewCube::IsBoxEdge(orientation) ? "edge" :
+            AIS_ViewCube::IsBoxCorner(orientation) ? "corner" : "unsupported";
+        if(QString::fromUtf8(kind)=="unsupported")return {};
+        return {{"region",it.key()},{"kind",kind}};
+    }
+    return {};
+}
+bool ReferenceView::setCubeOrientation(const QString& region) {
+    if(view_.IsNull() || !cubeOrientations().contains(region))return false;
+    // Ask OCCT for this standard region's basis on a disposable camera pose.
+    // Restore the live pose before synchronizing from Alloy's authoritative
+    // direction/up, framing, pan and zoom; never run AIS cube animation.
+    const Handle(Graphic3d_Camera) previous=new Graphic3d_Camera(view_->Camera());
+    view_->SetProj(cubeOrientations().value(region));
+    const auto direction=view_->Camera()->Direction(),up=view_->Camera()->Up();
+    view_->SetCamera(previous);
+    customDirection_=direction;customUp_=up;orientation="custom";
+    sync();return true;
+}
 void ReferenceView::setOrbitMode(const QString& mode) {
     const QString next=mode=="constrained" ? "constrained" : "free";
     cancelOrbitCenterPick();
@@ -496,6 +544,28 @@ void ReferenceView::initialize() {
         view_->SetProj(V3d_XposYnegZpos);
         view_->SetSize(400);
         baseCamera_ = new Graphic3d_Camera(view_->Camera());
+        viewCube_=new AIS_ViewCube();
+        viewCube_->SetAutoStartAnimation(false);
+        viewCube_->SetYup(false);
+        viewCube_->SetDrawAxes(false);
+        viewCube_->SetSize(80);
+        viewCube_->SetBoxColor(Quantity_Color(.72,.82,.90,Quantity_TOC_sRGB));
+        viewCube_->SetTextColor(Quantity_Color(.10,.22,.31,Quantity_TOC_sRGB));
+        const auto hoverStyle=viewCube_->DynamicHilightAttributes();
+        if(!hoverStyle.IsNull() && !hoverStyle->ShadingAspect().IsNull())
+            hoverStyle->ShadingAspect()->SetColor(Quantity_Color(.19,.51,.87,Quantity_TOC_sRGB));
+        viewCube_->SetFontHeight(11);
+        viewCube_->SetBoxSideLabel(V3d_Xpos,"RIGHT");
+        viewCube_->SetBoxSideLabel(V3d_Xneg,"LEFT");
+        viewCube_->SetBoxSideLabel(V3d_Yneg,"FRONT");
+        viewCube_->SetBoxSideLabel(V3d_Ypos,"BACK");
+        viewCube_->SetBoxSideLabel(V3d_Zpos,"TOP");
+        viewCube_->SetBoxSideLabel(V3d_Zneg,"BOTTOM");
+        viewCube_->SetTransformPersistence(new Graphic3d_TransformPers(Graphic3d_TMF_TriedronPers,
+            Aspect_TOTP_RIGHT_UPPER,Graphic3d_Vec2i(85,85)));
+        viewCube_->SetZLayer(Graphic3d_ZLayerId_Topmost);
+        context_->Display(viewCube_,false);
+        context_->Activate(viewCube_);
         sync();
     } catch (const Standard_Failure& e) {
         error_ = QString::fromUtf8(e.GetMessageString());
@@ -2634,6 +2704,14 @@ QImage ReferenceView::framebuffer() {
     return image;
 }
 void ReferenceView::mousePressEvent(QMouseEvent* e) {
+    if(e->button()==Qt::LeftButton && e->position().x()>=width()-180 && e->position().y()<=180) {
+        const auto hit=cubeHit(e->position().x(),e->position().y());
+        if(!hit.isEmpty()) {
+            cubePressHandled_=true;
+            if(dispatch)dispatch("view.cubeOrient",{{"region",hit.value("region")}});
+            setFocus(Qt::MouseFocusReason);e->accept();return;
+        }
+    }
     if(orbitCenterPicking_ && e->button()==Qt::LeftButton) {
         orbitCenterPressHandled_=true;
         if(dispatch)dispatch("view.orbitCenterPick",{{"x",e->position().x()},{"y",e->position().y()}});
@@ -2793,6 +2871,10 @@ void ReferenceView::mousePressEvent(QMouseEvent* e) {
     else QWidget::mousePressEvent(e);
 }
 void ReferenceView::mouseMoveEvent(QMouseEvent* e) {
+    if(cubePressHandled_) {
+        if(!e->buttons().testFlag(Qt::LeftButton))cubePressHandled_=false;
+        else {e->accept();return;}
+    }
     if(orbitCenterPicking_){e->accept();return;}
     if(orbitButton_!=Qt::NoButton) {
         if(!e->buttons().testFlag(orbitButton_)){orbitButton_=Qt::NoButton;unsetCursor();e->accept();return;}
@@ -2805,6 +2887,12 @@ void ReferenceView::mouseMoveEvent(QMouseEvent* e) {
         const auto delta=e->position()-last_;last_=e->position();
         if(dispatch && !delta.isNull())dispatch("view.pan",{{"x",delta.x()},{"y",delta.y()}});
         e->accept();return;
+    }
+    if(e->buttons()==Qt::NoButton) {
+        const bool overCube=e->position().x()>=width()-180 && e->position().y()<=180 &&
+            !cubeHit(e->position().x(),e->position().y()).isEmpty();
+        if(overCube){cubeHoverActive_=true;setCursor(Qt::PointingHandCursor);e->accept();return;}
+        if(cubeHoverActive_){cubeHoverActive_=false;unsetCursor();context_->ClearDetected(true);}
     }
     if(!sketchLineArcDrag_.isEmpty() && e->buttons().testFlag(Qt::LeftButton)){
         const QPointF press(sketchLineArcDrag_.value("pressX").toDouble(),sketchLineArcDrag_.value("pressY").toDouble());
@@ -2887,6 +2975,7 @@ void ReferenceView::mouseMoveEvent(QMouseEvent* e) {
     }
 }
 void ReferenceView::leaveEvent(QEvent* e) {
+    if(cubeHoverActive_){cubeHoverActive_=false;unsetCursor();if(!context_.IsNull())context_->ClearDetected(true);}
     if(jointOriginPicking_ && !jointOriginLocked_){jointOriginHover_={};refreshJointOriginCue();}
     if(!sketchPlane_.isEmpty() && !decorationSelection_.value("hoveredConstraintId").toString().isEmpty())
         dispatch("sketch.constraintHover",{{"constraintId",""}});
@@ -2912,6 +3001,7 @@ void ReferenceView::keyReleaseEvent(QKeyEvent* e) {
     QWidget::keyReleaseEvent(e);
 }
 void ReferenceView::mouseReleaseEvent(QMouseEvent* e) {
+    if(cubePressHandled_ && e->button()==Qt::LeftButton){cubePressHandled_=false;e->accept();return;}
     if(orbitCenterPressHandled_ && e->button()==Qt::LeftButton){orbitCenterPressHandled_=false;e->accept();return;}
     if(e->button()==orbitButton_) {orbitButton_=Qt::NoButton;unsetCursor();e->accept();return;}
     if(e->button()==panButton_) {panButton_=Qt::NoButton;unsetCursor();e->accept();return;}
@@ -2967,6 +3057,9 @@ void ReferenceView::mouseReleaseEvent(QMouseEvent* e) {
     QWidget::mouseReleaseEvent(e);
 }
 void ReferenceView::mouseDoubleClickEvent(QMouseEvent* e) {
+    if(e->button()==Qt::LeftButton &&
+        (cubePressHandled_ || (e->position().x()>=width()-180 && e->position().y()<=180 &&
+            !cubeHit(e->position().x(),e->position().y()).isEmpty()))) {e->accept();return;}
     if((freeOrbitTool_ || orbitCenterPicking_) && e->button()==Qt::LeftButton){e->accept();return;}
     if(e->button()==Qt::LeftButton && !sketchPlane_.isEmpty()) {
         const auto picked=pickAnnotation(e->position().x(),e->position().y());
@@ -3118,8 +3211,10 @@ void ReferenceView::wheelEvent(QWheelEvent* e) {
     e->accept();
 }
 bool ReferenceView::event(QEvent* e) {
-    if(e->type()==QEvent::WindowDeactivate || e->type()==QEvent::Hide || e->type()==QEvent::FocusOut)
+    if(e->type()==QEvent::WindowDeactivate || e->type()==QEvent::Hide || e->type()==QEvent::FocusOut) {
         nativeGestureActive_=false;
+        cubePressHandled_=false;
+    }
     if(e->type()!=QEvent::NativeGesture)return QWidget::event(e);
     auto* gesture=static_cast<QNativeGestureEvent*>(e);
     QString route="none";

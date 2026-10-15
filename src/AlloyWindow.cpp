@@ -5190,6 +5190,18 @@ void AlloyWindow::registerCommands() {
     auto orientation = parameter("string", "Orthographic orientation of the reference grid.");
     orientation.insert("enum", QJsonArray{"isometric", "rearIsometric", "top", "bottom", "front", "back", "right", "left"});
     add("view.orientation", "Set view orientation", "Select a named view of the reference grid.", {{"name", orientation}}, [this](const auto& a) { view_->orientation = a.value("name").toString(); view_->centerNamedView(); return QJsonObject{}; });
+    auto cubeRegion=parameter("string","One of the 26 detected Alloy orientation-cube face, edge or corner regions.");
+    QJsonArray cubeNames;for(const auto& name:ReferenceView::cubeRegions())cubeNames.append(name);
+    cubeRegion.insert("enum",cubeNames);
+    add("view.cubeOrient","Cube orientation","Orient the camera from a cube region while retaining scale, framing, pan and the separately stored orbit pivot.",
+        {{"region",cubeRegion}},[this](const auto& a) {
+            if(!view_->setCubeOrientation(a.value("region").toString()))return failure("cube_unavailable","The orientation cube is unavailable");
+            return view_->cameraState();
+        });
+    add("view.cubeHit","Inspect cube region","Read the current GPU cube owner at viewport-local logical coordinates without selecting geometry.",
+        {{"x",point},{"y",point}},[this](const auto& a) {
+            return view_->cubeHit(a.value("x").toDouble(),a.value("y").toDouble());
+        });
     auto factor = parameter("number", "Relative real-camera scale factor (0.1 to 10); resulting zoom clamps to 0.1 to 10."); factor.insert("minimum", 0.1); factor.insert("maximum", 10);
     auto zoomPixel=parameter("number","Optional viewport-local logical coordinate; supply x and y together to hold that screen point fixed.");
     zoomPixel["minimum"]=0;zoomPixel["maximum"]=100000;
