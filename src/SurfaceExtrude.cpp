@@ -38,10 +38,40 @@ QMap<QString,QJsonObject> openEntities(const EvaluatedSketch& sketch) {
         if(!e["construction"].toBool() && (type=="line" || type=="fitSpline") && sketch.entityEdges.contains(e["id"].toString()))result[e["id"].toString()]=e;
     }return result;
 }
+QMap<QString,QString> pointRepresentatives(const EvaluatedSketch& sketch) {
+    QMap<QString,QString> parent;
+    auto add=[&](const QString& id){if(!id.isEmpty() && !parent.contains(id))parent[id]=id;};
+    for(const auto& row:sketch.summary.value("entities").toArray()) {
+        const auto entity=row.toObject();
+        add(entity.value("startPointId").toString());add(entity.value("endPointId").toString());
+    }
+    auto root=[&](auto&& self,const QString& id)->QString {
+        const auto p=parent.value(id,id);
+        if(p==id)return id;
+        const auto r=self(self,p);parent[id]=r;return r;
+    };
+    for(const auto& value:sketch.summary.value("constraints").toArray()) {
+        const auto relation=value.toObject();
+        if(relation.value("type")!="coincident")continue;
+        const auto ids=relation.value("pointIds").toArray();
+        if(ids.size()!=2 || !ids[0].isString() || !ids[1].isString())continue;
+        const auto a=ids[0].toString(),b=ids[1].toString();
+        if(a.isEmpty() || b.isEmpty() || a==b)continue;
+        add(a);add(b);const auto ra=root(root,a),rb=root(root,b);
+        if(ra!=rb){const auto keep=std::min(ra,rb),remove=std::max(ra,rb);parent[remove]=keep;}
+    }
+    for(auto i=parent.begin();i!=parent.end();++i)i.value()=root(root,i.key());
+    return parent;
+}
+QString canonicalPoint(const QMap<QString,QString>& representatives,const QString& pointId) {
+    return representatives.value(pointId,pointId);
+}
 QStringList orderedChain(const EvaluatedSketch& sketch,const QJsonArray& members) {
-    const auto entities=openEntities(sketch);QMap<QString,QStringList> contacts;QSet<QString> selected;
+    const auto entities=openEntities(sketch);const auto representatives=pointRepresentatives(sketch);
+    QMap<QString,QStringList> contacts;QSet<QString> selected;
     for(const auto& value:members){const auto id=value.toString();const auto e=entities.value(id);
-        const auto a=e["startPointId"].toString(),b=e["endPointId"].toString();
+        const auto a=canonicalPoint(representatives,e["startPointId"].toString());
+        const auto b=canonicalPoint(representatives,e["endPointId"].toString());
         if(e.isEmpty() || a.isEmpty() || b.isEmpty() || a==b || selected.contains(id))throw std::invalid_argument("Profile requires distinct retained ordinary open curves");
         selected.insert(id);contacts[a].append(id);contacts[b].append(id);
     }
@@ -51,7 +81,9 @@ QStringList orderedChain(const EvaluatedSketch& sketch,const QJsonArray& members
     while(ordered.size()<selected.size()){
         QString next;for(const auto& id:contacts.value(point))if(!used.contains(id)){if(!next.isEmpty())throw std::invalid_argument("Ambiguous profile chain");next=id;}
         if(next.isEmpty())throw std::invalid_argument("Profile members are disconnected");
-        used.insert(next);ordered.append(next);const auto e=entities.value(next);point=e["startPointId"]==point ? e["endPointId"].toString() : e["startPointId"].toString();
+        used.insert(next);ordered.append(next);const auto e=entities.value(next);
+        const auto start=canonicalPoint(representatives,e["startPointId"].toString());
+        const auto end=canonicalPoint(representatives,e["endPointId"].toString());point=start==point ? end : start;
     }return ordered;
 }
 }
@@ -65,9 +97,11 @@ QStringList SurfaceExtrude::resultBodyIds(const QJsonObject& feature){
 }
 QJsonArray SurfaceExtrude::openChain(const EvaluatedSketch& sketch,const QString& entityId){
     const auto entities=openEntities(sketch);if(!entities.contains(entityId))throw std::invalid_argument("Open source curve unavailable");
-    QSet<QString> connected{entityId};bool changed=true;
-    while(changed){changed=false;QSet<QString> points;for(const auto& id:connected){points.insert(entities[id]["startPointId"].toString());points.insert(entities[id]["endPointId"].toString());}
-        for(auto i=entities.begin();i!=entities.end();++i)if(!connected.contains(i.key()) && (points.contains(i.value()["startPointId"].toString()) || points.contains(i.value()["endPointId"].toString()))){connected.insert(i.key());changed=true;}}
+    const auto representatives=pointRepresentatives(sketch);QSet<QString> connected{entityId};bool changed=true;
+    while(changed){changed=false;QSet<QString> points;for(const auto& id:connected){points.insert(canonicalPoint(representatives,entities[id]["startPointId"].toString()));points.insert(canonicalPoint(representatives,entities[id]["endPointId"].toString()));}
+        for(auto i=entities.begin();i!=entities.end();++i)if(!connected.contains(i.key()) &&
+            (points.contains(canonicalPoint(representatives,i.value()["startPointId"].toString()))
+                || points.contains(canonicalPoint(representatives,i.value()["endPointId"].toString())))){connected.insert(i.key());changed=true;}}
     QJsonArray members;for(const auto& id:connected)members.append(id);QJsonArray result;for(const auto& id:orderedChain(sketch,members))result.append(id);return result;
 }
 
@@ -92,14 +126,16 @@ static EvaluatedBody evaluateSheet(const QJsonObject& feature,const EvaluatedDoc
     EvaluatedBody body;body.featureId=featureId;body.bodyId=bodyId;body.name=feature["name"].toString();
     body.visible=feature["visible"].toBool(true);
     QMap<QString,TopoDS_Edge> translatedEdges;QMap<QString,QString> endpointBoundary;
+    const auto representatives=pointRepresentatives(*sketch);
     std::unique_ptr<BRepPrimAPI_MakePrism> chainPrism;
     if(connected){
         QStringList ordered;try{ordered=orderedChain(*sketch,p["entityIds"].toArray());}catch(const std::exception& e){reject("surface_profile_topology",QString::fromUtf8(e.what()));}
-        const auto entities=openEntities(*sketch);BRepBuilderAPI_MakeWire wire;QMap<QString,TopoDS_Edge> wireMembers;
+        const auto entities=openEntities(*sketch);
+        BRepBuilderAPI_MakeWire wire;QMap<QString,TopoDS_Edge> wireMembers;
         for(const auto& id:ordered){wire.Add(TopoDS::Edge(BRepBuilderAPI_Copy(sketch->entityEdges.value(id),false,false).Shape()));if(!wire.IsDone())reject("surface_profile_topology","OCCT could not connect the retained open chain");
             auto member=wire.Edge();member.Orientation(sketch->entityEdges.value(id).Orientation());wireMembers[id]=member;
             const auto e=entities.value(id);for(const auto& pair:{std::pair{"startPointId","endA"},std::pair{"endPointId","endB"}}){
-                const auto point=e[pair.first].toString(),name=id+"/"+pair.second;
+                const auto point=canonicalPoint(representatives,e[pair.first].toString()),name=id+"/"+pair.second;
                 if(!endpointBoundary.contains(point) || name<endpointBoundary[point])endpointBoundary[point]=name;
             }
         }
@@ -179,7 +215,7 @@ static EvaluatedBody evaluateSheet(const QJsonObject& feature,const EvaluatedDoc
         for(const auto& [role,current]:boundary) {
             auto source=entityId;auto boundaryRole=role;
             if(connected && (role=="endA" || role=="endB")){
-                const auto contact=entity[role=="endA" ? "startPointId" : "endPointId"].toString();
+                const auto contact=canonicalPoint(representatives,entity[role=="endA" ? "startPointId" : "endPointId"].toString());
                 const auto canonical=endpointBoundary.value(contact).split('/');source=canonical[0];boundaryRole=canonical[1].toLatin1();
             }
             const auto id=stableId(featureId,source,QByteArray("edge/")+boundaryRole);

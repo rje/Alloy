@@ -25,8 +25,51 @@ QSet<QString> edges(const EvaluatedBody& b){QSet<QString> ids;for(const auto& e:
 QSet<QString> faces(const EvaluatedBody& b){QSet<QString> ids;for(const auto& f:b.supportFaces)ids.insert(f.faceId);return ids;}
 QJsonObject addSpline(const QJsonObject& sketch,const QJsonArray& points){const auto r=SketchSpline::add(sketch,{{"points",points}});check(r.ok,r.error);return r.feature;}
 QJsonObject point(double u,double v){return {{"uMm",u},{"vMm",v}};}
+void exactTopology(const EvaluatedBody& b,int count);
 QJsonObject sourceEdit(const QJsonObject& sketch,const QString& pointId,double v){auto f=sketch;auto p=f["parameters"].toObject();auto points=p["points"].toArray();for(int i=0;i<points.size();++i)if(points[i].toObject()["id"]==pointId){auto q=points[i].toObject();q["vMm"]=v;points[i]=q;}p["points"]=points;f["parameters"]=p;return f;}
 QJsonObject args(const QJsonObject& sketch,const QJsonArray& profiles,double one=60,double two=65){return {{"resultMode","perProfile"},{"sketchId",sketch["id"]},{"profiles",profiles},{"sideOneMm",one},{"sideTwoMm",two},{"ownerId",sketch["ownerId"]}};}
+void snappedCoincidentChain(){
+ CadDocument d;auto sketch=SketchGeometry::newFeature(d.authored()["documentId"].toString(),"XZ","Pointer-snapped open chain");
+ sketch=addSpline(sketch,QJsonArray{point(0,0),point(10,10),point(20,10)});const auto spline=entity(sketch,0);
+ auto snapped=SketchGeometry::addPointerEntity(sketch,"line",{{"u1Mm",25},{"v1Mm",15},{"u2Mm",20},{"v2Mm",10},
+  {"endSnapTarget",QJsonObject{{"kind","point"},{"pointId",spline["endPointId"]}}}});
+ check(snapped.ok,snapped.error);sketch=snapped.feature;const auto line=entity(sketch,1);
+ check(line["endPointId"]!=spline["endPointId"],"Pointer snap preserves distinct endpoint IDs");
+ bool retained=false;for(const auto& value:sketch["parameters"].toObject()["constraints"].toArray()){
+  const auto relation=value.toObject();const auto ids=relation["pointIds"].toArray();
+  retained|=relation["type"]=="coincident" && ids.size()==2 && ids.contains(line["endPointId"]) && ids.contains(spline["endPointId"]);
+ }check(retained,"Pointer snap retains the endpoint Coincident relation");
+ sketch=addSpline(sketch,QJsonArray{point(20.00000001,10),point(30,2),point(40,-5)});append(d,sketch);
+ const QJsonArray chain{eid(sketch,0),eid(sketch,1)};const auto discovered=SurfaceExtrude::openChain(d.sketches().back(),eid(sketch,0));
+ check(discovered.size()==2 && discovered.contains(eid(sketch,1)) && !discovered.contains(eid(sketch,2)),"Discovery follows declared coincidence without proximity welding");
+ auto worldPoint=[](const EvaluatedSketch& evaluated,const QString& id){
+  for(const auto& value:evaluated.summary["worldPoints"].toArray())if(value.toObject()["id"]==id)return value.toObject()["positionMm"].toArray();
+  return QJsonArray{};
+ };
+ const auto originalSplineEnd=worldPoint(d.sketches().back(),spline["endPointId"].toString());
+ const auto originalLineEnd=worldPoint(d.sketches().back(),line["endPointId"].toString());
+ const auto originalLineStart=worldPoint(d.sketches().back(),line["startPointId"].toString());
+ const auto disconnected=CadDocument::evaluateCandidate(CadDocument::surfaceExtrudeCandidate(d.authored(),
+  args(sketch,QJsonArray{profile(QJsonArray{eid(sketch,0),eid(sketch,1),eid(sketch,2)})})));
+ check(!disconnected.ok,"Disconnected profile containing the snapped chain refuses");
+ commit(d,CadDocument::surfaceExtrudeCandidate(d.authored(),args(sketch,QJsonArray{profile(chain)})),"Extrude pointer-snapped chain");
+ const auto feature=d.authored()["features"].toArray().last().toObject();const auto bodyId=SurfaceExtrude::resultBodyIds(feature).first();
+ const auto before=body(d,bodyId);exactTopology(before,2);
+ const auto changed=sourceEdit(sketch,line["startPointId"].toString(),18);
+ commit(d,SketchGeometry::replaceFeature(d.authored(),changed),"Edit snapped chain endpoint");
+ const auto& after=body(d,bodyId);const auto movedSplineEnd=worldPoint(d.sketches().back(),spline["endPointId"].toString());
+ const auto movedLineEnd=worldPoint(d.sketches().back(),line["endPointId"].toString());
+ const auto movedLineStart=worldPoint(d.sketches().back(),line["startPointId"].toString());
+ check(edges(after)==edges(before) && faces(after)==faces(before) && originalLineStart!=movedLineStart
+   && originalSplineEnd==movedSplineEnd && originalLineEnd==movedLineEnd && movedSplineEnd==movedLineEnd,
+  "Open endpoint edit preserves stable shared boundary identity and snapped contact");
+ auto branch=SketchGeometry::addPointerEntity(changed,"line",{{"u1Mm",25},{"v1Mm",15},{"u2Mm",20},{"v2Mm",13},
+  {"endSnapTarget",QJsonObject{{"kind","point"},{"pointId",spline["endPointId"]}}}});
+ check(branch.ok,branch.error);const auto branchEval=CadDocument::evaluateCandidate(SketchGeometry::replaceFeature(d.authored(),branch.feature));
+ check(branchEval.ok,"Retained coincident branch sketch evaluates");bool refused=false;
+ try{SurfaceExtrude::openChain(branchEval.evaluation->sketches.back(),eid(sketch,0));}catch(const std::exception&){refused=true;}
+ check(refused,"Explicitly coincident branch still refuses as ambiguous");
+}
 void exactTopology(const EvaluatedBody& b,int count){TopTools_IndexedMapOfShape fs,es,vs;TopExp::MapShapes(b.shape,TopAbs_FACE,fs);TopExp::MapShapes(b.shape,TopAbs_EDGE,es);TopExp::MapShapes(b.shape,TopAbs_VERTEX,vs);
  check(b.summary["valid"].toBool() && b.summary["type"]=="surface" && fs.Extent()==count && es.Extent()==3*count+1 && vs.Extent()==2*(count+1),"Actual connected wire-prism topology");check(int(b.supportFaces.size())==count && int(b.solidEdges.size())==es.Extent(),"All current faces/unique edges named");for(const auto& f:b.supportFaces)check(f.bodyId==b.bodyId && f.provenance["lineage"]=="surfacePrismBuilder","Actual result support ancestry");}
 void standalone(){
@@ -79,4 +122,4 @@ void iron(const QString& path,const QString& out){
  std::cout<<"SURFACE_EXTRUDE_PROFILES_IRON_OK actualNativeBridge twoProfiles twoBodies sameSketchBottomEdit fiveBodies stableOldOutputs owner reopen\n";
 }
 }
-int main(int argc,char** argv){QCoreApplication app(argc,argv);try{standalone();if(argc>2)iron(QString::fromLocal8Bit(argv[1]),QString::fromLocal8Bit(argv[2]));return 0;}catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}
+int main(int argc,char** argv){QCoreApplication app(argc,argv);try{snappedCoincidentChain();standalone();if(argc>2)iron(QString::fromLocal8Bit(argv[1]),QString::fromLocal8Bit(argv[2]));return 0;}catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}
