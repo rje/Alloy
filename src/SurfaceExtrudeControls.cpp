@@ -69,9 +69,9 @@ QJsonObject AlloyWindow::previewSurfaceExtrude() {
         if(auto* list=surfaceExtrudeDock_->findChild<QListWidget*>("surfaceExtrude.entities")){
             const QSignalBlocker block(list);list->clear();
             if(inputs["resultMode"]=="perProfile"){
-                for(const auto& value:inputs["profiles"].toArray()){
-                    const auto members=value.toObject()["entityIds"].toArray();QStringList labels;for(const auto& id:members)labels.append(id.toString().left(8));
-                    list->addItem(QString("Open profile · %1 curve(s) · %2").arg(members.size()).arg(labels.join(", ")));
+                int number=0;for(const auto& value:inputs["profiles"].toArray()){
+                    const auto count=value.toObject()["entityIds"].toArray().size();
+                    list->addItem(QString("Profile %1 · %2 %3").arg(++number).arg(count).arg(count==1 ? "curve" : "curves"));
                 }
             }else for(const auto& value:inputs["entityIds"].toArray())list->addItem("Curve · "+value.toString().left(8));
         }
@@ -158,12 +158,13 @@ QJsonObject AlloyWindow::selectSurfaceExtrudeEntity(const QString& sketchId,cons
 QJsonObject AlloyWindow::selectSurfaceExtrudeProfile(const QString& sketchId,const QJsonArray& entityIds){
     if(session_.value("command")!="surface.extrude" || session_["inputs"].toObject()["resultMode"]!="perProfile")return failure("invalid_session","Start per-profile Surface Extrude first");
     auto inputs=session_["inputs"].toObject();if(!inputs["sketchId"].toString().isEmpty() && inputs["sketchId"]!=sketchId)return failure("surface_sketch_mismatch","Profiles must belong to one source sketch");
-    const auto edit=inputs["featureId"].toString();const auto stage=edit.isEmpty() ? document_->evaluation() : document_->evaluationBefore(edit);
+    const auto edit=inputs.value("featureId").toString();const auto stage=edit.isEmpty() ? document_->evaluation() : document_->evaluationBefore(edit);
     const EvaluatedSketch* source=nullptr;for(const auto& sketch:stage.sketches)if(sketch.featureId==sketchId && sketch.visible)source=&sketch;
     if(!source)return failure("surface_source_unavailable","Select a visible earlier solved sketch");
     // Validate exact authored group through the same kernel before changing the selection.
     auto probe=inputs;probe["sketchId"]=sketchId;probe["profiles"]=QJsonArray{QJsonObject{{"entityIds",entityIds}}};
-    try{auto candidate=surfaceExtrudeCandidate(probe);auto feature=SketchGeometry::findFeature(candidate,probe.value("featureId").toString(session_["newFeatureId"].toString()));
+    try{const auto candidate=surfaceExtrudeCandidate(probe);const auto id=probe.value("featureId").toString(session_["newFeatureId"].toString());QJsonObject feature;
+        for(const auto& row:candidate["features"].toArray())if(row.toObject()["id"]==id)feature=row.toObject();
         SurfaceExtrude::evaluateResults(feature,stage);
     }catch(const std::exception& error){return failure("surface_profile_topology",QString::fromUtf8(error.what()));}
     auto profiles=inputs["profiles"].toArray();const auto wanted=SurfaceExtrude::profileBodyId(session_["newFeatureId"].toString(),sketchId,entityIds);int existing=-1;
@@ -216,7 +217,7 @@ void AlloyWindow::showSurfaceExtrude(){
     auto* form=new QFormLayout(panel);form->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
     const bool perProfile=session_["inputs"].toObject()["resultMode"]=="perProfile";
     auto* hint=new QLabel(perProfile
-        ? "Select open profiles to create separate surface bodies. Chaining follows retained endpoint contacts. Two Sides measures independently from the sketch plane."
+        ? "Select open profiles to create separate surface bodies. Chaining selects connected curves. Two Sides measures independently from the sketch plane."
         : "Select open sketch curves to create one compound surface body. Two Sides measures independently from the sketch plane.",panel);
     hint->setWordWrap(true);form->addRow(hint);
     auto* name=new QLineEdit(session_["inputs"].toObject()["name"].toString(),panel);name->setObjectName("surfaceExtrude.name");form->addRow("Name",name);
@@ -232,7 +233,7 @@ void AlloyWindow::showSurfaceExtrude(){
     form->addRow("Direction",new QLabel("Two Sides",panel));form->addRow("Operation",new QLabel("New Body",panel));
     for(const auto& key:{"sideOneMm","sideTwoMm"}){
         auto* field=new QDoubleSpinBox(panel);field->setObjectName(key);field->setRange(.001,100000);field->setDecimals(3);field->setSuffix(" mm");
-        field->setValue(session_["inputs"].toObject()[key].toDouble());form->addRow(QString::fromLatin1(key)=="sideOneMm"?"Side 1 · −normal":"Side 2 · +normal",field);
+        field->setValue(session_["inputs"].toObject()[key].toDouble());form->addRow(QString::fromLatin1(key)=="sideOneMm"?"Side 1":"Side 2",field);
         connect(field,qOverload<double>(&QDoubleSpinBox::valueChanged),panel,[this,key](double value){auto inputs=session_["inputs"].toObject();inputs[key]=value;session_["inputs"]=inputs;previewSurfaceExtrude();});
     }
     auto* error=new QLabel(panel);error->setObjectName("surfaceExtrude.error");error->setWordWrap(true);form->addRow(error);
