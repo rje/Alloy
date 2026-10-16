@@ -2,6 +2,17 @@
 
 ## Active user order (2026-10-15)
 
+**User order complete:** TUT-017 shoehorn and TUT-018 surface iron are
+independently accepted. See [iron receipt](validation/surface-iron-complete.md):
+complete-03 passes224calls/25stages, full243.8s creation movie, enclosed genus1
+handle/STL, sourceedit/stablefaces/history/reopen. Gallery entry
+`surface-iron-complete` includes both models and STL; local links verified.
+No private editor remains open. Existing macOS build contains the implementation;
+no package, release tag or CI build was triggered. Native full-workflow gesture
+parity, exact reference silhouette and broader Boundary Fill operations remain
+qualified/deferred as recorded. Earlier failure chronology below is preserved
+for evidence and is superseded by this accepted final result.
+
 TUT-033/#468 corrected the cumulative blocker: cumulative `closure-check-02` produces a
 valid watertight solid but cuts the rear handle web, giving a C-shaped slot.
 Independent review confirms mesh Euler characteristic2/genus0, not the required

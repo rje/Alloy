@@ -8,14 +8,16 @@ The [complete surface shoehorn](docs/validation/shoehorn-complete.md) now has
 an independently accepted full creation movie, editable model and checked STL:
 guided surface, exact corner/perimeter rounds and retained hanging hole. Source
 length edits, history and reopening pass. Physical Browser gestures remain a
-separate gate. TUT-018 surface iron is the next advanced tutorial.
+separate gate. The [complete surface iron](docs/validation/surface-iron-complete.md) also now
+passes its adapted creation workflow, enclosed-handle solid, editable history
+and checked STL, with a full creation recording in the external gallery.
 
 The [bilateral surface exterior](docs/validation/surface-bilateral-rail-loft.md)
 now supports the iron tutorial's retained mirrored outline, guide rail and two
 trimmed handle openings. The [retained handle bridge](docs/validation/surface-handle-bridge.md)
 now passes source edits, native selection and reopening. The
 [curved sheet Trim trials](docs/validation/surface-curved-trim.md) also pass
-sequential cuts, tool Remove and exact undo. Final solid closure remains next.
+sequential cuts, tool Remove and exact undo. Final solid closure and the enclosed-handle printing mesh are independently accepted.
 
 [Open fit-spline Mirror](docs/validation/fit-spline-mirror.md) now retains
 reflected points and tangent handles through source/axis edits and reopening.
