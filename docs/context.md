@@ -2,14 +2,17 @@
 
 ## Active user order (2026-10-15)
 
-TUT-033/#468 is the current blocker: cumulative `closure-check-02` produces a
+TUT-033/#468 corrected the cumulative blocker: cumulative `closure-check-02` produces a
 valid watertight solid but cuts the rear handle web, giving a C-shaped slot.
 Independent review confirms mesh Euler characteristic2/genus0, not the required
 enclosed tunnel. TUT-032 qualifies a bounded cell only; its OUT witnesses do not
 prove an enclosed handle. Correct the retained rear closing curves by exact
 contact reasoning behind the opening (X>90), then require one closed connected
 mesh with Euler characteristic0/genus1 plus actual front/oblique captures.
-Full recording remains pending; do not publish partial complete-01/02 as accepted.
+The corrected rear-wall recipe is independently accepted: one valid8-face solid,
+connected closed genus1 mesh, visible rearweb, sourceedit/stablefaces/history/reopen.
+See [receipt](validation/iron-enclosed-handle.md). Complete-03 final recording
+is underway; do not publish partial complete-01/02 as accepted.
 
 SRF-011 Boundary Fill is independently accepted (`f8c00b4`, `0ecfd85`):
 actual iron core,62-call API,native3/3 and corrected preview3/3 pass.

@@ -188,11 +188,24 @@ def trim_trials(call, stage, surfaces, sheets):
 
 
 def close_and_export(call, stage, sheets, out):
+    authored = call('document.inspect')['authored']
+    source = next(f for f in authored['features'] if f['id'] == sheets['sketchId'])
+    parameters = copy.deepcopy(source['parameters'])
+    upper, connector, lower = parameters['entities'][:3]
+    moves = {upper['pointIds'][0]: (100, 20), upper['pointIds'][1]: (110, 38),
+             connector['startPointId']: (100, 20), connector['endPointId']: (100, 15),
+             lower['pointIds'][0]: (100, 15)}
+    for point in parameters['points']:
+        if point['id'] in moves:
+            point['uMm'], point['vMm'] = moves[point['id']]
+    call('feature.edit', {'featureId': source['id'], 'parameters': parameters})
     call('sketch.edit', {'sketchId': sheets['sketchId']})
+    call('sketch.constraint', {'type': 'coincident',
+        'pointIds': [connector['endPointId'], lower['pointIds'][0]]})
     call('sketch.line', {'x1': -15, 'y1': 0, 'x2': 145, 'y2': 0, 'units': 'mm'})
     sketch = call('app.state')['activeSession']['draftSketch']
     bottom = sketch['parameters']['entities'][-1]['id']
-    call('sketch.lookAt'); stage('Edit the existing sketch: add the bottom closing line', '16-bottom-line.png')
+    call('sketch.lookAt'); stage('Move retained closing curves behind the handle and add the bottom line', '16-bottom-line.png')
     call('sketch.finish'); call('view.home')
     call('feature.visibility', {'featureId': sheets['sketchId'], 'visible': True})
     session = call('feature.editDialog', {'featureId': sheets['extrudeId']})
@@ -286,6 +299,8 @@ def main():
             result['referenceCanvases'] = references
             result['adaptations'] = [
                 'Source starts with prepared sketches; dimensions and fit points are independently authored.',
+                'After reverting trial cuts, retained closing curves move behind the handle before adding the bottom; this extra edit preserves an enclosed tunnel.',
+                'The final joined upper/lower curves retain explicit separate Extrude profile memberships.',
                 'Central ellipse is authored in a separate sketch after opening Trim, before the handle Loft.',
                 'Exterior rail contact uses matching authored coordinates, not retained Project references.',
                 'Public photos are perspective references at display scale, not calibrated metric drawings.',
