@@ -96,6 +96,36 @@
 #include <numbers>
 
 namespace {
+// Preview documents are internal candidates, not a second image-download route.
+// Keep the authored document and Canvas metadata intact while avoiding duplicate
+// embedded images in public session/preview inspection.
+QJsonValue publicPreviewDocuments(const QJsonValue& value) {
+    if(value.isArray()) {
+        QJsonArray result;for(const auto& item:value.toArray())result.append(publicPreviewDocuments(item));return result;
+    }
+    if(!value.isObject())return value;
+    auto result=value.toObject();
+    for(auto it=result.begin();it!=result.end();++it) {
+        if(it.key()=="documentDraft" && it.value().isObject()) {
+            auto draft=it.value().toObject();
+            if(draft.contains("canvases")) {
+                QJsonArray canvases;
+                for(const auto& item:draft.value("canvases").toArray()) {
+                    auto canvas=item.toObject();
+                    if(canvas.value("pngBase64").isString()) {
+                        canvas["pngBase64Omitted"]=QJsonObject{{"encoding","base64"},
+                            {"encodedBytes",canvas.value("pngBase64").toString().size()}};
+                        canvas.remove("pngBase64");
+                    }
+                    canvases.append(canvas);
+                }
+                draft["canvases"]=canvases;
+            }
+            it.value()=publicPreviewDocuments(draft);
+        } else it.value()=publicPreviewDocuments(it.value());
+    }
+    return result;
+}
 bool hasLinkedLocalCopies(const QJsonObject& authored){
     QSet<QString> seen;for(const auto& value:authored["occurrences"].toArray()){
         const auto definition=value.toObject()["definitionId"].toString();
@@ -6216,7 +6246,7 @@ QJsonObject AlloyWindow::executeApi(const QString& id,const QJsonObject& args) {
     const bool prior=apiExecuting_;apiExecuting_=true;
     auto result=execute(id,args);
     apiExecuting_=prior;
-    return result;
+    return publicPreviewDocuments(result).toObject();
 }
 
 QString AlloyWindow::validateArguments(const Command& command, const QJsonObject& args, QString* field) const {

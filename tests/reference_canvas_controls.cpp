@@ -25,6 +25,54 @@ class CanvasControlsTest final:public QObject {
  void capture(AlloyWindow& w,const QString& name){const auto out=qEnvironmentVariable("ALLOY_CANVAS_EVIDENCE");if(out.isEmpty())return;QDir().mkpath(out);call(w,"capture.screenshot",{{"path",out+"/"+name+".png"}});QFile f(out+"/"+name+".json");f.open(QIODevice::WriteOnly);f.write(QJsonDocument(w.state()).toJson());}
  void type(QDoubleSpinBox* input,const QString& value){QTest::mouseClick(input,Qt::LeftButton);QTRY_VERIFY(input->hasFocus());QTest::keyClick(QApplication::focusWidget(),Qt::Key_A,Qt::ControlModifier);QTest::keyClicks(QApplication::focusWidget(),value);QTest::keyClick(QApplication::focusWidget(),Qt::Key_Tab);}
 private slots:
+ void publicPreviewOmitsDuplicateImagePayloads(){
+    AlloyTheme::apply(*qApp);AlloyWindow w;QTemporaryDir temp;
+    QImage image(512,192,QImage::Format_RGB32);quint32 seed=0x463ab823;
+    for(int y=0;y<image.height();++y)for(int x=0;x<image.width();++x){
+        seed^=seed<<13;seed^=seed>>17;seed^=seed<<5;image.setPixel(x,y,0xff000000u|(seed&0xffffffu));
+    }
+    const auto imagePath=temp.filePath("independent-noise.png");QVERIFY(image.save(imagePath));
+    for(const auto& plane:{"XY","XZ"})call(w,"canvas.set",{{"path",imagePath},{"planeSource",QJsonObject{{"plane",plane}}}});
+    call(w,"solid.box",{{"width",20},{"depth",30},{"height",10}});
+    const auto before=authored(w);const auto body=call(w,"document.inspect")["evaluation"].toObject()["bodies"].toArray()[0].toObject();
+    const auto face=body["supportFaces"].toArray()[0].toObject();QJsonObject support;
+    for(const auto& key:{"bodyId","producerFeatureId","faceId"})support[key]=face[key];
+    auto api=[&](const QString& command,const QJsonObject& args=QJsonObject{}){
+        const auto response=w.executeApi(command,args);
+        if(!response["ok"].toBool())qFatal("%s",QJsonDocument(response).toJson().constData());
+        if(QJsonDocument(response).toJson(QJsonDocument::Compact).size()>=1024*1024)qFatal("Public response exceeds bounded frame");
+        return response["result"].toObject();
+    };
+    const auto opened=api("solid.mirrorDialog",{{"sourceBodyId",body["bodyId"]},{"mirrorPlane",support}});
+    QVERIFY(opened["previewed"].toBool());
+    auto checkDraft=[&](const QJsonObject& publicDraft){
+        const auto full=session(w)["documentDraft"].toObject();
+        QCOMPARE(full["canvases"],before["canvases"]);
+        auto expected=full;QJsonArray rows;
+        for(const auto& value:full["canvases"].toArray()){
+            auto row=value.toObject();const auto payload=row.take("pngBase64").toString();
+            row["pngBase64Omitted"]=QJsonObject{{"encoding","base64"},{"encodedBytes",payload.size()}};rows.append(row);
+        }
+        expected["canvases"]=rows;QCOMPARE(publicDraft,expected);
+    };
+    checkDraft(opened["documentDraft"].toObject());
+    const auto internalBytes=QJsonDocument(w.state()).toJson(QJsonDocument::Compact).size();
+    QVERIFY(internalBytes>1024*1024);
+    const auto publicState=api("app.state");
+    checkDraft(publicState["activeSession"].toObject()["documentDraft"].toObject());
+    QCOMPARE(publicState["document"].toObject()["authored"].toObject(),before);
+    const auto publicBytes=QJsonDocument(publicState).toJson(QJsonDocument::Compact).size();
+    qInfo()<<"PUBLIC_PREVIEW_PAYLOAD_OK internalStateBytes"<<internalBytes<<"publicStateBytes"<<publicBytes;
+    QVERIFY(publicBytes<1024*1024-4096);
+    const auto repeated=api("command.preview",{{"session",opened["id"]}});checkDraft(repeated["documentDraft"].toObject());
+    api("command.cancel",{{"session",opened["id"]}});QCOMPARE(authored(w),before);
+    const auto replacement=api("solid.mirrorDialog",{{"sourceBodyId",body["bodyId"]},{"mirrorPlane",support}});
+    api("command.commit",{{"session",replacement["id"]}});const auto committed=authored(w);
+    QCOMPARE(committed["canvases"],before["canvases"]);
+    call(w,"history.undo");QCOMPARE(authored(w),before);call(w,"history.redo");QCOMPARE(authored(w),committed);
+    const auto saved=temp.filePath("portable.alloy");call(w,"document.save",{{"path",saved}});QVERIFY(QFile::remove(imagePath));
+    call(w,"document.open",{{"path",saved},{"discard",true}});QCOMPARE(authored(w),committed);
+ }
  void placementCancelAndTwoPointCalibration(){
     AlloyTheme::apply(*qApp);AlloyWindow w;w.resize(1400,1000);w.show();QVERIFY(QTest::qWaitForWindowExposed(&w));
     ReferenceView* view=nullptr;for(auto* child:w.findChildren<QWidget*>())if(auto* candidate=dynamic_cast<ReferenceView*>(child))view=candidate;QVERIFY(view);
