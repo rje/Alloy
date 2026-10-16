@@ -78,6 +78,14 @@ exact-history signature supported by the actual partition; duplicate ancestry
 signatures refuse. Then trial Remove/revert. SRF-011 Boundary Fill runs a parallel bounded OCCT
 MakerVolume feasibility check on the actual sheets with a declared bottomZ=0
 variant; no cell/solid acceptance yet.
+The first MakerVolume run produced no solids. Exact section diagnostics found
+the lower cutter crosses Z0 at X124.906, beyond the heel X120; a low material
+ray escapes without crossing any sheet. A bounded independently authored variant
+moves only its free endpoint Z−8→−16, retaining IDs and the bottomZ0 correction.
+The accepted precursor remains unchanged. This is an explicit fixture correction,
+not a tolerance change or a claim of exact reference dimensions. A second closure
+attempt is pending. SRF-016's unchanged-source sequential core passes; native/API
+verification is active. The new from-blank iron runner is drafted but unvalidated.
 The five-body precursor's bottomZ=−4 does not meet the exteriorZ=0 boundary;
 final closure needs a declared, verified bottom geometry choice, not a body-count
 assertion. TUT-018 remains open, including final full movie/model/solid export.
