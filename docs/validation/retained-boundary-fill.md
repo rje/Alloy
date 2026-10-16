@@ -55,5 +55,5 @@ Evidence is external at
 `api/transcript.json`, `visual-final.log` and final actual preview captures in
 `visual-final/`. The native/API saved models retain the feature. Hardware GPU
 capture identifies Apple M4, OpenGL 4.1 Metal and 4×MSAA. Physical OS input and
-other-platform runtime remain unqualified. Independent source review is complete;
-final evidence review and the complete TUT-018 movie/mesh gate remain separate.
+other-platform runtime remain unqualified. Independent source and final evidence review are accepted. The complete TUT-018
+movie/mesh gate remains separate.
