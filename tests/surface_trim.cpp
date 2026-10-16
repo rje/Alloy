@@ -156,6 +156,26 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
         {"toolSketchId",tool["id"]},{"toolEntityIds",toolIds},{"removedRegionIds",removed}};
     if(argc>1)check(document.save(QString::fromLocal8Bit(argv[1])).isEmpty(),"Save pre-Trim fixture");
     auto candidate=CadDocument::surfaceTrimCandidate(document.authored(),args);
+    // The earlier root-sketch route remains the main regression below. A
+    // cutter authored in the target's identity component uses that same local
+    // frame and must agree with the already prepared exact geometry.
+    auto sameOwner=candidate;auto ownerFeatures=sameOwner["features"].toArray();
+    for(int i=0;i<ownerFeatures.size();++i){auto f=ownerFeatures[i].toObject();if(f["id"]==tool["id"]){f["ownerId"]=source.ownerId;ownerFeatures[i]=f;}}
+    sameOwner["features"]=ownerFeatures;const auto ownerEvaluation=CadDocument::evaluateCandidate(sameOwner);
+    check(ownerEvaluation.ok,"Same-owner identity-component sketch cutter must evaluate");
+    const auto& ownerResult=ownerEvaluation.evaluation->bodies.back();
+    check(ownerResult.summary["valid"].toBool() && ownerResult.summary["topology"]==bothRemoved.summary["topology"]
+        && std::abs(ownerResult.summary["areaMm2"].toDouble()-bothRemoved.summary["areaMm2"].toDouble())<1e-6,
+        "Same-owner preview and authoritative commit geometry disagree");
+    for(size_t i=0;i<ownerResult.supportFaces.size();++i)check(ownerResult.supportFaces[i].faceId==bothRemoved.supportFaces[i].faceId,
+        "Same-owner cutter changed retained region identities");
+    auto foreign=CadDocument::componentCandidate(sameOwner,"Foreign cutter owner");
+    const auto foreignOwner=foreign["components"].toArray().last().toObject()["id"].toString();auto foreignFeatures=foreign["features"].toArray();
+    for(int i=0;i<foreignFeatures.size();++i){auto f=foreignFeatures[i].toObject();if(f["id"]==tool["id"]){f["ownerId"]=foreignOwner;foreignFeatures[i]=f;}}
+    foreign["features"]=foreignFeatures;const auto refusedOwner=CadDocument::evaluateCandidate(foreign);
+    check(!refusedOwner.ok && refusedOwner.diagnostics["code"]=="cross_component_dependency" && document.authored()!=foreign,
+        "Foreign-owner cutter must refuse before changing the document");
+    std::cout<<"SURFACE_TRIM_OWNER_OK sameIdentityOwnerGeometry retainedIDs rootPreserved foreignRefusal\n";
     if(const auto error=document.commit(candidate,"Trim two inner regions");!error.isEmpty())
         throw std::runtime_error((error+" / "+document.lastEvaluationError()["code"].toString()).toStdString());
     const auto trimmed=document.bodies().back();const auto accepted=document.authored();

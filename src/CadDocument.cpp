@@ -386,10 +386,21 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
         }
         if(f["type"]=="surfaceTrim"){
             const auto body=guarded["targetBodyId"].toString(),sketch=guarded["toolSketchId"].toString();
+            const auto sketchOwner=referencedOwners.value(sketch);
+            bool localSketch=sketchOwner==root;
+            if(!guarded.contains("toolBodyId") && sketchOwner==owner && owner!=root){
+                // Both shapes use the same local modeling frame. This bounded
+                // addition admits one identity child, not placed/linked sources.
+                int count=0;bool identity=false;
+                for(const auto& row:candidate["occurrences"].toArray()){const auto occurrence=row.toObject();
+                    if(occurrence["definitionId"]==owner){++count;identity=occurrence["parentId"]==root
+                        && occurrence["placement"]=="identity" && !occurrence.contains("parentOccurrenceId");}}
+                localSketch=count==1 && identity;
+            }
             if(referencedOwners.value(body)!=owner || (guarded.contains("toolBodyId")
-                    ? referencedOwners.value(guarded["toolBodyId"].toString())!=owner : referencedOwners.value(sketch)!=root))
+                    ? referencedOwners.value(guarded["toolBodyId"].toString())!=owner : !localSketch))
                 return {{"featureId",f["id"]},{"code","cross_component_dependency"},
-                    {"message","Trim belongs to the target owner and uses a same-owner sheet or root sketch"}};
+                    {"message","Trim requires a same-owner sheet, root sketch or owner-local sketch in one identity component"}};
             guarded.remove("targetBodyId");guarded.remove("toolSketchId");guarded.remove("toolBodyId");
         }
         if(crossOwner(guarded))return {{"featureId",f["id"]},{"code","cross_component_dependency"},{"message","Cross-component modeling references are not supported"}};
