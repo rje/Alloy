@@ -3206,6 +3206,8 @@ EvaluatedSketch SketchGeometry::evaluateFeature(const QJsonObject& feature, cons
         {"lengthUnit", "mm"}, {"plane", plane}, {"frame", sketchFrame}, {"solverIntegrated", true}, {"solver", solution.diagnostics},
         {"entities",geometry}, {"pointCount", points.size()}, {"entityCount", entities.size()}, {"worldPoints", worldPoints}, {"boundsMm", bounds}};
     if(parameters.contains("mirrorGroups"))summary["mirrorGroups"]=parameters.value("mirrorGroups");
+    // Downstream chain topology needs authored contact identity, not proximity.
+    summary["constraints"]=solution.feature.value("parameters").toObject().value("constraints").toArray();
     auto profileFeature=solution.feature;
     bool linkedProfile=false;
     for(const auto& collection:{"projections","circleProjections"})for(const auto& value:solution.feature["parameters"].toObject()[collection].toArray())
