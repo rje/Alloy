@@ -9,6 +9,7 @@
 #include "SolidHole.h"
 #include "SolidLoft.h"
 #include "SurfaceExtrude.h"
+#include "BoundaryFill.h"
 #include "SurfaceTrim.h"
 #include "SolidThicken.h"
 #include "SolidRevolve.h"
@@ -1045,6 +1046,13 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
             } else if(type=="surfaceExtrude") {
                 const auto results=SurfaceExtrude::evaluateResults(feature,evaluated);
                 evaluated.bodies.insert(evaluated.bodies.end(),results.begin(),results.end());
+            } else if(type=="boundaryFill") {
+                auto solid=BoundaryFill::evaluate(feature,evaluated);
+                if(parameters["removeTools"].toBool()){
+                    QSet<QString> consumed;for(const auto& ref:parameters["tools"].toArray())consumed.insert(ref.toObject()["bodyId"].toString());
+                    std::erase_if(evaluated.bodies,[&](const auto& b){return consumed.contains(b.bodyId);});
+                }
+                evaluated.bodies.push_back(std::move(solid));
             } else if(type=="surfaceTrim") {
                 const auto target=std::find_if(evaluated.bodies.begin(),evaluated.bodies.end(),
                     [&](const auto& body){return body.bodyId==parameters["targetBodyId"].toString();});
@@ -1320,6 +1328,8 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
     for(const auto& evaluatedId:evaluated.featureOrder)for(const auto& row:features){
         const auto feature=row.toObject();if(feature["id"]==evaluatedId && feature["type"]=="removeBody")
             intentionallyRemoved.insert(feature["parameters"].toObject()["bodyId"].toString());
+        if(feature["id"]==evaluatedId && feature["type"]=="boundaryFill" && feature["parameters"].toObject()["removeTools"].toBool())
+            for(const auto& ref:feature["parameters"].toObject()["tools"].toArray())intentionallyRemoved.insert(ref.toObject()["bodyId"].toString());
     }
     for(auto& body:evaluated.bodies){
         if(body.occurrenceId.isEmpty() && featureTypes.value(body.featureId)!="stepImport"

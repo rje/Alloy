@@ -88,6 +88,7 @@ public:
     static QJsonObject revolveCandidate(const QJsonObject& authored,const QJsonObject& arguments);
     static QJsonObject loftCandidate(const QJsonObject& authored,const QJsonObject& arguments);
     static QJsonObject surfaceExtrudeCandidate(const QJsonObject& authored,const QJsonObject& arguments);
+    static QJsonObject boundaryFillCandidate(const QJsonObject& authored,const QJsonObject& arguments);
     static QJsonObject surfaceTrimCandidate(const QJsonObject& authored,const QJsonObject& arguments);
     static QJsonObject removeBodyCandidate(const QJsonObject& authored,const QJsonObject& arguments);
     static QJsonObject thickenCandidate(const QJsonObject& authored,const QJsonObject& arguments);

@@ -250,6 +250,21 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
                         {"message",p.contains("rail") ? "Loft rail must reference an earlier sketch feature" : "Loft centerline must reference an earlier sketch feature"}};
             }
         }
+        if(feature["type"]=="boundaryFill"){
+            const auto params=feature["parameters"].toObject();QSet<QString> selected;
+            for(const auto& value:params["tools"].toArray()){
+                const auto ref=value.toObject();const auto body=ref["bodyId"].toString(),producer=ref["producerFeatureId"].toString();
+                if(!bodyPositions.contains(body) || bodyPositions[body]>=i || !positions.contains(producer) || positions[producer]>=i
+                    || features[bodyPositions.value(body)].toObject()["id"]!=producer)
+                    return {{"featureId",feature["id"]},{"featureType","boundaryFill"},{"code","boundary_fill_tool_unavailable"},{"message","Boundary Fill tools require exact earlier body producers"}};
+                selected.insert(body);
+            }
+            for(const auto& value:params["cell"].toObject()["sourceFaces"].toArray()){
+                const auto ref=value.toObject();const auto producer=ref["producerFeatureId"].toString();
+                if(!selected.contains(ref["bodyId"].toString()) || !positions.contains(producer) || positions[producer]>=i)
+                    return {{"featureId",feature["id"]},{"featureType","boundaryFill"},{"code","boundary_fill_cell_unavailable"},{"message","Cell contributors must belong to the selected earlier tools"}};
+            }
+        }
         if(feature["type"]=="surfaceExtrude") {
             const auto sketch=feature["parameters"].toObject()["sketchId"].toString();
             if(!positions.contains(sketch) || positions[sketch]>=i || features[positions[sketch]].toObject()["type"]!="sketch")
@@ -384,6 +399,14 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
             if(!localIdentity(owner) || !localIdentity(referencedOwners.value(guarded["sketchId"].toString())))
                 return {{"featureId",f["id"]},{"code","surface_source_placement_unsupported"},{"message","Per-profile Surface Extrude requires local root or one identity-child source and owner"}};
         }
+        if(f["type"]=="boundaryFill"){
+            auto localIdentity=[&](const QString& definition){if(definition==root)return true;int count=0;bool identity=false;
+                for(const auto& row:candidate["occurrences"].toArray())if(row.toObject()["definitionId"]==definition){++count;identity=row.toObject()["parentId"]==root && row.toObject()["placement"]=="identity" && !row.toObject().contains("parentOccurrenceId");}return count==1 && identity;};
+            if(!localIdentity(owner))return {{"featureId",f["id"]},{"code","cross_component_dependency"},{"message","Boundary Fill requires a local root or one identity-child active owner"}};
+            for(const auto& value:guarded["tools"].toArray())if(referencedOwners.value(value.toObject()["bodyId"].toString())!=owner
+                || referencedOwners.value(value.toObject()["producerFeatureId"].toString())!=owner)
+                return {{"featureId",f["id"]},{"code","cross_component_dependency"},{"message","Boundary Fill tools must belong to its modeling owner"}};
+        }
         if(f["type"]=="surfaceTrim"){
             const auto body=guarded["targetBodyId"].toString(),sketch=guarded["toolSketchId"].toString();
             const auto sketchOwner=referencedOwners.value(sketch);
@@ -420,6 +443,14 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
         }
         if(feature["type"]=="surfaceExtrude")for(const auto& id:SurfaceExtrude::resultBodyIds(feature))activeBodies.insert(id);
         if (feature.contains("bodyId")) activeBodies.insert(feature["bodyId"].toString());
+        if(feature["type"]=="boundaryFill"){
+            const auto p=feature["parameters"].toObject();
+            for(const auto& value:p["tools"].toArray()){
+                const auto body=value.toObject()["bodyId"].toString();if(!activeBodies.contains(body))
+                    return {{"featureId",feature["id"]},{"code","boundary_fill_tool_unavailable"},{"message","Boundary Fill tools must remain active before the feature"}};
+            }
+            if(p["removeTools"].toBool())for(const auto& value:p["tools"].toArray())activeBodies.remove(value.toObject()["bodyId"].toString());
+        }
         if(feature["type"]=="removeBody"){
             const auto body=feature["parameters"].toObject()["bodyId"].toString();
             if(!bodyPositions.contains(body) || bodyPositions[body]>=i || !activeBodies.contains(body))
@@ -1742,6 +1773,24 @@ QJsonObject CadDocument::surfaceExtrudeCandidate(const QJsonObject& authored,con
     return candidate;
 }
 
+QJsonObject CadDocument::boundaryFillCandidate(const QJsonObject& authored,const QJsonObject& arguments){
+    const QSet<QString> allowed{"operation","tools","cell","removeTools","featureId","newFeatureId","newBodyId","ownerId","name"};
+    for(auto i=arguments.begin();i!=arguments.end();++i)if(!allowed.contains(i.key()))throw std::invalid_argument("Unknown Boundary Fill argument");
+    if(arguments.contains("featureId") && (arguments.contains("newFeatureId") || arguments.contains("newBodyId") || arguments.contains("ownerId")))
+        throw std::invalid_argument("Boundary Fill edit retains feature, body and owner identities");
+    auto candidate=authored;auto rows=candidate["features"].toArray();QJsonObject feature;int index=-1;
+    if(arguments.contains("featureId")){
+        for(int i=0;i<rows.size();++i)if(rows[i].toObject()["id"]==arguments["featureId"]){index=i;feature=rows[i].toObject();break;}
+        if(index<0 || feature["type"]!="boundaryFill")throw std::invalid_argument("Boundary Fill feature unavailable");
+    }else feature={{"id",arguments.value("newFeatureId").toString(newId())},{"bodyId",arguments.value("newBodyId").toString(newId())},
+        {"ownerId",arguments.value("ownerId").toString(authored["documentId"].toString())},{"type","boundaryFill"},{"name","Boundary Fill"},{"visible",true}};
+    auto params=feature["parameters"].toObject();if(params.isEmpty())params={{"operation","newBody"},{"removeTools",false}};
+    for(const auto& key:{"operation","tools","cell","removeTools"})if(arguments.contains(key))params[key]=arguments[key];
+    feature["parameters"]=params;if(arguments.contains("name"))feature["name"]=arguments["name"];
+    if(index<0)rows.append(feature);else rows[index]=feature;candidate["features"]=rows;
+    const auto error=validateStructure(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());return candidate;
+}
+
 QJsonObject CadDocument::surfaceTrimCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
     const QSet<QString> allowed{"targetBodyId","toolBodyId","toolSketchId","toolEntityIds","removedRegionIds",
         "throughMarginMm","featureId","newFeatureId","ownerId","name"};
@@ -2441,6 +2490,24 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
             if(p.size()!=1 || !p["profiles"].isArray() || p["profiles"].toArray().size()<2 || p["profiles"].toArray().size()>32)return "Loft requires 2–32 ordered profile references";
             for(const auto& value:p["profiles"].toArray()){const auto ref=value.toObject();const auto key=ref["sketchId"].toString()+"/"+ref["profileId"].toString();if(ref.size()!=2 || !validId(ref["sketchId"].toString()) || !validId(ref["profileId"].toString()) || profiles.contains(key))return "Loft profiles must be distinct stable sketch/profile references";profiles.insert(key);}
             continue;
+        }
+        if(type=="boundaryFill"){
+            if(!validId(feature["bodyId"].toString()) || ids.contains(feature["bodyId"].toString()) || p.size()!=4
+                || p["operation"]!="newBody" || !p["removeTools"].isBool() || !p["tools"].isArray()
+                || p["tools"].toArray().size()<2 || p["tools"].toArray().size()>32 || !p["cell"].isObject()
+                || p["cell"].toObject().size()!=1 || !p["cell"].toObject()["sourceFaces"].isArray()
+                || p["cell"].toObject()["sourceFaces"].toArray().isEmpty() || p["cell"].toObject()["sourceFaces"].toArray().size()>256)
+                return "Boundary Fill requires New Body, 2–32 tool references, an explicit cell source-face signature and Remove Tools boolean";
+            QSet<QString> tools,faces;
+            for(const auto& value:p["tools"].toArray()){
+                const auto ref=value.toObject();const auto body=ref["bodyId"].toString();
+                if(!value.isObject() || ref.size()!=2 || !validId(body) || !validId(ref["producerFeatureId"].toString()) || tools.contains(body))return "Boundary Fill tools must be distinct retained body/producer UUID references";tools.insert(body);
+            }
+            for(const auto& value:p["cell"].toObject()["sourceFaces"].toArray()){
+                const auto ref=value.toObject();const auto key=ref["bodyId"].toString()+"/"+ref["producerFeatureId"].toString()+"/"+ref["faceId"].toString();
+                if(!value.isObject() || ref.size()!=3 || !validId(ref["bodyId"].toString()) || !validId(ref["producerFeatureId"].toString()) || !validId(ref["faceId"].toString()) || faces.contains(key))return "Boundary Fill cell needs distinct retained body/producer/face UUID references";faces.insert(key);
+            }
+            ids.insert(feature["bodyId"].toString());continue;
         }
         if(type=="surfaceExtrude") {
             const bool plural=p["resultMode"]=="perProfile";QJsonArray groups;

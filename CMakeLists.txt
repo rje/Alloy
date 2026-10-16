@@ -33,7 +33,7 @@ add_library(alloy_kernel STATIC
     src/AssemblySlider.cpp src/AssemblySlider.h
     src/AssemblyRevolute.cpp src/AssemblyRevolute.h src/AssemblyGraph.cpp src/AssemblyGraph.h src/LocalOccurrences.cpp src/LocalOccurrences.h src/JointOrigin.cpp src/JointOrigin.h
     src/DocumentAppend.cpp src/DocumentAppend.h
-    src/GeometryKernel.cpp src/GeometryKernel.h src/PrimitiveTopology.cpp src/PrimitiveTopology.h src/PlanarFaces.cpp src/PlanarFaces.h src/JoinRootEdges.cpp src/JoinRootEdges.h src/SolidFillet.cpp src/SolidFillet.h src/RuledCornerFillet.cpp src/RuledCornerFillet.h src/HalfThicknessFillet.cpp src/HalfThicknessFillet.h src/SolidChamfer.cpp src/SolidChamfer.h src/SolidShell.cpp src/SolidShell.h src/SolidThicken.cpp src/SolidThicken.h src/ClosedBlendShell.cpp src/ClosedBlendShell.h src/SolidSplit.cpp src/SolidSplit.h src/RevolvedShellCap.cpp src/RevolvedShellCap.h src/SolidSphere.cpp src/SolidSphere.h src/SolidHole.cpp src/SolidHole.h src/SolidLoft.cpp src/SolidLoft.h src/SurfaceClosedLoft.cpp src/SurfaceClosedLoft.h src/SurfaceRailLoft.cpp src/SurfaceRailLoft.h src/SurfaceExtrude.cpp src/SurfaceExtrude.h src/SurfaceTrim.cpp src/SurfaceTrim.h src/SolidRevolve.cpp src/SolidRevolve.h src/SolidSweep.cpp src/SolidSweep.h src/FeaturePattern.cpp src/FeaturePattern.h src/SolidMirror.cpp src/SolidTransform.cpp src/CircularPattern.cpp src/SolidMirror.h src/JoinResults.cpp
+    src/GeometryKernel.cpp src/GeometryKernel.h src/PrimitiveTopology.cpp src/PrimitiveTopology.h src/PlanarFaces.cpp src/PlanarFaces.h src/JoinRootEdges.cpp src/JoinRootEdges.h src/SolidFillet.cpp src/SolidFillet.h src/RuledCornerFillet.cpp src/RuledCornerFillet.h src/HalfThicknessFillet.cpp src/HalfThicknessFillet.h src/SolidChamfer.cpp src/SolidChamfer.h src/SolidShell.cpp src/SolidShell.h src/SolidThicken.cpp src/SolidThicken.h src/ClosedBlendShell.cpp src/ClosedBlendShell.h src/SolidSplit.cpp src/SolidSplit.h src/RevolvedShellCap.cpp src/RevolvedShellCap.h src/SolidSphere.cpp src/SolidSphere.h src/SolidHole.cpp src/SolidHole.h src/SolidLoft.cpp src/SolidLoft.h src/SurfaceClosedLoft.cpp src/SurfaceClosedLoft.h src/SurfaceRailLoft.cpp src/SurfaceRailLoft.h src/SurfaceExtrude.cpp src/SurfaceExtrude.h src/BoundaryFill.cpp src/BoundaryFill.h src/SurfaceTrim.cpp src/SurfaceTrim.h src/SolidRevolve.cpp src/SolidRevolve.h src/SolidSweep.cpp src/SolidSweep.h src/FeaturePattern.cpp src/FeaturePattern.h src/SolidMirror.cpp src/SolidTransform.cpp src/CircularPattern.cpp src/SolidMirror.h src/JoinResults.cpp
     src/MeshExport.cpp src/MeshExport.h src/ExportScope.cpp src/ExportScope.h
     src/StepExchange.cpp src/StepExchange.h
     src/SketchSpline.cpp src/SketchSpline.h src/SketchSplineOffset.cpp src/SketchSplineOffset.h src/SketchOpenChainOffset.cpp src/SketchOpenChainOffset.h src/SketchConic.cpp src/SketchConic.h src/SketchGeometry.cpp src/SketchTrim.cpp src/SketchExtend.cpp src/SketchGeometry.h src/SketchText.cpp src/SketchText.h src/RoundedLoopOffset.cpp src/RoundedLoopOffset.h src/PlanarBoundaryInset.cpp src/PlanarBoundaryInset.h
@@ -46,7 +46,7 @@ target_compile_definitions(alloy_kernel PUBLIC ALLOY_OCCT_VERSION="${ALLOY_OCCT_
 
 add_library(alloy_application STATIC
     src/AlloyTheme.cpp src/AlloyTheme.h
-    src/AlloyWindow.cpp src/AlloyWindow.h src/SplitBodyControls.cpp src/AssemblyControls.cpp src/PointControls.cpp src/SplineControls.cpp src/SlotDragControls.cpp src/ConicControls.cpp src/SketchTextControls.cpp src/CommandIcons.cpp src/CommandIcons.h src/SolidFilletControls.cpp src/SolidChamferControls.cpp src/SphereControls.cpp src/SolidHoleControls.cpp src/SolidShellControls.cpp src/LoftControls.cpp src/SurfaceExtrudeControls.cpp src/SurfaceTrimControls.cpp src/RemoveBodyControls.cpp src/ThickenControls.cpp src/RevolveCommands.cpp src/SweepCommands.cpp src/SweepSelection.cpp src/PatternControls.cpp src/CircularPatternControls.cpp src/SolidMirrorControls.cpp src/SolidFeatureMirrorControls.cpp src/CanvasControls.cpp src/ReferenceCanvasView.cpp src/SectionAnalysisControls.cpp src/ReferenceSection.cpp src/MoveControls.cpp src/ComponentCopyControls.cpp src/CombineControls.cpp src/ExportControls.cpp src/StepExportControls.cpp
+    src/AlloyWindow.cpp src/AlloyWindow.h src/SplitBodyControls.cpp src/AssemblyControls.cpp src/PointControls.cpp src/SplineControls.cpp src/SlotDragControls.cpp src/ConicControls.cpp src/SketchTextControls.cpp src/CommandIcons.cpp src/CommandIcons.h src/SolidFilletControls.cpp src/SolidChamferControls.cpp src/SphereControls.cpp src/SolidHoleControls.cpp src/SolidShellControls.cpp src/LoftControls.cpp src/SurfaceExtrudeControls.cpp src/BoundaryFillControls.cpp src/SurfaceTrimControls.cpp src/RemoveBodyControls.cpp src/ThickenControls.cpp src/RevolveCommands.cpp src/SweepCommands.cpp src/SweepSelection.cpp src/PatternControls.cpp src/CircularPatternControls.cpp src/SolidMirrorControls.cpp src/SolidFeatureMirrorControls.cpp src/CanvasControls.cpp src/ReferenceCanvasView.cpp src/SectionAnalysisControls.cpp src/ReferenceSection.cpp src/MoveControls.cpp src/ComponentCopyControls.cpp src/CombineControls.cpp src/ExportControls.cpp src/StepExportControls.cpp
     src/TutorialRecorder.cpp src/TutorialRecorder.h
     src/CadDocument.cpp src/CadDocument.h src/LocalReferenceControls.cpp src/LocalReference.h
     src/RecoveryStore.cpp src/RecoveryStore.h
@@ -909,6 +909,14 @@ if(BUILD_TESTING)
     target_include_directories(surface_extrude_test PRIVATE src)
     target_link_libraries(surface_extrude_test PRIVATE Qt6::Gui alloy_kernel)
     add_test(NAME surface_extrude COMMAND surface_extrude_test)
+    add_executable(boundary_fill_test tests/boundary_fill.cpp src/CadDocument.cpp src/CadDocument.h)
+    target_include_directories(boundary_fill_test PRIVATE src)
+    target_link_libraries(boundary_fill_test PRIVATE Qt6::Gui alloy_kernel)
+    add_test(NAME boundary_fill COMMAND boundary_fill_test)
+    add_executable(boundary_fill_controls_test tests/boundary_fill_controls.cpp)
+    target_link_libraries(boundary_fill_controls_test PRIVATE alloy_application Qt6::Test)
+    add_test(NAME boundary_fill_controls COMMAND boundary_fill_controls_test)
+    set_tests_properties(boundary_fill_controls PROPERTIES TIMEOUT 240 LABELS "widget;gpu" RUN_SERIAL TRUE)
     add_executable(surface_extrude_profiles_test tests/surface_extrude_profiles.cpp src/CadDocument.cpp src/CadDocument.h)
     target_include_directories(surface_extrude_profiles_test PRIVATE src)
     target_link_libraries(surface_extrude_profiles_test PRIVATE Qt6::Gui alloy_kernel)
