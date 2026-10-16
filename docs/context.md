@@ -64,28 +64,32 @@ IDs. See [receipt](validation/per-profile-surface-extrude.md). Public frames
 establish2 profiles and2 new tool bodies, but exact curve grouping remains an
 explicit Alloy fixture choice. Cold latency is recorded under REL-016.
 
-Next active SRF-016 uses
+Independently accepted SRF-016/#360 uses
 `surface-iron-continuation-2026-10-15/per-profile-extrude-01/native/native-two-profile-sheets.alloy`
 as the actual4-body source: separate upper/lower Extrude bodies are TOOLS;
 existing Inner handle bridge is the declared TARGET. Exact-history diagnostics
 show the unchanged tools only slit the exterior annulus, but partition the Inner
-bridge (upper3 faces/lower5 against original). Source curves are unchanged; an
+bridge (upper3 faces, then lower4 after the first Trim). Source curves are unchanged; an
 exploratory endpoint extension was not adopted. This agrees with the public Inner
 highlight but does not establish the complete reference target inventory.
 The external revised curved Trim plan
-supersedes the earlier compound-as-target assumption. Implement the smallest
-exact-history signature supported by the actual partition; duplicate ancestry
-signatures refuse. Then trial Remove/revert. SRF-011 Boundary Fill runs a parallel bounded OCCT
+supersedes the earlier compound-as-target assumption. Exact-history signatures
+retain regions and adjacent edge fragments; duplicate ancestry refuses.
+Both Trim trials, Remove/revert, source edits and reopening pass; see
+[receipt](validation/surface-curved-trim.md). SRF-011 Boundary Fill awaits bounded OCCT
 MakerVolume feasibility check on the actual sheets with a declared bottomZ=0
 variant; no cell/solid acceptance yet.
-The first MakerVolume run produced no solids. Exact section diagnostics found
-the lower cutter crosses Z0 at X124.906, beyond the heel X120; a low material
-ray escapes without crossing any sheet. A bounded independently authored variant
-moves only its free endpoint Z−8→−16, retaining IDs and the bottomZ0 correction.
-The accepted precursor remains unchanged. This is an explicit fixture correction,
-not a tolerance change or a claim of exact reference dimensions. A second closure
-attempt is pending. SRF-016's unchanged-source sequential core passes; native/API
-verification is active. The new from-blank iron runner is drafted but unvalidated.
+Both bounded MakerVolume attempts produced no solids. Exact sections found
+the lower cutter crosses Z0 at X124.906, beyond heel X120; moving its free end
+Z−8→−16 still crosses beyond the heel at X121.828. Neither closes the low escape.
+No further endpoint sweep is planned. TUT-032/#462 now qualifies a deterministic
+retained fit point on the bottom inside the rear: baseline endpoint retained,
+middle point (110,8)→(110,0), bottom Z0. Verify the actual contact before a volume
+retry. Accepted precursors remain unchanged; this is an explicit independent
+fixture choice, not exact reference dimensions. SRF-011 is Todo pending this
+input qualification. SRF-016's core,62-call API and3/3 native checks are independently
+accepted. The new from-blank runner caught a same-owner sketch Trim admission
+failure; SRF-021/#463 fixes it without changing component ownership in the runner.
 The five-body precursor's bottomZ=−4 does not meet the exteriorZ=0 boundary;
 final closure needs a declared, verified bottom geometry choice, not a body-count
 assertion. TUT-018 remains open, including final full movie/model/solid export.

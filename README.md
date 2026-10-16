@@ -13,8 +13,9 @@ separate gate. TUT-018 surface iron is the next advanced tutorial.
 The [bilateral surface exterior](docs/validation/surface-bilateral-rail-loft.md)
 now supports the iron tutorial's retained mirrored outline, guide rail and two
 trimmed handle openings. The [retained handle bridge](docs/validation/surface-handle-bridge.md)
-now passes source edits, native selection and reopening. Closing-sheet trials
-and final solid closure remain next.
+now passes source edits, native selection and reopening. The
+[curved sheet Trim trials](docs/validation/surface-curved-trim.md) also pass
+sequential cuts, tool Remove and exact undo. Final solid closure remains next.
 
 [Open fit-spline Mirror](docs/validation/fit-spline-mirror.md) now retains
 reflected points and tangent handles through source/axis edits and reopening.

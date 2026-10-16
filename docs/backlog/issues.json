@@ -3146,7 +3146,9 @@
         "SRF-012",
         "SRF-013",
         "SRF-014",
-        "SRF-015"
+        "SRF-015",
+        "SRF-020",
+        "TUT-032"
       ],
       "labels": [
         "area:srf"
@@ -3811,7 +3813,8 @@
         "SRF-016",
         "SRF-017",
         "SKT-092",
-        "REL-026"
+        "REL-026",
+        "SRF-021"
       ],
       "labels": [
         "area:gate"
@@ -6296,7 +6299,7 @@
       "labels": [
         "area:srf"
       ],
-      "body": "Split from SRF-013. Preserve the surface-iron later trial operations: choose upper surface as tool, remove excess region of crossing sheet, repeat with lower surface, optionally Remove tool bodies, then undo/revert those trial operations before the final Boundary Fill branch. Use exact current surface-surface intersection with retained source/tool/region identities; no sketch-prism substitute for sheet tools. Tool-first native/API selection, pickable portions, red removal preview, preview/Cancel, commit, feature/source edit, undo/reopen and atomic ambiguity refusal remain required. Retain source history and tool dependencies; surface tools are not destructively deleted. Validate on compatible later crossing sheets from the cumulative fixture and inspect actual GPU captures. Broader multi-target/multi-tool Trim stays outside this bounded child. External surface-iron-2026-10-14/surface-trim-contract.md contains public help, transcript and visual provenance. Exact default/shortcut/styling unknowns remain qualified. SRF-013 now owns sketch-normal paired-spline Trim only; full TUT-018 retains both tool classes.\nSRF-018 owns the independently authored crossing-sheet implementation ingredient; this parent retains the source-specific upper/lower trial, revert and downstream fill acceptance.\n\n\n## Public-frame clarification 2026-10-15\nSRF-020 retains one-feature separate extrusion tool bodies. Public frames establish upper/lower new sheets as tools and existing iron sheets as targets; exact target face count remains qualified. Do not treat the whole extruded compound as the target as in the earlier provisional plan.\n"
+      "body": "Split from SRF-013. Preserve the surface-iron later trial operations: choose upper surface as tool, remove excess region of crossing sheet, repeat with lower surface, optionally Remove tool bodies, then undo/revert those trial operations before the final Boundary Fill branch. Use exact current surface-surface intersection with retained source/tool/region identities; no sketch-prism substitute for sheet tools. Tool-first native/API selection, pickable portions, red removal preview, preview/Cancel, commit, feature/source edit, undo/reopen and atomic ambiguity refusal remain required. Retain source history and tool dependencies; surface tools are not destructively deleted. Validate on compatible later crossing sheets from the cumulative fixture and inspect actual GPU captures. Broader multi-target/multi-tool Trim stays outside this bounded child. External surface-iron-2026-10-14/surface-trim-contract.md contains public help, transcript and visual provenance. Exact default/shortcut/styling unknowns remain qualified. SRF-013 now owns sketch-normal paired-spline Trim only; full TUT-018 retains both tool classes.\nSRF-018 owns the independently authored crossing-sheet implementation ingredient; this parent retains the source-specific upper/lower trial, revert and downstream fill acceptance.\n\n\n## Public-frame clarification 2026-10-15\nSRF-020 retains one-feature separate extrusion tool bodies. Public frames establish upper/lower new sheets as tools and existing iron sheets as targets; exact target face count remains qualified. Do not treat the whole extruded compound as the target as in the earlier provisional plan.\n\n\n## Independently accepted 2026-10-15\nAccepted c6c10d4 and 7ee0cf1; receipt docs/validation/surface-curved-trim.md. Actual unchanged Inner target passes upper/lower sequential curved Trim, retained source edits and identities, Remove/undo exact restoration, reopen, planar/sketch regressions, 62-call API and 3/3 native checks with inspected GPU captures. Astra independently accepted. Broader target grouping and Boundary Fill remain separate; no complete TUT-018 claim.\n"
     },
     {
       "key": "SRF-017",
@@ -7797,6 +7800,35 @@
         "area:srf"
       ],
       "body": "## Public workflow gap\nAdditional permitted public operation frames for the surface-iron source show two selected profiles in one Two Sides / New Body Surface Extrude, followed by two separate new Browser bodies. These are independently selected upper/lower tools in later Trim trials. Current SurfaceExtrude emits one compound body for all selected curves and does not satisfy that behavior. Frame timestamps/provenance and grouping unknowns remain outside Git in knowledge/tutorials/surface-iron-2026-10-15-public-frames/closure-contract.md.\n\n## Bounded scope\nOne retained Surface Extrude feature must produce independently selectable sheet bodies for the supported independent profiles/chains, with stable source-derived result identity, common authored Two Sides reaches and active-owner behavior. Preserve earlier saved one-body features explicitly; do not silently regroup their references. Reuse existing multi-result document infrastructure. Confirm source grouping before choosing per-curve versus per-chain output. Do not substitute multiple unrelated Extrude features for this demonstrated operation.\n\n## Acceptance\nActual later iron sketch selects the two intended profiles in one native/API operation and exposes two independent tool bodies. Edit the same sketch and Extrude to add the later bottom line without losing existing output IDs. Check meaningful curve/reach edits, invalid/ambiguous grouping refusal, owner/history/reopen and tool-body selection independently. Keep affected prior single-result behavior. Inspect actual GPU/native controls; independent review. The curved Trim trials and Boundary Fill remain separate parents; do not claim completed tutorial.\n\n\n## Independently accepted 2026-10-15\nAccepted e690833+6e0be0c+fc3d475: one retained Two Sides Extrude yields separate source-derived profile bodies; legacy compound preserved. Actual core+legacy,45-call API/native3/3 and inspected GPU captures pass source/reach/order edits, third-output preservation, owner/dependencies/Remove/history/reopen. Independent Astra acceptance. Exact source grouping is qualified; five-body precursor is not closed-cell proof. Curved iron Trim/Fill remain next; latency recorded REL-016. See docs/validation/per-profile-surface-extrude.md.\n"
+    },
+    {
+      "key": "TUT-032",
+      "title": "Qualify the retained iron sheets as a closed-cell input",
+      "kind": "validation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P1",
+      "depends_on": [
+        "SRF-015",
+        "SRF-020"
+      ],
+      "labels": [
+        "area:srf"
+      ],
+      "body": "## Problem and scope\nThe independently authored later iron fixture does not enclose a bounded cell: its lower tool reaches bottom Z0 beyond the exterior rear X120. The original endpoint and a bounded endpoint adjustment both leave this geometric escape. Qualify the actual retained sheets before implementing Boundary Fill around them.\n\n## Acceptance criteria\nAuthor a deterministic lower-profile contact with the bottom inside the exterior rear, using existing retained sketch entities and normal tolerances. Preserve accepted source models and explicitly record all fixture changes, provenance and unknown reference dimensions. Verify exact intersections and the intended material boundary, then obtain a valid bounded solid through the mature kernel with traceable source-face contributors. Preserve the open handle. No endpoint/tolerance sweep, invented cap or silent source replacement.\n\n## Verification and evidence\nUse the actual five-sheet retained precursor, exact BRep sections and bounded kernel evidence. Independently review the proposed geometry and resulting cell/history before SRF-011 continues. This is input qualification, not native Boundary Fill or full tutorial acceptance. External evidence: surface-iron-continuation-2026-10-15/boundary-fill-feasibility-01. Public source contract: external knowledge/tutorials/surface-iron-2026-10-15-public-frames/closure-contract.md, retrieved 2026-10-15. Exact reference coordinates remain unknown.\n"
+    },
+    {
+      "key": "SRF-021",
+      "title": "Allow owner-local sketch cutters in Surface Trim",
+      "kind": "implementation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P1",
+      "depends_on": [
+        "SRF-013"
+      ],
+      "labels": [
+        "area:srf"
+      ],
+      "body": "## Problem and result\nThe from-blank iron workflow activates its new component, creates the handle lens sketch there, and previews Trim correctly, but commit rejects the same-owner sketch because admission permits only root sketches. Accept supported same-owner sketch cutters through the shared authoritative path while preserving root-sketch support and rejecting unsupported foreign/placed dependencies.\n\n## Acceptance and verification\nUse the real from-blank component/sketch/Trim workflow without reparenting or changing active owner to bypass the restriction. Add a focused ownership check with a foreign-owner refusal where practical; verify the resulting geometry and subsequent handle bridge through the existing cumulative runner. Preserve preview/commit agreement and source history. Independent review. External failed receipt: surface-iron-continuation-2026-10-15/from-blank-01.\n\n## Reference and limits\nExisting public surface-iron workflow contract reviewed 2026-10-15; external source records hold URLs/images. This is a bounded local component ownership correction, not general cross-component geometry support.\n"
     }
   ]
 }
