@@ -67,10 +67,17 @@ explicit Alloy fixture choice. Cold latency is recorded under REL-016.
 Next active SRF-016 uses
 `surface-iron-continuation-2026-10-15/per-profile-extrude-01/native/native-two-profile-sheets.alloy`
 as the actual4-body source: separate upper/lower Extrude bodies are TOOLS;
-existing iron sheet geometry is TARGET. The external revised curved Trim plan
+existing Inner handle bridge is the declared TARGET. Exact-history diagnostics
+show the unchanged tools only slit the exterior annulus, but partition the Inner
+bridge (upper3 faces/lower5 against original). Source curves are unchanged; an
+exploratory endpoint extension was not adopted. This agrees with the public Inner
+highlight but does not establish the complete reference target inventory.
+The external revised curved Trim plan
 supersedes the earlier compound-as-target assumption. Implement the smallest
 exact-history signature supported by the actual partition; duplicate ancestry
-signatures refuse. Then trial Remove/revert, followed by SRF-011 Boundary Fill.
+signatures refuse. Then trial Remove/revert. SRF-011 Boundary Fill runs a parallel bounded OCCT
+MakerVolume feasibility check on the actual sheets with a declared bottomZ=0
+variant; no cell/solid acceptance yet.
 The five-body precursor's bottomZ=−4 does not meet the exteriorZ=0 boundary;
 final closure needs a declared, verified bottom geometry choice, not a body-count
 assertion. TUT-018 remains open, including final full movie/model/solid export.
