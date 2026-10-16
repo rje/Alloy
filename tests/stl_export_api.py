@@ -69,7 +69,9 @@ def inspect_stl(path, binary, *, allow_cavities=False):
         components.append({"triangles": len(component), "bounds": [[min(p[i] for p in points_in_component) for i in range(3)], [max(p[i] for p in points_in_component) for i in range(3)]], "signedVolume": signed_volume})
     assert all(count == 1 and edges[v, u] == 1 for (u, v), count in edges.items()), 'Open or inconsistently oriented mesh'
     assert volume > 0, 'Mesh winding must have positive signed volume'
-    return {'components': components, 'triangles': len(triangles), 'bounds': [low, high], 'signedVolume': volume, 'facetNormals': 'finite, unit length and aligned with winding'}
+    return {'components': components, 'vertices': len(neighbors), 'edges': len(edges)//2,
+            'eulerCharacteristic': len(neighbors)-len(edges)//2+len(triangles),
+            'triangles': len(triangles), 'bounds': [low, high], 'signedVolume': volume, 'facetNormals': 'finite, unit length and aligned with winding'}
 
 
 def main():

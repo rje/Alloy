@@ -2,12 +2,22 @@
 
 ## Active user order (2026-10-15)
 
+TUT-033/#468 is the current blocker: cumulative `closure-check-02` produces a
+valid watertight solid but cuts the rear handle web, giving a C-shaped slot.
+Independent review confirms mesh Euler characteristic2/genus0, not the required
+enclosed tunnel. TUT-032 qualifies a bounded cell only; its OUT witnesses do not
+prove an enclosed handle. Correct the retained rear closing curves by exact
+contact reasoning behind the opening (X>90), then require one closed connected
+mesh with Euler characteristic0/genus1 plus actual front/oblique captures.
+Full recording remains pending; do not publish partial complete-01/02 as accepted.
+
 SRF-011 Boundary Fill is independently accepted (`f8c00b4`, `0ecfd85`):
 actual iron core,62-call API,native3/3 and corrected preview3/3 pass.
 The full TUT-018 recording `complete-01` reached the handle Loft with public
 Canvas references, then hit the client response-size bound in `app.state`.
-REL-029/#467 is active to resolve bulk session inspection without dropping
-references or authored image data. The failed movie/transcript are preserved;
+REL-029/#467 is independently accepted at `27c13e5`: only public preview
+drafts omit duplicate image bytes, with explicit metadata. Focused API/internal/
+authored/save checks pass. The full `complete-02` recording is running. The failed movie/transcript are preserved;
 full TUT-018 acceptance and final gallery publication remain pending.
 
 The actual iron fixture found an on-axis shared spline endpoint omission in

@@ -3818,7 +3818,8 @@
         "REL-026",
         "SRF-021",
         "SRF-022",
-        "REL-029"
+        "REL-029",
+        "TUT-033"
       ],
       "labels": [
         "area:gate"
@@ -7886,7 +7887,22 @@
       "labels": [
         "area:srf"
       ],
-      "body": "## Problem\nThe complete surface-iron workflow with two public reference canvases reaches a valid handle Loft preview, but the following app.state exceeds the local client bounded response frame. Preserve the failed recording/transcript under complete-01.\n\n## Acceptance\nInspect the actual oversized response and remove accidental duplicate or internal bulk state from public session inspection, or explicitly reconcile the transport contract if the data is required. Preserve authored image data, useful session fields, local bounded transport and shared command authority. Complete the real canvas-backed workflow through this point. Add a focused contract check for the actual cause; do not remove the Canvas steps or silently truncate JSON.\n"
+      "body": "## Problem\nThe complete surface-iron workflow with two public reference canvases reaches a valid handle Loft preview, but the following app.state exceeds the local client bounded response frame. Preserve the failed recording/transcript under complete-01.\n\n## Acceptance\nInspect the actual oversized response and remove accidental duplicate or internal bulk state from public session inspection, or explicitly reconcile the transport contract if the data is required. Preserve authored image data, useful session fields, local bounded transport and shared command authority. Complete the real canvas-backed workflow through this point. Add a focused contract check for the actual cause; do not remove the Canvas steps or silently truncate JSON.\n\n\n## Independently accepted 2026-10-15\nIndependently accepted narrow executeApi preview projection: documentDraft Canvas payloads expose metadata/explicit encoded-length marker while internal session/authored/saved PNGs remain complete. Focused real Qt/API 3/3 passes in428ms, internal1,630,657 to public842,177bytes; Cancel/commit/history and portable reopen pass. Source in AlloyWindow.cpp, test reference_canvas_controls.cpp; external rel029-test.log. Full iron cumulative result remains TUT-018.\n"
+    },
+    {
+      "key": "TUT-033",
+      "title": "Preserve the enclosed iron handle in the final closing-cell recipe",
+      "kind": "validation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P1",
+      "depends_on": [
+        "SRF-011",
+        "TUT-032"
+      ],
+      "labels": [
+        "area:srf"
+      ],
+      "body": "## Problem\nCumulative final front capture closure-check-02/21-solid-handle.png shows the selected valid solid loses the rear handle connection, leaving a C-shaped notch. Existing OUT witnesses establish empty space but do not prove an enclosed tunnel. Solid validity and watertight STL are insufficient for TUT-018 visual/shape acceptance.\n\n## Acceptance\nDerive a bounded correction to the independently authored retained closing curves using exact contact/shape reasoning. Preserve all tutorial operations, original evidence and unchanged kernel tolerances. Obtain one valid solid with a genuinely enclosed handle passage and public-reference-comparable rear silhouette. Verify tunnel topology and actual side/oblique captures, plus retained edit/history/reopen and printable export. Record independent fixture dimensions and source unknowns; do not claim exact source geometry. Independent Astra review before accepting the corrected recipe. No broad parameter or tolerance sweep.\n"
     }
   ]
 }

@@ -1081,3 +1081,10 @@ Authored tool consumption occurs after successful solid construction and remains
 reversible through ordinary history. Tools must belong to the same supported
 local owner. Current scope is surface tools and one selected solid; solid/mixed
 tools and multiple selected outputs remain separate backlog items.
+
+Public API `documentDraft` preview snapshots omit duplicate Canvas `pngBase64`
+payloads. Each affected Canvas retains its placement and other metadata plus
+`pngBase64Omitted:{encoding:"base64",encodedBytes:N}`. This is inspection data,
+not a replacement authored document. Internal preview state, `document.inspect`
+authored data and saved models retain the complete images. The local transport
+response bound is unchanged.

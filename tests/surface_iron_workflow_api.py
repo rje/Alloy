@@ -188,21 +188,29 @@ def trim_trials(call, stage, surfaces, sheets):
 
 
 def close_and_export(call, stage, sheets, out):
-    from stl_export_api import inspect_stl
     call('sketch.edit', {'sketchId': sheets['sketchId']})
     call('sketch.line', {'x1': -15, 'y1': 0, 'x2': 145, 'y2': 0, 'units': 'mm'})
     sketch = call('app.state')['activeSession']['draftSketch']
     bottom = sketch['parameters']['entities'][-1]['id']
     call('sketch.lookAt'); stage('Edit the existing sketch: add the bottom closing line', '16-bottom-line.png')
     call('sketch.finish'); call('view.home')
+    call('feature.visibility', {'featureId': sheets['sketchId'], 'visible': True})
     session = call('feature.editDialog', {'featureId': sheets['extrudeId']})
     call('surface.extrudeProfile', {'sketchId': sheets['sketchId'], 'entityIds': [bottom]})
     assert len(call('app.state')['activeSession']['resultBodyIds']) == 3
     stage('Edit the same Extrude to include the bottom sheet', '17-bottom-sheet.png')
     call('command.commit', {'session': session['id']})
     call('feature.visibility', {'featureId': sheets['sketchId'], 'visible': False})
+    return fill_and_export(call, stage, out)
+
+
+def fill_and_export(call, stage, out):
+    from stl_export_api import inspect_stl
     before = call('document.inspect'); tools = before['evaluation']['bodies']
     assert len(tools) == 5 and all(b['type'] == 'surface' for b in tools)
+    assert len({tool['ownerId'] for tool in tools}) == 1
+    call('component.activate', {'definitionId': tools[0]['ownerId']})
+    call('document.save', {'path': str(out / 'iron-five-sheet-checkpoint.alloy')})
     session = call('surface.boundaryFillDialog', {'name': 'Iron solid'})
     assert not session['inputs']['removeTools']
     for tool in tools:
@@ -227,6 +235,7 @@ def close_and_export(call, stage, sheets, out):
     export = call('document.exportStl', {'bodyId': solid['bodyId'], 'path': str(path),
         'units': 'mm', 'format': 'binary', 'surfaceDeviationMm': .05, 'normalDeviationDeg': 8})
     mesh = inspect_stl(path, True)
+    assert mesh['eulerCharacteristic'] == 0, 'The final solid must retain one enclosed handle tunnel'
     assert len(mesh['components']) == 1 and math.isclose(mesh['signedVolume'], solid['volumeMm3'], rel_tol=.01)
     stage('Export a checked closed millimeter printing mesh', '22-printable-iron.png')
     return {'solid': solid, 'cell': cell, 'export': export, 'mesh': mesh}
@@ -286,6 +295,7 @@ def main():
                 sheets = create_trial_sheets(call, stage)
                 trim_trials(call, stage, result, sheets)
             if a.complete:
+                call('document.save', {'path': str(out / 'iron-surface-checkpoint.alloy')})
                 result['closure'] = close_and_export(call, stage, sheets, out)
             model = out / ('iron-finished.alloy' if a.complete else 'iron-surfaces.alloy')
             call('document.save', {'path': str(model)})
