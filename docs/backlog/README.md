@@ -7,7 +7,7 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current publication contains **463 issues**: **357 implementation, 22 research,
+The current publication contains **464 issues**: **358 implementation, 22 research,
 22 epics, and 62 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 
@@ -19,9 +19,10 @@ accepted, including exact corner/perimeter rounds, retained hole, organization,
 movie and checked STL. ASM-012 retains separate physical Browser gesture
 qualification. SRF-017 exterior and bilateral Trim are independently accepted. SRF-015 retained
 handle bridge and REL-026 warm Trim responsiveness are accepted. SRF-020 separate profile extrusion bodies are accepted; SRF-016 curved
-sheet trials are independently accepted. TUT-032 qualifies closing-sheet geometry
-before SRF-011 Boundary Fill; SRF-021 fixes owner-local sketch Trim exposed by
-the from-blank run. Full closure stays open.
+sheet trials are independently accepted. TUT-032 closing-sheet qualification is
+accepted; SRF-011 Boundary Fill is active. SRF-021 fixes owner-local sketch Trim
+and SRF-022 follows coincident endpoint constraints in chain selection, both
+exposed by the from-blank run. Full product closure stays open.
 The broader 2026-10-14 priority follows: [initial-build readiness](../initial-build-readiness.md)
 now leads: navigation, everyday input, presentation, recovery, responsiveness and
 relocatable packages, interleaved with enclosure/shoehorn/surface-iron completion.

@@ -82,14 +82,23 @@ variant; no cell/solid acceptance yet.
 Both bounded MakerVolume attempts produced no solids. Exact sections found
 the lower cutter crosses Z0 at X124.906, beyond heel X120; moving its free end
 Z−8→−16 still crosses beyond the heel at X121.828. Neither closes the low escape.
-No further endpoint sweep is planned. TUT-032/#462 now qualifies a deterministic
+No further endpoint sweep is planned. TUT-032/#462 independently qualifies a deterministic
 retained fit point on the bottom inside the rear: baseline endpoint retained,
-middle point (110,8)→(110,0), bottom Z0. Verify the actual contact before a volume
-retry. Accepted precursors remain unchanged; this is an explicit independent
-fixture choice, not exact reference dimensions. SRF-011 is Todo pending this
-input qualification. SRF-016's core,62-call API and3/3 native checks are independently
-accepted. The new from-blank runner caught a same-owner sketch Trim admission
-failure; SRF-021/#463 fixes it without changing component ownership in the runner.
+middle point (110,8)→(110,0), bottom Z0. Exact contact and escape interception
+were checked before the new volume attempt: one valid98122.002mm³ solid,
+seven uniquely source-traced faces, one unique cell signature and five clear
+handle witnesses. Two collapsed-tip orientation warnings remain recorded.
+Evidence is external `deterministic-bottom-contact-01/`. Accepted precursors
+remain unchanged; these are independent dimensions, not exact reference values.
+SRF-011 kernel/document and native/API controls are now being implemented in
+parallel. Product closure/edit/native acceptance remains pending.
+SRF-016's core,62-call API and3/3 native checks are independently accepted.
+The from-blank runner caught same-owner sketch Trim admission; SRF-021/#463
+fix `3c7dda8` passes core and actual component-owned lens Trim/handle bridge.
+The next step exposed coincident-point chaining omitted by shared-ID prepared
+fixtures. SRF-022/#464 makes Surface Extrude follow explicit retained Coincident
+endpoint equivalence; no proximity weld or runner reparenting workaround.
+The from-blank runner remains in progress, with failures preserved separately.
 The five-body precursor's bottomZ=−4 does not meet the exteriorZ=0 boundary;
 final closure needs a declared, verified bottom geometry choice, not a body-count
 assertion. TUT-018 remains open, including final full movie/model/solid export.
