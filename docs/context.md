@@ -56,16 +56,24 @@ verified. Clean GPU views show an open passage and smooth surfaces. See
 [receipt](validation/surface-handle-bridge.md). Cold operations take about14s;
 edit opening41s is tracked separately as REL-028/#460. No responsiveness claim.
 
-Active: SRF-020/#461 is the newly confirmed prerequisite for one Surface
-Extrude feature creating separate profile bodies. Public operation frames show
-2 selected profiles/Chaining/Two Sides/New Body, then2 separate Browser bodies
-used as upper/lower Trim tools against existing iron sheets. Existing compound
-output is insufficient. Exact chain grouping and target-face count remain
-qualified. Preserve old saved features with absent output mode; use explicit
-per-profile mode and stable source-derived output identity for new workflows.
-The candidate is integrated at `e690833` plus legacy-hint correction `6e0be0c`;
-Astra source review is provisional. Sol owns the accepted build/GUI lease for
-actual core/native/API validation. Do not claim accepted separate-body support yet.
+SRF-020/#461 is independently accepted at `e690833`, `6e0be0c` and `fc3d475`:
+one Two Sides Extrude creates separate retained profile bodies while preserving
+legacy compound features. Actual iron core,45-call API/native3/3 and smooth GPU
+captures pass; the same sketch/Extrude can add a third output without losing old
+IDs. See [receipt](validation/per-profile-surface-extrude.md). Public frames
+establish2 profiles and2 new tool bodies, but exact curve grouping remains an
+explicit Alloy fixture choice. Cold latency is recorded under REL-016.
+
+Next active SRF-016 uses
+`surface-iron-continuation-2026-10-15/per-profile-extrude-01/native/native-two-profile-sheets.alloy`
+as the actual4-body source: separate upper/lower Extrude bodies are TOOLS;
+existing iron sheet geometry is TARGET. The external revised curved Trim plan
+supersedes the earlier compound-as-target assumption. Implement the smallest
+exact-history signature supported by the actual partition; duplicate ancestry
+signatures refuse. Then trial Remove/revert, followed by SRF-011 Boundary Fill.
+The five-body precursor's bottomZ=−4 does not meet the exteriorZ=0 boundary;
+final closure needs a declared, verified bottom geometry choice, not a body-count
+assertion. TUT-018 remains open, including final full movie/model/solid export.
 
 REL-028/#460 is independently accepted at `91add7c` (test correction `c3a6f1e`, metadata correction `3af41a1`):
 exact source/session reuse avoids duplicate final Loft evaluation while retaining
@@ -73,11 +81,6 @@ non-tail downstream validation and authoritative commit. Same-fixture edit
 opening40.319→5.226s; another owner-context session8.481s, repeated previews
 118–247ms. Native tail/non-tail/source-stale checks and25-call API pass. See
 [receipt](validation/loft-edit-prefix-reuse.md). Remaining cold cost is explicit.
-SRF-016 is returned to Todo behind SRF-020; then SRF-011 Boundary Fill follows.
-Same active exteriorcomponent owns bridge and later sheets. External public
-frames and closure contract now include observed two tool bodies and explicit
-Boundary Fill New Body/Remove Tools toggle. The earlier curved Trim plan's
-compound-as-target assumption is marked superseded. TUT-018 remains open.
 No new package/CI run; Windows/Linux runtime testing remains external.
 
 ## Timeline visual polish (2026-10-15)

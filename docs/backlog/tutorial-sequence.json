@@ -113,7 +113,7 @@
       ],
       "acceptance": "Correct exterior topology and complete retained handle/solid workflow.",
       "status": "todo",
-      "remaining": "SRF-017 actual mirrored-spline exterior and retained bilateral Trim accepted at fc3ba9c; SKT-092 Mirror accepted. REL-026 warm Trim reuse accepted at 499d580/e90e1a4. SRF-015 actual handle bridge/New Body is independently accepted, including native active-owner selection. SRF-020 separate profile extrusion bodies now precedes SRF-016 crossing-sheet trials/revert and SRF-011 Boundary Fill; prepared source coordinates/contact choices stay qualified."
+      "remaining": "SRF-017 actual mirrored-spline exterior and retained bilateral Trim accepted at fc3ba9c; SKT-092 Mirror accepted. REL-026 warm Trim reuse accepted at 499d580/e90e1a4. SRF-015 actual handle bridge/New Body is independently accepted, including native active-owner selection. SRF-020 separate profile extrusion bodies accepted; next SRF-016 crossing-sheet trials/revert and SRF-011 Boundary Fill; prepared source coordinates/contact choices stay qualified."
     },
     {
       "id": "READY-07",
@@ -301,7 +301,7 @@
       ],
       "acceptance": "Creation movie including declared sketch setup, editable surfaces/final solid, silhouette and handle comparisons against public images, upstream edits/history/reopen and checked solid/mesh outputs. Prepared-sketch adaptation remains labeled.",
       "status": "todo",
-      "remaining": "SRF-017 actual mirrored-spline exterior and retained bilateral Trim accepted at fc3ba9c; SKT-092 Mirror accepted. REL-026 warm Trim reuse accepted at 499d580/e90e1a4. SRF-015 actual handle bridge/New Body is independently accepted, including native active-owner selection. SRF-020 separate profile extrusion bodies now precedes SRF-016 crossing-sheet trials/revert and SRF-011 Boundary Fill; prepared source coordinates/contact choices stay qualified."
+      "remaining": "SRF-017 actual mirrored-spline exterior and retained bilateral Trim accepted at fc3ba9c; SKT-092 Mirror accepted. REL-026 warm Trim reuse accepted at 499d580/e90e1a4. SRF-015 actual handle bridge/New Body is independently accepted, including native active-owner selection. SRF-020 separate profile extrusion bodies accepted; next SRF-016 crossing-sheet trials/revert and SRF-011 Boundary Fill; prepared source coordinates/contact choices stay qualified."
     },
     {
       "id": "CP-24",
