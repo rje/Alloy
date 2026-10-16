@@ -8,6 +8,7 @@ struct SurfaceTrimRegion {
     TopoDS_Face face;
     double areaMm2 = 0;
     QString side; // Sheet-tool classification; never presented as sketch inside/outside.
+    QString signature; // Exact boundary ancestry for qualified curved-sheet regions.
     bool removable() const { return inside || !side.isEmpty(); }
 };
 

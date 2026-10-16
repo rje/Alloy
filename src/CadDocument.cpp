@@ -2459,8 +2459,11 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
                 if(feature.contains("bodyId") || p.size()!=4 || !validId(p["targetBodyId"].toString())
                     || !validId(p["toolBodyId"].toString()) || p["toolBodyId"]==p["targetBodyId"]
                     || p["projectionMode"]!="surfaceIntersection" || !p["removedRegionIds"].isArray()
-                    || p["removedRegionIds"].toArray().size()!=1 || !validId(p["removedRegionIds"].toArray()[0].toString()))
-                    return "Planar crossing-sheet Trim requires distinct target/tool body IDs and one removed region";
+                    || p["removedRegionIds"].toArray().isEmpty())
+                    return "Crossing-sheet Trim requires distinct target/tool body IDs and explicit removed regions";
+                QSet<QString> chosen;for(const auto& value:p["removedRegionIds"].toArray()){
+                    if(!value.isString() || !validId(value.toString()) || chosen.contains(value.toString()))
+                        return "Surface Trim region IDs must be distinct retained UUIDs";chosen.insert(value.toString());}
                 continue;
             }
             if(feature.contains("bodyId") || p.size()!=8 || !validId(p["targetBodyId"].toString())

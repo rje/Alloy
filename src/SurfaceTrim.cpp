@@ -165,13 +165,110 @@ SurfaceTrimSplit splitPlanarSheet(const QJsonObject& feature,const EvaluatedBody
     for(const auto& edge:named)result.edges.push_back({edge.id,edge.edge,edge.provenance});
     return result;
 }
+
+// Finite sheet intersection. Identity comes from exact builder history and
+// uniquely qualified boundary ancestry; ambiguous branch patterns refuse.
+SurfaceTrimSplit splitCurvedSheet(const QJsonObject& feature,const EvaluatedBody& target,
+    const EvaluatedDocument& prior){
+    const auto id=feature.value("id").toString(),toolId=feature.value("parameters").toObject().value("toolBodyId").toString();
+    auto reject=[&](const QString& code,const QString& message){throw GeometryKernel::EvaluationError({
+        {"featureId",id},{"featureType","surfaceTrim"},{"targetBodyId",target.bodyId},
+        {"toolBodyId",toolId},{"code",code},{"message",message}});};
+    const EvaluatedBody* tool=nullptr;for(const auto& b:prior.bodies)if(b.bodyId==toolId)tool=&b;
+    if(!tool || tool==&target || toolId==target.bodyId)reject("trim_tool_unavailable","Select a distinct earlier sheet tool");
+    auto qualify=[&](const EvaluatedBody& body){
+        if(body.shape.IsNull() || body.summary.value("type")!="surface" || !body.occurrenceId.isEmpty()
+            || body.summary.value("topology").toObject().value("solids").toInt()!=0
+            || body.supportFaces.empty() || !BRepCheck_Analyzer(body.shape).IsValid())
+            reject("trim_sheet_unsupported","Select valid local named open sheets");
+        TopTools_IndexedMapOfShape faces,edges;TopExp::MapShapes(body.shape,TopAbs_FACE,faces);TopExp::MapShapes(body.shape,TopAbs_EDGE,edges);
+        QSet<QString> ids;TopTools_IndexedMapOfShape named;
+        for(const auto& f:body.supportFaces){if(f.faceId.isEmpty() || ids.contains(f.faceId) || !faces.Contains(f.face) || named.Contains(f.face))
+                reject("trim_lineage_ambiguous","Every current sheet face needs one retained identity");ids.insert(f.faceId);named.Add(f.face);}
+        if(named.Extent()!=faces.Extent())reject("trim_lineage_ambiguous","A sheet face lacks retained ancestry");
+        ids.clear();named.Clear();for(const auto& e:body.solidEdges){if(e.edgeId.isEmpty() || ids.contains(e.edgeId) || !edges.Contains(e.edge) || named.Contains(e.edge))
+                reject("trim_lineage_ambiguous","Every ordinary sheet edge needs one retained identity");ids.insert(e.edgeId);named.Add(e.edge);}
+        for(int i=1;i<=edges.Extent();++i)if(!BRep_Tool::Degenerated(TopoDS::Edge(edges(i))) && !named.Contains(edges(i)))
+            reject("trim_lineage_ambiguous","A sheet boundary lacks retained ancestry");
+    };
+    qualify(target);qualify(*tool);
+    // Current supported tools are authored Surface Extrude outputs, including
+    // connected multi-face profiles. Never silently reinterpret a sketch prism.
+    for(const auto& f:tool->supportFaces)if(f.role!="surfaceExtrude.sheet" || f.provenance.value("lineage")!="surfacePrismBuilder")
+        reject("trim_tool_unsupported","Select an earlier Surface Extrude sheet output");
+    BRepAlgoAPI_Splitter splitter;TopTools_ListOfShape objects,tools;objects.Append(target.shape);tools.Append(tool->shape);
+    splitter.SetArguments(objects);splitter.SetTools(tools);splitter.SetNonDestructive(true);splitter.Build();
+    if(!splitter.IsDone() || splitter.HasErrors() || !BRepCheck_Analyzer(splitter.Shape()).IsValid())
+        reject("trim_split_failed","OCCT could not partition the finite crossing sheets");
+    TopTools_IndexedMapOfShape faces,edges;TopExp::MapShapes(splitter.Shape(),TopAbs_FACE,faces);TopExp::MapShapes(splitter.Shape(),TopAbs_EDGE,edges);
+    auto member=[](const TopoDS_Shape& parent,const TopoDS_Shape& child){return parent.IsSame(child) || contains(parent,child);};
+    auto modified=[&](const TopoDS_Shape& source,const TopoDS_Shape& current){
+        if(source.IsSame(current))return true;for(const auto& shape:splitter.Modified(source))if(shape.IsSame(current))return true;return false;};
+    auto generated=[&](const TopoDS_Shape& source,const TopoDS_Shape& edge){
+        for(const auto& shape:splitter.Generated(source))if(member(shape,edge))return true;return false;};
+    auto canonical=[](QStringList ids){ids.removeDuplicates();std::sort(ids.begin(),ids.end());return ids.join('/');};
+    SurfaceTrimSplit result;result.splitShape=splitter.Shape();
+    result.projection={{"mode","surfaceIntersection"},{"toolBodyId",toolId},{"classification","boundaryAncestry"}};
+    std::vector<const EvaluatedSupportFace*> sources;QSet<QString> signatures;bool partitioned=false;
+    for(int i=1;i<=faces.Extent();++i){const auto face=TopoDS::Face(faces(i));const EvaluatedSupportFace* source=nullptr;
+        for(const auto& f:target.supportFaces)if(modified(f.face,face)){if(source)reject("trim_lineage_ambiguous","A region has competing source faces");source=&f;}
+        if(!source)reject("trim_lineage_ambiguous","A region has no exact source face history");
+        QStringList originalEdges,toolFaces;
+        for(const auto& e:target.solidEdges){bool found=false;for(TopExp_Explorer x(face,TopAbs_EDGE);x.More();x.Next())if(modified(e.edge,x.Current()))found=true;
+            if(found)originalEdges.append(e.edgeId);}
+        for(const auto& f:tool->supportFaces){bool found=false;for(TopExp_Explorer x(face,TopAbs_EDGE);x.More();x.Next())if(generated(f.face,x.Current()))found=true;
+            if(found)toolFaces.append(f.faceId);}
+        int descendants=0;for(int j=1;j<=faces.Extent();++j)if(modified(source->face,faces(j)))++descendants;
+        const bool changed=descendants>1;partitioned|=changed;
+        // A lone modified descendant is an imprint/slit, not a removable portion.
+        if(!changed && !face.IsSame(source->face))reject("trim_region_ambiguous","The finite tool imprints a face without separating removable portions");
+        const QString signature=source->faceId+"/sourceEdges/"+canonical(originalEdges)+"/toolFaces/"+canonical(toolFaces);
+        if(signatures.contains(signature))reject("trim_lineage_ambiguous","Split regions have duplicate boundary ancestry signatures");signatures.insert(signature);
+        const auto regionId=changed?stableId(id,signature.toUtf8()):source->faceId;
+        result.regions.push_back({regionId,source->faceId,false,face,area(face),changed?QString("portion"):QString(),signature});
+        sources.push_back(source);
+    }
+    if(!partitioned)reject("trim_region_ambiguous","The finite tool does not separate any removable portions");
+    std::vector<NamedEdge> named;QSet<QString> edgeIds;
+    auto adjacent=[&](const TopoDS_Edge& edge){QStringList ids;for(const auto& r:result.regions)if(contains(r.face,edge))ids.append(r.regionId);return canonical(ids);};
+    for(int i=1;i<=edges.Extent();++i){const auto edge=TopoDS::Edge(edges(i));if(BRep_Tool::Degenerated(edge))continue;
+        const EvaluatedSolidEdge* original=nullptr;for(const auto& e:target.solidEdges)if(modified(e.edge,edge)){
+            if(original)reject("trim_lineage_ambiguous","A boundary has competing source edge history");original=&e;}
+        QString edgeId;QJsonObject provenance;
+        if(original){int descendants=0;for(int j=1;j<=edges.Extent();++j)if(modified(original->edge,edges(j)))++descendants;
+            edgeId=descendants==1?original->edgeId:stableId(id,(original->edgeId+"/regions/"+adjacent(edge)).toUtf8());
+            provenance=original->provenance;if(!edge.IsSame(original->edge))provenance["trimModifierFeatureId"]=id;
+        }else{QStringList sourceFaces,toolFaces;
+            for(const auto& f:target.supportFaces)if(generated(f.face,edge))sourceFaces.append(f.faceId);
+            for(const auto& f:tool->supportFaces)if(generated(f.face,edge))toolFaces.append(f.faceId);
+            if(sourceFaces.size()!=1 || toolFaces.size()!=1 || length(edge)<mmTolerance)
+                reject("trim_lineage_ambiguous","An intersection boundary lacks unique exact source/tool history");
+            // Multiple branches for one face pair are distinguished only by
+            // their already unique adjacent region identities, never position.
+            edgeId=stableId(id,(sourceFaces[0]+"/intersection/"+toolFaces[0]+"/regions/"+adjacent(edge)).toUtf8());
+            provenance={{"generatorFeatureId",id},{"sourceFaceId",sourceFaces[0]},{"toolBodyId",toolId},
+                {"toolFaceId",toolFaces[0]},{"role","trimBoundary"},{"lineage","splitterSurfaceIntersection"}};
+        }
+        if(edgeIds.contains(edgeId))reject("trim_lineage_ambiguous","Split boundaries have duplicate ancestry signatures");edgeIds.insert(edgeId);
+        named.push_back({edgeId,edge,provenance});
+    }
+    for(size_t i=0;i<result.regions.size();++i){const auto& region=result.regions[i];const auto& source=*sources[i];
+        auto support=source;support.face=region.face;support.boundaryEdges.clear();
+        if(!region.side.isEmpty()){support.faceId=region.regionId;support.producerFeatureId=id;support.role="surfaceTrim.portion";
+            support.provenance={{"sourceFaceId",source.faceId},{"toolBodyId",toolId},{"lineage","splitterSurfaceIntersection"},{"regionSignature",region.signature}};}
+        for(const auto& e:named)if(contains(region.face,e.edge))support.boundaryEdges.push_back({e.id,"curve",e.edge,e.provenance});
+        result.faces.push_back(std::move(support));
+    }
+    for(const auto& e:named)result.edges.push_back({e.id,e.edge,e.provenance});
+    return result;
+}
 }
 
 QJsonArray SurfaceTrim::descriptors(const SurfaceTrimSplit& split){
     QJsonArray result;
     for(const auto& region:split.regions)result.append(QJsonObject{{"regionId",region.regionId},
-        {"sourceFaceId",region.sourceFaceId},{"inside",region.inside},{"removable",region.removable()},
-        {"side",region.side},{"areaMm2",region.areaMm2}});
+        {"sourceFaceId",region.sourceFaceId},{"bodyId",split.faces[result.size()].bodyId},{"inside",region.inside},{"removable",region.removable()},
+        {"side",region.side},{"signature",region.signature},{"areaMm2",region.areaMm2}});
     return result;
 }
 
@@ -181,7 +278,13 @@ SurfaceTrimSplit SurfaceTrim::split(const QJsonObject& feature,const EvaluatedBo
     auto reject=[&](const QString& code,const QString& message){throw GeometryKernel::EvaluationError({
         {"featureId",featureId},{"featureType","surfaceTrim"},{"targetBodyId",target.bodyId},
         {"code",code},{"message",message}});};
-    if(p.contains("toolBodyId"))return splitPlanarSheet(feature,target,prior);
+    if(p.contains("toolBodyId")){
+        // Preserve the qualified planar ingredient, including its refusals.
+        if(target.supportFaces.size()==1 && target.supportFaces[0].role=="surfaceExtrude.sheet"
+            && BRepAdaptor_Surface(target.supportFaces[0].face).GetType()==GeomAbs_Plane)
+            return splitPlanarSheet(feature,target,prior);
+        return splitCurvedSheet(feature,target,prior);
+    }
     if(target.shape.IsNull() || target.summary["type"]!="surface" ||
         target.summary["topology"].toObject()["solids"].toInt()!=0 || target.supportFaces.size()!=2 ||
         !target.occurrenceId.isEmpty())reject("trim_target_unsupported","Select one local two-face open rail sheet");
@@ -361,9 +464,10 @@ void SurfaceTrim::evaluate(EvaluatedBody& target,const QJsonObject& feature,cons
 void SurfaceTrim::applySelection(EvaluatedBody& target,const QJsonObject& feature,const SurfaceTrimSplit& splitResult){
     const auto parameters=feature["parameters"].toObject();
     const auto removed=parameters["removedRegionIds"].toArray();
-    if(removed.isEmpty() || removed.size()>(parameters.contains("toolBodyId")?1:2))throw GeometryKernel::EvaluationError({
+    if(removed.isEmpty() || (!parameters.contains("toolBodyId") && removed.size()>2)
+        || (splitResult.projection.value("normal").isArray() && removed.size()!=1))throw GeometryKernel::EvaluationError({
         {"featureId",feature["id"]},{"code","trim_region_required"},
-        {"message","Select one or two inner regions to remove"}});
+        {"message","Select explicit current portions to remove"}});
     QSet<QString> chosen;for(const auto& value:removed)chosen.insert(value.toString());
     if(chosen.size()!=removed.size())throw GeometryKernel::EvaluationError({
         {"featureId",feature["id"]},{"code","trim_region_duplicate"},{"message","Select each region once"}});
@@ -372,14 +476,14 @@ void SurfaceTrim::applySelection(EvaluatedBody& target,const QJsonObject& featur
     for(size_t i=0;i<splitResult.regions.size();++i){const auto& region=splitResult.regions[i];
         if(chosen.contains(region.regionId)){
             if(!region.removable())throw GeometryKernel::EvaluationError({{"featureId",feature["id"]},
-                {"code","trim_region_unsupported"},{"message","This bounded Trim removes inner regions only"}});
+                {"code","trim_region_unsupported"},{"message","Select a removable split portion"}});
             chosen.remove(region.regionId);continue;}
         builder.Add(kept,region.face);supports.push_back(splitResult.faces[i]);
     }
     if(!chosen.isEmpty())throw GeometryKernel::EvaluationError({{"featureId",feature["id"]},
         {"code","trim_region_unavailable"},{"message","Selected region no longer matches the current split"}});
     auto summary=GeometryKernel::summarize(kept);
-    if(!summary["valid"].toBool() || summary["topology"].toObject()["solids"].toInt()!=0 ||
+    if(supports.empty() || !summary["valid"].toBool() || summary["topology"].toObject()["solids"].toInt()!=0 ||
         summary["topology"].toObject()["faces"].toInt()!=int(supports.size()))
         throw GeometryKernel::EvaluationError({{"featureId",feature["id"]},
             {"code","trim_invalid_result"},{"message","Trim must leave a valid open sheet"}});

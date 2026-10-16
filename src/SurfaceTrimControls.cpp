@@ -13,6 +13,7 @@
 #include <QSignalBlocker>
 #include <QMap>
 #include <cmath>
+#include <algorithm>
 
 namespace {
 QJsonObject failure(const QString& code,const QString& message){return {{"ok",false},{"error",QJsonObject{{"code",code},{"message",message}}}};}
@@ -83,18 +84,18 @@ QJsonObject AlloyWindow::beginSurfaceTrim(const QJsonObject& overrides){
         QString unique;
         for(const auto& body:document_->bodies())if(body.summary["type"]=="surface" &&
             body.summary["topology"].toObject()["solids"].toInt()==0 && body.supportFaces.size()==2 && body.occurrenceId.isEmpty()){
-            if(!unique.isEmpty())return failure("trim_target_ambiguous","Choose the surface body before Trim; more than one is available");
+            if(!unique.isEmpty()){unique.clear();break;}
             unique=body.bodyId;
         }
-        if(unique.isEmpty())return failure("trim_target_required","Trim needs one current local two-face open sheet");
-        inputs["targetBodyId"]=unique;
+        if(!unique.isEmpty())inputs["targetBodyId"]=unique;
     }
     const auto error=validateArguments(*findCommand("surface.trimDialog"),inputs);
     if(!error.isEmpty())return failure("invalid_arguments",error);
     session_={{"id",CadDocument::newId()},{"command","surface.trim"},{"status","active"},
         {"inputs",inputs},{"newFeatureId",CadDocument::newId()},
         {"baseDocumentRevision",static_cast<qint64>(document_->revision())},{"previewed",false},
-        {"selectionRole",(inputs.value("toolEntityIds").toArray().size()==2 || !inputs.value("toolBodyId").toString().isEmpty())?"region":"tool"},
+        {"selectionRole",(inputs.value("toolEntityIds").toArray().size()==2 || !inputs.value("toolBodyId").toString().isEmpty())
+            ?(inputs.value("targetBodyId").toString().isEmpty()?"target":"region"):"tool"},
         {"inputSchema",findCommand("surface.trim")->parameters}};
     showSurfaceTrim();previewSurfaceTrim();view_->setFocus(Qt::OtherFocusReason);return session_;
 }
@@ -112,6 +113,9 @@ QJsonObject AlloyWindow::previewSurfaceTrim(){
         return response;
     };
     if(surfaceTrimDock_){
+        if(auto* label=surfaceTrimDock_->findChild<QLabel*>("surfaceTrim.target")){
+            QString name;for(const auto& b:document_->bodies())if(b.bodyId==inputs.value("targetBodyId"))name=b.name;
+            label->setText(name.isEmpty()?"Select target surface":name);label->setToolTip(inputs.value("targetBodyId").toString());}
         if(auto* list=surfaceTrimDock_->findChild<QListWidget*>("surfaceTrim.tools")){
             const QSignalBlocker block(list);list->clear();
             QJsonObject source;
@@ -153,7 +157,9 @@ QJsonObject AlloyWindow::previewSurfaceTrim(){
     if(!edit.isEmpty())view_->setBodyStage(stage.bodies,"surface-trim-source:"+session_["id"].toString());
     if(inputs.contains("toolBodyId") ? inputs["toolBodyId"].toString().isEmpty()
         : (inputs["toolEntityIds"].toArray().size()!=2 || inputs["toolSketchId"].toString().isEmpty()))
-        return reject("trim_tool_required","Select one crossing planar sheet tool or two connected fit splines, then pick regions");
+        return reject("trim_tool_required","Select one crossing sheet tool or two connected fit splines, then pick a target region");
+    if(inputs.value("targetBodyId").toString().isEmpty())
+        return reject("trim_target_required","Click the target surface portion");
     QJsonObject candidate;try{
         auto args=inputs;args["removedRegionIds"]=QJsonArray{CadDocument::newId()};
         candidate=surfaceTrimCandidate(args);
@@ -163,7 +169,7 @@ QJsonObject AlloyWindow::previewSurfaceTrim(){
     const auto bodyId=inputs["targetBodyId"].toString();
     const EvaluatedBody* target=nullptr;
     for(const auto& body:stage.bodies)if(body.bodyId==bodyId){target=&body;break;}
-    if(!target)return reject("trim_target_required","Select one current two-face surface body");
+    if(!target)return reject("trim_target_required","Select one current local surface body");
     try{
         const bool reused=bool(surfaceTrimPartition_);
         if(!reused){
@@ -173,7 +179,7 @@ QJsonObject AlloyWindow::previewSurfaceTrim(){
         }
         session_["partitionReused"]=reused;
         const auto& split=surfaceTrimPartition_->split;
-        auto staged=*target;staged.shape=split.splitShape;staged.supportFaces=split.faces;
+        auto staged=*target;staged.shape=split.splitShape;staged.supportFaces=split.faces;staged.solidEdges=split.edges;
         surfaceTrimPickBodies_.push_back(std::move(staged));
         const auto regionRows=SurfaceTrim::descriptors(split);session_["regions"]=regionRows;
         if(surfaceTrimDock_)if(auto* list=surfaceTrimDock_->findChild<QListWidget*>("surfaceTrim.regions")){
@@ -181,17 +187,18 @@ QJsonObject AlloyWindow::previewSurfaceTrim(){
             for(const auto& row:regionRows){const auto item=row.toObject();
                 if(item["removable"].toBool()){
                     ++regionIndex;
-                    list->addItem(QString("%1 region · %2 mm² · %3").arg(item["side"].toString().isEmpty()?QString("Inner %1").arg(regionIndex):item["side"].toString())
+                    list->addItem(QString("%1 region · %2 mm² · %3").arg(item["side"].toString().isEmpty()?QString("Inner %1").arg(regionIndex):item["side"]=="portion"?QString("Portion %1").arg(regionIndex):item["side"].toString())
                         .arg(item["areaMm2"].toDouble(),0,'f',2)
                         .arg(inputs["removedRegionIds"].toArray().contains(item["regionId"])?"remove":"keep"));
                     list->item(list->count()-1)->setToolTip(item["regionId"].toString());
+                    list->item(list->count()-1)->setData(Qt::UserRole,item["regionId"]);
                 }
             }
         }
         const auto selected=inputs["removedRegionIds"].toArray();
         std::vector<TopoDS_Face> removed;
         for(const auto& region:split.regions)if(selected.contains(region.regionId)){
-            if(!region.removable())return reject("trim_region_unsupported","Only inner regions can be removed");
+            if(!region.removable())return reject("trim_region_unsupported","Select a removable split portion");
             removed.push_back(region.face);
         }
         view_->showSurfaceTrimPreview(split.splitShape,bodyId,removed);
@@ -231,7 +238,7 @@ QJsonObject AlloyWindow::selectSurfaceTrimEntity(const QString& sketchId,const Q
     else {if(ids.size()==2)return failure("trim_tool_limit","Select exactly two connected fit splines");ids.append(entityId);}
     inputs.remove("toolBodyId");
     inputs["toolSketchId"]=sketchId;inputs["toolEntityIds"]=ids;inputs["removedRegionIds"]=QJsonArray{};
-    session_["inputs"]=inputs;session_["selectionRole"]=ids.size()==2?"region":"tool";
+    session_["inputs"]=inputs;session_["selectionRole"]=ids.size()==2?(inputs.value("targetBodyId").toString().isEmpty()?"target":"region"):"tool";
     previewSurfaceTrim();return QJsonObject{{"toolSketchId",sketchId},{"toolEntityIds",ids},
         {"selectionRole",session_["selectionRole"]},{"previewError",session_.value("previewError")}};
 }
@@ -243,10 +250,25 @@ QJsonObject AlloyWindow::selectSurfaceTrimBody(const QString& bodyId){
     const auto& stage=surfaceTrimSourceStage();
     bool found=false;for(const auto& body:stage.bodies)if(body.bodyId==bodyId && body.visible
         && body.occurrenceId.isEmpty() && bodyId!=inputs["targetBodyId"].toString()
-        && body.supportFaces.size()==1 && body.summary["type"]=="surface")found=true;
-    if(!found)return failure("trim_tool_unavailable","Select a distinct visible earlier planar sheet tool");
+        && !body.supportFaces.empty() && body.summary["type"]=="surface"
+        && std::all_of(body.supportFaces.begin(),body.supportFaces.end(),[](const auto& f){return f.role=="surfaceExtrude.sheet";}))found=true;
+    if(!found)return failure("trim_tool_unavailable","Select a distinct visible earlier Surface Extrude sheet tool");
     inputs.remove("toolSketchId");inputs["toolEntityIds"]=QJsonArray{};inputs["toolBodyId"]=bodyId;
-    inputs["removedRegionIds"]=QJsonArray{};session_["inputs"]=inputs;session_["selectionRole"]="region";
+    inputs["removedRegionIds"]=QJsonArray{};session_["inputs"]=inputs;session_["selectionRole"]=inputs.value("targetBodyId").toString().isEmpty()?"target":"region";
+    previewSurfaceTrim();return session_;
+}
+
+QJsonObject AlloyWindow::selectSurfaceTrimTarget(const QString& bodyId){
+    if(session_["command"]!="surface.trim")return failure("invalid_session","Start Trim first");
+    if(session_["baseDocumentRevision"].toInteger()!=static_cast<qint64>(document_->revision()))return previewSurfaceTrim();
+    auto inputs=session_.value("inputs").toObject();const auto& stage=surfaceTrimSourceStage();
+    const EvaluatedBody* target=nullptr;const EvaluatedBody* tool=nullptr;
+    for(const auto& b:stage.bodies){if(b.bodyId==bodyId)target=&b;if(b.bodyId==inputs.value("toolBodyId"))tool=&b;}
+    if(!target || !target->visible || !target->occurrenceId.isEmpty() || target->summary.value("type")!="surface"
+        || target->bodyId==inputs.value("toolBodyId"))return failure("trim_target_required","Select a distinct visible local target surface");
+    if(tool && tool->ownerId!=target->ownerId)return failure("cross_component_dependency","Tool and target must share a modeling owner");
+    inputs["targetBodyId"]=bodyId;inputs["removedRegionIds"]=QJsonArray{};session_["inputs"]=inputs;
+    session_["selectionRole"]=(tool || inputs.value("toolEntityIds").toArray().size()==2)?"region":"tool";
     previewSurfaceTrim();return session_;
 }
 
@@ -257,16 +279,36 @@ QJsonObject AlloyWindow::selectSurfaceTrimRegion(const QString& id){
     if(!found)return failure("trim_region_unavailable","Pick a current removable region of the split sheet");
     auto inputs=session_["inputs"].toObject();auto ids=inputs["removedRegionIds"].toArray();
     if(ids.contains(id)){for(int i=0;i<ids.size();++i)if(ids[i]==id){ids.removeAt(i);break;}}
-    else {if(inputs.contains("toolBodyId"))ids=QJsonArray{};ids.append(id);}inputs["removedRegionIds"]=ids;session_["inputs"]=inputs;
+    else {if(surfaceTrimPartition_ && surfaceTrimPartition_->split.projection.value("normal").isArray())ids=QJsonArray{};ids.append(id);}inputs["removedRegionIds"]=ids;session_["inputs"]=inputs;
     previewSurfaceTrim();return QJsonObject{{"removedRegionIds",ids},{"previewed",session_["previewed"]},
         {"previewError",session_.value("previewError")}};
 }
 
 QJsonObject AlloyWindow::pickSurfaceTrim(double x,double y){
     if(session_["baseDocumentRevision"].toInteger()!=static_cast<qint64>(document_->revision()))return previewSurfaceTrim();
+    if(session_["selectionRole"]=="target"){
+        std::vector<EvaluatedBody> candidates;const auto inputs=session_.value("inputs").toObject();
+        for(const auto& b:surfaceTrimSourceStage().bodies)if(b.visible && b.occurrenceId.isEmpty()
+            && b.summary.value("type")=="surface" && b.bodyId!=inputs.value("toolBodyId"))candidates.push_back(b);
+        const auto hit=view_->pickSupportFace(x,y,candidates);
+        if(hit.isEmpty())return failure("trim_target_required","Click the target surface portion");
+        const auto bound=selectSurfaceTrimTarget(hit.value("bodyId").toString());
+        if(!bound.value("ok").toBool(true))return bound;
+        // Reuse the same real hit against the newly partitioned target.
+        if(session_.value("regions").toArray().isEmpty())return session_;
+        const auto boundary=view_->pickSolidEdge(x,y,surfaceTrimPickBodies_);
+        if(!boundary.isEmpty() && boundary.value("distancePx").toDouble()<2)
+            return failure("ambiguous_trim_region","Click inside a portion, away from its boundary");
+        const auto region=view_->pickSupportFace(x,y,surfaceTrimPickBodies_);
+        if(region.isEmpty())return failure("trim_region_required","Pick a removable split portion");
+        return selectSurfaceTrimRegion(region.value("faceId").toString());
+    }
     if(session_["selectionRole"]=="region"){
+        const auto boundary=view_->pickSolidEdge(x,y,surfaceTrimPickBodies_);
+        if(!boundary.isEmpty() && boundary.value("distancePx").toDouble()<2)
+            return failure("ambiguous_trim_region","Click inside a portion, away from its boundary");
         const auto hit=view_->pickSupportFace(x,y,surfaceTrimPickBodies_);
-        if(hit.isEmpty())return failure("trim_region_required","Click an inner split-surface region");
+        if(hit.isEmpty())return failure("trim_region_required","Click a removable portion on the bound target");
         return selectSurfaceTrimRegion(hit["faceId"].toString());
     }
     const auto inputs=session_["inputs"].toObject();
@@ -295,7 +337,7 @@ QJsonObject AlloyWindow::pickSurfaceTrim(double x,double y){
         std::vector<EvaluatedBody> candidates;
         for(const auto& body:stage.bodies)if(body.visible && body.bodyId!=inputs["targetBodyId"] && body.occurrenceId.isEmpty())candidates.push_back(body);
         const auto hit=view_->pickSupportFace(x,y,candidates);
-        if(hit.isEmpty())return failure("trim_tool_required","Click a visible fit spline or crossing planar sheet tool");
+        if(hit.isEmpty())return failure("trim_tool_required","Click a visible fit spline or crossing sheet tool");
         return selectSurfaceTrimBody(hit["bodyId"].toString());
     }
     return selectSurfaceTrimEntity(sketchId,entityId);
@@ -306,10 +348,16 @@ void AlloyWindow::showSurfaceTrim(){
     surfaceTrimDock_=new QDockWidget("Trim",canvasWindow_);surfaceTrimDock_->setObjectName("surfaceTrimDock");
     auto* panel=new QWidget(surfaceTrimDock_);surfaceTrimDock_->setWidget(panel);
     auto* form=new QFormLayout(panel);form->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
-    auto* hint=new QLabel("Select the tool, then click the target region to remove. For sheet tools, select one crossing planar surface body.",panel);
+    auto* hint=new QLabel("Select the tool, then click the target portion to remove. Sheet tools use one earlier Surface Extrude body.",panel);
     hint->setWordWrap(true);form->addRow(hint);
     auto* tools=new QListWidget(panel);tools->setObjectName("surfaceTrim.tools");tools->setMinimumHeight(72);form->addRow("Tools",tools);
+    auto* targetLabel=new QLabel(panel);targetLabel->setObjectName("surfaceTrim.target");form->addRow("Target",targetLabel);
+    auto* changeTarget=new QPushButton("Change Target",panel);form->addRow(changeTarget);
+    connect(changeTarget,&QPushButton::clicked,panel,[this]{auto inputs=session_.value("inputs").toObject();inputs.remove("targetBodyId");
+        inputs["removedRegionIds"]=QJsonArray{};session_["inputs"]=inputs;session_["selectionRole"]="target";previewSurfaceTrim();view_->setFocus(Qt::OtherFocusReason);});
     auto* regions=new QListWidget(panel);regions->setObjectName("surfaceTrim.regions");regions->setMinimumHeight(80);form->addRow("Regions",regions);
+    connect(regions,&QListWidget::itemClicked,panel,[this](QListWidgetItem* item){
+        const auto id=item->data(Qt::UserRole).toString();selectSurfaceTrimRegion(id);view_->setFocus(Qt::OtherFocusReason);});
     auto* change=new QPushButton("Change Tools",panel);form->addRow(change);
     connect(change,&QPushButton::clicked,panel,[this]{auto inputs=session_["inputs"].toObject();inputs.remove("toolSketchId");inputs["toolEntityIds"]=QJsonArray{};
         inputs.remove("toolBodyId");
