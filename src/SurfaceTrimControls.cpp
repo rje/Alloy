@@ -279,7 +279,7 @@ QJsonObject AlloyWindow::selectSurfaceTrimRegion(const QString& id){
     if(!found)return failure("trim_region_unavailable","Pick a current removable region of the split sheet");
     auto inputs=session_["inputs"].toObject();auto ids=inputs["removedRegionIds"].toArray();
     if(ids.contains(id)){for(int i=0;i<ids.size();++i)if(ids[i]==id){ids.removeAt(i);break;}}
-    else {if(surfaceTrimPartition_ && surfaceTrimPartition_->split.projection.value("normal").isArray())ids=QJsonArray{};ids.append(id);}inputs["removedRegionIds"]=ids;session_["inputs"]=inputs;
+    else {if(inputs.contains("toolBodyId") && surfaceTrimPartition_ && surfaceTrimPartition_->split.projection.value("normal").isArray())ids=QJsonArray{};ids.append(id);}inputs["removedRegionIds"]=ids;session_["inputs"]=inputs;
     previewSurfaceTrim();return QJsonObject{{"removedRegionIds",ids},{"previewed",session_["previewed"]},
         {"previewError",session_.value("previewError")}};
 }

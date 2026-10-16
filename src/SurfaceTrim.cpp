@@ -465,7 +465,7 @@ void SurfaceTrim::applySelection(EvaluatedBody& target,const QJsonObject& featur
     const auto parameters=feature["parameters"].toObject();
     const auto removed=parameters["removedRegionIds"].toArray();
     if(removed.isEmpty() || (!parameters.contains("toolBodyId") && removed.size()>2)
-        || (splitResult.projection.value("normal").isArray() && removed.size()!=1))throw GeometryKernel::EvaluationError({
+        || (parameters.contains("toolBodyId") && splitResult.projection.value("normal").isArray() && removed.size()!=1))throw GeometryKernel::EvaluationError({
         {"featureId",feature["id"]},{"code","trim_region_required"},
         {"message","Select explicit current portions to remove"}});
     QSet<QString> chosen;for(const auto& value:removed)chosen.insert(value.toString());

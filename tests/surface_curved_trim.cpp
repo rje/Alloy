@@ -35,7 +35,7 @@ QJsonArray witness(const TopoDS_Face& face){
     throw std::runtime_error("No interior native witness found");
 }
 void iron(const QString& path,const QString& out){
-    CadDocument d;check(d.open(path).isEmpty(),"Open accepted native four-body source");check(d.bodies().size()==4,"Four independent source bodies");
+    CadDocument d;const auto openError=d.open(path);check(openError.isEmpty(),"Open accepted native four-body source: "+openError+" "+QString::fromUtf8(QJsonDocument(d.lastEvaluationError()).toJson(QJsonDocument::Compact)));check(d.bodies().size()==4,"Four independent source bodies");
     const auto before=d.authored();QString targetId,upperId,lowerId,extrudeId,rearSeam,frontSeam,toolSketch;
     for(const auto& b:d.bodies())if(b.supportFaces.size()==2 && b.supportFaces[0].role=="loft.closedSection")targetId=b.bodyId;
     for(const auto& v:before["features"].toArray()){const auto f=v.toObject();if(f["type"]!="surfaceExtrude")continue;extrudeId=f["id"].toString();toolSketch=f["parameters"].toObject()["sketchId"].toString();
