@@ -2,6 +2,14 @@
 
 ## Active user order (2026-10-15)
 
+SRF-011 Boundary Fill is independently accepted (`f8c00b4`, `0ecfd85`):
+actual iron core,62-call API,native3/3 and corrected preview3/3 pass.
+The full TUT-018 recording `complete-01` reached the handle Loft with public
+Canvas references, then hit the client response-size bound in `app.state`.
+REL-029/#467 is active to resolve bulk session inspection without dropping
+references or authored image data. The failed movie/transcript are preserved;
+full TUT-018 acceptance and final gallery publication remain pending.
+
 The actual iron fixture found an on-axis shared spline endpoint omission in
 Mirror creation. The focused correction `c205138` is independently accepted:
 ordered shared IDs, reflected curve, actual iron fixture and22-call API/reopen
@@ -94,11 +102,19 @@ SRF-011 kernel/document and native/API controls are now being implemented in
 parallel. Product closure/edit/native acceptance remains pending.
 SRF-016's core,62-call API and3/3 native checks are independently accepted.
 The from-blank runner caught same-owner sketch Trim admission; SRF-021/#463
-fix `3c7dda8` passes core and actual component-owned lens Trim/handle bridge.
+fix `3c7dda8` is independently accepted through core and actual component-owned
+lens Trim/handle bridge; see [receipt](validation/owner-local-surface-trim.md).
 The next step exposed coincident-point chaining omitted by shared-ID prepared
 fixtures. SRF-022/#464 makes Surface Extrude follow explicit retained Coincident
 endpoint equivalence; no proximity weld or runner reparenting workaround.
-The from-blank runner remains in progress, with failures preserved separately.
+SRF-022 is independently accepted at `30b27d7`/`744217e`; see
+[receipt](validation/coincident-surface-chains.md). Actual from-blank-03 passes
+127calls/16stages through surfaces, corrected closing tools, both Trim trials,
+Remove and exact undo. Source model is saved externally as `iron-surfaces.alloy`.
+The final cumulative runner now includes bottom editing, Boundary Fill and
+checked STL/source editing; these stages await the product build and evidence.
+SRF-023/#465 solid/mixed tools and SRF-024/#466 multiple selected cell outputs
+preserve broader Boundary Fill scope as Todo/GATE-050 dependencies.
 The five-body precursor's bottomZ=−4 does not meet the exteriorZ=0 boundary;
 final closure needs a declared, verified bottom geometry choice, not a body-count
 assertion. TUT-018 remains open, including final full movie/model/solid export.

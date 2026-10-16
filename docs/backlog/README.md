@@ -7,7 +7,7 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current publication contains **464 issues**: **358 implementation, 22 research,
+The current publication contains **467 issues**: **360 implementation, 22 research,
 22 epics, and 62 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 
@@ -20,9 +20,12 @@ movie and checked STL. ASM-012 retains separate physical Browser gesture
 qualification. SRF-017 exterior and bilateral Trim are independently accepted. SRF-015 retained
 handle bridge and REL-026 warm Trim responsiveness are accepted. SRF-020 separate profile extrusion bodies are accepted; SRF-016 curved
 sheet trials are independently accepted. TUT-032 closing-sheet qualification is
-accepted; SRF-011 Boundary Fill is active. SRF-021 fixes owner-local sketch Trim
-and SRF-022 follows coincident endpoint constraints in chain selection, both
-exposed by the from-blank run. Full product closure stays open.
+accepted; SRF-011 Boundary Fill is independently accepted. REL-029 fixes oversized
+canvas-backed session inspection before the full recording resumes. SRF-021 owner-local sketch Trim and
+SRF-022 coincident endpoint chains are independently accepted through the
+127-call from-blank surface/trial workflow. Full product closure stays open.
+SRF-023 solid/mixed tools and SRF-024 multiple selected cells preserve broader
+Boundary Fill scope as Todo children required by GATE-050.
 The broader 2026-10-14 priority follows: [initial-build readiness](../initial-build-readiness.md)
 now leads: navigation, everyday input, presentation, recovery, responsiveness and
 relocatable packages, interleaved with enclosure/shoehorn/surface-iron completion.

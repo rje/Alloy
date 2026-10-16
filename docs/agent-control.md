@@ -1055,3 +1055,29 @@ retain the original single compound `bodyId` and `geometry` response. Editing
 retains the existing mode; no automatic conversion occurs. These separate
 outputs can be addressed as later Trim tools, but curved iron Trim targets and
 final closure remain separate capability gates.
+
+## Boundary Fill from retained surface tools
+
+`surface.boundaryFillDialog {name?}` opens a New Body session with Remove Tools
+initially false. `surface.boundaryFillTool {bodyId}` toggles an existing surface
+body; tool selection does not partition geometry. Explicit
+`surface.boundaryFillSelectCells` computes bounded cells. The session returns
+`cells:[{cellId,cell,geometry,selectionPointMm}]`; `surface.boundaryFillCell
+{cellId}` selects one available cell and previews its material. No available
+cell means no commit. Native tool and cell controls invoke these same commands.
+
+Use `command.update {session,inputs:{name?,removeTools?}}`, then ordinary
+`command.commit` or `command.cancel`. Name, cell selection and Remove Tools reuse
+the immutable partition; `partitionBuildCount` and `partitionReused` expose this.
+Changes to tools or the source document invalidate it. Commit independently
+validates current history. `feature.editDialog` restores retained selections.
+
+Direct `surface.boundaryFill` accepts `operation:"newBody"`, `tools` records
+containing `bodyId` and `producerFeatureId`, a selected `cell` reference and
+`removeTools`. The cell reference records exact contributing source faces;
+coordinates and volume do not identify it. Missing or ambiguous source ancestry
+refuses. The classifier-qualified `selectionPointMm` is a display marker only.
+Authored tool consumption occurs after successful solid construction and remains
+reversible through ordinary history. Tools must belong to the same supported
+local owner. Current scope is surface tools and one selected solid; solid/mixed
+tools and multiple selected outputs remain separate backlog items.

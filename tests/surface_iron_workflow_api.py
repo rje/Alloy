@@ -10,6 +10,26 @@ import time
 from app_harness import application
 
 
+def setup_canvases(call, stage, directory):
+    """Display permitted public references at a declared, non-metric scale."""
+    references = []
+    for kind, plane, view, center in [('side', 'XZ', 'front', (70, 40)),
+                                      ('bottom', 'XY', 'top', (70, 0))]:
+        path = directory / f'{kind}-reference.jpg'
+        call('canvas.set', {'path': str(path), 'planeSource': {'plane': plane},
+            'name': f'Public {kind} photograph', 'widthMm': 160, 'opacity': .8,
+            'centerUMm': center[0], 'centerVMm': center[1]})
+        canvas = call('canvas.inspect')['canvases'][-1]
+        call('view.orientation', {'name': view}); call('view.fit')
+        stage(f'Public {kind} reference; sketch dimensions are independently chosen', f'00-{kind}-reference.png')
+        references.append({'canvasId': canvas['id'], 'path': str(path),
+            'displayWidthMm': 160, 'metricCalibration': False,
+            'creator': 'Kevin Kennedy / Product Design Online'})
+        call('canvas.set', {'canvasId': canvas['id'], 'visible': False})
+    call('view.home')
+    return references
+
+
 def create_surfaces(call, stage):
     def draft():
         return call('app.state')['activeSession']['draftSketch']
@@ -219,7 +239,13 @@ def main():
     p.add_argument('--record-video', type=Path)
     p.add_argument('--through-trials', action='store_true')
     p.add_argument('--complete', action='store_true')
+    p.add_argument('--reference-directory', type=Path)
     a = p.parse_args(); out = a.output.resolve(); out.mkdir(parents=True, exist_ok=True)
+    if a.complete:
+        assert a.reference_directory, 'Complete workflow requires the external public reference directory'
+    if a.reference_directory:
+        a.reference_directory = a.reference_directory.resolve()
+        assert all((a.reference_directory / f'{kind}-reference.jpg').is_file() for kind in ('side', 'bottom'))
     with application(a.app, out, command_timeout=180) as (raw, ledger), ExitStack() as cleanup:
         recording = False; video = {}; stages = []
         def stop():
@@ -246,7 +272,16 @@ def main():
             if capture:
                 raw('capture.screenshot', {'path': str(out / capture)})
         try:
+            references = setup_canvases(call, stage, a.reference_directory) if a.reference_directory else []
             result = create_surfaces(call, stage)
+            result['referenceCanvases'] = references
+            result['adaptations'] = [
+                'Source starts with prepared sketches; dimensions and fit points are independently authored.',
+                'Central ellipse is authored in a separate sketch after opening Trim, before the handle Loft.',
+                'Exterior rail contact uses matching authored coordinates, not retained Project references.',
+                'Public photos are perspective references at display scale, not calibrated metric drawings.',
+                'Trim targets and removed rear regions are declared fixture choices; full source target inventory is unknown.']
+            result['gpu'] = call('app.state')['viewport']['gpu']
             if a.through_trials or a.complete:
                 sheets = create_trial_sheets(call, stage)
                 trim_trials(call, stage, result, sheets)

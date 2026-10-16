@@ -3153,7 +3153,7 @@
       "labels": [
         "area:srf"
       ],
-      "body": "## Scope\nUse selected enclosing solid/surface tools to enumerate and select bounded cells, preview/cancel and create valid solid with persistent input references and explicit consumption/keep policy. Research source semantics before choosing implementation.\n\n## Acceptance criteria\nIron closure has one intended closed cell, retained handle opening and no leaking/unbounded result; source edits and deleted/split cells have explicit stable resolution/refusal.\n- Native controls and local automation use the same authored commands, selections and evaluated geometry. Retain stable references, atomic failures, preview/Cancel where applicable, meaningful edit, undo/redo and save/reopen.\n\n## Proposed verification and evidence\nUse a focused core contract test where useful and a bounded real-entrypoint workflow. Inspect readable native controls, selections, constraint annotations and actual hardware GPU captures. Separate native input, API, geometry, history and visual evidence; independent Astra review before acceptance. Avoid repeating unchanged full workflows.\n\n## Public reference evidence\nPublic tutorial reference `surface-iron` reviewed 2026-10-13; detailed source URLs, instructions, images and uncertainties remain outside Git at knowledge/tutorials/advanced-candidates-2026-10-13.json and the accompanying audit.\n\n## Limits and open questions\nThis task is planned, not accepted. Source qualification must resolve unspecified dimensions and input availability without operating the reference application. Broader parent requirements remain Todo; no silent substitution of source operations.\n\n\n## Explicit staged scope 2026-10-15\nThis active increment qualifies named local surface tools and one explicitly selected New Body cell for the iron workflow. Solid/mixed tools are preserved by SRF-023; multiple selected cell outputs by SRF-024. Both remain dependencies of GATE-050. Do not claim general Boundary Fill coverage when closing this increment.\n"
+      "body": "## Scope\nUse selected enclosing solid/surface tools to enumerate and select bounded cells, preview/cancel and create valid solid with persistent input references and explicit consumption/keep policy. Research source semantics before choosing implementation.\n\n## Acceptance criteria\nIron closure has one intended closed cell, retained handle opening and no leaking/unbounded result; source edits and deleted/split cells have explicit stable resolution/refusal.\n- Native controls and local automation use the same authored commands, selections and evaluated geometry. Retain stable references, atomic failures, preview/Cancel where applicable, meaningful edit, undo/redo and save/reopen.\n\n## Proposed verification and evidence\nUse a focused core contract test where useful and a bounded real-entrypoint workflow. Inspect readable native controls, selections, constraint annotations and actual hardware GPU captures. Separate native input, API, geometry, history and visual evidence; independent Astra review before acceptance. Avoid repeating unchanged full workflows.\n\n## Public reference evidence\nPublic tutorial reference `surface-iron` reviewed 2026-10-13; detailed source URLs, instructions, images and uncertainties remain outside Git at knowledge/tutorials/advanced-candidates-2026-10-13.json and the accompanying audit.\n\n## Limits and open questions\nThis task is planned, not accepted. Source qualification must resolve unspecified dimensions and input availability without operating the reference application. Broader parent requirements remain Todo; no silent substitution of source operations.\n\n\n## Explicit staged scope 2026-10-15\nThis active increment qualifies named local surface tools and one explicitly selected New Body cell for the iron workflow. Solid/mixed tools are preserved by SRF-023; multiple selected cell outputs by SRF-024. Both remain dependencies of GATE-050. Do not claim general Boundary Fill coverage when closing this increment.\n\n\n## Independently accepted 2026-10-15\nIndependently accepted surface-only, one-selected-cell New Body increment: exact source identities, actual iron source edits/history/reopen, 62-call real API, native 3/3 and corrected green-cell/checkbox visual 3/3 pass. See docs/validation/retained-boundary-fill.md and external retained-boundary-fill-01 evidence. SRF-023/#465 solid/mixed tools and SRF-024/#466 multiple outputs remain Todo; cumulative TUT-018 is separate.\n"
     },
     {
       "key": "SRF-012",
@@ -3817,7 +3817,8 @@
         "SKT-092",
         "REL-026",
         "SRF-021",
-        "SRF-022"
+        "SRF-022",
+        "REL-029"
       ],
       "labels": [
         "area:gate"
@@ -7874,6 +7875,18 @@
         "area:srf"
       ],
       "body": "## Preserved scope\nExtend the single explicitly selected New Body cell to multiple explicitly selected bounded cells. Preserve independent output identities across selection/source edits and ordering, ambiguity refusal, history/reopen and tool retention/removal. Native cell checkboxes and API selection must agree; do not silently union cells or choose by enumeration order.\n\n## Acceptance and verification\nUse a small actual retained fixture demonstrating the new behavior, focused core risks and one real-app/native workflow with readable cell selections. Check preview/Cancel, source edits, undo/reopen and actual geometry; independent verification. Do not repeat unchanged iron acceptance.\n\n## Reference and limits\nSplit explicitly from SRF-011 broader selected tools/cells scope on 2026-10-15. Public Boundary Fill source index and detailed evidence remain external in knowledge/tutorials/surface-iron-2026-10-15-public-frames/. Research affected defaults and presentation before implementation. Other operation modes remain part of the broader surface-command roadmap, not covered by single-cell New Body acceptance.\n"
+    },
+    {
+      "key": "REL-029",
+      "title": "Keep detailed session inspection within the local control response contract",
+      "kind": "implementation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P1",
+      "depends_on": [],
+      "labels": [
+        "area:srf"
+      ],
+      "body": "## Problem\nThe complete surface-iron workflow with two public reference canvases reaches a valid handle Loft preview, but the following app.state exceeds the local client bounded response frame. Preserve the failed recording/transcript under complete-01.\n\n## Acceptance\nInspect the actual oversized response and remove accidental duplicate or internal bulk state from public session inspection, or explicitly reconcile the transport contract if the data is required. Preserve authored image data, useful session fields, local bounded transport and shared command authority. Complete the real canvas-backed workflow through this point. Add a focused contract check for the actual cause; do not remove the Canvas steps or silently truncate JSON.\n"
     }
   ]
 }
