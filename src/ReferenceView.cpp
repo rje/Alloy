@@ -2699,6 +2699,11 @@ void ReferenceView::showPreview(const TopoDS_Shape& shape,const QString& replace
     replacePreview(shape,replacedBody,neutral);
     if(!context_.IsNull())context_->UpdateCurrentViewer();
 }
+void ReferenceView::showBoundaryFillPreview(const TopoDS_Shape& cells) {
+    replacePreview(cells,{},true);if(context_.IsNull())return;
+    preview_->SetColor(Quantity_Color(.32,.70,.42,Quantity_TOC_sRGB));
+    preview_->SetTransparency(0.0);context_->Redisplay(preview_,false);context_->UpdateCurrentViewer();
+}
 void ReferenceView::showExtrudePreview(const EvaluatedBody& body,const EvaluatedProfile& profile,double distanceMm,const QJsonArray& sourceProfileIds,const QString& units,double startOffsetMm) {
     replacePreview(body.shape,body.bodyId,false);
     if(context_.IsNull())return;

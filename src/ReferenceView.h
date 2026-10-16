@@ -172,6 +172,7 @@ public:
     void showHolePreview(const EvaluatedBody& result, const TopoDS_Shape& removedMaterial);
     void showSpherePreview(const TopoDS_Shape& tool, bool cut);
     void showPreview(const TopoDS_Shape& shape,const QString& replacedBody = {}, bool neutral = false);
+    void showBoundaryFillPreview(const TopoDS_Shape& cells);
     void showExtrudePreview(const EvaluatedBody& body, const EvaluatedProfile& profile, double distanceMm, const QJsonArray& sourceProfileIds = {}, const QString& units = "mm", double startOffsetMm = 0);
     void showCutPreview(const EvaluatedBody& body, const std::vector<EvaluatedProfile>& profiles, double distanceMm,
         const QJsonArray& sourceProfileIds, const QString& units, double startOffsetMm = 0);
