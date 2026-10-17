@@ -17,7 +17,11 @@ now supports the iron tutorial's retained mirrored outline, guide rail and two
 trimmed handle openings. The [retained handle bridge](docs/validation/surface-handle-bridge.md)
 now passes source edits, native selection and reopening. The
 [curved sheet Trim trials](docs/validation/surface-curved-trim.md) also pass
-sequential cuts, tool Remove and exact undo. Earlier final solid closure and printing mesh checks remain bounded evidence; they do not establish the rejected final silhouette.
+sequential cuts, tool Remove and exact undo. The new
+[corrected iron shape](docs/validation/iron-corrected-shape.md) passes independent
+visual, source-edit, solid, history and export review. Its cumulative creation
+recording and replacement gallery entry remain pending, so TUT-018/TUT-034
+remain open.
 
 [Open fit-spline Mirror](docs/validation/fit-spline-mirror.md) now retains
 reflected points and tangent handles through source/axis edits and reopening.
@@ -57,7 +61,12 @@ now survives source edits, history and reopen. The
 [final-stage enclosure recording](docs/validation/enclosure-rim-fit-stage.md)
 and both halves’ separate STL/STEP exports have passed independent review.
 [Reference-clearance inspection](docs/validation/enclosure-reference-clearance.md)
-found a small connector collision in both halves; whole-board fit remains open.
+found a small connector collision in both halves. The user-approved
+[clearance adaptation](docs/validation/enclosure-connector-clearance.md)
+now measures 0.5 mm to that unchanged nominal connector from each half, with
+zero positive overlap across all 24 reference/half pairs and checked separate
+exports. Source dimension parity, physical fit and the full enclosure tutorial
+remain open.
 
 [Straight-line Extend](docs/validation/sketch-line-extend.md) now previews and
 closes sketch gaps while preserving endpoint identity and constraints. Its

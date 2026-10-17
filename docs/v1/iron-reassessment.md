@@ -82,3 +82,29 @@ mutations. The root owns issue reconciliation and continuation context.
 ## First corrected candidate
 
 The revised long exterior and broad side-panel Trim succeed through the actual app. An explicit horizontal lower-start tangent removes an unintended tiny self-crossing lobe without shrinking the panel. The smaller high tilted ellipse is authored. Adding the third handle-Loft section crashes in OCCT wire compatibility; GEO-023/#471 owns that reproduced defect and blocks TUT-034/#470. Exact checkpoint, crash and replay are in external deliverables/iron-reassessment-2026-10-17/candidate-03-panel-tangent. No corrected bridge, final solid or export is yet accepted.
+
+## Bounded corrected-solid milestone and remaining shape gate
+
+GEO-023 is now fixed. Candidate11 preserves the corrected long exterior,
+large asymmetric panel, high small aperture, connected heel tool and bottom
+sheet, then commits one Boundary Fill cell with Remove Tools. Independent
+review accepts one closed genus-1 solid, exact undo/redo and native reopen,
+one watertight oriented STL component and one valid STEP solid. A rear-web
+material witness and unobstructed aperture ray pass. External evidence is
+`deliverables/iron-reassessment-2026-10-17/candidate-11-connected-solid-trial/`.
+This is a bounded functional milestone, not tutorial shape acceptance.
+
+The remaining material visual mismatch at candidate11 was the broad, rounded plan-view nose.
+Public video frames at 5:20–5:30 show a narrower pointed taper in the modeled
+exterior. The current model reaches 43.37 mm width at 5% of its length, 36.2%
+of maximum width. A single source tip-tangent weight change from 200 to 40 is
+being tested as an engineering hypothesis; the source does not document that
+value. Preserve all landmarks and the mirrored relationship. Admit it only if
+the lower curve avoids lobes/overshoot and the actual exterior visibly narrows
+in matched top/oblique captures. Stop if it fails; file a bounded capability
+issue instead of sweeping dimensions. Candidate12's single 200→40 source edit
+passes this admission, the final shape comparison, meaningful edit, exact
+history/reopen and independent STL/STEP checks. See
+[the milestone receipt](../validation/iron-corrected-shape.md). Cumulative
+creation footage, stage ledger and gallery replacement still precede
+TUT-034/TUT-018 acceptance; no further geometry search is warranted.

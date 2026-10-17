@@ -2,6 +2,9 @@
 
 TUT-029, 2026-10-14. Diagnostic completed; final whole-reference fit does not pass.
 Independently accepted by Astra as bounded blocker evidence.
+The later user-approved [connector-clearance adaptation](enclosure-connector-clearance.md)
+resolves this collision in a new authored variant; the original diagnostic and
+saved model here remain unchanged.
 
 The saved TUT-023 stage model was reopened without authored edits. The existing
 manual enclosure target inspected both valid closed halves against all twelve

@@ -20,6 +20,16 @@ broad rounded one. Source-edit and cumulative recording gates also remain.
 External `deliverables/iron-reassessment-2026-10-17/candidate-11-connected-solid-trial/`
 preserves captures, native model and exports. TUT-034/TUT-018 remain open.
 
+Candidate12 changes only the source lower-profile tip tangent weight 200→40,
+with the opposite side derived by Mirror. Astra independently accepts the
+sharper plan-view nose, full solid, meaningful source edit, exact undo/redo and
+native reopen, watertight genus-1 STL and independent STEP web/aperture
+witnesses. See [the receipt](validation/iron-corrected-shape.md) and external
+`candidate-12-tip-weight40-{admission,solid}/`. Exact source dimensions/camera
+and separate-tool parity remain unknown. No further geometry search is needed;
+the cumulative from-blank recording, stage ledger and gallery replacement are
+the remaining TUT-034/TUT-018 gates.
+
 Finish the current tutorials and prepare a comprehensive web-reviewable v1 plan for dependable 3D-printing creation workflows. TUT-018/#302 is reopened: the user rejects the final iron shape. Prior API/mesh checks prove only the adapted fixture, not visual/tutorial acceptance. Correct the silhouette and sculpted handle against public final tutorial evidence. Full enclosure TUT-016 remains open. The proposed v1 inventory and backlog mapping live in docs/v1; scope is pending user review.
 
 The private proposed-v1 review is published at https://alloy-v1-review.rjevans1.chatgpt.site (REL-030/#469). Versioned docs/v1 includes 150 tool rows and 397 commands cross-checked with runtime discovery. Scope remains pending user review. TUT-034/#470 owns the corrected iron. Its earlier OCCT three-section Loft crash is independently fixed under GEO-023/#471 at b7d88d6; the corrected bridge passes preview, commit, save/reopen and winding checks. Candidate07 also passes a bounded independent panel/bridge shape review. Final rear/underside closure, full silhouette and export remain unaccepted. REL-031 is accepted at e555907: iron hide/show drops from 42–48 s to about 0.34 s by reusing geometry; full geometry edits/reopen remain blocking. See docs/validation/asymmetric-handle-bridge.md and visibility-only-evaluation.md.
