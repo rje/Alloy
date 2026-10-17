@@ -1,19 +1,19 @@
 {
   "schema_version": 1,
   "audit": {
-    "retrieved_at_utc": "2026-10-17T21:04:59Z",
+    "retrieved_at_utc": "2026-10-17T23:16:12Z",
     "repository": "rje/Alloy",
     "source": "GitHub REST issues API via gh; all pages, state=all, pull requests excluded",
     "local_backlog": "docs/backlog/issues.json",
     "local_issue_count": 477,
     "live_issue_count": 477,
     "live_state_counts": {
-      "closed": 326,
-      "open": 151
+      "closed": 327,
+      "open": 150
     },
     "bucket_counts": {
-      "supporting-evidence": 326,
-      "v1-blocker": 46,
+      "supporting-evidence": 327,
+      "v1-blocker": 45,
       "v1-candidate": 56,
       "later-roadmap": 47,
       "needs-review": 2
@@ -22,7 +22,7 @@
     "readiness_result": "Historical ready count below predates reconciliation: 36 ready at original audit.",
     "closed_issue_policy": "Closed issues are supporting evidence only; they do not establish family-wide or cumulative release readiness.",
     "tut018_policy": "Reopened; user-rejected shape is not accepted. TUT-034 owns corrective work.",
-    "reconciled_at": "2026-10-17 after REL-034 Boundary Fill UI-thread stall and recording failure"
+    "reconciled_at": "2026-10-17 after REL-033 independent acceptance; REL-034 remains the measured Boundary Fill UI-thread blocker"
   },
   "issues": [
     {
@@ -43,7 +43,7 @@
     {
       "key": "FND-002",
       "number": 2,
-      "title": "Audit dependency admission and distribution under Alloy\u2019s MIT decision",
+      "title": "Audit dependency admission and distribution under Alloy’s MIT decision",
       "state": "closed",
       "state_observed_at": "2026-10-12T01:44:52Z",
       "kind": "research",
@@ -8852,14 +8852,14 @@
       "key": "REL-033",
       "number": 476,
       "title": "Keep expensive Surface Extrude preview off the UI thread",
-      "state": "open",
-      "state_observed_at": "2026-10-17",
+      "state": "closed",
+      "state_observed_at": "2026-10-17T23:16:12Z",
       "kind": "implementation",
       "category": "runtime performance and recovery",
       "phase": "P4 Initial release",
       "priority": "P0",
-      "proposed_bucket": "v1-blocker",
-      "rationale": "Corrected-iron same-Extrude preview took 119.4 seconds on Qt UI thread; frame recorder also refused the full tutorial clip after a >300-slot gap. Verified nonblocking completion is required before human-ready claim.",
+      "proposed_bucket": "supporting-evidence",
+      "rationale": "Independently accepted bounded Surface Extrude command-session responsiveness at d15f329; real-app preview, navigation, geometry, history and reopen pass. Other modeling operations and cumulative movie remain open.",
       "depends_on": [],
       "url": "https://github.com/rje/Alloy/issues/476"
     },
