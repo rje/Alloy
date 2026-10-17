@@ -1327,6 +1327,56 @@ QString CadDocument::recover(const QJsonObject& authored) {
     return {};
 }
 CadDocument::CandidateEvaluation CadDocument::prepareCandidate(const QJsonObject& candidate) const {
+    // A pure feature-visibility edit changes presentation state only. Keep the
+    // accepted evaluated graph and its exact OCCT/cache identities, updating
+    // visibility by each producer feature rather than its last modifier.
+    if(evaluation_) {
+        auto oldMetadata=authored_,newMetadata=candidate;
+        oldMetadata.remove("features");newMetadata.remove("features");
+        const auto oldFeatures=authored_.value("features").toArray();
+        const auto newFeatures=candidate.value("features").toArray();
+        bool visibilityOnly=oldMetadata==newMetadata && oldFeatures.size()==newFeatures.size();
+        bool visibilityChanged=false;
+        QMap<QString,bool> visibilityByFeature;
+        if(visibilityOnly)for(qsizetype i=0;i<oldFeatures.size();++i) {
+            auto oldFeature=oldFeatures[i].toObject();
+            auto newFeature=newFeatures[i].toObject();
+            const auto id=oldFeature.value("id").toString();
+            if(id.isEmpty() || newFeature.value("id").toString()!=id
+                || !oldFeature.value("visible").isBool() || !newFeature.value("visible").isBool()) {
+                visibilityOnly=false;break;
+            }
+            const bool visible=newFeature.value("visible").toBool();
+            visibilityChanged|=visible!=oldFeature.value("visible").toBool();
+            oldFeature.remove("visible");newFeature.remove("visible");
+            if(oldFeature!=newFeature) {visibilityOnly=false;break;}
+            visibilityByFeature.insert(id,visible);
+        }
+        if(visibilityOnly && visibilityChanged) {
+            std::vector<QString> authoredOrder;
+            authoredOrder.reserve(static_cast<size_t>(oldFeatures.size()));
+            for(const auto& value:oldFeatures)authoredOrder.push_back(value.toObject().value("id").toString());
+            if(evaluation_->featureOrder==authoredOrder) {
+                const auto error=validateStructure(candidate);
+                if(!error.isEmpty()) {
+                    CandidateEvaluation result;result.authored=candidate;result.error=error;
+                    result.diagnostics={{"code","invalid_document"},{"message",error}};return result;
+                }
+                auto updated=std::make_shared<EvaluatedDocument>(*evaluation_);
+                for(auto& body:updated->bodies)if(visibilityByFeature.contains(body.featureId))
+                    body.visible=visibilityByFeature.value(body.featureId);
+                for(auto& sketch:updated->sketches)if(visibilityByFeature.contains(sketch.featureId))
+                    sketch.visible=visibilityByFeature.value(sketch.featureId);
+                for(auto& plane:updated->constructionPlanes)if(visibilityByFeature.contains(plane.featureId))
+                    plane.visible=visibilityByFeature.value(plane.featureId);
+                updated->recompute="visibility_only";
+                CandidateEvaluation result;result.authored=candidate;result.evaluation=std::move(updated);result.ok=true;
+                result.diagnostics={{"code","evaluated"},{"recompute","visibility_only"},
+                    {"featureCount",newFeatures.size()}};
+                return result;
+            }
+        }
+    }
     QMap<QString,QJsonObject> oldFeatures;for(const auto& row:authored_["features"].toArray())oldFeatures[row.toObject()["id"].toString()]=row.toObject();
     for(const auto& row:candidate["features"].toArray()){
         const auto feature=row.toObject(),old=oldFeatures.value(feature["id"].toString());
