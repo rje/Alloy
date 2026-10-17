@@ -178,7 +178,8 @@ that meets the task's quality bar using actual results.
 
 - Use Luna for narrow research extraction, triage, mechanical edits, and small
   implementation tasks with clear contracts. It is not restricted to research.
-- Use GPT-6.1 Sol for broader implementation and multi-step technical work.
+- Use GPT-6.1 Sol at medium reasoning by default for implementation and multi-step
+  technical work (user direction, 2026-10-17). Raise effort only for a concrete need.
 - Use Astra for difficult architecture/geometry and independent feature
   verification, as requested by the user. Do not use it automatically for routine
   implementation or bookkeeping.
