@@ -59,8 +59,11 @@ Boundary Fill cell enumeration now passes independent REL-035/#478 acceptance:
 the saved four-tool Select Cells command submitted in 92 ms, ran 29.79 s in
 the background, preserved exact cell identity and final solid/history/reopen,
 and kept status/pan/GUI heartbeat responsive. See
-[the receipt](validation/boundary-fill-responsive-cells.md). Large-model reopen
-still blocks the UI for 32.170 s; REL-036/#479 owns that bounded follow-up.
+[the receipt](validation/boundary-fill-responsive-cells.md). REL-036/#479 now
+independently accepts background evaluation for interactive native Open on the
+same iron fixture: 30.607 s background work with responsive status/navigation,
+exact authored/geometry/history/save, and a disclosed 1.279 s final presentation
+pause. See [the receipt](validation/responsive-native-open.md).
 A new full corrected-iron recording remains unaccepted.
 
 Finish the current tutorials and prepare a comprehensive web-reviewable v1 plan for dependable 3D-printing creation workflows. TUT-018/#302 is reopened: the user rejects the final iron shape. Prior API/mesh checks prove only the adapted fixture, not visual/tutorial acceptance. Correct the silhouette and sculpted handle against public final tutorial evidence. Full enclosure TUT-016 remains open. The proposed v1 inventory and backlog mapping live in docs/v1; scope is pending user review.

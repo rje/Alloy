@@ -18,6 +18,9 @@
 #include <QTimer>
 #include <QTemporaryDir>
 #include <QElapsedTimer>
+#include <QFile>
+#include <QLineEdit>
+#include <QLabel>
 #include <QStatusBar>
 #include <cmath>
 #include <QToolButton>
@@ -47,6 +50,59 @@ class BoundaryFillControlsTest final:public QObject{
   QCOMPARE(QApplication::widgetAt(box->mapToGlobal(point)),static_cast<QWidget*>(box));QTest::mouseClick(box,Qt::LeftButton,Qt::NoModifier,point);
  }
 private slots:
+ void asynchronousDocumentOpenContracts(){
+  QTemporaryDir temp;QVERIFY(temp.isValid());CadDocument target;
+  auto authored=target.authored();const auto owner=authored.value("documentId");
+  authored["features"]=QJsonArray{QJsonObject{{"id",CadDocument::newId()},{"bodyId",CadDocument::newId()},
+   {"ownerId",owner},{"type","box"},{"name","Loaded box"},{"visible",true},
+   {"parameters",QJsonObject{{"widthMm",25},{"depthMm",20},{"heightMm",10},{"xMm",0},{"yMm",0},{"zMm",0}}}}};
+  QVERIFY(target.commit(authored,"Box").isEmpty());const auto path=temp.filePath("target.alloy");QVERIFY(target.save(path).isEmpty());
+  const auto prepared=CadDocument::prepareOpen(path);QVERIFY(prepared.ok);CadDocument guard;const auto base=guard.authored();const auto revision=guard.revision();
+  guard.reset();QVERIFY(!guard.adoptOpen(prepared,path,base,revision).isEmpty());QVERIFY(guard.authored()!=authored);
+  AlloyWindow w;
+  const auto capture=qEnvironmentVariable("ALLOY_REL036_CAPTURE");
+  if(!capture.isEmpty()){w.resize(1440,900);w.show();QVERIFY(QTest::qWaitForWindowExposed(&w));}
+  call(w,"document.units",{{"units","in"}});const auto before=call(w,"document.inspect");const auto tabs=call(w,"document.tabs");
+  const auto draft=call(w,"command.begin",{{"command","solid.box"},{"inputs",QJsonObject{}}});const auto activeBefore=session(w);
+  QCOMPARE(w.execute("document.open",{{"path",path}}).value("error").toObject().value("code").toString(),QString("unsaved_changes"));
+  auto pending=w.execute("document.open",{{"path",path},{"discard",true}});QCOMPARE(pending.value("completion").toString(),QString("pending"));
+  const auto request=pending.value("result").toObject();const auto id=request.value("id"),generation=request.value("previewGeneration");
+  QCOMPARE(call(w,"document.inspect"),before);QCOMPARE(session(w),activeBefore);
+  QCOMPARE(w.execute("document.tabNew").value("error").toObject().value("code").toString(),QString("evaluation_busy"));
+  QCOMPARE(w.execute("command.update",{{"session",draft.value("id")},{"inputs",QJsonObject{{"width",5}}}}).value("error").toObject().value("code").toString(),QString("evaluation_busy"));
+  QCOMPARE(w.execute("command.status",{{"session",id},{"generation",generation.toInteger()+1}}).value("error").toObject().value("code").toString(),QString("stale_preview"));
+  auto* primitive=w.findChild<QLineEdit*>("primitive.name");QVERIFY(primitive && !primitive->isEnabled());
+  auto* status=w.findChild<QLabel*>("application.status");QVERIFY(status && status->isHidden());
+  if(!capture.isEmpty()){w.repaint();QVERIFY(w.grab().save(capture));}
+  QCOMPARE(w.execute("command.cancel",{{"session",id},{"unexpected",true}}).value("error").toObject().value("code").toString(),QString("invalid_arguments"));
+  QVERIFY(w.findChild<QPushButton*>("document.cancelOpen"));QVERIFY(w.execute("command.cancel",{{"session",id}}).value("result").toObject().value("resultDiscarded").toBool());
+  QCOMPARE(w.execute("command.status",{{"session",id},{"generation",generation}}).value("error").toObject().value("code").toString(),QString("command_cancelled"));
+  QTRY_VERIFY_WITH_TIMEOUT(!w.state().value("geometryWork").toObject().value("active").toBool(),10000);
+  QCOMPARE(call(w,"document.inspect"),before);QCOMPARE(session(w),activeBefore);QCOMPARE(call(w,"document.tabs"),tabs);QVERIFY(primitive->isEnabled());QVERIFY(!status->isHidden());
+  const auto badPath=temp.filePath("bad.alloy");QFile bad(badPath);QVERIFY(bad.open(QIODevice::WriteOnly));bad.write("{broken");bad.close();
+  pending=w.execute("document.open",{{"path",badPath},{"discard",true}});QCOMPARE(pending.value("completion").toString(),QString("pending"));
+  const auto badId=pending.value("result").toObject().value("id");QJsonObject failed;
+  QTRY_VERIFY_WITH_TIMEOUT((failed=w.execute("command.status",{{"session",badId}})).value("completion")!="pending",10000);
+  QCOMPARE(failed.value("error").toObject().value("code").toString(),QString("open_failed"));QCOMPARE(call(w,"document.inspect"),before);QCOMPARE(session(w),activeBefore);
+  QCOMPARE(w.execute("command.status",{{"session",id}}).value("error").toObject().value("code").toString(),QString("invalid_session"));
+  call(w,"command.cancel",{{"session",draft.value("id")}});
+  const auto loft=call(w,"solid.loftDialog");auto* name=w.findChild<QLineEdit*>("loftName");QVERIFY(name);
+  pending=w.execute("document.open",{{"path",path},{"discard",true}});const auto staleId=pending.value("result").toObject().value("id");
+  QVERIFY(!name->isEnabled());name->setText("Changed after Open request");
+  // Exercise the direct native callback even though real input is frozen.
+  QVERIFY(QMetaObject::invokeMethod(name,"editingFinished",Qt::DirectConnection));
+  const auto changedDraft=session(w);QVERIFY(changedDraft.value("inputs").toObject().value("name")=="Changed after Open request");
+  QTRY_VERIFY_WITH_TIMEOUT((failed=w.execute("command.status",{{"session",staleId}})).value("completion")!="pending",10000);
+  QCOMPARE(failed.value("error").toObject().value("code").toString(),QString("stale_open"));QCOMPARE(call(w,"document.inspect"),before);
+  QCOMPARE(session(w),changedDraft);QVERIFY(name->isEnabled());call(w,"command.cancel",{{"session",loft.value("id")}});
+  const auto loaded=call(w,"document.open",{{"path",path},{"discard",true}});QCOMPARE(loaded.value("authored"),QJsonValue(authored));QVERIFY(session(w).isEmpty());
+  auto current=call(w,"document.inspect");QCOMPARE(current.value("authored"),QJsonValue(authored));QVERIFY(loaded.value("recovery").toObject().value("durable").toBool());QVERIFY(!current.value("dirty").toBool());QCOMPARE(current.value("undo").toObject().value("count").toInt(),0);
+  const auto loadedId=loaded.value("id"); // Operation ID is distinct from the loaded document ID.
+  QCOMPARE(w.execute("command.status",{{"session",loadedId}}).value("completion").toString(),QString("completed"));
+  call(w,"document.units",{{"units","in"}});call(w,"history.undo");QCOMPARE(call(w,"document.inspect").value("authored"),QJsonValue(authored));
+  call(w,"history.redo");QCOMPARE(call(w,"document.inspect").value("units").toString(),QString("in"));
+  QCOMPARE(w.execute("command.status",{{"session",loadedId}}).value("error").toObject().value("code").toString(),QString("invalid_session"));
+ }
  void asynchronousCommitContracts(){
   QTemporaryDir temp;QVERIFY(temp.isValid());CadDocument d;const auto owner=d.authored().value("documentId").toString();
   auto sheet=[&](const QString& plane,double x1,double y1,double x2,double y2){

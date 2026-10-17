@@ -8,6 +8,7 @@
 #include <TopoDS_Compound.hxx>
 #include <QCheckBox>
 #include <QDialogButtonBox>
+#include <QDialog>
 #include <QDockWidget>
 #include <QDoubleSpinBox>
 #include <QFormLayout>
@@ -127,6 +128,83 @@ QJsonObject AlloyWindow::previewSurfaceExtrude() {
     startGeometryEvaluation();return session_;
 }
 
+QJsonObject AlloyWindow::beginDocumentOpen(const QString& path) {
+    auto task=std::make_shared<GeometryEvaluation>();
+    task->command="document.open";task->phase="open";task->document=document_;
+    task->documentId=document_->authored().value("documentId").toString();task->revision=document_->revision();
+    task->base=document_->authored();task->retainedSession=session_;task->tabId=activeTabId_;task->sessionId=CadDocument::newId();
+    task->inputs={{"path",path}};task->generation=++geometryEvaluationGeneration_;
+    documentOpenOperation_={{"id",task->sessionId},{"command",task->command},{"inputs",task->inputs},
+        {"evaluationStatus","pending"},{"previewGeneration",static_cast<qint64>(task->generation)},
+        {"cancellation","Discard result; running kernel evaluation continues"},
+        {"evaluationHeartbeat",QJsonObject{{"ticks",0},{"lastMs",QDateTime::currentMSecsSinceEpoch()},{"maxGapMs",0}}}};
+    geometryEvaluationTerminal_={};geometryEvaluationQueued_=task;
+    documentOpenFrozenControls_.clear();
+    for(auto* dock:findChildren<QDockWidget*>())if(dock->isEnabled()){
+        documentOpenFrozenControls_.append(dock);dock->setEnabled(false);
+    }
+    for(auto* dialog:findChildren<QDialog*>())if(dialog->isEnabled()){
+        documentOpenFrozenControls_.append(dialog);dialog->setEnabled(false);
+    }
+    documentOpenCancel_=new QPushButton("Cancel Open",statusBar());documentOpenCancel_->setObjectName("document.cancelOpen");
+    statusBar()->addPermanentWidget(documentOpenCancel_);
+    connect(documentOpenCancel_,&QPushButton::clicked,this,[this]{execute("command.cancel",{{"session",documentOpenOperation_.value("id")}});});
+    statusBar()->showMessage("Opening design… You can navigate or Cancel Open. Running geometry work cannot be interrupted.");
+    status_->hide(); // Keep normal status text from overlapping the Open message.
+    startGeometryEvaluation();return documentOpenOperation_;
+}
+
+QJsonObject AlloyWindow::cancelDocumentOpen() {
+    ++geometryEvaluationGeneration_;geometryEvaluationQueued_.reset();
+    documentOpenOperation_["evaluationStatus"]="failed";
+    documentOpenOperation_["previewError"]=QJsonObject{{"code","command_cancelled"},{"message","Open result discarded; original design preserved"}};
+    documentOpenOperation_["resultDiscarded"]=true;
+    if(documentOpenCancel_){statusBar()->removeWidget(documentOpenCancel_);documentOpenCancel_->deleteLater();documentOpenCancel_=nullptr;}
+    statusBar()->showMessage("Finishing background geometry; new modeling commands will resume shortly.");
+    return {{"ok",true},{"completion","completed"},{"result",QJsonObject{{"resultDiscarded",true},{"evaluationStillRunning",bool(geometryEvaluationRunning_)}}}};
+}
+
+void AlloyWindow::completeDocumentOpen(const std::shared_ptr<GeometryEvaluation>& task) {
+    statusBar()->clearMessage();status_->show();
+    for(const auto& control:documentOpenFrozenControls_)if(control)control->setEnabled(true);
+    documentOpenFrozenControls_.clear();
+    if(documentOpenCancel_){statusBar()->removeWidget(documentOpenCancel_);documentOpenCancel_->deleteLater();documentOpenCancel_=nullptr;}
+    const bool current=document_==task->document && activeTabId_==task->tabId && document_->revision()==task->revision
+        && document_->authored()==task->base && session_==task->retainedSession && documentOpenOperation_.value("id")==task->sessionId
+        && documentOpenOperation_.value("evaluationStatus")=="pending" && geometryEvaluationGeneration_==task->generation;
+    if(!current){
+        if(documentOpenOperation_.value("id")==task->sessionId && documentOpenOperation_.value("evaluationStatus")=="pending"){
+            documentOpenOperation_["evaluationStatus"]="failed";
+            documentOpenOperation_["previewError"]=QJsonObject{{"code","stale_open"},{"message","The original design changed; Open result discarded"}};
+        }
+        return;
+    }
+    documentOpenOperation_["evaluationTimingMs"]=QJsonObject{{"full",task->fullMs}};
+    auto error=task->error.isEmpty() ? task->full.error : task->error;
+    if(error.isEmpty() && !task->full.ok)error="Native document evaluation unavailable";
+    if(error.isEmpty()){
+        // Only GUI-thread objects and presentation are changed after the worker's
+        // complete private result has passed identity, request and revision guards.
+        error=document_->adoptOpen(task->full,task->inputs.value("path").toString(),task->base,task->revision);
+    }
+    if(!error.isEmpty()){
+        documentOpenOperation_["evaluationStatus"]="failed";
+        documentOpenOperation_["previewError"]=QJsonObject{{"code","open_failed"},{"message",error},{"diagnostics",task->full.diagnostics}};
+        status_->setText("Open failed; original design preserved: "+error);return;
+    }
+    if(!session_.isEmpty())finishSession(session_.value("id").toString(),false);
+    view_->rebindDocument();refreshCanvasPresentation();displayedDocumentRevision_=std::numeric_limits<quint64>::max();
+    selectedBody_.clear();selectedFace_={};selectedEdge_={};selectedPlane_.clear();view_->selectSupportFace({},{});
+    view_->clearSolidEdgeHighlights();selectedSketch_.clear();selectedProfile_.clear();selectedProfileIds_={};
+    view_->fit(presentationBodies(),nonzeroAssemblyPose() ? std::vector<EvaluatedSketch>{} : document_->sketches());
+    const auto operation=documentOpenOperation_;documentOpenOperation_=document_->state();
+    for(auto it=operation.begin();it!=operation.end();++it)documentOpenOperation_[it.key()]=it.value();
+    documentOpenOperation_["evaluationStatus"]="completed";geometryEvaluationTerminal_={};
+    refresh();const auto recoveryError=syncRecovery();
+    documentOpenOperation_["recovery"]=QJsonObject{{"durable",recoveryError.isEmpty()},{"warning",recoveryError},{"scope","committed authored state only"}};
+
+}
+
 void AlloyWindow::invalidateGeometryEvaluation() {
     if(geometryEvaluationRunning_)statusBar()->showMessage("Finishing background geometry; new modeling commands will resume shortly.");
     ++geometryEvaluationGeneration_;geometryEvaluationQueued_.reset();surfaceExtrudeSource_.reset();
@@ -145,7 +223,8 @@ void AlloyWindow::startGeometryEvaluation() {
     std::thread([task]{
         try {
             QElapsedTimer timer;timer.start();
-            if(task->command=="surface.boundaryFill" && task->phase=="partition")evaluateBoundaryFillPartition(*task);
+            if(task->command=="document.open"){task->full=CadDocument::prepareOpen(task->inputs.value("path").toString());task->fullMs=timer.elapsed();}
+            else if(task->command=="surface.boundaryFill" && task->phase=="partition")evaluateBoundaryFillPartition(*task);
             else {
                 if(task->needsSource){
                     auto prefix=task->base;QJsonArray features;
@@ -183,12 +262,19 @@ void AlloyWindow::pollGeometryEvaluation() {
         heartbeat["maxGapMs"]=std::max(heartbeat["maxGapMs"].toInteger(),now-heartbeat["lastMs"].toInteger());
         heartbeat["lastMs"]=now;session_["evaluationHeartbeat"]=heartbeat;
     }
+    if(documentOpenOperation_.value("evaluationStatus")=="pending"){
+        auto heartbeat=documentOpenOperation_.value("evaluationHeartbeat").toObject();const auto now=QDateTime::currentMSecsSinceEpoch();
+        heartbeat["ticks"]=heartbeat.value("ticks").toInteger()+1;
+        heartbeat["maxGapMs"]=std::max(heartbeat.value("maxGapMs").toInteger(),now-heartbeat.value("lastMs").toInteger());
+        heartbeat["lastMs"]=now;documentOpenOperation_["evaluationHeartbeat"]=heartbeat;
+    }
     if(!geometryEvaluationRunning_ || !geometryEvaluationRunning_->ready.load(std::memory_order_acquire))return;
     const auto task=std::move(geometryEvaluationRunning_);
     const bool current=document_==task->document && document_->revision()==task->revision
         && document_->authored()["documentId"]==task->documentId && session_.value("id")==task->sessionId
         && session_.value("command")==task->command && geometryEvaluationGeneration_==task->generation;
-    if(task->command=="surface.boundaryFill"){
+    if(task->command=="document.open")completeDocumentOpen(task);
+    else if(task->command=="surface.boundaryFill"){
         if(task->phase=="partition")completeBoundaryFillPartition(task);else completeBoundaryFillCommit(task);
     }
     else if(current){

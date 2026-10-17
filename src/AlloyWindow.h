@@ -295,6 +295,10 @@ private:
     QJsonObject surfaceExtrudeCandidate(const QJsonObject& inputs) const;
     QJsonObject beginSurfaceExtrude(const QJsonObject& overrides={});
     QJsonObject previewSurfaceExtrude();
+    struct GeometryEvaluation;
+    QJsonObject beginDocumentOpen(const QString& path);
+    QJsonObject cancelDocumentOpen();
+    void completeDocumentOpen(const std::shared_ptr<GeometryEvaluation>& task);
     void startGeometryEvaluation();
     void pollGeometryEvaluation();
     void invalidateGeometryEvaluation();
@@ -303,10 +307,10 @@ private:
     struct GeometryEvaluation {
         std::atomic<bool> ready{false};
         CadDocument* document = nullptr; // Identity only; never accessed by worker.
-        QString documentId, sessionId, featureId, ownerId;
+        QString documentId, sessionId, featureId, ownerId, tabId;
         QString command = "surface.extrude", phase = "preview";
         quint64 revision = 0, generation = 0;
-        QJsonObject base, candidate, inputs, feature, cacheKey;
+        QJsonObject base, candidate, inputs, feature, cacheKey, retainedSession;
         bool needsSource = false;
         CadDocument::CandidateEvaluation full, stage;
         std::shared_ptr<const EvaluatedDocument> source;
@@ -322,6 +326,9 @@ private:
     QString surfaceExtrudeRequestedSession_;
     quint64 geometryEvaluationGeneration_ = 0;
     QTimer* geometryEvaluationPoll_ = nullptr;
+    QJsonObject documentOpenOperation_; // One request, until next session/document change or Open.
+    QList<QPointer<QWidget>> documentOpenFrozenControls_;
+    QPushButton* documentOpenCancel_ = nullptr;
     QJsonObject geometryEvaluationTerminal_; // One completed commit, until next session/document change.
     QJsonObject selectSurfaceExtrudeProfile(const QString& sketchId,const QJsonArray& entityIds);
     QJsonObject selectSurfaceExtrudeEntity(const QString& sketchId,const QString& entityId);

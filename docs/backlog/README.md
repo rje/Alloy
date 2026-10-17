@@ -21,7 +21,9 @@ stall for the saved four-tool fixture; see its [receipt](../validation/boundary-
 Initial cell enumeration and large-model reopen remain synchronous.
 REL-035/#478 independently fixes the cell-enumeration UI stall on the saved
 iron fixture; see its [receipt](../validation/boundary-fill-responsive-cells.md).
-REL-036/#479 retains the separate large-model reopen stall as Todo.
+REL-036/#479 independently fixes the large-model interactive Open stall;
+see its [receipt](../validation/responsive-native-open.md). A 1.279 s final
+presentation interval remains a measured responsiveness follow-up.
 
 ## Active delivery order
 

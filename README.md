@@ -12,7 +12,9 @@ independently checked navigation, status, geometry, history and reopen evidence.
 The [Boundary Fill commit gate](docs/validation/boundary-fill-responsive-commit.md)
 also keeps the corrected iron's final solid evaluation responsive. Initial
 [cell enumeration](docs/validation/boundary-fill-responsive-cells.md) now runs
-on the same worker. Large-model reopen remains synchronous.
+on the same worker. [Interactive native Open](docs/validation/responsive-native-open.md)
+also evaluates large models without freezing the window; its final presentation
+step still has a measured pause.
 
 The [complete surface shoehorn](docs/validation/shoehorn-complete.md) now has
 an independently accepted full creation movie, editable model and checked STL:

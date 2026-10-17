@@ -47,6 +47,9 @@ public:
     void reset();
     QString save(const QString& path);
     QString open(const QString& path);
+    static CandidateEvaluation prepareOpen(const QString& path);
+    QString adoptOpen(const CandidateEvaluation& prepared, const QString& path,
+        const QJsonObject& expectedBase, quint64 expectedRevision);
     QString recover(const QJsonObject& authored);
     bool isDirty() const { return recoveredDirty_ || !history_.isClean(); }
     QString path() const { return path_; }

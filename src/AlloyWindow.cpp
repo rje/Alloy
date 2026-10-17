@@ -2286,11 +2286,7 @@ void AlloyWindow::registerCommands() {
     });
     add("document.open","Open","Validate and evaluate before replacing the current document.",{{"path",path},{"discard",discard}},[this](const auto& a){
         if(tabHasUnsavedWork(activeTabId_) && !a.value("discard").toBool()) return failure("unsaved_changes","Save or explicitly discard the current document");
-        const auto error=document_->open(a["path"].toString());
-        if(error.isEmpty()){if(!session_.isEmpty())finishSession(session_.value("id").toString(),false);
-            view_->rebindDocument();refreshCanvasPresentation();displayedDocumentRevision_=std::numeric_limits<quint64>::max();
-            selectedBody_.clear();selectedFace_={};selectedEdge_={};selectedPlane_.clear();view_->selectSupportFace({},{});view_->clearSolidEdgeHighlights();selectedSketch_.clear();selectedProfile_.clear();selectedProfileIds_={};view_->fit(presentationBodies(),nonzeroAssemblyPose() ? std::vector<EvaluatedSketch>{} : document_->sketches());}
-        return error.isEmpty() ? document_->state() : failure("open_failed",error,"path");
+        return beginDocumentOpen(a.value("path").toString());
     });
     for(const auto& id:{"document.saveDialog","document.saveAsDialog"}) {
         add(id,QString(id).endsWith("AsDialog") ? "Save As…" : "Save","Choose a local file and use the shared save command.",{},[this,id](const auto&){
@@ -5949,7 +5945,8 @@ void AlloyWindow::registerCommands() {
         resize(a.value("width").toInt(), a.value("height").toInt()); return QJsonObject{};
     });
     const auto fitPresented=[this] {
-        if((session_.value("command")=="solid.extrude" || session_.value("command")=="solid.combine") && session_.value("previewed").toBool()) {
+        if(!(geometryEvaluationRunning_ && geometryEvaluationRunning_->command=="document.open")
+            && (session_.value("command")=="solid.extrude" || session_.value("command")=="solid.combine") && session_.value("previewed").toBool()) {
             auto draft=session_.value("documentDraft").toObject();
             const auto inputs=session_.value("inputs").toObject();
             if(session_.value("command")=="solid.combine" && !inputs.value("featureId").toString().isEmpty()) {
@@ -6139,7 +6136,7 @@ QString AlloyWindow::geometryWorkLabel(const QString& id,const QJsonObject& args
         if(operation!="solid.extrude" && operation!="solid.combine" && operation!="solid.fillet")return {};
     } else if(id!="solid.box" && id!="solid.extrude" && id!="solid.combine" && id!="solid.fillet"
         && id!="feature.edit" && id!="feature.reorder" && id!="feature.delete"
-        && id!="sketch.finish" && id!="history.undo" && id!="history.redo" && id!="document.open")return {};
+        && id!="sketch.finish" && id!="history.undo" && id!="history.redo")return {};
     const auto* command=findCommand(operation);
     QString label=command ? command->title : operation;
     if(operation=="solid.extrude" || operation=="solid.combine") {
@@ -6156,7 +6153,8 @@ QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
         if(!argumentError.isEmpty())return failure("invalid_arguments",argumentError);
         // A successful asynchronous commit closes its dialog. Retain only its
         // terminal result, until another session or document change replaces it.
-        const auto operation=session_.isEmpty() ? geometryEvaluationTerminal_ : session_;
+        const auto operation=documentOpenOperation_.value("id")==args.value("session") ? documentOpenOperation_
+            : session_.isEmpty() ? geometryEvaluationTerminal_ : session_;
         if(operation.isEmpty() || operation.value("id")!=args.value("session"))return failure("invalid_session","Session is no longer active");
         if(args.contains("generation") && args.value("generation")!=operation.value("previewGeneration"))
             return failure("stale_preview","This preview generation was superseded");
@@ -6165,6 +6163,18 @@ QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
             {"documentRevision",static_cast<qint64>(document_->revision())}};
         if(status=="failed"){response["ok"]=false;response["error"]=operation.value("previewError");}
         return response;
+    }
+    if(id=="command.cancel" && documentOpenOperation_.value("id")==args.value("session")
+        && documentOpenOperation_.value("evaluationStatus")=="pending"){
+        const auto argumentError=validateArguments(*findCommand(id),args);
+        if(!argumentError.isEmpty())return failure("invalid_arguments",argumentError);
+        return cancelDocumentOpen();
+    }
+    if(geometryEvaluationRunning_ && geometryEvaluationRunning_->command=="document.open") {
+        const bool safe=id=="commands.list" || id=="app.state" || id=="document.inspect"
+            || id=="view.orbit" || id=="view.pan" || id=="view.zoom" || id=="view.orientation" || id=="view.home"
+            || id=="view.fit" || id=="capture.screenshot" || id=="capture.viewport" || id=="capture.dialog";
+        if(!safe)return failure("evaluation_busy","A native document is opening; navigate or Cancel Open to discard its result");
     }
     if(geometryEvaluationRunning_) {
         const bool safe=id=="commands.list" || id=="app.state" || id=="document.inspect" || id=="command.cancel"
@@ -6254,7 +6264,7 @@ QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
     catch(const std::exception& error) { refreshConstraintFailure(); return finish(failure("command_failed",QString::fromUtf8(error.what()))); }
     if (result.value("ok").isBool() && !result.value("ok").toBool()) { refreshConstraintFailure(); return finish(result); }
     if(document_!=priorDocument || document_->revision()!=priorDocumentRevision
-        || (!session_.isEmpty() && session_.value("id")!=priorSessionId))geometryEvaluationTerminal_={};
+        || (!session_.isEmpty() && session_.value("id")!=priorSessionId)){geometryEvaluationTerminal_={};documentOpenOperation_={};}
     const auto afterCommandSolves=traceGraphSolves?AssemblyGraph::solveCount():0;
     const double commandPhaseMs=traceGraphSolves?phaseTimer.nsecsElapsed()/1e6:0;
     if(document_->revision()!=priorDocumentRevision && (transientSliderPosition_.has_value() || !jointGraphStage_.isEmpty() || (sliderTimer_ && sliderTimer_->isActive()))){
@@ -6368,11 +6378,11 @@ QJsonObject AlloyWindow::state() const {
     return {{"application", "Alloy"}, {"version", "0.1.0"}, {"stage", "sketch-authoring"},
         {"runtime", QJsonObject{{"qtVersion", qVersion()}, {"occtBuildVersion", ALLOY_OCCT_VERSION}}},
         {"revision", static_cast<qint64>(revision_)},
-        {"identity", identity()}, {"activeSession", session_}, {"sectionEdit",sectionEdit_}, {"pendingReferencePosition",pendingReference_}, {"assembly",presentationAssembly()}, {"documentTabs",documentTabs()},
+        {"identity", identity()}, {"documentOpen",documentOpenOperation_}, {"activeSession", session_}, {"sectionEdit",sectionEdit_}, {"pendingReferencePosition",pendingReference_}, {"assembly",presentationAssembly()}, {"documentTabs",documentTabs()},
         {"recovery",QJsonObject{{"available",recovery_->error().isEmpty()},{"warning",recoveryWarning_},
             {"staleCount",recovery_->list().size()},{"scope","committed authored state only"}}},
         {"inlineEditor",inlineEditorState()},
-        {"geometryWork",QJsonObject{{"active",geometryBusyActive_ || bool(geometryEvaluationRunning_)},{"cancellable",false},{"resultDiscardAvailable",session_.value("command")=="surface.extrude" || session_.value("command")=="surface.boundaryFill"},{"last",lastGeometryWork_}}},
+        {"geometryWork",QJsonObject{{"active",geometryBusyActive_ || bool(geometryEvaluationRunning_)},{"cancellable",false},{"resultDiscardAvailable",documentOpenOperation_.value("evaluationStatus")=="pending" || session_.value("command")=="surface.extrude" || session_.value("command")=="surface.boundaryFill"},{"last",lastGeometryWork_}}},
         {"focus",QJsonObject{{"widgetClass",QApplication::focusWidget() ? QApplication::focusWidget()->metaObject()->className() : ""},
             {"widgetName",QApplication::focusWidget() ? QApplication::focusWidget()->objectName() : QString{}},
             {"viewport",QApplication::focusWidget()==view_},

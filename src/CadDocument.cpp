@@ -1343,17 +1343,30 @@ QString CadDocument::save(const QString& path) {
     if (file.write(bytes)!=bytes.size() || !file.commit()) return file.errorString();
     path_=path; recoveredDirty_=false; history_.setClean(); return {};
 }
+CadDocument::CandidateEvaluation CadDocument::prepareOpen(const QString& path) {
+    CandidateEvaluation prepared;
+    QFile file(path);
+    if (!QDir::isAbsolutePath(path) || !file.open(QIODevice::ReadOnly)) {
+        prepared.error="Cannot read native document";return prepared;
+    }
+    QJsonParseError parse; const auto data=QJsonDocument::fromJson(file.readAll(),&parse);
+    if (parse.error!=QJsonParseError::NoError || !data.isObject()) {
+        prepared.error="Malformed native document";return prepared;
+    }
+    return evaluateCandidate(data.object());
+}
+QString CadDocument::adoptOpen(const CandidateEvaluation& prepared,const QString& path,
+    const QJsonObject& expectedBase,quint64 expectedRevision) {
+    if(revision_!=expectedRevision || authored_!=expectedBase)return "The document changed while opening";
+    if(!prepared.ok || !prepared.evaluation)return prepared.error.isEmpty() ? "Native document evaluation unavailable" : prepared.error;
+    activeOwnerId_.clear();history_.clear();apply(prepared.authored,prepared.evaluation);
+    path_=path;recoveredDirty_=false;lastEvaluationError_={};history_.setClean();return {};
+}
 QString CadDocument::open(const QString& path) {
     lastEvaluationError_ = {};
-    QFile file(path);
-    if (!QDir::isAbsolutePath(path) || !file.open(QIODevice::ReadOnly)) return "Cannot read native document";
-    QJsonParseError parse; const auto data=QJsonDocument::fromJson(file.readAll(),&parse);
-    if (parse.error!=QJsonParseError::NoError || !data.isObject()) return "Malformed native document";
-    auto prepared = evaluateCandidate(data.object());
-    if (!prepared.ok) {lastEvaluationError_ = prepared.diagnostics;return prepared.error;}
-    activeOwnerId_.clear();
-    history_.clear(); apply(prepared.authored,std::move(prepared.evaluation)); path_=path; recoveredDirty_=false; history_.setClean();
-    return {};
+    const auto prepared=prepareOpen(path);
+    if(!prepared.ok){lastEvaluationError_=prepared.diagnostics;return prepared.error;}
+    return adoptOpen(prepared,path,authored_,revision_);
 }
 QString CadDocument::recover(const QJsonObject& authored) {
     lastEvaluationError_={};
