@@ -15,9 +15,10 @@
 #include <QMenu>
 #include <QAction>
 #include <QTimer>
+#include <QElapsedTimer>
 class SurfaceExtrudeProfilesControlsTest final:public QObject {
  Q_OBJECT
- QJsonObject call(AlloyWindow& w,const QString& command,const QJsonObject& a={}){const auto r=w.execute(command,a);if(!r["ok"].toBool())qFatal("%s",QJsonDocument(r).toJson().constData());return r["result"].toObject();}
+ QJsonObject call(AlloyWindow& w,const QString& command,const QJsonObject& a={}){auto r=w.execute(command,a);if(r["completion"]=="pending"){const QJsonValue id=r["result"].toObject().value("id");QElapsedTimer deadline;deadline.start();do{QTest::qWait(25);r=w.execute("command.status",{{"session",id}});if(deadline.elapsed()>120000)qFatal("Surface Extrude evaluation timed out");}while(r["completion"]=="pending");}if(!r["ok"].toBool())qFatal("%s",QJsonDocument(r).toJson().constData());return r["result"].toObject();}
  QJsonObject session(AlloyWindow& w){return w.state()["activeSession"].toObject();}
  void choose(QToolButton* opener,const QString& actionName){
   QVERIFY(opener && opener->isVisible());auto* menu=opener->menu();QVERIFY(menu);bool active=false,hit=false,clicked=false,timeout=false;
@@ -35,9 +36,9 @@ private slots:
    auto* tab=w.findChild<QToolButton*>("design.tab.surface");QVERIFY(tab);QTest::mouseClick(tab,Qt::LeftButton);choose(w.findChild<QToolButton*>("surface.menu.create"),"surface.action.surface.extrudeDialog");
    auto* dock=w.findChild<QDockWidget*>("surfaceExtrudeDock");QVERIFY(dock && dock->isVisible());auto* chain=dock->findChild<QCheckBox*>("surfaceExtrude.chaining");QVERIFY(chain && chain->isChecked());
    number(dock->findChild<QDoubleSpinBox*>("sideOneMm"),"60");number(dock->findChild<QDoubleSpinBox*>("sideTwoMm"),"65");
-   call(w,"view.orientation",{{"name","front"}});call(w,"view.fit");QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,pixel(102,38));
+   call(w,"view.orientation",{{"name","front"}});call(w,"view.fit");const auto backPixel=pixel(102,38),notchPixel=pixel(110,8);QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,backPixel);
    QTRY_COMPARE(session(w)["inputs"].toObject()["profiles"].toArray().size(),1);QCOMPARE(session(w)["inputs"].toObject()["profiles"].toArray()[0].toObject()["entityIds"].toArray().size(),2);
-   QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,pixel(110,8));QTRY_COMPARE(session(w)["resultBodyIds"].toArray().size(),2);QVERIFY(session(w)["previewed"].toBool());
+   QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,notchPixel);QTRY_COMPARE_WITH_TIMEOUT(session(w)["resultBodyIds"].toArray().size(),2,120000);QVERIFY(session(w)["previewed"].toBool());
    QCOMPARE(session(w)["resultBodies"].toArray()[0].toObject()["geometry"].toObject()["topology"].toObject()["faces"].toInt(),2);QCOMPARE(session(w)["resultBodies"].toArray()[1].toObject()["geometry"].toObject()["topology"].toObject()["faces"].toInt(),1);
   };
   start();call(w,"view.home");call(w,"capture.screenshot",{{"path",out+"/native-two-profile-preview.png"}});auto* dock=w.findChild<QDockWidget*>("surfaceExtrudeDock");auto* buttons=dock->findChild<QDialogButtonBox*>();QVERIFY(buttons && buttons->button(QDialogButtonBox::Ok)->isEnabled());QTest::mouseClick(buttons->button(QDialogButtonBox::Cancel),Qt::LeftButton);QTRY_VERIFY(session(w).isEmpty());QCOMPARE(call(w,"document.inspect")["authored"],before["authored"]);

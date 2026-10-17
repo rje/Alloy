@@ -5603,6 +5603,11 @@ void AlloyWindow::registerCommands() {
         if(target=="surface.trim")return previewSurfaceTrim();
         return session_;
     });
+    auto commandStatusSchema=sessionId;commandStatusSchema["generation"]=optional(QJsonObject{{"type","number"},{"description","Expected preview generation; a superseded request fails explicitly."},{"minimum",0},{"maximum",9007199254740991.0}});
+    add("command.status","Inspect command evaluation","Inspect pending, completed or failed evaluation without starting work.",commandStatusSchema,[this](const auto& a){
+        if(session_.isEmpty() || session_["id"]!=a["session"])return failure("invalid_session","Session is no longer active");
+        return session_;
+    });
     add("command.preview", "Inspect command preview", "Inspect disposable authored draft; no evaluated geometry is implied.", sessionId, [this](const auto& a) {
         if(!sectionEdit_.isEmpty())return sectionEdit_.value("id")==a.value("session") ? previewSection() : failure("invalid_session","Section edit is no longer active");
         if (session_.isEmpty() || session_.value("id") != a["session"]) return failure("invalid_session", "Session is no longer active");
@@ -5621,7 +5626,11 @@ void AlloyWindow::registerCommands() {
         if(session_.value("command")=="solid.sweep")return previewSweep();
         if(session_.value("command")=="solid.revolve")return previewRevolve();
         if(session_.value("command")=="solid.loft")return previewLoft();
-        if(session_.value("command")=="surface.extrude")return previewSurfaceExtrude();
+        if(session_.value("command")=="surface.extrude"){
+            const auto preview=previewSurfaceExtrude();
+            if(session_.value("evaluationStatus")=="failed")return QJsonObject{{"ok",false},{"completion","failed"},{"error",session_.value("previewError")}};
+            return preview;
+        }
         if(session_.value("command")=="surface.boundaryFill")return previewBoundaryFill();
         if(session_.value("command")=="surface.trim")return previewSurfaceTrim();
         if(session_.value("command")=="body.remove")return previewRemoveBody();
@@ -6142,6 +6151,27 @@ QString AlloyWindow::geometryWorkLabel(const QString& id,const QJsonObject& args
 }
 
 QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
+    // Status remains shape-free while the serial worker owns kernel evaluation.
+    if(id=="command.status") {
+        const auto argumentError=validateArguments(*findCommand(id),args);
+        if(!argumentError.isEmpty())return failure("invalid_arguments",argumentError);
+        if(session_.isEmpty() || session_.value("id")!=args["session"])return failure("invalid_session","Session is no longer active");
+        if(args.contains("generation") && args["generation"]!=session_.value("previewGeneration"))
+            return failure("stale_preview","This preview generation was superseded");
+        const auto status=session_.value("evaluationStatus").toString("completed");
+        QJsonObject response{{"ok",true},{"completion",status},{"result",session_},
+            {"documentRevision",static_cast<qint64>(document_->revision())}};
+        if(status=="failed"){response["ok"]=false;response["error"]=session_.value("previewError");}
+        return response;
+    }
+    if(surfaceExtrudeRunning_) {
+        const bool safe=id=="commands.list" || id=="app.state" || id=="document.inspect" || id=="command.cancel"
+            || (session_.value("command")=="surface.extrude" && (id=="command.preview" || id=="command.update" || id=="command.commit"
+                || id=="surface.extrudeEntity" || id=="surface.extrudeProfile" || id=="selection.pick"))
+            || id=="view.orbit" || id=="view.pan" || id=="view.zoom" || id=="view.orientation" || id=="view.home"
+            || id=="view.fit" || id=="capture.screenshot" || id=="capture.viewport" || id=="capture.dialog";
+        if(!safe)return failure("evaluation_busy","Surface Extrude kernel evaluation is still running; inspect command.status or Cancel to discard its result");
+    }
     GraphEvaluationScope graphScope(*this);
     const bool traceGraphSolves=qEnvironmentVariableIsSet("ALLOY_TRACE_ASSEMBLY_SOLVES")
         && (id=="joint.previewAngle" || id=="joint.previewCylindrical");
@@ -6236,7 +6266,7 @@ QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
         <<QString("command=%1").arg(afterCommandSolves-initialGraphSolves)
         <<QString("refresh=%1").arg(AssemblyGraph::solveCount()-afterCommandSolves);
     workSucceeded=true;
-    return finish({{"ok", true}, {"completion", "completed"}, {"command", id}, {"revision", static_cast<qint64>(revision_)},
+    return finish({{"ok", true}, {"completion", result.value("evaluationStatus")=="pending" ? "pending" : "completed"}, {"command", id}, {"revision", static_cast<qint64>(revision_)},
         {"documentRevision", static_cast<qint64>(document_->revision())}, {"result", result},
         {"recovery",QJsonObject{{"durable",recoveryError.isEmpty()},{"warning",recoveryError},
             {"scope","committed authored state only"}}}});
@@ -6336,7 +6366,7 @@ QJsonObject AlloyWindow::state() const {
         {"recovery",QJsonObject{{"available",recovery_->error().isEmpty()},{"warning",recoveryWarning_},
             {"staleCount",recovery_->list().size()},{"scope","committed authored state only"}}},
         {"inlineEditor",inlineEditorState()},
-        {"geometryWork",QJsonObject{{"active",geometryBusyActive_},{"cancellable",false},{"last",lastGeometryWork_}}},
+        {"geometryWork",QJsonObject{{"active",geometryBusyActive_ || bool(surfaceExtrudeRunning_)},{"cancellable",false},{"resultDiscardAvailable",session_.value("command")=="surface.extrude"},{"last",lastGeometryWork_}}},
         {"focus",QJsonObject{{"widgetClass",QApplication::focusWidget() ? QApplication::focusWidget()->metaObject()->className() : ""},
             {"widgetName",QApplication::focusWidget() ? QApplication::focusWidget()->objectName() : QString{}},
             {"viewport",QApplication::focusWidget()==view_},
@@ -8303,6 +8333,13 @@ QJsonObject AlloyWindow::finishSession(const QString& id, bool commit) {
         const auto error=document_->commit(candidate,session_.value("inputs").toObject().contains("sketchId") ? "Edit sketch" : "Create sketch");
         if(!error.isEmpty())return failure("evaluation_failed",error);
         result["document"]=document_->state();
+    } else if(commit && target=="surface.extrude") {
+        if(!session_["previewed"].toBool() || session_["evaluationStatus"]!="completed")
+            return failure("preview_required","Wait for a valid Surface Extrude preview before committing");
+        const auto error=document_->commitSurfaceExtrudeEvaluation(surfaceExtrudePrepared_,surfaceExtrudeRequestedCandidate_,surfaceExtrudeBase_,
+            static_cast<quint64>(session_["baseDocumentRevision"].toInteger()),"Surface Extrude");
+        if(!error.isEmpty())return failure("evaluation_failed",error);
+        result["commandResult"]=QJsonObject{{"ok",true},{"completion","completed"},{"result",document_->state()}};
     } else if (commit && target != "commands.search") {
         if (session_.value("baseDocumentRevision").toInteger() != static_cast<qint64>(document_->revision())) {
             if(target=="solid.loft"){loftSource_.reset();loftPreview_.reset();}
@@ -8337,6 +8374,10 @@ QJsonObject AlloyWindow::finishSession(const QString& id, bool commit) {
     const auto midplanePreviousPlane=session_.value("previousPlane").toString();
     surfaceTrimSource_.reset();surfaceTrimPartition_.reset();
     loftSource_.reset();loftPreview_.reset();
+    if(target=="surface.extrude"){
+        result["evaluationStillRunning"]=bool(surfaceExtrudeRunning_);
+        result["resultDiscarded"]=!commit;invalidateSurfaceExtrudeEvaluation();
+    }
     session_ = {};
     if(target=="sketch.edit"){sketchHistory_.clear();sketchHistoryIndex_=-1;sketchHistoryGroup_.clear();}
     if(dimensionEditor_)dimensionEditor_->hide();
@@ -11776,6 +11817,11 @@ bool AlloyWindow::confirmAllDiscard() {
     activateTab(previous);refresh();return true;
 }
 void AlloyWindow::closeEvent(QCloseEvent* event) {
+    if(surfaceExtrudeRunning_) {
+        event->ignore();
+        statusBar()->showMessage("Surface Extrude kernel evaluation is still running. Cancel discards its result; close after it finishes.");
+        return;
+    }
     if(authorizedQuit_ || confirmAllDiscard()) {
         orderlyRecoveryClose_=true;
         if(const auto error=recovery_->removeAllOwned();!error.isEmpty())

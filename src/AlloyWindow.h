@@ -7,6 +7,7 @@
 #include <QList>
 #include <QPoint>
 #include <functional>
+#include <atomic>
 #include <limits>
 #include <memory>
 #include <optional>
@@ -294,6 +295,28 @@ private:
     QJsonObject surfaceExtrudeCandidate(const QJsonObject& inputs) const;
     QJsonObject beginSurfaceExtrude(const QJsonObject& overrides={});
     QJsonObject previewSurfaceExtrude();
+    void startSurfaceExtrudeEvaluation();
+    void pollSurfaceExtrudeEvaluation();
+    void invalidateSurfaceExtrudeEvaluation();
+    struct SurfaceExtrudeEvaluation {
+        std::atomic<bool> ready{false};
+        CadDocument* document = nullptr; // Identity only; never accessed by worker.
+        QString documentId, sessionId, featureId;
+        quint64 revision = 0, generation = 0;
+        QJsonObject base, candidate, inputs;
+        bool needsSource = false;
+        CadDocument::CandidateEvaluation full, stage;
+        std::shared_ptr<const EvaluatedDocument> source;
+        qint64 sourceMs = 0, fullMs = 0, stageMs = 0;
+        QString error;
+    };
+    std::shared_ptr<SurfaceExtrudeEvaluation> surfaceExtrudeRunning_, surfaceExtrudeQueued_;
+    std::shared_ptr<const EvaluatedDocument> surfaceExtrudeSource_;
+    CadDocument::CandidateEvaluation surfaceExtrudePrepared_;
+    QJsonObject surfaceExtrudeRequestedInputs_, surfaceExtrudeBase_, surfaceExtrudeRequestedCandidate_;
+    QString surfaceExtrudeRequestedSession_;
+    quint64 surfaceExtrudeGeneration_ = 0;
+    QTimer* surfaceExtrudePoll_ = nullptr;
     QJsonObject selectSurfaceExtrudeProfile(const QString& sketchId,const QJsonArray& entityIds);
     QJsonObject selectSurfaceExtrudeEntity(const QString& sketchId,const QString& entityId);
     QJsonObject pickSurfaceExtrude(double x,double y);

@@ -1261,6 +1261,34 @@ QString CadDocument::commit(const QJsonObject& candidate, const QString& label) 
     return {};
 }
 
+QString CadDocument::commitSurfaceExtrudeEvaluation(const CandidateEvaluation& prepared,
+    const QJsonObject& requestedCandidate, const QJsonObject& expectedBase, quint64 expectedRevision, const QString& label) {
+    lastEvaluationError_={};
+    if(revision_!=expectedRevision || authored_!=expectedBase)
+        return "The document changed; cancel and restart Surface Extrude";
+    if(!prepared.ok || !prepared.evaluation || prepared.authored["documentId"]!=authored_["documentId"])
+        return "A completed Surface Extrude evaluation is required";
+    // Validate requested intent before solver normalization. The trusted worker
+    // may update downstream solved sketches and generated bodyResults.
+    auto old=authored_,next=requestedCandidate;old.remove("features");next.remove("features");
+    if(old!=next)return "Surface Extrude evaluation changed unrelated document metadata";
+    const auto before=authored_["features"].toArray(),after=requestedCandidate["features"].toArray();
+    if(after.size()!=before.size() && after.size()!=before.size()+1)return "Invalid Surface Extrude feature transaction";
+    int changes=0;
+    for(int i=0;i<after.size();++i)if(i>=before.size() || after[i]!=before[i]) {
+        const auto feature=after[i].toObject();
+        if(feature["type"]!="surfaceExtrude" || (i<before.size() &&
+            (before[i].toObject()["type"]!="surfaceExtrude" || before[i].toObject()["id"]!=feature["id"])))
+            return "Surface Extrude evaluation changed an unrelated feature";
+        ++changes;
+    }
+    if(changes==0)return {};
+    if(changes>1)return "Invalid Surface Extrude feature transaction";
+    if(const auto guard=newFeatureReparentError(authored_,prepared.authored);!guard.isEmpty())return guard["message"].toString();
+    history_.push(new DocumentEdit(*this,prepared.authored,prepared.evaluation,label));
+    return {};
+}
+
 QString CadDocument::faceSketchOriginContextError(const QJsonObject& authored,const EvaluatedDocument& evaluated,
     const QString& ownerId,const QString& supportBodyId) {
     const auto root=authored["documentId"].toString();

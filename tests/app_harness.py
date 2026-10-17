@@ -33,10 +33,19 @@ def application(app, output, *, command_timeout=30):
                     response = request(endpoint, command, parameters, timeout=command_timeout, transport=transport, helper=helper)
                     transcript.append({'command': command, 'args': parameters or {}, 'response': response,
                                        'elapsedMs': round((time.monotonic()-started)*1000, 1)})
+                    initial_result = response.get('result', {})
+                    deadline = started + command_timeout
+                    while response.get('completion') == 'pending':
+                        assert time.monotonic() < deadline, response
+                        time.sleep(0.025)
+                        response = request(endpoint, 'command.status', {'session': initial_result['id'], 'generation': initial_result['previewGeneration']},
+                                           timeout=max(0.1, deadline-time.monotonic()), transport=transport, helper=helper)
+                        transcript.append({'command': 'command.status', 'args': {'session': initial_result['id'], 'generation': initial_result['previewGeneration']},
+                                           'response': response, 'elapsedMs': round((time.monotonic()-started)*1000, 1)})
                     assert response['ok'] == (error is None), response
                     if error:
                         assert response['error']['code'] == error, response
-                    return response.get('result', {})
+                    return {**initial_result, **response.get('result', {})} if initial_result else response.get('result', {})
                 call.endpoint = endpoint
                 call.transport = transport
                 call.ready_file = ready

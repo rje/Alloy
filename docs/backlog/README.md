@@ -11,10 +11,11 @@ The current publication contains **477 issues**: **367 implementation, 23 resear
 22 epics, and 65 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 
-REL-033/#476 is a P0 initial-release blocker for the observed 119.4-second
-Surface Extrude edit preview on the Qt UI thread. REL-016 owns the cumulative
-responsiveness gate; the corrected iron's functional recording is separate
-from a human-ready interaction claim.
+REL-033/#476 independently fixes the observed 119.4-second Surface Extrude
+edit-preview stall for command sessions; see the bounded real-app
+[receipt](../validation/surface-extrude-responsive-preview.md). REL-016 owns
+the cumulative responsiveness gate; the corrected iron's functional recording
+is separate from a human-ready interaction claim.
 REL-034/#477 separately tracks the 94.46-second final Boundary Fill commit,
 which can starve the recorder even after the Surface Extrude path is fixed.
 

@@ -62,6 +62,9 @@ public:
     QString commitAnalyses(const QJsonArray& analyses, const QString& label);
     static QJsonObject sectionCandidate(const QJsonObject& authored, const QJsonObject& args);
     QString commit(const QJsonObject& candidate, const QString& label);
+    // Adopt a worker's fully evaluated Surface Extrude draft only at its exact base.
+    QString commitSurfaceExtrudeEvaluation(const CandidateEvaluation& prepared,
+        const QJsonObject& requestedCandidate, const QJsonObject& expectedBase, quint64 expectedRevision, const QString& label);
     QJsonObject lastEvaluationError() const { return lastEvaluationError_; }
     static CandidateEvaluation evaluateCandidate(const QJsonObject& candidate);
     // Reuse only the exact accepted prefix for one bounded append command.

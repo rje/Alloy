@@ -33,9 +33,14 @@ the remaining TUT-034/TUT-018 gates.
 The iron recording exposed a separate human-readiness blocker: editing the
 same per-profile Surface Extrude to append its bottom sheet produced a
 119.4-second synchronous preview on the Qt UI thread, with an earlier edit
-opening/preview around 81 seconds. REL-033/#476 (In Progress, child of REL-016)
-owns the bounded nonblocking-command fix; do not equate functional geometry
-with responsive interaction. Candidate13 did reach the same accepted solid and
+opening/preview around 81 seconds. REL-033/#476 now has an independently
+accepted bounded asynchronous fix. The saved-iron edit opened with a 40.32 s
+background evaluation and appended the bottom sheet with a 21.23 s background
+evaluation, while status, navigation and GUI timer checks stayed responsive.
+Cached Commit took 291 ms; exact geometry, history and reopen passed. See
+[the receipt](validation/surface-extrude-responsive-preview.md). This covers
+Surface Extrude command sessions, not every modeling operation. Candidate13
+did reach the same accepted solid and
 save native/STL outputs, but `recording.stop` refused because a UI-thread stall
 exceeded 300 frame slots. It exited nonzero and closed its private editor; no
 accepted movie or gallery replacement exists. Preserve external
@@ -43,11 +48,11 @@ accepted movie or gallery replacement exists. Preserve external
 [the failure receipt](validation/iron-creation-recording-blocked.md). Do not repeat the full run merely
 to reproduce the stall; implement and verify REL-033 first.
 TUT-034/#470 and parent TUT-018/#302 are Todo on the project board while the
-bounded REL-033 fix is active; reopen TUT-034 as In Progress for one corrected
-recording after both UI-thread gates pass.
+remaining UI-thread gate is active; reopen TUT-034 as In Progress for one corrected
+recording after both gates pass.
 The same failed run also measured a 94.46-second final Boundary Fill commit;
-REL-034/#477 is a Todo child after REL-033 and blocks the cumulative movie.
-Fixing only Surface Extrude will not justify another full-recording attempt.
+REL-034/#477 is the next Todo child and blocks the cumulative movie.
+Fixing only Surface Extrude does not justify another full-recording attempt.
 
 Finish the current tutorials and prepare a comprehensive web-reviewable v1 plan for dependable 3D-printing creation workflows. TUT-018/#302 is reopened: the user rejects the final iron shape. Prior API/mesh checks prove only the adapted fixture, not visual/tutorial acceptance. Correct the silhouette and sculpted handle against public final tutorial evidence. Full enclosure TUT-016 remains open. The proposed v1 inventory and backlog mapping live in docs/v1; scope is pending user review.
 

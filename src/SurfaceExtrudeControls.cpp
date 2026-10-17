@@ -4,6 +4,7 @@
 #include "SketchGeometry.h"
 #include "SurfaceExtrude.h"
 #include <BRep_Builder.hxx>
+#include <Standard_Failure.hxx>
 #include <TopoDS_Compound.hxx>
 #include <QCheckBox>
 #include <QDialogButtonBox>
@@ -17,16 +18,22 @@
 #include <QShortcut>
 #include <QSignalBlocker>
 #include <QSet>
+#include <QTimer>
+#include <QElapsedTimer>
+#include <QDateTime>
+#include <QStatusBar>
+#include <thread>
 #include <cmath>
+#include <algorithm>
 
 namespace {
-QJsonObject failure(const QString& code,const QString& message){return {{"ok",false},{"error",QJsonObject{{"code",code},{"message",message}}}};}
+QJsonObject failure(const QString& code,const QString& message){return {{"ok",false},{"completion","failed"},{"error",QJsonObject{{"code",code},{"message",message}}}};}
 }
 
 QJsonObject AlloyWindow::surfaceExtrudeCandidate(const QJsonObject& inputs) const {
     auto args=inputs;
     if(!args.contains("featureId") && session_.value("command")=="surface.extrude"){
-        args["newFeatureId"]=session_["newFeatureId"];if(args["resultMode"]!="perProfile")args["newBodyId"]=session_["newBodyId"];
+        args["newFeatureId"]=session_.value("newFeatureId");if(args["resultMode"]!="perProfile")args["newBodyId"]=session_.value("newBodyId");
     }
     args=authoringArguments(args);
     if(args.contains("featureId"))args.remove("ownerId");
@@ -53,13 +60,20 @@ QJsonObject AlloyWindow::beginSurfaceExtrude(const QJsonObject& overrides) {
         {"newFeatureId",CadDocument::newId()},{"newBodyId",CadDocument::newId()},
         {"baseDocumentRevision",static_cast<qint64>(document_->revision())},{"previewed",false},
         {"geometryEvaluated",false},{"chaining",true},{"inputSchema",findCommand("surface.extrude")->parameters}};
-    if(inputs.contains("featureId"))view_->setBodyStage(document_->evaluationBefore(inputs["featureId"].toString()).bodies,
-        "surface-extrude-source:"+session_["id"].toString());
+    invalidateSurfaceExtrudeEvaluation();
+    surfaceExtrudeBase_=document_->authored();
     showSurfaceExtrude();previewSurfaceExtrude();view_->setFocus(Qt::OtherFocusReason);return session_;
 }
 
 QJsonObject AlloyWindow::previewSurfaceExtrude() {
-    const auto inputs=session_["inputs"].toObject();
+    const auto inputs=session_.value("inputs").toObject();
+    const bool matchingJob=(surfaceExtrudeQueued_ && surfaceExtrudeQueued_->generation==surfaceExtrudeGeneration_)
+        || (surfaceExtrudeRunning_ && surfaceExtrudeRunning_->generation==surfaceExtrudeGeneration_);
+    if(surfaceExtrudeRequestedSession_==session_.value("id").toString() && surfaceExtrudeRequestedInputs_==inputs
+        && session_.value("baseDocumentRevision").toInteger()==static_cast<qint64>(document_->revision())
+        && (matchingJob || (session_.value("evaluationStatus")=="completed" && surfaceExtrudePrepared_.ok)))return session_;
+    ++surfaceExtrudeGeneration_;surfaceExtrudeQueued_.reset();surfaceExtrudePrepared_={};
+    surfaceExtrudeRequestedInputs_={};surfaceExtrudeRequestedSession_.clear();surfaceExtrudeRequestedCandidate_={};
     session_["previewed"]=false;session_["geometryEvaluated"]=false;
     session_.remove("geometry");session_.remove("documentDraft");session_.remove("bodyId");session_.remove("resultBodyIds");session_.remove("resultBodies");view_->clearPreview();view_->setEditDisplay({},{});
     QSet<QString> visible;
@@ -82,54 +96,145 @@ QJsonObject AlloyWindow::previewSurfaceExtrude() {
     }
     auto reject=[&](const QString& code,const QString& message,const QJsonObject& diagnostics=QJsonObject{}){
         auto result=failure(code,message);auto detail=result["error"].toObject();detail["diagnostics"]=diagnostics;
-        result["error"]=detail;session_["previewError"]=detail;
+        result["error"]=detail;session_["previewError"]=detail;session_["evaluationStatus"]="failed";
         if(surfaceExtrudeDock_)if(auto* label=surfaceExtrudeDock_->findChild<QLabel*>("surfaceExtrude.error"))label->setText(message);
         return result;
     };
-    if(session_["baseDocumentRevision"].toInteger()!=static_cast<qint64>(document_->revision()))
+    if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))
         return reject("stale_session","The document changed; cancel and restart Surface Extrude");
-    if(inputs["sketchId"].toString().isEmpty() || (inputs["resultMode"]=="perProfile" ? inputs["profiles"].toArray().isEmpty() : inputs["entityIds"].toArray().isEmpty()))
+    const bool selected=!inputs["sketchId"].toString().isEmpty() && !(inputs["resultMode"]=="perProfile" ? inputs["profiles"].toArray().isEmpty() : inputs["entityIds"].toArray().isEmpty());
+    if(!selected && (!inputs.contains("featureId") || surfaceExtrudeSource_)) {
+        session_["evaluationStatus"]="failed";
         return reject("selection_required","Select one or more nonbranching open profiles");
+    }
     QJsonObject candidate;
-    try{candidate=surfaceExtrudeCandidate(inputs);}catch(const std::exception& error){return reject("invalid_arguments",QString::fromUtf8(error.what()));}
-    const auto evaluated=document_->prepareCandidate(candidate);
-    if(!evaluated.ok)return reject("evaluation_failed",evaluated.error,evaluated.diagnostics);
-    const auto featureId=inputs.value("featureId").toString(session_["newFeatureId"].toString());
-    auto stage=evaluated.evaluation;
-    if(inputs.contains("featureId")){
-        auto prefix=candidate;QJsonArray features;
-        for(const auto& row:candidate["features"].toArray()){features.append(row);if(row.toObject()["id"]==featureId)break;}
-        prefix["features"]=features;const auto earlier=CadDocument::evaluateCandidate(prefix);
-        if(!earlier.ok)return reject("evaluation_failed",earlier.error,earlier.diagnostics);
-        stage=earlier.evaluation;
-    }
-    QJsonArray resultIds,resultBodies;TopoDS_Compound display;BRep_Builder builder;builder.MakeCompound(display);
-    for(const auto& body:stage->bodies)if(body.featureId==featureId){
-        builder.Add(display,body.shape);resultIds.append(body.bodyId);resultBodies.append(QJsonObject{{"bodyId",body.bodyId},{"geometry",body.summary}});
-        if(inputs["resultMode"]!="perProfile"){session_["geometry"]=body.summary;session_["bodyId"]=body.bodyId;}
-    }
-    if(resultIds.isEmpty())return reject("surface_result_unavailable","Surface Extrude produced no current result bodies");
-    // Display-only compound. Evaluated result bodies remain separately addressable.
-    view_->showPreview(display,{},true);
-    if(inputs.contains("featureId")){
-        QJsonArray hidden;for(const auto& body:document_->bodies())if(body.featureId==featureId)hidden.append(body.bodyId);
-        view_->setEditDisplay({},hidden);
-    }
-    session_["featureId"]=featureId;session_["resultBodyIds"]=resultIds;session_["resultBodies"]=resultBodies;
-    session_["documentDraft"]=candidate;session_["previewed"]=true;session_["geometryEvaluated"]=true;
+    try{if(selected)candidate=surfaceExtrudeCandidate(inputs);}catch(const std::exception& error){return reject("invalid_arguments",QString::fromUtf8(error.what()));}
+    auto task=std::make_shared<SurfaceExtrudeEvaluation>();
+    task->document=document_;task->documentId=document_->authored()["documentId"].toString();
+    task->sessionId=session_.value("id").toString();task->revision=document_->revision();
+    task->generation=++surfaceExtrudeGeneration_;task->base=surfaceExtrudeBase_;
+    task->candidate=candidate;task->inputs=inputs;
+    task->featureId=inputs.value("featureId").toString(session_.value("newFeatureId").toString());
+    task->needsSource=inputs.contains("featureId") && !surfaceExtrudeSource_;
+    surfaceExtrudeRequestedInputs_=inputs;surfaceExtrudeRequestedSession_=task->sessionId;surfaceExtrudeRequestedCandidate_=candidate;
+    surfaceExtrudePrepared_={};surfaceExtrudeQueued_=task;
+    session_["evaluationHeartbeat"]=QJsonObject{{"ticks",0},{"lastMs",QDateTime::currentMSecsSinceEpoch()},{"maxGapMs",0}};
+    session_["evaluationStatus"]="pending";session_["previewGeneration"]=static_cast<qint64>(task->generation);
+    session_["cancellation"]="Discard result; running kernel evaluation continues";
     session_.remove("previewError");
-    if(surfaceExtrudeDock_){
-        if(auto* label=surfaceExtrudeDock_->findChild<QLabel*>("surfaceExtrude.error"))label->clear();
-        surfaceExtrudeDock_->findChild<QDialogButtonBox*>()->button(QDialogButtonBox::Ok)->setEnabled(true);
+    if(surfaceExtrudeDock_)if(auto* label=surfaceExtrudeDock_->findChild<QLabel*>("surfaceExtrude.error"))
+        label->setText("Computing preview… You can navigate, change inputs or Cancel. Running kernel work cannot be interrupted.");
+    startSurfaceExtrudeEvaluation();return session_;
+}
+
+void AlloyWindow::invalidateSurfaceExtrudeEvaluation() {
+    if(surfaceExtrudeRunning_)statusBar()->showMessage("Finishing background geometry; new modeling commands will resume shortly.");
+    ++surfaceExtrudeGeneration_;surfaceExtrudeQueued_.reset();surfaceExtrudeSource_.reset();
+    surfaceExtrudePrepared_={};surfaceExtrudeRequestedInputs_={};surfaceExtrudeRequestedSession_.clear();surfaceExtrudeRequestedCandidate_={};
+}
+
+void AlloyWindow::startSurfaceExtrudeEvaluation() {
+    if(surfaceExtrudeRunning_ || !surfaceExtrudeQueued_)return;
+    surfaceExtrudeRunning_=std::move(surfaceExtrudeQueued_);
+    if(!surfaceExtrudePoll_){surfaceExtrudePoll_=new QTimer(this);surfaceExtrudePoll_->setInterval(25);
+        connect(surfaceExtrudePoll_,&QTimer::timeout,this,[this]{pollSurfaceExtrudeEvaluation();});}
+    surfaceExtrudePoll_->start();
+    const auto task=surfaceExtrudeRunning_;
+    // The detached worker owns only immutable JSON and its private fresh shapes.
+    // No QObject, document, live topology or viewport cache is accessed here.
+    std::thread([task]{
+        try {
+            QElapsedTimer timer;timer.start();
+            if(task->needsSource){
+                auto prefix=task->base;QJsonArray features;
+                for(const auto& row:prefix["features"].toArray()){if(row.toObject()["id"]==task->featureId)break;features.append(row);}
+                prefix["features"]=features;prefix.remove("objectOwners");prefix.remove("bodyNames");
+                task->source=std::make_shared<const EvaluatedDocument>(GeometryKernel::evaluateDocument(prefix));
+            }
+            task->sourceMs=timer.restart();
+            if(!task->candidate.isEmpty()){
+                task->full=CadDocument::evaluateCandidate(task->candidate);task->fullMs=timer.restart();
+                if(task->full.ok){
+                    const auto features=task->candidate["features"].toArray();
+                    if(!features.isEmpty() && features.last().toObject()["id"]==task->featureId)task->stage=task->full;
+                    else {
+                        auto prefix=task->candidate;QJsonArray preceding;
+                        for(const auto& row:features){preceding.append(row);if(row.toObject()["id"]==task->featureId)break;}
+                        prefix["features"]=preceding;prefix.remove("objectOwners");prefix.remove("bodyNames");
+                        task->stage=CadDocument::evaluateCandidate(prefix);
+                    }
+                    task->stageMs=timer.elapsed();
+                }
+            }
+        }catch(const Standard_Failure& e){task->error=QString::fromUtf8(e.GetMessageString());}
+         catch(const std::exception& e){task->error=QString::fromUtf8(e.what());}
+         catch(...){task->error="Unexpected Surface Extrude evaluation failure";}
+        task->ready.store(true,std::memory_order_release);
+    }).detach();
+}
+
+void AlloyWindow::pollSurfaceExtrudeEvaluation() {
+    if(session_.value("command")=="surface.extrude" && session_.value("evaluationStatus")=="pending"){
+        auto heartbeat=session_.value("evaluationHeartbeat").toObject();const auto now=QDateTime::currentMSecsSinceEpoch();
+        heartbeat["ticks"]=heartbeat["ticks"].toInteger()+1;
+        heartbeat["maxGapMs"]=std::max(heartbeat["maxGapMs"].toInteger(),now-heartbeat["lastMs"].toInteger());
+        heartbeat["lastMs"]=now;session_["evaluationHeartbeat"]=heartbeat;
     }
-    return session_;
+    if(!surfaceExtrudeRunning_ || !surfaceExtrudeRunning_->ready.load(std::memory_order_acquire))return;
+    const auto task=std::move(surfaceExtrudeRunning_);
+    const bool current=document_==task->document && document_->revision()==task->revision
+        && document_->authored()["documentId"]==task->documentId && session_.value("id")==task->sessionId
+        && session_.value("command")=="surface.extrude" && surfaceExtrudeGeneration_==task->generation;
+    if(current){
+        if(task->source){surfaceExtrudeSource_=task->source;view_->setBodyStage(task->source->bodies,"surface-extrude-source:"+task->sessionId);}
+        session_["evaluationTimingMs"]=QJsonObject{{"source",task->sourceMs},{"full",task->fullMs},{"historicalStage",task->stageMs}};
+        auto reject=[&](const QString& code,const QString& message,const QJsonObject& diagnostics=QJsonObject{}){
+            session_["evaluationStatus"]="failed";session_["previewError"]=QJsonObject{{"code",code},{"message",message},{"diagnostics",diagnostics}};
+            if(surfaceExtrudeDock_)if(auto* label=surfaceExtrudeDock_->findChild<QLabel*>("surfaceExtrude.error"))label->setText(message);
+        };
+        if(!task->error.isEmpty())reject("evaluation_failed",task->error);
+        else if(task->candidate.isEmpty())reject("selection_required","Select one or more nonbranching open profiles");
+        else if(!task->full.ok)reject("evaluation_failed",task->full.error,task->full.diagnostics);
+        else if(!task->stage.ok)reject("evaluation_failed",task->stage.error,task->stage.diagnostics);
+        else {
+            const auto inputs=task->inputs;const auto featureId=task->featureId;const auto stage=task->stage.evaluation;
+            QJsonArray resultIds,resultBodies;TopoDS_Compound display;BRep_Builder builder;builder.MakeCompound(display);
+            for(const auto& body:stage->bodies)if(body.featureId==featureId){
+                builder.Add(display,body.shape);resultIds.append(body.bodyId);resultBodies.append(QJsonObject{{"bodyId",body.bodyId},{"geometry",body.summary}});
+                if(inputs["resultMode"]!="perProfile"){session_["geometry"]=body.summary;session_["bodyId"]=body.bodyId;}
+            }
+            if(resultIds.isEmpty())reject("surface_result_unavailable","Surface Extrude produced no current result bodies");
+            else {
+                view_->showPreview(display,{},true);
+                if(inputs.contains("featureId")){
+                    QJsonArray hidden;for(const auto& body:document_->bodies())if(body.featureId==featureId)hidden.append(body.bodyId);
+                    view_->setEditDisplay({},hidden);
+                }
+                session_["featureId"]=featureId;session_["resultBodyIds"]=resultIds;session_["resultBodies"]=resultBodies;
+                session_["documentDraft"]=task->full.authored;session_["previewed"]=true;session_["geometryEvaluated"]=true;
+                session_["evaluationStatus"]="completed";session_.remove("previewError");surfaceExtrudePrepared_=task->full;
+                if(surfaceExtrudeDock_){
+                    if(auto* label=surfaceExtrudeDock_->findChild<QLabel*>("surfaceExtrude.error"))label->clear();
+                    surfaceExtrudeDock_->findChild<QDialogButtonBox*>()->button(QDialogButtonBox::Ok)->setEnabled(true);
+                }
+            }
+        }
+        refresh();
+    }
+    if(surfaceExtrudeQueued_)startSurfaceExtrudeEvaluation();
+    else {
+        surfaceExtrudePoll_->stop();
+        if(statusBar()->currentMessage()=="Finishing background geometry; new modeling commands will resume shortly.")
+            statusBar()->clearMessage();
+    }
 }
 
 QJsonObject AlloyWindow::selectSurfaceExtrudeEntity(const QString& sketchId,const QString& entityId){
     if(session_.value("command")!="surface.extrude")return failure("invalid_session","Start Surface Extrude first");
-    const auto inputs=session_["inputs"].toObject();
+    const auto inputs=session_.value("inputs").toObject();
     const auto edit=inputs["featureId"].toString();
-    const auto stage=edit.isEmpty() ? document_->evaluation() : document_->evaluationBefore(edit);
+    if(!edit.isEmpty() && !surfaceExtrudeSource_)return failure("evaluation_pending","Source history is still being evaluated; retry when ready");
+    const auto& stage=edit.isEmpty() ? document_->evaluation() : *surfaceExtrudeSource_;
     bool found=false;
     for(const auto& sketch:stage.sketches)if(sketch.featureId==sketchId && sketch.visible
         && sketch.entityEdges.contains(entityId))
@@ -143,7 +248,7 @@ QJsonObject AlloyWindow::selectSurfaceExtrudeEntity(const QString& sketchId,cons
         for(const auto& profile:inputs["profiles"].toArray())if(profile.toObject()["entityIds"].toArray().contains(entityId))
             return selectSurfaceExtrudeProfile(sketchId,profile.toObject()["entityIds"].toArray());
         QJsonArray members{entityId};
-        if(session_["chaining"].toBool())for(const auto& sketch:stage.sketches)if(sketch.featureId==sketchId){
+        if(session_.value("chaining").toBool())for(const auto& sketch:stage.sketches)if(sketch.featureId==sketchId){
             try{members=SurfaceExtrude::openChain(sketch,entityId);}catch(const std::exception& error){return failure("surface_profile_topology",QString::fromUtf8(error.what()));}}
         return selectSurfaceExtrudeProfile(sketchId,members);
     }
@@ -152,35 +257,45 @@ QJsonObject AlloyWindow::selectSurfaceExtrudeEntity(const QString& sketchId,cons
     else entities.append(entityId);
     next["sketchId"]=sketchId;next["entityIds"]=entities;session_["inputs"]=next;
     previewSurfaceExtrude();return {{"sketchId",sketchId},{"entityId",entityId},{"entityIds",entities},
-        {"previewed",session_["previewed"]},{"previewError",session_.value("previewError")}};
+        {"previewed",session_.value("previewed")},{"previewError",session_.value("previewError")},
+        {"evaluationStatus",session_.value("evaluationStatus")},{"id",session_.value("id")},{"previewGeneration",session_.value("previewGeneration")}};
 }
 
 QJsonObject AlloyWindow::selectSurfaceExtrudeProfile(const QString& sketchId,const QJsonArray& entityIds){
-    if(session_.value("command")!="surface.extrude" || session_["inputs"].toObject()["resultMode"]!="perProfile")return failure("invalid_session","Start per-profile Surface Extrude first");
-    auto inputs=session_["inputs"].toObject();if(!inputs["sketchId"].toString().isEmpty() && inputs["sketchId"]!=sketchId)return failure("surface_sketch_mismatch","Profiles must belong to one source sketch");
-    const auto edit=inputs.value("featureId").toString();const auto stage=edit.isEmpty() ? document_->evaluation() : document_->evaluationBefore(edit);
+    if(session_.value("command")!="surface.extrude" || session_.value("inputs").toObject()["resultMode"]!="perProfile")return failure("invalid_session","Start per-profile Surface Extrude first");
+    auto inputs=session_.value("inputs").toObject();if(!inputs["sketchId"].toString().isEmpty() && inputs["sketchId"]!=sketchId)return failure("surface_sketch_mismatch","Profiles must belong to one source sketch");
+    const auto edit=inputs.value("featureId").toString();if(!edit.isEmpty() && !surfaceExtrudeSource_)return failure("evaluation_pending","Source history is still being evaluated; retry when ready");
+    const auto& stage=edit.isEmpty() ? document_->evaluation() : *surfaceExtrudeSource_;
     const EvaluatedSketch* source=nullptr;for(const auto& sketch:stage.sketches)if(sketch.featureId==sketchId && sketch.visible)source=&sketch;
     if(!source)return failure("surface_source_unavailable","Select a visible earlier solved sketch");
-    // Validate exact authored group through the same kernel before changing the selection.
-    auto probe=inputs;probe["sketchId"]=sketchId;probe["profiles"]=QJsonArray{QJsonObject{{"entityIds",entityIds}}};
-    try{const auto candidate=surfaceExtrudeCandidate(probe);const auto id=probe.value("featureId").toString(session_["newFeatureId"].toString());QJsonObject feature;
-        for(const auto& row:candidate["features"].toArray())if(row.toObject()["id"]==id)feature=row.toObject();
-        SurfaceExtrude::evaluateResults(feature,stage);
-    }catch(const std::exception& error){return failure("surface_profile_topology",QString::fromUtf8(error.what()));}
-    auto profiles=inputs["profiles"].toArray();const auto wanted=SurfaceExtrude::profileBodyId(session_["newFeatureId"].toString(),sketchId,entityIds);int existing=-1;
+    // Validate retained topology through the shared JSON chain routine, without
+    // constructing prisms or touching any live OCCT shape on this input path.
+    if(entityIds.isEmpty())return failure("surface_profile_topology","Select an open profile");
+    QSet<QString> unique;
+    for(const auto& id:entityIds){if(!id.isString() || unique.contains(id.toString()) || !source->entityEdges.contains(id.toString()))
+        return failure("surface_profile_topology","Selected profile contains unavailable or repeated curves");unique.insert(id.toString());}
+    auto selected=*source;QJsonArray selectedEntities;
+    for(const auto& row:source->summary["entities"].toArray())if(unique.contains(row.toObject()["id"].toString()))selectedEntities.append(row);
+    selected.summary["entities"]=selectedEntities;
+    try{if(SurfaceExtrude::openChain(selected,entityIds[0].toString()).size()!=entityIds.size())
+        return failure("surface_profile_topology","Profile members are disconnected");}
+    catch(const std::exception& error){return failure("surface_profile_topology",QString::fromUtf8(error.what()));}
+    auto profiles=inputs["profiles"].toArray();const auto wanted=SurfaceExtrude::profileBodyId(session_.value("newFeatureId").toString(),sketchId,entityIds);int existing=-1;
     QSet<QString> members;for(const auto& v:entityIds)members.insert(v.toString());
     for(int i=0;i<profiles.size();++i){const auto ids=profiles[i].toObject()["entityIds"].toArray();
-        if(SurfaceExtrude::profileBodyId(session_["newFeatureId"].toString(),sketchId,ids)==wanted){existing=i;continue;}
+        if(SurfaceExtrude::profileBodyId(session_.value("newFeatureId").toString(),sketchId,ids)==wanted){existing=i;continue;}
         for(const auto& id:ids)if(members.contains(id.toString()))return failure("surface_profile_overlap","Selected chain overlaps an already authored profile; remove it explicitly first");}
     if(existing>=0)profiles.removeAt(existing);else profiles.append(QJsonObject{{"entityIds",entityIds}});
     inputs["sketchId"]=sketchId;inputs["profiles"]=profiles;session_["inputs"]=inputs;previewSurfaceExtrude();
-    return {{"sketchId",sketchId},{"profiles",profiles},{"previewed",session_["previewed"]},{"previewError",session_.value("previewError")}};
+    return {{"sketchId",sketchId},{"profiles",profiles},{"previewed",session_.value("previewed")},{"previewError",session_.value("previewError")},
+        {"evaluationStatus",session_.value("evaluationStatus")},{"id",session_.value("id")},{"previewGeneration",session_.value("previewGeneration")}};
 
 }
 
 QJsonObject AlloyWindow::pickSurfaceExtrude(double x,double y){
-    const auto current=session_["inputs"].toObject();const auto edit=current["featureId"].toString();
-    const auto stage=edit.isEmpty() ? document_->evaluation() : document_->evaluationBefore(edit);
+    const auto current=session_.value("inputs").toObject();const auto edit=current["featureId"].toString();
+    if(!edit.isEmpty() && !surfaceExtrudeSource_)return failure("evaluation_pending","Source history is still being evaluated; retry when ready");
+    const auto& stage=edit.isEmpty() ? document_->evaluation() : *surfaceExtrudeSource_;
     QString sketchId,entityId;double nearest=7;bool ambiguous=false;
     for(const auto& sketch:stage.sketches)if(sketch.visible && (current["sketchId"].toString().isEmpty() || current["sketchId"]==sketch.featureId)){
         auto source=SketchGeometry::findFeature(document_->authored(),sketch.featureId);
@@ -215,32 +330,32 @@ void AlloyWindow::showSurfaceExtrude(){
     surfaceExtrudeDock_=new QDockWidget("Extrude",canvasWindow_);surfaceExtrudeDock_->setObjectName("surfaceExtrudeDock");
     auto* panel=new QWidget(surfaceExtrudeDock_);surfaceExtrudeDock_->setWidget(panel);
     auto* form=new QFormLayout(panel);form->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
-    const bool perProfile=session_["inputs"].toObject()["resultMode"]=="perProfile";
+    const bool perProfile=session_.value("inputs").toObject()["resultMode"]=="perProfile";
     auto* hint=new QLabel(perProfile
         ? "Select open profiles to create separate surface bodies. Chaining selects connected curves. Two Sides measures independently from the sketch plane."
         : "Select open sketch curves to create one compound surface body. Two Sides measures independently from the sketch plane.",panel);
     hint->setWordWrap(true);form->addRow(hint);
-    auto* name=new QLineEdit(session_["inputs"].toObject()["name"].toString(),panel);name->setObjectName("surfaceExtrude.name");form->addRow("Name",name);
-    connect(name,&QLineEdit::editingFinished,panel,[this,name]{auto inputs=session_["inputs"].toObject();inputs["name"]=name->text();session_["inputs"]=inputs;previewSurfaceExtrude();});
-    auto* list=new QListWidget(panel);list->setObjectName("surfaceExtrude.entities");list->setMinimumHeight(100);form->addRow(session_["inputs"].toObject()["resultMode"]=="perProfile" ? "Profiles" : "Curves",list);
+    auto* name=new QLineEdit(session_.value("inputs").toObject()["name"].toString(),panel);name->setObjectName("surfaceExtrude.name");form->addRow("Name",name);
+    connect(name,&QLineEdit::editingFinished,panel,[this,name]{auto inputs=session_.value("inputs").toObject();inputs["name"]=name->text();session_["inputs"]=inputs;previewSurfaceExtrude();});
+    auto* list=new QListWidget(panel);list->setObjectName("surfaceExtrude.entities");list->setMinimumHeight(100);form->addRow(session_.value("inputs").toObject()["resultMode"]=="perProfile" ? "Profiles" : "Curves",list);
     auto* remove=new QPushButton("Remove Selected",panel);remove->setObjectName("surfaceExtrude.remove");form->addRow(remove);
-    connect(remove,&QPushButton::clicked,panel,[this,list]{const auto index=list->currentRow();auto inputs=session_["inputs"].toObject();const auto key=inputs["resultMode"]=="perProfile" ? "profiles" : "entityIds";auto refs=inputs[key].toArray();
+    connect(remove,&QPushButton::clicked,panel,[this,list]{const auto index=list->currentRow();auto inputs=session_.value("inputs").toObject();const auto key=inputs["resultMode"]=="perProfile" ? "profiles" : "entityIds";auto refs=inputs[key].toArray();
         if(index<0 || index>=refs.size())return;refs.removeAt(index);inputs[key]=refs;session_["inputs"]=inputs;previewSurfaceExtrude();});
-    if(session_["inputs"].toObject()["resultMode"]=="perProfile"){
-        auto* chaining=new QCheckBox("Chaining",panel);chaining->setObjectName("surfaceExtrude.chaining");chaining->setChecked(session_["chaining"].toBool());form->addRow(chaining);
+    if(session_.value("inputs").toObject()["resultMode"]=="perProfile"){
+        auto* chaining=new QCheckBox("Chaining",panel);chaining->setObjectName("surfaceExtrude.chaining");chaining->setChecked(session_.value("chaining").toBool());form->addRow(chaining);
         connect(chaining,&QCheckBox::toggled,panel,[this](bool checked){session_["chaining"]=checked;});
     }
     form->addRow("Direction",new QLabel("Two Sides",panel));form->addRow("Operation",new QLabel("New Body",panel));
     for(const auto& key:{"sideOneMm","sideTwoMm"}){
         auto* field=new QDoubleSpinBox(panel);field->setObjectName(key);field->setRange(.001,100000);field->setDecimals(3);field->setSuffix(" mm");
-        field->setValue(session_["inputs"].toObject()[key].toDouble());form->addRow(QString::fromLatin1(key)=="sideOneMm"?"Side 1":"Side 2",field);
-        connect(field,qOverload<double>(&QDoubleSpinBox::valueChanged),panel,[this,key](double value){auto inputs=session_["inputs"].toObject();inputs[key]=value;session_["inputs"]=inputs;previewSurfaceExtrude();});
+        field->setValue(session_.value("inputs").toObject()[key].toDouble());form->addRow(QString::fromLatin1(key)=="sideOneMm"?"Side 1":"Side 2",field);
+        connect(field,qOverload<double>(&QDoubleSpinBox::valueChanged),panel,[this,key](double value){auto inputs=session_.value("inputs").toObject();inputs[key]=value;session_["inputs"]=inputs;previewSurfaceExtrude();});
     }
     auto* error=new QLabel(panel);error->setObjectName("surfaceExtrude.error");error->setWordWrap(true);form->addRow(error);
     auto* buttons=new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel,panel);form->addRow(buttons);
-    connect(buttons,&QDialogButtonBox::accepted,panel,[this,error]{const auto response=execute("command.commit",{{"session",session_["id"]}});
+    connect(buttons,&QDialogButtonBox::accepted,panel,[this,error]{const auto response=execute("command.commit",{{"session",session_.value("id")}});
         if(!response["ok"].toBool())error->setText(response["error"].toObject()["message"].toString());});
-    auto cancel=[this]{if(session_["command"]=="surface.extrude")execute("command.cancel",{{"session",session_["id"]}});};
+    auto cancel=[this]{if(session_.value("command")=="surface.extrude")execute("command.cancel",{{"session",session_.value("id")}});};
     connect(buttons,&QDialogButtonBox::rejected,panel,cancel);
     auto* escape=new QShortcut(QKeySequence(Qt::Key_Escape),panel);escape->setContext(Qt::WidgetWithChildrenShortcut);
     connect(escape,&QShortcut::activated,panel,cancel);

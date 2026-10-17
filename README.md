@@ -6,6 +6,11 @@ Current priority: [initial-build readiness](docs/initial-build-readiness.md)—
 familiar navigation, reliable everyday controls, recovery and installable packages,
 alongside completion of the advanced modeling tutorials.
 
+The [Surface Extrude responsiveness gate](docs/validation/surface-extrude-responsive-preview.md)
+now keeps the corrected iron's long edit previews off the UI thread, with
+independently checked navigation, status, geometry, history and reopen evidence.
+The final Boundary Fill commit remains a separate responsiveness blocker.
+
 The [complete surface shoehorn](docs/validation/shoehorn-complete.md) now has
 an independently accepted full creation movie, editable model and checked STL:
 guided surface, exact corner/perimeter rounds and retained hanging hole. Source
