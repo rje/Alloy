@@ -7196,7 +7196,8 @@
         "REL-033",
         "REL-034",
         "REL-035",
-        "REL-036"
+        "REL-036",
+        "REL-037"
       ],
       "labels": [
         "area:rel"
@@ -8075,6 +8076,22 @@
         "priority:P0"
       ],
       "body": "## Observed failure\nReopening the saved corrected-iron model after the responsive final Boundary Fill commit takes 32.170 seconds synchronously on the Qt UI thread. The evaluated model is exact and valid, but the window is unresponsive during the load. Evidence: external `validation/rel034-responsive-2026-10-17/saved-fixture/` transcript and receipt. REL-016/#419 retains broad responsiveness.\n\n## Bounded scope\nMake large native-document reopen keep the GUI event loop responsive through file parsing and exact kernel evaluation. Use a private candidate document/geometry and publish it atomically only after successful evaluation, preserving the current tab and authored state on failure or Cancel. Keep local API completion explicit, serialize with other geometry work, and avoid touching QObjects or live viewport topology from workers. Reuse the established worker protocol where practical; do not reduce geometry checks to hide latency.\n\n## Verification\nOpen the saved corrected-iron model through the real app with a repaint/status/navigation heartbeat, compare authored feature IDs and final solid/face-edge references with the accepted fixture, then inspect undo/history and save. Cover one failed/cancelled load leaving the original document intact with a focused test. Independent review before closing. This is separate from the corrected tutorial creation movie and cross-platform runtime gates.\n\n## Dependency\nREL-034/#477 is the accepted worker foundation. This child contributes to REL-016/#419 and initial-build readiness.\n"
+    },
+    {
+      "key": "REL-037",
+      "title": "Reduce large-model Open final presentation pause",
+      "kind": "implementation",
+      "phase": "P4 Initial release",
+      "priority": "P1",
+      "depends_on": [
+        "REL-036"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P4",
+        "priority:P1"
+      ],
+      "body": "## Observed result\nREL-036/#479 moves the saved corrected-iron native Open's 30.607-second evaluation off the Qt UI thread. Pending status calls and viewport navigation stay responsive. The terminal completion response still takes 1.278542 seconds, including GUI-thread adoption, presentation/rebind and serialization. This is a bounded final-presentation pause, distinct from background heartbeat evidence. External receipt: `validation/rel036-responsive-2026-10-17/receipt.json`.\n\n## Bounded scope\nProfile the accepted large-model completion into document adoption, viewport actor rebuild, Browser/timeline refresh, Fit and API response serialization. Retain atomic document replacement, exact geometry and reference IDs, same-tab behavior, history reset and failure/Cancel preservation. Reduce avoidable main-thread presentation work or stage it safely across event-loop ticks while reporting explicit terminal completion only when the document is ready. Do not rerun kernel evaluation, weaken geometry checks or claim a global latency budget from pending-only metrics.\n\n## Verification\nOne bounded saved-iron Open replay measures GUI heartbeat through final adoption separately from background evaluation, compares exact authored/geometry/history and inspects readable final presentation. A focused regression covers completion identity and no partial visible document. Independent review before closure. Broader startup/STEP import remain outside this child.\n\n## Parent\nREL-016/#419 cumulative responsiveness; REL-036/#479 provides the accepted asynchronous Open foundation.\n"
     }
   ]
 }

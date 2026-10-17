@@ -7,7 +7,7 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current publication contains **479 issues**: **369 implementation, 23 research,
+The current publication contains **480 issues**: **370 implementation, 23 research,
 22 epics, and 65 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 
@@ -23,7 +23,8 @@ REL-035/#478 independently fixes the cell-enumeration UI stall on the saved
 iron fixture; see its [receipt](../validation/boundary-fill-responsive-cells.md).
 REL-036/#479 independently fixes the large-model interactive Open stall;
 see its [receipt](../validation/responsive-native-open.md). A 1.279 s final
-presentation interval remains a measured responsiveness follow-up.
+presentation interval remains a measured responsiveness follow-up under
+REL-037/#480. The corrected iron full recording is again active under TUT-034.
 
 ## Active delivery order
 

@@ -64,7 +64,9 @@ independently accepts background evaluation for interactive native Open on the
 same iron fixture: 30.607 s background work with responsive status/navigation,
 exact authored/geometry/history/save, and a disclosed 1.279 s final presentation
 pause. See [the receipt](validation/responsive-native-open.md).
-A new full corrected-iron recording remains unaccepted.
+REL-037/#480 tracks the final presentation pause. TUT-034/#470 is now active
+for one corrected from-blank recording against the accepted responsiveness fixes;
+no new complete movie is accepted yet.
 
 Finish the current tutorials and prepare a comprehensive web-reviewable v1 plan for dependable 3D-printing creation workflows. TUT-018/#302 is reopened: the user rejects the final iron shape. Prior API/mesh checks prove only the adapted fixture, not visual/tutorial acceptance. Correct the silhouette and sculpted handle against public final tutorial evidence. Full enclosure TUT-016 remains open. The proposed v1 inventory and backlog mapping live in docs/v1; scope is pending user review.
 

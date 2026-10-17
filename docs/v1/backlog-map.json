@@ -1,20 +1,20 @@
 {
   "schema_version": 1,
   "audit": {
-    "retrieved_at_utc": "2026-10-17T23:25:27Z",
+    "retrieved_at_utc": "2026-10-17T23:48:53Z",
     "repository": "rje/Alloy",
     "source": "GitHub REST issues API via gh; all pages, state=all, pull requests excluded",
     "local_backlog": "docs/backlog/issues.json",
-    "local_issue_count": 479,
-    "live_issue_count": 479,
+    "local_issue_count": 480,
+    "live_issue_count": 480,
     "live_state_counts": {
-      "closed": 328,
-      "open": 151
+      "closed": 330,
+      "open": 150
     },
     "bucket_counts": {
-      "supporting-evidence": 328,
-      "v1-blocker": 46,
-      "v1-candidate": 56,
+      "supporting-evidence": 330,
+      "v1-blocker": 44,
+      "v1-candidate": 57,
       "later-roadmap": 47,
       "needs-review": 2
     },
@@ -22,7 +22,7 @@
     "readiness_result": "Historical ready count below predates reconciliation: 36 ready at original audit.",
     "closed_issue_policy": "Closed issues are supporting evidence only; they do not establish family-wide or cumulative release readiness.",
     "tut018_policy": "Reopened; user-rejected shape is not accepted. TUT-034 owns corrective work.",
-    "reconciled_at": "2026-10-17 after REL-034 acceptance and measured REL-035/REL-036 follow-ups"
+    "reconciled_at": "2026-10-17 after REL-035/REL-036 acceptance and REL-037 measured final presentation follow-up"
   },
   "issues": [
     {
@@ -8884,14 +8884,14 @@
       "key": "REL-035",
       "number": 478,
       "title": "Keep Boundary Fill cell enumeration responsive",
-      "state": "open",
-      "state_observed_at": "2026-10-17",
+      "state": "closed",
+      "state_observed_at": "2026-10-17T23:39:26Z",
       "kind": "implementation",
       "category": "runtime performance and recovery",
       "phase": "P4 Initial release",
       "priority": "P0",
-      "proposed_bucket": "v1-blocker",
-      "rationale": "Saved corrected-iron Select Cells enumeration blocks the GUI for 10.907 s; exact nonblocking cell selection remains a v1 blocker.",
+      "proposed_bucket": "supporting-evidence",
+      "rationale": "Independently accepted bounded responsiveness fix; see the corresponding docs/validation receipt. Other command and cumulative release gates remain open.",
       "depends_on": [
         "REL-034"
       ],
@@ -8901,18 +8901,35 @@
       "key": "REL-036",
       "number": 479,
       "title": "Keep large native-document reopen responsive",
+      "state": "closed",
+      "state_observed_at": "2026-10-17T23:48:53Z",
+      "kind": "implementation",
+      "category": "runtime performance and recovery",
+      "phase": "P4 Initial release",
+      "priority": "P0",
+      "proposed_bucket": "supporting-evidence",
+      "rationale": "Independently accepted bounded responsiveness fix; see the corresponding docs/validation receipt. Other command and cumulative release gates remain open.",
+      "depends_on": [
+        "REL-034"
+      ],
+      "url": "https://github.com/rje/Alloy/issues/479"
+    },
+    {
+      "key": "REL-037",
+      "number": 480,
+      "title": "Reduce large-model Open final presentation pause",
       "state": "open",
       "state_observed_at": "2026-10-17",
       "kind": "implementation",
       "category": "runtime performance and recovery",
       "phase": "P4 Initial release",
-      "priority": "P0",
-      "proposed_bucket": "v1-blocker",
-      "rationale": "Saved corrected-iron native reopen blocks the GUI for 32.170 s; responsive atomic load remains a v1 blocker.",
+      "priority": "P1",
+      "proposed_bucket": "v1-candidate",
+      "rationale": "The accepted interactive Open still has a measured 1.279 s terminal adoption/presentation response; profile and reduce this bounded residual pause.",
       "depends_on": [
-        "REL-034"
+        "REL-036"
       ],
-      "url": "https://github.com/rje/Alloy/issues/479"
+      "url": "https://github.com/rje/Alloy/issues/480"
     }
   ]
 }
