@@ -1,6 +1,6 @@
 # Reliable printable-part v1: backlog map and burndown proposal
 
-**Current snapshot 2026-10-17 23:16 UTC:** 477 issues, 327 closed and 150 open. REL-033/#476 is independently accepted for responsive Surface Extrude command sessions; REL-034/#477 remains the measured synchronous Boundary Fill blocker. The older audit counts below record the earlier planning pass.
+**Current snapshot 2026-10-17 23:25 UTC:** 479 issues, 328 closed and 151 open. REL-033/#476 and REL-034/#477 are independently accepted for responsive Surface Extrude previews and final Boundary Fill commit. REL-035/#478 and REL-036/#479 retain the measured cell-enumeration and large-model-reopen stalls. The older audit counts below record the earlier planning pass.
 
 **Reconciled 2026-10-17:** TUT-018 is now open, TUT-016 is a current tutorial blocker, and REL-030/#469 plus TUT-034/#470 are added. Reconciliation initially gave 470 issues, 148 open / 322 closed. GEO-023/#471 was then added for the actual corrected-iron Loft crash; the current JSON has 471 issues and149 open. The original audit narrative below is retained as history; the JSON includes the reconciliation.
 

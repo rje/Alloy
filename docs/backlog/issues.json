@@ -7194,7 +7194,9 @@
         "REL-020",
         "REL-028",
         "REL-033",
-        "REL-034"
+        "REL-034",
+        "REL-035",
+        "REL-036"
       ],
       "labels": [
         "area:rel"
@@ -7932,7 +7934,8 @@
         "SRF-011",
         "GEO-023",
         "REL-033",
-        "REL-034"
+        "REL-034",
+        "REL-035"
       ],
       "labels": [
         "kind:validation",
@@ -8040,6 +8043,38 @@
         "priority:P0"
       ],
       "body": "## Observed failure\nThe corrected-iron from-blank run reaches the independently accepted final solid, but its `command.commit` for Boundary Fill consumes 94.4577 seconds synchronously on the Qt UI thread. The recording then refuses a clip after `Frame gap exceeded 300 slots`; the saved native model/STL remain valid. External evidence: `deliverables/iron-reassessment-2026-10-17/candidate-13-from-blank-recording/{README.md,receipt.json,long-command-timings.json,transcript.json}`. This operation alone exceeds a 60-second frame-gap window, so the Surface Extrude-only REL-033 fix cannot establish a complete responsive tutorial recording.\n\n## Bounded scope\nProfile the final Boundary Fill cell commit on the saved accepted four-tool fixture. Keep the GUI event loop responsive while exact authoritative evaluation completes, with explicit pending/completed/failed state, stale revision/selection guards, one atomic history commit and no concurrent kernel use that races live viewport topology. Preserve selected-cell identity, Remove Tools behavior, final geometry, undo/redo and native reopen. Do not weaken the Boolean kernel, raise the recorder's gap limit as a substitute for responsiveness, or advertise a blocked app as a successful human workflow. Reuse the serial-worker/completion contract established by REL-033 where appropriate; avoid a second incompatible task framework.\n\n## Verification\nOne bounded real-app replay of the saved final Boundary Fill fixture shows a repaint/status/navigation heartbeat during computation and an exact accepted solid after completion. Measure wall time separately from event-loop response. Check Cancel/result discard and stale session behavior where supported, plus one focused command-state test. Independent architecture/geometry review before closing. Recording acceptance belongs to TUT-034/#470 and must be separately replayed after both long-operation blockers are addressed.\n\n## Parent/dependencies\nREL-016/#419 owns cumulative responsiveness. REL-033/#476 provides the first serial worker/completion infrastructure; start this child after that contract is accepted. TUT-034/#470 depends on this before a successful complete creation movie can be claimed.\n"
+    },
+    {
+      "key": "REL-035",
+      "title": "Keep Boundary Fill cell enumeration responsive",
+      "kind": "implementation",
+      "phase": "P4 Initial release",
+      "priority": "P0",
+      "depends_on": [
+        "REL-034"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P4",
+        "priority:P0"
+      ],
+      "body": "## Observed failure\nThe accepted corrected-iron four-tool Boundary Fill fixture spends 10.907 seconds in initial Select Cells enumeration on the Qt UI thread, before the now-responsive final commit. The app cannot repaint or answer controls for that interval. Evidence: external `validation/rel034-responsive-2026-10-17/saved-fixture/result.json` and raw transcript. REL-034/#477 closed only the final commit; REL-016/#419 owns cumulative responsiveness.\n\n## Bounded scope\nMove the expensive Boundary Fill partition/cell enumeration for the selected four-tool source off the UI thread using the accepted serial worker and immutable document inputs. Preserve exact cell IDs, volumes, candidate previews, selected-cell identity and Remove Tools behavior. Admit results only for the matching document, revision, session, tools, owner and generation. Let users navigate, inspect pending state and Cancel while it evaluates; do not claim OCCT interruption if Cancel only discards results. Preserve safe serialization with final commit and other worker operations.\n\n## Verification\nOne saved-fixture real-app replay measures UI heartbeat, status and navigation through initial enumeration and compares the resulting cells/selection and final solid to the accepted fixture. Focused pending/stale/Cancel test, exact history and reopen, and independent review. Do not repeat the complete iron tutorial movie just to test this child; TUT-034 owns that cumulative recording.\n\n## Dependency\nREL-034/#477 provides the shared worker/completion contract. This is a bounded child of REL-016/#419 and a prerequisite for a human-ready corrected-iron workflow.\n"
+    },
+    {
+      "key": "REL-036",
+      "title": "Keep large native-document reopen responsive",
+      "kind": "implementation",
+      "phase": "P4 Initial release",
+      "priority": "P0",
+      "depends_on": [
+        "REL-034"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P4",
+        "priority:P0"
+      ],
+      "body": "## Observed failure\nReopening the saved corrected-iron model after the responsive final Boundary Fill commit takes 32.170 seconds synchronously on the Qt UI thread. The evaluated model is exact and valid, but the window is unresponsive during the load. Evidence: external `validation/rel034-responsive-2026-10-17/saved-fixture/` transcript and receipt. REL-016/#419 retains broad responsiveness.\n\n## Bounded scope\nMake large native-document reopen keep the GUI event loop responsive through file parsing and exact kernel evaluation. Use a private candidate document/geometry and publish it atomically only after successful evaluation, preserving the current tab and authored state on failure or Cancel. Keep local API completion explicit, serialize with other geometry work, and avoid touching QObjects or live viewport topology from workers. Reuse the established worker protocol where practical; do not reduce geometry checks to hide latency.\n\n## Verification\nOpen the saved corrected-iron model through the real app with a repaint/status/navigation heartbeat, compare authored feature IDs and final solid/face-edge references with the accepted fixture, then inspect undo/history and save. Cover one failed/cancelled load leaving the original document intact with a focused test. Independent review before closing. This is separate from the corrected tutorial creation movie and cross-platform runtime gates.\n\n## Dependency\nREL-034/#477 is the accepted worker foundation. This child contributes to REL-016/#419 and initial-build readiness.\n"
     }
   ]
 }

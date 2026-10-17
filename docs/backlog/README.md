@@ -7,7 +7,7 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current publication contains **477 issues**: **367 implementation, 23 research,
+The current publication contains **479 issues**: **369 implementation, 23 research,
 22 epics, and 65 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 
@@ -19,6 +19,7 @@ is separate from a human-ready interaction claim.
 REL-034/#477 independently fixes the 94.46-second final Boundary Fill commit
 stall for the saved four-tool fixture; see its [receipt](../validation/boundary-fill-responsive-commit.md).
 Initial cell enumeration and large-model reopen remain synchronous.
+REL-035/#478 and REL-036/#479 retain these separate measured follow-ups as Todo.
 
 ## Active delivery order
 
