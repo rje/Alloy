@@ -145,25 +145,28 @@ void AlloyWindow::startGeometryEvaluation() {
     std::thread([task]{
         try {
             QElapsedTimer timer;timer.start();
-            if(task->needsSource){
-                auto prefix=task->base;QJsonArray features;
-                for(const auto& row:prefix["features"].toArray()){if(row.toObject()["id"]==task->featureId)break;features.append(row);}
-                prefix["features"]=features;prefix.remove("objectOwners");prefix.remove("bodyNames");
-                task->source=std::make_shared<const EvaluatedDocument>(GeometryKernel::evaluateDocument(prefix));
-            }
-            task->sourceMs=timer.restart();
-            if(!task->candidate.isEmpty()){
-                task->full=CadDocument::evaluateCandidate(task->candidate);task->fullMs=timer.restart();
-                if(task->full.ok && task->command=="surface.extrude"){
-                    const auto features=task->candidate["features"].toArray();
-                    if(!features.isEmpty() && features.last().toObject()["id"]==task->featureId)task->stage=task->full;
-                    else {
-                        auto prefix=task->candidate;QJsonArray preceding;
-                        for(const auto& row:features){preceding.append(row);if(row.toObject()["id"]==task->featureId)break;}
-                        prefix["features"]=preceding;prefix.remove("objectOwners");prefix.remove("bodyNames");
-                        task->stage=CadDocument::evaluateCandidate(prefix);
+            if(task->command=="surface.boundaryFill" && task->phase=="partition")evaluateBoundaryFillPartition(*task);
+            else {
+                if(task->needsSource){
+                    auto prefix=task->base;QJsonArray features;
+                    for(const auto& row:prefix["features"].toArray()){if(row.toObject()["id"]==task->featureId)break;features.append(row);}
+                    prefix["features"]=features;prefix.remove("objectOwners");prefix.remove("bodyNames");
+                    task->source=std::make_shared<const EvaluatedDocument>(GeometryKernel::evaluateDocument(prefix));
+                }
+                task->sourceMs=timer.restart();
+                if(!task->candidate.isEmpty()){
+                    task->full=CadDocument::evaluateCandidate(task->candidate);task->fullMs=timer.restart();
+                    if(task->full.ok && task->command=="surface.extrude"){
+                        const auto features=task->candidate["features"].toArray();
+                        if(!features.isEmpty() && features.last().toObject()["id"]==task->featureId)task->stage=task->full;
+                        else {
+                            auto prefix=task->candidate;QJsonArray preceding;
+                            for(const auto& row:features){preceding.append(row);if(row.toObject()["id"]==task->featureId)break;}
+                            prefix["features"]=preceding;prefix.remove("objectOwners");prefix.remove("bodyNames");
+                            task->stage=CadDocument::evaluateCandidate(prefix);
+                        }
+                        task->stageMs=timer.elapsed();
                     }
-                    task->stageMs=timer.elapsed();
                 }
             }
         }catch(const Standard_Failure& e){task->error=QString::fromUtf8(e.GetMessageString());}
@@ -185,7 +188,9 @@ void AlloyWindow::pollGeometryEvaluation() {
     const bool current=document_==task->document && document_->revision()==task->revision
         && document_->authored()["documentId"]==task->documentId && session_.value("id")==task->sessionId
         && session_.value("command")==task->command && geometryEvaluationGeneration_==task->generation;
-    if(task->command=="surface.boundaryFill")completeBoundaryFillCommit(task);
+    if(task->command=="surface.boundaryFill"){
+        if(task->phase=="partition")completeBoundaryFillPartition(task);else completeBoundaryFillCommit(task);
+    }
     else if(current){
         if(task->source){surfaceExtrudeSource_=task->source;view_->setBodyStage(task->source->bodies,"surface-extrude-source:"+task->sessionId);}
         session_["evaluationTimingMs"]=QJsonObject{{"source",task->sourceMs},{"full",task->fullMs},{"historicalStage",task->stageMs}};

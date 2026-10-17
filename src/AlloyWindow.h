@@ -298,16 +298,20 @@ private:
     void startGeometryEvaluation();
     void pollGeometryEvaluation();
     void invalidateGeometryEvaluation();
+    struct BoundaryFillPreviewSource;
+    struct BoundaryFillPreviewPartition;
     struct GeometryEvaluation {
         std::atomic<bool> ready{false};
         CadDocument* document = nullptr; // Identity only; never accessed by worker.
         QString documentId, sessionId, featureId, ownerId;
-        QString command = "surface.extrude";
+        QString command = "surface.extrude", phase = "preview";
         quint64 revision = 0, generation = 0;
-        QJsonObject base, candidate, inputs;
+        QJsonObject base, candidate, inputs, feature, cacheKey;
         bool needsSource = false;
         CadDocument::CandidateEvaluation full, stage;
         std::shared_ptr<const EvaluatedDocument> source;
+        std::shared_ptr<const BoundaryFillPreviewSource> boundarySource;
+        std::shared_ptr<const BoundaryFillPreviewPartition> boundaryPartition;
         qint64 sourceMs = 0, fullMs = 0, stageMs = 0;
         QString error;
     };
@@ -352,6 +356,9 @@ private:
     QJsonObject selectBoundaryFillCell(const QString& cellId);
     QJsonObject pickBoundaryFill(double x,double y);
     QJsonObject finishBoundaryFill(const QString& id,bool commit);
+    QJsonObject queueBoundaryFillPartition(const QJsonObject& key);
+    static void evaluateBoundaryFillPartition(GeometryEvaluation& task);
+    void completeBoundaryFillPartition(const std::shared_ptr<GeometryEvaluation>& task);
     void completeBoundaryFillCommit(const std::shared_ptr<GeometryEvaluation>& task);
     void closeBoundaryFillSession();
     void showBoundaryFill();
@@ -362,8 +369,6 @@ private:
     QShortcut* boundaryFillEscape_=nullptr;
     std::vector<QPointer<QCheckBox>> boundaryFillMarkers_;
     bool boundaryFillMarkerUpdatePending_=false;
-    struct BoundaryFillPreviewSource;
-    struct BoundaryFillPreviewPartition;
     std::shared_ptr<const BoundaryFillPreviewSource> boundaryFillSource_;
     std::shared_ptr<const BoundaryFillPreviewPartition> boundaryFillPartition_;
     const EvaluatedDocument& boundaryFillSourceStage();

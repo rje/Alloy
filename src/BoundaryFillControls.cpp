@@ -17,6 +17,7 @@
 #include <QSignalBlocker>
 #include <algorithm>
 #include <QDateTime>
+#include <QElapsedTimer>
 #include <QStatusBar>
 
 namespace {
@@ -88,8 +89,8 @@ QJsonObject AlloyWindow::beginBoundaryFill(const QJsonObject& overrides){
 }
 QJsonObject AlloyWindow::previewBoundaryFill(){
     if(session_.value("command")!="surface.boundaryFill")return failure("invalid_session","Start Boundary Fill first");
-    if(session_.value("evaluationStatus")=="pending")return failure("evaluation_busy","Boundary Fill commit is pending; wait or Cancel to discard it");
-    session_.remove("evaluationStatus");session_.remove("previewGeneration");
+    if(session_.value("evaluationStatus")=="pending")return failure("evaluation_busy","Boundary Fill evaluation is pending; wait or Cancel to discard it");
+    session_.remove("evaluationStatus");session_.remove("previewGeneration");session_.remove("evaluationPhase");
     session_["previewed"]=false;session_["geometryEvaluated"]=false;session_["partitionReused"]=false;
     session_.remove("geometry");session_.remove("documentDraft");session_.remove("cells");view_->clearPreview();
     for(auto& marker:boundaryFillMarkers_)if(marker){marker->hide();marker->setObjectName({});marker->deleteLater();}boundaryFillMarkers_.clear();
@@ -110,22 +111,25 @@ QJsonObject AlloyWindow::previewBoundaryFill(){
                 if(occurrence.value("definitionId")==owner){++count;identity=occurrence.value("parentId")==root
                     && occurrence.value("placement")=="identity" && !occurrence.contains("parentOccurrenceId");}}
             if(count!=1 || !identity)return reject("cross_component_dependency","Boundary Fill requires a root or one identity component owner");}
-        const auto& source=boundaryFillSourceStage();auto key=boundaryFillSource_->key;
+        const QJsonObject sourceKey{{"sessionId",session_.value("id")},{"documentId",document_->authored().value("documentId")},
+            {"revision",static_cast<qint64>(document_->revision())},{"featureId",inputs.value("featureId").toString()},{"ownerId",session_.value("ownerId")}};
+        auto key=sourceKey;key["featureId"]=inputs.value("featureId").toString(session_.value("newFeatureId").toString());key["bodyId"]=session_.value("newBodyId");
+        key["tools"]=canonicalTools(inputs.value("tools").toArray());
+        if(boundaryFillPartition_ && boundaryFillPartition_->key!=key)boundaryFillPartition_.reset();
+        if(session_.value("selectionRole")=="cells" && !boundaryFillPartition_){
+            if(inputs.value("tools").toArray().isEmpty())return reject("boundary_fill_tools_required","Select enclosing surface tools first");
+            return queueBoundaryFillPartition(key);
+        }
+        const auto& source=boundaryFillSourceStage();
         for(const auto& row:inputs.value("tools").toArray()){
             const auto ref=row.toObject();const EvaluatedBody* tool=nullptr;for(const auto& body:source.bodies)if(body.bodyId==ref.value("bodyId"))tool=&body;
             if(!tool || tool->featureId!=ref.value("producerFeatureId"))return reject("boundary_fill_tool_unavailable","Select each exact earlier tool body and producer");
             if(tool->ownerId!=owner)return reject("cross_component_dependency","Boundary Fill tools must belong to its modeling owner");}
-        key["featureId"]=inputs.value("featureId").toString(session_.value("newFeatureId").toString());key["bodyId"]=session_.value("newBodyId");
-        key["tools"]=canonicalTools(inputs.value("tools").toArray());
-        if(boundaryFillPartition_ && boundaryFillPartition_->key!=key)boundaryFillPartition_.reset();
         if(session_.value("selectionRole")=="tools"){
             view_->setBodyStage(source.bodies,"boundary-fill-tools:"+session_.value("id").toString());
             session_.remove("previewError");refreshBoundaryFillControls();return session_;}
         if(inputs.value("tools").toArray().isEmpty())return reject("boundary_fill_tools_required","Select enclosing surface tools first");
         const bool reused=bool(boundaryFillPartition_);
-        if(!reused){session_["partitionBuildCount"]=session_.value("partitionBuildCount").toInteger()+1;
-            boundaryFillPartition_=std::make_shared<const BoundaryFillPreviewPartition>(BoundaryFillPreviewPartition{
-                key,BoundaryFill::partition(boundaryFillFeature(inputs),source)});}
         session_["partitionReused"]=reused;const auto& partition=boundaryFillPartition_->partition;
         const auto rows=BoundaryFill::descriptors(partition);session_["cells"]=rows;
         session_["geometry"]=QJsonObject{{"cells",rows},{"diagnostics",partition.diagnostics}};session_["geometryEvaluated"]=true;
@@ -153,9 +157,81 @@ QJsonObject AlloyWindow::previewBoundaryFill(){
     }catch(const GeometryKernel::EvaluationError& error){const auto d=error.diagnostics();return reject(d.value("code").toString("evaluation_failed"),d.value("message").toString(),d);}
     catch(const std::exception& error){return reject("evaluation_failed",QString::fromUtf8(error.what()));}
 }
+QJsonObject AlloyWindow::queueBoundaryFillPartition(const QJsonObject& key){
+    if(geometryEvaluationRunning_ || geometryEvaluationQueued_)return failure("evaluation_busy","Background geometry is still finishing");
+    auto task=std::make_shared<GeometryEvaluation>();task->command="surface.boundaryFill";task->phase="partition";
+    task->document=document_;task->documentId=document_->authored().value("documentId").toString();task->revision=document_->revision();
+    task->sessionId=session_.value("id").toString();task->generation=++geometryEvaluationGeneration_;task->base=document_->authored();
+    task->inputs=session_.value("inputs").toObject();task->ownerId=session_.value("ownerId").toString();
+    task->feature=boundaryFillFeature(task->inputs);task->featureId=task->feature.value("id").toString();task->cacheKey=key;
+    geometryEvaluationTerminal_={};geometryEvaluationQueued_=task;
+    session_["partitionBuildCount"]=session_.value("partitionBuildCount").toInteger()+1;
+    session_["evaluationPhase"]="partition";session_["evaluationStatus"]="pending";
+    session_["previewGeneration"]=static_cast<qint64>(task->generation);
+    session_["evaluationHeartbeat"]=QJsonObject{{"ticks",0},{"lastMs",QDateTime::currentMSecsSinceEpoch()},{"maxGapMs",0}};
+    session_["cancellation"]="Discard result; running kernel evaluation continues";
+    session_.remove("previewError");refreshBoundaryFillControls();startGeometryEvaluation();return session_;
+}
+void AlloyWindow::evaluateBoundaryFillPartition(GeometryEvaluation& task){
+    // Called by the one serial worker. Rebuild independent source topology from
+    // immutable authored JSON; never reuse the live document or preview cache.
+    QElapsedTimer timer;timer.start();
+    try{
+        auto prefix=task.base;const auto edit=task.inputs.value("featureId").toString();
+        if(!edit.isEmpty()){
+            QJsonArray features;for(const auto& row:prefix.value("features").toArray()){
+                if(row.toObject().value("id")==edit)break;features.append(row);}
+            prefix["features"]=features;prefix.remove("objectOwners");prefix.remove("bodyNames");
+        }
+        const QJsonObject sourceKey{{"sessionId",task.sessionId},{"documentId",task.documentId},
+            {"revision",static_cast<qint64>(task.revision)},{"featureId",edit},{"ownerId",task.ownerId}};
+        auto source=std::make_shared<const BoundaryFillPreviewSource>(BoundaryFillPreviewSource{sourceKey,GeometryKernel::evaluateDocument(prefix)});
+        task.sourceMs=timer.restart();
+        for(const auto& row:task.inputs.value("tools").toArray()){
+            const auto ref=row.toObject();const EvaluatedBody* tool=nullptr;
+            for(const auto& body:source->stage.bodies)if(body.bodyId==ref.value("bodyId"))tool=&body;
+            if(!tool || tool->featureId!=ref.value("producerFeatureId"))throw GeometryKernel::EvaluationError({
+                {"code","boundary_fill_tool_unavailable"},{"message","Select each exact earlier tool body and producer"}});
+            if(tool->ownerId!=task.ownerId)throw GeometryKernel::EvaluationError({
+                {"code","cross_component_dependency"},{"message","Boundary Fill tools must belong to its modeling owner"}});
+        }
+        auto partition=std::make_shared<const BoundaryFillPreviewPartition>(BoundaryFillPreviewPartition{
+            task.cacheKey,BoundaryFill::partition(task.feature,source->stage)});
+        task.stageMs=timer.elapsed();task.boundarySource=std::move(source);task.boundaryPartition=std::move(partition);
+    }catch(const GeometryKernel::EvaluationError& error){task.full.diagnostics=error.diagnostics();task.error=QString::fromUtf8(error.what());}
+}
+void AlloyWindow::completeBoundaryFillPartition(const std::shared_ptr<GeometryEvaluation>& task){
+    if(session_.value("id")!=task->sessionId || session_.value("command")!=task->command || geometryEvaluationGeneration_!=task->generation)return;
+    auto reject=[&](const QString& code,const QString& message,const QJsonObject& diagnostics=QJsonObject{}){
+        session_["evaluationStatus"]="failed";session_["previewed"]=false;
+        session_["previewError"]=QJsonObject{{"code",code},{"message",message},{"diagnostics",diagnostics}};refreshBoundaryFillControls();
+    };
+    if(document_!=task->document || document_->authored().value("documentId")!=task->documentId || document_->revision()!=task->revision
+        || session_.value("inputs").toObject()!=task->inputs || session_.value("ownerId")!=task->ownerId || session_.value("selectionRole")!="cells"
+        || canonicalTools(session_.value("inputs").toObject().value("tools").toArray())!=task->cacheKey.value("tools")
+        || (!task->inputs.contains("featureId") && document_->activeOwnerId()!=task->ownerId)){
+        reject("stale_session","The document or Boundary Fill tools changed; cancel and restart");return;
+    }
+    if(!task->error.isEmpty()){
+        reject(task->full.diagnostics.value("code").toString("evaluation_failed"),task->error,task->full.diagnostics);return;
+    }
+    if(!task->boundarySource || !task->boundaryPartition){reject("evaluation_failed","Cell enumeration produced no source or partition");return;}
+    // Publication happens only after acquire-ready and every identity guard.
+    boundaryFillSource_=task->boundarySource;boundaryFillPartition_=task->boundaryPartition;
+    session_.remove("evaluationStatus");const auto preview=previewBoundaryFill();
+    session_["evaluationPhase"]="partition";session_["previewGeneration"]=static_cast<qint64>(task->generation);session_["partitionReused"]=false;
+    session_["evaluationTimingMs"]=QJsonObject{{"source",task->sourceMs},{"partition",task->stageMs}};
+    const auto detail=preview.value("error").toObject();
+    const bool awaitingSelection=detail.value("code")=="boundary_fill_cell_required" && !session_.value("cells").toArray().isEmpty();
+    if(preview.value("ok").isBool() && !preview.value("ok").toBool() && !awaitingSelection)
+        reject(detail.value("code").toString("evaluation_failed"),detail.value("message").toString(),detail.value("diagnostics").toObject());
+    else session_["evaluationStatus"]="completed";
+    refreshBoundaryFillControls();refresh();
+}
+
 QJsonObject AlloyWindow::selectBoundaryFillTool(const QString& bodyId){
     if(session_.value("command")!="surface.boundaryFill")return failure("invalid_session","Start Boundary Fill first");
-    if(session_.value("evaluationStatus")=="pending")return failure("evaluation_busy","Boundary Fill commit is pending; wait or Cancel to discard it");
+    if(session_.value("evaluationStatus")=="pending")return failure("evaluation_busy","Boundary Fill evaluation is pending; wait or Cancel to discard it");
     if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))return previewBoundaryFill();
     const EvaluatedBody* selected=nullptr;for(const auto& b:boundaryFillSourceStage().bodies)if(b.bodyId==bodyId && b.visible && b.occurrenceId.isEmpty()
         && b.ownerId==session_.value("ownerId") && b.summary.value("type")=="surface")selected=&b;
@@ -168,12 +244,18 @@ QJsonObject AlloyWindow::selectBoundaryFillTool(const QString& bodyId){
 }
 QJsonObject AlloyWindow::selectBoundaryFillCells(){
     if(session_.value("command")!="surface.boundaryFill")return failure("invalid_session","Start Boundary Fill first");
-    if(session_.value("evaluationStatus")=="pending")return failure("evaluation_busy","Boundary Fill commit is pending; wait or Cancel to discard it");
-    session_["selectionRole"]="cells";previewBoundaryFill();return session_;
+    if(session_.value("evaluationStatus")=="pending")return session_.value("evaluationPhase")=="partition" ? session_ : failure("evaluation_busy","Boundary Fill commit is pending; wait or Cancel to discard it");
+    session_["selectionRole"]="cells";const auto preview=previewBoundaryFill();
+    const auto detail=preview.value("error").toObject();
+    const bool awaitingSelection=detail.value("code")=="boundary_fill_cell_required" && !session_.value("cells").toArray().isEmpty();
+    if(preview.value("ok").isBool() && !preview.value("ok").toBool() && !awaitingSelection){
+        session_["evaluationStatus"]="failed";return preview;
+    }
+    return session_;
 }
 QJsonObject AlloyWindow::selectBoundaryFillCell(const QString& cellId){
     if(session_.value("command")!="surface.boundaryFill" || session_.value("selectionRole")!="cells")return failure("invalid_session","Activate Select Cells first");
-    if(session_.value("evaluationStatus")=="pending")return failure("evaluation_busy","Boundary Fill commit is pending; wait or Cancel to discard it");
+    if(session_.value("evaluationStatus")=="pending")return failure("evaluation_busy","Boundary Fill evaluation is pending; wait or Cancel to discard it");
     if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))return previewBoundaryFill();
     QJsonObject reference;for(const auto& row:session_.value("cells").toArray())if(row.toObject().value("cellId")==cellId)reference=row.toObject().value("cell").toObject();
     if(reference.isEmpty())return failure("boundary_fill_cell_unavailable","Select an exact current bounded cell");
@@ -227,7 +309,10 @@ void AlloyWindow::refreshBoundaryFillControls(){
         ? (session_.value("previewed").toBool()?"Some boundary fragments could not be oriented; the selected solid passed validation.":"Some boundary fragments could not be oriented. Inspect the available cells before selecting.")
         : warning.trimmed().isEmpty()?QString{}:QString("Geometry warnings were reported. Inspect the available cells before accepting."));
     warnings->setToolTip(warning.trimmed());warnings->setVisible(!warning.trimmed().isEmpty());
-    auto* error=boundaryFillDock_->findChild<QLabel*>("boundaryFill.error");error->setText(pending ? "Computing Boundary Fill… You can navigate or Cancel to discard the result. Running kernel work cannot be interrupted." : session_.value("previewError").toObject().value("message").toString());
+    auto* error=boundaryFillDock_->findChild<QLabel*>("boundaryFill.error");error->setText(pending ? (session_.value("evaluationPhase")=="partition"
+        ? "Computing cells… You can navigate or Cancel to discard the result. Running kernel work cannot be interrupted."
+        : "Computing Boundary Fill… You can navigate or Cancel to discard the result. Running kernel work cannot be interrupted.")
+        : session_.value("previewError").toObject().value("message").toString());
     boundaryFillDock_->findChild<QDialogButtonBox*>()->button(QDialogButtonBox::Ok)->setEnabled(!pending && session_.value("previewed").toBool());
     for(auto& marker:boundaryFillMarkers_)if(marker)marker->setEnabled(!pending);
 }
@@ -260,18 +345,19 @@ QJsonObject AlloyWindow::finishBoundaryFill(const QString& id,bool commit){
     if(session_.value("id")!=id)return failure("invalid_session","Boundary Fill is no longer active");
     const bool pending=session_.value("evaluationStatus")=="pending";
     if(commit){
-        if(pending)return session_; // Idempotent retry of the same immutable selection.
+        if(pending)return session_.value("evaluationPhase")=="partition"
+            ? failure("evaluation_pending","Wait for cell enumeration, then select a cell before accepting") : session_;
         if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))return previewBoundaryFill();
         if(!session_.value("previewed").toBool())return failure("boundary_fill_cell_required","Select a valid bounded cell before accepting");
         if(geometryEvaluationRunning_ || geometryEvaluationQueued_)return failure("evaluation_busy","Background geometry is still finishing");
-        auto task=std::make_shared<GeometryEvaluation>();task->command="surface.boundaryFill";
+        auto task=std::make_shared<GeometryEvaluation>();task->command="surface.boundaryFill";task->phase="commit";
         task->document=document_;task->documentId=document_->authored().value("documentId").toString();task->revision=document_->revision();
         task->sessionId=id;task->generation=++geometryEvaluationGeneration_;task->base=document_->authored();
         task->inputs=session_.value("inputs").toObject();task->ownerId=session_.value("ownerId").toString();
         try{task->candidate=boundaryFillCandidate(task->inputs);}catch(const std::exception& error){return failure("invalid_arguments",QString::fromUtf8(error.what()));}
         task->featureId=task->inputs.value("featureId").toString(session_.value("newFeatureId").toString());
         geometryEvaluationTerminal_={};geometryEvaluationQueued_=task;
-        session_["evaluationStatus"]="pending";session_["previewGeneration"]=static_cast<qint64>(task->generation);
+        session_["evaluationPhase"]="commit";session_["evaluationStatus"]="pending";session_["previewGeneration"]=static_cast<qint64>(task->generation);
         session_["evaluationHeartbeat"]=QJsonObject{{"ticks",0},{"lastMs",QDateTime::currentMSecsSinceEpoch()},{"maxGapMs",0}};
         session_["cancellation"]="Discard result; running kernel evaluation continues";
         session_.remove("previewError");refreshBoundaryFillControls();startGeometryEvaluation();return session_;

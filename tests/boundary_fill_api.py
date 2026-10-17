@@ -25,7 +25,7 @@ with application(a.app,out,command_timeout=180) as (call,ledger):
     # Exterior and handle sheets alone remain open. Zero-cell enumeration must
     # keep acceptance disabled, without inventing a bottom or choosing a hull.
     empty=call('surface.boundaryFillDialog',{'tools':[{'bodyId':b['bodyId'],'producerFeatureId':b['featureId']} for b in tools[:2]]})
-    zero=call('surface.boundaryFillSelectCells');assert not zero.get('cells') and not zero['previewed']
+    call('surface.boundaryFillSelectCells',error='boundary_fill_no_cells');zero=state();assert not zero.get('cells') and not zero['previewed']
     call('command.commit',{'session':empty['id']},error='boundary_fill_cell_required');call('command.cancel',{'session':empty['id']})
     assert call('document.inspect')['authored']==before['authored']
     sid,cell=choose();call('surface.boundaryFillCell',{'cellId':cell['cellId']});call('command.update',{'session':sid,'inputs':{'removeTools':True}})

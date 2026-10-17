@@ -19,7 +19,9 @@ is separate from a human-ready interaction claim.
 REL-034/#477 independently fixes the 94.46-second final Boundary Fill commit
 stall for the saved four-tool fixture; see its [receipt](../validation/boundary-fill-responsive-commit.md).
 Initial cell enumeration and large-model reopen remain synchronous.
-REL-035/#478 and REL-036/#479 retain these separate measured follow-ups as Todo.
+REL-035/#478 independently fixes the cell-enumeration UI stall on the saved
+iron fixture; see its [receipt](../validation/boundary-fill-responsive-cells.md).
+REL-036/#479 retains the separate large-model reopen stall as Todo.
 
 ## Active delivery order
 

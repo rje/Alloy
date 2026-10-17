@@ -11,7 +11,8 @@ now keeps the corrected iron's long edit previews off the UI thread, with
 independently checked navigation, status, geometry, history and reopen evidence.
 The [Boundary Fill commit gate](docs/validation/boundary-fill-responsive-commit.md)
 also keeps the corrected iron's final solid evaluation responsive. Initial
-cell enumeration and large-model reopen remain synchronous.
+[cell enumeration](docs/validation/boundary-fill-responsive-cells.md) now runs
+on the same worker. Large-model reopen remains synchronous.
 
 The [complete surface shoehorn](docs/validation/shoehorn-complete.md) now has
 an independently accepted full creation movie, editable model and checked STL:

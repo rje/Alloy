@@ -6128,7 +6128,7 @@ QJsonArray AlloyWindow::commands() const {
 }
 
 QString AlloyWindow::geometryWorkLabel(const QString& id,const QJsonObject& args) const {
-    if(id=="surface.boundaryFillSelectCells" || id=="surface.boundaryFill")return "Boundary Fill";
+    if(id=="surface.boundaryFill")return "Boundary Fill";
     // Synchronous evaluation and the three modeless launchers that immediately
     // evaluate previews. Nested commands share their outer busy indication.
     QString operation=id;
@@ -6170,7 +6170,7 @@ QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
         const bool safe=id=="commands.list" || id=="app.state" || id=="document.inspect" || id=="command.cancel"
             || (session_.value("command")=="surface.extrude" && (id=="command.preview" || id=="command.update" || id=="command.commit"
                 || id=="surface.extrudeEntity" || id=="surface.extrudeProfile" || id=="selection.pick"))
-            || (session_.value("command")=="surface.boundaryFill" && (id=="command.commit" || id=="command.preview"))
+            || (session_.value("command")=="surface.boundaryFill" && (id=="command.commit" || id=="command.preview" || id=="surface.boundaryFillSelectCells"))
             || id=="view.orbit" || id=="view.pan" || id=="view.zoom" || id=="view.orientation" || id=="view.home"
             || id=="view.fit" || id=="capture.screenshot" || id=="capture.viewport" || id=="capture.dialog";
         if(!safe)return failure("evaluation_busy","Background geometry evaluation is still running; inspect command.status or Cancel to discard its result");

@@ -61,7 +61,29 @@ private slots:
   auto chooseCell=[&](){auto active=call(w,"surface.boundaryFillDialog",{{"tools",tools},{"removeTools",true}});
    const auto cells=call(w,"surface.boundaryFillSelectCells").value("cells").toArray();if(cells.size()!=1)qFatal("Expected one box cell");
    call(w,"surface.boundaryFillCell",{{"cellId",cells[0].toObject().value("cellId")}});return session(w);};
-  auto active=chooseCell();const auto sid=active.value("id"),cell=active.value("inputs").toObject().value("cell");
+  const auto enumeration=call(w,"surface.boundaryFillDialog",{{"tools",tools},{"removeTools",true}});const auto enumerationId=enumeration.value("id");
+  auto pending=w.execute("surface.boundaryFillSelectCells");QVERIFY(pending.value("ok").toBool());QCOMPARE(pending.value("completion").toString(),QString("pending"));
+  const auto enumerationGeneration=pending.value("result").toObject().value("previewGeneration");
+  QCOMPARE(pending.value("result").toObject().value("evaluationPhase").toString(),QString("partition"));QVERIFY(!session(w).value("geometryEvaluated").toBool());
+  QCOMPARE(w.execute("surface.boundaryFillSelectCells").value("result").toObject().value("previewGeneration"),enumerationGeneration);
+  QCOMPARE(w.execute("command.commit",{{"session",enumerationId}}).value("error").toObject().value("code").toString(),QString("evaluation_pending"));
+  QCOMPARE(w.execute("command.update",{{"session",enumerationId},{"inputs",QJsonObject{{"tools",QJsonArray{}}}}}).value("error").toObject().value("code").toString(),QString("evaluation_busy"));
+  QCOMPARE(w.execute("command.status",{{"session",enumerationId},{"generation",enumerationGeneration.toInteger()+1}}).value("error").toObject().value("code").toString(),QString("stale_preview"));
+  const auto discarded=w.execute("command.cancel",{{"session",enumerationId}});QVERIFY(discarded.value("result").toObject().value("resultDiscarded").toBool());
+  QTRY_VERIFY_WITH_TIMEOUT(!w.state().value("geometryWork").toObject().value("active").toBool(),10000);QVERIFY(session(w).isEmpty());QCOMPARE(call(w,"document.inspect").value("authored"),before.value("authored"));
+  const auto openTools=call(w,"surface.boundaryFillDialog",{{"tools",QJsonArray{tools[0],tools[1]}}});
+  const auto noCells=w.execute("surface.boundaryFillSelectCells");QCOMPARE(noCells.value("completion").toString(),QString("pending"));
+  QTRY_COMPARE_WITH_TIMEOUT(session(w).value("evaluationStatus").toString(),QString("failed"),10000);
+  const auto noCellStatus=w.execute("command.status",{{"session",openTools.value("id")},{"generation",noCells.value("result").toObject().value("previewGeneration")}});
+  QCOMPARE(noCellStatus.value("completion").toString(),QString("failed"));QCOMPARE(noCellStatus.value("error").toObject().value("code").toString(),QString("boundary_fill_no_cells"));
+  QVERIFY(!session(w).value("previewed").toBool());QVERIFY(session(w).value("cells").toArray().isEmpty());
+  const auto cachedNoCells=w.execute("surface.boundaryFillSelectCells");QCOMPARE(cachedNoCells.value("completion").toString(),QString("failed"));
+  QCOMPARE(cachedNoCells.value("error").toObject().value("code").toString(),QString("boundary_fill_no_cells"));QCOMPARE(session(w).value("evaluationStatus").toString(),QString("failed"));
+  QCOMPARE(w.execute("command.commit",{{"session",openTools.value("id")}}).value("error").toObject().value("code").toString(),QString("boundary_fill_cell_required"));
+  call(w,"command.cancel",{{"session",openTools.value("id")}});QCOMPARE(call(w,"document.inspect").value("authored"),before.value("authored"));
+  auto active=chooseCell();QCOMPARE(active.value("partitionBuildCount").toInteger(),qint64(1));QVERIFY(active.value("partitionReused").toBool());
+  QCOMPARE(w.execute("command.status",{{"session",enumerationId}}).value("error").toObject().value("code").toString(),QString("invalid_session"));
+  const auto sid=active.value("id"),cell=active.value("inputs").toObject().value("cell");
   auto raw=w.execute("command.commit",{{"session",sid}});QVERIFY(raw.value("ok").toBool());QCOMPARE(raw.value("completion").toString(),QString("pending"));
   const auto generation=raw.value("result").toObject().value("previewGeneration");
   raw=w.execute("command.commit",{{"session",sid}});QCOMPARE(raw.value("result").toObject().value("previewGeneration"),generation);
@@ -93,7 +115,7 @@ private slots:
   QJsonArray refs;for(const auto& row:bodies){const auto b=row.toObject();refs.append(QJsonObject{{"bodyId",b.value("bodyId")},{"producerFeatureId",b.value("featureId")}});}
   call(w,"surface.boundaryFillDialog",{{"tools",refs}});auto* dock=w.findChild<QDockWidget*>("boundaryFillDock");QVERIFY(dock);auto* list=dock->findChild<QListWidget*>("boundaryFill.tools");
   for(int i=0;i<list->count();++i)for(const auto& row:bodies)QVERIFY(!list->item(i)->text().contains(row.toObject().value("bodyId").toString().left(8)));
-  QTest::mouseClick(dock->findChild<QPushButton*>("boundaryFill.selectCells"),Qt::LeftButton);QTRY_COMPARE(session(w).value("cells").toArray().size(),1);QVERIFY(view->hasFocus());
+  QTest::mouseClick(dock->findChild<QPushButton*>("boundaryFill.selectCells"),Qt::LeftButton);QTRY_COMPARE_WITH_TIMEOUT(session(w).value("cells").toArray().size(),1,180000);QVERIFY(view->hasFocus());
   QCheckBox* marker=nullptr;for(auto* box:view->findChildren<QCheckBox*>())if(box->objectName().startsWith("boundaryFill.cellMarker.") && box->isVisible())marker=box;QVERIFY(marker);
   QCOMPARE(QApplication::widgetAt(marker->mapToGlobal(marker->rect().center())),static_cast<QWidget*>(marker));QTest::mouseClick(marker,Qt::LeftButton);QTRY_VERIFY(session(w).value("previewed").toBool());QVERIFY(view->hasFocus());
   clickCheck(dock->findChild<QCheckBox*>("boundaryFill.removeTools"));QVERIFY(session(w).value("partitionReused").toBool());QCOMPARE(session(w).value("partitionBuildCount").toInteger(),qint64(1));
@@ -120,7 +142,7 @@ private slots:
    qInfo()<<"selected tools"<<session(w).value("inputs").toObject().value("tools").toArray().size()<<"partition builds"<<session(w).value("partitionBuildCount").toInteger();
    QTRY_COMPARE(session(w).value("inputs").toObject().value("tools").toArray().size(),i+1);QCOMPARE(session(w).value("partitionBuildCount").toInteger(),qint64(0));QVERIFY(view->hasFocus());}
   auto* cells=dock->findChild<QPushButton*>("boundaryFill.selectCells");QVERIFY(cells && cells->isEnabled());QTest::mouseClick(cells,Qt::LeftButton);
-  QTRY_COMPARE(session(w).value("cells").toArray().size(),1);QCOMPARE(session(w).value("partitionBuildCount").toInteger(),qint64(1));QVERIFY(!buttons->button(QDialogButtonBox::Ok)->isEnabled());QVERIFY(view->hasFocus());
+  QTRY_COMPARE_WITH_TIMEOUT(session(w).value("cells").toArray().size(),1,180000);QCOMPARE(session(w).value("partitionBuildCount").toInteger(),qint64(1));QVERIFY(!buttons->button(QDialogButtonBox::Ok)->isEnabled());QVERIFY(view->hasFocus());
   QCheckBox* marker=nullptr;for(auto* box:view->findChildren<QCheckBox*>())if(box->objectName().startsWith("boundaryFill.cellMarker.") && box->isVisible())marker=box;
   QVERIFY(marker);QCOMPARE(QApplication::widgetAt(marker->mapToGlobal(marker->rect().center())),static_cast<QWidget*>(marker));QTest::mouseClick(marker,Qt::LeftButton);
   QTRY_VERIFY(session(w).value("previewed").toBool());QVERIFY(session(w).value("partitionReused").toBool());QCOMPARE(session(w).value("partitionBuildCount").toInteger(),qint64(1));QVERIFY(view->hasFocus());
@@ -133,7 +155,7 @@ private slots:
   // native cell/remove-tools/OK path without repeating the five tool clicks.
   QJsonArray refs;for(const auto& row:bodies){const auto b=row.toObject();refs.append(QJsonObject{{"bodyId",b.value("bodyId")},{"producerFeatureId",b.value("featureId")}});}
   call(w,"surface.boundaryFillDialog",{{"tools",refs}});dock=w.findChild<QDockWidget*>("boundaryFillDock");QVERIFY(dock);
-  QTest::mouseClick(dock->findChild<QPushButton*>("boundaryFill.selectCells"),Qt::LeftButton);QTRY_COMPARE(session(w).value("cells").toArray().size(),1);
+  QTest::mouseClick(dock->findChild<QPushButton*>("boundaryFill.selectCells"),Qt::LeftButton);QTRY_COMPARE_WITH_TIMEOUT(session(w).value("cells").toArray().size(),1,180000);
   marker=nullptr;for(auto* box:view->findChildren<QCheckBox*>())if(box->objectName().startsWith("boundaryFill.cellMarker.") && box->isVisible())marker=box;QVERIFY(marker);
   QCOMPARE(QApplication::widgetAt(marker->mapToGlobal(marker->rect().center())),static_cast<QWidget*>(marker));QTest::mouseClick(marker,Qt::LeftButton);QTRY_VERIFY(session(w).value("previewed").toBool());QVERIFY(view->hasFocus());
   clickCheck(dock->findChild<QCheckBox*>("boundaryFill.removeTools"));QTRY_VERIFY(session(w).value("inputs").toObject().value("removeTools").toBool());QVERIFY(view->hasFocus());
