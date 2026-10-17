@@ -7536,7 +7536,13 @@ QJsonObject AlloyWindow::previewExtrude() {
     if(!editId.isEmpty()) {
         auto prefix=evaluated.authored;QJsonArray features;
         for(const auto& entry:prefix["features"].toArray()) {features.append(entry);if(entry.toObject()["id"]==editId)break;}
-        prefix["features"]=features;const auto early=CadDocument::evaluateCandidate(prefix);
+        prefix["features"]=features;
+        // Browser organization describes finished objects, including bodies
+        // created after this preview stage. Match evaluationBefore's source
+        // context without changing the full candidate retained for commit.
+        prefix.remove("objectOwners");
+        prefix.remove("bodyNames");
+        const auto early=CadDocument::evaluateCandidate(prefix);
         if(!early.ok)return rejectWithHandle(failure("evaluation_failed",early.error));
         stage=early.evaluation;
     }
