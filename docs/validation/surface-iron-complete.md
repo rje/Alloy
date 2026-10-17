@@ -1,5 +1,7 @@
 # Complete surface iron workflow
 
+> **Acceptance withdrawn 2026-10-17:** user rejected the final shape. This receipt preserves adapted-fixture geometry/API evidence only. TUT-018/#302 is reopened; see [shape reassessment](../v1/iron-reassessment.md).
+
 Accepted 2026-10-15 for TUT-018/#302, independently reviewed by Astra. The real
 application completes224 successful API calls and25 stages from a blank document
 through a retained solid and printable export. The243.8-second H.264 creation

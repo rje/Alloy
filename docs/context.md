@@ -1,6 +1,14 @@
 # Continuation context
 
-## Active user order (2026-10-15)
+## Active user order (2026-10-17)
+
+Finish the current tutorials and prepare a comprehensive web-reviewable v1 plan for dependable 3D-printing creation workflows. TUT-018/#302 is reopened: the user rejects the final iron shape. Prior API/mesh checks prove only the adapted fixture, not visual/tutorial acceptance. Correct the silhouette and sculpted handle against public final tutorial evidence. Full enclosure TUT-016 remains open. The proposed v1 inventory and backlog mapping live in docs/v1; scope is pending user review.
+
+## Historical evidence (superseded where noted)
+
+The acceptance claim below was withdrawn for TUT-018 on 2026-10-17; shoehorn acceptance remains valid.
+
+### Previous order (2026-10-15)
 
 **User order complete:** TUT-017 shoehorn and TUT-018 surface iron are
 independently accepted. See [iron receipt](validation/surface-iron-complete.md):

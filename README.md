@@ -1,5 +1,7 @@
 # Alloy
 
+Current review: [proposed printable-part v1 plan](https://alloy-v1-review.rjevans1.chatgpt.site) and [versioned inventory](docs/v1/README.md). Iron tutorial acceptance is withdrawn pending shape correction; the full enclosure remains open.
+
 Current priority: [initial-build readiness](docs/initial-build-readiness.md)—
 familiar navigation, reliable everyday controls, recovery and installable packages,
 alongside completion of the advanced modeling tutorials.
@@ -8,16 +10,14 @@ The [complete surface shoehorn](docs/validation/shoehorn-complete.md) now has
 an independently accepted full creation movie, editable model and checked STL:
 guided surface, exact corner/perimeter rounds and retained hanging hole. Source
 length edits, history and reopening pass. Physical Browser gestures remain a
-separate gate. The [complete surface iron](docs/validation/surface-iron-complete.md) also now
-passes its adapted creation workflow, enclosed-handle solid, editable history
-and checked STL, with a full creation recording in the external gallery.
+separate gate. The [surface iron evidence](docs/validation/surface-iron-complete.md) covers a valid adapted model and prior recording. **Tutorial acceptance was withdrawn on 2026-10-17:** the final shape does not match the intended object. See [reassessment](docs/v1/iron-reassessment.md); TUT-018 and TUT-034 track correction.
 
 The [bilateral surface exterior](docs/validation/surface-bilateral-rail-loft.md)
 now supports the iron tutorial's retained mirrored outline, guide rail and two
 trimmed handle openings. The [retained handle bridge](docs/validation/surface-handle-bridge.md)
 now passes source edits, native selection and reopening. The
 [curved sheet Trim trials](docs/validation/surface-curved-trim.md) also pass
-sequential cuts, tool Remove and exact undo. Final solid closure and the enclosed-handle printing mesh are independently accepted.
+sequential cuts, tool Remove and exact undo. Earlier final solid closure and printing mesh checks remain bounded evidence; they do not establish the rejected final silhouette.
 
 [Open fit-spline Mirror](docs/validation/fit-spline-mirror.md) now retains
 reflected points and tangent handles through source/axis edits and reopening.
