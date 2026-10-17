@@ -7,8 +7,8 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current publication contains **468 issues**: **361 implementation, 22 research,
-22 epics, and 63 validation gates**. Counts describe decomposition, not coverage.
+The current publication contains **475 issues**: **365 implementation, 23 research,
+22 epics, and 65 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 
 ## Active delivery order
@@ -22,8 +22,7 @@ handle bridge and REL-026 warm Trim responsiveness are accepted. SRF-020 separat
 sheet trials are independently accepted. TUT-032 closing-sheet qualification is
 accepted; SRF-011 Boundary Fill is independently accepted. REL-029 independently fixes oversized
 canvas-backed preview inspection; TUT-033 independently corrects the rear handle web with genus1 mesh evidence.
-TUT-018 complete-03 is independently accepted with full creation movie,
-enclosed-handle solid, checked STL and source edit/history/reopen. SRF-021 owner-local sketch Trim and
+TUT-018 complete-03 had functional and export evidence, but its tutorial acceptance was withdrawn on 2026-10-17 after the user rejected the final shape. TUT-034/#470 owns the corrected iron; candidate11 now passes bounded solid closure, export and history, while the pointed plan-view nose and cumulative recording remain open. SRF-021 owner-local sketch Trim and
 SRF-022 coincident endpoint chains are independently accepted through the
 127-call from-blank surface/trial workflow. Full product closure stays open.
 SRF-023 solid/mixed tools and SRF-024 multiple selected cells preserve broader

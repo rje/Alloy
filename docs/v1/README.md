@@ -6,7 +6,7 @@ This is a proposed tool/release contract, pending user review under REL-030. The
 
 - [Command inventory](command-inventory.json): 150 capability rows and 397 runtime-cross-checked IDs, with explicit gaps and evidence.
 - [Inventory notes](inventory-notes.md): definitions and verification limits.
-- [Backlog map](backlog-map.json) and [workstreams](backlog-notes.md): dated 471-issue reconciled snapshot, not a live board. It includes the TUT-018 reopening and REL-030/TUT-034 and GEO-023 crash prerequisite.
+- [Backlog map](backlog-map.json) and [workstreams](backlog-notes.md): dated 475-issue reconciled snapshot, not a live board. It includes the TUT-018 reopening, bounded TUT-035 clearance acceptance, and REL-030/TUT-034 iron correction.
 - [Iron reassessment](iron-reassessment.md): final shape rejected; public-view comparison and corrected fixture acceptance.
 
 Sequence: finish iron and enclosure → review v1 scope → split accepted gaps into bounded owners → creation/revision reliability → native interaction polish → native renderer and packaged platform qualification. Do not pull later tutorial breadth merely to accumulate closed issues.

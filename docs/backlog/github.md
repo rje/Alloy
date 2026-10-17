@@ -481,3 +481,5 @@ This is a publication snapshot. Use `python3 tools/backlog.py ready` for the liv
 | [#454 REL-025: Polish feature timeline icons and visual hierarchy](https://github.com/rje/Alloy/issues/454) | P4 Initial release | implementation | P1 | — |
 | [#469 REL-030: Review printable-part v1 tool contract and finalize bounded burndown](https://github.com/rje/Alloy/issues/469) | P4 Initial release | research | P0 | — |
 | [#473 REL-031: Avoid full geometry recomputation for display-only visibility changes](https://github.com/rje/Alloy/issues/473) | P4 Initial release | implementation | P0 | — |
+| [#474 HIS-008: Explicitly repair a retained planar inset after an upstream boundary change](https://github.com/rje/Alloy/issues/474) | P2 Parametric modeling | implementation | P0 | — |
+| [#475 REL-032: Keep final body organization out of edited-feature preview prefixes](https://github.com/rje/Alloy/issues/475) | P4 Initial release | implementation | P0 | — |

@@ -2,11 +2,33 @@
 
 ## Active user order (2026-10-17)
 
+2026-10-17 latest: TUT-035/#472 is independently accepted and closed for the
+approved enclosure connector-clearance adaptation. The 33-feature native model
+reopens exactly, both exported halves independently read back as valid solids,
+all 24 reference/half pairs have zero positive overlap, and the unchanged
+nominal Ethernet connector is 0.5000000000000071 mm from each half. The R0.4
+rim after the changed port is explicitly adapted; physical fit and general
+upstream reference repair remain unverified (HIS-008). See
+[the receipt](validation/enclosure-connector-clearance.md) and the external
+gallery's `#enclosure-clearance-fit` stage continuation.
+
+TUT-034 candidate11 commits a valid closed iron solid with exact undo/redo and
+native reopen. Independent STL and STEP readback supports a through-handle and
+rear web. Astra accepts this bounded solid trial but rejects full shape
+acceptance: public plan views show a narrower pointed nose than the current
+broad rounded one. Source-edit and cumulative recording gates also remain.
+External `deliverables/iron-reassessment-2026-10-17/candidate-11-connected-solid-trial/`
+preserves captures, native model and exports. TUT-034/TUT-018 remain open.
+
 Finish the current tutorials and prepare a comprehensive web-reviewable v1 plan for dependable 3D-printing creation workflows. TUT-018/#302 is reopened: the user rejects the final iron shape. Prior API/mesh checks prove only the adapted fixture, not visual/tutorial acceptance. Correct the silhouette and sculpted handle against public final tutorial evidence. Full enclosure TUT-016 remains open. The proposed v1 inventory and backlog mapping live in docs/v1; scope is pending user review.
 
-The private proposed-v1 review is published at https://alloy-v1-review.rjevans1.chatgpt.site (REL-030/#469). Versioned docs/v1 includes150 tool rows and397 commands cross-checked with runtime discovery. Scope remains pending user review. TUT-034/#470 owns the corrected iron and now depends on GEO-023/#471: source-consistent large-panel/high-ellipse geometry exposes an OCCT wire-compatibility segfault when adding the third handle-Loft section. Exterior and bilateral Trim succeed. Exact checkpoint/reproducer/crash/captures are external under deliverables/iron-reassessment-2026-10-17/candidate-03-panel-tangent. No corrected bridge/solid/export is accepted. The runner blocks the old closure recipe until corrected. GEO-023 is now independently accepted at b7d88d6: corrected bridge preview/commit/save/reopen and winding regressions pass. TUT-034 remains active for lower-panel waviness and rear/underside closure. REL-031 is accepted at e555907: iron hide/show drops from42–48s to~0.34s by reusing geometry; full geometry edits/reopen remain blocking. See docs/validation/asymmetric-handle-bridge.md and visibility-only-evaluation.md.
+The private proposed-v1 review is published at https://alloy-v1-review.rjevans1.chatgpt.site (REL-030/#469). Versioned docs/v1 includes 150 tool rows and 397 commands cross-checked with runtime discovery. Scope remains pending user review. TUT-034/#470 owns the corrected iron. Its earlier OCCT three-section Loft crash is independently fixed under GEO-023/#471 at b7d88d6; the corrected bridge passes preview, commit, save/reopen and winding checks. Candidate07 also passes a bounded independent panel/bridge shape review. Final rear/underside closure, full silhouette and export remain unaccepted. REL-031 is accepted at e555907: iron hide/show drops from 42–48 s to about 0.34 s by reusing geometry; full geometry edits/reopen remain blocking. See docs/validation/asymmetric-handle-bridge.md and visibility-only-evaluation.md.
 
-User approved a documented0.5mm clearance adaptation around the nominal enclosure Ethernet connector on2026-10-17. TUT-035 owns implementation; leave the reference part unchanged and distinguish nominal clearance from physical fit. REL-031 tracks display-only visibility changes re-running expensive geometry and freezing the UI.
+User approved a documented minimum 0.5 mm clearance adaptation around the nominal enclosure Ethernet connector on 2026-10-17. TUT-035 owns implementation; leave the reference part unchanged and distinguish measured model clearance from physical fit.
+
+2026-10-17 continuation: candidate07 corrected iron panel and bridge passed independent visual/geometry review, but final closure and silhouette remain unaccepted. Candidate08 preserved that nine-feature source and added fixed rear closing sheets; its first Outer Trim preview safely refused with `trim_region_ambiguous` (finite imprint, no separable region). No Trim, closure, or movie was committed. See external `deliverables/iron-reassessment-2026-10-17/candidate-08-fixed-closing-trials/README.md`; await independent contact/tool diagnosis before another geometry trial.
+
+The approved enclosure clearance edit on the accepted 29-feature pre-rim checkpoint initially failed real-app preview with `Renamed local body is no longer active` because its temporary edit preview retained final `Top` body organization before Split created it. REL-032/#475 fixes that prefix; the focused regression and the real enclosure Cut now pass preview, commit, exact undo/redo and save/reopen (external `deliverables/enclosure-cumulative-2026-10-17/clearance-prefix-03/`). A separate read-only boundary diagnostic found a genuine 18-to-16-edge Split-cap change; the old rim inset guard correctly rejects its old boundary identity. HIS-008/#474 tracks explicit repair. TUT-035/#472 now rebuilds the four rim-tail operations from the accepted pre-rim checkpoint. The inherited R0.5 paired fillet refused on the changed mouth; one disclosed R0.4 trial passed preview and commit but needs clear terminal capture, mating groove, export and measured clearance. Do not claim a printable clearance until the actual app chain, resulting model, exports, and BRep measurement pass.
 
 ## Historical evidence (superseded where noted)
 

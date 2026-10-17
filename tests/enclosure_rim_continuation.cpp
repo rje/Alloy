@@ -17,6 +17,7 @@
 #include <BRepAlgoAPI_Section.hxx>
 #include <BRepBndLib.hxx>
 #include <BRepExtrema_DistShapeShape.hxx>
+#include <GCPnts_AbscissaPoint.hxx>
 #include <BRepBuilderAPI_MakeVertex.hxx>
 #include <BRepGProp.hxx>
 #include <GProp_GProps.hxx>
@@ -426,9 +427,13 @@ int main(int argc,char** argv) {
                     const auto intersection=common.Shape();
                     const bool solids=!intersection.IsNull() && TopExp_Explorer(intersection,TopAbs_SOLID).More();
                     GProp_GProps mass;if(solids)BRepGProp::VolumeProperties(intersection,mass);
+                    BRepExtrema_DistShapeShape separation(half->shape,reference->shape);
+                    separation.Perform();
+                    if(!separation.IsDone())throw std::runtime_error("reference distance measurement failed");
                     QJsonObject row{{"halfBodyId",half->bodyId},{"half",half->bodyId==top ? "Top" : "Bottom"},
                         {"referenceBodyId",reference->bodyId},{"referenceName",reference->name},
-                        {"hasSolids",solids},{"intersectionVolumeMm3",mass.Mass()}};
+                        {"hasSolids",solids},{"intersectionVolumeMm3",mass.Mass()},
+                        {"minimumDistanceMm",separation.Value()}};
                     if(solids && std::abs(mass.Mass())>1e-7) {
                         ++positive;const auto path=prefix+QString("-intersection-%1.brep").arg(index);
                         if(!BRepTools::Write(intersection,path.toUtf8().constData()))throw std::runtime_error("intersection BRep write failed");
@@ -496,6 +501,32 @@ int main(int argc,char** argv) {
         for(const auto& body:document.bodies())if(body.bodyId==support.bodyId)owner=body.ownerId;
         const QJsonObject reference{{"producerFeatureId",support.producerFeatureId},
             {"bodyId",support.bodyId},{"faceId",support.faceId}};
+        if(argc==4 && QString::fromUtf8(argv[3])=="boundary") {
+            QJsonArray edges;int wireCount=0;
+            for(TopExp_Explorer wire(support.face,TopAbs_WIRE);wire.More();wire.Next())++wireCount;
+            for(const auto& boundary:support.boundaryEdges) {
+                const BRepAdaptor_Curve curve(boundary.edge);
+                const auto first=curve.Value(curve.FirstParameter()),last=curve.Value(curve.LastParameter());
+                QJsonObject item{{"edgeId",boundary.edgeId},{"edgeType",boundary.type},
+                    {"curveType",static_cast<int>(curve.GetType())},
+                    {"start",point(first)},{"end",point(last)},
+                    {"lengthMm",GCPnts_AbscissaPoint::Length(curve,curve.FirstParameter(),curve.LastParameter())},
+                    {"toleranceMm",BRep_Tool::Tolerance(boundary.edge)},
+                    {"provenance",boundary.provenance}};
+                if(curve.GetType()==GeomAbs_Circle) {
+                    item["circleCenter"]=point(curve.Circle().Location());
+                    item["circleRadiusMm"]=curve.Circle().Radius();
+                }
+                edges.append(item);
+            }
+            QJsonObject result{{"source",argv[1]},{"sourceFeatureCount",sourceFeatureCount},
+                {"supportRole",support.role},{"support",reference},{"supportFrame",support.frame},
+                {"wireCount",wireCount},{"boundaryEdgeCount",static_cast<int>(support.boundaryEdges.size())},
+                {"insetLoopId",RoundedLoopOffset::insetLoopId(support)},{"boundaryEdges",edges},
+                {"note","Diagnostic prefix input only; not a user-saved model or accepted design."}};
+            QFile output(argv[2]);if(!output.open(QIODevice::WriteOnly))throw std::runtime_error("boundary output unavailable");
+            output.write(QJsonDocument(result).toJson(QJsonDocument::Indented));return 0;
+        }
         auto sketch=SketchGeometry::newSupportedFeature(owner,reference,"Rim inset",{});
         auto parameters=sketch.value("parameters").toObject();
         parameters["loopOffsets"]=QJsonArray{QJsonObject{{"id",CadDocument::newId()},

@@ -10,6 +10,8 @@ from app_harness import application
 p = argparse.ArgumentParser()
 for key in ('app', 'source', 'output'):
     p.add_argument('--' + key, required=True)
+p.add_argument('--rim-radius', type=float, default=.5,
+    help='Paired rim fillet radius in mm; non-default values are explicit adaptations')
 a = p.parse_args()
 out = Path(a.output).resolve()
 assert not out.is_relative_to(Path(__file__).resolve().parents[1])
@@ -83,15 +85,16 @@ with application(a.app, out, command_timeout=180) as (raw, ledger):
         assert len(rails) == 2
         seeds = [e['edgeId'] for e in rails]
         session = call('solid.filletDialog', {'targetBodyId': bottom_id, 'edgeIds': seeds,
-            'radiusMm': .5, 'tangentChain': True, 'name': 'Paired rim round'})
+            'radiusMm': a.rim_radius, 'tangentChain': True, 'name': 'Paired rim round'})
         call('command.preview', {'session': session['id']})
-        stage('Two tangent chains selected, radius 0.5 mm', 'rim-selection-preview.png')
+        stage(f'Two tangent chains selected, radius {a.rim_radius:g} mm', 'rim-selection-preview.png')
         call('capture.dialog', {'path': str(out/'rim-selection-panel.png')})
         call('command.commit', {'session': session['id']})
         rounded = inspect()
         rim = body(rounded, bottom_id)
-        assert rim['construction'] == 'pairedFullRoundCommon'
+        assert math.isclose(rim['radiusMm'], a.rim_radius, abs_tol=1e-9)
         assert rim['selectedEdgeIds'] == seeds
+        assert rim['volumeMm3'] < body(joined, bottom_id)['volumeMm3']
         stage('Rounded U ridge and its mouth transitions', 'rounded-rim.png')
         call('feature.visibility', {'featureId': split['id'], 'visible': True})
         call('view.home')
@@ -130,6 +133,7 @@ with application(a.app, out, command_timeout=180) as (raw, ledger):
         recording = False
         (out/'result.json').write_text(json.dumps({'passed': True, 'stages': stages,
             'source': str(Path(a.source).resolve()), 'sourceFeatureCount': 29,
+            'rimRadiusMm': a.rim_radius,
             'scope': 'API stage continuation; earlier creation footage separate',
             'cut': cut, 'exports': exports, 'video': video,
             'gpu': call('app.state')['viewport']['gpu']['details']}, indent=2))

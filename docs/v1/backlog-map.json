@@ -5,14 +5,14 @@
     "repository": "rje/Alloy",
     "source": "GitHub REST issues API via gh; all pages, state=all, pull requests excluded",
     "local_backlog": "docs/backlog/issues.json",
-    "local_issue_count": 471,
-    "live_issue_count": 471,
+    "local_issue_count": 475,
+    "live_issue_count": 475,
     "live_state_counts": {
-      "closed": 322,
+      "closed": 326,
       "open": 149
     },
     "bucket_counts": {
-      "supporting-evidence": 322,
+      "supporting-evidence": 326,
       "v1-blocker": 44,
       "v1-candidate": 56,
       "later-roadmap": 47,
@@ -22,7 +22,7 @@
     "readiness_result": "Historical ready count below predates reconciliation: 36 ready at original audit.",
     "closed_issue_policy": "Closed issues are supporting evidence only; they do not establish family-wide or cumulative release readiness.",
     "tut018_policy": "Reopened; user-rejected shape is not accepted. TUT-034 owns corrective work.",
-    "reconciled_at": "2026-10-17 after TUT-018 reopen and REL-030/TUT-034 creation"
+    "reconciled_at": "2026-10-17 after TUT-035 enclosure adaptation acceptance and iron candidate11 review"
   },
   "issues": [
     {
@@ -8287,7 +8287,8 @@
       "proposed_bucket": "later-roadmap",
       "rationale": "Open workflow tutorial capability belongs to the accepted long-term noncloud roadmap beyond the first reliable printable-part release; preserve its dependency links and phase.",
       "depends_on": [
-        "TUT-029"
+        "TUT-029",
+        "TUT-035"
       ],
       "url": "https://github.com/rje/Alloy/issues/442"
     },
@@ -8770,16 +8771,78 @@
       "key": "GEO-023",
       "number": 471,
       "title": "Prevent asymmetric three-section surface Loft compatibility crash",
-      "state": "open",
+      "state": "closed",
       "state_observed_at": "2026-10-17",
       "kind": "implementation",
       "category": "geometry and tutorial correctness",
       "phase": "P3 Shapes, exchange, and printing",
       "priority": "P0",
-      "proposed_bucket": "v1-blocker",
-      "rationale": "Reproduced crash on source-consistent corrected iron; blocks cumulative tutorial acceptance.",
+      "proposed_bucket": "supporting-evidence",
+      "rationale": "Independent bounded acceptance recorded 2026-10-17; no whole-tutorial or release readiness claim.",
       "depends_on": [],
       "url": "https://github.com/rje/Alloy/issues/471"
+    },
+    {
+      "key": "TUT-035",
+      "number": 472,
+      "title": "Apply documented 0.5 mm enclosure connector clearance adaptation",
+      "state": "closed",
+      "state_observed_at": "2026-10-17",
+      "kind": "validation",
+      "category": "tutorial correctness and everyday usability",
+      "phase": "P4 Initial release",
+      "priority": "P0",
+      "proposed_bucket": "supporting-evidence",
+      "rationale": "Independently accepted bounded 0.5 mm nominal Ethernet clearance adaptation with valid native model, history and separate exports; broader enclosure and physical-fit gates remain open.",
+      "depends_on": [
+        "TUT-029"
+      ],
+      "url": "https://github.com/rje/Alloy/issues/472"
+    },
+    {
+      "key": "REL-031",
+      "number": 473,
+      "title": "Avoid full geometry recomputation for display-only visibility changes",
+      "state": "closed",
+      "state_observed_at": "2026-10-17",
+      "kind": "implementation",
+      "category": "tutorial correctness and everyday usability",
+      "phase": "P4 Initial release",
+      "priority": "P0",
+      "proposed_bucket": "supporting-evidence",
+      "rationale": "Approved user workflow or directly observed responsiveness requirement; bounded evidence retained in issue.",
+      "depends_on": [],
+      "url": "https://github.com/rje/Alloy/issues/473"
+    },
+    {
+      "key": "HIS-008",
+      "number": 474,
+      "title": "Explicitly repair a retained planar inset after an upstream boundary change",
+      "state": "open",
+      "state_observed_at": "2026-10-17",
+      "kind": "implementation",
+      "category": "history and references",
+      "phase": "P2 Parametric modeling",
+      "priority": "P0",
+      "proposed_bucket": "v1-blocker",
+      "rationale": "Explicit repair of a changed retained inset boundary is needed for reliable upstream editing; TUT-035 may rebuild the rim tail for its approved variant.",
+      "depends_on": [],
+      "url": "https://github.com/rje/Alloy/issues/474"
+    },
+    {
+      "key": "REL-032",
+      "number": 475,
+      "title": "Keep final body organization out of edited-feature preview prefixes",
+      "state": "closed",
+      "state_observed_at": "2026-10-17",
+      "kind": "implementation",
+      "category": "tutorial correctness and everyday usability",
+      "phase": "P4 Initial release",
+      "priority": "P0",
+      "proposed_bucket": "supporting-evidence",
+      "rationale": "Bounded preview-prefix metadata fix accepted through real-app regression and the formerly failing enclosure edit. Does not qualify final enclosure.",
+      "depends_on": [],
+      "url": "https://github.com/rje/Alloy/issues/475"
     }
   ]
 }

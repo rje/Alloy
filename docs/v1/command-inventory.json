@@ -317,19 +317,21 @@
       "scope": "proposed-v1",
       "implementation": "present",
       "nativeEvidence": "partial",
-      "gap": "Visibility and output scope need release coverage for hidden source surfaces, components and all supported feature types.",
+      "gap": "Idle show/hide now reuses evaluated geometry (actual iron335\u2013345ms vs42\u201348s); active Combine preview and full geometry edits remain separate responsiveness work.",
       "apiIds": [
         "feature.visibility"
       ],
       "issueKeys": [
-        "DOC-009"
+        "DOC-009",
+        "REL-031"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json",
         "src/AlloyWindow.cpp"
       ],
       "receipts": [
-        "docs/validation/component-mesh-visibility.md"
+        "docs/validation/component-mesh-visibility.md",
+        "docs/validation/visibility-only-evaluation.md"
       ],
       "planningStatus": "Existing scope owners; verify accepted subset before pulling"
     },
@@ -376,7 +378,7 @@
       "scope": "proposed-v1",
       "implementation": "partial",
       "nativeEvidence": "partial",
-      "gap": "Stable identities and refusals exist in bounded operations; no general native repair/rebind workflow is inventoried.",
+      "gap": "Stable identities and refusals exist in bounded operations; no general native repair/rebind workflow is inventoried. Enclosure port-depth edit safely refuses a changed retained rim boundary; boundary repair remains unresolved in TUT-035.",
       "apiIds": [],
       "issueKeys": [
         "HIS-002",
@@ -1879,7 +1881,7 @@
       "scope": "proposed-v1",
       "implementation": "partial",
       "nativeEvidence": "partial",
-      "gap": "Several bounded loft modes exist. General continuity/rails and arbitrary sections remain incomplete; rejected full iron outcome cannot be treated as acceptance of cumulative visual quality.",
+      "gap": "Several bounded loft modes exist. General continuity/rails and arbitrary sections remain incomplete; rejected full iron outcome cannot be treated as acceptance of cumulative visual quality. Corrected asymmetric retained-boundary/ellipse bridge compatibility is independently accepted; final iron shape and closure remain open.",
       "apiIds": [
         "solid.loft",
         "solid.loftBoundary",
@@ -1893,7 +1895,8 @@
         "SRF-012",
         "SRF-015",
         "SRF-017",
-        "SRF-019"
+        "SRF-019",
+        "GEO-023"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json",
@@ -1904,7 +1907,8 @@
         "docs/validation/surface-rail-loft.md",
         "docs/validation/surface-bilateral-rail-loft.md",
         "docs/validation/surface-handle-bridge.md",
-        "docs/validation/surface-closed-loft.md"
+        "docs/validation/surface-closed-loft.md",
+        "docs/validation/asymmetric-handle-bridge.md"
       ],
       "planningStatus": "Existing scope owners; verify accepted subset before pulling"
     },
