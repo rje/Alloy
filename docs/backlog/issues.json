@@ -3819,7 +3819,8 @@
         "SRF-021",
         "SRF-022",
         "REL-029",
-        "TUT-033"
+        "TUT-033",
+        "TUT-034"
       ],
       "labels": [
         "area:gate"
@@ -7925,7 +7926,8 @@
       "phase": "P4 Initial release",
       "priority": "P0",
       "depends_on": [
-        "SRF-011"
+        "SRF-011",
+        "GEO-023"
       ],
       "labels": [
         "kind:validation",
@@ -7933,6 +7935,20 @@
         "priority:P0"
       ],
       "body": "## Problem\nThe user rejects the final TUT-018 shape. Prior adapted fixture topology is valid, but the proportions, low centered handle aperture, broad side-panel transition and rear housing do not match the public tutorial result.\n\n## Bounded scope\nImplement the independently researched corrective fixture in docs/v1/iron-reassessment.md, preserving the tutorial operations and editable feature history. Use external knowledge/tutorials/iron-reassessment-2026-10-17 for source IDs, views and initial coordinate proposals. Those coordinates are not yet accepted.\n\n## Acceptance\n- Verify exterior silhouette first, then the separate broad side-panel loop and smaller higher rearward grip opening against source final views.\n- Correct rear housing without the exaggerated concave waist. Show matched side, top and oblique comparisons; document camera limitations.\n- Independent Astra review of actual candidate captures and authored geometry.\n- After visual acceptance, verify final solid/mesh, edits, undo and save/reopen/export through real Alloy. Regenerate complete creation recording and gallery artifacts only after shape review.\n- Preserve old evidence with acceptance withdrawn; do not substitute watertightness or genus for visual acceptance.\n\n## Parent\nTUT-018/#302 remains reopened until the corrected cumulative result is accepted. If implementation exposes missing application behavior, split a bounded prerequisite rather than silently adapting the source steps."
+    },
+    {
+      "key": "GEO-023",
+      "title": "Prevent asymmetric three-section surface Loft compatibility crash",
+      "kind": "implementation",
+      "phase": "P3 Shapes, exchange, and printing",
+      "priority": "P0",
+      "depends_on": [],
+      "labels": [
+        "kind:implementation",
+        "phase:P3",
+        "priority:P0"
+      ],
+      "body": "## Reproduction\nCorrected TUT-034 candidate passes exterior and bilateral panel Trim. Selecting the third section for the actual trimmed boundary \u2192 smaller high tilted ellipse \u2192 opposite boundary Loft segfaults in OCCT BRepFill_CompatibleWires::SameNumberByPolarMethod, called by BRepOffsetAPI_ThruSections and SurfaceClosedLoft::evaluate.\n\n## Fixture\nExternal deliverables/iron-reassessment-2026-10-17/candidate-03-panel-tangent contains the authoritative posttrim .alloy checkpoint, command transcript and crash report. The corrected shape is required; do not shrink the panel to the aperture or silently skip a source section.\n\n## Acceptance\n- Diagnose the exact wire/edge/seam compatibility failure and provide a bounded robust fix using supported kernel operations.\n- The reproduced input cannot crash the application; preserve the authored document and a useful error if a genuine unsupported geometry remains.\n- Desired end-to-end result is a valid recessed panel/grip surface using all three source sections, independently inspected for correspondence/folds and visual shape.\n- Add focused regression at the actual geometry contract and one real-app fixture replay; test edit/reopen when successful. No exhaustive unrelated sweep.\n- Distinguish crash containment from complete geometry support; split any deferred support into a linked issue before closing this one.\n\nBlocks corrected TUT-034 and cumulative TUT-018."
     }
   ]
 }

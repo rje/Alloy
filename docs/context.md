@@ -4,6 +4,8 @@
 
 Finish the current tutorials and prepare a comprehensive web-reviewable v1 plan for dependable 3D-printing creation workflows. TUT-018/#302 is reopened: the user rejects the final iron shape. Prior API/mesh checks prove only the adapted fixture, not visual/tutorial acceptance. Correct the silhouette and sculpted handle against public final tutorial evidence. Full enclosure TUT-016 remains open. The proposed v1 inventory and backlog mapping live in docs/v1; scope is pending user review.
 
+The private proposed-v1 review is published at https://alloy-v1-review.rjevans1.chatgpt.site (REL-030/#469). Versioned docs/v1 includes150 tool rows and397 commands cross-checked with runtime discovery. Scope remains pending user review. TUT-034/#470 owns the corrected iron and now depends on GEO-023/#471: source-consistent large-panel/high-ellipse geometry exposes an OCCT wire-compatibility segfault when adding the third handle-Loft section. Exterior and bilateral Trim succeed. Exact checkpoint/reproducer/crash/captures are external under deliverables/iron-reassessment-2026-10-17/candidate-03-panel-tangent. No corrected bridge/solid/export is accepted. The runner blocks the old closure recipe until corrected. Active work is the narrow compatible-wire fix; TUT-034 remains Todo while blocked.
+
 ## Historical evidence (superseded where noted)
 
 The acceptance claim below was withdrawn for TUT-018 on 2026-10-17; shoehorn acceptance remains valid.

@@ -78,3 +78,7 @@ against latest receipts and live issue state rather than rerunning them.
 
 This audit performed no builds, GUI actions, source changes, commits or issue
 mutations. The root owns issue reconciliation and continuation context.
+
+## First corrected candidate
+
+The revised long exterior and broad side-panel Trim succeed through the actual app. An explicit horizontal lower-start tangent removes an unintended tiny self-crossing lobe without shrinking the panel. The smaller high tilted ellipse is authored. Adding the third handle-Loft section crashes in OCCT wire compatibility; GEO-023/#471 owns that reproduced defect and blocks TUT-034/#470. Exact checkpoint, crash and replay are in external deliverables/iron-reassessment-2026-10-17/candidate-03-panel-tangent. No corrected bridge, final solid or export is yet accepted.
