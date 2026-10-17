@@ -60,19 +60,19 @@ QJsonObject AlloyWindow::beginSurfaceExtrude(const QJsonObject& overrides) {
         {"newFeatureId",CadDocument::newId()},{"newBodyId",CadDocument::newId()},
         {"baseDocumentRevision",static_cast<qint64>(document_->revision())},{"previewed",false},
         {"geometryEvaluated",false},{"chaining",true},{"inputSchema",findCommand("surface.extrude")->parameters}};
-    invalidateSurfaceExtrudeEvaluation();
+    invalidateGeometryEvaluation();
     surfaceExtrudeBase_=document_->authored();
     showSurfaceExtrude();previewSurfaceExtrude();view_->setFocus(Qt::OtherFocusReason);return session_;
 }
 
 QJsonObject AlloyWindow::previewSurfaceExtrude() {
     const auto inputs=session_.value("inputs").toObject();
-    const bool matchingJob=(surfaceExtrudeQueued_ && surfaceExtrudeQueued_->generation==surfaceExtrudeGeneration_)
-        || (surfaceExtrudeRunning_ && surfaceExtrudeRunning_->generation==surfaceExtrudeGeneration_);
+    const bool matchingJob=(geometryEvaluationQueued_ && geometryEvaluationQueued_->generation==geometryEvaluationGeneration_)
+        || (geometryEvaluationRunning_ && geometryEvaluationRunning_->generation==geometryEvaluationGeneration_);
     if(surfaceExtrudeRequestedSession_==session_.value("id").toString() && surfaceExtrudeRequestedInputs_==inputs
         && session_.value("baseDocumentRevision").toInteger()==static_cast<qint64>(document_->revision())
         && (matchingJob || (session_.value("evaluationStatus")=="completed" && surfaceExtrudePrepared_.ok)))return session_;
-    ++surfaceExtrudeGeneration_;surfaceExtrudeQueued_.reset();surfaceExtrudePrepared_={};
+    ++geometryEvaluationGeneration_;geometryEvaluationQueued_.reset();surfaceExtrudePrepared_={};
     surfaceExtrudeRequestedInputs_={};surfaceExtrudeRequestedSession_.clear();surfaceExtrudeRequestedCandidate_={};
     session_["previewed"]=false;session_["geometryEvaluated"]=false;
     session_.remove("geometry");session_.remove("documentDraft");session_.remove("bodyId");session_.remove("resultBodyIds");session_.remove("resultBodies");view_->clearPreview();view_->setEditDisplay({},{});
@@ -109,37 +109,37 @@ QJsonObject AlloyWindow::previewSurfaceExtrude() {
     }
     QJsonObject candidate;
     try{if(selected)candidate=surfaceExtrudeCandidate(inputs);}catch(const std::exception& error){return reject("invalid_arguments",QString::fromUtf8(error.what()));}
-    auto task=std::make_shared<SurfaceExtrudeEvaluation>();
+    auto task=std::make_shared<GeometryEvaluation>();
     task->document=document_;task->documentId=document_->authored()["documentId"].toString();
     task->sessionId=session_.value("id").toString();task->revision=document_->revision();
-    task->generation=++surfaceExtrudeGeneration_;task->base=surfaceExtrudeBase_;
+    task->generation=++geometryEvaluationGeneration_;task->base=surfaceExtrudeBase_;
     task->candidate=candidate;task->inputs=inputs;
     task->featureId=inputs.value("featureId").toString(session_.value("newFeatureId").toString());
     task->needsSource=inputs.contains("featureId") && !surfaceExtrudeSource_;
     surfaceExtrudeRequestedInputs_=inputs;surfaceExtrudeRequestedSession_=task->sessionId;surfaceExtrudeRequestedCandidate_=candidate;
-    surfaceExtrudePrepared_={};surfaceExtrudeQueued_=task;
+    surfaceExtrudePrepared_={};geometryEvaluationQueued_=task;
     session_["evaluationHeartbeat"]=QJsonObject{{"ticks",0},{"lastMs",QDateTime::currentMSecsSinceEpoch()},{"maxGapMs",0}};
     session_["evaluationStatus"]="pending";session_["previewGeneration"]=static_cast<qint64>(task->generation);
     session_["cancellation"]="Discard result; running kernel evaluation continues";
     session_.remove("previewError");
     if(surfaceExtrudeDock_)if(auto* label=surfaceExtrudeDock_->findChild<QLabel*>("surfaceExtrude.error"))
         label->setText("Computing preview… You can navigate, change inputs or Cancel. Running kernel work cannot be interrupted.");
-    startSurfaceExtrudeEvaluation();return session_;
+    startGeometryEvaluation();return session_;
 }
 
-void AlloyWindow::invalidateSurfaceExtrudeEvaluation() {
-    if(surfaceExtrudeRunning_)statusBar()->showMessage("Finishing background geometry; new modeling commands will resume shortly.");
-    ++surfaceExtrudeGeneration_;surfaceExtrudeQueued_.reset();surfaceExtrudeSource_.reset();
+void AlloyWindow::invalidateGeometryEvaluation() {
+    if(geometryEvaluationRunning_)statusBar()->showMessage("Finishing background geometry; new modeling commands will resume shortly.");
+    ++geometryEvaluationGeneration_;geometryEvaluationQueued_.reset();surfaceExtrudeSource_.reset();
     surfaceExtrudePrepared_={};surfaceExtrudeRequestedInputs_={};surfaceExtrudeRequestedSession_.clear();surfaceExtrudeRequestedCandidate_={};
 }
 
-void AlloyWindow::startSurfaceExtrudeEvaluation() {
-    if(surfaceExtrudeRunning_ || !surfaceExtrudeQueued_)return;
-    surfaceExtrudeRunning_=std::move(surfaceExtrudeQueued_);
-    if(!surfaceExtrudePoll_){surfaceExtrudePoll_=new QTimer(this);surfaceExtrudePoll_->setInterval(25);
-        connect(surfaceExtrudePoll_,&QTimer::timeout,this,[this]{pollSurfaceExtrudeEvaluation();});}
-    surfaceExtrudePoll_->start();
-    const auto task=surfaceExtrudeRunning_;
+void AlloyWindow::startGeometryEvaluation() {
+    if(geometryEvaluationRunning_ || !geometryEvaluationQueued_)return;
+    geometryEvaluationRunning_=std::move(geometryEvaluationQueued_);
+    if(!geometryEvaluationPoll_){geometryEvaluationPoll_=new QTimer(this);geometryEvaluationPoll_->setInterval(25);
+        connect(geometryEvaluationPoll_,&QTimer::timeout,this,[this]{pollGeometryEvaluation();});}
+    geometryEvaluationPoll_->start();
+    const auto task=geometryEvaluationRunning_;
     // The detached worker owns only immutable JSON and its private fresh shapes.
     // No QObject, document, live topology or viewport cache is accessed here.
     std::thread([task]{
@@ -154,7 +154,7 @@ void AlloyWindow::startSurfaceExtrudeEvaluation() {
             task->sourceMs=timer.restart();
             if(!task->candidate.isEmpty()){
                 task->full=CadDocument::evaluateCandidate(task->candidate);task->fullMs=timer.restart();
-                if(task->full.ok){
+                if(task->full.ok && task->command=="surface.extrude"){
                     const auto features=task->candidate["features"].toArray();
                     if(!features.isEmpty() && features.last().toObject()["id"]==task->featureId)task->stage=task->full;
                     else {
@@ -168,24 +168,25 @@ void AlloyWindow::startSurfaceExtrudeEvaluation() {
             }
         }catch(const Standard_Failure& e){task->error=QString::fromUtf8(e.GetMessageString());}
          catch(const std::exception& e){task->error=QString::fromUtf8(e.what());}
-         catch(...){task->error="Unexpected Surface Extrude evaluation failure";}
+         catch(...){task->error="Unexpected modeling evaluation failure";}
         task->ready.store(true,std::memory_order_release);
     }).detach();
 }
 
-void AlloyWindow::pollSurfaceExtrudeEvaluation() {
-    if(session_.value("command")=="surface.extrude" && session_.value("evaluationStatus")=="pending"){
+void AlloyWindow::pollGeometryEvaluation() {
+    if((session_.value("command")=="surface.extrude" || session_.value("command")=="surface.boundaryFill") && session_.value("evaluationStatus")=="pending"){
         auto heartbeat=session_.value("evaluationHeartbeat").toObject();const auto now=QDateTime::currentMSecsSinceEpoch();
         heartbeat["ticks"]=heartbeat["ticks"].toInteger()+1;
         heartbeat["maxGapMs"]=std::max(heartbeat["maxGapMs"].toInteger(),now-heartbeat["lastMs"].toInteger());
         heartbeat["lastMs"]=now;session_["evaluationHeartbeat"]=heartbeat;
     }
-    if(!surfaceExtrudeRunning_ || !surfaceExtrudeRunning_->ready.load(std::memory_order_acquire))return;
-    const auto task=std::move(surfaceExtrudeRunning_);
+    if(!geometryEvaluationRunning_ || !geometryEvaluationRunning_->ready.load(std::memory_order_acquire))return;
+    const auto task=std::move(geometryEvaluationRunning_);
     const bool current=document_==task->document && document_->revision()==task->revision
         && document_->authored()["documentId"]==task->documentId && session_.value("id")==task->sessionId
-        && session_.value("command")=="surface.extrude" && surfaceExtrudeGeneration_==task->generation;
-    if(current){
+        && session_.value("command")==task->command && geometryEvaluationGeneration_==task->generation;
+    if(task->command=="surface.boundaryFill")completeBoundaryFillCommit(task);
+    else if(current){
         if(task->source){surfaceExtrudeSource_=task->source;view_->setBodyStage(task->source->bodies,"surface-extrude-source:"+task->sessionId);}
         session_["evaluationTimingMs"]=QJsonObject{{"source",task->sourceMs},{"full",task->fullMs},{"historicalStage",task->stageMs}};
         auto reject=[&](const QString& code,const QString& message,const QJsonObject& diagnostics=QJsonObject{}){
@@ -221,9 +222,9 @@ void AlloyWindow::pollSurfaceExtrudeEvaluation() {
         }
         refresh();
     }
-    if(surfaceExtrudeQueued_)startSurfaceExtrudeEvaluation();
+    if(geometryEvaluationQueued_)startGeometryEvaluation();
     else {
-        surfaceExtrudePoll_->stop();
+        geometryEvaluationPoll_->stop();
         if(statusBar()->currentMessage()=="Finishing background geometry; new modeling commands will resume shortly.")
             statusBar()->clearMessage();
     }

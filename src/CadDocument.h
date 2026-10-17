@@ -65,6 +65,8 @@ public:
     // Adopt a worker's fully evaluated Surface Extrude draft only at its exact base.
     QString commitSurfaceExtrudeEvaluation(const CandidateEvaluation& prepared,
         const QJsonObject& requestedCandidate, const QJsonObject& expectedBase, quint64 expectedRevision, const QString& label);
+    QString commitBoundaryFillEvaluation(const CandidateEvaluation& prepared,
+        const QJsonObject& requestedCandidate, const QJsonObject& expectedBase, quint64 expectedRevision, const QString& label);
     QJsonObject lastEvaluationError() const { return lastEvaluationError_; }
     static CandidateEvaluation evaluateCandidate(const QJsonObject& candidate);
     // Reuse only the exact accepted prefix for one bounded append command.
@@ -111,6 +113,9 @@ public:
     static double millimeters(double value, const QString& units);
     static QString newId();
 private:
+    QString commitEvaluatedFeature(const CandidateEvaluation& prepared,
+        const QJsonObject& requestedCandidate, const QJsonObject& expectedBase, quint64 expectedRevision,
+        const QString& featureType, const QString& label);
     friend class DocumentEdit;
     static CandidateEvaluation evaluateCandidateFromPrefix(const QJsonObject& candidate,
         const EvaluatedDocument* prefix, int firstFeature);

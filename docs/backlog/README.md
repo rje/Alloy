@@ -16,8 +16,9 @@ edit-preview stall for command sessions; see the bounded real-app
 [receipt](../validation/surface-extrude-responsive-preview.md). REL-016 owns
 the cumulative responsiveness gate; the corrected iron's functional recording
 is separate from a human-ready interaction claim.
-REL-034/#477 separately tracks the 94.46-second final Boundary Fill commit,
-which can starve the recorder even after the Surface Extrude path is fixed.
+REL-034/#477 independently fixes the 94.46-second final Boundary Fill commit
+stall for the saved four-tool fixture; see its [receipt](../validation/boundary-fill-responsive-commit.md).
+Initial cell enumeration and large-model reopen remain synchronous.
 
 ## Active delivery order
 

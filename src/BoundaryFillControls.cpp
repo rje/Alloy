@@ -16,10 +16,12 @@
 #include <QShortcut>
 #include <QSignalBlocker>
 #include <algorithm>
+#include <QDateTime>
+#include <QStatusBar>
 
 namespace {
 QJsonObject failure(const QString& code,const QString& message,const QJsonObject& diagnostics={}){
-    return {{"ok",false},{"error",QJsonObject{{"code",code},{"message",message},{"diagnostics",diagnostics}}}};
+    return {{"ok",false},{"completion","failed"},{"error",QJsonObject{{"code",code},{"message",message},{"diagnostics",diagnostics}}}};
 }
 QJsonArray canonicalTools(const QJsonArray& tools){
     std::vector<QJsonObject> rows;for(const auto& value:tools)rows.push_back(value.toObject());
@@ -86,6 +88,8 @@ QJsonObject AlloyWindow::beginBoundaryFill(const QJsonObject& overrides){
 }
 QJsonObject AlloyWindow::previewBoundaryFill(){
     if(session_.value("command")!="surface.boundaryFill")return failure("invalid_session","Start Boundary Fill first");
+    if(session_.value("evaluationStatus")=="pending")return failure("evaluation_busy","Boundary Fill commit is pending; wait or Cancel to discard it");
+    session_.remove("evaluationStatus");session_.remove("previewGeneration");
     session_["previewed"]=false;session_["geometryEvaluated"]=false;session_["partitionReused"]=false;
     session_.remove("geometry");session_.remove("documentDraft");session_.remove("cells");view_->clearPreview();
     for(auto& marker:boundaryFillMarkers_)if(marker){marker->hide();marker->setObjectName({});marker->deleteLater();}boundaryFillMarkers_.clear();
@@ -151,6 +155,7 @@ QJsonObject AlloyWindow::previewBoundaryFill(){
 }
 QJsonObject AlloyWindow::selectBoundaryFillTool(const QString& bodyId){
     if(session_.value("command")!="surface.boundaryFill")return failure("invalid_session","Start Boundary Fill first");
+    if(session_.value("evaluationStatus")=="pending")return failure("evaluation_busy","Boundary Fill commit is pending; wait or Cancel to discard it");
     if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))return previewBoundaryFill();
     const EvaluatedBody* selected=nullptr;for(const auto& b:boundaryFillSourceStage().bodies)if(b.bodyId==bodyId && b.visible && b.occurrenceId.isEmpty()
         && b.ownerId==session_.value("ownerId") && b.summary.value("type")=="surface")selected=&b;
@@ -163,10 +168,12 @@ QJsonObject AlloyWindow::selectBoundaryFillTool(const QString& bodyId){
 }
 QJsonObject AlloyWindow::selectBoundaryFillCells(){
     if(session_.value("command")!="surface.boundaryFill")return failure("invalid_session","Start Boundary Fill first");
+    if(session_.value("evaluationStatus")=="pending")return failure("evaluation_busy","Boundary Fill commit is pending; wait or Cancel to discard it");
     session_["selectionRole"]="cells";previewBoundaryFill();return session_;
 }
 QJsonObject AlloyWindow::selectBoundaryFillCell(const QString& cellId){
     if(session_.value("command")!="surface.boundaryFill" || session_.value("selectionRole")!="cells")return failure("invalid_session","Activate Select Cells first");
+    if(session_.value("evaluationStatus")=="pending")return failure("evaluation_busy","Boundary Fill commit is pending; wait or Cancel to discard it");
     if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))return previewBoundaryFill();
     QJsonObject reference;for(const auto& row:session_.value("cells").toArray())if(row.toObject().value("cellId")==cellId)reference=row.toObject().value("cell").toObject();
     if(reference.isEmpty())return failure("boundary_fill_cell_unavailable","Select an exact current bounded cell");
@@ -190,6 +197,7 @@ void AlloyWindow::refreshBoundaryFillMarkers(){
 void AlloyWindow::refreshBoundaryFillControls(){
     if(!boundaryFillDock_ || session_.value("command")!="surface.boundaryFill")return;
     const auto inputs=session_.value("inputs").toObject();
+    const bool pending=session_.value("evaluationStatus")=="pending";
     auto* list=boundaryFillDock_->findChild<QListWidget*>("boundaryFill.tools");
     {const QSignalBlocker blocker(list);std::vector<const EvaluatedBody*> eligible;
         if(boundaryFillSource_)for(const auto& body:boundaryFillSource_->stage.bodies)if(body.visible && body.occurrenceId.isEmpty()
@@ -209,17 +217,19 @@ void AlloyWindow::refreshBoundaryFillControls(){
             auto* item=rebuild?new QListWidgetItem(label,list):list->item(i);item->setText(label);item->setFlags(item->flags()|Qt::ItemIsUserCheckable);item->setData(Qt::UserRole,body.bodyId);item->setToolTip(body.bodyId);
             bool checked=false;for(const auto& value:inputs.value("tools").toArray())if(value.toObject().value("bodyId")==body.bodyId)checked=true;
             item->setCheckState(checked?Qt::Checked:Qt::Unchecked);}}
+    list->setEnabled(!pending);
     const bool cells=session_.value("selectionRole")=="cells";
-    boundaryFillDock_->findChild<QPushButton*>("boundaryFill.selectCells")->setEnabled(!inputs.value("tools").toArray().isEmpty());
+    boundaryFillDock_->findChild<QPushButton*>("boundaryFill.selectCells")->setEnabled(!pending && !inputs.value("tools").toArray().isEmpty());
     boundaryFillDock_->findChild<QPushButton*>("boundaryFill.selectCells")->setText(cells?"Select Cells · "+QString::number(inputs.contains("cell")?1:0)+" selected":"Select Cells");
-    auto* remove=boundaryFillDock_->findChild<QCheckBox*>("boundaryFill.removeTools");{const QSignalBlocker b(remove);remove->setChecked(inputs.value("removeTools").toBool());}
+    auto* remove=boundaryFillDock_->findChild<QCheckBox*>("boundaryFill.removeTools");remove->setEnabled(!pending);{const QSignalBlocker b(remove);remove->setChecked(inputs.value("removeTools").toBool());}
     QString warning;const auto diagnostics=session_.value("geometry").toObject().value("diagnostics").toObject();warning=diagnostics.value("warnings").toString();
     auto* warnings=boundaryFillDock_->findChild<QLabel*>("boundaryFill.warnings");warnings->setText(warning.contains("UnableToOrientTheShape")
         ? (session_.value("previewed").toBool()?"Some boundary fragments could not be oriented; the selected solid passed validation.":"Some boundary fragments could not be oriented. Inspect the available cells before selecting.")
         : warning.trimmed().isEmpty()?QString{}:QString("Geometry warnings were reported. Inspect the available cells before accepting."));
     warnings->setToolTip(warning.trimmed());warnings->setVisible(!warning.trimmed().isEmpty());
-    auto* error=boundaryFillDock_->findChild<QLabel*>("boundaryFill.error");error->setText(session_.value("previewError").toObject().value("message").toString());
-    boundaryFillDock_->findChild<QDialogButtonBox*>()->button(QDialogButtonBox::Ok)->setEnabled(session_.value("previewed").toBool());
+    auto* error=boundaryFillDock_->findChild<QLabel*>("boundaryFill.error");error->setText(pending ? "Computing Boundary Fill… You can navigate or Cancel to discard the result. Running kernel work cannot be interrupted." : session_.value("previewError").toObject().value("message").toString());
+    boundaryFillDock_->findChild<QDialogButtonBox*>()->button(QDialogButtonBox::Ok)->setEnabled(!pending && session_.value("previewed").toBool());
+    for(auto& marker:boundaryFillMarkers_)if(marker)marker->setEnabled(!pending);
 }
 void AlloyWindow::showBoundaryFill(){
     if(boundaryFillDock_){canvasWindow_->removeDockWidget(boundaryFillDock_);delete boundaryFillDock_;}
@@ -242,17 +252,66 @@ void AlloyWindow::showBoundaryFill(){
     if(!boundaryFillEscape_){boundaryFillEscape_=new QShortcut(QKeySequence(Qt::Key_Escape),view_);boundaryFillEscape_->setContext(Qt::WidgetShortcut);connect(boundaryFillEscape_,&QShortcut::activated,this,cancel);}
     boundaryFillEscape_->setEnabled(true);canvasWindow_->addDockWidget(Qt::RightDockWidgetArea,boundaryFillDock_);boundaryFillDock_->show();
 }
-QJsonObject AlloyWindow::finishBoundaryFill(const QString& id,bool commit){
-    if(session_.value("id")!=id)return failure("invalid_session","Boundary Fill is no longer active");
-    if(commit){
-        if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))return previewBoundaryFill();
-        if(!session_.value("previewed").toBool())return failure("boundary_fill_cell_required","Select a valid bounded cell before accepting");
-        const auto result=execute("surface.boundaryFill",session_.value("inputs").toObject());if(!result.value("ok").toBool()){
-            session_["previewed"]=false;session_["previewError"]=result.value("error");refreshBoundaryFillControls();return result;}
-    }
+void AlloyWindow::closeBoundaryFillSession(){
     clearBoundaryFillState();session_={};if(boundaryFillDock_)boundaryFillDock_->hide();if(boundaryFillEscape_)boundaryFillEscape_->setEnabled(false);
     view_->clearPreview();view_->clearBodyStage();view_->setFocus(Qt::OtherFocusReason);
-    return {{"sessionId",id},{"status",commit?"committed":"cancelled"}};
+}
+QJsonObject AlloyWindow::finishBoundaryFill(const QString& id,bool commit){
+    if(session_.value("id")!=id)return failure("invalid_session","Boundary Fill is no longer active");
+    const bool pending=session_.value("evaluationStatus")=="pending";
+    if(commit){
+        if(pending)return session_; // Idempotent retry of the same immutable selection.
+        if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))return previewBoundaryFill();
+        if(!session_.value("previewed").toBool())return failure("boundary_fill_cell_required","Select a valid bounded cell before accepting");
+        if(geometryEvaluationRunning_ || geometryEvaluationQueued_)return failure("evaluation_busy","Background geometry is still finishing");
+        auto task=std::make_shared<GeometryEvaluation>();task->command="surface.boundaryFill";
+        task->document=document_;task->documentId=document_->authored().value("documentId").toString();task->revision=document_->revision();
+        task->sessionId=id;task->generation=++geometryEvaluationGeneration_;task->base=document_->authored();
+        task->inputs=session_.value("inputs").toObject();task->ownerId=session_.value("ownerId").toString();
+        try{task->candidate=boundaryFillCandidate(task->inputs);}catch(const std::exception& error){return failure("invalid_arguments",QString::fromUtf8(error.what()));}
+        task->featureId=task->inputs.value("featureId").toString(session_.value("newFeatureId").toString());
+        geometryEvaluationTerminal_={};geometryEvaluationQueued_=task;
+        session_["evaluationStatus"]="pending";session_["previewGeneration"]=static_cast<qint64>(task->generation);
+        session_["evaluationHeartbeat"]=QJsonObject{{"ticks",0},{"lastMs",QDateTime::currentMSecsSinceEpoch()},{"maxGapMs",0}};
+        session_["cancellation"]="Discard result; running kernel evaluation continues";
+        session_.remove("previewError");refreshBoundaryFillControls();startGeometryEvaluation();return session_;
+    }
+    QJsonObject result{{"sessionId",id},{"status","cancelled"},{"resultDiscarded",pending},{"evaluationStillRunning",bool(geometryEvaluationRunning_)}};
+    if(pending){
+        ++geometryEvaluationGeneration_;geometryEvaluationQueued_.reset();
+        geometryEvaluationTerminal_=QJsonObject{{"id",id},{"sessionId",id},{"command","surface.boundaryFill"},
+            {"previewGeneration",session_.value("previewGeneration")},{"evaluationStatus","failed"},{"status","cancelled"},
+            {"previewError",QJsonObject{{"code","command_cancelled"},{"message","Boundary Fill result discarded; running kernel evaluation continues"}}}};
+        if(geometryEvaluationRunning_)statusBar()->showMessage("Finishing background geometry; new modeling commands will resume shortly.");
+    }
+    closeBoundaryFillSession();return result;
+}
+void AlloyWindow::completeBoundaryFillCommit(const std::shared_ptr<GeometryEvaluation>& task){
+    // Cancel or a later session owns its own result and must never be overwritten.
+    if(session_.value("id")!=task->sessionId || session_.value("command")!=task->command || geometryEvaluationGeneration_!=task->generation)return;
+    auto reject=[&](const QString& code,const QString& message,const QJsonObject& diagnostics=QJsonObject{}){
+        session_["evaluationStatus"]="failed";session_["previewed"]=false;
+        session_["previewError"]=QJsonObject{{"code",code},{"message",message},{"diagnostics",diagnostics}};
+        refreshBoundaryFillControls();
+    };
+    if(document_!=task->document || document_->authored().value("documentId")!=task->documentId || document_->revision()!=task->revision
+        || session_.value("inputs").toObject()!=task->inputs || session_.value("ownerId")!=task->ownerId
+        || (!task->inputs.contains("featureId") && document_->activeOwnerId()!=task->ownerId)){
+        reject("stale_session","The document or Boundary Fill selection changed; cancel and restart");return;
+    }
+    session_["evaluationTimingMs"]=QJsonObject{{"full",task->fullMs}};
+    if(!task->error.isEmpty()){reject("evaluation_failed",task->error);return;}
+    if(!task->full.ok){reject("evaluation_failed",task->full.error,task->full.diagnostics);return;}
+    const auto error=document_->commitBoundaryFillEvaluation(task->full,task->candidate,task->base,task->revision,"Boundary Fill");
+    if(!error.isEmpty()){reject("evaluation_failed",error,document_->lastEvaluationError());return;}
+    QJsonObject terminal{{"id",task->sessionId},{"sessionId",task->sessionId},{"command",task->command},
+        {"previewGeneration",static_cast<qint64>(task->generation)},{"evaluationStatus","completed"},{"status","committed"},
+        {"documentRevision",static_cast<qint64>(document_->revision())},{"featureId",task->featureId},
+        {"evaluationTimingMs",session_.value("evaluationTimingMs")},{"evaluationHeartbeat",session_.value("evaluationHeartbeat")}};
+    for(const auto& body:document_->bodies())if(body.featureId==task->featureId){terminal["bodyId"]=body.bodyId;terminal["geometry"]=body.summary;}
+    closeBoundaryFillSession();refresh();
+    const auto recoveryError=syncRecovery();terminal["recovery"]=QJsonObject{{"durable",recoveryError.isEmpty()},{"warning",recoveryError}};
+    geometryEvaluationTerminal_=terminal;
 }
 
 void AlloyWindow::registerBoundaryFillCommands(){

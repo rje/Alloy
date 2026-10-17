@@ -5631,7 +5631,7 @@ void AlloyWindow::registerCommands() {
             if(session_.value("evaluationStatus")=="failed")return QJsonObject{{"ok",false},{"completion","failed"},{"error",session_.value("previewError")}};
             return preview;
         }
-        if(session_.value("command")=="surface.boundaryFill")return previewBoundaryFill();
+        if(session_.value("command")=="surface.boundaryFill")return session_.value("evaluationStatus")=="pending" ? session_ : previewBoundaryFill();
         if(session_.value("command")=="surface.trim")return previewSurfaceTrim();
         if(session_.value("command")=="body.remove")return previewRemoveBody();
         if(session_.value("command")=="solid.thicken")return previewThicken();
@@ -6128,8 +6128,7 @@ QJsonArray AlloyWindow::commands() const {
 }
 
 QString AlloyWindow::geometryWorkLabel(const QString& id,const QJsonObject& args) const {
-    if(id=="surface.boundaryFillSelectCells" || id=="surface.boundaryFill"
-        || (id=="command.commit" && session_.value("command")=="surface.boundaryFill"))return "Boundary Fill";
+    if(id=="surface.boundaryFillSelectCells" || id=="surface.boundaryFill")return "Boundary Fill";
     // Synchronous evaluation and the three modeless launchers that immediately
     // evaluate previews. Nested commands share their outer busy indication.
     QString operation=id;
@@ -6155,22 +6154,26 @@ QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
     if(id=="command.status") {
         const auto argumentError=validateArguments(*findCommand(id),args);
         if(!argumentError.isEmpty())return failure("invalid_arguments",argumentError);
-        if(session_.isEmpty() || session_.value("id")!=args["session"])return failure("invalid_session","Session is no longer active");
-        if(args.contains("generation") && args["generation"]!=session_.value("previewGeneration"))
+        // A successful asynchronous commit closes its dialog. Retain only its
+        // terminal result, until another session or document change replaces it.
+        const auto operation=session_.isEmpty() ? geometryEvaluationTerminal_ : session_;
+        if(operation.isEmpty() || operation.value("id")!=args.value("session"))return failure("invalid_session","Session is no longer active");
+        if(args.contains("generation") && args.value("generation")!=operation.value("previewGeneration"))
             return failure("stale_preview","This preview generation was superseded");
-        const auto status=session_.value("evaluationStatus").toString("completed");
-        QJsonObject response{{"ok",true},{"completion",status},{"result",session_},
+        const auto status=operation.value("evaluationStatus").toString("completed");
+        QJsonObject response{{"ok",true},{"completion",status},{"result",operation},
             {"documentRevision",static_cast<qint64>(document_->revision())}};
-        if(status=="failed"){response["ok"]=false;response["error"]=session_.value("previewError");}
+        if(status=="failed"){response["ok"]=false;response["error"]=operation.value("previewError");}
         return response;
     }
-    if(surfaceExtrudeRunning_) {
+    if(geometryEvaluationRunning_) {
         const bool safe=id=="commands.list" || id=="app.state" || id=="document.inspect" || id=="command.cancel"
             || (session_.value("command")=="surface.extrude" && (id=="command.preview" || id=="command.update" || id=="command.commit"
                 || id=="surface.extrudeEntity" || id=="surface.extrudeProfile" || id=="selection.pick"))
+            || (session_.value("command")=="surface.boundaryFill" && (id=="command.commit" || id=="command.preview"))
             || id=="view.orbit" || id=="view.pan" || id=="view.zoom" || id=="view.orientation" || id=="view.home"
             || id=="view.fit" || id=="capture.screenshot" || id=="capture.viewport" || id=="capture.dialog";
-        if(!safe)return failure("evaluation_busy","Surface Extrude kernel evaluation is still running; inspect command.status or Cancel to discard its result");
+        if(!safe)return failure("evaluation_busy","Background geometry evaluation is still running; inspect command.status or Cancel to discard its result");
     }
     GraphEvaluationScope graphScope(*this);
     const bool traceGraphSolves=qEnvironmentVariableIsSet("ALLOY_TRACE_ASSEMBLY_SOLVES")
@@ -6237,6 +6240,7 @@ QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
     });
     QJsonObject result;
     const auto priorDocumentRevision=document_->revision();
+    const auto* priorDocument=document_;const auto priorSessionId=session_.value("id");
     // A rejected constraint attempt can still change the active tool, pending
     // selection and retry prompt. Publish that presentation without committing
     // the rejected geometry.
@@ -6249,6 +6253,8 @@ QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
     catch(const Standard_Failure& error) { refreshConstraintFailure(); return finish(failure("kernel_failure",QString::fromUtf8(error.GetMessageString()))); }
     catch(const std::exception& error) { refreshConstraintFailure(); return finish(failure("command_failed",QString::fromUtf8(error.what()))); }
     if (result.value("ok").isBool() && !result.value("ok").toBool()) { refreshConstraintFailure(); return finish(result); }
+    if(document_!=priorDocument || document_->revision()!=priorDocumentRevision
+        || (!session_.isEmpty() && session_.value("id")!=priorSessionId))geometryEvaluationTerminal_={};
     const auto afterCommandSolves=traceGraphSolves?AssemblyGraph::solveCount():0;
     const double commandPhaseMs=traceGraphSolves?phaseTimer.nsecsElapsed()/1e6:0;
     if(document_->revision()!=priorDocumentRevision && (transientSliderPosition_.has_value() || !jointGraphStage_.isEmpty() || (sliderTimer_ && sliderTimer_->isActive()))){
@@ -6366,7 +6372,7 @@ QJsonObject AlloyWindow::state() const {
         {"recovery",QJsonObject{{"available",recovery_->error().isEmpty()},{"warning",recoveryWarning_},
             {"staleCount",recovery_->list().size()},{"scope","committed authored state only"}}},
         {"inlineEditor",inlineEditorState()},
-        {"geometryWork",QJsonObject{{"active",geometryBusyActive_ || bool(surfaceExtrudeRunning_)},{"cancellable",false},{"resultDiscardAvailable",session_.value("command")=="surface.extrude"},{"last",lastGeometryWork_}}},
+        {"geometryWork",QJsonObject{{"active",geometryBusyActive_ || bool(geometryEvaluationRunning_)},{"cancellable",false},{"resultDiscardAvailable",session_.value("command")=="surface.extrude" || session_.value("command")=="surface.boundaryFill"},{"last",lastGeometryWork_}}},
         {"focus",QJsonObject{{"widgetClass",QApplication::focusWidget() ? QApplication::focusWidget()->metaObject()->className() : ""},
             {"widgetName",QApplication::focusWidget() ? QApplication::focusWidget()->objectName() : QString{}},
             {"viewport",QApplication::focusWidget()==view_},
@@ -8375,8 +8381,8 @@ QJsonObject AlloyWindow::finishSession(const QString& id, bool commit) {
     surfaceTrimSource_.reset();surfaceTrimPartition_.reset();
     loftSource_.reset();loftPreview_.reset();
     if(target=="surface.extrude"){
-        result["evaluationStillRunning"]=bool(surfaceExtrudeRunning_);
-        result["resultDiscarded"]=!commit;invalidateSurfaceExtrudeEvaluation();
+        result["evaluationStillRunning"]=bool(geometryEvaluationRunning_);
+        result["resultDiscarded"]=!commit;invalidateGeometryEvaluation();
     }
     session_ = {};
     if(target=="sketch.edit"){sketchHistory_.clear();sketchHistoryIndex_=-1;sketchHistoryGroup_.clear();}
@@ -11817,9 +11823,9 @@ bool AlloyWindow::confirmAllDiscard() {
     activateTab(previous);refresh();return true;
 }
 void AlloyWindow::closeEvent(QCloseEvent* event) {
-    if(surfaceExtrudeRunning_) {
+    if(geometryEvaluationRunning_) {
         event->ignore();
-        statusBar()->showMessage("Surface Extrude kernel evaluation is still running. Cancel discards its result; close after it finishes.");
+        statusBar()->showMessage("Background geometry evaluation is still running. Cancel discards its result; close after it finishes.");
         return;
     }
     if(authorizedQuit_ || confirmAllDiscard()) {

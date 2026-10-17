@@ -9,7 +9,9 @@ alongside completion of the advanced modeling tutorials.
 The [Surface Extrude responsiveness gate](docs/validation/surface-extrude-responsive-preview.md)
 now keeps the corrected iron's long edit previews off the UI thread, with
 independently checked navigation, status, geometry, history and reopen evidence.
-The final Boundary Fill commit remains a separate responsiveness blocker.
+The [Boundary Fill commit gate](docs/validation/boundary-fill-responsive-commit.md)
+also keeps the corrected iron's final solid evaluation responsive. Initial
+cell enumeration and large-model reopen remain synchronous.
 
 The [complete surface shoehorn](docs/validation/shoehorn-complete.md) now has
 an independently accepted full creation movie, editable model and checked STL:

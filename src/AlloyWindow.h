@@ -295,13 +295,14 @@ private:
     QJsonObject surfaceExtrudeCandidate(const QJsonObject& inputs) const;
     QJsonObject beginSurfaceExtrude(const QJsonObject& overrides={});
     QJsonObject previewSurfaceExtrude();
-    void startSurfaceExtrudeEvaluation();
-    void pollSurfaceExtrudeEvaluation();
-    void invalidateSurfaceExtrudeEvaluation();
-    struct SurfaceExtrudeEvaluation {
+    void startGeometryEvaluation();
+    void pollGeometryEvaluation();
+    void invalidateGeometryEvaluation();
+    struct GeometryEvaluation {
         std::atomic<bool> ready{false};
         CadDocument* document = nullptr; // Identity only; never accessed by worker.
-        QString documentId, sessionId, featureId;
+        QString documentId, sessionId, featureId, ownerId;
+        QString command = "surface.extrude";
         quint64 revision = 0, generation = 0;
         QJsonObject base, candidate, inputs;
         bool needsSource = false;
@@ -310,13 +311,14 @@ private:
         qint64 sourceMs = 0, fullMs = 0, stageMs = 0;
         QString error;
     };
-    std::shared_ptr<SurfaceExtrudeEvaluation> surfaceExtrudeRunning_, surfaceExtrudeQueued_;
+    std::shared_ptr<GeometryEvaluation> geometryEvaluationRunning_, geometryEvaluationQueued_;
     std::shared_ptr<const EvaluatedDocument> surfaceExtrudeSource_;
     CadDocument::CandidateEvaluation surfaceExtrudePrepared_;
     QJsonObject surfaceExtrudeRequestedInputs_, surfaceExtrudeBase_, surfaceExtrudeRequestedCandidate_;
     QString surfaceExtrudeRequestedSession_;
-    quint64 surfaceExtrudeGeneration_ = 0;
-    QTimer* surfaceExtrudePoll_ = nullptr;
+    quint64 geometryEvaluationGeneration_ = 0;
+    QTimer* geometryEvaluationPoll_ = nullptr;
+    QJsonObject geometryEvaluationTerminal_; // One completed commit, until next session/document change.
     QJsonObject selectSurfaceExtrudeProfile(const QString& sketchId,const QJsonArray& entityIds);
     QJsonObject selectSurfaceExtrudeEntity(const QString& sketchId,const QString& entityId);
     QJsonObject pickSurfaceExtrude(double x,double y);
@@ -350,6 +352,8 @@ private:
     QJsonObject selectBoundaryFillCell(const QString& cellId);
     QJsonObject pickBoundaryFill(double x,double y);
     QJsonObject finishBoundaryFill(const QString& id,bool commit);
+    void completeBoundaryFillCommit(const std::shared_ptr<GeometryEvaluation>& task);
+    void closeBoundaryFillSession();
     void showBoundaryFill();
     void refreshBoundaryFillControls();
     void refreshBoundaryFillMarkers();

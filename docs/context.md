@@ -50,9 +50,13 @@ to reproduce the stall; implement and verify REL-033 first.
 TUT-034/#470 and parent TUT-018/#302 are Todo on the project board while the
 remaining UI-thread gate is active; reopen TUT-034 as In Progress for one corrected
 recording after both gates pass.
-The same failed run also measured a 94.46-second final Boundary Fill commit;
-REL-034/#477 is the next Todo child and blocks the cumulative movie.
-Fixing only Surface Extrude does not justify another full-recording attempt.
+The same failed run also measured a 94.46-second final Boundary Fill commit.
+REL-034/#477 now passes independent bounded acceptance: the saved four-tool
+commit evaluated for 32.36 s off-thread, with responsive status/pan/GUI timer,
+exact accepted solid, undo/redo and reopen. See
+[the receipt](validation/boundary-fill-responsive-commit.md). The initial
+Boundary Fill cell enumeration still blocks the UI for 10.907 s, and large-model
+reopen for 32.170 s. A new full corrected-iron recording remains unaccepted.
 
 Finish the current tutorials and prepare a comprehensive web-reviewable v1 plan for dependable 3D-printing creation workflows. TUT-018/#302 is reopened: the user rejects the final iron shape. Prior API/mesh checks prove only the adapted fixture, not visual/tutorial acceptance. Correct the silhouette and sculpted handle against public final tutorial evidence. Full enclosure TUT-016 remains open. The proposed v1 inventory and backlog mapping live in docs/v1; scope is pending user review.
 

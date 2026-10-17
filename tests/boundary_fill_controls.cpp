@@ -16,11 +16,21 @@
 #include <QStyleOptionViewItem>
 #include <QTest>
 #include <QTimer>
+#include <QTemporaryDir>
+#include <QElapsedTimer>
+#include <QStatusBar>
+#include <cmath>
 #include <QToolButton>
 
 class BoundaryFillControlsTest final:public QObject{
  Q_OBJECT
- QJsonObject call(AlloyWindow& w,const QString& command,const QJsonObject& args={}){const auto r=w.execute(command,args);
+ QJsonObject call(AlloyWindow& w,const QString& command,const QJsonObject& args={}){auto r=w.execute(command,args);
+  if(r.value("completion")=="pending"){
+   const auto initial=r.value("result").toObject();QElapsedTimer deadline;deadline.start();
+   do{QTest::qWait(25);r=w.execute("command.status",{{"session",initial.value("id")},{"generation",initial.value("previewGeneration")}});
+    if(deadline.elapsed()>180000)qFatal("Boundary Fill commit timed out");
+   }while(r.value("completion")=="pending");
+  }
   if(!r.value("ok").toBool())qFatal("%s",QJsonDocument(r).toJson().constData());return r.value("result").toObject();}
  QJsonObject session(AlloyWindow& w){return w.state().value("activeSession").toObject();}
  void choose(QToolButton* opener){
@@ -37,6 +47,43 @@ class BoundaryFillControlsTest final:public QObject{
   QCOMPARE(QApplication::widgetAt(box->mapToGlobal(point)),static_cast<QWidget*>(box));QTest::mouseClick(box,Qt::LeftButton,Qt::NoModifier,point);
  }
 private slots:
+ void asynchronousCommitContracts(){
+  QTemporaryDir temp;QVERIFY(temp.isValid());CadDocument d;const auto owner=d.authored().value("documentId").toString();
+  auto sheet=[&](const QString& plane,double x1,double y1,double x2,double y2){
+   auto sketch=SketchGeometry::newFeature(owner,plane,"Box boundary");sketch=SketchGeometry::addLine(sketch,{{"u1Mm",x1},{"v1Mm",y1},{"u2Mm",x2},{"v2Mm",y2}});
+   auto draft=d.authored();auto rows=draft.value("features").toArray();rows.append(sketch);draft["features"]=rows;QVERIFY(d.commit(draft,"Sketch").isEmpty());
+   const auto eid=sketch.value("parameters").toObject().value("entities").toArray()[0].toObject().value("id");
+   QVERIFY(d.commit(CadDocument::surfaceExtrudeCandidate(d.authored(),{{"sketchId",sketch.value("id")},{"entityIds",QJsonArray{eid}},{"sideOneMm",10},{"sideTwoMm",10}}),"Sheet").isEmpty());
+  };
+  sheet("XZ",-10,0,10,0);sheet("XZ",-10,20,10,20);sheet("XZ",-10,0,-10,20);sheet("XZ",10,0,10,20);sheet("YZ",-10,0,-10,20);sheet("YZ",10,0,10,20);
+  QJsonArray tools;for(const auto& body:d.bodies())tools.append(QJsonObject{{"bodyId",body.bodyId},{"producerFeatureId",body.featureId}});
+  const auto path=temp.filePath("six-tools.alloy");QVERIFY(d.save(path).isEmpty());AlloyWindow w;call(w,"document.open",{{"path",path},{"discard",true}});const auto before=call(w,"document.inspect");
+  auto chooseCell=[&](){auto active=call(w,"surface.boundaryFillDialog",{{"tools",tools},{"removeTools",true}});
+   const auto cells=call(w,"surface.boundaryFillSelectCells").value("cells").toArray();if(cells.size()!=1)qFatal("Expected one box cell");
+   call(w,"surface.boundaryFillCell",{{"cellId",cells[0].toObject().value("cellId")}});return session(w);};
+  auto active=chooseCell();const auto sid=active.value("id"),cell=active.value("inputs").toObject().value("cell");
+  auto raw=w.execute("command.commit",{{"session",sid}});QVERIFY(raw.value("ok").toBool());QCOMPARE(raw.value("completion").toString(),QString("pending"));
+  const auto generation=raw.value("result").toObject().value("previewGeneration");
+  raw=w.execute("command.commit",{{"session",sid}});QCOMPARE(raw.value("result").toObject().value("previewGeneration"),generation);
+  QCOMPARE(w.execute("command.status",{{"session",sid},{"generation",generation.toInteger()+1}}).value("error").toObject().value("code").toString(),QString("stale_preview"));
+  QCOMPARE(w.execute("command.update",{{"session",sid},{"inputs",QJsonObject{{"removeTools",false}}}}).value("error").toObject().value("code").toString(),QString("evaluation_busy"));
+  QVERIFY(session(w).value("inputs").toObject().value("removeTools").toBool());
+  raw=w.execute("command.cancel",{{"session",sid}});QVERIFY(raw.value("ok").toBool());QVERIFY(raw.value("result").toObject().value("resultDiscarded").toBool());
+  QVERIFY(w.statusBar()->currentMessage().contains("Finishing background geometry"));
+  QCOMPARE(w.execute("command.status",{{"session",sid},{"generation",generation}}).value("error").toObject().value("code").toString(),QString("command_cancelled"));
+  QTRY_VERIFY_WITH_TIMEOUT(!w.state().value("geometryWork").toObject().value("active").toBool(),10000);QVERIFY(session(w).isEmpty());QCOMPARE(call(w,"document.inspect").value("authored"),before.value("authored"));
+  active=chooseCell();const auto nextId=active.value("id");QCOMPARE(w.execute("command.status",{{"session",sid},{"generation",generation}}).value("error").toObject().value("code").toString(),QString("invalid_session"));
+  const auto committed=call(w,"command.commit",{{"session",nextId}});QCOMPARE(committed.value("status").toString(),QString("committed"));QVERIFY(session(w).isEmpty());
+  const auto terminal=w.execute("command.status",{{"session",nextId},{"generation",committed.value("previewGeneration")}});QVERIFY(terminal.value("ok").toBool());QCOMPARE(terminal.value("completion").toString(),QString("completed"));
+  const auto after=call(w,"document.inspect");const auto bodies=after.value("evaluation").toObject().value("bodies").toArray();QCOMPARE(bodies.size(),1);QVERIFY(bodies[0].toObject().value("valid").toBool());QVERIFY(std::abs(bodies[0].toObject().value("volumeMm3").toDouble()-8000.0)<1e-5);
+  const auto feature=after.value("authored").toObject().value("features").toArray().last().toObject();QCOMPARE(feature.value("parameters").toObject().value("cell"),cell);QVERIFY(feature.value("parameters").toObject().value("removeTools").toBool());
+  const auto replacement=call(w,"surface.extrudeDialog");QCOMPARE(w.execute("command.status",{{"session",nextId}}).value("error").toObject().value("code").toString(),QString("invalid_session"));call(w,"command.cancel",{{"session",replacement.value("id")}});
+  QCOMPARE(w.execute("command.status",{{"session",nextId}}).value("error").toObject().value("code").toString(),QString("invalid_session"));
+  call(w,"history.undo");QCOMPARE(call(w,"document.inspect").value("authored"),before.value("authored"));call(w,"history.redo");QCOMPARE(call(w,"document.inspect").value("authored"),after.value("authored"));
+  const auto saved=temp.filePath("solid.alloy");call(w,"document.save",{{"path",saved}});call(w,"document.open",{{"path",saved},{"discard",true}});QCOMPARE(call(w,"document.inspect").value("authored"),after.value("authored"));
+  const auto candidate=CadDocument::boundaryFillCandidate(d.authored(),{{"ownerId",owner},{"tools",tools},{"cell",cell},{"removeTools",true}});const auto evaluated=CadDocument::evaluateCandidate(candidate);QVERIFY(evaluated.ok);
+  QVERIFY(!d.commitBoundaryFillEvaluation(evaluated,candidate,d.authored(),d.revision()+1,"Stale").isEmpty());QCOMPARE(d.authored(),before.value("authored").toObject());
+ }
  void correctedOpaquePreviewCapture(){
   const auto source=qEnvironmentVariable("ALLOY_BOUNDARY_FILL_SOURCE"),out=qEnvironmentVariable("ALLOY_BOUNDARY_FILL_EVIDENCE");if(source.isEmpty())QSKIP("No qualified five-sheet source");
   QDir().mkpath(out);AlloyTheme::apply(*qApp);AlloyWindow w;w.resize(1500,950);w.show();w.activateWindow();QVERIFY(QTest::qWaitForWindowExposed(&w));
@@ -90,7 +137,7 @@ private slots:
   marker=nullptr;for(auto* box:view->findChildren<QCheckBox*>())if(box->objectName().startsWith("boundaryFill.cellMarker.") && box->isVisible())marker=box;QVERIFY(marker);
   QCOMPARE(QApplication::widgetAt(marker->mapToGlobal(marker->rect().center())),static_cast<QWidget*>(marker));QTest::mouseClick(marker,Qt::LeftButton);QTRY_VERIFY(session(w).value("previewed").toBool());QVERIFY(view->hasFocus());
   clickCheck(dock->findChild<QCheckBox*>("boundaryFill.removeTools"));QTRY_VERIFY(session(w).value("inputs").toObject().value("removeTools").toBool());QVERIFY(view->hasFocus());
-  buttons=dock->findChild<QDialogButtonBox*>();QVERIFY(buttons->button(QDialogButtonBox::Ok)->isEnabled());QTest::mouseClick(buttons->button(QDialogButtonBox::Ok),Qt::LeftButton);QTRY_VERIFY(session(w).isEmpty());
+  buttons=dock->findChild<QDialogButtonBox*>();QVERIFY(buttons->button(QDialogButtonBox::Ok)->isEnabled());QTest::mouseClick(buttons->button(QDialogButtonBox::Ok),Qt::LeftButton);QTRY_VERIFY_WITH_TIMEOUT(session(w).isEmpty(),180000);
   const auto final=call(w,"document.inspect");const auto results=final.value("evaluation").toObject().value("bodies").toArray();QCOMPARE(results.size(),1);QVERIFY(results[0].toObject().value("valid").toBool());
   QCOMPARE(results[0].toObject().value("topology").toObject().value("solids").toInt(),1);call(w,"document.save",{{"path",out+"/native-boundary-filled-iron.alloy"}});
   call(w,"capture.screenshot",{{"path",out+"/native-boundary-fill-solid.png"}});call(w,"history.undo");QCOMPARE(call(w,"document.inspect").value("authored"),before.value("authored"));
