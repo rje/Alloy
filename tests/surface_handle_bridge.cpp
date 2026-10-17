@@ -9,6 +9,7 @@
 #include <BRepAdaptor_Curve.hxx>
 #include <QCoreApplication>
 #include <QTemporaryDir>
+#include <QFileInfo>
 #include <BRepTools.hxx>
 #include <BRep_Tool.hxx>
 #include <BRepCheck_Analyzer.hxx>
@@ -64,7 +65,103 @@ void supportAgreement(const EvaluatedBody& bridge,const std::vector<TopoDS_Edge>
         }
     }check(maximum<1e-4,"Retained section missed actual bridge support (shared topology is insufficient)");
 }
+void asymmetricRegression(const QString& path){
+    CadDocument document;check(document.open(QFileInfo(path).absoluteFilePath()).isEmpty(),"Open asymmetric retained Trim/ellipse regression");
+    const auto before=document.authored();const auto trimmed=document.bodies().front();
+    QString cutterId,middleId,ellipseId;QJsonObject panel,middle;
+    for(const auto& row:before["features"].toArray()){const auto f=row.toObject();
+        if(f["name"]=="Handle side panel"){panel=f;cutterId=f["parameters"].toObject()["entities"].toArray()[0].toObject()["id"].toString();}
+        if(f["name"]=="Handle middle ellipse"){middle=f;middleId=f["id"].toString();
+            for(const auto& e:f["parameters"].toObject()["entities"].toArray())if(e.toObject()["type"]=="ellipse")ellipseId=e.toObject()["id"].toString();}
+    }
+    check(!cutterId.isEmpty()&&!ellipseId.isEmpty(),"Regression retained sources unavailable");
+    QJsonArray sections;std::vector<TopoDS_Edge> sourceEdges;
+    for(const auto& face:trimmed.supportFaces){QString selected;
+        for(const auto& e:trimmed.solidEdges)if(e.provenance["role"]=="trimBoundary"
+            && e.provenance["sourceFaceId"]==face.provenance["sourceFaceId"] && e.provenance["sourceEntityId"]==cutterId)selected=e.edgeId;
+        check(!selected.isEmpty(),"Regression actual Trim loop unavailable");
+        auto reference=SurfaceClosedLoft::boundaryReference(document.evaluation(),trimmed.bodyId,selected);
+        // Pick the other cutter on the opposite side: correspondence must use
+        // shared ancestry rather than whichever edge the user selected first.
+        if(!sections.isEmpty())reference=SurfaceClosedLoft::boundaryReference(document.evaluation(),trimmed.bodyId,reference["edgeIds"].toArray()[1].toString());
+        sections.append(reference);
+        for(const auto& id:reference["edgeIds"].toArray())for(const auto& e:trimmed.solidEdges)if(e.edgeId==id)sourceEdges.push_back(e.edge);
+    }
+    sections.insert(1,QJsonObject{{"sketchId",middleId},{"entityIds",QJsonArray{ellipseId}}});
+    for(const auto& sketch:document.sketches())if(sketch.featureId==middleId)sourceEdges.push_back(sketch.entityEdges.value(ellipseId));
+    const QJsonObject args{{"operation","newBody"},{"guideType","none"},{"sections",sections},{"name","Asymmetric bridge"},{"ownerId",trimmed.ownerId}};
+    auto candidate=CadDocument::loftCandidate(before,args);const auto error=document.commit(candidate,"Asymmetric retained bridge");
+    check(error.isEmpty(),error+" / "+document.lastEvaluationError()["code"].toString());
+    const auto body=document.bodies().back();const auto authored=document.authored();
+    check(body.summary["valid"].toBool()&&body.summary["topology"].toObject()["faces"]==2
+        && body.solidEdges.size()==6 && !body.shape.Closed(),"Corrected bridge must be a valid two-face open shell");
+    const auto mode=body.summary["interpolation"].toObject();
+    check(!mode["compatibility"].toBool()&&mode["sectionNormalization"]=="retainedCutterRadialEllipseTwoEdges","Explicit correspondence mode missing");
+    supportAgreement(body,sourceEdges);const auto faces=faceIds(body),edges=edgeIds(body);
+    // Rigidly rotate the entire evaluated fixture, including retained point and
+    // frame inspection. This exercises ellipse-local axes, not global X/Z.
+    auto rotated=document.evaluation();gp_Trsf pose;pose.SetRotation(gp_Ax1(gp_Pnt(0,0,0),gp_Dir(1,2,3)),.43);pose.SetTranslationPart(gp_Vec(13,-7,19));
+    const TopLoc_Location location(pose);
+    auto pointArray=[&](QJsonArray xyz,bool direction){gp_XYZ value(xyz[0].toDouble(),xyz[1].toDouble(),xyz[2].toDouble());
+        if(direction){gp_Vec v(value);v.Transform(pose);value=v.XYZ();}else{gp_Pnt p(value);p.Transform(pose);value=p.XYZ();}
+        return QJsonArray{value.X(),value.Y(),value.Z()};};
+    for(auto& body:rotated.bodies){body.shape=body.shape.Moved(location);
+        for(auto& edge:body.solidEdges)edge.edge=TopoDS::Edge(edge.edge.Moved(location));
+        for(auto& face:body.supportFaces){face.face=TopoDS::Face(face.face.Moved(location));
+            for(auto& edge:face.boundaryEdges)edge.edge=TopoDS::Edge(edge.edge.Moved(location));}}
+    for(auto& sketch:rotated.sketches){sketch.shape=sketch.shape.Moved(location);
+        for(auto it=sketch.entityEdges.begin();it!=sketch.entityEdges.end();++it)it.value()=TopoDS::Edge(it.value().Moved(location));
+        auto points=sketch.summary["worldPoints"].toArray();for(int i=0;i<points.size();++i){auto p=points[i].toObject();p["positionMm"]=pointArray(p["positionMm"].toArray(),false);points[i]=p;}sketch.summary["worldPoints"]=points;
+        for(const auto& key:{"normal","uAxis","vAxis"})sketch.resolvedFrame[key]=pointArray(sketch.resolvedFrame[key].toArray(),true);
+        sketch.resolvedFrame["origin"]=pointArray(sketch.resolvedFrame["origin"].toArray(),false);
+    }
+    const auto feature=candidate["features"].toArray().last().toObject();
+    const auto rigid=SurfaceClosedLoft::evaluate(feature,rotated);check(faceIds(rigid)==faces&&edgeIds(rigid)==edges,"Rigid frame changed retained identities");
+    std::vector<TopoDS_Edge> moved;for(const auto& edge:sourceEdges)moved.push_back(TopoDS::Edge(edge.Moved(location)));supportAgreement(rigid,moved);
+    // Selecting the other first cutter reverses winding and swaps the arc
+    // roles. Geometry/contact must agree without assuming identical face IDs.
+    auto otherSections=sections;const auto firstReference=sections[0].toObject();
+    otherSections[0]=SurfaceClosedLoft::boundaryReference(document.evaluation(),trimmed.bodyId,firstReference["edgeIds"].toArray()[1].toString());
+    auto otherFeature=feature;auto otherParameters=otherFeature["parameters"].toObject();otherParameters["sections"]=otherSections;otherFeature["parameters"]=otherParameters;
+    const auto other=SurfaceClosedLoft::evaluate(otherFeature,document.evaluation());supportAgreement(other,sourceEdges);
+    check(std::abs(other.summary["areaMm2"].toDouble()-body.summary["areaMm2"].toDouble())<1e-5,"First cutter pick changed bridge geometry");
+    // Small panel and ellipse-source edits retain topology IDs; history and
+    // authored reopen remain separate from mere non-crashing construction.
+    auto changed=editPoint(authored,panel["id"].toString(),panel["parameters"].toObject()["entities"].toArray()[0].toObject()["pointIds"].toArray()[2].toString(),"vMm",74.1);
+    check(document.commit(changed,"Small panel fit-point edit").isEmpty(),"Asymmetric panel edit");
+    check(faceIds(document.bodies().back())==faces&&edgeIds(document.bodies().back())==edges,"Panel edit changed stable identities");
+    document.history().undo();check(document.authored()==authored,"Exact panel undo");document.history().redo();check(document.authored()==changed,"Exact panel redo");
+    document.history().undo();
+    auto transformEllipse=[&](const QJsonObject& base,double dx,double dz,double radians){
+        auto result=base;auto features=result["features"].toArray();
+        for(int i=0;i<features.size();++i)if(features[i].toObject()["id"]==middleId){
+            auto f=features[i].toObject(),p=f["parameters"].toObject();auto points=p["points"].toArray();
+            for(int k=0;k<points.size();++k){auto point=points[k].toObject();
+                const double x=point["uMm"].toDouble()-114,z=point["vMm"].toDouble()-63;
+                point["uMm"]=114+dx+x*std::cos(radians)-z*std::sin(radians);
+                point["vMm"]=63+dz+x*std::sin(radians)+z*std::cos(radians);points[k]=point;
+            }p["points"]=points;f["parameters"]=p;features[i]=f;break;
+        }result["features"]=features;return result;
+    };
+    const auto ellipseEdit=transformEllipse(authored,.5,.25,.01);
+    check(document.commit(ellipseEdit,"Small ellipse center and tilt edit").isEmpty(),"Asymmetric ellipse center/tilt edit");
+    check(faceIds(document.bodies().back())==faces&&edgeIds(document.bodies().back())==edges,"Ellipse edit changed stable identities");
+    document.history().undo();check(document.authored()==authored,"Exact ellipse undo");
+    document.history().redo();check(document.authored()==ellipseEdit,"Exact ellipse redo");document.history().undo();
+    // Put the valid ellipse center on the exterior extension of cutter A/B:
+    // both endpoint rays coincide, so explicit splitting must refuse atomically.
+    const auto bad=transformEllipse(authored,-225,-107.4,0);
+    check(!document.commit(bad,"Coincident radial ellipse seams").isEmpty()&&document.authored()==authored
+        &&document.lastEvaluationError()["code"]=="loft_section_unsupported","Ambiguous radial seams must refuse atomically");
+    QTemporaryDir out;const auto saved=out.filePath("asymmetric-bridge.alloy");check(document.save(saved).isEmpty(),"Save asymmetric bridge");
+    CadDocument reopened;check(reopened.open(saved).isEmpty()&&reopened.authored()==authored,"Reopen asymmetric bridge");
+    check(faceIds(reopened.bodies().back())==faces&&edgeIds(reopened.bodies().back())==edges,"Reopen asymmetric identities");
+    std::cout<<"ASYMMETRIC_BRIDGE_OK actualTrim smallTiltedEllipse oppositePick supportContact rigidFrame panelEdit history reopen atomicRefusal\n";
+}
 int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
+    if(argc>1 && QString::fromLocal8Bit(argv[1])=="--asymmetric-fixture"){
+        check(argc==3,"Provide one native asymmetric fixture path");asymmetricRegression(QString::fromLocal8Bit(argv[2]));return 0;
+    }
     CadDocument document;const auto root=document.authored()["documentId"].toString();
     QJsonObject plane{{"id",CadDocument::newId()},{"ownerId",root},{"type","constructionPlane"},{"name","Heel plane"},{"visible",true},
         {"parameters",QJsonObject{{"source",QJsonObject{{"plane","YZ"}}},{"offsetMm",120.0}}}};append(document,plane);

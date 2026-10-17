@@ -4,6 +4,9 @@
 #include <BRepOffsetAPI_ThruSections.hxx>
 #include <BRepBuilderAPI_Copy.hxx>
 #include <BRepBuilderAPI_MakeWire.hxx>
+#include <BRepBuilderAPI_MakeEdge.hxx>
+#include <Geom_Ellipse.hxx>
+#include <BRepTools_WireExplorer.hxx>
 #include <BRepBuilderAPI_MakeVertex.hxx>
 #include <BRepAdaptor_Curve.hxx>
 #include <BRepCheck_Analyzer.hxx>
@@ -27,6 +30,7 @@
 #include <array>
 #include <cmath>
 #include <limits>
+#include <numbers>
 #include <vector>
 
 namespace {
@@ -76,6 +80,8 @@ struct Section {
     gp_Pnt firstAuthoredStart,firstAuthoredEnd;
     QString sourceBodyId,sourceProducerId,sourceFaceId,startPointId,endPointId;
     std::vector<QJsonObject> edgeProvenance;
+    gp_Pnt cutterStart,cutterEnd;
+    gp_Vec cutterNormal;
 };
 [[noreturn]] void boundaryReject(const QString& message){
     throw GeometryKernel::EvaluationError({{"featureType","loft"},{"code","loft_boundary_unavailable"},{"message",message}});
@@ -145,7 +151,8 @@ Section boundarySection(const EvaluatedDocument& prior,const QJsonObject& refere
         section.sourceIds.append(named->edgeId);section.edges.push_back(edge);
         section.edgeProvenance.push_back(named->provenance);
         if(section.edges.size()==1){section.firstAuthoredStart=startPoint(edge);section.firstAuthoredEnd=endPoint(edge);
-            section.startPointId=pointIds.first().toString();section.endPointId=pointIds.last().toString();}
+            section.startPointId=pointIds.first().toString();section.endPointId=pointIds.last().toString();
+            section.cutterStart=a;section.cutterEnd=b;section.cutterNormal=normal;}
     }
     return section;
 }
@@ -241,8 +248,111 @@ EvaluatedBody SurfaceClosedLoft::evaluate(const QJsonObject& feature,const Evalu
             || sections[0].sourceProducerId!=sections[2].sourceProducerId || sections[0].sourceFaceId==sections[2].sourceFaceId)
             reject("loft_section_unsupported","Use opposite retained inner loops from one Trim result");
     }
+    const bool retainedBoundary=!sections[0].sourceBodyId.isEmpty();
+    if(retainedBoundary) {
+        // Retained cutter ancestry, rather than a geometric nearest match or a
+        // picked-edge index, establishes the same two paths on opposite sides.
+        const auto& ancestry=sections[0].edgeProvenance;
+        auto sameCutter=[](const QJsonObject& a,const QJsonObject& b){
+            return a["sourceSketchId"]==b["sourceSketchId"] && a["sourceEntityId"]==b["sourceEntityId"];
+        };
+        const bool direct=sameCutter(ancestry[0],sections[2].edgeProvenance[0])
+            && sameCutter(ancestry[1],sections[2].edgeProvenance[1]);
+        const bool swapped=sameCutter(ancestry[0],sections[2].edgeProvenance[1])
+            && sameCutter(ancestry[1],sections[2].edgeProvenance[0]);
+        if(direct==swapped)reject("loft_section_unsupported","Opposite Trim loops need the same two unique retained cutters");
+        if(swapped){
+            std::swap(sections[2].edges[0],sections[2].edges[1]);
+            std::swap(sections[2].sourceIds[0],sections[2].sourceIds[1]);
+            std::swap(sections[2].edgeProvenance[0],sections[2].edgeProvenance[1]);
+        }
+        const auto a=sections[0].cutterStart,b=sections[0].cutterEnd;
+        const auto normal=sections[0].cutterNormal;
+        auto projectedContact=[&](const gp_Pnt& actual,const gp_Pnt& authored){
+            const gp_Vec delta(authored,actual);return (delta-normal*delta.Dot(normal)).Magnitude()<1e-6;
+        };
+        for(int index:{0,2}){
+            auto& section=sections[index];auto first=section.edges[0],second=section.edges[1];
+            const bool forward=projectedContact(startPoint(first),a)&&projectedContact(endPoint(first),b);
+            const bool reverse=projectedContact(endPoint(first),a)&&projectedContact(startPoint(first),b);
+            if(forward==reverse)reject("loft_section_unsupported","Trim endpoints no longer have unique shared cutter contacts");
+            if(reverse)first.Reverse();
+            const auto firstStart=startPoint(first),firstEnd=endPoint(first);
+            const bool closeForward=startPoint(second).Distance(firstEnd)<1e-6 && endPoint(second).Distance(firstStart)<1e-6;
+            const bool closeReverse=endPoint(second).Distance(firstEnd)<1e-6 && startPoint(second).Distance(firstStart)<1e-6;
+            if(closeForward==closeReverse)reject("loft_section_open","Retained cutter paths must close at two distinct endpoints");
+            if(closeReverse)second.Reverse();
+            BRepBuilderAPI_MakeWire wire(first,second);
+            if(!wire.IsDone() || !wire.Wire().Closed() || !BRepCheck_Analyzer(wire.Wire()).IsValid())
+                reject("loft_wire_failed","Cannot normalize the retained two-edge Trim loop");
+            section.wire=wire.Wire();
+            // Rebind the builder's actual edges while preserving path order.
+            BRepTools_WireExplorer walk(section.wire);std::vector<TopoDS_Edge> ordered;
+            for(;walk.More();walk.Next())ordered.push_back(walk.Current());
+            if(ordered.size()!=2 || !sameSampledCurve(ordered[0],first) || !sameSampledCurve(ordered[1],second))
+                reject("loft_wire_failed","Normalized Trim loop changed its ordered cutter paths");
+            section.edges=std::move(ordered);section.firstAuthoredStart=firstStart;section.firstAuthoredEnd=firstEnd;
+            section.startPointId=sections[0].startPointId;section.endPointId=sections[0].endPointId;
+        }
+        // Split the full analytic ellipse only in evaluated geometry. Authored
+        // entities and the complete section-contact check remain unchanged.
+        BRepAdaptor_Curve ellipseAdaptor(sections[1].edges[0]);
+        const auto ellipse=ellipseAdaptor.Ellipse();const auto frame=ellipse.Position();
+        const auto center=ellipse.Location();const auto u=gp_Vec(frame.XDirection()),v=gp_Vec(frame.YDirection());
+        if(std::abs(gp_Vec(frame.Direction()).Dot(normal))<1-1e-8)
+            reject("loft_section_unsupported","Retained cutter and ellipse planes must be parallel");
+        const double major=ellipse.MajorRadius(),minor=ellipse.MinorRadius();
+        auto angle=[&](const gp_Pnt& point){const gp_Vec delta(center,point);
+            const double x=delta.Dot(u)/major,y=delta.Dot(v)/minor;
+            if(!std::isfinite(x)||!std::isfinite(y)||std::hypot(x,y)<1e-8)
+                reject("loft_section_unsupported","A cutter endpoint has no unique radial ellipse intersection");
+            return std::atan2(y,x);
+        };
+        const double thetaA=angle(a),thetaB=angle(b),turn=2*std::numbers::pi;
+        double signedArea=0;std::array<double,2> previous{};bool havePrevious=false;
+        for(const auto& edge:sections[0].edges){BRepAdaptor_Curve curve(edge);
+            const bool reversed=edge.Orientation()==TopAbs_REVERSED;
+            for(int sample=0;sample<=64;++sample){
+                const double ratio=(reversed ? 64-sample : sample)/64.;
+                const gp_Vec delta(center,curve.Value(curve.FirstParameter()+(curve.LastParameter()-curve.FirstParameter())*ratio));
+                const std::array<double,2> current{delta.Dot(u),delta.Dot(v)};
+                if(havePrevious)signedArea+=previous[0]*current[1]-current[0]*previous[1];
+                previous=current;havePrevious=true;
+            }
+        }
+        if(!std::isfinite(signedArea)||std::abs(signedArea)<1e-6)
+            reject("loft_section_unsupported","Projected Trim loop needs an unambiguous nonzero winding");
+        double sweep=std::fmod(thetaB-thetaA+turn,turn);
+        if(sweep<1e-8 || turn-sweep<1e-8)
+            reject("loft_section_unsupported","Cutter endpoint directions must split the ellipse into two ordinary arcs");
+        if(signedArea<0)sweep-=turn;
+        Handle(Geom_Ellipse) curve=new Geom_Ellipse(ellipse);
+        const auto vertexA=BRepBuilderAPI_MakeVertex(curve->Value(thetaA)).Vertex();
+        const auto vertexB=BRepBuilderAPI_MakeVertex(curve->Value(thetaA+sweep)).Vertex();
+        if(BRep_Tool::Pnt(vertexA).Distance(BRep_Tool::Pnt(vertexB))<1e-6)
+            reject("loft_section_unsupported","The two radial ellipse intersections coincide");
+        auto arc=[&](double first,double last,const TopoDS_Vertex& start,const TopoDS_Vertex& end){
+            BRepBuilderAPI_MakeEdge built(curve,first<last?start:end,first<last?end:start,
+                std::min(first,last),std::max(first,last));
+            if(!built.IsDone())reject("loft_wire_failed","Cannot build an exact analytic ellipse arc");
+            auto edge=built.Edge();if(last<first)edge.Reverse();
+            if(BRep_Tool::Degenerated(edge)||startPoint(edge).Distance(endPoint(edge))<1e-6)
+                reject("loft_wire_failed","The normalized ellipse arc is degenerate");
+            return edge;
+        };
+        const auto firstArc=arc(thetaA,thetaA+sweep,vertexA,vertexB);
+        const auto secondArc=arc(thetaA+sweep,thetaA+(signedArea>0?turn:-turn),vertexB,vertexA);
+        BRepBuilderAPI_MakeWire middle(firstArc,secondArc);
+        if(!middle.IsDone()||!middle.Wire().Closed()||!BRepCheck_Analyzer(middle.Wire()).IsValid())
+            reject("loft_wire_failed","Cannot assemble the exact compatible two-arc ellipse wire");
+        sections[1].wire=middle.Wire();
+        for(const auto& section:sections){TopTools_IndexedMapOfShape edges;TopExp::MapShapes(section.wire,TopAbs_EDGE,edges);
+            if(edges.Extent()!=2 || !section.wire.Closed() || !BRepCheck_Analyzer(section.wire).IsValid())
+                reject("loft_wire_failed","Explicit compatibility requires three valid closed two-edge wires");
+        }
+    }
     BRepOffsetAPI_ThruSections loft(false,false,1e-6);
-    loft.SetMutableInput(false);loft.CheckCompatibility(true);
+    loft.SetMutableInput(false);loft.CheckCompatibility(!retainedBoundary);
     for(const auto& section:sections)loft.AddWire(section.wire);
     loft.Build();
     if(!loft.IsDone())reject("loft_failed","OCCT could not make the three-section surface Loft");
@@ -354,6 +464,7 @@ EvaluatedBody SurfaceClosedLoft::evaluate(const QJsonObject& feature,const Evalu
     body.summary["sections"]=references;body.summary["maxSectionDistanceMm"]=maxSectionDistance;
     body.summary["sectionContactCheck"]="33 samples per source against actual bounded output support surfaces";
     body.summary["interpolation"]=QJsonObject{{"kernel","OCCT ThruSections"},{"ruled",false},
-        {"closed",false},{"compatibility",true},{"mutableInput",false}};
+        {"closed",false},{"compatibility",!retainedBoundary},{"mutableInput",false},
+        {"sectionNormalization",retainedBoundary ? "retainedCutterRadialEllipseTwoEdges" : "kernelCompatibility"}};
     return body;
 }

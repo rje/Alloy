@@ -1,0 +1,533 @@
+{
+  "components": [
+    {
+      "id": "be1e9e2a-cc77-4b23-9555-fe7e87b4b310",
+      "name": "Iron",
+      "opacity": 1
+    }
+  ],
+  "displayUnits": "mm",
+  "documentId": "e9a205c1-e8fc-42a6-8ba0-93c36bf03a80",
+  "features": [
+    {
+      "id": "dea2d7b3-c7dd-48ed-84cf-46933187d978",
+      "name": "Heel plane",
+      "ownerId": "e9a205c1-e8fc-42a6-8ba0-93c36bf03a80",
+      "parameters": {
+        "offsetMm": 220,
+        "source": {
+          "plane": "YZ"
+        }
+      },
+      "type": "constructionPlane",
+      "visible": false
+    },
+    {
+      "id": "4b9b4a25-6613-4095-9cb2-c3d2f8ad0f60",
+      "name": "Back arc",
+      "ownerId": "e9a205c1-e8fc-42a6-8ba0-93c36bf03a80",
+      "parameters": {
+        "dimensions": [],
+        "entities": [
+          {
+            "centerPointId": "acf49609-f2a0-4e56-90ab-7ae7d59a089d",
+            "endPointId": "da50bb6f-f693-464e-9347-bfb240252e26",
+            "id": "4623906d-8b65-4081-bc6f-ec1c88d4adb2",
+            "radiusMm": 55.148809523809526,
+            "startAngleDeg": -148.45610388629026,
+            "startPointId": "6fcff753-793f-43ce-8109-13308dd716ae",
+            "sweepAngleDeg": -243.08779222741947,
+            "type": "arc"
+          }
+        ],
+        "nextDimensionNameIndex": 1,
+        "plane": "construction",
+        "planeId": "dea2d7b3-c7dd-48ed-84cf-46933187d978",
+        "points": [
+          {
+            "id": "acf49609-f2a0-4e56-90ab-7ae7d59a089d",
+            "uMm": 0,
+            "vMm": 28.851190476190474
+          },
+          {
+            "id": "6fcff753-793f-43ce-8109-13308dd716ae",
+            "uMm": -47,
+            "vMm": 3.925254160261811e-15
+          },
+          {
+            "id": "da50bb6f-f693-464e-9347-bfb240252e26",
+            "uMm": 47.000000000000014,
+            "vMm": 2.2293497594461944e-14
+          }
+        ]
+      },
+      "type": "sketch",
+      "visible": false
+    },
+    {
+      "id": "4daf46cf-6cdd-4e77-9aef-e2237958656c",
+      "name": "Lower Mirror pair",
+      "ownerId": "e9a205c1-e8fc-42a6-8ba0-93c36bf03a80",
+      "parameters": {
+        "dimensions": [],
+        "entities": [
+          {
+            "construction": true,
+            "endPointId": "511f2537-9868-40e7-94e8-229805c11678",
+            "id": "82d6bb89-74bd-44f5-9331-55921a2d04bb",
+            "startPointId": "269aa680-be8f-4f5a-a59f-aaf81296a093",
+            "type": "line"
+          },
+          {
+            "endPointId": "56b08019-82de-464b-851b-75cef8daefec",
+            "id": "8030f900-393d-493d-964a-f35a14e6a504",
+            "parameterization": "chordLength",
+            "pointIds": [
+              "b3da9296-703e-4fbc-9e2d-cdcdd9c18dba",
+              "7f8dd523-c865-4d25-9f3d-5d3ea9cfa49a",
+              "ccf94267-9ecd-4011-a9da-b31cea59925b",
+              "56b08019-82de-464b-851b-75cef8daefec"
+            ],
+            "startPointId": "b3da9296-703e-4fbc-9e2d-cdcdd9c18dba",
+            "tangentHandles": {
+              "56b08019-82de-464b-851b-75cef8daefec": {
+                "duMm": 0,
+                "dvMm": -200
+              }
+            },
+            "type": "fitSpline",
+            "version": 1
+          },
+          {
+            "endPointId": "56b08019-82de-464b-851b-75cef8daefec",
+            "id": "31ca46e0-ca58-4140-9c05-32c531b86126",
+            "parameterization": "chordLength",
+            "pointIds": [
+              "870fc1d4-bbf6-456b-a663-ff90d2e82001",
+              "0f9a3a3b-c56f-4182-adcf-bd13c7789b6b",
+              "3eb92a28-9d11-4196-9071-8c1898b16808",
+              "56b08019-82de-464b-851b-75cef8daefec"
+            ],
+            "startPointId": "870fc1d4-bbf6-456b-a663-ff90d2e82001",
+            "tangentHandles": {
+              "56b08019-82de-464b-851b-75cef8daefec": {
+                "duMm": 0,
+                "dvMm": 200
+              }
+            },
+            "type": "fitSpline",
+            "version": 1
+          }
+        ],
+        "mirrorGroups": [
+          {
+            "axisEntityId": "82d6bb89-74bd-44f5-9331-55921a2d04bb",
+            "entityPairs": [
+              {
+                "resultEntityId": "31ca46e0-ca58-4140-9c05-32c531b86126",
+                "sourceEntityId": "8030f900-393d-493d-964a-f35a14e6a504"
+              }
+            ],
+            "id": "009aa46d-9f84-496e-af3e-50163bc240b6",
+            "pointPairs": [
+              {
+                "resultPointId": "870fc1d4-bbf6-456b-a663-ff90d2e82001",
+                "sourcePointId": "b3da9296-703e-4fbc-9e2d-cdcdd9c18dba"
+              },
+              {
+                "resultPointId": "0f9a3a3b-c56f-4182-adcf-bd13c7789b6b",
+                "sourcePointId": "7f8dd523-c865-4d25-9f3d-5d3ea9cfa49a"
+              },
+              {
+                "resultPointId": "3eb92a28-9d11-4196-9071-8c1898b16808",
+                "sourcePointId": "ccf94267-9ecd-4011-a9da-b31cea59925b"
+              }
+            ]
+          }
+        ],
+        "nextDimensionNameIndex": 1,
+        "plane": "XY",
+        "points": [
+          {
+            "id": "269aa680-be8f-4f5a-a59f-aaf81296a093",
+            "uMm": 0,
+            "vMm": 0
+          },
+          {
+            "id": "511f2537-9868-40e7-94e8-229805c11678",
+            "uMm": 220,
+            "vMm": 0
+          },
+          {
+            "id": "b3da9296-703e-4fbc-9e2d-cdcdd9c18dba",
+            "uMm": 220,
+            "vMm": 47
+          },
+          {
+            "id": "7f8dd523-c865-4d25-9f3d-5d3ea9cfa49a",
+            "uMm": 140,
+            "vMm": 50
+          },
+          {
+            "id": "ccf94267-9ecd-4011-a9da-b31cea59925b",
+            "uMm": 70,
+            "vMm": 36
+          },
+          {
+            "id": "56b08019-82de-464b-851b-75cef8daefec",
+            "uMm": 0,
+            "vMm": 0
+          },
+          {
+            "id": "870fc1d4-bbf6-456b-a663-ff90d2e82001",
+            "uMm": 220,
+            "vMm": -47
+          },
+          {
+            "id": "0f9a3a3b-c56f-4182-adcf-bd13c7789b6b",
+            "uMm": 140,
+            "vMm": -50
+          },
+          {
+            "id": "3eb92a28-9d11-4196-9071-8c1898b16808",
+            "uMm": 70,
+            "vMm": -36
+          }
+        ]
+      },
+      "type": "sketch",
+      "visible": false
+    },
+    {
+      "id": "24fff7ef-4b80-4657-adbd-b204b05c0302",
+      "name": "Crown rail",
+      "ownerId": "e9a205c1-e8fc-42a6-8ba0-93c36bf03a80",
+      "parameters": {
+        "dimensions": [],
+        "entities": [
+          {
+            "endPointId": "f2949efe-301b-4131-bdf5-91ea2b563f8b",
+            "id": "1ebe4264-e633-4770-9f93-6ada476264cb",
+            "parameterization": "chordLength",
+            "pointIds": [
+              "29884d00-cf0b-448f-b402-41a4d5531e12",
+              "503c5f6f-2993-443d-ad8b-1c9db5f92882",
+              "c6276e80-0e15-40ed-901b-a69c6b6722ab",
+              "f2949efe-301b-4131-bdf5-91ea2b563f8b"
+            ],
+            "startPointId": "29884d00-cf0b-448f-b402-41a4d5531e12",
+            "tangentHandles": {},
+            "type": "fitSpline",
+            "version": 1
+          }
+        ],
+        "nextDimensionNameIndex": 1,
+        "plane": "XZ",
+        "points": [
+          {
+            "id": "29884d00-cf0b-448f-b402-41a4d5531e12",
+            "uMm": 220,
+            "vMm": 84
+          },
+          {
+            "id": "503c5f6f-2993-443d-ad8b-1c9db5f92882",
+            "uMm": 120,
+            "vMm": 92
+          },
+          {
+            "id": "c6276e80-0e15-40ed-901b-a69c6b6722ab",
+            "uMm": 50,
+            "vMm": 68
+          },
+          {
+            "id": "f2949efe-301b-4131-bdf5-91ea2b563f8b",
+            "uMm": 0,
+            "vMm": 0
+          }
+        ]
+      },
+      "type": "sketch",
+      "visible": false
+    },
+    {
+      "bodyId": "43752c87-f9ce-4a0e-9dce-e47ff0facc16",
+      "id": "f6cccdfb-43a5-455f-9265-b1cccd64ebf4",
+      "name": "Outer",
+      "ownerId": "be1e9e2a-cc77-4b23-9555-fe7e87b4b310",
+      "parameters": {
+        "guideType": "rail",
+        "operation": "newComponent",
+        "rail": {
+          "entityId": "1ebe4264-e633-4770-9f93-6ada476264cb",
+          "sketchId": "24fff7ef-4b80-4657-adbd-b204b05c0302"
+        },
+        "sections": [
+          {
+            "entityIds": [
+              "4623906d-8b65-4081-bc6f-ec1c88d4adb2"
+            ],
+            "sketchId": "4b9b4a25-6613-4095-9cb2-c3d2f8ad0f60"
+          },
+          {
+            "entityIds": [
+              "31ca46e0-ca58-4140-9c05-32c531b86126",
+              "8030f900-393d-493d-964a-f35a14e6a504"
+            ],
+            "sketchId": "4daf46cf-6cdd-4e77-9aef-e2237958656c"
+          }
+        ]
+      },
+      "type": "loft",
+      "visible": true
+    },
+    {
+      "id": "fcf2d042-2bf3-458d-8821-09cfc52b2cb6",
+      "name": "Handle side panel",
+      "ownerId": "be1e9e2a-cc77-4b23-9555-fe7e87b4b310",
+      "parameters": {
+        "constraints": [
+          {
+            "id": "dedfef8e-99a6-4e11-88ec-7d209aa00a96",
+            "pointIds": [
+              "50688794-4990-4238-a04c-41d132575875",
+              "b38ca29a-6935-4117-af1c-67f1622af629"
+            ],
+            "type": "coincident"
+          },
+          {
+            "id": "b1c0fc31-ba58-4aed-819c-a0abb79d120e",
+            "pointIds": [
+              "6cb0e976-4d7b-4505-af9c-3b16800bbbef",
+              "44f0b8eb-3521-41e6-94d7-5245052edab4"
+            ],
+            "type": "coincident"
+          }
+        ],
+        "dimensions": [],
+        "entities": [
+          {
+            "endPointId": "6cb0e976-4d7b-4505-af9c-3b16800bbbef",
+            "id": "a07d3703-5f44-4ca1-a94d-c4d54b53bfb9",
+            "parameterization": "chordLength",
+            "pointIds": [
+              "50688794-4990-4238-a04c-41d132575875",
+              "1d0f2c17-7c5e-4d38-8a03-7a8b996fd897",
+              "bdf6f761-93a3-4990-9be9-7a3e82d3badf",
+              "29b90abb-87cc-4779-a04a-d30c69d7d999",
+              "6cb0e976-4d7b-4505-af9c-3b16800bbbef"
+            ],
+            "startPointId": "50688794-4990-4238-a04c-41d132575875",
+            "tangentHandles": {},
+            "type": "fitSpline",
+            "version": 1
+          },
+          {
+            "endPointId": "44f0b8eb-3521-41e6-94d7-5245052edab4",
+            "id": "b75503d9-8060-438e-ae34-c9e3f6d619b3",
+            "parameterization": "chordLength",
+            "pointIds": [
+              "b38ca29a-6935-4117-af1c-67f1622af629",
+              "45657102-f83b-4672-94b2-63a72a9e1f4e",
+              "aa2fe328-c618-4a60-97bb-be8b52037af5",
+              "14e71d24-6045-42c8-a3b5-40b22d843f70",
+              "44f0b8eb-3521-41e6-94d7-5245052edab4"
+            ],
+            "startPointId": "b38ca29a-6935-4117-af1c-67f1622af629",
+            "tangentHandles": {
+              "b38ca29a-6935-4117-af1c-67f1622af629": {
+                "duMm": 200,
+                "dvMm": 0
+              }
+            },
+            "type": "fitSpline",
+            "version": 1
+          }
+        ],
+        "nextDimensionNameIndex": 1,
+        "plane": "XZ",
+        "points": [
+          {
+            "id": "50688794-4990-4238-a04c-41d132575875",
+            "uMm": 21.2,
+            "vMm": 20.6
+          },
+          {
+            "id": "1d0f2c17-7c5e-4d38-8a03-7a8b996fd897",
+            "uMm": 46,
+            "vMm": 57.4
+          },
+          {
+            "id": "bdf6f761-93a3-4990-9be9-7a3e82d3badf",
+            "uMm": 70.6,
+            "vMm": 73.6
+          },
+          {
+            "id": "29b90abb-87cc-4779-a04a-d30c69d7d999",
+            "uMm": 122.4,
+            "vMm": 84.4
+          },
+          {
+            "id": "6cb0e976-4d7b-4505-af9c-3b16800bbbef",
+            "uMm": 153.4,
+            "vMm": 85.6
+          },
+          {
+            "id": "b38ca29a-6935-4117-af1c-67f1622af629",
+            "uMm": 21.2,
+            "vMm": 20.6
+          },
+          {
+            "id": "45657102-f83b-4672-94b2-63a72a9e1f4e",
+            "uMm": 113.8,
+            "vMm": 23.6
+          },
+          {
+            "id": "aa2fe328-c618-4a60-97bb-be8b52037af5",
+            "uMm": 168.4,
+            "vMm": 35
+          },
+          {
+            "id": "14e71d24-6045-42c8-a3b5-40b22d843f70",
+            "uMm": 168.4,
+            "vMm": 58.6
+          },
+          {
+            "id": "44f0b8eb-3521-41e6-94d7-5245052edab4",
+            "uMm": 153.4,
+            "vMm": 85.6
+          }
+        ]
+      },
+      "type": "sketch",
+      "visible": false
+    },
+    {
+      "id": "4de1cd83-d5cd-45a7-a7c9-c762e76ab417",
+      "name": "Handle middle ellipse",
+      "ownerId": "be1e9e2a-cc77-4b23-9555-fe7e87b4b310",
+      "parameters": {
+        "constraints": [
+          {
+            "entityIds": [
+              "3e9a6faf-1cbb-4d57-be20-7e2260717a2c"
+            ],
+            "id": "28247588-9fe1-4feb-b6be-5c1f99439a94",
+            "pointIds": [
+              "8af2737b-ac18-4325-a0c3-5056dcc0a251"
+            ],
+            "type": "midpoint"
+          },
+          {
+            "entityIds": [
+              "668e6ded-abd9-437b-acb4-c8aae471c886"
+            ],
+            "id": "2d25b613-857e-4870-8f3f-077d37625106",
+            "pointIds": [
+              "8af2737b-ac18-4325-a0c3-5056dcc0a251"
+            ],
+            "type": "midpoint"
+          },
+          {
+            "entityIds": [
+              "3e9a6faf-1cbb-4d57-be20-7e2260717a2c",
+              "668e6ded-abd9-437b-acb4-c8aae471c886"
+            ],
+            "id": "fae038cb-e9fb-4878-b30c-ee8aaae16711",
+            "type": "perpendicular"
+          }
+        ],
+        "dimensions": [],
+        "entities": [
+          {
+            "construction": true,
+            "endPointId": "875952a2-d12e-43ba-8d0c-c06ce3c8cfbf",
+            "id": "3e9a6faf-1cbb-4d57-be20-7e2260717a2c",
+            "startPointId": "635ad3b0-64c4-4381-a6c8-de345c1107d9",
+            "type": "line"
+          },
+          {
+            "construction": true,
+            "endPointId": "1d539ca0-e17e-41e9-8ce0-b9ae60ec5d55",
+            "id": "668e6ded-abd9-437b-acb4-c8aae471c886",
+            "startPointId": "688869d4-1944-465b-a7f3-0d058319540d",
+            "type": "line"
+          },
+          {
+            "centerPointId": "8af2737b-ac18-4325-a0c3-5056dcc0a251",
+            "firstAxisId": "3e9a6faf-1cbb-4d57-be20-7e2260717a2c",
+            "id": "d0f620f2-417b-404a-b922-611c84740742",
+            "secondAxisId": "668e6ded-abd9-437b-acb4-c8aae471c886",
+            "type": "ellipse"
+          }
+        ],
+        "nextDimensionNameIndex": 1,
+        "plane": "XZ",
+        "points": [
+          {
+            "id": "8af2737b-ac18-4325-a0c3-5056dcc0a251",
+            "uMm": 114,
+            "vMm": 63
+          },
+          {
+            "id": "635ad3b0-64c4-4381-a6c8-de345c1107d9",
+            "uMm": 79.4309080791702,
+            "vMm": 57.52479372359193
+          },
+          {
+            "id": "875952a2-d12e-43ba-8d0c-c06ce3c8cfbf",
+            "uMm": 148.5690919208298,
+            "vMm": 68.47520627640807
+          },
+          {
+            "id": "688869d4-1944-465b-a7f3-0d058319540d",
+            "uMm": 116.0336479837196,
+            "vMm": 50.160051962474505
+          },
+          {
+            "id": "1d539ca0-e17e-41e9-8ce0-b9ae60ec5d55",
+            "uMm": 111.9663520162804,
+            "vMm": 75.83994803752549
+          }
+        ]
+      },
+      "type": "sketch",
+      "visible": true
+    },
+    {
+      "id": "3a4cadb2-5ffd-4a14-bd37-003bac481ba4",
+      "name": "Handle openings",
+      "ownerId": "be1e9e2a-cc77-4b23-9555-fe7e87b4b310",
+      "parameters": {
+        "projectionMode": "sketchNormalThroughTarget",
+        "removedRegionIds": [
+          "767f9039-9425-56b7-83f1-b459e22e5f1a",
+          "288b870f-0e0c-57d9-81a8-4cc37b4e92a1"
+        ],
+        "sourceNormal": [
+          0,
+          -1,
+          0
+        ],
+        "sourcePlane": "XZ",
+        "targetBodyId": "43752c87-f9ce-4a0e-9dce-e47ff0facc16",
+        "throughMarginMm": 10,
+        "toolEntityIds": [
+          "a07d3703-5f44-4ca1-a94d-c4d54b53bfb9",
+          "b75503d9-8060-438e-ae34-c9e3f6d619b3"
+        ],
+        "toolSketchId": "fcf2d042-2bf3-458d-8821-09cfc52b2cb6"
+      },
+      "type": "surfaceTrim",
+      "visible": true
+    }
+  ],
+  "occurrences": [
+    {
+      "definitionId": "be1e9e2a-cc77-4b23-9555-fe7e87b4b310",
+      "id": "97c167c5-3dbd-4e21-a308-621f311dc3ee",
+      "parentId": "e9a205c1-e8fc-42a6-8ba0-93c36bf03a80",
+      "placement": "identity"
+    }
+  ],
+  "schema": "alloy-document/1"
+}

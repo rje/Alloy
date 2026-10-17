@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""From-blank retained surface iron workflow, using declared independent dimensions."""
+"""Source-informed iron reassessment checkpoints; corrected full closure is guarded.
+
+See docs/v1/iron-reassessment.md. The bridge checkpoint uses explicit retained-section correspondence; the
+trimmed-panel checkpoint remains the default visual preparation gate.
+Legacy closing-sheet helpers are retained below for redesign, not accepted use.
+"""
 import argparse
 import copy
 from contextlib import ExitStack
@@ -30,7 +35,7 @@ def setup_canvases(call, stage, directory):
     return references
 
 
-def create_surfaces(call, stage):
+def create_surfaces(call, stage, checkpoint="trimmed-panel", out=None):
     def draft():
         return call('app.state')['activeSession']['draftSketch']
 
@@ -38,21 +43,21 @@ def create_surfaces(call, stage):
         call('sketch.splineAdd', {'points': [{'uMm': u, 'vMm': v} for u, v in points]})
         return draft()['parameters']['entities'][-1]
 
-    heel = call('construction.plane', {'source': {'plane': 'YZ'}, 'offset': 120,
+    heel = call('construction.plane', {'source': {'plane': 'YZ'}, 'offset': 220,
         'units': 'mm', 'name': 'Heel plane'})['planeId']
     call('sketch.begin', {'planeId': heel, 'name': 'Back arc'})
-    call('sketch.addArc', {'mode': 'threePoint', 'startX': -35, 'startY': 0,
-        'throughX': 0, 'throughY': 45, 'endX': 35, 'endY': 0, 'units': 'mm'})
+    call('sketch.addArc', {'mode': 'threePoint', 'startX': -47, 'startY': 0,
+        'throughX': 0, 'throughY': 84, 'endX': 47, 'endY': 0, 'units': 'mm'})
     back = draft(); arc = back['parameters']['entities'][-1]
     call('sketch.lookAt'); stage('Back section on the offset heel plane', '01-back.png')
     call('sketch.finish')
     call('sketch.begin', {'plane': 'XY', 'name': 'Lower Mirror pair'})
-    call('sketch.line', {'x1': 0, 'y1': 0, 'x2': 120, 'y2': 0, 'units': 'mm'})
+    call('sketch.line', {'x1': 0, 'y1': 0, 'x2': 220, 'y2': 0, 'units': 'mm'})
     axis = draft()['parameters']['entities'][-1]
     call('sketch.construction', {'entityIds': [axis['id']], 'construction': True})
-    right = spline([(120, 35), (85, 38), (45, 25), (0, 0)])
+    right = spline([(220, 47), (140, 50), (70, 36), (0, 0)])
     call('sketch.splineTangent', {'entityId': right['id'], 'pointId': right['pointIds'][-1],
-        'duMm': 0, 'dvMm': -120})
+        'duMm': 0, 'dvMm': -200})
     call('sketch.mirrorPreview', {'sourceEntityIds': [right['id']], 'axisEntityId': axis['id']})
     call('sketch.mirrorAccept')
     lower = draft()
@@ -60,7 +65,7 @@ def create_surfaces(call, stage):
     call('sketch.lookAt'); stage('Mirrored spline outline with a shared tip', '02-outline.png')
     call('sketch.finish')
     call('sketch.begin', {'plane': 'XZ', 'name': 'Crown rail'})
-    rail_curve = spline([(120, 45), (85, 50), (40, 32), (0, 0)])
+    rail_curve = spline([(220, 84), (120, 92), (50, 68), (0, 0)])
     rail = draft(); call('sketch.lookAt')
     stage('Crown rail contacting both exterior sections', '03-rail.png')
     call('sketch.finish'); call('view.home')
@@ -76,17 +81,45 @@ def create_surfaces(call, stage):
     assert exterior['valid'] and exterior['topology']['faces'] == 2
     for feature in [heel, back['id'], lower['id'], rail['id']]:
         call('feature.visibility', {'featureId': feature, 'visible': False})
+    call('view.fit')
+    for view, capture in [('front', '04b-exterior-front.png'), ('top', '04c-exterior-top.png'),
+                          ('isometric', '04d-exterior-oblique.png'), ('rearIsometric', '04e-exterior-rear.png')]:
+        call('view.orientation', {'name': view}); call('view.fit')
+        stage('Exterior shape checkpoint: ' + view, capture)
+    if checkpoint == 'exterior':
+        return {'exteriorId': exterior['bodyId'], 'ownerId': exterior['ownerId'],
+                'railId': rail['id'], 'exterior': exterior, 'checkpoint': 'exterior'}
     call('component.activate', {'definitionId': exterior['ownerId']})
-    call('sketch.begin', {'plane': 'XZ', 'name': 'Handle lens'})
-    upper_cut = spline([(30, 15), (60, 30), (90, 15)])
-    lower_cut = spline([(30, 15), (60, 10), (90, 15)])
+    call('sketch.begin', {'plane': 'XZ', 'name': 'Handle side panel'})
+    upper_cut = spline([(21.2, 20.6), (46, 57.4), (70.6, 73.6), (122.4, 84.4), (153.4, 85.6)])
+    lower_cut = spline([(21.2, 20.6), (113.8, 23.6), (168.4, 35), (168.4, 58.6), (153.4, 85.6)])
+    # The unconstrained degree-five fit makes a tiny loop at the low front
+    # junction; retain the observed shallow lower run with an explicit handle.
+    call('sketch.splineTangent', {'entityId': lower_cut['id'],
+        'pointId': lower_cut['pointIds'][0], 'duMm': 200, 'dvMm': 0})
+    for endpoint in (0, -1):
+        call('sketch.constraint', {'type': 'coincident',
+            'pointIds': [upper_cut['pointIds'][endpoint], lower_cut['pointIds'][endpoint]]})
     lens = draft(); call('sketch.lookAt')
-    stage('Two spline boundaries define the handle opening', '05-lens.png')
+    stage('Large asymmetric side panel surrounds a smaller upper-rear grip', '05-panel.png')
     call('sketch.finish'); call('view.home')
+    call('sketch.begin', {'plane': 'XZ', 'name': 'Handle middle ellipse'})
+    call('sketch.centerPointEllipse', {'centerX': 114, 'centerY': 63, 'firstX': 148.5690919208298,
+        'firstY': 68.47520627640808, 'contourX': 111.96635195447699, 'contourY': 75.83994802773679, 'units': 'mm'})
+    middle = draft()
+    ellipse, = [e for e in middle['parameters']['entities'] if e['type'] == 'ellipse']
+    call('sketch.lookAt'); stage('Middle ellipse controls the inner passage', '07-middle.png')
+    call('sketch.finish'); call('view.home')
+    if out:
+        call('document.save', {'path': str(out / 'iron-pretrim-panel.alloy')})
     session = call('surface.trimDialog', {'targetBodyId': exterior['bodyId'],
         'toolSketchId': lens['id'], 'toolEntityIds': [upper_cut['id'], lower_cut['id']],
         'removedRegionIds': [], 'name': 'Handle openings'})
-    regions = call('app.state')['activeSession']['regions']
+    active_trim = call('app.state')['activeSession']
+    if 'regions' not in active_trim:
+        stage('Corrected panel Trim refused; preserve the actual preview diagnostic', '06-trim-refused.png')
+        raise AssertionError(active_trim.get('previewError', active_trim))
+    regions = active_trim['regions']
     inside = [r for r in regions if r['inside']]
     assert len(inside) == 2
     for region in inside:
@@ -95,13 +128,11 @@ def create_surfaces(call, stage):
     call('command.commit', {'session': session['id']})
     call('feature.visibility', {'featureId': lens['id'], 'visible': False})
     trimmed, = call('document.inspect')['evaluation']['bodies']
-    call('sketch.begin', {'plane': 'XZ', 'name': 'Handle middle ellipse'})
-    call('sketch.centerPointEllipse', {'centerX': 60, 'centerY': 15, 'firstX': 30,
-        'firstY': 15, 'contourX': 60, 'contourY': 27, 'units': 'mm'})
-    middle = draft()
-    ellipse, = [e for e in middle['parameters']['entities'] if e['type'] == 'ellipse']
-    call('sketch.lookAt'); stage('Middle ellipse controls the inner passage', '07-middle.png')
-    call('sketch.finish'); call('view.home')
+    if checkpoint == 'trimmed-panel':
+        call('view.orientation', {'name': 'front'}); call('view.fit')
+        stage('Retained broad panel openings before the high-grip Loft', '07b-trimmed-panel-front.png')
+        return {'exteriorId': exterior['bodyId'], 'ownerId': exterior['ownerId'],
+                'railId': rail['id'], 'exterior': trimmed, 'checkpoint': 'trimmed-panel'}
     boundary = []
     for face in trimmed['supportFaces']:
         edge, = [e for e in trimmed['solidEdges'] if e['provenance'].get('role') == 'trimBoundary'
@@ -120,6 +151,9 @@ def create_surfaces(call, stage):
     stage('Exterior and inner handle surfaces', '09-bridge.png')
     call('view.orientation', {'name': 'front'}); call('view.fit')
     stage('The retained inner surface leaves a through passage', '09b-handle-passage.png')
+    for view, capture in [('top', '09c-bridge-top.png'), ('rearIsometric', '09d-bridge-rear.png')]:
+        call('view.orientation', {'name': view}); call('view.fit')
+        stage('Panel and high grip shape checkpoint: ' + view, capture)
     call('view.home'); call('view.fit')
     bodies = call('document.inspect')['evaluation']['bodies']
     assert len(bodies) == 2 and all(b['valid'] and b['topology']['solids'] == 0 for b in bodies)
@@ -259,10 +293,13 @@ def main():
     p.add_argument('--app', required=True)
     p.add_argument('--output', required=True, type=Path)
     p.add_argument('--record-video', type=Path)
+    p.add_argument('--checkpoint', choices=['exterior', 'trimmed-panel', 'bridge'], default='trimmed-panel')
     p.add_argument('--through-trials', action='store_true')
     p.add_argument('--complete', action='store_true')
     p.add_argument('--reference-directory', type=Path)
     a = p.parse_args(); out = a.output.resolve(); out.mkdir(parents=True, exist_ok=True)
+    if a.complete or a.through_trials:
+        p.error('Reassessment currently qualifies staged exterior/panel/bridge only; corrected closing sheets and trials must pass before --through-trials or --complete')
     if a.complete:
         assert a.reference_directory, 'Complete workflow requires the external public reference directory'
     if a.reference_directory:
@@ -295,13 +332,12 @@ def main():
                 raw('capture.screenshot', {'path': str(out / capture)})
         try:
             references = setup_canvases(call, stage, a.reference_directory) if a.reference_directory else []
-            result = create_surfaces(call, stage)
+            result = create_surfaces(call, stage, a.checkpoint, out)
             result['referenceCanvases'] = references
+            result['checkpoint'] = a.checkpoint
             result['adaptations'] = [
                 'Source starts with prepared sketches; dimensions and fit points are independently authored.',
-                'After reverting trial cuts, retained closing curves move behind the handle before adding the bottom; this extra edit preserves an enclosed tunnel.',
-                'The final joined upper/lower curves retain explicit separate Extrude profile memberships.',
-                'Central ellipse is authored in a separate sketch after opening Trim, before the handle Loft.',
+                'Central ellipse is authored in a separate sketch before opening Trim; the panel keeps coincident endpoint constraints.',
                 'Exterior rail contact uses matching authored coordinates, not retained Project references.',
                 'Public photos are perspective references at display scale, not calibrated metric drawings.',
                 'Trim targets and removed rear regions are declared fixture choices; full source target inventory is unknown.']
@@ -312,7 +348,7 @@ def main():
             if a.complete:
                 call('document.save', {'path': str(out / 'iron-surface-checkpoint.alloy')})
                 result['closure'] = close_and_export(call, stage, sheets, out)
-            model = out / ('iron-finished.alloy' if a.complete else 'iron-surfaces.alloy')
+            model = out / ('iron-finished.alloy' if a.complete else 'iron-exterior.alloy' if a.checkpoint == 'exterior' else 'iron-trimmed-panel.alloy' if a.checkpoint == 'trimmed-panel' else 'iron-surfaces.alloy')
             call('document.save', {'path': str(model)})
             stop()
             if a.complete:
@@ -334,7 +370,7 @@ def main():
                 call('document.open', {'path': str(model), 'discard': True})
                 assert call('document.inspect')['authored'] == original
             (out / 'result.json').write_text(json.dumps({'passed': True, 'stages': stages,
-                'result': result, 'video': video, 'scope': ('From blank through reversible trials, same-sketch/Extrude bottom addition, selected Boundary Fill cell and checked STL; source edit/history/reopen. Native gesture parity remains qualified.' if a.complete else 'From blank through retained surfaces, separate tools and reversible Trim/Remove trials. Solid closure pending.' if a.through_trials else 'From blank through retained outer and inner surfaces. Closing sheets, trial Trim and solid closure pending.')}, indent=2))
+                'result': result, 'video': video, 'scope': ('From blank through reversible trials, same-sketch/Extrude bottom addition, selected Boundary Fill cell and checked STL; source edit/history/reopen. Native gesture parity remains qualified.' if a.complete else 'From blank through retained surfaces, separate tools and reversible Trim/Remove trials. Solid closure pending.' if a.through_trials else 'Corrected exterior only; panel/grip and closure pending.' if a.checkpoint == 'exterior' else 'Corrected exterior, large retained bilateral panel Trim and preauthored tilted ellipse; bridge preview is separately crash-blocked.' if a.checkpoint == 'trimmed-panel' else 'Corrected outer and inner surfaces only; closing sheet/trial recipe and final closure unqualified.')}, indent=2))
         finally:
             (out / 'transcript.json').write_text(json.dumps(ledger, indent=2))
 

@@ -886,6 +886,8 @@ if(BUILD_TESTING)
     target_include_directories(surface_handle_bridge_test PRIVATE src)
     target_link_libraries(surface_handle_bridge_test PRIVATE Qt6::Gui alloy_kernel)
     add_test(NAME surface_handle_bridge COMMAND surface_handle_bridge_test)
+    add_test(NAME surface_asymmetric_bridge COMMAND surface_handle_bridge_test
+        --asymmetric-fixture ${CMAKE_SOURCE_DIR}/tests/fixtures/retained-asymmetric-bridge.alloy)
     add_executable(surface_handle_bridge_controls_test tests/surface_handle_bridge_controls.cpp)
     target_link_libraries(surface_handle_bridge_controls_test PRIVATE alloy_application Qt6::Test)
     add_test(NAME surface_handle_bridge_controls COMMAND surface_handle_bridge_controls_test)
