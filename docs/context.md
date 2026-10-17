@@ -30,6 +30,19 @@ and separate-tool parity remain unknown. No further geometry search is needed;
 the cumulative from-blank recording, stage ledger and gallery replacement are
 the remaining TUT-034/TUT-018 gates.
 
+The iron recording exposed a separate human-readiness blocker: editing the
+same per-profile Surface Extrude to append its bottom sheet produced a
+119.4-second synchronous preview on the Qt UI thread, with an earlier edit
+opening/preview around 81 seconds. REL-033/#476 (In Progress, child of REL-016)
+owns the bounded nonblocking-command fix; do not equate functional geometry
+with responsive interaction. Candidate13 did reach the same accepted solid and
+save native/STL outputs, but `recording.stop` refused because a UI-thread stall
+exceeded 300 frame slots. It exited nonzero and closed its private editor; no
+accepted movie or gallery replacement exists. Preserve external
+`candidate-13-from-blank-recording/` evidence and
+[the failure receipt](validation/iron-creation-recording-blocked.md). Do not repeat the full run merely
+to reproduce the stall; implement and verify REL-033 first.
+
 Finish the current tutorials and prepare a comprehensive web-reviewable v1 plan for dependable 3D-printing creation workflows. TUT-018/#302 is reopened: the user rejects the final iron shape. Prior API/mesh checks prove only the adapted fixture, not visual/tutorial acceptance. Correct the silhouette and sculpted handle against public final tutorial evidence. Full enclosure TUT-016 remains open. The proposed v1 inventory and backlog mapping live in docs/v1; scope is pending user review.
 
 The private proposed-v1 review is published at https://alloy-v1-review.rjevans1.chatgpt.site (REL-030/#469). Versioned docs/v1 includes 150 tool rows and 397 commands cross-checked with runtime discovery. Scope remains pending user review. TUT-034/#470 owns the corrected iron. Its earlier OCCT three-section Loft crash is independently fixed under GEO-023/#471 at b7d88d6; the corrected bridge passes preview, commit, save/reopen and winding checks. Candidate07 also passes a bounded independent panel/bridge shape review. Final rear/underside closure, full silhouette and export remain unaccepted. REL-031 is accepted at e555907: iron hide/show drops from 42–48 s to about 0.34 s by reusing geometry; full geometry edits/reopen remain blocking. See docs/validation/asymmetric-handle-bridge.md and visibility-only-evaluation.md.

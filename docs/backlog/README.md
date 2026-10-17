@@ -7,9 +7,14 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current publication contains **475 issues**: **365 implementation, 23 research,
+The current publication contains **476 issues**: **366 implementation, 23 research,
 22 epics, and 65 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
+
+REL-033/#476 is a P0 initial-release blocker for the observed 119.4-second
+Surface Extrude edit preview on the Qt UI thread. REL-016 owns the cumulative
+responsiveness gate; the corrected iron's functional recording is separate
+from a human-ready interaction claim.
 
 ## Active delivery order
 

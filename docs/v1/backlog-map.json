@@ -5,15 +5,15 @@
     "repository": "rje/Alloy",
     "source": "GitHub REST issues API via gh; all pages, state=all, pull requests excluded",
     "local_backlog": "docs/backlog/issues.json",
-    "local_issue_count": 475,
-    "live_issue_count": 475,
+    "local_issue_count": 476,
+    "live_issue_count": 476,
     "live_state_counts": {
       "closed": 326,
-      "open": 149
+      "open": 150
     },
     "bucket_counts": {
       "supporting-evidence": 326,
-      "v1-blocker": 44,
+      "v1-blocker": 45,
       "v1-candidate": 56,
       "later-roadmap": 47,
       "needs-review": 2
@@ -22,7 +22,7 @@
     "readiness_result": "Historical ready count below predates reconciliation: 36 ready at original audit.",
     "closed_issue_policy": "Closed issues are supporting evidence only; they do not establish family-wide or cumulative release readiness.",
     "tut018_policy": "Reopened; user-rejected shape is not accepted. TUT-034 owns corrective work.",
-    "reconciled_at": "2026-10-17 after TUT-035 enclosure adaptation acceptance and iron candidate11 review"
+    "reconciled_at": "2026-10-17 after REL-033 concrete UI-thread-blocking preview issue"
   },
   "issues": [
     {
@@ -7885,7 +7885,8 @@
       "depends_on": [
         "REL-019",
         "REL-020",
-        "REL-028"
+        "REL-028",
+        "REL-033"
       ],
       "url": "https://github.com/rje/Alloy/issues/419"
     },
@@ -8843,6 +8844,21 @@
       "rationale": "Bounded preview-prefix metadata fix accepted through real-app regression and the formerly failing enclosure edit. Does not qualify final enclosure.",
       "depends_on": [],
       "url": "https://github.com/rje/Alloy/issues/475"
+    },
+    {
+      "key": "REL-033",
+      "number": 476,
+      "title": "Keep expensive Surface Extrude preview off the UI thread",
+      "state": "open",
+      "state_observed_at": "2026-10-17",
+      "kind": "implementation",
+      "category": "runtime performance and recovery",
+      "phase": "P4 Initial release",
+      "priority": "P0",
+      "proposed_bucket": "v1-blocker",
+      "rationale": "Corrected-iron same-Extrude preview took 119.4 seconds on Qt UI thread; frame recorder also refused the full tutorial clip after a >300-slot gap. Verified nonblocking completion is required before human-ready claim.",
+      "depends_on": [],
+      "url": "https://github.com/rje/Alloy/issues/476"
     }
   ]
 }

@@ -108,3 +108,12 @@ history/reopen and independent STL/STEP checks. See
 [the milestone receipt](../validation/iron-corrected-shape.md). Cumulative
 creation footage, stage ledger and gallery replacement still precede
 TUT-034/TUT-018 acceptance; no further geometry search is warranted.
+
+Candidate13 attempted the corrected recipe from blank. The actual Alloy
+commands reached the accepted solid and saved native/STL artifacts, but
+`recording.stop` refused a clip after a main-thread evaluation gap exceeded
+300 frame slots. The run exited nonzero and no video/gallery acceptance is
+claimed. REL-033/#476 now owns the measured synchronous Surface Extrude preview
+(119.4 seconds) and explicit asynchronous completion requirement. Preserve the
+attempt's external transcript and command timings; retry cumulative footage
+only after the responsiveness path is verified.
