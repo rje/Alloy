@@ -7,7 +7,7 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current publication contains **476 issues**: **366 implementation, 23 research,
+The current publication contains **477 issues**: **367 implementation, 23 research,
 22 epics, and 65 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 
@@ -15,6 +15,8 @@ REL-033/#476 is a P0 initial-release blocker for the observed 119.4-second
 Surface Extrude edit preview on the Qt UI thread. REL-016 owns the cumulative
 responsiveness gate; the corrected iron's functional recording is separate
 from a human-ready interaction claim.
+REL-034/#477 separately tracks the 94.46-second final Boundary Fill commit,
+which can starve the recorder even after the Surface Extrude path is fixed.
 
 ## Active delivery order
 
@@ -27,7 +29,7 @@ handle bridge and REL-026 warm Trim responsiveness are accepted. SRF-020 separat
 sheet trials are independently accepted. TUT-032 closing-sheet qualification is
 accepted; SRF-011 Boundary Fill is independently accepted. REL-029 independently fixes oversized
 canvas-backed preview inspection; TUT-033 independently corrects the rear handle web with genus1 mesh evidence.
-TUT-018 complete-03 had functional and export evidence, but its tutorial acceptance was withdrawn on 2026-10-17 after the user rejected the final shape. TUT-034/#470 owns the corrected iron; candidate11 now passes bounded solid closure, export and history, while the pointed plan-view nose and cumulative recording remain open. SRF-021 owner-local sketch Trim and
+TUT-018 complete-03 had functional and export evidence, but its tutorial acceptance was withdrawn on 2026-10-17 after the user rejected the final shape. TUT-034/#470 owns the corrected iron; candidate12 now passes independent pointed-nose, solid, source-edit, export and history review. Candidate13's from-blank geometry matched exactly but the recorder refused after UI-thread stalls. TUT-034/TUT-018 are Todo pending REL-033/#476; no cumulative movie is accepted. SRF-021 owner-local sketch Trim and
 SRF-022 coincident endpoint chains are independently accepted through the
 127-call from-blank surface/trial workflow. Full product closure stays open.
 SRF-023 solid/mixed tools and SRF-024 multiple selected cells preserve broader

@@ -42,6 +42,12 @@ accepted movie or gallery replacement exists. Preserve external
 `candidate-13-from-blank-recording/` evidence and
 [the failure receipt](validation/iron-creation-recording-blocked.md). Do not repeat the full run merely
 to reproduce the stall; implement and verify REL-033 first.
+TUT-034/#470 and parent TUT-018/#302 are Todo on the project board while the
+bounded REL-033 fix is active; reopen TUT-034 as In Progress for one corrected
+recording after both UI-thread gates pass.
+The same failed run also measured a 94.46-second final Boundary Fill commit;
+REL-034/#477 is a Todo child after REL-033 and blocks the cumulative movie.
+Fixing only Surface Extrude will not justify another full-recording attempt.
 
 Finish the current tutorials and prepare a comprehensive web-reviewable v1 plan for dependable 3D-printing creation workflows. TUT-018/#302 is reopened: the user rejects the final iron shape. Prior API/mesh checks prove only the adapted fixture, not visual/tutorial acceptance. Correct the silhouette and sculpted handle against public final tutorial evidence. Full enclosure TUT-016 remains open. The proposed v1 inventory and backlog mapping live in docs/v1; scope is pending user review.
 

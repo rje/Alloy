@@ -7193,7 +7193,8 @@
         "REL-019",
         "REL-020",
         "REL-028",
-        "REL-033"
+        "REL-033",
+        "REL-034"
       ],
       "labels": [
         "area:rel"
@@ -7929,7 +7930,9 @@
       "priority": "P0",
       "depends_on": [
         "SRF-011",
-        "GEO-023"
+        "GEO-023",
+        "REL-033",
+        "REL-034"
       ],
       "labels": [
         "kind:validation",
@@ -8021,6 +8024,22 @@
         "priority:P0"
       ],
       "body": "## Observed failure\nThe real corrected-iron from-blank recording edits a retained per-profile Surface Extrude to add the bottom curve. `command.preview` takes 119.4 seconds while synchronous candidate evaluation runs on the Qt UI thread; the editor is unresponsive during that time. Earlier opening/preview was ~81.1 seconds. Evidence: external deliverables/iron-reassessment-2026-10-17/candidate-13-from-blank-recording/{transcript.json,current-operation.json,iron-creation.mp4} after the bounded run finishes. The final geometry and native/STL outputs succeeded, but recording.stop refused after a gap over 300 frame slots during the UI-thread stall; candidate13 exited nonzero with no accepted movie. This is a runtime usability and validation blocker. REL-016/#419 owns broad responsiveness; this child owns the concrete UI-blocking preview path.\n\n## Bounded implementation\nTrace `AlloyWindow::previewSurfaceExtrude` (`src/SurfaceExtrudeControls.cpp`) and `CadDocument::prepareCandidate`. The current edited-feature preview evaluates the full draft, then reevaluates a truncated prefix. Eliminate redundant work where semantics permit, and make expensive evaluation nonblocking to the Qt event loop with explicit pending/completed/failed command state. Keep authoritative document commits, revision guards, preview/Cancel, stable identities, and the local control API's reliable completion behavior. Display progress/busy state and provide safe cancellation if the kernel/evaluation path supports it; do not claim cancellation by merely dropping an in-flight result. Preserve GPU interaction and avoid data races in OCCT/Qt objects.\n\n## Acceptance\nOne focused real-app run on the saved corrected-iron fixture demonstrates the UI stays responsive during the slow preview (e.g. timer heartbeat and basic navigation/cancel behavior appropriate to the chosen semantics), with the same evaluated preview/commit and exact undo/reopen as before. Record wall time and phase cost separately from UI responsiveness; the fix must not just raise the API timeout, spin a nested event loop, weaken geometry checks, or fabricate completion. Add a small targeted test for the command-state/revision contract and independent architecture/code review. If a safe async migration is broader than one issue, split an exact child and preserve this blocker as Todo until the user-facing gate passes.\n\n## Parent\nREL-016/#419; corrected iron TUT-034/#470 can retain functional/movie evidence but is not human-ready until this responsiveness gate is addressed.\n"
+    },
+    {
+      "key": "REL-034",
+      "title": "Keep long Boundary Fill commit responsive and recordable",
+      "kind": "implementation",
+      "phase": "P4 Initial release",
+      "priority": "P0",
+      "depends_on": [
+        "REL-033"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P4",
+        "priority:P0"
+      ],
+      "body": "## Observed failure\nThe corrected-iron from-blank run reaches the independently accepted final solid, but its `command.commit` for Boundary Fill consumes 94.4577 seconds synchronously on the Qt UI thread. The recording then refuses a clip after `Frame gap exceeded 300 slots`; the saved native model/STL remain valid. External evidence: `deliverables/iron-reassessment-2026-10-17/candidate-13-from-blank-recording/{README.md,receipt.json,long-command-timings.json,transcript.json}`. This operation alone exceeds a 60-second frame-gap window, so the Surface Extrude-only REL-033 fix cannot establish a complete responsive tutorial recording.\n\n## Bounded scope\nProfile the final Boundary Fill cell commit on the saved accepted four-tool fixture. Keep the GUI event loop responsive while exact authoritative evaluation completes, with explicit pending/completed/failed state, stale revision/selection guards, one atomic history commit and no concurrent kernel use that races live viewport topology. Preserve selected-cell identity, Remove Tools behavior, final geometry, undo/redo and native reopen. Do not weaken the Boolean kernel, raise the recorder's gap limit as a substitute for responsiveness, or advertise a blocked app as a successful human workflow. Reuse the serial-worker/completion contract established by REL-033 where appropriate; avoid a second incompatible task framework.\n\n## Verification\nOne bounded real-app replay of the saved final Boundary Fill fixture shows a repaint/status/navigation heartbeat during computation and an exact accepted solid after completion. Measure wall time separately from event-loop response. Check Cancel/result discard and stale session behavior where supported, plus one focused command-state test. Independent architecture/geometry review before closing. Recording acceptance belongs to TUT-034/#470 and must be separately replayed after both long-operation blockers are addressed.\n\n## Parent/dependencies\nREL-016/#419 owns cumulative responsiveness. REL-033/#476 provides the first serial worker/completion infrastructure; start this child after that contract is accepted. TUT-034/#470 depends on this before a successful complete creation movie can be claimed.\n"
     }
   ]
 }

@@ -27,5 +27,7 @@ External evidence is under
 the saved model/STL, transcript and failed recorder artifacts. This does not
 replace the prior accepted [shape/solid milestone](iron-corrected-shape.md).
 REL-033/#476 owns the concrete UI-thread blocking path; TUT-034/TUT-018 remain
-open for a coherent accepted recording and gallery entry. Raising the recorder
-gap limit alone would not make the editor responsive.
+open for a coherent accepted recording and gallery entry. The 94.46-second
+Boundary Fill commit is a second blocker under REL-034/#477; fixing only
+Surface Extrude cannot establish a full recording. Raising the recorder gap
+limit alone would not make the editor responsive.
