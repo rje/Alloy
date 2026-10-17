@@ -1,6 +1,6 @@
 # Reliable printable-part v1: backlog map and burndown proposal
 
-**Reconciled 2026-10-17:** TUT-018 is now open, TUT-016 is a current tutorial blocker, and REL-030/#469 plus TUT-034/#470 are added. Current map: 470 issues, 148 open / 322 closed. The original audit narrative below is retained as history; the JSON includes the reconciliation.
+**Reconciled 2026-10-17:** TUT-018 is now open, TUT-016 is a current tutorial blocker, and REL-030/#469 plus TUT-034/#470 are added. Reconciliation initially gave 470 issues, 148 open / 322 closed. GEO-023/#471 was then added for the actual corrected-iron Loft crash; the current JSON has 471 issues and149 open. The original audit narrative below is retained as history; the JSON includes the reconciliation.
 
 **Audit time:** 2026-10-17 21:04:59 UTC. This is a planning snapshot, not a claim that the release gates pass.
 

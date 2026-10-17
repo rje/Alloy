@@ -5,15 +5,15 @@
     "repository": "rje/Alloy",
     "source": "GitHub REST issues API via gh; all pages, state=all, pull requests excluded",
     "local_backlog": "docs/backlog/issues.json",
-    "local_issue_count": 470,
-    "live_issue_count": 470,
+    "local_issue_count": 471,
+    "live_issue_count": 471,
     "live_state_counts": {
       "closed": 322,
-      "open": 148
+      "open": 149
     },
     "bucket_counts": {
       "supporting-evidence": 322,
-      "v1-blocker": 43,
+      "v1-blocker": 44,
       "v1-candidate": 56,
       "later-roadmap": 47,
       "needs-review": 2
@@ -4058,7 +4058,8 @@
         "SRF-021",
         "SRF-022",
         "REL-029",
-        "TUT-033"
+        "TUT-033",
+        "TUT-034"
       ],
       "url": "https://github.com/rje/Alloy/issues/302"
     },
@@ -8760,9 +8761,25 @@
       "proposed_bucket": "v1-blocker",
       "rationale": "Current requested scope review and corrected tutorial acceptance.",
       "depends_on": [
-        "SRF-011"
+        "SRF-011",
+        "GEO-023"
       ],
       "url": "https://github.com/rje/Alloy/issues/470"
+    },
+    {
+      "key": "GEO-023",
+      "number": 471,
+      "title": "Prevent asymmetric three-section surface Loft compatibility crash",
+      "state": "open",
+      "state_observed_at": "2026-10-17",
+      "kind": "implementation",
+      "category": "geometry and tutorial correctness",
+      "phase": "P3 Shapes, exchange, and printing",
+      "priority": "P0",
+      "proposed_bucket": "v1-blocker",
+      "rationale": "Reproduced crash on source-consistent corrected iron; blocks cumulative tutorial acceptance.",
+      "depends_on": [],
+      "url": "https://github.com/rje/Alloy/issues/471"
     }
   ]
 }
