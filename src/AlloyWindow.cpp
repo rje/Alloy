@@ -1231,6 +1231,7 @@ AlloyWindow::AlloyWindow() {
     sketchEscape_->setContext(Qt::WidgetShortcut);sketchEscape_->setEnabled(false);
     connect(sketchEscape_,&QShortcut::activated,this,[this]{
         if(!sectionEdit_.isEmpty())return;
+        if(!failedEditRepair_.isEmpty()){execute("sketch.cancel");return;}
         if(session_.value("command")=="sketch.plane")execute("sketch.cancel");
         else if(session_.value("command").toString()=="sketch.edit") {
             if(session_.contains("pendingLineArc"))execute("sketch.lineArcDrag",{{"phase","cancel"}});
@@ -1456,6 +1457,15 @@ bool AlloyWindow::eventFilter(QObject* watched,QEvent* event) {
     }
     // The native OCCT child can receive a key even when Cocoa has not activated
     // the outer Qt shortcut window. Handle delivered sketch dimension keys here.
+    if(watched==view_ && event->type()==QEvent::KeyPress && !failedEditRepair_.isEmpty()) {
+        const auto key=static_cast<QKeyEvent*>(event)->key();
+        if(key==Qt::Key_Escape){execute("sketch.cancel");return true;}
+        if(key==Qt::Key_Delete || key==Qt::Key_Backspace){
+            const auto response=execute("sketch.deleteSelection");
+            if(failedEditActionError_)failedEditActionError_->setText(response.value("error").toObject().value("message").toString());
+            return true;
+        }
+    }
     if(watched==view_ && event->type()==QEvent::KeyPress && session_.value("command")=="sketch.edit") {
         const auto* key=static_cast<QKeyEvent*>(event);if(!(key->modifiers()&(Qt::ControlModifier|Qt::MetaModifier|Qt::AltModifier)) && key->key()==Qt::Key_D){sketchResponse(execute("sketch.tool",{{"tool","dimension"}}));return true;}
         if(session_.contains("pendingProject") && (key->key()==Qt::Key_Return || key->key()==Qt::Key_Enter || key->key()==Qt::Key_Escape)) {
@@ -1696,7 +1706,7 @@ void AlloyWindow::showActiveTab() {
 bool AlloyWindow::tabHasUnsavedWork(const QString& tabId) const {
     for(const auto& tab:designTabs_)if(tab->id==tabId) {
         const auto session=tabId==activeTabId_ ? session_ : tab->session;
-        return tab->document->isDirty() || session.value("command")=="sketch.edit"
+        return tab->document->isDirty() || (session.value("command")=="sketch.edit" && session.value("mode")!="failedEditRepair")
             || (tabId==activeTabId_ && !pendingReference_.isEmpty());
     }
     return false;
@@ -1708,7 +1718,7 @@ QJsonObject AlloyWindow::documentTabs() const {
         const auto session=tab->id==activeTabId_ ? session_ : tab->session;
         tabs.append(QJsonObject{{"tabId",tab->id},{"title",tab->document->label()},
             {"path",tab->document->path()},{"dirty",tabHasUnsavedWork(tab->id)},
-            {"hasSketchDraft",session.value("command")=="sketch.edit"}});
+            {"hasSketchDraft",session.value("command")=="sketch.edit" && session.value("mode")!="failedEditRepair"},{"hasFailedEditRepair",session.value("mode")=="failedEditRepair"}});
     }
     return {{"activeTabId",activeTabId_},{"tabs",tabs},{"count",tabs.size()}};
 }
@@ -2439,6 +2449,14 @@ void AlloyWindow::registerCommands() {
         const auto response=execute("document.open",{{"path",path},{"discard",true}});
         return response["ok"].toBool() ? response["result"].toObject() : response;
     });
+    add("history.failedEditInspect","Inspect Failed Edit","Inspect the transient failed candidate, exact support diagnostic and valid prefix; committed authored state remains valid.",{},[this](const auto&){return failedEditRepair_;});
+    add("history.failedEditBegin","Inspect failed Combine edit","Inspect cached sketch geometry after a missing-support Combine preview.",{},[this](const auto&){
+        if(session_.value("command")!="solid.combine")return failure("invalid_session","A failed Combine preview is required");
+        const auto diagnostics=session_.value("previewError").toObject().value("diagnostics").toObject();
+        const auto inputs=session_.value("inputs").toObject();
+        if(!retainFailedEditRepair("solid.combine",inputs,combineCandidate(inputs),diagnostics))return failure("repair_unavailable","This preview has no supported failed-edit inspection");
+        return session_;
+    });
     add("history.undo","Undo","Undo an accepted sketch edit in an active sketch, otherwise one committed document edit.",{},[this](const auto&){
         if(session_.contains("pendingDrivenOffer"))return failure("pending_dimension_offer","Choose Add Driven or Cancel before Undo");
         if(session_.value("command")=="sketch.edit")return traverseSketchHistory(-1);
@@ -2925,7 +2943,8 @@ void AlloyWindow::registerCommands() {
     add("solid.combine","Combine bodies","Apply Join, Cut or Intersect to explicit bodies in one editable history feature; requires one valid closed solid result.",combineSchema,[this](const auto& a){
         QJsonObject candidate;try{candidate=combineCandidate(a);}catch(const std::exception& error){return failure("evaluation_failed",QString::fromUtf8(error.what()));}
         const auto error=document_->commit(candidate,a.value("featureId").toString().isEmpty() ? "Combine" : "Edit Combine");
-        if(!error.isEmpty()){auto result=failure("evaluation_failed",error);auto details=result["error"].toObject();details["diagnostics"]=document_->lastEvaluationError();result["error"]=details;return result;}
+        if(!error.isEmpty()){auto result=failure("evaluation_failed",error);auto details=result["error"].toObject();details["diagnostics"]=document_->lastEvaluationError();result["error"]=details;
+            if(retainFailedEditRepair("solid.combine",a,candidate,document_->lastEvaluationError()))result["repairSessionId"]=session_.value("id");return result;}
         selectedBody_=a["targetBodyId"].toString();selectedSketch_.clear();selectedProfile_.clear();selectedProfileIds_={};return document_->state();
     });
     auto combineInitial=combineSchema;for(auto it=combineInitial.begin();it!=combineInitial.end();++it)it.value()=optional(it.value().toObject());
@@ -5177,8 +5196,9 @@ void AlloyWindow::registerCommands() {
                     return failure("unsupported_profile_delete","Profile Delete requires a generated support-face loop Offset sketch");
                 try {
                     const auto editId=session_.value("inputs").toObject().value("sketchId").toString();
-                    const auto history=editId.isEmpty() ? document_->evaluation() : sketchHistoryStage(editId);
+                    const auto history=failedEditPrefix_ ? *failedEditPrefix_ : editId.isEmpty() ? document_->evaluation() : sketchHistoryStage(editId);
                     const auto support=GeometryKernel::resolveSketchSupport(history,draft.value("parameters").toObject().value("support").toObject());
+                    if(!failedEditRepair_.isEmpty())return failure("repair_read_only","Cached sketch inspection cannot change the document");
                     const auto candidate=RoundedLoopOffset::deleteProfile(draft,support,profileIds);
                     auto solved=SketchGeometry::solveDraft(candidate,session_.value("projectionContext").toObject());
                     if(!solved.ok)return failure("sketch_solve_failed",solved.error);
@@ -5198,6 +5218,7 @@ void AlloyWindow::registerCommands() {
                     return failure(diagnostics.value("code").toString("offset_unavailable"),QString::fromUtf8(error.what()));
                 }
             }
+            if(!failedEditRepair_.isEmpty())return failure("repair_read_only","Select a cached generated loop profile to inspect its exact support");
             if((!geometryIds.isEmpty() || !pointIds.isEmpty()) && (!ids.isEmpty() || !dim.isEmpty()))
                 return failure("ambiguous_delete_target","Select geometry or annotations, then Delete");
             if(!geometryIds.isEmpty() || !pointIds.isEmpty()) {
@@ -5300,7 +5321,10 @@ void AlloyWindow::registerCommands() {
                 && isSketch)
                 return queueSketchEvaluation("feature.edit",a.value("featureId").toString(),candidate);
             const auto error=document_->commit(candidate,"Edit feature");
-            return error.isEmpty() ? document_->state() : failure("evaluation_failed",error,"parameters");
+            if(error.isEmpty())return document_->state();
+            auto result=failure("evaluation_failed",error,"parameters");
+            if(retainFailedEditRepair("feature.edit",a,candidate,document_->lastEvaluationError()))result["repairSessionId"]=session_.value("id");
+            return result;
         });
     add("feature.reorder","Move Timeline feature","Move one retained feature immediately after another feature in the same component.",
         {{"featureId",featureId},{"afterFeatureId",featureId}},[this](const auto& a){
@@ -6571,6 +6595,27 @@ QString AlloyWindow::geometryWorkLabel(const QString& id,const QJsonObject& args
 }
 
 QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
+    if(!failedEditRepair_.isEmpty()) {
+        if(failedEditDocument_!=document_ || failedEditRepair_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))
+            closeFailedEditRepair("invalidated",false);
+        else {
+            const bool viewEdit=QStringList{"view.conventionUp","view.conventionSet","view.conventionReset","view.namedCreate",
+                "view.namedRename","view.namedDelete","view.homeSet","view.homeReset"}.contains(id);
+            const bool inspect=id=="app.state" || id=="app.identity" || id=="commands.list" || id=="document.inspect" || id=="document.tabs"
+                || id=="command.status" || id=="history.failedEditInspect" || id.startsWith("capture.") || (id.startsWith("view.") && !viewEdit)
+                || id.startsWith("layout.") || id=="window.resize";
+            const bool select=id=="sketch.selectionSet" || id=="sketch.selectionPick" || id=="sketch.selectionWindow" || id=="sketch.pointerMove"
+                || id=="sketch.constraintHover" || id=="sketch.selectOther" || id=="sketch.selectOtherChoose" || id=="sketch.selectOtherHover";
+            const bool cancel=id=="command.cancel" || id=="sketch.cancel";
+            const bool cachedOpen=id=="sketch.edit" && failedEditRepair_.value("impactedSketchIds").toArray().contains(args.value("sketchId"));
+            const bool selectTool=id=="sketch.tool" && args.value("tool")=="select";
+            if(!inspect && !select && !cancel && !cachedOpen && !selectTool && id!="sketch.deleteSelection") {
+                if(id.startsWith("sketch.") || id=="command.commit" || id=="command.update" || id=="command.preview")
+                    return failure("repair_read_only","This is cached failed-edit inspection; Cancel before editing");
+                closeFailedEditRepair("invalidated",true);
+            }
+        }
+    }
     if(documentDecisionBusy_ && apiRequestDepth_>documentDecisionOriginDepth_) {
         const bool safe=id=="document.pendingDecision" || id=="document.answerDecision"
             || id=="document.inspect" || id=="document.tabs" || id=="app.state"
@@ -6690,6 +6735,8 @@ QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
     QString field;
     const auto argumentError = validateArguments(*command, args, &field);
     if (!argumentError.isEmpty()) {if(id=="sketch.slotDrag")cancelSlotDrag();return finish(failure("invalid_arguments", argumentError, field));}
+    if(!failedEditRepair_.isEmpty() && (id=="sketch.edit" || id=="sketch.tool"))
+        return finish({{"ok",true},{"completion","completed"},{"result",session_}});
     const auto busyLabel=geometryBusyActive_ ? QString{} : geometryWorkLabel(id,args);
     const bool ownsBusy=!busyLabel.isEmpty();
     QElapsedTimer busyTimer;
@@ -6727,7 +6774,7 @@ QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
     // Timings are inclusive nested scopes, not additive solver/render buckets.
     catch(const Standard_Failure& error) { refreshConstraintFailure(); return finish(failure("kernel_failure",QString::fromUtf8(error.GetMessageString()))); }
     catch(const std::exception& error) { refreshConstraintFailure(); return finish(failure("command_failed",QString::fromUtf8(error.what()))); }
-    if (result.value("ok").isBool() && !result.value("ok").toBool()) { refreshConstraintFailure(); return finish(result); }
+    if (result.value("ok").isBool() && !result.value("ok").toBool()) { refreshConstraintFailure(); if(!failedEditRepair_.isEmpty())refresh(); return finish(result); }
     if(document_!=priorDocument || document_->revision()!=priorDocumentRevision
         || (!session_.isEmpty() && session_.value("id")!=priorSessionId)){geometryEvaluationTerminal_={};documentOpenOperation_={};sketchEvaluationOperation_={};meshExportOperation_={};}
     const auto afterCommandSolves=traceGraphSolves?AssemblyGraph::solveCount():0;
@@ -6845,7 +6892,7 @@ QJsonObject AlloyWindow::state() const {
     return {{"application", "Alloy"}, {"version", "0.1.0"}, {"stage", "sketch-authoring"},
         {"runtime", QJsonObject{{"qtVersion", qVersion()}, {"occtBuildVersion", ALLOY_OCCT_VERSION}}},
         {"revision", static_cast<qint64>(revision_)},
-        {"identity", identity()}, {"sketchEvaluation",operationProgress(sketchEvaluationOperation_)}, {"documentOpen",operationProgress(documentOpenOperation_)}, {"meshExport",operationProgress(meshExportOperation_)}, {"activeSession", session_}, {"sectionEdit",sectionEdit_}, {"pendingReferencePosition",pendingReference_}, {"assembly",presentationAssembly()}, {"documentTabs",documentTabs()},
+        {"identity", identity()}, {"sketchEvaluation",operationProgress(sketchEvaluationOperation_)}, {"documentOpen",operationProgress(documentOpenOperation_)}, {"meshExport",operationProgress(meshExportOperation_)}, {"activeSession", session_}, {"failedEditRepair",failedEditRepair_}, {"sectionEdit",sectionEdit_}, {"pendingReferencePosition",pendingReference_}, {"assembly",presentationAssembly()}, {"documentTabs",documentTabs()},
         {"recovery",QJsonObject{{"available",recovery_->error().isEmpty()},{"warning",recoveryWarning_},
             {"staleCount",recovery_->list().size()},{"scope","committed authored state only"}}},
         {"inlineEditor",inlineEditorState()},
@@ -6889,6 +6936,9 @@ QJsonObject AlloyWindow::state() const {
 }
 
 void AlloyWindow::refresh() {
+    if(!failedEditRepair_.isEmpty() && (failedEditDocument_!=document_
+        || failedEditRepair_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision())))
+        closeFailedEditRepair("invalidated",false);
     GraphEvaluationScope graphScope(*this);
     const auto storedConvention=document_->authored().value("viewConvention").toObject();
     const auto effectiveConvention=storedConvention.isEmpty() ? QJsonObject{{"defaultUp","Z"},
@@ -7311,7 +7361,7 @@ void AlloyWindow::refresh() {
         displayedDocumentRevision_=document_->revision();
     }
     view_->selectConstructionPlane(selectedPlane_);
-    if(!historicalSketchId.isEmpty()) {
+    if(!historicalSketchId.isEmpty() && failedEditRepair_.isEmpty()) {
         // Support references resolve against this same history prefix. Display
         // its actual bodies too: a downstream Cut reuses the support body ID,
         // so hiding that ID in the final evaluation otherwise hides all stock.
@@ -7359,7 +7409,7 @@ void AlloyWindow::refresh() {
         const QSignalBlocker block(primitiveName_);primitiveName_->setText(inputs["name"].toString());
     }
     const bool editingSketch=session_.value("command").toString()=="sketch.edit";
-    sketchToolbar_->setVisible(editingSketch);
+    sketchToolbar_->setVisible(editingSketch && failedEditRepair_.isEmpty());
     sketchEscape_->setEnabled(editingSketch || session_.value("command")=="sketch.plane");
     if(extrudeEscape_)extrudeEscape_->setEnabled(session_.value("command")=="solid.extrude");
     if(session_.value("command")=="solid.move" && moveDock_)for(const auto& key:{"xMm","yMm","zMm","xDeg","yDeg","zDeg","pivotXMm","pivotYMm","pivotZMm"})if(auto* field=moveDock_->findChild<QDoubleSpinBox*>(key)){const QSignalBlocker blocker(field);field->setValue(session_["inputs"].toObject()[key].toDouble());}
@@ -7651,6 +7701,10 @@ void AlloyWindow::refresh() {
     } else {
         if(auto* undo=findChild<QToolButton*>("command.history.undo"))undo->setToolTip("Undo committed document edit");
         if(auto* redo=findChild<QToolButton*>("command.history.redo"))redo->setToolTip("Redo committed document edit");
+    }
+    if(!failedEditRepair_.isEmpty()) {
+        auto selection=session_.value("selection").toObject();selection["tool"]="select";
+        view_->decorateSketch(session_.value("draftSketch").toObject(),selection,session_.value("solverDiagnostics").toObject(),session_.value("inputs").toObject().value("units").toString());
     }
     view_->sync();
     positionDimensionEditor();
@@ -8798,6 +8852,10 @@ void AlloyWindow::showPathPlane() {
 }
 
 QJsonObject AlloyWindow::finishSession(const QString& id, bool commit) {
+    if(!failedEditRepair_.isEmpty() && failedEditRepair_.value("id")==id) {
+        if(commit)return failure("repair_read_only","The failed candidate cannot be committed; Cancel inspection before editing");
+        return closeFailedEditRepair("cancelled",true);
+    }
     if(commit && session_.value("command")=="surface.trim") {
         if(session_.value("id")!=id)return failure("invalid_session","Trim is no longer active");
         return queueSurfaceTrimEvaluation("commit");
@@ -8883,7 +8941,7 @@ QJsonObject AlloyWindow::finishSession(const QString& id, bool commit) {
         if(target=="solid.extrude" && committedInputs.contains("endOffsetParameter"))committedInputs.remove("endOffset");
         auto response = execute(target, committedInputs);
         if (!response["ok"].toBool()) {
-            if(target=="solid.combine") {
+            if(target=="solid.combine" && failedEditRepair_.isEmpty()) {
                 session_["previewed"]=false;session_["geometryEvaluated"]=false;session_.remove("geometry");session_.remove("documentDraft");session_.remove("finalBodyCount");
                 session_["previewError"]=response["error"];view_->clearPreview();view_->setEditDisplay({},{});refreshCombineControls();
             }

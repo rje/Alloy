@@ -53,7 +53,7 @@ add_library(alloy_application STATIC
     src/SketchChamferControls.cpp
     src/ThreePointCircleControls.cpp
     src/ThreePointRectangleControls.cpp
-    src/AlloyWindow.cpp src/AlloyWindow.h src/SplitBodyControls.cpp src/AssemblyControls.cpp src/PointControls.cpp src/SplineControls.cpp src/SlotDragControls.cpp src/ConicControls.cpp src/SketchTextControls.cpp src/CommandIcons.cpp src/CommandIcons.h src/SolidFilletControls.cpp src/SolidChamferControls.cpp src/SphereControls.cpp src/SolidHoleControls.cpp src/SolidThreadControls.cpp src/SolidShellControls.cpp src/LoftControls.cpp src/SurfaceExtrudeControls.cpp src/SketchEvaluation.cpp src/BoundaryFillControls.cpp src/SurfaceTrimControls.cpp src/RemoveBodyControls.cpp src/ThickenControls.cpp src/RevolveCommands.cpp src/SweepCommands.cpp src/SweepSelection.cpp src/PatternControls.cpp src/CircularPatternControls.cpp src/SolidMirrorControls.cpp src/SolidFeatureMirrorControls.cpp src/CanvasControls.cpp src/ReferenceCanvasView.cpp src/SectionAnalysisControls.cpp src/ReferenceSection.cpp src/MoveControls.cpp src/ComponentCopyControls.cpp src/CombineControls.cpp src/ExportControls.cpp src/StepExportControls.cpp
+    src/AlloyWindow.cpp src/AlloyWindow.h src/SplitBodyControls.cpp src/AssemblyControls.cpp src/PointControls.cpp src/SplineControls.cpp src/SlotDragControls.cpp src/ConicControls.cpp src/SketchTextControls.cpp src/CommandIcons.cpp src/CommandIcons.h src/SolidFilletControls.cpp src/SolidChamferControls.cpp src/SphereControls.cpp src/SolidHoleControls.cpp src/SolidThreadControls.cpp src/SolidShellControls.cpp src/LoftControls.cpp src/SurfaceExtrudeControls.cpp src/SketchEvaluation.cpp src/FailedEditRepair.cpp src/BoundaryFillControls.cpp src/SurfaceTrimControls.cpp src/RemoveBodyControls.cpp src/ThickenControls.cpp src/RevolveCommands.cpp src/SweepCommands.cpp src/SweepSelection.cpp src/PatternControls.cpp src/CircularPatternControls.cpp src/SolidMirrorControls.cpp src/SolidFeatureMirrorControls.cpp src/CanvasControls.cpp src/ReferenceCanvasView.cpp src/SectionAnalysisControls.cpp src/ReferenceSection.cpp src/MoveControls.cpp src/ComponentCopyControls.cpp src/CombineControls.cpp src/ExportControls.cpp src/StepExportControls.cpp
     src/TutorialRecorder.cpp src/TutorialRecorder.h
     src/CadDocument.cpp src/CadDocument.h src/LocalReferenceControls.cpp src/LocalReference.h
     src/RecoveryStore.cpp src/RecoveryStore.h
@@ -196,6 +196,10 @@ if(BUILD_TESTING)
     target_link_libraries(sketch_text_controls_test PRIVATE alloy_application Qt6::Test)
     add_test(NAME sketch_text_controls COMMAND sketch_text_controls_test)
     set_tests_properties(sketch_text_controls PROPERTIES TIMEOUT 45 LABELS "widget;gpu" RUN_SERIAL TRUE)
+    add_executable(failed_edit_repair_controls_test tests/failed_edit_repair_controls.cpp)
+    target_link_libraries(failed_edit_repair_controls_test PRIVATE alloy_application Qt6::Test)
+    add_test(NAME failed_edit_repair_controls COMMAND failed_edit_repair_controls_test)
+    set_tests_properties(failed_edit_repair_controls PROPERTIES TIMEOUT 45 LABELS "widget;gpu" RUN_SERIAL TRUE)
     add_executable(multi_face_controls_test tests/multi_face_controls.cpp)
     target_link_libraries(multi_face_controls_test PRIVATE alloy_application Qt6::Test)
     add_test(NAME multi_face_controls COMMAND multi_face_controls_test)

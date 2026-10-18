@@ -182,6 +182,17 @@ private:
     QString validateArguments(const Command& command, const QJsonObject& args, QString* field = nullptr) const;
     QJsonObject beginSession(const QString& command, const QJsonObject& inputs);
     QJsonObject finishSession(const QString& id, bool commit);
+    bool retainFailedEditRepair(const QString& command,const QJsonObject& arguments,
+        const QJsonObject& candidate,const QJsonObject& diagnostics);
+    QJsonObject closeFailedEditRepair(const QString& status,bool restoreSelection);
+    QJsonObject failedEditSelection() const;
+    void showFailedEditRepair();
+    QJsonObject failedEditRepair_,failedEditPreviousSelection_,failedEditPreviousCamera_;
+    std::shared_ptr<const EvaluatedDocument> failedEditPrefix_;
+    CadDocument* failedEditDocument_=nullptr;
+    QDockWidget* failedEditDock_=nullptr;
+    QLabel* failedEditActionError_=nullptr;
+
     QJsonObject beginSplitBody(const QJsonObject& inputs);
     QJsonObject previewSplitBody();
     QJsonObject selectSplitBody(const QString& id);

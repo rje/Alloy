@@ -101,9 +101,11 @@ QJsonObject AlloyWindow::beginCombine(const QJsonObject& overrides) {
         }
         if (!found) return failure("stale_entity","Combine feature does not exist","featureId");
     }
+    const auto previousSelection=failedEditSelection(),previousCamera=view_->cameraState();
     session_ = {{"id",CadDocument::newId()},{"command","solid.combine"},{"status","active"},{"inputs",inputs},
         {"previewed",false},{"geometryEvaluated",false},{"baseDocumentRevision",static_cast<qint64>(document_->revision())},
         {"inputSchema",findCommand("solid.combine")->parameters},{"selectionRole","target"}};
+    session_["repairPreviousSelection"]=previousSelection;session_["repairPreviousCamera"]=previousCamera;
     if (featureId.isEmpty()) session_["newFeatureId"] = CadDocument::newId();
     if (inputs["targetBodyId"].toString().isEmpty() && !selectedBody_.isEmpty()) {
         const auto candidates = combineInputBodies();
@@ -223,9 +225,12 @@ void AlloyWindow::showCombine() {
     // action emits toggled, not clicked; both inputs must change the same role.
     connect(combinePickTarget_,&QPushButton::toggled,this,[this](bool checked){if(checked)execute("solid.combineSelectionMode",{{"role","target"}});refreshCombineControls();});
     connect(combinePickTools_,&QPushButton::toggled,this,[this](bool checked){if(checked)execute("solid.combineSelectionMode",{{"role","tools"}});refreshCombineControls();});
+    auto* inspectFailure=new QPushButton("Inspect Failed Edit");inspectFailure->setObjectName("combine.inspectFailedEdit");
+    combinePanel_->layout()->addWidget(inspectFailure);
+    connect(inspectFailure,&QPushButton::clicked,this,[this]{execute("history.failedEditBegin");});
     connect(buttons,&QDialogButtonBox::accepted,this,[this]{
         const auto response = execute("command.commit",{{"session",session_["id"]}});
-        if (!response["ok"].toBool()) {
+        if (!response["ok"].toBool() && failedEditRepair_.isEmpty()) {
             session_["previewed"] = false;session_["geometryEvaluated"] = false;session_["previewError"] = response["error"];
             session_.remove("geometry");session_.remove("documentDraft");session_.remove("finalBodyCount");
             view_->clearPreview();view_->setEditDisplay({},{});refreshCombineControls();
@@ -280,6 +285,9 @@ void AlloyWindow::refreshCombineControls() {
     {const QSignalBlocker block(combinePickTools_);combinePickTools_->setChecked(role == "tools");}
     combinePickTools_->setText(QString("Select Tool Bodies (%1)").arg(tools.size()));
     combineError_->setText(session_.value("previewError").toObject().value("message").toString());
+    if(auto* inspect=combinePanel_->findChild<QPushButton*>("combine.inspectFailedEdit"))
+        inspect->setVisible(session_.value("previewError").toObject().value("diagnostics").toObject().value("code")=="support_unavailable"
+            && session_.value("baseDocumentRevision").toInteger()==static_cast<qint64>(document_->revision()));
     const bool current = session_.value("baseDocumentRevision").toInteger() == static_cast<qint64>(document_->revision());
     combineOk_->setEnabled(session_.value("previewed").toBool() && current);
     if (current && inputsAvailable && !session_.value("previewed").toBool()) {
