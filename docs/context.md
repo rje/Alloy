@@ -21,11 +21,15 @@ active-preview visibility responsiveness. XCH-011/#524 adds a bounded required
 3MF export owner. SKT-102/#525 preserves non-ordinary and grouped geometry
 deletion after SKT-099. SKT-103/#526 owns the Polygon's first retained
 placement anchor, SKT-104/#527 its canvas annotations, and SKT-105/#528 the
-second placement driver and size/orientation conflict contract; the backlog
-now contains 526 issues. REL-049/#529 records the user's sequencing: finish v1
+second placement driver and size/orientation conflict contract. REL-049/#529 records the user's sequencing: finish v1
 functionality and packaging gates first, then audit intrinsic cost across
 supported commands, including simple corrected-iron Cuts, and create/complete
 measured optimization children. Off-thread execution alone is insufficient.
+SKT-094/#499 is active for the documented Three-Point Rectangle workflow.
+The external dated source review did not establish a separate Parallelogram
+command, so SKT-106/#530 retains that research/disposition question rather
+than treating a proposed Alloy extension as compatibility. The backlog now
+contains 527 issues.
 SKT-093/#498 now accepts Inscribed, Circumscribed and Edge Polygon creation,
 retained edits, native numeric refusal, three closed regions, downstream
 extrusion, history/reopen and independently read STL. Astra reviewed the

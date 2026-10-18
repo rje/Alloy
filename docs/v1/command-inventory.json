@@ -538,7 +538,7 @@
       "scope": "proposed-v1",
       "implementation": "partial",
       "nativeEvidence": "partial",
-      "gap": "Two rectangle modes exist. 3-point, parallelogram and additional rectangle variants have no registered authoring route.",
+      "gap": "Two rectangle modes exist. The documented 3-point mode is active SKT-094 work; a separate Parallelogram command is unsubstantiated and tracked under SKT-106.",
       "apiIds": [
         "sketch.centerRectangle",
         "sketch.centerRectangleAccept",
@@ -3055,17 +3055,18 @@
     },
     {
       "id": "sketch.additional-rectangles",
-      "label": "3-Point Rectangle and parallelogram variants",
+      "label": "3-Point Rectangle and researched additional variants",
       "category": "Sketch",
       "scope": "proposed-v1",
       "implementation": "missing",
       "nativeEvidence": "unknown",
-      "gap": "No authoring route for additional rectangle modes.",
+      "gap": "Documented 3-point Rectangle has no authoring route yet. A separate Parallelogram command is not established by current public evidence; SKT-106 owns its disposition.",
       "apiIds": [],
       "issueKeys": [
         "SKT-021",
         "ADV-005",
-        "SKT-094"
+        "SKT-094",
+        "SKT-106"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json"
