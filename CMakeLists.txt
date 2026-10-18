@@ -48,6 +48,7 @@ target_compile_definitions(alloy_kernel PUBLIC ALLOY_OCCT_VERSION="${ALLOY_OCCT_
 
 add_library(alloy_application STATIC
     src/AlloyTheme.cpp src/AlloyTheme.h
+    src/ThreeTangentCircleControls.cpp
     src/TwoTangentCircleControls.cpp
     src/ThreePointCircleControls.cpp
     src/ThreePointRectangleControls.cpp
@@ -213,6 +214,14 @@ if(BUILD_TESTING)
     target_link_libraries(circle_tab_controls_test PRIVATE alloy_application Qt6::Test)
     add_test(NAME circle_tab_controls COMMAND circle_tab_controls_test)
     set_tests_properties(circle_tab_controls PROPERTIES TIMEOUT 30 LABELS "widget;gpu" RUN_SERIAL TRUE)
+    add_executable(three_tangent_circle_test tests/three_tangent_circle.cpp src/CadDocument.cpp src/CadDocument.h)
+    target_include_directories(three_tangent_circle_test PRIVATE src)
+    target_link_libraries(three_tangent_circle_test PRIVATE Qt6::Gui alloy_kernel)
+    add_test(NAME three_tangent_circle COMMAND three_tangent_circle_test)
+    add_executable(three_tangent_circle_controls_test tests/three_tangent_circle_controls.cpp)
+    target_link_libraries(three_tangent_circle_controls_test PRIVATE alloy_application Qt6::Test)
+    add_test(NAME three_tangent_circle_controls COMMAND three_tangent_circle_controls_test)
+    set_tests_properties(three_tangent_circle_controls PROPERTIES TIMEOUT 90 LABELS "widget;gpu" RUN_SERIAL TRUE)
     add_executable(two_tangent_circle_test tests/two_tangent_circle.cpp src/CadDocument.cpp src/CadDocument.h)
     target_include_directories(two_tangent_circle_test PRIVATE src)
     target_link_libraries(two_tangent_circle_test PRIVATE Qt6::Gui alloy_kernel)

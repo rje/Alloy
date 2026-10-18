@@ -525,6 +525,9 @@ private:
     QJsonObject appendSketchEntity(const QString& tool, const QJsonObject& inputs);
     QLineEdit* tangentCircleRadius_ = nullptr;
     void clearTwoTangentCircleInput();
+    void clearThreeTangentCircleInput();
+    QJsonObject appendThreeTangentCircle(const QJsonObject& inputs);
+    QJsonObject threeTangentCircleGesture(const QJsonObject& pixels, bool commit);
     QJsonObject appendTwoTangentCircle(const QJsonObject& inputs);
     QJsonObject twoTangentCircleGesture(const QJsonObject& pixels, bool commit);
     QJsonObject appendThreePointCircle(const QJsonObject& inputs);

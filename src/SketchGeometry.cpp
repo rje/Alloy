@@ -3013,6 +3013,55 @@ SketchGeometry::SolveResult SketchGeometry::addPointerCircle(const QJsonObject& 
     } catch (const std::exception& error) { return invalidDraft(draft,QString::fromUtf8(error.what())); }
 }
 
+// Bounded branch policy: exactly one positive-radius circle with contacts on
+// all three finite authored segments. Signed normal enumeration includes a
+// parallel pair (the public three-rectangle-edge workflow), without imposing
+// a radius or a fourth placement point.
+SketchGeometry::SolveResult SketchGeometry::addThreeTangentCircle(const QJsonObject& draft,const QJsonObject& arguments,const QJsonObject& projectionContext) {
+    try {
+        validateDraft(draft);checkFields(arguments,{"lineIds"});const auto ids=arguments["lineIds"].toArray();
+        if(ids.size()!=3 || ids[0]==ids[1] || ids[0]==ids[2] || ids[1]==ids[2])reject("Choose three distinct straight sketch lines");
+        const auto parameters=draft["parameters"].toObject();QMap<QString,QJsonObject> points;
+        for(const auto& row:parameters["points"].toArray()){const auto point=row.toObject();points[point["id"].toString()]=point;}
+        std::array<QPointF,3> starts,directions,normals;std::array<double,3> offsets,lengths;
+        for(int i=0;i<3;++i){
+            QJsonObject line;for(const auto& row:parameters["entities"].toArray())if(row.toObject()["id"]==ids[i])line=row.toObject();
+            if(line["type"]!="line")reject("Tangent Circle requires authored straight sketch lines");
+            const auto a=points.value(line["startPointId"].toString()),b=points.value(line["endPointId"].toString());
+            starts[i]={a["uMm"].toDouble(),a["vMm"].toDouble()};directions[i]=QPointF(b["uMm"].toDouble(),b["vMm"].toDouble())-starts[i];
+            lengths[i]=std::hypot(directions[i].x(),directions[i].y());if(lengths[i]<minimumLength)reject("Tangent line is degenerate");
+            normals[i]={-directions[i].y()/lengths[i],directions[i].x()/lengths[i]};offsets[i]=QPointF::dotProduct(normals[i],starts[i]);
+        }
+        struct Candidate {QPointF center;double radius;std::array<int,3> sides;};std::vector<Candidate> candidates;
+        for(int branch=0;branch<8;++branch){
+            std::array<int,3> sides;double matrix[3][4];
+            for(int i=0;i<3;++i){sides[i]=(branch&(1<<i)) ? 1 : -1;matrix[i][0]=normals[i].x();matrix[i][1]=normals[i].y();matrix[i][2]=-sides[i];matrix[i][3]=offsets[i];}
+            bool singular=false;
+            for(int column=0;column<3;++column){
+                int pivot=column;for(int row=column+1;row<3;++row)if(std::abs(matrix[row][column])>std::abs(matrix[pivot][column]))pivot=row;
+                if(std::abs(matrix[pivot][column])<1e-9){singular=true;break;}
+                for(int j=column;j<4;++j)std::swap(matrix[column][j],matrix[pivot][j]);
+                const double divisor=matrix[column][column];for(int j=column;j<4;++j)matrix[column][j]/=divisor;
+                for(int row=0;row<3;++row)if(row!=column){const double multiplier=matrix[row][column];for(int j=column;j<4;++j)matrix[row][j]-=multiplier*matrix[column][j];}
+            }
+            if(singular)continue;
+            const QPointF center(matrix[0][3],matrix[1][3]);const double radius=matrix[2][3];
+            if(!std::isfinite(radius) || radius<minimumLength || radius>maximumLength/2 || std::abs(center.x())>maximumLength || std::abs(center.y())>maximumLength)continue;
+            bool finite=true;for(int i=0;i<3;++i){const double foot=QPointF::dotProduct(center-starts[i],directions[i])/(lengths[i]*lengths[i]);finite &= foot>=-endpointTolerance/lengths[i] && foot<=1+endpointTolerance/lengths[i];}
+            if(!finite)continue;
+            bool duplicate=false;for(const auto& other:candidates)duplicate |= std::hypot(center.x()-other.center.x(),center.y()-other.center.y())<1e-6 && std::abs(radius-other.radius)<1e-6;
+            if(!duplicate)candidates.push_back({center,radius,sides});
+        }
+        if(candidates.empty())reject("No unique supported circle contacts all three finite lines");
+        if(candidates.size()!=1)reject("Multiple finite tangent circles are ambiguous; choose shorter defining segments");
+        const auto& solution=candidates.front();auto candidate=addCircle(draft,{{"centerUMm",solution.center.x()},{"centerVMm",solution.center.y()},{"diameterMm",2*solution.radius}});
+        auto p=candidate["parameters"].toObject();const auto circle=p["entities"].toArray().last().toObject();auto relations=p["constraints"].toArray();
+        for(int i=0;i<3;++i)relations.append(QJsonObject{{"id",newId()},{"type","tangent"},{"entityIds",QJsonArray{circle["id"],ids[i]}},{"side",solution.sides[i]}});
+        p["constraints"]=relations;candidate["parameters"]=p;auto result=solveDraft(candidate,projectionContext);
+        if(!result.ok)return {false,draft,result.diagnostics,result.error};result.diagnostics["createdCircleId"]=circle["id"];return result;
+    }catch(const std::exception& error){return invalidDraft(draft,QString::fromUtf8(error.what()));}
+}
+
 // The placement point selects the signed half-plane of each directed line.
 // Only nonparallel finite authored segments are supported; radius is either
 // explicit or the orthogonal projection onto that signed angle bisector.

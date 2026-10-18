@@ -333,6 +333,9 @@ downstream extrusion. Native input, history/reopen and STL readback pass.
 [Two-Tangent Circle](docs/validation/sketch-two-tangent-circle.md) now creates
 an editable analytic circle against two straight sketch lines with a typed or
 pointer radius; moving the source lines retains both tangencies.
+[Three-Tangent Circle](docs/validation/sketch-three-tangent-circle.md) now
+creates a source-driven circle on the third straight-line pick. The rectangle
+three-edge case, retained tangencies, source edit and downstream solid pass.
 
 [Explicit arc-line Tangent](docs/validation/sketch-arc-line-tangent.md) now
 constrains an arc and line sharing an endpoint, with either native pick order

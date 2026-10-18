@@ -8,7 +8,7 @@ in `../Alloy-reference-records/knowledge/specs/skt-095-circles-2026-10-18.md`.
 | --- | --- | --- | --- |
 | 3-Point Circle | Three ordered circumference picks; no radius field documented | Third point completes an analytic circle; point snaps retain logical relations when acquired. [Bounded acceptance](../../validation/sketch-three-point-circle.md) | SKT-095/#500 |
 | 2-Tangent Circle | Two straight sketch lines, then radius by pointer or typed value and placement click | [Bounded acceptance](../../validation/sketch-two-tangent-circle.md): placement chooses signed sides; exact reference side rule is unknown | SKT-107/#531 |
-| 3-Tangent Circle | Three straight sketch lines; no radius or fourth point | Third line completes circle; a public tutorial shows it following edited source lines | SKT-108/#532 |
+| 3-Tangent Circle | Three straight sketch lines; no radius or fourth point | Third line completes circle; [bounded acceptance](../../validation/sketch-three-tangent-circle.md) includes the public rectangle parallel-pair fixture and source edit | SKT-108/#532 |
 
 All three modes repeat; Enter ends the command. Escape after a completed
 3-Tangent circle is documented. Exact intermediate Escape behavior, numeric

@@ -580,12 +580,12 @@
     },
     {
       "id": "sketch.circle",
-      "label": "Center Diameter, 2-Point and 3-Point Circle",
+      "label": "Center Diameter, 2-Point, 3-Point and Tangent Circles",
       "category": "Sketch",
       "scope": "proposed-v1",
       "implementation": "partial",
       "nativeEvidence": "partial",
-      "gap": "Bounded Center Diameter, 2-Point, 3-Point and 2-Tangent Circle modes; 3-Tangent and the Circle Feature Options switch remain open.",
+      "gap": "Bounded Center Diameter, 2-Point, 3-Point, 2-Tangent and 3-Tangent Circle modes; the Circle Feature Options switch remains open.",
       "apiIds": [
         "sketch.addCircle",
         "sketch.addTwoPointCircle",
@@ -595,6 +595,7 @@
         "sketch.circleDiameterLock",
         "sketch.circleDiameterPreview",
         "sketch.placePoint",
+        "sketch.threeTangentCircle",
         "sketch.threePointCircle",
         "sketch.tool",
         "sketch.twoTangentCircle",
@@ -605,13 +606,15 @@
         "SKT-041",
         "SKT-045",
         "SKT-095",
-        "SKT-107"
+        "SKT-107",
+        "SKT-108"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json",
         "src/AlloyWindow.cpp",
         "src/SketchGeometry.cpp",
         "src/ThreePointCircleControls.cpp",
+        "src/ThreeTangentCircleControls.cpp",
         "src/TwoTangentCircleControls.cpp"
       ],
       "receipts": [
@@ -619,7 +622,8 @@
         "docs/validation/circle-tab-lock.md",
         "docs/validation/two-point-circle.md",
         "docs/validation/sketch-three-point-circle.md",
-        "docs/validation/sketch-two-tangent-circle.md"
+        "docs/validation/sketch-two-tangent-circle.md",
+        "docs/validation/sketch-three-tangent-circle.md"
       ],
       "planningStatus": "Existing scope owners; verify accepted subset before pulling"
     },
@@ -3097,8 +3101,8 @@
       "scope": "proposed-v1",
       "implementation": "partial",
       "nativeEvidence": "partial",
-      "gap": "Three-Point and 2-Tangent Circle are accepted. SKT-108 owns three line picks with immediate result. SKT-109 owns the Circle Feature Options type switch. Public evidence limits tangent inputs to straight sketch lines.",
-      "apiIds": ["sketch.threePointCircle", "sketch.tool", "sketch.twoTangentCircle"],
+      "gap": "Three-Point, 2-Tangent and 3-Tangent Circle are accepted. SKT-109 owns the Circle Feature Options type switch. Public evidence limits tangent inputs to straight sketch lines.",
+      "apiIds": ["sketch.threePointCircle", "sketch.threeTangentCircle", "sketch.tool", "sketch.twoTangentCircle"],
       "issueKeys": [
         "SKT-006",
         "ADV-005",
@@ -3111,9 +3115,10 @@
         "docs/backlog/issues.json",
         "src/SketchGeometry.cpp",
         "src/ThreePointCircleControls.cpp",
+        "src/ThreeTangentCircleControls.cpp",
         "src/TwoTangentCircleControls.cpp"
       ],
-      "receipts": ["docs/validation/sketch-three-point-circle.md", "docs/validation/sketch-two-tangent-circle.md"],
+      "receipts": ["docs/validation/sketch-three-point-circle.md", "docs/validation/sketch-two-tangent-circle.md", "docs/validation/sketch-three-tangent-circle.md"],
       "planningStatus": "Existing scope owners; verify accepted subset before pulling"
     },
     {
