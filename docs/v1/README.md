@@ -27,6 +27,7 @@ now has independently checked STEP/STL output. The
 [File-menu export path](../validation/native-exchange-menu.md) passes; DOC-036/#517
 also passes the [body Browser export path](../validation/native-browser-mesh.md).
 
+- [Inventory reconciliation](inventory-reconciliation.md): all 150 rows, remaining broad owners, stale evidence and cumulative release acceptance.
 - [Command inventory](command-inventory.json): 150 capability rows and 397 IDs in its dated original runtime snapshot, with newer bounded capability amendments and explicit gaps. The added `document.export3mf` command was validated separately in the real app.
 - [Inventory notes](inventory-notes.md): definitions and verification limits.
 - [Backlog map](backlog-map.json) and [workstreams](backlog-notes.md): dated 484-issue reconciled snapshot, not a live board. It includes corrected TUT-018/TUT-034 acceptance, bounded TUT-035 clearance acceptance and the earlier REL-033–041 responsiveness state. REL-037 has a newer [final Open receipt](../validation/open-final-presentation.md).
