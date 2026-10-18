@@ -22,7 +22,10 @@ active-preview visibility responsiveness. XCH-011/#524 adds a bounded required
 deletion after SKT-099. SKT-103/#526 owns the Polygon's first retained
 placement anchor, SKT-104/#527 its canvas annotations, and SKT-105/#528 the
 second placement driver and size/orientation conflict contract; the backlog
-now contains 525 issues.
+now contains 526 issues. REL-049/#529 records the user's sequencing: finish v1
+functionality and packaging gates first, then audit intrinsic cost across
+supported commands, including simple corrected-iron Cuts, and create/complete
+measured optimization children. Off-thread execution alone is insufficient.
 SKT-093/#498 now accepts Inscribed, Circumscribed and Edge Polygon creation,
 retained edits, native numeric refusal, three closed regions, downstream
 extrusion, history/reopen and independently read STL. Astra reviewed the

@@ -8766,6 +8766,25 @@
         "area:skt"
       ],
       "body": "## Bounded result\nRetain genuine Polygon second-driver snaps after SKT-103/#526 establishes the first anchor relation. The second radial vertex/edge-midpoint in center modes, or second first-edge endpoint in Edge mode, determines size and orientation through an authored geometric relation rather than a frozen coordinate.\n\n## Acceptance\n- Inscribed: the radial vertex can snap to a stable sketch point. Circumscribed: the edge midpoint can snap to a stable point or supported edge midpoint. Edge: the second base endpoint can snap to a stable point. Only show a relation cue when it will be retained.\n- Upstream movement recomputes the same Polygon, closed profile and downstream extrusion. Snapped driver IDs persist through count edits, Undo/Redo and save/reopen.\n- A typed size or angle incompatible with two retained drivers refuses transactionally with an actionable error. No edit silently drops a relation. Missing, ambiguous or self-referential targets refuse.\n- Verify native pointer input, shared control results, geometry, history and saved file separately. Keep grid-coordinate alignment distinct from an authored relation.\n\n## Dependency and split\nSKT-103/#526 owns one retained center/base anchor and its upstream motion. This issue owns the independent second-driver/scale-orientation contract; do not claim it from first-anchor behavior.\n"
+    },
+    {
+      "key": "REL-049",
+      "title": "Audit intrinsic cost of every supported v1 command after packaging",
+      "kind": "validation",
+      "phase": "P4 Initial release",
+      "priority": "P1",
+      "depends_on": [
+        "REL-004",
+        "REL-016",
+        "REL-030",
+        "REL-003",
+        "GATE-005",
+        "REL-018"
+      ],
+      "labels": [
+        "area:rel"
+      ],
+      "body": "## Sequencing and result\nAfter the v1 functional and packaging gates are complete, audit the intrinsic cost of every supported v1 command and make measured inefficiencies actionable. Moving a slow operation off the UI thread is a responsiveness mitigation, not proof that its implementation is efficient. This gate complements REL-004 budgets and REL-016 interactive responsiveness.\n\n## Acceptance\n- Build a versioned inventory of supported v1 command IDs and representative real-document fixtures. Include cold and warm runs, declared hardware, document/feature counts, p50/p95 or stable ranges, and separate UI dispatch, sketch solve, dependency recompute, geometry kernel, tessellation, save/export and redraw time where applicable. Avoid exhaustive option combinations without a material risk.\n- Reproduce the corrected-iron simple Cut and other known slow fixtures, along with ordinary sketch/solid/exchange commands. Compare the measured work to geometric complexity and REL-004 budgets; identify avoidable repeated recompute, redundant kernel calls, unnecessary remeshing/serialization, poor data structures and synchronous waits. An asynchronous wrapper alone does not resolve a slow intrinsic path.\n- For each measured inefficiency, create a bounded linked fix issue with the exact fixture, baseline and acceptance target. Complete those issues, rerun identical fixtures, verify geometry/authored history/undo/save/export invariants, and record improved timing. Keep genuine kernel-heavy or hardware-limited exceptions explicit and evidence-based.\n- Publish a concise command-by-command audit table with status, evidence path and remaining accepted limitations. Use the real application/control API and hardware GPU; keep build, API, geometry, native interaction and visual evidence distinct. Run proportional focused tests rather than repeated full-suite passes.\n\n## Dependencies\n- REL-004/#83 defines practical performance budgets; REL-016 owns interactive responsiveness.\n- Begin after v1 functionality/scope and all-platform package/runtime gates (REL-030, REL-003, GATE-005, REL-018) have been reconciled. Do not pull this audit ahead of the current modeling and packaging burndown.\n"
     }
   ]
 }
