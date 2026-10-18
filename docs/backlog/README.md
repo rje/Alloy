@@ -7,7 +7,7 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current local backlog contains **584 issues**: **462 implementation, 24 research,
+The current local backlog contains **585 issues**: **463 implementation, 24 research,
 2 research/design, 22 epics, and 74 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 GEO-006/#309 accepts the circular-seam provenance repair with both retained brackets reopening. REL-051/#586 now accepts the native sketch→Extrude→Undo→Browser popup prefix plus separate API STL/readback; see [its receipt](../validation/ordinary-bracket-input-prefix.md). REL-012/#415 remains Todo/blocked on REL-052/#587 for Save As Mesh modal focus and OS chooser. External `../Alloy-reference-records/validation/rel012-ordinary-input-2026-10-18/README.md` retains both failure and accepted evidence.
@@ -154,7 +154,7 @@ relocatable packages, interleaved with enclosure/shoehorn/surface-iron completio
 Twenty-two new bounded children #407–428 reuse existing broader owners and gates.
 NAV-001/#407 is independently accepted at2d1a699. GEO-017/#347 is independently accepted at6d9b8dc for exact inset geometry
 and derived source lineage, unblocking SKT-076 authoring. CI-008/#426 is independently accepted at `098e485` for the macOS runtime recipe;
-CI-009 retains Windows/Linux alignment and CI-004 stays Todo. SKT-076/#346 is
+CI-009 retains Windows/Linux alignment and CI-004 stays Todo; CI-012/#588 owns the bounded package-to-runtime inventory join. SKT-076/#346 is
 accepted at `c625649` for retained inset and exact Join2/selected R0.5 downstream
 lineage. NAV-002/#408 is accepted for source/API/GPU camera behavior; NAV-009/#428 retains
 the blocked native-input route. TUT-023/#324 final-stage rim/Cut/export gate is accepted. NAV-018/#439
