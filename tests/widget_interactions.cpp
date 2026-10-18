@@ -1383,13 +1383,16 @@ private slots:
                 const auto capture=qEnvironmentVariable("ALLOY_SPLINE_OFFSET_DELETE_CAPTURE");
                 if(!capture.isEmpty())QVERIFY2(run(window,"capture.screenshot",{{"path",capture}}),error_.constData());
             }
-            // Deselect the source through a real blank-canvas click so its
-            // editing grips do not cover this nearby result curve.
-            const QPoint blank(50,view->height()-60);
-            QVERIFY(view->pickSketch(session(window).value("draftSketch").toObject(),blank.x(),blank.y()).isEmpty());
-            QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,blank);
-            QVERIFY(session(window).value("selection").toObject().value("entityIds").toArray().isEmpty());
-            QTest::qWait(50);
+            if(routeName!="splineCanvas") {
+                const QPoint blank(50,view->height()-60);
+                QVERIFY(view->pickSketch(session(window).value("draftSketch").toObject(),blank.x(),blank.y()).isEmpty());
+                QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,blank);
+                QVERIFY(session(window).value("selection").toObject().value("entityIds").toArray().isEmpty());
+                QTest::qWait(50);
+            } else {
+                QCOMPARE(session(window).value("selection").toObject().value("entityIds").toArray(),QJsonArray{source});
+                QVERIFY(!window.state().value("viewport").toObject().value("gpu").toObject().value("splineHandles").toObject().value("grips").toArray().isEmpty());
+            }
             const auto p=evaluated.curve->Value(evaluated.curve->FirstParameter()+0.25*(evaluated.curve->LastParameter()-evaluated.curve->FirstParameter()));
             const QPointF pick{p.X(),p.Y()};
             const auto pixel=sketchPixel(view,pick.x(),pick.y());
@@ -1412,11 +1415,52 @@ private slots:
                 auto* remove=menu->findChild<QAction*>("sketch.action.deleteGeometry");QVERIFY(remove);QTest::mouseClick(menu,Qt::LeftButton,Qt::NoModifier,menu->actionGeometry(remove).center());QTRY_VERIFY(QApplication::activePopupWidget()==nullptr);
             } else {
                 QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,sketchPixel(view,pick.x(),pick.y()));
-                QCOMPARE(session(window).value("selection").toObject().value("entityIds").toArray(),QJsonArray{target});QVERIFY(view->hasFocus());QTest::keyClick(view,Qt::Key_Delete);
+                QCOMPARE(session(window).value("selection").toObject().value("entityIds").toArray(),QJsonArray{target});QVERIFY(view->hasFocus());
+                QCOMPARE(params(),original);QCOMPARE(session(window).value("draftHistory").toObject().value("index").toInt(),index);
+                const auto capture=qEnvironmentVariable("ALLOY_DERIVED_CURVE_CAPTURE");
+                if(!capture.isEmpty())QVERIFY2(run(window,"capture.screenshot",{{"path",capture+"/result-selected.png"}}),error_.constData());
+                QTest::keyClick(view,Qt::Key_Delete);
             }
             QTRY_COMPARE(params().value("entities").toArray().size(),1);QCOMPARE(session(window).value("draftHistory").toObject().value("index").toInt(),index+1);
             const auto removed=params();QVERIFY2(run(window,"history.undo"),error_.constData());QCOMPARE(params(),original);
             QVERIFY2(run(window,"history.redo"),error_.constData());QCOMPARE(params(),removed);
+            if(routeName=="splineCanvas") {
+                QVERIFY2(run(window,"history.undo"),error_.constData());QCOMPARE(params(),original);
+                // Select the source with its list row, then drag the same grip
+                // whose hit area overlapped the result. No focus repair.
+                auto* tree=window.findChild<QTreeWidget*>("sketch.selection");QVERIFY(tree);QTreeWidgetItem* row=nullptr;
+                for(QTreeWidgetItemIterator it(tree);*it;++it)if((*it)->data(0,Qt::UserRole+1).toString()==source.toString())row=*it;
+                QVERIFY(row);tree->scrollToItem(row);QTest::mouseClick(tree->viewport(),Qt::LeftButton,Qt::NoModifier,tree->visualItemRect(row).center());
+                QCOMPARE(session(window).value("selection").toObject().value("entityIds").toArray(),QJsonArray{source});
+                const auto grips=window.state().value("viewport").toObject().value("gpu").toObject().value("splineHandles").toObject().value("grips").toArray();
+                QJsonObject grip;double nearest=9;
+                for(const auto& value:grips){const auto candidate=value.toObject();const auto distance=QLineF(pixel,QPointF(candidate.value("x").toDouble(),candidate.value("y").toDouble())).length();if(distance<nearest){nearest=distance;grip=candidate;}}
+                QVERIFY(!grip.isEmpty());QCOMPARE(grip.value("entityId"),source);
+                const QPoint start(qRound(grip.value("x").toDouble()),qRound(grip.value("y").toDouble()));
+                QTest::mousePress(view,Qt::LeftButton,Qt::NoModifier,start);
+                const auto to=start+QPoint(-5,-2);
+                QMouseEvent motion(QEvent::MouseMove,QPointF(to),QPointF(view->mapToGlobal(to)),Qt::NoButton,Qt::LeftButton,Qt::NoModifier);
+                QApplication::sendEvent(view,&motion);
+                QVERIFY(session(window).value("pendingSplineDrag").toObject().contains("previewDraft"));
+                QTest::mouseRelease(view,Qt::LeftButton,Qt::NoModifier,to);
+                QTRY_VERIFY(params()!=original);QVERIFY(view->hasFocus());
+                QCOMPARE(session(window).value("selection").toObject().value("entityIds").toArray(),QJsonArray{source});
+                QCOMPARE(session(window).value("draftHistory").toObject().value("index").toInt(),index+1);
+                const auto sourceBefore=original.value("entities").toArray().first().toObject();
+                const auto afterPoints=params().value("points").toArray();
+                const auto beforePoints=original.value("points").toArray();QCOMPARE(afterPoints.size(),beforePoints.size());
+                for(int i=0;i<beforePoints.size();++i){
+                    QCOMPARE(afterPoints[i].toObject().value("id"),beforePoints[i].toObject().value("id"));
+                    if(sourceBefore.value("pointIds").toArray().contains(beforePoints[i].toObject().value("id")))QCOMPARE(afterPoints[i],beforePoints[i]);
+                }
+                const auto sourceAfter=params().value("entities").toArray().first().toObject();
+                QVERIFY(sourceBefore.value("tangentHandles")!=sourceAfter.value("tangentHandles"));
+                auto strippedBefore=sourceBefore,strippedAfter=sourceAfter;strippedBefore.remove("tangentHandles");strippedAfter.remove("tangentHandles");QCOMPARE(strippedBefore,strippedAfter);
+                QCOMPARE(params().value("entities").toArray().last(),original.value("entities").toArray().last());
+                const auto capture=qEnvironmentVariable("ALLOY_DERIVED_CURVE_CAPTURE");
+                if(!capture.isEmpty())QVERIFY2(run(window,"capture.screenshot",{{"path",capture+"/source-grip-dragged.png"}}),error_.constData());
+                QVERIFY2(run(window,"history.undo"),error_.constData());QCOMPARE(params(),original);
+            }
             QVERIFY2(run(window,"sketch.cancel"),error_.constData());
         }
     }

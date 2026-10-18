@@ -3417,7 +3417,21 @@ void ReferenceView::mousePressEvent(QMouseEvent* e) {
     if(e->button()==Qt::LeftButton && !e->modifiers().testFlag(Qt::AltModifier) && decorationSelection_.value("tool")=="select"){
         QJsonObject picked;double best=9;for(const auto& value:splineHandleState_["grips"].toArray()){const auto grip=value.toObject();const double distance=QLineF(e->position(),QPointF(grip["x"].toDouble(),grip["y"].toDouble())).length();if(distance<best){best=distance;picked=grip;}}
         if(picked.isEmpty() && !decorationFeature_.isEmpty()){const auto hit=pickSketch(decorationFeature_,e->position().x(),e->position().y(),"point",sketchFrame_);if(!hit.isEmpty())for(const auto& v:decorationFeature_["parameters"].toObject()["entities"].toArray()){const auto spline=v.toObject();if((spline["type"]=="fitSpline"||spline["type"]=="controlSpline")&&spline["pointIds"].toArray().contains(hit["pointId"])){picked={{"kind","point"},{"entityId",spline["id"]},{"pointId",hit["pointId"]}};break;}}}
-        if(!picked.isEmpty()){setFocus(Qt::MouseFocusReason);if(picked["kind"]=="point")dispatch("sketch.selectionPick",{{"x",e->position().x()},{"y",e->position().y()}});splineDrag_=picked;splineDrag_["pressX"]=e->position().x();splineDrag_["pressY"]=e->position().y();splineDrag_["moved"]=false;auto begin=picked;begin.remove("x");begin.remove("y");begin["phase"]="begin";dispatch("sketch.splineDrag",begin);e->accept();return;}
+        if(!picked.isEmpty() && e->modifiers()==Qt::NoModifier){
+            // Keep a deliberate grip drag available even when its generous hit
+            // area covers the source's distinct Offset result. An unmoved click
+            // on that result follows the ordinary picker on release instead.
+            const auto hit=pickSketch(decorationFeature_,e->position().x(),e->position().y(),{},sketchFrame_);
+            if(hit.value("kind")=="entity" && hit.value("distancePixels").toDouble()<=2)
+                for(const auto& value:decorationFeature_.value("parameters").toObject().value("entities").toArray()){
+                    const auto entity=value.toObject();
+                    if(entity.value("id")==hit.value("entityId") && entity.value("type")=="fitSplineOffset"
+                        && entity.value("sourceEntityId")==picked.value("entityId")){
+                        picked["selectResultOnClick"]=true;break;
+                    }
+                }
+        }
+        if(!picked.isEmpty()){setFocus(Qt::MouseFocusReason);if(picked["kind"]=="point" && !picked.value("selectResultOnClick").toBool())dispatch("sketch.selectionPick",{{"x",e->position().x()},{"y",e->position().y()}});splineDrag_=picked;splineDrag_["pressX"]=e->position().x();splineDrag_["pressY"]=e->position().y();splineDrag_["moved"]=false;auto begin=picked;begin.remove("x");begin.remove("y");begin.remove("selectResultOnClick");begin["phase"]="begin";dispatch("sketch.splineDrag",begin);e->accept();return;}
     }
     if(e->button()==Qt::LeftButton && !sketchTextHandleState_.isEmpty()){
         const auto move=sketchTextHandleState_["move"].toObject(),rotate=sketchTextHandleState_["rotate"].toObject();
@@ -3764,7 +3778,7 @@ void ReferenceView::mouseReleaseEvent(QMouseEvent* e) {
         } else {dispatch("sketch.slotDrag",{{"phase","cancel"}});dispatch("sketch.selectionPick",{{"x",e->position().x()},{"y",e->position().y()}});}
         e->accept();return;
     }
-    if(e->button()==Qt::LeftButton && !splineDrag_.isEmpty()){const bool moved=splineDrag_["moved"].toBool();splineDrag_={};if(!moved){dispatch("sketch.splineDrag",{{"phase","cancel"}});e->accept();return;}const auto p=sketchPoint(e->position().x(),e->position().y(),sketchPlane_,sketchFrame_);dispatch("sketch.splineDrag",{{"phase","end"},{"uMm",p["uMm"]},{"vMm",p["vMm"]}});e->accept();return;}
+    if(e->button()==Qt::LeftButton && !splineDrag_.isEmpty()){const auto drag=splineDrag_;const bool moved=drag.value("moved").toBool();splineDrag_={};if(!moved){dispatch("sketch.splineDrag",{{"phase","cancel"}});if(drag.value("selectResultOnClick").toBool())dispatch("sketch.selectionPick",{{"x",drag.value("pressX")},{"y",drag.value("pressY")}});e->accept();return;}const auto p=sketchPoint(e->position().x(),e->position().y(),sketchPlane_,sketchFrame_);dispatch("sketch.splineDrag",{{"phase","end"},{"uMm",p["uMm"]},{"vMm",p["vMm"]}});e->accept();return;}
     if(e->button()==Qt::LeftButton && mirrorWindowActive_){
         mirrorWindowActive_=false;if(mirrorWindowBand_)mirrorWindowBand_->hide();
         if(QLineF(mirrorWindowPress_,e->position()).length()>=4)

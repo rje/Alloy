@@ -87,8 +87,9 @@ source. Deleting its Offset badge removes only the association. Earlier
 historical-edit preflight for downstream profiles remains SKT-150/#576.
 [Fit-spline Offset Delete](docs/validation/sketch-fit-spline-offset-delete.md)
 now removes one selected generated curve and its derived endpoints while
-preserving the source and sibling. Source-grip click priority and association-only
-removal remain SKT-151/#577 and SKT-149/#575.
+preserving the source and sibling. [Direct curve selection through source grips](docs/validation/derived-curve-hit-priority.md)
+now passes native click and deliberate grip-drag checks. Association-only
+removal remains SKT-149/#575.
 
 Current priority: [initial-build readiness](docs/initial-build-readiness.md)—
 familiar navigation, reliable everyday controls, recovery and installable packages,
