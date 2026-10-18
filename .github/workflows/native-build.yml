@@ -17,7 +17,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: native-${{ github.ref }}
+  group: native-${{ github.ref }}-${{ inputs.target || 'all' }}
   # Let an explicitly selected version's full matrix finish.
   cancel-in-progress: false
 
