@@ -23,5 +23,11 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
  for(const auto& key:{"id","firstAxisId","secondAxisId"})check(freedom[ellipse[key].toString()].toObject()["fullyConstrained"].toBool(),"ellipse and full axes fixed despite unrelated free curve");
  check(solved.diagnostics["pointFreedom"].toObject()[ellipse["centerPointId"].toString()].toObject()["fullyConstrained"].toBool(),"solved origin center fixed");check(!freedom[conic["id"].toString()].toObject()["fullyConstrained"].toBool(),"free conic remains free");
  auto parameters=draft["parameters"].toObject();QJsonArray dimensions;for(const auto& d:parameters["dimensions"].toArray())if(d.toObject()["id"]!=removeId)dimensions.append(d);parameters["dimensions"]=dimensions;draft["parameters"]=parameters;solved=SketchGeometry::solveDraft(draft);check(solved.ok&&solved.diagnostics["dof"].toInt()==8,"removed driving dimension restores freedom");freedom=solved.diagnostics["entityFreedom"].toObject();check(!freedom[ellipse["id"].toString()].toObject()["fullyConstrained"].toBool()&&!freedom[ellipse["secondAxisId"].toString()].toObject()["fullyConstrained"].toBool(),"ellipse and unconstrained axis become free");check(freedom[ellipse["firstAxisId"].toString()].toObject()["fullyConstrained"].toBool(),"independent retained axis stays fixed");
+ auto roles=solved.diagnostics.value("entityRoles").toArray();QJsonObject roleById;
+ for(const auto& row:roles){const auto value=row.toObject();check(!value.contains("dof"),"entity roles must not invent numeric DOF");roleById[value.value("entityId").toString()]=value.value("role");}
+ check(roleById.value(ellipse["id"].toString())=="unconstrainedOrdinary","removed ellipse dimension refreshes semantic role");
+ check(roleById.value(ellipse["firstAxisId"].toString())=="fullyConstrained","independent constrained construction axis remains black");
+ check(roleById.value(ellipse["secondAxisId"].toString())=="unconstrainedConstruction","free construction axis has its own role");
+ check(!solved.diagnostics.value("underconstrainedEntities").toArray().isEmpty(),"live list reports movable authored entities");
  std::cout<<"PlaneGCS mixed entity freedom and dimension removal passed\n";return 0;
 }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}

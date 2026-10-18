@@ -172,13 +172,21 @@ bool solvedPoint(const QJsonObject& diagnostics,const QString& id){return diagno
 void colorSolvedEntities(const Handle(AIS_Shape)& presentation,const QJsonArray& entities,const QJsonObject& diagnostics,int kind=0,const QJsonArray& projectedLines={}) {
     const auto colored=Handle(AIS_ColoredShape)::DownCast(presentation);if(colored.IsNull())return;
     QSet<QString> projected;for(const auto& p:projectedLines)projected.insert(p.toObject()["id"].toString());
+    QMap<QString,QString> roles;
+    for(const auto& row:diagnostics.value("entityRoles").toArray()){
+        const auto value=row.toObject();const auto id=value.value("entityId").toString(),role=value.value("role").toString();
+        roles.insert(id,role);if(role=="projected")projected.insert(id);
+    }
     TopoDS_Iterator child(presentation->Shape());
     for(const auto& v:entities){const auto e=v.toObject();if(e["type"]=="point"||projected.contains(e["id"].toString()))continue;
         const bool construction=e["construction"].toBool(),centerline=e["centerline"].toBool();
         if((kind==1)!=construction)continue;
         if(!construction&&((kind==2)!=centerline))continue;
         if(!child.More())break;
-        const Quantity_Color color=solvedEntity(diagnostics,e["id"].toString())?Quantity_Color(.12,.14,.16,Quantity_TOC_sRGB):construction?Quantity_Color(.91,.47,.11,Quantity_TOC_RGB):centerline?Quantity_Color(.20,.45,.82,Quantity_TOC_RGB):Quantity_Color(.10,.34,.84,Quantity_TOC_RGB);
+        const auto role=roles.value(e.value("id").toString());
+        const Quantity_Color color=role=="fixed" ? Quantity_Color(.10,.52,.24,Quantity_TOC_RGB)
+            : solvedEntity(diagnostics,e["id"].toString()) ? Quantity_Color(.12,.14,.16,Quantity_TOC_sRGB)
+            : construction || centerline ? Quantity_Color(.91,.47,.11,Quantity_TOC_RGB) : Quantity_Color(.10,.34,.84,Quantity_TOC_RGB);
         colored->SetCustomColor(child.Value(),color);child.Next();
     }
 }
@@ -239,7 +247,7 @@ Handle(AIS_Shape) constructionPresentation(const TopoDS_Shape& shape,bool select
 void styleCenterline(Handle(AIS_Shape) presentation,bool selected,bool fullyConstrained) {
     const Quantity_Color color=selected ? Quantity_Color(0.98,0.43,0.08,Quantity_TOC_RGB)
         : fullyConstrained ? Quantity_Color(0.12,0.14,0.16,Quantity_TOC_sRGB)
-        : Quantity_Color(0.20,0.45,0.82,Quantity_TOC_RGB);
+        : Quantity_Color(0.91,0.47,0.11,Quantity_TOC_RGB);
     const Handle(Prs3d_LineAspect) dashed=new Prs3d_LineAspect(color,Aspect_TOL_DOTDASH,selected ? 4 : 1.5);
     presentation->SetColor(color);
     presentation->Attributes()->SetWireAspect(dashed);presentation->Attributes()->SetLineAspect(dashed);
@@ -1342,6 +1350,13 @@ void ReferenceView::showSketchDraft(const EvaluatedSketch& sketch) {
     if(sketchModels_.contains(draftSketchId_))context_->Erase(sketchModels_.value(draftSketchId_),false);
     if(constructionSketchModels_.contains(draftSketchId_))context_->Erase(constructionSketchModels_.value(draftSketchId_),false);
     if(centerlineSketchModels_.contains(draftSketchId_))context_->Erase(centerlineSketchModels_.value(draftSketchId_),false);
+    draftEntityShapes_.clear();
+    if(!sketch.shape.IsNull()){
+        TopoDS_Iterator child(sketch.shape);
+        for(const auto& row:sketch.summary.value("entities").toArray()){
+            if(!child.More())break;draftEntityShapes_.insert(row.toObject().value("id").toString(),child.Value());child.Next();
+        }
+    }
     const auto strokes=splitSketchStrokes(sketch);
     draftNormalEdgeCount_=0;
     if(!strokes.normal.IsNull())for(TopExp_Explorer edge(strokes.normal,TopAbs_EDGE);edge.More();edge.Next())++draftNormalEdgeCount_;
@@ -1394,6 +1409,7 @@ void ReferenceView::showSketchDraft(const EvaluatedSketch& sketch) {
     applyEditDisplay();
 }
 void ReferenceView::clearSketchDraft() {
+    draftEntityShapes_.clear();
     cancelSlotPointDrag();
     clearSketchDecorations();
     decorationFeature_={};decorationPending_={};annotationLayouts_={};draggedAnnotation_.clear();
@@ -2299,6 +2315,9 @@ bool ReferenceView::fitSelection(const TopoDS_Shape& shape) {
     sceneCenter_=gp_Pnt((x0+x1)/2,(y0+y1)/2,(z0+z1)/2);
     sceneScale_=std::max({x1-x0,y1-y0,z1-z0,1.0})*1.7;
     viewCenter_=sceneCenter_;pan={};zoom=1;sync();return true;
+}
+bool ReferenceView::fitDraftEntity(const QString& id) {
+    return fitSelection(draftEntityShapes_.value(id));
 }
 bool ReferenceView::fitFinishedSketch(const EvaluatedSketch& sketch) {
     return fitSelection(visibleFinishedSketchShape(sketch));

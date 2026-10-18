@@ -774,6 +774,7 @@ private:
     QSpinBox* splineCombDensity_ = nullptr;
     QDoubleSpinBox* splineCombScale_ = nullptr;
     QLabel* splineCombInfo_ = nullptr;
+    QTreeWidget* sketchUnderconstrained_ = nullptr;
     QCheckBox* sketchShowConstraints_ = nullptr;
     QCheckBox* sketchShowDimensions_ = nullptr;
     QComboBox* sketchDimensionList_ = nullptr;

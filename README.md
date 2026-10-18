@@ -43,6 +43,8 @@ now retains an explicit start or end contact through source edits, history and r
 now retain a smooth directed join between two chosen arc endpoints.
 [Distinct-ID arc and line endpoint Tangent](docs/validation/sketch-distinct-arc-line-tangent.md)
 now retains a closed, editable rounded profile and downstream solid.
+[Per-entity sketch roles](docs/validation/sketch-entity-roles.md)
+now show freedom/status by curve and provide a live Find Under-Constrained list.
 
 Current priority: [initial-build readiness](docs/initial-build-readiness.md)—
 familiar navigation, reliable everyday controls, recovery and installable packages,

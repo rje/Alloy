@@ -2458,6 +2458,37 @@ SketchGeometry::SolveResult SketchGeometry::solveDraft(const QJsonObject& source
             for(const auto& id:group.value("pointIds").toArray())pointFreedom[id.toString()]=freedom;
         }
         diagnostics["entityFreedom"]=entityFreedom;diagnostics["pointFreedom"]=pointFreedom;
+        // Presentation roles are semantic labels, never per-entity DOF counts.
+        // Explicit Fix ownership takes precedence over solved black; linked
+        // projection takes precedence over both. This precedence is Alloy policy.
+        QSet<QString> fixedPoints;
+        for(const auto& row:parameters.value("constraints").toArray()){
+            const auto relation=row.toObject();if(relation.value("type")=="fixed")
+                for(const auto& id:relation.value("pointIds").toArray())fixedPoints.insert(id.toString());
+        }
+        QJsonArray roles,underconstrained;
+        for(const auto& row:entities){
+            const auto entity=row.toObject();const auto id=entity.value("id").toString();
+            const auto freedom=entityFreedom.value(id).toObject();
+            QSet<QString> owned;
+            for(const auto& key:{"pointId","centerPointId","startPointId","endPointId"})
+                if(entity.value(key).isString())owned.insert(entity.value(key).toString());
+            for(const auto& point:entity.value("pointIds").toArray())owned.insert(point.toString());
+            bool explicitFix=!owned.isEmpty();for(const auto& point:owned)explicitFix &= fixedPoints.contains(point);
+            const bool constrained=freedom.value("fullyConstrained").toBool();
+            const auto role=constrained ? (explicitFix ? "fixed" : "fullyConstrained")
+                : entity.value("construction").toBool() || entity.value("centerline").toBool() ? "unconstrainedConstruction" : "unconstrainedOrdinary";
+            QJsonObject status{{"entityId",id},{"type",entity.value("type")},{"role",role},
+                {"fullyConstrained",constrained},{"analysisKnown",freedom.value("determinate").toBool(freedom.contains("derived"))}};
+            roles.append(status);if(!constrained)underconstrained.append(status);
+        }
+        for(const auto& collection:{"projections","circleProjections","pointProjections"})
+            for(const auto& row:parameters.value(collection).toArray()){
+                const auto projection=row.toObject();roles.append(QJsonObject{{"entityId",projection.value("id")},
+                    {"type",QString(collection)=="projections" ? "line" : QString(collection)=="circleProjections" ? "circle" : "point"},
+                    {"role","projected"},{"fullyConstrained",true},{"analysisKnown",true}});
+            }
+        diagnostics["entityRoles"]=roles;diagnostics["underconstrainedEntities"]=underconstrained;
         return {true,solved,diagnostics,{}};
     } catch(const std::exception& error){return invalidDraft(sourceDraft,QString::fromUtf8(error.what()));}
 }

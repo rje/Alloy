@@ -150,6 +150,7 @@ public:
     void lookAtSketch(const QString& plane, const QJsonObject& resolvedFrame = {}, const TopoDS_Shape& content = {});
     bool fitSelection(const TopoDS_Shape& shape);
     bool fitFinishedSketch(const EvaluatedSketch& sketch);
+    bool fitDraftEntity(const QString& id);
     bool lookAtPlane(const QJsonObject& frame,const TopoDS_Shape& shape);
     bool lookAtFinishedSketch(const EvaluatedSketch& sketch);
     QJsonObject sketchPoint(double x, double y, const QString& plane, const QJsonObject& resolvedFrame = {}) const;
@@ -343,6 +344,7 @@ private:
     QJsonArray selectedProfileIds_;
     QJsonArray hiddenBodyIds_;
     Handle(AIS_Shape) sketchDraft_, sketchConstructionDraft_, sketchCenterlineDraft_, projectedDraft_, sketchCursor_, sketchSnapCue_, splineCageCursor_;
+    QMap<QString,TopoDS_Shape> draftEntityShapes_;
     int draftNormalEdgeCount_ = 0;
     QJsonArray projectedLines_, projectedCircles_, supportPoints_;
     QJsonArray constructionDraftLineIds_, centerlineDraftLineIds_;

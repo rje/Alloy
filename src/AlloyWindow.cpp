@@ -4083,6 +4083,30 @@ void AlloyWindow::registerCommands() {
     sketchPlaceSchema["suppressInference"]=optional(parameter("boolean","Control/Command temporarily suppresses automatic Line H/V inference."));
     sketchPlaceSchema["tangentModifier"]=optional(parameter("boolean","Shift requests a tangent Line from a captured circle contact."));
     auto ids=optional(parameter("array","Authored point or line IDs in this sketch; omitted arrays default empty."));
+    add("sketch.findUnderconstrained","Find Under-Constrained","Show or close the live list of movable authored entities; aggregate sketch DOF remains separate.",
+        {{"visible",optional(parameter("boolean","Show the list (default true)."))}},[this](const auto& a){
+            if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
+            session_["findUnderconstrained"]=a.value("visible").toBool(true);refreshSketchControls();
+            return QJsonObject{{"visible",session_.value("findUnderconstrained")},{"entities",session_.value("solverDiagnostics").toObject().value("underconstrainedEntities")}};
+        });
+    add("sketch.compute","Compute Sketch","Refresh solved entity status without creating an authored edit.",{},[this](const auto&){
+        if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
+        if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))return failure("stale_session","The document changed; cancel and restart this sketch");
+        const auto solved=SketchGeometry::solveDraft(session_.value("draftSketch").toObject(),session_.value("projectionContext").toObject());
+        if(!solved.ok)return failure("sketch_solve_failed",solved.error);
+        session_["solverDiagnostics"]=solved.diagnostics;refreshSketchControls();return solved.diagnostics;
+    });
+    add("sketch.underconstrainedSelect","Inspect under-constrained entity","Select, highlight and frame one current list row without changing authored geometry.",
+        {{"entityId",parameter("string","Stable entity ID from underconstrainedEntities.")}},[this](const auto& a){
+            if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
+            const auto id=a.value("entityId").toString();bool available=false;
+            for(const auto& row:session_.value("solverDiagnostics").toObject().value("underconstrainedEntities").toArray())available |= row.toObject().value("entityId")==id;
+            if(!available)return failure("stale_entity","Entity is no longer under-constrained");
+            const auto selected=setSketchSelection({{"entityIds",QJsonArray{id}}});
+            if(selected.value("ok").isBool() && !selected.value("ok").toBool())return selected;
+            if(!view_->fitDraftEntity(id))return failure("unsupported_selection","Entity has no finite displayed bounds");
+            refreshSketchControls();return QJsonObject{{"selection",session_.value("selection")},{"camera",view_->cameraState()}};
+        });
     add("sketch.selectionSet","Select sketch geometry","Select authored geometry, locked projected references or evaluated profiles without changing geometry.",{{"pointIds",ids},{"entityIds",ids},{"profileIds",ids}},[this](const auto& a){
         auto result=setSketchSelection({{"pointIds",a.value("pointIds").toArray()},{"entityIds",a.value("entityIds").toArray()},{"profileIds",a.value("profileIds").toArray()}});
         const auto selected=a.value("entityIds").toArray();
@@ -11915,6 +11939,23 @@ void AlloyWindow::refreshSketchControls() {
             if(auto* button=sketchMirrorControls_->findChild<QPushButton*>("sketch.mirror.accept"))button->setEnabled(session_.contains("pendingSketchMirror"));
         }
     }
+    if(sketchUnderconstrained_){
+        const auto rows=session_.value("solverDiagnostics").toObject().value("underconstrainedEntities").toArray();
+        const QSignalBlocker block(sketchUnderconstrained_);
+        const bool visible=session_.value("findUnderconstrained").toBool();sketchUnderconstrained_->setVisible(visible);
+        sketchUnderconstrained_->setHeaderLabel(QString("Under-Constrained · %1 entities").arg(rows.size()));
+        QSet<QString> live;
+        for(const auto& value:rows){
+            const auto row=value.toObject();const auto id=row.value("entityId").toString();live.insert(id);QTreeWidgetItem* item=nullptr;
+            for(int i=0;i<sketchUnderconstrained_->topLevelItemCount();++i)if(sketchUnderconstrained_->topLevelItem(i)->data(0,Qt::UserRole)==id)item=sketchUnderconstrained_->topLevelItem(i);
+            if(!item){item=new QTreeWidgetItem(sketchUnderconstrained_);item->setData(0,Qt::UserRole,id);}
+            const auto type=row.value("type").toString();
+            item->setText(0,type.first(1).toUpper()+type.sliced(1)+" · "+id.left(8)+(row.value("analysisKnown").toBool() ? "" : " · analysis limited"));
+            item->setToolTip(0,"Select to highlight and zoom · "+id);item->setHidden(false);
+            item->setSelected(selection.value("entityIds").toArray().contains(id));
+        }
+        for(int i=0;i<sketchUnderconstrained_->topLevelItemCount();++i){auto* item=sketchUnderconstrained_->topLevelItem(i);if(!live.contains(item->data(0,Qt::UserRole).toString())){item->setSelected(false);item->setHidden(true);}}
+    }
     const bool changed=draft!=sketchWidgetDraft_,selected=selection!=sketchWidgetSelection_,unitChanged=units!=sketchWidgetUnits_;
     if(!changed && !selected && !unitChanged)return;
     const auto parameters=draft["parameters"].toObject();const double scale=units=="in" ? 25.4 : 1;
@@ -11926,6 +11967,10 @@ void AlloyWindow::refreshSketchControls() {
             constraint["type"]=="supportLine" ? QString("support line (internal)") : constraint["type"].toString();
         for(const auto& id:constraint["entityIds"].toArray())relations[id.toString()].append(type.first(1).toUpper()+type.sliced(1));
         for(const auto& id:constraint["pointIds"].toArray())relations[id.toString()].append(type.first(1).toUpper()+type.sliced(1));
+    }
+    QMap<QString,QString> entityRoles;
+    for(const auto& row:session_.value("solverDiagnostics").toObject().value("entityRoles").toArray()){
+        const auto value=row.toObject();entityRoles.insert(value.value("entityId").toString(),value.value("role").toString());
     }
     if(changed || unitChanged) {
         const QSignalBlocker block(sketchSelectionTree_);
@@ -11972,6 +12017,8 @@ void AlloyWindow::refreshSketchControls() {
             if(entity["type"]=="conic")label=QString("Conic %1 · Rho %2").arg(index).arg(entity["rho"].toDouble(),0,'g',6);
             if(entity["type"]=="fitSpline")label=QString("Fit Point Spline %1 · Degree 5").arg(index);
             if(entity["type"]=="controlSpline")label=QString("Control Point Spline %1 · Degree %2 (maximum %3)").arg(index).arg(std::min(entity["maximumDegree"].toInt(),int(entity["pointIds"].toArray().size())-1)).arg(entity["maximumDegree"].toInt());
+            const auto role=entityRoles.value(id);
+            label+=role=="fixed" ? " · Fixed" : role=="fullyConstrained" ? " · Fully constrained" : " · Under-constrained";
             if(entity["construction"].toBool())label+=" · Construction";
             if(entity["centerline"].toBool())label+=" · Centerline";
             if(relations.contains(id))label+=" · "+relations[id].join(", ");
@@ -12122,7 +12169,7 @@ void AlloyWindow::showSketch() {
     if(sketchDock_)delete sketchDock_;
     sketchInputs_.clear();sketchInfo_=nullptr;sketchProfileInfo_=nullptr;sketchName_=nullptr;sketchCurveEntry_=nullptr;
     sketchChamferControls_=nullptr;sketchChamferDistance_=nullptr;
-    sketchSelectionTree_=nullptr;sketchFilletControls_=nullptr;sketchFilletRadius_=nullptr;sketchOffsetControls_=nullptr;sketchOffsetDistance_=nullptr;sketchMirrorControls_=nullptr;sketchMirrorSummary_=nullptr;sketchMirrorRows_=nullptr;sketchDimensionKind_=nullptr;sketchDimensionValue_=nullptr;sketchDimensionDriving_=nullptr;
+    sketchUnderconstrained_=nullptr;sketchSelectionTree_=nullptr;sketchFilletControls_=nullptr;sketchFilletRadius_=nullptr;sketchOffsetControls_=nullptr;sketchOffsetDistance_=nullptr;sketchMirrorControls_=nullptr;sketchMirrorSummary_=nullptr;sketchMirrorRows_=nullptr;sketchDimensionKind_=nullptr;sketchDimensionValue_=nullptr;sketchDimensionDriving_=nullptr;
     sketchShowConstraints_=nullptr;sketchShowDimensions_=nullptr;splineDegreeControls_=nullptr;splineCombControls_=nullptr;splineDegree_=nullptr;splineComb_=nullptr;splineCombDensity_=nullptr;splineCombScale_=nullptr;splineCombInfo_=nullptr;
     sketchDimensionList_=nullptr;sketchDimensionEdit_=nullptr;sketchDimensionMeasure_=nullptr;sketchWidgetDraft_={};sketchWidgetSelection_={};sketchWidgetUnits_.clear();
     sketchPanel_=new QWidget;sketchPanel_->setObjectName("sketchPanel");sketchPanel_->setFixedWidth(312);
@@ -12376,6 +12423,18 @@ void AlloyWindow::showSketch() {
                 if(kind=="point")points.append(id);else if(kind=="entity")entities.append(id);
             }
             sketchResponse(execute("sketch.selectionSet",{{"pointIds",points},{"entityIds",entities}}));
+        });
+        auto* statusActions=new QHBoxLayout;
+        auto* find=new QPushButton("Find Under-Constrained");find->setObjectName("sketch.findUnderconstrained");
+        auto* compute=new QPushButton("Compute Sketch");compute->setObjectName("sketch.compute");
+        statusActions->addWidget(find);statusActions->addWidget(compute);layout->addLayout(statusActions);
+        connect(find,&QPushButton::clicked,this,[this]{sketchResponse(execute("sketch.findUnderconstrained",{{"visible",!session_.value("findUnderconstrained").toBool()}}));});
+        connect(compute,&QPushButton::clicked,this,[this]{sketchResponse(execute("sketch.compute"));});
+        sketchUnderconstrained_=new QTreeWidget;sketchUnderconstrained_->setObjectName("sketch.underconstrained");
+        sketchUnderconstrained_->setMaximumHeight(120);sketchUnderconstrained_->setMinimumHeight(90);layout->addWidget(sketchUnderconstrained_);sketchUnderconstrained_->hide();
+        connect(sketchUnderconstrained_,&QTreeWidget::itemSelectionChanged,this,[this]{
+            const auto rows=sketchUnderconstrained_->selectedItems();if(rows.isEmpty())return;auto* item=rows.front();
+            sketchResponse(execute("sketch.underconstrainedSelect",{{"entityId",item->data(0,Qt::UserRole).toString()}}));
         });
         layout->addWidget(new QLabel("CONSTRAINTS"));auto* constraints=new QGridLayout;
         const QStringList types{"coincident","concentric","horizontalVertical","horizontal","vertical","parallel","collinear","perpendicular","equal","fixed","midpoint","symmetry","tangent"};

@@ -51,7 +51,7 @@ Tangents, source edit, history/reopen and GPU captures. See
 accepts switching all five Circle modes through the actual Sketch Palette:
 unfinished picks reset, committed circles persist, and the next canvas pick
 works without focus repair. See [its receipt](validation/sketch-circle-feature-options.md).
-The backlog contains 554 issues. SKT-023/#164 has four Todo children SKT-125–128/#550–553 for per-entity sketch roles, independent visibility, contextual point-relation reveal and the remaining glyph/edit inventory; their dated public-source contract is outside the repository. REL-015/#418 now accepts a packaged macOS
+The backlog contains 554 issues. SKT-023/#164 has four bounded children SKT-125–128/#550–553. SKT-125/#550 now accepts per-entity sketch roles and a live Find Under-Constrained list with native selection/zoom, mixed actual-app source edit, history/reopen and Apple M4 captures; see [its receipt](validation/sketch-entity-roles.md). Independent visibility, contextual point-relation reveal and glyph/edit inventory remain Todo under SKT-126–128; their dated public-source contract is outside the repository. REL-015/#418 now accepts a packaged macOS
 real-app/API/GPU failure-and-recovery slice and fixes a no-op over-thick open
 Shell. Five saved fixtures check atomic refusal or unavailable analysis,
 unchanged original files, valid edits, Undo/Redo and reopen; see
