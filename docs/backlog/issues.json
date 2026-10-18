@@ -9667,7 +9667,7 @@
         "phase:P2",
         "priority:P2"
       ],
-      "body": "## Bounded result\nExtend generated support-face sketches beyond the current single loopOffsets row so two independent retained loop Offset owners can coexist. Deleting a selected result removes only its exact owner while preserving the other loop, support lineage and authored source state. This is explicitly outside the single-row SKT-145 result.\n\n## Acceptance\nResearch public multi-loop selection and deletion evidence; record source/date and unknowns outside the repository. Define stable owner/profile IDs and independent support-lineage rules before coding. Create two offsets on the same face sketch through the real app; delete either by shared native/API command, verify the other survives with exact IDs/geometry, Undo/Redo, save/reopen and GPU capture. Refuse stale, mixed or downstream-consumed targets atomically. Physical input and other-platform runtime remain release gates.\n\n## Dependency\n- SKT-145\n\n## Provenance\nExplicit same-sketch multiple-owner remainder from SKT-145/#571. Current schema validates exactly one row, so sibling preservation there was qualified using a second independent sketch on the same support."
+      "body": "## Bounded result\nExtend generated support-face sketches beyond the current single loopOffsets row so two independent retained loop Offset owners can coexist. Deleting a selected result removes only its exact owner while preserving the other loop, support lineage and authored source state. This is explicitly outside the single-row SKT-145 result.\n\n## Acceptance\nResearch public multi-loop selection and deletion evidence; record source/date and unknowns outside the repository. Define stable owner/profile IDs and independent support-lineage rules before coding. Create two offsets on the same face sketch through the real app; delete either by shared native/API command, verify the other survives with exact IDs/geometry, Undo/Redo, save/reopen and GPU capture. Refuse stale, mixed or downstream-consumed targets atomically. Physical input and other-platform runtime remain release gates.\n\n## Dependency\n- SKT-145\n\n## Provenance\nExplicit same-sketch multiple-owner remainder from SKT-145/#571. Current schema validates exactly one row, so sibling preservation there was qualified using a second independent sketch on the same support.\n## Accepted 2026-10-18\nTwo independent classic annulus owners coexist in one support-face sketch. Actual-app API and native selection/Delete pass both removal orders with exact sibling/support/source preservation, source edits, one-step Undo/Redo, save/reopen, consumed-profile refusal and Apple M4 GPU captures. Both classic and planarInsetV1 pass focused core, row-order and duplicate-owner validation. Independent Astra review reran core, matched the app hash, compared four saved deletion files and inspected native/GPU evidence with no blocker. Multiple-owner planar-inset real-app/native qualification remains Todo SKT-158/#584. Coincident-owner selection, physical OS input, other-platform runtime and exact visual parity remain unqualified. Receipt: docs/validation/sketch-multiple-loop-offset-delete.md.\n"
     },
     {
       "key": "SKT-154",
@@ -9740,6 +9740,24 @@
         "priority:P2"
       ],
       "body": "## Acceptance\nResearch public row labels, membership/ordering and hover/reset/cancel behavior; keep dated provenance and unknowns outside the repository. Hover each retained row and visibly preview the intended geometry; leaving or Escape clears preview without changing committed selection, document or history. Depth and Parents show the same live model identities with correct parent relationships; hidden/unavailable targets do not silently substitute. Reuse coincident authored/projected line and circle fixtures plus one nested body/occurrence fixture. Through native input, inspect hover, grouping, choice, cancel and subsequent shared Delete with counterpart/source survival and readable GPU captures. Report exact layout/styling parity separately from functional acceptance. Split additional target families explicitly.\n\n## Dependency\n- SKT-155\n\n## Provenance\nExplicit documented Select Other presentation remainder from SKT-155/#581. Dated public evidence and bounded proposal: ../Alloy-reference-records/knowledge/specs/skt155-select-other-remainder-proposal-2026-10-18.md.\n"
+    },
+    {
+      "key": "SKT-158",
+      "title": "Qualify multiple planar-inset loop owners in one sketch",
+      "kind": "validation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P2",
+      "depends_on": [
+        "SKT-153"
+      ],
+      "labels": [
+        "kind:validation",
+        "status:ready",
+        "area:skt",
+        "phase:P2",
+        "priority:P2"
+      ],
+      "body": "## Acceptance\nUse a retained supported face with two distinct inset distances and stable lineage. Through the actual app create both owners, select/delete each generated profile in separate native runs, and check exact sibling/source/support IDs, changed source geometry, one-step Undo/Redo and save/reopen. Refuse a stale or downstream-consumed target atomically; deleting an unconsumed sibling beside a consumed profile must keep the solid exact. Inspect readable hardware GPU captures and distinguish native/API/geometry evidence. Keep arbitrary multiwire and exact reference styling outside this bounded fixture unless separately supported.\n\n## Dependency\n- SKT-153\n\n## Provenance\nExplicit unqualified real-app variant from SKT-153/#579 receipt; the same sketch's two planar-inset owners currently pass focused core only. See docs/validation/sketch-multiple-loop-offset-delete.md and external dated contract ../Alloy-reference-records/knowledge/specs/skt153-multiple-loop-owners-2026-10-18.md.\n"
     }
   ]
 }

@@ -588,3 +588,4 @@ This is a publication snapshot. Use `python3 tools/backlog.py ready` for the liv
 | [#581 SKT-155: Disambiguate overlapping authored and linked projected sketch curves](https://github.com/rje/Alloy/issues/581) | P2 Parametric modeling | implementation | P2 | [#569](https://github.com/rje/Alloy/issues/569) |
 | [#582 SKT-156: Define whole-owner Delete for multi-boundary face projections](https://github.com/rje/Alloy/issues/582) | P2 Parametric modeling | implementation | P2 | [#569](https://github.com/rje/Alloy/issues/569) |
 | [#583 SKT-157: Extend Select Other grouping and hover preview](https://github.com/rje/Alloy/issues/583) | P2 Parametric modeling | implementation | P2 | [#581](https://github.com/rje/Alloy/issues/581) |
+| [#584 SKT-158: Qualify multiple planar-inset loop owners in one sketch](https://github.com/rje/Alloy/issues/584) | P2 Parametric modeling | validation | P2 | [#579](https://github.com/rje/Alloy/issues/579) |

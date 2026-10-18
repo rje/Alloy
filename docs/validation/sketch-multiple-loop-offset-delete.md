@@ -1,7 +1,9 @@
 # Multiple support-face loop Offset owners (SKT-153 / #579)
 
-Bounded implementation and local qualification, 2026-10-18; independent review
-is pending. This extends the [single-owner contract](sketch-loop-offset-delete.md)
+Accepted bounded implementation, 2026-10-18. Independent Astra review reran
+the focused core, matched the retained binary hash, compared all four saved
+API/native deletion files and inspected the native log and GPU captures; it
+found no material blocker. This extends the [single-owner contract](sketch-loop-offset-delete.md)
 to independent retained owners within one generated-only face sketch.
 
 Repeat Offset on the same retained support boundary at a distinct distance and
@@ -82,7 +84,7 @@ post-open baseline; draft geometry is returned by commands rather than stored
 under a `sketchGeometry` session key. Those were test setup corrections.
 
 Multiple-owner `planarInsetV1` is core-qualified; its multiple-owner real-app and
-native workflow remains unqualified. The existing single-owner inset acceptance
+native workflow remains Todo SKT-158/#584. The existing single-owner inset acceptance
 is unchanged. Physical OS input, Windows/Linux runtime, display-scale/resize
 changes, arbitrary multiwire supports, offset-of-offset dependencies,
 coincident-owner native selection and exact visual parity remain unqualified.

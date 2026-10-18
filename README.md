@@ -101,17 +101,19 @@ while preserving linked support and an adjacent Offset owner.
 [Support-face loop Offset Delete](docs/validation/sketch-loop-offset-delete.md)
 now removes the selected generated profile's retained owner while preserving
 its support and an independent sketch. Consumed-profile deletion refuses before
-changing the draft; multiple owners in one sketch remain separate work.
+changing the draft. [Multiple loop owners](docs/validation/sketch-multiple-loop-offset-delete.md)
+now coexist in one supported sketch, with exact sibling preservation and
+history/reopen checks.
 [Planar-inset loop Delete](docs/validation/sketch-planar-inset-delete.md) now
 also passes on a retained 18-edge enclosure support through the real app,
-native viewport input, exact history/reopen and GPU captures. Multiple owners
-within one sketch remain open.
+native viewport input, exact history/reopen and GPU captures. The multiple-owner
+planar-inset variant still needs real-app/native qualification under SKT-158/#584.
 [Overlapping sketch selection](docs/validation/sketch-overlap-selection.md) now lets a native hold choose independently between coincident authored and projected lines/circles, with stable identity cues and checked Delete/history/reopen. Broader Select Other grouping and hover preview remain Todo.
 [Linked projection Delete](docs/validation/sketch-linked-projection-delete.md)
 now removes selected retained line, circle or point results through the shared
 sketch command, with native canvas/list/context routes, source preservation,
-dependency refusal and exact history/reopen. Overlapping curve selection and
-multi-boundary face projection remain separate Todo work.
+dependency refusal and exact history/reopen. Multi-boundary face projection
+remains separate Todo work.
 
 Current priority: [initial-build readiness](docs/initial-build-readiness.md)—
 familiar navigation, reliable everyday controls, recovery and installable packages,
