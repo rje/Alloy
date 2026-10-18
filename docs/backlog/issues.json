@@ -9503,7 +9503,6 @@
       ],
       "labels": [
         "kind:implementation",
-        "status:ready",
         "area:skt",
         "phase:P2",
         "priority:P1"
