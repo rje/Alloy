@@ -4847,8 +4847,8 @@ void AlloyWindow::registerCommands() {
     constraintType["enum"]=QJsonArray{"coincident","concentric","horizontal","vertical","horizontalVertical","parallel","collinear","perpendicular","equal","fixed","midpoint","symmetry","tangent","pointOnCurve"};
     auto constraintToolType=constraintType;
     constraintToolType["enum"]=QJsonArray{"coincident","concentric","horizontal","vertical","horizontalVertical","parallel","collinear","perpendicular","equal","fixed","midpoint","symmetry","tangent"};
-    auto tangentEndpoint=parameter("string","Explicit arc endpoint for arc-circle Tangent. Omit for interior curve contact.");
-    tangentEndpoint["enum"]=QJsonArray{"start","end"};
+    auto tangentEndpoint=parameter("string","Explicit arc endpoint to circle, or first:second endpoint roles for two arc picks. Omit for interior contact.");
+    tangentEndpoint["enum"]=QJsonArray{"start","end","start:start","start:end","end:start","end:end"};
     add("sketch.constraintTool","Activate sketch constraint","Apply compatible preselection, then repeatedly pick geometry; Escape returns to Select.",{{"type",constraintToolType},{"endpoint",optional(tangentEndpoint)},{"session",optionalSession}},[this](const auto& a){
         if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
         if(a.contains("session") && a["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
@@ -10909,8 +10909,12 @@ QJsonObject AlloyWindow::setSketchSelection(const QJsonObject& selection) {
                 return rejectPick("wrong_type",label+" requires authored lines, circles or arcs");
         }
         if(constraintType=="tangent" && session_.contains("tangentEndpoint")){
+            if(session_.value("tangentEndpoint").toString().contains(':')){
+                for(const auto& kind:types)if(kind!="arc")return rejectPick("wrong_type","Endpoint join requires two authored arcs");
+            }else {
             for(const auto& kind:types)if(kind!="arc" && kind!="circle")return rejectPick("wrong_type","Endpoint contact needs one arc and one full circle");
             if(types.size()==2 && !(types.contains("arc") && types.contains("circle")))return rejectPick("unsupported_pair","Endpoint contact needs one arc and one full circle");
+            }
         }
         if(types.size()>=2){
             const auto first=types[0],second=types[1];
@@ -10962,6 +10966,10 @@ QJsonObject AlloyWindow::setSketchSelection(const QJsonObject& selection) {
             : QString("%1 · Pick %2 %3 · Escape exits").arg(label).arg(targets.isEmpty() ? "first" : "next").arg(field=="pointIds" ? "point" : "curve");
         if(type=="tangent" && session_.contains("tangentEndpoint"))session_["constraintPrompt"]=QString("Tangent · Arc %1 endpoint to circle · %2 · Escape exits")
             .arg(session_.value("tangentEndpoint").toString()).arg(targets.isEmpty() ? "Pick arc or circle" : "Pick matching arc or circle");
+        if(type=="tangent" && session_.value("tangentEndpoint").toString().contains(':')){
+            const auto roles=session_.value("tangentEndpoint").toString().split(':');
+            session_["constraintPrompt"]=QString("Tangent · Pick %1 arc %2 · Escape exits").arg(targets.isEmpty() ? "first" : "second").arg(roles[targets.isEmpty() ? 0 : 1]);
+        }
         if(targets.size()>required)return failure("invalid_constraint_target",QString("%1 requires %2 targets").arg(label).arg(required));
         if(type=="symmetry" && !normalized["pointIds"].toArray().isEmpty())return failure("invalid_constraint_target","Symmetry requires line, circle or arc picks");
         if(field=="entityIds")for(int index=0;index<targets.size();++index)for(const auto& entry:parameters["entities"].toArray()) {
@@ -11913,7 +11921,7 @@ void AlloyWindow::refreshSketchControls() {
     QMap<QString,QStringList> relations;
     for(const auto& entry:parameters["constraints"].toArray()) {
         const auto constraint=entry.toObject();const auto type=constraint["type"]=="pointOnCurve" ? QString("coincident") :
-            (constraint["type"]=="arcTangent" || constraint["type"]=="circleTangent" || constraint["type"]=="arcEndpointCircleTangent" || constraint["type"]=="arcCircleTangent" || constraint["type"]=="arcArcTangent") ? QString("tangent") :
+            (constraint["type"]=="arcTangent" || constraint["type"]=="circleTangent" || constraint["type"]=="arcEndpointArcTangent" || constraint["type"]=="arcEndpointCircleTangent" || constraint["type"]=="arcCircleTangent" || constraint["type"]=="arcArcTangent") ? QString("tangent") :
             constraint["type"]=="supportLine" ? QString("support line (internal)") : constraint["type"].toString();
         for(const auto& id:constraint["entityIds"].toArray())relations[id.toString()].append(type.first(1).toUpper()+type.sliced(1));
         for(const auto& id:constraint["pointIds"].toArray())relations[id.toString()].append(type.first(1).toUpper()+type.sliced(1));
@@ -12389,6 +12397,8 @@ void AlloyWindow::showSketch() {
         auto* tangentOptions=new QWidget;tangentOptions->setObjectName("sketch.tangent.options");auto* tangentLayout=new QFormLayout(tangentOptions);
         tangentLayout->setContentsMargins(0,0,0,0);auto* tangentContact=new QComboBox;tangentContact->setObjectName("sketch.tangent.contact");
         tangentContact->addItem("Curve Interior",QString{});tangentContact->addItem("Arc Start to Circle","start");tangentContact->addItem("Arc End to Circle","end");
+        for(const auto& first:{QString("start"),QString("end")})for(const auto& second:{QString("start"),QString("end")})
+            tangentContact->addItem(QString("Arc %1 to Arc %2").arg(first,second),first+":"+second);
         tangentLayout->addRow("Contact",tangentContact);layout->addWidget(tangentOptions);tangentOptions->hide();
         connect(tangentContact,&QComboBox::currentIndexChanged,this,[this,tangentContact]{
             QJsonObject args;const auto endpoint=tangentContact->currentData().toString();if(!endpoint.isEmpty())args["endpoint"]=endpoint;

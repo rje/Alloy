@@ -7,10 +7,10 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current local backlog contains **550 issues**: **433 implementation, 23 research,
+The current local backlog contains **554 issues**: **436 implementation, 24 research,
 1 research/design, 22 epics, and 71 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
-SKT-115–121 and SKT-123–124/#540–546, #548–549 split v1 analytic constraint pairs and endpoint contacts under SKT-022/#163; SKT-122/#547 retains later multi-pair Symmetry semantics.
+SKT-115–121 and SKT-123–124/#540–546, #548–549 are accepted analytic constraint pairs and endpoint contacts; SKT-129/#554 retains distinct-ID arc/line endpoint Tangent before SKT-022/#163 can close. SKT-122/#547 and SKT-130–132/#555–557 retain later multi-pair Symmetry, spline constraints and branch-control research.
 SKT-125–128/#550–553 split per-entity sketch status, visibility, contextual point relations and glyph/edit coverage under SKT-023/#164.
 SKT-114/#538 retains crossing-line Chamfer kept-side selection after the
 accepted connected-corner modes. REL-050/#539 retains physical/native failure
@@ -29,7 +29,8 @@ broader parent issues must be split when pulled; see
 The user's first-v1 scope decision requires 3MF export and modeled printable
 threads. XCH-011/#524 has a bounded [Core 3MF export receipt](../validation/3mf-export.md)
 with actual app/native/independent consumer evidence; XCH-005 retains import
-and extensions. SOL-059/#504 owns modeled threads and remains Todo.
+and extensions. SOL-059/#504 has a bounded
+[modeled external Thread receipt](../validation/modeled-external-thread.md).
 SKT-102/#525 preserves spline, ellipse, conic and grouped/derived geometry
 deletion after the [accepted ordinary line/circle/arc/point SKT-099 slice](../validation/sketch-geometry-delete.md).
 DOC-016/#167 has a bounded [native exchange-sheet receipt](../validation/native-exchange-sheet.md);

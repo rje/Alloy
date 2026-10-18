@@ -293,6 +293,14 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
                 auto& p = point(reference(constraint,"pointIds",0));
                 solver.addConstraintEqual(p.x,constant(number(constraint,"uMm")),t);
                 solver.addConstraintEqual(p.y,constant(number(constraint,"vMm")),t);
+            } else if(type=="arcEndpointArcTangent") {
+                auto& a=circumference(reference(constraint,"entityIds",0));auto& b=circumference(reference(constraint,"entityIds",1));
+                const auto contacts=constraint["contacts"].toArray();
+                auto& endpoint=point(contacts[0].toObject()["pointId"].toString());
+                if(contacts[0].toObject()["pointId"]!=contacts[1].toObject()["pointId"])
+                    solver.addConstraintP2PCoincident(endpoint,point(contacts[1].toObject()["pointId"].toString()),t);
+                GCS::Line centers;centers.p1=a.center;centers.p2=b.center;
+                solver.addConstraintPointOnLine(endpoint,centers,t);
             } else if(type=="arcEndpointCircleTangent") {
                 auto& a=circumference(reference(constraint,"entityIds",0));auto& b=circumference(reference(constraint,"entityIds",1));
                 auto& endpoint=point(constraint["contact"].toObject()["pointId"].toString());
@@ -609,12 +617,26 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
                 check(*vertex.x-*anchor.x-number(c,"offsetUMm"),lengthTolerance);check(*vertex.y-*anchor.y-number(c,"offsetVMm"),lengthTolerance);
             }
             else if(type=="fixed") {const auto& p=point(reference(c,"pointIds",0));check(*p.x-number(c,"uMm"),lengthTolerance);check(*p.y-number(c,"vMm"),lengthTolerance);}
-            else if(type=="circleTangent" || type=="arcCircleTangent" || type=="arcEndpointCircleTangent" || type=="arcArcTangent") {
+            else if(type=="circleTangent" || type=="arcCircleTangent" || type=="arcEndpointCircleTangent" || type=="arcEndpointArcTangent" || type=="arcArcTangent") {
                 const auto& a=circumference(reference(c,"entityIds",0));const auto& b=circumference(reference(c,"entityIds",1));
                 const double distance=std::hypot(*a.center.x-*b.center.x,*a.center.y-*b.center.y);
                 require(distance>=minimumLength,"Circle tangent centers became coincident");
                 if(number(c,"side")<0)require(*a.rad>*b.rad,"Internal tangent outer circle changed");
                 check(distance-(*a.rad+number(c,"side") * *b.rad),lengthTolerance);
+                if(type=="arcEndpointArcTangent"){
+                    const auto contacts=c["contacts"].toArray();
+                    auto outward=[](const QJsonObject& contact){return contact["sweepSign"].toInt()*(contact["endpoint"]=="start" ? 1 : -1);};
+                    require((number(c,"side")<0 ? 1 : -1)*outward(contacts[0].toObject())*outward(contacts[1].toObject())==-1,
+                        "Endpoint join lost its oriented smooth branch");
+                }
+                if(type=="arcEndpointArcTangent")for(int index=0;index<2;++index){
+                    const auto& arc=arcMap.at(reference(c,"entityIds",index));const auto& other=index==0 ? b : a;
+                    const auto contact=c["contacts"].toArray()[index].toObject();const auto& endpoint=point(contact["pointId"].toString());
+                    require(number(contact,"sweepSign")*(*arc.endAngle-*arc.startAngle)>0,"Endpoint join reversed its retained sweep");
+                    const double direction=number(c,"side")<0 && index==1 ? -1 : 1;
+                    check(*endpoint.x-(*arc.center.x+direction*(*other.center.x-*arc.center.x) * *arc.rad/distance),lengthTolerance);
+                    check(*endpoint.y-(*arc.center.y+direction*(*other.center.y-*arc.center.y) * *arc.rad/distance),lengthTolerance);
+                }
                 if(type=="arcEndpointCircleTangent"){
                     const bool firstArc=arcMap.contains(reference(c,"entityIds",0));
                     const auto& arc=arcMap.at(reference(c,"entityIds",firstArc ? 0 : 1));const auto& other=firstArc ? b : a;

@@ -56,7 +56,8 @@ private slots:
         QTest::mouseClick(contact,Qt::LeftButton);QTRY_VERIFY(QApplication::activePopupWidget());QTRY_VERIFY(contact->view()->isVisible());
         QTRY_COMPARE(QApplication::focusWidget(),static_cast<QWidget*>(contact->view()));
         // Native combo popup owns keyboard focus; choose its role and observe closure.
-        QTest::keyClick(contact->view(),role=="start" ? Qt::Key_Down : Qt::Key_End);
+        QTest::keyClick(contact->view(),Qt::Key_Home);
+        for(int i=0;i<contact->findData(role);++i)QTest::keyClick(contact->view(),Qt::Key_Down);
         QTest::keyClick(contact->view(),Qt::Key_Return);
         QTRY_VERIFY(!QApplication::activePopupWidget());QCOMPARE(session(window)["tangentEndpoint"].toString(),role);
         QTRY_COMPARE(QApplication::focusWidget(),static_cast<QWidget*>(view));

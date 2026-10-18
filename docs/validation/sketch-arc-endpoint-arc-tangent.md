@@ -1,0 +1,24 @@
+# Explicit arc-endpoint join Tangent — SKT-124
+
+Accepted 2026-10-18 after independent cumulative compatibility review. This bounded Alloy workflow joins explicitly chosen start/end roles of two distinct authored finite arcs. Exact reference endpoint-pick semantics and matched visual parity remain unknown. The external permitted-source contract is `../Alloy-reference-records/knowledge/specs/skt-022-endpoint-curved-tangent-2026-10-18.md`.
+
+Activate Tangent and choose **Arc start to Arc start**, **Arc start to Arc end**, **Arc end to Arc start**, or **Arc end to Arc end** in Contact. Roles apply to first and second canvas picks respectively; either arc may be picked first. Changing Contact clears pending picks. The second valid pick commits immediately, Tangent stays active, and Escape returns to Select. The existing Curve Interior and endpoint-to-circle modes remain separate. The shared `sketch.constraintTool`, `sketch.tangentContact`, and direct `sketch.constraint` commands accept `endpoint: "start:start"|"start:end"|"end:start"|"end:end"`; direct constraint arguments specify their own mode. `activeSession.tangentEndpoint` exposes the current tool choice.
+
+The authored `arcEndpointArcTangent` relation retains canonical `entityIds`, `side` (external `1`, internal `-1`), and ordered `contacts: [{endpoint, pointId, sweepSign}, ...]`. The support-circle branch uses the established nearest-branch policy, refusing coincident centers or tied ambiguity. Selected endpoints coincide and their radial vectors align. For orientation, each arc's outward tangent ray leaves the selected endpoint toward its opposite end; a smooth join requires those outward rays to oppose. Initial cusps refuse. Branch, endpoint roles and signed sweeps retain that orientation through edits, without switching endpoints. Existing shared point IDs are reused; distinct endpoint IDs receive an actual coincidence equation. Every solve independently checks retained endpoint contact, branch and signed sweeps.
+
+The focused kernel gate passes 64 combinations of all four endpoint pairings, both pick orders, both sweep signs, external/internal contact and shared/distinct endpoint identities. Duplicate relation, initial cusp, corrupted orientation and reversed source sweep refuse. The real application fixture uses radii 10 and 8 mm with a shared smooth join, edits 8→10 mm, independently checks coincidence, radial alignment, opposing outward tangents, signed sweeps, separate opposite endpoints and unchanged retained relation. An incompatible 30 mm center separation refuses without draft/document mutation. Document Undo/Redo and exact authored save/reopen pass (54 API calls).
+
+Native Qt checks pass all eight pairing/order rows (10/10 including setup/cleanup): popup focus/keyboard choice and closure, consecutive canvas picks, badge selection/Delete and Undo without inter-step focus repair. API and native captures were inspected. They show smooth arcs, the shared endpoint, visible Tangent badge, readable Contact choice and, in the final API capture, both radius/sweep labels. This is an open relation fixture; no downstream closed profile is claimed. Hardware capture identifies Apple / Apple M4 / OpenGL `4.1 Metal - 90.5`, logical viewport 872×566, framebuffer 1744×1132. Physical hand input and other-platform runtime remain unqualified.
+
+Reproduce using `build-preview-release` (Release, AppleClang 17, Qt 6.11.2 private runtime, OCCT 7.9.3):
+
+```sh
+cmake --build build-preview-release --target alloy sketch_arc_endpoint_arc_tangent_test sketch_arc_endpoint_arc_tangent_controls_test -j 5
+build-preview-release/sketch_arc_endpoint_arc_tangent_test
+python3 tests/sketch_arc_endpoint_arc_tangent_api.py --app build-preview-release/alloy.app/Contents/MacOS/alloy --output /absolute/evidence/api
+ALLOY_SKETCH_ARC_ENDPOINT_ARC_EVIDENCE=/absolute/evidence/native build-preview-release/sketch_arc_endpoint_arc_tangent_controls_test
+```
+
+Evidence: `../Alloy-reference-records/validation/sketch-arc-endpoint-arc-tangent-2026-10-18/`, final API run `api02` (model, transcript, GPU state and captures), native `native01` (16 contact/restored-badge captures). `api01` passed but had a partially clipped sweep annotation; `api02` moves annotations into view. Native evidence labels were clarified from the inherited `circle-first` to `second-arc-first`; only names changed afterward. All private app/test processes closed. Build, kernel, API/history, native input and capture evidence remain distinct.
+
+Independent Astra review accepted the bounded retained join, solver and real-app/native evidence without a material blocker. Reference endpoint-pick semantics, matched styling, physical input and other-platform runtime remain unknown. Parent SKT-022/#163 stays open for distinct-ID arc/line endpoint Tangent under SKT-129/#554; later multi-pair Symmetry remains SKT-122/#547.

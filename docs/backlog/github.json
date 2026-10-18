@@ -2691,7 +2691,7 @@
     "SKT-124": {
       "number": 549,
       "url": "https://github.com/rje/Alloy/issues/549",
-      "state": "open"
+      "state": "closed"
     },
     "SKT-125": {
       "number": 550,
@@ -2711,6 +2711,26 @@
     "SKT-128": {
       "number": 553,
       "url": "https://github.com/rje/Alloy/issues/553",
+      "state": "open"
+    },
+    "SKT-129": {
+      "number": 554,
+      "url": "https://github.com/rje/Alloy/issues/554",
+      "state": "open"
+    },
+    "SKT-130": {
+      "number": 555,
+      "url": "https://github.com/rje/Alloy/issues/555",
+      "state": "open"
+    },
+    "SKT-131": {
+      "number": 556,
+      "url": "https://github.com/rje/Alloy/issues/556",
+      "state": "open"
+    },
+    "SKT-132": {
+      "number": 557,
+      "url": "https://github.com/rje/Alloy/issues/557",
       "state": "open"
     }
   }

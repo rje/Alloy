@@ -1474,7 +1474,8 @@
         "SKT-120",
         "SKT-121",
         "SKT-123",
-        "SKT-124"
+        "SKT-124",
+        "SKT-129"
       ],
       "labels": [
         "kind:implementation",
@@ -1482,7 +1483,7 @@
         "priority:P1",
         "area:skt"
       ],
-      "body": "## Problem and result\nFinish the explicitly deferred portion of SKT-007.\n\n## Scope\n- Concentric, collinear and symmetry solver/UI support on declared lines/circles/arcs.\n- Complete explicit tangent authoring and supported-combination controls beyond accepted inference/fillet paths.\n- Visible status and disabled unsupported combinations with explanation.\n\n## Acceptance criteria\n- Rounded slot with equal radii and centerline symmetry survives moving a remaining DOF, source edits and reopen.\n- Each added family has retained IDs, visible status and one meaningful redundancy/conflict refusal preserving geometry.\n- UI and API share authoritative commands and state. Retain stable references, atomic failure, unit correctness, undo/redo and native save/reopen where the operation authors data. Verify the real workflow proportionately; distinguish API, native input, geometry and visuals.\n\n## Split provenance\nSplit from #34 on 2026-10-12. The original now records only the independently accepted subset; this task retains the remaining requirements. Public evidence and uncertainty remain in the external knowledge archive and existing command contracts.\n\n## Status\nTodo. Accepted family slices are linked below; remaining scope is split into bounded children.\n\n\n## Advanced tutorial child\nSKT-068 owns the bounded constrain an arc midpoint to an attached path endpoint slice. This parent retains all remaining scope and stays Todo.\n\n## Line symmetry child\nSKT-079 owns a retained two-existing-line Symmetry relation about a construction axis. This parent retains all broader scope and remains Todo.\n\n## Explicit tangent child\nSKT-080 owns shared-endpoint arc-line Tangent authoring. Broader tangent combinations and all other remaining families stay here.\n\n## Collinear child\nSKT-081 owns two authored straight-line Collinear, shared or separated endpoints. Broader targets and all remaining families stay here.\n\n## Existing-circle Tangent child\nSKT-082 owns explicit circle/straight-line Tangent authoring through existing solver authority. Broader curves and all other remaining scope stay here.\n\n## 2026-10-18 remainder split\nAccepted prior children cover circle/arc Concentric, two-line Collinear, two-line Symmetry, shared-endpoint arc-line Tangent and finite circle-line Tangent. Remaining children: SKT-115/#540 arc-pair rounded-slot Symmetry; SKT-116/#541 circle-circle Tangent; SKT-117/#542 interior arc-line Tangent; SKT-118/#543 unsupported-pair feedback. This parent stays Todo until the children and cumulative acceptance are reconciled. Arc-circle/arc-arc Tangent and circle/multi-entity Symmetry need a separate disposition if those children do not cover them. External dated gap contract: `../Alloy-reference-records/knowledge/specs/skt-022-remaining-analytic-constraints-2026-10-18.md`.\n\n## 2026-10-18 curve-pair follow-up\nDated public-source disposition creates v1 children SKT-119/#544 arc-circle Tangent, SKT-120/#545 arc-arc Tangent and SKT-121/#546 circle-circle Symmetry. Multi-pair one-shot Symmetry semantics remain unknown and move to later-roadmap SKT-122/#547. Do not close this parent until the v1 pair children and SKT-118 matrix are reconciled. External contract: `../Alloy-reference-records/knowledge/specs/skt-022-remaining-curve-pairs-2026-10-18.md`.\n\n## Independent cumulative review \u2014 2026-10-18\nAstra accepted the seven bounded children but found that SKT-119/120 explicitly refuse contact at finite arc endpoints. Explicit endpoint arc-circle Tangent is supported by public tutorial evidence, and arc-endpoint/arc-endpoint Tangent remains an Alloy v1 scope choice with unknown native pick semantics. Linked Todo children SKT-123/#548 and SKT-124/#549 retain these requirements; this parent stays Todo until they are accepted or explicitly disposed. External dated contract: `../Alloy-reference-records/knowledge/specs/skt-022-endpoint-curved-tangent-2026-10-18.md`.\n"
+      "body": "## Problem and result\nFinish the explicitly deferred portion of SKT-007.\n\n## Scope\n- Concentric, collinear and symmetry solver/UI support on declared lines/circles/arcs.\n- Complete explicit tangent authoring and supported-combination controls beyond accepted inference/fillet paths.\n- Visible status and disabled unsupported combinations with explanation.\n\n## Acceptance criteria\n- Rounded slot with equal radii and centerline symmetry survives moving a remaining DOF, source edits and reopen.\n- Each added family has retained IDs, visible status and one meaningful redundancy/conflict refusal preserving geometry.\n- UI and API share authoritative commands and state. Retain stable references, atomic failure, unit correctness, undo/redo and native save/reopen where the operation authors data. Verify the real workflow proportionately; distinguish API, native input, geometry and visuals.\n\n## Split provenance\nSplit from #34 on 2026-10-12. The original now records only the independently accepted subset; this task retains the remaining requirements. Public evidence and uncertainty remain in the external knowledge archive and existing command contracts.\n\n## Status\nTodo. The accepted line/circle/arc children have one explicit arc-line distinct-endpoint remainder SKT-129/#554 before cumulative closure. Later spline and branch-control families have separate owners.\n\n\n## Advanced tutorial child\nSKT-068 owns the bounded constrain an arc midpoint to an attached path endpoint slice. This parent retains all remaining scope and stays Todo.\n\n## Line symmetry child\nSKT-079 owns a retained two-existing-line Symmetry relation about a construction axis. This parent retains all broader scope and remains Todo.\n\n## Explicit tangent child\nSKT-080 owns shared-endpoint arc-line Tangent authoring. Broader tangent combinations and all other remaining families stay here.\n\n## Collinear child\nSKT-081 owns two authored straight-line Collinear, shared or separated endpoints. Broader targets and all remaining families stay here.\n\n## Existing-circle Tangent child\nSKT-082 owns explicit circle/straight-line Tangent authoring through existing solver authority. Broader curves and all other remaining scope stay here.\n\n## 2026-10-18 remainder split\nAccepted prior children cover circle/arc Concentric, two-line Collinear, two-line Symmetry, shared-endpoint arc-line Tangent and finite circle-line Tangent. Remaining children: SKT-115/#540 arc-pair rounded-slot Symmetry; SKT-116/#541 circle-circle Tangent; SKT-117/#542 interior arc-line Tangent; SKT-118/#543 unsupported-pair feedback. This parent stays Todo until the children and cumulative acceptance are reconciled. Arc-circle/arc-arc Tangent and circle/multi-entity Symmetry need a separate disposition if those children do not cover them. External dated gap contract: `../Alloy-reference-records/knowledge/specs/skt-022-remaining-analytic-constraints-2026-10-18.md`.\n\n## 2026-10-18 curve-pair follow-up\nDated public-source disposition creates v1 children SKT-119/#544 arc-circle Tangent, SKT-120/#545 arc-arc Tangent and SKT-121/#546 circle-circle Symmetry. Multi-pair one-shot Symmetry semantics remain unknown and move to later-roadmap SKT-122/#547. Do not close this parent until the v1 pair children and SKT-118 matrix are reconciled. External contract: `../Alloy-reference-records/knowledge/specs/skt-022-remaining-curve-pairs-2026-10-18.md`.\n\n## Independent cumulative review \u2014 2026-10-18\nAstra accepted the seven bounded children but found that SKT-119/120 explicitly refuse contact at finite arc endpoints. Explicit endpoint arc-circle Tangent is supported by public tutorial evidence, and arc-endpoint/arc-endpoint Tangent remains an Alloy v1 scope choice with unknown native pick semantics. Linked Todo children SKT-123/#548 and SKT-124/#549 retain these requirements; this parent stays Todo until they are accepted or explicitly disposed. External dated contract: `../Alloy-reference-records/knowledge/specs/skt-022-endpoint-curved-tangent-2026-10-18.md`.\n\n## Cumulative review \u2014 2026-10-18\nSKT-115\u2013121 and SKT-123\u2013124 are accepted, including curved endpoint contact and unsupported-pair feedback. A second independent Astra audit found distinct but geometrically coincident arc/line endpoints remain unsupported: SKT-129/#554 owns that bounded v1 gap. Keep this parent Todo until its acceptance and final review. Later one-shot multi-pair Symmetry remains SKT-122/#547; spline Tangent/Symmetry and explicit branch-choice research are SKT-130\u2013132/#555\u2013557. Exact reference input/styling and physical/other-platform runtime remain unknown.\n"
     },
     {
       "key": "SKT-023",
@@ -9117,7 +9118,7 @@
         "phase:P2",
         "priority:P1"
       ],
-      "body": "## Bounded result\nAdd a retained Tangent relation between explicitly selected endpoint roles of two distinct authored finite arcs. Enforce the selected endpoints' coincidence and tangent-line alignment through edits, preserving both endpoint IDs and the oriented join branch. Keep interior arc-pair Tangent separate.\n\n## Acceptance\nUse two different-radius arcs initially sharing one selected smooth endpoint with other ends visibly separate. Expose explicit endpoint role selection through shared command/API/native controls, test both offered pick orders, and verify radius or center edit preserves same join and signed finite sweeps. An incompatible edit refuses atomically. Check stable relation ID, badge selection/deletion, Undo/Redo, exact authored save/reopen and real GPU capture. Focused solver plus one real-app fixture; profile optional.\n\n## Evidence boundary\nPair-specific native endpoint pick semantics are not resolved by current public sources, so document the selected Alloy policy and do not claim exact reference parity. Dated research: `../Alloy-reference-records/knowledge/specs/skt-022-endpoint-curved-tangent-2026-10-18.md`.\n\n## Parent\nSKT-022/#163 retains cumulative analytic-family closure; this child owns the named explicit endpoint remainder.\n\n## Dependencies\n- SKT-120/#545\n- SKT-123/#548\n"
+      "body": "## Bounded result\nAdd a retained Tangent relation between explicitly selected endpoint roles of two distinct authored finite arcs. Enforce the selected endpoints' coincidence and tangent-line alignment through edits, preserving both endpoint IDs and the oriented join branch. Keep interior arc-pair Tangent separate.\n\n## Acceptance\nUse two different-radius arcs initially sharing one selected smooth endpoint with other ends visibly separate. Expose explicit endpoint role selection through shared command/API/native controls, test both offered pick orders, and verify radius or center edit preserves same join and signed finite sweeps. An incompatible edit refuses atomically. Check stable relation ID, badge selection/deletion, Undo/Redo, exact authored save/reopen and real GPU capture. Focused solver plus one real-app fixture; profile optional.\n\n## Evidence boundary\nPair-specific native endpoint pick semantics are not resolved by current public sources, so document the selected Alloy policy and do not claim exact reference parity. Dated research: `../Alloy-reference-records/knowledge/specs/skt-022-endpoint-curved-tangent-2026-10-18.md`.\n\n## Parent\nSKT-022/#163 retains cumulative analytic-family closure; this child owns the named explicit endpoint remainder.\n\n## Dependencies\n- SKT-120/#545\n- SKT-123/#548\n\n## Bounded acceptance \u2014 2026-10-18\nExplicit endpoint pair Contact modes pass 64 focused combinations, 54-call real-app source edit/refusal/Undo/Redo/exact reopen, eight native role/order rows, badge lifecycle and inspected Apple M4 GPU captures. Initial cusps and sweep reversals refuse. Independent Astra review accepted the bounded contract; exact reference pick/visual parity and physical input remain unknown. Receipt: docs/validation/sketch-arc-endpoint-arc-tangent.md.\n"
     },
     {
       "key": "SKT-125",
@@ -9188,6 +9189,77 @@
         "priority:P1"
       ],
       "body": "## Bounded result\nInventory the documented glyph families exposed by implemented sketch relations: point-on-curve Coincident, Horizontal/Vertical, Parallel, Perpendicular, Equal, Tangent, Concentric, Midpoint, Collinear, Symmetric and Fix/Unfix. For one compact mixed fixture, check glyph identity, selection/highlight of affected geometry and the supported edit/delete action for each family. Reuse accepted badge and dimension controls; do not create a permanent point-point Coincident glyph or repeat accepted dimension work. Split any concrete unsupported family into linked Todo before closing.\n\n## Evidence and limits\nDated public-source contract: `../Alloy-reference-records/knowledge/specs/skt-023-sketch-freedom-presentation-split-2026-10-18.md`. Preserve the accepted SKT-008/#35 subset. Use one real Alloy fixture, native input without focus repair, shared API state, authored undo/reopen and inspected hardware-GPU capture. Exact color pixels and unsupported current-version behavior remain unknown. Parent: SKT-023/#164.\n\n## Dependencies\n- SKT-008\n- SKT-022\n"
+    },
+    {
+      "key": "SKT-129",
+      "title": "Retain Tangent between distinct coincident arc and line endpoints",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-080",
+        "SKT-117"
+      ],
+      "labels": [
+        "kind:implementation",
+        "area:skt",
+        "phase:P2",
+        "priority:P1"
+      ],
+      "body": "## Bounded result\nExtend shared Tangent to an authored finite arc endpoint and finite line endpoint that have distinct stable point IDs but meet geometrically. Keep the existing shared-ID and strictly interior arc-line modes separate. Expose explicit arc start/end and line start/end roles in native/API input; retain both point IDs, side/oriented join and an actual coincidence/tangent relation through source edits, without swapping endpoints.\n\nOne edited plate fixture must preserve the intended closed profile and downstream solid if its separate endpoint IDs are needed for topology. Test both curve pick orders, one radius/line source edit, atomic incompatible edit refusal, badge Delete, Undo/Redo, exact save/reopen and hardware GPU capture. Focused solver and one real-app/native workflow suffice. Public identity/pick semantics remain unknown; document the bounded Alloy policy. Dated source contract: `../Alloy-reference-records/knowledge/specs/skt-022-distinct-arc-line-endpoint-2026-10-18.md`. Parent SKT-022/#163 remains Todo until acceptance.\n\n## Dependencies\n- SKT-080\n- SKT-117\n"
+    },
+    {
+      "key": "SKT-130",
+      "title": "Support authored spline Tangent constraints",
+      "kind": "implementation",
+      "phase": "P6 Advanced modeling",
+      "priority": "P2",
+      "depends_on": [
+        "SKT-059",
+        "SKT-022"
+      ],
+      "labels": [
+        "kind:implementation",
+        "area:skt",
+        "phase:P6",
+        "priority:P2"
+      ],
+      "body": "## Bounded result\nResearch a specific public spline Tangent workflow, then implement one bounded retained authoring case between a fit spline and an eligible line or arc. Preserve source fit points/handles, stable relation IDs, edit propagation, atomic conflict refusal, native/shared API controls, Undo/Redo and reopen. Record exact supported contact/continuity mode and split other curve pairs into linked Todo tasks. This long-term family is outside the declared line/circle/arc v1 analytic scope; do not claim all spline tangency.\n\n## Dependencies\n- SKT-059\n- SKT-022\n"
+    },
+    {
+      "key": "SKT-131",
+      "title": "Support authored spline symmetry constraints",
+      "kind": "implementation",
+      "phase": "P6 Advanced modeling",
+      "priority": "P2",
+      "depends_on": [
+        "SKT-059",
+        "SKT-022"
+      ],
+      "labels": [
+        "kind:implementation",
+        "area:skt",
+        "phase:P6",
+        "priority:P2"
+      ],
+      "body": "## Bounded result\nResearch a specific public two-spline Symmetry workflow and correspondence rule before coding. Implement a bounded pair about a construction axis with stable fit-point/handle correspondence, source edit, conflict refusal, native/shared API controls, Undo/Redo and reopen. Split remaining spline configurations into linked Todo work. This is later-roadmap scope beyond the accepted line/circle/arc v1 family.\n\n## Dependencies\n- SKT-059\n- SKT-022\n"
+    },
+    {
+      "key": "SKT-132",
+      "title": "Define explicit Tangent branch-choice controls",
+      "kind": "research",
+      "phase": "P6 Advanced modeling",
+      "priority": "P2",
+      "depends_on": [
+        "SKT-022"
+      ],
+      "labels": [
+        "kind:research",
+        "area:skt",
+        "phase:P6",
+        "priority:P2"
+      ],
+      "body": "## Bounded result\nUse permitted public docs/screenshots/tutorials to determine when users can choose alternate Tangent branches during existing-geometry constraint authoring, including selection order, preview and edit behavior. Record documented versus inferred versus unknown behavior, then create bounded implementation owners for branch controls actually supported by evidence or a deliberate Alloy policy. Existing accepted pair modes retain a documented nearest-initial-branch policy; this research does not imply exact reference parity.\n\n## Dependencies\n- SKT-022\n"
     }
   ]
 }
