@@ -1,19 +1,19 @@
 {
   "schema_version": 1,
   "audit": {
-    "retrieved_at_utc": "2026-10-17T23:48:53Z",
+    "retrieved_at_utc": "2026-10-18T00:07:17Z",
     "repository": "rje/Alloy",
     "source": "GitHub REST issues API via gh; all pages, state=all, pull requests excluded",
     "local_backlog": "docs/backlog/issues.json",
-    "local_issue_count": 480,
-    "live_issue_count": 480,
+    "local_issue_count": 484,
+    "live_issue_count": 484,
     "live_state_counts": {
-      "closed": 330,
-      "open": 150
+      "closed": 332,
+      "open": 152
     },
     "bucket_counts": {
-      "supporting-evidence": 330,
-      "v1-blocker": 44,
+      "supporting-evidence": 332,
+      "v1-blocker": 46,
       "v1-candidate": 57,
       "later-roadmap": 47,
       "needs-review": 2
@@ -21,8 +21,8 @@
     "readiness_command": "python3 tools/backlog.py ready",
     "readiness_result": "Historical ready count below predates reconciliation: 36 ready at original audit.",
     "closed_issue_policy": "Closed issues are supporting evidence only; they do not establish family-wide or cumulative release readiness.",
-    "tut018_policy": "Reopened; user-rejected shape is not accepted. TUT-034 owns corrective work.",
-    "reconciled_at": "2026-10-17 after REL-035/REL-036 acceptance and REL-037 measured final presentation follow-up"
+    "tut018_policy": "Corrected adapted tutorial independently accepted at ffe84b5; source dimensions/native input and responsiveness remain qualified.",
+    "reconciled_at": "2026-10-18 after corrected iron cumulative acceptance and measured REL-038\u2013041 stalls"
   },
   "issues": [
     {
@@ -4032,14 +4032,14 @@
       "key": "TUT-018",
       "number": 302,
       "title": "Gate: guide-rail surface iron with trimmed handle and solid closure",
-      "state": "open",
-      "state_observed_at": "2026-10-17",
+      "state": "closed",
+      "state_observed_at": "2026-10-18T00:07:17Z",
       "kind": "validation",
       "category": "workflow tutorial",
       "phase": "P5 Assemblies/drawings",
       "priority": "P1",
-      "proposed_bucket": "v1-blocker",
-      "rationale": "Reopened after user rejects final shape; corrective recipe and visual acceptance remain active under TUT-034.",
+      "proposed_bucket": "supporting-evidence",
+      "rationale": "Corrected adapted iron tutorial independently accepted at ffe84b5: 44-stage movie, native solid, STL/STEP and history/reopen. Exact native input, source dimensions and responsiveness remain separate work.",
       "depends_on": [
         "RES-018",
         "TUT-017",
@@ -8755,14 +8755,14 @@
       "key": "TUT-034",
       "number": 470,
       "title": "Correct surface-iron proportions and sculpted handle against public final views",
-      "state": "open",
-      "state_observed_at": "2026-10-17",
+      "state": "closed",
+      "state_observed_at": "2026-10-18T00:07:10Z",
       "kind": "validation",
       "category": "v1 acceptance",
       "phase": "P4 Initial release",
       "priority": "P0",
-      "proposed_bucket": "v1-blocker",
-      "rationale": "Current requested scope review and corrected tutorial acceptance.",
+      "proposed_bucket": "supporting-evidence",
+      "rationale": "Corrected adapted iron tutorial independently accepted at ffe84b5: 44-stage movie, native solid, STL/STEP and history/reopen. Exact native input, source dimensions and responsiveness remain separate work.",
       "depends_on": [
         "SRF-011",
         "GEO-023",
@@ -8930,6 +8930,74 @@
         "REL-036"
       ],
       "url": "https://github.com/rje/Alloy/issues/480"
+    },
+    {
+      "key": "REL-038",
+      "number": 481,
+      "title": "Keep corrected-iron Surface Trim interactions responsive",
+      "state": "open",
+      "state_observed_at": "2026-10-18",
+      "kind": "implementation",
+      "category": "runtime performance and recovery",
+      "phase": "P4 Initial release",
+      "priority": "P0",
+      "proposed_bucket": "v1-blocker",
+      "rationale": "Candidate14 complete movie exposed a measured 20\u201356 s synchronous UI stall; retain this bounded fix under cumulative responsiveness REL-016.",
+      "depends_on": [
+        "REL-035"
+      ],
+      "url": "https://github.com/rje/Alloy/issues/481"
+    },
+    {
+      "key": "REL-039",
+      "number": 482,
+      "title": "Keep corrected-iron Loft selection and commit responsive",
+      "state": "open",
+      "state_observed_at": "2026-10-18",
+      "kind": "implementation",
+      "category": "runtime performance and recovery",
+      "phase": "P4 Initial release",
+      "priority": "P0",
+      "proposed_bucket": "v1-blocker",
+      "rationale": "Candidate14 complete movie exposed a measured 20\u201356 s synchronous UI stall; retain this bounded fix under cumulative responsiveness REL-016.",
+      "depends_on": [
+        "REL-035"
+      ],
+      "url": "https://github.com/rje/Alloy/issues/482"
+    },
+    {
+      "key": "REL-040",
+      "number": 483,
+      "title": "Keep large-history sketch edit and Finish responsive",
+      "state": "open",
+      "state_observed_at": "2026-10-18",
+      "kind": "implementation",
+      "category": "runtime performance and recovery",
+      "phase": "P4 Initial release",
+      "priority": "P0",
+      "proposed_bucket": "v1-blocker",
+      "rationale": "Candidate14 complete movie exposed a measured 20\u201356 s synchronous UI stall; retain this bounded fix under cumulative responsiveness REL-016.",
+      "depends_on": [
+        "REL-035"
+      ],
+      "url": "https://github.com/rje/Alloy/issues/483"
+    },
+    {
+      "key": "REL-041",
+      "number": 484,
+      "title": "Keep downstream recompute responsive after sketch source edit",
+      "state": "open",
+      "state_observed_at": "2026-10-18",
+      "kind": "implementation",
+      "category": "runtime performance and recovery",
+      "phase": "P4 Initial release",
+      "priority": "P0",
+      "proposed_bucket": "v1-blocker",
+      "rationale": "Candidate14 complete movie exposed a measured 20\u201356 s synchronous UI stall; retain this bounded fix under cumulative responsiveness REL-016.",
+      "depends_on": [
+        "REL-035"
+      ],
+      "url": "https://github.com/rje/Alloy/issues/484"
     }
   ]
 }

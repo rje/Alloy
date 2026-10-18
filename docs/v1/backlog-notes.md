@@ -1,6 +1,6 @@
 # Reliable printable-part v1: backlog map and burndown proposal
 
-**Current snapshot 2026-10-17 23:48 UTC:** 480 issues, 330 closed and 150 open. REL-033–036 are independently accepted for responsive Surface Extrude preview, Boundary Fill commit/cell enumeration and native Open evaluation. REL-037/#480 retains the measured 1.279 s final Open presentation pause. The corrected iron full movie remains open. The older audit counts below record the earlier planning pass.
+**Current snapshot 2026-10-18 00:07 UTC:** 484 issues, 332 closed and 152 open. The corrected iron now has an independently accepted 44-stage full movie, editable model and checked STL/STEP. REL-033–036 are accepted responsiveness fixes; REL-037–041 retain measured final Open presentation and 20–56 s Trim/Loft/sketch/source-edit stalls. The older audit counts below record the earlier planning pass.
 
 **Reconciled 2026-10-17:** TUT-018 is now open, TUT-016 is a current tutorial blocker, and REL-030/#469 plus TUT-034/#470 are added. Reconciliation initially gave 470 issues, 148 open / 322 closed. GEO-023/#471 was then added for the actual corrected-iron Loft crash; the current JSON has 471 issues and149 open. The original audit narrative below is retained as history; the JSON includes the reconciliation.
 
