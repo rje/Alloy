@@ -11,6 +11,7 @@
 #include <QJsonDocument>
 #include <QLabel>
 #include <QMenu>
+#include <QMouseEvent>
 #include <QProcess>
 #include <QTest>
 #include <QWindow>
@@ -25,6 +26,13 @@ class SketchOverlapSelectionControls final:public QObject {
         }
         if(!r.value("ok").toBool())qFatal("%s: %s",qPrintable(name),QJsonDocument(r).toJson().constData());
         return r.value("result").toObject();
+    }
+    void hoverRow(QMenu* menu,QAction* action) {
+        const auto point=menu->actionGeometry(action).center();
+        QCOMPARE(menu->actionAt(point),action);
+        QTest::qWait(30);
+        QMouseEvent move(QEvent::MouseMove,QPointF(point),QPointF(menu->mapToGlobal(point)),Qt::NoButton,Qt::NoButton,Qt::NoModifier);
+        QApplication::sendEvent(menu,&move);
     }
 private slots:
     void overlappingCurves() {
@@ -67,7 +75,18 @@ private slots:
         // Holding and cancelling does not mutate even the existing selection.
         const auto selection=session().value("selection");QTest::mousePress(view,Qt::LeftButton,Qt::NoModifier,linePixel);QTest::qWait(600);
         auto* cancelMenu=view->findChild<QMenu*>("sketch.selectOther");QVERIFY(cancelMenu);QTRY_COMPARE(QApplication::activePopupWidget(),cancelMenu);
-        QTest::mouseRelease(cancelMenu,Qt::LeftButton,Qt::NoModifier,QPoint(2,2));QTest::keyClick(cancelMenu,Qt::Key_Escape);QTRY_VERIFY(!QApplication::activePopupWidget());
+        QTest::mouseRelease(cancelMenu,Qt::LeftButton,Qt::NoModifier,QPoint(2,2));
+        const auto viewport=[&]{return w.state().value("viewport").toObject().value("gpu").toObject();};
+        auto* cancelRow=cancelMenu->actions().last();hoverRow(cancelMenu,cancelRow);
+        QCOMPARE(viewport().value("selectOtherPreview").toObject().value("entityId"),cancelRow->data().toJsonObject().value("entityId"));
+        QVERIFY(viewport().value("selectOtherPreviewVisible").toBool());
+        QCOMPARE(session().value("selection"),selection);QCOMPARE(session().value("draftHistory"),history);QCOMPARE(draft(),original);
+        QEvent leave(QEvent::Leave);QApplication::sendEvent(cancelMenu,&leave);
+        QTRY_VERIFY(!viewport().value("selectOtherPreviewVisible").toBool());
+        hoverRow(cancelMenu,cancelRow);
+        QVERIFY(viewport().value("selectOtherPreviewVisible").toBool());
+        QTest::keyClick(cancelMenu,Qt::Key_Escape);QTRY_VERIFY(!QApplication::activePopupWidget());
+        QVERIFY(viewport().value("selectOtherPreview").toObject().isEmpty());QVERIFY(!viewport().value("selectOtherPreviewVisible").toBool());
         QCOMPARE(session().value("selection"),selection);QCOMPARE(draft(),original);QVERIFY(view->hasFocus());
         QJsonArray results;
         struct Target {QString name;QJsonValue id;QPoint pixel;bool projected;bool contextDelete;};
@@ -83,10 +102,20 @@ private slots:
             auto* menu=view->findChild<QMenu*>("sketch.selectOther");QVERIFY(menu);QTRY_COMPARE(QApplication::activePopupWidget(),menu);
             QAction* chosen=nullptr;for(auto* action:menu->actions())if(action->data().toJsonObject().value("entityId")==target.id)chosen=action;
             QVERIFY(chosen);QVERIFY(chosen->text().contains(target.projected ? "Projected" : "Authored"));QVERIFY(chosen->text().contains(target.id.toString().first(8)));
-            menu->grab().save(out+"/"+target.name+"-chooser.png");
             QTest::mouseRelease(menu,Qt::LeftButton,Qt::NoModifier,QPoint(2,2));
+            const auto beforeHoverSelection=session().value("selection"),beforeHoverHistory=session().value("draftHistory");
+            // Pointer hover renders only an independent GPU overlay, never a selection command.
+            hoverRow(menu,chosen);
+            QCOMPARE(viewport().value("selectOtherPreview").toObject().value("entityId"),target.id);
+            QVERIFY(viewport().value("selectOtherPreviewVisible").toBool());
+            QCOMPARE(session().value("selection"),beforeHoverSelection);QCOMPARE(session().value("draftHistory"),beforeHoverHistory);QCOMPARE(draft(),original);
+            view->framebuffer().save(out+"/"+target.name+"-hover-framebuffer.png");
+            QCOMPARE(viewport().value("selectOtherPreview").toObject().value("entityId"),target.id);
+            call(w,"capture.screenshot",{{"path",out+"/"+target.name+"-hover.png"}});
+            menu->grab().save(out+"/"+target.name+"-chooser.png");
             QTest::mouseClick(menu,Qt::LeftButton,Qt::NoModifier,menu->actionGeometry(chosen).center());
             QTRY_VERIFY(!QApplication::activePopupWidget());QTRY_COMPARE(session().value("selection").toObject().value("entityIds").toArray(),QJsonArray{target.id});
+            QVERIFY(!viewport().value("selectOtherPreviewVisible").toBool());
             QVERIFY(view->hasFocus());auto* cue=w.findChild<QLabel*>("sketch.selectionIdentity");QVERIFY(cue&&cue->isVisible());QVERIFY(cue->text().contains(target.id.toString()));
             QVERIFY(cue->text().contains(target.projected ? "Projected" : "Authored"));call(w,"capture.screenshot",{{"path",out+"/"+target.name+"-selected.png"}});
             const auto beforeHistory=session().value("draftHistory").toObject().value("index").toInt();
@@ -125,7 +154,7 @@ private slots:
         call(w,"sketch.displayOptions",{{"showProjectedGeometries",false}});QCOMPARE(candidates(linePixel).size(),1);QCOMPARE(candidates(circlePixel).size(),1);
         call(w,"sketch.displayOptions",{{"showProjectedGeometries",true}});
         const auto gpu=w.state().value("viewport").toObject().value("gpu").toObject();QVERIFY(gpu.value("hardwareAccelerated").toBool());
-        QFile receipt(out+"/receipt.json");QVERIFY(receipt.open(QIODevice::WriteOnly));receipt.write(QJsonDocument(QJsonObject{{"passed",true},{"targets",results},{"gpu",gpu},{"original",original},{"projectionContext",context},{"shortClickAndEscape",true},{"hiddenProjectionExcluded",true}}).toJson());
+        QFile receipt(out+"/receipt.json");QVERIFY(receipt.open(QIODevice::WriteOnly));receipt.write(QJsonDocument(QJsonObject{{"passed",true},{"targets",results},{"gpu",gpu},{"original",original},{"projectionContext",context},{"shortClickAndEscape",true},{"hoverEachCandidate",true},{"hoverLeaveAndEscapeClear",true},{"hoverSelectionDraftHistoryUnchanged",true},{"hiddenProjectionExcluded",true}}).toJson());
         call(w,"sketch.cancel");call(w,"document.new",{{"discard",true}});w.close();
     }
 };

@@ -261,6 +261,7 @@ private:
     QJsonObject angleDimensionLayout(const QJsonObject& feature, const QJsonObject& dimension,
         double value) const;
     void clearSketchDecorations();
+    void previewSketchSelectionCandidate(const QJsonObject& candidate = {});
     void applyEditDisplay(bool redraw = true);
     void clearPreviewPresentation();
     void refreshExtrusionCue();
@@ -364,6 +365,8 @@ private:
     QPointF sketchSelectOtherPress_;
     bool sketchSelectOtherPending_ = false;
     bool sketchSelectOtherOpened_ = false;
+    QJsonObject sketchSelectOtherPreview_;
+    Handle(AIS_Shape) sketchSelectOtherOverlay_;
     int contextMenuEventCount_ = 0;
     int contextMenuShownCount_ = 0;
     QJsonObject lastContextMenu_;

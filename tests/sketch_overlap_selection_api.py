@@ -17,6 +17,9 @@ with application(a.app, out) as (call, ledger):
     call('sketch.lookAt')
     call('view.fit')
     state = call('app.state')['activeSession']
+    presentation = call('app.state')['viewport']['gpu']
+    assert presentation['selectOtherPreview'] == {}
+    assert presentation['selectOtherPreviewVisible'] is False
     context = state['projectionContext']
     original = state['draftSketch']
     line, circle = context['lines'][0], context['circles'][0]

@@ -615,6 +615,14 @@ void ReferenceView::updateCubeAccessoryVisibility() {
     if(visible){cubeControls_->raise();cubeUpLabel_->raise();cubeAccessoryToggle_->raise();}
 }
 bool ReferenceView::eventFilter(QObject* watched,QEvent* e) {
+    if(watched->objectName()=="sketch.selectOther") {
+        if(e->type()==QEvent::Leave)previewSketchSelectionCandidate();
+        if(e->type()==QEvent::MouseMove) {
+            auto* menu=qobject_cast<QMenu*>(watched);
+            auto* action=menu ? menu->actionAt(static_cast<QMouseEvent*>(e)->position().toPoint()) : nullptr;
+            previewSketchSelectionCandidate(action ? action->data().toJsonObject() : QJsonObject{});
+        }
+    }
     if(watched==cubeAccessoryToggle_ || watched==cubeControls_ ||
        (cubeControls_ && cubeControls_->isAncestorOf(qobject_cast<QWidget*>(watched)))) {
         if(e->type()==QEvent::ShortcutOverride && static_cast<QKeyEvent*>(e)->key()==Qt::Key_Escape) {
@@ -1426,6 +1434,7 @@ void ReferenceView::clearSketchDraft() {
         if(centerlineSketchModels_.contains(draftSketchId_))context_->Display(centerlineSketchModels_.value(draftSketchId_),false);
         context_->UpdateCurrentViewer();
     }
+    previewSketchSelectionCandidate();
     profileModels_.clear();draftProfiles_.clear();
     sketchDraft_.Nullify();sketchConstructionDraft_.Nullify();sketchCenterlineDraft_.Nullify();projectedDraft_.Nullify();draftNormalEdgeCount_=0;projectedLines_={};projectedCircles_={};supportPoints_={};constructionDraftLineIds_={};centerlineDraftLineIds_={};draftSketchId_.clear();clearSketchCursor();applyEditDisplay();
 }
@@ -1540,6 +1549,31 @@ QJsonArray ReferenceView::sketchSelectionCandidates(const QJsonObject& feature,d
     QJsonArray candidates;
     pickSketch(feature,x,y,"entity",{},&candidates);
     return candidates;
+}
+void ReferenceView::previewSketchSelectionCandidate(const QJsonObject& candidate) {
+    if(candidate==sketchSelectOtherPreview_)return;
+    if(!context_.IsNull() && !sketchSelectOtherOverlay_.IsNull())context_->Remove(sketchSelectOtherOverlay_,false);
+    sketchSelectOtherOverlay_.Nullify();sketchSelectOtherPreview_={};
+    const auto id=candidate.value("entityId").toString();
+    if(!context_.IsNull() && !id.isEmpty() && sketchEntityVisible(id)) {
+        const auto feature=SketchGeometry::expandedProjectionFeature(
+            SketchGeometry::chamferPresentation(decorationFeature_),
+            {{"lines",projectedLines_},{"circles",projectedCircles_},{"points",supportPoints_}});
+        const auto parameters=feature.value("parameters").toObject();
+        for(const auto& value:parameters.value("entities").toArray()) {
+            const auto entity=value.toObject();if(entity.value("id")!=id)continue;
+            const auto edge=SketchGeometry::analyticEdge(parameters,entity,sketchFrame_);
+            if(edge.IsNull())break;
+            sketchSelectOtherOverlay_=sketchPresentation(edge);
+            sketchSelectOtherOverlay_->SetColor(Quantity_Color(0.12,0.65,0.95,Quantity_TOC_sRGB));
+            sketchSelectOtherOverlay_->SetWidth(5.0*devicePixelRatioF());
+            sketchSelectOtherOverlay_->SetZLayer(Graphic3d_ZLayerId_Topmost);
+            context_->Display(sketchSelectOtherOverlay_,AIS_WireFrame,-1,false);
+            context_->SetDisplayPriority(sketchSelectOtherOverlay_,Graphic3d_DisplayPriority_Topmost);
+            context_->Deactivate(sketchSelectOtherOverlay_);sketchSelectOtherPreview_=candidate;break;
+        }
+    }
+    if(!view_.IsNull())view_->Redraw();
 }
 QJsonObject ReferenceView::selectSketchWindow(const QJsonObject& feature,double x1,double y1,double x2,double y2,const QJsonObject& resolvedFrame) const {
     if(view_.IsNull() || std::abs(x2-x1)<4 || std::abs(y2-y1)<4)return {};
@@ -1899,6 +1933,9 @@ void ReferenceView::setSketchAnnotationVisibility(bool showConstraints,bool show
 }
 void ReferenceView::decorateSketch(const QJsonObject& sourceFeature,const QJsonObject& selection,const QJsonObject& diagnostics,const QString& units,const QJsonObject& pending) {
     const auto feature=SketchGeometry::chamferPresentation(sourceFeature);
+    if(sourceFeature!=decorationFeature_ || selection!=decorationSelection_
+        || (!sketchSelectOtherPreview_.isEmpty() && !sketchEntityVisible(sketchSelectOtherPreview_.value("entityId").toString())))
+        previewSketchSelectionCandidate();
     decorationFeature_=sourceFeature;decorationSelection_=selection;decorationDiagnostics_=diagnostics;decorationUnits_=units;decorationPending_=pending;
     clearSketchDecorations();if(context_.IsNull())return;
     const bool insetPresentation=std::any_of(draftProfiles_.begin(),draftProfiles_.end(),[](const auto& profile){
@@ -3240,6 +3277,8 @@ QJsonObject ReferenceView::diagnostics() const {
         }
     }
     result.insert("projectedDraftVisible",!projectedDraft_.IsNull() && context_->IsDisplayed(projectedDraft_));
+    result.insert("selectOtherPreview",sketchSelectOtherPreview_);
+    result.insert("selectOtherPreviewVisible",!sketchSelectOtherOverlay_.IsNull());
     result.insert("projectedLineIds",projectedLineIds);
     result.insert("projectedLines",projectedLines_);
     result.insert("projectedCircles",projectedCircles_);
@@ -3383,7 +3422,9 @@ void ReferenceView::mousePressEvent(QMouseEvent* e) {
                 if(candidates.size()<2)return;
                 sketchSelectOtherOpened_=true;
                 auto* menu=new QMenu(this);menu->setObjectName("sketch.selectOther");menu->setAttribute(Qt::WA_DeleteOnClose);
+                menu->installEventFilter(this);
                 menu->addSection("Select Other");
+                connect(menu,&QMenu::hovered,this,[this](QAction* action){previewSketchSelectionCandidate(action->data().toJsonObject());});
                 for(const auto& value:candidates) {
                     const auto row=value.toObject();const auto id=row.value("entityId").toString();
                     const auto source=row.value("source").toObject();
@@ -3392,7 +3433,7 @@ void ReferenceView::mousePressEvent(QMouseEvent* e) {
                     action->setData(row);action->setToolTip(id+(source.isEmpty() ? QString{} : "\nSource: "+QString::fromUtf8(QJsonDocument(source).toJson(QJsonDocument::Compact))));
                     connect(action,&QAction::triggered,this,[this,id]{QTimer::singleShot(0,this,[this,id]{dispatch("sketch.selectionSet",{{"entityIds",QJsonArray{id}}});});});
                 }
-                connect(menu,&QMenu::aboutToHide,this,[this]{sketchSelectOtherPending_=false;sketchSelectOtherOpened_=false;});
+                connect(menu,&QMenu::aboutToHide,this,[this]{previewSketchSelectionCandidate();sketchSelectOtherPending_=false;sketchSelectOtherOpened_=false;});
                 menu->popup(mapToGlobal(sketchSelectOtherPress_.toPoint()));
             });
         }
