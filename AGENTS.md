@@ -76,10 +76,11 @@ These rules supersede any earlier suggestion to verify behavior in proprietary s
 - The application remains Alloy-branded.
 - Do not claim a screenshot, mocked control, or empty shell implements CAD.
 - At coherent workflow milestones, perform a bounded independent compatibility
-  review using [docs/compatibility.md](docs/compatibility.md). Use Astra when
-  available, reviewing a candidate it did not implement; another reviewer checks
-  its own code. Reuse real-app fixtures and evidence rather than sweeping every
-  command after each commit.
+  review using [docs/compatibility.md](docs/compatibility.md). Use Sol for a
+  simple feature verification by a reviewer other than its implementer. Reserve
+  Astra for larger passes across multiple features or unusually difficult
+  architecture/geometry reviews. Reuse real-app fixtures and evidence rather
+  than sweeping every command after each commit.
 - Keep one compact command/workflow record covering public inputs/defaults,
   selections, keys, previews, commit/cancel, history and edit behavior. Compare
   visual state when a matched public reference is available, and inspect actual
@@ -180,9 +181,10 @@ that meets the task's quality bar using actual results.
   implementation tasks with clear contracts. It is not restricted to research.
 - Use GPT-6.1 Sol at medium reasoning by default for implementation and multi-step
   technical work (user direction, 2026-10-17). Raise effort only for a concrete need.
-- Use Astra for difficult architecture/geometry and independent feature
-  verification, as requested by the user. Do not use it automatically for routine
-  implementation or bookkeeping.
+- Use Sol for bounded independent feature verification. Reserve Astra for
+  larger multi-feature passes and unusually difficult architecture/geometry
+  reviews (user direction, 2026-10-17); do not use it for routine verification
+  or bookkeeping.
 - Select reasoning effort deliberately: start Luna at high for agent work and
   Astra at low, raising effort for difficult analysis/review; choose Sol effort
   for the task. Do not inherit maximum effort without a reason.
